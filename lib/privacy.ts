@@ -3,6 +3,7 @@ import { ActionError } from "@/lib/action-result";
 export const SHARING_AUDIENCES = [
   { value: "private", label: "Only me" },
   { value: "friends", label: "Friends" },
+  // Legacy stored value for Members: signed-in users only. Signed-out readers need "everyone".
   { value: "public", label: "Members" },
 ] as const;
 

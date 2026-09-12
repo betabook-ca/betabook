@@ -35,6 +35,7 @@ export const user = sqliteTable("user", {
   // `sends` only, with no join to `user`, so a private user's ascents keep
   // counting toward a climb's rating and suggested grade exactly as before.
   isPrivate: integer("is_private", { mode: "boolean" }).default(false).notNull(),
+  // Audience values are defined in lib/privacy.ts; "public" means Members.
   journalVisibility: text("journal_visibility", {
     enum: ["private", "friends", "public"],
   })
