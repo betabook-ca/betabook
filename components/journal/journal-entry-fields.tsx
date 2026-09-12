@@ -36,6 +36,7 @@ export type JournalEntryFieldsProps = {
   existingEntry?: JournalEntry;
   onDone?: () => void;
   onPendingChange?: (pending: boolean) => void;
+  embedded?: boolean;
 };
 
 /** A drawer opened from a climb has no chosen-entry strip, so the headline names the climb. */
@@ -60,6 +61,7 @@ function describePendingEntry(
 // oxlint-disable-next-line complexity
 export function JournalEntryFields({
   today,
+  embedded = false,
   onSave,
   companionFetcher,
   kind,
@@ -155,7 +157,10 @@ export function JournalEntryFields({
   }
 
   return (
-    <form onSubmit={handleSubmit} className={`${SURFACE_CARD_CLASS} gap-4`}>
+    <form
+      onSubmit={handleSubmit}
+      className={embedded ? "flex flex-col gap-3" : `${SURFACE_CARD_CLASS} gap-4`}
+    >
       {climb && !existingEntry && (
         <SendStylePicker
           climbType={climb.type}
@@ -250,9 +255,11 @@ export function JournalEntryFields({
 
       {error && <InlineAlert>{error}</InlineAlert>}
 
-      <Button type="submit" isDisabled={pending} fullWidth>
-        {existingEntry ? "Save changes" : isUndatedSend ? "Save send" : "Save entry"}
-      </Button>
+      <div className="flex justify-end border-t border-separator pt-4">
+        <Button type="submit" isDisabled={pending}>
+          {existingEntry ? "Save changes" : isUndatedSend ? "Save send" : "Save entry"}
+        </Button>
+      </div>
     </form>
   );
 }

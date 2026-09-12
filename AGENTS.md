@@ -21,3 +21,5 @@
 - [Product tour implementation](docs/product-tours.md)
 - [Component test instructions](components/AGENTS.md)
 - [Browser test instructions](tests/ui/AGENTS.md)
+
+- [Journal goal invariants](docs/goals.md)

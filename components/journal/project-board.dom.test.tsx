@@ -81,14 +81,18 @@ function card(climbName: string): HTMLElement {
   return article;
 }
 
-function headings(): (string | null)[] {
-  return screen.queryAllByRole("heading", { level: 3 }).map((heading) => heading.textContent);
+function headings() {
+  const list = screen.queryByRole("list", { name: "Open projects" });
+  return list
+    ? within(list)
+        .queryAllByRole("heading", { level: 3 })
+        .map((heading) => heading.textContent)
+    : [];
 }
 
-it("states the open-project count once when the page is capped", () => {
+it("explains that only recent projects are shown when the page is capped", () => {
   render(<ProjectBoard userId="climber" projects={projects} hasMore />);
 
-  expect(screen.getByText("2+")).toBeInTheDocument();
   expect(screen.getByText(/most recently active projects/)).not.toHaveTextContent(/\d/);
 });
 
@@ -181,4 +185,17 @@ it("invites a first session when there are no open projects", () => {
     screen.getByText(/No open projects\. Log a session on a climb you haven't sent/),
   ).toBeInTheDocument();
   expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
+});
+
+it("keeps goals visible even when there are no projects", async () => {
+  render(
+    <ProjectBoard
+      userId="empty-projects-with-goals"
+      projects={[]}
+      hasMore={false}
+      goals={<h2>Your goals</h2>}
+    />,
+  );
+  expect(screen.getByRole("heading", { name: "Your goals" })).toBeVisible();
+  expect(screen.getByText(/No open projects\. Log a session/)).toBeVisible();
 });
