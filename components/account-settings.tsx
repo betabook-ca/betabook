@@ -2,6 +2,8 @@ import { buttonVariants } from "@heroui/react";
 import { ShieldCheck, Upload } from "lucide-react";
 
 import { AccountFriendRequests } from "@/components/account-friend-requests";
+import { CatalogExportDownload } from "@/components/catalog-export-download";
+import { CatalogExportGenerateButton } from "@/components/catalog-export-generate-button";
 import { DeleteAccountButton } from "@/components/delete-account-button";
 import { DisplayNameForm } from "@/components/display-name-form";
 import { ExportSendsButton } from "@/components/export-sends-button";
@@ -16,6 +18,7 @@ import { AppLink } from "@/components/ui/app-link";
 import { SETTINGS_ROW_CLASS, SettingsRow, SettingsSection } from "@/components/ui/settings";
 import { PageTitle } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import type { CatalogExportInfo } from "@/lib/catalog-export";
 import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
 
 const OUTLINE_LINK_CLASS = `${buttonVariants({ variant: "outline" })} gap-2 text-foreground`;
@@ -27,6 +30,7 @@ export function AccountSettings({
   sendCommentVisibility,
   shareUrl,
   turnstileSiteKey,
+  catalogExport,
   isAdmin,
 }: {
   user: { id: string; name: string; email: string; image?: string | null };
@@ -36,6 +40,8 @@ export function AccountSettings({
   /** Null while the profile is private. */
   shareUrl: string | null;
   turnstileSiteKey?: string | null;
+  /** Null until the first weekly snapshot has been written. */
+  catalogExport: CatalogExportInfo | null;
   isAdmin: boolean;
 }) {
   return (
@@ -81,6 +87,15 @@ export function AccountSettings({
         <SettingsRow title="Download a copy" description="Every send, as a CSV file.">
           <ExportSendsButton userId={user.id} />
         </SettingsRow>
+      </SettingsSection>
+
+      <SettingsSection id="catalog" title="Catalog">
+        <CatalogExportDownload info={catalogExport} />
+        {isAdmin && (
+          <SettingsRow title="Refresh snapshot" description="Runs the weekly export now.">
+            <CatalogExportGenerateButton />
+          </SettingsRow>
+        )}
       </SettingsSection>
 
       <SettingsSection id="preferences" title="Preferences">

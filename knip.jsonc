@@ -10,6 +10,9 @@
     // Read by `opennextjs-cloudflare build`; nothing imports it.
     "open-next.config.ts!",
 
+    // worker.ts needs no entry here: knip's wrangler plugin reads
+    // wrangler.jsonc#main as a production entry.
+
     // Miniflare `main`, set inside the Cloudflare pool's async options callback
     // in vitest.workers.config.mts — the Vitest plugin never evaluates that.
     "test/worker.ts",

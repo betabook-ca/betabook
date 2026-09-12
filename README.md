@@ -262,7 +262,15 @@ pnpm exec opennextjs-cloudflare deploy
 
 `pnpm deploy` is a build-and-deploy shortcut; it does **not** apply migrations. Migrations must stay compatible with the currently deployed worker because the schema changes before the new worker is live.
 
-CI deployment uses the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Runtime credentials (`BETTER_AUTH_SECRET`, `RESEND_API_KEY`, `TURNSTILE_SECRET_KEY`, optional Google OAuth credentials, and the optional `CLOUDFLARE_USAGE_ACCOUNT_ID` and `CLOUDFLARE_USAGE_API_TOKEN` that show live usage on `/costs`) are Worker secrets configured with `pnpm exec wrangler secret put <NAME>`. The usage token needs only Account Analytics Read. Hosting, D1, rate-limit bindings, and the public auth URL are configured in [`wrangler.jsonc`](wrangler.jsonc); use your own Cloudflare resources when hosting a fork.
+The Worker also runs a weekly cron (Mondays 06:00 UTC, `triggers.crons` in `wrangler.jsonc`) that snapshots the public catalog — areas and climbs, names/hierarchy/descriptions/grades only — into the `betabook-exports` R2 bucket, where members download it from `/account`. The bucket must exist before the first deploy that binds it:
+
+```bash
+pnpm exec wrangler r2 bucket create betabook-exports
+```
+
+The deploy API token needs **Workers R2 Storage: Edit** for that binding. After deploying, an admin can generate the first snapshot from `/account` instead of waiting for Monday.
+
+CI deployment uses the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Runtime credentials (`BETTER_AUTH_SECRET`, `RESEND_API_KEY`, `TURNSTILE_SECRET_KEY`, optional Google OAuth credentials, and the optional `CLOUDFLARE_USAGE_ACCOUNT_ID` and `CLOUDFLARE_USAGE_API_TOKEN` that show live usage on `/costs`) are Worker secrets configured with `pnpm exec wrangler secret put <NAME>`. The usage token needs only Account Analytics Read. Hosting, D1, R2, rate-limit bindings, the cron schedule, and the public auth URL are configured in [`wrangler.jsonc`](wrangler.jsonc); use your own Cloudflare resources when hosting a fork.
 
 The zone, DNS records, managed robots.txt, the `hello@betabook.ca` routing rule, and the D1 database itself are managed with OpenTofu in [`infra/cloudflare`](infra/cloudflare/README.md) and applied by Spacelift. The Worker, its bindings and secrets, and D1 migrations stay with wrangler.
 

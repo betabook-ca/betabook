@@ -87,7 +87,8 @@ test("surface rules: account loading includes settings and semantic danger panel
 }, testInfo) => {
   await openStory(page, testInfo, "patterns-layout-and-feedback--account-placeholder");
   const cards = page.locator(".rounded-panel");
-  await expect(cards).toHaveCount(6);
+  // Six settings panels + the danger panel.
+  await expect(cards).toHaveCount(7);
   const danger = cards.last();
   const expected = await page.evaluate(() => {
     const probe = document.createElement("div");

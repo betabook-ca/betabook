@@ -5,6 +5,7 @@ import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { getDb } from "@/db/client";
 import { getUser } from "@/db/queries";
 import { getTurnstileSiteKey } from "@/lib/auth";
+import { getCatalogExportBucket, getCatalogExportInfo } from "@/lib/catalog-export";
 import { getOwnProfileShareUrl } from "@/lib/profile-share-url";
 import { getMemberSession as getSession, isAdmin } from "@/lib/session";
 
@@ -37,6 +38,7 @@ export default async function AccountPage() {
       sendCommentVisibility={user?.sendCommentVisibility ?? "public"}
       shareUrl={await getOwnProfileShareUrl(db, { id: session.user.id, isPrivate })}
       turnstileSiteKey={await getTurnstileSiteKey()}
+      catalogExport={await getCatalogExportInfo(await getCatalogExportBucket())}
       isAdmin={isAdmin({ user: { role: user?.role } })}
     />
   );
