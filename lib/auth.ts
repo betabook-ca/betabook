@@ -40,6 +40,11 @@ async function authBuilder() {
       "http://localhost:3003",
       "https://betabook.ca",
     ],
+    advanced: {
+      // Cloudflare appends to a client-sent X-Forwarded-For, so it can be
+      // spoofed or left multi-valued; rate limits then share one bucket.
+      ipAddress: { ipAddressHeaders: ["cf-connecting-ip"] },
+    },
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: true,
