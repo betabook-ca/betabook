@@ -18,7 +18,7 @@ import { climbListOrderBy, searchClimbsConditions } from "./climbs";
 import { sendCommentVisibleSql } from "./content-access";
 import { toFtsPrefixQuery } from "./shared";
 
-export const PUBLIC_CLIMB_SENDS_LIMIT = 10;
+const PUBLIC_CLIMB_SENDS_LIMIT = 10;
 
 /** Names, commentary and exact dates leave the database only for Everyone
  * commentary, which a private profile overrides. Send and user IDs never do:

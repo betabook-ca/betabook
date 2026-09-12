@@ -7,7 +7,7 @@ import { user } from "@/db/schema";
 import { seedFixtureSend, seedFixtureTree, seedFixtureUser, seedManyUsers } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
 
-import { getPublicSendsForClimb, PUBLIC_CLIMB_SENDS_LIMIT } from "./public-catalog";
+import { getPublicSendsForClimb } from "./public-catalog";
 
 const db = createDb(env.DB);
 
@@ -160,7 +160,7 @@ it("reads current audiences and keeps private profiles anonymous", async () => {
 });
 
 it("returns the latest sends newest first with ID tie-breaks, capped", async () => {
-  const count = PUBLIC_CLIMB_SENDS_LIMIT + 2;
+  const count = 12;
   await seedManyUsers(
     db,
     Array.from({ length: count }, (_, i) => ({ id: `climber-${i}` })),

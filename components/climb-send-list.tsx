@@ -16,9 +16,8 @@ type ClimbSendListProps = {
    * /api/climbs/[id]/sends via "load more". */
   initialSends: ClimbSendRow[];
   initialHasMore: boolean;
-  /** The signed-in viewer's own user id, if any — used to show the actions
-   * menu on their own row (a user can only have one send per climb). */
-  currentUserId?: string | null;
+  /** Shows the actions menu on the viewer's own row (one send per climb). */
+  currentUserId: string;
   /** Rendered when the climb has no sends — the page supplies a
    * first-ascent invitation (see app/climbs/[id]/page.tsx). */
   emptyState?: ReactNode;
@@ -29,7 +28,7 @@ type ClimbSendListProps = {
  * "load more" fetching subsequent pages. Refreshes revalidate loaded pages. */
 export function ClimbSendList(props: ClimbSendListProps) {
   return (
-    <ViewerBoundary viewerId={props.currentUserId ?? null}>
+    <ViewerBoundary viewerId={props.currentUserId}>
       <ClimbSendListContent {...props} />
     </ViewerBoundary>
   );
@@ -78,10 +77,7 @@ function ClimbSendListContent({
         <ClimbSendListRow
           type={climb.type}
           send={send}
-          actions={
-            send.userId !== null &&
-            send.userId === currentUserId && <SendActionsMenu climb={climb} send={send} />
-          }
+          actions={send.userId === currentUserId && <SendActionsMenu climb={climb} send={send} />}
         />
       )}
     />
