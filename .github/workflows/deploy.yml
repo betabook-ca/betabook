@@ -63,19 +63,28 @@ jobs:
       - name: Build
         run: pnpm exec opennextjs-cloudflare build
 
-  # A runner has four cores and must also host the gallery preview and
-  # `next dev`, so the run keeps two Playwright workers and buys its speed by
-  # splitting each project across runners instead. Raising the workers starves
-  # the dev server and the app tests miss their navigation timeouts.
+  # The account shares 20 concurrent jobs, so each runner is packed. The @app
+  # tests need `next dev`, which caps a runner at two Playwright workers, so they
+  # get one small job. Gallery shards serve only the static build and take a
+  # worker per core (see playwright.config.ts).
   ui-tests:
-    name: UI (${{ matrix.project }} ${{ matrix.shard }}/2)
+    name: UI (${{ matrix.suite }} ${{ matrix.shard }}/${{ matrix.shards }}${{ matrix.workers && format(' w{0}', matrix.workers) || '' }})
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        project: [desktop-light, desktop-dark, mobile-light, mobile-dark]
-        shard: [1, 2]
+        include:
+          - { suite: app, shard: 1, shards: 1 }
+          - { suite: gallery, shard: 1, shards: 3, workers: 4 }
+          - { suite: gallery, shard: 2, shards: 3, workers: 4 }
+          - { suite: gallery, shard: 3, shards: 3, workers: 4 }
+          # Temporary worker sweep on one shard.
+          - { suite: gallery, shard: 1, shards: 3, workers: 2 }
+          - { suite: gallery, shard: 1, shards: 3, workers: 3 }
+          - { suite: gallery, shard: 1, shards: 3, workers: 6 }
+    env:
+      BETABOOK_UI_SUITE: ${{ matrix.suite }}
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/setup@v2.1.0
@@ -95,20 +104,24 @@ jobs:
       # The worker count is chosen against the runner's cores, so record what
       # this job actually got; a change in runner size changes that choice.
       - name: Report runner size
-        run: 'echo "cores: $(nproc)  memory: $(free -g | awk ''/^Mem:/ {print $2}'')GB"'
+        run: |
+          echo "cores: $(nproc)  memory: $(free -g | awk '/^Mem:/ {print $2}')GB"
+          lscpu | grep 'Model name'
       - name: Prepare local app environment
+        if: matrix.suite == 'app'
         run: cp .dev.vars.example .dev.vars
       - name: Build component gallery
+        if: matrix.suite == 'gallery'
         run: pnpm storybook:build
-      - name: Check component gallery and app branding
+      - name: Run browser tests
         run: >-
-          pnpm exec playwright test --project=${{ matrix.project }}
-          --shard=${{ matrix.shard }}/2
+          pnpm exec playwright test --shard=${{ matrix.shard }}/${{ matrix.shards }}
+          ${{ matrix.workers && format('--workers={0}', matrix.workers) || '' }}
       - name: Upload UI report
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: ui-reference-report-${{ matrix.project }}-${{ matrix.shard }}
+          name: ui-reference-report-${{ matrix.suite }}-${{ matrix.shard }}${{ matrix.workers && format('-w{0}', matrix.workers) || '' }}
           path: |
             playwright-report/
             test-results/

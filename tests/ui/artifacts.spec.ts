@@ -75,55 +75,58 @@ test("MCP component manifest includes usable component documentation", async ({ 
       .sort(),
   );
 });
-test("tab, touch, install and social metadata point to decodable approved assets", async ({
-  page,
-  request,
-}) => {
-  await page.goto(`${appBaseURL}/about`);
-  const icons = page.locator('link[rel="icon"]');
-  await expect(icons).toHaveCount(2);
-  const iconUrls = await icons.evaluateAll((links) =>
-    links.map((link) => (link as HTMLLinkElement).href),
-  );
-  expect(iconUrls.some((url) => new URL(url).pathname === "/favicon.ico")).toBe(true);
-  expect(iconUrls.some((url) => new URL(url).pathname === "/icon.svg")).toBe(true);
-  const touch = await page.locator('link[rel="apple-touch-icon"]').getAttribute("href");
-  expect(touch).toContain("/apple-icon.png");
-  const manifestUrl = await page.locator('link[rel="manifest"]').getAttribute("href");
-  if (!manifestUrl || !touch) throw new Error("Missing install metadata");
-  const response = await request.get(new URL(manifestUrl, appBaseURL).href);
-  expect(response.ok()).toBe(true);
-  const manifest = await response.json();
-  expect(manifest.icons).toHaveLength(2);
-  const social = await page.locator('meta[property="og:image"]').getAttribute("content");
-  const twitter = await page.locator('meta[name="twitter:image"]').getAttribute("content");
-  if (!social || !twitter) throw new Error("Missing social metadata");
-  expect(new URL(social).pathname).toBe("/opengraph-image.png");
-  expect(new URL(twitter).pathname).toBe("/opengraph-image.png");
-  const assets = [
-    ...iconUrls.map((url) => ({ url, size: 32 })),
-    { url: touch, size: 180 },
-    ...manifest.icons.map((icon: { src: string; sizes: string }) => ({
-      url: icon.src,
-      size: Number(icon.sizes.split("x")[0]),
-    })),
-    { url: new URL(social).pathname, size: 1200 },
-  ];
-  for (const { url, size } of assets) {
-    const asset = await request.get(new URL(url, appBaseURL).href);
-    expect(asset.ok(), url).toBe(true);
-    const dimensions = await page.evaluate(async (src) => {
-      const image = new Image();
-      image.src = src;
-      await image.decode();
-      return { width: image.naturalWidth, height: image.naturalHeight };
-    }, url);
-    expect(dimensions.width, url).toBe(size);
-    expect(dimensions.height, url).toBe(size === 1200 ? 630 : size);
-  }
-  const socialAlt = await page.locator('meta[property="og:image:alt"]').getAttribute("content");
-  expect(socialAlt).toBe("Betabook — Climb · Log · Progress. Climbing logbook and crag database.");
-});
+test(
+  "tab, touch, install and social metadata point to decodable approved assets",
+  { tag: "@app" },
+  async ({ page, request }) => {
+    await page.goto(`${appBaseURL}/about`);
+    const icons = page.locator('link[rel="icon"]');
+    await expect(icons).toHaveCount(2);
+    const iconUrls = await icons.evaluateAll((links) =>
+      links.map((link) => (link as HTMLLinkElement).href),
+    );
+    expect(iconUrls.some((url) => new URL(url).pathname === "/favicon.ico")).toBe(true);
+    expect(iconUrls.some((url) => new URL(url).pathname === "/icon.svg")).toBe(true);
+    const touch = await page.locator('link[rel="apple-touch-icon"]').getAttribute("href");
+    expect(touch).toContain("/apple-icon.png");
+    const manifestUrl = await page.locator('link[rel="manifest"]').getAttribute("href");
+    if (!manifestUrl || !touch) throw new Error("Missing install metadata");
+    const response = await request.get(new URL(manifestUrl, appBaseURL).href);
+    expect(response.ok()).toBe(true);
+    const manifest = await response.json();
+    expect(manifest.icons).toHaveLength(2);
+    const social = await page.locator('meta[property="og:image"]').getAttribute("content");
+    const twitter = await page.locator('meta[name="twitter:image"]').getAttribute("content");
+    if (!social || !twitter) throw new Error("Missing social metadata");
+    expect(new URL(social).pathname).toBe("/opengraph-image.png");
+    expect(new URL(twitter).pathname).toBe("/opengraph-image.png");
+    const assets = [
+      ...iconUrls.map((url) => ({ url, size: 32 })),
+      { url: touch, size: 180 },
+      ...manifest.icons.map((icon: { src: string; sizes: string }) => ({
+        url: icon.src,
+        size: Number(icon.sizes.split("x")[0]),
+      })),
+      { url: new URL(social).pathname, size: 1200 },
+    ];
+    for (const { url, size } of assets) {
+      const asset = await request.get(new URL(url, appBaseURL).href);
+      expect(asset.ok(), url).toBe(true);
+      const dimensions = await page.evaluate(async (src) => {
+        const image = new Image();
+        image.src = src;
+        await image.decode();
+        return { width: image.naturalWidth, height: image.naturalHeight };
+      }, url);
+      expect(dimensions.width, url).toBe(size);
+      expect(dimensions.height, url).toBe(size === 1200 ? 630 : size);
+    }
+    const socialAlt = await page.locator('meta[property="og:image:alt"]').getAttribute("content");
+    expect(socialAlt).toBe(
+      "Betabook — Climb · Log · Progress. Climbing logbook and crag database.",
+    );
+  },
+);
 
 test("email accessibility checks cover the document inside the sandbox", async ({
   page,
