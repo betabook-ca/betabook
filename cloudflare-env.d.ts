@@ -11,6 +11,8 @@ interface CloudflareEnv {
   RESEND_API_KEY: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  TURNSTILE_SITE_KEY?: string;
+  TURNSTILE_SECRET_KEY?: string;
 }
 
 declare namespace Cloudflare {
@@ -24,5 +26,7 @@ declare namespace Cloudflare {
     RESEND_API_KEY: CloudflareEnv["RESEND_API_KEY"];
     GOOGLE_CLIENT_ID?: CloudflareEnv["GOOGLE_CLIENT_ID"];
     GOOGLE_CLIENT_SECRET?: CloudflareEnv["GOOGLE_CLIENT_SECRET"];
+    TURNSTILE_SITE_KEY?: CloudflareEnv["TURNSTILE_SITE_KEY"];
+    TURNSTILE_SECRET_KEY?: CloudflareEnv["TURNSTILE_SECRET_KEY"];
   }
 }

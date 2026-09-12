@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { SignInForm } from "@/components/sign-in-form";
-import { isGoogleOAuthEnabled } from "@/lib/auth";
+import { getTurnstileSiteKey, isGoogleOAuthEnabled } from "@/lib/auth";
 import { getMemberSession as getSession } from "@/lib/session";
 import { formatAuthErrorMessage, safeNextPath } from "@/lib/sign-in-redirect";
 
@@ -23,6 +23,14 @@ export default async function SignInPage({
     redirect(nextPath ?? `/users/${session.user.id}`);
   }
   const googleEnabled = await isGoogleOAuthEnabled();
+  const turnstileSiteKey = await getTurnstileSiteKey();
   const initialError = formatAuthErrorMessage(error);
-  return <SignInForm next={nextPath} googleEnabled={googleEnabled} initialError={initialError} />;
+  return (
+    <SignInForm
+      next={nextPath}
+      googleEnabled={googleEnabled}
+      initialError={initialError}
+      turnstileSiteKey={turnstileSiteKey}
+    />
+  );
 }

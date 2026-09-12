@@ -22,3 +22,8 @@ RESEND_API_KEY=
 #   https://betabook.ca/api/auth/callback/google   (production)
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
+
+# Turnstile is off unless both are set. Cloudflare's always-pass test keys are
+# 1x00000000000000000000AA (site) and 1x0000000000000000000000000000000AA.
+TURNSTILE_SITE_KEY=
+TURNSTILE_SECRET_KEY=

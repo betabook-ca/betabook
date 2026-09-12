@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { TERMS_VERSION, termsHref } from "@/lib/terms";
+import { stubTurnstile } from "@/test/turnstile";
 
 import { SignUpForm } from "./sign-up-form";
 
@@ -17,6 +18,7 @@ const { signUp, social } = vi.hoisted(() => ({
 vi.mock("@/lib/auth-client", () => ({
   authClient: { signUp: { email: signUp }, signIn: { social } },
 }));
+vi.mock("next/script", () => import("@/test/turnstile"));
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -83,4 +85,31 @@ it("submits the displayed terms version and preserves the agreement on a failed 
   expect(screen.getByRole("textbox", { name: "Email" })).toHaveValue("new@example.com");
   await user.click(submit);
   expect(signUp).toHaveBeenCalledTimes(2);
+});
+
+it("sends the Turnstile token with the registration and resets the widget after a failure", async () => {
+  const { turnstile, solve } = stubTurnstile();
+  const user = userEvent.setup();
+  render(<SignUpForm turnstileSiteKey="site-key" />);
+  await user.type(screen.getByRole("textbox", { name: "Display name" }), "Test Climber");
+  await user.type(screen.getByRole("textbox", { name: "Email" }), "new@example.com");
+  await user.type(screen.getByLabelText("Password", { exact: true }), "password123");
+  await user.type(screen.getByLabelText("Confirm password"), "password123");
+  await user.click(screen.getByRole("checkbox", { name: /I agree to the Terms of Service/ }));
+  const submit = screen.getByRole("button", { name: "Sign up" });
+  expect(submit).toBeDisabled();
+
+  await solve("token-1");
+  await user.click(submit);
+  expect(signUp).toHaveBeenCalledWith(
+    expect.objectContaining({ email: "new@example.com" }),
+    expect.objectContaining({ headers: { "x-captcha-response": "token-1" } }),
+  );
+  const callbacks = signUp.mock.calls[0][1];
+  await act(async () => {
+    callbacks.onError({ error: { message: "Captcha verification failed" } });
+    callbacks.onResponse();
+  });
+  expect(turnstile.reset).toHaveBeenCalledWith("widget-1");
+  expect(submit).toBeDisabled();
 });

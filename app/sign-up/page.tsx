@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { SignUpForm } from "@/components/sign-up-form";
-import { isGoogleOAuthEnabled } from "@/lib/auth";
+import { getTurnstileSiteKey, isGoogleOAuthEnabled } from "@/lib/auth";
 import { getMemberSession as getSession } from "@/lib/session";
 import { safeNextPath } from "@/lib/sign-in-redirect";
 
@@ -23,5 +23,8 @@ export default async function SignUpPage({
     redirect(nextPath ?? `/users/${session.user.id}`);
   }
   const googleEnabled = await isGoogleOAuthEnabled();
-  return <SignUpForm next={nextPath} googleEnabled={googleEnabled} />;
+  const turnstileSiteKey = await getTurnstileSiteKey();
+  return (
+    <SignUpForm next={nextPath} googleEnabled={googleEnabled} turnstileSiteKey={turnstileSiteKey} />
+  );
 }

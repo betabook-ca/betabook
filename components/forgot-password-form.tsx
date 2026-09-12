@@ -3,13 +3,15 @@
 import { Button, Input, Label, TextField } from "@heroui/react";
 import { useState } from "react";
 
+import { useTurnstile } from "@/components/turnstile";
 import { AppLink } from "@/components/ui/app-link";
 import { FORM_CARD_CLASS } from "@/components/ui/card";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { PageTitle } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 
-export function ForgotPasswordForm() {
+export function ForgotPasswordForm({ turnstileSiteKey }: { turnstileSiteKey?: string | null }) {
+  const captcha = useTurnstile(turnstileSiteKey);
   const [email, setEmail] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,9 +24,13 @@ export function ForgotPasswordForm() {
     void authClient.requestPasswordReset(
       { email, redirectTo: "/reset-password" },
       {
+        headers: captcha.headers,
         onSuccess: () => setDone(true),
         onError: (ctx) => setError(ctx.error.message ?? "Request failed"),
-        onResponse: () => setPending(false),
+        onResponse: () => {
+          setPending(false);
+          captcha.reset();
+        },
       },
     );
   }
@@ -52,7 +58,8 @@ export function ForgotPasswordForm() {
         <Input placeholder="you@example.com" />
       </TextField>
       {error && <InlineAlert>{error}</InlineAlert>}
-      <Button type="submit" fullWidth isDisabled={pending}>
+      {captcha.widget}
+      <Button type="submit" fullWidth isDisabled={pending || !captcha.ready}>
         Send reset link
       </Button>
       <p className="text-sm text-muted">
