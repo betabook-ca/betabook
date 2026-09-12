@@ -15,3 +15,8 @@ resource "cloudflare_turnstile_widget" "auth" {
 output "turnstile_sitekey" {
   value = cloudflare_turnstile_widget.auth.sitekey
 }
+
+output "turnstile_secret" {
+  value     = cloudflare_turnstile_widget.auth.secret
+  sensitive = true
+}
