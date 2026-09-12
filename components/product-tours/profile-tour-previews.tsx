@@ -14,7 +14,7 @@ import { choicePillClass } from "@/components/ui/choice-pill";
 import { EYEBROW_CLASS } from "@/components/ui/eyebrow";
 import { ListRow } from "@/components/ui/list-row";
 import { formatDate } from "@/lib/format-date";
-import type { SharingAudience } from "@/lib/privacy";
+import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
 import {
   getTourDemoJournalPage,
   TOUR_DEMO_ANALYTICS,
@@ -283,10 +283,17 @@ export function DemoAnalytics() {
   );
 }
 
+const DEMO_AUDIENCE_READERS: Record<SendCommentAudience, string> = {
+  private: "only Alex",
+  friends: "Alex and friends",
+  public: "signed-in members",
+  everyone: "everyone, including signed-out visitors",
+};
+
 export function DemoAccount() {
   const [isPrivate, setIsPrivate] = useState(false);
   const [journalVisibility, setJournalVisibility] = useState<SharingAudience>("friends");
-  const [sendCommentVisibility, setSendCommentVisibility] = useState<SharingAudience>("public");
+  const [sendCommentVisibility, setSendCommentVisibility] = useState<SendCommentAudience>("public");
   return (
     <div className="flex flex-col gap-4">
       <div data-tour-target="privacy-controls" className="flex flex-col gap-4">
@@ -306,24 +313,8 @@ export function DemoAccount() {
         ) : (
           <ul className="mt-2 flex flex-col gap-1">
             <li>Profile and send details: signed-in members.</li>
-            <li>
-              Send commentary:{" "}
-              {sendCommentVisibility === "private"
-                ? "only Alex"
-                : sendCommentVisibility === "public"
-                  ? "signed-in members"
-                  : "Alex and friends"}
-              .
-            </li>
-            <li>
-              Journal entries:{" "}
-              {journalVisibility === "private"
-                ? "only Alex"
-                : journalVisibility === "public"
-                  ? "signed-in members"
-                  : "Alex and friends"}
-              .
-            </li>
+            <li>Send commentary: {DEMO_AUDIENCE_READERS[sendCommentVisibility]}.</li>
+            <li>Journal entries: {DEMO_AUDIENCE_READERS[journalVisibility]}.</li>
           </ul>
         )}
       </div>

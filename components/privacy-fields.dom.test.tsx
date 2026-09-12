@@ -3,14 +3,14 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { expect, it, vi } from "vitest";
 
-import type { SharingAudience } from "@/lib/privacy";
+import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
 
 import { PrivacyFields } from "./privacy-fields";
 
 function Privacy({ pending = false }: { pending?: boolean }) {
   const [isPrivate, setPrivate] = useState(false);
   const [journal, setJournal] = useState<SharingAudience>("friends");
-  const [comment, setComment] = useState<SharingAudience>("public");
+  const [comment, setComment] = useState<SendCommentAudience>("public");
   return (
     <PrivacyFields
       isPrivate={isPrivate}
@@ -55,7 +55,7 @@ it("masks audiences on private profiles and restores each independent choice", a
 
 it("prevents changes to all three privacy controls during a save", async () => {
   const user = userEvent.setup();
-  const change = vi.fn<(value: boolean | SharingAudience) => void>();
+  const change = vi.fn<(value: boolean | SendCommentAudience) => void>();
   render(
     <PrivacyFields
       isPrivate={false}
