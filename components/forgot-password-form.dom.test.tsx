@@ -2,7 +2,7 @@ import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
-import { stubTurnstile } from "@/test/turnstile";
+import { stubTurnstile, turnstileScript } from "@/test/turnstile";
 
 import { ForgotPasswordForm } from "./forgot-password-form";
 
@@ -40,4 +40,28 @@ it("sends the Turnstile token with a reset request and needs a new one to retry"
   expect(screen.getByRole("alert")).toHaveTextContent("Captcha verification failed");
   expect(turnstile.reset).toHaveBeenCalledWith("widget-1");
   expect(submit).toBeDisabled();
+});
+
+it("explains why the form is blocked when the Turnstile script cannot load", async () => {
+  stubTurnstile();
+  turnstileScript.blocked = true;
+  try {
+    render(<ForgotPasswordForm turnstileSiteKey="site-key" />);
+    expect(await screen.findByRole("alert")).toHaveTextContent(/security check/);
+    expect(screen.getByRole("button", { name: "Send reset link" })).toBeDisabled();
+  } finally {
+    turnstileScript.blocked = false;
+  }
+});
+
+it("explains a Turnstile error until a token arrives", async () => {
+  const { solve, fail } = stubTurnstile();
+  render(<ForgotPasswordForm turnstileSiteKey="site-key" />);
+  await fail();
+  expect(screen.getByRole("alert")).toHaveTextContent(/security check/);
+  expect(screen.getByRole("button", { name: "Send reset link" })).toBeDisabled();
+
+  await solve("token-1");
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Send reset link" })).toBeEnabled();
 });
