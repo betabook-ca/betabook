@@ -245,7 +245,7 @@ The pre-commit hook formats staged files; the pre-push hook runs `pnpm check`. S
 
 ## Deployment
 
-[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) runs the checks and a Cloudflare production build on pull requests. Pushes to `main`, or manual workflow runs on `main`, also apply remote D1 migrations and deploy in the `smwoo/betabook` repository.
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) runs the checks and a Cloudflare production build on pull requests. Pushes to `main`, or manual workflow runs on `main`, also apply remote D1 migrations and deploy in the `betabook-ca/betabook` repository.
 
 For a manual deployment, mirror the build–migrate–deploy order:
 
@@ -259,6 +259,8 @@ pnpm exec opennextjs-cloudflare deploy
 `pnpm deploy` is a build-and-deploy shortcut; it does **not** apply migrations. Migrations must stay compatible with the currently deployed worker because the schema changes before the new worker is live.
 
 CI deployment uses the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Runtime credentials (`BETTER_AUTH_SECRET`, `RESEND_API_KEY`, and optional Google OAuth credentials) are Worker secrets configured with `pnpm exec wrangler secret put <NAME>`. Hosting, D1, rate-limit bindings, and the public auth URL are configured in [`wrangler.jsonc`](wrangler.jsonc); use your own Cloudflare resources when hosting a fork.
+
+The zone, DNS records, managed robots.txt, the `hello@betabook.ca` routing rule, and the D1 database itself are managed with OpenTofu in [`infra/cloudflare`](infra/cloudflare/README.md) and applied by Spacelift. The Worker, its bindings and secrets, and D1 migrations stay with wrangler.
 
 ## License
 

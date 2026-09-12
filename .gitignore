@@ -50,6 +50,9 @@ next-env.d.ts
 .wrangler
 .open-next
 worker-configuration.d.ts
+.terraform/
+*.tfstate
+*.tfstate.*
 
 # seed data
 climbs_data

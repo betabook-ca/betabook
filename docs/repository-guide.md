@@ -40,7 +40,7 @@ Betabook is a climbing logbook and crag database built with Next.js 16 App Route
 
 Edit schema definitions in `drizzle/schema/`, then use `pnpm db:generate` and inspect the SQL. Some indexes and triggers exist only in handwritten migrations, so the TypeScript schema is not a complete description of the database. Add new migrations under `drizzle/migrations/` and keep them compatible with the running worker; CI applies them before deployment. Run `pnpm db:migrate:local` after pulling or adding migrations: `pnpm setup` does not migrate an existing database.
 
-Keep `wrangler.jsonc`, `.dev.vars.example`, and the checked-in `cloudflare-env.d.ts` aligned when changing bindings or environment variables. Generated `worker-configuration.d.ts` is optional for local validation and must not become a build prerequisite.
+Keep `wrangler.jsonc`, `.dev.vars.example`, and the checked-in `cloudflare-env.d.ts` aligned when changing bindings or environment variables. Generated `worker-configuration.d.ts` is optional for local validation and must not become a build prerequisite. Zone, DNS, and D1 database resources belong in [`infra/cloudflare`](../infra/cloudflare/README.md); Worker settings, bindings, and custom domains stay in `wrangler.jsonc` because every deploy overwrites them.
 
 ## Routes and metadata
 
@@ -49,7 +49,7 @@ Keep `wrangler.jsonc`, `.dev.vars.example`, and the checked-in `cloudflare-env.d
 - Area and climb pages remain crawlable with names and hierarchy links. Their public queries use explicit field projections; metadata and JSON-LD may contain names, location trails, area/route descriptions, and route grades and disciplines. Never include ratings, activity, or user information in these public payloads.
 - Auth pages, new-entry forms, session-gated routes, and all user-profile views must be `robots: { index: false }`. Filter/search variants of otherwise indexable pages should be noindex when query parameters are present, as on `app/page.tsx`.
 - Entity pages render `JsonLd` with at least breadcrumbs, using the builders in `lib/seo.ts`. Do not add `AggregateRating` or `Review` markup. Extend `lib/seo.test.ts` for new builders.
-- Add new crawlable entity types to `app/sitemap.ts` with count and paginated query helpers. The sitemap index route is `/sitemap-index.xml`. API responses get `X-Robots-Tag: noindex` from `next.config.ts`; `robots.txt` is managed outside the repo at Cloudflare.
+- Add new crawlable entity types to `app/sitemap.ts` with count and paginated query helpers. The sitemap index route is `/sitemap-index.xml`. API responses get `X-Robots-Tag: noindex` from `next.config.ts`; `robots.txt` is Cloudflare's managed robots.txt, enabled in [`infra/cloudflare/zone.tf`](../infra/cloudflare/zone.tf).
 
 ## Design system and UI regressions
 

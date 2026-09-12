@@ -16,8 +16,37 @@ permissions:
   contents: read
 
 jobs:
+  # Infra-only changes skip jobs by condition, not `paths`: a skipped job passes
+  # a required check, but a skipped workflow leaves it pending. Dependents run
+  # unless this reports exactly `false`, so a failed detection still tests.
+  changes:
+    name: Detect app changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      app: ${{ steps.diff.outputs.app }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ -n "$BASE_SHA" ] &&
+            files=$(git diff --name-only "$BASE_SHA...$HEAD_SHA") &&
+            [ -n "$files" ] &&
+            ! grep -qv '^infra/' <<< "$files"; then
+            echo app=false >> "$GITHUB_OUTPUT"
+          else
+            echo app=true >> "$GITHUB_OUTPUT"
+          fi
+
   test:
     name: Test & Build
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.app != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -70,6 +99,8 @@ jobs:
   # workers. A gallery shard takes up to ten minutes on the slowest runner CPU.
   ui-tests:
     name: UI (${{ matrix.suite }} ${{ matrix.shard }}/${{ matrix.shards }})
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.app != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -126,15 +157,16 @@ jobs:
 
   ui:
     name: UI reference
-    needs: [ui-tests]
+    needs: [changes, ui-tests]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 1
     steps:
       - name: Require every viewport and theme to pass
         env:
+          APP_CHANGED: ${{ needs.changes.outputs.app }}
           UI_RESULT: ${{ needs.ui-tests.result }}
-        run: test "$UI_RESULT" = success
+        run: test "$APP_CHANGED" = false || test "$UI_RESULT" = success
 
   deploy:
     name: Deploy

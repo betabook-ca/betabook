@@ -2,6 +2,7 @@
 
 - [Next.js instructions — read before writing code](CLAUDE.md)
 - [Setup, local accounts, scripts and deployment](README.md)
+- [Cloudflare infrastructure (OpenTofu and Spacelift)](infra/cloudflare/README.md)
 - [Working on Betabook](docs/repository-guide.md)
   - [Code map](docs/repository-guide.md#code-map)
   - [Boundaries and conventions](docs/repository-guide.md#boundaries-and-conventions)
