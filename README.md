@@ -170,13 +170,13 @@ The shared Storybook preview also sets `chromatic.disableSnapshot: true` to prev
 captures. There are no Chromatic visual baselines or review approvals to maintain.
 Require **Test & Build** and **UI reference** for PRs; publishing is advisory and
 fork PRs need no Chromatic secret.
-CI splits each viewport/theme project across two runners, eight jobs in all, and
-each runner uses two Playwright workers. The worker count is deliberate: a runner
-has four cores and also hosts the gallery preview and `next dev`, so more workers
-starve the dev server until the app checks miss their navigation timeouts. Extra
-parallelism comes from runners, not workers. **UI reference** requires all eight
-jobs to pass; each uploads its own `ui-reference-report-<project>-<shard>`
-artifact. To run one project locally, use `pnpm test:ui --project=mobile-dark`.
+Every workflow in the organization shares 20 concurrent jobs, so CI packs each
+runner instead of adding runners. One job runs the `@app` tests with two
+Playwright workers: on a four-core runner, more starve `next dev` until the app
+checks miss their navigation timeouts. Three gallery shards run everything else
+with four workers and no app server. **UI reference** requires all four jobs to
+pass; each uploads its own `ui-reference-report-<suite>-<shard>` artifact. To run
+one project locally, use `pnpm test:ui --project=mobile-dark`.
 
 A local run takes half the machine's cores instead, because it runs all four
 projects in one process. It also skips trace recording, which otherwise writes a

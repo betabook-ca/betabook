@@ -19,10 +19,11 @@ export default defineConfig({
   forbidOnly: true,
   retries: 0,
   grep: suite === "app" ? /@app\b/ : suite === "gallery" ? /^(?!.*@app\b)/ : undefined,
-  // Measured on a four-core runner: sharing it with `next dev`, more than two
+  // Measured on four-vCPU runners. Sharing one with `next dev`, more than two
   // workers starve the dev server until the app tests miss their navigation
-  // timeouts. The gallery alone serves static files, so its shards take a
-  // worker per core. Locally there are cores to spare, so take half the machine.
+  // timeouts. The gallery alone runs 1.2x faster at four workers than at two,
+  // and at six a story load misses its timeout. Locally there are cores to
+  // spare, so take half the machine.
   workers: !ci ? "50%" : suite === "gallery" ? 4 : 2,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {

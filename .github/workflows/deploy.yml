@@ -63,12 +63,13 @@ jobs:
       - name: Build
         run: pnpm exec opennextjs-cloudflare build
 
-  # The account shares 20 concurrent jobs, so each runner is packed. The @app
-  # tests need `next dev`, which caps a runner at two Playwright workers, so they
-  # get one small job. Gallery shards serve only the static build and take a
-  # worker per core (see playwright.config.ts).
+  # Every workflow in the organization shares 20 concurrent jobs, so each runner
+  # is packed rather than adding runners. The @app tests need `next dev`, which
+  # limits a runner to two Playwright workers, so they get one short job. The
+  # gallery shards serve only the static build; playwright.config.ts sets their
+  # workers. A gallery shard takes up to ten minutes on the slowest runner CPU.
   ui-tests:
-    name: UI (${{ matrix.suite }} ${{ matrix.shard }}/${{ matrix.shards }}${{ matrix.workers && format(' w{0}', matrix.workers) || '' }})
+    name: UI (${{ matrix.suite }} ${{ matrix.shard }}/${{ matrix.shards }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -76,13 +77,9 @@ jobs:
       matrix:
         include:
           - { suite: app, shard: 1, shards: 1 }
-          - { suite: gallery, shard: 1, shards: 3, workers: 4 }
-          - { suite: gallery, shard: 2, shards: 3, workers: 4 }
-          - { suite: gallery, shard: 3, shards: 3, workers: 4 }
-          # Temporary worker sweep on one shard.
-          - { suite: gallery, shard: 1, shards: 3, workers: 2 }
-          - { suite: gallery, shard: 1, shards: 3, workers: 3 }
-          - { suite: gallery, shard: 1, shards: 3, workers: 6 }
+          - { suite: gallery, shard: 1, shards: 3 }
+          - { suite: gallery, shard: 2, shards: 3 }
+          - { suite: gallery, shard: 3, shards: 3 }
     env:
       BETABOOK_UI_SUITE: ${{ matrix.suite }}
     steps:
@@ -110,18 +107,18 @@ jobs:
       - name: Prepare local app environment
         if: matrix.suite == 'app'
         run: cp .dev.vars.example .dev.vars
+      # Every suite needs the build: design-system.spec.ts collects its tests
+      # from the story index when the file loads, before any filter applies.
       - name: Build component gallery
-        if: matrix.suite == 'gallery'
         run: pnpm storybook:build
       - name: Run browser tests
         run: >-
           pnpm exec playwright test --shard=${{ matrix.shard }}/${{ matrix.shards }}
-          ${{ matrix.workers && format('--workers={0}', matrix.workers) || '' }}
       - name: Upload UI report
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: ui-reference-report-${{ matrix.suite }}-${{ matrix.shard }}${{ matrix.workers && format('-w{0}', matrix.workers) || '' }}
+          name: ui-reference-report-${{ matrix.suite }}-${{ matrix.shard }}
           path: |
             playwright-report/
             test-results/
