@@ -35,7 +35,7 @@ export type PublicClimb = {
   sendCount: number;
 };
 /** `userName` and `comment` stay null unless the climber shares commentary
- * with Everyone; anonymous rows carry only a "YYYY-MM" month. */
+ * with Everyone from a public profile; anonymous rows carry only a "YYYY-MM" month. */
 export type PublicClimbSend = {
   userName: string | null;
   dateSent: string | null;

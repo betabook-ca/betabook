@@ -2,18 +2,22 @@ import { sql, type SQL } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 /** Keep permission checks inside the read statement: revocation and audience
- * changes must affect notes, counts and pagination even with stale page props. */
+ * changes must affect notes, counts and pagination even with stale page props.
+ * 'everyone', which only send commentary can store, is the one audience that
+ * reaches a signed-out (null) viewer. */
 function contentVisibleSql(viewerId: string | null, authorId: SQL, audience: SQL): SQL {
   return sql`EXISTS (
     SELECT 1 FROM user content_owner
-    WHERE ${viewerId} IS NOT NULL AND content_owner.id = ${authorId} AND (
+    WHERE content_owner.id = ${authorId} AND (
       content_owner.id = ${viewerId} OR (content_owner.is_private = 0 AND (
-        ${audience} = 'public' OR (
-          ${audience} = 'friends' AND EXISTS (
-            SELECT 1 FROM friendships WHERE user_id = min(content_owner.id, ${viewerId})
-              AND friend_id = max(content_owner.id, ${viewerId}) AND status = 'accepted'
+        ${audience} = 'everyone' OR (${viewerId} IS NOT NULL AND (
+          ${audience} = 'public' OR (
+            ${audience} = 'friends' AND EXISTS (
+              SELECT 1 FROM friendships WHERE user_id = min(content_owner.id, ${viewerId})
+                AND friend_id = max(content_owner.id, ${viewerId}) AND status = 'accepted'
+            )
           )
-        )
+        ))
       ))
     )
   )`;

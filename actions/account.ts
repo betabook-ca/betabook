@@ -8,7 +8,7 @@ import { getUserIdByName } from "@/db/queries";
 import { user } from "@/db/schema";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
 import { DISPLAY_NAME_TAKEN_MESSAGE, displayNameProblem } from "@/lib/display-name";
-import { parseSharingAudience } from "@/lib/privacy";
+import { parseSendCommentAudience, parseSharingAudience } from "@/lib/privacy";
 import { requireSession } from "@/lib/session";
 import { requireTrimmed } from "@/lib/validation";
 
@@ -22,7 +22,7 @@ function revalidateProfileSurfaces(userId: string) {
   revalidatePath(`/users/${userId}/analytics`);
 }
 
-/** Toggles whether the signed-in user's profile and sends are hidden from
+/** Toggles whether the signed-in user's profile and history are hidden from
  * everyone but themselves (see lib/user-visibility.ts). Profile surfaces
  * are revalidated here — a toggle doesn't fan out to every climb page
  * the user has ever sent, which for an active climber can run into the
@@ -81,7 +81,7 @@ export async function setSendCommentVisibility(visibility: string): Promise<Acti
   return toActionResult(async () => {
     const session = await requireSession();
     const db = await getDb();
-    const sendCommentVisibility = parseSharingAudience(visibility);
+    const sendCommentVisibility = parseSendCommentAudience(visibility);
 
     await db.update(user).set({ sendCommentVisibility }).where(eq(user.id, session.user.id));
 

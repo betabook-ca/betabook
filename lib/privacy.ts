@@ -16,7 +16,15 @@ export type SharingAudience = (typeof SHARING_AUDIENCES)[number]["value"];
 export type SendCommentAudience = (typeof SEND_COMMENT_AUDIENCES)[number]["value"];
 
 export function parseSharingAudience(value: unknown): SharingAudience {
-  const audience = SHARING_AUDIENCES.find((option) => option.value === value);
+  return parseAudience(SHARING_AUDIENCES, value);
+}
+
+export function parseSendCommentAudience(value: unknown): SendCommentAudience {
+  return parseAudience(SEND_COMMENT_AUDIENCES, value);
+}
+
+function parseAudience<T extends string>(options: readonly { value: T }[], value: unknown): T {
+  const audience = options.find((option) => option.value === value);
   if (!audience) throw new ActionError("Invalid sharing audience");
   return audience.value;
 }

@@ -3,7 +3,6 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { cache } from "react";
 
 import { ASCENT_STYLE_LABELS } from "@/components/ascent-style";
-import { AuthCallout } from "@/components/auth-callout";
 import { AreaBreadcrumbs } from "@/components/breadcrumbs";
 import { ClimbActionsMenu } from "@/components/climb-actions-menu";
 import { ClimbDescription } from "@/components/climb-description";
@@ -11,6 +10,7 @@ import { GradeWithTrend } from "@/components/climb-list";
 import { ClimbSendList } from "@/components/climb-send-list";
 import { ClimbJournalCard, LogEntryButton } from "@/components/journal";
 import { LoggedGradeHistogram } from "@/components/logged-grade-histogram";
+import { PublicClimbSendList } from "@/components/public-climb-send-list";
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
@@ -33,7 +33,12 @@ import {
   getSendsForClimb,
   getUserSendForClimb,
 } from "@/db/queries";
-import { getPublicArea, getPublicAncestors, getPublicClimb } from "@/db/queries/public-catalog";
+import {
+  getPublicArea,
+  getPublicAncestors,
+  getPublicClimb,
+  getPublicSendsForClimb,
+} from "@/db/queries/public-catalog";
 import { missingDescriptionMessage } from "@/lib/descriptions";
 import { buildLoggedGradeRows } from "@/lib/grade-histogram";
 import { formatGrade } from "@/lib/grades";
@@ -117,7 +122,10 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
     if (!climb) notFound();
     const path = climbHref(climb.id, climb.name);
     if ((slug?.join("/") ?? "") !== slugify(climb.name)) permanentRedirect(withQuery(path, search));
-    const area = await getPublicArea(db, climb.areaId);
+    const [area, sends] = await Promise.all([
+      getPublicArea(db, climb.areaId),
+      getPublicSendsForClimb(db, climb.id),
+    ]);
     if (!area) notFound();
     const ancestors = await getPublicAncestors(db, area);
     const trail = locationTrail([...ancestors.map((a) => a.name), area.name]);
@@ -158,10 +166,10 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
             },
           ]}
         />
-        <AuthCallout
-          next={withQuery(path, search)}
-          description="Sign in to see who has climbed this line and to log your own sessions."
-        />
+        <div className="flex flex-col gap-3">
+          <SectionHeading>Sends</SectionHeading>
+          <PublicClimbSendList type={climb.type} sends={sends} next={withQuery(path, search)} />
+        </div>
       </div>
     );
   }

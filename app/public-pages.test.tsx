@@ -9,7 +9,7 @@ import UserPage, { generateMetadata as userMetadata } from "@/app/users/[id]/pag
 import { createDb } from "@/db/client";
 import { getPublicArea } from "@/db/queries/public-catalog";
 import { climbs } from "@/db/schema";
-import { seedFixtureTree, seedFixtureUser } from "@/test/fixtures";
+import { seedFixtureSend, seedFixtureTree, seedFixtureUser } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
 
 vi.mock("@/lib/session", () => ({ getMemberSession: async () => null }));
@@ -61,14 +61,60 @@ it("renders public area descriptions and route grades without member statistics 
   expect(serialized).not.toContain('"sendStats":');
   expect(serialized).not.toContain('"histogram":');
 });
-it("renders public route grades and descriptions in the page and metadata, keeping activity locked", async () => {
+it("renders public route details and anonymized sends in the page and metadata", async () => {
+  await seedFixtureUser(db, {
+    id: "open",
+    name: "Everyone climber sentinel",
+    sendCommentVisibility: "everyone",
+  });
+  await seedFixtureSend(db, {
+    userId: "hidden",
+    climbId: 1,
+    dateSent: "2026-08-14",
+    comment: "Members beta sentinel",
+  });
+  await seedFixtureSend(db, {
+    userId: "open",
+    climbId: 1,
+    dateSent: "2026-09-03",
+    comment: "Everyone beta sentinel",
+  });
+  await seedFixtureUser(db, {
+    id: "private",
+    name: "Private climber sentinel",
+    isPrivate: true,
+    sendCommentVisibility: "everyone",
+  });
+  await seedFixtureSend(db, {
+    userId: "private",
+    climbId: 1,
+    dateSent: "2026-07-21",
+    comment: "Private beta sentinel",
+  });
   const page = await ClimbPage(climbProps);
   const serialized = JSON.stringify(page);
   expect(serialized).toContain("Test Highball");
   expect(serialized).toContain("Public route description sentinel");
   expect(serialized).toContain('"type":"boulder"');
-  expect(serialized).not.toContain('"sends":');
+  const restricted = [
+    "Restricted identity sentinel",
+    "Members beta sentinel",
+    "2026-08-14",
+    "Private climber sentinel",
+    "Private beta sentinel",
+    "2026-07-21",
+  ];
+  for (const value of restricted) expect(serialized).not.toContain(value);
+  expect(serialized).not.toContain('"userId"');
+  expect(serialized).toContain('"dateSent":"2026-07"');
   const html = renderToStaticMarkup(page);
+  expect(html).toContain("Everyone climber sentinel");
+  expect(html).toContain("Everyone beta sentinel");
+  expect(html).toContain("Sep 3, 2026");
+  expect(html).toContain("Betabook climber");
+  expect(html).toContain("Aug 2026");
+  expect(html).not.toContain("Restricted identity sentinel");
+  expect(html).not.toContain("Members beta sentinel");
   expect(html).toContain("Sign in or sign up to see all the content.");
   expect(html).toContain("V4");
   expect(html).toContain("Boulder");

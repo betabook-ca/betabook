@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { expect, it, vi } from "vitest";
@@ -51,6 +51,19 @@ it("masks audiences on private profiles and restores each independent choice", a
   expect(journal).toBeEnabled();
   expect(commentary).toHaveTextContent("Friends");
   expect(journal).toHaveTextContent("Members");
+});
+
+it("offers Everyone for send commentary but not for the journal", async () => {
+  const user = userEvent.setup();
+  render(<Privacy />);
+  const optionNames = () => screen.getAllByRole("option").map((option) => option.textContent);
+  const commentary = screen.getByRole("button", { name: /Send commentary audience/ });
+  await user.click(commentary);
+  await waitFor(() => expect(optionNames()).toEqual(["Only me", "Friends", "Members", "Everyone"]));
+  await user.click(screen.getByRole("option", { name: "Everyone" }));
+  expect(commentary).toHaveTextContent("Everyone");
+  await user.click(screen.getByRole("button", { name: /Journal entries audience/ }));
+  await waitFor(() => expect(optionNames()).toEqual(["Only me", "Friends", "Members"]));
 });
 
 it("prevents changes to all three privacy controls during a save", async () => {

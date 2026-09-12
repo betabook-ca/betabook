@@ -309,7 +309,10 @@ export function DemoAccount() {
       <div role="status" className={`text-sm ${cardClass("sm")}`}>
         <p className="font-medium">What a signed-in member can see</p>
         {isPrivate ? (
-          <p className="mt-1">Only Alex can see this profile and climbing history.</p>
+          <p className="mt-1">
+            Only Alex can see this profile and climbing history. Climb pages list Alex’s sends
+            without a name.
+          </p>
         ) : (
           <ul className="mt-2 flex flex-col gap-1">
             <li>Profile and send details: signed-in members.</li>

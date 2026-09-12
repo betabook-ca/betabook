@@ -2,16 +2,13 @@
 
 import type { ReactNode } from "react";
 
-import { AscentStyle } from "@/components/ascent-style";
+import { ClimbSendListRow } from "@/components/climb-send-list-row";
 import { SendActionsMenu } from "@/components/send-actions-menu";
-import { SendGradeCell } from "@/components/send-grade-cell";
 import { SendListShell } from "@/components/send-list-shell";
-import { ListRow } from "@/components/ui/list-row";
 import { ViewerBoundary } from "@/components/viewer-boundary";
 import type { Climb, ClimbSendRow, ClimbSendsPage } from "@/db/queries";
 import { usePagedList } from "@/hooks/use-paged-list";
 import { apiFetch } from "@/lib/api-client";
-import { formatDate } from "@/lib/format-date";
 
 type ClimbSendListProps = {
   climb: Climb;
@@ -78,25 +75,13 @@ function ClimbSendListContent({
       loadingMore={loadingMore}
       loadMoreFailed={loadMoreFailed}
       renderRow={(send) => (
-        <ListRow
-          title={send.userName}
-          href={`/users/${send.userId}`}
-          subtitle={send.dateSent ? formatDate(send.dateSent) : "Date unknown"}
-          trailing={
-            <div className="flex flex-col items-end gap-1 text-sm">
-              {/* The climber's own grade leads: the page's header already
-               * carries the posted one. */}
-              <SendGradeCell
-                type={climb.type}
-                grade={send.suggestedGrade}
-                gradeFeel={send.gradeFeel}
-                rating={send.rating}
-              />
-              <AscentStyle type={send.ascentStyle} />
-            </div>
+        <ClimbSendListRow
+          type={climb.type}
+          send={send}
+          actions={
+            send.userId !== null &&
+            send.userId === currentUserId && <SendActionsMenu climb={climb} send={send} />
           }
-          actions={send.userId === currentUserId && <SendActionsMenu climb={climb} send={send} />}
-          comment={send.comment}
         />
       )}
     />

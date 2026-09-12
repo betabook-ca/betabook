@@ -119,8 +119,9 @@ Reloading should keep the request without another email. Cancel it afterward to
 restore the empty-feed fixture. The seed script writes directly to the database
 and never sends email; the product tour's sample controls also send nothing.
 
-Area and route names, hierarchy, area/route descriptions, route grades, and disciplines are public.
-Ratings, activity, profiles, sends, and journals require login and retain their audience restrictions.
+Area and route names, hierarchy, area/route descriptions, route grades, disciplines, community ratings, and ascent counts are public.
+Signed-out climb pages list the latest 10 sends anonymously with month-only dates, naming only climbers who share send commentary with **Everyone**.
+Activity, profiles, journals, and all other sends require login and retain their audience restrictions.
 
 New accounts default to **Members** send commentary and **Friends** journal entries.
 Existing audience choices stay unchanged; the Members label uses the stored `public` value.
@@ -129,8 +130,8 @@ pages, Sends, the feed, and mirrored ascent notes in the journal. The journal
 audience controls access to the journal, sessions, repeats, training, and tags.
 Deleting a send retains its journal entry and keeps its commentary audience, including
 after further edits. Database triggers classify original-send notes for every write path.
-Send facts on member-visible profiles are available only to signed-in members. Private profile overrides both audiences;
-the disabled selectors show Only me while retaining the saved choices. Community aggregates require login.
+Private profile overrides both audiences and turns the climber's sends into anonymous rows on climb pages;
+the disabled selectors show Only me while retaining the saved choices.
 
 To check social seeding against a disposable copy of a migrated, default-seeded
 SQLite database, run `pnpm test:seed-social /path/to/copy.sqlite`.

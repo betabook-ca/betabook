@@ -1,11 +1,8 @@
 "use client";
 
-import { AscentStyle } from "@/components/ascent-style";
 import { AuthCallout } from "@/components/auth-callout";
-import { SendGradeCell } from "@/components/send-grade-cell";
+import { ClimbSendListRow } from "@/components/climb-send-list-row";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ListRow } from "@/components/ui/list-row";
-import { formatDate, formatMonth } from "@/lib/format-date";
 import type { ClimbType } from "@/lib/grades";
 import type { PublicClimbSend } from "@/lib/public-catalog";
 
@@ -25,24 +22,12 @@ export function PublicClimbSendList({
       ) : (
         <div className="flex flex-col divide-y divide-separator">
           {sends.map((send, index) => (
-            <ListRow
-              // Send IDs are sequential, so they would date anonymous rows.
+            <ClimbSendListRow
+              // Public rows carry no send IDs (see getPublicSendsForClimb).
               // oxlint-disable-next-line react/no-array-index-key
               key={index}
-              title={send.userName ?? <span className="text-muted">Betabook climber</span>}
-              subtitle={sendDateLabel(send)}
-              trailing={
-                <div className="flex flex-col items-end gap-1 text-sm">
-                  <SendGradeCell
-                    type={type}
-                    grade={send.suggestedGrade}
-                    gradeFeel={send.gradeFeel}
-                    rating={send.rating}
-                  />
-                  <AscentStyle type={send.ascentStyle} />
-                </div>
-              }
-              comment={send.comment}
+              type={type}
+              send={send}
             />
           ))}
         </div>
@@ -53,9 +38,4 @@ export function PublicClimbSendList({
       />
     </div>
   );
-}
-
-function sendDateLabel({ userName, dateSent }: PublicClimbSend) {
-  if (!dateSent) return "Date unknown";
-  return userName === null ? formatMonth(dateSent) : formatDate(dateSent);
 }
