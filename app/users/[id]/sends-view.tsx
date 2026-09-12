@@ -22,7 +22,7 @@ export async function SendsView({
   basePath,
 }: {
   userId: string;
-  viewerId: string | null;
+  viewerId: string;
   filter: UserSendsFilter;
   basePath: string;
 }) {

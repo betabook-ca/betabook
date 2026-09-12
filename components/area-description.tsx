@@ -7,15 +7,11 @@ import { AreaFormDrawer } from "@/components/area-form-drawer";
 import type { Area } from "@/db/queries";
 
 /** An area's description, with the pencil that edits it sitting right next to
- * it for editors — the affordance is where the thing it changes is, rather
- * than a sentence telling you to go find a menu. Opens the same area form as
- * everywhere else, so a rename is reachable from here too. */
-export function AreaDescription({ area, isEditor }: { area: Area; isEditor: boolean }) {
+ * it — the affordance is where the thing it changes is, rather than a sentence
+ * telling you to go find a menu. Opens the same area form as everywhere else,
+ * so a rename is reachable from here too. */
+export function AreaDescription({ area }: { area: Area }) {
   const editState = useOverlayState();
-
-  if (!isEditor) {
-    return <p className="mt-1 text-muted">{area.description || "No description yet."}</p>;
-  }
 
   return (
     <>

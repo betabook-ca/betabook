@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: UserProjectsPageProps): Promi
   const session = await getSession();
   if (!session) return { title: "Member content", robots: { index: false } };
   const user = await getUserById(id);
-  if (!user || session?.user.id !== user.id) notFound();
+  if (!user || session.user.id !== user.id) notFound();
 
   return { title: `${user.name} · Projects`, robots: { index: false } };
 }
@@ -25,7 +25,7 @@ export default async function UserProjectsPage({ params }: UserProjectsPageProps
   const session = await getSession();
   if (!session) return <CurrentPageAuthCallout />;
   const user = await getUserById(id);
-  if (!user || session?.user.id !== user.id) notFound();
+  if (!user || session.user.id !== user.id) notFound();
 
   return (
     <div className="flex flex-col gap-6">

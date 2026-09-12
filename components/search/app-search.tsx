@@ -80,7 +80,6 @@ export function AppSearch({
             userId={item.climber.id}
             name={item.name}
             initialStatus={item.climber.friendshipStatus}
-            signedIn={viewerId !== null}
           />
         ) : null
       }

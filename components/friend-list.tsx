@@ -84,7 +84,6 @@ export function FriendList({
                 userId={friend.id}
                 name={friend.name}
                 initialStatus={friend.friendshipStatus}
-                signedIn
               />
             </article>
           );

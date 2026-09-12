@@ -156,13 +156,11 @@ export default async function AreaPage({ params, searchParams }: AreaPageProps) 
       db,
       subtreeClimbs.climbs.map((c) => c.areaId),
     ),
-    session
-      ? getUserSentClimbIds(
-          db,
-          session.user.id,
-          subtreeClimbs.climbs.map((climb) => climb.id),
-        )
-      : undefined,
+    getUserSentClimbIds(
+      db,
+      session.user.id,
+      subtreeClimbs.climbs.map((climb) => climb.id),
+    ),
   ]);
 
   return (
@@ -184,9 +182,8 @@ export default async function AreaPage({ params, searchParams }: AreaPageProps) 
         area={area}
         areaPath={areaPath}
         histogram={histogram}
-        isEditor={session != null}
         filter={filter}
-        actions={session && <AreaHeaderActions area={area} />}
+        actions={<AreaHeaderActions area={area} />}
       />
 
       {/* The provider links the toolbar's in-flight navigation to the climb
