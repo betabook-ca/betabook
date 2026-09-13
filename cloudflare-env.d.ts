@@ -13,6 +13,8 @@ interface CloudflareEnv {
   GOOGLE_CLIENT_SECRET?: string;
   TURNSTILE_SITE_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
+  CLOUDFLARE_USAGE_ACCOUNT_ID?: string;
+  CLOUDFLARE_USAGE_API_TOKEN?: string;
 }
 
 declare namespace Cloudflare {
@@ -28,5 +30,7 @@ declare namespace Cloudflare {
     GOOGLE_CLIENT_SECRET?: CloudflareEnv["GOOGLE_CLIENT_SECRET"];
     TURNSTILE_SITE_KEY?: CloudflareEnv["TURNSTILE_SITE_KEY"];
     TURNSTILE_SECRET_KEY?: CloudflareEnv["TURNSTILE_SECRET_KEY"];
+    CLOUDFLARE_USAGE_ACCOUNT_ID?: CloudflareEnv["CLOUDFLARE_USAGE_ACCOUNT_ID"];
+    CLOUDFLARE_USAGE_API_TOKEN?: CloudflareEnv["CLOUDFLARE_USAGE_API_TOKEN"];
   }
 }

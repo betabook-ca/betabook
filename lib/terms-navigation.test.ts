@@ -29,6 +29,7 @@ it("keeps terms, public pages, recovery, and acceptance reachable but protects a
     "/kaya-import",
     "/sendage-import",
     "/mountain-project-import",
+    "/costs",
     "/accept-terms",
     "/forgot-password",
     "/reset-password",

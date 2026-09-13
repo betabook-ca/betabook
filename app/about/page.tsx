@@ -4,8 +4,9 @@ import { Brand } from "@/components/brand";
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/typography";
-import { IMPORT_PAGES, LOGBOOK_PAGE } from "@/lib/landing-pages";
+import { COSTS_PAGE, IMPORT_PAGES, LOGBOOK_PAGE } from "@/lib/landing-pages";
 import { pageMetadata } from "@/lib/seo";
+import { SUPPORT_URL } from "@/lib/site";
 
 export const metadata: Metadata = pageMetadata({
   title: "About",
@@ -127,28 +128,43 @@ export default function AboutPage() {
 
       <SectionHeading className="mt-4">Keeping this site free</SectionHeading>
       <p className="leading-relaxed text-pretty">
-        I also built this to be as cheap as possible so as to avoid charging any user fees or
-        displaying ads. This is why Betabook doesn’t support any image or video uploads as those can
-        get expensive quickly. You can read a writeup of the{" "}
+        Betabook is built to be as cheap as possible to run, so it can stay free of user fees and
+        ads. That’s also why it doesn’t support image or video uploads, which get expensive quickly.
+        The{" "}
+        <AppLink href={COSTS_PAGE.path} className="inline underline">
+          cost transparency page
+        </AppLink>{" "}
+        shows this month’s Cloudflare usage against what the plan includes, and the{" "}
         <a
           href="https://gist.github.com/smwoo/23844c3ae239e6f22ddb96a3c660afe5#5-current-monthly-bill"
           target="_blank"
           rel="noreferrer"
           className="link inline underline focus-visible:status-focused"
         >
-          pricing projection here
-        </a>
-        . Ideally, we can keep costs under $10/month at which point I can either foot the bill
-        myself or open a donation drive to cover server costs. If activity grows to a point where
-        this isn’t sustainable then I’m sure we can work out a new funding model then.
+          pricing projection
+        </a>{" "}
+        estimates how that grows with traffic. The goal is to keep costs under $10/month
+        {SUPPORT_URL && (
+          <>
+            , and if Betabook is useful to you, you can{" "}
+            <a
+              href={SUPPORT_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="link inline underline focus-visible:status-focused"
+            >
+              help cover them
+            </a>
+          </>
+        )}
+        .
       </p>
 
       <SectionHeading className="mt-4">Filling in the Beta</SectionHeading>
       <p className="leading-relaxed text-pretty">
-        Currently, to build this site I’ve programmatically seeded the database with climbs and
-        their known physical locations. However I haven’t added any detailed descriptions as that is
-        intellectual property and should be written in one’s own words. If you come across a climb
-        or area missing a description please contribute.
+        The database was seeded with climbs and their known physical locations, but not with
+        detailed descriptions: those are intellectual property and should be written in one’s own
+        words. If you come across a climb or area missing a description, please contribute.
       </p>
 
       <p className="leading-relaxed text-pretty">

@@ -17,6 +17,7 @@ import { MENU_ROW_CLASS, MENU_ROW_IDLE_CLASS, NavLink } from "@/components/nav-l
 import { SignOutButton } from "@/components/sign-out-button";
 import { AppLink } from "@/components/ui/app-link";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { COSTS_PAGE } from "@/lib/landing-pages";
 import { productTourPath } from "@/lib/product-tour-navigation";
 
 export type MenuAccount = { id: string; name: string; image?: string | null; isAdmin: boolean };
@@ -109,6 +110,9 @@ export function AppMenuLinks({
         <div className="flex flex-wrap gap-x-4 gap-y-1 px-3 py-1 text-muted">
           <AppLink href="/about" onClick={onNavigate}>
             About
+          </AppLink>
+          <AppLink href={COSTS_PAGE.path} onClick={onNavigate}>
+            Costs
           </AppLink>
           <AppLink href="/contact" onClick={onNavigate}>
             Contact

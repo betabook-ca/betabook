@@ -34,7 +34,9 @@ it("leads with the climber's profile, then Feed, Friends and Add climb/area", ()
   expect(hrefs(html).slice(0, 4)).toEqual(["/users/owner", "/feed", "/friends", "/climbs/new"]);
   expect(link(html, "/users/owner")).toContain("Alex Morgan");
   expect(link(html, "/climbs/new")).toContain("Add climb/area");
-  expect(hrefs(html)).toEqual(expect.arrayContaining(["/account", "/about", "/contact", "/terms"]));
+  expect(hrefs(html)).toEqual(
+    expect.arrayContaining(["/account", "/about", "/costs", "/contact", "/terms"]),
+  );
   expect(hrefs(html).find((href) => href.startsWith("/tutorial/journal"))).toBeDefined();
   expect(html).not.toContain("Theme");
   expect(html).toContain("Sign out");
