@@ -6,6 +6,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { metadata as aboutMetadata } from "@/app/about/page";
 import ClimbingLogbookPage, { metadata as logbookMetadata } from "@/app/climbing-logbook/page";
 import { metadata as contactMetadata } from "@/app/contact/page";
+import { metadata as costsMetadata } from "@/app/costs/page";
 import KayaImportPage, { metadata as kayaMetadata } from "@/app/kaya-import/page";
 import MountainProjectImportPage, {
   metadata as mountainProjectMetadata,
@@ -36,6 +37,7 @@ const PUBLIC_PAGES: [string, Metadata][] = [
   ["/kaya-import", kayaMetadata],
   ["/sendage-import", sendageMetadata],
   ["/mountain-project-import", mountainProjectMetadata],
+  ["/costs", costsMetadata],
 ];
 const IMPORT_PAGES = [
   ["/kaya-import", KayaImportPage],

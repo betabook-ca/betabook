@@ -27,3 +27,8 @@ GOOGLE_CLIENT_SECRET=
 # 1x00000000000000000000AA (site) and 1x0000000000000000000000000000000AA.
 TURNSTILE_SITE_KEY=
 TURNSTILE_SECRET_KEY=
+
+# Live usage on /costs is off unless both are set; the page then lists only the
+# fixed bills. The token needs Account Analytics Read on this account.
+CLOUDFLARE_USAGE_ACCOUNT_ID=
+CLOUDFLARE_USAGE_API_TOKEN=

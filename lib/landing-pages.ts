@@ -28,7 +28,14 @@ export const IMPORT_PAGES = {
 
 export type ImportPageSource = keyof typeof IMPORT_PAGES;
 
+export const COSTS_PAGE: LandingPageLink = {
+  path: "/costs",
+  label: "Running costs",
+  description: "This month’s Cloudflare usage and what Betabook costs to run.",
+};
+
 export const LANDING_PAGE_PATHS = [
   LOGBOOK_PAGE.path,
   ...Object.values(IMPORT_PAGES).map((page) => page.path),
+  COSTS_PAGE.path,
 ];

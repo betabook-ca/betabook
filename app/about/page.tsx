@@ -4,7 +4,7 @@ import { Brand } from "@/components/brand";
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/typography";
-import { IMPORT_PAGES, LOGBOOK_PAGE } from "@/lib/landing-pages";
+import { COSTS_PAGE, IMPORT_PAGES, LOGBOOK_PAGE } from "@/lib/landing-pages";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
@@ -129,18 +129,23 @@ export default function AboutPage() {
       <p className="leading-relaxed text-pretty">
         I also built this to be as cheap as possible so as to avoid charging any user fees or
         displaying ads. This is why Betabook doesn’t support any image or video uploads as those can
-        get expensive quickly. You can read a writeup of the{" "}
+        get expensive quickly. The{" "}
+        <AppLink href={COSTS_PAGE.path} className="inline underline">
+          running costs page
+        </AppLink>{" "}
+        shows this month’s Cloudflare usage against what the plan includes, and the{" "}
         <a
           href="https://gist.github.com/smwoo/23844c3ae239e6f22ddb96a3c660afe5#5-current-monthly-bill"
           target="_blank"
           rel="noreferrer"
           className="link inline underline focus-visible:status-focused"
         >
-          pricing projection here
-        </a>
-        . Ideally, we can keep costs under $10/month at which point I can either foot the bill
-        myself or open a donation drive to cover server costs. If activity grows to a point where
-        this isn’t sustainable then I’m sure we can work out a new funding model then.
+          pricing projection
+        </a>{" "}
+        estimates how that grows with traffic. Ideally, we can keep costs under $10/month at which
+        point I can either foot the bill myself or open a donation drive to cover server costs. If
+        activity grows to a point where this isn’t sustainable then I’m sure we can work out a new
+        funding model then.
       </p>
 
       <SectionHeading className="mt-4">Filling in the Beta</SectionHeading>
