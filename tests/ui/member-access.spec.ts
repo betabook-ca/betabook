@@ -46,6 +46,16 @@ test(
     await expect(page).toHaveURL(`${appBaseURL}/sign-in?next=${encodeURIComponent(next)}`);
     await expect(page.getByRole("heading", { name: "Sign in", exact: true })).toBeVisible();
 
+    const revoked = `/users/unavailable-person?share=${"0".repeat(32)}`;
+    await page.goto(`${appBaseURL}${revoked}`);
+    await expect(callout).toBeVisible();
+    await expect(page.getByRole("region", { name: "Invitation" })).toHaveCount(0);
+    await expect(page).toHaveTitle("Member content · Betabook");
+    await expect(callout.getByRole("link", { name: "Sign up" })).toHaveAttribute(
+      "href",
+      `/sign-up?next=${encodeURIComponent(revoked)}`,
+    );
+
     await page.getByRole("button", { name: "Search", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Search Betabook" });
     await dialog.getByRole("combobox", { name: "Search Betabook" }).fill("Ridge");

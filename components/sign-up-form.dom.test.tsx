@@ -48,9 +48,35 @@ it("requires an explicit agreement for both registration paths", async () => {
   expect(social).toHaveBeenCalledWith(
     expect.objectContaining({
       callbackURL: "/climbs/1",
-      additionalData: { acceptedTermsVersion: TERMS_VERSION },
+      additionalData: { acceptedTermsVersion: TERMS_VERSION, shareToken: null },
     }),
     expect.any(Object),
+  );
+});
+
+it("carries a share link's token into both registration paths", async () => {
+  const token = "0123456789abcdef0123456789abcdef";
+  const next = `/users/owner-1?share=${token}`;
+  const user = userEvent.setup();
+  render(<SignUpForm googleEnabled next={next} />);
+  await user.click(screen.getByRole("checkbox", { name: /I agree to the Terms of Service/ }));
+  await user.click(screen.getByRole("button", { name: "Continue with Google" }));
+  expect(social).toHaveBeenCalledWith(
+    expect.objectContaining({
+      callbackURL: next,
+      additionalData: { acceptedTermsVersion: TERMS_VERSION, shareToken: token },
+    }),
+    expect.any(Object),
+  );
+
+  await user.type(screen.getByRole("textbox", { name: "Display name" }), "Invited Climber");
+  await user.type(screen.getByRole("textbox", { name: "Email" }), "invited@example.com");
+  await user.type(screen.getByLabelText("Password", { exact: true }), "password123");
+  await user.type(screen.getByLabelText("Confirm password"), "password123");
+  await user.click(screen.getByRole("button", { name: "Sign up" }));
+  expect(signUp).toHaveBeenCalledWith(
+    expect.objectContaining({ callbackURL: `/sign-in?next=${encodeURIComponent(next)}` }),
+    expect.objectContaining({ body: { acceptedTermsVersion: TERMS_VERSION, shareToken: token } }),
   );
 });
 
@@ -70,7 +96,7 @@ it("submits the displayed terms version and preserves the agreement on a failed 
       email: "new@example.com",
       callbackURL: "/sign-in?next=%2Fclimbs%2F1",
     }),
-    expect.objectContaining({ body: { acceptedTermsVersion: TERMS_VERSION } }),
+    expect.objectContaining({ body: { acceptedTermsVersion: TERMS_VERSION, shareToken: null } }),
   );
   expect(submit).toBeDisabled();
   await user.click(submit);

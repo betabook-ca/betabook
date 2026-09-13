@@ -21,3 +21,7 @@ export const updateClimb = fn<typeof Actions.updateClimb>().mockResolvedValue({
   ok: true,
   value: undefined,
 });
+export const resetProfileShareLink = fn<typeof Actions.resetProfileShareLink>().mockResolvedValue({
+  ok: true,
+  value: undefined,
+});

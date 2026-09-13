@@ -1,62 +1,71 @@
 import { relations, sql } from "drizzle-orm";
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index, type AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 
-export const user = sqliteTable("user", {
-  id: text("id").primaryKey(),
-  // Unique case-insensitively via user_name_unique_idx (COLLATE NOCASE),
-  // declared in drizzle/migrations/0034_user_name_unique.sql rather than
-  // here — drizzle-kit can't express a collated index. The friendly
-  // uniqueness errors live in lib/auth.ts (sign-up and better-auth's
-  // /update-user) and actions/account.ts (rename); the index is the
-  // race-proof backstop.
-  name: text("name").notNull(),
-  email: text("email").notNull().unique(),
-  emailVerified: integer("email_verified", { mode: "boolean" }).default(false).notNull(),
-  image: text("image"),
-  // Existing accounts stay null: do not infer acceptance from prior use.
-  termsVersion: text("terms_version"),
-  termsAcceptedAt: integer("terms_accepted_at", { mode: "timestamp_ms" }),
-  // Our own moderation marker, not a better-auth plugin column: null for
-  // every ordinary user, "admin" only via scripts/promote-admin.ts. Exposed
-  // into session.user through user.additionalFields (lib/auth.ts) so
-  // lib/session.ts's requireAdmin()/isAdmin can check for "admin" exactly.
-  role: text("role"),
-  // Null means "never welcomed", and that is not derivable from
-  // emailVerified: better-auth routes a *changed* address through the same
-  // afterEmailVerification hook as a first verification, so an established
-  // user would get a second "Welcome to Betabook" without this. Claimed by a
-  // conditional UPDATE in lib/welcome-email.ts, which is the whole guard.
-  welcomeEmailSentAt: integer("welcome_email_sent_at", { mode: "timestamp_ms" }),
-  // Hides this user's profile and climbing history from every page and API
-  // route other than their own — see lib/user-visibility.ts's canViewUser —
-  // except climb send lists, which keep their sends as anonymous rows.
-  // Deliberately NOT read by drizzle/migrations/0014_sends_aggregate_triggers.sql or
-  // getClimbSendStats/getClimbSendSummary (db/queries/sends.ts): those touch
-  // `sends` only, with no join to `user`, so a private user's ascents keep
-  // counting toward a climb's rating and suggested grade exactly as before.
-  isPrivate: integer("is_private", { mode: "boolean" }).default(false).notNull(),
-  // Audience values are defined in lib/privacy.ts; "public" means Members.
-  journalVisibility: text("journal_visibility", {
-    enum: ["private", "friends", "public"],
-  })
-    .default("friends")
-    .notNull(),
-  sendCommentVisibility: text("send_comment_visibility", {
-    enum: ["private", "friends", "public", "everyone"],
-  })
-    .default("public")
-    .notNull(),
-  productTourReturning: integer("product_tour_returning", { mode: "boolean" })
-    .default(false)
-    .notNull(),
-  createdAt: integer("created_at", { mode: "timestamp_ms" })
-    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
-    .notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
-    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
-    .$onUpdate(() => /* @__PURE__ */ new Date())
-    .notNull(),
-});
+export const user = sqliteTable(
+  "user",
+  {
+    id: text("id").primaryKey(),
+    // Unique case-insensitively via user_name_unique_idx (COLLATE NOCASE),
+    // declared in drizzle/migrations/0034_user_name_unique.sql rather than
+    // here — drizzle-kit can't express a collated index. The friendly
+    // uniqueness errors live in lib/auth.ts (sign-up and better-auth's
+    // /update-user) and actions/account.ts (rename); the index is the
+    // race-proof backstop.
+    name: text("name").notNull(),
+    email: text("email").notNull().unique(),
+    emailVerified: integer("email_verified", { mode: "boolean" }).default(false).notNull(),
+    image: text("image"),
+    // Existing accounts stay null: do not infer acceptance from prior use.
+    termsVersion: text("terms_version"),
+    termsAcceptedAt: integer("terms_accepted_at", { mode: "timestamp_ms" }),
+    // Our own moderation marker, not a better-auth plugin column: null for
+    // every ordinary user, "admin" only via scripts/promote-admin.ts. Exposed
+    // into session.user through user.additionalFields (lib/auth.ts) so
+    // lib/session.ts's requireAdmin()/isAdmin can check for "admin" exactly.
+    role: text("role"),
+    // Null means "never welcomed", and that is not derivable from
+    // emailVerified: better-auth routes a *changed* address through the same
+    // afterEmailVerification hook as a first verification, so an established
+    // user would get a second "Welcome to Betabook" without this. Claimed by a
+    // conditional UPDATE in lib/welcome-email.ts, which is the whole guard.
+    welcomeEmailSentAt: integer("welcome_email_sent_at", { mode: "timestamp_ms" }),
+    // Hides this user's profile and climbing history from every page and API
+    // route other than their own — see lib/user-visibility.ts's canViewUser —
+    // except climb send lists, which keep their sends as anonymous rows.
+    // Deliberately NOT read by drizzle/migrations/0014_sends_aggregate_triggers.sql or
+    // getClimbSendStats/getClimbSendSummary (db/queries/sends.ts): those touch
+    // `sends` only, with no join to `user`, so a private user's ascents keep
+    // counting toward a climb's rating and suggested grade exactly as before.
+    isPrivate: integer("is_private", { mode: "boolean" }).default(false).notNull(),
+    // Audience values are defined in lib/privacy.ts; "public" means Members.
+    journalVisibility: text("journal_visibility", {
+      enum: ["private", "friends", "public"],
+    })
+      .default("friends")
+      .notNull(),
+    sendCommentVisibility: text("send_comment_visibility", {
+      enum: ["private", "friends", "public", "everyone"],
+    })
+      .default("public")
+      .notNull(),
+    productTourReturning: integer("product_tour_returning", { mode: "boolean" })
+      .default(false)
+      .notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+    // The share link a new account signed up from (lib/auth.ts), so share-driven
+    // sign-ups can be counted.
+    referredBy: text("referred_by").references((): AnySQLiteColumn => user.id, {
+      onDelete: "set null",
+    }),
+  },
+  (t) => [index("user_referred_by_idx").on(t.referredBy)],
+);
 
 export const session = sqliteTable(
   "session",

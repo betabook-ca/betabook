@@ -288,6 +288,13 @@
       "when": 1789012479116,
       "tag": "0040_feature_announcements",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "6",
+      "when": 1789264169118,
+      "tag": "0041_profile_share_links",
+      "breakpoints": true
     }
   ]
 }

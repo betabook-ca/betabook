@@ -5,7 +5,7 @@ import { APIError, getOAuthState } from "better-auth/api";
 import { captcha } from "better-auth/plugins";
 
 import { getDb } from "@/db/client";
-import { getUserIdByName } from "@/db/queries";
+import { getShareLinkOwner, getUserIdByName } from "@/db/queries";
 import { getTermsAcceptance } from "@/db/queries/terms";
 import * as schema from "@/db/schema";
 import {
@@ -15,6 +15,7 @@ import {
 } from "@/lib/account";
 import { DISPLAY_NAME_TAKEN_MESSAGE, displayNameProblem } from "@/lib/display-name";
 import { sendResetPasswordEmail, sendVerificationEmail } from "@/lib/email";
+import { parseProfileShareToken } from "@/lib/profile-share";
 import {
   hasAcceptedCurrentTerms,
   TERMS_ACCESS_MESSAGE,
@@ -101,6 +102,7 @@ async function authBuilder() {
         role: { type: "string", required: false, input: false },
         termsVersion: { type: "string", required: false, input: false },
         termsAcceptedAt: { type: "date", required: false, input: false },
+        referredBy: { type: "string", required: false, input: false, returned: false },
       },
       deleteUser: {
         enabled: true,
@@ -124,20 +126,23 @@ async function authBuilder() {
           // chose — failing would block the sign-in itself, so suffix the
           // name into uniqueness instead; it can be changed on /account.
           before: async (newUser, ctx) => {
-            // Email sends a separate assent field; OAuth carries it in Better
-            // Auth's verified state. Never trust a provider profile, callback
-            // query, or client timestamp as an acceptance record.
-            const acceptedVersion =
-              ctx?.path === "/sign-up/email"
-                ? ctx.body?.acceptedTermsVersion
-                : (await getOAuthState())?.acceptedTermsVersion;
-            if (acceptedVersion !== TERMS_VERSION) {
+            // Email sends separate assent and share fields; OAuth carries them
+            // in Better Auth's verified state. Never trust a provider profile,
+            // callback query, or client timestamp as an acceptance record.
+            const registration = ctx?.path === "/sign-up/email" ? ctx.body : await getOAuthState();
+            if (registration?.acceptedTermsVersion !== TERMS_VERSION) {
               throw new APIError("BAD_REQUEST", {
                 code: "TERMS_ACCEPTANCE_REQUIRED",
                 message: TERMS_REQUIRED_MESSAGE,
               });
             }
-            const terms = { termsVersion: TERMS_VERSION, termsAcceptedAt: new Date() };
+            const shareToken = parseProfileShareToken(registration.shareToken);
+            const referrer = shareToken ? await getShareLinkOwner(db, shareToken) : null;
+            const terms = {
+              termsVersion: TERMS_VERSION,
+              termsAcceptedAt: new Date(),
+              referredBy: referrer?.id ?? null,
+            };
             if (ctx?.path === "/sign-up/email") {
               const name = newUser.name.trim();
               const problem = displayNameProblem(name);

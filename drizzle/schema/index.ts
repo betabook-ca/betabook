@@ -11,3 +11,4 @@ export * from "./friendships";
 export * from "./journal-companions";
 export * from "./analytics";
 export * from "./feature-announcements";
+export * from "./profile-share-links";

@@ -11,6 +11,7 @@ import {
   climbJsonLd,
   climbTitle,
   locationTrail,
+  sharedProfileMetadata,
   websiteJsonLd,
 } from "./seo";
 
@@ -100,6 +101,21 @@ describe("climbJsonLd", () => {
     expect(page["@type"]).toBe("WebPage");
     expect(page.url).toBe("https://betabook.ca/climbs/1");
     expect(JSON.stringify(page)).not.toContain("AggregateRating");
+  });
+});
+
+describe("sharedProfileMetadata", () => {
+  it("names the owner without the title template, indexing, or a canonical URL", () => {
+    const title = "Alex Rivera on Betabook";
+    const description =
+      "Alex Rivera invited you to Betabook, a climbing logbook and crag database.";
+    expect(sharedProfileMetadata("Alex Rivera")).toEqual({
+      title: { absolute: title },
+      description,
+      robots: { index: false },
+      openGraph: { type: "profile", siteName: "Betabook", title, description, images: [OG_IMAGE] },
+      twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE.url] },
+    });
   });
 });
 

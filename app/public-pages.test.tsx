@@ -1,4 +1,5 @@
 import { env } from "cloudflare:test";
+import { eq } from "drizzle-orm";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, it, vi } from "vitest";
 
@@ -7,8 +8,9 @@ import { PublicAreaPage } from "@/app/areas/[id]/[[...slug]]/public-area-page";
 import ClimbPage, { generateMetadata as climbMetadata } from "@/app/climbs/[id]/[[...slug]]/page";
 import UserPage, { generateMetadata as userMetadata } from "@/app/users/[id]/page";
 import { createDb } from "@/db/client";
+import { getProfileShareToken } from "@/db/queries";
 import { getPublicArea } from "@/db/queries/public-catalog";
-import { climbs } from "@/db/schema";
+import { climbs, user } from "@/db/schema";
 import { seedFixtureSend, seedFixtureTree, seedFixtureUser } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
 
@@ -141,6 +143,45 @@ it("does not reveal whether a profile exists in the page or metadata", async () 
     expect(html).toContain("Sign in or sign up to see all the content.");
     expect(html).not.toContain("Restricted identity sentinel");
   }
+});
+it("names a profile's owner signed out only through their current share link", async () => {
+  await seedFixtureUser(db, { id: "other", name: "Other identity sentinel" });
+  const token = (await getProfileShareToken(db, "hidden"))!;
+  const otherToken = (await getProfileShareToken(db, "other"))!;
+  const props = (id: string, share: string) => ({
+    params: Promise.resolve({ id }),
+    searchParams: Promise.resolve({ share }),
+  });
+  async function expectLocked(id: string, share: string) {
+    expect(await userMetadata(props(id, share))).toEqual({
+      title: "Member content",
+      robots: { index: false },
+    });
+    const html = renderToStaticMarkup(await UserPage(props(id, share)));
+    expect(html).toContain("Sign in or sign up to see all the content.");
+    expect(html).not.toContain("identity sentinel");
+  }
+
+  expect(await userMetadata(props("hidden", token))).toMatchObject({
+    title: { absolute: "Restricted identity sentinel on Betabook" },
+    robots: { index: false },
+  });
+  const invite = await UserPage(props("hidden", token));
+  expect(invite.props).toMatchObject({ image: null, next: `/users/hidden?share=${token}` });
+  const html = renderToStaticMarkup(invite);
+  expect(html).toContain("Restricted identity sentinel invited you to Betabook");
+  expect(html).not.toContain("Other identity sentinel");
+
+  await expectLocked("hidden", "0".repeat(32));
+  await expectLocked("hidden", token.toUpperCase());
+  await expectLocked("hidden", otherToken);
+  await expectLocked("missing", token);
+
+  await db.update(user).set({ isPrivate: true }).where(eq(user.id, "hidden"));
+  await expectLocked("hidden", token);
+  await expectLocked("hidden", (await getProfileShareToken(db, "hidden"))!);
+  await db.update(user).set({ isPrivate: false }).where(eq(user.id, "hidden"));
+  await expectLocked("hidden", token);
 });
 it("preserves public canonical redirects and missing-entity errors", async () => {
   await expect(

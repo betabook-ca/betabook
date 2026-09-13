@@ -1,6 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { Resend } from "resend";
 
+import { getBaseUrl } from "@/lib/app-url";
 import { renderEmail } from "@/lib/email-template";
 
 const FROM = "Betabook <noreply@betabook.ca>";
@@ -12,16 +13,6 @@ const CONTACT_TO = "hello@betabook.ca";
 async function getResend() {
   const { env } = await getCloudflareContext({ async: true });
   return env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
-}
-
-/** The site's own origin, for links in emails that aren't auth links.
- *
- * better-auth builds its verification/reset URLs from this same value, so
- * there's no second thing to configure — and a preview deployment's emails
- * point at the preview rather than at production. */
-async function getBaseUrl() {
-  const { env } = await getCloudflareContext({ async: true });
-  return env.BETTER_AUTH_URL.replace(/\/$/, "");
 }
 
 export async function sendVerificationEmail(to: string, url: string) {
