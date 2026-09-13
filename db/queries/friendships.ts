@@ -89,3 +89,40 @@ export async function getPendingFriendRequestCount(
   `);
   return row?.count ?? 0;
 }
+
+export type SuggestedClimberRow = ClimberRow & { mutualFriendCount: number };
+
+/** Friends of the viewer's accepted friends. Private profiles are never suggested and never
+ * lend their connections, and only the count of friends in common leaves the query. */
+export async function getClimberSuggestions(
+  db: Database,
+  viewerId: string,
+  limit = 6,
+): Promise<SuggestedClimberRow[]> {
+  const count = Number.isInteger(limit) ? Math.min(20, Math.max(1, limit)) : 6;
+  return db.all<SuggestedClimberRow>(sql`
+    WITH friends AS (
+      SELECT friend_id AS id FROM friendships WHERE user_id = ${viewerId} AND status = 'accepted'
+      UNION ALL
+      SELECT user_id FROM friendships WHERE friend_id = ${viewerId} AND status = 'accepted'
+    ),
+    via AS (SELECT friends.id FROM friends JOIN user u ON u.id = friends.id WHERE u.is_private = 0),
+    reachable AS (
+      SELECT f.friend_id AS id FROM via JOIN friendships f ON f.user_id = via.id AND f.status = 'accepted'
+      UNION ALL
+      SELECT f.user_id FROM via JOIN friendships f ON f.friend_id = via.id AND f.status = 'accepted'
+    ),
+    candidates AS (
+      SELECT id, count(*) AS mutualFriendCount FROM reachable WHERE id <> ${viewerId} GROUP BY id
+    )
+    SELECT u.id, u.name, u.image, 'none' AS friendshipStatus, c.mutualFriendCount
+    FROM candidates c JOIN user u ON u.id = c.id
+    WHERE u.is_private = 0
+      AND NOT EXISTS (
+        SELECT 1 FROM friendships f
+        WHERE f.user_id = min(u.id, ${viewerId}) AND f.friend_id = max(u.id, ${viewerId})
+      )
+    ORDER BY c.mutualFriendCount DESC, u.name COLLATE NOCASE, u.id
+    LIMIT ${count}
+  `);
+}

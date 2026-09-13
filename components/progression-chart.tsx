@@ -1,5 +1,5 @@
 "use client";
-/* oxlint-disable jsx-a11y/no-noninteractive-tabindex, jsx-a11y/no-noninteractive-element-interactions -- The named scroll region needs keyboard focus so arrow keys can pan the chart on narrow screens. */
+/* oxlint-disable jsx-a11y/no-noninteractive-tabindex, jsx-a11y/no-noninteractive-element-interactions -- Arrow keys move focus between the named chart's month points. */
 import { ChartClimbDetails } from "@/components/chart-climb-details";
 import { DISCIPLINE_HUE } from "@/components/ui/discipline-chip";
 import type { AnalyticsSendRow } from "@/db/queries";
@@ -10,6 +10,7 @@ import { formatMonthLabel, type ProgressionPoint } from "@/lib/user-analytics";
 const H = 200;
 const MARGIN = { top: 10, right: 12, bottom: 24, left: 40 };
 const PLOT_H = H - MARGIN.top - MARGIN.bottom;
+const TARGET = 24;
 
 function monthIndex(month: string): number {
   const [year, m] = month.split("-").map(Number);
@@ -29,7 +30,7 @@ export function ProgressionChart({
   points: ProgressionPoint[];
   sends: AnalyticsSendRow[];
 }) {
-  const { ref, width } = useChartWidth();
+  const { ref, width: W } = useChartWidth();
   if (points.length === 0) return null;
 
   const scale = nativeGradeArray(type);
@@ -38,20 +39,6 @@ export function ProgressionChart({
   const m0 = monthIndex(points[0].month);
   const m1 = monthIndex(points[points.length - 1].month);
   const singleMonth = m1 === m0;
-  // Leave room between 24px targets even in a dense, multi-year log. Grow
-  // the SVG's coordinate system too, so scrolling never stretches its height.
-  const closestMonths =
-    points.length > 1
-      ? Math.min(
-          ...points
-            .slice(1)
-            .map((point, i) => monthIndex(point.month) - monthIndex(points[i].month)),
-        )
-      : 1;
-  const W = Math.max(
-    width,
-    Math.ceil((m1 - m0) / Math.max(closestMonths, 1)) * 28 + MARGIN.left + MARGIN.right,
-  );
   const PLOT_W = W - MARGIN.left - MARGIN.right;
   const x = (month: string) =>
     singleMonth
@@ -62,6 +49,20 @@ export function ProgressionChart({
   const gradeMax = Math.min(Math.max(...points.map((p) => p.best)) + 1, scale.length - 1);
   const y = (grade: number) =>
     MARGIN.top + (1 - (grade - gradeMin) / Math.max(gradeMax - gradeMin, 1)) * PLOT_H;
+
+  // A target wider than the gap to a dot within its height would swallow that
+  // month's taps, so dense logs narrow their targets instead of scrolling.
+  const xs = points.map((point) => x(point.month));
+  const ys = points.map((point) => y(point.hardest));
+  const targetWidth = (i: number) => {
+    let width = TARGET;
+    for (let j = 0; j < points.length; j += 1) {
+      if (j !== i && Math.abs(ys[j] - ys[i]) < TARGET) {
+        width = Math.min(width, Math.abs(xs[j] - xs[i]));
+      }
+    }
+    return width;
+  };
 
   // Grade rules: one hairline per grade in the visible span, a label on
   // every `labelStep`-th so wide spans don't collide.
@@ -107,8 +108,6 @@ export function ProgressionChart({
         Personal best {scale[latest.best]}, from {formatMonthLabel(points[0].month)} (
         {scale[points[0].hardest]}) to {formatMonthLabel(latest.month)}.
       </p>
-      {/* min-w keeps the chart readable on phones — it scrolls inside its
-          own container instead of shrinking the axis text away. */}
       <div
         role="region"
         aria-label={`${type} grade progression`}
@@ -136,9 +135,9 @@ export function ProgressionChart({
                   );
           buttons[next].focus();
         }}
-        className="overflow-x-auto focus-visible:status-focused"
+        className="focus-visible:status-focused"
       >
-        <div className="relative" style={{ minWidth: W }}>
+        <div className="relative">
           <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full text-muted" aria-hidden>
             {grades.map((grade) => (
               <g key={grade}>
@@ -199,7 +198,7 @@ export function ProgressionChart({
               </circle>
             ))}
           </svg>
-          {points.map((point) => (
+          {points.map((point, i) => (
             <ChartClimbDetails
               key={point.month}
 
@@ -211,13 +210,20 @@ export function ProgressionChart({
                   send.suggestedGrade === point.hardest &&
                   send.dateSent?.startsWith(`${point.month}-`),
               )}
-              className="absolute size-6 min-w-0 -translate-x-1/2 -translate-y-1/2 rounded-full p-0 hover:bg-default"
+              className="absolute min-w-0 -translate-x-1/2 -translate-y-1/2 rounded-full p-0 hover:bg-default"
               style={{
-                left: `${(x(point.month) / W) * 100}%`,
-                top: `${(y(point.hardest) / H) * 100}%`,
+                // Shares of the chart, not px: a card narrower than useChartWidth's
+                // 240px floor scales the SVG down, and the targets must scale with it.
+                width: `${(targetWidth(i) / W) * 100}%`,
+                height: `${(TARGET / H) * 100}%`,
+                left: `${(xs[i] / W) * 100}%`,
+                top: `${(ys[i] / H) * 100}%`,
               }}
             >
-              <span className="size-2 rounded-full" style={{ backgroundColor: hue }} />
+              <span
+                className="pointer-events-none size-2 shrink-0 rounded-full"
+                style={{ backgroundColor: hue }}
+              />
             </ChartClimbDetails>
           ))}
         </div>

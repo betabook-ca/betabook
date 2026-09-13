@@ -2,8 +2,10 @@ import { Button } from "@heroui/react";
 import { useState } from "react";
 
 import { ClimbPicker } from "@/components/climb-picker";
+import { FriendshipActionButton } from "@/components/friendship-action-button";
 import { SearchController } from "@/components/search/search-controller";
 import {
+  climberSuggestionItems,
   EMPTY_SEARCH,
   searchHref,
   type AppSearchResult,
@@ -126,6 +128,37 @@ function createSearchFixtureFetcher({
   };
 }
 
+const SUGGESTED_CLIMBERS = climberSuggestionItems([
+  {
+    id: "suggested-1",
+    name: "Sam Rivera",
+    image: null,
+    friendshipStatus: "none",
+    mutualFriendCount: 2,
+  },
+  {
+    id: "suggested-2",
+    name: "Jordan Park",
+    image: null,
+    friendshipStatus: "none",
+    mutualFriendCount: 1,
+  },
+]).map((item) => ({ ...item, href: "" }));
+
+function DemoFriendAction({ name }: { name: string }) {
+  const [requested, setRequested] = useState(false);
+  return (
+    <FriendshipActionButton
+      action={requested ? "cancel" : "add"}
+      name={name}
+      onPress={(complete) => {
+        setRequested(!requested);
+        complete();
+      }}
+    />
+  );
+}
+
 function Selection({ selected }: { selected: AppSearchResult | null }) {
   return selected ? (
     <output aria-label="Selected record" data-selected-id={selected.id} className="block text-sm">
@@ -143,6 +176,7 @@ export function IntegratedSearchDemo({
   initialCategory = "all",
   initialOpen = false,
   publicOnly = false,
+  suggestions = false,
 }: {
   surface?: "quick" | "full" | "journey";
   failure?: boolean;
@@ -151,6 +185,7 @@ export function IntegratedSearchDemo({
   initialCategory?: SearchState["category"];
   initialOpen?: boolean;
   publicOnly?: boolean;
+  suggestions?: boolean;
 }) {
   const [state, setState] = useState<SearchState>({
     ...EMPTY_SEARCH,
@@ -184,6 +219,12 @@ export function IntegratedSearchDemo({
         onChange={setState}
         fetcher={fetcher}
         publicOnly={publicOnly}
+        suggestions={suggestions ? SUGGESTED_CLIMBERS : undefined}
+        renderAction={
+          suggestions
+            ? (item) => (item.climber ? <DemoFriendAction name={item.name} /> : null)
+            : undefined
+        }
         quick={!full}
         isOpen={full || open}
         onOpenChange={setOpen}

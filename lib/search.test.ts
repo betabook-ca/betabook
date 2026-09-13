@@ -6,7 +6,7 @@ import {
   userSendsFilterToSearchParams,
 } from "@/lib/filters/user-sends-filter";
 
-import { EMPTY_SEARCH, parseSearchState, searchHref } from "./search";
+import { EMPTY_SEARCH, parseSearchState, searchHref, showsClimberSuggestions } from "./search";
 import { searchParamsToRecord } from "./url-params";
 
 describe("unified search URL state", () => {
@@ -63,4 +63,14 @@ describe("unified search URL state", () => {
     ).toEqual(filter);
     expect(parseUserSendsFilter({ areaId: "bad" }).areaId).toBe(0);
   });
+});
+
+it("shows climber suggestions only for a signed-in viewer's empty climber search", () => {
+  const climbers = { ...EMPTY_SEARCH, category: "climber" as const };
+  expect(showsClimberSuggestions(climbers, "viewer")).toBe(true);
+  expect(showsClimberSuggestions({ ...climbers, query: "  " }, "viewer")).toBe(true);
+  expect(showsClimberSuggestions(climbers, null)).toBe(false);
+  expect(showsClimberSuggestions({ ...climbers, query: "Sam" }, "viewer")).toBe(false);
+  for (const category of ["all", "climb", "area"] as const)
+    expect(showsClimberSuggestions({ ...climbers, category }, "viewer")).toBe(false);
 });

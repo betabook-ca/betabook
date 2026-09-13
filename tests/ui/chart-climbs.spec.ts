@@ -58,25 +58,59 @@ test("progression point targets and large climb tables are usable on small scree
 });
 
 test(
-  "dense progression keeps adjacent touch targets separate without growing taller",
+  "dense progression fits without scrolling and keeps every point's target its own",
   { tag: "@layout" },
   async ({ page }, info) => {
     await openStory(page, info, "components-charts-progression-chart--dense-history");
-    const first = page.getByRole("button", { name: /Jan 2024/ });
-    const second = page.getByRole("button", { name: /Feb 2024/ });
-    const firstBox = await first.boundingBox();
-    const secondBox = await second.boundingBox();
-    if (!firstBox || !secondBox) throw new Error("Missing chart points");
-    expect(secondBox.x - firstBox.x).toBeGreaterThanOrEqual(24);
     const chart = page.getByRole("region", { name: "boulder grade progression" });
+    await expect(chart.getByRole("button")).toHaveCount(72);
+    expect(await chart.evaluate((node) => node.scrollWidth - node.clientWidth)).toBe(0);
+    expect(
+      await chart.evaluate((node) =>
+        Array.from(node.querySelectorAll("button"))
+          .filter((button) => {
+            const box = button.getBoundingClientRect();
+            const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+            return hit?.closest("button") !== button;
+          })
+          .map((button) => button.getAttribute("aria-label")),
+      ),
+    ).toEqual([]);
     const chartBox = await chart.boundingBox();
     if (!chartBox) throw new Error("Missing chart");
     expect(chartBox.height).toBeLessThanOrEqual(220);
-    await second.scrollIntoViewIfNeeded();
+    const second = chart.getByRole("button", { name: /Feb 2024/ });
     if (info.project.use.hasTouch) await second.tap();
     else await second.click();
     await expect(page.getByRole("tooltip")).toContainText("Feb 2024");
     await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    const targets = (name: string) =>
+      page.getByRole("region", { name, exact: true }).evaluate((node) =>
+        Array.from(node.querySelectorAll("button"), (button) => {
+          const { left, right, top, bottom, width } = button.getBoundingClientRect();
+          return { label: button.getAttribute("aria-label"), left, right, top, bottom, width };
+        }),
+      );
+    const distant = await targets("sport grade progression");
+    expect(distant).toHaveLength(18);
+    expect(distant.filter((target) => target.width < 23.5).map((target) => target.label)).toEqual(
+      [],
+    );
+    const narrow = await targets("trad grade progression");
+    expect(narrow).toHaveLength(12);
+    expect(
+      narrow.flatMap((a, i) =>
+        narrow
+          .slice(i + 1)
+          .filter(
+            (b) =>
+              Math.min(a.right, b.right) - Math.max(a.left, b.left) > 0.5 &&
+              Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 0.5,
+          )
+          .map((b) => `${a.label} / ${b.label}`),
+      ),
+    ).toEqual([]);
   },
 );
 

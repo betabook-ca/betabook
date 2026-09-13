@@ -19,6 +19,7 @@ type SearchSurfaceProps = {
   category: SearchCategory;
   onCategoryChange: (category: SearchCategory) => void;
   sections: SearchSection[];
+  suggestions?: SearchSection;
   onSelect: (item: SearchResult) => void;
   onRetry: (kind: SearchKind) => void;
   onViewAll: () => void;
@@ -54,6 +55,7 @@ export function SearchSurface({
   category,
   onCategoryChange,
   sections,
+  suggestions,
   onSelect,
   onRetry,
   onViewAll,
@@ -124,7 +126,14 @@ export function SearchSurface({
       >
         {memberNotice && <div className="mb-4">{memberNotice}</div>}
         {idle ? (
-          <EmptyState message={SEARCH_PROMPTS[category]} />
+          <IdleResults
+            category={category}
+            suggestions={suggestions}
+            onSelect={onSelect}
+            onRetry={onRetry}
+            renderAction={renderAction}
+            resultHref={resultHref}
+          />
         ) : (
           <SearchResults
             sections={sections}
@@ -149,6 +158,21 @@ export function SearchSurface({
         />
       )}
     </div>
+  );
+}
+
+function IdleResults({
+  category,
+  suggestions,
+  ...props
+}: Pick<
+  SearchSurfaceProps,
+  "category" | "suggestions" | "onSelect" | "onRetry" | "renderAction" | "resultHref"
+>) {
+  return suggestions?.items.length ? (
+    <SearchResults sections={[suggestions]} {...props} />
+  ) : (
+    <EmptyState message={SEARCH_PROMPTS[category]} />
   );
 }
 

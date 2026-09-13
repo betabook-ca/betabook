@@ -1,4 +1,9 @@
-import type { AreaWithAncestorPath, ClimberRow, ClimbWithAreaName } from "@/db/queries";
+import type {
+  AreaWithAncestorPath,
+  ClimberRow,
+  ClimbWithAreaName,
+  SuggestedClimberRow,
+} from "@/db/queries";
 import type { AreaSelection } from "@/lib/area-selection";
 import type { ClimbListPage } from "@/lib/climb-list-pages";
 import { DEFAULT_CLIMB_LIST_SORT, parseClimbListSort } from "@/lib/climb-list-sort";
@@ -8,6 +13,7 @@ import {
   parseClimbFilter,
 } from "@/lib/filters/climb-filter";
 import type { ClimbFilterState } from "@/lib/filters/climb-filter-state";
+import { formatCount } from "@/lib/format";
 import type { ClimbType } from "@/lib/grades";
 import type { PublicClimbsPage } from "@/lib/public-catalog";
 import { areaHref, climbHref } from "@/lib/slug";
@@ -33,6 +39,7 @@ export type SearchResult = {
 );
 export type SearchSection = {
   kind: SearchKind;
+  label?: string;
   items: SearchResult[];
   status: SearchStatus;
   hasMore?: boolean;
@@ -161,6 +168,19 @@ export function climberSearchItems(climbers: ClimberRow[]): AppSearchResult[] {
     image: climber.image,
     href: `/users/${encodeURIComponent(climber.id)}`,
     climber,
+  }));
+}
+export function showsClimberSuggestions(
+  state: SearchState,
+  viewerId: string | null,
+): viewerId is string {
+  return viewerId !== null && state.category === "climber" && !state.query.trim();
+}
+
+export function climberSuggestionItems(climbers: SuggestedClimberRow[]): AppSearchResult[] {
+  return climberSearchItems(climbers).map((item, index) => ({
+    ...item,
+    detail: formatCount(climbers[index].mutualFriendCount, "mutual friend"),
   }));
 }
 
