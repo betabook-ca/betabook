@@ -8,8 +8,8 @@ export type FriendshipAction = "add" | "accept" | "decline" | "cancel" | "remove
 
 export const FRIENDSHIP_ACTION_LABELS: Record<FriendshipAction, string> = {
   add: "Add friend",
-  accept: "Accept request",
-  decline: "Decline request",
+  accept: "Accept",
+  decline: "Decline",
   cancel: "Cancel request",
   remove: "Remove friend",
 };
