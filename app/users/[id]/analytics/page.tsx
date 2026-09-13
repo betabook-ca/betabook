@@ -1,9 +1,9 @@
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { saveAnalyticsLayout } from "@/actions";
-import { PROFILE_LAYOUT_CLASS } from "@/app/users/[id]/profile-layout";
-import { ProfileHeader, getProfileOverview, getUserById } from "@/app/users/[id]/profile-shell";
+import { ProfileHeader, getUserById } from "@/app/users/[id]/profile-shell";
 import { AnalyticsDashboard } from "@/components/analytics-dashboard";
 import { AnalyticsYearNavigation } from "@/components/analytics-year-filter";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
@@ -18,6 +18,7 @@ import { getDb } from "@/db/client";
 import { getJournalSessionsForAnalytics, getUserSendsForAnalytics } from "@/db/queries";
 import { getAnalyticsHighlightSessions } from "@/db/queries/analytics-highlights";
 import { getAnalyticsLayout } from "@/db/queries/analytics-layout";
+import { getClimberOverview } from "@/db/queries/climber-overview";
 import { canReadJournal } from "@/db/queries/content-access";
 import { getViewerFeatureAnnouncements } from "@/db/queries/feature-announcements";
 import { getUserHashtags } from "@/db/queries/hashtag-filter";
@@ -109,8 +110,7 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
 
   if (scope == null) {
     const content = (
-      <div className={PROFILE_LAYOUT_CLASS}>
-        <ProfileHeader user={user} viewerId={session.user.id} />
+      <ProfileHeader user={user} viewerId={session.user.id}>
         <div className="flex min-w-0 flex-col gap-6">
           <SectionHeading className="sr-only">Analytics</SectionHeading>
           <AnalyticsHashtagFilter selectedTags={selectedTags} tags={tags} />
@@ -122,7 +122,7 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
             }
           />
         </div>
-      </div>
+      </ProfileHeader>
     );
     return (
       <FeatureAnnouncementScope
@@ -153,13 +153,15 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
   const analytics = selectedYears.length
     ? buildUserAnalytics(rows, scope, journalSessions, selectedYears)
     : lifetime;
-  const overview = await getProfileOverview(user.id, viewerId);
+  const { cf } = await getCloudflareContext({ async: true });
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: cf?.timezone ?? "UTC" }).format(
+    new Date(),
+  );
+  const overview = await getClimberOverview(db, user.id, viewerId, today);
   const summary = [describeClimber(overview), describeRecency(overview)].filter(Boolean).join(" ");
 
   const content = (
-    <div className={PROFILE_LAYOUT_CLASS}>
-      <ProfileHeader user={user} viewerId={session.user.id} />
-
+    <ProfileHeader user={user} viewerId={session.user.id}>
       <AnalyticsDashboard
         summary={summary}
         key={id}
@@ -205,7 +207,7 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
           </>
         }
       />
-    </div>
+    </ProfileHeader>
   );
   return (
     <FeatureAnnouncementScope

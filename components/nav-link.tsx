@@ -19,6 +19,10 @@ type NavLinkProps = Omit<ComponentProps<typeof AppLink>, "href"> &
     appearance?: "link" | "menu" | "tab";
   };
 
+/** Shared by menu links and the menu's own buttons. */
+export const MENU_ROW_CLASS = "w-full gap-3 rounded-lg px-3 py-2 text-sm";
+export const MENU_ROW_IDLE_CLASS = "text-muted hover:bg-default hover:text-foreground";
+
 export function navCurrent(
   pathname: string,
   href: string,
@@ -47,10 +51,9 @@ export function NavLink({
       aria-current={current}
       className={clsx(
         appearance === "menu" && [
-          "inline-flex w-full items-center rounded-lg px-3 py-2 text-sm no-underline transition-colors hover:no-underline",
-          current
-            ? "bg-navigation-active font-semibold text-link"
-            : "text-muted hover:bg-default hover:text-foreground",
+          "inline-flex items-center no-underline transition-colors hover:no-underline",
+          MENU_ROW_CLASS,
+          current ? "bg-navigation-active font-semibold text-link" : MENU_ROW_IDLE_CLASS,
         ],
         appearance === "tab" && [
           "flex size-full flex-col items-center justify-center gap-1 text-xs no-underline transition-colors hover:no-underline",

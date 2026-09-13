@@ -6,7 +6,6 @@ import { describeClimber, describeRecency } from "@/lib/climber-summary";
 const OVERVIEW: ClimberOverview = {
   sendCount: 214,
   areaCount: 18,
-  hardest: [{ type: "boulder", grade: "V8", sendCount: 180 }],
   firstYear: 2019,
   daysOut: 96,
   lastOut: "2026-03-03",
@@ -38,7 +37,6 @@ it("describes a climber with nothing logged", () => {
   const empty: ClimberOverview = {
     sendCount: 0,
     areaCount: 0,
-    hardest: [],
     firstYear: null,
     daysOut: 0,
     lastOut: null,

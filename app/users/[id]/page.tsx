@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { JournalView } from "@/app/users/[id]/journal-view";
-import { PROFILE_LAYOUT_CLASS } from "@/app/users/[id]/profile-layout";
 import {
   ProfileHeader,
   canReadUserJournal,
@@ -88,8 +87,7 @@ export default async function UserPage({ params, searchParams }: UserPageProps) 
   const journalIsVisible = await canReadUserJournal(user.id, viewerId);
 
   return (
-    <div className={PROFILE_LAYOUT_CLASS}>
-      <ProfileHeader user={user} viewerId={viewerId} />
+    <ProfileHeader user={user} viewerId={viewerId}>
       {journalIsVisible ? (
         <JournalView ownerId={user.id} viewerId={viewerId} filter={parseJournalFilter(search)} />
       ) : (
@@ -100,6 +98,6 @@ export default async function UserPage({ params, searchParams }: UserPageProps) 
           basePath={`/users/${id}`}
         />
       )}
-    </div>
+    </ProfileHeader>
   );
 }

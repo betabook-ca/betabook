@@ -5,12 +5,11 @@ import { Newspaper, Users } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { FriendRequestCount, withRequestCount } from "@/components/friend-request-badge";
-import { useFriendRequests } from "@/components/friend-requests-provider";
+import { FriendRequestBadge, withRequestCount } from "@/components/friend-request-badge";
+import { useFriendRequestCount } from "@/components/friend-requests-provider";
 import { NavLink, navCurrent } from "@/components/nav-link";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { useMounted } from "@/hooks/use-mounted";
-import { authClient } from "@/lib/auth-client";
+import { useClientSession } from "@/hooks/use-client-session";
 
 export type TabAccount = { id: string; name: string; image?: string | null };
 
@@ -50,13 +49,11 @@ function useTyping() {
 }
 
 export function AppTabBar() {
-  const mounted = useMounted();
-  const { data: session, isPending } = authClient.useSession();
-  const requests = useFriendRequests();
+  const session = useClientSession();
+  const requestCount = useFriendRequestCount();
   const pathname = usePathname();
   const typing = useTyping();
-  if (!mounted || isPending || !session) return null;
-  const requestCount = requests.userId === session.user.id ? (requests.count ?? 0) : 0;
+  if (!session) return null;
 
   return (
     <>
@@ -113,7 +110,11 @@ export function AppTabs({
         >
           <span className="relative">
             <Users aria-hidden className="size-6" />
-            <FriendRequestCount count={requestCount} className="absolute -top-1.5 left-3.5" />
+            <FriendRequestBadge
+              decorative
+              count={requestCount}
+              className="absolute -top-1.5 left-3.5"
+            />
           </span>
           Friends
         </NavLink>

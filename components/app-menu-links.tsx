@@ -12,8 +12,8 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { FriendRequestCount, withRequestCount } from "@/components/friend-request-badge";
-import { NavLink } from "@/components/nav-link";
+import { FriendRequestBadge, withRequestCount } from "@/components/friend-request-badge";
+import { MENU_ROW_CLASS, MENU_ROW_IDLE_CLASS, NavLink } from "@/components/nav-link";
 import { SignOutButton } from "@/components/sign-out-button";
 import { AppLink } from "@/components/ui/app-link";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -22,8 +22,7 @@ import { productTourPath } from "@/lib/product-tour-navigation";
 export type MenuAccount = { id: string; name: string; image?: string | null; isAdmin: boolean };
 
 const ICON_CLASS = "size-5 shrink-0";
-const MENU_BUTTON_CLASS =
-  "h-auto w-full justify-start gap-3 rounded-lg px-3 py-2 text-sm font-normal text-muted hover:bg-default hover:text-foreground";
+const MENU_BUTTON_CLASS = `h-auto justify-start font-normal ${MENU_ROW_CLASS} ${MENU_ROW_IDLE_CLASS}`;
 
 export function AppMenuLinks({
   account,
@@ -43,14 +42,14 @@ export function AppMenuLinks({
     <div className="flex flex-col gap-3 text-sm">
       {account ? (
         <MenuGroup>
-          <NavLink {...row} href={`/users/${account.id}`} matchWithin className="gap-3">
+          <NavLink {...row} href={`/users/${account.id}`} matchWithin>
             <UserAvatar name={account.name} image={account.image} size="sm" />
             <span className="flex min-w-0 flex-col">
               <span className="truncate">{account.name}</span>
               <span className="text-xs font-normal">View profile</span>
             </span>
           </NavLink>
-          <NavLink {...row} href="/feed" className="gap-3">
+          <NavLink {...row} href="/feed">
             <Newspaper aria-hidden className={ICON_CLASS} />
             Feed
           </NavLink>
@@ -58,13 +57,12 @@ export function AppMenuLinks({
             {...row}
             href="/friends"
             aria-label={requestCount > 0 ? withRequestCount("Friends", requestCount) : undefined}
-            className="gap-3"
           >
             <Users aria-hidden className={ICON_CLASS} />
             Friends
-            <FriendRequestCount count={requestCount} className="ms-auto" />
+            <FriendRequestBadge decorative count={requestCount} className="ms-auto" />
           </NavLink>
-          <NavLink {...row} href="/climbs/new" relatedPaths={["/areas/new"]} className="gap-3">
+          <NavLink {...row} href="/climbs/new" relatedPaths={["/areas/new"]}>
             <Plus aria-hidden className={ICON_CLASS} />
             Add climb/area
           </NavLink>
@@ -83,16 +81,16 @@ export function AppMenuLinks({
         <MenuGroup>
           {account && (
             <>
-              <NavLink {...row} href="/account" className="gap-3">
+              <NavLink {...row} href="/account">
                 <Settings aria-hidden className={ICON_CLASS} />
                 Account settings
               </NavLink>
-              <NavLink {...row} href={productTourPath("journal")} className="gap-3">
+              <NavLink {...row} href={productTourPath("journal")}>
                 <GraduationCap aria-hidden className={ICON_CLASS} />
                 Tutorials
               </NavLink>
               {account.isAdmin && (
-                <NavLink {...row} href="/admin/requests" matchWithin className="gap-3">
+                <NavLink {...row} href="/admin/requests" matchWithin>
                   <ShieldCheck aria-hidden className={ICON_CLASS} />
                   Moderation
                 </NavLink>

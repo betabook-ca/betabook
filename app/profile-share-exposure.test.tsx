@@ -8,7 +8,6 @@ import { ProfileHeader } from "@/app/users/[id]/profile-shell";
 import { AccountSettings } from "@/components/account-settings";
 import { FriendshipButton } from "@/components/friendship-button";
 import { ProfileHeading } from "@/components/profile-heading";
-import { ProfileTabs } from "@/components/profile-tabs";
 import { ShareProfileButton } from "@/components/share-profile-button";
 import { createDb } from "@/db/client";
 import { getProfileShareToken } from "@/db/queries";
@@ -49,19 +48,15 @@ async function currentToken() {
 
 async function profileHeaderFor(viewerId: string) {
   const owner = (await db.select().from(user).where(eq(user.id, "owner")).get())!;
-  return JSON.stringify(await ProfileHeader({ user: owner, viewerId }));
+  return JSON.stringify(await ProfileHeader({ user: owner, viewerId, children: null }));
 }
 
-async function profileHeaderParts(viewerId: string) {
+async function profileHeadingFor(viewerId: string) {
   const owner = (await db.select().from(user).where(eq(user.id, "owner")).get())!;
-  const header = (await ProfileHeader({ user: owner, viewerId })) as ReactElement<{
-    children: [ReactElement<{ children: ReactElement }>, ReactElement];
+  const header = (await ProfileHeader({ user: owner, viewerId, children: null })) as ReactElement<{
+    heading: ReactElement<Record<string, unknown>>;
   }>;
-  const [aside, tabs] = header.props.children;
-  return {
-    heading: aside.props.children as ReactElement<Record<string, unknown>>,
-    tabs: tabs as ReactElement<Record<string, unknown>>,
-  };
+  return header.props.heading;
 }
 
 /** Renders AccountSettings one level so the assertions reach ShareProfileControls. */
@@ -82,20 +77,16 @@ it("gives the share link to the profile's owner and no other member", async () =
   expect(visitorView).not.toContain(token);
 });
 
-it("puts the owner's share link beside their name, with no other header actions", async () => {
-  const { heading, tabs } = await profileHeaderParts("owner");
+it("puts the owner's share link beside their name", async () => {
+  const heading = await profileHeadingFor("owner");
 
   expect(heading.type).toBe(ProfileHeading);
-  expect(heading.props.actions).toBeUndefined();
   expect((heading.props.nameAction as ReactElement).type).toBe(ShareProfileButton);
-  expect(tabs.type).toBe(ProfileTabs);
-  expect(tabs.props).not.toHaveProperty("sendCount");
 });
 
 it("puts the friendship control beside another member's name", async () => {
-  const { heading } = await profileHeaderParts("member");
+  const heading = await profileHeadingFor("member");
 
-  expect(heading.props.actions).toBeUndefined();
   expect((heading.props.nameAction as ReactElement).type).toBe(FriendshipButton);
 });
 

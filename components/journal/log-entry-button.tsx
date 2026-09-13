@@ -1,7 +1,6 @@
 "use client";
 
 import { Button, useOverlayState } from "@heroui/react";
-import { clsx } from "clsx";
 import { CirclePlus } from "lucide-react";
 
 import type { SendableClimb } from "@/db/queries";
@@ -12,25 +11,19 @@ import { useDeferredComponent } from "@/hooks/use-deferred-component";
 const loadDrawer = () =>
   import("@/components/journal/journal-entry-drawer").then((m) => m.JournalEntryDrawer);
 
-type LogEntryButtonProps = {
-  climb?: SendableClimb & { name: string };
-  sentClimbIds?: Set<number>;
-  fullWidth?: boolean;
-  label?: string;
-  variant?: "outline";
-  size?: "sm";
-  className?: string;
-};
-
 export function LogEntryButton({
   climb,
   sentClimbIds,
-  fullWidth,
   label = "Log",
   variant,
   size,
-  className,
-}: LogEntryButtonProps) {
+}: {
+  climb?: SendableClimb & { name: string };
+  sentClimbIds?: Set<number>;
+  label?: string;
+  variant?: "outline";
+  size?: "sm";
+}) {
   const state = useOverlayState();
   const { Component: JournalEntryDrawer, load } = useDeferredComponent(loadDrawer);
 
@@ -39,12 +32,11 @@ export function LogEntryButton({
       <Button
         variant={variant}
         size={size}
-        fullWidth={fullWidth}
         onPress={() => {
           load();
           state.open();
         }}
-        className={clsx("gap-2", className)}
+        className="gap-2"
       >
         <CirclePlus className={size === "sm" ? "size-4" : "size-5"} />
         {label}

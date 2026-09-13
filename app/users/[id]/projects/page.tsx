@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { PROFILE_LAYOUT_CLASS } from "@/app/users/[id]/profile-layout";
 import { ProfileHeader, getUserById } from "@/app/users/[id]/profile-shell";
 import { ProjectsView } from "@/app/users/[id]/projects-view";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
@@ -29,9 +28,8 @@ export default async function UserProjectsPage({ params }: UserProjectsPageProps
   if (!user || session.user.id !== user.id) notFound();
 
   return (
-    <div className={PROFILE_LAYOUT_CLASS}>
-      <ProfileHeader user={user} viewerId={session.user.id} />
+    <ProfileHeader user={user} viewerId={session.user.id}>
       <ProjectsView ownerId={user.id} />
-    </div>
+    </ProfileHeader>
   );
 }

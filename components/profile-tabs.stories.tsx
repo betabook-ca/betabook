@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { STORY_CLIMBER_OVERVIEW } from "@/stories/fixtures/climber-overview";
+import { STORY_HARDEST } from "@/stories/fixtures/climber-hardest";
 
 import { ProfileHeading } from "./profile-heading";
 import { ProfileTabs } from "./profile-tabs";
@@ -12,7 +12,7 @@ const meta = {
   decorators: [
     (Story) => (
       <div className="flex flex-col gap-4">
-        <ProfileHeading name="Alex Morgan" overview={STORY_CLIMBER_OVERVIEW} />
+        <ProfileHeading name="Alex Morgan" hardest={STORY_HARDEST} />
         <Story />
       </div>
     ),

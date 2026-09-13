@@ -4,12 +4,12 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { createDb, type Database } from "@/db/client";
 import {
-  getJournalCounts,
   getJournalForClimb,
   getJournalPage,
   getJournalSessionsForAnalytics,
   getOpenProjects,
   getOpenProjectSessions,
+  hasJournalEntries,
 } from "@/db/queries";
 import { user } from "@/db/schema";
 import { DEFAULT_JOURNAL_FILTER } from "@/lib/filters/journal-filter";
@@ -106,27 +106,10 @@ const GATED_READS = [
     empty: [],
   },
   {
-    name: "getJournalCounts",
-    read: (ownerId: string, viewerId: string | null) =>
-      getJournalCounts(db, ownerId, viewerId, "2026-02"),
-    visible: {
-      entries: 1,
-      sessions: 1,
-      training: 0,
-      days: 1,
-      entriesThisMonth: 1,
-      daysThisMonth: 1,
-      sentThisMonth: 0,
-    },
-    empty: {
-      entries: 0,
-      sessions: 0,
-      training: 0,
-      days: 0,
-      entriesThisMonth: 0,
-      daysThisMonth: 0,
-      sentThisMonth: 0,
-    },
+    name: "hasJournalEntries",
+    read: (ownerId: string, viewerId: string | null) => hasJournalEntries(db, ownerId, viewerId),
+    visible: true,
+    empty: false,
   },
 ] as const;
 

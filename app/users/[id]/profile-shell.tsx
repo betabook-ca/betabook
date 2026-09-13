@@ -1,13 +1,13 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { cache } from "react";
+import { cache, type ReactNode } from "react";
 
 import { FriendshipButton } from "@/components/friendship-button";
 import { ProfileHeading } from "@/components/profile-heading";
+import { ProfileLayout } from "@/components/profile-layout";
 import { ProfileTabs } from "@/components/profile-tabs";
 import { ShareProfileButton } from "@/components/share-profile-button";
 import { getDb } from "@/db/client";
 import { getUser, getFriendship, canReadJournal, getShareLinkOwner } from "@/db/queries";
-import { getClimberOverview } from "@/db/queries/climber-overview";
+import { getClimberHardest } from "@/db/queries/climber-overview";
 import { getOwnProfileShareUrl } from "@/lib/profile-share-url";
 
 export const getUserById = cache(async (id: string) => {
@@ -23,15 +23,6 @@ export const getShareLinkOwnerByToken = cache(async (token: string) =>
   getShareLinkOwner(await getDb(), token),
 );
 
-/** Shared by the header and the Analytics summary within one request. */
-export const getProfileOverview = cache(async (userId: string, viewerId: string) => {
-  const { cf } = await getCloudflareContext({ async: true });
-  const today = new Intl.DateTimeFormat("en-CA", { timeZone: cf?.timezone ?? "UTC" }).format(
-    new Date(),
-  );
-  return getClimberOverview(await getDb(), userId, viewerId, today);
-});
-
 type ProfileUser = {
   id: string;
   name: string;
@@ -39,24 +30,32 @@ type ProfileUser = {
   isPrivate: boolean;
 };
 
-/** Renders two grid items for PROFILE_LAYOUT_CLASS; the page's section view is the third. */
-export async function ProfileHeader({ user, viewerId }: { user: ProfileUser; viewerId: string }) {
+/** The climber's heading and section tabs around one section view. */
+export async function ProfileHeader({
+  user,
+  viewerId,
+  children,
+}: {
+  user: ProfileUser;
+  viewerId: string;
+  children: ReactNode;
+}) {
   const db = await getDb();
   const isOwner = viewerId === user.id;
-  const [relationship, journalVisible, shareUrl, overview] = await Promise.all([
+  const [relationship, journalVisible, shareUrl, hardest] = await Promise.all([
     isOwner ? null : getFriendship(db, viewerId, user.id),
     canReadUserJournal(user.id, viewerId),
     isOwner ? getOwnProfileShareUrl(db, user) : null,
-    getProfileOverview(user.id, viewerId),
+    getClimberHardest(db, user.id),
   ]);
 
   return (
-    <>
-      <aside aria-label="Climber summary" className="xl:sticky xl:top-6 xl:row-span-2">
+    <ProfileLayout
+      heading={
         <ProfileHeading
           name={user.name}
           image={user.image}
-          overview={overview}
+          hardest={hardest}
           nameAction={
             isOwner ? (
               shareUrl && <ShareProfileButton name={user.name} url={shareUrl} />
@@ -76,8 +75,10 @@ export async function ProfileHeader({ user, viewerId }: { user: ProfileUser; vie
             )
           }
         />
-      </aside>
-      <ProfileTabs userId={user.id} showJournal={journalVisible} showProjects={isOwner} />
-    </>
+      }
+      tabs={<ProfileTabs userId={user.id} showJournal={journalVisible} showProjects={isOwner} />}
+    >
+      {children}
+    </ProfileLayout>
   );
 }

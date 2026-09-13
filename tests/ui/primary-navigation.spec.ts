@@ -15,7 +15,6 @@ for (const [story, label] of [
     expect(await active.evaluate((element) => getComputedStyle(element).color)).not.toBe(
       await inactive.evaluate((element) => getComputedStyle(element).color),
     );
-    await expect(nav.locator("a[aria-current]")).toHaveCount(1);
   });
 }
 
@@ -43,13 +42,6 @@ test(
     expect(count.x + count.width).toBeLessThanOrEqual(friends.x + friends.width);
   },
 );
-
-test("another climber's profile marks no tab", { tag: "@behavior" }, async ({ page }, info) => {
-  await openStory(page, info, "components-navigation-tab-bar--other-climber");
-  const nav = page.getByRole("navigation", { name: "Primary" });
-  await expect(nav.getByRole("link", { name: "Profile", exact: true })).toBeVisible();
-  await expect(nav.locator("a[aria-current]")).toHaveCount(0);
-});
 
 test("menu selection fills the menu row", async ({ page }, info) => {
   await openStory(page, info, "components-navigation-app-menu--profile");

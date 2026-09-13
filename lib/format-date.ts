@@ -34,14 +34,6 @@ export function formatMonth(yearMonth: string): string {
   return MONTH_FORMAT.format(parsed);
 }
 
-export function calendarMonth(date: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    year: "numeric",
-    month: "2-digit",
-    timeZone,
-  }).format(date);
-}
-
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /** Whole days from one civil date to the other, both read as UTC midnight

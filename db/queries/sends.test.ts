@@ -18,6 +18,7 @@ import {
   getUserSendForClimb,
   getUserSendsSummary,
   getUserSentClimbIds,
+  hasUserSends,
   type UserSendsExportCursor,
   type UserSendsFilter,
 } from "./sends";
@@ -528,6 +529,15 @@ describe("getUserSendsSummary", () => {
       mostLoggedDiscipline: null,
       latestSendDate: null,
     });
+  });
+});
+
+describe("hasUserSends", () => {
+  it("tells a climber with sends from one without", async () => {
+    await seedFixtureUser(db, { id: "sends-none", name: "No Sends Yet" });
+
+    expect(await hasUserSends(db, "test-user-1")).toBe(true);
+    expect(await hasUserSends(db, "sends-none")).toBe(false);
   });
 });
 

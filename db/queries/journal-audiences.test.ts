@@ -19,9 +19,9 @@ import { canReadJournal } from "./content-access";
 import { getFeedPage } from "./feed";
 import {
   getJournalPage,
-  getJournalCounts,
   getJournalSessionsForAnalytics,
   getOpenProjects,
+  hasJournalEntries,
 } from "./journal";
 
 const db = createDb(env.DB);
@@ -74,9 +74,7 @@ it.each<SharingAudience>(["private", "public", "friends"])(
         (viewer !== null && journalVisibility === "public") ||
         (journalVisibility === "friends" && isFriend);
       expect(await canReadJournal(db, ownerId, viewer)).toBe(canRead);
-      expect((await getJournalCounts(db, ownerId, viewer, "2026-09")).entries).toBe(
-        canRead ? 3 : 0,
-      );
+      expect(await hasJournalEntries(db, ownerId, viewer)).toBe(canRead);
       expect(await getJournalSessionsForAnalytics(db, ownerId, viewer)).toEqual(
         canRead ? [{ entryDate: "2026-09-01", climbType: "boulder", count: 2 }] : [],
       );
@@ -106,7 +104,7 @@ it("checks current DB privacy and friendships after audience changes and removal
   expect((await getJournalPage(db, ownerId, "connected", DEFAULT_JOURNAL_FILTER)).entries).toEqual(
     [],
   );
-  expect((await getJournalCounts(db, ownerId, "connected", "2026-09")).entries).toBe(0);
+  expect(await hasJournalEntries(db, ownerId, "connected")).toBe(false);
   expect((await getFeedPage(db, "connected")).days).toEqual([]);
   expect(
     (await getJournalPage(db, ownerId, "author", DEFAULT_JOURNAL_FILTER)).entries,

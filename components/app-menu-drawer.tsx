@@ -2,12 +2,9 @@
 
 import { Drawer } from "@heroui/react";
 
-import { AppMenuLinks } from "@/components/app-menu-links";
-import { useFriendRequests } from "@/components/friend-requests-provider";
+import { AppMenuLinks, type MenuAccount } from "@/components/app-menu-links";
 import { openMobileAppHelper } from "@/components/mobile-app-helper";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useMounted } from "@/hooks/use-mounted";
-import { authClient } from "@/lib/auth-client";
 import { isMobileDevice, isStandaloneDisplay } from "@/lib/mobile-detection";
 
 /** Split from its trigger so `Drawer` and the react-aria overlay code stay out
@@ -17,15 +14,16 @@ export function AppMenuDrawer({
   isOpen,
   onOpenChange,
   onClose,
+  account,
+  requestCount,
 }: {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onClose: () => void;
+  /** Undefined until the session is known. */
+  account: MenuAccount | null | undefined;
+  requestCount: number;
 }) {
-  const mounted = useMounted();
-  const { data: session, isPending } = authClient.useSession();
-  const requests = useFriendRequests();
-
   return (
     <Drawer.Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
       <Drawer.Content placement="left">
@@ -36,7 +34,7 @@ export function AppMenuDrawer({
           </Drawer.Header>
           <Drawer.Body>
             <nav aria-label="Menu">
-              {!mounted || isPending ? (
+              {account === undefined ? (
                 <div aria-hidden className="flex flex-col gap-2">
                   {["profile", "feed", "friends", "add"].map((key) => (
                     <Skeleton key={key} rounded="rounded-lg" className="h-9 w-full" />
@@ -44,17 +42,8 @@ export function AppMenuDrawer({
                 </div>
               ) : (
                 <AppMenuLinks
-                  account={
-                    session && {
-                      id: session.user.id,
-                      name: session.user.name,
-                      image: session.user.image,
-                      isAdmin: session.user.role === "admin",
-                    }
-                  }
-                  requestCount={
-                    session && requests.userId === session.user.id ? (requests.count ?? 0) : 0
-                  }
+                  account={account}
+                  requestCount={requestCount}
                   canInstall={isMobileDevice() && !isStandaloneDisplay()}
                   onNavigate={onClose}
                   onInstall={() => {

@@ -68,12 +68,10 @@ export function FilterToolbarLayout({
   filters,
   onReset,
   activeFilters = EMPTY_ACTIVE_FILTERS,
-  controlsAlignment = "center",
   triggerClassName,
 }: {
   search?: ReactNode;
   controls: ReactNode;
-  controlsAlignment?: "center" | "end";
   triggerClassName?: string;
   sortControl?: ReactNode;
   filters: ReactNode;
@@ -108,12 +106,7 @@ export function FilterToolbarLayout({
               {search && (
                 <div className="min-w-0 @3xl/filters:w-96 @3xl/filters:shrink">{search}</div>
               )}
-              <div
-                className={clsx(
-                  "col-span-full flex min-w-0 flex-wrap gap-2 @3xl/filters:contents",
-                  controlsAlignment === "end" ? "items-end" : "items-center",
-                )}
-              >
+              <div className="col-span-full flex min-w-0 flex-wrap items-center gap-2 @3xl/filters:contents">
                 {controls}
                 <Disclosure.Heading className="contents">
                   <Disclosure.Trigger

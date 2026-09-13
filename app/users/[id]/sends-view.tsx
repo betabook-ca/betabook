@@ -4,7 +4,7 @@ import { AppLink } from "@/components/ui/app-link";
 import { SectionHeading } from "@/components/ui/typography";
 import { UserSendList } from "@/components/user-send-list";
 import { getDb } from "@/db/client";
-import { getAreaBreadcrumbs, getSendsForUserPage, getUserSendsSummary } from "@/db/queries";
+import { getAreaBreadcrumbs, getSendsForUserPage, hasUserSends } from "@/db/queries";
 import type { UserSendsFilter } from "@/db/queries";
 import { getUserHashtags } from "@/db/queries/hashtag-filter";
 import { userSendsFilterToSearchParams } from "@/lib/filters/user-sends-filter";
@@ -23,8 +23,8 @@ export async function SendsView({
 }) {
   const db = await getDb();
 
-  const [summary, firstPage, tags] = await Promise.all([
-    getUserSendsSummary(db, userId),
+  const [hasSends, firstPage, tags] = await Promise.all([
+    hasUserSends(db, userId),
     getSendsForUserPage(db, userId, filter, 0, undefined, viewerId),
     getUserHashtags(db, userId, viewerId, true),
   ]);
@@ -51,9 +51,7 @@ export async function SendsView({
             </AppLink>
           </p>
         )}
-        {summary.sendCount > 0 && (
-          <UserSendsFilterToolbar filter={filter} basePath={basePath} tags={tags} />
-        )}
+        {hasSends && <UserSendsFilterToolbar filter={filter} basePath={basePath} tags={tags} />}
         <UserSendList
           key={JSON.stringify(filter)}
           userId={userId}
@@ -61,7 +59,7 @@ export async function SendsView({
           initialSends={firstPage.sends}
           initialHasMore={firstPage.hasMore}
           initialAreaBreadcrumbs={areaBreadcrumbs}
-          hasAnySends={summary.sendCount > 0}
+          hasAnySends={hasSends}
           currentUserId={viewerId}
         />
       </div>

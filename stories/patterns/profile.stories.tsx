@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
 
-import { PROFILE_LAYOUT_CLASS } from "@/app/users/[id]/profile-layout";
 import { ProfileHeading } from "@/components/profile-heading";
+import { ProfileLayout } from "@/components/profile-layout";
 import { ProfileSectionNav } from "@/components/profile-tabs";
 import { Grade } from "@/components/ui/grade";
 import { ListRow } from "@/components/ui/list-row";
-import { STORY_CLIMBER_OVERVIEW } from "@/stories/fixtures/climber-overview";
+import { STORY_HARDEST } from "@/stories/fixtures/climber-hardest";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 const meta = { title: "Patterns/Profile overview", component: StoryPage } satisfies Meta<
@@ -25,17 +25,18 @@ const ROWS = [
 function ProfileExample() {
   const [tab, setTab] = useState("Journal");
   return (
-    <div className={PROFILE_LAYOUT_CLASS}>
-      <aside aria-label="Climber summary" className="xl:sticky xl:top-6 xl:row-span-2">
-        <ProfileHeading name="Alexandra Rivera" overview={STORY_CLIMBER_OVERVIEW} />
-      </aside>
-      <ProfileSectionNav
-        tabs={["Journal", "Sends", "Projects", "Analytics"].map((label) => ({
-          label,
-          current: label === tab,
-          onSelect: () => setTab(label),
-        }))}
-      />
+    <ProfileLayout
+      heading={<ProfileHeading name="Alexandra Rivera" hardest={STORY_HARDEST} />}
+      tabs={
+        <ProfileSectionNav
+          tabs={["Journal", "Sends", "Projects", "Analytics"].map((label) => ({
+            label,
+            current: label === tab,
+            onSelect: () => setTab(label),
+          }))}
+        />
+      }
+    >
       <div className="flex flex-col divide-y divide-separator">
         {ROWS.map((row) => (
           <ListRow
@@ -51,7 +52,7 @@ function ProfileExample() {
           />
         ))}
       </div>
-    </div>
+    </ProfileLayout>
   );
 }
 

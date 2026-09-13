@@ -42,7 +42,7 @@ vi.mock("@/lib/auth-client", () => ({
   },
 }));
 vi.mock("@/components/friend-requests-provider", () => ({
-  useFriendRequests: () => ({ userId: "owner", count: 2, refresh: async () => {} }),
+  useFriendRequestCount: () => 2,
 }));
 
 it("names pending requests on the menu button and opens the menu", async () => {
@@ -50,15 +50,8 @@ it("names pending requests on the menu button and opens the menu", async () => {
   render(<AppMenuButton />);
 
   await user.click(screen.getByRole("button", { name: "Open menu, 2 pending friend requests" }));
-  const menu = await screen.findByRole("dialog", { name: "Menu" });
 
-  expect(within(menu).getByRole("link", { name: /Alex Morgan/ })).toHaveAttribute(
-    "href",
-    "/users/owner",
-  );
-  expect(
-    within(menu).getByRole("link", { name: "Friends, 2 pending friend requests" }),
-  ).toBeInTheDocument();
+  expect(await screen.findByRole("dialog", { name: "Menu" })).toBeInTheDocument();
 });
 
 it("closes the menu when a destination is chosen", async () => {

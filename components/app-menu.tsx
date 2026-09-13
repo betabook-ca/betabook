@@ -6,10 +6,9 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect } from "react";
 
 import { FriendRequestDot, withRequestCount } from "@/components/friend-request-badge";
-import { useFriendRequests } from "@/components/friend-requests-provider";
+import { useFriendRequestCount } from "@/components/friend-requests-provider";
+import { useClientSession } from "@/hooks/use-client-session";
 import { useDeferredComponent } from "@/hooks/use-deferred-component";
-import { useMounted } from "@/hooks/use-mounted";
-import { authClient } from "@/lib/auth-client";
 
 /** Module-level so its identity is stable across renders — the preload hook
  * keys its effect on the loader. */
@@ -19,14 +18,9 @@ export function AppMenuButton() {
   const state = useOverlayState();
   const { close, open, setOpen } = state;
   const pathname = usePathname();
-  const mounted = useMounted();
-  const { data: session, isPending } = authClient.useSession();
-  const requests = useFriendRequests();
+  const session = useClientSession();
+  const requestCount = useFriendRequestCount();
   const { Component: AppMenuDrawer, load } = useDeferredComponent(loadDrawer);
-  const requestCount =
-    mounted && !isPending && session && requests.userId === session.user.id
-      ? (requests.count ?? 0)
-      : 0;
 
   const openMenu = useCallback(() => {
     load();
@@ -52,7 +46,20 @@ export function AppMenuButton() {
         {requestCount > 0 && <FriendRequestDot className="absolute top-1.5 right-1.5" />}
       </Button>
       {AppMenuDrawer && (
-        <AppMenuDrawer isOpen={state.isOpen} onOpenChange={setOpen} onClose={close} />
+        <AppMenuDrawer
+          isOpen={state.isOpen}
+          onOpenChange={setOpen}
+          onClose={close}
+          account={
+            session && {
+              id: session.user.id,
+              name: session.user.name,
+              image: session.user.image,
+              isAdmin: session.user.role === "admin",
+            }
+          }
+          requestCount={requestCount}
+        />
       )}
     </>
   );

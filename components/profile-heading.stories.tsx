@@ -1,9 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import {
-  STORY_CLIMBER_OVERVIEW,
-  STORY_NEW_CLIMBER_OVERVIEW,
-} from "@/stories/fixtures/climber-overview";
+import { STORY_HARDEST } from "@/stories/fixtures/climber-hardest";
 
 import { FriendshipButton } from "./friendship-button";
 import { ProfileHeading } from "./profile-heading";
@@ -14,7 +11,7 @@ const meta = {
   component: ProfileHeading,
   args: {
     name: "Alex Morgan",
-    overview: STORY_CLIMBER_OVERVIEW,
+    hardest: STORY_HARDEST,
     nameAction: (
       <ShareProfileButton name="Alex Morgan" url="https://betabook.ca/users/sample?share=demo" />
     ),
@@ -29,8 +26,6 @@ const meta = {
 } satisfies Meta<typeof ProfileHeading>;
 export default meta;
 type Story = StoryObj<typeof meta>;
-
-const hiddenJournalNote = <p className="text-muted">Their journal isn&apos;t shared with you.</p>;
 
 export const MemberProfile: Story = {};
 export const AnotherClimber: Story = {
@@ -62,7 +57,6 @@ export const IncomingRequest: Story = {
 export const Stranger: Story = {
   args: {
     name: "Jordan Lee",
-    overview: { ...STORY_CLIMBER_OVERVIEW, daysOut: null },
     nameAction: (
       <FriendshipButton
         userId="sample"
@@ -71,21 +65,18 @@ export const Stranger: Story = {
         appearance="profile"
       />
     ),
-    note: hiddenJournalNote,
+    note: <p className="text-muted">Their journal isn&apos;t shared with you.</p>,
   },
 };
 export const LongestGrades: Story = {
   args: {
-    overview: {
-      ...STORY_CLIMBER_OVERVIEW,
-      hardest: [
-        { type: "sport", grade: "5.15d", sendCount: 337 },
-        { type: "trad", grade: "5.15d", sendCount: 314 },
-        { type: "boulder", grade: "V17", sendCount: 309 },
-      ],
-    },
+    hardest: [
+      { type: "sport", grade: "5.15d" },
+      { type: "trad", grade: "5.15d" },
+      { type: "boulder", grade: "V17" },
+    ],
   },
 };
 export const NewClimber: Story = {
-  args: { overview: STORY_NEW_CLIMBER_OVERVIEW },
+  args: { hardest: [] },
 };

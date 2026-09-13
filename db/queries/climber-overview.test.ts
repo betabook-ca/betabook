@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { createDb } from "@/db/client";
-import { getClimberOverview } from "@/db/queries/climber-overview";
+import { getClimberHardest, getClimberOverview } from "@/db/queries/climber-overview";
 import { user } from "@/db/schema";
 import {
   seedFixtureFriendship,
@@ -43,21 +43,27 @@ beforeEach(async () => {
   await seedFixtureSend(db, { userId: "stranger", climbId: 3, dateSent: "2026-03-05" });
 });
 
-const SEND_FACTS = {
-  sendCount: 4,
-  areaCount: 3,
-  hardest: [
-    { type: "boulder", grade: "V4", sendCount: 2 },
-    { type: "sport", grade: "5.10a", sendCount: 1 },
-    { type: "trad", grade: "5.6", sendCount: 1 },
-  ],
-};
+const SEND_FACTS = { sendCount: 4, areaCount: 3 };
+
+describe("getClimberHardest", () => {
+  it("lists each graded discipline's hardest send, most-sent first", async () => {
+    expect(await getClimberHardest(db, "owner")).toEqual([
+      { type: "boulder", grade: "V4" },
+      { type: "sport", grade: "5.10a" },
+      { type: "trad", grade: "5.6" },
+    ]);
+  });
+
+  it("is empty before anything is sent", async () => {
+    expect(await getClimberHardest(db, "friend")).toEqual([]);
+  });
+});
 
 describe("getClimberOverview", () => {
   it.each(["owner", "friend"])("reads days out from the journal for %s", async (viewerId) => {
     const overview = await getClimberOverview(db, "owner", viewerId, TODAY);
 
-    expect(overview).toMatchObject({
+    expect(overview).toEqual({
       ...SEND_FACTS,
       firstYear: 2024,
       daysOut: 3,
@@ -72,7 +78,7 @@ describe("getClimberOverview", () => {
     async (viewerId) => {
       const overview = await getClimberOverview(db, "owner", viewerId, TODAY);
 
-      expect(overview).toMatchObject({
+      expect(overview).toEqual({
         ...SEND_FACTS,
         firstYear: 2025,
         daysOut: null,
@@ -99,7 +105,6 @@ describe("getClimberOverview", () => {
     expect(overview).toMatchObject({
       sendCount: 0,
       areaCount: 0,
-      hardest: [],
       firstYear: null,
       daysOut: 0,
       lastOut: null,

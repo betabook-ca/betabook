@@ -19,7 +19,7 @@ vi.mock("@/lib/auth-client", () => ({
   authClient: { useSession: () => ({ data: state.session, isPending: false }) },
 }));
 vi.mock("@/components/friend-requests-provider", () => ({
-  useFriendRequests: () => ({ userId: "owner", count: 1, refresh: async () => {} }),
+  useFriendRequestCount: () => 1,
 }));
 
 beforeEach(() => {

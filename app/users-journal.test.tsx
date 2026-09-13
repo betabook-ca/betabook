@@ -1,13 +1,10 @@
 import type { ReactElement, ReactNode } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import UserPage from "@/app/users/[id]/page";
 import UserProjectsPage from "@/app/users/[id]/projects/page";
-import { ProfileTabs } from "@/components/profile-tabs";
 
 const state = vi.hoisted(() => ({
-  pathname: "/users/journal-owner",
   session: null as { user: { id: string } } | null,
   user: {
     id: "journal-owner",
@@ -34,15 +31,6 @@ vi.mock("next/navigation", () => ({
   notFound: vi.fn<() => never>(() => {
     throw new Error("not found");
   }),
-  usePathname: vi.fn<() => string>(() => state.pathname),
-}));
-
-vi.mock("next/link", () => ({
-  default: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
 }));
 
 vi.mock("@/lib/session", () => ({
@@ -71,8 +59,7 @@ vi.mock("@/app/users/[id]/projects-view", () => ({
 }));
 
 function viewFrom(result: ReactElement<{ children: ReactNode }>) {
-  const children = result.props.children as ReactElement<Record<string, unknown>>[];
-  return children[1];
+  return result.props.children as ReactElement<Record<string, unknown>>;
 }
 
 describe("the profile's default view", () => {
@@ -124,35 +111,6 @@ describe("the profile's default view", () => {
     });
 
     expect(viewFrom(result).type).toBe(mocks.JournalView);
-  });
-});
-
-describe("ProfileTabs", () => {
-  it("does not offer a private Journal tab to a visitor", () => {
-    state.pathname = `/users/${state.user.id}`;
-    const html = renderToStaticMarkup(
-      <ProfileTabs userId={state.user.id} showJournal={false} showProjects={false} />,
-    );
-
-    expect([...html.matchAll(/href="([^"]+)"/g)].map((match) => match[1])).toEqual([
-      `/users/${state.user.id}/sends`,
-      `/users/${state.user.id}/analytics`,
-    ]);
-  });
-
-  it("puts the owner's Projects tab between Sends and Analytics and marks it current", () => {
-    state.pathname = `/users/${state.user.id}/projects`;
-    const html = renderToStaticMarkup(
-      <ProfileTabs userId={state.user.id} showJournal showProjects />,
-    );
-
-    expect([...html.matchAll(/href="([^"]+)"/g)].map((match) => match[1])).toEqual([
-      `/users/${state.user.id}/journal`,
-      `/users/${state.user.id}/sends`,
-      `/users/${state.user.id}/projects`,
-      `/users/${state.user.id}/analytics`,
-    ]);
-    expect(html).toContain(`href="/users/${state.user.id}/projects" aria-current="page"`);
   });
 });
 

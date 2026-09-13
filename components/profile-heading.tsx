@@ -4,20 +4,20 @@ import type { ReactNode } from "react";
 import { DISCIPLINE_CHIP_CLASSNAME, DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
 import { PageTitle } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import type { ClimberOverview } from "@/db/queries/climber-overview";
+import type { HardestSend } from "@/db/queries/climber-overview";
 
 /** Sized by its own width (phone, 17rem side column or page-wide band), so no row ever wraps.
  * The badge padding is tight enough for 5.15d, 5.15d and V17 to share a row in the side column. */
 export function ProfileHeading({
   name,
   image = null,
-  overview,
+  hardest,
   nameAction,
   note,
 }: {
   name: string;
   image?: string | null;
-  overview: ClimberOverview;
+  hardest: HardestSend[];
   /** Kept on the name's row: the owner's share link or a visitor's friendship control. */
   nameAction?: ReactNode;
   /** Shown under the badges, e.g. why a section is missing. */
@@ -39,13 +39,13 @@ export function ProfileHeading({
           </PageTitle>
           {nameAction}
         </div>
-        {overview.hardest.length > 0 && (
+        {hardest.length > 0 && (
           <section
             aria-label="Hardest sends"
             className="col-span-2 mt-3 @xs:col-span-1 @xs:col-start-2 @xs:mt-1.5 @2xl:mt-2"
           >
             <ul className="flex flex-wrap gap-1.5 @2xl:gap-2">
-              {overview.hardest.map(({ type, grade }) => (
+              {hardest.map(({ type, grade }) => (
                 <li
                   key={type}
                   className={clsx(
