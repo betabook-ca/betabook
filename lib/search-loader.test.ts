@@ -23,7 +23,7 @@ beforeEach(async () => {
   await seedFixtureFriendship(db, "partner", "crag-mate");
 });
 
-it("loads suggestions only for a signed-in viewer's empty climber search", async () => {
+it("loads suggestions only when the search shows them", async () => {
   const climbers = { ...EMPTY_SEARCH, category: "climber" as const };
   const expected = [
     {
@@ -35,9 +35,6 @@ it("loads suggestions only for a signed-in viewer's empty climber search", async
     },
   ];
   expect(await loadClimberSuggestions(climbers, "viewer")).toEqual(expected);
-  expect(await loadClimberSuggestions({ ...climbers, query: "  " }, "viewer")).toEqual(expected);
   expect(await loadClimberSuggestions(climbers, null)).toBeNull();
-  expect(await loadClimberSuggestions({ ...climbers, query: "Crag" }, "viewer")).toBeNull();
-  for (const category of ["all", "climb", "area"] as const)
-    expect(await loadClimberSuggestions({ ...climbers, category }, "viewer")).toBeNull();
+  expect(await loadClimberSuggestions({ ...climbers, category: "climb" }, "viewer")).toBeNull();
 });

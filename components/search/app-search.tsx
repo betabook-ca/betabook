@@ -13,6 +13,7 @@ import {
   climberSuggestionItems,
   parseSearchState,
   searchHref,
+  showsClimberSuggestions,
   type SearchSnapshot,
   type SearchState,
 } from "@/lib/search";
@@ -41,10 +42,7 @@ export function AppSearch({
   );
   const mounted = useMounted();
   const { data: session, isPending } = authClient.useSession();
-  const suggested = useClimberSuggestions(
-    viewerId !== null && state.category === "climber" && !state.query.trim(),
-    suggestions,
-  );
+  const suggested = useClimberSuggestions(showsClimberSuggestions(state, viewerId), suggestions);
   if (source !== initialState) {
     setSource(initialState);
     setState(initialState);

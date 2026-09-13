@@ -111,16 +111,18 @@ export async function getClimberSuggestions(
       SELECT f.friend_id AS id FROM via JOIN friendships f ON f.user_id = via.id AND f.status = 'accepted'
       UNION ALL
       SELECT f.user_id FROM via JOIN friendships f ON f.friend_id = via.id AND f.status = 'accepted'
+    ),
+    candidates AS (
+      SELECT id, count(*) AS mutualFriendCount FROM reachable WHERE id <> ${viewerId} GROUP BY id
     )
-    SELECT u.id, u.name, u.image, 'none' AS friendshipStatus, count(*) AS mutualFriendCount
-    FROM reachable r JOIN user u ON u.id = r.id
-    WHERE u.id <> ${viewerId} AND u.is_private = 0
+    SELECT u.id, u.name, u.image, 'none' AS friendshipStatus, c.mutualFriendCount
+    FROM candidates c JOIN user u ON u.id = c.id
+    WHERE u.is_private = 0
       AND NOT EXISTS (
         SELECT 1 FROM friendships f
         WHERE f.user_id = min(u.id, ${viewerId}) AND f.friend_id = max(u.id, ${viewerId})
       )
-    GROUP BY u.id
-    ORDER BY mutualFriendCount DESC, u.name COLLATE NOCASE, u.id
+    ORDER BY c.mutualFriendCount DESC, u.name COLLATE NOCASE, u.id
     LIMIT ${count}
   `);
 }

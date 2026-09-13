@@ -19,6 +19,7 @@ import {
   climberSearchItems,
   climbSearchItems,
   SEARCH_KINDS,
+  showsClimberSuggestions,
   type SearchSnapshot,
   type SearchState,
 } from "@/lib/search";
@@ -41,7 +42,7 @@ export async function loadClimberSuggestions(
   state: SearchState,
   viewerId: string | null,
 ): Promise<SuggestedClimberRow[] | null> {
-  if (!viewerId || state.category !== "climber" || state.query.trim()) return null;
+  if (!showsClimberSuggestions(state, viewerId)) return null;
   try {
     return await getClimberSuggestions(await getDb(), viewerId);
   } catch {

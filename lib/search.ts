@@ -170,6 +170,13 @@ export function climberSearchItems(climbers: ClimberRow[]): AppSearchResult[] {
     climber,
   }));
 }
+export function showsClimberSuggestions(
+  state: SearchState,
+  viewerId: string | null,
+): viewerId is string {
+  return viewerId !== null && state.category === "climber" && !state.query.trim();
+}
+
 export function climberSuggestionItems(climbers: SuggestedClimberRow[]): AppSearchResult[] {
   return climberSearchItems(climbers).map((item, index) => ({
     ...item,

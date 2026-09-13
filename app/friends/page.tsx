@@ -28,7 +28,7 @@ export default async function FriendsPage({
   const [page, owner, suggestions] = await Promise.all([
     getFriendsPage(db, session.user.id, requestsOnly),
     getUserById(session.user.id),
-    requestsOnly ? null : getClimberSuggestions(db, session.user.id),
+    requestsOnly ? null : getClimberSuggestions(db, session.user.id).catch(() => null),
   ]);
   if (!owner) notFound();
   return (
@@ -39,7 +39,7 @@ export default async function FriendsPage({
           <SectionHeading>Friends</SectionHeading>
           <p className="text-sm text-muted">
             Accept a request to add someone as a friend. You can remove a friend at any time. Only
-            you can see this list.
+            you can see this list, but your friends may be suggested to one another.
           </p>
           <div className="flex flex-wrap gap-4">
             <AppLink href="/?mode=climber">Find climbers</AppLink>

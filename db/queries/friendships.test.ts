@@ -166,7 +166,7 @@ it("suggests public friends of public friends, ranked by friends in common", asy
   expect(await getClimberSuggestions(db, "viewer")).toEqual([suggestion("casey", "Casey", 1)]);
 });
 
-it("reads friends of friends through the pair indexes", async () => {
+it("reads friends of friends through the pair indexes and groups them before per-candidate lookups", async () => {
   const friends = Array.from({ length: 20 }, (_, i) => `friend-${i}`);
   const others = Array.from({ length: 20 }, (_, i) => `other-${i}`);
   await seedManyUsers(
@@ -186,4 +186,7 @@ it("reads friends of friends through the pair indexes", async () => {
   expect(detail).toMatch(/friendships_friend_idx/);
   expect(detail).toMatch(/sqlite_autoindex_friendships_1/);
   expect(detail).not.toMatch(/SCAN (f|friendships|u|user)\b/);
+  const grouped = detail.indexOf("USE TEMP B-TREE FOR GROUP BY");
+  expect(grouped).toBeGreaterThan(-1);
+  expect(grouped).toBeLessThan(detail.lastIndexOf("SEARCH u "));
 });
