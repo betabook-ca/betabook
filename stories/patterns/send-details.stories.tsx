@@ -28,7 +28,7 @@ function SendExample() {
       description="The real send form sections with local values. No send is submitted."
     >
       <FormSection label="Ascent">
-        <AscentStylePicker value={ascent} onChange={setAscent} />
+        <AscentStylePicker climbType="boulder" value={ascent} onChange={setAscent} />
       </FormSection>
       <FormSection label="Your opinion">
         <RatingField value={rating} onValueChange={setRating} />

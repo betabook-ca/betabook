@@ -167,7 +167,12 @@ export function JournalEntryFields({
   return (
     <form onSubmit={handleSubmit} className={`${SURFACE_CARD_CLASS} gap-4`}>
       {climb && !existingEntry && (
-        <SendStylePicker value={choice} onChange={setChoice} hasPriorSend={hasPriorSend} />
+        <SendStylePicker
+          climbType={climb.type}
+          value={choice}
+          onChange={setChoice}
+          hasPriorSend={hasPriorSend}
+        />
       )}
 
       <JournalEntryDateFields

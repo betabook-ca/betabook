@@ -62,7 +62,7 @@ it("names only Everyone commentary and keeps every other send to its month", asy
     userId: "friend",
     climbId: 1,
     dateSent: "2026-07-02",
-    ascentStyle: "onsight",
+    ascentStyle: "flash", // climb 1 is a boulder: never an onsight (0042 guards)
     gradeFeel: "low",
     comment: "Friend beta",
   });
@@ -98,7 +98,7 @@ it("names only Everyone commentary and keeps every other send to its month", asy
     {
       userName: null,
       dateSent: "2026-07",
-      ascentStyle: "onsight",
+      ascentStyle: "flash",
       rating: null,
       suggestedGrade: null,
       gradeFeel: "low",

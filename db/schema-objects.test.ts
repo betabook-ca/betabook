@@ -56,6 +56,9 @@ const HAND_WRITTEN_OBJECTS = [
   "sends|trigger|sends_aggregates_ad",
   "sends|trigger|sends_aggregates_ai",
   "sends|trigger|sends_aggregates_au",
+  // 0042's boulder-onsight guards.
+  "sends|trigger|sends_reject_boulder_onsight_insert",
+  "sends|trigger|sends_reject_boulder_onsight_update",
   "journal_entries|index|journal_user_date_idx",
   // 0028's journal/send consistency triggers must survive table rebuilds.
   "journal_entries|trigger|journal_sent_insert_guard",

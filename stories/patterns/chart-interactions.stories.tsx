@@ -42,10 +42,10 @@ export const Explore: Story = {
           journalVisible
         />
       </Example>
-      <Example title="Flashes by grade">
+      <Example title="First tries by grade">
         <AnalyticsFlashChart
           type="boulder"
-          rows={activityAnalytics.flashByGrade[0].rows}
+          rows={activityAnalytics.firstTryByGrade[0].rows}
           sends={activitySends}
         />
       </Example>

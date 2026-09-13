@@ -10,7 +10,7 @@ import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { OptionSelect } from "@/components/ui/option-select";
 import { SegmentedButtons } from "@/components/ui/segmented-buttons";
 import { nativeGradeArray, type ClimbType } from "@/lib/grades";
-import { ASCENT_STYLES, GRADE_FEEL_VALUES, type AscentStyle, type GradeFeel } from "@/lib/sends";
+import { ascentStylesFor, GRADE_FEEL_VALUES, type AscentStyle, type GradeFeel } from "@/lib/sends";
 
 export function FormSection({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -32,16 +32,19 @@ const GRADE_FEEL_OPTIONS = GRADE_FEEL_VALUES.map((value) => ({
   label: GRADE_FEEL_LABELS[value],
 }));
 
+/** Boulders offer Redpoint and Flash only — see ascentStylesFor. */
 export function AscentStylePicker({
+  climbType,
   value,
   onChange,
 }: {
+  climbType: ClimbType;
   value: AscentStyle;
   onChange: (value: AscentStyle) => void;
 }) {
   return (
     <div role="radiogroup" aria-label="Ascent style" className="flex flex-wrap gap-1.5">
-      {ASCENT_STYLES.map((style) => {
+      {ascentStylesFor(climbType).map((style) => {
         const selected = value === style;
         return (
           <button
@@ -71,17 +74,19 @@ const PLAIN_CHOICE_CLASSNAME = "bg-foreground text-background";
  * with a prior send offers Repeat instead of styles — style, rating and grade
  * stay with the recorded ascent. */
 export function SendStylePicker({
+  climbType,
   value,
   onChange,
   hasPriorSend = false,
 }: {
+  climbType: ClimbType;
   value: SendStyleChoice;
   onChange: (value: SendStyleChoice) => void;
   hasPriorSend?: boolean;
 }) {
   const sendChoices: { choice: SendStyleChoice; label: string; className: string }[] = hasPriorSend
     ? [{ choice: "repeat", label: "Repeat", className: PLAIN_CHOICE_CLASSNAME }]
-    : ASCENT_STYLES.map((style) => ({
+    : ascentStylesFor(climbType).map((style) => ({
         choice: style,
         label: ASCENT_STYLE_LABELS[style],
         className: ASCENT_STYLE_CHIP_CLASSNAME[style],

@@ -363,10 +363,12 @@ function insertSends(db: DatabaseSync, userIds: string[], climbs: Climb[]): numb
       insert.run(
         userId,
         climb.id,
+        // Boulders are never onsights (lib/sends.ts ascentStylesFor; the
+        // 0042 triggers would reject the row anyway).
         faker.helpers.weightedArrayElement([
           { weight: 6, value: "redpoint" },
           { weight: 3, value: "flash" },
-          { weight: 1, value: "onsight" },
+          ...(climb.type === "boulder" ? [] : [{ weight: 1, value: "onsight" }]),
         ]),
         // Imported ticks often have no date at all.
         faker.datatype.boolean(0.9)

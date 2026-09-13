@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
@@ -236,6 +236,17 @@ it("submits the default ascent opinion without opening Add details", async () =>
   expect(form.get("rating")).toBe("");
   expect(form.get("suggestedGrade")).toBe("5");
   expect(form.get("gradeFeel")).toBe("solid");
+});
+
+it("offers Redpoint and Flash for a boulder, and adds Onsight for a rope climb", () => {
+  setup();
+  expect(screen.getByRole("radiogroup", { name: "Session or send" })).toBeVisible();
+  expect(screen.getByRole("radio", { name: "Redpoint" })).toBeVisible();
+  expect(screen.getByRole("radio", { name: "Flash" })).toBeVisible();
+  expect(screen.queryByRole("radio", { name: "Onsight" })).not.toBeInTheDocument();
+  cleanup();
+  setup({ climb: { ...climb, type: "sport" } });
+  expect(screen.getByRole("radio", { name: "Onsight" })).toBeVisible();
 });
 
 it("offers Session or Repeat, without styles or opinion fields, for a sent climb", async () => {
