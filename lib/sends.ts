@@ -8,6 +8,17 @@ export { MAX_LOG_NOTE_LENGTH as MAX_COMMENT_LENGTH } from "@/lib/log-note";
 export const ASCENT_STYLES = ["redpoint", "flash", "onsight"] as const;
 export type AscentStyle = (typeof ASCENT_STYLES)[number];
 
+const BOULDER_ASCENT_STYLES = ["redpoint", "flash"] as const;
+
+/** Bouldering has no onsight/flash distinction, so a boulder sent first try is
+ * a flash. Onsight stays a rope-only style; migration 0042's triggers enforce
+ * the same rule in D1. */
+export function ascentStylesFor(climbType: ClimbType): readonly AscentStyle[] {
+  return climbType === "boulder" ? BOULDER_ASCENT_STYLES : ASCENT_STYLES;
+}
+
+export const BOULDER_ONSIGHT_ERROR = "Boulders can't be onsighted — log it as a flash";
+
 export const IMPORT_BATCH_SIZE = 50;
 
 // Bounds lookup work and response size; names use a single JSON binding.
@@ -49,11 +60,24 @@ export function latestAcceptableSendDate(todayUtc: string): string {
   return new Date(Date.UTC(year, month - 1, day + 1)).toISOString().slice(0, 10);
 }
 
-function parseAscentStyle(value: unknown): AscentStyle {
+function parseAscentStyle(value: unknown, climbType: ClimbType): AscentStyle {
   if (typeof value !== "string" || !(ASCENT_STYLES as readonly string[]).includes(value)) {
     throw new ActionError("Invalid ascent style");
   }
+  if (!(ascentStylesFor(climbType) as readonly string[]).includes(value)) {
+    throw new ActionError(BOULDER_ONSIGHT_ERROR);
+  }
   return value as AscentStyle;
+}
+
+/** Imports keep the row rather than failing it: a boulder "onsight" from
+ * another app is what Betabook records as a flash. */
+function coerceImportAscentStyle(value: unknown, climbType: ClimbType): AscentStyle {
+  if (typeof value !== "string" || !(ASCENT_STYLES as readonly string[]).includes(value)) {
+    throw new ActionError("Invalid ascent style");
+  }
+  const style = value as AscentStyle;
+  return ascentStylesFor(climbType).includes(style) ? style : "flash";
 }
 
 /** Validate the calendar date as well as its ISO shape, rejecting values such as 2026-02-30. */
@@ -100,7 +124,7 @@ export function validateSendInput(
   raw: RawSendInput,
   today: string = new Date().toISOString().slice(0, 10),
 ): SendInput {
-  const ascentStyle = parseAscentStyle(raw.ascentStyle);
+  const ascentStyle = parseAscentStyle(raw.ascentStyle, climbType);
   const dateSent = parseDateSent(raw.dateSent, today);
 
   const comment = trimOrNull(raw.comment);
@@ -154,11 +178,12 @@ export function validateImportSendValues(
     rating: unknown;
     gradeFeel: unknown;
   },
+  climbType: ClimbType,
   today: string = new Date().toISOString().slice(0, 10),
 ): ImportSendValues {
   const comment = typeof row.comment === "string" ? row.comment.trim() : "";
   return {
-    ascentStyle: parseAscentStyle(row.ascentStyle),
+    ascentStyle: coerceImportAscentStyle(row.ascentStyle, climbType),
     dateSent: parseDateSent(row.dateSent, today),
     comment: comment ? comment.slice(0, MAX_LOG_NOTE_LENGTH) : null,
     rating: isRating(row.rating) ? row.rating : null,

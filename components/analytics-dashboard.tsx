@@ -74,7 +74,6 @@ export function AnalyticsDashboard({
     (a, b) => a - b,
   );
   const hardest = analytics.hardest[0] ?? null;
-  const firstTryCount = analytics.flashCount + analytics.onsightCount;
   const tiles: Record<AnalyticsCardId, StatTile> = {
     partner: {
       label: "Most frequent partner",
@@ -126,14 +125,17 @@ export function AnalyticsDashboard({
     firstTry: {
       label: "First try",
       value: analytics.sendCount
-        ? `${Math.round((firstTryCount / analytics.sendCount) * 100)}%`
+        ? `${Math.round((analytics.firstTryCount / analytics.sendCount) * 100)}%`
         : "—",
       sub:
         analytics.sendCount === 0
           ? "no sends yet"
           : analytics.hardestFirstTry
             ? `Hardest: ${analytics.hardestFirstTry.label}`
-            : `${analytics.flashCount} flash · ${analytics.onsightCount} onsight`,
+            : // Boulders are never onsights, so the split would only ever read "0 onsight".
+              scope === "boulder"
+              ? `${analytics.flashCount} flash`
+              : `${analytics.flashCount} flash · ${analytics.onsightCount} onsight`,
     },
     streak: {
       label: journalVisible ? "Longest streak" : "Longest send streak",
@@ -214,12 +216,12 @@ export function AnalyticsDashboard({
     },
     {
       id: "flashRate",
-      title: "Flash rate by grade",
-      description: "Total sends and the percentage flashed at each grade.",
+      title: "First-try rate by grade",
+      description: "Total sends and the percentage sent first try at each grade.",
       content: (
         <AnalyticsFlashChart
           sends={chartSends}
-          rows={analytics.flashByGrade.find((group) => group.type === scope)?.rows ?? []}
+          rows={analytics.firstTryByGrade.find((group) => group.type === scope)?.rows ?? []}
           type={scope}
         />
       ),

@@ -286,7 +286,7 @@ export const OptionalCharts: Story = {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "Customize charts" }));
     await userEvent.click(canvas.getByRole("button", { name: "Add Volume over time" }));
-    await userEvent.click(canvas.getByRole("button", { name: "Add Flash rate by grade" }));
+    await userEvent.click(canvas.getByRole("button", { name: "Add First-try rate by grade" }));
     await userEvent.click(
       within(canvas.getByRole("group", { name: "Dashboard actions" })).getByRole("button", {
         name: "Save layout",

@@ -17,7 +17,8 @@ Verified in Chrome on September 8, 2026 using
 - `GET /api/v2/climb.search` takes a profile `userId`,
   `includeUserClimb: true`, the redpoint/flash/onsight filter, discipline filters,
   and a numeric page `cursor`. It returns `result.data.json.items` and
-  `nextCursor`. Each item contains `climb` and `userSend`.
+  `nextCursor`. Each item contains `climb` and `userSend`. Betabook has no
+  boulder onsights, so a Sendage boulder onsight is saved as a flash.
 - The public client limits search cursors to 0–20 (20 rows per observed page).
   The importer respects this limit and rejects incomplete results, including a
   missing final cursor when fewer sends were returned than the profile count.
