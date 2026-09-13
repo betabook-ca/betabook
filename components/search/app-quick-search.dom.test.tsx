@@ -78,3 +78,28 @@ it("does not render or fetch quick search for signed-out visitors", () => {
   expect(fetcher).not.toHaveBeenCalled();
   identity.signedIn = true;
 });
+
+it("reopening member quick search resets its query and category", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<typeof fetch>(async () =>
+      Response.json({
+        climbs: [],
+        areas: [],
+        climbers: [],
+        hasNextPage: false,
+        hasMore: false,
+      }),
+    ),
+  );
+  const user = userEvent.setup();
+  const props = { onOpenChange: () => {}, onNavigate: () => {} };
+  const { rerender } = render(<AppQuickSearch {...props} isOpen />);
+  await user.type(screen.getByRole("combobox", { name: "Search Betabook" }), "previous query");
+  await user.click(screen.getByRole("button", { name: "Climbs" }));
+  rerender(<AppQuickSearch {...props} isOpen={false} />);
+  rerender(<AppQuickSearch {...props} isOpen />);
+  expect(screen.getByRole("combobox", { name: "Search Betabook" })).toHaveValue("");
+  expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.queryByRole("option")).not.toBeInTheDocument();
+});

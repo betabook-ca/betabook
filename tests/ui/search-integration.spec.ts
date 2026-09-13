@@ -27,13 +27,9 @@ test(
   async ({ page }) => {
     await page.goto(`${appBaseURL}/?mode=all`);
     await expect(page.getByRole("button", { name: "All", exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Search", exact: true }).click();
-    const dialog = page.getByRole("dialog", { name: "Search Betabook" });
-    const input = dialog.getByRole("combobox", { name: "Search Betabook" });
-    await input.fill("cedar");
-    await dialog.getByRole("button", { name: "Climbs", exact: true }).click();
-    await dialog.getByRole("button", { name: /View all results/ }).click();
-    await expect(dialog).toBeHidden();
+    await page.getByRole("searchbox", { name: "Search Betabook" }).fill("cedar");
+    await expect(page).toHaveURL(/name=cedar/);
+    await page.getByRole("button", { name: "Climbs", exact: true }).click();
     await expect(page).toHaveURL(/mode=climb/);
     await expect(page).toHaveURL(/name=cedar/);
     await expect(page.getByRole("searchbox", { name: "Search Betabook" })).toHaveValue("cedar");
@@ -94,24 +90,21 @@ test(
 );
 
 test(
-  "a new quick search session starts without previous query or category",
+  "signed-out search shortcuts navigate to full search without opening a palette",
   { tag: ["@behavior", "@app"] },
   async ({ page }) => {
-    await page.goto(`${appBaseURL}/?mode=all`);
-    await page.getByRole("button", { name: "Search", exact: true }).click();
-    const dialog = page.getByRole("dialog", { name: "Search Betabook" });
-    const input = dialog.getByRole("combobox", { name: "Search Betabook" });
-    await input.fill("previous query");
-    await dialog.getByRole("button", { name: "Climbs", exact: true }).click();
-    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
-    await expect(dialog).toBeHidden();
-    await page.getByRole("button", { name: "Search", exact: true }).click();
-    await expect(input).toHaveValue("");
-    await expect(dialog.getByRole("button", { name: "All", exact: true })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    await expect(dialog.getByRole("option")).toHaveCount(0);
+    await page.goto(`${appBaseURL}/?mode=climb&name=cedar`);
+    await page.getByRole("link", { name: "Search", exact: true }).click();
+    await expect(page).toHaveURL(`${appBaseURL}/`);
+    await expect(page.getByRole("searchbox", { name: "Search Betabook" })).toHaveValue("");
+    await expect(page.getByRole("button", { name: "Search", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("dialog", { name: "Search Betabook" })).toHaveCount(0);
+    await page.getByRole("searchbox", { name: "Search Betabook" }).fill("cedar");
+    await expect(page).toHaveURL(/name=cedar/);
+    const apple = await page.evaluate(() => /Mac|iPhone|iPad|iPod/.test(navigator.platform));
+    await page.keyboard.press(apple ? "Meta+k" : "Control+k");
+    await expect(page).toHaveURL(`${appBaseURL}/`);
+    await expect(page.getByRole("dialog", { name: "Search Betabook" })).toHaveCount(0);
   },
 );
 
