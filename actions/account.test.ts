@@ -2,8 +2,14 @@ import { env } from "cloudflare:test";
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { setJournalVisibility, setSendCommentVisibility, setUserPrivate } from "@/actions";
+import {
+  resetProfileShareLink,
+  setJournalVisibility,
+  setSendCommentVisibility,
+  setUserPrivate,
+} from "@/actions";
 import { createDb } from "@/db/client";
+import { getProfileShareToken, getShareLinkOwner } from "@/db/queries";
 import { user } from "@/db/schema";
 import { SESSION_EXPIRED_MESSAGE } from "@/lib/action-result";
 import { seedFixtureUser } from "@/test/fixtures";
@@ -240,5 +246,49 @@ describe("independent send commentary audience", () => {
       error: SESSION_EXPIRED_MESSAGE,
     });
     expect(await privacy()).toEqual(before);
+  });
+});
+
+describe("profile share links", () => {
+  const TOKEN = /^[0-9a-f]{32}$/;
+
+  async function tokens() {
+    return [
+      await getProfileShareToken(db, "test-user"),
+      await getProfileShareToken(db, "other-user"),
+    ];
+  }
+
+  it("resets only the signed-in user's link", async () => {
+    const [before, otherBefore] = await tokens();
+
+    expect(await resetProfileShareLink()).toEqual({ ok: true, value: undefined });
+
+    const [after, otherAfter] = await tokens();
+    expect(after).toMatch(TOKEN);
+    expect(after).not.toBe(before);
+    expect(await getShareLinkOwner(db, before!)).toBeNull();
+    expect(await getShareLinkOwner(db, after!)).toMatchObject({ id: "test-user" });
+    expect(otherAfter).toBe(otherBefore);
+  });
+
+  it("requires a signed-in user and leaves every link unchanged", async () => {
+    const before = await tokens();
+    expect(before).toEqual([expect.stringMatching(TOKEN), expect.stringMatching(TOKEN)]);
+    sessionState.userId = null;
+
+    expect(await resetProfileShareLink()).toEqual({ ok: false, error: SESSION_EXPIRED_MESSAGE });
+    expect(await tokens()).toEqual(before);
+  });
+
+  it("invalidates the current link when the profile goes private", async () => {
+    const [before] = await tokens();
+
+    expect(await setUserPrivate(true)).toEqual({ ok: true, value: undefined });
+    expect(await setUserPrivate(false)).toEqual({ ok: true, value: undefined });
+
+    const [after] = await tokens();
+    expect(await getShareLinkOwner(db, before!)).toBeNull();
+    expect(await getShareLinkOwner(db, after!)).toMatchObject({ id: "test-user" });
   });
 });

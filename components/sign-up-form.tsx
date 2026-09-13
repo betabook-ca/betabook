@@ -12,6 +12,7 @@ import { InlineAlert } from "@/components/ui/inline-alert";
 import { PageTitle } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { MAX_DISPLAY_NAME_LENGTH } from "@/lib/display-name";
+import { profileShareFromPath } from "@/lib/profile-share";
 import { safeNextPath, signInUrl } from "@/lib/sign-in-redirect";
 import { TERMS_VERSION, termsHref } from "@/lib/terms";
 
@@ -54,7 +55,10 @@ export function SignUpForm({
       // destination so the continuation survives sign-up → verify → sign-in.
       { name, email, password, callbackURL: signInUrl(nextPath) },
       {
-        body: { acceptedTermsVersion: TERMS_VERSION },
+        body: {
+          acceptedTermsVersion: TERMS_VERSION,
+          sharePath: profileShareFromPath(nextPath) ? nextPath : undefined,
+        },
         headers: captcha.headers,
         onSuccess: () => setDone(true),
         onError: (ctx) => setError(ctx.error.message ?? "Sign up failed"),

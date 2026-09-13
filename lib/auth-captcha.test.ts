@@ -25,7 +25,7 @@ vi.mock("@/lib/email", () => ({
   sendVerificationEmail: vi.fn<() => Promise<void>>(),
   sendResetPasswordEmail: vi.fn<() => Promise<void>>(),
 }));
-vi.mock("@/lib/welcome-email", () => ({ sendWelcomeEmailOnce: vi.fn<() => Promise<void>>() }));
+vi.mock("@/lib/welcome-email", () => ({ welcomeNewAccountOnce: vi.fn<() => Promise<void>>() }));
 
 const db = createDb(env.DB);
 beforeEach(async () => resetDb(db));

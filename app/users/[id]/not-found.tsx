@@ -10,7 +10,7 @@ export default function UserNotFound() {
   return (
     <NotFoundMessage
       heading="Climber not found"
-      message="We couldn't find that climber. They may have left, or the link may be wrong."
+      message="We couldn't find that climber. Their profile may be private, they may have left, or the link may be wrong."
     />
   );
 }

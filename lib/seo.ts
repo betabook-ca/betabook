@@ -35,6 +35,20 @@ export function pageMetadata(opts: {
   };
 }
 
+/** Link preview for a valid profile share link. No canonical or `og:url`:
+ * crawlers that follow either fetch the plain profile, which names no one. */
+export function sharedProfileMetadata(name: string): Metadata {
+  const title = `${name} on ${SITE_NAME}`;
+  const description = `${name} invited you to ${SITE_NAME}, a climbing logbook and crag database.`;
+  return {
+    title: { absolute: title },
+    description,
+    robots: { index: false },
+    openGraph: { type: "profile", siteName: SITE_NAME, title, description, images: [OG_IMAGE] },
+    twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE.url] },
+  };
+}
+
 /** The `max` nearest names joined nearest-last into a short location trail
  * for a meta description, e.g. "Squamish, Grand Wall Boulders, Superfly".
  * Capped because a full root-to-crag chain ("North America, Canada, …")

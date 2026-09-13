@@ -1,11 +1,11 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { refresh, revalidatePath } from "next/cache";
 
 import { getDb } from "@/db/client";
 import { getUserIdByName } from "@/db/queries";
-import { user } from "@/db/schema";
+import { profileShareLinks, user } from "@/db/schema";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
 import { DISPLAY_NAME_TAKEN_MESSAGE, displayNameProblem } from "@/lib/display-name";
 import { parseSendCommentAudience, parseSharingAudience } from "@/lib/privacy";
@@ -36,6 +36,23 @@ export async function setUserPrivate(isPrivate: boolean): Promise<ActionResult> 
     await db.update(user).set({ isPrivate }).where(eq(user.id, session.user.id));
 
     revalidateProfileSurfaces(session.user.id);
+    refresh();
+  });
+}
+
+/** Stops links and QR codes already handed out from naming the owner. */
+export async function resetProfileShareLink(): Promise<ActionResult> {
+  return toActionResult(async () => {
+    const session = await requireSession();
+    const db = await getDb();
+    const token = sql`lower(hex(randomblob(16)))`;
+
+    await db
+      .insert(profileShareLinks)
+      .values({ userId: session.user.id, token })
+      .onConflictDoUpdate({ target: profileShareLinks.userId, set: { token } });
+
+    revalidatePath(`/users/${session.user.id}`);
     refresh();
   });
 }
