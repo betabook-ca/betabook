@@ -4,7 +4,7 @@ import { Button } from "@heroui/react";
 import { useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
-import { profileShareTokenFromPath } from "@/lib/profile-share";
+import { profileShareFromPath } from "@/lib/profile-share";
 import { DEFAULT_SIGNED_IN_PATH, signInUrl } from "@/lib/sign-in-redirect";
 import { TERMS_VERSION } from "@/lib/terms";
 
@@ -54,7 +54,7 @@ export function GoogleSignInButton({
           errorCallbackURL: signInUrl(nextPath),
           additionalData: {
             acceptedTermsVersion: TERMS_VERSION,
-            shareToken: profileShareTokenFromPath(nextPath),
+            sharePath: profileShareFromPath(nextPath) ? nextPath : undefined,
           },
         },
         {

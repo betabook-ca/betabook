@@ -19,3 +19,18 @@ export function downloadBlob(blob: Blob, filename: string): void {
 export function downloadCsv(csvText: string, filename: string): void {
   downloadBlob(new Blob([csvText], { type: "text/csv;charset=utf-8;" }), filename);
 }
+
+export function pngBlob(image: ImageData): Promise<Blob> {
+  const canvas = document.createElement("canvas");
+  canvas.width = image.width;
+  canvas.height = image.height;
+  const context = canvas.getContext("2d");
+  if (!context) return Promise.reject(new Error("Canvas is unavailable"));
+  context.putImageData(image, 0, 0);
+  return new Promise((resolve, reject) =>
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error("PNG encoding failed"))),
+      "image/png",
+    ),
+  );
+}

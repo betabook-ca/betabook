@@ -28,8 +28,8 @@ export function ProfileInvite({
           {name} invited you to {SITE_NAME}
         </PageTitle>
         <p className="text-muted">
-          {SITE_NAME} is a climbing logbook and crag database. Join to see {name}&apos;s climbing,
-          add them as a friend, and log your own sends and sessions.
+          {SITE_NAME} is a climbing logbook and crag database. Sign up to send {name} a friend
+          request, see their climbing, and log your own sends and sessions.
         </p>
       </div>
       <div className="flex flex-wrap justify-center gap-3">

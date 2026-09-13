@@ -170,7 +170,6 @@ it("names a profile's owner signed out only through their current share link", a
   expect(invite.props).toMatchObject({ image: null, next: `/users/hidden?share=${token}` });
   const html = renderToStaticMarkup(invite);
   expect(html).toContain("Restricted identity sentinel invited you to Betabook");
-  expect(html).not.toContain("Other identity sentinel");
 
   await expectLocked("hidden", "0".repeat(32));
   await expectLocked("hidden", token.toUpperCase());

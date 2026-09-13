@@ -11,9 +11,11 @@ export function profileSharePath(userId: string, token: string): string {
   return `/users/${userId}?${PROFILE_SHARE_PARAM}=${token}`;
 }
 
-/** The share token in a sign-in continuation, so an account created from a
- * share link can record who invited it. */
-export function profileShareTokenFromPath(path: string | undefined): string | null {
-  const query = path?.split("#")[0].split("?")[1];
-  return query ? parseProfileShareToken(new URLSearchParams(query).get(PROFILE_SHARE_PARAM)) : null;
+/** The share link a sign-in continuation came from. Only a profile's own
+ * path counts, since no other page shows the invitation. */
+export function profileShareFromPath(path: string | undefined) {
+  const [pathname = "", query = ""] = path?.split("#")[0].split("?") ?? [];
+  const userId = /^\/users\/([^/]+)$/.exec(pathname)?.[1];
+  const token = parseProfileShareToken(new URLSearchParams(query).get(PROFILE_SHARE_PARAM));
+  return userId && token ? { userId, token } : null;
 }

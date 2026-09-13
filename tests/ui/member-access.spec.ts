@@ -46,14 +46,14 @@ test(
     await expect(page).toHaveURL(`${appBaseURL}/sign-in?next=${encodeURIComponent(next)}`);
     await expect(page.getByRole("heading", { name: "Sign in", exact: true })).toBeVisible();
 
-    const revoked = `/users/unavailable-person?share=${"0".repeat(32)}`;
-    await page.goto(`${appBaseURL}${revoked}`);
+    const unknownLink = `/users/unavailable-person?share=${"0".repeat(32)}`;
+    await page.goto(`${appBaseURL}${unknownLink}`);
     await expect(callout).toBeVisible();
     await expect(page.getByRole("region", { name: "Invitation" })).toHaveCount(0);
     await expect(page).toHaveTitle("Member content · Betabook");
     await expect(callout.getByRole("link", { name: "Sign up" })).toHaveAttribute(
       "href",
-      `/sign-up?next=${encodeURIComponent(revoked)}`,
+      `/sign-up?next=${encodeURIComponent(unknownLink)}`,
     );
 
     await page.getByRole("button", { name: "Search", exact: true }).click();

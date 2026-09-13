@@ -9,9 +9,9 @@ import { AppLink } from "@/components/ui/app-link";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { QrCode } from "@/components/ui/qr-code";
-import { openShareSheet, useNativeShare } from "@/hooks/use-share-link";
-import { downloadBlob } from "@/lib/download";
-import { qrMatrix, qrPngBlob } from "@/lib/qr-code";
+import { openShareSheet, useNativeShare } from "@/hooks/use-native-share";
+import { downloadBlob, pngBlob } from "@/lib/download";
+import { qrMatrix, qrPixels } from "@/lib/qr-code";
 import { SITE_NAME } from "@/lib/site";
 
 /** `url` is null while the profile is private. */
@@ -60,7 +60,8 @@ export function ShareProfileControls({ name, url }: { name: string; url: string 
 
   async function download() {
     try {
-      downloadBlob(await qrPngBlob(qrMatrix(link), 12), "betabook-profile-qr.png");
+      const { data, width } = qrPixels(qrMatrix(link), 12);
+      downloadBlob(await pngBlob(new ImageData(data, width, width)), "betabook-profile-qr.png");
       report("");
     } catch {
       report("", "Couldn't create the QR code image. Try again.");

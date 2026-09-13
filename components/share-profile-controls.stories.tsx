@@ -16,8 +16,8 @@ const meta = {
           <div className="flex flex-col gap-1">
             <SectionHeading>Share profile</SectionHeading>
             <p className="text-sm text-muted">
-              Invite climbers with a link or QR code. People who open it see your name and can sign
-              up.
+              Invite climbers with a link or QR code. People who open it see your name and profile
+              photo and can sign up.
             </p>
           </div>
           <Story />

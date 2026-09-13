@@ -40,19 +40,3 @@ export function qrPixels(matrix: QrMatrix, scale: number) {
   }
   return { data, width };
 }
-
-export function qrPngBlob(matrix: QrMatrix, scale: number): Promise<Blob> {
-  const { data, width } = qrPixels(matrix, scale);
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = width;
-  const context = canvas.getContext("2d");
-  if (!context) return Promise.reject(new Error("Canvas is unavailable"));
-  context.putImageData(new ImageData(data, width, width), 0, 0);
-  return new Promise((resolve, reject) =>
-    canvas.toBlob(
-      (blob) => (blob ? resolve(blob) : reject(new Error("QR code image failed"))),
-      "image/png",
-    ),
-  );
-}

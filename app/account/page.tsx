@@ -20,10 +20,9 @@ import { Eyebrow } from "@/components/ui/eyebrow";
 import { PageTitle, SectionHeading } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { getDb } from "@/db/client";
-import { getProfileShareToken, getUser } from "@/db/queries";
-import { getBaseUrl } from "@/lib/app-url";
+import { getUser } from "@/db/queries";
 import { getTurnstileSiteKey } from "@/lib/auth";
-import { profileSharePath } from "@/lib/profile-share";
+import { getOwnProfileShareUrl } from "@/lib/profile-share-url";
 import { getMemberSession as getSession, isAdmin } from "@/lib/session";
 
 export const metadata: Metadata = {
@@ -65,17 +64,11 @@ export default async function AccountPage() {
   }
 
   const db = await getDb();
-  const [user, shareToken] = await Promise.all([
-    getUser(db, session.user.id),
-    getProfileShareToken(db, session.user.id),
-  ]);
+  const user = await getUser(db, session.user.id);
   const name = user?.name ?? session.user.name;
   const image = user?.image ?? session.user.image;
   const isPrivate = user?.isPrivate ?? false;
-  const shareUrl =
-    shareToken && !isPrivate
-      ? new URL(profileSharePath(session.user.id, shareToken), await getBaseUrl()).href
-      : null;
+  const shareUrl = await getOwnProfileShareUrl(db, { id: session.user.id, isPrivate });
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -104,7 +97,7 @@ export default async function AccountPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <AccountSection
           title="Share profile"
-          description="Invite climbers with a link or QR code. People who open it see your name and can sign up."
+          description="Invite climbers with a link or QR code. People who open it see your name and profile photo and can sign up."
           className="md:col-span-2"
         >
           <ShareProfileControls name={name} url={shareUrl} />

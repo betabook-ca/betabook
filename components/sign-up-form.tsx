@@ -12,7 +12,7 @@ import { InlineAlert } from "@/components/ui/inline-alert";
 import { PageTitle } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { MAX_DISPLAY_NAME_LENGTH } from "@/lib/display-name";
-import { profileShareTokenFromPath } from "@/lib/profile-share";
+import { profileShareFromPath } from "@/lib/profile-share";
 import { safeNextPath, signInUrl } from "@/lib/sign-in-redirect";
 import { TERMS_VERSION, termsHref } from "@/lib/terms";
 
@@ -57,7 +57,7 @@ export function SignUpForm({
       {
         body: {
           acceptedTermsVersion: TERMS_VERSION,
-          shareToken: profileShareTokenFromPath(nextPath),
+          sharePath: profileShareFromPath(nextPath) ? nextPath : undefined,
         },
         headers: captcha.headers,
         onSuccess: () => setDone(true),

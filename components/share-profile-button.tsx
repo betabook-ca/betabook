@@ -4,7 +4,7 @@ import { Button, Tooltip, useMediaQuery } from "@heroui/react";
 import { Check, Share } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { openShareSheet, useNativeShare } from "@/hooks/use-share-link";
+import { openShareSheet, useNativeShare } from "@/hooks/use-native-share";
 import { SITE_NAME } from "@/lib/site";
 
 const COPIED = "Profile link copied";
@@ -26,14 +26,13 @@ export function ShareProfileButton({ name, url }: { name: string; url: string })
   }, [message]);
 
   async function handlePress() {
-    if (nativeShare) {
-      try {
-        await openShareSheet({ title: `${name} on ${SITE_NAME}`, url });
-        return;
-      } catch {
-        // A share sheet that fails to open falls back to copying.
-      }
-    }
+    const shared =
+      nativeShare &&
+      (await openShareSheet({ title: `${name} on ${SITE_NAME}`, url }).then(
+        () => true,
+        () => false,
+      ));
+    if (shared) return;
     try {
       await navigator.clipboard.writeText(url);
       setMessage(COPIED);

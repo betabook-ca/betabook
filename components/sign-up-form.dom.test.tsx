@@ -48,13 +48,13 @@ it("requires an explicit agreement for both registration paths", async () => {
   expect(social).toHaveBeenCalledWith(
     expect.objectContaining({
       callbackURL: "/climbs/1",
-      additionalData: { acceptedTermsVersion: TERMS_VERSION, shareToken: null },
+      additionalData: { acceptedTermsVersion: TERMS_VERSION },
     }),
     expect.any(Object),
   );
 });
 
-it("carries a share link's token into both registration paths", async () => {
+it("carries a share link into both registration paths", async () => {
   const token = "0123456789abcdef0123456789abcdef";
   const next = `/users/owner-1?share=${token}`;
   const user = userEvent.setup();
@@ -64,7 +64,7 @@ it("carries a share link's token into both registration paths", async () => {
   expect(social).toHaveBeenCalledWith(
     expect.objectContaining({
       callbackURL: next,
-      additionalData: { acceptedTermsVersion: TERMS_VERSION, shareToken: token },
+      additionalData: { acceptedTermsVersion: TERMS_VERSION, sharePath: next },
     }),
     expect.any(Object),
   );
@@ -76,7 +76,7 @@ it("carries a share link's token into both registration paths", async () => {
   await user.click(screen.getByRole("button", { name: "Sign up" }));
   expect(signUp).toHaveBeenCalledWith(
     expect.objectContaining({ callbackURL: `/sign-in?next=${encodeURIComponent(next)}` }),
-    expect.objectContaining({ body: { acceptedTermsVersion: TERMS_VERSION, shareToken: token } }),
+    expect.objectContaining({ body: { acceptedTermsVersion: TERMS_VERSION, sharePath: next } }),
   );
 });
 
@@ -96,7 +96,7 @@ it("submits the displayed terms version and preserves the agreement on a failed 
       email: "new@example.com",
       callbackURL: "/sign-in?next=%2Fclimbs%2F1",
     }),
-    expect.objectContaining({ body: { acceptedTermsVersion: TERMS_VERSION, shareToken: null } }),
+    expect.objectContaining({ body: { acceptedTermsVersion: TERMS_VERSION } }),
   );
   expect(submit).toBeDisabled();
   await user.click(submit);

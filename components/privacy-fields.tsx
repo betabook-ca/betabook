@@ -49,7 +49,7 @@ export function PrivacyFields({
         <p className="text-xs text-muted">
           {isPrivate
             ? "Only you can see your profile and climbing history; climb pages list your sends without your name. Friends and request recipients can still see your name. Your saved audiences will apply when your profile is visible to members."
-            : "Signed-in Betabook members can see your profile and send details: climbs, dates, ascent styles, ratings, and grades. Signed-out visitors see recent sends on climb pages without names; your share link shows them only your name, and going private resets it. Choose who can read your commentary and journal below."}
+            : "Signed-in Betabook members can see your profile and send details: climbs, dates, ascent styles, ratings, and grades. Signed-out visitors see recent sends on climb pages without names; your share link shows them only your name and profile photo, and going private resets it. Choose who can read your commentary and journal below."}
         </p>
         {profileError && <InlineAlert>{profileError}</InlineAlert>}
       </div>

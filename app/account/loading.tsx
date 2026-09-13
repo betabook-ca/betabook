@@ -29,11 +29,10 @@ export default function Loading() {
               <Skeleton tone="raised" className="h-10 w-full" rounded="rounded-lg" />
               <Skeleton tone="raised" className="h-9 w-64 max-w-full" rounded="rounded-lg" />
             </div>
-            <Skeleton
-              tone="raised"
-              className="size-40 shrink-0 self-center sm:self-start"
-              rounded="rounded-lg"
-            />
+            <div className="flex shrink-0 flex-col items-center gap-2 self-center sm:self-start">
+              <Skeleton tone="raised" className="size-40" rounded="rounded-lg" />
+              <Skeleton tone="raised" className="h-8 w-40" rounded="rounded-lg" />
+            </div>
           </div>
         </div>
         {Array.from({ length: 6 }, (_, index) => (

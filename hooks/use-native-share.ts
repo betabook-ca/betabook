@@ -10,13 +10,11 @@ export function useNativeShare(): boolean {
   return mounted && "share" in navigator && isMobileDevice();
 }
 
-/** Resolves false when the viewer dismisses the share sheet. */
-export async function openShareSheet(data: ShareData): Promise<boolean> {
+/** Settles quietly when the viewer dismisses the share sheet. */
+export async function openShareSheet(data: ShareData): Promise<void> {
   try {
     await navigator.share(data);
-    return true;
   } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") return false;
-    throw error;
+    if (!(error instanceof DOMException && error.name === "AbortError")) throw error;
   }
 }
