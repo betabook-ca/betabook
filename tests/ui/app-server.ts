@@ -7,4 +7,5 @@ if (!Number.isInteger(appPort) || appPort < 1 || appPort > 65535) {
   throw new Error("BETABOOK_UI_PORT must be a port between 1 and 65535");
 }
 
+// Tag tests that load this URL @app; gallery-only runs don't start the app.
 export const appBaseURL = `http://localhost:${appPort}`;

@@ -26,7 +26,7 @@ export async function JournalView({
   filter: requestedFilter,
 }: {
   ownerId: string;
-  viewerId: string | null;
+  viewerId: string;
   filter: JournalFilter;
 }) {
   const db = await getDb();

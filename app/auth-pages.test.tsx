@@ -22,6 +22,9 @@ const mockSignUpForm = vi.hoisted(() =>
   vi.fn<(props: { next?: string; googleEnabled?: boolean }) => null>(() => null),
 );
 const mockIsGoogleOAuthEnabled = vi.hoisted(() => vi.fn<() => Promise<boolean>>(async () => true));
+const mockGetTurnstileSiteKey = vi.hoisted(() =>
+  vi.fn<() => Promise<string | null>>(async () => null),
+);
 
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
@@ -35,6 +38,7 @@ vi.mock("@/lib/session", () => ({
 
 vi.mock("@/lib/auth", () => ({
   isGoogleOAuthEnabled: mockIsGoogleOAuthEnabled,
+  getTurnstileSiteKey: mockGetTurnstileSiteKey,
 }));
 
 vi.mock("@/components/sign-in-form", () => ({
@@ -197,5 +201,26 @@ describe("SignUpPage", () => {
     expect(result.type).toBe(mockSignUpForm);
     const element = result as React.ReactElement<{ googleEnabled: boolean }>;
     expect(element.props.googleEnabled).toBe(false);
+  });
+});
+
+describe("Turnstile", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionState.session = null;
+  });
+
+  it("passes the configured site key to the sign-in and sign-up forms", async () => {
+    mockGetTurnstileSiteKey.mockResolvedValueOnce("site-key").mockResolvedValueOnce("site-key");
+
+    const signIn = (await SignInPage({ searchParams: Promise.resolve({}) })) as React.ReactElement<{
+      turnstileSiteKey?: string | null;
+    }>;
+    const signUp = (await SignUpPage({ searchParams: Promise.resolve({}) })) as React.ReactElement<{
+      turnstileSiteKey?: string | null;
+    }>;
+
+    expect(signIn.props.turnstileSiteKey).toBe("site-key");
+    expect(signUp.props.turnstileSiteKey).toBe("site-key");
   });
 });

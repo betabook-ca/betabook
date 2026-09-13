@@ -39,15 +39,16 @@ export async function getUserSendForClimb(
     .get();
 }
 
-/** Fields crossing the sends JSON endpoint; excludes Date-valued database timestamps. */
-export type ClimbSendRow = EditableSend & { userId: string; userName: string };
+/** Fields crossing the sends JSON endpoint; excludes Date-valued database timestamps.
+ * Another climber's private-profile send is anonymous: null user fields, a
+ * "YYYY-MM" date, and its negative list position as `id` (see getPublicSendsForClimb). */
+export type ClimbSendRow = EditableSend & { userId: string | null; userName: string | null };
 
 export const CLIMB_SENDS_PAGE_SIZE = 10;
 
 export type ClimbSendsPage = { sends: ClimbSendRow[]; hasMore: boolean };
 
-/** Newest first, with ID breaking date ties. Private authors are visible only
- * to themselves; anonymous aggregate statistics still include their sends. */
+/** Newest first, with ID breaking date ties. */
 export async function getSendsForClimb(
   db: Database,
   climbId: number,
@@ -55,17 +56,17 @@ export async function getSendsForClimb(
   pageSize: number = CLIMB_SENDS_PAGE_SIZE,
   viewerId: string | null = null,
 ): Promise<ClimbSendsPage> {
-  const visibilityCondition = viewerId
-    ? sql`(user.is_private = 0 OR sends.user_id = ${viewerId})`
-    : sql`user.is_private = 0`;
+  const anonymous = sql`(user.is_private = 1 AND sends.user_id IS NOT ${viewerId})`;
 
   const rows = await db
     .select({
-      id: sends.id,
-      userId: sends.userId,
-      userName: user.name,
+      id: sql<number>`CASE WHEN ${anonymous} THEN -(ROW_NUMBER() OVER (ORDER BY sends.date_sent DESC, sends.id ASC)) ELSE ${sends.id} END`,
+      userId: sql<string | null>`CASE WHEN ${anonymous} THEN NULL ELSE ${sends.userId} END`,
+      userName: sql<string | null>`CASE WHEN ${anonymous} THEN NULL ELSE ${user.name} END`,
       ascentStyle: sends.ascentStyle,
-      dateSent: sends.dateSent,
+      dateSent: sql<
+        string | null
+      >`CASE WHEN ${anonymous} THEN substr(${sends.dateSent}, 1, 7) ELSE ${sends.dateSent} END`,
       comment: sql<
         string | null
       >`CASE WHEN ${sendCommentVisibleSql(viewerId, sql`sends.user_id`)} THEN ${sends.comment} ELSE NULL END`,
@@ -75,7 +76,7 @@ export async function getSendsForClimb(
     })
     .from(sends)
     .innerJoin(user, eq(sends.userId, user.id))
-    .where(and(eq(sends.climbId, climbId), visibilityCondition))
+    .where(eq(sends.climbId, climbId))
     .orderBy(desc(sends.dateSent), asc(sends.id))
     .limit(pageSize + 1)
     .offset(offset);

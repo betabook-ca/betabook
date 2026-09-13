@@ -43,7 +43,7 @@ export async function generateMetadata({ params }: UserAnalyticsPageProps): Prom
   const session = await getSession();
   if (!session) return { title: "Member content", robots: { index: false } };
   const user = await getUserById(id);
-  if (!user || !canViewUser(user, session?.user.id ?? null)) notFound();
+  if (!user || !canViewUser(user, session.user.id)) notFound();
 
   return { title: `${user.name} · Analytics`, robots: { index: false } };
 }
@@ -68,7 +68,7 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
   if (!session) return <CurrentPageAuthCallout />;
   const [db, user] = await Promise.all([getDb(), getUserById(id)]);
   if (!user) notFound();
-  const viewerId = session?.user.id ?? null;
+  const viewerId = session.user.id;
   if (!canViewUser(user, viewerId)) notFound();
 
   const selectedTags = normalizeHashtagFilters(toArray(search.tag));
@@ -108,7 +108,7 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
   if (scope == null) {
     const content = (
       <div className="flex flex-col gap-6">
-        <ProfileHeader user={user} viewerId={session?.user.id ?? null} />
+        <ProfileHeader user={user} viewerId={session.user.id} />
         <SectionHeading>Analytics</SectionHeading>
         <AnalyticsHashtagFilter selectedTags={selectedTags} tags={tags} />
         <EmptyState
@@ -152,7 +152,7 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
 
   const content = (
     <div className="flex flex-col gap-6">
-      <ProfileHeader user={user} viewerId={session?.user.id ?? null} />
+      <ProfileHeader user={user} viewerId={session.user.id} />
 
       <AnalyticsDashboard
         key={id}

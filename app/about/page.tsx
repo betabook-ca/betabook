@@ -57,7 +57,7 @@ export default function AboutPage() {
          * only its colour to identify it, and colour alone isn't a
          * distinguishing cue (WCAG 1.4.1). */}
         <a
-          href="https://github.com/jasperlin451/betabook"
+          href="https://github.com/betabook-ca/betabook"
           target="_blank"
           rel="noreferrer"
           className="link inline underline focus-visible:status-focused"

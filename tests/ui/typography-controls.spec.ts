@@ -3,7 +3,7 @@ import { expect, test, openStory } from "./story";
 
 test(
   "auth and recovery pages use the canonical page title",
-  { tag: "@behavior" },
+  { tag: ["@behavior", "@app"] },
   async ({ page }, info) => {
     for (const [path, title] of [
       ["/sign-in", "Sign in"],

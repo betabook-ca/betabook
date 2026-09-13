@@ -4,9 +4,10 @@ import { useState, useTransition } from "react";
 
 import { setJournalVisibility, setSendCommentVisibility, setUserPrivate } from "@/actions";
 import { PrivacyFields } from "@/components/privacy-fields";
-import type { SharingAudience } from "@/lib/privacy";
+import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
 
-type ContentKind = "journal" | "sendComment";
+type Audiences = { journal: SharingAudience; sendComment: SendCommentAudience };
+type ContentKind = keyof Audiences;
 
 export function PrivacyControls({
   initialIsPrivate,
@@ -15,10 +16,10 @@ export function PrivacyControls({
 }: {
   initialIsPrivate: boolean;
   initialJournalVisibility: SharingAudience;
-  initialSendCommentVisibility: SharingAudience;
+  initialSendCommentVisibility: SendCommentAudience;
 }) {
   const [isPrivate, setIsPrivate] = useState(initialIsPrivate);
-  const [audiences, setAudiences] = useState({
+  const [audiences, setAudiences] = useState<Audiences>({
     journal: initialJournalVisibility,
     sendComment: initialSendCommentVisibility,
   });
@@ -43,7 +44,7 @@ export function PrivacyControls({
     });
   }
 
-  function handleAudienceChange(kind: ContentKind, next: SharingAudience) {
+  function handleAudienceChange<K extends ContentKind>(kind: K, next: Audiences[K]) {
     const previous = audiences[kind];
     setAudiences((current) => ({ ...current, [kind]: next }));
     setErrors((current) => ({ ...current, [kind]: undefined }));

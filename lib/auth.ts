@@ -2,6 +2,7 @@ import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { betterAuth } from "better-auth";
 import { APIError, getOAuthState } from "better-auth/api";
+import { captcha } from "better-auth/plugins";
 
 import { getDb } from "@/db/client";
 import { getUserIdByName } from "@/db/queries";
@@ -40,6 +41,11 @@ async function authBuilder() {
       "http://localhost:3003",
       "https://betabook.ca",
     ],
+    advanced: {
+      // Cloudflare appends to a client-sent X-Forwarded-For, so it can be
+      // spoofed or left multi-valued; rate limits then share one bucket.
+      ipAddress: { ipAddressHeaders: ["cf-connecting-ip"] },
+    },
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: true,
@@ -204,7 +210,21 @@ async function authBuilder() {
       expiresIn: 60 * 60 * 24 * 30,
       updateAge: 60 * 60 * 24,
     },
+    plugins: turnstilePlugins(env),
   });
+}
+
+// One key without the other would either reject every email sign-in or render
+// a widget whose tokens are never checked.
+function turnstileKeys(env: CloudflareEnv) {
+  return env.TURNSTILE_SITE_KEY && env.TURNSTILE_SECRET_KEY
+    ? { siteKey: env.TURNSTILE_SITE_KEY, secretKey: env.TURNSTILE_SECRET_KEY }
+    : null;
+}
+
+function turnstilePlugins(env: CloudflareEnv) {
+  const keys = turnstileKeys(env);
+  return keys ? [captcha({ provider: "cloudflare-turnstile", secretKey: keys.secretKey })] : [];
 }
 
 let authInstance: Awaited<ReturnType<typeof authBuilder>> | null = null;
@@ -217,4 +237,9 @@ export async function initAuth() {
 export async function isGoogleOAuthEnabled(): Promise<boolean> {
   const { env } = await getCloudflareContext({ async: true });
   return Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
+}
+
+export async function getTurnstileSiteKey(): Promise<string | null> {
+  const { env } = await getCloudflareContext({ async: true });
+  return turnstileKeys(env)?.siteKey ?? null;
 }

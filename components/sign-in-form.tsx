@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
+import { useTurnstile } from "@/components/turnstile";
 import { AppLink } from "@/components/ui/app-link";
 import { FORM_CARD_CLASS } from "@/components/ui/card";
 import { InlineAlert } from "@/components/ui/inline-alert";
@@ -17,20 +18,23 @@ export function SignInForm({
   next,
   googleEnabled = false,
   initialError,
+  turnstileSiteKey,
 }: {
   next?: string;
   googleEnabled?: boolean;
   initialError?: string | null;
+  turnstileSiteKey?: string | null;
 }) {
   const router = useRouter();
   // The page already validates the param, but re-validate the prop here so
   // the form can never be handed an off-origin destination.
   const nextPath = safeNextPath(next);
+  const captcha = useTurnstile(turnstileSiteKey);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(initialError ?? null);
-  // The address a 403 unverified-login error came back for. The resend
+  // The address an unverified-login error came back for. The resend
   // affordance is bound to this, not to whatever is currently typed in the
   // email field.
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
@@ -49,6 +53,7 @@ export function SignInForm({
     void authClient.signIn.email(
       { email: attemptedEmail, password },
       {
+        headers: captcha.headers,
         onSuccess: (ctx) => {
           const userDestination =
             ctx.data && typeof ctx.data === "object" && "user" in ctx.data && ctx.data.user
@@ -57,13 +62,17 @@ export function SignInForm({
           router.push(nextPath ?? userDestination);
         },
         onError: (ctx) => {
-          if (ctx.error.status === 403) {
+          // A failed captcha is also a 403.
+          if (ctx.error.code === "EMAIL_NOT_VERIFIED") {
             setUnverifiedEmail(attemptedEmail);
           } else {
             setError(ctx.error.message ?? "Sign in failed");
           }
         },
-        onResponse: () => setPending(false),
+        onResponse: () => {
+          setPending(false);
+          captcha.reset();
+        },
       },
     );
   }
@@ -145,7 +154,8 @@ export function SignInForm({
           {resendError && <InlineAlert>{resendError}</InlineAlert>}
         </div>
       )}
-      <Button type="submit" fullWidth isDisabled={pending}>
+      {captcha.widget}
+      <Button type="submit" fullWidth isDisabled={pending || !captcha.ready}>
         Sign in
       </Button>
       <p className="text-sm text-muted">

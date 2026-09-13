@@ -19,6 +19,7 @@ import { PageTitle, SectionHeading } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { getDb } from "@/db/client";
 import { getUser } from "@/db/queries";
+import { getTurnstileSiteKey } from "@/lib/auth";
 import { getMemberSession as getSession, isAdmin } from "@/lib/session";
 
 export const metadata: Metadata = {
@@ -129,7 +130,10 @@ export default async function AccountPage() {
         </AccountSection>
 
         <AccountSection title="Security" description="Manage your password and current session.">
-          <ResetPasswordButton email={session.user.email} />
+          <ResetPasswordButton
+            email={session.user.email}
+            turnstileSiteKey={await getTurnstileSiteKey()}
+          />
           <SignOutButton />
         </AccountSection>
 

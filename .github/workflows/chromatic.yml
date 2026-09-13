@@ -17,7 +17,7 @@ permissions:
 jobs:
   chromatic:
     name: Publish Storybook
-    if: github.repository == 'jasperlin451/betabook'
+    if: github.repository == 'betabook-ca/betabook'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

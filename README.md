@@ -41,6 +41,7 @@ Stop the dev server before running local database scripts and restart it afterwa
 - `BETTER_AUTH_SECRET` signs sessions; the example value is for local development.
 - Leave `RESEND_API_KEY` empty to print emails, including verification/reset links and friend requests, in the dev server console. Email/password sign-up requires verification; seeded accounts are already verified.
 - Google sign-in is enabled only when both `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set. The example file lists callback URLs.
+- Email sign-in, sign-up and password reset require a Turnstile token only when both `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` are set. The example file lists Cloudflare's test keys.
 
 [`cloudflare-env.d.ts`](cloudflare-env.d.ts) is the checked-in application binding contract. Keep it aligned with binding and environment changes. `pnpm cf-typegen` generates the full Workers types for inspection; builds and tests do not depend on that gitignored output.
 
@@ -119,8 +120,9 @@ Reloading should keep the request without another email. Cancel it afterward to
 restore the empty-feed fixture. The seed script writes directly to the database
 and never sends email; the product tour's sample controls also send nothing.
 
-Area and route names, hierarchy, area/route descriptions, route grades, and disciplines are public.
-Ratings, activity, profiles, sends, and journals require login and retain their audience restrictions.
+Area and route names, hierarchy, area/route descriptions, route grades, disciplines, community ratings, and ascent counts are public.
+Signed-out climb pages list the latest 10 sends anonymously with month-only dates, naming only climbers who share send commentary with **Everyone**.
+Activity, profiles, journals, and all other sends require login and retain their audience restrictions.
 
 New accounts default to **Members** send commentary and **Friends** journal entries.
 Existing audience choices stay unchanged; the Members label uses the stored `public` value.
@@ -129,8 +131,8 @@ pages, Sends, the feed, and mirrored ascent notes in the journal. The journal
 audience controls access to the journal, sessions, repeats, training, and tags.
 Deleting a send retains its journal entry and keeps its commentary audience, including
 after further edits. Database triggers classify original-send notes for every write path.
-Send facts on member-visible profiles are available only to signed-in members. Private profile overrides both audiences;
-the disabled selectors show Only me while retaining the saved choices. Community aggregates require login.
+Private profile overrides both audiences and turns the climber's sends into anonymous rows on climb pages;
+the disabled selectors show Only me while retaining the saved choices.
 
 To check social seeding against a disposable copy of a migrated, default-seeded
 SQLite database, run `pnpm test:seed-social /path/to/copy.sqlite`.
@@ -170,13 +172,13 @@ The shared Storybook preview also sets `chromatic.disableSnapshot: true` to prev
 captures. There are no Chromatic visual baselines or review approvals to maintain.
 Require **Test & Build** and **UI reference** for PRs; publishing is advisory and
 fork PRs need no Chromatic secret.
-CI splits each viewport/theme project across two runners, eight jobs in all, and
-each runner uses two Playwright workers. The worker count is deliberate: a runner
-has four cores and also hosts the gallery preview and `next dev`, so more workers
-starve the dev server until the app checks miss their navigation timeouts. Extra
-parallelism comes from runners, not workers. **UI reference** requires all eight
-jobs to pass; each uploads its own `ui-reference-report-<project>-<shard>`
-artifact. To run one project locally, use `pnpm test:ui --project=mobile-dark`.
+Every workflow in the organization shares 20 concurrent jobs, so CI packs each
+runner instead of adding runners. One job runs the `@app` tests with two
+Playwright workers: on a four-core runner, more starve `next dev` until the app
+checks miss their navigation timeouts. Three gallery shards run everything else
+with four workers and no app server. **UI reference** requires all four jobs to
+pass; each uploads its own `ui-reference-report-<suite>-<shard>` artifact. To run
+one project locally, use `pnpm test:ui --project=mobile-dark`.
 
 A local run takes half the machine's cores instead, because it runs all four
 projects in one process. It also skips trace recording, which otherwise writes a
@@ -245,7 +247,7 @@ The pre-commit hook formats staged files; the pre-push hook runs `pnpm check`. S
 
 ## Deployment
 
-[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) runs the checks and a Cloudflare production build on pull requests. Pushes to `main`, or manual workflow runs on `main`, also apply remote D1 migrations and deploy in the `smwoo/betabook` repository.
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) runs the checks and a Cloudflare production build on pull requests. Pushes to `main`, or manual workflow runs on `main`, also apply remote D1 migrations and deploy in the `betabook-ca/betabook` repository.
 
 For a manual deployment, mirror the build–migrate–deploy order:
 
@@ -258,7 +260,9 @@ pnpm exec opennextjs-cloudflare deploy
 
 `pnpm deploy` is a build-and-deploy shortcut; it does **not** apply migrations. Migrations must stay compatible with the currently deployed worker because the schema changes before the new worker is live.
 
-CI deployment uses the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Runtime credentials (`BETTER_AUTH_SECRET`, `RESEND_API_KEY`, and optional Google OAuth credentials) are Worker secrets configured with `pnpm exec wrangler secret put <NAME>`. Hosting, D1, rate-limit bindings, and the public auth URL are configured in [`wrangler.jsonc`](wrangler.jsonc); use your own Cloudflare resources when hosting a fork.
+CI deployment uses the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Runtime credentials (`BETTER_AUTH_SECRET`, `RESEND_API_KEY`, `TURNSTILE_SECRET_KEY`, and optional Google OAuth credentials) are Worker secrets configured with `pnpm exec wrangler secret put <NAME>`. Hosting, D1, rate-limit bindings, and the public auth URL are configured in [`wrangler.jsonc`](wrangler.jsonc); use your own Cloudflare resources when hosting a fork.
+
+The zone, DNS records, managed robots.txt, the `hello@betabook.ca` routing rule, and the D1 database itself are managed with OpenTofu in [`infra/cloudflare`](infra/cloudflare/README.md) and applied by Spacelift. The Worker, its bindings and secrets, and D1 migrations stay with wrangler.
 
 ## License
 

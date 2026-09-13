@@ -5,17 +5,26 @@ import { appBaseURL, appPort } from "@/tests/ui/app-server";
 // oxlint-disable-next-line node/no-process-env
 const ci = Boolean(process.env.CI);
 
+// `app` runs only the @app tests and starts only `next dev`; `gallery` runs the
+// rest against the built gallery alone. Unset runs everything.
+// oxlint-disable-next-line node/no-process-env
+const suite = process.env.BETABOOK_UI_SUITE || undefined;
+if (suite !== undefined && suite !== "app" && suite !== "gallery") {
+  throw new Error('BETABOOK_UI_SUITE must be "app" or "gallery"');
+}
+
 export default defineConfig({
   testDir: "./tests/ui",
   fullyParallel: true,
   forbidOnly: true,
   retries: 0,
-  // A four-core runner also hosts the gallery preview and `next dev`. Measured:
-  // four workers starve the dev server until the app tests miss their
-  // navigation timeouts, and the run gets slower, not faster. Two leaves the
-  // servers a core each. CI buys parallelism by sharding across runners
-  // instead. Locally there are cores to spare, so take half the machine.
-  workers: ci ? 2 : "50%",
+  grep: suite === "app" ? /@app\b/ : suite === "gallery" ? /^(?!.*@app\b)/ : undefined,
+  // Measured on four-vCPU runners. Sharing one with `next dev`, more than two
+  // workers starve the dev server until the app tests miss their navigation
+  // timeouts. The gallery alone runs 1.2x faster at four workers than at two,
+  // and at six a story load misses its timeout. Locally there are cores to
+  // spare, so take half the machine.
+  workers: !ci ? "50%" : suite === "gallery" ? 4 : 2,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: "http://127.0.0.1:6007",
@@ -37,7 +46,8 @@ export default defineConfig({
   //   @behavior independent of viewport and theme both. Runs once, desktop-light.
   // Needing fewer runs is not a reason to tag: the assertions must be unable to
   // vary. Anything that reads a color, or that renders differently per theme,
-  // stays untagged.
+  // stays untagged. @app is separate: it marks a test that loads the real app,
+  // which decides the server it needs, not the projects it runs in.
   projects: [
     {
       name: "desktop-light",
@@ -63,17 +73,25 @@ export default defineConfig({
     },
   ],
   webServer: [
-    {
-      command:
-        "pnpm exec vite preview --outDir storybook-static --host 127.0.0.1 --port 6007 --strictPort",
-      url: "http://127.0.0.1:6007/index.json",
-      reuseExistingServer: false,
-    },
-    {
-      command: `pnpm db:migrate:local && pnpm dev --port ${appPort}`,
-      // Warm the homepage's cold compilation before measuring home-link navigation.
-      url: appBaseURL,
-      reuseExistingServer: true,
-    },
+    ...(suite === "app"
+      ? []
+      : [
+          {
+            command:
+              "pnpm exec vite preview --outDir storybook-static --host 127.0.0.1 --port 6007 --strictPort",
+            url: "http://127.0.0.1:6007/index.json",
+            reuseExistingServer: false,
+          },
+        ]),
+    ...(suite === "gallery"
+      ? []
+      : [
+          {
+            command: `pnpm db:migrate:local && pnpm dev --port ${appPort}`,
+            // Warm the homepage's cold compilation before measuring home-link navigation.
+            url: appBaseURL,
+            reuseExistingServer: true,
+          },
+        ]),
   ],
 });

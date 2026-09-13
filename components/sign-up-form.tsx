@@ -4,6 +4,7 @@ import { Button, Checkbox, Input, Label, TextField } from "@heroui/react";
 import { useState } from "react";
 
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
+import { useTurnstile } from "@/components/turnstile";
 import { AppLink } from "@/components/ui/app-link";
 import { FORM_CARD_CLASS } from "@/components/ui/card";
 import { FieldFeedback } from "@/components/ui/field-support";
@@ -17,13 +18,16 @@ import { TERMS_VERSION, termsHref } from "@/lib/terms";
 export function SignUpForm({
   next,
   googleEnabled = false,
+  turnstileSiteKey,
 }: {
   next?: string;
   googleEnabled?: boolean;
+  turnstileSiteKey?: string | null;
 }) {
   // The page already validates the param, but re-validate the prop here so
   // the form can never be handed an off-origin destination.
   const nextPath = safeNextPath(next);
+  const captcha = useTurnstile(turnstileSiteKey);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -43,7 +47,7 @@ export function SignUpForm({
     e.preventDefault();
     setError(null);
     setSubmitAttempted(true);
-    if (pending || !termsAccepted || password !== confirmPassword) return;
+    if (pending || !termsAccepted || !captcha.ready || password !== confirmPassword) return;
     setPending(true);
     void authClient.signUp.email(
       // The verification link lands back on sign-in, carrying the original
@@ -51,9 +55,13 @@ export function SignUpForm({
       { name, email, password, callbackURL: signInUrl(nextPath) },
       {
         body: { acceptedTermsVersion: TERMS_VERSION },
+        headers: captcha.headers,
         onSuccess: () => setDone(true),
         onError: (ctx) => setError(ctx.error.message ?? "Sign up failed"),
-        onResponse: () => setPending(false),
+        onResponse: () => {
+          setPending(false);
+          captcha.reset();
+        },
       },
     );
   }
@@ -155,7 +163,8 @@ export function SignUpForm({
         <FieldFeedback error={passwordMismatch ? "Passwords do not match." : null} />
       </TextField>
       {error && <InlineAlert>{error}</InlineAlert>}
-      <Button type="submit" fullWidth isDisabled={pending || !termsAccepted}>
+      {captcha.widget}
+      <Button type="submit" fullWidth isDisabled={pending || !termsAccepted || !captcha.ready}>
         Sign up
       </Button>
       <p className="text-sm text-muted">

@@ -1046,21 +1046,48 @@ describe("getSendsForClimb private-user filtering", () => {
     });
   });
 
-  it("excludes a private user's send when there's no viewer", async () => {
-    const { sends: rows } = await getSendsForClimb(db, PRIVATE_CLIMB_ID);
-    expect(rows.map((s) => s.userName)).toEqual(["Public Climber"]);
-  });
+  it.each([null, "public-user"])(
+    "anonymizes a private user's send for viewer %s",
+    async (viewer) => {
+      const { sends: rows } = await getSendsForClimb(db, PRIVATE_CLIMB_ID, 0, 10, viewer);
+      expect(
+        rows.map((s) => [s.id < 0, s.userId, s.userName, s.dateSent, s.rating, s.suggestedGrade]),
+      ).toEqual([
+        [true, null, null, "2026-05", 5, 3],
+        [false, "public-user", "Public Climber", "2026-05-01", 3, null],
+      ]);
+    },
+  );
 
-  it("excludes a private user's send from a different signed-in viewer", async () => {
-    const { sends: rows } = await getSendsForClimb(db, PRIVATE_CLIMB_ID, 0, 10, "public-user");
-    expect(rows.map((s) => s.userName)).toEqual(["Public Climber"]);
-  });
-
-  it("includes a private user's own send when they are the viewer", async () => {
+  it("shows a private user their own send", async () => {
     const { sends: rows } = await getSendsForClimb(db, PRIVATE_CLIMB_ID, 0, 10, "private-user");
-    // Newest dateSent first: the private user's send (05-02) sorts ahead of
-    // the public user's (05-01).
-    expect(rows.map((s) => s.userName)).toEqual(["Private Climber", "Public Climber"]);
+    expect(rows.map((s) => [s.id < 0, s.userName, s.dateSent])).toEqual([
+      [false, "Private Climber", "2026-05-02"],
+      [false, "Public Climber", "2026-05-01"],
+    ]);
+  });
+
+  it("keys anonymous rows by their position so pages never collide", async () => {
+    await seedFixtureUser(db, { id: "second-private", isPrivate: true });
+    await seedFixtureSend(db, {
+      userId: "second-private",
+      climbId: PRIVATE_CLIMB_ID,
+      dateSent: "2026-04-30",
+    });
+    const ids = [];
+    for (const offset of [0, 1, 2]) {
+      const { sends: rows } = await getSendsForClimb(
+        db,
+        PRIVATE_CLIMB_ID,
+        offset,
+        1,
+        "public-user",
+      );
+      ids.push(...rows.map((s) => s.id));
+    }
+    expect(ids[0]).toBe(-1);
+    expect(ids[1]).toBeGreaterThan(0);
+    expect(ids[2]).toBe(-3);
   });
 
   it("still counts the private user's send toward the climb's rating and suggested grade", async () => {

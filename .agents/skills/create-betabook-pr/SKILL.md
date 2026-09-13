@@ -189,7 +189,7 @@ gh pr create --repo "$pr_repo" --base "$base_branch" --head "$pr_head" \
 ```
 
 For example, a branch pushed to `tiffany-ko/betabook` must use
-`--repo jasperlin451/betabook --base main --head tiffany-ko:<branch>`. Resolve these values from
+`--repo betabook-ca/betabook --base main --head tiffany-ko:<branch>`. Resolve these values from
 metadata each time rather than hardcoding this example. For an organization-owned fork where the
 CLI does not support the owner-qualified head, use GitHub's pull-request API with the same explicit
 base repository and head repository instead of changing the destination.

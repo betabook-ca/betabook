@@ -22,10 +22,12 @@ import { getSendsForClimb, getSendsForUserPage } from "./sends";
 const db = createDb(env.DB);
 const viewers = ["owner", "a-friend", "z-friend", "pending-in", "pending-out", "stranger", null];
 const audiences = ["private", "friends", "public"] as const;
-const readers: Record<(typeof audiences)[number], (string | null)[]> = {
+const commentAudiences = [...audiences, "everyone"] as const;
+const readers: Record<(typeof commentAudiences)[number], (string | null)[]> = {
   private: ["owner"],
   friends: ["owner", "a-friend", "z-friend"],
   public: viewers.filter((viewer) => viewer !== null),
+  everyone: viewers,
 };
 
 beforeEach(async () => {
@@ -117,7 +119,7 @@ it.each(["Drizzle", "SQL"])(
 
 it.each(
   audiences.flatMap((journalVisibility) =>
-    audiences.map((sendCommentVisibility) => ({ journalVisibility, sendCommentVisibility })),
+    commentAudiences.map((sendCommentVisibility) => ({ journalVisibility, sendCommentVisibility })),
   ),
 )(
   "keeps $sendCommentVisibility commentary independent of a $journalVisibility journal",
@@ -194,7 +196,9 @@ it("a private profile overrides both public audiences without erasing their save
     .set({ isPrivate: true, journalVisibility: "public", sendCommentVisibility: "public" })
     .where(eq(user.id, "owner"));
   for (const viewer of ["a-friend", "stranger", null]) {
-    expect((await getSendsForClimb(db, 1, 0, 10, viewer)).sends).toEqual([]);
+    expect((await getSendsForClimb(db, 1, 0, 10, viewer)).sends).toMatchObject([
+      { id: -1, userId: null, userName: null, dateSent: "2026-09", comment: null },
+    ]);
     expect((await getJournalPage(db, "owner", viewer, DEFAULT_JOURNAL_FILTER)).entries).toEqual([]);
   }
   expect((await getFeedPage(db, "a-friend")).days).toEqual([]);

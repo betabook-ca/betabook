@@ -1,16 +1,16 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { expect, it, vi } from "vitest";
 
-import type { SharingAudience } from "@/lib/privacy";
+import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
 
 import { PrivacyFields } from "./privacy-fields";
 
 function Privacy({ pending = false }: { pending?: boolean }) {
   const [isPrivate, setPrivate] = useState(false);
   const [journal, setJournal] = useState<SharingAudience>("friends");
-  const [comment, setComment] = useState<SharingAudience>("public");
+  const [comment, setComment] = useState<SendCommentAudience>("public");
   return (
     <PrivacyFields
       isPrivate={isPrivate}
@@ -53,9 +53,22 @@ it("masks audiences on private profiles and restores each independent choice", a
   expect(journal).toHaveTextContent("Members");
 });
 
+it("offers Everyone for send commentary but not for the journal", async () => {
+  const user = userEvent.setup();
+  render(<Privacy />);
+  const optionNames = () => screen.getAllByRole("option").map((option) => option.textContent);
+  const commentary = screen.getByRole("button", { name: /Send commentary audience/ });
+  await user.click(commentary);
+  await waitFor(() => expect(optionNames()).toEqual(["Only me", "Friends", "Members", "Everyone"]));
+  await user.click(screen.getByRole("option", { name: "Everyone" }));
+  expect(commentary).toHaveTextContent("Everyone");
+  await user.click(screen.getByRole("button", { name: /Journal entries audience/ }));
+  await waitFor(() => expect(optionNames()).toEqual(["Only me", "Friends", "Members"]));
+});
+
 it("prevents changes to all three privacy controls during a save", async () => {
   const user = userEvent.setup();
-  const change = vi.fn<(value: boolean | SharingAudience) => void>();
+  const change = vi.fn<(value: boolean | SendCommentAudience) => void>();
   render(
     <PrivacyFields
       isPrivate={false}

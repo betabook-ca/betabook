@@ -19,7 +19,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Hover or focus to preview up to three entries. Only larger groups open a full list. Each chart keeps its own aggregation and metric. Climb names appear once, with no additional date grouping. Related to [issue #192](https://github.com/jasperlin451/betabook/issues/192).",
+          "Hover or focus to preview up to three entries. Only larger groups open a full list. Each chart keeps its own aggregation and metric. Climb names appear once, with no additional date grouping. Related to [issue #192](https://github.com/betabook-ca/betabook/issues/192).",
       },
     },
   },

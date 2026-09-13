@@ -4,7 +4,7 @@ import { test, expect } from "./story";
 
 test(
   "legacy area-name filters stay visible through refinements and can be cleared",
-  { tag: "@behavior" },
+  { tag: ["@behavior", "@app"] },
   async ({ page }) => {
     await page.goto(`${appBaseURL}/?mode=climb&areaName=Cedar`);
     const scope = page.getByRole("button", { name: "Clear area name Cedar" });
@@ -23,7 +23,7 @@ test(
 
 test(
   "app search journey preserves query and category in the full-results URL",
-  { tag: "@behavior" },
+  { tag: ["@behavior", "@app"] },
   async ({ page }) => {
     await page.goto(`${appBaseURL}/?mode=all`);
     await expect(page.getByRole("button", { name: "All", exact: true })).toBeVisible();
@@ -46,7 +46,7 @@ test(
 
 test(
   "app full search restores an explicit area ID and query with browser history",
-  { tag: "@behavior" },
+  { tag: ["@behavior", "@app"] },
   async ({ page }, testInfo) => {
     await page.route("**/api/public/search/climbs?**", async (route) => {
       const id = new URL(route.request().url()).searchParams.get("areaId");
@@ -95,7 +95,7 @@ test(
 
 test(
   "a new quick search session starts without previous query or category",
-  { tag: "@behavior" },
+  { tag: ["@behavior", "@app"] },
   async ({ page }) => {
     await page.goto(`${appBaseURL}/?mode=all`);
     await page.getByRole("button", { name: "Search", exact: true }).click();
@@ -117,7 +117,7 @@ test(
 
 test(
   "full search navigation results support opening another tab",
-  { tag: "@behavior" },
+  { tag: ["@behavior", "@app"] },
   async ({ page, context }) => {
     await page.route("**/api/public/search/climbs?**", (route) =>
       route.fulfill({

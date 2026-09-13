@@ -8,6 +8,7 @@ import {
   type DisciplineGradeFilter,
 } from "@/lib/filters/discipline-filter";
 import type { ClimbType } from "@/lib/grades";
+import type { AscentStyle, GradeFeel } from "@/lib/sends";
 import {
   parseAreaId,
   parseOffset,
@@ -32,6 +33,17 @@ export type PublicClimb = {
    * are readable without a session; the sends behind them are not. */
   avgRating: number | null;
   sendCount: number;
+};
+/** `userName` and `comment` stay null unless the climber shares commentary
+ * with Everyone from a public profile; anonymous rows carry only a "YYYY-MM" month. */
+export type PublicClimbSend = {
+  userName: string | null;
+  dateSent: string | null;
+  ascentStyle: AscentStyle;
+  rating: number | null;
+  suggestedGrade: number | null;
+  gradeFeel: GradeFeel;
+  comment: string | null;
 };
 export type PublicClimbsPage = {
   climbs: PublicClimb[];

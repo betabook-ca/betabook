@@ -21,6 +21,19 @@ export function formatDate(isoDate: string | null | undefined): string {
   return DATE_FORMAT.format(parsed);
 }
 
+const MONTH_FORMAT = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+/** "2026-08" → "Aug 2026". */
+export function formatMonth(yearMonth: string): string {
+  const parsed = new Date(`${yearMonth}-01`);
+  if (Number.isNaN(parsed.getTime())) return yearMonth;
+  return MONTH_FORMAT.format(parsed);
+}
+
 export function calendarMonth(date: Date, timeZone: string): string {
   return new Intl.DateTimeFormat("en-CA", {
     year: "numeric",

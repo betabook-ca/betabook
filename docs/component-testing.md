@@ -134,6 +134,10 @@ production behavior.
   A test that reads a color, compares against a palette token, or renders
   differently per theme stays untagged. Needing fewer runs is not itself a reason
   to apply either tag.
+- Tag a test `@app` when it loads the real app through `appBaseURL`. The tag
+  chooses the server, not the matrix, so it combines with `@layout` or
+  `@behavior`. Gallery runs do not start `next dev`, so an untagged app test
+  fails there with a refused connection.
 - The [gallery suite](../tests/ui/design-system.spec.ts) already audits and captures
   every built story. Add focused cases for interactions or invariants it does not
   cover, such as an overlay opened by the user or an element's actual geometry.
@@ -160,6 +164,11 @@ Readiness warms the homepage compilation before navigation checks. An existing
 app can be reused, but stop and migrate it first if its database is out of date.
 Use the normal local `.dev.vars` setup; CI copies `.dev.vars.example` and needs
 no seed or account for these app checks.
+
+`BETABOOK_UI_SUITE=gallery` runs every test except `@app` and starts only the
+gallery preview; `BETABOOK_UI_SUITE=app` runs only `@app` and starts only the
+app. Both still need a gallery build, because the gallery suite collects its
+stories from it. CI runs the two suites as separate jobs.
 
 The shared `openStory` readiness includes the preview's render/play completion,
 font loading and finite animations. Accessibility scans cover the complete

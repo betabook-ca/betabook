@@ -2,16 +2,13 @@
 
 import type { ReactNode } from "react";
 
-import { AscentStyle } from "@/components/ascent-style";
+import { ClimbSendListRow } from "@/components/climb-send-list-row";
 import { SendActionsMenu } from "@/components/send-actions-menu";
-import { SendGradeCell } from "@/components/send-grade-cell";
 import { SendListShell } from "@/components/send-list-shell";
-import { ListRow } from "@/components/ui/list-row";
 import { ViewerBoundary } from "@/components/viewer-boundary";
 import type { Climb, ClimbSendRow, ClimbSendsPage } from "@/db/queries";
 import { usePagedList } from "@/hooks/use-paged-list";
 import { apiFetch } from "@/lib/api-client";
-import { formatDate } from "@/lib/format-date";
 
 type ClimbSendListProps = {
   climb: Climb;
@@ -19,9 +16,8 @@ type ClimbSendListProps = {
    * /api/climbs/[id]/sends via "load more". */
   initialSends: ClimbSendRow[];
   initialHasMore: boolean;
-  /** The signed-in viewer's own user id, if any — used to show the actions
-   * menu on their own row (a user can only have one send per climb). */
-  currentUserId?: string | null;
+  /** Shows the actions menu on the viewer's own row (one send per climb). */
+  currentUserId: string;
   /** Rendered when the climb has no sends — the page supplies a
    * first-ascent invitation (see app/climbs/[id]/page.tsx). */
   emptyState?: ReactNode;
@@ -32,7 +28,7 @@ type ClimbSendListProps = {
  * "load more" fetching subsequent pages. Refreshes revalidate loaded pages. */
 export function ClimbSendList(props: ClimbSendListProps) {
   return (
-    <ViewerBoundary viewerId={props.currentUserId ?? null}>
+    <ViewerBoundary viewerId={props.currentUserId}>
       <ClimbSendListContent {...props} />
     </ViewerBoundary>
   );
@@ -78,25 +74,10 @@ function ClimbSendListContent({
       loadingMore={loadingMore}
       loadMoreFailed={loadMoreFailed}
       renderRow={(send) => (
-        <ListRow
-          title={send.userName}
-          href={`/users/${send.userId}`}
-          subtitle={send.dateSent ? formatDate(send.dateSent) : "Date unknown"}
-          trailing={
-            <div className="flex flex-col items-end gap-1 text-sm">
-              {/* The climber's own grade leads: the page's header already
-               * carries the posted one. */}
-              <SendGradeCell
-                type={climb.type}
-                grade={send.suggestedGrade}
-                gradeFeel={send.gradeFeel}
-                rating={send.rating}
-              />
-              <AscentStyle type={send.ascentStyle} />
-            </div>
-          }
+        <ClimbSendListRow
+          type={climb.type}
+          send={send}
           actions={send.userId === currentUserId && <SendActionsMenu climb={climb} send={send} />}
-          comment={send.comment}
         />
       )}
     />

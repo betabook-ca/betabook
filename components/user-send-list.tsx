@@ -22,7 +22,7 @@ type UserSendListProps = {
   initialAreaBreadcrumbs: AreaBreadcrumbs;
   /** Distinguishes an empty logbook from a filter with no matches. */
   hasAnySends: boolean;
-  currentUserId?: string | null;
+  currentUserId: string;
 };
 
 type UserSendsPageResponse = {

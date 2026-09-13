@@ -8,13 +8,42 @@ import {
   type PublicAreaDetails,
   type PublicAreaResult,
   type PublicClimb,
+  type PublicClimbSend,
   type PublicClimbsPage,
   type PublicCatalogOptions,
 } from "@/lib/public-catalog";
 
 import { areaNameCondition, getAreaBreadcrumbs } from "./areas";
 import { climbListOrderBy, searchClimbsConditions } from "./climbs";
+import { sendCommentVisibleSql } from "./content-access";
 import { toFtsPrefixQuery } from "./shared";
+
+const PUBLIC_CLIMB_SENDS_LIMIT = 10;
+
+/** Names, commentary and exact dates leave the database only for Everyone
+ * commentary, which a private profile overrides. Send and user IDs never do:
+ * sequential IDs would date anonymous rows. */
+export async function getPublicSendsForClimb(
+  db: Database,
+  climbId: number,
+): Promise<PublicClimbSend[]> {
+  const named = sendCommentVisibleSql(null, sql`sends.user_id`);
+  return db.all<PublicClimbSend>(sql`
+    SELECT
+      CASE WHEN ${named} THEN user.name END AS userName,
+      CASE WHEN ${named} THEN sends.date_sent ELSE substr(sends.date_sent, 1, 7) END AS dateSent,
+      sends.ascent_style AS ascentStyle,
+      sends.rating AS rating,
+      sends.suggested_grade AS suggestedGrade,
+      sends.grade_feel AS gradeFeel,
+      CASE WHEN ${named} THEN sends.comment END AS comment
+    FROM sends
+    JOIN user ON user.id = sends.user_id
+    WHERE sends.climb_id = ${climbId}
+    ORDER BY sends.date_sent DESC, sends.id ASC
+    LIMIT ${PUBLIC_CLIMB_SENDS_LIMIT}
+  `);
+}
 
 const publicAreaColumns = { id: areas.id, name: areas.name, parentId: areas.parentId };
 export async function getPublicArea(

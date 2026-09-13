@@ -4,7 +4,12 @@ import { Label, Switch, Select, ListBox } from "@heroui/react";
 
 import { FieldFeedback } from "@/components/ui/field-support";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { SHARING_AUDIENCES, type SharingAudience } from "@/lib/privacy";
+import {
+  SEND_COMMENT_AUDIENCES,
+  SHARING_AUDIENCES,
+  type SendCommentAudience,
+  type SharingAudience,
+} from "@/lib/privacy";
 
 /** Controlled fields shared by Account and the local tutorial example. */
 export function PrivacyFields({
@@ -21,10 +26,10 @@ export function PrivacyFields({
 }: {
   isPrivate: boolean;
   journalVisibility: SharingAudience;
-  sendCommentVisibility: SharingAudience;
+  sendCommentVisibility: SendCommentAudience;
   onProfileChange: (value: boolean) => void;
   onJournalChange: (value: SharingAudience) => void;
-  onSendCommentChange: (value: SharingAudience) => void;
+  onSendCommentChange: (value: SendCommentAudience) => void;
   isPending?: boolean;
   profileError?: string | null;
   journalError?: string | null;
@@ -43,8 +48,8 @@ export function PrivacyFields({
         </Switch>
         <p className="text-xs text-muted">
           {isPrivate
-            ? "Only you can see your profile and climbing history. Friends and request recipients can still see your name. Your saved audiences will apply when your profile is visible to members."
-            : "Signed-in Betabook members can see your profile and send details: climbs, dates, ascent styles, ratings, and grades. Choose who can read your commentary and journal below."}
+            ? "Only you can see your profile and climbing history; climb pages list your sends without your name. Friends and request recipients can still see your name. Your saved audiences will apply when your profile is visible to members."
+            : "Signed-in Betabook members can see your profile and send details: climbs, dates, ascent styles, ratings, and grades. Signed-out visitors see recent sends on climb pages without names. Choose who can read your commentary and journal below."}
         </p>
         {profileError && <InlineAlert>{profileError}</InlineAlert>}
       </div>
@@ -52,6 +57,7 @@ export function PrivacyFields({
         <AudienceField
           label="Send commentary"
           description="Notes on original sends, including the matching ascent note in your journal."
+          options={SEND_COMMENT_AUDIENCES}
           value={isPrivate ? "private" : sendCommentVisibility}
           onChange={onSendCommentChange}
           disabled={isPrivate || isPending}
@@ -60,6 +66,7 @@ export function PrivacyFields({
         <AudienceField
           label="Journal entries"
           description="Sessions, repeats, training, and journal tags. Also limits who sees you tagged in a friend’s entry; its author can see their own selection. Commentary on original sends uses the setting above."
+          options={SHARING_AUDIENCES}
           value={isPrivate ? "private" : journalVisibility}
           onChange={onJournalChange}
           disabled={isPrivate || isPending}
@@ -68,16 +75,17 @@ export function PrivacyFields({
       </div>
       <p className="text-xs text-muted">
         {!isPrivate &&
-          "Members means signed-in Betabook users. Friends means an accepted friend request. Audiences apply to past and future entries. "}
+          "Everyone adds signed-out visitors and search engines, and shows your name on your sends. Members means signed-in Betabook users. Friends means an accepted friend request. Audiences apply to past and future entries. "}
         Your sends still count toward community ratings.
       </p>
     </div>
   );
 }
 
-function AudienceField({
+function AudienceField<T extends string>({
   label,
   description,
+  options,
   value,
   onChange,
   disabled,
@@ -85,8 +93,9 @@ function AudienceField({
 }: {
   label: string;
   description: string;
-  value: SharingAudience;
-  onChange: (value: SharingAudience) => void;
+  options: readonly { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
   disabled: boolean;
   error?: string | null;
 }) {
@@ -97,7 +106,7 @@ function AudienceField({
       isDisabled={disabled}
       isInvalid={Boolean(error)}
       onSelectionChange={(key) => {
-        const audience = SHARING_AUDIENCES.find((option) => option.value === key);
+        const audience = options.find((option) => option.value === key);
         if (audience) onChange(audience.value);
       }}
     >
@@ -108,7 +117,7 @@ function AudienceField({
       </Select.Trigger>
       <Select.Popover>
         <ListBox>
-          {SHARING_AUDIENCES.map(({ value, label }) => (
+          {options.map(({ value, label }) => (
             <ListBox.Item key={value} id={value} textValue={label}>
               {label}
             </ListBox.Item>

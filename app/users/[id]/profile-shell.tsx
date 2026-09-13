@@ -13,7 +13,7 @@ export const getUserById = cache(async (id: string) => {
   return getUser(db, id);
 });
 
-export const canReadUserJournal = cache(async (id: string, viewerId: string | null) =>
+export const canReadUserJournal = cache(async (id: string, viewerId: string) =>
   canReadJournal(await getDb(), id, viewerId),
 );
 
@@ -24,13 +24,7 @@ type ProfileUser = {
   isPrivate: boolean;
 };
 
-export async function ProfileHeader({
-  user,
-  viewerId,
-}: {
-  user: ProfileUser;
-  viewerId: string | null;
-}) {
+export async function ProfileHeader({ user, viewerId }: { user: ProfileUser; viewerId: string }) {
   const isOwner = viewerId === user.id;
   const relationship = await getFriendship(await getDb(), viewerId, user.id);
   const journalVisible = await canReadUserJournal(user.id, viewerId);
@@ -47,12 +41,7 @@ export async function ProfileHeader({
               {!user.isPrivate && <ShareProfileButton userId={user.id} />}
             </div>
           ) : (
-            <FriendshipButton
-              userId={user.id}
-              name={user.name}
-              initialStatus={relationship}
-              signedIn={!!viewerId}
-            />
+            <FriendshipButton userId={user.id} name={user.name} initialStatus={relationship} />
           )
         }
       />

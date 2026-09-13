@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: UserPageProps): Promise<Metad
   const session = await getSession();
   if (!session) return { title: "Member content", robots: { index: false } };
   const user = await getUserById(id);
-  if (!user || !canViewUser(user, session?.user.id ?? null)) notFound();
+  if (!user || !canViewUser(user, session.user.id)) notFound();
 
   return { title: user.name, robots: { index: false } };
 }
@@ -31,7 +31,7 @@ export default async function UserPage({ params, searchParams }: UserPageProps) 
   const session = await getSession();
   if (!session) return <CurrentPageAuthCallout />;
   const user = await getUserById(id);
-  const viewerId = session?.user.id ?? null;
+  const viewerId = session.user.id;
 
   if (!user || !canViewUser(user, viewerId)) notFound();
 

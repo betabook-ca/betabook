@@ -143,6 +143,15 @@ describe("setJournalVisibility action boundary", () => {
     expect(result).toEqual({ ok: false, error: "Invalid sharing audience" });
     expect(await privacy()).toEqual(before);
   });
+
+  it("rejects Everyone, which only send commentary offers", async () => {
+    const before = await privacy();
+    expect(await setJournalVisibility("everyone")).toEqual({
+      ok: false,
+      error: "Invalid sharing audience",
+    });
+    expect(await privacy()).toEqual(before);
+  });
 });
 
 it("saves Friends sharing without accepting a pending request or changing the other account", async () => {
@@ -161,7 +170,7 @@ it("saves Friends sharing without accepting a pending request or changing the ot
 });
 
 describe("independent send commentary audience", () => {
-  it.each(["private", "friends", "public"] as const)(
+  it.each(["private", "friends", "public", "everyone"] as const)(
     "saves %s commentary without changing the journal, profile, other account, or pending requests",
     async (audience) => {
       const { friendships } = await import("@/db/schema");

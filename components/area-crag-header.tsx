@@ -20,7 +20,6 @@ export function AreaCragHeader({
   areaPath,
   histogram,
   actions,
-  isEditor = false,
   filter,
 }: {
   area: Area;
@@ -28,11 +27,8 @@ export function AreaCragHeader({
    * through it so a click doesn't bounce off a redirect. */
   areaPath: string;
   histogram: GradeHistogram;
-  /** The area's editor actions, rendered beside the title (editors only). */
-  actions?: ReactNode;
-  /** Editors get the description's inline edit pencil; everyone else just
-   * sees the description, or that there isn't one yet. */
-  isEditor?: boolean;
+  /** The area's editor actions, rendered beside the title. */
+  actions: ReactNode;
   /** The page's active climb filter — lets an applied histogram bucket
    * render selected and toggle clear on click. */
   filter?: AreaClimbsFilter;
@@ -51,7 +47,7 @@ export function AreaCragHeader({
         <div className="flex min-w-0 flex-col gap-1">
           <Eyebrow>Area</Eyebrow>
           <PageTitle>{area.name}</PageTitle>
-          <AreaDescription area={area} isEditor={isEditor} />
+          <AreaDescription area={area} />
         </div>
         {actions}
       </div>
