@@ -232,51 +232,19 @@ export async function getJournalEntry(db: Database, entryId: number, ownerId: st
     .get();
 }
 
-export type JournalCounts = {
-  entries: number;
-  sessions: number;
-  training: number;
-  days: number;
-  entriesThisMonth: number;
-  daysThisMonth: number;
-  sentThisMonth: number;
-};
-
-const EMPTY_COUNTS: JournalCounts = {
-  entries: 0,
-  sessions: 0,
-  training: 0,
-  days: 0,
-  entriesThisMonth: 0,
-  daysThisMonth: 0,
-  sentThisMonth: 0,
-};
-
-export async function getJournalCounts(
+/** Whether the viewer can read any entry in this journal. */
+export async function hasJournalEntries(
   db: Database,
   ownerId: string,
   viewerId: string | null,
-  month: string,
-): Promise<JournalCounts> {
-  const monthPrefix = `${month}-%`;
-  const row = await db.get<JournalCounts>(sql`
-    SELECT
-      COUNT(*)                                                        AS entries,
-      COUNT(*) FILTER (WHERE j.kind = 'session')                      AS sessions,
-      COUNT(*) FILTER (WHERE j.kind = 'training')                     AS training,
-      COUNT(DISTINCT CASE WHEN j.kind = 'session' THEN j.entry_date END)
-                                                                      AS days,
-      COUNT(*) FILTER (WHERE j.entry_date LIKE ${monthPrefix})        AS entriesThisMonth,
-      COUNT(DISTINCT CASE
-        WHEN j.kind = 'session' AND j.entry_date LIKE ${monthPrefix} THEN j.entry_date
-      END)
-                                                                      AS daysThisMonth,
-      COUNT(*) FILTER (WHERE j.sent = 1 AND j.entry_date LIKE ${monthPrefix})
-                                                                      AS sentThisMonth
-    FROM journal_entries j
-    WHERE j.user_id = ${ownerId} AND ${journalVisibleSql(viewerId, sql`j.user_id`)}
+): Promise<boolean> {
+  const row = await db.get<{ found: number }>(sql`
+    SELECT EXISTS (
+      SELECT 1 FROM journal_entries j
+      WHERE j.user_id = ${ownerId} AND ${journalVisibleSql(viewerId, sql`j.user_id`)}
+    ) AS found
   `);
-  return row ?? EMPTY_COUNTS;
+  return row?.found === 1;
 }
 
 export type AnalyticsSessionRow = {

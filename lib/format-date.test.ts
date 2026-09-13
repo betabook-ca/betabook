@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { calendarMonth, daysBetween, describeDaysAgo, formatDate } from "./format-date";
+import { daysBetween, describeDaysAgo, formatDate } from "./format-date";
 
 describe("formatDate", () => {
   it("formats a stored civil date", () => {
@@ -17,14 +17,6 @@ describe("formatDate", () => {
 
   it("returns an unparseable string as-is", () => {
     expect(formatDate("not-a-date")).toBe("not-a-date");
-  });
-});
-
-describe("calendarMonth", () => {
-  it("uses the requested timezone at a month boundary", () => {
-    const instant = new Date("2026-09-01T00:30:00.000Z");
-    expect(calendarMonth(instant, "UTC")).toBe("2026-09");
-    expect(calendarMonth(instant, "America/Los_Angeles")).toBe("2026-08");
   });
 });
 

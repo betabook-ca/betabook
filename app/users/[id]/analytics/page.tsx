@@ -1,3 +1,4 @@
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -17,11 +18,13 @@ import { getDb } from "@/db/client";
 import { getJournalSessionsForAnalytics, getUserSendsForAnalytics } from "@/db/queries";
 import { getAnalyticsHighlightSessions } from "@/db/queries/analytics-highlights";
 import { getAnalyticsLayout } from "@/db/queries/analytics-layout";
+import { getClimberOverview } from "@/db/queries/climber-overview";
 import { canReadJournal } from "@/db/queries/content-access";
 import { getViewerFeatureAnnouncements } from "@/db/queries/feature-announcements";
 import { getUserHashtags } from "@/db/queries/hashtag-filter";
 import { buildAnalyticsHighlights } from "@/lib/analytics-highlights";
 import { parseAnalyticsYears } from "@/lib/analytics-years";
+import { describeClimber, describeRecency } from "@/lib/climber-summary";
 import {
   ANALYTICS_CUSTOMIZE_ANNOUNCEMENT,
   getAnnouncementCandidates,
@@ -107,18 +110,19 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
 
   if (scope == null) {
     const content = (
-      <div className="flex flex-col gap-6">
-        <ProfileHeader user={user} viewerId={session.user.id} />
-        <SectionHeading>Analytics</SectionHeading>
-        <AnalyticsHashtagFilter selectedTags={selectedTags} tags={tags} />
-        <EmptyState
-          message={
-            selectedTags.length > 0
-              ? "No sends or outdoor sessions match these tags. Remove selected tags to see more activity."
-              : "No outdoor sessions logged yet — analytics appear with the first session."
-          }
-        />
-      </div>
+      <ProfileHeader user={user} viewerId={session.user.id}>
+        <div className="flex min-w-0 flex-col gap-6">
+          <SectionHeading className="sr-only">Analytics</SectionHeading>
+          <AnalyticsHashtagFilter selectedTags={selectedTags} tags={tags} />
+          <EmptyState
+            message={
+              selectedTags.length > 0
+                ? "No sends or outdoor sessions match these tags. Remove selected tags to see more activity."
+                : "No outdoor sessions logged yet — analytics appear with the first session."
+            }
+          />
+        </div>
+      </ProfileHeader>
     );
     return (
       <FeatureAnnouncementScope
@@ -149,12 +153,17 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
   const analytics = selectedYears.length
     ? buildUserAnalytics(rows, scope, journalSessions, selectedYears)
     : lifetime;
+  const { cf } = await getCloudflareContext({ async: true });
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: cf?.timezone ?? "UTC" }).format(
+    new Date(),
+  );
+  const overview = await getClimberOverview(db, user.id, viewerId, today);
+  const summary = [describeClimber(overview), describeRecency(overview)].filter(Boolean).join(" ");
 
   const content = (
-    <div className="flex flex-col gap-6">
-      <ProfileHeader user={user} viewerId={session.user.id} />
-
+    <ProfileHeader user={user} viewerId={session.user.id}>
       <AnalyticsDashboard
+        summary={summary}
         key={id}
         canCustomize={isOwner}
         initialLayout={initialLayout}
@@ -198,7 +207,7 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
           </>
         }
       />
-    </div>
+    </ProfileHeader>
   );
   return (
     <FeatureAnnouncementScope

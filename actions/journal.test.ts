@@ -133,11 +133,7 @@ describe("unknown-date sends", () => {
       ratingSum: 4,
       ratingCount: 1,
     });
-    expect(await queries.getJournalCounts(db, OWNER.id, OWNER.id, "2026-03")).toMatchObject({
-      entries: 0,
-      days: 0,
-      sentThisMonth: 0,
-    });
+    expect(await queries.hasJournalEntries(db, OWNER.id, OWNER.id)).toBe(false);
   });
 
   it("requires authentication and respects the logging rate limit", async () => {

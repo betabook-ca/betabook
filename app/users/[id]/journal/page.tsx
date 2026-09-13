@@ -33,9 +33,8 @@ export default async function UserJournalPage({ params, searchParams }: UserJour
   if (!user || !(await canReadUserJournal(user.id, viewerId))) notFound();
 
   return (
-    <div className="flex flex-col gap-6">
-      <ProfileHeader user={user} viewerId={viewerId} />
+    <ProfileHeader user={user} viewerId={viewerId}>
       <JournalView ownerId={user.id} viewerId={viewerId} filter={parseJournalFilter(search)} />
-    </div>
+    </ProfileHeader>
   );
 }

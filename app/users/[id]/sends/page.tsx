@@ -34,14 +34,13 @@ export default async function UserSendsPage({ params, searchParams }: UserSendsP
   if (!user || !canViewUser(user, viewerId)) notFound();
 
   return (
-    <div className="flex flex-col gap-6">
-      <ProfileHeader user={user} viewerId={viewerId} />
+    <ProfileHeader user={user} viewerId={viewerId}>
       <SendsView
         userId={id}
         viewerId={viewerId}
         filter={parseUserSendsFilter(search)}
         basePath={`/users/${id}/sends`}
       />
-    </div>
+    </ProfileHeader>
   );
 }

@@ -216,6 +216,13 @@
   }
 }
 
+/* Floating panels clear the phone tab bar (app-tab-bar.tsx) while it shows. */
+@media (width < 48rem) {
+  :root:has([data-app-tab-bar]) {
+    --app-tab-bar-height: calc(3.5rem + env(safe-area-inset-bottom));
+  }
+}
+
 /* Stroke draw-in for the sent tick (climb-sent-indicator) — used behind
    motion-safe: so reduced-motion users get the tick instantly. */
 @keyframes tick-draw {

@@ -309,7 +309,7 @@ function FloatingLayoutSave({
     <div
       role="group"
       aria-label="Save layout reminder"
-      className="fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40 flex max-w-[calc(100vw-2rem)] flex-col items-end gap-2"
+      className="fixed right-4 bottom-[calc(1rem+var(--app-tab-bar-height,env(safe-area-inset-bottom)))] z-40 flex max-w-[calc(100vw-2rem)] flex-col items-end gap-2"
     >
       {error && <InlineAlert className={cardClass("sm", "floating")}>{error}</InlineAlert>}
       <Button
@@ -332,6 +332,7 @@ export function AnalyticsWorkspace({
   canCustomize = false,
   initialLayout = DEFAULT_ANALYTICS_LAYOUT,
   children,
+  heading,
   onSave,
 }: {
   cards: AnalyticsPanel[];
@@ -339,6 +340,8 @@ export function AnalyticsWorkspace({
   canCustomize?: boolean;
   initialLayout?: AnalyticsLayout;
   children?: ReactNode;
+  /** Shares a row with Customize. */
+  heading?: ReactNode;
   onSave?: (layout: AnalyticsLayout) => Promise<ActionResult>;
 }) {
   const [layout, setLayout] = useState(initialLayout);
@@ -447,8 +450,9 @@ export function AnalyticsWorkspace({
     ) : null;
   return (
     <div className={`flex flex-col gap-6 ${editing ? "pb-24" : ""}`}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <SectionHeading>Analytics</SectionHeading>
+      <SectionHeading className="sr-only">Analytics</SectionHeading>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">{heading}</div>
         {canCustomize && (
           <FeatureAnnouncement
             featureId={ANALYTICS_CUSTOMIZE_ANNOUNCEMENT.featureId}

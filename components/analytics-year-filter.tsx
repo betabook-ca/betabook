@@ -1,12 +1,16 @@
 "use client";
 
+import { Button, Menu } from "@heroui/react";
+import { CalendarDays, ChevronDown } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useOptimistic, useTransition } from "react";
+import { MenuTrigger, Popover, type Selection } from "react-aria-components";
 
-import { choicePillClass } from "@/components/ui/choice-pill";
-import { EYEBROW_CLASS } from "@/components/ui/eyebrow";
+import { formatAnalyticsYears } from "@/lib/analytics-years";
 
-/** Matches the app's multi-select discipline pills. Empty selection means All. */
+const ALL = "all";
+
+/** Any combination of years in a checklist; an empty selection means All years. */
 export function AnalyticsYearFilter({
   years,
   selected,
@@ -16,38 +20,50 @@ export function AnalyticsYearFilter({
   selected: readonly number[];
   onChange: (years: number[]) => void;
 }) {
-  const options = [
-    { label: "All", year: null },
-    ...years.map((year) => ({ label: String(year), year })),
-  ];
+  const label = selected.length ? formatAnalyticsYears([...selected]) : "All years";
   return (
-    <fieldset className="min-w-0">
-      <legend className={`${EYEBROW_CLASS} mb-2`}>Years</legend>
-      <div className="flex flex-wrap gap-2">
-        {options.map(({ label, year }) => {
-          const pressed = year == null ? selected.length === 0 : selected.includes(year);
-          return (
-            <button
-              key={label}
-              type="button"
-              aria-pressed={pressed}
-              className={`${choicePillClass(pressed, "bg-accent text-accent-foreground")} min-h-9`}
-              onClick={() =>
-                onChange(
-                  year == null
-                    ? []
-                    : pressed
-                      ? selected.filter((value) => value !== year)
-                      : [...selected, year].sort((a, b) => a - b),
-                )
-              }
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
-    </fieldset>
+    <MenuTrigger>
+      <Button
+        variant="outline"
+        size="sm"
+        aria-label={`Years: ${label}`}
+        className="h-9 max-w-full gap-1.5"
+      >
+        <CalendarDays aria-hidden className="size-4 shrink-0" />
+        <span className="truncate">{label}</span>
+        <ChevronDown aria-hidden className="size-4 shrink-0" />
+      </Button>
+      <Popover className="popover" placement="bottom start">
+        <Menu.Root
+          aria-label="Years"
+          selectionMode="multiple"
+          shouldCloseOnSelect={false}
+          selectedKeys={selected.length ? selected.map(String) : [ALL]}
+          onSelectionChange={(keys: Selection) => {
+            const next = keys === "all" ? [] : [...keys].map(String);
+            // Choosing All years clears the others; unchecking the last year returns to All.
+            if (next.includes(ALL) && selected.length > 0) return onChange([]);
+            onChange(
+              next
+                .filter((key) => key !== ALL)
+                .map(Number)
+                .sort((a, b) => a - b),
+            );
+          }}
+        >
+          <Menu.Item id={ALL} textValue="All years">
+            All years
+            <Menu.ItemIndicator />
+          </Menu.Item>
+          {years.map((year) => (
+            <Menu.Item key={year} id={String(year)} textValue={String(year)}>
+              {year}
+              <Menu.ItemIndicator />
+            </Menu.Item>
+          ))}
+        </Menu.Root>
+      </Popover>
+    </MenuTrigger>
   );
 }
 

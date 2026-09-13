@@ -23,11 +23,10 @@ function NavigationExample() {
     <StoryPage title="Search and profile navigation">
       <SearchCategories value={mode} onChange={setMode} />
       <ProfileSectionNav
-        tabs={["Journal", "Sends", "Projects", "Analytics", "Friends"].map((label) => ({
+        tabs={["Journal", "Sends", "Projects", "Analytics"].map((label) => ({
           label,
           current: label === tab,
           onSelect: () => setTab(label),
-          badge: label === "Friends" ? <FriendRequestBadge count={3} /> : undefined,
         }))}
       />
       <Example title="Request indicators">

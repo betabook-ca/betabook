@@ -9,10 +9,12 @@ Tours run at `/tutorial/[tourId]/[stepId]` inside the app shell. The page uses A
 3. Render the section in the feature's page component. `ProductTourPageProps` supplies its section, the active `steps`, and `href(stepId)` for links that preserve the replay destination. Reuse the app's layouts and display components. Keep demo controls local and never pass sample IDs to real links or mutation components.
 4. For a separate tour, register its metadata in `lib/product-tour.ts`, steps in `PRODUCT_TOUR_STEPS`, and a lazy page loader in `components/product-tours/registry.ts`. The existing route layout handles the rest. An optional quick action beside the invitation belongs in `quick-actions.tsx`.
 
-The Journal tour covers Log, journal filters, Sends sorting, project history, Analytics, climber discovery, friend requests, Feed, and privacy. The sample Log control is a visual reference in the full tour, with no click action or popover. First-time invitations include an ordinary Log button. Update invitations and update demos omit both Log controls.
+The Journal tour covers Log, journal filters, Sends sorting, project history, Analytics, climber discovery, friend requests, Feed, and privacy. The sample Log control is a visual reference in the full tour, in a header row above the sample profile as Log sits beside Search in the app, with no click action or popover. First-time invitations include an ordinary Log button. Update invitations and update demos omit both Log controls.
 
-Demo profile tabs use the app's order: Journal, Sends, Feed, Friends, Projects,
-Analytics, then the tour-only Account section. Lesson order remains in the catalog.
+Profile lessons (Journal, Sends, Projects and Analytics) show Alex's profile
+heading beside demo section tabs in the app's order. Feed, Friends and Account are
+their own pages in the app, so those lessons render without the heading. Lesson
+order remains in the catalog.
 Discovery uses a separate Search surface, with the same All / Climbs / Areas / Climbers categories and result rows as the app. Search is
 not a profile tab. The lesson starts in Climbers; category changes, search
 submission, sample results, and friend requests stay local. Its View your feed link
@@ -25,8 +27,8 @@ the signed-in account's real count remains separate.
 
 The sample request buttons use `FriendshipActionButton`, including the same
 confirmation dialogs as real cancellation, decline, and removal. Their callbacks
-only change demo state. The real account avatar uses a dot for incoming requests,
-and Account settings links to the Requests list; My profile has no notification badge.
+only change demo state. In the app, the menu button shows a dot for incoming
+requests, and Friends in the menu and phone tab bar shows the count.
 
 ## Navigation and overlays
 

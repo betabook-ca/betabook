@@ -28,9 +28,8 @@ export default async function UserProjectsPage({ params }: UserProjectsPageProps
   if (!user || session.user.id !== user.id) notFound();
 
   return (
-    <div className="flex flex-col gap-6">
-      <ProfileHeader user={user} viewerId={session.user.id} />
+    <ProfileHeader user={user} viewerId={session.user.id}>
       <ProjectsView ownerId={user.id} />
-    </div>
+    </ProfileHeader>
   );
 }

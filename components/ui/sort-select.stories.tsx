@@ -23,7 +23,7 @@ const meta = {
     (Story) => (
       <StoryPage
         title="Sort select"
-        description="A small, muted Sort by label sits to the left of the field on desktop and mobile. The direction button aligns with the field and matches its height. Shared filter toolbars place sort in a separate right-aligned results row below any expanded filter options."
+        description="A small, muted Sort by label sits to the left of the field. The direction button wears the field surface, aligns with the field and matches its height. In a narrow filter toolbar, sort shares the search row and the label is read only by assistive technology."
       >
         <Story />
       </StoryPage>

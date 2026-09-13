@@ -1,43 +1,61 @@
 import { expect, openStory, test } from "./story";
 
 for (const [story, label] of [
-  ["my-journal", "My profile"],
-  ["add-climb", "Add climb"],
-  ["add-area", "Add area"],
+  ["profile", "Profile"],
+  ["feed", "Feed"],
+  ["friend-requests", "Friends, 12 pending friend requests"],
 ]) {
-  test(`top navigation highlights its destination on ${story}`, async ({ page }, info) => {
-    await openStory(page, info, `components-navigation-primary-page-links--${story}`);
+  test(`tab bar highlights its destination on ${story}`, async ({ page }, info) => {
+    await openStory(page, info, `components-navigation-tab-bar--${story}`);
     const nav = page.getByRole("navigation", { name: "Primary" });
-    await expect(nav.getByRole("link", { name: "My profile", exact: true })).toBeVisible();
     const active = nav.getByRole("link", { name: label, exact: true });
     await expect(active).toHaveCSS("text-decoration-line", "none");
     await expect(active).toHaveCSS("font-weight", "600");
     const inactive = nav.locator("a:not([aria-current])").first();
-    expect(await active.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe(
-      await inactive.evaluate((element) => getComputedStyle(element).backgroundColor),
+    expect(await active.evaluate((element) => getComputedStyle(element).color)).not.toBe(
+      await inactive.evaluate((element) => getComputedStyle(element).color),
     );
-    await expect(nav.locator("a[aria-current]")).toHaveCount(1);
   });
 }
 
 test(
-  "another climber's journal does not mark My profile current",
-  { tag: "@behavior" },
+  "tab bar splits its width into even, touch-sized tabs",
+  { tag: "@layout" },
   async ({ page }, info) => {
-    await openStory(page, info, "components-navigation-primary-page-links--other-climber");
+    await openStory(page, info, "components-navigation-tab-bar--friend-requests");
     const nav = page.getByRole("navigation", { name: "Primary" });
-    await expect(nav.getByRole("link", { name: "My profile", exact: true })).toBeVisible();
-    await expect(nav.locator("a[aria-current]")).toHaveCount(0);
+    const tabs = await nav.getByRole("link").all();
+    expect(tabs).toHaveLength(3);
+    const widths: number[] = [];
+    for (const tab of tabs) {
+      const box = await tab.boundingBox();
+      if (!box) throw new Error("Expected visible tabs");
+      expect(box.height).toBeGreaterThanOrEqual(44);
+      widths.push(box.width);
+    }
+    expect(Math.max(...widths) - Math.min(...widths)).toBeLessThanOrEqual(1);
+    const navBox = await nav.boundingBox();
+    const friends = await nav.locator("a[href='/friends']").boundingBox();
+    const count = await nav.locator("a[href='/friends'] [aria-hidden='true']").last().boundingBox();
+    if (!navBox || !friends || !count) throw new Error("Expected the Friends request count");
+    expect(count.y).toBeGreaterThanOrEqual(navBox.y);
+    expect(count.x + count.width).toBeLessThanOrEqual(friends.x + friends.width);
   },
 );
 
-test("side-menu selection fills the menu row", async ({ page }, info) => {
-  await openStory(page, info, "components-navigation-primary-page-links--side-menu");
-  const nav = page.getByRole("navigation", { name: "Primary" });
-  const active = nav.getByRole("link", { name: "My profile", exact: true });
+test("menu selection fills the menu row", async ({ page }, info) => {
+  await openStory(page, info, "components-navigation-app-menu--profile");
+  const nav = page.getByRole("navigation", { name: "Menu" });
+  const active = nav.getByRole("link", { name: /Alex Morgan/ });
+  await expect(active).toHaveAttribute("aria-current", "location");
   await expect(active).toHaveCSS("font-weight", "600");
-  const menuBox = await nav.boundingBox();
-  const linkBox = await active.boundingBox();
-  if (!menuBox || !linkBox) throw new Error("Expected visible menu and active row");
-  expect(Math.abs(menuBox.width - linkBox.width)).toBeLessThanOrEqual(1);
+  const activeBox = await active.boundingBox();
+  const feedBox = await nav.getByRole("link", { name: "Feed", exact: true }).boundingBox();
+  if (!activeBox || !feedBox) throw new Error("Expected visible menu rows");
+  expect(Math.abs(activeBox.width - feedBox.width)).toBeLessThanOrEqual(1);
+  expect(await active.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe(
+    await nav
+      .getByRole("link", { name: "Feed", exact: true })
+      .evaluate((element) => getComputedStyle(element).backgroundColor),
+  );
 });

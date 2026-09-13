@@ -126,7 +126,7 @@ for (const story of [
   );
 }
 
-test("search, sort, and direction controls share the field height including theme borders", async ({
+test("search, sort, direction, chips and the filter toggle share the field height including theme borders", async ({
   page,
 }, info) => {
   await openStory(page, info, "components-filters-sends-toolbar--default");
@@ -144,5 +144,13 @@ test("search, sort, and direction controls share the field height including them
     const height = await search.evaluate((element) => getComputedStyle(element).height);
     await expect(sort).toHaveCSS("height", height);
     await expect(direction).toHaveCSS("height", height);
+    await expect(page.getByRole("button", { name: "Boulder", exact: true })).toHaveCSS(
+      "height",
+      height,
+    );
+    await expect(page.getByRole("button", { name: "Expand filters", exact: true })).toHaveCSS(
+      "height",
+      height,
+    );
   }
 });

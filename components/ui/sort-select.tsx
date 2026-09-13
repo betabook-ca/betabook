@@ -3,7 +3,7 @@
 import { Button, Label, ListBox, Select } from "@heroui/react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 
-import { FIELD_ACTION_CLASS, FIELD_WIDTH_CLASS } from "@/components/ui/field";
+import { FIELD_ACTION_CLASS, FIELD_SURFACE_CLASS, FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { useSortToggle } from "@/hooks/use-sort-toggle";
 
 /** The field-dropdown + direction-arrow-button sort control shared by every
@@ -38,7 +38,8 @@ export function SortSelect<Field extends string, Sort extends string>({
         selectedKey={field}
         onSelectionChange={(key) => handleFieldChange(key as Field)}
       >
-        <Label className="shrink-0 text-xs text-muted">Sort by</Label>
+        {/* Hidden only inside a narrow filter toolbar, where sort shares the search row. */}
+        <Label className="shrink-0 text-xs text-muted @max-2xl/filters:sr-only">Sort by</Label>
         <Select.Trigger className={FIELD_WIDTH_CLASS.short}>
           <Select.Value />
           <Select.Indicator />
@@ -56,7 +57,7 @@ export function SortSelect<Field extends string, Sort extends string>({
       <Button
         isIconOnly
         variant="ghost"
-        className={FIELD_ACTION_CLASS}
+        className={`${FIELD_ACTION_CLASS} ${FIELD_SURFACE_CLASS}`}
         aria-label={direction === "asc" ? "Sort ascending" : "Sort descending"}
         onPress={toggleDirection}
       >

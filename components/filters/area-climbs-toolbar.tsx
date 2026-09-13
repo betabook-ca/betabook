@@ -86,7 +86,7 @@ export function AreaClimbsToolbar({
             value={name}
             onChange={setName}
             label="Filter climbs in this area"
-            placeholder="Filter climbs in this area…"
+            placeholder="Filter climbs…"
           />
         </div>
       }

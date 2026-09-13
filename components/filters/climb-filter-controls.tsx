@@ -113,12 +113,10 @@ export function ClimbFilterControls({
         ) : undefined
       }
       sortControl={
-        <div className="sm:ml-auto">
-          <ClimbListSortControl
-            sort={value.sort}
-            onNavigate={(sort) => onChange({ ...value, sort })}
-          />
-        </div>
+        <ClimbListSortControl
+          sort={value.sort}
+          onNavigate={(sort) => onChange({ ...value, sort })}
+        />
       }
       ratingControl={
         <ClimbStatsFields

@@ -4,13 +4,13 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { createDb, type Database } from "@/db/client";
 import {
   getAscentEntryId,
-  getJournalCounts,
   getJournalEntry,
   getJournalForClimb,
   getJournalPage,
   getJournalSessionsForAnalytics,
   getOpenProjects,
   getOpenProjectSessions,
+  hasJournalEntries,
 } from "@/db/queries";
 import { DEFAULT_JOURNAL_FILTER, type JournalFilter } from "@/lib/filters/journal-filter";
 import {
@@ -285,28 +285,12 @@ describe("getAscentEntryId", () => {
   });
 });
 
-describe("getJournalCounts", () => {
-  it("counts entries, kinds, sends and distinct outdoor-session days", async () => {
-    const counts = await getJournalCounts(db, OWNER_ID, OWNER_ID, "2026-01");
-    expect(counts).toMatchObject({
-      entries: 7,
-      sessions: 5,
-      training: 2,
-      days: 4,
-      entriesThisMonth: 1,
-      daysThisMonth: 0,
-      sentThisMonth: 0,
-    });
-  });
+describe("hasJournalEntries", () => {
+  it("tells a journal with entries from an empty one", async () => {
+    await seedFixtureUser(db, { id: "tl-empty" });
 
-  it("moves with the month it is asked about", async () => {
-    const counts = await getJournalCounts(db, OWNER_ID, OWNER_ID, "2025-02");
-    expect(counts).toMatchObject({ entriesThisMonth: 2, daysThisMonth: 1, sentThisMonth: 1 });
-  });
-
-  it("does not count training as a day out", async () => {
-    const counts = await getJournalCounts(db, OWNER_ID, OWNER_ID, "2025-04");
-    expect(counts).toMatchObject({ entriesThisMonth: 1, daysThisMonth: 0 });
+    expect(await hasJournalEntries(db, OWNER_ID, OWNER_ID)).toBe(true);
+    expect(await hasJournalEntries(db, "tl-empty", "tl-empty")).toBe(false);
   });
 });
 

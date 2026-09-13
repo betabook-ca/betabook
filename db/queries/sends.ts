@@ -376,6 +376,13 @@ function getUserExportRows(
   `);
 }
 
+export async function hasUserSends(db: Database, userId: string): Promise<boolean> {
+  const row = await db.get<{ found: number }>(
+    sql`SELECT EXISTS (SELECT 1 FROM sends WHERE user_id = ${userId}) AS found`,
+  );
+  return row?.found === 1;
+}
+
 export type UserStatsSummary = {
   sendCount: number;
   areaCount: number;

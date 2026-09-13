@@ -2,6 +2,7 @@
 
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { DISCIPLINE_CHIP_CLASSNAME, DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
+import { FILTER_PILL_CLASS } from "@/components/ui/field";
 import type { Discipline } from "@/db/queries";
 
 const DISCIPLINES: Discipline[] = ["boulder", "sport", "trad"];
@@ -42,7 +43,7 @@ export function DisciplineChips({
                     : [...value, discipline],
               )
             }
-            className={choicePillClass(selected, DISCIPLINE_CHIP_CLASSNAME[discipline])}
+            className={`${choicePillClass(selected, DISCIPLINE_CHIP_CLASSNAME[discipline])} ${FILTER_PILL_CLASS}`}
           >
             {DISCIPLINE_LABELS[discipline]}
           </button>

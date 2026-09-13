@@ -12,8 +12,7 @@ import {
   type ReactNode,
 } from "react";
 
-import { useMounted } from "@/hooks/use-mounted";
-import { authClient } from "@/lib/auth-client";
+import { useClientSession } from "@/hooks/use-client-session";
 import { createFriendRequestCountStore } from "@/lib/friend-request-count";
 
 const FriendRequestsContext = createContext({
@@ -23,9 +22,7 @@ const FriendRequestsContext = createContext({
 });
 
 export function FriendRequestsProvider({ children }: { children: ReactNode }) {
-  const mounted = useMounted();
-  const { data: session, isPending } = authClient.useSession();
-  const userId = mounted && !isPending ? (session?.user.id ?? null) : null;
+  const userId = useClientSession()?.user.id ?? null;
   const pathname = usePathname();
   const previousPath = useRef(pathname);
   const [store] = useState(() => createFriendRequestCountStore());
@@ -67,4 +64,9 @@ export function FriendRequestsProvider({ children }: { children: ReactNode }) {
 
 export function useFriendRequests() {
   return useContext(FriendRequestsContext);
+}
+
+/** Pending requests for the signed-in climber; 0 until known. */
+export function useFriendRequestCount() {
+  return useContext(FriendRequestsContext).count ?? 0;
 }

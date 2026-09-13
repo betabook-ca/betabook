@@ -87,8 +87,7 @@ export default async function UserPage({ params, searchParams }: UserPageProps) 
   const journalIsVisible = await canReadUserJournal(user.id, viewerId);
 
   return (
-    <div className="flex flex-col gap-6">
-      <ProfileHeader user={user} viewerId={viewerId} />
+    <ProfileHeader user={user} viewerId={viewerId}>
       {journalIsVisible ? (
         <JournalView ownerId={user.id} viewerId={viewerId} filter={parseJournalFilter(search)} />
       ) : (
@@ -99,6 +98,6 @@ export default async function UserPage({ params, searchParams }: UserPageProps) 
           basePath={`/users/${id}`}
         />
       )}
-    </div>
+    </ProfileHeader>
   );
 }

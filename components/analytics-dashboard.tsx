@@ -35,6 +35,7 @@ export function AnalyticsDashboard({
   journalVisible,
   selectedYears,
   periodPicker,
+  summary,
   canCustomize = false,
   initialLayout,
   onSave,
@@ -49,6 +50,8 @@ export function AnalyticsDashboard({
   journalVisible: boolean;
   selectedYears: number[];
   periodPicker: ReactNode;
+  /** The climber's all-time record, under the activity heading. */
+  summary?: ReactNode;
   canCustomize?: boolean;
   initialLayout?: AnalyticsLayout;
   onSave?: (layout: AnalyticsLayout) => Promise<ActionResult>;
@@ -335,13 +338,16 @@ export function AnalyticsDashboard({
         canCustomize={canCustomize}
         initialLayout={initialLayout}
         onSave={onSave}
-      >
-        <div className="flex flex-col gap-4">
+        heading={
           <div className="flex flex-col gap-1">
             <SectionHeading>
               {period == null ? "All-time activity" : `Activity in ${period}`}
             </SectionHeading>
+            {summary && <p className="text-sm text-muted">{summary}</p>}
           </div>
+        }
+      >
+        <div className="flex flex-col gap-4">
           {periodPicker}
           {undatedCount > 0 && (
             <p className="text-xs text-muted">

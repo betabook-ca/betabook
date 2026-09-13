@@ -4,9 +4,24 @@ import type { ReactNode } from "react";
 /** The guidebook display voice (Barlow Condensed) for page h1s — one
  * canonical treatment so content pages and card pages stop disagreeing
  * about what an h1 looks like. */
-export function PageTitle({ children, className }: { children: ReactNode; className?: string }) {
+export function PageTitle({
+  children,
+  className,
+  size = "md",
+}: {
+  children: ReactNode;
+  className?: string;
+  /** `lg` is the climber name, sized by ProfileHeading's container. */
+  size?: "md" | "lg";
+}) {
   return (
-    <h1 className={clsx("font-display text-3xl font-semibold tracking-tight", className)}>
+    <h1
+      className={clsx(
+        "font-display font-semibold tracking-tight",
+        size === "lg" ? "text-4xl leading-none @2xl:text-5xl" : "text-3xl",
+        className,
+      )}
+    >
       {children}
     </h1>
   );
