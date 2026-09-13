@@ -6,8 +6,9 @@ import { parseSendageUsername } from "./sendage-profile";
 const envelope = (json: unknown) => Response.json({ result: { data: { json } } });
 const profile = (extra = {}) =>
   envelope({ profile: { id: 42, slug: "climber", isPrivate: false, totalSends: 2, ...extra } });
-function item(id: number, extra = {}) {
+function send(id: number, extra = {}) {
   return {
+    id: id + 100,
     climb: {
       id,
       name: `Climb ${id}`,
@@ -15,31 +16,37 @@ function item(id: number, extra = {}) {
       gradeId: 62,
       area: { name: "Wall", parent: { name: "Crag" } },
     },
-    userSend: {
-      id: id + 100,
-      sendType: "onsight",
-      gradeId: 51,
-      day: "2026-08-16",
-      rating: 0,
-      difficulty: -1,
-      comments: "Nice &amp; sunny",
-      beta: "High foot",
-      attempts: 1,
-      firstAscent: false,
-      ...extra,
-    },
+    sendType: "onsight",
+    gradeId: 51,
+    day: "2026-08-16",
+    rating: 0,
+    difficulty: -1,
+    comments: "Nice &amp; sunny",
+    beta: "High foot",
+    attempts: 1,
+    firstAscent: false,
+    ...extra,
   };
 }
+const activityDay = (day: string, sends: unknown[]) => ({ type: "sends", day, assets: [], sends });
+const inputOf = (url: string) => JSON.parse(new URL(url).searchParams.get("input")!).json;
 const options = () => ({ signal: new AbortController().signal });
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Sendage import", () => {
-  it("downloads every page without credentials and preserves personal send values", async () => {
+  it("downloads every activity page without credentials and preserves personal send values", async () => {
     const fetcher = vi
       .fn<(url: string, init: RequestInit) => Promise<Response>>()
       .mockResolvedValueOnce(profile())
-      .mockResolvedValueOnce(envelope({ items: [item(1)], nextCursor: 1 }))
-      .mockResolvedValueOnce(envelope({ items: [item(2, { day: null, rating: 5 })] }));
+      .mockResolvedValueOnce(
+        envelope({
+          items: [activityDay("2026-08-16", [send(1)])],
+          nextCursor: { day: "2026-08-16" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        envelope({ items: [activityDay("0000-00-00", [send(2, { day: null, rating: 5 })])] }),
+      );
     vi.stubGlobal("fetch", fetcher);
     const onProgress = vi.fn<(count: number) => void>();
     const result = await fetchSendageImport("https://sendage.com/user/climber?tab=sends", {
@@ -61,20 +68,45 @@ describe("Sendage import", () => {
       Region: "Crag",
       Beta: "High foot",
     });
-    expect(result.parsed.rows[1]).toMatchObject({ Date: "", Rating: "5" });
+    expect(result.parsed.rows[1]).toMatchObject({ Climb: "Climb 2", Date: "", Rating: "5" });
+    expect(result.parsed.warnings).toEqual([expect.stringMatching(/beta, attempts/)]);
     expect(onProgress).toHaveBeenLastCalledWith(2);
     expect(fetcher).toHaveBeenCalledTimes(3);
     for (const [url, init] of fetcher.mock.calls) {
       expect(new URL(url).origin).toBe("https://sendage.com");
       expect(init?.credentials).toBe("omit");
     }
-    const input = JSON.parse(new URL(fetcher.mock.calls[2][0]).searchParams.get("input")!);
-    expect(input.json).toMatchObject({
-      cursor: 1,
+    expect(new URL(fetcher.mock.calls[1][0]).pathname).toBe("/api/v2/activity.getUserActivity");
+    expect(inputOf(fetcher.mock.calls[1][0])).toEqual({ userId: 42 });
+    expect(inputOf(fetcher.mock.calls[2][0])).toEqual({
       userId: 42,
-      includeUserClimb: true,
-      sendType: ["redpoint", "flash", "onsight"],
+      cursor: { day: "2026-08-16" },
     });
+  });
+
+  it("imports completed sends only and skips activity without sends", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(profile({ totalSends: 1 }))
+        .mockResolvedValueOnce(
+          envelope({
+            items: [
+              { type: "photos", day: "2026-08-17", assets: [{ asset: { id: 1 } }] },
+              activityDay("2026-08-16", [
+                send(1, { sendType: "project" }),
+                send(2, { sendType: "repeat" }),
+                send(3, { sendType: "redpoint" }),
+              ]),
+            ],
+          }),
+        ),
+    );
+    const result = await fetchSendageImport("climber", options());
+    expect(result.parsed.rows).toEqual([
+      expect.objectContaining({ Climb: "Climb 3", "Send Type": "redpoint" }),
+    ]);
   });
 
   it("rejects private profiles before requesting their sends", async () => {
@@ -86,51 +118,106 @@ describe("Sendage import", () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
+  it("points blocked activity requests to support", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(profile())
+        .mockResolvedValueOnce(new Response("unauthorized", { status: 401 })),
+    );
+    await expect(fetchSendageImport("climber", options())).rejects.toThrow(
+      /email support@betabook\.ca/,
+    );
+  });
+
   it("does not return partial rows when a later page fails", async () => {
     vi.stubGlobal(
       "fetch",
       vi
         .fn<(url: string, init: RequestInit) => Promise<Response>>()
         .mockResolvedValueOnce(profile())
-        .mockResolvedValueOnce(envelope({ items: [item(1)], nextCursor: 1 }))
+        .mockResolvedValueOnce(
+          envelope({
+            items: [activityDay("2026-08-16", [send(1)])],
+            nextCursor: { day: "2026-08-16" },
+          }),
+        )
         .mockResolvedValueOnce(new Response("unavailable", { status: 503 })),
     );
     await expect(fetchSendageImport("climber", options())).rejects.toThrow(/try again/i);
   });
 
-  it("detects truncated results instead of treating them as a complete import", async () => {
+  it("warns with both counts when the feed returns fewer sends than the profile total", async () => {
     vi.stubGlobal(
       "fetch",
       vi
-        .fn<(url: string, init: RequestInit) => Promise<Response>>()
-        .mockResolvedValueOnce(profile())
-        .mockResolvedValueOnce(envelope({ items: [item(1)] })),
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(profile({ totalSends: 3 }))
+        .mockResolvedValueOnce(
+          envelope({ items: [activityDay("2026-08-16", [send(1, { beta: "" }), send(2)])] }),
+        ),
     );
-    await expect(fetchSendageImport("climber", options())).rejects.toThrow(/complete.*CSV/i);
+    const result = await fetchSendageImport("climber", options());
+    expect(result.parsed.rows).toHaveLength(2);
+    expect(result.parsed.warnings).toContainEqual(
+      expect.stringMatching(/lists 3 sends.*returned 2.*support@betabook\.ca/),
+    );
   });
 
-  it("rejects repeated cursors and never requests beyond Sendage's page limit", async () => {
-    for (const nextCursor of [0, 21]) {
-      const fetcher = vi
-        .fn<(url: string, init: RequestInit) => Promise<Response>>()
-        .mockResolvedValueOnce(profile())
-        .mockResolvedValueOnce(envelope({ items: [item(1)], nextCursor }));
-      vi.stubGlobal("fetch", fetcher);
-      await expect(fetchSendageImport("climber", options())).rejects.toThrow(/complete.*CSV/i);
-      expect(fetcher).toHaveBeenCalledTimes(2);
-    }
-  });
-
-  it("fails closed when the API omits send details", async () => {
-    const row = item(1);
+  it("rejects an empty feed for a profile with sends", async () => {
     vi.stubGlobal(
       "fetch",
       vi
-        .fn<(url: string, init: RequestInit) => Promise<Response>>()
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(profile())
+        .mockResolvedValueOnce(envelope({ items: [] })),
+    );
+    await expect(fetchSendageImport("climber", options())).rejects.toThrow(
+      /complete.*support@betabook\.ca/i,
+    );
+  });
+
+  it.each([
+    ["the same day", [activityDay("2026-08-15", [send(2)])], { day: "2026-08-16" }],
+    ["a newer day", [activityDay("2026-08-15", [send(2)])], { day: "2026-08-17" }],
+    ["a malformed day", [activityDay("2026-08-15", [send(2)])], { day: "Aug 15" }],
+    ["a page number", [activityDay("2026-08-15", [send(2)])], 2],
+    ["an empty page", [], { day: "2026-08-01" }],
+  ])("stops when the next cursor is %s", async (_, items, nextCursor) => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(profile())
+      .mockResolvedValueOnce(
+        envelope({
+          items: [activityDay("2026-08-16", [send(1)])],
+          nextCursor: { day: "2026-08-16" },
+        }),
+      )
+      .mockResolvedValueOnce(envelope({ items, nextCursor }));
+    vi.stubGlobal("fetch", fetcher);
+    await expect(fetchSendageImport("climber", options())).rejects.toThrow(
+      /complete.*support@betabook\.ca/i,
+    );
+    expect(fetcher).toHaveBeenCalledTimes(3);
+  });
+
+  it.each([
+    ["an activity without its type", { day: "2026-08-16", sends: [send(1)] }],
+    ["a sends activity without sends", { type: "sends", day: "2026-08-16", assets: [] }],
+    ["a send without details", activityDay("2026-08-16", [{ id: 101, climb: send(1).climb }])],
+    ["an unknown send style", activityDay("2026-08-16", [send(1, { sendType: "tick" })])],
+  ])("fails closed on %s", async (_, activity) => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn<typeof fetch>()
         .mockResolvedValueOnce(profile({ totalSends: 1 }))
-        .mockResolvedValueOnce(envelope({ items: [{ climb: row.climb }] })),
+        .mockResolvedValueOnce(envelope({ items: [activity] })),
     );
-    await expect(fetchSendageImport("climber", options())).rejects.toThrow(/format/i);
+    await expect(fetchSendageImport("climber", options())).rejects.toThrow(
+      /format.*support@betabook\.ca/i,
+    );
   });
 
   it.each([
@@ -149,14 +236,14 @@ describe("Sendage import", () => {
   ])(
     "maps published Sendage %s ID %s to %s without a grading preference",
     async (type, gradeId, label) => {
-      const row = item(1, { gradeId });
+      const row = send(1, { gradeId });
       row.climb = { ...row.climb, type, gradeId };
       vi.stubGlobal(
         "fetch",
         vi
           .fn<typeof fetch>()
           .mockResolvedValueOnce(profile({ totalSends: 1 }))
-          .mockResolvedValueOnce(envelope({ items: [row] })),
+          .mockResolvedValueOnce(envelope({ items: [activityDay("2026-08-16", [row])] })),
       );
       const result = await fetchSendageImport("climber", options());
       expect(result.parsed.rows[0]).toMatchObject({ Grade: label, "Posted Grade": label });
@@ -172,14 +259,14 @@ describe("Sendage import", () => {
     ["sport", "62"],
     ["sport", null],
   ])("stops on an unknown or invalid %s grade ID %s", async (type, gradeId) => {
-    const row = item(1, { gradeId });
+    const row = send(1, { gradeId });
     row.climb.type = type;
     vi.stubGlobal(
       "fetch",
       vi
         .fn<typeof fetch>()
         .mockResolvedValueOnce(profile({ totalSends: 1 }))
-        .mockResolvedValueOnce(envelope({ items: [row] })),
+        .mockResolvedValueOnce(envelope({ items: [activityDay("2026-08-16", [row])] })),
     );
     await expect(fetchSendageImport("climber", options())).rejects.toThrow(
       /unknown.*grade ID.*Import stopped/i,
@@ -187,15 +274,20 @@ describe("Sendage import", () => {
   });
 
   it("discards earlier pages if a later climb has an unknown posted grade", async () => {
-    const row = item(2);
+    const row = send(2);
     row.climb.gradeId = 141;
     vi.stubGlobal(
       "fetch",
       vi
         .fn<typeof fetch>()
         .mockResolvedValueOnce(profile())
-        .mockResolvedValueOnce(envelope({ items: [item(1)], nextCursor: 1 }))
-        .mockResolvedValueOnce(envelope({ items: [row] })),
+        .mockResolvedValueOnce(
+          envelope({
+            items: [activityDay("2026-08-16", [send(1)])],
+            nextCursor: { day: "2026-08-16" },
+          }),
+        )
+        .mockResolvedValueOnce(envelope({ items: [activityDay("2026-08-15", [row])] })),
     );
     await expect(fetchSendageImport("climber", options())).rejects.toThrow(
       /unknown.*grade ID.*Import stopped/i,

@@ -1,14 +1,12 @@
 import { parseSendageUsername } from "@/lib/sendage-profile";
 import type { ParsedCsv } from "@/lib/sends-import";
+import { SUPPORT_EMAIL } from "@/lib/support";
 
-const FORMAT_ERROR =
-  "Sendage returned an unfamiliar data format. Use a CSV export or try again later.";
-const INCOMPLETE_ERROR =
-  "Sendage did not return your complete send history. Use a CSV export to import all sends.";
-// The public climb.search contract accepts page indices 0–20. Do not split
-// searches to work around that limit or pass partial results to the wizard.
-const MAX_CURSOR = 20;
+const FORMAT_ERROR = `Sendage returned an unfamiliar data format. Please try again later, or email ${SUPPORT_EMAIL}.`;
+const INCOMPLETE_ERROR = `Sendage did not return your complete send history. Please try again, or email ${SUPPORT_EMAIL}.`;
 const MAX_PAGE_BYTES = 2 * 1024 * 1024;
+const COMPLETED_STYLES = new Set(["redpoint", "flash", "onsight"]);
+const SKIPPED_STYLES = new Set(["project", "repeat"]);
 const HEADERS = [
   "Date",
   "Send Type",
@@ -71,7 +69,7 @@ function optionalString(value: unknown): string {
 }
 
 async function request(
-  procedure: "user.getProfile" | "climb.search",
+  procedure: "user.getProfile" | "activity.getUserActivity",
   input: Record<string, unknown>,
   signal: AbortSignal,
 ) {
@@ -93,7 +91,7 @@ async function request(
       );
     if (response.status === 401 || response.status === 403)
       throw new Error(
-        "Sendage could not share this public profile. Check its visibility or use a CSV export.",
+        `Sendage could not share this public profile. Check its visibility, or email ${SUPPORT_EMAIL}.`,
       );
     if (response.status === 429)
       throw new Error("Sendage is receiving too many requests. Wait a moment and try again.");
@@ -110,7 +108,7 @@ async function request(
       throw new Error("Sendage took too long to respond. Please try again.", { cause: error });
     if (error instanceof TypeError)
       throw new Error(
-        "Couldn't connect to Sendage. Check your connection and try again, or use a CSV export.",
+        `Couldn't connect to Sendage. Check your connection and try again, or email ${SUPPORT_EMAIL}.`,
         { cause: error },
       );
     if (error instanceof SyntaxError) throw new Error(FORMAT_ERROR, { cause: error });
@@ -121,17 +119,57 @@ async function request(
   }
 }
 
+function readProfile(value: unknown) {
+  const data = record(value);
+  if (data.profile == null)
+    throw new Error("That Sendage profile could not be found. Check the username or profile link.");
+  const profile = record(data.profile);
+  if (profile.isPrivate !== false)
+    throw new Error(
+      `Sendage imports need a public profile. Make your profile public, or email ${SUPPORT_EMAIL}.`,
+    );
+  const total = profile.totalSends;
+  if (typeof total !== "number" || !Number.isSafeInteger(total) || total < 0)
+    throw new Error(FORMAT_ERROR);
+  return {
+    userId: positiveInteger(profile.id),
+    username: parseSendageUsername(profile.slug),
+    total,
+  };
+}
+
+function activitySends(value: unknown): unknown[] {
+  const activity = record(value);
+  if (string(activity.type) !== "sends") return [];
+  if (!Array.isArray(activity.sends)) throw new Error(FORMAT_ERROR);
+  return activity.sends;
+}
+
+// Cursor days must strictly decrease, or a repeated cursor would page forever.
+function nextCursor(next: unknown, itemCount: number, cursor: { day: string } | null) {
+  if (next == null) return null;
+  const day = typeof next === "object" ? (next as Record<string, unknown>).day : undefined;
+  if (
+    !itemCount ||
+    typeof day !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(day) ||
+    (cursor && day >= cursor.day)
+  )
+    throw new Error(INCOMPLETE_ERROR);
+  return { day };
+}
+
 function importRow(value: unknown) {
-  const item = record(value);
-  const climb = record(item.climb);
-  const send = record(item.userSend);
+  const send = record(value);
+  const style = string(send.sendType);
+  if (SKIPPED_STYLES.has(style)) return null;
+  if (!COMPLETED_STYLES.has(style)) throw new Error(FORMAT_ERROR);
+  const climb = record(send.climb);
   const id = positiveInteger(send.id);
   positiveInteger(climb.id);
   const type = string(climb.type);
   if (!["boulder", "sport", "trad"].includes(type)) throw new Error(FORMAT_ERROR);
   const area = record(climb.area);
-  const style = string(send.sendType);
-  if (!["redpoint", "flash", "onsight"].includes(style)) throw new Error(FORMAT_ERROR);
   if (
     typeof send.rating !== "number" ||
     !Number.isInteger(send.rating) ||
@@ -166,80 +204,40 @@ export async function fetchSendageImport(
   input: string,
   { signal, onProgress }: { signal: AbortSignal; onProgress?: (count: number) => void },
 ): Promise<{ username: string; parsed: ParsedCsv }> {
-  const username = parseSendageUsername(input);
-  const data = record(await request("user.getProfile", { username }, signal));
-  if (data.profile == null)
-    throw new Error("That Sendage profile could not be found. Check the username or profile link.");
-  const profile = record(data.profile);
-  if (profile.isPrivate !== false)
-    throw new Error(
-      "Sendage imports need a public profile. Use a CSV export for a private profile.",
-    );
-  const userId = positiveInteger(profile.id);
-  const canonicalName = parseSendageUsername(profile.slug);
-  const total = profile.totalSends;
-  if (typeof total !== "number" || !Number.isSafeInteger(total) || total < 0)
-    throw new Error(FORMAT_ERROR);
+  const { userId, username, total } = readProfile(
+    await request("user.getProfile", { username: parseSendageUsername(input) }, signal),
+  );
   const rows: Record<string, string>[] = [];
   const seen = new Set<number>();
-  let cursor = 0;
-  for (;;) {
+  let cursor: { day: string } | null = null;
+  do {
     signal.throwIfAborted();
     const page = record(
-      await request(
-        "climb.search",
-        {
-          term: "",
-          sortBy: "date",
-          sortDir: "desc",
-          minSends: 0,
-          minRating: 0,
-          includeUserClimb: true,
-          userId,
-          sendType: ["redpoint", "flash", "onsight"],
-          boulder: { enabled: true, min: 1, max: 1000 },
-          sport: { enabled: true, min: 1, max: 1000 },
-          trad: { enabled: true, min: 1, max: 1000 },
-          cursor,
-          direction: "forward",
-        },
-        signal,
-      ),
+      await request("activity.getUserActivity", cursor ? { userId, cursor } : { userId }, signal),
     );
     if (!Array.isArray(page.items) || page.items.length > 1000) throw new Error(FORMAT_ERROR);
-    for (const item of page.items) {
-      const { id, row } = importRow(item);
-      if (seen.has(id))
+    for (const send of page.items.flatMap(activitySends)) {
+      const imported = importRow(send);
+      if (!imported) continue;
+      if (seen.has(imported.id))
         throw new Error("Your Sendage history changed during the download. Please try again.");
-      seen.add(id);
-      rows.push(row);
+      seen.add(imported.id);
+      rows.push(imported.row);
     }
     onProgress?.(rows.length);
-    const next = page.nextCursor;
-    if (next == null) break;
-    if (
-      !page.items.length ||
-      typeof next !== "number" ||
-      !Number.isInteger(next) ||
-      next <= cursor ||
-      next > MAX_CURSOR
-    )
-      throw new Error(INCOMPLETE_ERROR);
-    cursor = next;
-  }
+    cursor = nextCursor(page.nextCursor, page.items.length, cursor);
+  } while (cursor);
   signal.throwIfAborted();
-  if (rows.length < total) throw new Error(INCOMPLETE_ERROR);
-  return {
-    username: canonicalName,
-    parsed: {
-      headers: HEADERS,
-      rows,
-      derived: [],
-      warnings: rows.some((row) => row.Beta || row.Attempts || row["First Ascent"])
-        ? [
-            "Sendage beta, attempts, and first-ascent flags are available as source columns. They are not imported automatically; map a column to Comment if you want to keep it there.",
-          ]
-        : [],
-    },
-  };
+  if (!rows.length && total > 0) throw new Error(INCOMPLETE_ERROR);
+  const warnings: string[] = [];
+  // totalSends can count sends the activity feed leaves out.
+  if (rows.length < total)
+    warnings.push(
+      `Sendage lists ${total} sends, but its activity feed returned ${rows.length}. Check for missing sends after importing, or email ${SUPPORT_EMAIL}.`,
+    );
+  if (rows.some((row) => row.Beta || row.Attempts || row["First Ascent"]))
+    warnings.push(
+      "Sendage beta, attempts, and first-ascent flags are available as source columns. They are not imported automatically; map a column to Comment if you want to keep it there.",
+    );
+  return { username, parsed: { headers: HEADERS, rows, derived: [], warnings } };
 }

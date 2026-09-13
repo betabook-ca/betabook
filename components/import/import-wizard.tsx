@@ -17,6 +17,7 @@ import { InlineAlert } from "@/components/ui/inline-alert";
 import { OptionSelect, type SelectOption } from "@/components/ui/option-select";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { SegmentedButtons } from "@/components/ui/segmented-buttons";
+import { SupportText } from "@/components/ui/support-text";
 import { PageTitle } from "@/components/ui/typography";
 import type { ClimbCandidate } from "@/db/queries";
 import { downloadCsv } from "@/lib/download";
@@ -722,7 +723,9 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
               <InlineAlert status="warning">
                 <ul className="flex flex-col gap-1">
                   {parsedCsv.warnings.map((warning) => (
-                    <li key={warning}>{warning}</li>
+                    <li key={warning}>
+                      <SupportText subject={directSource ?? "Import"}>{warning}</SupportText>
+                    </li>
                   ))}
                 </ul>
               </InlineAlert>
@@ -938,7 +941,9 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
                 <InlineAlert status="warning">
                   <ul className="flex flex-col gap-1">
                     {parsedCsv.warnings.map((warning) => (
-                      <li key={warning}>{warning}</li>
+                      <li key={warning}>
+                        <SupportText subject={directSource ?? "Import"}>{warning}</SupportText>
+                      </li>
                     ))}
                   </ul>
                 </InlineAlert>

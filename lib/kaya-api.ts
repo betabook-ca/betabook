@@ -7,8 +7,9 @@ import {
 } from "@/lib/kaya-import-stream";
 import { parseKayaUsername } from "@/lib/kaya-profile";
 import { MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS } from "@/lib/sends-import";
+import { SUPPORT_EMAIL } from "@/lib/support";
 
-const FORMAT_ERROR = "KAYA returned an unexpected format. Please try again or use a CSV export.";
+const FORMAT_ERROR = `KAYA returned an unexpected format. Please try again, or email ${SUPPORT_EMAIL}.`;
 const MAX_RESPONSE_BYTES = 1024 * 1024;
 const PROFILE_QUERY = `query webUser($username: String!) {
   webUser(username: $username) { id username is_private }
@@ -60,7 +61,7 @@ async function readResponse(response: Response) {
     throw new RetryableKayaError("unavailable", retryAfterMs(response.headers.get("Retry-After")));
   if (!response.ok)
     throw new ActionError(
-      "KAYA could not share this public profile. Please try again or use a CSV export.",
+      `KAYA could not share this public profile. Please try again, or email ${SUPPORT_EMAIL}.`,
     );
   if (!response.body || Number(response.headers.get("content-length")) > MAX_RESPONSE_BYTES)
     throw new ActionError(FORMAT_ERROR);
@@ -187,7 +188,7 @@ function readTotal(value: unknown): number {
   }
   if (total > MAX_IMPORT_ROWS)
     throw new ActionError(
-      "This KAYA history is too large for a direct import. Use a CSV export split into smaller files.",
+      `This KAYA history is too large for a direct import. Email ${SUPPORT_EMAIL} for help importing it.`,
     );
   return total;
 }
@@ -217,7 +218,7 @@ function readProfile(value: unknown, username: string) {
   const profile = record(value);
   if (profile.is_private !== false)
     throw new ActionError(
-      "KAYA imports need a public profile. Use a CSV export for a private profile.",
+      `KAYA imports need a public profile. Make your profile public, or email ${SUPPORT_EMAIL}.`,
     );
   if (
     typeof profile.id !== "string" ||
@@ -264,11 +265,11 @@ export async function fetchKayaAscents(
     size += new TextEncoder().encode(JSON.stringify(batch)).byteLength;
     if (size > MAX_IMPORT_FILE_BYTES)
       throw new ActionError(
-        "This KAYA history is too large for a direct import. Use a CSV export split into smaller files.",
+        `This KAYA history is too large for a direct import. Email ${SUPPORT_EMAIL} for help importing it.`,
       );
     if (received > total || (batch.length < KAYA_PAGE_SIZE && received !== total))
       throw new ActionError(
-        "Couldn't load your complete KAYA history, or it changed during download. Please try again or use a CSV export.",
+        `Couldn't load your complete KAYA history, or it changed during download. Please try again, or email ${SUPPORT_EMAIL}.`,
       );
     emit({ type: "page", items: batch, total });
     if (batch.length < KAYA_PAGE_SIZE) break;

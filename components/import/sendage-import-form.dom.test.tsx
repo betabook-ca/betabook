@@ -50,6 +50,23 @@ it("keeps input and offers retry after a failed download", async () => {
   await waitFor(() => expect(onLoaded).toHaveBeenCalledOnce());
 });
 
+it("links the support address in a failed download to a prefilled email", async () => {
+  vi.mocked(fetchSendageImport).mockRejectedValueOnce(
+    new Error(
+      "Sendage returned an unfamiliar data format. Please try again later, or email support@betabook.ca.",
+    ),
+  );
+  setup();
+  await userEvent.type(screen.getByRole("textbox"), "climber");
+  await userEvent.click(screen.getByRole("button", { name: "Load sends" }));
+  const link = await screen.findByRole("link", { name: "support@betabook.ca" });
+  expect(screen.getByRole("alert")).toContainElement(link);
+  expect(link).toHaveAttribute(
+    "href",
+    "mailto:support@betabook.ca?subject=Sendage%20import&body=Sendage%20returned%20an%20unfamiliar%20data%20format.%20Please%20try%20again%20later%2C%20or%20email%20support%40betabook.ca.",
+  );
+});
+
 it("cancels a pending download and ignores its late response", async () => {
   let resolve!: (value: typeof payload) => void;
   vi.mocked(fetchSendageImport).mockReturnValue(

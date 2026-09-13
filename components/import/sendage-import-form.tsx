@@ -5,6 +5,7 @@ import { Download } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { InlineAlert } from "@/components/ui/inline-alert";
+import { SupportText } from "@/components/ui/support-text";
 import { fetchSendageImport } from "@/lib/sendage-import";
 import type { ParsedCsv } from "@/lib/sends-import";
 
@@ -118,7 +119,11 @@ export function SendageImportForm({
           {count ? `${count} sends loaded…` : "Connecting to Sendage…"}
         </p>
       )}
-      {error && <InlineAlert>{error}</InlineAlert>}
+      {error && (
+        <InlineAlert>
+          <SupportText subject="Sendage import">{error}</SupportText>
+        </InlineAlert>
+      )}
     </section>
   );
 }

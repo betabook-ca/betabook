@@ -5,6 +5,7 @@ import { Download, Info } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { InlineAlert } from "@/components/ui/inline-alert";
+import { SupportText } from "@/components/ui/support-text";
 import { fetchKayaImport } from "@/lib/kaya-import";
 import type { KayaImportProgress as ImportProgress } from "@/lib/kaya-import-stream";
 import type { ParsedCsv } from "@/lib/sends-import";
@@ -148,7 +149,11 @@ export function KayaImportForm({
         </p>
       )}
       {busy && <KayaImportProgress progress={progress} />}
-      {error && <InlineAlert>{error}</InlineAlert>}
+      {error && (
+        <InlineAlert>
+          <SupportText subject="KAYA import">{error}</SupportText>
+        </InlineAlert>
+      )}
     </section>
   );
 }

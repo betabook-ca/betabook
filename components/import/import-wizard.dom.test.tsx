@@ -43,28 +43,33 @@ it("takes public API data straight to matching and review without writing sends"
     vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(
-        envelope({ profile: { id: 42, slug: "climber", isPrivate: false, totalSends: 1 } }),
+        envelope({ profile: { id: 42, slug: "climber", isPrivate: false, totalSends: 2 } }),
       )
       .mockResolvedValueOnce(
         envelope({
           items: [
             {
-              climb: {
-                id: 100,
-                name: "Test climb",
-                type: "sport",
-                gradeId: 62,
-                area: { name: "Wall" },
-              },
-              userSend: {
-                id: 200,
-                sendType: "redpoint",
-                gradeId: 62,
-                day: "2026-08-16",
-                rating: 5,
-                difficulty: 0,
-                comments: "Great &amp; sunny",
-              },
+              type: "sends",
+              day: "2026-08-16",
+              assets: [],
+              sends: [
+                {
+                  id: 200,
+                  climb: {
+                    id: 100,
+                    name: "Test climb",
+                    type: "sport",
+                    gradeId: 62,
+                    area: { name: "Wall" },
+                  },
+                  sendType: "redpoint",
+                  gradeId: 62,
+                  day: "2026-08-16",
+                  rating: 5,
+                  difficulty: 0,
+                  comments: "Great &amp; sunny",
+                },
+              ],
             },
           ],
         }),
@@ -78,6 +83,12 @@ it("takes public API data straight to matching and review without writing sends"
   await userEvent.click(screen.getByRole("button", { name: "Load sends" }));
   await waitFor(() => expect(resolveImportClimbs).toHaveBeenCalledExactlyOnceWith(["Test climb"]));
   expect(screen.getByText(/Sendage profile @climber/)).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "support@betabook.ca" })).toHaveAttribute(
+    "href",
+    expect.stringMatching(
+      /^mailto:support@betabook\.ca\?subject=Sendage%20profile%20%40climber&body=Sendage%20lists%202%20sends/,
+    ),
+  );
   await waitFor(() => expect(screen.getByRole("button", { name: "Next: Review" })).toBeEnabled());
   await userEvent.click(screen.getByRole("button", { name: "Next: Review" }));
   expect(screen.getByText("Will import").parentElement).toHaveTextContent("1");
