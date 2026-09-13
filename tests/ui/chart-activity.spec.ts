@@ -52,8 +52,8 @@ test("monthly sends and days out show their metrics and unique climb names", asy
 });
 
 test("flash details show the grade metric and include undated climbs", async ({ page }, info) => {
-  await openStory(page, info, "components-charts-first-try-rate-by-grade--grades");
-  const plot = page.getByRole("group", { name: "Sends and first-try percentage by grade" });
+  await openStory(page, info, "components-charts-flash-rate-by-grade--grades");
+  const plot = page.getByRole("group", { name: "Sends and flash percentage by grade" });
   await selectMark(
     plot,
     plot.locator("[data-chart-detail]").nth(1),

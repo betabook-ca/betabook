@@ -15,10 +15,7 @@ type Story = StoryObj<typeof meta>;
 export const Projects: Story = {
   args: { userId: "storybook-climber", projects: openProjects, hasMore: false },
   render: (args) => (
-    <StoryPage
-      title="Projects"
-      description="Every open project arrives with its recent sessions already on the card. Search covers climbs, areas, tags and the notes themselves; a project with more history than the page preloaded pages the rest in from the journal."
-    >
+    <StoryPage title="Projects" description="Open projects with their recent sessions.">
       <ProjectBoard {...args} />
     </StoryPage>
   ),
@@ -27,10 +24,7 @@ export const Projects: Story = {
 export const MoreThanOnePage: Story = {
   args: { userId: "storybook-climber", projects: openProjects, hasMore: true },
   render: (args) => (
-    <StoryPage
-      title="Projects"
-      description="With more open projects than one page holds, the count reads as a floor and the list says what it is showing."
-    >
+    <StoryPage title="Projects" description="More open projects than one page holds.">
       <ProjectBoard {...args} />
     </StoryPage>
   ),
@@ -39,10 +33,7 @@ export const MoreThanOnePage: Story = {
 export const NoProjects: Story = {
   args: { userId: "storybook-climber", projects: [], hasMore: false },
   render: (args) => (
-    <StoryPage
-      title="Projects"
-      description="Nothing is open yet: a session on a climb the climber hasn't sent is what starts one."
-    >
+    <StoryPage title="Projects" description="No open projects.">
       <ProjectBoard {...args} />
     </StoryPage>
   ),

@@ -62,9 +62,7 @@ test("analytics announcement fits the screen and leaves Customize usable", async
   const customize = page.getByRole("button", { name: "Customize dashboard" });
   if (info.project.use.hasTouch) await customize.tap();
   else await customize.click();
-  await expect(
-    page.getByRole("heading", { name: "Customize your analytics dashboard" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Customize dashboard" })).toBeVisible();
 });
 
 test.describe("visible scrollbar layout", () => {

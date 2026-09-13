@@ -85,7 +85,14 @@ function headings(): (string | null)[] {
   return screen.queryAllByRole("heading", { level: 3 }).map((heading) => heading.textContent);
 }
 
-it("puts every preloaded session on the card, with nothing to open first", () => {
+it("states the open-project count once when the page is capped", () => {
+  render(<ProjectBoard userId="climber" projects={projects} hasMore />);
+
+  expect(screen.getByText("2+")).toBeInTheDocument();
+  expect(screen.getByText(/most recently active projects/)).not.toHaveTextContent(/\d/);
+});
+
+it("shows every preloaded session on its card", () => {
   render(<ProjectBoard userId="climber" projects={projects} hasMore={false} />);
   const slabCard = card("Moon Slab");
 

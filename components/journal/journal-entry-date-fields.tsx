@@ -2,10 +2,8 @@
 
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import type { JournalEntry } from "@/db/queries";
-import type { JournalKind } from "@/lib/journal";
 
 type JournalEntryDateFieldsProps = {
-  kind: JournalKind;
   hasClimb: boolean;
   hasPriorSend: boolean;
   existingEntry?: Pick<JournalEntry, "sent" | "isAscent">;
@@ -18,7 +16,6 @@ type JournalEntryDateFieldsProps = {
 };
 
 export function JournalEntryDateFields({
-  kind,
   hasClimb,
   hasPriorSend,
   existingEntry,
@@ -45,17 +42,13 @@ export function JournalEntryDateFields({
         }
       />
 
-      {hasClimb && existingEntry?.sent ? (
+      {hasClimb && existingEntry?.sent && (
         <p className="text-sm text-muted">
           {existingEntry.isAscent
             ? "To change the ascent date, use Edit send on the climb page."
             : "To change this repeat’s date, delete the entry and log it again."}
         </p>
-      ) : kind === "training" ? (
-        <p className="text-xs text-muted">
-          Training entries need a date to appear in your journal.
-        </p>
-      ) : null}
+      )}
     </div>
   );
 }

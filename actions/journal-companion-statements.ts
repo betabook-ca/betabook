@@ -48,7 +48,7 @@ function rethrowCompanionError(error: unknown): never {
   for (let cause = error; cause instanceof Error; cause = cause.cause) {
     if (cause.message.includes("journal companion:"))
       throw new ActionError(
-        "A selected friend is no longer available for this entry. Refresh and update With friends.",
+        "A selected friend is no longer available for this entry. Refresh and update your tagged friends.",
       );
   }
   throw error;

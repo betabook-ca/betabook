@@ -78,7 +78,7 @@ export function ShareProfileControls({ name, url }: { name: string; url: string 
           return;
         }
         resetState.close();
-        report("Link reset. Earlier links and QR codes no longer show your name.");
+        report("Link reset.");
       } catch {
         setResetError("Couldn't reset the link. Try again.");
       }
@@ -129,7 +129,7 @@ export function ShareProfileControls({ name, url }: { name: string; url: string 
         state={resetState}
         noun="link"
         title="Reset your profile link?"
-        description="Links and QR codes you've already shared will stop showing your name."
+        description="Links and QR codes you've already shared will stop working."
         confirmLabel="Reset link"
         onConfirm={reset}
         isPending={isPending}

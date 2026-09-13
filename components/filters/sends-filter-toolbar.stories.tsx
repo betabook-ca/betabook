@@ -11,7 +11,7 @@ const meta = {
   component: UserSendsFilterToolbar,
   args: {
     filter: DEFAULT_USER_SENDS_FILTER,
-    basePath: "/sample/sends",
+    basePath: "/users/sample/sends",
     tags: ["power", "trip"],
     areaFetcher: searchAreaFetcher,
   },

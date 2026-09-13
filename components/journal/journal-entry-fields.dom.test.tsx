@@ -115,7 +115,7 @@ it("blocks an undated send with friends and preserves their identities on recove
   await user.click(screen.getByRole("radio", { name: "Redpoint" }));
   await user.click(screen.getByRole("checkbox", { name: "I don't know" }));
   await user.click(screen.getByRole("button", { name: "Save send" }));
-  expect(screen.getByRole("alert")).toHaveTextContent("Add a date to keep With friends.");
+  expect(screen.getByRole("alert")).toHaveTextContent("Add a date to keep tagged friends.");
   expect(onSave).not.toHaveBeenCalled();
   expect(screen.getByRole("button", { name: "Remove friend Sam Rivera" })).toBeInTheDocument();
   await user.click(screen.getByRole("spinbutton", { name: /month, Date/ }));
@@ -293,7 +293,7 @@ it("reopens Add details when a hidden friend blocks an undated send", async () =
   await user.click(detailsTrigger());
   expect(detailsTrigger()).toHaveAttribute("aria-expanded", "false");
   await user.click(screen.getByRole("button", { name: "Save send" }));
-  expect(screen.getByRole("alert")).toHaveTextContent("Add a date to keep With friends.");
+  expect(screen.getByRole("alert")).toHaveTextContent("Add a date to keep tagged friends.");
   expect(onSave).not.toHaveBeenCalled();
   expect(detailsTrigger()).toHaveAttribute("aria-expanded", "true");
   expect(screen.getByRole("button", { name: "Remove friend Sam Rivera" })).toBeVisible();
@@ -310,6 +310,11 @@ it("opens Add details when editing an entry that already has companions or tags"
   expect(detailsTrigger()).toHaveAttribute("aria-expanded", "true");
   expect(screen.getByRole("button", { name: "Remove tag technique" })).toBeVisible();
   expect(screen.getByRole("button", { name: "Remove friend Sam Rivera" })).toBeVisible();
+});
+
+it("adds no summary to training, which the chosen-entry strip already names", () => {
+  setup({ kind: "training", climb: null });
+  expect(screen.queryByText(/^Logging/)).not.toBeInTheDocument();
 });
 
 it("keeps Add details collapsed when editing an entry without optional values", () => {

@@ -74,74 +74,68 @@ export function UserSendList({
 
   if (!hasAnySends) {
     return (
-      <div className="flex flex-col gap-4">
-        <EmptyState
-          message="No sends yet."
-          cta={
-            currentUserId === userId ? (
-              <div className="flex flex-col items-center gap-3">
-                <LogEntryButton />
-                <AppLink href="/account/import" className="text-sm">
-                  Import your sends
-                </AppLink>
-              </div>
-            ) : undefined
-          }
-        />
-      </div>
+      <EmptyState
+        message="No sends yet."
+        cta={
+          currentUserId === userId ? (
+            <div className="flex flex-col items-center gap-3">
+              <LogEntryButton />
+              <AppLink href="/account/import" className="text-sm">
+                Import your sends
+              </AppLink>
+            </div>
+          ) : undefined
+        }
+      />
     );
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Dimmed while the toolbar's debounced navigation is re-fetching
-       * these results (see NavigationPendingProvider in the page). */}
-      <NavigationPendingRegion>
-        <SendListShell
-          sends={sends}
-          emptyState={<EmptyState message="No sends match these filters." />}
-          hasMore={hasMore}
-          onLoadMore={loadMore}
-          loadingMore={loadingMore}
-          loadMoreFailed={loadMoreFailed}
-          renderRow={(send) => (
-            <ClimbLogRow
-              climb={{
-                id: send.climbId,
-                name: send.climbName,
-                areaId: send.areaId,
-                areaName: send.areaName,
-              }}
-              areaBreadcrumbs={areaBreadcrumbs}
-              grade={
-                <SendGradeCell
-                  type={send.climbType}
-                  grade={send.climbGrade}
-                  suggestedGrade={send.suggestedGrade}
-                  gradeFeel={send.gradeFeel}
-                  rating={send.rating}
+    <NavigationPendingRegion>
+      <SendListShell
+        sends={sends}
+        emptyState={<EmptyState message="No sends match these filters." />}
+        hasMore={hasMore}
+        onLoadMore={loadMore}
+        loadingMore={loadingMore}
+        loadMoreFailed={loadMoreFailed}
+        renderRow={(send) => (
+          <ClimbLogRow
+            climb={{
+              id: send.climbId,
+              name: send.climbName,
+              areaId: send.areaId,
+              areaName: send.areaName,
+            }}
+            areaBreadcrumbs={areaBreadcrumbs}
+            grade={
+              <SendGradeCell
+                type={send.climbType}
+                grade={send.climbGrade}
+                suggestedGrade={send.suggestedGrade}
+                gradeFeel={send.gradeFeel}
+                rating={send.rating}
+              />
+            }
+            status={<AscentStyle type={send.ascentStyle} />}
+            date={send.dateSent}
+            actions={
+              currentUserId === userId && (
+                <SendActionsMenu
+                  climb={{
+                    id: send.climbId,
+                    areaId: send.areaId,
+                    type: send.climbType,
+                    grade: send.climbGrade,
+                  }}
+                  send={send}
                 />
-              }
-              status={<AscentStyle type={send.ascentStyle} />}
-              date={send.dateSent}
-              actions={
-                currentUserId === userId && (
-                  <SendActionsMenu
-                    climb={{
-                      id: send.climbId,
-                      areaId: send.areaId,
-                      type: send.climbType,
-                      grade: send.climbGrade,
-                    }}
-                    send={send}
-                  />
-                )
-              }
-              comment={send.comment}
-            />
-          )}
-        />
-      </NavigationPendingRegion>
-    </div>
+              )
+            }
+            comment={send.comment}
+          />
+        )}
+      />
+    </NavigationPendingRegion>
   );
 }

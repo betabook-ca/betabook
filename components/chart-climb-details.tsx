@@ -25,7 +25,7 @@ export function ChartDetailsPreview({ group }: { group: ChartDetailGroup }) {
       {rows.slice(0, CHART_PREVIEW_LIMIT).map((row) => (
         <p key={row.climbId}>{row.climbName}</p>
       ))}
-      {rows.length > CHART_PREVIEW_LIMIT && <p className="text-muted">Click to see all</p>}
+      {rows.length > CHART_PREVIEW_LIMIT && <p className="text-muted">Select to see all</p>}
     </div>
   );
 }

@@ -17,10 +17,6 @@ function monthIndex(month: string): number {
   return year * 12 + (m - 1);
 }
 
-/** The ceiling line: a climber's personal best over time as a stepped line
- * in the discipline hue, with a dot for the hardest send of each active
- * month underneath it. Native grade rules on the y-axis, years along the
- * x-axis; hovering a dot names its month and grade. */
 export function ProgressionChart({
   type,
   points,
@@ -100,10 +96,6 @@ export function ProgressionChart({
 
   return (
     <div ref={ref}>
-      <p className="mb-2 text-xs text-muted">
-        Hover or tap to preview the month’s hardest climbs. Groups larger than three open the full
-        list.
-      </p>
       <p className="sr-only">
         Personal best {scale[latest.best]}, from {formatMonthLabel(points[0].month)} (
         {scale[points[0].hardest]}) to {formatMonthLabel(latest.month)}.
@@ -201,7 +193,6 @@ export function ProgressionChart({
           {points.map((point, i) => (
             <ChartClimbDetails
               key={point.month}
-
               hideSingleCount
               label={`${formatMonthLabel(point.month)} · ${scale[point.hardest]}`}
               sends={sends.filter(

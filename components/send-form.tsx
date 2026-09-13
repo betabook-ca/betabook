@@ -165,7 +165,9 @@ export function SendForm({
             />
             <TagInput value={tags} onChange={setTags} />
           </div>
-          <p className="text-xs text-muted">Tags and With friends use your Journal audience.</p>
+          <p className="text-xs text-muted">
+            Tags and tagged friends follow your journal audience.
+          </p>
         </DetailsDisclosure>
       ) : (
         <p className="text-sm text-muted">

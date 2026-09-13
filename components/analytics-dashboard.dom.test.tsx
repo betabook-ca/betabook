@@ -95,6 +95,26 @@ describe("analytics dashboard climb previews", () => {
   });
 });
 
+it("shows only the status for a selected period with no activity", () => {
+  render(
+    <AnalyticsDashboard
+      analytics={buildUserAnalytics(sends, "boulder", undefined, [2023])}
+      sends={sends}
+      selectedYears={[2023]}
+      undatedCount={1}
+      scope="boulder"
+      journalVisible={false}
+      canCustomize
+      periodPicker={null}
+    />,
+  );
+
+  expect(screen.getByText(/^No activity in 2023/)).toHaveAttribute("role", "status");
+  expect(screen.queryAllByRole("article")).toEqual([]);
+  expect(screen.queryByRole("region", { name: "At a glance" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Customize dashboard" })).not.toBeInTheDocument();
+});
+
 it("summarizes the climber under the activity heading", () => {
   const summary = "Climbing since 2024. 4 sends across 1 area. Last sent Mar 3, 2026.";
   render(

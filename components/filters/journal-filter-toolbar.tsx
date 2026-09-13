@@ -34,7 +34,7 @@ function href(base: string, filter: JournalFilter): string {
   return query ? `${base}?${query}` : base;
 }
 
-/** Year, date and climb filters clear from the active-filter summary rather than their own pills. */
+/** Year and climb filters have no control here; their active-filter chips are the only way to clear them. */
 export function JournalFilterToolbar({
   userId,
   filter,

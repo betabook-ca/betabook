@@ -15,7 +15,6 @@ export async function ProjectsView({ ownerId }: { ownerId: string }) {
   const hasMore = rows.length > OPEN_PROJECT_PAGE_SIZE;
   const projects = rows.slice(0, OPEN_PROJECT_PAGE_SIZE);
 
-  // One read for the whole page's notes, so every card opens without one.
   const sessions = await getOpenProjectSessions(
     db,
     ownerId,

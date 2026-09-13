@@ -74,10 +74,10 @@ test("customization reorders and hides cards and charts within their sections", 
   await expect(glance.getByRole("article").first()).toHaveAccessibleName("Sends");
   await moveEarlier(page, info, "Hardest", "cards", "Sends");
   await expect(glance.getByRole("article").first()).toHaveAccessibleName("Hardest");
-  await page.getByRole("button", { name: "Hide First try", exact: true }).click();
-  await expect(glance.getByRole("article", { name: "First try", exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: "Add First try", exact: true }).click();
-  await expect(glance.getByRole("article", { name: "First try", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Hide Flash", exact: true }).click();
+  await expect(glance.getByRole("article", { name: "Flash", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Add Flash", exact: true }).click();
+  await expect(glance.getByRole("article", { name: "Flash", exact: true })).toBeVisible();
   await moveEarlier(page, info, "Grade pyramid", "charts", "Progression");
   await expect(charts.getByRole("article").first()).toHaveAccessibleName("Grade pyramid");
   await page.getByRole("button", { name: "Hide Breakthroughs", exact: true }).click();
@@ -151,7 +151,7 @@ test(
   async ({ page }, info) => {
     await openStory(page, info, "components-charts-analytics-dashboard--save-failure");
     await page.getByRole("button", { name: "Customize dashboard", exact: true }).click();
-    await page.getByRole("button", { name: "Hide First try", exact: true }).click();
+    await page.getByRole("button", { name: "Hide Flash", exact: true }).click();
     await page
       .getByRole("group", { name: "Dashboard actions", exact: true })
       .getByRole("button", { name: "Save layout", exact: true })
@@ -164,9 +164,9 @@ test(
         .getByRole("group", { name: "Dashboard actions", exact: true })
         .getByRole("button", { name: "Save layout", exact: true }),
     ).toBeVisible();
-    await expect(page.getByRole("article", { name: "First try", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("article", { name: "Flash", exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
-    await expect(page.getByRole("article", { name: "First try", exact: true })).toBeVisible();
+    await expect(page.getByRole("article", { name: "Flash", exact: true })).toBeVisible();
   },
 );
 
@@ -276,7 +276,7 @@ test(
     expect(Math.abs(stat.width - blank.width)).toBeLessThan(1);
     await page.getByRole("button", { name: "Customize charts", exact: true }).click();
     const title = page.getByRole("heading", {
-      name: "Customize your analytics dashboard",
+      name: "Customize dashboard",
       exact: true,
     });
     await expect(title).toBeInViewport();
@@ -336,7 +336,7 @@ test(
     await openStory(page, info, "components-charts-analytics-dashboard--multiple-years");
     await page.getByRole("button", { name: "Customize charts", exact: true }).click();
     await page.getByRole("button", { name: "Add Volume over time", exact: true }).click();
-    await page.getByRole("button", { name: "Add First-try rate by grade", exact: true }).click();
+    await page.getByRole("button", { name: "Add Flash rate by grade", exact: true }).click();
     await page
       .getByRole("group", { name: "Dashboard actions", exact: true })
       .getByRole("button", { name: "Save layout", exact: true })
@@ -353,8 +353,8 @@ test(
       body: await volume.screenshot(),
       contentType: "image/png",
     });
-    const flash = page.getByRole("article", { name: "First-try rate by grade", exact: true });
-    await expect(flash.getByText("First-try rate", { exact: true })).toBeVisible();
+    const flash = page.getByRole("article", { name: "Flash rate by grade", exact: true });
+    await expect(flash.getByText("Flash rate", { exact: true })).toBeVisible();
     await info.attach("optional-flash-chart", {
       body: await flash.screenshot(),
       contentType: "image/png",
@@ -415,7 +415,7 @@ test("laptop fits six stat slots and customization options contrast with their p
   else expect(last.y).toBeGreaterThan(first.y);
   await info.attach("six-stat-slots", { body: await page.screenshot(), contentType: "image/png" });
   await page.getByRole("button", { name: "Customize dashboard", exact: true }).click();
-  const panel = page.getByLabel("Customize your analytics dashboard", { exact: true });
+  const panel = page.getByRole("region", { name: "Customize dashboard", exact: true });
   const option = panel.getByRole("button", { name: "Add Areas", exact: true });
   expect(await option.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe(
     await panel.evaluate((el) => getComputedStyle(el).backgroundColor),

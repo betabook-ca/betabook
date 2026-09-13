@@ -2,38 +2,27 @@
 
 import type { ReactNode } from "react";
 
-import { EmptyState } from "@/components/ui/empty-state";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
 
 type SendListShellProps<T extends { id: number }> = {
-  /** The pages loaded so far — the caller owns pagination (server-driven
-   * "load more"), this shell just renders what it's given. */
   sends: T[];
   renderRow: (send: T) => ReactNode;
-  emptyState?: ReactNode;
+  emptyState: ReactNode;
   hasMore: boolean;
   onLoadMore: () => void;
-  loadingMore?: boolean;
-  /** The last page fetch failed — LoadMoreButton says so and stays as the
-   * retry affordance. */
-  loadMoreFailed?: boolean;
+  loadingMore: boolean;
+  loadMoreFailed: boolean;
 };
 
-const DEFAULT_EMPTY_STATE = <EmptyState message="No sends yet." />;
-
-/** Shared empty-state + "load more" + row-list structure for a list of
- * sends. Used by ClimbSendList and UserSendList, both of which page from the
- * server via `onLoadMore` — there's deliberately no client-side slicing mode
- * here, since a fully loaded array is exactly what server pagination exists
- * to avoid. */
+/** Rows and "load more" for a list of sends the caller pages from the server. */
 export function SendListShell<T extends { id: number }>({
   sends,
   renderRow,
-  emptyState = DEFAULT_EMPTY_STATE,
+  emptyState,
   hasMore,
   onLoadMore,
-  loadingMore = false,
-  loadMoreFailed = false,
+  loadingMore,
+  loadMoreFailed,
 }: SendListShellProps<T>) {
   if (sends.length === 0) {
     return emptyState;

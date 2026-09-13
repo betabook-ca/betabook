@@ -76,21 +76,21 @@ export function AnalyticsCalendar({
           }
         }}
       >
-        {years.slice(active, active + 1).map((year) => (
+        {years.length > 0 && (
           <section
-            key={year}
-            aria-label={`Calendar ${year}`}
+            key={years[active]}
+            aria-label={`Calendar ${years[active]}`}
             className="relative w-full min-w-0 pb-2"
           >
             <ClimbingCalendar
               countsByDay={countsByDay}
-              year={year}
+              year={years[active]}
               hue={hue}
               unit={unit}
               activities={activities}
             />
           </section>
-        ))}
+        )}
       </div>
     </div>
   );

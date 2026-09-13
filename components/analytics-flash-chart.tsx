@@ -11,9 +11,7 @@ import { formatCount } from "@/lib/format";
 import type { ClimbType } from "@/lib/grades";
 import type { FirstTryGradeRow } from "@/lib/user-analytics";
 
-/** First-try rate by grade: flashes and onsights over all sends. The chart
- * keeps its `flashRate` layout id and this file name so saved layouts still
- * resolve. */
+/** A rope onsight counts as a flash here, as in the Flash stat. */
 export function AnalyticsFlashChart({
   rows,
   type,
@@ -21,12 +19,13 @@ export function AnalyticsFlashChart({
 }: {
   rows: FirstTryGradeRow[];
   type: ClimbType;
+  /** Already scoped to `type`. */
   sends?: AnalyticsSendRow[];
 }) {
   const { ref, width } = useChartWidth();
   const labels = rows.map(
     (row) =>
-      `${row.label}: ${formatCount(row.sends, "send")} · ${formatCount(row.firstTries, "first try", "first tries")} · ${Math.round(row.rate)}% first-try rate`,
+      `${row.label}: ${formatCount(row.sends, "send")} · ${formatCount(row.firstTries, "flash", "flashes")} · ${Math.round(row.rate)}% flash rate`,
   );
   const details =
     sends &&
@@ -35,22 +34,14 @@ export function AnalyticsFlashChart({
         labels[i],
         {
           title: row.label,
-          summary: `${formatCount(row.sends, "send")} · ${Math.round(row.rate)}% first-try rate`,
-          rows: sendChartRows(
-            sends.filter((send) => send.climbType === type && send.suggestedGrade === row.grade),
-          ),
+          summary: `${formatCount(row.sends, "send")} · ${Math.round(row.rate)}% flash rate`,
+          rows: sendChartRows(sends.filter((send) => send.suggestedGrade === row.grade)),
         } satisfies ChartDetailGroup,
       ]),
     );
   return (
-    <section aria-label="First-try rate by grade" className="min-w-0" ref={ref}>
-      <div className="mb-4 flex flex-col gap-1">
-        <Eyebrow>First-try rate by grade</Eyebrow>
-        <p className="text-xs text-muted">
-          Bars show total sends; the line shows the percentage sent first try, as a flash or an
-          onsight.
-        </p>
-      </div>
+    <div className="min-w-0" ref={ref}>
+      <Eyebrow className="mb-4">Flash rate by grade</Eyebrow>
       {rows.length ? (
         <>
           <div className="mb-2 flex flex-wrap gap-4 text-xs text-muted">
@@ -63,10 +54,10 @@ export function AnalyticsFlashChart({
             </span>
             <span className="flex items-center gap-2">
               <span className="w-4 border-t-2 border-foreground" />
-              First-try rate
+              Flash rate
             </span>
           </div>
-          <ChartInspection label="Sends and first-try percentage by grade" details={details}>
+          <ChartInspection label="Sends and flash percentage by grade" details={details}>
             <div className="relative">
               <ComposedChart
                 width={width}
@@ -132,8 +123,8 @@ export function AnalyticsFlashChart({
           </ChartInspection>
         </>
       ) : (
-        <p className="text-sm text-muted">No graded sends in the selected years.</p>
+        <p className="text-sm text-muted">No graded sends.</p>
       )}
-    </section>
+    </div>
   );
 }

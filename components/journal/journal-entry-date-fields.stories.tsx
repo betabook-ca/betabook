@@ -10,7 +10,6 @@ const meta = {
   title: "Components/Journal/Entry date",
   component: JournalEntryDateFields,
   args: {
-    kind: "session",
     hasClimb: true,
     hasPriorSend: false,
     today: "2026-09-06",
@@ -23,7 +22,7 @@ const meta = {
     return (
       <StoryPage
         title="Entry date"
-        description="The entry's date, with guidance for entries that must keep one. For a new first ascent (the owning form's session-or-send picker chooses that) an I don't know checkbox appears beside the date and empties it — a send saved that way is recorded without a date, as in the Undated send example. A repeat always needs a date, so the Repeat example offers no checkbox."
+        description="A new first ascent can be saved with I don't know instead of a date; repeats and edited entries keep theirs."
       >
         <div className={SURFACE_CARD_CLASS}>
           <JournalEntryDateFields {...args} entryDate={entryDate} onDateChange={setEntryDate} />
@@ -39,7 +38,7 @@ export const Session: Story = {};
 export const Ascent: Story = { args: { sent: true } };
 export const UndatedSend: Story = { args: { sent: true, entryDate: "" } };
 export const Repeat: Story = { args: { sent: true, hasPriorSend: true } };
-export const Training: Story = { args: { kind: "training", hasClimb: false } };
+export const Training: Story = { args: { hasClimb: false } };
 export const EditAscent: Story = {
   args: { sent: true, existingEntry: { sent: true, isAscent: true } },
 };

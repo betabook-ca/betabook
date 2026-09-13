@@ -19,7 +19,9 @@ vi.mock("next/navigation", () => ({
 
 it("Sends exposes selected discipline ranges and independent ascent tags, then clears globally", async () => {
   const user = userEvent.setup();
-  render(<UserSendsFilterToolbar filter={DEFAULT_USER_SENDS_FILTER} basePath="/sample/sends" />);
+  render(
+    <UserSendsFilterToolbar filter={DEFAULT_USER_SENDS_FILTER} basePath="/users/sample/sends" />,
+  );
   await user.click(screen.getByRole("button", { name: "Expand filters" }));
   expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
   for (const name of ["Boulder", "Sport", "Trad"]) {
@@ -86,11 +88,11 @@ it("Analytics keeps selected Tags clearable outside its collapsed disclosure", a
 // chip has to reset the control too, or a reopened panel still reads "Custom
 // dates" over a filter that is no longer applied.
 const DATE_CASES = [
-  { name: "a single day", dates: { date: "2025-06-01" }, label: "Dates: 2025-06-01" },
+  { name: "a single day", dates: { date: "2025-06-01" }, label: "Dates: Jun 1, 2025" },
   {
     name: "a date range",
     dates: { dateFrom: "2025-06-01", dateTo: "2025-08-31" },
-    label: "Dates: 2025-06-01 \u2013 2025-08-31",
+    label: "Dates: Jun 1, 2025 \u2013 Aug 31, 2025",
   },
 ];
 
@@ -111,7 +113,7 @@ const TOOLBARS = [
     render: (dates: DateFilterValue) => (
       <UserSendsFilterToolbar
         filter={{ ...DEFAULT_USER_SENDS_FILTER, ...dates }}
-        basePath="/sample/sends"
+        basePath="/users/sample/sends"
       />
     ),
   },

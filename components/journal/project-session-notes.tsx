@@ -12,17 +12,11 @@ import { formatDate } from "@/lib/format-date";
 type ProjectSessionNotesProps = {
   userId: string;
   climbId: number;
-  /** Every session on this project, including the ones not preloaded —
-   * what tells the list whether there is any older history to page in. */
+  /** Includes sessions that weren't preloaded. */
   sessionCount: number;
   initialSessions: JournalEntry[];
 };
 
-/** A project's sessions, newest first, each with whatever the climber wrote
- * that day. The card arrives holding the most recent few (see
- * `getOpenProjectSessions`), so opening one costs no request at all; a
- * longer project pages its older sessions in from the journal API, which
- * already answers the same entry shape filtered to one climb. */
 export function ProjectSessionNotes({
   userId,
   climbId,
@@ -77,9 +71,7 @@ export function ProjectSessionNotes({
               ))}
             </div>
             <CompanionList companions={entry.companions} />
-            {entry.body == null ? (
-              <p className="text-sm text-muted italic">No note on this session.</p>
-            ) : (
+            {entry.body != null && (
               <div className="text-sm leading-relaxed text-foreground">
                 <ClampedComment>{entry.body}</ClampedComment>
               </div>

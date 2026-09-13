@@ -19,7 +19,7 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
       section: "Journal",
       title: "Start in Journal",
       description:
-        "Use Log for outdoor sessions, sends, repeats, and training. Add With friends under Add details to record who joined you. Each friend logs their own activity.",
+        "Use Log for outdoor sessions, sends, repeats, and training. Tag friends under Add details to record who joined you. Each friend logs their own activity.",
       target: "journal-log",
     },
     {

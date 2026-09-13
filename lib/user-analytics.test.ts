@@ -257,7 +257,7 @@ describe("buildUserAnalytics", () => {
     expect(a.longestLayoff).toBeNull();
   });
 
-  it("finds the top area and hardest first-try within one discipline", () => {
+  it("finds the top area and hardest flash within one discipline", () => {
     const a = buildUserAnalytics(
       [
         send({ areaId: 1, areaName: "Forestland" }),
@@ -273,7 +273,7 @@ describe("buildUserAnalytics", () => {
     expect(a.hardestFirstTry?.label).toBe("V4");
   });
 
-  it("counts onsights as first tries alongside flashes on rope climbs", () => {
+  it("counts rope onsights alongside flashes toward the flash rate", () => {
     const a = buildUserAnalytics(
       [
         send({ climbType: "sport", suggestedGrade: 10 }),
@@ -374,9 +374,9 @@ describe("multiple analytics years", () => {
   });
 });
 
-it("builds monthly volume and first-try rates from the selected years and discipline", () => {
+it("builds monthly volume and flash rates from the selected years and discipline", () => {
   // Rope rows carry the onsight: boulders are never onsights, and the
-  // first-try numerator has to count both styles.
+  // flash-rate numerator has to count both styles.
   const rows = [
     send({ dateSent: "2024-01-02", climbType: "sport", suggestedGrade: 10, ascentStyle: "flash" }),
     send({ dateSent: "2024-01-02", climbType: "sport", suggestedGrade: 10 }),

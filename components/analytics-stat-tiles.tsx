@@ -10,9 +10,7 @@ export type StatTile = {
   sub?: ReactNode;
 };
 
-/** The analytics page's headline numbers: a responsive grid of small cards,
- * each one stat — display-face value, letterspaced label, muted footnote.
- * Callers pick the column classes, since the tile rows differ in width. */
+/** Callers pick the column classes, since tile rows differ in width. */
 export function StatTiles({ tiles, className }: { tiles: StatTile[]; className?: string }) {
   if (tiles.length === 0) return null;
 

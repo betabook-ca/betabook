@@ -2,6 +2,7 @@ import type { ActiveFilter } from "@/components/filters/active-filter-summary";
 import { DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
 import type { DateFilterValue } from "@/lib/filters/date-filter";
 import { DEFAULT_DISCIPLINE_FILTER, type DisciplineFilter } from "@/lib/filters/discipline-filter";
+import { formatDate } from "@/lib/format-date";
 import { nativeGradeArray } from "@/lib/grades";
 
 export function disciplineActiveFilters<T extends DisciplineFilter>(
@@ -41,9 +42,12 @@ export function dateActiveFilters<T extends DateFilterValue>(
     "this-year": "This year",
     "last-year": "Last year",
   };
+  const day = (date: string | undefined) => (date ? formatDate(date) : "Any time");
   const label = value.datePreset
     ? presets[value.datePreset]
-    : value.date || `${value.dateFrom || "Any time"} – ${value.dateTo || "Any time"}`;
+    : value.date
+      ? formatDate(value.date)
+      : `${day(value.dateFrom)} – ${day(value.dateTo)}`;
   return [
     {
       id: "dates",

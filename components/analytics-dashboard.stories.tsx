@@ -32,7 +32,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "New dashboards start with Sends, Hardest, Days out, First try, and Best year. Customize placeholders appear when a section has hidden items and open the same layout editor; Save layout persists the selection. Existing saved layouts remain unchanged. All cards and charts follow the selected years. The laptop grid fits six stat slots. Grade pyramid, Breakthroughs, and Flash rate use half-width slots, while time charts span the row. Volume and Flash rate are optional smooth Recharts charts with floating tooltips; all calendars fit without horizontal scrolling. Customization changes only the owner’s view.",
+          "New dashboards start with Sends, Hardest, Days out, Flash, and Best year. Customize placeholders appear when a section has hidden items and open the same layout editor; Save layout persists the selection. Existing saved layouts remain unchanged. All cards and charts follow the selected years. The laptop grid fits six stat slots. Grade pyramid, Breakthroughs, and Flash rate use half-width slots, while time charts span the row. Volume and Flash rate are optional smooth Recharts charts with floating tooltips; all calendars fit without horizontal scrolling. Customization changes only the owner’s view.",
       },
     },
   },
@@ -286,7 +286,7 @@ export const OptionalCharts: Story = {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "Customize charts" }));
     await userEvent.click(canvas.getByRole("button", { name: "Add Volume over time" }));
-    await userEvent.click(canvas.getByRole("button", { name: "Add First-try rate by grade" }));
+    await userEvent.click(canvas.getByRole("button", { name: "Add Flash rate by grade" }));
     await userEvent.click(
       within(canvas.getByRole("group", { name: "Dashboard actions" })).getByRole("button", {
         name: "Save layout",

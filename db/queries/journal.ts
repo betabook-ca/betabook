@@ -281,8 +281,6 @@ export type OpenProject = {
   areaId: number;
   areaName: string;
   sessionCount: number;
-  /** Sessions that actually carry a written note — what the card's notes
-   * toggle is worth opening for. */
   noteCount: number;
   firstSession: string;
   lastSession: string;
@@ -324,16 +322,10 @@ export async function getOpenProjects(
   `);
 }
 
-/** Sessions carried with each project card. Three is what a card needs to
- * show its latest note and open a short history with no request at all; a
- * longer project pages the rest in from the journal API when opened. */
+/** Sessions preloaded per project card. Older ones page in from the journal
+ * API, so these rows keep the journal timeline's entry projection. */
 const OPEN_PROJECT_SESSION_PRELOAD = 3;
 
-/** The most recent sessions on each of `climbIds`, ranked per climb in one
- * pass — a projects list would otherwise need a query per card before it
- * could show a single note. Same owner-only gate as the projects it
- * annotates, and the same entry projection as the journal timeline, so the
- * client can page older sessions straight onto these from the journal API. */
 export async function getOpenProjectSessions(
   db: Database,
   ownerId: string,

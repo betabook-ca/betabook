@@ -33,7 +33,7 @@ describe("chart climb details", () => {
     const tooltip = await screen.findByRole("tooltip");
     expect(within(tooltip).getByText(/Climb 3/)).toBeInTheDocument();
     expect(within(tooltip).queryByText(/Climb 4/)).not.toBeInTheDocument();
-    expect(within(tooltip).getByText("Click to see all")).toBeInTheDocument();
+    expect(within(tooltip).getByText("Select to see all")).toBeInTheDocument();
     expect(within(tooltip).queryByText(/Forestland/)).not.toBeInTheDocument();
     await user.click(bar);
     const table = await screen.findByRole("list", { name: "Climbs" });

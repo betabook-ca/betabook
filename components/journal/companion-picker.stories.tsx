@@ -40,8 +40,8 @@ function Example({
   );
   return (
     <StoryPage
-      title="With friends"
-      description="Selected friends appear as removable filled buttons below the field, matching tags. Companions belong to one journal entry. Select Alex, then type Sam to add another friend; each selection closes the menu and keeps the search ready."
+      title="Tagged friends"
+      description="Friends tagged on one journal entry appear as removable buttons below the field."
     >
       <CompanionPicker
         value={selected}

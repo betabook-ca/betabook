@@ -20,7 +20,6 @@ it("switches the chart metric between sends and distinct days", async () => {
   await user.click(screen.getByRole("button", { name: "Days out" }));
   expect(screen.getByRole("button", { name: "Days out" })).toHaveAttribute("aria-pressed", "true");
   expect(screen.getByRole("group", { name: "Monthly days out" })).toBeVisible();
-  expect(screen.getByText("Distinct days with logged climbing sessions each month.")).toBeVisible();
   expect(screen.queryByRole("group", { name: "Monthly sends" })).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Sends" }));
   expect(screen.getByRole("group", { name: "Monthly sends" })).toBeVisible();

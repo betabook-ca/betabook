@@ -2,7 +2,7 @@
 
 import { Button } from "@heroui/react";
 import { ArrowDown, ArrowUp, GripVertical, Plus, SlidersHorizontal, X } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
 import {
   DropIndicator,
   GridList,
@@ -240,11 +240,7 @@ function DashboardGroup({
     </article>
   );
   if (!items.length && !onCustomize)
-    return (
-      <p className="text-sm text-muted">
-        No {group === "cards" ? "cards" : "charts"} shown. Use Customize dashboard to add them back.
-      </p>
-    );
+    return <p className="text-sm text-muted">All {group} hidden.</p>;
   if (!editing)
     return (
       <div className={grid}>
@@ -325,7 +321,6 @@ function FloatingLayoutSave({
   );
 }
 
-/** Fixed stat and chart grids keep user-defined orders tidy at every screen size. */
 export function AnalyticsWorkspace({
   cards,
   charts,
@@ -364,7 +359,8 @@ export function AnalyticsWorkspace({
       window.removeEventListener("scroll", update, true);
     };
   }, [editing, canCustomize]);
-  const editorRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<HTMLElement>(null);
+  const editorHeadingId = useId();
   const focusEditor = useRef(false);
   const openEditor = () => {
     setShowFloatingSave(false);
@@ -464,17 +460,14 @@ export function AnalyticsWorkspace({
         )}
       </div>
       {isEditing && (
-        <div
+        <section
           ref={editorRef}
           tabIndex={-1}
-          aria-label="Customize your analytics dashboard"
+          aria-labelledby={editorHeadingId}
           className={`flex flex-col gap-3 border border-border ${cardClass("sm")}`}
         >
-          <SectionHeading>Customize your analytics dashboard</SectionHeading>
-          <p className="text-sm text-muted">
-            Add items below, drag to reorder, or use X to hide items. Click Save layout when you’re
-            done. This only affects your own view.
-          </p>
+          <SectionHeading id={editorHeadingId}>Customize dashboard</SectionHeading>
+          <p className="text-sm text-muted">Only you see this layout.</p>
           {hiddenGroups
             .filter((group) => group.items.length > 0)
             .map((group) => (
@@ -550,39 +543,31 @@ export function AnalyticsWorkspace({
               {saving ? "Saving…" : "Save layout"}
             </Button>
           </div>
-        </div>
+        </section>
       )}
       {saveError && !showFloatingSave && <InlineAlert>{saveError}</InlineAlert>}
       <p role="status" className="sr-only">
         {message}
       </p>
       {children}
-      <section aria-label="At a glance" className="flex flex-col gap-4">
-        <SectionHeading>At a glance</SectionHeading>
-        <DashboardGroup
-          onCustomize={
-            canCustomize && !editing && hiddenGroups[0].items.length > 0 ? openEditor : undefined
-          }
-          group="cards"
-          items={visible("cards", cards)}
-          editing={isEditing}
-          onMove={move}
-          onHide={hide}
-        />
-      </section>
-      <section aria-label="Charts" className="flex flex-col gap-4">
-        <SectionHeading>Charts</SectionHeading>
-        <DashboardGroup
-          onCustomize={
-            canCustomize && !editing && hiddenGroups[1].items.length > 0 ? openEditor : undefined
-          }
-          group="charts"
-          items={visible("charts", charts)}
-          editing={isEditing}
-          onMove={move}
-          onHide={hide}
-        />
-      </section>
+      {hiddenGroups.map(({ key, label, items: hidden }) => {
+        const items = visible(key, key === "cards" ? cards : charts);
+        const canAdd = canCustomize && !editing && hidden.length > 0;
+        if (!items.length && !isEditing && !canAdd) return null;
+        return (
+          <section key={key} aria-label={label} className="flex flex-col gap-4">
+            <SectionHeading>{label}</SectionHeading>
+            <DashboardGroup
+              onCustomize={canAdd ? openEditor : undefined}
+              group={key}
+              items={items}
+              editing={isEditing}
+              onMove={move}
+              onHide={hide}
+            />
+          </section>
+        );
+      })}
       <FloatingLayoutSave
         visible={isEditing && showFloatingSave}
         saving={saving}

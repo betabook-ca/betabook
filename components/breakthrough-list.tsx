@@ -1,19 +1,10 @@
 import { AppLink } from "@/components/ui/app-link";
-import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { Grade } from "@/components/ui/grade";
 import { formatDate } from "@/lib/format-date";
 import { climbHref } from "@/lib/slug";
 import { formatDaySpan, type Breakthrough } from "@/lib/user-analytics";
 
-/** The ceiling register: every send that raised a personal best, newest
- * first — with how long each new ceiling took to reach. */
-export function BreakthroughList({
-  breakthroughs,
-  showDiscipline,
-}: {
-  breakthroughs: Breakthrough[];
-  showDiscipline: boolean;
-}) {
+export function BreakthroughList({ breakthroughs }: { breakthroughs: Breakthrough[] }) {
   if (breakthroughs.length === 0) return null;
 
   return (
@@ -32,14 +23,13 @@ export function BreakthroughList({
               {breakthrough.climbName}
             </AppLink>
           </div>
-          {showDiscipline && <DisciplineChip type={breakthrough.type} />}
           <div className="shrink-0 text-right">
             <div className="text-sm text-foreground tabular-nums">
               {formatDate(breakthrough.dateSent)}
             </div>
             <div className="text-xs text-muted">
               {breakthrough.waitDays == null
-                ? "first ceiling"
+                ? "first"
                 : `after ${formatDaySpan(breakthrough.waitDays)}`}
             </div>
           </div>

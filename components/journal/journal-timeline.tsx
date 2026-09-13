@@ -74,13 +74,7 @@ export function JournalTimeline({
   if (items.length === 0) {
     return (
       <EmptyState
-        message={
-          hasAnyEntries
-            ? "No entries match these filters."
-            : isOwner
-              ? "Nothing logged yet. Every day out starts here — sends, sessions and training."
-              : "Nothing logged yet."
-        }
+        message={hasAnyEntries ? "No entries match these filters." : "Nothing logged yet."}
       />
     );
   }

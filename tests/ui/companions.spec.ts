@@ -4,7 +4,7 @@ test("friend-tag guidance is in a tooltip accessible by pointer and keyboard", a
   page,
 }, testInfo) => {
   await openStory(page, testInfo, `components-journal-companion-picker--selection`);
-  const help = page.getByRole("button", { name: "About With friends", exact: true });
+  const help = page.getByRole("button", { name: "About tagged friends", exact: true });
   const tooltip = page.getByRole("tooltip");
   await expect(help).toBeVisible();
   await expect(help).toHaveAttribute("type", "button");
@@ -17,11 +17,12 @@ test("friend-tag guidance is in a tooltip accessible by pointer and keyboard", a
     await help.hover();
   }
   await expect(tooltip).toBeVisible();
-  await expect(tooltip).toContainText("Friends log their own activity; tags don’t grant access.");
   await expect(tooltip).toContainText(
-    "Anyone who can read this entry sees the tags, unless that friend sets their journal to Only me.",
+    "Tagging doesn’t log the climb for them or share the entry with them.",
   );
-  await expect(tooltip).toContainText("You always see the friends you tagged.");
+  await expect(tooltip).toContainText(
+    "Anyone who can read this entry sees who you tagged. A friend whose journal is Only me is shown only to you and them.",
+  );
   await expect(tooltip).toContainText("Changes replace all tags, including hidden ones.");
   await expect(tooltip).toHaveCSS("word-break", "normal");
   await expect(tooltip).toHaveCSS("opacity", "1");
@@ -94,7 +95,7 @@ test("friend suggestions follow the moved field when adding another friend", asy
   ).toHaveCount(2);
   await expect(page.getByRole("status", { name: "2 of 10 friends" })).toContainText("2/10 friends");
   await input.fill("zzz");
-  await expect(page.getByText("No matching friends. Try a more specific name.")).toBeVisible();
+  await expect(page.getByText("No friends match.")).toBeVisible();
   await input.fill("");
   await expect(input).toHaveAttribute("aria-expanded", "false");
 });

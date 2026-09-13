@@ -38,33 +38,22 @@ export type JournalEntryFieldsProps = {
   onPendingChange?: (pending: boolean) => void;
 };
 
-function describePendingEntry(input: {
-  kind: JournalKind;
-  climbName?: string | null;
-  sent: boolean;
-  hasPriorSend: boolean;
-}): { headline: string; consequence: string | null } {
-  if (input.kind === "training") {
-    return { headline: "Logging training.", consequence: null };
-  }
-
-  const climb = input.climbName?.trim();
-  if (!climb) return { headline: "Logging an outdoor session.", consequence: null };
-
-  if (!input.sent) {
-    return { headline: `Logging an outdoor session on ${climb}.`, consequence: null };
-  }
-
-  if (input.hasPriorSend) {
+/** A drawer opened from a climb has no chosen-entry strip, so the headline names the climb. */
+function describePendingEntry(
+  climbName: string,
+  sent: boolean,
+  hasPriorSend: boolean,
+): { headline: string; consequence: string | null } {
+  if (!sent) return { headline: `Logging an outdoor session on ${climbName}.`, consequence: null };
+  if (hasPriorSend) {
     return {
-      headline: `Logging a repeat of ${climb}.`,
-      consequence: `Your ascent of ${climb} is already recorded — a repeat doesn't change it.`,
+      headline: `Logging a repeat of ${climbName}.`,
+      consequence: "It doesn't change your recorded ascent.",
     };
   }
-
   return {
-    headline: `Logging an ascent of ${climb}.`,
-    consequence: `Records a send on ${climb}, counting toward its send total and grade consensus.`,
+    headline: `Logging an ascent of ${climbName}.`,
+    consequence: "It counts toward the climb's send total and grade consensus.",
   };
 }
 
@@ -105,7 +94,8 @@ export function JournalEntryFields({
     choice === "session" || choice === "repeat" ? "redpoint" : choice;
   const isAscent = !existingEntry && sent && climb != null && !hasPriorSend;
   const isUndatedSend = isAscent && entryDate === "";
-  const summary = describePendingEntry({ kind, climbName: climb?.name, sent, hasPriorSend });
+  const summary =
+    climb && !existingEntry ? describePendingEntry(climb.name, sent, hasPriorSend) : null;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -116,7 +106,7 @@ export function JournalEntryFields({
       return;
     }
     if (isUndatedSend && companions.length > 0) {
-      setError("Add a date to keep With friends.");
+      setError("Add a date to keep tagged friends.");
       setDetailsExpanded(true);
       return;
     }
@@ -176,7 +166,6 @@ export function JournalEntryFields({
       )}
 
       <JournalEntryDateFields
-        kind={kind}
         hasClimb={climb != null}
         hasPriorSend={hasPriorSend}
         existingEntry={existingEntry}
@@ -247,14 +236,13 @@ export function JournalEntryFields({
         </p>
       </DetailsDisclosure>
 
-      {!existingEntry && (
+      {summary && (
         <div className={`flex flex-col gap-1 ${cardClass("sm", "inset")}`}>
           <p className="text-sm font-medium text-foreground">{summary.headline}</p>
           {summary.consequence && <p className="text-sm text-muted">{summary.consequence}</p>}
           {isUndatedSend && (
             <p className="text-sm text-muted">
-              Saved in your logbook with Date unknown. Add a date later to include it in your
-              journal. Tags and With friends require a date.
+              Without a date, it stays out of your journal and can't keep tags or tagged friends.
             </p>
           )}
         </div>

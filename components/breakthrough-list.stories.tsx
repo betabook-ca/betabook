@@ -9,7 +9,6 @@ const meta = {
   title: "Components/Charts/Breakthroughs",
   component: BreakthroughList,
   args: {
-    showDiscipline: false,
     breakthroughs: [
       {
         type: "boulder",
