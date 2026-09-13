@@ -1,7 +1,7 @@
 "use client";
 
-import { Description, Disclosure, Label, ListBox, Select, Switch } from "@heroui/react";
-import { Fragment } from "react";
+import { Disclosure, Label, ListBox, Select, Switch } from "@heroui/react";
+import { Fragment, useId } from "react";
 
 import { FieldFeedback } from "@/components/ui/field-support";
 import { InlineAlert } from "@/components/ui/inline-alert";
@@ -37,22 +37,31 @@ export function PrivacyFields({
   journalError?: string | null;
   sendCommentError?: string | null;
 }) {
+  const profileDescriptionId = useId();
   return (
     <div className={SETTINGS_ROWS_CLASS}>
       <div className={`flex flex-col gap-3 ${SETTINGS_ROW_CLASS}`}>
-        <Switch isDisabled={isPending} isSelected={isPrivate} onChange={onProfileChange}>
-          <Switch.Content className="w-full justify-between gap-6">
-            <span className="text-sm font-medium">Private profile</span>
-            <Switch.Control>
-              <Switch.Thumb />
-            </Switch.Control>
-          </Switch.Content>
-          <Description className="ps-0 text-sm">
+        <div className="flex flex-col gap-1">
+          <Switch
+            isDisabled={isPending}
+            isSelected={isPrivate}
+            onChange={onProfileChange}
+            aria-describedby={profileDescriptionId}
+          >
+            <Switch.Content className="w-full justify-between gap-6">
+              <span className="text-sm font-medium">Private profile</span>
+              <Switch.Control>
+                <Switch.Thumb />
+              </Switch.Control>
+            </Switch.Content>
+          </Switch>
+          {/* Outside Switch: a saving switch fades its own description below AA contrast. */}
+          <p id={profileDescriptionId} className="text-sm text-pretty text-muted">
             {isPrivate
               ? "Only you can see your profile and climbing history. Your audience choices are kept for when you turn this off."
               : "Signed-in members can see your profile and sends."}
-          </Description>
-        </Switch>
+          </p>
+        </div>
         {profileError && <InlineAlert>{profileError}</InlineAlert>}
       </div>
       <AudienceField
