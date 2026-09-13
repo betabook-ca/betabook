@@ -76,7 +76,7 @@ export function MobileAppHelper() {
       }, 1000);
     }
 
-    // Allow opening via custom event (e.g. from MobileNav menu). Pulls the
+    // Allow opening via custom event (e.g. from the app menu). Pulls the
     // panel in on the way, for a tap that beats the idle preload.
     function handleOpenEvent() {
       load();

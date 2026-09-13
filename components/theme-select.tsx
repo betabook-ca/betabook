@@ -6,14 +6,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useMounted } from "@/hooks/use-mounted";
 import { syncThemeColorMeta } from "@/lib/theme-color";
 
-/** The full three-option theme picker, on /account only. It lives apart from
- * ThemeSwitch because the root layout imports that one: sharing a module put
- * `Select` and `ListBox` — neither of which the header uses — into the bundle
- * every route loads. No lazy loading needed, just its own file. */
+/** The three-option theme picker, on /account only. Its own file keeps `Select`
+ * and `ListBox` out of the bundle every route loads. */
 export function ThemeSelect() {
   // `theme` is only known client-side, so we gate on `mounted` to keep the
   // server/first-client render identical and avoid a hydration mismatch,
-  // matching the pattern in auth-nav.tsx. Crucially, useTheme's own useState
+  // matching the pattern in app-menu.tsx. Crucially, useTheme's own useState
   // initializer already reads localStorage ("heroui-theme" — the same key the
   // blocking script in app/layout.tsx resolves pre-paint) with a "system"
   // fallback, so `theme` holds the real value from the very first client

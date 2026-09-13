@@ -27,8 +27,8 @@ the signed-in account's real count remains separate.
 
 The sample request buttons use `FriendshipActionButton`, including the same
 confirmation dialogs as real cancellation, decline, and removal. Their callbacks
-only change demo state. The real account avatar uses a dot for incoming requests,
-and Account settings links to the Requests list; My profile has no notification badge.
+only change demo state. In the app, the menu button shows a dot for incoming
+requests, and Friends in the menu and phone tab bar shows the count.
 
 ## Navigation and overlays
 

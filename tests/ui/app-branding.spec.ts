@@ -48,13 +48,15 @@ test(
       }),
       contentType: "image/png",
     });
-    // Explicit app choices override the OS scheme and survive a reload.
-    await page.getByRole("button", { name: "Theme: system. Switch to light." }).click();
-    await expect(lockup.locator("img:visible")).toHaveAttribute("src", /-light\.svg$/);
-    await page.getByRole("button", { name: "Theme: light. Switch to dark." }).click();
-    await expect(lockup.locator("img:visible")).toHaveAttribute("src", /-dark\.svg$/);
-    await page.reload();
-    await expect(lockup.locator("img:visible")).toHaveAttribute("src", /-dark\.svg$/);
+    // A theme saved in Account settings overrides the OS scheme from first paint.
+    for (const theme of ["light", "dark"]) {
+      await page.evaluate((value) => localStorage.setItem("heroui-theme", value), theme);
+      await page.reload();
+      await expect(lockup.locator("img:visible")).toHaveAttribute(
+        "src",
+        new RegExp(`-${theme}\\.svg$`),
+      );
+    }
     await home.click();
     await expect(page).toHaveURL("/");
   },

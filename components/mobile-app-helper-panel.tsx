@@ -33,7 +33,7 @@ export function MobileAppHelperPanel({
   return (
     <aside
       aria-label="Add Betabook to Home Screen"
-      className={`fixed inset-x-4 bottom-4 z-40 mx-auto max-w-md sm:inset-x-auto sm:right-6 sm:bottom-6 sm:max-w-sm ${cardClass("sm", "floating")}`}
+      className={`fixed inset-x-4 bottom-[calc(1rem+var(--app-tab-bar-height,0px))] z-40 mx-auto max-w-md sm:inset-x-auto sm:right-6 sm:bottom-[calc(1.5rem+var(--app-tab-bar-height,0px))] sm:max-w-sm ${cardClass("sm", "floating")}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">

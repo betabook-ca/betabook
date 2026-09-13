@@ -28,7 +28,7 @@ export function ContactForm() {
   }, []);
 
   // Prefill for a signed-in visitor, read on the client the same way the
-  // header's AuthNav reads it, so /contact stays prerenderable — a
+  // header's menu reads it, so /contact stays prerenderable — a
   // getSession() in the page would make it dynamic to fill in one field.
   // `mounted` keeps the server render and the first client render identical.
   const mounted = useMounted();

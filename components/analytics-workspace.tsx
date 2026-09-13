@@ -309,7 +309,7 @@ function FloatingLayoutSave({
     <div
       role="group"
       aria-label="Save layout reminder"
-      className="fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40 flex max-w-[calc(100vw-2rem)] flex-col items-end gap-2"
+      className="fixed right-4 bottom-[calc(1rem+var(--app-tab-bar-height,env(safe-area-inset-bottom)))] z-40 flex max-w-[calc(100vw-2rem)] flex-col items-end gap-2"
     >
       {error && <InlineAlert className={cardClass("sm", "floating")}>{error}</InlineAlert>}
       <Button
