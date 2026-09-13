@@ -50,6 +50,23 @@ it("keeps input and offers retry after a failed download", async () => {
   await waitFor(() => expect(onLoaded).toHaveBeenCalledOnce());
 });
 
+it("links the support address in a failed download to a prefilled email", async () => {
+  vi.mocked(fetchKayaImport).mockRejectedValueOnce(
+    new Error(
+      "This KAYA history is too large for a direct import. Email support@betabook.ca for help importing it.",
+    ),
+  );
+  setup();
+  await userEvent.type(screen.getByRole("textbox"), "climber");
+  await userEvent.click(screen.getByRole("button", { name: "Load sends" }));
+  const link = await screen.findByRole("link", { name: "support@betabook.ca" });
+  expect(screen.getByRole("alert")).toContainElement(link);
+  expect(link).toHaveAttribute(
+    "href",
+    "mailto:support@betabook.ca?subject=KAYA%20import&body=This%20KAYA%20history%20is%20too%20large%20for%20a%20direct%20import.%20Email%20support%40betabook.ca%20for%20help%20importing%20it.",
+  );
+});
+
 it("cancels a pending download and ignores its late response", async () => {
   let resolve!: (value: typeof payload) => void;
   vi.mocked(fetchKayaImport).mockReturnValue(
