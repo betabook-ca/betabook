@@ -88,8 +88,8 @@ it("answers an incoming request from the menu beside the name", async () => {
 
   expect(screen.getAllByRole("button")).toHaveLength(1);
   await user.click(screen.getByRole("button", { name: "Alex Rivera sent you a friend request" }));
-  expect(await screen.findByRole("menuitem", { name: "Decline request" })).toBeInTheDocument();
-  await user.click(screen.getByRole("menuitem", { name: "Accept request" }));
+  expect(await screen.findByRole("menuitem", { name: "Decline" })).toBeInTheDocument();
+  await user.click(screen.getByRole("menuitem", { name: "Accept" }));
 
   expect(acceptFriendRequest).toHaveBeenCalledExactlyOnceWith("alex");
   expect(

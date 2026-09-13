@@ -108,7 +108,7 @@ it("keeps request management on its own Friends page", () => {
   const html = demo("friend-requests", "updates");
   expect(html).not.toContain("Alex Morgan");
   expect(html).toContain("Sam Taylor");
-  expect(html).toContain("Accept request");
+  expect(html).toContain("Accept");
   expect(html).toContain("All friends");
   expect(html).toContain('data-tour-target="friend-requests"');
   expect(html).not.toContain('data-tour-target="friend-search"');
