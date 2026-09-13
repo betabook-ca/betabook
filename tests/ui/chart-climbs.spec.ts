@@ -79,11 +79,38 @@ test(
     const chartBox = await chart.boundingBox();
     if (!chartBox) throw new Error("Missing chart");
     expect(chartBox.height).toBeLessThanOrEqual(220);
-    const second = page.getByRole("button", { name: /Feb 2024/ });
+    const second = chart.getByRole("button", { name: /Feb 2024/ });
     if (info.project.use.hasTouch) await second.tap();
     else await second.click();
     await expect(page.getByRole("tooltip")).toContainText("Feb 2024");
     await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    const targets = (name: string) =>
+      page.getByRole("region", { name, exact: true }).evaluate((node) =>
+        Array.from(node.querySelectorAll("button"), (button) => {
+          const { left, right, top, bottom, width } = button.getBoundingClientRect();
+          return { label: button.getAttribute("aria-label"), left, right, top, bottom, width };
+        }),
+      );
+    const distant = await targets("sport grade progression");
+    expect(distant).toHaveLength(18);
+    expect(distant.filter((target) => target.width < 23.5).map((target) => target.label)).toEqual(
+      [],
+    );
+    const narrow = await targets("trad grade progression");
+    expect(narrow).toHaveLength(12);
+    expect(
+      narrow.flatMap((a, i) =>
+        narrow
+          .slice(i + 1)
+          .filter(
+            (b) =>
+              Math.min(a.right, b.right) - Math.max(a.left, b.left) > 0.5 &&
+              Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 0.5,
+          )
+          .map((b) => `${a.label} / ${b.label}`),
+      ),
+    ).toEqual([]);
   },
 );
 

@@ -45,20 +45,24 @@ export function ProgressionChart({
       ? MARGIN.left + PLOT_W / 2
       : MARGIN.left + ((monthIndex(month) - m0) / (m1 - m0)) * PLOT_W;
 
-  // A target wider than the gap to a neighbouring dot would swallow that
-  // month's taps, so dense logs narrow their targets instead of scrolling.
-  const xs = points.map((point) => x(point.month));
-  const targetWidth = (i: number) =>
-    Math.min(
-      TARGET,
-      i > 0 ? xs[i] - xs[i - 1] : TARGET,
-      i < xs.length - 1 ? xs[i + 1] - xs[i] : TARGET,
-    );
-
   const gradeMin = Math.max(Math.min(...points.map((p) => p.hardest)) - 1, 0);
   const gradeMax = Math.min(Math.max(...points.map((p) => p.best)) + 1, scale.length - 1);
   const y = (grade: number) =>
     MARGIN.top + (1 - (grade - gradeMin) / Math.max(gradeMax - gradeMin, 1)) * PLOT_H;
+
+  // A target wider than the gap to a dot within its height would swallow that
+  // month's taps, so dense logs narrow their targets instead of scrolling.
+  const xs = points.map((point) => x(point.month));
+  const ys = points.map((point) => y(point.hardest));
+  const targetWidth = (i: number) => {
+    let width = TARGET;
+    for (let j = 0; j < points.length; j += 1) {
+      if (j !== i && Math.abs(ys[j] - ys[i]) < TARGET) {
+        width = Math.min(width, Math.abs(xs[j] - xs[i]));
+      }
+    }
+    return width;
+  };
 
   // Grade rules: one hairline per grade in the visible span, a label on
   // every `labelStep`-th so wide spans don't collide.
@@ -206,11 +210,14 @@ export function ProgressionChart({
                   send.suggestedGrade === point.hardest &&
                   send.dateSent?.startsWith(`${point.month}-`),
               )}
-              className="absolute h-6 min-w-0 -translate-x-1/2 -translate-y-1/2 rounded-full p-0 hover:bg-default"
+              className="absolute min-w-0 -translate-x-1/2 -translate-y-1/2 rounded-full p-0 hover:bg-default"
               style={{
-                width: targetWidth(i),
+                // Shares of the chart, not px: a card narrower than useChartWidth's
+                // 240px floor scales the SVG down, and the targets must scale with it.
+                width: `${(targetWidth(i) / W) * 100}%`,
+                height: `${(TARGET / H) * 100}%`,
                 left: `${(xs[i] / W) * 100}%`,
-                top: `${(y(point.hardest) / H) * 100}%`,
+                top: `${(ys[i] / H) * 100}%`,
               }}
             >
               <span
