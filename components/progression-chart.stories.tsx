@@ -12,7 +12,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "A responsive chart showing the personal-best ceiling and monthly high points for the selected years. Sparse histories fit narrow cards; dense histories scroll to keep touch targets separate. Preview up to three climb names under consolidated month/year headings, and open the full list only for larger groups.",
+          "A responsive chart showing the personal-best ceiling and monthly high points for the selected years. It always fits its card; dense histories narrow each month’s target to the gap between dots so neighbours never overlap. Preview up to three climb names under consolidated month/year headings, and open the full list only for larger groups.",
       },
     },
   },
@@ -59,7 +59,7 @@ export const DenseHistory: Story = {
     return (
       <StoryPage
         title="Consecutive months stay selectable"
-        description="Dense histories scroll horizontally while preserving a compact chart height and separate touch targets."
+        description="Dense histories fit the card without scrolling, keep a compact height, and give every month its own target."
       >
         <ProgressionChart
           type="boulder"
