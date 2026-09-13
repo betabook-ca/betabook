@@ -28,8 +28,8 @@ export default function ContactPage() {
       </p>
 
       <p className="leading-relaxed text-pretty">
-        You don&apos;t need an account. Leave an email and I&apos;ll reply to it. If you&apos;d
-        rather file it where other people can see it, the{" "}
+        You don&apos;t need an account. Leave an email to get a reply. If you&apos;d rather file it
+        where other people can see it, the{" "}
         {/* External link: a plain anchor, not AppLink — next/link has nothing
          * to prefetch off-site, so .link and the focus ring are re-added by
          * hand. `inline` matters: .link is display:inline-flex, an atomic
