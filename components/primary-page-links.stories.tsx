@@ -43,6 +43,9 @@ export const AddClimb: Story = {
 export const AddArea: Story = {
   parameters: { nextjs: { navigation: { pathname: "/areas/new" } } },
 };
+export const Feed: Story = {
+  parameters: { nextjs: { navigation: { pathname: "/feed" } } },
+};
 export const OtherClimber: Story = {
   parameters: { nextjs: { navigation: { pathname: "/users/other/journal" } } },
 };

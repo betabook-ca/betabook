@@ -14,6 +14,30 @@ const LABELS: Record<FriendshipAction, string> = {
   remove: "Remove friend",
 };
 
+export function friendshipConfirmation(action: FriendshipAction, name: string) {
+  return action === "remove"
+    ? {
+        title: `Remove ${name} as a friend?`,
+        description:
+          "Their activity will leave your feed, and you'll both lose access to Friends-only journal entries and send notes. Tags between you on journal entries are permanently removed.",
+        cancelLabel: "Keep friend",
+      }
+    : action === "decline"
+      ? {
+          title: `Decline ${name}'s friend request?`,
+          description: "This removes the request. They can send you another one later.",
+          cancelLabel: "Keep request",
+        }
+      : action === "cancel"
+        ? {
+            title: `Cancel your friend request to ${name}?`,
+            description:
+              "They won't be able to accept this request. You can send another one later.",
+            cancelLabel: "Keep request",
+          }
+        : null;
+}
+
 /** Shared by real relationships and local tour examples. Call complete only after success. */
 export function FriendshipActionButton({
   action,
@@ -30,28 +54,7 @@ export function FriendshipActionButton({
 }) {
   const state = useOverlayState();
   const label = LABELS[action];
-  const confirmation =
-    action === "remove"
-      ? {
-          title: `Remove ${name} as a friend?`,
-          description:
-            "Their activity will leave your feed, and you'll both lose access to Friends-only journal entries and send notes. Tags between you on journal entries are permanently removed.",
-          cancelLabel: "Keep friend",
-        }
-      : action === "decline"
-        ? {
-            title: `Decline ${name}'s friend request?`,
-            description: "This removes the request. They can send you another one later.",
-            cancelLabel: "Keep request",
-          }
-        : action === "cancel"
-          ? {
-              title: `Cancel your friend request to ${name}?`,
-              description:
-                "They won't be able to accept this request. You can send another one later.",
-              cancelLabel: "Keep request",
-            }
-          : null;
+  const confirmation = friendshipConfirmation(action, name);
   return (
     <>
       <Button

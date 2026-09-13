@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 
-import { ProfileHeader, getUserById } from "@/app/users/[id]/profile-shell";
 import { AuthCallout } from "@/components/auth-callout";
 import { FriendList } from "@/components/friend-list";
 import { FriendSuggestions } from "@/components/friend-suggestions";
 import { FriendTabs } from "@/components/friend-tabs";
 import { AppLink } from "@/components/ui/app-link";
-import { SectionHeading } from "@/components/ui/typography";
+import { PageTitle } from "@/components/ui/typography";
 import { ViewerBoundary } from "@/components/viewer-boundary";
 import { getDb } from "@/db/client";
 import { getClimberSuggestions, getFriendsPage } from "@/db/queries";
@@ -25,26 +23,26 @@ export default async function FriendsPage({
   const session = await getSession();
   if (!session) return <AuthCallout next={requestsOnly ? "/friends?view=requests" : "/friends"} />;
   const db = await getDb();
-  const [page, owner, suggestions] = await Promise.all([
+  const [page, suggestions] = await Promise.all([
     getFriendsPage(db, session.user.id, requestsOnly),
-    getUserById(session.user.id),
     requestsOnly ? null : getClimberSuggestions(db, session.user.id).catch(() => null),
   ]);
-  if (!owner) notFound();
   return (
     <ViewerBoundary viewerId={session.user.id}>
       <div className="flex flex-col gap-6">
-        <ProfileHeader user={owner} viewerId={session.user.id} />
         <section aria-label="Friends" className="flex w-full min-w-0 flex-col gap-5">
-          <SectionHeading>Friends</SectionHeading>
-          <p className="text-sm text-muted">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <PageTitle>Friends</PageTitle>
+            <div className="flex flex-wrap gap-4 text-sm">
+              <AppLink href="/feed">Feed</AppLink>
+              <AppLink href="/?mode=climber">Find climbers</AppLink>
+              <AppLink href={`/users/${session.user.id}`}>My profile</AppLink>
+            </div>
+          </div>
+          <p className="max-w-3xl text-sm text-muted">
             Accept a request to add someone as a friend. You can remove a friend at any time. Only
             you can see this list, but your friends may be suggested to one another.
           </p>
-          <div className="flex flex-wrap gap-4">
-            <AppLink href="/?mode=climber">Find climbers</AppLink>
-            <AppLink href="/account">Account settings</AppLink>
-          </div>
           <FriendTabs requestsOnly={requestsOnly} userId={session.user.id} />
           <FriendList
             key={`${session.user.id}:${requestsOnly}`}

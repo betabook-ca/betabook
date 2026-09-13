@@ -3,9 +3,6 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { JournalFilterToolbar, JournalTimeline } from "@/components/journal";
 import { NavigationPendingProvider } from "@/components/navigation-pending";
 import { ProductTour } from "@/components/product-tour";
-import { Eyebrow } from "@/components/ui/eyebrow";
-import { SidebarLayout } from "@/components/ui/page-shell";
-import { StatStrip } from "@/components/ui/stat-strip";
 import { SectionHeading } from "@/components/ui/typography";
 import { getDb } from "@/db/client";
 import {
@@ -48,60 +45,31 @@ export async function JournalView({
     firstPage.entries.flatMap((entry) => (entry.areaId == null ? [] : [entry.areaId])),
   );
 
-  const statCards = [
-    ...(counts.entriesThisMonth > 0
-      ? [
-          {
-            key: "month",
-            heading: <Eyebrow>This month</Eyebrow>,
-            stats: [
-              { label: "Days out", value: counts.daysThisMonth },
-              { label: "Entries", value: counts.entriesThisMonth },
-              { label: "Sent sessions", value: counts.sentThisMonth },
-            ],
-          },
-        ]
-      : []),
-    {
-      key: "all-time",
-      heading: <Eyebrow>All time</Eyebrow>,
-      stats: [
-        { label: "Days out", value: counts.days },
-        { label: "Sessions", value: counts.sessions },
-        { label: "Training", value: counts.training },
-      ],
-    },
-  ];
-
   return (
     <NavigationPendingProvider>
-      {tourState && <ProductTour initialState={tourState} />}
-      <div className="flex flex-col gap-3">
-        <SectionHeading>Journal</SectionHeading>
-        <SidebarLayout sidebar={<StatStrip cards={statCards} />}>
-          <div className="flex flex-col gap-3">
-            {counts.entries > 0 && (
-              <JournalFilterToolbar
-                userId={ownerId}
-                tags={tags}
-                isOwner={isOwner}
-                friends={friends}
-                filter={filter}
-                climbName={filteredClimb?.name ?? null}
-              />
-            )}
-            <JournalTimeline
-              key={JSON.stringify(filter)}
-              userId={ownerId}
-              filter={filter}
-              initialEntries={firstPage.entries}
-              initialHasMore={firstPage.hasMore}
-              initialAreaBreadcrumbs={areaBreadcrumbs}
-              isOwner={isOwner}
-              hasAnyEntries={counts.entries > 0}
-            />
-          </div>
-        </SidebarLayout>
+      <div className="flex min-w-0 flex-col gap-4">
+        {tourState && <ProductTour initialState={tourState} />}
+        <SectionHeading className="sr-only">Journal</SectionHeading>
+        {counts.entries > 0 && (
+          <JournalFilterToolbar
+            userId={ownerId}
+            tags={tags}
+            isOwner={isOwner}
+            friends={friends}
+            filter={filter}
+            climbName={filteredClimb?.name ?? null}
+          />
+        )}
+        <JournalTimeline
+          key={JSON.stringify(filter)}
+          userId={ownerId}
+          filter={filter}
+          initialEntries={firstPage.entries}
+          initialHasMore={firstPage.hasMore}
+          initialAreaBreadcrumbs={areaBreadcrumbs}
+          isOwner={isOwner}
+          hasAnyEntries={counts.entries > 0}
+        />
       </div>
     </NavigationPendingProvider>
   );

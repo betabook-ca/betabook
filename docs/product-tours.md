@@ -11,8 +11,10 @@ Tours run at `/tutorial/[tourId]/[stepId]` inside the app shell. The page uses A
 
 The Journal tour covers Log, journal filters, Sends sorting, project history, Analytics, climber discovery, friend requests, Feed, and privacy. The sample Log control is a visual reference in the full tour, with no click action or popover. First-time invitations include an ordinary Log button. Update invitations and update demos omit both Log controls.
 
-Demo profile tabs use the app's order: Journal, Sends, Feed, Friends, Projects,
-Analytics, then the tour-only Account section. Lesson order remains in the catalog.
+Profile lessons (Journal, Sends, Projects and Analytics) show Alex's profile
+heading beside demo section tabs in the app's order. Feed, Friends and Account are
+their own pages in the app, so those lessons render without the heading. Lesson
+order remains in the catalog.
 Discovery uses a separate Search surface, with the same All / Climbs / Areas / Climbers categories and result rows as the app. Search is
 not a profile tab. The lesson starts in Climbers; category changes, search
 submission, sample results, and friend requests stay local. Its View your feed link

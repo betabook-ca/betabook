@@ -8,7 +8,6 @@ import {
   OPEN_PROJECT_PAGE_SIZE,
   type JournalEntry,
 } from "@/db/queries";
-import { formatCount } from "@/lib/format";
 
 export async function ProjectsView({ ownerId }: { ownerId: string }) {
   const db = await getDb();
@@ -36,15 +35,8 @@ export async function ProjectsView({ ownerId }: { ownerId: string }) {
   }));
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <SectionHeading>Projects</SectionHeading>
-        <span className="text-sm text-muted">
-          {hasMore
-            ? `${OPEN_PROJECT_PAGE_SIZE}+ open projects`
-            : formatCount(projects.length, "open project")}
-        </span>
-      </div>
+    <div className="flex min-w-0 flex-col gap-4">
+      <SectionHeading className="sr-only">Projects</SectionHeading>
       <ProjectBoard userId={ownerId} projects={withSessions} hasMore={hasMore} />
     </div>
   );

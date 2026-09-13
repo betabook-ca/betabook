@@ -14,24 +14,25 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+const hrefs = (html: string) => [...html.matchAll(/href="([^"]+)"/g)].map((match) => match[1]);
+
 it.each([
   ["/users/owner", "Journal"],
   ["/users/owner/journal", "Journal"],
   ["/users/owner/sends", "Sends"],
   ["/users/owner/projects", "Projects"],
   ["/users/owner/analytics", "Analytics"],
-  ["/feed", "Feed"],
-  ["/friends", "Friends"],
-])("keeps %s in the owner's profile tabs and marks it current", (pathname, label) => {
+])("marks %s current among the owner's logbook sections", (pathname, label) => {
   state.pathname = pathname;
-  const html = renderToStaticMarkup(
-    <ProfileTabs userId="owner" showJournal showProjects isOwner />,
-  );
+  const html = renderToStaticMarkup(<ProfileTabs userId="owner" showJournal showProjects />);
+
   expect(html).not.toContain("<h2");
-  expect(html).toContain('href="/users/owner/journal"');
-  expect(html).toContain('href="/users/owner/sends"');
-  expect(html).toContain('href="/feed"');
-  expect(html).toContain('href="/friends"');
+  expect(hrefs(html)).toEqual([
+    "/users/owner/journal",
+    "/users/owner/sends",
+    "/users/owner/projects",
+    "/users/owner/analytics",
+  ]);
   expect(html).toMatch(
     new RegExp(
       `href="${pathname === "/users/owner" ? "/users/owner/journal" : pathname}"[^>]*aria-current="page"[^>]*>.*?${label}`,
@@ -40,23 +41,21 @@ it.each([
   expect(html.match(/aria-current="page"/g)).toHaveLength(1);
 });
 
-it("does not put the viewer's Feed, Friends or Projects on another climber's profile", () => {
+it("keeps Projects off another climber's profile", () => {
   state.pathname = "/users/other/sends";
   const html = renderToStaticMarkup(
-    <ProfileTabs userId="other" showJournal={false} showProjects={false} isOwner={false} />,
+    <ProfileTabs userId="other" showJournal={false} showProjects={false} />,
   );
+
   expect(html).not.toContain("<h2");
   expect(html).toContain('href="/users/other/sends" aria-current="page"');
-  expect(html).toContain('href="/users/other/analytics"');
-  expect(html).not.toContain('href="/feed"');
-  expect(html).not.toContain('href="/friends"');
-  expect(html).not.toContain("/projects");
+  expect(hrefs(html)).toEqual(["/users/other/sends", "/users/other/analytics"]);
 });
 
 it("calls another person's journal Journal", () => {
   state.pathname = "/users/other/journal";
   const html = renderToStaticMarkup(
-    <ProfileTabs userId="other" showJournal showProjects={false} isOwner={false} />,
+    <ProfileTabs userId="other" showJournal showProjects={false} />,
   );
   expect(html).toMatch(/href="\/users\/other\/journal"[^>]*>Journal<\/a>/);
   expect(html).not.toContain("My Journal");

@@ -19,13 +19,14 @@ type AuthNavProps = {
   onNavigate?: () => void;
 };
 
-/** One placeholder per signed-in control, sized to the three text links and
+/** One placeholder per signed-in control, sized to the four text links and
  * account avatar they stand in for. The signed-in set is the widest (and,
  * for a logbook, the most common) state, so holding its geometry keeps the
  * header from reflowing when the session resolves. */
 const PLACEHOLDER_WIDTHS = [
   { key: "add-climb", width: "w-21" },
   { key: "add-area", width: "w-20" },
+  { key: "feed", width: "w-10" },
   { key: "my-journal", width: "w-20" },
   { key: "account", width: "w-14" },
 ] as const;

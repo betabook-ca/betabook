@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { JournalView } from "@/app/users/[id]/journal-view";
+import { PROFILE_LAYOUT_CLASS } from "@/app/users/[id]/profile-layout";
 import { ProfileHeader, getUserById, canReadUserJournal } from "@/app/users/[id]/profile-shell";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { parseJournalFilter } from "@/lib/filters/journal-filter";
@@ -33,7 +34,7 @@ export default async function UserJournalPage({ params, searchParams }: UserJour
   if (!user || !(await canReadUserJournal(user.id, viewerId))) notFound();
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className={PROFILE_LAYOUT_CLASS}>
       <ProfileHeader user={user} viewerId={viewerId} />
       <JournalView ownerId={user.id} viewerId={viewerId} filter={parseJournalFilter(search)} />
     </div>

@@ -131,12 +131,7 @@ describe("ProfileTabs", () => {
   it("does not offer a private Journal tab to a visitor", () => {
     state.pathname = `/users/${state.user.id}`;
     const html = renderToStaticMarkup(
-      <ProfileTabs
-        userId={state.user.id}
-        showJournal={false}
-        showProjects={false}
-        isOwner={false}
-      />,
+      <ProfileTabs userId={state.user.id} showJournal={false} showProjects={false} />,
     );
 
     expect([...html.matchAll(/href="([^"]+)"/g)].map((match) => match[1])).toEqual([
@@ -145,17 +140,15 @@ describe("ProfileTabs", () => {
     ]);
   });
 
-  it("puts the owner's Projects tab after Friends and marks it current", () => {
+  it("puts the owner's Projects tab between Sends and Analytics and marks it current", () => {
     state.pathname = `/users/${state.user.id}/projects`;
     const html = renderToStaticMarkup(
-      <ProfileTabs userId={state.user.id} showJournal showProjects isOwner />,
+      <ProfileTabs userId={state.user.id} showJournal showProjects />,
     );
 
     expect([...html.matchAll(/href="([^"]+)"/g)].map((match) => match[1])).toEqual([
       `/users/${state.user.id}/journal`,
       `/users/${state.user.id}/sends`,
-      "/feed",
-      "/friends",
       `/users/${state.user.id}/projects`,
       `/users/${state.user.id}/analytics`,
     ]);

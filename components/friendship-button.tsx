@@ -1,5 +1,7 @@
 "use client";
 
+import { Menu, useOverlayState } from "@heroui/react";
+import { UserCheck } from "lucide-react";
 import { useState, useTransition } from "react";
 
 import {
@@ -10,18 +12,29 @@ import {
   removeFriendship,
 } from "@/actions";
 import { useFriendRequests } from "@/components/friend-requests-provider";
-import { FriendshipActionButton } from "@/components/friendship-action-button";
+import {
+  FriendshipActionButton,
+  friendshipConfirmation,
+} from "@/components/friendship-action-button";
+import { ActionsMenu } from "@/components/ui/actions-menu";
+import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import type { ActionResult } from "@/lib/action-result";
 import type { FriendshipStatus } from "@/lib/friendships";
 
+type FriendshipMutation = (userId: string) => Promise<ActionResult<FriendshipStatus>>;
+
+/** `profile` keeps an existing friendship's removal in a menu instead of a headline button. */
 export function FriendshipButton({
   userId,
   name,
   initialStatus,
+  appearance = "row",
 }: {
   userId: string;
   name: string;
   initialStatus: FriendshipStatus;
+  appearance?: "row" | "profile";
 }) {
   const [status, setStatus] = useState(initialStatus);
   const [source, setSource] = useState(initialStatus);
@@ -31,6 +44,31 @@ export function FriendshipButton({
   if (source !== initialStatus) {
     setSource(initialStatus);
     setStatus(initialStatus);
+  }
+  function run(action: FriendshipMutation, complete: () => void) {
+    setError(null);
+    startTransition(async () => {
+      try {
+        const result = await action(userId);
+        if (result.ok) {
+          setStatus(result.value);
+          void refresh();
+          complete();
+        } else setError(result.error);
+      } catch {
+        setError("Couldn't save that change. Try again.");
+      }
+    });
+  }
+  if (appearance === "profile" && status === "friends") {
+    return (
+      <FriendMenu
+        name={name}
+        pending={pending}
+        error={error}
+        onRemove={(complete) => run(removeFriendship, complete)}
+      />
+    );
   }
   const options =
     status === "incoming"
@@ -50,6 +88,9 @@ export function FriendshipButton({
           Friend request sent
         </p>
       )}
+      {status === "incoming" && appearance === "profile" && (
+        <p className="text-xs text-muted">{name} sent you a friend request</p>
+      )}
       <div className="flex flex-wrap gap-2">
         {options.map(({ kind, action }) => (
           <FriendshipActionButton
@@ -58,25 +99,50 @@ export function FriendshipButton({
             name={name}
             pending={pending}
             error={error}
-            onPress={(complete) => {
-              setError(null);
-              startTransition(async () => {
-                try {
-                  const result = await action(userId);
-                  if (result.ok) {
-                    setStatus(result.value);
-                    void refresh();
-                    complete();
-                  } else setError(result.error);
-                } catch {
-                  setError("Couldn't save that change. Try again.");
-                }
-              });
-            }}
+            onPress={(complete) => run(action, complete)}
           />
         ))}
       </div>
       {error && <InlineAlert className="max-w-64">{error}</InlineAlert>}
+    </div>
+  );
+}
+
+function FriendMenu({
+  name,
+  pending,
+  error,
+  onRemove,
+}: {
+  name: string;
+  pending: boolean;
+  error: string | null;
+  onRemove: (complete: () => void) => void;
+}) {
+  const state = useOverlayState();
+  return (
+    <div className="flex items-center gap-1">
+      <span className="inline-flex items-center gap-1.5 text-sm font-medium">
+        <UserCheck aria-hidden className="size-4 text-success-soft-foreground" />
+        Friends
+      </span>
+      <ActionsMenu
+        ariaLabel={`Friendship options for ${name}`}
+        onAction={(key) => {
+          if (key === "remove") state.open();
+        }}
+      >
+        <Menu.Item id="remove">Remove friend</Menu.Item>
+      </ActionsMenu>
+      <ConfirmDeleteDialog
+        state={state}
+        noun="friend"
+        {...friendshipConfirmation("remove", name)}
+        confirmLabel="Remove friend"
+        onConfirm={() => onRemove(state.close)}
+        isPending={pending}
+        error={error}
+      />
     </div>
   );
 }

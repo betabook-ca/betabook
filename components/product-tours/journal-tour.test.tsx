@@ -77,6 +77,13 @@ it("retains the original Log lesson in full replay", () => {
   expect(html).toContain('data-tour-target="journal-filters"');
 });
 
+it("tabs only Alex's logbook sections on a profile lesson", () => {
+  const html = demo("sends", "full");
+  const tabs = html.slice(html.indexOf('aria-label="Profile sections"'));
+  expect(tabs).toMatch(/>Journal<.*>Sends<.*>Projects<.*>Analytics</s);
+  expect(tabs).not.toMatch(/>Feed<|>Friends<|>Account settings</);
+});
+
 it.each(["full", "updates"] as const)("shows discovery on Search in the %s tour", (mode) => {
   const html = demo("find-climbers", mode);
   expect(html).toContain('aria-label="Search category"');
@@ -90,9 +97,9 @@ it.each(["full", "updates"] as const)("shows discovery on Search in the %s tour"
   expect(html).not.toContain('action="/"');
 });
 
-it("keeps request management on Friends without embedding discovery", () => {
+it("keeps request management on its own Friends page", () => {
   const html = demo("friend-requests", "updates");
-  expect(html).toContain("Alex Morgan");
+  expect(html).not.toContain("Alex Morgan");
   expect(html).toContain("Sam Taylor");
   expect(html).toContain("Accept request");
   expect(html).toContain("All friends");

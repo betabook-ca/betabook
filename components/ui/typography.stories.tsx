@@ -10,6 +10,9 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const PageHeading: Story = {};
+export const ClimberName: Story = {
+  args: { children: "Alexandra Rivera", size: "lg" },
+};
 export const WithSection: Story = {
   render: (args) => (
     <div className="flex flex-col gap-6">

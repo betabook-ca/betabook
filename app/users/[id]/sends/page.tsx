@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { PROFILE_LAYOUT_CLASS } from "@/app/users/[id]/profile-layout";
 import { ProfileHeader, getUserById } from "@/app/users/[id]/profile-shell";
 import { SendsView } from "@/app/users/[id]/sends-view";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
@@ -34,7 +35,7 @@ export default async function UserSendsPage({ params, searchParams }: UserSendsP
   if (!user || !canViewUser(user, viewerId)) notFound();
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className={PROFILE_LAYOUT_CLASS}>
       <ProfileHeader user={user} viewerId={viewerId} />
       <SendsView
         userId={id}

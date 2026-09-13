@@ -1,12 +1,15 @@
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { cache } from "react";
 
 import { FriendshipButton } from "@/components/friendship-button";
 import { LogEntryButton } from "@/components/journal";
+import { ProfileFriendsLink } from "@/components/profile-friends-link";
 import { ProfileHeading } from "@/components/profile-heading";
 import { ProfileTabs } from "@/components/profile-tabs";
 import { ShareProfileButton } from "@/components/share-profile-button";
 import { getDb } from "@/db/client";
 import { getUser, getFriendship, canReadJournal, getShareLinkOwner } from "@/db/queries";
+import { getClimberOverview } from "@/db/queries/climber-overview";
 import { getOwnProfileShareUrl } from "@/lib/profile-share-url";
 
 export const getUserById = cache(async (id: string) => {
@@ -25,38 +28,58 @@ export const getShareLinkOwnerByToken = cache(async (token: string) =>
 type ProfileUser = {
   id: string;
   name: string;
-  createdAt: Date;
+  image: string | null;
   isPrivate: boolean;
 };
 
+/** Renders two grid items for PROFILE_LAYOUT_CLASS; the page's section view is the third. */
 export async function ProfileHeader({ user, viewerId }: { user: ProfileUser; viewerId: string }) {
+  const db = await getDb();
   const isOwner = viewerId === user.id;
-  const relationship = await getFriendship(await getDb(), viewerId, user.id);
-  const journalVisible = await canReadUserJournal(user.id, viewerId);
-  const shareUrl = isOwner ? await getOwnProfileShareUrl(await getDb(), user) : null;
+  const { cf } = await getCloudflareContext({ async: true });
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: cf?.timezone ?? "UTC" }).format(
+    new Date(),
+  );
+  const [relationship, journalVisible, shareUrl, overview] = await Promise.all([
+    isOwner ? null : getFriendship(db, viewerId, user.id),
+    canReadUserJournal(user.id, viewerId),
+    isOwner ? getOwnProfileShareUrl(db, user) : null,
+    getClimberOverview(db, user.id, viewerId, today),
+  ]);
 
   return (
-    <div className="flex flex-col gap-4">
-      <ProfileHeading
-        name={user.name}
-        since={new Date(user.createdAt).getFullYear()}
-        action={
-          isOwner ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <LogEntryButton />
-              {shareUrl && <ShareProfileButton name={user.name} url={shareUrl} />}
-            </div>
+    <>
+      <aside aria-label="Climber summary" className="xl:sticky xl:top-6 xl:row-span-2">
+        <ProfileHeading
+          name={user.name}
+          image={user.image}
+          overview={overview}
+          actions={
+            isOwner ? (
+              <>
+                <LogEntryButton />
+                {shareUrl && <ShareProfileButton name={user.name} url={shareUrl} />}
+              </>
+            ) : (
+              <FriendshipButton
+                userId={user.id}
+                name={user.name}
+                initialStatus={relationship ?? "none"}
+                appearance="profile"
+              />
+            )
+          }
+        >
+          {isOwner ? (
+            <ProfileFriendsLink userId={user.id} />
           ) : (
-            <FriendshipButton userId={user.id} name={user.name} initialStatus={relationship} />
-          )
-        }
-      />
-      <ProfileTabs
-        userId={user.id}
-        showJournal={journalVisible}
-        showProjects={isOwner}
-        isOwner={isOwner}
-      />
-    </div>
+            !journalVisible && (
+              <p className="text-sm text-muted">{`${user.name}'s journal isn't shared with you.`}</p>
+            )
+          )}
+        </ProfileHeading>
+      </aside>
+      <ProfileTabs userId={user.id} showJournal={journalVisible} showProjects={isOwner} />
+    </>
   );
 }

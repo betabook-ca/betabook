@@ -4,38 +4,22 @@ import { clsx } from "clsx";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { FriendRequestBadge } from "@/components/friend-request-badge";
-import { useFriendRequests } from "@/components/friend-requests-provider";
 import { AppLink } from "@/components/ui/app-link";
 
 type ProfileTabsProps = {
   userId: string;
   showJournal: boolean;
   showProjects: boolean;
-  isOwner: boolean;
 };
 
-export function ProfileTabs({ userId, showJournal, showProjects, isOwner }: ProfileTabsProps) {
+/** Only the climber's own logbook: the viewer's Feed and Friends live outside the profile. */
+export function ProfileTabs({ userId, showJournal, showProjects }: ProfileTabsProps) {
   const pathname = usePathname();
-  const requests = useFriendRequests();
   const base = `/users/${userId}`;
 
-  const tabs: { href: string; label: string; roots: string[]; badge?: ReactNode }[] = [
+  const tabs: { href: string; label: string; roots: string[] }[] = [
     ...(showJournal ? [{ href: `${base}/journal`, label: "Journal", roots: [base] }] : []),
     { href: `${base}/sends`, label: "Sends", roots: showJournal ? [] : [base] },
-    ...(isOwner
-      ? [
-          { href: "/feed", label: "Feed", roots: [] },
-          {
-            href: "/friends",
-            label: "Friends",
-            roots: [],
-            badge: (
-              <FriendRequestBadge count={requests.userId === userId ? requests.count : null} />
-            ),
-          },
-        ]
-      : []),
     ...(showProjects ? [{ href: `${base}/projects`, label: "Projects", roots: [] }] : []),
     { href: `${base}/analytics`, label: "Analytics", roots: [] },
   ];

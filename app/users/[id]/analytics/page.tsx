@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { saveAnalyticsLayout } from "@/actions";
+import { PROFILE_LAYOUT_CLASS } from "@/app/users/[id]/profile-layout";
 import { ProfileHeader, getUserById } from "@/app/users/[id]/profile-shell";
 import { AnalyticsDashboard } from "@/components/analytics-dashboard";
 import { AnalyticsYearNavigation } from "@/components/analytics-year-filter";
@@ -107,17 +108,19 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
 
   if (scope == null) {
     const content = (
-      <div className="flex flex-col gap-6">
+      <div className={PROFILE_LAYOUT_CLASS}>
         <ProfileHeader user={user} viewerId={session.user.id} />
-        <SectionHeading>Analytics</SectionHeading>
-        <AnalyticsHashtagFilter selectedTags={selectedTags} tags={tags} />
-        <EmptyState
-          message={
-            selectedTags.length > 0
-              ? "No sends or outdoor sessions match these tags. Remove selected tags to see more activity."
-              : "No outdoor sessions logged yet — analytics appear with the first session."
-          }
-        />
+        <div className="flex min-w-0 flex-col gap-6">
+          <SectionHeading className="sr-only">Analytics</SectionHeading>
+          <AnalyticsHashtagFilter selectedTags={selectedTags} tags={tags} />
+          <EmptyState
+            message={
+              selectedTags.length > 0
+                ? "No sends or outdoor sessions match these tags. Remove selected tags to see more activity."
+                : "No outdoor sessions logged yet — analytics appear with the first session."
+            }
+          />
+        </div>
       </div>
     );
     return (
@@ -151,7 +154,7 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
     : lifetime;
 
   const content = (
-    <div className="flex flex-col gap-6">
+    <div className={PROFILE_LAYOUT_CLASS}>
       <ProfileHeader user={user} viewerId={session.user.id} />
 
       <AnalyticsDashboard

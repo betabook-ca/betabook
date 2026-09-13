@@ -2,7 +2,7 @@
 
 import { NavLink } from "@/components/nav-link";
 
-/** The same three destinations in the desktop header and original mobile menu. */
+/** The same destinations in the desktop header and original mobile menu. */
 export function PrimaryPageLinks({
   userId,
   direction = "row",
@@ -24,9 +24,17 @@ export function PrimaryPageLinks({
       <NavLink
         appearance="primary"
         layout={layout}
+        href="/feed"
+        relatedPaths={["/friends"]}
+        onClick={onNavigate}
+      >
+        Feed
+      </NavLink>
+      <NavLink
+        appearance="primary"
+        layout={layout}
         href={`/users/${userId}`}
         matchWithin
-        relatedPaths={["/feed", "/friends"]}
         onClick={onNavigate}
       >
         My profile
