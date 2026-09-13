@@ -5,7 +5,8 @@ import { DatabaseSync } from "node:sqlite";
 
 /**
  * Repairs the HTML entity artifacts left in the database by earlier imports:
- * `climbs.name` ("Jekyll &amp Hyde") and `sends.comment` ("I&rsquo;ve").
+ * `areas.name` and `climbs.name` ("Jekyll &amp Hyde") and `sends.comment`
+ * ("I&rsquo;ve").
  *
  *   pnpm backfill:entities            # dry run against production
  *   pnpm backfill:entities --apply    # dry run, then write
@@ -17,25 +18,27 @@ import { DatabaseSync } from "node:sqlite";
  * clause, so the script is idempotent and a row edited by someone else between
  * the dry run and the apply is skipped rather than overwritten.
  *
- * The two passes need different rules. Names dropped their closing semicolon
- * ("&amp"), which `decodeHtmlEntities` deliberately won't touch; comments carry
- * proper entities, which is exactly what it does handle.
+ * Names and comments need different rules. Names dropped their closing
+ * semicolon ("&amp"), which `decodeHtmlEntities` deliberately won't touch;
+ * comments carry proper entities, which is exactly what it does handle.
  *
  * Before running this against production:
  *
- * - Climb names are a moderation-gated field. This writes to the table
+ * - Area and climb names are moderation-gated. This writes to the tables
  *   directly and leaves no moderation record, which is the right call for
  *   repairing an encoding artifact and the wrong one for a rename.
- * - `climbs_fts_after_update` fires on `UPDATE OF name`, so search follows
- *   automatically. No reindex step.
+ * - A repaired name changes its URL slug. The id is authoritative, so the old
+ *   URL redirects to the new one.
+ * - `areas_fts_after_update` and `climbs_fts_after_update` fire on
+ *   `UPDATE OF name`, so search follows automatically. No reindex step.
  * - `updated_at` is left alone: this is a repair, not a user edit, and bumping
  *   it would reorder every "recently updated" surface.
  */
 import { decodeHtmlEntities } from "../lib/html-entities.ts";
-import { hasUnhandledEntity, repairClimbName } from "./climb-name-entities.ts";
 import { requireLocalDb } from "./d1-local.ts";
+import { hasUnhandledEntity, repairName } from "./name-entities.ts";
 
-type ClimbRow = { id: number; name: string };
+type NameRow = { id: number; name: string };
 /** A send plus the journal entry that mirrors it, if it has one. */
 type SendRow = {
   id: number;
@@ -119,14 +122,15 @@ function describeTarget(): void {
     };
     console.log(`target: PRODUCTION D1 "${info.name ?? "?"}" (${info.uuid ?? "?"})`);
   }
-  const [counts] = query<{ climbs: number; sends: number; journal: number }>(
-    `SELECT (SELECT COUNT(*) FROM climbs) AS climbs,
+  const [counts] = query<{ areas: number; climbs: number; sends: number; journal: number }>(
+    `SELECT (SELECT COUNT(*) FROM areas) AS areas,
+            (SELECT COUNT(*) FROM climbs) AS climbs,
             (SELECT COUNT(*) FROM sends) AS sends,
             (SELECT COUNT(*) FROM journal_entries) AS journal`,
   );
   if (!counts) throw new Error("Connected, but the probe query returned no rows.");
   console.log(
-    `connected: ${counts.climbs.toLocaleString()} climbs, ` +
+    `connected: ${counts.areas.toLocaleString()} areas, ${counts.climbs.toLocaleString()} climbs, ` +
       `${counts.sends.toLocaleString()} sends, ${counts.journal.toLocaleString()} journal entries`,
   );
 }
@@ -193,46 +197,52 @@ function preview(changes: Change[]): void {
   }
 }
 
-function climbNamePass(dir: string): string[] {
-  const rows = readPaged<ClimbRow>(
-    `SELECT id, name FROM climbs WHERE name LIKE '%&%' AND id > $AFTER ORDER BY id LIMIT ${PAGE_SIZE}`,
+/** Artifact prefix per table whose `name` carries the "&amp" corruption. */
+const NAME_PASSES = { areas: "area-names", climbs: "climb-names" } as const;
+
+function namePass(dir: string, table: keyof typeof NAME_PASSES): string[] {
+  const prefix = NAME_PASSES[table];
+  const rows = readPaged<NameRow>(
+    `SELECT id, name FROM ${table} WHERE name LIKE '%&%' AND id > $AFTER ORDER BY id LIMIT ${PAGE_SIZE}`,
   );
   const changes: Change[] = [];
-  const unhandled: ClimbRow[] = [];
+  const unhandled: NameRow[] = [];
   for (const row of rows) {
-    const after = repairClimbName(row.name);
+    const after = repairName(row.name);
     if (after !== row.name) changes.push({ id: row.id, before: row.name, after });
     if (hasUnhandledEntity(row.name)) unhandled.push(row);
   }
 
-  console.log(`\nclimb names: ${rows.length} contain "&", ${changes.length} to repair`);
+  console.log(
+    `\n${prefix.replace("-", " ")}: ${rows.length} contain "&", ${changes.length} to repair`,
+  );
   preview(changes);
   if (changes.length === 0) {
-    console.log("  no changes; any existing climb-names.* files left in place");
+    console.log(`  no changes; any existing ${prefix}.* files left in place`);
     return [];
   }
 
-  clearPreviousArtifacts(dir, "climb-names");
+  clearPreviousArtifacts(dir, prefix);
   const forward = writeChunks(
     dir,
-    "climb-names",
+    prefix,
     changes.map(
       (c) =>
-        `UPDATE climbs SET name = ${quote(c.after)} WHERE id = ${c.id} AND ${matches("name", c.before)};`,
+        `UPDATE ${table} SET name = ${quote(c.after)} WHERE id = ${c.id} AND ${matches("name", c.before)};`,
     ),
   );
   writeChunks(
     dir,
-    "climb-names.rollback",
+    `${prefix}.rollback`,
     changes.map(
       (c) =>
-        `UPDATE climbs SET name = ${quote(c.before)} WHERE id = ${c.id} AND ${matches("name", c.after)};`,
+        `UPDATE ${table} SET name = ${quote(c.before)} WHERE id = ${c.id} AND ${matches("name", c.after)};`,
     ),
   );
-  writeCsv(dir, "climb-names", changes);
+  writeCsv(dir, prefix, changes);
 
   if (unhandled.length > 0) {
-    const file = path.join(dir, "climb-names.unhandled.csv");
+    const file = path.join(dir, `${prefix}.unhandled.csv`);
     const body = unhandled.map((r) => `${r.id},${csvField(r.name)}`);
     writeFileSync(file, `${["id,name", ...body].join("\n")}\n`);
     console.log(
@@ -317,7 +327,11 @@ function main(): void {
   describeTarget();
   console.log(apply ? "mode: APPLY — changes will be written" : "mode: dry run — nothing written");
   mkdirSync(outDir, { recursive: true });
-  const forward = [...climbNamePass(outDir), ...sendCommentPass(outDir)];
+  const forward = [
+    ...namePass(outDir, "areas"),
+    ...namePass(outDir, "climbs"),
+    ...sendCommentPass(outDir),
+  ];
 
   console.log(`\nWrote ${forward.length} statement file(s) and rollbacks to ${outDir}/`);
   if (forward.length === 0) {

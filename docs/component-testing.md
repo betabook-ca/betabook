@@ -40,12 +40,12 @@ These rules describe actual collection in
 `.dom.test` suffix before the general `.test` suffix. `.tsx` enables JSX; it does
 not select a runner.
 
-| Path and filename                                                                                                                                                           | Runner and rules                                                 |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `components/**/*.dom.test.{ts,tsx}` and `hooks/**/*.dom.test.{ts,tsx}`                                                                                                      | Vitest `components` project; follow [jsdom rules](#jsdom-rules)  |
+| Path and filename                                                                                                                                                                                         | Runner and rules                                                 |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `components/**/*.dom.test.{ts,tsx}` and `hooks/**/*.dom.test.{ts,tsx}`                                                                                                                                    | Vitest `components` project; follow [jsdom rules](#jsdom-rules)  |
 | `actions/**/*.test.{ts,tsx}`, `app/**/*.test.{ts,tsx}`, `components/**/*.test.{ts,tsx}`, `db/**/*.test.{ts,tsx}`, `lib/**/*.test.{ts,tsx}`, `scripts/**/*.test.{ts,tsx}`, excluding `*.dom.test.{ts,tsx}` | Vitest `workers` project; follow [Workers rules](#workers-rules) |
-| `tests/ui/*.spec.ts`                                                                                                                                                        | Playwright; follow [browser rules](#browser-rules)               |
-| Colocated `*.stories.tsx`                                                                                                                                                   | Storybook examples; follow [story rules](#story-rules)           |
+| `tests/ui/*.spec.ts`                                                                                                                                                                                      | Playwright; follow [browser rules](#browser-rules)               |
+| Colocated `*.stories.tsx`                                                                                                                                                                                 | Storybook examples; follow [story rules](#story-rules)           |
 
 A `.dom.test.tsx` file under `app/` or `lib/` is not collected by either Vitest
 project. An ordinary `.test.ts` under `hooks/` or `test/` is also not collected.

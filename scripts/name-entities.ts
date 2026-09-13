@@ -1,6 +1,7 @@
 /**
- * The repair rule for the HTML entity artifacts in `climbs.name`, kept out of
- * the runner so the logic that rewrites production names is unit-tested.
+ * The repair rule for the HTML entity artifacts in `areas.name` and
+ * `climbs.name`, kept out of the runner so the logic that rewrites production
+ * names is unit-tested.
  *
  * `lib/html-entities.ts` can't be reused: it requires the closing semicolon,
  * and this corruption drops it ("Jekyll &amp Hyde").
@@ -22,7 +23,7 @@ const MAX_PASSES = 3;
  * bare "&Word", which is the right way to be wrong for a list a human reads. */
 const OTHER_ENTITY = /&[A-Za-z]{2,};?|&#\d+;?|&#[Xx][0-9A-Fa-f]+;?/;
 
-export function repairClimbName(name: string): string {
+export function repairName(name: string): string {
   if (!name.includes("&")) return name;
   let repaired = name;
   for (let pass = 0; pass < MAX_PASSES; pass += 1) {
@@ -36,5 +37,5 @@ export function repairClimbName(name: string): string {
 /** Whether a name still holds entity-shaped text after repair — the operator's
  * signal that another rule is needed before the data is clean. */
 export function hasUnhandledEntity(name: string): boolean {
-  return OTHER_ENTITY.test(repairClimbName(name));
+  return OTHER_ENTITY.test(repairName(name));
 }

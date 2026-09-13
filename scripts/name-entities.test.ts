@@ -1,46 +1,47 @@
 import { describe, expect, it } from "vitest";
 
-import { hasUnhandledEntity, repairClimbName } from "./climb-name-entities.ts";
+import { hasUnhandledEntity, repairName } from "./name-entities.ts";
 
-describe("repairClimbName", () => {
+describe("repairName", () => {
   it("repairs the bare &amp found in production names", () => {
-    expect(repairClimbName("Jekyll &amp Hyde")).toBe("Jekyll & Hyde");
-    expect(repairClimbName("Huey Lewis &amp The News")).toBe("Huey Lewis & The News");
-    expect(repairClimbName("60's &amp 70's")).toBe("60's & 70's");
-    expect(repairClimbName("5.10 Until Lee &amp Jeff Do It")).toBe("5.10 Until Lee & Jeff Do It");
+    expect(repairName("Jekyll &amp Hyde")).toBe("Jekyll & Hyde");
+    expect(repairName("Huey Lewis &amp The News")).toBe("Huey Lewis & The News");
+    expect(repairName("60's &amp 70's")).toBe("60's & 70's");
+    expect(repairName("5.10 Until Lee &amp Jeff Do It")).toBe("5.10 Until Lee & Jeff Do It");
+    expect(repairName("Covid &amp The Vaccine Boulders")).toBe("Covid & The Vaccine Boulders");
   });
 
   it("repairs the properly-terminated entity too", () => {
-    expect(repairClimbName("Salt &amp; Pepper")).toBe("Salt & Pepper");
+    expect(repairName("Salt &amp; Pepper")).toBe("Salt & Pepper");
   });
 
   it("unwraps a name encoded twice", () => {
-    expect(repairClimbName("Salt &amp;amp; Pepper")).toBe("Salt & Pepper");
+    expect(repairName("Salt &amp;amp; Pepper")).toBe("Salt & Pepper");
   });
 
   it("stops unwrapping rather than eating an escaped entity forever", () => {
-    expect(repairClimbName("&amp;amp;amp;amp;amp;")).toBe("&amp;amp;");
+    expect(repairName("&amp;amp;amp;amp;amp;")).toBe("&amp;amp;");
   });
 
   it("leaves a real ampersand and words that merely start with amp alone", () => {
-    expect(repairClimbName("Cams #3 & #4")).toBe("Cams #3 & #4");
-    expect(repairClimbName("Salt & Pepper")).toBe("Salt & Pepper");
-    expect(repairClimbName("R&D")).toBe("R&D");
-    expect(repairClimbName("&ampersand")).toBe("&ampersand");
-    expect(repairClimbName("Amphitheatre")).toBe("Amphitheatre");
-    expect(repairClimbName("Vamp")).toBe("Vamp");
+    expect(repairName("Cams #3 & #4")).toBe("Cams #3 & #4");
+    expect(repairName("Salt & Pepper")).toBe("Salt & Pepper");
+    expect(repairName("R&D")).toBe("R&D");
+    expect(repairName("&ampersand")).toBe("&ampersand");
+    expect(repairName("Amphitheatre")).toBe("Amphitheatre");
+    expect(repairName("Vamp")).toBe("Vamp");
     // A digit or underscore continues a token just as a letter does.
-    expect(repairClimbName("&amp3 Cracks")).toBe("&amp3 Cracks");
-    expect(repairClimbName("&amp_thing")).toBe("&amp_thing");
+    expect(repairName("&amp3 Cracks")).toBe("&amp3 Cracks");
+    expect(repairName("&amp_thing")).toBe("&amp_thing");
   });
 
   it("repairs &amp at the very end of a name", () => {
-    expect(repairClimbName("Fish &amp")).toBe("Fish &");
+    expect(repairName("Fish &amp")).toBe("Fish &");
   });
 
   it("returns a name with no ampersand untouched", () => {
-    expect(repairClimbName("Titanic")).toBe("Titanic");
-    expect(repairClimbName("")).toBe("");
+    expect(repairName("Titanic")).toBe("Titanic");
+    expect(repairName("")).toBe("");
   });
 });
 
