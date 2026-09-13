@@ -19,17 +19,25 @@ type AuthNavProps = {
   onNavigate?: () => void;
 };
 
-/** One placeholder per signed-in control, sized to the four text links and
+/** One placeholder per signed-in control, sized to the controls and
  * account avatar they stand in for. The signed-in set is the widest (and,
  * for a logbook, the most common) state, so holding its geometry keeps the
  * header from reflowing when the session resolves. */
-const PLACEHOLDER_WIDTHS = [
-  { key: "add-climb", width: "w-21" },
-  { key: "add-area", width: "w-20" },
-  { key: "feed", width: "w-10" },
-  { key: "my-journal", width: "w-20" },
-  { key: "account", width: "w-14" },
-] as const;
+const PLACEHOLDER_WIDTHS = {
+  row: [
+    { key: "add", width: "w-22" },
+    { key: "feed", width: "w-10" },
+    { key: "my-journal", width: "w-20" },
+    { key: "account", width: "w-14" },
+  ],
+  col: [
+    { key: "add-climb", width: "w-21" },
+    { key: "add-area", width: "w-20" },
+    { key: "feed", width: "w-10" },
+    { key: "my-journal", width: "w-20" },
+    { key: "account", width: "w-14" },
+  ],
+} as const;
 
 export function AuthNav({ direction = "row", onNavigate }: AuthNavProps) {
   // better-auth's session store can resolve from a client-side cache before
@@ -52,7 +60,7 @@ export function AuthNav({ direction = "row", onNavigate }: AuthNavProps) {
     // div — the classes, not the wrapper tag, define the geometry.
     return (
       <div className={signedInGroupClass} aria-hidden>
-        {PLACEHOLDER_WIDTHS.map(({ key, width }) => (
+        {PLACEHOLDER_WIDTHS[direction].map(({ key, width }) => (
           // The desktop account control resolves to a 32px avatar; the
           // drawer keeps its text label and therefore its normal line box.
           <Skeleton
