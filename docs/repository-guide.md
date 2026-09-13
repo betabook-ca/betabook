@@ -63,9 +63,11 @@ changing examples. Keep design guidance with the foundation/pattern stories and
 component examples; routine UI PRs should not update `docs/design-system.md`.
 Explain intentional design changes in the work summary or PR.
 
-For UI changes, run `pnpm test:ui` in addition to the normal checks and review
-screenshots at mobile and desktop sizes in both themes. Passing assertions do not
-replace visual review. Never loosen an assertion solely to make a regression pass.
+For UI changes, run the affected `tests/ui` spec files in addition to the normal
+checks and review screenshots at mobile and desktop sizes in both themes. Leave
+the full browser suite to CI's **UI reference** job; it is too slow to run
+locally. Passing assertions do not replace visual review. Never loosen an
+assertion solely to make a regression pass.
 
 ## Product tutorials
 

@@ -71,5 +71,6 @@ choice, including an explicit choice that differs from the OS.
 Next.js file metadata conventions advertise the favicon, SVG, Apple icon, and
 social image. `app/manifest.ts` advertises the two ordinary PNG launcher icons;
 they are not declared maskable. No installation workflow or tutorial steps change.
-Run `pnpm test:ui` for both real app placement, asset decoding and metadata checks
-and component/gallery checks in both themes and viewport sizes.
+`tests/ui/app-branding.spec.ts` covers real app placement, `tests/ui/artifacts.spec.ts`
+asset decoding and metadata, and `tests/ui/brand.spec.ts` the brand stories in both
+themes and viewport sizes. Run the affected files locally; CI runs the full suite.
