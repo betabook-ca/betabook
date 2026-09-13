@@ -28,6 +28,9 @@ supplied public profiles [crislink](https://sendage.com/user/crislink) and
   feed for a profile with sends, or a cursor that does not move to an older day,
   aborts the download.
 - `climb.search` returns 401 without a Sendage session.
+- Sendage's CDN returns 403 before the API to automated user agents such as
+  curl and HeadlessChrome, which a browser reports as a CORS error. Verify with a
+  regular browser user agent.
 
 This is Sendage's website API, not a documented third-party integration contract.
 Response validation, cursor checks, cancellation, per-request timeouts, and
