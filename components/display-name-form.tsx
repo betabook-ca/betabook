@@ -4,6 +4,7 @@ import { Button, Input, Label, TextField } from "@heroui/react";
 import { useState, useTransition } from "react";
 
 import { updateDisplayName } from "@/actions";
+import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { MAX_DISPLAY_NAME_LENGTH } from "@/lib/display-name";
 
@@ -38,10 +39,16 @@ export function DisplayNameForm({ initialName }: { initialName: string }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-      <TextField value={name} onChange={setName} isRequired maxLength={MAX_DISPLAY_NAME_LENGTH}>
+      <TextField
+        value={name}
+        onChange={setName}
+        isRequired
+        maxLength={MAX_DISPLAY_NAME_LENGTH}
+        className={FIELD_WIDTH_CLASS.long}
+      >
         <Label>Display name</Label>
         <div className="flex items-start gap-2">
-          <Input placeholder="Your display name" />
+          <Input placeholder="Your display name" className="min-w-0 flex-1" />
           <Button type="submit" isDisabled={pending || unchanged || !name.trim()}>
             Save
           </Button>

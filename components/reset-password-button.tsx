@@ -57,7 +57,6 @@ export function ResetPasswordButton({
       {captcha.widget}
       <Button
         variant="outline"
-        fullWidth
         className="gap-2"
         onPress={handleClick}
         isDisabled={pending || cooldown || !captcha.ready}

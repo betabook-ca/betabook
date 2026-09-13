@@ -72,14 +72,8 @@ export function ExportSendsButton({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="flex w-full flex-col gap-1">
-      <Button
-        variant="outline"
-        fullWidth
-        className="gap-2"
-        onPress={handlePress}
-        isDisabled={exporting}
-      >
+    <div className="flex flex-col gap-2">
+      <Button variant="outline" className="gap-2" onPress={handlePress} isDisabled={exporting}>
         <Download className="size-4" />
         {exporting ? `Exporting… ${formatCount(exportedRows, "row")}` : "Export sends"}
       </Button>

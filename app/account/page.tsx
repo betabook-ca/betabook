@@ -1,24 +1,7 @@
-import { buttonVariants } from "@heroui/react";
-import { clsx } from "clsx";
-import { ShieldCheck, Upload } from "lucide-react";
 import type { Metadata } from "next";
 
-import { AccountFriendRequests } from "@/components/account-friend-requests";
+import { AccountSettings } from "@/components/account-settings";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
-import { DeleteAccountButton } from "@/components/delete-account-button";
-import { DisplayNameForm } from "@/components/display-name-form";
-import { ExportSendsButton } from "@/components/export-sends-button";
-import { PrivacyControls } from "@/components/privacy-controls";
-import { ProductTour } from "@/components/product-tour";
-import { ResetPasswordButton } from "@/components/reset-password-button";
-import { ShareProfileControls } from "@/components/share-profile-controls";
-import { SignOutButton } from "@/components/sign-out-button";
-import { ThemeSelect } from "@/components/theme-select";
-import { AppLink } from "@/components/ui/app-link";
-import { cardClass, DANGER_CARD_CLASS } from "@/components/ui/card";
-import { Eyebrow } from "@/components/ui/eyebrow";
-import { PageTitle, SectionHeading } from "@/components/ui/typography";
-import { UserAvatar } from "@/components/ui/user-avatar";
 import { getDb } from "@/db/client";
 import { getUser } from "@/db/queries";
 import { getTurnstileSiteKey } from "@/lib/auth";
@@ -30,32 +13,6 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-/** One card per account concern. Keeping descriptions with their controls
- * makes the settings page scannable without turning it into a button grid. */
-function AccountSection({
-  id,
-  title,
-  description,
-  className,
-  children,
-}: {
-  id?: string;
-  title: string;
-  description: string;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section id={id} className={clsx("flex h-full flex-col gap-4", cardClass("md"), className)}>
-      <div className="flex flex-col gap-1">
-        <SectionHeading>{title}</SectionHeading>
-        <p className="text-sm text-muted">{description}</p>
-      </div>
-      <div className="flex flex-col gap-3">{children}</div>
-    </section>
-  );
-}
-
 export default async function AccountPage() {
   const session = await getSession();
 
@@ -65,129 +22,22 @@ export default async function AccountPage() {
 
   const db = await getDb();
   const user = await getUser(db, session.user.id);
-  const name = user?.name ?? session.user.name;
-  const image = user?.image ?? session.user.image;
   const isPrivate = user?.isPrivate ?? false;
-  const shareUrl = await getOwnProfileShareUrl(db, { id: session.user.id, isPrivate });
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
-      <section className={cardClass("md")}>
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-4">
-            <UserAvatar name={name} image={image} size="lg" />
-            <div className="min-w-0">
-              <Eyebrow>Account settings</Eyebrow>
-              <PageTitle className="truncate">{name}</PageTitle>
-              <p className="truncate text-sm text-muted">{session.user.email}</p>
-            </div>
-          </div>
-          <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
-            <AppLink
-              href={`/users/${session.user.id}`}
-              className={`${buttonVariants({ variant: "outline" })} text-foreground`}
-            >
-              View my profile
-            </AppLink>
-            <AccountFriendRequests userId={session.user.id} />
-          </div>
-        </div>
-      </section>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <AccountSection
-          title="Share profile"
-          description="Invite climbers with a link or QR code. People who open it see your name, photo, send stats and latest sends with their dates and crags, and can sign up."
-          className="md:col-span-2"
-        >
-          <ShareProfileControls name={name} url={shareUrl} />
-        </AccountSection>
-
-        <AccountSection
-          title="Display name"
-          description="How your name appears to other climbers. Names are unique across Betabook."
-        >
-          <DisplayNameForm initialName={name} />
-        </AccountSection>
-
-        <AccountSection title="Appearance" description="Choose how Betabook looks on this device.">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm font-medium">Theme</span>
-            <ThemeSelect />
-          </div>
-        </AccountSection>
-
-        <AccountSection
-          id="privacy"
-          title="Privacy"
-          description="Control who can see your climbing log."
-        >
-          <PrivacyControls
-            initialIsPrivate={isPrivate}
-            initialJournalVisibility={user?.journalVisibility ?? "friends"}
-            initialSendCommentVisibility={user?.sendCommentVisibility ?? "public"}
-          />
-        </AccountSection>
-
-        <AccountSection
-          title="Send data"
-          description="Bring your history in or keep a copy offline."
-        >
-          <AppLink
-            href="/account/import"
-            className={`${buttonVariants({ variant: "outline", fullWidth: true })} gap-2 text-foreground`}
-          >
-            <Upload className="size-4" />
-            Import sends
-          </AppLink>
-          <ExportSendsButton userId={session.user.id} />
-        </AccountSection>
-
-        <AccountSection
-          title="Getting started"
-          description="Learn to log sessions, add friends, and set your journal privacy."
-        >
-          <ProductTour />
-        </AccountSection>
-
-        <AccountSection title="Security" description="Manage your password and current session.">
-          <ResetPasswordButton
-            email={session.user.email}
-            turnstileSiteKey={await getTurnstileSiteKey()}
-          />
-          <SignOutButton />
-        </AccountSection>
-
-        {isAdmin({ user: { role: user?.role } }) && (
-          <AccountSection
-            title="Moderation"
-            description="Review change requests for the areas you moderate."
-          >
-            <AppLink
-              href="/admin/requests"
-              className={`${buttonVariants({ variant: "outline", fullWidth: true })} gap-2 text-foreground`}
-            >
-              <ShieldCheck className="size-4" />
-              Review requests
-            </AppLink>
-          </AccountSection>
-        )}
-      </div>
-
-      <section className={`flex flex-col gap-4 ${DANGER_CARD_CLASS}`}>
-        <div className="flex flex-col gap-1">
-          <SectionHeading>Danger zone</SectionHeading>
-          <p className="text-sm text-muted">
-            Permanently remove your account and climbing history.
-          </p>
-        </div>
-        <p className="text-sm text-muted">
-          Export your sends above before deleting your account — this can&apos;t be undone.
-        </p>
-        <div className="self-start">
-          <DeleteAccountButton />
-        </div>
-      </section>
-    </div>
+    <AccountSettings
+      user={{
+        id: session.user.id,
+        name: user?.name ?? session.user.name,
+        email: session.user.email,
+        image: user?.image ?? session.user.image,
+      }}
+      isPrivate={isPrivate}
+      journalVisibility={user?.journalVisibility ?? "friends"}
+      sendCommentVisibility={user?.sendCommentVisibility ?? "public"}
+      shareUrl={await getOwnProfileShareUrl(db, { id: session.user.id, isPrivate })}
+      turnstileSiteKey={await getTurnstileSiteKey()}
+      isAdmin={isAdmin({ user: { role: user?.role } })}
+    />
   );
 }

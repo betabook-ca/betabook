@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { cardClass } from "@/components/ui/card";
-import { SectionHeading } from "@/components/ui/typography";
+import { SETTINGS_ROW_CLASS, SettingsSection } from "@/components/ui/settings";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { ShareProfileControls } from "./share-profile-controls";
@@ -12,16 +11,11 @@ const meta = {
   decorators: [
     (Story) => (
       <StoryPage title="Share profile">
-        <section className={`flex flex-col gap-4 ${cardClass("md")}`}>
-          <div className="flex flex-col gap-1">
-            <SectionHeading>Share profile</SectionHeading>
-            <p className="text-sm text-muted">
-              Invite climbers with a link or QR code. People who open it see your name, photo, send
-              stats and latest sends with their dates and crags, and can sign up.
-            </p>
+        <SettingsSection id="profile" title="Profile">
+          <div className={SETTINGS_ROW_CLASS}>
+            <Story />
           </div>
-          <Story />
-        </section>
+        </SettingsSection>
       </StoryPage>
     ),
   ],

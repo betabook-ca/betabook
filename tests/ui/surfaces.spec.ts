@@ -87,7 +87,7 @@ test("surface rules: account loading includes settings and semantic danger panel
 }, testInfo) => {
   await openStory(page, testInfo, "patterns-layout-and-feedback--account-placeholder");
   const cards = page.locator(".rounded-panel");
-  await expect(cards).toHaveCount(9);
+  await expect(cards).toHaveCount(6);
   const danger = cards.last();
   const expected = await page.evaluate(() => {
     const probe = document.createElement("div");
@@ -101,7 +101,6 @@ test("surface rules: account loading includes settings and semantic danger panel
   });
   await expect(danger).toHaveCSS("background-color", expected.fill);
   await expect(danger).toHaveCSS("border-top-color", expected.border);
-  await expect(danger).toHaveCSS("padding", "24px");
 });
 
 test("surface rules: feed loading reserves bordered day cards", async ({ page }, testInfo) => {

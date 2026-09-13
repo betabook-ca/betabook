@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Input, Label, TextField, useOverlayState } from "@heroui/react";
+import { Button, Description, Input, Label, TextField, useOverlayState } from "@heroui/react";
 import { Copy, Download, RotateCcw, Share } from "lucide-react";
 import { useState, useTransition } from "react";
 
@@ -92,6 +92,9 @@ export function ShareProfileControls({ name, url }: { name: string; url: string 
           <TextField value={link} isReadOnly>
             <Label>Profile link</Label>
             <Input onFocus={(event) => event.currentTarget.select()} />
+            <Description className="text-sm">
+              Anyone with the link sees your name, photo, send stats and latest sends.
+            </Description>
           </TextField>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onPress={copy}>

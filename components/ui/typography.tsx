@@ -16,9 +16,15 @@ export function PageTitle({ children, className }: { children: ReactNode; classN
 export function SectionHeading({
   children,
   className,
+  id,
 }: {
   children: ReactNode;
   className?: string;
+  id?: string;
 }) {
-  return <h2 className={clsx("text-lg font-semibold", className)}>{children}</h2>;
+  return (
+    <h2 id={id} className={clsx("text-lg font-semibold", className)}>
+      {children}
+    </h2>
+  );
 }

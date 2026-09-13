@@ -40,7 +40,6 @@ export function SignOutButton({
       <Button
         type="button"
         variant={compact ? "ghost" : "outline"}
-        fullWidth={!compact}
         className="gap-2"
         onPress={handleSignOut}
         isDisabled={pending}
