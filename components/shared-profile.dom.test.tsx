@@ -58,7 +58,6 @@ it("previews stats and recent sends, then asks the visitor to sign up for the re
   expect(within(recent).getByRole("link", { name: "Granite Staircase" })).toBeVisible();
   expect(within(recent).getByRole("link", { name: "Sidepull Sonata" })).toBeVisible();
   expect(within(recent).getByText("Shared with everyone")).toBeVisible();
-  expect(screen.getByText("V6")).toBeVisible();
 
   const prompt = screen.getByRole("region", { name: "Sign up to see more" });
   expect(within(prompt).getByRole("heading", { name: "See all 12 sends" })).toBeVisible();

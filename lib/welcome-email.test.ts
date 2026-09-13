@@ -244,6 +244,7 @@ describe("share link friend request", () => {
     const { account } = await invite("both-down");
 
     await expect(welcomeNewAccountOnce(db, account)).rejects.toMatchObject({
+      message: expect.stringMatching(/Request email down.*Welcome email down/),
       errors: [new Error("Request email down"), new Error("Welcome email down")],
     });
   });

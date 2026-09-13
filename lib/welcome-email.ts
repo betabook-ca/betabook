@@ -36,7 +36,9 @@ export async function welcomeNewAccountOnce(db: Database, account: NewAccount) {
     ])
   ).flatMap((result) => (result.status === "rejected" ? [result.reason] : []));
   if (failures.length === 1) throw failures[0];
-  if (failures.length > 1) throw new AggregateError(failures, "New account welcome failed");
+  if (failures.length > 1) {
+    throw new AggregateError(failures, `New account welcome failed: ${failures.join("; ")}`);
+  }
 }
 
 async function requestFriendshipWithReferrer(db: Database, account: NewAccount) {

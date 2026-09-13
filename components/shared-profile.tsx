@@ -36,8 +36,9 @@ export function SharedProfile({
           ) : (
             <div className="flex flex-col divide-y divide-separator">
               {sends.map((send) => (
+                // Keys reach the RSC payload; sequential send ids stay out of it.
                 <ClimbLogRow
-                  key={send.id}
+                  key={send.climbId}
                   climb={{
                     id: send.climbId,
                     name: send.climbName,
@@ -73,8 +74,8 @@ export function SharedProfile({
                 : `Climb with ${owner.name}`}
             </SectionHeading>
             <p className="text-sm text-muted">
-              Sign up to send {owner.name} a friend request and see everything they share with
-              Betabook members, including their full logbook, journal and analytics.
+              Sign up to send {owner.name} a friend request and see their full logbook, plus
+              anything else they share with Betabook members.
             </p>
           </div>
           <SignUpActions next={next} />

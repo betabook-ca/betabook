@@ -36,8 +36,6 @@ export async function requestFriendship(targetId: string): Promise<ActionResult<
     if (!(await allowFriendshipWrite(user.id)))
       throw new ActionError("Too many friend requests — try again in a minute");
     const db = await getDb();
-    // Only the insert winner sends email. Duplicate and crossed requests leave
-    // the existing pair untouched and never send another notification.
     const inserted = await insertFriendRequest(db, user.id, targetId);
     let status: FriendshipStatus = "outgoing";
     if (inserted) {

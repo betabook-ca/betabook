@@ -97,7 +97,7 @@ export default async function AccountPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <AccountSection
           title="Share profile"
-          description="Invite climbers with a link or QR code. People who open it see your name, photo, send stats and latest sends, and can sign up."
+          description="Invite climbers with a link or QR code. People who open it see your name, photo, send stats and latest sends with their dates and crags, and can sign up."
           className="md:col-span-2"
         >
           <ShareProfileControls name={name} url={shareUrl} />

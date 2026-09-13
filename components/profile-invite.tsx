@@ -28,8 +28,8 @@ export function ProfileInvite({
             {name} invited you to {SITE_NAME}
           </PageTitle>
           <p className="text-sm text-muted">
-            Sign up to send {name} a friend request, see all their climbing, and log your own sends
-            and sessions.
+            Sign up to send {name} a friend request, see more of their climbing, and log your own
+            sends and sessions.
           </p>
         </div>
       </div>

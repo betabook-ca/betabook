@@ -17,7 +17,7 @@ const meta = {
             <SectionHeading>Share profile</SectionHeading>
             <p className="text-sm text-muted">
               Invite climbers with a link or QR code. People who open it see your name, photo, send
-              stats and latest sends, and can sign up.
+              stats and latest sends with their dates and crags, and can sign up.
             </p>
           </div>
           <Story />
