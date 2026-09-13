@@ -10,10 +10,17 @@ import {
 } from "@/app/users/[id]/profile-shell";
 import { SendsView } from "@/app/users/[id]/sends-view";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
-import { ProfileInvite } from "@/components/profile-invite";
+import { SharedProfile } from "@/components/shared-profile";
+import { getDb } from "@/db/client";
+import { getAreaBreadcrumbs, getSendsForUserPage, getUserSendsSummary } from "@/db/queries";
 import { parseJournalFilter } from "@/lib/filters/journal-filter";
-import { parseUserSendsFilter } from "@/lib/filters/user-sends-filter";
-import { PROFILE_SHARE_PARAM, parseProfileShareToken, profileSharePath } from "@/lib/profile-share";
+import { DEFAULT_USER_SENDS_FILTER, parseUserSendsFilter } from "@/lib/filters/user-sends-filter";
+import {
+  PROFILE_SHARE_PARAM,
+  SHARED_PROFILE_SENDS,
+  parseProfileShareToken,
+  profileSharePath,
+} from "@/lib/profile-share";
 import { sharedProfileMetadata } from "@/lib/seo";
 import { getMemberSession as getSession } from "@/lib/session";
 import type { UrlParamsRecord } from "@/lib/url-params";
@@ -51,10 +58,25 @@ export default async function UserPage({ params, searchParams }: UserPageProps) 
   const session = await getSession();
   if (!session) {
     const shared = await getSharedProfile(id, search);
-    return shared ? (
-      <ProfileInvite name={shared.name} image={shared.image} next={shared.path} />
-    ) : (
-      <CurrentPageAuthCallout />
+    if (!shared) return <CurrentPageAuthCallout />;
+    const db = await getDb();
+    // A null viewer keeps Members and Friends commentary out of the preview.
+    const [summary, recent] = await Promise.all([
+      getUserSendsSummary(db, shared.id),
+      getSendsForUserPage(db, shared.id, DEFAULT_USER_SENDS_FILTER, 0, SHARED_PROFILE_SENDS, null),
+    ]);
+    const areaBreadcrumbs = await getAreaBreadcrumbs(
+      db,
+      recent.sends.map((send) => send.areaId),
+    );
+    return (
+      <SharedProfile
+        owner={shared}
+        summary={summary}
+        sends={recent.sends}
+        areaBreadcrumbs={areaBreadcrumbs}
+        next={shared.path}
+      />
     );
   }
   const user = await getUserById(id);

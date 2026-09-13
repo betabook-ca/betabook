@@ -144,8 +144,31 @@ it("does not reveal whether a profile exists in the page or metadata", async () 
     expect(html).not.toContain("Restricted identity sentinel");
   }
 });
-it("names a profile's owner signed out only through their current share link", async () => {
+it("previews a profile signed out only through its owner's current share link", async () => {
   await seedFixtureUser(db, { id: "other", name: "Other identity sentinel" });
+  await db.insert(climbs).values(
+    [0, 1, 2, 3, 4, 5].map((index) => ({
+      id: 100 + index,
+      areaId: 3,
+      name: `Preview climb ${index}`,
+      type: "sport" as const,
+      grade: 10,
+    })),
+  );
+  for (const index of [0, 1, 2, 3, 4, 5]) {
+    await seedFixtureSend(db, {
+      userId: "hidden",
+      climbId: 100 + index,
+      dateSent: `2026-0${index + 1}-15`,
+      comment: index === 5 ? "Commentary sentinel" : null,
+    });
+  }
+  const { seedFixtureJournalEntry } = await import("@/test/fixtures");
+  await seedFixtureJournalEntry(db, {
+    userId: "hidden",
+    entryDate: "2026-07-01",
+    body: "Journal sentinel",
+  });
   const token = (await getProfileShareToken(db, "hidden"))!;
   const otherToken = (await getProfileShareToken(db, "other"))!;
   const props = (id: string, share: string) => ({
@@ -157,19 +180,35 @@ it("names a profile's owner signed out only through their current share link", a
       title: "Member content",
       robots: { index: false },
     });
-    const html = renderToStaticMarkup(await UserPage(props(id, share)));
+    const page = await UserPage(props(id, share));
+    const html = renderToStaticMarkup(page);
     expect(html).toContain("Sign in or sign up to see all the content.");
     expect(html).not.toContain("identity sentinel");
+    expect(JSON.stringify(page)).not.toContain("Preview climb");
   }
 
   expect(await userMetadata(props("hidden", token))).toMatchObject({
     title: { absolute: "Restricted identity sentinel on Betabook" },
     robots: { index: false },
   });
-  const invite = await UserPage(props("hidden", token));
-  expect(invite.props).toMatchObject({ image: null, next: `/users/hidden?share=${token}` });
-  const html = renderToStaticMarkup(invite);
+  const preview = await UserPage(props("hidden", token));
+  expect(preview.props).toMatchObject({
+    owner: { name: "Restricted identity sentinel", image: null },
+    summary: { sendCount: 6 },
+    next: `/users/hidden?share=${token}`,
+  });
+  const serialized = JSON.stringify(preview);
+  for (const index of [5, 4, 3, 2, 1]) expect(serialized).toContain(`Preview climb ${index}`);
+  expect(serialized).not.toContain("Preview climb 0");
+  expect(serialized).not.toContain("Commentary sentinel");
+  expect(serialized).not.toContain("Journal sentinel");
+  const html = renderToStaticMarkup(preview);
   expect(html).toContain("Restricted identity sentinel invited you to Betabook");
+  expect(html).toContain("See all 6 sends");
+
+  await db.update(user).set({ sendCommentVisibility: "everyone" }).where(eq(user.id, "hidden"));
+  expect(JSON.stringify(await UserPage(props("hidden", token)))).toContain("Commentary sentinel");
+  await db.update(user).set({ sendCommentVisibility: "public" }).where(eq(user.id, "hidden"));
 
   await expectLocked("hidden", "0".repeat(32));
   await expectLocked("hidden", token.toUpperCase());

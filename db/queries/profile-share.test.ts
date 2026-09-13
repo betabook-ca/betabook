@@ -37,6 +37,7 @@ it("names only the owner of a current link on a profile that isn't private", asy
     id: "owner",
     name: "Share Owner",
     image: IMAGE,
+    createdAt: expect.any(Date),
   });
   expect(await getShareLinkOwner(db, "0".repeat(32))).toBeNull();
 

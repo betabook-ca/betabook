@@ -7,39 +7,48 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { signInUrl, signUpUrl } from "@/lib/sign-in-redirect";
 import { SITE_NAME } from "@/lib/site";
 
-/** Signed-out view of a valid share link: name and avatar only. */
 export function ProfileInvite({
   name,
   image,
+  since,
   next,
 }: {
   name: string;
   image: string | null;
+  since: number;
   next: string;
 }) {
   return (
     <section
       aria-label="Invitation"
-      className={`mx-auto flex max-w-xl flex-col items-center gap-5 text-center ${cardClass("md")}`}
+      className={`flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between ${cardClass("md")}`}
     >
-      {image && <UserAvatar name={name} image={image} size="lg" />}
-      <div className="flex min-w-0 flex-col gap-2">
-        <PageTitle className="break-words">
-          {name} invited you to {SITE_NAME}
-        </PageTitle>
-        <p className="text-muted">
-          {SITE_NAME} is a climbing logbook and crag database. Sign up to send {name} a friend
-          request, see their climbing, and log your own sends and sessions.
-        </p>
+      <div className="flex min-w-0 items-center gap-4">
+        {image && <UserAvatar name={name} image={image} size="lg" />}
+        <div className="flex min-w-0 flex-col gap-1">
+          <PageTitle className="break-words">
+            {name} invited you to {SITE_NAME}
+          </PageTitle>
+          <p className="text-sm text-muted">
+            Climbing since {since}. Sign up to send {name} a friend request, see all their climbing,
+            and log your own sends and sessions.
+          </p>
+        </div>
       </div>
-      <div className="flex flex-wrap justify-center gap-3">
-        <AppLink href={signUpUrl(next)} className={buttonVariants()}>
-          Sign up
-        </AppLink>
-        <AppLink href={signInUrl(next)} className={buttonVariants({ variant: "outline" })}>
-          Sign in
-        </AppLink>
-      </div>
+      <SignUpActions next={next} />
     </section>
+  );
+}
+
+export function SignUpActions({ next }: { next: string }) {
+  return (
+    <div className="flex shrink-0 flex-wrap gap-3">
+      <AppLink href={signUpUrl(next)} className={buttonVariants()}>
+        Sign up
+      </AppLink>
+      <AppLink href={signInUrl(next)} className={buttonVariants({ variant: "outline" })}>
+        Sign in
+      </AppLink>
+    </div>
   );
 }

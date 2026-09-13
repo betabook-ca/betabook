@@ -1,18 +1,15 @@
 import { UserSendsFilterToolbar } from "@/components/filters/sends-filter-toolbar";
 import { NavigationPendingProvider } from "@/components/navigation-pending";
 import { AppLink } from "@/components/ui/app-link";
-import { DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
-import { Eyebrow } from "@/components/ui/eyebrow";
 import { SidebarLayout } from "@/components/ui/page-shell";
-import { StatStrip } from "@/components/ui/stat-strip";
 import { SectionHeading } from "@/components/ui/typography";
 import { UserSendList } from "@/components/user-send-list";
+import { UserSendSummary } from "@/components/user-send-summary";
 import { getDb } from "@/db/client";
 import { getAreaBreadcrumbs, getSendsForUserPage, getUserSendsSummary } from "@/db/queries";
 import type { UserSendsFilter } from "@/db/queries";
 import { getUserHashtags } from "@/db/queries/hashtag-filter";
 import { userSendsFilterToSearchParams } from "@/lib/filters/user-sends-filter";
-import { formatCount } from "@/lib/format";
 import { formatDate } from "@/lib/format-date";
 
 export async function SendsView({
@@ -39,41 +36,11 @@ export async function SendsView({
     firstPage.sends.map((send) => send.areaId),
   );
 
-  const statCards = [
-    {
-      key: "profile",
-      stats: [
-        { label: "Sends", value: summary.sendCount },
-        { label: "Areas", value: summary.areaCount },
-        { label: "Peak grade", value: summary.peakGrade ?? "—" },
-      ],
-    },
-    ...(summary.sendCount > 0
-      ? [
-          {
-            key: "glance",
-            heading: <Eyebrow>Log at a glance</Eyebrow>,
-            stats: [
-              { label: "Latest send", value: formatDate(summary.latestSendDate) },
-              ...(summary.mostLoggedDiscipline
-                ? [
-                    {
-                      label: "Most logged",
-                      value: `${DISCIPLINE_LABELS[summary.mostLoggedDiscipline.type]} · ${formatCount(summary.mostLoggedDiscipline.count, "send")}`,
-                    },
-                  ]
-                : []),
-            ],
-          },
-        ]
-      : []),
-  ];
-
   return (
     <NavigationPendingProvider>
       <div className="flex flex-col gap-3">
         <SectionHeading>Sends</SectionHeading>
-        <SidebarLayout sidebar={<StatStrip cards={statCards} />}>
+        <SidebarLayout sidebar={<UserSendSummary summary={summary} />}>
           <div className="flex flex-col gap-3">
             {(filter.date || filter.dateFrom || filter.dateTo) && (
               <p className="text-sm text-muted">
