@@ -90,14 +90,7 @@ export function RunningCosts({
       </section>
 
       {supportUrl && (
-        <section
-          aria-labelledby="costs-support"
-          className={`flex flex-col items-start gap-3 ${cardClass("md", "bordered")}`}
-        >
-          <SectionHeading id="costs-support">Help cover the bill</SectionHeading>
-          <p className="leading-relaxed text-pretty">
-            {`If Betabook is useful to you, you can help cover the ${formatUsd(costs.totalUsd)} it costs to run each month.`}
-          </p>
+        <div className={`flex flex-col items-start gap-3 ${cardClass("md", "bordered")}`}>
           <a
             href={supportUrl}
             target="_blank"
@@ -109,7 +102,7 @@ export function RunningCosts({
           <p className="text-sm text-muted">
             Payments go toward these bills and aren’t tax-deductible.
           </p>
-        </section>
+        </div>
       )}
     </div>
   );
