@@ -10,6 +10,13 @@ export const FIELD_CLASS = "input";
 export const FIELD_HEIGHT_CLASS =
   "h-[calc(2.5rem+2*var(--border-width-field))] sm:h-[calc(2.25rem+2*var(--border-width-field))]";
 
+/** Chips and toggles in a filter row match the one-line fields beside them. */
+export const FILTER_PILL_CLASS = `${FIELD_HEIGHT_CLASS} inline-flex items-center`;
+
+/** Field-like actions wear the field surface; the shadow yields to the focus ring. */
+export const FIELD_SURFACE_CLASS =
+  "rounded-field bg-field not-data-[focus-visible]:shadow-[var(--field-shadow)]";
+
 /** Square actions use the same height as the adjacent field. */
 export const FIELD_ACTION_CLASS = `${FIELD_HEIGHT_CLASS} w-[calc(2.5rem+2*var(--border-width-field))] sm:w-[calc(2.25rem+2*var(--border-width-field))]`;
 

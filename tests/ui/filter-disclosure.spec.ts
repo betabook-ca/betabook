@@ -7,6 +7,7 @@ test("filter toggle describes its next action and keeps its outline when open", 
   await page.getByRole("button", { name: "Expand filters", exact: true }).click();
   const close = page.getByRole("button", { name: "Hide filters", exact: true });
   await expect(close).toHaveAttribute("aria-expanded", "true");
+  await expect(close).toHaveText("Filters");
   const panel = page.getByRole("region", { name: "Filter options" });
   await expect(close).toHaveCSS("border-top-width", "1px");
   const colors = await panel.evaluate((el) => {
