@@ -148,8 +148,10 @@ git status --short
 
 `pnpm check` is the exact Husky pre-push check: lint, format check, dead-code analysis, Next route
 type generation plus TypeScript, and the Vitest suite. GitHub's PR job repeats those checks and adds
-the OpenNext Cloudflare build. Fix in-scope failures and rerun the affected checks plus the full
-command. Never use `--no-verify`; the eventual push must run `pnpm check` again through the hook.
+the OpenNext Cloudflare build; its **UI reference** job runs the full Playwright suite, which is too
+slow to run locally. For UI changes, run only the affected `tests/ui` spec files here. Fix in-scope
+failures and rerun the affected checks plus the full command. Never use `--no-verify`; the eventual
+push must run `pnpm check` again through the hook.
 Do not create a ready-for-review PR with a known failure. Create a draft only when the user asked
 for one or explicitly wants incomplete work published.
 

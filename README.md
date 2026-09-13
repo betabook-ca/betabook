@@ -154,11 +154,13 @@ Once Husky hooks are installed, [`.husky/post-checkout`](.husky/post-checkout) r
 ## Development checks
 
 For UI work, read [the design system guide](docs/design-system.md).
-Run `pnpm storybook` for the internal component gallery, and `pnpm test:ui` for
-gallery and real app branding checks in light/dark themes at desktop/mobile sizes.
+Run `pnpm storybook` for the internal component gallery. `pnpm test:ui` runs the
+gallery and real app branding checks in light/dark themes at desktop/mobile sizes;
+it is too slow to run locally, so CI runs it. Locally, run `pnpm storybook:build`,
+then only the spec files you changed with `pnpm exec playwright test <file>`.
 The UI suite starts a gallery preview on port 6007 and starts or reuses the app
-on port 3000, matching `pnpm dev`. If your app uses another port, run
-`BETABOOK_UI_PORT=3003 pnpm test:ui` with that port. The suite waits for the
+on port 3000, matching `pnpm dev`. If your app uses another port, set
+`BETABOOK_UI_PORT=3003` to that port. The suite waits for the
 homepage to compile before testing navigation. It applies local migrations before starting a new app server;
 no seed or signed-in account is needed for the branding checks. Install
 Chromium once with `pnpm exec playwright install chromium`. Storybook uses real
@@ -178,7 +180,7 @@ Playwright workers: on a four-core runner, more starve `next dev` until the app
 checks miss their navigation timeouts. Three gallery shards run everything else
 with four workers and no app server. **UI reference** requires all four jobs to
 pass; each uploads its own `ui-reference-report-<suite>-<shard>` artifact. To run
-one project locally, use `pnpm test:ui --project=mobile-dark`.
+one project locally, add `--project=mobile-dark` to a focused run.
 
 A local run takes half the machine's cores instead, because it runs all four
 projects in one process. It also skips trace recording, which otherwise writes a

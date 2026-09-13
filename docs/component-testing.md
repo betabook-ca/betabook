@@ -156,10 +156,14 @@ favicon/touch/manifest/social assets. Both share the HTML report and project
 matrix. The gallery supplies accessibility, horizontal overflow and screenshot
 checks; focused cases cover additional rendered and native-interaction contracts.
 
+The full suite is too slow to run locally, so CI's **UI reference** job runs it.
+Locally, build the gallery and run only the affected spec files, narrowing
+`design-system.spec.ts` to affected story IDs with `-g`.
+
 Playwright starts the gallery preview and the app, applying local D1 migrations
 before starting a new app server. The app defaults to port 3000, matching
 `pnpm dev`. Set `BETABOOK_UI_PORT` when using another port, for example
-`BETABOOK_UI_PORT=3003 pnpm test:ui`; the server and tests use that same port.
+`BETABOOK_UI_PORT=3003`; the server and tests use that same port.
 Readiness warms the homepage compilation before navigation checks. An existing
 app can be reused, but stop and migrate it first if its database is out of date.
 Use the normal local `.dev.vars` setup; CI copies `.dev.vars.example` and needs
@@ -232,12 +236,14 @@ or PR, rather than adding run logs or migration history to this guide.
 | One Workers file                                    | `pnpm test --project=workers db/queries/journal.privacy.test.ts`                         |
 | Both Vitest projects                                | `pnpm test`                                                                              |
 | One browser file after building the current gallery | `pnpm storybook:build`, then `pnpm exec playwright test tests/ui/hashtag-filter.spec.ts` |
-| Full browser suite, including gallery build         | `pnpm test:ui`                                                                           |
+| Affected gallery stories after building the gallery | `pnpm exec playwright test tests/ui/design-system.spec.ts -g patterns-search--`          |
+| Full browser suite (CI only; too slow locally)      | `pnpm test:ui`                                                                           |
 | All normal checks before committing                 | `pnpm check`                                                                             |
 
 Confirm the focused run collected the intended test. Run the affected suite and
 checks in [the repository guide](repository-guide.md#testing-and-validation); `pnpm check` includes both Vitest
 projects but does not include Playwright or the Cloudflare build. UI changes also
-need `pnpm test:ui`. Runtime, dependency, route or Cloudflare configuration changes
-also need `pnpm exec opennextjs-cloudflare build`. Documentation-only changes need
+need their affected browser files; leave the full browser suite to CI. Runtime,
+dependency, route or Cloudflare configuration changes also need
+`pnpm exec opennextjs-cloudflare build`. Documentation-only changes need
 formatting and reference checks, without artificial runtime tests.
