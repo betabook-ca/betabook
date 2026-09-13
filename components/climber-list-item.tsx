@@ -18,11 +18,11 @@ export function ClimberListItem({
   detail?: string;
 }) {
   return (
-    <article className="flex min-w-0 items-center justify-between gap-3 border-b border-separator py-4">
-      <div className="flex min-w-0 items-center gap-3">
+    <article className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-b border-separator py-4">
+      <div className="flex min-w-0 flex-auto items-center gap-3">
         <UserAvatar name={climber.name} image={climber.image} size="sm" />
         <div className="min-w-0">
-          <h3 className="truncate font-semibold">
+          <h3 className="font-semibold wrap-anywhere">
             {climber.isPrivate ? (
               climber.name
             ) : (
@@ -32,7 +32,7 @@ export function ClimberListItem({
           {detail && <p className="text-sm text-muted">{detail}</p>}
         </div>
       </div>
-      <div className="max-w-full shrink-0">
+      <div className="ml-auto max-w-full shrink-0">
         <FriendshipButton
           userId={climber.id}
           name={climber.name}

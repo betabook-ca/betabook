@@ -15,7 +15,7 @@ export const FriendshipActions: Story = {
   render: () => (
     <StoryPage
       title="Climbers"
-      description="Friendship actions sit beside the name at every screen size."
+      description="Long names take the full row, with friendship actions wrapping below on the right."
     >
       <div>
         <ClimberListItem
@@ -31,7 +31,12 @@ export const FriendshipActions: Story = {
           detail="3 mutual friends"
         />
         <ClimberListItem
-          climber={{ id: "sam", name: "Sam Rivera", image: null, friendshipStatus: "incoming" }}
+          climber={{
+            id: "sam",
+            name: "Sam Rivera Montgomery-Castellanos",
+            image: null,
+            friendshipStatus: "incoming",
+          }}
           detail="Wants to be friends"
         />
       </div>
