@@ -8,7 +8,7 @@ import { ProfileTabs } from "./profile-tabs";
 const meta = {
   title: "Components/Profile/Sections",
   component: ProfileTabs,
-  args: { userId: "sample", showJournal: true, showProjects: true, sendCount: 214 },
+  args: { userId: "sample", showJournal: true, showProjects: true },
   decorators: [
     (Story) => (
       <div className="flex flex-col gap-4">

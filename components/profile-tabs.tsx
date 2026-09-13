@@ -10,26 +10,16 @@ type ProfileTabsProps = {
   userId: string;
   showJournal: boolean;
   showProjects: boolean;
-  sendCount?: number;
 };
 
 /** Only the climber's own logbook: the viewer's Feed and Friends live outside the profile. */
-export function ProfileTabs({ userId, showJournal, showProjects, sendCount }: ProfileTabsProps) {
+export function ProfileTabs({ userId, showJournal, showProjects }: ProfileTabsProps) {
   const pathname = usePathname();
   const base = `/users/${userId}`;
 
-  const tabs: { href: string; label: string; roots: string[]; badge?: ReactNode }[] = [
+  const tabs: { href: string; label: string; roots: string[] }[] = [
     ...(showJournal ? [{ href: `${base}/journal`, label: "Journal", roots: [base] }] : []),
-    {
-      href: `${base}/sends`,
-      label: "Sends",
-      roots: showJournal ? [] : [base],
-      badge: sendCount ? (
-        <span className="font-normal text-muted tabular-nums">
-          {sendCount.toLocaleString("en-US")}
-        </span>
-      ) : undefined,
-    },
+    { href: `${base}/sends`, label: "Sends", roots: showJournal ? [] : [base] },
     ...(showProjects ? [{ href: `${base}/projects`, label: "Projects", roots: [] }] : []),
     { href: `${base}/analytics`, label: "Analytics", roots: [] },
   ];

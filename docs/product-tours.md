@@ -9,7 +9,7 @@ Tours run at `/tutorial/[tourId]/[stepId]` inside the app shell. The page uses A
 3. Render the section in the feature's page component. `ProductTourPageProps` supplies its section, the active `steps`, and `href(stepId)` for links that preserve the replay destination. Reuse the app's layouts and display components. Keep demo controls local and never pass sample IDs to real links or mutation components.
 4. For a separate tour, register its metadata in `lib/product-tour.ts`, steps in `PRODUCT_TOUR_STEPS`, and a lazy page loader in `components/product-tours/registry.ts`. The existing route layout handles the rest. An optional quick action beside the invitation belongs in `quick-actions.tsx`.
 
-The Journal tour covers Log, journal filters, Sends sorting, project history, Analytics, climber discovery, friend requests, Feed, and privacy. The sample Log control is a visual reference in the full tour, with no click action or popover. First-time invitations include an ordinary Log button. Update invitations and update demos omit both Log controls.
+The Journal tour covers Log, journal filters, Sends sorting, project history, Analytics, climber discovery, friend requests, Feed, and privacy. The sample Log control is a visual reference in the full tour, in a header row above the sample profile as Log sits beside Search in the app, with no click action or popover. First-time invitations include an ordinary Log button. Update invitations and update demos omit both Log controls.
 
 Profile lessons (Journal, Sends, Projects and Analytics) show Alex's profile
 heading beside demo section tabs in the app's order. Feed, Friends and Account are

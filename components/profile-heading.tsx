@@ -12,12 +12,15 @@ export function ProfileHeading({
   name,
   image = null,
   overview,
+  nameAction,
   actions,
   note,
 }: {
   name: string;
   image?: string | null;
   overview: ClimberOverview;
+  /** Kept on the name's row, e.g. the owner's share link. */
+  nameAction?: ReactNode;
   actions?: ReactNode;
   /** Shown under the badges, e.g. why a section is missing. */
   note?: ReactNode;
@@ -33,9 +36,12 @@ export function ProfileHeading({
             size="lg"
             className="@max-2xl:size-12 @max-2xl:text-sm @xs:row-span-3"
           />
-          <PageTitle size="lg" className="break-words">
-            {name}
-          </PageTitle>
+          <div className="flex min-w-0 items-center gap-1">
+            <PageTitle size="lg" className="min-w-0 break-words">
+              {name}
+            </PageTitle>
+            {nameAction}
+          </div>
           {overview.hardest.length > 0 && (
             <section
               aria-label="Hardest sends"

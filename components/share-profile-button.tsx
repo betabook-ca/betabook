@@ -1,11 +1,9 @@
 "use client";
 
 import { Button, Tooltip } from "@heroui/react";
-import { clsx } from "clsx";
 import { Check, Share } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { PROFILE_ACTION_CLASS, PROFILE_ACTION_LABEL_CLASS } from "@/components/profile-actions";
 import { openShareSheet, useNativeShare } from "@/hooks/use-native-share";
 import { SITE_NAME } from "@/lib/site";
 
@@ -47,16 +45,18 @@ export function ShareProfileButton({ name, url }: { name: string; url: string })
     <>
       <Tooltip.Root isOpen={tooltipOpen} onOpenChange={setTooltipOpen}>
         <Button
-          variant="outline"
+          isIconOnly
+          variant="ghost"
+          size="sm"
+          aria-label={label}
           onPress={handlePress}
-          className={clsx("gap-2 @max-4xl:aspect-square @max-4xl:px-0", PROFILE_ACTION_CLASS)}
+          className="shrink-0 text-muted hover:text-foreground pointer-coarse:size-11"
         >
           {message === COPIED ? (
             <Check aria-hidden="true" className="size-4" />
           ) : (
             <Share aria-hidden="true" className="size-4" />
           )}
-          <span className={PROFILE_ACTION_LABEL_CLASS}>{label}</span>
         </Button>
         <Tooltip.Content placement="bottom" offset={8}>
           {message || label}

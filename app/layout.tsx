@@ -7,6 +7,7 @@ import { AppTabBar } from "@/components/app-tab-bar";
 import { BrandHomeLink } from "@/components/brand";
 import { SearchPaletteProvider, SearchTrigger } from "@/components/command-palette";
 import { HeaderAuthLinks } from "@/components/header-auth-links";
+import { HeaderLogButton } from "@/components/header-log-button";
 import { MobileAppHelper } from "@/components/mobile-app-helper";
 import { SearchScopeProvider } from "@/components/search-scope";
 import { AppLink } from "@/components/ui/app-link";
@@ -132,7 +133,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 <div className={`mx-auto flex w-full ${PAGE_MAX_WIDTH_CLASS} items-center gap-2`}>
                   <AppMenuButton />
                   <BrandHomeLink />
-                  <div className="ms-auto flex items-center gap-4">
+                  <div className="ms-auto flex items-center gap-3">
+                    <HeaderLogButton />
                     <SearchTrigger />
                     <HeaderAuthLinks />
                   </div>

@@ -77,6 +77,13 @@ it("retains the original Log lesson in full replay", () => {
   expect(html).toContain('data-tour-target="journal-filters"');
 });
 
+it("shows the sample Log in a header row above Alex's profile, as in the app", () => {
+  const html = demo("journal", "full");
+  const log = html.indexOf('data-tour-target="journal-log"');
+  expect(log).toBeGreaterThan(-1);
+  expect(log).toBeLessThan(html.indexOf('aria-label="Climber summary"'));
+});
+
 it("tabs only Alex's logbook sections on a profile lesson", () => {
   const html = demo("sends", "full");
   const tabs = html.slice(html.indexOf('aria-label="Profile sections"'));

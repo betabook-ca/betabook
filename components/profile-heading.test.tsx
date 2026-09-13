@@ -47,6 +47,19 @@ it("badges the hardest grade per discipline without send counts", () => {
   expect(html).not.toContain("180");
 });
 
+it("keeps a name action on the name's row, above the badges", () => {
+  const html = renderToStaticMarkup(
+    <ProfileHeading
+      name="Alex Morgan"
+      overview={OVERVIEW}
+      nameAction={<button type="button">Copy profile link</button>}
+    />,
+  );
+
+  expect(html).toMatch(/<h1[^>]*>Alex Morgan<\/h1><button[^>]*>Copy profile link<\/button>/);
+  expect(html.indexOf("Copy profile link")).toBeLessThan(html.indexOf("Hardest sends"));
+});
+
 it("shows a note under the name", () => {
   const html = renderToStaticMarkup(
     <ProfileHeading

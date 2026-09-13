@@ -6,6 +6,10 @@ import { beforeEach, expect, it, vi } from "vitest";
 import AccountPage from "@/app/account/page";
 import { ProfileHeader } from "@/app/users/[id]/profile-shell";
 import { AccountSettings } from "@/components/account-settings";
+import { FriendshipButton } from "@/components/friendship-button";
+import { ProfileHeading } from "@/components/profile-heading";
+import { ProfileTabs } from "@/components/profile-tabs";
+import { ShareProfileButton } from "@/components/share-profile-button";
 import { createDb } from "@/db/client";
 import { getProfileShareToken } from "@/db/queries";
 import { user } from "@/db/schema";
@@ -48,6 +52,18 @@ async function profileHeaderFor(viewerId: string) {
   return JSON.stringify(await ProfileHeader({ user: owner, viewerId }));
 }
 
+async function profileHeaderParts(viewerId: string) {
+  const owner = (await db.select().from(user).where(eq(user.id, "owner")).get())!;
+  const header = (await ProfileHeader({ user: owner, viewerId })) as ReactElement<{
+    children: [ReactElement<{ children: ReactElement }>, ReactElement];
+  }>;
+  const [aside, tabs] = header.props.children;
+  return {
+    heading: aside.props.children as ReactElement<Record<string, unknown>>,
+    tabs: tabs as ReactElement<Record<string, unknown>>,
+  };
+}
+
 /** Renders AccountSettings one level so the assertions reach ShareProfileControls. */
 async function accountPageJson() {
   const page = (await AccountPage()) as ReactElement<ComponentProps<typeof AccountSettings>>;
@@ -64,6 +80,23 @@ it("gives the share link to the profile's owner and no other member", async () =
   const visitorView = await profileHeaderFor("member");
   expect(visitorView).toContain("Share Owner");
   expect(visitorView).not.toContain(token);
+});
+
+it("puts the owner's share link beside their name, with no other header actions", async () => {
+  const { heading, tabs } = await profileHeaderParts("owner");
+
+  expect(heading.type).toBe(ProfileHeading);
+  expect(heading.props.actions).toBeUndefined();
+  expect((heading.props.nameAction as ReactElement).type).toBe(ShareProfileButton);
+  expect(tabs.type).toBe(ProfileTabs);
+  expect(tabs.props).not.toHaveProperty("sendCount");
+});
+
+it("keeps only the friendship control on another member's profile", async () => {
+  const { heading } = await profileHeaderParts("member");
+
+  expect(heading.props.nameAction).toBeFalsy();
+  expect((heading.props.actions as ReactElement).type).toBe(FriendshipButton);
 });
 
 it("shows the owner their link on the account page", async () => {

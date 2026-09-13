@@ -15,10 +15,7 @@ async function openAt(page: Page, info: TestInfo, width: number, story = "member
   await openStory(page, info, `components-profile-heading--${story}`);
   const hardest = page.getByRole("region", { name: "Hardest sends" });
   return {
-    title: await box(page.getByRole("heading", { level: 1, name: "Alex Morgan" })),
-    log: await box(page.getByRole("button", { name: "Log", exact: true })),
-    share: await box(page.getByRole("button", { name: "Copy profile link", exact: true })),
-    friends: await box(page.getByRole("link", { name: "Friends", exact: true })),
+    title: await box(page.getByRole("heading", { level: 1 })),
     chipTops: await Promise.all(
       ["Boulder", "Sport", "Trad"].map(
         async (label) => (await box(hardest.getByText(label, { exact: true }))).y,
@@ -28,44 +25,45 @@ async function openAt(page: Page, info: TestInfo, width: number, story = "member
 }
 
 test(
-  "a phone badges grades under the name above one row of actions",
+  "a phone keeps the share link beside the name above one row of badges",
   { tag: "@behavior" },
   async ({ page }, info) => {
     const header = await openAt(page, info, 390);
+    const share = await box(page.getByRole("button", { name: "Copy profile link", exact: true }));
 
-    expect(Math.abs(middle(header.share) - middle(header.log))).toBeLessThanOrEqual(2);
-    expect(Math.abs(middle(header.friends) - middle(header.log))).toBeLessThanOrEqual(2);
-    expect(Math.abs(header.share.width - header.share.height)).toBeLessThanOrEqual(1);
+    expect(share.x).toBeGreaterThanOrEqual(header.title.x + header.title.width - 1);
+    expect(Math.abs(middle(share) - middle(header.title))).toBeLessThanOrEqual(4);
     expect(Math.max(...header.chipTops) - Math.min(...header.chipTops)).toBeLessThanOrEqual(2);
     expect(Math.min(...header.chipTops)).toBeGreaterThanOrEqual(
-      header.title.y + header.title.height - 1,
+      Math.max(header.title.y + header.title.height, share.y + share.height) - 1,
     );
-    expect(Math.max(...header.chipTops)).toBeLessThan(header.log.y);
   },
 );
 
 test(
-  "a tablet puts the profile actions beside the name",
+  "a tablet puts another climber's friendship control beside the name",
   { tag: "@behavior" },
   async ({ page }, info) => {
-    const header = await openAt(page, info, 1024);
+    const header = await openAt(page, info, 1024, "another-climber");
+    const control = await box(page.getByRole("button", { name: /Friendship options/ }));
 
-    expect(header.log.x).toBeGreaterThan(header.title.x + header.title.width);
-    expect(header.log.y).toBeLessThan(header.title.y + header.title.height);
-    expect(Math.abs(middle(header.friends) - middle(header.log))).toBeLessThanOrEqual(2);
+    expect(control.x).toBeGreaterThan(header.title.x + header.title.width);
+    expect(control.y).toBeLessThan(header.title.y + header.title.height);
     expect(Math.max(...header.chipTops) - Math.min(...header.chipTops)).toBeLessThanOrEqual(2);
   },
 );
 
 for (const story of ["member-profile", "longest-grades"]) {
   test(
-    `the desktop side column keeps badges and actions on single rows for ${story}`,
+    `the desktop side column keeps the name, share link and badges on their rows for ${story}`,
     { tag: "@behavior" },
     async ({ page }, info) => {
       const header = await openAt(page, info, 1440, story);
+      const share = await box(page.getByRole("button", { name: "Copy profile link", exact: true }));
+      const column = await box(page.locator(".xl\\:w-68"));
 
-      expect(Math.abs(middle(header.share) - middle(header.log))).toBeLessThanOrEqual(2);
-      expect(Math.abs(middle(header.friends) - middle(header.log))).toBeLessThanOrEqual(2);
+      expect(Math.abs(middle(share) - middle(header.title))).toBeLessThanOrEqual(4);
+      expect(share.x + share.width).toBeLessThanOrEqual(column.x + column.width + 1);
       expect(Math.max(...header.chipTops) - Math.min(...header.chipTops)).toBeLessThanOrEqual(2);
     },
   );

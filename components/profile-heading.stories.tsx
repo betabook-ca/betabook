@@ -6,9 +6,6 @@ import {
 } from "@/stories/fixtures/climber-overview";
 
 import { FriendshipButton } from "./friendship-button";
-import { LogEntryButton } from "./journal";
-import { PROFILE_ACTION_CLASS } from "./profile-actions";
-import { ProfileFriendsLink } from "./profile-friends-link";
 import { ProfileHeading } from "./profile-heading";
 import { ShareProfileButton } from "./share-profile-button";
 
@@ -18,12 +15,8 @@ const meta = {
   args: {
     name: "Alex Morgan",
     overview: STORY_CLIMBER_OVERVIEW,
-    actions: (
-      <>
-        <LogEntryButton className={PROFILE_ACTION_CLASS} />
-        <ShareProfileButton name="Alex Morgan" url="https://betabook.ca/users/sample?share=demo" />
-        <ProfileFriendsLink userId="sample" />
-      </>
+    nameAction: (
+      <ShareProfileButton name="Alex Morgan" url="https://betabook.ca/users/sample?share=demo" />
     ),
   },
   decorators: [
@@ -43,6 +36,7 @@ export const MemberProfile: Story = {};
 export const AnotherClimber: Story = {
   args: {
     name: "Riley Chen",
+    nameAction: undefined,
     actions: (
       <FriendshipButton
         userId="sample"
@@ -56,6 +50,7 @@ export const AnotherClimber: Story = {
 export const IncomingRequest: Story = {
   args: {
     name: "Sam Taylor",
+    nameAction: undefined,
     actions: (
       <FriendshipButton
         userId="sample"
@@ -70,6 +65,7 @@ export const Stranger: Story = {
   args: {
     name: "Jordan Lee",
     overview: { ...STORY_CLIMBER_OVERVIEW, daysOut: null },
+    nameAction: undefined,
     actions: (
       <FriendshipButton
         userId="sample"

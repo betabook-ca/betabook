@@ -2,9 +2,6 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { cache } from "react";
 
 import { FriendshipButton } from "@/components/friendship-button";
-import { LogEntryButton } from "@/components/journal";
-import { PROFILE_ACTION_CLASS } from "@/components/profile-actions";
-import { ProfileFriendsLink } from "@/components/profile-friends-link";
 import { ProfileHeading } from "@/components/profile-heading";
 import { ProfileTabs } from "@/components/profile-tabs";
 import { ShareProfileButton } from "@/components/share-profile-button";
@@ -60,14 +57,9 @@ export async function ProfileHeader({ user, viewerId }: { user: ProfileUser; vie
           name={user.name}
           image={user.image}
           overview={overview}
+          nameAction={shareUrl ? <ShareProfileButton name={user.name} url={shareUrl} /> : undefined}
           actions={
-            isOwner ? (
-              <>
-                <LogEntryButton className={PROFILE_ACTION_CLASS} />
-                {shareUrl && <ShareProfileButton name={user.name} url={shareUrl} />}
-                <ProfileFriendsLink userId={user.id} />
-              </>
-            ) : (
+            isOwner ? undefined : (
               <FriendshipButton
                 userId={user.id}
                 name={user.name}
@@ -84,12 +76,7 @@ export async function ProfileHeader({ user, viewerId }: { user: ProfileUser; vie
           }
         />
       </aside>
-      <ProfileTabs
-        userId={user.id}
-        showJournal={journalVisible}
-        showProjects={isOwner}
-        sendCount={overview.sendCount}
-      />
+      <ProfileTabs userId={user.id} showJournal={journalVisible} showProjects={isOwner} />
     </>
   );
 }

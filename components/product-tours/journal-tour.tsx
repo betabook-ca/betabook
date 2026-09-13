@@ -1,11 +1,10 @@
 "use client";
 
 import { buttonVariants } from "@heroui/react";
-import { CirclePlus, Users } from "lucide-react";
+import { CirclePlus } from "lucide-react";
 import { useState } from "react";
 
 import { PROFILE_LAYOUT_CLASS } from "@/app/users/[id]/profile-layout";
-import { FriendRequestBadge } from "@/components/friend-request-badge";
 import { DemoClimberSearch } from "@/components/product-tours/climber-search-preview";
 import {
   DemoAccount,
@@ -16,7 +15,6 @@ import {
 } from "@/components/product-tours/profile-tour-previews";
 import { DemoFeed, DemoFriends } from "@/components/product-tours/social-tour-previews";
 import type { ProductTourPageProps } from "@/components/product-tours/types";
-import { PROFILE_ACTION_CLASS, PROFILE_ACTION_LABEL_CLASS } from "@/components/profile-actions";
 import { ProfileHeading } from "@/components/profile-heading";
 import { ProfileSectionNav } from "@/components/profile-tabs";
 import { cardClass } from "@/components/ui/card";
@@ -53,14 +51,14 @@ const DEMO_OVERVIEW: ClimberOverview = {
   month: LAST_OUT.slice(0, 7),
 };
 
-/** A visual reference to the app's entry point, without a demo action. */
+/** A visual reference to the app header's entry point, without a demo action. */
 function DemoLog() {
   return (
     <span
       data-tour-target="journal-log"
-      className={`${buttonVariants()} w-fit cursor-default gap-2 ${PROFILE_ACTION_CLASS}`}
+      className={`${buttonVariants({ size: "sm" })} w-fit cursor-default gap-2`}
     >
-      <CirclePlus aria-hidden className="size-5" />
+      <CirclePlus aria-hidden className="size-4" />
       Log
     </span>
   );
@@ -84,53 +82,47 @@ export function JournalTourPage({ section, mode, href, steps }: ProductTourPageP
       </section>
     );
   return (
-    <div className={PROFILE_LAYOUT_CLASS}>
-      <aside aria-label="Climber summary" className="xl:row-span-2">
-        <ProfileHeading
-          name={TOUR_DEMO_CLIMBER.name}
-          overview={DEMO_OVERVIEW}
-          actions={
-            <>
-              {mode === "full" && <DemoLog />}
-              <span
-                className={`${buttonVariants({ variant: "outline" })} cursor-default gap-2 @max-4xl:px-3 ${PROFILE_ACTION_CLASS}`}
-              >
-                <Users aria-hidden className="size-4" />
-                <span className={PROFILE_ACTION_LABEL_CLASS}>Friends</span>
-                <FriendRequestBadge count={friendRequest === "pending" ? 1 : 0} />
-              </span>
-            </>
-          }
+    <div className="flex flex-col gap-6">
+      {mode === "full" && (
+        <div className="flex justify-end border-b border-separator pb-3">
+          <DemoLog />
+        </div>
+      )}
+      <div className={PROFILE_LAYOUT_CLASS}>
+        <aside aria-label="Climber summary" className="xl:row-span-2">
+          <ProfileHeading name={TOUR_DEMO_CLIMBER.name} overview={DEMO_OVERVIEW} />
+        </aside>
+        <ProfileSectionNav
+          tabs={steps
+            .filter(
+              (step, index) =>
+                PROFILE_SECTIONS.includes(step.section) &&
+                steps.findIndex((entry) => entry.section === step.section) === index,
+            )
+            .sort(
+              (a, b) => PROFILE_SECTIONS.indexOf(a.section) - PROFILE_SECTIONS.indexOf(b.section),
+            )
+            .map((step) => ({
+              label: step.section,
+              href: href(step.id),
+              current: section === step.section,
+            }))}
         />
-      </aside>
-      <ProfileSectionNav
-        tabs={steps
-          .filter(
-            (step, index) =>
-              PROFILE_SECTIONS.includes(step.section) &&
-              steps.findIndex((entry) => entry.section === step.section) === index,
-          )
-          .sort((a, b) => PROFILE_SECTIONS.indexOf(a.section) - PROFILE_SECTIONS.indexOf(b.section))
-          .map((step) => ({
-            label: step.section,
-            href: href(step.id),
-            current: section === step.section,
-          }))}
-      />
-      <section aria-label={`Alex's ${section}`} className="flex min-w-0 flex-col gap-3">
-        <SectionHeading className="sr-only">{section}</SectionHeading>
-        {isJournal ? (
-          <DemoJournal />
-        ) : section === "Sends" ? (
-          <DemoSends />
-        ) : section === "Projects" ? (
-          <DemoProjects />
-        ) : (
-          <div className="max-w-4xl">
-            <DemoAnalytics />
-          </div>
-        )}
-      </section>
+        <section aria-label={`Alex's ${section}`} className="flex min-w-0 flex-col gap-3">
+          <SectionHeading className="sr-only">{section}</SectionHeading>
+          {isJournal ? (
+            <DemoJournal />
+          ) : section === "Sends" ? (
+            <DemoSends />
+          ) : section === "Projects" ? (
+            <DemoProjects />
+          ) : (
+            <div className="max-w-4xl">
+              <DemoAnalytics />
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }
