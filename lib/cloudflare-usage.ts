@@ -9,6 +9,9 @@ const DAY_MS = 86_400_000;
  * span, so every window stays within a week. */
 const WINDOW_DAYS = 7;
 const CACHE_SECONDS = 60 * 60;
+/** Failures are cached too, so a broken token or Cloudflare's GraphQL rate
+ * limit doesn't make every visit wait on another failing query. */
+const FAILURE_CACHE_SECONDS = 5 * 60;
 
 type Groups = { sum?: Record<string, number> }[] | undefined;
 type UsageResponse = {
@@ -48,7 +51,15 @@ export async function getCloudflareUsage(now = new Date()): Promise<CloudflareUs
   // `next dev` runs in Node, which has no Cache API.
   const cache = typeof caches === "undefined" ? null : await caches.open("cloudflare-usage");
   const cached = await cache?.match(cacheKey);
-  if (cached) return cached.json<CloudflareUsage>();
+  if (cached) return cached.json<CloudflareUsage | null>();
+
+  const remember = async (usage: CloudflareUsage | null, seconds: number) => {
+    await cache?.put(
+      cacheKey,
+      Response.json(usage, { headers: { "Cache-Control": `max-age=${seconds}` } }),
+    );
+    return usage;
+  };
 
   const through = Math.min(end, Date.UTC(year, month, now.getUTCDate() + 1));
   const variables: Record<string, string> = { accountTag };
@@ -79,20 +90,18 @@ export async function getCloudflareUsage(now = new Date()): Promise<CloudflareUs
         { length: windows },
         (_, i) => account[`${alias}${i}`]?.[0]?.sum?.[field] ?? 0,
       ).reduce((sum, value) => sum + value, 0);
-    const usage: CloudflareUsage = {
-      periodStart: isoDate(start),
-      periodEnd: isoDate(end),
-      workerRequests: total("workers", "requests"),
-      workerCpuMs: total("workers", "cpuTimeUs") / 1000,
-      d1RowsRead: total("d1", "rowsRead"),
-    };
-    await cache?.put(
-      cacheKey,
-      Response.json(usage, { headers: { "Cache-Control": `max-age=${CACHE_SECONDS}` } }),
+    return await remember(
+      {
+        periodStart: isoDate(start),
+        periodEnd: isoDate(end),
+        workerRequests: total("workers", "requests"),
+        workerCpuMs: total("workers", "cpuTimeUs") / 1000,
+        d1RowsRead: total("d1", "rowsRead"),
+      },
+      CACHE_SECONDS,
     );
-    return usage;
   } catch (error) {
     console.error("Cloudflare usage query failed", error);
-    return null;
+    return remember(null, FAILURE_CACHE_SECONDS);
   }
 }

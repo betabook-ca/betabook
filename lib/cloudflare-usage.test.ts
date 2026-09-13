@@ -101,16 +101,19 @@ it.each([
     "2026-06-10T00:00:00Z",
     () => Response.json({ data: null, errors: [{ message: "not authorized" }] }),
   ],
-])("returns null without caching when Cloudflare answers with %s", async (_case, at, reply) => {
-  vi.spyOn(console, "error").mockImplementation(() => {});
-  const fetcher = vi
-    .fn<typeof fetch>()
-    .mockImplementationOnce(async () => reply())
-    .mockImplementationOnce(async () => accounts({ d10: [{ sum: { rowsRead: 3 } }] }));
-  vi.stubGlobal("fetch", fetcher);
-  const now = new Date(at);
+])(
+  "returns null and waits before querying again when Cloudflare answers with %s",
+  async (_case, at, reply) => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockImplementationOnce(async () => reply())
+      .mockImplementationOnce(async () => accounts({ d10: [{ sum: { rowsRead: 3 } }] }));
+    vi.stubGlobal("fetch", fetcher);
+    const now = new Date(at);
 
-  expect(await getCloudflareUsage(now)).toBeNull();
-  expect(await getCloudflareUsage(now)).toMatchObject({ d1RowsRead: 3 });
-  expect(fetcher).toHaveBeenCalledTimes(2);
-});
+    expect(await getCloudflareUsage(now)).toBeNull();
+    expect(await getCloudflareUsage(now)).toBeNull();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  },
+);
