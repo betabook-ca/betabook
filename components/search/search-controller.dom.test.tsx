@@ -224,3 +224,51 @@ it("sort and expanded grade/rating controls refine results and reset restores th
   await user.type(screen.getByRole("searchbox", { name: "Search Betabook" }), "cedar");
   expect(await result(other)).toBeEnabled();
 });
+
+it("suggests climbers you may know only while the full climber search is empty", async () => {
+  const user = userEvent.setup();
+  render(<IntegratedSearchDemo initialQuery="" initialCategory="climber" suggestions />);
+  const suggestions = screen.getByRole("region", { name: "You may know" });
+  expect(within(suggestions).getByRole("heading", { name: "You may know" })).toBeInTheDocument();
+  expect(
+    within(suggestions).getByRole("button", { name: "Open Sam Rivera, 2 mutual friends" }),
+  ).toBeEnabled();
+  expect(
+    within(suggestions).getByRole("button", { name: "Open Jordan Park, 1 mutual friend" }),
+  ).toBeEnabled();
+  expect(within(suggestions).getByRole("button", { name: "Add friend: Sam Rivera" })).toBeEnabled();
+  expect(screen.queryByText("Search climbers by name.")).not.toBeInTheDocument();
+
+  const field = screen.getByRole("searchbox", { name: "Search Betabook" });
+  await user.type(field, "cedar");
+  expect(await result("Cedar Lee, Climbing partner")).toBeEnabled();
+  expect(screen.queryByRole("region", { name: "You may know" })).not.toBeInTheDocument();
+  await user.clear(field);
+  await user.click(
+    within(await screen.findByRole("region", { name: "You may know" })).getByRole("button", {
+      name: "Open Jordan Park, 1 mutual friend",
+    }),
+  );
+  expect(screen.getByRole("status", { name: "Selected record" })).toHaveAttribute(
+    "data-selected-id",
+    "climber-suggested-2",
+  );
+
+  await user.click(button("Climbs"));
+  expect(screen.queryByRole("region", { name: "You may know" })).not.toBeInTheDocument();
+  expect(screen.getByText("Search climbs by name.", { exact: true })).toBeInTheDocument();
+});
+
+it("keeps quick climber search to its name prompt", () => {
+  render(
+    <IntegratedSearchDemo
+      surface="quick"
+      initialQuery=""
+      initialCategory="climber"
+      initialOpen
+      suggestions
+    />,
+  );
+  expect(screen.getByText("Search climbers by name.", { exact: true })).toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: "You may know" })).not.toBeInTheDocument();
+});

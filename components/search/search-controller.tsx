@@ -30,6 +30,7 @@ export function SearchController({
   suggestedArea,
   renderAction,
   resultHref,
+  suggestions,
   publicOnly = false,
 }: {
   state: SearchState;
@@ -44,6 +45,8 @@ export function SearchController({
   suggestedArea?: AreaSelection;
   renderAction?: (item: AppSearchResult) => ReactNode;
   resultHref?: (item: AppSearchResult) => string;
+  /** Shown in place of the prompt while the full climber search is empty. */
+  suggestions?: AppSearchResult[];
   publicOnly?: boolean;
 }) {
   const search = useSearch({
@@ -54,6 +57,12 @@ export function SearchController({
     preview: quick,
     publicOnly,
   });
+  const suggested = !quick && state.category === "climber" ? (suggestions ?? []) : [];
+  const findItem = (id: string, readyOnly = false) =>
+    search.sections
+      .flatMap((section) => (readyOnly && section.status !== "ready" ? [] : section.items))
+      .concat(suggested)
+      .find((result) => result.id === id);
   const props = {
     query: state.query,
     onQueryChange: (query: string) => onChange({ ...state, query }),
@@ -75,11 +84,17 @@ export function SearchController({
       onChange(withClimbFilterArea({ ...state, category: area ? "climb" : state.category }, area)),
     suggestedArea,
     sections: search.sections,
+    suggestions: suggested.length
+      ? {
+          kind: "climber" as const,
+          label: "You may know",
+          items: suggested,
+          status: "ready" as const,
+        }
+      : undefined,
     resultHref: resultHref
       ? (item: { id: string }) => {
-          const current = search.sections
-            .flatMap((section) => section.items)
-            .find((result) => result.id === item.id);
+          const current = findItem(item.id);
           return current ? resultHref(current) : undefined;
         }
       : undefined,
@@ -89,16 +104,12 @@ export function SearchController({
     loadingMore: search.loadingMore,
     loadMoreFailed: search.loadMoreFailed,
     onSelect: (item: { id: string }) => {
-      const current = search.sections
-        .flatMap((section) => (section.status === "ready" ? section.items : []))
-        .find((result) => result.id === item.id);
+      const current = findItem(item.id, true);
       if (current && !current.disabledReason) onNavigate(current);
     },
     renderAction: renderAction
       ? (item: { id: string }) => {
-          const current = search.sections
-            .flatMap((section) => section.items)
-            .find((result) => result.id === item.id);
+          const current = findItem(item.id);
           return current ? renderAction(current) : null;
         }
       : undefined,

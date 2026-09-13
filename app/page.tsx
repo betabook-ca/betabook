@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { AppSearch } from "@/components/search/app-search";
 import { parseSearchState } from "@/lib/search";
-import { loadSearch, loadAreaSelection } from "@/lib/search-loader";
+import { loadClimberSuggestions, loadSearch, loadAreaSelection } from "@/lib/search-loader";
 import { getMemberSession as getSession } from "@/lib/session";
 import type { UrlParamsRecord } from "@/lib/url-params";
 
@@ -28,11 +28,20 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   if (isBare && session) redirect(`/users/${session.user.id}`);
   const state = parseSearchState(params);
   state.area = await loadAreaSelection(state.filter.areaId);
-  const initial = await loadSearch(state, session?.user.id ?? null);
+  const viewerId = session?.user.id ?? null;
+  const [initial, suggestions] = await Promise.all([
+    loadSearch(state, viewerId),
+    loadClimberSuggestions(state, viewerId),
+  ]);
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold">Search</h1>
-      <AppSearch initialState={state} initial={initial} viewerId={session?.user.id ?? null} />
+      <AppSearch
+        initialState={state}
+        initial={initial}
+        suggestions={suggestions}
+        viewerId={viewerId}
+      />
     </div>
   );
 }

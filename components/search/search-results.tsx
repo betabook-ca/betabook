@@ -115,7 +115,7 @@ export function SearchResults({
             <div
               key={section.kind}
               role={listboxId ? "group" : "region"}
-              aria-label={`${SEARCH_LABELS[section.kind]} results`}
+              aria-label={section.label ?? `${SEARCH_LABELS[section.kind]} results`}
               className="min-w-0"
             >
               <div
@@ -127,7 +127,7 @@ export function SearchResults({
                     {SEARCH_LABELS[section.kind]}
                   </span>
                 ) : (
-                  <SectionHeading>{SEARCH_LABELS[section.kind]}</SectionHeading>
+                  <SectionHeading>{section.label ?? SEARCH_LABELS[section.kind]}</SectionHeading>
                 )}
                 {onViewCategory && !listboxId && (
                   <Button variant="ghost" size="sm" onPress={() => onViewCategory(section.kind)}>

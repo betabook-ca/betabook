@@ -5,9 +5,17 @@ import { useEffect, useRef, useState } from "react";
 
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { FriendshipButton } from "@/components/friendship-button";
+import type { SuggestedClimberRow } from "@/db/queries";
+import { useClimberSuggestions } from "@/hooks/use-climber-suggestions";
 import { useMounted } from "@/hooks/use-mounted";
 import { authClient } from "@/lib/auth-client";
-import { parseSearchState, searchHref, type SearchSnapshot, type SearchState } from "@/lib/search";
+import {
+  climberSuggestionItems,
+  parseSearchState,
+  searchHref,
+  type SearchSnapshot,
+  type SearchState,
+} from "@/lib/search";
 import { searchParamsToRecord } from "@/lib/url-params";
 
 import { SearchController } from "./search-controller";
@@ -15,10 +23,12 @@ import { SearchController } from "./search-controller";
 export function AppSearch({
   initialState,
   initial,
+  suggestions,
   viewerId,
 }: {
   initialState: SearchState;
   initial: SearchSnapshot;
+  suggestions: SuggestedClimberRow[] | null;
   viewerId: string | null;
 }) {
   const router = useRouter();
@@ -31,6 +41,10 @@ export function AppSearch({
   );
   const mounted = useMounted();
   const { data: session, isPending } = authClient.useSession();
+  const suggested = useClimberSuggestions(
+    viewerId !== null && state.category === "climber" && !state.query.trim(),
+    suggestions,
+  );
   if (source !== initialState) {
     setSource(initialState);
     setState(initialState);
@@ -73,6 +87,7 @@ export function AppSearch({
       initial={initial}
       onNavigate={(item) => router.push(item.href)}
       resultHref={(item) => item.href}
+      suggestions={climberSuggestionItems(suggested)}
       onExpand={() => change(state)}
       renderAction={(item) =>
         item.climber ? (

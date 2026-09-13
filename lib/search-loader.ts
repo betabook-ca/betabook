@@ -2,10 +2,12 @@ import { getDb } from "@/db/client";
 import {
   getAreaBreadcrumbs,
   getClimbSendStats,
+  getClimberSuggestions,
   getClimbersPage,
   getUserSentClimbIds,
   searchAreas,
   searchClimbs,
+  type SuggestedClimberRow,
 } from "@/db/queries";
 import { getPublicArea, searchPublicAreas, searchPublicClimbs } from "@/db/queries/public-catalog";
 import type { AreaSelection } from "@/lib/area-selection";
@@ -32,6 +34,19 @@ export async function loadAreaSelection(id: number | undefined): Promise<AreaSel
     name: area.name,
     path: (ancestors[id] ?? []).map((item) => item.name).join(" / "),
   };
+}
+
+/** An empty climber search shows suggestions; later arrivals load them on the client. */
+export async function loadClimberSuggestions(
+  state: SearchState,
+  viewerId: string | null,
+): Promise<SuggestedClimberRow[] | null> {
+  if (!viewerId || state.category !== "climber" || state.query.trim()) return null;
+  try {
+    return await getClimberSuggestions(await getDb(), viewerId);
+  } catch {
+    return null;
+  }
 }
 
 /** First-page HTML uses the same record mapping as subsequent API responses. */
