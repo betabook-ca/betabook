@@ -2,11 +2,10 @@
 
 import { useRouter } from "next/navigation";
 
-import { FriendshipButton } from "@/components/friendship-button";
+import { ClimberListItem } from "@/components/climber-list-item";
 import { AppLink } from "@/components/ui/app-link";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
-import { UserAvatar } from "@/components/ui/user-avatar";
 import type { FriendRow, FriendsPage } from "@/db/queries";
 import { usePagedList } from "@/hooks/use-paged-list";
 import { apiFetch } from "@/lib/api-client";
@@ -62,31 +61,7 @@ export function FriendList({
           ]
             .filter(Boolean)
             .join(" · ");
-          return (
-            <article
-              key={friend.id}
-              className="flex min-w-0 flex-col gap-3 border-b border-separator py-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <UserAvatar name={friend.name} image={friend.image} size="sm" />
-                <div className="min-w-0">
-                  <h2 className="truncate font-semibold">
-                    {friend.isPrivate ? (
-                      friend.name
-                    ) : (
-                      <AppLink href={`/users/${friend.id}`}>{friend.name}</AppLink>
-                    )}
-                  </h2>
-                  {detail && <p className="text-sm text-muted">{detail}</p>}
-                </div>
-              </div>
-              <FriendshipButton
-                userId={friend.id}
-                name={friend.name}
-                initialStatus={friend.friendshipStatus}
-              />
-            </article>
-          );
+          return <ClimberListItem key={friend.id} climber={friend} detail={detail} />;
         })}
       </div>
       {hasMore && (

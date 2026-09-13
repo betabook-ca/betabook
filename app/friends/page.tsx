@@ -4,12 +4,13 @@ import { notFound } from "next/navigation";
 import { ProfileHeader, getUserById } from "@/app/users/[id]/profile-shell";
 import { AuthCallout } from "@/components/auth-callout";
 import { FriendList } from "@/components/friend-list";
+import { FriendSuggestions } from "@/components/friend-suggestions";
 import { FriendTabs } from "@/components/friend-tabs";
 import { AppLink } from "@/components/ui/app-link";
 import { SectionHeading } from "@/components/ui/typography";
 import { ViewerBoundary } from "@/components/viewer-boundary";
 import { getDb } from "@/db/client";
-import { getFriendsPage } from "@/db/queries";
+import { getClimberSuggestions, getFriendsPage } from "@/db/queries";
 import { getMemberSession as getSession } from "@/lib/session";
 import type { UrlParamsRecord } from "@/lib/url-params";
 
@@ -24,9 +25,10 @@ export default async function FriendsPage({
   const session = await getSession();
   if (!session) return <AuthCallout next={requestsOnly ? "/friends?view=requests" : "/friends"} />;
   const db = await getDb();
-  const [page, owner] = await Promise.all([
+  const [page, owner, suggestions] = await Promise.all([
     getFriendsPage(db, session.user.id, requestsOnly),
     getUserById(session.user.id),
+    requestsOnly ? null : getClimberSuggestions(db, session.user.id),
   ]);
   if (!owner) notFound();
   return (
@@ -50,6 +52,7 @@ export default async function FriendsPage({
             requestsOnly={requestsOnly}
           />
         </section>
+        {suggestions && <FriendSuggestions climbers={suggestions} />}
       </div>
     </ViewerBoundary>
   );
