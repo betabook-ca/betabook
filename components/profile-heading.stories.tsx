@@ -81,6 +81,18 @@ export const Stranger: Story = {
     note: hiddenJournalNote,
   },
 };
+export const LongestGrades: Story = {
+  args: {
+    overview: {
+      ...STORY_CLIMBER_OVERVIEW,
+      hardest: [
+        { type: "sport", grade: "5.15d", sendCount: 337 },
+        { type: "trad", grade: "5.15d", sendCount: 314 },
+        { type: "boulder", grade: "V17", sendCount: 309 },
+      ],
+    },
+  },
+};
 export const NewClimber: Story = {
   args: { overview: STORY_NEW_CLIMBER_OVERVIEW },
 };

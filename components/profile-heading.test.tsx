@@ -28,21 +28,23 @@ const OVERVIEW: ClimberOverview = {
   month: "2026-03",
 };
 
-it("titles the profile and lists hardest sends, leaving the logbook summary to Analytics", () => {
+const badges = (html: string) =>
+  [...html.matchAll(/<li[^>]*>(.*?)<\/li>/g)].map((match) => match[1].replace(/<[^>]+>/g, ""));
+
+it("titles the profile and leaves the logbook summary to Analytics", () => {
   const html = renderToStaticMarkup(<ProfileHeading name="Alex Morgan" overview={OVERVIEW} />);
 
   expect(html).toMatch(/<h1[^>]*>Alex Morgan<\/h1>/);
-  expect(html).toMatch(/Boulder.*V8.*Sport.*5\.12a/s);
-  expect(html).not.toContain("180 sends");
   expect(html).not.toContain("Climbing since");
   expect(html).not.toContain("Last out");
 });
 
-it("tallies sends beside the name with a spoken discipline breakdown", () => {
+it("badges the hardest grade per discipline without send counts", () => {
   const html = renderToStaticMarkup(<ProfileHeading name="Alex Morgan" overview={OVERVIEW} />);
 
-  expect(html).toMatch(/>214<\/span>\s*sends/);
-  expect(html).toContain("180 boulder, 34 sport");
+  expect(badges(html)).toEqual(["BoulderV8", "Sport5.12a"]);
+  expect(html).not.toContain("214");
+  expect(html).not.toContain("180");
 });
 
 it("shows a note under the name", () => {
@@ -57,7 +59,7 @@ it("shows a note under the name", () => {
   expect(html).toContain("Their journal isn&#x27;t shared with you.");
 });
 
-it("leaves out hardest sends before anything is logged", () => {
+it("leaves out badges before anything is logged", () => {
   const html = renderToStaticMarkup(
     <ProfileHeading
       name="Alex Morgan"
@@ -75,4 +77,5 @@ it("leaves out hardest sends before anything is logged", () => {
   );
 
   expect(html).not.toContain("Hardest sends");
+  expect(badges(html)).toEqual([]);
 });

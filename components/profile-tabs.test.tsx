@@ -60,3 +60,21 @@ it("calls another person's journal Journal", () => {
   expect(html).toMatch(/href="\/users\/other\/journal"[^>]*>Journal<\/a>/);
   expect(html).not.toContain("My Journal");
 });
+
+it("counts sends on the Sends tab", () => {
+  state.pathname = "/users/owner";
+  const html = renderToStaticMarkup(
+    <ProfileTabs userId="owner" showJournal showProjects sendCount={960} />,
+  );
+
+  expect(html).toMatch(/href="\/users\/owner\/sends"[^>]*>Sends<span[^>]*>960<\/span><\/a>/);
+});
+
+it("leaves the Sends count off before anything is sent", () => {
+  state.pathname = "/users/owner";
+  const html = renderToStaticMarkup(
+    <ProfileTabs userId="owner" showJournal showProjects sendCount={0} />,
+  );
+
+  expect(html).toMatch(/href="\/users\/owner\/sends"[^>]*>Sends<\/a>/);
+});

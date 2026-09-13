@@ -84,7 +84,12 @@ export async function ProfileHeader({ user, viewerId }: { user: ProfileUser; vie
           }
         />
       </aside>
-      <ProfileTabs userId={user.id} showJournal={journalVisible} showProjects={isOwner} />
+      <ProfileTabs
+        userId={user.id}
+        showJournal={journalVisible}
+        showProjects={isOwner}
+        sendCount={overview.sendCount}
+      />
     </>
   );
 }
