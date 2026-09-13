@@ -36,8 +36,7 @@ export const MemberProfile: Story = {};
 export const AnotherClimber: Story = {
   args: {
     name: "Riley Chen",
-    nameAction: undefined,
-    actions: (
+    nameAction: (
       <FriendshipButton
         userId="sample"
         name="Riley Chen"
@@ -50,8 +49,7 @@ export const AnotherClimber: Story = {
 export const IncomingRequest: Story = {
   args: {
     name: "Sam Taylor",
-    nameAction: undefined,
-    actions: (
+    nameAction: (
       <FriendshipButton
         userId="sample"
         name="Sam Taylor"
@@ -65,8 +63,7 @@ export const Stranger: Story = {
   args: {
     name: "Jordan Lee",
     overview: { ...STORY_CLIMBER_OVERVIEW, daysOut: null },
-    nameAction: undefined,
-    actions: (
+    nameAction: (
       <FriendshipButton
         userId="sample"
         name="Jordan Lee"

@@ -57,9 +57,10 @@ export async function ProfileHeader({ user, viewerId }: { user: ProfileUser; vie
           name={user.name}
           image={user.image}
           overview={overview}
-          nameAction={shareUrl ? <ShareProfileButton name={user.name} url={shareUrl} /> : undefined}
-          actions={
-            isOwner ? undefined : (
+          nameAction={
+            isOwner ? (
+              shareUrl && <ShareProfileButton name={user.name} url={shareUrl} />
+            ) : (
               <FriendshipButton
                 userId={user.id}
                 name={user.name}

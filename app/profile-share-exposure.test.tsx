@@ -92,11 +92,11 @@ it("puts the owner's share link beside their name, with no other header actions"
   expect(tabs.props).not.toHaveProperty("sendCount");
 });
 
-it("keeps only the friendship control on another member's profile", async () => {
+it("puts the friendship control beside another member's name", async () => {
   const { heading } = await profileHeaderParts("member");
 
-  expect(heading.props.nameAction).toBeFalsy();
-  expect((heading.props.actions as ReactElement).type).toBe(FriendshipButton);
+  expect(heading.props.actions).toBeUndefined();
+  expect((heading.props.nameAction as ReactElement).type).toBe(FriendshipButton);
 });
 
 it("shows the owner their link on the account page", async () => {

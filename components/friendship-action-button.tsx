@@ -4,9 +4,9 @@ import { Button, useOverlayState } from "@heroui/react";
 
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 
-type FriendshipAction = "add" | "accept" | "decline" | "cancel" | "remove";
+export type FriendshipAction = "add" | "accept" | "decline" | "cancel" | "remove";
 
-const LABELS: Record<FriendshipAction, string> = {
+export const FRIENDSHIP_ACTION_LABELS: Record<FriendshipAction, string> = {
   add: "Add friend",
   accept: "Accept request",
   decline: "Decline request",
@@ -55,7 +55,7 @@ export function FriendshipActionButton({
   className?: string;
 }) {
   const state = useOverlayState();
-  const label = LABELS[action];
+  const label = FRIENDSHIP_ACTION_LABELS[action];
   const confirmation = friendshipConfirmation(action, name);
   return (
     <>

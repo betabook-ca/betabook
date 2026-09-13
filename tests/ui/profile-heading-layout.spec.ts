@@ -40,18 +40,25 @@ test(
   },
 );
 
-test(
-  "a tablet puts another climber's friendship control beside the name",
-  { tag: "@behavior" },
-  async ({ page }, info) => {
-    const header = await openAt(page, info, 1024, "another-climber");
-    const control = await box(page.getByRole("button", { name: /Friendship options/ }));
+for (const [story, control] of [
+  ["another-climber", "Friendship options for Riley Chen"],
+  ["stranger", "Add friend: Jordan Lee"],
+]) {
+  for (const width of [390, 1024]) {
+    test(
+      `the ${story} friendship control stays beside the name at ${width}px`,
+      { tag: "@behavior" },
+      async ({ page }, info) => {
+        const header = await openAt(page, info, width, story);
+        const button = await box(page.getByRole("button", { name: control, exact: true }));
 
-    expect(control.x).toBeGreaterThan(header.title.x + header.title.width);
-    expect(control.y).toBeLessThan(header.title.y + header.title.height);
-    expect(Math.max(...header.chipTops) - Math.min(...header.chipTops)).toBeLessThanOrEqual(2);
-  },
-);
+        expect(button.x).toBeGreaterThanOrEqual(header.title.x + header.title.width - 1);
+        expect(Math.abs(middle(button) - middle(header.title))).toBeLessThanOrEqual(4);
+        expect(Math.max(...header.chipTops) - Math.min(...header.chipTops)).toBeLessThanOrEqual(2);
+      },
+    );
+  }
+}
 
 for (const story of ["member-profile", "longest-grades"]) {
   test(

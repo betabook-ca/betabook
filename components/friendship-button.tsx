@@ -1,9 +1,8 @@
 "use client";
 
-import { Menu, useOverlayState } from "@heroui/react";
-import { clsx } from "clsx";
-import { UserCheck } from "lucide-react";
-import { useState, useTransition } from "react";
+import { Button, Menu, Tooltip, useOverlayState } from "@heroui/react";
+import { Clock, UserCheck, UserPlus } from "lucide-react";
+import { useState, useTransition, type ReactNode } from "react";
 
 import {
   requestFriendship,
@@ -12,12 +11,14 @@ import {
   declineFriendRequest,
   removeFriendship,
 } from "@/actions";
+import { FriendRequestDot } from "@/components/friend-request-badge";
 import { useFriendRequests } from "@/components/friend-requests-provider";
 import {
+  FRIENDSHIP_ACTION_LABELS,
   FriendshipActionButton,
   friendshipConfirmation,
+  type FriendshipAction,
 } from "@/components/friendship-action-button";
-import { PROFILE_ACTION_CLASS } from "@/components/profile-actions";
 import { ActionsMenu } from "@/components/ui/actions-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { InlineAlert } from "@/components/ui/inline-alert";
@@ -26,7 +27,50 @@ import type { FriendshipStatus } from "@/lib/friendships";
 
 type FriendshipMutation = (userId: string) => Promise<ActionResult<FriendshipStatus>>;
 
-/** `profile` keeps an existing friendship's removal in a menu instead of a headline button. */
+const MUTATIONS: Record<FriendshipAction, FriendshipMutation> = {
+  add: requestFriendship,
+  accept: acceptFriendRequest,
+  decline: declineFriendRequest,
+  cancel: cancelFriendRequest,
+  remove: removeFriendship,
+};
+
+const STATUS_ACTIONS: Record<FriendshipStatus, FriendshipAction[]> = {
+  none: ["add"],
+  incoming: ["accept", "decline"],
+  outgoing: ["cancel"],
+  friends: ["remove"],
+};
+
+const PROFILE_MENUS: Record<
+  Exclude<FriendshipStatus, "none">,
+  { label: (name: string) => string; tooltip: string; icon: ReactNode }
+> = {
+  friends: {
+    label: (name) => `Friendship options for ${name}`,
+    tooltip: "Friends",
+    icon: <UserCheck aria-hidden className="size-4 text-success-soft-foreground" />,
+  },
+  outgoing: {
+    label: (name) => `Friend request sent to ${name}`,
+    tooltip: "Friend request sent",
+    icon: <Clock aria-hidden className="size-4" />,
+  },
+  incoming: {
+    label: (name) => `${name} sent you a friend request`,
+    tooltip: "Sent you a friend request",
+    icon: (
+      <span className="relative">
+        <UserPlus aria-hidden className="size-4" />
+        <FriendRequestDot className="absolute -top-1 -right-1.5" />
+      </span>
+    ),
+  },
+};
+
+const PROFILE_CONTROL_CLASS = "pointer-coarse:size-11";
+
+/** `profile` fits the relationship into one control beside the climber's name. */
 export function FriendshipButton({
   userId,
   name,
@@ -47,11 +91,11 @@ export function FriendshipButton({
     setSource(initialStatus);
     setStatus(initialStatus);
   }
-  function run(action: FriendshipMutation, complete: () => void) {
+  function run(action: FriendshipAction, complete: () => void) {
     setError(null);
     startTransition(async () => {
       try {
-        const result = await action(userId);
+        const result = await MUTATIONS[action](userId);
         if (result.ok) {
           setStatus(result.value);
           void refresh();
@@ -62,51 +106,32 @@ export function FriendshipButton({
       }
     });
   }
-  if (appearance === "profile" && status === "friends") {
+  if (appearance === "profile") {
     return (
-      <FriendMenu
+      <ProfileFriendshipControl
+        status={status}
         name={name}
         pending={pending}
         error={error}
-        onRemove={(complete) => run(removeFriendship, complete)}
+        onAction={run}
       />
     );
   }
-  const options =
-    status === "incoming"
-      ? [
-          { kind: "accept" as const, action: acceptFriendRequest },
-          { kind: "decline" as const, action: declineFriendRequest },
-        ]
-      : status === "outgoing"
-        ? [{ kind: "cancel" as const, action: cancelFriendRequest }]
-        : status === "friends"
-          ? [{ kind: "remove" as const, action: removeFriendship }]
-          : [{ kind: "add" as const, action: requestFriendship }];
   return (
-    <div
-      className={clsx(
-        "flex flex-col gap-1",
-        appearance === "profile" && "items-start gap-1.5 @2xl:items-end",
-      )}
-    >
+    <div className="flex flex-col gap-1">
       {status === "outgoing" && (
         <p role="status" className="text-xs text-muted">
           Friend request sent
         </p>
       )}
-      {status === "incoming" && appearance === "profile" && (
-        <p className="text-sm">{name} sent you a friend request</p>
-      )}
       <div className="flex flex-wrap gap-2">
-        {options.map(({ kind, action }) => (
+        {STATUS_ACTIONS[status].map((action) => (
           <FriendshipActionButton
-            key={kind}
-            action={kind}
+            key={action}
+            action={action}
             name={name}
             pending={pending}
             error={error}
-            className={appearance === "profile" ? PROFILE_ACTION_CLASS : undefined}
             onPress={(complete) => run(action, complete)}
           />
         ))}
@@ -116,42 +141,81 @@ export function FriendshipButton({
   );
 }
 
-function FriendMenu({
+function ProfileFriendshipControl({
+  status,
   name,
   pending,
   error,
-  onRemove,
+  onAction,
 }: {
+  status: FriendshipStatus;
   name: string;
   pending: boolean;
   error: string | null;
-  onRemove: (complete: () => void) => void;
+  onAction: (action: FriendshipAction, complete: () => void) => void;
 }) {
-  const state = useOverlayState();
+  const confirm = useOverlayState();
+  const [confirming, setConfirming] = useState<FriendshipAction>("remove");
+  const confirmation = friendshipConfirmation(confirming, name);
+
+  function choose(action: FriendshipAction) {
+    if (friendshipConfirmation(action, name)) {
+      setConfirming(action);
+      confirm.open();
+    } else onAction(action, () => {});
+  }
+
   return (
-    <div className="flex items-center gap-1">
-      <span className="inline-flex items-center gap-1.5 text-sm font-medium">
-        <UserCheck aria-hidden className="size-4 text-success-soft-foreground" />
-        Friends
-      </span>
-      <ActionsMenu
-        ariaLabel={`Friendship options for ${name}`}
-        triggerClassName="pointer-coarse:size-11"
-        onAction={(key) => {
-          if (key === "remove") state.open();
-        }}
-      >
-        <Menu.Item id="remove">Remove friend</Menu.Item>
-      </ActionsMenu>
-      <ConfirmDeleteDialog
-        state={state}
-        noun="friend"
-        {...friendshipConfirmation("remove", name)}
-        confirmLabel="Remove friend"
-        onConfirm={() => onRemove(state.close)}
-        isPending={pending}
-        error={error}
-      />
+    <div className="relative shrink-0">
+      {status === "none" ? (
+        <Tooltip.Root delay={200}>
+          <Button
+            isIconOnly
+            variant="ghost"
+            size="sm"
+            aria-label={`${FRIENDSHIP_ACTION_LABELS.add}: ${name}`}
+            isDisabled={pending}
+            className={`text-link ${PROFILE_CONTROL_CLASS}`}
+            onPress={() => choose("add")}
+          >
+            <UserPlus aria-hidden className="size-4" />
+          </Button>
+          <Tooltip.Content>{FRIENDSHIP_ACTION_LABELS.add}</Tooltip.Content>
+        </Tooltip.Root>
+      ) : (
+        <ActionsMenu
+          ariaLabel={PROFILE_MENUS[status].label(name)}
+          tooltip={PROFILE_MENUS[status].tooltip}
+          icon={PROFILE_MENUS[status].icon}
+          triggerClassName={PROFILE_CONTROL_CLASS}
+          onAction={(key) => {
+            const action = STATUS_ACTIONS[status].find((entry) => entry === key);
+            if (action) choose(action);
+          }}
+        >
+          {STATUS_ACTIONS[status].map((action) => (
+            <Menu.Item key={action} id={action}>
+              {FRIENDSHIP_ACTION_LABELS[action]}
+            </Menu.Item>
+          ))}
+        </ActionsMenu>
+      )}
+      {confirmation && (
+        <ConfirmDeleteDialog
+          state={confirm}
+          noun={confirming === "remove" ? "friend" : "friend request"}
+          {...confirmation}
+          confirmLabel={FRIENDSHIP_ACTION_LABELS[confirming]}
+          onConfirm={() => onAction(confirming, confirm.close)}
+          isPending={pending}
+          error={error}
+        />
+      )}
+      {error && !confirm.isOpen && (
+        <InlineAlert className="absolute top-full left-0 z-10 mt-1 w-max max-w-64">
+          {error}
+        </InlineAlert>
+      )}
     </div>
   );
 }
