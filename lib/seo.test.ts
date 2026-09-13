@@ -31,7 +31,7 @@ describe("public climb metadata", () => {
   });
   it("supports a missing location", () => {
     expect(climbDescription({ name: "Unknown", type: "sport", grade: null }, "")).toBe(
-      "Unknown is a sport route. Sign in to Betabook for ratings and community activity.",
+      "Unknown is a sport route. Community rating and logged ascents on Betabook.",
     );
   });
 });
@@ -44,7 +44,7 @@ describe("areaTitle / areaDescription", () => {
 
   it("folds the location trail into the description", () => {
     expect(areaDescription("Camp 4", "Yosemite Valley, Yosemite National Park")).toBe(
-      "Explore climbing in Camp 4, Yosemite Valley, Yosemite National Park. Sign in to Betabook for ratings and community activity.",
+      "Explore climbing in Camp 4, Yosemite Valley, Yosemite National Park. Routes and boulder problems on Betabook.",
     );
   });
 });

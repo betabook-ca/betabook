@@ -76,7 +76,7 @@ it("discards local state when the server viewer changes, and hides data on sign-
   expect(next).toHaveValue("");
   transport.mockImplementation(async () => Response.json(null));
   act(() => authClient.$store.notify("$sessionSignal"));
-  await screen.findByText("Sign in or sign up to see all the content.");
+  await screen.findByText("For Betabook members");
   expect(screen.queryByRole("textbox", { name: "Notes" })).not.toBeInTheDocument();
   let resolve!: (response: Response) => void;
   transport.mockImplementation(

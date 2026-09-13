@@ -26,11 +26,13 @@ export function AppSearch({
   initial,
   suggestions,
   viewerId,
+  showMemberNotice = true,
 }: {
   initialState: SearchState;
   initial: SearchSnapshot;
   suggestions: SuggestedClimberRow[] | null;
   viewerId: string | null;
+  showMemberNotice?: boolean;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -80,6 +82,7 @@ export function AppSearch({
     <SearchController
       key={viewerId ?? "anonymous"}
       publicOnly={viewerId === null}
+      showMemberNotice={viewerId === null && showMemberNotice}
       state={state}
       onChange={change}
       initial={initial}

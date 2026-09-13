@@ -70,11 +70,15 @@ export function climbTitle(climb: PublicClimbFacts, areaName: string): string {
   const grade = formatGrade(climb.type, climb.grade);
   return `${climb.name}${grade === "—" ? "" : ` · ${grade}`} · ${areaName}`;
 }
+/** Ends catalog descriptions that have no text of their own. */
+const CLIMB_FALLBACK = `Community rating and logged ascents on ${SITE_NAME}.`;
+const AREA_FALLBACK = `Routes and boulder problems on ${SITE_NAME}.`;
+
 export function climbDescription(climb: PublicClimbFacts, trail: string): string {
   const grade = formatGrade(climb.type, climb.grade);
   const detail = climb.description?.trim();
   const discipline = climb.type === "boulder" ? "boulder problem" : `${climb.type} route`;
-  return `${climb.name} is a ${grade === "—" ? "" : `${grade} `}${discipline}${trail ? ` in ${trail}` : ""}. ${detail || `Sign in to ${SITE_NAME} for ratings and community activity.`}`;
+  return `${climb.name} is a ${grade === "—" ? "" : `${grade} `}${discipline}${trail ? ` in ${trail}` : ""}. ${detail || CLIMB_FALLBACK}`;
 }
 
 /** `<title>` for an area page. */
@@ -85,7 +89,7 @@ export function areaTitle(name: string, parentName: string | null): string {
 /** `<meta name="description">` for an area page. */
 export function areaDescription(name: string, trail: string, description?: string | null): string {
   const where = trail ? `${name}, ${trail}` : name;
-  return `Explore climbing in ${where}. ${description?.trim() || `Sign in to ${SITE_NAME} for ratings and community activity.`}`;
+  return `Explore climbing in ${where}. ${description?.trim() || AREA_FALLBACK}`;
 }
 
 type Crumb = { name: string; path: string };

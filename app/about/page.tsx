@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
 
 import { Brand } from "@/components/brand";
+import { AppLink } from "@/components/ui/app-link";
+import { cardClass } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/typography";
+import { IMPORT_PAGES, LOGBOOK_PAGE } from "@/lib/landing-pages";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "About",
-};
+  description:
+    "Who builds Betabook, how the site stays free, and who can see your profile, sends and journal.",
+  path: "/about",
+});
 
 export default function AboutPage() {
   return (
@@ -31,6 +38,55 @@ export default function AboutPage() {
         the experiences of others. It is a place to find beta, to find inspiration, and to find
         community.
       </p>
+      <p className="leading-relaxed text-pretty">
+        See the{" "}
+        <AppLink href={LOGBOOK_PAGE.path} className="inline underline">
+          logbook’s features
+        </AppLink>
+        , or import your sends from{" "}
+        <AppLink href={IMPORT_PAGES.kaya.path} className="inline underline">
+          KAYA
+        </AppLink>
+        ,{" "}
+        <AppLink href={IMPORT_PAGES.sendage.path} className="inline underline">
+          Sendage
+        </AppLink>{" "}
+        or{" "}
+        <AppLink href={IMPORT_PAGES.mountainProject.path} className="inline underline">
+          Mountain Project
+        </AppLink>
+        .
+      </p>
+
+      <section
+        aria-labelledby="about-privacy"
+        className={`mt-4 flex flex-col gap-3 ${cardClass("md", "bordered")}`}
+      >
+        <SectionHeading>
+          <span id="about-privacy">Privacy controls</span>
+        </SectionHeading>
+        <ul className="flex list-disc flex-col gap-2 ps-5 leading-relaxed text-pretty">
+          <li>
+            Profiles, journals and stats need an account. Signed-out visitors see each climb’s
+            latest 10 sends, without names unless send notes are set to Everyone.
+          </li>
+          <li>
+            A private profile and its history are visible only to you. Friends and people you send
+            requests to still see your name, and climb pages list your sends without it.
+          </li>
+          <li>
+            You set one audience for journal entries and another for send notes, from Only me to
+            Members. Send notes can also be set to Everyone, which shows them with your name to
+            signed-out visitors.
+          </li>
+          <li>
+            Your profile link and QR code show your name, photo, send stats and latest sends to
+            anyone who has them. Resetting the link, or making your profile private, stops old links
+            working.
+          </li>
+          <li>Only you can see your projects and export your sends.</li>
+        </ul>
+      </section>
 
       <SectionHeading className="mt-4">Not a Guidebook or Social Media</SectionHeading>
       <p className="leading-relaxed text-pretty">

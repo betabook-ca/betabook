@@ -95,7 +95,7 @@ async function expectLocked(id: string, share: string) {
   });
   const page = await UserPage(shareProps(id, share));
   const html = renderToStaticMarkup(page);
-  expect(html).toContain("Sign in or sign up to see all the content.");
+  expect(html).toContain("For Betabook members");
   expect(html).not.toContain("identity sentinel");
   expect(JSON.stringify(page)).not.toContain("Preview climb");
 }
@@ -169,7 +169,7 @@ it("renders public route details and anonymized sends in the page and metadata",
   expect(html).toContain("Aug 2026");
   expect(html).not.toContain("Restricted identity sentinel");
   expect(html).not.toContain("Members beta sentinel");
-  expect(html).toContain("Sign in or sign up to see all the content.");
+  expect(html).toContain("For Betabook members");
   expect(html).toContain("V4");
   expect(html).toContain("Boulder");
   expect(html).toContain("Public route description sentinel");
@@ -192,7 +192,7 @@ it("does not reveal whether a profile exists in the page or metadata", async () 
       robots: { index: false },
     });
     const html = renderToStaticMarkup(await UserPage(props));
-    expect(html).toContain("Sign in or sign up to see all the content.");
+    expect(html).toContain("For Betabook members");
     expect(html).not.toContain("Restricted identity sentinel");
   }
 });
@@ -228,7 +228,7 @@ it("keeps the profile's sub-pages locked with a current share link", async () =>
 
   for (const SubPage of [UserSendsPage, UserJournalPage, UserAnalyticsPage]) {
     const page = await SubPage(shareProps("hidden", token));
-    expect(renderToStaticMarkup(page)).toContain("Sign in or sign up to see all the content.");
+    expect(renderToStaticMarkup(page)).toContain("For Betabook members");
     expect(JSON.stringify(page)).not.toContain("Preview climb");
   }
 });

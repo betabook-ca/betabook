@@ -18,12 +18,21 @@ afterEach(() => vi.unstubAllGlobals());
 function requestUrl(input: RequestInfo | URL): string {
   return input instanceof Request ? input.url : input.toString();
 }
-function Search({ publicOnly = true, quick = false }: { publicOnly?: boolean; quick?: boolean }) {
+function Search({
+  publicOnly = true,
+  quick = false,
+  showMemberNotice,
+}: {
+  publicOnly?: boolean;
+  quick?: boolean;
+  showMemberNotice?: boolean;
+}) {
   const [state, setState] = useState({ ...EMPTY_SEARCH, query: "Test" });
   return (
     <SearchController
       publicOnly={publicOnly}
       quick={quick}
+      showMemberNotice={showMemberNotice}
       state={state}
       onChange={setState}
       onNavigate={() => {}}
@@ -172,6 +181,19 @@ it("sends the full refinement set to the public catalog and shows what it return
   expect(screen.queryByText("Sent")).not.toBeInTheDocument();
 });
 
+it("hides the member notice when showMemberNotice is false and still locks climbers", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<typeof fetch>(async () =>
+      Response.json({ climbs: [], areas: [], areaBreadcrumbs: {}, hasNextPage: false }),
+    ),
+  );
+  const user = userEvent.setup();
+  render(<Search showMemberNotice={false} />);
+  await user.click(screen.getByRole("button", { name: "Climbers" }));
+  expect(screen.getByText("Sign in to view climbers.")).toBeVisible();
+  expect(screen.queryByRole("region", { name: "Member content" })).not.toBeInTheDocument();
+});
 it("keeps the palette's sign-in link pointed at the current search", async () => {
   vi.stubGlobal(
     "fetch",

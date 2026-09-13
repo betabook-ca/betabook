@@ -1,8 +1,9 @@
 import { env } from "cloudflare:test";
 import { isValidElement, type ReactNode } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import SearchPage from "@/app/page";
+import SearchPage, { generateMetadata } from "@/app/page";
 import { AppSearch } from "@/components/search/app-search";
 import { createDb } from "@/db/client";
 import type { SearchSnapshot, SearchState } from "@/lib/search";
@@ -36,6 +37,7 @@ function props(node: ReactNode): {
   initialState: SearchState;
   initial: SearchSnapshot;
   viewerId: string | null;
+  showMemberNotice?: boolean;
 } {
   for (const child of Array.isArray(node) ? node : [node]) {
     if (!isValidElement<{ children?: ReactNode }>(child)) continue;
@@ -106,6 +108,35 @@ it("uses the selected area and authenticated viewer for member results", async (
   expect(data.initial[0].page.items).toMatchObject([
     { id: "climb-1", grade: 5, discipline: "boulder", context: { sent: true, sendCount: 1 } },
   ]);
+});
+it("shows the intro only on the bare home", async () => {
+  const home = renderToStaticMarkup(await SearchPage({ searchParams: Promise.resolve({}) }));
+  expect(home).toContain('href="/climbing-logbook"');
+  expect(home).toContain('href="/sign-up"');
+  const search = renderToStaticMarkup(
+    await SearchPage({ searchParams: Promise.resolve({ mode: "climb", name: "Test" }) }),
+  );
+  expect(search).not.toContain('href="/climbing-logbook"');
+});
+it("hides the search member notice only on the bare home", async () => {
+  const home = props(await SearchPage({ searchParams: Promise.resolve({}) }));
+  expect(home.showMemberNotice).toBe(false);
+  const search = props(
+    await SearchPage({ searchParams: Promise.resolve({ mode: "climb", name: "Test" }) }),
+  );
+  expect(search.showMemberNotice).not.toBe(false);
+});
+it("describes the bare home and keeps search states out of the index", async () => {
+  const home = await generateMetadata({ searchParams: Promise.resolve({}) });
+  expect(home.alternates).toEqual({ canonical: "/" });
+  expect(home.title).toContain("climbing logbook");
+  expect(home.robots).toBeUndefined();
+  expect(home.openGraph).toMatchObject({ url: "/", description: home.description });
+  expect(await generateMetadata({ searchParams: Promise.resolve({ name: "Test" }) })).toEqual({
+    title: "Search",
+    robots: { index: false },
+    alternates: { canonical: "/" },
+  });
 });
 it("returns only an authentication state for anonymous climber searches", async () => {
   const data = props(

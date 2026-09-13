@@ -3,6 +3,7 @@ import { cache } from "react";
 
 import { getDb } from "@/db/client";
 import { countAreas, countClimbs, getAreaSitemapRows, getClimbSitemapRows } from "@/db/queries";
+import { LANDING_PAGE_PATHS } from "@/lib/landing-pages";
 import { SITE_URL } from "@/lib/site";
 import { areaHref, climbHref } from "@/lib/slug";
 import { TERMS_VERSIONS, termsHref } from "@/lib/terms";
@@ -24,6 +25,7 @@ export const dynamic = "force-dynamic";
 // canonical link the home page renders.
 const STATIC_PATHS = [
   "",
+  ...LANDING_PAGE_PATHS,
   "/about",
   "/contact",
   "/terms",
