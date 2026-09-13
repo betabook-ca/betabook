@@ -29,37 +29,41 @@ export default async function FeedPage({
   ]);
   return (
     <ViewerBoundary viewerId={session.user.id}>
-      <section aria-label="Feed" className="flex w-full min-w-0 flex-col gap-5">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <PageTitle>Feed</PageTitle>
-          <div className="flex flex-wrap gap-4 text-sm">
-            <AppLink href="/friends">Friends</AppLink>
-            <AppLink href="/?mode=climber">Find climbers</AppLink>
+      <section aria-label="Feed" className="flex w-full min-w-0 flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+            <PageTitle>Feed</PageTitle>
+            <div className="flex flex-wrap gap-4 text-sm">
+              <AppLink href="/friends">Friends</AppLink>
+              <AppLink href="/?mode=climber">Find climbers</AppLink>
+            </div>
           </div>
+          <p className="max-w-3xl text-sm text-muted">
+            See what your friends have been climbing. Journal entries and notes appear here only
+            when shared with you. Choose what you share in{" "}
+            <AppLink href="/account">Account settings</AppLink>.
+          </p>
         </div>
-        <p className="max-w-3xl text-sm text-muted">
-          See what your friends have been climbing. Journal entries and notes appear here only when
-          shared with you. Choose what you share in{" "}
-          <AppLink href="/account">Account settings</AppLink>.
-        </p>
-        <nav aria-label="Feed activity" className="flex gap-2">
-          {(["all", "sends"] as const).map((value) => (
-            <AppLink
-              key={value}
-              href={`/feed?view=${value}`}
-              className={choicePillClass(value === view, "bg-foreground text-background")}
-              aria-current={value === view ? "page" : undefined}
-            >
-              {value === "all" ? "All activity" : "Sends"}
-            </AppLink>
-          ))}
-        </nav>
         <FeedList
           viewerId={session.user.id}
           key={`${session.user.id}:${view}`}
           initialPage={page}
           view={view}
           hasFriends={friends.friends.length > 0}
+          toolbar={
+            <nav aria-label="Feed activity" className="flex gap-2">
+              {(["all", "sends"] as const).map((value) => (
+                <AppLink
+                  key={value}
+                  href={`/feed?view=${value}`}
+                  className={choicePillClass(value === view, "bg-foreground text-background")}
+                  aria-current={value === view ? "page" : undefined}
+                >
+                  {value === "all" ? "All activity" : "Sends"}
+                </AppLink>
+              ))}
+            </nav>
+          }
         />
       </section>
     </ViewerBoundary>

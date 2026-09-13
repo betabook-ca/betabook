@@ -30,55 +30,67 @@ function describeRecency({ daysOut, lastOut, daysThisMonth, month }: ClimberOver
   return `${last} ${days} in ${MONTH_NAME.format(new Date(`${month}-01T00:00:00Z`))}.`;
 }
 
+/** Below `xl` the heading spans the page, so actions and grades share rows instead of stacking. */
 export function ProfileHeading({
   name,
   image = null,
   overview,
   analyticsHref,
   actions,
-  children,
+  note,
 }: {
   name: string;
   image?: string | null;
   overview: ClimberOverview;
   analyticsHref?: string;
   actions?: ReactNode;
-  children?: ReactNode;
+  /** Shown under the summary, e.g. why a section is missing. */
+  note?: ReactNode;
 }) {
   const recency = describeRecency(overview);
   return (
-    <div className="flex min-w-0 flex-col gap-5">
-      <div className="flex min-w-0 items-center gap-4 xl:flex-col xl:items-start xl:gap-3">
-        <UserAvatar name={name} image={image} size="lg" />
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <PageTitle size="lg" className="break-words">
-            {name}
-          </PageTitle>
-          <p className="text-sm text-muted">{summarize(overview)}</p>
-          {recency && (
-            <p className="text-sm">
-              {recency}
-              {analyticsHref && (
-                <>
-                  {" "}
-                  <AppLink href={analyticsHref}>See analytics</AppLink>
-                </>
-              )}
-            </p>
-          )}
+    <div className="flex min-w-0 flex-col gap-4 xl:gap-5">
+      <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between xl:flex-col xl:justify-start">
+        <div className="flex min-w-0 items-center gap-4 xl:flex-col xl:items-start xl:gap-3">
+          <UserAvatar name={name} image={image} size="lg" />
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <PageTitle size="lg" className="break-words">
+              {name}
+            </PageTitle>
+            <p className="text-sm text-muted">{summarize(overview)}</p>
+            {recency && (
+              <p className="text-sm">
+                {recency}
+                {analyticsHref && (
+                  <>
+                    {" "}
+                    <AppLink href={analyticsHref}>See analytics</AppLink>
+                  </>
+                )}
+              </p>
+            )}
+            {note}
+          </div>
         </div>
+        {actions && (
+          <div className="flex flex-wrap items-start gap-2 sm:shrink-0 sm:justify-end xl:justify-start">
+            {actions}
+          </div>
+        )}
       </div>
-      {actions && <div className="flex flex-wrap items-start gap-2">{actions}</div>}
       {overview.hardest.length > 0 && (
-        <section aria-label="Hardest sends" className="flex flex-col gap-2">
+        <section
+          aria-label="Hardest sends"
+          className="flex flex-wrap items-center gap-x-4 gap-y-2 xl:flex-col xl:items-start xl:gap-2"
+        >
           <h2 className="text-sm text-muted">Hardest sends</h2>
-          <dl className="grid w-fit grid-cols-[auto_auto_auto] items-center gap-x-3 gap-y-1.5">
+          <dl className="flex flex-wrap items-center gap-x-5 gap-y-2 xl:grid xl:w-fit xl:grid-cols-[auto_auto_auto] xl:gap-x-3 xl:gap-y-1.5">
             {overview.hardest.map(({ type, grade, sendCount }) => (
-              <div key={type} className="contents">
+              <div key={type} className="flex items-center gap-2 xl:contents">
                 <dt>
                   <DisciplineChip type={type} />
                 </dt>
-                <dd className="text-xl font-semibold tabular-nums">{grade}</dd>
+                <dd className="text-lg font-semibold tabular-nums xl:text-xl">{grade}</dd>
                 <dd className="text-sm text-muted tabular-nums">
                   {formatCount(sendCount, "send")}
                 </dd>
@@ -87,7 +99,6 @@ export function ProfileHeading({
           </dl>
         </section>
       )}
-      {children}
     </div>
   );
 }

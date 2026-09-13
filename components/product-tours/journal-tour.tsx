@@ -88,14 +88,17 @@ export function JournalTourPage({ section, mode, href, steps }: ProductTourPageP
         <ProfileHeading
           name={TOUR_DEMO_CLIMBER.name}
           overview={DEMO_OVERVIEW}
-          actions={mode === "full" ? <DemoLog /> : undefined}
-        >
-          <span className="inline-flex w-fit items-center gap-1.5 text-sm text-link">
-            <Users aria-hidden className="size-4" />
-            Friends
-            <FriendRequestBadge count={friendRequest === "pending" ? 1 : 0} />
-          </span>
-        </ProfileHeading>
+          actions={
+            <>
+              {mode === "full" && <DemoLog />}
+              <span className={`${buttonVariants({ variant: "outline" })} cursor-default gap-2`}>
+                <Users aria-hidden className="size-4" />
+                Friends
+                <FriendRequestBadge count={friendRequest === "pending" ? 1 : 0} />
+              </span>
+            </>
+          }
+        />
       </aside>
       <ProfileSectionNav
         tabs={steps

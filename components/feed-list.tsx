@@ -2,7 +2,7 @@
 
 import { Button } from "@heroui/react";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useTransition, type ReactNode } from "react";
 
 import { FeedDayCard } from "@/components/feed-day-card";
 import { FeedGroupCard } from "@/components/feed-group-card";
@@ -23,11 +23,14 @@ export function FeedList({
   view,
   hasFriends,
   viewerId,
+  toolbar,
 }: {
   initialPage: FeedPage;
   view: FeedView;
   hasFriends: boolean;
   viewerId: string;
+  /** Shares a row with Refresh feed. */
+  toolbar?: ReactNode;
 }) {
   const router = useRouter();
   const [refreshing, startRefresh] = useTransition();
@@ -76,15 +79,18 @@ export function FeedList({
     );
   return (
     <div className="flex flex-col gap-4">
-      <Button
-        variant="ghost"
-        size="sm"
-        className="self-end"
-        isDisabled={refreshing}
-        onPress={() => startRefresh(() => router.refresh())}
-      >
-        {refreshing ? "Refreshing…" : "Refresh feed"}
-      </Button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {toolbar}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="ml-auto"
+          isDisabled={refreshing}
+          onPress={() => startRefresh(() => router.refresh())}
+        >
+          {refreshing ? "Refreshing…" : "Refresh feed"}
+        </Button>
+      </div>
       {items.length === 0 ? (
         <EmptyState
           message={

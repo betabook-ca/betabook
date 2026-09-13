@@ -22,9 +22,9 @@ const meta = {
       <>
         <LogEntryButton />
         <ShareProfileButton name="Alex Morgan" url="https://betabook.ca/users/sample?share=demo" />
+        <ProfileFriendsLink userId="sample" />
       </>
     ),
-    children: <ProfileFriendsLink userId="sample" />,
   },
   decorators: [
     (Story) => (
@@ -49,7 +49,7 @@ export const AnotherClimber: Story = {
         appearance="profile"
       />
     ),
-    children: (
+    note: (
       <p className="text-sm text-muted">Riley Chen&apos;s journal isn&apos;t shared with you.</p>
     ),
   },

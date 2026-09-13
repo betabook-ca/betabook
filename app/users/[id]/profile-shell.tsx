@@ -60,6 +60,7 @@ export async function ProfileHeader({ user, viewerId }: { user: ProfileUser; vie
               <>
                 <LogEntryButton />
                 {shareUrl && <ShareProfileButton name={user.name} url={shareUrl} />}
+                <ProfileFriendsLink userId={user.id} />
               </>
             ) : (
               <FriendshipButton
@@ -70,15 +71,13 @@ export async function ProfileHeader({ user, viewerId }: { user: ProfileUser; vie
               />
             )
           }
-        >
-          {isOwner ? (
-            <ProfileFriendsLink userId={user.id} />
-          ) : (
+          note={
+            !isOwner &&
             !journalVisible && (
               <p className="text-sm text-muted">{`${user.name}'s journal isn't shared with you.`}</p>
             )
-          )}
-        </ProfileHeading>
+          }
+        />
       </aside>
       <ProfileTabs userId={user.id} showJournal={journalVisible} showProjects={isOwner} />
     </>
