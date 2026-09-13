@@ -255,20 +255,19 @@ function namePass(dir: string, table: keyof typeof NAME_PASSES): string[] {
 
 /**
  * `send_journal_update_guard` aborts an `UPDATE OF comment ON sends` whose new
- * comment doesn't already equal the body of the earliest sent journal entry, so
- * the mirror has to be rewritten first. Emitting the pair in the other order
- * fails outright rather than silently diverging.
+ * comment doesn't already equal the body of its ascent journal entry, so the
+ * mirror has to be rewritten first. Emitting the pair in the other order fails
+ * outright rather than silently diverging.
+ *
+ * Joined on `is_ascent`, the row the guard compares; "earliest sent entry" can
+ * pick a same-day repeat instead. `journal_ascent_unique` keeps it one-to-one.
  */
 function sendCommentPass(dir: string): string[] {
   const rows = readPaged<SendRow>(
-    `SELECT s.id AS id, s.comment AS comment,
-            (SELECT j.id FROM journal_entries j
-              WHERE j.user_id = s.user_id AND j.climb_id = s.climb_id AND j.sent = 1
-              ORDER BY j.entry_date, j.id LIMIT 1) AS journalId,
-            (SELECT j.body FROM journal_entries j
-              WHERE j.user_id = s.user_id AND j.climb_id = s.climb_id AND j.sent = 1
-              ORDER BY j.entry_date, j.id LIMIT 1) AS journalBody
+    `SELECT s.id AS id, s.comment AS comment, j.id AS journalId, j.body AS journalBody
        FROM sends s
+       LEFT JOIN journal_entries j
+         ON j.user_id = s.user_id AND j.climb_id = s.climb_id AND j.is_ascent = 1
       WHERE s.comment LIKE '%&%' AND s.id > $AFTER
       ORDER BY s.id LIMIT ${PAGE_SIZE}`,
   );
