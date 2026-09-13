@@ -87,7 +87,7 @@ const meta = {
   component: SharedProfile,
   parameters: { fullWidth: true },
   args: {
-    owner: { name: "Alex Rivera", image: null, createdAt: new Date("2021-05-01T12:00:00Z") },
+    owner: { name: "Alex Rivera", image: null },
     summary: {
       sendCount: 128,
       areaCount: 14,

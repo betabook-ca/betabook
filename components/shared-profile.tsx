@@ -19,7 +19,7 @@ export function SharedProfile({
   areaBreadcrumbs,
   next,
 }: {
-  owner: { name: string; image: string | null; createdAt: Date };
+  owner: { name: string; image: string | null };
   summary: UserStatsSummary;
   sends: UserSendRow[];
   areaBreadcrumbs: AreaBreadcrumbs;
@@ -27,12 +27,7 @@ export function SharedProfile({
 }) {
   return (
     <div className="flex flex-col gap-6">
-      <ProfileInvite
-        name={owner.name}
-        image={owner.image}
-        since={owner.createdAt.getFullYear()}
-        next={next}
-      />
+      <ProfileInvite name={owner.name} image={owner.image} next={next} />
       <SidebarLayout sidebar={<UserSendSummary summary={summary} />}>
         <section aria-label="Recent sends" className="flex flex-col gap-3">
           <SectionHeading>Recent sends</SectionHeading>

@@ -16,7 +16,7 @@ vi.mock("next/image", () => ({
 }));
 
 const NEXT = "/users/owner-1?share=0123456789abcdef0123456789abcdef";
-const OWNER = { name: "Alex Rivera", image: null, createdAt: new Date("2021-05-01T12:00:00Z") };
+const OWNER = { name: "Alex Rivera", image: null };
 const SUMMARY: UserStatsSummary = {
   sendCount: 12,
   areaCount: 4,

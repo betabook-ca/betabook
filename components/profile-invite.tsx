@@ -10,12 +10,10 @@ import { SITE_NAME } from "@/lib/site";
 export function ProfileInvite({
   name,
   image,
-  since,
   next,
 }: {
   name: string;
   image: string | null;
-  since: number;
   next: string;
 }) {
   return (
@@ -30,8 +28,8 @@ export function ProfileInvite({
             {name} invited you to {SITE_NAME}
           </PageTitle>
           <p className="text-sm text-muted">
-            Climbing since {since}. Sign up to send {name} a friend request, see all their climbing,
-            and log your own sends and sessions.
+            Sign up to send {name} a friend request, see all their climbing, and log your own sends
+            and sessions.
           </p>
         </div>
       </div>
