@@ -4,7 +4,7 @@ import { AreaBreadcrumb } from "@/components/area-breadcrumb";
 import { ClimbSentIndicator } from "@/components/climb-sent-indicator";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Grade, GradeArrow } from "@/components/ui/grade";
+import { Grade, GradeArrow, GradeSuggestion } from "@/components/ui/grade";
 import { ListRow } from "@/components/ui/list-row";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
 import { RatingStars } from "@/components/ui/rating-stars";
@@ -134,20 +134,16 @@ export function GradeWithTrend({
       <GradeArrow direction="down" label="Community grades it softer" />
     ) : null;
 
-  if (suggestedLabel == null) {
-    return (
-      <>
-        {postedLabel}
-        {arrowIcon}
-      </>
-    );
-  }
-
+  // One inline-flex line whoever prints it: a stat card's plain span would
+  // otherwise let the block-level icon fall below the grade.
   return (
-    <>
+    <span className="inline-flex items-center gap-0.5">
       {postedLabel}
-      <span className="font-normal text-muted"> ({suggestedLabel})</span>
-      {arrowIcon}
-    </>
+      {suggestedLabel == null ? (
+        arrowIcon
+      ) : (
+        <GradeSuggestion arrow={arrowIcon}>{suggestedLabel}</GradeSuggestion>
+      )}
+    </span>
   );
 }

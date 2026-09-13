@@ -1,4 +1,4 @@
-import { Grade, GradeArrow } from "@/components/ui/grade";
+import { Grade, GradeArrow, GradeSuggestion } from "@/components/ui/grade";
 import { RatingStars } from "@/components/ui/rating-stars";
 import { formatGrade } from "@/lib/grades";
 import type { ClimbType } from "@/lib/grades";
@@ -27,15 +27,23 @@ export function SendGradeCell({
   gradeFeel,
   rating,
 }: SendGradeCellProps) {
+  const arrow =
+    gradeFeel === "high" ? (
+      <GradeArrow direction="up" label="Felt hard for the grade" />
+    ) : gradeFeel === "low" ? (
+      <GradeArrow direction="down" label="Felt soft for the grade" />
+    ) : null;
+  const showSuggestion = suggestedGrade != null && suggestedGrade !== grade;
+
   return (
     <div className="flex items-center gap-2">
       <Grade>
         {formatGrade(type, grade)}
-        {suggestedGrade != null && suggestedGrade !== grade && (
-          <span className="font-normal text-muted"> ({formatGrade(type, suggestedGrade)})</span>
+        {showSuggestion ? (
+          <GradeSuggestion arrow={arrow}>{formatGrade(type, suggestedGrade)}</GradeSuggestion>
+        ) : (
+          arrow
         )}
-        {gradeFeel === "high" && <GradeArrow direction="up" label="Felt hard for the grade" />}
-        {gradeFeel === "low" && <GradeArrow direction="down" label="Felt soft for the grade" />}
       </Grade>
       <span aria-hidden className="text-sm text-muted">
         ·

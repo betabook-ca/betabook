@@ -27,3 +27,14 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 export const Rope: Story = {};
 export const Boulder: Story = { args: { type: "boulder", grade: 5, rating: 4 } };
+export const SuggestedHarder: Story = {
+  args: { type: "boulder", grade: 11, suggestedGrade: 10, gradeFeel: "high", rating: 4 },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The climber's differing suggestion in parentheses, with the feel arrow inside them.",
+      },
+    },
+  },
+};

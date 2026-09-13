@@ -33,3 +33,17 @@ export function GradeArrow({ direction, label }: { direction: "up" | "down"; lab
   const Icon = direction === "up" ? ArrowUp : ArrowDown;
   return <Icon className="size-3.5 text-muted" aria-label={label} />;
 }
+
+/** A grade compared against the one it sits beside — the community's or a
+ * climber's suggestion in parentheses. The arrow lives inside them, next to
+ * the grade it qualifies, and the group never wraps: as a bare sibling the
+ * icon is a block inside a plain span and drops to its own line in a narrow
+ * stat column. */
+export function GradeSuggestion({ children, arrow }: { children: ReactNode; arrow?: ReactNode }) {
+  return (
+    <span className="ml-0.5 inline-flex items-center font-normal whitespace-nowrap text-muted">
+      ({children}
+      {arrow})
+    </span>
+  );
+}
