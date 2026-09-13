@@ -85,7 +85,7 @@ it("lists only the fixed bills when live usage is unavailable", () => {
   expect(html).toContain("$5.77");
 });
 
-it("asks for support toward this month's total and links out to the support page", () => {
+it("links out to the support page", () => {
   const html = renderToStaticMarkup(
     <RunningCosts
       usage={{ ...period, workerRequests: 1_400_000, workerCpuMs: 0, d1RowsRead: 0 }}
@@ -93,9 +93,6 @@ it("asks for support toward this month's total and links out to the support page
     />,
   );
 
-  expect(html).toContain(
-    "If Betabook is useful to you, you can help cover the $5.77 it costs to run each month.",
-  );
   const link = html.match(/<a[^>]*>Support Betabook<\/a>/)?.[0] ?? "";
   expect(link).toContain('href="https://support.example/betabook"');
   expect(link).toContain('target="_blank"');
@@ -108,7 +105,7 @@ it("leaves out the support ask when no support page is set", () => {
 
   expect(html).toContain("Total per month");
   expect(html).not.toContain("Support Betabook");
-  expect(html).not.toContain("help cover");
+  expect(html).not.toContain("tax-deductible");
 });
 
 it("says what each tier measures, including that D1 is Betabook's database", () => {
