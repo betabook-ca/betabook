@@ -50,10 +50,10 @@ it("restores a place at the limit, adds a friend by identity, removes them and c
   expect(screen.getByRole("button", { name: "Remove friend Alex Rivera" })).toBeInTheDocument();
   expect(screen.getByRole("combobox")).toBeDisabled();
   await user.click(screen.getByRole("button", { name: "Remove friend Alex Rivera" }));
-  await user.click(screen.getByRole("button", { name: "Clear friend tags" }));
+  await user.click(screen.getByRole("button", { name: "Clear tagged friends" }));
   expect(screen.queryByRole("button", { name: /^Remove friend/ })).not.toBeInTheDocument();
   expect(screen.getByText("0/10 friends")).toBeInTheDocument();
-  expect(screen.getByText("Friend tags will be cleared when you save.")).toBeInTheDocument();
+  expect(screen.getByText("Tagged friends will be cleared when you save.")).toBeInTheDocument();
 });
 it("filters selected identities out of suggestions and rejects interaction during a save", async () => {
   const user = userEvent.setup();

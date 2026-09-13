@@ -33,20 +33,14 @@ export function ProfileInvite({
           </p>
         </div>
       </div>
-      <SignUpActions next={next} />
+      <div className="flex shrink-0 flex-wrap gap-3">
+        <AppLink href={signUpUrl(next)} className={buttonVariants()}>
+          Sign up
+        </AppLink>
+        <AppLink href={signInUrl(next)} className={buttonVariants({ variant: "outline" })}>
+          Sign in
+        </AppLink>
+      </div>
     </section>
-  );
-}
-
-export function SignUpActions({ next }: { next: string }) {
-  return (
-    <div className="flex shrink-0 flex-wrap gap-3">
-      <AppLink href={signUpUrl(next)} className={buttonVariants()}>
-        Sign up
-      </AppLink>
-      <AppLink href={signInUrl(next)} className={buttonVariants({ variant: "outline" })}>
-        Sign in
-      </AppLink>
-    </div>
   );
 }

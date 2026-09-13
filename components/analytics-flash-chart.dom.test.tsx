@@ -7,7 +7,7 @@ import { buildUserAnalytics } from "@/lib/user-analytics";
 
 import { AnalyticsFlashChart } from "./analytics-flash-chart";
 
-it("counts flashes and onsights as first tries and shows all sends at the selected grade", async () => {
+it("counts rope onsights toward the flash rate and shows all sends at the selected grade", async () => {
   const user = userEvent.setup();
   // Rope climbs: only they can carry an onsight, and the numerator must
   // count it alongside the flash.
@@ -32,13 +32,13 @@ it("counts flashes and onsights as first tries and shows all sends at the select
   await user.keyboard("{Home}");
   const tooltip = screen.getByRole("tooltip");
   expect(tooltip).toHaveTextContent("3 sends");
-  expect(tooltip).toHaveTextContent("67% first-try rate");
+  expect(tooltip).toHaveTextContent("67% flash rate");
   expect(within(tooltip).getByText("Climb 1", { exact: true })).toBeInTheDocument();
   expect(within(tooltip).getByText("Climb 2", { exact: true })).toBeInTheDocument();
   await user.keyboard("{Enter}");
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   await user.keyboard("{ArrowRight}");
-  expect(screen.getByRole("tooltip")).toHaveTextContent("25% first-try rate");
+  expect(screen.getByRole("tooltip")).toHaveTextContent("25% flash rate");
   await user.keyboard("{Enter}");
   const table = await screen.findByRole("list", { name: "Climbs" });
   expect(

@@ -42,8 +42,8 @@ export const Customize: Story = {
       },
       {
         id: "firstTry",
-        title: "First try",
-        content: <StatTileContent tile={{ label: "First try", value: "25%" }} />,
+        title: "Flash",
+        content: <StatTileContent tile={{ label: "Flash", value: "25%" }} />,
       },
       {
         id: "bestYear",
@@ -64,7 +64,7 @@ export const Customize: Story = {
         content: (
           <div>
             <Eyebrow>Progression</Eyebrow>
-            <p className="text-sm text-muted">No dated sends with grades yet.</p>
+            <p className="text-sm text-muted">No dated sends with grades.</p>
           </div>
         ),
       },
@@ -74,7 +74,7 @@ export const Customize: Story = {
         content: (
           <div>
             <Eyebrow>Grade pyramid</Eyebrow>
-            <p className="text-sm text-muted">No graded sends yet.</p>
+            <p className="text-sm text-muted">No graded sends.</p>
           </div>
         ),
       },

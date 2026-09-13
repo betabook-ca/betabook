@@ -59,7 +59,7 @@ export type FirstTryGradeRow = {
   rate: number;
 };
 
-/** A first-try send is anything but a redpoint: flash, or onsight on ropes. */
+/** Anything but a redpoint counts toward the flash rate: a flash, or an onsight on ropes. */
 function isFirstTry(style: AscentStyle): boolean {
   return style !== "redpoint";
 }
@@ -192,9 +192,15 @@ export function buildPyramid(sends: AnalyticsSendRow[], type: ClimbType): Pyrami
   return rows;
 }
 
+/** An empty selection is All years, which includes undated rows. */
+export function inSelectedYears(date: string | null, selectedYears: readonly number[]): boolean {
+  return (
+    selectedYears.length === 0 || (date != null && selectedYears.includes(Number(date.slice(0, 4))))
+  );
+}
+
 /** Aggregates one user's full send log into everything the analytics page
- * shows, filtered to `scope` and optionally selected years. An empty selection
- * includes all dates and undated sends. Pure — see user-analytics.test.ts. */
+ * shows, filtered to `scope` and optionally selected years. Pure — see user-analytics.test.ts. */
 // oxlint-disable-next-line complexity -- one branch per independent stat computed in a single pass
 export function buildUserAnalytics(
   allSends: AnalyticsSendRow[],
@@ -202,13 +208,12 @@ export function buildUserAnalytics(
   journalSessions?: readonly AnalyticsJournalSession[],
   selectedYears: readonly number[] = [],
 ): UserAnalytics {
-  const inYear = (date: string | null) =>
-    selectedYears.length === 0 ||
-    (date != null && selectedYears.includes(Number(date.slice(0, 4))));
   const sends = allSends.filter(
-    (s) => (scope === "all" || s.climbType === scope) && inYear(s.dateSent),
+    (s) => (scope === "all" || s.climbType === scope) && inSelectedYears(s.dateSent, selectedYears),
   );
-  const periodSessions = journalSessions?.filter((session) => inYear(session.entryDate));
+  const periodSessions = journalSessions?.filter((session) =>
+    inSelectedYears(session.entryDate, selectedYears),
+  );
   const dated = sends
     .filter((s): s is AnalyticsSendRow & { dateSent: string } => s.dateSent != null)
     .sort((a, b) => (a.dateSent < b.dateSent ? -1 : a.dateSent > b.dateSent ? 1 : 0));

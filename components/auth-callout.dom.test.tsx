@@ -20,4 +20,8 @@ it("offers both authentication paths with the complete continuation", () => {
     "href",
     "/sign-up?next=%2Fareas%2F1%2Ftest-crag%3Fname%3DTest%26subarea%3D2",
   );
+  expect(screen.getByRole("link", { name: "How Betabook works" })).toHaveAttribute(
+    "href",
+    "/climbing-logbook",
+  );
 });

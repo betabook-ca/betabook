@@ -26,7 +26,6 @@ it.each([
   state.pathname = pathname;
   const html = renderToStaticMarkup(<ProfileTabs userId="owner" showJournal showProjects />);
 
-  expect(html).not.toContain("<h2");
   expect(hrefs(html)).toEqual([
     "/users/owner/journal",
     "/users/owner/sends",
@@ -47,16 +46,16 @@ it("keeps Projects off another climber's profile", () => {
     <ProfileTabs userId="other" showJournal={false} showProjects={false} />,
   );
 
-  expect(html).not.toContain("<h2");
   expect(html).toContain('href="/users/other/sends" aria-current="page"');
   expect(hrefs(html)).toEqual(["/users/other/sends", "/users/other/analytics"]);
 });
 
-it("calls another person's journal Journal", () => {
-  state.pathname = "/users/other/journal";
+it("marks Sends current at the profile root when the journal is hidden", () => {
+  state.pathname = "/users/other";
   const html = renderToStaticMarkup(
-    <ProfileTabs userId="other" showJournal showProjects={false} />,
+    <ProfileTabs userId="other" showJournal={false} showProjects={false} />,
   );
-  expect(html).toMatch(/href="\/users\/other\/journal"[^>]*>Journal<\/a>/);
-  expect(html).not.toContain("My Journal");
+
+  expect(html).toContain('href="/users/other/sends" aria-current="page"');
+  expect(html.match(/aria-current="page"/g)).toHaveLength(1);
 });

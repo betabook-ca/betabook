@@ -88,9 +88,7 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
       : Promise.resolve([]),
   ]);
 
-  // Grades only compare within one discipline, so the whole page is always
-  // scoped to one — the chips only offer disciplines this climber has
-  // actually logged, and the default is their most-logged.
+  // Grades only compare within one discipline, so the page is always scoped to one.
   const present = DISCIPLINE_ORDER.filter(
     (type) =>
       rows.some((row) => row.climbType === type) ||
@@ -109,29 +107,18 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
   const scope = requested !== "all" && present.includes(requested) ? requested : (dominant ?? null);
 
   if (scope == null) {
-    const content = (
+    return (
       <ProfileHeader user={user} viewerId={session.user.id}>
         <div className="flex min-w-0 flex-col gap-6">
           <SectionHeading className="sr-only">Analytics</SectionHeading>
           <AnalyticsHashtagFilter selectedTags={selectedTags} tags={tags} />
           <EmptyState
             message={
-              selectedTags.length > 0
-                ? "No sends or outdoor sessions match these tags. Remove selected tags to see more activity."
-                : "No outdoor sessions logged yet — analytics appear with the first session."
+              selectedTags.length > 0 ? "Nothing matches these tags." : "No sends or sessions yet."
             }
           />
         </div>
       </ProfileHeader>
-    );
-    return (
-      <FeatureAnnouncementScope
-        userId={session.user.id}
-        page={`/users/${id}/analytics`}
-        announcements={[]}
-      >
-        {content}
-      </FeatureAnnouncementScope>
     );
   }
 
@@ -160,62 +147,59 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
   const overview = await getClimberOverview(db, user.id, viewerId, today);
   const summary = [describeClimber(overview), describeRecency(overview)].filter(Boolean).join(" ");
 
-  const content = (
-    <ProfileHeader user={user} viewerId={session.user.id}>
-      <AnalyticsDashboard
-        summary={summary}
-        key={id}
-        canCustomize={isOwner}
-        initialLayout={initialLayout}
-        onSave={isOwner ? saveAnalyticsLayout : undefined}
-        analytics={analytics}
-        sends={rows}
-        sessions={highlightSessions}
-        highlights={buildAnalyticsHighlights(highlightSessions, scope, selectedYears)}
-        undatedCount={lifetime.datelessCount}
-        scope={scope}
-        journalVisible={journalVisible}
-        selectedYears={selectedYears}
-        periodPicker={
-          <>
-            {present.length > 1 && (
-              <nav aria-label="Discipline" className="flex flex-wrap gap-2">
-                {present.map((type) => {
-                  const selected = type === scope;
-                  return (
-                    <AppLink
-                      key={type}
-                      href={analyticsHref(id, type, selectedYears, selectedTags)}
-                      aria-current={selected ? "true" : undefined}
-                      className={choicePillClass(selected, DISCIPLINE_CHIP_CLASSNAME[type])}
-                    >
-                      {DISCIPLINE_LABELS[type]}
-                    </AppLink>
-                  );
-                })}
-              </nav>
-            )}
-            <AnalyticsHashtagFilter
-              selectedTags={selectedTags}
-              tags={tags}
-              controls={
-                <div className="min-w-0 flex-1">
-                  <AnalyticsYearNavigation years={years.toReversed()} selected={selectedYears} />
-                </div>
-              }
-            />
-          </>
-        }
-      />
-    </ProfileHeader>
-  );
   return (
     <FeatureAnnouncementScope
       userId={session.user.id}
       page={`/users/${id}/analytics`}
       announcements={announcements}
     >
-      {content}
+      <ProfileHeader user={user} viewerId={session.user.id}>
+        <AnalyticsDashboard
+          summary={summary}
+          key={id}
+          canCustomize={isOwner}
+          initialLayout={initialLayout}
+          onSave={isOwner ? saveAnalyticsLayout : undefined}
+          analytics={analytics}
+          sends={rows}
+          sessions={highlightSessions}
+          highlights={buildAnalyticsHighlights(highlightSessions, scope, selectedYears)}
+          undatedCount={lifetime.datelessCount}
+          scope={scope}
+          journalVisible={journalVisible}
+          selectedYears={selectedYears}
+          periodPicker={
+            <>
+              {present.length > 1 && (
+                <nav aria-label="Discipline" className="flex flex-wrap gap-2">
+                  {present.map((type) => {
+                    const selected = type === scope;
+                    return (
+                      <AppLink
+                        key={type}
+                        href={analyticsHref(id, type, selectedYears, selectedTags)}
+                        aria-current={selected ? "true" : undefined}
+                        className={choicePillClass(selected, DISCIPLINE_CHIP_CLASSNAME[type])}
+                      >
+                        {DISCIPLINE_LABELS[type]}
+                      </AppLink>
+                    );
+                  })}
+                </nav>
+              )}
+              <AnalyticsHashtagFilter
+                selectedTags={selectedTags}
+                tags={tags}
+                controls={
+                  <div className="min-w-0 flex-1">
+                    <AnalyticsYearNavigation years={years.toReversed()} selected={selectedYears} />
+                  </div>
+                }
+              />
+            </>
+          }
+        />
+      </ProfileHeader>
     </FeatureAnnouncementScope>
   );
 }

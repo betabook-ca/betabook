@@ -1,3 +1,4 @@
+import { LANDING_PAGE_PATHS } from "@/lib/landing-pages";
 import { DEFAULT_SIGNED_IN_PATH, safeNextPath } from "@/lib/sign-in-redirect";
 
 export function termsNextPath(next?: string | string[]) {
@@ -17,6 +18,8 @@ export function isTermsExemptPath(path: string) {
     path === "/accept-terms" ||
     path === "/terms" ||
     path.startsWith("/terms/") ||
-    ["/contact", "/about", "/forgot-password", "/reset-password"].includes(path)
+    ["/contact", "/about", "/forgot-password", "/reset-password", ...LANDING_PAGE_PATHS].includes(
+      path,
+    )
   );
 }

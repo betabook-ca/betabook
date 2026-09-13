@@ -53,7 +53,7 @@ for (const story of ["outdoor", "repeat", "training"]) {
       } else {
         await expect(page.getByRole("radio", { name: "Session", exact: true })).toHaveCount(0);
       }
-      const friends = await page.getByRole("group", { name: "With friends" }).boundingBox();
+      const friends = await page.getByRole("group", { name: "Tagged friends" }).boundingBox();
       const notes = await page.getByRole("textbox", { name: "Notes" }).boundingBox();
       if (!friends || !notes) throw new Error("Missing friend picker or note field");
       expect(notes.y + notes.height).toBeLessThan(friends.y);

@@ -1,7 +1,8 @@
 import { AscentStyle } from "@/components/ascent-style";
 import { ClimbLogRow } from "@/components/climb-log-row";
-import { ProfileInvite, SignUpActions } from "@/components/profile-invite";
+import { ProfileInvite } from "@/components/profile-invite";
 import { SendGradeCell } from "@/components/send-grade-cell";
+import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SidebarLayout } from "@/components/ui/page-shell";
@@ -9,9 +10,10 @@ import { SectionHeading } from "@/components/ui/typography";
 import { UserSendSummary } from "@/components/user-send-summary";
 import type { AreaBreadcrumbs, UserSendRow, UserStatsSummary } from "@/db/queries";
 import { formatCount } from "@/lib/format";
+import { signUpUrl } from "@/lib/sign-in-redirect";
+import { SITE_NAME } from "@/lib/site";
 
-/** Signed-out view of a valid share link. `sends` must come from the
- * null-viewer sends query, which already limits commentary to Everyone. */
+/** Signed-out view of a valid share link. */
 export function SharedProfile({
   owner,
   summary,
@@ -25,6 +27,10 @@ export function SharedProfile({
   areaBreadcrumbs: AreaBreadcrumbs;
   next: string;
 }) {
+  const signUpPrompt =
+    summary.sendCount > sends.length
+      ? `See all ${formatCount(summary.sendCount, "send")}`
+      : `Climb with ${owner.name} on ${SITE_NAME}`;
   return (
     <div className="flex flex-col gap-6">
       <ProfileInvite name={owner.name} image={owner.image} next={next} />
@@ -63,22 +69,10 @@ export function SharedProfile({
             </div>
           )}
         </section>
-        <section
-          aria-label="Sign up to see more"
-          className={`flex flex-col gap-4 ${cardClass("md", "bordered")}`}
-        >
-          <div className="flex flex-col gap-1">
-            <SectionHeading>
-              {summary.sendCount > sends.length
-                ? `See all ${formatCount(summary.sendCount, "send")}`
-                : `Climb with ${owner.name}`}
-            </SectionHeading>
-            <p className="text-sm text-muted">
-              Sign up to send {owner.name} a friend request and see their full logbook, plus
-              anything else they share with Betabook members.
-            </p>
-          </div>
-          <SignUpActions next={next} />
+        <section aria-label={signUpPrompt} className={cardClass("md", "bordered")}>
+          <SectionHeading>
+            <AppLink href={signUpUrl(next)}>{signUpPrompt}</AppLink>
+          </SectionHeading>
         </section>
       </SidebarLayout>
     </div>

@@ -1,7 +1,5 @@
 "use client";
 
-import { Button } from "@heroui/react";
-import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ComponentProps } from "react";
 
@@ -29,6 +27,7 @@ import type { UserSendsFilter } from "@/db/queries";
 import { useFilterFormNavigation } from "@/hooks/use-filter-form-navigation";
 import {
   DEFAULT_USER_SENDS_FILTER,
+  DEFAULT_USER_SENDS_SORT,
   userSendsFilterToSearchParams,
 } from "@/lib/filters/user-sends-filter";
 import { ASCENT_STYLES, type AscentStyle as AscentStyleType } from "@/lib/sends";
@@ -124,7 +123,7 @@ export function UserSendsFilterToolbar({
     initialAreaName: filter.areaName ?? "",
     defaultFilter: DEFAULT_USER_SENDS_FILTER,
     sort: filter.sort,
-    defaultSort: DEFAULT_USER_SENDS_FILTER.sort,
+    defaultSort: DEFAULT_USER_SENDS_SORT,
     buildHref: (disciplineFilter, name, areaName, sort) =>
       `${basePath}?${userSendsFilterToSearchParams({ ...disciplineFilter, name, areaName, sort }).toString()}`,
   });
@@ -181,7 +180,7 @@ export function UserSendsFilterToolbar({
       }
       sortControl={
         <SortSelect
-          sort={filter.sort ?? "date_desc"}
+          sort={filter.sort ?? DEFAULT_USER_SENDS_SORT}
           fields={SORT_FIELDS}
           defaultField="date"
           defaultDirection={DEFAULT_DIRECTION}
@@ -193,19 +192,6 @@ export function UserSendsFilterToolbar({
       }
       extraFilters={
         <>
-          {disciplineFilter.areaId === undefined && areaName && (
-            <Button
-              variant="secondary"
-              size="sm"
-              className="max-w-full self-start"
-              aria-label={`Clear area name ${areaName}`}
-              onPress={() => setAreaName("")}
-            >
-              <span className="truncate">Area name: {areaName}</span>
-              <X className="size-3.5 shrink-0" aria-hidden />
-            </Button>
-          )}
-          {/* Inline label, matching Ascent Style and Min Rating below. */}
           <div className={FILTER_ROW_CLASS}>
             <span className={FILTER_LABEL_CLASS}>Area</span>
             <div className={FIELD_WIDTH_CLASS.long}>

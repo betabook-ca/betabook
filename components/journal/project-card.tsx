@@ -22,21 +22,10 @@ export type ProjectWithSessions = OpenProject & { sessions: JournalEntry[] };
 type ProjectCardProps = {
   project: ProjectWithSessions;
   userId: string;
-  /** Today as a civil date, or `null` until the client resolves it. The
-   * server cannot know the reader's timezone, so how long ago the last
-   * session was only joins the meta line after mount. */
   today: string | null;
   onLogSession: () => void;
 };
 
-/** One open project: what it is, how long it has been going, and the last
- * few sessions the climber wrote about it.
- *
- * The recent sessions are on the card rather than behind a disclosure. A
- * single note was too thin to be worth the row it cost, and the whole point
- * of this tab is reading what you wrote last time — so the card carries
- * everything the server preloaded, and a longer history pages in from
- * there. */
 export function ProjectCard({ project, userId, today, onLogSession }: ProjectCardProps) {
   const daysSince = today == null ? null : daysBetween(project.lastSession, today);
 

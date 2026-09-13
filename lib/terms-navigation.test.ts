@@ -19,16 +19,21 @@ it("preserves local destinations and filters while rejecting redirects and loops
   }
 });
 
-it("keeps terms, contact, recovery, and acceptance reachable but protects account features", () => {
+it("keeps terms, public pages, recovery, and acceptance reachable but protects account features", () => {
   for (const path of [
     "/terms",
     "/terms/2026-09-09",
+    "/about",
     "/contact",
+    "/climbing-logbook",
+    "/kaya-import",
+    "/sendage-import",
+    "/mountain-project-import",
     "/accept-terms",
     "/forgot-password",
     "/reset-password",
   ])
     expect(isTermsExemptPath(path)).toBe(true);
-  for (const path of ["/account", "/friends", "/users/one", "/terms-other"])
+  for (const path of ["/account", "/account/import", "/friends", "/users/one", "/terms-other"])
     expect(isTermsExemptPath(path)).toBe(false);
 });

@@ -218,7 +218,7 @@ export function SelectionDemo({ kind = "area" }: { kind?: "area" | "climber" }) 
   const status: SearchStatus = query === settled ? "ready" : "loading";
   return (
     <StoryPage
-      title={kind === "area" ? "Choose an area" : "With friends"}
+      title={kind === "area" ? "Choose an area" : "Tagged friends"}
       description={
         kind === "area"
           ? "Choose a specific area. Free text cannot identify a record; duplicate names keep their location visible."

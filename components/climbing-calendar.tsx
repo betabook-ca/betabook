@@ -19,9 +19,8 @@ const MONTHS_SHORT = [
   "Dec",
 ] as const;
 
-// Empty day → faint foreground tint; active days step up through the scope
-// hue. Quartiles of the year's busiest day, so a heavy year doesn't wash
-// out a light one.
+// Levels are quarters of the year's busiest day, so a heavy year doesn't
+// wash out a light one.
 const LEVEL_OPACITY = [0, 0.35, 0.55, 0.75, 1] as const;
 
 export function ClimbingCalendar({
@@ -56,7 +55,6 @@ export function ClimbingCalendar({
       dayLabel(day),
       {
         title: formatDate(day.iso),
-
         summary: formatCount(day.count, unit),
         rows: activities?.filter((entry) => entry.date === day.iso) ?? [],
       } satisfies ChartDetailGroup,

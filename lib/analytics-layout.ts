@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-/** The catalog lists everything available; a layout lists only visible items. */
+/** The catalog lists everything available; a layout lists only visible items.
+ * Saved layouts store these ids, so rename titles rather than ids. */
 export const ANALYTICS_CARD_IDS = [
   "sends",
   "hardest",

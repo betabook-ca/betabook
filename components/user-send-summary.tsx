@@ -1,5 +1,4 @@
 import { DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
-import { Eyebrow } from "@/components/ui/eyebrow";
 import { StatStrip } from "@/components/ui/stat-strip";
 import type { UserStatsSummary } from "@/db/queries";
 import { formatCount } from "@/lib/format";
@@ -20,8 +19,7 @@ export function UserSendSummary({ summary }: { summary: UserStatsSummary }) {
         ...(summary.sendCount > 0
           ? [
               {
-                key: "glance",
-                heading: <Eyebrow>Log at a glance</Eyebrow>,
+                key: "latest",
                 stats: [
                   { label: "Latest send", value: formatDate(summary.latestSendDate) },
                   ...(summary.mostLoggedDiscipline

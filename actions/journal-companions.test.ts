@@ -406,7 +406,7 @@ it("rejects an unavailable companion on updateSend without changing send, ascent
   expect(result).toEqual({
     ok: false,
     error:
-      "A selected friend is no longer available for this entry. Refresh and update With friends.",
+      "A selected friend is no longer available for this entry. Refresh and update your tagged friends.",
   });
   expect(await db.select().from(sends)).toEqual(beforeSends);
   expect(await db.select().from(journalEntries)).toEqual(beforeEntries);

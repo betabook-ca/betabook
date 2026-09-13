@@ -9,7 +9,6 @@ function Dates(props: Partial<ComponentProps<typeof JournalEntryDateFields>> = {
   const [entryDate, setEntryDate] = useState("2026-09-01");
   return (
     <JournalEntryDateFields
-      kind="session"
       hasClimb
       hasPriorSend={false}
       today="2026-09-06"
@@ -45,11 +44,10 @@ it("offers no I don't know control when editing an entry, which always needs its
   expect(screen.getByRole("spinbutton", { name: /day, Date/ })).toHaveTextContent("01");
   expect(screen.queryByRole("checkbox", { name: "I don't know" })).not.toBeInTheDocument();
 });
-it("explains that training needs a date", () => {
-  render(<Dates kind="training" hasClimb={false} />);
-  expect(
-    screen.getByText("Training entries need a date to appear in your journal."),
-  ).toBeInTheDocument();
+it("offers training only its date, since it can never be saved without one", () => {
+  render(<Dates hasClimb={false} />);
+  expect(screen.getByRole("spinbutton", { name: /day, Date/ })).toHaveTextContent("01");
+  expect(screen.queryByText(/need a date/)).not.toBeInTheDocument();
   expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
 });
 it("shows no date hint on a sent climb before a pill is chosen", () => {

@@ -23,6 +23,7 @@ export function AnalyticsVolumeChart({
   rows: MonthlyVolume[];
   type: ClimbType;
   journalVisible?: boolean;
+  /** Already scoped to `type`. */
   sends?: AnalyticsSendRow[];
   activities?: ChartClimbRow[];
 }) {
@@ -32,10 +33,7 @@ export function AnalyticsVolumeChart({
   const labels = rows.map(
     (row) => `${formatMonthLabel(row.month)}: ${row[metric]} ${label.toLowerCase()}`,
   );
-  const detailRows =
-    metric === "sends"
-      ? sends && sendChartRows(sends.filter((send) => send.climbType === type))
-      : activities;
+  const detailRows = metric === "sends" ? sends && sendChartRows(sends) : activities;
   const details =
     detailRows &&
     Object.fromEntries(
@@ -45,7 +43,6 @@ export function AnalyticsVolumeChart({
           labels[i],
           {
             title: formatMonthLabel(row.month),
-
             rows: matches,
             summary:
               metric === "sends" ? formatCount(row.sends, "send") : formatCount(row.days, "day"),
@@ -54,7 +51,7 @@ export function AnalyticsVolumeChart({
       }),
     );
   return (
-    <section aria-label="Volume over time" className="min-w-0" ref={ref}>
+    <div className="min-w-0" ref={ref}>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <Eyebrow>Volume over time</Eyebrow>
@@ -127,8 +124,8 @@ export function AnalyticsVolumeChart({
           </div>
         </ChartInspection>
       ) : (
-        <p className="text-sm text-muted">No dated activity in the selected years.</p>
+        <p className="text-sm text-muted">No dated activity.</p>
       )}
-    </section>
+    </div>
   );
 }

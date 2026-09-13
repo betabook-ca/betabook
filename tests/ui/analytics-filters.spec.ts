@@ -78,11 +78,11 @@ test("selected years filter every summary and chart, and All years restores the 
 
   await toggleYears(page, "2023");
   await expect(page.getByRole("status").filter({ hasText: "No activity" })).toHaveText(
-    "No activity in 2023 for this discipline. Try another year or All.",
+    "No activity in 2023 for this discipline. Try another year or All years.",
   );
-  await expect(value("Best year")).toHaveText("—");
-  await expect(breakthroughs.getByRole("link")).toHaveCount(0);
-  await expect(progression).toContainText("No dated sends with grades yet");
+  await expect(tile("Best year")).toHaveCount(0);
+  await expect(breakthroughs).toHaveCount(0);
+  await expect(progression).toHaveCount(0);
   await toggleYears(page, "2023");
   await expect(yearsButton(page)).toHaveAccessibleName("Years: All years");
   await expect(tile("Hardest")).toContainText("An undated ascent");

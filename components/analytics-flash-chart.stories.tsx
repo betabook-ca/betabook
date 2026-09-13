@@ -6,7 +6,7 @@ import { StoryPage } from "@/stories/fixtures/story-layout";
 import { AnalyticsFlashChart } from "./analytics-flash-chart";
 
 const meta = {
-  title: "Components/Charts/First-try rate by grade",
+  title: "Components/Charts/Flash rate by grade",
   component: AnalyticsFlashChart,
   args: {
     type: "boulder",
@@ -19,7 +19,7 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <StoryPage title="First-try rate by grade">
+      <StoryPage title="Flash rate by grade">
         <Story />
       </StoryPage>
     ),
@@ -28,7 +28,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "An optional half-width Recharts chart. The first-try line is smooth and has no dots. Legend labels use series names, with matching axis colors. Colored bars and a smooth contrasting line match the count and percentage axis colors. Flashes and onsights both enter the numerator; boulders only ever have flashes. Hover, tap, or use arrow keys to inspect exact counts and rates.",
+          "An optional half-width Recharts chart. The flash-rate line is smooth and has no dots. Legend labels use series names, with matching axis colors. Colored bars and a smooth contrasting line match the count and percentage axis colors. Flashes and rope onsights both count toward the flash rate; boulders only have flashes. Hover, tap, or use arrow keys to inspect exact counts and rates.",
       },
     },
   },

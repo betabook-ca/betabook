@@ -59,12 +59,14 @@ function renderNotes(sessionCount: number) {
   );
 }
 
-it("shows the preloaded sessions, and says which ones carry no note", () => {
+it("lists every preloaded session, leaving a session without a note as just its date", () => {
   renderNotes(preloaded.length);
 
-  expect(screen.getAllByRole("listitem")).toHaveLength(3);
-  expect(screen.getByText("One move from the top.")).toBeInTheDocument();
-  expect(screen.getByText("No note on this session.")).toBeInTheDocument();
+  const items = screen.getAllByRole("listitem");
+  expect(items).toHaveLength(3);
+  expect(items[0]).toHaveTextContent("One move from the top.");
+  expect(items[2].querySelector("time")?.dateTime).toBe("2026-07-30");
+  expect(items[2]).toHaveTextContent(/^Jul 30, 2026$/);
   expect(screen.queryByRole("button", { name: /Load more/ })).not.toBeInTheDocument();
 });
 

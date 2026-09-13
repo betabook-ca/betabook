@@ -3,7 +3,11 @@
 import { Button } from "@heroui/react";
 import { useState } from "react";
 
-import { EntryKindStep, type EntryKindChoice } from "@/components/journal/entry-kind-step";
+import {
+  EntryKindStep,
+  TRAINING_DESCRIPTION,
+  type EntryKindChoice,
+} from "@/components/journal/entry-kind-step";
 import { JournalEntryForm } from "@/components/journal/journal-entry-form";
 import { cardClass } from "@/components/ui/card";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
@@ -29,7 +33,7 @@ function ChosenStrip({
           {climb ? climb.name : "Training"}
         </p>
         <p className="truncate text-xs text-muted">
-          {climb ? climb.areaName : "Indoor climbing, strength, or conditioning"}
+          {climb ? climb.areaName : TRAINING_DESCRIPTION}
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-2">

@@ -7,13 +7,13 @@ import { useEffect, useState } from "react";
 import { openShareSheet, useNativeShare } from "@/hooks/use-native-share";
 import { SITE_NAME } from "@/lib/site";
 
-const COPIED = "Profile link copied";
+const COPIED = "Link copied";
 
 export function ShareProfileButton({ name, url }: { name: string; url: string }) {
   const [message, setMessage] = useState("");
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const nativeShare = useNativeShare();
-  const label = nativeShare ? "Share profile" : "Copy profile link";
+  const label = nativeShare ? "Share profile link" : "Copy profile link";
 
   useEffect(() => {
     if (!message) return;

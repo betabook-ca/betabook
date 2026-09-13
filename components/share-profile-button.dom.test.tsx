@@ -47,13 +47,13 @@ it("copies the share link on desktop even where a share sheet exists", async () 
 
   expect(await navigator.clipboard.readText()).toBe(SHARE_URL);
   expect(share).not.toHaveBeenCalled();
-  expect(screen.getByRole("status")).toHaveTextContent("Profile link copied");
+  expect(screen.getByRole("status")).toHaveTextContent("Link copied");
 });
 
 it("opens the share sheet with the share link on a phone", async () => {
   const user = await setup({ phone: true });
 
-  await user.click(await screen.findByRole("button", { name: "Share profile" }));
+  await user.click(await screen.findByRole("button", { name: "Share profile link" }));
 
   expect(share).toHaveBeenCalledExactlyOnceWith({
     title: "Alex Rivera on Betabook",
@@ -67,7 +67,7 @@ it("leaves the clipboard alone when the share sheet is dismissed", async () => {
   share.mockRejectedValue(new DOMException("Share canceled", "AbortError"));
   const user = await setup({ phone: true });
 
-  await user.click(await screen.findByRole("button", { name: "Share profile" }));
+  await user.click(await screen.findByRole("button", { name: "Share profile link" }));
 
   expect(share).toHaveBeenCalledOnce();
   expect(await navigator.clipboard.readText()).toBe(UNTOUCHED);
@@ -78,8 +78,8 @@ it("copies the link when the share sheet can't open", async () => {
   share.mockRejectedValue(new DOMException("Not allowed", "NotAllowedError"));
   const user = await setup({ phone: true });
 
-  await user.click(await screen.findByRole("button", { name: "Share profile" }));
+  await user.click(await screen.findByRole("button", { name: "Share profile link" }));
 
   expect(await navigator.clipboard.readText()).toBe(SHARE_URL);
-  expect(screen.getByRole("status")).toHaveTextContent("Profile link copied");
+  expect(screen.getByRole("status")).toHaveTextContent("Link copied");
 });

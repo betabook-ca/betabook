@@ -49,18 +49,18 @@ export function CompanionPicker({
   return (
     <fieldset
       disabled={disabled}
-      aria-label="With friends"
+      aria-label="Tagged friends"
       className={`${FIELD_WIDTH_CLASS.long} flex flex-col gap-2`}
     >
       <SearchSelectionField
-        emptyMessage="No matching friends. Try a more specific name."
+        emptyMessage="No friends match."
         errorMessage="Couldn’t load friends. Your selections are kept."
         label="Find a friend to tag"
         labelSuffix={
-          <HelpTooltip label="About With friends">
-            For this entry only. Friends log their own activity; tags don’t grant access. Anyone who
-            can read this entry sees the tags, unless that friend sets their journal to Only me. You
-            always see the friends you tagged.
+          <HelpTooltip label="About tagged friends">
+            Anyone who can read this entry sees who you tagged. A friend whose journal is Only me is
+            shown only to you and them. Tagging doesn’t log the climb for them or share the entry
+            with them.
             {editing && " Changes replace all tags, including hidden ones."}
           </HelpTooltip>
         }
@@ -124,12 +124,12 @@ export function CompanionPicker({
             setCleared(true);
           }}
         >
-          Clear friend tags
+          Clear tagged friends
         </Button>
       )}
       {cleared && (
         <p role="status" className="text-xs text-muted">
-          Friend tags will be cleared when you save.
+          Tagged friends will be cleared when you save.
         </p>
       )}
     </fieldset>

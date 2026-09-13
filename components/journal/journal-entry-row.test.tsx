@@ -1,4 +1,5 @@
 import { isValidElement, type ReactElement, type ReactNode } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { JournalEntryRow } from "@/components/journal/journal-entry-row";
@@ -63,6 +64,31 @@ describe("JournalEntryRow", () => {
     expect(isValidElement<{ href: string }>(tag) && tag.props.href).toBe(
       "/users/owner/journal?tag=slab",
     );
+  });
+
+  it("names a training entry once, in its title, without a status pill", () => {
+    const training = JournalEntryRow({
+      entry: {
+        ...entry,
+        kind: "training",
+        climbId: null,
+        climbName: null,
+        climbType: null,
+        climbGrade: null,
+        areaId: null,
+        areaName: null,
+        tags: [],
+      },
+      isOwner: false,
+      userId: "owner",
+      filter: DEFAULT_JOURNAL_FILTER,
+      areaBreadcrumbs: {},
+    }) as ReactElement<{ title: ReactNode; trailing: ReactNode }>;
+
+    expect(training.props.title).toBe("Training");
+    const trailing = renderToStaticMarkup(<>{training.props.trailing}</>);
+    expect(trailing).toMatch(/datetime="2026-09-04"/i);
+    expect(trailing).not.toContain("Training");
   });
 
   it("lets the active tag chip clear its filter", () => {

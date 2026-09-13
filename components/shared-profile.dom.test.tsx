@@ -43,7 +43,9 @@ function send(id: number, climbName: string, comment: string | null = null): Use
   };
 }
 
-it("previews stats and recent sends, then asks the visitor to sign up for the rest", () => {
+const SIGN_UP = `/sign-up?next=${encodeURIComponent(NEXT)}`;
+
+it("previews recent sends under one invitation and links the rest to sign-up", () => {
   render(
     <SharedProfile
       owner={OWNER}
@@ -59,14 +61,20 @@ it("previews stats and recent sends, then asks the visitor to sign up for the re
   expect(within(recent).getByRole("link", { name: "Sidepull Sonata" })).toBeVisible();
   expect(within(recent).getByText("Shared with everyone")).toBeVisible();
 
-  const prompt = screen.getByRole("region", { name: "Sign up to see more" });
-  expect(within(prompt).getByRole("heading", { name: "See all 12 sends" })).toBeVisible();
-  for (const region of [screen.getByRole("region", { name: "Invitation" }), prompt]) {
-    expect(within(region).getByRole("link", { name: "Sign up" })).toHaveAttribute(
-      "href",
-      `/sign-up?next=${encodeURIComponent(NEXT)}`,
-    );
-  }
+  const invitation = screen.getByRole("region", { name: "Invitation" });
+  expect(screen.getAllByRole("link", { name: "Sign up" })).toEqual([
+    within(invitation).getByRole("link", { name: "Sign up" }),
+  ]);
+  expect(screen.getAllByRole("link", { name: "Sign in" })).toEqual([
+    within(invitation).getByRole("link", { name: "Sign in" }),
+  ]);
+
+  const prompt = screen.getByRole("region", { name: "See all 12 sends" });
+  const heading = within(prompt).getByRole("heading", { name: "See all 12 sends" });
+  expect(within(heading).getByRole("link", { name: "See all 12 sends" })).toHaveAttribute(
+    "href",
+    SIGN_UP,
+  );
 });
 
 it("invites a visitor to climb with an owner who hasn't logged a send", () => {
@@ -87,6 +95,9 @@ it("invites a visitor to climb with an owner who hasn't logged a send", () => {
   );
 
   expect(screen.getByText("Alex Rivera hasn't logged a send yet.")).toBeVisible();
-  const prompt = screen.getByRole("region", { name: "Sign up to see more" });
-  expect(within(prompt).getByRole("heading", { name: "Climb with Alex Rivera" })).toBeVisible();
+  const prompt = screen.getByRole("region", { name: "Climb with Alex Rivera on Betabook" });
+  expect(
+    within(prompt).getByRole("link", { name: "Climb with Alex Rivera on Betabook" }),
+  ).toHaveAttribute("href", SIGN_UP);
+  expect(screen.getAllByRole("link", { name: "Sign up" })).toHaveLength(1);
 });

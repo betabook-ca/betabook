@@ -30,7 +30,7 @@ it("previews three climbs and opens the full list from the keyboard", async () =
   await user.keyboard("{Home}");
   const tooltip = screen.getByRole("tooltip");
   expect(within(tooltip).getAllByText(/Cedar Arete/)).toHaveLength(3);
-  expect(within(tooltip).getByText("Click to see all")).toBeInTheDocument();
+  expect(within(tooltip).getByText("Select to see all")).toBeInTheDocument();
   await user.keyboard("{Enter}");
   const table = await screen.findByRole("list", { name: "Climbs" });
   expect(within(table).getAllByRole("listitem")).toHaveLength(4);
@@ -58,7 +58,7 @@ it("keeps complete previews and zero activity out of the table", async () => {
   await user.tab();
   await user.keyboard("{Home}{Enter}");
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  expect(screen.getByRole("tooltip")).not.toHaveTextContent("Click");
+  expect(screen.getByRole("tooltip")).not.toHaveTextContent("Select to see all");
   await user.keyboard("{End}{Enter}");
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });

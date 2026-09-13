@@ -53,7 +53,7 @@ it("lists a repeated climb once without merging different climbs with the same n
   );
   expect(screen.getAllByText("Climb 1", { exact: true })).toHaveLength(2);
   expect(screen.getByText("Climb 3", { exact: true })).toBeInTheDocument();
-  expect(screen.queryByText(/Click to see/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/Select to see/)).not.toBeInTheDocument();
 });
 
 it("orders the popup by send date, keeping undated sends last", async () => {

@@ -5,8 +5,6 @@ import { formatCount } from "@/lib/format";
 import type { ClimbType } from "@/lib/grades";
 import type { PyramidRow } from "@/lib/user-analytics";
 
-/** The send pyramid: one bar per grade from a climber's hardest down to
- * their easiest, so the shape shows whether the peak stands on a base. */
 export function AnalyticsGradePyramid({
   type,
   rows,
@@ -14,6 +12,7 @@ export function AnalyticsGradePyramid({
 }: {
   type: ClimbType;
   rows: PyramidRow[];
+  /** Already scoped to `type`. */
   sends: AnalyticsSendRow[];
 }) {
   if (rows.length === 0) return null;
@@ -27,9 +26,6 @@ export function AnalyticsGradePyramid({
 
   return (
     <>
-      <p className="mb-2 text-xs text-muted">
-        Hover or tap to preview climbs. Groups larger than three open the full list.
-      </p>
       <p className="sr-only">Send pyramid: {summary}.</p>
       <div className="grid grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-1.5 text-xs tabular-nums">
         {rows.map((row, i) => (
@@ -39,9 +35,7 @@ export function AnalyticsGradePyramid({
               <>
                 <ChartClimbDetails
                   label={row.label}
-                  sends={sends.filter(
-                    (send) => send.climbType === type && send.suggestedGrade === row.grade,
-                  )}
+                  sends={sends.filter((send) => send.suggestedGrade === row.grade)}
                   className="relative h-7 w-full min-w-0 justify-start rounded-xs p-0"
                 >
                   <div

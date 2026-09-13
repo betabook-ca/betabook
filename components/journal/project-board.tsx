@@ -31,9 +31,6 @@ const COMPARATORS: Record<ProjectSort, (a: ProjectWithSessions, b: ProjectWithSe
     name: (a, b) => a.climbName.localeCompare(b.climbName) || a.climbId - b.climbId,
   };
 
-/** Everything a project carries that a climber might search by. The notes
- * are the preloaded ones, which is what the field's placeholder promises —
- * an older note reachable only by paging is not searched here. */
 function haystack(project: ProjectWithSessions): string {
   return [
     project.climbName,
@@ -51,13 +48,7 @@ type ProjectBoardProps = {
   hasMore: boolean;
 };
 
-/** The projects tab: every open project with its latest note already on the
- * card, searchable and sortable without a round trip, and each one able to
- * open its full session history in place.
- *
- * Filtering and sorting stay client-side deliberately — the page is capped
- * at `OPEN_PROJECT_PAGE_SIZE` projects, and a climber comparing two of them
- * should not lose their expanded panels to a navigation. */
+/** Filtering and sorting stay client-side: the page holds at most `OPEN_PROJECT_PAGE_SIZE` projects. */
 export function ProjectBoard({ userId, projects, hasMore }: ProjectBoardProps) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ProjectSort>("recent");
@@ -82,6 +73,15 @@ export function ProjectBoard({ userId, projects, hasMore }: ProjectBoardProps) {
     );
   }
 
+  let sessionCount = 0;
+  let lastSession = projects[0].lastSession;
+  for (const project of projects) {
+    sessionCount += project.sessionCount;
+    // Civil dates compare as strings.
+    if (project.lastSession > lastSession) lastSession = project.lastSession;
+  }
+  const daysSinceLast = today == null ? null : daysBetween(lastSession, today);
+
   return (
     <div className="flex flex-col gap-4">
       <StatTiles
@@ -92,30 +92,24 @@ export function ProjectBoard({ userId, projects, hasMore }: ProjectBoardProps) {
             value: hasMore ? `${projects.length}+` : projects.length,
             sub: `${formatCount(projects.filter((p) => p.noteCount > 0).length, "project")} with notes`,
           },
-          {
-            label: "Sessions",
-            value: totalSessions(projects),
-            sub: "Logged on open projects",
-          },
+          { label: "Sessions", value: sessionCount, sub: "Logged on open projects" },
           {
             label: "Last out",
-            value: <LastOut projects={projects} today={today} />,
-            sub: formatDate(lastSessionOf(projects)),
+            value: daysSinceLast == null ? "—" : describeDaysAgo(daysSinceLast),
+            sub: formatDate(lastSession),
           },
         ]}
       />
 
       <div className="flex flex-wrap items-center gap-3">
-        {/* The search field's own width is `w-96 max-w-full`, and that
-         * percentage resolves against this wrapper — so the wrapper, not a
-         * shrink-to-content flex group, is what has to be allowed to
-         * narrow, or the field keeps its 24rem on a phone. */}
+        {/* The field's max-w-full resolves against this wrapper, so the wrapper
+         * is what must be allowed to narrow on a phone. */}
         <div className="min-w-0 flex-1 basis-64">
           <QueryInput
             value={query}
             onChange={setQuery}
             label="Filter projects"
-            placeholder="Climb, area, tag or note"
+            placeholder="Climb, area, tag or recent note"
           />
         </div>
         <OptionSelect
@@ -147,11 +141,7 @@ export function ProjectBoard({ userId, projects, hasMore }: ProjectBoardProps) {
         </ul>
       )}
 
-      {hasMore && (
-        <p className="text-sm text-muted">
-          Showing the {projects.length} most recently active projects.
-        </p>
-      )}
+      {hasMore && <p className="text-sm text-muted">Showing the most recently active projects.</p>}
 
       {selected && (
         <JournalEntryDrawer
@@ -167,28 +157,4 @@ export function ProjectBoard({ userId, projects, hasMore }: ProjectBoardProps) {
       )}
     </div>
   );
-}
-
-function totalSessions(projects: ProjectWithSessions[]): number {
-  let total = 0;
-  for (const project of projects) total += project.sessionCount;
-  return total;
-}
-
-/** Civil dates sort lexicographically, so the newest is a plain max. */
-function lastSessionOf(projects: ProjectWithSessions[]): string | null {
-  let latest: string | null = null;
-  for (const project of projects) {
-    if (latest == null || project.lastSession > latest) latest = project.lastSession;
-  }
-  return latest;
-}
-
-/** How long since the climber last touched any open project — the one stat
- * here that needs the reader's own "today", so it holds an em dash until
- * the client has one. */
-function LastOut({ projects, today }: { projects: ProjectWithSessions[]; today: string | null }) {
-  const lastSession = lastSessionOf(projects);
-  const days = lastSession == null || today == null ? null : daysBetween(lastSession, today);
-  return <>{days == null ? "—" : describeDaysAgo(days)}</>;
 }

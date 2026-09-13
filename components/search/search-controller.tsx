@@ -32,6 +32,7 @@ export function SearchController({
   resultHref,
   suggestions,
   publicOnly = false,
+  showMemberNotice = publicOnly,
 }: {
   state: SearchState;
   onChange: (state: SearchState) => void;
@@ -48,6 +49,8 @@ export function SearchController({
   /** Shown in place of the prompt while the full climber search is empty. */
   suggestions?: AppSearchResult[];
   publicOnly?: boolean;
+  /** The sign-in notice; defaults to public searches, off where the page already offers sign-up. */
+  showMemberNotice?: boolean;
 }) {
   const search = useSearch({
     state,
@@ -113,7 +116,7 @@ export function SearchController({
           return current ? renderAction(current) : null;
         }
       : undefined,
-    memberNotice: publicOnly ? (
+    memberNotice: showMemberNotice ? (
       <AuthCallout
         next={searchHref(state)}
         onNavigate={quick ? () => onOpenChange(false) : undefined}

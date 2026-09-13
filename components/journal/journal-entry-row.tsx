@@ -39,15 +39,15 @@ export function JournalEntryRow({
   filter: JournalFilter;
   areaBreadcrumbs: AreaBreadcrumbs;
 }) {
-  const label = entry.kind === "training" ? "Training" : entry.sent ? "Repeat" : "Session";
+  // No pill on training: the row's title already says Training.
   const status = entry.isAscent ? (
     <span className="inline-flex items-center gap-1 font-semibold text-success-soft-foreground">
       <CircleCheckBig aria-hidden className="size-4" />
       <span>Sent</span>
     </span>
-  ) : (
+  ) : entry.kind === "training" ? null : (
     <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted">
-      {label}
+      {entry.sent ? "Repeat" : "Session"}
     </span>
   );
   const tags =

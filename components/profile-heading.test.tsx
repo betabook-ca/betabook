@@ -20,7 +20,7 @@ it("titles the profile and badges the hardest grade per discipline", () => {
   expect(badges(html)).toEqual(["BoulderV8", "Sport5.12a"]);
 });
 
-it("keeps a name action on the name's row, above the badges", () => {
+it("renders a name action right after the name, before the badges", () => {
   const html = renderToStaticMarkup(
     <ProfileHeading
       name="Alex Morgan"
@@ -33,7 +33,7 @@ it("keeps a name action on the name's row, above the badges", () => {
   expect(html.indexOf("Copy profile link")).toBeLessThan(html.indexOf("Hardest sends"));
 });
 
-it("shows a note under the name", () => {
+it("renders a note after the badges", () => {
   const html = renderToStaticMarkup(
     <ProfileHeading
       name="Alex Morgan"
@@ -42,7 +42,9 @@ it("shows a note under the name", () => {
     />,
   );
 
-  expect(html).toContain("Their journal isn&#x27;t shared with you.");
+  const lastBadge = html.indexOf("5.12a");
+  expect(lastBadge).toBeGreaterThan(-1);
+  expect(html.indexOf("Their journal isn&#x27;t shared with you.")).toBeGreaterThan(lastBadge);
 });
 
 it("leaves out badges before anything is sent", () => {

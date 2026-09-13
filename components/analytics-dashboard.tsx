@@ -20,9 +20,15 @@ import { formatAnalyticsYears } from "@/lib/analytics-years";
 import { sendChartRows, sessionChartRows, type ChartSession } from "@/lib/chart-details";
 import { formatCount } from "@/lib/format";
 import type { ClimbType } from "@/lib/grades";
-import { formatDaySpan, formatMonthLabel, type UserAnalytics } from "@/lib/user-analytics";
+import {
+  formatDaySpan,
+  formatMonthLabel,
+  inSelectedYears,
+  type UserAnalytics,
+} from "@/lib/user-analytics";
 
 const EMPTY_SESSIONS: ChartSession[] = [];
+const NO_PANELS: AnalyticsPanel[] = [];
 
 /** Every summary and chart reads the same filtered analytics; customization changes presentation only. */
 // oxlint-disable-next-line complexity -- independent summary and empty-chart states
@@ -57,33 +63,30 @@ export function AnalyticsDashboard({
   onSave?: (layout: AnalyticsLayout) => Promise<ActionResult>;
 }) {
   const chartSends = sends.filter(
-    (send) =>
-      send.climbType === scope &&
-      (selectedYears.length === 0 ||
-        (send.dateSent != null && selectedYears.includes(Number(send.dateSent.slice(0, 4))))),
+    (send) => send.climbType === scope && inSelectedYears(send.dateSent, selectedYears),
   );
   const activities = journalVisible
     ? sessionChartRows(
         sessions.filter(
-          (entry) =>
-            entry.climbType === scope &&
-            (!selectedYears.length || selectedYears.includes(Number(entry.entryDate.slice(0, 4)))),
+          (entry) => entry.climbType === scope && inSelectedYears(entry.entryDate, selectedYears),
         ),
         sends,
       )
     : sendChartRows(chartSends);
   const period = selectedYears.length ? formatAnalyticsYears(selectedYears) : null;
+  const noActivity = period != null && analytics.sendCount === 0 && analytics.daysOut === 0;
   const calendarYears = (selectedYears.length ? selectedYears : analytics.calendarYears).toSorted(
     (a, b) => a - b,
   );
+  const calendarTitle = journalVisible ? "Outdoor calendar" : "Sending calendar";
   const hardest = analytics.hardest[0] ?? null;
   const tiles: Record<AnalyticsCardId, StatTile> = {
     partner: {
-      label: "Most frequent partner",
+      label: "Most tagged friend",
       value: highlights.partner?.name ?? "—",
       sub: highlights.partner
         ? formatCount(highlights.partner.days, "shared day")
-        : "no visible tagged partners",
+        : "no tagged friends",
     },
     biggestProject: {
       label: "Biggest project",
@@ -126,13 +129,13 @@ export function AnalyticsDashboard({
       sub: analytics.daysPerMonth != null ? `${analytics.daysPerMonth.toFixed(1)} per month` : null,
     },
     firstTry: {
-      label: "First try",
+      label: "Flash",
       value: analytics.sendCount
         ? `${Math.round((analytics.firstTryCount / analytics.sendCount) * 100)}%`
         : "—",
       sub:
         analytics.sendCount === 0
-          ? "no sends yet"
+          ? "no sends"
           : analytics.hardestFirstTry
             ? `Hardest: ${analytics.hardestFirstTry.label}`
             : // Boulders are never onsights, so the split would only ever read "0 onsight".
@@ -180,14 +183,17 @@ export function AnalyticsDashboard({
     },
   };
   const descriptions: Record<AnalyticsCardId, string> = {
-    partner: "Who you shared the most tagged climbing days with.",
+    partner: "The friend you tagged on the most days.",
     biggestProject: "The climb with the most logged sessions, sent or unsent.",
     persistence: "The most sessions leading up to a first send in this period.",
     favoriteRepeat: "The climb you repeated most after its original ascent.",
     sends: "How many climbs you’ve sent.",
     hardest: "Your highest graded send.",
     days: "Days with climbing activity.",
-    firstTry: "The share of sends you flashed or onsighted.",
+    firstTry:
+      scope === "boulder"
+        ? "The share of sends you flashed."
+        : "The share of sends you flashed or onsighted.",
     bestYear: "The year with the most sends.",
     streak: "Your longest run of consecutive climbing days.",
     busiestMonth: "The month with the most sends.",
@@ -219,8 +225,8 @@ export function AnalyticsDashboard({
     },
     {
       id: "flashRate",
-      title: "First-try rate by grade",
-      description: "Total sends and the percentage sent first try at each grade.",
+      title: "Flash rate by grade",
+      description: "Total sends and the flash rate at each grade.",
       content: (
         <AnalyticsFlashChart
           sends={chartSends}
@@ -237,7 +243,7 @@ export function AnalyticsDashboard({
           <div className="mb-4 flex flex-col gap-1">
             <Eyebrow>Progression</Eyebrow>
             <p className="text-xs text-muted">
-              Best grade in the selected years — each dot is the hardest send of that month.
+              Each dot is a month’s hardest send; the line is your best so far.
             </p>
           </div>
           {analytics.progression.length ? (
@@ -247,9 +253,7 @@ export function AnalyticsDashboard({
               sends={chartSends}
             />
           ) : (
-            <p className="text-sm text-muted">
-              No dated sends with grades yet — progression appears once sends carry dates.
-            </p>
+            <p className="text-sm text-muted">No dated sends with grades.</p>
           )}
         </section>
       ),
@@ -258,7 +262,7 @@ export function AnalyticsDashboard({
       id: "pyramid",
       title: "Grade pyramid",
       content: (
-        <section aria-label="Grade pyramid" className="min-w-0">
+        <div className="min-w-0">
           <div className="mb-4 flex flex-col gap-1">
             <Eyebrow>Grade pyramid</Eyebrow>
             <p className="text-xs text-muted">Sends per grade, hardest on top.</p>
@@ -266,11 +270,9 @@ export function AnalyticsDashboard({
           {pyramidRows.length ? (
             <AnalyticsGradePyramid type={scope} rows={pyramidRows} sends={chartSends} />
           ) : (
-            <p className="text-sm text-muted">
-              {period == null ? "No graded sends yet." : `No graded sends in ${period}.`}
-            </p>
+            <p className="text-sm text-muted">No graded sends.</p>
           )}
-        </section>
+        </div>
       ),
     },
     {
@@ -280,34 +282,25 @@ export function AnalyticsDashboard({
         <section aria-label="Breakthroughs" className="min-w-0">
           <div className="mb-4 flex flex-col gap-1">
             <Eyebrow>Breakthroughs</Eyebrow>
-            <p className="text-xs text-muted">
-              New highest grades within the selected years, starting with the first graded send.
-            </p>
+            <p className="text-xs text-muted">Sends that set a new highest grade, newest first.</p>
           </div>
           {analytics.breakthroughs.length ? (
-            <BreakthroughList breakthroughs={analytics.breakthroughs} showDiscipline={false} />
+            <BreakthroughList breakthroughs={analytics.breakthroughs} />
           ) : (
-            <p className="text-sm text-muted">
-              No dated breakthroughs yet — they need sends with both a grade and a date.
-            </p>
+            <p className="text-sm text-muted">No dated sends with grades.</p>
           )}
         </section>
       ),
     },
     {
       id: "calendar",
-      title: journalVisible ? "Outdoor calendar" : "Sending calendar",
+      title: calendarTitle,
       content: (
-        <section
-          aria-label={journalVisible ? "Outdoor calendar" : "Sending calendar"}
-          className="min-w-0"
-        >
+        <div className="min-w-0">
           <div className="mb-4 flex flex-col gap-1">
-            <Eyebrow>{journalVisible ? "Outdoor calendar" : "Sending calendar"}</Eyebrow>
+            <Eyebrow>{calendarTitle}</Eyebrow>
             <p className="text-xs text-muted">
-              {journalVisible
-                ? "Climb sessions per day"
-                : "Sends per day — darker squares, bigger days."}
+              {journalVisible ? "Sessions per day." : "Sends per day."}
             </p>
           </div>
           {calendarYears.length ? (
@@ -321,48 +314,44 @@ export function AnalyticsDashboard({
             />
           ) : (
             <p className="text-sm text-muted">
-              {journalVisible
-                ? "No outdoor sessions yet — the calendar fills in as sessions are logged."
-                : "No dated sends yet — the calendar fills in as sends carry dates."}
+              {journalVisible ? "No logged sessions." : "No dated sends."}
             </p>
           )}
-        </section>
+        </div>
       ),
     },
   ];
   return (
-    <section aria-label="Activity summary" className="flex flex-col gap-6">
-      <AnalyticsWorkspace
-        cards={cards}
-        charts={charts}
-        canCustomize={canCustomize}
-        initialLayout={initialLayout}
-        onSave={onSave}
-        heading={
-          <div className="flex flex-col gap-1">
-            <SectionHeading>
-              {period == null ? "All-time activity" : `Activity in ${period}`}
-            </SectionHeading>
-            {summary && <p className="text-sm text-muted">{summary}</p>}
-          </div>
-        }
-      >
-        <div className="flex flex-col gap-4">
-          {periodPicker}
-          {undatedCount > 0 && (
-            <p className="text-xs text-muted">
-              {period == null
-                ? "Sends without dates count toward your totals and grade pyramid, but won’t appear in charts that track activity over time."
-                : "Sends without dates aren’t included in the selected years. Choose All to include them in your totals and grade pyramid."}
-            </p>
-          )}
-          {period != null && analytics.sendCount === 0 && analytics.daysOut === 0 && (
-            <p role="status" className="text-sm text-muted">
-              No activity in {period} for this discipline. Try another year or All.
-            </p>
-          )}
+    <AnalyticsWorkspace
+      cards={noActivity ? NO_PANELS : cards}
+      charts={noActivity ? NO_PANELS : charts}
+      canCustomize={canCustomize && !noActivity}
+      initialLayout={initialLayout}
+      onSave={onSave}
+      heading={
+        <div className="flex flex-col gap-1">
+          <SectionHeading>
+            {period == null ? "All-time activity" : `Activity in ${period}`}
+          </SectionHeading>
+          {summary && <p className="text-sm text-muted">{summary}</p>}
         </div>
-      </AnalyticsWorkspace>
-    </section>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        {periodPicker}
+        {undatedCount > 0 && (
+          <p className="text-xs text-muted">
+            {period == null
+              ? "Sends without dates count toward your totals and grade pyramid, but won’t appear in charts that track activity over time."
+              : "Sends without dates aren’t included in the selected years. Choose All years to include them in your totals and grade pyramid."}
+          </p>
+        )}
+        {noActivity && (
+          <p role="status" className="text-sm text-muted">
+            No activity in {period} for this discipline. Try another year or All years.
+          </p>
+        )}
+      </div>
+    </AnalyticsWorkspace>
   );
 }

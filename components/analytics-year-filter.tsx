@@ -90,8 +90,6 @@ export function AnalyticsYearNavigation({
             setOptimistic(next);
             const query = new URLSearchParams(search);
             query.delete("period");
-            query.delete("year");
-            query.delete("pyramid");
             if (next.length) query.set("years", next.join(","));
             else query.delete("years");
             router.push(`${pathname}?${query}`, { scroll: false });
