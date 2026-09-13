@@ -1,6 +1,7 @@
 "use client";
 
 import { Button, useOverlayState } from "@heroui/react";
+import { clsx } from "clsx";
 import { CirclePlus } from "lucide-react";
 
 import { JournalEntryDrawer } from "@/components/journal/journal-entry-drawer";
@@ -12,6 +13,7 @@ type LogEntryButtonProps = {
   fullWidth?: boolean;
   label?: string;
   variant?: "outline";
+  className?: string;
 };
 
 export function LogEntryButton({
@@ -20,12 +22,18 @@ export function LogEntryButton({
   fullWidth,
   label = "Log",
   variant,
+  className,
 }: LogEntryButtonProps) {
   const state = useOverlayState();
 
   return (
     <>
-      <Button variant={variant} fullWidth={fullWidth} onPress={state.open} className="gap-2">
+      <Button
+        variant={variant}
+        fullWidth={fullWidth}
+        onPress={state.open}
+        className={clsx("gap-2", className)}
+      >
         <CirclePlus className="size-5" />
         {label}
       </Button>

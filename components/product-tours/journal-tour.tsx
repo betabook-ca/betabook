@@ -16,6 +16,7 @@ import {
 } from "@/components/product-tours/profile-tour-previews";
 import { DemoFeed, DemoFriends } from "@/components/product-tours/social-tour-previews";
 import type { ProductTourPageProps } from "@/components/product-tours/types";
+import { PROFILE_ACTION_CLASS, PROFILE_ACTION_LABEL_CLASS } from "@/components/profile-actions";
 import { ProfileHeading } from "@/components/profile-heading";
 import { ProfileSectionNav } from "@/components/profile-tabs";
 import { cardClass } from "@/components/ui/card";
@@ -57,7 +58,7 @@ function DemoLog() {
   return (
     <span
       data-tour-target="journal-log"
-      className={`${buttonVariants()} w-fit cursor-default gap-2`}
+      className={`${buttonVariants()} w-fit cursor-default gap-2 ${PROFILE_ACTION_CLASS}`}
     >
       <CirclePlus aria-hidden className="size-5" />
       Log
@@ -91,9 +92,11 @@ export function JournalTourPage({ section, mode, href, steps }: ProductTourPageP
           actions={
             <>
               {mode === "full" && <DemoLog />}
-              <span className={`${buttonVariants({ variant: "outline" })} cursor-default gap-2`}>
+              <span
+                className={`${buttonVariants({ variant: "outline" })} cursor-default gap-2 @max-4xl:px-3 ${PROFILE_ACTION_CLASS}`}
+              >
                 <Users aria-hidden className="size-4" />
-                Friends
+                <span className={PROFILE_ACTION_LABEL_CLASS}>Friends</span>
                 <FriendRequestBadge count={friendRequest === "pending" ? 1 : 0} />
               </span>
             </>

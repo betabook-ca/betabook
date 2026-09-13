@@ -11,14 +11,14 @@ export function PageTitle({
 }: {
   children: ReactNode;
   className?: string;
-  /** `lg` is reserved for the climber name on a profile. */
+  /** `lg` is the climber name, sized by ProfileHeading's container. */
   size?: "md" | "lg";
 }) {
   return (
     <h1
       className={clsx(
         "font-display font-semibold tracking-tight",
-        size === "lg" ? "text-4xl leading-none sm:text-5xl" : "text-3xl",
+        size === "lg" ? "text-4xl leading-none @2xl:text-5xl" : "text-3xl",
         className,
       )}
     >

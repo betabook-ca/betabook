@@ -7,6 +7,7 @@ import {
 
 import { FriendshipButton } from "./friendship-button";
 import { LogEntryButton } from "./journal";
+import { PROFILE_ACTION_CLASS } from "./profile-actions";
 import { ProfileFriendsLink } from "./profile-friends-link";
 import { ProfileHeading } from "./profile-heading";
 import { ShareProfileButton } from "./share-profile-button";
@@ -17,10 +18,9 @@ const meta = {
   args: {
     name: "Alex Morgan",
     overview: STORY_CLIMBER_OVERVIEW,
-    analyticsHref: "/users/sample/analytics",
     actions: (
       <>
-        <LogEntryButton />
+        <LogEntryButton className={PROFILE_ACTION_CLASS} />
         <ShareProfileButton name="Alex Morgan" url="https://betabook.ca/users/sample?share=demo" />
         <ProfileFriendsLink userId="sample" />
       </>
@@ -36,11 +36,13 @@ const meta = {
 } satisfies Meta<typeof ProfileHeading>;
 export default meta;
 type Story = StoryObj<typeof meta>;
+
+const hiddenJournalNote = <p className="text-muted">Their journal isn&apos;t shared with you.</p>;
+
 export const MemberProfile: Story = {};
 export const AnotherClimber: Story = {
   args: {
     name: "Riley Chen",
-    overview: { ...STORY_CLIMBER_OVERVIEW, daysOut: null },
     actions: (
       <FriendshipButton
         userId="sample"
@@ -49,9 +51,34 @@ export const AnotherClimber: Story = {
         appearance="profile"
       />
     ),
-    note: (
-      <p className="text-sm text-muted">Riley Chen&apos;s journal isn&apos;t shared with you.</p>
+  },
+};
+export const IncomingRequest: Story = {
+  args: {
+    name: "Sam Taylor",
+    actions: (
+      <FriendshipButton
+        userId="sample"
+        name="Sam Taylor"
+        initialStatus="incoming"
+        appearance="profile"
+      />
     ),
+  },
+};
+export const Stranger: Story = {
+  args: {
+    name: "Jordan Lee",
+    overview: { ...STORY_CLIMBER_OVERVIEW, daysOut: null },
+    actions: (
+      <FriendshipButton
+        userId="sample"
+        name="Jordan Lee"
+        initialStatus="none"
+        appearance="profile"
+      />
+    ),
+    note: hiddenJournalNote,
   },
 };
 export const NewClimber: Story = {

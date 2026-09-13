@@ -1,6 +1,7 @@
 "use client";
 
 import { Menu, useOverlayState } from "@heroui/react";
+import { clsx } from "clsx";
 import { UserCheck } from "lucide-react";
 import { useState, useTransition } from "react";
 
@@ -16,6 +17,7 @@ import {
   FriendshipActionButton,
   friendshipConfirmation,
 } from "@/components/friendship-action-button";
+import { PROFILE_ACTION_CLASS } from "@/components/profile-actions";
 import { ActionsMenu } from "@/components/ui/actions-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { InlineAlert } from "@/components/ui/inline-alert";
@@ -82,14 +84,19 @@ export function FriendshipButton({
           ? [{ kind: "remove" as const, action: removeFriendship }]
           : [{ kind: "add" as const, action: requestFriendship }];
   return (
-    <div className="flex flex-col gap-1">
+    <div
+      className={clsx(
+        "flex flex-col gap-1",
+        appearance === "profile" && "items-start gap-1.5 @2xl:items-end",
+      )}
+    >
       {status === "outgoing" && (
         <p role="status" className="text-xs text-muted">
           Friend request sent
         </p>
       )}
       {status === "incoming" && appearance === "profile" && (
-        <p className="text-xs text-muted">{name} sent you a friend request</p>
+        <p className="text-sm">{name} sent you a friend request</p>
       )}
       <div className="flex flex-wrap gap-2">
         {options.map(({ kind, action }) => (
@@ -99,6 +106,7 @@ export function FriendshipButton({
             name={name}
             pending={pending}
             error={error}
+            className={appearance === "profile" ? PROFILE_ACTION_CLASS : undefined}
             onPress={(complete) => run(action, complete)}
           />
         ))}
@@ -128,6 +136,7 @@ function FriendMenu({
       </span>
       <ActionsMenu
         ariaLabel={`Friendship options for ${name}`}
+        triggerClassName="pointer-coarse:size-11"
         onAction={(key) => {
           if (key === "remove") state.open();
         }}

@@ -3,6 +3,7 @@ import { cache } from "react";
 
 import { FriendshipButton } from "@/components/friendship-button";
 import { LogEntryButton } from "@/components/journal";
+import { PROFILE_ACTION_CLASS } from "@/components/profile-actions";
 import { ProfileFriendsLink } from "@/components/profile-friends-link";
 import { ProfileHeading } from "@/components/profile-heading";
 import { ProfileTabs } from "@/components/profile-tabs";
@@ -54,11 +55,10 @@ export async function ProfileHeader({ user, viewerId }: { user: ProfileUser; vie
           name={user.name}
           image={user.image}
           overview={overview}
-          analyticsHref={`/users/${user.id}/analytics`}
           actions={
             isOwner ? (
               <>
-                <LogEntryButton />
+                <LogEntryButton className={PROFILE_ACTION_CLASS} />
                 {shareUrl && <ShareProfileButton name={user.name} url={shareUrl} />}
                 <ProfileFriendsLink userId={user.id} />
               </>
@@ -74,7 +74,7 @@ export async function ProfileHeader({ user, viewerId }: { user: ProfileUser; vie
           note={
             !isOwner &&
             !journalVisible && (
-              <p className="text-sm text-muted">{`${user.name}'s journal isn't shared with you.`}</p>
+              <p className="text-muted">Their journal isn&apos;t shared with you.</p>
             )
           }
         />

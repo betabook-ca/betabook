@@ -45,12 +45,14 @@ export function FriendshipActionButton({
   onPress,
   pending = false,
   error,
+  className,
 }: {
   action: FriendshipAction;
   name: string;
   onPress: (complete: () => void) => void;
   pending?: boolean;
   error?: string | null;
+  className?: string;
 }) {
   const state = useOverlayState();
   const label = LABELS[action];
@@ -61,6 +63,7 @@ export function FriendshipActionButton({
         size="sm"
         variant={confirmation ? "secondary" : "primary"}
         isDisabled={pending}
+        className={className}
         aria-label={`${label}: ${name}`}
         onPress={() => {
           if (confirmation) state.open();

@@ -9,6 +9,7 @@ type ActionsMenuProps = {
   ariaLabel: string;
   onAction: ComponentProps<typeof Menu.Root>["onAction"];
   children: ReactNode;
+  triggerClassName?: string;
 };
 
 /** The "..." actions menu used by area/climb/send actions menus — composed
@@ -18,10 +19,16 @@ type ActionsMenuProps = {
  * <Popover.Root> (DialogTrigger) ancestor — which would conflict with
  * MenuTrigger's own trigger/overlay wiring. `.popover` below is the same
  * global class that slot resolves to, applied directly. */
-export function ActionsMenu({ ariaLabel, onAction, children }: ActionsMenuProps) {
+export function ActionsMenu({ ariaLabel, onAction, children, triggerClassName }: ActionsMenuProps) {
   return (
     <MenuTrigger>
-      <Button isIconOnly variant="ghost" size="sm" aria-label={ariaLabel}>
+      <Button
+        isIconOnly
+        variant="ghost"
+        size="sm"
+        aria-label={ariaLabel}
+        className={triggerClassName}
+      >
         <MoreHorizontal className="size-4" />
       </Button>
       <Popover className="popover" placement="bottom end">

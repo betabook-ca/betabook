@@ -29,14 +29,11 @@ const OVERVIEW: ClimberOverview = {
 };
 
 it("titles the profile with the climber and summarizes their logbook once", () => {
-  const html = renderToStaticMarkup(
-    <ProfileHeading name="Alex Morgan" overview={OVERVIEW} analyticsHref="/users/alex/analytics" />,
-  );
+  const html = renderToStaticMarkup(<ProfileHeading name="Alex Morgan" overview={OVERVIEW} />);
 
   expect(html).toMatch(/<h1[^>]*>Alex Morgan<\/h1>/);
   expect(html).toContain("Climbing since 2019. 214 sends across 18 areas, 96 days out.");
   expect(html).toContain("Last out Mar 3, 2026. 2 days out in March.");
-  expect(html).toMatch(/href="\/users\/alex\/analytics"[^>]*>See analytics</);
   expect(html).toMatch(/Boulder.*V8.*180 sends.*Sport.*5\.12a.*34 sends/s);
   expect(html).not.toContain("last 12 months");
 });

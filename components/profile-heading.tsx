@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 
-import { AppLink } from "@/components/ui/app-link";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { PageTitle } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -30,68 +29,59 @@ function describeRecency({ daysOut, lastOut, daysThisMonth, month }: ClimberOver
   return `${last} ${days} in ${MONTH_NAME.format(new Date(`${month}-01T00:00:00Z`))}.`;
 }
 
-/** Below `xl` the heading spans the page, so actions and grades share rows instead of stacking. */
+/** Sized by its own width (phone, 17rem side column or page-wide band), so no row ever wraps. */
 export function ProfileHeading({
   name,
   image = null,
   overview,
-  analyticsHref,
   actions,
   note,
 }: {
   name: string;
   image?: string | null;
   overview: ClimberOverview;
-  analyticsHref?: string;
   actions?: ReactNode;
   /** Shown under the summary, e.g. why a section is missing. */
   note?: ReactNode;
 }) {
   const recency = describeRecency(overview);
   return (
-    <div className="flex min-w-0 flex-col gap-4 xl:gap-5">
-      <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between xl:flex-col xl:justify-start">
-        <div className="flex min-w-0 items-center gap-4 xl:flex-col xl:items-start xl:gap-3">
-          <UserAvatar name={name} image={image} size="lg" />
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <PageTitle size="lg" className="break-words">
-              {name}
-            </PageTitle>
-            <p className="text-sm text-muted">{summarize(overview)}</p>
-            {recency && (
-              <p className="text-sm">
-                {recency}
-                {analyticsHref && (
-                  <>
-                    {" "}
-                    <AppLink href={analyticsHref}>See analytics</AppLink>
-                  </>
-                )}
-              </p>
-            )}
+    <div className="@container flex min-w-0 flex-col gap-5 @2xl:gap-4">
+      <div className="flex min-w-0 flex-col gap-4 @2xl:flex-row @2xl:items-start @2xl:justify-between @2xl:gap-6">
+        <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 @2xl:gap-x-4 @2xl:gap-y-1.5">
+          <UserAvatar
+            name={name}
+            image={image}
+            size="lg"
+            className="@max-2xl:size-12 @max-2xl:text-sm @2xl:row-span-2"
+          />
+          <PageTitle size="lg" className="break-words">
+            {name}
+          </PageTitle>
+          <div className="col-span-2 flex flex-col gap-0.5 text-sm @2xl:col-span-1 @2xl:col-start-2">
+            <p className="text-muted">{summarize(overview)}</p>
+            {recency && <p>{recency}</p>}
             {note}
           </div>
         </div>
         {actions && (
-          <div className="flex flex-wrap items-start gap-2 sm:shrink-0 sm:justify-end xl:justify-start">
-            {actions}
-          </div>
+          <div className="flex items-center gap-2 @2xl:shrink-0 @2xl:justify-end">{actions}</div>
         )}
       </div>
       {overview.hardest.length > 0 && (
         <section
           aria-label="Hardest sends"
-          className="flex flex-wrap items-center gap-x-4 gap-y-2 xl:flex-col xl:items-start xl:gap-2"
+          className="flex flex-col items-start gap-1.5 @3xl:flex-row @3xl:items-center @3xl:gap-4"
         >
           <h2 className="text-sm text-muted">Hardest sends</h2>
-          <dl className="flex flex-wrap items-center gap-x-5 gap-y-2 xl:grid xl:w-fit xl:grid-cols-[auto_auto_auto] xl:gap-x-3 xl:gap-y-1.5">
+          <dl className="grid grid-cols-[auto_auto_auto] items-center gap-x-3 gap-y-1.5 @xs:flex @xs:gap-x-3 @2xl:gap-x-5">
             {overview.hardest.map(({ type, grade, sendCount }) => (
-              <div key={type} className="flex items-center gap-2 xl:contents">
+              <div key={type} className="contents @xs:flex @xs:items-center @xs:gap-1.5 @2xl:gap-2">
                 <dt>
                   <DisciplineChip type={type} />
                 </dt>
-                <dd className="text-lg font-semibold tabular-nums xl:text-xl">{grade}</dd>
-                <dd className="text-sm text-muted tabular-nums">
+                <dd className="text-lg font-semibold tabular-nums">{grade}</dd>
+                <dd className="text-sm text-muted tabular-nums @xs:@max-2xl:sr-only">
                   {formatCount(sendCount, "send")}
                 </dd>
               </div>
