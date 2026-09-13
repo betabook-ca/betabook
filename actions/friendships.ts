@@ -8,6 +8,7 @@ import { getFriendship } from "@/db/queries/friendships";
 import { getUser } from "@/db/queries/users";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
 import { sendFriendRequestEmail } from "@/lib/email";
+import { insertFriendRequest } from "@/lib/friend-requests";
 import { friendshipPair, type FriendshipStatus } from "@/lib/friendships";
 import { allowFriendshipWrite } from "@/lib/rate-limit";
 import { requireSession } from "@/lib/session";
@@ -35,15 +36,9 @@ export async function requestFriendship(targetId: string): Promise<ActionResult<
     if (!(await allowFriendshipWrite(user.id)))
       throw new ActionError("Too many friend requests — try again in a minute");
     const db = await getDb();
-    const pair = friendshipPair(user.id, targetId);
     // Only the insert winner sends email. Duplicate and crossed requests leave
     // the existing pair untouched and never send another notification.
-    const inserted = await db.get(sql`
-      INSERT INTO friendships (user_id, friend_id, requested_by)
-      SELECT ${pair.userId}, ${pair.friendId}, ${user.id} FROM user WHERE id = ${targetId} AND is_private = 0
-      ON CONFLICT (user_id, friend_id) DO NOTHING
-      RETURNING user_id
-    `);
+    const inserted = await insertFriendRequest(db, user.id, targetId);
     let status: FriendshipStatus = "outgoing";
     if (inserted) {
       try {

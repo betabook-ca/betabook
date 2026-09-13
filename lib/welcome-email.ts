@@ -1,10 +1,10 @@
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 
 import type { Database } from "@/db/client";
 import { user } from "@/db/schema";
 import { sendFriendRequestEmail, sendWelcomeEmail } from "@/lib/email";
-import { friendshipPair } from "@/lib/friendships";
+import { insertFriendRequest } from "@/lib/friend-requests";
 
 type NewAccount = { id: string; email: string; name: string };
 
@@ -24,19 +24,19 @@ export async function welcomeNewAccountOnce(db: Database, account: NewAccount) {
 
   if (!claimed) return;
 
-  // If either step throws, the claim stays set and this account never gets
-  // it. That's the deliberate direction to fail in: there is no queue, retry,
-  // or dead-letter anywhere in this app to hand a rollback to, and a missing
-  // welcome is a non-event while a duplicate one is a visible bug. Neither
-  // step's failure may cost the other.
-  const results = await Promise.allSettled([
-    requestFriendshipWithReferrer(db, account),
-    sendWelcomeEmail(account.email, account.name),
-  ]);
-  const failure = results.find(
-    (result): result is PromiseRejectedResult => result.status === "rejected",
-  );
-  if (failure) throw failure.reason;
+  // If a step throws, the claim stays set and this account never gets that
+  // step. That's the deliberate direction to fail in: there is no queue,
+  // retry, or dead-letter anywhere in this app to hand a rollback to, and a
+  // missing welcome is a non-event while a duplicate one is a visible bug.
+  // Neither step's failure may cost the other.
+  const failures = (
+    await Promise.allSettled([
+      requestFriendshipWithReferrer(db, account),
+      sendWelcomeEmail(account.email, account.name),
+    ])
+  ).flatMap((result) => (result.status === "rejected" ? [result.reason] : []));
+  if (failures.length === 1) throw failures[0];
+  if (failures.length > 1) throw new AggregateError(failures, "New account welcome failed");
 }
 
 async function requestFriendshipWithReferrer(db: Database, account: NewAccount) {
@@ -47,16 +47,7 @@ async function requestFriendshipWithReferrer(db: Database, account: NewAccount) 
     .innerJoin(user, eq(user.id, invited.referredBy))
     .where(eq(invited.id, account.id))
     .get();
-  if (!referrer) return;
-
-  // requestFriendship's rules: never to a private profile, never over an
-  // existing pair, and only the insert winner sends email.
-  const pair = friendshipPair(account.id, referrer.id);
-  const inserted = await db.get(sql`
-    INSERT INTO friendships (user_id, friend_id, requested_by)
-    SELECT ${pair.userId}, ${pair.friendId}, ${account.id} FROM user WHERE id = ${referrer.id} AND is_private = 0
-    ON CONFLICT (user_id, friend_id) DO NOTHING
-    RETURNING user_id
-  `);
-  if (inserted) await sendFriendRequestEmail(referrer.email, account.name);
+  if (referrer && (await insertFriendRequest(db, account.id, referrer.id))) {
+    await sendFriendRequestEmail(referrer.email, account.name);
+  }
 }

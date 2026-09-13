@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createDb, type Database } from "@/db/client";
@@ -7,7 +7,7 @@ import { friendships, user } from "@/db/schema";
 import { sendFriendRequestEmail, sendWelcomeEmail } from "@/lib/email";
 import { friendshipPair } from "@/lib/friendships";
 import { welcomeNewAccountOnce } from "@/lib/welcome-email";
-import { seedFixtureUser } from "@/test/fixtures";
+import { seedFixtureFriendship, seedFixtureUser } from "@/test/fixtures";
 
 /** The guard is the point of this module: verification can reach the hook
  * more than once per account (a later change-email verification goes through
@@ -132,8 +132,7 @@ describe("share link friend request", () => {
         status: friendships.status,
       })
       .from(friendships)
-      .where(eq(friendships.userId, pair.userId))
-      .then((rows) => rows.filter((row) => row.friendId === pair.friendId));
+      .where(and(eq(friendships.userId, pair.userId), eq(friendships.friendId, pair.friendId)));
   }
 
   async function invite(suffix: string, owner: { isPrivate?: boolean } = {}) {
@@ -176,8 +175,35 @@ describe("share link friend request", () => {
     expect(sendFriendRequestEmail).toHaveBeenCalledOnce();
   });
 
-  it("sends no request to an owner whose profile went private", async () => {
+  it("sends no request to an owner whose profile is private at verification", async () => {
     const { inviter, account } = await invite("private", { isPrivate: true });
+
+    await welcomeNewAccountOnce(db, account);
+
+    expect(await requestsBetween(account.id, inviter.id)).toEqual([]);
+    expect(sendFriendRequestEmail).not.toHaveBeenCalled();
+    expect(sendWelcomeEmail).toHaveBeenCalledOnce();
+  });
+
+  it.each(["pending", "accepted"] as const)(
+    "leaves an existing %s pair untouched and still welcomes the account",
+    async (status) => {
+      const { inviter, account } = await invite(`existing-${status}`);
+      await seedFixtureFriendship(db, inviter.id, account.id, status);
+
+      await welcomeNewAccountOnce(db, account);
+
+      expect(await requestsBetween(account.id, inviter.id)).toEqual([
+        { ...friendshipPair(account.id, inviter.id), requestedBy: inviter.id, status },
+      ]);
+      expect(sendFriendRequestEmail).not.toHaveBeenCalled();
+      expect(sendWelcomeEmail).toHaveBeenCalledOnce();
+    },
+  );
+
+  it("only welcomes an account whose inviter deleted their account first", async () => {
+    const { inviter, account } = await invite("deleted");
+    await db.delete(user).where(eq(user.id, inviter.id));
 
     await welcomeNewAccountOnce(db, account);
 
@@ -210,5 +236,15 @@ describe("share link friend request", () => {
       account.email,
       "Newcomer request-email-down",
     );
+  });
+
+  it("reports both failures when both emails fail", async () => {
+    vi.mocked(sendFriendRequestEmail).mockRejectedValue(new Error("Request email down"));
+    vi.mocked(sendWelcomeEmail).mockRejectedValue(new Error("Welcome email down"));
+    const { account } = await invite("both-down");
+
+    await expect(welcomeNewAccountOnce(db, account)).rejects.toMatchObject({
+      errors: [new Error("Request email down"), new Error("Welcome email down")],
+    });
   });
 });

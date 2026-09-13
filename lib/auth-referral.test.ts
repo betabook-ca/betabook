@@ -38,7 +38,6 @@ let ownerEmail: string;
 beforeEach(async () => {
   vi.clearAllMocks();
   await resetDb(db);
-  await db.delete(friendships);
   ownerEmail = (await seedFixtureUser(db, { id: "owner", name: "Share Owner" })).email;
 });
 
@@ -205,4 +204,23 @@ it("carries the share link through Google OAuth state and asks the owner at once
     { ...friendshipPair(invited.id, "owner"), requestedBy: invited.id, status: "pending" },
   ]);
   expect(sendFriendRequestEmail).toHaveBeenCalledExactlyOnceWith(ownerEmail, "Google Climber");
+});
+
+it("records nothing when an existing member signs in with Google through a share link", async () => {
+  await db.insert(user).values({
+    id: "existing-google",
+    name: "Existing Climber",
+    email: "google@example.com",
+    emailVerified: true,
+  });
+
+  const callback = await googleSignUp({
+    acceptedTermsVersion: TERMS_VERSION,
+    sharePath: await ownerSharePath(),
+  });
+
+  expect(callback.headers.get("location")).toBe("/users/owner");
+  expect((await accountFor("google@example.com"))?.referredBy).toBeNull();
+  expect(await friendRequests()).toEqual([]);
+  expect(sendFriendRequestEmail).not.toHaveBeenCalled();
 });
