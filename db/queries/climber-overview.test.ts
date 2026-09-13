@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { createDb } from "@/db/client";
-import { getClimberOverview, type ClimberOverview } from "@/db/queries/climber-overview";
+import { getClimberOverview } from "@/db/queries/climber-overview";
 import { user } from "@/db/schema";
 import {
   seedFixtureFriendship,
@@ -43,9 +43,6 @@ beforeEach(async () => {
   await seedFixtureSend(db, { userId: "stranger", climbId: 3, dateSent: "2026-03-05" });
 });
 
-const seasonTotal = (overview: ClimberOverview) =>
-  overview.season.reduce((sum, week) => sum + week.days, 0);
-
 const SEND_FACTS = {
   sendCount: 4,
   areaCount: 3,
@@ -57,13 +54,17 @@ const SEND_FACTS = {
 };
 
 describe("getClimberOverview", () => {
-  it.each(["owner", "friend"])("reads the journal's days out for %s", async (viewerId) => {
+  it.each(["owner", "friend"])("reads days out from the journal for %s", async (viewerId) => {
     const overview = await getClimberOverview(db, "owner", viewerId, TODAY);
 
-    expect(overview).toMatchObject({ ...SEND_FACTS, firstYear: 2024, daysOut: 3 });
-    expect(overview.season).toHaveLength(52);
-    expect(overview.season.at(-1)).toEqual({ start: "2026-03-02", days: 2 });
-    expect(seasonTotal(overview)).toBe(2);
+    expect(overview).toMatchObject({
+      ...SEND_FACTS,
+      firstYear: 2024,
+      daysOut: 3,
+      lastOut: "2026-03-03",
+      daysThisMonth: 2,
+      month: "2026-03",
+    });
   });
 
   it.each(["requester", "stranger"])(
@@ -71,9 +72,14 @@ describe("getClimberOverview", () => {
     async (viewerId) => {
       const overview = await getClimberOverview(db, "owner", viewerId, TODAY);
 
-      expect(overview).toMatchObject({ ...SEND_FACTS, firstYear: 2025, daysOut: null });
-      expect(overview.season.at(-1)).toEqual({ start: "2026-03-02", days: 2 });
-      expect(seasonTotal(overview)).toBe(3);
+      expect(overview).toMatchObject({
+        ...SEND_FACTS,
+        firstYear: 2025,
+        daysOut: null,
+        lastOut: "2026-03-04",
+        daysThisMonth: 2,
+        month: "2026-03",
+      });
     },
   );
 
@@ -83,9 +89,8 @@ describe("getClimberOverview", () => {
     const friendView = await getClimberOverview(db, "owner", "friend", TODAY);
     const ownerView = await getClimberOverview(db, "owner", "owner", TODAY);
 
-    expect(friendView).toMatchObject({ daysOut: null, firstYear: 2025 });
-    expect(seasonTotal(friendView)).toBe(3);
-    expect(ownerView).toMatchObject({ daysOut: 3, firstYear: 2024 });
+    expect(friendView).toMatchObject({ daysOut: null, firstYear: 2025, lastOut: "2026-03-04" });
+    expect(ownerView).toMatchObject({ daysOut: 3, firstYear: 2024, lastOut: "2026-03-03" });
   });
 
   it("tells an empty but readable journal from a hidden one", async () => {
@@ -97,7 +102,8 @@ describe("getClimberOverview", () => {
       hardest: [],
       firstYear: null,
       daysOut: 0,
+      lastOut: null,
+      daysThisMonth: 0,
     });
-    expect(seasonTotal(overview)).toBe(0);
   });
 });

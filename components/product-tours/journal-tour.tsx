@@ -21,7 +21,6 @@ import { ProfileSectionNav } from "@/components/profile-tabs";
 import { cardClass } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/typography";
 import type { ClimberOverview } from "@/db/queries/climber-overview";
-import { buildSeason } from "@/lib/climber-season";
 import {
   TOUR_DEMO_ANALYTICS,
   TOUR_DEMO_CLIMBER,
@@ -33,6 +32,7 @@ const PROFILE_SECTIONS = ["Journal", "Sends", "Projects", "Analytics"];
 const SESSION_DATES = TOUR_DEMO_ENTRIES.filter((entry) => entry.kind === "session")
   .map((entry) => entry.date)
   .toSorted();
+const LAST_OUT = SESSION_DATES.at(-1) ?? SESSION_DATES[0];
 
 const DEMO_OVERVIEW: ClimberOverview = {
   sendCount: TOUR_DEMO_SENDS.length,
@@ -46,7 +46,10 @@ const DEMO_OVERVIEW: ClimberOverview = {
   ],
   firstYear: Number(SESSION_DATES[0].slice(0, 4)),
   daysOut: TOUR_DEMO_ANALYTICS.daysOut,
-  season: buildSeason(SESSION_DATES, SESSION_DATES.at(-1) ?? SESSION_DATES[0]),
+  lastOut: LAST_OUT,
+  daysThisMonth: new Set(SESSION_DATES.filter((date) => date.startsWith(LAST_OUT.slice(0, 7))))
+    .size,
+  month: LAST_OUT.slice(0, 7),
 };
 
 /** A visual reference to the app's entry point, without a demo action. */

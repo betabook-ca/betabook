@@ -17,6 +17,7 @@ const meta = {
   args: {
     name: "Alex Morgan",
     overview: STORY_CLIMBER_OVERVIEW,
+    analyticsHref: "/users/sample/analytics",
     actions: (
       <>
         <LogEntryButton />

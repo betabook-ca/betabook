@@ -2,7 +2,6 @@ import { sql } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { journalVisibleSql } from "@/db/queries/content-access";
-import { buildSeason, seasonRange, type SeasonWeek } from "@/lib/climber-season";
 import { formatGrade, type ClimbType } from "@/lib/grades";
 
 export type ClimberOverview = {
@@ -11,9 +10,12 @@ export type ClimberOverview = {
   /** Graded disciplines only, most-sent first. */
   hardest: { type: ClimbType; grade: string; sendCount: number }[];
   firstYear: number | null;
-  /** Null when the viewer can't read the journal; the season then counts sending days. */
+  /** Null when the viewer can't read the journal; recency then counts sending days. */
   daysOut: number | null;
-  season: SeasonWeek[];
+  lastOut: string | null;
+  daysThisMonth: number;
+  /** "YYYY-MM" that `daysThisMonth` counts. */
+  month: string;
 };
 
 type Totals = {
@@ -34,11 +36,11 @@ export async function getClimberOverview(
   viewerId: string,
   today: string,
 ): Promise<ClimberOverview> {
-  const { from, to } = seasonRange(today);
+  const month = today.slice(0, 7);
   // Each statement reads the audience itself, so a stale page can't widen it.
   const access = sql`WITH access AS (SELECT ${journalVisibleSql(viewerId, sql`${userId}`)} AS visible)`;
 
-  const [totals, disciplines, days] = await Promise.all([
+  const [totals, disciplines, recency] = await Promise.all([
     db.get<Totals>(sql`
       ${access}
       SELECT
@@ -61,15 +63,16 @@ export async function getClimberOverview(
       GROUP BY climbs.type
       ORDER BY sendCount DESC, climbs.type
     `),
-    db.all<{ day: string }>(sql`
+    db.get<{ lastOut: string | null; daysThisMonth: number }>(sql`
       ${access}
-      SELECT entry_date AS day FROM journal_entries, access
-      WHERE access.visible AND user_id = ${userId} AND kind = 'session'
-        AND entry_date BETWEEN ${from} AND ${to}
-      UNION
-      SELECT date_sent FROM sends, access
-      WHERE NOT access.visible AND user_id = ${userId}
-        AND date_sent BETWEEN ${from} AND ${to}
+      SELECT MAX(day) AS lastOut, COUNT(*) FILTER (WHERE day LIKE ${`${month}-%`}) AS daysThisMonth
+      FROM (
+        SELECT entry_date AS day FROM journal_entries, access
+        WHERE access.visible AND user_id = ${userId} AND kind = 'session'
+        UNION
+        SELECT date_sent FROM sends, access
+        WHERE NOT access.visible AND user_id = ${userId} AND date_sent IS NOT NULL
+      )
     `),
   ]);
 
@@ -86,9 +89,8 @@ export async function getClimberOverview(
     ),
     firstYear: firstDate ? Number(firstDate.slice(0, 4)) : null,
     daysOut: journalVisible ? (totals?.daysOut ?? 0) : null,
-    season: buildSeason(
-      days.map((row) => row.day),
-      today,
-    ),
+    lastOut: recency?.lastOut ?? null,
+    daysThisMonth: recency?.daysThisMonth ?? 0,
+    month,
   };
 }

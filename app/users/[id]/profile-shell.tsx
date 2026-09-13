@@ -54,6 +54,7 @@ export async function ProfileHeader({ user, viewerId }: { user: ProfileUser; vie
           name={user.name}
           image={user.image}
           overview={overview}
+          analyticsHref={`/users/${user.id}/analytics`}
           actions={
             isOwner ? (
               <>

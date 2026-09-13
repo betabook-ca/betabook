@@ -291,17 +291,3 @@
   stroke-dasharray: 1;
   animation: line-draw 0.8s ease-out;
 }
-
-/* Season ridge reveal (season-ridge), used behind motion-safe:. */
-@keyframes ridge-reveal {
-  from {
-    clip-path: inset(0 100% 0 0);
-  }
-  to {
-    clip-path: inset(0 0 0 0);
-  }
-}
-
-@utility animate-ridge-reveal {
-  animation: ridge-reveal 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
