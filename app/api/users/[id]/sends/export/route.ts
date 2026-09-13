@@ -2,17 +2,16 @@ import { NextResponse } from "next/server";
 
 import { getDb } from "@/db/client";
 import { getSendsForUserExportPage, type UserSendsExportCursor } from "@/db/queries";
+import { withApiSession } from "@/lib/api-session";
 import { parseId } from "@/lib/parse-id";
-import { getSession } from "@/lib/session";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
 /** Owner-only, keyset-paginated source for the full CSV export. Keeping this
- * separate from the public profile list lets normal UI requests retain their
+ * separate from the member-visible profile list lets normal UI requests retain their
  * defensive OFFSET cap without truncating or replaying a large export. */
-export async function GET(request: Request, { params }: RouteParams) {
-  const [{ id: userId }, session] = await Promise.all([params, getSession()]);
-  if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+export const GET = withApiSession(async (session, request: Request, { params }: RouteParams) => {
+  const { id: userId } = await params;
   if (session.user.id !== userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -34,4 +33,4 @@ export async function GET(request: Request, { params }: RouteParams) {
 
   const db = await getDb();
   return NextResponse.json(await getSendsForUserExportPage(db, userId, cursor));
-}
+});

@@ -1,14 +1,6 @@
-import type { AreaWithAncestorPath, ClimbWithAreaName } from "@/db/queries";
-import { TYPEAHEAD_LIMIT } from "@/hooks/use-typeahead";
-
-export type RouteSuggestion = {
-  id: number;
-  name: string;
-  type: ClimbWithAreaName["type"];
-  /** Null for an ungraded route — `formatGrade` renders the app-wide "—". */
-  grade: number | null;
-  areaName: string;
-};
+import { apiFetch } from "@/lib/api-client";
+import type { PublicAreaResult } from "@/lib/public-catalog";
+import { DEFAULT_SUGGESTION_LIMIT } from "@/lib/url-params";
 
 export type AreaSuggestion = {
   id: number;
@@ -27,43 +19,16 @@ export function toBreadcrumbPath(ancestorPath: string | null): string | null {
   return ancestorPath.split(" > ").join(" / ") || null;
 }
 
-/** Suggestion lookups hit the same endpoints the result lists page through,
- * with `limit` set — which caps the rows *and* drops the send-stat and
- * breadcrumb joins those lists need and a popover never reads (see the route
- * handlers). Failures propagate; `useTypeahead` is what swallows them. */
-export async function fetchRouteSuggestions(
-  query: string,
-  signal: AbortSignal,
-  { areaId, limit = TYPEAHEAD_LIMIT }: { areaId?: number; limit?: number } = {},
-): Promise<RouteSuggestion[]> {
-  const params = new URLSearchParams({ name: query, limit: String(limit) });
-  // Inside an area, suggestions come from that area's subtree — the routes
-  // the surrounding page is already about — rather than the whole database.
-  const path = areaId != null ? `/api/areas/${areaId}/climbs` : "/api/search/climbs";
-
-  const res = await fetch(`${path}?${params.toString()}`, { signal });
-  if (!res.ok) throw new Error(`Route suggestions failed: ${res.status}`);
-  const data: { climbs: ClimbWithAreaName[] } = await res.json();
-
-  return data.climbs.map((climb) => ({
-    id: climb.id,
-    name: climb.name,
-    type: climb.type,
-    grade: climb.grade,
-    areaName: climb.areaName,
-  }));
-}
-
 export async function fetchAreaSuggestions(
   query: string,
   signal: AbortSignal,
-  { limit = TYPEAHEAD_LIMIT }: { limit?: number } = {},
+  { limit = DEFAULT_SUGGESTION_LIMIT }: { limit?: number } = {},
 ): Promise<AreaSuggestion[]> {
   const params = new URLSearchParams({ name: query, limit: String(limit) });
 
-  const res = await fetch(`/api/search/areas?${params.toString()}`, { signal });
+  const res = await apiFetch(`/api/public/search/areas?${params.toString()}`, { signal });
   if (!res.ok) throw new Error(`Area suggestions failed: ${res.status}`);
-  const data: { areas: AreaWithAncestorPath[] } = await res.json();
+  const data: { areas: PublicAreaResult[] } = await res.json();
 
   return data.areas.map((area) => ({
     id: area.id,

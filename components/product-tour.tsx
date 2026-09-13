@@ -8,6 +8,7 @@ import { saveProductTourStatus } from "@/actions";
 import { PRODUCT_TOUR_QUICK_ACTIONS } from "@/components/product-tours/quick-actions";
 import { cardClass } from "@/components/ui/card";
 import { Eyebrow } from "@/components/ui/eyebrow";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { SectionHeading } from "@/components/ui/typography";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import {
@@ -99,16 +100,12 @@ function TourInvitation({
               <Button onPress={open} isDisabled={pending}>
                 {copy.action}
               </Button>
-              {QuickAction && <QuickAction />}
+              {navigation.mode === "full" && QuickAction && <QuickAction />}
               <Button variant="ghost" onPress={dismiss} isDisabled={pending}>
                 {pending ? "Dismissing…" : "Dismiss"}
               </Button>
             </div>
-            {error && (
-              <p role="alert" className="text-sm text-danger">
-                {error} Try dismissing again.
-              </p>
-            )}
+            {error && <InlineAlert>{error} Try dismissing again.</InlineAlert>}
           </section>
         ))}
     </>

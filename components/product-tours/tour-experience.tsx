@@ -10,6 +10,8 @@ import { TourOverlay } from "@/components/product-tours/tour-overlay";
 import type { ProductTourPage } from "@/components/product-tours/types";
 import { useTourFrame } from "@/components/product-tours/use-tour-frame";
 import { AppLink } from "@/components/ui/app-link";
+import { cardClass } from "@/components/ui/card";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { suspendMobileHelper } from "@/lib/mobile-helper-suspension";
 import type { ProductTourDefinition } from "@/lib/product-tour";
@@ -119,7 +121,9 @@ export function TourExperience({
   if (index < 0) return children;
   return (
     <div ref={frame} style={{ height }} className="flex h-[80dvh] flex-col gap-4">
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface-secondary px-4 py-3 text-sm">
+      <div
+        className={`flex shrink-0 flex-wrap items-center justify-between gap-3 text-sm ${cardClass("sm")}`}
+      >
         <span className="font-medium">
           Demo account · {updates ? "What's new" : "Product tour"}
         </span>
@@ -128,7 +132,7 @@ export function TourExperience({
         </AppLink>
       </div>
       {failed ? (
-        <div role="alert" className="flex flex-col items-start gap-3">
+        <InlineAlert>
           <p>Couldn't load the tour.</p>
           <Button
             onPress={() => {
@@ -138,7 +142,7 @@ export function TourExperience({
           >
             Try again
           </Button>
-        </div>
+        </InlineAlert>
       ) : Page ? (
         <div className={styles.layout}>
           {/* The scroll region needs a tab stop so keyboard users can scroll the demo. */}
@@ -148,11 +152,12 @@ export function TourExperience({
             role="region"
             aria-label="Demo profile"
             tabIndex={0}
-            className="min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain rounded-lg p-2 focus-visible:status-focused"
+            className="min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain rounded-panel p-2 focus-visible:status-focused"
           >
             <Page
               key={steps[index].section}
               section={steps[index].section}
+              mode={navigation.mode}
               href={href}
               steps={steps}
             />

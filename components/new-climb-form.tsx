@@ -9,7 +9,12 @@ import { climbHref } from "@/lib/slug";
 export function NewClimbForm({
   initial,
 }: {
-  initial?: { name?: string; type?: ClimbType; areaName?: string };
+  initial?: {
+    name?: string;
+    type?: ClimbType;
+    areaName?: string;
+    area?: { id: number; name: string; ancestorPath: string | null };
+  };
 }) {
   const router = useRouter();
 

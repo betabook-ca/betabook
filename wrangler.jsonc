@@ -21,7 +21,7 @@
     {
       "binding": "DB",
       "database_name": "betabook-db",
-      "database_id": "15af4a85-e36f-4cb6-a310-a0b2cdfe126e",
+      "database_id": "696bc9d0-52b8-4f50-8f4a-41e534000313",
       "migrations_dir": "drizzle/migrations",
     },
   ],
@@ -41,12 +41,26 @@
     {
       "name": "CONTACT_RATE_LIMITER",
       "namespace_id": "1001",
-      "simple": { "limit": 3, "period": 60 },
+      "simple": {
+        "limit": 3,
+        "period": 60,
+      },
     },
     {
       "name": "JOURNAL_RATE_LIMITER",
       "namespace_id": "1002",
-      "simple": { "limit": 20, "period": 60 },
+      "simple": {
+        "limit": 20,
+        "period": 60,
+      },
+    },
+    {
+      "name": "FRIENDSHIP_RATE_LIMITER",
+      "namespace_id": "1003",
+      "simple": {
+        "limit": 30,
+        "period": 60,
+      },
     },
   ],
   "observability": {

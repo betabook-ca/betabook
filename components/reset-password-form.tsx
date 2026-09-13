@@ -5,6 +5,8 @@ import { useState } from "react";
 
 import { AppLink } from "@/components/ui/app-link";
 import { FORM_CARD_CLASS } from "@/components/ui/card";
+import { FieldFeedback } from "@/components/ui/field-support";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { PageTitle } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 
@@ -41,28 +43,34 @@ export function ResetPasswordForm({ token }: { token: string }) {
   if (done) {
     return (
       <div className={FORM_CARD_CLASS}>
-        <PageTitle className="text-2xl">Password reset</PageTitle>
-        <p className="text-sm text-muted">
+        <PageTitle>Password reset</PageTitle>
+        <InlineAlert status="success">
           Your password has been reset. <AppLink href="/sign-in">Sign in</AppLink> with your new
           password.
-        </p>
+        </InlineAlert>
       </div>
     );
   }
 
   return (
     <form onSubmit={handleSubmit} className={FORM_CARD_CLASS}>
-      <PageTitle className="text-2xl">Reset password</PageTitle>
+      <PageTitle>Reset password</PageTitle>
       <TextField value={newPassword} onChange={setNewPassword} type="password" isRequired>
         <Label>New password</Label>
         <Input />
       </TextField>
-      <TextField value={confirmPassword} onChange={setConfirmPassword} type="password" isRequired>
+      <TextField
+        value={confirmPassword}
+        onChange={setConfirmPassword}
+        type="password"
+        isRequired
+        isInvalid={passwordMismatch}
+      >
         <Label>Confirm new password</Label>
         <Input />
+        <FieldFeedback error={passwordMismatch ? "Passwords do not match." : null} />
       </TextField>
-      {passwordMismatch && <p className="text-sm text-danger">Passwords do not match.</p>}
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <InlineAlert>{error}</InlineAlert>}
       <Button type="submit" fullWidth isDisabled={pending}>
         Reset password
       </Button>

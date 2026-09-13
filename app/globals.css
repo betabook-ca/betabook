@@ -45,6 +45,9 @@
        lands under 2.5:1, so accent flips HeroUI's usual light-on-color. */
     --accent: var(--palette-primary);
     --accent-foreground: var(--palette-ink);
+    /* Secondary buttons use this text on a soft green fill. HeroUI's
+       default blend is too light against the paper theme's soft fill. */
+    --accent-soft-foreground: color-mix(in oklab, var(--palette-primary) 55%, var(--palette-ink));
     --success: var(--palette-primary);
     --success-foreground: var(--palette-ink);
     /* Deepened toward ink: raw #A4585A is ~4.1:1 as text on paper and
@@ -60,6 +63,11 @@
        it darkened; the focus ring is thick enough to wear it straight. */
     --focus: var(--palette-support);
     --link: color-mix(in oklab, var(--palette-support) 78%, var(--palette-ink));
+    --navigation-active-background: color-mix(
+      in oklab,
+      var(--palette-support) 18%,
+      var(--background)
+    );
 
     /* Discipline chip colors (boulder/sport/trad). HeroUI's built-in chip
        colors are spoken for — success/warning are reserved for ascent-style
@@ -132,6 +140,7 @@
 
     --accent: var(--palette-primary);
     --accent-foreground: var(--palette-ink);
+    --accent-soft-foreground: color-mix(in oklab, var(--palette-primary) 70%, var(--palette-paper));
     --success: var(--palette-primary);
     --success-foreground: var(--palette-ink);
     /* Lightened toward paper: raw #A4585A reads ~3.6:1 as error text on the
@@ -144,6 +153,11 @@
        light theme leans it toward ink. */
     --focus: color-mix(in oklab, var(--palette-support) 75%, var(--palette-paper));
     --link: color-mix(in oklab, var(--palette-support) 70%, var(--palette-paper));
+    --navigation-active-background: color-mix(
+      in oklab,
+      var(--palette-support) 30%,
+      var(--surface-secondary)
+    );
 
     /* Discipline chips: translucent tint + a pastel of the same palette hue
        (same recipe as HeroUI's dark soft chip variants). */
@@ -172,6 +186,11 @@
   }
 }
 
+/* Cards, bounded panels, and their loading placeholders share one geometry. */
+@theme {
+  --radius-panel: 0.75rem;
+}
+
 @theme inline {
   --font-sans: var(--font-geist-sans);
   /* The guidebook display voice — Barlow Condensed (loaded in
@@ -182,6 +201,8 @@
 
   /* Raw palette as utilities (bg-palette-primary, text-palette-support, …)
      for the rare spot that wants a fixed brand color regardless of theme. */
+  --color-navigation-active: var(--navigation-active-background);
+
   --color-palette-ink: var(--palette-ink);
   --color-palette-primary: var(--palette-primary);
   --color-palette-support: var(--palette-support);
@@ -192,6 +213,13 @@
 @layer base {
   html {
     @apply font-sans;
+  }
+}
+
+/* Floating panels clear the phone tab bar (app-tab-bar.tsx) while it shows. */
+@media (width < 48rem) {
+  :root:has([data-app-tab-bar]) {
+    --app-tab-bar-height: calc(3.5rem + env(safe-area-inset-bottom));
   }
 }
 

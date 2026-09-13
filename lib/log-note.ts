@@ -1,1 +1,1 @@
-export const MAX_LOG_NOTE_LENGTH = 1000;
+export const MAX_LOG_NOTE_LENGTH = 2000;

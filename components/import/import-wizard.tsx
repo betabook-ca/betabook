@@ -1,8 +1,6 @@
 "use client";
 
 import { Button, Checkbox, Label, TextField } from "@heroui/react";
-import { clsx } from "clsx";
-import { Upload } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 
 import {
@@ -15,13 +13,16 @@ import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { Eyebrow } from "@/components/ui/eyebrow";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { OptionSelect, type SelectOption } from "@/components/ui/option-select";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { SegmentedButtons } from "@/components/ui/segmented-buttons";
+import { SupportText } from "@/components/ui/support-text";
 import { PageTitle } from "@/components/ui/typography";
 import type { ClimbCandidate } from "@/db/queries";
 import { downloadCsv } from "@/lib/download";
 import { formatCount } from "@/lib/format";
+import { findImportDateClusters } from "@/lib/import-date-review";
 import { runImportBatches, type ImportProgress } from "@/lib/import-execution";
 import {
   areaLookupsNeeded,
@@ -74,12 +75,14 @@ import {
   type ParsedCsv,
 } from "@/lib/sends-import";
 
+import { ImportDateWarning } from "./import-date-warning";
 import {
   ImportMatchStep,
   defaultFilter,
   type Filter,
   type LookupStatus,
 } from "./import-match-step";
+import { ImportSourceStep } from "./import-source-step";
 import {
   ASCENT_STYLE_OPTIONS,
   CLIMB_TYPE_OPTIONS,
@@ -94,7 +97,7 @@ const COLUMN_FIELDS: { key: FieldKey; label: string; hint: string }[] = [
   {
     key: "ascentStyle",
     label: "Ascent style",
-    hint: "Redpoint, flash, or onsight. Values are mapped on the next step.",
+    hint: "Redpoint, flash, or onsight. Values are mapped on the next step; boulder onsights are saved as flashes.",
   },
   { key: "date", label: "Date sent", hint: "Any common date format." },
   {
@@ -152,7 +155,7 @@ const GRADE_SCALE_OPTIONS: readonly SelectOption<GradeScale>[] = [
 
 const SOURCE_NOTES: Record<Exclude<ImportSource, "unknown">, string> = {
   betabook: "Every column maps back to the field it was exported from.",
-  kaya: "KAYA has no area column. Its “location” is the boulder and “country” the country, so both are used as hints when a climb name matches in more than one place.",
+  kaya: "KAYA location, region, and country columns are used as hints when a climb name matches in more than one place. Routes can match sport or trad climbs.",
   sendage: "“Country” is used as a hint when a climb name matches in more than one place.",
   mountainproject:
     "“Rating” is the route's grade and “Your Rating” yours. “Location” is the full area path, used as hints from the wall up. Ascent style comes from “Lead Style”, or from “Style” where that is blank.",
@@ -195,12 +198,11 @@ function toImportSendRow(resolved: ResolvedRow, climb: ClimbCandidate): ImportSe
 
 // oxlint-disable-next-line complexity -- multi-step wizard state machine; each step adds a branch
 export function ImportWizard({ profileHref }: { profileHref: string }) {
+  const [directSource, setDirectSource] = useState<string | null>(null);
   const [step, setStep] = useState<Step>("upload");
   const [error, setError] = useState<string | null>(null);
   const [reading, setReading] = useState(false);
-  const [dragging, setDragging] = useState(false);
   const [pending, startTransition] = useTransition();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [parsedCsv, setParsedCsv] = useState<ParsedCsv | null>(null);
   const [source, setSource] = useState<ImportSource>("unknown");
@@ -213,11 +215,29 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
   const [gradeScale, setGradeScale] = useState<GradeScale>("native");
   const [onConflict, setOnConflict] = useState<"skip" | "overwrite">("skip");
 
-  const [normalized, setNormalized] = useState<{
+  const [baseNormalized, setNormalized] = useState<{
     valid: NormalizedImportRow[];
     invalid: InvalidImportRow[];
     warnings: CoercionWarning[];
   } | null>(null);
+
+  const [undatedDates, setUndatedDates] = useState<ReadonlySet<string>>(new Set());
+  const dateClusters = useMemo(
+    () => findImportDateClusters(baseNormalized?.valid ?? []),
+    [baseNormalized],
+  );
+  // Date review changes only dates. Preserve row identities and manual climb
+  // choices, and avoid repeating the name/area lookup when a checkbox changes.
+  const normalized = useMemo(
+    () =>
+      baseNormalized && {
+        ...baseNormalized,
+        valid: baseNormalized.valid.map((row) =>
+          row.dateSent && undatedDates.has(row.dateSent) ? { ...row, dateSent: null } : row,
+        ),
+      },
+    [baseNormalized, undatedDates],
+  );
 
   const [candidateIndex, setCandidateIndex] = useState<CandidateIndex | null>(null);
   const [lookup, setLookup] = useState<LookupStatus>({ phase: "done" });
@@ -342,6 +362,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
   }, [importResult, normalized, resolved]);
 
   async function handleFile(file: File) {
+    if (reading) return;
     setError(null);
     if (file.size > MAX_IMPORT_FILE_BYTES) {
       setError("That CSV is larger than 10 MB. Split it into smaller files and try again.");
@@ -363,30 +384,8 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
         return;
       }
 
-      const detected = detectImportSource(parsed.headers);
-      const withDerived = deriveSourceColumns(parsed, detected);
-      const mapping = guessColumnMapping([...withDerived.headers, ...withDerived.derived]);
-      // KAYA placeholder cleanup defaults on; other sources require the user to choose it.
-      const dropPlaceholders = detected === "kaya";
-      setParsedCsv(withDerived);
-      setSource(detected);
-      setColumnMapping(mapping);
-      setDropPlaceholderDates(dropPlaceholders);
-
-      // Known formats with required columns mapped can skip ahead.
-      // Column and value mappings remain editable from the step list.
-      if (detected !== "unknown" && missingRequiredColumns(mapping).length === 0) {
-        const values = guessValueMappings(withDerived, mapping);
-        setAscentStyleMapping(values.ascentStyleMapping);
-        setClimbTypeMapping(values.climbTypeMapping);
-        setGradeFeelMapping(values.gradeFeelMapping);
-        setDateFormat(values.dateFormat);
-        setGradeScale(values.gradeScale);
-        setAutoMapped(true);
-        beginMatching(withDerived, mapping, values, dropPlaceholders);
-      } else {
-        setStep("columns");
-      }
+      setDirectSource(null);
+      acceptParsedRows(parsed);
     } catch {
       setError("Couldn't read that file. Re-save it as a plain CSV and try again.");
     } finally {
@@ -394,19 +393,31 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
     }
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const input = e.target;
-    const file = input.files?.[0];
-    // Clear so selecting the same file again fires change.
-    input.value = "";
-    if (file) void handleFile(file);
-  }
+  function acceptParsedRows(parsed: ParsedCsv) {
+    const detected = detectImportSource(parsed.headers);
+    const withDerived = deriveSourceColumns(parsed, detected);
+    const mapping = guessColumnMapping([...withDerived.headers, ...withDerived.derived]);
+    // KAYA placeholder cleanup defaults on; other sources require the user to choose it.
+    const dropPlaceholders = detected === "kaya";
+    setParsedCsv(withDerived);
+    setSource(detected);
+    setColumnMapping(mapping);
+    setDropPlaceholderDates(dropPlaceholders);
 
-  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    setDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) void handleFile(file);
+    // Known formats with required columns mapped can skip ahead.
+    // Column and value mappings remain editable from the step list.
+    if (detected !== "unknown" && missingRequiredColumns(mapping).length === 0) {
+      const values = guessValueMappings(withDerived, mapping);
+      setAscentStyleMapping(values.ascentStyleMapping);
+      setClimbTypeMapping(values.climbTypeMapping);
+      setGradeFeelMapping(values.gradeFeelMapping);
+      setDateFormat(values.dateFormat);
+      setGradeScale(values.gradeScale);
+      setAutoMapped(true);
+      beginMatching(withDerived, mapping, values, dropPlaceholders);
+    } else {
+      setStep("columns");
+    }
   }
 
   function guessValueMappings(parsed: ParsedCsv, mapping: ColumnMapping) {
@@ -464,6 +475,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
           : [],
       },
     );
+    setUndatedDates(new Set());
     setNormalized(result);
     // A remapped file invalidates choices tied to the old normalized rows.
     setManual(new Map());
@@ -611,6 +623,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
     setStep("upload");
     setParsedCsv(null);
     setSource("unknown");
+    setDirectSource(null);
     setColumnMapping(null);
     setAscentStyleMapping({});
     setClimbTypeMapping({});
@@ -620,6 +633,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
     setGradeScale("native");
     setOnConflict("skip");
     setNormalized(null);
+    setUndatedDates(new Set());
     setAutoMapped(false);
     setCandidateIndex(null);
     setLookup({ phase: "done" });
@@ -668,58 +682,25 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
   return (
     <div className={`flex flex-col gap-6 ${cardClass("md")}`}>
       <div className="flex flex-col gap-3">
-        <PageTitle className="text-2xl">Import sends</PageTitle>
+        <PageTitle>Import sends</PageTitle>
         <WizardSteps step={step} onJump={pending || step === "result" ? null : goBack} />
       </div>
 
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <InlineAlert>{error}</InlineAlert>}
 
       {step === "upload" && (
-        <div className="flex flex-col gap-4">
-          <p className="text-sm text-muted">
-            Upload a CSV export of your climbing log. Mountain Project, KAYA, Sendage, and betabook
-            exports are recognized and mapped automatically. Any CSV with a climb name and an ascent
-            style column works.
-          </p>
-          {/* The file input stays in the DOM but hidden: it's the only way to
-              open the picker, and the drop zone drives it so the styling
-              stays consistent with the rest of the wizard. */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv,text/csv"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-          <div
-            role="button"
-            tabIndex={0}
-            aria-label="Choose a CSV file"
-            onClick={() => fileInputRef.current?.click()}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                fileInputRef.current?.click();
-              }
-            }}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragging(true);
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={handleDrop}
-            className={clsx(
-              "flex cursor-pointer flex-col items-center gap-3 rounded-lg border border-dashed px-6 py-10 text-center transition-colors focus-visible:status-focused",
-              dragging ? "border-accent bg-surface" : "border-border hover:bg-surface/60",
-            )}
-          >
-            <Upload className="size-6 text-muted" aria-hidden />
-            <p className="text-sm">
-              {reading ? "Reading file…" : "Drop a CSV here, or choose a file"}
-            </p>
-            <p className="text-xs text-muted">Up to 10 MB, 50,000 rows.</p>
-          </div>
-        </div>
+        <ImportSourceStep
+          key={profileHref}
+          reading={reading}
+          onFile={(file) => {
+            void handleFile(file);
+          }}
+          onLoaded={(parsed, source, username) => {
+            setError(null);
+            setDirectSource(`${source === "kaya" ? "KAYA" : "Sendage"} profile @${username}`);
+            acceptParsedRows(parsed);
+          }}
+        />
       )}
 
       {step === "columns" && columnMapping && parsedCsv && (
@@ -729,19 +710,25 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
               Which column holds each field? {formatCount(parsedCsv.rows.length, "row")} found.
             </p>
             {source !== "unknown" && (
-              <div className="rounded-lg border border-border bg-surface px-4 py-3">
-                <p className="text-sm font-medium">Looks like a {IMPORT_SOURCE_LABELS[source]}</p>
+              <div className={cardClass("sm", "inset")}>
+                <p className="text-sm font-medium">
+                  {directSource ?? `Looks like a ${IMPORT_SOURCE_LABELS[source]}`}
+                </p>
                 <p className="mt-1 text-xs text-muted">
                   Columns were mapped automatically. Check them below. {SOURCE_NOTES[source]}
                 </p>
               </div>
             )}
             {parsedCsv.warnings.length > 0 && (
-              <ul className="flex flex-col gap-1 text-xs text-warning">
-                {parsedCsv.warnings.map((warning) => (
-                  <li key={warning}>{warning}</li>
-                ))}
-              </ul>
+              <InlineAlert status="warning">
+                <ul className="flex flex-col gap-1">
+                  {parsedCsv.warnings.map((warning) => (
+                    <li key={warning}>
+                      <SupportText subject={directSource ?? "Import"}>{warning}</SupportText>
+                    </li>
+                  ))}
+                </ul>
+              </InlineAlert>
             )}
           </div>
 
@@ -924,13 +911,22 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
         </div>
       )}
 
+      {(step === "match" || step === "review") && (
+        <ImportDateWarning
+          clusters={dateClusters}
+          undatedDates={undatedDates}
+          onChange={setUndatedDates}
+          disabled={pending}
+        />
+      )}
+
       {step === "match" && normalized && (
         <div className="flex flex-col gap-6">
           {autoMapped && source !== "unknown" && (
             <div className="flex flex-col gap-2">
               <p className="text-sm text-muted">
-                Recognized as a {IMPORT_SOURCE_LABELS[source]}: columns and values were mapped
-                automatically
+                {directSource ?? `Recognized as a ${IMPORT_SOURCE_LABELS[source]}`}: columns and
+                values were mapped automatically
                 {gradeScale === "converted" && ", with grades read as Font / French"}.{" "}
                 <button
                   type="button"
@@ -942,11 +938,15 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
               </p>
               {/* The columns step would have shown these; this path skipped it. */}
               {parsedCsv && parsedCsv.warnings.length > 0 && (
-                <ul className="flex flex-col gap-1 text-xs text-warning">
-                  {parsedCsv.warnings.map((warning) => (
-                    <li key={warning}>{warning}</li>
-                  ))}
-                </ul>
+                <InlineAlert status="warning">
+                  <ul className="flex flex-col gap-1">
+                    {parsedCsv.warnings.map((warning) => (
+                      <li key={warning}>
+                        <SupportText subject={directSource ?? "Import"}>{warning}</SupportText>
+                      </li>
+                    ))}
+                  </ul>
+                </InlineAlert>
               )}
             </div>
           )}
@@ -1043,15 +1043,17 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
           {normalized.warnings.length > 0 && (
             <div className="flex flex-col gap-1">
               <p className="text-sm">Some values will be adjusted during import:</p>
-              <ul className="flex flex-col gap-1 text-xs text-warning">
-                {normalized.warnings.map((warning) => (
-                  <li key={warning.field}>
-                    {warning.count} {warning.count === 1 ? "row" : "rows"}: {warning.message} (
-                    {warning.examples.join("; ")}
-                    {warning.count > warning.examples.length ? "; …" : ""})
-                  </li>
-                ))}
-              </ul>
+              <InlineAlert status="warning">
+                <ul className="flex flex-col gap-1">
+                  {normalized.warnings.map((warning) => (
+                    <li key={warning.field}>
+                      {warning.count} {warning.count === 1 ? "row" : "rows"}: {warning.message} (
+                      {warning.examples.join("; ")}
+                      {warning.count > warning.examples.length ? "; …" : ""})
+                    </li>
+                  ))}
+                </ul>
+              </InlineAlert>
             </div>
           )}
 
@@ -1060,17 +1062,21 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
               <p className="text-sm">
                 Importing… {progress.completed} / {progress.total} rows processed
               </p>
-              <ProgressBar value={progress.completed} max={progress.total} />
+              <ProgressBar
+                value={progress.completed}
+                max={progress.total}
+                label="Importing sends"
+              />
               <p className="text-xs text-muted">
                 {progress.imported} imported &middot;{" "}
                 {onConflict === "overwrite" && <>{progress.overwritten} overwritten &middot; </>}
                 {progress.alreadyLogged} already logged &middot; {progress.failed} failed
               </p>
               {progress.lastError && (
-                <p className="text-xs text-danger">
+                <InlineAlert>
                   {progress.failed} {progress.failed === 1 ? "row has" : "rows have"} failed so far.
                   Latest error: {progress.lastError}
-                </p>
+                </InlineAlert>
               )}
               <div>
                 <Button variant="ghost" onPress={handleCancel} isDisabled={cancelRequested}>
@@ -1090,10 +1096,10 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
                 />
               </TextField>
               {onConflict === "overwrite" ? (
-                <p className="text-sm text-danger">
-                  CSV values will replace your existing send data for any already-logged climbs.
-                  This cannot be undone.
-                </p>
+                <InlineAlert status="warning">
+                  Imported values will replace your existing send data for any already-logged
+                  climbs. This cannot be undone.
+                </InlineAlert>
               ) : (
                 <p className="text-sm text-muted">
                   Climbs you&apos;ve already logged are left untouched and counted as already
@@ -1117,9 +1123,9 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
       {step === "result" && importResult && (
         <div className="flex flex-col gap-6">
           {importResult.stopped && (
-            <p className="text-sm text-danger">
+            <InlineAlert>
               {importResult.stopped.message} Rows imported before it stopped were kept.
-            </p>
+            </InlineAlert>
           )}
 
           <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">

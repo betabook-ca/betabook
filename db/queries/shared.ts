@@ -1,5 +1,11 @@
 import { sql, type SQL } from "drizzle-orm";
 
+import {
+  DEFAULT_BOULDER_RANGE,
+  DEFAULT_SPORT_RANGE,
+  DEFAULT_TRAD_RANGE,
+  type DisciplineGradeFilter,
+} from "@/lib/filters/discipline-filter";
 import type { Discipline } from "@/lib/grades";
 
 export const PAGE_SIZE = 50;
@@ -29,4 +35,19 @@ export function disciplineGradeCondition(
   const [min, max] = range;
   if (min <= fullRange[0] && max >= fullRange[1]) return sql`climbs.type = ${type}`;
   return sql`(climbs.type = ${type} AND climbs.grade BETWEEN ${min} AND ${max})`;
+}
+
+/** One OR-able clause per checked discipline. */
+export function disciplineGradeConditions(filter: DisciplineGradeFilter): SQL[] {
+  const clauses: SQL[] = [];
+  if (filter.disciplines.includes("boulder") && filter.boulderRange) {
+    clauses.push(disciplineGradeCondition("boulder", filter.boulderRange, DEFAULT_BOULDER_RANGE));
+  }
+  if (filter.disciplines.includes("sport") && filter.sportRange) {
+    clauses.push(disciplineGradeCondition("sport", filter.sportRange, DEFAULT_SPORT_RANGE));
+  }
+  if (filter.disciplines.includes("trad") && filter.tradRange) {
+    clauses.push(disciplineGradeCondition("trad", filter.tradRange, DEFAULT_TRAD_RANGE));
+  }
+  return clauses;
 }

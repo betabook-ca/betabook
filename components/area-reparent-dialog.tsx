@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 
 import { requestAreaReparent } from "@/actions";
 import { AreaPicker, type PickedArea } from "@/components/area-picker";
+import { InlineAlert } from "@/components/ui/inline-alert";
 
 type AreaReparentDialogProps = {
   areaId: number;
@@ -67,7 +68,7 @@ export function AreaReparentDialog({ areaId, state }: AreaReparentDialogProps) {
             ) : (
               <div className="flex flex-col gap-3">
                 <AreaPicker selected={picked} onSelectedChange={setPicked} />
-                {error && <p className="text-sm text-danger">{error}</p>}
+                {error && <InlineAlert>{error}</InlineAlert>}
               </div>
             )}
           </AlertDialog.Body>

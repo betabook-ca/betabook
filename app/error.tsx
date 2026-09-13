@@ -4,6 +4,7 @@ import { Button } from "@heroui/react";
 import { useEffect } from "react";
 
 import { AppLink } from "@/components/ui/app-link";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { PageTitle } from "@/components/ui/typography";
 
 /** Root error boundary — renders inside the root layout (header/footer stay),
@@ -23,11 +24,11 @@ export default function ErrorPage({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <PageTitle className="text-2xl">Something went wrong</PageTitle>
-        <p className="text-muted">
+        <PageTitle>Something went wrong</PageTitle>
+        <InlineAlert>
           An unexpected error kept this page from loading. It may be temporary — trying again often
           fixes it.
-        </p>
+        </InlineAlert>
       </div>
       <div className="flex items-center gap-4">
         <Button onPress={() => retry()}>Try again</Button>

@@ -6,6 +6,8 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 
 import { useTourTarget } from "@/components/product-tours/use-tour-target";
 import { AppLink } from "@/components/ui/app-link";
+import { cardClass } from "@/components/ui/card";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { SESSION_EXPIRED_MESSAGE } from "@/lib/action-result";
 import type { ProductTourStepDefinition } from "@/lib/product-tour-navigation";
 import { signInUrl } from "@/lib/sign-in-redirect";
@@ -57,7 +59,7 @@ export function TourOverlay({
       {highlight && (
         <div
           aria-hidden
-          className="pointer-events-none fixed z-20 overflow-hidden rounded-lg"
+          className="pointer-events-none fixed z-20 overflow-hidden rounded-panel"
           style={{
             left: highlight.viewport.left,
             top: highlight.viewport.top,
@@ -79,7 +81,7 @@ export function TourOverlay({
       <div
         role="region"
         aria-label="Product tour"
-        className={`${styles.guide} ${showSteps ? styles.chooser : ""} flex min-h-40 shrink-0 flex-col gap-3 rounded-xl border border-foreground/30 bg-surface p-3 text-foreground`}
+        className={`${styles.guide} ${showSteps ? styles.chooser : ""} flex min-h-40 shrink-0 flex-col gap-3 text-foreground ${cardClass("sm", "bordered")}`}
       >
         <div className="flex shrink-0 items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
@@ -118,14 +120,14 @@ export function TourOverlay({
             </nav>
           )}
           {error && (
-            <div role="alert" className="mt-2 flex flex-col gap-2 text-sm">
-              <p className="text-danger">{error}</p>
+            <InlineAlert className="mt-2">
+              <p>{error}</p>
               {error === SESSION_EXPIRED_MESSAGE ? (
                 <AppLink href={signInUrl(href(step.id))}>Sign in to finish</AppLink>
               ) : (
                 <p>Try finishing again.</p>
               )}
-            </div>
+            </InlineAlert>
           )}
         </div>
         <div className="flex shrink-0 items-center justify-between gap-2">

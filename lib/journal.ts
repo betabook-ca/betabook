@@ -8,9 +8,6 @@ export { MAX_LOG_NOTE_LENGTH as MAX_JOURNAL_BODY_LENGTH } from "@/lib/log-note";
 const JOURNAL_KINDS = ["session", "training"] as const;
 export type JournalKind = (typeof JOURNAL_KINDS)[number];
 
-const JOURNAL_VISIBILITIES = ["private", "public"] as const;
-export type JournalVisibility = (typeof JOURNAL_VISIBILITIES)[number];
-
 export const MAX_JOURNAL_TAGS = 8;
 export const MAX_JOURNAL_TAG_LENGTH = 24;
 
@@ -71,13 +68,6 @@ function parseKind(value: unknown): JournalKind {
     throw new ActionError("Invalid entry kind");
   }
   return value as JournalKind;
-}
-
-export function parseJournalVisibility(value: unknown): JournalVisibility {
-  if (typeof value !== "string" || !(JOURNAL_VISIBILITIES as readonly string[]).includes(value)) {
-    throw new ActionError("Invalid journal visibility");
-  }
-  return value as JournalVisibility;
 }
 
 function parseClimbId(value: unknown): number | null {

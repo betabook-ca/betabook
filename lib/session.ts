@@ -1,16 +1,31 @@
 import { headers } from "next/headers";
 
-import { NotAdminError, NotSignedInError } from "@/lib/action-result";
+import { getDb } from "@/db/client";
+import { getTermsAcceptance } from "@/db/queries/terms";
+import { NotAdminError, NotSignedInError, TermsAcceptanceRequiredError } from "@/lib/action-result";
 import { initAuth } from "@/lib/auth";
+import { hasAcceptedCurrentTerms } from "@/lib/terms";
 
 export async function getSession() {
   const auth = await initAuth();
   return auth.api.getSession({ headers: await headers() });
 }
 
+/** Page loaders treat an unaccepted account as anonymous. The template prompts
+ * for agreement and refreshes the current page after acceptance. */
+export async function getMemberSession() {
+  const session = await getSession();
+  if (!session) return null;
+  const acceptance = await getTermsAcceptance(await getDb(), session.user.id);
+  return hasAcceptedCurrentTerms(acceptance) ? session : null;
+}
+
 export async function requireSession() {
   const session = await getSession();
   if (!session) throw new NotSignedInError();
+  const acceptance = await getTermsAcceptance(await getDb(), session.user.id);
+  if (!acceptance) throw new NotSignedInError();
+  if (!hasAcceptedCurrentTerms(acceptance)) throw new TermsAcceptanceRequiredError();
   return session;
 }
 

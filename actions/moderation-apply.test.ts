@@ -19,7 +19,7 @@ import {
   applyClimbMerge,
 } from "@/actions/moderation-apply";
 import { createDb, type Database } from "@/db/client";
-import { getChangeRequest } from "@/db/queries";
+import { getChangeRequest, getJournalForClimb } from "@/db/queries";
 import { adminAreaScopes, areas, changeRequests, climbs, journalEntries, sends } from "@/db/schema";
 import { formatGrade } from "@/lib/grades";
 import {
@@ -885,7 +885,11 @@ describe("applyClimbMerge", () => {
   });
 
   it("preserves an undated colliding send's comment as a journal note on the target", async () => {
-    await seedFixtureUser(db, { id: "merge-journal-c" });
+    await seedFixtureUser(db, {
+      id: "merge-journal-c",
+      journalVisibility: "public",
+      sendCommentVisibility: "private",
+    });
     await db.insert(climbs).values([
       { id: 820, areaId: 3, name: "Journal Merge Source C", type: "boulder", grade: 3 },
       { id: 821, areaId: 3, name: "Journal Merge Target C", type: "boulder", grade: 3 },
@@ -914,6 +918,9 @@ describe("applyClimbMerge", () => {
     expect(entries[0].climbId).toBe(821);
     expect(entries[0].sent).toBe(false);
     expect(entries[0].body).toBe("Beta worth keeping");
+    expect(await getJournalForClimb(db, "merge-journal-c", "reader", 821)).toMatchObject([
+      { id: entries[0].id, body: null, isSendComment: true },
+    ]);
   });
 
   it("moves session notes from users who never sent the source climb", async () => {

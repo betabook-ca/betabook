@@ -42,6 +42,7 @@ export function ImportClimbSearchDrawer({
               <ClimbPicker
                 key={target.rowIndex}
                 allowSentClimbs
+                showAreaLookup
                 initialName={target.climbName}
                 initialAreaName={target.areaName ?? ""}
                 onPick={(climb, context) => {

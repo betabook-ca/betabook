@@ -10,7 +10,7 @@ import { GradeWithTrend } from "@/components/climb-list";
 import { ClimbSendList } from "@/components/climb-send-list";
 import { ClimbJournalCard, LogEntryButton } from "@/components/journal";
 import { LoggedGradeHistogram } from "@/components/logged-grade-histogram";
-import { AppLink } from "@/components/ui/app-link";
+import { PublicClimbSendList } from "@/components/public-climb-send-list";
 import { cardClass } from "@/components/ui/card";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -30,24 +30,29 @@ import {
   getClimbSendSummary,
   getJournalForClimb,
   getSendsForClimb,
-  getUser,
   getUserSendForClimb,
 } from "@/db/queries";
+import {
+  getPublicArea,
+  getPublicAncestors,
+  getPublicClimb,
+  getPublicSendsForClimb,
+} from "@/db/queries/public-catalog";
+import { missingDescriptionMessage } from "@/lib/descriptions";
 import { buildLoggedGradeRows } from "@/lib/grade-histogram";
 import { formatGrade } from "@/lib/grades";
-import type { SearchParamsRecord } from "@/lib/search-params";
 import type { AscentStyle as AscentStyleType } from "@/lib/sends";
 import { climbDescription, climbJsonLd, climbTitle, locationTrail, pageMetadata } from "@/lib/seo";
-import { getSession } from "@/lib/session";
-import { signInUrl } from "@/lib/sign-in-redirect";
+import { getMemberSession as getSession } from "@/lib/session";
 import { areaHref, climbHref, slugify, withQuery } from "@/lib/slug";
+import type { UrlParamsRecord } from "@/lib/url-params";
 
 type ClimbPageProps = {
   // Optional catch-all: `slug` is undefined for /climbs/:id and a segment
   // array for /climbs/:id/anything. The id is authoritative; the slug is
   // decorative and normalized by the redirect below.
   params: Promise<{ id: string; slug?: string[] }>;
-  searchParams: Promise<SearchParamsRecord>;
+  searchParams: Promise<UrlParamsRecord>;
 };
 
 // Shared between generateMetadata and the page — see the identical pattern in
@@ -72,7 +77,7 @@ export async function generateMetadata({
   const climbId = Number(id);
   if (!Number.isInteger(climbId)) notFound();
 
-  const climb = await getClimbById(climbId);
+  const climb = await getPublicClimb(await getDb(), climbId);
   if (!climb) notFound();
 
   // Normalize any other spelling of the URL (no slug, stale slug, extra
@@ -84,9 +89,9 @@ export async function generateMetadata({
     permanentRedirect(withQuery(climbHref(climb.id, climb.name), search));
   }
 
-  const area = await getAreaById(climb.areaId);
+  const area = await getPublicArea(await getDb(), climb.areaId);
   if (!area) notFound();
-  const ancestors = await getAreaAncestors(area);
+  const ancestors = await getPublicAncestors(await getDb(), area);
 
   const trail = locationTrail([...ancestors.map((a) => a.name), area.name]);
   return pageMetadata({
@@ -108,7 +113,65 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
   // waterfalling: the db handle, the climb row, and the session don't depend
   // on each other; the sends queries need only the climb; and the ancestor
   // chain needs the area row's parentId.
-  const [db, climb, session] = await Promise.all([getDb(), getClimbById(climbId), getSession()]);
+  const session = await getSession();
+  const db = await getDb();
+  if (!session) {
+    const climb = await getPublicClimb(db, climbId);
+    if (!climb) notFound();
+    const path = climbHref(climb.id, climb.name);
+    if ((slug?.join("/") ?? "") !== slugify(climb.name)) permanentRedirect(withQuery(path, search));
+    const [area, sends] = await Promise.all([
+      getPublicArea(db, climb.areaId),
+      getPublicSendsForClimb(db, climb.id),
+    ]);
+    if (!area) notFound();
+    const ancestors = await getPublicAncestors(db, area);
+    const trail = locationTrail([...ancestors.map((a) => a.name), area.name]);
+    return (
+      <div className="flex flex-col gap-6">
+        <JsonLd
+          data={climbJsonLd({
+            name: climb.name,
+            path,
+            description: climbDescription(climb, trail),
+            crumbs: [
+              { name: "Home", path: "/" },
+              ...[...ancestors, area].map((a) => ({ name: a.name, path: areaHref(a.id, a.name) })),
+              { name: climb.name, path },
+            ],
+          })}
+        />
+        <AreaBreadcrumbs ancestors={[...ancestors, area]} current={climb} />
+        <div className="flex flex-col gap-1">
+          <PageTitle>{climb.name}</PageTitle>
+          <div className="mt-1 flex items-center gap-2">
+            <Grade size="md">{formatGrade(climb.type, climb.grade)}</Grade>
+            <DisciplineChip type={climb.type} />
+          </div>
+          <p className="mt-1 text-muted">{climb.description || missingDescriptionMessage()}</p>
+        </div>
+        <StatStrip
+          cards={[
+            {
+              key: "summary",
+              stats: [
+                {
+                  label: "Community rating",
+                  value: <RatingStars rating={climb.avgRating} precision="decimal" />,
+                },
+                { label: "Logged ascents", value: climb.sendCount },
+              ],
+            },
+          ]}
+        />
+        <div className="flex flex-col gap-3">
+          <SectionHeading>Sends</SectionHeading>
+          <PublicClimbSendList type={climb.type} sends={sends} next={withQuery(path, search)} />
+        </div>
+      </div>
+    );
+  }
+  const climb = await getClimbById(climbId);
   if (!climb) notFound();
 
   if ((slug?.join("/") ?? "") !== slugify(climb.name)) {
@@ -118,20 +181,17 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
   // Stats come from whole-history aggregates and the list from a paginated
   // query — a popular climb's full send history never ships in the RSC
   // payload (ClimbSendList "load more"-fetches the rest on demand).
-  const [area, journalOwner, userSend, sendsPage, summary] = await Promise.all([
+  const [area, userSend, sendsPage, summary] = await Promise.all([
     getAreaById(climb.areaId),
-    session ? getUser(db, session.user.id) : null,
-    session ? getUserSendForClimb(db, session.user.id, climb.id).then((s) => s ?? null) : null,
-    getSendsForClimb(db, climb.id, 0, undefined, session?.user.id ?? null),
+    getUserSendForClimb(db, session.user.id, climb.id),
+    getSendsForClimb(db, climb.id, 0, undefined, session.user.id),
     getClimbSendSummary(db, climb.id),
   ]);
   if (!area) notFound();
 
   const [ancestors, journalEntries] = await Promise.all([
     getAreaAncestors(area),
-    journalOwner && session
-      ? getJournalForClimb(db, journalOwner, session.user.id, climb.id)
-      : Promise.resolve([]),
+    getJournalForClimb(db, session.user.id, session.user.id, climb.id),
   ]);
 
   const trail = locationTrail([...ancestors.map((a) => a.name), area.name]);
@@ -169,17 +229,12 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
             <Grade size="md">{formatGrade(climb.type, climb.grade)}</Grade>
             <DisciplineChip type={climb.type} />
           </div>
-          <ClimbDescription climb={climb} isEditor={session != null} />
+          <ClimbDescription climb={climb} />
         </div>
-        {session && (
-          <div className="flex shrink-0 items-center gap-2">
-            <LogEntryButton
-              climb={climb}
-              sentClimbIds={userSend ? new Set([climb.id]) : undefined}
-            />
-            <ClimbActionsMenu climb={climb} send={userSend ?? undefined} />
-          </div>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          <LogEntryButton climb={climb} sentClimbIds={userSend ? new Set([climb.id]) : undefined} />
+          <ClimbActionsMenu climb={climb} send={userSend} />
+        </div>
       </div>
 
       <SidebarLayout
@@ -235,49 +290,20 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
                 <LoggedGradeHistogram type={climb.type} rows={loggedGradeRows} />
               </div>
             )}
-            {!session && (
-              // Quiet stand-in for Log Send: signed-out visitors otherwise
-              // never learn ascents can be logged. The continuation brings
-              // them straight back here after signing in.
-              <AppLink
-                href={signInUrl(climbHref(climb.id, climb.name))}
-                className="text-center text-sm text-muted"
-              >
-                Sign in to log this climb
-              </AppLink>
-            )}
           </>
         }
       >
         <div className="flex flex-col gap-6">
-          {session && (
-            <ClimbJournalCard
-              userId={session.user.id}
-              climbId={climb.id}
-              entries={journalEntries}
-            />
-          )}
+          <ClimbJournalCard userId={session.user.id} climbId={climb.id} entries={journalEntries} />
           <div className="flex flex-col gap-3">
             <SectionHeading>Sends</SectionHeading>
             <ClimbSendList
               climb={climb}
               initialSends={sendsPage.sends}
               initialHasMore={sendsPage.hasMore}
-              currentUserId={session?.user.id}
+              currentUserId={session.user.id}
               emptyState={
-                <EmptyState
-                  message="No sends yet — this line is waiting for its first ascent."
-                  cta={
-                    session ? undefined : (
-                      <AppLink
-                        href={signInUrl(climbHref(climb.id, climb.name))}
-                        className="text-sm"
-                      >
-                        Sign in to log the first send
-                      </AppLink>
-                    )
-                  }
-                />
+                <EmptyState message="No sends yet — this line is waiting for its first ascent." />
               }
             />
           </div>

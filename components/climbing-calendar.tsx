@@ -1,3 +1,5 @@
+import { ChartInspection } from "@/components/chart-inspection";
+import type { ChartClimbRow, ChartDetailGroup } from "@/lib/chart-details";
 import { formatCount } from "@/lib/format";
 import { formatDate } from "@/lib/format-date";
 
@@ -17,9 +19,8 @@ const MONTHS_SHORT = [
   "Dec",
 ] as const;
 
-// Empty day → faint foreground tint; active days step up through the scope
-// hue. Quartiles of the year's busiest day, so a heavy year doesn't wash
-// out a light one.
+// Levels are quarters of the year's busiest day, so a heavy year doesn't
+// wash out a light one.
 const LEVEL_OPACITY = [0, 0.35, 0.55, 0.75, 1] as const;
 
 export function ClimbingCalendar({
@@ -27,11 +28,13 @@ export function ClimbingCalendar({
   year,
   hue,
   unit,
+  activities,
 }: {
   countsByDay: Record<string, number>;
   year: number;
   hue: string;
   unit: "send" | "session";
+  activities?: ChartClimbRow[];
 }) {
   // oxlint-disable-next-line react/capitalized-calls -- Date.UTC is standard JavaScript built-in
   const jan1 = Date.UTC(year, 0, 1);
@@ -45,6 +48,18 @@ export function ClimbingCalendar({
     const iso = new Date(jan1 + i * MS_PER_DAY).toISOString().slice(0, 10);
     return { iso, count: countsByDay[iso] ?? 0 };
   });
+  const dayLabel = (day: { iso: string; count: number }) =>
+    `${day.count > 0 ? formatCount(day.count, unit) : `No ${unit}s`} · ${formatDate(day.iso)}`;
+  const details = Object.fromEntries(
+    days.map((day) => [
+      dayLabel(day),
+      {
+        title: formatDate(day.iso),
+        summary: formatCount(day.count, unit),
+        rows: activities?.filter((entry) => entry.date === day.iso) ?? [],
+      } satisfies ChartDetailGroup,
+    ]),
+  );
   const max = Math.max(...days.map((day) => day.count), 1);
   const level = (count: number) => (count === 0 ? 0 : Math.max(1, Math.ceil((count / max) * 4)));
 
@@ -60,24 +75,25 @@ export function ClimbingCalendar({
       <p className="sr-only">
         {formatCount(daysOut, "climbing day")} in {year}.
       </p>
-      {/* Fluid squares: columns stretch to fill the card on wide screens
-          (no dead space right of December) and bottom out at 10px, where
-          the whole grid scrolls sideways instead of shrinking further. */}
-      <div className="overflow-x-auto" aria-hidden>
-        <div className="flex min-w-[720px] flex-col gap-1.5 pb-1">
+      <ChartInspection key={year} label={`Daily ${unit}s in ${year}`} details={details}>
+        <div className="flex min-w-0 flex-col gap-1.5 pb-1">
           <div
-            className="ml-9 grid gap-[3px] text-[10px] whitespace-nowrap text-muted"
-            style={{ gridTemplateColumns: `repeat(${weeks}, minmax(10px, 1fr))` }}
+            className="ml-9 grid gap-px text-[10px] whitespace-nowrap text-muted sm:gap-[3px]"
+            style={{ gridTemplateColumns: `repeat(${weeks}, minmax(0, 1fr))` }}
           >
-            {monthLabels.map(({ label, column }) => (
-              <span key={label} style={{ gridColumnStart: column + 1 }}>
+            {monthLabels.map(({ label, column }, index) => (
+              <span
+                key={label}
+                className={index % 2 ? "hidden sm:block" : undefined}
+                style={{ gridColumnStart: column + 1 }}
+              >
                 {label}
               </span>
             ))}
           </div>
           <div className="flex gap-1.5">
             <div
-              className="grid w-[30px] shrink-0 gap-[3px] text-[10px] leading-none text-muted"
+              className="grid w-[30px] shrink-0 gap-px text-[10px] leading-none text-muted sm:gap-[3px]"
               style={{ gridTemplateRows: "repeat(7, 1fr)" }}
             >
               <span className="self-center" style={{ gridRowStart: 1 }}>
@@ -91,10 +107,10 @@ export function ClimbingCalendar({
               </span>
             </div>
             <div
-              className="grid min-w-0 flex-1 grid-flow-col gap-[3px]"
+              className="grid min-w-0 flex-1 grid-flow-col gap-px sm:gap-[3px]"
               style={{
                 gridTemplateRows: "repeat(7, auto)",
-                gridTemplateColumns: `repeat(${weeks}, minmax(10px, 1fr))`,
+                gridTemplateColumns: `repeat(${weeks}, minmax(0, 1fr))`,
               }}
             >
               {Array.from({ length: offset }, (_, i) => (
@@ -103,7 +119,7 @@ export function ClimbingCalendar({
               {days.map((day) => (
                 <span
                   key={day.iso}
-                  title={`${day.count > 0 ? formatCount(day.count, unit) : `No ${unit}s`} · ${formatDate(day.iso)}`}
+                  data-chart-detail={dayLabel(day)}
                   className="aspect-square w-full rounded-[2px] bg-foreground/10"
                   style={
                     day.count > 0
@@ -126,7 +142,7 @@ export function ClimbingCalendar({
             More
           </div>
         </div>
-      </div>
+      </ChartInspection>
     </div>
   );
 }

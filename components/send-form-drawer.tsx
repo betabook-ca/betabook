@@ -3,7 +3,7 @@
 import { Drawer } from "@heroui/react";
 import type { UseOverlayStateReturn } from "@heroui/react";
 
-import { SendForm } from "@/components/send-form";
+import { SendEditor } from "@/components/send-editor";
 import { PAGE_MAX_WIDTH_CLASS } from "@/components/ui/layout";
 import type { EditableSend, SendableClimb } from "@/db/queries";
 
@@ -13,7 +13,7 @@ type SendFormDrawerProps = {
   state: UseOverlayStateReturn;
 };
 
-export function SendFormDrawer({ climb, existingSend, state }: SendFormDrawerProps) {
+export function SendFormDrawer({ existingSend, state }: SendFormDrawerProps) {
   return (
     <Drawer.Backdrop isOpen={state.isOpen} onOpenChange={state.setOpen}>
       <Drawer.Content>
@@ -23,7 +23,7 @@ export function SendFormDrawer({ climb, existingSend, state }: SendFormDrawerPro
             <Drawer.CloseTrigger />
           </Drawer.Header>
           <Drawer.Body>
-            <SendForm climb={climb} existingSend={existingSend} onDone={state.close} />
+            {state.isOpen && <SendEditor sendId={existingSend.id} onDone={state.close} />}
           </Drawer.Body>
         </Drawer.Dialog>
       </Drawer.Content>

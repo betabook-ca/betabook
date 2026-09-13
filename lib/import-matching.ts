@@ -20,17 +20,7 @@ export function distinctClimbNames(rows: readonly NormalizedImportRow[]): string
   return [...byKey.values()];
 }
 
-/** Preserve the server's most-ascended-first candidate order. */
-export function indexCandidates(candidates: readonly ClimbCandidate[]): CandidateIndex {
-  const index = new Map<string, ClimbCandidate[]>();
-  for (const candidate of candidates) {
-    const list = index.get(candidate.key);
-    if (list) list.push(candidate);
-    else index.set(candidate.key, [candidate]);
-  }
-  return index;
-}
-
+/** Build or extend the lookup index while preserving server order within each name. */
 export function mergeCandidates(
   index: CandidateIndex,
   extra: readonly ClimbCandidate[],
@@ -125,12 +115,6 @@ function underAreas(climb: ClimbCandidate, areaIds: ReadonlySet<number>): boolea
   return pathAreas(climb).some((area) => areaIds.has(area.id));
 }
 
-export function candidatePath(climb: ClimbCandidate): string {
-  return pathAreas(climb)
-    .map((area) => area.name)
-    .join(" / ");
-}
-
 const TYPE_LABEL: Record<ClimbType, string> = { boulder: "boulder", sport: "sport", trad: "trad" };
 
 /** "a", "a and b", "a, b, and c". */
@@ -170,18 +154,23 @@ export function matchRow(
   let candidates = all;
 
   if (row.climbTypeHint) {
-    const kept = candidates.filter((c) => c.type === row.climbTypeHint);
+    const kept = candidates.filter((c) =>
+      row.climbTypeHint === "route" ? c.type !== "boulder" : c.type === row.climbTypeHint,
+    );
     if (kept.length === 0) {
       return ambiguous(
         candidates,
         all,
-        describeConflict(total, `a ${TYPE_LABEL[row.climbTypeHint]} climb`),
+        describeConflict(
+          total,
+          `a ${row.climbTypeHint === "route" ? "route" : TYPE_LABEL[row.climbTypeHint]} climb`,
+        ),
       );
     }
     candidates = kept;
   }
 
-  const gradeText = row.gradeText ?? row.postedGradeText;
+  const gradeText = row.postedGradeText ?? row.gradeText;
   const implied = impliedGrades(gradeText, options.gradeScale);
   const impliedType: "boulder" | "rope" | null =
     implied.boulder !== null && implied.rope === null

@@ -1,19 +1,28 @@
-/** The one card surface: a lifted secondary panel with the page's large
- * radius. Every card in the app composes from here so a radius or surface
- * change lands everywhere at once instead of in nine hand-written copies. */
-const CARD_CLASS = "rounded-xl bg-surface-secondary";
+/** Choose by purpose, not by page. Ordinary panels never cast a shadow.
+ * Only floating content uses elevation; all treatments retain rounded-panel. */
+const CARD_SURFACE = {
+  quiet: "bg-surface-secondary",
+  bordered: "border border-border bg-surface",
+  inset: "bg-surface-tertiary",
+  floating: "border border-border bg-overlay shadow-lg",
+} as const;
 
 /** Card paddings: `sm` for dense stat cards and expanded filter panels,
- * `md` for forms and settings, `fluid` for wide analytics cards that need
+ * `md` for forms, `fluid` for wide analytics cards that need
  * room on desktop but not on a phone. */
 export const CARD_PADDING = {
+  /** Edge-to-edge lists own their header and row padding. */
+  none: "p-0",
   sm: "p-4",
   md: "p-6",
   fluid: "p-4 sm:p-6",
 } as const;
 
-export function cardClass(padding: keyof typeof CARD_PADDING = "md"): string {
-  return `${CARD_CLASS} ${CARD_PADDING[padding]}`;
+export function cardClass(
+  padding: keyof typeof CARD_PADDING = "md",
+  surface: keyof typeof CARD_SURFACE = "quiet",
+): string {
+  return `rounded-panel ${CARD_SURFACE[surface]} ${CARD_PADDING[padding]}`;
 }
 
 /** Narrow centered card for auth/account-style single-purpose pages. */

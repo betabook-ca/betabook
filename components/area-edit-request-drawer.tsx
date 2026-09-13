@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 
 import { requestAreaEdit } from "@/actions";
 import { FIELD_CLASS } from "@/components/ui/field";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { PAGE_MAX_WIDTH_CLASS } from "@/components/ui/layout";
 import type { Area } from "@/db/queries";
 
@@ -90,7 +91,7 @@ export function AreaEditRequestDrawer({ area, state }: AreaEditRequestDrawerProp
                   />
                 </TextField>
 
-                {error && <p className="text-sm text-danger">{error}</p>}
+                {error && <InlineAlert>{error}</InlineAlert>}
 
                 <Button type="submit" isDisabled={pending || !trimmedName} fullWidth>
                   Submit rename

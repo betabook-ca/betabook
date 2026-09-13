@@ -50,11 +50,26 @@ next-env.d.ts
 .wrangler
 .open-next
 worker-configuration.d.ts
+.terraform/
+*.tfstate
+*.tfstate.*
 
 # seed data
 climbs_data
 
 # Claude Code worktrees; the rest of .claude is shared config
 .claude/worktrees/
+# component gallery and browser reports
+/storybook-static/
+/playwright-report/
+/test-results/
+
+# Chromatic local diagnostics
+/chromatic.log
+/chromatic-diagnostics.json
+/chromatic-build-*.xml
+/storybook-build.log
+/build-storybook.log
+
 # backfill script artifacts (generated SQL, rollback, review CSV)
-backfill-out/
+/backfill-out/

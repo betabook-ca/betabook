@@ -5,12 +5,14 @@ import { clsx } from "clsx";
 import { X } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { AreaSearchField } from "@/components/area-search-field";
+import { AreaLookup } from "@/components/search/area-lookup";
+import { cardClass } from "@/components/ui/card";
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Grade } from "@/components/ui/grade";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import type { ClimbCandidate } from "@/db/queries";
 import { formatCount } from "@/lib/format";
@@ -171,7 +173,7 @@ function CandidateList({
   onPick: (climb: ClimbCandidate) => void;
 }) {
   return (
-    <div className="flex max-h-80 flex-col divide-y divide-separator overflow-y-auto rounded-lg border border-border">
+    <div className="flex max-h-80 flex-col divide-y divide-separator overflow-y-auto rounded-panel border border-border">
       {candidates.map((climb) => (
         <CandidateRow
           key={climb.id}
@@ -188,7 +190,7 @@ function CandidateList({
 /** The chosen climb, the way a send row will show it. */
 function ClimbLine({ climb, rowClimbName }: { climb: ClimbCandidate; rowClimbName: string }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg bg-surface px-3 py-2">
+    <div className={`flex items-center justify-between gap-3 ${cardClass("sm", "inset")}`}>
       <ClimbPlace climb={climb} rowClimbName={rowClimbName} />
       <span className="flex shrink-0 items-center gap-2">
         <DisciplineChip type={climb.type} />
@@ -396,8 +398,6 @@ export function ImportMatchStep({
   const [unrolled, setUnrolled] = useState<{ filter: Filter; count: number } | null>(null);
   const shown = unrolled?.filter === activeFilter ? unrolled.count : PAGE;
 
-  const [areaQuery, setAreaQuery] = useState("");
-
   const searchState = useOverlayState();
   const [searchTarget, setSearchTarget] = useState<SearchTarget | null>(null);
 
@@ -455,20 +455,19 @@ export function ImportMatchStep({
               <X className="size-3" aria-hidden />
             </button>
           ))}
-          <AreaSearchField
-            value={areaQuery}
-            onChange={setAreaQuery}
-            onSelect={(area) => {
-              if (!preferredAreas.some((a) => a.id === area.id)) {
-                onPreferredAreasChange([...preferredAreas, { id: area.id, name: area.name }]);
-              }
-              setAreaQuery("");
-            }}
-            ariaLabel="Add an area"
-            placeholder="Add an area…"
-            emptyMessage="No matching areas."
-            className="w-full sm:w-64"
-          />
+          <div className="w-full sm:w-64">
+            <AreaLookup
+              label="Add an area"
+              value={null}
+              onChange={(area) => {
+                if (area && !preferredAreas.some((item) => item.id === Number(area.id)))
+                  onPreferredAreasChange([
+                    ...preferredAreas,
+                    { id: Number(area.id), name: area.name },
+                  ]);
+              }}
+            />
+          </div>
         </div>
       </section>
 
@@ -477,13 +476,13 @@ export function ImportMatchStep({
           <p className="text-sm">
             Looking up climb names… {lookup.done} / {lookup.total}
           </p>
-          <ProgressBar value={lookup.done} max={lookup.total} />
+          <ProgressBar value={lookup.done} max={lookup.total} label="Matching climbs" />
         </div>
       )}
 
       {lookup.phase === "failed" && (
         <div className="flex flex-col gap-2">
-          <p className="text-sm text-danger">Couldn&apos;t look up climb names: {lookup.error}</p>
+          <InlineAlert>Couldn&apos;t look up climb names: {lookup.error}</InlineAlert>
           <div>
             <Button variant="outline" onPress={onRetryLookup}>
               Try again

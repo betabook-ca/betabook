@@ -19,7 +19,7 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
       section: "Journal",
       title: "Start in Journal",
       description:
-        "Use Log for outdoor sessions and training. Your entries keep Sends, Projects, and Analytics up to date.",
+        "Use Log for outdoor sessions, sends, repeats, and training. Tag friends under Add details to record who joined you. Each friend logs their own activity.",
       target: "journal-log",
     },
     {
@@ -46,7 +46,7 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
       section: "Projects",
       title: "Pick up where you left off",
       description:
-        "Climbs you haven't sent appear here automatically. Open the sessions to review your notes. This list is private.",
+        "Climbs you haven't sent appear here automatically, each with its latest note. Open a project to read the rest of its sessions. This list is private.",
       target: "project-sessions",
     },
     {
@@ -59,12 +59,40 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
       target: "analytics-chart",
     },
     {
+      id: "find-climbers",
+      introducedInVersion: 2,
+      section: "Search",
+      title: "Find your climbing partners",
+      description:
+        "Open Search, choose Climbers, and enter a name. View all results, then select Add friend on a result or profile. Private profiles don't appear in search. Try sending Riley a request.",
+      target: "friend-search",
+    },
+    {
+      id: "friend-requests",
+      introducedInVersion: 2,
+      section: "Friends",
+      title: "Friend requests",
+      description:
+        "We'll email you about new friend requests and show a dot on your account icon. Open Friends, then Requests, to accept or decline one. Try accepting Sam's request.",
+      target: "friend-requests",
+    },
+    {
+      id: "feed",
+      introducedInVersion: 2,
+      section: "Feed",
+      title: "Catch up with friends",
+      description:
+        "See what your friends have been climbing. Switch to Sends to see just their sends.",
+      target: "friend-feed",
+    },
+    {
       id: "account",
       introducedInVersion: 1,
+      updatedInVersion: 2,
       section: "Account",
       title: "Choose what you share",
       description:
-        "Your journal starts private. Try these settings to see what visitors see. First-send notes also appear on Sends and follow your profile's privacy settings.",
+        "Send commentary and journal entries have separate audiences. Try Members commentary with a Friends-only journal. Turn on Private profile to hide your climbing history from everyone else. Both controls are disabled, and your choices are kept. Audience changes apply to past entries too.",
       target: "privacy-controls",
     },
   ],
@@ -142,12 +170,21 @@ export function productTourPath(
 ) {
   const steps = PRODUCT_TOUR_STEPS[tourId];
   const step = steps.find((entry) => entry.id === options.stepId) ?? steps[0];
+  return productTourContinuationPath(tourId, { ...options, stepId: step.id });
+}
+
+/** Preserve a locked route without resolving whether its tour or step exists. */
+export function productTourContinuationPath(
+  tourId: string,
+  options: Partial<ProductTourNavigation> & { stepId?: string } = {},
+) {
   const { from, mode } = parseProductTourNavigation(options);
   const query = new URLSearchParams();
   if (from === "account") query.set("from", "account");
   if (mode === "updates") query.set("mode", "updates");
   const search = query.toString();
-  return `/tutorial/${tourId}/${step.id}${search ? `?${search}` : ""}`;
+  const step = options.stepId ? `/${encodeURIComponent(options.stepId)}` : "";
+  return `/tutorial/${encodeURIComponent(tourId)}${step}${search ? `?${search}` : ""}`;
 }
 
 export function productTourExitPath(userId: string, from: ProductTourNavigation["from"]) {

@@ -5,11 +5,14 @@ interface CloudflareEnv {
   DB: D1Database;
   CONTACT_RATE_LIMITER: RateLimit;
   JOURNAL_RATE_LIMITER: RateLimit;
+  FRIENDSHIP_RATE_LIMITER: RateLimit;
   BETTER_AUTH_URL: string;
   BETTER_AUTH_SECRET: string;
   RESEND_API_KEY: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  TURNSTILE_SITE_KEY?: string;
+  TURNSTILE_SECRET_KEY?: string;
 }
 
 declare namespace Cloudflare {
@@ -17,10 +20,13 @@ declare namespace Cloudflare {
     DB: CloudflareEnv["DB"];
     CONTACT_RATE_LIMITER: CloudflareEnv["CONTACT_RATE_LIMITER"];
     JOURNAL_RATE_LIMITER: CloudflareEnv["JOURNAL_RATE_LIMITER"];
+    FRIENDSHIP_RATE_LIMITER: CloudflareEnv["FRIENDSHIP_RATE_LIMITER"];
     BETTER_AUTH_URL: CloudflareEnv["BETTER_AUTH_URL"];
     BETTER_AUTH_SECRET: CloudflareEnv["BETTER_AUTH_SECRET"];
     RESEND_API_KEY: CloudflareEnv["RESEND_API_KEY"];
     GOOGLE_CLIENT_ID?: CloudflareEnv["GOOGLE_CLIENT_ID"];
     GOOGLE_CLIENT_SECRET?: CloudflareEnv["GOOGLE_CLIENT_SECRET"];
+    TURNSTILE_SITE_KEY?: CloudflareEnv["TURNSTILE_SITE_KEY"];
+    TURNSTILE_SECRET_KEY?: CloudflareEnv["TURNSTILE_SECRET_KEY"];
   }
 }

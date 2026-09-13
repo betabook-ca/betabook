@@ -219,20 +219,6 @@ export async function searchAreas(
   };
 }
 
-/** Count the same joined matches as searchAreas, without constructing ancestor paths. */
-export async function countSearchAreas(db: Database, name: string): Promise<number> {
-  const query = toFtsPrefixQuery(name);
-  if (!query) return 0;
-
-  const [row] = await db.all<{ count: number }>(sql`
-    SELECT COUNT(*) AS count
-    FROM areas
-    JOIN areas_fts ON areas_fts.rowid = areas.id
-    WHERE areas_fts MATCH ${query}
-  `);
-  return row?.count ?? 0;
-}
-
 export async function getAreasByIds(db: Database, ids: number[]): Promise<Area[]> {
   if (ids.length === 0) return [];
   return db
@@ -242,4 +228,15 @@ export async function getAreasByIds(db: Database, ids: number[]): Promise<Area[]
       sql`${areas.id} IN (SELECT CAST(value AS INTEGER) FROM json_each(${JSON.stringify(ids)}))`,
     )
     .all();
+}
+
+/** An exact selected area includes its descendants, never another area with the same name. */
+export function areaIdCondition(areaId: number): SQL {
+  return sql`climbs.area_id IN (
+    WITH RECURSIVE subtree(id) AS (
+      SELECT id FROM areas WHERE id = ${areaId}
+      UNION ALL
+      SELECT a.id FROM areas a JOIN subtree s ON a.parent_id = s.id
+    ) SELECT id FROM subtree
+  )`;
 }

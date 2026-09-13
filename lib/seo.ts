@@ -35,22 +35,18 @@ export function pageMetadata(opts: {
   };
 }
 
-/** The noun a climb of each discipline is called in running prose. */
-const DISCIPLINE_NOUN: Record<ClimbType, string> = {
-  boulder: "boulder problem",
-  sport: "sport route",
-  trad: "trad route",
-};
-
-/** Font (boulder) / French (rope) grade for a climb, or null when the climb
- * is ungraded or the converted table has no entry — the native scale (Hueco
- * / YDS) is always shown, the converted one only as a parenthetical when it
- * adds something. */
-function convertedGrade(type: ClimbType, grade: number | null): string | null {
-  if (grade == null) return null;
-  const converted = formatGrade(type, grade, type === "boulder" ? "font" : "french");
-  const native = formatGrade(type, grade);
-  return converted === "—" || converted === native ? null : converted;
+/** Link preview for a valid profile share link. No canonical or `og:url`:
+ * crawlers that follow either fetch the plain profile, which names no one. */
+export function sharedProfileMetadata(name: string): Metadata {
+  const title = `${name} on ${SITE_NAME}`;
+  const description = `${name} invited you to ${SITE_NAME}, a climbing logbook and crag database.`;
+  return {
+    title: { absolute: title },
+    description,
+    robots: { index: false },
+    openGraph: { type: "profile", siteName: SITE_NAME, title, description, images: [OG_IMAGE] },
+    twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE.url] },
+  };
 }
 
 /** The `max` nearest names joined nearest-last into a short location trail
@@ -63,32 +59,26 @@ export function locationTrail(names: string[], max = 3): string {
   return names.slice(-max).join(", ");
 }
 
-type ClimbFacts = { name: string; type: ClimbType; grade: number | null };
-
-/** `<title>` for a climb page (the layout appends " · Betabook"). Leads with
- * the name, then the grade in both scales, then the crag — the phrases people
- * actually search. Discipline is left to the description; the grade format
- * already signals it (V-scale vs 5.-scale). */
-export function climbTitle(climb: ClimbFacts, areaName: string): string {
-  const converted = convertedGrade(climb.type, climb.grade);
-  const gradePart =
-    climb.grade == null
-      ? ""
-      : converted
-        ? ` · ${formatGrade(climb.type, climb.grade)} (${converted})`
-        : ` · ${formatGrade(climb.type, climb.grade)}`;
-  return `${climb.name}${gradePart} · ${areaName}`;
-}
-
-/** `<meta name="description">` for a climb page — one unique factual sentence
- * built from structured data, so even a climb with no written description
- * isn't a near-empty page to a crawler. */
-export function climbDescription(climb: ClimbFacts, trail: string): string {
+/** Metadata uses the same public catalog details for every viewer. */
+type PublicClimbFacts = {
+  name: string;
+  type: ClimbType;
+  grade: number | null;
+  description?: string | null;
+};
+export function climbTitle(climb: PublicClimbFacts, areaName: string): string {
   const grade = formatGrade(climb.type, climb.grade);
-  const gradeClause =
-    climb.grade == null ? DISCIPLINE_NOUN[climb.type] : `${grade} ${DISCIPLINE_NOUN[climb.type]}`;
-  const where = trail ? ` in ${trail}` : "";
-  return `${climb.name} is a ${gradeClause}${where}. Grades, ascent history, and community consensus on ${SITE_NAME}.`;
+  return `${climb.name}${grade === "—" ? "" : ` · ${grade}`} · ${areaName}`;
+}
+/** Ends catalog descriptions that have no text of their own. */
+const CLIMB_FALLBACK = `Community rating and logged ascents on ${SITE_NAME}.`;
+const AREA_FALLBACK = `Routes and boulder problems on ${SITE_NAME}.`;
+
+export function climbDescription(climb: PublicClimbFacts, trail: string): string {
+  const grade = formatGrade(climb.type, climb.grade);
+  const detail = climb.description?.trim();
+  const discipline = climb.type === "boulder" ? "boulder problem" : `${climb.type} route`;
+  return `${climb.name} is a ${grade === "—" ? "" : `${grade} `}${discipline}${trail ? ` in ${trail}` : ""}. ${detail || CLIMB_FALLBACK}`;
 }
 
 /** `<title>` for an area page. */
@@ -97,9 +87,9 @@ export function areaTitle(name: string, parentName: string | null): string {
 }
 
 /** `<meta name="description">` for an area page. */
-export function areaDescription(name: string, trail: string): string {
+export function areaDescription(name: string, trail: string, description?: string | null): string {
   const where = trail ? `${name}, ${trail}` : name;
-  return `Climbing in ${where}: routes and boulder problems with grades, logged ascents, and community ratings on ${SITE_NAME}.`;
+  return `Explore climbing in ${where}. ${description?.trim() || AREA_FALLBACK}`;
 }
 
 type Crumb = { name: string; path: string };

@@ -26,7 +26,7 @@ export default async function ResetPasswordPage({
   if (!token || error) {
     return (
       <div className={FORM_CARD_CLASS}>
-        <PageTitle className="text-2xl">Invalid reset link</PageTitle>
+        <PageTitle>Invalid reset link</PageTitle>
         <p className="text-sm text-muted">
           This password reset link is invalid or has expired.{" "}
           <AppLink href="/forgot-password">Request a new one</AppLink>.

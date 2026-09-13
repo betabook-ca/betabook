@@ -11,44 +11,27 @@ import {
   climbJsonLd,
   climbTitle,
   locationTrail,
+  sharedProfileMetadata,
   websiteJsonLd,
 } from "./seo";
 
-describe("climbTitle", () => {
-  it("leads with the name, then native + converted grade, then the crag", () => {
-    expect(climbTitle({ name: "Midnight Lightning", type: "boulder", grade: 9 }, "Camp 4")).toBe(
-      "Midnight Lightning · V8 (7B) · Camp 4",
+describe("public climb metadata", () => {
+  it("includes public grade and description without community facts", () => {
+    const climb = {
+      name: "Midnight Lightning",
+      grade: 9,
+      type: "boulder" as const,
+      description: "A classic test piece.",
+      avgRating: 5,
+    };
+    expect(climbTitle(climb, "Camp 4")).toBe("Midnight Lightning · V8 · Camp 4");
+    expect(climbDescription(climb, "Yosemite, Camp 4")).toBe(
+      "Midnight Lightning is a V8 boulder problem in Yosemite, Camp 4. A classic test piece.",
     );
   });
-
-  it("drops the grade segment entirely when the climb is ungraded", () => {
-    expect(climbTitle({ name: "Project", type: "sport", grade: null }, "The Cave")).toBe(
-      "Project · The Cave",
-    );
-  });
-
-  it("includes the distinct Font conversion even for the easiest grade", () => {
-    // VB (index 0) converts to Font "3" — distinct, so it is shown.
-    const t = climbTitle({ name: "Slab", type: "boulder", grade: 0 }, "Boulder Field");
-    expect(t).toBe("Slab · VB (3) · Boulder Field");
-  });
-});
-
-describe("climbDescription", () => {
-  it("states discipline, grade, and location in one sentence", () => {
-    expect(
-      climbDescription(
-        { name: "The Nose", type: "trad", grade: 19 },
-        "El Capitan, Yosemite Valley",
-      ),
-    ).toBe(
-      "The Nose is a 5.12b trad route in El Capitan, Yosemite Valley. Grades, ascent history, and community consensus on Betabook.",
-    );
-  });
-
-  it("handles an ungraded climb and an empty trail", () => {
-    expect(climbDescription({ name: "Unknown", type: "boulder", grade: null }, "")).toBe(
-      "Unknown is a boulder problem. Grades, ascent history, and community consensus on Betabook.",
+  it("supports a missing location", () => {
+    expect(climbDescription({ name: "Unknown", type: "sport", grade: null }, "")).toBe(
+      "Unknown is a sport route. Community rating and logged ascents on Betabook.",
     );
   });
 });
@@ -61,7 +44,7 @@ describe("areaTitle / areaDescription", () => {
 
   it("folds the location trail into the description", () => {
     expect(areaDescription("Camp 4", "Yosemite Valley, Yosemite National Park")).toBe(
-      "Climbing in Camp 4, Yosemite Valley, Yosemite National Park: routes and boulder problems with grades, logged ascents, and community ratings on Betabook.",
+      "Explore climbing in Camp 4, Yosemite Valley, Yosemite National Park. Routes and boulder problems on Betabook.",
     );
   });
 });
@@ -118,6 +101,21 @@ describe("climbJsonLd", () => {
     expect(page["@type"]).toBe("WebPage");
     expect(page.url).toBe("https://betabook.ca/climbs/1");
     expect(JSON.stringify(page)).not.toContain("AggregateRating");
+  });
+});
+
+describe("sharedProfileMetadata", () => {
+  it("names the owner without the title template, indexing, or a canonical URL", () => {
+    const title = "Alex Rivera on Betabook";
+    const description =
+      "Alex Rivera invited you to Betabook, a climbing logbook and crag database.";
+    expect(sharedProfileMetadata("Alex Rivera")).toEqual({
+      title: { absolute: title },
+      description,
+      robots: { index: false },
+      openGraph: { type: "profile", siteName: "Betabook", title, description, images: [OG_IMAGE] },
+      twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE.url] },
+    });
   });
 });
 

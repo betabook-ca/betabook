@@ -6,14 +6,7 @@ import { createDb, type Database } from "@/db/client";
 import { areas } from "@/db/schema";
 import { seedFixtureTree, seedManyAreas } from "@/test/fixtures";
 
-import {
-  countSearchAreas,
-  getAncestors,
-  getArea,
-  getAreaBreadcrumbs,
-  getSubareas,
-  searchAreas,
-} from "./areas";
+import { getAncestors, getArea, getAreaBreadcrumbs, getSubareas, searchAreas } from "./areas";
 
 let db: Database;
 
@@ -200,22 +193,10 @@ describe("searchAreas pagination", () => {
     expect(new Set(ids).size).toBe(30);
   });
 
-  it("counts every match, not just the first page", async () => {
-    expect(await countSearchAreas(db, "Bulk Area")).toBe(30);
-  });
-
-  it("counts zero for an unmatchable name", async () => {
-    expect(await countSearchAreas(db, "NoSuchAreaNameAtAll")).toBe(0);
-  });
-
-  // areas_fts is maintained by app code in a second statement after the
-  // `areas` write, so an index row can outlive the row it describes. The
-  // count heads a list that joins `areas`, so it has to skip what the list
-  // can't render.
+  // Index repair can leave an orphan; search must not return a missing area.
   it("ignores an orphaned index row the search itself cannot return", async () => {
     await db.run(sql`INSERT INTO areas_fts(rowid, name) VALUES (987654, 'Orphaned Ghost Area')`);
     const page = await searchAreas(db, "Orphaned Ghost Area");
     expect(page.areas).toHaveLength(0);
-    expect(await countSearchAreas(db, "Orphaned Ghost Area")).toBe(0);
   });
 });

@@ -1,53 +1,46 @@
 "use client";
-
-import { useState } from "react";
-
-import { AreaSearchField } from "@/components/area-search-field";
-import type { AreaSuggestion } from "@/lib/search-suggestions";
+import { AreaLookup } from "@/components/search/area-lookup";
 
 export type PickedArea = { id: number; name: string; ancestorPath: string | null };
 
 type AreaPickerProps = {
+  label?: string;
   selected: PickedArea | null;
   onSelectedChange: (area: PickedArea | null) => void;
   isInvalid?: boolean;
+  validationError?: string;
+  isRequired?: boolean;
   /** Text to start the field with when nothing is picked yet. */
   defaultQuery?: string;
 };
 
-/** The form-bound version of the shared area typeahead. Free text clears the
- * bound id, so the parent form can require an explicit existing-area pick;
- * transport, debounce, cancellation, and stale-response handling stay in the
- * same AreaSearchField/useTypeahead path as every other area search. */
+/** Free text never binds a database identity. */
 export function AreaPicker({
+  label = "Area",
   selected,
   onSelectedChange,
   isInvalid,
+  isRequired,
+  validationError,
   defaultQuery,
 }: AreaPickerProps) {
-  const [query, setQuery] = useState(selected?.name ?? defaultQuery ?? "");
-
-  function handleChange(next: string) {
-    setQuery(next);
-    if (selected && next !== selected.name) onSelectedChange(null);
-  }
-
-  function handleSelect(area: AreaSuggestion) {
-    setQuery(area.name);
-    onSelectedChange(area);
-  }
-
   return (
-    <AreaSearchField
-      value={query}
-      onChange={handleChange}
-      onSelect={handleSelect}
-      selectedKey={selected ? String(selected.id) : null}
-      ariaLabel="Area"
-      placeholder="Search areas…"
-      emptyMessage="No matching areas."
+    <AreaLookup
+      label={label}
+      value={
+        selected
+          ? { id: String(selected.id), name: selected.name, path: selected.ancestorPath ?? "" }
+          : null
+      }
+      onChange={(area) =>
+        onSelectedChange(
+          area ? { id: Number(area.id), name: area.name, ancestorPath: area.path } : null,
+        )
+      }
       isInvalid={isInvalid}
-      fullWidth
+      isRequired={isRequired}
+      validationError={validationError}
+      defaultQuery={defaultQuery}
     />
   );
 }

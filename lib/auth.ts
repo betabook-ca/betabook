@@ -1,10 +1,12 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { betterAuth } from "better-auth";
-import { APIError } from "better-auth/api";
+import { APIError, getOAuthState } from "better-auth/api";
+import { captcha } from "better-auth/plugins";
 
 import { getDb } from "@/db/client";
-import { getUserIdByName } from "@/db/queries";
+import { getShareLinkOwner, getUserIdByName } from "@/db/queries";
+import { getTermsAcceptance } from "@/db/queries/terms";
 import * as schema from "@/db/schema";
 import {
   deleteAccountPendingChangeRequests,
@@ -13,7 +15,14 @@ import {
 } from "@/lib/account";
 import { DISPLAY_NAME_TAKEN_MESSAGE, displayNameProblem } from "@/lib/display-name";
 import { sendResetPasswordEmail, sendVerificationEmail } from "@/lib/email";
-import { sendWelcomeEmailOnce } from "@/lib/welcome-email";
+import { profileShareFromPath } from "@/lib/profile-share";
+import {
+  hasAcceptedCurrentTerms,
+  TERMS_ACCESS_MESSAGE,
+  TERMS_REQUIRED_MESSAGE,
+  TERMS_VERSION,
+} from "@/lib/terms";
+import { welcomeNewAccountOnce } from "@/lib/welcome-email";
 
 async function authBuilder() {
   const db = await getDb();
@@ -33,6 +42,11 @@ async function authBuilder() {
       "http://localhost:3003",
       "https://betabook.ca",
     ],
+    advanced: {
+      // Cloudflare appends to a client-sent X-Forwarded-For, so it can be
+      // spoofed or left multi-valued; rate limits then share one bucket.
+      ipAddress: { ipAddressHeaders: ["cf-connecting-ip"] },
+    },
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: true,
@@ -49,16 +63,16 @@ async function authBuilder() {
       // Better Auth returns early from /verify-email for an already-verified
       // user, so a re-clicked link never reaches here — this fires on the
       // false -> true transition and on a later change-email verification.
-      // sendWelcomeEmailOnce is what tells those two apart.
+      // welcomeNewAccountOnce is what tells those two apart.
       afterEmailVerification: async (verified) => {
         try {
-          await sendWelcomeEmailOnce(db, verified);
+          await welcomeNewAccountOnce(db, verified);
         } catch (err) {
           // This hook is awaited inside GET /api/auth/verify-email, after the
           // emailVerified write has already committed. Throwing would turn a
           // verification that succeeded into a 500 the user reads as failure.
           // wrangler.jsonc has observability on, so console.error is the log.
-          console.error("welcome email failed", err);
+          console.error("new account welcome failed", err);
         }
       },
     },
@@ -86,6 +100,9 @@ async function authBuilder() {
       // scripts/promote-admin.ts.
       additionalFields: {
         role: { type: "string", required: false, input: false },
+        termsVersion: { type: "string", required: false, input: false },
+        termsAcceptedAt: { type: "date", required: false, input: false },
+        referredBy: { type: "string", required: false, input: false, returned: false },
       },
       deleteUser: {
         enabled: true,
@@ -109,6 +126,25 @@ async function authBuilder() {
           // chose — failing would block the sign-in itself, so suffix the
           // name into uniqueness instead; it can be changed on /account.
           before: async (newUser, ctx) => {
+            // Email sends separate assent and share fields; OAuth carries them
+            // in Better Auth's verified state. Never trust a provider profile,
+            // callback query, or client timestamp as an acceptance record.
+            const registration = ctx?.path === "/sign-up/email" ? ctx.body : await getOAuthState();
+            if (registration?.acceptedTermsVersion !== TERMS_VERSION) {
+              throw new APIError("BAD_REQUEST", {
+                code: "TERMS_ACCEPTANCE_REQUIRED",
+                message: TERMS_REQUIRED_MESSAGE,
+              });
+            }
+            const share = profileShareFromPath(
+              typeof registration.sharePath === "string" ? registration.sharePath : undefined,
+            );
+            const referrer = share ? await getShareLinkOwner(db, share.token) : null;
+            const terms = {
+              termsVersion: TERMS_VERSION,
+              termsAcceptedAt: new Date(),
+              referredBy: share && referrer?.id === share.userId ? share.userId : null,
+            };
             if (ctx?.path === "/sign-up/email") {
               const name = newUser.name.trim();
               const problem = displayNameProblem(name);
@@ -118,20 +154,22 @@ async function authBuilder() {
                   message: DISPLAY_NAME_TAKEN_MESSAGE,
                 });
               }
-              return { data: { ...newUser, name } };
+              return { data: { ...newUser, name, ...terms } };
             }
-            return { data: { ...newUser, name: await uniqueDisplayName(db, newUser.name) } };
+            return {
+              data: { ...newUser, name: await uniqueDisplayName(db, newUser.name), ...terms },
+            };
           },
           after: async (createdUser) => {
             // OAuth users register with emailVerified: true immediately,
-            // bypassing emailVerification.afterEmailVerification. Send the welcome
-            // email once here; sendWelcomeEmailOnce guards idempotently via
+            // bypassing emailVerification.afterEmailVerification, so welcome them
+            // once here; welcomeNewAccountOnce guards idempotently via
             // `welcome_email_sent_at IS NULL`.
             if (createdUser.emailVerified) {
               try {
-                await sendWelcomeEmailOnce(db, createdUser);
+                await welcomeNewAccountOnce(db, createdUser);
               } catch (err) {
-                console.error("welcome email failed", err);
+                console.error("new account welcome failed", err);
               }
             }
           },
@@ -144,6 +182,15 @@ async function authBuilder() {
           // error. Same rules as sign-up, excluding the caller's own name
           // so a case-only change isn't rejected as taken.
           before: async (data, ctx) => {
+            if (ctx?.path === "/update-user") {
+              const userId = ctx.context.session?.user.id;
+              if (!userId || !hasAcceptedCurrentTerms(await getTermsAcceptance(db, userId))) {
+                throw new APIError("FORBIDDEN", {
+                  code: "TERMS_ACCEPTANCE_REQUIRED",
+                  message: TERMS_ACCESS_MESSAGE,
+                });
+              }
+            }
             if (typeof data.name !== "string") return { data };
             const name = data.name.trim();
             const problem = displayNameProblem(name);
@@ -170,7 +217,21 @@ async function authBuilder() {
       expiresIn: 60 * 60 * 24 * 30,
       updateAge: 60 * 60 * 24,
     },
+    plugins: turnstilePlugins(env),
   });
+}
+
+// One key without the other would either reject every email sign-in or render
+// a widget whose tokens are never checked.
+function turnstileKeys(env: CloudflareEnv) {
+  return env.TURNSTILE_SITE_KEY && env.TURNSTILE_SECRET_KEY
+    ? { siteKey: env.TURNSTILE_SITE_KEY, secretKey: env.TURNSTILE_SECRET_KEY }
+    : null;
+}
+
+function turnstilePlugins(env: CloudflareEnv) {
+  const keys = turnstileKeys(env);
+  return keys ? [captcha({ provider: "cloudflare-turnstile", secretKey: keys.secretKey })] : [];
 }
 
 let authInstance: Awaited<ReturnType<typeof authBuilder>> | null = null;
@@ -183,4 +244,9 @@ export async function initAuth() {
 export async function isGoogleOAuthEnabled(): Promise<boolean> {
   const { env } = await getCloudflareContext({ async: true });
   return Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
+}
+
+export async function getTurnstileSiteKey(): Promise<string | null> {
+  const { env } = await getCloudflareContext({ async: true });
+  return turnstileKeys(env)?.siteKey ?? null;
 }

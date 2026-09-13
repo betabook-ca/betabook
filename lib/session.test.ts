@@ -1,3 +1,4 @@
+import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { getSessionMock } = vi.hoisted(() => ({
@@ -9,11 +10,22 @@ vi.mock("@/lib/auth", () => ({
   initAuth: async () => ({ api: { getSession: getSessionMock } }),
 }));
 
+import { createDb } from "@/db/client";
+import { user } from "@/db/schema";
 import { NotAdminError, NotSignedInError } from "@/lib/action-result";
 import { isAdmin, requireAdmin, requireSession } from "@/lib/session";
+import { seedFixtureUser } from "@/test/fixtures";
 
-beforeEach(() => {
+vi.mock("@/db/client", async (original) => {
+  const actual = await original<typeof import("@/db/client")>();
+  return { ...actual, getDb: async () => actual.createDb(env.DB) };
+});
+
+beforeEach(async () => {
   getSessionMock.mockReset();
+  const db = createDb(env.DB);
+  await db.delete(user);
+  await seedFixtureUser(db, { id: "1" });
 });
 
 describe("requireSession", () => {

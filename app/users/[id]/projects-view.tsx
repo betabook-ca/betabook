@@ -1,25 +1,42 @@
-import { OpenProjectList } from "@/components/journal";
+import { ProjectBoard } from "@/components/journal";
+import type { ProjectWithSessions } from "@/components/journal";
 import { SectionHeading } from "@/components/ui/typography";
 import { getDb } from "@/db/client";
-import { getOpenProjects, OPEN_PROJECT_PAGE_SIZE, type JournalOwner } from "@/db/queries";
-import { formatCount } from "@/lib/format";
+import {
+  getOpenProjects,
+  getOpenProjectSessions,
+  OPEN_PROJECT_PAGE_SIZE,
+  type JournalEntry,
+} from "@/db/queries";
 
-export async function ProjectsView({ owner }: { owner: JournalOwner }) {
-  const rows = await getOpenProjects(await getDb(), owner, owner.id, OPEN_PROJECT_PAGE_SIZE + 1);
+export async function ProjectsView({ ownerId }: { ownerId: string }) {
+  const db = await getDb();
+  const rows = await getOpenProjects(db, ownerId, ownerId, OPEN_PROJECT_PAGE_SIZE + 1);
   const hasMore = rows.length > OPEN_PROJECT_PAGE_SIZE;
-  const projects = hasMore ? rows.slice(0, OPEN_PROJECT_PAGE_SIZE) : rows;
+  const projects = rows.slice(0, OPEN_PROJECT_PAGE_SIZE);
+
+  const sessions = await getOpenProjectSessions(
+    db,
+    ownerId,
+    ownerId,
+    projects.map((project) => project.climbId),
+  );
+  const byClimb = new Map<number, JournalEntry[]>();
+  for (const entry of sessions) {
+    if (entry.climbId == null) continue;
+    const climbSessions = byClimb.get(entry.climbId);
+    if (climbSessions) climbSessions.push(entry);
+    else byClimb.set(entry.climbId, [entry]);
+  }
+  const withSessions: ProjectWithSessions[] = projects.map((project) => ({
+    ...project,
+    sessions: byClimb.get(project.climbId) ?? [],
+  }));
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <SectionHeading>Projects</SectionHeading>
-        <span className="text-sm text-muted">
-          {hasMore
-            ? `${OPEN_PROJECT_PAGE_SIZE}+ open projects`
-            : formatCount(projects.length, "open project")}
-        </span>
-      </div>
-      <OpenProjectList projects={projects} hasMore={hasMore} />
+    <div className="flex min-w-0 flex-col gap-4">
+      <SectionHeading className="sr-only">Projects</SectionHeading>
+      <ProjectBoard userId={ownerId} projects={withSessions} hasMore={hasMore} />
     </div>
   );
 }

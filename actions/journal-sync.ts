@@ -24,6 +24,31 @@ export function rethrowJournalSendInvariant(error: unknown, message: string): ne
   throw error;
 }
 
+/** Run first in the write batch. The primary-key check writes nothing when the
+ * entry is unchanged; a moved or demoted entry aborts the batch via SQL guards. */
+export function buildJournalEntryGuard(
+  db: Database,
+  entry: Pick<
+    typeof journalEntries.$inferSelect,
+    "id" | "userId" | "climbId" | "sent" | "isAscent"
+  >,
+) {
+  return db
+    .update(journalEntries)
+    .set({ userId: sql`NULL`, updatedAt: sql`${journalEntries.updatedAt}` })
+    .where(
+      and(
+        eq(journalEntries.id, entry.id),
+        sql`NOT (
+          ${journalEntries.userId} = ${entry.userId}
+          AND ${journalEntries.climbId} IS ${entry.climbId}
+          AND ${journalEntries.sent} = ${Number(entry.sent)}
+          AND ${journalEntries.isAscent} = ${Number(entry.isAscent)}
+        )`,
+      ),
+    );
+}
+
 type SentJournalInsert = Omit<typeof journalEntries.$inferInsert, "userId" | "sent"> & {
   userId: string;
   climbId: number;

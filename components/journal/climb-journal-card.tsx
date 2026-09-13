@@ -1,3 +1,4 @@
+import { CompanionList } from "@/components/journal/companion-list";
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import { ClampedComment } from "@/components/ui/clamped-comment";
@@ -44,6 +45,7 @@ export function ClimbJournalCard({
                   </span>
                   <span className="text-xs text-muted">{formatDate(entry.entryDate)}</span>
                 </div>
+                <CompanionList companions={entry.companions} />
                 {entry.body && (
                   <div className="text-sm text-muted">
                     <ClampedComment>{entry.body}</ClampedComment>

@@ -43,7 +43,7 @@ export default function Loading() {
           <SkeletonListRows rows={8} />
         </div>
         <div className="order-1 lg:order-2 lg:w-80 lg:shrink-0">
-          <Skeleton className="h-8 w-full lg:h-96" rounded="rounded-xl" />
+          <Skeleton className="h-8 w-full lg:h-96" rounded="rounded-panel" />
         </div>
       </div>
     </div>

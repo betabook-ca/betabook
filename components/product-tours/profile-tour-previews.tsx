@@ -1,16 +1,20 @@
 "use client";
 
-import { Button, SearchField } from "@heroui/react";
+import { Button } from "@heroui/react";
 import { useState } from "react";
 
 import { StatTiles } from "@/components/analytics-stat-tiles";
 import { AscentStyle } from "@/components/ascent-style";
+import { FilterInput } from "@/components/filters/filter-input";
 import { PrivacyFields } from "@/components/privacy-fields";
 import { ProgressionChart } from "@/components/progression-chart";
 import { SendGradeCell } from "@/components/send-grade-cell";
+import { cardClass } from "@/components/ui/card";
 import { choicePillClass } from "@/components/ui/choice-pill";
+import { EYEBROW_CLASS } from "@/components/ui/eyebrow";
 import { ListRow } from "@/components/ui/list-row";
 import { formatDate } from "@/lib/format-date";
+import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
 import {
   getTourDemoJournalPage,
   TOUR_DEMO_ANALYTICS,
@@ -65,20 +69,15 @@ export function DemoJournal() {
   return (
     <div className="flex flex-col gap-3">
       <div data-tour-target="journal-filters" className="flex flex-col gap-3">
-        <SearchField
-          aria-label="Search Alex's journal"
+        <FilterInput
+          label="Filter Alex's journal"
+          placeholder="Filter journal…"
           value={query}
           onChange={(next) => {
             setQuery(next);
             setShowAll(false);
           }}
-        >
-          <SearchField.Group>
-            <SearchField.SearchIcon />
-            <SearchField.Input placeholder="Search journal…" />
-            <SearchField.ClearButton />
-          </SearchField.Group>
-        </SearchField>
+        />
         <Choices
           label="Journal entry type"
           options={["All", "Sessions", "Training"]}
@@ -144,9 +143,7 @@ export function DemoJournal() {
         </Button>
       )}
       {matches.length === 0 && (
-        <p className="text-sm">
-          No matching entries. Clear the search or turn off a filter to see more.
-        </p>
+        <p className="text-sm">No matching entries. Clear a filter to see more.</p>
       )}
     </div>
   );
@@ -204,13 +201,26 @@ export function DemoSends() {
 
 export function DemoProjects() {
   const [expanded, setExpanded] = useState(false);
+  const [latest] = TOUR_DEMO_PROJECT.sessions;
   return (
-    <div className="flex flex-col gap-3">
+    // Deliberately not the app's ProjectCard: that card links its climb and
+    // pages older sessions from the journal API, and Alex's IDs are negative
+    // samples that must never reach either.
+    <div className={`flex flex-col gap-3 ${cardClass("sm", "bordered")}`}>
       <ListRow
         title={TOUR_DEMO_PROJECT.name}
         meta={TOUR_DEMO_PROJECT.grade}
-        subtitle={`${TOUR_DEMO_PROJECT.sessions.length} sessions · Last: March 14`}
+        subtitle={`${TOUR_DEMO_PROJECT.sessions.length} sessions · Last ${formatDate(latest.date)}`}
       />
+      {!expanded && (
+        <div className="flex flex-col gap-1 rounded-panel bg-surface-tertiary p-3">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className={EYEBROW_CLASS}>Latest note</span>
+            <span className="text-xs text-muted">{formatDate(latest.date)}</span>
+          </div>
+          <p className="text-sm leading-relaxed text-foreground">{latest.note}</p>
+        </div>
+      )}
       <div data-tour-target="project-sessions" className="self-start">
         <Button
           variant="secondary"
@@ -218,12 +228,12 @@ export function DemoProjects() {
           aria-controls="demo-project-sessions"
           onPress={() => setExpanded(!expanded)}
         >
-          {expanded ? "Hide sessions" : "See Alex's sessions"}
+          {expanded ? "Hide sessions" : "Read Alex's notes"}
         </Button>
       </div>
       <div id="demo-project-sessions" hidden={!expanded} className="divide-y divide-border">
         {TOUR_DEMO_PROJECT.sessions.map((entry) => (
-          <ListRow key={entry.id} title={entry.date} comment={entry.note} />
+          <ListRow key={entry.id} title={formatDate(entry.date)} comment={entry.note} />
         ))}
       </div>
     </div>
@@ -245,7 +255,11 @@ export function DemoAnalytics() {
       />
       <div data-tour-target="analytics-chart">
         <h3 className="mb-2 text-sm font-medium">Boulder progression</h3>
-        <ProgressionChart type="boulder" points={analytics.progression[0].points} />
+        <ProgressionChart
+          type="boulder"
+          points={analytics.progression[0].points}
+          sends={TOUR_DEMO_SENDS}
+        />
       </div>
       <Button
         variant="secondary"
@@ -269,26 +283,43 @@ export function DemoAnalytics() {
   );
 }
 
+const DEMO_AUDIENCE_READERS: Record<SendCommentAudience, string> = {
+  private: "only Alex",
+  friends: "Alex and friends",
+  public: "signed-in members",
+  everyone: "everyone, including signed-out visitors",
+};
+
 export function DemoAccount() {
   const [isPrivate, setIsPrivate] = useState(false);
-  const [privateJournal, setPrivateJournal] = useState(true);
+  const [journalVisibility, setJournalVisibility] = useState<SharingAudience>("friends");
+  const [sendCommentVisibility, setSendCommentVisibility] = useState<SendCommentAudience>("public");
   return (
     <div className="flex flex-col gap-4">
-      <div data-tour-target="privacy-controls" className="flex flex-col gap-4">
+      <div data-tour-target="privacy-controls">
         <PrivacyFields
           isPrivate={isPrivate}
-          privateJournal={privateJournal}
+          journalVisibility={journalVisibility}
+          sendCommentVisibility={sendCommentVisibility}
           onProfileChange={setIsPrivate}
-          onJournalChange={setPrivateJournal}
+          onJournalChange={setJournalVisibility}
+          onSendCommentChange={setSendCommentVisibility}
         />
       </div>
-      <div role="status" className="rounded-lg bg-surface-secondary p-4 text-sm">
-        <p className="font-medium">What a visitor can see</p>
-        <p className="mt-1">
-          {isPrivate
-            ? "Alex's profile, sends, journal, and analytics are hidden."
-            : `Alex's profile, sends, and analytics are visible. The journal is ${privateJournal ? "private" : "visible too"}.`}
-        </p>
+      <div role="status" className={`text-sm ${cardClass("sm")}`}>
+        <p className="font-medium">What a signed-in member can see</p>
+        {isPrivate ? (
+          <p className="mt-1">
+            Only Alex can see this profile and climbing history. Climb pages list Alex’s sends
+            without a name.
+          </p>
+        ) : (
+          <ul className="mt-2 flex flex-col gap-1">
+            <li>Profile and send details: signed-in members.</li>
+            <li>Send commentary: {DEMO_AUDIENCE_READERS[sendCommentVisibility]}.</li>
+            <li>Journal entries: {DEMO_AUDIENCE_READERS[journalVisibility]}.</li>
+          </ul>
+        )}
       </div>
     </div>
   );

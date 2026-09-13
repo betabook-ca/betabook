@@ -1,5 +1,5 @@
 import type { SubtreeClimbsSort } from "@/db/queries";
-import { toArray, type SearchParamsRecord } from "@/lib/search-params";
+import { toArray, type UrlParamsRecord } from "@/lib/url-params";
 
 // Shared by the area page and climb search — both list climbs via the same
 // <ClimbList> and sort on the same denormalized columns (see
@@ -18,7 +18,7 @@ const CLIMB_LIST_SORTS = new Set<SubtreeClimbsSort>([
 
 export const DEFAULT_CLIMB_LIST_SORT: SubtreeClimbsSort = "ascents_desc";
 
-export function parseClimbListSort(params: SearchParamsRecord): SubtreeClimbsSort {
+export function parseClimbListSort(params: UrlParamsRecord): SubtreeClimbsSort {
   const rawSort = toArray(params.sort)[0];
   return CLIMB_LIST_SORTS.has(rawSort as SubtreeClimbsSort)
     ? (rawSort as SubtreeClimbsSort)

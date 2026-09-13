@@ -34,9 +34,22 @@ describe("validateSendInput", () => {
     });
   });
 
-  it("accepts each ascent style", () => {
+  it.each(["sport", "trad"] as const)("accepts each ascent style on a %s climb", (climbType) => {
     for (const ascentStyle of ["redpoint", "flash", "onsight"]) {
-      expect(validateSendInput("sport", raw({ ascentStyle }), TODAY).ascentStyle).toBe(ascentStyle);
+      expect(validateSendInput(climbType, raw({ ascentStyle }), TODAY).ascentStyle).toBe(
+        ascentStyle,
+      );
+    }
+  });
+
+  it("rejects an onsight on a boulder and accepts its other styles", () => {
+    expect(() => validateSendInput("boulder", raw({ ascentStyle: "onsight" }), TODAY)).toThrow(
+      "Boulders can't be onsighted",
+    );
+    for (const ascentStyle of ["redpoint", "flash"]) {
+      expect(validateSendInput("boulder", raw({ ascentStyle }), TODAY).ascentStyle).toBe(
+        ascentStyle,
+      );
     }
   });
 
@@ -95,10 +108,15 @@ describe("validateSendInput", () => {
     expect(validateSendInput("boulder", raw({ comment: "   " }), TODAY).comment).toBeNull();
   });
 
-  it("rejects a comment over the length limit", () => {
-    expect(() =>
-      validateSendInput("boulder", raw({ comment: "a".repeat(MAX_COMMENT_LENGTH + 1) }), TODAY),
-    ).toThrow(`${MAX_COMMENT_LENGTH} characters or fewer`);
+  it("accepts a 2,000-character comment without truncating it", () => {
+    const comment = "a".repeat(2000);
+    expect(validateSendInput("boulder", raw({ comment }), TODAY).comment).toBe(comment);
+  });
+
+  it("rejects a comment over 2,000 characters", () => {
+    expect(() => validateSendInput("boulder", raw({ comment: "a".repeat(2001) }), TODAY)).toThrow(
+      "2000 characters or fewer",
+    );
   });
 
   it("accepts a null rating (abstain)", () => {
@@ -192,7 +210,7 @@ describe("validateImportSendValues", () => {
   });
 
   it("passes a wizard-normalized row through unchanged", () => {
-    expect(validateImportSendValues(importRow(), TODAY)).toEqual({
+    expect(validateImportSendValues(importRow(), "sport", TODAY)).toEqual({
       ascentStyle: "redpoint",
       dateSent: TODAY,
       comment: null,
@@ -207,54 +225,69 @@ describe("validateImportSendValues", () => {
   it.each([0, 6, 1000000000, 2.5, -3, "4", null, undefined, Number.NaN])(
     "coerces the out-of-range rating %s to null",
     (rating) => {
-      expect(validateImportSendValues(importRow({ rating }), TODAY).rating).toBeNull();
+      expect(validateImportSendValues(importRow({ rating }), "sport", TODAY).rating).toBeNull();
     },
   );
 
   it("keeps every in-range rating", () => {
     for (const rating of [1, 2, 3, 4, 5]) {
-      expect(validateImportSendValues(importRow({ rating }), TODAY).rating).toBe(rating);
+      expect(validateImportSendValues(importRow({ rating }), "sport", TODAY).rating).toBe(rating);
     }
   });
 
   it("truncates an over-long comment rather than storing it", () => {
     const comment = "x".repeat(MAX_COMMENT_LENGTH + 5000);
-    expect(validateImportSendValues(importRow({ comment }), TODAY).comment).toHaveLength(
+    expect(validateImportSendValues(importRow({ comment }), "sport", TODAY).comment).toHaveLength(
       MAX_COMMENT_LENGTH,
     );
   });
 
   it("reads a blank or non-string comment as absent", () => {
-    expect(validateImportSendValues(importRow({ comment: "   " }), TODAY).comment).toBeNull();
-    expect(validateImportSendValues(importRow({ comment: 42 }), TODAY).comment).toBeNull();
+    expect(
+      validateImportSendValues(importRow({ comment: "   " }), "sport", TODAY).comment,
+    ).toBeNull();
+    expect(validateImportSendValues(importRow({ comment: 42 }), "sport", TODAY).comment).toBeNull();
   });
 
   it("defaults an unrecognized grade feel to solid", () => {
-    expect(validateImportSendValues(importRow({ gradeFeel: "pwned" }), TODAY).gradeFeel).toBe(
-      "solid",
-    );
+    expect(
+      validateImportSendValues(importRow({ gradeFeel: "pwned" }), "sport", TODAY).gradeFeel,
+    ).toBe("solid");
   });
 
   it.each(["sandbagged", "", null, 7])("rejects the ascent style %s", (ascentStyle) => {
-    expect(() => validateImportSendValues(importRow({ ascentStyle }), TODAY)).toThrow(
+    expect(() => validateImportSendValues(importRow({ ascentStyle }), "sport", TODAY)).toThrow(
       "Invalid ascent style",
     );
   });
 
+  it("saves a boulder onsight as a flash but keeps a rope onsight", () => {
+    const row = importRow({ ascentStyle: "onsight" });
+    expect(validateImportSendValues(row, "boulder", TODAY).ascentStyle).toBe("flash");
+    expect(validateImportSendValues(row, "sport", TODAY).ascentStyle).toBe("onsight");
+    expect(validateImportSendValues(row, "trad", TODAY).ascentStyle).toBe("onsight");
+    expect(
+      validateImportSendValues(importRow({ ascentStyle: "redpoint" }), "boulder", TODAY)
+        .ascentStyle,
+    ).toBe("redpoint");
+  });
+
   it("rejects a malformed date", () => {
-    expect(() => validateImportSendValues(importRow({ dateSent: "08/19/2026" }), TODAY)).toThrow(
-      "Invalid send date",
-    );
+    expect(() =>
+      validateImportSendValues(importRow({ dateSent: "08/19/2026" }), "sport", TODAY),
+    ).toThrow("Invalid send date");
   });
 
   it("rejects a future date", () => {
-    expect(() => validateImportSendValues(importRow({ dateSent: "2099-01-01" }), TODAY)).toThrow(
-      "Send date can't be in the future",
-    );
+    expect(() =>
+      validateImportSendValues(importRow({ dateSent: "2099-01-01" }), "sport", TODAY),
+    ).toThrow("Send date can't be in the future");
   });
 
   it("reads a blank date as absent", () => {
-    expect(validateImportSendValues(importRow({ dateSent: null }), TODAY).dateSent).toBeNull();
+    expect(
+      validateImportSendValues(importRow({ dateSent: null }), "sport", TODAY).dateSent,
+    ).toBeNull();
   });
 
   // The wizard parses dates with date-fns, which rejects a day the month
@@ -262,21 +295,21 @@ describe("validateImportSendValues", () => {
   it.each(["2026-02-30", "2026-13-01", "2026-00-10", "2025-02-29"])(
     "rejects the impossible date %s",
     (dateSent) => {
-      expect(() => validateImportSendValues(importRow({ dateSent }), TODAY)).toThrow(
+      expect(() => validateImportSendValues(importRow({ dateSent }), "sport", TODAY)).toThrow(
         "Invalid send date",
       );
     },
   );
 
   it("accepts a real leap day", () => {
-    expect(validateImportSendValues(importRow({ dateSent: "2024-02-29" }), TODAY).dateSent).toBe(
-      "2024-02-29",
-    );
+    expect(
+      validateImportSendValues(importRow({ dateSent: "2024-02-29" }), "sport", TODAY).dateSent,
+    ).toBe("2024-02-29");
   });
 
   it("rejects a non-string date rather than reading it as absent", () => {
-    expect(() => validateImportSendValues(importRow({ dateSent: 20260101 }), TODAY)).toThrow(
-      "Invalid send date",
-    );
+    expect(() =>
+      validateImportSendValues(importRow({ dateSent: 20260101 }), "sport", TODAY),
+    ).toThrow("Invalid send date");
   });
 });

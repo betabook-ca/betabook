@@ -53,6 +53,7 @@ export function SendActionsMenu({ climb, send }: SendActionsMenuProps) {
       <SendFormDrawer climb={climb} existingSend={send} state={editState} />
       <ConfirmDeleteDialog
         noun="send"
+        description="The send will be removed. Your journal entries will remain, and their commentary will keep its current audience."
         state={deleteState}
         onConfirm={handleDelete}
         isPending={pending}

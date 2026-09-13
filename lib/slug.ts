@@ -1,4 +1,4 @@
-import type { SearchParamsRecord } from "@/lib/search-params";
+import type { UrlParamsRecord } from "@/lib/url-params";
 
 const LIGATURE_MAP: Record<string, string> = {
   æ: "ae",
@@ -45,7 +45,7 @@ export function areaHref(id: number, name: string): string {
 
 /** Re-attaches a search-param record to a path, so the canonical redirect
  * keeps a shared "?grade=..." link pointed at the filtered view. */
-export function withQuery(path: string, params: SearchParamsRecord): string {
+export function withQuery(path: string, params: UrlParamsRecord): string {
   const qs = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     for (const v of Array.isArray(value) ? value : value == null ? [] : [value]) {

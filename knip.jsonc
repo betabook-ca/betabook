@@ -11,8 +11,11 @@
     "open-next.config.ts!",
 
     // Miniflare `main`, set inside the Cloudflare pool's async options callback
-    // in vitest.config.mts — the Vitest plugin never evaluates that.
+    // in vitest.workers.config.mts — the Vitest plugin never evaluates that.
     "test/worker.ts",
+
+    // Referenced by Storybook's framework option, not a module import.
+    ".storybook/next.config.ts",
   ],
 
   // Overriding `project` drops the extensions knip adds per registered
@@ -20,7 +23,16 @@
   // and everything it @imports reads as unused.
   // "!dir/**!" negates on the production side only, so the default run still
   // reports dead test helpers and orphaned scripts.
-  "project": ["**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts,css}!", "!test/**!", "!scripts/**!"],
+  "project": [
+    "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts,css}!",
+    "!test/**!",
+    "!scripts/**!",
+    "!stories/**!",
+    "!**/*.stories.tsx!",
+    "!tests/**!",
+    "!.storybook/**!",
+    "!playwright.config.ts!",
+  ],
 
   // `cloudflare:test` is a virtual module from @cloudflare/vitest-pool-workers,
   // and knip truncates specifiers at the colon, so the bare name is what needs

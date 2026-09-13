@@ -1,8 +1,10 @@
 "use client";
 
 import { Button } from "@heroui/react";
-import { Download, MoreVertical, Mountain, Share, X } from "lucide-react";
+import { Download, MoreVertical, Share, X } from "lucide-react";
 
+import { Brand } from "@/components/brand";
+import { cardClass } from "@/components/ui/card";
 import { detectMobileBrowser, detectMobilePlatform } from "@/lib/mobile-detection";
 
 export interface BeforeInstallPromptEvent extends Event {
@@ -31,12 +33,12 @@ export function MobileAppHelperPanel({
   return (
     <aside
       aria-label="Add Betabook to Home Screen"
-      className="fixed inset-x-4 bottom-4 z-40 mx-auto max-w-md rounded-2xl border border-border bg-surface-secondary p-4 shadow-2xl ring-1 ring-border/50 backdrop-blur-md sm:inset-x-auto sm:right-6 sm:bottom-6 sm:max-w-sm"
+      className={`fixed inset-x-4 bottom-[calc(1rem+var(--app-tab-bar-height,0px))] z-40 mx-auto max-w-md sm:inset-x-auto sm:right-6 sm:bottom-[calc(1.5rem+var(--app-tab-bar-height,0px))] sm:max-w-sm ${cardClass("sm", "floating")}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-accent/30 bg-accent/15 text-accent">
-            <Mountain className="size-5" />
+          <div className="shrink-0 rounded-xl border border-border bg-background">
+            <Brand className="size-12" decorative />
           </div>
           <div>
             <h3 className="text-sm font-semibold text-foreground">Add to Home Screen</h3>
@@ -57,7 +59,7 @@ export function MobileAppHelperPanel({
         </Button>
       </div>
 
-      <div className="mt-3 rounded-xl border border-border/70 bg-surface-tertiary/70 p-3.5 text-xs leading-relaxed text-foreground">
+      <div className={`mt-3 text-xs leading-relaxed text-foreground ${cardClass("sm", "inset")}`}>
         {isIOS ? (
           <div className="flex flex-col gap-2">
             <p className="font-semibold text-foreground">

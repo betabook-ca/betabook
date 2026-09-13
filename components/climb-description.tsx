@@ -8,15 +8,11 @@ import type { Climb } from "@/db/queries";
 import { missingDescriptionMessage } from "@/lib/descriptions";
 
 /** A climb's description, with the pencil that edits it sitting right next to
- * it for editors — same affordance as AreaDescription. Name, discipline, and
- * grade are fixed at creation, so the edit drawer this opens only ever
- * touches the description. */
-export function ClimbDescription({ climb, isEditor }: { climb: Climb; isEditor: boolean }) {
+ * it — same affordance as AreaDescription. Name, discipline, and grade are
+ * fixed at creation, so the edit drawer this opens only ever touches the
+ * description. */
+export function ClimbDescription({ climb }: { climb: Climb }) {
   const editState = useOverlayState();
-
-  if (!isEditor) {
-    return <p className="mt-1 text-muted">{climb.description || missingDescriptionMessage()}</p>;
-  }
 
   return (
     <>

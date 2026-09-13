@@ -1,0 +1,46 @@
+name: Publish Storybook
+
+# Publish real branch commits so the hosted gallery and MCP match the branch.
+# UI Tests and UI Review are disabled in Chromatic; Playwright owns UI checks.
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  chromatic:
+    name: Publish Storybook
+    if: github.repository == 'betabook-ca/betabook'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Preserve branch history for Chromatic's versioned Storybook hosting.
+          fetch-depth: 0
+
+      - uses: pnpm/setup@v2.1.0
+        with:
+          runtime: node@24
+          cache: true
+          require-lockfile: true
+
+      - name: Build Storybook
+        run: pnpm storybook:build
+
+      - name: Publish Storybook
+        env:
+          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+        run: |
+          if [ -z "$CHROMATIC_PROJECT_TOKEN" ]; then
+            echo "::error::Add the CHROMATIC_PROJECT_TOKEN GitHub Actions secret with this project's Chromatic project token."
+            exit 1
+          fi
+          pnpm chromatic --ci --storybook-build-dir storybook-static

@@ -2,14 +2,18 @@ import type { Metadata } from "next";
 
 import { ContactForm } from "@/components/contact-form";
 import { PageTitle } from "@/components/ui/typography";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Contact",
-};
+  description:
+    "Report a wrong grade, a misplaced area or a bug, or send feedback about Betabook. No account needed.",
+  path: "/contact",
+});
 
 // No session read here on purpose: prefilling from the server would pull in
 // headers() and make the whole page dynamic for the sake of one field. The
-// form reads the session on the client, the way AuthNav does.
+// form reads the session on the client, the way the header's menu does.
 export default function ContactPage() {
   return (
     // Same measure as /about — the shell's <main> is max-w-7xl, which is
@@ -31,7 +35,7 @@ export default function ContactPage() {
          * hand. `inline` matters: .link is display:inline-flex, an atomic
          * inline box that can't break across lines mid-sentence. */}
         <a
-          href="https://github.com/smwoo/betabook/issues"
+          href="https://github.com/betabook-ca/betabook/issues"
           target="_blank"
           rel="noreferrer"
           className="link inline underline focus-visible:status-focused"

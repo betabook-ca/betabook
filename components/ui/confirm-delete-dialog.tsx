@@ -3,11 +3,17 @@
 import { AlertDialog, Button } from "@heroui/react";
 import type { UseOverlayStateReturn } from "@heroui/react";
 
+import { InlineAlert } from "@/components/ui/inline-alert";
+
 type ConfirmDeleteDialogProps = {
   state: UseOverlayStateReturn;
   /** What is being deleted, as the noun the heading names ("area", "climb",
    * "send"). */
   noun: string;
+  title?: string;
+  description?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
   onConfirm: () => void;
   isPending: boolean;
   /** Failure message from the last delete attempt, if any — shown inline so
@@ -27,27 +33,36 @@ type ConfirmDeleteDialogProps = {
 export function ConfirmDeleteDialog({
   state,
   noun,
+  title,
+  description = "This can't be undone.",
+  confirmLabel = "Delete",
+  cancelLabel = "Cancel",
   onConfirm,
   isPending,
   error,
   pendingNotice,
 }: ConfirmDeleteDialogProps) {
   return (
-    <AlertDialog.Backdrop isOpen={state.isOpen} onOpenChange={state.setOpen}>
+    <AlertDialog.Backdrop
+      isOpen={state.isOpen}
+      onOpenChange={(open) => {
+        if (!isPending) state.setOpen(open);
+      }}
+    >
       <AlertDialog.Container placement="center" size="sm">
         <AlertDialog.Dialog>
           <AlertDialog.Header>
             <AlertDialog.Heading>
-              {pendingNotice ? "Submitted for review" : `Delete this ${noun}?`}
+              {pendingNotice ? "Submitted for review" : (title ?? `Delete this ${noun}?`)}
             </AlertDialog.Heading>
           </AlertDialog.Header>
           <AlertDialog.Body>
             {pendingNotice ? (
-              <p className="text-sm text-muted">{pendingNotice}</p>
+              <InlineAlert status="success">{pendingNotice}</InlineAlert>
             ) : (
               <>
-                <p className="text-sm text-muted">This can&apos;t be undone.</p>
-                {error && <p className="text-sm text-danger">{error}</p>}
+                <p className="text-sm text-muted">{description}</p>
+                {error && <InlineAlert>{error}</InlineAlert>}
               </>
             )}
           </AlertDialog.Body>
@@ -59,10 +74,10 @@ export function ConfirmDeleteDialog({
             ) : (
               <>
                 <Button variant="ghost" onPress={state.close} isDisabled={isPending}>
-                  Cancel
+                  {cancelLabel}
                 </Button>
                 <Button variant="danger" onPress={onConfirm} isDisabled={isPending}>
-                  Delete
+                  {isPending ? "Saving…" : confirmLabel}
                 </Button>
               </>
             )}

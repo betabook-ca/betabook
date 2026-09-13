@@ -1,7 +1,65 @@
 import { eq } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 
 import type { Database } from "@/db/client";
-import { areas, climbs, user, sends, journalEntries } from "@/db/schema";
+import { areas, climbs, user, sends, journalEntries, friendships } from "@/db/schema";
+import { friendshipPair } from "@/lib/friendships";
+import { TERMS_VERSION } from "@/lib/terms";
+
+type FriendshipStatus = "pending" | "accepted";
+
+export async function seedFixtureFriendship(
+  db: Database,
+  requester: string,
+  recipient: string,
+  status: FriendshipStatus = "accepted",
+) {
+  await db
+    .insert(friendships)
+    .values({ ...friendshipPair(requester, recipient), requestedBy: requester, status });
+}
+
+/** Scale fixtures are bound by round trips, not by the writes themselves: a
+ * per-row insert loop is what leaves a test one slow runner away from its
+ * timeout. D1 caps a statement at 100 bound parameters, so each caller packs
+ * as many rows per insert as its table's bound columns allow and hands those
+ * statements to `batch`, which costs one round trip per group rather than one
+ * per row. Order is preserved, so ids stay predictable for tests that assert
+ * on them. */
+async function insertInBatches<Row>(
+  db: Database,
+  rows: Row[],
+  rowsPerStatement: number,
+  insert: (chunk: Row[]) => BatchItem<"sqlite">,
+) {
+  const statements: BatchItem<"sqlite">[] = [];
+  for (let i = 0; i < rows.length; i += rowsPerStatement) {
+    statements.push(insert(rows.slice(i, i + rowsPerStatement)));
+  }
+  const STATEMENTS_PER_BATCH = 25;
+  for (let i = 0; i < statements.length; i += STATEMENTS_PER_BATCH) {
+    const group = statements.slice(i, i + STATEMENTS_PER_BATCH);
+    await db.batch(group as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
+  }
+}
+
+/** `seedFixtureFriendship` for one requester and many recipients. */
+export function seedManyFriendships(
+  db: Database,
+  requester: string,
+  recipients: string[],
+  status: FriendshipStatus = "accepted",
+) {
+  return insertInBatches(db, recipients, 16, (chunk) =>
+    db.insert(friendships).values(
+      chunk.map((recipient) => ({
+        ...friendshipPair(requester, recipient),
+        requestedBy: requester,
+        status,
+      })),
+    ),
+  );
+}
 
 /**
  * A small tree exercising: a root with no ancestors, a two-level-deep
@@ -87,18 +145,34 @@ export async function seedManyAreas(
 
 type FixtureUserOverrides = Partial<typeof user.$inferInsert> & { id: string };
 
-/** Inserts a minimal `user` row for send-query tests; `id` must be unique per
- * call. The default name derives from the id because names are unique
+/** The default name derives from the id because names are unique
  * (user_name_unique_idx) — a shared "Test Climber" literal would make any
  * second seeded user violate the index. */
-export async function seedFixtureUser(db: Database, overrides: FixtureUserOverrides) {
-  const row = {
+function fixtureUserRow(overrides: FixtureUserOverrides) {
+  return {
     name: `Test Climber ${overrides.id}`,
     email: `${overrides.id}@example.com`,
+    // Domain/API fixtures normally represent a member who finished onboarding.
+    // Terms-specific tests explicitly override these with legacy/null values.
+    termsVersion: TERMS_VERSION,
+    termsAcceptedAt: new Date("2026-09-09T00:00:00Z"),
     ...overrides,
   };
+}
+
+/** Inserts a minimal `user` row for send-query tests; `id` must be unique per
+ * call. */
+export async function seedFixtureUser(db: Database, overrides: FixtureUserOverrides) {
+  const row = fixtureUserRow(overrides);
   await db.insert(user).values(row);
   return row;
+}
+
+/** `seedFixtureUser` for many users at once. */
+export function seedManyUsers(db: Database, overrides: FixtureUserOverrides[]) {
+  return insertInBatches(db, overrides.map(fixtureUserRow), 8, (chunk) =>
+    db.insert(user).values(chunk),
+  );
 }
 
 type FixtureSendOverrides = Partial<typeof sends.$inferInsert> & {
@@ -144,4 +218,10 @@ export async function seedFixtureJournalEntry(
   };
   await db.insert(journalEntries).values(row);
   return row;
+}
+
+/** `seedFixtureJournalEntry` for many entries at once, taking complete rows
+ * rather than filling defaults — bulk callers describe every field anyway. */
+export function seedManyJournalEntries(db: Database, rows: (typeof journalEntries.$inferInsert)[]) {
+  return insertInBatches(db, rows, 12, (chunk) => db.insert(journalEntries).values(chunk));
 }

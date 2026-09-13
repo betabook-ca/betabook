@@ -12,6 +12,42 @@ const climbs = {
   project: { id: -4, name: "The Long Way", grade: "V5" },
 } as const;
 
+export const TOUR_DEMO_PEOPLE = { search: "Riley Chen", requester: "Sam Taylor" };
+
+export const TOUR_DEMO_SEARCH_RESULTS = {
+  climb: { name: climbs.sent.name, detail: climbs.sent.grade },
+  area: { name: TOUR_DEMO_CLIMBER.area, detail: "Climbing area" },
+  climber: { name: TOUR_DEMO_PEOPLE.search, detail: "Member profile" },
+};
+
+export const TOUR_DEMO_FRIEND_DAY = {
+  name: TOUR_DEMO_PEOPLE.requester,
+  date: "2026-03-14",
+  entries: [
+    {
+      id: "friend-send",
+      kind: "send",
+      ascentStyle: "flash",
+      climb: climbs.flash,
+      note: "Flashed it. The right heel hook helped.",
+    },
+    {
+      id: "friend-session",
+      kind: "session",
+      ascentStyle: null,
+      climb: climbs.project,
+      note: "Kept the left foot on through the crux.",
+    },
+    {
+      id: "friend-training",
+      kind: "training",
+      ascentStyle: null,
+      climb: null,
+      note: "Easy mobility after climbing.",
+    },
+  ],
+} as const;
+
 type DemoEntry = {
   id: string;
   date: string;

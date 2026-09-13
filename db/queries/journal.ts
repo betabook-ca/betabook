@@ -2,12 +2,14 @@ import { and, eq, sql, type SQL } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { journalEntries } from "@/db/schema";
+import type { JournalFilter, JournalView } from "@/lib/filters/journal-filter";
 import type { ClimbType } from "@/lib/grades";
-import type { JournalKind, JournalVisibility } from "@/lib/journal";
-import type { JournalFilter, JournalView } from "@/lib/journal-filter";
-import { canViewJournal } from "@/lib/user-visibility";
+import type { JournalKind } from "@/lib/journal";
+import type { JournalCompanion } from "@/lib/journal-companions";
 
-export type JournalOwner = { id: string; isPrivate: boolean; journalVisibility: JournalVisibility };
+import { journalVisibleSql, sendCommentVisibleSql } from "./content-access";
+import { journalHashtagsCondition } from "./hashtag-filter";
+import { companionsJsonSql } from "./journal-companions";
 
 export type JournalEntry = {
   id: number;
@@ -17,12 +19,14 @@ export type JournalEntry = {
   entryDate: string;
   body: string | null;
   tags: string[];
+  companions?: JournalCompanion[];
   climbName: string | null;
   climbType: ClimbType | null;
   climbGrade: number | null;
   areaId: number | null;
   areaName: string | null;
   isAscent: boolean;
+  isSendComment: boolean;
 };
 
 export type JournalCursor = { entryDate: string; id: number };
@@ -43,19 +47,23 @@ type JournalEntryRow = {
   entryDate: string;
   body: string | null;
   tags: string | null;
+  companions: string;
   climbName: string | null;
   climbType: ClimbType | null;
   climbGrade: number | null;
   areaId: number | null;
   areaName: string | null;
   isAscent: number;
+  isSendComment: number;
 };
 
 function toJournalEntry(row: JournalEntryRow): JournalEntry {
   return {
     ...row,
+    companions: JSON.parse(row.companions) as JournalCompanion[],
     sent: row.sent === 1,
     isAscent: row.isAscent === 1,
+    isSendComment: row.isSendComment === 1,
     tags: row.tags ? (JSON.parse(row.tags) as string[]) : [],
   };
 }
@@ -71,14 +79,19 @@ const VIEW_CONDITION: Record<JournalView, SQL | null> = {
   training: sql`j.kind = 'training'`,
 };
 
-function filterConditions(filter: JournalFilter): SQL[] {
+function visibleBody(viewerId: string | null): SQL {
+  return sql`CASE WHEN j.is_send_comment = 0 OR ${sendCommentVisibleSql(viewerId, sql`j.user_id`)}
+    THEN j.body ELSE NULL END`;
+}
+
+function filterConditions(filter: JournalFilter, viewerId: string | null): SQL[] {
   const view = VIEW_CONDITION[filter.view];
   const conditions: SQL[] = view ? [view] : [];
 
   if (filter.query) {
     conditions.push(sql`(
       instr(lower(COALESCE(climbs.name, '')), lower(${filter.query})) > 0
-      OR instr(lower(COALESCE(j.body, '')), lower(${filter.query})) > 0
+      OR instr(lower(COALESCE(${visibleBody(viewerId)}, '')), lower(${filter.query})) > 0
       OR instr(lower(COALESCE(j.tags, '')), lower(${filter.query})) > 0
       OR EXISTS (
         WITH RECURSIVE ancestors(id, parent_id, name) AS (
@@ -93,12 +106,15 @@ function filterConditions(filter: JournalFilter): SQL[] {
       )
     )`);
   }
-  if (filter.tag) {
-    conditions.push(
-      sql`EXISTS (SELECT 1 FROM json_each(j.tags) WHERE json_each.value = ${filter.tag})`,
-    );
+  if (filter.tags.length > 0) {
+    conditions.push(journalHashtagsCondition(filter.tags, sql`j.tags`));
   }
   if (filter.climbId !== null) conditions.push(sql`j.climb_id = ${filter.climbId}`);
+  if (filter.date) conditions.push(sql`j.entry_date = ${filter.date}`);
+  else {
+    if (filter.dateFrom) conditions.push(sql`j.entry_date >= ${filter.dateFrom}`);
+    if (filter.dateTo) conditions.push(sql`j.entry_date <= ${filter.dateTo}`);
+  }
   if (filter.year !== null) {
     conditions.push(
       sql`j.entry_date >= ${`${filter.year}-01-01`} AND j.entry_date <= ${`${filter.year}-12-31`}`,
@@ -107,45 +123,59 @@ function filterConditions(filter: JournalFilter): SQL[] {
   return conditions;
 }
 
-const JOURNAL_ENTRY_SELECT = sql`
+function journalEntrySelect(viewerId: string | null): SQL {
+  return sql`
     SELECT
       j.id AS id,
       j.climb_id AS climbId,
       j.kind AS kind,
       j.sent AS sent,
       j.entry_date AS entryDate,
-      j.body AS body,
+      ${visibleBody(viewerId)} AS body,
       j.tags AS tags,
+      ${companionsJsonSql(viewerId, sql`j.id`)} AS companions,
       climbs.name AS climbName,
       climbs.type AS climbType,
       climbs.grade AS climbGrade,
       climbs.area_id AS areaId,
       areas.name AS areaName,
-      j.is_ascent AS isAscent
+      j.is_ascent AS isAscent, j.is_send_comment AS isSendComment
     FROM journal_entries j
     LEFT JOIN climbs ON climbs.id = j.climb_id
     LEFT JOIN areas ON areas.id = climbs.area_id
 `;
-
-const EMPTY_PAGE: JournalPage = { entries: [], hasMore: false, nextCursor: null };
+}
 
 export async function getJournalPage(
   db: Database,
-  owner: JournalOwner,
+  ownerId: string,
   viewerId: string | null,
   filter: JournalFilter,
   cursor: JournalCursor | null = null,
   pageSize: number = JOURNAL_PAGE_SIZE,
 ): Promise<JournalPage> {
-  if (!canViewJournal(owner, viewerId)) return EMPTY_PAGE;
-
-  const conditions = [sql`j.user_id = ${owner.id}`, ...filterConditions(filter)];
+  if (filter.friendIds.length > 0 && ownerId !== viewerId) {
+    return { entries: [], hasMore: false, nextCursor: null };
+  }
+  const conditions = [
+    sql`j.user_id = ${ownerId}`,
+    journalVisibleSql(viewerId, sql`j.user_id`),
+    ...filterConditions(filter, viewerId),
+  ];
+  if (filter.friendIds.length > 0) {
+    conditions.push(sql`EXISTS (
+      SELECT 1 FROM json_each(${companionsJsonSql(viewerId, sql`j.id`)}) companion_filter
+      WHERE json_extract(companion_filter.value, '$.id') IN (
+        SELECT value FROM json_each(${JSON.stringify(filter.friendIds)})
+      )
+    )`);
+  }
   if (cursor) {
     conditions.push(sql`(j.entry_date, j.id) < (${cursor.entryDate}, ${cursor.id})`);
   }
 
   const rows = await db.all<JournalEntryRow>(sql`
-    ${JOURNAL_ENTRY_SELECT}
+    ${journalEntrySelect(viewerId)}
     WHERE ${sql.join(conditions, sql` AND `)}
     ORDER BY j.entry_date DESC, j.id DESC
     LIMIT ${pageSize + 1}
@@ -166,16 +196,14 @@ const CLIMB_JOURNAL_ENTRY_LIMIT = 4;
 
 export async function getJournalForClimb(
   db: Database,
-  owner: JournalOwner,
+  ownerId: string,
   viewerId: string | null,
   climbId: number,
   limit: number = CLIMB_JOURNAL_ENTRY_LIMIT,
 ): Promise<JournalEntry[]> {
-  if (!canViewJournal(owner, viewerId)) return [];
-
   const rows = await db.all<JournalEntryRow>(sql`
-    ${JOURNAL_ENTRY_SELECT}
-    WHERE j.user_id = ${owner.id} AND j.climb_id = ${climbId}
+    ${journalEntrySelect(viewerId)}
+    WHERE j.user_id = ${ownerId} AND ${journalVisibleSql(viewerId, sql`j.user_id`)} AND j.climb_id = ${climbId}
     ORDER BY j.entry_date DESC, j.id DESC
     LIMIT ${limit}
   `);
@@ -204,53 +232,19 @@ export async function getJournalEntry(db: Database, entryId: number, ownerId: st
     .get();
 }
 
-export type JournalCounts = {
-  entries: number;
-  sessions: number;
-  training: number;
-  days: number;
-  entriesThisMonth: number;
-  daysThisMonth: number;
-  sentThisMonth: number;
-};
-
-const EMPTY_COUNTS: JournalCounts = {
-  entries: 0,
-  sessions: 0,
-  training: 0,
-  days: 0,
-  entriesThisMonth: 0,
-  daysThisMonth: 0,
-  sentThisMonth: 0,
-};
-
-export async function getJournalCounts(
+/** Whether the viewer can read any entry in this journal. */
+export async function hasJournalEntries(
   db: Database,
-  owner: JournalOwner,
+  ownerId: string,
   viewerId: string | null,
-  month: string,
-): Promise<JournalCounts> {
-  if (!canViewJournal(owner, viewerId)) return EMPTY_COUNTS;
-
-  const monthPrefix = `${month}-%`;
-  const row = await db.get<JournalCounts>(sql`
-    SELECT
-      COUNT(*)                                                        AS entries,
-      COUNT(*) FILTER (WHERE j.kind = 'session')                      AS sessions,
-      COUNT(*) FILTER (WHERE j.kind = 'training')                     AS training,
-      COUNT(DISTINCT CASE WHEN j.kind = 'session' THEN j.entry_date END)
-                                                                      AS days,
-      COUNT(*) FILTER (WHERE j.entry_date LIKE ${monthPrefix})        AS entriesThisMonth,
-      COUNT(DISTINCT CASE
-        WHEN j.kind = 'session' AND j.entry_date LIKE ${monthPrefix} THEN j.entry_date
-      END)
-                                                                      AS daysThisMonth,
-      COUNT(*) FILTER (WHERE j.sent = 1 AND j.entry_date LIKE ${monthPrefix})
-                                                                      AS sentThisMonth
-    FROM journal_entries j
-    WHERE j.user_id = ${owner.id}
+): Promise<boolean> {
+  const row = await db.get<{ found: number }>(sql`
+    SELECT EXISTS (
+      SELECT 1 FROM journal_entries j
+      WHERE j.user_id = ${ownerId} AND ${journalVisibleSql(viewerId, sql`j.user_id`)}
+    ) AS found
   `);
-  return row ?? EMPTY_COUNTS;
+  return row?.found === 1;
 }
 
 export type AnalyticsSessionRow = {
@@ -261,11 +255,10 @@ export type AnalyticsSessionRow = {
 
 export async function getJournalSessionsForAnalytics(
   db: Database,
-  owner: JournalOwner,
+  ownerId: string,
   viewerId: string | null,
+  tags?: string[],
 ): Promise<AnalyticsSessionRow[]> {
-  if (!canViewJournal(owner, viewerId)) return [];
-
   return db.all<AnalyticsSessionRow>(sql`
     SELECT
       j.entry_date AS entryDate,
@@ -273,7 +266,8 @@ export async function getJournalSessionsForAnalytics(
       COUNT(*) AS count
     FROM journal_entries j
     JOIN climbs ON climbs.id = j.climb_id
-    WHERE j.user_id = ${owner.id} AND j.kind = 'session'
+    WHERE j.user_id = ${ownerId} AND ${journalVisibleSql(viewerId, sql`j.user_id`)} AND j.kind = 'session'
+      ${tags?.length ? sql`AND ${journalHashtagsCondition(tags, sql`j.tags`)}` : sql``}
     GROUP BY j.entry_date, climbs.type
     ORDER BY j.entry_date, climbs.type
   `);
@@ -287,6 +281,7 @@ export type OpenProject = {
   areaId: number;
   areaName: string;
   sessionCount: number;
+  noteCount: number;
   firstSession: string;
   lastSession: string;
 };
@@ -295,11 +290,11 @@ export const OPEN_PROJECT_PAGE_SIZE = 100;
 
 export async function getOpenProjects(
   db: Database,
-  owner: JournalOwner,
+  ownerId: string,
   viewerId: string | null,
   limit: number = OPEN_PROJECT_PAGE_SIZE,
 ): Promise<OpenProject[]> {
-  if (!canViewJournal(owner, viewerId)) return [];
+  if (ownerId !== viewerId) return [];
   const boundedLimit = Number.isInteger(limit)
     ? Math.min(Math.max(limit, 1), OPEN_PROJECT_PAGE_SIZE + 1)
     : OPEN_PROJECT_PAGE_SIZE;
@@ -313,14 +308,84 @@ export async function getOpenProjects(
       climbs.area_id    AS areaId,
       areas.name        AS areaName,
       COUNT(*)          AS sessionCount,
+      COUNT(*) FILTER (WHERE TRIM(COALESCE(j.body, '')) <> '')
+                        AS noteCount,
       MIN(j.entry_date) AS firstSession,
       MAX(j.entry_date) AS lastSession
     FROM journal_entries j
     JOIN climbs ON climbs.id = j.climb_id
     JOIN areas ON areas.id = climbs.area_id
-    WHERE j.user_id = ${owner.id} AND ${IS_OPEN_PROJECT}
+    WHERE j.user_id = ${ownerId} AND ${journalVisibleSql(viewerId, sql`j.user_id`)} AND ${IS_OPEN_PROJECT}
     GROUP BY j.climb_id
     ORDER BY lastSession DESC, j.climb_id ASC
     LIMIT ${boundedLimit}
   `);
+}
+
+/** Sessions preloaded per project card. Older ones page in from the journal
+ * API, so these rows keep the journal timeline's entry projection. */
+const OPEN_PROJECT_SESSION_PRELOAD = 3;
+
+export async function getOpenProjectSessions(
+  db: Database,
+  ownerId: string,
+  viewerId: string | null,
+  climbIds: number[],
+  perProject: number = OPEN_PROJECT_SESSION_PRELOAD,
+): Promise<JournalEntry[]> {
+  if (ownerId !== viewerId || climbIds.length === 0) return [];
+  const bounded = Number.isInteger(perProject)
+    ? Math.min(Math.max(perProject, 1), OPEN_PROJECT_SESSION_PRELOAD)
+    : OPEN_PROJECT_SESSION_PRELOAD;
+
+  const rows = await db.all<JournalEntryRow>(sql`
+    WITH ranked AS (
+      SELECT
+        j.id AS id,
+        j.climb_id AS climbId,
+        j.kind AS kind,
+        j.sent AS sent,
+        j.entry_date AS entryDate,
+        ${visibleBody(viewerId)} AS body,
+        j.tags AS tags,
+        ${companionsJsonSql(viewerId, sql`j.id`)} AS companions,
+        climbs.name AS climbName,
+        climbs.type AS climbType,
+        climbs.grade AS climbGrade,
+        climbs.area_id AS areaId,
+        areas.name AS areaName,
+        j.is_ascent AS isAscent,
+        j.is_send_comment AS isSendComment,
+        ROW_NUMBER() OVER (
+          PARTITION BY j.climb_id ORDER BY j.entry_date DESC, j.id DESC
+        ) AS seq
+      FROM journal_entries j
+      JOIN climbs ON climbs.id = j.climb_id
+      JOIN areas ON areas.id = climbs.area_id
+      WHERE j.user_id = ${ownerId}
+        AND ${journalVisibleSql(viewerId, sql`j.user_id`)}
+        AND ${IS_OPEN_PROJECT}
+        AND j.climb_id IN (SELECT value FROM json_each(${JSON.stringify(climbIds)}))
+    )
+    SELECT
+      id, climbId, kind, sent, entryDate, body, tags, companions,
+      climbName, climbType, climbGrade, areaId, areaName, isAscent, isSendComment
+    FROM ranked
+    WHERE seq <= ${bounded}
+    ORDER BY entryDate DESC, id DESC
+  `);
+  return rows.map(toJournalEntry);
+}
+
+/** Owner-only editing projection, including currently visible companion selections. */
+export async function getJournalEntryForEdit(
+  db: Database,
+  entryId: number,
+  ownerId: string,
+): Promise<JournalEntry | null> {
+  const row = await db.get<JournalEntryRow>(sql`
+    ${journalEntrySelect(ownerId)}
+    WHERE j.id = ${entryId} AND j.user_id = ${ownerId}
+  `);
+  return row ? toJournalEntry(row) : null;
 }

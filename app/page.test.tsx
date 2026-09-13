@@ -1,178 +1,148 @@
-import { isValidElement, type ReactNode, type ElementType } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { env } from "cloudflare:test";
+import { isValidElement, type ReactNode } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { beforeEach, expect, it, vi } from "vitest";
 
-import SearchPage from "@/app/page";
-import { AreaSearchResults, ClimbSearchResults } from "@/components/search-results";
-import { getDb } from "@/db/client";
-import { searchAreas, searchClimbs, getUserSentClimbIds } from "@/db/queries";
-import { DEFAULT_CLIMB_SEARCH_FILTER } from "@/lib/climb-search-filter";
+import SearchPage, { generateMetadata } from "@/app/page";
+import { AppSearch } from "@/components/search/app-search";
+import { createDb } from "@/db/client";
+import type { SearchSnapshot, SearchState } from "@/lib/search";
+import { seedFixtureTree, seedFixtureUser, seedFixtureSend } from "@/test/fixtures";
+import { resetDb } from "@/test/reset-db";
 
-const sessionState = vi.hoisted(() => ({
-  session: null as { user: { id: string } } | null,
-}));
-
-const mockRedirect = vi.hoisted(() =>
-  vi.fn<(url: string) => never>((url) => {
-    throw new Error(`REDIRECT:${url}`);
-  }),
-);
-
-vi.mock("next/navigation", () => ({
-  redirect: mockRedirect,
-}));
-
+const state = vi.hoisted(() => ({ viewer: null as string | null }));
 vi.mock("@/lib/session", () => ({
-  getSession: vi.fn<() => Promise<{ user: { id: string } } | null>>(
-    async () => sessionState.session,
-  ),
+  getMemberSession: async () => (state.viewer ? { user: { id: state.viewer } } : null),
 }));
-
-vi.mock("@/db/client", () => ({
-  getDb: vi.fn<() => Promise<unknown>>(async () => ({})),
+vi.mock("next/navigation", () => ({
+  redirect: (url: string) => {
+    throw new Error(`REDIRECT:${url}`);
+  },
 }));
-
-vi.mock("@/db/queries", () => ({
-  getAreaBreadcrumbs: vi.fn<typeof import("@/db/queries").getAreaBreadcrumbs>(async () => ({
-    4: [{ id: 1, name: "Yosemite" }],
-  })),
-  searchClimbs: vi.fn<typeof import("@/db/queries").searchClimbs>(async () => ({
-    climbs: [
-      {
-        id: 7,
-        areaId: 4,
-        name: "Midnight Lightning",
-        type: "boulder",
-        grade: 9,
-        areaName: "Camp 4",
-      },
-    ],
-    hasNextPage: true,
-  })),
-  countSearchClimbs: vi.fn<() => Promise<number>>(async () => 0),
-  searchAreas: vi.fn<typeof import("@/db/queries").searchAreas>(async () => ({
-    areas: [{ id: 4, name: "Camp 4", parentId: 1, description: null, ancestorPath: "Yosemite" }],
-    hasNextPage: true,
-  })),
-  countSearchAreas: vi.fn<() => Promise<number>>(async () => 0),
-  getClimbSendStats: vi.fn<typeof import("@/db/queries").getClimbSendStats>(async () => ({
-    7: { avgRating: 5, sendCount: 2, avgSuggestedGrade: 9 },
-  })),
-  getUserSentClimbIds: vi.fn<() => Promise<Set<number>>>(async () => new Set([7])),
-}));
-
-vi.mock("next/link", () => ({
-  default: () => null,
-}));
-
-vi.mock("@/components/ui/app-link", () => ({
-  AppLink: () => null,
-}));
-
-vi.mock("@/components/search-form", () => ({
-  AreaSearchToolbar: () => null,
-  ClimbSearchToolbar: () => null,
-}));
-
-vi.mock("@/components/search-results", () => ({
-  AreaSearchResults: () => null,
-  ClimbSearchResults: () => null,
-}));
-
-vi.mock("@/components/navigation-pending", () => ({
-  NavigationPendingProvider: ({ children }: { children: React.ReactNode }) => children,
-  NavigationPendingRegion: ({ children }: { children: React.ReactNode }) => children,
-}));
-
-// Inspect server-page composition; this does not claim to mount async components.
-function findElements(
-  node: ReactNode,
-  type: ElementType,
-): React.ReactElement<Record<string, unknown>>[] {
-  return (Array.isArray(node) ? node : [node]).flatMap((child) => {
-    if (!isValidElement<{ children?: ReactNode }>(child)) return [];
-    return [
-      ...(child.type === type ? [child as React.ReactElement<Record<string, unknown>>] : []),
-      ...findElements(child.props.children, type),
-    ];
-  });
+vi.mock("@/components/search/app-search", () => ({ AppSearch: () => null }));
+vi.mock("@/db/client", async (original) => {
+  const actual = await original<typeof import("@/db/client")>();
+  const { env } = await import("cloudflare:test");
+  return { ...actual, getDb: async () => actual.createDb(env.DB) };
+});
+const db = createDb(env.DB);
+beforeEach(async () => {
+  state.viewer = null;
+  await resetDb(db);
+  await seedFixtureTree(db);
+  await seedFixtureUser(db, { id: "reader" });
+  await seedFixtureSend(db, { userId: "reader", climbId: 1, dateSent: "2026-09-01" });
+});
+function props(node: ReactNode): {
+  initialState: SearchState;
+  initial: SearchSnapshot;
+  viewerId: string | null;
+  showMemberNotice?: boolean;
+} {
+  for (const child of Array.isArray(node) ? node : [node]) {
+    if (!isValidElement<{ children?: ReactNode }>(child)) continue;
+    if (child.type === AppSearch) return child.props as ReturnType<typeof props>;
+    if (child.props.children) {
+      try {
+        return props(child.props.children);
+      } catch {
+        /* Search siblings. */
+      }
+    }
+  }
+  throw new Error("Search not rendered");
 }
-
-function resultsProps(node: ReactNode, type: ElementType) {
-  const elements = findElements(node, type);
-  expect(elements).toHaveLength(1);
-  return elements[0].props;
-}
-
-describe("SearchPage composition", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    sessionState.session = null;
+it("redirects members from the bare home to their journal", async () => {
+  state.viewer = "reader";
+  await expect(SearchPage({ searchParams: Promise.resolve({}) })).rejects.toThrow(
+    "REDIRECT:/users/reader",
+  );
+});
+it.each([{}, { mode: "all", name: "   " }])(
+  "keeps anonymous search idle and climbers locked (%j)",
+  async (search) => {
+    const data = props(await SearchPage({ searchParams: Promise.resolve(search) }));
+    expect(
+      data.initial.map((section) => [section.kind, section.status, section.page.items]),
+    ).toEqual([
+      ["climb", "idle", []],
+      ["area", "idle", []],
+      ["climber", "locked", []],
+    ]);
+  },
+);
+it("renders public catalog facts, including the aggregates, without viewer data", async () => {
+  const data = props(
+    await SearchPage({
+      searchParams: Promise.resolve({
+        mode: "climb",
+        name: "Test High",
+        grade: "9",
+        sort: "rating_desc",
+      }),
+    }),
+  );
+  expect(data.initial[0].page.items).toEqual([
+    {
+      id: "climb-1",
+      kind: "climb",
+      name: "Test Highball",
+      discipline: "boulder",
+      grade: 5,
+      detail: "Test Crag / Test Boulders / Test Highball Alcove",
+      stats: { avgRating: null, sendCount: 1 },
+      href: "/climbs/1/test-highball",
+    },
+  ]);
+  // Whether this viewer has sent the climb stays out of a signed-out payload.
+  expect(JSON.stringify(data.initial)).not.toContain('"context"');
+});
+it("uses the selected area and authenticated viewer for member results", async () => {
+  state.viewer = "reader";
+  const data = props(
+    await SearchPage({
+      searchParams: Promise.resolve({ mode: "climb", name: "Test", areaId: "4" }),
+    }),
+  );
+  expect(data.initialState.area).toMatchObject({ id: "4", name: "Test Highball Alcove" });
+  expect(data.initial[0].page.items).toMatchObject([
+    { id: "climb-1", grade: 5, discipline: "boulder", context: { sent: true, sendCount: 1 } },
+  ]);
+});
+it("shows the intro only on the bare home", async () => {
+  const home = renderToStaticMarkup(await SearchPage({ searchParams: Promise.resolve({}) }));
+  expect(home).toContain('href="/climbing-logbook"');
+  expect(home).toContain('href="/sign-up"');
+  const search = renderToStaticMarkup(
+    await SearchPage({ searchParams: Promise.resolve({ mode: "climb", name: "Test" }) }),
+  );
+  expect(search).not.toContain('href="/climbing-logbook"');
+});
+it("hides the search member notice only on the bare home", async () => {
+  const home = props(await SearchPage({ searchParams: Promise.resolve({}) }));
+  expect(home.showMemberNotice).toBe(false);
+  const search = props(
+    await SearchPage({ searchParams: Promise.resolve({ mode: "climb", name: "Test" }) }),
+  );
+  expect(search.showMemberNotice).not.toBe(false);
+});
+it("describes the bare home and keeps search states out of the index", async () => {
+  const home = await generateMetadata({ searchParams: Promise.resolve({}) });
+  expect(home.alternates).toEqual({ canonical: "/" });
+  expect(home.title).toContain("climbing logbook");
+  expect(home.robots).toBeUndefined();
+  expect(home.openGraph).toMatchObject({ url: "/", description: home.description });
+  expect(await generateMetadata({ searchParams: Promise.resolve({ name: "Test" }) })).toEqual({
+    title: "Search",
+    robots: { index: false },
+    alternates: { canonical: "/" },
   });
-
-  it("redirects an authenticated user on the default landing home to their own page", async () => {
-    sessionState.session = { user: { id: "climber-42" } };
-
-    await expect(SearchPage({ searchParams: Promise.resolve({}) })).rejects.toThrow(
-      "REDIRECT:/users/climber-42",
-    );
-    expect(getDb).not.toHaveBeenCalled();
-
-    expect(mockRedirect).toHaveBeenCalledWith("/users/climber-42");
-  });
-
-  it("renders the unfiltered climb search instead of a feed for an unauthenticated visitor", async () => {
-    sessionState.session = null;
-
-    const result = await SearchPage({
-      searchParams: Promise.resolve({}),
-    });
-
-    expect(mockRedirect).not.toHaveBeenCalled();
-    expect(searchClimbs).toHaveBeenCalled();
-    expect(resultsProps(result, ClimbSearchResults)).toMatchObject({
-      initialClimbs: [{ id: 7, name: "Midnight Lightning" }],
-      initialHasNextPage: true,
-      initialSendStats: { 7: { avgRating: 5, sendCount: 2, avgSuggestedGrade: 9 } },
-      initialAreaBreadcrumbs: { 4: [{ id: 1, name: "Yosemite" }] },
-      filter: DEFAULT_CLIMB_SEARCH_FILTER,
-      sort: "ascents_desc",
-      sentClimbIds: undefined,
-    });
-    expect(getUserSentClimbIds).not.toHaveBeenCalled();
-  });
-
-  it("does not redirect an authenticated user when search parameters are present", async () => {
-    sessionState.session = { user: { id: "climber-42" } };
-
-    const result = await SearchPage({
-      searchParams: Promise.resolve({ mode: "climb", name: "Midnight Lightning" }),
-    });
-
-    expect(mockRedirect).not.toHaveBeenCalled();
-    expect(resultsProps(result, ClimbSearchResults)).toMatchObject({
-      initialClimbs: [{ id: 7, name: "Midnight Lightning" }],
-      filter: { ...DEFAULT_CLIMB_SEARCH_FILTER, name: "Midnight Lightning" },
-      sentClimbIds: new Set([7]),
-    });
-    expect(searchClimbs).toHaveBeenCalledWith(
-      {},
-      expect.objectContaining({ name: "Midnight Lightning", sort: "ascents_desc" }),
-    );
-    expect(getUserSentClimbIds).toHaveBeenCalledExactlyOnceWith({}, "climber-42", [7]);
-  });
-
-  it("composes area search results with their name and initial rows", async () => {
-    const result = await SearchPage({
-      searchParams: Promise.resolve({ mode: "area", name: "Camp" }),
-    });
-    expect(resultsProps(result, AreaSearchResults)).toMatchObject({
-      name: "Camp",
-      initialAreas: [{ id: 4, name: "Camp 4" }],
-      initialHasNextPage: true,
-      initialAreaBreadcrumbs: { 4: [{ id: 1, name: "Yosemite" }] },
-    });
-    expect(searchAreas).toHaveBeenCalledExactlyOnceWith({}, "Camp");
-    expect(searchClimbs).not.toHaveBeenCalled();
-    expect(findElements(result, ClimbSearchResults)).toEqual([]);
-  });
+});
+it("returns only an authentication state for anonymous climber searches", async () => {
+  const data = props(
+    await SearchPage({ searchParams: Promise.resolve({ mode: "climber", name: "Test" }) }),
+  );
+  expect(data.initial).toEqual([
+    { kind: "climber", page: { items: [], hasMore: false, nextPage: 1 }, status: "locked" },
+  ]);
 });

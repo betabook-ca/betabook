@@ -1,8 +1,10 @@
+import { TERMS_REQUIRED_MESSAGE } from "@/lib/terms";
+
 /**
  * Helpers for the `?next=` continuation param on /sign-in and /sign-up.
  *
- * Auth gates (middleware and page-level session checks) send signed-out
- * users to `/sign-in?next=<destination>`; on a successful sign-in the form
+ * Authentication callouts link signed-out users to
+ * `/sign-in?next=<destination>`; on a successful sign-in the form
  * returns them to that destination instead of unconditionally to /account.
  * Sign-up carries the same param through its "sign in" links and the
  * post-verification callback so the continuation survives the whole
@@ -46,6 +48,11 @@ export function formatAuthErrorMessage(error?: string | string[]): string | unde
   switch (error.toLowerCase()) {
     case "access_denied":
       return "Google sign-in was cancelled.";
+    case "terms_acceptance_required":
+    // Better Auth's OAuth account helper turns creation-hook errors into
+    // their message with spaces replaced by underscores.
+    case TERMS_REQUIRED_MESSAGE.replaceAll(" ", "_").toLowerCase():
+      return "Please review the Terms of Service and try again to create your account.";
     case "unable_to_link_account":
     case "account_not_linked":
       return "Unable to link your Google account. An unverified account with this email already exists. Please verify your email first or sign in with your password.";

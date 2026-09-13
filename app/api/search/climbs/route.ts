@@ -9,11 +9,9 @@ import {
   getUserSentClimbIds,
   searchClimbs,
 } from "@/db/queries";
-import {
-  parseClimbSearchFilter,
-  parseClimbSearchSort,
-  toSearchClimbsQueryParams,
-} from "@/lib/climb-search-filter";
+import { withApiSession } from "@/lib/api-session";
+import { parseClimbListSort } from "@/lib/climb-list-sort";
+import { parseClimbFilter, toClimbQueryParams } from "@/lib/filters/climb-filter";
 import {
   offsetReachesPaginationLimit,
   pageReachesPaginationLimit,
@@ -21,8 +19,7 @@ import {
   parsePage,
   parseSuggestionLimit,
   searchParamsToRecord,
-} from "@/lib/search-params";
-import { getSession } from "@/lib/session";
+} from "@/lib/url-params";
 
 /** Backs two callers with the same query.
  *
@@ -36,15 +33,15 @@ import { getSession } from "@/lib/session";
  * With `count=1`: also returns the exact match total (see the search page's
  * heading). Opt-in because the total doesn't change between pages of a
  * search, so only its first page should pay for the COUNT. */
-export async function GET(request: Request) {
+export const GET = withApiSession(async (session, request: Request) => {
   const url = new URL(request.url);
   const searchParams = searchParamsToRecord(url.searchParams);
   const offsetMode = url.searchParams.has("offset");
   const suggestionLimit = offsetMode ? null : parseSuggestionLimit(url.searchParams);
   const withCount = url.searchParams.get("count") === "1";
 
-  const sort = parseClimbSearchSort(searchParams);
-  const filter = parseClimbSearchFilter(searchParams);
+  const sort = parseClimbListSort(searchParams);
+  const filter = parseClimbFilter(searchParams);
   const pageSize = suggestionLimit ?? SEARCH_PAGE_SIZE;
   const page = offsetMode ? 1 : parsePage(url.searchParams, pageSize);
   const offset = offsetMode ? parseOffset(url.searchParams) : undefined;
@@ -64,11 +61,8 @@ export async function GET(request: Request) {
   }
 
   const db = await getDb();
-  const queryParams = toSearchClimbsQueryParams(filter, sort);
-  const [results, session] = await Promise.all([
-    searchClimbs(db, queryParams, page, pageSize, offset),
-    suggestionLimit === null ? getSession() : Promise.resolve(null),
-  ]);
+  const queryParams = toClimbQueryParams(filter, sort);
+  const results = await searchClimbs(db, queryParams, page, pageSize, offset);
 
   if (suggestionLimit !== null) {
     return NextResponse.json({ climbs: results.climbs.slice(0, suggestionLimit) });
@@ -105,4 +99,4 @@ export async function GET(request: Request) {
     count,
     sentClimbIds: sentClimbIds ? [...sentClimbIds] : undefined,
   });
-}
+});

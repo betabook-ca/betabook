@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  getSendEditorData,
   createJournalEntry,
   createUndatedSend,
   deleteJournalEntry,
@@ -132,11 +133,7 @@ describe("unknown-date sends", () => {
       ratingSum: 4,
       ratingCount: 1,
     });
-    expect(await queries.getJournalCounts(db, OWNER, OWNER.id, "2026-03")).toMatchObject({
-      entries: 0,
-      days: 0,
-      sentThisMonth: 0,
-    });
+    expect(await queries.hasJournalEntries(db, OWNER.id, OWNER.id)).toBe(false);
   });
 
   it("requires authentication and respects the logging rate limit", async () => {
@@ -176,7 +173,7 @@ describe("unknown-date sends", () => {
         (await createJournalEntry(entryFormData({ sent: "true", entryDate, body: "Repeat." }))).ok,
       ).toBe(true);
     }
-    const entries = await queries.getJournalForClimb(db, OWNER, OWNER.id, HIGHBALL);
+    const entries = await queries.getJournalForClimb(db, OWNER.id, OWNER.id, HIGHBALL);
     expect(entries).toHaveLength(2);
     expect(entries.every((entry) => entry.sent && !entry.isAscent)).toBe(true);
     expect(await queries.getAscentEntryId(db, OWNER.id, HIGHBALL)).toBeUndefined();
@@ -228,7 +225,7 @@ describe("unknown-date sends", () => {
       const [repeat] = await entriesFor("j-user");
       const send = await sendFor("j-user", HIGHBALL);
       expect((await updateSend(send!.id, undatedFormData({ dateSent }))).ok).toBe(true);
-      const entries = await queries.getJournalForClimb(db, OWNER, OWNER.id, HIGHBALL);
+      const entries = await queries.getJournalForClimb(db, OWNER.id, OWNER.id, HIGHBALL);
       const ascent = entries.find((entry) => entry.isAscent);
       expect(ascent).toMatchObject({ entryDate: dateSent, body: "Original ascent." });
       expect(ascent?.id).not.toBe(repeat.id);
@@ -333,6 +330,27 @@ describe("createJournalEntry", () => {
   });
 
   describe("an ascent", () => {
+    it("persists a 2,000-character note in both the journal and send", async () => {
+      const body = "x".repeat(2000);
+      expect(await createJournalEntry(ascentFormData({ body }))).toEqual({
+        ok: true,
+        value: undefined,
+      });
+      expect(await entriesFor("j-user")).toMatchObject([
+        { userId: "j-user", climbId: HIGHBALL, isAscent: true, body },
+      ]);
+      expect(await sendFor("j-user", HIGHBALL)).toMatchObject({ comment: body });
+    });
+
+    it("rejects a 2,001-character note without creating a journal entry or send", async () => {
+      expect(await createJournalEntry(ascentFormData({ body: "x".repeat(2001) }))).toEqual({
+        ok: false,
+        error: "Note is 2001 characters — the limit is 2,000",
+      });
+      expect(await entriesFor("j-user")).toEqual([]);
+      expect(await sendFor("j-user", HIGHBALL)).toBeUndefined();
+    });
+
     it("writes the entry and the send together", async () => {
       const result = await createJournalEntry(ascentFormData());
       expect(result.ok).toBe(true);
@@ -503,6 +521,28 @@ describe("updateJournalEntry", () => {
     expect((await sendFor("j-user", HIGHBALL))?.comment).toBe("After.");
   });
 
+  it("mirrors a 2,000-character edit and preserves both records when a longer edit is rejected", async () => {
+    expect((await createJournalEntry(ascentFormData({ body: "Before." }))).ok).toBe(true);
+    const [entry] = await entriesFor("j-user");
+    const body = "y".repeat(2000);
+
+    expect(await updateJournalEntry(entry.id, ascentFormData({ body }))).toEqual({
+      ok: true,
+      value: undefined,
+    });
+    const entriesBefore = await entriesFor("j-user");
+    const sendBefore = await sendFor("j-user", HIGHBALL);
+    expect(entriesBefore).toMatchObject([{ id: entry.id, isAscent: true, body }]);
+    expect(sendBefore).toMatchObject({ comment: body });
+
+    expect(await updateJournalEntry(entry.id, ascentFormData({ body: "z".repeat(2001) }))).toEqual({
+      ok: false,
+      error: "Note is 2001 characters — the limit is 2,000",
+    });
+    expect(await entriesFor("j-user")).toEqual(entriesBefore);
+    expect(await sendFor("j-user", HIGHBALL)).toEqual(sendBefore);
+  });
+
   it("refuses somebody else's entry", async () => {
     const entry = await seedOwn();
     sessionState.userId = "j-other";
@@ -575,9 +615,10 @@ describe("deleteJournalEntry", () => {
   it("does not delete a replacement send created after the ascent was read", async () => {
     await createJournalEntry(ascentFormData());
     const [entry] = await entriesFor("j-user");
-    const getAscentEntryId = queries.getAscentEntryId;
-    const spy = vi.spyOn(queries, "getAscentEntryId").mockImplementationOnce(async (...args) => {
-      const id = await getAscentEntryId(...args);
+    const getJournalEntry = queries.getJournalEntry;
+    let beforeDelete: Awaited<ReturnType<typeof entriesFor>> = [];
+    const spy = vi.spyOn(queries, "getJournalEntry").mockImplementationOnce(async (...args) => {
+      const existing = await getJournalEntry(...args);
       await db.delete(sends).where(eq(sends.userId, "j-user"));
       await seedFixtureSend(db, {
         userId: "j-user",
@@ -593,15 +634,24 @@ describe("deleteJournalEntry", () => {
         sent: true,
         isAscent: true,
       });
-      return id;
+      beforeDelete = await entriesFor("j-user");
+      return existing;
     });
 
     try {
-      expect((await deleteJournalEntry(entry.id)).ok).toBe(true);
+      expect(await deleteJournalEntry(entry.id)).toEqual({
+        ok: false,
+        error: "The entry changed — refresh and try again",
+      });
       expect(await sendFor("j-user", HIGHBALL)).toMatchObject({ dateSent: "2026-04-01" });
-      expect(await entriesFor("j-user")).toMatchObject([
-        { entryDate: "2026-04-01", sent: true, body: "Replacement." },
-      ]);
+      expect(beforeDelete).toHaveLength(2);
+      expect(beforeDelete).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: entry.id, sent: false, isAscent: false }),
+          expect.objectContaining({ entryDate: "2026-04-01", sent: true, body: "Replacement." }),
+        ]),
+      );
+      expect(await entriesFor("j-user")).toEqual(beforeDelete);
     } finally {
       spy.mockRestore();
     }
@@ -658,4 +708,77 @@ describe("deleteJournalEntry", () => {
     expect(await deleteJournalEntry(entry.id)).toEqual({ ok: false, error: "Entry not found" });
     expect(await entriesFor("j-user")).toHaveLength(1);
   });
+});
+
+it("updates journal tags together with send facts and preserves tags for older callers", async () => {
+  expect((await createJournalEntry(ascentFormData())).ok).toBe(true);
+  const send = (await sendFor("j-user", HIGHBALL))!;
+  const form = undatedFormData({
+    dateSent: "2026-03-02",
+    comment: "New beta",
+    rating: "5",
+    tagsChanged: "true",
+  });
+  form.append("tag", "footwork");
+  expect(await updateSend(send.id, form)).toMatchObject({ ok: true });
+  expect(await entriesFor("j-user")).toMatchObject([
+    { entryDate: "2026-03-02", body: "New beta", tags: ["footwork"] },
+  ]);
+  expect(await sendFor("j-user", HIGHBALL)).toMatchObject({
+    dateSent: "2026-03-02",
+    comment: "New beta",
+    rating: 5,
+  });
+  form.delete("tagsChanged");
+  form.delete("tag");
+  expect(await updateSend(send.id, form)).toMatchObject({ ok: true });
+  expect(await entriesFor("j-user")).toMatchObject([{ tags: ["footwork"] }]);
+  form.set("tagsChanged", "true");
+  expect(await updateSend(send.id, form)).toMatchObject({ ok: true });
+  expect(await entriesFor("j-user")).toMatchObject([{ tags: null }]);
+});
+
+it("loads the same owner-only editor from the send and its original ascent", async () => {
+  await createJournalEntry(ascentFormData());
+  const send = (await sendFor("j-user", HIGHBALL))!;
+  const [entry] = await entriesFor("j-user");
+  const fromSend = await getSendEditorData({ sendId: send.id });
+  expect(fromSend).toMatchObject({
+    ok: true,
+    value: {
+      send: { id: send.id, rating: 4, ascentStyle: "flash" },
+      entry: { id: entry.id, tags: [] },
+      climb: { id: HIGHBALL },
+    },
+  });
+  expect(await getSendEditorData({ entryId: entry.id })).toEqual(fromSend);
+  sessionState.userId = "j-other";
+  expect((await getSendEditorData({ sendId: send.id })).ok).toBe(false);
+  expect((await getSendEditorData({ entryId: entry.id })).ok).toBe(false);
+  sessionState.userId = null;
+  expect(await getSendEditorData({ sendId: send.id })).toEqual({
+    ok: false,
+    error: SESSION_EXPIRED_MESSAGE,
+  });
+});
+
+it("rejects invalid tags and a changed journal link without changing either record", async () => {
+  await createJournalEntry(ascentFormData());
+  const send = (await sendFor("j-user", HIGHBALL))!;
+  const before = await entriesFor("j-user");
+  const form = undatedFormData({ dateSent: "2026-03-02", comment: "Changed", tagsChanged: "true" });
+  form.append("tag", "invalid tag!");
+  expect((await updateSend(send.id, form)).ok).toBe(false);
+  form.delete("tag");
+  form.set("journalEntryId", String(before[0].id + 1));
+  expect((await updateSend(send.id, form)).ok).toBe(false);
+  expect(await entriesFor("j-user")).toEqual(before);
+  expect(await sendFor("j-user", HIGHBALL)).toEqual(send);
+});
+
+it("does not open a repeat in the send editor", async () => {
+  await createJournalEntry(ascentFormData());
+  await createJournalEntry(entryFormData({ sent: "true", entryDate: "2026-03-02" }));
+  const repeat = (await entriesFor("j-user")).find((entry) => !entry.isAscent)!;
+  expect((await getSendEditorData({ entryId: repeat.id })).ok).toBe(false);
 });

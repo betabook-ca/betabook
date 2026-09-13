@@ -1,5 +1,6 @@
 import type { AnalyticsSendRow } from "@/db/queries";
 import { nativeGradeArray, type ClimbType } from "@/lib/grades";
+import type { AscentStyle } from "@/lib/sends";
 
 /** Which slice of a climber's log the analytics page is reading — grades
  * only compare within one discipline, so "all" keeps per-discipline
@@ -48,7 +49,24 @@ export type Breakthrough = {
   waitDays: number | null;
 };
 
+export type MonthlyVolume = { month: string; sends: number; days: number };
+export type FirstTryGradeRow = {
+  grade: number;
+  label: string;
+  sends: number;
+  /** Flashes plus onsights at this grade. */
+  firstTries: number;
+  rate: number;
+};
+
+/** Anything but a redpoint counts toward the flash rate: a flash, or an onsight on ropes. */
+function isFirstTry(style: AscentStyle): boolean {
+  return style !== "redpoint";
+}
+
 export type UserAnalytics = {
+  volume: MonthlyVolume[];
+  firstTryByGrade: { type: ClimbType; rows: FirstTryGradeRow[] }[];
   scope: DisciplineScope;
   sendCount: number;
   datelessCount: number;
@@ -59,6 +77,8 @@ export type UserAnalytics = {
   hardest: HardestSend[];
   flashCount: number;
   onsightCount: number;
+  /** flashCount + onsightCount. */
+  firstTryCount: number;
   /** Hardest flash-or-onsight — only when the scope is one discipline. */
   hardestFirstTry: HardestSend | null;
   daysOut: number;
@@ -172,15 +192,28 @@ export function buildPyramid(sends: AnalyticsSendRow[], type: ClimbType): Pyrami
   return rows;
 }
 
+/** An empty selection is All years, which includes undated rows. */
+export function inSelectedYears(date: string | null, selectedYears: readonly number[]): boolean {
+  return (
+    selectedYears.length === 0 || (date != null && selectedYears.includes(Number(date.slice(0, 4))))
+  );
+}
+
 /** Aggregates one user's full send log into everything the analytics page
- * shows, filtered to `scope`. Pure — see user-analytics.test.ts. */
+ * shows, filtered to `scope` and optionally selected years. Pure — see user-analytics.test.ts. */
 // oxlint-disable-next-line complexity -- one branch per independent stat computed in a single pass
 export function buildUserAnalytics(
   allSends: AnalyticsSendRow[],
   scope: DisciplineScope,
   journalSessions?: readonly AnalyticsJournalSession[],
+  selectedYears: readonly number[] = [],
 ): UserAnalytics {
-  const sends = scope === "all" ? allSends : allSends.filter((s) => s.climbType === scope);
+  const sends = allSends.filter(
+    (s) => (scope === "all" || s.climbType === scope) && inSelectedYears(s.dateSent, selectedYears),
+  );
+  const periodSessions = journalSessions?.filter((session) =>
+    inSelectedYears(session.entryDate, selectedYears),
+  );
   const dated = sends
     .filter((s): s is AnalyticsSendRow & { dateSent: string } => s.dateSent != null)
     .sort((a, b) => (a.dateSent < b.dateSent ? -1 : a.dateSent > b.dateSent ? 1 : 0));
@@ -218,7 +251,7 @@ export function buildUserAnalytics(
   let hardestFirstTry: HardestSend | null = null;
   if (scope !== "all") {
     const scale = nativeGradeArray(scope);
-    const firstTries = gradedSends(sends, scope).filter((s) => s.ascentStyle !== "redpoint");
+    const firstTries = gradedSends(sends, scope).filter((s) => isFirstTry(s.ascentStyle));
     if (firstTries.length > 0) {
       let top = firstTries[0];
       for (const s of firstTries.slice(1)) {
@@ -241,14 +274,14 @@ export function buildUserAnalytics(
   for (const s of dated) sendsByDay[s.dateSent] = (sendsByDay[s.dateSent] ?? 0) + 1;
   const sendDays = Object.keys(sendsByDay).sort();
   const sessionCounts: Record<string, number> = {};
-  if (journalSessions !== undefined) {
-    for (const session of journalSessions) {
+  if (periodSessions !== undefined) {
+    for (const session of periodSessions) {
       if (scope !== "all" && session.climbType !== scope) continue;
       sessionCounts[session.entryDate] =
         (sessionCounts[session.entryDate] ?? 0) + (session.count ?? 1);
     }
   }
-  const calendarCounts = journalSessions === undefined ? sendsByDay : sessionCounts;
+  const calendarCounts = periodSessions === undefined ? sendsByDay : sessionCounts;
   const days = Object.keys(calendarCounts).sort();
   const calendarYears = [...new Set(days.map((day) => Number(day.slice(0, 4))))].sort(
     (a, b) => a - b,
@@ -296,6 +329,41 @@ export function buildUserAnalytics(
     byMonth.set(month, (byMonth.get(month) ?? 0) + 1);
     byWeekday.set(weekday, (byWeekday.get(weekday) ?? 0) + 1);
   }
+  const daysByMonth = new Map<string, number>();
+  for (const day of days)
+    daysByMonth.set(day.slice(0, 7), (daysByMonth.get(day.slice(0, 7)) ?? 0) + 1);
+  const activeMonths = [...new Set([...byMonth.keys(), ...daysByMonth.keys()])].sort();
+  const volume: MonthlyVolume[] = [];
+  if (activeMonths.length) {
+    const index = (month: string) => Number(month.slice(0, 4)) * 12 + Number(month.slice(5)) - 1;
+    for (
+      let m = index(activeMonths[0]);
+      m <= index(activeMonths[activeMonths.length - 1]);
+      m += 1
+    ) {
+      const year = Math.floor(m / 12);
+      if (selectedYears.length && !selectedYears.includes(year)) continue;
+      const month = `${year}-${String((m % 12) + 1).padStart(2, "0")}`;
+      volume.push({ month, sends: byMonth.get(month) ?? 0, days: daysByMonth.get(month) ?? 0 });
+    }
+  }
+  const firstTryByGrade = disciplines.map((type) => {
+    const grades = new Map<number, FirstTryGradeRow>();
+    for (const send of gradedSends(sends, type)) {
+      const row = grades.get(send.grade) ?? {
+        grade: send.grade,
+        label: nativeGradeArray(type)[send.grade],
+        sends: 0,
+        firstTries: 0,
+        rate: 0,
+      };
+      row.sends += 1;
+      if (isFirstTry(send.ascentStyle)) row.firstTries += 1;
+      row.rate = (row.firstTries / row.sends) * 100;
+      grades.set(send.grade, row);
+    }
+    return { type, rows: [...grades.values()].sort((a, b) => a.grade - b.grade) };
+  });
   const bestYear = maxEntry(byYear, (year, count) => ({ year, count }));
   const busiestMonth = maxEntry(byMonth, (month, count) => ({ month, count }));
   const favoriteWeekday = maxEntry(byWeekday, (weekday, count) => ({
@@ -368,6 +436,8 @@ export function buildUserAnalytics(
   );
 
   return {
+    volume,
+    firstTryByGrade,
     scope,
     sendCount: sends.length,
     datelessCount: sends.length - dated.length,
@@ -376,6 +446,7 @@ export function buildUserAnalytics(
     hardest,
     flashCount,
     onsightCount,
+    firstTryCount: flashCount + onsightCount,
     hardestFirstTry,
     daysOut: days.length,
     daysPerMonth,

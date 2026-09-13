@@ -1,14 +1,14 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
+import { AuthCallout } from "@/components/auth-callout";
 import {
   findProductTour,
   parseProductTourNavigation,
+  productTourContinuationPath,
   type ProductTourSearchParams,
   PRODUCT_TOUR_STEPS,
-  productTourPath,
 } from "@/lib/product-tour-navigation";
-import { getSession } from "@/lib/session";
-import { signInUrl } from "@/lib/sign-in-redirect";
+import { getMemberSession as getSession } from "@/lib/session";
 
 export default async function TutorialPage({
   params,
@@ -18,11 +18,17 @@ export default async function TutorialPage({
   searchParams: Promise<ProductTourSearchParams>;
 }) {
   const { tourId, stepId } = await params;
+  if (!(await getSession())) {
+    return (
+      <AuthCallout
+        next={productTourContinuationPath(tourId, {
+          ...parseProductTourNavigation(await searchParams),
+          stepId,
+        })}
+      />
+    );
+  }
   const tour = findProductTour(tourId);
   if (!tour || !PRODUCT_TOUR_STEPS[tour.id].some((step) => step.id === stepId)) notFound();
-  if (!(await getSession())) {
-    const navigation = parseProductTourNavigation(await searchParams);
-    redirect(signInUrl(productTourPath(tour.id, { ...navigation, stepId })));
-  }
   return null;
 }

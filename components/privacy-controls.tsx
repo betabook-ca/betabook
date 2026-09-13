@@ -2,46 +2,64 @@
 
 import { useState, useTransition } from "react";
 
-import { setJournalVisibility, setUserPrivate } from "@/actions";
+import { setJournalVisibility, setSendCommentVisibility, setUserPrivate } from "@/actions";
 import { PrivacyFields } from "@/components/privacy-fields";
-import type { JournalVisibility } from "@/lib/journal";
+import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
+
+type Audiences = { journal: SharingAudience; sendComment: SendCommentAudience };
+type ContentKind = keyof Audiences;
 
 export function PrivacyControls({
   initialIsPrivate,
   initialJournalVisibility,
+  initialSendCommentVisibility,
 }: {
   initialIsPrivate: boolean;
-  initialJournalVisibility: JournalVisibility;
+  initialJournalVisibility: SharingAudience;
+  initialSendCommentVisibility: SendCommentAudience;
 }) {
   const [isPrivate, setIsPrivate] = useState(initialIsPrivate);
-  const [journalVisibility, setJournalVisibilityState] =
-    useState<JournalVisibility>(initialJournalVisibility);
+  const [audiences, setAudiences] = useState<Audiences>({
+    journal: initialJournalVisibility,
+    sendComment: initialSendCommentVisibility,
+  });
   const [profileError, setProfileError] = useState<string | null>(null);
-  const [journalError, setJournalError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Partial<Record<ContentKind, string>>>({});
   const [isPending, startTransition] = useTransition();
 
   function handleProfileChange(next: boolean) {
     setIsPrivate(next);
     setProfileError(null);
     startTransition(async () => {
-      const result = await setUserPrivate(next);
-      if (!result.ok) {
+      try {
+        const result = await setUserPrivate(next);
+        if (!result.ok) {
+          setIsPrivate(!next);
+          setProfileError(result.error);
+        }
+      } catch {
         setIsPrivate(!next);
-        setProfileError(result.error);
+        setProfileError("Couldn't save profile privacy. Try again.");
       }
     });
   }
 
-  function handleJournalChange(nextPrivate: boolean) {
-    const next = nextPrivate ? "private" : "public";
-    const previous = journalVisibility;
-    setJournalVisibilityState(next);
-    setJournalError(null);
+  function handleAudienceChange<K extends ContentKind>(kind: K, next: Audiences[K]) {
+    const previous = audiences[kind];
+    setAudiences((current) => ({ ...current, [kind]: next }));
+    setErrors((current) => ({ ...current, [kind]: undefined }));
     startTransition(async () => {
-      const result = await setJournalVisibility(next);
-      if (!result.ok) {
-        setJournalVisibilityState(previous);
-        setJournalError(result.error);
+      try {
+        const result = await (kind === "journal" ? setJournalVisibility : setSendCommentVisibility)(
+          next,
+        );
+        if (!result.ok) {
+          setAudiences((current) => ({ ...current, [kind]: previous }));
+          setErrors((current) => ({ ...current, [kind]: result.error }));
+        }
+      } catch {
+        setAudiences((current) => ({ ...current, [kind]: previous }));
+        setErrors((current) => ({ ...current, [kind]: "Couldn't save this audience. Try again." }));
       }
     });
   }
@@ -49,18 +67,15 @@ export function PrivacyControls({
   return (
     <PrivacyFields
       isPrivate={isPrivate}
-      privateJournal={journalVisibility === "private"}
+      journalVisibility={audiences.journal}
+      sendCommentVisibility={audiences.sendComment}
       onProfileChange={handleProfileChange}
-      onJournalChange={handleJournalChange}
+      onJournalChange={(next) => handleAudienceChange("journal", next)}
+      onSendCommentChange={(next) => handleAudienceChange("sendComment", next)}
       isPending={isPending}
       profileError={profileError}
-      journalError={journalError}
-      profileDescription="Hides your profile, sends, journal, and analytics from everyone but you. Sends still count toward community ratings and suggested grades."
-      journalDescription={
-        isPrivate
-          ? "Your private profile keeps both your journal and sends hidden. Make the profile public to share your journal."
-          : "Hides your journal from people who can view your profile. Logging and editing always stay private to you."
-      }
+      journalError={errors.journal}
+      sendCommentError={errors.sendComment}
     />
   );
 }

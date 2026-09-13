@@ -10,7 +10,7 @@ import { areaHref } from "@/lib/slug";
  *
  * Ancestors only have room on desktop — mobile shows just the last segment
  * (the most relevant part), matching the `md:hidden`/`md:` mobile/desktop
- * split already used for the nav (see mobile-nav.tsx). */
+ * split already used for the nav (see app-tab-bar.tsx). */
 export function AreaBreadcrumb({
   areaId,
   areaName,

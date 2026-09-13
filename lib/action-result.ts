@@ -1,3 +1,5 @@
+import { TERMS_ACCESS_MESSAGE } from "@/lib/terms";
+
 /** Return intentional action failures as data because Next.js redacts uncaught server errors. */
 export type ActionResult<T = void> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -6,6 +8,13 @@ export class ActionError extends Error {
   public constructor(message: string) {
     super(message);
     this.name = "ActionError";
+  }
+}
+
+export class TermsAcceptanceRequiredError extends ActionError {
+  public constructor() {
+    super(TERMS_ACCESS_MESSAGE);
+    this.name = "TermsAcceptanceRequiredError";
   }
 }
 

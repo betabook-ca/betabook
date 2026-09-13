@@ -246,6 +246,62 @@
       "when": 1788627000000,
       "tag": "0034_user_name_unique",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "6",
+      "when": 1788643349047,
+      "tag": "0035_magenta_stryfe",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1788731550714,
+      "tag": "0036_zippy_paibok",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "6",
+      "when": 1788820760906,
+      "tag": "0037_fearless_frog_thor",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "6",
+      "when": 1788967994504,
+      "tag": "0038_terms_acceptance",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "6",
+      "when": 1789000000000,
+      "tag": "0039_companion_tag_any_friend",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "6",
+      "when": 1789012479116,
+      "tag": "0040_feature_announcements",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "6",
+      "when": 1789264169118,
+      "tag": "0041_profile_share_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "6",
+      "when": 1789300000000,
+      "tag": "0042_boulder_first_try_is_flash",
+      "breakpoints": true
     }
   ]
 }

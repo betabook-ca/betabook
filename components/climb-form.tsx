@@ -1,12 +1,17 @@
 "use client";
 
-import { Button, Label, ListBox, Select, TextArea, TextField } from "@heroui/react";
+import { Button, Input, Label, TextArea, TextField } from "@heroui/react";
 import { useState, useTransition } from "react";
 
 import { createClimb, updateClimb } from "@/actions";
 import { AreaPicker, type PickedArea } from "@/components/area-picker";
 import { SURFACE_CARD_CLASS } from "@/components/ui/card";
-import { FIELD_CLASS } from "@/components/ui/field";
+import { choicePillClass } from "@/components/ui/choice-pill";
+import { DISCIPLINE_CHIP_CLASSNAME, DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
+import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
+import { FieldFeedback } from "@/components/ui/field-support";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { OptionSelect } from "@/components/ui/option-select";
 import type { Climb } from "@/db/queries";
 import { nativeGradeArray, type ClimbType } from "@/lib/grades";
 
@@ -19,14 +24,13 @@ type ClimbFormProps = {
   /** Starting values for a new climb, carried over from a search that failed
    * to find it (see ClimbPicker's empty state) so nothing is retyped. Ignored
    * when `climb` is given — an edit starts from the climb itself. */
-  initial?: { name?: string; type?: ClimbType; areaName?: string };
+  initial?: {
+    name?: string;
+    type?: ClimbType;
+    areaName?: string;
+    area?: { id: number; name: string; ancestorPath: string | null };
+  };
   onDone?: (climbId: number, climbName?: string) => void;
-};
-
-const CLIMB_TYPE_LABELS: Record<ClimbType, string> = {
-  boulder: "Boulder",
-  sport: "Sport",
-  trad: "Trad",
 };
 
 // oxlint-disable-next-line complexity -- create/edit form with many conditionally-rendered fields
@@ -35,7 +39,7 @@ export function ClimbForm({ areaId: fixedAreaId, climb, initial, onDone }: Climb
   const [type, setType] = useState<ClimbType>(climb?.type ?? initial?.type ?? "boulder");
   const [grade, setGrade] = useState(String(climb?.grade ?? 0));
   const [description, setDescription] = useState(climb?.description ?? "");
-  const [pickedArea, setPickedArea] = useState<PickedArea | null>(null);
+  const [pickedArea, setPickedArea] = useState<PickedArea | null>(initial?.area ?? null);
   const [error, setError] = useState<string | null>(null);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -92,14 +96,14 @@ export function ClimbForm({ areaId: fixedAreaId, climb, initial, onDone }: Climb
   if (climb) {
     return (
       <form onSubmit={handleSubmit} className={SURFACE_CARD_CLASS}>
-        <TextField value={description} onChange={setDescription}>
+        <TextField className="w-full" value={description} onChange={setDescription}>
           <Label>Description</Label>
-          <TextArea placeholder="Describe the climb…" />
+          <TextArea placeholder="Describe the climb…" rows={6} />
         </TextField>
 
-        {error && <p className="text-sm text-danger">{error}</p>}
+        {error && <InlineAlert>{error}</InlineAlert>}
 
-        <Button type="submit" isDisabled={pending} fullWidth>
+        <Button type="submit" isDisabled={pending} className="self-start">
           Save changes
         </Button>
       </form>
@@ -109,80 +113,76 @@ export function ClimbForm({ areaId: fixedAreaId, climb, initial, onDone }: Climb
   return (
     <form onSubmit={handleSubmit} className={SURFACE_CARD_CLASS}>
       {fixedAreaId == null && (
-        <TextField>
-          <Label>Area</Label>
+        <div className="flex flex-col gap-2">
           <AreaPicker
+            isRequired
             selected={pickedArea}
             onSelectedChange={setPickedArea}
             isInvalid={areaInvalid}
+            validationError={areaInvalid ? "Select an area." : undefined}
             defaultQuery={initial?.areaName}
           />
-          {areaInvalid && <p className="text-sm text-danger">Select an area.</p>}
-        </TextField>
+        </div>
       )}
 
-      <TextField>
+      <TextField
+        className={FIELD_WIDTH_CLASS.long}
+        value={name}
+        onChange={setName}
+        isInvalid={nameInvalid}
+        isRequired
+        validationBehavior="aria"
+      >
         <Label>Name</Label>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          // data-invalid is what HeroUI's field styles key their invalid
-          // ring off, so the raw input flags the same way its Inputs do.
-          aria-invalid={nameInvalid}
-          data-invalid={nameInvalid || undefined}
-          className={FIELD_CLASS}
-        />
-        {nameInvalid && <p className="text-sm text-danger">Name is required.</p>}
+        <Input />
+        <FieldFeedback error={nameInvalid ? "Name is required." : null} />
       </TextField>
 
-      <TextField>
-        <Label>Discipline</Label>
-        <select
-          value={type}
-          onChange={(e) => handleTypeChange(e.target.value as ClimbType)}
-          className={FIELD_CLASS}
-        >
-          {Object.entries(CLIMB_TYPE_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
+      <fieldset>
+        <legend className="mb-2">
+          <Label isRequired>Discipline</Label>
+        </legend>
+        <div className="flex flex-wrap gap-1.5">
+          {(Object.keys(DISCIPLINE_LABELS) as ClimbType[]).map((discipline) => (
+            <label
+              key={discipline}
+              className={`${choicePillClass(type === discipline, DISCIPLINE_CHIP_CLASSNAME[discipline])} has-focus-visible:status-focused`}
+            >
+              <input
+                type="radio"
+                name="discipline"
+                value={discipline}
+                checked={type === discipline}
+                onChange={() => handleTypeChange(discipline)}
+                required
+                className="sr-only"
+              />
+              {DISCIPLINE_LABELS[discipline]}
+            </label>
           ))}
-        </select>
-      </TextField>
+        </div>
+      </fieldset>
 
-      <TextField>
-        <Label>Grade</Label>
-        <Select
-          aria-label="Grade"
-          fullWidth
-          selectedKey={grade}
-          onSelectionChange={(key) => setGrade(String(key))}
-        >
-          <Select.Trigger>
-            <Select.Value />
-            <Select.Indicator />
-          </Select.Trigger>
-          <Select.Popover>
-            <ListBox className="max-h-64 overflow-y-auto">
-              {gradeOptions.map((label, i) => (
-                // oxlint-disable-next-line react/no-array-index-key -- grade index is stable option id
-                <ListBox.Item key={i} id={String(i)}>
-                  {label}
-                </ListBox.Item>
-              ))}
-            </ListBox>
-          </Select.Popover>
-        </Select>
-      </TextField>
+      <div className="flex flex-col gap-2">
+        <Label isRequired>Grade</Label>
+        <OptionSelect
+          ariaLabel="Grade"
+          isRequired
+          className={FIELD_WIDTH_CLASS.short}
+          value={grade}
+          onChange={setGrade}
+          options={gradeOptions.map((label, i) => ({ value: String(i), label }))}
+        />
+      </div>
 
-      <TextField value={description} onChange={setDescription}>
+      <TextField className="w-full" value={description} onChange={setDescription}>
         <Label>Description</Label>
-        <TextArea placeholder="Describe the climb…" />
+        <TextArea placeholder="Describe the climb…" rows={6} />
       </TextField>
 
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <InlineAlert>{error}</InlineAlert>}
 
-      <Button type="submit" isDisabled={pending} fullWidth>
+      <Button type="submit" isDisabled={pending} className="self-start">
         Add climb
       </Button>
     </form>

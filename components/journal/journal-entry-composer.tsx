@@ -3,8 +3,13 @@
 import { Button } from "@heroui/react";
 import { useState } from "react";
 
-import { EntryKindStep, type EntryKindChoice } from "@/components/journal/entry-kind-step";
+import {
+  EntryKindStep,
+  TRAINING_DESCRIPTION,
+  type EntryKindChoice,
+} from "@/components/journal/entry-kind-step";
 import { JournalEntryForm } from "@/components/journal/journal-entry-form";
+import { cardClass } from "@/components/ui/card";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { Grade } from "@/components/ui/grade";
 import type { ClimbWithAreaName } from "@/db/queries";
@@ -22,13 +27,13 @@ function ChosenStrip({
   const climb = choice.kind === "session" ? choice.climb : undefined;
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg bg-surface-secondary px-4 py-3">
+    <div className={`flex items-center justify-between gap-3 ${cardClass("sm")}`}>
       <div className="min-w-0">
         <p className="truncate text-sm font-medium text-foreground">
           {climb ? climb.name : "Training"}
         </p>
         <p className="truncate text-xs text-muted">
-          {climb ? climb.areaName : "Indoor climbing, strength, or conditioning"}
+          {climb ? climb.areaName : TRAINING_DESCRIPTION}
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-2">

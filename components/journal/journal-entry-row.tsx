@@ -5,18 +5,21 @@ import { CircleCheckBig } from "lucide-react";
 
 import { ClimbLogRow } from "@/components/climb-log-row";
 import { EntryActionsMenu } from "@/components/journal/entry-actions-menu";
+import { JournalCompanions } from "@/components/journal/journal-companions";
 import { AppLink } from "@/components/ui/app-link";
 import { Grade } from "@/components/ui/grade";
 import { ListRow } from "@/components/ui/list-row";
 import type { AreaBreadcrumbs, JournalEntry } from "@/db/queries";
+import { journalFilterToSearchParams, type JournalFilter } from "@/lib/filters/journal-filter";
 import { formatDate } from "@/lib/format-date";
 import { formatGrade } from "@/lib/grades";
-import { journalFilterToSearchParams, type JournalFilter } from "@/lib/journal-filter";
 
 function tagHref(userId: string, filter: JournalFilter, tag: string): string {
   const params = journalFilterToSearchParams({
     ...filter,
-    tag: filter.tag === tag ? null : tag,
+    tags: filter.tags.includes(tag)
+      ? filter.tags.filter((value) => value !== tag)
+      : [...filter.tags, tag],
   });
   const query = params.toString();
   const base = `/users/${userId}/journal`;
@@ -36,22 +39,23 @@ export function JournalEntryRow({
   filter: JournalFilter;
   areaBreadcrumbs: AreaBreadcrumbs;
 }) {
-  const label = entry.kind === "training" ? "Training" : entry.sent ? "Repeat" : "Session";
+  // No pill on training: the row's title already says Training.
   const status = entry.isAscent ? (
     <span className="inline-flex items-center gap-1 font-semibold text-success-soft-foreground">
       <CircleCheckBig aria-hidden className="size-4" />
       <span>Sent</span>
     </span>
-  ) : (
+  ) : entry.kind === "training" ? null : (
     <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted">
-      {label}
+      {entry.sent ? "Repeat" : "Session"}
     </span>
   );
   const tags =
-    entry.tags.length > 0 ? (
+    entry.tags.length > 0 || (entry.companions?.length ?? 0) > 0 ? (
       <>
+        <JournalCompanions entryId={entry.id} initialCompanions={entry.companions} />
         {entry.tags.map((tag) => {
-          const active = filter.tag === tag;
+          const active = filter.tags.includes(tag);
           return (
             <AppLink
               key={tag}

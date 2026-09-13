@@ -58,6 +58,52 @@ async function seedAscent() {
 }
 
 describe("journal and send database invariants", () => {
+  it("rejects moving an ascent away from a send that still exists", async () => {
+    await seedAscent();
+    await seedFixtureSend(db, {
+      userId: USER_ID,
+      climbId: 2,
+      dateSent: "2026-03-01",
+      comment: "Ascent",
+    });
+    const [ascent] = await db
+      .select()
+      .from(journalEntries)
+      .where(eq(journalEntries.userId, USER_ID));
+    await expectInvariantViolation(
+      db.update(journalEntries).set({ climbId: 2 }).where(eq(journalEntries.id, ascent.id)),
+    );
+    expect(
+      await db.select().from(journalEntries).where(eq(journalEntries.id, ascent.id)).get(),
+    ).toMatchObject({ climbId: CLIMB_ID, isAscent: true });
+  });
+
+  it.each([{ body: "Different note" }, { entryDate: "2026-03-02" }])(
+    "rolls back an ascent move that no longer mirrors its moved send: %j",
+    async (changes) => {
+      await seedAscent();
+      const [ascent] = await db
+        .select()
+        .from(journalEntries)
+        .where(eq(journalEntries.userId, USER_ID));
+      await expectInvariantViolation(
+        db.batch([
+          db.update(sends).set({ climbId: 2 }).where(eq(sends.userId, USER_ID)),
+          db
+            .update(journalEntries)
+            .set({ climbId: 2, ...changes })
+            .where(eq(journalEntries.id, ascent.id)),
+        ]),
+      );
+      expect(
+        await db.select().from(journalEntries).where(eq(journalEntries.id, ascent.id)).get(),
+      ).toEqual(ascent);
+      expect(await db.select().from(sends).where(eq(sends.userId, USER_ID))).toMatchObject([
+        { climbId: CLIMB_ID, comment: "Ascent", dateSent: "2026-03-01" },
+      ]);
+    },
+  );
+
   it("rejects a sent entry without a matching dated send", async () => {
     await expectInvariantViolation(
       seedFixtureJournalEntry(db, {

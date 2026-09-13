@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "betabook-storybook": {
+      "type": "http",
+      "url": "https://main--6a9d99bf69b9b54453118dcf.chromatic.com/mcp",
+      "oauth": {
+        "clientId": "cdf3737dff9d485485968e50b63fd8b4"
+      }
+    }
+  }
+}

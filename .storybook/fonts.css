@@ -1,0 +1,31 @@
+/* Next's font compiler doesn't run on geist's package loader in Vite.
+   Serve the exact application font files locally, including for portals.
+   Keep these family/weight mappings aligned with app/layout.tsx. */
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/geist/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Barlow Condensed";
+  src: url("/fonts/barlow/barlow-condensed-600-latin.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Barlow Condensed";
+  src: url("/fonts/barlow/barlow-condensed-700-latin.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: block;
+}
+
+:root {
+  --font-geist-sans: "Geist", sans-serif;
+  --font-barlow-condensed: "Barlow Condensed", sans-serif;
+}

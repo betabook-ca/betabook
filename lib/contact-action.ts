@@ -17,8 +17,7 @@ const THROTTLED_MESSAGE = "Too many messages from this network. Try again in a m
 
 /** The one action in the app that doesn't call `requireSession()` — being
  * reachable by a signed-out visitor is the entire point of the contact form.
- * The bot checks and the rate limiter below stand in for the session check,
- * and `middleware.ts` already leaves /contact out of its matcher.
+ * The bot checks and the rate limiter below stand in for the session check.
  *
  * Kept in lib/ rather than db/ because it touches no database, and split
  * from lib/contact.ts because a "use server" file can only export async

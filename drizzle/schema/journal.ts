@@ -15,6 +15,8 @@ export const journalEntries = sqliteTable(
     kind: text("kind", { enum: ["session", "training"] }).notNull(),
     sent: integer("sent", { mode: "boolean" }).default(false).notNull(),
     isAscent: integer("is_ascent", { mode: "boolean" }).default(false).notNull(),
+    // Commentary keeps its audience when deleting a send demotes its ascent to a session.
+    isSendComment: integer("is_send_comment", { mode: "boolean" }).default(false).notNull(),
     entryDate: text("entry_date").notNull(),
     body: text("body"),
     tags: text("tags", { mode: "json" }).$type<string[]>(),

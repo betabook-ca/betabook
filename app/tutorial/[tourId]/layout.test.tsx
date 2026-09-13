@@ -5,9 +5,10 @@ import TutorialLayout, { metadata } from "@/app/tutorial/[tourId]/layout";
 import TutorialStart from "@/app/tutorial/[tourId]/page";
 import { getDb } from "@/db/client";
 import { getProductTourState } from "@/db/queries";
-import { getSession } from "@/lib/session";
+import { getMemberSession as getSession } from "@/lib/session";
 
-vi.mock("@/lib/session", () => ({ getSession: vi.fn<typeof getSession>() }));
+vi.mock("next/link", () => ({ default: () => null }));
+vi.mock("@/lib/session", () => ({ getMemberSession: vi.fn<typeof getSession>() }));
 vi.mock("@/db/client", () => ({ getDb: vi.fn<typeof getDb>() }));
 vi.mock("@/db/queries", () => ({ getProductTourState: vi.fn<typeof getProductTourState>() }));
 vi.mock("@/components/product-tours/tour-experience", () => ({ TourExperience: () => null }));
@@ -36,7 +37,7 @@ describe("tutorial routes", () => {
         params: Promise.resolve({ tourId: "journal", stepId: "sends" }),
         searchParams: Promise.resolve({ from: "account" }),
       }),
-    ).rejects.toThrow("REDIRECT:/sign-in?next=%2Ftutorial%2Fjournal%2Fsends%3Ffrom%3Daccount");
+    ).resolves.toMatchObject({ props: { next: "/tutorial/journal/sends?from=account" } });
     expect(metadata.robots).toEqual({ index: false });
   });
 
@@ -77,6 +78,9 @@ describe("tutorial routes", () => {
     ).resolves.toBeNull();
   });
   it("preserves Account replay when entering through the tour root", async () => {
+    vi.mocked(getSession).mockResolvedValue({ user: { id: "owner" } } as Awaited<
+      ReturnType<typeof getSession>
+    >);
     await expect(
       TutorialStart({
         params: Promise.resolve({ tourId: "journal" }),
@@ -92,7 +96,7 @@ describe("tutorial routes", () => {
         params: Promise.resolve({ tourId: "journal", stepId: "account" }),
         searchParams: Promise.resolve({ from: "https://example.com" }),
       }),
-    ).rejects.toThrow("REDIRECT:/sign-in?next=%2Ftutorial%2Fjournal%2Faccount");
+    ).resolves.toMatchObject({ props: { next: "/tutorial/journal/account" } });
   });
 
   it("preserves the update selection through sign-in and root redirects", async () => {
@@ -102,12 +106,34 @@ describe("tutorial routes", () => {
         params: Promise.resolve({ tourId: "journal", stepId: "sends" }),
         searchParams: Promise.resolve({ mode: "updates" }),
       }),
-    ).rejects.toThrow("REDIRECT:/sign-in?next=%2Ftutorial%2Fjournal%2Fsends%3Fmode%3Dupdates");
+    ).resolves.toMatchObject({ props: { next: "/tutorial/journal/sends?mode=updates" } });
+    vi.mocked(getSession).mockResolvedValue({ user: { id: "owner" } } as Awaited<
+      ReturnType<typeof getSession>
+    >);
     await expect(
       TutorialStart({
         params: Promise.resolve({ tourId: "journal" }),
         searchParams: Promise.resolve({ mode: "updates" }),
       }),
     ).rejects.toThrow("REDIRECT:/tutorial/journal/journal?mode=updates");
+  });
+
+  it("locks unknown tours and steps before revealing whether they exist", async () => {
+    vi.mocked(getSession).mockResolvedValue(null);
+    expect(
+      await TutorialLayout({ params: Promise.resolve({ tourId: "missing" }), children: "gate" }),
+    ).toBe("gate");
+    await expect(
+      TutorialPage({
+        params: Promise.resolve({ tourId: "missing", stepId: "missing" }),
+        searchParams: Promise.resolve({ from: "account" }),
+      }),
+    ).resolves.toMatchObject({ props: { next: "/tutorial/missing/missing?from=account" } });
+    await expect(
+      TutorialStart({
+        params: Promise.resolve({ tourId: "missing" }),
+        searchParams: Promise.resolve({ mode: "updates" }),
+      }),
+    ).resolves.toMatchObject({ props: { next: "/tutorial/missing?mode=updates" } });
   });
 });

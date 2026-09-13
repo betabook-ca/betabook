@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { calendarMonth, formatDate } from "./format-date";
+import { daysBetween, describeDaysAgo, formatDate } from "./format-date";
 
 describe("formatDate", () => {
   it("formats a stored civil date", () => {
@@ -20,10 +20,40 @@ describe("formatDate", () => {
   });
 });
 
-describe("calendarMonth", () => {
-  it("uses the requested timezone at a month boundary", () => {
-    const instant = new Date("2026-09-01T00:30:00.000Z");
-    expect(calendarMonth(instant, "UTC")).toBe("2026-09");
-    expect(calendarMonth(instant, "America/Los_Angeles")).toBe("2026-08");
+describe("daysBetween", () => {
+  it("counts whole days across a month and a leap day", () => {
+    expect(daysBetween("2026-09-01", "2026-09-11")).toBe(10);
+    expect(daysBetween("2024-02-28", "2024-03-01")).toBe(2);
+    expect(daysBetween("2026-09-11", "2026-09-11")).toBe(0);
+  });
+
+  it("stays whole across a daylight-saving change", () => {
+    expect(daysBetween("2026-03-07", "2026-03-09")).toBe(2);
+    expect(daysBetween("2026-11-01", "2026-11-02")).toBe(1);
+  });
+
+  it("returns a negative count for a future date and null for nonsense", () => {
+    expect(daysBetween("2026-09-11", "2026-09-04")).toBe(-7);
+    expect(daysBetween("not-a-date", "2026-09-11")).toBeNull();
+    expect(daysBetween("2026-09-11", "")).toBeNull();
+  });
+});
+
+describe("describeDaysAgo", () => {
+  it("names the recent days in full", () => {
+    expect(describeDaysAgo(0)).toBe("Today");
+    expect(describeDaysAgo(-3)).toBe("Today");
+    expect(describeDaysAgo(1)).toBe("Yesterday");
+    expect(describeDaysAgo(6)).toBe("6 days ago");
+  });
+
+  it("floors longer gaps into the coarser unit", () => {
+    expect(describeDaysAgo(7)).toBe("1 week ago");
+    expect(describeDaysAgo(20)).toBe("2 weeks ago");
+    expect(describeDaysAgo(29)).toBe("4 weeks ago");
+    expect(describeDaysAgo(30)).toBe("1 month ago");
+    expect(describeDaysAgo(364)).toBe("12 months ago");
+    expect(describeDaysAgo(365)).toBe("1 year ago");
+    expect(describeDaysAgo(900)).toBe("2 years ago");
   });
 });

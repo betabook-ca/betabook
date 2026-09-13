@@ -1,7 +1,6 @@
 "use client";
 
 import { Breadcrumbs } from "@heroui/react";
-import { useRouter } from "next/navigation";
 
 import { areaHref } from "@/lib/slug";
 
@@ -24,15 +23,9 @@ function visibilityClassName(distanceFromCurrent: number): string | undefined {
   return "hidden lg:flex";
 }
 
-/** Unlike the list rows (AppLink = next/link, which prefetches itself),
- * these items stay HeroUI/react-aria links — Breadcrumbs.Item owns its inner
- * Link, and its function-children escape hatch drops the separator — so the
- * intent-based prefetch is recreated with router.prefetch on hover/focus.
- * router.prefetch does a full prefetch, matching AppLink's upgrade-on-intent
- * behavior for these (always dynamic) area pages. */
+/** HeroUI/react-aria links navigate through the shared RouterProvider.
+ * Like AppLink, they fetch the destination only when activated. */
 export function AreaBreadcrumbs({ ancestors, current }: AreaBreadcrumbsProps) {
-  const router = useRouter();
-
   return (
     <div className="flex items-center gap-3">
       {/* The topo line: a short rope-end leading into the trail of areas,
@@ -45,8 +38,6 @@ export function AreaBreadcrumbs({ ancestors, current }: AreaBreadcrumbsProps) {
             <Breadcrumbs.Item
               key={ancestor.id}
               href={href}
-              onHoverStart={() => router.prefetch(href)}
-              onFocus={() => router.prefetch(href)}
               className={visibilityClassName(ancestors.length - index)}
             >
               {ancestor.name}

@@ -2,17 +2,12 @@ import { eq, getTableColumns, sql, type SQL } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { areas, climbs } from "@/db/schema";
-import { MAX_RATING } from "@/lib/climb-stats-filter";
-import {
-  DEFAULT_BOULDER_RANGE,
-  DEFAULT_SPORT_RANGE,
-  DEFAULT_TRAD_RANGE,
-  type DisciplineGradeFilter,
-} from "@/lib/discipline-filter";
+import { MAX_RATING } from "@/lib/filters/climb-stats-filter";
+import type { DisciplineGradeFilter } from "@/lib/filters/discipline-filter";
 import type { Discipline } from "@/lib/grades";
 
-import { areaNameCondition, type Area } from "./areas";
-import { PAGE_SIZE, disciplineGradeCondition, toFtsPrefixQuery } from "./shared";
+import { areaIdCondition, areaNameCondition, type Area } from "./areas";
+import { PAGE_SIZE, disciplineGradeConditions, toFtsPrefixQuery } from "./shared";
 
 export type Climb = typeof climbs.$inferSelect;
 
@@ -90,21 +85,7 @@ function sortTieBreak(sort: SubtreeClimbsSort): SQL {
 }
 
 export type { Discipline } from "@/lib/grades";
-export type { DisciplineGradeFilter } from "@/lib/discipline-filter";
-
-function disciplineGradeConditions(filter: DisciplineGradeFilter): SQL[] {
-  const clauses: SQL[] = [];
-  if (filter.disciplines.includes("boulder") && filter.boulderRange) {
-    clauses.push(disciplineGradeCondition("boulder", filter.boulderRange, DEFAULT_BOULDER_RANGE));
-  }
-  if (filter.disciplines.includes("sport") && filter.sportRange) {
-    clauses.push(disciplineGradeCondition("sport", filter.sportRange, DEFAULT_SPORT_RANGE));
-  }
-  if (filter.disciplines.includes("trad") && filter.tradRange) {
-    clauses.push(disciplineGradeCondition("trad", filter.tradRange, DEFAULT_TRAD_RANGE));
-  }
-  return clauses;
-}
+export type { DisciplineGradeFilter } from "@/lib/filters/discipline-filter";
 
 /** UNION ALL is safe from a single root: cycle guards keep the hierarchy a tree. */
 function subtreeAreaIds(areaId: number): SQL {
@@ -170,12 +151,14 @@ export type ClimbStatsFilter = {
   minAscents?: number;
 };
 
-/** Default bounds must omit rating predicates so unrated climbs remain visible. */
+/** Unrated averages are SQL NULL, not zero. The displayed 1–5 range is
+ * inactive, so omit both predicates to keep NULLs. Any narrowed bound uses
+ * a normal comparison, which excludes NULLs. Zero is a legacy unbounded sentinel. */
 function climbStatsConditions(filter: ClimbStatsFilter): SQL[] {
   const clauses: SQL[] = [];
   if (filter.ratingRange) {
     const [min, max] = filter.ratingRange;
-    if (min > 0) clauses.push(sql`climbs.avg_rating >= ${min}`);
+    if (min > 1) clauses.push(sql`climbs.avg_rating >= ${min}`);
     if (max > 0 && max < MAX_RATING) clauses.push(sql`climbs.avg_rating <= ${max}`);
   }
   if (filter.minAscents) {
@@ -443,6 +426,7 @@ export type SearchClimbsParams = DisciplineGradeFilter &
   ClimbStatsFilter & {
     name?: string;
     areaName?: string;
+    areaId?: number;
     sort?: SubtreeClimbsSort;
   };
 
@@ -452,8 +436,13 @@ export type ClimbWithAreaName = Pick<Climb, "id" | "areaId" | "name" | "type" | 
 
 export const SEARCH_PAGE_SIZE = 25;
 
+/** The ORDER BY every climb list shares, tie-breaks and id stabilizer included. */
+export function climbListOrderBy(sort: SubtreeClimbsSort = "ascents_desc"): SQL {
+  return sql`${SUBTREE_CLIMBS_ORDER_BY[sort]}, ${sortTieBreak(sort)}, climbs.id`;
+}
+
 /** A null result means no matchable FTS tokens; an empty array means no filters. */
-function searchClimbsConditions(params: SearchClimbsParams): SQL[] | null {
+export function searchClimbsConditions(params: SearchClimbsParams): SQL[] | null {
   const conditions: SQL[] = [];
 
   if (params.name) {
@@ -464,7 +453,10 @@ function searchClimbsConditions(params: SearchClimbsParams): SQL[] | null {
     );
   }
 
-  const areaCondition = areaNameCondition(params.areaName);
+  const areaCondition =
+    params.areaId !== undefined
+      ? areaIdCondition(params.areaId)
+      : areaNameCondition(params.areaName);
   if (areaCondition) conditions.push(areaCondition);
 
   const disciplineClauses = disciplineGradeConditions(params);
@@ -504,7 +496,7 @@ export async function searchClimbs(
     FROM climbs
     JOIN areas ON areas.id = climbs.area_id
     ${searchClimbsWhereClause(conditions)}
-    ORDER BY ${SUBTREE_CLIMBS_ORDER_BY[params.sort ?? "ascents_desc"]}, ${sortTieBreak(params.sort ?? "ascents_desc")}, climbs.id
+    ORDER BY ${climbListOrderBy(params.sort)}
     LIMIT ${pageSize + 1}
     OFFSET ${offset}
   `);

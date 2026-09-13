@@ -27,6 +27,9 @@
     "drizzle/migrations/**",
     "worker-configuration.d.ts",
     "next-env.d.ts",
-    "pnpm-lock.yaml"
+    "pnpm-lock.yaml",
+    "storybook-static/**",
+    "playwright-report/**",
+    "test-results/**"
   ]
 }

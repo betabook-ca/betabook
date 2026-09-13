@@ -417,7 +417,8 @@ export function findPlaceholderTimestamps(
 }
 
 export type AscentStyleMapping = Record<string, AscentStyle | "skip">;
-export type ClimbTypeMapping = Record<string, ClimbType | "skip">;
+type ImportClimbType = ClimbType | "route";
+export type ClimbTypeMapping = Record<string, ImportClimbType | "skip">;
 export type GradeFeelMapping = Record<string, GradeFeel | "skip">;
 
 // Map common send styles; attempts, top ropes, and follows stay unmapped for review.
@@ -442,7 +443,9 @@ export function guessAscentStyleMapping(values: string[]): AscentStyleMapping {
   return mapping;
 }
 
-const CLIMB_TYPE_ALIASES: Record<string, ClimbType> = {
+const CLIMB_TYPE_ALIASES: Record<string, ImportClimbType> = {
+  route: "route",
+  routes: "route",
   bouldering: "boulder",
   traditional: "trad",
 };
@@ -451,7 +454,7 @@ const CLIMB_TYPE_ALIASES: Record<string, ClimbType> = {
 export function guessClimbTypeMapping(values: string[]): ClimbTypeMapping {
   const mapping: ClimbTypeMapping = {};
   for (const value of values) {
-    let match: ClimbType | undefined;
+    let match: ImportClimbType | undefined;
     for (const token of value.toLowerCase().split(/\s*[,/]\s*/)) {
       const trimmed = token.trim();
       match = CLIMB_TYPES.find((t) => t === trimmed) ?? CLIMB_TYPE_ALIASES[trimmed];
@@ -533,7 +536,7 @@ export type NormalizedImportRow = {
   areaName: string | null;
   /** Soft location hints in mapped-column order, with paths expanded leaf-first. */
   areaHints: string[];
-  climbTypeHint: ClimbType | null; // A mapped discipline constrains matching.
+  climbTypeHint: ImportClimbType | null; // A mapped discipline constrains matching.
   ascentStyle: AscentStyle;
   dateSent: string | null; // ISO if present; blank in the CSV -> null, not a failure
   rating: number | null;
@@ -543,7 +546,7 @@ export type NormalizedImportRow = {
   /** A blank mapped Suggested Grade means no suggestion. With only Grade mapped,
    * a blank falls back to the climb's posted grade. Preserve this distinction on export/import. */
   blankGradeMeans: "posted-grade" | "no-suggestion";
-  /** Posted grade from the file, used only for matching when gradeText is blank. */
+  /** Posted grade from the source, preferred over the climber's grade for matching. */
   postedGradeText: string | null;
   gradeFeel: GradeFeel; // optional CSV column; defaults to "solid" if absent/unrecognized
   raw: Record<string, string>; // the original CSV row, kept for a failed-rows export identical to the source
@@ -577,10 +580,13 @@ const COERCION_MESSAGES: Record<CoercionWarning["field"], string> = {
  * The server validates against the chosen climb's scale. */
 function gradeTextParses(
   text: string,
-  climbTypeHint: ClimbType | null,
+  climbTypeHint: ImportClimbType | null,
   preference: "native" | "converted",
 ): boolean {
-  if (climbTypeHint) return parseGrade(climbTypeHint, text, preference) !== null;
+  if (climbTypeHint)
+    return (
+      parseGrade(climbTypeHint === "route" ? "sport" : climbTypeHint, text, preference) !== null
+    );
   return (
     parseGrade("boulder", text, preference) !== null ||
     parseGrade("sport", text, preference) !== null
@@ -668,7 +674,7 @@ export function normalizeImportRows(
 
     const rawClimbType = cell(mapping.climbType);
     const mappedClimbType = rawClimbType ? climbTypeMapping[rawClimbType] : undefined;
-    const climbTypeHint: ClimbType | null =
+    const climbTypeHint: ImportClimbType | null =
       mappedClimbType && mappedClimbType !== "skip" ? mappedClimbType : null;
 
     const rawRating = cell(mapping.rating);

@@ -1,12 +1,13 @@
 "use client";
 
-import { Button, Label, TextArea, TextField } from "@heroui/react";
+import { Button, Input, Label, TextArea, TextField } from "@heroui/react";
 import { useState, useTransition } from "react";
 
 import { createArea, updateArea } from "@/actions";
 import { AreaPicker, type PickedArea } from "@/components/area-picker";
 import { SURFACE_CARD_CLASS } from "@/components/ui/card";
-import { FIELD_CLASS } from "@/components/ui/field";
+import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import type { Area } from "@/db/queries";
 
 type AreaFormProps = {
@@ -74,14 +75,14 @@ export function AreaForm({ parentId: fixedParentId, area, onDone }: AreaFormProp
   if (area) {
     return (
       <form onSubmit={handleSubmit} className={SURFACE_CARD_CLASS}>
-        <TextField value={description} onChange={setDescription}>
+        <TextField className="w-full" value={description} onChange={setDescription}>
           <Label>Description</Label>
-          <TextArea placeholder="Describe the area…" />
+          <TextArea placeholder="Describe the area…" rows={6} />
         </TextField>
 
-        {error && <p className="text-sm text-danger">{error}</p>}
+        {error && <InlineAlert>{error}</InlineAlert>}
 
-        <Button type="submit" isDisabled={pending} fullWidth>
+        <Button type="submit" isDisabled={pending} className="self-start">
           Save changes
         </Button>
       </form>
@@ -91,35 +92,31 @@ export function AreaForm({ parentId: fixedParentId, area, onDone }: AreaFormProp
   return (
     <form onSubmit={handleSubmit} className={SURFACE_CARD_CLASS}>
       {fixedParentId == null && (
-        <TextField>
-          <Label>Parent area</Label>
+        <div className="flex flex-col gap-2">
           <AreaPicker
+            isRequired
+            label="Parent area"
             selected={pickedParent}
             onSelectedChange={setPickedParent}
             isInvalid={parentInvalid}
+            validationError={parentInvalid ? "Select a parent area." : undefined}
           />
-          {parentInvalid && <p className="text-sm text-danger">Select a parent area.</p>}
-        </TextField>
+        </div>
       )}
 
-      <TextField>
+      <TextField className={FIELD_WIDTH_CLASS.long} value={name} onChange={setName} isRequired>
         <Label>Name</Label>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-          className={FIELD_CLASS}
-        />
+        <Input />
       </TextField>
 
-      <TextField value={description} onChange={setDescription}>
+      <TextField className="w-full" value={description} onChange={setDescription}>
         <Label>Description</Label>
-        <TextArea placeholder="Describe the area…" />
+        <TextArea placeholder="Describe the area…" rows={6} />
       </TextField>
 
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <InlineAlert>{error}</InlineAlert>}
 
-      <Button type="submit" isDisabled={pending || !trimmedName} fullWidth>
+      <Button type="submit" isDisabled={pending || !trimmedName} className="self-start">
         Add area
       </Button>
     </form>

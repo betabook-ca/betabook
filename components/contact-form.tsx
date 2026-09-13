@@ -4,7 +4,7 @@ import { Button, Input, Label, TextArea, TextField } from "@heroui/react";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { SURFACE_CARD_CLASS } from "@/components/ui/card";
-import { SectionHeading } from "@/components/ui/typography";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { useMounted } from "@/hooks/use-mounted";
 import { authClient } from "@/lib/auth-client";
 import {
@@ -28,7 +28,7 @@ export function ContactForm() {
   }, []);
 
   // Prefill for a signed-in visitor, read on the client the same way the
-  // header's AuthNav reads it, so /contact stays prerenderable — a
+  // header's menu reads it, so /contact stays prerenderable — a
   // getSession() in the page would make it dynamic to fill in one field.
   // `mounted` keeps the server render and the first client render identical.
   const mounted = useMounted();
@@ -75,12 +75,9 @@ export function ContactForm() {
 
   if (sent) {
     return (
-      <div className={SURFACE_CARD_CLASS} role="status" aria-live="polite">
-        <SectionHeading>Message sent</SectionHeading>
-        <p className="text-sm text-muted">
-          Thanks — that&apos;s landed. Any reply will come back to {sent}.
-        </p>
-      </div>
+      <InlineAlert status="success" title="Message sent">
+        Thanks — that&apos;s landed. Any reply will come back to {sent}.
+      </InlineAlert>
     );
   }
 
@@ -124,11 +121,7 @@ export function ContactForm() {
         className="absolute left-[-9999px] h-px w-px opacity-0"
       />
 
-      {error && (
-        <p role="status" aria-live="polite" className="text-sm text-danger">
-          {error}
-        </p>
-      )}
+      {error && <InlineAlert>{error}</InlineAlert>}
 
       <Button type="submit" isDisabled={pending || !email.trim() || !message.trim()} fullWidth>
         Send Message

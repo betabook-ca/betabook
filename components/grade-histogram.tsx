@@ -8,7 +8,7 @@ import {
   DEFAULT_AREA_CLIMBS_FILTER,
   DEFAULT_AREA_CLIMBS_SORT,
   type AreaClimbsFilter,
-} from "@/lib/area-climbs-filter";
+} from "@/lib/filters/area-climbs-filter";
 import { formatCount } from "@/lib/format";
 import type { GradeHistogram, DisciplineHistogram, GradeBucket } from "@/lib/grade-histogram";
 import type { ClimbType } from "@/lib/grades";

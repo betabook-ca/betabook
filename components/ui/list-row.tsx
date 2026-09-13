@@ -24,11 +24,8 @@ type ListRowProps = {
    * own vertical stack. */
   actions?: ReactNode;
   comment?: string | null;
-  /** Who the comment belongs to — rendered on its own line directly above
-   * it, outside the clamp so it never spends one of the comment's visible
-   * lines. Only lists that mix authors need it (the home feed); a list
-   * that's already scoped to one climber leaves it off. */
-  commentAuthor?: ReactNode;
+  /** Keep author names readable in activity rows with a fixed outcome column. */
+  wrapTitle?: boolean;
   className?: string;
 };
 
@@ -42,7 +39,7 @@ export function ListRow({
   trailing,
   actions,
   comment,
-  commentAuthor,
+  wrapTitle = false,
   className,
 }: ListRowProps) {
   return (
@@ -70,9 +67,20 @@ export function ListRow({
         <div className="flex min-w-0 grow flex-col gap-2">
           <div>
             <div className="flex items-baseline gap-2">
-              <span className="min-w-0 flex-1 truncate font-medium text-foreground">
+              <span
+                className={clsx(
+                  "min-w-0 flex-1 font-medium text-foreground",
+                  wrapTitle ? "break-words" : "truncate",
+                )}
+              >
                 {href != null ? (
-                  <AppLink href={href} className="static block max-w-full truncate">
+                  <AppLink
+                    href={href}
+                    className={clsx(
+                      "static block max-w-full",
+                      wrapTitle ? "break-words" : "truncate",
+                    )}
+                  >
                     {/* Stretches this link's click target across the whole
                      * row — `static` undoes the link's own `relative` so
                      * inset-0 resolves against the row instead. */}
@@ -95,13 +103,12 @@ export function ListRow({
             )}
             {tags && <div className="relative z-10 mt-1 flex w-fit flex-wrap gap-2">{tags}</div>}
           </div>
-          {(commentAuthor != null || comment != null) && (
+          {comment != null && (
             // Lifted above the row-link overlay like the other slots so the
-            // comment text stays selectable (and the author's link stays
-            // clickable) instead of click-navigating with the row.
+            // comment text stays selectable instead of click-navigating with
+            // the row.
             <div className="relative z-10 text-sm leading-relaxed text-foreground">
-              {commentAuthor != null && <div className="font-medium">{commentAuthor}</div>}
-              {comment != null && <ClampedComment>{comment}</ClampedComment>}
+              <ClampedComment>{comment}</ClampedComment>
             </div>
           )}
         </div>

@@ -1,99 +1,71 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
-
 import { JournalFilterToolbar, JournalTimeline } from "@/components/journal";
 import { NavigationPendingProvider } from "@/components/navigation-pending";
 import { ProductTour } from "@/components/product-tour";
-import { Eyebrow } from "@/components/ui/eyebrow";
-import { SidebarLayout } from "@/components/ui/page-shell";
-import { StatStrip } from "@/components/ui/stat-strip";
 import { SectionHeading } from "@/components/ui/typography";
 import { getDb } from "@/db/client";
 import {
   getAreaBreadcrumbs,
   getClimb,
-  getJournalCounts,
+  hasJournalEntries,
   getJournalPage,
   getProductTourState,
 } from "@/db/queries";
-import type { JournalOwner } from "@/db/queries";
-import { calendarMonth } from "@/lib/format-date";
-import type { JournalFilter } from "@/lib/journal-filter";
+import { getUserHashtags } from "@/db/queries/hashtag-filter";
+import { getJournalFilterFriends } from "@/db/queries/journal-companions";
+import type { JournalFilter } from "@/lib/filters/journal-filter";
 
 export async function JournalView({
-  owner,
+  ownerId,
   viewerId,
-  filter,
+  filter: requestedFilter,
 }: {
-  owner: JournalOwner;
-  viewerId: string | null;
+  ownerId: string;
+  viewerId: string;
   filter: JournalFilter;
 }) {
   const db = await getDb();
-  const isOwner = viewerId === owner.id;
-  const { cf } = await getCloudflareContext({ async: true });
-  const month = calendarMonth(new Date(), cf?.timezone ?? "UTC");
+  const isOwner = viewerId === ownerId;
+  const filter = isOwner ? requestedFilter : { ...requestedFilter, friendIds: [] };
 
-  const [counts, firstPage, filteredClimb, tourState] = await Promise.all([
-    getJournalCounts(db, owner, viewerId, month),
-    getJournalPage(db, owner, viewerId, filter),
+  const [hasEntries, firstPage, filteredClimb, tourState, tags, friends] = await Promise.all([
+    hasJournalEntries(db, ownerId, viewerId),
+    getJournalPage(db, ownerId, viewerId, filter),
     filter.climbId === null ? Promise.resolve(null) : getClimb(db, filter.climbId),
-    isOwner ? getProductTourState(db, owner.id) : Promise.resolve(null),
+    isOwner ? getProductTourState(db, ownerId) : Promise.resolve(null),
+    getUserHashtags(db, ownerId, viewerId, false, true),
+    isOwner ? getJournalFilterFriends(db, ownerId) : Promise.resolve([]),
   ]);
   const areaBreadcrumbs = await getAreaBreadcrumbs(
     db,
     firstPage.entries.flatMap((entry) => (entry.areaId == null ? [] : [entry.areaId])),
   );
 
-  const statCards = [
-    ...(counts.entriesThisMonth > 0
-      ? [
-          {
-            key: "month",
-            heading: <Eyebrow>This month</Eyebrow>,
-            stats: [
-              { label: "Days out", value: counts.daysThisMonth },
-              { label: "Entries", value: counts.entriesThisMonth },
-              { label: "Sent sessions", value: counts.sentThisMonth },
-            ],
-          },
-        ]
-      : []),
-    {
-      key: "all-time",
-      heading: <Eyebrow>All time</Eyebrow>,
-      stats: [
-        { label: "Days out", value: counts.days },
-        { label: "Sessions", value: counts.sessions },
-        { label: "Training", value: counts.training },
-      ],
-    },
-  ];
-
   return (
     <NavigationPendingProvider>
-      {tourState && <ProductTour initialState={tourState} />}
-      <SidebarLayout sidebar={<StatStrip cards={statCards} />}>
-        <div className="flex flex-col gap-3">
-          <SectionHeading>Journal</SectionHeading>
-          {counts.entries > 0 && (
-            <JournalFilterToolbar
-              userId={owner.id}
-              filter={filter}
-              climbName={filteredClimb?.name ?? null}
-            />
-          )}
-          <JournalTimeline
-            key={JSON.stringify(filter)}
-            userId={owner.id}
-            filter={filter}
-            initialEntries={firstPage.entries}
-            initialHasMore={firstPage.hasMore}
-            initialAreaBreadcrumbs={areaBreadcrumbs}
+      <div className="flex min-w-0 flex-col gap-4">
+        {tourState && <ProductTour initialState={tourState} />}
+        <SectionHeading className="sr-only">Journal</SectionHeading>
+        {hasEntries && (
+          <JournalFilterToolbar
+            userId={ownerId}
+            tags={tags}
             isOwner={isOwner}
-            hasAnyEntries={counts.entries > 0}
+            friends={friends}
+            filter={filter}
+            climbName={filteredClimb?.name ?? null}
           />
-        </div>
-      </SidebarLayout>
+        )}
+        <JournalTimeline
+          key={JSON.stringify(filter)}
+          userId={ownerId}
+          filter={filter}
+          initialEntries={firstPage.entries}
+          initialHasMore={firstPage.hasMore}
+          initialAreaBreadcrumbs={areaBreadcrumbs}
+          isOwner={isOwner}
+          hasAnyEntries={hasEntries}
+        />
+      </div>
     </NavigationPendingProvider>
   );
 }

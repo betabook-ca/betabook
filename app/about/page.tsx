@@ -1,10 +1,18 @@
 import type { Metadata } from "next";
 
-import { PageTitle, SectionHeading } from "@/components/ui/typography";
+import { Brand } from "@/components/brand";
+import { AppLink } from "@/components/ui/app-link";
+import { cardClass } from "@/components/ui/card";
+import { SectionHeading } from "@/components/ui/typography";
+import { IMPORT_PAGES, LOGBOOK_PAGE } from "@/lib/landing-pages";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "About",
-};
+  description:
+    "Who builds Betabook, how the site stays free, and who can see your profile, sends and journal.",
+  path: "/about",
+});
 
 export default function AboutPage() {
   return (
@@ -18,18 +26,67 @@ export default function AboutPage() {
     // — margins don't collapse in a flex container, so that opens a real
     // section break instead of being swallowed by the larger of the two.
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
-      <PageTitle>About Betabook</PageTitle>
-
-      {/* The one paragraph that isn't body copy — it's the subtitle the h1
-       * has no room for, so it takes text-lg and the muted colour to sit
-       * between the title and the prose proper. */}
-      <p className="text-lg leading-relaxed text-pretty text-muted">Welcome to Betabook</p>
+      <h1>
+        <Brand variant="lockup" className="mx-auto w-full max-w-90" />
+      </h1>
 
       <SectionHeading className="mt-4">What is Betabook</SectionHeading>
       <p className="leading-relaxed text-pretty">
-        Betabook is a climbing logbook and crag database — somewhere to keep the routes you&apos;ve
-        climbed and the places you climbed them.
+        Betabook is a journal for your personal climbing journey. It is not just for your sends, but
+        also for logging your sessions, your failures, and most importantly, your progress over the
+        years. Betabook is a place to share your climbing experiences with others, and to learn from
+        the experiences of others. It is a place to find beta, to find inspiration, and to find
+        community.
       </p>
+      <p className="leading-relaxed text-pretty">
+        See the{" "}
+        <AppLink href={LOGBOOK_PAGE.path} className="inline underline">
+          logbook’s features
+        </AppLink>
+        , or import your sends from{" "}
+        <AppLink href={IMPORT_PAGES.kaya.path} className="inline underline">
+          KAYA
+        </AppLink>
+        ,{" "}
+        <AppLink href={IMPORT_PAGES.sendage.path} className="inline underline">
+          Sendage
+        </AppLink>{" "}
+        or{" "}
+        <AppLink href={IMPORT_PAGES.mountainProject.path} className="inline underline">
+          Mountain Project
+        </AppLink>
+        .
+      </p>
+
+      <section
+        aria-labelledby="about-privacy"
+        className={`mt-4 flex flex-col gap-3 ${cardClass("md", "bordered")}`}
+      >
+        <SectionHeading>
+          <span id="about-privacy">Privacy controls</span>
+        </SectionHeading>
+        <ul className="flex list-disc flex-col gap-2 ps-5 leading-relaxed text-pretty">
+          <li>
+            Profiles, journals and stats need an account. Signed-out visitors see each climb’s
+            latest 10 sends, without names unless send notes are set to Everyone.
+          </li>
+          <li>
+            A private profile and its history are visible only to you. Friends and people you send
+            requests to still see your name, and climb pages list your sends without it.
+          </li>
+          <li>
+            You set one audience for journal entries and another for send notes, from Only me to
+            Members. Send notes can also be set to Everyone, which shows them with your name to
+            signed-out visitors.
+          </li>
+          <li>
+            Your profile link and QR code show your name, photo, send stats and latest sends to
+            anyone who has them. Resetting the link, or making your profile private, stops old links
+            working.
+          </li>
+          <li>Only you can see your projects and export your sends.</li>
+        </ul>
+      </section>
 
       <SectionHeading className="mt-4">Not a Guidebook or Social Media</SectionHeading>
       <p className="leading-relaxed text-pretty">
@@ -42,7 +99,7 @@ export default function AboutPage() {
       <SectionHeading className="mt-4">For the Community</SectionHeading>
       <p className="leading-relaxed text-pretty">
         The success of Betabook depends on its community. It will only hold value as users join,
-        keep information on this site accurate, and log sends to help drive consensus on climbs.
+        keep information on this site accurate, and log sessions to help drive consensus on climbs.
         Because this project relies on the community, its core philosophy is community-driven as
         well.
       </p>
@@ -56,7 +113,7 @@ export default function AboutPage() {
          * only its colour to identify it, and colour alone isn't a
          * distinguishing cue (WCAG 1.4.1). */}
         <a
-          href="https://github.com/smwoo/betabook"
+          href="https://github.com/betabook-ca/betabook"
           target="_blank"
           rel="noreferrer"
           className="link inline underline focus-visible:status-focused"

@@ -3,10 +3,10 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { cache } from "react";
 
 import { AreaClimbsSection } from "@/components/area-climbs-section";
-import { AreaClimbsToolbar } from "@/components/area-climbs-toolbar";
 import { AreaCragHeader } from "@/components/area-crag-header";
 import { AreaHeaderActions } from "@/components/area-header-actions";
 import { AreaBreadcrumbs } from "@/components/breadcrumbs";
+import { AreaClimbsToolbar } from "@/components/filters/area-climbs-toolbar";
 import { NavigationPendingProvider } from "@/components/navigation-pending";
 import { RegisterSearchScope } from "@/components/search-scope";
 import { SubareaRail } from "@/components/subarea-rail";
@@ -27,23 +27,26 @@ import {
   getUserSentClimbIds,
   resolveSubareaScope,
 } from "@/db/queries";
+import { getPublicArea, getPublicAncestors } from "@/db/queries/public-catalog";
 import {
   parseAreaClimbsFilter,
   parseAreaClimbsSort,
   toSubtreeQueryFilter,
-} from "@/lib/area-climbs-filter";
+} from "@/lib/filters/area-climbs-filter";
 import { buildGradeHistogram } from "@/lib/grade-histogram";
-import type { SearchParamsRecord } from "@/lib/search-params";
 import { areaDescription, areaJsonLd, areaTitle, locationTrail, pageMetadata } from "@/lib/seo";
-import { getSession } from "@/lib/session";
+import { getMemberSession as getSession } from "@/lib/session";
 import { areaHref, slugify, withQuery } from "@/lib/slug";
+import type { UrlParamsRecord } from "@/lib/url-params";
+
+import { PublicAreaPage } from "./public-area-page";
 
 type AreaPageProps = {
   // Optional catch-all: `slug` is undefined for /areas/:id and a segment
   // array otherwise. The id is authoritative; the redirect normalizes the
   // slug (query string preserved).
   params: Promise<{ id: string; slug?: string[] }>;
-  searchParams: Promise<SearchParamsRecord>;
+  searchParams: Promise<UrlParamsRecord>;
 };
 
 // generateMetadata and the page both need the area. The query helpers are
@@ -65,7 +68,7 @@ export async function generateMetadata({ params, searchParams }: AreaPageProps):
   const areaId = Number(id);
   if (!Number.isInteger(areaId)) notFound();
 
-  const area = await getAreaById(areaId);
+  const area = await getPublicArea(await getDb(), areaId);
   if (!area) notFound();
 
   // Normalize any other spelling of the URL to the canonical id + slug,
@@ -79,12 +82,12 @@ export async function generateMetadata({ params, searchParams }: AreaPageProps):
     permanentRedirect(withQuery(areaHref(area.id, area.name), search));
   }
 
-  const ancestors = await getAreaAncestors(area);
+  const ancestors = await getPublicAncestors(await getDb(), area);
 
   const trail = locationTrail(ancestors.map((a) => a.name));
   return pageMetadata({
     title: areaTitle(area.name, ancestors.at(-1)?.name ?? null),
-    description: areaDescription(area.name, trail),
+    description: areaDescription(area.name, trail, area.description),
     path: areaHref(area.id, area.name),
   });
 }
@@ -98,7 +101,15 @@ export default async function AreaPage({ params, searchParams }: AreaPageProps) 
   // Grouped by dependency tier so independent fetches overlap instead of
   // waterfalling — the area row and the session don't depend on each other.
   const db = await getDb();
-  const [area, session] = await Promise.all([getAreaById(areaId), getSession()]);
+  const session = await getSession();
+  if (!session) {
+    const area = await getPublicArea(db, areaId);
+    if (!area) notFound();
+    if ((slug?.join("/") ?? "") !== slugify(area.name))
+      permanentRedirect(withQuery(areaHref(area.id, area.name), search));
+    return <PublicAreaPage area={area} search={search} />;
+  }
+  const area = await getAreaById(areaId);
   if (!area) notFound();
 
   if ((slug?.join("/") ?? "") !== slugify(area.name)) {
@@ -145,13 +156,11 @@ export default async function AreaPage({ params, searchParams }: AreaPageProps) 
       db,
       subtreeClimbs.climbs.map((c) => c.areaId),
     ),
-    session
-      ? getUserSentClimbIds(
-          db,
-          session.user.id,
-          subtreeClimbs.climbs.map((climb) => climb.id),
-        )
-      : undefined,
+    getUserSentClimbIds(
+      db,
+      session.user.id,
+      subtreeClimbs.climbs.map((climb) => climb.id),
+    ),
   ]);
 
   return (
@@ -160,7 +169,7 @@ export default async function AreaPage({ params, searchParams }: AreaPageProps) 
         data={areaJsonLd({
           name: area.name,
           path: areaPath,
-          description: areaDescription(area.name, locationTrail(ancestorNames)),
+          description: areaDescription(area.name, locationTrail(ancestorNames), area.description),
           crumbs: areaCrumbs,
           ancestorNames,
         })}
@@ -173,9 +182,8 @@ export default async function AreaPage({ params, searchParams }: AreaPageProps) 
         area={area}
         areaPath={areaPath}
         histogram={histogram}
-        isEditor={session != null}
         filter={filter}
-        actions={session && <AreaHeaderActions area={area} />}
+        actions={<AreaHeaderActions area={area} />}
       />
 
       {/* The provider links the toolbar's in-flight navigation to the climb
@@ -185,7 +193,7 @@ export default async function AreaPage({ params, searchParams }: AreaPageProps) 
           const climbsBlock = (
             <div className="flex flex-col gap-3">
               <SectionHeading>Climbs</SectionHeading>
-              <AreaClimbsToolbar areaId={area.id} areaPath={areaPath} sort={sort} filter={filter} />
+              <AreaClimbsToolbar areaPath={areaPath} sort={sort} filter={filter} />
               <AreaClimbsSection
                 // Remounts with fresh initial* state on a sort/filter change,
                 // rather than syncing local "load more" state to changed props

@@ -19,8 +19,8 @@ export function RatingStars({ rating, precision = "integer", className }: Rating
 
   return (
     <span className={clsx("inline-flex items-center gap-1 text-sm font-medium", className)}>
-      <Star className="size-4 fill-current text-warning" />
       {precision === "decimal" ? rating.toFixed(1) : Math.round(rating)}
+      <Star className="size-4 fill-current text-warning" aria-hidden />
     </span>
   );
 }

@@ -46,8 +46,8 @@ type SendValues = Omit<
   "id" | "userId" | "climbId" | "dateSent" | "comment" | "createdAt" | "updatedAt"
 > & { dateSent: string | null; comment: string | null };
 
-// Ten rows bind 80 values, below D1's 100-parameter limit.
-const INSERT_CHUNK_SIZE = 10;
+// A guarded journal insert binds 11 values per row; nine fit D1's 100-parameter limit.
+const INSERT_CHUNK_SIZE = 9;
 
 /** Authenticated batch lookup for the import wizard; results are capped per name. */
 export async function resolveImportClimbs(
@@ -218,7 +218,7 @@ export async function importSends(
       // Overwrites replace every imported field, including fields the CSV clears.
       const gradeText = typeof row.gradeText === "string" ? row.gradeText : null;
       const values: SendValues = {
-        ...validateImportSendValues(row),
+        ...validateImportSendValues(row, climb.type),
         // A blank Suggested Grade stays null; a Grade-only mapping falls back
         // to the posted grade. See NormalizedImportRow.blankGradeMeans.
         suggestedGrade: gradeText

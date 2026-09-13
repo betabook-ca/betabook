@@ -1,15 +1,11 @@
+import { UserSendsFilterToolbar } from "@/components/filters/sends-filter-toolbar";
 import { NavigationPendingProvider } from "@/components/navigation-pending";
-import { DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
-import { Eyebrow } from "@/components/ui/eyebrow";
-import { SidebarLayout } from "@/components/ui/page-shell";
-import { StatStrip } from "@/components/ui/stat-strip";
 import { SectionHeading } from "@/components/ui/typography";
-import { UserSendList, UserSendsFilterToolbar } from "@/components/user-send-list";
+import { UserSendList } from "@/components/user-send-list";
 import { getDb } from "@/db/client";
-import { getAreaBreadcrumbs, getSendsForUserPage, getUserSendsSummary } from "@/db/queries";
+import { getAreaBreadcrumbs, getSendsForUserPage, hasUserSends } from "@/db/queries";
 import type { UserSendsFilter } from "@/db/queries";
-import { formatCount } from "@/lib/format";
-import { formatDate } from "@/lib/format-date";
+import { getUserHashtags } from "@/db/queries/hashtag-filter";
 
 export async function SendsView({
   userId,
@@ -18,15 +14,16 @@ export async function SendsView({
   basePath,
 }: {
   userId: string;
-  viewerId: string | null;
+  viewerId: string;
   filter: UserSendsFilter;
   basePath: string;
 }) {
   const db = await getDb();
 
-  const [summary, firstPage] = await Promise.all([
-    getUserSendsSummary(db, userId),
-    getSendsForUserPage(db, userId, filter, 0),
+  const [hasSends, firstPage, tags] = await Promise.all([
+    hasUserSends(db, userId),
+    getSendsForUserPage(db, userId, filter, 0, undefined, viewerId),
+    getUserHashtags(db, userId, viewerId, true),
   ]);
 
   const areaBreadcrumbs = await getAreaBreadcrumbs(
@@ -34,54 +31,22 @@ export async function SendsView({
     firstPage.sends.map((send) => send.areaId),
   );
 
-  const statCards = [
-    {
-      key: "profile",
-      stats: [
-        { label: "Sends", value: summary.sendCount },
-        { label: "Areas", value: summary.areaCount },
-        { label: "Peak grade", value: summary.peakGrade ?? "—" },
-      ],
-    },
-    ...(summary.sendCount > 0
-      ? [
-          {
-            key: "glance",
-            heading: <Eyebrow>Log at a glance</Eyebrow>,
-            stats: [
-              { label: "Latest send", value: formatDate(summary.latestSendDate) },
-              ...(summary.mostLoggedDiscipline
-                ? [
-                    {
-                      label: "Most logged",
-                      value: `${DISCIPLINE_LABELS[summary.mostLoggedDiscipline.type]} · ${formatCount(summary.mostLoggedDiscipline.count, "send")}`,
-                    },
-                  ]
-                : []),
-            ],
-          },
-        ]
-      : []),
-  ];
-
   return (
     <NavigationPendingProvider>
-      <SidebarLayout sidebar={<StatStrip cards={statCards} />}>
-        <div className="flex flex-col gap-3">
-          <SectionHeading>Sends</SectionHeading>
-          {summary.sendCount > 0 && <UserSendsFilterToolbar filter={filter} basePath={basePath} />}
-          <UserSendList
-            key={JSON.stringify(filter)}
-            userId={userId}
-            filter={filter}
-            initialSends={firstPage.sends}
-            initialHasMore={firstPage.hasMore}
-            initialAreaBreadcrumbs={areaBreadcrumbs}
-            hasAnySends={summary.sendCount > 0}
-            currentUserId={viewerId}
-          />
-        </div>
-      </SidebarLayout>
+      <div className="flex min-w-0 flex-col gap-4">
+        <SectionHeading className="sr-only">Sends</SectionHeading>
+        {hasSends && <UserSendsFilterToolbar filter={filter} basePath={basePath} tags={tags} />}
+        <UserSendList
+          key={JSON.stringify(filter)}
+          userId={userId}
+          filter={filter}
+          initialSends={firstPage.sends}
+          initialHasMore={firstPage.hasMore}
+          initialAreaBreadcrumbs={areaBreadcrumbs}
+          hasAnySends={hasSends}
+          currentUserId={viewerId}
+        />
+      </div>
     </NavigationPendingProvider>
   );
 }

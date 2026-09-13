@@ -8,8 +8,7 @@ const SearchScopeContext = createContext<SearchScope | null>(null);
 const SetSearchScopeContext = createContext<(scope: SearchScope | null) => void>(() => {});
 
 /** Where the viewer currently is, for search surfaces that can narrow to it
- * — today just the command palette, which leads with routes in the area
- * you're standing on. Null everywhere that has no area context. */
+ * — the quick dialog offers this as an explicit narrowing action. Null everywhere that has no area context. */
 export function useSearchScope(): SearchScope | null {
   return useContext(SearchScopeContext);
 }

@@ -4,7 +4,9 @@ import { Button } from "@heroui/react";
 import { useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
+import { profileShareFromPath } from "@/lib/profile-share";
 import { DEFAULT_SIGNED_IN_PATH, signInUrl } from "@/lib/sign-in-redirect";
+import { TERMS_VERSION } from "@/lib/terms";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -41,6 +43,7 @@ export function GoogleSignInButton({
   const [pending, setPending] = useState(false);
 
   async function handlePress() {
+    if (disabled || pending) return;
     setPending(true);
     onError?.(null);
     try {
@@ -49,6 +52,10 @@ export function GoogleSignInButton({
           provider: "google",
           callbackURL: nextPath ?? DEFAULT_SIGNED_IN_PATH,
           errorCallbackURL: signInUrl(nextPath),
+          additionalData: {
+            acceptedTermsVersion: TERMS_VERSION,
+            sharePath: profileShareFromPath(nextPath) ? nextPath : undefined,
+          },
         },
         {
           onError: (ctx) => {

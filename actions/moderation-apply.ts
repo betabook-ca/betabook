@@ -452,6 +452,7 @@ export async function applyClimbMerge(
           kind: sql<string>`'session'`.as("kind"),
           sent: sql<boolean>`0`.as("sent"),
           isAscent: sql<boolean>`0`.as("is_ascent"),
+          isSendComment: sql<boolean>`1`.as("is_send_comment"),
           entryDate: sql<string>`date('now')`.as("entry_date"),
           body: sends.comment,
           tags: sql<string | null>`null`.as("tags"),
@@ -471,30 +472,8 @@ export async function applyClimbMerge(
     // Delete collisions first; the send trigger demotes their ascent entries.
     db.delete(sends).where(and(eq(sends.climbId, sourceClimbId), collidesWithTarget)),
     db.update(sends).set({ climbId: targetClimbId }).where(eq(sends.climbId, sourceClimbId)),
-    // Ascent guards forbid changing climb_id or re-promoting entries. Copy and
-    // delete the remaining ascents after their sends have moved to the target.
-    db.insert(journalEntries).select(
-      db
-        .select({
-          id: sql<number>`null`.as("id"),
-          userId: journalEntries.userId,
-          climbId: sql<number>`${targetClimbId}`.as("climb_id"),
-          kind: journalEntries.kind,
-          sent: journalEntries.sent,
-          isAscent: journalEntries.isAscent,
-          entryDate: journalEntries.entryDate,
-          body: journalEntries.body,
-          tags: journalEntries.tags,
-          createdAt: journalEntries.createdAt,
-          updatedAt: journalEntries.updatedAt,
-        })
-        .from(journalEntries)
-        .where(and(eq(journalEntries.climbId, sourceClimbId), eq(journalEntries.isAscent, true))),
-    ),
-    db
-      .delete(journalEntries)
-      .where(and(eq(journalEntries.climbId, sourceClimbId), eq(journalEntries.isAscent, true))),
-    // Non-ascent history can move once the matching send is on the target.
+    // Keep every entry ID, including ascents, so companion tags and suppression
+    // remain attached. SQL permits ascent moves only after their matching send.
     db
       .update(journalEntries)
       .set({ climbId: targetClimbId })

@@ -11,8 +11,12 @@ import type {
   SubtreeClimbsSort,
 } from "@/db/queries";
 import { usePagedList } from "@/hooks/use-paged-list";
-import { areaClimbsFilterToSearchParams, type AreaClimbsFilter } from "@/lib/area-climbs-filter";
-import { createClimbListMeta, mergeClimbListMeta } from "@/lib/climb-search-pages";
+import { apiFetch } from "@/lib/api-client";
+import { createClimbListMeta, mergeClimbListMeta } from "@/lib/climb-list-pages";
+import {
+  areaClimbsFilterToSearchParams,
+  type AreaClimbsFilter,
+} from "@/lib/filters/area-climbs-filter";
 
 type AreaClimbsSectionProps = {
   areaId: number;
@@ -73,7 +77,7 @@ export function AreaClimbsSection({
     fetchPage: async (offset) => {
       const params = areaClimbsFilterToSearchParams(sort, filter);
       params.set("offset", String(offset));
-      const res = await fetch(`/api/areas/${areaId}/climbs?${params.toString()}`);
+      const res = await apiFetch(`/api/areas/${areaId}/climbs?${params.toString()}`);
       if (!res.ok) throw new Error(`Loading more climbs failed: ${res.status}`);
       const data: {
         climbs: ClimbWithAreaName[];

@@ -2,6 +2,8 @@
 
 import { ListBox, Select } from "@heroui/react";
 
+import { FIELD_WIDTH_CLASS, FILTER_ROW_CLASS, FILTER_LABEL_CLASS } from "@/components/ui/field";
+
 type IndexSelectProps = {
   label: string;
   options: readonly string[];
@@ -19,7 +21,7 @@ function IndexSelect({ label, options, index, onChange }: IndexSelectProps) {
       selectedKey={String(index)}
       onSelectionChange={(key) => onChange(Number(key))}
     >
-      <Select.Trigger className="w-20">
+      <Select.Trigger className={FIELD_WIDTH_CLASS.short}>
         <Select.Value />
         <Select.Indicator />
       </Select.Trigger>
@@ -34,18 +36,6 @@ function IndexSelect({ label, options, index, onChange }: IndexSelectProps) {
         </ListBox>
       </Select.Popover>
     </Select>
-  );
-}
-
-/** An `IndexSelect` with a visible label beside it, for a standalone
- * dropdown that isn't part of an `IndexRangeSelect` pair (whose own visible
- * label already gives the min/max selects context). */
-export function LabeledIndexSelect({ label, options, index, onChange }: IndexSelectProps) {
-  return (
-    <div className="flex items-end gap-3">
-      <span className="shrink-0 pb-2.5 text-sm font-medium">{label}</span>
-      <IndexSelect label={label} options={options} index={index} onChange={onChange} />
-    </div>
   );
 }
 
@@ -85,25 +75,27 @@ export function IndexRangeSelect({
   const eitherIsAny = (min: number, max: number) => min === anyIndex || max === anyIndex;
 
   return (
-    <div className="flex items-end gap-3">
-      <span className="shrink-0 pb-2.5 text-sm font-medium">{label}</span>
-      <IndexSelect
-        label={minLabel}
-        options={minOptions}
-        index={range[0]}
-        onChange={(min) =>
-          onChange([min, eitherIsAny(min, range[1]) ? range[1] : Math.max(min, range[1])])
-        }
-      />
-      <span className="pb-2.5 text-muted">–</span>
-      <IndexSelect
-        label={maxLabel}
-        options={maxOptions}
-        index={range[1]}
-        onChange={(max) =>
-          onChange([eitherIsAny(range[0], max) ? range[0] : Math.min(range[0], max), max])
-        }
-      />
+    <div className={FILTER_ROW_CLASS} role="group" aria-label={`${label} range`}>
+      <span className={FILTER_LABEL_CLASS}>{label}</span>
+      <div className="flex flex-wrap items-center gap-3">
+        <IndexSelect
+          label={minLabel}
+          options={minOptions}
+          index={range[0]}
+          onChange={(min) =>
+            onChange([min, eitherIsAny(min, range[1]) ? range[1] : Math.max(min, range[1])])
+          }
+        />
+        <span className="text-muted">–</span>
+        <IndexSelect
+          label={maxLabel}
+          options={maxOptions}
+          index={range[1]}
+          onChange={(max) =>
+            onChange([eitherIsAny(range[0], max) ? range[0] : Math.min(range[0], max), max])
+          }
+        />
+      </div>
     </div>
   );
 }

@@ -23,7 +23,11 @@ import { DatabaseSync } from "node:sqlite";
 import { faker } from "@faker-js/faker";
 import { hashPassword } from "better-auth/crypto";
 
+// Bare Node.js does not resolve the app's @/ alias; share the current terms version directly.
+// oxlint-disable-next-line import/no-relative-parent-imports
+import { TERMS_VERSION } from "../lib/terms.ts";
 import { requireLocalDb } from "./d1-local.ts";
+import { seedSocialData } from "./seed-social.ts";
 
 // Ordinals into BOULDER_HUECO (VB–V17) and ROPE_YDS (5.0–5.15d) in lib/grades.
 // Duplicated rather than imported: lib/ is reached through the `@/` alias, which
@@ -133,6 +137,16 @@ async function main() {
       console.log(`Left ${existing.toLocaleString()} existing climbs alone (--force regenerates).`);
     }
 
+    seedTermsAcceptance(db, email);
+
+    if (regenerate || args.includes("--social")) {
+      const viewer = db.prepare("SELECT id FROM user WHERE email = ?").get(email) as { id: string };
+      const socialCount = seedSocialData(db, viewer.id);
+      console.log(
+        `Added ${socialCount} friendships and requests and refreshed synthetic social scenarios.`,
+      );
+    }
+
     db.exec("commit");
     open = false;
 
@@ -144,6 +158,36 @@ async function main() {
     throw error;
   } finally {
     db.close();
+  }
+}
+
+/** Keep one synthetic account behind the agreement gate on every local refresh. */
+function seedTermsAcceptance(db: DatabaseSync, email: string) {
+  const users = db
+    .prepare(
+      "SELECT id, email FROM user WHERE email GLOB 'climber[0-9]*@example.com' ORDER BY CAST(substr(email, 8) AS INTEGER)",
+    )
+    .all() as { id: string; email: string }[];
+  const pending = users.findLast((person) => person.email !== email);
+  const accept = db.prepare(
+    "UPDATE user SET terms_version = ?, terms_accepted_at = COALESCE(" +
+      " (SELECT accepted_at FROM user_terms_acceptances WHERE user_id = user.id AND version = ?)," +
+      " cast(unixepoch('subsecond') * 1000 as integer))" +
+      " WHERE email = ? AND (terms_version IS NOT ? OR terms_accepted_at IS NULL)",
+  );
+  for (const acceptedEmail of new Set([email, ...users.map((person) => person.email)])) {
+    if (acceptedEmail !== pending?.email) {
+      accept.run(TERMS_VERSION, TERMS_VERSION, acceptedEmail, TERMS_VERSION);
+    }
+  }
+  if (pending) {
+    db.prepare("UPDATE user SET terms_version = NULL, terms_accepted_at = NULL WHERE id = ?").run(
+      pending.id,
+    );
+    // This local fixture must behave like an account that has never agreed,
+    // including after testing acceptance and rerunning the seed.
+    db.prepare("DELETE FROM user_terms_acceptances WHERE user_id = ?").run(pending.id);
+    console.log(`Terms accepted for seeded accounts except ${pending.email}.`);
   }
 }
 
@@ -258,11 +302,10 @@ function insertClimbs(db: DatabaseSync, count: number, areaIds: number[]): Climb
   return climbs;
 }
 
-/** Verified accounts with a repeatable mix of profile and journal privacy. */
+/** Social seeding assigns each synthetic account's privacy after its history is created. */
 function insertUsers(db: DatabaseSync, count: number, passwordHash: string): string[] {
   const insertUser = db.prepare(
-    "insert into user (id, name, email, email_verified, is_private, journal_visibility)" +
-      " values (?, ?, ?, 1, ?, ?)",
+    "insert into user (id, name, email, email_verified) values (?, ?, ?, 1)",
   );
   const insertAccount = db.prepare(
     "insert into account (id, account_id, provider_id, user_id, password, updated_at)" +
@@ -288,17 +331,7 @@ function insertUsers(db: DatabaseSync, count: number, passwordHash: string): str
     usedNames.add(name.toLowerCase());
     // Positional, not faker.internet.email(): unique by construction, and
     // `user.email` is unique under a case-sensitive collation.
-    // Cycle through public journals, fully private accounts, and public
-    // profiles with private journals, even in a small --users 3 dataset.
-    // Keep this independent of faker so existing ids and history stay stable.
-    const privacyCase = i % 3;
-    insertUser.run(
-      id,
-      name,
-      `climber${i + 1}@example.com`,
-      privacyCase === 1 ? 1 : 0,
-      privacyCase === 0 ? "public" : "private",
-    );
+    insertUser.run(id, name, `climber${i + 1}@example.com`);
     insertAccount.run(faker.string.uuid(), id, id, passwordHash);
     existing.push(id);
   }
@@ -330,10 +363,12 @@ function insertSends(db: DatabaseSync, userIds: string[], climbs: Climb[]): numb
       insert.run(
         userId,
         climb.id,
+        // Boulders are never onsights (lib/sends.ts ascentStylesFor; the
+        // 0042 triggers would reject the row anyway).
         faker.helpers.weightedArrayElement([
           { weight: 6, value: "redpoint" },
           { weight: 3, value: "flash" },
-          { weight: 1, value: "onsight" },
+          ...(climb.type === "boulder" ? [] : [{ weight: 1, value: "onsight" }]),
         ]),
         // Imported ticks often have no date at all.
         faker.datatype.boolean(0.9)

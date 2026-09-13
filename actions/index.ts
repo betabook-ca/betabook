@@ -1,4 +1,5 @@
 export * from "./account";
+export * from "./terms";
 export * from "./areas";
 export * from "./climbs";
 export * from "./sends";
@@ -6,3 +7,7 @@ export * from "./journal";
 export * from "./import";
 export * from "./product-tour";
 export * from "./moderation";
+export * from "./friendships";
+export * from "./journal-companions";
+export * from "./analytics";
+export * from "./feature-announcements";

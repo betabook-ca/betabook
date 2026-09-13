@@ -5,12 +5,10 @@ import type { NormalizedImportRow } from "@/lib/sends-import";
 
 import {
   areaLookupsNeeded,
-  candidatePath,
   distinctClimbNames,
   duplicateClimbRows,
   foldClimbName,
   impliedGrades,
-  indexCandidates,
   matchRow,
   matchRows,
   mergeCandidates,
@@ -97,7 +95,10 @@ const NO_PREFERENCE: MatchOptions = { gradeScale: "native", preferredAreas: [] }
 /** An index whose `total` agrees with what it holds, the server's untruncated
  * shape. Tests about truncation set `total` higher by hand. */
 function indexOf(candidates: ClimbCandidate[]) {
-  return indexCandidates(candidates.map((c) => ({ ...c, total: candidates.length })));
+  return mergeCandidates(
+    new Map(),
+    candidates.map((c) => ({ ...c, total: candidates.length })),
+  );
 }
 const index = indexOf(WAVES);
 
@@ -119,13 +120,6 @@ describe("distinctClimbNames", () => {
   });
 });
 
-describe("indexCandidates", () => {
-  it("groups by key, keeping the server's order within a group", () => {
-    expect(index.get("the wave")?.map((c) => c.id)).toEqual([1, 2, 3]);
-    expect(index.get("nothing")).toBeUndefined();
-  });
-});
-
 describe("impliedGrades", () => {
   it("parses the text in both tables, so 'V4' is a boulder and '6a' is either", () => {
     expect(impliedGrades("v4", "native")).toEqual({ boulder: 5, rope: null });
@@ -134,12 +128,6 @@ describe("impliedGrades", () => {
     expect(both.boulder).not.toBeNull();
     expect(both.rope).not.toBeNull();
     expect(impliedGrades(null, "native")).toEqual({ boulder: null, rope: null });
-  });
-});
-
-describe("candidatePath", () => {
-  it("reads root-first through to the climb's own area", () => {
-    expect(candidatePath(WAVES[0])).toBe("United States / California / Bishop / Happy Boulders");
   });
 });
 
@@ -185,7 +173,50 @@ describe("matchRow", () => {
     }
   });
 
-  it("falls back to the posted grade when the climber gave none", () => {
+  it("matches by the posted boulder grade while retaining the climber's grade", () => {
+    const imported = row({ postedGradeText: "V6", gradeText: "V3" });
+    const original = structuredClone(imported);
+    expect(matchRow(imported, index, NO_PREFERENCE)).toMatchObject({
+      kind: "inferred",
+      climb: { id: 2 },
+      reason: "the only V6",
+    });
+    expect(imported).toEqual(original);
+    expect(imported.gradeText).toBe("V3");
+  });
+
+  it.each(["sport", "trad"] as const)(
+    "matches %s routes using the posted grade before the climber's suggestion",
+    (type) => {
+      const candidates = indexOf([
+        candidate({ id: 41, type, grade: 10 }), // 5.10a
+        candidate({ id: 42, type, grade: 18 }), // 5.12a
+      ]);
+      expect(
+        matchRow(
+          row({ climbTypeHint: type, postedGradeText: "5.12a", gradeText: "5.10a" }),
+          candidates,
+          NO_PREFERENCE,
+        ),
+      ).toMatchObject({
+        kind: "inferred",
+        climb: { id: 42 },
+        reason: "the only 5.12a",
+      });
+    },
+  );
+
+  it("uses the climber's grade when the posted grade is missing", () => {
+    expect(
+      matchRow(row({ postedGradeText: null, gradeText: "V3" }), index, NO_PREFERENCE),
+    ).toMatchObject({
+      kind: "inferred",
+      climb: { id: 1 },
+      reason: "the only V3",
+    });
+  });
+
+  it("uses the posted grade when the climber gave none", () => {
     // A Mountain Project row: "Your Rating" blank, the route's "Rating" V6.
     const match = matchRow(row({ gradeText: null, postedGradeText: "V6" }), index, NO_PREFERENCE);
     expect(match).toMatchObject({ kind: "inferred", reason: "the only V6" });
@@ -308,7 +339,10 @@ describe("matchRow", () => {
   it("won't infer from a truncated list, since the right climb may have been cut", () => {
     // The server says 30 share the name but sent two; a grade that singles
     // one of the two out proves nothing about the other 28.
-    const truncated = indexCandidates([WAVES[0], WAVES[1]].map((c) => ({ ...c, total: 30 })));
+    const truncated = mergeCandidates(
+      new Map(),
+      [WAVES[0], WAVES[1]].map((c) => ({ ...c, total: 30 })),
+    );
     const match = matchRow(row({ gradeText: "V6" }), truncated, NO_PREFERENCE);
     expect(match).toMatchObject({
       kind: "ambiguous",
@@ -318,7 +352,10 @@ describe("matchRow", () => {
     if (match.kind === "ambiguous") expect(match.candidates.map((c) => c.id)).toEqual([2]);
 
     // Even a lone survivor of the hard filters isn't trusted.
-    const lone = indexCandidates([WAVES[2]].map((c) => ({ ...c, total: 30 })));
+    const lone = mergeCandidates(
+      new Map(),
+      [WAVES[2]].map((c) => ({ ...c, total: 30 })),
+    );
     expect(matchRow(row({ climbTypeHint: "sport" }), lone, NO_PREFERENCE)).toMatchObject({
       kind: "ambiguous",
       truncated: true,
@@ -338,7 +375,10 @@ describe("matchRow", () => {
 
 describe("areaLookupsNeeded", () => {
   it("lists one (name, area) pair per truncated name that a row places in an area", () => {
-    const truncated = indexCandidates([WAVES[0]].map((c) => ({ ...c, total: 40 })));
+    const truncated = mergeCandidates(
+      new Map(),
+      [WAVES[0]].map((c) => ({ ...c, total: 40 })),
+    );
     const rows = [
       row({ rowIndex: 0, areaName: "Little Crag" }),
       row({ rowIndex: 1, areaName: "little crag" }), // same pair, folded
@@ -354,7 +394,7 @@ describe("areaLookupsNeeded", () => {
   });
 
   it("does not collide (name, area) pairs when space-separated names could overlap", () => {
-    const truncated = indexCandidates([
+    const truncated = mergeCandidates(new Map(), [
       candidate({ id: 1, name: "The Wave", key: "the wave", total: 40 }),
       candidate({ id: 2, name: "The", key: "the", total: 40 }),
     ]);
@@ -370,6 +410,15 @@ describe("areaLookupsNeeded", () => {
 });
 
 describe("mergeCandidates", () => {
+  it("groups the first lookup by key, keeping the server's order within each group", () => {
+    const other = candidate({ id: 9, name: "Zorro", key: "zorro" });
+    const merged = mergeCandidates(new Map(), [WAVES[0], other, WAVES[1], WAVES[2]]);
+    expect([...merged.keys()]).toEqual(["the wave", "zorro"]);
+    expect(merged.get("the wave")?.map((climb) => climb.id)).toEqual([1, 2, 3]);
+    expect(merged.get("zorro")).toEqual([other]);
+    expect(merged.get("nothing")).toBeUndefined();
+  });
+
   it("appends climbs a later lookup found and ignores ones already present", () => {
     const extra = candidate({ id: 9, areaName: "Little Crag", ancestors: [US], total: 40 });
     const merged = mergeCandidates(index, [extra, WAVES[0]]);
@@ -423,4 +472,23 @@ describe("resolveRows", () => {
     expect(duplicates.get(1)?.rowIndex).toBe(0);
     expect(summarizeResolved(resolved).ready).toBe(1);
   });
+});
+
+it("matches generic outdoor routes to sport or trad while excluding same-name boulders", () => {
+  const candidates = indexOf([
+    candidate({ id: 11 }),
+    candidate({ id: 12, type: "sport" }),
+    candidate({ id: 13, type: "trad" }),
+  ]);
+  const result = matchRow(row({ climbTypeHint: "route" }), candidates, NO_PREFERENCE);
+  expect(result.kind).toBe("ambiguous");
+  if (result.kind !== "ambiguous") throw new Error("Expected an ambiguous route match");
+  expect(result.candidates.map((c) => c.id).sort((a, b) => a - b)).toEqual([12, 13]);
+  for (const type of ["sport", "trad"] as const) {
+    const single = indexOf([candidate({ id: 11 }), candidate({ id: 12, type })]);
+    expect(matchRow(row({ climbTypeHint: "route" }), single, NO_PREFERENCE)).toMatchObject({
+      kind: "exact",
+      climb: { id: 12, type },
+    });
+  }
 });

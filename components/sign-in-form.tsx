@@ -5,30 +5,36 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
+import { useTurnstile } from "@/components/turnstile";
 import { AppLink } from "@/components/ui/app-link";
 import { FORM_CARD_CLASS } from "@/components/ui/card";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { PageTitle } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { DEFAULT_SIGNED_IN_PATH, safeNextPath, signInUrl, signUpUrl } from "@/lib/sign-in-redirect";
+import { termsHref } from "@/lib/terms";
 
 export function SignInForm({
   next,
   googleEnabled = false,
   initialError,
+  turnstileSiteKey,
 }: {
   next?: string;
   googleEnabled?: boolean;
   initialError?: string | null;
+  turnstileSiteKey?: string | null;
 }) {
   const router = useRouter();
   // The page already validates the param, but re-validate the prop here so
   // the form can never be handed an off-origin destination.
   const nextPath = safeNextPath(next);
+  const captcha = useTurnstile(turnstileSiteKey);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(initialError ?? null);
-  // The address a 403 unverified-login error came back for. The resend
+  // The address an unverified-login error came back for. The resend
   // affordance is bound to this, not to whatever is currently typed in the
   // email field.
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
@@ -47,6 +53,7 @@ export function SignInForm({
     void authClient.signIn.email(
       { email: attemptedEmail, password },
       {
+        headers: captcha.headers,
         onSuccess: (ctx) => {
           const userDestination =
             ctx.data && typeof ctx.data === "object" && "user" in ctx.data && ctx.data.user
@@ -55,13 +62,17 @@ export function SignInForm({
           router.push(nextPath ?? userDestination);
         },
         onError: (ctx) => {
-          if (ctx.error.status === 403) {
+          // A failed captcha is also a 403.
+          if (ctx.error.code === "EMAIL_NOT_VERIFIED") {
             setUnverifiedEmail(attemptedEmail);
           } else {
             setError(ctx.error.message ?? "Sign in failed");
           }
         },
-        onResponse: () => setPending(false),
+        onResponse: () => {
+          setPending(false);
+          captcha.reset();
+        },
       },
     );
   }
@@ -97,9 +108,21 @@ export function SignInForm({
 
   return (
     <form onSubmit={handleSubmit} className={FORM_CARD_CLASS}>
-      <PageTitle className="text-2xl">Sign in</PageTitle>
+      <PageTitle>Sign in</PageTitle>
       {googleEnabled && (
         <>
+          <p className="text-sm text-muted">
+            By continuing with Google, you agree to the{" "}
+            <AppLink
+              href={termsHref()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline underline"
+            >
+              Terms of Service
+            </AppLink>
+            .
+          </p>
           <GoogleSignInButton nextPath={nextPath} onError={setError} disabled={pending} />
           <div className="relative flex items-center py-1">
             <div className="grow border-t border-separator" />
@@ -119,21 +142,20 @@ export function SignInForm({
       <AppLink href="/forgot-password" className="text-sm text-muted">
         Forgot password?
       </AppLink>
-      {error && (
-        <p role="alert" className="text-sm text-danger">
-          {error}
-        </p>
-      )}
+      {error && <InlineAlert>{error}</InlineAlert>}
       {unverifiedEmail !== null && (
-        <div className="flex flex-col gap-2 text-sm text-danger">
-          <p>Please verify your email address before signing in.</p>
+        <div className="flex flex-col gap-2">
+          <InlineAlert status="warning">
+            Please verify your email address before signing in.
+          </InlineAlert>
           <Button variant="ghost" onPress={resendVerification} isDisabled={resent || resendPending}>
             {resent ? "Verification email sent" : "Resend verification email"}
           </Button>
-          {resendError && <p>{resendError}</p>}
+          {resendError && <InlineAlert>{resendError}</InlineAlert>}
         </div>
       )}
-      <Button type="submit" fullWidth isDisabled={pending}>
+      {captcha.widget}
+      <Button type="submit" fullWidth isDisabled={pending || !captcha.ready}>
         Sign in
       </Button>
       <p className="text-sm text-muted">

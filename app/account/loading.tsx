@@ -1,36 +1,55 @@
-import { cardClass } from "@/components/ui/card";
+import {
+  SETTINGS_PANEL_BODY_CLASS,
+  SETTINGS_ROW_CLASS,
+  SETTINGS_SECTION_CLASS,
+  settingsPanelClass,
+} from "@/components/ui/settings";
 import { Skeleton } from "@/components/ui/skeleton";
 
-/** Mirrors the account page's identity card, settings grid, and danger zone. */
+const SECTIONS = [
+  { id: "profile", rows: 2 },
+  { id: "privacy", rows: 4 },
+  { id: "sends", rows: 2 },
+  { id: "preferences", rows: 2 },
+  { id: "sign-in", rows: 2 },
+];
+
+/** Mirrors the account page's header, settings sections and delete panel. */
 export default function Loading() {
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
-      <div className={cardClass("md")}>
-        <div className="flex items-center gap-4">
-          <Skeleton tone="raised" className="size-16 shrink-0" rounded="rounded-full" />
-          <div className="flex min-w-0 flex-1 flex-col gap-2">
-            <Skeleton tone="raised" className="h-3 w-20" />
-            <Skeleton tone="raised" className="h-8 w-48 max-w-full" />
-            <Skeleton tone="raised" className="h-4 w-56 max-w-full" />
-          </div>
-          <Skeleton tone="raised" className="hidden h-9 w-32 sm:block" rounded="rounded-lg" />
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-4">
+          <Skeleton className="size-16 shrink-0" rounded="rounded-full" />
+          <Skeleton className="h-9 w-48 max-w-full" />
         </div>
+        <Skeleton className="h-10 w-28 shrink-0" rounded="rounded-full" />
       </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {Array.from({ length: 4 }, (_, index) => (
-          <div key={index} className={`flex flex-col gap-3 ${cardClass("md")}`}>
-            <Skeleton tone="raised" className="h-5 w-28" />
-            <Skeleton tone="raised" className="h-4 w-full" />
-            <Skeleton tone="raised" className="h-9 w-32" rounded="rounded-lg" />
+      {SECTIONS.map(({ id, rows }) => (
+        <div key={id} className={SETTINGS_SECTION_CLASS}>
+          <Skeleton className="h-7 w-24 lg:mt-5" />
+          <div className={settingsPanelClass()}>
+            <div className={SETTINGS_PANEL_BODY_CLASS}>
+              {Array.from({ length: rows }, (_, row) => (
+                <div key={row} className={`flex flex-col gap-2 ${SETTINGS_ROW_CLASS}`}>
+                  <Skeleton tone="raised" className="h-5 w-32" />
+                  <Skeleton tone="raised" className="h-4 w-64 max-w-full" />
+                </div>
+              ))}
+            </div>
           </div>
-        ))}
-      </div>
-
-      <div className="flex flex-col gap-3 rounded-xl border border-separator p-6">
-        <Skeleton className="h-5 w-28" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-9 w-32" rounded="rounded-lg" />
+        </div>
+      ))}
+      <div className={SETTINGS_SECTION_CLASS}>
+        <Skeleton className="h-7 w-32 lg:mt-5" />
+        <div className={settingsPanelClass("danger")}>
+          <div className={SETTINGS_PANEL_BODY_CLASS}>
+            <div className={`flex flex-col gap-3 ${SETTINGS_ROW_CLASS}`}>
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-10 w-36" rounded="rounded-full" />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1,18 +1,20 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { refresh, revalidatePath } from "next/cache";
 
 import { getDb } from "@/db/client";
 import { getUserIdByName } from "@/db/queries";
-import { user } from "@/db/schema";
+import { profileShareLinks, user } from "@/db/schema";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
 import { DISPLAY_NAME_TAKEN_MESSAGE, displayNameProblem } from "@/lib/display-name";
-import { parseJournalVisibility } from "@/lib/journal";
+import { parseSendCommentAudience, parseSharingAudience } from "@/lib/privacy";
 import { requireSession } from "@/lib/session";
 import { requireTrimmed } from "@/lib/validation";
 
 function revalidateProfileSurfaces(userId: string) {
+  revalidatePath("/feed");
+  revalidatePath("/friends");
   revalidatePath(`/users/${userId}`);
   revalidatePath(`/users/${userId}/journal`);
   revalidatePath(`/users/${userId}/sends`);
@@ -20,7 +22,7 @@ function revalidateProfileSurfaces(userId: string) {
   revalidatePath(`/users/${userId}/analytics`);
 }
 
-/** Toggles whether the signed-in user's profile and sends are hidden from
+/** Toggles whether the signed-in user's profile and history are hidden from
  * everyone but themselves (see lib/user-visibility.ts). Profile surfaces
  * are revalidated here — a toggle doesn't fan out to every climb page
  * the user has ever sent, which for an active climber can run into the
@@ -34,6 +36,23 @@ export async function setUserPrivate(isPrivate: boolean): Promise<ActionResult> 
     await db.update(user).set({ isPrivate }).where(eq(user.id, session.user.id));
 
     revalidateProfileSurfaces(session.user.id);
+    refresh();
+  });
+}
+
+/** Stops links and QR codes already handed out from naming the owner. */
+export async function resetProfileShareLink(): Promise<ActionResult> {
+  return toActionResult(async () => {
+    const session = await requireSession();
+    const db = await getDb();
+    const token = sql`lower(hex(randomblob(16)))`;
+
+    await db
+      .insert(profileShareLinks)
+      .values({ userId: session.user.id, token })
+      .onConflictDoUpdate({ target: profileShareLinks.userId, set: { token } });
+
+    revalidatePath(`/users/${session.user.id}`);
     refresh();
   });
 }
@@ -66,9 +85,22 @@ export async function setJournalVisibility(visibility: string): Promise<ActionRe
   return toActionResult(async () => {
     const session = await requireSession();
     const db = await getDb();
-    const journalVisibility = parseJournalVisibility(visibility);
+    const journalVisibility = parseSharingAudience(visibility);
 
     await db.update(user).set({ journalVisibility }).where(eq(user.id, session.user.id));
+
+    revalidateProfileSurfaces(session.user.id);
+    refresh();
+  });
+}
+
+export async function setSendCommentVisibility(visibility: string): Promise<ActionResult> {
+  return toActionResult(async () => {
+    const session = await requireSession();
+    const db = await getDb();
+    const sendCommentVisibility = parseSendCommentAudience(visibility);
+
+    await db.update(user).set({ sendCommentVisibility }).where(eq(user.id, session.user.id));
 
     revalidateProfileSurfaces(session.user.id);
     refresh();

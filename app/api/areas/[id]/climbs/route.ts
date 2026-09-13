@@ -10,11 +10,12 @@ import {
   PAGE_SIZE,
   resolveSubareaScope,
 } from "@/db/queries";
+import { withApiSession } from "@/lib/api-session";
 import {
   parseAreaClimbsFilter,
   parseAreaClimbsSort,
   toSubtreeQueryFilter,
-} from "@/lib/area-climbs-filter";
+} from "@/lib/filters/area-climbs-filter";
 import { parseId } from "@/lib/parse-id";
 import {
   offsetReachesPaginationLimit,
@@ -23,8 +24,7 @@ import {
   parsePage,
   parseSuggestionLimit,
   searchParamsToRecord,
-} from "@/lib/search-params";
-import { getSession } from "@/lib/session";
+} from "@/lib/url-params";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -35,7 +35,7 @@ type RouteParams = { params: Promise<{ id: string }> };
  * With `limit`: suggestion mode for the area page's route typeahead, which
  * searches names within this area's subtree. Same skip-the-join-passes
  * reasoning as /api/search/climbs. */
-export async function GET(request: Request, { params }: RouteParams) {
+export const GET = withApiSession(async (session, request: Request, { params }: RouteParams) => {
   const { id } = await params;
   const areaId = parseId(id);
   const url = new URL(request.url);
@@ -71,10 +71,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     );
   }
 
-  const [listScope, session] = await Promise.all([
-    resolveSubareaScope(db, area, filter.subareaId),
-    suggestionLimit === null ? getSession() : Promise.resolve(null),
-  ]);
+  const listScope = await resolveSubareaScope(db, area, filter.subareaId);
   const subtreeClimbs = await getSubtreeClimbs(
     db,
     listScope,
@@ -118,4 +115,4 @@ export async function GET(request: Request, { params }: RouteParams) {
     areaBreadcrumbs,
     sentClimbIds: sentClimbIds ? [...sentClimbIds] : undefined,
   });
-}
+});

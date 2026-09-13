@@ -8,6 +8,7 @@ type SegmentedButtonsProps<V extends string> = {
   onChange: (value: V) => void;
   options: readonly { value: V; label: string }[];
   className?: string;
+  isDisabled?: boolean;
 };
 
 /** Exactly-one-of-a-few as a button group: the chosen segment is solid, the
@@ -19,6 +20,7 @@ export function SegmentedButtons<V extends string>({
   onChange,
   options,
   className,
+  isDisabled = false,
 }: SegmentedButtonsProps<V>) {
   return (
     <ButtonGroup className={clsx("w-full", className)}>
@@ -28,6 +30,7 @@ export function SegmentedButtons<V extends string>({
           <Button
             key={option.value}
             type="button"
+            isDisabled={isDisabled}
             aria-pressed={selected}
             variant={selected ? undefined : "outline"}
             onPress={() => onChange(option.value)}

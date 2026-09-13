@@ -7,7 +7,7 @@ import { getDb } from "@/db/client";
 import { getProductTourState } from "@/db/queries";
 import { getAcknowledgedTourVersion } from "@/lib/product-tour";
 import { findProductTour } from "@/lib/product-tour-navigation";
-import { getSession } from "@/lib/session";
+import { getMemberSession as getSession } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Product tour", robots: { index: false } };
 
@@ -18,12 +18,12 @@ export default async function TutorialLayout({
   params: Promise<{ tourId: string }>;
   children: ReactNode;
 }) {
+  const session = await getSession();
+  // Each page supplies its own callout and safe continuation before resolving the tour.
+  if (!session) return children;
   const { tourId } = await params;
   const tour = findProductTour(tourId);
   if (!tour) notFound();
-  const session = await getSession();
-  // The page has the step and search params needed for the exact sign-in continuation.
-  if (!session) return children;
   const state = await getProductTourState(await getDb(), session.user.id);
   const savedVersion = getAcknowledgedTourVersion(tour.id, state?.progress);
   return (

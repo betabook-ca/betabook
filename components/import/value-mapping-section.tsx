@@ -92,10 +92,13 @@ export const ASCENT_STYLE_OPTIONS = ASCENT_STYLES.map((value) => ({
   value,
   label: ASCENT_STYLE_LABELS[value],
 }));
-export const CLIMB_TYPE_OPTIONS = CLIMB_TYPES.map((value) => ({
-  value,
-  label: DISCIPLINE_LABELS[value],
-}));
+export const CLIMB_TYPE_OPTIONS = [
+  ...CLIMB_TYPES.map((value) => ({
+    value,
+    label: DISCIPLINE_LABELS[value],
+  })),
+  { value: "route" as const, label: "Route (sport or trad)" },
+];
 export const GRADE_FEEL_OPTIONS = GRADE_FEEL_VALUES.map((value) => ({
   value,
   label: GRADE_FEEL_LABELS[value],

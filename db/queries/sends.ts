@@ -2,17 +2,20 @@ import { and, asc, desc, eq, sql, type SQL } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { areas, climbs, sends, user } from "@/db/schema";
+import type { DateFilterValue } from "@/lib/filters/date-filter";
 import {
   DEFAULT_BOULDER_RANGE,
   DEFAULT_SPORT_RANGE,
   DEFAULT_TRAD_RANGE,
   type DisciplineFilter,
-} from "@/lib/discipline-filter";
+} from "@/lib/filters/discipline-filter";
 import { formatGrade, type ClimbType } from "@/lib/grades";
 import { ASCENT_STYLES, GRADE_FEEL_OFFSET, type AscentStyle, type GradeFeel } from "@/lib/sends";
 
-import { areaNameCondition } from "./areas";
+import { areaIdCondition, areaNameCondition } from "./areas";
 import type { Climb } from "./climbs";
+import { sendCommentVisibleSql } from "./content-access";
+import { sendHashtagCondition } from "./hashtag-filter";
 import { disciplineGradeCondition, toFtsPrefixQuery } from "./shared";
 
 export type Send = typeof sends.$inferSelect;
@@ -36,15 +39,16 @@ export async function getUserSendForClimb(
     .get();
 }
 
-/** Fields crossing the sends JSON endpoint; excludes Date-valued database timestamps. */
-export type ClimbSendRow = EditableSend & { userId: string; userName: string };
+/** Fields crossing the sends JSON endpoint; excludes Date-valued database timestamps.
+ * Another climber's private-profile send is anonymous: null user fields, a
+ * "YYYY-MM" date, and its negative list position as `id` (see getPublicSendsForClimb). */
+export type ClimbSendRow = EditableSend & { userId: string | null; userName: string | null };
 
 export const CLIMB_SENDS_PAGE_SIZE = 10;
 
 export type ClimbSendsPage = { sends: ClimbSendRow[]; hasMore: boolean };
 
-/** Newest first, with ID breaking date ties. Private authors are visible only
- * to themselves; anonymous aggregate statistics still include their sends. */
+/** Newest first, with ID breaking date ties. */
 export async function getSendsForClimb(
   db: Database,
   climbId: number,
@@ -52,25 +56,27 @@ export async function getSendsForClimb(
   pageSize: number = CLIMB_SENDS_PAGE_SIZE,
   viewerId: string | null = null,
 ): Promise<ClimbSendsPage> {
-  const visibilityCondition = viewerId
-    ? sql`(user.is_private = 0 OR sends.user_id = ${viewerId})`
-    : sql`user.is_private = 0`;
+  const anonymous = sql`(user.is_private = 1 AND sends.user_id IS NOT ${viewerId})`;
 
   const rows = await db
     .select({
-      id: sends.id,
-      userId: sends.userId,
-      userName: user.name,
+      id: sql<number>`CASE WHEN ${anonymous} THEN -(ROW_NUMBER() OVER (ORDER BY sends.date_sent DESC, sends.id ASC)) ELSE ${sends.id} END`,
+      userId: sql<string | null>`CASE WHEN ${anonymous} THEN NULL ELSE ${sends.userId} END`,
+      userName: sql<string | null>`CASE WHEN ${anonymous} THEN NULL ELSE ${user.name} END`,
       ascentStyle: sends.ascentStyle,
-      dateSent: sends.dateSent,
-      comment: sends.comment,
+      dateSent: sql<
+        string | null
+      >`CASE WHEN ${anonymous} THEN substr(${sends.dateSent}, 1, 7) ELSE ${sends.dateSent} END`,
+      comment: sql<
+        string | null
+      >`CASE WHEN ${sendCommentVisibleSql(viewerId, sql`sends.user_id`)} THEN ${sends.comment} ELSE NULL END`,
       rating: sends.rating,
       suggestedGrade: sends.suggestedGrade,
       gradeFeel: sends.gradeFeel,
     })
     .from(sends)
     .innerJoin(user, eq(sends.userId, user.id))
-    .where(and(eq(sends.climbId, climbId), visibilityCondition))
+    .where(eq(sends.climbId, climbId))
     .orderBy(desc(sends.dateSent), asc(sends.id))
     .limit(pageSize + 1)
     .offset(offset);
@@ -167,13 +173,17 @@ export type UserSendsSort =
   | "rating_desc"
   | "rating_asc";
 
-export type UserSendsFilter = DisciplineFilter & {
-  name?: string;
-  areaName?: string;
-  sort?: UserSendsSort;
-  ascentStyles: AscentStyle[];
-  minRating: number;
-};
+export type UserSendsFilter = DisciplineFilter &
+  DateFilterValue & {
+    tags?: string[];
+    name?: string;
+    areaName?: string;
+    areaId?: number;
+    sort?: UserSendsSort;
+    ascentStyles: AscentStyle[];
+    minRating: number;
+    maxRating: number;
+  };
 
 // Unknown values sort last. ID breaks ties in the paginated query.
 const USER_SENDS_ORDER_BY: Record<UserSendsSort, SQL> = {
@@ -192,7 +202,7 @@ export type UserSendsPage = {
   hasMore: boolean;
 };
 
-function userSendsWhere(userId: string, filter: UserSendsFilter): SQL {
+function userSendsWhere(userId: string, filter: UserSendsFilter, viewerId: string | null): SQL {
   const disciplineClauses: SQL[] = [];
   if (filter.disciplines.includes("boulder")) {
     disciplineClauses.push(
@@ -212,6 +222,12 @@ function userSendsWhere(userId: string, filter: UserSendsFilter): SQL {
     disciplineClauses.length > 0 ? sql`(${sql.join(disciplineClauses, sql` OR `)})` : sql`1`;
 
   const conditions: SQL[] = [sql`sends.user_id = ${userId}`, disciplineWhere];
+  if (filter.tags?.length) conditions.push(sendHashtagCondition(filter.tags, viewerId));
+  if (filter.date) conditions.push(sql`sends.date_sent = ${filter.date}`);
+  else {
+    if (filter.dateFrom) conditions.push(sql`sends.date_sent >= ${filter.dateFrom}`);
+    if (filter.dateTo) conditions.push(sql`sends.date_sent <= ${filter.dateTo}`);
+  }
 
   if (filter.ascentStyles.length > 0) {
     conditions.push(
@@ -222,7 +238,13 @@ function userSendsWhere(userId: string, filter: UserSendsFilter): SQL {
     );
   }
 
-  if (filter.minRating > 0) {
+  // Unrated sends store NULL. The full 1–5 range omits rating predicates;
+  // narrowing either bound excludes NULLs through the SQL comparison.
+  // Zero is a legacy unbounded filter value, never a stored zero-star rating.
+  if (filter.maxRating > 0 && filter.maxRating < 5) {
+    conditions.push(sql`sends.rating <= ${filter.maxRating}`);
+  }
+  if (filter.minRating > 1) {
     conditions.push(sql`sends.rating >= ${filter.minRating}`);
   }
 
@@ -235,13 +257,17 @@ function userSendsWhere(userId: string, filter: UserSendsFilter): SQL {
     );
   }
 
-  const areaCondition = areaNameCondition(filter.areaName);
+  const areaCondition =
+    filter.areaId !== undefined
+      ? areaIdCondition(filter.areaId)
+      : areaNameCondition(filter.areaName);
   if (areaCondition) conditions.push(areaCondition);
 
   return sql.join(conditions, sql` AND `);
 }
 
-const USER_SEND_COLUMNS = sql`
+function userSendColumns(viewerId: string | null) {
+  return sql`
       sends.id AS id,
       sends.climb_id AS climbId,
       climbs.name AS climbName,
@@ -254,8 +280,9 @@ const USER_SEND_COLUMNS = sql`
       sends.rating AS rating,
       sends.suggested_grade AS suggestedGrade,
       sends.grade_feel AS gradeFeel,
-      sends.comment AS comment
+      CASE WHEN ${sendCommentVisibleSql(viewerId, sql`sends.user_id`)} THEN sends.comment ELSE NULL END AS comment
 `;
+}
 
 export async function getSendsForUserPage(
   db: Database,
@@ -263,11 +290,12 @@ export async function getSendsForUserPage(
   filter: UserSendsFilter,
   offset: number,
   pageSize: number = USER_SENDS_PAGE_SIZE,
+  viewerId: string | null = null,
 ): Promise<UserSendsPage> {
-  const where = userSendsWhere(userId, filter);
+  const where = userSendsWhere(userId, filter, viewerId);
 
   const rows = await db.all<UserSendRow>(sql`
-    SELECT ${USER_SEND_COLUMNS}
+    SELECT ${userSendColumns(viewerId)}
     FROM sends
     JOIN climbs ON climbs.id = sends.climb_id
     JOIN areas ON areas.id = climbs.area_id
@@ -338,7 +366,7 @@ function getUserExportRows(
   limit: number,
 ): Promise<UserSendRow[]> {
   return db.all<UserSendRow>(sql`
-    SELECT ${USER_SEND_COLUMNS}
+    SELECT ${userSendColumns(userId)}
     FROM sends INDEXED BY sends_user_date_idx
     JOIN climbs ON climbs.id = sends.climb_id
     JOIN areas ON areas.id = climbs.area_id
@@ -346,6 +374,13 @@ function getUserExportRows(
     ORDER BY sends.date_sent DESC, sends.id DESC
     LIMIT ${limit}
   `);
+}
+
+export async function hasUserSends(db: Database, userId: string): Promise<boolean> {
+  const row = await db.get<{ found: number }>(
+    sql`SELECT EXISTS (SELECT 1 FROM sends WHERE user_id = ${userId}) AS found`,
+  );
+  return row?.found === 1;
 }
 
 export type UserStatsSummary = {
@@ -466,6 +501,8 @@ export type AnalyticsSendRow = {
 export async function getUserSendsForAnalytics(
   db: Database,
   userId: string,
+  viewerId: string | null = null,
+  tags?: string[],
 ): Promise<AnalyticsSendRow[]> {
   return db
     .select({
@@ -481,6 +518,11 @@ export async function getUserSendsForAnalytics(
     .from(sends)
     .innerJoin(climbs, eq(sends.climbId, climbs.id))
     .innerJoin(areas, eq(climbs.areaId, areas.id))
-    .where(eq(sends.userId, userId))
+    .where(
+      and(
+        eq(sends.userId, userId),
+        tags?.length ? sendHashtagCondition(tags, viewerId) : undefined,
+      ),
+    )
     .orderBy(sends.dateSent, sends.id);
 }

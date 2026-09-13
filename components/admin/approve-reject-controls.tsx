@@ -4,6 +4,7 @@ import { AlertDialog, Button, Label, TextArea, TextField, useOverlayState } from
 import { useState, useTransition } from "react";
 
 import { approveChangeRequest, rejectChangeRequest } from "@/actions";
+import { InlineAlert } from "@/components/ui/inline-alert";
 
 type ApproveRejectControlsProps = {
   requestId: number;
@@ -70,8 +71,8 @@ export function ApproveRejectControls({ requestId, alreadyApproved }: ApproveRej
           Reject
         </Button>
       </div>
-      {notice && <p className="text-sm text-muted">{notice}</p>}
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {notice && <InlineAlert status="success">{notice}</InlineAlert>}
+      {error && <InlineAlert>{error}</InlineAlert>}
 
       <AlertDialog.Backdrop isOpen={rejectState.isOpen} onOpenChange={handleRejectOpenChange}>
         <AlertDialog.Container placement="center" size="sm">

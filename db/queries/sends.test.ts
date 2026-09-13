@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { createDb, type Database } from "@/db/client";
-import { climbs, sends } from "@/db/schema";
+import { areas, climbs, sends } from "@/db/schema";
 import { BOULDER_HUECO, ROPE_YDS } from "@/lib/grades";
 import { seedFixtureSend, seedFixtureTree, seedFixtureUser, seedManyClimbs } from "@/test/fixtures";
 import { explainQueries } from "@/test/query-plans";
@@ -18,6 +18,7 @@ import {
   getUserSendForClimb,
   getUserSendsSummary,
   getUserSentClimbIds,
+  hasUserSends,
   type UserSendsExportCursor,
   type UserSendsFilter,
 } from "./sends";
@@ -29,6 +30,7 @@ const ALL_SENDS_FILTER: UserSendsFilter = {
   tradRange: [0, ROPE_YDS.length - 1],
   ascentStyles: [],
   minRating: 0,
+  maxRating: 0,
 };
 
 let db: Database;
@@ -57,9 +59,9 @@ beforeEach(async () => {
   });
   await seedFixtureSend(db, {
     userId: "test-user-1",
-    climbId: 2,
+    climbId: 2, // Test Slab, boulder: never an onsight (0042 guards)
     dateSent: "2026-03-01",
-    ascentStyle: "onsight",
+    ascentStyle: "flash",
   });
 });
 
@@ -326,6 +328,28 @@ describe("getSendsForUserPage", () => {
   describe("name/areaName filtering", () => {
     beforeEach(seedNameSends);
 
+    it("filters sends by exact area identity including descendants, without matching duplicate names", async () => {
+      await db.insert(areas).values({ id: 20, name: "Test Boulders" });
+      await db
+        .insert(climbs)
+        .values({ id: 20, areaId: 20, name: "Other Highball", type: "boulder", grade: 5 });
+      await seedFixtureSend(db, { userId: "test-user-10", climbId: 20, dateSent: null });
+      const filter = { ...ALL_SENDS_FILTER, areaId: 2, areaName: "Test Boulders" };
+      expect(
+        (await getSendsForUserPage(db, "test-user-10", filter, 0)).sends.map(
+          (send) => send.climbId,
+        ),
+      ).toEqual([1]);
+      expect(
+        (await getSendsForUserPage(db, "test-user-10", { ...filter, areaId: 20 }, 0)).sends.map(
+          (send) => send.climbId,
+        ),
+      ).toEqual([20]);
+      expect(
+        (await getSendsForUserPage(db, "test-user-10", { ...filter, areaId: 0 }, 0)).sends,
+      ).toEqual([]);
+    });
+
     it("fuzzy-matches by partial climb name", async () => {
       const results = await getSendsForUserPage(
         db,
@@ -505,6 +529,15 @@ describe("getUserSendsSummary", () => {
       mostLoggedDiscipline: null,
       latestSendDate: null,
     });
+  });
+});
+
+describe("hasUserSends", () => {
+  it("tells a climber with sends from one without", async () => {
+    await seedFixtureUser(db, { id: "sends-none", name: "No Sends Yet" });
+
+    expect(await hasUserSends(db, "test-user-1")).toBe(true);
+    expect(await hasUserSends(db, "sends-none")).toBe(false);
   });
 });
 
@@ -689,6 +722,21 @@ describe("getSendsForUserPage ascentStyles/minRating filtering", () => {
     ]);
   });
 
+  it("includes unrated sends in the full one-to-five rating range", async () => {
+    const result = await getSendsForUserPage(
+      db,
+      "test-user-12",
+      { ...ALL_SENDS_FILTER, minRating: 1, maxRating: 5 },
+      0,
+    );
+    expect(result.sends.map((send) => send.climbName).sort()).toEqual([
+      "Test Crimper",
+      "Test Highball",
+      "Test Slab",
+    ]);
+    expect(result.sends.find((send) => send.climbName === "Test Crimper")?.rating).toBeNull();
+  });
+
   it("filters down to a single selected ascent style", async () => {
     const results = await getSendsForUserPage(
       db,
@@ -719,11 +767,28 @@ describe("getSendsForUserPage ascentStyles/minRating filtering", () => {
     expect(results.sends.map((s) => s.climbName)).toEqual(["Test Highball"]);
   });
 
+  it("filters by maximum rating and combines inclusive bounds, excluding unrated sends", async () => {
+    const maximum = await getSendsForUserPage(
+      db,
+      "test-user-12",
+      { ...ALL_SENDS_FILTER, maxRating: 2 },
+      0,
+    );
+    expect(maximum.sends.map((send) => send.climbName)).toEqual(["Test Slab"]);
+    const bounded = await getSendsForUserPage(
+      db,
+      "test-user-12",
+      { ...ALL_SENDS_FILTER, minRating: 2, maxRating: 2 },
+      0,
+    );
+    expect(bounded.sends.map((send) => send.climbName)).toEqual(["Test Slab"]);
+  });
+
   it("combines ascent-style and minimum-rating filters", async () => {
     const results = await getSendsForUserPage(
       db,
       "test-user-12",
-      { ...ALL_SENDS_FILTER, ascentStyles: ["redpoint", "onsight"], minRating: 1 },
+      { ...ALL_SENDS_FILTER, ascentStyles: ["redpoint", "onsight"], minRating: 2 },
       0,
     );
     expect(results.sends.map((s) => s.climbName)).toEqual(["Test Slab"]);
@@ -991,21 +1056,48 @@ describe("getSendsForClimb private-user filtering", () => {
     });
   });
 
-  it("excludes a private user's send when there's no viewer", async () => {
-    const { sends: rows } = await getSendsForClimb(db, PRIVATE_CLIMB_ID);
-    expect(rows.map((s) => s.userName)).toEqual(["Public Climber"]);
-  });
+  it.each([null, "public-user"])(
+    "anonymizes a private user's send for viewer %s",
+    async (viewer) => {
+      const { sends: rows } = await getSendsForClimb(db, PRIVATE_CLIMB_ID, 0, 10, viewer);
+      expect(
+        rows.map((s) => [s.id < 0, s.userId, s.userName, s.dateSent, s.rating, s.suggestedGrade]),
+      ).toEqual([
+        [true, null, null, "2026-05", 5, 3],
+        [false, "public-user", "Public Climber", "2026-05-01", 3, null],
+      ]);
+    },
+  );
 
-  it("excludes a private user's send from a different signed-in viewer", async () => {
-    const { sends: rows } = await getSendsForClimb(db, PRIVATE_CLIMB_ID, 0, 10, "public-user");
-    expect(rows.map((s) => s.userName)).toEqual(["Public Climber"]);
-  });
-
-  it("includes a private user's own send when they are the viewer", async () => {
+  it("shows a private user their own send", async () => {
     const { sends: rows } = await getSendsForClimb(db, PRIVATE_CLIMB_ID, 0, 10, "private-user");
-    // Newest dateSent first: the private user's send (05-02) sorts ahead of
-    // the public user's (05-01).
-    expect(rows.map((s) => s.userName)).toEqual(["Private Climber", "Public Climber"]);
+    expect(rows.map((s) => [s.id < 0, s.userName, s.dateSent])).toEqual([
+      [false, "Private Climber", "2026-05-02"],
+      [false, "Public Climber", "2026-05-01"],
+    ]);
+  });
+
+  it("keys anonymous rows by their position so pages never collide", async () => {
+    await seedFixtureUser(db, { id: "second-private", isPrivate: true });
+    await seedFixtureSend(db, {
+      userId: "second-private",
+      climbId: PRIVATE_CLIMB_ID,
+      dateSent: "2026-04-30",
+    });
+    const ids = [];
+    for (const offset of [0, 1, 2]) {
+      const { sends: rows } = await getSendsForClimb(
+        db,
+        PRIVATE_CLIMB_ID,
+        offset,
+        1,
+        "public-user",
+      );
+      ids.push(...rows.map((s) => s.id));
+    }
+    expect(ids[0]).toBe(-1);
+    expect(ids[1]).toBeGreaterThan(0);
+    expect(ids[2]).toBe(-3);
   });
 
   it("still counts the private user's send toward the climb's rating and suggested grade", async () => {
@@ -1013,5 +1105,34 @@ describe("getSendsForClimb private-user filtering", () => {
     // it — this is the regression guard for that invariant.
     const stats = await getClimbSendStats(db, [PRIVATE_CLIMB_ID]);
     expect(stats[PRIVATE_CLIMB_ID]).toEqual({ avgRating: 4, sendCount: 2, avgSuggestedGrade: 3 });
+  });
+});
+
+describe("send date ranges", () => {
+  beforeEach(seedSortSends);
+  it("includes both endpoints, excludes undated sends, and paginates within the range", async () => {
+    const filter = { ...ALL_SENDS_FILTER, dateFrom: "2026-06-01", dateTo: "2026-06-02" };
+    const first = await getSendsForUserPage(db, "test-user-11", filter, 0, 1);
+    expect(first.sends.map((send) => send.climbId)).toEqual([3]);
+    expect(first.hasMore).toBe(true);
+    const second = await getSendsForUserPage(db, "test-user-11", filter, 1, 1);
+    expect(second.sends.map((send) => send.climbId)).toEqual([2]);
+    expect(second.hasMore).toBe(false);
+  });
+  it("supports either open endpoint and other filters", async () => {
+    const from = await getSendsForUserPage(
+      db,
+      "test-user-11",
+      { ...ALL_SENDS_FILTER, dateFrom: "2026-06-02" },
+      0,
+    );
+    expect(from.sends.map((send) => send.climbId)).toEqual([1, 3]);
+    const to = await getSendsForUserPage(
+      db,
+      "test-user-11",
+      { ...ALL_SENDS_FILTER, dateTo: "2026-06-02", minRating: 3 },
+      0,
+    );
+    expect(to.sends.map((send) => send.climbId)).toEqual([2]);
   });
 });

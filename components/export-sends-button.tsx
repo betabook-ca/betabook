@@ -4,7 +4,9 @@ import { Button } from "@heroui/react";
 import { Download } from "lucide-react";
 import { useState } from "react";
 
+import { InlineAlert } from "@/components/ui/inline-alert";
 import type { UserSendRow } from "@/db/queries";
+import { apiFetch } from "@/lib/api-client";
 import { downloadCsv } from "@/lib/download";
 import { formatCount } from "@/lib/format";
 import { buildSendsExportCsv } from "@/lib/sends-export";
@@ -43,7 +45,7 @@ export function ExportSendsButton({ userId }: { userId: string }) {
           params.set("afterDate", cursor.dateSent ?? "null");
         }
         const query = params.size > 0 ? `?${params.toString()}` : "";
-        const res = await fetch(`/api/users/${userId}/sends/export${query}`);
+        const res = await apiFetch(`/api/users/${userId}/sends/export${query}`);
         if (!res.ok) throw new Error(`Exporting sends failed: ${res.status}`);
         const data: UserSendsPageResponse = await res.json();
         if (data.sends.some((send) => seenIds.has(send.id))) {
@@ -70,18 +72,12 @@ export function ExportSendsButton({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="flex w-full flex-col gap-1">
-      <Button
-        variant="outline"
-        fullWidth
-        className="gap-2"
-        onPress={handlePress}
-        isDisabled={exporting}
-      >
+    <div className="flex flex-col gap-2">
+      <Button variant="outline" className="gap-2" onPress={handlePress} isDisabled={exporting}>
         <Download className="size-4" />
         {exporting ? `Exporting… ${formatCount(exportedRows, "row")}` : "Export sends"}
       </Button>
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <InlineAlert>{error}</InlineAlert>}
     </div>
   );
 }

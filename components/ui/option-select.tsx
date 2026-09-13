@@ -11,12 +11,14 @@ export type SelectOption<V extends string> = { value: V; label: string };
  * against the field's edge. */
 export function OptionSelect<V extends string>({
   ariaLabel,
+  isRequired,
   value,
   onChange,
   options,
   className,
 }: {
   ariaLabel: string;
+  isRequired?: boolean;
   value: V;
   onChange: (value: V) => void;
   options: readonly SelectOption<V>[];
@@ -26,6 +28,7 @@ export function OptionSelect<V extends string>({
     <div className={className}>
       <Select
         aria-label={ariaLabel}
+        isRequired={isRequired}
         fullWidth
         selectedKey={value}
         onSelectionChange={(key) => {

@@ -3,10 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import UserPage from "@/app/users/[id]/page";
 import UserProjectsPage from "@/app/users/[id]/projects/page";
-import { ProfileSectionNav, ProfileTabs } from "@/components/profile-tabs";
 
 const state = vi.hoisted(() => ({
-  pathname: "/users/journal-owner",
   session: null as { user: { id: string } } | null,
   user: {
     id: "journal-owner",
@@ -33,19 +31,18 @@ vi.mock("next/navigation", () => ({
   notFound: vi.fn<() => never>(() => {
     throw new Error("not found");
   }),
-  usePathname: vi.fn<() => string>(() => state.pathname),
-}));
-
-vi.mock("@/components/ui/app-link", () => ({
-  AppLink: ({ children }: { children: ReactNode }) => children,
 }));
 
 vi.mock("@/lib/session", () => ({
-  getSession: vi.fn<() => Promise<{ user: { id: string } } | null>>(async () => state.session),
+  getMemberSession: vi.fn<() => Promise<{ user: { id: string } } | null>>(
+    async () => state.session,
+  ),
 }));
 
 vi.mock("@/app/users/[id]/profile-shell", () => ({
   getUserById: vi.fn<(id: string) => Promise<typeof state.user>>(async () => state.user),
+  canReadUserJournal: async (_id: string, viewerId: string | null) =>
+    state.user.journalVisibility === "public" || state.user.id === viewerId,
   ProfileHeader: mocks.ProfileHeader,
 }));
 
@@ -62,8 +59,7 @@ vi.mock("@/app/users/[id]/projects-view", () => ({
 }));
 
 function viewFrom(result: ReactElement<{ children: ReactNode }>) {
-  const children = result.props.children as ReactElement<Record<string, unknown>>[];
-  return children[1];
+  return result.props.children as ReactElement<Record<string, unknown>>;
 }
 
 describe("the profile's default view", () => {
@@ -105,7 +101,8 @@ describe("the profile's default view", () => {
     expect(view.props.filter).toMatchObject({ sort: "grade_desc" });
   });
 
-  it("renders a public journal for a visitor", async () => {
+  it("renders a member-shared journal for a signed-in visitor", async () => {
+    state.session = { user: { id: "visitor" } };
     state.user.journalVisibility = "public";
 
     const result = await UserPage({
@@ -114,50 +111,6 @@ describe("the profile's default view", () => {
     });
 
     expect(viewFrom(result).type).toBe(mocks.JournalView);
-  });
-});
-
-describe("ProfileTabs", () => {
-  it("does not offer a private Journal tab to a visitor", () => {
-    state.pathname = `/users/${state.user.id}`;
-    const result = ProfileTabs({
-      userId: state.user.id,
-      showJournal: false,
-      showProjects: false,
-    });
-    const container = ProfileSectionNav(result.props).props.children as ReactElement<{
-      children: ReactNode;
-    }>;
-    const tabs = container.props.children as ReactElement<{ href: string }>[];
-
-    expect(tabs.map((tab) => tab.props.href)).toEqual([
-      `/users/${state.user.id}/sends`,
-      `/users/${state.user.id}/analytics`,
-    ]);
-  });
-
-  it("puts the owner's Projects tab after Sends", () => {
-    state.pathname = `/users/${state.user.id}/projects`;
-    const result = ProfileTabs({
-      userId: state.user.id,
-      showJournal: true,
-      showProjects: true,
-    });
-    const container = ProfileSectionNav(result.props).props.children as ReactElement<{
-      children: ReactNode;
-    }>;
-    const tabs = container.props.children as ReactElement<{
-      href: string;
-      "aria-current"?: string;
-    }>[];
-
-    expect(tabs.map((tab) => tab.props.href)).toEqual([
-      `/users/${state.user.id}/journal`,
-      `/users/${state.user.id}/sends`,
-      `/users/${state.user.id}/projects`,
-      `/users/${state.user.id}/analytics`,
-    ]);
-    expect(tabs[2].props["aria-current"]).toBe("page");
   });
 });
 

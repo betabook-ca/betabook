@@ -3,8 +3,10 @@ import { cache } from "react";
 
 import { getDb } from "@/db/client";
 import { countAreas, countClimbs, getAreaSitemapRows, getClimbSitemapRows } from "@/db/queries";
+import { LANDING_PAGE_PATHS } from "@/lib/landing-pages";
 import { SITE_URL } from "@/lib/site";
 import { areaHref, climbHref } from "@/lib/slug";
+import { TERMS_VERSIONS, termsHref } from "@/lib/terms";
 
 // Google caps a sitemap at 50,000 URLs; stay under with headroom.
 const SHARD_SIZE = 40_000;
@@ -21,7 +23,14 @@ export const dynamic = "force-dynamic";
 
 // "" (not "/") so the root entry is `https://betabook.ca`, matching the
 // canonical link the home page renders.
-const STATIC_PATHS = ["", "/about", "/contact"];
+const STATIC_PATHS = [
+  "",
+  ...LANDING_PAGE_PATHS,
+  "/about",
+  "/contact",
+  "/terms",
+  ...TERMS_VERSIONS.map(({ version }) => termsHref(version)),
+];
 
 const counts = cache(async () => {
   const db = await getDb();
