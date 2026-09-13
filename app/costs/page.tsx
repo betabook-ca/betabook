@@ -7,6 +7,7 @@ import { PageTitle } from "@/components/ui/typography";
 import { getCloudflareUsage } from "@/lib/cloudflare-usage";
 import { COSTS_PAGE } from "@/lib/landing-pages";
 import { pageMetadata } from "@/lib/seo";
+import { SUPPORT_URL } from "@/lib/site";
 
 export const metadata: Metadata = pageMetadata({
   title: "Running costs",
@@ -30,7 +31,7 @@ export default async function CostsPage() {
         </p>
       </div>
 
-      <RunningCosts usage={usage} />
+      <RunningCosts usage={usage} supportUrl={SUPPORT_URL} />
 
       <p className="text-sm leading-relaxed text-pretty text-muted">
         Usage comes from Cloudflare’s sampled analytics and refreshes hourly. Amounts are in US

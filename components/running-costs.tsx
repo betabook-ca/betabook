@@ -1,3 +1,5 @@
+import { buttonVariants } from "@heroui/react";
+
 import { cardClass } from "@/components/ui/card";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ProgressBar } from "@/components/ui/progress-bar";
@@ -15,7 +17,13 @@ function share(used: number, included: number): string {
   return percent > 0 && percent < 1 ? "<1%" : `${Math.round(percent)}%`;
 }
 
-export function RunningCosts({ usage }: { usage: CloudflareUsage | null }) {
+export function RunningCosts({
+  usage,
+  supportUrl,
+}: {
+  usage: CloudflareUsage | null;
+  supportUrl: string | null;
+}) {
   const meters = usage ? usageMeters(usage) : null;
   const costs = monthlyCosts(meters);
 
@@ -79,6 +87,29 @@ export function RunningCosts({ usage }: { usage: CloudflareUsage | null }) {
           </div>
         </dl>
       </section>
+
+      {supportUrl && (
+        <section
+          aria-labelledby="costs-support"
+          className={`flex flex-col items-start gap-3 ${cardClass("md", "bordered")}`}
+        >
+          <SectionHeading id="costs-support">Help cover the bill</SectionHeading>
+          <p className="leading-relaxed text-pretty">
+            {`If Betabook is useful to you, you can help cover the ${formatUsd(costs.totalUsd)} it costs to run each month.`}
+          </p>
+          <a
+            href={supportUrl}
+            target="_blank"
+            rel="noreferrer"
+            className={`${buttonVariants()} focus-visible:status-focused`}
+          >
+            Support Betabook
+          </a>
+          <p className="text-sm text-muted">
+            Payments go toward these bills and aren’t tax-deductible.
+          </p>
+        </section>
+      )}
     </div>
   );
 }

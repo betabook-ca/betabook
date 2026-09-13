@@ -16,6 +16,7 @@ const meta = {
       workerCpuMs: 9_800_000,
       d1RowsRead: 2_300_000_000,
     },
+    supportUrl: "https://support.example/betabook",
   },
   render: (args) => (
     <StoryPage title="Running costs">

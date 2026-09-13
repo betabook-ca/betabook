@@ -16,6 +16,7 @@ it("shows how much of each Workers Paid allowance this month has used", () => {
         workerCpuMs: 3_500_000,
         d1RowsRead: 1_000_000_000,
       }}
+      supportUrl={null}
     />,
   );
 
@@ -62,6 +63,7 @@ it("marks a tier past its allowance and adds the overage to the monthly total", 
   const html = renderToStaticMarkup(
     <RunningCosts
       usage={{ ...period, workerRequests: 12_000_000, workerCpuMs: 0, d1RowsRead: 0 }}
+      supportUrl={null}
     />,
   );
 
@@ -73,7 +75,7 @@ it("marks a tier past its allowance and adds the overage to the monthly total", 
 });
 
 it("lists only the fixed bills when live usage is unavailable", () => {
-  const html = renderToStaticMarkup(<RunningCosts usage={null} />);
+  const html = renderToStaticMarkup(<RunningCosts usage={null} supportUrl={null} />);
 
   expect(html).toContain("Live usage is unavailable right now");
   expect(html).not.toContain('role="progressbar"');
@@ -81,4 +83,30 @@ it("lists only the fixed bills when live usage is unavailable", () => {
   expect(html).toContain("$9.19 a year");
   expect(html).not.toContain("Usage beyond the plan");
   expect(html).toContain("$5.77");
+});
+
+it("asks for support toward this month's total and links out to the support page", () => {
+  const html = renderToStaticMarkup(
+    <RunningCosts
+      usage={{ ...period, workerRequests: 1_400_000, workerCpuMs: 0, d1RowsRead: 0 }}
+      supportUrl="https://support.example/betabook"
+    />,
+  );
+
+  expect(html).toContain(
+    "If Betabook is useful to you, you can help cover the $5.77 it costs to run each month.",
+  );
+  const link = html.match(/<a[^>]*>Support Betabook<\/a>/)?.[0] ?? "";
+  expect(link).toContain('href="https://support.example/betabook"');
+  expect(link).toContain('target="_blank"');
+  expect(link).toContain('rel="noreferrer"');
+  expect(html).toContain("Payments go toward these bills and aren’t tax-deductible.");
+});
+
+it("leaves out the support ask when no support page is set", () => {
+  const html = renderToStaticMarkup(<RunningCosts usage={null} supportUrl={null} />);
+
+  expect(html).toContain("Total per month");
+  expect(html).not.toContain("Support Betabook");
+  expect(html).not.toContain("help cover");
 });

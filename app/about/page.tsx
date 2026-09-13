@@ -142,10 +142,9 @@ export default function AboutPage() {
         >
           pricing projection
         </a>{" "}
-        estimates how that grows with traffic. Ideally, we can keep costs under $10/month at which
-        point I can either foot the bill myself or open a donation drive to cover server costs. If
-        activity grows to a point where this isn’t sustainable then I’m sure we can work out a new
-        funding model then.
+        estimates how that grows with traffic. Ideally, we can keep costs under $10/month, and if
+        Betabook is useful to you, you can help cover them on that page. If activity grows to a
+        point where this isn’t sustainable then I’m sure we can work out a new funding model then.
       </p>
 
       <SectionHeading className="mt-4">Filling in the Beta</SectionHeading>
