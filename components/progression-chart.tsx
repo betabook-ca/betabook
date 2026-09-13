@@ -213,7 +213,10 @@ export function ProgressionChart({
                 top: `${(y(point.hardest) / H) * 100}%`,
               }}
             >
-              <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: hue }} />
+              <span
+                className="pointer-events-none size-2 shrink-0 rounded-full"
+                style={{ backgroundColor: hue }}
+              />
             </ChartClimbDetails>
           ))}
         </div>

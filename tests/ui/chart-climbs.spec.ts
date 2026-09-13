@@ -63,7 +63,7 @@ test(
   async ({ page }, info) => {
     await openStory(page, info, "components-charts-progression-chart--dense-history");
     const chart = page.getByRole("region", { name: "boulder grade progression" });
-    await expect(chart.getByRole("button")).toHaveCount(36);
+    await expect(chart.getByRole("button")).toHaveCount(72);
     expect(await chart.evaluate((node) => node.scrollWidth - node.clientWidth)).toBe(0);
     expect(
       await chart.evaluate((node) =>

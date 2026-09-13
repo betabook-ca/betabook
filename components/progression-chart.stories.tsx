@@ -51,7 +51,7 @@ export const Progression: Story = {
 
 export const DenseHistory: Story = {
   render: () => {
-    const points = Array.from({ length: 36 }, (_, i) => ({
+    const points = Array.from({ length: 72 }, (_, i) => ({
       month: `${2024 + Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, "0")}`,
       hardest: 3,
       best: 3,
