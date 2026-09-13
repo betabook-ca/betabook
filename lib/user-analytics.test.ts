@@ -269,7 +269,23 @@ describe("buildUserAnalytics", () => {
     expect(a.areaCount).toBe(2);
     expect(a.topArea).toEqual({ id: 1, name: "Forestland", count: 2 });
     expect(a.flashCount).toBe(1);
+    expect(a.firstTryCount).toBe(1);
     expect(a.hardestFirstTry?.label).toBe("V4");
+  });
+
+  it("counts onsights as first tries alongside flashes on rope climbs", () => {
+    const a = buildUserAnalytics(
+      [
+        send({ climbType: "sport", suggestedGrade: 10 }),
+        send({ climbType: "sport", suggestedGrade: 11, ascentStyle: "flash" }),
+        send({ climbType: "sport", suggestedGrade: 12, ascentStyle: "onsight" }),
+      ],
+      "sport",
+    );
+    expect(a.flashCount).toBe(1);
+    expect(a.onsightCount).toBe(1);
+    expect(a.firstTryCount).toBe(2);
+    expect(a.hardestFirstTry?.grade).toBe(12);
   });
 });
 
@@ -358,23 +374,30 @@ describe("multiple analytics years", () => {
   });
 });
 
-it("builds monthly volume and flash rates from the selected years and discipline", () => {
+it("builds monthly volume and first-try rates from the selected years and discipline", () => {
+  // Rope rows carry the onsight: boulders are never onsights, and the
+  // first-try numerator has to count both styles.
   const rows = [
-    send({ dateSent: "2024-01-02", ascentStyle: "flash" }),
+    send({ dateSent: "2024-01-02", climbType: "sport", suggestedGrade: 10, ascentStyle: "flash" }),
+    send({ dateSent: "2024-01-02", climbType: "sport", suggestedGrade: 10 }),
+    send({
+      dateSent: "2024-03-01",
+      climbType: "sport",
+      suggestedGrade: 10,
+      ascentStyle: "onsight",
+    }),
+    send({ dateSent: null, climbType: "sport", suggestedGrade: 10, ascentStyle: "flash" }),
+    send({ dateSent: "2023-01-01", climbType: "sport", suggestedGrade: 10, ascentStyle: "flash" }),
     send({ dateSent: "2024-01-02" }),
-    send({ dateSent: "2024-03-01", ascentStyle: "onsight" }),
-    send({ dateSent: null, ascentStyle: "flash" }),
-    send({ dateSent: "2023-01-01", ascentStyle: "flash" }),
-    send({ dateSent: "2024-01-02", climbType: "sport" }),
   ];
   const result = buildUserAnalytics(
     rows,
-    "boulder",
+    "sport",
     [
-      { entryDate: "2024-01-02", climbType: "boulder", count: 4 },
-      { entryDate: "2024-01-02", climbType: "boulder" },
-      { entryDate: "2024-03-12", climbType: "boulder" },
-      { entryDate: "2024-02-01", climbType: "sport" },
+      { entryDate: "2024-01-02", climbType: "sport", count: 4 },
+      { entryDate: "2024-01-02", climbType: "sport" },
+      { entryDate: "2024-03-12", climbType: "sport" },
+      { entryDate: "2024-02-01", climbType: "boulder" },
     ],
     [2024],
   );
@@ -383,12 +406,12 @@ it("builds monthly volume and flash rates from the selected years and discipline
     { month: "2024-02", sends: 0, days: 0 },
     { month: "2024-03", sends: 1, days: 1 },
   ]);
-  expect(result.flashByGrade[0].rows).toEqual([
-    { grade: 3, label: "V2", sends: 3, flashes: 1, rate: expect.closeTo(100 / 3) },
+  expect(result.firstTryByGrade[0].rows).toEqual([
+    { grade: 10, label: "5.10a", sends: 3, firstTries: 2, rate: expect.closeTo(200 / 3) },
   ]);
-  expect(buildUserAnalytics(rows, "boulder").flashByGrade[0].rows[0]).toMatchObject({
+  expect(buildUserAnalytics(rows, "sport").firstTryByGrade[0].rows[0]).toMatchObject({
     sends: 5,
-    flashes: 3,
+    firstTries: 4,
   });
   expect(buildUserAnalytics(rows, "boulder", undefined, [2024]).volume[0]).toMatchObject({
     days: 1,

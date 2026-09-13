@@ -4,7 +4,7 @@ import { buildUserAnalytics } from "@/lib/user-analytics";
 
 export const activitySends: AnalyticsSendRow[] = [
   ["Cedar Arete", "2026-01-02", 3, "flash"],
-  ["Moss Garden", "2026-01-02", 3, "onsight"],
+  ["Moss Garden", "2026-01-02", 3, "flash"],
   ["Quiet Corner", "2026-01-03", 3, "redpoint"],
   ["Granite Steps", "2026-02-02", 4, "flash"],
   ["Evening Light", "2026-02-02", 4, "redpoint"],

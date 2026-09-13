@@ -58,9 +58,9 @@ beforeEach(async () => {
   });
   await seedFixtureSend(db, {
     userId: "test-user-1",
-    climbId: 2,
+    climbId: 2, // Test Slab, boulder: never an onsight (0042 guards)
     dateSent: "2026-03-01",
-    ascentStyle: "onsight",
+    ascentStyle: "flash",
   });
 });
 

@@ -296,7 +296,7 @@ export function DemoAccount() {
   const [sendCommentVisibility, setSendCommentVisibility] = useState<SendCommentAudience>("public");
   return (
     <div className="flex flex-col gap-4">
-      <div data-tour-target="privacy-controls" className="flex flex-col gap-4">
+      <div data-tour-target="privacy-controls">
         <PrivacyFields
           isPrivate={isPrivate}
           journalVisibility={journalVisibility}

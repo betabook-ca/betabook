@@ -129,15 +129,19 @@ it("offers optional charts through the chart placeholder and hides it after addi
   const user = userEvent.setup();
   const charts = [
     { id: "volume" as const, title: "Volume over time", content: <span>Monthly volume</span> },
-    { id: "flashRate" as const, title: "Flash rate by grade", content: <span>Flash chart</span> },
+    {
+      id: "flashRate" as const,
+      title: "First-try rate by grade",
+      content: <span>First-try chart</span>,
+    },
   ];
   render(<AnalyticsWorkspace cards={cards} charts={charts} canCustomize />);
   await user.click(screen.getByRole("button", { name: "Customize charts" }));
   await user.click(screen.getByRole("button", { name: "Add Volume over time" }));
-  await user.click(screen.getByRole("button", { name: "Add Flash rate by grade" }));
+  await user.click(screen.getByRole("button", { name: "Add First-try rate by grade" }));
   await user.click(screen.getByRole("button", { name: "Save layout" }));
   expect(screen.getByRole("article", { name: "Volume over time" })).toBeVisible();
-  expect(screen.getByRole("article", { name: "Flash rate by grade" })).toBeVisible();
+  expect(screen.getByRole("article", { name: "First-try rate by grade" })).toBeVisible();
   expect(screen.queryByRole("button", { name: "Customize charts" })).not.toBeInTheDocument();
 });
 

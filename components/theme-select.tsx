@@ -24,7 +24,7 @@ export function ThemeSelect() {
 
   if (!mounted) {
     // Same footprint as the trigger below (w-28, min-h-9, rounded-field) so
-    // the account card's geometry doesn't shift when the select mounts.
+    // the settings row doesn't shift when the select mounts.
     return <Skeleton rounded="rounded-field" className="h-9 w-28" />;
   }
 

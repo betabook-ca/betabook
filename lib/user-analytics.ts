@@ -1,5 +1,6 @@
 import type { AnalyticsSendRow } from "@/db/queries";
 import { nativeGradeArray, type ClimbType } from "@/lib/grades";
+import type { AscentStyle } from "@/lib/sends";
 
 /** Which slice of a climber's log the analytics page is reading — grades
  * only compare within one discipline, so "all" keeps per-discipline
@@ -49,17 +50,23 @@ export type Breakthrough = {
 };
 
 export type MonthlyVolume = { month: string; sends: number; days: number };
-export type FlashGradeRow = {
+export type FirstTryGradeRow = {
   grade: number;
   label: string;
   sends: number;
-  flashes: number;
+  /** Flashes plus onsights at this grade. */
+  firstTries: number;
   rate: number;
 };
 
+/** A first-try send is anything but a redpoint: flash, or onsight on ropes. */
+function isFirstTry(style: AscentStyle): boolean {
+  return style !== "redpoint";
+}
+
 export type UserAnalytics = {
   volume: MonthlyVolume[];
-  flashByGrade: { type: ClimbType; rows: FlashGradeRow[] }[];
+  firstTryByGrade: { type: ClimbType; rows: FirstTryGradeRow[] }[];
   scope: DisciplineScope;
   sendCount: number;
   datelessCount: number;
@@ -70,6 +77,8 @@ export type UserAnalytics = {
   hardest: HardestSend[];
   flashCount: number;
   onsightCount: number;
+  /** flashCount + onsightCount. */
+  firstTryCount: number;
   /** Hardest flash-or-onsight — only when the scope is one discipline. */
   hardestFirstTry: HardestSend | null;
   daysOut: number;
@@ -237,7 +246,7 @@ export function buildUserAnalytics(
   let hardestFirstTry: HardestSend | null = null;
   if (scope !== "all") {
     const scale = nativeGradeArray(scope);
-    const firstTries = gradedSends(sends, scope).filter((s) => s.ascentStyle !== "redpoint");
+    const firstTries = gradedSends(sends, scope).filter((s) => isFirstTry(s.ascentStyle));
     if (firstTries.length > 0) {
       let top = firstTries[0];
       for (const s of firstTries.slice(1)) {
@@ -333,19 +342,19 @@ export function buildUserAnalytics(
       volume.push({ month, sends: byMonth.get(month) ?? 0, days: daysByMonth.get(month) ?? 0 });
     }
   }
-  const flashByGrade = disciplines.map((type) => {
-    const grades = new Map<number, FlashGradeRow>();
+  const firstTryByGrade = disciplines.map((type) => {
+    const grades = new Map<number, FirstTryGradeRow>();
     for (const send of gradedSends(sends, type)) {
       const row = grades.get(send.grade) ?? {
         grade: send.grade,
         label: nativeGradeArray(type)[send.grade],
         sends: 0,
-        flashes: 0,
+        firstTries: 0,
         rate: 0,
       };
       row.sends += 1;
-      if (send.ascentStyle === "flash") row.flashes += 1;
-      row.rate = (row.flashes / row.sends) * 100;
+      if (isFirstTry(send.ascentStyle)) row.firstTries += 1;
+      row.rate = (row.firstTries / row.sends) * 100;
       grades.set(send.grade, row);
     }
     return { type, rows: [...grades.values()].sort((a, b) => a.grade - b.grade) };
@@ -423,7 +432,7 @@ export function buildUserAnalytics(
 
   return {
     volume,
-    flashByGrade,
+    firstTryByGrade,
     scope,
     sendCount: sends.length,
     datelessCount: sends.length - dated.length,
@@ -432,6 +441,7 @@ export function buildUserAnalytics(
     hardest,
     flashCount,
     onsightCount,
+    firstTryCount: flashCount + onsightCount,
     hardestFirstTry,
     daysOut: days.length,
     daysPerMonth,

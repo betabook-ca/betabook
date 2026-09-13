@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
 
-import { cardClass } from "@/components/ui/card";
+import { SettingsSection } from "@/components/ui/settings";
 import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
-import { PrivacyFields } from "./privacy-fields";
+import { PrivacyDetails, PrivacyFields } from "./privacy-fields";
 
 const meta = {
   title: "Components/Account/Privacy fields",
@@ -19,11 +19,13 @@ function PrivacyExample({
   pending = false,
   error = false,
   commentary = "public",
+  details = false,
 }: {
   privateProfile?: boolean;
   pending?: boolean;
   error?: boolean;
   commentary?: SendCommentAudience;
+  details?: boolean;
 }) {
   const [isPrivate, setPrivate] = useState(privateProfile);
   const [journal, setJournal] = useState<SharingAudience>("friends");
@@ -33,7 +35,7 @@ function PrivacyExample({
       title="Privacy controls"
       description="Local state only. Toggle the profile to inspect how saved audiences become unavailable."
     >
-      <div className={cardClass()}>
+      <SettingsSection id="privacy" title="Privacy">
         <PrivacyFields
           isPrivate={isPrivate}
           journalVisibility={journal}
@@ -46,7 +48,8 @@ function PrivacyExample({
           sendCommentError={error ? "Could not save commentary. Try again." : null}
           journalError={error ? "Could not save journal audience. Try again." : null}
         />
-      </div>
+        <PrivacyDetails defaultExpanded={details} />
+      </SettingsSection>
     </StoryPage>
   );
 }
@@ -55,3 +58,4 @@ export const EveryoneCommentary: Story = { render: () => <PrivacyExample comment
 export const PrivateProfile: Story = { render: () => <PrivacyExample privateProfile /> };
 export const PrivacyPending: Story = { render: () => <PrivacyExample pending /> };
 export const PrivacyError: Story = { render: () => <PrivacyExample error /> };
+export const WhoCanSeeWhat: Story = { render: () => <PrivacyExample details /> };

@@ -9,21 +9,24 @@ import { useChartWidth } from "@/hooks/use-chart-width";
 import { sendChartRows, type ChartDetailGroup } from "@/lib/chart-details";
 import { formatCount } from "@/lib/format";
 import type { ClimbType } from "@/lib/grades";
-import type { FlashGradeRow } from "@/lib/user-analytics";
+import type { FirstTryGradeRow } from "@/lib/user-analytics";
 
+/** First-try rate by grade: flashes and onsights over all sends. The chart
+ * keeps its `flashRate` layout id and this file name so saved layouts still
+ * resolve. */
 export function AnalyticsFlashChart({
   rows,
   type,
   sends,
 }: {
-  rows: FlashGradeRow[];
+  rows: FirstTryGradeRow[];
   type: ClimbType;
   sends?: AnalyticsSendRow[];
 }) {
   const { ref, width } = useChartWidth();
   const labels = rows.map(
     (row) =>
-      `${row.label}: ${formatCount(row.sends, "send")} · ${formatCount(row.flashes, "flash", "flashes")} · ${Math.round(row.rate)}% flash rate`,
+      `${row.label}: ${formatCount(row.sends, "send")} · ${formatCount(row.firstTries, "first try", "first tries")} · ${Math.round(row.rate)}% first-try rate`,
   );
   const details =
     sends &&
@@ -32,7 +35,7 @@ export function AnalyticsFlashChart({
         labels[i],
         {
           title: row.label,
-          summary: `${formatCount(row.sends, "send")} · ${Math.round(row.rate)}% flash rate`,
+          summary: `${formatCount(row.sends, "send")} · ${Math.round(row.rate)}% first-try rate`,
           rows: sendChartRows(
             sends.filter((send) => send.climbType === type && send.suggestedGrade === row.grade),
           ),
@@ -40,12 +43,12 @@ export function AnalyticsFlashChart({
       ]),
     );
   return (
-    <section aria-label="Flash rate by grade" className="min-w-0" ref={ref}>
+    <section aria-label="First-try rate by grade" className="min-w-0" ref={ref}>
       <div className="mb-4 flex flex-col gap-1">
-        <Eyebrow>Flash rate by grade</Eyebrow>
+        <Eyebrow>First-try rate by grade</Eyebrow>
         <p className="text-xs text-muted">
-          Bars show total sends; the line shows the percentage logged as flashes. Onsights count as
-          sends, not flashes.
+          Bars show total sends; the line shows the percentage sent first try, as a flash or an
+          onsight.
         </p>
       </div>
       {rows.length ? (
@@ -60,10 +63,10 @@ export function AnalyticsFlashChart({
             </span>
             <span className="flex items-center gap-2">
               <span className="w-4 border-t-2 border-foreground" />
-              Flash rate
+              First-try rate
             </span>
           </div>
-          <ChartInspection label="Sends and flash percentage by grade" details={details}>
+          <ChartInspection label="Sends and first-try percentage by grade" details={details}>
             <div className="relative">
               <ComposedChart
                 width={width}

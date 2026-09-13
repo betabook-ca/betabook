@@ -338,7 +338,7 @@ test(
     await openStory(page, info, "components-charts-analytics-dashboard--multiple-years");
     await page.getByRole("button", { name: "Customize charts", exact: true }).click();
     await page.getByRole("button", { name: "Add Volume over time", exact: true }).click();
-    await page.getByRole("button", { name: "Add Flash rate by grade", exact: true }).click();
+    await page.getByRole("button", { name: "Add First-try rate by grade", exact: true }).click();
     await page
       .getByRole("group", { name: "Dashboard actions", exact: true })
       .getByRole("button", { name: "Save layout", exact: true })
@@ -355,8 +355,8 @@ test(
       body: await volume.screenshot(),
       contentType: "image/png",
     });
-    const flash = page.getByRole("article", { name: "Flash rate by grade", exact: true });
-    await expect(flash.getByText("Flash rate", { exact: true })).toBeVisible();
+    const flash = page.getByRole("article", { name: "First-try rate by grade", exact: true });
+    await expect(flash.getByText("First-try rate", { exact: true })).toBeVisible();
     await info.attach("optional-flash-chart", {
       body: await flash.screenshot(),
       contentType: "image/png",

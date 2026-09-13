@@ -21,7 +21,8 @@ supplied public profiles [crislink](https://sendage.com/user/crislink) and
   `climb`; undated sends come last under day `0000-00-00`. Other item types carry
   only media and are skipped.
 - Send styles are onsight, flash, redpoint, project, and repeat. Projects and
-  repeats are skipped; an unknown style aborts the download.
+  repeats are skipped; an unknown style aborts the download. Betabook has no
+  boulder onsights, so a Sendage boulder onsight is saved as a flash.
 - `totalSends` can exceed the sends in the feed (50 against 49 for
   aly-hajj-assaf), so a shortfall is a visible warning with both counts. An empty
   feed for a profile with sends, or a cursor that does not move to an older day,

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
@@ -35,6 +35,12 @@ it("shows the opinion fields and submits the climb's grade for a send without a 
   const { user, save, onDone } = setup();
   expect(screen.getByRole("button", { name: /Suggested grade/ })).toBeVisible();
   expect(screen.getByRole("radiogroup", { name: "Rating" })).toBeVisible();
+  // A boulder never offers Onsight.
+  expect(
+    within(screen.getByRole("radiogroup", { name: "Ascent style" }))
+      .getAllByRole("radio")
+      .map((radio) => radio.textContent),
+  ).toEqual(["Redpoint", "Flash"]);
   await user.click(screen.getByRole("button", { name: "Save changes" }));
   await waitFor(() => expect(onDone).toHaveBeenCalledOnce());
   expect(save).toHaveBeenCalledOnce();

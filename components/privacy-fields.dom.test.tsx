@@ -30,6 +30,7 @@ it("masks audiences on private profiles and restores each independent choice", a
   const commentary = screen.getByRole("button", { name: /Send commentary audience/ });
   const journal = screen.getByRole("button", { name: /Journal entries audience/ });
   const profile = screen.getByRole("switch", { name: "Private profile" });
+  expect(profile).toHaveAccessibleDescription("Signed-in members can see your profile and sends.");
   expect(commentary).toHaveTextContent("Members");
   expect(journal).toHaveTextContent("Friends");
   await user.click(commentary);
@@ -42,9 +43,9 @@ it("masks audiences on private profiles and restores each independent choice", a
   expect(journal).toBeDisabled();
   expect(commentary).toHaveTextContent("Only me");
   expect(journal).toHaveTextContent("Only me");
-  expect(
-    screen.getByText(/Your saved audiences will apply when your profile is visible to members/),
-  ).toBeInTheDocument();
+  expect(profile).toHaveAccessibleDescription(
+    /Your audience choices are kept for when you turn this off/,
+  );
   await user.click(profile);
   expect(profile).not.toBeChecked();
   expect(commentary).toBeEnabled();

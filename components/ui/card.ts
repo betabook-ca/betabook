@@ -8,7 +8,7 @@ const CARD_SURFACE = {
 } as const;
 
 /** Card paddings: `sm` for dense stat cards and expanded filter panels,
- * `md` for forms and settings, `fluid` for wide analytics cards that need
+ * `md` for forms, `fluid` for wide analytics cards that need
  * room on desktop but not on a phone. */
 export const CARD_PADDING = {
   /** Edge-to-edge lists own their header and row padding. */
@@ -24,9 +24,6 @@ export function cardClass(
 ): string {
   return `rounded-panel ${CARD_SURFACE[surface]} ${CARD_PADDING[padding]}`;
 }
-
-/** Destructive section and its loading placeholder share the semantic warning. */
-export const DANGER_CARD_CLASS = "rounded-panel border border-danger/30 bg-danger/5 p-6";
 
 /** Narrow centered card for auth/account-style single-purpose pages. */
 export const FORM_CARD_CLASS = `mx-auto flex max-w-sm flex-col gap-4 ${cardClass("md")}`;

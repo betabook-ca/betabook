@@ -104,7 +104,7 @@ export function SendForm({
   return (
     <form onSubmit={handleSubmit} className={`${SURFACE_CARD_CLASS} gap-6`}>
       <FormSection label="Ascent">
-        <AscentStylePicker value={ascentStyle} onChange={setAscentStyle} />
+        <AscentStylePicker climbType={climb.type} value={ascentStyle} onChange={setAscentStyle} />
 
         <DatePickerField
           label="Date sent"

@@ -16,7 +16,7 @@ test(
     await expect(session).toHaveAttribute("aria-checked", "true");
     await expect(unknown).toBeHidden();
 
-    await page.getByRole("radio", { name: "Onsight", exact: true }).click();
+    await page.getByRole("radio", { name: "Flash", exact: true }).click();
     // I don't know sits beside the field, vertically aligned with it.
     dateBox = await date.boundingBox();
     const unknownLabel = await page.getByText("I don't know", { exact: true }).boundingBox();

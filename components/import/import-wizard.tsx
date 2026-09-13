@@ -97,7 +97,7 @@ const COLUMN_FIELDS: { key: FieldKey; label: string; hint: string }[] = [
   {
     key: "ascentStyle",
     label: "Ascent style",
-    hint: "Redpoint, flash, or onsight. Values are mapped on the next step.",
+    hint: "Redpoint, flash, or onsight. Values are mapped on the next step; boulder onsights are saved as flashes.",
   },
   { key: "date", label: "Date sent", hint: "Any common date format." },
   {

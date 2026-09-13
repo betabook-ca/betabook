@@ -218,7 +218,7 @@ export async function importSends(
       // Overwrites replace every imported field, including fields the CSV clears.
       const gradeText = typeof row.gradeText === "string" ? row.gradeText : null;
       const values: SendValues = {
-        ...validateImportSendValues(row),
+        ...validateImportSendValues(row, climb.type),
         // A blank Suggested Grade stays null; a Grade-only mapping falls back
         // to the posted grade. See NormalizedImportRow.blankGradeMeans.
         suggestedGrade: gradeText
