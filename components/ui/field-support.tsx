@@ -27,12 +27,20 @@ export function FieldHeader({ children, usage }: { children: ReactNode; usage?: 
 }
 
 /** Use inside HeroUI fields; errors replace help and retain field descriptions. */
-export function FieldFeedback({ helper, error }: { helper?: ReactNode; error?: string | null }) {
+export function FieldFeedback({
+  helper,
+  error,
+  className,
+}: {
+  helper?: ReactNode;
+  error?: string | null;
+  className?: string;
+}) {
   if (error)
     return (
-      <FieldError className="px-0 text-sm">
+      <FieldError className={clsx("px-0 text-sm", className)}>
         <span role="alert">{error}</span>
       </FieldError>
     );
-  return helper ? <Description>{helper}</Description> : null;
+  return helper ? <Description className={className}>{helper}</Description> : null;
 }

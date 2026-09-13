@@ -61,7 +61,7 @@ it("shows the owner their link on the account page", async () => {
   const token = await currentToken();
 
   expect(JSON.stringify(await AccountPage())).toContain(
-    `"url":"https://betabook.test/users/owner?share=${token}"`,
+    `"shareUrl":"https://betabook.test/users/owner?share=${token}"`,
   );
 });
 
@@ -72,7 +72,7 @@ it("sends no link to a private owner's profile or account page", async () => {
   const header = await profileHeaderFor("owner");
   const account = JSON.stringify(await AccountPage());
   expect(header).toContain("Share Owner");
-  expect(account).toContain('"url":null');
+  expect(account).toContain('"shareUrl":null');
   for (const page of [header, account]) {
     expect(page).not.toContain(token);
     expect(page).not.toContain("?share=");

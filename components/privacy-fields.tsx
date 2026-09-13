@@ -1,9 +1,11 @@
 "use client";
 
-import { Label, Switch, Select, ListBox } from "@heroui/react";
+import { Description, Disclosure, Label, ListBox, Select, Switch } from "@heroui/react";
+import { Fragment } from "react";
 
 import { FieldFeedback } from "@/components/ui/field-support";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import { SETTINGS_ROW_CLASS, SETTINGS_ROWS_CLASS } from "@/components/ui/settings";
 import {
   SEND_COMMENT_AUDIENCES,
   SHARING_AUDIENCES,
@@ -36,48 +38,41 @@ export function PrivacyFields({
   sendCommentError?: string | null;
 }) {
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
+    <div className={SETTINGS_ROWS_CLASS}>
+      <div className={`flex flex-col gap-3 ${SETTINGS_ROW_CLASS}`}>
         <Switch isDisabled={isPending} isSelected={isPrivate} onChange={onProfileChange}>
-          <Switch.Content>
+          <Switch.Content className="w-full justify-between gap-6">
+            <span className="text-sm font-medium">Private profile</span>
             <Switch.Control>
               <Switch.Thumb />
             </Switch.Control>
-            Private profile
           </Switch.Content>
+          <Description className="ps-0 text-sm">
+            {isPrivate
+              ? "Only you can see your profile and climbing history. Your audience choices are kept for when you turn this off."
+              : "Signed-in members can see your profile and sends."}
+          </Description>
         </Switch>
-        <p className="text-xs text-muted">
-          {isPrivate
-            ? "Only you can see your profile and climbing history; climb pages list your sends without your name. Friends and request recipients can still see your name. Your saved audiences will apply when your profile is visible to members."
-            : "Signed-in Betabook members can see your profile and send details: climbs, dates, ascent styles, ratings, and grades. Signed-out visitors see recent sends on climb pages without names; your share link shows them your name, profile photo, send stats and latest sends with their dates and crags, and going private resets it. Friends of your friends may see you suggested as someone they may know. Choose who can read your commentary and journal below."}
-        </p>
         {profileError && <InlineAlert>{profileError}</InlineAlert>}
       </div>
-      <div className="flex flex-col gap-5 border-t border-separator pt-4">
-        <AudienceField
-          label="Send commentary"
-          description="Notes on original sends, including the matching ascent note in your journal."
-          options={SEND_COMMENT_AUDIENCES}
-          value={isPrivate ? "private" : sendCommentVisibility}
-          onChange={onSendCommentChange}
-          disabled={isPrivate || isPending}
-          error={sendCommentError}
-        />
-        <AudienceField
-          label="Journal entries"
-          description="Sessions, repeats, training, and journal tags. Also limits who sees you tagged in a friend’s entry; its author can see their own selection. Commentary on original sends uses the setting above."
-          options={SHARING_AUDIENCES}
-          value={isPrivate ? "private" : journalVisibility}
-          onChange={onJournalChange}
-          disabled={isPrivate || isPending}
-          error={journalError}
-        />
-      </div>
-      <p className="text-xs text-muted">
-        {!isPrivate &&
-          "Everyone adds signed-out visitors and search engines, and shows your name on your sends. Members means signed-in Betabook users. Friends means an accepted friend request. Audiences apply to past and future entries. "}
-        Your sends still count toward community ratings.
-      </p>
+      <AudienceField
+        label="Send commentary"
+        description="Notes on your sends"
+        options={SEND_COMMENT_AUDIENCES}
+        value={isPrivate ? "private" : sendCommentVisibility}
+        onChange={onSendCommentChange}
+        disabled={isPrivate || isPending}
+        error={sendCommentError}
+      />
+      <AudienceField
+        label="Journal entries"
+        description="Sessions, repeats and training"
+        options={SHARING_AUDIENCES}
+        value={isPrivate ? "private" : journalVisibility}
+        onChange={onJournalChange}
+        disabled={isPrivate || isPending}
+        error={journalError}
+      />
     </div>
   );
 }
@@ -109,9 +104,10 @@ function AudienceField<T extends string>({
         const audience = options.find((option) => option.value === key);
         if (audience) onChange(audience.value);
       }}
+      className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 gap-y-0.5 ${SETTINGS_ROW_CLASS}`}
     >
-      <Label>{label}</Label>
-      <Select.Trigger>
+      <Label className="col-start-1 row-start-1">{label}</Label>
+      <Select.Trigger className="col-start-2 row-span-2 row-start-1 w-32">
         <Select.Value />
         <Select.Indicator />
       </Select.Trigger>
@@ -124,7 +120,69 @@ function AudienceField<T extends string>({
           ))}
         </ListBox>
       </Select.Popover>
-      <FieldFeedback helper={description} error={error} />
+      <div className="col-start-1 row-start-2">
+        <FieldFeedback helper={description} error={error} className="text-sm text-pretty" />
+      </div>
     </Select>
+  );
+}
+
+const AUDIENCE_READERS = [
+  [
+    "Everyone",
+    "Anyone, including signed-out visitors and search engines, with your name on those sends. Send commentary only.",
+  ],
+  ["Members", "Anyone signed in to Betabook."],
+  ["Friends", "Climbers you're friends with."],
+  ["Only me", "Just you."],
+] as const;
+
+export function PrivacyDetails({ defaultExpanded = false }: { defaultExpanded?: boolean }) {
+  return (
+    <Disclosure defaultExpanded={defaultExpanded} className="py-2">
+      <Disclosure.Heading level={3} className="contents">
+        <Disclosure.Trigger className="flex min-h-11 w-full items-center gap-2 text-sm font-medium">
+          Who can see what
+          <Disclosure.Indicator className="size-4" />
+        </Disclosure.Trigger>
+      </Disclosure.Heading>
+      <Disclosure.Content>
+        <Disclosure.Body style={{ padding: 0 }}>
+          <div className="flex flex-col gap-4 pt-1 pb-3 text-sm text-muted">
+            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5">
+              {AUDIENCE_READERS.map(([audience, readers]) => (
+                <Fragment key={audience}>
+                  <dt className="font-medium text-foreground">{audience}</dt>
+                  <dd>{readers}</dd>
+                </Fragment>
+              ))}
+            </dl>
+            <ul className="flex list-disc flex-col gap-1.5 ps-4">
+              <li>Signed-out visitors see your recent sends on climb pages without your name.</li>
+              <li>
+                Anyone with your profile link sees your name, photo, send stats and latest sends.
+                Going private resets the link.
+              </li>
+              <li>
+                Unless your profile is private, friends of your friends may see you suggested.
+              </li>
+              <li>
+                A private profile still shows your name to friends and to people you send requests
+                to. Climb pages list your sends without it.
+              </li>
+              <li>Your note on a send follows Send commentary, including in your journal.</li>
+              <li>
+                With journal entries set to Only me, a friend who tags you still sees your name, but
+                their other readers don&apos;t.
+              </li>
+              <li>
+                Changes apply to past and future entries. Your sends still count toward community
+                ratings.
+              </li>
+            </ul>
+          </div>
+        </Disclosure.Body>
+      </Disclosure.Content>
+    </Disclosure>
   );
 }

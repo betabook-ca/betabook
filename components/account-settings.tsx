@@ -1,0 +1,125 @@
+import { buttonVariants } from "@heroui/react";
+import { ShieldCheck, Upload } from "lucide-react";
+
+import { AccountFriendRequests } from "@/components/account-friend-requests";
+import { DeleteAccountButton } from "@/components/delete-account-button";
+import { DisplayNameForm } from "@/components/display-name-form";
+import { ExportSendsButton } from "@/components/export-sends-button";
+import { PrivacyControls } from "@/components/privacy-controls";
+import { PrivacyDetails } from "@/components/privacy-fields";
+import { ProductTour } from "@/components/product-tour";
+import { ResetPasswordButton } from "@/components/reset-password-button";
+import { ShareProfileControls } from "@/components/share-profile-controls";
+import { SignOutButton } from "@/components/sign-out-button";
+import { ThemeSelect } from "@/components/theme-select";
+import { AppLink } from "@/components/ui/app-link";
+import { SETTINGS_ROW_CLASS, SettingsRow, SettingsSection } from "@/components/ui/settings";
+import { PageTitle } from "@/components/ui/typography";
+import { UserAvatar } from "@/components/ui/user-avatar";
+import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
+
+const OUTLINE_LINK_CLASS = `${buttonVariants({ variant: "outline" })} gap-2 text-foreground`;
+
+export function AccountSettings({
+  user,
+  isPrivate,
+  journalVisibility,
+  sendCommentVisibility,
+  shareUrl,
+  turnstileSiteKey,
+  isAdmin,
+}: {
+  user: { id: string; name: string; email: string; image?: string | null };
+  isPrivate: boolean;
+  journalVisibility: SharingAudience;
+  sendCommentVisibility: SendCommentAudience;
+  /** Null while the profile is private. */
+  shareUrl: string | null;
+  turnstileSiteKey?: string | null;
+  isAdmin: boolean;
+}) {
+  return (
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-4">
+          <UserAvatar name={user.name} image={user.image} size="lg" />
+          <PageTitle className="min-w-0 truncate">{user.name}</PageTitle>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <AccountFriendRequests userId={user.id} />
+          <AppLink href={`/users/${user.id}`} className={OUTLINE_LINK_CLASS}>
+            View profile
+          </AppLink>
+        </div>
+      </header>
+
+      <SettingsSection id="profile" title="Profile">
+        <div className={SETTINGS_ROW_CLASS}>
+          <DisplayNameForm initialName={user.name} />
+        </div>
+        <div className={SETTINGS_ROW_CLASS}>
+          <ShareProfileControls name={user.name} url={shareUrl} />
+        </div>
+      </SettingsSection>
+
+      <SettingsSection id="privacy" title="Privacy">
+        <PrivacyControls
+          initialIsPrivate={isPrivate}
+          initialJournalVisibility={journalVisibility}
+          initialSendCommentVisibility={sendCommentVisibility}
+        />
+        <PrivacyDetails />
+      </SettingsSection>
+
+      <SettingsSection id="sends" title="Sends">
+        <SettingsRow title="Import history" description="From Sendage, KAYA or a CSV file.">
+          <AppLink href="/account/import" className={OUTLINE_LINK_CLASS}>
+            <Upload aria-hidden="true" className="size-4" />
+            Import sends
+          </AppLink>
+        </SettingsRow>
+        <SettingsRow title="Download a copy" description="Every send, as a CSV file.">
+          <ExportSendsButton userId={user.id} />
+        </SettingsRow>
+      </SettingsSection>
+
+      <SettingsSection id="preferences" title="Preferences">
+        <SettingsRow title="Theme" description="On this device." inline>
+          <ThemeSelect />
+        </SettingsRow>
+        <SettingsRow
+          title="Getting started"
+          description="Learn to log sessions, add friends and set privacy."
+        >
+          <ProductTour />
+        </SettingsRow>
+      </SettingsSection>
+
+      <SettingsSection id="sign-in" title="Sign-in">
+        <SettingsRow title={user.email} description="Signed in on this device.">
+          <SignOutButton />
+        </SettingsRow>
+        <SettingsRow title="Password" description="We'll email you a link to set a new one.">
+          <ResetPasswordButton email={user.email} turnstileSiteKey={turnstileSiteKey} />
+        </SettingsRow>
+      </SettingsSection>
+
+      {isAdmin && (
+        <SettingsSection id="moderation" title="Moderation">
+          <SettingsRow title="Change requests" description="For the areas you moderate.">
+            <AppLink href="/admin/requests" className={OUTLINE_LINK_CLASS}>
+              <ShieldCheck aria-hidden="true" className="size-4" />
+              Review requests
+            </AppLink>
+          </SettingsRow>
+        </SettingsSection>
+      )}
+
+      <SettingsSection id="delete-account" title="Delete account" tone="danger">
+        <SettingsRow description="Permanently removes your account and climbing history. Export your sends first.">
+          <DeleteAccountButton />
+        </SettingsRow>
+      </SettingsSection>
+    </div>
+  );
+}
