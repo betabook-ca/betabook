@@ -30,7 +30,7 @@ export type ImportPageSource = keyof typeof IMPORT_PAGES;
 
 export const COSTS_PAGE: LandingPageLink = {
   path: "/costs",
-  label: "Running costs",
+  label: "Cost transparency",
   description: "This month’s Cloudflare usage and what Betabook costs to run.",
 };
 

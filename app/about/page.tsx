@@ -6,6 +6,7 @@ import { cardClass } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/typography";
 import { COSTS_PAGE, IMPORT_PAGES, LOGBOOK_PAGE } from "@/lib/landing-pages";
 import { pageMetadata } from "@/lib/seo";
+import { SUPPORT_URL } from "@/lib/site";
 
 export const metadata: Metadata = pageMetadata({
   title: "About",
@@ -131,7 +132,7 @@ export default function AboutPage() {
         ads. That’s also why it doesn’t support image or video uploads, which get expensive quickly.
         The{" "}
         <AppLink href={COSTS_PAGE.path} className="inline underline">
-          running costs page
+          cost transparency page
         </AppLink>{" "}
         shows this month’s Cloudflare usage against what the plan includes, and the{" "}
         <a
@@ -142,9 +143,21 @@ export default function AboutPage() {
         >
           pricing projection
         </a>{" "}
-        estimates how that grows with traffic. The goal is to keep costs under $10/month, and if
-        Betabook is useful to you, you can help cover them on that page. If activity outgrows that,
-        the funding model will be revisited.
+        estimates how that grows with traffic. The goal is to keep costs under $10/month
+        {SUPPORT_URL && (
+          <>
+            , and if Betabook is useful to you, you can{" "}
+            <a
+              href={SUPPORT_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="link inline underline focus-visible:status-focused"
+            >
+              help cover them
+            </a>
+          </>
+        )}
+        .
       </p>
 
       <SectionHeading className="mt-4">Filling in the Beta</SectionHeading>

@@ -110,3 +110,18 @@ it("leaves out the support ask when no support page is set", () => {
   expect(html).not.toContain("Support Betabook");
   expect(html).not.toContain("help cover");
 });
+
+it("says what each tier measures, including that D1 is Betabook's database", () => {
+  const html = renderToStaticMarkup(
+    <RunningCosts
+      usage={{ ...period, workerRequests: 1, workerCpuMs: 1, d1RowsRead: 1 }}
+      supportUrl={null}
+    />,
+  );
+
+  expect(html).toContain("Page loads, searches and other requests the site’s code handles.");
+  expect(html).toContain("Time that code spends working. Waiting on the database doesn’t count.");
+  expect(html).toContain(
+    "Rows scanned in D1, the Cloudflare database that holds climbs, areas, sends and journals.",
+  );
+});

@@ -19,7 +19,7 @@ const meta = {
     supportUrl: "https://support.example/betabook",
   },
   render: (args) => (
-    <StoryPage title="Running costs">
+    <StoryPage title="Cost transparency">
       <RunningCosts {...args} />
     </StoryPage>
   ),

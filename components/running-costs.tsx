@@ -48,6 +48,7 @@ export function RunningCosts({
                     {`${formatCompact(meter.used)} of ${formatCompact(meter.included)} ${meter.unit}`}
                   </p>
                 </div>
+                <p className="text-sm text-pretty text-muted">{meter.description}</p>
                 <ProgressBar
                   value={Math.min(meter.used, meter.included)}
                   max={meter.included}

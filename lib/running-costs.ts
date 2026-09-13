@@ -11,6 +11,7 @@ export type CloudflareUsage = {
 export type UsageMeter = {
   key: "workerRequests" | "workerCpuMs" | "d1RowsRead";
   label: string;
+  description: string;
   unit: string;
   used: number;
   included: number;
@@ -29,6 +30,7 @@ const USAGE_TIERS = [
   {
     key: "workerRequests",
     label: "Worker requests",
+    description: "Page loads, searches and other requests the site’s code handles.",
     unit: "requests",
     included: 10_000_000,
     usdPerMillion: 0.3,
@@ -36,6 +38,7 @@ const USAGE_TIERS = [
   {
     key: "workerCpuMs",
     label: "Worker CPU time",
+    description: "Time that code spends working. Waiting on the database doesn’t count.",
     unit: "CPU-ms",
     included: 30_000_000,
     usdPerMillion: 0.02,
@@ -43,6 +46,8 @@ const USAGE_TIERS = [
   {
     key: "d1RowsRead",
     label: "D1 rows read",
+    description:
+      "Rows scanned in D1, the Cloudflare database that holds climbs, areas, sends and journals.",
     unit: "rows",
     included: 25_000_000_000,
     usdPerMillion: 0.001,
