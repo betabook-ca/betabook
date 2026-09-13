@@ -4,7 +4,8 @@ import { expect, it, vi } from "vitest";
 
 import { PrimaryPageLinks } from "@/components/primary-page-links";
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/climbs/new" }));
+const state = vi.hoisted(() => ({ pathname: "/" }));
+vi.mock("next/navigation", () => ({ usePathname: () => state.pathname }));
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
     <a href={href} {...props}>
@@ -15,16 +16,23 @@ vi.mock("next/link", () => ({
 
 const hrefs = (html: string) => [...html.matchAll(/href="([^"]+)"/g)].map((match) => match[1]);
 
-it("folds Add climb and Add area into one Add menu in the header", () => {
-  const html = renderToStaticMarkup(<PrimaryPageLinks userId="owner" />);
+it.each(["row", "col"] as const)("gives %s navigation one Add link", (direction) => {
+  state.pathname = "/";
+  const html = renderToStaticMarkup(<PrimaryPageLinks userId="owner" direction={direction} />);
 
-  expect(hrefs(html)).toEqual(["/feed", "/users/owner"]);
-  expect(html).toMatch(/<button[^>]*aria-haspopup[^>]*>.*Add.*?<\/button>/s);
+  expect(hrefs(html)).toEqual(["/climbs/new", "/feed", "/users/owner"]);
+  expect(html).toMatch(/<a[^>]*href="\/climbs\/new"[^>]*>.*?Add.*?<\/a>/s);
+  expect(html).toContain("Add a climb or area");
+  expect(html).not.toContain("aria-haspopup");
 });
 
-it("keeps both create pages as rows in the side menu", () => {
-  const html = renderToStaticMarkup(<PrimaryPageLinks userId="owner" direction="col" />);
+it.each([
+  ["/climbs/new", "page"],
+  ["/areas/new", "location"],
+])("keeps Add current on %s", (pathname, current) => {
+  state.pathname = pathname;
+  const html = renderToStaticMarkup(<PrimaryPageLinks userId="owner" />);
 
-  expect(hrefs(html)).toEqual(["/climbs/new", "/areas/new", "/feed", "/users/owner"]);
-  expect(html).not.toContain("aria-haspopup");
+  expect(html).toMatch(new RegExp(`href="/climbs/new"[^>]*aria-current="${current}"`));
+  expect(html.match(/aria-current/g)).toHaveLength(1);
 });

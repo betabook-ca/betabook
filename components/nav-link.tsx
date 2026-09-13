@@ -16,17 +16,6 @@ type NavLinkProps = Omit<ComponentProps<typeof AppLink>, "href"> & {
   relatedPaths?: readonly string[];
 };
 
-/** Shared with header controls that aren't links, so they match their neighbors. */
-export function navItemClass(layout: "header" | "menu", active: boolean) {
-  return clsx(
-    "inline-flex items-center px-3 py-2 text-sm no-underline transition-colors hover:no-underline",
-    layout === "menu" ? "w-full rounded-lg" : "rounded-full whitespace-nowrap",
-    active
-      ? "bg-navigation-active font-semibold text-link"
-      : "text-muted hover:bg-default hover:text-foreground",
-  );
-}
-
 /** Persistent navigation links with a visible, accessible current destination. */
 export function NavLink({
   href,
@@ -47,7 +36,13 @@ export function NavLink({
       aria-current={exact ? "page" : within ? "location" : undefined}
       className={clsx(
         appearance === "primary"
-          ? navItemClass(layout, exact || Boolean(within))
+          ? [
+              "inline-flex items-center px-3 py-2 text-sm no-underline transition-colors hover:no-underline",
+              layout === "menu" ? "w-full rounded-lg" : "rounded-full whitespace-nowrap",
+              exact || within
+                ? "bg-navigation-active font-semibold text-link"
+                : "text-muted hover:bg-default hover:text-foreground",
+            ]
           : "aria-[current=location]:underline aria-[current=location]:underline-offset-4 aria-[current=page]:underline aria-[current=page]:underline-offset-4",
         className,
       )}

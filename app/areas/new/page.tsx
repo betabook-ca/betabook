@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { AddKindNav } from "@/components/add-kind-nav";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { NewAreaForm } from "@/components/new-area-form";
 import { PageTitle } from "@/components/ui/typography";
@@ -16,7 +17,10 @@ export default async function NewAreaPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageTitle>Add area</PageTitle>
+      <div className="flex flex-col gap-3">
+        <PageTitle>Add a climb or area</PageTitle>
+        <AddKindNav current="area" />
+      </div>
       <NewAreaForm />
     </div>
   );

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { AddKindNav } from "@/components/add-kind-nav";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { NewClimbForm } from "@/components/new-climb-form";
 import { PageTitle } from "@/components/ui/typography";
@@ -47,7 +48,10 @@ export default async function NewClimbPage({ searchParams }: NewClimbPageProps) 
     : undefined;
   return (
     <div className="flex flex-col gap-6">
-      <PageTitle>Add climb</PageTitle>
+      <div className="flex flex-col gap-3">
+        <PageTitle>Add a climb or area</PageTitle>
+        <AddKindNav current="climb" />
+      </div>
       <NewClimbForm initial={{ ...initial, area: selectedArea }} />
     </div>
   );
