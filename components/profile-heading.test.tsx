@@ -28,42 +28,36 @@ const OVERVIEW: ClimberOverview = {
   month: "2026-03",
 };
 
-it("titles the profile with the climber and summarizes their logbook once", () => {
+it("titles the profile and lists hardest sends, leaving the logbook summary to Analytics", () => {
   const html = renderToStaticMarkup(<ProfileHeading name="Alex Morgan" overview={OVERVIEW} />);
 
   expect(html).toMatch(/<h1[^>]*>Alex Morgan<\/h1>/);
-  expect(html).toContain("Climbing since 2019. 214 sends across 18 areas, 96 days out.");
-  expect(html).toContain("Last out Mar 3, 2026. 2 days out in March.");
-  expect(html).toMatch(/Boulder.*V8.*180 sends.*Sport.*5\.12a.*34 sends/s);
-  expect(html).not.toContain("last 12 months");
+  expect(html).toMatch(/Boulder.*V8.*Sport.*5\.12a/s);
+  expect(html).not.toContain("180 sends");
+  expect(html).not.toContain("Climbing since");
+  expect(html).not.toContain("Last out");
 });
 
-it("counts sends for a visitor who can't read the journal", () => {
+it("tallies sends beside the name with a spoken discipline breakdown", () => {
+  const html = renderToStaticMarkup(<ProfileHeading name="Alex Morgan" overview={OVERVIEW} />);
+
+  expect(html).toMatch(/>214<\/span>\s*sends/);
+  expect(html).toContain("180 boulder, 34 sport");
+});
+
+it("shows a note under the name", () => {
   const html = renderToStaticMarkup(
     <ProfileHeading
       name="Alex Morgan"
-      overview={{ ...OVERVIEW, daysOut: null, lastOut: "2026-03-04" }}
+      overview={OVERVIEW}
+      note={<p>Their journal isn&apos;t shared with you.</p>}
     />,
   );
 
-  expect(html).toContain("Climbing since 2019. 214 sends across 18 areas.");
-  expect(html).toContain("Last sent Mar 4, 2026. 2 sending days in March.");
-  expect(html).not.toContain("days out");
+  expect(html).toContain("Their journal isn&#x27;t shared with you.");
 });
 
-it("leaves the month out when nothing was logged in it", () => {
-  const html = renderToStaticMarkup(
-    <ProfileHeading
-      name="Alex Morgan"
-      overview={{ ...OVERVIEW, lastOut: "2026-02-20", daysThisMonth: 0 }}
-    />,
-  );
-
-  expect(html).toContain("Last out Feb 20, 2026.");
-  expect(html).not.toContain("in March");
-});
-
-it("leaves out hardest sends and recency before anything is logged", () => {
+it("leaves out hardest sends before anything is logged", () => {
   const html = renderToStaticMarkup(
     <ProfileHeading
       name="Alex Morgan"
@@ -80,7 +74,5 @@ it("leaves out hardest sends and recency before anything is logged", () => {
     />,
   );
 
-  expect(html).toContain("No sends logged yet.");
   expect(html).not.toContain("Hardest sends");
-  expect(html).not.toContain("Last out");
 });

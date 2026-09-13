@@ -13,7 +13,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Multi-select year pills highlight the selection without checkmarks. All clears the year filter. Options wrap on narrow screens and filter every dashboard statistic and chart.",
+          "A checklist menu of years named by the current selection. All years clears the year filter; the selection filters every dashboard statistic and chart.",
       },
     },
   },

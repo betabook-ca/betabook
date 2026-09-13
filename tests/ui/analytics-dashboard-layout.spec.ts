@@ -107,10 +107,9 @@ test(
     const glance = page.getByRole("region", { name: "At a glance", exact: true });
     await expect(glance.getByRole("article").first()).toHaveAccessibleName("Hardest");
     await expect(glance.getByRole("article", { name: "Areas", exact: true })).toHaveCount(0);
-    await page
-      .getByRole("group", { name: "Years", exact: true })
-      .getByRole("button", { name: "2026", exact: true })
-      .click();
+    await page.getByRole("button", { name: /^Years: / }).click();
+    await page.getByRole("menuitemcheckbox", { name: "2026", exact: true }).click();
+    await page.keyboard.press("Escape");
     await expect(
       page.getByRole("heading", { name: "Activity in 2024–2026", exact: true }),
     ).toBeVisible();
@@ -304,7 +303,7 @@ test(
     const discipline = await page
       .getByRole("navigation", { name: "Discipline", exact: true })
       .boundingBox();
-    const years = await page.getByRole("group", { name: "Years", exact: true }).boundingBox();
+    const years = await page.getByRole("button", { name: /^Years: / }).boundingBox();
     const expand = page.getByRole("button", { name: "Expand filters", exact: true });
     const trigger = await expand.boundingBox();
     if (!heading || !discipline || !years || !trigger)
@@ -312,15 +311,14 @@ test(
     expect(discipline.y).toBeGreaterThanOrEqual(heading.y + heading.height);
     expect(years.y).toBeGreaterThanOrEqual(discipline.y + discipline.height);
     expect(trigger.x).toBeGreaterThanOrEqual(years.x + years.width);
-    const yearPill = await page
-      .getByRole("group", { name: "Years", exact: true })
-      .getByRole("button")
-      .last()
+    expect(Math.abs(trigger.y + trigger.height / 2 - years.y - years.height / 2)).toBeLessThan(1);
+    const customize = await page
+      .getByRole("button", { name: "Customize dashboard", exact: true })
       .boundingBox();
-    if (!yearPill) throw new Error("Missing year pill");
+    if (!customize) throw new Error("Missing Customize");
     expect(
-      Math.abs(trigger.y + trigger.height / 2 - yearPill.y - yearPill.height / 2),
-    ).toBeLessThan(1);
+      Math.abs(customize.y + customize.height / 2 - heading.y - heading.height / 2),
+    ).toBeLessThan(8);
 
     await expand.click();
     await expect(page.getByRole("region", { name: "Filter options", exact: true })).toBeVisible();

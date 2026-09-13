@@ -26,6 +26,15 @@ export const getShareLinkOwnerByToken = cache(async (token: string) =>
   getShareLinkOwner(await getDb(), token),
 );
 
+/** Shared by the header and the Analytics summary within one request. */
+export const getProfileOverview = cache(async (userId: string, viewerId: string) => {
+  const { cf } = await getCloudflareContext({ async: true });
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: cf?.timezone ?? "UTC" }).format(
+    new Date(),
+  );
+  return getClimberOverview(await getDb(), userId, viewerId, today);
+});
+
 type ProfileUser = {
   id: string;
   name: string;
@@ -37,15 +46,11 @@ type ProfileUser = {
 export async function ProfileHeader({ user, viewerId }: { user: ProfileUser; viewerId: string }) {
   const db = await getDb();
   const isOwner = viewerId === user.id;
-  const { cf } = await getCloudflareContext({ async: true });
-  const today = new Intl.DateTimeFormat("en-CA", { timeZone: cf?.timezone ?? "UTC" }).format(
-    new Date(),
-  );
   const [relationship, journalVisible, shareUrl, overview] = await Promise.all([
     isOwner ? null : getFriendship(db, viewerId, user.id),
     canReadUserJournal(user.id, viewerId),
     isOwner ? getOwnProfileShareUrl(db, user) : null,
-    getClimberOverview(db, user.id, viewerId, today),
+    getProfileOverview(user.id, viewerId),
   ]);
 
   return (

@@ -94,3 +94,22 @@ describe("analytics dashboard climb previews", () => {
     expect(tooltip).not.toHaveTextContent("Journal-only climb");
   });
 });
+
+it("summarizes the climber under the activity heading", () => {
+  const summary = "Climbing since 2024. 4 sends across 1 area. Last sent Mar 3, 2026.";
+  render(
+    <AnalyticsDashboard
+      analytics={buildUserAnalytics(sends, "boulder")}
+      sends={sends}
+      selectedYears={[]}
+      undatedCount={1}
+      scope="boulder"
+      journalVisible={false}
+      summary={summary}
+      periodPicker={null}
+    />,
+  );
+
+  const heading = screen.getByRole("heading", { name: "All-time activity" });
+  expect(heading.nextElementSibling).toBe(screen.getByText(summary));
+});

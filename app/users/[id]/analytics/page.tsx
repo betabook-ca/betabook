@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { saveAnalyticsLayout } from "@/actions";
 import { PROFILE_LAYOUT_CLASS } from "@/app/users/[id]/profile-layout";
-import { ProfileHeader, getUserById } from "@/app/users/[id]/profile-shell";
+import { ProfileHeader, getProfileOverview, getUserById } from "@/app/users/[id]/profile-shell";
 import { AnalyticsDashboard } from "@/components/analytics-dashboard";
 import { AnalyticsYearNavigation } from "@/components/analytics-year-filter";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
@@ -23,6 +23,7 @@ import { getViewerFeatureAnnouncements } from "@/db/queries/feature-announcement
 import { getUserHashtags } from "@/db/queries/hashtag-filter";
 import { buildAnalyticsHighlights } from "@/lib/analytics-highlights";
 import { parseAnalyticsYears } from "@/lib/analytics-years";
+import { describeClimber, describeRecency } from "@/lib/climber-summary";
 import {
   ANALYTICS_CUSTOMIZE_ANNOUNCEMENT,
   getAnnouncementCandidates,
@@ -152,12 +153,15 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
   const analytics = selectedYears.length
     ? buildUserAnalytics(rows, scope, journalSessions, selectedYears)
     : lifetime;
+  const overview = await getProfileOverview(user.id, viewerId);
+  const summary = [describeClimber(overview), describeRecency(overview)].filter(Boolean).join(" ");
 
   const content = (
     <div className={PROFILE_LAYOUT_CLASS}>
       <ProfileHeader user={user} viewerId={session.user.id} />
 
       <AnalyticsDashboard
+        summary={summary}
         key={id}
         canCustomize={isOwner}
         initialLayout={initialLayout}

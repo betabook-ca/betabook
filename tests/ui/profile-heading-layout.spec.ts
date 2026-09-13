@@ -34,11 +34,14 @@ test(
   async ({ page }, info) => {
     const header = await openAt(page, info, 390);
 
+    const tally = await box(page.getByText("214 sends").first());
+    expect(tally.x).toBeGreaterThanOrEqual(header.title.x + header.title.width);
+    expect(Math.abs(middle(tally) - middle(header.title))).toBeLessThan(header.title.height);
+
     expect(Math.abs(middle(header.share) - middle(header.log))).toBeLessThanOrEqual(2);
     expect(Math.abs(middle(header.friends) - middle(header.log))).toBeLessThanOrEqual(2);
     expect(Math.abs(header.share.width - header.share.height)).toBeLessThanOrEqual(1);
     expect(Math.max(...header.chipTops) - Math.min(...header.chipTops)).toBeLessThanOrEqual(2);
-    expect((await box(header.hardest.getByText("151 sends"))).width).toBeLessThanOrEqual(1);
   },
 );
 
