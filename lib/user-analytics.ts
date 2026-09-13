@@ -60,7 +60,7 @@ export type FirstTryGradeRow = {
 };
 
 /** A first-try send is anything but a redpoint: flash, or onsight on ropes. */
-export function isFirstTry(style: AscentStyle): boolean {
+function isFirstTry(style: AscentStyle): boolean {
   return style !== "redpoint";
 }
 

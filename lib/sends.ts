@@ -17,7 +17,7 @@ export function ascentStylesFor(climbType: ClimbType): readonly AscentStyle[] {
   return climbType === "boulder" ? BOULDER_ASCENT_STYLES : ASCENT_STYLES;
 }
 
-export const BOULDER_ONSIGHT_ERROR = "Boulders can't be onsighted — log it as a flash";
+const BOULDER_ONSIGHT_ERROR = "Boulders can't be onsighted — log it as a flash";
 
 export const IMPORT_BATCH_SIZE = 50;
 
