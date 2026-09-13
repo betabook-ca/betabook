@@ -85,6 +85,7 @@ export function SearchDemo({
     setFull(true);
   }
   const props = {
+    canCreate: true,
     query: demo.query,
     onQueryChange: demo.setQuery,
     category: demo.category,

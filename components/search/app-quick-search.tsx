@@ -42,10 +42,10 @@ export function AppQuickSearch({
     setWasOpen(isOpen);
     if (isOpen) setState(EMPTY_SEARCH);
   }
+  if (!viewerId) return null;
   return (
     <SearchController
-      key={viewerId ?? "anonymous"}
-      publicOnly={viewerId === null}
+      key={viewerId}
       quick
       state={state}
       onChange={setState}

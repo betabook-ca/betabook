@@ -11,3 +11,9 @@ export default meta;
 type Story = StoryObj;
 export const FullResults: Story = { render: () => <SearchDemo /> };
 export const QuickDialog: Story = { render: () => <SearchDemo surface="quick" /> };
+
+export const Initial: Story = { render: () => <SearchDemo scenario="initial" /> };
+export const NoMatches: Story = { render: () => <SearchDemo scenario="empty" /> };
+export const QuickNoMatches: Story = {
+  render: () => <SearchDemo surface="quick" scenario="empty" initialOpen />,
+};

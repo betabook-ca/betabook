@@ -54,7 +54,7 @@ export function RatingRangeFilter({
             }}
           />
         </div>
-        <p id={helperId} className="text-sm text-muted">
+        <p id={helperId} className="text-xs text-muted">
           {min === 1 && max === 5 ? "Includes unrated climbs" : "Excludes unrated climbs"}
         </p>
       </div>

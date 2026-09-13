@@ -5,11 +5,13 @@ import { afterEach, expect, it, vi } from "vitest";
 import { AppQuickSearch } from "@/components/search/app-quick-search";
 import { AUTH_REQUIRED_EVENT } from "@/lib/api-client";
 
-const identity = vi.hoisted(() => ({ sessionId: "expired" }));
+const identity = vi.hoisted(() => ({ sessionId: "expired", signedIn: true }));
 vi.mock("@/lib/auth-client", () => ({
   authClient: {
     useSession: () => ({
-      data: { user: { id: "member" }, session: { id: identity.sessionId } },
+      data: identity.signedIn
+        ? { user: { id: "member" }, session: { id: identity.sessionId } }
+        : null,
       isPending: false,
     }),
   },
@@ -60,12 +62,19 @@ it("clears cached member results when another data request reports an expired se
     window.dispatchEvent(new Event(AUTH_REQUIRED_EVENT));
   });
   expect(screen.queryByText("Member identity")).not.toBeInTheDocument();
-  expect(screen.getByRole("region", { name: "Member content" })).toBeVisible();
-  expect(screen.getByRole("link", { name: "Sign up" })).toBeVisible();
-  await user.click(screen.getByRole("link", { name: "Sign up" }));
-  expect(onOpenChange).toHaveBeenCalledWith(false);
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   identity.sessionId = "signed-in-again";
   rerender(<AppQuickSearch {...props} />);
   expect(await screen.findByText("Member identity")).toBeVisible();
   expect(screen.queryByRole("region", { name: "Member content" })).not.toBeInTheDocument();
+});
+
+it("does not render or fetch quick search for signed-out visitors", () => {
+  identity.signedIn = false;
+  const fetcher = vi.fn<typeof fetch>();
+  vi.stubGlobal("fetch", fetcher);
+  render(<AppQuickSearch isOpen onOpenChange={() => {}} onNavigate={() => {}} />);
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(fetcher).not.toHaveBeenCalled();
+  identity.signedIn = true;
 });
