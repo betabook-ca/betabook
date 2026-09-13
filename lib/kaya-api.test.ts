@@ -143,7 +143,9 @@ it("does not retry forbidden requests or incompatible GraphQL responses", async 
   ]) {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(response);
     vi.stubGlobal("fetch", fetcher);
-    await expect(fetchKayaAscents(input, new AbortController().signal)).rejects.toThrow(/KAYA/);
+    await expect(fetchKayaAscents(input, new AbortController().signal)).rejects.toThrow(
+      /KAYA.*email support@betabook\.ca/,
+    );
     expect(fetcher).toHaveBeenCalledTimes(1);
   }
 });

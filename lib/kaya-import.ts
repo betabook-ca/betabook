@@ -8,10 +8,10 @@ import {
 import { parseKayaUsername } from "@/lib/kaya-profile";
 import { readKayaStream } from "@/lib/kaya-stream-reader";
 import { MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS, type ParsedCsv } from "@/lib/sends-import";
+import { SUPPORT_EMAIL } from "@/lib/support";
 
-const FORMAT_ERROR = "KAYA returned an unexpected format. Please try again or use a CSV export.";
-const INCOMPLETE_ERROR =
-  "Couldn't load your complete KAYA history, or it changed during download. Please try again or use a CSV export.";
+const FORMAT_ERROR = `KAYA returned an unexpected format. Please try again, or email ${SUPPORT_EMAIL}.`;
+const INCOMPLETE_ERROR = `Couldn't load your complete KAYA history, or it changed during download. Please try again, or email ${SUPPORT_EMAIL}.`;
 const HEADERS = [
   "Date",
   "Ascent Type",
@@ -49,7 +49,7 @@ function gradeLabel(value: unknown, type: string): string {
   const label = name.replace(/^v/i, "V");
   if (parseGrade(type === "1" ? "boulder" : "sport", label) === null)
     throw new Error(
-      "KAYA returned an unknown grade. Import stopped; use a CSV export to review it.",
+      `KAYA returned an unknown grade. Import stopped; email ${SUPPORT_EMAIL} for help.`,
     );
   return label;
 }
@@ -194,7 +194,7 @@ export async function fetchKayaImport(
       size += new TextEncoder().encode(JSON.stringify(event.items)).byteLength;
       if (size > MAX_IMPORT_FILE_BYTES)
         throw new Error(
-          "This KAYA history is too large for a direct import. Use a CSV export split into smaller files.",
+          `This KAYA history is too large for a direct import. Email ${SUPPORT_EMAIL} for help importing it.`,
         );
       progress();
     };

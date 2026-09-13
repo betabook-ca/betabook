@@ -3,6 +3,7 @@ import { withApiSession } from "@/lib/api-session";
 import { fetchKayaAscents } from "@/lib/kaya-api";
 import type { KayaStreamEvent } from "@/lib/kaya-import-stream";
 import { parseKayaUsername } from "@/lib/kaya-profile";
+import { SUPPORT_EMAIL } from "@/lib/support";
 
 const headers = { "Cache-Control": "private, no-store, no-transform" };
 const handleImport = withApiSession(async (_session, request: Request) => {
@@ -26,7 +27,7 @@ const handleImport = withApiSession(async (_session, request: Request) => {
     () =>
       controller.abort(
         new ActionError(
-          "This KAYA import is taking too long. Try again later or use a CSV export.",
+          `This KAYA import is taking too long. Try again later, or email ${SUPPORT_EMAIL}.`,
         ),
       ),
     10 * 60_000,

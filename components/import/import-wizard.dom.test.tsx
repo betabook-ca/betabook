@@ -49,22 +49,27 @@ it("takes public API data straight to matching and review without writing sends"
         envelope({
           items: [
             {
-              climb: {
-                id: 100,
-                name: "Test climb",
-                type: "sport",
-                gradeId: 62,
-                area: { name: "Wall" },
-              },
-              userSend: {
-                id: 200,
-                sendType: "redpoint",
-                gradeId: 62,
-                day: "2026-08-16",
-                rating: 5,
-                difficulty: 0,
-                comments: "Great &amp; sunny",
-              },
+              type: "sends",
+              day: "2026-08-16",
+              assets: [],
+              sends: [
+                {
+                  id: 200,
+                  climb: {
+                    id: 100,
+                    name: "Test climb",
+                    type: "sport",
+                    gradeId: 62,
+                    area: { name: "Wall" },
+                  },
+                  sendType: "redpoint",
+                  gradeId: 62,
+                  day: "2026-08-16",
+                  rating: 5,
+                  difficulty: 0,
+                  comments: "Great &amp; sunny",
+                },
+              ],
             },
           ],
         }),

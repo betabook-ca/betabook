@@ -7,26 +7,32 @@ new import starts with an empty field. No Sendage login is needed.
 
 ## Verified API behavior
 
-Verified in Chrome on September 8, 2026 using
-[the profile page](https://sendage.com/profile?tab=sends) and
-[the supplied public profile](https://sendage.com/user/crislink?tab=sends).
+Verified signed out on September 13, 2026 against the Activities tab of the
+supplied public profiles [crislink](https://sendage.com/user/crislink) and
+[aly-hajj-assaf](https://sendage.com/user/aly-hajj-assaf).
 
 - `GET /api/v2/user.getProfile` with `input={"json":{"username":"…"}}`
   returns `result.data.json.profile`, including `id`, `slug`, `isPrivate`, and
   `totalSends`.
-- `GET /api/v2/climb.search` takes a profile `userId`,
-  `includeUserClimb: true`, the redpoint/flash/onsight filter, discipline filters,
-  and a numeric page `cursor`. It returns `result.data.json.items` and
-  `nextCursor`. Each item contains `climb` and `userSend`.
-- The public client limits search cursors to 0–20 (20 rows per observed page).
-  The importer respects this limit and rejects incomplete results, including a
-  missing final cursor when fewer sends were returned than the profile count.
-  It does not split searches to bypass the limit.
+- `GET /api/v2/activity.getUserActivity` with
+  `input={"json":{"userId":…,"cursor":{"day":"YYYY-MM-DD"}}}` returns `items`
+  newest day first and `nextCursor`. The first request omits `cursor`; the last
+  page omits `nextCursor`. A `sends` item holds one day's `sends`, each with its
+  `climb`; undated sends come last under day `0000-00-00`. Other item types carry
+  only media and are skipped.
+- Send styles are onsight, flash, redpoint, project, and repeat. Projects and
+  repeats are skipped; an unknown style aborts the download.
+- `totalSends` can exceed the sends in the feed (50 against 49 for
+  aly-hajj-assaf), so a shortfall is a visible warning with both counts. An empty
+  feed for a profile with sends, or a cursor that does not move to an older day,
+  aborts the download.
+- `climb.search` returns 401 without a Sendage session.
 
 This is Sendage's website API, not a documented third-party integration contract.
-Response validation, bounded pagination, cancellation, per-request timeouts, and
-clear fallback errors protect against changes. The browser fetches directly from
-the fixed Sendage origin; no arbitrary URL proxy or stored credentials are used.
+Response validation, cursor checks, cancellation, per-request timeouts, and
+errors that point to support@betabook.ca protect against changes. The browser
+fetches directly from the fixed Sendage origin; no arbitrary URL proxy or stored
+credentials are used.
 
 ## Mapping
 
