@@ -13,10 +13,11 @@ export const SETTINGS_ROWS_CLASS = "flex min-w-0 flex-col divide-y divide-border
 
 export const SETTINGS_SECTION_CLASS = "grid gap-3 lg:grid-cols-[10rem_minmax(0,1fr)] lg:gap-8";
 
+export const SETTINGS_PANEL_BODY_CLASS = `${SETTINGS_ROWS_CLASS} px-4 py-1 sm:px-6 sm:py-2`;
+
 export function settingsPanelClass(tone: "default" | "danger" = "default"): string {
   return clsx(
-    SETTINGS_ROWS_CLASS,
-    "px-4 py-1 sm:px-6 sm:py-2",
+    "min-w-0",
     tone === "danger" ? "rounded-panel border border-danger/30 bg-danger/5" : cardClass("none"),
   );
 }
@@ -38,7 +39,9 @@ export function SettingsSection({
       <SectionHeading id={`${id}-heading`} className="lg:pt-5">
         {title}
       </SectionHeading>
-      <div className={settingsPanelClass(tone)}>{children}</div>
+      <div className={settingsPanelClass(tone)}>
+        <div className={SETTINGS_PANEL_BODY_CLASS}>{children}</div>
+      </div>
     </section>
   );
 }

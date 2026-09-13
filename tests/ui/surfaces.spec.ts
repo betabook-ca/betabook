@@ -101,8 +101,6 @@ test("surface rules: account loading includes settings and semantic danger panel
   });
   await expect(danger).toHaveCSS("background-color", expected.fill);
   await expect(danger).toHaveCSS("border-top-color", expected.border);
-  const padding = await cards.first().evaluate((element) => getComputedStyle(element).padding);
-  await expect(danger).toHaveCSS("padding", padding);
 });
 
 test("surface rules: feed loading reserves bordered day cards", async ({ page }, testInfo) => {

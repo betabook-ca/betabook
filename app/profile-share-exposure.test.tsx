@@ -1,9 +1,11 @@
 import { env } from "cloudflare:test";
 import { eq } from "drizzle-orm";
+import type { ComponentProps, ReactElement } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import AccountPage from "@/app/account/page";
 import { ProfileHeader } from "@/app/users/[id]/profile-shell";
+import { AccountSettings } from "@/components/account-settings";
 import { createDb } from "@/db/client";
 import { getProfileShareToken } from "@/db/queries";
 import { user } from "@/db/schema";
@@ -46,6 +48,13 @@ async function profileHeaderFor(viewerId: string) {
   return JSON.stringify(await ProfileHeader({ user: owner, viewerId }));
 }
 
+/** Renders AccountSettings one level so the assertions reach ShareProfileControls. */
+async function accountPageJson() {
+  const page = (await AccountPage()) as ReactElement<ComponentProps<typeof AccountSettings>>;
+  expect(page.type).toBe(AccountSettings);
+  return JSON.stringify(AccountSettings(page.props));
+}
+
 it("gives the share link to the profile's owner and no other member", async () => {
   const token = await currentToken();
 
@@ -60,8 +69,8 @@ it("gives the share link to the profile's owner and no other member", async () =
 it("shows the owner their link on the account page", async () => {
   const token = await currentToken();
 
-  expect(JSON.stringify(await AccountPage())).toContain(
-    `"shareUrl":"https://betabook.test/users/owner?share=${token}"`,
+  expect(await accountPageJson()).toContain(
+    `"url":"https://betabook.test/users/owner?share=${token}"`,
   );
 });
 
@@ -70,9 +79,9 @@ it("sends no link to a private owner's profile or account page", async () => {
   const token = await currentToken();
 
   const header = await profileHeaderFor("owner");
-  const account = JSON.stringify(await AccountPage());
+  const account = await accountPageJson();
   expect(header).toContain("Share Owner");
-  expect(account).toContain('"shareUrl":null');
+  expect(account).toContain('"url":null');
   for (const page of [header, account]) {
     expect(page).not.toContain(token);
     expect(page).not.toContain("?share=");

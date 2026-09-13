@@ -8,7 +8,7 @@ const CARD_SURFACE = {
 } as const;
 
 /** Card paddings: `sm` for dense stat cards and expanded filter panels,
- * `md` for forms and settings, `fluid` for wide analytics cards that need
+ * `md` for forms, `fluid` for wide analytics cards that need
  * room on desktop but not on a phone. */
 export const CARD_PADDING = {
   /** Edge-to-edge lists own their header and row padding. */

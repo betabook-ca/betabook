@@ -1,4 +1,5 @@
 import {
+  SETTINGS_PANEL_BODY_CLASS,
   SETTINGS_ROW_CLASS,
   SETTINGS_SECTION_CLASS,
   settingsPanelClass,
@@ -28,21 +29,25 @@ export default function Loading() {
         <div key={id} className={SETTINGS_SECTION_CLASS}>
           <Skeleton className="h-7 w-24 lg:mt-5" />
           <div className={settingsPanelClass()}>
-            {Array.from({ length: rows }, (_, row) => (
-              <div key={row} className={`flex flex-col gap-2 ${SETTINGS_ROW_CLASS}`}>
-                <Skeleton tone="raised" className="h-5 w-32" />
-                <Skeleton tone="raised" className="h-4 w-64 max-w-full" />
-              </div>
-            ))}
+            <div className={SETTINGS_PANEL_BODY_CLASS}>
+              {Array.from({ length: rows }, (_, row) => (
+                <div key={row} className={`flex flex-col gap-2 ${SETTINGS_ROW_CLASS}`}>
+                  <Skeleton tone="raised" className="h-5 w-32" />
+                  <Skeleton tone="raised" className="h-4 w-64 max-w-full" />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       ))}
       <div className={SETTINGS_SECTION_CLASS}>
         <Skeleton className="h-7 w-32 lg:mt-5" />
         <div className={settingsPanelClass("danger")}>
-          <div className={`flex flex-col gap-3 ${SETTINGS_ROW_CLASS}`}>
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-10 w-36" rounded="rounded-full" />
+          <div className={SETTINGS_PANEL_BODY_CLASS}>
+            <div className={`flex flex-col gap-3 ${SETTINGS_ROW_CLASS}`}>
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-10 w-36" rounded="rounded-full" />
+            </div>
           </div>
         </div>
       </div>
