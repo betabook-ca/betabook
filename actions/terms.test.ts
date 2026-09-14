@@ -13,7 +13,10 @@ import { TERMS_VERSION } from "@/lib/terms";
 import { resetDb } from "@/test/reset-db";
 
 const identity = vi.hoisted(() => ({ id: "legacy" as string | null }));
-vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
+vi.mock("next/headers", () => ({
+  headers: async () =>
+    new Headers(identity.id ? { cookie: "better-auth.session_token=test-token" } : {}),
+}));
 vi.mock("next/cache", () => ({ refresh: () => {}, revalidatePath: () => {} }));
 vi.mock("@/lib/auth", () => ({
   initAuth: async () => ({

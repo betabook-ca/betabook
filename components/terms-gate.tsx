@@ -57,7 +57,10 @@ export function TermsGate({
     if (!viewerId || exempt || initiallyRequired) return;
     let disposed = false;
     let pending = false;
-    let lastChecked = -Infinity;
+    // The template already checked terms for this render. Reuse that result
+    // for initial interactions instead of issuing a duplicate request on mount.
+    // Focus and denied-request events still force a fresh check below.
+    let lastChecked = Date.now();
     const controller = new AbortController();
     const check = async (force = false) => {
       if (pending || document.visibilityState !== "visible") return;
@@ -107,7 +110,6 @@ export function TermsGate({
     const interact = () => {
       void check();
     };
-    void check(true);
     window.addEventListener(TERMS_REQUIRED_EVENT, block);
     window.addEventListener("focus", focus);
     document.addEventListener("visibilitychange", focus);

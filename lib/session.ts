@@ -1,3 +1,4 @@
+import { getSessionCookie } from "better-auth/cookies";
 import { headers } from "next/headers";
 import { cache } from "react";
 
@@ -10,8 +11,13 @@ import { hasAcceptedCurrentTerms } from "@/lib/terms";
 // React cache shares work across a server render (including metadata and the
 // template), never across requests or viewers. Outside a render it is a no-op.
 export const getSession = cache(async () => {
+  const requestHeaders = await headers();
+  // Only absence is decisive. A present token still needs signature, expiry,
+  // and revocation validation by Better Auth. Keep cookie naming aligned with
+  // lib/auth.ts, which uses Better Auth's default secure/local cookie names.
+  if (!getSessionCookie(requestHeaders)) return null;
   const auth = await initAuth();
-  return auth.api.getSession({ headers: await headers() });
+  return auth.api.getSession({ headers: requestHeaders });
 });
 
 export const getSessionTermsAcceptance = cache(async (userId: string) =>
