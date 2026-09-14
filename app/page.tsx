@@ -1,8 +1,10 @@
+import { clsx } from "clsx";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { LandingHero } from "@/components/landing-page";
 import { AppSearch } from "@/components/search/app-search";
+import { CARD_PADDING } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/typography";
 import { LOGBOOK_PAGE } from "@/lib/landing-pages";
 import { parseSearchState } from "@/lib/search";
@@ -45,7 +47,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     loadClimberSuggestions(state, viewerId),
   ]);
   return (
-    <div className="flex flex-col gap-6">
+    <div className={clsx("flex flex-col gap-6", !session && CARD_PADDING.fluid)}>
       {/* Members are redirected from the bare page, so its intro carries the
        * sign-up in place of the search's member notice. */}
       {isBare ? (
