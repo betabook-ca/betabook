@@ -180,6 +180,8 @@ type WizardResult = Omit<ImportResult, "missing"> & {
 /** Cap inline rows; the download includes every row needing attention. */
 const MAX_LISTED_FAILURES = 50;
 
+const LOOKUP_CONCURRENCY = 5;
+
 const NOT_ATTEMPTED_MESSAGE = "the import stopped before reaching this row";
 
 function toImportSendRow(resolved: ResolvedRow, climb: ClimbCandidate): ImportSendRow {
@@ -512,32 +514,57 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
     setLookup({ phase: "loading", done, total });
 
     let index: CandidateIndex = new Map();
-    const request = async (
-      call: () => Promise<{ ok: true; value: ClimbCandidate[] } | { ok: false; error: string }>,
+
+    /** Merge in chunk order, not settle order: the merged candidate order decides
+     * which alternatives an ambiguous row offers first. */
+    const resolveChunks = async <T,>(
+      chunks: T[][],
+      call: (
+        chunk: T[],
+      ) => Promise<{ ok: true; value: ClimbCandidate[] } | { ok: false; error: string }>,
     ): Promise<boolean> => {
-      const result = await call().catch(
-        () => ({ ok: false, error: "The lookup request failed" }) as const,
+      const settled = Array.from<ClimbCandidate[] | null>({ length: chunks.length }).fill(null);
+      const failures = Array.from<string | null>({ length: chunks.length }).fill(null);
+      const failed = () => failures.some((error) => error !== null);
+      let next = 0;
+
+      const worker = async () => {
+        while (!failed() && lookupRunRef.current === run) {
+          const position = next;
+          next += 1;
+          if (position >= chunks.length) return;
+          const result = await call(chunks[position]).catch(
+            () => ({ ok: false, error: "The lookup request failed" }) as const,
+          );
+          if (lookupRunRef.current !== run) return;
+          if (!result.ok) {
+            failures[position] = result.error;
+            return;
+          }
+          settled[position] = result.value;
+          done += 1;
+          setLookup({ phase: "loading", done, total });
+        }
+      };
+
+      await Promise.all(
+        Array.from({ length: Math.min(LOOKUP_CONCURRENCY, chunks.length) }, worker),
       );
       if (lookupRunRef.current !== run) return false;
-      if (!result.ok) {
-        setLookup({ phase: "failed", error: result.error });
+      const error = failures.find((message) => message !== null);
+      if (error != null) {
+        setLookup({ phase: "failed", error });
         return false;
       }
-      index = mergeCandidates(index, result.value);
-      done += 1;
-      setLookup({ phase: "loading", done, total });
+      for (const value of settled) if (value) index = mergeCandidates(index, value);
       return true;
     };
 
-    for (const names of nameChunks) {
-      if (!(await request(() => resolveImportClimbs(names)))) return;
-    }
+    if (!(await resolveChunks(nameChunks, (names) => resolveImportClimbs(names)))) return;
 
     const pairChunks = chunk(areaLookupsNeeded(valid, index));
     total += pairChunks.length;
-    for (const pairs of pairChunks) {
-      if (!(await request(() => resolveImportClimbsInAreas(pairs)))) return;
-    }
+    if (!(await resolveChunks(pairChunks, (pairs) => resolveImportClimbsInAreas(pairs)))) return;
 
     setCandidateIndex(index);
     const summary = summarizeResolved(
