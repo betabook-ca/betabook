@@ -99,9 +99,9 @@ export default function ClimbingLogbookPage() {
                 <>
                   Use the{" "}
                   <AppLink href="/contact" className="inline underline">
-                    contact form
-                  </AppLink>
-                  , or open an issue on{" "}
+                    Contact Us
+                  </AppLink>{" "}
+                  form, or open an issue on{" "}
                   <a
                     href="https://github.com/betabook-ca/betabook/issues"
                     target="_blank"
