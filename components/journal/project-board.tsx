@@ -6,6 +6,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { JournalEntryDrawer } from "@/components/journal/journal-entry-drawer";
 import { ProjectCard, type ProjectWithSessions } from "@/components/journal/project-card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { OptionSelect } from "@/components/ui/option-select";
 import { QueryInput } from "@/components/ui/query-input";
 import { useMounted } from "@/hooks/use-mounted";
@@ -75,25 +76,19 @@ export function ProjectBoard({ userId, projects, hasMore, goals }: ProjectBoardP
         <EmptyState message="No open projects. Log a session on a climb you haven't sent and it starts one." />
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-3">
-            {/* The search field's own width is `w-96 max-w-full`, and that
-             * percentage resolves against this wrapper — so the wrapper, not a
-             * shrink-to-content flex group, is what has to be allowed to
-             * narrow, or the field keeps its 24rem on a phone. */}
-            <div className="min-w-0 flex-1 basis-64">
-              <QueryInput
-                value={query}
-                onChange={setQuery}
-                label="Filter projects"
-                placeholder="Climb, area, tag or recent note"
-              />
-            </div>
+          <div className="grid min-w-0 grid-cols-[minmax(0,24rem)_auto] items-center justify-start gap-2">
+            <QueryInput
+              value={query}
+              onChange={setQuery}
+              label="Filter projects"
+              placeholder="Search a climb, area, tag or recent note"
+            />
             <OptionSelect
               ariaLabel="Sort projects"
               value={sort}
               onChange={setSort}
               options={SORTS}
-              className="w-44 max-w-full"
+              className={FIELD_WIDTH_CLASS.medium}
             />
           </div>
 

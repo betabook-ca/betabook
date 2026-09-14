@@ -71,11 +71,12 @@ export async function getFriendsPage(
       CASE WHEN f.status = 'accepted' THEN 'friends' WHEN f.requested_by = ${viewerId} THEN 'outgoing' ELSE 'incoming' END AS friendshipStatus
     FROM friendships f JOIN user u ON u.id = CASE WHEN f.user_id = ${viewerId} THEN f.friend_id ELSE f.user_id END
     WHERE (f.user_id = ${viewerId} OR f.friend_id = ${viewerId}) AND f.status = ${requestsOnly ? "pending" : "accepted"}
-    ORDER BY f.created_at DESC, u.id DESC LIMIT 21 OFFSET ${start}
+    ORDER BY ${requestsOnly ? sql`f.created_at DESC, u.id DESC` : sql`u.name COLLATE NOCASE, u.id`}
+    LIMIT 11 OFFSET ${start}
   `);
   return {
-    friends: rows.slice(0, 20).map((row) => ({ ...row, isPrivate: row.isPrivate === 1 })),
-    hasMore: rows.length > 20,
+    friends: rows.slice(0, 10).map((row) => ({ ...row, isPrivate: row.isPrivate === 1 })),
+    hasMore: rows.length > 10,
   };
 }
 

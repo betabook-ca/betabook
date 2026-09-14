@@ -46,3 +46,16 @@ it("keeps shown suggestions and their request state when the page refreshes with
   expect(screen.getByRole("button", { name: "Add friend: Jordan Park" })).toBeEnabled();
   expect(screen.queryByText("Kai Nakamura")).not.toBeInTheDocument();
 });
+
+it("starts with three suggestions and reveals the rest on request", async () => {
+  render(
+    <FriendSuggestions
+      climbers={Array.from({ length: 6 }, (_, i) => climber(String(i), `Partner ${i + 1}`, 1))}
+    />,
+  );
+  expect(screen.getAllByRole("article")).toHaveLength(3);
+  expect(screen.queryByText("Partner 4")).not.toBeInTheDocument();
+  await userEvent.setup().click(screen.getByRole("button", { name: "Show more" }));
+  expect(screen.getAllByRole("article")).toHaveLength(6);
+  expect(screen.getByText("Partner 6")).toBeVisible();
+});

@@ -21,7 +21,7 @@ submission, sample results, and friend requests stay local. Its View your feed l
 opens the feed lesson while preserving full/update mode and the exit destination.
 Next, Back, and the lesson chooser connect Search with the profile lessons.
 The Friends lesson uses the shared section navigation and request badge for its
-All friends / Requests controls. Demo selections use local callbacks, with no URLs
+Friends / Requests controls. Demo selections use local callbacks, with no URLs
 or writes. Accepting or declining the sample request clears both sample badges;
 the signed-in account's real count remains separate.
 

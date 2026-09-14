@@ -80,7 +80,7 @@ export function FriendshipButton({
   userId: string;
   name: string;
   initialStatus: FriendshipStatus;
-  appearance?: "row" | "profile";
+  appearance?: "row" | "profile" | "menu";
 }) {
   const [status, setStatus] = useState(initialStatus);
   const [source, setSource] = useState(initialStatus);
@@ -106,9 +106,10 @@ export function FriendshipButton({
       }
     });
   }
-  if (appearance === "profile") {
+  if (appearance === "profile" || appearance === "menu") {
     return (
       <ProfileFriendshipControl
+        menuIcon={appearance === "menu"}
         status={status}
         name={name}
         pending={pending}
@@ -142,12 +143,14 @@ export function FriendshipButton({
 }
 
 function ProfileFriendshipControl({
+  menuIcon,
   status,
   name,
   pending,
   error,
   onAction,
 }: {
+  menuIcon: boolean;
   status: FriendshipStatus;
   name: string;
   pending: boolean;
@@ -185,8 +188,8 @@ function ProfileFriendshipControl({
       ) : (
         <ActionsMenu
           ariaLabel={PROFILE_MENUS[status].label(name)}
-          tooltip={PROFILE_MENUS[status].tooltip}
-          icon={PROFILE_MENUS[status].icon}
+          tooltip={menuIcon ? "Friendship options" : PROFILE_MENUS[status].tooltip}
+          icon={menuIcon ? undefined : PROFILE_MENUS[status].icon}
           triggerClassName={PROFILE_CONTROL_CLASS}
           onAction={(key) => {
             const action = STATUS_ACTIONS[status].find((entry) => entry === key);

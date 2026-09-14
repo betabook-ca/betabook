@@ -36,7 +36,7 @@ export function DemoFriends({
           label="Friend lists"
           tabs={[
             {
-              label: "All friends",
+              label: "Friends",
               current: view === "friends",
               onSelect: () => setView("friends"),
             },

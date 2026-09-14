@@ -21,7 +21,7 @@ export const GET = withApiSession(async (session, request: Request) => {
           offset,
         );
   return Response.json(
-    { ...page, hasMore: page.hasMore && !offsetReachesPaginationLimit(offset ?? 0, 20) },
+    { ...page, hasMore: page.hasMore && !offsetReachesPaginationLimit(offset ?? 0, 10) },
     { headers },
   );
 });

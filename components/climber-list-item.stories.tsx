@@ -15,13 +15,15 @@ export const FriendshipActions: Story = {
   render: () => (
     <StoryPage
       title="Climbers"
-      description="Long names take the full row, with friendship actions wrapping below on the right."
+      description="Compact rows keep actions on the right. Existing friends use the three-dot menu; names shorten to fit."
     >
       <div>
         <ClimberListItem
+          compact
           climber={{ id: "suzi", name: "Suzi Lu", image: null, friendshipStatus: "friends" }}
         />
         <ClimberListItem
+          compact
           climber={{
             id: "alexandra",
             name: "Alexandra Montgomery-Castellanos",
@@ -31,6 +33,7 @@ export const FriendshipActions: Story = {
           detail="3 mutual friends"
         />
         <ClimberListItem
+          compact
           climber={{
             id: "sam",
             name: "Sam Rivera Montgomery-Castellanos",

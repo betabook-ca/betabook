@@ -15,6 +15,7 @@ vi.mock("next/image", () => ({ default: () => null }));
 it.each([
   [{ view: "requests" }, "/sign-in?next=%2Ffriends%3Fview%3Drequests"],
   [{}, "/sign-in?next=%2Ffriends"],
+  [{ view: "discover" }, "/sign-in?next=%2Ffriends"],
   [{ view: "https://example.com" }, "/sign-in?next=%2Ffriends"],
 ] satisfies [UrlParamsRecord, string][])(
   "preserves the Requests email destination through sign-in for %j",
