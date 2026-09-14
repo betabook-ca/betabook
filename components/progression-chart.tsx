@@ -2,8 +2,8 @@
 /* oxlint-disable jsx-a11y/no-noninteractive-tabindex, jsx-a11y/no-noninteractive-element-interactions -- Arrow keys move focus between the named chart's month points. */
 import { ChartClimbDetails } from "@/components/chart-climb-details";
 import { DISCIPLINE_HUE } from "@/components/ui/discipline-chip";
-import type { AnalyticsSendRow } from "@/db/queries";
 import { useChartWidth } from "@/hooks/use-chart-width";
+import type { ChartSend } from "@/lib/chart-details";
 import { nativeGradeArray, type ClimbType } from "@/lib/grades";
 import { formatMonthLabel, type ProgressionPoint } from "@/lib/user-analytics";
 
@@ -24,7 +24,7 @@ export function ProgressionChart({
 }: {
   type: ClimbType;
   points: ProgressionPoint[];
-  sends: AnalyticsSendRow[];
+  sends: ChartSend[];
 }) {
   const { ref, width: W } = useChartWidth();
   if (points.length === 0) return null;
