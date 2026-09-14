@@ -1,0 +1,103 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: en-US
+early_access: false
+
+reviews:
+  # Keep feedback high-signal. Repository linting and formatting already enforce
+  # mechanical style, so CodeRabbit should concentrate on design and correctness.
+  profile: chill
+  request_changes_workflow: false
+
+  # Review feedback is advisory: do not publish a check or commit status that
+  # could later be made into a required merge gate.
+  review_progress: false
+  commit_status: false
+  fail_commit_status: false
+
+  high_level_summary: false
+  review_status: false
+  review_details: false
+  collapse_walkthrough: true
+  poem: false
+  in_progress_fortune: false
+  sequence_diagrams: false
+  estimate_code_review_effort: false
+  assess_linked_issues: false
+  related_issues: false
+  related_prs: false
+  suggested_labels: false
+  suggested_reviewers: false
+  enable_prompt_for_ai_agents: false
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: false
+    ignore_title_keywords:
+      - WIP
+      - "[skip review]"
+    ignore_usernames:
+      - "dependabot[bot]"
+      - "github-actions[bot]"
+
+  # Disable CodeRabbit's pass/fail checks. Its value here is review feedback,
+  # while the repository's own required Test & Build and UI reference jobs gate
+  # merges.
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
+    title:
+      mode: "off"
+    description:
+      mode: "off"
+    issue_assessment:
+      mode: "off"
+
+  path_instructions:
+    - path: "**/*"
+      instructions: |
+        Prioritize high-confidence findings that materially affect correctness,
+        maintainability, clarity, or long-term code quality. Do not comment on
+        formatting or mechanical style already enforced by oxlint and oxfmt.
+
+        Search within this repository before recommending new code. Flag duplicated
+        behavior, validation, queries, hooks, or utilities when a concrete existing
+        implementation can be reused, and name the exact file or symbol. Recommend
+        extraction only when the shared concept is stable and meaningful; do not
+        create abstractions for incidental or one-off similarity.
+
+        Make every finding actionable and grounded in the changed code. Avoid
+        speculative suggestions, generic best-practice reminders, and praise-only
+        comments.
+
+    - path: "components/**/*.tsx"
+      instructions: |
+        Check components/ui and nearby feature components before accepting new UI
+        primitives or repeated markup. Flag recreation of an existing component or
+        interaction pattern and identify the component that should be reused.
+
+        Prefer composition and focused variants or props over copy-pasted forks.
+        Check that public component APIs support realistic reuse without exposing
+        feature-specific internals. Do not demand a generic component when the UI
+        is intentionally domain-specific or only appears once.
+
+        Preserve the repository's HeroUI, React Aria, Tailwind token, accessibility,
+        story, and server/client-component conventions from the code guidelines.
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - AGENTS.md
+      - CLAUDE.md
+      - components/AGENTS.md
+      - tests/ui/AGENTS.md
+      - docs/repository-guide.md
+      - docs/component-testing.md
+      - docs/design-system.md
+      - docs/product-tours.md
+      - docs/goals.md
+
+chat:
+  auto_reply: true
