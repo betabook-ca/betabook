@@ -34,9 +34,10 @@ it("leads with the climber's profile, then Feed, Friends and Add climb/area", ()
   expect(hrefs(html).slice(0, 4)).toEqual(["/users/owner", "/feed", "/friends", "/climbs/new"]);
   expect(link(html, "/users/owner")).toContain("Alex Morgan");
   expect(link(html, "/climbs/new")).toContain("Add climb/area");
-  expect(hrefs(html)).toEqual(
-    expect.arrayContaining(["/account", "/about", "/costs", "/contact", "/terms"]),
-  );
+  expect(hrefs(html)).toContain("/account");
+  for (const href of ["/about", "/costs", "/contact", "/terms"]) {
+    expect(hrefs(html)).not.toContain(href);
+  }
   expect(hrefs(html).find((href) => href.startsWith("/tutorial/journal"))).toBeDefined();
   expect(html).not.toContain("Theme");
   expect(html).toContain("Sign out");
@@ -77,7 +78,7 @@ it("offers Add to Home Screen only where the app can be installed", () => {
 it("offers sign-in instead of account links when signed out", () => {
   const html = renderToStaticMarkup(<AppMenuLinks account={null} />);
 
-  expect(hrefs(html).slice(0, 2)).toEqual(["/sign-in", "/sign-up"]);
+  expect(hrefs(html)).toEqual(["/sign-in", "/sign-up"]);
   for (const href of ["/feed", "/friends", "/climbs/new", "/account"]) {
     expect(hrefs(html)).not.toContain(href);
   }

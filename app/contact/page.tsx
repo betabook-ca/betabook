@@ -5,7 +5,7 @@ import { PageTitle } from "@/components/ui/typography";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Contact",
+  title: "Contact us",
   description:
     "Report a wrong grade, a misplaced area or a bug, or send feedback about Betabook. No account needed.",
   path: "/contact",
@@ -20,7 +20,7 @@ export default function ContactPage() {
     // right for climb lists and about twice a comfortable line length for
     // running text or a form.
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
-      <PageTitle>Contact</PageTitle>
+      <PageTitle>Contact us</PageTitle>
 
       <p className="text-lg leading-relaxed text-pretty text-muted">
         Found a climb with the wrong grade, an area in the wrong place, or something that plainly

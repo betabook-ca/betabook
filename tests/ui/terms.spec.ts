@@ -38,7 +38,7 @@ test(
     const email = page.getByRole("textbox", { name: "Email" });
     await email.fill("climber@example.com");
     const popup = context.waitForEvent("page");
-    await page.getByRole("link", { name: /Read the Terms of Service/ }).click();
+    await page.locator("form").getByRole("link", { name: "Terms of Service", exact: true }).click();
     const terms = await popup;
     await expect(terms).toHaveURL(`${appBaseURL}/terms/${TERMS_VERSION}`);
     await expect(
@@ -77,6 +77,6 @@ test(
     });
     await page.getByRole("article").getByRole("link", { name: "contact form" }).last().click();
     await expect(page).toHaveURL("/contact");
-    await expect(page.getByRole("heading", { name: "Contact", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Contact us", exact: true })).toBeVisible();
   },
 );

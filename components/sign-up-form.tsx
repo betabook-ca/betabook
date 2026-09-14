@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, Checkbox, Input, Label, TextField } from "@heroui/react";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
 import { useTurnstile } from "@/components/turnstile";
@@ -28,6 +28,7 @@ export function SignUpForm({
   // The page already validates the param, but re-validate the prop here so
   // the form can never be handed an off-origin destination.
   const nextPath = safeNextPath(next);
+  const agreementId = useId();
   const captcha = useTurnstile(turnstileSiteKey);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -106,8 +107,10 @@ export function SignUpForm({
   return (
     <form onSubmit={handleSubmit} className={FORM_CARD_CLASS}>
       <PageTitle>Sign up</PageTitle>
-      <div className="flex flex-col gap-2 text-sm">
+      <div className="flex items-center gap-2 text-sm">
         <Checkbox
+          id={agreementId}
+          aria-labelledby={`${agreementId}-label`}
           isSelected={termsAccepted}
           onChange={setTermsAccepted}
           isDisabled={pending}
@@ -117,17 +120,19 @@ export function SignUpForm({
             <Checkbox.Control>
               <Checkbox.Indicator />
             </Checkbox.Control>
-            I agree to the Terms of Service
           </Checkbox.Content>
         </Checkbox>
-        <AppLink
-          href={termsHref()}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm underline"
-        >
-          Read the Terms of Service
-        </AppLink>
+        <span id={`${agreementId}-label`}>
+          <label htmlFor={agreementId}>I agree to the </label>{" "}
+          <AppLink
+            href={termsHref()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline underline"
+          >
+            Terms of Service
+          </AppLink>
+        </span>
       </div>
       {googleEnabled && (
         <>
