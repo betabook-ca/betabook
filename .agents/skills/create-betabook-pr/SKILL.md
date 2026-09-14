@@ -2,7 +2,7 @@
 name: create-betabook-pr
 description: >-
   Prepare, validate, push, and create or incrementally update a Betabook pull request,
-  with relevant visual evidence and a manual CodeRabbit review request. Use when asked to
+  with relevant visual evidence and an initial CodeRabbit review request for new PRs. Use when asked to
   create, open, prepare, or update a Betabook PR. Do not use for PR review, merge, or deploy requests.
 ---
 
@@ -203,13 +203,13 @@ Scope every PR edit, view, check, comment, and attachment to the verified upstre
 `--repo "$pr_repo"` with its PR number. Allow the
 pre-push hook to finish, then verify the PR with `gh pr view`, including its URL, title, base/head
 repositories and branches, description, and rendered media. Confirm its head commit matches the
-commit just pushed before requesting review.
+commit just pushed. For a new PR, then request review as described below.
 
-## Trigger CodeRabbit review
+## Trigger the initial CodeRabbit review
 
 Betabook currently needs manual CodeRabbit requests because it does not meet the GitHub star
-threshold for automatic reviews. After creating a PR, and after every successful push of new
-commits to an existing PR, post a **new top-level GitHub PR comment** whose entire body is:
+threshold for automatic reviews. After the initial push and PR creation, post one **top-level
+GitHub PR comment** whose entire body is:
 
 ```text
 @coderabbitai review
@@ -221,14 +221,13 @@ Set `pr_number` from the verified PR and run:
 gh pr comment "$pr_number" --repo "$pr_repo" --body '@coderabbitai review'
 ```
 
-This applies to both normal and stacked PRs; request review on each PR whose head was updated.
-Post once after the completed push/update, including review fixes or rebases. A previous comment
-does not request review of newly pushed changes. Do not edit an old trigger comment or put the
-command in the PR description. Title/body-only edits and no-op pushes do not need another trigger.
+This applies to both normal and stacked PRs; post once for each newly created PR. Do not post
+another trigger on incremental pushes, review fixes, rebases, or title/body edits. Keep the command
+in the initial PR comment rather than the PR description.
 
 Verify the comment was posted and retain its URL for the handoff. If the comment request times out
 or returns an ambiguous result, inspect recent PR comments before retrying to avoid duplicate
-requests for the same update. If posting fails, report that review was not requested and why.
+initial requests. If posting fails, report that review was not requested and why.
 A successfully posted comment confirms the request, not that CodeRabbit has started or finished.
 
 ## Check and hand off
@@ -241,5 +240,6 @@ approval, report that pending approval and link the run. The policy is an upstre
 not a missing workflow trigger.
 Do not change repository approval policy or switch to `pull_request_target` as part of creating a PR.
 Report the PR URL, the tests and manual scenarios completed, current GitHub check status, and the
-CodeRabbit trigger comment URL (or the posting failure). Distinguish a requested review from any
-observed bot response. Do not merge or deploy the PR.
+initial CodeRabbit trigger comment URL (or the posting failure) when creating a PR. For updates,
+report that no new trigger was posted. Distinguish a requested review from any observed bot
+response. Do not merge or deploy the PR.
