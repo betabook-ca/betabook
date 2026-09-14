@@ -1,4 +1,5 @@
 import { env } from "cloudflare:test";
+import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { getSessionMock } = vi.hoisted(() => ({
@@ -12,8 +13,8 @@ vi.mock("@/lib/auth", () => ({
 
 import { createDb } from "@/db/client";
 import { user } from "@/db/schema";
-import { NotAdminError, NotSignedInError } from "@/lib/action-result";
-import { isAdmin, requireAdmin, requireSession } from "@/lib/session";
+import { NotAdminError, NotSignedInError, TermsAcceptanceRequiredError } from "@/lib/action-result";
+import { getMemberSession, getSession, isAdmin, requireAdmin, requireSession } from "@/lib/session";
 import { seedFixtureUser } from "@/test/fixtures";
 
 vi.mock("@/db/client", async (original) => {
@@ -29,6 +30,23 @@ beforeEach(async () => {
 });
 
 describe("requireSession", () => {
+  it("reads current terms after an earlier member lookup", async () => {
+    const session = { user: { id: "1", role: null } };
+    getSessionMock.mockResolvedValue(session);
+    await expect(getMemberSession()).resolves.toBe(session);
+    await createDb(env.DB).update(user).set({ termsVersion: null }).where(eq(user.id, "1"));
+    await expect(requireSession()).rejects.toThrow(TermsAcceptanceRequiredError);
+    await expect(getMemberSession()).resolves.toBeNull();
+  });
+
+  it("does not retain a viewer between calls outside a server render", async () => {
+    const session = { user: { id: "1", role: null } };
+    getSessionMock.mockResolvedValueOnce(session).mockResolvedValueOnce(null);
+    await expect(getSession()).resolves.toBe(session);
+    await expect(getSession()).resolves.toBeNull();
+    expect(getSessionMock).toHaveBeenCalledTimes(2);
+  });
+
   it("throws NotSignedInError when there is no session", async () => {
     getSessionMock.mockResolvedValueOnce(null);
     await expect(requireSession()).rejects.toThrow(NotSignedInError);
