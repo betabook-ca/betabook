@@ -39,11 +39,15 @@ it("shows the loaded friend count and appends the next batch only on request", a
       requestsOnly={false}
     />,
   );
-  expect(screen.getByRole("status")).toHaveTextContent("Showing 10 friends");
+  expect(screen.getByRole("status", { name: "Friend count" })).toHaveTextContent(
+    "Showing 10 friends",
+  );
   expect(fetchMock).not.toHaveBeenCalled();
   await userEvent.setup().click(screen.getByRole("button", { name: "Load more" }));
   expect(await screen.findByText("Partner 11")).toBeVisible();
-  expect(screen.getByRole("status")).toHaveTextContent("All 11 friends shown");
+  expect(screen.getByRole("status", { name: "Friend count" })).toHaveTextContent(
+    "All 11 friends shown",
+  );
   expect(screen.queryByRole("button", { name: "Load more" })).not.toBeInTheDocument();
 });
 

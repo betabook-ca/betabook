@@ -53,7 +53,7 @@ export function FriendList({
     <div className="flex flex-col gap-4">
       {!requestsOnly && (
         <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm text-muted">
-          <p role="status">
+          <p role="status" aria-label="Friend count">
             {hasMore ? `Showing ${items.length}` : `All ${items.length}`}{" "}
             {items.length === 1 ? "friend" : "friends"}
             {!hasMore && " shown"}
