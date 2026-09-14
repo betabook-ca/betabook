@@ -9,7 +9,7 @@ function Example() {
   const [expanded, setExpanded] = useState(true);
   return (
     <GoalSection
-      title="Your goals"
+      title="My goals"
       expanded={expanded}
       onExpandedChange={setExpanded}
       hasGoals
@@ -25,8 +25,8 @@ it("keeps Set goal inside the collapsible content", async () => {
   const user = userEvent.setup();
   render(<Example />);
   expect(screen.getByRole("button", { name: "Set goal" })).toBeVisible();
-  await user.click(screen.getByRole("button", { name: "Your goals" }));
+  await user.click(screen.getByRole("button", { name: "My goals" }));
   expect(screen.queryByRole("button", { name: "Set goal" })).not.toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: /Your goals/ }));
+  await user.click(screen.getByRole("button", { name: /My goals/ }));
   expect(screen.getByRole("button", { name: "Set goal" })).toBeVisible();
 });

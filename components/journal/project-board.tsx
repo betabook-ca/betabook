@@ -76,12 +76,12 @@ export function ProjectBoard({ userId, projects, hasMore, goals }: ProjectBoardP
         <EmptyState message="No open projects. Log a session on a climb you haven't sent and it starts one." />
       ) : (
         <>
-          <div className="grid min-w-0 grid-cols-[minmax(0,24rem)_auto] items-center justify-start gap-2">
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
             <QueryInput
               value={query}
               onChange={setQuery}
               label="Filter projects"
-              placeholder="Search a climb, area, tag or recent note"
+              placeholder="Search…"
             />
             <OptionSelect
               ariaLabel="Sort projects"

@@ -64,7 +64,7 @@ export const Active: Story = {
 export const Collapsed: Story = {
   args: { ...Active.args, ownerId: "story-goals-collapsed" },
   play: async ({ canvasElement }) => {
-    const trigger = within(canvasElement).getByRole("button", { name: /Your goals/ });
+    const trigger = within(canvasElement).getByRole("button", { name: /My goals/ });
     if (trigger.getAttribute("aria-expanded") === "true") await userEvent.click(trigger);
   },
 };

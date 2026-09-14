@@ -42,7 +42,7 @@ test("goal rows begin directly below the tabs without extra first-row padding", 
 
 test("goal heading stays above the surface and Set goal is inside it", async ({ page }, info) => {
   await openStory(page, info, "components-goals-goal-panel--active");
-  const trigger = page.getByRole("button", { name: /^Your goals/ });
+  const trigger = page.getByRole("button", { name: /^My goals/ });
   const action = page.getByRole("button", { name: "Set goal" });
   const content = page.getByText("Train 8 times");
   const tabs = page.getByRole("navigation", { name: "Goal views" });

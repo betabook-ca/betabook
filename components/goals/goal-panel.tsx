@@ -298,7 +298,7 @@ export function GoalPanel({
         />
       )}
       <GoalSection
-        title={isOwner ? "Your goals" : "Goals"}
+        title={isOwner ? "My goals" : "Goals"}
         expanded={expanded}
         onExpandedChange={toggle}
         hasGoals={anyGoals}
