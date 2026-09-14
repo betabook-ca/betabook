@@ -60,7 +60,15 @@ function useIsOverflowing(ref: RefObject<HTMLElement | null>, enabled: boolean):
  * Expansion is per-row local state — a list re-render (a "load more" page, a
  * post-mutation server refresh) is allowed to collapse it again; there's
  * nothing here worth persisting. */
-export function ClampedComment({ children }: { children: string }) {
+export function ClampedComment({
+  children,
+  expandLabel = "Show more",
+  collapseLabel = "Show less",
+}: {
+  children: string;
+  expandLabel?: string;
+  collapseLabel?: string;
+}) {
   const [expanded, setExpanded] = useState(false);
   const commentRef = useRef<HTMLParagraphElement>(null);
   const commentId = useId();
@@ -87,7 +95,7 @@ export function ClampedComment({ children }: { children: string }) {
           aria-controls={commentId}
           className="link text-sm font-medium focus-visible:status-focused"
         >
-          {expanded ? "Show less" : "Show more"}
+          {expanded ? collapseLabel : expandLabel}
         </button>
       )}
     </>

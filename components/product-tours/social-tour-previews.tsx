@@ -2,16 +2,15 @@
 
 import { useState } from "react";
 
-import { FeedActivityOutcome, FeedCardHeader } from "@/components/feed-card-content";
+import { FeedTimeline } from "@/components/feed-timeline";
 import { FriendRequestBadge } from "@/components/friend-request-badge";
 import { FriendshipActionButton } from "@/components/friendship-action-button";
 import { ProfileSectionNav } from "@/components/profile-tabs";
-import { cardClass } from "@/components/ui/card";
 import { choicePillClass } from "@/components/ui/choice-pill";
-import { Grade } from "@/components/ui/grade";
-import { ListRow } from "@/components/ui/list-row";
 import { SectionHeading } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import type { FeedDay } from "@/db/queries/feed";
+import { parseGrade } from "@/lib/grades";
 import { TOUR_DEMO_FRIEND_DAY, TOUR_DEMO_PEOPLE } from "@/lib/product-tour-demo";
 
 /** Sample interactions stay in this component; no friendship actions or profile links. */
@@ -107,6 +106,31 @@ export function DemoFeed() {
   const [view, setView] = useState<"All" | "Sends">("All");
   const day = TOUR_DEMO_FRIEND_DAY;
   const entries = day.entries.filter((entry) => view === "All" || entry.kind === "send");
+  const sample: FeedDay = {
+    userId: "tour-friend",
+    name: day.name,
+    image: null,
+    date: day.date,
+    journalVisible: true,
+    sends: entries.filter((entry) => entry.kind === "send").length,
+    sessions: entries.filter((entry) => entry.kind === "session").length,
+    training: entries.filter((entry) => entry.kind === "training").length,
+    repeats: 0,
+    activities: entries.map((entry, index) => ({
+      id: -(index + 1),
+      kind: entry.kind,
+      ascentStyle: entry.ascentStyle,
+      climbId: entry.climb?.id ?? null,
+      climbName: entry.climb?.name ?? null,
+      climbType: entry.climb ? "boulder" : null,
+      climbGrade: entry.climb ? parseGrade("boulder", entry.climb.grade) : null,
+      reportedGrade: null,
+      gradeFeel: null,
+      areaId: null,
+      areaName: null,
+      body: entry.note,
+    })),
+  };
   return (
     <section aria-label="Friends' activity" className="flex w-full flex-col gap-3">
       <SectionHeading>Feed</SectionHeading>
@@ -124,31 +148,7 @@ export function DemoFeed() {
             </button>
           ))}
         </div>
-        <article className={`overflow-hidden ${cardClass("none", "bordered")}`}>
-          <FeedCardHeader
-            authors={[{ id: "tour-friend", name: day.name }]}
-            date={day.date}
-            activityCount={entries.length}
-            profileLinks={false}
-          />
-          <div className="divide-y divide-separator">
-            {entries.map((entry) => (
-              <ListRow
-                key={entry.id}
-                title={entry.climb?.name ?? "Training"}
-                trailing={
-                  entry.climb ? (
-                    <div className="flex flex-col items-end gap-1 text-sm">
-                      <Grade>{entry.climb.grade}</Grade>
-                      <FeedActivityOutcome activity={entry} />
-                    </div>
-                  ) : undefined
-                }
-                comment={entry.note}
-              />
-            ))}
-          </div>
-        </article>
+        <FeedTimeline days={[sample]} view={view === "All" ? "all" : "sends"} links={false} />
       </div>
     </section>
   );

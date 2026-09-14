@@ -16,8 +16,8 @@ type FeedActivity = {
   climbName: string | null;
   climbType: ClimbType | null;
   climbGrade: number | null;
-  /** Null where the climber has no send for the climb, or imported one without
-   * a grade. */
+  /** Send/repeat grade only. Sessions and training never inherit a send's
+   * grade or feel; ungraded sends also have no reported grade. */
   reportedGrade: number | null;
   gradeFeel: GradeFeel | null;
   areaId: number | null;
@@ -117,6 +117,7 @@ export async function getFeedPage(
     JOIN previews p ON p.date = d.date AND p.userId = d.userId AND p.position <= 3
     LEFT JOIN climbs c ON c.id = p.climbId LEFT JOIN areas a ON a.id = c.area_id
     LEFT JOIN sends reported ON reported.user_id = p.userId AND reported.climb_id = p.climbId
+      AND p.kind IN ('send', 'repeat')
     LEFT JOIN areas area_parent ON area_parent.id = a.parent_id
     LEFT JOIN areas area_grandparent ON area_grandparent.id = area_parent.parent_id
     ORDER BY d.date DESC, d.userId DESC, p.position

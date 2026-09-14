@@ -63,19 +63,22 @@ export function SkeletonStatCard({ stats = 3 }: { stats?: number }) {
   );
 }
 
-/** Mirrors FeedDayCard's bordered shell, compact header and flush list rows. */
+/** Mirrors the feed's climb heading and activity content without shifting the reading column. */
 export function SkeletonFeedCard() {
   return (
     <div className={`overflow-hidden ${cardClass("none", "bordered")}`}>
-      <div className="flex items-center gap-3 border-b border-separator p-4">
-        <Skeleton className="size-8 shrink-0" rounded="rounded-full" />
-        <div className="flex flex-1 flex-col gap-2">
-          <Skeleton className="h-4 w-28" />
-          <Skeleton className="h-3 w-40 max-w-full" />
-        </div>
-        <Skeleton className="h-3 w-16" />
+      <div className="flex flex-col gap-2 px-4 pt-3 pb-2">
+        <Skeleton className="h-5 w-40 max-w-full" />
+        <Skeleton className="h-3 w-48 max-w-full" />
       </div>
-      <SkeletonListRows rows={3} />
+      <div className="mx-4 flex gap-3 border-t border-separator py-3">
+        <Skeleton className="size-7 shrink-0" rounded="rounded-full" />
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <Skeleton className="h-5 w-48 max-w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
+      </div>
     </div>
   );
 }

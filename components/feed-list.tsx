@@ -4,8 +4,7 @@ import { Button } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useTransition, type ReactNode } from "react";
 
-import { FeedDayCard } from "@/components/feed-day-card";
-import { FeedGroupCard } from "@/components/feed-group-card";
+import { FeedTimeline } from "@/components/feed-timeline";
 import { AppLink } from "@/components/ui/app-link";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
@@ -15,7 +14,6 @@ import { usePagedList } from "@/hooks/use-paged-list";
 import { apiFetch } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
 import type { FeedCursor, FeedView } from "@/lib/feed";
-import { buildFeedCards } from "@/lib/feed-groups";
 import { signInUrl } from "@/lib/sign-in-redirect";
 
 export function FeedList({
@@ -104,15 +102,7 @@ export function FeedList({
         />
       ) : (
         <>
-          <div className="grid items-start gap-4 lg:grid-cols-2 2xl:grid-cols-3">
-            {buildFeedCards(items, view).map((card) =>
-              card.kind === "group" ? (
-                <FeedGroupCard key={card.key} group={card} />
-              ) : (
-                <FeedDayCard key={card.key} day={card.day} view={view} />
-              ),
-            )}
-          </div>
+          <FeedTimeline days={items} view={view} />
           {hasMore ? (
             <LoadMoreButton onPress={loadMore} loading={loadingMore} failed={loadMoreFailed} />
           ) : (
