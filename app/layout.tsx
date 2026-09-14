@@ -158,10 +158,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                     <span className="whitespace-nowrap">{SITE_TAGLINE}</span>
                   </span>
                   <div className="flex flex-wrap items-center gap-4">
-                    <AppLink href={LOGBOOK_PAGE.path}>Features</AppLink>
                     <AppLink href="/about">About</AppLink>
+                    <AppLink href={LOGBOOK_PAGE.path}>Features</AppLink>
                     <AppLink href={COSTS_PAGE.path}>Costs</AppLink>
-                    <AppLink href="/contact">Contact</AppLink>
+                    <AppLink href="/contact">Contact Us</AppLink>
                     <AppLink href="/terms">Terms of Service</AppLink>
                   </div>
                 </div>

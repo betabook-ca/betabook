@@ -31,10 +31,11 @@ it("requires an explicit agreement for both registration paths", async () => {
   expect(google).toBeDisabled();
   const agreement = screen.getByRole("checkbox", { name: /I agree to the Terms of Service/ });
   expect(agreement).not.toBeChecked();
-  expect(screen.getByRole("link", { name: /Terms of Service/ })).toHaveAttribute(
-    "href",
-    termsHref(),
-  );
+  const termsLink = screen.getByRole("link", { name: "Terms of Service" });
+  expect(termsLink).toHaveAttribute("href", termsHref());
+  expect(termsLink).toHaveAttribute("target", "_blank");
+  await user.click(termsLink);
+  expect(agreement).not.toBeChecked();
   await user.click(agreement);
   expect(submit).toBeEnabled();
   expect(google).toBeEnabled();
