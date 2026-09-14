@@ -268,7 +268,7 @@ The Worker also runs a weekly cron (Mondays 06:00 UTC, `triggers.crons` in `wran
 pnpm exec wrangler r2 bucket create betabook-exports
 ```
 
-The deploy API token needs **Workers R2 Storage: Edit** for that binding. After deploying, an admin can generate the first snapshot from `/account` instead of waiting for Monday.
+The deploy API token needs **Workers R2 Storage: Edit** for that binding. The snapshot is only ever written by the cron: there is no on-demand trigger, because each run walks every area and climb. `next dev` never fires cron triggers; to exercise the job locally, build with `pnpm exec opennextjs-cloudflare build`, run `pnpm exec opennextjs-cloudflare preview --test-scheduled`, and request `http://localhost:8787/__scheduled?cron=0+6+*+*+1`.
 
 CI deployment uses the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Runtime credentials (`BETTER_AUTH_SECRET`, `RESEND_API_KEY`, `TURNSTILE_SECRET_KEY`, optional Google OAuth credentials, and the optional `CLOUDFLARE_USAGE_ACCOUNT_ID` and `CLOUDFLARE_USAGE_API_TOKEN` that show live usage on `/costs`) are Worker secrets configured with `pnpm exec wrangler secret put <NAME>`. The usage token needs only Account Analytics Read. Hosting, D1, R2, rate-limit bindings, the cron schedule, and the public auth URL are configured in [`wrangler.jsonc`](wrangler.jsonc); use your own Cloudflare resources when hosting a fork.
 

@@ -3,7 +3,6 @@ import { ShieldCheck, Upload } from "lucide-react";
 
 import { AccountFriendRequests } from "@/components/account-friend-requests";
 import { CatalogExportDownload } from "@/components/catalog-export-download";
-import { CatalogExportGenerateButton } from "@/components/catalog-export-generate-button";
 import { DeleteAccountButton } from "@/components/delete-account-button";
 import { DisplayNameForm } from "@/components/display-name-form";
 import { ExportSendsButton } from "@/components/export-sends-button";
@@ -91,11 +90,6 @@ export function AccountSettings({
 
       <SettingsSection id="catalog" title="Catalog">
         <CatalogExportDownload info={catalogExport} />
-        {isAdmin && (
-          <SettingsRow title="Refresh snapshot" description="Runs the weekly export now.">
-            <CatalogExportGenerateButton />
-          </SettingsRow>
-        )}
       </SettingsSection>
 
       <SettingsSection id="preferences" title="Preferences">
