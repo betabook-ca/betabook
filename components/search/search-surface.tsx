@@ -4,7 +4,7 @@ import { ArrowRight, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 
-import { EmptyState } from "@/components/ui/empty-state";
+import { AppLink } from "@/components/ui/app-link";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
 import type { AreaSelection } from "@/lib/area-selection";
 
@@ -31,6 +31,7 @@ type SearchSurfaceProps = {
   onAreaChange: (area: AreaSelection | null) => void;
   filters?: ReactNode;
   memberNotice?: ReactNode;
+  canCreate?: boolean;
   renderAction?: (item: SearchResult) => ReactNode;
   resultHref?: (item: SearchResult) => string | undefined;
 };
@@ -40,13 +41,6 @@ const SEARCH_PLACEHOLDERS: Record<SearchCategory, string> = {
   climb: "Search climbs…",
   area: "Search areas…",
   climber: "Search climbers…",
-};
-
-const SEARCH_PROMPTS: Record<SearchCategory, string> = {
-  all: "Search climbs, areas, or climbers by name.",
-  climb: "Search climbs by name.",
-  area: "Search areas by name.",
-  climber: "Search climbers by name.",
 };
 
 export function SearchSurface({
@@ -67,6 +61,7 @@ export function SearchSurface({
   onAreaChange,
   filters,
   memberNotice,
+  canCreate,
   renderAction,
   resultHref,
   quick = false,
@@ -83,7 +78,13 @@ export function SearchSurface({
     onViewAll,
   });
   const hasResults = sections.some((section) => section.items.length > 0);
-  const idle = sections.every((section) => section.status === "idle");
+  const idle = sections.every(
+    (section) => section.status === "idle" || section.status === "locked",
+  );
+  const visibleSections = sections.filter(
+    (section) =>
+      section.items.length > 0 || section.status === "loading" || section.status === "error",
+  );
   return (
     <div ref={rootRef} className={`flex min-h-0 min-w-0 flex-col gap-4 ${quick ? "flex-1" : ""}`}>
       <div className="shrink-0">
@@ -127,7 +128,6 @@ export function SearchSurface({
         {memberNotice && <div className="mb-4">{memberNotice}</div>}
         {idle ? (
           <IdleResults
-            category={category}
             suggestions={suggestions}
             onSelect={onSelect}
             onRetry={onRetry}
@@ -136,7 +136,7 @@ export function SearchSurface({
           />
         ) : (
           <SearchResults
-            sections={sections}
+            sections={visibleSections}
             onSelect={onSelect}
             onRetry={onRetry}
             onViewCategory={!quick && category === "all" ? onCategoryChange : undefined}
@@ -146,6 +146,15 @@ export function SearchSurface({
             resultHref={resultHref}
           />
         )}
+        <SearchFeedback
+          query={query}
+          sections={sections}
+          area={area}
+          onClose={onClose}
+          category={category}
+          memberNotice={memberNotice}
+          canCreate={canCreate}
+        />
       </div>
       {quick && <QuickSearchFooter query={query} onViewAll={onViewAll} />}
       {!quick && (
@@ -161,18 +170,79 @@ export function SearchSurface({
   );
 }
 
-function IdleResults({
+function SearchFeedback({
+  query,
+  sections,
+  area,
+  onClose,
   category,
+  memberNotice,
+  canCreate,
+}: Pick<
+  SearchSurfaceProps,
+  "query" | "sections" | "area" | "category" | "memberNotice" | "canCreate"
+> & { onClose?: () => void }) {
+  const noMatches =
+    sections.every((section) => section.items.length === 0) &&
+    sections.some((section) => section.status === "ready") &&
+    sections.every((section) => section.status === "ready" || section.status === "locked");
+  return (
+    <>
+      {noMatches && (
+        <p role="status" className="text-sm text-muted">
+          No matches. Try another name or clear a filter.
+        </p>
+      )}
+      {category === "climber" &&
+        sections.some((section) => section.status === "locked") &&
+        !memberNotice && <p className="text-sm text-muted">Sign in to view climbers.</p>}
+      {canCreate && (
+        <SearchCreationLinks query={query} sections={sections} area={area} onClose={onClose} />
+      )}
+    </>
+  );
+}
+
+function IdleResults({
   suggestions,
   ...props
 }: Pick<
   SearchSurfaceProps,
-  "category" | "suggestions" | "onSelect" | "onRetry" | "renderAction" | "resultHref"
+  "suggestions" | "onSelect" | "onRetry" | "renderAction" | "resultHref"
 >) {
-  return suggestions?.items.length ? (
-    <SearchResults sections={[suggestions]} {...props} />
-  ) : (
-    <EmptyState message={SEARCH_PROMPTS[category]} />
+  return suggestions?.items.length ? <SearchResults sections={[suggestions]} {...props} /> : null;
+}
+
+function SearchCreationLinks({
+  query,
+  sections,
+  area,
+  onClose,
+}: Pick<SearchSurfaceProps, "query" | "sections" | "area"> & { onClose?: () => void }) {
+  const missing = (kind: SearchKind) =>
+    sections.some(
+      (section) =>
+        section.kind === kind && section.status === "ready" && section.items.length === 0,
+    );
+  const climb = missing("climb");
+  const areaMissing = missing("area");
+  if (!query.trim() || (!climb && !areaMissing)) return null;
+  const params = new URLSearchParams({ name: query.trim() });
+  if (area) params.set("areaId", area.id);
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+      <span className="text-muted">Can’t find what you’re looking for?</span>
+      {climb && (
+        <AppLink href={`/climbs/new?${params}`} onClick={onClose}>
+          Add climb
+        </AppLink>
+      )}
+      {areaMissing && (
+        <AppLink href="/areas/new" onClick={onClose}>
+          Add area
+        </AppLink>
+      )}
+    </div>
   );
 }
 

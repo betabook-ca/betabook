@@ -80,7 +80,7 @@ it("shows public grades and aggregates from catalog endpoints, with climbers loc
   // Climb refinements belong to the Climbs tab; a mixed list has nothing to apply them to.
   expect(screen.queryByRole("button", { name: "Expand filters" })).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Climbers" }));
-  expect(screen.getByText("Sign in to view climbers.")).toBeVisible();
+  expect(screen.getByRole("link", { name: "Sign in" })).toBeVisible();
   expect(
     screen.queryByRole("link", { name: "Open Test route, Test area" }),
   ).not.toBeInTheDocument();
@@ -213,3 +213,30 @@ it("keeps the palette's sign-in link pointed at the current search", async () =>
   await user.type(screen.getByRole("combobox", { name: "Search Betabook" }), "er");
   await waitFor(() => expect(signIn).toHaveAttribute("href", href("Tester")));
 });
+
+for (const quick of [false, true]) {
+  for (const publicOnly of [false, true]) {
+    it(`only members can add from empty search (quick=${quick}, publicOnly=${publicOnly})`, async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn<typeof fetch>(async () =>
+          Response.json({
+            climbs: [],
+            areas: [],
+            climbers: [],
+            areaBreadcrumbs: {},
+            hasNextPage: false,
+          }),
+        ),
+      );
+      render(<Search quick={quick} publicOnly={publicOnly} />);
+      expect(
+        await screen.findByText("No matches. Try another name or clear a filter."),
+      ).toBeVisible();
+      for (const name of ["Add climb", "Add area"]) {
+        if (publicOnly) expect(screen.queryByRole("link", { name })).not.toBeInTheDocument();
+        else expect(screen.getByRole("link", { name })).toBeVisible();
+      }
+    });
+  }
+}

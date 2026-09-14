@@ -67,6 +67,7 @@ export function SearchController({
       .concat(suggested)
       .find((result) => result.id === id);
   const props = {
+    canCreate: !publicOnly,
     query: state.query,
     onQueryChange: (query: string) => onChange({ ...state, query }),
     category: state.category,

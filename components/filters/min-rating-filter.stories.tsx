@@ -13,7 +13,7 @@ const meta = {
     (Story) => (
       <StoryPage
         title="Rating range"
-        description="The full 1–5 range includes unrated climbs. Narrow either bound to filter ratings; crossing bounds moves the other end to match. Helper text explains whether unrated climbs are included as the range changes. Stars match the 16px result icons."
+        description="The full 1–5 range includes unrated climbs. Narrow either bound to filter ratings; crossing bounds moves the other end to match. Small helper text explains whether unrated climbs are included as the range changes. Stars match the 16px result icons."
       >
         <Story />
       </StoryPage>

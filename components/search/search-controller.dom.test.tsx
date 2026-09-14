@@ -50,7 +50,7 @@ it("clearing area scope restores global results without changing the query", asy
   );
 });
 
-it("clears quick results and prompts for a name in every category", async () => {
+it("clears quick results and keeps only the input placeholder in every category", async () => {
   const user = await quick();
   expect(await screen.findByRole("option", { name: /Cedar Lee/ })).toBeInTheDocument();
   await user.click(button("Clear search betabook"));
@@ -58,8 +58,8 @@ it("clears quick results and prompts for a name in every category", async () => 
     await user.click(button(category));
     expect(screen.queryByRole("option")).not.toBeInTheDocument();
     expect(
-      screen.getByText(`Search ${category.toLowerCase()} by name.`, { exact: true }),
-    ).toBeInTheDocument();
+      screen.queryByText(`Search ${category.toLowerCase()} by name.`, { exact: true }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Search Betabook" })).toHaveAttribute(
       "placeholder",
       `Search ${category.toLowerCase()}…`,
@@ -80,7 +80,7 @@ it("full search has a single name field and clearing it removes results until ty
   expect(screen.queryByRole("combobox", { name: "In area" })).not.toBeInTheDocument();
   await user.click(button("Clear search betabook"));
   expect(screen.queryByRole("region", { name: "Climbs results" })).not.toBeInTheDocument();
-  expect(screen.getByText("Search climbs by name.", { exact: true })).toBeInTheDocument();
+  expect(screen.queryByText("Search climbs by name.", { exact: true })).not.toBeInTheDocument();
   await user.type(screen.getByRole("searchbox", { name: "Search Betabook" }), "cedar crack");
   await waitFor(() => expect(screen.getByRole("button", { name: `Open ${crack}` })).toBeEnabled());
   expect(screen.queryByRole("button", { name: `Open ${local}` })).not.toBeInTheDocument();
@@ -256,10 +256,10 @@ it("suggests climbers you may know only while the full climber search is empty",
 
   await user.click(button("Climbs"));
   expect(screen.queryByRole("region", { name: "You may know" })).not.toBeInTheDocument();
-  expect(screen.getByText("Search climbs by name.", { exact: true })).toBeInTheDocument();
+  expect(screen.queryByText("Search climbs by name.", { exact: true })).not.toBeInTheDocument();
 });
 
-it("keeps quick climber search to its name prompt", () => {
+it("keeps empty quick climber search compact", () => {
   render(
     <IntegratedSearchDemo
       surface="quick"
@@ -269,6 +269,6 @@ it("keeps quick climber search to its name prompt", () => {
       suggestions
     />,
   );
-  expect(screen.getByText("Search climbers by name.", { exact: true })).toBeInTheDocument();
+  expect(screen.queryByText("Search climbers by name.", { exact: true })).not.toBeInTheDocument();
   expect(screen.queryByRole("region", { name: "You may know" })).not.toBeInTheDocument();
 });

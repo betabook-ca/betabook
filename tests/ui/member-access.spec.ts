@@ -14,7 +14,8 @@ test(
     await page.goto(`${appBaseURL}/?mode=climber&name=Test`);
     const callout = page.getByRole("region", { name: "Member content" });
     await expect(callout).toBeVisible();
-    await expect(page.getByText("Sign in to view climbers.")).toBeVisible();
+    await expect(callout.getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
+    await expect(page.getByText("Sign in to view climbers.")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Boulder", exact: true })).toHaveCount(0);
     expect(memberRequests).toEqual([]);
     expect(
@@ -56,16 +57,20 @@ test(
       `/sign-up?next=${encodeURIComponent(unknownLink)}`,
     );
 
-    await page.getByRole("button", { name: "Search", exact: true }).click();
-    const dialog = page.getByRole("dialog", { name: "Search Betabook" });
-    await dialog.getByRole("combobox", { name: "Search Betabook" }).fill("Ridge");
-    await expect(dialog.getByRole("region", { name: "Member content" })).toBeVisible();
-    await info.attach("public-quick-search", {
+    await page.getByRole("link", { name: "Search", exact: true }).click();
+    await expect(page).toHaveURL(`${appBaseURL}/`);
+    await expect(page.getByRole("dialog", { name: "Search Betabook" })).toHaveCount(0);
+    await page.getByRole("searchbox", { name: "Search Betabook" }).fill("Ridge");
+    await expect(page).toHaveURL(/name=Ridge/);
+    await page.reload();
+    await expect(page.getByRole("searchbox", { name: "Search Betabook" })).toHaveValue("Ridge");
+    await expect(callout).toBeVisible();
+    await expect(page.getByRole("link", { name: /^Add (climb|area)$/ })).toHaveCount(0);
+    await info.attach("public-full-search", {
       body: await page.screenshot({ fullPage: true, caret: "initial" }),
       contentType: "image/png",
     });
-    await dialog.getByRole("link", { name: "Sign up", exact: true }).click();
-    await expect(dialog).not.toBeVisible();
+    await callout.getByRole("link", { name: "Sign up", exact: true }).click();
     const continuation = searchHref({ ...EMPTY_SEARCH, query: "Ridge" });
     await expect(page).toHaveURL(`${appBaseURL}/sign-up?next=${encodeURIComponent(continuation)}`);
     await expect(page.getByRole("heading", { name: "Sign up", exact: true })).toBeVisible();

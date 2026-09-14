@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, type ReactNode } from "react";
 
 import { useSearchScope } from "@/components/search-scope";
+import { AppLink } from "@/components/ui/app-link";
 import { useDeferredComponent } from "@/hooks/use-deferred-component";
 import { isApplePlatform, useModifierLabels } from "@/hooks/use-platform";
+import { authClient } from "@/lib/auth-client";
 
 /** Module-level so its identity is stable across renders — the preload hook
  * keys its effect on the loader. */
@@ -42,6 +44,8 @@ function useOpenSearch(): (() => void) | null {
  * bound before the chunk arrives so an early ⌘K isn't swallowed. */
 export function SearchPaletteProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const { data: session, isPending } = authClient.useSession();
+  const canSearchQuickly = !!session && !isPending;
   const state = useOverlayState();
   const scope = useSearchScope();
   const { Component: PaletteDialog, load } = useDeferredComponent(loadPaletteDialog);
@@ -51,9 +55,13 @@ export function SearchPaletteProvider({ children }: { children: ReactNode }) {
   // early ⌘K beats the idle preload. Ordinarily this is already resolved and
   // the call is a no-op.
   const openPalette = useCallback(() => {
+    if (!canSearchQuickly) {
+      router.push("/");
+      return;
+    }
     load();
     open();
-  }, [load, open]);
+  }, [canSearchQuickly, router, load, open]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -84,7 +92,7 @@ export function SearchPaletteProvider({ children }: { children: ReactNode }) {
   return (
     <OpenSearchContext.Provider value={openPalette}>
       {children}
-      {PaletteDialog && (
+      {canSearchQuickly && PaletteDialog && (
         <PaletteDialog
           isOpen={state.isOpen}
           onOpenChange={setOpen}
@@ -103,6 +111,14 @@ export function SearchPaletteProvider({ children }: { children: ReactNode }) {
 export function SearchTrigger() {
   const openSearch = useOpenSearch();
   const keys = useModifierLabels();
+  const { data: session, isPending } = authClient.useSession();
+  if (!session || isPending)
+    return (
+      <AppLink href="/" aria-label="Search" className="flex items-center gap-2 text-muted">
+        <Search className="size-4" />
+        <span className="hidden text-sm sm:inline">Search</span>
+      </AppLink>
+    );
 
   return (
     <button
