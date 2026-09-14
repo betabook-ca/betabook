@@ -57,7 +57,6 @@ it("shows the server's new version in an already-open session without losing a d
   const now = vi.spyOn(Date, "now").mockReturnValue(0);
   const transport = vi
     .fn<typeof fetch>()
-    .mockResolvedValueOnce(Response.json({ userId: "u", required: false }))
     .mockResolvedValueOnce(
       Response.json({
         userId: "u",
@@ -79,7 +78,7 @@ it("shows the server's new version in an already-open session without losing a d
     </TermsGate>,
   );
   await user.type(screen.getByRole("textbox", { name: "Draft" }), "My unsaved note");
-  await waitFor(() => expect(transport).toHaveBeenCalledTimes(1));
+  expect(transport).not.toHaveBeenCalled();
   now.mockReturnValue(61_000);
   await user.click(screen.getByRole("textbox", { name: "Draft" }));
   const dialog = await screen.findByRole("dialog", { name: "Terms of Service" });
@@ -118,7 +117,6 @@ it("opens immediately after a denied data request without navigating away", asyn
 it("keeps a newer revision open when an older acceptance request finishes", async () => {
   const transport = vi
     .fn<typeof fetch>()
-    .mockResolvedValueOnce(Response.json({ userId: "u", required: false }))
     .mockResolvedValueOnce(Response.json({ userId: "u", required: true }))
     .mockResolvedValue(
       Response.json({
@@ -144,9 +142,9 @@ it("keeps a newer revision open when an older acceptance request finishes", asyn
       <p>Member content</p>
     </TermsGate>,
   );
-  await waitFor(() => expect(transport).toHaveBeenCalledTimes(1));
+  expect(transport).not.toHaveBeenCalled();
   fireEvent(window, new Event(TERMS_REQUIRED_EVENT));
-  await waitFor(() => expect(transport).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(transport).toHaveBeenCalledTimes(1));
   await user.click(screen.getByRole("checkbox", { name: /I agree/ }));
   await user.click(screen.getByRole("button", { name: "Accept and continue" }));
   fireEvent.focus(window);
@@ -198,6 +196,7 @@ it("ignores an old viewer's response after switching accounts", async () => {
       <p>Old member</p>
     </TermsGate>,
   );
+  fireEvent.focus(window);
   view.rerender(
     <TermsGate viewerId="new" initiallyRequired={false}>
       <p>New member</p>

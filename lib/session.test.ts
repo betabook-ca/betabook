@@ -2,13 +2,17 @@ import { env } from "cloudflare:test";
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getSessionMock } = vi.hoisted(() => ({
-  getSessionMock: vi.fn<() => Promise<{ user: { id: string; role: string | null } } | null>>(),
+type TestSession = { user: { id: string; role: string | null } } | null;
+
+const { getSessionMock, initAuthMock, requestHeaders } = vi.hoisted(() => ({
+  getSessionMock: vi.fn<() => Promise<TestSession>>(),
+  initAuthMock: vi.fn<() => Promise<{ api: { getSession: () => Promise<TestSession> } }>>(),
+  requestHeaders: { value: new Headers() },
 }));
 
-vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
+vi.mock("next/headers", () => ({ headers: async () => requestHeaders.value }));
 vi.mock("@/lib/auth", () => ({
-  initAuth: async () => ({ api: { getSession: getSessionMock } }),
+  initAuth: initAuthMock,
 }));
 
 import { createDb } from "@/db/client";
@@ -23,10 +27,38 @@ vi.mock("@/db/client", async (original) => {
 });
 
 beforeEach(async () => {
-  getSessionMock.mockReset();
+  getSessionMock.mockReset().mockResolvedValue(null);
+  initAuthMock.mockReset().mockResolvedValue({ api: { getSession: getSessionMock } });
+  requestHeaders.value = new Headers({ cookie: "better-auth.session_token=test-token" });
   const db = createDb(env.DB);
   await db.delete(user);
   await seedFixtureUser(db, { id: "1" });
+});
+
+it.each(["", "theme=dark", "better-auth.session_token="])(
+  "skips auth initialization when there is no session token: %s",
+  async (cookie) => {
+    requestHeaders.value = new Headers(cookie ? { cookie } : {});
+    await expect(getSession()).resolves.toBeNull();
+    expect(initAuthMock).not.toHaveBeenCalled();
+    expect(getSessionMock).not.toHaveBeenCalled();
+  },
+);
+
+it.each(["better-auth.session_token", "__Secure-better-auth.session_token"])(
+  "validates a %s cookie and returns the authenticated viewer",
+  async (name) => {
+    requestHeaders.value = new Headers({ cookie: `${name}=signed-token` });
+    const session = { user: { id: "1", role: null } };
+    getSessionMock.mockResolvedValue(session);
+    await expect(getSession()).resolves.toBe(session);
+    expect(getSessionMock).toHaveBeenCalledWith({ headers: requestHeaders.value });
+  },
+);
+
+it("does not grant access just because a token is present", async () => {
+  await expect(getMemberSession()).resolves.toBeNull();
+  expect(getSessionMock).toHaveBeenCalledWith({ headers: requestHeaders.value });
 });
 
 describe("requireSession", () => {
