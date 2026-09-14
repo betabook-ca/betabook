@@ -29,7 +29,7 @@ export default async function FeedPage({
   ]);
   return (
     <ViewerBoundary viewerId={session.user.id}>
-      <section aria-label="Feed" className="flex w-full min-w-0 flex-col gap-4">
+      <section aria-label="Feed" className="mx-auto flex w-full max-w-2xl min-w-0 flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
             <PageTitle>Feed</PageTitle>
@@ -51,7 +51,7 @@ export default async function FeedPage({
           view={view}
           hasFriends={friends.friends.length > 0}
           toolbar={
-            <nav aria-label="Feed activity" className="flex gap-2">
+            <nav key="feed-activity" aria-label="Feed activity" className="flex gap-2">
               {(["all", "sends"] as const).map((value) => (
                 <AppLink
                   key={value}

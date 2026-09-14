@@ -133,7 +133,7 @@ test("shared panel geometry and typography stay consistent", async ({ page }, te
 for (const panel of [
   {
     name: "feed card",
-    story: "components-journal-feed-day-card--activity-feed",
+    story: "components-journal-feed-activity-card--single-send",
     selector: "article",
   },
   {

@@ -31,3 +31,6 @@ export const Long: Story = {
       ),
   },
 };
+export const ReadingLabels: Story = {
+  args: { ...Long.args, expandLabel: "Read more", collapseLabel: "Read less" },
+};

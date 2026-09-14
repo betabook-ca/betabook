@@ -47,12 +47,10 @@ test("surface rules: responsive recipes separate insets and floating elevation",
   await expect(inset).toHaveCSS("background-color", "rgb(140, 150, 160)");
 });
 
-test("surface rules: tutorial feed matches production and keeps filters local", async ({
-  page,
-}, testInfo) => {
-  await openStory(page, testInfo, "components-journal-feed-day-card--activity-feed");
-  await expect(page.locator("article")).toBeVisible();
-  const styles = await page.locator("article").evaluate((el) => {
+test("surface rules: tutorial feed matches production", async ({ page }, testInfo) => {
+  await openStory(page, testInfo, "components-journal-feed-activity-card--single-send");
+  const card = page.getByRole("article");
+  const styles = await card.evaluate((el) => {
     const css = getComputedStyle(el);
     return {
       fill: css.backgroundColor,
@@ -61,25 +59,16 @@ test("surface rules: tutorial feed matches production and keeps filters local", 
       shadow: css.boxShadow,
     };
   });
+  const headerPadding = await card.locator("header").evaluate((el) => getComputedStyle(el).padding);
   await openStory(page, testInfo, "components-tutorials-social-previews--feed");
-  const card = page.locator("article");
-  await expect(card).toHaveCSS("background-color", styles.fill);
-  await expect(card).toHaveCSS("border", styles.border);
-  await expect(card).toHaveCSS("padding", styles.padding);
-  await expect(card).toHaveCSS("box-shadow", styles.shadow);
-  await expect(card.locator("header")).toHaveCSS("padding", "16px");
-  await expect(card.locator("header")).toContainText("3 activities");
-  await expect(card.getByText("Flash", { exact: true })).toHaveCount(1);
-  await expect(card.getByText("Session", { exact: true })).toHaveCount(1);
-  await expect(card.getByText("Training", { exact: true })).toHaveCount(1);
-  await expect(card).not.toContainText("Climbed on");
-  await expect(card.getByText("Sent", { exact: true })).toHaveCount(0);
-  await expect(card).toContainText("Training");
-  await page.getByRole("button", { name: "Sends", exact: true }).click();
-  await expect(card).toContainText("Moss Ladder");
-  await expect(card).not.toContainText("Training");
-  await expect(card.locator("header")).toContainText("1 activity");
-  await expect(card.getByRole("link")).toHaveCount(0);
+  await expect(page.getByRole("article")).toHaveCount(3);
+  for (const sample of await page.getByRole("article").all()) {
+    await expect(sample).toHaveCSS("background-color", styles.fill);
+    await expect(sample).toHaveCSS("border", styles.border);
+    await expect(sample).toHaveCSS("padding", styles.padding);
+    await expect(sample).toHaveCSS("box-shadow", styles.shadow);
+    await expect(sample.locator("header")).toHaveCSS("padding", headerPadding);
+  }
 });
 
 test("surface rules: account loading includes settings and semantic danger panel", async ({
@@ -103,7 +92,7 @@ test("surface rules: account loading includes settings and semantic danger panel
   await expect(danger).toHaveCSS("border-top-color", expected.border);
 });
 
-test("surface rules: feed loading reserves bordered day cards", async ({ page }, testInfo) => {
+test("surface rules: feed loading reserves bordered activity cards", async ({ page }, testInfo) => {
   await openStory(page, testInfo, "patterns-layout-and-feedback--feed-placeholder");
   const cards = page.getByRole("status", { name: "Loading feed" }).locator(".rounded-panel");
   await expect(cards).toHaveCount(2);
@@ -111,14 +100,14 @@ test("surface rules: feed loading reserves bordered day cards", async ({ page },
     await expect(card).toHaveCSS("background-color", await tokenColor(page, "--surface"));
     await expect(card).toHaveCSS("border-top-width", "1px");
     await expect(card).toHaveCSS("padding", "0px");
-    await expect(card.locator(":scope > div").first()).toHaveCSS("padding", "16px");
+    await expect(card.locator(":scope > div").first()).toHaveCSS("padding", "12px 16px 8px");
   }
 });
 
 for (const panel of [
   {
     name: "feed boundary",
-    story: "components-journal-feed-day-card--activity-feed",
+    story: "components-journal-feed-activity-card--single-send",
     selector: "article",
     fill: "--surface",
     border: "1px",

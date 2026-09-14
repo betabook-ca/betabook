@@ -119,7 +119,7 @@ it("carries each climber's own grade and feel for the same climb", async () => {
   expect(shared.activities).toMatchObject([
     { kind: "send", climbId: 1, climbGrade: 5, reportedGrade: 7, gradeFeel: "high" },
     { kind: "repeat", climbId: 1, reportedGrade: 7, gradeFeel: "high" },
-    { kind: "session", climbId: 2, reportedGrade: null, gradeFeel: "solid" },
+    { kind: "session", climbId: 2, reportedGrade: null, gradeFeel: null },
   ]);
 
   await seedFixtureJournalEntry(db, { userId: "public", climbId: 3, entryDate: "2026-09-02" });
@@ -127,6 +127,47 @@ it("carries each climber's own grade and feel for the same climb", async () => {
     { kind: "session", climbId: 3, climbGrade: 10, reportedGrade: null, gradeFeel: null },
   ]);
 });
+
+it.each(["2026-09-02", null])(
+  "keeps sessions gradeless after a later send is logged and edited (send date %s)",
+  async (dateSent) => {
+    await seedFixtureJournalEntry(db, {
+      userId: "public",
+      climbId: 3,
+      entryDate: "2026-08-30",
+      body: "Still working the moves.",
+    });
+    const sessionDay = async () =>
+      (await getFeedPage(db, "viewer")).days.find(
+        (day) => day.userId === "public" && day.date === "2026-08-30",
+      );
+    const original = await sessionDay();
+    expect(original?.activities).toMatchObject([
+      { kind: "session", climbId: 3, climbGrade: 10, reportedGrade: null, gradeFeel: null },
+    ]);
+    await seedFixtureSend(db, {
+      userId: "public",
+      climbId: 3,
+      dateSent,
+      suggestedGrade: 12,
+      gradeFeel: "high",
+    });
+    expect(await sessionDay()).toEqual(original);
+    await db
+      .update(sends)
+      .set({ suggestedGrade: 14, gradeFeel: "low" })
+      .where(and(eq(sends.userId, "public"), eq(sends.climbId, 3)));
+    expect(await sessionDay()).toEqual(original);
+    if (dateSent) {
+      const sentDay = (await getFeedPage(db, "viewer", "sends")).days.find(
+        (day) => day.userId === "public" && day.date === dateSent,
+      );
+      expect(sentDay?.activities).toMatchObject([
+        { kind: "send", climbId: 3, reportedGrade: 14, gradeFeel: "low" },
+      ]);
+    }
+  },
+);
 
 it.each(["all", "sends"] as const)(
   "returns the nearest two area ancestors in %s previews with indexed lookups",
