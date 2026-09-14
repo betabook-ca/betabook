@@ -1,4 +1,4 @@
 interface:
   display_name: "Create Betabook PR"
-  short_description: "Test, showcase, and open a Betabook PR"
-  default_prompt: "Use $create-betabook-pr to test this feature, showcase it, and open a pull request."
+  short_description: "Publish Betabook PRs with an initial CodeRabbit review"
+  default_prompt: "Use $create-betabook-pr to validate and publish this change as a new or updated pull request, triggering CodeRabbit review only when creating a new PR."
