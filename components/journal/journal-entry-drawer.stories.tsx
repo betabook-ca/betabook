@@ -13,7 +13,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Log uses the same centered popup, primary heading and compact card layout as Set goal. Save remains at the bottom right.",
+          "Log uses the same centered popup, primary heading and compact card layout as Set goal. Save remains at the bottom right. Focused fields stay visible when the mobile keyboard shrinks the scroll area.",
       },
     },
   },
