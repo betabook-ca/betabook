@@ -37,6 +37,12 @@
     "!playwright.config.ts!",
   ],
 
+  // The package.json `imports` alias for the OpenNext build output, which is
+  // not checked in (see worker/open-next-worker.d.ts). Knip cannot resolve it
+  // in a clean checkout such as CI. After a local build it resolves and knip
+  // hints that this entry is unnecessary; keep it anyway.
+  "ignoreUnresolved": ["#open-next/worker"],
+
   // `cloudflare:test` is a virtual module from @cloudflare/vitest-pool-workers,
   // and knip truncates specifiers at the colon, so the bare name is what needs
   // resolving. Unlike ignoreDependencies, this breaks loudly rather than
