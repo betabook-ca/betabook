@@ -36,7 +36,7 @@ export function GoalSection({
         {hasGoals ? (
           <Disclosure.Heading level={2} className="contents">
             <Disclosure.Trigger
-              className={`flex min-h-11 w-fit cursor-pointer items-start gap-2 ${EYEBROW_CLASS}`}
+              className={`flex min-h-6 w-fit cursor-pointer items-start gap-2 ${EYEBROW_CLASS}`}
             >
               <span>
                 {title}
@@ -51,7 +51,7 @@ export function GoalSection({
             </Disclosure.Trigger>
           </Disclosure.Heading>
         ) : (
-          <h2 className={`flex min-h-11 items-start ${EYEBROW_CLASS}`}>{title}</h2>
+          <h2 className={`flex min-h-6 items-start ${EYEBROW_CLASS}`}>{title}</h2>
         )}
       </div>
       {hasGoals ? (
