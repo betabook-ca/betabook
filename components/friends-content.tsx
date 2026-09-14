@@ -26,6 +26,10 @@ export function FriendsContent({
       <section aria-label="Friends" className="flex w-full min-w-0 flex-col gap-5">
         <PageTitle>Friends</PageTitle>
         <FriendTabs view={view} userId={userId} />
+        <p className="max-w-3xl text-sm text-muted">
+          Only you can see your friend list. Your friends may be suggested to one another. You can
+          remove a friend at any time.
+        </p>
         {requestsOnly ? (
           <FriendList key={`${userId}:requests`} initialPage={page} requestsOnly />
         ) : (
@@ -39,10 +43,6 @@ export function FriendsContent({
           </FriendsSearch>
         )}
       </section>
-      <p className="max-w-3xl text-xs text-muted">
-        Only you can see your friend list. Your friends may be suggested to one another. You can
-        remove a friend at any time.
-      </p>
     </div>
   );
 }
