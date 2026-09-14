@@ -5,6 +5,8 @@ import { beforeEach, expect, it, vi } from "vitest";
 import FriendsPage from "@/app/friends/page";
 import { FriendList } from "@/components/friend-list";
 import { FriendSuggestions } from "@/components/friend-suggestions";
+import { FriendsContent } from "@/components/friends-content";
+import { FriendsSearch } from "@/components/friends-search";
 import { createDb } from "@/db/client";
 import { seedFixtureFriendship, seedFixtureUser } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
@@ -32,6 +34,8 @@ vi.mock("next/image", () => ({ default: () => null }));
 function findElements(node: ReactNode, type: unknown): ReactElement<Record<string, unknown>>[] {
   if (Array.isArray(node)) return node.flatMap((child) => findElements(child, type));
   if (!isValidElement<{ children?: ReactNode }>(node)) return [];
+  if (node.type === FriendsContent)
+    return findElements(FriendsContent(node.props as Parameters<typeof FriendsContent>[0]), type);
   return [
     ...(node.type === type ? [node as ReactElement<Record<string, unknown>>] : []),
     ...findElements(node.props.children, type),
@@ -48,7 +52,7 @@ beforeEach(async () => {
   await seedFixtureFriendship(db, "partner", "crag-mate");
 });
 
-it("suggests the viewer's friends of friends with All friends but not Requests", async () => {
+it("suggests the viewer's friends of friends with Friends but not Requests", async () => {
   const all = await FriendsPage({ searchParams: Promise.resolve({}) });
   expect(findElements(all, FriendSuggestions).map((element) => element.props.climbers)).toEqual([
     [
@@ -72,4 +76,13 @@ it("keeps the friend list when suggestions fail to load", async () => {
     expect.objectContaining({ friends: [expect.objectContaining({ id: "partner" })] }),
   ]);
   expect(findElements(all, FriendSuggestions)).toEqual([]);
+});
+
+it("combines search and friends and accepts legacy discovery links", async () => {
+  const all = await FriendsPage({ searchParams: Promise.resolve({}) });
+  expect(findElements(all, FriendsSearch)).toHaveLength(1);
+  const discovery = await FriendsPage({ searchParams: Promise.resolve({ view: "discover" }) });
+  expect(findElements(discovery, FriendsSearch)).toHaveLength(1);
+  expect(findElements(discovery, FriendList)).toHaveLength(1);
+  expect(findElements(discovery, FriendSuggestions)).toHaveLength(1);
 });

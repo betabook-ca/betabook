@@ -95,12 +95,15 @@ it("paginates accepted friends in both directions without including pending or u
   }
   await seedFixtureFriendship(db, "outsider", "hidden");
   const first = await getFriendsPage(db, "viewer");
-  const next = await getFriendsPage(db, "viewer", false, 20);
-  expect(first.friends).toHaveLength(20);
+  const next = await getFriendsPage(db, "viewer", false, 10);
+  const last = await getFriendsPage(db, "viewer", false, 20);
+  expect(first.friends).toHaveLength(10);
   expect(first.hasMore).toBe(true);
-  expect(next.friends).toHaveLength(4);
-  expect(next.hasMore).toBe(false);
-  expect([...first.friends, ...next.friends].map((row) => row.id).sort()).toEqual(
+  expect(next.friends).toHaveLength(10);
+  expect(next.hasMore).toBe(true);
+  expect(last.friends).toHaveLength(4);
+  expect(last.hasMore).toBe(false);
+  expect([...first.friends, ...next.friends, ...last.friends].map((row) => row.id).sort()).toEqual(
     ["alice", ...Array.from({ length: 23 }, (_, i) => `partner-${i}`)].sort(),
   );
 });
@@ -189,4 +192,23 @@ it("reads friends of friends through the pair indexes and groups them before per
   const grouped = detail.indexOf("USE TEMP B-TREE FOR GROUP BY");
   expect(grouped).toBeGreaterThan(-1);
   expect(grouped).toBeLessThan(detail.lastIndexOf("SEARCH u "));
+});
+
+it("sorts accepted friends by name case-insensitively", async () => {
+  for (const [id, name] of [
+    ["z-last", "Zoe"],
+    ["b-same", "bravo"],
+    ["a-same", "Bea"],
+    ["a-first", "aaron"],
+  ]) {
+    await seedFixtureUser(db, { id, name });
+    await seedFixtureFriendship(db, "viewer", id);
+  }
+  expect((await getFriendsPage(db, "viewer")).friends.map((row) => row.id)).toEqual([
+    "a-first",
+    "alice",
+    "a-same",
+    "b-same",
+    "z-last",
+  ]);
 });
