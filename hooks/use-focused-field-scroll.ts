@@ -9,6 +9,8 @@ export function useFocusedFieldScroll() {
     const scrollBody = body;
     const viewport = window.visualViewport;
     let frame = 0;
+    let observedPreview: Element | null = null;
+    const resize = new ResizeObserver(schedule);
     function reveal() {
       const input = document.activeElement;
       if (
@@ -18,6 +20,12 @@ export function useFocusedFieldScroll() {
       )
         return;
 
+      const preview = input.closest("[data-focus-scroll-preview]");
+      if (preview !== observedPreview) {
+        if (observedPreview) resize.unobserve(observedPreview);
+        observedPreview = preview;
+        if (preview) resize.observe(preview);
+      }
       const bounds = scrollBody.getBoundingClientRect();
       const field = input.getBoundingClientRect();
       const top = Math.max(bounds.top, viewport?.offsetTop ?? 0) + 8;
@@ -26,22 +34,30 @@ export function useFocusedFieldScroll() {
           bounds.bottom,
           (viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight),
         ) - 8;
-      if (field.bottom > bottom) scrollBody.scrollTop += field.bottom - bottom;
+      // Leave room for the filters and the start of a result below mobile search.
+      // Observe the picker too: results can arrive after the keyboard has settled.
+      const previewSpace =
+        preview && input.value.trim() && window.innerWidth < 640
+          ? Math.min(160, Math.max(0, bottom - top - field.height))
+          : 0;
+      if (field.bottom + previewSpace > bottom)
+        scrollBody.scrollTop += field.bottom + previewSpace - bottom;
       else if (field.top < top) scrollBody.scrollTop -= top - field.top;
     }
     function schedule() {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(reveal);
     }
-    const resize = new ResizeObserver(schedule);
     resize.observe(body);
     body.addEventListener("focusin", schedule);
+    body.addEventListener("input", schedule);
     viewport?.addEventListener("resize", schedule);
     viewport?.addEventListener("scroll", schedule);
     return () => {
       cancelAnimationFrame(frame);
       resize.disconnect();
       body.removeEventListener("focusin", schedule);
+      body.removeEventListener("input", schedule);
       viewport?.removeEventListener("resize", schedule);
       viewport?.removeEventListener("scroll", schedule);
     };
