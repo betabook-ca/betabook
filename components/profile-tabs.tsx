@@ -50,7 +50,7 @@ export function ProfileSectionNav({
         {tabs.map((tab) => {
           const current = tab.current;
           const className = clsx(
-            "relative inline-flex items-center gap-1.5 py-2.5 text-sm no-underline transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:content-[''] focus-visible:status-focused",
+            "relative inline-flex cursor-pointer items-center gap-1.5 py-2.5 text-sm no-underline transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:content-[''] focus-visible:status-focused",
             current
               ? "font-medium text-foreground after:bg-foreground"
               : "text-muted after:bg-transparent hover:text-foreground",

@@ -1,0 +1,218 @@
+import { sql, type SQL } from "drizzle-orm";
+
+import type { Database } from "@/db/client";
+import { summarizeGoalPeriods, goalHistoryWindow } from "@/lib/goal-history";
+import {
+  goalToday,
+  goalWindow,
+  type GoalPage,
+  type GoalProgress,
+  type GoalContribution,
+} from "@/lib/goals";
+
+import { journalVisibleSql } from "./content-access";
+import { unseenGoalAchievements } from "./goal-achievements";
+
+function contributionKey() {
+  return sql`CASE g.kind WHEN 'training' THEN j.id WHEN 'days' THEN j.entry_date WHEN 'new-areas' THEN c.area_id ELSE j.climb_id END`;
+}
+// Milestone eligibility is checked when saved; later imports must not invalidate it.
+function matches(start: SQL, end: SQL) {
+  return sql`j.user_id = g.user_id AND j.entry_date BETWEEN ${start} AND ${end} AND (
+    (g.kind = 'training' AND j.kind = 'training') OR
+    (g.kind = 'days' AND j.kind = 'session') OR
+    (g.kind = 'new-areas' AND j.kind = 'session' AND NOT EXISTS (
+      SELECT 1 FROM journal_entries old_j JOIN climbs old_c ON old_c.id = old_j.climb_id
+      WHERE old_j.user_id = g.user_id AND old_c.area_id = c.area_id AND old_j.entry_date < ${start}
+    )) OR
+    (g.kind IN ('volume','grade') AND j.is_ascent = 1 AND c.type = g.discipline
+      AND (g.grade IS NULL OR c.grade = g.grade OR ((g.grade_match = 'at-least' OR g.kind = 'grade') AND c.grade >= g.grade)))
+  )`;
+}
+/** Correlated to goals g. Used in the same SQL statement as writes so concurrent creates cannot exceed the cap. */
+export function goalCountSql() {
+  return sql`(SELECT count(DISTINCT ${contributionKey()}) FROM journal_entries j LEFT JOIN climbs c ON c.id = j.climb_id WHERE ${matches(sql`g.start_date`, sql`g.end_date`)})`;
+}
+const goalStorageColumns = sql`g.id,g.user_id,g.kind,g.target,g.discipline,g.grade,g.timeframe,g.repeat,g.start_date,g.end_date,g.timezone,g.grade_match`;
+const goalColumns = sql`g.id, g.user_id AS userId, g.kind, g.target, g.discipline, g.grade, g.timeframe, g.repeat, g.start_date AS startDate, g.end_date AS endDate, g.timezone, g.grade_match AS gradeMatch, (SELECT archived.archive_token IS NOT NULL FROM goals archived WHERE archived.id=g.id) AS archived`;
+
+async function getGoalPeriods(
+  db: Database,
+  ownerId: string,
+  viewerId: string | null,
+  now = new Date(),
+  options: { goalId?: number; activeOnly?: boolean; from?: string; until?: string } = {},
+): Promise<GoalProgress[]> {
+  const goalFilter = options.goalId === undefined ? sql`1` : sql`g.id = ${options.goalId}`;
+  const zones = await db.all<{ timezone: string }>(
+    sql`SELECT DISTINCT g.timezone FROM goals g WHERE g.user_id = ${ownerId} AND ${goalFilter} AND ${journalVisibleSql(viewerId, sql`g.user_id`)} UNION SELECT h.timezone FROM goal_periods h JOIN goals g ON g.id=h.goal_id WHERE g.user_id=${ownerId} AND ${goalFilter} AND ${journalVisibleSql(viewerId, sql`g.user_id`)}`,
+  );
+  if (zones.length === 0) return [];
+  const dates = JSON.stringify(
+    Object.fromEntries(zones.map(({ timezone }) => [timezone, goalToday(timezone, now)])),
+  );
+  const today = sql`json_extract(${dates}, '$."' || g.timezone || '"')`;
+  const lower = options.activeOnly
+    ? today
+    : options.from
+      ? sql`${options.from}`
+      : sql`g.start_date`;
+  const weekSkip = sql`max(0,CAST((julianday(${lower})-julianday(g.start_date))/7 AS INTEGER))*7`;
+  const monthSkip = sql`max(0,(CAST(strftime('%Y',${lower}) AS INTEGER)-CAST(strftime('%Y',g.start_date) AS INTEGER))*12+CAST(strftime('%m',${lower}) AS INTEGER)-CAST(strftime('%m',g.start_date) AS INTEGER))`;
+  const start = sql`CASE g.repeat WHEN 'week' THEN date(g.start_date,'+'||(${weekSkip})||' days') WHEN 'month' THEN date(g.start_date,'+'||(${monthSkip})||' months') WHEN 'year' THEN date(g.start_date,'+'||CAST((${monthSkip})/12 AS INTEGER)||' years') ELSE g.start_date END`;
+  const end = sql`CASE g.repeat WHEN 'week' THEN date(${start},'+6 days') WHEN 'month' THEN date(${start},'+1 month','-1 day') WHEN 'year' THEN date(${start},'+1 year','-1 day') ELSE g.end_date END`;
+  const range = options.activeOnly
+    ? sql`(g.repeat='none' OR (g.ps<=${today} AND g.pe>=${today}))`
+    : options.from && options.until
+      ? sql`g.ps>=${options.from} AND g.ps<${options.until}`
+      : sql`1`;
+  const rows = await db.all<GoalProgress>(sql`
+    WITH RECURSIVE periods AS (
+      SELECT ${goalStorageColumns}, ${start} AS ps, ${end} AS pe FROM goals g
+      WHERE g.user_id = ${ownerId} AND ${goalFilter} AND ${journalVisibleSql(viewerId, sql`g.user_id`)}
+      UNION ALL
+      SELECT ${goalStorageColumns},
+        date(g.pe,'+1 day'), CASE g.repeat WHEN 'week' THEN date(g.pe,'+7 days') WHEN 'year' THEN date(g.pe,'+1 day','+1 year','-1 day') ELSE date(g.pe,'+1 day','+1 month','-1 day') END
+      FROM periods g WHERE g.repeat <> 'none' AND g.pe < ${today} AND ${options.until ? sql`g.pe < ${options.until}` : sql`1`}
+    ), all_periods AS (
+      SELECT g.* FROM periods g WHERE NOT EXISTS (SELECT 1 FROM goal_periods h WHERE h.goal_id=g.id AND h.start_date=g.ps AND h.repeat=g.repeat)
+      UNION ALL
+      SELECT g.id,g.user_id,h.kind,h.target,h.discipline,h.grade,h.repeat,h.repeat,h.start_date,h.end_date,h.timezone,h.grade_match,h.start_date,h.end_date
+      FROM goal_periods h JOIN goals g ON g.id=h.goal_id WHERE g.user_id=${ownerId} AND ${goalFilter} AND ${journalVisibleSql(viewerId, sql`g.user_id`)}
+    ), scoped_periods AS (SELECT g.* FROM all_periods g WHERE ${range}), contributions AS (
+      SELECT g.id, g.ps, g.repeat, ${contributionKey()} AS item, min(j.entry_date) AS entryDate
+      FROM scoped_periods g JOIN journal_entries j LEFT JOIN climbs c ON c.id = j.climb_id
+      WHERE ${matches(sql`g.ps`, sql`g.pe`)} GROUP BY g.id,g.ps,g.repeat,item
+    ), ranked AS (
+      SELECT *,row_number() OVER (PARTITION BY id,ps,repeat ORDER BY entryDate,item) AS ordinal FROM contributions
+    ), totals AS (
+      SELECT g.id,g.ps,g.repeat,count(r.item) AS progress,max(CASE WHEN r.ordinal = g.target THEN r.entryDate END) AS completedDate
+      FROM scoped_periods g LEFT JOIN ranked r ON r.id = g.id AND r.ps = g.ps AND r.repeat = g.repeat GROUP BY g.id,g.ps,g.repeat
+    )
+    SELECT ${goalColumns}, g.ps AS periodStart,g.pe AS periodEnd,COALESCE(t.progress,0) AS progress,t.completedDate
+    FROM scoped_periods g JOIN totals t ON t.id = g.id AND t.ps = g.ps AND t.repeat = g.repeat
+    WHERE ${journalVisibleSql(viewerId, sql`g.user_id`)}
+    ORDER BY g.pe DESC,g.id DESC
+  `);
+  return rows.map((goal) => ({ ...goal, archived: Boolean(goal.archived) }));
+}
+
+export async function getGoalPage(
+  db: Database,
+  ownerId: string,
+  viewerId: string | null,
+  view: "active" | "completed",
+  offset = 0,
+  now = new Date(),
+  year?: number,
+): Promise<GoalPage> {
+  const periods = await getGoalPeriods(db, ownerId, viewerId, now, {
+    activeOnly: view === "active",
+  });
+  const page = summarizeGoalPeriods(periods, view, offset, now, year);
+  if (view === "completed" && viewerId === ownerId)
+    page.celebrations = await unseenGoalAchievements(db, ownerId, periods, now);
+  return page;
+}
+
+/** The journal needs both tabs; share the initial aggregate read within this request. */
+export async function getGoalOverview(
+  db: Database,
+  ownerId: string,
+  viewerId: string | null,
+  now = new Date(),
+) {
+  const periods = await getGoalPeriods(db, ownerId, viewerId, now);
+  const active = summarizeGoalPeriods(periods, "active", 0, now);
+  const completed = summarizeGoalPeriods(periods, "completed", 0, now);
+  if (viewerId === ownerId)
+    completed.celebrations = await unseenGoalAchievements(db, ownerId, periods, now);
+  return { active, completed };
+}
+
+export async function getRecurringGoalHistory(
+  db: Database,
+  ownerId: string,
+  viewerId: string | null,
+  goalId: number,
+  offset = 0,
+  now = new Date(),
+  anchorMonth?: string,
+) {
+  const definitions = await db.all<GoalProgress & { priority: number }>(sql`
+    SELECT ${goalColumns},g.start_date AS periodStart,g.end_date AS periodEnd,0 AS progress,NULL AS completedDate,0 AS priority FROM goals g
+    WHERE g.id=${goalId} AND g.user_id=${ownerId} AND ${journalVisibleSql(viewerId, sql`g.user_id`)}
+    UNION ALL
+    SELECT g.id,g.user_id,h.kind,h.target,h.discipline,h.grade,h.repeat,h.repeat,h.start_date,h.end_date,h.timezone,h.grade_match,(g.archive_token IS NOT NULL),h.start_date,h.end_date,0,NULL,1
+    FROM goal_periods h JOIN goals g ON g.id=h.goal_id WHERE g.id=${goalId} AND g.user_id=${ownerId}
+      AND (h.start_date=(SELECT min(start_date) FROM goal_periods WHERE goal_id=${goalId}) OR h.start_date=(SELECT max(start_date) FROM goal_periods WHERE goal_id=${goalId}))
+      AND ${journalVisibleSql(viewerId, sql`g.user_id`)} ORDER BY priority,periodStart DESC`);
+  const current = definitions.find((row) => row.priority === 0);
+  const metadata = [...definitions];
+  if (current && current.repeat !== "none") {
+    const window = goalWindow(current.repeat, goalToday(current.timezone, now), current.endDate);
+    metadata.push({ ...current, periodStart: window.startDate, periodEnd: window.endDate });
+  }
+  const cadence =
+    current?.repeat !== "none"
+      ? current?.repeat
+      : definitions.find((row) => row.repeat !== "none")?.repeat;
+  const { from, until, ...page } = goalHistoryWindow(
+    metadata,
+    cadence ?? "week",
+    offset,
+    now,
+    anchorMonth,
+  );
+  const periods =
+    from < until ? await getGoalPeriods(db, ownerId, viewerId, now, { goalId, from, until }) : [];
+  return { ...page, periods };
+}
+
+export async function getGoalContributions(
+  db: Database,
+  ownerId: string,
+  viewerId: string | null,
+  goalId: number,
+  periodStart: string,
+  now = new Date(),
+  periodEnd?: string,
+): Promise<GoalContribution[]> {
+  const until = new Date(`${periodStart}T12:00:00Z`);
+  if (Number.isNaN(until.valueOf())) return [];
+  until.setUTCDate(until.getUTCDate() + 1);
+  const periods = await getGoalPeriods(db, ownerId, viewerId, now, {
+    goalId,
+    from: periodStart,
+    until: until.toISOString().slice(0, 10),
+  });
+  const candidates = periods.filter(
+    (period) =>
+      period.periodStart === periodStart &&
+      (periodEnd === undefined || period.periodEnd === periodEnd),
+  );
+  const goal = candidates.length === 1 ? candidates[0] : undefined;
+  if (
+    !goal ||
+    goal.kind === "training" ||
+    goal.kind === "days" ||
+    periodStart > goalToday(goal.timezone, now)
+  )
+    return [];
+  return db.all<GoalContribution>(sql`SELECT ${goal.kind === "new-areas" ? sql`c.area_id` : sql`c.id`} AS id,
+    ${goal.kind === "new-areas" ? sql`a.name` : sql`c.name`} AS name,
+    ${goal.kind === "new-areas" ? "area" : "climb"} AS type
+    FROM (SELECT ${goal.id} AS id,${goal.userId} AS user_id,${goal.kind} AS kind,${goal.discipline} AS discipline,${goal.grade} AS grade,${goal.gradeMatch ?? "exact"} AS grade_match,${goal.periodStart} AS start_date,${goal.periodEnd} AS end_date) g JOIN journal_entries j LEFT JOIN climbs c ON c.id = j.climb_id LEFT JOIN areas a ON a.id = c.area_id
+    WHERE g.id = ${goalId} AND g.user_id = ${ownerId} AND ${journalVisibleSql(viewerId, sql`g.user_id`)} AND ${matches(sql`g.start_date`, sql`g.end_date`)}
+    GROUP BY ${goal.kind === "new-areas" ? sql`c.area_id` : sql`c.id`} ORDER BY min(j.entry_date),name`);
+}
+
+/** Owner-only suggestions; never infer a target from another user's history. */
+export async function getNextGoalGrades(db: Database, ownerId: string, viewerId: string) {
+  const rows = await db.all<{ discipline: "boulder" | "sport" | "trad"; grade: number }>(
+    sql`SELECT c.type AS discipline,max(c.grade) AS grade FROM sends s JOIN climbs c ON c.id=s.climb_id WHERE s.user_id=${ownerId} AND ${ownerId}=${viewerId} GROUP BY c.type`,
+  );
+  return Object.fromEntries(rows.map((row) => [row.discipline, row.grade + 1])) as Partial<
+    Record<"boulder" | "sport" | "trad", number>
+  >;
+}

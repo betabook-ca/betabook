@@ -18,6 +18,8 @@ type ListRowProps = {
   meta?: ReactNode;
   subtitle?: ReactNode;
   tags?: ReactNode;
+  /** Let tag content align with the full title column. */
+  fullWidthTags?: boolean;
   trailing?: ReactNode;
   /** Rendered to the right of `trailing`, e.g. a "..." actions menu —
    * separate from `trailing` so it never gets pulled into that column's
@@ -36,6 +38,7 @@ export function ListRow({
   meta,
   subtitle,
   tags,
+  fullWidthTags = false,
   trailing,
   actions,
   comment,
@@ -101,7 +104,16 @@ export function ListRow({
                 {subtitle}
               </div>
             )}
-            {tags && <div className="relative z-10 mt-1 flex w-fit flex-wrap gap-2">{tags}</div>}
+            {tags && (
+              <div
+                className={clsx(
+                  "relative z-10 mt-1 flex flex-wrap gap-2",
+                  fullWidthTags ? "w-full" : "w-fit",
+                )}
+              >
+                {tags}
+              </div>
+            )}
           </div>
           {comment != null && (
             // Lifted above the row-link overlay like the other slots so the

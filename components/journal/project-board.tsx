@@ -1,17 +1,14 @@
 "use client";
 
 import { useOverlayState } from "@heroui/react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
-import { StatTiles } from "@/components/analytics-stat-tiles";
 import { JournalEntryDrawer } from "@/components/journal/journal-entry-drawer";
 import { ProjectCard, type ProjectWithSessions } from "@/components/journal/project-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { OptionSelect } from "@/components/ui/option-select";
 import { QueryInput } from "@/components/ui/query-input";
 import { useMounted } from "@/hooks/use-mounted";
-import { formatCount } from "@/lib/format";
-import { daysBetween, describeDaysAgo, formatDate } from "@/lib/format-date";
 
 const SORTS = [
   { value: "recent", label: "Recent activity" },
@@ -31,6 +28,9 @@ const COMPARATORS: Record<ProjectSort, (a: ProjectWithSessions, b: ProjectWithSe
     name: (a, b) => a.climbName.localeCompare(b.climbName) || a.climbId - b.climbId,
   };
 
+/** Everything a project carries that a climber might search by. The notes
+ * are the preloaded ones, which is what the field's placeholder promises —
+ * an older note reachable only by paging is not searched here. */
 function haystack(project: ProjectWithSessions): string {
   return [
     project.climbName,
@@ -46,10 +46,11 @@ type ProjectBoardProps = {
   projects: ProjectWithSessions[];
   /** More open projects exist than the page loaded. */
   hasMore: boolean;
+  goals?: ReactNode;
 };
 
 /** Filtering and sorting stay client-side: the page holds at most `OPEN_PROJECT_PAGE_SIZE` projects. */
-export function ProjectBoard({ userId, projects, hasMore }: ProjectBoardProps) {
+export function ProjectBoard({ userId, projects, hasMore, goals }: ProjectBoardProps) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ProjectSort>("recent");
   const [selected, setSelected] = useState<ProjectWithSessions | null>(null);
@@ -67,82 +68,60 @@ export function ProjectBoard({ userId, projects, hasMore }: ProjectBoardProps) {
     return [...matched].sort(COMPARATORS[sort]);
   }, [projects, query, sort]);
 
-  if (projects.length === 0) {
-    return (
-      <EmptyState message="No open projects. Log a session on a climb you haven't sent and it starts one." />
-    );
-  }
-
-  let sessionCount = 0;
-  let lastSession = projects[0].lastSession;
-  for (const project of projects) {
-    sessionCount += project.sessionCount;
-    // Civil dates compare as strings.
-    if (project.lastSession > lastSession) lastSession = project.lastSession;
-  }
-  const daysSinceLast = today == null ? null : daysBetween(lastSession, today);
-
   return (
     <div className="flex flex-col gap-4">
-      <StatTiles
-        className="grid-cols-2 sm:grid-cols-3"
-        tiles={[
-          {
-            label: "Open projects",
-            value: hasMore ? `${projects.length}+` : projects.length,
-            sub: `${formatCount(projects.filter((p) => p.noteCount > 0).length, "project")} with notes`,
-          },
-          { label: "Sessions", value: sessionCount, sub: "Logged on open projects" },
-          {
-            label: "Last out",
-            value: daysSinceLast == null ? "—" : describeDaysAgo(daysSinceLast),
-            sub: formatDate(lastSession),
-          },
-        ]}
-      />
-
-      <div className="flex flex-wrap items-center gap-3">
-        {/* The field's max-w-full resolves against this wrapper, so the wrapper
-         * is what must be allowed to narrow on a phone. */}
-        <div className="min-w-0 flex-1 basis-64">
-          <QueryInput
-            value={query}
-            onChange={setQuery}
-            label="Filter projects"
-            placeholder="Climb, area, tag or recent note"
-          />
-        </div>
-        <OptionSelect
-          ariaLabel="Sort projects"
-          value={sort}
-          onChange={setSort}
-          options={SORTS}
-          className="w-44 max-w-full"
-        />
-      </div>
-
-      {visible.length === 0 ? (
-        <EmptyState message="No open projects match this search." />
+      {goals}
+      {projects.length === 0 ? (
+        <EmptyState message="No open projects. Log a session on a climb you haven't sent and it starts one." />
       ) : (
-        <ul className="flex flex-col gap-3">
-          {visible.map((project) => (
-            <li key={project.climbId}>
-              <ProjectCard
-                project={project}
-                userId={userId}
-                today={today}
-                onLogSession={() => {
-                  setSelected(project);
-                  drawer.open();
-                }}
+        <>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* The search field's own width is `w-96 max-w-full`, and that
+             * percentage resolves against this wrapper — so the wrapper, not a
+             * shrink-to-content flex group, is what has to be allowed to
+             * narrow, or the field keeps its 24rem on a phone. */}
+            <div className="min-w-0 flex-1 basis-64">
+              <QueryInput
+                value={query}
+                onChange={setQuery}
+                label="Filter projects"
+                placeholder="Climb, area, tag or recent note"
               />
-            </li>
-          ))}
-        </ul>
+            </div>
+            <OptionSelect
+              ariaLabel="Sort projects"
+              value={sort}
+              onChange={setSort}
+              options={SORTS}
+              className="w-44 max-w-full"
+            />
+          </div>
+
+          {visible.length === 0 ? (
+            <EmptyState message="No open projects match this search." />
+          ) : (
+            <ul aria-label="Open projects" className="flex flex-col gap-3">
+              {visible.map((project) => (
+                <li key={project.climbId}>
+                  <ProjectCard
+                    project={project}
+                    userId={userId}
+                    today={today}
+                    onLogSession={() => {
+                      setSelected(project);
+                      drawer.open();
+                    }}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {hasMore && (
+            <p className="text-sm text-muted">Showing the most recently active projects.</p>
+          )}
+        </>
       )}
-
-      {hasMore && <p className="text-sm text-muted">Showing the most recently active projects.</p>}
-
       {selected && (
         <JournalEntryDrawer
           climb={{

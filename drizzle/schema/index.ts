@@ -12,3 +12,7 @@ export * from "./journal-companions";
 export * from "./analytics";
 export * from "./feature-announcements";
 export * from "./profile-share-links";
+
+export * from "./goals";
+export * from "./goal-periods";
+export * from "./goal-achievements";

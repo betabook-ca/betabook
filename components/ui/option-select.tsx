@@ -2,6 +2,8 @@
 
 import { ListBox, Select } from "@heroui/react";
 
+import { FIELD_HEIGHT_CLASS } from "./field";
+
 export type SelectOption<V extends string> = { value: V; label: string };
 
 /** A dropdown over a fixed list of value/label pairs — HeroUI's Select in
@@ -35,8 +37,8 @@ export function OptionSelect<V extends string>({
           if (key != null) onChange(String(key) as V);
         }}
       >
-        <Select.Trigger>
-          <Select.Value />
+        <Select.Trigger className={FIELD_HEIGHT_CLASS}>
+          <Select.Value className="min-w-0 truncate" />
           <Select.Indicator />
         </Select.Trigger>
         <Select.Popover>

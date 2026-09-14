@@ -302,6 +302,13 @@
       "when": 1789300000000,
       "tag": "0042_boulder_first_try_is_flash",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "6",
+      "when": 1789320000000,
+      "tag": "0043_journal_goals",
+      "breakpoints": true
     }
   ]
 }

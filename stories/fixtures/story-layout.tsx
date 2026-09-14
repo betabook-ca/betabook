@@ -7,13 +7,13 @@ export function StoryPage({
   children,
   description,
 }: {
-  title: string;
+  title?: string;
   children: ReactNode;
   description?: string;
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-6">
-      <PageTitle>{title}</PageTitle>
+      {title && <PageTitle>{title}</PageTitle>}
       {description && <p className="text-sm text-muted">{description}</p>}
       {children}
     </div>

@@ -3,7 +3,7 @@
 import { Calendar, Checkbox, DateField, DatePicker, Description, Label } from "@heroui/react";
 import { parseDate, type CalendarDate } from "@internationalized/date";
 
-import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
+import { FIELD_HEIGHT_CLASS, FIELD_WIDTH_CLASS } from "@/components/ui/field";
 
 function toCalendarDate(value: string | undefined): CalendarDate | null {
   if (!value) return null;
@@ -54,7 +54,7 @@ export function DatePickerField({
       onChange={(date) => onChange(date?.toString() ?? "")}
     >
       <Label>{label}</Label>
-      <DateField.Group fullWidth>
+      <DateField.Group fullWidth className={FIELD_HEIGHT_CLASS}>
         <DateField.InputContainer>
           <DateField.Input>
             {(segment: DateField["SegmentProps"]["segment"]) => (
