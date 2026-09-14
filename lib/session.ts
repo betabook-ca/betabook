@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { cache } from "react";
 
 import { getDb } from "@/db/client";
 import { getTermsAcceptance } from "@/db/queries/terms";
@@ -6,19 +7,25 @@ import { NotAdminError, NotSignedInError, TermsAcceptanceRequiredError } from "@
 import { initAuth } from "@/lib/auth";
 import { hasAcceptedCurrentTerms } from "@/lib/terms";
 
-export async function getSession() {
+// React cache shares work across a server render (including metadata and the
+// template), never across requests or viewers. Outside a render it is a no-op.
+export const getSession = cache(async () => {
   const auth = await initAuth();
   return auth.api.getSession({ headers: await headers() });
-}
+});
+
+export const getSessionTermsAcceptance = cache(async (userId: string) =>
+  getTermsAcceptance(await getDb(), userId),
+);
 
 /** Page loaders treat an unaccepted account as anonymous. The template prompts
  * for agreement and refreshes the current page after acceptance. */
-export async function getMemberSession() {
+export const getMemberSession = cache(async () => {
   const session = await getSession();
   if (!session) return null;
-  const acceptance = await getTermsAcceptance(await getDb(), session.user.id);
+  const acceptance = await getSessionTermsAcceptance(session.user.id);
   return hasAcceptedCurrentTerms(acceptance) ? session : null;
-}
+});
 
 export async function requireSession() {
   const session = await getSession();
