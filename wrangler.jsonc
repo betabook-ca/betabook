@@ -1,7 +1,10 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "betabook",
-  "main": ".open-next/worker.js",
+  // Checked-in entrypoint that re-exports the generated OpenNext `fetch` and
+  // adds the cron `scheduled()` handler; `.open-next/worker.js` is rebuilt
+  // from a template on every build, so it cannot hold app code.
+  "main": "./worker.ts",
   "compatibility_date": "2026-08-17",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
@@ -17,6 +20,17 @@
   "vars": {
     "BETTER_AUTH_URL": "https://betabook.ca",
   },
+  // Weekly public catalog snapshot (areas + climbs) → R2, served from /account.
+  // Mondays 06:00 UTC; see lib/catalog-export.ts.
+  "triggers": {
+    "crons": ["0 6 * * 1"],
+  },
+  "r2_buckets": [
+    {
+      "binding": "CATALOG_EXPORTS",
+      "bucket_name": "betabook-exports",
+    },
+  ],
   "d1_databases": [
     {
       "binding": "DB",

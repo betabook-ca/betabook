@@ -14,6 +14,12 @@ const meta = {
     sendCommentVisibility: "public",
     shareUrl: `https://betabook.ca/users/${USER_ID}?share=4f9c2a7e1b8d6035c9e4a1f7b2d80e36`,
     turnstileSiteKey: null,
+    catalogExport: {
+      generatedAt: "2026-09-14T06:00:00.000Z",
+      areaCount: 412,
+      climbCount: 5083,
+      size: 1_204_000,
+    },
     isAdmin: false,
   },
   parameters: { nextjs: { navigation: { pathname: "/account" } } },
