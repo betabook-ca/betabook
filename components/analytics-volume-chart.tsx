@@ -6,9 +6,13 @@ import { ChartInspection, ChartHitRegions } from "@/components/chart-inspection"
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { DISCIPLINE_HUE } from "@/components/ui/discipline-chip";
 import { Eyebrow } from "@/components/ui/eyebrow";
-import type { AnalyticsSendRow } from "@/db/queries";
 import { useChartWidth } from "@/hooks/use-chart-width";
-import { sendChartRows, type ChartClimbRow, type ChartDetailGroup } from "@/lib/chart-details";
+import {
+  sendChartRows,
+  type ChartClimbRow,
+  type ChartSend,
+  type ChartDetailGroup,
+} from "@/lib/chart-details";
 import { formatCount } from "@/lib/format";
 import type { ClimbType } from "@/lib/grades";
 import { formatMonthLabel, type MonthlyVolume } from "@/lib/user-analytics";
@@ -24,7 +28,7 @@ export function AnalyticsVolumeChart({
   type: ClimbType;
   journalVisible?: boolean;
   /** Already scoped to `type`. */
-  sends?: AnalyticsSendRow[];
+  sends?: ChartSend[];
   activities?: ChartClimbRow[];
 }) {
   const [metric, setMetric] = useState<"sends" | "days">("sends");

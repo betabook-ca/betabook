@@ -106,6 +106,24 @@ export type AnalyticsJournalSession = {
   count?: number;
 };
 
+/** Lightweight page metadata; kept separate from chart/stat calculations. */
+export function getAnalyticsHistorySummary(
+  sends: readonly AnalyticsSendRow[],
+  scope: DisciplineScope,
+  sessions?: readonly AnalyticsJournalSession[],
+) {
+  const years = new Set<number>();
+  let undatedCount = 0;
+  for (const send of sends) {
+    if (send.dateSent != null) years.add(Number(send.dateSent.slice(0, 4)));
+    else if (scope === "all" || send.climbType === scope) undatedCount += 1;
+  }
+  // Include session-only years and other disciplines so switching disciplines
+  // never silently removes a year from the picker.
+  for (const session of sessions ?? []) years.add(Number(session.entryDate.slice(0, 4)));
+  return { years: [...years].sort((a, b) => b - a), undatedCount };
+}
+
 const MS_PER_DAY = 86_400_000;
 const WEEKDAYS = [
   "Sunday",

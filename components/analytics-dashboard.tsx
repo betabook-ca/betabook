@@ -17,7 +17,12 @@ import { buildAnalyticsHighlights } from "@/lib/analytics-highlights";
 import type { AnalyticsLayout } from "@/lib/analytics-layout";
 import { ANALYTICS_CARD_IDS, type AnalyticsCardId } from "@/lib/analytics-layout";
 import { formatAnalyticsYears } from "@/lib/analytics-years";
-import { sendChartRows, sessionChartRows, type ChartSession } from "@/lib/chart-details";
+import {
+  selectChartSends,
+  sendChartRows,
+  sessionChartRows,
+  type ChartSession,
+} from "@/lib/chart-details";
 import { formatCount } from "@/lib/format";
 import type { ClimbType } from "@/lib/grades";
 import {
@@ -62,9 +67,7 @@ export function AnalyticsDashboard({
   initialLayout?: AnalyticsLayout;
   onSave?: (layout: AnalyticsLayout) => Promise<ActionResult>;
 }) {
-  const chartSends = sends.filter(
-    (send) => send.climbType === scope && inSelectedYears(send.dateSent, selectedYears),
-  );
+  const chartSends = selectChartSends(sends, scope, selectedYears);
   const activities = journalVisible
     ? sessionChartRows(
         sessions.filter(

@@ -4,9 +4,8 @@ import { ReferenceLine, Bar, CartesianGrid, ComposedChart, Line, XAxis, YAxis } 
 import { ChartInspection, ChartHitRegions } from "@/components/chart-inspection";
 import { DISCIPLINE_HUE } from "@/components/ui/discipline-chip";
 import { Eyebrow } from "@/components/ui/eyebrow";
-import type { AnalyticsSendRow } from "@/db/queries";
 import { useChartWidth } from "@/hooks/use-chart-width";
-import { sendChartRows, type ChartDetailGroup } from "@/lib/chart-details";
+import { sendChartRows, type ChartSend, type ChartDetailGroup } from "@/lib/chart-details";
 import { formatCount } from "@/lib/format";
 import type { ClimbType } from "@/lib/grades";
 import type { FirstTryGradeRow } from "@/lib/user-analytics";
@@ -20,7 +19,7 @@ export function AnalyticsFlashChart({
   rows: FirstTryGradeRow[];
   type: ClimbType;
   /** Already scoped to `type`. */
-  sends?: AnalyticsSendRow[];
+  sends?: ChartSend[];
 }) {
   const { ref, width } = useChartWidth();
   const labels = rows.map(

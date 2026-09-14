@@ -33,7 +33,12 @@ import { normalizeHashtagFilters } from "@/lib/filters/hashtag-filter";
 import type { ClimbType } from "@/lib/grades";
 import { getMemberSession as getSession } from "@/lib/session";
 import { toArray, type UrlParamsRecord } from "@/lib/url-params";
-import { buildUserAnalytics, DISCIPLINE_ORDER, parseDisciplineScope } from "@/lib/user-analytics";
+import {
+  buildUserAnalytics,
+  DISCIPLINE_ORDER,
+  getAnalyticsHistorySummary,
+  parseDisciplineScope,
+} from "@/lib/user-analytics";
 import { canViewUser } from "@/lib/user-visibility";
 
 type UserAnalyticsPageProps = {
@@ -132,14 +137,9 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
   const highlightSessions = journalVisible
     ? await getAnalyticsHighlightSessions(db, id, viewerId, selectedTags)
     : [];
-  const lifetime = buildUserAnalytics(rows, scope, journalSessions);
-  // Offer the same years across disciplines so switching never silently resets the period.
-  const all = buildUserAnalytics(rows, "all", journalSessions);
-  const years = [...new Set([...all.years, ...all.calendarYears])].sort((a, b) => b - a);
+  const { years, undatedCount } = getAnalyticsHistorySummary(rows, scope, journalSessions);
   const selectedYears = parseAnalyticsYears(search.years ?? search.period, years);
-  const analytics = selectedYears.length
-    ? buildUserAnalytics(rows, scope, journalSessions, selectedYears)
-    : lifetime;
+  const analytics = buildUserAnalytics(rows, scope, journalSessions, selectedYears);
   const { cf } = await getCloudflareContext({ async: true });
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: cf?.timezone ?? "UTC" }).format(
     new Date(),
@@ -164,7 +164,7 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
           sends={rows}
           sessions={highlightSessions}
           highlights={buildAnalyticsHighlights(highlightSessions, scope, selectedYears)}
-          undatedCount={lifetime.datelessCount}
+          undatedCount={undatedCount}
           scope={scope}
           journalVisible={journalVisible}
           selectedYears={selectedYears}

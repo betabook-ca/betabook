@@ -1,5 +1,29 @@
 import type { AnalyticsSendRow } from "@/db/queries";
 import type { HighlightSession } from "@/lib/analytics-highlights";
+import type { ClimbType } from "@/lib/grades";
+import { inSelectedYears } from "@/lib/user-analytics";
+
+/** Fields used by interactive charts; area names and ascent styles stay server-side. */
+export type ChartSend = Pick<
+  AnalyticsSendRow,
+  "climbId" | "climbName" | "climbType" | "suggestedGrade" | "dateSent"
+>;
+
+export function selectChartSends(
+  sends: readonly AnalyticsSendRow[],
+  scope: ClimbType,
+  selectedYears: readonly number[],
+): ChartSend[] {
+  return sends
+    .filter((send) => send.climbType === scope && inSelectedYears(send.dateSent, selectedYears))
+    .map(({ climbId, climbName, climbType, suggestedGrade, dateSent }) => ({
+      climbId,
+      climbName,
+      climbType,
+      suggestedGrade,
+      dateSent,
+    }));
+}
 
 export const CHART_PREVIEW_LIMIT = 3;
 
@@ -23,7 +47,7 @@ export type ChartSession = Pick<
   "id" | "entryDate" | "climbId" | "climbName" | "climbType" | "sent" | "isAscent"
 >;
 
-export function sendChartRows(sends: readonly AnalyticsSendRow[]): ChartClimbRow[] {
+export function sendChartRows(sends: readonly ChartSend[]): ChartClimbRow[] {
   return sends.map((send) => ({
     id: `send-${send.climbId}`,
     climbId: send.climbId,

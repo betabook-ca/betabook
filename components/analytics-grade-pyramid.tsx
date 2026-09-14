@@ -1,6 +1,6 @@
 import { ChartClimbDetails } from "@/components/chart-climb-details";
 import { DISCIPLINE_HUE } from "@/components/ui/discipline-chip";
-import type { AnalyticsSendRow } from "@/db/queries";
+import type { ChartSend } from "@/lib/chart-details";
 import { formatCount } from "@/lib/format";
 import type { ClimbType } from "@/lib/grades";
 import type { PyramidRow } from "@/lib/user-analytics";
@@ -13,7 +13,7 @@ export function AnalyticsGradePyramid({
   type: ClimbType;
   rows: PyramidRow[];
   /** Already scoped to `type`. */
-  sends: AnalyticsSendRow[];
+  sends: ChartSend[];
 }) {
   if (rows.length === 0) return null;
   const max = Math.max(...rows.map((row) => row.count), 1);

@@ -4,12 +4,12 @@ import { Button, Modal, Tooltip } from "@heroui/react";
 import { X } from "lucide-react";
 import { useState, type CSSProperties, type ReactNode } from "react";
 
-import type { AnalyticsSendRow } from "@/db/queries";
 import {
   CHART_PREVIEW_LIMIT,
   uniqueChartClimbs,
   sendChartRows,
   type ChartDetailGroup,
+  type ChartSend,
 } from "@/lib/chart-details";
 import { formatCount } from "@/lib/format";
 
@@ -86,7 +86,7 @@ export function ChartClimbDetails({
 }: {
   label: string;
   hideSingleCount?: boolean;
-  sends: AnalyticsSendRow[];
+  sends: ChartSend[];
   children: ReactNode;
   className?: string;
   style?: CSSProperties;

@@ -6,6 +6,7 @@ import {
   buildPyramid,
   buildUserAnalytics,
   formatDaySpan,
+  getAnalyticsHistorySummary,
   parseDisciplineScope,
 } from "./user-analytics";
 
@@ -25,6 +26,29 @@ function send(over: Partial<AnalyticsSendRow>): AnalyticsSendRow {
     ...over,
   };
 }
+
+describe("getAnalyticsHistorySummary", () => {
+  it("keeps years from other disciplines and session-only years while scoping undated sends", () => {
+    const rows = [
+      send({ dateSent: "2024-03-10" }),
+      send({ dateSent: "2022-06-01", climbType: "sport" }),
+      send({ dateSent: null }),
+      send({ dateSent: null, climbType: "sport" }),
+    ];
+    expect(
+      getAnalyticsHistorySummary(rows, "boulder", [
+        { entryDate: "2025-01-01", climbType: "sport", count: 3 },
+        { entryDate: "2023-01-01", climbType: null },
+        { entryDate: "2024-03-10", climbType: "boulder" },
+      ]),
+    ).toEqual({ years: [2025, 2024, 2023, 2022], undatedCount: 1 });
+    expect(getAnalyticsHistorySummary(rows, "all")).toEqual({
+      years: [2024, 2022],
+      undatedCount: 2,
+    });
+    expect(getAnalyticsHistorySummary([], "trad", [])).toEqual({ years: [], undatedCount: 0 });
+  });
+});
 
 describe("parseDisciplineScope", () => {
   it("accepts the three disciplines and falls back to all", () => {
