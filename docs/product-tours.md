@@ -14,7 +14,7 @@ The Journal tour covers Log, journal filters, Sends sorting, project history, An
 Owner lessons use the app's task-first workspace frame, which leads with prominent subpage tabs instead of a repeated workspace title. The accessible heading names the selected subpage and workspace. The journal demo shares the entry layout with the app and retains the established entry-type filter pills. Notes run below the entry header; journal text search remains directly visible. These presentation changes use shared components without adding or renaming lessons or targets. Logbook groups Journal
 and Sends; Progress groups Goals, Open Projects, and Analytics; the existing project and analytics lessons retain their step IDs. The large climber
 profile header is reserved for viewing another climber. Community groups Feed
-and Friends, and You contains identity, sharing, and account settings. Demo links
+and Friends. Account settings contains identity, sharing, and account controls. Demo links
 stay within the tutorial. Lesson order and stable step IDs remain in the catalog.
 Discovery uses a separate Search surface, with the same All / Climbs / Areas / Climbers categories and result rows as the app. Search is
 not a profile tab. The lesson starts in Climbers; category changes, search
@@ -23,7 +23,7 @@ opens the feed lesson while preserving full/update mode and the exit destination
 
 Tutorial content uses the app's sort dropdown and direction control, project card and session timeline presentation, journal grades/status, and settings panel framing. The project example loads additional local notes with the standard Load more control. Display-only project components contain no fetches or real links for sample data.
 
-The contained preview uses the same primary navigation links, sidebar interaction frame, mobile tab links, and search control as the app. It adapts to the preview's available width, with Logbook, Progress, Community, and You visible around each lesson. All preview destinations point to tutorial routes; primary area changes open the corresponding full-tour lesson while preserving the exit context. Community exposes Feed/Friends subpage links and the example request count stays consistent across those lessons. The example search control opens the search lesson and does not advertise the real app's global keyboard shortcut. Goals lesson content remains outside this tour. Existing lesson IDs, targets, and versioning are preserved.
+The contained preview uses the same primary navigation links, sidebar interaction frame, mobile tab links, and search control as the app. It adapts to the preview's available width, with Logbook, Progress, and Community in the primary navigation. Account settings stays at the bottom of the desktop sidebar and is available from the example mobile hamburger menu, outside the three bottom tabs. While typing hides those tabs, the example menu also includes the primary destinations. All preview destinations point to tutorial routes; primary area changes open the corresponding full-tour lesson while preserving the exit context. Community exposes Feed/Friends subpage links and the example request count stays consistent across those lessons. The example search control opens the search lesson and does not advertise the real app's global keyboard shortcut. At desktop preview widths, header controls are 40px high and both the sidebar navigation and lesson content begin 8px below the 56px header; narrower previews retain 44px controls and 16px content padding. Goals lesson content remains outside this tour. Existing lesson IDs, targets, and versioning are preserved.
 Next, Back, and the lesson chooser connect Search with the workspace lessons.
 The Friends lesson uses the shared section navigation and request badge for its
 Friends / Requests controls. Demo selections use local callbacks, with no URLs
@@ -33,10 +33,10 @@ the signed-in account's real count remains separate.
 The sample request buttons use `FriendshipActionButton`, including the same
 confirmation dialogs as real cancellation, decline, and removal. Their callbacks
 only change demo state. In the app, Community in the desktop sidebar and phone tab bar shows incoming
-request counts. The mobile menu repeats Logbook, Progress, Community, and You only while the
+request counts. The mobile menu repeats Logbook, Progress, and Community only while the
 phone tabs are unavailable, including during tutorials; its Community link then
 shows the same count. The mobile hamburger opens secondary navigation and has no duplicate request badge.
-You contains account settings and sign-out. The desktop sidebar also keeps a
+Account settings is always available in the mobile menu and contains sign-out. The desktop sidebar also keeps a
 sign-out shortcut.
 
 ## Navigation and overlays

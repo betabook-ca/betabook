@@ -35,7 +35,7 @@ it("provides primary destinations in the mobile fallback menu", () => {
     "/users/owner/journal",
     "/users/owner/goals",
     "/feed",
-    "/account",
+    "/climbs/new",
   ]);
   expect(link(html, "/account")).toContain("Alex Morgan");
   expect(link(html, "/climbs/new")).toContain("Add climb or area");
@@ -53,7 +53,7 @@ it("names pending friend requests on Community", () => {
   expect(link(html, "/feed")).toMatch(/>2</);
 });
 
-it("places You with desktop utilities immediately before Sign out", () => {
+it("places Account settings with desktop utilities immediately before Sign out", () => {
   state.pathname = "/account";
   const html = renderToStaticMarkup(<AppMenuLinks account={owner} surface="sidebar" />);
 

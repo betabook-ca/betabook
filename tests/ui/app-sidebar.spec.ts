@@ -81,10 +81,29 @@ test("sidebar preview overlays content and pinning reserves space", async ({ pag
   expect(iconBefore.width).toBe(20);
   expect(iconBefore.height).toBe(20);
   expect(iconBefore.x + iconBefore.width / 2).toBe(32);
+  // Storybook nests the example header inside its main, so it is not a banner landmark.
+  const header = page.locator("header");
+  for (const control of [
+    header.getByRole("link", { name: "Betabook home" }),
+    header.getByRole("link", { name: "Search", exact: true }),
+    header.getByRole("button", { name: "Log", exact: true }),
+  ]) {
+    const box = await control.boundingBox();
+    if (!box) throw new Error("Missing header control");
+    expect(box.height).toBe(40);
+    expect(box.y).toBe(8);
+  }
+  const firstRow = await sidebar.getByRole("link", { name: "Logbook", exact: true }).boundingBox();
+  const workspaceTabs = await page
+    .getByRole("navigation", { name: "Community sections" })
+    .boundingBox();
+  if (!firstRow || !workspaceTabs) throw new Error("Missing navigation rows");
+  expect(firstRow.y).toBe(64);
+  expect(workspaceTabs.y).toBe(firstRow.y);
   const utilities = [
     sidebar.getByRole("link", { name: "Tutorials" }),
     sidebar.getByRole("link", { name: "Moderation" }),
-    sidebar.getByRole("link", { name: "You", exact: true }),
+    sidebar.getByRole("link", { name: "Account settings", exact: true }),
     sidebar.getByRole("button", { name: "Sign out" }),
   ];
   let previousY: number | undefined;

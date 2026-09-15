@@ -10,7 +10,7 @@ export function PrimaryNavigationIcon({
   area: PrimaryArea;
   account: { name: string; image?: string | null };
 }) {
-  if (area === "you") return <UserAvatar name={account.name} image={account.image} size="xs" />;
+  if (area === "account") return <UserAvatar name={account.name} image={account.image} size="xs" />;
   const Icon = area === "logbook" ? BookOpen : area === "progress" ? TrendingUp : Users;
   return (
     <span className="flex size-6 shrink-0 items-center justify-center">

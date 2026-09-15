@@ -42,7 +42,7 @@ function lesson(section = "Journal") {
   );
 }
 
-it("shows all four primary areas with safe lesson links on desktop and mobile", () => {
+it("keeps account settings in desktop utilities and only three primary mobile links", () => {
   render(lesson());
   for (const name of ["Example desktop navigation", "Example mobile navigation"]) {
     const links = within(screen.getByRole("navigation", { name })).getAllByRole("link");
@@ -54,7 +54,7 @@ it("shows all four primary areas with safe lesson links on desktop and mobile", 
       "/tutorial/journal/journal",
       "/tutorial/journal/projects",
       "/tutorial/journal/feed",
-      "/tutorial/journal/account",
+      ...(name === "Example desktop navigation" ? ["/tutorial/journal/account"] : []),
     ]);
     for (const link of links) {
       const url = new URL(link.getAttribute("href") ?? "", "https://betabook.test");
@@ -72,6 +72,30 @@ it("opens example search instead of real account data", async () => {
   await user.click(screen.getByRole("button", { name: "Search" }));
   expect(router.push).toHaveBeenCalledWith(
     productTourPath("journal", { stepId: "find-climbers", mode: "full", from: "account" }),
+  );
+});
+
+it("opens account settings through the example menu with the replay destination preserved", async () => {
+  const user = userEvent.setup();
+  render(lesson("Account settings"));
+  const mobile = screen.getByRole("navigation", { name: "Example mobile navigation" });
+  expect(within(mobile).queryByRole("link", { name: "Account settings" })).not.toBeInTheDocument();
+  expect(
+    within(mobile)
+      .getAllByRole("link")
+      .filter((link) => link.hasAttribute("aria-current")),
+  ).toHaveLength(0);
+
+  await user.click(screen.getByRole("button", { name: "Open example menu" }));
+  const menu = screen.getByRole("dialog", { name: "Example menu" });
+  expect(within(menu).getAllByRole("link")).toHaveLength(1);
+  expect(within(menu).getByRole("link", { name: "Account settings" })).toHaveAttribute(
+    "href",
+    productTourPath("journal", { stepId: "account", mode: "full", from: "account" }),
+  );
+  expect(within(menu).getByRole("link", { name: "Account settings" })).toHaveAttribute(
+    "aria-current",
+    "location",
   );
 });
 

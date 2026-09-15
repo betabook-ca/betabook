@@ -23,7 +23,7 @@ import {
 } from "@/components/nav-link";
 import { PrimaryNavigationLink } from "@/components/primary-navigation-link";
 import { SignOutButton } from "@/components/sign-out-button";
-import { primaryAreaForPath, primaryDestinations } from "@/lib/app-navigation";
+import { ACCOUNT_DESTINATION, primaryAreaForPath, primaryDestinations } from "@/lib/app-navigation";
 import { productTourPath } from "@/lib/product-tour-navigation";
 
 export type MenuAccount = { id: string; name: string; image?: string | null; isAdmin: boolean };
@@ -76,20 +76,18 @@ export function AppMenuLinks({
       {account ? (
         <MenuGroup>
           {showPrimary &&
-            primaryDestinations(account.id)
-              .filter((item) => !sidebar || item.id !== "you")
-              .map((item) => (
-                <PrimaryNavigationLink
-                  key={item.id}
-                  item={item}
-                  account={account}
-                  current={current === item.id}
-                  appearance={styles.appearance}
-                  collapsed={collapsed}
-                  requestCount={requestCount}
-                  onNavigate={onNavigate}
-                />
-              ))}
+            primaryDestinations(account.id).map((item) => (
+              <PrimaryNavigationLink
+                key={item.id}
+                item={item}
+                account={account}
+                current={current === item.id}
+                appearance={styles.appearance}
+                collapsed={collapsed}
+                requestCount={requestCount}
+                onNavigate={onNavigate}
+              />
+            ))}
           <NavLink {...row} href="/climbs/new" relatedPaths={["/areas/new"]}>
             <MenuIcon icon={sidebar ? MapPinPlus : Plus} />
             <span className={labelClass}>Add climb or area</span>
@@ -129,12 +127,12 @@ export function AppMenuLinks({
               <span className={labelClass}>Add to Home Screen</span>
             </Button>
           )}
-          {account && sidebar && showPrimary && (
+          {account && (
             <PrimaryNavigationLink
-              item={{ id: "you", label: "You", href: "/account" }}
+              item={ACCOUNT_DESTINATION}
               account={account}
-              current={current === "you"}
-              appearance="sidebar"
+              current={current === "account"}
+              appearance={styles.appearance}
               collapsed={collapsed}
               onNavigate={onNavigate}
             />

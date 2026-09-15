@@ -33,6 +33,8 @@ it("shows a signed-in climber the tab bar with their request count", () => {
   render(<AppTabBar />);
 
   expect(tabBar()).toBeInTheDocument();
+  expect(screen.getAllByRole("link")).toHaveLength(3);
+  expect(screen.queryByRole("link", { name: /^(You|Account settings)$/ })).not.toBeInTheDocument();
   expect(
     screen.getByRole("link", { name: "Community, 1 pending friend request" }),
   ).toBeInTheDocument();

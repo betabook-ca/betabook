@@ -21,4 +21,4 @@ type Story = StoryObj<typeof meta>;
 export const Logbook: Story = {};
 export const Progress: Story = { args: { area: "progress" } };
 export const Community: Story = { args: { area: "community" } };
-export const You: Story = { args: { area: "you" } };
+export const You: Story = { name: "Account settings", args: { area: "account" } };

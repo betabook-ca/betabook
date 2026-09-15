@@ -38,15 +38,10 @@ export function AccountSettings({
 }) {
   return (
     <div className="flex w-full max-w-4xl flex-col gap-6">
-      <h1 className="sr-only">You</h1>
+      <h1 className="sr-only">Account settings</h1>
       <header className="flex min-h-12 items-center gap-3">
         <UserAvatar name={user.name} image={user.image} size="md" />
-        <div className="flex min-w-0 flex-col">
-          <p className="truncate text-lg font-semibold">{user.name}</p>
-          <AppLink href={`/users/${user.id}/journal`} className="text-sm">
-            View your logbook
-          </AppLink>
-        </div>
+        <p className="min-w-0 truncate text-lg font-semibold">{user.name}</p>
       </header>
 
       <SettingsSection id="profile" title="Profile">

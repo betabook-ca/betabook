@@ -35,7 +35,7 @@ export function PrimaryNavigationLink({
       appearance={appearance}
       isCurrent={current}
       onClick={onNavigate}
-      aria-description={item.id === "you" ? account.name : undefined}
+      aria-description={item.id === "account" ? account.name : undefined}
       aria-label={
         community && requestCount > 0 ? withRequestCount(item.label, requestCount) : undefined
       }

@@ -65,7 +65,7 @@ export function AppTabLinks({
   requestCount?: number;
 }) {
   return (
-    <ul className="mx-auto grid h-14 max-w-md grid-cols-4">
+    <ul className="mx-auto grid h-14 max-w-md grid-cols-3">
       {destinations.map((item) => (
         <li key={item.id}>
           <PrimaryNavigationLink

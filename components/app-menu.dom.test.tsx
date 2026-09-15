@@ -68,8 +68,12 @@ it("opens secondary tools without duplicating the visible mobile tabs or their b
   expect(
     within(menu)
       .getAllByRole("link")
-      .map((link) => link.textContent),
-  ).toEqual(["Add climb or area", "Tutorials"]);
+      .map((link) => link.getAttribute("href")),
+  ).toEqual(["/climbs/new", "/tutorial/journal/journal", "/account"]);
+  expect(within(menu).getByRole("link", { name: "Account settings" })).toHaveAttribute(
+    "href",
+    "/account",
+  );
   expect(within(menu).queryByRole("button", { name: "Sign out" })).not.toBeInTheDocument();
   expect(within(menu).getByRole("link", { name: "Tutorials" })).toBeInTheDocument();
 });
@@ -80,7 +84,7 @@ it("closes the menu when a destination is chosen", async () => {
 
   await user.click(screen.getByRole("button", { name: /^Open menu/ }));
   const menu = await screen.findByRole("dialog", { name: "Menu" });
-  await user.click(within(menu).getByRole("link", { name: "Tutorials" }));
+  await user.click(within(menu).getByRole("link", { name: "Account settings" }));
 
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 });

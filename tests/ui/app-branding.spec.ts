@@ -29,7 +29,8 @@ test(
       await expect(home).toBeVisible();
       await expect(home.locator('[data-brand="wordmark"]')).toBeVisible();
       await expect(home.locator('[data-brand="icon"]')).toBeVisible();
-      await expect(home).toHaveCSS("height", "48px");
+      await expect(home).toHaveCSS("height", "40px");
+      await expect(search).toHaveCSS("height", "40px");
       const searchBox = await search.boundingBox();
       const headerBox = await page.getByRole("banner").locator(":scope > div").boundingBox();
       if (!searchBox || !headerBox) throw new Error("Missing desktop header bounds");

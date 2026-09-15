@@ -15,7 +15,7 @@ export function WorkspaceShell({
   userId,
   children,
 }: {
-  area: Exclude<PrimaryArea, "you">;
+  area: Exclude<PrimaryArea, "account">;
   userId: string;
   children: ReactNode;
 }) {

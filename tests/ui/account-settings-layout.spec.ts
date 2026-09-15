@@ -1,10 +1,10 @@
 import { expect, openStory, test } from "./story";
 
-test("You starts with the account identity without a separate title row", async ({
+test("Account settings starts with the account identity without a separate title row", async ({
   page,
 }, info) => {
   await openStory(page, info, "components-account-settings-page--member");
-  const heading = page.getByRole("heading", { level: 1, name: "You", exact: true });
+  const heading = page.getByRole("heading", { level: 1, name: "Account settings", exact: true });
   const headingBox = await heading.boundingBox();
   const container = await heading.locator("..").boundingBox();
   const identity = await page

@@ -2,12 +2,11 @@ import { expect, it } from "vitest";
 
 import { primaryAreaForPath, primaryDestinations, workspaceTabs } from "./app-navigation";
 
-it("offers the same four destinations in order", () => {
+it("offers the three frequently used destinations in order", () => {
   expect(primaryDestinations("alex").map(({ label, href }) => [label, href])).toEqual([
     ["Logbook", "/users/alex/journal"],
     ["Progress", "/users/alex/goals"],
     ["Community", "/feed"],
-    ["You", "/account"],
   ]);
 });
 
@@ -21,8 +20,8 @@ it.each([
   ["/feed", "community"],
   ["/friends", "community"],
   ["/users/alex-other/analytics", "community"],
-  ["/account", "you"],
-  ["/account/import", "you"],
+  ["/account", "account"],
+  ["/account/import", "account"],
   ["/climbs/42", undefined],
   ["/account-other", undefined],
 ])("maps %s to %s without confusing another climber with the owner", (path, expected) => {

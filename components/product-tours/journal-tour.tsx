@@ -25,7 +25,7 @@ function DemoLog() {
   return (
     <span
       data-tour-target="journal-log"
-      className={`${buttonVariants()} h-11 w-fit cursor-default gap-2 px-3 md:px-4`}
+      className={`${buttonVariants()} h-11 w-fit cursor-default gap-2 px-3 @lg/navigation:h-10 @lg/navigation:px-4`}
     >
       <CirclePlus aria-hidden className="size-5" />
       Log
@@ -46,7 +46,7 @@ export function JournalTourPage({ section, mode, href, steps }: ProductTourPageP
         ? "community"
         : section === "Search"
           ? undefined
-          : "you";
+          : "account";
   function content() {
     if (section === "Search") return <DemoClimberSearch feedHref={href("feed")} />;
     if (section === "Friends" || section === "Feed")
@@ -70,10 +70,10 @@ export function JournalTourPage({ section, mode, href, steps }: ProductTourPageP
           )}
         </WorkspaceSection>
       );
-    if (current === "you")
+    if (current === "account")
       return (
         <>
-          <h1 className="sr-only">You</h1>
+          <h1 className="sr-only">Account settings</h1>
           <DemoAccount />
         </>
       );

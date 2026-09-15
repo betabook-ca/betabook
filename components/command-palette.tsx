@@ -130,7 +130,7 @@ export function SearchTriggerControl({
 }) {
   const keys = useModifierLabels();
   const contained = responsiveTo === "container";
-  const className = `flex h-11 w-full min-w-0 cursor-pointer items-center gap-2 rounded-xl bg-surface px-3 text-muted shadow-sm transition-colors hover:text-foreground focus-visible:status-focused ${contained ? "@lg/navigation:rounded-lg @lg/navigation:border @lg/navigation:border-border @lg/navigation:bg-transparent @lg/navigation:shadow-none" : "md:rounded-lg md:border md:border-border md:bg-transparent md:shadow-none"}`;
+  const className = `flex h-11 w-full min-w-0 cursor-pointer items-center gap-2 rounded-xl bg-surface px-3 text-muted shadow-sm transition-colors hover:text-foreground focus-visible:status-focused ${contained ? "@lg/navigation:h-10 @lg/navigation:rounded-lg @lg/navigation:border @lg/navigation:border-border @lg/navigation:bg-transparent @lg/navigation:shadow-none" : "md:h-10 md:rounded-lg md:border md:border-border md:bg-transparent md:shadow-none"}`;
   const contents = (
     <>
       <Brand

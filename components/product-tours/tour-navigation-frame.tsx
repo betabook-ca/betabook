@@ -48,12 +48,16 @@ export function TourNavigationFrame({
     return () => resize.disconnect();
   }, [menuOpen]);
   // All destinations remain available even when entered through the shorter update tour.
-  const destinations: PrimaryDestination[] = [
+  const primary: PrimaryDestination[] = [
     { id: "logbook", label: AREA_LABELS.logbook, href: href("journal", "full") },
     { id: "progress", label: AREA_LABELS.progress, href: href("projects", "full") },
     { id: "community", label: AREA_LABELS.community, href: href("feed", "full") },
-    { id: "you", label: AREA_LABELS.you, href: href("account", "full") },
   ];
+  const account: PrimaryDestination = {
+    id: "account",
+    label: AREA_LABELS.account,
+    href: href("account", "full"),
+  };
   function link(item: PrimaryDestination, collapsed: boolean, appearance: "sidebar" | "menu") {
     return (
       <PrimaryNavigationLink
@@ -80,11 +84,9 @@ export function TourNavigationFrame({
         renderNavigation={(collapsed) => (
           <div className="flex min-h-full flex-col gap-4">
             <div className="flex flex-col gap-1">
-              {destinations
-                .filter((item) => item.id !== "you")
-                .map((item) => link(item, collapsed, "sidebar"))}
+              {primary.map((item) => link(item, collapsed, "sidebar"))}
             </div>
-            <div className="mt-auto">{link(destinations[3], collapsed, "sidebar")}</div>
+            <div className="mt-auto">{link(account, collapsed, "sidebar")}</div>
           </div>
         )}
       >
@@ -104,7 +106,7 @@ export function TourNavigationFrame({
           <AppLink
             href={href("journal", "full")}
             aria-label="Example Logbook home"
-            className="hidden h-12 items-center gap-2 @lg/navigation:flex"
+            className="hidden h-10 items-center gap-2 @lg/navigation:flex"
           >
             <Brand decorative compact className="size-6" />
             <Brand decorative variant="wordmark" className="hidden w-24 @2xl/navigation:block" />
@@ -116,7 +118,10 @@ export function TourNavigationFrame({
           />
           <div className="min-w-11">{logAction}</div>
         </header>
-        <div data-tour-scroll className="min-h-0 flex-1 overflow-auto overscroll-contain p-4">
+        <div
+          data-tour-scroll
+          className="min-h-0 flex-1 overflow-auto overscroll-contain p-4 @lg/navigation:pt-2"
+        >
           {children}
         </div>
         {!typing && (
@@ -127,7 +132,7 @@ export function TourNavigationFrame({
             <AppTabLinks
               account={ACCOUNT}
               current={current}
-              destinations={destinations}
+              destinations={primary}
               requestCount={requestCount}
             />
           </nav>
@@ -143,7 +148,8 @@ export function TourNavigationFrame({
       >
         <Dialog aria-label="Example menu" className="outline-none">
           <nav aria-label="Tour destinations" className="flex flex-col gap-1">
-            {destinations.map((item) => link(item, false, "menu"))}
+            {typing && primary.map((item) => link(item, false, "menu"))}
+            {link(account, false, "menu")}
           </nav>
         </Dialog>
       </Popover>

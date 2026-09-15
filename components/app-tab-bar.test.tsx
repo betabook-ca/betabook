@@ -24,11 +24,11 @@ beforeEach(() => {
   state.pathname = "/";
 });
 
-it("tabs Logbook, Progress, Community and You in that order", () => {
+it("tabs Logbook, Progress and Community in that order", () => {
   const html = renderToStaticMarkup(<AppTabs account={account} />);
 
-  expect(hrefs(html)).toEqual(["/users/owner/journal", "/users/owner/goals", "/feed", "/account"]);
-  expect(html).toMatch(/>Logbook<.*>Progress<.*>Community<.*>You</s);
+  expect(hrefs(html)).toEqual(["/users/owner/journal", "/users/owner/goals", "/feed"]);
+  expect(html).toMatch(/>Logbook<.*>Progress<.*>Community</s);
 });
 
 it.each([
@@ -36,7 +36,6 @@ it.each([
   ["/users/owner/analytics", "/users/owner/goals", "location"],
   ["/feed", "/feed", "page"],
   ["/friends", "/feed", "location"],
-  ["/account", "/account", "page"],
   ["/users/other", "/feed", "location"],
 ])("marks the tab for %s current", (pathname, href, current) => {
   state.pathname = pathname;
@@ -46,11 +45,14 @@ it.each([
   expect(html.match(/aria-current=/g)).toHaveLength(1);
 });
 
-it.each(["/areas/1", "/climbs/new"])("marks no tab on %s", (pathname) => {
-  state.pathname = pathname;
+it.each(["/areas/1", "/climbs/new", "/account", "/account/import"])(
+  "marks no tab on %s",
+  (pathname) => {
+    state.pathname = pathname;
 
-  expect(renderToStaticMarkup(<AppTabs account={account} />)).not.toContain("aria-current");
-});
+    expect(renderToStaticMarkup(<AppTabs account={account} />)).not.toContain("aria-current");
+  },
+);
 
 it("names pending friend requests on the Community tab", () => {
   const html = renderToStaticMarkup(<AppTabs account={account} requestCount={3} />);

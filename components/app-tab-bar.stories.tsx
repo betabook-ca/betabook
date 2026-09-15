@@ -39,4 +39,7 @@ export const FriendRequests: Story = {
 export const Progress: Story = {
   parameters: { nextjs: { navigation: { pathname: "/users/sample/projects" } } },
 };
-export const You: Story = { parameters: { nextjs: { navigation: { pathname: "/account" } } } };
+export const You: Story = {
+  name: "Account settings (no active tab)",
+  parameters: { nextjs: { navigation: { pathname: "/account" } } },
+};

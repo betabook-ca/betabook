@@ -57,7 +57,7 @@ export function BrandHomeLink() {
     <AppLink
       href="/"
       aria-label="Betabook home"
-      className="flex h-12 shrink-0 items-center gap-2 no-underline"
+      className="flex h-10 shrink-0 items-center gap-2 no-underline"
     >
       <Brand decorative compact className="size-6" />
       <Brand variant="wordmark" decorative className="w-24" />

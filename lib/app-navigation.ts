@@ -1,4 +1,4 @@
-export type PrimaryArea = "logbook" | "progress" | "community" | "you";
+export type PrimaryArea = "logbook" | "progress" | "community" | "account";
 
 export type PrimaryDestination = { id: PrimaryArea; label: string; href: string };
 
@@ -6,7 +6,13 @@ export const AREA_LABELS: Record<PrimaryArea, string> = {
   logbook: "Logbook",
   progress: "Progress",
   community: "Community",
-  you: "You",
+  account: "Account settings",
+};
+
+export const ACCOUNT_DESTINATION: PrimaryDestination = {
+  id: "account",
+  label: AREA_LABELS.account,
+  href: "/account",
 };
 
 export function primaryDestinations(userId: string): readonly PrimaryDestination[] {
@@ -14,7 +20,6 @@ export function primaryDestinations(userId: string): readonly PrimaryDestination
     { id: "logbook", label: AREA_LABELS.logbook, href: `/users/${userId}/journal` },
     { id: "progress", label: AREA_LABELS.progress, href: `/users/${userId}/goals` },
     { id: "community", label: AREA_LABELS.community, href: "/feed" },
-    { id: "you", label: AREA_LABELS.you, href: "/account" },
   ] as const;
 }
 
@@ -24,7 +29,7 @@ function within(pathname: string, root: string) {
 
 export function primaryAreaForPath(pathname: string, userId: string): PrimaryArea | undefined {
   const owner = `/users/${userId}`;
-  if (within(pathname, "/account")) return "you";
+  if (within(pathname, "/account")) return "account";
   if (
     within(pathname, `${owner}/goals`) ||
     within(pathname, `${owner}/projects`) ||
@@ -38,7 +43,7 @@ export function primaryAreaForPath(pathname: string, userId: string): PrimaryAre
 }
 
 export function workspaceTabs(
-  area: Exclude<PrimaryArea, "you">,
+  area: Exclude<PrimaryArea, "account">,
   userId: string,
 ): { label: string; href: string; roots: string[] }[] {
   const owner = `/users/${userId}`;

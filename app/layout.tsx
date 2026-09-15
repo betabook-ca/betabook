@@ -150,7 +150,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                   </div>
                 </header>
                 {/* tabIndex lets the skip link move focus here, not just scroll. */}
-                <main id="main" tabIndex={-1} className="flex-1 p-4 outline-none">
+                <main id="main" tabIndex={-1} className="flex-1 p-4 outline-none md:pt-2">
                   <div className={`mx-auto w-full ${PAGE_MAX_WIDTH_CLASS}`}>{children}</div>
                 </main>
                 <footer className="border-t border-separator px-4 py-4 text-sm text-muted">

@@ -24,7 +24,9 @@ test("goal rows begin directly below the toolbar without extra first-row padding
   expect(Math.abs(row.y - toolbar.y - toolbar.height)).toBeLessThanOrEqual(1);
 });
 
-test("goal heading stays above the surface and Set goal is inside it", async ({ page }, info) => {
+test("goal controls start at the surface without a redundant heading row", async ({
+  page,
+}, info) => {
   await openStory(page, info, "components-goals-goal-panel--active");
   const heading = page.getByRole("heading", { name: "My goals", exact: true });
   const action = page.getByRole("button", { name: "Set goal" });
@@ -34,15 +36,20 @@ test("goal heading stays above the surface and Set goal is inside it", async ({ 
   const headerBox = await heading.boundingBox();
   const actionBox = await action.boundingBox();
   const contentBox = await content.boundingBox();
+  const section = page.getByRole("region", { name: "My goals", exact: true });
+  const sectionBox = await section.boundingBox();
+  const surfaceBox = await section.locator(":scope > div").boundingBox();
   if (!headerBox || !actionBox || !contentBox || !tabsBox) throw new Error("Expected goal section");
+  if (!sectionBox || !surfaceBox) throw new Error("Expected goal surface");
+  expect(headerBox.width).toBeLessThanOrEqual(1);
+  expect(headerBox.height).toBeLessThanOrEqual(1);
+  expect(surfaceBox.y).toBe(sectionBox.y);
   expect(
     Math.abs(actionBox.y + actionBox.height / 2 - tabsBox.y - tabsBox.height / 2),
   ).toBeLessThanOrEqual(1);
   expect(actionBox.x).toBeGreaterThanOrEqual(tabsBox.x + tabsBox.width);
-  expect(actionBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height);
-  expect(contentBox.y).toBeGreaterThan(headerBox.y + headerBox.height);
+  expect(actionBox.y).toBeGreaterThanOrEqual(surfaceBox.y);
   expect(contentBox.y).toBeGreaterThan(actionBox.y + actionBox.height);
-  await expect(heading).toHaveCSS("font-size", "12px");
 });
 
 test("a cross-year goal range wraps below its title on mobile without overlap", async ({

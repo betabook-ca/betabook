@@ -141,7 +141,7 @@ export function SidebarFrame({
         <nav
           id={navId}
           aria-label={navigationLabel}
-          className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-3 pb-3"
+          className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-3 pt-2 pb-3"
         >
           {renderNavigation(!expanded)}
         </nav>

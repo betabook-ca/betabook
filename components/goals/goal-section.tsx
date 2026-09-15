@@ -3,7 +3,6 @@
 import type { ReactNode } from "react";
 
 import { cardClass } from "@/components/ui/card";
-import { EYEBROW_CLASS } from "@/components/ui/eyebrow";
 
 export function GoalSection({
   hasGoals,
@@ -32,7 +31,7 @@ export function GoalSection({
   }
   return (
     <section aria-label="My goals" className="flex flex-col gap-0">
-      <h2 className={`flex min-h-6 items-start ${EYEBROW_CLASS}`}>My goals</h2>
+      <h2 className="sr-only">My goals</h2>
       <div className={`flex flex-col gap-0 p-2 ${cardClass("none")}`}>
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">{navigation}</div>
