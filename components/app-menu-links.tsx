@@ -6,6 +6,7 @@ import {
   type LucideIcon,
   GraduationCap,
   LogIn,
+  MapPinPlus,
   UserPlus,
   Plus,
   ShieldCheck,
@@ -115,7 +116,7 @@ export function AppMenuLinks({
                 </NavLink>
               ))}
           <NavLink {...row} href="/climbs/new" relatedPaths={["/areas/new"]}>
-            <MenuIcon icon={Plus} />
+            <MenuIcon icon={sidebar ? MapPinPlus : Plus} />
             <span className={labelClass}>Add climb or area</span>
           </NavLink>
         </MenuGroup>
