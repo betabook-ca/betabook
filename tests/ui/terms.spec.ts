@@ -30,7 +30,7 @@ test(
 test(
   "terms open from signup without losing entries and remain reachable from the footer",
   { tag: "@app" },
-  async ({ page, context, request }, testInfo) => {
+  async ({ page, context, request }) => {
     // This checks navigation, not Next dev's cold compilation time. Compile the
     // destination before the click, as the app-server readiness does for home.
     await expect(await request.get("/contact")).toBeOK();
@@ -53,28 +53,12 @@ test(
       page.getByRole("checkbox", { name: /I agree to the Terms of Service/ }),
     ).not.toBeChecked();
     await terms.close();
-    await testInfo.attach("signup-agreement", {
-      body: await page.screenshot({
-        fullPage: true,
-        animations: "disabled",
-        path: testInfo.outputPath("signup-agreement.png"),
-      }),
-      contentType: "image/png",
-    });
     await page.getByRole("contentinfo").getByRole("link", { name: "Terms of Service" }).click();
     await expect(page).toHaveURL("/terms");
     await page.evaluate(() => document.fonts.ready);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       await page.evaluate(() => document.documentElement.clientWidth),
     );
-    await testInfo.attach("terms-page", {
-      body: await page.screenshot({
-        fullPage: true,
-        animations: "disabled",
-        path: testInfo.outputPath("terms-page.png"),
-      }),
-      contentType: "image/png",
-    });
     await page.getByRole("article").getByRole("link", { name: "contact form" }).last().click();
     await expect(page).toHaveURL("/contact");
     await expect(page.getByRole("heading", { name: "Contact us", exact: true })).toBeVisible();

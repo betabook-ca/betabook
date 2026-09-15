@@ -15,10 +15,6 @@ test("quick search selects by keyboard and returns focus on Escape", async ({ pa
     "aria-disabled",
     "false",
   );
-  await testInfo.attach("quick-search", {
-    body: await page.screenshot({ animations: "disabled" }),
-    contentType: "image/png",
-  });
   const input = page.getByRole("combobox", { name: "Search Betabook" });
   await input.fill("cedar crack");
   await expect(
@@ -54,10 +50,6 @@ test("quick search fits a short narrow viewport and passes accessibility", async
     .analyze();
   expect(results.violations).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
-  await testInfo.attach("search-320-short", {
-    body: await page.screenshot(),
-    contentType: "image/png",
-  });
 });
 
 test("full filters and climb picker fit 320 pixels", async ({ page }, testInfo) => {
@@ -72,10 +64,6 @@ test("full filters and climb picker fit 320 pixels", async ({ page }, testInfo) 
   ).toBeEnabled();
   await expect(page.getByRole("button", { name: /Open Cedar Crack/ })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
-  await testInfo.attach("search-filters-320", {
-    body: await page.screenshot({ fullPage: true, animations: "disabled" }),
-    contentType: "image/png",
-  });
   await openSearchStory(page, testInfo, "merge-picker");
   await expect(
     page.getByRole("button", {
@@ -84,10 +72,6 @@ test("full filters and climb picker fit 320 pixels", async ({ page }, testInfo) 
     }),
   ).toBeDisabled();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
-  await testInfo.attach("search-picker-320", {
-    body: await page.screenshot({ fullPage: true, animations: "disabled" }),
-    contentType: "image/png",
-  });
 });
 
 test("journey preserves the field focus ring inside the dialog", async ({ page }, testInfo) => {
@@ -116,10 +100,6 @@ test("journey preserves the field focus ring inside the dialog", async ({ page }
     return clipped;
   });
   expect(clipping).toEqual([]);
-  await testInfo.attach("journey-keyboard-focus", {
-    body: await page.screenshot({ animations: "disabled" }),
-    contentType: "image/png",
-  });
 });
 
 test("opening search with the pointer keeps autofocus without the blue box", async ({
@@ -135,8 +115,4 @@ test("opening search with the pointer keeps autofocus without the blue box", asy
     "box-shadow",
     /0px 0px 0px 2px/,
   );
-  await testInfo.attach("journey-pointer-focus", {
-    body: await page.screenshot({ animations: "disabled" }),
-    contentType: "image/png",
-  });
 });

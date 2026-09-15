@@ -21,7 +21,6 @@ test(
     if (!noteBox) throw new Error("Missing note");
     expect(noteBox.x + noteBox.width).toBeCloseTo(first.x + first.width - 17, 0);
     expect(await note.evaluate((el) => el.scrollHeight - el.clientHeight)).toBeLessThanOrEqual(1);
-    await page.screenshot({ path: testInfo.outputPath("feed-column.png"), fullPage: true });
   },
 );
 
@@ -52,10 +51,6 @@ test(
       if (!authorBox || !statusBox) throw new Error("Missing mobile outcome");
       expect(statusBox.y).toBeGreaterThanOrEqual(authorBox.y + authorBox.height);
     }
-    await page.screenshot({
-      path: testInfo.outputPath("feed-grade-hierarchy.png"),
-      fullPage: true,
-    });
   },
 );
 
@@ -75,6 +70,5 @@ test(
       .boundingBox();
     if (!lastBox || !collapseBox) throw new Error("Missing expanded layout");
     expect(collapseBox.y).toBeGreaterThanOrEqual(lastBox.y + lastBox.height);
-    await page.screenshot({ path: testInfo.outputPath("feed-expanded.png"), fullPage: true });
   },
 );

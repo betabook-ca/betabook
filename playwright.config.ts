@@ -42,8 +42,7 @@ export default defineConfig({
   // Each project is a viewport/theme pair, and an untagged test runs in all
   // four. A tag states what the test's assertions cannot depend on:
   //   @layout   geometry that no theme can change. Runs the desktop-light /
-  //             mobile-dark diagonal, so both viewports are still measured and
-  //             review still gets one light and one dark screenshot.
+  //             mobile-dark diagonal, so both viewports are still measured.
   //   @behavior independent of viewport and theme both. Runs once, desktop-light.
   // Needing fewer runs is not a reason to tag: the assertions must be unable to
   // vary. Anything that reads a color, or that renders differently per theme,

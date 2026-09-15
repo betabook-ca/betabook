@@ -177,8 +177,10 @@ fork PRs need no Chromatic secret.
 Every workflow in the organization shares 20 concurrent jobs, so CI packs each
 runner instead of adding runners. One job runs the `@app` tests with two
 Playwright workers: on a four-core runner, more starve `next dev` until the app
-checks miss their navigation timeouts. Three gallery shards run everything else
-with four workers and no app server. **UI reference** requires all four jobs to
+checks miss their navigation timeouts. Three gallery shards run the explicit rendering/native-browser tests and a small
+representative accessibility set with four workers per shard and no app server.
+There is no exhaustive story sweep. Only gallery shards build Storybook.
+**UI reference** requires all four jobs to
 pass; each uploads its own `ui-reference-report-<suite>-<shard>` artifact. To run
 one project locally, add `--project=mobile-dark` to a focused run.
 
@@ -192,8 +194,10 @@ or D1. Playwright retains rendering, responsive layout, focus/scrolling, touch,
 calendar editing, accessibility and real navigation coverage. Browser checks
 tagged `@behavior` run only in `desktop-light` because their behavior is independent
 of viewport and theme. Checks tagged `@layout` measure geometry no theme can
-change, so they run the `desktop-light`/`mobile-dark` diagonal and still produce a
-screenshot in each theme. Visual and theme-sensitive checks keep all four projects.
+change, so they run the `desktop-light`/`mobile-dark` diagonal. Theme-sensitive
+checks keep all four projects. Passing screenshots are not collected; failure
+screenshots remain available for debugging. The QR test captures pixels only to
+assert that the rendered code can be decoded.
 
 Story tests use shared theme/render readiness and a
 fixed date; live story API requests and unhandled browser errors fail the suite.

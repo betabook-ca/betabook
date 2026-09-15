@@ -52,6 +52,5 @@ for (const width of [320, 375, 768, 1024, 1440]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       width,
     );
-    await page.screenshot({ path: info.outputPath(`sort-toolbar-${width}.png`), fullPage: true });
   });
 }

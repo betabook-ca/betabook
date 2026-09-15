@@ -14,7 +14,6 @@ test("chart preview stays hoverable and the climb table fits the viewport", asyn
     await expect(tooltip).toBeVisible();
     await tooltip.hover();
     await expect(tooltip).toBeVisible();
-    await page.screenshot({ path: info.outputPath("preview.png") });
     await page.keyboard.press("Escape");
     await expect(tooltip).toBeHidden();
   }
@@ -31,12 +30,10 @@ test("chart preview stays hoverable and the climb table fits the viewport", asyn
   await expect(dialog.getByRole("list", { name: "Climbs" })).toHaveCSS("font-size", "12px");
   await expect(dialog.getByRole("link")).toHaveCount(0);
   expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width);
-  // The gallery already audits this story. Scope the scan to the popup so
-  // this test pays only for the state the gallery cannot reach.
+  // Scope this audit to the popup reached by the interaction.
   expect((await new AxeBuilder({ page }).include('[role="dialog"]').analyze()).violations).toEqual(
     [],
   );
-  await page.screenshot({ path: info.outputPath("climb-table.png") });
 });
 
 test("progression point targets and large climb tables are usable on small screens", async ({
@@ -48,7 +45,6 @@ test("progression point targets and large climb tables are usable on small scree
   if (info.project.use.hasTouch) await point.tap();
   else await point.click();
   await expect(page.getByRole("dialog")).toBeVisible();
-  await page.screenshot({ path: info.outputPath("progression-details.png") });
   await openStory(page, info, "components-charts-climb-details--large-group");
   await page.getByRole("button", { name: /60 sends/ }).click();
   const lastRow = page.getByRole("list", { name: "Climbs" }).getByRole("listitem").last();
@@ -131,7 +127,6 @@ test("complete three-climb previews work on touch without offering a table", asy
   await bar.click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(tooltip).toBeVisible();
-  await page.screenshot({ path: info.outputPath("complete-preview.png") });
 });
 
 test(
@@ -146,7 +141,6 @@ test(
       page.getByRole("dialog").getByRole("heading", { name: "Climb", exact: true }),
     ).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Close", exact: true })).toHaveText("");
-    await page.screenshot({ path: info.outputPath("compact-popup.png") });
     await openStory(page, info, "components-charts-climb-details--large-group");
     await page.getByRole("button", { name: /60 sends/ }).click();
     const large = await page.getByRole("dialog").boundingBox();
@@ -156,6 +150,5 @@ test(
     const viewport = page.viewportSize();
     if (!viewport) throw new Error("Missing viewport");
     expect(large.x + large.width).toBeLessThanOrEqual(viewport.width);
-    await page.screenshot({ path: info.outputPath("long-popup.png") });
   },
 );

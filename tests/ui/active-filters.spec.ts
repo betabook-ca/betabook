@@ -19,6 +19,5 @@ test(
     await expect(summary.getByRole("button", { name: /^Remove Rating:/ })).toHaveCount(1);
     expect((await min.locator("svg").first().boundingBox())?.width).toBe(16);
     await expect(tag.locator("svg.lucide-star")).toHaveCount(2);
-    await page.screenshot({ path: info.outputPath("rating-range.png"), fullPage: true });
   },
 );

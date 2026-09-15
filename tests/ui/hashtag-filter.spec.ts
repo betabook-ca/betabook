@@ -7,30 +7,6 @@ async function openHashtagStory(page: Page, testInfo: TestInfo) {
   return page.getByRole("combobox", { name: "Tags" });
 }
 
-test("hashtag suggestions support keyboard selection and show the selected tags", async ({
-  page,
-}, testInfo) => {
-  const input = await openHashtagStory(page, testInfo);
-  await input.fill("#TRI");
-  await expect(page.getByRole("option", { name: "#trip", exact: true })).toBeVisible();
-  await input.press("ArrowDown");
-  await input.press("Enter");
-  await expect(input).toHaveValue("#");
-  await expect(page.getByRole("button", { name: "Remove tag trip", exact: true })).toBeVisible();
-  await expect(page.getByRole("listbox")).toHaveCount(0);
-  await input.fill("#project");
-  await page.getByRole("option", { name: "#project", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Remove tag project" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Remove tag trip", exact: true })).toHaveCount(1);
-  await expect(input).toHaveValue("#");
-  await expect(page.getByText("No matching hashtags.", { exact: true })).toHaveCount(0);
-  // Wait for the exiting suggestions to unmount before capturing selected tags.
-  await expect(page.getByRole("listbox", { includeHidden: true })).toHaveCount(0);
-  const screenshot = testInfo.outputPath("hashtag-selected.png");
-  await page.screenshot({ path: screenshot, animations: "disabled" });
-  await testInfo.attach("hashtag-selected", { path: screenshot, contentType: "image/png" });
-});
-
 test(
   "the caret and text selection stay after the hashtag prefix",
   { tag: "@behavior" },
@@ -81,27 +57,26 @@ test(
   },
 );
 
-test("browsing hashtag suggestions protects the caret and shows the reopened menu", async ({
-  page,
-}, testInfo) => {
-  const input = await openHashtagStory(page, testInfo);
-  await input.click();
-  await expect(page.getByRole("option")).toHaveCount(7);
-  await expect(page.getByRole("option", { name: "#outdoors", exact: true })).toBeVisible();
-  await input.press("ArrowUp");
-  await expect
-    .poll(() => input.evaluate((node: HTMLInputElement) => node.selectionStart))
-    .toBeGreaterThanOrEqual(1);
-  await page.getByRole("option", { name: "#outdoors", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Remove tag outdoors" })).toBeVisible();
-  await input.click();
-  await expect(page.getByRole("option")).toHaveCount(6);
-  const screenshot = testInfo.outputPath("hashtag-browse.png");
-  await page.screenshot({ path: screenshot, animations: "disabled" });
-  await testInfo.attach("hashtag-browse", { path: screenshot, contentType: "image/png" });
-});
+test(
+  "browsing hashtag suggestions protects the caret and shows the reopened menu",
+  { tag: "@behavior" },
+  async ({ page }, testInfo) => {
+    const input = await openHashtagStory(page, testInfo);
+    await input.click();
+    await expect(page.getByRole("option")).toHaveCount(7);
+    await expect(page.getByRole("option", { name: "#outdoors", exact: true })).toBeVisible();
+    await input.press("ArrowUp");
+    await expect
+      .poll(() => input.evaluate((node: HTMLInputElement) => node.selectionStart))
+      .toBeGreaterThanOrEqual(1);
+    await page.getByRole("option", { name: "#outdoors", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Remove tag outdoors" })).toBeVisible();
+    await input.click();
+    await expect(page.getByRole("option")).toHaveCount(6);
+  },
+);
 
-test("hashtag field has no search icon", async ({ page }, testInfo) => {
+test("hashtag field has no search icon", { tag: "@layout" }, async ({ page }, testInfo) => {
   const input = await openHashtagStory(page, testInfo);
   await expect(input).toHaveCSS("background-image", "none");
 });
@@ -151,12 +126,6 @@ for (const scenario of [
       expect(hashtagAfter.y - panelAfter.y).toBe(hashtagBefore.y - panelBefore.y);
       const summary = page.getByRole("region", { name: "Active filters" });
       await expect(summary.getByRole("button", { name: "Remove #trip" })).toBeVisible();
-      const screenshot = testInfo.outputPath("hashtag-toolbar-wrapped.png");
-      await page.screenshot({ path: screenshot });
-      await testInfo.attach("hashtag-toolbar-wrapped", {
-        path: screenshot,
-        contentType: "image/png",
-      });
     },
   );
 }

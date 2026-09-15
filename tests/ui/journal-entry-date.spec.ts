@@ -32,9 +32,5 @@ test(
     await page.getByRole("radio", { name: "Session", exact: true }).click();
     await expect(unknown).toBeHidden();
     await expect(page.getByRole("button", { name: "Save entry" })).toBeVisible();
-    await info.attach("session-or-send", {
-      body: await page.screenshot({ fullPage: true, animations: "disabled" }),
-      contentType: "image/png",
-    });
   },
 );

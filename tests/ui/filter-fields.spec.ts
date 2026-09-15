@@ -26,11 +26,6 @@ for (const toolbar of ["sends", "journal"]) {
         if (!areaBox) throw new Error("Missing area bounds");
         expect(areaBox.width).toBeGreaterThan(tagBox.width);
       }
-      await page.screenshot({
-        path: info.outputPath(`${toolbar}-filters.png`),
-        fullPage: true,
-        animations: "disabled",
-      });
     },
   );
 }
@@ -54,11 +49,6 @@ test(
     expect(short.width).toBe(112);
     expect(medium.width).toBe(176);
     expect(long.width).toBe(Math.min(384, (info.project.use.viewport?.width ?? 1024) - 32));
-    await page.screenshot({
-      path: info.outputPath("standard-fields.png"),
-      fullPage: true,
-      animations: "disabled",
-    });
   },
 );
 
@@ -78,11 +68,6 @@ test(
     if (!yearBox || !calendarBox) throw new Error("Missing date controls");
     expect(yearBox.x + yearBox.width).toBeLessThanOrEqual(calendarBox.x);
     expect(await year.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
-    await page.screenshot({
-      path: info.outputPath("compact-dates.png"),
-      fullPage: true,
-      animations: "disabled",
-    });
   },
 );
 

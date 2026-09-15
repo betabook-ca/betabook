@@ -27,7 +27,6 @@ test("monthly sends and days out show their metrics and unique climb names", asy
     await expect(preview).not.toContainText("River Stone");
     await preview.hover();
     await expect(preview).toBeVisible();
-    await page.screenshot({ path: info.outputPath("monthly-preview.png") });
   }
   await selectMark(plot, february, Boolean(info.project.use.hasTouch));
   await expect(page.getByRole("dialog")).toContainText("River Stone");
@@ -43,12 +42,10 @@ test("monthly sends and days out show their metrics and unique climb names", asy
   await expect(dialog).toContainText("4 days");
   await expect(dialog.getByRole("rowheader")).toHaveCount(0);
   await expect(dialog.getByText("Cedar Arete", { exact: true })).toHaveCount(1);
-  // The gallery already audits this story. Scope the scan to the popup so
-  // this test pays only for the state the gallery cannot reach.
+  // Scope this audit to the popup reached by the interaction.
   expect((await new AxeBuilder({ page }).include('[role="dialog"]').analyze()).violations).toEqual(
     [],
   );
-  await page.screenshot({ path: info.outputPath("days-table.png") });
 });
 
 test("flash details show the grade metric and include undated climbs", async ({ page }, info) => {
@@ -64,12 +61,10 @@ test("flash details show the grade metric and include undated climbs", async ({ 
   await expect(dialog).toContainText("Forgotten Date");
   await expect(dialog).not.toContainText("Undated");
   await expect(dialog.getByRole("columnheader")).toHaveCount(0);
-  // The gallery already audits this story. Scope the scan to the popup so
-  // this test pays only for the state the gallery cannot reach.
+  // Scope this audit to the popup reached by the interaction.
   expect((await new AxeBuilder({ page }).include('[role="dialog"]').analyze()).violations).toEqual(
     [],
   );
-  await page.screenshot({ path: info.outputPath("flash-table.png") });
 });
 
 test("calendar taps show small previews and open only larger days", async ({ page }, info) => {
@@ -83,7 +78,6 @@ test("calendar taps show small previews and open only larger days", async ({ pag
   await expect(page.getByRole("tooltip")).toContainText("Winter Project");
   await expect(page.getByRole("tooltip")).not.toContainText("2026-01-02");
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await page.screenshot({ path: info.outputPath("calendar-preview.png") });
   await page.keyboard.press("Escape");
   await selectMark(
     plot,
@@ -92,10 +86,8 @@ test("calendar taps show small previews and open only larger days", async ({ pag
   );
   await expect(page.getByRole("dialog")).toContainText("4 sessions");
   await expect(page.getByRole("dialog")).toContainText("River Stone");
-  // The gallery already audits this story. Scope the scan to the popup so
-  // this test pays only for the state the gallery cannot reach.
+  // Scope this audit to the popup reached by the interaction.
   expect((await new AxeBuilder({ page }).include('[role="dialog"]').analyze()).violations).toEqual(
     [],
   );
-  await page.screenshot({ path: info.outputPath("calendar-table.png") });
 });

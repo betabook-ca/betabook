@@ -12,9 +12,5 @@ test(
       1,
     );
     expect(sort.width).toBe(176);
-    await testInfo.attach("project-toolbar", {
-      body: await page.screenshot({ fullPage: true }),
-      contentType: "image/png",
-    });
   },
 );

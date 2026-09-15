@@ -14,10 +14,6 @@ test(
     if (!bounds || !viewport) throw new Error("Expected a visible menu and configured viewport");
     expect(bounds.x).toBeGreaterThanOrEqual(0);
     expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width);
-    await testInfo.attach("friend-dropdown", {
-      body: await page.screenshot({ fullPage: true, animations: "disabled" }),
-      contentType: "image/png",
-    });
     await page.keyboard.press("Escape");
     await expect(page.getByRole("combobox", { name: "With friend" })).toBeFocused();
   },

@@ -51,10 +51,6 @@ test("selected years filter every summary and chart, and All years restores the 
   await page.getByRole("button", { name: "Newer calendar year", exact: true }).click();
   await expect(page.getByRole("region", { name: "Calendar 2025", exact: true })).toBeVisible();
   await expect(progression).not.toContainText("Apr 2026");
-  await info.attach("multiple-years", {
-    body: await page.screenshot({ fullPage: true }),
-    contentType: "image/png",
-  });
 
   await yearsButton(page).click();
   await yearOption(page, "2025").press("Space");

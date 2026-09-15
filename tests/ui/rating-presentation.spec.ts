@@ -16,7 +16,6 @@ test(
         Math.abs(labelBox.y + labelBox.height / 2 - starsBox.y - starsBox.height / 2),
       ).toBeLessThan(1);
     }
-    await page.screenshot({ path: info.outputPath("rating-alignment.png"), fullPage: true });
   },
 );
 
