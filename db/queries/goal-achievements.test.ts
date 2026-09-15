@@ -77,11 +77,11 @@ it("returns every unread achievement independently of history pagination", async
   expect(overview.completed.celebrations).toHaveLength(7);
 });
 
-it("does not let an older owner read restore a completion after its log is deleted", async () => {
+it("does not create or return a phantom achievement from an older read after its log is deleted", async () => {
   await db.insert(goals).values({ ...definition, celebrationsInitialized: true });
   await seedFixtureJournalEntry(db, { userId: "owner", kind: "training", entryDate: "2026-09-02" });
   const { refreshGoalAchievements } = await import("./goals");
-  await refreshGoalAchievements(db, "owner", now);
+  expect(await db.select().from(goalAchievements)).toEqual([]);
   const originalAll = db.all.bind(db);
   let release!: () => void;
   let ready!: () => void;
@@ -115,7 +115,9 @@ it("does not let an older owner read restore a completion after its log is delet
     await db.delete(journalEntries).where(eq(journalEntries.userId, "owner"));
     await refreshGoalAchievements(db, "owner", now);
     release();
-    await olderRead;
+    const result = await olderRead;
+    expect(result.completed.celebrations).toEqual([]);
+    expect(await db.select().from(goalAchievements)).toEqual([]);
     expect(
       await db.all(sql`SELECT * FROM goal_completions WHERE completed_date IS NOT NULL`),
     ).toEqual([]);
@@ -166,4 +168,38 @@ it("matches persisted feed titles to the goal UI for every goal kind and hashtag
         );
         expect(result?.title).toBe(goalTitle(current));
       }
+});
+
+it("keeps legacy achievements baselined when another log invalidates the projection after refresh", async () => {
+  await db.insert(goals).values({ ...definition, tags: ["hangboard"] });
+  await seedFixtureJournalEntry(db, {
+    userId: "owner",
+    kind: "training",
+    entryDate: "2026-09-02",
+    tags: ["hangboard"],
+  });
+  const originalBatch = db.batch.bind(db);
+  let invalidate = true;
+  const spy = vi.spyOn(db, "batch").mockImplementation(async (...args) => {
+    const result = await originalBatch(...args);
+    if (invalidate) {
+      invalidate = false;
+      await seedFixtureJournalEntry(db, {
+        userId: "owner",
+        kind: "training",
+        entryDate: "2026-09-03",
+        tags: ["mobility"],
+      });
+    }
+    return result;
+  });
+  try {
+    expect((await getGoalOverview(db, "owner", "owner", now)).completed.celebrations).toEqual([]);
+    expect((await getGoalOverview(db, "owner", "owner", now)).completed.celebrations).toEqual([]);
+    const records = await db.select().from(goalAchievements);
+    expect(records).toHaveLength(1);
+    expect(records[0].acknowledgedAt).not.toBeNull();
+  } finally {
+    spy.mockRestore();
+  }
 });

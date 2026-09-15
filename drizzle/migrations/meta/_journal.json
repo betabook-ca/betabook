@@ -316,13 +316,6 @@
       "when": 1789455763084,
       "tag": "0044_goal_completions",
       "breakpoints": true
-    },
-    {
-      "idx": 45,
-      "version": "6",
-      "when": 1789457220134,
-      "tag": "0045_goal_hashtag_filters",
-      "breakpoints": true
     }
   ]
 }

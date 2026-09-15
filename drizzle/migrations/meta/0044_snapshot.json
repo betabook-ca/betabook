@@ -1878,6 +1878,14 @@
           "notNull": true,
           "autoincrement": false,
           "default": "'exact'"
+        },
+        "tags": {
+          "name": "tags",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'[]'"
         }
       },
       "indexes": {
@@ -1997,6 +2005,14 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "tags": {
+          "name": "tags",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'[]'"
         }
       },
       "indexes": {},

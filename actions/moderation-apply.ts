@@ -553,10 +553,16 @@ export async function recordChangeRequestApproval(
 }
 
 async function refreshClimbGoalAchievements(db: Database, climbIds: number[]) {
-  const authors = await db
-    .selectDistinct({ userId: journalEntries.userId })
-    .from(journalEntries)
-    .where(inArray(journalEntries.climbId, climbIds));
-  for (const { userId } of authors) await refreshGoalsAfterWrite(db, userId);
-  if (authors.length) revalidatePath("/feed");
+  // The moderation mutation and its audit have already committed, including
+  // trigger invalidation. A failed derived lookup must not reject that save.
+  try {
+    const authors = await db
+      .selectDistinct({ userId: journalEntries.userId })
+      .from(journalEntries)
+      .where(inArray(journalEntries.climbId, climbIds));
+    for (const { userId } of authors) await refreshGoalsAfterWrite(db, userId);
+    if (authors.length) revalidatePath("/feed");
+  } catch (error) {
+    console.error("Saved successfully, but refreshing climb goal achievements failed", error);
+  }
 }

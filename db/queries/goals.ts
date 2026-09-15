@@ -13,7 +13,7 @@ import {
 import { nativeGradeArray } from "@/lib/grades";
 
 import { journalVisibleSql } from "./content-access";
-import { unseenGoalAchievements } from "./goal-achievements";
+import { goalAchievementStatements, unseenGoalAchievements } from "./goal-achievements";
 
 function contributionKey() {
   return sql`CASE g.kind WHEN 'training' THEN j.id WHEN 'days' THEN j.entry_date WHEN 'new-areas' THEN c.area_id ELSE j.climb_id END`;
@@ -245,9 +245,7 @@ export async function getNextGoalGrades(db: Database, ownerId: string, viewerId:
 
 /** Called by logging, imports and goal mutations before returning success. */
 export async function refreshGoalAchievements(db: Database, ownerId: string, now = new Date()) {
-  const periods = await getGoalPeriods(db, ownerId, ownerId, now);
   await persistGoalCompletions(db, ownerId, now);
-  await unseenGoalAchievements(db, ownerId, periods, now);
 }
 
 /** A derived feed refresh must not turn an already committed log into a failed save.
@@ -277,10 +275,11 @@ async function persistGoalCompletions(db: Database, ownerId: string, now: Date) 
   const source = await goalPeriodsQuery(db, ownerId, ownerId, now);
   if (!source) return;
   const completed = sql`SELECT * FROM (${source.query}) current WHERE current.completedDate IS NOT NULL AND current.completedDate <= json_extract(${source.dates}, '$."' || current.timezone || '"')`;
-  await db.batch([
-    db.delete(goalCompletions).where(sql`goal_id IN (SELECT id FROM goals WHERE user_id=${ownerId}
+  const goalIds = sql`SELECT id FROM goals WHERE user_id=${ownerId}
       AND json_extract(${source.dates}, '$."' || timezone || '"') IS NOT NULL
-      AND NOT EXISTS (SELECT 1 FROM goal_periods h WHERE h.goal_id=goals.id AND json_extract(${source.dates}, '$."' || h.timezone || '"') IS NULL))
+      AND NOT EXISTS (SELECT 1 FROM goal_periods h WHERE h.goal_id=goals.id AND json_extract(${source.dates}, '$."' || h.timezone || '"') IS NULL)`;
+  await db.batch([
+    db.delete(goalCompletions).where(sql`goal_id IN (${goalIds})
       AND NOT EXISTS (SELECT 1 FROM (${completed}) current WHERE current.id=goal_completions.goal_id
         AND current.periodStart=goal_completions.period_start AND current.repeat=goal_completions.repeat)`),
     db
@@ -293,5 +292,6 @@ async function persistGoalCompletions(db: Database, ownerId: string, now: Date) 
         set: { completedDate: sql`excluded.completed_date`, title: sql`excluded.title` },
         setWhere: sql`goal_completions.completed_date IS NOT excluded.completed_date OR goal_completions.title IS NOT excluded.title`,
       }),
+    ...goalAchievementStatements(db, goalIds, now),
   ]);
 }

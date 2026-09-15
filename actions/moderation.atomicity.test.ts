@@ -1,5 +1,6 @@
 import { env } from "cloudflare:test";
 import { eq, sql } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import {
@@ -29,7 +30,7 @@ vi.mock("next/cache", () => ({
   refresh: () => {
     if (state.failRefresh) throw new Error("audit cache failure after commit");
   },
-  revalidatePath: () => {},
+  revalidatePath: vi.fn<typeof revalidatePath>(),
 }));
 vi.mock("@/lib/email", () => ({ sendChangeRequestDecisionEmail: async () => {} }));
 vi.mock("@/lib/session", () => ({
@@ -53,6 +54,7 @@ beforeEach(async () => {
   state.id = "requester";
   state.role = null;
   state.failRefresh = false;
+  vi.mocked(revalidatePath).mockClear();
 });
 
 it.each([11, 30])("rejects queued grade %i after its discipline changes", async (grade) => {
@@ -166,6 +168,48 @@ it("returns success when a committed moderation edit cannot refresh the page", a
   expect(
     await db.select().from(changeRequests).where(eq(changeRequests.id, request.id)).get(),
   ).toMatchObject({ status: "approved" });
+});
+
+it("keeps a committed climb edit successful when its goal-author lookup fails", async () => {
+  const failure = new Error("goal-author lookup unavailable");
+  const lookup = vi.spyOn(db, "selectDistinct").mockImplementationOnce(() => {
+    throw failure;
+  });
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    await expect(
+      applyClimbEdit(
+        db,
+        1,
+        { grade: 6 },
+        {
+          type: "climb_edit",
+          entityId: 1,
+          payload: { grade: 6 },
+          reviewerId: "reviewer",
+        },
+      ),
+    ).resolves.toBeUndefined();
+    expect(lookup).toHaveBeenCalledOnce();
+    expect(await db.select().from(climbs).where(eq(climbs.id, 1)).get()).toMatchObject({
+      grade: 6,
+    });
+    const [request] = await db.select().from(changeRequests);
+    expect(request).toMatchObject({
+      type: "climb_edit",
+      entityId: 1,
+      status: "approved",
+      reviewedBy: "reviewer",
+    });
+    expect(await db.select().from(changeRequestApprovals)).toMatchObject([
+      { requestId: request.id, userId: "reviewer" },
+    ]);
+    expect(revalidatePath).toHaveBeenCalledWith("/climbs/1");
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("Saved successfully"), failure);
+  } finally {
+    lookup.mockRestore();
+    log.mockRestore();
+  }
 });
 
 it("rolls back a stale review even when the reviewer already voted", async () => {
