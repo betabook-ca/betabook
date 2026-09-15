@@ -18,18 +18,16 @@ const meta = {
     docs: {
       description: {
         component:
-          "The production feed uses a centered 672px column and one date heading per day. Posted grades belong to climbs; personal suggestions belong to sends and repeats, never sessions. Explicit companion tags group shared climbs. Read more expands a note; Show more expands loaded group entries. Links retain access to activities outside the API preview.",
+          "The production feed fills the page content width with one date heading per day. Posted grades belong to climbs; personal suggestions belong to sends and repeats, never sessions. Explicit companion tags group shared climbs. Read more expands a note; Show more expands loaded group entries. Links retain access to activities outside the API preview.",
       },
     },
   },
   args: { days: feedDays, view: "all" },
   decorators: [
     (Story) => (
-      <div className="mx-auto max-w-2xl">
-        <StoryPage title="Feed">
-          <Story />
-        </StoryPage>
-      </div>
+      <StoryPage title="Feed">
+        <Story />
+      </StoryPage>
     ),
   ],
 } satisfies Meta<typeof FeedTimeline>;

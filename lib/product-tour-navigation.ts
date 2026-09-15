@@ -19,7 +19,7 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
       section: "Journal",
       title: "Start in Journal",
       description:
-        "Use Log for outdoor sessions, sends, repeats, and training. Tag friends under Add details to record who joined you. Each friend logs their own activity.",
+        "Open Logbook from the sidebar or bottom tabs for Journal and Sends. Use Log for outdoor sessions, sends, repeats, and training. Tag friends under Add details to record who joined you. Each friend logs their own activity.",
       target: "journal-log",
     },
     {
@@ -43,10 +43,10 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
     {
       id: "projects",
       introducedInVersion: 1,
-      section: "Projects",
+      section: "Open Projects",
       title: "Pick up where you left off",
       description:
-        "Climbs you haven't sent appear here automatically, each with its latest note. Open a project to read the rest of its sessions. This list is private.",
+        "In Progress, Open Projects lists climbs you haven't sent automatically, each with its latest note. Use Load more to read earlier sessions. This list is private.",
       target: "project-sessions",
     },
     {
@@ -73,7 +73,7 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
       section: "Friends",
       title: "Friend requests",
       description:
-        "We'll email you about new friend requests and show a dot on your account icon. Open Friends, then Requests, to accept or decline one. Try accepting Sam's request.",
+        "We'll email you about new friend requests and show a badge on Community. Open Community, then Friends and Requests, to accept or decline one. Try accepting Sam's request.",
       target: "friend-requests",
     },
     {
@@ -89,10 +89,10 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
       id: "account",
       introducedInVersion: 1,
       updatedInVersion: 2,
-      section: "Account",
+      section: "Account settings",
       title: "Choose what you share",
       description:
-        "Send commentary and journal entries have separate audiences. Try Members commentary with a Friends-only journal. Turn on Private profile to hide your climbing history from everyone else. Both controls are disabled, and your choices are kept. Audience changes apply to past entries too.",
+        "Open Account settings from the sidebar or mobile menu to manage your account and sharing. Send commentary and journal entries have separate audiences. Try Members commentary with a Friends-only journal. Turn on Private profile to hide your climbing history from everyone else. Both controls are disabled, and your choices are kept. Audience changes apply to past entries too.",
       target: "privacy-controls",
     },
   ],

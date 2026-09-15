@@ -3,7 +3,7 @@ import { nativeGradeArray } from "@/lib/grades";
 import { buildUserAnalytics } from "@/lib/user-analytics";
 
 /** Fictional, browser-only tutorial data. These IDs must never be used in links or writes. */
-export const TOUR_DEMO_CLIMBER = { name: "Alex Morgan", initials: "AM", area: "Pine Canyon" };
+const DEMO_AREA = "Pine Canyon";
 
 const climbs = {
   warmup: { id: -1, name: "First Light", grade: "V2" },
@@ -16,7 +16,7 @@ export const TOUR_DEMO_PEOPLE = { search: "Riley Chen", requester: "Sam Taylor" 
 
 export const TOUR_DEMO_SEARCH_RESULTS = {
   climb: { name: climbs.sent.name, detail: climbs.sent.grade },
-  area: { name: TOUR_DEMO_CLIMBER.area, detail: "Climbing area" },
+  area: { name: DEMO_AREA, detail: "Climbing area" },
   climber: { name: TOUR_DEMO_PEOPLE.search, detail: "Member profile" },
 };
 
@@ -150,7 +150,7 @@ export const TOUR_DEMO_SENDS = TOUR_DEMO_ENTRIES.flatMap((entry) => {
       climbType: "boulder" as const,
       suggestedGrade: nativeGradeArray("boulder").indexOf(entry.climb.grade),
       areaId: -1,
-      areaName: TOUR_DEMO_CLIMBER.area,
+      areaName: DEMO_AREA,
       ascentStyle: entry.style ?? "redpoint",
       dateSent: entry.date,
       rating: entry.rating ?? 0,

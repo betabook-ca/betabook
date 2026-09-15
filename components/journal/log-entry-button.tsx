@@ -17,12 +17,14 @@ export function LogEntryButton({
   label = "Log",
   variant,
   size,
+  className = "",
 }: {
   climb?: SendableClimb & { name: string };
   sentClimbIds?: Set<number>;
   label?: string;
   variant?: "outline";
   size?: "sm";
+  className?: string;
 }) {
   const state = useOverlayState();
   const { Component: JournalEntryDrawer, load } = useDeferredComponent(loadDrawer);
@@ -36,7 +38,7 @@ export function LogEntryButton({
           load();
           state.open();
         }}
-        className="gap-2"
+        className={`gap-2 ${className}`}
       >
         <CirclePlus className={size === "sm" ? "size-4" : "size-5"} />
         {label}

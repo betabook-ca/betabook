@@ -1,8 +1,8 @@
 "use client";
 
 import { Button, Description, Input, Label, TextField, useOverlayState } from "@heroui/react";
-import { Copy, Download, RotateCcw, Share } from "lucide-react";
-import { useState, useTransition } from "react";
+import { Copy, Download, QrCode as QrCodeIcon, RotateCcw, Share } from "lucide-react";
+import { useId, useState, useTransition } from "react";
 
 import { resetProfileShareLink } from "@/actions";
 import { AppLink } from "@/components/ui/app-link";
@@ -22,6 +22,8 @@ export function ShareProfileControls({ name, url }: { name: string; url: string 
   const [error, setError] = useState<string | null>(null);
   const [resetError, setResetError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [qrOpen, setQrOpen] = useState(false);
+  const qrId = useId();
 
   if (!url) {
     return (
@@ -117,12 +119,27 @@ export function ShareProfileControls({ name, url }: { name: string; url: string 
           </p>
           {error && <InlineAlert>{error}</InlineAlert>}
         </div>
-        <div className="flex flex-col items-center gap-2 self-center sm:self-start">
-          <QrCode value={link} label="QR code for your profile link" className="size-40" />
-          <Button variant="ghost" size="sm" onPress={download}>
-            <Download aria-hidden="true" className="size-4" />
-            Download QR code
+        <div className="flex w-full flex-col gap-2 self-start sm:w-auto">
+          <Button
+            variant="ghost"
+            className="min-h-11 self-start sm:hidden"
+            aria-expanded={qrOpen}
+            aria-controls={qrId}
+            onPress={() => setQrOpen(!qrOpen)}
+          >
+            <QrCodeIcon aria-hidden className="size-5" />
+            {qrOpen ? "Hide QR code" : "Show QR code"}
           </Button>
+          <div
+            id={qrId}
+            className={`${qrOpen ? "flex" : "hidden sm:flex"} flex-col items-center gap-2 self-center sm:self-start`}
+          >
+            <QrCode value={link} label="QR code for your profile link" className="size-40" />
+            <Button variant="ghost" size="sm" onPress={download}>
+              <Download aria-hidden="true" className="size-4" />
+              Download QR code
+            </Button>
+          </div>
         </div>
       </div>
       <ConfirmDeleteDialog

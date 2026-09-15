@@ -29,27 +29,11 @@ const goal: GoalProgress = {
   progress: 2,
   completedDate: null,
 };
-it("shows a shared journal’s progress without owner actions", () => {
-  render(
-    <GoalPanel
-      ownerId="owner"
-      isOwner={false}
-      initialActive={{ goals: [goal], hasMore: false }}
-      initialCompleted={{ goals: [], hasMore: false }}
-      timezone="UTC"
-      today="2026-09-11"
-    />,
-  );
-  expect(screen.getByText("Train 8 times")).toBeVisible();
-  expect(screen.queryByRole("button", { name: "Set goal" })).not.toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: /Actions for/ })).not.toBeInTheDocument();
-});
 it("hides empty tabs and opens the real goal form for the owner", async () => {
   const user = userEvent.setup();
   render(
     <GoalPanel
       ownerId="new-owner"
-      isOwner
       initialActive={{ goals: [], hasMore: false }}
       initialCompleted={{ goals: [], hasMore: false }}
       timezone="UTC"
@@ -77,7 +61,6 @@ it("hides the year selector when completed history only has one year", async () 
   render(
     <GoalPanel
       ownerId="one-year-owner"
-      isOwner
       timezone="UTC"
       today="2026-09-11"
       initialView="completed"
@@ -141,7 +124,6 @@ it("aggregates today’s achievements into one dismissible banner", async () => 
   render(
     <GoalPanel
       ownerId="celebration-owner"
-      isOwner
       timezone="UTC"
       today="2026-09-11"
       initialActive={{ goals: [first], hasMore: false }}
@@ -169,7 +151,6 @@ it("uses the real history API parameters and keeps pagination failures isolated"
     render(
       <GoalPanel
         ownerId="api-owner"
-        isOwner
         initialView="completed"
         timezone="UTC"
         today="2026-09-11"
@@ -222,7 +203,6 @@ it("preserves the history year and loaded depth when the server snapshot changes
   );
   const props = {
     ownerId: "refresh-owner",
-    isOwner: true,
     initialView: "completed" as const,
     timezone: "UTC",
     today: "2026-09-11",
@@ -271,7 +251,6 @@ it("restarts an expired goal as a new goal instead of rewriting its history", as
   render(
     <GoalPanel
       ownerId="owner"
-      isOwner
       initialView="active"
       timezone="UTC"
       today="2026-09-11"
@@ -310,7 +289,6 @@ it("retries the failed year request without marking Load more as failed", async 
     render(
       <GoalPanel
         ownerId="year-retry"
-        isOwner
         initialView="completed"
         timezone="UTC"
         today="2026-09-11"
@@ -353,7 +331,6 @@ it("leaves a missed goal in Active when retry is cancelled and offers no retry a
   };
   const props = {
     ownerId: "owner",
-    isOwner: true,
     timezone: "UTC",
     today: "2026-09-11",
     initialActive: { goals: [missed], hasMore: false },
@@ -400,7 +377,6 @@ it("retains Edit and Delete alongside the visible missed-goal actions", async ()
   render(
     <GoalPanel
       ownerId="owner"
-      isOwner
       timezone="UTC"
       today="2026-09-11"
       initialActive={{ goals: [missed], hasMore: false }}

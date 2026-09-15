@@ -1,7 +1,7 @@
 "use client";
 
 import { useOverlayState } from "@heroui/react";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 
 import { JournalEntryDrawer } from "@/components/journal/journal-entry-drawer";
 import { ProjectCard, type ProjectWithSessions } from "@/components/journal/project-card";
@@ -47,11 +47,10 @@ type ProjectBoardProps = {
   projects: ProjectWithSessions[];
   /** More open projects exist than the page loaded. */
   hasMore: boolean;
-  goals?: ReactNode;
 };
 
 /** Filtering and sorting stay client-side: the page holds at most `OPEN_PROJECT_PAGE_SIZE` projects. */
-export function ProjectBoard({ userId, projects, hasMore, goals }: ProjectBoardProps) {
+export function ProjectBoard({ userId, projects, hasMore }: ProjectBoardProps) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ProjectSort>("recent");
   const [selected, setSelected] = useState<ProjectWithSessions | null>(null);
@@ -71,7 +70,6 @@ export function ProjectBoard({ userId, projects, hasMore, goals }: ProjectBoardP
 
   return (
     <div className="flex flex-col gap-4">
-      {goals}
       {projects.length === 0 ? (
         <EmptyState message="No open projects. Log a session on a climb you haven't sent and it starts one." />
       ) : (

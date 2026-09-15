@@ -64,8 +64,8 @@ export function TourExperience({
   function exit() {
     router.replace(exitPath);
   }
-  function href(id: string) {
-    return productTourPath(tour.id, { ...navigation, stepId: id });
+  function href(id: string, mode = navigation.mode) {
+    return productTourPath(tour.id, { ...navigation, mode, stepId: id });
   }
   const firstPath = href(steps[0].id);
 
@@ -150,17 +150,11 @@ export function TourExperience({
           <div
             ref={page}
             role="region"
-            aria-label="Demo profile"
+            aria-label="Demo workspace"
             tabIndex={0}
             className="min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain rounded-panel p-2 focus-visible:status-focused"
           >
-            <Page
-              key={steps[index].section}
-              section={steps[index].section}
-              mode={navigation.mode}
-              href={href}
-              steps={steps}
-            />
+            <Page section={steps[index].section} mode={navigation.mode} href={href} steps={steps} />
           </div>
           {/* oxlint-enable jsx-a11y/no-noninteractive-tabindex */}
           <TourOverlay

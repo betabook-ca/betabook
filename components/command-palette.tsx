@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, type ReactNode } from "react";
 
+import { Brand } from "@/components/brand";
 import { useSearchScope } from "@/components/search-scope";
 import { AppLink } from "@/components/ui/app-link";
 import { useDeferredComponent } from "@/hooks/use-deferred-component";
@@ -110,27 +111,63 @@ export function SearchPaletteProvider({ children }: { children: ReactNode }) {
  * works on pages that never render this. */
 export function SearchTrigger() {
   const openSearch = useOpenSearch();
-  const keys = useModifierLabels();
   const { data: session, isPending } = authClient.useSession();
-  if (!session || isPending)
+  return (
+    <SearchTriggerControl
+      onOpenSearch={session && !isPending ? (openSearch ?? undefined) : undefined}
+    />
+  );
+}
+
+export function SearchTriggerControl({
+  onOpenSearch,
+  responsiveTo = "viewport",
+  showShortcut = true,
+}: {
+  onOpenSearch?: () => void;
+  responsiveTo?: "viewport" | "container";
+  showShortcut?: boolean;
+}) {
+  const keys = useModifierLabels();
+  const contained = responsiveTo === "container";
+  const className = `flex h-11 w-full min-w-0 cursor-pointer items-center gap-2 rounded-xl bg-surface px-3 text-muted shadow-sm transition-colors hover:text-foreground focus-visible:status-focused ${contained ? "@lg/navigation:h-10 @lg/navigation:rounded-lg @lg/navigation:border @lg/navigation:border-border @lg/navigation:bg-transparent @lg/navigation:shadow-none" : "md:h-10 md:rounded-lg md:border md:border-border md:bg-transparent md:shadow-none"}`;
+  const contents = (
+    <>
+      <Brand
+        decorative
+        compact
+        className={`size-6 ${contained ? "@lg/navigation:hidden" : "md:hidden"}`}
+      />
+      <span className="truncate text-sm">Search</span>
+      <Search
+        aria-hidden
+        className={`ms-auto size-5 shrink-0 ${contained ? "@lg/navigation:-order-1 @lg/navigation:ms-0" : "md:-order-1 md:ms-0"}`}
+      />
+      {showShortcut && onOpenSearch && keys && (
+        <Kbd
+          className={`ms-auto hidden ${contained ? "@lg/navigation:inline-flex" : "md:inline-flex"}`}
+        >
+          {keys.palette}
+        </Kbd>
+      )}
+    </>
+  );
+  if (!onOpenSearch)
     return (
-      <AppLink href="/" aria-label="Search" className="flex items-center gap-2 text-muted">
-        <Search className="size-4" />
-        <span className="hidden text-sm sm:inline">Search</span>
+      <AppLink href="/" aria-label="Search" className={className}>
+        {contents}
       </AppLink>
     );
 
   return (
     <button
       type="button"
-      onClick={() => openSearch?.()}
+      onClick={onOpenSearch}
       aria-label="Search"
-      aria-keyshortcuts={keys?.ariaPalette}
-      className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-2 py-1.5 text-muted transition-colors hover:text-foreground focus-visible:status-focused md:w-64"
+      aria-keyshortcuts={showShortcut ? keys?.ariaPalette : undefined}
+      className={className}
     >
-      <Search className="size-4" />
-      <span className="hidden text-sm sm:inline">Search</span>
-      {keys && <Kbd className="ms-auto hidden sm:inline-flex">{keys.palette}</Kbd>}
+      {contents}
     </button>
   );
 }

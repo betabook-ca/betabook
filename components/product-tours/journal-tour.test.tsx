@@ -12,6 +12,7 @@ import {
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn<(href: string) => void>() }),
+  usePathname: () => "/tutorial/journal/journal",
 }));
 vi.mock("next/image", () => ({ default: () => null }));
 vi.mock("next/link", () => ({
@@ -36,7 +37,9 @@ function demo(stepId: string, mode: "full" | "updates") {
       section={step.section}
       mode={navigation.mode}
       steps={steps}
-      href={(id) => productTourPath("journal", { ...navigation, stepId: id })}
+      href={(id, mode = navigation.mode) =>
+        productTourPath("journal", { ...navigation, mode, stepId: id })
+      }
     />,
   );
 }
@@ -73,21 +76,22 @@ it.each(["find-climbers", "friend-requests", "feed", "account"])(
 it("retains the original Log lesson in full replay", () => {
   const html = demo("journal", "full");
   expect(html).toContain('data-tour-target="journal-log"');
-  expect(html).toContain("Alex Morgan");
+  expect(html).toContain("Logbook");
   expect(html).toContain('data-tour-target="journal-filters"');
 });
 
-it("shows the sample Log in a header row above Alex's profile, as in the app", () => {
+it("shows the sample Log above the Logbook workspace", () => {
   const html = demo("journal", "full");
   const log = html.indexOf('data-tour-target="journal-log"');
   expect(log).toBeGreaterThan(-1);
-  expect(log).toBeLessThan(html.indexOf('aria-label="Climber summary"'));
+  expect(log).toBeLessThan(html.indexOf('aria-label="Logbook workspace"'));
 });
 
-it("tabs only Alex's logbook sections on a profile lesson", () => {
+it("keeps Journal and Sends together without Progress tabs", () => {
   const html = demo("sends", "full");
-  const tabs = html.slice(html.indexOf('aria-label="Profile sections"'));
-  expect(tabs).toMatch(/>Journal<.*>Sends<.*>Projects<.*>Analytics</s);
+  const tabs = html.slice(html.indexOf('aria-label="Logbook sections"'));
+  expect(tabs).toMatch(/>Journal<.*>Sends</s);
+  expect(tabs).not.toMatch(/>Open Projects<|>Analytics</);
   expect(tabs).not.toMatch(/>Feed<|>Friends<|>Account settings</);
 });
 
@@ -98,7 +102,6 @@ it.each(["full", "updates"] as const)("shows discovery on Search in the %s tour"
   expect(html).toContain('data-tour-target="friend-search"');
   expect(html).toContain("Riley Chen");
   expect(html).toContain("Add friend");
-  expect(html).not.toContain("Alex Morgan");
   expect(html).not.toContain('data-tour-target="friend-requests"');
   expect(html).not.toContain('href="/users/');
   expect(html).not.toContain('action="/"');
@@ -106,7 +109,6 @@ it.each(["full", "updates"] as const)("shows discovery on Search in the %s tour"
 
 it("keeps request management on its own Friends page", () => {
   const html = demo("friend-requests", "updates");
-  expect(html).not.toContain("Alex Morgan");
   expect(html).toContain("Sam Taylor");
   expect(html).toContain("Accept");
   expect(html).toContain("Friends");

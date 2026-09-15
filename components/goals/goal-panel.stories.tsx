@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useEffect, useState } from "react";
-import { userEvent, within, mocked } from "storybook/test";
+import { mocked } from "storybook/test";
 
 import { archiveMissedGoal, saveGoal } from "@/actions";
 import { summarizeGoalPeriods } from "@/lib/goal-history";
@@ -13,14 +13,13 @@ const meta = {
   component: GoalPanel,
   decorators: [
     (Story) => (
-      <StoryPage title="Projects">
+      <StoryPage title="Goals">
         <Story />
       </StoryPage>
     ),
   ],
   args: {
     ownerId: "story-goals",
-    isOwner: true,
     timezone: "UTC",
     today: "2026-09-11",
     initialActive: { goals: [], hasMore: false },
@@ -29,9 +28,8 @@ const meta = {
 } satisfies Meta<typeof GoalPanel>;
 export default meta;
 type Story = StoryObj<typeof meta>;
-export const ReadOnly: Story = {
+export const Active: Story = {
   args: {
-    isOwner: false,
     initialActive: {
       hasMore: false,
       goals: [
@@ -58,17 +56,6 @@ export const ReadOnly: Story = {
 };
 
 export const Empty: Story = {};
-export const Active: Story = {
-  args: { ...ReadOnly.args, isOwner: true, ownerId: "story-goals-active" },
-};
-export const Collapsed: Story = {
-  args: { ...Active.args, ownerId: "story-goals-collapsed" },
-  play: async ({ canvasElement }) => {
-    const trigger = within(canvasElement).getByRole("button", { name: /My goals/ });
-    if (trigger.getAttribute("aria-expanded") === "true") await userEvent.click(trigger);
-  },
-};
-
 export const CrossYearSeason: Story = {
   args: {
     initialActive: {

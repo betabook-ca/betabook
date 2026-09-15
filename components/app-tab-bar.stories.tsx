@@ -25,15 +25,21 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Profile: Story = {
+  name: "Logbook",
   parameters: { nextjs: { navigation: { pathname: "/users/sample/sends" } } },
 };
 export const Feed: Story = {
+  name: "Community",
   parameters: { nextjs: { navigation: { pathname: "/feed" } } },
 };
 export const FriendRequests: Story = {
   args: { requestCount: 12 },
   parameters: { nextjs: { navigation: { pathname: "/friends" } } },
 };
-export const OtherClimber: Story = {
-  parameters: { nextjs: { navigation: { pathname: "/users/other/journal" } } },
+export const Progress: Story = {
+  parameters: { nextjs: { navigation: { pathname: "/users/sample/projects" } } },
+};
+export const You: Story = {
+  name: "Account settings (no active tab)",
+  parameters: { nextjs: { navigation: { pathname: "/account" } } },
 };

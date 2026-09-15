@@ -36,8 +36,6 @@ function row(filter = DEFAULT_JOURNAL_FILTER, currentEntry = entry) {
     filter,
     areaBreadcrumbs: {},
   }) as ReactElement<{
-    areaBreadcrumbs: Record<number, { id: number; name: string }[]>;
-    climb: { id: number; name: string; areaId: number; areaName: string };
     date: string;
     grade: ReactNode;
     status: ReactNode;
@@ -83,12 +81,12 @@ describe("JournalEntryRow", () => {
       userId: "owner",
       filter: DEFAULT_JOURNAL_FILTER,
       areaBreadcrumbs: {},
-    }) as ReactElement<{ title: ReactNode; trailing: ReactNode }>;
+    }) as ReactElement<{ title: ReactNode; date: string; status: ReactNode }>;
 
     expect(training.props.title).toBe("Training");
-    const trailing = renderToStaticMarkup(<>{training.props.trailing}</>);
-    expect(trailing).toMatch(/datetime="2026-09-04"/i);
-    expect(trailing).not.toContain("Training");
+    expect(training.props.date).toBe("2026-09-04");
+    expect(renderToStaticMarkup(<>{training.props.status}</>)).toBe("");
+    expect(renderToStaticMarkup(training)).not.toContain("·");
   });
 
   it("lets the active tag chip clear its filter", () => {

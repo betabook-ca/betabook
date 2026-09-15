@@ -9,6 +9,7 @@ export function useTourTarget(target: string, page: RefObject<HTMLDivElement | n
   useEffect(() => {
     let frame = 0;
     let observed: HTMLElement | null = null;
+    let scroller: HTMLElement | null = null;
     let needsAlignment = true;
     let introduce = true;
     const resize = new ResizeObserver((entries) => {
@@ -38,12 +39,19 @@ export function useTourTarget(target: string, page: RefObject<HTMLDivElement | n
         setHighlight(null);
         return;
       }
-      const viewport = container.getBoundingClientRect();
+      const scrollContainer = element.closest<HTMLElement>("[data-tour-scroll]") ?? container;
+      if (scrollContainer !== scroller) {
+        if (scroller && scroller !== container && scroller !== observed) resize.unobserve(scroller);
+        scroller = scrollContainer;
+        if (scroller !== container && scroller !== observed) resize.observe(scroller);
+        needsAlignment = true;
+      }
+      const viewport = scrollContainer.getBoundingClientRect();
       if (needsAlignment) {
         needsAlignment = false;
         const delta = tourTargetScrollDelta(bounds, viewport, introduce);
         introduce = false;
-        if (Math.abs(delta) > 1) container.scrollBy({ top: delta, behavior: "instant" });
+        if (Math.abs(delta) > 1) scrollContainer.scrollBy({ top: delta, behavior: "instant" });
       }
       const rect = clipTourTarget(element.getBoundingClientRect(), viewport);
       setHighlight(rect ? { rect, viewport } : null);

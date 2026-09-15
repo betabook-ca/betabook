@@ -186,16 +186,3 @@ it("invites a first session when there are no open projects", () => {
   ).toBeInTheDocument();
   expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
 });
-
-it("keeps goals visible even when there are no projects", async () => {
-  render(
-    <ProjectBoard
-      userId="empty-projects-with-goals"
-      projects={[]}
-      hasMore={false}
-      goals={<h2>Your goals</h2>}
-    />,
-  );
-  expect(screen.getByRole("heading", { name: "Your goals" })).toBeVisible();
-  expect(screen.getByText(/No open projects\. Log a session/)).toBeVisible();
-});

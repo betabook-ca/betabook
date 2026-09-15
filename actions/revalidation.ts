@@ -18,6 +18,7 @@ export function revalidateSendSurfaces({
     revalidatePath(`/users/${userId}`);
     revalidatePath(`/users/${userId}/sends`);
     revalidatePath(`/users/${userId}/projects`);
+    revalidatePath(`/users/${userId}/goals`);
     revalidatePath(`/users/${userId}/analytics`);
   }
   for (const climbId of new Set(climbIds)) revalidatePath(`/climbs/${climbId}`);
@@ -35,6 +36,7 @@ export function revalidateJournalSurfaces({
   revalidatePath(`/users/${userId}`);
   revalidatePath(`/users/${userId}/journal`);
   revalidatePath(`/users/${userId}/projects`);
+  revalidatePath(`/users/${userId}/goals`);
   revalidatePath(`/users/${userId}/analytics`);
   for (const climbId of new Set(climbIds)) revalidatePath(`/climbs/${climbId}`);
 }

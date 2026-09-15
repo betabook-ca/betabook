@@ -20,16 +20,14 @@ it.each([
   ["/users/owner", "Journal"],
   ["/users/owner/journal", "Journal"],
   ["/users/owner/sends", "Sends"],
-  ["/users/owner/projects", "Projects"],
   ["/users/owner/analytics", "Analytics"],
-])("marks %s current among the owner's logbook sections", (pathname, label) => {
+])("marks %s current among the visible profile sections", (pathname, label) => {
   state.pathname = pathname;
-  const html = renderToStaticMarkup(<ProfileTabs userId="owner" showJournal showProjects />);
+  const html = renderToStaticMarkup(<ProfileTabs userId="owner" showJournal />);
 
   expect(hrefs(html)).toEqual([
     "/users/owner/journal",
     "/users/owner/sends",
-    "/users/owner/projects",
     "/users/owner/analytics",
   ]);
   expect(html).toMatch(
@@ -40,11 +38,9 @@ it.each([
   expect(html.match(/aria-current="page"/g)).toHaveLength(1);
 });
 
-it("keeps Projects off another climber's profile", () => {
+it("shows only Sends and Analytics when the journal is private", () => {
   state.pathname = "/users/other/sends";
-  const html = renderToStaticMarkup(
-    <ProfileTabs userId="other" showJournal={false} showProjects={false} />,
-  );
+  const html = renderToStaticMarkup(<ProfileTabs userId="other" showJournal={false} />);
 
   expect(html).toContain('href="/users/other/sends" aria-current="page"');
   expect(hrefs(html)).toEqual(["/users/other/sends", "/users/other/analytics"]);
@@ -52,9 +48,7 @@ it("keeps Projects off another climber's profile", () => {
 
 it("marks Sends current at the profile root when the journal is hidden", () => {
   state.pathname = "/users/other";
-  const html = renderToStaticMarkup(
-    <ProfileTabs userId="other" showJournal={false} showProjects={false} />,
-  );
+  const html = renderToStaticMarkup(<ProfileTabs userId="other" showJournal={false} />);
 
   expect(html).toContain('href="/users/other/sends" aria-current="page"');
   expect(html.match(/aria-current="page"/g)).toHaveLength(1);

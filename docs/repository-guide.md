@@ -8,7 +8,7 @@ Betabook is a climbing logbook and crag database built with Next.js 16 App Route
 | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `app/`                                                        | Server page loaders, metadata, layouts, and API route handlers                                                     |
 | `app/areas/[id]/[[...slug]]/`, `app/climbs/[id]/[[...slug]]/` | Entity pages with canonical name slugs                                                                             |
-| `app/users/[id]/`                                             | Profile, Journal, Sends, Projects, and Analytics views                                                             |
+| `app/users/[id]/`                                             | Climber profiles and owner Logbook / Progress views (Journal, Sends, Goals, Projects, Analytics)                   |
 | `app/account/`, `app/admin/requests/`, `app/tutorial/`        | Account/import, moderation queue, and guided tutorials                                                             |
 | `actions/`                                                    | Account, area, climb, send, journal, import, moderation, and tour mutations; shared write/revalidation helpers     |
 | `components/`                                                 | Feature UI; `ui/` holds primitives, with `journal/`, `import/`, `admin/`, and `product-tours/` for larger features |

@@ -113,7 +113,7 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
 
   if (scope == null) {
     return (
-      <ProfileHeader user={user} viewerId={session.user.id}>
+      <ProfileHeader user={user} viewerId={session.user.id} workspace="progress">
         <div className="flex min-w-0 flex-col gap-6">
           <SectionHeading className="sr-only">Analytics</SectionHeading>
           <AnalyticsHashtagFilter selectedTags={selectedTags} tags={tags} />
@@ -153,7 +153,7 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
       page={`/users/${id}/analytics`}
       announcements={announcements}
     >
-      <ProfileHeader user={user} viewerId={session.user.id}>
+      <ProfileHeader user={user} viewerId={session.user.id} workspace="progress">
         <AnalyticsDashboard
           summary={summary}
           key={id}

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { userEvent, within } from "storybook/test";
 
 import { ClimbFilters } from "@/components/filters/climb-filters";
-import { DEFAULT_CLIMB_REFINEMENTS } from "@/lib/filters/climb-refinements";
+import { DEFAULT_CLIMB_REFINEMENTS } from "@/stories/fixtures/climb-refinements";
 import { DemoAreaControl } from "@/stories/fixtures/search-demo";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 

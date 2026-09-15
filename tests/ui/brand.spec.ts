@@ -8,10 +8,15 @@ test("production brand stories load the correct treatment and responsive home li
     await openStory(page, testInfo, `components-navigation-brand--${variant}`);
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
     const images = page.locator("[data-brand] img:visible");
-    const wideNavigation = variant === "navigation" && testInfo.project.name.startsWith("desktop");
-    await expect(images).toHaveCount(wideNavigation ? 2 : 1);
+    await expect(images).toHaveCount(variant === "navigation" ? 2 : 1);
     for (const image of await images.all()) {
-      await expect(image).toHaveAttribute("src", new RegExp(`-${theme}\\.svg$`));
+      const src = await image.getAttribute("src");
+      if (src?.startsWith("data:image/svg+xml,")) {
+        const artwork = decodeURIComponent(src.slice(src.indexOf(",") + 1));
+        expect(artwork).toContain(theme === "light" ? "#000000" : "#eaf7ef");
+      } else {
+        await expect(image).toHaveAttribute("src", new RegExp(`-${theme}(?:[.-][^/]*)?\\.svg$`));
+      }
       await expect
         .poll(() =>
           image.evaluate((node: HTMLImageElement) => node.complete && node.naturalWidth > 0),
@@ -21,13 +26,11 @@ test("production brand stories load the correct treatment and responsive home li
     if (variant === "navigation") {
       const home = page.getByRole("link", { name: "Betabook home", exact: true });
       await expect(home).toHaveAttribute("href", "/");
-      await expect(home).toHaveCSS("height", "48px");
-      await expect(home.locator('[data-brand="icon"]')).toHaveCSS("width", "48px");
+      await expect(home).toHaveCSS("height", "40px");
+      await expect(home.locator('[data-brand="icon"]')).toBeVisible();
       await home.focus();
       await expect(home).toBeFocused();
-      await expect(home.locator('[data-brand="wordmark"]')).toBeVisible({
-        visible: wideNavigation,
-      });
+      await expect(home.locator('[data-brand="wordmark"]')).toBeVisible();
     } else {
       await expect(
         page.getByRole("img", {
@@ -46,5 +49,8 @@ test("home-screen helper uses the original compact brand", async ({ page }, test
   const icon = helper.locator('[data-brand="icon"]');
   await expect(icon).toHaveCSS("width", "48px");
   await expect(icon).toHaveAttribute("aria-hidden", "true");
-  await expect(icon.locator("img:visible")).toHaveAttribute("src", new RegExp(`-${theme}\\.svg$`));
+  await expect(icon.locator("img:visible")).toHaveAttribute(
+    "src",
+    new RegExp(`-${theme}(?:[.-][^/]*)?\\.svg$`),
+  );
 });

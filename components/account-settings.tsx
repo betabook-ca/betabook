@@ -1,7 +1,6 @@
 import { buttonVariants } from "@heroui/react";
 import { ShieldCheck, Upload } from "lucide-react";
 
-import { AccountFriendRequests } from "@/components/account-friend-requests";
 import { DeleteAccountButton } from "@/components/delete-account-button";
 import { DisplayNameForm } from "@/components/display-name-form";
 import { ExportSendsButton } from "@/components/export-sends-button";
@@ -14,7 +13,6 @@ import { SignOutButton } from "@/components/sign-out-button";
 import { ThemeSelect } from "@/components/theme-select";
 import { AppLink } from "@/components/ui/app-link";
 import { SETTINGS_ROW_CLASS, SettingsRow, SettingsSection } from "@/components/ui/settings";
-import { PageTitle } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
 
@@ -39,18 +37,11 @@ export function AccountSettings({
   isAdmin: boolean;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-4">
-          <UserAvatar name={user.name} image={user.image} size="lg" />
-          <PageTitle className="min-w-0 truncate">{user.name}</PageTitle>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <AccountFriendRequests userId={user.id} />
-          <AppLink href={`/users/${user.id}`} className={OUTLINE_LINK_CLASS}>
-            View profile
-          </AppLink>
-        </div>
+    <div className="flex w-full max-w-4xl flex-col gap-6">
+      <h1 className="sr-only">Account settings</h1>
+      <header className="flex min-h-12 items-center gap-3">
+        <UserAvatar name={user.name} image={user.image} size="md" />
+        <p className="min-w-0 truncate text-lg font-semibold">{user.name}</p>
       </header>
 
       <SettingsSection id="profile" title="Profile">

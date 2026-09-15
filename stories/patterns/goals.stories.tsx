@@ -3,7 +3,7 @@ import { userEvent, within } from "storybook/test";
 
 import { GoalPanel } from "@/components/goals/goal-panel";
 import { summarizeGoalPeriods, pageGoalHistory } from "@/lib/goal-history";
-import { GoalProjectsContext } from "@/stories/fixtures/goal-projects-demo";
+import { GoalPageContext } from "@/stories/fixtures/goal-page-demo";
 import {
   goalPanelStoryArgs,
   goalStoryNow,
@@ -17,7 +17,7 @@ const meta = {
   args: goalPanelStoryArgs,
   decorators: [
     (Story) => (
-      <StoryPage title="Projects">
+      <StoryPage title="Goals">
         <Story />
       </StoryPage>
     ),
@@ -26,15 +26,15 @@ const meta = {
     docs: {
       description: {
         component:
-          "Production goals on the Projects tab with deterministic local data. Dates, grouped recurring history, missed periods, year selection, pagination and contribution details use the real components. Form examples live under Components / Goals / Goal form. Story mutations do not persist.",
+          "Production goals on their own Goals page in Progress with deterministic local data. Dates, grouped recurring history, missed periods, year selection, pagination and contribution details use the real components. Form examples live under Components / Goals / Goal form. Story mutations do not persist.",
       },
     },
   },
 } satisfies Meta<typeof GoalPanel>;
 export default meta;
 type Story = StoryObj<typeof meta>;
-export const ProjectsContext: Story = { render: () => <GoalProjectsContext /> };
-export const NoGoals: Story = { render: () => <GoalProjectsContext empty /> };
+export const GoalsPage: Story = { render: () => <GoalPageContext /> };
+export const NoGoals: Story = { render: () => <GoalPageContext empty /> };
 export const CompletedGoals: Story = { args: { initialView: "completed" } };
 export const RecurringHistory: Story = {
   args: {
@@ -68,7 +68,7 @@ export const CompletedGoalDetails: Story = {
   },
 };
 
-export const GoalAchieved: Story = { render: () => <GoalProjectsContext celebrate /> };
+export const GoalAchieved: Story = { render: () => <GoalPageContext celebrate /> };
 
 const oneYearPeriods = goalStoryPeriods.filter((goal) => goal.id !== 99);
 export const ManyCompletedGoals: Story = {
@@ -208,5 +208,3 @@ export const MonthlyHistoryLoadMore: Story = {
   args: paginatedHistoryArgs(longMonthlyPeriods),
   play: openRoutineHistory,
 };
-
-export const NoOpenProjects: Story = { render: () => <GoalProjectsContext noProjects /> };

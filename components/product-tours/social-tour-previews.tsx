@@ -5,8 +5,8 @@ import { useState } from "react";
 import { FeedTimeline } from "@/components/feed-timeline";
 import { FriendRequestBadge } from "@/components/friend-request-badge";
 import { FriendshipActionButton } from "@/components/friendship-action-button";
-import { ProfileSectionNav } from "@/components/profile-tabs";
 import { choicePillClass } from "@/components/ui/choice-pill";
+import { SectionNavigation } from "@/components/ui/section-navigation";
 import { SectionHeading } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import type { FeedDay } from "@/db/queries/feed";
@@ -30,16 +30,19 @@ export function DemoFriends({
         aria-label="Friends"
         className="flex flex-col gap-3"
       >
-        <SectionHeading>Friends</SectionHeading>
-        <ProfileSectionNav
+        <SectionHeading className="sr-only">Friends</SectionHeading>
+        <SectionNavigation
           label="Friend lists"
+          appearance="pills"
           tabs={[
             {
+              id: "friends",
               label: "Friends",
               current: view === "friends",
               onSelect: () => setView("friends"),
             },
             {
+              id: "requests",
               label: "Requests",
               current: view === "requests",
               onSelect: () => setView("requests"),
@@ -48,13 +51,13 @@ export function DemoFriends({
           ]}
         />
         {showPerson ? (
-          <article className="flex flex-wrap items-center justify-between gap-3 py-3">
-            <div className="flex items-center gap-3">
+          <article className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-b border-separator py-2">
+            <div className="flex min-w-0 flex-auto items-center gap-3">
               <UserAvatar name={TOUR_DEMO_PEOPLE.requester} size="sm" />
-              <div>
-                <h3 className="font-semibold">{TOUR_DEMO_PEOPLE.requester}</h3>
+              <div className="min-w-0">
+                <h3 className="truncate text-sm font-semibold">{TOUR_DEMO_PEOPLE.requester}</h3>
                 {incoming === "pending" && (
-                  <p role="status" className="text-sm text-muted">
+                  <p role="status" className="text-xs text-muted">
                     Wants to be friends
                   </p>
                 )}
@@ -132,9 +135,9 @@ export function DemoFeed() {
     })),
   };
   return (
-    <section aria-label="Friends' activity" className="flex w-full flex-col gap-3">
-      <SectionHeading>Feed</SectionHeading>
-      <div data-tour-target="friend-feed" className="flex flex-col gap-3">
+    <section aria-label="Friends' activity" className="flex w-full flex-col gap-4">
+      <SectionHeading className="sr-only">Feed</SectionHeading>
+      <div data-tour-target="friend-feed" className="flex flex-col gap-4">
         <div role="group" aria-label="Feed activity" className="flex gap-2">
           {(["All", "Sends"] as const).map((option) => (
             <button

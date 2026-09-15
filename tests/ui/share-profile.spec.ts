@@ -52,12 +52,21 @@ test("the profile QR code scans in the current theme without sending the link an
   await openStory(page, testInfo, STORY);
 
   const qr = page.getByRole("img", { name: "QR code for your profile link" });
+  if (testInfo.project.name.startsWith("mobile")) {
+    await expect(qr).toBeHidden();
+    await page.getByRole("button", { name: "Show QR code" }).click();
+    await expect(qr).toBeVisible();
+  }
   const png = await qr.screenshot();
   await testInfo.attach("profile-qr-code", { body: png, contentType: "image/png" });
 
   expect(await scan(page, png)).toEqual(SCANNABLE);
   expect(requests.length).toBeGreaterThan(0);
   expect(requests.filter((request) => request.includes(TOKEN))).toEqual([]);
+  if (testInfo.project.name.startsWith("mobile")) {
+    await page.getByRole("button", { name: "Hide QR code" }).click();
+    await expect(qr).toBeHidden();
+  }
 });
 
 test("the downloaded QR code image scans", { tag: "@behavior" }, async ({ page }, testInfo) => {

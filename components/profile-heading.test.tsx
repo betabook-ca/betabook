@@ -25,12 +25,12 @@ it("renders a name action right after the name, before the badges", () => {
     <ProfileHeading
       name="Alex Morgan"
       hardest={HARDEST}
-      nameAction={<button type="button">Copy profile link</button>}
+      nameAction={<button type="button">Add friend</button>}
     />,
   );
 
-  expect(html).toMatch(/<h1[^>]*>Alex Morgan<\/h1><button[^>]*>Copy profile link<\/button>/);
-  expect(html.indexOf("Copy profile link")).toBeLessThan(html.indexOf("Hardest sends"));
+  expect(html).toMatch(/<h1[^>]*>Alex Morgan<\/h1><button[^>]*>Add friend<\/button>/);
+  expect(html.indexOf("Add friend")).toBeLessThan(html.indexOf("Hardest sends"));
 });
 
 it("renders a note after the badges", () => {

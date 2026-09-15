@@ -24,7 +24,7 @@ export function FeedTimeline({
     dates.set(date, cards);
   }
   return (
-    <div className="mx-auto flex w-full max-w-2xl min-w-0 flex-col gap-5">
+    <div className="flex w-full min-w-0 flex-col gap-5">
       {[...dates].map(([date, cards]) => (
         <section key={date} aria-label={formatDate(date)} className="flex min-w-0 flex-col gap-3">
           <h2 className="flex items-center gap-3 text-xs font-medium text-muted">

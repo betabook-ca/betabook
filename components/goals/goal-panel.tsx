@@ -5,7 +5,6 @@ import { CirclePlus } from "lucide-react";
 import { useState } from "react";
 
 import { saveGoal, deleteGoal, acknowledgeGoalAchievements, archiveMissedGoal } from "@/actions";
-import { ProfileSectionNav } from "@/components/profile-tabs";
 import { ActionsMenu } from "@/components/ui/actions-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
@@ -15,8 +14,8 @@ import { ListRow } from "@/components/ui/list-row";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
 import { OptionSelect } from "@/components/ui/option-select";
 import { ProgressBar } from "@/components/ui/progress-bar";
+import { SectionNavigation } from "@/components/ui/section-navigation";
 import { useGoalPages } from "@/hooks/use-goal-pages";
-import { useGoalsExpanded } from "@/hooks/use-goals-expanded";
 import { useMounted } from "@/hooks/use-mounted";
 import { apiFetch } from "@/lib/api-client";
 import { goalDateLabel, recurringGoalResetLabel } from "@/lib/goal-date-label";
@@ -99,10 +98,9 @@ function GoalRowTitle({
   );
 }
 
-// oxlint-disable-next-line complexity -- owner/viewer states, history pagination and edit/delete overlays
+// oxlint-disable-next-line complexity -- goal lifecycle, history pagination and edit/delete overlays
 export function GoalPanel({
   ownerId,
-  isOwner,
   initialActive,
   initialCompleted,
   timezone,
@@ -114,7 +112,6 @@ export function GoalPanel({
   loadHistory,
 }: {
   ownerId: string;
-  isOwner: boolean;
   initialActive: GoalPage;
   initialCompleted: GoalPage;
   timezone: string;
@@ -135,12 +132,10 @@ export function GoalPanel({
   const needsDecision = (goal: GoalProgress) =>
     goal.needsAction ?? missedGoalNeedsAction(goal, today);
   const missed = (goal: GoalProgress) => goal.missed ?? isMissedGoal(goal, today);
-  const showMissedActions = (goal: GoalProgress) =>
-    view === "active" && isOwner && needsDecision(goal);
+  const showMissedActions = (goal: GoalProgress) => view === "active" && needsDecision(goal);
 
   const canEditGoal = (goal: GoalProgress) =>
     !goal.archived && (view === "active" || !missed(goal));
-  const [expanded, toggle] = useGoalsExpanded(ownerId);
   const [deleteError, setDeleteError] = useState("");
   const [retryingId, setRetryingId] = useState<number | undefined>();
   const [archivingId, setArchivingId] = useState<number | null>(null);
@@ -247,20 +242,18 @@ export function GoalPanel({
     completed.goals.length > 0 ||
     (completed.years?.length ?? 0) > 1;
   const rows = view === "active" ? active.goals : completed.goals;
-  if (!isOwner && !anyGoals) return null;
-  const newlyCompleted =
-    isOwner && mounted
-      ? [
-          ...new Map(
-            (initialCompleted.celebrations ?? []).map((goal) => [goalCompletionKey(goal), goal]),
-          ).values(),
-        ].filter(
-          (goal) =>
-            Boolean(goal.completedDate) &&
-            !dismissedCompletions.has(goalCompletionKey(goal)) &&
-            !hasSeenGoalCompletion(goal),
-        )
-      : [];
+  const newlyCompleted = mounted
+    ? [
+        ...new Map(
+          (initialCompleted.celebrations ?? []).map((goal) => [goalCompletionKey(goal), goal]),
+        ).values(),
+      ].filter(
+        (goal) =>
+          Boolean(goal.completedDate) &&
+          !dismissedCompletions.has(goalCompletionKey(goal)) &&
+          !hasSeenGoalCompletion(goal),
+      )
+    : [];
   return (
     <>
       {newlyCompleted.length > 0 && (
@@ -293,43 +286,39 @@ export function GoalPanel({
               ),
             );
             if (year !== achievementYear) void changeYear(String(achievementYear));
-            toggle(true);
           }}
         />
       )}
       <GoalSection
-        title={isOwner ? "My goals" : "Goals"}
-        expanded={expanded}
-        onExpandedChange={toggle}
         hasGoals={anyGoals}
-        activeCount={activeCount}
         action={
-          isOwner ? (
-            <Button
-              className="gap-2"
-              isDisabled={activeCount >= MAX_ACTIVE_GOALS}
-              onPress={() => {
-                setEditing(null);
-                setStarting(null);
-                setRetryingId(undefined);
-                editState.open();
-              }}
-            >
-              <CirclePlus aria-hidden="true" className="size-5" />
-              Set goal
-            </Button>
-          ) : undefined
+          <Button
+            className="min-h-11 gap-2"
+            isDisabled={activeCount >= MAX_ACTIVE_GOALS}
+            onPress={() => {
+              setEditing(null);
+              setStarting(null);
+              setRetryingId(undefined);
+              editState.open();
+            }}
+          >
+            <CirclePlus aria-hidden="true" className="size-5" />
+            Set goal
+          </Button>
         }
         navigation={
-          <ProfileSectionNav
+          <SectionNavigation
             label="Goal views"
+            appearance="pills"
             tabs={[
               {
-                label: `Active (${activeCount}${isOwner ? "/5" : ""})`,
+                id: "active",
+                label: `Active (${activeCount}/${MAX_ACTIVE_GOALS})`,
                 current: view === "active",
                 onSelect: () => setView("active"),
               },
               {
+                id: "history",
                 label: `History (${completed.total ?? completed.goals.length})`,
                 current: view === "completed",
                 onSelect: () => setView("completed"),
@@ -440,27 +429,25 @@ export function GoalPanel({
                 </div>
               }
               actions={
-                isOwner ? (
-                  <ActionsMenu
-                    ariaLabel={`Actions for ${goalTitle(goal)}`}
-                    onAction={(key) => {
-                      if (key === "edit") {
-                        setStarting(null);
-                        setRetryingId(undefined);
-                        const selected = active.goals.find((item) => item.id === goal.id) ?? goal;
-                        setEditing(selected);
-                        editState.open();
-                      } else {
-                        setDeleting(goal);
-                        deleteState.open();
-                        setDeleteError("");
-                      }
-                    }}
-                  >
-                    {canEditGoal(goal) && <Menu.Item id="edit">Edit</Menu.Item>}
-                    <Menu.Item id="delete">Delete</Menu.Item>
-                  </ActionsMenu>
-                ) : undefined
+                <ActionsMenu
+                  ariaLabel={`Actions for ${goalTitle(goal)}`}
+                  onAction={(key) => {
+                    if (key === "edit") {
+                      setStarting(null);
+                      setRetryingId(undefined);
+                      const selected = active.goals.find((item) => item.id === goal.id) ?? goal;
+                      setEditing(selected);
+                      editState.open();
+                    } else {
+                      setDeleting(goal);
+                      deleteState.open();
+                      setDeleteError("");
+                    }
+                  }}
+                >
+                  {canEditGoal(goal) && <Menu.Item id="edit">Edit</Menu.Item>}
+                  <Menu.Item id="delete">Delete</Menu.Item>
+                </ActionsMenu>
               }
             />
           ))}
@@ -493,58 +480,54 @@ export function GoalPanel({
           </Button>
         </div>
       )}
-      {isOwner && (
-        <>
-          <Modal.Backdrop
-            isOpen={editState.isOpen}
-            onOpenChange={(open) => {
-              if (!pending) editState.setOpen(open);
-            }}
-          >
-            <Modal.Container placement="center" scroll="inside">
-              <Modal.Dialog className="w-full max-w-lg">
-                <Modal.Header>
-                  <Modal.Heading className="sr-only">
-                    {editing ? "Edit goal" : "Set goal"}
-                  </Modal.Heading>
-                  <Modal.CloseTrigger isDisabled={pending} />
-                </Modal.Header>
-                <Modal.Body>
-                  {editState.isOpen && (
-                    <GoalForm
-                      embedded
-                      initialDraft={
-                        editing
-                          ? {
-                              ...draftFor(editing),
-                              ...(editing.repeat === "none" && editing.periodEnd < today
-                                ? { period: "custom" as const }
-                                : {}),
-                            }
-                          : undefined
-                      }
-                      initialValues={starting ?? undefined}
-                      today={today}
-                      nextGrades={nextGrades}
-                      onSave={save}
-                      onCancel={editState.close}
-                      onPendingChange={setPending}
-                    />
-                  )}
-                </Modal.Body>
-              </Modal.Dialog>
-            </Modal.Container>
-          </Modal.Backdrop>
-          <ConfirmDeleteDialog
-            state={deleteState}
-            noun="goal"
-            description="Your journal entries will be kept."
-            onConfirm={remove}
-            isPending={deletePending}
-            error={deleteError}
-          />
-        </>
-      )}
+      <Modal.Backdrop
+        isOpen={editState.isOpen}
+        onOpenChange={(open) => {
+          if (!pending) editState.setOpen(open);
+        }}
+      >
+        <Modal.Container placement="center" scroll="inside">
+          <Modal.Dialog className="w-full max-w-lg">
+            <Modal.Header>
+              <Modal.Heading className="sr-only">
+                {editing ? "Edit goal" : "Set goal"}
+              </Modal.Heading>
+              <Modal.CloseTrigger isDisabled={pending} />
+            </Modal.Header>
+            <Modal.Body>
+              {editState.isOpen && (
+                <GoalForm
+                  embedded
+                  initialDraft={
+                    editing
+                      ? {
+                          ...draftFor(editing),
+                          ...(editing.repeat === "none" && editing.periodEnd < today
+                            ? { period: "custom" as const }
+                            : {}),
+                        }
+                      : undefined
+                  }
+                  initialValues={starting ?? undefined}
+                  today={today}
+                  nextGrades={nextGrades}
+                  onSave={save}
+                  onCancel={editState.close}
+                  onPendingChange={setPending}
+                />
+              )}
+            </Modal.Body>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+      <ConfirmDeleteDialog
+        state={deleteState}
+        noun="goal"
+        description="Your journal entries will be kept."
+        onConfirm={remove}
+        isPending={deletePending}
+        error={deleteError}
+      />
     </>
   );
 }

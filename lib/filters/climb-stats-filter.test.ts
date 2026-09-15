@@ -1,31 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  DEFAULT_RATING_RANGE,
-  MAX_RATING,
-  parseRatingRange,
-  RATING_OPTIONS,
-} from "./climb-stats-filter";
-
-describe("RATING_OPTIONS / DEFAULT_RATING_RANGE", () => {
-  it("keeps index = rating value, with the 'Any' sentinel at 0", () => {
-    expect(RATING_OPTIONS[0]).toBe("Any");
-    expect(RATING_OPTIONS).toHaveLength(MAX_RATING + 1);
-    expect(RATING_OPTIONS[MAX_RATING]).toBe(String(MAX_RATING));
-  });
-
-  it("keeps the default range meaning 'filter inactive' on both bounds", () => {
-    // 0 on both sides is the "Any" sentinel, so neither bound applies — the
-    // exact encoding old shared URLs carry.
-    expect(DEFAULT_RATING_RANGE).toEqual([0, 0]);
-  });
-});
+import { MAX_RATING, parseRatingRange } from "./climb-stats-filter";
 
 describe("parseRatingRange", () => {
   it("returns the default (inactive) range when the param is absent or malformed", () => {
-    expect(parseRatingRange(undefined)).toEqual(DEFAULT_RATING_RANGE);
-    expect(parseRatingRange("3")).toEqual(DEFAULT_RATING_RANGE);
-    expect(parseRatingRange(["3", "nope"])).toEqual(DEFAULT_RATING_RANGE);
+    expect(parseRatingRange(undefined)).toEqual([0, 0]);
+    expect(parseRatingRange("3")).toEqual([0, 0]);
+    expect(parseRatingRange(["3", "nope"])).toEqual([0, 0]);
   });
 
   it("parses two finite values as [min, max]", () => {

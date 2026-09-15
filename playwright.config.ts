@@ -15,6 +15,7 @@ if (suite !== undefined && suite !== "app" && suite !== "gallery") {
 
 export default defineConfig({
   testDir: "./tests/ui",
+  globalSetup: suite === "gallery" ? undefined : "./tests/ui/app-setup.ts",
   fullyParallel: true,
   forbidOnly: true,
   retries: 0,
