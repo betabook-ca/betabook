@@ -13,6 +13,7 @@ import {
   type ChangeRequest,
   type Climb,
 } from "@/db/queries";
+import { refreshGoalsAfterWrite } from "@/db/queries/goals";
 import {
   areas,
   changeRequestApprovals,
@@ -294,6 +295,8 @@ export async function applyClimbMove(
     decision,
   );
 
+  await refreshClimbGoalAchievements(db, [climbId]);
+
   afterCommit(() => {
     revalidatePath(`/climbs/${climbId}`);
     revalidatePath(`/areas/${newAreaId}`);
@@ -350,6 +353,8 @@ export async function applyClimbEdit(
     climbUnchanged(existing),
     decision,
   );
+
+  await refreshClimbGoalAchievements(db, [climbId]);
 
   afterCommit(() => {
     revalidatePath(`/climbs/${climbId}`);
@@ -492,6 +497,8 @@ export async function applyClimbMerge(
     decision,
   );
 
+  await refreshClimbGoalAchievements(db, [sourceClimbId, targetClimbId]);
+
   afterCommit(() => {
     revalidatePath(`/climbs/${targetClimbId}`);
     revalidatePath(`/climbs/${sourceClimbId}`);
@@ -543,4 +550,13 @@ export async function recordChangeRequestApproval(
   userId: string,
 ): Promise<void> {
   await db.insert(changeRequestApprovals).values({ requestId, userId }).onConflictDoNothing();
+}
+
+async function refreshClimbGoalAchievements(db: Database, climbIds: number[]) {
+  const authors = await db
+    .selectDistinct({ userId: journalEntries.userId })
+    .from(journalEntries)
+    .where(inArray(journalEntries.climbId, climbIds));
+  for (const { userId } of authors) await refreshGoalsAfterWrite(db, userId);
+  if (authors.length) revalidatePath("/feed");
 }

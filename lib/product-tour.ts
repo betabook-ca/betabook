@@ -10,7 +10,7 @@ export const PRODUCT_TOURS = [
     description: "Learn to log sessions, add friends, and choose who can read your notes.",
     returningTitle: "Share your journal with friends",
     returningDescription:
-      "Add your climbing partners as friends to see what they've been climbing. Set separate audiences for send commentary and journal entries.",
+      "Add your climbing partners as friends to see what they've been climbing. Choose who sees your send commentary, journal and finished goals.",
   },
 ] as const;
 

@@ -28,7 +28,7 @@ it("masks audiences on private profiles and restores each independent choice", a
   const user = userEvent.setup();
   render(<Privacy />);
   const commentary = screen.getByRole("button", { name: /Send commentary audience/ });
-  const journal = screen.getByRole("button", { name: /Journal entries audience/ });
+  const journal = screen.getByRole("button", { name: /Journal and goals audience/ });
   const profile = screen.getByRole("switch", { name: "Private profile" });
   expect(profile).toHaveAccessibleDescription("Signed-in members can see your profile and sends.");
   expect(commentary).toHaveTextContent("Members");
@@ -63,7 +63,7 @@ it("offers Everyone for send commentary but not for the journal", async () => {
   await waitFor(() => expect(optionNames()).toEqual(["Only me", "Friends", "Members", "Everyone"]));
   await user.click(screen.getByRole("option", { name: "Everyone" }));
   expect(commentary).toHaveTextContent("Everyone");
-  await user.click(screen.getByRole("button", { name: /Journal entries audience/ }));
+  await user.click(screen.getByRole("button", { name: /Journal and goals audience/ }));
   await waitFor(() => expect(optionNames()).toEqual(["Only me", "Friends", "Members"]));
 });
 
@@ -84,7 +84,7 @@ it("prevents changes to all three privacy controls during a save", async () => {
   const controls = [
     screen.getByRole("switch"),
     screen.getByRole("button", { name: /Send commentary audience/ }),
-    screen.getByRole("button", { name: /Journal entries audience/ }),
+    screen.getByRole("button", { name: /Journal and goals audience/ }),
   ];
   for (const control of controls) {
     expect(control).toBeDisabled();

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { ActionError } from "@/lib/action-result";
 import { nativeGradeArray, type ClimbType } from "@/lib/grades";
+import { isValidJournalTag, MAX_JOURNAL_TAGS, MAX_JOURNAL_TAG_LENGTH } from "@/lib/journal";
 
 export const MAX_ACTIVE_GOALS = 5;
 const isoDate = z
@@ -30,6 +31,20 @@ export const goalInputSchema = z
   .object({
     kind: z.enum(["volume", "grade", "training", "days", "new-areas"]),
     target: z.number().int().min(1).max(1000),
+    tags: z
+      .array(
+        z
+          .string()
+          .trim()
+          .transform((tag) => tag.replace(/^#+/, "").toLowerCase())
+          .refine(
+            (tag) => isValidJournalTag(tag) && tag.length <= MAX_JOURNAL_TAG_LENGTH,
+            "Use hashtags with up to 24 letters, numbers or hyphens.",
+          ),
+      )
+      .max(MAX_JOURNAL_TAGS)
+      .transform((tags) => [...new Set(tags)].sort())
+      .optional(),
     discipline: z.enum(["boulder", "sport", "trad"]).nullable(),
     grade: z.number().int().min(0).nullable(),
     gradeMatch: z.enum(["exact", "at-least"]).default("exact"),
@@ -84,6 +99,7 @@ type GoalKind = GoalInput["kind"];
 export type GoalDefinition = {
   id: number;
   archived?: boolean;
+  tags?: string[];
   userId: string;
   kind: GoalKind;
   target: number;
@@ -165,7 +181,7 @@ export function goalWindow(
   date.setUTCMonth(date.getUTCMonth() + 1, 0);
   return { startDate: `${today.slice(0, 7)}-01`, endDate: date.toISOString().slice(0, 10) };
 }
-export function goalTitle(
+function baseGoalTitle(
   goal: Pick<GoalDefinition, "kind" | "target" | "discipline" | "grade" | "repeat" | "gradeMatch">,
 ) {
   const grade =
@@ -179,6 +195,18 @@ export function goalTitle(
   if (goal.kind === "new-areas")
     return `Visit ${goal.target} new ${goal.target === 1 ? "area" : "areas"}${suffix}`;
   return `Train ${goal.target} ${goal.target === 1 ? "time" : "times"}${suffix}`;
+}
+
+export function goalTitle(
+  goal: Pick<
+    GoalDefinition,
+    "kind" | "target" | "discipline" | "grade" | "repeat" | "gradeMatch" | "tags"
+  >,
+) {
+  return (
+    baseGoalTitle(goal) +
+    (goal.tags?.length ? ` · ${goal.tags.map((tag) => `#${tag}`).join(" ")}` : "")
+  );
 }
 
 export type GoalHistoryPage = {

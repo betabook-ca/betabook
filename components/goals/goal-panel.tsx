@@ -4,7 +4,7 @@ import { Button, Menu, Modal, useOverlayState } from "@heroui/react";
 import { CirclePlus } from "lucide-react";
 import { useState } from "react";
 
-import { saveGoal, deleteGoal, acknowledgeGoalAchievements, archiveMissedGoal } from "@/actions";
+import { saveGoal, deleteGoal, acknowledgeGoalAchievements, archiveGoal } from "@/actions";
 import { ActionsMenu } from "@/components/ui/actions-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
@@ -54,6 +54,7 @@ function draftFor(goal: GoalProgress): GoalDraft {
     goal: goal.kind,
     discipline: goal.discipline ?? "boulder",
     gradeMatch: goal.gradeMatch ?? "exact",
+    tags: goal.tags ?? [],
     grade: goal.grade === null ? "any" : String(goal.grade),
     amount: String(goal.target),
     period: goal.timeframe,
@@ -86,7 +87,8 @@ function GoalRowTitle({
             {goalDateLabel(
               {
                 ...goal,
-                completedDate: view === "completed" ? goal.completedDate : null,
+                completedDate:
+                  view === "completed" || goal.repeat === "none" ? goal.completedDate : null,
               },
               today,
             )}
@@ -127,11 +129,16 @@ export function GoalPanel({
   const [view, setView] = useState<"active" | "completed">(initialView);
   const active = initialActive;
   const activeCount = active.goals.filter(
-    (goal) => !(goal.missed ?? isMissedGoal(goal, today)),
+    (goal) =>
+      !(goal.missed ?? isMissedGoal(goal, today)) &&
+      (goal.repeat !== "none" || !goal.completedDate),
   ).length;
   const needsDecision = (goal: GoalProgress) =>
     goal.needsAction ?? missedGoalNeedsAction(goal, today);
   const missed = (goal: GoalProgress) => goal.missed ?? isMissedGoal(goal, today);
+  const finished = (goal: GoalProgress) => goal.repeat === "none" && Boolean(goal.completedDate);
+  const canArchive = (goal: GoalProgress) =>
+    !goal.archived && (finished(goal) || (view === "active" && needsDecision(goal)));
   const showMissedActions = (goal: GoalProgress) => view === "active" && needsDecision(goal);
 
   const canEditGoal = (goal: GoalProgress) =>
@@ -173,6 +180,7 @@ export function GoalPanel({
       discipline: climbing ? draft.discipline : null,
       grade: climbing && draft.grade !== "any" ? Number(draft.grade) : null,
       gradeMatch: draft.gradeMatch ?? "exact",
+      tags: draft.tags ?? [],
       timeframe: draft.period,
       repeat: draft.repeat,
       startDate: draft.startDate,
@@ -207,10 +215,11 @@ export function GoalPanel({
     editState.open();
   }
   async function archive(goal: GoalProgress) {
+    if (archivingId !== null) return;
     setArchivingId(goal.id);
     setArchiveError("");
     try {
-      const result = await archiveMissedGoal(goal.id);
+      const result = await archiveGoal(goal.id);
       if (!result.ok) setArchiveError(result.error);
     } catch {
       setArchiveError("Could not archive the goal. Try again.");
@@ -235,6 +244,54 @@ export function GoalPanel({
     } finally {
       setDeletePending(false);
     }
+  }
+  function finishedArchiveButton(goal: GoalProgress) {
+    if (view !== "active" || !finished(goal) || goal.archived) return null;
+    return (
+      <span className="ml-auto flex justify-end">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="-mr-3 text-xs!"
+          isDisabled={archivingId !== null}
+          onPress={() => {
+            void archive(goal);
+          }}
+        >
+          {archivingId === goal.id ? "Archiving…" : "Archive goal"}
+        </Button>
+      </span>
+    );
+  }
+  function goalActions(goal: GoalProgress) {
+    return (
+      <ActionsMenu
+        ariaLabel={`Actions for ${goalTitle(goal)}`}
+        onAction={(key) => {
+          if (key === "edit") {
+            setStarting(null);
+            setRetryingId(undefined);
+            const selected = active.goals.find((item) => item.id === goal.id) ?? goal;
+            setEditing(selected);
+            editState.open();
+          } else if (key === "archive") {
+            void archive(goal);
+          } else {
+            setDeleting(goal);
+            deleteState.open();
+            setDeleteError("");
+          }
+        }}
+      >
+        {canEditGoal(goal) && <Menu.Item id="edit">Edit</Menu.Item>}
+        {view === "completed" && canArchive(goal) && (
+          <Menu.Item id="archive" isDisabled={archivingId !== null}>
+            Archive goal
+          </Menu.Item>
+        )}
+        <Menu.Item id="delete">Delete</Menu.Item>
+      </ActionsMenu>
+    );
   }
   const anyGoals =
     active.goals.length > 0 ||
@@ -345,6 +402,12 @@ export function GoalPanel({
             />
           </div>
         )}
+        {view === "active" && active.goals.some(finished) && (
+          <p className="py-3 text-xs text-muted">
+            Finished goals stay here until you archive them. They don’t count toward your active
+            limit.
+          </p>
+        )}
         <div className="divide-y divide-foreground/20">
           {rows.map((goal) => (
             <ListRow
@@ -358,7 +421,7 @@ export function GoalPanel({
                   {view === "completed" && goal.repeat !== "none" && !goal.completedDate && (
                     <span className="text-xs text-muted">Not met</span>
                   )}
-                  {view === "completed" ? (
+                  {view === "completed" || finished(goal) ? (
                     <GoalItems ownerId={ownerId} goal={goal} loadItems={loadItems} />
                   ) : goal.kind !== "grade" || needsDecision(goal) ? (
                     <div className="flex w-full items-center gap-2">
@@ -386,6 +449,7 @@ export function GoalPanel({
                       )}
                     </div>
                   ) : undefined}
+                  {finishedArchiveButton(goal)}
                   {showMissedActions(goal) && (
                     <span className="ml-auto flex flex-wrap justify-end gap-2">
                       <Button
@@ -428,27 +492,7 @@ export function GoalPanel({
                   )}
                 </div>
               }
-              actions={
-                <ActionsMenu
-                  ariaLabel={`Actions for ${goalTitle(goal)}`}
-                  onAction={(key) => {
-                    if (key === "edit") {
-                      setStarting(null);
-                      setRetryingId(undefined);
-                      const selected = active.goals.find((item) => item.id === goal.id) ?? goal;
-                      setEditing(selected);
-                      editState.open();
-                    } else {
-                      setDeleting(goal);
-                      deleteState.open();
-                      setDeleteError("");
-                    }
-                  }}
-                >
-                  {canEditGoal(goal) && <Menu.Item id="edit">Edit</Menu.Item>}
-                  <Menu.Item id="delete">Delete</Menu.Item>
-                </ActionsMenu>
-              }
+              actions={goalActions(goal)}
             />
           ))}
         </div>

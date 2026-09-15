@@ -128,7 +128,7 @@ New accounts default to **Members** send commentary and **Friends** journal entr
 Existing audience choices stay unchanged; the Members label uses the stored `public` value.
 Send commentary has its own audience, applied to original-send notes on climb
 pages, Sends, the feed, and mirrored ascent notes in the journal. The journal
-audience controls access to the journal, sessions, repeats, training, and tags.
+audience is labeled **Journal and goals** and controls access to the journal, sessions, repeats, training, tags, and finished goals in friends’ feeds.
 Deleting a send retains its journal entry and keeps its commentary audience, including
 after further edits. Database triggers classify original-send notes for every write path.
 Private profile overrides both audiences and turns the climber's sends into anonymous rows on climb pages;

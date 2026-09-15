@@ -196,3 +196,20 @@ it("preserves Any grade when changing climbing discipline", async () => {
     ),
   );
 });
+
+it("submits hashtag filters and keeps them after a failed save", async () => {
+  const user = userEvent.setup();
+  const save = vi
+    .fn<(draft: unknown) => Promise<void>>()
+    .mockRejectedValueOnce(new Error("Try again"))
+    .mockResolvedValue(undefined);
+  render(<GoalForm initialCategory="training" today="2026-09-11" onSave={save} />);
+  await user.type(screen.getByRole("combobox", { name: "Tags" }), "hangboard{Enter}");
+  await user.click(screen.getByRole("button", { name: "Create goal" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Try again");
+  expect(screen.getByRole("button", { name: "Remove tag hangboard" })).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Create goal" }));
+  await waitFor(() =>
+    expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ tags: ["hangboard"] })),
+  );
+});

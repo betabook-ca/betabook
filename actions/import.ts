@@ -13,6 +13,7 @@ import {
   getUserSentClimbIds,
   type ClimbCandidate,
 } from "@/db/queries";
+import { refreshGoalsAfterWrite } from "@/db/queries/goals";
 import { importBatches, journalEntries, sends } from "@/db/schema";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
 import { parseGrade } from "@/lib/grades";
@@ -325,7 +326,8 @@ export async function importSends(
       throw new ActionError("The import result could not be confirmed");
     }
 
-    if (statements.length > 0)
+    if (statements.length > 0) {
+      await refreshGoalsAfterWrite(db, session.user.id);
       afterCommit(() => {
         const affectedClimbIds = [
           ...toInsert.map((row) => row.climbId),
@@ -343,6 +345,7 @@ export async function importSends(
         }
         refresh();
       });
+    }
 
     return committed;
   });

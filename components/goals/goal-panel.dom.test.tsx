@@ -9,7 +9,7 @@ import { GoalPanel } from "./goal-panel";
 vi.mock("@/actions", () => ({
   saveGoal: vi.fn<() => Promise<unknown>>(),
   deleteGoal: vi.fn<() => Promise<unknown>>(),
-  archiveMissedGoal: vi.fn<() => Promise<unknown>>().mockResolvedValue({ ok: true }),
+  archiveGoal: vi.fn<() => Promise<unknown>>().mockResolvedValue({ ok: true }),
   acknowledgeGoalAchievements: vi.fn<() => Promise<unknown>>().mockResolvedValue({ ok: true }),
 }));
 const goal: GoalProgress = {
@@ -320,7 +320,7 @@ it("retries the failed year request without marking Load more as failed", async 
 });
 
 it("leaves a missed goal in Active when retry is cancelled and offers no retry actions in History", async () => {
-  const { archiveMissedGoal, saveGoal } = await import("@/actions");
+  const { archiveGoal, saveGoal } = await import("@/actions");
   vi.mocked(saveGoal).mockClear();
   const missed = {
     ...goal,
@@ -348,7 +348,7 @@ it("leaves a missed goal in Active when retry is cancelled and offers no retry a
   expect(saveGoal).not.toHaveBeenCalled();
   expect(screen.getByRole("button", { name: "Try again" })).toBeVisible();
   await user.click(screen.getByRole("button", { name: "Archive goal" }));
-  await waitFor(() => expect(archiveMissedGoal).toHaveBeenCalledWith(missed.id));
+  await waitFor(() => expect(archiveGoal).toHaveBeenCalledWith(missed.id));
   rerender(
     <GoalPanel
       {...props}
@@ -389,4 +389,40 @@ it("retains Edit and Delete alongside the visible missed-goal actions", async ()
   await user.click(screen.getByRole("button", { name: "Actions for Train 8 times" }));
   expect(screen.getByRole("menuitem", { name: "Edit" })).toBeVisible();
   expect(screen.getByRole("menuitem", { name: "Delete" })).toBeVisible();
+});
+
+it("keeps unlimited finishes outside active capacity and offers archive with retry", async () => {
+  const { archiveGoal } = await import("@/actions");
+  vi.mocked(archiveGoal)
+    .mockReset()
+    .mockResolvedValueOnce({ ok: false, error: "Please try again." })
+    .mockResolvedValue({ ok: true, value: undefined });
+  const user = userEvent.setup();
+  const finished = Array.from({ length: 8 }, (_, index) => ({
+    ...goal,
+    id: index + 1,
+    target: index + 1,
+    progress: index + 1,
+    completedDate: "2026-09-02",
+  }));
+  const props = {
+    ownerId: "owner",
+    timezone: "UTC",
+    today: "2026-09-11",
+    initialActive: { goals: finished, hasMore: false },
+    initialCompleted: { goals: [], hasMore: false },
+  };
+  const { rerender } = render(<GoalPanel {...props} />);
+  expect(screen.getByRole("button", { name: "Active (0/5)" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Set goal" })).toBeEnabled();
+  expect(screen.getAllByRole("button", { name: "Archive goal" })).toHaveLength(8);
+  await user.click(screen.getAllByRole("button", { name: "Archive goal" })[0]);
+  expect(await screen.findByText("Please try again.")).toBeVisible();
+  expect(screen.getByText("Train 1 time")).toBeVisible();
+  await user.click(screen.getAllByRole("button", { name: "Archive goal" })[0]);
+  await waitFor(() => expect(archiveGoal).toHaveBeenCalledTimes(2));
+  expect(archiveGoal).toHaveBeenLastCalledWith(1);
+  rerender(<GoalPanel {...props} initialActive={{ goals: finished.slice(1), hasMore: false }} />);
+  expect(screen.queryByText("Train 1 time")).not.toBeInTheDocument();
+  expect(screen.getAllByRole("button", { name: "Archive goal" })).toHaveLength(7);
 });

@@ -28,6 +28,10 @@ export const goals = sqliteTable(
     gradeMatch: text("grade_match", { enum: ["exact", "at-least"] })
       .notNull()
       .default("exact"),
+    tags: text("tags", { mode: "json" })
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'`),
   },
   (t) => [
     index("goals_user_idx").on(t.userId),

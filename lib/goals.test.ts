@@ -106,3 +106,25 @@ it("clamps the missed-goal decision month at short months and leap years", async
   expect(missedGoalArchiveDate("2028-01-30")).toBe("2028-02-29");
   expect(missedGoalArchiveDate("2026-12-14")).toBe("2027-01-15");
 });
+
+it("normalizes goal hashtag filters and rejects invalid or excessive hashtags", () => {
+  const input = {
+    kind: "training",
+    target: 1,
+    discipline: null,
+    grade: null,
+    timeframe: "month",
+    repeat: "none",
+    endDate: "2026-09-30",
+    timezone: "UTC",
+  };
+  expect(
+    goalInputSchema.parse({ ...input, tags: [" #Strength ", "HANGBOARD", "strength"] }).tags,
+  ).toEqual(["hangboard", "strength"]);
+  for (const tags of [
+    ["bad tag"],
+    ["x".repeat(25)],
+    Array.from({ length: 9 }, (_, i) => `tag-${i}`),
+  ])
+    expect(goalInputSchema.safeParse({ ...input, tags }).success).toBe(false);
+});

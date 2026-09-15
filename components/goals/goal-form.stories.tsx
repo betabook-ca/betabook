@@ -93,3 +93,19 @@ export const MinimumGrade: Story = {
     },
   },
 };
+
+export const HashtagGoal: Story = {
+  args: {
+    initialValues: {
+      category: "training",
+      goal: "training",
+      discipline: "boulder",
+      grade: "any",
+      amount: "8",
+      period: "month",
+      repeat: "none",
+      endDate: "2026-09-30",
+      tags: ["hangboard", "strength"],
+    },
+  },
+};

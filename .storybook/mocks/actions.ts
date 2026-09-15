@@ -69,7 +69,7 @@ export const acknowledgeGoalAchievements = fn<
   typeof Actions.acknowledgeGoalAchievements
 >().mockResolvedValue({ ok: true, value: undefined });
 
-export const archiveMissedGoal = fn<typeof Actions.archiveMissedGoal>().mockResolvedValue({
+export const archiveGoal = fn<typeof Actions.archiveGoal>().mockResolvedValue({
   ok: true,
   value: undefined,
 });

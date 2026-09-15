@@ -38,7 +38,12 @@ export function FeedTimeline({
               );
             const { day } = card;
             const remaining =
-              day.sends + day.repeats + day.sessions + day.training - day.activities.length;
+              day.sends +
+              day.repeats +
+              day.sessions +
+              day.training +
+              (day.goals ?? 0) -
+              day.activities.length;
             const label = `See ${remaining} more ${remaining === 1 ? "activity" : "activities"} from ${day.name}`;
             return (
               <Fragment key={card.key}>

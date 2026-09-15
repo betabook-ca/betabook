@@ -1,7 +1,7 @@
 "use client";
 
 import { clsx } from "clsx";
-import { Check, ChevronRight, CircleDashed, Dumbbell, Repeat2 } from "lucide-react";
+import { Check, ChevronRight, CircleDashed, Dumbbell, Repeat2, Trophy } from "lucide-react";
 import { useId, useState } from "react";
 
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
@@ -27,6 +27,7 @@ function GradeFeel({ activity }: { activity: Activity }) {
 }
 
 function outcome(activity: Activity) {
+  if (activity.kind === "goal") return { Icon: Trophy, label: "Goal accomplished", sent: true };
   if (activity.kind === "send")
     return {
       Icon: Check,
@@ -54,7 +55,7 @@ export function FeedActivityCard({
   const first = entries[0];
   if (!first) return null;
   const { activity } = first;
-  const title = activity.climbName ?? "Training";
+  const title = activity.goalTitle ?? activity.climbName ?? "Training";
   const hiddenSummary = (["send", "session", "repeat", "training"] as const)
     .map((kind) => {
       const count = entries.slice(2).filter((entry) => entry.activity.kind === kind).length;
@@ -115,7 +116,7 @@ export function FeedActivityCard({
                 )}
               </div>
             </div>
-            {links && (
+            {links && item.kind !== "goal" && (
               <AppLink
                 href={feedDayHref(day, view)}
                 prefetch={false}

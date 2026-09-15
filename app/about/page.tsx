@@ -76,9 +76,9 @@ export default function AboutPage() {
             requests to still see your name, and climb pages list your sends without it.
           </li>
           <li>
-            You set one audience for journal entries and another for send notes, from Only me to
-            Members. Send notes can also be set to Everyone, which shows them with your name to
-            signed-out visitors.
+            You set one audience for your journal and finished goals and another for send notes,
+            from Only me to Members. Send notes can also be set to Everyone, which shows them with
+            your name to signed-out visitors.
           </li>
           <li>
             Your profile link and QR code show your name, photo, send stats and latest sends to

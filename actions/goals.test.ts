@@ -406,7 +406,7 @@ it("does not expire Pacific goals early when a new goal uses UTC", async () => {
 });
 
 it("archives only an owned missed goal within its decision window", async () => {
-  const { archiveMissedGoal } = await import("./goals");
+  const { archiveGoal } = await import("./goals");
   const [source] = await db
     .insert(goals)
     .values({
@@ -421,16 +421,16 @@ it("archives only an owned missed goal within its decision window", async () => 
     })
     .returning();
   identity.id = "other";
-  expect((await archiveMissedGoal(source.id)).ok).toBe(false);
+  expect((await archiveGoal(source.id)).ok).toBe(false);
   identity.id = "owner";
-  expect((await archiveMissedGoal(source.id)).ok).toBe(true);
+  expect((await archiveGoal(source.id)).ok).toBe(true);
   expect((await db.select().from(goals))[0]).toMatchObject({
     target: 8,
     startDate: "2026-08-01",
     endDate: "2026-08-31",
     archiveToken: expect.any(String),
   });
-  expect((await archiveMissedGoal(source.id)).ok).toBe(false);
+  expect((await archiveGoal(source.id)).ok).toBe(false);
   expect((await saveGoal(null, input, source.id)).ok).toBe(false);
 });
 
@@ -498,7 +498,7 @@ it.each(["2023-01-01", null])(
     const { climbs, journalEntries } = await import("@/db/schema");
     const { seedFixtureTree, seedFixtureSend } = await import("@/test/fixtures");
     const { getGoalPage, getGoalContributions } = await import("@/db/queries/goals");
-    const { acknowledgeGoalAchievements, archiveMissedGoal } = await import("@/actions/goals");
+    const { acknowledgeGoalAchievements } = await import("@/actions/goals");
     await seedFixtureTree(db);
     const milestone = { ...input, kind: "grade", target: 1, discipline: "boulder", grade: 5 };
     const saved = await saveGoal(null, milestone);
@@ -533,10 +533,9 @@ it.each(["2023-01-01", null])(
     // The completed milestone must not consume one of the five active slots.
     for (let i = 0; i < 5; i += 1) expect((await saveGoal(null, input)).ok).toBe(true);
     vi.setSystemTime(new Date("2026-10-05T12:00:00Z"));
-    expect(
-      (await getGoalPage(db, "owner", "owner", "active")).goals.map((g) => g.id),
-    ).not.toContain(saved.value);
-    expect((await archiveMissedGoal(saved.value)).ok).toBe(false);
+    expect((await getGoalPage(db, "owner", "owner", "active")).goals.map((g) => g.id)).toContain(
+      saved.value,
+    );
     expect((await saveGoal(null, milestone, saved.value)).ok).toBe(false);
     // Completion still follows the qualifying log, not the stored acknowledgement.
     await db.delete(journalEntries).where(eq(journalEntries.climbId, 1));
@@ -576,4 +575,86 @@ it("preserves eligibility for ordinary edits but rechecks changed milestone crit
   if (!trainingGoal.ok) throw Error(trainingGoal.error);
   expect((await saveGoal(trainingGoal.value, milestone)).ok).toBe(false);
   expect((await saveGoal(null, milestone)).ok).toBe(false);
+});
+
+it("archives finished goals without deleting their achievement or consuming active slots", async () => {
+  const { archiveGoal } = await import("@/actions/goals");
+  const { getGoalOverview } = await import("@/db/queries/goals");
+  await seedFixtureJournalEntry(db, { userId: "owner", kind: "training", entryDate: "2026-09-02" });
+  const created = await saveGoal(null, { ...input, target: 1 });
+  if (!created.ok) throw Error(created.error);
+  identity.id = "other";
+  expect((await archiveGoal(created.value)).ok).toBe(false);
+  identity.id = "owner";
+  expect((await archiveGoal(created.value)).ok).toBe(true);
+  const overview = await getGoalOverview(db, "owner", "owner");
+  expect(overview.active.goals).toEqual([]);
+  expect(overview.completed.goals).toMatchObject([
+    { id: created.value, archived: true, completedDate: "2026-09-02" },
+  ]);
+  expect((await saveGoal(created.value, input)).ok).toBe(false);
+});
+
+it("counts only sessions matching a goal's saved hashtags", async () => {
+  await seedFixtureJournalEntry(db, {
+    userId: "owner",
+    kind: "training",
+    entryDate: "2026-09-02",
+    tags: ["strength"],
+  });
+  await seedFixtureJournalEntry(db, { userId: "owner", kind: "training", entryDate: "2026-09-03" });
+  const created = await saveGoal(null, { ...input, tags: ["hangboard", "strength"] });
+  if (!created.ok) throw Error(created.error);
+  const { getGoalOverview } = await import("@/db/queries/goals");
+  let overview = await getGoalOverview(db, "owner", "owner");
+  expect(overview.active.goals[0]).toMatchObject({ progress: 0, completedDate: null });
+  await seedFixtureJournalEntry(db, {
+    userId: "owner",
+    kind: "training",
+    entryDate: "2026-09-04",
+    tags: ["hangboard", "strength"],
+  });
+  overview = await getGoalOverview(db, "owner", "owner");
+  expect(overview.active.goals[0]).toMatchObject({ progress: 1, tags: ["hangboard", "strength"] });
+});
+
+it("preserves a recurring period's hashtag filter when the next month changes", async () => {
+  const saved = await saveGoal(null, { ...input, repeat: "month", tags: ["hangboard"] });
+  if (!saved.ok) throw Error(saved.error);
+  await seedFixtureJournalEntry(db, {
+    userId: "owner",
+    kind: "training",
+    entryDate: "2026-09-02",
+    tags: ["hangboard"],
+  });
+  await seedFixtureJournalEntry(db, {
+    userId: "owner",
+    kind: "training",
+    entryDate: "2026-09-03",
+    tags: ["strength"],
+  });
+  vi.setSystemTime(new Date("2026-10-02T12:00:00Z"));
+  expect((await saveGoal(saved.value, { ...input, repeat: "month", tags: ["strength"] })).ok).toBe(
+    true,
+  );
+  const { getRecurringGoalHistory } = await import("@/db/queries/goals");
+  const history = await getRecurringGoalHistory(db, "owner", "owner", saved.value);
+  expect(history.periods.find((period) => period.periodStart === "2026-09-01")).toMatchObject({
+    progress: 1,
+    tags: ["hangboard"],
+  });
+});
+
+it("keeps hashtag-filtered goals within the five-active limit", async () => {
+  await seedFixtureJournalEntry(db, { userId: "owner", kind: "training", entryDate: "2026-09-02" });
+  const tagged = { ...input, target: 1, tags: ["hangboard"] };
+  for (let i = 0; i < 5; i += 1) expect((await saveGoal(null, tagged)).ok).toBe(true);
+  expect((await saveGoal(null, tagged)).ok).toBe(false);
+  await seedFixtureJournalEntry(db, {
+    userId: "owner",
+    kind: "training",
+    entryDate: "2026-09-03",
+    tags: ["hangboard"],
+  });
+  expect((await saveGoal(null, tagged)).ok).toBe(true);
 });

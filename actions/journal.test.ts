@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -12,7 +12,14 @@ import {
 } from "@/actions";
 import { createDb } from "@/db/client";
 import * as queries from "@/db/queries";
-import { climbs, journalEntries, sends } from "@/db/schema";
+import {
+  climbs,
+  goals,
+  goalCompletions,
+  goalAchievements,
+  journalEntries,
+  sends,
+} from "@/db/schema";
 import { SESSION_EXPIRED_MESSAGE } from "@/lib/action-result";
 import { allowJournalWrite } from "@/lib/rate-limit";
 import {
@@ -106,6 +113,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   sessionState.userId = "j-user";
   vi.mocked(allowJournalWrite).mockResolvedValue(true);
+  await db.delete(goals);
   await db.delete(journalEntries);
   await db.delete(sends);
 });
@@ -831,3 +839,51 @@ it.each(
     expect(await sendFor("j-user", HIGHBALL)).toBeUndefined();
   },
 );
+
+it("persists a goal accomplishment when its session is logged, and removes it when that session is deleted", async () => {
+  await db.insert(goals).values({
+    userId: "j-user",
+    kind: "training",
+    target: 1,
+    timeframe: "month",
+    repeat: "none",
+    startDate: "2026-03-01",
+    endDate: "2026-03-31",
+    timezone: "UTC",
+    celebrationsInitialized: true,
+  });
+  expect((await createJournalEntry(entryFormData({ kind: "training" }))).ok).toBe(true);
+  expect(await db.select().from(goalCompletions)).toMatchObject([
+    { completedDate: "2026-03-01", title: "Train 1 time" },
+  ]);
+  expect(await db.select().from(goalAchievements)).toMatchObject([{ acknowledgedAt: null }]);
+  const [entry] = await entriesFor("j-user");
+  expect((await deleteJournalEntry(entry.id)).ok).toBe(true);
+  expect(await db.select().from(goalCompletions)).toEqual([]);
+  expect(await db.select().from(goalAchievements)).toHaveLength(1);
+});
+
+it("does not reject a saved session when its derived achievement refresh fails", async () => {
+  await db.insert(goals).values({
+    userId: "j-user",
+    kind: "training",
+    target: 1,
+    timeframe: "month",
+    repeat: "none",
+    startDate: "2026-03-01",
+    endDate: "2026-03-31",
+    timezone: "UTC",
+    celebrationsInitialized: true,
+  });
+  await db.run(
+    sql`CREATE TRIGGER test_completion_failure BEFORE INSERT ON goal_completions BEGIN SELECT RAISE(ABORT, 'completion refresh failed'); END`,
+  );
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    expect((await createJournalEntry(entryFormData({ kind: "training" }))).ok).toBe(true);
+    expect(await entriesFor("j-user")).toHaveLength(1);
+  } finally {
+    await db.run(sql`DROP TRIGGER test_completion_failure`);
+    log.mockRestore();
+  }
+});

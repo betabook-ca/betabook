@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useEffect, useState } from "react";
 import { mocked } from "storybook/test";
 
-import { archiveMissedGoal, saveGoal } from "@/actions";
+import { archiveGoal, saveGoal } from "@/actions";
 import { summarizeGoalPeriods } from "@/lib/goal-history";
 import { goalInputSchema, goalWindow, type GoalPage, type GoalProgress } from "@/lib/goals";
 import { StoryPage } from "@/stories/fixtures/story-layout";
@@ -198,7 +198,7 @@ export const MissedGoal: Story = {
         summary: { year: 2026, achieved: 0 },
         years: [2026],
       };
-      mocked(archiveMissedGoal).mockImplementation(async () => {
+      mocked(archiveGoal).mockImplementation(async () => {
         setPages({ active: { goals: [], hasMore: false }, history });
         return { ok: true, value: undefined };
       });
@@ -226,7 +226,7 @@ export const MissedGoal: Story = {
         return { ok: true, value: -51 };
       });
       return () => {
-        mocked(archiveMissedGoal).mockReset().mockResolvedValue({ ok: true, value: undefined });
+        mocked(archiveGoal).mockReset().mockResolvedValue({ ok: true, value: undefined });
         mocked(saveGoal).mockReset().mockResolvedValue({ ok: true, value: -1 });
       };
     }, [args.ownerId, args.today]);
@@ -285,6 +285,21 @@ export const BackdatedAchievement: Story = {
       total: 1,
       summary: { year: 2026, achieved: 1 },
       years: [2026],
+    },
+  },
+};
+
+export const UnarchivedFinishes: Story = {
+  args: {
+    initialActive: {
+      hasMore: false,
+      goals: Array.from({ length: 8 }, (_, i) => ({
+        ...backdatedGoal,
+        id: -100 - i,
+        target: i + 1,
+        progress: i + 1,
+        completedDate: "2026-09-02",
+      })),
     },
   },
 };

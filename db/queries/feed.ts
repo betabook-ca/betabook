@@ -11,7 +11,8 @@ import { companionsJsonSql } from "./journal-companions";
 
 type FeedActivity = {
   id: number;
-  kind: "send" | "repeat" | "session" | "training";
+  kind: "send" | "repeat" | "session" | "training" | "goal";
+  goalTitle?: string | null;
   climbId: number | null;
   climbName: string | null;
   climbType: ClimbType | null;
@@ -37,6 +38,7 @@ export type FeedDay = {
   repeats: number;
   sessions: number;
   training: number;
+  goals?: number;
   activities: FeedActivity[];
 };
 export type FeedPage = { days: FeedDay[]; hasMore: boolean };
@@ -78,35 +80,41 @@ export async function getFeedPage(
       WHERE u.is_private = 0
     ), activity AS (
       SELECT s.user_id AS userId, s.date_sent AS date, s.id, 'send' AS kind,
-        s.climb_id AS climbId, s.ascent_style AS ascentStyle, CASE WHEN u.sendCommentVisible THEN s.comment ELSE NULL END AS body
+        s.climb_id AS climbId, s.ascent_style AS ascentStyle, CASE WHEN u.sendCommentVisible THEN s.comment ELSE NULL END AS body, NULL AS goalTitle
       FROM authors u JOIN sends s ON s.user_id = u.id
       WHERE s.date_sent IS NOT NULL
         ${cursor ? sql`AND (s.date_sent, s.user_id) < (${cursor.date}, ${cursor.userId})` : sql``}
       UNION ALL
       SELECT j.user_id, j.entry_date, j.id,
         CASE WHEN j.kind = 'training' THEN 'training' WHEN j.sent = 1 THEN 'repeat' ELSE 'session' END,
-        j.climb_id, NULL, CASE WHEN j.is_send_comment = 0 OR u.sendCommentVisible THEN j.body ELSE NULL END
+        j.climb_id, NULL, CASE WHEN j.is_send_comment = 0 OR u.sendCommentVisible THEN j.body ELSE NULL END, NULL
       FROM authors u JOIN journal_entries j ON j.user_id = u.id
       WHERE ${view === "all"} AND u.journalVisible AND j.is_ascent = 0
         ${cursor ? sql`AND (j.entry_date, j.user_id) < (${cursor.date}, ${cursor.userId})` : sql``}
+      UNION ALL
+      SELECT g.user_id, completion.completed_date, completion.id, 'goal', NULL, NULL, NULL, completion.title
+      FROM authors u JOIN goals g ON g.user_id=u.id JOIN goal_completions completion ON completion.goal_id=g.id
+      WHERE ${view === "all"} AND u.journalVisible AND completion.completed_date IS NOT NULL
+        ${cursor ? sql`AND (completion.completed_date, g.user_id) < (${cursor.date}, ${cursor.userId})` : sql``}
     ), days AS (
       SELECT userId, date,
         count(*) FILTER (WHERE kind = 'send') AS sends,
         count(*) FILTER (WHERE kind = 'repeat') AS repeats,
         count(*) FILTER (WHERE kind = 'session') AS sessions,
-        count(*) FILTER (WHERE kind = 'training') AS training
+        count(*) FILTER (WHERE kind = 'training') AS training,
+        count(*) FILTER (WHERE kind = 'goal') AS goals
       FROM activity GROUP BY date, userId
       ORDER BY date DESC, userId DESC LIMIT ${limit + 1}
     ), previews AS (
       SELECT a.*, row_number() OVER (
-        PARTITION BY a.date, a.userId ORDER BY
-          CASE a.kind WHEN 'send' THEN 0 WHEN 'repeat' THEN 1 WHEN 'session' THEN 2 ELSE 3 END, a.id
+        PARTITION BY a.date, a.userId, (a.kind = 'goal') ORDER BY
+          CASE a.kind WHEN 'goal' THEN -1 WHEN 'send' THEN 0 WHEN 'repeat' THEN 1 WHEN 'session' THEN 2 ELSE 3 END, a.id
       ) AS position
       FROM activity a JOIN days d ON d.date = a.date AND d.userId = a.userId
     )
     SELECT d.*, u.name, u.image, u.journalVisible AS journalVisible,
-      p.id, p.kind, p.climbId, p.ascentStyle,
-      ${view === "all" ? sql`CASE WHEN u.journalVisible THEN ${companionsJsonSql(viewerId, companionEntryId)} ELSE '[]' END` : sql`'[]'`} AS companions,
+      p.id, p.kind, p.climbId, p.ascentStyle, p.goalTitle,
+      ${view === "all" ? sql`CASE WHEN u.journalVisible AND p.kind <> 'goal' THEN ${companionsJsonSql(viewerId, companionEntryId)} ELSE '[]' END` : sql`'[]'`} AS companions,
       CASE WHEN length(p.body) > 240 THEN substr(p.body, 1, 240) || '…' ELSE p.body END AS body,
       c.name AS climbName, c.type AS climbType, c.grade AS climbGrade,
       reported.suggested_grade AS reportedGrade, reported.grade_feel AS gradeFeel,
@@ -114,13 +122,13 @@ export async function getFeedPage(
       area_parent.id AS parentAreaId, area_parent.name AS parentAreaName,
       area_grandparent.id AS grandparentAreaId, area_grandparent.name AS grandparentAreaName
     FROM days d JOIN authors u ON u.id = d.userId
-    JOIN previews p ON p.date = d.date AND p.userId = d.userId AND p.position <= 3
+    JOIN previews p ON p.date = d.date AND p.userId = d.userId AND (p.position <= 3 OR p.kind = 'goal')
     LEFT JOIN climbs c ON c.id = p.climbId LEFT JOIN areas a ON a.id = c.area_id
     LEFT JOIN sends reported ON reported.user_id = p.userId AND reported.climb_id = p.climbId
       AND p.kind IN ('send', 'repeat')
     LEFT JOIN areas area_parent ON area_parent.id = a.parent_id
     LEFT JOIN areas area_grandparent ON area_grandparent.id = area_parent.parent_id
-    ORDER BY d.date DESC, d.userId DESC, p.position
+    ORDER BY d.date DESC, d.userId DESC, (p.kind = 'goal') DESC, p.position
   `);
   const groups = new Map<string, FeedDay>();
   for (const row of rows) {
@@ -134,6 +142,7 @@ export async function getFeedPage(
       repeats,
       sessions,
       training,
+      goals,
       parentAreaId,
       parentAreaName,
       grandparentAreaId,
@@ -153,6 +162,7 @@ export async function getFeedPage(
         repeats,
         sessions,
         training,
+        goals,
         activities: [],
       };
       groups.set(key, day);

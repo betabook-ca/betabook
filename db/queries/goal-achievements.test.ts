@@ -1,9 +1,9 @@
 import { env } from "cloudflare:test";
-import { eq } from "drizzle-orm";
-import { beforeEach, expect, it } from "vitest";
+import { eq, sql } from "drizzle-orm";
+import { beforeEach, expect, it, vi } from "vitest";
 
 import { createDb } from "@/db/client";
-import { goals, goalAchievements, journalEntries } from "@/db/schema";
+import { goals, goalAchievements, goalCompletions, journalEntries } from "@/db/schema";
 import { seedFixtureUser, seedFixtureJournalEntry } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
 
@@ -75,4 +75,95 @@ it("returns every unread achievement independently of history pagination", async
   const overview = await getGoalOverview(db, "owner", "owner", now);
   expect(overview.completed.goals).toHaveLength(5);
   expect(overview.completed.celebrations).toHaveLength(7);
+});
+
+it("does not let an older owner read restore a completion after its log is deleted", async () => {
+  await db.insert(goals).values({ ...definition, celebrationsInitialized: true });
+  await seedFixtureJournalEntry(db, { userId: "owner", kind: "training", entryDate: "2026-09-02" });
+  const { refreshGoalAchievements } = await import("./goals");
+  await refreshGoalAchievements(db, "owner", now);
+  const originalAll = db.all.bind(db);
+  let release!: () => void;
+  let ready!: () => void;
+  const paused = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const reading = new Promise<void>((resolve) => {
+    ready = resolve;
+  });
+  let intercept = true;
+  const spy = vi.spyOn(db, "all").mockImplementation((query) => {
+    const result = originalAll(query);
+    const execute = result.execute.bind(result);
+    vi.spyOn(result, "execute").mockImplementation(async () => {
+      const rows = await execute();
+      if (
+        intercept &&
+        rows.some((row) => typeof row === "object" && row !== null && "completedDate" in row)
+      ) {
+        intercept = false;
+        ready();
+        await paused;
+      }
+      return rows;
+    });
+    return result;
+  });
+  const olderRead = getGoalOverview(db, "owner", "owner", now);
+  try {
+    await reading;
+    await db.delete(journalEntries).where(eq(journalEntries.userId, "owner"));
+    await refreshGoalAchievements(db, "owner", now);
+    release();
+    await olderRead;
+    expect(
+      await db.all(sql`SELECT * FROM goal_completions WHERE completed_date IS NOT NULL`),
+    ).toEqual([]);
+  } finally {
+    release();
+    spy.mockRestore();
+  }
+});
+
+it("invalidates a completed tagged goal on a tag-only edit and restores its stable event on repair", async () => {
+  await db
+    .insert(goals)
+    .values({ ...definition, tags: ["hangboard"], celebrationsInitialized: true });
+  await seedFixtureJournalEntry(db, {
+    userId: "owner",
+    kind: "training",
+    entryDate: "2026-09-02",
+    tags: ["hangboard"],
+  });
+  await getGoalOverview(db, "owner", "owner", now);
+  const [before] = await db.select().from(goalCompletions);
+  expect(before.title).toBe("Train 1 time · #hangboard");
+  await db.update(journalEntries).set({ tags: ["strength"] });
+  expect((await db.select().from(goalCompletions))[0].completedDate).toBeNull();
+  await db.update(journalEntries).set({ tags: ["hangboard"] });
+  await getGoalOverview(db, "owner", "owner", now);
+  expect(await db.select().from(goalCompletions)).toEqual([before]);
+});
+
+it("matches persisted feed titles to the goal UI for every goal kind and hashtag selection", async () => {
+  const { goalCompletionTitleSql } = await import("./goals");
+  const { goalTitle } = await import("@/lib/goals");
+  const kinds = ["training", "volume", "grade", "days", "new-areas"] as const;
+  for (const kind of kinds)
+    for (const target of [1, 3])
+      for (const repeat of ["none", "week"] as const) {
+        const current = {
+          kind,
+          target,
+          repeat,
+          discipline: "boulder" as const,
+          grade: 5,
+          gradeMatch: "at-least" as const,
+          tags: ["hangboard", "outdoor"],
+        };
+        const result = await db.get<{ title: string }>(
+          sql`SELECT ${goalCompletionTitleSql()} AS title FROM (SELECT ${kind} AS kind,CAST(${target} AS INTEGER) AS target,${repeat} AS repeat,'boulder' AS discipline,5 AS grade,'at-least' AS gradeMatch,${JSON.stringify(current.tags)} AS tags) current`,
+        );
+        expect(result?.title).toBe(goalTitle(current));
+      }
 });

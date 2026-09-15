@@ -4,6 +4,7 @@ import { Button, Checkbox, Input, TextField } from "@heroui/react";
 import { ArrowLeft, ArrowRight, Dumbbell, MapPin, Mountain } from "lucide-react";
 import { useId, useRef, useState } from "react";
 
+import { TagInput } from "@/components/journal/tag-input";
 import { cardClass } from "@/components/ui/card";
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { DatePickerField } from "@/components/ui/date-picker-field";
@@ -75,6 +76,7 @@ export type GoalDraft = {
   discipline: ClimbType;
   grade: string;
   gradeMatch?: "exact" | "at-least";
+  tags?: string[];
   amount: string;
   period: GoalInput["timeframe"];
   startDate?: string;
@@ -130,6 +132,7 @@ export function GoalForm({
     draft?.grade ?? (initialGoal === "grade" ? String(nextGrades.boulder ?? 0) : "any"),
   );
   const [gradeMatch, setGradeMatch] = useState<"exact" | "at-least">(draft?.gradeMatch ?? "exact");
+  const [tags, setTags] = useState<string[]>(draft?.tags ?? []);
   const [amount, setAmount] = useState(draft?.amount ?? (category === "training" ? "8" : "3"));
   const requestedPeriod = draft?.period ?? (initialCustomDate ? "custom" : "month");
   const [period, setPeriod] = useState<GoalInput["timeframe"]>(
@@ -262,6 +265,7 @@ export function GoalForm({
                       startDate,
                       endDate,
                       repeat,
+                      tags,
                     });
                 } catch (cause) {
                   setError(
@@ -472,6 +476,13 @@ export function GoalForm({
                     </div>
                   </div>
                 )}
+                <div className="flex flex-col gap-1">
+                  <TagInput value={tags} onChange={setTags} />
+                  <p className="text-xs text-muted">
+                    Only entries with every selected hashtag count. Leave empty to count all
+                    entries.
+                  </p>
+                </div>
                 {error && <InlineAlert>{error}</InlineAlert>}
                 <div className="flex flex-wrap items-center justify-end gap-3 border-t border-separator pt-4">
                   <Button type="submit" isPending={pending}>

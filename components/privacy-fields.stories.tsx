@@ -46,7 +46,7 @@ function PrivacyExample({
           isPending={pending}
           profileError={error ? "Could not save your changes. Try again." : null}
           sendCommentError={error ? "Could not save commentary. Try again." : null}
-          journalError={error ? "Could not save journal audience. Try again." : null}
+          journalError={error ? "Could not save Journal and goals audience. Try again." : null}
         />
         <PrivacyDetails defaultExpanded={details} />
       </SettingsSection>

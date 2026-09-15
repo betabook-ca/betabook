@@ -82,7 +82,7 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
       section: "Feed",
       title: "Catch up with friends",
       description:
-        "See what your friends have been climbing. Switch to Sends to see just their sends.",
+        "See what your friends have been climbing and the goals they’ve accomplished. Switch to Sends to see just their sends.",
       target: "friend-feed",
     },
     {
@@ -92,7 +92,7 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
       section: "Account settings",
       title: "Choose what you share",
       description:
-        "Open Account settings from the sidebar or mobile menu to manage your account and sharing. Send commentary and journal entries have separate audiences. Try Members commentary with a Friends-only journal. Turn on Private profile to hide your climbing history from everyone else. Both controls are disabled, and your choices are kept. Audience changes apply to past entries too.",
+        "Open Account settings from the sidebar or mobile menu to manage your account and sharing. Send commentary and Journal and goals have separate audiences. Finished goals appear in friends’ feeds when shared with them. Try Members commentary with a Friends-only journal. Turn on Private profile to hide your climbing history from everyone else. Both controls are disabled, and your choices are kept. Audience changes apply to past entries too.",
       target: "privacy-controls",
     },
   ],

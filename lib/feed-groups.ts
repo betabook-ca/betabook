@@ -19,6 +19,7 @@ const COUNT_KEY = {
   repeat: "repeats",
   session: "sessions",
   training: "training",
+  goal: "goals",
 } as const;
 
 function dayCard(day: FeedDay): Extract<FeedCard, { kind: "day" }> {
@@ -131,7 +132,8 @@ function projectDays(
         continue;
       }
       moved = true;
-      remaining[COUNT_KEY[activity.kind]] -= 1;
+      const countKey = COUNT_KEY[activity.kind];
+      remaining[countKey] = (remaining[countKey] ?? 0) - 1;
       if (!emitted.has(group)) {
         cards.push(group);
         emitted.add(group);
@@ -140,7 +142,12 @@ function projectDays(
     if (
       !moved ||
       remaining.activities.length ||
-      remaining.sends + remaining.repeats + remaining.sessions + remaining.training > 0
+      remaining.sends +
+        remaining.repeats +
+        remaining.sessions +
+        remaining.training +
+        (remaining.goals ?? 0) >
+        0
     )
       cards.push(dayCard(moved ? remaining : day));
   }
