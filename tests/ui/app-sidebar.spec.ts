@@ -142,8 +142,10 @@ test(
     if (info.project.name.startsWith("desktop")) {
       await expect(menu).toBeHidden();
       await expect(sidebar.getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
-      await sidebar.hover();
-      await page.getByRole("button", { name: "Keep sidebar expanded" }).click();
+      // Pin through the control without depending on its transient hover label.
+      // Preview behavior is covered by the gallery tests above.
+      await sidebar.getByRole("button", { name: /sidebar/ }).click();
+      await expect(sidebar.getByRole("button", { name: "Collapse sidebar" })).toBeVisible();
       await sidebar.getByRole("link", { name: "Sign in", exact: true }).click();
       await expect(page).toHaveURL(/\/sign-in$/);
       await expect(page.getByRole("button", { name: "Collapse sidebar" })).toBeVisible();
