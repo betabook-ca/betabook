@@ -18,20 +18,18 @@ export function AppTabBar() {
   const session = useClientSession();
   const requestCount = useFriendRequestCount();
   const tabsVisible = useMobileTabsVisible();
-  if (!session) return null;
+  if (!session || !tabsVisible) return null;
 
   return (
     <>
       <div aria-hidden className="h-[calc(3.5rem+env(safe-area-inset-bottom))] md:hidden" />
-      {tabsVisible && (
-        <nav
-          aria-label="Primary"
-          data-app-tab-bar
-          className="fixed inset-x-0 bottom-0 z-40 border-t border-separator bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
-        >
-          <AppTabs account={session.user} requestCount={requestCount} />
-        </nav>
-      )}
+      <nav
+        aria-label="Primary"
+        data-app-tab-bar
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-separator bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
+      >
+        <AppTabs account={session.user} requestCount={requestCount} />
+      </nav>
     </>
   );
 }

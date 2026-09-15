@@ -40,30 +40,33 @@ it("shows a signed-in climber the tab bar with their request count", () => {
 
 it("has no tab bar when signed out", () => {
   state.session = null;
-  render(<AppTabBar />);
+  const { container } = render(<AppTabBar />);
 
-  expect(tabBar()).not.toBeInTheDocument();
+  expect(container).toBeEmptyDOMElement();
 });
 
-it("stays out of a tutorial", () => {
-  state.pathname = "/tutorial/journal/log";
-  render(<AppTabBar />);
+it("removes the tab bar and its spacer during tutorials and restores them afterward", () => {
+  state.pathname = "/tutorial/journal/journal";
+  const { container, rerender } = render(<AppTabBar />);
 
-  expect(tabBar()).not.toBeInTheDocument();
+  expect(container).toBeEmptyDOMElement();
+  state.pathname = "/feed";
+  rerender(<AppTabBar />);
+  expect(tabBar()).toBeInTheDocument();
 });
 
 it("steps aside while typing and returns for other controls", async () => {
   const user = userEvent.setup();
+  const { container } = render(<AppTabBar />);
   render(
     <>
-      <AppTabBar />
       <input aria-label="Display name" />
       <input type="checkbox" aria-label="Private profile" />
     </>,
   );
 
   await user.click(screen.getByRole("textbox", { name: "Display name" }));
-  expect(tabBar()).not.toBeInTheDocument();
+  expect(container).toBeEmptyDOMElement();
 
   await user.click(screen.getByRole("checkbox", { name: "Private profile" }));
   expect(tabBar()).toBeInTheDocument();

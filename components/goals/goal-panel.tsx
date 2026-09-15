@@ -313,7 +313,7 @@ export function GoalPanel({
             tabs={[
               {
                 id: "active",
-                label: `Active (${activeCount}/5)`,
+                label: `Active (${activeCount}/${MAX_ACTIVE_GOALS})`,
                 current: view === "active",
                 onSelect: () => setView("active"),
               },
