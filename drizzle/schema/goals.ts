@@ -34,6 +34,7 @@ export const goals = sqliteTable(
       .default(sql`'[]'`),
     progressDirty: integer("progress_dirty", { mode: "boolean" }).notNull().default(true),
     progressDates: text("progress_dates", { mode: "json" }).$type<Record<string, string>>(),
+    recurringEndDate: text("recurring_end_date"),
   },
   (t) => [
     index("goals_user_idx").on(t.userId),

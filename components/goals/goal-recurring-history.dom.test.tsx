@@ -152,3 +152,43 @@ it("does not label an unfinished month as missed in mixed-cadence history", asyn
   expect(screen.getByText("In progress · 1/3")).toBeVisible();
   expect(screen.queryByText("Missed · 1/3")).not.toBeInTheDocument();
 });
+
+it("omits weeks after a routine ends and marks the shortened final week missed", async () => {
+  const source = goalHistorySample(3);
+  const last = {
+    periodStart: "2026-09-07",
+    periodEnd: "2026-09-09",
+    repeat: "week" as const,
+    target: 3,
+    progress: 1,
+    completedDate: null,
+  };
+  render(
+    <GoalRecurringHistory
+      ownerId="story-goals"
+      today="2026-09-10"
+      goal={{
+        ...source,
+        recurringEndDate: "2026-09-09",
+        recurring: { met: 0, total: 1, hasMore: false, recent: [last] },
+      }}
+    />,
+  );
+  await userEvent.setup().click(screen.getByRole("button", { name: "See history" }));
+  expect(screen.getByRole("button", { name: "Week of Sep 7 · Missed · 1/3" })).toBeVisible();
+  expect(screen.queryByRole("button", { name: /Week of Sep 14/ })).not.toBeInTheDocument();
+});
+
+it("omits months after a routine ends", async () => {
+  const source = goalHistorySample(4);
+  render(
+    <GoalRecurringHistory
+      ownerId="story-goals"
+      today="2026-09-11"
+      goal={{ ...source, recurringEndDate: "2026-09-30" }}
+    />,
+  );
+  await userEvent.setup().click(screen.getByRole("button", { name: "See history" }));
+  expect(screen.queryByRole("button", { name: /October ·/ })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /September ·/ })).toBeVisible();
+});

@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useEffect, useState } from "react";
 import { mocked } from "storybook/test";
 
-import { archiveGoal, saveGoal } from "@/actions";
+import { archiveGoal, saveGoal, endRecurringGoal } from "@/actions";
 import { summarizeGoalPeriods } from "@/lib/goal-history";
 import { goalInputSchema, goalWindow, type GoalPage, type GoalProgress } from "@/lib/goals";
 import { StoryPage } from "@/stories/fixtures/story-layout";
@@ -301,5 +301,43 @@ export const UnarchivedFinishes: Story = {
         completedDate: "2026-09-02",
       })),
     },
+  },
+};
+
+export const EndingRoutine: Story = {
+  args: {
+    initialActive: {
+      goals: [{ ...metMonthlyGoal, recurringEndDate: "2026-09-30" }],
+      hasMore: false,
+    },
+  },
+  render: function EndingRoutineExample(args) {
+    const [routine, setRoutine] = useState(args.initialActive.goals[0]);
+    useEffect(() => {
+      mocked(endRecurringGoal).mockImplementation(async (_id, endDate) => {
+        setRoutine((goal) => ({
+          ...goal,
+          recurringEndDate: endDate,
+          periodEnd: endDate < goal.periodEnd ? endDate : goal.periodEnd,
+        }));
+        return { ok: true, value: undefined };
+      });
+      return () => {
+        mocked(endRecurringGoal).mockReset().mockResolvedValue({ ok: true, value: undefined });
+      };
+    }, []);
+    return <GoalPanel {...args} initialActive={{ goals: [routine], hasMore: false }} />;
+  },
+};
+export const EndedRoutine: Story = {
+  args: {
+    today: "2026-10-06",
+    initialView: "completed",
+    initialCompleted: summarizeGoalPeriods(
+      weeklyPeriods.slice(0, 2).map((goal) => ({ ...goal, recurringEndDate: "2026-09-20" })),
+      "completed",
+      0,
+      new Date("2026-10-06T12:00:00Z"),
+    ),
   },
 };

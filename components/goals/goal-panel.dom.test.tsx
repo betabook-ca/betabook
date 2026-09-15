@@ -9,6 +9,7 @@ import { GoalPanel } from "./goal-panel";
 vi.mock("@/actions", () => ({
   saveGoal: vi.fn<() => Promise<unknown>>(),
   deleteGoal: vi.fn<() => Promise<unknown>>(),
+  endRecurringGoal: vi.fn<() => Promise<unknown>>().mockResolvedValue({ ok: true }),
   archiveGoal: vi.fn<() => Promise<unknown>>().mockResolvedValue({ ok: true }),
   acknowledgeGoalAchievements: vi.fn<() => Promise<unknown>>().mockResolvedValue({ ok: true }),
 }));
@@ -425,4 +426,73 @@ it("keeps unlimited finishes outside active capacity and offers archive with ret
   rerender(<GoalPanel {...props} initialActive={{ goals: finished.slice(1), hasMore: false }} />);
   expect(screen.queryByText("Train 1 time")).not.toBeInTheDocument();
   expect(screen.getAllByRole("button", { name: "Archive goal" })).toHaveLength(7);
+});
+
+it("offers an end date for recurring routines from Active and History", async () => {
+  const user = userEvent.setup();
+  const routine = {
+    ...goal,
+    repeat: "week" as const,
+    timeframe: "week" as const,
+    periodStart: "2026-09-07",
+    periodEnd: "2026-09-13",
+  };
+  render(
+    <GoalPanel
+      ownerId="owner"
+      timezone="UTC"
+      today="2026-09-11"
+      initialActive={{ goals: [routine], hasMore: false }}
+      initialCompleted={{
+        goals: [{ ...routine, periodStart: "2026-08-31", periodEnd: "2026-09-06" }],
+        hasMore: false,
+      }}
+    />,
+  );
+  await user.click(screen.getByRole("button", { name: "End routine" }));
+  expect(await screen.findByRole("heading", { name: "End recurring goal" })).toBeVisible();
+  expect(screen.getByRole("spinbutton", { name: "day, End date" })).toHaveTextContent("13");
+  const { endRecurringGoal } = await import("@/actions");
+  vi.mocked(endRecurringGoal).mockResolvedValueOnce({
+    ok: false,
+    error: "Try the end date again.",
+  });
+  await user.click(screen.getByRole("button", { name: "Save end date" }));
+  expect(await screen.findByText("Try the end date again.")).toBeVisible();
+  expect(endRecurringGoal).toHaveBeenLastCalledWith(1, "2026-09-13");
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+  await user.click(screen.getByRole("button", { name: "History (1)" }));
+  await user.click(screen.getByRole("button", { name: /Actions for/ }));
+  expect(await screen.findByRole("menuitem", { name: "End routine" })).toBeVisible();
+});
+
+it("uses the goal's civil date when scheduling its last day across timezones", async () => {
+  const { endRecurringGoal } = await import("@/actions");
+  const user = userEvent.setup();
+  render(
+    <GoalPanel
+      ownerId="owner"
+      timezone="UTC"
+      today="2026-09-12"
+      initialActive={{
+        goals: [
+          {
+            ...goal,
+            repeat: "month",
+            today: "2026-09-11",
+            timezone: "America/Los_Angeles",
+            recurringEndDate: "2026-09-11",
+            periodEnd: "2026-09-11",
+          },
+        ],
+        hasMore: false,
+      }}
+      initialCompleted={{ goals: [], hasMore: false }}
+    />,
+  );
+  expect(screen.getByText("Ends Sep 11")).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Change end date" }));
+  await user.click(screen.getByRole("button", { name: "Save end date" }));
+  await waitFor(() => expect(endRecurringGoal).toHaveBeenLastCalledWith(1, "2026-09-11"));
+  expect(screen.queryByRole("heading", { name: "End recurring goal" })).not.toBeInTheDocument();
 });

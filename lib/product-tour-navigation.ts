@@ -73,7 +73,7 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
       section: "Goals",
       title: "Keep your achievements",
       description:
-        "Finished one-time goals do not use active slots. Archive this example, then open History. A recurring goal keeps running and uses a slot; its past weeks already appear in History. Archived achievements remain visible to friends when shared.",
+        "Finished one-time goals do not use active slots. Archive this example, then open History. Use End routine on a recurring goal to choose its final date. It frees its slot after that date, keeping past weeks in History. Archived achievements remain visible to friends when shared.",
       target: "goal-finish",
     },
     {

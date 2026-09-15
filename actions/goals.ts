@@ -80,6 +80,7 @@ type ExistingGoal = Pick<
   | "repeat"
   | "timezone"
   | "archiveToken"
+  | "recurringEndDate"
   | "target"
   | "kind"
   | "discipline"
@@ -101,6 +102,8 @@ function needsMilestoneEligibilityCheck(
 }
 
 function goalSaveWindow(existing: ExistingGoal | null | undefined, input: GoalInput) {
+  if (existing?.recurringEndDate && existing.recurringEndDate < goalToday(existing.timezone))
+    throw new ActionError("This routine has ended. Set a new goal to start again.");
   if (
     existing &&
     (existing.archiveToken ||
@@ -156,7 +159,7 @@ export async function saveGoal(
       id === null
         ? null
         : await db.get<ExistingGoal>(
-            sql`SELECT g.kind,g.discipline,g.grade,g.start_date AS startDate,g.end_date AS endDate,g.timeframe,g.repeat,g.timezone,g.archive_token AS archiveToken,g.target,${goalCountSql()} AS progress FROM goals g WHERE g.id = ${id} AND g.user_id = ${ownerId}`,
+            sql`SELECT g.kind,g.discipline,g.grade,g.start_date AS startDate,g.end_date AS endDate,g.timeframe,g.repeat,g.timezone,g.archive_token AS archiveToken,g.recurring_end_date AS recurringEndDate,g.target,${goalCountSql()} AS progress FROM goals g WHERE g.id = ${id} AND g.user_id = ${ownerId}`,
           );
     if (id !== null && !existing) throw new ActionError("Goal not found.");
     const window = goalSaveWindow(existing, input);
@@ -182,7 +185,7 @@ export async function saveGoal(
       ),
     );
     // A concurrently created goal may use a new zone; count that row conservatively until the next read.
-    const activeSql = sql`g.archive_token IS NULL AND (g.repeat <> 'none' OR (g.end_date >= COALESCE(json_extract(${civilDates}, '$."' || g.timezone || '"'), '0000-01-01') AND ${goalCountSql()} < g.target))`;
+    const activeSql = sql`g.archive_token IS NULL AND ((g.repeat <> 'none' AND (g.recurring_end_date IS NULL OR g.recurring_end_date >= COALESCE(json_extract(${civilDates}, '$."' || g.timezone || '"'), '0000-01-01'))) OR (g.repeat='none' AND g.end_date >= COALESCE(json_extract(${civilDates}, '$."' || g.timezone || '"'), '0000-01-01') AND ${goalCountSql()} < g.target))`;
     const otherActive = sql`(SELECT count(*) FROM goals g WHERE g.user_id = ${ownerId} AND (${id} IS NULL OR g.id <> ${id}) AND ${activeSql})`;
     const alreadyActive = sql`EXISTS(SELECT 1 FROM goals g WHERE g.id=${id} AND g.user_id=${ownerId} AND ${activeSql})`;
     const remainsCompleted = inactiveInputSql(
@@ -206,14 +209,17 @@ export async function saveGoal(
         startDate: window.startDate,
         endDate: window.endDate,
         timezone: input.timezone,
+        recurringEndDate: input.repeat === "none" ? null : sql`recurring_end_date`,
       })
-      .where(sql`id=${id} AND user_id=${ownerId} AND archive_token IS NULL AND ${capacity}`)
+      .where(
+        sql`id=${id} AND user_id=${ownerId} AND archive_token IS NULL AND (recurring_end_date IS NULL OR recurring_end_date >= COALESCE(json_extract(${civilDates}, '$."' || timezone || '"'), '9999-12-31')) AND ${capacity}`,
+      )
       .returning({ id: goals.id });
     const cutoff = historyCutoff(existing, window.startDate);
     const snapshot = sql`WITH RECURSIVE past AS (
-        SELECT id,user_id,start_date AS ps,end_date AS pe,target,repeat,timezone,kind,discipline,grade,grade_match,tags FROM goals WHERE id=${id} AND user_id=${ownerId} AND repeat <> 'none'
-        UNION ALL SELECT id,user_id,date(pe,'+1 day'),CASE repeat WHEN 'week' THEN date(pe,'+7 days') WHEN 'year' THEN date(pe,'+1 day','+1 year','-1 day') ELSE date(pe,'+1 day','+1 month','-1 day') END,target,repeat,timezone,kind,discipline,grade,grade_match,tags FROM past WHERE pe < ${cutoff}
-      ) SELECT id,ps,pe,target,repeat,timezone,kind,discipline,grade,grade_match,tags FROM past WHERE pe < ${cutoff} AND ${capacity}`;
+        SELECT id,user_id,start_date AS ps,end_date AS pe,target,repeat,timezone,kind,discipline,grade,grade_match,tags,recurring_end_date FROM goals WHERE id=${id} AND user_id=${ownerId} AND repeat <> 'none'
+        UNION ALL SELECT id,user_id,date(pe,'+1 day'),CASE repeat WHEN 'week' THEN date(pe,'+7 days') WHEN 'year' THEN date(pe,'+1 day','+1 year','-1 day') ELSE date(pe,'+1 day','+1 month','-1 day') END,target,repeat,timezone,kind,discipline,grade,grade_match,tags,recurring_end_date FROM past WHERE pe < ${cutoff} AND pe < COALESCE(recurring_end_date,'9999-12-31')
+      ) SELECT id,ps,min(pe,COALESCE(recurring_end_date,pe)),target,repeat,timezone,kind,discipline,grade,grade_match,tags FROM past WHERE pe < ${cutoff} AND ${capacity}`;
     const archiveToken = crypto.randomUUID();
     const result = retrySource
       ? (
@@ -228,7 +234,7 @@ export async function saveGoal(
             db
               .insert(goals)
               .select(
-                sql`SELECT NULL,${ownerId},${input.kind},${input.target},${input.discipline},${input.grade},${input.timeframe},${input.repeat},${window.startDate},${window.endDate},${input.timezone},1,NULL,${input.gradeMatch},${JSON.stringify(input.tags)},1,NULL WHERE EXISTS (SELECT 1 FROM goals WHERE id=${retrySource.id} AND user_id=${ownerId} AND archive_token=${archiveToken})`,
+                sql`SELECT NULL,${ownerId},${input.kind},${input.target},${input.discipline},${input.grade},${input.timeframe},${input.repeat},${window.startDate},${window.endDate},${input.timezone},1,NULL,${input.gradeMatch},${JSON.stringify(input.tags)},1,NULL,NULL WHERE EXISTS (SELECT 1 FROM goals WHERE id=${retrySource.id} AND user_id=${ownerId} AND archive_token=${archiveToken})`,
               )
               .returning({ id: goals.id }),
           ])
@@ -306,6 +312,42 @@ export async function archiveGoal(id: number): Promise<ActionResult> {
       )
       .returning({ id: goals.id });
     if (!updated.length) throw new ActionError("This goal no longer needs a decision.");
+    await refreshGoalsAfterWrite(db, session.user.id);
+    revalidateJournalSurfaces({ userId: session.user.id, climbIds: [] });
+    refresh();
+  });
+}
+
+/** Schedule the last inclusive day without changing cadence or historical event identities. */
+export async function endRecurringGoal(id: number, endDate: string): Promise<ActionResult> {
+  return toActionResult(async () => {
+    const session = await requireSession();
+    if (!(await allowJournalWrite(session.user.id)))
+      throw new ActionError("Please wait before changing another goal.");
+    validateGoalId(id);
+    const date = new Date(`${endDate}T12:00:00Z`);
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(endDate) ||
+      Number.isNaN(date.valueOf()) ||
+      date.toISOString().slice(0, 10) !== endDate
+    )
+      throw new ActionError("Choose a valid end date.");
+    const db = await getDb();
+    const goal = await db.get<{ timezone: string }>(
+      sql`SELECT timezone FROM goals WHERE id=${id} AND user_id=${session.user.id} AND repeat<>'none' AND archive_token IS NULL`,
+    );
+    if (!goal) throw new ActionError("Recurring goal not found.");
+    const today = goalToday(goal.timezone);
+    if (endDate < today) throw new ActionError("End date must be today or later.");
+    const updated = await db
+      .update(goals)
+      .set({ recurringEndDate: endDate })
+      .where(
+        sql`id=${id} AND user_id=${session.user.id} AND repeat<>'none' AND archive_token IS NULL AND timezone=${goal.timezone} AND start_date<=${endDate} AND (recurring_end_date IS NULL OR recurring_end_date>=${today})`,
+      )
+      .returning({ id: goals.id });
+    if (!updated.length)
+      throw new ActionError("This routine has ended or changed. Reload your goals.");
     await refreshGoalsAfterWrite(db, session.user.id);
     revalidateJournalSurfaces({ userId: session.user.id, climbIds: [] });
     refresh();

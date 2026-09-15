@@ -42,8 +42,8 @@ export function goalCountSql(useProjection = true) {
     AND p.period_start=g.start_date AND p.period_end=g.end_date AND p.repeat='none'
     AND g.repeat='none' AND g.progress_dirty=0), ${live})`;
 }
-const goalStorageColumns = sql`g.id,g.user_id,g.kind,g.target,g.discipline,g.grade,g.timeframe,g.repeat,g.start_date,g.end_date,g.timezone,g.grade_match,g.tags`;
-const goalColumns = sql`g.id, g.user_id AS userId, g.kind, g.target, g.discipline, g.grade, g.timeframe, g.repeat, g.start_date AS startDate, g.end_date AS endDate, g.timezone, g.grade_match AS gradeMatch, g.tags, (SELECT archived.archive_token IS NOT NULL FROM goals archived WHERE archived.id=g.id) AS archived`;
+const goalStorageColumns = sql`g.id,g.user_id,g.kind,g.target,g.discipline,g.grade,g.timeframe,g.repeat,g.start_date,g.end_date,g.timezone,g.grade_match,g.tags,g.recurring_end_date`;
+const goalColumns = sql`g.id, g.user_id AS userId, g.kind, g.target, g.discipline, g.grade, g.timeframe, g.repeat, g.start_date AS startDate, g.end_date AS endDate, g.timezone, g.grade_match AS gradeMatch, g.tags, (SELECT archived.archive_token IS NOT NULL FROM goals archived WHERE archived.id=g.id) AS archived, (SELECT recurring_end_date FROM goals current WHERE current.id=g.id) AS recurringEndDate`;
 
 async function goalPeriodsQuery(
   db: Database,
@@ -71,7 +71,8 @@ async function goalPeriodsQuery(
   const weekSkip = sql`max(0,CAST((julianday(${lower})-julianday(g.start_date))/7 AS INTEGER))*7`;
   const monthSkip = sql`max(0,(CAST(strftime('%Y',${lower}) AS INTEGER)-CAST(strftime('%Y',g.start_date) AS INTEGER))*12+CAST(strftime('%m',${lower}) AS INTEGER)-CAST(strftime('%m',g.start_date) AS INTEGER))`;
   const start = sql`CASE g.repeat WHEN 'week' THEN date(g.start_date,'+'||(${weekSkip})||' days') WHEN 'month' THEN date(g.start_date,'+'||(${monthSkip})||' months') WHEN 'year' THEN date(g.start_date,'+'||CAST((${monthSkip})/12 AS INTEGER)||' years') ELSE g.start_date END`;
-  const end = sql`CASE g.repeat WHEN 'week' THEN date(${start},'+6 days') WHEN 'month' THEN date(${start},'+1 month','-1 day') WHEN 'year' THEN date(${start},'+1 year','-1 day') ELSE g.end_date END`;
+  const stop = sql`COALESCE(g.recurring_end_date, '9999-12-31')`;
+  const end = sql`min(${stop}, CASE g.repeat WHEN 'week' THEN date(${start},'+6 days') WHEN 'month' THEN date(${start},'+1 month','-1 day') WHEN 'year' THEN date(${start},'+1 year','-1 day') ELSE g.end_date END)`;
   const range = options.activeOnly
     ? sql`(g.repeat='none' OR ${knownToday} IS NULL OR (g.ps<=${today} AND g.pe>=${today}))`
     : options.from && options.until
@@ -80,22 +81,22 @@ async function goalPeriodsQuery(
   const definitions = sql`
     WITH RECURSIVE periods AS (
       SELECT ${goalStorageColumns}, ${start} AS ps, ${end} AS pe FROM goals g
-      WHERE g.user_id=${ownerId} AND ${goalFilter} AND ${journalVisibleSql(viewerId, sql`g.user_id`)}
+      WHERE g.user_id=${ownerId} AND ${goalFilter} AND ${journalVisibleSql(viewerId, sql`g.user_id`)} AND ${start}<=${stop}
       UNION ALL
       SELECT ${goalStorageColumns},
-        date(g.pe,'+1 day'), CASE g.repeat WHEN 'week' THEN date(g.pe,'+7 days') WHEN 'year' THEN date(g.pe,'+1 day','+1 year','-1 day') ELSE date(g.pe,'+1 day','+1 month','-1 day') END
-      FROM periods g WHERE g.repeat <> 'none' AND g.pe < ${today} AND ${options.until ? sql`g.pe < ${options.until}` : sql`1`}
+        date(g.pe,'+1 day'), min(${stop}, CASE g.repeat WHEN 'week' THEN date(g.pe,'+7 days') WHEN 'year' THEN date(g.pe,'+1 day','+1 year','-1 day') ELSE date(g.pe,'+1 day','+1 month','-1 day') END)
+      FROM periods g WHERE g.repeat <> 'none' AND g.pe < ${today} AND g.pe < ${stop} AND ${options.until ? sql`g.pe < ${options.until}` : sql`1`}
     ), all_periods AS (
       SELECT g.* FROM periods g WHERE NOT EXISTS (SELECT 1 FROM goal_periods h WHERE h.goal_id=g.id AND h.start_date=g.ps AND h.repeat=g.repeat)
       UNION ALL
-      SELECT g.id,g.user_id,h.kind,h.target,h.discipline,h.grade,h.repeat,h.repeat,h.start_date,h.end_date,h.timezone,h.grade_match,h.tags,h.start_date,h.end_date
+      SELECT g.id,g.user_id,h.kind,h.target,h.discipline,h.grade,h.repeat,h.repeat,h.start_date,h.end_date,h.timezone,h.grade_match,h.tags,g.recurring_end_date,h.start_date,h.end_date
       FROM goal_periods h JOIN goals g ON g.id=h.goal_id WHERE g.user_id=${ownerId} AND ${goalFilter} AND ${journalVisibleSql(viewerId, sql`g.user_id`)}
     ), scoped_periods AS (SELECT g.* FROM all_periods g WHERE ${range})`;
   const validProgress = sql`live.progress_dirty=0 AND p.goal_id IS NOT NULL AND p.period_end=g.pe`;
   const joins = sql`FROM scoped_periods g JOIN goals live ON live.id=g.id
     LEFT JOIN goal_progress p ON p.goal_id=g.id AND p.period_start=g.ps AND p.repeat=g.repeat`;
   const cachedQuery = sql`${definitions}
-    SELECT ${goalColumns},g.ps AS periodStart,g.pe AS periodEnd,COALESCE(p.progress,0) AS progress,
+    SELECT ${goalColumns},json_extract(${dates}, '$."' || live.timezone || '"') AS today,g.ps AS periodStart,g.pe AS periodEnd,COALESCE(p.progress,0) AS progress,
       p.completed_date AS completedDate,
       COALESCE((${validProgress} AND ${knownToday} IS NOT NULL AND json_extract(live.progress_dates, '$."' || g.timezone || '"')>=${knownToday}),0) AS cacheFresh
     ${joins} WHERE ${journalVisibleSql(viewerId, sql`g.user_id`)} ORDER BY g.pe DESC,g.id DESC`;
@@ -114,7 +115,7 @@ async function goalPeriodsQuery(
       SELECT g.id,g.ps,g.repeat,count(r.item) AS progress,max(CASE WHEN r.ordinal = g.target THEN r.entryDate END) AS completedDate
       FROM scoped_periods g LEFT JOIN ranked r ON r.id = g.id AND r.ps = g.ps AND r.repeat = g.repeat GROUP BY g.id,g.ps,g.repeat
     )
-    SELECT ${goalColumns}, g.ps AS periodStart,g.pe AS periodEnd,
+    SELECT ${goalColumns},json_extract(${dates}, '$."' || live.timezone || '"') AS today, g.ps AS periodStart,g.pe AS periodEnd,
       CASE WHEN ${validProgress} THEN p.progress ELSE COALESCE(t.progress,0) END AS progress,
       CASE WHEN ${validProgress} THEN p.completed_date ELSE t.completedDate END AS completedDate
     ${joins} JOIN totals t ON t.id = g.id AND t.ps = g.ps AND t.repeat = g.repeat
@@ -204,17 +205,24 @@ export async function getRecurringGoalHistory(
   anchorMonth?: string,
 ) {
   const definitions = await db.all<GoalProgress & { priority: number }>(sql`
-    SELECT ${goalColumns},g.start_date AS periodStart,g.end_date AS periodEnd,0 AS progress,NULL AS completedDate,0 AS priority FROM goals g
+    SELECT ${goalColumns},g.start_date AS periodStart,min(g.end_date,COALESCE(g.recurring_end_date,g.end_date)) AS periodEnd,0 AS progress,NULL AS completedDate,0 AS priority FROM goals g
     WHERE g.id=${goalId} AND g.user_id=${ownerId} AND ${journalVisibleSql(viewerId, sql`g.user_id`)}
     UNION ALL
-    SELECT g.id,g.user_id,h.kind,h.target,h.discipline,h.grade,h.repeat,h.repeat,h.start_date,h.end_date,h.timezone,h.grade_match,h.tags,(g.archive_token IS NOT NULL),h.start_date,h.end_date,0,NULL,1
+    SELECT g.id,g.user_id,h.kind,h.target,h.discipline,h.grade,h.repeat,h.repeat,h.start_date,h.end_date,h.timezone,h.grade_match,h.tags,(g.archive_token IS NOT NULL),g.recurring_end_date,h.start_date,h.end_date,0,NULL,1
     FROM goal_periods h JOIN goals g ON g.id=h.goal_id WHERE g.id=${goalId} AND g.user_id=${ownerId}
       AND (h.start_date=(SELECT min(start_date) FROM goal_periods WHERE goal_id=${goalId}) OR h.start_date=(SELECT max(start_date) FROM goal_periods WHERE goal_id=${goalId}))
       AND ${journalVisibleSql(viewerId, sql`g.user_id`)} ORDER BY priority,periodStart DESC`);
   const current = definitions.find((row) => row.priority === 0);
   const metadata = [...definitions];
   if (current && current.repeat !== "none") {
-    const window = goalWindow(current.repeat, goalToday(current.timezone, now), current.endDate);
+    const today = goalToday(current.timezone, now);
+    const lastDay =
+      current.recurringEndDate && current.recurringEndDate < today
+        ? current.recurringEndDate
+        : today;
+    const window = goalWindow(current.repeat, lastDay, current.endDate);
+    if (current.recurringEndDate && window.endDate > current.recurringEndDate)
+      window.endDate = current.recurringEndDate;
     metadata.push({ ...current, periodStart: window.startDate, periodEnd: window.endDate });
   }
   const cadence =

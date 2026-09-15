@@ -1,7 +1,7 @@
 import { env } from "cloudflare:test";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
-import { saveGoal, deleteGoal } from "@/actions/goals";
+import { saveGoal, deleteGoal, endRecurringGoal } from "@/actions/goals";
 import { createDb } from "@/db/client";
 import { goals } from "@/db/schema";
 import { seedFixtureUser, seedFixtureJournalEntry } from "@/test/fixtures";
@@ -657,4 +657,73 @@ it("keeps hashtag-filtered goals within the five-active limit", async () => {
     tags: ["hangboard"],
   });
   expect((await saveGoal(null, tagged)).ok).toBe(true);
+});
+
+it("ends weekly routines on a chosen inclusive date and releases capacity at local midnight", async () => {
+  const results = await Promise.all(
+    Array.from({ length: 5 }, () =>
+      saveGoal(null, {
+        ...input,
+        repeat: "week",
+        timeframe: "week",
+        timezone: "America/Los_Angeles",
+      }),
+    ),
+  );
+  const routine = results[0];
+  if (!routine.ok) throw Error(routine.error);
+  expect((await endRecurringGoal(routine.value, "2026-09-10")).ok).toBe(false);
+  expect((await endRecurringGoal(routine.value, "2026-02-30")).ok).toBe(false);
+  identity.id = "other";
+  expect((await endRecurringGoal(routine.value, "2026-09-11")).ok).toBe(false);
+  identity.id = "owner";
+  expect((await endRecurringGoal(routine.value, "2026-09-11")).ok).toBe(true);
+  vi.setSystemTime(new Date("2026-09-12T06:59:59Z"));
+  expect((await saveGoal(null, input)).ok).toBe(false);
+  vi.setSystemTime(new Date("2026-09-12T07:00:00Z"));
+  expect((await saveGoal(null, input)).ok).toBe(true);
+  expect((await endRecurringGoal(routine.value, "2026-10-01")).ok).toBe(false);
+  expect((await saveGoal(routine.value, { ...input, repeat: "week" })).ok).toBe(false);
+  const { getGoalOverview } = await import("@/db/queries/goals");
+  const overview = await getGoalOverview(db, "owner", "owner");
+  expect(overview.active.goals.some((g) => g.id === routine.value)).toBe(false);
+  expect(overview.completed.goals).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        id: routine.value,
+        recurringEndDate: "2026-09-11",
+        periodEnd: "2026-09-11",
+        progress: 0,
+      }),
+    ]),
+  );
+});
+
+it("retains scheduled stops through edits and preserves old cadence history", async () => {
+  const [routine] = await db
+    .insert(goals)
+    .values({
+      userId: "owner",
+      kind: "training",
+      target: 1,
+      timeframe: "week",
+      repeat: "week",
+      startDate: "2026-08-31",
+      endDate: "2026-09-06",
+      timezone: "UTC",
+    })
+    .returning();
+  await seedFixtureJournalEntry(db, { userId: "owner", kind: "training", entryDate: "2026-09-01" });
+  expect((await endRecurringGoal(routine.id, "2026-09-30")).ok).toBe(true);
+  expect((await saveGoal(routine.id, { ...input, repeat: "month" })).ok).toBe(true);
+  expect((await db.select().from(goals))[0].recurringEndDate).toBe("2026-09-30");
+  expect((await endRecurringGoal(routine.id, "2026-09-11")).ok).toBe(true);
+  const { getGoalOverview } = await import("@/db/queries/goals");
+  const overview = await getGoalOverview(db, "owner", "owner", new Date("2027-03-01T12:00:00Z"));
+  expect(overview.active.goals).toHaveLength(0);
+  expect(overview.completed.goals[0].recurring?.recent).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ repeat: "week", periodStart: "2026-08-31", progress: 1 }),
+    ]),
+  );
 });

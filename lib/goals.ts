@@ -99,6 +99,7 @@ type GoalKind = GoalInput["kind"];
 export type GoalDefinition = {
   id: number;
   archived?: boolean;
+  recurringEndDate?: string | null;
   tags?: string[];
   userId: string;
   kind: GoalKind;
@@ -113,6 +114,8 @@ export type GoalDefinition = {
   timezone: string;
 };
 export type GoalProgress = GoalDefinition & {
+  /** Current civil date in the live goal’s saved timezone, supplied by the server. */
+  today?: string;
   missed?: boolean;
   needsAction?: boolean;
   periodStart: string;

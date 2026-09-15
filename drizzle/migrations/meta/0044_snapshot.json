@@ -1901,6 +1901,13 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "recurring_end_date": {
+          "name": "recurring_end_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {

@@ -33,7 +33,7 @@ function PeriodCircle({
     ? "Met"
     : start > today
       ? "Upcoming"
-      : end >= today
+      : (period?.periodEnd ?? end) >= today
         ? "In progress"
         : period
           ? "Missed"
@@ -74,11 +74,13 @@ function HistoryYears({
   today,
   currentPeriod,
   hasMore,
+  recurringEndDate,
 }: {
   periods: GoalPeriod[];
   today: string;
   currentPeriod?: GoalProgress;
   hasMore: boolean;
+  recurringEndDate?: string | null;
 }) {
   const records = [...periods];
   if (
@@ -101,6 +103,7 @@ function HistoryYears({
           <div className="grid w-fit grid-cols-6 gap-0.5 lg:grid-cols-12">
             {Array.from({ length: 12 }, (_, i) => {
               const start = `${year}-${String(i + 1).padStart(2, "0")}-01`;
+              if (recurringEndDate && start > recurringEndDate) return null;
               const end = new Date(Date.UTC(Number(year), i + 1, 0)).toISOString().slice(0, 10);
               return (
                 <PeriodCircle
@@ -151,11 +154,13 @@ function MixedAnnualHistory({
   currentPeriod,
   today,
   hasMore,
+  recurringEndDate,
 }: {
   periods: GoalPeriod[];
   currentPeriod?: GoalProgress;
   today: string;
   hasMore: boolean;
+  recurringEndDate?: string | null;
 }) {
   const annual = periods.filter((period) => period.repeat === "year");
   if (
@@ -171,6 +176,7 @@ function MixedAnnualHistory({
         currentPeriod={currentPeriod?.repeat === "year" ? undefined : currentPeriod}
         today={today}
         hasMore={hasMore}
+        recurringEndDate={recurringEndDate}
       />
     </>
   );
@@ -181,11 +187,13 @@ function HistoryMonths({
   today,
   currentPeriod,
   hasMore,
+  recurringEndDate,
 }: {
   periods: GoalPeriod[];
   today: string;
   currentPeriod?: GoalProgress;
   hasMore: boolean;
+  recurringEndDate?: string | null;
 }) {
   if (periods.length === 0 && !currentPeriod) return null;
   if (periods.some((period) => period.repeat === "year") || currentPeriod?.repeat === "year") {
@@ -195,6 +203,7 @@ function HistoryMonths({
         currentPeriod={currentPeriod}
         today={today}
         hasMore={hasMore}
+        recurringEndDate={recurringEndDate}
       />
     );
   }
@@ -206,6 +215,7 @@ function HistoryMonths({
         today={today}
         currentPeriod={currentPeriod}
         hasMore={hasMore}
+        recurringEndDate={recurringEndDate}
       />
     );
   const months = new Map<string, GoalPeriod[]>();
@@ -251,15 +261,17 @@ function HistoryMonths({
             <div className="flex flex-wrap items-center gap-0.5">
               {group.some((period) => period.repeat === "week") ||
               (currentPeriod?.repeat === "week" && month === today.slice(0, 7))
-                ? goalWeekSlots(month).map((slot) => (
-                    <PeriodCircle
-                      key={slot.periodStart}
-                      start={slot.periodStart}
-                      end={slot.periodEnd}
-                      period={group.find((p) => p.periodStart === slot.periodStart)}
-                      today={today}
-                    />
-                  ))
+                ? goalWeekSlots(month)
+                    .filter((slot) => !recurringEndDate || slot.periodStart <= recurringEndDate)
+                    .map((slot) => (
+                      <PeriodCircle
+                        key={slot.periodStart}
+                        start={slot.periodStart}
+                        end={slot.periodEnd}
+                        period={group.find((p) => p.periodStart === slot.periodStart)}
+                        today={today}
+                      />
+                    ))
                 : group.map((period) => (
                     <span key={period.periodStart} className="flex items-center gap-1 tabular-nums">
                       {period.progress >= period.target ? (
@@ -359,6 +371,7 @@ export function GoalRecurringHistory({
         today={today}
         currentPeriod={currentPeriod}
         hasMore={moreAvailable}
+        recurringEndDate={goal.recurringEndDate}
       />
 
       {moreAvailable && <LoadMoreButton loading={loading} onPress={more} failed={Boolean(error)} />}

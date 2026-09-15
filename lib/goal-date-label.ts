@@ -28,9 +28,17 @@ export function goalDateLabel(
 }
 
 export function recurringGoalResetLabel(
-  goal: { repeat: string; timeframe: string; periodStart: string; periodEnd: string },
+  goal: {
+    repeat: string;
+    timeframe: string;
+    periodStart: string;
+    periodEnd: string;
+    recurringEndDate?: string | null;
+  },
   today: string,
 ): string {
+  if (goal.recurringEndDate && goal.recurringEndDate <= goal.periodEnd)
+    return recurringGoalEndLabel(goal.recurringEndDate, today);
   const next = new Date(`${goal.periodEnd}T12:00:00Z`);
   next.setUTCDate(next.getUTCDate() + 1);
   const reset = goalDateLabel(
@@ -44,4 +52,12 @@ export function recurringGoalResetLabel(
     today,
   ).replace(/^By /, "");
   return `Resets ${reset}`;
+}
+
+export function recurringGoalEndLabel(endDate: string, today: string) {
+  const date = goalDateLabel(
+    { repeat: "none", timeframe: "month", periodStart: endDate, periodEnd: endDate },
+    today,
+  ).replace(/^By /, "");
+  return `${endDate < today ? "Ended" : "Ends"} ${date}`;
 }

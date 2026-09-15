@@ -362,3 +362,61 @@ it("retries an active goal whose timezone crosses a month boundary after metadat
     spy.mockRestore();
   }
 });
+
+it("ends a recurring routine inclusively and keeps bounded history years later", async () => {
+  const { getRecurringGoalHistory } = await import("./goals");
+  const [goal] = await db
+    .insert(goals)
+    .values({ ...definition, repeat: "month", recurringEndDate: "2026-09-12", target: 2 })
+    .returning();
+  for (const entryDate of ["2026-09-11", "2026-09-12", "2026-09-13", "2026-10-01"]) {
+    await seedFixtureJournalEntry(db, { userId: "owner", kind: "training", entryDate });
+  }
+  const active = await getGoalOverview(db, "owner", "owner", now);
+  expect(active.active.goals[0]).toMatchObject({
+    progress: 2,
+    periodEnd: "2026-09-12",
+    recurringEndDate: "2026-09-12",
+  });
+  const event = (await db.select().from(goalCompletions))[0];
+  const later = new Date("2029-04-10T12:00:00Z");
+  const overview = await getGoalOverview(db, "owner", "owner", later);
+  expect(overview.active.goals).toEqual([]);
+  expect(overview.completed.goals[0]).toMatchObject({ id: goal.id, repeat: "month", progress: 2 });
+  const history = await getRecurringGoalHistory(db, "owner", "owner", goal.id, 0, later);
+  expect(history.anchorMonth).toBe("2026-09");
+  expect(history.periods).toHaveLength(1);
+  expect(history.periods[0].periodEnd).toBe("2026-09-12");
+  expect(await db.select().from(goalCompletions)).toMatchObject([
+    { id: event.id, completedDate: "2026-09-12" },
+  ]);
+  expect(await db.select().from(goalProgress)).toHaveLength(1);
+  await seedFixtureJournalEntry(db, { userId: "owner", kind: "training", entryDate: "2029-04-11" });
+  expect((await db.select().from(goals))[0].progressDirty).toBe(false);
+});
+
+it("anchors stopped weekly history before a month boundary even during its original full week", async () => {
+  const { getRecurringGoalHistory } = await import("./goals");
+  const [goal] = await db
+    .insert(goals)
+    .values({
+      ...definition,
+      repeat: "week",
+      timeframe: "week",
+      startDate: "2026-08-31",
+      endDate: "2026-09-06",
+      recurringEndDate: "2026-08-31",
+    })
+    .returning();
+  const history = await getRecurringGoalHistory(
+    db,
+    "owner",
+    "owner",
+    goal.id,
+    0,
+    new Date("2026-09-01T12:00:00Z"),
+  );
+  expect(history.anchorMonth).toBe("2026-08");
+  expect(history.periods).toHaveLength(1);
+  expect(history.periods[0].periodEnd).toBe("2026-08-31");
+});
