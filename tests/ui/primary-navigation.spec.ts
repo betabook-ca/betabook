@@ -36,7 +36,7 @@ test(
     await openStory(page, info, "components-navigation-tab-bar--friend-requests");
     const nav = page.getByRole("navigation", { name: "Primary" });
     const tabs = await nav.getByRole("link").all();
-    expect(tabs).toHaveLength(4);
+    expect(tabs).toHaveLength(3);
     const widths: number[] = [];
     for (const tab of tabs) {
       const box = await tab.boundingBox();

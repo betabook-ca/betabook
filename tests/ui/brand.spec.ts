@@ -26,7 +26,7 @@ test("production brand stories load the correct treatment and responsive home li
     if (variant === "navigation") {
       const home = page.getByRole("link", { name: "Betabook home", exact: true });
       await expect(home).toHaveAttribute("href", "/");
-      await expect(home).toHaveCSS("height", "48px");
+      await expect(home).toHaveCSS("height", "40px");
       await expect(home.locator('[data-brand="icon"]')).toBeVisible();
       await home.focus();
       await expect(home).toBeFocused();

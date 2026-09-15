@@ -15,7 +15,13 @@ for (const story of ["secondary-tools", "primary-fallback", "signed-out"]) {
     await expect(menu.locator("[data-brand]")).toHaveCount(0);
     await expect(menu.getByRole("button", { name: "Sign out" })).toHaveCount(0);
     const links = menu.getByRole("link");
-    await expect(links).toHaveCount(story === "primary-fallback" ? 6 : 2);
+    await expect(links).toHaveCount(
+      story === "primary-fallback" ? 6 : story === "secondary-tools" ? 3 : 2,
+    );
+    if (story !== "signed-out")
+      await expect(
+        menu.getByRole("link", { name: "Account settings", exact: true }),
+      ).toHaveAttribute("href", "/account");
     for (const link of await links.all()) {
       const bounds = await link.boundingBox();
       if (!bounds) throw new Error("Missing menu destination");
