@@ -53,6 +53,7 @@ const expectedEntry = {
   climbName: "Test Highball",
   climbType: "boulder",
   climbGrade: 5,
+  reportedGrade: null,
   areaId: 4,
   areaName: "Test Highball Alcove",
 };

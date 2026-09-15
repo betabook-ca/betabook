@@ -14,28 +14,16 @@ import { Grade } from "@/components/ui/grade";
 import { feedDayHref, type FeedView } from "@/lib/feed";
 import type { FeedEntry } from "@/lib/feed-groups";
 import { formatDate } from "@/lib/format-date";
-import { formatGrade } from "@/lib/grades";
+import { formatActivityGrade } from "@/lib/grades";
 import { climbHref } from "@/lib/slug";
 
 type Activity = FeedEntry["activity"];
 
-function SuggestedGrade({ activity }: { activity: Activity }) {
-  if (!activity.climbType || activity.kind === "session" || activity.kind === "training")
-    return null;
+function GradeFeel({ activity }: { activity: Activity }) {
+  if (activity.kind !== "send" && activity.kind !== "repeat") return null;
   const feel =
     activity.gradeFeel === "high" ? "hard" : activity.gradeFeel === "low" ? "soft" : null;
-  if (activity.reportedGrade == null)
-    return feel ? <p className="text-xs text-muted">Felt {feel} for the grade</p> : null;
-  if (activity.reportedGrade === activity.climbGrade && !feel) return null;
-  return (
-    <p className="text-xs text-muted">
-      {activity.reportedGrade === activity.climbGrade ? `Felt ${feel} for ` : "Suggested "}
-      <Grade className="text-muted">
-        {formatGrade(activity.climbType, activity.reportedGrade)}
-      </Grade>
-      {activity.reportedGrade !== activity.climbGrade && feel && ` · felt ${feel}`}
-    </p>
-  );
+  return feel ? <p className="text-xs text-muted">Felt {feel} for the grade</p> : null;
 }
 
 function outcome(activity: Activity) {
@@ -78,6 +66,12 @@ export function FeedActivityCard({
     .join(" · ");
   const row = ({ day, activity: item }: FeedEntry) => {
     const { Icon, label, sent } = outcome(item);
+    const grade = formatActivityGrade(
+      item.climbType,
+      item.climbGrade,
+      item.kind === "send" || item.kind === "repeat",
+      item.reportedGrade,
+    );
     return (
       <div key={`${day.userId}:${item.kind}:${item.id}`} className="flex gap-3 py-3">
         <span
@@ -103,14 +97,23 @@ export function FeedActivityCard({
               ) : (
                 <span className="text-sm font-medium break-words">{day.name}</span>
               )}
-              <span
-                className={clsx(
-                  "text-sm font-medium whitespace-nowrap",
-                  sent ? "text-accent-soft-foreground" : "text-muted",
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <span
+                  className={clsx(
+                    "text-sm font-medium whitespace-nowrap",
+                    sent ? "text-accent-soft-foreground" : "text-muted",
+                  )}
+                >
+                  {label}
+                </span>
+                {grade && (
+                  <Grade className="whitespace-nowrap">
+                    <span title={item.reportedGrade != null ? "Climber's grade" : "Posted grade"}>
+                      {grade}
+                    </span>
+                  </Grade>
                 )}
-              >
-                {label}
-              </span>
+              </div>
             </div>
             {links && (
               <AppLink
@@ -124,7 +127,7 @@ export function FeedActivityCard({
               </AppLink>
             )}
           </div>
-          <SuggestedGrade activity={item} />
+          <GradeFeel activity={item} />
           {entries.length === 1 && view === "all" && !!item.companions?.length && (
             <CompanionList companions={item.companions} profileLinks={links} />
           )}
@@ -149,13 +152,6 @@ export function FeedActivityCard({
             </AppLink>
           ) : (
             title
-          )}{" "}
-          {activity.climbType && (
-            <Grade className="ml-1 whitespace-nowrap">
-              <span title="Posted grade">
-                {formatGrade(activity.climbType, activity.climbGrade)}
-              </span>
-            </Grade>
           )}
         </h3>
         {activity.areaId != null &&

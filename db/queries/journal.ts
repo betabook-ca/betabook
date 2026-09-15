@@ -23,6 +23,8 @@ export type JournalEntry = {
   climbName: string | null;
   climbType: ClimbType | null;
   climbGrade: number | null;
+  /** Original send opinion, available only while this entry is completed. */
+  reportedGrade?: number | null;
   areaId: number | null;
   areaName: string | null;
   isAscent: boolean;
@@ -51,6 +53,7 @@ type JournalEntryRow = {
   climbName: string | null;
   climbType: ClimbType | null;
   climbGrade: number | null;
+  reportedGrade: number | null;
   areaId: number | null;
   areaName: string | null;
   isAscent: number;
@@ -137,12 +140,14 @@ function journalEntrySelect(viewerId: string | null): SQL {
       climbs.name AS climbName,
       climbs.type AS climbType,
       climbs.grade AS climbGrade,
+      reported.suggested_grade AS reportedGrade,
       climbs.area_id AS areaId,
       areas.name AS areaName,
       j.is_ascent AS isAscent, j.is_send_comment AS isSendComment
     FROM journal_entries j
     LEFT JOIN climbs ON climbs.id = j.climb_id
     LEFT JOIN areas ON areas.id = climbs.area_id
+    LEFT JOIN sends reported ON reported.user_id = j.user_id AND reported.climb_id = j.climb_id AND j.sent = 1
 `;
 }
 
@@ -369,7 +374,7 @@ export async function getOpenProjectSessions(
     )
     SELECT
       id, climbId, kind, sent, entryDate, body, tags, companions,
-      climbName, climbType, climbGrade, areaId, areaName, isAscent, isSendComment
+      climbName, climbType, climbGrade, NULL AS reportedGrade, areaId, areaName, isAscent, isSendComment
     FROM ranked
     WHERE seq <= ${bounded}
     ORDER BY entryDate DESC, id DESC

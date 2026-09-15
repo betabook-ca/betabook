@@ -56,3 +56,20 @@ export const LargeGroup: Story = {
     })),
   },
 };
+
+export const Session: Story = {
+  args: {
+    entries: [
+      {
+        ...group.entries[0],
+        activity: {
+          ...group.entries[0].activity,
+          kind: "session",
+          reportedGrade: null,
+          gradeFeel: null,
+          ascentStyle: null,
+        },
+      },
+    ],
+  },
+};

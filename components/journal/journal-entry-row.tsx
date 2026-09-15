@@ -10,7 +10,7 @@ import { AppLink } from "@/components/ui/app-link";
 import { Grade } from "@/components/ui/grade";
 import type { AreaBreadcrumbs, JournalEntry } from "@/db/queries";
 import { journalFilterToSearchParams, type JournalFilter } from "@/lib/filters/journal-filter";
-import { formatGrade } from "@/lib/grades";
+import { formatActivityGrade } from "@/lib/grades";
 import { climbHref } from "@/lib/slug";
 
 function tagHref(userId: string, filter: JournalFilter, tag: string): string {
@@ -38,6 +38,12 @@ export function JournalEntryRow({
   filter: JournalFilter;
   areaBreadcrumbs: AreaBreadcrumbs;
 }) {
+  const grade = formatActivityGrade(
+    entry.climbType,
+    entry.climbGrade,
+    entry.sent,
+    entry.reportedGrade,
+  );
   const status =
     entry.kind === "training" && !entry.isAscent ? undefined : (
       <JournalEntryStatus isAscent={entry.isAscent} sent={entry.sent} />
@@ -86,8 +92,12 @@ export function JournalEntryRow({
           />
         }
         grade={
-          entry.climbGrade != null ? (
-            <Grade>{formatGrade(entry.climbType, entry.climbGrade)}</Grade>
+          grade ? (
+            <Grade>
+              <span title={entry.reportedGrade != null ? "Climber's grade" : "Posted grade"}>
+                {grade}
+              </span>
+            </Grade>
           ) : undefined
         }
         status={status}

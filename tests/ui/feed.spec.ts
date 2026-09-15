@@ -26,19 +26,16 @@ test(
 );
 
 test(
-  "shared climb separates posted difficulty from each person's grade opinion",
+  "shared climb keeps each person's grade beside their completed outcome",
   { tag: "@layout" },
   async ({ page }, testInfo) => {
     await openStory(page, testInfo, "components-journal-feed-activity-card--shared-climb");
     const climb = page.getByRole("link", { name: "Cedar Arete", exact: true });
-    const posted = page.getByText("V4", { exact: true });
-    const suggestion = page.getByText("V5", { exact: true });
+    const grade = page.getByText("V5", { exact: true });
     const climbBox = await climb.boundingBox(),
-      postedBox = await posted.boundingBox(),
-      ownBox = await suggestion.boundingBox();
-    if (!climbBox || !postedBox || !ownBox) throw new Error("Missing grade geometry");
-    expect(postedBox.x).toBeGreaterThan(climbBox.x + climbBox.width);
-    expect(ownBox.y).toBeGreaterThan(climbBox.y + climbBox.height);
+      gradeBox = await grade.boundingBox();
+    if (!climbBox || !gradeBox) throw new Error("Missing grade geometry");
+    expect(gradeBox.y).toBeGreaterThanOrEqual(climbBox.y + climbBox.height);
     await expect(climb).toHaveCSS("font-size", "16px");
     await expect(page.getByRole("link", { name: "Upper Boulders", exact: true })).toHaveCSS(
       "font-size",
@@ -46,6 +43,9 @@ test(
     );
     const author = page.getByRole("link", { name: "Jordan Lee", exact: true });
     const status = page.getByText("Send · Redpoint", { exact: true });
+    const statusBounds = await status.boundingBox();
+    if (!statusBounds) throw new Error("Missing outcome geometry");
+    expect(Math.abs(gradeBox.y - statusBounds.y)).toBeLessThanOrEqual(2);
     if ((page.viewportSize()?.width ?? 0) < 640) {
       const authorBox = await author.boundingBox(),
         statusBox = await status.boundingBox();

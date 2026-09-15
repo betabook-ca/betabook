@@ -55,15 +55,15 @@ it("uses a shared climb heading and one date, retaining statuses, notes and grad
   render(<FeedTimeline days={[day, friend]} view="all" />);
   expect(screen.getAllByText("Sep 1, 2026")).toHaveLength(1);
   const card = screen.getByRole("article", { name: "Quiet Arete" });
-  const header = within(card).getByRole("heading", { name: "Quiet Arete V4" });
+  const header = within(card).getByRole("heading", { name: "Quiet Arete" });
   expect(within(header).getByRole("link", { name: "Quiet Arete" })).toHaveAttribute(
     "href",
     "/climbs/12/quiet-arete",
   );
   expect(within(card).getByText("Send · Redpoint")).toBeVisible();
   expect(within(card).getByText("Session", { exact: true })).toBeVisible();
-  expect(within(card).getAllByText(/felt hard/)).toHaveLength(1);
-  expect(within(card).getByText(/felt hard/)).toHaveTextContent("Suggested V6 · felt hard");
+  expect(within(card).getAllByText(/Felt hard/)).toHaveLength(1);
+  expect(within(card).getByText(/Felt hard/)).toHaveTextContent("Felt hard for the grade");
   expect(within(card).getByText("Still trying.")).toBeVisible();
   expect(within(card).getByText("Found the sequence.")).toBeVisible();
   expect(screen.queryByText(/^With /)).not.toBeInTheDocument();
@@ -147,7 +147,7 @@ it("expands and collapses loaded group entries locally while preserving focus", 
 
 it("keeps sessions gradeless and describes matching-grade feel without implying a new grade", () => {
   const { rerender } = render(<FeedTimeline days={[friend]} view="all" />);
-  expect(screen.getByText("V4", { exact: true })).toBeVisible();
+  expect(screen.queryByText("V4", { exact: true })).not.toBeInTheDocument();
   expect(screen.queryByText(/Suggested|Felt|felt/)).not.toBeInTheDocument();
   rerender(
     <FeedTimeline
@@ -155,7 +155,7 @@ it("keeps sessions gradeless and describes matching-grade feel without implying 
       view="all"
     />,
   );
-  expect(screen.getByText(/^Felt soft for/)).toHaveTextContent("Felt soft for V4");
+  expect(screen.getByText(/^Felt soft for/)).toHaveTextContent("Felt soft for the grade");
 });
 
 it("renders training and companions without any real destinations in tutorial mode", () => {
@@ -191,3 +191,37 @@ it("renders training and companions without any real destinations in tutorial mo
   expect(screen.getAllByText("Training")).toHaveLength(2);
   expect(screen.queryByRole("link")).not.toBeInTheDocument();
 });
+
+it("removes all grades when the send becomes a session, including stale opinions", () => {
+  const { rerender } = render(<FeedTimeline days={[day]} view="all" />);
+  expect(screen.getByText("V6", { exact: true })).toBeVisible();
+  rerender(
+    <FeedTimeline
+      days={[{ ...day, sends: 0, sessions: 1, activities: [{ ...activity, kind: "session" }] }]}
+      view="all"
+    />,
+  );
+  expect(screen.getByText("Session", { exact: true })).toBeVisible();
+  expect(screen.queryByText("V4", { exact: true })).not.toBeInTheDocument();
+  expect(screen.queryByText("V6", { exact: true })).not.toBeInTheDocument();
+  expect(screen.queryByText(/Suggested|Felt hard/)).not.toBeInTheDocument();
+});
+
+it.each([
+  [7, "V6"],
+  [0, "VB"],
+  [null, "V4"],
+] as const)(
+  "uses the climber's grade %s or the posted fallback on completed activity",
+  (reportedGrade, label) => {
+    render(
+      <FeedTimeline
+        days={[{ ...day, activities: [{ ...activity, reportedGrade, gradeFeel: "solid" }] }]}
+        view="all"
+      />,
+    );
+    expect(screen.getByText(label, { exact: true })).toBeVisible();
+    if (reportedGrade != null)
+      expect(screen.queryByText("V4", { exact: true })).not.toBeInTheDocument();
+  },
+);

@@ -79,3 +79,11 @@ export const LongName: Story = {
   },
 };
 export const Visitor: Story = { args: { isOwner: false } };
+
+export const Unsent: Story = { args: { entry: { ...entry, isSendComment: true } } };
+export const Repeat: Story = { args: { entry: { ...entry, sent: true } } };
+export const SentLongNote: Story = { args: { entry: { ...entry, sent: true, isAscent: true } } };
+
+export const PersonalGrade: Story = {
+  args: { entry: { ...entry, sent: true, isAscent: true, reportedGrade: 7 } },
+};
