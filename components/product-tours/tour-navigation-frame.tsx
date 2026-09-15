@@ -50,7 +50,7 @@ export function TourNavigationFrame({
   // All destinations remain available even when entered through the shorter update tour.
   const primary: PrimaryDestination[] = [
     { id: "logbook", label: AREA_LABELS.logbook, href: href("journal", "full") },
-    { id: "progress", label: AREA_LABELS.progress, href: href("projects", "full") },
+    { id: "progress", label: AREA_LABELS.progress, href: href("goals", "full") },
     { id: "community", label: AREA_LABELS.community, href: href("feed", "full") },
   ];
   const account: PrimaryDestination = {

@@ -146,13 +146,24 @@ export type GoalPage = {
 };
 export type GoalContribution = { id: number; name: string; type: "climb" | "area" };
 
+// Cache formatter configuration, never a date result; civil midnight must remain live.
+const goalDateFormatters = new Map<string, Intl.DateTimeFormat>();
 export function goalToday(timezone: string, now = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(now);
+  let formatter = goalDateFormatters.get(timezone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    if (goalDateFormatters.size >= 32) {
+      const oldest = goalDateFormatters.keys().next().value;
+      if (oldest !== undefined) goalDateFormatters.delete(oldest);
+    }
+    goalDateFormatters.set(timezone, formatter);
+  }
+  const parts = formatter.formatToParts(now);
   return ["year", "month", "day"]
     .map((type) => parts.find((part) => part.type === type)?.value)
     .join("-");

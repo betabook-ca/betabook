@@ -52,7 +52,7 @@ it("keeps account settings in desktop utilities and only three primary mobile li
       ),
     ).toEqual([
       "/tutorial/journal/journal",
-      "/tutorial/journal/projects",
+      "/tutorial/journal/goals",
       "/tutorial/journal/feed",
       ...(name === "Example desktop navigation" ? ["/tutorial/journal/account"] : []),
     ]);

@@ -17,3 +17,4 @@ export * from "./goals";
 export * from "./goal-periods";
 export * from "./goal-achievements";
 export * from "./goal-completions";
+export * from "./goal-progress";

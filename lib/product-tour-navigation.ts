@@ -41,6 +41,42 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
       target: "send-sort",
     },
     {
+      id: "goals",
+      introducedInVersion: 3,
+      section: "Goals",
+      title: "Set a goal",
+      description:
+        "Open Progress, then Goals. Choose a climbing, training, days-out or new-area target and a deadline. You can keep five active goals. Try setting a monthly training goal in this example.",
+      target: "goal-target",
+    },
+    {
+      id: "goal-tags",
+      introducedInVersion: 3,
+      section: "Goals",
+      title: "Focus goals with tags",
+      description:
+        "Add hashtags to count only matching entries. For example, #hangboard and #strength require both tags on the same entry. Leave tags empty to count every eligible entry. Goal filters do not add tags to your logs.",
+      target: "goal-tags",
+    },
+    {
+      id: "goal-progress",
+      introducedInVersion: 3,
+      section: "Goals",
+      title: "Log toward your target",
+      description:
+        "When logging, add the goal’s hashtags under Add details. Try a strength-only session here, then two sessions with both tags. Only the matching sessions advance this goal. Correcting or deleting a log can reverse completion.",
+      target: "goal-progress",
+    },
+    {
+      id: "goal-achievements",
+      introducedInVersion: 3,
+      section: "Goals",
+      title: "Keep your achievements",
+      description:
+        "Finished one-time goals do not use active slots. Archive this example, then open History. A recurring goal keeps running and uses a slot; its past weeks already appear in History. Archived achievements remain visible to friends when shared.",
+      target: "goal-finish",
+    },
+    {
       id: "projects",
       introducedInVersion: 1,
       section: "Open Projects",

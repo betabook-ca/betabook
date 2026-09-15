@@ -27,13 +27,14 @@ vi.mock("@/components/journal/journal-entry-drawer", () => ({ JournalEntryDrawer
 
 function demo(stepId: string, mode: "full" | "updates") {
   const { steps, navigation } = resolveProductTour(PRODUCT_TOUR_STEPS.journal, {
-    version: 2,
+    version: 3,
     savedVersion: 1,
     navigation: { from: "journal", mode },
   });
   const step = steps.find((entry) => entry.id === stepId)!;
   return renderToStaticMarkup(
     <JournalTourPage
+      stepId={step.id}
       section={step.section}
       mode={navigation.mode}
       steps={steps}
@@ -116,3 +117,14 @@ it("keeps request management on its own Friends page", () => {
   expect(html).not.toContain('data-tour-target="friend-search"');
   expect(html).not.toContain('aria-label="Search category"');
 });
+
+it.each(["goals", "goal-tags", "goal-progress", "goal-achievements"])(
+  "renders the %s lesson with its stable target and no sample destinations",
+  (stepId) => {
+    const html = demo(stepId, "updates");
+    const step = PRODUCT_TOUR_STEPS.journal.find((entry) => entry.id === stepId)!;
+    expect(html).toContain(`data-tour-target="${step.target}"`);
+    expect(html).toContain('aria-label="Progress workspace"');
+    expect(html).not.toContain('href="/users/');
+  },
+);

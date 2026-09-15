@@ -27,6 +27,10 @@ describe("route-based tours", () => {
       expect(result.shouldInvite).toBe(true);
       expect(result.navigation.mode).toBe("updates");
       expect(result.steps.map((step) => step.id)).toEqual([
+        "goals",
+        "goal-tags",
+        "goal-progress",
+        "goal-achievements",
         "find-climbers",
         "friend-requests",
         "feed",
@@ -35,11 +39,11 @@ describe("route-based tours", () => {
     },
   );
 
-  it("includes the social lessons in full replay and stops inviting after version 2", () => {
+  it("includes the social lessons in full replay and stops inviting after version 3", () => {
     const tour = PRODUCT_TOURS[0];
     const result = resolveProductTour(PRODUCT_TOUR_STEPS[tour.id], {
       version: tour.version,
-      savedVersion: 2,
+      savedVersion: 3,
       navigation: { from: "account", mode: "updates" },
     });
     expect(result.shouldInvite).toBe(false);
@@ -48,6 +52,10 @@ describe("route-based tours", () => {
       "journal",
       "journal-filters",
       "sends",
+      "goals",
+      "goal-tags",
+      "goal-progress",
+      "goal-achievements",
       "projects",
       "analytics",
       "find-climbers",
@@ -238,3 +246,26 @@ describe("shared tour query parsing", () => {
     expect(parseProductTourNavigation(server)).toEqual(expected);
   });
 });
+
+it.each(["completed", "dismissed"] as const)(
+  "offers the four goal lessons after version 2 was %s",
+  (status) => {
+    const tour = PRODUCT_TOURS[0];
+    expect(tour.version).toBe(3);
+    const savedVersion = getAcknowledgedTourVersion(tour.id, [
+      { tourId: tour.id, version: 2, status },
+    ]);
+    const result = resolveProductTour(PRODUCT_TOUR_STEPS[tour.id], {
+      version: tour.version,
+      savedVersion,
+      navigation: { from: "journal", mode: "updates" },
+    });
+    expect(result.shouldInvite).toBe(true);
+    expect(result.steps.map((step) => step.id)).toEqual([
+      "goals",
+      "goal-tags",
+      "goal-progress",
+      "goal-achievements",
+    ]);
+  },
+);

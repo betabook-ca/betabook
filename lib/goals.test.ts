@@ -128,3 +128,9 @@ it("normalizes goal hashtag filters and rejects invalid or excessive hashtags", 
   ])
     expect(goalInputSchema.safeParse({ ...input, tags }).success).toBe(false);
 });
+
+it("keeps civil dates current across midnight when reusing a timezone formatter", () => {
+  expect(goalToday("Pacific/Kiritimati", new Date("2026-08-31T09:59:00Z"))).toBe("2026-08-31");
+  expect(goalToday("Pacific/Kiritimati", new Date("2026-08-31T10:00:00Z"))).toBe("2026-09-01");
+  expect(goalToday("America/Vancouver", new Date("2026-08-31T10:00:00Z"))).toBe("2026-08-31");
+});

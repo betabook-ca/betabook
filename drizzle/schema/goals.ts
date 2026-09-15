@@ -32,6 +32,8 @@ export const goals = sqliteTable(
       .$type<string[]>()
       .notNull()
       .default(sql`'[]'`),
+    progressDirty: integer("progress_dirty", { mode: "boolean" }).notNull().default(true),
+    progressDates: text("progress_dates", { mode: "json" }).$type<Record<string, string>>(),
   },
   (t) => [
     index("goals_user_idx").on(t.userId),

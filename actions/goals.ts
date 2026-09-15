@@ -44,7 +44,7 @@ function inactiveInputSql(
 ) {
   if (input.repeat === "none" && window.endDate < today) return sql`1`;
   return input.repeat === "none"
-    ? sql`(SELECT ${goalCountSql()} >= ${input.target} FROM (SELECT ${ownerId} AS user_id,${input.kind} AS kind,${input.discipline} AS discipline,${input.grade} AS grade,${input.gradeMatch} AS grade_match,${JSON.stringify(input.tags ?? [])} AS tags,${window.startDate} AS start_date,${window.endDate} AS end_date) g)`
+    ? sql`(SELECT ${goalCountSql(false)} >= ${input.target} FROM (SELECT ${ownerId} AS user_id,${input.kind} AS kind,${input.discipline} AS discipline,${input.grade} AS grade,${input.gradeMatch} AS grade_match,${JSON.stringify(input.tags ?? [])} AS tags,${window.startDate} AS start_date,${window.endDate} AS end_date) g)`
     : sql`0`;
 }
 
@@ -228,7 +228,7 @@ export async function saveGoal(
             db
               .insert(goals)
               .select(
-                sql`SELECT NULL,${ownerId},${input.kind},${input.target},${input.discipline},${input.grade},${input.timeframe},${input.repeat},${window.startDate},${window.endDate},${input.timezone},1,NULL,${input.gradeMatch},${JSON.stringify(input.tags)} WHERE EXISTS (SELECT 1 FROM goals WHERE id=${retrySource.id} AND user_id=${ownerId} AND archive_token=${archiveToken})`,
+                sql`SELECT NULL,${ownerId},${input.kind},${input.target},${input.discipline},${input.grade},${input.timeframe},${input.repeat},${window.startDate},${window.endDate},${input.timezone},1,NULL,${input.gradeMatch},${JSON.stringify(input.tags)},1,NULL WHERE EXISTS (SELECT 1 FROM goals WHERE id=${retrySource.id} AND user_id=${ownerId} AND archive_token=${archiveToken})`,
               )
               .returning({ id: goals.id }),
           ])

@@ -1,7 +1,7 @@
 import { sql, type SQL } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
-import { goalCompletions } from "@/db/schema";
+import { goalCompletions, goalProgress, goals } from "@/db/schema";
 import { summarizeGoalPeriods, goalHistoryWindow } from "@/lib/goal-history";
 import {
   goalToday,
@@ -35,8 +35,12 @@ function matches(start: SQL, end: SQL) {
   )`;
 }
 /** Correlated to goals g. Used in the same SQL statement as writes so concurrent creates cannot exceed the cap. */
-export function goalCountSql() {
-  return sql`(SELECT count(DISTINCT ${contributionKey()}) FROM journal_entries j LEFT JOIN climbs c ON c.id = j.climb_id WHERE ${matches(sql`g.start_date`, sql`g.end_date`)})`;
+export function goalCountSql(useProjection = true) {
+  const live = sql`(SELECT count(DISTINCT ${contributionKey()}) FROM journal_entries j LEFT JOIN climbs c ON c.id = j.climb_id WHERE ${matches(sql`g.start_date`, sql`g.end_date`)})`;
+  if (!useProjection) return live;
+  return sql`COALESCE((SELECT p.progress FROM goal_progress p WHERE p.goal_id=g.id
+    AND p.period_start=g.start_date AND p.period_end=g.end_date AND p.repeat='none'
+    AND g.repeat='none' AND g.progress_dirty=0), ${live})`;
 }
 const goalStorageColumns = sql`g.id,g.user_id,g.kind,g.target,g.discipline,g.grade,g.timeframe,g.repeat,g.start_date,g.end_date,g.timezone,g.grade_match,g.tags`;
 const goalColumns = sql`g.id, g.user_id AS userId, g.kind, g.target, g.discipline, g.grade, g.timeframe, g.repeat, g.start_date AS startDate, g.end_date AS endDate, g.timezone, g.grade_match AS gradeMatch, g.tags, (SELECT archived.archive_token IS NOT NULL FROM goals archived WHERE archived.id=g.id) AS archived`;
@@ -56,7 +60,9 @@ async function goalPeriodsQuery(
   const dates = JSON.stringify(
     Object.fromEntries(zones.map(({ timezone }) => [timezone, goalToday(timezone, now)])),
   );
-  const today = sql`json_extract(${dates}, '$."' || g.timezone || '"')`;
+  // A zone introduced concurrently must yield retryable rows, not an empty active view.
+  const knownToday = sql`json_extract(${dates}, '$."' || g.timezone || '"')`;
+  const today = sql`COALESCE(${knownToday}, ${now.toISOString().slice(0, 10)})`;
   const lower = options.activeOnly
     ? today
     : options.from
@@ -67,11 +73,11 @@ async function goalPeriodsQuery(
   const start = sql`CASE g.repeat WHEN 'week' THEN date(g.start_date,'+'||(${weekSkip})||' days') WHEN 'month' THEN date(g.start_date,'+'||(${monthSkip})||' months') WHEN 'year' THEN date(g.start_date,'+'||CAST((${monthSkip})/12 AS INTEGER)||' years') ELSE g.start_date END`;
   const end = sql`CASE g.repeat WHEN 'week' THEN date(${start},'+6 days') WHEN 'month' THEN date(${start},'+1 month','-1 day') WHEN 'year' THEN date(${start},'+1 year','-1 day') ELSE g.end_date END`;
   const range = options.activeOnly
-    ? sql`(g.repeat='none' OR (g.ps<=${today} AND g.pe>=${today}))`
+    ? sql`(g.repeat='none' OR ${knownToday} IS NULL OR (g.ps<=${today} AND g.pe>=${today}))`
     : options.from && options.until
       ? sql`g.ps>=${options.from} AND g.ps<${options.until}`
       : sql`1`;
-  const query = sql`
+  const definitions = sql`
     WITH RECURSIVE periods AS (
       SELECT ${goalStorageColumns}, ${start} AS ps, ${end} AS pe FROM goals g
       WHERE g.user_id=${ownerId} AND ${goalFilter} AND ${journalVisibleSql(viewerId, sql`g.user_id`)}
@@ -84,9 +90,23 @@ async function goalPeriodsQuery(
       UNION ALL
       SELECT g.id,g.user_id,h.kind,h.target,h.discipline,h.grade,h.repeat,h.repeat,h.start_date,h.end_date,h.timezone,h.grade_match,h.tags,h.start_date,h.end_date
       FROM goal_periods h JOIN goals g ON g.id=h.goal_id WHERE g.user_id=${ownerId} AND ${goalFilter} AND ${journalVisibleSql(viewerId, sql`g.user_id`)}
-    ), scoped_periods AS (SELECT g.* FROM all_periods g WHERE ${range}), contributions AS (
+    ), scoped_periods AS (SELECT g.* FROM all_periods g WHERE ${range})`;
+  const validProgress = sql`live.progress_dirty=0 AND p.goal_id IS NOT NULL AND p.period_end=g.pe`;
+  const joins = sql`FROM scoped_periods g JOIN goals live ON live.id=g.id
+    LEFT JOIN goal_progress p ON p.goal_id=g.id AND p.period_start=g.ps AND p.repeat=g.repeat`;
+  const cachedQuery = sql`${definitions}
+    SELECT ${goalColumns},g.ps AS periodStart,g.pe AS periodEnd,COALESCE(p.progress,0) AS progress,
+      p.completed_date AS completedDate,
+      COALESCE((${validProgress} AND ${knownToday} IS NOT NULL AND json_extract(live.progress_dates, '$."' || g.timezone || '"')>=${knownToday}),0) AS cacheFresh
+    ${joins} WHERE ${journalVisibleSql(viewerId, sql`g.user_id`)} ORDER BY g.pe DESC,g.id DESC`;
+  const query = sql`${definitions}, counted_periods AS MATERIALIZED (
+      SELECT g.* FROM scoped_periods g WHERE NOT EXISTS (
+        SELECT 1 FROM goal_progress p JOIN goals live ON live.id=p.goal_id
+        WHERE p.goal_id=g.id AND p.period_start=g.ps AND p.repeat=g.repeat AND ${validProgress}
+      )
+    ), contributions AS (
       SELECT g.id, g.ps, g.repeat, ${contributionKey()} AS item, min(j.entry_date) AS entryDate
-      FROM scoped_periods g JOIN journal_entries j LEFT JOIN climbs c ON c.id = j.climb_id
+      FROM counted_periods g JOIN journal_entries j LEFT JOIN climbs c ON c.id = j.climb_id
       WHERE ${matches(sql`g.ps`, sql`g.pe`)} GROUP BY g.id,g.ps,g.repeat,item
     ), ranked AS (
       SELECT *,row_number() OVER (PARTITION BY id,ps,repeat ORDER BY entryDate,item) AS ordinal FROM contributions
@@ -94,12 +114,23 @@ async function goalPeriodsQuery(
       SELECT g.id,g.ps,g.repeat,count(r.item) AS progress,max(CASE WHEN r.ordinal = g.target THEN r.entryDate END) AS completedDate
       FROM scoped_periods g LEFT JOIN ranked r ON r.id = g.id AND r.ps = g.ps AND r.repeat = g.repeat GROUP BY g.id,g.ps,g.repeat
     )
-    SELECT ${goalColumns}, g.ps AS periodStart,g.pe AS periodEnd,COALESCE(t.progress,0) AS progress,t.completedDate
-    FROM scoped_periods g JOIN totals t ON t.id = g.id AND t.ps = g.ps AND t.repeat = g.repeat
+    SELECT ${goalColumns}, g.ps AS periodStart,g.pe AS periodEnd,
+      CASE WHEN ${validProgress} THEN p.progress ELSE COALESCE(t.progress,0) END AS progress,
+      CASE WHEN ${validProgress} THEN p.completed_date ELSE t.completedDate END AS completedDate
+    ${joins} JOIN totals t ON t.id = g.id AND t.ps = g.ps AND t.repeat = g.repeat
     WHERE ${journalVisibleSql(viewerId, sql`g.user_id`)}
     ORDER BY g.pe DESC,g.id DESC
   `;
-  return { query, dates };
+  return { query, cachedQuery, dates };
+}
+
+type GoalRow = Omit<GoalProgress, "tags"> & { tags: string; cacheFresh?: number };
+function readGoalRows(rows: GoalRow[]): GoalProgress[] {
+  return rows.map(({ cacheFresh: _cacheFresh, ...goal }) => ({
+    ...goal,
+    tags: JSON.parse(goal.tags) as string[],
+    archived: Boolean(goal.archived),
+  }));
 }
 
 async function getGoalPeriods(
@@ -109,14 +140,23 @@ async function getGoalPeriods(
   now = new Date(),
   options: { goalId?: number; activeOnly?: boolean; from?: string; until?: string } = {},
 ): Promise<GoalProgress[]> {
-  const source = await goalPeriodsQuery(db, ownerId, viewerId, now, options);
+  let source = await goalPeriodsQuery(db, ownerId, viewerId, now, options);
   if (!source) return [];
-  const rows = await db.all<Omit<GoalProgress, "tags"> & { tags: string }>(source.query);
-  return rows.map((goal) => ({
-    ...goal,
-    tags: JSON.parse(goal.tags) as string[],
-    archived: Boolean(goal.archived),
-  }));
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    // Counts and freshness share one SQL snapshot, including current privacy.
+    const rows = await db.all<GoalRow>(source.cachedQuery);
+    if (rows.every((row) => row.cacheFresh === 1)) return readGoalRows(rows);
+    // Visitors may read current counts, but must not initialize owner notices.
+    if (viewerId !== ownerId) {
+      const current = await goalPeriodsQuery(db, ownerId, viewerId, now, options);
+      return current ? readGoalRows(await db.all<GoalRow>(current.query)) : [];
+    }
+    await persistGoalCompletions(db, ownerId, now);
+    source = await goalPeriodsQuery(db, ownerId, viewerId, now, options);
+    if (!source) return [];
+  }
+  // Continued concurrent writes cannot force an unbounded retry loop.
+  return readGoalRows(await db.all<GoalRow>(source.query));
 }
 
 export async function getGoalPage(
@@ -133,13 +173,12 @@ export async function getGoalPage(
   });
   const page = summarizeGoalPeriods(periods, view, offset, now, year);
   if (view === "completed" && viewerId === ownerId) {
-    await persistGoalCompletions(db, ownerId, now);
     page.celebrations = await unseenGoalAchievements(db, ownerId, periods, now);
   }
   return page;
 }
 
-/** The journal needs both tabs; share the initial aggregate read within this request. */
+/** Share projected progress between both Goals views. */
 export async function getGoalOverview(
   db: Database,
   ownerId: string,
@@ -150,7 +189,6 @@ export async function getGoalOverview(
   const active = summarizeGoalPeriods(periods, "active", 0, now);
   const completed = summarizeGoalPeriods(periods, "completed", 0, now);
   if (viewerId === ownerId) {
-    await persistGoalCompletions(db, ownerId, now);
     completed.celebrations = await unseenGoalAchievements(db, ownerId, periods, now);
   }
   return { active, completed };
@@ -274,18 +312,40 @@ export function goalCompletionTitleSql() {
 async function persistGoalCompletions(db: Database, ownerId: string, now: Date) {
   const source = await goalPeriodsQuery(db, ownerId, ownerId, now);
   if (!source) return;
-  const completed = sql`SELECT * FROM (${source.query}) current WHERE current.completedDate IS NOT NULL AND current.completedDate <= json_extract(${source.dates}, '$."' || current.timezone || '"')`;
+  const stale = await db.get(sql`SELECT 1 FROM (${source.cachedQuery}) WHERE cacheFresh=0 LIMIT 1`);
+  if (!stale) return;
+  const completed = sql`SELECT * FROM (${source.cachedQuery}) current WHERE current.completedDate IS NOT NULL AND current.completedDate <= json_extract(${source.dates}, '$."' || current.timezone || '"')`;
   const goalIds = sql`SELECT id FROM goals WHERE user_id=${ownerId}
       AND json_extract(${source.dates}, '$."' || timezone || '"') IS NOT NULL
-      AND NOT EXISTS (SELECT 1 FROM goal_periods h WHERE h.goal_id=goals.id AND json_extract(${source.dates}, '$."' || h.timezone || '"') IS NULL)`;
+      AND COALESCE(json_extract(progress_dates, '$."' || timezone || '"'),'') <= json_extract(${source.dates}, '$."' || timezone || '"')
+      AND NOT EXISTS (SELECT 1 FROM goal_periods h WHERE h.goal_id=goals.id AND (
+        json_extract(${source.dates}, '$."' || h.timezone || '"') IS NULL OR
+        COALESCE(json_extract(progress_dates, '$."' || h.timezone || '"'),'') > json_extract(${source.dates}, '$."' || h.timezone || '"')))`;
   await db.batch([
+    db.delete(goalProgress).where(sql`goal_id IN (${goalIds}) AND NOT EXISTS (
+      SELECT 1 FROM (${source.cachedQuery}) current WHERE current.id=goal_progress.goal_id
+        AND current.periodStart=goal_progress.period_start AND current.repeat=goal_progress.repeat)`),
+    // Aggregate journals once, reusing clean periods, then derive events from these rows.
+    db
+      .insert(goalProgress)
+      .select(sql`SELECT current.id,current.periodStart,current.repeat,current.periodEnd,current.progress,current.completedDate
+      FROM (${source.query}) current WHERE current.id IN (${goalIds})`)
+      .onConflictDoUpdate({
+        target: [goalProgress.goalId, goalProgress.periodStart, goalProgress.repeat],
+        set: {
+          periodEnd: sql`excluded.period_end`,
+          progress: sql`excluded.progress`,
+          completedDate: sql`excluded.completed_date`,
+        },
+        setWhere: sql`goal_progress.period_end IS NOT excluded.period_end OR goal_progress.progress IS NOT excluded.progress OR goal_progress.completed_date IS NOT excluded.completed_date`,
+      }),
     db.delete(goalCompletions).where(sql`goal_id IN (${goalIds})
       AND NOT EXISTS (SELECT 1 FROM (${completed}) current WHERE current.id=goal_completions.goal_id
         AND current.periodStart=goal_completions.period_start AND current.repeat=goal_completions.repeat)`),
     db
       .insert(goalCompletions)
       .select(
-        sql`SELECT NULL,current.id,current.periodStart,current.repeat,current.completedDate,${goalCompletionTitleSql()} FROM (${completed}) current WHERE true`,
+        sql`SELECT NULL,current.id,current.periodStart,current.repeat,current.completedDate,${goalCompletionTitleSql()} FROM (${completed}) current WHERE current.id IN (${goalIds})`,
       )
       .onConflictDoUpdate({
         target: [goalCompletions.goalId, goalCompletions.periodStart, goalCompletions.repeat],
@@ -293,5 +353,11 @@ async function persistGoalCompletions(db: Database, ownerId: string, now: Date) 
         setWhere: sql`goal_completions.completed_date IS NOT excluded.completed_date OR goal_completions.title IS NOT excluded.title`,
       }),
     ...goalAchievementStatements(db, goalIds, now),
+    db
+      .update(goals)
+      .set({ progressDirty: false, progressDates: sql`${source.dates}` })
+      .where(
+        sql`id IN (${goalIds}) AND (progress_dirty=1 OR progress_dates IS NOT ${source.dates})`,
+      ),
   ]);
 }
