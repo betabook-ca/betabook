@@ -48,10 +48,7 @@ function readSendFormData(
 }
 
 function carriesSendFields(formData: FormData): boolean {
-  return SEND_FORM_FIELDS.some((field) => {
-    const value = formData.get(field);
-    return value !== null && value !== "";
-  });
+  return SEND_FORM_FIELDS.some((field) => formData.getAll(field).some((value) => value !== ""));
 }
 
 async function requireJournalSession() {

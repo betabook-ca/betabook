@@ -801,3 +801,33 @@ it.each(["suggestedGrade", "gradeFeel"])(
     expect(await sendFor("j-user", HIGHBALL)).toBeUndefined();
   },
 );
+
+it.each(
+  ["create", "update"].flatMap((operation) =>
+    Object.entries({
+      ascentStyle: "redpoint",
+      rating: "4",
+      suggestedGrade: "5",
+      gradeFeel: "high",
+    }).map(([field, value]) => ({ operation, field, value })),
+  ),
+)(
+  "rejects a nonempty duplicate $field during session $operation",
+  async ({ operation, field, value }) => {
+    if (operation === "update") {
+      expect(await createJournalEntry(entryFormData())).toEqual({ ok: true, value: undefined });
+    }
+    const before = await entriesFor("j-user");
+    const form = entryFormData({ [field]: "", body: "Must not be saved." });
+    form.append(field, value);
+
+    const result =
+      operation === "create"
+        ? await createJournalEntry(form)
+        : await updateJournalEntry(before[0].id, form);
+
+    expect(result).toEqual({ ok: false, error: "A session doesn't carry a rating or a grade" });
+    expect(await entriesFor("j-user")).toEqual(before);
+    expect(await sendFor("j-user", HIGHBALL)).toBeUndefined();
+  },
+);
