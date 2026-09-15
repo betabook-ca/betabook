@@ -164,8 +164,10 @@ Playwright starts the gallery preview and the app, applying local D1 migrations
 before starting a new app server. The app defaults to port 3000, matching
 `pnpm dev`. Set `BETABOOK_UI_PORT` when using another port, for example
 `BETABOOK_UI_PORT=3003`; the server and tests use that same port.
-Readiness warms the homepage compilation before navigation checks. An existing
-app can be reused, but stop and migrate it first if its database is out of date.
+Readiness warms the homepage compilation, then app setup requests the anonymous
+session endpoint before navigation checks. This keeps the auth route's cold dev
+compilation outside UI assertion timing while retaining real session requests.
+An existing app can be reused, but stop and migrate it first if its database is out of date.
 Use the normal local `.dev.vars` setup; CI copies `.dev.vars.example` and needs
 no seed or account for these app checks.
 
