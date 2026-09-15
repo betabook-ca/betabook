@@ -235,3 +235,15 @@ export function describeGradeTrend(
 
   return { postedLabel, suggestedLabel: formatGrade(type, grade + offset), arrow };
 }
+
+/** Completed activity uses the climber's grade, falling back to the posted
+ * catalog grade. Unsent sessions never inherit either, even after unsending. */
+export function formatActivityGrade(
+  type: ClimbType | null,
+  postedGrade: number | null,
+  completed: boolean,
+  reportedGrade?: number | null,
+): string | null {
+  const grade = reportedGrade ?? postedGrade;
+  return completed && type && grade != null ? formatGrade(type, grade) : null;
+}

@@ -21,7 +21,7 @@ import { LoadMoreButton } from "@/components/ui/load-more-button";
 import { SettingsSection } from "@/components/ui/settings";
 import { SortSelect } from "@/components/ui/sort-select";
 import { formatDate } from "@/lib/format-date";
-import { parseGrade } from "@/lib/grades";
+import { formatActivityGrade, parseGrade } from "@/lib/grades";
 import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
 import {
   getTourDemoJournalPage,
@@ -129,7 +129,15 @@ export function DemoJournal() {
                 />
               )
             }
-            grade={entry.climb ? <Grade>{entry.climb.grade}</Grade> : undefined}
+            grade={
+              entry.climb && (entry.outcome === "Sent" || entry.outcome === "Repeat") ? (
+                <Grade>
+                  <span title="Posted grade">
+                    {formatActivityGrade("boulder", parseGrade("boulder", entry.climb.grade), true)}
+                  </span>
+                </Grade>
+              ) : undefined
+            }
             comment={entry.note}
             tags={
               entry.tags.length > 0

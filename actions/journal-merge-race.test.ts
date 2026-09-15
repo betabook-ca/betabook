@@ -129,6 +129,8 @@ it.each(
 
     // A refreshed editor can still save against the retained entry at its new climb.
     const retry = form({ climbId: "2", sent: String(!collision), body: "Fresh edit" });
+    // The journal editor submits notes and tags, without the send form's opinion fields.
+    for (const field of ["ascentStyle", "rating", "suggestedGrade"]) retry.delete(field);
     expect((await updateJournalEntry(entry.id, retry)).ok).toBe(true);
     expect(
       await db.select().from(journalEntries).where(eq(journalEntries.id, entry.id)).get(),

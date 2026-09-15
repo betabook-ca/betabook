@@ -16,8 +16,8 @@ type FeedActivity = {
   climbName: string | null;
   climbType: ClimbType | null;
   climbGrade: number | null;
-  /** Send/repeat grade only. Sessions and training never inherit a send's
-   * grade or feel; ungraded sends also have no reported grade. */
+  /** The climber's send grade, reused for completed repeats. Sessions and
+   * training never inherit it; ungraded sends also have no reported grade. */
   reportedGrade: number | null;
   gradeFeel: GradeFeel | null;
   areaId: number | null;

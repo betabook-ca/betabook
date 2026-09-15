@@ -782,3 +782,52 @@ it("does not open a repeat in the send editor", async () => {
   const repeat = (await entriesFor("j-user")).find((entry) => !entry.isAscent)!;
   expect((await getSendEditorData({ entryId: repeat.id })).ok).toBe(false);
 });
+
+it.each(["suggestedGrade", "gradeFeel"])(
+  "rejects %s when creating or editing a session",
+  async (field) => {
+    const value = field === "suggestedGrade" ? "5" : "high";
+    expect(await createJournalEntry(entryFormData({ [field]: value }))).toEqual({
+      ok: false,
+      error: "A session doesn't carry a rating or a grade",
+    });
+    expect(await entriesFor("j-user")).toEqual([]);
+    expect(await createJournalEntry(entryFormData())).toEqual({ ok: true, value: undefined });
+    const [entry] = await entriesFor("j-user");
+    expect(
+      await updateJournalEntry(entry.id, entryFormData({ [field]: value, body: "Changed" })),
+    ).toEqual({ ok: false, error: "A session doesn't carry a rating or a grade" });
+    expect(await entriesFor("j-user")).toEqual([entry]);
+    expect(await sendFor("j-user", HIGHBALL)).toBeUndefined();
+  },
+);
+
+it.each(
+  ["create", "update"].flatMap((operation) =>
+    Object.entries({
+      ascentStyle: "redpoint",
+      rating: "4",
+      suggestedGrade: "5",
+      gradeFeel: "high",
+    }).map(([field, value]) => ({ operation, field, value })),
+  ),
+)(
+  "rejects a nonempty duplicate $field during session $operation",
+  async ({ operation, field, value }) => {
+    if (operation === "update") {
+      expect(await createJournalEntry(entryFormData())).toEqual({ ok: true, value: undefined });
+    }
+    const before = await entriesFor("j-user");
+    const form = entryFormData({ [field]: "", body: "Must not be saved." });
+    form.append(field, value);
+
+    const result =
+      operation === "create"
+        ? await createJournalEntry(form)
+        : await updateJournalEntry(before[0].id, form);
+
+    expect(result).toEqual({ ok: false, error: "A session doesn't carry a rating or a grade" });
+    expect(await entriesFor("j-user")).toEqual(before);
+    expect(await sendFor("j-user", HIGHBALL)).toBeUndefined();
+  },
+);

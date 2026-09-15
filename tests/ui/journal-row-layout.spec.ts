@@ -3,7 +3,7 @@ import { expect, openStory, test } from "./story";
 test("journal notes use the row width and expanding them leaves the grade aligned with the title", async ({
   page,
 }, info) => {
-  await openStory(page, info, "components-journal-entry-row--session");
+  await openStory(page, info, "components-journal-entry-row--sent-long-note");
   const row = page.locator("[data-journal-example]");
   const title = row.getByRole("link", { name: "Cedar Arete", exact: true });
   const grade = row.getByText("V4", { exact: true });

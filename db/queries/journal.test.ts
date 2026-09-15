@@ -1,4 +1,5 @@
 import { env } from "cloudflare:test";
+import { and, eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { createDb, type Database } from "@/db/client";
@@ -12,6 +13,7 @@ import {
   getOpenProjectSessions,
   hasJournalEntries,
 } from "@/db/queries";
+import { sends } from "@/db/schema";
 import { DEFAULT_JOURNAL_FILTER, type JournalFilter } from "@/lib/filters/journal-filter";
 import {
   seedFixtureJournalEntry,
@@ -514,3 +516,30 @@ describe("journal date ranges", () => {
     expect(sessions.entries.map((entry) => entry.entryDate)).toEqual(["2025-03-06", "2025-03-05"]);
   });
 });
+
+it.each([7, 0, null])(
+  "returns the climber's grade %s only on completed journal entries, clearing it after unsending",
+  async (suggestedGrade) => {
+    await db
+      .update(sends)
+      .set({ suggestedGrade })
+      .where(and(eq(sends.userId, OWNER_ID), eq(sends.climbId, HIGHBALL)));
+    const entries = await getJournalForClimb(db, OWNER_ID, OWNER_ID, HIGHBALL, 10);
+    expect(entries.filter((entry) => entry.sent)).toMatchObject([
+      { reportedGrade: suggestedGrade, climbGrade: 5 },
+      { reportedGrade: suggestedGrade, climbGrade: 5 },
+    ]);
+    expect(entries.filter((entry) => !entry.sent)).toMatchObject([{ reportedGrade: null }]);
+    await db.delete(sends).where(and(eq(sends.userId, OWNER_ID), eq(sends.climbId, HIGHBALL)));
+    const unsent = await getJournalForClimb(db, OWNER_ID, OWNER_ID, HIGHBALL, 10);
+    expect(unsent.map((entry) => entry.id)).toEqual(entries.map((entry) => entry.id));
+    expect(unsent).toMatchObject(
+      Array.from({ length: 3 }, () => ({
+        sent: false,
+        isAscent: false,
+        reportedGrade: null,
+        climbGrade: 5,
+      })),
+    );
+  },
+);

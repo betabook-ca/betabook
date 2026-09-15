@@ -7,6 +7,8 @@ import { AppLink } from "@/components/ui/app-link";
 import type { JournalEntry } from "@/db/queries";
 import { DEFAULT_JOURNAL_FILTER } from "@/lib/filters/journal-filter";
 
+vi.mock("next/cache", () => ({ refresh: () => {}, revalidatePath: () => {} }));
+
 vi.mock("@/components/ui/app-link", () => ({
   AppLink: vi.fn<(props: { children?: ReactNode }) => null>(() => null),
 }));
@@ -53,6 +55,36 @@ function flattenNodes(node: ReactNode): ReactNode[] {
 }
 
 describe("JournalEntryRow", () => {
+  it.each([
+    [7, "V6"],
+    [0, "VB"],
+    [null, "V4"],
+  ] as const)("prefers the climber's grade %s, falling back to posted", (reportedGrade, label) => {
+    const result = row(DEFAULT_JOURNAL_FILTER, {
+      ...entry,
+      sent: true,
+      isAscent: true,
+      reportedGrade,
+    });
+    expect(renderToStaticMarkup(<>{result.props.grade}</>)).toContain(label);
+  });
+
+  it.each([false, true])(
+    "omits the grade for an unsent session (retained send comment: %s)",
+    (isSendComment) => {
+      const result = row(DEFAULT_JOURNAL_FILTER, { ...entry, isSendComment, reportedGrade: 7 });
+      expect(renderToStaticMarkup(<>{result.props.grade}</>)).toBe("");
+    },
+  );
+
+  it.each([false, true])(
+    "shows the posted grade on a completed climb (original ascent: %s)",
+    (isAscent) => {
+      const result = row(DEFAULT_JOURNAL_FILTER, { ...entry, sent: true, isAscent });
+      expect(renderToStaticMarkup(<>{result.props.grade}</>)).toContain("V4");
+    },
+  );
+
   it("links tag chips to the journal tag filter", () => {
     const result = row();
     const tag = tagChildren(result).find(

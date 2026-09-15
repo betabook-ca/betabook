@@ -48,10 +48,7 @@ function readSendFormData(
 }
 
 function carriesSendFields(formData: FormData): boolean {
-  return SEND_FORM_FIELDS.some((field) => {
-    const value = formData.get(field);
-    return value !== null && value !== "";
-  });
+  return SEND_FORM_FIELDS.some((field) => formData.getAll(field).some((value) => value !== ""));
 }
 
 async function requireJournalSession() {
@@ -113,6 +110,9 @@ export async function createJournalEntry(formData: FormData): Promise<ActionResu
     const db = await getDb();
 
     const input = validateJournalInput(readJournalFormData(formData));
+    if (!input.sent && carriesSendFields(formData)) {
+      throw new ActionError("A session doesn't carry a rating or a grade");
+    }
     const companions = readCompanionSelection(formData);
     const climb = input.climbId === null ? null : await requireClimb(db, input.climbId);
 
@@ -204,6 +204,9 @@ export async function updateJournalEntry(
     if (!existing) throw new ActionError("Entry not found");
 
     const input = validateJournalInput(readJournalFormData(formData));
+    if (!input.sent && carriesSendFields(formData)) {
+      throw new ActionError("A session doesn't carry a rating or a grade");
+    }
     const companions = readCompanionSelection(formData);
 
     if (input.sent !== existing.sent) {
