@@ -213,3 +213,78 @@ it("submits hashtag filters and keeps them after a failed save", async () => {
     expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ tags: ["hangboard"] })),
   );
 });
+
+it("sets an optional recurring end date before creating the goal and clears it for one-time goals", async () => {
+  const save = vi.fn<(draft: unknown) => Promise<void>>().mockResolvedValue(undefined);
+  const user = userEvent.setup();
+  render(
+    <GoalForm initialCategory="training" initialRepeat="month" today="2026-09-11" onSave={save} />,
+  );
+  expect(screen.getByRole("button", { name: /No end date/ })).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Create goal" }));
+  expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ recurringEndDate: null }));
+  await user.click(screen.getByRole("button", { name: /Recurrence end/ }));
+  await user.click(screen.getByRole("option", { name: "On a date" }));
+  expect(screen.getByRole("spinbutton", { name: "day, End date" })).toHaveTextContent("30");
+  await user.click(screen.getByRole("button", { name: "Create goal" }));
+  expect(save).toHaveBeenLastCalledWith(
+    expect.objectContaining({ repeat: "month", recurringEndDate: "2026-09-30" }),
+  );
+  await user.click(screen.getByRole("checkbox", { name: "Make this a recurring goal" }));
+  expect(screen.queryByRole("spinbutton", { name: "day, End date" })).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Create goal" }));
+  expect(save).toHaveBeenLastCalledWith(
+    expect.objectContaining({ repeat: "none", recurringEndDate: null }),
+  );
+});
+
+it("loads an existing recurring end date and lets the owner remove it", async () => {
+  const save = vi.fn<(draft: unknown) => Promise<void>>().mockResolvedValue(undefined);
+  const user = userEvent.setup();
+  render(
+    <GoalForm
+      today="2026-09-11"
+      onSave={save}
+      initialDraft={{
+        category: "training",
+        goal: "training",
+        discipline: "boulder",
+        grade: "any",
+        amount: "3",
+        period: "week",
+        repeat: "week",
+        endDate: "2026-09-13",
+        recurringEndDate: "2026-09-20",
+      }}
+    />,
+  );
+  expect(screen.getByRole("spinbutton", { name: "day, End date" })).toHaveTextContent("20");
+  await user.click(screen.getByRole("button", { name: /Recurrence end/ }));
+  await user.click(screen.getByRole("option", { name: "No end date" }));
+  await user.click(screen.getByRole("button", { name: "Save changes" }));
+  expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ recurringEndDate: null }));
+});
+
+it("rejects a recurring end date before the goal's current date", async () => {
+  const save = vi.fn<(draft: unknown) => Promise<void>>().mockResolvedValue(undefined);
+  render(
+    <GoalForm
+      today="2026-09-11"
+      onSave={save}
+      initialValues={{
+        category: "training",
+        goal: "training",
+        discipline: "boulder",
+        grade: "any",
+        amount: "3",
+        period: "week",
+        repeat: "week",
+        endDate: "2026-09-13",
+        recurringEndDate: "2026-09-10",
+      }}
+    />,
+  );
+  await userEvent.setup().click(screen.getByRole("button", { name: "Create goal" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("End date must be today or later.");
+  expect(save).not.toHaveBeenCalled();
+});

@@ -46,7 +46,7 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
       section: "Goals",
       title: "Set a goal",
       description:
-        "Open Progress, then Goals. Choose a climbing, training, days-out or new-area target and a deadline. You can keep five active goals. Try setting a monthly training goal in this example.",
+        "Open Progress, then Goals. Choose a climbing, training, days-out or new-area target. For recurring goals, choose No end date or set a final date before saving. You can keep five active goals. Try setting a monthly training goal in this example.",
       target: "goal-target",
     },
     {

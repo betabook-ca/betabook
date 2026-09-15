@@ -109,3 +109,20 @@ export const HashtagGoal: Story = {
     },
   },
 };
+
+export const RecurringWithEndDate: Story = {
+  args: {
+    initialValues: {
+      category: "training",
+      goal: "training",
+      discipline: "boulder",
+      grade: "any",
+      amount: "3",
+      period: "week",
+      endDate: "2026-09-13",
+      repeat: "week",
+      recurringEndDate: "2026-11-30",
+      tags: ["hangboard"],
+    },
+  },
+};

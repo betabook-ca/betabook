@@ -9,7 +9,7 @@ import { cardClass } from "@/components/ui/card";
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { DISCIPLINE_CHIP_CLASSNAME, DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
-import { FIELD_HEIGHT_CLASS } from "@/components/ui/field";
+import { FIELD_HEIGHT_CLASS, FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { OptionSelect } from "@/components/ui/option-select";
 import { PageTitle, SectionHeading } from "@/components/ui/typography";
@@ -82,6 +82,7 @@ export type GoalDraft = {
   startDate?: string;
   endDate: string;
   repeat: GoalInput["repeat"];
+  recurringEndDate?: string | null;
 };
 
 /** Shared goal editor; persistence is supplied by the journal panel. */
@@ -146,12 +147,18 @@ export function GoalForm({
   const [endDate, setEndDate] = useState(
     draft?.endDate ?? initialEndDate ?? goalWindow("month", today, today).endDate,
   );
+  const [hasEndDate, setHasEndDate] = useState(Boolean(draft?.recurringEndDate));
+  const [recurringEndDate, setRecurringEndDate] = useState(draft?.recurringEndDate ?? "");
   const initialCadence = draft?.repeat ?? initialRepeat;
   const [recurring, setRecurring] = useState(initialCadence !== "none");
   const [cadence, setCadence] = useState<Exclude<GoalInput["repeat"], "none">>(
     initialCadence === "none" ? "month" : initialCadence,
   );
   const repeat = goal === "grade" || !recurring ? "none" : cadence;
+  const selectedRecurringEndDate = repeat !== "none" && hasEndDate ? recurringEndDate : null;
+  const invalidRecurringEnd =
+    selectedRecurringEndDate !== null &&
+    (!selectedRecurringEndDate || selectedRecurringEndDate < today);
   function toggleRecurring(selected: boolean) {
     if (selected && period !== "custom") setCadence(period);
     setRecurring(selected);
@@ -202,6 +209,8 @@ export function GoalForm({
                   onPress={() => {
                     if (value !== category) {
                       setRecurring(false);
+                      setHasEndDate(false);
+                      setRecurringEndDate("");
                       setCadence("month");
                       setPeriod("month");
                       setGoal(goalOptions[value][0].value);
@@ -255,6 +264,10 @@ export function GoalForm({
                   setError("End date must be on or after start date.");
                   return;
                 }
+                if (invalidRecurringEnd) {
+                  setError("End date must be today or later.");
+                  return;
+                }
                 setError("");
                 setPending(true);
                 onPendingChange?.(true);
@@ -271,6 +284,7 @@ export function GoalForm({
                       startDate,
                       endDate,
                       repeat,
+                      recurringEndDate: selectedRecurringEndDate,
                       tags,
                     });
                 } catch (cause) {
@@ -483,6 +497,42 @@ export function GoalForm({
                       <span>and</span>
                       <DatePickerField label="End date" value={endDate} onChange={setEndDate} />
                     </div>
+                  </div>
+                )}
+                {repeat !== "none" && (
+                  <div className="flex flex-col gap-1">
+                    <div className="flex flex-wrap items-end gap-3">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm">Ends</span>
+                        <OptionSelect
+                          ariaLabel="Recurrence end"
+                          value={hasEndDate ? "date" : "none"}
+                          options={[
+                            { value: "none", label: "No end date" },
+                            { value: "date", label: "On a date" },
+                          ]}
+                          className={FIELD_WIDTH_CLASS.medium}
+                          onChange={(value) => {
+                            setHasEndDate(value === "date");
+                            if (value === "date" && !recurringEndDate)
+                              setRecurringEndDate(goalWindow(repeat, today, today).endDate);
+                            setError("");
+                          }}
+                        />
+                      </div>
+                      {hasEndDate && (
+                        <DatePickerField
+                          label="End date"
+                          value={recurringEndDate}
+                          onChange={setRecurringEndDate}
+                        />
+                      )}
+                    </div>
+                    <p className="text-xs text-muted">
+                      {hasEndDate
+                        ? "Counts logs through this date, then stops repeating. Past results stay in History."
+                        : "Repeats until you choose to end it. You can change this later."}
+                    </p>
                   </div>
                 )}
                 <div data-tour-target="goal-tags" className="flex flex-col gap-1">

@@ -727,3 +727,29 @@ it("retains scheduled stops through edits and preserves old cadence history", as
     ]),
   );
 });
+
+it("creates a routine with its end date in the same save, then allows changing or removing it", async () => {
+  const result = await saveGoal(null, {
+    ...input,
+    repeat: "month",
+    recurringEndDate: "2026-09-20",
+  });
+  if (!result.ok) throw Error(result.error);
+  expect((await db.select().from(goals))[0].recurringEndDate).toBe("2026-09-20");
+  expect(
+    (await saveGoal(result.value, { ...input, repeat: "month", recurringEndDate: "2026-09-30" }))
+      .ok,
+  ).toBe(true);
+  expect((await db.select().from(goals))[0].recurringEndDate).toBe("2026-09-30");
+  expect(
+    (await saveGoal(result.value, { ...input, repeat: "month", recurringEndDate: null })).ok,
+  ).toBe(true);
+  expect((await db.select().from(goals))[0].recurringEndDate).toBeNull();
+  expect(
+    (await saveGoal(null, { ...input, repeat: "week", recurringEndDate: "2026-09-10" })).ok,
+  ).toBe(false);
+  expect(
+    (await saveGoal(null, { ...input, repeat: "week", recurringEndDate: "2026-02-30" })).ok,
+  ).toBe(false);
+  expect((await saveGoal(null, { ...input, recurringEndDate: "2026-09-20" })).ok).toBe(false);
+});

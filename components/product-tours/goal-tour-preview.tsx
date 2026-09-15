@@ -52,6 +52,7 @@ function DemoGoalEditor({ withTags }: { withTags: boolean }) {
             startDate: value.startDate,
             endDate: value.endDate,
             repeat: value.repeat,
+            recurringEndDate: value.recurringEndDate,
             timezone: "UTC",
           });
           if (!result.success)

@@ -72,6 +72,7 @@ function draftFor(goal: GoalProgress): GoalDraft {
     startDate: goal.startDate,
     endDate: goal.endDate,
     repeat: goal.repeat,
+    recurringEndDate: goal.recurringEndDate ?? null,
   };
 }
 
@@ -236,6 +237,10 @@ export function GoalPanel({
       repeat: draft.repeat,
       startDate: draft.startDate,
       endDate: draft.endDate,
+      recurringEndDate:
+        editing && draft.recurringEndDate === (editing.recurringEndDate ?? null)
+          ? undefined
+          : (draft.recurringEndDate ?? null),
       timezone: editing?.timezone ?? timezone,
     };
     const result =
@@ -671,7 +676,7 @@ export function GoalPanel({
                       : undefined
                   }
                   initialValues={starting ?? undefined}
-                  today={today}
+                  today={editing?.today ?? today}
                   nextGrades={nextGrades}
                   onSave={save}
                   onCancel={editState.close}

@@ -133,6 +133,26 @@ function goalSaveWindow(existing: ExistingGoal | null | undefined, input: GoalIn
       );
 }
 
+function recurringEndSetting(existing: ExistingGoal | null | undefined, input: GoalInput) {
+  const value =
+    input.repeat === "none"
+      ? null
+      : input.recurringEndDate === undefined
+        ? (existing?.recurringEndDate ?? null)
+        : input.recurringEndDate;
+  if (value && value < goalToday(input.timezone))
+    throw new ActionError("End date must be today or later.");
+  return {
+    value,
+    update:
+      input.repeat === "none"
+        ? null
+        : input.recurringEndDate === undefined
+          ? sql`recurring_end_date`
+          : input.recurringEndDate,
+  };
+}
+
 export async function saveGoal(
   id: number | null,
   raw: unknown,
@@ -163,6 +183,7 @@ export async function saveGoal(
           );
     if (id !== null && !existing) throw new ActionError("Goal not found.");
     const window = goalSaveWindow(existing, input);
+    const recurringEnd = recurringEndSetting(existing, input);
     if (needsMilestoneEligibilityCheck(existing, input, window.startDate)) {
       const prior = await db.get(
         sql`SELECT 1 FROM sends s JOIN climbs c ON c.id = s.climb_id WHERE s.user_id = ${ownerId} AND c.type = ${input.discipline} AND c.grade >= ${input.grade} AND (s.date_sent IS NULL OR s.date_sent < ${window.startDate}) LIMIT 1`,
@@ -209,7 +230,7 @@ export async function saveGoal(
         startDate: window.startDate,
         endDate: window.endDate,
         timezone: input.timezone,
-        recurringEndDate: input.repeat === "none" ? null : sql`recurring_end_date`,
+        recurringEndDate: recurringEnd.update,
       })
       .where(
         sql`id=${id} AND user_id=${ownerId} AND archive_token IS NULL AND (recurring_end_date IS NULL OR recurring_end_date >= COALESCE(json_extract(${civilDates}, '$."' || timezone || '"'), '9999-12-31')) AND ${capacity}`,
@@ -234,7 +255,7 @@ export async function saveGoal(
             db
               .insert(goals)
               .select(
-                sql`SELECT NULL,${ownerId},${input.kind},${input.target},${input.discipline},${input.grade},${input.timeframe},${input.repeat},${window.startDate},${window.endDate},${input.timezone},1,NULL,${input.gradeMatch},${JSON.stringify(input.tags)},1,NULL,NULL WHERE EXISTS (SELECT 1 FROM goals WHERE id=${retrySource.id} AND user_id=${ownerId} AND archive_token=${archiveToken})`,
+                sql`SELECT NULL,${ownerId},${input.kind},${input.target},${input.discipline},${input.grade},${input.timeframe},${input.repeat},${window.startDate},${window.endDate},${input.timezone},1,NULL,${input.gradeMatch},${JSON.stringify(input.tags)},1,NULL,${recurringEnd.value} WHERE EXISTS (SELECT 1 FROM goals WHERE id=${retrySource.id} AND user_id=${ownerId} AND archive_token=${archiveToken})`,
               )
               .returning({ id: goals.id }),
           ])
@@ -242,8 +263,8 @@ export async function saveGoal(
       : id === null
         ? await db.get<{
             id: number;
-          }>(sql`INSERT INTO goals (user_id,kind,target,discipline,grade,timeframe,repeat,start_date,end_date,timezone,grade_match,celebrations_initialized,tags)
-          SELECT ${ownerId},${input.kind},${input.target},${input.discipline},${input.grade},${input.timeframe},${input.repeat},${window.startDate},${window.endDate},${input.timezone},${input.gradeMatch},1,${JSON.stringify(input.tags)}
+          }>(sql`INSERT INTO goals (user_id,kind,target,discipline,grade,timeframe,repeat,start_date,end_date,timezone,grade_match,celebrations_initialized,tags,recurring_end_date)
+          SELECT ${ownerId},${input.kind},${input.target},${input.discipline},${input.grade},${input.timeframe},${input.repeat},${window.startDate},${window.endDate},${input.timezone},${input.gradeMatch},1,${JSON.stringify(input.tags)},${recurringEnd.value}
           WHERE ${capacity} RETURNING id`)
         : (
             await db.batch([db.insert(goalPeriods).select(snapshot).onConflictDoNothing(), update])

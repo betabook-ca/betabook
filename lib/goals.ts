@@ -51,6 +51,7 @@ export const goalInputSchema = z
     timeframe: z.enum(["week", "month", "year", "custom"]),
     startDate: isoDate.optional(),
     endDate: isoDate,
+    recurringEndDate: isoDate.nullable().optional(),
     repeat: z.enum(["none", "week", "month", "year"]),
     timezone: z
       .string()
@@ -75,6 +76,12 @@ export const goalInputSchema = z
         code: "custom",
         message: "End date must be on or after start date.",
         path: ["endDate"],
+      });
+    if (value.repeat === "none" && value.recurringEndDate != null)
+      ctx.addIssue({
+        code: "custom",
+        message: "Only recurring goals have a recurrence end date.",
+        path: ["recurringEndDate"],
       });
     if (!validGradeMatch(value))
       ctx.addIssue({ code: "custom", message: "Choose a grade for an or-harder volume goal." });
