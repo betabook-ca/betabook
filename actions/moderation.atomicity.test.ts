@@ -170,7 +170,7 @@ it("returns success when a committed moderation edit cannot refresh the page", a
   ).toMatchObject({ status: "approved" });
 });
 
-it("keeps a committed climb edit successful when its goal-author lookup fails", async () => {
+it("does not enumerate goal authors inside a committed moderation edit", async () => {
   const failure = new Error("goal-author lookup unavailable");
   const lookup = vi.spyOn(db, "selectDistinct").mockImplementationOnce(() => {
     throw failure;
@@ -190,7 +190,7 @@ it("keeps a committed climb edit successful when its goal-author lookup fails", 
         },
       ),
     ).resolves.toBeUndefined();
-    expect(lookup).toHaveBeenCalledOnce();
+    expect(lookup).not.toHaveBeenCalled();
     expect(await db.select().from(climbs).where(eq(climbs.id, 1)).get()).toMatchObject({
       grade: 6,
     });
@@ -205,7 +205,7 @@ it("keeps a committed climb edit successful when its goal-author lookup fails", 
       { requestId: request.id, userId: "reviewer" },
     ]);
     expect(revalidatePath).toHaveBeenCalledWith("/climbs/1");
-    expect(log).toHaveBeenCalledWith(expect.stringContaining("Saved successfully"), failure);
+    expect(log).not.toHaveBeenCalled();
   } finally {
     lookup.mockRestore();
     log.mockRestore();

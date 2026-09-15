@@ -3,9 +3,9 @@
 import { and, eq, sql } from "drizzle-orm";
 import { refresh } from "next/cache";
 
+import { scheduleGoalRefresh } from "@/actions/goal-refresh";
 import { getDb, type Database } from "@/db/client";
 import { getClimb, getJournalEntry, getUserSendForClimb } from "@/db/queries";
-import { refreshGoalsAfterWrite } from "@/db/queries/goals";
 import { journalEntries, sends } from "@/db/schema";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
 import type { ClimbType } from "@/lib/grades";
@@ -101,7 +101,7 @@ async function writeAscent(
     ...(companions?.length ? [buildCompanionInsert(db, userId, companions)] : []),
   ]);
 
-  await refreshGoalsAfterWrite(db, userId);
+  await scheduleGoalRefresh(db, userId);
 
   revalidateJournalSurfaces({ userId, climbIds: [climb.id] });
   revalidateSendSurfaces({ userIds: [userId], climbIds: [climb.id], areaIds: [climb.areaId] });
@@ -159,7 +159,7 @@ export async function createJournalEntry(formData: FormData): Promise<ActionResu
             "The send changed while this entry was being saved — try again",
           );
         }
-        await refreshGoalsAfterWrite(db, session.user.id);
+        await scheduleGoalRefresh(db, session.user.id);
         revalidateJournalSurfaces({ userId: session.user.id, climbIds: [climb.id] });
         revalidateSendSurfaces({
           userIds: [session.user.id],
@@ -188,7 +188,7 @@ export async function createJournalEntry(formData: FormData): Promise<ActionResu
         "The send changed while this entry was being saved — try again",
       );
     }
-    await refreshGoalsAfterWrite(db, session.user.id);
+    await scheduleGoalRefresh(db, session.user.id);
     revalidateJournalSurfaces({
       userId: session.user.id,
       climbIds: climb ? [climb.id] : [],
@@ -267,7 +267,7 @@ export async function updateJournalEntry(
       });
     }
 
-    await refreshGoalsAfterWrite(db, session.user.id);
+    await scheduleGoalRefresh(db, session.user.id);
 
     revalidateJournalSurfaces({
       userId: session.user.id,
@@ -318,7 +318,7 @@ export async function deleteJournalEntry(entryId: number): Promise<ActionResult>
       });
     }
 
-    await refreshGoalsAfterWrite(db, session.user.id);
+    await scheduleGoalRefresh(db, session.user.id);
 
     revalidateJournalSurfaces({
       userId: session.user.id,

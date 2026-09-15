@@ -524,7 +524,7 @@ export function GoalPanel({
                         goal.progress >= goal.target &&
                         goal.recurringEndDate !== goal.periodEnd && (
                           <span className="ml-auto shrink-0 text-right text-xs font-normal text-muted">
-                            {recurringGoalResetLabel(goal, today)}
+                            {recurringGoalResetLabel(goal, goal.today ?? today)}
                           </span>
                         )}
                     </div>

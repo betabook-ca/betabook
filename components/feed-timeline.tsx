@@ -42,7 +42,7 @@ export function FeedTimeline({
               day.repeats +
               day.sessions +
               day.training +
-              (day.goals ?? 0) -
+              day.goals -
               day.activities.length;
             const label = `See ${remaining} more ${remaining === 1 ? "activity" : "activities"} from ${day.name}`;
             return (

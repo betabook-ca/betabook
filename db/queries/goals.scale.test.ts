@@ -3,7 +3,7 @@ import { expect, it } from "vitest";
 
 import { createDb } from "@/db/client";
 import { goals } from "@/db/schema";
-import { seedFixtureUser, seedManyJournalEntries } from "@/test/fixtures";
+import { insertInBatches, seedFixtureUser, seedManyJournalEntries } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
 
 import { getGoalOverview, getGoalPage, refreshGoalAchievements } from "./goals";
@@ -35,15 +35,19 @@ it("reconciles five routines and 100 archived goals over 5,000 tagged logs", asy
     celebrationsInitialized: true,
   };
   await db.insert(goals).values(Array.from({ length: 5 }, () => definition));
-  for (let i = 0; i < archived; i += 1)
-    await db.insert(goals).values({
+  await insertInBatches(
+    db,
+    Array.from({ length: archived }, (_, i) => ({
       ...definition,
       target: 1,
-      repeat: "none",
-      timeframe: "custom",
+      repeat: "none" as const,
+      timeframe: "custom" as const,
       endDate: "2026-09-15",
       archiveToken: `archived-${i}`,
-    });
+    })),
+    5,
+    (chunk) => db.insert(goals).values(chunk),
+  );
   const now = new Date("2026-09-15T12:00:00Z");
   await refreshGoalAchievements(db, "goal-scale", now);
   const overview = await getGoalOverview(db, "goal-scale", "goal-scale", now);

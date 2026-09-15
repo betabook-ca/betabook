@@ -38,7 +38,7 @@ export type FeedDay = {
   repeats: number;
   sessions: number;
   training: number;
-  goals?: number;
+  goals: number;
   activities: FeedActivity[];
 };
 export type FeedPage = { days: FeedDay[]; hasMore: boolean };
@@ -94,7 +94,7 @@ export async function getFeedPage(
       UNION ALL
       SELECT g.user_id, completion.completed_date, completion.id, 'goal', NULL, NULL, NULL, completion.title
       FROM authors u JOIN goals g ON g.user_id=u.id JOIN goal_completions completion ON completion.goal_id=g.id
-      WHERE ${view === "all"} AND u.journalVisible AND completion.completed_date IS NOT NULL
+      WHERE ${view === "all"} AND u.journalVisible AND g.progress_dirty=0 AND completion.completed_date IS NOT NULL
         ${cursor ? sql`AND (completion.completed_date, g.user_id) < (${cursor.date}, ${cursor.userId})` : sql``}
     ), days AS (
       SELECT userId, date,

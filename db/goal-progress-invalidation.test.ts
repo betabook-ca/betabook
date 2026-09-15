@@ -119,12 +119,7 @@ it.each([
     expect(await dirtyIds()).toEqual(expected);
     const completions = await db.select().from(goalCompletions);
     expect(completions).toHaveLength(7);
-    expect(
-      completions
-        .filter((row) => row.completedDate === null)
-        .map((row) => row.goalId)
-        .sort((a, b) => a - b),
-    ).toEqual(expected);
+    expect(completions.every((row) => row.completedDate !== null)).toBe(true);
   },
 );
 
@@ -147,7 +142,7 @@ it("invalidates both original and replacement dates, then the deleted entry's da
   expect(await dirtyIds()).toEqual([2]);
 });
 
-it("invalidates tag-only corrections without rewriting already invalid completion dates", async () => {
+it("invalidates tag-only corrections without rewriting completion rows", async () => {
   await seedFixtureJournalEntry(db, {
     id: 1,
     userId: "owner",
@@ -162,9 +157,9 @@ it("invalidates tag-only corrections without rewriting already invalid completio
     .set({ tags: ["mobility"] })
     .where(eq(journalEntries.id, 1));
   expect(await dirtyIds()).toEqual([1]);
-  expect((await db.select().from(goalCompletions))[0].completedDate).toBeNull();
+  expect((await db.select().from(goalCompletions))[0].completedDate).toBe("2026-09-01");
   await db.run(sql`CREATE TRIGGER test_repeated_goal_invalidation BEFORE UPDATE ON goal_completions
-    WHEN OLD.completed_date IS NULL BEGIN SELECT RAISE(ABORT, 'already invalid'); END`);
+    BEGIN SELECT RAISE(ABORT, 'completion rows must not be rewritten'); END`);
   try {
     await db
       .update(journalEntries)
@@ -219,7 +214,7 @@ it("invalidates all affected climbers' goals after a relevant climb edit", async
   await db.update(climbs).set({ grade: 6 }).where(eq(climbs.id, 1));
   expect(await dirtyIds()).toEqual([1]);
   expect(await db.select().from(goalCompletions)).toMatchObject([
-    { goalId: 1, completedDate: null },
+    { goalId: 1, completedDate: "2026-09-01" },
     { goalId: 2, completedDate: "2026-09-01" },
   ]);
 });

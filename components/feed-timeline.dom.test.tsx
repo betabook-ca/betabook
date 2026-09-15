@@ -31,6 +31,7 @@ const day: FeedDay = {
   sessions: 0,
   repeats: 0,
   training: 0,
+  goals: 0,
   activities: [activity],
 };
 const friend: FeedDay = {

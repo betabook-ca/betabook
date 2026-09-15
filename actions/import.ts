@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import { refresh } from "next/cache";
 
+import { scheduleGoalRefresh } from "@/actions/goal-refresh";
 import { getDb, type Database } from "@/db/client";
 import {
   findClimbCandidatesByNames,
@@ -13,7 +14,6 @@ import {
   getUserSentClimbIds,
   type ClimbCandidate,
 } from "@/db/queries";
-import { refreshGoalsAfterWrite } from "@/db/queries/goals";
 import { importBatches, journalEntries, sends } from "@/db/schema";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
 import { parseGrade } from "@/lib/grades";
@@ -327,7 +327,7 @@ export async function importSends(
     }
 
     if (statements.length > 0) {
-      await refreshGoalsAfterWrite(db, session.user.id);
+      await scheduleGoalRefresh(db, session.user.id);
       afterCommit(() => {
         const affectedClimbIds = [
           ...toInsert.map((row) => row.climbId),

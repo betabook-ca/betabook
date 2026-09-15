@@ -33,12 +33,9 @@ export function recurringGoalResetLabel(
     timeframe: string;
     periodStart: string;
     periodEnd: string;
-    recurringEndDate?: string | null;
   },
   today: string,
 ): string {
-  if (goal.recurringEndDate && goal.recurringEndDate <= goal.periodEnd)
-    return recurringGoalEndLabel(goal.recurringEndDate, today);
   const next = new Date(`${goal.periodEnd}T12:00:00Z`);
   next.setUTCDate(next.getUTCDate() + 1);
   const reset = goalDateLabel(

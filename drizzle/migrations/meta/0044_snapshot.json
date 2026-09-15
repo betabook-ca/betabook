@@ -1908,6 +1908,20 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "progress_refresh_attempted_at": {
+          "name": "progress_refresh_attempted_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "progress_refresh_date": {
+          "name": "progress_refresh_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {
@@ -1915,6 +1929,23 @@
           "name": "goals_user_idx",
           "columns": [
             "user_id"
+          ],
+          "isUnique": false
+        },
+        "goals_progress_refresh_idx": {
+          "name": "goals_progress_refresh_idx",
+          "columns": [
+            "progress_dirty",
+            "progress_refresh_attempted_at",
+            "user_id"
+          ],
+          "isUnique": false
+        },
+        "goals_progress_due_idx": {
+          "name": "goals_progress_due_idx",
+          "columns": [
+            "progress_refresh_date",
+            "timezone"
           ],
           "isUnique": false
         }

@@ -4,8 +4,9 @@ import { sql } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { z } from "zod";
 
+import { scheduleGoalRefresh } from "@/actions/goal-refresh";
 import { getDb } from "@/db/client";
-import { goalCountSql, refreshGoalsAfterWrite } from "@/db/queries/goals";
+import { goalCountSql } from "@/db/queries/goals";
 import { goals, goalPeriods } from "@/db/schema";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
 import {
@@ -18,6 +19,7 @@ import {
   type GoalInput,
 } from "@/lib/goals";
 import { allowJournalWrite } from "@/lib/rate-limit";
+import { isRealIsoDate } from "@/lib/sends";
 import { requireSession } from "@/lib/session";
 
 import { revalidateJournalSurfaces } from "./revalidation";
@@ -255,7 +257,7 @@ export async function saveGoal(
             db
               .insert(goals)
               .select(
-                sql`SELECT NULL,${ownerId},${input.kind},${input.target},${input.discipline},${input.grade},${input.timeframe},${input.repeat},${window.startDate},${window.endDate},${input.timezone},1,NULL,${input.gradeMatch},${JSON.stringify(input.tags)},1,NULL,${recurringEnd.value} WHERE EXISTS (SELECT 1 FROM goals WHERE id=${retrySource.id} AND user_id=${ownerId} AND archive_token=${archiveToken})`,
+                sql`SELECT NULL,${ownerId},${input.kind},${input.target},${input.discipline},${input.grade},${input.timeframe},${input.repeat},${window.startDate},${window.endDate},${input.timezone},1,NULL,${input.gradeMatch},${JSON.stringify(input.tags)},1,NULL,${recurringEnd.value},NULL,NULL WHERE EXISTS (SELECT 1 FROM goals WHERE id=${retrySource.id} AND user_id=${ownerId} AND archive_token=${archiveToken})`,
               )
               .returning({ id: goals.id }),
           ])
@@ -272,7 +274,7 @@ export async function saveGoal(
     if (!result && retrySource) await actionableMissedGoal(db, retrySource.id, ownerId);
     if (!result)
       throw new ActionError("You can have up to 5 active goals. Delete a goal to make room.");
-    await refreshGoalsAfterWrite(db, ownerId);
+    await scheduleGoalRefresh(db, ownerId);
     revalidateJournalSurfaces({ userId: ownerId, climbIds: [] });
     refresh();
     return result.id;
@@ -288,7 +290,7 @@ export async function deleteGoal(id: number): Promise<ActionResult> {
       sql`DELETE FROM goals WHERE id = ${id} AND user_id = ${session.user.id} RETURNING id`,
     );
     if (!result) throw new ActionError("Goal not found.");
-    await refreshGoalsAfterWrite(db, session.user.id);
+    await scheduleGoalRefresh(db, session.user.id);
     revalidateJournalSurfaces({ userId: session.user.id, climbIds: [] });
     refresh();
   });
@@ -333,7 +335,7 @@ export async function archiveGoal(id: number): Promise<ActionResult> {
       )
       .returning({ id: goals.id });
     if (!updated.length) throw new ActionError("This goal no longer needs a decision.");
-    await refreshGoalsAfterWrite(db, session.user.id);
+    await scheduleGoalRefresh(db, session.user.id);
     revalidateJournalSurfaces({ userId: session.user.id, climbIds: [] });
     refresh();
   });
@@ -346,13 +348,7 @@ export async function endRecurringGoal(id: number, endDate: string): Promise<Act
     if (!(await allowJournalWrite(session.user.id)))
       throw new ActionError("Please wait before changing another goal.");
     validateGoalId(id);
-    const date = new Date(`${endDate}T12:00:00Z`);
-    if (
-      !/^\d{4}-\d{2}-\d{2}$/.test(endDate) ||
-      Number.isNaN(date.valueOf()) ||
-      date.toISOString().slice(0, 10) !== endDate
-    )
-      throw new ActionError("Choose a valid end date.");
+    if (!isRealIsoDate(endDate)) throw new ActionError("Choose a valid end date.");
     const db = await getDb();
     const goal = await db.get<{ timezone: string }>(
       sql`SELECT timezone FROM goals WHERE id=${id} AND user_id=${session.user.id} AND repeat<>'none' AND archive_token IS NULL`,
@@ -369,7 +365,7 @@ export async function endRecurringGoal(id: number, endDate: string): Promise<Act
       .returning({ id: goals.id });
     if (!updated.length)
       throw new ActionError("This routine has ended or changed. Reload your goals.");
-    await refreshGoalsAfterWrite(db, session.user.id);
+    await scheduleGoalRefresh(db, session.user.id);
     revalidateJournalSurfaces({ userId: session.user.id, climbIds: [] });
     refresh();
   });

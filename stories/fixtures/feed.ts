@@ -12,6 +12,7 @@ const day: FeedDay = {
   repeats: 0,
   sessions: 1,
   training: 0,
+  goals: 0,
   activities: [],
 };
 const activity: FeedEntry["activity"] = {
@@ -222,7 +223,7 @@ function toDays(groups: FeedEntry[][]): FeedDay[] {
         training: "training",
         goal: "goals",
       } as const;
-      current[field[entry.activity.kind]] = (current[field[entry.activity.kind]] ?? 0) + 1;
+      current[field[entry.activity.kind]] = current[field[entry.activity.kind]] + 1;
       days.set(key, current);
     }
   return [...days.values()];

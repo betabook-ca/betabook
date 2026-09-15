@@ -133,7 +133,7 @@ function projectDays(
       }
       moved = true;
       const countKey = COUNT_KEY[activity.kind];
-      remaining[countKey] = (remaining[countKey] ?? 0) - 1;
+      remaining[countKey] = remaining[countKey] - 1;
       if (!emitted.has(group)) {
         cards.push(group);
         emitted.add(group);
@@ -146,7 +146,7 @@ function projectDays(
         remaining.repeats +
         remaining.sessions +
         remaining.training +
-        (remaining.goals ?? 0) >
+        remaining.goals >
         0
     )
       cards.push(dayCard(moved ? remaining : day));

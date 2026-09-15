@@ -13,7 +13,6 @@ import {
   type ChangeRequest,
   type Climb,
 } from "@/db/queries";
-import { refreshGoalsAfterWrite } from "@/db/queries/goals";
 import {
   areas,
   changeRequestApprovals,
@@ -295,7 +294,8 @@ export async function applyClimbMove(
     decision,
   );
 
-  await refreshClimbGoalAchievements(db, [climbId]);
+  // Source triggers persist dirty goals; bounded maintenance reconciles affected authors.
+  revalidatePath("/feed");
 
   afterCommit(() => {
     revalidatePath(`/climbs/${climbId}`);
@@ -354,7 +354,8 @@ export async function applyClimbEdit(
     decision,
   );
 
-  await refreshClimbGoalAchievements(db, [climbId]);
+  // Source triggers persist dirty goals; bounded maintenance reconciles affected authors.
+  revalidatePath("/feed");
 
   afterCommit(() => {
     revalidatePath(`/climbs/${climbId}`);
@@ -497,7 +498,8 @@ export async function applyClimbMerge(
     decision,
   );
 
-  await refreshClimbGoalAchievements(db, [sourceClimbId, targetClimbId]);
+  // Source triggers persist dirty goals; bounded maintenance reconciles affected authors.
+  revalidatePath("/feed");
 
   afterCommit(() => {
     revalidatePath(`/climbs/${targetClimbId}`);
@@ -550,19 +552,4 @@ export async function recordChangeRequestApproval(
   userId: string,
 ): Promise<void> {
   await db.insert(changeRequestApprovals).values({ requestId, userId }).onConflictDoNothing();
-}
-
-async function refreshClimbGoalAchievements(db: Database, climbIds: number[]) {
-  // The moderation mutation and its audit have already committed, including
-  // trigger invalidation. A failed derived lookup must not reject that save.
-  try {
-    const authors = await db
-      .selectDistinct({ userId: journalEntries.userId })
-      .from(journalEntries)
-      .where(inArray(journalEntries.climbId, climbIds));
-    for (const { userId } of authors) await refreshGoalsAfterWrite(db, userId);
-    if (authors.length) revalidatePath("/feed");
-  } catch (error) {
-    console.error("Saved successfully, but refreshing climb goal achievements failed", error);
-  }
 }

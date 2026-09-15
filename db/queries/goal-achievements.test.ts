@@ -147,7 +147,7 @@ it("invalidates a completed tagged goal on a tag-only edit and restores its stab
   const [before] = await db.select().from(goalCompletions);
   expect(before.title).toBe("Train 1 time · #hangboard");
   await db.update(journalEntries).set({ tags: ["strength"] });
-  expect((await db.select().from(goalCompletions))[0].completedDate).toBeNull();
+  expect((await db.select().from(goals))[0].progressDirty).toBe(true);
   await db.update(journalEntries).set({ tags: ["hangboard"] });
   await getGoalOverview(db, "owner", "owner", now);
   expect(await db.select().from(goalCompletions)).toEqual([before]);
@@ -283,13 +283,10 @@ it("keeps failed refreshes dirty and repairs them on the next owner read", async
   expect((await db.select().from(goals))[0].progressDirty).toBe(false);
 });
 
-it("rechecks dirty state when a log is added between metadata and cached counts", async () => {
-  await db.insert(goals).values({ ...definition, target: 2, celebrationsInitialized: true });
-  await seedFixtureJournalEntry(db, { userId: "owner", kind: "training", entryDate: "2026-09-02" });
-  await getGoalOverview(db, "owner", "owner", now);
+function mutateAfterGoalMetadata(mutation: () => Promise<unknown>) {
   const original = db.all.bind(db);
   let mutate = true;
-  const spy = vi.spyOn(db, "all").mockImplementation((query) => {
+  return vi.spyOn(db, "all").mockImplementation((query) => {
     const result = original(query);
     const execute = result.execute.bind(result);
     vi.spyOn(result, "execute").mockImplementation(async () => {
@@ -301,16 +298,25 @@ it("rechecks dirty state when a log is added between metadata and cached counts"
         )
       ) {
         mutate = false;
-        await seedFixtureJournalEntry(db, {
-          userId: "owner",
-          kind: "training",
-          entryDate: "2026-09-03",
-        });
+        await mutation();
       }
       return rows;
     });
     return result;
   });
+}
+
+it("rechecks dirty state when a log is added between metadata and cached counts", async () => {
+  await db.insert(goals).values({ ...definition, target: 2, celebrationsInitialized: true });
+  await seedFixtureJournalEntry(db, { userId: "owner", kind: "training", entryDate: "2026-09-02" });
+  await getGoalOverview(db, "owner", "owner", now);
+  const spy = mutateAfterGoalMetadata(() =>
+    seedFixtureJournalEntry(db, {
+      userId: "owner",
+      kind: "training",
+      entryDate: "2026-09-03",
+    }),
+  );
   try {
     const page = await getGoalOverview(db, "owner", "owner", now);
     expect(page.active.goals[0]).toMatchObject({ progress: 2, completedDate: "2026-09-03" });
@@ -330,27 +336,10 @@ it("retries an active goal whose timezone crosses a month boundary after metadat
     celebrationsInitialized: true,
   });
   await getGoalOverview(db, "owner", "owner", boundary);
-  const original = db.all.bind(db);
-  let mutate = true;
-  const spy = vi.spyOn(db, "all").mockImplementation((query) => {
-    const result = original(query);
-    const execute = result.execute.bind(result);
-    vi.spyOn(result, "execute").mockImplementation(async () => {
-      const rows = await execute();
-      if (
-        mutate &&
-        rows.some(
-          (row) => typeof row === "object" && row !== null && "timezone" in row && !("id" in row),
-        )
-      ) {
-        mutate = false;
-        await db
-          .update(goals)
-          .set({ timezone: "Pacific/Kiritimati", startDate: "2026-09-01", endDate: "2026-09-30" });
-      }
-      return rows;
-    });
-    return result;
+  const spy = mutateAfterGoalMetadata(async () => {
+    await db
+      .update(goals)
+      .set({ timezone: "Pacific/Kiritimati", startDate: "2026-09-01", endDate: "2026-09-30" });
   });
   try {
     const { getGoalPage } = await import("./goals");
@@ -419,4 +408,31 @@ it("anchors stopped weekly history before a month boundary even during its origi
   expect(history.anchorMonth).toBe("2026-08");
   expect(history.periods).toHaveLength(1);
   expect(history.periods[0].periodEnd).toBe("2026-08-31");
+});
+
+it("returns live progress when owner projection repair fails", async () => {
+  await db.insert(goals).values({ ...definition, target: 1 });
+  await seedFixtureJournalEntry(db, { userId: "owner", kind: "training", entryDate: "2026-09-10" });
+  const batch = vi.spyOn(db, "batch").mockRejectedValue(new Error("repair unavailable"));
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    const overview = await getGoalOverview(db, "owner", "owner", now);
+    expect(overview.active.goals[0]).toMatchObject({ progress: 1, completedDate: "2026-09-10" });
+    expect((await db.select().from(goals))[0].progressDirty).toBe(true);
+    expect(overview.completed.celebrations).toEqual([]);
+  } finally {
+    batch.mockRestore();
+    log.mockRestore();
+  }
+});
+
+it("schedules future logs for background reconciliation without queuing empty rollovers", async () => {
+  await db.insert(goals).values({ ...definition, repeat: "month", target: 1 });
+  await seedFixtureJournalEntry(db, { userId: "owner", kind: "training", entryDate: "2026-09-13" });
+  await getGoalOverview(db, "owner", "owner", now);
+  expect((await db.select().from(goals))[0].progressRefreshDate).toBe("2026-09-13");
+  expect(await db.select().from(goalCompletions)).toEqual([]);
+  await getGoalOverview(db, "owner", "owner", new Date("2026-09-13T12:00:00Z"));
+  expect(await db.select().from(goalCompletions)).toMatchObject([{ completedDate: "2026-09-13" }]);
+  expect((await db.select().from(goals))[0].progressRefreshDate).toBeNull();
 });

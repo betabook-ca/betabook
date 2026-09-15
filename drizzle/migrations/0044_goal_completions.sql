@@ -30,6 +30,12 @@ ALTER TABLE `goals` ADD `progress_dates` text;
 --> statement-breakpoint
 ALTER TABLE `goals` ADD `recurring_end_date` text;
 --> statement-breakpoint
+ALTER TABLE `goals` ADD `progress_refresh_attempted_at` integer;--> statement-breakpoint
+CREATE INDEX `goals_progress_refresh_idx` ON `goals` (`progress_dirty`,`progress_refresh_attempted_at`,`user_id`);
+--> statement-breakpoint
+ALTER TABLE `goals` ADD `progress_refresh_date` text;--> statement-breakpoint
+CREATE INDEX `goals_progress_due_idx` ON `goals` (`progress_refresh_date`,`timezone`);
+--> statement-breakpoint
 CREATE TRIGGER goal_completions_journal_entries_insert AFTER INSERT ON journal_entries
 BEGIN
   UPDATE goals SET progress_dirty=1 WHERE (user_id=NEW.user_id AND (
@@ -41,8 +47,6 @@ BEGIN
       OR (h.kind='new-areas' AND NEW.entry_date < h.start_date)
     ))
   )) AND progress_dirty=0;
-  UPDATE goal_completions SET completed_date=NULL WHERE completed_date IS NOT NULL
-    AND goal_id IN (SELECT id FROM goals WHERE user_id=NEW.user_id AND progress_dirty=1);
 END;
 
 --> statement-breakpoint
@@ -57,8 +61,6 @@ BEGIN
       OR (h.kind='new-areas' AND OLD.entry_date < h.start_date)
     ))
   )) AND progress_dirty=0;
-  UPDATE goal_completions SET completed_date=NULL WHERE completed_date IS NOT NULL
-    AND goal_id IN (SELECT id FROM goals WHERE user_id=OLD.user_id AND progress_dirty=1);
 END;
 
 --> statement-breakpoint
@@ -82,8 +84,6 @@ BEGIN
       OR (h.kind='new-areas' AND OLD.entry_date < h.start_date)
     ))
   ))) AND progress_dirty=0;
-  UPDATE goal_completions SET completed_date=NULL WHERE completed_date IS NOT NULL
-    AND goal_id IN (SELECT id FROM goals WHERE (user_id=NEW.user_id OR user_id=OLD.user_id) AND progress_dirty=1);
 END;
 
 --> statement-breakpoint
@@ -91,24 +91,18 @@ CREATE TRIGGER goal_completions_goals_update AFTER UPDATE OF kind,target,discipl
 WHEN NEW.kind IS NOT OLD.kind OR NEW.target IS NOT OLD.target OR NEW.discipline IS NOT OLD.discipline OR NEW.grade IS NOT OLD.grade OR NEW.grade_match IS NOT OLD.grade_match OR NEW.timeframe IS NOT OLD.timeframe OR NEW.repeat IS NOT OLD.repeat OR NEW.start_date IS NOT OLD.start_date OR NEW.end_date IS NOT OLD.end_date OR NEW.timezone IS NOT OLD.timezone OR NEW.tags IS NOT OLD.tags OR NEW.recurring_end_date IS NOT OLD.recurring_end_date
 BEGIN
   UPDATE goals SET progress_dirty=1 WHERE (id=NEW.id OR id=OLD.id) AND progress_dirty=0;
-  UPDATE goal_completions SET completed_date=NULL WHERE completed_date IS NOT NULL
-    AND goal_id IN (SELECT id FROM goals WHERE id=NEW.id OR id=OLD.id);
 END;
 
 --> statement-breakpoint
 CREATE TRIGGER goal_completions_goal_periods_insert AFTER INSERT ON goal_periods
 BEGIN
   UPDATE goals SET progress_dirty=1 WHERE (id=NEW.goal_id) AND progress_dirty=0;
-  UPDATE goal_completions SET completed_date=NULL WHERE completed_date IS NOT NULL
-    AND goal_id IN (SELECT id FROM goals WHERE id=NEW.goal_id);
 END;
 
 --> statement-breakpoint
 CREATE TRIGGER goal_completions_goal_periods_delete AFTER DELETE ON goal_periods
 BEGIN
   UPDATE goals SET progress_dirty=1 WHERE (id=OLD.goal_id) AND progress_dirty=0;
-  UPDATE goal_completions SET completed_date=NULL WHERE completed_date IS NOT NULL
-    AND goal_id IN (SELECT id FROM goals WHERE id=OLD.goal_id);
 END;
 
 --> statement-breakpoint
@@ -116,8 +110,6 @@ CREATE TRIGGER goal_completions_goal_periods_update AFTER UPDATE OF goal_id,star
 WHEN NEW.goal_id IS NOT OLD.goal_id OR NEW.start_date IS NOT OLD.start_date OR NEW.end_date IS NOT OLD.end_date OR NEW.kind IS NOT OLD.kind OR NEW.target IS NOT OLD.target OR NEW.discipline IS NOT OLD.discipline OR NEW.grade IS NOT OLD.grade OR NEW.grade_match IS NOT OLD.grade_match OR NEW.repeat IS NOT OLD.repeat OR NEW.timezone IS NOT OLD.timezone OR NEW.tags IS NOT OLD.tags
 BEGIN
   UPDATE goals SET progress_dirty=1 WHERE (id=NEW.goal_id OR id=OLD.goal_id) AND progress_dirty=0;
-  UPDATE goal_completions SET completed_date=NULL WHERE completed_date IS NOT NULL
-    AND goal_id IN (SELECT id FROM goals WHERE id=NEW.goal_id OR id=OLD.goal_id);
 END;
 
 --> statement-breakpoint
@@ -125,6 +117,4 @@ CREATE TRIGGER goal_completions_climb_update AFTER UPDATE OF grade,type,area_id 
 WHEN NEW.grade IS NOT OLD.grade OR NEW.type IS NOT OLD.type OR NEW.area_id IS NOT OLD.area_id
 BEGIN
   UPDATE goals SET progress_dirty=1 WHERE (user_id IN (SELECT user_id FROM journal_entries WHERE climb_id=NEW.id)) AND progress_dirty=0;
-  UPDATE goal_completions SET completed_date=NULL WHERE completed_date IS NOT NULL
-    AND goal_id IN (SELECT id FROM goals WHERE user_id IN (SELECT user_id FROM journal_entries WHERE climb_id=NEW.id));
 END;

@@ -2,16 +2,11 @@ import { z } from "zod";
 
 import { ActionError } from "@/lib/action-result";
 import { nativeGradeArray, type ClimbType } from "@/lib/grades";
-import { isValidJournalTag, MAX_JOURNAL_TAGS, MAX_JOURNAL_TAG_LENGTH } from "@/lib/journal";
+import { normalizeTags } from "@/lib/journal";
+import { isRealIsoDate } from "@/lib/sends";
 
 export const MAX_ACTIVE_GOALS = 5;
-const isoDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .refine((value) => {
-    const date = new Date(`${value}T12:00:00Z`);
-    return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value;
-  });
+const isoDate = z.string().refine(isRealIsoDate, "Choose a valid date.");
 function validGradeMatch(value: { gradeMatch: string; kind: string; grade: number | null }) {
   return value.gradeMatch === "exact" || (value.kind === "volume" && value.grade !== null);
 }
@@ -32,18 +27,18 @@ export const goalInputSchema = z
     kind: z.enum(["volume", "grade", "training", "days", "new-areas"]),
     target: z.number().int().min(1).max(1000),
     tags: z
-      .array(
-        z
-          .string()
-          .trim()
-          .transform((tag) => tag.replace(/^#+/, "").toLowerCase())
-          .refine(
-            (tag) => isValidJournalTag(tag) && tag.length <= MAX_JOURNAL_TAG_LENGTH,
-            "Use hashtags with up to 24 letters, numbers or hyphens.",
-          ),
-      )
-      .max(MAX_JOURNAL_TAGS)
-      .transform((tags) => [...new Set(tags)].sort())
+      .unknown()
+      .transform((value, ctx) => {
+        try {
+          return normalizeTags(value).sort();
+        } catch (error) {
+          ctx.addIssue({
+            code: "custom",
+            message: error instanceof Error ? error.message : "Invalid tags",
+          });
+          return z.NEVER;
+        }
+      })
       .optional(),
     discipline: z.enum(["boulder", "sport", "trad"]).nullable(),
     grade: z.number().int().min(0).nullable(),

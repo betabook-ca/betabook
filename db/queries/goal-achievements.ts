@@ -2,7 +2,7 @@ import { sql, type SQL } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { goalAchievements, goals } from "@/db/schema";
-import { goalTitle, goalToday, type GoalProgress } from "@/lib/goals";
+import { goalToday, type GoalProgress } from "@/lib/goals";
 
 function achievementIdentity(goal: Pick<GoalProgress, "id" | "periodStart" | "repeat">) {
   return `${goal.id}:${goal.periodStart}:${goal.repeat}`;
@@ -40,12 +40,11 @@ export async function unseenGoalAchievements(
     periodStart: string;
     repeat: GoalProgress["repeat"];
     completedDate: string;
-    title: string;
   }>(sql`SELECT c.goal_id AS id,c.period_start AS periodStart,c.repeat,
-      c.completed_date AS completedDate,c.title
+      c.completed_date AS completedDate
     FROM goal_completions c JOIN goals g ON g.id=c.goal_id
     JOIN goal_achievements a ON a.goal_id=c.goal_id AND a.period_start=c.period_start AND a.repeat=c.repeat
-    WHERE g.user_id=${ownerId} AND c.completed_date IS NOT NULL AND a.acknowledged_at IS NULL`);
+    WHERE g.user_id=${ownerId} AND g.progress_dirty=0 AND c.completed_date IS NOT NULL AND a.acknowledged_at IS NULL`);
   const current = new Map(unread.map((goal) => [achievementIdentity(goal), goal]));
   return periods.filter((goal) => {
     const completion = current.get(achievementIdentity(goal));
@@ -53,8 +52,7 @@ export async function unseenGoalAchievements(
       goal.completedDate !== null &&
       goal.completedDate <= goalToday(goal.timezone, now) &&
       goal.progress >= goal.target &&
-      completion?.completedDate === goal.completedDate &&
-      completion.title === goalTitle(goal)
+      completion?.completedDate === goal.completedDate
     );
   });
 }

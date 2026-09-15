@@ -119,10 +119,11 @@ it("normalizes goal hashtag filters and rejects invalid or excessive hashtags", 
     timezone: "UTC",
   };
   expect(
-    goalInputSchema.parse({ ...input, tags: [" #Strength ", "HANGBOARD", "strength"] }).tags,
+    goalInputSchema.parse({ ...input, tags: [" Strength ", "HANGBOARD", "strength"] }).tags,
   ).toEqual(["hangboard", "strength"]);
   for (const tags of [
     ["bad tag"],
+    ["#strength"],
     ["x".repeat(25)],
     Array.from({ length: 9 }, (_, i) => `tag-${i}`),
   ])

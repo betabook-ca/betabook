@@ -278,3 +278,7 @@ those permissions requires a separate license from the copyright holder.
 
 The app serves a copy at `/license.txt`. Keep `public/license.txt` synchronized with
 `LICENSE` when updating the license or required notices.
+
+### Goal projection maintenance
+
+The deployed `custom-worker.ts` forwards requests to OpenNext and runs a minute Cron Trigger for durable goal-projection recovery. Dirty flags and future-log due dates remain in D1 until reconciliation succeeds. Each run handles at most 20 owners; failed attempts stay queued behind owners not yet tried. Normal saves use Next.js `after()` to refresh after the response. Local `pnpm dev` exercises these callbacks; scheduled recovery is covered by the Workers tests in `lib/goal-refresh-worker.test.ts`.

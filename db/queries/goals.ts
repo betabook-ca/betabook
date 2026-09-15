@@ -152,7 +152,16 @@ async function getGoalPeriods(
       const current = await goalPeriodsQuery(db, ownerId, viewerId, now, options);
       return current ? readGoalRows(await db.all<GoalRow>(current.query)) : [];
     }
-    await persistGoalCompletions(db, ownerId, now);
+    try {
+      await persistGoalCompletions(db, ownerId, now, {
+        source: Object.keys(options).length === 0 ? source : undefined,
+        ids: [...new Set(rows.filter((row) => row.cacheFresh !== 1).map((row) => row.id))],
+      });
+    } catch (error) {
+      console.error("Could not persist goal progress; returning live counts", error);
+      const current = await goalPeriodsQuery(db, ownerId, viewerId, now, options);
+      return current ? readGoalRows(await db.all<GoalRow>(current.query)) : [];
+    }
     source = await goalPeriodsQuery(db, ownerId, viewerId, now, options);
     if (!source) return [];
   }
@@ -317,13 +326,27 @@ export function goalCompletionTitleSql() {
 }
 
 /** Recompute inside the D1 batch, so an earlier read cannot overwrite newer logs or goals. */
-async function persistGoalCompletions(db: Database, ownerId: string, now: Date) {
-  const source = await goalPeriodsQuery(db, ownerId, ownerId, now);
+async function persistGoalCompletions(
+  db: Database,
+  ownerId: string,
+  now: Date,
+  known: {
+    source?: NonNullable<Awaited<ReturnType<typeof goalPeriodsQuery>>>;
+    ids?: number[];
+  } = {},
+) {
+  const source = known.source ?? (await goalPeriodsQuery(db, ownerId, ownerId, now));
   if (!source) return;
-  const stale = await db.get(sql`SELECT 1 FROM (${source.cachedQuery}) WHERE cacheFresh=0 LIMIT 1`);
-  if (!stale) return;
+  const staleIds =
+    known.ids ??
+    (
+      await db.all<{ id: number }>(
+        sql`SELECT DISTINCT id FROM (${source.cachedQuery}) WHERE cacheFresh=0`,
+      )
+    ).map((row) => row.id);
+  if (!staleIds.length) return;
   const completed = sql`SELECT * FROM (${source.cachedQuery}) current WHERE current.completedDate IS NOT NULL AND current.completedDate <= json_extract(${source.dates}, '$."' || current.timezone || '"')`;
-  const goalIds = sql`SELECT id FROM goals WHERE user_id=${ownerId}
+  const goalIds = sql`SELECT id FROM goals WHERE user_id=${ownerId} AND id IN (SELECT value FROM json_each(${JSON.stringify(staleIds)}))
       AND json_extract(${source.dates}, '$."' || timezone || '"') IS NOT NULL
       AND COALESCE(json_extract(progress_dates, '$."' || timezone || '"'),'') <= json_extract(${source.dates}, '$."' || timezone || '"')
       AND NOT EXISTS (SELECT 1 FROM goal_periods h WHERE h.goal_id=goals.id AND (
@@ -363,7 +386,15 @@ async function persistGoalCompletions(db: Database, ownerId: string, now: Date) 
     ...goalAchievementStatements(db, goalIds, now),
     db
       .update(goals)
-      .set({ progressDirty: false, progressDates: sql`${source.dates}` })
+      .set({
+        progressDirty: false,
+        progressDates: sql`${source.dates}`,
+        progressRefreshDate: sql`(SELECT min(j.entry_date) FROM journal_entries j
+          WHERE j.user_id=goals.user_id AND j.entry_date>json_extract(${source.dates}, '$."' || goals.timezone || '"')
+            AND j.entry_date>=goals.start_date
+            AND ((goals.repeat='none' AND j.entry_date<=goals.end_date)
+              OR (goals.repeat<>'none' AND (goals.recurring_end_date IS NULL OR j.entry_date<=goals.recurring_end_date))))`,
+      })
       .where(
         sql`id IN (${goalIds}) AND (progress_dirty=1 OR progress_dates IS NOT ${source.dates})`,
       ),
