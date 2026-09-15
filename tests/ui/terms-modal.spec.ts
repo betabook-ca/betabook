@@ -26,13 +26,5 @@ test(
     await expect(dialog).toBeVisible();
     await page.mouse.click(2, 2);
     await expect(dialog).toBeVisible();
-    await info.attach("terms-popup", {
-      body: await page.screenshot({
-        fullPage: false,
-        animations: "disabled",
-        path: info.outputPath("terms-popup.png"),
-      }),
-      contentType: "image/png",
-    });
   },
 );

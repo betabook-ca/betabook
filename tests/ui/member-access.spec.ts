@@ -6,7 +6,7 @@ import { test, expect } from "./story";
 test(
   "signed-out discovery and member pages show accessible authentication callouts",
   { tag: "@app" },
-  async ({ page }, info) => {
+  async ({ page }) => {
     const memberRequests: string[] = [];
     page.on("request", (request) => {
       if (request.url().includes("/api/search/climbers")) memberRequests.push(request.url());
@@ -21,11 +21,6 @@ test(
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
-    // Hiding the caret mutates input styles and can race with React hydration.
-    await info.attach("signed-out-search", {
-      body: await page.screenshot({ fullPage: true, caret: "initial" }),
-      contentType: "image/png",
-    });
 
     await page.goto(`${appBaseURL}/users/unavailable-person/journal?tag=trip`);
     await expect(callout).toBeVisible();
@@ -39,10 +34,6 @@ test(
       "href",
       `/sign-up?next=${encodeURIComponent(next)}`,
     );
-    await info.attach("locked-profile", {
-      body: await page.screenshot({ fullPage: true, caret: "initial" }),
-      contentType: "image/png",
-    });
     await callout.getByRole("link", { name: "Sign in" }).click();
     await expect(page).toHaveURL(`${appBaseURL}/sign-in?next=${encodeURIComponent(next)}`);
     await expect(page.getByRole("heading", { name: "Sign in", exact: true })).toBeVisible();
@@ -66,10 +57,6 @@ test(
     await expect(page.getByRole("searchbox", { name: "Search Betabook" })).toHaveValue("Ridge");
     await expect(callout).toBeVisible();
     await expect(page.getByRole("link", { name: /^Add (climb|area)$/ })).toHaveCount(0);
-    await info.attach("public-full-search", {
-      body: await page.screenshot({ fullPage: true, caret: "initial" }),
-      contentType: "image/png",
-    });
     await callout.getByRole("link", { name: "Sign up", exact: true }).click();
     const continuation = searchHref({ ...EMPTY_SEARCH, query: "Ridge" });
     await expect(page).toHaveURL(`${appBaseURL}/sign-up?next=${encodeURIComponent(continuation)}`);

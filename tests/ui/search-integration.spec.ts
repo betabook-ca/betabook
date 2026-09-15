@@ -43,7 +43,7 @@ test(
 test(
   "app full search restores an explicit area ID and query with browser history",
   { tag: ["@behavior", "@app"] },
-  async ({ page }, testInfo) => {
+  async ({ page }) => {
     await page.route("**/api/public/search/climbs?**", async (route) => {
       const id = new URL(route.request().url()).searchParams.get("areaId");
       await route.fulfill({
@@ -80,10 +80,6 @@ test(
     await expect(page.getByRole("searchbox", { name: "Search Betabook" })).toHaveValue("cedar");
     await expect(page.getByRole("button", { name: /^Clear area / })).toBeVisible();
     await expect(page.getByRole("link", { name: "Open Cedar Oregon, Cedar Grove" })).toBeEnabled();
-    await testInfo.attach("integrated-app-search", {
-      body: await page.screenshot({ fullPage: true }),
-      contentType: "image/png",
-    });
     await page.getByRole("button", { name: /^Clear area / }).click();
     await expect(page).not.toHaveURL(/areaId=/);
   },

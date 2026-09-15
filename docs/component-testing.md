@@ -18,7 +18,9 @@ different responsibility in each suite.
 | The app's routing, history, hydration or opening a new tab breaks                                            | Playwright against the local app, `tests/ui/*.spec.ts`        | [Search navigation](../tests/ui/search-integration.spec.ts)                      |
 | A component needs a reproducible appearance or state for review                                              | Colocated `*.stories.tsx`, plus behavioral tests where needed | [Pagination states](../components/ui/load-more-button.stories.tsx)               |
 
-A click does not by itself require Playwright. Form submission and React keyboard
+Prefer unit tests and mounted component tests. Add a browser test only when its
+assertion needs real rendering or native browser behavior. A click does not by
+itself require Playwright. Form submission and React keyboard
 handlers usually belong in jsdom. Use a browser when the assertion depends on
 native behavior or rendering: segmented date editing, pointer hit testing,
 scrolling, focus rings, portal clipping or actual Next.js navigation. DOM focus
@@ -124,41 +126,40 @@ production behavior.
   do not replace it with a heading check or fixed timeout.
 - Check computed styles, geometry, viewport position or the relevant native
   interaction. Use the existing accessibility helpers for rendered audits.
-  Review affected screenshots at mobile and desktop sizes in both themes.
+  Passing tests do not capture screenshots; failure screenshots support debugging.
 - Keep visual, responsive and touch-sensitive cases in the full project matrix.
   Two tags narrow it, and each states something the assertions cannot depend on.
   Use `@layout` when no theme can change the measurement: it runs the
-  desktop-light/mobile-dark diagonal, so both viewports are still measured and
-  review still receives one light and one dark screenshot. Use `@behavior` when
-  neither viewport nor theme can change the result; it runs once in desktop-light.
-  A test that reads a color, compares against a palette token, or renders
-  differently per theme stays untagged. Needing fewer runs is not itself a reason
-  to apply either tag.
+  desktop-light/mobile-dark diagonal, so both viewports are still measured. Use
+  `@behavior` when neither viewport nor theme can change the result; it runs once
+  in desktop-light.
+  A test that checks theme-dependent colors or renders differently per theme
+  stays untagged. Needing fewer runs is not itself a reason to apply either tag.
 - Tag a test `@app` when it loads the real app through `appBaseURL`. The tag
   chooses the server, not the matrix, so it combines with `@layout` or
   `@behavior`. Gallery runs do not start `next dev`, so an untagged app test
   fails there with a refused connection.
-- The [gallery suite](../tests/ui/design-system.spec.ts) already audits and captures
-  every built story. Add focused cases for interactions or invariants it does not
-  cover, such as an overlay opened by the user or an element's actual geometry.
-  Avoid a second test that only repeats the same story's accessibility scan.
+- [Accessibility checks](../tests/ui/accessibility.spec.ts) audit five representative
+  composed states for contrast and horizontal overflow. This is a bounded list,
+  not an exhaustive story sweep. Add a browser audit only for a distinct rendered
+  risk or an interaction state those checks do not reach. Use existing jsx-a11y
+  lint rules for static labels, alt text, roles and ARIA; use component tests for
+  accessible state changes and keyboard handlers.
 - When coverage moves to jsdom, delete its obsolete Playwright case. In a mixed
   test, retain browser assertions and the actions needed to reach that state;
-  remove duplicate behavioral assertions. Preserve the story and useful visual
-  evidence. Never weaken an assertion to conceal a regression.
+  remove duplicate behavioral assertions. Preserve the story. Never weaken an
+  assertion to conceal a regression.
 
 ## Running browser checks
 
-`pnpm test:ui` builds the current gallery, discovers every story from its index,
-and runs Chromium at desktop and mobile widths in both themes. It also runs
-real app checks against Next.js for navigation, branding, theme persistence and
-favicon/touch/manifest/social assets. Both share the HTML report and project
-matrix. The gallery supplies accessibility, horizontal overflow and screenshot
-checks; focused cases cover additional rendered and native-interaction contracts.
+`pnpm test:ui` builds the gallery and runs the explicitly authored Chromium tests
+at desktop and mobile widths in both themes, subject to the tags above. It also
+runs real app checks for navigation, branding, theme persistence and
+favicon/touch/manifest/social assets. Stories do not automatically create tests.
+There is no exhaustive sweep, scheduled or otherwise.
 
-The full suite is too slow to run locally, so CI's **UI reference** job runs it.
-Locally, build the gallery and run only the affected spec files, narrowing
-`design-system.spec.ts` to affected story IDs with `-g`.
+Locally, build the gallery and run the affected browser files. CI's **UI reference**
+job runs all explicit browser tests; do not run that full suite locally.
 
 Playwright starts the gallery preview and the app, applying local D1 migrations
 before starting a new app server. The app defaults to port 3000, matching
@@ -171,8 +172,8 @@ no seed or account for these app checks.
 
 `BETABOOK_UI_SUITE=gallery` runs every test except `@app` and starts only the
 gallery preview; `BETABOOK_UI_SUITE=app` runs only `@app` and starts only the
-app. Both still need a gallery build, because the gallery suite collects its
-stories from it. CI runs the two suites as separate jobs.
+app. The app suite does not need a gallery build. CI keeps one app job and three
+parallel gallery shards, with four Playwright workers per gallery shard.
 
 The shared `openStory` readiness includes the preview's render/play completion,
 font loading and finite animations. Accessibility scans cover the complete
@@ -184,25 +185,27 @@ Email previews retain their scriptless iframe sandbox. Because it blocks axe's
 asynchronous callbacks, [the email accessibility helper](../tests/ui/email-accessibility.ts)
 audits the actual email HTML in a separate page at the same frame dimensions,
 while the gallery audits the iframe element. Both use the full WCAG A/AA rules.
-Screenshots and interactions still exercise the sandboxed preview; a focused
-test verifies that document, contrast, image and link rules ran on its content.
+Interactions still exercise the sandboxed preview; a focused test verifies that
+document, contrast, image and link rules ran on its content.
 
 The CI **UI reference** job runs on PRs and main-branch pushes and is a deployment
-prerequisite. It uploads an HTML report with screenshots and failure traces.
+prerequisite. It uploads an HTML report with failure screenshots and traces.
 Repository branch protection must require that job to block merges; the workflow
 alone does not configure merge rules. The separate
 [publishing workflow](../.github/workflows/chromatic.yml) hosts the gallery and
 Storybook documentation MCP on Chromatic. Its UI Tests and UI Review stay
-disabled, and the preview disables snapshots. Playwright screenshots provide
-review evidence without automatic pixel comparisons; review them alongside the
-geometry, accessibility and interaction results.
+disabled, and the preview disables snapshots. Do not capture or attach passing
+screenshots for review: there is no automated comparison or routine reviewer.
+The QR test retains its in-memory capture because decoding the painted pixels is
+the assertion itself.
 
 ## Story rules
 
 Stories describe reproducible UI states and make visual review possible. Use the
 real imported component, deterministic sample data and local interactions; no
 live mutations or database imports. A story is not a substitute for a behavioral
-test. New stories inherit gallery accessibility, overflow and screenshot checks.
+test. New stories do not inherit browser tests. Prefer unit/component coverage
+for their production behavior, and reserve browser checks for rendered risks.
 Use one CSF file per production component module with its actual imported
 `meta.component`, so the Storybook MCP manifest stays usable; closely related
 exports can share that file. Put cross-component compositions in
@@ -236,7 +239,7 @@ or PR, rather than adding run logs or migration history to this guide.
 | One Workers file                                    | `pnpm test --project=workers db/queries/journal.privacy.test.ts`                         |
 | Both Vitest projects                                | `pnpm test`                                                                              |
 | One browser file after building the current gallery | `pnpm storybook:build`, then `pnpm exec playwright test tests/ui/hashtag-filter.spec.ts` |
-| Affected gallery stories after building the gallery | `pnpm exec playwright test tests/ui/design-system.spec.ts -g patterns-search--`          |
+| Representative accessibility checks after building  | `pnpm exec playwright test tests/ui/accessibility.spec.ts`                               |
 | Full browser suite (CI only; too slow locally)      | `pnpm test:ui`                                                                           |
 | All normal checks before committing                 | `pnpm check`                                                                             |
 

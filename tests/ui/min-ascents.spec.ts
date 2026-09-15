@@ -18,6 +18,5 @@ test(
     await input.fill("");
     await input.press("Tab");
     await expect(page.getByLabel("Selected statistics")).toContainText('"minAscents":0');
-    await page.screenshot({ path: info.outputPath("min-ascents.png"), fullPage: true });
   },
 );

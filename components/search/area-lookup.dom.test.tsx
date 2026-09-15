@@ -66,3 +66,37 @@ it("restores the query when an external selection changes and clears it when res
   expect(input).toHaveValue("");
   expect(change).not.toHaveBeenCalled();
 });
+
+it("selects an area by keyboard and clears its identity for an empty search", async () => {
+  const user = userEvent.setup();
+  const change = vi.fn<(area: AreaSelection | null) => void>();
+  function KeyboardLookup() {
+    const [area, setArea] = useState<AreaSelection | null>(null);
+    return (
+      <AreaLookup
+        label="Area"
+        value={area}
+        fetcher={async (query) => (query === "zzz" ? [] : areas)}
+        onChange={(next) => {
+          setArea(next);
+          change(next);
+        }}
+      />
+    );
+  }
+  render(<KeyboardLookup />);
+  const input = screen.getByRole("combobox", { name: "Area" });
+  await user.type(input, "cedar");
+  await screen.findByRole("option", { name: /California \/ North Woods/ });
+  await user.keyboard("{ArrowDown}{Enter}{Tab}");
+  expect(change).toHaveBeenLastCalledWith({
+    id: "1",
+    name: "Cedar Grove",
+    path: "California / North Woods",
+  });
+  await user.clear(input);
+  await user.type(input, "zzz");
+  expect(await screen.findByText("No matches.")).toBeInTheDocument();
+  expect(change).toHaveBeenLastCalledWith(null);
+  expect(screen.queryByRole("option", { name: /Cedar Grove/ })).not.toBeInTheDocument();
+});

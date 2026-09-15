@@ -53,7 +53,6 @@ test("the profile QR code scans in the current theme without sending the link an
 
   const qr = page.getByRole("img", { name: "QR code for your profile link" });
   const png = await qr.screenshot();
-  await testInfo.attach("profile-qr-code", { body: png, contentType: "image/png" });
 
   expect(await scan(page, png)).toEqual(SCANNABLE);
   expect(requests.length).toBeGreaterThan(0);

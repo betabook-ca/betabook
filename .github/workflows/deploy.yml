@@ -92,11 +92,8 @@ jobs:
       - name: Build
         run: pnpm exec opennextjs-cloudflare build
 
-  # Every workflow in the organization shares 20 concurrent jobs, so each runner
-  # is packed rather than adding runners. The @app tests need `next dev`, which
-  # limits a runner to two Playwright workers, so they get one short job. The
-  # gallery shards serve only the static build; playwright.config.ts sets their
-  # workers. A gallery shard takes up to ten minutes on the slowest runner CPU.
+  # Browser checks cover rendering and native interaction. Accessibility is a
+  # bounded set of composed states; stories do not each create four more tests.
   ui-tests:
     name: UI (${{ matrix.suite }} ${{ matrix.shard }}/${{ matrix.shards }})
     needs: changes
@@ -138,9 +135,8 @@ jobs:
       - name: Prepare local app environment
         if: matrix.suite == 'app'
         run: cp .dev.vars.example .dev.vars
-      # Every suite needs the build: design-system.spec.ts collects its tests
-      # from the story index when the file loads, before any filter applies.
       - name: Build component gallery
+        if: matrix.suite == 'gallery'
         run: pnpm storybook:build
       - name: Run browser tests
         run: >-

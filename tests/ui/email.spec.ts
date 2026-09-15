@@ -72,10 +72,6 @@ test(
         await action.press("Enter");
         await expect(action).toBeVisible();
       }
-      await testInfo.attach(`email-${variant}`, {
-        body: await page.screenshot({ fullPage: true, animations: "disabled" }),
-        contentType: "image/png",
-      });
     }
   },
 );

@@ -28,10 +28,6 @@ test("send commentary help opens without submitting the form", async ({ page }, 
     "Uses your Send commentary audience wherever this note appears.",
   );
   expect(await submissions(page)).toEqual([]);
-  await info.attach("commentary-help", {
-    body: await page.screenshot({ fullPage: true, animations: "disabled" }),
-    contentType: "image/png",
-  });
   await page.getByRole("textbox", { name: "Notes" }).focus();
   await expect(page.getByRole("tooltip")).toBeHidden();
 });

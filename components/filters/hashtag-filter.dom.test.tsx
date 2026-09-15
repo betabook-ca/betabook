@@ -51,7 +51,8 @@ it("selects suggestions, preserves the prefix, and excludes selected tags when r
   expect(screen.queryByRole("option", { name: "#outdoors" })).not.toBeInTheDocument();
   await user.type(input, "TRI");
   expect(await screen.findAllByRole("option")).toHaveLength(2);
-  await user.click(screen.getByRole("option", { name: "#trip" }));
+  await user.keyboard("{ArrowDown}{Enter}");
+  expect(screen.getByRole("button", { name: "Remove tag trip" })).toBeInTheDocument();
   expect(input).toHaveValue("#");
   await user.type(input, "trip ");
   expect(screen.getAllByRole("button", { name: /^Remove tag/ })).toHaveLength(2);

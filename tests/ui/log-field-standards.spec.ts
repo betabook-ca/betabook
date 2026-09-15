@@ -20,11 +20,6 @@ test(
     const grade = await page.getByRole("button", { name: /Suggested grade$/ }).boundingBox();
     if (!grade) throw new Error("Missing grade field");
     expect(grade.width).toBe(112);
-    await page.screenshot({
-      path: info.outputPath("log-fields.png"),
-      fullPage: true,
-      animations: "disabled",
-    });
   },
 );
 
@@ -56,5 +51,4 @@ test("Log entry notes fill the form width", { tag: "@layout" }, async ({ page },
     return Math.abs(element.getBoundingClientRect().width - available) < 2;
   });
   expect(fits).toBe(true);
-  await page.screenshot({ path: info.outputPath("full-width-notes.png"), fullPage: true });
 });

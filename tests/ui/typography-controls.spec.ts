@@ -4,7 +4,7 @@ import { expect, test, openStory } from "./story";
 test(
   "auth and recovery pages use the canonical page title",
   { tag: ["@behavior", "@app"] },
-  async ({ page }, info) => {
+  async ({ page }) => {
     for (const [path, title] of [
       ["/sign-in", "Sign in"],
       ["/sign-up", "Sign up"],
@@ -16,11 +16,6 @@ test(
       await expect(heading).toHaveCSS("font-size", "30px");
       await expect(heading).toHaveCSS("font-family", /barlow/i);
       await expect(heading).toHaveCSS("font-weight", "600");
-      await info.attach(title, {
-        // Hiding carets mutates SSR input styles and can race React hydration.
-        body: await page.screenshot({ animations: "disabled", caret: "initial" }),
-        contentType: "image/png",
-      });
     }
   },
 );

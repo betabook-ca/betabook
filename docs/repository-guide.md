@@ -66,7 +66,8 @@ component examples; routine UI PRs should not update `docs/design-system.md`.
 Explain intentional design changes in the work summary or PR.
 
 For UI changes, run the affected `tests/ui` spec files in addition to the normal
-checks and review screenshots at mobile and desktop sizes in both themes. Leave
+checks. Prefer unit/component tests for behavior and browser assertions only for
+real rendering or native interactions. Do not collect passing screenshots. Leave
 the full browser suite to CI's **UI reference** job; it is too slow to run
 locally. Passing assertions do not replace visual review. Never loosen an
 assertion solely to make a regression pass.
@@ -81,12 +82,12 @@ Read [docs/product-tours.md](product-tours.md) before changing a tutorial. It co
 
 Before adding or changing tests, read [Choosing and writing tests](component-testing.md). Select the runner by path and suffix, matching `.dom.test` before `.test`:
 
-| Path and suffix                                                                               | Required guidance                                                                                        |
-| --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `components/**/*.dom.test.{ts,tsx}`, `hooks/**/*.dom.test.{ts,tsx}`                           | [jsdom rules](component-testing.md#jsdom-rules): mounted client behavior and real hooks                  |
-| `*.test.{ts,tsx}` under `actions/`, `app/`, `components/`, `db/`, `lib/`, excluding DOM tests | [Workers rules](component-testing.md#workers-rules): calculations, server contracts and migrated D1      |
-| `tests/ui/*.spec.ts`                                                                          | [Browser rules](component-testing.md#browser-rules): rendering, native interaction and app integration   |
-| `*.stories.tsx`                                                                               | [Story rules](component-testing.md#story-rules): reproducible review states and inherited gallery checks |
+| Path and suffix                                                                               | Required guidance                                                                                      |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `components/**/*.dom.test.{ts,tsx}`, `hooks/**/*.dom.test.{ts,tsx}`                           | [jsdom rules](component-testing.md#jsdom-rules): mounted client behavior and real hooks                |
+| `*.test.{ts,tsx}` under `actions/`, `app/`, `components/`, `db/`, `lib/`, excluding DOM tests | [Workers rules](component-testing.md#workers-rules): calculations, server contracts and migrated D1    |
+| `tests/ui/*.spec.ts`                                                                          | [Browser rules](component-testing.md#browser-rules): rendering, native interaction and app integration |
+| `*.stories.tsx`                                                                               | [Story rules](component-testing.md#story-rules): reproducible examples; no automatic browser checks    |
 
 The runner configs control collection; `.tsx` alone does not select jsdom. Check the guide before using a new directory or suffix. Keep each assertion in the least expensive environment that can reproduce its regression, and delete superseded Playwright cases when moving behavior to jsdom.
 

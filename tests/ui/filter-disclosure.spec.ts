@@ -15,7 +15,6 @@ test("filter toggle describes its next action and keeps its outline when open", 
     return { background: style.backgroundColor, border: style.borderTopColor };
   });
   expect(colors.border).not.toBe(colors.background);
-  await page.screenshot({ path: info.outputPath("expanded-filter.png"), fullPage: true });
   await close.click();
   await expect(page.getByRole("button", { name: "Expand filters", exact: true })).toHaveAttribute(
     "aria-expanded",
@@ -52,8 +51,4 @@ test("analytics filter and customize actions share default and hover styling", a
       .getByRole("region", { name: "Customize dashboard", exact: true })
       .evaluate((el) => getComputedStyle(el).backgroundColor),
   ).toBe(filterSurface);
-  await info.attach("matching-analytics-controls", {
-    body: await page.screenshot({ fullPage: true }),
-    contentType: "image/png",
-  });
 });

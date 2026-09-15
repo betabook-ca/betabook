@@ -134,10 +134,5 @@ for (const panel of [
     await expect.soft(surface).toHaveCSS("padding", panel.padding);
     await expect(surface).toHaveCSS("box-shadow", "none");
     await expect(surface).toHaveCSS("border-radius", "12px");
-    await page.screenshot({
-      path: testInfo.outputPath("surface.png"),
-      fullPage: true,
-      animations: "disabled",
-    });
   });
 }

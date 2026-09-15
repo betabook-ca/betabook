@@ -40,14 +40,6 @@ test(
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       await page.evaluate(() => document.documentElement.clientWidth),
     );
-    await testInfo.attach("about-branding", {
-      body: await page.screenshot({
-        fullPage: false,
-        animations: "disabled",
-        path: testInfo.outputPath("about-branding.png"),
-      }),
-      contentType: "image/png",
-    });
     // A theme saved in Account settings overrides the OS scheme from first paint.
     for (const theme of ["light", "dark"]) {
       await page.evaluate((value) => localStorage.setItem("heroui-theme", value), theme);
@@ -65,7 +57,7 @@ test(
 test(
   "the footer colophon carries the wordmark's tagline as text",
   { tag: "@app" },
-  async ({ page }, testInfo) => {
+  async ({ page }) => {
     await page.goto("/about");
     const colophon = page.getByRole("contentinfo");
     await expect(colophon).toContainText(/© \d{4} Betabook — Climb · Log · Progress/);
@@ -77,12 +69,5 @@ test(
         .getByText("Climb · Log · Progress")
         .evaluate((node) => node.getClientRects().length),
     ).toBe(1);
-    await testInfo.attach("footer-colophon", {
-      body: await colophon.screenshot({
-        animations: "disabled",
-        path: testInfo.outputPath("footer-colophon.png"),
-      }),
-      contentType: "image/png",
-    });
   },
 );

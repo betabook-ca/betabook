@@ -1,68 +1,6 @@
-import { readFileSync } from "node:fs";
-
 import { AxeBuilder } from "@axe-core/playwright";
 
-import { auditEmailPreview } from "./email-accessibility";
 import { expect, test, openStory } from "./story";
-
-// The build is the authoritative story index. New stories inherit the same
-// accessibility, viewport and screenshot checks without a separate test list.
-const index = JSON.parse(readFileSync("storybook-static/index.json", "utf8")) as {
-  entries: Record<string, { id: string; type: string }>;
-};
-const stories = Object.values(index.entries)
-  .filter((entry) => entry.type === "story")
-  .map((entry) => entry.id);
-if (stories.length === 0) throw new Error("Storybook built no stories");
-const openSearchOverlays = new Set([
-  "patterns-search--quick-initial",
-  "patterns-search--quick-loading",
-  "patterns-search--quick-no-matches",
-  "patterns-search--quick-failed",
-  "patterns-search--quick-partial-failure",
-]);
-for (const story of stories) {
-  test(`${story} stays accessible and fits the viewport`, async ({ page }, testInfo) => {
-    await openStory(page, testInfo, story);
-    // These stories start open. Audit the visible overlay here so a second
-    // browser test does not repeat the same story setup and accessibility scan.
-    if (openSearchOverlays.has(story)) await expect(page.getByRole("dialog")).toBeVisible();
-    const hasEmailPreview = story.startsWith("patterns-email--");
-    if (hasEmailPreview) {
-      const emailResults = await auditEmailPreview(page);
-      expect(emailResults.violations).toEqual([]);
-    }
-    const audit = new AxeBuilder({ page })
-      // Email documents are audited above. Their sandbox blocks the timers axe
-      // needs, which can hang a recursive scan or silently discard frame results.
-      // The default Playwright driver traverses frames even with iframes: false;
-      // legacy mode delegates traversal to axe, which honors that option.
-      .setLegacyMode(hasEmailPreview)
-      .options({ iframes: !hasEmailPreview });
-    // A theme only swaps custom properties on [data-theme], so a story renders
-    // the same DOM in both. Structure, names and roles therefore reach the same
-    // verdict in dark as in light, and only the colour rules can differ. The
-    // light projects own the full WCAG A/AA set for both viewports; dark runs
-    // the rules a palette can actually break. Add a rule here if a theme ever
-    // changes markup rather than colour.
-    const darkTheme = testInfo.project.use.colorScheme === "dark";
-    const results = await (
-      darkTheme
-        ? audit.withRules(["color-contrast", "link-in-text-block"])
-        : audit.withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-    ).analyze();
-    expect(results.violations).toEqual([]);
-    const dimensions = await page.evaluate(() => ({
-      content: document.documentElement.scrollWidth,
-      viewport: document.documentElement.clientWidth,
-    }));
-    expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport);
-    await testInfo.attach(story, {
-      body: await page.screenshot({ fullPage: true, animations: "disabled" }),
-      contentType: "image/png",
-    });
-  });
-}
 
 test("complete brand lockups load in both color treatments", async ({ page }, testInfo) => {
   await openStory(page, testInfo, "foundations-brand-and-style--foundations");
@@ -110,25 +48,29 @@ test("complete brand lockups load in both color treatments", async ({ page }, te
   }
 });
 
-test("shared panel geometry and typography stay consistent", async ({ page }, testInfo) => {
-  await openStory(page, testInfo, "foundations-tokens--geometry");
-  for (const [size, padding] of [
-    ["sm", "16px"],
-    ["md", "24px"],
-    ["fluid", testInfo.project.name.startsWith("mobile") ? "16px" : "24px"],
-  ]) {
-    const panel = page
-      .locator(`[data-token="cardClass(${size}) · padding"]`)
-      .getByText("Panel content");
-    await expect(panel).toHaveCSS("padding", padding);
-    await expect(panel).toHaveCSS("border-radius", "12px");
-    await expect(panel).toHaveCSS("box-shadow", "none");
-  }
-  const heading = page.getByRole("heading", { level: 1 });
-  await expect(heading).toHaveCSS("font-family", /barlow/i);
-  await expect(heading).toHaveCSS("font-size", "30px");
-  await expect(heading).toHaveCSS("font-weight", "600");
-});
+test(
+  "shared panel geometry and typography stay consistent",
+  { tag: "@layout" },
+  async ({ page }, testInfo) => {
+    await openStory(page, testInfo, "foundations-tokens--geometry");
+    for (const [size, padding] of [
+      ["sm", "16px"],
+      ["md", "24px"],
+      ["fluid", testInfo.project.name.startsWith("mobile") ? "16px" : "24px"],
+    ]) {
+      const panel = page
+        .locator(`[data-token="cardClass(${size}) · padding"]`)
+        .getByText("Panel content");
+      await expect(panel).toHaveCSS("padding", padding);
+      await expect(panel).toHaveCSS("border-radius", "12px");
+      await expect(panel).toHaveCSS("box-shadow", "none");
+    }
+    const heading = page.getByRole("heading", { level: 1 });
+    await expect(heading).toHaveCSS("font-family", /barlow/i);
+    await expect(heading).toHaveCSS("font-size", "30px");
+    await expect(heading).toHaveCSS("font-weight", "600");
+  },
+);
 
 for (const panel of [
   {
@@ -152,16 +94,22 @@ for (const panel of [
     selector: ".bg-surface-secondary",
   },
 ]) {
-  test(`${panel.name} follows the shared panel radius`, async ({ page }, testInfo) => {
-    await openStory(page, testInfo, panel.story);
-    const surface = page.locator(panel.selector);
-    await expect(surface).toHaveCount(1);
-    await expect(surface).toHaveCSS("border-radius", "12px");
-    // A theme-token change must reach real feature surfaces, not just the
-    // card helper example. This catches a local hard-coded radius override.
-    await page.evaluate(() => document.documentElement.style.setProperty("--radius-panel", "20px"));
-    await expect(surface).toHaveCSS("border-radius", "20px");
-  });
+  test(
+    `${panel.name} follows the shared panel radius`,
+    { tag: "@layout" },
+    async ({ page }, testInfo) => {
+      await openStory(page, testInfo, panel.story);
+      const surface = page.locator(panel.selector);
+      await expect(surface).toHaveCount(1);
+      await expect(surface).toHaveCSS("border-radius", "12px");
+      // A theme-token change must reach real feature surfaces, not just the
+      // card helper example. This catches a local hard-coded radius override.
+      await page.evaluate(() =>
+        document.documentElement.style.setProperty("--radius-panel", "20px"),
+      );
+      await expect(surface).toHaveCSS("border-radius", "20px");
+    },
+  );
 }
 
 test("native selects match HeroUI fields and keyboard focus is visible", async ({
@@ -216,33 +164,23 @@ test("delete dialog supports keyboard cancellation and explicit confirmation", a
   await expect(trigger).toBeDisabled();
 });
 
-test("palette documentation follows live CSS token changes", async ({ page }, testInfo) => {
-  await openStory(page, testInfo, "foundations-tokens--palette");
-  const paper = page.locator('[data-token="--palette-paper"]');
-  await expect(paper.locator("output")).not.toBeEmpty();
-  await page.evaluate(() =>
-    document.documentElement.style.setProperty("--palette-paper", "rgb(240, 230, 210)"),
-  );
-  await expect(paper.locator('[aria-hidden="true"]')).toHaveCSS(
-    "background-color",
-    "rgb(240, 230, 210)",
-  );
-  await expect(paper.locator("output")).toHaveText("rgb(240, 230, 210)");
-});
-
-test("area lookup supports keyboard selection and empty results", async ({ page }, testInfo) => {
-  await openStory(page, testInfo, "components-search-area-lookup--selection");
-  const input = page.getByRole("combobox", { name: "Area", exact: true });
-  await input.fill("cedar");
-  await expect(page.getByRole("option", { name: /Cedar Grove.*California/ })).toBeVisible();
-  await input.press("ArrowDown");
-  await input.press("Enter");
-  await input.press("Tab");
-  await expect(page.getByLabel("Selected area identity")).toHaveText("1");
-  await input.fill("zzz");
-  await expect(page.getByText("No matches.", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Selected area identity")).toHaveText("None");
-});
+test(
+  "palette documentation follows live CSS token changes",
+  { tag: "@behavior" },
+  async ({ page }, testInfo) => {
+    await openStory(page, testInfo, "foundations-tokens--palette");
+    const paper = page.locator('[data-token="--palette-paper"]');
+    await expect(paper.locator("output")).not.toBeEmpty();
+    await page.evaluate(() =>
+      document.documentElement.style.setProperty("--palette-paper", "rgb(240, 230, 210)"),
+    );
+    await expect(paper.locator('[aria-hidden="true"]')).toHaveCSS(
+      "background-color",
+      "rgb(240, 230, 210)",
+    );
+    await expect(paper.locator("output")).toHaveText("rgb(240, 230, 210)");
+  },
+);
 
 test("actions menu keeps actions local and returns focus", async ({ page }, testInfo) => {
   await openStory(page, testInfo, "components-navigation-actions-menu--actions");

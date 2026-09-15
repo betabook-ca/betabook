@@ -49,10 +49,6 @@ test(
     await expect(newer).toBeDisabled();
     await older.click();
     await expect(year).toHaveText("2024");
-    await info.attach("calendar-carousel", {
-      body: await page.screenshot({ fullPage: true }),
-      contentType: "image/png",
-    });
   },
 );
 
@@ -67,10 +63,6 @@ test("customization reorders and hides cards and charts within their sections", 
     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
     .analyze();
   expect(accessibility.violations).toEqual([]);
-  await info.attach("dashboard-editor", {
-    body: await page.screenshot({ fullPage: true }),
-    contentType: "image/png",
-  });
   await expect(glance.getByRole("article").first()).toHaveAccessibleName("Sends");
   await moveEarlier(page, info, "Hardest", "cards", "Sends");
   await expect(glance.getByRole("article").first()).toHaveAccessibleName("Hardest");
@@ -88,10 +80,6 @@ test("customization reorders and hides cards and charts within their sections", 
     .click();
   await expect(glance.getByRole("article").first()).toHaveAccessibleName("Hardest");
   await expect(charts.getByRole("article").first()).toHaveAccessibleName("Grade pyramid");
-  await info.attach("custom-dashboard", {
-    body: await page.screenshot({ fullPage: true }),
-    contentType: "image/png",
-  });
   await page.getByRole("button", { name: "Customize dashboard", exact: true }).click();
   await page.getByRole("button", { name: "Restore default layout", exact: true }).click();
   await expect(glance.getByRole("article").first()).toHaveAccessibleName("Sends");
@@ -221,10 +209,6 @@ test(
     const markerBounds = await marker.boundingBox();
     if (!markerBounds) throw new Error("Insertion marker must be visible");
     expect(Math.abs(markerBounds.x - destination.x)).toBeLessThan(16);
-    await info.attach("drag-destination", {
-      body: await page.screenshot({ fullPage: true }),
-      contentType: "image/png",
-    });
     await page.mouse.up();
     await expect(grid.getByRole("article").nth(1)).toHaveAccessibleName("Sending days");
   },
@@ -253,10 +237,6 @@ test(
       actions.getByRole("button", { name: "Restore default layout", exact: true }),
     ).toBeVisible();
     await expect(actions.getByRole("button", { name: /^Add / })).toHaveCount(0);
-    await info.attach("add-back-controls", {
-      body: await page.screenshot({ fullPage: true }),
-      contentType: "image/png",
-    });
     await page.getByRole("button", { name: "Add Areas", exact: true }).click();
     await expect(page.getByRole("button", { name: "Add Areas", exact: true })).toHaveCount(0);
     await expect(page.getByRole("article", { name: "Areas", exact: true })).toBeVisible();
@@ -285,10 +265,6 @@ test(
         .getByRole("group", { name: "Dashboard actions", exact: true })
         .getByRole("button", { name: "Save layout", exact: true }),
     ).toBeVisible();
-    await info.attach("customize-panel", {
-      body: await page.screenshot({ fullPage: true }),
-      contentType: "image/png",
-    });
   },
 );
 
@@ -322,10 +298,6 @@ test(
 
     await expand.click();
     await expect(page.getByRole("region", { name: "Filter options", exact: true })).toBeVisible();
-    await info.attach("analytics-filter-placement", {
-      body: await page.screenshot({ fullPage: true }),
-      contentType: "image/png",
-    });
   },
 );
 
@@ -349,16 +321,8 @@ test(
     const viewport = page.viewportSize();
     if (!bounds || !viewport) throw new Error("Volume plot and viewport must have bounds");
     expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width);
-    await info.attach("optional-volume-chart", {
-      body: await volume.screenshot(),
-      contentType: "image/png",
-    });
     const flash = page.getByRole("article", { name: "Flash rate by grade", exact: true });
     await expect(flash.getByText("Flash rate", { exact: true })).toBeVisible();
-    await info.attach("optional-flash-chart", {
-      body: await flash.screenshot(),
-      contentType: "image/png",
-    });
   },
 );
 
@@ -389,7 +353,6 @@ test(
       .getByRole("article", { name: "Grade pyramid", exact: true })
       .scrollIntoViewIfNeeded();
     await expect(reminder).toBeVisible();
-    await info.attach("floating-save", { body: await page.screenshot(), contentType: "image/png" });
     await reminder.getByRole("button", { name: "Save layout", exact: true }).click();
     await expect(reminder).toHaveCount(0);
     await expect(page.getByRole("grid", { name: "Reorder charts", exact: true })).toHaveCount(0);
@@ -413,7 +376,6 @@ test("laptop fits six stat slots and customization options contrast with their p
   if (!first || !last) throw new Error("Default cards must be visible");
   if (laptop) expect(Math.abs(first.y - last.y)).toBeLessThan(1);
   else expect(last.y).toBeGreaterThan(first.y);
-  await info.attach("six-stat-slots", { body: await page.screenshot(), contentType: "image/png" });
   await page.getByRole("button", { name: "Customize dashboard", exact: true }).click();
   const panel = page.getByRole("region", { name: "Customize dashboard", exact: true });
   const option = panel.getByRole("button", { name: "Add Areas", exact: true });
@@ -421,8 +383,4 @@ test("laptop fits six stat slots and customization options contrast with their p
     await panel.evaluate((el) => getComputedStyle(el).backgroundColor),
   );
   await expect(option).toHaveCSS("border-top-width", "0px");
-  await info.attach("contrasting-customize-options", {
-    body: await panel.screenshot(),
-    contentType: "image/png",
-  });
 });

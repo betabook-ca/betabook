@@ -41,10 +41,6 @@ test(
     const future = page.getByRole("button", { name: /Monday, September 7, 2026/ });
     await expect(latest).toBeEnabled();
     await expect(future).toBeDisabled();
-    await info.attach("calendar-boundary", {
-      body: await page.screenshot({ fullPage: true, animations: "disabled" }),
-      contentType: "image/png",
-    });
     await latest.press("Enter");
     await expect(trigger).toBeFocused();
     await expect(page.getByRole("spinbutton", { name: "day, Empty date", exact: true })).toHaveText(

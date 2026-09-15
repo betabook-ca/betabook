@@ -19,10 +19,6 @@ test(
     const day = calendar.locator("[data-chart-detail]").nth(100);
     await day.hover();
     await expect(calendar.getByRole("tooltip")).toBeVisible();
-    await info.attach("fitted-dashboard", {
-      body: await page.screenshot({ fullPage: true }),
-      contentType: "image/png",
-    });
   },
 );
 
@@ -47,9 +43,5 @@ test(
     await expect(plot.getByRole("tooltip")).toBeVisible();
     const text = plot.locator("svg text").first();
     expect(await text.evaluate((el) => el.getBoundingClientRect().height)).toBeGreaterThan(9);
-    await info.attach("volume-line-details", {
-      body: await page.screenshot({ fullPage: true }),
-      contentType: "image/png",
-    });
   },
 );

@@ -26,11 +26,6 @@ test("friend-tag guidance is in a tooltip accessible by pointer and keyboard", a
   await expect(tooltip).toContainText("Changes replace all tags, including hidden ones.");
   await expect(tooltip).toHaveCSS("word-break", "normal");
   await expect(tooltip).toHaveCSS("opacity", "1");
-  await page.screenshot({
-    path: testInfo.outputPath("companion-help.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
   await page.mouse.move(0, 0);
   await page.getByRole("combobox").focus();
   await expect(tooltip).toBeHidden();
@@ -57,11 +52,6 @@ test(
     await expect(input).toBeFocused();
     await expect(page.getByRole("listbox", { includeHidden: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Remove friend Alex Rivera" })).toBeVisible();
-    await page.screenshot({
-      path: testInfo.outputPath("selected-companions.png"),
-      fullPage: true,
-      animations: "disabled",
-    });
   },
 );
 test("friend suggestions follow the moved field when adding another friend", async ({
@@ -83,11 +73,6 @@ test("friend suggestions follow the moved field when adding another friend", asy
   const menu = await page.getByRole("listbox").boundingBox();
   if (!field || !menu) throw new Error("Missing friend field or suggestions");
   expect(menu.y >= field.y + field.height || menu.y + menu.height <= field.y).toBe(true);
-  await page.screenshot({
-    path: testInfo.outputPath("next-friend-suggestions.png"),
-    fullPage: true,
-    animations: "disabled",
-  });
   await page.getByRole("option", { name: "Sam With A Long Climbing Name", exact: true }).click();
   await expect(input).toHaveAttribute("aria-expanded", "false");
   await expect(
