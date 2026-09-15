@@ -73,3 +73,20 @@ export const Session: Story = {
     ],
   },
 };
+
+export const AccomplishedGoal: Story = {
+  args: {
+    entries: [
+      {
+        day: { ...trainingDay, training: 0, goals: 1 },
+        activity: {
+          ...trainingDay.activities[0],
+          kind: "goal",
+          goalTitle: "Train 8 times · #hangboard #strength",
+          body: null,
+          companions: [],
+        },
+      },
+    ],
+  },
+};

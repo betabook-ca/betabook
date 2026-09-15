@@ -294,6 +294,9 @@ export async function applyClimbMove(
     decision,
   );
 
+  // Source triggers persist dirty goals; bounded maintenance reconciles affected authors.
+  revalidatePath("/feed");
+
   afterCommit(() => {
     revalidatePath(`/climbs/${climbId}`);
     revalidatePath(`/areas/${newAreaId}`);
@@ -350,6 +353,9 @@ export async function applyClimbEdit(
     climbUnchanged(existing),
     decision,
   );
+
+  // Source triggers persist dirty goals; bounded maintenance reconciles affected authors.
+  revalidatePath("/feed");
 
   afterCommit(() => {
     revalidatePath(`/climbs/${climbId}`);
@@ -491,6 +497,9 @@ export async function applyClimbMerge(
     sql`${climbUnchanged(source)} AND ${climbUnchanged(target)}`,
     decision,
   );
+
+  // Source triggers persist dirty goals; bounded maintenance reconciles affected authors.
+  revalidatePath("/feed");
 
   afterCommit(() => {
     revalidatePath(`/climbs/${targetClimbId}`);

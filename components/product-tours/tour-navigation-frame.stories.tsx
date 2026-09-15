@@ -34,3 +34,8 @@ export const Feed: Story = { args: { section: "Feed" } };
 export const Search: Story = { args: { section: "Search" } };
 export const You: Story = { name: "Account settings", args: { section: "Account settings" } };
 export const Updates: Story = { args: { section: "Friends", mode: "updates" } };
+
+export const Goals: Story = { args: { section: "Goals", stepId: "goals" } };
+export const GoalTags: Story = { args: { section: "Goals", stepId: "goal-tags" } };
+export const GoalProgress: Story = { args: { section: "Goals", stepId: "goal-progress" } };
+export const GoalAchievements: Story = { args: { section: "Goals", stepId: "goal-achievements" } };

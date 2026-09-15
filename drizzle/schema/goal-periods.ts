@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { integer, text, sqliteTable, primaryKey } from "drizzle-orm/sqlite-core";
 
 import { goals } from "./goals";
@@ -18,6 +19,10 @@ export const goalPeriods = sqliteTable(
     discipline: text("discipline", { enum: ["boulder", "sport", "trad"] }),
     grade: integer("grade"),
     gradeMatch: text("grade_match", { enum: ["exact", "at-least"] }).notNull(),
+    tags: text("tags", { mode: "json" })
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'`),
   },
   (t) => [primaryKey({ columns: [t.goalId, t.startDate, t.repeat] })],
 );

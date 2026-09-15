@@ -3,6 +3,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import { refresh } from "next/cache";
 
+import { scheduleGoalRefresh } from "@/actions/goal-refresh";
 import { getDb, type Database } from "@/db/client";
 import { getClimb, getJournalEntry, getUserSendForClimb } from "@/db/queries";
 import { journalEntries, sends } from "@/db/schema";
@@ -100,6 +101,8 @@ async function writeAscent(
     ...(companions?.length ? [buildCompanionInsert(db, userId, companions)] : []),
   ]);
 
+  await scheduleGoalRefresh(db, userId);
+
   revalidateJournalSurfaces({ userId, climbIds: [climb.id] });
   revalidateSendSurfaces({ userIds: [userId], climbIds: [climb.id], areaIds: [climb.areaId] });
 }
@@ -156,6 +159,7 @@ export async function createJournalEntry(formData: FormData): Promise<ActionResu
             "The send changed while this entry was being saved — try again",
           );
         }
+        await scheduleGoalRefresh(db, session.user.id);
         revalidateJournalSurfaces({ userId: session.user.id, climbIds: [climb.id] });
         revalidateSendSurfaces({
           userIds: [session.user.id],
@@ -184,6 +188,7 @@ export async function createJournalEntry(formData: FormData): Promise<ActionResu
         "The send changed while this entry was being saved — try again",
       );
     }
+    await scheduleGoalRefresh(db, session.user.id);
     revalidateJournalSurfaces({
       userId: session.user.id,
       climbIds: climb ? [climb.id] : [],
@@ -262,6 +267,8 @@ export async function updateJournalEntry(
       });
     }
 
+    await scheduleGoalRefresh(db, session.user.id);
+
     revalidateJournalSurfaces({
       userId: session.user.id,
       climbIds: existing.climbId === null ? [] : [existing.climbId],
@@ -310,6 +317,8 @@ export async function deleteJournalEntry(entryId: number): Promise<ActionResult>
         areaIds: climb ? [climb.areaId] : [],
       });
     }
+
+    await scheduleGoalRefresh(db, session.user.id);
 
     revalidateJournalSurfaces({
       userId: session.user.id,

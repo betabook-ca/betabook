@@ -74,8 +74,8 @@ export function PrivacyFields({
         error={sendCommentError}
       />
       <AudienceField
-        label="Journal entries"
-        description="Sessions, repeats and training"
+        label="Journal and goals"
+        description="Sessions, repeats, training and finished goals"
         options={SHARING_AUDIENCES}
         value={isPrivate ? "private" : journalVisibility}
         onChange={onJournalChange}
@@ -179,14 +179,18 @@ export function PrivacyDetails({ defaultExpanded = false }: { defaultExpanded?: 
                 A private profile still shows your name to friends and to people you send requests
                 to. Climb pages list your sends without it.
               </li>
+              <li>
+                Friends can see your finished goals in their feed when your Journal and goals
+                audience includes them.
+              </li>
               <li>Your note on a send follows Send commentary, including in your journal.</li>
               <li>
-                With journal entries set to Only me, a friend who tags you still sees your name, but
-                their other readers don&apos;t.
+                With Journal and goals set to Only me, a friend who tags you still sees your name,
+                but their other readers don&apos;t.
               </li>
               <li>
-                Changes apply to past and future entries. Your sends still count toward community
-                ratings.
+                Changes apply to past and future entries and goal achievements. Your sends still
+                count toward community ratings.
               </li>
             </ul>
           </div>

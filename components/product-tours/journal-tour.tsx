@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { FriendRequestBadge } from "@/components/friend-request-badge";
 import { DemoClimberSearch } from "@/components/product-tours/climber-search-preview";
+import { DemoGoals } from "@/components/product-tours/goal-tour-preview";
 import {
   DemoAccount,
   DemoAnalytics,
@@ -33,14 +34,14 @@ function DemoLog() {
   );
 }
 
-export function JournalTourPage({ section, mode, href, steps }: ProductTourPageProps) {
+export function JournalTourPage({ section, stepId, mode, href, steps }: ProductTourPageProps) {
   const isJournal = section === "Journal";
   const inLogbook = isJournal || section === "Sends";
-  const areaSections = inLogbook ? ["Journal", "Sends"] : ["Open Projects", "Analytics"];
+  const areaSections = inLogbook ? ["Journal", "Sends"] : ["Goals", "Open Projects", "Analytics"];
   const [friendRequest, setFriendRequest] = useState<"pending" | "accepted" | null>("pending");
   const current: PrimaryArea | undefined = inLogbook
     ? "logbook"
-    : section === "Open Projects" || section === "Analytics"
+    : section === "Goals" || section === "Open Projects" || section === "Analytics"
       ? "progress"
       : section === "Friends" || section === "Feed"
         ? "community"
@@ -99,6 +100,8 @@ export function JournalTourPage({ section, mode, href, steps }: ProductTourPageP
             <DemoJournal />
           ) : section === "Sends" ? (
             <DemoSends />
+          ) : section === "Goals" ? (
+            <DemoGoals key={stepId} stepId={stepId ?? "goals"} href={href} />
           ) : section === "Open Projects" ? (
             <DemoProjects />
           ) : (

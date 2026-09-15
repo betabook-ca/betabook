@@ -28,9 +28,20 @@ export const goals = sqliteTable(
     gradeMatch: text("grade_match", { enum: ["exact", "at-least"] })
       .notNull()
       .default("exact"),
+    tags: text("tags", { mode: "json" })
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'`),
+    progressDirty: integer("progress_dirty", { mode: "boolean" }).notNull().default(true),
+    progressDates: text("progress_dates", { mode: "json" }).$type<Record<string, string>>(),
+    recurringEndDate: text("recurring_end_date"),
+    progressRefreshAttemptedAt: integer("progress_refresh_attempted_at", { mode: "timestamp_ms" }),
+    progressRefreshDate: text("progress_refresh_date"),
   },
   (t) => [
     index("goals_user_idx").on(t.userId),
+    index("goals_progress_refresh_idx").on(t.progressDirty, t.progressRefreshAttemptedAt, t.userId),
+    index("goals_progress_due_idx").on(t.progressRefreshDate, t.timezone),
     check("goals_target", sql`${t.target} BETWEEN 1 AND 1000`),
     check("goals_dates", sql`${t.endDate} >= ${t.startDate}`),
     check(

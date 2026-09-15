@@ -119,6 +119,7 @@ export function DemoFeed() {
     sessions: entries.filter((entry) => entry.kind === "session").length,
     training: entries.filter((entry) => entry.kind === "training").length,
     repeats: 0,
+    goals: 0,
     activities: entries.map((entry, index) => ({
       id: -(index + 1),
       kind: entry.kind,

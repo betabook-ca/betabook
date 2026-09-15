@@ -36,6 +36,10 @@ const config: StorybookConfig = {
       },
       resolve: {
         alias: [
+          {
+            find: /^@\/actions\/goal-refresh$/,
+            replacement: fileURLToPath(new URL("./mocks/goal-refresh.ts", import.meta.url)),
+          },
           // Keep interactive form stories local; match the barrel without affecting submodules.
           {
             find: /^@\/actions$/,

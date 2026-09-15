@@ -1,9 +1,9 @@
 import { env } from "cloudflare:test";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { beforeEach, expect, it } from "vitest";
 
 import { createDb } from "@/db/client";
-import { areas, climbs, friendships, journalEntries, sends, user } from "@/db/schema";
+import { areas, climbs, goals, friendships, journalEntries, sends, user } from "@/db/schema";
 import { DEFAULT_JOURNAL_FILTER } from "@/lib/filters/journal-filter";
 import { DEFAULT_USER_SENDS_FILTER } from "@/lib/filters/user-sends-filter";
 import {
@@ -18,6 +18,7 @@ import { explainQueries } from "@/test/query-plans";
 import { resetDb } from "@/test/reset-db";
 
 import { getFeedPage } from "./feed";
+import { refreshGoalAchievements } from "./goals";
 import { getJournalPage } from "./journal";
 import { getSendsForUserPage } from "./sends";
 
@@ -304,4 +305,76 @@ it("filters journal and sends detail views to the selected day", async () => {
     0,
   );
   expect(page.sends.map((s) => s.climbId)).toEqual([3]);
+});
+
+it("reads persisted accomplishments and retains them after archive and acknowledgement", async () => {
+  const [goal] = await db
+    .insert(goals)
+    .values({
+      userId: "public",
+      kind: "training",
+      target: 1,
+      timeframe: "month",
+      repeat: "none",
+      startDate: "2026-09-01",
+      endDate: "2026-09-30",
+      timezone: "UTC",
+      celebrationsInitialized: true,
+    })
+    .returning();
+  await refreshGoalAchievements(db, "public");
+  const page = await getFeedPage(db, "viewer");
+  expect(page.days.find((day) => day.userId === "public")?.activities[0]).toMatchObject({
+    kind: "goal",
+    goalTitle: "Train 1 time",
+  });
+  expect(await db.all(sql`SELECT goal_id,completed_date FROM goal_completions`)).toEqual([
+    { goal_id: goal.id, completed_date: "2026-09-01" },
+  ]);
+  await db.update(goals).set({ archiveToken: "archived" }).where(eq(goals.id, goal.id));
+  const { getGoalOverview } = await import("./goals");
+  await getGoalOverview(db, "public", "public");
+  await db.run(sql`UPDATE goal_achievements SET acknowledged_at='2026-09-12'`);
+  expect(
+    (await getFeedPage(db, "viewer")).days.find((day) => day.userId === "public")?.activities[0]
+      .kind,
+  ).toBe("goal");
+  expect(JSON.stringify(await getFeedPage(db, "viewer", "sends"))).not.toContain('"kind":"goal"');
+  await db
+    .delete(journalEntries)
+    .where(and(eq(journalEntries.userId, "public"), eq(journalEntries.kind, "training")));
+  await refreshGoalAchievements(db, "public");
+  expect(JSON.stringify(await getFeedPage(db, "viewer"))).not.toContain('"kind":"goal"');
+  expect(await db.all(sql`SELECT * FROM goal_completions`)).toEqual([]);
+});
+
+it("rechecks goal activity audiences, friendship and profile privacy", async () => {
+  await db.insert(goals).values({
+    userId: "public",
+    kind: "training",
+    target: 1,
+    timeframe: "month",
+    repeat: "none",
+    startDate: "2026-09-01",
+    endDate: "2026-09-30",
+    timezone: "UTC",
+  });
+  await refreshGoalAchievements(db, "public");
+  const hasGoal = async () =>
+    JSON.stringify(await getFeedPage(db, "viewer")).includes('"kind":"goal"');
+  await db
+    .update(user)
+    .set({ journalVisibility: "friends", sendCommentVisibility: "private" })
+    .where(eq(user.id, "public"));
+  expect(await hasGoal()).toBe(true);
+  await db.update(user).set({ journalVisibility: "private" }).where(eq(user.id, "public"));
+  expect(await hasGoal()).toBe(false);
+  await db
+    .update(user)
+    .set({ journalVisibility: "friends", isPrivate: true })
+    .where(eq(user.id, "public"));
+  expect(await hasGoal()).toBe(false);
+  await db.update(user).set({ isPrivate: false }).where(eq(user.id, "public"));
+  await db.update(friendships).set({ status: "pending" });
+  expect(await hasGoal()).toBe(false);
 });

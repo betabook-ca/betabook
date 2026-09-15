@@ -1,64 +1,58 @@
-import { sql } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
+import { goalAchievements, goals } from "@/db/schema";
 import { goalToday, type GoalProgress } from "@/lib/goals";
 
 function achievementIdentity(goal: Pick<GoalProgress, "id" | "periodStart" | "repeat">) {
   return `${goal.id}:${goal.periodStart}:${goal.repeat}`;
 }
 
-/** Owner reads detect achievements once. Pre-feature history is baselined silently. */
+/** These statements must share the batch that reconciles the completion projection. */
+export function goalAchievementStatements(db: Database, goalIds: SQL, now: Date) {
+  return [
+    db
+      .insert(goalAchievements)
+      .select(sql`SELECT g.id,c.period_start,c.repeat,${now.toISOString()},
+        CASE WHEN g.celebrations_initialized=0 THEN ${now.toISOString()} ELSE NULL END
+        FROM goal_completions c JOIN goals g ON g.id=c.goal_id
+        WHERE g.id IN (${goalIds}) AND c.completed_date IS NOT NULL`)
+      .onConflictDoNothing(),
+    db
+      .update(goals)
+      .set({ celebrationsInitialized: true })
+      .where(sql`id IN (${goalIds}) AND celebrations_initialized=0`),
+  ] as const;
+}
+
+/** Read notices only while their persisted completion is still valid. */
 export async function unseenGoalAchievements(
   db: Database,
   ownerId: string,
   periods: GoalProgress[],
   now: Date,
 ) {
-  const definitions = await db.all<{ id: number; initialized: number }>(
-    sql`SELECT id,celebrations_initialized AS initialized FROM goals WHERE user_id=${ownerId}`,
-  );
-  if (definitions.length === 0) return [];
-  const initialized = new Map(definitions.map((goal) => [goal.id, Boolean(goal.initialized)]));
-  const existing = await db.all<{
+  if (periods.length === 0) return [];
+  // A concurrent correction invalidates the completion in the source write;
+  // a concurrent acknowledgement must also take effect before returning notices.
+  const unread = await db.all<{
     id: number;
     periodStart: string;
     repeat: GoalProgress["repeat"];
-    acknowledgedAt: string | null;
-  }>(
-    sql`SELECT a.goal_id AS id,a.period_start AS periodStart,a.repeat,a.acknowledged_at AS acknowledgedAt FROM goal_achievements a JOIN goals g ON g.id=a.goal_id WHERE g.user_id=${ownerId}`,
-  );
-  const known = new Map(existing.map((goal) => [achievementIdentity(goal), goal]));
-  const completed = periods.filter(
-    (goal) =>
-      goal.completedDate &&
+    completedDate: string;
+  }>(sql`SELECT c.goal_id AS id,c.period_start AS periodStart,c.repeat,
+      c.completed_date AS completedDate
+    FROM goal_completions c JOIN goals g ON g.id=c.goal_id
+    JOIN goal_achievements a ON a.goal_id=c.goal_id AND a.period_start=c.period_start AND a.repeat=c.repeat
+    WHERE g.user_id=${ownerId} AND g.progress_dirty=0 AND c.completed_date IS NOT NULL AND a.acknowledged_at IS NULL`);
+  const current = new Map(unread.map((goal) => [achievementIdentity(goal), goal]));
+  return periods.filter((goal) => {
+    const completion = current.get(achievementIdentity(goal));
+    return (
+      goal.completedDate !== null &&
       goal.completedDate <= goalToday(goal.timezone, now) &&
-      goal.progress >= goal.target,
-  );
-  const missing = completed.filter((goal) => !known.has(achievementIdentity(goal)));
-  for (let offset = 0; offset < missing.length; offset += 200) {
-    const batch = JSON.stringify(
-      missing
-        .slice(offset, offset + 200)
-        .map(({ id, periodStart, repeat }) => ({ id, periodStart, repeat })),
+      goal.progress >= goal.target &&
+      completion?.completedDate === goal.completedDate
     );
-    await db.run(sql`INSERT INTO goal_achievements (goal_id,period_start,repeat,detected_at,acknowledged_at)
-      SELECT g.id,json_extract(item.value,'$.periodStart'),json_extract(item.value,'$.repeat'),${now.toISOString()},CASE WHEN g.celebrations_initialized=0 THEN ${now.toISOString()} ELSE NULL END
-      FROM json_each(${batch}) item JOIN goals g ON g.id=json_extract(item.value,'$.id') WHERE g.user_id=${ownerId}
-      ON CONFLICT DO NOTHING`);
-  }
-  const pending = completed.filter(
-    (goal) =>
-      initialized.get(goal.id) &&
-      (!known.has(achievementIdentity(goal)) ||
-        known.get(achievementIdentity(goal))?.acknowledgedAt === null),
-  );
-  await db.run(
-    sql`UPDATE goals SET celebrations_initialized=1 WHERE user_id=${ownerId} AND celebrations_initialized=0`,
-  );
-  // Re-read acknowledgements so another tab/device cannot revive an already dismissed notice.
-  const unread = await db.all<{ id: number; periodStart: string; repeat: GoalProgress["repeat"] }>(
-    sql`SELECT a.goal_id AS id,a.period_start AS periodStart,a.repeat FROM goal_achievements a JOIN goals g ON g.id=a.goal_id WHERE g.user_id=${ownerId} AND a.acknowledged_at IS NULL`,
-  );
-  const unreadKeys = new Set(unread.map(achievementIdentity));
-  return pending.filter((goal) => unreadKeys.has(achievementIdentity(goal)));
+  });
 }

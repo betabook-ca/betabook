@@ -7,6 +7,7 @@ type GoalFormCase = {
   recurrence?: string;
   custom?: boolean;
   width?: number;
+  recurringEnd?: boolean;
 };
 const cases: GoalFormCase[] = [
   { name: "climbing volume", story: "climbing" },
@@ -15,6 +16,7 @@ const cases: GoalFormCase[] = [
   { name: "training", story: "training" },
   { name: "climbing days", story: "explore" },
   { name: "new areas", story: "explore", goalChoice: "Visit new areas" },
+  { name: "recurring goal with end date", story: "recurring-with-end-date", recurringEnd: true },
   { name: "weekly training", story: "recurring", recurrence: "every week" },
   { name: "monthly training", story: "recurring", recurrence: "every month" },
   { name: "seasonal climbing", story: "seasonal-goal", custom: true },
@@ -58,7 +60,7 @@ for (const scenario of cases) {
       expect(timeframeBox.height).toBe(countBox.height);
       expect(timeframeBox.y).toBeGreaterThanOrEqual(countBox.y);
       const dates = page.locator(".date-input-group");
-      await expect(dates).toHaveCount(scenario.custom ? 2 : 0);
+      await expect(dates).toHaveCount(scenario.custom ? 2 : scenario.recurringEnd ? 1 : 0);
       for (const field of await dates.all()) {
         const box = await field.boundingBox();
         expect(box?.height).toBe(countBox.height);
@@ -75,3 +77,26 @@ for (const scenario of cases) {
     },
   );
 }
+
+test("recurring end-date creation fits the modal and keeps saving reachable", async ({
+  page,
+}, info) => {
+  await openStory(page, info, "components-goals-goal-form--recurring-with-end-date");
+  const date = page.locator(".date-input-group");
+  await date.scrollIntoViewIfNeeded();
+  const bounds = await date.boundingBox();
+  const viewport = page.viewportSize();
+  if (!bounds || !viewport) throw new Error("Missing recurring end-date bounds");
+  expect(bounds.x).toBeGreaterThanOrEqual(0);
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width);
+  await page.getByRole("button", { name: "Create goal" }).scrollIntoViewIfNeeded();
+  await expect(page.getByRole("button", { name: "Create goal" })).toBeInViewport();
+  const { AxeBuilder } = await import("@axe-core/playwright");
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        .analyze()
+    ).violations,
+  ).toEqual([]);
+});
