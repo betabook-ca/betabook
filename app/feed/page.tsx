@@ -29,7 +29,7 @@ export default async function FeedPage({
   ]);
   return (
     <ViewerBoundary viewerId={session.user.id}>
-      <div className="mx-auto w-full max-w-2xl">
+      <div className="w-full max-w-2xl">
         <WorkspaceShell area="community" userId={session.user.id}>
           <FeedList
             viewerId={session.user.id}
