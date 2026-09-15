@@ -27,16 +27,22 @@ export function SettingsSection({
   id,
   title,
   tone = "default",
+  layout = "responsive",
   children,
 }: {
   id: string;
   title: string;
   tone?: "default" | "danger";
+  layout?: "responsive" | "stacked";
   children: ReactNode;
 }) {
   return (
-    <section id={id} aria-labelledby={`${id}-heading`} className={SETTINGS_SECTION_CLASS}>
-      <SectionHeading id={`${id}-heading`} className="lg:pt-5">
+    <section
+      id={id}
+      aria-labelledby={`${id}-heading`}
+      className={layout === "stacked" ? "grid gap-3" : SETTINGS_SECTION_CLASS}
+    >
+      <SectionHeading id={`${id}-heading`} className={layout === "stacked" ? undefined : "lg:pt-5"}>
         {title}
       </SectionHeading>
       <div className={settingsPanelClass(tone)}>

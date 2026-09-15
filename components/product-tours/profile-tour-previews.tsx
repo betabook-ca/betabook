@@ -6,15 +6,22 @@ import { useState } from "react";
 import { StatTiles } from "@/components/analytics-stat-tiles";
 import { AscentStyle } from "@/components/ascent-style";
 import { FilterInput } from "@/components/filters/filter-input";
-import { JournalEntryLayout } from "@/components/journal/journal-entry-layout";
+import { JournalEntryLayout, JournalEntryStatus } from "@/components/journal/journal-entry-layout";
+import { ProjectCardLayout } from "@/components/journal/project-card-layout";
+import { ProjectSessionList } from "@/components/journal/project-session-list";
 import { PrivacyFields } from "@/components/privacy-fields";
 import { ProgressionChart } from "@/components/progression-chart";
 import { SendGradeCell } from "@/components/send-grade-cell";
 import { cardClass } from "@/components/ui/card";
 import { choicePillClass } from "@/components/ui/choice-pill";
-import { EYEBROW_CLASS } from "@/components/ui/eyebrow";
+import { FILTER_PILL_CLASS } from "@/components/ui/field";
+import { Grade } from "@/components/ui/grade";
 import { ListRow } from "@/components/ui/list-row";
+import { LoadMoreButton } from "@/components/ui/load-more-button";
+import { SettingsSection } from "@/components/ui/settings";
+import { SortSelect } from "@/components/ui/sort-select";
 import { formatDate } from "@/lib/format-date";
+import { parseGrade } from "@/lib/grades";
 import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
 import {
   getTourDemoJournalPage,
@@ -22,6 +29,7 @@ import {
   TOUR_DEMO_ENTRIES,
   TOUR_DEMO_PROJECT,
   TOUR_DEMO_SENDS,
+  TOUR_DEMO_SEARCH_RESULTS,
 } from "@/lib/product-tour-demo";
 
 function Choices<T extends string>({
@@ -36,13 +44,13 @@ function Choices<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <div role="group" aria-label={label} className="flex flex-wrap gap-2">
+    <div role="group" aria-label={label} className="flex flex-wrap gap-1.5">
       {options.map((option) => (
         <button
           key={option}
           type="button"
           aria-pressed={value === option}
-          className={choicePillClass(value === option, "bg-foreground text-background")}
+          className={`${choicePillClass(value === option, "bg-foreground text-background")} ${FILTER_PILL_CLASS}`}
           onClick={() => onChange(option)}
         >
           {option}
@@ -68,8 +76,8 @@ export function DemoJournal() {
     setShowAll(false);
   }
   return (
-    <div className="flex flex-col gap-3">
-      <div data-tour-target="journal-filters" className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
+      <div data-tour-target="journal-filters" className="flex flex-col gap-2">
         <FilterInput
           label="Filter Alex's journal"
           placeholder="Filter journal…"
@@ -106,14 +114,22 @@ export function DemoJournal() {
           ? "One gym workout matches."
           : `Showing ${visible.length} of ${matches.length} matching entries`}
       </p>
-      <div className="divide-y divide-border">
+      <div className="divide-y divide-separator">
         {visible.map((entry) => (
           <JournalEntryLayout
             key={entry.id}
             title={entry.climb?.name ?? "Training"}
             date={entry.date}
-            status={entry.kind === "training" ? undefined : entry.outcome}
-            grade={entry.climb?.grade}
+            location={entry.climb ? TOUR_DEMO_SEARCH_RESULTS.area.name : undefined}
+            status={
+              entry.kind === "training" ? undefined : (
+                <JournalEntryStatus
+                  isAscent={entry.outcome === "Sent"}
+                  sent={entry.outcome === "Repeat" || entry.outcome === "Sent"}
+                />
+              )
+            }
+            grade={entry.climb ? <Grade>{entry.climb.grade}</Grade> : undefined}
             comment={entry.note}
             tags={
               entry.tags.length > 0
@@ -152,28 +168,48 @@ export function DemoJournal() {
 }
 
 export function DemoSends() {
-  const [sort, setSort] = useState<"Date" | "Grade" | "Rating">("Date");
+  const [sort, setSort] = useState("date_desc");
+  const [field, direction] = sort.split("_");
   const sends = [...TOUR_DEMO_SENDS].sort((a, b) => {
-    if (sort === "Grade") return b.suggestedGrade - a.suggestedGrade;
-    if (sort === "Rating") return b.rating - a.rating;
-    return b.dateSent.localeCompare(a.dateSent);
+    const comparison =
+      field === "grade"
+        ? a.suggestedGrade - b.suggestedGrade
+        : field === "rating"
+          ? a.rating - b.rating
+          : a.dateSent.localeCompare(b.dateSent);
+    return direction === "asc" ? comparison : -comparison;
   });
+  const sortDescription =
+    field === "date"
+      ? direction === "asc"
+        ? "Oldest first"
+        : "Newest first"
+      : field === "grade"
+        ? direction === "asc"
+          ? "Easiest first"
+          : "Hardest first"
+        : direction === "asc"
+          ? "Lowest rated first"
+          : "Highest rated first";
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <div data-tour-target="send-sort">
-        <Choices
-          label="Sort sends"
-          options={["Date", "Grade", "Rating"]}
-          value={sort}
-          onChange={setSort}
+        <SortSelect
+          sort={sort}
+          fields={[
+            { id: "date", label: "Date" },
+            { id: "grade", label: "Grade" },
+            { id: "rating", label: "Rating" },
+          ]}
+          defaultField="date"
+          defaultDirection={{ date: "desc", grade: "desc", rating: "desc" }}
+          onNavigate={setSort}
         />
       </div>
       <p role="status" className="text-xs text-muted">
-        {sort === "Date"
-          ? "Newest first"
-          : `${sort === "Grade" ? "Hardest" : "Highest rated"} first`}
+        {sortDescription}
       </p>
-      <div className="divide-y divide-border">
+      <div className="divide-y divide-separator">
         {sends.map((send) => (
           <ListRow
             key={send.climbId}
@@ -202,43 +238,31 @@ export function DemoSends() {
 }
 
 export function DemoProjects() {
-  const [expanded, setExpanded] = useState(false);
-  const [latest] = TOUR_DEMO_PROJECT.sessions;
+  const [showAll, setShowAll] = useState(false);
+  const sessions = TOUR_DEMO_PROJECT.sessions;
+  const latest = sessions[0];
+  const project = {
+    climbName: TOUR_DEMO_PROJECT.name,
+    climbType: "boulder" as const,
+    climbGrade: parseGrade("boulder", TOUR_DEMO_PROJECT.grade),
+    areaName: TOUR_DEMO_SEARCH_RESULTS.area.name,
+    sessionCount: sessions.length,
+    firstSession: sessions[sessions.length - 1].date,
+    lastSession: latest.date,
+  };
+  const notes = (showAll ? sessions : sessions.slice(0, 1)).map((entry, index) => ({
+    id: -(index + 1),
+    entryDate: entry.date,
+    tags: entry.tags,
+    body: entry.note,
+  }));
   return (
-    // Deliberately not the app's ProjectCard: that card links its climb and
-    // pages older sessions from the journal API, and Alex's IDs are negative
-    // samples that must never reach either.
-    <div className={`flex flex-col gap-3 ${cardClass("sm", "bordered")}`}>
-      <ListRow
-        title={TOUR_DEMO_PROJECT.name}
-        meta={TOUR_DEMO_PROJECT.grade}
-        subtitle={`${TOUR_DEMO_PROJECT.sessions.length} sessions · Last ${formatDate(latest.date)}`}
-      />
-      {!expanded && (
-        <div className="flex flex-col gap-1 rounded-panel bg-surface-tertiary p-3">
-          <div className="flex items-baseline justify-between gap-2">
-            <span className={EYEBROW_CLASS}>Latest note</span>
-            <span className="text-xs text-muted">{formatDate(latest.date)}</span>
-          </div>
-          <p className="text-sm leading-relaxed text-foreground">{latest.note}</p>
-        </div>
-      )}
-      <div data-tour-target="project-sessions" className="self-start">
-        <Button
-          variant="secondary"
-          aria-expanded={expanded}
-          aria-controls="demo-project-sessions"
-          onPress={() => setExpanded(!expanded)}
-        >
-          {expanded ? "Hide sessions" : "Read Alex's notes"}
-        </Button>
+    <ProjectCardLayout project={project} today={latest.date}>
+      <div data-tour-target="project-sessions" className="flex flex-col gap-4">
+        <ProjectSessionList sessions={notes} />
+        {!showAll && <LoadMoreButton onPress={() => setShowAll(true)} loading={false} />}
       </div>
-      <div id="demo-project-sessions" hidden={!expanded} className="divide-y divide-border">
-        {TOUR_DEMO_PROJECT.sessions.map((entry) => (
-          <ListRow key={entry.id} title={formatDate(entry.date)} comment={entry.note} />
-        ))}
-      </div>
-    </div>
+    </ProjectCardLayout>
   );
 }
 
@@ -298,16 +322,18 @@ export function DemoAccount() {
   const [sendCommentVisibility, setSendCommentVisibility] = useState<SendCommentAudience>("public");
   return (
     <div className="flex flex-col gap-4">
-      <div data-tour-target="privacy-controls">
-        <PrivacyFields
-          isPrivate={isPrivate}
-          journalVisibility={journalVisibility}
-          sendCommentVisibility={sendCommentVisibility}
-          onProfileChange={setIsPrivate}
-          onJournalChange={setJournalVisibility}
-          onSendCommentChange={setSendCommentVisibility}
-        />
-      </div>
+      <SettingsSection id="demo-privacy" title="Privacy" layout="stacked">
+        <div data-tour-target="privacy-controls">
+          <PrivacyFields
+            isPrivate={isPrivate}
+            journalVisibility={journalVisibility}
+            sendCommentVisibility={sendCommentVisibility}
+            onProfileChange={setIsPrivate}
+            onJournalChange={setJournalVisibility}
+            onSendCommentChange={setSendCommentVisibility}
+          />
+        </div>
+      </SettingsSection>
       <div role="status" className={`text-sm ${cardClass("sm")}`}>
         <p className="font-medium">What a signed-in member can see</p>
         {isPrivate ? (

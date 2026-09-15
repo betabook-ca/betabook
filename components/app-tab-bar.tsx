@@ -1,16 +1,17 @@
 "use client";
 
-import { clsx } from "clsx";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
 
-import { FriendRequestBadge, withRequestCount } from "@/components/friend-request-badge";
 import { useFriendRequestCount } from "@/components/friend-requests-provider";
-import { NavLink } from "@/components/nav-link";
-import { PrimaryNavigationIcon } from "@/components/primary-navigation-icon";
+import { PrimaryNavigationLink } from "@/components/primary-navigation-link";
 import { useClientSession } from "@/hooks/use-client-session";
 import { useMobileTabsVisible } from "@/hooks/use-mobile-tabs-visible";
-import { primaryAreaForPath, primaryDestinations } from "@/lib/app-navigation";
+import {
+  primaryAreaForPath,
+  primaryDestinations,
+  type PrimaryArea,
+  type PrimaryDestination,
+} from "@/lib/app-navigation";
 
 type TabAccount = { id: string; name: string; image?: string | null };
 
@@ -43,61 +44,39 @@ export function AppTabs({
 }) {
   const current = primaryAreaForPath(usePathname(), account.id);
   return (
-    <ul className="mx-auto grid h-14 max-w-md grid-cols-4">
-      {primaryDestinations(account.id).map((item) => (
-        <li key={item.id}>
-          <NavLink
-            appearance="tab"
-            href={item.href}
-            isCurrent={current === item.id}
-            aria-description={item.id === "you" ? account.name : undefined}
-            aria-label={
-              item.id === "community" && requestCount > 0
-                ? withRequestCount(item.label, requestCount)
-                : undefined
-            }
-          >
-            <TabIcon
-              key="icon"
-              current={current === item.id}
-              badge={
-                item.id === "community" ? (
-                  <FriendRequestBadge
-                    decorative
-                    count={requestCount}
-                    className="absolute -top-1 right-0"
-                  />
-                ) : undefined
-              }
-            >
-              <PrimaryNavigationIcon area={item.id} account={account} />
-            </TabIcon>
-            {item.label}
-          </NavLink>
-        </li>
-      ))}
-    </ul>
+    <AppTabLinks
+      account={account}
+      current={current}
+      destinations={primaryDestinations(account.id)}
+      requestCount={requestCount}
+    />
   );
 }
 
-function TabIcon({
+export function AppTabLinks({
+  account,
   current,
-  children,
-  badge,
+  destinations,
+  requestCount = 0,
 }: {
-  current?: boolean;
-  children: ReactNode;
-  badge?: ReactNode;
+  account: { name: string; image?: string | null };
+  current?: PrimaryArea;
+  destinations: readonly PrimaryDestination[];
+  requestCount?: number;
 }) {
   return (
-    <span
-      className={clsx(
-        "relative flex h-7 w-10 items-center justify-center rounded-lg",
-        current && "bg-navigation-active",
-      )}
-    >
-      <span className="flex size-6 items-center justify-center">{children}</span>
-      {badge}
-    </span>
+    <ul className="mx-auto grid h-14 max-w-md grid-cols-4">
+      {destinations.map((item) => (
+        <li key={item.id}>
+          <PrimaryNavigationLink
+            item={item}
+            account={account}
+            current={current === item.id}
+            appearance="tab"
+            requestCount={requestCount}
+          />
+        </li>
+      ))}
+    </ul>
   );
 }

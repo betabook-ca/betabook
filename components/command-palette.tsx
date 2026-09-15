@@ -119,16 +119,37 @@ export function SearchTrigger() {
   );
 }
 
-export function SearchTriggerControl({ onOpenSearch }: { onOpenSearch?: () => void }) {
+export function SearchTriggerControl({
+  onOpenSearch,
+  responsiveTo = "viewport",
+  showShortcut = true,
+}: {
+  onOpenSearch?: () => void;
+  responsiveTo?: "viewport" | "container";
+  showShortcut?: boolean;
+}) {
   const keys = useModifierLabels();
-  const className =
-    "flex h-11 w-full min-w-0 cursor-pointer items-center gap-2 rounded-xl bg-surface px-3 text-muted shadow-sm transition-colors hover:text-foreground focus-visible:status-focused md:rounded-lg md:border md:border-border md:bg-transparent md:shadow-none";
+  const contained = responsiveTo === "container";
+  const className = `flex h-11 w-full min-w-0 cursor-pointer items-center gap-2 rounded-xl bg-surface px-3 text-muted shadow-sm transition-colors hover:text-foreground focus-visible:status-focused ${contained ? "@lg/navigation:rounded-lg @lg/navigation:border @lg/navigation:border-border @lg/navigation:bg-transparent @lg/navigation:shadow-none" : "md:rounded-lg md:border md:border-border md:bg-transparent md:shadow-none"}`;
   const contents = (
     <>
-      <Brand decorative compact className="size-6 md:hidden" />
+      <Brand
+        decorative
+        compact
+        className={`size-6 ${contained ? "@lg/navigation:hidden" : "md:hidden"}`}
+      />
       <span className="truncate text-sm">Search</span>
-      <Search aria-hidden className="ms-auto size-5 shrink-0 md:-order-1 md:ms-0" />
-      {onOpenSearch && keys && <Kbd className="ms-auto hidden md:inline-flex">{keys.palette}</Kbd>}
+      <Search
+        aria-hidden
+        className={`ms-auto size-5 shrink-0 ${contained ? "@lg/navigation:-order-1 @lg/navigation:ms-0" : "md:-order-1 md:ms-0"}`}
+      />
+      {showShortcut && onOpenSearch && keys && (
+        <Kbd
+          className={`ms-auto hidden ${contained ? "@lg/navigation:inline-flex" : "md:inline-flex"}`}
+        >
+          {keys.palette}
+        </Kbd>
+      )}
     </>
   );
   if (!onOpenSearch)
@@ -143,7 +164,7 @@ export function SearchTriggerControl({ onOpenSearch }: { onOpenSearch?: () => vo
       type="button"
       onClick={onOpenSearch}
       aria-label="Search"
-      aria-keyshortcuts={keys?.ariaPalette}
+      aria-keyshortcuts={showShortcut ? keys?.ariaPalette : undefined}
       className={className}
     >
       {contents}

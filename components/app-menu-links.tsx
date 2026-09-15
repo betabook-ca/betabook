@@ -16,17 +16,12 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import {
-  FriendRequestBadge,
-  FriendRequestDot,
-  withRequestCount,
-} from "@/components/friend-request-badge";
-import {
   MENU_ROW_CLASS,
   MENU_ROW_IDLE_CLASS,
   SIDEBAR_ROW_CLASS,
   NavLink,
 } from "@/components/nav-link";
-import { PrimaryNavigationIcon } from "@/components/primary-navigation-icon";
+import { PrimaryNavigationLink } from "@/components/primary-navigation-link";
 import { SignOutButton } from "@/components/sign-out-button";
 import { primaryAreaForPath, primaryDestinations } from "@/lib/app-navigation";
 import { productTourPath } from "@/lib/product-tour-navigation";
@@ -84,36 +79,16 @@ export function AppMenuLinks({
             primaryDestinations(account.id)
               .filter((item) => !sidebar || item.id !== "you")
               .map((item) => (
-                <NavLink
-                  {...row}
+                <PrimaryNavigationLink
                   key={item.id}
-                  href={item.href}
-                  isCurrent={current === item.id}
-                  aria-description={item.id === "you" ? account.name : undefined}
-                  aria-label={
-                    item.id === "community" && requestCount > 0
-                      ? withRequestCount(item.label, requestCount)
-                      : undefined
-                  }
-                >
-                  <span key="icon" className="relative shrink-0">
-                    <PrimaryNavigationIcon area={item.id} account={account} />
-                    {item.id === "community" && collapsed && requestCount > 0 && (
-                      <FriendRequestDot className="absolute -top-1 -right-1" />
-                    )}
-                  </span>
-                  <span key="label" className={labelClass}>
-                    {item.label}
-                  </span>
-                  {item.id === "community" && !collapsed && (
-                    <FriendRequestBadge
-                      key="requests"
-                      decorative
-                      count={requestCount}
-                      className="ms-auto"
-                    />
-                  )}
-                </NavLink>
+                  item={item}
+                  account={account}
+                  current={current === item.id}
+                  appearance={styles.appearance}
+                  collapsed={collapsed}
+                  requestCount={requestCount}
+                  onNavigate={onNavigate}
+                />
               ))}
           <NavLink {...row} href="/climbs/new" relatedPaths={["/areas/new"]}>
             <MenuIcon icon={sidebar ? MapPinPlus : Plus} />
@@ -155,15 +130,14 @@ export function AppMenuLinks({
             </Button>
           )}
           {account && sidebar && showPrimary && (
-            <NavLink
-              {...row}
-              href="/account"
-              isCurrent={current === "you"}
-              aria-description={account.name}
-            >
-              <PrimaryNavigationIcon area="you" account={account} />
-              <span className={labelClass}>You</span>
-            </NavLink>
+            <PrimaryNavigationLink
+              item={{ id: "you", label: "You", href: "/account" }}
+              account={account}
+              current={current === "you"}
+              appearance="sidebar"
+              collapsed={collapsed}
+              onNavigate={onNavigate}
+            />
           )}
           {account && sidebar && (
             <SignOutButton compact iconOnly={collapsed} className={styles.button} />

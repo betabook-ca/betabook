@@ -4,6 +4,7 @@ import { buttonVariants } from "@heroui/react";
 import { CirclePlus } from "lucide-react";
 import { useState } from "react";
 
+import { FriendRequestBadge } from "@/components/friend-request-badge";
 import { DemoClimberSearch } from "@/components/product-tours/climber-search-preview";
 import {
   DemoAccount,
@@ -13,20 +14,20 @@ import {
   DemoSends,
 } from "@/components/product-tours/profile-tour-previews";
 import { DemoFeed, DemoFriends } from "@/components/product-tours/social-tour-previews";
+import { TourNavigationFrame } from "@/components/product-tours/tour-navigation-frame";
 import type { ProductTourPageProps } from "@/components/product-tours/types";
-import { cardClass } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/typography";
 import { WorkspaceSection } from "@/components/workspace-shell";
+import type { PrimaryArea } from "@/lib/app-navigation";
 
-const WORKSPACE_SECTIONS = new Set(["Journal", "Sends", "Projects", "Analytics"]);
 /** A visual reference to the app header's entry point, without a demo action. */
 function DemoLog() {
   return (
     <span
       data-tour-target="journal-log"
-      className={`${buttonVariants({ size: "sm" })} w-fit cursor-default gap-2`}
+      className={`${buttonVariants()} h-11 w-fit cursor-default gap-2 px-3 md:px-4`}
     >
-      <CirclePlus aria-hidden className="size-4" />
+      <CirclePlus aria-hidden className="size-5" />
       Log
     </span>
   );
@@ -35,29 +36,48 @@ function DemoLog() {
 export function JournalTourPage({ section, mode, href, steps }: ProductTourPageProps) {
   const isJournal = section === "Journal";
   const inLogbook = isJournal || section === "Sends";
-  const areaSections = inLogbook ? ["Journal", "Sends"] : ["Projects", "Analytics"];
+  const areaSections = inLogbook ? ["Journal", "Sends"] : ["Open Projects", "Analytics"];
   const [friendRequest, setFriendRequest] = useState<"pending" | "accepted" | null>("pending");
-  if (section === "Search") return <DemoClimberSearch feedHref={href("feed")} />;
-  if (section === "Friends")
-    return <DemoFriends incoming={friendRequest} onIncomingChange={setFriendRequest} />;
-  if (section === "Feed") return <DemoFeed />;
-  if (!WORKSPACE_SECTIONS.has(section))
+  const current: PrimaryArea | undefined = inLogbook
+    ? "logbook"
+    : section === "Open Projects" || section === "Analytics"
+      ? "progress"
+      : section === "Friends" || section === "Feed"
+        ? "community"
+        : section === "Search"
+          ? undefined
+          : "you";
+  function content() {
+    if (section === "Search") return <DemoClimberSearch feedHref={href("feed")} />;
+    if (section === "Friends" || section === "Feed")
+      return (
+        <WorkspaceSection
+          title="Community"
+          tabs={[
+            { label: "Feed", href: href("feed"), current: section === "Feed" },
+            {
+              label: "Friends",
+              href: href("friend-requests"),
+              current: section === "Friends",
+              badge: <FriendRequestBadge count={friendRequest === "pending" ? 1 : 0} />,
+            },
+          ]}
+        >
+          {section === "Friends" ? (
+            <DemoFriends incoming={friendRequest} onIncomingChange={setFriendRequest} />
+          ) : (
+            <DemoFeed />
+          )}
+        </WorkspaceSection>
+      );
+    if (current === "you")
+      return (
+        <>
+          <h1 className="sr-only">You</h1>
+          <DemoAccount />
+        </>
+      );
     return (
-      <section
-        aria-label="Alex's Account settings"
-        className={`${cardClass("md")} flex max-w-xl flex-col gap-4`}
-      >
-        <SectionHeading>Privacy</SectionHeading>
-        <DemoAccount />
-      </section>
-    );
-  return (
-    <div className="flex flex-col gap-4">
-      {mode === "full" && (
-        <div className="flex h-14 items-center justify-end">
-          <DemoLog />
-        </div>
-      )}
       <WorkspaceSection
         title={inLogbook ? "Logbook" : "Progress"}
         tabs={steps
@@ -68,7 +88,7 @@ export function JournalTourPage({ section, mode, href, steps }: ProductTourPageP
           )
           .sort((a, b) => areaSections.indexOf(a.section) - areaSections.indexOf(b.section))
           .map((step) => ({
-            label: step.section === "Projects" ? "Open Projects" : step.section,
+            label: step.section,
             href: href(step.id),
             current: section === step.section,
           }))}
@@ -79,7 +99,7 @@ export function JournalTourPage({ section, mode, href, steps }: ProductTourPageP
             <DemoJournal />
           ) : section === "Sends" ? (
             <DemoSends />
-          ) : section === "Projects" ? (
+          ) : section === "Open Projects" ? (
             <DemoProjects />
           ) : (
             <div className="max-w-4xl">
@@ -88,6 +108,16 @@ export function JournalTourPage({ section, mode, href, steps }: ProductTourPageP
           )}
         </section>
       </WorkspaceSection>
-    </div>
+    );
+  }
+  return (
+    <TourNavigationFrame
+      current={current}
+      href={href}
+      requestCount={friendRequest === "pending" ? 1 : 0}
+      logAction={mode === "full" ? <DemoLog /> : undefined}
+    >
+      {content()}
+    </TourNavigationFrame>
   );
 }

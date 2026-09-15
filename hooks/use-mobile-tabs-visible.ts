@@ -23,7 +23,7 @@ function opensKeyboard(target: EventTarget | null) {
 }
 
 /** The on-screen keyboard resizes the page up to the bar, which would cover the field. */
-function useTyping() {
+export function useTyping() {
   const [typing, setTyping] = useState(false);
   useEffect(() => {
     const onFocusIn = (event: FocusEvent) => setTyping(opensKeyboard(event.target));

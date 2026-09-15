@@ -1,12 +1,11 @@
 "use client";
 
 import { clsx } from "clsx";
-import { CircleCheckBig } from "lucide-react";
 
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
 import { EntryActionsMenu } from "@/components/journal/entry-actions-menu";
 import { JournalCompanions } from "@/components/journal/journal-companions";
-import { JournalEntryLayout } from "@/components/journal/journal-entry-layout";
+import { JournalEntryLayout, JournalEntryStatus } from "@/components/journal/journal-entry-layout";
 import { AppLink } from "@/components/ui/app-link";
 import { Grade } from "@/components/ui/grade";
 import type { AreaBreadcrumbs, JournalEntry } from "@/db/queries";
@@ -39,15 +38,10 @@ export function JournalEntryRow({
   filter: JournalFilter;
   areaBreadcrumbs: AreaBreadcrumbs;
 }) {
-  // No pill on training: the row's title already says Training.
-  const status = entry.isAscent ? (
-    <span className="inline-flex items-center gap-1 font-medium text-success-soft-foreground">
-      <CircleCheckBig aria-hidden className="size-4" />
-      <span>Sent</span>
-    </span>
-  ) : entry.kind === "training" ? null : (
-    <span>{entry.sent ? "Repeat" : "Session"}</span>
-  );
+  const status =
+    entry.kind === "training" && !entry.isAscent ? undefined : (
+      <JournalEntryStatus isAscent={entry.isAscent} sent={entry.sent} />
+    );
   const tags =
     entry.tags.length > 0 || (entry.companions?.length ?? 0) > 0 ? (
       <>

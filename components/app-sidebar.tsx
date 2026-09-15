@@ -23,7 +23,7 @@ export function AppSidebar({ children }: { children: ReactNode }) {
   );
 }
 
-/** Hover/focus previews overlay the page; pinning reserves space for the sidebar. */
+/** Supplies live-account navigation to the shared sidebar frame. */
 export function SidebarLayout({
   account,
   requestCount = 0,
@@ -33,24 +33,76 @@ export function SidebarLayout({
   requestCount?: number;
   children: ReactNode;
 }) {
+  return (
+    <SidebarFrame
+      renderNavigation={(collapsed) =>
+        account === undefined ? (
+          <div role="status" aria-label="Loading navigation" className="flex flex-col gap-1">
+            {["logbook", "progress", "community", "add"].map((key) => (
+              <Skeleton key={key} rounded="rounded-lg" className="h-10 w-full" />
+            ))}
+          </div>
+        ) : (
+          <AppMenuLinks
+            account={account}
+            requestCount={requestCount}
+            collapsed={collapsed}
+            surface="sidebar"
+          />
+        )
+      }
+    >
+      {children}
+    </SidebarFrame>
+  );
+}
+
+/** Hover/focus preview and pinning shared by the app and contained tutorial preview. */
+export function SidebarFrame({
+  children,
+  renderNavigation,
+  placement = "viewport",
+  label = "Sidebar",
+  navigationLabel = "Desktop",
+}: {
+  children: ReactNode;
+  renderNavigation: (collapsed: boolean) => ReactNode;
+  placement?: "viewport" | "contained";
+  label?: string;
+  navigationLabel?: string;
+}) {
+  const contained = placement === "contained";
   const [pinned, setPinned] = useState(false);
   const [preview, setPreview] = useState(false);
   const expanded = pinned || preview;
   const navId = useId();
   const toggleLabel = pinned
-    ? "Collapse sidebar"
+    ? `Collapse ${label.toLowerCase()}`
     : preview
-      ? "Keep sidebar expanded"
-      : "Expand sidebar";
+      ? `Keep ${label.toLowerCase()} expanded`
+      : `Expand ${label.toLowerCase()}`;
 
   return (
-    <div className={clsx("flex min-w-0 flex-1 flex-col", pinned ? "md:pl-56" : "md:pl-16")}>
+    <div
+      className={clsx(
+        "flex min-w-0 flex-1 flex-col",
+        contained
+          ? [
+              "relative isolate h-full min-h-0 overflow-hidden",
+              pinned ? "@lg/navigation:pl-56" : "@lg/navigation:pl-16",
+            ]
+          : pinned
+            ? "md:pl-56"
+            : "md:pl-16",
+      )}
+    >
       {/* Hover and bubbled focus reveal navigation; the aside itself is not a control. */}
       {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
       <aside
-        aria-label="Sidebar"
+        aria-label={label}
         className={clsx(
-          "fixed inset-y-0 left-0 z-40 hidden flex-col bg-background motion-safe:transition-[width] motion-safe:duration-150 md:flex",
+          "inset-y-0 left-0 z-40 hidden flex-col bg-background motion-safe:transition-[width] motion-safe:duration-150",
+          contained ? "absolute @lg/navigation:flex" : "fixed md:flex",
           expanded ? "w-56" : "w-16",
           preview && !pinned && "shadow-lg",
         )}
@@ -88,23 +140,10 @@ export function SidebarLayout({
         </div>
         <nav
           id={navId}
-          aria-label="Desktop"
+          aria-label={navigationLabel}
           className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-3 pb-3"
         >
-          {account === undefined ? (
-            <div role="status" aria-label="Loading navigation" className="flex flex-col gap-1">
-              {["logbook", "progress", "community", "add"].map((key) => (
-                <Skeleton key={key} rounded="rounded-lg" className="h-10 w-full" />
-              ))}
-            </div>
-          ) : (
-            <AppMenuLinks
-              account={account}
-              requestCount={requestCount}
-              collapsed={!expanded}
-              surface="sidebar"
-            />
-          )}
+          {renderNavigation(!expanded)}
         </nav>
       </aside>
       {children}

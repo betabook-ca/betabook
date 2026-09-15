@@ -1,9 +1,22 @@
 import { clsx } from "clsx";
+import { CircleCheckBig } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { AppLink } from "@/components/ui/app-link";
 import { ClampedComment } from "@/components/ui/clamped-comment";
 import { formatDate } from "@/lib/format-date";
+
+/** Climbing status; training entries omit the status slot entirely. */
+export function JournalEntryStatus({ isAscent, sent }: { isAscent: boolean; sent: boolean }) {
+  if (isAscent)
+    return (
+      <span className="inline-flex items-center gap-1 font-medium text-success-soft-foreground">
+        <CircleCheckBig aria-hidden className="size-4" />
+        <span>Sent</span>
+      </span>
+    );
+  return <span>{sent ? "Repeat" : "Session"}</span>;
+}
 
 /** Journal prose sits below the entry header, so notes never displace its grade or actions. */
 export function JournalEntryLayout({

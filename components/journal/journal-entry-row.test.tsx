@@ -86,6 +86,7 @@ describe("JournalEntryRow", () => {
     expect(training.props.title).toBe("Training");
     expect(training.props.date).toBe("2026-09-04");
     expect(renderToStaticMarkup(<>{training.props.status}</>)).toBe("");
+    expect(renderToStaticMarkup(training)).not.toContain("·");
   });
 
   it("lets the active tag chip clear its filter", () => {

@@ -1,5 +1,7 @@
 export type PrimaryArea = "logbook" | "progress" | "community" | "you";
 
+export type PrimaryDestination = { id: PrimaryArea; label: string; href: string };
+
 export const AREA_LABELS: Record<PrimaryArea, string> = {
   logbook: "Logbook",
   progress: "Progress",
@@ -7,7 +9,7 @@ export const AREA_LABELS: Record<PrimaryArea, string> = {
   you: "You",
 };
 
-export function primaryDestinations(userId: string) {
+export function primaryDestinations(userId: string): readonly PrimaryDestination[] {
   return [
     { id: "logbook", label: AREA_LABELS.logbook, href: `/users/${userId}/journal` },
     { id: "progress", label: AREA_LABELS.progress, href: `/users/${userId}/goals` },

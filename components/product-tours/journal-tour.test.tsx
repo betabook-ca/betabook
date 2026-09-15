@@ -12,6 +12,7 @@ import {
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn<(href: string) => void>() }),
+  usePathname: () => "/tutorial/journal/journal",
 }));
 vi.mock("next/image", () => ({ default: () => null }));
 vi.mock("next/link", () => ({
@@ -36,7 +37,9 @@ function demo(stepId: string, mode: "full" | "updates") {
       section={step.section}
       mode={navigation.mode}
       steps={steps}
-      href={(id) => productTourPath("journal", { ...navigation, stepId: id })}
+      href={(id, mode = navigation.mode) =>
+        productTourPath("journal", { ...navigation, mode, stepId: id })
+      }
     />,
   );
 }
@@ -99,7 +102,6 @@ it.each(["full", "updates"] as const)("shows discovery on Search in the %s tour"
   expect(html).toContain('data-tour-target="friend-search"');
   expect(html).toContain("Riley Chen");
   expect(html).toContain("Add friend");
-  expect(html).not.toContain("Alex Morgan");
   expect(html).not.toContain('data-tour-target="friend-requests"');
   expect(html).not.toContain('href="/users/');
   expect(html).not.toContain('action="/"');
@@ -107,7 +109,6 @@ it.each(["full", "updates"] as const)("shows discovery on Search in the %s tour"
 
 it("keeps request management on its own Friends page", () => {
   const html = demo("friend-requests", "updates");
-  expect(html).not.toContain("Alex Morgan");
   expect(html).toContain("Sam Taylor");
   expect(html).toContain("Accept");
   expect(html).toContain("Friends");

@@ -20,7 +20,11 @@ Discovery uses a separate Search surface, with the same All / Climbs / Areas / C
 not a profile tab. The lesson starts in Climbers; category changes, search
 submission, sample results, and friend requests stay local. Its View your feed link
 opens the feed lesson while preserving full/update mode and the exit destination.
-Next, Back, and the lesson chooser connect Search with the profile lessons.
+
+Tutorial content uses the app's sort dropdown and direction control, project card and session timeline presentation, journal grades/status, and settings panel framing. The project example loads additional local notes with the standard Load more control. Display-only project components contain no fetches or real links for sample data.
+
+The contained preview uses the same primary navigation links, sidebar interaction frame, mobile tab links, and search control as the app. It adapts to the preview's available width, with Logbook, Progress, Community, and You visible around each lesson. All preview destinations point to tutorial routes; primary area changes open the corresponding full-tour lesson while preserving the exit context. Community exposes Feed/Friends subpage links and the example request count stays consistent across those lessons. The example search control opens the search lesson and does not advertise the real app's global keyboard shortcut. Goals lesson content remains outside this tour. Existing lesson IDs, targets, and versioning are preserved.
+Next, Back, and the lesson chooser connect Search with the workspace lessons.
 The Friends lesson uses the shared section navigation and request badge for its
 Friends / Requests controls. Demo selections use local callbacks, with no URLs
 or writes. Accepting or declining the sample request clears both sample badges;
@@ -37,11 +41,11 @@ sign-out shortcut.
 
 ## Navigation and overlays
 
-The URL owns the current step. `parseProductTourNavigation` applies the same allowlist and duplicate-parameter rules to server and client inputs. Build links with named options, for example `productTourPath(tour.id, { stepId, from: "journal", mode: "updates" })`. `resolveProductTour` owns invitation eligibility, the active steps, and the fallback from an acknowledged update to full replay; use it for both invitations and playback. Invitation copy is selected by `getProductTourInvitationCopy`. Next, Back, profile tabs, the All tutorials menu, refresh, and browser history all resolve through the same step catalog. The persistent route layout loads the feature once and suspends the mobile installation helper while mounted. Each section's local demo state resets when leaving that section.
+The URL owns the current step. `parseProductTourNavigation` applies the same allowlist and duplicate-parameter rules to server and client inputs. Build links with named options, for example `productTourPath(tour.id, { stepId, from: "journal", mode: "updates" })`. `resolveProductTour` owns invitation eligibility, the active steps, and the fallback from an acknowledged update to full replay; use it for both invitations and playback. Invitation copy is selected by `getProductTourInvitationCopy`. Next, Back, profile tabs, the All tutorials menu, refresh, and browser history all resolve through the same step catalog. The persistent route layout loads the feature once and suspends the mobile installation helper while mounted. Individual content controls reset when their preview unmounts; the example friendship state persists across navigation for the duration of the open tour.
 
 The guide and demo are separate, nonmodal regions. The demo scrolls independently and has a tab stop for keyboard scrolling. The step heading receives focus, Escape exits, and the close button is always available. Each step shows its explanation directly. Back, Next, and All tutorials stay outside the guide's scrolling text area.
 
-The frame fits below the app header and responds to changes in the visual viewport. New targets scroll into view with space for nearby results. Expanded controls are revealed with the smallest necessary scroll. The target outline and dimming follow scrolling and are clipped to the demo pane, so they cannot draw over the guide or app navigation. The spotlight does not intercept clicks. Missing or offscreen targets hide the spotlight while the guide stays usable.
+The frame fits below the app header and responds to changes in the visual viewport. Preview navigation remains outside the lesson's inner scroll region. New targets scroll into view with space for nearby results. Expanded controls are revealed with the smallest necessary scroll. The target outline and dimming follow the target's scroll region and stay clipped inside it, so they cannot draw over the guide or app navigation. The spotlight does not intercept clicks. Missing or offscreen targets hide the spotlight while the guide stays usable.
 
 Exit returns to Account for Account replay and otherwise to the user's Journal. These destinations are derived from the authenticated account, not arbitrary return URLs. Finishing saves completion and opens the user's Journal. The route is authenticated, rejects unknown tour/step IDs, and is not indexable.
 
@@ -68,5 +72,5 @@ Update links use `?mode=updates`. The authenticated user's saved version selects
 - Check invitations, Account replay, Exit, Finish, direct links, refresh, and browser Back/Forward.
 - Check each target at desktop and phone widths in both themes, including scroll, keyboard focus, Escape, and short viewports. The guide and demo must not overlap, including when the step chooser or a demo disclosure is open.
 - Exercise filters, sorting, project disclosure, chart explanation, and privacy toggles. Check that no sample data or settings reach the real account.
-- Test first-time, completed, dismissed, skipped-version, revised-step, and single-step update cases. Check that update navigation stays within its subset and Account replay includes every lesson.
+- Test first-time, completed, dismissed, skipped-version, revised-step, and single-step update cases. Check that guide and step navigation stay within the update subset, while primary preview links open full-tour lessons with the same exit context and Account replay includes every lesson.
 - Test step/route validation and positioning logic. Keep the existing persistence tests. Run `pnpm check` and the Cloudflare production build before updating the PR.
