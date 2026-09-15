@@ -39,7 +39,10 @@ export function SectionNavigation({
           const current = tab.current;
           const className =
             appearance === "pills"
-              ? choicePillClass(current, "bg-foreground text-background")
+              ? clsx(
+                  choicePillClass(current, "bg-foreground text-background"),
+                  "inline-flex items-center gap-1.5",
+                )
               : appearance === "workspace"
                 ? clsx(
                     "relative inline-flex min-h-11 cursor-pointer items-center gap-1.5 py-2 text-xl font-semibold no-underline transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:content-[''] focus-visible:status-focused max-[360px]:text-lg",

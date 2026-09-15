@@ -1,7 +1,7 @@
 import { expect, test, openStory } from "./story";
 
 test(
-  "feed stays centered in one reading column and notes use the width below navigation",
+  "feed fills the page content width and notes use the width below navigation",
   { tag: "@layout" },
   async ({ page }, testInfo) => {
     await openStory(page, testInfo, "components-journal-feed-timeline--activity-feed");
@@ -10,8 +10,8 @@ test(
     const first = await cards.first().boundingBox();
     const second = await cards.nth(1).boundingBox();
     if (!first || !second) throw new Error("Missing feed cards");
-    expect(first.width).toBeLessThanOrEqual(672);
-    expect(first.x).toBeCloseTo(((page.viewportSize()?.width ?? 0) - first.width) / 2, 0);
+    expect(first.width).toBe((page.viewportSize()?.width ?? 0) - 32);
+    expect(first.x).toBe(16);
     expect(second.x).toBe(first.x);
     expect(second.y).toBeGreaterThanOrEqual(first.y + first.height);
     const note = page.getByText("Painfully close! Fun session watching Jordan send second go.", {

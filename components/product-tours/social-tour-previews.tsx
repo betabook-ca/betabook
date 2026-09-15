@@ -135,10 +135,7 @@ export function DemoFeed() {
     })),
   };
   return (
-    <section
-      aria-label="Friends' activity"
-      className="mx-auto flex w-full max-w-2xl flex-col gap-4"
-    >
+    <section aria-label="Friends' activity" className="flex w-full flex-col gap-4">
       <SectionHeading className="sr-only">Feed</SectionHeading>
       <div data-tour-target="friend-feed" className="flex flex-col gap-4">
         <div role="group" aria-label="Feed activity" className="flex gap-2">

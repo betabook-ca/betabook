@@ -1,3 +1,4 @@
+import { Chip } from "@heroui/react";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
 
@@ -36,6 +37,25 @@ type Story = StoryObj<typeof meta>;
 
 export const Links: Story = {};
 export const Workspace: Story = { args: { appearance: "workspace" } };
+export const BadgedPills: Story = {
+  args: {
+    label: "Friend lists",
+    appearance: "pills",
+    tabs: [
+      { href: "/friends", label: "Friends", current: true },
+      {
+        href: "/friends?view=requests",
+        label: "Requests",
+        current: false,
+        badge: (
+          <Chip size="sm" className="bg-accent text-accent-foreground">
+            2
+          </Chip>
+        ),
+      },
+    ],
+  },
+};
 export const Choices: Story = {
   args: { label: "Goal views", appearance: "pills" },
   render: function Choices(args) {

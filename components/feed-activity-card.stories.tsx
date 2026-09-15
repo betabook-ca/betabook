@@ -13,14 +13,13 @@ if (!trainingDay) throw new Error("Expected training feed fixture");
 const meta = {
   title: "Components/Journal/Feed activity card",
   component: FeedActivityCard,
+  parameters: { fullWidth: true },
   args: { entries: group.entries, view: "all" },
   decorators: [
     (Story) => (
-      <div className="mx-auto max-w-2xl">
-        <StoryPage title="Feed activity">
-          <Story />
-        </StoryPage>
-      </div>
+      <StoryPage title="Feed activity">
+        <Story />
+      </StoryPage>
     ),
   ],
 } satisfies Meta<typeof FeedActivityCard>;

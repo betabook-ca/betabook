@@ -29,31 +29,29 @@ export default async function FeedPage({
   ]);
   return (
     <ViewerBoundary viewerId={session.user.id}>
-      <div className="w-full max-w-2xl">
-        <WorkspaceShell area="community" userId={session.user.id}>
-          <FeedList
-            viewerId={session.user.id}
-            key={`${session.user.id}:${view}`}
-            initialPage={page}
-            view={view}
-            hasFriends={friends.friends.length > 0}
-            toolbar={
-              <nav key="feed-activity" aria-label="Feed activity" className="flex gap-2">
-                {(["all", "sends"] as const).map((value) => (
-                  <AppLink
-                    key={value}
-                    href={`/feed?view=${value}`}
-                    className={choicePillClass(value === view, "bg-foreground text-background")}
-                    aria-current={value === view ? "page" : undefined}
-                  >
-                    {value === "all" ? "All activity" : "Sends"}
-                  </AppLink>
-                ))}
-              </nav>
-            }
-          />
-        </WorkspaceShell>
-      </div>
+      <WorkspaceShell area="community" userId={session.user.id}>
+        <FeedList
+          viewerId={session.user.id}
+          key={`${session.user.id}:${view}`}
+          initialPage={page}
+          view={view}
+          hasFriends={friends.friends.length > 0}
+          toolbar={
+            <nav key="feed-activity" aria-label="Feed activity" className="flex gap-2">
+              {(["all", "sends"] as const).map((value) => (
+                <AppLink
+                  key={value}
+                  href={`/feed?view=${value}`}
+                  className={choicePillClass(value === view, "bg-foreground text-background")}
+                  aria-current={value === view ? "page" : undefined}
+                >
+                  {value === "all" ? "All activity" : "Sends"}
+                </AppLink>
+              ))}
+            </nav>
+          }
+        />
+      </WorkspaceShell>
     </ViewerBoundary>
   );
 }
