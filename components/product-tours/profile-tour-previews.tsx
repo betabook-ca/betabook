@@ -6,6 +6,7 @@ import { useState } from "react";
 import { StatTiles } from "@/components/analytics-stat-tiles";
 import { AscentStyle } from "@/components/ascent-style";
 import { FilterInput } from "@/components/filters/filter-input";
+import { JournalEntryLayout } from "@/components/journal/journal-entry-layout";
 import { PrivacyFields } from "@/components/privacy-fields";
 import { ProgressionChart } from "@/components/progression-chart";
 import { SendGradeCell } from "@/components/send-grade-cell";
@@ -107,11 +108,12 @@ export function DemoJournal() {
       </p>
       <div className="divide-y divide-border">
         {visible.map((entry) => (
-          <ListRow
+          <JournalEntryLayout
             key={entry.id}
             title={entry.climb?.name ?? "Training"}
-            subtitle={`${entry.date} · ${entry.outcome}`}
-            meta={entry.climb?.grade}
+            date={entry.date}
+            status={entry.kind === "training" ? undefined : entry.outcome}
+            grade={entry.climb?.grade}
             comment={entry.note}
             tags={
               entry.tags.length > 0

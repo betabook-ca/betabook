@@ -2,6 +2,8 @@ import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The development badge overlaps the app's mobile tab bar and intercepts taps.
+  devIndicators: false,
   images: {
     // Better Auth stores Google's OpenID `picture` URL on the user row.
     // Keep the optimizer allowlist pinned to that provider rather than

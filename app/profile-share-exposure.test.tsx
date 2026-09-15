@@ -7,8 +7,7 @@ import AccountPage from "@/app/account/page";
 import { ProfileHeader } from "@/app/users/[id]/profile-shell";
 import { AccountSettings } from "@/components/account-settings";
 import { FriendshipButton } from "@/components/friendship-button";
-import { ProfileHeading } from "@/components/profile-heading";
-import { ShareProfileButton } from "@/components/share-profile-button";
+import { WorkspaceShell } from "@/components/workspace-shell";
 import { createDb } from "@/db/client";
 import { getProfileShareToken } from "@/db/queries";
 import { user } from "@/db/schema";
@@ -66,28 +65,37 @@ async function accountPageJson() {
   return JSON.stringify(AccountSettings(page.props));
 }
 
-it("gives the share link to the profile's owner and no other member", async () => {
+it("keeps share credentials out of the workspace and visitor profile", async () => {
   const token = await currentToken();
 
-  expect(await profileHeaderFor("owner")).toContain(
-    `"url":"https://betabook.test/users/owner?share=${token}"`,
-  );
+  expect(await profileHeaderFor("owner")).not.toContain(token);
   const visitorView = await profileHeaderFor("member");
   expect(visitorView).toContain("Share Owner");
   expect(visitorView).not.toContain(token);
 });
 
-it("puts the owner's share link beside their name", async () => {
-  const heading = await profileHeadingFor("owner");
-
-  expect(heading.type).toBe(ProfileHeading);
-  expect((heading.props.nameAction as ReactElement).type).toBe(ShareProfileButton);
-});
+it.each(["logbook", "progress"] as const)(
+  "renders the owner's %s workspace without a profile header",
+  async (workspace) => {
+    const owner = (await db.select().from(user).where(eq(user.id, "owner")).get())!;
+    const page = (await ProfileHeader({
+      user: owner,
+      viewerId: "owner",
+      workspace,
+      children: "Workspace content",
+    })) as ReactElement<ComponentProps<typeof WorkspaceShell>>;
+    expect(page.type).toBe(WorkspaceShell);
+    expect(page.props.area).toBe(workspace);
+    expect(page.props.userId).toBe("owner");
+    expect(page.props.children).toBe("Workspace content");
+  },
+);
 
 it("puts the friendship control beside another member's name", async () => {
   const heading = await profileHeadingFor("member");
 
   expect((heading.props.nameAction as ReactElement).type).toBe(FriendshipButton);
+  expect(heading.props.tools).toBeFalsy();
 });
 
 it("shows the owner their link on the account page", async () => {
@@ -104,7 +112,7 @@ it("sends no link to a private owner's profile or account page", async () => {
 
   const header = await profileHeaderFor("owner");
   const account = await accountPageJson();
-  expect(header).toContain("Share Owner");
+  expect(header).toContain('"userId":"owner"');
   expect(account).toContain('"url":null');
   for (const page of [header, account]) {
     expect(page).not.toContain(token);

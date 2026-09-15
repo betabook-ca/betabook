@@ -3,9 +3,9 @@ import { useState } from "react";
 
 import { ProfileHeading } from "@/components/profile-heading";
 import { ProfileLayout } from "@/components/profile-layout";
-import { ProfileSectionNav } from "@/components/profile-tabs";
 import { Grade } from "@/components/ui/grade";
 import { ListRow } from "@/components/ui/list-row";
+import { SectionNavigation } from "@/components/ui/section-navigation";
 import { STORY_HARDEST } from "@/stories/fixtures/climber-hardest";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
@@ -28,8 +28,10 @@ function ProfileExample() {
     <ProfileLayout
       heading={<ProfileHeading name="Alexandra Rivera" hardest={STORY_HARDEST} />}
       tabs={
-        <ProfileSectionNav
-          tabs={["Journal", "Sends", "Projects", "Analytics"].map((label) => ({
+        <SectionNavigation
+          label="Profile sections"
+          tabs={["Journal", "Sends", "Analytics"].map((label) => ({
+            id: label,
             label,
             current: label === tab,
             onSelect: () => setTab(label),

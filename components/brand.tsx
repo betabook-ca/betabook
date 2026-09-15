@@ -1,6 +1,8 @@
 import { clsx } from "clsx";
 import Image from "next/image";
 
+import smallDarkIcon from "@/assets/branding/betabook-icon-small-dark.svg";
+import smallLightIcon from "@/assets/branding/betabook-icon-small-light.svg";
 import { AppLink } from "@/components/ui/app-link";
 import { SITE_LOCKUP_ALT, SITE_NAME } from "@/lib/site";
 
@@ -9,10 +11,12 @@ export function Brand({
   variant = "icon",
   className,
   decorative = false,
+  compact = false,
 }: {
   variant?: "icon" | "wordmark" | "lockup";
   className?: string;
   decorative?: boolean;
+  compact?: boolean;
 }) {
   const [width, height] =
     variant === "lockup" ? [500, 320] : variant === "wordmark" ? [320, 80] : [48, 48];
@@ -27,7 +31,13 @@ export function Brand({
       {(["light", "dark"] as const).map((theme) => (
         <Image
           key={theme}
-          src={`/branding/betabook-${variant}-${theme}.svg`}
+          src={
+            variant === "icon" && compact
+              ? theme === "light"
+                ? smallLightIcon
+                : smallDarkIcon
+              : `/branding/betabook-${variant}-${theme}.svg`
+          }
           alt=""
           width={width}
           height={height}
@@ -49,8 +59,8 @@ export function BrandHomeLink() {
       aria-label="Betabook home"
       className="flex h-12 shrink-0 items-center gap-2 no-underline"
     >
-      <Brand decorative className="size-12" />
-      <Brand variant="wordmark" decorative className="hidden w-28 sm:block" />
+      <Brand decorative compact className="size-6" />
+      <Brand variant="wordmark" decorative className="w-24" />
     </AppLink>
   );
 }

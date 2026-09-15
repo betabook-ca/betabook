@@ -18,7 +18,7 @@ export function ProfileHeading({
   name: string;
   image?: string | null;
   hardest: HardestSend[];
-  /** Kept on the name's row: the owner's share link or a visitor's friendship control. */
+  /** Keeps the visitor's friendship control beside the climber's name. */
   nameAction?: ReactNode;
   /** Shown under the badges, e.g. why a section is missing. */
   note?: ReactNode;

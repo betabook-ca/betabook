@@ -73,21 +73,22 @@ it.each(["find-climbers", "friend-requests", "feed", "account"])(
 it("retains the original Log lesson in full replay", () => {
   const html = demo("journal", "full");
   expect(html).toContain('data-tour-target="journal-log"');
-  expect(html).toContain("Alex Morgan");
+  expect(html).toContain("Logbook");
   expect(html).toContain('data-tour-target="journal-filters"');
 });
 
-it("shows the sample Log in a header row above Alex's profile, as in the app", () => {
+it("shows the sample Log above the Logbook workspace", () => {
   const html = demo("journal", "full");
   const log = html.indexOf('data-tour-target="journal-log"');
   expect(log).toBeGreaterThan(-1);
-  expect(log).toBeLessThan(html.indexOf('aria-label="Climber summary"'));
+  expect(log).toBeLessThan(html.indexOf('aria-label="Logbook workspace"'));
 });
 
-it("tabs only Alex's logbook sections on a profile lesson", () => {
+it("keeps Journal and Sends together without Progress tabs", () => {
   const html = demo("sends", "full");
-  const tabs = html.slice(html.indexOf('aria-label="Profile sections"'));
-  expect(tabs).toMatch(/>Journal<.*>Sends<.*>Projects<.*>Analytics</s);
+  const tabs = html.slice(html.indexOf('aria-label="Logbook sections"'));
+  expect(tabs).toMatch(/>Journal<.*>Sends</s);
+  expect(tabs).not.toMatch(/>Open Projects<|>Analytics</);
   expect(tabs).not.toMatch(/>Feed<|>Friends<|>Account settings</);
 });
 

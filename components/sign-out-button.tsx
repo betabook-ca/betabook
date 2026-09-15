@@ -11,8 +11,9 @@ import { authClient } from "@/lib/auth-client";
 export function SignOutButton({
   onSignOut,
   compact = false,
+  iconOnly = false,
   className = "gap-2",
-}: { onSignOut?: () => void; compact?: boolean; className?: string } = {}) {
+}: { onSignOut?: () => void; compact?: boolean; iconOnly?: boolean; className?: string } = {}) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,8 +46,10 @@ export function SignOutButton({
         onPress={handleSignOut}
         isDisabled={pending}
       >
-        <LogOut className="size-4" />
-        Sign out
+        <span className="flex size-6 shrink-0 items-center justify-center">
+          <LogOut aria-hidden className="size-5" />
+        </span>
+        <span className={iconOnly ? "sr-only" : undefined}>Sign out</span>
       </Button>
       {error && <InlineAlert>{error}</InlineAlert>}
     </div>

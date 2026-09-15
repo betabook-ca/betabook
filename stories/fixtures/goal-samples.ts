@@ -107,7 +107,6 @@ export const goalStoryPeriods: GoalProgress[] = [
 ];
 export const goalPanelStoryArgs = {
   ownerId: "story-goals",
-  isOwner: true,
   today: "2026-09-11",
   timezone: "UTC",
   initialActive: summarizeGoalPeriods(goalStoryPeriods, "active", 0, goalStoryNow),

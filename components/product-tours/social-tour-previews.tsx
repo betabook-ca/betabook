@@ -5,8 +5,8 @@ import { useState } from "react";
 import { FeedTimeline } from "@/components/feed-timeline";
 import { FriendRequestBadge } from "@/components/friend-request-badge";
 import { FriendshipActionButton } from "@/components/friendship-action-button";
-import { ProfileSectionNav } from "@/components/profile-tabs";
 import { choicePillClass } from "@/components/ui/choice-pill";
+import { SectionNavigation } from "@/components/ui/section-navigation";
 import { SectionHeading } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import type { FeedDay } from "@/db/queries/feed";
@@ -31,15 +31,18 @@ export function DemoFriends({
         className="flex flex-col gap-3"
       >
         <SectionHeading>Friends</SectionHeading>
-        <ProfileSectionNav
+        <SectionNavigation
           label="Friend lists"
+          appearance="pills"
           tabs={[
             {
+              id: "friends",
               label: "Friends",
               current: view === "friends",
               onSelect: () => setView("friends"),
             },
             {
+              id: "requests",
               label: "Requests",
               current: view === "requests",
               onSelect: () => setView("requests"),

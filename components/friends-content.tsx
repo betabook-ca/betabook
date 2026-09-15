@@ -13,18 +13,20 @@ export function FriendsContent({
   page,
   suggestions,
   fetcher,
+  embedded = false,
 }: {
   userId: string;
   view: "friends" | "requests";
   page: FriendsPage;
   suggestions: SuggestedClimberRow[] | null;
   fetcher?: SearchFetcher;
+  embedded?: boolean;
 }) {
   const requestsOnly = view === "requests";
   return (
     <div className="flex flex-col gap-6">
       <section aria-label="Friends" className="flex w-full min-w-0 flex-col gap-5">
-        <PageTitle>Friends</PageTitle>
+        {!embedded && <PageTitle>Friends</PageTitle>}
         <FriendTabs view={view} userId={userId} />
         <p className="max-w-3xl text-sm text-muted">
           Only you can see your friend list. Your friends may be suggested to one another. You can

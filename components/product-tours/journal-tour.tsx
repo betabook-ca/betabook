@@ -14,19 +14,11 @@ import {
 } from "@/components/product-tours/profile-tour-previews";
 import { DemoFeed, DemoFriends } from "@/components/product-tours/social-tour-previews";
 import type { ProductTourPageProps } from "@/components/product-tours/types";
-import { ProfileHeading } from "@/components/profile-heading";
-import { ProfileLayout } from "@/components/profile-layout";
-import { ProfileSectionNav } from "@/components/profile-tabs";
 import { cardClass } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/typography";
-import type { HardestSend } from "@/db/queries/climber-overview";
-import { TOUR_DEMO_ANALYTICS, TOUR_DEMO_CLIMBER } from "@/lib/product-tour-demo";
+import { WorkspaceSection } from "@/components/workspace-shell";
 
-const PROFILE_SECTIONS = ["Journal", "Sends", "Projects", "Analytics"];
-const DEMO_HARDEST: HardestSend[] = [
-  { type: "boulder", grade: TOUR_DEMO_ANALYTICS.hardest[0].label },
-];
-
+const WORKSPACE_SECTIONS = new Set(["Journal", "Sends", "Projects", "Analytics"]);
 /** A visual reference to the app header's entry point, without a demo action. */
 function DemoLog() {
   return (
@@ -42,12 +34,14 @@ function DemoLog() {
 
 export function JournalTourPage({ section, mode, href, steps }: ProductTourPageProps) {
   const isJournal = section === "Journal";
+  const inLogbook = isJournal || section === "Sends";
+  const areaSections = inLogbook ? ["Journal", "Sends"] : ["Projects", "Analytics"];
   const [friendRequest, setFriendRequest] = useState<"pending" | "accepted" | null>("pending");
   if (section === "Search") return <DemoClimberSearch feedHref={href("feed")} />;
   if (section === "Friends")
     return <DemoFriends incoming={friendRequest} onIncomingChange={setFriendRequest} />;
   if (section === "Feed") return <DemoFeed />;
-  if (!PROFILE_SECTIONS.includes(section))
+  if (!WORKSPACE_SECTIONS.has(section))
     return (
       <section
         aria-label="Alex's Account settings"
@@ -58,32 +52,26 @@ export function JournalTourPage({ section, mode, href, steps }: ProductTourPageP
       </section>
     );
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       {mode === "full" && (
-        <div className="flex justify-end border-b border-separator pb-3">
+        <div className="flex h-14 items-center justify-end">
           <DemoLog />
         </div>
       )}
-      <ProfileLayout
-        heading={<ProfileHeading name={TOUR_DEMO_CLIMBER.name} hardest={DEMO_HARDEST} />}
-        tabs={
-          <ProfileSectionNav
-            tabs={steps
-              .filter(
-                (step, index) =>
-                  PROFILE_SECTIONS.includes(step.section) &&
-                  steps.findIndex((entry) => entry.section === step.section) === index,
-              )
-              .sort(
-                (a, b) => PROFILE_SECTIONS.indexOf(a.section) - PROFILE_SECTIONS.indexOf(b.section),
-              )
-              .map((step) => ({
-                label: step.section,
-                href: href(step.id),
-                current: section === step.section,
-              }))}
-          />
-        }
+      <WorkspaceSection
+        title={inLogbook ? "Logbook" : "Progress"}
+        tabs={steps
+          .filter(
+            (step, index) =>
+              areaSections.includes(step.section) &&
+              steps.findIndex((entry) => entry.section === step.section) === index,
+          )
+          .sort((a, b) => areaSections.indexOf(a.section) - areaSections.indexOf(b.section))
+          .map((step) => ({
+            label: step.section === "Projects" ? "Open Projects" : step.section,
+            href: href(step.id),
+            current: section === step.section,
+          }))}
       >
         <section aria-label={`Alex's ${section}`} className="flex min-w-0 flex-col gap-3">
           <SectionHeading className="sr-only">{section}</SectionHeading>
@@ -99,7 +87,7 @@ export function JournalTourPage({ section, mode, href, steps }: ProductTourPageP
             </div>
           )}
         </section>
-      </ProfileLayout>
+      </WorkspaceSection>
     </div>
   );
 }

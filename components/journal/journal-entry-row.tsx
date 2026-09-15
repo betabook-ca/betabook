@@ -3,16 +3,16 @@
 import { clsx } from "clsx";
 import { CircleCheckBig } from "lucide-react";
 
-import { ClimbLogRow } from "@/components/climb-log-row";
+import { AreaBreadcrumb } from "@/components/area-breadcrumb";
 import { EntryActionsMenu } from "@/components/journal/entry-actions-menu";
 import { JournalCompanions } from "@/components/journal/journal-companions";
+import { JournalEntryLayout } from "@/components/journal/journal-entry-layout";
 import { AppLink } from "@/components/ui/app-link";
 import { Grade } from "@/components/ui/grade";
-import { ListRow } from "@/components/ui/list-row";
 import type { AreaBreadcrumbs, JournalEntry } from "@/db/queries";
 import { journalFilterToSearchParams, type JournalFilter } from "@/lib/filters/journal-filter";
-import { formatDate } from "@/lib/format-date";
 import { formatGrade } from "@/lib/grades";
+import { climbHref } from "@/lib/slug";
 
 function tagHref(userId: string, filter: JournalFilter, tag: string): string {
   const params = journalFilterToSearchParams({
@@ -41,14 +41,12 @@ export function JournalEntryRow({
 }) {
   // No pill on training: the row's title already says Training.
   const status = entry.isAscent ? (
-    <span className="inline-flex items-center gap-1 font-semibold text-success-soft-foreground">
+    <span className="inline-flex items-center gap-1 font-medium text-success-soft-foreground">
       <CircleCheckBig aria-hidden className="size-4" />
       <span>Sent</span>
     </span>
   ) : entry.kind === "training" ? null : (
-    <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted">
-      {entry.sent ? "Repeat" : "Session"}
-    </span>
+    <span>{entry.sent ? "Repeat" : "Session"}</span>
   );
   const tags =
     entry.tags.length > 0 || (entry.companions?.length ?? 0) > 0 ? (
@@ -83,15 +81,21 @@ export function JournalEntryRow({
     entry.areaName != null
   ) {
     return (
-      <ClimbLogRow
-        climb={{
-          id: entry.climbId,
-          name: entry.climbName,
-          areaId: entry.areaId,
-          areaName: entry.areaName,
-        }}
-        areaBreadcrumbs={areaBreadcrumbs}
-        grade={<Grade>{formatGrade(entry.climbType, entry.climbGrade)}</Grade>}
+      <JournalEntryLayout
+        title={entry.climbName}
+        href={climbHref(entry.climbId, entry.climbName)}
+        location={
+          <AreaBreadcrumb
+            areaId={entry.areaId}
+            areaName={entry.areaName}
+            ancestors={areaBreadcrumbs[entry.areaId] ?? []}
+          />
+        }
+        grade={
+          entry.climbGrade != null ? (
+            <Grade>{formatGrade(entry.climbType, entry.climbGrade)}</Grade>
+          ) : undefined
+        }
         status={status}
         date={entry.entryDate}
         tags={tags}
@@ -102,17 +106,11 @@ export function JournalEntryRow({
   }
 
   return (
-    <ListRow
+    <JournalEntryLayout
       title={entry.climbName ?? (entry.kind === "training" ? "Training" : "Unknown climb")}
       tags={tags}
-      trailing={
-        <div className="flex flex-col items-end gap-1 text-sm">
-          {status}
-          <time dateTime={entry.entryDate} className="text-xs whitespace-nowrap text-muted">
-            {formatDate(entry.entryDate)}
-          </time>
-        </div>
-      }
+      status={status}
+      date={entry.entryDate}
       comment={entry.body}
       actions={actions}
     />

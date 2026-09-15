@@ -1,23 +1,7 @@
 import { expect, test, openStory } from "./story";
 
-test("collapsed goal panel has equal top and bottom padding", async ({ page }, info) => {
-  await openStory(page, info, "components-goals-goal-panel--read-only");
-  const panel = page.locator('[data-slot="disclosure"]').first();
-  const trigger = panel.getByRole("button", { name: /^Goals/ });
-  await trigger.click();
-  await expect(trigger).toHaveAttribute("aria-expanded", "false");
-  await expect
-    .poll(async () => {
-      const outer = await panel.boundingBox();
-      const inner = await trigger.boundingBox();
-      if (!outer || !inner) throw new Error("Expected visible goal header");
-      return Math.abs(inner.y - outer.y - (outer.y + outer.height - inner.y - inner.height));
-    })
-    .toBeLessThanOrEqual(1);
-});
-
 test("goal progress track remains visible in dark mode", async ({ page }, info) => {
-  await openStory(page, info, "components-goals-goal-panel--read-only");
+  await openStory(page, info, "components-goals-goal-panel--active");
   if (info.project.name.endsWith("dark")) {
     await expect(page.getByRole("progressbar")).toHaveCSS("background-color", "rgb(255, 255, 255)");
   } else {
@@ -25,29 +9,29 @@ test("goal progress track remains visible in dark mode", async ({ page }, info) 
   }
 });
 
-test("goal rows begin directly below the tabs without extra first-row padding", async ({
+test("goal rows begin directly below the toolbar without extra first-row padding", async ({
   page,
 }, info) => {
-  await openStory(page, info, "components-goals-goal-panel--read-only");
+  await openStory(page, info, "components-goals-goal-panel--active");
   const navigation = page.getByRole("navigation", { name: "Goal views" });
   for (const tab of await navigation.getByRole("button").all()) {
     await tab.hover();
     await expect(tab).toHaveCSS("cursor", "pointer");
   }
-  const nav = await navigation.boundingBox();
+  const toolbar = await navigation.locator("../..").boundingBox();
   const row = await page.locator(".divide-y > div").first().boundingBox();
-  if (!nav || !row) throw new Error("Expected goals navigation and first row");
-  expect(Math.abs(row.y - nav.y - nav.height)).toBeLessThanOrEqual(1);
+  if (!toolbar || !row) throw new Error("Expected goals toolbar and first row");
+  expect(Math.abs(row.y - toolbar.y - toolbar.height)).toBeLessThanOrEqual(1);
 });
 
 test("goal heading stays above the surface and Set goal is inside it", async ({ page }, info) => {
   await openStory(page, info, "components-goals-goal-panel--active");
-  const trigger = page.getByRole("button", { name: /^My goals/ });
+  const heading = page.getByRole("heading", { name: "My goals", exact: true });
   const action = page.getByRole("button", { name: "Set goal" });
   const content = page.getByText("Train 8 times");
   const tabs = page.getByRole("navigation", { name: "Goal views" });
   const tabsBox = await tabs.boundingBox();
-  const headerBox = await trigger.boundingBox();
+  const headerBox = await heading.boundingBox();
   const actionBox = await action.boundingBox();
   const contentBox = await content.boundingBox();
   if (!headerBox || !actionBox || !contentBox || !tabsBox) throw new Error("Expected goal section");
@@ -58,10 +42,7 @@ test("goal heading stays above the surface and Set goal is inside it", async ({ 
   expect(actionBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height);
   expect(contentBox.y).toBeGreaterThan(headerBox.y + headerBox.height);
   expect(contentBox.y).toBeGreaterThan(actionBox.y + actionBox.height);
-  await expect(trigger).toHaveCSS("font-size", "12px");
-  await trigger.click();
-  await expect(content).not.toBeVisible();
-  await expect(action).not.toBeVisible();
+  await expect(heading).toHaveCSS("font-size", "12px");
 });
 
 test("a cross-year goal range wraps below its title on mobile without overlap", async ({

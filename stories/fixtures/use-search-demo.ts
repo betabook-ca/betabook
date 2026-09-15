@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import type { SearchCategory, SearchKind, SearchSection } from "@/components/search/search-types";
 import type { ClimbRefinements } from "@/lib/filters/climb-refinements";
-import { DEFAULT_CLIMB_REFINEMENTS } from "@/lib/filters/climb-refinements";
+import { DEFAULT_CLIMB_REFINEMENTS } from "@/stories/fixtures/climb-refinements";
 
 import { SAMPLE_AREAS, CATALOG_FIXTURES } from "./catalog-data";
 

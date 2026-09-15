@@ -104,10 +104,10 @@ only accepted friends whose profiles are visible to members. Select **Friends** 
 when testing shared access to the development account's journal. Friend requests
 can be managed independently of the journal audience.
 
-To check request badges, open **Friends → Requests** as dev. The Friends and
-Requests tabs should each show **2**, excluding dev's outgoing request. Accepting
-one incoming request and declining the other should change both badges to **1**,
-then hide them. The mobile menu dot should also disappear. `climber5@example.com`
+To check request badges, open **Community → Friends → Requests** as dev. Community,
+Friends, and Requests should each show **2**, excluding dev's outgoing request. Accepting
+one incoming request and declining the other should change the badges to **1**,
+then hide them. `climber5@example.com`
 has no badge. Counts load after the page renders and refresh immediately after
 handling a request. Navigation and returning to the app check at most once per
 minute; an idle tab does not poll. Run `pnpm seed --social` to restore

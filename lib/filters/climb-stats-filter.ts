@@ -4,16 +4,8 @@ import { toArray } from "@/lib/url-params";
  * (see lib/sends.ts), so no climb's avg_rating can exceed it. */
 export const MAX_RATING = 5;
 
-/** Options for every rating dropdown in the app (the min/max rating-range
- * bounds on climb search and the area page, and the user-sends min-rating
- * select) — the selected index IS the rating value, with 0 rendered as
- * "Any": a bound of 0 means "no bound on this side", not "rating 0"
- * (ratings run 1..MAX_RATING). One list for every call site so the
- * sentinel's meaning can't drift between them again. */
-export const RATING_OPTIONS = ["Any", "1", "2", "3", "4", "5"];
-
 /** [min, max] avg-rating bounds. 0 on either side is the "Any" sentinel
- * (that side is unbounded — see RATING_OPTIONS); a max of MAX_RATING is
+ * (that side is unbounded); a max of MAX_RATING is
  * also unbounded, since no average rating can exceed it. Legacy zero bounds display as the full 1–5 range in the shared rating control. */
 export const DEFAULT_RATING_RANGE: [number, number] = [0, 0];
 

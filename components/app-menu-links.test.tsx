@@ -28,33 +28,53 @@ beforeEach(() => {
   state.pathname = "/";
 });
 
-it("leads with the climber's profile, then Feed, Friends and Add climb/area", () => {
+it("provides primary destinations in the mobile fallback menu", () => {
   const html = renderToStaticMarkup(<AppMenuLinks account={owner} />);
 
-  expect(hrefs(html).slice(0, 4)).toEqual(["/users/owner", "/feed", "/friends", "/climbs/new"]);
-  expect(link(html, "/users/owner")).toContain("Alex Morgan");
-  expect(link(html, "/climbs/new")).toContain("Add climb/area");
+  expect(hrefs(html).slice(0, 4)).toEqual([
+    "/users/owner/journal",
+    "/users/owner/goals",
+    "/feed",
+    "/account",
+  ]);
+  expect(link(html, "/account")).toContain("Alex Morgan");
+  expect(link(html, "/climbs/new")).toContain("Add climb or area");
   expect(hrefs(html)).toContain("/account");
-  for (const href of ["/about", "/costs", "/contact", "/terms"]) {
-    expect(hrefs(html)).not.toContain(href);
-  }
+  expect(hrefs(html).filter((href) => href === "/account")).toHaveLength(1);
   expect(hrefs(html).find((href) => href.startsWith("/tutorial/journal"))).toBeDefined();
-  expect(html).not.toContain("Theme");
-  expect(html).toContain("Sign out");
+  expect(html).not.toContain("Sign out");
   expect(hrefs(html)).not.toContain("/sign-in");
 });
 
-it("names pending friend requests on Friends", () => {
+it("names pending friend requests on Community", () => {
   const html = renderToStaticMarkup(<AppMenuLinks account={owner} requestCount={2} />);
 
-  expect(link(html, "/friends")).toContain('aria-label="Friends, 2 pending friend requests"');
-  expect(link(html, "/friends")).toMatch(/>2</);
+  expect(link(html, "/feed")).toContain('aria-label="Community, 2 pending friend requests"');
+  expect(link(html, "/feed")).toMatch(/>2</);
 });
 
-it("leaves Friends unlabelled without requests", () => {
+it("places You with desktop utilities immediately before Sign out", () => {
+  state.pathname = "/account";
+  const html = renderToStaticMarkup(<AppMenuLinks account={owner} surface="sidebar" />);
+
+  expect(hrefs(html).slice(0, 4)).toEqual([
+    "/users/owner/journal",
+    "/users/owner/goals",
+    "/feed",
+    "/climbs/new",
+  ]);
+  expect(hrefs(html).at(-1)).toBe("/account");
+  expect(hrefs(html).filter((href) => href === "/account")).toHaveLength(1);
+  expect(link(html, "/account")).toContain('aria-current="page"');
+  expect(link(html, "/account")).toContain("Alex Morgan");
+  expect(html.indexOf("Tutorials")).toBeLessThan(html.indexOf('href="/account"'));
+  expect(html.indexOf('href="/account"')).toBeLessThan(html.indexOf("Sign out"));
+});
+
+it("leaves Community unlabelled without requests", () => {
   const html = renderToStaticMarkup(<AppMenuLinks account={owner} requestCount={0} />);
 
-  expect(link(html, "/friends")).not.toContain("aria-label");
+  expect(link(html, "/feed")).not.toContain("aria-label");
 });
 
 it.each([
@@ -82,15 +102,14 @@ it("offers sign-in instead of account links when signed out", () => {
   for (const href of ["/feed", "/friends", "/climbs/new", "/account"]) {
     expect(hrefs(html)).not.toContain(href);
   }
-  expect(html).not.toContain("Theme");
   expect(html).not.toContain("Sign out");
 });
 
 it.each([
-  ["/users/owner", "/users/owner", "page"],
-  ["/users/owner/sends", "/users/owner", "location"],
+  ["/users/owner", "/users/owner/journal", "location"],
+  ["/users/owner/sends", "/users/owner/journal", "location"],
   ["/areas/new", "/climbs/new", "location"],
-  ["/friends", "/friends", "page"],
+  ["/friends", "/feed", "location"],
   ["/account", "/account", "page"],
 ])("marks the destination of %s current", (pathname, href, current) => {
   state.pathname = pathname;

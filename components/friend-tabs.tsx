@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 
 import { FriendRequestBadge } from "@/components/friend-request-badge";
 import { useFriendRequests } from "@/components/friend-requests-provider";
-import { ProfileSectionNav } from "@/components/profile-tabs";
+import { SectionNavigation } from "@/components/ui/section-navigation";
 
 export function FriendTabs({ view, userId }: { view: "friends" | "requests"; userId: string }) {
   const requests = useFriendRequests();
@@ -17,7 +17,8 @@ export function FriendTabs({ view, userId }: { view: "friends" | "requests"; use
   }, [view, requests]);
 
   return (
-    <ProfileSectionNav
+    <SectionNavigation
+      appearance="pills"
       label="Friend lists"
       tabs={[
         { href: "/friends", label: "Friends", current: view === "friends" },

@@ -150,7 +150,7 @@ export function TourExperience({
           <div
             ref={page}
             role="region"
-            aria-label="Demo profile"
+            aria-label="Demo workspace"
             tabIndex={0}
             className="min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain rounded-panel p-2 focus-visible:status-focused"
           >

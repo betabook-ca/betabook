@@ -1,6 +1,6 @@
 # In-page product tours
 
-Tours run at `/tutorial/[tourId]/[stepId]` inside the app shell. The page uses Alex Morgan's sample data and the same profile heading, tabs, sidebar layouts, list rows, and charts as the app. A spotlight outlines one control and dims the surrounding demo content. The short guide has its own column at the app's desktop breakpoint and its own row below the demo on smaller screens. It must never cover the demo; spotlight dimming must stay inside the demo pane.
+Tours run at `/tutorial/[tourId]/[stepId]` inside the app shell. The page uses Alex Morgan's sample data and the same workspace tabs, sidebar layouts, list rows, and charts as the app. A spotlight outlines one control and dims the surrounding demo content. The short guide has its own column at the app's desktop breakpoint and its own row below the demo on smaller screens. It must never cover the demo; spotlight dimming must stay inside the demo pane.
 
 ## Add a step or feature
 
@@ -9,12 +9,13 @@ Tours run at `/tutorial/[tourId]/[stepId]` inside the app shell. The page uses A
 3. Render the section in the feature's page component. `ProductTourPageProps` supplies its section, the active `steps`, and `href(stepId)` for links that preserve the replay destination. Reuse the app's layouts and display components. Keep demo controls local and never pass sample IDs to real links or mutation components.
 4. For a separate tour, register its metadata in `lib/product-tour.ts`, steps in `PRODUCT_TOUR_STEPS`, and a lazy page loader in `components/product-tours/registry.ts`. The existing route layout handles the rest. An optional quick action beside the invitation belongs in `quick-actions.tsx`.
 
-The Journal tour covers Log, journal filters, Sends sorting, project history, Analytics, climber discovery, friend requests, Feed, and privacy. The sample Log control is a visual reference in the full tour, in a header row above the sample profile as Log sits beside Search in the app, with no click action or popover. First-time invitations include an ordinary Log button. Update invitations and update demos omit both Log controls.
+The Journal tour covers Log, journal filters, Sends sorting, project history, Analytics, climber discovery, friend requests, Feed, and privacy. The sample Log control is a visual reference in the full tour, in a header row above the sample workspace as Log sits beside Search in the app, with no click action or popover. First-time invitations include an ordinary Log button. Update invitations and update demos omit both Log controls.
 
-Profile lessons (Journal, Sends, Projects and Analytics) show Alex's profile
-heading beside demo section tabs in the app's order. Feed, Friends and Account are
-their own pages in the app, so those lessons render without the heading. Lesson
-order remains in the catalog.
+Owner lessons use the app's task-first workspace frame, which leads with prominent subpage tabs instead of a repeated workspace title. The accessible heading names the selected subpage and workspace. The journal demo shares the entry layout with the app and retains the established entry-type filter pills. Notes run below the entry header; journal text search remains directly visible. These presentation changes use shared components without adding or renaming lessons or targets. Logbook groups Journal
+and Sends; Progress groups Goals, Open Projects, and Analytics; the existing project and analytics lessons retain their step IDs. The large climber
+profile header is reserved for viewing another climber. Community groups Feed
+and Friends, and You contains identity, sharing, and account settings. Demo links
+stay within the tutorial. Lesson order and stable step IDs remain in the catalog.
 Discovery uses a separate Search surface, with the same All / Climbs / Areas / Climbers categories and result rows as the app. Search is
 not a profile tab. The lesson starts in Climbers; category changes, search
 submission, sample results, and friend requests stay local. Its View your feed link
@@ -27,8 +28,12 @@ the signed-in account's real count remains separate.
 
 The sample request buttons use `FriendshipActionButton`, including the same
 confirmation dialogs as real cancellation, decline, and removal. Their callbacks
-only change demo state. In the app, the menu button shows a dot for incoming
-requests, and Friends in the menu and phone tab bar shows the count.
+only change demo state. In the app, Community in the desktop sidebar and phone tab bar shows incoming
+request counts. The mobile menu repeats Logbook, Progress, Community, and You only while the
+phone tabs are unavailable, including during tutorials; its Community link then
+shows the same count. The mobile hamburger opens secondary navigation and has no duplicate request badge.
+You contains account settings and sign-out. The desktop sidebar also keeps a
+sign-out shortcut.
 
 ## Navigation and overlays
 

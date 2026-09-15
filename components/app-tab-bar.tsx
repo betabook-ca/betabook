@@ -1,64 +1,29 @@
 "use client";
 
 import { clsx } from "clsx";
-import { Newspaper, Users } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 
 import { FriendRequestBadge, withRequestCount } from "@/components/friend-request-badge";
 import { useFriendRequestCount } from "@/components/friend-requests-provider";
-import { NavLink, navCurrent } from "@/components/nav-link";
-import { UserAvatar } from "@/components/ui/user-avatar";
+import { NavLink } from "@/components/nav-link";
+import { PrimaryNavigationIcon } from "@/components/primary-navigation-icon";
 import { useClientSession } from "@/hooks/use-client-session";
+import { useMobileTabsVisible } from "@/hooks/use-mobile-tabs-visible";
+import { primaryAreaForPath, primaryDestinations } from "@/lib/app-navigation";
 
-export type TabAccount = { id: string; name: string; image?: string | null };
-
-const INPUT_TYPES_WITHOUT_KEYBOARD = new Set([
-  "button",
-  "checkbox",
-  "color",
-  "file",
-  "hidden",
-  "image",
-  "radio",
-  "range",
-  "reset",
-  "submit",
-]);
-
-function opensKeyboard(target: EventTarget | null) {
-  if (target instanceof HTMLTextAreaElement) return true;
-  if (target instanceof HTMLInputElement) return !INPUT_TYPES_WITHOUT_KEYBOARD.has(target.type);
-  return target instanceof HTMLElement && target.isContentEditable;
-}
-
-/** The on-screen keyboard resizes the page up to the bar, which would cover the field. */
-function useTyping() {
-  const [typing, setTyping] = useState(false);
-  useEffect(() => {
-    const onFocusIn = (event: FocusEvent) => setTyping(opensKeyboard(event.target));
-    const onFocusOut = (event: FocusEvent) => setTyping(opensKeyboard(event.relatedTarget));
-    document.addEventListener("focusin", onFocusIn);
-    document.addEventListener("focusout", onFocusOut);
-    return () => {
-      document.removeEventListener("focusin", onFocusIn);
-      document.removeEventListener("focusout", onFocusOut);
-    };
-  }, []);
-  return typing;
-}
+type TabAccount = { id: string; name: string; image?: string | null };
 
 export function AppTabBar() {
   const session = useClientSession();
   const requestCount = useFriendRequestCount();
-  const pathname = usePathname();
-  const typing = useTyping();
+  const tabsVisible = useMobileTabsVisible();
   if (!session) return null;
 
   return (
     <>
       <div aria-hidden className="h-[calc(3.5rem+env(safe-area-inset-bottom))] md:hidden" />
-      {!typing && !pathname.startsWith("/tutorial/") && (
+      {tabsVisible && (
         <nav
           aria-label="Primary"
           data-app-tab-bar
@@ -78,47 +43,63 @@ export function AppTabs({
   account: TabAccount;
   requestCount?: number;
 }) {
-  const profile = `/users/${account.id}`;
-  const profileCurrent = navCurrent(usePathname(), profile, { matchWithin: true });
-
+  const current = primaryAreaForPath(usePathname(), account.id);
   return (
-    <ul className="mx-auto grid h-14 max-w-md grid-cols-3">
-      <li>
-        <NavLink appearance="tab" href={profile} matchWithin>
-          <UserAvatar
-            name={account.name}
-            image={account.image}
-            size="xs"
-            className={clsx(
-              profileCurrent && "ring-2 ring-link ring-offset-1 ring-offset-background",
-            )}
-          />
-          Profile
-        </NavLink>
-      </li>
-      <li>
-        <NavLink appearance="tab" href="/feed">
-          <Newspaper aria-hidden className="size-6" />
-          Feed
-        </NavLink>
-      </li>
-      <li>
-        <NavLink
-          appearance="tab"
-          href="/friends"
-          aria-label={requestCount > 0 ? withRequestCount("Friends", requestCount) : undefined}
-        >
-          <span className="relative">
-            <Users aria-hidden className="size-6" />
-            <FriendRequestBadge
-              decorative
-              count={requestCount}
-              className="absolute -top-1.5 left-3.5"
-            />
-          </span>
-          Friends
-        </NavLink>
-      </li>
+    <ul className="mx-auto grid h-14 max-w-md grid-cols-4">
+      {primaryDestinations(account.id).map((item) => (
+        <li key={item.id}>
+          <NavLink
+            appearance="tab"
+            href={item.href}
+            isCurrent={current === item.id}
+            aria-description={item.id === "you" ? account.name : undefined}
+            aria-label={
+              item.id === "community" && requestCount > 0
+                ? withRequestCount(item.label, requestCount)
+                : undefined
+            }
+          >
+            <TabIcon
+              key="icon"
+              current={current === item.id}
+              badge={
+                item.id === "community" ? (
+                  <FriendRequestBadge
+                    decorative
+                    count={requestCount}
+                    className="absolute -top-1 right-0"
+                  />
+                ) : undefined
+              }
+            >
+              <PrimaryNavigationIcon area={item.id} account={account} />
+            </TabIcon>
+            {item.label}
+          </NavLink>
+        </li>
+      ))}
     </ul>
+  );
+}
+
+function TabIcon({
+  current,
+  children,
+  badge,
+}: {
+  current?: boolean;
+  children: ReactNode;
+  badge?: ReactNode;
+}) {
+  return (
+    <span
+      className={clsx(
+        "relative flex h-7 w-10 items-center justify-center rounded-lg",
+        current && "bg-navigation-active",
+      )}
+    >
+      <span className="flex size-6 items-center justify-center">{children}</span>
+      {badge}
+    </span>
   );
 }

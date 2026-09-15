@@ -15,7 +15,7 @@ type Story = StoryObj<typeof meta>;
 export const Projects: Story = {
   args: { userId: "storybook-climber", projects: openProjects, hasMore: false },
   render: (args) => (
-    <StoryPage title="Projects" description="Open projects with their recent sessions.">
+    <StoryPage title="Open Projects" description="Open projects with their recent sessions.">
       <ProjectBoard {...args} />
     </StoryPage>
   ),
@@ -24,7 +24,7 @@ export const Projects: Story = {
 export const MoreThanOnePage: Story = {
   args: { userId: "storybook-climber", projects: openProjects, hasMore: true },
   render: (args) => (
-    <StoryPage title="Projects" description="More open projects than one page holds.">
+    <StoryPage title="Open Projects" description="More open projects than one page holds.">
       <ProjectBoard {...args} />
     </StoryPage>
   ),
@@ -33,7 +33,7 @@ export const MoreThanOnePage: Story = {
 export const NoProjects: Story = {
   args: { userId: "storybook-climber", projects: [], hasMore: false },
   render: (args) => (
-    <StoryPage title="Projects" description="No open projects.">
+    <StoryPage title="Open Projects" description="No open projects.">
       <ProjectBoard {...args} />
     </StoryPage>
   ),

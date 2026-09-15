@@ -9,19 +9,39 @@ test(
   { tag: "@app" },
   async ({ page }, testInfo) => {
     await page.goto("/about");
+    await expect(page.getByRole("banner")).toBeVisible();
     const home = page.getByRole("link", { name: "Betabook home", exact: true });
-    await expect(home).toBeVisible();
+    const mobile = testInfo.project.name.startsWith("mobile");
+    const search = page.getByRole("banner").getByRole("link", { name: "Search", exact: true });
+    if (mobile) {
+      await expect(home).toBeHidden();
+      await expect(search.locator('[data-brand="icon"]')).toBeVisible();
+      await expect(search).toHaveCSS("height", "44px");
+      const searchBox = await search.boundingBox();
+      if (!searchBox) throw new Error("Missing mobile search");
+      const viewportWidth = await page.evaluate(() => window.innerWidth);
+      expect(searchBox.width).toBeGreaterThan(180);
+      expect(searchBox.x + searchBox.width / 2).toBeCloseTo(viewportWidth / 2, 0);
+    } else {
+      await expect(
+        page.getByRole("banner").getByRole("link", { name: "Sign in", exact: true }),
+      ).toBeVisible();
+      await expect(home).toBeVisible();
+      await expect(home.locator('[data-brand="wordmark"]')).toBeVisible();
+      await expect(home.locator('[data-brand="icon"]')).toBeVisible();
+      await expect(home).toHaveCSS("height", "48px");
+      const searchBox = await search.boundingBox();
+      const headerBox = await page.getByRole("banner").locator(":scope > div").boundingBox();
+      if (!searchBox || !headerBox) throw new Error("Missing desktop header bounds");
+      expect(searchBox.x + searchBox.width / 2).toBeCloseTo(headerBox.x + headerBox.width / 2, 0);
+    }
     const lockup = page.getByRole("img", {
       name: "Betabook — Climb · Log · Progress",
       exact: true,
     });
     await expect(lockup).toBeVisible();
-    const wordmark = home.locator('[data-brand="wordmark"]');
-    if (testInfo.project.name.startsWith("mobile")) await expect(wordmark).toBeHidden();
-    else await expect(wordmark).toBeVisible();
-    await expect(home).toHaveCSS("height", "48px");
     const visibleImages = page.locator("[data-brand] img:visible");
-    await expect(visibleImages).toHaveCount(testInfo.project.name.startsWith("mobile") ? 2 : 3);
+    await expect(visibleImages).toHaveCount(mobile ? 2 : 3);
     for (const image of await visibleImages.all()) {
       await expect
         .poll(() =>
@@ -30,7 +50,7 @@ test(
         .toBe(true);
       await expect(image).toHaveAttribute(
         "src",
-        new RegExp(`-${testInfo.project.use.colorScheme}\\.svg$`),
+        new RegExp(`-${testInfo.project.use.colorScheme}(?:[.-][^/]*)?\\.svg$`),
       );
     }
     const box = await lockup.boundingBox();
@@ -57,7 +77,7 @@ test(
         new RegExp(`-${theme}\\.svg$`),
       );
     }
-    await home.click();
+    await (mobile ? search : home).click();
     await expect(page).toHaveURL("/");
   },
 );

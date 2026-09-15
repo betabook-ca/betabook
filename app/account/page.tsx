@@ -9,7 +9,7 @@ import { getOwnProfileShareUrl } from "@/lib/profile-share-url";
 import { getMemberSession as getSession, isAdmin } from "@/lib/session";
 
 export const metadata: Metadata = {
-  title: "Account settings",
+  title: "You",
   robots: { index: false },
 };
 

@@ -25,6 +25,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Profile: Story = {
+  name: "Primary fallback",
   parameters: { nextjs: { navigation: { pathname: "/users/sample/sends" } } },
 };
 export const FriendRequests: Story = {
@@ -38,4 +39,8 @@ export const Moderator: Story = {
 export const SignedOut: Story = {
   args: { account: null, canInstall: true },
   parameters: { nextjs: { navigation: { pathname: "/about" } } },
+};
+export const SecondaryTools: Story = {
+  args: { showPrimary: false },
+  parameters: { nextjs: { navigation: { pathname: "/account" } } },
 };

@@ -20,6 +20,7 @@ describe("revalidateSendSurfaces", () => {
       "/users/user-1",
       "/users/user-1/sends",
       "/users/user-1/projects",
+      "/users/user-1/goals",
       "/users/user-1/analytics",
       "/climbs/12",
       "/areas/34",
@@ -39,6 +40,7 @@ describe("revalidateSendSurfaces", () => {
       "/users/user-1",
       "/users/user-1/sends",
       "/users/user-1/projects",
+      "/users/user-1/goals",
       "/users/user-1/analytics",
       "/climbs/12",
       "/areas/34",
@@ -55,6 +57,7 @@ describe("revalidateJournalSurfaces", () => {
       "/users/user-1",
       "/users/user-1/journal",
       "/users/user-1/projects",
+      "/users/user-1/goals",
       "/users/user-1/analytics",
       "/climbs/12",
     ]);

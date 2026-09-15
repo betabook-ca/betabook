@@ -4,9 +4,9 @@ import { useState } from "react";
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
 import { AreaBreadcrumbs } from "@/components/breadcrumbs";
 import { FriendRequestBadge, FriendRequestDot } from "@/components/friend-request-badge";
-import { ProfileSectionNav } from "@/components/profile-tabs";
 import { SearchCategories } from "@/components/search/search-categories";
 import { SubareaRail } from "@/components/subarea-rail";
+import { SectionNavigation } from "@/components/ui/section-navigation";
 import type { SearchCategory } from "@/lib/search";
 import { Example, StoryPage } from "@/stories/fixtures/story-layout";
 
@@ -22,8 +22,10 @@ function NavigationExample() {
   return (
     <StoryPage title="Search and profile navigation">
       <SearchCategories value={mode} onChange={setMode} />
-      <ProfileSectionNav
-        tabs={["Journal", "Sends", "Projects", "Analytics"].map((label) => ({
+      <SectionNavigation
+        label="Profile sections"
+        tabs={["Journal", "Sends", "Analytics"].map((label) => ({
+          id: label,
           label,
           current: label === tab,
           onSelect: () => setTab(label),

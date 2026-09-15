@@ -34,7 +34,7 @@ it("shows a signed-in climber the tab bar with their request count", () => {
 
   expect(tabBar()).toBeInTheDocument();
   expect(
-    screen.getByRole("link", { name: "Friends, 1 pending friend request" }),
+    screen.getByRole("link", { name: "Community, 1 pending friend request" }),
   ).toBeInTheDocument();
 });
 

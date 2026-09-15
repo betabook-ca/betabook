@@ -16,14 +16,16 @@ type NavMatch = {
 type NavLinkProps = Omit<ComponentProps<typeof AppLink>, "href"> &
   NavMatch & {
     href: string;
-    appearance?: "link" | "menu" | "tab";
+    appearance?: "link" | "menu" | "sidebar" | "tab";
+    isCurrent?: boolean;
   };
 
 /** Shared by menu links and the menu's own buttons. */
 export const MENU_ROW_CLASS = "w-full gap-3 rounded-lg px-3 py-2 text-sm";
+export const SIDEBAR_ROW_CLASS = "h-10 w-full gap-3 rounded-lg px-2 py-0 text-sm";
 export const MENU_ROW_IDLE_CLASS = "text-muted hover:bg-default hover:text-foreground";
 
-export function navCurrent(
+function navCurrent(
   pathname: string,
   href: string,
   { matchWithin = false, relatedPaths }: NavMatch = {},
@@ -41,18 +43,27 @@ export function NavLink({
   appearance = "link",
   matchWithin,
   relatedPaths,
+  isCurrent,
   className,
   ...props
 }: NavLinkProps) {
-  const current = navCurrent(usePathname(), href, { matchWithin, relatedPaths });
+  const pathname = usePathname();
+  const current =
+    isCurrent === undefined
+      ? navCurrent(pathname, href, { matchWithin, relatedPaths })
+      : isCurrent
+        ? pathname === href
+          ? "page"
+          : "location"
+        : undefined;
   return (
     <AppLink
       href={href}
       aria-current={current}
       className={clsx(
-        appearance === "menu" && [
+        (appearance === "menu" || appearance === "sidebar") && [
           "inline-flex items-center no-underline transition-colors hover:no-underline",
-          MENU_ROW_CLASS,
+          appearance === "sidebar" ? SIDEBAR_ROW_CLASS : MENU_ROW_CLASS,
           current ? "bg-navigation-active font-semibold text-link" : MENU_ROW_IDLE_CLASS,
         ],
         appearance === "tab" && [

@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: UserProjectsPageProps): Promi
   const user = await getUserById(id);
   if (!user || session.user.id !== user.id) notFound();
 
-  return { title: `${user.name} · Projects`, robots: { index: false } };
+  return { title: `${user.name} · Open Projects`, robots: { index: false } };
 }
 
 export default async function UserProjectsPage({ params }: UserProjectsPageProps) {
@@ -28,7 +28,7 @@ export default async function UserProjectsPage({ params }: UserProjectsPageProps
   if (!user || session.user.id !== user.id) notFound();
 
   return (
-    <ProfileHeader user={user} viewerId={session.user.id}>
+    <ProfileHeader user={user} viewerId={session.user.id} workspace="progress">
       <ProjectsView ownerId={user.id} />
     </ProfileHeader>
   );

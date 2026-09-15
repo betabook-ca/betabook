@@ -4,7 +4,6 @@ import { STORY_HARDEST } from "@/stories/fixtures/climber-hardest";
 
 import { FriendshipButton } from "./friendship-button";
 import { ProfileHeading } from "./profile-heading";
-import { ShareProfileButton } from "./share-profile-button";
 
 const meta = {
   title: "Components/Profile/Heading",
@@ -12,9 +11,6 @@ const meta = {
   args: {
     name: "Alex Morgan",
     hardest: STORY_HARDEST,
-    nameAction: (
-      <ShareProfileButton name="Alex Morgan" url="https://betabook.ca/users/sample?share=demo" />
-    ),
   },
   decorators: [
     (Story) => (

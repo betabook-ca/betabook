@@ -1,26 +1,30 @@
 "use client";
 
 import { Button, useOverlayState } from "@heroui/react";
-import { Menu as MenuIcon } from "lucide-react";
+import { Menu } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
-import { FriendRequestDot, withRequestCount } from "@/components/friend-request-badge";
+import { BrandHomeLink } from "@/components/brand";
 import { useFriendRequestCount } from "@/components/friend-requests-provider";
 import { useClientSession } from "@/hooks/use-client-session";
 import { useDeferredComponent } from "@/hooks/use-deferred-component";
+import { useMobileTabsVisible } from "@/hooks/use-mobile-tabs-visible";
 
 /** Module-level so its identity is stable across renders — the preload hook
  * keys its effect on the loader. */
-const loadDrawer = () => import("@/components/app-menu-drawer").then((m) => m.AppMenuDrawer);
+const loadMenu = () => import("@/components/app-menu-popover").then((m) => m.AppMenuPopover);
 
-export function AppMenuButton() {
+/** The mobile menu opens under its trigger; desktop branding links Home. */
+export function HeaderNavigation() {
   const state = useOverlayState();
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const { close, open, setOpen } = state;
   const pathname = usePathname();
   const session = useClientSession();
   const requestCount = useFriendRequestCount();
-  const { Component: AppMenuDrawer, load } = useDeferredComponent(loadDrawer);
+  const tabsVisible = useMobileTabsVisible();
+  const { Component: AppMenuPopover, load } = useDeferredComponent(loadMenu);
 
   const openMenu = useCallback(() => {
     load();
@@ -33,20 +37,35 @@ export function AppMenuButton() {
     close();
   }, [pathname, close]);
 
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 768px)");
+    const closeOnDesktop = () => {
+      if (desktop.matches) close();
+    };
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, [close]);
+
   return (
     <>
       <Button
         isIconOnly
         variant="ghost"
-        className="relative"
-        aria-label={withRequestCount("Open menu", requestCount)}
+        className="size-11 md:hidden"
+        ref={triggerRef}
+        aria-label="Open menu"
+        aria-expanded={state.isOpen}
+        aria-haspopup="dialog"
         onPress={openMenu}
       >
-        <MenuIcon className="size-5" />
-        {requestCount > 0 && <FriendRequestDot className="absolute top-1.5 right-1.5" />}
+        <Menu aria-hidden className="size-5" />
       </Button>
-      {AppMenuDrawer && (
-        <AppMenuDrawer
+      <div className="hidden md:block">
+        <BrandHomeLink />
+      </div>
+      {AppMenuPopover && (
+        <AppMenuPopover
+          triggerRef={triggerRef}
           isOpen={state.isOpen}
           onOpenChange={setOpen}
           onClose={close}
@@ -59,6 +78,7 @@ export function AppMenuButton() {
             }
           }
           requestCount={requestCount}
+          showPrimary={!tabsVisible}
         />
       )}
     </>

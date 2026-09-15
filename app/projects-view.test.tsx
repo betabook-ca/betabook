@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from "vitest";
 import { ProjectsView } from "@/app/users/[id]/projects-view";
 
 type BoardProps = {
-  goals: ReactNode;
   projects: { climbId: number; sessions: { id: number }[] }[];
   hasMore: boolean;
 };
@@ -14,25 +13,8 @@ const mocks = vi.hoisted(() => ({
   getOpenProjectSessions: vi.fn<() => Promise<Array<{ id: number; climbId: number | null }>>>(
     async () => [],
   ),
-  getGoalOverview: vi.fn<typeof import("@/db/queries/goals").getGoalOverview>(async () => ({
-    active: { goals: [], hasMore: false },
-    completed: { goals: [], hasMore: false },
-  })),
-  getNextGoalGrades: vi.fn<typeof import("@/db/queries/goals").getNextGoalGrades>(async () => ({
-    boulder: 6,
-  })),
-  GoalPanel: vi.fn<(props: unknown) => null>(() => null),
   ProjectBoard: vi.fn<(props: BoardProps) => null>(() => null),
 }));
-
-vi.mock("@opennextjs/cloudflare", () => ({
-  getCloudflareContext: async () => ({ cf: { timezone: "UTC" } }),
-}));
-vi.mock("@/db/queries/goals", () => ({
-  getGoalOverview: mocks.getGoalOverview,
-  getNextGoalGrades: mocks.getNextGoalGrades,
-}));
-vi.mock("@/components/goals/goal-panel", () => ({ GoalPanel: mocks.GoalPanel }));
 
 vi.mock("@/db/client", () => ({
   getDb: vi.fn<() => Promise<Record<string, never>>>(async () => ({})),
@@ -95,15 +77,4 @@ describe("ProjectsView", () => {
       [11, []],
     ]);
   });
-});
-
-it("places the owner's goals in the board even with no projects", async () => {
-  mocks.getOpenProjects.mockResolvedValue([]);
-  const props = await renderBoardProps();
-  expect(mocks.getGoalOverview).toHaveBeenCalledWith({}, ownerId, ownerId);
-  expect(mocks.getNextGoalGrades).toHaveBeenCalledWith({}, ownerId, ownerId);
-  if (!isValidElement<{ ownerId: string; isOwner: boolean }>(props.goals))
-    throw new Error("Missing goals panel");
-  expect(props.goals.type).toBe(mocks.GoalPanel);
-  expect(props.goals.props).toMatchObject({ ownerId, isOwner: true });
 });
