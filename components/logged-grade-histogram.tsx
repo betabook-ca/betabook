@@ -5,14 +5,14 @@ import type { LoggedGradeRow } from "@/lib/grade-histogram";
 import type { ClimbType } from "@/lib/grades";
 import type { GradeFeel } from "@/lib/sends";
 
-// Feel is ordinal, so the shade carries the meaning: lighter = felt low-end,
-// darker = felt high-end. Three fixed steps of one hue, legible on both themes.
+// Feel is ordinal, so the shade carries the meaning: lighter = low-end,
+// darker = high-end. Three fixed steps of one hue, legible on both themes.
 const FEEL_ORDER: GradeFeel[] = ["low", "solid", "high"];
 const FEEL_OPACITY: Record<GradeFeel, number> = { low: 0.35, solid: 0.65, high: 1 };
 const FEEL_LABEL: Record<GradeFeel, string> = {
-  low: "felt low-end",
+  low: "low-end",
   solid: "solid",
-  high: "felt high-end",
+  high: "high-end",
 };
 
 /** The community's grading of one climb: one bar per suggested grade, in
