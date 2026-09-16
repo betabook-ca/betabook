@@ -5,7 +5,6 @@ import { formatDate } from "@/lib/format-date";
 
 type SessionNote = Pick<JournalEntry, "id" | "entryDate" | "tags" | "companions" | "body">;
 
-/** Presentation only: no session fetching or mutation. */
 export function ProjectSessionList({ sessions }: { sessions: readonly SessionNote[] }) {
   return (
     <ol className="flex flex-col gap-4 border-l border-separator pl-4">

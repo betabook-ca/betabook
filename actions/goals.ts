@@ -1,6 +1,6 @@
 "use server";
 
-import { sql } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { z } from "zod";
 
@@ -192,55 +192,93 @@ export async function saveGoal(
       goalToday(input.timezone, now),
     );
     const capacity = sql`(${otherActive} < ${MAX_ACTIVE_GOALS} OR ${alreadyActive} OR ${remainsCompleted})`;
-    const update = db
-      .update(goals)
-      .set({
-        kind: input.kind,
-        target: input.target,
-        discipline: input.discipline,
-        grade: input.grade,
-        gradeMatch: input.gradeMatch,
-        timeframe: input.timeframe,
-        repeat: input.repeat,
-        startDate: window.startDate,
-        endDate: window.endDate,
-        timezone: input.timezone,
-      })
-      .where(sql`id=${id} AND user_id=${ownerId} AND archive_token IS NULL AND ${capacity}`)
-      .returning({ id: goals.id });
-    const cutoff = historyCutoff(existing, window.startDate);
-    const snapshot = sql`WITH RECURSIVE past AS (
-        SELECT id,user_id,start_date AS ps,end_date AS pe,target,repeat,timezone,kind,discipline,grade,grade_match FROM goals WHERE id=${id} AND user_id=${ownerId} AND repeat <> 'none'
-        UNION ALL SELECT id,user_id,date(pe,'+1 day'),CASE repeat WHEN 'week' THEN date(pe,'+7 days') WHEN 'year' THEN date(pe,'+1 day','+1 year','-1 day') ELSE date(pe,'+1 day','+1 month','-1 day') END,target,repeat,timezone,kind,discipline,grade,grade_match FROM past WHERE pe < ${cutoff}
-      ) SELECT id,ps,pe,target,repeat,timezone,kind,discipline,grade,grade_match FROM past WHERE pe < ${cutoff} AND ${capacity}`;
-    const archiveToken = crypto.randomUUID();
-    const result = retrySource
-      ? (
-          await db.batch([
-            db
-              .update(goals)
-              .set({ archiveToken })
-              .where(
-                sql`id IN (SELECT g.id FROM goals g WHERE ${missedDecisionSql(retrySource, ownerId)} AND ${capacity})`,
-              ),
-            // Column order is the goals schema; NULL delegates the id to SQLite.
-            db
-              .insert(goals)
-              .select(
-                sql`SELECT NULL,${ownerId},${input.kind},${input.target},${input.discipline},${input.grade},${input.timeframe},${input.repeat},${window.startDate},${window.endDate},${input.timezone},1,NULL,${input.gradeMatch} WHERE EXISTS (SELECT 1 FROM goals WHERE id=${retrySource.id} AND user_id=${ownerId} AND archive_token=${archiveToken})`,
-              )
-              .returning({ id: goals.id }),
-          ])
-        )[1][0]
-      : id === null
-        ? await db.get<{
-            id: number;
-          }>(sql`INSERT INTO goals (user_id,kind,target,discipline,grade,timeframe,repeat,start_date,end_date,timezone,grade_match,celebrations_initialized)
-          SELECT ${ownerId},${input.kind},${input.target},${input.discipline},${input.grade},${input.timeframe},${input.repeat},${window.startDate},${window.endDate},${input.timezone},${input.gradeMatch},1
-          WHERE ${capacity} RETURNING id`)
-        : (
-            await db.batch([db.insert(goalPeriods).select(snapshot).onConflictDoNothing(), update])
-          )[1][0];
+    const insertGoal = (condition: SQL) =>
+      db
+        .insert(goals)
+        .select(
+          db
+            .select({
+              id: sql`NULL`.as("id"),
+              userId: sql`${ownerId}`.as("user_id"),
+              kind: sql`${input.kind}`.as("kind"),
+              target: sql`${input.target}`.as("target"),
+              discipline: sql`${input.discipline}`.as("discipline"),
+              grade: sql`${input.grade}`.as("grade"),
+              timeframe: sql`${input.timeframe}`.as("timeframe"),
+              repeat: sql`${input.repeat}`.as("repeat"),
+              startDate: sql`${window.startDate}`.as("start_date"),
+              endDate: sql`${window.endDate}`.as("end_date"),
+              timezone: sql`${input.timezone}`.as("timezone"),
+              celebrationsInitialized: sql`1`.as("celebrations_initialized"),
+              archiveToken: sql`NULL`.as("archive_token"),
+              gradeMatch: sql`${input.gradeMatch}`.as("grade_match"),
+            })
+            .from(sql`(SELECT 1)`)
+            .where(condition),
+        )
+        .returning({ id: goals.id });
+
+    let result: { id: number } | undefined;
+    if (retrySource) {
+      const archiveToken = crypto.randomUUID();
+      const [, inserted] = await db.batch([
+        db
+          .update(goals)
+          .set({ archiveToken })
+          .where(
+            sql`id IN (SELECT g.id FROM goals g WHERE ${missedDecisionSql(retrySource, ownerId)} AND ${capacity})`,
+          ),
+        insertGoal(sql`EXISTS (
+          SELECT 1 FROM goals
+          WHERE id = ${retrySource.id} AND user_id = ${ownerId} AND archive_token = ${archiveToken}
+        )`),
+      ]);
+      [result] = inserted;
+    } else if (id === null) {
+      [result] = await insertGoal(capacity);
+    } else {
+      const cutoff = historyCutoff(existing, window.startDate);
+      const snapshot = sql`
+        WITH RECURSIVE past AS (
+          SELECT id, start_date AS ps, end_date AS pe, target, repeat,
+            timezone, kind, discipline, grade, grade_match
+          FROM goals
+          WHERE id = ${id} AND user_id = ${ownerId} AND repeat <> 'none'
+          UNION ALL
+          SELECT id, date(pe, '+1 day'),
+            CASE repeat
+              WHEN 'week' THEN date(pe, '+7 days')
+              WHEN 'year' THEN date(pe, '+1 day', '+1 year', '-1 day')
+              ELSE date(pe, '+1 day', '+1 month', '-1 day')
+            END,
+            target, repeat, timezone, kind, discipline, grade, grade_match
+          FROM past WHERE pe < ${cutoff}
+        )
+        SELECT id, ps, pe, target, repeat, timezone, kind, discipline, grade, grade_match
+        FROM past WHERE pe < ${cutoff} AND ${capacity}
+      `;
+      const update = db
+        .update(goals)
+        .set({
+          kind: input.kind,
+          target: input.target,
+          discipline: input.discipline,
+          grade: input.grade,
+          gradeMatch: input.gradeMatch,
+          timeframe: input.timeframe,
+          repeat: input.repeat,
+          startDate: window.startDate,
+          endDate: window.endDate,
+          timezone: input.timezone,
+        })
+        .where(sql`id=${id} AND user_id=${ownerId} AND archive_token IS NULL AND ${capacity}`)
+        .returning({ id: goals.id });
+      const [, updated] = await db.batch([
+        db.insert(goalPeriods).select(snapshot).onConflictDoNothing(),
+        update,
+      ]);
+      [result] = updated;
+    }
     if (!result && retrySource) await actionableMissedGoal(db, retrySource.id, ownerId);
     if (!result)
       throw new ActionError("You can have up to 5 active goals. Delete a goal to make room.");

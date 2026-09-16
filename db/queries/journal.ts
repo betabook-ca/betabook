@@ -237,7 +237,6 @@ export async function getJournalEntry(db: Database, entryId: number, ownerId: st
     .get();
 }
 
-/** Whether the viewer can read any entry in this journal. */
 export async function hasJournalEntries(
   db: Database,
   ownerId: string,
@@ -345,39 +344,18 @@ export async function getOpenProjectSessions(
 
   const rows = await db.all<JournalEntryRow>(sql`
     WITH ranked AS (
-      SELECT
-        j.id AS id,
-        j.climb_id AS climbId,
-        j.kind AS kind,
-        j.sent AS sent,
-        j.entry_date AS entryDate,
-        ${visibleBody(viewerId)} AS body,
-        j.tags AS tags,
-        ${companionsJsonSql(viewerId, sql`j.id`)} AS companions,
-        climbs.name AS climbName,
-        climbs.type AS climbType,
-        climbs.grade AS climbGrade,
-        climbs.area_id AS areaId,
-        areas.name AS areaName,
-        j.is_ascent AS isAscent,
-        j.is_send_comment AS isSendComment,
-        ROW_NUMBER() OVER (
+      SELECT j.id, ROW_NUMBER() OVER (
           PARTITION BY j.climb_id ORDER BY j.entry_date DESC, j.id DESC
         ) AS seq
       FROM journal_entries j
-      JOIN climbs ON climbs.id = j.climb_id
-      JOIN areas ON areas.id = climbs.area_id
       WHERE j.user_id = ${ownerId}
         AND ${journalVisibleSql(viewerId, sql`j.user_id`)}
         AND ${IS_OPEN_PROJECT}
         AND j.climb_id IN (SELECT value FROM json_each(${JSON.stringify(climbIds)}))
     )
-    SELECT
-      id, climbId, kind, sent, entryDate, body, tags, companions,
-      climbName, climbType, climbGrade, NULL AS reportedGrade, areaId, areaName, isAscent, isSendComment
-    FROM ranked
-    WHERE seq <= ${bounded}
-    ORDER BY entryDate DESC, id DESC
+    ${journalEntrySelect(viewerId)}
+    JOIN ranked ON ranked.id = j.id AND ranked.seq <= ${bounded}
+    ORDER BY j.entry_date DESC, j.id DESC
   `);
   return rows.map(toJournalEntry);
 }

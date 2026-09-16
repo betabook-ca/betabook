@@ -1,4 +1,12 @@
-/** Civil goal dates never shift with the viewer's timezone. */
+function formatGoalDate(iso: string, today: string, forceYear = false, monthOnly = false) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: monthOnly ? "long" : "short",
+    day: monthOnly ? undefined : "numeric",
+    year: forceYear || iso.slice(0, 4) !== today.slice(0, 4) ? "numeric" : undefined,
+    timeZone: "UTC",
+  }).format(new Date(`${iso}T12:00:00Z`));
+}
+
 export function goalDateLabel(
   goal: {
     repeat: string;
@@ -9,22 +17,16 @@ export function goalDateLabel(
   },
   today: string,
 ): string {
-  const currentYear = today.slice(0, 4);
-  const date = (iso: string, forceYear = false, monthOnly = false) =>
-    new Intl.DateTimeFormat("en-US", {
-      month: monthOnly ? "long" : "short",
-      day: monthOnly ? undefined : "numeric",
-      year: forceYear || iso.slice(0, 4) !== currentYear ? "numeric" : undefined,
-      timeZone: "UTC",
-    }).format(new Date(`${iso}T12:00:00Z`));
   if (goal.repeat === "year") return goal.periodStart.slice(0, 4);
-  if (goal.repeat === "week") return `Week of ${date(goal.periodStart)}`;
-  if (goal.repeat === "month") return date(goal.periodStart, false, true);
+  if (goal.repeat === "week") return `Week of ${formatGoalDate(goal.periodStart, today)}`;
+  if (goal.repeat === "month") return formatGoalDate(goal.periodStart, today, false, true);
   if (goal.timeframe === "custom") {
     const spansYears = goal.periodStart.slice(0, 4) !== goal.periodEnd.slice(0, 4);
-    return `${date(goal.periodStart, spansYears)} – ${date(goal.periodEnd, spansYears)}`;
+    return `${formatGoalDate(goal.periodStart, today, spansYears)} – ${formatGoalDate(goal.periodEnd, today, spansYears)}`;
   }
-  return goal.completedDate ? date(goal.completedDate) : `By ${date(goal.periodEnd)}`;
+  return goal.completedDate
+    ? formatGoalDate(goal.completedDate, today)
+    : `By ${formatGoalDate(goal.periodEnd, today)}`;
 }
 
 export function recurringGoalResetLabel(
@@ -33,15 +35,5 @@ export function recurringGoalResetLabel(
 ): string {
   const next = new Date(`${goal.periodEnd}T12:00:00Z`);
   next.setUTCDate(next.getUTCDate() + 1);
-  const reset = goalDateLabel(
-    {
-      ...goal,
-      repeat: "none",
-      timeframe: "month",
-      completedDate: null,
-      periodEnd: next.toISOString().slice(0, 10),
-    },
-    today,
-  ).replace(/^By /, "");
-  return `Resets ${reset}`;
+  return `Resets ${formatGoalDate(next.toISOString().slice(0, 10), today)}`;
 }

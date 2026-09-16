@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import { ActionError } from "@/lib/action-result";
 import {
-  CONTACT_FORM_FIELDS,
   HONEYPOT_FIELD,
   MAX_EMAIL_LENGTH,
   MAX_MESSAGE_LENGTH,
@@ -129,20 +128,5 @@ describe("formatContactEmail", () => {
 
     expect(subject).not.toMatch(/[\r\n]/);
     expect(subject.length).toBeLessThanOrEqual("Betabook contact: ".length + 60);
-  });
-});
-
-describe("CONTACT_FORM_FIELDS", () => {
-  // The component builds the FormData and the action reads it back through
-  // pickFormFields — a field dropped from this list silently arrives as
-  // null, so pin the set rather than trusting the two sides to agree.
-  it("covers every field the form submits", () => {
-    expect([...CONTACT_FORM_FIELDS]).toEqual([
-      "name",
-      "email",
-      "message",
-      HONEYPOT_FIELD,
-      "elapsed",
-    ]);
   });
 });

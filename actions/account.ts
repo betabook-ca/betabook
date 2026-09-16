@@ -22,12 +22,6 @@ function revalidateProfileSurfaces(userId: string) {
   revalidatePath(`/users/${userId}/analytics`);
 }
 
-/** Toggles whether the signed-in user's profile and history are hidden from
- * everyone but themselves (see lib/user-visibility.ts). Profile surfaces
- * are revalidated here — a toggle doesn't fan out to every climb page
- * the user has ever sent, which for an active climber can run into the
- * thousands; those pick up the change on their own next revalidation, the
- * same eventual-consistency window every other cached page already accepts. */
 export async function setUserPrivate(isPrivate: boolean): Promise<ActionResult> {
   return toActionResult(async () => {
     const session = await requireSession();
@@ -73,9 +67,6 @@ export async function updateDisplayName(formData: FormData): Promise<ActionResul
 
     await db.update(user).set({ name }).where(eq(user.id, session.user.id));
 
-    // The name also shows in send histories on climb pages, but those render
-    // from the db per-request — only the profile surfaces are cached under
-    // the old name.
     revalidateProfileSurfaces(session.user.id);
     refresh();
   });
