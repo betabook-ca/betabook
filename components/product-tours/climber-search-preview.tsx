@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { FriendshipActionButton } from "@/components/friendship-action-button";
+import { demoAreaFetcher } from "@/components/product-tours/climb-search-preview";
 import { SearchController } from "@/components/search/search-controller";
 import { AppLink } from "@/components/ui/app-link";
 import { TOUR_DEMO_SEARCH_RESULTS } from "@/lib/product-tour-demo";
@@ -62,6 +63,7 @@ export function DemoClimberSearch({ feedHref }: { feedHref: string }) {
         state={state}
         onChange={setState}
         fetcher={fetchDemo}
+        areaFetcher={demoAreaFetcher}
         onNavigate={(item) => setSelected(item.name)}
         onExpand={() => {}}
         renderAction={(item) =>

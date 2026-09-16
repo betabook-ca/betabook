@@ -5,6 +5,7 @@ import { CirclePlus } from "lucide-react";
 import { useState } from "react";
 
 import { FriendRequestBadge } from "@/components/friend-request-badge";
+import { DemoClimbSearch } from "@/components/product-tours/climb-search-preview";
 import { DemoClimberSearch } from "@/components/product-tours/climber-search-preview";
 import {
   DemoAccount,
@@ -44,10 +45,11 @@ export function JournalTourPage({ section, mode, href, steps }: ProductTourPageP
       ? "progress"
       : section === "Friends" || section === "Feed"
         ? "community"
-        : section === "Search"
+        : section === "Search" || section === "Find climbs"
           ? undefined
           : "account";
   function content() {
+    if (section === "Find climbs") return <DemoClimbSearch />;
     if (section === "Search") return <DemoClimberSearch feedHref={href("feed")} />;
     if (section === "Friends" || section === "Feed")
       return (
@@ -115,6 +117,7 @@ export function JournalTourPage({ section, mode, href, steps }: ProductTourPageP
       current={current}
       href={href}
       requestCount={friendRequest === "pending" ? 1 : 0}
+      findClimbsCurrent={section === "Find climbs"}
       logAction={mode === "full" ? <DemoLog /> : undefined}
     >
       {content()}

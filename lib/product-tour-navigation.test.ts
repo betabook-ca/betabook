@@ -27,6 +27,7 @@ describe("route-based tours", () => {
       expect(result.shouldInvite).toBe(true);
       expect(result.navigation.mode).toBe("updates");
       expect(result.steps.map((step) => step.id)).toEqual([
+        "find-projects",
         "find-climbers",
         "friend-requests",
         "feed",
@@ -35,11 +36,23 @@ describe("route-based tours", () => {
     },
   );
 
-  it("includes the social lessons in full replay and stops inviting after version 2", () => {
+  it("offers only the Find climbs lesson after version 2 was acknowledged", () => {
     const tour = PRODUCT_TOURS[0];
     const result = resolveProductTour(PRODUCT_TOUR_STEPS[tour.id], {
       version: tour.version,
       savedVersion: 2,
+      navigation: { from: "journal", mode: "updates" },
+    });
+    expect(result.shouldInvite).toBe(true);
+    expect(result.navigation.mode).toBe("updates");
+    expect(result.steps.map((step) => step.id)).toEqual(["find-projects"]);
+  });
+
+  it("includes every lesson in full replay and stops inviting after version 3", () => {
+    const tour = PRODUCT_TOURS[0];
+    const result = resolveProductTour(PRODUCT_TOUR_STEPS[tour.id], {
+      version: tour.version,
+      savedVersion: 3,
       navigation: { from: "account", mode: "updates" },
     });
     expect(result.shouldInvite).toBe(false);
@@ -50,6 +63,7 @@ describe("route-based tours", () => {
       "sends",
       "projects",
       "analytics",
+      "find-projects",
       "find-climbers",
       "friend-requests",
       "feed",

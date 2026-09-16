@@ -35,8 +35,11 @@ export function SearchController({
   showMemberNotice = publicOnly,
   memberNoticePlacement,
   areaFetcher,
+  filtersTourTarget,
 }: {
   memberNoticePlacement?: "results" | "top";
+  /** Lets a tutorial spotlight the climb filter bar; the app never sets it. */
+  filtersTourTarget?: string;
   /** Area typeahead transport for the full page's filters; stories inject fixtures. */
   areaFetcher?: ComponentProps<typeof ClimbFilterControls>["areaFetcher"];
   state: SearchState;
@@ -132,32 +135,34 @@ export function SearchController({
     ) : undefined,
     filters:
       quick || state.category !== "climb" ? undefined : (
-        <ClimbFilterControls
-          value={state}
-          onChange={(next) => onChange({ ...state, ...next })}
-          showAreaLookup
-          areaFetcher={areaFetcher}
-          activeFilters={
-            state.query
-              ? [
-                  {
-                    id: "query",
-                    label: `Search: ${state.query}`,
-                    onRemove: () => onChange({ ...state, query: "" }),
-                  },
-                ]
-              : []
-          }
-          onReset={() =>
-            onChange({
-              ...state,
-              query: "",
-              filter: DEFAULT_CLIMB_FILTER,
-              area: null,
-              sort: DEFAULT_CLIMB_LIST_SORT,
-            })
-          }
-        />
+        <div data-tour-target={filtersTourTarget}>
+          <ClimbFilterControls
+            value={state}
+            onChange={(next) => onChange({ ...state, ...next })}
+            showAreaLookup
+            areaFetcher={areaFetcher}
+            activeFilters={
+              state.query
+                ? [
+                    {
+                      id: "query",
+                      label: `Search: ${state.query}`,
+                      onRemove: () => onChange({ ...state, query: "" }),
+                    },
+                  ]
+                : []
+            }
+            onReset={() =>
+              onChange({
+                ...state,
+                query: "",
+                filter: DEFAULT_CLIMB_FILTER,
+                area: null,
+                sort: DEFAULT_CLIMB_LIST_SORT,
+              })
+            }
+          />
+        </div>
       ),
   };
   return quick ? (
