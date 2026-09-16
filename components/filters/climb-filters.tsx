@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 
 import type { ActiveFilter } from "@/components/filters/active-filter-summary";
 import { ratingActiveFilters } from "@/components/filters/active-filter-values";
-import { FilterToolbar, type SortPlacement } from "@/components/filters/filter-toolbar";
+import { FilterToolbar } from "@/components/filters/filter-toolbar";
 import { RatingRangeFilter } from "@/components/filters/min-rating-filter";
 import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { OptionSelect } from "@/components/ui/option-select";
@@ -18,7 +18,6 @@ export function ClimbFilters({
   onChange,
   areaControl,
   sortControl,
-  sortPlacement,
   ratingControl,
   onReset,
   activeFilters,
@@ -27,7 +26,6 @@ export function ClimbFilters({
   onChange: (value: ClimbRefinements) => void;
   areaControl?: ReactNode;
   sortControl?: ReactNode;
-  sortPlacement?: SortPlacement;
   ratingControl?: ReactNode;
   onReset?: () => void;
   activeFilters?: ActiveFilter[];
@@ -65,7 +63,6 @@ export function ClimbFilters({
               ]
             : []),
         ]}
-        sortPlacement={sortPlacement}
         sortControl={
           sortControl ?? (
             <OptionSelect

@@ -35,36 +35,3 @@ it("retains grade choices across disclosure changes and reset clears disciplines
   await user.click(boulder);
   expect(screen.getByRole("button", { name: /Min grade/ })).toHaveTextContent("VB");
 });
-
-function PlacedToolbar({ placement }: { placement?: "row" | "summary" }) {
-  const [value, setValue] = useState({
-    ...DEFAULT_DISCIPLINE_FILTER,
-    disciplines: ["sport" as const],
-  });
-  return (
-    <FilterToolbar
-      value={value}
-      onChange={setValue}
-      onReset={() => setValue(DEFAULT_DISCIPLINE_FILTER)}
-      sortControl={<button type="button">Sort by</button>}
-      sortPlacement={placement}
-    />
-  );
-}
-it("places the sort control in the toolbar row by default and under the active filters on request", () => {
-  const order = () => {
-    const sort = screen.getByRole("group", { name: "Result order" });
-    const controls = screen.getByRole("group", { name: "Filter controls" });
-    const summary = screen.getByText("Filtered by");
-    const nodes = [...document.querySelectorAll("*")];
-    if (controls.contains(sort)) return "in row";
-    return nodes.indexOf(sort) > nodes.indexOf(summary) ? "after summary" : "before summary";
-  };
-  const { unmount } = render(<PlacedToolbar />);
-  expect(order()).toBe("in row");
-  expect(screen.getAllByRole("group", { name: "Result order" })).toHaveLength(1);
-  unmount();
-  render(<PlacedToolbar placement="summary" />);
-  expect(order()).toBe("after summary");
-  expect(screen.getAllByRole("group", { name: "Result order" })).toHaveLength(1);
-});
