@@ -1,6 +1,5 @@
-import { ActionError } from "@/lib/action-result";
 import { withApiSession } from "@/lib/api-session";
-import { fetchMountainProjectTicks } from "@/lib/mountain-project-api";
+import { MountainProjectError, fetchMountainProjectTicks } from "@/lib/mountain-project-api";
 import { parseMountainProjectUserId } from "@/lib/mountain-project-profile";
 
 /** The upstream path is fixed; only the numeric user ID varies. */
@@ -28,15 +27,16 @@ export const GET = withApiSession(async (_session, request: Request) => {
       },
     });
   } catch (error) {
-    if (!(error instanceof ActionError)) console.error("Mountain Project import failed", error);
+    if (!(error instanceof MountainProjectError))
+      console.error("Mountain Project import failed", error);
     return Response.json(
       {
         error:
-          error instanceof ActionError
+          error instanceof MountainProjectError
             ? error.message
             : "Couldn't load ticks from Mountain Project. Please try again.",
       },
-      { status: 502 },
+      { status: error instanceof MountainProjectError ? error.status : 502 },
     );
   } finally {
     clearTimeout(timeout);

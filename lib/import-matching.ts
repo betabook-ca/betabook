@@ -55,6 +55,25 @@ function isTruncated(candidates: readonly ClimbCandidate[]): boolean {
   return candidates.length > 0 && candidates[0].total > candidates.length;
 }
 
+/** A recovered list can hold several spellings at once, each with its own
+ * server-side total, so both are summed per name rather than read off the
+ * first candidate. */
+function candidateTotals(candidates: readonly ClimbCandidate[]) {
+  const counts = new Map<string, { total: number; held: number }>();
+  for (const candidate of candidates) {
+    const entry = counts.get(candidate.key) ?? { total: candidate.total, held: 0 };
+    entry.held += 1;
+    counts.set(candidate.key, entry);
+  }
+  let total = 0;
+  let truncated = false;
+  for (const { total: named, held } of counts.values()) {
+    total += named;
+    if (named > held) truncated = true;
+  }
+  return { total, truncated };
+}
+
 /** Uncapped name-and-area lookups recover matches omitted by the name-only cap. */
 export function areaLookupsNeeded(
   rows: readonly NormalizedImportRow[],
@@ -86,6 +105,8 @@ export type MatchOptions = {
 
 const LEADING_ARTICLE = /^(?:the|a|an) +/i;
 const MAX_NAME_VARIANTS = 8;
+/** How many of a location path's most specific segments may confirm a name. */
+const CONFIRMING_HINTS = 3;
 /** Each name costs up to MAX_NAME_VARIANTS extra lookups, so recovery is
  * bounded; anything past it stays available through the manual search. */
 const MAX_LOOSE_LOOKUP_NAMES = 500;
@@ -132,28 +153,43 @@ export function looseLookupsNeeded(
   return lookups;
 }
 
-/** Keyed by the row's own name, so matching stays keyed by what the file said. */
-export function mergeLooseCandidates(
-  index: CandidateIndex,
+/** One spelling per fold key across every name, so a variant is asked for once. */
+export function looseLookupNames(lookups: readonly { variants: string[] }[]): string[] {
+  const byKey = new Map<string, string>();
+  for (const lookup of lookups) {
+    for (const variant of lookup.variants) {
+      const key = foldClimbName(variant);
+      if (!byKey.has(key)) byKey.set(key, variant);
+    }
+  }
+  return [...byKey.values()];
+}
+
+/** Keyed by the row's own name, so matching stays keyed by what the file said.
+ * Built once from every lookup, rather than merged per batch. */
+export function buildLooseIndex(
   lookups: readonly { name: string; variants: string[] }[],
   found: readonly ClimbCandidate[],
 ): CandidateIndex {
   const byVariant = new Map<string, string[]>();
   for (const lookup of lookups) {
+    const name = foldClimbName(lookup.name);
     for (const variant of lookup.variants) {
       const key = foldClimbName(variant);
-      byVariant.set(key, [...(byVariant.get(key) ?? []), foldClimbName(lookup.name)]);
+      const names = byVariant.get(key);
+      if (names) names.push(name);
+      else byVariant.set(key, [name]);
     }
   }
-  const merged = new Map(index);
+  const index = new Map<string, ClimbCandidate[]>();
   for (const candidate of found) {
     for (const key of byVariant.get(candidate.key) ?? []) {
-      const list = merged.get(key) ?? [];
-      if (list.some((c) => c.id === candidate.id)) continue;
-      merged.set(key, [...list, candidate]);
+      const list = index.get(key);
+      if (!list) index.set(key, [candidate]);
+      else if (!list.some((c) => c.id === candidate.id)) list.push(candidate);
     }
   }
-  return merged;
+  return index;
 }
 
 export type RowMatch =
@@ -216,10 +252,10 @@ function listWords(words: string[]): string {
   return `${words.slice(0, -1).join(", ")}, and ${words[words.length - 1]}`;
 }
 
-function describeConflict(total: number, predicate: string, suffix = ""): string {
+function describeConflict(total: number, subject: string, predicate: string, suffix = ""): string {
   return total === 1
-    ? `The one climb with this name isn't ${predicate}${suffix}`
-    : `None of the ${total} climbs with this name is ${predicate}${suffix}`;
+    ? `The one climb ${subject} isn't ${predicate}${suffix}`
+    : `None of the ${total} climbs ${subject} is ${predicate}${suffix}`;
 }
 
 /** Apply hard filters first; conflicts leave candidates available for manual selection.
@@ -246,8 +282,10 @@ function matchCandidates(
   options: MatchOptions,
   spellingDiffers: boolean,
 ): RowMatch {
-  const total = all[0].total;
-  const truncated = isTruncated(all);
+  const { total, truncated } = candidateTotals(all);
+  const subject = spellingDiffers ? "spelled like this" : "with this name";
+  const conflict = (predicate: string, suffix = "") =>
+    describeConflict(total, subject, predicate, suffix);
 
   const ambiguous = (
     candidates: ClimbCandidate[],
@@ -266,8 +304,7 @@ function matchCandidates(
       return ambiguous(
         candidates,
         all,
-        describeConflict(
-          total,
+        conflict(
           `a ${row.climbTypeHint === "route" ? "route" : TYPE_LABEL[row.climbTypeHint]} climb`,
         ),
       );
@@ -292,7 +329,7 @@ function matchCandidates(
       return ambiguous(
         candidates,
         all,
-        describeConflict(total, `a ${noun}`, `, but "${gradeText}" is a ${noun} grade`),
+        conflict(`a ${noun}`, `, but "${gradeText}" is a ${noun} grade`),
       );
     }
     candidates = kept;
@@ -302,7 +339,7 @@ function matchCandidates(
   if (rowAreaName) {
     const kept = candidates.filter((c) => inArea(c, rowAreaName));
     if (kept.length === 0) {
-      return ambiguous(candidates, all, describeConflict(total, `in "${rowAreaName}"`));
+      return ambiguous(candidates, all, conflict(`in "${rowAreaName}"`));
     }
     candidates = kept;
   }
@@ -310,11 +347,17 @@ function matchCandidates(
   const reliable = !truncated || row.areaName !== null;
   const preferredIds = new Set(options.preferredAreas.map((a) => a.id));
 
-  /** A different spelling is only trusted where the location agrees. */
-  const areaAgrees = (climb: ClimbCandidate) =>
-    (rowAreaName !== null && inArea(climb, rowAreaName)) ||
-    row.areaHints.some((hint) => inArea(climb, hint)) ||
-    (preferredIds.size > 0 && underAreas(climb, preferredIds));
+  /** A different spelling is only trusted where a *specific* location agrees.
+   * Hints arrive leaf first and a path's last segment is its state or country,
+   * which would confirm almost anything; a chosen area can be that broad too. */
+  const areaAgrees = (climb: ClimbCandidate) => {
+    if (rowAreaName !== null) return inArea(climb, rowAreaName);
+    const specific = row.areaHints.slice(
+      0,
+      Math.max(1, Math.min(CONFIRMING_HINTS, row.areaHints.length - 1)),
+    );
+    return specific.some((hint) => inArea(climb, hint));
+  };
   const spelling = (climb: ClimbCandidate) => `"${row.climbName}" is spelled "${climb.name}" here`;
   const unconfirmed = (climb: ClimbCandidate) =>
     `No climb is named "${row.climbName}". "${climb.name}" is close, but nothing confirms the location`;

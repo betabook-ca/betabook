@@ -594,7 +594,7 @@ const WARNING_EXAMPLE_LIMIT = 3;
 
 const COERCION_MESSAGES: Record<CoercionWarning["field"], string> = {
   suggestedGrade: "unrecognized grade, imported without a suggested grade",
-  rating: "invalid rating, imported without a rating",
+  rating: "imported without a rating",
   gradeFeel: 'unmapped grade feel, imported as "solid"',
   comment: `comment longer than ${MAX_COMMENT_LENGTH} characters, truncated`,
 };
@@ -706,10 +706,9 @@ export function normalizeImportRows(
     const rawRating = cell(mapping.rating);
     const mappedRating = rawRating ? ownValue(ratingMapping, rawRating) : undefined;
     const rating = mappedRating && mappedRating !== "skip" ? Number(mappedRating) : null;
-    // Zero and negative mean unrated (Mountain Project uses -1), and a value the
-    // climber chose to leave unrated is a choice rather than a defect.
+    // Zero and negative mean unrated in supported exports; Mountain Project uses -1.
     const ratingNum = Number(rawRating);
-    if (rawRating && rating === null && !(Number.isFinite(ratingNum) && ratingNum <= 5))
+    if (rawRating && rating === null && !(Number.isFinite(ratingNum) && ratingNum <= 0))
       warn("rating", rowIndex, `"${rawRating}"`);
 
     const rawComment = textCell(mapping.comment);

@@ -81,7 +81,8 @@ it("returns the upstream failure as a message the wizard can show", async () => 
     vi.fn<typeof fetch>().mockResolvedValue(new Response("", { status: 404 })),
   );
   const result = await GET(request());
-  expect(result.status).toBe(502);
+  // A mistyped profile is the caller's error, not an upstream outage.
+  expect(result.status).toBe(404);
   expect(await result.json()).toEqual({
     error: "That Mountain Project profile could not be found. Check the user ID or profile link.",
   });

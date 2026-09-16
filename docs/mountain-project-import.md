@@ -46,8 +46,9 @@ Mountain Project's personal rating stops at 4 stars where Betabook's is 5, and
 allows half stars. The rating step spreads the scale rather than compressing it
 (4 → 5, 3 → 4, 2 → 2, 1 → 1, halves rounded, -1 unrated) and lists every star
 value in the file so the climber can move any of them. Five-star sources keep
-their own numbers. A value that is not a rating at all still raises the existing
-warning; a value the climber chose to leave unrated does not.
+their own numbers. Any value that does not become a rating is reported, whether
+it is unreadable or simply off the source's own scale; only an explicit unrated
+marker (zero or negative) is silent.
 
 Ticks are not all sends. `Send`, `Flash`, `Onsight`, `Redpoint`, `Pinkpoint` and
 `Lead` map to ascent styles; `TR`, `Follow`, `Solo`, `Attempt`, `Fell` and `Hung`
@@ -73,21 +74,28 @@ Climb names are still looked up exactly, through the indexed
 close spellings — leading `The`/`A`, apostrophe characters, separators,
 punctuation and accents — which are looked up through that same indexed query
 rather than by widening it. A candidate found that way is only accepted when the
-row's area or one of its hints agrees, and it always lands in review naming both
-spellings; without that agreement it is offered for manual choice instead. Rows
-whose name matches directly never consult these candidates, so exact sources are
-unaffected.
+row's area column or one of its _specific_ hints agrees — at most the three
+most specific segments of a path, never its broadest, since a state or country
+would confirm almost anything, and a chosen preferred area can be that broad
+too. Such a match always lands in review naming both spellings; without
+agreement it is offered for manual choice instead. Each recovered spelling keeps
+its own server-side total, so a capped list is never mistaken for a complete
+one. Rows whose name matches directly never consult these candidates, so exact
+sources are unaffected. The pass is bounded at 500 names, each costing at most
+eight extra lookups, deduplicated across names.
 
 ## Limits and failures
 
 The proxy stops at the shared 10 MB import limit, both on an advertised
 `Content-Length` and while streaming, and the browser applies the same cap plus
 the 50,000-row limit. Each upstream request has its own timeout (15s for the name
-lookup, 45s for the export) and the route has a two-minute deadline; cancelling
-in the form aborts the upstream request. A missing profile, a rate limit, a
-non-CSV body, an export that redirects, and an empty file each produce a distinct
-message, and format failures tell the user to upload Mountain Project's CSV
-export instead of contacting support first.
+lookup, 45s for the export) covering the body rather than only the headers,
+which in Workers is where a fetch resolves; the route adds a two-minute deadline,
+and cancelling in the form aborts the download in progress. A missing profile, a
+rate limit, a non-CSV body, an export that redirects, and an empty file each
+produce a distinct message and carry their own status, so a mistyped profile
+answers 404 rather than reading as an upstream outage. Format failures tell the
+user to upload Mountain Project's CSV export instead of contacting support first.
 
 The repeated-date review, duplicate handling, batch receipts and atomic
 send/journal writes are the shared ones. The Journal tour remains accurate: this

@@ -27,9 +27,10 @@ import {
   areaLookupsNeeded,
   distinctClimbNames,
   matchRows,
+  buildLooseIndex,
+  looseLookupNames,
   looseLookupsNeeded,
   mergeCandidates,
-  mergeLooseCandidates,
   resolveRows,
   summarizeResolved,
   type CandidateIndex,
@@ -572,20 +573,21 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
 
     // The lookup stays the indexed name query; matching decides what to trust.
     const lookups = looseLookupsNeeded(valid, index);
-    const variantChunks = chunk(lookups.flatMap((lookup) => lookup.variants));
+    const variantChunks = chunk(looseLookupNames(lookups));
     total += variantChunks.length;
-    let loose: CandidateIndex = new Map();
+    const recovered: ClimbCandidate[] = [];
     for (const variants of variantChunks) {
       if (
         !(await request(
           () => resolveImportClimbs(variants),
           (found) => {
-            loose = mergeLooseCandidates(loose, lookups, found);
+            for (const candidate of found) recovered.push(candidate);
           },
         ))
       )
         return;
     }
+    const loose = buildLooseIndex(lookups, recovered);
 
     setCandidateIndex(index);
     setLooseIndex(loose);

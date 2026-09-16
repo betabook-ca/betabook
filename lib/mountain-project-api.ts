@@ -13,24 +13,52 @@ const REDIRECTS = new Set([301, 302, 303, 307, 308]);
 /** Tick-export paths ignore the slug, so an unresolved name still downloads. */
 const FALLBACK_SLUG = "ticks";
 
-async function request(path: string, signal: AbortSignal, timeoutMs: number) {
+/** Carries the status the route answers with, so a mistyped profile is not
+ * recorded as an upstream outage. */
+export class MountainProjectError extends ActionError {
+  public status: number;
+  public constructor(message: string, status = 502) {
+    super(message);
+    this.name = "MountainProjectError";
+    this.status = status;
+  }
+}
+
+/** The deadline and the caller's cancellation have to cover reading the body:
+ * in Workers a fetch resolves once the headers arrive, while the export is
+ * still streaming. */
+async function request<T>(
+  path: string,
+  signal: AbortSignal,
+  timeoutMs: number,
+  read: (response: Response, signal: AbortSignal) => Promise<T>,
+): Promise<T> {
   signal.throwIfAborted();
   const controller = new AbortController();
   const cancel = () => controller.abort();
   signal.addEventListener("abort", cancel, { once: true });
   const timeout = setTimeout(cancel, timeoutMs);
   try {
-    return await fetch(`${ORIGIN}${path}`, {
+    const response = await fetch(`${ORIGIN}${path}`, {
       credentials: "omit",
       // Workers rejects "error" before fetching; callers judge each redirect.
       redirect: "manual",
       signal: controller.signal,
     });
-  } catch {
+    try {
+      return await read(response, controller.signal);
+    } finally {
+      if (!response.body?.locked) await response.body?.cancel().catch(() => {});
+    }
+  } catch (error) {
     signal.throwIfAborted();
+    if (error instanceof MountainProjectError) throw error;
     if (controller.signal.aborted)
-      throw new ActionError("Mountain Project took too long to respond. Please try again.");
-    throw new ActionError(
+      throw new MountainProjectError(
+        "Mountain Project took too long to respond. Please try again.",
+        504,
+      );
+    throw new MountainProjectError(
       `Couldn't connect to Mountain Project. Please try again, or email ${SUPPORT_EMAIL}.`,
     );
   } finally {
@@ -40,40 +68,45 @@ async function request(path: string, signal: AbortSignal, timeoutMs: number) {
 }
 
 function checkStatus(response: Response) {
-  if (response.status === 404) throw new ActionError(NOT_FOUND_ERROR);
+  if (response.status === 404) throw new MountainProjectError(NOT_FOUND_ERROR, 404);
   if (response.status === 429)
-    throw new ActionError(
+    throw new MountainProjectError(
       "Mountain Project is receiving too many requests. Wait a moment and try again.",
+      429,
     );
   if (response.status === 403)
-    throw new ActionError(
+    throw new MountainProjectError(
       `Mountain Project would not share this tick list. Download it as a CSV and upload that file instead, or email ${SUPPORT_EMAIL}.`,
+      403,
     );
   if (response.status >= 500)
-    throw new ActionError("Mountain Project is temporarily unavailable. Please try again later.");
+    throw new MountainProjectError(
+      "Mountain Project is temporarily unavailable. Please try again later.",
+    );
 }
 
 /** Cosmetic: an unfamiliar redirect falls back instead of failing the import. */
 async function resolveUsername(userId: string, signal: AbortSignal): Promise<string> {
-  const response = await request(`/user/${userId}`, signal, 15_000);
-  await response.body?.cancel();
-  checkStatus(response);
-  if (!REDIRECTS.has(response.status)) return "";
-  const location = response.headers.get("Location") ?? "";
-  const match = new RegExp(
-    `^(?:${ORIGIN})?/user/${userId}/([a-zA-Z0-9._~-]{1,120})/?(?:[?#]|$)`,
-  ).exec(location);
-  return match ? match[1] : "";
+  return request(`/user/${userId}`, signal, 15_000, async (response) => {
+    await response.body?.cancel().catch(() => {});
+    checkStatus(response);
+    if (!REDIRECTS.has(response.status)) return "";
+    const location = response.headers.get("Location") ?? "";
+    const match = new RegExp(
+      `^(?:${ORIGIN})?/user/${userId}/([a-zA-Z0-9._~-]{1,120})/?(?:[?#]|$)`,
+    ).exec(location);
+    return match ? match[1] : "";
+  });
 }
 
-async function readCsv(response: Response): Promise<string> {
+async function readCsv(response: Response, signal: AbortSignal): Promise<string> {
   checkStatus(response);
-  if (REDIRECTS.has(response.status) || !response.ok) throw new ActionError(FORMAT_ERROR);
+  if (REDIRECTS.has(response.status) || !response.ok) throw new MountainProjectError(FORMAT_ERROR);
   if (!response.headers.get("Content-Type")?.toLowerCase().startsWith("text/csv"))
-    throw new ActionError(FORMAT_ERROR);
-  if (!response.body) throw new ActionError(FORMAT_ERROR);
+    throw new MountainProjectError(FORMAT_ERROR);
+  if (!response.body) throw new MountainProjectError(FORMAT_ERROR);
   if (Number(response.headers.get("Content-Length")) > MAX_IMPORT_FILE_BYTES)
-    throw new ActionError(SIZE_ERROR);
+    throw new MountainProjectError(SIZE_ERROR, 413);
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let csv = "";
@@ -81,16 +114,17 @@ async function readCsv(response: Response): Promise<string> {
   try {
     for (;;) {
       const { done, value } = await reader.read();
+      signal.throwIfAborted();
       if (done) break;
       bytes += value.byteLength;
-      if (bytes > MAX_IMPORT_FILE_BYTES) throw new ActionError(SIZE_ERROR);
+      if (bytes > MAX_IMPORT_FILE_BYTES) throw new MountainProjectError(SIZE_ERROR, 413);
       csv += decoder.decode(value, { stream: true });
     }
     csv += decoder.decode();
   } finally {
     await reader.cancel().catch(() => {});
   }
-  if (!csv.trim()) throw new ActionError(FORMAT_ERROR);
+  if (!csv.trim()) throw new MountainProjectError(FORMAT_ERROR);
   return csv;
 }
 
@@ -103,19 +137,17 @@ export async function fetchMountainProjectTicks(
   try {
     userId = parseMountainProjectUserId(input);
   } catch (error) {
-    throw new ActionError(
+    throw new MountainProjectError(
       error instanceof Error ? error.message : "Enter your Mountain Project user ID.",
+      400,
     );
   }
   const username = await resolveUsername(userId, signal);
-  const response = await request(
+  const csv = await request(
     `/user/${userId}/${username || FALLBACK_SLUG}/tick-export`,
     signal,
     45_000,
+    readCsv,
   );
-  try {
-    return { userId, username, csv: await readCsv(response) };
-  } finally {
-    if (!response.body?.locked) await response.body?.cancel();
-  }
+  return { userId, username, csv };
 }

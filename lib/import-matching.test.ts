@@ -12,10 +12,11 @@ import {
   impliedGrades,
   matchRow,
   matchRows,
+  buildLooseIndex,
+  looseLookupNames,
   looseLookupsNeeded,
   looseNameKey,
   mergeCandidates,
-  mergeLooseCandidates,
   resolveRows,
   summarizeResolved,
   type MatchOptions,
@@ -530,6 +531,14 @@ describe("climbNameVariants", () => {
   });
 });
 
+describe("looseLookupNames", () => {
+  it("asks for each spelling once across every name", () => {
+    expect(
+      looseLookupNames([{ variants: ["The Prow", "Prow"] }, { variants: ["the prow", "Nose"] }]),
+    ).toEqual(["The Prow", "Prow", "Nose"]);
+  });
+});
+
 describe("looseLookupsNeeded", () => {
   it("asks only for names the catalog lookup could not place", () => {
     const rows = [
@@ -565,7 +574,7 @@ describe("matching a close spelling", () => {
     total: 1,
   });
   const lookups = looseLookupsNeeded([row({ climbName: "Prow" })], new Map());
-  const loose = mergeLooseCandidates(new Map(), lookups, [PROW]);
+  const loose = buildLooseIndex(lookups, [PROW]);
   const options = { ...NO_PREFERENCE, looseIndex: loose };
 
   it("files a variant match under the name the file used", () => {
@@ -581,10 +590,68 @@ describe("matching a close spelling", () => {
     expect(resolveRows([row({ climbName: "Prow" })], [match], new Map())[0].state).toBe("review");
   });
 
-  it("matches an area hint whose punctuation differs", () => {
-    const hinted = row({ climbName: "Prow", areaHints: ["** Bouldering in Bishop", "(a) Bishop"] });
+  it("matches a specific area hint whose punctuation differs", () => {
+    const hinted = row({
+      climbName: "Prow",
+      areaHints: ["(a) Happy Boulders", "Bishop", "California"],
+    });
     const match = matchRow(hinted, new Map(), options);
     expect(match.kind).toBe("inferred");
+  });
+
+  it("refuses a state-sized hint as the only confirmation", () => {
+    // Leaf first, so "United States" is the broadest segment of the path and
+    // would otherwise confirm any close spelling anywhere in the country.
+    const hinted = row({
+      climbName: "Prow",
+      areaHints: ["Nowhere Wall", "Nowhere Crag", "United States"],
+    });
+    expect(matchRow(hinted, new Map(), options).kind).toBe("ambiguous");
+  });
+
+  it("counts each recovered spelling separately instead of trusting the first", () => {
+    const hyphen = row({ climbName: "The Left-Hand Crack", areaHints: ["Happy Boulders"] });
+    const lookups = looseLookupsNeeded([hyphen], new Map());
+    const variantKeys = lookups[0].variants.map(foldClimbName);
+    expect(variantKeys).toContain("left-hand crack");
+    expect(variantKeys).toContain("the left hand crack");
+
+    const only = candidate({
+      id: 50,
+      name: "Left-Hand Crack",
+      key: "left-hand crack",
+      areaId: 4001,
+      areaName: "Happy Boulders",
+      ancestors: [US, CALIFORNIA, BISHOP],
+      total: 1,
+    });
+    // One of 300 the server capped, so the recovered list cannot be trusted.
+    const capped = candidate({
+      id: 51,
+      name: "The Left Hand Crack",
+      key: "the left hand crack",
+      areaId: 9001,
+      areaName: "Elsewhere",
+      total: 300,
+    });
+    const match = matchRow(hyphen, new Map(), {
+      ...NO_PREFERENCE,
+      looseIndex: buildLooseIndex(lookups, [only, capped]),
+    });
+    expect(match.kind).toBe("ambiguous");
+    if (match.kind !== "ambiguous") throw new Error("expected an ambiguous match");
+    expect(match.total).toBe(301);
+    expect(match.truncated).toBe(true);
+    expect(match.conflict).toContain("spelled similarly");
+  });
+
+  it("refuses a preferred area as the only confirmation", () => {
+    const match = matchRow(row({ climbName: "Prow" }), new Map(), {
+      gradeScale: "native",
+      preferredAreas: [CALIFORNIA],
+      looseIndex: loose,
+    });
+    expect(match.kind).toBe("ambiguous");
   });
 
   it("refuses it when nothing confirms the location", () => {
@@ -616,11 +683,9 @@ describe("matching a close spelling", () => {
       areaName: "Happy Boulders",
       ancestors: [US, CALIFORNIA, BISHOP],
     });
-    const decoy = mergeLooseCandidates(
-      new Map(),
-      looseLookupsNeeded([row({ climbName: "The Wave" })], new Map()),
-      [shortened],
-    );
+    const decoy = buildLooseIndex(looseLookupsNeeded([row({ climbName: "The Wave" })], new Map()), [
+      shortened,
+    ]);
     expect(decoy.get("the wave")?.map((c) => c.id)).toEqual([99]);
 
     const hinted = row({ areaHints: ["Bishop"] });

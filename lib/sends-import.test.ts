@@ -951,7 +951,7 @@ describe("normalizeImportRows", () => {
     expect(warnings).toEqual([
       {
         field: "rating",
-        message: "invalid rating, imported without a rating",
+        message: "imported without a rating",
         count: 1,
         examples: ['Row 3: "banana"'],
       },
@@ -1328,11 +1328,18 @@ describe("normalizeImportRows with a rating mapping", () => {
     expect(warnings).toEqual([]);
   });
 
-  it("honors a climber's own choice to drop a value without calling it invalid", () => {
-    const { valid, warnings } = normalizeRows(csv([row({ Rating: "4" })]), {
-      ratings: { "4": "skip" },
+  it("reports a star value that is off the source's own scale", () => {
+    const { valid, warnings } = normalizeRows(csv([row({ Rating: "5" })]), {
+      ratings: guessRatingMapping(["5"], "mountainproject"),
     });
     expect(valid[0].rating).toBeNull();
-    expect(warnings).toEqual([]);
+    expect(warnings).toEqual([
+      {
+        field: "rating",
+        message: "imported without a rating",
+        count: 1,
+        examples: ['Row 1: "5"'],
+      },
+    ]);
   });
 });
