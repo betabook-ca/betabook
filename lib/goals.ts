@@ -2,15 +2,11 @@ import { z } from "zod";
 
 import { ActionError } from "@/lib/action-result";
 import { nativeGradeArray, type ClimbType } from "@/lib/grades";
+import { normalizeTags } from "@/lib/journal";
+import { isRealIsoDate } from "@/lib/sends";
 
 export const MAX_ACTIVE_GOALS = 5;
-const isoDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .refine((value) => {
-    const date = new Date(`${value}T12:00:00Z`);
-    return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value;
-  });
+const isoDate = z.string().refine(isRealIsoDate, "Choose a valid date.");
 function validGradeMatch(value: { gradeMatch: string; kind: string; grade: number | null }) {
   return value.gradeMatch === "exact" || (value.kind === "volume" && value.grade !== null);
 }
@@ -30,12 +26,27 @@ export const goalInputSchema = z
   .object({
     kind: z.enum(["volume", "grade", "training", "days", "new-areas"]),
     target: z.number().int().min(1).max(1000),
+    tags: z
+      .unknown()
+      .transform((value, ctx) => {
+        try {
+          return normalizeTags(value).sort();
+        } catch (error) {
+          ctx.addIssue({
+            code: "custom",
+            message: error instanceof Error ? error.message : "Invalid tags",
+          });
+          return z.NEVER;
+        }
+      })
+      .optional(),
     discipline: z.enum(["boulder", "sport", "trad"]).nullable(),
     grade: z.number().int().min(0).nullable(),
     gradeMatch: z.enum(["exact", "at-least"]).default("exact"),
     timeframe: z.enum(["week", "month", "year", "custom"]),
     startDate: isoDate.optional(),
     endDate: isoDate,
+    recurringEndDate: isoDate.nullable().optional(),
     repeat: z.enum(["none", "week", "month", "year"]),
     timezone: z
       .string()
@@ -61,6 +72,12 @@ export const goalInputSchema = z
         message: "End date must be on or after start date.",
         path: ["endDate"],
       });
+    if (value.repeat === "none" && value.recurringEndDate != null)
+      ctx.addIssue({
+        code: "custom",
+        message: "Only recurring goals have a recurrence end date.",
+        path: ["recurringEndDate"],
+      });
     if (!validGradeMatch(value))
       ctx.addIssue({ code: "custom", message: "Choose a grade for an or-harder volume goal." });
     const climbing = value.kind === "volume" || value.kind === "grade";
@@ -84,6 +101,8 @@ type GoalKind = GoalInput["kind"];
 export type GoalDefinition = {
   id: number;
   archived?: boolean;
+  recurringEndDate?: string | null;
+  tags?: string[];
   userId: string;
   kind: GoalKind;
   target: number;
@@ -97,6 +116,8 @@ export type GoalDefinition = {
   timezone: string;
 };
 export type GoalProgress = GoalDefinition & {
+  /** Current civil date in the live goal’s saved timezone, supplied by the server. */
+  today?: string;
   missed?: boolean;
   needsAction?: boolean;
   periodStart: string;
@@ -130,13 +151,24 @@ export type GoalPage = {
 };
 export type GoalContribution = { id: number; name: string; type: "climb" | "area" };
 
+// Cache formatter configuration, never a date result; civil midnight must remain live.
+const goalDateFormatters = new Map<string, Intl.DateTimeFormat>();
 export function goalToday(timezone: string, now = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(now);
+  let formatter = goalDateFormatters.get(timezone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    if (goalDateFormatters.size >= 32) {
+      const oldest = goalDateFormatters.keys().next().value;
+      if (oldest !== undefined) goalDateFormatters.delete(oldest);
+    }
+    goalDateFormatters.set(timezone, formatter);
+  }
+  const parts = formatter.formatToParts(now);
   return ["year", "month", "day"]
     .map((type) => parts.find((part) => part.type === type)?.value)
     .join("-");
@@ -165,7 +197,7 @@ export function goalWindow(
   date.setUTCMonth(date.getUTCMonth() + 1, 0);
   return { startDate: `${today.slice(0, 7)}-01`, endDate: date.toISOString().slice(0, 10) };
 }
-export function goalTitle(
+function baseGoalTitle(
   goal: Pick<GoalDefinition, "kind" | "target" | "discipline" | "grade" | "repeat" | "gradeMatch">,
 ) {
   const grade =
@@ -179,6 +211,18 @@ export function goalTitle(
   if (goal.kind === "new-areas")
     return `Visit ${goal.target} new ${goal.target === 1 ? "area" : "areas"}${suffix}`;
   return `Train ${goal.target} ${goal.target === 1 ? "time" : "times"}${suffix}`;
+}
+
+export type GoalTitleInput = Pick<
+  GoalDefinition,
+  "kind" | "target" | "discipline" | "grade" | "repeat" | "gradeMatch" | "tags"
+>;
+
+export function goalTitle(goal: GoalTitleInput) {
+  return (
+    baseGoalTitle(goal) +
+    (goal.tags?.length ? ` · ${goal.tags.map((tag) => `#${tag}`).join(" ")}` : "")
+  );
 }
 
 export type GoalHistoryPage = {

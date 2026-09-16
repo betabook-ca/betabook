@@ -16,3 +16,4 @@ export * from "./profile-share-links";
 export * from "./goals";
 export * from "./goal-periods";
 export * from "./goal-achievements";
+export * from "./goal-completions";

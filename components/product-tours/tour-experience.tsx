@@ -154,7 +154,13 @@ export function TourExperience({
             tabIndex={0}
             className="min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain rounded-panel p-2 focus-visible:status-focused"
           >
-            <Page section={steps[index].section} mode={navigation.mode} href={href} steps={steps} />
+            <Page
+              stepId={steps[index].id}
+              section={steps[index].section}
+              mode={navigation.mode}
+              href={href}
+              steps={steps}
+            />
           </div>
           {/* oxlint-enable jsx-a11y/no-noninteractive-tabindex */}
           <TourOverlay
