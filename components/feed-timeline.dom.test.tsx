@@ -31,6 +31,7 @@ const day: FeedDay = {
   sessions: 0,
   repeats: 0,
   training: 0,
+  goals: 0,
   activities: [activity],
 };
 const friend: FeedDay = {
@@ -250,3 +251,29 @@ it.each([
       expect(screen.queryByText("V4", { exact: true })).not.toBeInTheDocument();
   },
 );
+
+it("renders an accomplished goal with its author and date without a misleading journal link", () => {
+  const completion = {
+    ...activity,
+    kind: "goal" as const,
+    goalTitle: "Train 8 times",
+    climbId: null,
+    climbName: null,
+    climbType: null,
+    climbGrade: null,
+    areaId: null,
+    body: null,
+    companions: [],
+  };
+  render(
+    <FeedTimeline days={[{ ...day, sends: 0, goals: 1, activities: [completion] }]} view="all" />,
+  );
+  const card = screen.getByRole("article", { name: "Train 8 times" });
+  expect(within(card).getByText("Goal accomplished")).toBeVisible();
+  expect(within(card).getByRole("link", { name: "Alex Rivera" })).toHaveAttribute(
+    "href",
+    "/users/alex",
+  );
+  expect(within(card).queryByRole("link", { name: /View activity/ })).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: /See .* more/ })).not.toBeInTheDocument();
+});

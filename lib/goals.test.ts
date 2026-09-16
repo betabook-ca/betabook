@@ -106,3 +106,32 @@ it("clamps the missed-goal decision month at short months and leap years", async
   expect(missedGoalArchiveDate("2028-01-30")).toBe("2028-02-29");
   expect(missedGoalArchiveDate("2026-12-14")).toBe("2027-01-15");
 });
+
+it("normalizes goal hashtag filters and rejects invalid or excessive hashtags", () => {
+  const input = {
+    kind: "training",
+    target: 1,
+    discipline: null,
+    grade: null,
+    timeframe: "month",
+    repeat: "none",
+    endDate: "2026-09-30",
+    timezone: "UTC",
+  };
+  expect(
+    goalInputSchema.parse({ ...input, tags: [" Strength ", "HANGBOARD", "strength"] }).tags,
+  ).toEqual(["hangboard", "strength"]);
+  for (const tags of [
+    ["bad tag"],
+    ["#strength"],
+    ["x".repeat(25)],
+    Array.from({ length: 9 }, (_, i) => `tag-${i}`),
+  ])
+    expect(goalInputSchema.safeParse({ ...input, tags }).success).toBe(false);
+});
+
+it("keeps civil dates current across midnight when reusing a timezone formatter", () => {
+  expect(goalToday("Pacific/Kiritimati", new Date("2026-08-31T09:59:00Z"))).toBe("2026-08-31");
+  expect(goalToday("Pacific/Kiritimati", new Date("2026-08-31T10:00:00Z"))).toBe("2026-09-01");
+  expect(goalToday("America/Vancouver", new Date("2026-08-31T10:00:00Z"))).toBe("2026-08-31");
+});

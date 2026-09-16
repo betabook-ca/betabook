@@ -42,7 +42,7 @@ export default function ClimbingLogbookPage() {
             },
             {
               title: "Journal",
-              body: "Sessions, repeats and training, with tags and the friends you climbed with. One audience setting covers your whole journal.",
+              body: "Sessions, repeats and training, with tags and the friends you climbed with. One audience setting covers your journal and finished goals shared in friends’ feeds.",
             },
             {
               title: "Projects",

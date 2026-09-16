@@ -64,6 +64,7 @@ function day(
     repeats: activities.filter((a) => a.kind === "repeat").length,
     sessions: activities.filter((a) => a.kind === "session").length,
     training: activities.filter((a) => a.kind === "training").length,
+    goals: activities.filter((a) => a.kind === "goal").length,
     activities,
     ...extra,
   };

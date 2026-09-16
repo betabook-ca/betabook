@@ -1,7 +1,7 @@
 import { env } from "cloudflare:test";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
-import { saveGoal, deleteGoal } from "@/actions/goals";
+import { saveGoal, deleteGoal, endRecurringGoal } from "@/actions/goals";
 import { createDb } from "@/db/client";
 import { goals } from "@/db/schema";
 import { seedFixtureUser, seedFixtureJournalEntry } from "@/test/fixtures";
@@ -406,7 +406,7 @@ it("does not expire Pacific goals early when a new goal uses UTC", async () => {
 });
 
 it("archives only an owned missed goal within its decision window", async () => {
-  const { archiveMissedGoal } = await import("./goals");
+  const { archiveGoal } = await import("./goals");
   const [source] = await db
     .insert(goals)
     .values({
@@ -421,16 +421,16 @@ it("archives only an owned missed goal within its decision window", async () => 
     })
     .returning();
   identity.id = "other";
-  expect((await archiveMissedGoal(source.id)).ok).toBe(false);
+  expect((await archiveGoal(source.id)).ok).toBe(false);
   identity.id = "owner";
-  expect((await archiveMissedGoal(source.id)).ok).toBe(true);
+  expect((await archiveGoal(source.id)).ok).toBe(true);
   expect((await db.select().from(goals))[0]).toMatchObject({
     target: 8,
     startDate: "2026-08-01",
     endDate: "2026-08-31",
     archiveToken: expect.any(String),
   });
-  expect((await archiveMissedGoal(source.id)).ok).toBe(false);
+  expect((await archiveGoal(source.id)).ok).toBe(false);
   expect((await saveGoal(null, input, source.id)).ok).toBe(false);
 });
 
@@ -497,8 +497,9 @@ it.each(["2023-01-01", null])(
     const { eq } = await import("drizzle-orm");
     const { climbs, journalEntries } = await import("@/db/schema");
     const { seedFixtureTree, seedFixtureSend } = await import("@/test/fixtures");
-    const { getGoalPage, getGoalContributions } = await import("@/db/queries/goals");
-    const { acknowledgeGoalAchievements, archiveMissedGoal } = await import("@/actions/goals");
+    const { getGoalPage, getGoalContributions, refreshGoalAchievements } =
+      await import("@/db/queries/goals");
+    const { acknowledgeGoalAchievements } = await import("@/actions/goals");
     await seedFixtureTree(db);
     const milestone = { ...input, kind: "grade", target: 1, discipline: "boulder", grade: 5 };
     const saved = await saveGoal(null, milestone);
@@ -511,6 +512,7 @@ it.each(["2023-01-01", null])(
       sent: true,
       isAscent: true,
     });
+    await refreshGoalAchievements(db, "owner");
     const before = await getGoalPage(db, "owner", "owner", "completed");
     expect(before.goals).toEqual([
       expect.objectContaining({ id: saved.value, progress: 1, completedDate: "2026-09-05" }),
@@ -533,10 +535,9 @@ it.each(["2023-01-01", null])(
     // The completed milestone must not consume one of the five active slots.
     for (let i = 0; i < 5; i += 1) expect((await saveGoal(null, input)).ok).toBe(true);
     vi.setSystemTime(new Date("2026-10-05T12:00:00Z"));
-    expect(
-      (await getGoalPage(db, "owner", "owner", "active")).goals.map((g) => g.id),
-    ).not.toContain(saved.value);
-    expect((await archiveMissedGoal(saved.value)).ok).toBe(false);
+    expect((await getGoalPage(db, "owner", "owner", "active")).goals.map((g) => g.id)).toContain(
+      saved.value,
+    );
     expect((await saveGoal(null, milestone, saved.value)).ok).toBe(false);
     // Completion still follows the qualifying log, not the stored acknowledgement.
     await db.delete(journalEntries).where(eq(journalEntries.climbId, 1));
@@ -576,4 +577,181 @@ it("preserves eligibility for ordinary edits but rechecks changed milestone crit
   if (!trainingGoal.ok) throw Error(trainingGoal.error);
   expect((await saveGoal(trainingGoal.value, milestone)).ok).toBe(false);
   expect((await saveGoal(null, milestone)).ok).toBe(false);
+});
+
+it("archives finished goals without deleting their achievement or consuming active slots", async () => {
+  const { archiveGoal } = await import("@/actions/goals");
+  const { getGoalOverview } = await import("@/db/queries/goals");
+  await seedFixtureJournalEntry(db, { userId: "owner", kind: "training", entryDate: "2026-09-02" });
+  const created = await saveGoal(null, { ...input, target: 1 });
+  if (!created.ok) throw Error(created.error);
+  identity.id = "other";
+  expect((await archiveGoal(created.value)).ok).toBe(false);
+  identity.id = "owner";
+  expect((await archiveGoal(created.value)).ok).toBe(true);
+  const overview = await getGoalOverview(db, "owner", "owner");
+  expect(overview.active.goals).toEqual([]);
+  expect(overview.completed.goals).toMatchObject([
+    { id: created.value, archived: true, completedDate: "2026-09-02" },
+  ]);
+  expect((await saveGoal(created.value, input)).ok).toBe(false);
+});
+
+it("counts only sessions matching a goal's saved hashtags", async () => {
+  await seedFixtureJournalEntry(db, {
+    userId: "owner",
+    kind: "training",
+    entryDate: "2026-09-02",
+    tags: ["strength"],
+  });
+  await seedFixtureJournalEntry(db, { userId: "owner", kind: "training", entryDate: "2026-09-03" });
+  const created = await saveGoal(null, { ...input, tags: ["hangboard", "strength"] });
+  if (!created.ok) throw Error(created.error);
+  const { getGoalOverview } = await import("@/db/queries/goals");
+  let overview = await getGoalOverview(db, "owner", "owner");
+  expect(overview.active.goals[0]).toMatchObject({ progress: 0, completedDate: null });
+  await seedFixtureJournalEntry(db, {
+    userId: "owner",
+    kind: "training",
+    entryDate: "2026-09-04",
+    tags: ["hangboard", "strength"],
+  });
+  overview = await getGoalOverview(db, "owner", "owner");
+  expect(overview.active.goals[0]).toMatchObject({ progress: 1, tags: ["hangboard", "strength"] });
+});
+
+it("preserves a recurring period's hashtag filter when the next month changes", async () => {
+  const saved = await saveGoal(null, { ...input, repeat: "month", tags: ["hangboard"] });
+  if (!saved.ok) throw Error(saved.error);
+  await seedFixtureJournalEntry(db, {
+    userId: "owner",
+    kind: "training",
+    entryDate: "2026-09-02",
+    tags: ["hangboard"],
+  });
+  await seedFixtureJournalEntry(db, {
+    userId: "owner",
+    kind: "training",
+    entryDate: "2026-09-03",
+    tags: ["strength"],
+  });
+  vi.setSystemTime(new Date("2026-10-02T12:00:00Z"));
+  expect((await saveGoal(saved.value, { ...input, repeat: "month", tags: ["strength"] })).ok).toBe(
+    true,
+  );
+  const { getRecurringGoalHistory } = await import("@/db/queries/goals");
+  const history = await getRecurringGoalHistory(db, "owner", "owner", saved.value);
+  expect(history.periods.find((period) => period.periodStart === "2026-09-01")).toMatchObject({
+    progress: 1,
+    tags: ["hangboard"],
+  });
+});
+
+it("keeps hashtag-filtered goals within the five-active limit", async () => {
+  await seedFixtureJournalEntry(db, { userId: "owner", kind: "training", entryDate: "2026-09-02" });
+  const tagged = { ...input, target: 1, tags: ["hangboard"] };
+  for (let i = 0; i < 5; i += 1) expect((await saveGoal(null, tagged)).ok).toBe(true);
+  expect((await saveGoal(null, tagged)).ok).toBe(false);
+  await seedFixtureJournalEntry(db, {
+    userId: "owner",
+    kind: "training",
+    entryDate: "2026-09-03",
+    tags: ["hangboard"],
+  });
+  expect((await saveGoal(null, tagged)).ok).toBe(true);
+});
+
+it("ends weekly routines on a chosen inclusive date and releases capacity at local midnight", async () => {
+  const results = await Promise.all(
+    Array.from({ length: 5 }, () =>
+      saveGoal(null, {
+        ...input,
+        repeat: "week",
+        timeframe: "week",
+        timezone: "America/Los_Angeles",
+      }),
+    ),
+  );
+  const routine = results[0];
+  if (!routine.ok) throw Error(routine.error);
+  expect((await endRecurringGoal(routine.value, "2026-09-10")).ok).toBe(false);
+  expect((await endRecurringGoal(routine.value, "2026-02-30")).ok).toBe(false);
+  identity.id = "other";
+  expect((await endRecurringGoal(routine.value, "2026-09-11")).ok).toBe(false);
+  identity.id = "owner";
+  expect((await endRecurringGoal(routine.value, "2026-09-11")).ok).toBe(true);
+  vi.setSystemTime(new Date("2026-09-12T06:59:59Z"));
+  expect((await saveGoal(null, input)).ok).toBe(false);
+  vi.setSystemTime(new Date("2026-09-12T07:00:00Z"));
+  expect((await saveGoal(null, input)).ok).toBe(true);
+  expect((await endRecurringGoal(routine.value, "2026-10-01")).ok).toBe(false);
+  expect((await saveGoal(routine.value, { ...input, repeat: "week" })).ok).toBe(false);
+  const { getGoalOverview } = await import("@/db/queries/goals");
+  const overview = await getGoalOverview(db, "owner", "owner");
+  expect(overview.active.goals.some((g) => g.id === routine.value)).toBe(false);
+  expect(overview.completed.goals).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        id: routine.value,
+        recurringEndDate: "2026-09-11",
+        periodEnd: "2026-09-11",
+        progress: 0,
+      }),
+    ]),
+  );
+});
+
+it("retains scheduled stops through edits and preserves old cadence history", async () => {
+  const [routine] = await db
+    .insert(goals)
+    .values({
+      userId: "owner",
+      kind: "training",
+      target: 1,
+      timeframe: "week",
+      repeat: "week",
+      startDate: "2026-08-31",
+      endDate: "2026-09-06",
+      timezone: "UTC",
+    })
+    .returning();
+  await seedFixtureJournalEntry(db, { userId: "owner", kind: "training", entryDate: "2026-09-01" });
+  expect((await endRecurringGoal(routine.id, "2026-09-30")).ok).toBe(true);
+  expect((await saveGoal(routine.id, { ...input, repeat: "month" })).ok).toBe(true);
+  expect((await db.select().from(goals))[0].recurringEndDate).toBe("2026-09-30");
+  expect((await endRecurringGoal(routine.id, "2026-09-11")).ok).toBe(true);
+  const { getGoalOverview } = await import("@/db/queries/goals");
+  const overview = await getGoalOverview(db, "owner", "owner", new Date("2027-03-01T12:00:00Z"));
+  expect(overview.active.goals).toHaveLength(0);
+  expect(overview.completed.goals[0].recurring?.recent).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ repeat: "week", periodStart: "2026-08-31", progress: 1 }),
+    ]),
+  );
+});
+
+it("creates a routine with its end date in the same save, then allows changing or removing it", async () => {
+  const result = await saveGoal(null, {
+    ...input,
+    repeat: "month",
+    recurringEndDate: "2026-09-20",
+  });
+  if (!result.ok) throw Error(result.error);
+  expect((await db.select().from(goals))[0].recurringEndDate).toBe("2026-09-20");
+  expect(
+    (await saveGoal(result.value, { ...input, repeat: "month", recurringEndDate: "2026-09-30" }))
+      .ok,
+  ).toBe(true);
+  expect((await db.select().from(goals))[0].recurringEndDate).toBe("2026-09-30");
+  expect(
+    (await saveGoal(result.value, { ...input, repeat: "month", recurringEndDate: null })).ok,
+  ).toBe(true);
+  expect((await db.select().from(goals))[0].recurringEndDate).toBeNull();
+  expect(
+    (await saveGoal(null, { ...input, repeat: "week", recurringEndDate: "2026-09-10" })).ok,
+  ).toBe(false);
+  expect(
+    (await saveGoal(null, { ...input, repeat: "week", recurringEndDate: "2026-02-30" })).ok,
+  ).toBe(false);
+  expect((await saveGoal(null, { ...input, recurringEndDate: "2026-09-20" })).ok).toBe(false);
 });

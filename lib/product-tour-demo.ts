@@ -1,4 +1,6 @@
 import type { AnalyticsSendRow } from "@/db/queries";
+import type { FeedDay } from "@/db/queries/feed";
+import { goalTitle, type GoalProgress } from "@/lib/goals";
 import { nativeGradeArray } from "@/lib/grades";
 import { buildUserAnalytics } from "@/lib/user-analytics";
 
@@ -275,3 +277,63 @@ export function getTourDemoJournalPage({
   );
   return { matches, visible: showAll ? matches : matches.slice(0, 3) };
 }
+
+export const TOUR_DEMO_GOAL: GoalProgress = {
+  id: -101,
+  userId: "demo-alex",
+  kind: "training",
+  target: 2,
+  discipline: null,
+  grade: null,
+  tags: ["hangboard", "strength"],
+  timeframe: "month",
+  repeat: "none",
+  timezone: "UTC",
+  startDate: "2026-03-01",
+  endDate: "2026-03-31",
+  periodStart: "2026-03-01",
+  periodEnd: "2026-03-31",
+  progress: 0,
+  completedDate: null,
+};
+
+export function getTourDemoGoalProgress(entries: readonly { tags: string[] }[]): GoalProgress {
+  const progress = entries.filter((entry) =>
+    TOUR_DEMO_GOAL.tags?.every((tag) => entry.tags.includes(tag)),
+  ).length;
+  return {
+    ...TOUR_DEMO_GOAL,
+    progress,
+    completedDate: progress >= TOUR_DEMO_GOAL.target ? "2026-03-14" : null,
+  };
+}
+
+export const TOUR_DEMO_GOAL_FEED: FeedDay = {
+  userId: "demo-alex",
+  name: "Alex Morgan",
+  image: null,
+  date: "2026-03-14",
+  journalVisible: true,
+  sends: 0,
+  repeats: 0,
+  sessions: 0,
+  training: 0,
+  goals: 1,
+  activities: [
+    {
+      id: -101,
+      kind: "goal",
+      goalTitle: goalTitle(TOUR_DEMO_GOAL),
+      climbId: null,
+      climbName: null,
+      climbType: null,
+      climbGrade: null,
+      reportedGrade: null,
+      gradeFeel: null,
+      areaId: null,
+      areaName: null,
+      ascentStyle: null,
+      body: null,
+    },
+  ],
+};

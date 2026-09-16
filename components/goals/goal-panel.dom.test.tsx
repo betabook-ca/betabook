@@ -9,7 +9,8 @@ import { GoalPanel } from "./goal-panel";
 vi.mock("@/actions", () => ({
   saveGoal: vi.fn<() => Promise<unknown>>(),
   deleteGoal: vi.fn<() => Promise<unknown>>(),
-  archiveMissedGoal: vi.fn<() => Promise<unknown>>().mockResolvedValue({ ok: true }),
+  endRecurringGoal: vi.fn<() => Promise<unknown>>().mockResolvedValue({ ok: true }),
+  archiveGoal: vi.fn<() => Promise<unknown>>().mockResolvedValue({ ok: true }),
   acknowledgeGoalAchievements: vi.fn<() => Promise<unknown>>().mockResolvedValue({ ok: true }),
 }));
 const goal: GoalProgress = {
@@ -320,7 +321,7 @@ it("retries the failed year request without marking Load more as failed", async 
 });
 
 it("leaves a missed goal in Active when retry is cancelled and offers no retry actions in History", async () => {
-  const { archiveMissedGoal, saveGoal } = await import("@/actions");
+  const { archiveGoal, saveGoal } = await import("@/actions");
   vi.mocked(saveGoal).mockClear();
   const missed = {
     ...goal,
@@ -348,7 +349,7 @@ it("leaves a missed goal in Active when retry is cancelled and offers no retry a
   expect(saveGoal).not.toHaveBeenCalled();
   expect(screen.getByRole("button", { name: "Try again" })).toBeVisible();
   await user.click(screen.getByRole("button", { name: "Archive goal" }));
-  await waitFor(() => expect(archiveMissedGoal).toHaveBeenCalledWith(missed.id));
+  await waitFor(() => expect(archiveGoal).toHaveBeenCalledWith(missed.id));
   rerender(
     <GoalPanel
       {...props}
@@ -389,4 +390,136 @@ it("retains Edit and Delete alongside the visible missed-goal actions", async ()
   await user.click(screen.getByRole("button", { name: "Actions for Train 8 times" }));
   expect(screen.getByRole("menuitem", { name: "Edit" })).toBeVisible();
   expect(screen.getByRole("menuitem", { name: "Delete" })).toBeVisible();
+});
+
+it("keeps unlimited finishes outside active capacity and offers archive with retry", async () => {
+  const { archiveGoal } = await import("@/actions");
+  vi.mocked(archiveGoal)
+    .mockReset()
+    .mockResolvedValueOnce({ ok: false, error: "Please try again." })
+    .mockResolvedValue({ ok: true, value: undefined });
+  const user = userEvent.setup();
+  const finished = Array.from({ length: 8 }, (_, index) => ({
+    ...goal,
+    id: index + 1,
+    target: index + 1,
+    progress: index + 1,
+    completedDate: "2026-09-02",
+  }));
+  const props = {
+    ownerId: "owner",
+    timezone: "UTC",
+    today: "2026-09-11",
+    initialActive: { goals: finished, hasMore: false },
+    initialCompleted: { goals: [], hasMore: false },
+  };
+  const { rerender } = render(<GoalPanel {...props} />);
+  expect(screen.getByRole("button", { name: "Active (0/5)" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Set goal" })).toBeEnabled();
+  expect(screen.getAllByRole("button", { name: "Archive goal" })).toHaveLength(8);
+  await user.click(screen.getAllByRole("button", { name: "Archive goal" })[0]);
+  expect(await screen.findByText("Please try again.")).toBeVisible();
+  expect(screen.getByText("Train 1 time")).toBeVisible();
+  await user.click(screen.getAllByRole("button", { name: "Archive goal" })[0]);
+  await waitFor(() => expect(archiveGoal).toHaveBeenCalledTimes(2));
+  expect(archiveGoal).toHaveBeenLastCalledWith(1);
+  rerender(<GoalPanel {...props} initialActive={{ goals: finished.slice(1), hasMore: false }} />);
+  expect(screen.queryByText("Train 1 time")).not.toBeInTheDocument();
+  expect(screen.getAllByRole("button", { name: "Archive goal" })).toHaveLength(7);
+});
+
+it("offers an end date for recurring routines from Active and History", async () => {
+  const user = userEvent.setup();
+  const routine = {
+    ...goal,
+    repeat: "week" as const,
+    timeframe: "week" as const,
+    periodStart: "2026-09-07",
+    periodEnd: "2026-09-13",
+  };
+  render(
+    <GoalPanel
+      ownerId="owner"
+      timezone="UTC"
+      today="2026-09-11"
+      initialActive={{ goals: [routine], hasMore: false }}
+      initialCompleted={{
+        goals: [{ ...routine, periodStart: "2026-08-31", periodEnd: "2026-09-06" }],
+        hasMore: false,
+      }}
+    />,
+  );
+  await user.click(screen.getByRole("button", { name: "End routine" }));
+  expect(await screen.findByRole("heading", { name: "End recurring goal" })).toBeVisible();
+  expect(screen.getByRole("spinbutton", { name: "day, End date" })).toHaveTextContent("13");
+  const { endRecurringGoal } = await import("@/actions");
+  vi.mocked(endRecurringGoal).mockResolvedValueOnce({
+    ok: false,
+    error: "Try the end date again.",
+  });
+  await user.click(screen.getByRole("button", { name: "Save end date" }));
+  expect(await screen.findByText("Try the end date again.")).toBeVisible();
+  expect(endRecurringGoal).toHaveBeenLastCalledWith(1, "2026-09-13");
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+  await user.click(screen.getByRole("button", { name: "History (1)" }));
+  await user.click(screen.getByRole("button", { name: /Actions for/ }));
+  expect(await screen.findByRole("menuitem", { name: "End routine" })).toBeVisible();
+});
+
+it("uses the goal's civil date when scheduling its last day across timezones", async () => {
+  const { endRecurringGoal } = await import("@/actions");
+  const user = userEvent.setup();
+  render(
+    <GoalPanel
+      ownerId="owner"
+      timezone="UTC"
+      today="2026-09-12"
+      initialActive={{
+        goals: [
+          {
+            ...goal,
+            repeat: "month",
+            today: "2026-09-11",
+            timezone: "America/Los_Angeles",
+            recurringEndDate: "2026-09-11",
+            periodEnd: "2026-09-11",
+          },
+        ],
+        hasMore: false,
+      }}
+      initialCompleted={{ goals: [], hasMore: false }}
+    />,
+  );
+  expect(screen.getByText("Ends Sep 11")).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Change end date" }));
+  await user.click(screen.getByRole("button", { name: "Save end date" }));
+  await waitFor(() => expect(endRecurringGoal).toHaveBeenLastCalledWith(1, "2026-09-11"));
+  expect(screen.queryByRole("heading", { name: "End recurring goal" })).not.toBeInTheDocument();
+});
+
+it("includes the optional end date in the initial goal creation request", async () => {
+  const { saveGoal } = await import("@/actions");
+  vi.mocked(saveGoal).mockResolvedValue({ ok: true, value: 123 });
+  const user = userEvent.setup();
+  render(
+    <GoalPanel
+      ownerId="owner"
+      today="2026-09-11"
+      timezone="UTC"
+      initialActive={{ goals: [], hasMore: false }}
+      initialCompleted={{ goals: [], hasMore: false }}
+    />,
+  );
+  await user.click(screen.getByRole("button", { name: "Set goal" }));
+  await user.click(await screen.findByRole("button", { name: /^Training/ }));
+  await user.click(screen.getByRole("checkbox", { name: "Make this a recurring goal" }));
+  await user.click(screen.getByRole("button", { name: /Recurrence end/ }));
+  await user.click(screen.getByRole("option", { name: "On a date" }));
+  await user.click(screen.getByRole("button", { name: "Create goal" }));
+  await waitFor(() =>
+    expect(saveGoal).toHaveBeenLastCalledWith(
+      null,
+      expect.objectContaining({ repeat: "month", recurringEndDate: "2026-09-30", timezone: "UTC" }),
+    ),
+  );
 });
