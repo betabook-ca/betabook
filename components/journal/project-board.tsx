@@ -29,9 +29,7 @@ const COMPARATORS: Record<ProjectSort, (a: ProjectWithSessions, b: ProjectWithSe
     name: (a, b) => a.climbName.localeCompare(b.climbName) || a.climbId - b.climbId,
   };
 
-/** Everything a project carries that a climber might search by. The notes
- * are the preloaded ones, which is what the field's placeholder promises —
- * an older note reachable only by paging is not searched here. */
+/** Search includes only the preloaded notes, not older paginated sessions. */
 function haystack(project: ProjectWithSessions): string {
   return [
     project.climbName,
@@ -45,7 +43,6 @@ function haystack(project: ProjectWithSessions): string {
 type ProjectBoardProps = {
   userId: string;
   projects: ProjectWithSessions[];
-  /** More open projects exist than the page loaded. */
   hasMore: boolean;
 };
 

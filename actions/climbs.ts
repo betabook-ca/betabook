@@ -7,21 +7,13 @@ import { getDb } from "@/db/client";
 import { getArea, getClimb } from "@/db/queries";
 import { climbs } from "@/db/schema";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
-import {
-  validateClimbDescriptionInput,
-  validateNewClimbInput,
-  type RawClimbInput,
-} from "@/lib/climbs";
+import { validateClimbDescriptionInput, validateNewClimbInput } from "@/lib/climbs";
 import { parseId } from "@/lib/parse-id";
 import { requireSession } from "@/lib/session";
 import { pickFormFields } from "@/lib/validation";
 
 const CLIMB_FORM_FIELDS = ["name", "type", "grade", "description"] as const;
 const CLIMB_UPDATE_FORM_FIELDS = ["description"] as const;
-
-function readClimbFormData(formData: FormData): RawClimbInput {
-  return pickFormFields(formData, CLIMB_FORM_FIELDS);
-}
 
 export async function updateClimb(climbId: number, formData: FormData): Promise<ActionResult> {
   return toActionResult(async () => {
@@ -52,12 +44,7 @@ export async function createClimb(
     const area = parseId(areaId) === null ? undefined : await getArea(db, areaId);
     if (!area) throw new ActionError("Area not found");
 
-    // climbs_fts stays in sync via triggers (drizzle/migrations/
-    // 0015_fts_sync_triggers.sql), atomically within this same statement.
-    // areaId alone locates the climb in the tree — subtree queries resolve
-    // ancestry through areas.parentId at read time, so there's no denormalized
-    // position to copy here and none to repair afterwards.
-    const input = validateNewClimbInput(readClimbFormData(formData));
+    const input = validateNewClimbInput(pickFormFields(formData, CLIMB_FORM_FIELDS));
     const [{ id }] = await db
       .insert(climbs)
       .values({ areaId, ...input })

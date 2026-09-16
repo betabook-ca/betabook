@@ -43,6 +43,11 @@ import { GoalItems } from "./goal-items";
 import { GoalRecurringHistory } from "./goal-recurring-history";
 import { GoalSection } from "./goal-section";
 
+type GoalEditor =
+  | { kind: "create" }
+  | { kind: "edit"; goal: GoalProgress }
+  | { kind: "retry"; goalId: number; draft: GoalDraft };
+
 function draftFor(goal: GoalProgress): GoalDraft {
   return {
     category:
@@ -137,11 +142,10 @@ export function GoalPanel({
   const canEditGoal = (goal: GoalProgress) =>
     !goal.archived && (view === "active" || !missed(goal));
   const [deleteError, setDeleteError] = useState("");
-  const [retryingId, setRetryingId] = useState<number | undefined>();
   const [archivingId, setArchivingId] = useState<number | null>(null);
   const [archiveError, setArchiveError] = useState("");
-  const [starting, setStarting] = useState<GoalDraft | null>(null);
-  const [editing, setEditing] = useState<GoalProgress | null>(null);
+  const [editor, setEditor] = useState<GoalEditor>({ kind: "create" });
+  const editing = editor.kind === "edit" ? editor.goal : null;
   const [deleting, setDeleting] = useState<GoalProgress | null>(null);
   const [pending, setPending] = useState(false);
   const [deletePending, setDeletePending] = useState(false);
@@ -180,21 +184,16 @@ export function GoalPanel({
       timezone: editing?.timezone ?? timezone,
     };
     const result =
-      retryingId === undefined
-        ? await saveGoal(editing?.id ?? null, input)
-        : await saveGoal(null, input, retryingId);
+      editor.kind === "retry"
+        ? await saveGoal(null, input, editor.goalId)
+        : await saveGoal(editing?.id ?? null, input);
     if (!result.ok) throw new Error(result.error);
     editState.close();
     if (!editing) setView("active");
-    setEditing(null);
-    setStarting(null);
-    setRetryingId(undefined);
+    setEditor({ kind: "create" });
     setDeleteError("");
-    // The server refresh is synchronized without resetting the selected tab/year.
   }
   function tryAgain(goal: GoalProgress) {
-    setRetryingId(goal.id);
-
     const draft = draftFor(goal);
     const end = new Date(`${today}T12:00:00Z`);
     end.setUTCDate(
@@ -202,8 +201,7 @@ export function GoalPanel({
         Math.round((Date.parse(goal.endDate) - Date.parse(goal.startDate)) / 86400000),
     );
     const window = goalWindow(draft.period, today, end.toISOString().slice(0, 10), today);
-    setEditing(null);
-    setStarting({ ...draft, ...window, repeat: "none" });
+    setEditor({ kind: "retry", goalId: goal.id, draft: { ...draft, ...window, repeat: "none" } });
     editState.open();
   }
   async function archive(goal: GoalProgress) {
@@ -242,6 +240,7 @@ export function GoalPanel({
     completed.goals.length > 0 ||
     (completed.years?.length ?? 0) > 1;
   const rows = view === "active" ? active.goals : completed.goals;
+  const historyYears = [...new Set([...(completed.years ?? []), year])].sort((a, b) => b - a);
   const newlyCompleted = mounted
     ? [
         ...new Map(
@@ -296,9 +295,7 @@ export function GoalPanel({
             className="min-h-11 gap-2"
             isDisabled={activeCount >= MAX_ACTIVE_GOALS}
             onPress={() => {
-              setEditing(null);
-              setStarting(null);
-              setRetryingId(undefined);
+              setEditor({ kind: "create" });
               editState.open();
             }}
           >
@@ -327,7 +324,7 @@ export function GoalPanel({
           />
         }
       >
-        {view === "completed" && new Set([...(completed.years ?? []), year]).size > 1 && (
+        {view === "completed" && historyYears.length > 1 && (
           <div className="flex justify-end py-3">
             <OptionSelect
               ariaLabel="History year"
@@ -336,12 +333,10 @@ export function GoalPanel({
                 void changeYear(value);
               }}
               className={FIELD_WIDTH_CLASS.short}
-              options={[...new Set([...(completed.years ?? []), year])]
-                .sort((a, b) => b - a)
-                .map((value) => ({
-                  value: String(value),
-                  label: String(value),
-                }))}
+              options={historyYears.map((value) => ({
+                value: String(value),
+                label: String(value),
+              }))}
             />
           </div>
         )}
@@ -433,10 +428,8 @@ export function GoalPanel({
                   ariaLabel={`Actions for ${goalTitle(goal)}`}
                   onAction={(key) => {
                     if (key === "edit") {
-                      setStarting(null);
-                      setRetryingId(undefined);
                       const selected = active.goals.find((item) => item.id === goal.id) ?? goal;
-                      setEditing(selected);
+                      setEditor({ kind: "edit", goal: selected });
                       editState.open();
                     } else {
                       setDeleting(goal);
@@ -508,7 +501,7 @@ export function GoalPanel({
                         }
                       : undefined
                   }
-                  initialValues={starting ?? undefined}
+                  initialValues={editor.kind === "retry" ? editor.draft : undefined}
                   today={today}
                   nextGrades={nextGrades}
                   onSave={save}

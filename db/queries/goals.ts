@@ -60,16 +60,22 @@ async function getGoalPeriods(
   const weekSkip = sql`max(0,CAST((julianday(${lower})-julianday(g.start_date))/7 AS INTEGER))*7`;
   const monthSkip = sql`max(0,(CAST(strftime('%Y',${lower}) AS INTEGER)-CAST(strftime('%Y',g.start_date) AS INTEGER))*12+CAST(strftime('%m',${lower}) AS INTEGER)-CAST(strftime('%m',g.start_date) AS INTEGER))`;
   const start = sql`CASE g.repeat WHEN 'week' THEN date(g.start_date,'+'||(${weekSkip})||' days') WHEN 'month' THEN date(g.start_date,'+'||(${monthSkip})||' months') WHEN 'year' THEN date(g.start_date,'+'||CAST((${monthSkip})/12 AS INTEGER)||' years') ELSE g.start_date END`;
-  const end = sql`CASE g.repeat WHEN 'week' THEN date(${start},'+6 days') WHEN 'month' THEN date(${start},'+1 month','-1 day') WHEN 'year' THEN date(${start},'+1 year','-1 day') ELSE g.end_date END`;
   const range = options.activeOnly
     ? sql`(g.repeat='none' OR (g.ps<=${today} AND g.pe>=${today}))`
     : options.from && options.until
       ? sql`g.ps>=${options.from} AND g.ps<${options.until}`
       : sql`1`;
   const rows = await db.all<GoalProgress>(sql`
-    WITH RECURSIVE periods AS (
-      SELECT ${goalStorageColumns}, ${start} AS ps, ${end} AS pe FROM goals g
+    WITH RECURSIVE initial_periods AS (
+      SELECT ${goalStorageColumns}, ${start} AS ps FROM goals g
       WHERE g.user_id = ${ownerId} AND ${goalFilter} AND ${journalVisibleSql(viewerId, sql`g.user_id`)}
+    ), periods AS (
+      SELECT g.*, CASE g.repeat
+        WHEN 'week' THEN date(g.ps,'+6 days')
+        WHEN 'month' THEN date(g.ps,'+1 month','-1 day')
+        WHEN 'year' THEN date(g.ps,'+1 year','-1 day')
+        ELSE g.end_date END AS pe
+      FROM initial_periods g
       UNION ALL
       SELECT ${goalStorageColumns},
         date(g.pe,'+1 day'), CASE g.repeat WHEN 'week' THEN date(g.pe,'+7 days') WHEN 'year' THEN date(g.pe,'+1 day','+1 year','-1 day') ELSE date(g.pe,'+1 day','+1 month','-1 day') END
@@ -85,13 +91,12 @@ async function getGoalPeriods(
       WHERE ${matches(sql`g.ps`, sql`g.pe`)} GROUP BY g.id,g.ps,g.repeat,item
     ), ranked AS (
       SELECT *,row_number() OVER (PARTITION BY id,ps,repeat ORDER BY entryDate,item) AS ordinal FROM contributions
-    ), totals AS (
-      SELECT g.id,g.ps,g.repeat,count(r.item) AS progress,max(CASE WHEN r.ordinal = g.target THEN r.entryDate END) AS completedDate
-      FROM scoped_periods g LEFT JOIN ranked r ON r.id = g.id AND r.ps = g.ps AND r.repeat = g.repeat GROUP BY g.id,g.ps,g.repeat
     )
-    SELECT ${goalColumns}, g.ps AS periodStart,g.pe AS periodEnd,COALESCE(t.progress,0) AS progress,t.completedDate
-    FROM scoped_periods g JOIN totals t ON t.id = g.id AND t.ps = g.ps AND t.repeat = g.repeat
+    SELECT ${goalColumns}, g.ps AS periodStart,g.pe AS periodEnd,
+      count(r.item) AS progress,max(CASE WHEN r.ordinal = g.target THEN r.entryDate END) AS completedDate
+    FROM scoped_periods g LEFT JOIN ranked r ON r.id = g.id AND r.ps = g.ps AND r.repeat = g.repeat
     WHERE ${journalVisibleSql(viewerId, sql`g.user_id`)}
+    GROUP BY g.id,g.ps,g.repeat
     ORDER BY g.pe DESC,g.id DESC
   `);
   return rows.map((goal) => ({ ...goal, archived: Boolean(goal.archived) }));
@@ -115,7 +120,6 @@ export async function getGoalPage(
   return page;
 }
 
-/** The journal needs both tabs; share the initial aggregate read within this request. */
 export async function getGoalOverview(
   db: Database,
   ownerId: string,
