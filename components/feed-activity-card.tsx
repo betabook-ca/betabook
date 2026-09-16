@@ -7,6 +7,7 @@ import { useId, useState } from "react";
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
 import { ASCENT_STYLE_LABELS } from "@/components/ascent-style";
 import { CompanionList } from "@/components/journal/companion-list";
+import { GradeFeelArrow } from "@/components/send-grade-cell";
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import { ClampedComment } from "@/components/ui/clamped-comment";
@@ -18,13 +19,6 @@ import { formatActivityGrade } from "@/lib/grades";
 import { climbHref } from "@/lib/slug";
 
 type Activity = FeedEntry["activity"];
-
-function GradeFeel({ activity }: { activity: Activity }) {
-  if (activity.kind !== "send" && activity.kind !== "repeat") return null;
-  const feel =
-    activity.gradeFeel === "high" ? "high-end" : activity.gradeFeel === "low" ? "low-end" : null;
-  return feel ? <p className="text-xs text-muted">Felt {feel} for the grade</p> : null;
-}
 
 function outcome(activity: Activity) {
   if (activity.kind === "send")
@@ -111,6 +105,9 @@ export function FeedActivityCard({
                     <span title={item.reportedGrade != null ? "Climber's grade" : "Posted grade"}>
                       {grade}
                     </span>
+                    {(item.kind === "send" || item.kind === "repeat") && item.gradeFeel && (
+                      <GradeFeelArrow gradeFeel={item.gradeFeel} />
+                    )}
                   </Grade>
                 )}
               </div>
@@ -127,7 +124,6 @@ export function FeedActivityCard({
               </AppLink>
             )}
           </div>
-          <GradeFeel activity={item} />
           {entries.length === 1 && view === "all" && !!item.companions?.length && (
             <CompanionList companions={item.companions} profileLinks={links} />
           )}
