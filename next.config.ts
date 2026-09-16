@@ -4,6 +4,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // The development badge overlaps the app's mobile tab bar and intercepts taps.
   devIndicators: false,
+  poweredByHeader: false,
   images: {
     // Better Auth stores Google's OpenID `picture` URL on the user row.
     // Keep the optimizer allowlist pinned to that provider rather than
@@ -39,6 +40,21 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      {
+        source: "/:path*",
+        headers: [
+          // Every subdomain holds email records only. `preload` stays off: that
+          // list is slow to leave.
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-Frame-Options", value: "DENY" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+          },
+        ],
+      },
       {
         // The /api routes back the app's own "load more" fetches (feed,
         // search) and return JSON — never a search result. robots.txt is
