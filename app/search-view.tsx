@@ -11,11 +11,13 @@ export async function SearchView({
   viewerId,
   defaultCategory,
   showMemberNotice,
+  memberNoticePlacement,
 }: {
   params: UrlParamsRecord;
   viewerId: string | null;
   defaultCategory: SearchCategory;
   showMemberNotice: boolean;
+  memberNoticePlacement?: "results" | "top";
 }) {
   const state = parseSearchState(params, null, defaultCategory);
   state.area = await loadAreaSelection(state.filter.areaId);
@@ -31,6 +33,7 @@ export async function SearchView({
       viewerId={viewerId}
       defaultCategory={defaultCategory}
       showMemberNotice={showMemberNotice}
+      memberNoticePlacement={memberNoticePlacement}
     />
   );
 }

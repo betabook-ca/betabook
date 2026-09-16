@@ -30,6 +30,7 @@ export default async function FindClimbsPage({
         viewerId={session?.user.id ?? null}
         defaultCategory="climb"
         showMemberNotice
+        memberNoticePlacement="top"
       />
     </div>
   );

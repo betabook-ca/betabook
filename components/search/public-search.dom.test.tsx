@@ -22,10 +22,12 @@ function Search({
   publicOnly = true,
   quick = false,
   showMemberNotice,
+  memberNoticePlacement,
 }: {
   publicOnly?: boolean;
   quick?: boolean;
   showMemberNotice?: boolean;
+  memberNoticePlacement?: "results" | "top";
 }) {
   const [state, setState] = useState({ ...EMPTY_SEARCH, query: "Test" });
   return (
@@ -33,6 +35,7 @@ function Search({
       publicOnly={publicOnly}
       quick={quick}
       showMemberNotice={showMemberNotice}
+      memberNoticePlacement={memberNoticePlacement}
       state={state}
       onChange={setState}
       onNavigate={() => {}}
@@ -212,6 +215,29 @@ it("keeps the palette's sign-in link pointed at the current search", async () =>
 
   await user.type(screen.getByRole("combobox", { name: "Search Betabook" }), "er");
   await waitFor(() => expect(signIn).toHaveAttribute("href", href("Tester")));
+});
+
+it("places the member notice above the search field only when the page leads with it", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<typeof fetch>(async () =>
+      Response.json({ climbs: [], areas: [], areaBreadcrumbs: {}, hasNextPage: false }),
+    ),
+  );
+  const order = () => {
+    const callout = screen.getByRole("region", { name: "Member content" });
+    const field = screen.getByRole("searchbox", { name: "Search Betabook" });
+    // Document order: whichever the DOM lists first.
+    const first = [...document.querySelectorAll("*")].find((n) => n === callout || n === field);
+    return first === callout ? "callout first" : "field first";
+  };
+  const { unmount } = render(<Search memberNoticePlacement="top" />);
+  expect(order()).toBe("callout first");
+  expect(screen.getAllByRole("region", { name: "Member content" })).toHaveLength(1);
+  unmount();
+  render(<Search />);
+  expect(order()).toBe("field first");
+  expect(screen.getAllByRole("region", { name: "Member content" })).toHaveLength(1);
 });
 
 for (const quick of [false, true]) {

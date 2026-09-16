@@ -36,6 +36,7 @@ type SearchProps = {
   viewerId: string | null;
   defaultCategory?: SearchState["category"];
   showMemberNotice?: boolean;
+  memberNoticePlacement?: "results" | "top";
 };
 function find(node: ReactNode, type: unknown): unknown {
   for (const child of Array.isArray(node) ? node : [node]) {
@@ -70,6 +71,7 @@ it("opens on the climb list and browses the whole catalog without a name", async
   const data = await search({});
   expect(data.defaultCategory).toBe("climb");
   expect(data.showMemberNotice).toBe(true);
+  expect(data.memberNoticePlacement).toBe("top");
   expect(data.initialState.category).toBe("climb");
   expect(summary(data)).toEqual([["climb", "ready", 4]]);
   // Most ascents first: the sent fixture climb leads.

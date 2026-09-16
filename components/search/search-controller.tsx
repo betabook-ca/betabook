@@ -33,8 +33,10 @@ export function SearchController({
   suggestions,
   publicOnly = false,
   showMemberNotice = publicOnly,
+  memberNoticePlacement,
   areaFetcher,
 }: {
+  memberNoticePlacement?: "results" | "top";
   /** Area typeahead transport for the full page's filters; stories inject fixtures. */
   areaFetcher?: ComponentProps<typeof ClimbFilterControls>["areaFetcher"];
   state: SearchState;
@@ -121,6 +123,7 @@ export function SearchController({
           return current ? renderAction(current) : null;
         }
       : undefined,
+    memberNoticePlacement,
     memberNotice: showMemberNotice ? (
       <AuthCallout
         next={searchHref(state)}

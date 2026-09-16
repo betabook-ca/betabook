@@ -28,6 +28,7 @@ export function AppSearch({
   viewerId,
   defaultCategory = "all",
   showMemberNotice = true,
+  memberNoticePlacement,
 }: {
   initialState: SearchState;
   initial: SearchSnapshot;
@@ -36,6 +37,7 @@ export function AppSearch({
   /** Must match the server's parse so back/forward to a bare URL agrees with first paint. */
   defaultCategory?: SearchState["category"];
   showMemberNotice?: boolean;
+  memberNoticePlacement?: "results" | "top";
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -90,6 +92,7 @@ export function AppSearch({
       key={viewerId ?? "anonymous"}
       publicOnly={viewerId === null}
       showMemberNotice={viewerId === null && showMemberNotice}
+      memberNoticePlacement={memberNoticePlacement}
       state={state}
       onChange={change}
       initial={initial}
