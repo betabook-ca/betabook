@@ -49,7 +49,7 @@ test(
     );
 
     await page.getByRole("link", { name: "Search", exact: true }).click();
-    await expect(page).toHaveURL(`${appBaseURL}/`);
+    await expect(page).toHaveURL(`${appBaseURL}/search`);
     await expect(page.getByRole("dialog", { name: "Search Betabook" })).toHaveCount(0);
     await page.getByRole("searchbox", { name: "Search Betabook" }).fill("Ridge");
     await expect(page).toHaveURL(/name=Ridge/);
@@ -58,7 +58,8 @@ test(
     await expect(callout).toBeVisible();
     await expect(page.getByRole("link", { name: /^Add (climb|area)$/ })).toHaveCount(0);
     await callout.getByRole("link", { name: "Sign up", exact: true }).click();
-    const continuation = searchHref({ ...EMPTY_SEARCH, query: "Ridge" });
+    // /search opens on the climb list, so the continuation names that category.
+    const continuation = searchHref({ ...EMPTY_SEARCH, category: "climb", query: "Ridge" });
     await expect(page).toHaveURL(`${appBaseURL}/sign-up?next=${encodeURIComponent(continuation)}`);
     await expect(page.getByRole("heading", { name: "Sign up", exact: true })).toBeVisible();
   },

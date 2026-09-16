@@ -91,7 +91,7 @@ test(
   async ({ page }) => {
     await page.goto(`${appBaseURL}/search?mode=climb&name=cedar`);
     await page.getByRole("link", { name: "Search", exact: true }).click();
-    await expect(page).toHaveURL(`${appBaseURL}/`);
+    await expect(page).toHaveURL(`${appBaseURL}/search`);
     await expect(page.getByRole("searchbox", { name: "Search Betabook" })).toHaveValue("");
     await expect(page.getByRole("button", { name: "Search", exact: true })).toHaveCount(0);
     await expect(page.getByRole("dialog", { name: "Search Betabook" })).toHaveCount(0);
@@ -99,7 +99,7 @@ test(
     await expect(page).toHaveURL(/name=cedar/);
     const apple = await page.evaluate(() => /Mac|iPhone|iPad|iPod/.test(navigator.platform));
     await page.keyboard.press(apple ? "Meta+k" : "Control+k");
-    await expect(page).toHaveURL(`${appBaseURL}/`);
+    await expect(page).toHaveURL(`${appBaseURL}/search`);
     await expect(page.getByRole("dialog", { name: "Search Betabook" })).toHaveCount(0);
   },
 );
