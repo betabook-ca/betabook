@@ -8,7 +8,7 @@ import {
   parseProductTourNavigation,
   type ProductTourSearchParams,
 } from "@/lib/product-tour-navigation";
-import { getMemberSession as getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 
 export default async function TutorialStart({
   params,
@@ -19,7 +19,7 @@ export default async function TutorialStart({
 }) {
   const { tourId } = await params;
   const navigation = parseProductTourNavigation(await searchParams);
-  if (!(await getSession()))
+  if (!(await getMemberSession()))
     return <AuthCallout next={productTourContinuationPath(tourId, navigation)} />;
   const tour = findProductTour(tourId);
   if (!tour) notFound();

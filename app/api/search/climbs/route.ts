@@ -78,13 +78,11 @@ export const GET = withApiSession(async (session, request: Request) => {
       results.climbs.map((c) => c.areaId),
     ),
     withCount ? countSearchClimbs(db, queryParams) : Promise.resolve(undefined),
-    session
-      ? getUserSentClimbIds(
-          db,
-          session.user.id,
-          results.climbs.map((climb) => climb.id),
-        )
-      : Promise.resolve(undefined),
+    getUserSentClimbIds(
+      db,
+      session.user.id,
+      results.climbs.map((climb) => climb.id),
+    ),
   ]);
 
   return NextResponse.json({
@@ -97,6 +95,6 @@ export const GET = withApiSession(async (session, request: Request) => {
     sendStats,
     areaBreadcrumbs,
     count,
-    sentClimbIds: sentClimbIds ? [...sentClimbIds] : undefined,
+    sentClimbIds: [...sentClimbIds],
   });
 });

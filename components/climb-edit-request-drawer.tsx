@@ -1,8 +1,8 @@
 "use client";
 
-import { Button, Drawer, Label, ListBox, Select, TextField } from "@heroui/react";
+import { Button, Drawer, Input, Label, ListBox, Select, TextField } from "@heroui/react";
 import type { UseOverlayStateReturn } from "@heroui/react";
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 
 import { requestClimbEdit } from "@/actions";
 import { FIELD_CLASS } from "@/components/ui/field";
@@ -21,6 +21,7 @@ const CLIMB_TYPE_LABELS: Record<ClimbType, string> = {
   sport: "Sport",
   trad: "Trad",
 };
+const UNKNOWN_GRADE = "unknown";
 
 /** A full edit (name/discipline/grade) — gated behind admin approval (see
  * actions/moderation.ts's requestClimbEdit). The description isn't here:
@@ -28,10 +29,11 @@ const CLIMB_TYPE_LABELS: Record<ClimbType, string> = {
  * it instantly. */
 export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerProps) {
   const disciplineLocked = climb.sendCount > 0;
+  const disciplineId = useId();
 
   const [name, setName] = useState(climb.name);
   const [type, setType] = useState<ClimbType>(climb.type);
-  const [grade, setGrade] = useState(String(climb.grade ?? 0));
+  const [grade, setGrade] = useState(climb.grade === null ? UNKNOWN_GRADE : String(climb.grade));
   const [error, setError] = useState<string | null>(null);
   const [pendingNotice, setPendingNotice] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -53,7 +55,7 @@ export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerP
     const formData = new FormData();
     formData.set("name", trimmedName);
     formData.set("type", type);
-    formData.set("grade", grade);
+    formData.set("grade", grade === UNKNOWN_GRADE ? "" : grade);
 
     startTransition(async () => {
       const result = await requestClimbEdit(climb.id, formData);
@@ -76,7 +78,7 @@ export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerP
     if (!isOpen) {
       setName(climb.name);
       setType(climb.type);
-      setGrade(String(climb.grade ?? 0));
+      setGrade(climb.grade === null ? UNKNOWN_GRADE : String(climb.grade));
       setError(null);
       setPendingNotice(null);
     }
@@ -102,19 +104,15 @@ export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerP
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                <TextField>
+                <TextField value={name} onChange={setName} isRequired>
                   <Label>Name</Label>
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    className={FIELD_CLASS}
-                  />
+                  <Input />
                 </TextField>
 
                 <TextField>
-                  <Label>Discipline</Label>
+                  <Label htmlFor={disciplineId}>Discipline</Label>
                   <select
+                    id={disciplineId}
                     value={type}
                     disabled={disciplineLocked}
                     onChange={(e) => handleTypeChange(e.target.value as ClimbType)}
@@ -147,6 +145,9 @@ export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerP
                     </Select.Trigger>
                     <Select.Popover>
                       <ListBox className="max-h-64 overflow-y-auto">
+                        {climb.grade === null && type === climb.type && (
+                          <ListBox.Item id={UNKNOWN_GRADE}>Unknown</ListBox.Item>
+                        )}
                         {gradeOptions.map((label, i) => (
                           // oxlint-disable-next-line react/no-array-index-key -- grade index is stable option id
                           <ListBox.Item key={i} id={String(i)}>

@@ -22,7 +22,7 @@ import {
   profileSharePath,
 } from "@/lib/profile-share";
 import { sharedProfileMetadata } from "@/lib/seo";
-import { getMemberSession as getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 import type { UrlParamsRecord } from "@/lib/url-params";
 import { canViewUser } from "@/lib/user-visibility";
 
@@ -40,7 +40,7 @@ async function getSharedProfile(id: string, search: UrlParamsRecord) {
 
 export async function generateMetadata({ params, searchParams }: UserPageProps): Promise<Metadata> {
   const [{ id }, search] = await Promise.all([params, searchParams]);
-  const session = await getSession();
+  const session = await getMemberSession();
   if (!session) {
     const shared = await getSharedProfile(id, search);
     return shared
@@ -55,7 +55,7 @@ export async function generateMetadata({ params, searchParams }: UserPageProps):
 
 export default async function UserPage({ params, searchParams }: UserPageProps) {
   const [{ id }, search] = await Promise.all([params, searchParams]);
-  const session = await getSession();
+  const session = await getMemberSession();
   if (!session) {
     const shared = await getSharedProfile(id, search);
     if (!shared) return <CurrentPageAuthCallout />;

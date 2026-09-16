@@ -122,17 +122,12 @@ test("sidebar preview overlays content and pinning reserves space", async ({ pag
   await expect(sidebar).toHaveCSS("width", "224px");
   expect(await feedIcon.boundingBox()).toEqual(iconBefore);
   await page.locator("[data-sidebar-content]").hover();
-  await info.attach("sidebar-collapsed", {
-    body: await page.screenshot({ path: info.outputPath("sidebar-collapsed.png") }),
-    contentType: "image/png",
-  });
   await sidebar.hover();
   await expect(sidebar).toHaveCSS("width", "224px");
   expect((await content.boundingBox())?.x).toBe(before.x);
   const destination = sidebar.getByRole("link", { name: "Add climb or area" });
   const text = destination.getByText("Add climb or area", { exact: true });
   expect((await text.boundingBox())?.width).toBeGreaterThan(70);
-  await info.attach("sidebar-hover", { body: await page.screenshot(), contentType: "image/png" });
   await page.locator("[data-sidebar-content]").hover();
   await expect(sidebar).toHaveCSS("width", "64px");
   await page.getByRole("button", { name: "Expand sidebar" }).focus();
@@ -141,7 +136,6 @@ test("sidebar preview overlays content and pinning reserves space", async ({ pag
   await page.locator("[data-sidebar-content]").click();
   expect((await content.boundingBox())?.x).toBe(before.x + 160);
   await expect(sidebar).toHaveCSS("width", "224px");
-  await info.attach("sidebar-pinned", { body: await page.screenshot(), contentType: "image/png" });
   await page.getByRole("button", { name: "Collapse sidebar" }).click();
   await expect(sidebar).toHaveCSS("width", "64px");
   await page.setViewportSize({ width: 1024, height: 400 });
@@ -178,7 +172,6 @@ test(
       await expect(menu).toBeVisible();
       const headerBrand = page.locator('header a[aria-label="Search"]');
       await expect(headerBrand).toBeVisible();
-      await info.attach("mobile-menu", { body: await page.screenshot(), contentType: "image/png" });
       await popover.getByRole("link", { name: "Sign in", exact: true }).click();
       await expect(page).toHaveURL(/\/sign-in$/);
       await expect(popover).toBeHidden();
@@ -189,9 +182,5 @@ test(
       await expect(popover).toBeHidden();
       await expect(sidebar).toBeVisible();
     }
-    await info.attach("responsive-navigation", {
-      body: await page.screenshot({ path: info.outputPath("responsive-navigation.png") }),
-      contentType: "image/png",
-    });
   },
 );

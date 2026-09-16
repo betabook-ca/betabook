@@ -48,7 +48,7 @@ export function validateClimbDescriptionInput(raw: RawClimbDescriptionInput): {
 }
 
 /** Descriptions are edited directly and excluded from moderation. */
-export type ClimbEditInput = Omit<ClimbInput, "description">;
+export type ClimbEditInput = Omit<ClimbInput, "description" | "grade"> & { grade: number | null };
 
 export type RawClimbEditInput = Omit<RawClimbInput, "description">;
 
@@ -62,7 +62,12 @@ export function validateClimbEditInput(existing: Climb, raw: RawClimbEditInput):
   if (raw.type !== existing.type && existing.sendCount > 0) {
     throw new ActionError("Can't change discipline once a climb has logged sends");
   }
-  const grade = parseGradeIndex(raw.grade, nativeGradeArray(raw.type).length, "Grade");
+  const grade =
+    existing.grade === null &&
+    raw.type === existing.type &&
+    (raw.grade === null || raw.grade === "")
+      ? null
+      : parseGradeIndex(raw.grade, nativeGradeArray(raw.type).length, "Grade");
   return { name, type: raw.type, grade };
 }
 

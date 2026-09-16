@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
@@ -83,6 +83,45 @@ async function loadKaya() {
   await screen.findByRole("region", { name: "Review repeated dates" });
   await waitFor(() => expect(screen.getByRole("button", { name: "Next: Review" })).toBeEnabled());
 }
+
+it.each(["Back to matching", "Check them"])(
+  "locks %s while importing so progress and cancellation stay available",
+  async (navigation) => {
+    if (navigation === "Back to matching") unmatched = "Climb 60";
+    else {
+      const lookup = vi.mocked(resolveImportClimbs).getMockImplementation()!;
+      vi.mocked(resolveImportClimbs).mockImplementation(async (names) => {
+        const result = await lookup(names);
+        if (!result.ok) return result;
+        const [first, ...rest] = result.value;
+        return {
+          ok: true,
+          value: [
+            { ...first, total: 2 },
+            { ...first, id: first.id + 1000, grade: first.grade! + 1, total: 2 },
+            ...rest,
+          ],
+        };
+      });
+    }
+    let finish!: (result: Awaited<ReturnType<typeof importSends>>) => void;
+    vi.mocked(importSends).mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    await loadKaya();
+    await userEvent.click(screen.getByRole("button", { name: "Next: Review" }));
+    await userEvent.click(screen.getByRole("button", { name: /^Import \d+ sends$/ }));
+    const link = screen.getByRole("button", { name: navigation });
+    await userEvent.click(link);
+    const canCancel = screen.queryByRole("button", { name: "Cancel import" }) !== null;
+    await act(async () =>
+      finish({ ok: true, value: { imported: 50, overwritten: 0, alreadyLogged: 0, missing: [] } }),
+    );
+    expect(canCancel).toBe(true);
+  },
+);
 
 it("warns on an automatically mapped KAYA import and keeps all dates by default", async () => {
   await loadKaya();

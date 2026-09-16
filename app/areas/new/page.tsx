@@ -4,7 +4,7 @@ import { AddKindNav } from "@/components/add-kind-nav";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { NewAreaForm } from "@/components/new-area-form";
 import { PageTitle } from "@/components/ui/typography";
-import { getMemberSession as getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 
 export const metadata: Metadata = {
   title: "Add area",
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function NewAreaPage() {
-  const session = await getSession();
+  const session = await getMemberSession();
   if (!session) return <CurrentPageAuthCallout />;
 
   return (

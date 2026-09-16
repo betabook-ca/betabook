@@ -64,9 +64,5 @@ for (const story of [
       content: el.scrollWidth,
     }));
     expect(dimensions.content).toBeLessThanOrEqual(dimensions.width);
-    await info.attach(`tutorial-${story}`, {
-      body: await page.screenshot({ path: info.outputPath(`tutorial-${story}.png`) }),
-      contentType: "image/png",
-    });
   });
 }

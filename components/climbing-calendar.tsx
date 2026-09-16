@@ -1,5 +1,5 @@
 import { ChartInspection } from "@/components/chart-inspection";
-import type { ChartClimbRow, ChartDetailGroup } from "@/lib/chart-details";
+import { groupDatedRows, type ChartClimbRow, type ChartDetailGroup } from "@/lib/chart-details";
 import { formatCount } from "@/lib/format";
 import { formatDate } from "@/lib/format-date";
 
@@ -50,13 +50,14 @@ export function ClimbingCalendar({
   });
   const dayLabel = (day: { iso: string; count: number }) =>
     `${day.count > 0 ? formatCount(day.count, unit) : `No ${unit}s`} · ${formatDate(day.iso)}`;
+  const activitiesByDay = groupDatedRows(activities ?? [], (entry) => entry.date, "day");
   const details = Object.fromEntries(
     days.map((day) => [
       dayLabel(day),
       {
         title: formatDate(day.iso),
         summary: formatCount(day.count, unit),
-        rows: activities?.filter((entry) => entry.date === day.iso) ?? [],
+        rows: activitiesByDay.get(day.iso) ?? [],
       } satisfies ChartDetailGroup,
     ]),
   );

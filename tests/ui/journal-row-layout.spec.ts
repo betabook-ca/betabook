@@ -23,8 +23,4 @@ test("journal notes use the row width and expanding them leaves the grade aligne
   await row.getByRole("button", { name: "Show more" }).click();
   expect((await grade.boundingBox())?.y).toBe(gradeBox.y);
   await expect(row.getByRole("button", { name: "Show less" })).toBeVisible();
-  await info.attach("journal-entry", {
-    body: await page.screenshot({ path: info.outputPath("journal-entry.png") }),
-    contentType: "image/png",
-  });
 });

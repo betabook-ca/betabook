@@ -37,6 +37,7 @@ beforeAll(async () => {
   await seedFixtureTree(db);
   await seedFixtureUser(db, { id: "stmt-user", name: "Statement User" });
   await seedFixtureUser(db, { id: "guard-user", name: "Guard User" });
+  // Test the statement guards independently of the migrated journal-sync triggers.
   for (const trigger of [
     "journal_sent_insert_guard",
     "journal_sent_update_guard",

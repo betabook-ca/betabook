@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, type SQL } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import type { Area } from "@/db/queries/areas";
@@ -10,6 +10,52 @@ export type RequestScope = { request: ChangeRequest; scopeAreaIds: number[] };
 type ReviewQueueCursor = { requestedAt: number; id: number };
 export type ReviewQueueOptions = { after?: ReviewQueueCursor; limit?: number };
 export const REVIEW_QUEUE_PAGE_SIZE = 25;
+
+/** Recheck live roles, grants and ancestry in the same statement as the decision. */
+export function moderationAuthorizedSql(
+  reviewerId: string,
+  request: Pick<ChangeRequest, "type" | "entityId" | "payload">,
+  {
+    approvalRequestId,
+    requireAll = true,
+  }: { approvalRequestId?: number; requireAll?: boolean } = {},
+): SQL {
+  const payload = JSON.parse(request.payload);
+  const requiredAreas = [
+    request.type.startsWith("area_")
+      ? sql`SELECT (SELECT id FROM areas WHERE id = ${request.entityId})`
+      : sql`SELECT (SELECT area_id FROM climbs WHERE id = ${request.entityId})`,
+  ];
+  if (request.type === "area_reparent")
+    requiredAreas.push(sql`SELECT (SELECT id FROM areas WHERE id = ${payload.newParentId})`);
+  else if (request.type === "climb_move")
+    requiredAreas.push(sql`SELECT (SELECT id FROM areas WHERE id = ${payload.newAreaId})`);
+  else if (request.type === "climb_merge")
+    requiredAreas.push(
+      sql`SELECT (SELECT area_id FROM climbs WHERE id = ${payload.targetClimbId})`,
+    );
+
+  return sql`EXISTS (
+    WITH RECURSIVE required(area_id) AS (${sql.join(requiredAreas, sql` UNION `)}),
+    ancestors(area_id, ancestor_id) AS (
+      SELECT area_id, area_id FROM required
+      UNION
+      SELECT a.area_id, parent.parent_id FROM ancestors a
+      JOIN areas parent ON parent.id = a.ancestor_id WHERE parent.parent_id IS NOT NULL
+    ), covered(user_id, area_id) AS (
+      SELECT u.id, a.area_id FROM user u
+      JOIN admin_area_scopes s ON s.user_id = u.id
+      JOIN ancestors a ON a.ancestor_id = s.area_id
+      WHERE u.role = 'admin' AND (
+        u.id = ${reviewerId}
+        ${approvalRequestId === undefined ? sql`` : sql`OR u.id IN (SELECT user_id FROM change_request_approvals WHERE request_id = ${approvalRequestId})`}
+      )
+    )
+    SELECT 1 WHERE EXISTS (SELECT 1 FROM covered WHERE user_id = ${reviewerId})
+      AND NOT EXISTS (SELECT 1 FROM required WHERE area_id IS NULL)
+      ${requireAll ? sql`AND NOT EXISTS (SELECT 1 FROM required r WHERE NOT EXISTS (SELECT 1 FROM covered c WHERE c.area_id = r.area_id))` : sql``}
+  )`;
+}
 
 export async function getScopedPendingRequests(
   db: Database,

@@ -42,6 +42,23 @@ export type ChartDetailGroup = {
   rows: ChartClimbRow[];
 };
 
+export function groupDatedRows<Row>(
+  rows: readonly Row[],
+  dateFor: (row: Row) => string | null,
+  period: "day" | "month",
+): Map<string, Row[]> {
+  const groups = new Map<string, Row[]>();
+  for (const row of rows) {
+    const date = dateFor(row);
+    if (date === null) continue;
+    const key = period === "month" ? date.slice(0, 7) : date;
+    const group = groups.get(key);
+    if (group) group.push(row);
+    else groups.set(key, [row]);
+  }
+  return groups;
+}
+
 export type ChartSession = Pick<
   HighlightSession,
   "id" | "entryDate" | "climbId" | "climbName" | "climbType" | "sent" | "isAscent"

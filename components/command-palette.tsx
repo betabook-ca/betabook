@@ -8,6 +8,7 @@ import { createContext, useCallback, useContext, useEffect, type ReactNode } fro
 import { Brand } from "@/components/brand";
 import { useSearchScope } from "@/components/search-scope";
 import { AppLink } from "@/components/ui/app-link";
+import { DeferredLoadError } from "@/components/ui/deferred-load-error";
 import { useDeferredComponent } from "@/hooks/use-deferred-component";
 import { isApplePlatform, useModifierLabels } from "@/hooks/use-platform";
 import { authClient } from "@/lib/auth-client";
@@ -49,7 +50,7 @@ export function SearchPaletteProvider({ children }: { children: ReactNode }) {
   const canSearchQuickly = !!session && !isPending;
   const state = useOverlayState();
   const scope = useSearchScope();
-  const { Component: PaletteDialog, load } = useDeferredComponent(loadPaletteDialog);
+  const { Component: PaletteDialog, load, failed } = useDeferredComponent(loadPaletteDialog);
 
   const { open, setOpen, close } = state;
   // Pulls the chunk in on the way to opening, for the case where a very
@@ -93,6 +94,9 @@ export function SearchPaletteProvider({ children }: { children: ReactNode }) {
   return (
     <OpenSearchContext.Provider value={openPalette}>
       {children}
+      {canSearchQuickly && state.isOpen && failed && (
+        <DeferredLoadError feature="search" onRetry={load} onDismiss={close} />
+      )}
       {canSearchQuickly && PaletteDialog && (
         <PaletteDialog
           isOpen={state.isOpen}

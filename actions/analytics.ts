@@ -8,6 +8,8 @@ import { ActionError, toActionResult, type ActionResult } from "@/lib/action-res
 import { analyticsLayoutSchema, type AnalyticsLayout } from "@/lib/analytics-layout";
 import { requireSession } from "@/lib/session";
 
+import { afterCommit } from "./post-commit";
+
 /** The target always comes from the session; clients cannot choose another account. */
 export async function saveAnalyticsLayout(layout: AnalyticsLayout): Promise<ActionResult> {
   return toActionResult(async () => {
@@ -21,6 +23,6 @@ export async function saveAnalyticsLayout(layout: AnalyticsLayout): Promise<Acti
       .insert(userAnalyticsLayouts)
       .values({ userId: session.user.id, layout: parsed.data })
       .onConflictDoUpdate({ target: userAnalyticsLayouts.userId, set: { layout: parsed.data } });
-    revalidatePath(`/users/${session.user.id}/analytics`);
+    afterCommit(() => revalidatePath(`/users/${session.user.id}/analytics`));
   });
 }

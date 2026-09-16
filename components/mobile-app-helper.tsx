@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 
 import type { BeforeInstallPromptEvent } from "@/components/mobile-app-helper-panel";
+import { DeferredLoadError } from "@/components/ui/deferred-load-error";
 import { useDeferredComponent } from "@/hooks/use-deferred-component";
 import { useMounted } from "@/hooks/use-mounted";
 import {
@@ -48,7 +49,7 @@ export function MobileAppHelper() {
   );
   const [isOpen, setIsOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const { Component: MobileAppHelperPanel, load } = useDeferredComponent(loadPanel);
+  const { Component: MobileAppHelperPanel, load, failed } = useDeferredComponent(loadPanel);
 
   useEffect(() => {
     // Capture the browser's one-shot event even while a tour hides the helper.
@@ -112,9 +113,14 @@ export function MobileAppHelper() {
     }
   }, [installPrompt]);
 
-  if (!mounted || paused || !isOpen || !MobileAppHelperPanel) {
+  if (!mounted || paused || !isOpen) {
     return null;
   }
+  if (failed)
+    return (
+      <DeferredLoadError feature="app shortcut help" onRetry={load} onDismiss={handleDismiss} />
+    );
+  if (!MobileAppHelperPanel) return null;
 
   return (
     <MobileAppHelperPanel

@@ -73,3 +73,20 @@ export const archiveMissedGoal = fn<typeof Actions.archiveMissedGoal>().mockReso
   ok: true,
   value: undefined,
 });
+
+export const requestAreaEdit = fn<typeof Actions.requestAreaEdit>().mockResolvedValue({
+  ok: true,
+  value: { status: "pending" },
+});
+export const requestClimbEdit = fn<typeof Actions.requestClimbEdit>().mockResolvedValue({
+  ok: true,
+  value: { status: "pending" },
+});
+export const approveChangeRequest = fn<typeof Actions.approveChangeRequest>().mockResolvedValue({
+  ok: true,
+  value: { decision: "awaiting" },
+});
+export const rejectChangeRequest = fn<typeof Actions.rejectChangeRequest>().mockResolvedValue({
+  ok: true,
+  value: undefined,
+});

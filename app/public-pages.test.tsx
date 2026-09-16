@@ -61,6 +61,16 @@ const shareProps = (id: string, share: string) => ({
   searchParams: Promise.resolve({ share }),
 });
 
+it("keeps area filter variants noindex while retaining the canonical area", async () => {
+  expect((await areaMetadata(areaProps)).robots).toBeUndefined();
+  const filtered = await areaMetadata({
+    ...areaProps,
+    searchParams: Promise.resolve({ sort: "grade_desc", discipline: "boulder" }),
+  });
+  expect(filtered.robots).toEqual({ index: false });
+  expect(filtered.alternates).toEqual({ canonical: "/areas/1/test-crag" });
+});
+
 async function seedSharedProfile() {
   await db.insert(climbs).values(
     [0, 1, 2, 3, 4, 5, 6].map((index) => ({

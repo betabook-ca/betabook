@@ -10,6 +10,7 @@ import { ActionError, toActionResult, type ActionResult } from "@/lib/action-res
 import { allowJournalWrite } from "@/lib/rate-limit";
 import { requireSession } from "@/lib/session";
 
+import { afterCommit } from "./post-commit";
 import { revalidateJournalSurfaces } from "./revalidation";
 
 export async function removeMyJournalTag(entryId: number): Promise<ActionResult> {
@@ -34,11 +35,13 @@ export async function removeMyJournalTag(entryId: number): Promise<ActionResult>
     const entry = await db.get<{ userId: string; climbId: number | null }>(
       sql`SELECT user_id AS userId, climb_id AS climbId FROM journal_entries WHERE id = ${entryId}`,
     );
-    if (entry)
-      revalidateJournalSurfaces({
-        userId: entry.userId,
-        climbIds: entry.climbId === null ? [] : [entry.climbId],
-      });
-    refresh();
+    afterCommit(() => {
+      if (entry)
+        revalidateJournalSurfaces({
+          userId: entry.userId,
+          climbIds: entry.climbId === null ? [] : [entry.climbId],
+        });
+      refresh();
+    });
   });
 }

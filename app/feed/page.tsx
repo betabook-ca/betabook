@@ -9,7 +9,7 @@ import { WorkspaceShell } from "@/components/workspace-shell";
 import { getDb } from "@/db/client";
 import { getFriendsPage, getFeedPage } from "@/db/queries";
 import { parseFeedView } from "@/lib/feed";
-import { getMemberSession as getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 import type { UrlParamsRecord } from "@/lib/url-params";
 
 export const metadata: Metadata = { title: "Feed", robots: { index: false } };
@@ -19,7 +19,7 @@ export default async function FeedPage({
 }: {
   searchParams: Promise<UrlParamsRecord>;
 }) {
-  const session = await getSession();
+  const session = await getMemberSession();
   if (!session) return <CurrentPageAuthCallout />;
   const view = parseFeedView((await searchParams).view);
   const db = await getDb();

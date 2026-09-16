@@ -13,6 +13,7 @@ import {
   type ChangeRequest,
   type Climb,
 } from "@/db/queries";
+import { moderationAuthorizedSql } from "@/db/queries/moderation";
 import {
   areas,
   changeRequestApprovals,
@@ -53,6 +54,16 @@ async function commitMutation(
   decision?: MutationDecision,
 ) {
   const audit: BatchItem<"sqlite">[] = [];
+  let mutationGuard = guard;
+  if (decision) {
+    const request =
+      "request" in decision
+        ? decision.request
+        : { ...decision, payload: JSON.stringify(decision.payload) };
+    mutationGuard = sql`${guard} AND ${moderationAuthorizedSql(decision.reviewerId, request, {
+      approvalRequestId: "request" in decision ? decision.request.id : undefined,
+    })}`;
+  }
   if (decision && "request" in decision) {
     const request = decision.request;
     audit.push(
@@ -60,7 +71,8 @@ async function commitMutation(
         .insert(changeRequestApprovals)
         .values({
           requestId: sql`(SELECT id FROM change_requests
-          WHERE id = ${request.id} AND status = 'pending' AND payload = ${request.payload} AND ${guard})`,
+          WHERE id = ${request.id} AND status = 'pending' AND payload = ${request.payload}
+            AND requested_by IS NOT ${decision.reviewerId} AND ${mutationGuard})`,
           userId: decision.reviewerId,
         })
         .onConflictDoNothing(),
@@ -79,7 +91,7 @@ async function commitMutation(
       db.insert(changeRequests).values({
         type: decision.type,
         entityId: decision.entityId,
-        payload: sql`CASE WHEN ${guard} THEN ${JSON.stringify(decision.payload)} ELSE NULL END`,
+        payload: sql`CASE WHEN ${mutationGuard} THEN ${JSON.stringify(decision.payload)} ELSE NULL END`,
         requestedBy: decision.reviewerId,
         status: "approved",
         reviewedBy: decision.reviewerId,

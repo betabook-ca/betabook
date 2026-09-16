@@ -2,9 +2,49 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
+import { summarizeGoalPeriods } from "@/lib/goal-history";
 import { goalPanelStoryArgs, goalHistorySample } from "@/stories/fixtures/goal-samples";
 
 import { GoalRecurringHistory } from "./goal-recurring-history";
+
+it.each([
+  { month: "2026-09", weekStart: "2026-09-07", weekEnd: "2026-09-13", label: "Sep 7" },
+  { month: "2026-06", weekStart: "2026-06-01", weekEnd: "2026-06-07", label: "Jun 1" },
+])("retains both cadences when weekly and monthly periods overlap in $month", async (dates) => {
+  const current = {
+    ...goalHistorySample(3),
+    repeat: "month" as const,
+    timeframe: "month" as const,
+    periodStart: `${dates.month}-01`,
+    periodEnd: `${dates.month}-30`,
+    progress: 1,
+    target: 8,
+    completedDate: null,
+  };
+  const weekly = {
+    ...current,
+    repeat: "week" as const,
+    timeframe: "week" as const,
+    periodStart: dates.weekStart,
+    periodEnd: dates.weekEnd,
+    completedDate: dates.weekEnd,
+    progress: 3,
+    target: 3,
+  };
+  const today = `${dates.month}-16`;
+  const history = summarizeGoalPeriods(
+    [current, weekly],
+    "completed",
+    0,
+    new Date(`${today}T12:00:00Z`),
+  ).goals[0];
+  render(
+    <GoalRecurringHistory ownerId="owner" goal={history} currentPeriod={current} today={today} />,
+  );
+  await userEvent.click(screen.getByRole("button", { name: "See history" }));
+  expect(screen.getByRole("button", { name: `Week of ${dates.label} · Met · 3/3` })).toBeVisible();
+  expect(screen.getByText("Month · In progress · 1/8")).toBeVisible();
+});
 
 it("shows whole recent months with both met and missed periods", async () => {
   const goal = goalHistorySample(3);

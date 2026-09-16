@@ -55,7 +55,7 @@ it.each(["idle", "loading", "error", "locked"] as const)(
   "does not offer creation for %s results",
   (status) => {
     const sections: SearchSection[] = [{ kind: "climb", status, items: [] }];
-    render(<SearchSurface {...props} sections={sections} />);
+    render(<SearchSurface {...props} canCreate sections={sections} />);
     expect(screen.queryByRole("link", { name: "Add climb" })).not.toBeInTheDocument();
   },
 );
@@ -79,6 +79,7 @@ it("does not offer creation for matching areas or a climber-only search", () => 
   render(
     <SearchSurface
       {...props}
+      canCreate
       sections={[
         {
           kind: "area",

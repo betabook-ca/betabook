@@ -12,6 +12,7 @@ type JournalEntryDateFieldsProps = {
   entryDate: string;
   /** Chosen in the owning form's session-or-send picker. */
   sent: boolean;
+  disabled?: boolean;
   onDateChange: (value: string) => void;
 };
 
@@ -22,6 +23,7 @@ export function JournalEntryDateFields({
   today,
   entryDate,
   sent,
+  disabled = false,
   onDateChange,
 }: JournalEntryDateFieldsProps) {
   const canMarkUnknown = !existingEntry && hasClimb && sent && !hasPriorSend;
@@ -33,6 +35,7 @@ export function JournalEntryDateFields({
         value={entryDate}
         max={today}
         isReadOnly={existingEntry?.sent}
+        isDisabled={disabled}
         onChange={onDateChange}
         // I don't know appears once a send style is chosen on a first ascent,
         // recording it undated. A repeat always needs a date, so it never

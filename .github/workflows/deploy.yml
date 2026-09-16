@@ -62,9 +62,7 @@ jobs:
           cache: true
           require-lockfile: true
 
-      # worker-configuration.d.ts is gitignored and `wrangler types` derives it
-      # from wrangler.jsonc *and* .dev.vars. Without this copy CloudflareEnv
-      # lacks RESEND_API_KEY and lib/email.ts fails the build's typecheck.
+      # Validate platform bindings; cloudflare-env.d.ts is the application contract.
       - name: Generate Cloudflare env types
         run: |
           cp .dev.vars.example .dev.vars
@@ -186,9 +184,7 @@ jobs:
           cache: true
           require-lockfile: true
 
-      # worker-configuration.d.ts is gitignored and `wrangler types` derives it
-      # from wrangler.jsonc *and* .dev.vars. Without this copy CloudflareEnv
-      # lacks RESEND_API_KEY and lib/email.ts fails the build's typecheck.
+      # Validate platform bindings; cloudflare-env.d.ts is the application contract.
       - name: Generate Cloudflare env types
         run: |
           cp .dev.vars.example .dev.vars

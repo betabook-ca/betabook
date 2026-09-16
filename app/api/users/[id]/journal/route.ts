@@ -18,7 +18,7 @@ export const GET = withApiSession(async (session, request: Request, { params }: 
   const filter = parseJournalFilter(searchParamsToRecord(url.searchParams));
 
   const db = await getDb();
-  const viewerId = session?.user.id ?? null;
+  const viewerId = session.user.id;
 
   const user = await getUser(db, userId);
   if (!user || !(await canReadJournal(db, user.id, viewerId))) {

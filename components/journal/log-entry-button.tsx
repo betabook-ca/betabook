@@ -3,6 +3,7 @@
 import { Button, useOverlayState } from "@heroui/react";
 import { CirclePlus } from "lucide-react";
 
+import { DeferredLoadError } from "@/components/ui/deferred-load-error";
 import type { SendableClimb } from "@/db/queries";
 import { useDeferredComponent } from "@/hooks/use-deferred-component";
 
@@ -27,7 +28,7 @@ export function LogEntryButton({
   className?: string;
 }) {
   const state = useOverlayState();
-  const { Component: JournalEntryDrawer, load } = useDeferredComponent(loadDrawer);
+  const { Component: JournalEntryDrawer, load, failed } = useDeferredComponent(loadDrawer);
 
   return (
     <>
@@ -45,6 +46,9 @@ export function LogEntryButton({
       </Button>
       {JournalEntryDrawer && (
         <JournalEntryDrawer climb={climb} sentClimbIds={sentClimbIds} state={state} />
+      )}
+      {state.isOpen && failed && (
+        <DeferredLoadError feature="the entry form" onRetry={load} onDismiss={state.close} />
       )}
     </>
   );

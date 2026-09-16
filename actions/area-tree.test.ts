@@ -7,22 +7,7 @@ import { createDb } from "@/db/client";
 import { getArea, getSubtreeClimbs, findClimbCandidatesByNames } from "@/db/queries";
 import { seedFixtureTree } from "@/test/fixtures";
 
-/** A newly created area has to be *fully placed* the moment createArea
- * returns: its own page, its parent's sub-area list, and every ancestor's
- * subtree climb listing all have to agree immediately.
- *
- * That used to be untrue. Areas were inserted at a placeholder lft=0/rght=0
- * and repaired by a background recompute, but every subtree read treated 0/0
- * as a real coordinate — so until the repair landed, the new area's own page
- * matched `lft >= 0 AND lft <= 0`, i.e. every *other* pending climb in the
- * database, while ancestors matched none of them. Resolving ancestry from
- * parentId at read time removes the window rather than shortening it.
- *
- * Worth knowing what these can and can't prove: run against the old
- * implementation, only the rename case below fails. The rest pass, because
- * the recompute they were racing finishes well within a 5-area fixture — the
- * same reason the bug survived in the first place. They pin the invariant
- * going forward; they are not a reproduction of the old race. */
+// Area ancestry must be visible immediately after creation, without background repair.
 
 vi.mock("next/cache", () => ({ refresh: () => {}, revalidatePath: () => {} }));
 
@@ -87,14 +72,11 @@ describe("a brand-new area is immediately correct", () => {
     const climb = await createClimb(newAreaId, climbForm("Test Roof Problem"));
     expect(climb.ok).toBe(true);
 
-    // Its own page, with no recompute having run in between.
     expect(await climbNamesUnder(newAreaId)).toEqual(["Test Roof Problem"]);
 
-    // Both ancestors.
     expect(await climbNamesUnder(TEST_BOULDERS)).toContain("Test Roof Problem");
     expect(await climbNamesUnder(TEST_CRAG)).toContain("Test Roof Problem");
 
-    // And nowhere off the ancestor chain.
     expect(await climbNamesUnder(TEST_SPORT_WALL)).not.toContain("Test Roof Problem");
   });
 
@@ -103,10 +85,6 @@ describe("a brand-new area is immediately correct", () => {
     const newAreaId = created.ok ? created.value : 0;
     await createClimb(newAreaId, climbForm("Test Imported Climb"));
 
-    // What the import wizard's Area column and hints are matched against.
-    // Under the placeholder scheme this chain was empty until a recompute
-    // landed, so the import reported "climb not found" for a climb the user
-    // had just created.
     const [found] = await findClimbCandidatesByNames(db, ["Test Imported Climb"]);
     expect(found.areaId).toBe(newAreaId);
     expect(found.areaName).toBe("Test Import Alcove");
@@ -126,8 +104,6 @@ describe("a brand-new area is immediately correct", () => {
       createClimb(sportBayId, climbForm("Test Parallel Sport Route")),
     ]);
 
-    // Two simultaneously-pending areas used to share the same 0/0 window, so
-    // each one's page listed the other's climbs.
     expect(await climbNamesUnder(bouldersBayId)).toEqual(["Test Parallel Boulder Problem"]);
     expect(await climbNamesUnder(sportBayId)).toEqual(["Test Parallel Sport Route"]);
   });
@@ -155,19 +131,12 @@ describe("creating an area doesn't rewrite the rest of the tree", () => {
       ),
     };
 
-    // The nested-set encoding had to renumber a share of both tables on every
-    // insert — measured at ~133k-303k rows against the production dataset.
-    // Ancestry lives in parentId now, so an insert is an insert.
     expect(after.areas).toEqual(before.areas);
     expect(after.climbs).toEqual(before.climbs);
   });
 });
 
-/** Root areas exist — the seed data's continents — but nothing creates one:
- * an area with no parent isn't reachable by walking down from a continent, so
- * it would only ever surface in search. AreaForm refuses to submit without a
- * picked parent, and these pin the same rule at the mutation, which as a
- * server action is a callable endpoint in its own right. */
+// The mutation must require a parent independently of the form's validation.
 describe("a new area always goes under an existing one", () => {
   it("refuses a parent id that isn't an area", async () => {
     const created = await createArea(999999, areaForm("Test Orphan Wall"));
@@ -191,7 +160,6 @@ async function countRoots(): Promise<number> {
   return (results[0] as { n: number }).n;
 }
 
-// Declared after use for readability above; hoisted function declarations.
 function sqlAllAreas() {
   return sql`SELECT id, parent_id AS parentId, name, description FROM areas ORDER BY id`;
 }

@@ -119,19 +119,7 @@ export function UserSendList({
             }
             status={<AscentStyle type={send.ascentStyle} />}
             date={send.dateSent}
-            actions={
-              currentUserId === userId && (
-                <SendActionsMenu
-                  climb={{
-                    id: send.climbId,
-                    areaId: send.areaId,
-                    type: send.climbType,
-                    grade: send.climbGrade,
-                  }}
-                  send={send}
-                />
-              )
-            }
+            actions={currentUserId === userId && <SendActionsMenu send={send} />}
             comment={send.comment}
           />
         )}

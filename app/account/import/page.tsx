@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { ImportWizard } from "@/components/import";
-import { getMemberSession as getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 
 export const metadata: Metadata = {
   title: "Import sends",
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ImportPage() {
-  const session = await getSession();
+  const session = await getMemberSession();
 
   if (!session) {
     return <CurrentPageAuthCallout />;

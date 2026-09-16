@@ -43,6 +43,48 @@ export const Monthly: Story = {
   },
 };
 
+export const MixedCadence: Story = {
+  args: {
+    today: "2026-09-16",
+    goal: {
+      ...goal,
+      recurring: {
+        met: 1,
+        total: 1,
+        hasMore: false,
+        recent: [
+          {
+            repeat: "week",
+            periodStart: "2026-09-07",
+            periodEnd: "2026-09-13",
+            target: 3,
+            progress: 3,
+            completedDate: "2026-09-10",
+          },
+          {
+            repeat: "month",
+            periodStart: "2026-09-01",
+            periodEnd: "2026-09-30",
+            target: 8,
+            progress: 1,
+            completedDate: null,
+          },
+        ],
+      },
+    },
+    currentPeriod: {
+      ...monthlyGoal,
+      periodStart: "2026-09-01",
+      periodEnd: "2026-09-30",
+      target: 8,
+      progress: 1,
+    },
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "See history" }));
+  },
+};
+
 export const Yearly: Story = {
   play: async ({ canvasElement }) => {
     await userEvent.click(within(canvasElement).getByRole("button", { name: "See history" }));

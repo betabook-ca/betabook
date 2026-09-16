@@ -4,3 +4,11 @@ allowBuilds:
   unrs-resolver: false
   workerd: true
 minimumReleaseAge: 2880 # 2 days (in minutes)
+overrides:
+  # Converge only compatible ranges on the security fixes.
+  "qs@": 6.16.0
+  "sharp@": 0.35.4
+  # The current Vitest pool pins this older Miniflare; retain its runtime and patch only Sharp.
+  "miniflare@5.20260815.0-alpha>sharp": 0.35.4
+  # This version loads TypeScript with bundled tsx; the unused legacy loader pulls esbuild 0.18.
+  "drizzle-kit@0.31.10>@esbuild-kit/esm-loader": "-"

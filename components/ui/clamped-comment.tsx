@@ -23,7 +23,11 @@ const OVERFLOW_TOLERANCE_PX = 1;
  * is a multiple of the unchanged font-size, so the ResizeObserver never fires,
  * but the content height moves). Hence the observer *and* the fonts.ready
  * pass. */
-function useIsOverflowing(ref: RefObject<HTMLElement | null>, enabled: boolean): boolean {
+function useIsOverflowing(
+  ref: RefObject<HTMLElement | null>,
+  enabled: boolean,
+  text: string,
+): boolean {
   const [overflowing, setOverflowing] = useState(false);
 
   useIsomorphicLayoutEffect(() => {
@@ -47,7 +51,7 @@ function useIsOverflowing(ref: RefObject<HTMLElement | null>, enabled: boolean):
       cancelled = true;
       observer.disconnect();
     };
-  }, [ref, enabled]);
+  }, [ref, enabled, text]);
 
   return overflowing;
 }
@@ -75,7 +79,7 @@ export function ClampedComment({
   // Measuring while expanded would compare an unclamped element against
   // itself, report "fits", and drop the button the reader needs to collapse
   // it — so the last collapsed answer is the one that stands.
-  const overflowing = useIsOverflowing(commentRef, !expanded);
+  const overflowing = useIsOverflowing(commentRef, !expanded, children);
 
   return (
     <>

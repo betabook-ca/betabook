@@ -20,6 +20,28 @@ const baseClimb: Climb = {
 describe("validateClimbEditInput", () => {
   const raw = { name: "Renamed", type: "sport", grade: "8" };
 
+  it("preserves an unknown grade during a same-discipline rename", () => {
+    expect(
+      validateClimbEditInput(
+        { ...baseClimb, grade: null },
+        {
+          name: "Renamed",
+          type: "boulder",
+          grade: "",
+        },
+      ),
+    ).toEqual({ name: "Renamed", type: "boulder", grade: null });
+    expect(() =>
+      validateClimbEditInput(baseClimb, { name: "Renamed", type: "boulder", grade: "" }),
+    ).toThrow("Grade is required");
+    expect(() =>
+      validateClimbEditInput(
+        { ...baseClimb, grade: null },
+        { name: "Renamed", type: "sport", grade: "" },
+      ),
+    ).toThrow("Grade is required");
+  });
+
   it("accepts a discipline change while the climb has no sends — description isn't part of it", () => {
     expect(validateClimbEditInput(baseClimb, raw)).toEqual({
       name: "Renamed",

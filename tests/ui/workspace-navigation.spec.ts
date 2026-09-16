@@ -35,10 +35,6 @@ for (const [story, title, labels] of [
     await expect(current).toHaveCount(1);
     await expect(current).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
     expect(await current.evaluate((node) => getComputedStyle(node, "::after").height)).toBe("2px");
-    await info.attach(`workspace-${story}`, {
-      body: await page.screenshot({ path: info.outputPath(`workspace-${story}.png`) }),
-      contentType: "image/png",
-    });
     if (story === "progress") {
       await page.setViewportSize({ width: 320, height: 812 });
       const widths = await nav.evaluate((node) => ({
@@ -46,10 +42,6 @@ for (const [story, title, labels] of [
         available: node.clientWidth,
       }));
       expect(widths.content).toBeLessThanOrEqual(widths.available);
-      await info.attach("narrow-progress", {
-        body: await page.screenshot({ path: info.outputPath("narrow-progress.png") }),
-        contentType: "image/png",
-      });
     }
   });
 }

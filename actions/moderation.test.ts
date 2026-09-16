@@ -21,6 +21,7 @@ import {
   changeRequestApprovals,
   changeRequests,
   climbs,
+  user,
 } from "@/db/schema";
 import { sendChangeRequestDecisionEmail } from "@/lib/email";
 import type { ChangeRequestType } from "@/lib/moderation";
@@ -83,6 +84,12 @@ vi.mock("@/db/client", async (importOriginal) => {
 
 const db = createDb(env.DB);
 
+async function actAsAdmin() {
+  if (!sessionState.userId) throw new Error("Expected a signed-in fixture user");
+  sessionState.role = "admin";
+  await db.update(user).set({ role: "admin" }).where(eq(user.id, sessionState.userId));
+}
+
 function areaFormData(name: string): FormData {
   const formData = new FormData();
   formData.set("name", name);
@@ -121,7 +128,7 @@ beforeEach(async () => {
   await seedFixtureUser(db, { id: "moderation-user" });
   // Admin bypass is area-scoped (see lib/moderation.ts's isAdminForArea) — a
   // grant on the fixture tree's root covers every area/climb under it. Only
-  // takes effect in the tests below that also set sessionState.role = "admin".
+  // takes effect in the tests below that promote the user with actAsAdmin().
   await db.insert(adminAreaScopes).values({ userId: "moderation-user", areaId: 1 });
 
   // Coverage recomputes each approver's role and scopes from the DB (not
@@ -178,7 +185,7 @@ describe("requestAreaEdit", () => {
   });
 
   it("applies immediately for an admin and records the apply as an audit row", async () => {
-    sessionState.role = "admin";
+    await actAsAdmin();
     // Area 2 is "Test Boulders".
     expect((await searchAreas(db, "Boulders")).areas.map((a) => a.id)).toEqual([2]);
 
@@ -223,7 +230,7 @@ describe("requestAreaDelete", () => {
   });
 
   it("applies immediately for an admin, leaving an audit row", async () => {
-    sessionState.role = "admin";
+    await actAsAdmin();
     await db.insert(areas).values({ id: 102, parentId: 2, name: "Ephemeral Cove" });
     expect((await searchAreas(db, "Ephemeral Cove")).areas).toHaveLength(1);
 
@@ -256,7 +263,7 @@ describe("requestClimbEdit", () => {
   });
 
   it("applies immediately for an admin and keeps the search index in sync", async () => {
-    sessionState.role = "admin";
+    await actAsAdmin();
     expect(
       (await searchClimbs(db, { name: "Crimper", disciplines: [] })).climbs.map((c) => c.id),
     ).toEqual([3]);
@@ -274,7 +281,7 @@ describe("requestClimbEdit", () => {
   });
 
   it("rejects a discipline change once sends have been logged, even for an admin", async () => {
-    sessionState.role = "admin";
+    await actAsAdmin();
     await seedFixtureSend(db, { userId: "moderation-user", climbId: 1, dateSent: "2026-01-01" });
 
     const result = await requestClimbEdit(
@@ -309,7 +316,7 @@ describe("requestClimbDelete", () => {
   });
 
   it("applies immediately for an admin, leaving an audit row", async () => {
-    sessionState.role = "admin";
+    await actAsAdmin();
     await db
       .insert(climbs)
       .values({ id: 200, areaId: 3, name: "Ephemeral Problem", type: "boulder", grade: 3 });
@@ -351,7 +358,7 @@ describe("requestAreaReparent", () => {
   });
 
   it("applies immediately for an admin covering both sides", async () => {
-    sessionState.role = "admin";
+    await actAsAdmin();
     await db.insert(areas).values({ id: 300, parentId: 1, name: "Ephemeral Buttress" });
     await db.insert(areas).values({ id: 301, parentId: 3, name: "Ephemeral Ledge" });
 
@@ -370,7 +377,7 @@ describe("requestAreaReparent", () => {
     await db.insert(adminAreaScopes).values({ userId: "half-scope-admin", areaId: 600 });
 
     sessionState.userId = "half-scope-admin";
-    sessionState.role = "admin";
+    await actAsAdmin();
 
     const result = await requestAreaReparent(600, 601);
     expect(result).toEqual({ ok: true, value: { status: "pending" } });
@@ -395,7 +402,7 @@ describe("requestAreaReparent", () => {
     ]);
 
     sessionState.userId = "full-scope-admin";
-    sessionState.role = "admin";
+    await actAsAdmin();
 
     const result = await requestAreaReparent(610, 611);
     expect(result).toEqual({ ok: true, value: { status: "applied" } });
@@ -424,7 +431,7 @@ describe("requestClimbMove", () => {
   });
 
   it("applies immediately for an admin covering both sides", async () => {
-    sessionState.role = "admin";
+    await actAsAdmin();
     await db
       .insert(climbs)
       .values({ id: 400, areaId: 3, name: "Ephemeral Traverse", type: "boulder", grade: 3 });
@@ -445,7 +452,7 @@ describe("requestClimbMove", () => {
     await db.insert(adminAreaScopes).values({ userId: "climb-half-scope-admin", areaId: 3 });
 
     sessionState.userId = "climb-half-scope-admin";
-    sessionState.role = "admin";
+    await actAsAdmin();
 
     const result = await requestClimbMove(631, 630);
     expect(result).toEqual({ ok: true, value: { status: "pending" } });
@@ -507,7 +514,7 @@ describe("requestClimbMerge", () => {
   });
 
   it("applies immediately for an admin covering both areas, leaving an audit row", async () => {
-    sessionState.role = "admin";
+    await actAsAdmin();
     await db.insert(climbs).values([
       { id: 952, areaId: 3, name: "Action Merge Source 2", type: "boulder", grade: 3 },
       { id: 953, areaId: 4, name: "Action Merge Target 2", type: "boulder", grade: 3 },
@@ -535,7 +542,7 @@ describe("requestClimbMerge", () => {
     await db.insert(adminAreaScopes).values({ userId: "merge-half-scope-admin", areaId: 3 });
 
     sessionState.userId = "merge-half-scope-admin";
-    sessionState.role = "admin";
+    await actAsAdmin();
 
     const result = await requestClimbMerge(960, 961, { name: "Hostile Takeover" });
     expect(result).toEqual({ ok: true, value: { status: "pending" } });
@@ -571,7 +578,7 @@ describe("requestClimbMerge", () => {
 describe("approveChangeRequest", () => {
   it("applies a fully-covered request and marks it approved", async () => {
     sessionState.userId = "reviewer-root";
-    sessionState.role = "admin";
+    await actAsAdmin();
 
     const [{ id: requestId }] = await db
       .insert(changeRequests)
@@ -628,7 +635,7 @@ describe("approveChangeRequest", () => {
       .returning({ id: changeRequests.id });
 
     sessionState.userId = "coverage-approver-a";
-    sessionState.role = "admin";
+    await actAsAdmin();
     expect(await approveChangeRequest(requestId)).toEqual({
       ok: true,
       value: { decision: "awaiting" },
@@ -663,7 +670,7 @@ describe("approveChangeRequest", () => {
 
   it("blocks reviewing your own request", async () => {
     sessionState.userId = "reviewer-root";
-    sessionState.role = "admin";
+    await actAsAdmin();
 
     const [{ id: requestId }] = await db
       .insert(changeRequests)
@@ -690,13 +697,13 @@ describe("approveChangeRequest", () => {
 
   it("rejects reviewing an unknown request", async () => {
     sessionState.userId = "reviewer-root";
-    sessionState.role = "admin";
+    await actAsAdmin();
     expect(await approveChangeRequest(999999)).toEqual({ ok: false, error: "Request not found" });
   });
 
   it("rejects reviewing an already-decided request", async () => {
     sessionState.userId = "reviewer-root";
-    sessionState.role = "admin";
+    await actAsAdmin();
 
     const [{ id: requestId }] = await db
       .insert(changeRequests)
@@ -721,7 +728,7 @@ describe("approveChangeRequest", () => {
     await db.insert(adminAreaScopes).values({ userId: "elsewhere-admin", areaId: 500 });
 
     sessionState.userId = "elsewhere-admin";
-    sessionState.role = "admin";
+    await actAsAdmin();
 
     const [{ id: requestId }] = await db
       .insert(changeRequests)
@@ -759,7 +766,7 @@ describe("approveChangeRequest", () => {
     // would have auto-rejected this request) — nobody can review the
     // leftover either way.
     sessionState.userId = "elsewhere-admin";
-    sessionState.role = "admin";
+    await actAsAdmin();
     expect(await approveChangeRequest(requestId)).toEqual({
       ok: false,
       error: "The area or climb this request affects is gone",
@@ -788,7 +795,7 @@ describe("approveChangeRequest", () => {
     await seedFixtureSend(db, { userId: "race-sender", climbId: 971, dateSent: "2026-02-01" });
 
     sessionState.userId = "reviewer-root";
-    sessionState.role = "admin";
+    await actAsAdmin();
     expect(await approveChangeRequest(requestId)).toEqual({
       ok: false,
       error: "Can't delete a climb with logged sends",
@@ -808,7 +815,7 @@ describe("approveChangeRequest", () => {
 describe("rejectChangeRequest", () => {
   it("marks the request rejected with a note, without mutating anything", async () => {
     sessionState.userId = "reviewer-root";
-    sessionState.role = "admin";
+    await actAsAdmin();
 
     const [{ id: requestId }] = await db
       .insert(changeRequests)
@@ -840,7 +847,7 @@ describe("rejectChangeRequest", () => {
 
   it("blocks rejecting your own request too — reviews come from someone else", async () => {
     sessionState.userId = "reviewer-root";
-    sessionState.role = "admin";
+    await actAsAdmin();
 
     const [{ id: requestId }] = await db
       .insert(changeRequests)
@@ -866,7 +873,7 @@ describe("rejectChangeRequest", () => {
 
   it("refuses a second decision on the same request", async () => {
     sessionState.userId = "reviewer-root";
-    sessionState.role = "admin";
+    await actAsAdmin();
 
     const [{ id: requestId }] = await db
       .insert(changeRequests)

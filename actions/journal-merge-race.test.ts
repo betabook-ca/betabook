@@ -8,7 +8,12 @@ import { applyClimbMerge } from "@/actions/moderation-apply";
 import { createDb } from "@/db/client";
 import * as queries from "@/db/queries";
 import { climbs, journalCompanions, journalEntries, sends } from "@/db/schema";
-import { seedFixtureFriendship, seedFixtureTree, seedFixtureUser } from "@/test/fixtures";
+import {
+  seedFixtureFriendship,
+  seedFixtureSend,
+  seedFixtureTree,
+  seedFixtureUser,
+} from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
 
 const race = vi.hoisted(() => ({ beforeBatch: undefined as (() => Promise<void>) | undefined }));
@@ -86,6 +91,34 @@ beforeEach(async () => {
 });
 
 const operations = ["edit entry", "delete entry", "edit send"] as const;
+
+it.each([false, true])(
+  "rejects editing a deleted ascent without changing a replacement send (replacement: %s)",
+  async (replacement) => {
+    const [entry] = await db.select().from(journalEntries);
+    let afterDeletion: Awaited<ReturnType<typeof snapshot>> | undefined;
+    race.beforeBatch = async () => {
+      await db.delete(sends);
+      await db.delete(journalEntries);
+      if (replacement)
+        await seedFixtureSend(db, {
+          userId: "author",
+          climbId: 1,
+          dateSent: null,
+          comment: "Replacement send",
+        });
+      afterDeletion = await snapshot();
+    };
+
+    expect(await updateJournalEntry(entry.id, form({ body: "Stale edit" }))).toEqual({
+      ok: false,
+      error: "The entry changed — refresh and try again",
+    });
+    expect(afterDeletion?.entries).toEqual([]);
+    expect(afterDeletion?.sends).toHaveLength(replacement ? 1 : 0);
+    expect(await snapshot()).toEqual(afterDeletion);
+  },
+);
 
 it.each(
   operations.flatMap((operation) => [false, true].map((collision) => ({ operation, collision }))),

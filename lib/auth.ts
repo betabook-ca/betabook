@@ -24,6 +24,15 @@ import {
 } from "@/lib/terms";
 import { welcomeNewAccountOnce } from "@/lib/welcome-email";
 
+// Public recovery responses must not reveal whether an email address exists.
+async function deliverAuthenticationEmail(deliver: () => Promise<void>) {
+  try {
+    await deliver();
+  } catch (error) {
+    console.error("Authentication email delivery failed", error);
+  }
+}
+
 async function authBuilder() {
   const db = await getDb();
   const { env } = await getCloudflareContext({ async: true });
@@ -56,10 +65,12 @@ async function authBuilder() {
       // that someone signed in for another month. No "sign out everywhere"
       // control exists in the UI, so this is the only thing that ends them.
       revokeSessionsOnPasswordReset: true,
-      sendResetPassword: ({ user, url }) => sendResetPasswordEmail(user.email, url),
+      sendResetPassword: ({ user, url }) =>
+        deliverAuthenticationEmail(() => sendResetPasswordEmail(user.email, url)),
     },
     emailVerification: {
-      sendVerificationEmail: ({ user, url }) => sendVerificationEmail(user.email, url),
+      sendVerificationEmail: ({ user, url }) =>
+        deliverAuthenticationEmail(() => sendVerificationEmail(user.email, url)),
       // Better Auth returns early from /verify-email for an already-verified
       // user, so a re-clicked link never reaches here — this fires on the
       // false -> true transition and on a later change-email verification.

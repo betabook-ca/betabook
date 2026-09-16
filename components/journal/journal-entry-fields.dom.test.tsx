@@ -177,7 +177,7 @@ it.each(["rejection", "exception"])(
   },
 );
 
-it("prevents another submission and friend changes until the pending save completes", async () => {
+it("locks the submitted values and prevents another submission until the pending save completes", async () => {
   const { user, onSave, onDone, onPendingChange } = setup();
   let finish!: (result: ActionResult) => void;
   onSave.mockReturnValueOnce(
@@ -187,9 +187,23 @@ it("prevents another submission and friend changes until the pending save comple
   );
   await openDetails(user);
   await addFriend(user);
+  await fillNotes(user);
+  await user.click(screen.getByRole("radio", { name: "Flash" }));
   const save = screen.getByRole("button", { name: "Save entry" });
   await user.click(save);
   expect(save).toBeDisabled();
+  const notes = screen.getByRole("textbox", { name: "Notes" });
+  expect(notes).toBeDisabled();
+  await user.type(notes, " This must not be lost.");
+  expect(notes).toHaveValue("Kept the high foot.");
+  const day = screen.getByRole("spinbutton", { name: /day, Date/ });
+  await user.click(day);
+  await user.keyboard("{ArrowDown}");
+  expect(day).toHaveTextContent("06");
+  await user.click(screen.getByRole("radio", { name: "Session" }));
+  expect(screen.getByRole("radio", { name: "Flash" })).toHaveAttribute("aria-checked", "true");
+  await user.click(screen.getByRole("button", { name: "Remove tag technique" }));
+  expect(screen.getByRole("button", { name: "Remove tag technique" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Remove friend Sam Rivera" })).toBeDisabled();
   await user.click(save);
   // A submit event can also arrive without a button click (for example,

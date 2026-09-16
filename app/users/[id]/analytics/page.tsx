@@ -31,7 +31,7 @@ import {
 } from "@/lib/feature-announcements";
 import { normalizeHashtagFilters } from "@/lib/filters/hashtag-filter";
 import type { ClimbType } from "@/lib/grades";
-import { getMemberSession as getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 import { toArray, type UrlParamsRecord } from "@/lib/url-params";
 import {
   buildUserAnalytics,
@@ -48,7 +48,7 @@ type UserAnalyticsPageProps = {
 
 export async function generateMetadata({ params }: UserAnalyticsPageProps): Promise<Metadata> {
   const { id } = await params;
-  const session = await getSession();
+  const session = await getMemberSession();
   if (!session) return { title: "Member content", robots: { index: false } };
   const user = await getUserById(id);
   if (!user || !canViewUser(user, session.user.id)) notFound();
@@ -72,7 +72,7 @@ function analyticsHref(
 export default async function UserAnalyticsPage({ params, searchParams }: UserAnalyticsPageProps) {
   const [{ id }, search] = await Promise.all([params, searchParams]);
 
-  const session = await getSession();
+  const session = await getMemberSession();
   if (!session) return <CurrentPageAuthCallout />;
   const [db, user] = await Promise.all([getDb(), getUserById(id)]);
   if (!user) notFound();

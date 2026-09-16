@@ -170,3 +170,12 @@ it.each(messages)("keeps $kind available locally without sending mail", async (m
   expect(mail.send).not.toHaveBeenCalled();
   expect(logged).toHaveBeenCalledTimes(1);
 });
+
+it.each([
+  ["verification", sendVerificationEmail],
+  ["password reset", sendResetPasswordEmail],
+] as const)("reports a rejected %s delivery", async (_kind, send) => {
+  mail.send.mockResolvedValue({ error: { message: "Invalid API key" } });
+
+  await expect(send("reader@example.com", url)).rejects.toThrow("Invalid API key");
+});

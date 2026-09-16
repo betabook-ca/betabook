@@ -80,7 +80,9 @@ it("resets the link only after confirmation and keeps the dialog open on failure
   await user.click(within(dialog).getByRole("button", { name: "Reset link" }));
   expect(await within(dialog).findByText("Your session has expired.")).toBeVisible();
 
-  await user.click(within(dialog).getByRole("button", { name: "Reset link" }));
+  const retry = await within(dialog).findByRole("button", { name: "Reset link" });
+  await waitFor(() => expect(retry).toBeEnabled());
+  await user.click(retry);
   await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
   expect(reset).toHaveBeenCalledTimes(2);
   expect(screen.getByRole("status")).toHaveTextContent(/^Link reset\.$/);

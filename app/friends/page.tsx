@@ -6,7 +6,7 @@ import { ViewerBoundary } from "@/components/viewer-boundary";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { getDb } from "@/db/client";
 import { getClimberSuggestions, getFriendsPage } from "@/db/queries";
-import { getMemberSession as getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 import type { UrlParamsRecord } from "@/lib/url-params";
 
 export const metadata: Metadata = { title: "Friends", robots: { index: false } };
@@ -19,7 +19,7 @@ export default async function FriendsPage({
   const requestedView = (await searchParams).view;
   const view = requestedView === "requests" ? "requests" : "friends";
   const requestsOnly = view === "requests";
-  const session = await getSession();
+  const session = await getMemberSession();
   if (!session)
     return <AuthCallout next={view === "friends" ? "/friends" : `/friends?view=${view}`} />;
   const db = await getDb();

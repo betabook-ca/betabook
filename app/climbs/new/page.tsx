@@ -7,7 +7,7 @@ import { PageTitle } from "@/components/ui/typography";
 import { getDb } from "@/db/client";
 import { getArea, getAreaBreadcrumbs } from "@/db/queries";
 import { isClimbType } from "@/lib/climbs";
-import { getMemberSession as getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 import { parseAreaId, toArray, type UrlParamsRecord } from "@/lib/url-params";
 
 export const metadata: Metadata = {
@@ -25,7 +25,7 @@ type NewClimbPageProps = {
  * state). All three are optional, and an unrecognized `type` is dropped
  * rather than rejected: these are conveniences, not input to validate. */
 export default async function NewClimbPage({ searchParams }: NewClimbPageProps) {
-  const [session, params] = await Promise.all([getSession(), searchParams]);
+  const [session, params] = await Promise.all([getMemberSession(), searchParams]);
 
   const selectedId = parseAreaId(toArray(params.areaId)[0]);
   const initial = {

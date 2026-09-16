@@ -229,55 +229,66 @@ function HistoryMonths({
     <ul className="flex flex-col gap-2 py-1">
       {[...months.entries()]
         .sort(([a], [b]) => b.localeCompare(a))
-        .map(([month, group]) => (
-          <li key={month} className="flex flex-wrap items-center gap-x-2 gap-y-2">
-            <span className="w-18 shrink-0 text-muted">
-              <span>
-                {goalDateLabel(
-                  {
-                    repeat: "month",
-                    timeframe: "month",
-                    periodStart: `${month}-01`,
-                    periodEnd: `${month}-01`,
-                  },
-                  today,
-                )}
+        .map(([month, group]) => {
+          const hasWeeks =
+            group.some((period) => period.repeat === "week") ||
+            (currentPeriod?.repeat === "week" && month === today.slice(0, 7));
+          return (
+            <li key={month} className="flex flex-wrap items-center gap-x-2 gap-y-2">
+              <span className="w-18 shrink-0 text-muted">
+                <span>
+                  {goalDateLabel(
+                    {
+                      repeat: "month",
+                      timeframe: "month",
+                      periodStart: `${month}-01`,
+                      periodEnd: `${month}-01`,
+                    },
+                    today,
+                  )}
+                </span>
+                {hasWeeks && <span className="block text-xs text-muted">Weeks</span>}
               </span>
-              {(group.some((period) => period.repeat === "week") ||
-                (currentPeriod?.repeat === "week" && month === today.slice(0, 7))) && (
-                <span className="block text-xs text-muted">Weeks</span>
-              )}
-            </span>
-            <div className="flex flex-wrap items-center gap-0.5">
-              {group.some((period) => period.repeat === "week") ||
-              (currentPeriod?.repeat === "week" && month === today.slice(0, 7))
-                ? goalWeekSlots(month).map((slot) => (
+              <div className="flex flex-wrap items-center gap-0.5">
+                {hasWeeks &&
+                  goalWeekSlots(month).map((slot) => (
                     <PeriodCircle
                       key={slot.periodStart}
                       start={slot.periodStart}
                       end={slot.periodEnd}
-                      period={group.find((p) => p.periodStart === slot.periodStart)}
+                      period={group.find(
+                        (period) =>
+                          period.repeat === "week" &&
+                          period.periodStart === slot.periodStart &&
+                          period.periodEnd === slot.periodEnd,
+                      )}
                       today={today}
                     />
-                  ))
-                : group.map((period) => (
-                    <span key={period.periodStart} className="flex items-center gap-1 tabular-nums">
+                  ))}
+                {group
+                  .filter((period) => period.repeat !== "week")
+                  .map((period) => (
+                    <span
+                      key={`${period.repeat}-${period.periodStart}-${period.periodEnd}`}
+                      className="flex basis-full items-center gap-1 tabular-nums"
+                    >
                       {period.progress >= period.target ? (
                         <>
                           <CircleCheckBig
                             aria-hidden
                             className="size-3.5 text-success-soft-foreground"
                           />
-                          Met
+                          {hasWeeks ? "Month · Met" : "Met"}
                         </>
                       ) : (
-                        `${period.periodEnd < today ? "Missed" : "In progress"} · ${period.progress}/${period.target}`
+                        `${hasWeeks ? "Month · " : ""}${period.periodEnd < today ? "Missed" : "In progress"} · ${period.progress}/${period.target}`
                       )}
                     </span>
                   ))}
-            </div>
-          </li>
-        ))}
+              </div>
+            </li>
+          );
+        })}
     </ul>
   );
 }

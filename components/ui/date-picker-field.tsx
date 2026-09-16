@@ -22,6 +22,7 @@ export type DatePickerFieldProps = {
   /** Latest selectable day, ISO — later days render struck through. */
   max?: string;
   isReadOnly?: boolean;
+  isDisabled?: boolean;
   description?: string;
   /** Renders an "I don't know" checkbox to the right of the field for a date
    * the user can't recall. Checked mirrors an empty value, so the caller
@@ -38,6 +39,7 @@ export function DatePickerField({
   onChange,
   max,
   isReadOnly,
+  isDisabled,
   description,
   onUnknownChange,
 }: DatePickerFieldProps) {
@@ -49,6 +51,7 @@ export function DatePickerField({
       value={toCalendarDate(value)}
       maxValue={maxDate}
       isReadOnly={isReadOnly}
+      isDisabled={isDisabled}
       // Segments are padded individually; unpadded, the field's width jumps.
       shouldForceLeadingZeros
       onChange={(date) => onChange(date?.toString() ?? "")}
@@ -100,7 +103,7 @@ export function DatePickerField({
   return (
     <div className="flex items-end gap-4">
       {picker}
-      <Checkbox isSelected={value === ""} onChange={onUnknownChange}>
+      <Checkbox isSelected={value === ""} onChange={onUnknownChange} isDisabled={isDisabled}>
         <Checkbox.Content className="flex h-10 items-center">
           <Checkbox.Control>
             <Checkbox.Indicator />

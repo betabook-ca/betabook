@@ -10,7 +10,7 @@ import { LOGBOOK_PAGE } from "@/lib/landing-pages";
 import { parseSearchState } from "@/lib/search";
 import { loadClimberSuggestions, loadSearch, loadAreaSelection } from "@/lib/search-loader";
 import { pageMetadata } from "@/lib/seo";
-import { getMemberSession as getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 import { signUpUrl } from "@/lib/sign-in-redirect";
 import type { UrlParamsRecord } from "@/lib/url-params";
 
@@ -37,7 +37,7 @@ export async function generateMetadata({ searchParams }: SearchPageProps): Promi
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
   const isBare = Object.keys(params).length === 0;
-  const session = await getSession();
+  const session = await getMemberSession();
   if (isBare && session) redirect(`/users/${session.user.id}`);
   const state = parseSearchState(params);
   state.area = await loadAreaSelection(state.filter.areaId);

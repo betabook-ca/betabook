@@ -20,6 +20,7 @@ import {
 import { allowJournalWrite } from "@/lib/rate-limit";
 import { requireSession } from "@/lib/session";
 
+import { afterCommit } from "./post-commit";
 import { revalidateJournalSurfaces } from "./revalidation";
 
 function validateGoalId(id: number | null) {
@@ -282,8 +283,10 @@ export async function saveGoal(
     if (!result && retrySource) await actionableMissedGoal(db, retrySource.id, ownerId);
     if (!result)
       throw new ActionError("You can have up to 5 active goals. Delete a goal to make room.");
-    revalidateJournalSurfaces({ userId: ownerId, climbIds: [] });
-    refresh();
+    afterCommit(() => {
+      revalidateJournalSurfaces({ userId: ownerId, climbIds: [] });
+      refresh();
+    });
     return result.id;
   });
 }
@@ -297,8 +300,10 @@ export async function deleteGoal(id: number): Promise<ActionResult> {
       sql`DELETE FROM goals WHERE id = ${id} AND user_id = ${session.user.id} RETURNING id`,
     );
     if (!result) throw new ActionError("Goal not found.");
-    revalidateJournalSurfaces({ userId: session.user.id, climbIds: [] });
-    refresh();
+    afterCommit(() => {
+      revalidateJournalSurfaces({ userId: session.user.id, climbIds: [] });
+      refresh();
+    });
   });
 }
 
@@ -339,7 +344,9 @@ export async function archiveMissedGoal(id: number): Promise<ActionResult> {
       )
       .returning({ id: goals.id });
     if (!updated.length) throw new ActionError("This goal no longer needs a decision.");
-    revalidateJournalSurfaces({ userId: session.user.id, climbIds: [] });
-    refresh();
+    afterCommit(() => {
+      revalidateJournalSurfaces({ userId: session.user.id, climbIds: [] });
+      refresh();
+    });
   });
 }

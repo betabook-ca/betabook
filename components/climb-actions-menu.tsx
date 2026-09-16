@@ -136,7 +136,7 @@ export function ClimbActionsMenu({ climb, send }: ClimbActionsMenuProps) {
           climbItems
         )}
       </ActionsMenu>
-      {send && <SendFormDrawer climb={climb} existingSend={send} state={editSendState} />}
+      {send && <SendFormDrawer existingSend={send} state={editSendState} />}
       {send && (
         <ConfirmDeleteDialog
           noun="send"

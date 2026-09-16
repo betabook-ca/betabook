@@ -13,6 +13,8 @@ import {
 import { getSession } from "@/lib/session";
 import { hasAcceptedCurrentTerms, TERMS_VERSION } from "@/lib/terms";
 
+import { afterCommit } from "./post-commit";
+
 export async function acceptTerms(version: unknown, agreed: unknown): Promise<ActionResult> {
   return toActionResult(async () => {
     // Agreement is the intentional exception to requireSession's terms gate.
@@ -25,6 +27,6 @@ export async function acceptTerms(version: unknown, agreed: unknown): Promise<Ac
       );
     const acceptance = await recordTermsAcceptance(await getDb(), session.user.id);
     if (!hasAcceptedCurrentTerms(acceptance)) throw new NotSignedInError();
-    revalidatePath("/", "layout");
+    afterCommit(() => revalidatePath("/", "layout"));
   });
 }

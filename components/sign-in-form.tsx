@@ -10,6 +10,7 @@ import { AppLink } from "@/components/ui/app-link";
 import { FORM_CARD_CLASS } from "@/components/ui/card";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { PageTitle } from "@/components/ui/typography";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { authClient } from "@/lib/auth-client";
 import { DEFAULT_SIGNED_IN_PATH, safeNextPath, signInUrl, signUpUrl } from "@/lib/sign-in-redirect";
 import { termsHref } from "@/lib/terms";
@@ -42,7 +43,7 @@ export function SignInForm({
   const [resendPending, setResendPending] = useState(false);
   const [resendError, setResendError] = useState<string | null>(null);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const attemptedEmail = email;
     setError(null);
@@ -50,31 +51,37 @@ export function SignInForm({
     setResent(false);
     setResendError(null);
     setPending(true);
-    void authClient.signIn.email(
-      { email: attemptedEmail, password },
-      {
-        headers: captcha.headers,
-        onSuccess: (ctx) => {
-          const userDestination =
-            ctx.data && typeof ctx.data === "object" && "user" in ctx.data && ctx.data.user
-              ? `/users/${(ctx.data.user as { id: string }).id}`
-              : DEFAULT_SIGNED_IN_PATH;
-          router.push(nextPath ?? userDestination);
+    try {
+      await authClient.signIn.email(
+        { email: attemptedEmail, password },
+        {
+          headers: captcha.headers,
+          onSuccess: (ctx) => {
+            const userDestination =
+              ctx.data && typeof ctx.data === "object" && "user" in ctx.data && ctx.data.user
+                ? `/users/${(ctx.data.user as { id: string }).id}`
+                : DEFAULT_SIGNED_IN_PATH;
+            router.push(nextPath ?? userDestination);
+          },
+          onError: (ctx) => {
+            // A failed captcha is also a 403.
+            if (ctx.error.code === "EMAIL_NOT_VERIFIED") {
+              setUnverifiedEmail(attemptedEmail);
+            } else {
+              setError(ctx.error.message ?? "Sign in failed");
+            }
+          },
+          onResponse: () => {
+            setPending(false);
+            captcha.reset();
+          },
         },
-        onError: (ctx) => {
-          // A failed captcha is also a 403.
-          if (ctx.error.code === "EMAIL_NOT_VERIFIED") {
-            setUnverifiedEmail(attemptedEmail);
-          } else {
-            setError(ctx.error.message ?? "Sign in failed");
-          }
-        },
-        onResponse: () => {
-          setPending(false);
-          captcha.reset();
-        },
-      },
-    );
+      );
+    } catch {
+      setError(GENERIC_ERROR_MESSAGE);
+      setPending(false);
+      captcha.reset();
+    }
   }
 
   function handleEmailChange(value: string) {
@@ -88,22 +95,27 @@ export function SignInForm({
     }
   }
 
-  function resendVerification() {
+  async function resendVerification() {
     if (!unverifiedEmail) return;
     setResent(false);
     setResendError(null);
     setResendPending(true);
-    void authClient.sendVerificationEmail(
-      // After the verification link is clicked, land back on this sign-in
-      // URL, continuation included.
-      { email: unverifiedEmail, callbackURL: signInUrl(nextPath) },
-      {
-        onSuccess: () => setResent(true),
-        onError: (ctx) =>
-          setResendError(ctx.error.message ?? "Could not resend the verification email"),
-        onResponse: () => setResendPending(false),
-      },
-    );
+    try {
+      await authClient.sendVerificationEmail(
+        // After the verification link is clicked, land back on this sign-in
+        // URL, continuation included.
+        { email: unverifiedEmail, callbackURL: signInUrl(nextPath) },
+        {
+          onSuccess: () => setResent(true),
+          onError: (ctx) =>
+            setResendError(ctx.error.message ?? "Could not resend the verification email"),
+          onResponse: () => setResendPending(false),
+        },
+      );
+    } catch {
+      setResendError(GENERIC_ERROR_MESSAGE);
+      setResendPending(false);
+    }
   }
 
   return (

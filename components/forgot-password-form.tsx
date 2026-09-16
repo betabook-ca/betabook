@@ -8,6 +8,7 @@ import { AppLink } from "@/components/ui/app-link";
 import { FORM_CARD_CLASS } from "@/components/ui/card";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { PageTitle } from "@/components/ui/typography";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { authClient } from "@/lib/auth-client";
 
 export function ForgotPasswordForm({ turnstileSiteKey }: { turnstileSiteKey?: string | null }) {
@@ -17,22 +18,28 @@ export function ForgotPasswordForm({ turnstileSiteKey }: { turnstileSiteKey?: st
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setPending(true);
-    void authClient.requestPasswordReset(
-      { email, redirectTo: "/reset-password" },
-      {
-        headers: captcha.headers,
-        onSuccess: () => setDone(true),
-        onError: (ctx) => setError(ctx.error.message ?? "Request failed"),
-        onResponse: () => {
-          setPending(false);
-          captcha.reset();
+    try {
+      await authClient.requestPasswordReset(
+        { email, redirectTo: "/reset-password" },
+        {
+          headers: captcha.headers,
+          onSuccess: () => setDone(true),
+          onError: (ctx) => setError(ctx.error.message ?? "Request failed"),
+          onResponse: () => {
+            setPending(false);
+            captcha.reset();
+          },
         },
-      },
-    );
+      );
+    } catch {
+      setError(GENERIC_ERROR_MESSAGE);
+      setPending(false);
+      captcha.reset();
+    }
   }
 
   if (done) {
