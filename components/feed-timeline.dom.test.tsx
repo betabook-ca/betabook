@@ -62,8 +62,11 @@ it("uses a shared climb heading and one date, retaining statuses, notes and grad
   );
   expect(within(card).getByText("Send · Redpoint")).toBeVisible();
   expect(within(card).getByText("Session", { exact: true })).toBeVisible();
-  expect(within(card).getAllByText(/Felt hard/)).toHaveLength(1);
-  expect(within(card).getByText(/Felt hard/)).toHaveTextContent("Felt hard for the grade");
+  expect(within(card).getAllByLabelText("Felt high-end for the grade")).toHaveLength(1);
+  expect(
+    within(card).getByLabelText("Felt high-end for the grade").parentElement,
+  ).toHaveTextContent(/^V6$/);
+  expect(within(card).queryByText(/Felt/)).not.toBeInTheDocument();
   expect(within(card).getByText("Still trying.")).toBeVisible();
   expect(within(card).getByText("Found the sequence.")).toBeVisible();
   expect(screen.queryByText(/^With /)).not.toBeInTheDocument();
@@ -149,13 +152,16 @@ it("keeps sessions gradeless and describes matching-grade feel without implying 
   const { rerender } = render(<FeedTimeline days={[friend]} view="all" />);
   expect(screen.queryByText("V4", { exact: true })).not.toBeInTheDocument();
   expect(screen.queryByText(/Suggested|Felt|felt/)).not.toBeInTheDocument();
+  expect(screen.queryByLabelText(/Felt/)).not.toBeInTheDocument();
   rerender(
     <FeedTimeline
       days={[{ ...day, activities: [{ ...activity, reportedGrade: 5, gradeFeel: "low" }] }]}
       view="all"
     />,
   );
-  expect(screen.getByText(/^Felt soft for/)).toHaveTextContent("Felt soft for the grade");
+  expect(screen.getByLabelText("Felt low-end for the grade").parentElement).toHaveTextContent(
+    /^V4$/,
+  );
 });
 
 it("renders training and companions without any real destinations in tutorial mode", () => {
@@ -204,7 +210,8 @@ it("removes all grades when the send becomes a session, including stale opinions
   expect(screen.getByText("Session", { exact: true })).toBeVisible();
   expect(screen.queryByText("V4", { exact: true })).not.toBeInTheDocument();
   expect(screen.queryByText("V6", { exact: true })).not.toBeInTheDocument();
-  expect(screen.queryByText(/Suggested|Felt hard/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/Suggested|Felt high-end/)).not.toBeInTheDocument();
+  expect(screen.queryByLabelText(/Felt/)).not.toBeInTheDocument();
 });
 
 it.each([

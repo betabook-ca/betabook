@@ -214,7 +214,7 @@ function importRow(value: unknown) {
     Region: area.parent == null ? "" : string(record(area.parent).name),
     Grade: gradeLabel(send.gradeId, type),
     "Posted Grade": gradeLabel(climb.gradeId, type),
-    "Grade Feel": send.difficulty === -1 ? "soft" : send.difficulty === 1 ? "stiff" : "fair",
+    "Grade Feel": send.difficulty === -1 ? "low-end" : send.difficulty === 1 ? "high-end" : "solid",
     Rating: send.rating === 0 ? "" : String(send.rating),
     Comments: optionalString(send.comments),
     Beta: optionalString(send.beta),

@@ -1251,6 +1251,14 @@ describe("guessGradeFeelMapping", () => {
     });
   });
 
+  it("maps Betabook's own low-end/high-end phrasing", () => {
+    expect(guessGradeFeelMapping(["low-end", "High end", "high-end"])).toEqual({
+      "low-end": "low",
+      "High end": "high",
+      "high-end": "high",
+    });
+  });
+
   it("maps the common soft/stiff phrasings other sites use", () => {
     expect(guessGradeFeelMapping(["Soft", "stiff", "Hard", "easy"])).toEqual({
       Soft: "low",

@@ -58,7 +58,7 @@ it("loads both outdoor disciplines and preserves send values for the wizard", as
     Grade: "V3",
     "Posted Grade": "V4",
     Rating: "4",
-    Stiffness: "soft",
+    Stiffness: "low-end",
     Comments: "Nice &amp; sunny",
     Location: "Grand Wall",
     Region: "Squamish",

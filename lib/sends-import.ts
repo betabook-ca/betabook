@@ -526,13 +526,18 @@ export function splitAreaHint(value: string): string[] {
     .toReversed();
 }
 
-// KAYA stiffness uses negative for soft and positive for stiff. Ambiguous
-// words such as sandbagged are left for manual mapping.
+// Betabook's own importers write "low-end"/"solid"/"high-end"; other sites say
+// soft/stiff, and KAYA stiffness uses negative for low-end and positive for
+// high-end. Ambiguous words such as sandbagged are left for manual mapping.
 const GRADE_FEEL_ALIASES: Record<string, GradeFeel> = {
+  "low-end": "low",
+  "low end": "low",
   soft: "low",
   easy: "low",
   fair: "solid",
   accurate: "solid",
+  "high-end": "high",
+  "high end": "high",
   stiff: "high",
   hard: "high",
   "-1": "low",

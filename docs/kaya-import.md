@@ -99,7 +99,7 @@ falling back to the climber’s logged grade when no posted grade is present. Th
 climber’s grade is still saved as the send’s suggested grade. Verified V/YDS labels are normalized,
 unknown grades stop the import, and KAYA's explicit ungraded labels remain
 available for the wizard's normal validation warnings. Null/zero ratings remain
-unrated; stiffness -1/0/1 becomes soft/fair/stiff. Null dates and the existing
+unrated; stiffness -1/0/1 becomes low-end/solid/high-end. Null dates and the existing
 KAYA January 1, 1970 placeholder become undated. Other timestamps use the
 browser's local calendar date, matching KAYA's web display, including timestamps
 at midnight UTC. Comments use the wizard's existing HTML entity decoding.
