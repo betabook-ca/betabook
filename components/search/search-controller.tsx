@@ -137,7 +137,7 @@ export function SearchController({
           onChange={(next) => onChange({ ...state, ...next })}
           showAreaLookup
           areaFetcher={areaFetcher}
-          sortPlacement="summary"
+          sortPlacement="below"
           activeFilters={
             state.query
               ? [
