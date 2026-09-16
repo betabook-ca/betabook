@@ -21,7 +21,8 @@ test("example navigation stays outside the scrolling lesson and switches cleanly
     await page.getByRole("button", { name: "Open example menu" }).click();
     const menu = page.getByRole("dialog", { name: "Example menu" });
     await expect(menu).toBeVisible();
-    await expect(menu.getByRole("link")).toHaveCount(1);
+    // Find climbs and Account settings, the same secondary rows as the app's menu.
+    await expect(menu.getByRole("link")).toHaveCount(2);
     await page.setViewportSize({ width: 1024, height: 900 });
     await expect(menu).toBeHidden();
     await expect(sidebar).toBeVisible();
@@ -57,7 +58,8 @@ for (const story of [
         : "Example desktop navigation",
     });
     await expect(nav).toBeVisible();
-    await expect(nav.getByRole("link")).toHaveCount(info.project.name.startsWith("mobile") ? 3 : 4);
+    // Desktop adds Find climbs and Account settings to the three primary destinations.
+    await expect(nav.getByRole("link")).toHaveCount(info.project.name.startsWith("mobile") ? 3 : 5);
     const content = page.locator("[data-tour-scroll]");
     const dimensions = await content.evaluate((el) => ({
       width: el.clientWidth,

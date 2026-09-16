@@ -15,8 +15,10 @@ for (const story of ["secondary-tools", "primary-fallback", "signed-out"]) {
     await expect(menu.locator("[data-brand]")).toHaveCount(0);
     await expect(menu.getByRole("button", { name: "Sign out" })).toHaveCount(0);
     const links = menu.getByRole("link");
+    // Members get Find climbs, Add climb or area, Tutorials and Account settings; the
+    // fallback menu adds the three primary destinations; guests see sign in and sign up.
     await expect(links).toHaveCount(
-      story === "primary-fallback" ? 6 : story === "secondary-tools" ? 3 : 2,
+      story === "primary-fallback" ? 7 : story === "secondary-tools" ? 4 : 2,
     );
     if (story !== "signed-out")
       await expect(
@@ -30,7 +32,8 @@ for (const story of ["secondary-tools", "primary-fallback", "signed-out"]) {
     const bounds = await menu.boundingBox();
     if (!bounds) throw new Error("Missing menu bounds");
     expect(bounds.width).toBeLessThanOrEqual(280);
-    if (story !== "primary-fallback") expect(bounds.height).toBeLessThan(200);
+    // Four 48px secondary rows for members, two for guests; the fallback menu is taller.
+    if (story !== "primary-fallback") expect(bounds.height).toBeLessThan(250);
     expect(
       (
         await new AxeBuilder({ page })
