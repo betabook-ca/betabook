@@ -96,6 +96,11 @@ export function SearchSurface({
         at="top"
         className="shrink-0"
       />
+      {/* The page picks what to search before typing; the palette types first
+       * so an early ⌘K lands in a focused field. */}
+      <When show={!quick}>
+        <SearchCategories value={category} onChange={onCategoryChange} />
+      </When>
       <div className="shrink-0">
         <SearchInput
           label="Search Betabook"
@@ -117,7 +122,9 @@ export function SearchSurface({
           }}
         />
       </div>
-      <SearchCategories value={category} onChange={onCategoryChange} />
+      <When show={quick}>
+        <SearchCategories value={category} onChange={onCategoryChange} />
+      </When>
       <SearchScope
         category={category}
         area={area}
@@ -182,6 +189,11 @@ export function SearchSurface({
       )}
     </div>
   );
+}
+
+/** Keeps a surface's two element orders out of SearchSurface's own branch count. */
+function When({ show, children }: { show: boolean; children: ReactNode }) {
+  return show ? children : null;
 }
 
 /** Renders the notice in exactly one of its two homes. */

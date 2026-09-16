@@ -60,6 +60,24 @@ it.each(["idle", "loading", "error", "locked"] as const)(
   },
 );
 
+it("puts the category pills above the field on the page and below it in the palette", () => {
+  const order = () => {
+    // The palette's field is a combobox, the page's a searchbox; the label is shared.
+    const field = screen.getByLabelText("Search Betabook");
+    const pills = screen.getByRole("button", { name: /^Climbs$/ });
+    const nodes = [...document.querySelectorAll("*")];
+    return nodes.indexOf(pills) < nodes.indexOf(field) ? "pills first" : "field first";
+  };
+  const sections: SearchSection[] = [{ kind: "climb", status: "idle", items: [] }];
+  const { unmount } = render(<SearchSurface {...props} query="" sections={sections} />);
+  expect(order()).toBe("pills first");
+  expect(screen.getAllByRole("button", { name: /^Climbs$/ })).toHaveLength(1);
+  unmount();
+  render(<SearchSurface {...props} quick query="" sections={sections} />);
+  expect(order()).toBe("field first");
+  expect(screen.getAllByRole("button", { name: /^Climbs$/ })).toHaveLength(1);
+});
+
 it("preserves the selected area in the add climb link", () => {
   render(
     <SearchSurface
