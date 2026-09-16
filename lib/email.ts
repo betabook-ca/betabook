@@ -29,6 +29,13 @@ async function deliverEmail({
 }) {
   const resend = await getResend();
   if (!resend) {
+    const appUrl = new URL(await getBaseUrl());
+    if (
+      !["http:", "https:"].includes(appUrl.protocol) ||
+      !["localhost", "127.0.0.1", "[::1]"].includes(appUrl.hostname)
+    ) {
+      throw new Error("Email delivery is not configured");
+    }
     console.log(
       `[dev] ${subject} to ${to}${replyTo ? `, reply to ${replyTo}` : ""}:\n${content.text}`,
     );

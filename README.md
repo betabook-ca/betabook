@@ -39,7 +39,7 @@ Stop the dev server before running local database scripts and restart it afterwa
 
 - `BETTER_AUTH_URL` must match the local server URL, including its port. Without the override, auth links use the production URL.
 - `BETTER_AUTH_SECRET` signs sessions; the example value is for local development.
-- Leave `RESEND_API_KEY` empty to print emails, including verification/reset links and friend requests, in the dev server console. Email/password sign-up requires verification; seeded accounts are already verified.
+- Leave `RESEND_API_KEY` empty to print emails, including verification/reset links and friend requests, in the dev server console when `BETTER_AUTH_URL` uses `localhost`, `127.0.0.1`, or `[::1]`. Other origins require an email key and never log message contents as a fallback. Email/password sign-up requires verification; seeded accounts are already verified.
 - Google sign-in is enabled only when both `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set. The example file lists callback URLs.
 - Email sign-in, sign-up and password reset require a Turnstile token only when both `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` are set. The example file lists Cloudflare's test keys.
 

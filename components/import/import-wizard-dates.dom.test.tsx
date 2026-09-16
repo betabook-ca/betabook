@@ -104,22 +104,50 @@ it.each(["Back to matching", "Check them"])(
         };
       });
     }
-    let finish!: (result: Awaited<ReturnType<typeof importSends>>) => void;
-    vi.mocked(importSends).mockReturnValueOnce(
-      new Promise((resolve) => {
-        finish = resolve;
-      }),
+    const readyCount = navigation === "Back to matching" ? 59 : 60;
+    let finish!: () => void;
+    vi.mocked(importSends).mockImplementationOnce(
+      (rows) =>
+        new Promise((resolve) => {
+          finish = () =>
+            resolve({
+              ok: true,
+              value: { imported: rows.length, overwritten: 0, alreadyLogged: 0, missing: [] },
+            });
+        }),
     );
     await loadKaya();
     await userEvent.click(screen.getByRole("button", { name: "Next: Review" }));
-    await userEvent.click(screen.getByRole("button", { name: /^Import \d+ sends$/ }));
+    await userEvent.click(screen.getByRole("button", { name: `Import ${readyCount} sends` }));
     const link = screen.getByRole("button", { name: navigation });
-    await userEvent.click(link);
-    const canCancel = screen.queryByRole("button", { name: "Cancel import" }) !== null;
-    await act(async () =>
-      finish({ ok: true, value: { imported: 50, overwritten: 0, alreadyLogged: 0, missing: [] } }),
+    expect(link).toBeDisabled();
+    expect(screen.getByText("5 Review", { exact: true })).toHaveAttribute("aria-current", "step");
+    expect(screen.getByRole("progressbar", { name: "Importing sends" })).toHaveAttribute(
+      "aria-valuenow",
+      "0",
     );
-    expect(canCancel).toBe(true);
+    expect(screen.getByRole("button", { name: "Cancel import" })).toBeEnabled();
+    await userEvent.click(link);
+    expect(screen.getByText("5 Review", { exact: true })).toHaveAttribute("aria-current", "step");
+    expect(screen.getByRole("button", { name: "Cancel import" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Next: Review" })).not.toBeInTheDocument();
+    expect(importSends).toHaveBeenCalledOnce();
+    await act(async () => finish());
+    expect(await screen.findByRole("link", { name: "See your sends" })).toHaveAttribute(
+      "href",
+      "/users/local",
+    );
+    expect(screen.getByRole("button", { name: "Import another file" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Cancel import" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("progressbar", { name: "Importing sends" })).not.toBeInTheDocument();
+    const batches = vi.mocked(importSends).mock.calls.map(([rows]) => rows);
+    expect(batches.map((rows) => rows.length)).toEqual([50, readyCount - 50]);
+    expect(batches.flatMap((rows) => rows.map((row) => row.climbId))).toEqual(
+      Array.from({ length: readyCount }, (_, index) => index + 1),
+    );
+    expect(screen.getByText("Imported", { exact: true }).nextElementSibling).toHaveTextContent(
+      new RegExp(`^${readyCount}$`),
+    );
   },
 );
 

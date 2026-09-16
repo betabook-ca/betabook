@@ -55,7 +55,7 @@ export function ApproveRejectControls({ requestId, alreadyApproved }: ApproveRej
           setError(result.error);
           return;
         }
-        rejectState.close();
+        handleRejectOpenChange(false);
       } catch {
         setError(GENERIC_ERROR_MESSAGE);
       }
@@ -99,7 +99,11 @@ export function ApproveRejectControls({ requestId, alreadyApproved }: ApproveRej
               {error && <InlineAlert>{error}</InlineAlert>}
             </AlertDialog.Body>
             <AlertDialog.Footer className="flex justify-end gap-2">
-              <Button variant="ghost" onPress={rejectState.close} isDisabled={pending}>
+              <Button
+                variant="ghost"
+                onPress={() => handleRejectOpenChange(false)}
+                isDisabled={pending}
+              >
                 Cancel
               </Button>
               <Button variant="danger" onPress={handleReject} isDisabled={pending}>

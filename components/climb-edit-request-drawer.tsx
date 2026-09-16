@@ -30,10 +30,11 @@ const UNKNOWN_GRADE = "unknown";
 export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerProps) {
   const disciplineLocked = climb.sendCount > 0;
   const disciplineId = useId();
+  const originalGrade = climb.grade === null ? UNKNOWN_GRADE : String(climb.grade);
 
   const [name, setName] = useState(climb.name);
   const [type, setType] = useState<ClimbType>(climb.type);
-  const [grade, setGrade] = useState(climb.grade === null ? UNKNOWN_GRADE : String(climb.grade));
+  const [grade, setGrade] = useState(originalGrade);
   const [error, setError] = useState<string | null>(null);
   const [pendingNotice, setPendingNotice] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -43,7 +44,7 @@ export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerP
 
   function handleTypeChange(next: ClimbType) {
     setType(next);
-    setGrade("0");
+    setGrade(next === climb.type ? originalGrade : "0");
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -78,7 +79,7 @@ export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerP
     if (!isOpen) {
       setName(climb.name);
       setType(climb.type);
-      setGrade(climb.grade === null ? UNKNOWN_GRADE : String(climb.grade));
+      setGrade(originalGrade);
       setError(null);
       setPendingNotice(null);
     }
