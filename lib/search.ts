@@ -68,6 +68,8 @@ export type SearchFetcher = (
   signal: AbortSignal,
 ) => Promise<SearchPage>;
 export const SEARCH_KINDS: SearchKind[] = ["climb", "area", "climber"];
+/** The full search page. The bare home stays the landing page and members' redirect. */
+export const SEARCH_PATH = "/search";
 export const EMPTY_SEARCH: SearchState = {
   query: "",
   category: "all",
@@ -76,12 +78,16 @@ export const EMPTY_SEARCH: SearchState = {
   area: null,
 };
 
+/** `defaultCategory` is the page's opening list when the URL names none:
+ * the landing page searches everything, /search opens on climbs. */
 export function parseSearchState(
   params: UrlParamsRecord,
   area: AreaSelection | null = null,
+  defaultCategory: SearchCategory = "all",
 ): SearchState {
   const raw = toArray(params.mode)[0];
-  const category = raw === "climb" || raw === "area" || raw === "climber" ? raw : "all";
+  const category =
+    raw === "all" || raw === "climb" || raw === "area" || raw === "climber" ? raw : defaultCategory;
   return {
     query: toArray(params.name)[0] ?? "",
     category,
@@ -112,7 +118,20 @@ export function searchHref(state: SearchState): string {
     name: state.query,
   });
   params.set("mode", state.category);
-  return `/?${params}`;
+  return `${SEARCH_PATH}?${params}`;
+}
+
+/** Whether a section has anything to fetch for this state.
+ *
+ * With `browse`, the full page's climb list lists the catalog by area, grade,
+ * rating and ascents alone — a project hunter has no name to type. Every
+ * other section, and every other surface (the ⌘K palette, the climb pickers
+ * that log a session), still waits for text: a nameless area or climber list
+ * is the whole catalog, and those surfaces exist to jump to a name. */
+export function searchesSection(state: SearchState, kind: SearchKind, browse = false): boolean {
+  return (
+    state.query.trim().length > 0 || (browse && kind === "climb" && state.category === "climb")
+  );
 }
 
 /** The row every climb result shares. A signed-out page stops here; a member

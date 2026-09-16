@@ -11,7 +11,7 @@ test(
     page.on("request", (request) => {
       if (request.url().includes("/api/search/climbers")) memberRequests.push(request.url());
     });
-    await page.goto(`${appBaseURL}/?mode=climber&name=Test`);
+    await page.goto(`${appBaseURL}/search?mode=climber&name=Test`);
     const callout = page.getByRole("region", { name: "Member content" });
     await expect(callout).toBeVisible();
     await expect(callout.getByRole("link", { name: "Sign in", exact: true })).toBeVisible();

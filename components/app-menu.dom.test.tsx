@@ -69,7 +69,11 @@ it("opens secondary tools without duplicating the visible mobile tabs or their b
     within(menu)
       .getAllByRole("link")
       .map((link) => link.getAttribute("href")),
-  ).toEqual(["/climbs/new", "/tutorial/journal/journal", "/account"]);
+  ).toEqual(["/search", "/climbs/new", "/tutorial/journal/journal", "/account"]);
+  expect(within(menu).getByRole("link", { name: "Find climbs" })).toHaveAttribute(
+    "href",
+    "/search",
+  );
   expect(within(menu).getByRole("link", { name: "Account settings" })).toHaveAttribute(
     "href",
     "/account",

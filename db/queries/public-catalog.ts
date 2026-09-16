@@ -14,7 +14,7 @@ import {
 } from "@/lib/public-catalog";
 
 import { areaNameCondition, getAreaBreadcrumbs } from "./areas";
-import { climbListOrderBy, searchClimbsConditions } from "./climbs";
+import { searchClimbsConditions, searchClimbsPlan } from "./climbs";
 import { sendCommentVisibleSql } from "./content-access";
 import { toFtsPrefixQuery } from "./shared";
 
@@ -146,13 +146,14 @@ export async function searchPublicClimbs(
   if (options.offset === null) return empty;
   const conditions = searchClimbsConditions(options);
   if (conditions === null) return empty;
+  const plan = await searchClimbsPlan(db, options);
   const rows = await db.all<PublicClimb>(sql`
     SELECT climbs.id, climbs.name, climbs.area_id AS areaId, areas.name AS areaName,
       climbs.type, climbs.grade, climbs.description,
       climbs.avg_rating AS avgRating, climbs.send_count AS sendCount
-    FROM climbs JOIN areas ON areas.id = climbs.area_id
+    FROM ${plan.source} JOIN areas ON areas.id = climbs.area_id
     ${conditions.length ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``}
-    ORDER BY ${climbListOrderBy(options.sort)}
+    ORDER BY ${plan.orderBy}
     LIMIT ${options.pageSize + 1} OFFSET ${options.offset}
   `);
   const visible = rows.slice(0, options.pageSize);

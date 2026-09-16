@@ -6,7 +6,7 @@ test(
   "legacy area-name filters stay visible through refinements and can be cleared",
   { tag: ["@behavior", "@app"] },
   async ({ page }) => {
-    await page.goto(`${appBaseURL}/?mode=climb&areaName=Cedar`);
+    await page.goto(`${appBaseURL}/search?mode=climb&areaName=Cedar`);
     const scope = page.getByRole("button", { name: "Clear area name Cedar" });
     await expect(scope).toBeVisible();
     await page.getByRole("button", { name: /Sort by/ }).click();
@@ -25,7 +25,7 @@ test(
   "app search journey preserves query and category in the full-results URL",
   { tag: ["@behavior", "@app"] },
   async ({ page }) => {
-    await page.goto(`${appBaseURL}/?mode=all`);
+    await page.goto(`${appBaseURL}/search?mode=all`);
     await expect(page.getByRole("button", { name: "All", exact: true })).toBeVisible();
     await page.getByRole("searchbox", { name: "Search Betabook" }).fill("cedar");
     await expect(page).toHaveURL(/name=cedar/);
@@ -66,7 +66,7 @@ test(
         },
       });
     });
-    await page.goto(`${appBaseURL}/?mode=climb&areaId=3`);
+    await page.goto(`${appBaseURL}/search?mode=climb&areaId=3`);
     await page.getByRole("searchbox", { name: "Search Betabook" }).fill("cedar");
     await expect(page.getByRole("combobox", { name: "In area" })).toHaveCount(0);
     await expect(page).toHaveURL(/areaId=3/);
@@ -89,7 +89,7 @@ test(
   "signed-out search shortcuts navigate to full search without opening a palette",
   { tag: ["@behavior", "@app"] },
   async ({ page }) => {
-    await page.goto(`${appBaseURL}/?mode=climb&name=cedar`);
+    await page.goto(`${appBaseURL}/search?mode=climb&name=cedar`);
     await page.getByRole("link", { name: "Search", exact: true }).click();
     await expect(page).toHaveURL(`${appBaseURL}/`);
     await expect(page.getByRole("searchbox", { name: "Search Betabook" })).toHaveValue("");
@@ -129,7 +129,7 @@ test(
         },
       }),
     );
-    await page.goto(`${appBaseURL}/?mode=climb`);
+    await page.goto(`${appBaseURL}/search?mode=climb`);
     await page.getByRole("searchbox", { name: "Search Betabook" }).fill("review");
     const result = page.getByLabel("Open Review climb, Review area", { exact: true });
     await expect(result).toBeVisible();

@@ -1,5 +1,5 @@
 "use client";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 import { AuthCallout } from "@/components/auth-callout";
 import { ClimbFilterControls } from "@/components/filters/climb-filter-controls";
@@ -33,7 +33,10 @@ export function SearchController({
   suggestions,
   publicOnly = false,
   showMemberNotice = publicOnly,
+  areaFetcher,
 }: {
+  /** Area typeahead transport for the full page's filters; stories inject fixtures. */
+  areaFetcher?: ComponentProps<typeof ClimbFilterControls>["areaFetcher"];
   state: SearchState;
   onChange: (state: SearchState) => void;
   initial?: SearchSnapshot;
@@ -58,6 +61,7 @@ export function SearchController({
     fetcher: fetcher ?? (publicOnly ? fetchPublicSearchPage : fetchSearchPage),
     enabled: isOpen,
     preview: quick,
+    browse: !quick,
     publicOnly,
   });
   const suggested = !quick && state.category === "climber" ? (suggestions ?? []) : [];
@@ -128,6 +132,8 @@ export function SearchController({
         <ClimbFilterControls
           value={state}
           onChange={(next) => onChange({ ...state, ...next })}
+          showAreaLookup
+          areaFetcher={areaFetcher}
           activeFilters={
             state.query
               ? [

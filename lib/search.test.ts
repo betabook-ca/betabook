@@ -6,7 +6,13 @@ import {
   userSendsFilterToSearchParams,
 } from "@/lib/filters/user-sends-filter";
 
-import { EMPTY_SEARCH, parseSearchState, searchHref, showsClimberSuggestions } from "./search";
+import {
+  EMPTY_SEARCH,
+  parseSearchState,
+  searchesSection,
+  searchHref,
+  showsClimberSuggestions,
+} from "./search";
 import { searchParamsToRecord } from "./url-params";
 
 describe("unified search URL state", () => {
@@ -27,12 +33,33 @@ describe("unified search URL state", () => {
       },
       { id: "2", name: "Cedar Grove", path: "Oregon" },
     );
-    const params = new URL(searchHref(state), "https://example.test").searchParams;
+    const url = new URL(searchHref(state), "https://example.test");
+    const params = url.searchParams;
     const parsed = parseSearchState(searchParamsToRecord(params), state.area);
+    expect(url.pathname).toBe("/search");
     expect(parsed).toEqual({ ...state, filter: { ...state.filter, name: state.query } });
     expect(searchHref(parsed)).toBe(searchHref(state));
     expect(params.get("areaId")).toBe("2");
     expect(params.has("areaName")).toBe(false);
+  });
+  it("opens on the page's own list when the URL names no category", () => {
+    expect(parseSearchState({}).category).toBe("all");
+    expect(parseSearchState({}, null, "climb").category).toBe("climb");
+    expect(parseSearchState({ mode: "all" }, null, "climb").category).toBe("all");
+    expect(parseSearchState({ mode: "bogus" }, null, "climb").category).toBe("climb");
+  });
+  it("browses the full climb list without a name, and nothing else", () => {
+    const climbs = { ...EMPTY_SEARCH, category: "climb" as const };
+    // The full page opts in; pickers and the palette keep waiting for text.
+    expect(searchesSection(climbs, "climb", true)).toBe(true);
+    expect(searchesSection(climbs, "climb")).toBe(false);
+    expect(searchesSection({ ...climbs, category: "all" }, "climb", true)).toBe(false);
+    expect(searchesSection({ ...climbs, category: "area" }, "area", true)).toBe(false);
+    expect(searchesSection({ ...climbs, query: " " }, "area", true)).toBe(false);
+    expect(searchesSection({ ...climbs, category: "area", query: "cedar" }, "area", true)).toBe(
+      true,
+    );
+    expect(searchesSection({ ...climbs, query: "cedar" }, "climb")).toBe(true);
   });
   it("opens on most ascents first and keeps any explicit sort", () => {
     expect(EMPTY_SEARCH.sort).toBe("ascents_desc");

@@ -98,7 +98,7 @@ export function FeedList({
                 ? "No sends to show yet."
                 : "No activity to show yet."
           }
-          cta={<AppLink href="/?mode=climber">Find climbers</AppLink>}
+          cta={<AppLink href="/search?mode=climber">Find climbers</AppLink>}
         />
       ) : (
         <>
