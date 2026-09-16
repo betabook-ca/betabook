@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
-import { cache } from "react";
 
 import { ASCENT_STYLE_LABELS } from "@/components/ascent-style";
 import { AreaBreadcrumbs } from "@/components/breadcrumbs";
@@ -23,7 +22,6 @@ import { StatStrip } from "@/components/ui/stat-strip";
 import { PageTitle, SectionHeading } from "@/components/ui/typography";
 import { getDb } from "@/db/client";
 import {
-  type Area,
   getAncestors,
   getArea,
   getClimb,
@@ -43,7 +41,7 @@ import { buildLoggedGradeRows } from "@/lib/grade-histogram";
 import { formatGrade } from "@/lib/grades";
 import type { AscentStyle as AscentStyleType } from "@/lib/sends";
 import { climbDescription, climbJsonLd, climbTitle, locationTrail, pageMetadata } from "@/lib/seo";
-import { getMemberSession as getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 import { areaHref, climbHref, slugify, withQuery } from "@/lib/slug";
 import type { UrlParamsRecord } from "@/lib/url-params";
 
@@ -54,20 +52,6 @@ type ClimbPageProps = {
   params: Promise<{ id: string; slug?: string[] }>;
   searchParams: Promise<UrlParamsRecord>;
 };
-
-// Shared between generateMetadata and the page — see the identical pattern in
-// app/areas/[id]/page.tsx for why the whole id -> row lookup is memoized
-// rather than the (db, id)-keyed query helper. The area and its ancestor
-// chain are keyed the same way so generateMetadata (title, description,
-// breadcrumb JSON-LD) and the page share one round trip for each.
-const getClimbById = cache(async (id: number) => {
-  const db = await getDb();
-  return getClimb(db, id);
-});
-
-const getAreaById = cache(async (id: number) => getArea(await getDb(), id));
-
-const getAreaAncestors = cache(async (area: Area) => getAncestors(await getDb(), area));
 
 export async function generateMetadata({
   params,
@@ -109,11 +93,7 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
 
   if (!Number.isInteger(climbId)) notFound();
 
-  // Grouped by dependency tier so independent fetches overlap instead of
-  // waterfalling: the db handle, the climb row, and the session don't depend
-  // on each other; the sends queries need only the climb; and the ancestor
-  // chain needs the area row's parentId.
-  const session = await getSession();
+  const session = await getMemberSession();
   const db = await getDb();
   if (!session) {
     const climb = await getPublicClimb(db, climbId);
@@ -171,7 +151,7 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
       </div>
     );
   }
-  const climb = await getClimbById(climbId);
+  const climb = await getClimb(db, climbId);
   if (!climb) notFound();
 
   if ((slug?.join("/") ?? "") !== slugify(climb.name)) {
@@ -182,7 +162,7 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
   // query — a popular climb's full send history never ships in the RSC
   // payload (ClimbSendList "load more"-fetches the rest on demand).
   const [area, userSend, sendsPage, summary] = await Promise.all([
-    getAreaById(climb.areaId),
+    getArea(db, climb.areaId),
     getUserSendForClimb(db, session.user.id, climb.id),
     getSendsForClimb(db, climb.id, 0, undefined, session.user.id),
     getClimbSendSummary(db, climb.id),
@@ -190,7 +170,7 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
   if (!area) notFound();
 
   const [ancestors, journalEntries] = await Promise.all([
-    getAreaAncestors(area),
+    getAncestors(db, area),
     getJournalForClimb(db, session.user.id, session.user.id, climb.id),
   ]);
 

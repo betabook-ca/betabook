@@ -13,6 +13,8 @@ import { friendshipPair, type FriendshipStatus } from "@/lib/friendships";
 import { allowFriendshipWrite } from "@/lib/rate-limit";
 import { requireSession } from "@/lib/session";
 
+import { afterCommit } from "./post-commit";
+
 function validateTarget(targetId: string, viewerId: string) {
   if (typeof targetId !== "string" || !targetId.trim() || targetId.length > 128)
     throw new ActionError("Invalid climber");
@@ -20,13 +22,15 @@ function validateTarget(targetId: string, viewerId: string) {
 }
 
 function refreshFriends(viewerId: string, targetId: string) {
-  revalidatePath("/feed");
-  revalidatePath("/friends");
-  revalidatePath("/");
-  for (const id of [viewerId, targetId])
-    for (const suffix of ["", "/journal", "/sends", "/analytics"])
-      revalidatePath(`/users/${id}${suffix}`);
-  refresh();
+  afterCommit(() => {
+    revalidatePath("/feed");
+    revalidatePath("/friends");
+    revalidatePath("/");
+    for (const id of [viewerId, targetId])
+      for (const suffix of ["", "/journal", "/sends", "/analytics"])
+        revalidatePath(`/users/${id}${suffix}`);
+    refresh();
+  });
 }
 
 export async function requestFriendship(targetId: string): Promise<ActionResult<FriendshipStatus>> {

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 import { useTurnstile } from "@/components/turnstile";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { authClient } from "@/lib/auth-client";
 
 /** How long a successful send stays disabled before offering "Send again" —
@@ -32,24 +33,30 @@ export function ResetPasswordButton({
     return () => clearTimeout(timer);
   }, [cooldown]);
 
-  function handleClick() {
+  async function handleClick() {
     setError(null);
     setPending(true);
-    void authClient.requestPasswordReset(
-      { email, redirectTo: "/reset-password" },
-      {
-        headers: captcha.headers,
-        onSuccess: () => {
-          setSent(true);
-          setCooldown(true);
+    try {
+      await authClient.requestPasswordReset(
+        { email, redirectTo: "/reset-password" },
+        {
+          headers: captcha.headers,
+          onSuccess: () => {
+            setSent(true);
+            setCooldown(true);
+          },
+          onError: (ctx) => setError(ctx.error.message ?? "Could not send the reset email"),
+          onResponse: () => {
+            setPending(false);
+            captcha.reset();
+          },
         },
-        onError: (ctx) => setError(ctx.error.message ?? "Could not send the reset email"),
-        onResponse: () => {
-          setPending(false);
-          captcha.reset();
-        },
-      },
-    );
+      );
+    } catch {
+      setError(GENERIC_ERROR_MESSAGE);
+      setPending(false);
+      captcha.reset();
+    }
   }
 
   return (

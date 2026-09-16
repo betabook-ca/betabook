@@ -12,6 +12,8 @@ import { parseSendCommentAudience, parseSharingAudience } from "@/lib/privacy";
 import { requireSession } from "@/lib/session";
 import { requireTrimmed } from "@/lib/validation";
 
+import { afterCommit } from "./post-commit";
+
 function revalidateProfileSurfaces(userId: string) {
   revalidatePath("/feed");
   revalidatePath("/friends");
@@ -29,8 +31,10 @@ export async function setUserPrivate(isPrivate: boolean): Promise<ActionResult> 
 
     await db.update(user).set({ isPrivate }).where(eq(user.id, session.user.id));
 
-    revalidateProfileSurfaces(session.user.id);
-    refresh();
+    afterCommit(() => {
+      revalidateProfileSurfaces(session.user.id);
+      refresh();
+    });
   });
 }
 
@@ -46,8 +50,10 @@ export async function resetProfileShareLink(): Promise<ActionResult> {
       .values({ userId: session.user.id, token })
       .onConflictDoUpdate({ target: profileShareLinks.userId, set: { token } });
 
-    revalidatePath(`/users/${session.user.id}`);
-    refresh();
+    afterCommit(() => {
+      revalidatePath(`/users/${session.user.id}`);
+      refresh();
+    });
   });
 }
 
@@ -67,8 +73,10 @@ export async function updateDisplayName(formData: FormData): Promise<ActionResul
 
     await db.update(user).set({ name }).where(eq(user.id, session.user.id));
 
-    revalidateProfileSurfaces(session.user.id);
-    refresh();
+    afterCommit(() => {
+      revalidateProfileSurfaces(session.user.id);
+      refresh();
+    });
   });
 }
 
@@ -80,8 +88,10 @@ export async function setJournalVisibility(visibility: string): Promise<ActionRe
 
     await db.update(user).set({ journalVisibility }).where(eq(user.id, session.user.id));
 
-    revalidateProfileSurfaces(session.user.id);
-    refresh();
+    afterCommit(() => {
+      revalidateProfileSurfaces(session.user.id);
+      refresh();
+    });
   });
 }
 
@@ -93,7 +103,9 @@ export async function setSendCommentVisibility(visibility: string): Promise<Acti
 
     await db.update(user).set({ sendCommentVisibility }).where(eq(user.id, session.user.id));
 
-    revalidateProfileSurfaces(session.user.id);
-    refresh();
+    afterCommit(() => {
+      revalidateProfileSurfaces(session.user.id);
+      refresh();
+    });
   });
 }

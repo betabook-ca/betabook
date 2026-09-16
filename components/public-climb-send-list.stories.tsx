@@ -29,7 +29,7 @@ const SENDS: PublicClimbSend[] = [
     comment:
       "The left-hand crimp is better than it looks. Commit to the high foot and the top-out is casual.",
   },
-  anonymous("2026-09", { ascentStyle: "onsight", rating: 4 }),
+  anonymous("2026-09", { ascentStyle: "flash", rating: 4 }),
   anonymous("2026-08", { suggestedGrade: 6, gradeFeel: "high" }),
   {
     userName: "Sam Okafor",
@@ -52,7 +52,7 @@ const SENDS: PublicClimbSend[] = [
     gradeFeel: "solid",
     comment: null,
   },
-  anonymous("2026-05", { ascentStyle: "onsight" }),
+  anonymous("2026-05", { ascentStyle: "flash" }),
   anonymous(null, { rating: 2 }),
 ];
 

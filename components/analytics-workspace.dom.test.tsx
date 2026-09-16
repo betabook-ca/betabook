@@ -57,6 +57,11 @@ it("starts with the default cards, then adds a hidden card and saves the layout"
     }),
   ).toBeVisible();
   const choices = within(editor).getByRole("group", { name: "At a glance" });
+  expect(
+    within(within(editor).getByRole("group", { name: "Dashboard actions" })).queryByRole("button", {
+      name: /^Add /,
+    }),
+  ).not.toBeInTheDocument();
   await user.click(within(choices).getByRole("button", { name: "Add streak" }));
   expect(screen.getByRole("article", { name: "streak" })).toBeVisible();
   expect(within(choices).queryByRole("button", { name: "Add streak" })).not.toBeInTheDocument();
@@ -78,6 +83,29 @@ it("preserves an existing saved layout and hides discovery controls from visitor
   expect(screen.getAllByRole("article")).toHaveLength(10);
   rerender(<AnalyticsWorkspace cards={cards} charts={[]} initialLayout={initialLayout} />);
   expect(screen.queryByRole("button", { name: "Customize cards" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Customize dashboard" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /^Move |^Hide |^Drag / })).not.toBeInTheDocument();
+});
+
+it("retains failed layout edits for retry and Cancel restores the saved layout", async () => {
+  const user = userEvent.setup();
+  const onSave = vi
+    .fn<(layout: import("@/lib/analytics-layout").AnalyticsLayout) => Promise<ActionResult>>()
+    .mockResolvedValue({ ok: false, error: "Could not save this layout." });
+  render(<AnalyticsWorkspace cards={cards} charts={[]} canCustomize onSave={onSave} />);
+  await user.click(screen.getByRole("button", { name: "Customize dashboard" }));
+  await user.click(screen.getByRole("button", { name: "Hide firstTry" }));
+  await user.click(screen.getByRole("button", { name: "Save layout" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Could not save this layout.");
+  expect(screen.getByRole("button", { name: "Save layout" })).toBeEnabled();
+  expect(screen.queryByRole("article", { name: "firstTry" })).not.toBeInTheDocument();
+  expect(onSave).toHaveBeenCalledExactlyOnceWith({
+    ...DEFAULT_ANALYTICS_LAYOUT,
+    cards: DEFAULT_ANALYTICS_LAYOUT.cards.filter((id) => id !== "firstTry"),
+  });
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(screen.getByRole("article", { name: "firstTry" })).toBeVisible();
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
 
 it("says a section is empty while editing, without pointing at the hidden Customize button", async () => {
@@ -145,12 +173,47 @@ it("offers optional charts through the chart placeholder and hides it after addi
   ];
   render(<AnalyticsWorkspace cards={cards} charts={charts} canCustomize />);
   await user.click(screen.getByRole("button", { name: "Customize charts" }));
-  await user.click(screen.getByRole("button", { name: "Add Volume over time" }));
-  await user.click(screen.getByRole("button", { name: "Add Flash rate by grade" }));
+  const chartChoices = within(screen.getByRole("group", { name: "Charts" }));
+  await user.click(chartChoices.getByRole("button", { name: "Add Volume over time" }));
+  await user.click(chartChoices.getByRole("button", { name: "Add Flash rate by grade" }));
   await user.click(screen.getByRole("button", { name: "Save layout" }));
   expect(screen.getByRole("article", { name: "Volume over time" })).toBeVisible();
   expect(screen.getByRole("article", { name: "Flash rate by grade" })).toBeVisible();
   expect(screen.queryByRole("button", { name: "Customize charts" })).not.toBeInTheDocument();
+});
+
+it("restores default card and chart ordering from a saved custom layout", async () => {
+  const user = userEvent.setup();
+  const onSave = vi
+    .fn<(layout: import("@/lib/analytics-layout").AnalyticsLayout) => Promise<ActionResult>>()
+    .mockResolvedValue({ ok: true, value: undefined });
+  render(
+    <AnalyticsWorkspace
+      cards={cards}
+      charts={[
+        { id: "progression", title: "Progression", content: "Progression chart" },
+        { id: "pyramid", title: "Pyramid", content: "Pyramid chart" },
+        { id: "breakthroughs", title: "Breakthroughs", content: "Breakthrough chart" },
+      ]}
+      canCustomize
+      initialLayout={{ cards: ["hardest"], charts: ["pyramid"] }}
+      onSave={onSave}
+    />,
+  );
+  await user.click(screen.getByRole("button", { name: "Customize dashboard" }));
+  await user.click(screen.getByRole("button", { name: "Restore default layout" }));
+  expect(
+    within(screen.getByRole("region", { name: "At a glance" }))
+      .getAllByRole("article")
+      .map((card) => card.getAttribute("aria-label")),
+  ).toEqual(DEFAULT_ANALYTICS_LAYOUT.cards);
+  expect(
+    within(screen.getByRole("region", { name: "Charts" }))
+      .getAllByRole("article")
+      .map((chart) => chart.getAttribute("aria-label")),
+  ).toEqual(["Progression", "Pyramid", "Breakthroughs"]);
+  await user.click(screen.getByRole("button", { name: "Save layout" }));
+  expect(onSave).toHaveBeenCalledExactlyOnceWith(DEFAULT_ANALYTICS_LAYOUT);
 });
 
 function announcedWorkspace({

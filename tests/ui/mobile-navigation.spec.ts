@@ -38,10 +38,6 @@ for (const story of ["secondary-tools", "primary-fallback", "signed-out"]) {
           .analyze()
       ).violations,
     ).toEqual([]);
-    await info.attach(`mobile-menu-${story}`, {
-      body: await page.screenshot({ path: info.outputPath(`mobile-menu-${story}.png`) }),
-      contentType: "image/png",
-    });
     await page.keyboard.press("Escape");
     await expect(menu).toBeHidden();
     await expect(trigger).toBeFocused();

@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { useState } from "react";
 
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
@@ -33,4 +34,19 @@ export const Long: Story = {
 };
 export const ReadingLabels: Story = {
   args: { ...Long.args, expandLabel: "Read more", collapseLabel: "Read less" },
+};
+
+export const UpdatedComment: Story = {
+  render: function UpdatedComment() {
+    const [long, setLong] = useState(false);
+    const note = "Found a new sequence at the crux and linked all of the moves.";
+    return (
+      <div className="flex max-w-sm flex-col gap-4 text-sm">
+        <ClampedComment>{long ? `${note} `.repeat(8) : note}</ClampedComment>
+        <button type="button" onClick={() => setLong(!long)}>
+          {long ? "Shorten comment" : "Lengthen comment"}
+        </button>
+      </div>
+    );
+  },
 };

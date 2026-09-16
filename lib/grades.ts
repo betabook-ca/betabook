@@ -209,10 +209,8 @@ export type GradeTrend = {
  * posted grade (never across grading systems) as a step offset: `offset` is
  * the nearest whole grade-step the average centers on, and `remainder` is
  * how far it leans past that — a stand-in for a decimal that wouldn't make
- * sense on a non-numeric scale like "5.10a". A single send always lands
- * exactly on a whole offset with zero remainder, so it can only ever show
- * "matches" or "differs", never a spurious lean — leans only emerge once
- * multiple sends' suggestions genuinely average out to a fractional pull.
+ * sense on a non-numeric scale like "5.10a". Grade feel can contribute a
+ * fractional lean even when only one climber has suggested a grade.
  */
 export function describeGradeTrend(
   type: ClimbType,

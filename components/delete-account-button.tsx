@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { authClient } from "@/lib/auth-client";
 
 export function DeleteAccountButton() {
@@ -13,19 +14,24 @@ export function DeleteAccountButton() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function handleDelete() {
+  async function handleDelete() {
     setError(null);
     setPending(true);
-    void authClient.deleteUser({
-      fetchOptions: {
-        onSuccess: () => {
-          router.push("/");
-          router.refresh();
+    try {
+      await authClient.deleteUser({
+        fetchOptions: {
+          onSuccess: () => {
+            router.push("/");
+            router.refresh();
+          },
+          onError: (ctx) => setError(ctx.error.message ?? "Could not delete your account"),
+          onResponse: () => setPending(false),
         },
-        onError: (ctx) => setError(ctx.error.message ?? "Could not delete your account"),
-        onResponse: () => setPending(false),
-      },
-    });
+      });
+    } catch {
+      setError(GENERIC_ERROR_MESSAGE);
+      setPending(false);
+    }
   }
 
   return (

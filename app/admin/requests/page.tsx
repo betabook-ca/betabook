@@ -14,7 +14,7 @@ import {
   REVIEW_QUEUE_PAGE_SIZE,
 } from "@/db/queries";
 import { getReviewQueueDetails } from "@/lib/moderation";
-import { getMemberSession as getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 import { areaHref } from "@/lib/slug";
 
 export const metadata: Metadata = { title: "Review requests" };
@@ -30,7 +30,7 @@ export default async function AdminRequestsPage({
 }: {
   searchParams: Promise<{ after?: string; at?: string }>;
 }) {
-  if (!(await getSession())) return <CurrentPageAuthCallout />;
+  if (!(await getMemberSession())) return <CurrentPageAuthCallout />;
   const params = await searchParams;
   const id = Number(params.after);
   const requestedAt = Number(params.at);

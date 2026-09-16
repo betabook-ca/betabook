@@ -38,7 +38,7 @@ export const GET = withApiSession(async (session, request: Request, { params }: 
     climb.id,
     safeOffset,
     CLIMB_SENDS_PAGE_SIZE,
-    session?.user.id ?? null,
+    session.user.id,
   );
   return NextResponse.json(
     {

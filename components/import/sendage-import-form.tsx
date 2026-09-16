@@ -2,12 +2,13 @@
 
 import { Button, Input, Label, TextField } from "@heroui/react";
 import { Download } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
 
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { SupportText } from "@/components/ui/support-text";
 import { fetchSendageImport } from "@/lib/sendage-import";
 import type { ParsedCsv } from "@/lib/sends-import";
+
+import { useImportProfile } from "./use-import-profile";
 
 export function SendageImportForm({
   initialUsername = "",
@@ -20,58 +21,24 @@ export function SendageImportForm({
   onLoaded: (parsed: ParsedCsv, username: string) => void;
   onBusyChange: (busy: boolean) => void;
 }) {
-  const [input, setInput] = useState(initialUsername);
-  const [busy, setBusy] = useState(false);
-  const [count, setCount] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const active = useRef<AbortController | null>(null);
-
-  useEffect(() => () => active.current?.abort(), []);
-
-  async function load() {
-    if (active.current || disabled) return;
-    const controller = new AbortController();
-    active.current = controller;
-    setBusy(true);
-    onBusyChange(true);
-    setCount(0);
-    setError(null);
-    try {
-      const result = await fetchSendageImport(input, {
-        signal: controller.signal,
-        onProgress: (value) => {
-          if (!controller.signal.aborted) setCount(value);
-        },
-      });
-      if (controller.signal.aborted) return;
-      if (!result.parsed.rows.length) {
-        setError("No sends found on this public Sendage profile.");
-        return;
-      }
-      setInput(result.username);
-      onLoaded(result.parsed, result.username);
-    } catch (cause) {
-      if (!controller.signal.aborted)
-        setError(
-          cause instanceof Error
-            ? cause.message
-            : "Couldn't load sends from Sendage. Please try again.",
-        );
-    } finally {
-      if (active.current === controller) {
-        active.current = null;
-        setBusy(false);
-        onBusyChange(false);
-      }
-    }
-  }
-
-  function cancel() {
-    active.current?.abort();
-    active.current = null;
-    setBusy(false);
-    onBusyChange(false);
-  }
+  const {
+    input,
+    changeInput,
+    busy,
+    progress: count,
+    error,
+    load,
+    cancel,
+  } = useImportProfile({
+    initialUsername,
+    initialProgress: 0,
+    disabled,
+    service: "Sendage",
+    emptyMessage: "No sends found on this public Sendage profile.",
+    fetchProfile: fetchSendageImport,
+    onLoaded,
+    onBusyChange,
+  });
 
   return (
     <section className="flex flex-col gap-4">
@@ -83,15 +50,7 @@ export function SendageImportForm({
         }}
         className="flex flex-col gap-4"
       >
-        <TextField
-          value={input}
-          onChange={(value) => {
-            setInput(value);
-            setError(null);
-          }}
-          isDisabled={busy || disabled}
-          isRequired
-        >
+        <TextField value={input} onChange={changeInput} isDisabled={busy || disabled} isRequired>
           <Label>Sendage username or profile link</Label>
           <Input placeholder="your-username" autoComplete="off" spellCheck={false} />
         </TextField>

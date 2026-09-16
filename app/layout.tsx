@@ -99,7 +99,7 @@ const SET_THEME_SCRIPT = `
       m.name = "theme-color";
       m.content = resolved === "dark" ? "#000000" : "#eaf7ef";
       m.setAttribute("data-explicit-theme", "");
-      document.head.appendChild(m);
+      document.head.insertBefore(m, document.head.firstChild);
     }
   } catch (e) {}
 })();

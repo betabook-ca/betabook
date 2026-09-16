@@ -2,7 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { Resend } from "resend";
 
 import { getBaseUrl } from "@/lib/app-url";
-import { renderEmail } from "@/lib/email-template";
+import { renderEmail, type EmailTemplateOptions } from "@/lib/email-template";
 
 const FROM = "Betabook <noreply@betabook.ca>";
 
@@ -15,61 +15,64 @@ async function getResend() {
   return env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
 }
 
-export async function sendVerificationEmail(to: string, url: string) {
+async function deliverEmail({
+  to,
+  subject,
+  replyTo,
+  baseUrl,
+  ...content
+}: Omit<EmailTemplateOptions, "baseUrl"> & {
+  to: string;
+  subject: string;
+  replyTo?: string;
+  baseUrl?: string;
+}) {
   const resend = await getResend();
   if (!resend) {
-    console.log(`[dev] verification link for ${to}: ${url}`);
+    const appUrl = new URL(await getBaseUrl());
+    if (
+      !["http:", "https:"].includes(appUrl.protocol) ||
+      !["localhost", "127.0.0.1", "[::1]"].includes(appUrl.hostname)
+    ) {
+      throw new Error("Email delivery is not configured");
+    }
+    console.log(
+      `[dev] ${subject} to ${to}${replyTo ? `, reply to ${replyTo}` : ""}:\n${content.text}`,
+    );
     return;
   }
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: FROM,
     to,
-    subject: "Verify your Betabook email",
-    ...renderEmail({
-      baseUrl: await getBaseUrl(),
-      title: "Verify your email",
-      text: `Click the link below to verify your email address:
+    subject,
+    ...(replyTo ? { replyTo } : {}),
+    ...renderEmail({ ...content, baseUrl: baseUrl ?? (await getBaseUrl()) }),
+  });
+  if (error) throw new Error(`Resend rejected "${subject}": ${error.message}`);
+}
 
-${url}`,
-      links: [{ href: url, label: "Verify email" }],
-    }),
+export async function sendVerificationEmail(to: string, url: string) {
+  return deliverEmail({
+    to,
+    subject: "Verify your Betabook email",
+    title: "Verify your email",
+    text: `Click the link below to verify your email address:\n\n${url}`,
+    links: [{ href: url, label: "Verify email" }],
   });
 }
 
 export async function sendResetPasswordEmail(to: string, url: string) {
-  const resend = await getResend();
-  if (!resend) {
-    console.log(`[dev] reset password link for ${to}: ${url}`);
-    return;
-  }
-  await resend.emails.send({
-    from: FROM,
+  return deliverEmail({
     to,
     subject: "Reset your Betabook password",
-    ...renderEmail({
-      baseUrl: await getBaseUrl(),
-      title: "Reset your password",
-      text: `Click the link below to reset your password:
-
-${url}`,
-      links: [{ href: url, label: "Reset password" }],
-    }),
+    title: "Reset your password",
+    text: `Click the link below to reset your password:\n\n${url}`,
+    links: [{ href: url, label: "Reset password" }],
   });
 }
 
-/** Sent once, when an account's email verification lands.
- *
- * Verification is the moment the account becomes usable — every signed-in
- * surface is behind `requireEmailVerification` — and better-auth drops the
- * user back on /sign-in with no orientation. This is that orientation.
- *
- * Like sendContactEmail and unlike the two helpers above, this surfaces a
- * Resend failure rather than swallowing it: there is no "resend welcome"
- * button anywhere, so the caller is the only thing that can notice. See
- * lib/welcome-email.ts for what it does with that.
- */
+/** Sent once after verification; welcome-email.ts owns the delivery claim. */
 export async function sendWelcomeEmail(to: string, name: string) {
-  const resend = await getResend();
   const base = await getBaseUrl();
 
   const text = [
@@ -82,35 +85,24 @@ export async function sendWelcomeEmail(to: string, name: string) {
     `Betabook is free, ad-free, and source available. Questions or corrections? Get in touch:\n${base}/contact`,
   ].join("\n\n");
 
-  if (!resend) {
-    console.log(`[dev] welcome email for ${to}:\n${text}`);
-    return;
-  }
-
-  const { error } = await resend.emails.send({
-    from: FROM,
+  return deliverEmail({
     to,
     subject: "Welcome to Betabook",
-    ...renderEmail({
-      baseUrl: base,
-      title: "Welcome to Betabook",
-      text,
-      showLinkUrls: false,
-      links: [
-        { href: `${base}/account/import`, label: "Import your logbook" },
-        { href: base, label: "Log your first send" },
-        { href: `${base}/contact`, label: "Get in touch" },
-      ],
-    }),
+    baseUrl: base,
+    title: "Welcome to Betabook",
+    text,
+    showLinkUrls: false,
+    links: [
+      { href: `${base}/account/import`, label: "Import your logbook" },
+      { href: base, label: "Log your first send" },
+      { href: `${base}/contact`, label: "Get in touch" },
+    ],
   });
-
-  if (error) throw new Error(`Resend rejected the welcome email: ${error.message}`);
 }
 
 /** Names are escaped in HTML. The requests page requires sign-in and exposes no
  * journal content; it also works when the requester has a private profile. */
 export async function sendFriendRequestEmail(to: string, requesterName: string) {
-  const resend = await getResend();
   const base = await getBaseUrl();
   const text = [
     `${requesterName} sent you a friend request on Betabook.`,
@@ -119,23 +111,14 @@ export async function sendFriendRequestEmail(to: string, requesterName: string) 
     `${base}/friends?view=requests`,
   ].join("\n");
 
-  if (!resend) {
-    console.log(`[dev] friend request email for ${to}:\n${text}`);
-    return;
-  }
-
-  const { error } = await resend.emails.send({
-    from: FROM,
+  return deliverEmail({
     to,
     subject: "New friend request on Betabook",
-    ...renderEmail({
-      baseUrl: base,
-      title: "New friend request",
-      text,
-      links: [{ href: `${base}/friends?view=requests`, label: "View friend requests" }],
-    }),
+    baseUrl: base,
+    title: "New friend request",
+    text,
+    links: [{ href: `${base}/friends?view=requests`, label: "View friend requests" }],
   });
-  if (error) throw new Error(`Resend rejected the friend request email: ${error.message}`);
 }
 
 /** A message from the public /contact form.
@@ -144,36 +127,15 @@ export async function sendFriendRequestEmail(to: string, requesterName: string) 
  * the visitor's address as Reply-To, so hitting reply in a mail client
  * addresses them rather than a mailbox nobody reads.
  *
- * Unlike the two helpers above this one surfaces a Resend failure. Those are
- * fire-and-forget side effects of an auth flow with a "resend" button behind
- * them; this one is the entire point of the visitor's click, and reporting
- * success for a message that never left would be a lie they can't detect.
  */
 export async function sendContactEmail(opts: { replyTo: string; subject: string; text: string }) {
-  const resend = await getResend();
-  if (!resend) {
-    console.log(
-      `[dev] contact message to ${CONTACT_TO}, reply to ${opts.replyTo}\n${opts.subject}\n\n${opts.text}`,
-    );
-    return;
-  }
-
-  const { error } = await resend.emails.send({
-    from: FROM,
+  return deliverEmail({
     to: CONTACT_TO,
     replyTo: opts.replyTo,
     subject: opts.subject,
-    ...renderEmail({
-      baseUrl: await getBaseUrl(),
-      title: "New contact message",
-      text: opts.text,
-    }),
+    title: "New contact message",
+    text: opts.text,
   });
-
-  // Resend returns its errors rather than throwing them. A plain Error, not
-  // an ActionError, so the action boundary logs it to the Worker logs and
-  // shows the visitor the generic message instead of Resend's internals.
-  if (error) throw new Error(`Resend rejected the contact message: ${error.message}`);
 }
 
 /** Sent when an admin approves or rejects a change request — the requester's
@@ -193,7 +155,6 @@ export async function sendChangeRequestDecisionEmail(
     href: string | null;
   },
 ) {
-  const resend = await getResend();
   const base = await getBaseUrl();
 
   const lines = [
@@ -206,24 +167,12 @@ export async function sendChangeRequestDecisionEmail(
   if (opts.href) lines.push("", `${base}${opts.href}`);
   const text = lines.join("\n");
 
-  if (!resend) {
-    console.log(`[dev] change request ${opts.decision} email for ${to}:\n${text}`);
-    return;
-  }
-
-  const { error } = await resend.emails.send({
-    from: FROM,
+  return deliverEmail({
     to,
     subject: `Your change request was ${opts.decision}`,
-    ...renderEmail({
-      baseUrl: base,
-      title: `Your change request was ${opts.decision}`,
-      text,
-      links: opts.href ? [{ href: `${base}${opts.href}`, label: "View in Betabook" }] : [],
-    }),
+    baseUrl: base,
+    title: `Your change request was ${opts.decision}`,
+    text,
+    links: opts.href ? [{ href: `${base}${opts.href}`, label: "View in Betabook" }] : [],
   });
-
-  if (error) {
-    throw new Error(`Resend rejected the change request decision email: ${error.message}`);
-  }
 }

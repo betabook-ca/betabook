@@ -9,6 +9,8 @@ import { toActionResult, type ActionResult } from "@/lib/action-result";
 import { validateProductTourUpdate } from "@/lib/product-tour";
 import { requireSession } from "@/lib/session";
 
+import { afterCommit } from "./post-commit";
+
 export async function saveProductTourStatus(
   id: string,
   version: number,
@@ -32,8 +34,10 @@ export async function saveProductTourStatus(
             : undefined,
         ),
       });
-    revalidatePath(`/users/${session.user.id}`);
-    revalidatePath(`/users/${session.user.id}/journal`);
-    revalidatePath("/account");
+    afterCommit(() => {
+      revalidatePath(`/users/${session.user.id}`);
+      revalidatePath(`/users/${session.user.id}/journal`);
+      revalidatePath("/account");
+    });
   });
 }

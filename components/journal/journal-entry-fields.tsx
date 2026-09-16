@@ -161,105 +161,108 @@ export function JournalEntryFields({
       onSubmit={handleSubmit}
       className={embedded ? "flex flex-col gap-3" : `${SURFACE_CARD_CLASS} gap-4`}
     >
-      {climb && !existingEntry && (
-        <SendStylePicker
-          climbType={climb.type}
-          value={choice}
-          onChange={setChoice}
-          hasPriorSend={hasPriorSend}
-        />
-      )}
-
-      <JournalEntryDateFields
-        hasClimb={climb != null}
-        hasPriorSend={hasPriorSend}
-        existingEntry={existingEntry}
-        today={today}
-        entryDate={entryDate}
-        sent={sent}
-        onDateChange={setEntryDate}
-      />
-
-      {isAscent && climb && (
-        <div className="flex flex-col gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <RatingField value={rating} onValueChange={setRating} />
-            <SuggestedGradeField
-              climbType={climb.type}
-              value={suggestedGrade}
-              onChange={setSuggestedGrade}
-            />
-          </div>
-          <GradeFeelField value={gradeFeel} onChange={setGradeFeel} />
-        </div>
-      )}
-
-      <TextField className="w-full min-w-0" value={body} onChange={setBody}>
-        <FieldHeader
-          usage={{ used: body.length, limit: MAX_JOURNAL_BODY_LENGTH, unit: "characters" }}
-        >
-          <Label>Notes</Label>
-          {(isAscent || existingEntry?.isSendComment) && (
-            <HelpTooltip label="About Send commentary">
-              Uses your Send commentary audience wherever this note appears.
-            </HelpTooltip>
-          )}
-        </FieldHeader>
-        <TextArea
-          maxLength={MAX_JOURNAL_BODY_LENGTH}
-          placeholder={
-            kind === "training"
-              ? "Climbs, drills, sets, weights, how it felt…"
-              : "Conditions, beta, how it felt…"
-          }
-        />
-      </TextField>
-
-      <DetailsDisclosure
-        title="Add details"
-        isExpanded={detailsExpanded}
-        onExpandedChange={setDetailsExpanded}
-      >
-        <div className="flex flex-wrap items-start gap-4">
-          <CompanionPicker
-            value={companions}
-            onChange={(value) => {
-              if (pending) return;
-              setCompanions(value);
-              setCompanionsChanged(true);
-            }}
-            disabled={pending}
-            editing={!!existingEntry}
-            fetcher={companionFetcher}
+      <fieldset disabled={pending} className="contents">
+        {climb && !existingEntry && (
+          <SendStylePicker
+            climbType={climb.type}
+            value={choice}
+            onChange={setChoice}
+            hasPriorSend={hasPriorSend}
           />
-          {!isUndatedSend && <TagInput value={tags} onChange={setTags} />}
+        )}
+
+        <JournalEntryDateFields
+          hasClimb={climb != null}
+          hasPriorSend={hasPriorSend}
+          existingEntry={existingEntry}
+          today={today}
+          entryDate={entryDate}
+          sent={sent}
+          disabled={pending}
+          onDateChange={setEntryDate}
+        />
+
+        {isAscent && climb && (
+          <div className="flex flex-col gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <RatingField value={rating} onValueChange={setRating} />
+              <SuggestedGradeField
+                climbType={climb.type}
+                value={suggestedGrade}
+                onChange={setSuggestedGrade}
+              />
+            </div>
+            <GradeFeelField value={gradeFeel} onChange={setGradeFeel} />
+          </div>
+        )}
+
+        <TextField className="w-full min-w-0" value={body} onChange={setBody}>
+          <FieldHeader
+            usage={{ used: body.length, limit: MAX_JOURNAL_BODY_LENGTH, unit: "characters" }}
+          >
+            <Label>Notes</Label>
+            {(isAscent || existingEntry?.isSendComment) && (
+              <HelpTooltip label="About Send commentary">
+                Uses your Send commentary audience wherever this note appears.
+              </HelpTooltip>
+            )}
+          </FieldHeader>
+          <TextArea
+            maxLength={MAX_JOURNAL_BODY_LENGTH}
+            placeholder={
+              kind === "training"
+                ? "Climbs, drills, sets, weights, how it felt…"
+                : "Conditions, beta, how it felt…"
+            }
+          />
+        </TextField>
+
+        <DetailsDisclosure
+          title="Add details"
+          isExpanded={detailsExpanded}
+          onExpandedChange={setDetailsExpanded}
+        >
+          <div className="flex flex-wrap items-start gap-4">
+            <CompanionPicker
+              value={companions}
+              onChange={(value) => {
+                if (pending) return;
+                setCompanions(value);
+                setCompanionsChanged(true);
+              }}
+              disabled={pending}
+              editing={!!existingEntry}
+              fetcher={companionFetcher}
+            />
+            {!isUndatedSend && <TagInput value={tags} onChange={setTags} />}
+          </div>
+
+          <p className="text-xs text-muted">
+            Set separate audiences for send commentary and journal entries in{" "}
+            <AppLink href="/account">Account settings</AppLink>.
+          </p>
+        </DetailsDisclosure>
+
+        {summary && (
+          <div className={`flex flex-col gap-1 ${cardClass("sm", "inset")}`}>
+            <p className="text-sm font-medium text-foreground">{summary.headline}</p>
+            {summary.consequence && <p className="text-sm text-muted">{summary.consequence}</p>}
+            {isUndatedSend && (
+              <p className="text-sm text-muted">
+                Without a date, it stays out of your journal and can't keep tags or tagged friends.
+              </p>
+            )}
+          </div>
+        )}
+
+        {error && <InlineAlert>{error}</InlineAlert>}
+
+        <div className="flex justify-end border-t border-separator pt-4">
+          <Button type="submit" isDisabled={pending}>
+            {existingEntry ? "Save changes" : isUndatedSend ? "Save send" : "Save entry"}
+          </Button>
         </div>
-
-        <p className="text-xs text-muted">
-          Set separate audiences for send commentary and journal entries in{" "}
-          <AppLink href="/account">Account settings</AppLink>.
-        </p>
-      </DetailsDisclosure>
-
-      {summary && (
-        <div className={`flex flex-col gap-1 ${cardClass("sm", "inset")}`}>
-          <p className="text-sm font-medium text-foreground">{summary.headline}</p>
-          {summary.consequence && <p className="text-sm text-muted">{summary.consequence}</p>}
-          {isUndatedSend && (
-            <p className="text-sm text-muted">
-              Without a date, it stays out of your journal and can't keep tags or tagged friends.
-            </p>
-          )}
-        </div>
-      )}
-
-      {error && <InlineAlert>{error}</InlineAlert>}
-
-      <div className="flex justify-end border-t border-separator pt-4">
-        <Button type="submit" isDisabled={pending}>
-          {existingEntry ? "Save changes" : isUndatedSend ? "Save send" : "Save entry"}
-        </Button>
-      </div>
+      </fieldset>
     </form>
   );
 }

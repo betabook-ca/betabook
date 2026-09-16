@@ -12,6 +12,8 @@ import { parseId } from "@/lib/parse-id";
 import { requireSession } from "@/lib/session";
 import { pickFormFields } from "@/lib/validation";
 
+import { afterCommit } from "./post-commit";
+
 const AREA_FORM_FIELDS = ["name", "description"] as const;
 const AREA_UPDATE_FORM_FIELDS = ["description"] as const;
 
@@ -30,10 +32,12 @@ export async function updateArea(areaId: number, formData: FormData): Promise<Ac
     const input = validateAreaDescriptionInput(pickFormFields(formData, AREA_UPDATE_FORM_FIELDS));
     await db.update(areas).set(input).where(eq(areas.id, areaId));
 
-    revalidatePath(`/areas/${areaId}`);
-    if (existing.parentId != null) revalidatePath(`/areas/${existing.parentId}`);
-    revalidatePath("/");
-    refresh();
+    afterCommit(() => {
+      revalidatePath(`/areas/${areaId}`);
+      if (existing.parentId != null) revalidatePath(`/areas/${existing.parentId}`);
+      revalidatePath("/");
+      refresh();
+    });
   });
 }
 
@@ -67,9 +71,11 @@ export async function createArea(
       .values({ parentId, ...input })
       .returning({ id: areas.id });
 
-    revalidatePath(`/areas/${parentId}`);
-    revalidatePath("/");
-    refresh();
+    afterCommit(() => {
+      revalidatePath(`/areas/${parentId}`);
+      revalidatePath("/");
+      refresh();
+    });
     return id;
   });
 }

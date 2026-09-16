@@ -96,6 +96,27 @@ const GRADE_FEEL_MAPPING: GradeFeelMapping = {
 
 const TODAY = "2026-08-19";
 
+type NormalizeFixtureOptions = NonNullable<Parameters<typeof normalizeImportRows>[6]> & {
+  mapping?: ColumnMapping;
+  ascentStyles?: AscentStyleMapping;
+  climbTypes?: ClimbTypeMapping;
+  gradeFeels?: GradeFeelMapping;
+};
+
+function normalizeRows(parsed: ParsedCsv, overrides: NormalizeFixtureOptions = {}) {
+  const {
+    mapping = FULL_MAPPING,
+    ascentStyles = ASCENT_STYLE_MAPPING,
+    climbTypes = CLIMB_TYPE_MAPPING,
+    gradeFeels = GRADE_FEEL_MAPPING,
+    ...options
+  } = overrides;
+  return normalizeImportRows(parsed, mapping, ascentStyles, climbTypes, gradeFeels, "iso", {
+    today: TODAY,
+    ...options,
+  });
+}
+
 function csv(rows: Record<string, string>[]): ParsedCsv {
   return { headers: SAMPLE_HEADERS, rows, warnings: [], derived: [] };
 }
@@ -199,6 +220,13 @@ describe("parseCsvText", () => {
     const text = 'Climb,Comments\n"My Route","Great, fun climb"';
     const parsed = parseCsvText(text);
     expect(parsed.rows[0].Comments).toBe("Great, fun climb");
+  });
+
+  it("preserves source columns whose names are object prototype keys", () => {
+    const parsed = parseCsvText("Climb,__proto__,constructor\nMy Route,source note,extra");
+    expect(Object.keys(parsed.rows[0])).toEqual(["Climb", "__proto__", "constructor"]);
+    expect(Object.getOwnPropertyDescriptor(parsed.rows[0], "__proto__")?.value).toBe("source note");
+    expect(parsed.rows[0].constructor).toBe("extra");
   });
 
   it("reports no warnings for a well-formed file", () => {
@@ -625,16 +653,16 @@ describe("needsDateFormatChoice", () => {
 });
 
 describe("normalizeImportRows", () => {
+  it("does not treat inherited mapping properties as valid ascent styles", () => {
+    const result = normalizeRows(csv([row({ "Send Type": "constructor" })]), {
+      ascentStyles: {},
+      gradeFeels: {},
+    });
+    expect(result.valid).toEqual([]);
+    expect(result.invalid).toMatchObject([{ reason: 'Unmapped ascent style value "constructor"' }]);
+  });
   it("normalizes a fully-populated valid row", () => {
-    const { valid, invalid } = normalizeImportRows(
-      csv([row()]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const { valid, invalid } = normalizeRows(csv([row()]));
     expect(invalid).toEqual([]);
     expect(valid).toEqual([
       {
@@ -657,208 +685,108 @@ describe("normalizeImportRows", () => {
   });
 
   it("treats a blank date as valid with a null dateSent", () => {
-    const { valid, invalid } = normalizeImportRows(
-      csv([row({ Date: "" })]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const { valid, invalid } = normalizeRows(csv([row({ Date: "" })]));
     expect(invalid).toEqual([]);
     expect(valid[0].dateSent).toBeNull();
   });
 
   it("rejects a non-blank unparseable date", () => {
-    const { valid, invalid } = normalizeImportRows(
-      csv([row({ Date: "not-a-date" })]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const { valid, invalid } = normalizeRows(csv([row({ Date: "not-a-date" })]));
     expect(valid).toEqual([]);
     expect(invalid[0].reason).toMatch(/unparseable date/i);
   });
 
   it("normalizes a serialized-Date timestamp to its civil date", () => {
-    const { valid, invalid } = normalizeImportRows(
+    const { valid, invalid } = normalizeRows(
       csv([row({ Date: "Tue Oct 15 2019 00:00:00 GMT+0000 (GMT+00:00)" })]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
     );
     expect(invalid).toEqual([]);
     expect(valid[0].dateSent).toBe("2019-10-15");
   });
 
   it("rejects a date two days past UTC today", () => {
-    const { valid, invalid } = normalizeImportRows(
-      csv([row({ Date: "2026-08-21" })]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const { valid, invalid } = normalizeRows(csv([row({ Date: "2026-08-21" })]));
     expect(valid).toEqual([]);
     expect(invalid[0].reason).toMatch(/future/i);
   });
 
   it("accepts a date equal to UTC today", () => {
-    const { valid, invalid } = normalizeImportRows(
-      csv([row({ Date: TODAY })]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const { valid, invalid } = normalizeRows(csv([row({ Date: TODAY })]));
     expect(invalid).toEqual([]);
     expect(valid[0].dateSent).toBe(TODAY);
   });
 
   it("accepts a date one day past UTC today (a UTC+14 client's local today)", () => {
-    const { valid, invalid } = normalizeImportRows(
-      csv([row({ Date: "2026-08-20" })]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const { valid, invalid } = normalizeRows(csv([row({ Date: "2026-08-20" })]));
     expect(invalid).toEqual([]);
     expect(valid[0].dateSent).toBe("2026-08-20");
   });
 
   it("rejects an unmapped ascent-style value", () => {
-    const { valid, invalid } = normalizeImportRows(
-      csv([row({ "Send Type": "attempt" })]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const { valid, invalid } = normalizeRows(csv([row({ "Send Type": "attempt" })]));
     expect(valid).toEqual([]);
     expect(invalid[0].reason).toMatch(/unmapped ascent style/i);
   });
 
   it("rejects an ascent-style value explicitly mapped to skip", () => {
-    const { valid, invalid } = normalizeImportRows(
-      csv([row({ "Send Type": "attempt" })]),
-      FULL_MAPPING,
-      { ...ASCENT_STYLE_MAPPING, attempt: "skip" },
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const { valid, invalid } = normalizeRows(csv([row({ "Send Type": "attempt" })]), {
+      ascentStyles: { ...ASCENT_STYLE_MAPPING, attempt: "skip" },
+    });
     expect(valid).toEqual([]);
     expect(invalid).toHaveLength(1);
   });
 
   it("truncates an over-length comment instead of rejecting the row", () => {
     const longComment = "a".repeat(MAX_COMMENT_LENGTH + 20);
-    const { valid, invalid } = normalizeImportRows(
-      csv([row({ Comments: longComment })]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const { valid, invalid } = normalizeRows(csv([row({ Comments: longComment })]));
     expect(invalid).toEqual([]);
     expect(valid[0].comment).toHaveLength(MAX_COMMENT_LENGTH);
   });
 
   it("treats blank optional fields as null", () => {
-    const { valid } = normalizeImportRows(
-      csv([row({ Grade: "", Rating: "", Comments: "" })]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const { valid } = normalizeRows(csv([row({ Grade: "", Rating: "", Comments: "" })]));
     expect(valid[0].gradeText).toBeNull();
     expect(valid[0].rating).toBeNull();
     expect(valid[0].comment).toBeNull();
   });
 
   it("leaves climbTypeHint null when the climb-type column is mapped to skip, without invalidating the row", () => {
-    const { valid, invalid } = normalizeImportRows(
-      csv([row()]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      { ...CLIMB_TYPE_MAPPING, sport: "skip" },
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const { valid, invalid } = normalizeRows(csv([row()]), {
+      climbTypes: { ...CLIMB_TYPE_MAPPING, sport: "skip" },
+    });
     expect(invalid).toEqual([]);
     expect(valid[0].climbTypeHint).toBeNull();
   });
 
   it("resolves a Grade Feel value through the grade-feel mapping", () => {
     const mappingWithFeel: ColumnMapping = { ...FULL_MAPPING, gradeFeel: "Grade Feel" };
-    const { valid } = normalizeImportRows(
+    const { valid } = normalizeRows(
       {
         headers: [...SAMPLE_HEADERS, "Grade Feel"],
         rows: [row({ "Grade Feel": "High" })],
         warnings: [],
         derived: [],
       },
-      mappingWithFeel,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
+      { mapping: mappingWithFeel },
     );
     expect(valid[0].gradeFeel).toBe("high");
   });
 
   it("defaults gradeFeel to solid when the CSV has no matching column", () => {
-    const { valid } = normalizeImportRows(
-      csv([row()]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const { valid } = normalizeRows(csv([row()]));
     expect(valid[0].gradeFeel).toBe("solid");
   });
 
   it("defaults gradeFeel to solid for an unmapped value, without invalidating the row", () => {
     const mappingWithFeel: ColumnMapping = { ...FULL_MAPPING, gradeFeel: "Grade Feel" };
-    const { valid, invalid } = normalizeImportRows(
+    const { valid, invalid } = normalizeRows(
       {
         headers: [...SAMPLE_HEADERS, "Grade Feel"],
         rows: [row({ "Grade Feel": "medium" })],
         warnings: [],
         derived: [],
       },
-      mappingWithFeel,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
+      { mapping: mappingWithFeel },
     );
     expect(invalid).toEqual([]);
     expect(valid[0].gradeFeel).toBe("solid");
@@ -866,34 +794,21 @@ describe("normalizeImportRows", () => {
 
   it("falls back to solid when a grade feel value is explicitly skipped", () => {
     const mappingWithFeel: ColumnMapping = { ...FULL_MAPPING, gradeFeel: "Grade Feel" };
-    const { valid, invalid } = normalizeImportRows(
+    const { valid, invalid } = normalizeRows(
       {
         headers: [...SAMPLE_HEADERS, "Grade Feel"],
         rows: [row({ "Grade Feel": "High" })],
         warnings: [],
         derived: [],
       },
-      mappingWithFeel,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      { ...GRADE_FEEL_MAPPING, High: "skip" },
-      "iso",
-      { today: TODAY },
+      { mapping: mappingWithFeel, gradeFeels: { ...GRADE_FEEL_MAPPING, High: "skip" } },
     );
     expect(invalid).toEqual([]);
     expect(valid[0].gradeFeel).toBe("solid");
   });
 
   it("rejects a row missing its climb name", () => {
-    const { valid, invalid } = normalizeImportRows(
-      csv([row({ Climb: "" })]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const { valid, invalid } = normalizeRows(csv([row({ Climb: "" })]));
     expect(valid).toEqual([]);
     expect(invalid).toEqual([
       { rowIndex: 0, raw: row({ Climb: "" }), reason: "Missing climb name" },
@@ -903,7 +818,7 @@ describe("normalizeImportRows", () => {
   // An untouched import files comments reading "I&rsquo;ve" and names no climb
   // in the database matches.
   it("decodes HTML entities in the free-text columns", () => {
-    const { valid } = normalizeImportRows(
+    const { valid } = normalizeRows(
       csv([
         row({
           Climb: "Salt &amp; Pepper",
@@ -912,12 +827,6 @@ describe("normalizeImportRows", () => {
           Comments: "6 try&rsquo;s in total &mdash; couldn&rsquo;t do the moves",
         }),
       ]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
     );
     expect(valid[0]).toMatchObject({
       climbName: "Salt & Pepper",
@@ -931,19 +840,13 @@ describe("normalizeImportRows", () => {
   // has to be trimmed again — "&nbsp;" survives foldClimbName (which strips
   // ASCII spaces only, mirroring SQLite TRIM) and would miss the real climb.
   it("trims whitespace that only appears once an entity is decoded", () => {
-    const { valid } = normalizeImportRows(
+    const { valid } = normalizeRows(
       csv([
         row({
           Climb: "&nbsp;Salt &amp; Pepper&nbsp;",
           Comments: "&#32;padded&#32;",
         }),
       ]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
     );
     expect(valid[0]).toMatchObject({ climbName: "Salt & Pepper", comment: "padded" });
   });
@@ -951,42 +854,20 @@ describe("normalizeImportRows", () => {
   // A lone "&nbsp;" decodes to a non-breaking space, which is truthy — without
   // the trim it passes the empty-name guard and proposes a climb named U+00A0.
   it("rejects a climb name that is only an encoded space", () => {
-    const { valid, invalid } = normalizeImportRows(
-      csv([row({ Climb: "&nbsp;" })]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const { valid, invalid } = normalizeRows(csv([row({ Climb: "&nbsp;" })]));
     expect(valid).toEqual([]);
     expect(invalid[0].reason).toMatch(/missing climb name/i);
   });
 
   it("keeps the undecoded row for the failed-rows export", () => {
     const source = row({ Climb: "", Comments: "I&rsquo;ve" });
-    const { invalid } = normalizeImportRows(
-      csv([source]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const { invalid } = normalizeRows(csv([source]));
     expect(invalid[0].raw).toEqual(source);
   });
 
   it("measures a comment against the length cap after decoding", () => {
-    const { valid, warnings } = normalizeImportRows(
+    const { valid, warnings } = normalizeRows(
       csv([row({ Comments: "&amp;".repeat(MAX_COMMENT_LENGTH) })]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
     );
     expect(valid[0].comment).toBe("&".repeat(MAX_COMMENT_LENGTH));
     expect(warnings).toEqual([]);
@@ -996,40 +877,18 @@ describe("normalizeImportRows", () => {
   // no area column (KAYA's) into "Missing area name". It's now a filter the
   // match step applies when present and skips when not.
   it("keeps a row with a blank or unmapped area, with areaName null", () => {
-    const blankCell = normalizeImportRows(
-      csv([row({ Area: "" })]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const blankCell = normalizeRows(csv([row({ Area: "" })]));
     expect(blankCell.invalid).toEqual([]);
     expect(blankCell.valid[0].areaName).toBeNull();
 
-    const unmapped = normalizeImportRows(
-      csv([row()]),
-      { ...FULL_MAPPING, areaName: null },
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const unmapped = normalizeRows(csv([row()]), { mapping: { ...FULL_MAPPING, areaName: null } });
     expect(unmapped.valid[0].areaName).toBeNull();
   });
 
   it("collects the non-blank hint cells in column order", () => {
-    const { valid } = normalizeImportRows(
-      csv([row({ Country: "Canada" }), row({ Country: "" })]),
-      { ...FULL_MAPPING, areaHints: ["Country", "Area"] },
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const { valid } = normalizeRows(csv([row({ Country: "Canada" }), row({ Country: "" })]), {
+      mapping: { ...FULL_MAPPING, areaHints: ["Country", "Area"] },
+    });
     expect(valid[0].areaHints).toEqual(["Canada", "Office Space"]);
     expect(valid[1].areaHints).toEqual(["Office Space"]);
   });
@@ -1037,15 +896,12 @@ describe("normalizeImportRows", () => {
   it("splits a path hint into leaf-first segments", () => {
     const parsed = mpCsv([mpRow()]);
     const mapping = guessColumnMapping([...parsed.headers, ...parsed.derived]);
-    const { valid } = normalizeImportRows(
-      parsed,
-      mapping,
-      guessAscentStyleMapping(distinctValues(parsed.rows, mapping.ascentStyle)),
-      guessClimbTypeMapping(distinctValues(parsed.rows, mapping.climbType)),
-      {},
-      "iso",
-      { today: TODAY },
-    );
+    const { valid } = normalizeRows(parsed, {
+      mapping: mapping,
+      ascentStyles: guessAscentStyleMapping(distinctValues(parsed.rows, mapping.ascentStyle)),
+      climbTypes: guessClimbTypeMapping(distinctValues(parsed.rows, mapping.climbType)),
+      gradeFeels: {},
+    });
     expect(valid[0].areaHints.slice(0, 3)).toEqual([
       "Campground Wall",
       "The Bulletheads",
@@ -1062,15 +918,12 @@ describe("normalizeImportRows", () => {
       mpRow({ Rating: "5.9 R", "Your Rating": "5.10a" }),
     ]);
     const mapping = guessColumnMapping([...parsed.headers, ...parsed.derived]);
-    const { valid, warnings } = normalizeImportRows(
-      parsed,
-      mapping,
-      guessAscentStyleMapping(distinctValues(parsed.rows, mapping.ascentStyle)),
-      guessClimbTypeMapping(distinctValues(parsed.rows, mapping.climbType)),
-      {},
-      "iso",
-      { today: TODAY },
-    );
+    const { valid, warnings } = normalizeRows(parsed, {
+      mapping: mapping,
+      ascentStyles: guessAscentStyleMapping(distinctValues(parsed.rows, mapping.ascentStyle)),
+      climbTypes: guessClimbTypeMapping(distinctValues(parsed.rows, mapping.climbType)),
+      gradeFeels: {},
+    });
     expect(warnings).toEqual([]);
     expect(valid[0].gradeText).toBeNull();
     expect(valid[0].blankGradeMeans).toBe("no-suggestion");
@@ -1081,14 +934,8 @@ describe("normalizeImportRows", () => {
   });
 
   it("drops a zero or negative star rating silently, as an app's 'not rated'", () => {
-    const { valid, warnings } = normalizeImportRows(
+    const { valid, warnings } = normalizeRows(
       csv([row({ Rating: "-1" }), row({ Rating: "0" }), row({ Rating: "banana" })]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
     );
     expect(valid.map((r) => r.rating)).toEqual([null, null, null]);
     expect(warnings).toEqual([
@@ -1103,14 +950,9 @@ describe("normalizeImportRows", () => {
 
   it("reads a listed placeholder date value as no date instead of parsing it", () => {
     const stamp = "Wed Sep 02 2026 16:42:54 GMT+0000 (GMT+00:00)";
-    const { valid, invalid } = normalizeImportRows(
+    const { valid, invalid } = normalizeRows(
       csv([row({ Date: stamp }), row({ Date: "2026-08-12" })]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY, undatedValues: [stamp] },
+      { undatedValues: [stamp] },
     );
     expect(invalid).toEqual([]);
     expect(valid.map((r) => r.dateSent)).toEqual([null, "2026-08-12"]);
@@ -1130,14 +972,9 @@ describe("normalizeImportRows suggested-grade semantics", () => {
   }
 
   it("prefers a mapped Suggested Grade column over the Grade column", () => {
-    const { valid, invalid } = normalizeImportRows(
+    const { valid, invalid } = normalizeRows(
       csvWithSuggested([row({ Grade: "5.11c", "Suggested Grade": "5.12a" })]),
-      MAPPING_WITH_SUGGESTED,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
+      { mapping: MAPPING_WITH_SUGGESTED },
     );
     expect(invalid).toEqual([]);
     expect(valid[0].gradeText).toBe("5.12a");
@@ -1145,29 +982,18 @@ describe("normalizeImportRows suggested-grade semantics", () => {
   });
 
   it("treats a blank Suggested Grade cell as no suggestion, not as the Grade column's value", () => {
-    const { valid } = normalizeImportRows(
+    const { valid } = normalizeRows(
       csvWithSuggested([row({ Grade: "5.11c", "Suggested Grade": "" })]),
-      MAPPING_WITH_SUGGESTED,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
+      { mapping: MAPPING_WITH_SUGGESTED },
     );
     expect(valid[0].gradeText).toBeNull();
     expect(valid[0].blankGradeMeans).toBe("no-suggestion");
   });
 
   it("keeps posted-grade fallback semantics when only a posted Grade column is mapped", () => {
-    const { valid } = normalizeImportRows(
-      csv([row({ Grade: "" })]),
-      { ...FULL_MAPPING, grade: "Grade", suggestedGrade: null },
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const { valid } = normalizeRows(csv([row({ Grade: "" })]), {
+      mapping: { ...FULL_MAPPING, grade: "Grade", suggestedGrade: null },
+    });
     expect(valid[0].gradeText).toBeNull();
     expect(valid[0].blankGradeMeans).toBe("posted-grade");
   });
@@ -1175,27 +1001,13 @@ describe("normalizeImportRows suggested-grade semantics", () => {
 
 describe("normalizeImportRows coercion warnings", () => {
   it("returns no warnings for clean rows", () => {
-    const { warnings } = normalizeImportRows(
-      csv([row()]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const { warnings } = normalizeRows(csv([row()]));
     expect(warnings).toEqual([]);
   });
 
   it("counts invalid ratings without invalidating the rows, with example rows", () => {
-    const { valid, warnings } = normalizeImportRows(
+    const { valid, warnings } = normalizeRows(
       csv([row({ Rating: "6" }), row({ Rating: "banana" }), row({ Rating: "4" })]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
     );
     expect(valid).toHaveLength(3);
     expect(valid[0].rating).toBeNull();
@@ -1206,15 +1018,7 @@ describe("normalizeImportRows coercion warnings", () => {
   });
 
   it("warns on a grade that doesn't parse for the hinted climb type", () => {
-    const { valid, warnings } = normalizeImportRows(
-      csv([row({ Grade: "V4" })]), // hinted sport via the Climb Type column
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const { valid, warnings } = normalizeRows(csv([row({ Grade: "V4" })]));
     expect(valid).toHaveLength(1);
     const warning = warnings.find((w) => w.field === "suggestedGrade");
     expect(warning?.count).toBe(1);
@@ -1223,14 +1027,9 @@ describe("normalizeImportRows coercion warnings", () => {
 
   it("without a climb-type hint, warns only when the grade parses in no discipline", () => {
     const skipAllTypes: ClimbTypeMapping = { boulder: "skip", sport: "skip", trad: "skip" };
-    const { warnings } = normalizeImportRows(
+    const { warnings } = normalizeRows(
       csv([row({ Grade: "V4" }), row({ Grade: "5.11c" }), row({ Grade: "nonsense" })]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      skipAllTypes,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
+      { climbTypes: skipAllTypes },
     );
     const warning = warnings.find((w) => w.field === "suggestedGrade");
     expect(warning?.count).toBe(1);
@@ -1238,33 +1037,22 @@ describe("normalizeImportRows coercion warnings", () => {
   });
 
   it("checks grade parseability against the chosen grade-scale preference", () => {
-    const { warnings } = normalizeImportRows(
-      csv([row({ Grade: "7a" })]), // French sport grade
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY, gradeScalePreference: "converted" },
-    );
+    const { warnings } = normalizeRows(csv([row({ Grade: "7a" })]), {
+      gradeScalePreference: "converted",
+    });
     expect(warnings).toEqual([]);
   });
 
   it("warns on a grade feel value that isn't mapped and defaults to solid", () => {
     const mappingWithFeel: ColumnMapping = { ...FULL_MAPPING, gradeFeel: "Grade Feel" };
-    const { valid, warnings } = normalizeImportRows(
+    const { valid, warnings } = normalizeRows(
       {
         headers: [...SAMPLE_HEADERS, "Grade Feel"],
         rows: [row({ "Grade Feel": "medium" }), row({ "Grade Feel": "High" })],
         warnings: [],
         derived: [],
       },
-      mappingWithFeel,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
+      { mapping: mappingWithFeel },
     );
     expect(valid[0].gradeFeel).toBe("solid");
     expect(valid[1].gradeFeel).toBe("high");
@@ -1274,14 +1062,8 @@ describe("normalizeImportRows coercion warnings", () => {
   });
 
   it("counts truncated comments with the original length as the example", () => {
-    const { warnings } = normalizeImportRows(
+    const { warnings } = normalizeRows(
       csv([row({ Comments: "a".repeat(MAX_COMMENT_LENGTH + 20) })]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
     );
     const warning = warnings.find((w) => w.field === "comment");
     expect(warning?.count).toBe(1);
@@ -1289,30 +1071,14 @@ describe("normalizeImportRows coercion warnings", () => {
   });
 
   it("caps examples at 3 while still counting every affected row", () => {
-    const { warnings } = normalizeImportRows(
-      csv([1, 2, 3, 4, 5].map(() => row({ Rating: "99" }))),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const { warnings } = normalizeRows(csv([1, 2, 3, 4, 5].map(() => row({ Rating: "99" }))));
     const warning = warnings.find((w) => w.field === "rating");
     expect(warning?.count).toBe(5);
     expect(warning?.examples).toHaveLength(3);
   });
 
   it("doesn't count warnings for rows that are already invalid", () => {
-    const { invalid, warnings } = normalizeImportRows(
-      csv([row({ Climb: "", Rating: "banana" })]),
-      FULL_MAPPING,
-      ASCENT_STYLE_MAPPING,
-      CLIMB_TYPE_MAPPING,
-      GRADE_FEEL_MAPPING,
-      "iso",
-      { today: TODAY },
-    );
+    const { invalid, warnings } = normalizeRows(csv([row({ Climb: "", Rating: "banana" })]));
     expect(invalid).toHaveLength(1);
     expect(warnings).toEqual([]);
   });
@@ -1492,3 +1258,13 @@ describe("guessGradeFeelMapping", () => {
     expect(guessGradeFeelMapping(["sandbagged"])).toEqual({ sandbagged: "skip" });
   });
 });
+
+it.each([guessAscentStyleMapping, guessClimbTypeMapping, guessGradeFeelMapping])(
+  "maps prototype-named source values to their own skip entries",
+  (mapValues) => {
+    const values = ["constructor", "__proto__", "toString", "hasOwnProperty"];
+    const mapping = mapValues(values);
+    expect(Object.keys(mapping)).toEqual(values);
+    for (const value of values) expect(mapping[value]).toBe("skip");
+  },
+);

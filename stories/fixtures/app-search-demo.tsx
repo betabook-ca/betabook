@@ -103,8 +103,6 @@ function createSearchFixtureFetcher({
     const items = matches.slice((page - 1) * 5, page * 5).map((item): AppSearchResult => ({
       ...item,
       href: "",
-      // The public catalog returns names, hierarchy, discipline and grade
-      // only — a signed-out story must not paint ratings or ascent counts.
       ...(item.kind === "climb"
         ? {
             climb: {
@@ -115,10 +113,10 @@ function createSearchFixtureFetcher({
               type: item.discipline,
               grade: item.grade,
             },
+            stats: { avgRating: item.rating ?? null, sendCount: 2 },
             ...(publicOnly
               ? {}
               : {
-                  stats: { avgRating: item.rating ?? null, sendCount: 2 },
                   context: { ancestors: [], sendCount: 2, sent: item.sent ?? false },
                 }),
           }

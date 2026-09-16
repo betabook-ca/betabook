@@ -193,7 +193,7 @@ it("logs the email locally when Resend is not configured", async () => {
   expect(await requestFriendship("bob")).toEqual({ ok: true, value: "outgoing" });
   expect(mail.send).not.toHaveBeenCalled();
   expect(logged).toHaveBeenCalledExactlyOnceWith(
-    "[dev] friend request email for bob@example.com:\nTest Climber alice sent you a friend request on Betabook.\n\nAccept or decline the request:\nhttp://localhost:3000/friends?view=requests",
+    "[dev] New friend request on Betabook to bob@example.com:\nTest Climber alice sent you a friend request on Betabook.\n\nAccept or decline the request:\nhttp://localhost:3000/friends?view=requests",
   );
   expect(await rows()).toEqual([
     expect.objectContaining({ status: "pending", requestedBy: "alice" }),

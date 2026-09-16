@@ -72,22 +72,14 @@ function PeriodCircle({
 function HistoryYears({
   periods,
   today,
-  currentPeriod,
   hasMore,
 }: {
   periods: GoalPeriod[];
   today: string;
-  currentPeriod?: GoalProgress;
   hasMore: boolean;
 }) {
-  const records = [...periods];
-  if (
-    currentPeriod?.repeat === "month" &&
-    !records.some((p) => p.periodStart === currentPeriod.periodStart)
-  )
-    records.push(currentPeriod);
-  const firstLoadedMonth = records.map((p) => p.periodStart.slice(0, 7)).sort()[0];
-  const years = [...new Set(records.map((p) => p.periodStart.slice(0, 4)))].sort((a, b) =>
+  const firstLoadedMonth = periods.map((p) => p.periodStart.slice(0, 7)).sort()[0];
+  const years = [...new Set(periods.map((p) => p.periodStart.slice(0, 4)))].sort((a, b) =>
     b.localeCompare(a),
   );
   return (
@@ -110,7 +102,7 @@ function HistoryYears({
                   start={start}
                   end={end}
                   today={today}
-                  period={records.find((p) => p.periodStart.slice(0, 7) === start.slice(0, 7))}
+                  period={periods.find((p) => p.periodStart.slice(0, 7) === start.slice(0, 7))}
                 />
               );
             })}
@@ -158,11 +150,6 @@ function MixedAnnualHistory({
   hasMore: boolean;
 }) {
   const annual = periods.filter((period) => period.repeat === "year");
-  if (
-    currentPeriod?.repeat === "year" &&
-    !annual.some((period) => period.periodStart === currentPeriod.periodStart)
-  )
-    annual.unshift(currentPeriod);
   return (
     <>
       <AnnualHistory periods={annual} today={today} />
@@ -187,11 +174,21 @@ function HistoryMonths({
   currentPeriod?: GoalProgress;
   hasMore: boolean;
 }) {
-  if (periods.length === 0 && !currentPeriod) return null;
-  if (periods.some((period) => period.repeat === "year") || currentPeriod?.repeat === "year") {
+  const records =
+    currentPeriod &&
+    !periods.some(
+      (period) =>
+        period.repeat === currentPeriod.repeat &&
+        period.periodStart === currentPeriod.periodStart &&
+        period.periodEnd === currentPeriod.periodEnd,
+    )
+      ? [currentPeriod, ...periods]
+      : periods;
+  if (records.length === 0) return null;
+  if (records.some((period) => period.repeat === "year")) {
     return (
       <MixedAnnualHistory
-        periods={periods}
+        periods={records}
         currentPeriod={currentPeriod}
         today={today}
         hasMore={hasMore}
@@ -199,17 +196,10 @@ function HistoryMonths({
     );
   }
 
-  if (periods.every((p) => p.repeat === "month") && currentPeriod?.repeat !== "week")
-    return (
-      <HistoryYears
-        periods={periods}
-        today={today}
-        currentPeriod={currentPeriod}
-        hasMore={hasMore}
-      />
-    );
+  if (records.every((p) => p.repeat === "month"))
+    return <HistoryYears periods={records} today={today} hasMore={hasMore} />;
   const months = new Map<string, GoalPeriod[]>();
-  for (const period of periods) {
+  for (const period of records) {
     const month = period.periodStart.slice(0, 7);
     const group = months.get(month) ?? [];
     group.push(period);
@@ -217,67 +207,72 @@ function HistoryMonths({
   }
   if (currentPeriod?.repeat === "week") {
     const month = today.slice(0, 7);
-    const current = months.get(month) ?? [];
-    if (
-      currentPeriod.periodStart.slice(0, 7) === month &&
-      !current.some((p) => p.periodStart === currentPeriod.periodStart)
-    )
-      current.push(currentPeriod);
-    months.set(month, current);
+    if (!months.has(month)) months.set(month, []);
   }
   return (
     <ul className="flex flex-col gap-2 py-1">
       {[...months.entries()]
         .sort(([a], [b]) => b.localeCompare(a))
-        .map(([month, group]) => (
-          <li key={month} className="flex flex-wrap items-center gap-x-2 gap-y-2">
-            <span className="w-18 shrink-0 text-muted">
-              <span>
-                {goalDateLabel(
-                  {
-                    repeat: "month",
-                    timeframe: "month",
-                    periodStart: `${month}-01`,
-                    periodEnd: `${month}-01`,
-                  },
-                  today,
-                )}
+        .map(([month, group]) => {
+          const hasWeeks =
+            group.some((period) => period.repeat === "week") ||
+            (currentPeriod?.repeat === "week" && month === today.slice(0, 7));
+          return (
+            <li key={month} className="flex flex-wrap items-center gap-x-2 gap-y-2">
+              <span className="w-18 shrink-0 text-muted">
+                <span>
+                  {goalDateLabel(
+                    {
+                      repeat: "month",
+                      timeframe: "month",
+                      periodStart: `${month}-01`,
+                      periodEnd: `${month}-01`,
+                    },
+                    today,
+                  )}
+                </span>
+                {hasWeeks && <span className="block text-xs text-muted">Weeks</span>}
               </span>
-              {(group.some((period) => period.repeat === "week") ||
-                (currentPeriod?.repeat === "week" && month === today.slice(0, 7))) && (
-                <span className="block text-xs text-muted">Weeks</span>
-              )}
-            </span>
-            <div className="flex flex-wrap items-center gap-0.5">
-              {group.some((period) => period.repeat === "week") ||
-              (currentPeriod?.repeat === "week" && month === today.slice(0, 7))
-                ? goalWeekSlots(month).map((slot) => (
+              <div className="flex flex-wrap items-center gap-0.5">
+                {hasWeeks &&
+                  goalWeekSlots(month).map((slot) => (
                     <PeriodCircle
                       key={slot.periodStart}
                       start={slot.periodStart}
                       end={slot.periodEnd}
-                      period={group.find((p) => p.periodStart === slot.periodStart)}
+                      period={group.find(
+                        (period) =>
+                          period.repeat === "week" &&
+                          period.periodStart === slot.periodStart &&
+                          period.periodEnd === slot.periodEnd,
+                      )}
                       today={today}
                     />
-                  ))
-                : group.map((period) => (
-                    <span key={period.periodStart} className="flex items-center gap-1 tabular-nums">
+                  ))}
+                {group
+                  .filter((period) => period.repeat !== "week")
+                  .map((period) => (
+                    <span
+                      key={`${period.repeat}-${period.periodStart}-${period.periodEnd}`}
+                      className="flex basis-full items-center gap-1 tabular-nums"
+                    >
                       {period.progress >= period.target ? (
                         <>
                           <CircleCheckBig
                             aria-hidden
                             className="size-3.5 text-success-soft-foreground"
                           />
-                          Met
+                          {`${hasWeeks ? "Month · " : ""}Met · ${period.progress}/${period.target}`}
                         </>
                       ) : (
-                        `${period.periodEnd < today ? "Missed" : "In progress"} · ${period.progress}/${period.target}`
+                        `${hasWeeks ? "Month · " : ""}${period.periodEnd < today ? "Missed" : "In progress"} · ${period.progress}/${period.target}`
                       )}
                     </span>
                   ))}
-            </div>
-          </li>
-        ))}
+              </div>
+            </li>
+          );
+        })}
     </ul>
   );
 }

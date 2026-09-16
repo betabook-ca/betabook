@@ -9,7 +9,7 @@ export const GET = withApiSession(async (session, request: Request) => {
   const page =
     offset === null
       ? { climbers: [], hasMore: false }
-      : await getClimbersPage(await getDb(), session?.user.id ?? null, {
+      : await getClimbersPage(await getDb(), session.user.id, {
           name: params.get("name") ?? "",
           offset,
         });

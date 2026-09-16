@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
@@ -83,6 +83,73 @@ async function loadKaya() {
   await screen.findByRole("region", { name: "Review repeated dates" });
   await waitFor(() => expect(screen.getByRole("button", { name: "Next: Review" })).toBeEnabled());
 }
+
+it.each(["Back to matching", "Check them"])(
+  "locks %s while importing so progress and cancellation stay available",
+  async (navigation) => {
+    if (navigation === "Back to matching") unmatched = "Climb 60";
+    else {
+      const lookup = vi.mocked(resolveImportClimbs).getMockImplementation()!;
+      vi.mocked(resolveImportClimbs).mockImplementation(async (names) => {
+        const result = await lookup(names);
+        if (!result.ok) return result;
+        const [first, ...rest] = result.value;
+        return {
+          ok: true,
+          value: [
+            { ...first, total: 2 },
+            { ...first, id: first.id + 1000, grade: first.grade! + 1, total: 2 },
+            ...rest,
+          ],
+        };
+      });
+    }
+    const readyCount = navigation === "Back to matching" ? 59 : 60;
+    let finish!: () => void;
+    vi.mocked(importSends).mockImplementationOnce(
+      (rows) =>
+        new Promise((resolve) => {
+          finish = () =>
+            resolve({
+              ok: true,
+              value: { imported: rows.length, overwritten: 0, alreadyLogged: 0, missing: [] },
+            });
+        }),
+    );
+    await loadKaya();
+    await userEvent.click(screen.getByRole("button", { name: "Next: Review" }));
+    await userEvent.click(screen.getByRole("button", { name: `Import ${readyCount} sends` }));
+    const link = screen.getByRole("button", { name: navigation });
+    expect(link).toBeDisabled();
+    expect(screen.getByText("5 Review", { exact: true })).toHaveAttribute("aria-current", "step");
+    expect(screen.getByRole("progressbar", { name: "Importing sends" })).toHaveAttribute(
+      "aria-valuenow",
+      "0",
+    );
+    expect(screen.getByRole("button", { name: "Cancel import" })).toBeEnabled();
+    await userEvent.click(link);
+    expect(screen.getByText("5 Review", { exact: true })).toHaveAttribute("aria-current", "step");
+    expect(screen.getByRole("button", { name: "Cancel import" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Next: Review" })).not.toBeInTheDocument();
+    expect(importSends).toHaveBeenCalledOnce();
+    await act(async () => finish());
+    expect(await screen.findByRole("link", { name: "See your sends" })).toHaveAttribute(
+      "href",
+      "/users/local",
+    );
+    expect(screen.getByRole("button", { name: "Import another file" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Cancel import" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("progressbar", { name: "Importing sends" })).not.toBeInTheDocument();
+    const batches = vi.mocked(importSends).mock.calls.map(([rows]) => rows);
+    expect(batches.map((rows) => rows.length)).toEqual([50, readyCount - 50]);
+    expect(batches.flatMap((rows) => rows.map((row) => row.climbId))).toEqual(
+      Array.from({ length: readyCount }, (_, index) => index + 1),
+    );
+    expect(screen.getByText("Imported", { exact: true }).nextElementSibling).toHaveTextContent(
+      new RegExp(`^${readyCount}$`),
+    );
+  },
+);
 
 it("warns on an automatically mapped KAYA import and keeps all dates by default", async () => {
   await loadKaya();

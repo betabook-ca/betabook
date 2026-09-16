@@ -9,6 +9,7 @@ import { Eyebrow } from "@/components/ui/eyebrow";
 import { useChartWidth } from "@/hooks/use-chart-width";
 import {
   sendChartRows,
+  groupDatedRows,
   type ChartClimbRow,
   type ChartSend,
   type ChartDetailGroup,
@@ -38,11 +39,12 @@ export function AnalyticsVolumeChart({
     (row) => `${formatMonthLabel(row.month)}: ${row[metric]} ${label.toLowerCase()}`,
   );
   const detailRows = metric === "sends" ? sends && sendChartRows(sends) : activities;
+  const rowsByMonth = groupDatedRows(detailRows ?? [], (entry) => entry.date, "month");
   const details =
     detailRows &&
     Object.fromEntries(
       rows.map((row, i) => {
-        const matches = detailRows.filter((entry) => entry.date?.startsWith(`${row.month}-`));
+        const matches = rowsByMonth.get(row.month) ?? [];
         return [
           labels[i],
           {

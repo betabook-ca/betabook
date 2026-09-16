@@ -3,7 +3,7 @@
 import { ChartClimbDetails } from "@/components/chart-climb-details";
 import { DISCIPLINE_HUE } from "@/components/ui/discipline-chip";
 import { useChartWidth } from "@/hooks/use-chart-width";
-import type { ChartSend } from "@/lib/chart-details";
+import { groupDatedRows, type ChartSend } from "@/lib/chart-details";
 import { nativeGradeArray, type ClimbType } from "@/lib/grades";
 import { formatMonthLabel, type ProgressionPoint } from "@/lib/user-analytics";
 
@@ -28,6 +28,8 @@ export function ProgressionChart({
 }) {
   const { ref, width: W } = useChartWidth();
   if (points.length === 0) return null;
+
+  const sendsByMonth = groupDatedRows(sends, (send) => send.dateSent, "month");
 
   const scale = nativeGradeArray(type);
   const hue = DISCIPLINE_HUE[type];
@@ -195,11 +197,8 @@ export function ProgressionChart({
               key={point.month}
               hideSingleCount
               label={`${formatMonthLabel(point.month)} · ${scale[point.hardest]}`}
-              sends={sends.filter(
-                (send) =>
-                  send.climbType === type &&
-                  send.suggestedGrade === point.hardest &&
-                  send.dateSent?.startsWith(`${point.month}-`),
+              sends={(sendsByMonth.get(point.month) ?? []).filter(
+                (send) => send.climbType === type && send.suggestedGrade === point.hardest,
               )}
               className="absolute min-w-0 -translate-x-1/2 -translate-y-1/2 rounded-full p-0 hover:bg-default"
               style={{

@@ -95,13 +95,11 @@ export const GET = withApiSession(async (session, request: Request, { params }: 
       db,
       subtreeClimbs.climbs.map((c) => c.areaId),
     ),
-    session
-      ? getUserSentClimbIds(
-          db,
-          session.user.id,
-          subtreeClimbs.climbs.map((climb) => climb.id),
-        )
-      : Promise.resolve(undefined),
+    getUserSentClimbIds(
+      db,
+      session.user.id,
+      subtreeClimbs.climbs.map((climb) => climb.id),
+    ),
   ]);
 
   return NextResponse.json({
@@ -113,6 +111,6 @@ export const GET = withApiSession(async (session, request: Request, { params }: 
         : pageReachesPaginationLimit(page, pageSize)),
     sendStats,
     areaBreadcrumbs,
-    sentClimbIds: sentClimbIds ? [...sentClimbIds] : undefined,
+    sentClimbIds: [...sentClimbIds],
   });
 });

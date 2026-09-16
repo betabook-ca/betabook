@@ -16,8 +16,4 @@ test("Account settings starts with the account identity without a separate title
   expect(headingBox.height).toBeLessThanOrEqual(1);
   expect(identity.y).toBe(container.y);
   expect(identity.height).toBe(48);
-  await info.attach("account-layout", {
-    body: await page.screenshot({ path: info.outputPath("account-layout.png") }),
-    contentType: "image/png",
-  });
 });

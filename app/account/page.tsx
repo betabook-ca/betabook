@@ -6,7 +6,7 @@ import { getDb } from "@/db/client";
 import { getUser } from "@/db/queries";
 import { getTurnstileSiteKey } from "@/lib/auth";
 import { getOwnProfileShareUrl } from "@/lib/profile-share-url";
-import { getMemberSession as getSession, isAdmin } from "@/lib/session";
+import { getMemberSession, isAdmin } from "@/lib/session";
 
 export const metadata: Metadata = {
   title: "Account settings",
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AccountPage() {
-  const session = await getSession();
+  const session = await getMemberSession();
 
   if (!session) {
     return <CurrentPageAuthCallout />;

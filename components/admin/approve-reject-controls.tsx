@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 
 import { approveChangeRequest, rejectChangeRequest } from "@/actions";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 
 type ApproveRejectControlsProps = {
   requestId: number;
@@ -28,13 +29,19 @@ export function ApproveRejectControls({ requestId, alreadyApproved }: ApproveRej
   function handleApprove() {
     setError(null);
     startTransition(async () => {
-      const result = await approveChangeRequest(requestId);
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      if (result.value.decision === "awaiting") {
-        setNotice("Approval recorded — an admin for the remaining area(s) still needs to approve.");
+      try {
+        const result = await approveChangeRequest(requestId);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        if (result.value.decision === "awaiting") {
+          setNotice(
+            "Approval recorded — an admin for the remaining area(s) still needs to approve.",
+          );
+        }
+      } catch {
+        setError(GENERIC_ERROR_MESSAGE);
       }
     });
   }
@@ -42,12 +49,16 @@ export function ApproveRejectControls({ requestId, alreadyApproved }: ApproveRej
   function handleReject() {
     setError(null);
     startTransition(async () => {
-      const result = await rejectChangeRequest(requestId, note);
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      try {
+        const result = await rejectChangeRequest(requestId, note);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        handleRejectOpenChange(false);
+      } catch {
+        setError(GENERIC_ERROR_MESSAGE);
       }
-      rejectState.close();
     });
   }
 
@@ -72,7 +83,7 @@ export function ApproveRejectControls({ requestId, alreadyApproved }: ApproveRej
         </Button>
       </div>
       {notice && <InlineAlert status="success">{notice}</InlineAlert>}
-      {error && <InlineAlert>{error}</InlineAlert>}
+      {error && !rejectState.isOpen && <InlineAlert>{error}</InlineAlert>}
 
       <AlertDialog.Backdrop isOpen={rejectState.isOpen} onOpenChange={handleRejectOpenChange}>
         <AlertDialog.Container placement="center" size="sm">
@@ -85,9 +96,14 @@ export function ApproveRejectControls({ requestId, alreadyApproved }: ApproveRej
                 <Label>Reason (shown to the requester)</Label>
                 <TextArea placeholder="Optional — why this doesn't work…" />
               </TextField>
+              {error && <InlineAlert>{error}</InlineAlert>}
             </AlertDialog.Body>
             <AlertDialog.Footer className="flex justify-end gap-2">
-              <Button variant="ghost" onPress={rejectState.close} isDisabled={pending}>
+              <Button
+                variant="ghost"
+                onPress={() => handleRejectOpenChange(false)}
+                isDisabled={pending}
+              >
                 Cancel
               </Button>
               <Button variant="danger" onPress={handleReject} isDisabled={pending}>

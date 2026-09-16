@@ -28,6 +28,7 @@ import {
   journalEntryFromSend,
   rethrowJournalSendInvariant,
 } from "./journal-sync";
+import { afterCommit } from "./post-commit";
 import { revalidateJournalSurfaces, revalidateSendSurfaces } from "./revalidation";
 import { buildMirroredSendUpdate, buildSendInsert } from "./send-statements";
 
@@ -100,8 +101,10 @@ async function writeAscent(
     ...(companions?.length ? [buildCompanionInsert(db, userId, companions)] : []),
   ]);
 
-  revalidateJournalSurfaces({ userId, climbIds: [climb.id] });
-  revalidateSendSurfaces({ userIds: [userId], climbIds: [climb.id], areaIds: [climb.areaId] });
+  afterCommit(() => {
+    revalidateJournalSurfaces({ userId, climbIds: [climb.id] });
+    revalidateSendSurfaces({ userIds: [userId], climbIds: [climb.id], areaIds: [climb.areaId] });
+  });
 }
 
 export async function createJournalEntry(formData: FormData): Promise<ActionResult> {
@@ -120,7 +123,7 @@ export async function createJournalEntry(formData: FormData): Promise<ActionResu
       const existingSend = await getUserSendForClimb(db, session.user.id, climb.id);
       if (!existingSend) {
         await writeAscent(db, session.user.id, input, climb, formData, companions);
-        refresh();
+        afterCommit(refresh);
         return;
       }
       if (carriesSendFields(formData)) {
@@ -156,13 +159,15 @@ export async function createJournalEntry(formData: FormData): Promise<ActionResu
             "The send changed while this entry was being saved — try again",
           );
         }
-        revalidateJournalSurfaces({ userId: session.user.id, climbIds: [climb.id] });
-        revalidateSendSurfaces({
-          userIds: [session.user.id],
-          climbIds: [climb.id],
-          areaIds: [climb.areaId],
+        afterCommit(() => {
+          revalidateJournalSurfaces({ userId: session.user.id, climbIds: [climb.id] });
+          revalidateSendSurfaces({
+            userIds: [session.user.id],
+            climbIds: [climb.id],
+            areaIds: [climb.areaId],
+          });
+          refresh();
         });
-        refresh();
         return;
       }
       assertRepeatDate(sentEntries, input.entryDate);
@@ -184,11 +189,13 @@ export async function createJournalEntry(formData: FormData): Promise<ActionResu
         "The send changed while this entry was being saved — try again",
       );
     }
-    revalidateJournalSurfaces({
-      userId: session.user.id,
-      climbIds: climb ? [climb.id] : [],
+    afterCommit(() => {
+      revalidateJournalSurfaces({
+        userId: session.user.id,
+        climbIds: climb ? [climb.id] : [],
+      });
+      refresh();
     });
-    refresh();
   });
 }
 
@@ -231,12 +238,13 @@ export async function updateJournalEntry(
         body: input.body,
         tags: input.tags,
       })
-      .where(eq(journalEntries.id, entryId));
+      .where(eq(journalEntries.id, entryId))
+      .returning({ id: journalEntries.id });
 
     const companionStatements = buildCompanionReplacement(db, session.user.id, entryId, companions);
 
     try {
-      await saveJournalBatch(db, [
+      const [, updated] = await saveJournalBatch(db, [
         buildJournalEntryGuard(db, existing),
         journalStatement,
         ...companionStatements,
@@ -245,28 +253,42 @@ export async function updateJournalEntry(
               db
                 .update(sends)
                 .set({ comment: input.body })
-                .where(and(eq(sends.userId, session.user.id), eq(sends.climbId, existing.climbId))),
+                .where(
+                  and(
+                    eq(sends.userId, session.user.id),
+                    eq(sends.climbId, existing.climbId),
+                    sql`EXISTS (SELECT 1 FROM journal_entries j
+                      WHERE j.id = ${entryId} AND j.user_id = ${session.user.id}
+                        AND j.climb_id = ${existing.climbId} AND j.is_ascent = 1)`,
+                  ),
+                ),
             ]
           : []),
       ]);
+      if (!updated.length) throw new ActionError("The entry changed — refresh and try again");
     } catch (error) {
       rethrowJournalSendInvariant(error, "The entry changed — refresh and try again");
     }
 
     if (existing.isAscent && existing.climbId !== null) {
-      const climb = await getClimb(db, existing.climbId);
-      revalidateSendSurfaces({
-        userIds: [session.user.id],
-        climbIds: [existing.climbId],
-        areaIds: climb ? [climb.areaId] : [],
+      const climbId = existing.climbId;
+      const climb = await getClimb(db, climbId);
+      afterCommit(() => {
+        revalidateSendSurfaces({
+          userIds: [session.user.id],
+          climbIds: [climbId],
+          areaIds: climb ? [climb.areaId] : [],
+        });
       });
     }
 
-    revalidateJournalSurfaces({
-      userId: session.user.id,
-      climbIds: existing.climbId === null ? [] : [existing.climbId],
+    afterCommit(() => {
+      revalidateJournalSurfaces({
+        userId: session.user.id,
+        climbIds: existing.climbId === null ? [] : [existing.climbId],
+      });
+      refresh();
     });
-    refresh();
   });
 }
 
@@ -304,17 +326,21 @@ export async function deleteJournalEntry(entryId: number): Promise<ActionResult>
 
     if (existing.isAscent && climbId !== null) {
       const climb = await getClimb(db, climbId);
-      revalidateSendSurfaces({
-        userIds: [session.user.id],
-        climbIds: [climbId],
-        areaIds: climb ? [climb.areaId] : [],
+      afterCommit(() => {
+        revalidateSendSurfaces({
+          userIds: [session.user.id],
+          climbIds: [climbId],
+          areaIds: climb ? [climb.areaId] : [],
+        });
       });
     }
 
-    revalidateJournalSurfaces({
-      userId: session.user.id,
-      climbIds: climbId === null ? [] : [climbId],
+    afterCommit(() => {
+      revalidateJournalSurfaces({
+        userId: session.user.id,
+        climbIds: climbId === null ? [] : [climbId],
+      });
+      refresh();
     });
-    refresh();
   });
 }

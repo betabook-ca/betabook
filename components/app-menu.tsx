@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef } from "react";
 
 import { BrandHomeLink } from "@/components/brand";
 import { useFriendRequestCount } from "@/components/friend-requests-provider";
+import { DeferredLoadError } from "@/components/ui/deferred-load-error";
 import { useClientSession } from "@/hooks/use-client-session";
 import { useDeferredComponent } from "@/hooks/use-deferred-component";
 import { useMobileTabsVisible } from "@/hooks/use-mobile-tabs-visible";
@@ -24,7 +25,7 @@ export function HeaderNavigation() {
   const session = useClientSession();
   const requestCount = useFriendRequestCount();
   const tabsVisible = useMobileTabsVisible();
-  const { Component: AppMenuPopover, load } = useDeferredComponent(loadMenu);
+  const { Component: AppMenuPopover, load, failed } = useDeferredComponent(loadMenu);
 
   const openMenu = useCallback(() => {
     load();
@@ -63,6 +64,9 @@ export function HeaderNavigation() {
       <div className="hidden md:block">
         <BrandHomeLink />
       </div>
+      {state.isOpen && failed && (
+        <DeferredLoadError feature="the menu" onRetry={load} onDismiss={close} />
+      )}
       {AppMenuPopover && (
         <AppMenuPopover
           triggerRef={triggerRef}

@@ -8,7 +8,7 @@ import {
   type ProductTourSearchParams,
   PRODUCT_TOUR_STEPS,
 } from "@/lib/product-tour-navigation";
-import { getMemberSession as getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 
 export default async function TutorialPage({
   params,
@@ -18,7 +18,7 @@ export default async function TutorialPage({
   searchParams: Promise<ProductTourSearchParams>;
 }) {
   const { tourId, stepId } = await params;
-  if (!(await getSession())) {
+  if (!(await getMemberSession())) {
     return (
       <AuthCallout
         next={productTourContinuationPath(tourId, {

@@ -12,6 +12,8 @@ import { parseId } from "@/lib/parse-id";
 import { requireSession } from "@/lib/session";
 import { pickFormFields } from "@/lib/validation";
 
+import { afterCommit } from "./post-commit";
+
 const CLIMB_FORM_FIELDS = ["name", "type", "grade", "description"] as const;
 const CLIMB_UPDATE_FORM_FIELDS = ["description"] as const;
 
@@ -26,10 +28,12 @@ export async function updateClimb(climbId: number, formData: FormData): Promise<
     const input = validateClimbDescriptionInput(pickFormFields(formData, CLIMB_UPDATE_FORM_FIELDS));
     await db.update(climbs).set(input).where(eq(climbs.id, climbId));
 
-    revalidatePath(`/climbs/${climbId}`);
-    revalidatePath(`/areas/${existing.areaId}`);
-    revalidatePath("/");
-    refresh();
+    afterCommit(() => {
+      revalidatePath(`/climbs/${climbId}`);
+      revalidatePath(`/areas/${existing.areaId}`);
+      revalidatePath("/");
+      refresh();
+    });
   });
 }
 
@@ -50,9 +54,11 @@ export async function createClimb(
       .values({ areaId, ...input })
       .returning({ id: climbs.id });
 
-    revalidatePath(`/areas/${areaId}`);
-    revalidatePath("/");
-    refresh();
+    afterCommit(() => {
+      revalidatePath(`/areas/${areaId}`);
+      revalidatePath("/");
+      refresh();
+    });
     return id;
   });
 }

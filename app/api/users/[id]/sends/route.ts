@@ -33,7 +33,7 @@ export const GET = withApiSession(async (session, request: Request, { params }: 
   // private profile the viewer doesn't own gets the identical response, so
   // its existence isn't leaked either.
   const user = await getUser(db, userId);
-  if (!user || !canViewUser(user, session?.user.id ?? null)) {
+  if (!user || !canViewUser(user, session.user.id)) {
     return NextResponse.json({ error: "User not found" }, { status: 404, headers });
   }
 
@@ -47,7 +47,7 @@ export const GET = withApiSession(async (session, request: Request, { params }: 
     filter,
     safeOffset,
     undefined,
-    session?.user.id ?? null,
+    session.user.id,
   );
   const areaBreadcrumbs = await getAreaBreadcrumbs(
     db,

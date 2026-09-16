@@ -1,9 +1,10 @@
 import { parseSendageUsername } from "@/lib/sendage-profile";
-import type { ParsedCsv } from "@/lib/sends-import";
+import { MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS, type ParsedCsv } from "@/lib/sends-import";
 import { SUPPORT_EMAIL } from "@/lib/support";
 
 const FORMAT_ERROR = `Sendage returned an unfamiliar data format. Please try again later, or email ${SUPPORT_EMAIL}.`;
 const INCOMPLETE_ERROR = `Sendage did not return your complete send history. Please try again, or email ${SUPPORT_EMAIL}.`;
+const SIZE_ERROR = `This Sendage history is too large for a direct import. Email ${SUPPORT_EMAIL} for help importing it.`;
 const MAX_PAGE_BYTES = 2 * 1024 * 1024;
 const COMPLETED_STYLES = new Set(["redpoint", "flash", "onsight"]);
 const SKIPPED_STYLES = new Set(["project", "repeat"]);
@@ -72,10 +73,15 @@ async function request(
   procedure: "user.getProfile" | "activity.getUserActivity",
   input: Record<string, unknown>,
   signal: AbortSignal,
+  budget: { bytes: number },
 ) {
   signal.throwIfAborted();
   const controller = new AbortController();
-  const cancel = () => controller.abort();
+  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+  const cancel = () => {
+    controller.abort();
+    void reader?.cancel().catch(() => {});
+  };
   signal.addEventListener("abort", cancel, { once: true });
   const timeout = setTimeout(cancel, 15_000);
   try {
@@ -96,10 +102,26 @@ async function request(
     if (response.status === 429)
       throw new Error("Sendage is receiving too many requests. Wait a moment and try again.");
     if (!response.ok) throw new Error("Couldn't load sends from Sendage. Please try again.");
-    if (Number(response.headers.get("content-length")) > MAX_PAGE_BYTES)
-      throw new Error(FORMAT_ERROR);
-    const body = await response.text();
-    if (body.length > MAX_PAGE_BYTES) throw new Error(FORMAT_ERROR);
+    if (!response.body) throw new Error(FORMAT_ERROR);
+    reader = response.body.getReader();
+    const advertisedBytes = Number(response.headers.get("content-length"));
+    if (advertisedBytes > MAX_PAGE_BYTES || budget.bytes + advertisedBytes > MAX_IMPORT_FILE_BYTES)
+      throw new Error(SIZE_ERROR);
+    const decoder = new TextDecoder();
+    let body = "";
+    let pageBytes = 0;
+    controller.signal.throwIfAborted();
+    for (;;) {
+      const { done, value } = await reader.read();
+      controller.signal.throwIfAborted();
+      if (done) break;
+      pageBytes += value.byteLength;
+      budget.bytes += value.byteLength;
+      if (pageBytes > MAX_PAGE_BYTES || budget.bytes > MAX_IMPORT_FILE_BYTES)
+        throw new Error(SIZE_ERROR);
+      body += decoder.decode(value, { stream: true });
+    }
+    body += decoder.decode();
     const data: unknown = JSON.parse(body);
     return record(record(record(data).result).data).json;
   } catch (error) {
@@ -116,6 +138,7 @@ async function request(
   } finally {
     clearTimeout(timeout);
     signal.removeEventListener("abort", cancel);
+    await reader?.cancel().catch(() => {});
   }
 }
 
@@ -131,6 +154,7 @@ function readProfile(value: unknown) {
   const total = profile.totalSends;
   if (typeof total !== "number" || !Number.isSafeInteger(total) || total < 0)
     throw new Error(FORMAT_ERROR);
+  if (total > MAX_IMPORT_ROWS) throw new Error(SIZE_ERROR);
   return {
     userId: positiveInteger(profile.id),
     username: parseSendageUsername(profile.slug),
@@ -204,8 +228,9 @@ export async function fetchSendageImport(
   input: string,
   { signal, onProgress }: { signal: AbortSignal; onProgress?: (count: number) => void },
 ): Promise<{ username: string; parsed: ParsedCsv }> {
+  const budget = { bytes: 0 };
   const { userId, username, total } = readProfile(
-    await request("user.getProfile", { username: parseSendageUsername(input) }, signal),
+    await request("user.getProfile", { username: parseSendageUsername(input) }, signal, budget),
   );
   const rows: Record<string, string>[] = [];
   const seen = new Set<number>();
@@ -213,7 +238,12 @@ export async function fetchSendageImport(
   do {
     signal.throwIfAborted();
     const page = record(
-      await request("activity.getUserActivity", cursor ? { userId, cursor } : { userId }, signal),
+      await request(
+        "activity.getUserActivity",
+        cursor ? { userId, cursor } : { userId },
+        signal,
+        budget,
+      ),
     );
     if (!Array.isArray(page.items) || page.items.length > 1000) throw new Error(FORMAT_ERROR);
     for (const send of page.items.flatMap(activitySends)) {
@@ -223,6 +253,7 @@ export async function fetchSendageImport(
         throw new Error("Your Sendage history changed during the download. Please try again.");
       seen.add(imported.id);
       rows.push(imported.row);
+      if (rows.length > MAX_IMPORT_ROWS) throw new Error(SIZE_ERROR);
     }
     onProgress?.(rows.length);
     cursor = nextCursor(page.nextCursor, page.items.length, cursor);

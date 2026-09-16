@@ -77,7 +77,7 @@ function ClimbSendListContent({
         <ClimbSendListRow
           type={climb.type}
           send={send}
-          actions={send.userId === currentUserId && <SendActionsMenu climb={climb} send={send} />}
+          actions={send.userId === currentUserId && <SendActionsMenu send={send} />}
         />
       )}
     />

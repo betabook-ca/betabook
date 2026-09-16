@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { fetchSendageImport } from "./sendage-import";
 import { parseSendageUsername } from "./sendage-profile";
+import { MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS } from "./sends-import";
 
 const envelope = (json: unknown) => Response.json({ result: { data: { json } } });
 const profile = (extra = {}) =>
@@ -34,6 +35,110 @@ const options = () => ({ signal: new AbortController().signal });
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Sendage import", () => {
+  it("rejects an oversized advertised history before fetching activity", async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(profile({ totalSends: MAX_IMPORT_ROWS + 1 }))
+      .mockResolvedValueOnce(envelope({ items: [activityDay("2026-08-16", [send(1)])] }));
+    vi.stubGlobal("fetch", fetcher);
+    await expect(fetchSendageImport("climber", options())).rejects.toThrow(/too large/i);
+    expect(fetcher).toHaveBeenCalledOnce();
+  });
+
+  it("caps actual rows even when the profile underreports its total", async () => {
+    let page = 0;
+    let count = 0;
+    const fetcher = vi.fn<typeof fetch>().mockImplementation(async () => {
+      page += 1;
+      if (page === 1) return profile({ totalSends: 0 });
+      const amount = Math.min(1000, MAX_IMPORT_ROWS + 1 - count);
+      const rows = Array.from({ length: amount }, () => {
+        count += 1;
+        const id = count;
+        return {
+          id,
+          sendType: "redpoint",
+          climb: { id, name: "x", type: "boulder", area: { name: "x" }, gradeId: 1 },
+          gradeId: 1,
+          day: null,
+          rating: 0,
+          difficulty: 0,
+        };
+      });
+      return envelope({
+        items: [activityDay("2026-01-01", rows)],
+        nextCursor:
+          count <= MAX_IMPORT_ROWS
+            ? { day: new Date(Date.UTC(2026, 8, 16 - page)).toISOString().slice(0, 10) }
+            : null,
+      });
+    });
+    vi.stubGlobal("fetch", fetcher);
+    await expect(fetchSendageImport("climber", options()).then(() => "completed")).rejects.toThrow(
+      /too large/i,
+    );
+    expect(count).toBe(MAX_IMPORT_ROWS + 1);
+  });
+
+  it("bounds UTF-8 bytes while streaming and cancels before consuming an oversized page", async () => {
+    const bytes = new TextEncoder().encode(
+      JSON.stringify({
+        result: {
+          data: {
+            json: {
+              items: [activityDay("2026-08-16", [send(1, { comments: "é".repeat(1_200_000) })])],
+            },
+          },
+        },
+      }),
+    );
+    let offset = 0;
+    const cancel = vi.fn<() => void>();
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (offset === bytes.length) controller.close();
+        else {
+          const end = Math.min(bytes.length, offset + 64 * 1024);
+          controller.enqueue(bytes.slice(offset, end));
+          offset = end;
+        }
+      },
+      cancel,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(profile({ totalSends: 1 }))
+        .mockResolvedValueOnce(new Response(body)),
+    );
+    await expect(fetchSendageImport("climber", options()).then(() => "completed")).rejects.toThrow(
+      /too large/i,
+    );
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(offset).toBeLessThan(bytes.length);
+  });
+
+  it("limits the combined download instead of accepting unlimited individually small pages", async () => {
+    const pages = 8;
+    const comment = "x".repeat(Math.ceil(MAX_IMPORT_FILE_BYTES / 7));
+    let calls = 0;
+    const fetcher = vi.fn<typeof fetch>().mockImplementation(async () => {
+      calls += 1;
+      if (calls === 1) return profile({ totalSends: pages });
+      const day = `2026-08-${String(20 - calls).padStart(2, "0")}`;
+      return envelope({
+        items: [activityDay(day, [send(calls, { comments: comment })])],
+        nextCursor: calls <= pages ? { day } : null,
+      });
+    });
+    vi.stubGlobal("fetch", fetcher);
+    await expect(fetchSendageImport("climber", options()).then(() => "completed")).rejects.toThrow(
+      /too large/i,
+    );
+    expect(fetcher.mock.calls.length).toBeLessThan(pages + 1);
+  });
+
   it("downloads every activity page without credentials and preserves personal send values", async () => {
     const fetcher = vi
       .fn<(url: string, init: RequestInit) => Promise<Response>>()
@@ -303,6 +408,46 @@ describe("Sendage import", () => {
       /abort/i,
     );
     expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("cancels an activity reader that is waiting for the next streamed chunk", async () => {
+    const controller = new AbortController();
+    let bodyController!: ReadableStreamDefaultController<Uint8Array>;
+    let reading!: () => void;
+    const started = new Promise<void>((resolve) => {
+      reading = resolve;
+    });
+    const cancel = vi.fn<() => void>();
+    const body = new ReadableStream<Uint8Array>({
+      start(stream) {
+        bodyController = stream;
+        stream.enqueue(new TextEncoder().encode('{"result":'));
+      },
+      pull() {
+        if (body.locked) reading();
+      },
+      cancel,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(profile())
+        .mockResolvedValueOnce(new Response(body)),
+    );
+    const result = fetchSendageImport("climber", { signal: controller.signal }).then(
+      () => null,
+      (error: unknown) => error,
+    );
+    await started;
+    controller.abort();
+    try {
+      expect(cancel).toHaveBeenCalledOnce();
+    } finally {
+      if (!cancel.mock.calls.length)
+        bodyController.error(new DOMException("Aborted", "AbortError"));
+      expect(await result).toBe(controller.signal.reason);
+    }
   });
 });
 

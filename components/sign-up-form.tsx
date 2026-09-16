@@ -10,6 +10,7 @@ import { FORM_CARD_CLASS } from "@/components/ui/card";
 import { FieldFeedback } from "@/components/ui/field-support";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { PageTitle } from "@/components/ui/typography";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { authClient } from "@/lib/auth-client";
 import { MAX_DISPLAY_NAME_LENGTH } from "@/lib/display-name";
 import { profileShareFromPath } from "@/lib/profile-share";
@@ -45,47 +46,58 @@ export function SignUpForm({
 
   const passwordMismatch = submitAttempted && password !== confirmPassword;
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSubmitAttempted(true);
     if (pending || !termsAccepted || !captcha.ready || password !== confirmPassword) return;
     setPending(true);
-    void authClient.signUp.email(
-      // The verification link lands back on sign-in, carrying the original
-      // destination so the continuation survives sign-up → verify → sign-in.
-      { name, email, password, callbackURL: signInUrl(nextPath) },
-      {
-        body: {
-          acceptedTermsVersion: TERMS_VERSION,
-          sharePath: profileShareFromPath(nextPath) ? nextPath : undefined,
+    try {
+      await authClient.signUp.email(
+        // The verification link lands back on sign-in, carrying the original
+        // destination so the continuation survives sign-up → verify → sign-in.
+        { name, email, password, callbackURL: signInUrl(nextPath) },
+        {
+          body: {
+            acceptedTermsVersion: TERMS_VERSION,
+            sharePath: profileShareFromPath(nextPath) ? nextPath : undefined,
+          },
+          headers: captcha.headers,
+          onSuccess: () => setDone(true),
+          onError: (ctx) => setError(ctx.error.message ?? "Sign up failed"),
+          onResponse: () => {
+            setPending(false);
+            captcha.reset();
+          },
         },
-        headers: captcha.headers,
-        onSuccess: () => setDone(true),
-        onError: (ctx) => setError(ctx.error.message ?? "Sign up failed"),
-        onResponse: () => {
-          setPending(false);
-          captcha.reset();
-        },
-      },
-    );
+      );
+    } catch {
+      setError(GENERIC_ERROR_MESSAGE);
+      setPending(false);
+      captcha.reset();
+    }
   }
 
   // Bound to the just-registered address; same better-auth call (and the
   // same land-back-on-sign-in callback) as the sign-in form's resend.
-  function resendVerification() {
+  async function resendVerification() {
     setResent(false);
     setResendError(null);
     setResendPending(true);
-    void authClient.sendVerificationEmail(
-      { email, callbackURL: signInUrl(nextPath) },
-      {
-        onSuccess: () => setResent(true),
-        onError: (ctx) =>
-          setResendError(ctx.error.message ?? "Could not resend the verification email"),
-        onResponse: () => setResendPending(false),
-      },
-    );
+    try {
+      await authClient.sendVerificationEmail(
+        { email, callbackURL: signInUrl(nextPath) },
+        {
+          onSuccess: () => setResent(true),
+          onError: (ctx) =>
+            setResendError(ctx.error.message ?? "Could not resend the verification email"),
+          onResponse: () => setResendPending(false),
+        },
+      );
+    } catch {
+      setResendError(GENERIC_ERROR_MESSAGE);
+      setResendPending(false);
+    }
   }
 
   if (done) {

@@ -5,25 +5,27 @@ import { sends } from "@/db/schema";
 import type { ClimbType } from "@/lib/grades";
 import type { SendInput } from "@/lib/sends";
 
-export function buildSendInsert(
-  db: Database,
-  {
-    userId,
-    climbId,
-    climbType,
-    input,
-  }: { userId: string; climbId: number; climbType: ClimbType; input: SendInput },
-) {
-  return db.insert(sends).values({
-    userId,
-    climbId: sql`(SELECT c.id FROM climbs c WHERE c.id = ${climbId} AND c.type = ${climbType})`,
-    ascentStyle: input.ascentStyle,
-    dateSent: input.dateSent,
-    comment: input.comment,
-    rating: input.rating,
-    suggestedGrade: input.suggestedGrade,
-    gradeFeel: input.gradeFeel,
-  });
+type SendInsert = {
+  userId: string;
+  climbId: number;
+  climbType: ClimbType;
+  input: Omit<SendInput, "suggestedGrade"> & { suggestedGrade: number | null };
+};
+
+export function buildSendInsert(db: Database, values: SendInsert | SendInsert[]) {
+  const rows = Array.isArray(values) ? values : [values];
+  return db.insert(sends).values(
+    rows.map(({ userId, climbId, climbType, input }) => ({
+      userId,
+      climbId: sql`(SELECT c.id FROM climbs c WHERE c.id = ${climbId} AND c.type = ${climbType})`,
+      ascentStyle: input.ascentStyle,
+      dateSent: input.dateSent,
+      comment: input.comment,
+      rating: input.rating,
+      suggestedGrade: input.suggestedGrade,
+      gradeFeel: input.gradeFeel,
+    })),
+  );
 }
 
 type SendUpdateValues = Partial<typeof sends.$inferInsert> & {
@@ -36,12 +38,14 @@ export function buildMirroredSendUpdate(
   {
     userId,
     climbId,
+    climbType,
     sendId,
     values,
     ascentEntryId,
   }: {
     userId: string;
     climbId: number;
+    climbType?: ClimbType;
     sendId?: number;
     values: SendUpdateValues;
     ascentEntryId: number | null;
@@ -65,6 +69,13 @@ export function buildMirroredSendUpdate(
       WHERE j.user_id = ${userId} AND j.climb_id = ${climbId}
         AND j.sent = 1 AND j.is_ascent = 0 AND j.entry_date < ${values.dateSent}
     )
+    ${
+      climbType === undefined
+        ? sql``
+        : sql`AND EXISTS (
+            SELECT 1 FROM climbs c WHERE c.id = ${climbId} AND c.type = ${climbType}
+          )`
+    }
   )`;
   const identity = [eq(sends.userId, userId), eq(sends.climbId, climbId)];
   if (sendId !== undefined) identity.push(eq(sends.id, sendId));

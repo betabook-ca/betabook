@@ -35,6 +35,7 @@ import {
   journalEntryFromSend,
   rethrowJournalSendInvariant,
 } from "./journal-sync";
+import { afterCommit } from "./post-commit";
 import { revalidateJournalSurfaces, revalidateSendSurfaces } from "./revalidation";
 import { buildMirroredSendUpdate, buildSendInsert } from "./send-statements";
 
@@ -112,13 +113,15 @@ export async function createUndatedSend(formData: FormData): Promise<ActionResul
     const input = validateSendInput(climb.type, readSendFormData(formData));
     if (input.dateSent !== null) throw new ActionError("Use the journal to log a dated send");
     await buildSendInsert(db, { userId: session.user.id, climbId, climbType: climb.type, input });
-    revalidateSendSurfaces({
-      userIds: [session.user.id],
-      climbIds: [climbId],
-      areaIds: [climb.areaId],
+    afterCommit(() => {
+      revalidateSendSurfaces({
+        userIds: [session.user.id],
+        climbIds: [climbId],
+        areaIds: [climb.areaId],
+      });
+      revalidateJournalSurfaces({ userId: session.user.id, climbIds: [climbId] });
+      refresh();
     });
-    revalidateJournalSurfaces({ userId: session.user.id, climbIds: [climbId] });
-    refresh();
   });
 }
 
@@ -209,17 +212,21 @@ export async function updateSend(sendId: number, formData: FormData): Promise<Ac
           "The journal changed while this send was being saved — try again",
         );
       }
-      revalidateJournalSurfaces({ userId: session.user.id, climbIds: [existing.climbId] });
+      afterCommit(() =>
+        revalidateJournalSurfaces({ userId: session.user.id, climbIds: [existing.climbId] }),
+      );
     } else {
       await sendStatement;
     }
 
-    revalidateSendSurfaces({
-      userIds: [session.user.id],
-      climbIds: [existing.climbId],
-      areaIds: [climb.areaId],
+    afterCommit(() => {
+      revalidateSendSurfaces({
+        userIds: [session.user.id],
+        climbIds: [existing.climbId],
+        areaIds: [climb.areaId],
+      });
+      refresh();
     });
-    refresh();
   });
 }
 
@@ -234,12 +241,14 @@ export async function deleteSend(sendId: number): Promise<ActionResult> {
     await db.delete(sends).where(eq(sends.id, sendId));
 
     const climb = await getClimb(db, existing.climbId);
-    revalidateJournalSurfaces({ userId: session.user.id, climbIds: [existing.climbId] });
-    revalidateSendSurfaces({
-      userIds: [session.user.id],
-      climbIds: [existing.climbId],
-      areaIds: climb ? [climb.areaId] : [],
+    afterCommit(() => {
+      revalidateJournalSurfaces({ userId: session.user.id, climbIds: [existing.climbId] });
+      revalidateSendSurfaces({
+        userIds: [session.user.id],
+        climbIds: [existing.climbId],
+        areaIds: climb ? [climb.areaId] : [],
+      });
+      refresh();
     });
-    refresh();
   });
 }

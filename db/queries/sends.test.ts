@@ -252,17 +252,10 @@ describe("getSendsForUserPage", () => {
 
   describe("grade-unknown sends", () => {
     beforeEach(async () => {
-      // Two new climbs in Test Highball Alcove (area 4) rather than sends on
-      // the shared fixture climbs — later describe blocks assert exact
-      // cumulative send counts for climbs 1-4 "in this fixture" in the file's
-      // fixture history. Grade V4 = ordinal 5 (BOULDER_HUECO).
       await db.insert(climbs).values([
         { id: 850, areaId: 4, name: "Test Mystery Problem", type: "boulder", grade: null },
         { id: 851, areaId: 4, name: "Test Graded Problem", type: "boulder", grade: 5 },
       ]);
-      await db.run(
-        sql`INSERT INTO climbs_fts(rowid, name) SELECT id, name FROM climbs WHERE id IN (850, 851)`,
-      );
       await seedFixtureUser(db, { id: "test-user-nullgrade", name: "Null Grade Tester" });
       await seedFixtureSend(db, {
         userId: "test-user-nullgrade",
@@ -795,13 +788,6 @@ describe("getSendsForUserPage ascentStyles/minRating filtering", () => {
   });
 });
 
-// Regression coverage for OFFSET pagination over ties: none of the sortable
-// columns (date/grade/rating) is unique, so without the `sends.id`
-// tie-breaker in the ORDER BY, sends sharing the sorted value have no
-// defined relative order and can duplicate or vanish across pages. Placed
-// near the end of the file for the same fixture-history reason as the
-// describe above — this seeds more sends on climbs 1-3. Only the
-// climb-sends describes below (which seed their own climb) run after this.
 describe("getSendsForUserPage tie-breaking across pages", () => {
   beforeEach(async () => {
     await seedFixtureUser(db, { id: "test-user-17", name: "Tie Breaker" });
@@ -838,9 +824,6 @@ describe("getSendsForUserPage tie-breaking across pages", () => {
   });
 });
 
-// Both describes below seed sends only on their own freshly inserted climb,
-// so they can't disturb the cumulative per-climb counts asserted "by this
-// point" anywhere above. Nothing runs after these.
 describe("getSendsForClimb tie-breaking across pages", () => {
   const CLIMB_ID = 50;
 

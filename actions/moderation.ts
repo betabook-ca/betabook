@@ -23,6 +23,7 @@ import {
 import type { Database } from "@/db/client";
 import { getDb } from "@/db/client";
 import { getArea, getChangeRequest, getClimb, getUser, type ChangeRequest } from "@/db/queries";
+import { moderationAuthorizedSql } from "@/db/queries/moderation";
 import { changeRequests } from "@/db/schema";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
 import {
@@ -324,7 +325,7 @@ const CHANGE_REQUEST_APPLIERS: Record<
 /** Reject only a still-pending request; concurrent decisions must not be overwritten. */
 async function claimDecision(
   db: Database,
-  requestId: number,
+  request: ChangeRequest,
   reviewerId: string,
   note: string | null,
 ): Promise<boolean> {
@@ -336,7 +337,14 @@ async function claimDecision(
       reviewedAt: new Date(),
       reviewNote: note,
     })
-    .where(and(eq(changeRequests.id, requestId), eq(changeRequests.status, "pending")))
+    .where(
+      and(
+        eq(changeRequests.id, request.id),
+        eq(changeRequests.status, "pending"),
+        eq(changeRequests.payload, request.payload),
+        moderationAuthorizedSql(reviewerId, request, { requireAll: false }),
+      ),
+    )
     .returning({ id: changeRequests.id });
   return claimed.length > 0;
 }
@@ -407,7 +415,7 @@ export async function rejectChangeRequest(requestId: number, note: unknown): Pro
     const trimmedNote = typeof note === "string" ? note.trim().slice(0, 2000) || null : null;
     const description = await describeChangeRequest(db, request);
 
-    if (!(await claimDecision(db, requestId, session.user.id, trimmedNote))) {
+    if (!(await claimDecision(db, request, session.user.id, trimmedNote))) {
       throw new ActionError("This request has already been reviewed");
     }
     afterCommit(() => revalidatePath("/admin/requests"));

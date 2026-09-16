@@ -1,11 +1,10 @@
 "use client";
 
-import { Button, Drawer, Label, TextField } from "@heroui/react";
+import { Button, Drawer, Input, Label, TextField } from "@heroui/react";
 import type { UseOverlayStateReturn } from "@heroui/react";
 import { useState, useTransition } from "react";
 
 import { requestAreaEdit } from "@/actions";
-import { FIELD_CLASS } from "@/components/ui/field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { PAGE_MAX_WIDTH_CLASS } from "@/components/ui/layout";
 import type { Area } from "@/db/queries";
@@ -81,14 +80,9 @@ export function AreaEditRequestDrawer({ area, state }: AreaEditRequestDrawerProp
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                <TextField>
+                <TextField value={name} onChange={setName} isRequired>
                   <Label>Name</Label>
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    className={FIELD_CLASS}
-                  />
+                  <Input />
                 </TextField>
 
                 {error && <InlineAlert>{error}</InlineAlert>}

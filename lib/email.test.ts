@@ -11,6 +11,7 @@ import {
 
 const mail = vi.hoisted(() => ({
   apiKey: "test-key",
+  baseUrl: "https://preview.betabook.ca/",
   send: vi.fn<
     (message: {
       to: string;
@@ -23,7 +24,7 @@ const mail = vi.hoisted(() => ({
 }));
 vi.mock("@opennextjs/cloudflare", () => ({
   getCloudflareContext: async () => ({
-    env: { RESEND_API_KEY: mail.apiKey, BETTER_AUTH_URL: "https://preview.betabook.ca/" },
+    env: { RESEND_API_KEY: mail.apiKey, BETTER_AUTH_URL: mail.baseUrl },
   }),
 }));
 vi.mock("resend", () => ({
@@ -89,6 +90,7 @@ const messages = [
 beforeEach(() => {
   vi.restoreAllMocks();
   mail.apiKey = "test-key";
+  mail.baseUrl = "https://preview.betabook.ca/";
   mail.send.mockReset().mockResolvedValue({ error: null });
 });
 
@@ -165,8 +167,57 @@ it("preserves contact Reply-To and line breaks while escaping visitor content", 
 
 it.each(messages)("keeps $kind available locally without sending mail", async (message) => {
   mail.apiKey = "";
+  mail.baseUrl = "http://localhost:3000";
   const logged = vi.spyOn(console, "log").mockImplementation(() => {});
   await message.send();
   expect(mail.send).not.toHaveBeenCalled();
   expect(logged).toHaveBeenCalledTimes(1);
+  expect(logged.mock.calls[0][0]).toContain(message.text);
+});
+
+it.each(messages)(
+  "does not log $kind content when a deployed environment lacks its email key",
+  async (message) => {
+    mail.apiKey = "";
+    const logged = vi.spyOn(console, "log").mockImplementation(() => {});
+    await expect(message.send()).rejects.toThrow("Email delivery is not configured");
+    expect(mail.send).not.toHaveBeenCalled();
+    expect(logged).not.toHaveBeenCalled();
+  },
+);
+
+it.each([
+  "https://betabook.ca",
+  "https://localhost.example.com",
+  "https://127.0.0.1.example.com",
+  "ftp://localhost",
+])("never treats %s as a local email preview", async (baseUrl) => {
+  mail.apiKey = "";
+  mail.baseUrl = baseUrl;
+  const logged = vi.spyOn(console, "log").mockImplementation(() => {});
+  await expect(sendResetPasswordEmail("reader@example.com", url)).rejects.toThrow(
+    "Email delivery is not configured",
+  );
+  expect(logged).not.toHaveBeenCalled();
+});
+
+it.each(["http://127.0.0.1:3000", "http://[::1]:3000", "https://localhost:3000"])(
+  "preserves verification links for local development at %s",
+  async (baseUrl) => {
+    mail.apiKey = "";
+    mail.baseUrl = baseUrl;
+    const logged = vi.spyOn(console, "log").mockImplementation(() => {});
+    await sendVerificationEmail("reader@example.com", url);
+    expect(logged).toHaveBeenCalledWith(expect.stringContaining(url));
+    expect(mail.send).not.toHaveBeenCalled();
+  },
+);
+
+it.each([
+  ["verification", sendVerificationEmail],
+  ["password reset", sendResetPasswordEmail],
+] as const)("reports a rejected %s delivery", async (_kind, send) => {
+  mail.send.mockResolvedValue({ error: { message: "Invalid API key" } });
+
+  await expect(send("reader@example.com", url)).rejects.toThrow("Invalid API key");
 });

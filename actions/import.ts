@@ -13,9 +13,9 @@ import {
   getUserSentClimbIds,
   type ClimbCandidate,
 } from "@/db/queries";
-import { importBatches, journalEntries, sends } from "@/db/schema";
+import { importBatches, journalEntries } from "@/db/schema";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
-import { parseGrade } from "@/lib/grades";
+import { parseGrade, type ClimbType } from "@/lib/grades";
 import type { ImportBatchResponse } from "@/lib/import-execution";
 import {
   IMPORT_BATCH_SIZE,
@@ -24,6 +24,7 @@ import {
   type ImportSendRow,
   type ImportResult,
   type ImportOptions,
+  type SendInput,
 } from "@/lib/sends";
 import { requireSession } from "@/lib/session";
 
@@ -37,14 +38,11 @@ import {
 } from "./journal-sync";
 import { afterCommit } from "./post-commit";
 import { revalidateJournalSurfaces, revalidateSendSurfaces } from "./revalidation";
-import { buildMirroredSendUpdate } from "./send-statements";
+import { buildMirroredSendUpdate, buildSendInsert } from "./send-statements";
 
 export type { ImportResult, ImportOptions } from "@/lib/sends";
 
-type SendValues = Omit<
-  typeof sends.$inferInsert,
-  "id" | "userId" | "climbId" | "dateSent" | "comment" | "createdAt" | "updatedAt"
-> & { dateSent: string | null; comment: string | null };
+type SendValues = Omit<SendInput, "suggestedGrade"> & { suggestedGrade: number | null };
 
 // A guarded journal insert binds 11 values per row; nine fit D1's 100-parameter limit.
 const INSERT_CHUNK_SIZE = 9;
@@ -192,8 +190,9 @@ export async function importSends(
 
     // First row per climb wins, including in overwrite mode.
     const processed = new Set<number>();
-    const toInsert: Array<SendValues & { userId: string; climbId: number }> = [];
-    const toUpdate: Array<{ climbId: number; values: SendValues }> = [];
+    const toInsert: Array<SendValues & { userId: string; climbId: number; climbType: ClimbType }> =
+      [];
+    const toUpdate: Array<{ climbId: number; climbType: ClimbType; values: SendValues }> = [];
     const affectedAreaIds = new Set<number>();
     const missing: number[] = [];
     let alreadyLogged = 0;
@@ -232,9 +231,14 @@ export async function importSends(
       affectedAreaIds.add(climb.areaId);
 
       if (alreadySent.has(climb.id)) {
-        toUpdate.push({ climbId: climb.id, values });
+        toUpdate.push({ climbId: climb.id, climbType: climb.type, values });
       } else {
-        toInsert.push({ userId: session.user.id, climbId: climb.id, ...values });
+        toInsert.push({
+          userId: session.user.id,
+          climbId: climb.id,
+          climbType: climb.type,
+          ...values,
+        });
       }
     }
 
@@ -285,10 +289,11 @@ export async function importSends(
     const sendUpdates = (withMirror: boolean) =>
       toUpdate
         .filter(({ climbId }) => mirroredEntryIdsByClimb.has(climbId) === withMirror)
-        .map(({ climbId, values }) =>
+        .map(({ climbId, climbType, values }) =>
           buildMirroredSendUpdate(db, {
             userId: session.user.id,
             climbId,
+            climbType,
             values,
             ascentEntryId: mirroredEntryIdsByClimb.get(climbId) ?? null,
           }),
@@ -302,7 +307,17 @@ export async function importSends(
       );
     const statements = [
       ...Array.from({ length: Math.ceil(toInsert.length / INSERT_CHUNK_SIZE) }, (_, i) =>
-        db.insert(sends).values(toInsert.slice(i * INSERT_CHUNK_SIZE, (i + 1) * INSERT_CHUNK_SIZE)),
+        buildSendInsert(
+          db,
+          toInsert
+            .slice(i * INSERT_CHUNK_SIZE, (i + 1) * INSERT_CHUNK_SIZE)
+            .map(({ userId, climbId, climbType, ...input }) => ({
+              userId,
+              climbId,
+              climbType,
+              input,
+            })),
+        ),
       ),
       ...journalInsertStatements(newSendJournalInserts),
       ...journalUpdates.map(({ id, entryDate, body }) =>

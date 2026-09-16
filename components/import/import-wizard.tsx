@@ -9,7 +9,6 @@ import {
   resolveImportClimbsInAreas,
   type ImportResult,
 } from "@/actions";
-import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { Eyebrow } from "@/components/ui/eyebrow";
@@ -82,6 +81,7 @@ import {
   type Filter,
   type LookupStatus,
 } from "./import-match-step";
+import { ImportResultStep } from "./import-result-step";
 import { ImportSourceStep } from "./import-source-step";
 import {
   ASCENT_STYLE_OPTIONS,
@@ -176,9 +176,6 @@ type WizardResult = Omit<ImportResult, "missing"> & {
   notAttempted: ResolvedRow[];
   stopped: { kind: "cancelled" | "aborted"; message: string } | null;
 };
-
-/** Cap inline rows; the download includes every row needing attention. */
-const MAX_LISTED_FAILURES = 50;
 
 const NOT_ATTEMPTED_MESSAGE = "the import stopped before reaching this row";
 
@@ -553,6 +550,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
   }
 
   function goBack(target: Step) {
+    if (pending) return;
     setError(null);
     if (target === "columns" || target === "values") setAutoMapped(false);
     setStep(target);
@@ -997,6 +995,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
               matching climb and will be skipped.{" "}
               <button
                 type="button"
+                disabled={pending}
                 onClick={() => {
                   setMatchFilter("attention");
                   goBack("match");
@@ -1014,6 +1013,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
               by inference from the file&apos;s hints and grades, not by name alone.{" "}
               <button
                 type="button"
+                disabled={pending}
                 onClick={() => {
                   setMatchFilter("review");
                   goBack("match");
@@ -1121,65 +1121,13 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
       )}
 
       {step === "result" && importResult && (
-        <div className="flex flex-col gap-6">
-          {importResult.stopped && (
-            <InlineAlert>
-              {importResult.stopped.message} Rows imported before it stopped were kept.
-            </InlineAlert>
-          )}
-
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-            <Stat label="Imported" value={importResult.imported} />
-            {importResult.overwritten > 0 && (
-              <Stat label="Replaced" value={importResult.overwritten} />
-            )}
-            <Stat label="Already logged" value={importResult.alreadyLogged} />
-            {importResult.duplicates > 0 && (
-              <Stat label="Duplicates skipped" value={importResult.duplicates} />
-            )}
-            <Stat
-              label="Needs attention"
-              value={failures.length}
-              tone={failures.length > 0 ? "warning" : undefined}
-            />
-          </div>
-
-          {failures.length > 0 && (
-            <details>
-              <summary className="cursor-pointer text-sm text-muted underline decoration-dotted underline-offset-4 hover:text-foreground">
-                View rows needing attention
-              </summary>
-              <ul className="mt-2 flex flex-col gap-1 text-xs text-muted">
-                {failures.slice(0, MAX_LISTED_FAILURES).map((item) => (
-                  <li key={`${item.rowIndex}-${item.reason}`}>
-                    Row {item.rowIndex + 1}
-                    {item.label ? ` (${item.label})` : ""}: {item.reason}
-                  </li>
-                ))}
-                {failures.length > MAX_LISTED_FAILURES && (
-                  <li>
-                    …and {failures.length - MAX_LISTED_FAILURES} more. Download the CSV below for
-                    the full list.
-                  </li>
-                )}
-              </ul>
-            </details>
-          )}
-
-          <div className="flex flex-wrap items-center gap-4">
-            {importResult.imported + importResult.overwritten > 0 && (
-              <AppLink href={profileHref} className="text-sm">
-                See your sends
-              </AppLink>
-            )}
-            {failures.length > 0 && (
-              <Button variant="ghost" onPress={handleDownloadFailedRows}>
-                Download rows needing attention (CSV)
-              </Button>
-            )}
-            <Button onPress={reset}>Import another file</Button>
-          </div>
-        </div>
+        <ImportResultStep
+          result={importResult}
+          failures={failures}
+          profileHref={profileHref}
+          onDownload={handleDownloadFailedRows}
+          onRestart={reset}
+        />
       )}
     </div>
   );

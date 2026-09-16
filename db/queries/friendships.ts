@@ -3,6 +3,8 @@ import { sql } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import { friendshipPair, type FriendshipStatus } from "@/lib/friendships";
 
+import { literalPrefixCondition } from "./shared";
+
 export type ClimberRow = {
   id: string;
   name: string;
@@ -46,13 +48,13 @@ export async function getClimbersPage(
   if (!query) return { climbers: [], hasMore: false };
   const limit = Number.isInteger(pageSize) ? Math.min(50, Math.max(1, pageSize)) : 20;
   const start = Number.isInteger(offset) ? Math.min(10000, Math.max(0, offset)) : 0;
-  const prefix = `${query.replace(/[\\%_]/g, "\\$&")}%`;
   const rows = await db.all<ClimberRow>(sql`
     SELECT u.id, u.name, u.image,
       CASE WHEN f.status = 'accepted' THEN 'friends' WHEN f.requested_by = ${viewerId} THEN 'outgoing'
         WHEN f.status = 'pending' THEN 'incoming' ELSE 'none' END AS friendshipStatus
     FROM user u LEFT JOIN friendships f ON f.user_id = min(u.id, ${viewerId}) AND f.friend_id = max(u.id, ${viewerId})
-    WHERE u.is_private = 0 AND (${viewerId} IS NULL OR u.id <> ${viewerId}) AND u.name LIKE ${prefix} ESCAPE '\\'
+    WHERE u.is_private = 0 AND (${viewerId} IS NULL OR u.id <> ${viewerId})
+      AND ${literalPrefixCondition(sql`u.name`, query)}
     ORDER BY (u.name = ${query} COLLATE NOCASE) DESC, u.name COLLATE NOCASE, u.id
     LIMIT ${limit + 1} OFFSET ${start}
   `);

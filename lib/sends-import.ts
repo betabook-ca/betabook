@@ -29,11 +29,15 @@ export const CLIMB_TYPES = ["boulder", "sport", "trad"] as const;
 export const MAX_IMPORT_FILE_BYTES = 10 * 1024 * 1024;
 export const MAX_IMPORT_ROWS = 50_000;
 
+function ownValue<T>(values: Record<string, T>, key: string): T | undefined {
+  return Object.hasOwn(values, key) ? values[key] : undefined;
+}
+
 function countValues(rows: Record<string, string>[], column: string | null): Map<string, number> {
   const counts = new Map<string, number>();
   if (!column) return counts;
   for (const row of rows) {
-    const value = (row[column] ?? "").trim();
+    const value = (ownValue(row, column) ?? "").trim();
     if (value) counts.set(value, (counts.get(value) ?? 0) + 1);
   }
   return counts;
@@ -107,13 +111,9 @@ export function parseCsvText(text: string): ParsedCsv {
     return renamed;
   });
 
-  const rows = rawRows.slice(headerIndex + 1).map((r) => {
-    const row: Record<string, string> = {};
-    for (const [i, h] of headers.entries()) {
-      row[h] = r[i] ?? "";
-    }
-    return row;
-  });
+  const rows = rawRows
+    .slice(headerIndex + 1)
+    .map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] ?? ""])));
 
   return { headers, rows, warnings, derived: [] };
 }
@@ -434,10 +434,11 @@ const ASCENT_STYLE_ALIASES: Record<string, AscentStyle> = {
 
 /** Unknown styles default to skip until the user maps them. */
 export function guessAscentStyleMapping(values: string[]): AscentStyleMapping {
-  const mapping: AscentStyleMapping = {};
+  const mapping = Object.create(null) as AscentStyleMapping;
   for (const value of values) {
     const normalized = value.trim().toLowerCase();
-    const match = ASCENT_STYLES.find((t) => t === normalized) ?? ASCENT_STYLE_ALIASES[normalized];
+    const match =
+      ASCENT_STYLES.find((t) => t === normalized) ?? ownValue(ASCENT_STYLE_ALIASES, normalized);
     mapping[value] = match ?? "skip";
   }
   return mapping;
@@ -452,12 +453,12 @@ const CLIMB_TYPE_ALIASES: Record<string, ImportClimbType> = {
 
 /** For mixed types such as Trad, Sport, use the first recognized discipline. */
 export function guessClimbTypeMapping(values: string[]): ClimbTypeMapping {
-  const mapping: ClimbTypeMapping = {};
+  const mapping = Object.create(null) as ClimbTypeMapping;
   for (const value of values) {
     let match: ImportClimbType | undefined;
     for (const token of value.toLowerCase().split(/\s*[,/]\s*/)) {
       const trimmed = token.trim();
-      match = CLIMB_TYPES.find((t) => t === trimmed) ?? CLIMB_TYPE_ALIASES[trimmed];
+      match = CLIMB_TYPES.find((t) => t === trimmed) ?? ownValue(CLIMB_TYPE_ALIASES, trimmed);
       if (match) break;
     }
     mapping[value] = match ?? "skip";
@@ -520,10 +521,11 @@ const GRADE_FEEL_ALIASES: Record<string, GradeFeel> = {
 
 /** Unmapped grade feel defaults to solid without invalidating the row. */
 export function guessGradeFeelMapping(values: string[]): GradeFeelMapping {
-  const mapping: GradeFeelMapping = {};
+  const mapping = Object.create(null) as GradeFeelMapping;
   for (const value of values) {
     const normalized = value.trim().toLowerCase();
-    const match = GRADE_FEEL_VALUES.find((t) => t === normalized) ?? GRADE_FEEL_ALIASES[normalized];
+    const match =
+      GRADE_FEEL_VALUES.find((t) => t === normalized) ?? ownValue(GRADE_FEEL_ALIASES, normalized);
     mapping[value] = match ?? "skip";
   }
   return mapping;
@@ -634,7 +636,7 @@ export function normalizeImportRows(
 
   for (const [rowIndex, row] of parsed.rows.entries()) {
     const fail = (reason: string) => invalid.push({ rowIndex, raw: row, reason });
-    const cell = (column: string | null) => (column ? (row[column] ?? "").trim() : "");
+    const cell = (column: string | null) => (column ? (ownValue(row, column) ?? "").trim() : "");
     /** Free-text only: a value-mapped cell is a key into a mapping built from
      * the raw text, and `raw` must keep matching the source file. Trimmed
      * again after decoding, since "&nbsp;" only becomes whitespace here. */
@@ -650,7 +652,9 @@ export function normalizeImportRows(
     const areaHints = mapping.areaHints.flatMap((column) => splitAreaHint(textCell(column)));
 
     const rawAscentStyle = cell(mapping.ascentStyle);
-    const mappedAscentStyle = rawAscentStyle ? ascentStyleMapping[rawAscentStyle] : undefined;
+    const mappedAscentStyle = rawAscentStyle
+      ? ownValue(ascentStyleMapping, rawAscentStyle)
+      : undefined;
     if (!mappedAscentStyle || mappedAscentStyle === "skip") {
       fail(
         rawAscentStyle ? `Unmapped ascent style value "${rawAscentStyle}"` : "Missing ascent style",
@@ -673,7 +677,7 @@ export function normalizeImportRows(
     }
 
     const rawClimbType = cell(mapping.climbType);
-    const mappedClimbType = rawClimbType ? climbTypeMapping[rawClimbType] : undefined;
+    const mappedClimbType = rawClimbType ? ownValue(climbTypeMapping, rawClimbType) : undefined;
     const climbTypeHint: ImportClimbType | null =
       mappedClimbType && mappedClimbType !== "skip" ? mappedClimbType : null;
 
@@ -709,7 +713,7 @@ export function normalizeImportRows(
     const postedGradeText = cleanGradeText(cell(mapping.grade));
 
     const rawGradeFeel = cell(mapping.gradeFeel);
-    const mappedGradeFeel = rawGradeFeel ? gradeFeelMapping[rawGradeFeel] : undefined;
+    const mappedGradeFeel = rawGradeFeel ? ownValue(gradeFeelMapping, rawGradeFeel) : undefined;
     const feelDropped = !mappedGradeFeel || mappedGradeFeel === "skip";
     const gradeFeel: GradeFeel = feelDropped ? "solid" : mappedGradeFeel;
     if (rawGradeFeel && feelDropped) warn("gradeFeel", rowIndex, `"${rawGradeFeel}"`);

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { InlineAlert } from "@/components/ui/inline-alert";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { authClient } from "@/lib/auth-client";
 
 export function SignOutButton({
@@ -18,23 +19,28 @@ export function SignOutButton({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function handleSignOut() {
+  async function handleSignOut() {
     if (onSignOut) {
       onSignOut();
       return;
     }
     setError(null);
     setPending(true);
-    void authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          router.push("/");
-          router.refresh();
+    try {
+      await authClient.signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            router.push("/");
+            router.refresh();
+          },
+          onError: (ctx) => setError(ctx.error.message ?? "Sign out failed"),
+          onResponse: () => setPending(false),
         },
-        onError: (ctx) => setError(ctx.error.message ?? "Sign out failed"),
-        onResponse: () => setPending(false),
-      },
-    });
+      });
+    } catch {
+      setError(GENERIC_ERROR_MESSAGE);
+      setPending(false);
+    }
   }
 
   return (

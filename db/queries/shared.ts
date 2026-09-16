@@ -10,6 +10,25 @@ import type { Discipline } from "@/lib/grades";
 
 export const PAGE_SIZE = 50;
 
+/** D1 limits LIKE patterns to 50 bytes. Keep an indexed prefix lookup, then
+ * compare the full literal prefix when UTF-8 or escaping reaches that limit. */
+export function literalPrefixCondition(column: SQL, value: string): SQL {
+  const encoder = new TextEncoder();
+  let pattern = "";
+  let bytes = 1; // The trailing wildcard also occupies one byte.
+  let consumed = 0;
+  for (const character of value) {
+    const escaped = character.replace(/[\\%_]/g, "\\$&");
+    const size = encoder.encode(escaped).byteLength;
+    if (bytes + size > 50) break;
+    pattern += escaped;
+    bytes += size;
+    consumed += character.length;
+  }
+  return sql`(${column} LIKE ${`${pattern}%`} ESCAPE '\\'
+    ${consumed < value.length ? sql`AND substr(${column}, 1, length(${value})) = ${value} COLLATE NOCASE` : sql``})`;
+}
+
 /**
  * Turns raw user input into an FTS5 prefix query: each word becomes a quoted
  * prefix term (implicitly AND'd together), so "squam" matches "Squamish" and

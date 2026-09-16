@@ -8,6 +8,8 @@ import { ActionError, toActionResult, type ActionResult } from "@/lib/action-res
 import { FEATURE_ANNOUNCEMENTS } from "@/lib/feature-announcements";
 import { requireSession } from "@/lib/session";
 
+import { afterCommit } from "./post-commit";
+
 /** Stable release IDs must not change when announcement copy changes. */
 export async function dismissFeatureAnnouncement(featureId: string): Promise<ActionResult> {
   return toActionResult(async () => {
@@ -22,6 +24,6 @@ export async function dismissFeatureAnnouncement(featureId: string): Promise<Act
       .values({ userId: session.user.id, featureId })
       .onConflictDoNothing();
     // Each rollout refreshes only the page that reads its dismissal state.
-    revalidatePath(feature.page.replace("[id]", session.user.id));
+    afterCommit(() => revalidatePath(feature.page.replace("[id]", session.user.id)));
   });
 }

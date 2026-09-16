@@ -5,10 +5,10 @@ import TutorialLayout, { metadata } from "@/app/tutorial/[tourId]/layout";
 import TutorialStart from "@/app/tutorial/[tourId]/page";
 import { getDb } from "@/db/client";
 import { getProductTourState } from "@/db/queries";
-import { getMemberSession as getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 
 vi.mock("next/link", () => ({ default: () => null }));
-vi.mock("@/lib/session", () => ({ getMemberSession: vi.fn<typeof getSession>() }));
+vi.mock("@/lib/session", () => ({ getMemberSession: vi.fn<typeof getMemberSession>() }));
 vi.mock("@/db/client", () => ({ getDb: vi.fn<typeof getDb>() }));
 vi.mock("@/db/queries", () => ({ getProductTourState: vi.fn<typeof getProductTourState>() }));
 vi.mock("@/components/product-tours/tour-experience", () => ({ TourExperience: () => null }));
@@ -25,7 +25,7 @@ beforeEach(() => vi.resetAllMocks());
 
 describe("tutorial routes", () => {
   it("requires sign-in and keeps demo routes out of search results", async () => {
-    vi.mocked(getSession).mockResolvedValue(null);
+    vi.mocked(getMemberSession).mockResolvedValue(null);
     expect(
       await TutorialLayout({
         params: Promise.resolve({ tourId: "journal" }),
@@ -46,8 +46,8 @@ describe("tutorial routes", () => {
       returning: false,
       progress: [{ tourId: "journal", version: 1, status: "completed" }],
     });
-    vi.mocked(getSession).mockResolvedValue({ user: { id: "signed-in-owner" } } as Awaited<
-      ReturnType<typeof getSession>
+    vi.mocked(getMemberSession).mockResolvedValue({ user: { id: "signed-in-owner" } } as Awaited<
+      ReturnType<typeof getMemberSession>
     >);
     const layout = await TutorialLayout({
       params: Promise.resolve({ tourId: "journal" }),
@@ -58,8 +58,8 @@ describe("tutorial routes", () => {
   });
 
   it("rejects unknown tours and steps while allowing direct links", async () => {
-    vi.mocked(getSession).mockResolvedValue({ user: { id: "owner" } } as Awaited<
-      ReturnType<typeof getSession>
+    vi.mocked(getMemberSession).mockResolvedValue({ user: { id: "owner" } } as Awaited<
+      ReturnType<typeof getMemberSession>
     >);
     await expect(
       TutorialLayout({ params: Promise.resolve({ tourId: "missing" }), children: null }),
@@ -78,8 +78,8 @@ describe("tutorial routes", () => {
     ).resolves.toBeNull();
   });
   it("preserves Account replay when entering through the tour root", async () => {
-    vi.mocked(getSession).mockResolvedValue({ user: { id: "owner" } } as Awaited<
-      ReturnType<typeof getSession>
+    vi.mocked(getMemberSession).mockResolvedValue({ user: { id: "owner" } } as Awaited<
+      ReturnType<typeof getMemberSession>
     >);
     await expect(
       TutorialStart({
@@ -90,7 +90,7 @@ describe("tutorial routes", () => {
   });
 
   it("does not carry arbitrary return destinations into sign-in", async () => {
-    vi.mocked(getSession).mockResolvedValue(null);
+    vi.mocked(getMemberSession).mockResolvedValue(null);
     await expect(
       TutorialPage({
         params: Promise.resolve({ tourId: "journal", stepId: "account" }),
@@ -100,15 +100,15 @@ describe("tutorial routes", () => {
   });
 
   it("preserves the update selection through sign-in and root redirects", async () => {
-    vi.mocked(getSession).mockResolvedValue(null);
+    vi.mocked(getMemberSession).mockResolvedValue(null);
     await expect(
       TutorialPage({
         params: Promise.resolve({ tourId: "journal", stepId: "sends" }),
         searchParams: Promise.resolve({ mode: "updates" }),
       }),
     ).resolves.toMatchObject({ props: { next: "/tutorial/journal/sends?mode=updates" } });
-    vi.mocked(getSession).mockResolvedValue({ user: { id: "owner" } } as Awaited<
-      ReturnType<typeof getSession>
+    vi.mocked(getMemberSession).mockResolvedValue({ user: { id: "owner" } } as Awaited<
+      ReturnType<typeof getMemberSession>
     >);
     await expect(
       TutorialStart({
@@ -119,7 +119,7 @@ describe("tutorial routes", () => {
   });
 
   it("locks unknown tours and steps before revealing whether they exist", async () => {
-    vi.mocked(getSession).mockResolvedValue(null);
+    vi.mocked(getMemberSession).mockResolvedValue(null);
     expect(
       await TutorialLayout({ params: Promise.resolve({ tourId: "missing" }), children: "gate" }),
     ).toBe("gate");

@@ -3,6 +3,8 @@ import { eq, sql } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import { user, userProductTours } from "@/db/schema";
 
+import { literalPrefixCondition } from "./shared";
+
 export async function getUser(db: Database, id: string) {
   return db.select().from(user).where(eq(user.id, id)).get();
 }
@@ -21,14 +23,15 @@ export async function getUserIdByName(db: Database, name: string) {
 
 /** Lowercased set of every display name that could collide with `base` or
  * with uniqueDisplayName's "stem N" suffix candidates — one query instead of
- * a round-trip per candidate. LIKE is ASCII-case-insensitive by default,
- * agreeing with the ASCII-only folding of user_name_unique_idx; `%`/`_` in
- * `stem` can only over-match, which merely widens the set. */
+ * a round-trip per candidate. Prefix matching uses the same ASCII folding
+ * as user_name_unique_idx. */
 export async function getTakenNamesAround(db: Database, base: string, stem: string) {
   const rows = await db
     .select({ name: user.name })
     .from(user)
-    .where(sql`${user.name} = ${base} COLLATE NOCASE OR ${user.name} LIKE ${`${stem} %`}`)
+    .where(
+      sql`${user.name} = ${base} COLLATE NOCASE OR ${literalPrefixCondition(sql`${user.name}`, `${stem} `)}`,
+    )
     .all();
   return new Set(rows.map((row) => row.name.toLowerCase()));
 }

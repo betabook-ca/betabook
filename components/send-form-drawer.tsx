@@ -5,10 +5,9 @@ import type { UseOverlayStateReturn } from "@heroui/react";
 
 import { SendEditor } from "@/components/send-editor";
 import { PAGE_MAX_WIDTH_CLASS } from "@/components/ui/layout";
-import type { EditableSend, SendableClimb } from "@/db/queries";
+import type { EditableSend } from "@/db/queries";
 
 type SendFormDrawerProps = {
-  climb: SendableClimb;
   existingSend: EditableSend;
   state: UseOverlayStateReturn;
 };

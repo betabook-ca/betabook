@@ -8,6 +8,7 @@ import { FORM_CARD_CLASS } from "@/components/ui/card";
 import { FieldFeedback } from "@/components/ui/field-support";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { PageTitle } from "@/components/ui/typography";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { authClient } from "@/lib/auth-client";
 
 // The page only renders this form when a token is present (missing/invalid
@@ -24,20 +25,25 @@ export function ResetPasswordForm({ token }: { token: string }) {
 
   const passwordMismatch = submitAttempted && newPassword !== confirmPassword;
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSubmitAttempted(true);
     if (newPassword !== confirmPassword) return;
     setPending(true);
-    void authClient.resetPassword(
-      { newPassword, token },
-      {
-        onSuccess: () => setDone(true),
-        onError: (ctx) => setError(ctx.error.message ?? "Reset failed"),
-        onResponse: () => setPending(false),
-      },
-    );
+    try {
+      await authClient.resetPassword(
+        { newPassword, token },
+        {
+          onSuccess: () => setDone(true),
+          onError: (ctx) => setError(ctx.error.message ?? "Reset failed"),
+          onResponse: () => setPending(false),
+        },
+      );
+    } catch {
+      setError(GENERIC_ERROR_MESSAGE);
+      setPending(false);
+    }
   }
 
   if (done) {
