@@ -19,6 +19,7 @@ import {
   climberSearchItems,
   climbSearchItems,
   SEARCH_KINDS,
+  searchesSection,
   showsClimberSuggestions,
   type SearchSnapshot,
   type SearchState,
@@ -66,7 +67,7 @@ export async function loadSearch(
             page: { items: [], hasMore: false, nextPage: 1 },
             status: "locked" as const,
           };
-        if (!state.query.trim())
+        if (!searchesSection(state, kind, true))
           return {
             kind,
             page: { items: [], hasMore: false, nextPage: 1 },
@@ -89,7 +90,7 @@ export async function loadSearch(
       }),
     );
   }
-  if (!state.query.trim())
+  if (!kinds.some((kind) => searchesSection(state, kind, true)))
     return kinds.map((kind) => ({
       kind,
       page: { items: [], hasMore: false, nextPage: 1 },
@@ -98,6 +99,8 @@ export async function loadSearch(
   const db = await getDb();
   return Promise.all(
     kinds.map(async (kind) => {
+      if (!searchesSection(state, kind, true))
+        return { kind, page: { items: [], hasMore: false, nextPage: 1 }, status: "idle" };
       try {
         if (kind === "area") {
           const page = await searchAreas(db, state.query);

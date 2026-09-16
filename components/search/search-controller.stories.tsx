@@ -14,6 +14,11 @@ export const Retry: Story = { render: () => <IntegratedSearchDemo failure /> };
 export const MemberInitial: Story = {
   render: () => <IntegratedSearchDemo publicOnly={false} initialQuery="" />,
 };
+/** The project hunter's entry: the climb list lists the catalog under its
+ * area, grade, rating and ascent filters before any name is typed. */
+export const BrowseClimbs: Story = {
+  render: () => <IntegratedSearchDemo publicOnly={false} initialQuery="" initialCategory="climb" />,
+};
 
 export const MemberQuickInitial: Story = {
   render: () => (

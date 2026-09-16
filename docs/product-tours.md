@@ -20,6 +20,15 @@ Discovery uses a separate Search surface, with the same All / Climbs / Areas / C
 not a profile tab. The lesson starts in Climbers; category changes, search
 submission, sample results, and friend requests stay local. Its View your feed link
 opens the feed lesson while preserving full/update mode and the exit destination.
+Find climbs is its own section over the same surface, mirroring the app's `/search`
+page: it opens in Climbs with Pine Canyon preselected and the nameless list already
+populated from `TOUR_DEMO_CLIMBS`. The area lookup, discipline chips, grade ranges,
+rating, min ascents, and sort all narrow the sample list locally with the catalog's
+own semantics; result rows have no links and selections stay on the page. The
+`climb-filters` target wraps the filter bar through the controller's
+`filtersTourTarget` prop, which the app never sets. The example sidebar and menu
+carry the app's Find climbs row, opening this lesson; the header search control
+still opens the Climbers lesson.
 
 Tutorial content uses the app's sort dropdown and direction control, project card and session timeline presentation, journal grades/status, and settings panel framing. The project example loads additional local notes with the standard Load more control. Display-only project components contain no fetches or real links for sample data.
 
@@ -59,7 +68,7 @@ Exit returns to Account for Account replay and otherwise to the user's Journal. 
 
 To add lessons after release, bump the tour's `version` and set each new step's `introducedInVersion` to that version. For a substantial change to an existing lesson, set its `updatedInVersion` to the new version while keeping its ID and introduction version. Copy edits do not need a bump.
 
-The journal tour is currently version 2. Version 1 introduced Journal, Sends, Projects, Analytics, and Account privacy. Version 2 adds `find-climbers`, `friend-requests`, and `feed`, and substantially updates the existing `account` lesson for independent commentary and journal audiences. This refinement stays in the same unreleased version 2 and preserves the existing privacy step ID. Older completed/dismissed progress produces four update lessons; first-time visits and Account replay include all nine. `climber-search-preview.tsx` and `social-tour-previews.tsx` use local search, request, acceptance, removal, and feed filter state with fictional people from `lib/product-tour-demo.ts`. They use shared display components without linking sample profiles or calling actions.
+The journal tour is currently version 3. Version 1 introduced Journal, Sends, Projects, Analytics, and Account privacy. Version 2 added `find-climbers`, `friend-requests`, and `feed`, and substantially updated the existing `account` lesson for independent commentary and journal audiences. Version 3 adds `find-projects`, the Find climbs lesson, placed before `find-climbers` in catalog order. Version 2 progress produces a single update lesson; version 1 progress produces five; first-time visits and Account replay include all ten. `climber-search-preview.tsx` and `social-tour-previews.tsx` use local search, request, acceptance, removal, and feed filter state with fictional people from `lib/product-tour-demo.ts`. They use shared display components without linking sample profiles or calling actions.
 
 An account that completed or dismissed an older version gets a **What's new** invitation containing only lessons introduced or substantially updated since that saved version. Users who missed several releases see all the additions in catalog order. First-time users see the full tour, including existing accounts that have no tour progress. A version bump without any changed lessons does not produce an invitation.
 

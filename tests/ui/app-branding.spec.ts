@@ -70,8 +70,9 @@ test(
         new RegExp(`-${theme}\\.svg$`),
       );
     }
+    // The brand goes home; the guest search control opens the Find climbs page.
     await (mobile ? search : home).click();
-    await expect(page).toHaveURL("/");
+    await expect(page).toHaveURL(mobile ? "/search" : "/");
   },
 );
 

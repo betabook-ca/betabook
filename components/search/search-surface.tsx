@@ -31,6 +31,8 @@ type SearchSurfaceProps = {
   onAreaChange: (area: AreaSelection | null) => void;
   filters?: ReactNode;
   memberNotice?: ReactNode;
+  /** The full page leads with the notice; the palette and landing keep it by the results. */
+  memberNoticePlacement?: "results" | "top";
   canCreate?: boolean;
   renderAction?: (item: SearchResult) => ReactNode;
   resultHref?: (item: SearchResult) => string | undefined;
@@ -61,6 +63,7 @@ export function SearchSurface({
   onAreaChange,
   filters,
   memberNotice,
+  memberNoticePlacement = "results",
   canCreate,
   renderAction,
   resultHref,
@@ -87,6 +90,17 @@ export function SearchSurface({
   );
   return (
     <div ref={rootRef} className={`flex min-h-0 min-w-0 flex-col gap-4 ${quick ? "flex-1" : ""}`}>
+      <MemberNoticeSlot
+        notice={memberNotice}
+        placement={memberNoticePlacement}
+        at="top"
+        className="shrink-0"
+      />
+      {/* The page picks what to search before typing; the palette types first
+       * so an early ⌘K lands in a focused field. */}
+      <When show={!quick}>
+        <SearchCategories value={category} onChange={onCategoryChange} />
+      </When>
       <div className="shrink-0">
         <SearchInput
           label="Search Betabook"
@@ -108,7 +122,9 @@ export function SearchSurface({
           }}
         />
       </div>
-      <SearchCategories value={category} onChange={onCategoryChange} />
+      <When show={quick}>
+        <SearchCategories value={category} onChange={onCategoryChange} />
+      </When>
       <SearchScope
         category={category}
         area={area}
@@ -125,7 +141,12 @@ export function SearchSurface({
         aria-label={quick ? "Scrollable search results" : undefined}
         aria-busy={sections.some((section) => section.status === "loading")}
       >
-        {memberNotice && <div className="mb-4">{memberNotice}</div>}
+        <MemberNoticeSlot
+          notice={memberNotice}
+          placement={memberNoticePlacement}
+          at="results"
+          className="mb-4"
+        />
         {idle ? (
           <IdleResults
             suggestions={suggestions}
@@ -168,6 +189,26 @@ export function SearchSurface({
       )}
     </div>
   );
+}
+
+/** Keeps a surface's two element orders out of SearchSurface's own branch count. */
+function When({ show, children }: { show: boolean; children: ReactNode }) {
+  return show ? children : null;
+}
+
+/** Renders the notice in exactly one of its two homes. */
+function MemberNoticeSlot({
+  notice,
+  placement,
+  at,
+  className,
+}: {
+  notice: ReactNode;
+  placement: "results" | "top";
+  at: "results" | "top";
+  className: string;
+}) {
+  return notice && placement === at ? <div className={className}>{notice}</div> : null;
 }
 
 function SearchFeedback({

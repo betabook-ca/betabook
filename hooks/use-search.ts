@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { AuthenticationRequiredError } from "@/lib/api-client";
 import {
   SEARCH_KINDS,
+  searchesSection,
   searchHref,
   type SearchFetcher,
   type SearchKind,
@@ -149,6 +150,7 @@ export function useSearch({
   fetcher = fetchSearchPage,
   preview = false,
   publicOnly = false,
+  browse = false,
 }: {
   state: SearchState;
   enabled?: boolean;
@@ -156,12 +158,14 @@ export function useSearch({
   fetcher?: SearchFetcher;
   preview?: boolean;
   publicOnly?: boolean;
+  /** Lists climbs without a name; only the full search page does (see searchesSection). */
+  browse?: boolean;
 }) {
   const active = (kind: SearchKind) =>
     enabled &&
     !(publicOnly && kind === "climber") &&
     (state.category === "all" || state.category === kind) &&
-    state.query.trim().length > 0;
+    searchesSection(state, kind, browse);
   const climb = useSearchSection(
     state,
     "climb",

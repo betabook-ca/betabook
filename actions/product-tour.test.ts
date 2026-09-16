@@ -40,7 +40,7 @@ beforeEach(async () => {
 
 describe("product tour progress", () => {
   it.each(["completed", "dismissed"] as const)(
-    "acknowledges version 2 after version 1 was %s and rejects stale version 1 writes",
+    "acknowledges the current version after version 1 was %s and rejects stale version 1 writes",
     async (status) => {
       await db.insert(userProductTours).values({
         userId: "tour-owner",
@@ -48,23 +48,23 @@ describe("product tour progress", () => {
         version: 1,
         status,
       });
-      expect(await saveProductTourStatus(tour.id, 2, "dismissed")).toEqual({
+      expect(await saveProductTourStatus(tour.id, tour.version, "dismissed")).toEqual({
         ok: true,
         value: undefined,
       });
       expect((await getProductTourState(db, "tour-owner"))?.progress).toEqual([
-        { tourId: tour.id, version: 2, status: "dismissed" },
+        { tourId: tour.id, version: tour.version, status: "dismissed" },
       ]);
       expect((await saveProductTourStatus(tour.id, 1, "completed")).ok).toBe(false);
       expect((await getProductTourState(db, "tour-owner"))?.progress).toEqual([
-        { tourId: tour.id, version: 2, status: "dismissed" },
+        { tourId: tour.id, version: tour.version, status: "dismissed" },
       ]);
-      expect(await saveProductTourStatus(tour.id, 2, "completed")).toEqual({
+      expect(await saveProductTourStatus(tour.id, tour.version, "completed")).toEqual({
         ok: true,
         value: undefined,
       });
       expect((await getProductTourState(db, "tour-owner"))?.progress).toEqual([
-        { tourId: tour.id, version: 2, status: "completed" },
+        { tourId: tour.id, version: tour.version, status: "completed" },
       ]);
     },
   );

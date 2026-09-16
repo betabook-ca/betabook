@@ -71,19 +71,46 @@ it("clears quick results and keeps only the input placeholder in every category"
   expect(screen.queryByRole("option")).not.toBeInTheDocument();
 });
 
-it("full search has a single name field and clearing it removes results until typing resumes", async () => {
+it("full search clears mixed results until typing resumes, but the climb list browses without a name", async () => {
   const user = userEvent.setup();
   render(<IntegratedSearchDemo />);
-  await user.click(button("Climbs"));
   expect(await result(local)).toBeEnabled();
   expect(screen.getAllByRole("searchbox")).toHaveLength(1);
-  expect(screen.queryByRole("combobox", { name: "In area" })).not.toBeInTheDocument();
+  // Everything: no name, nothing to list.
   await user.click(button("Clear search betabook"));
   expect(screen.queryByRole("region", { name: "Climbs results" })).not.toBeInTheDocument();
-  expect(screen.queryByText("Search climbs by name.", { exact: true })).not.toBeInTheDocument();
   await user.type(screen.getByRole("searchbox", { name: "Search Betabook" }), "cedar crack");
   await waitFor(() => expect(screen.getByRole("button", { name: `Open ${crack}` })).toBeEnabled());
   expect(screen.queryByRole("button", { name: `Open ${local}` })).not.toBeInTheDocument();
+  // Climbs: a nameless list is the catalog under the filters, for finding a project.
+  await user.click(button("Climbs"));
+  await user.click(button("Clear search betabook"));
+  expect(await result(local)).toBeEnabled();
+  expect(await result(crack)).toBeEnabled();
+  expect(screen.getByLabelText("Search URL")).toHaveTextContent(/^\/search\?/);
+});
+
+it("full climb search filters by a looked-up area and the quick palette never browses", async () => {
+  const user = userEvent.setup();
+  render(<IntegratedSearchDemo initialQuery="" initialCategory="climb" />);
+  expect(await result(local)).toBeEnabled();
+  expect(await result(other)).toBeEnabled();
+  await user.type(screen.getByRole("combobox", { name: "In area" }), "cedar");
+  await user.click(await screen.findByRole("option", { name: /California \/ North Woods/ }));
+  expect(button("Clear area Cedar Grove")).toBeInTheDocument();
+  expect(screen.getByLabelText("Search URL")).toHaveTextContent("areaId=1");
+  await waitFor(() =>
+    expect(screen.queryByRole("button", { name: `Open ${other}` })).not.toBeInTheDocument(),
+  );
+  expect(await result(local)).toBeEnabled();
+});
+
+it("quick search keeps waiting for a name in every category", async () => {
+  const user = await quick();
+  await user.click(button("Climbs"));
+  await user.click(button("Clear search betabook"));
+  expect(screen.queryByRole("option")).not.toBeInTheDocument();
+  expect(screen.queryByRole("combobox", { name: "In area" })).not.toBeInTheDocument();
 });
 
 it("expanding quick search preserves query, category and explicit area identity", async () => {

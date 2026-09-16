@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@heroui/react";
-import { Menu } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Dialog, Popover } from "react-aria-components";
@@ -10,6 +10,7 @@ import { SidebarFrame } from "@/components/app-sidebar";
 import { AppTabLinks } from "@/components/app-tab-bar";
 import { Brand } from "@/components/brand";
 import { SearchTriggerControl } from "@/components/command-palette";
+import { NavLink } from "@/components/nav-link";
 import { PrimaryNavigationLink } from "@/components/primary-navigation-link";
 import type { ProductTourPageProps } from "@/components/product-tours/types";
 import { AppLink } from "@/components/ui/app-link";
@@ -24,12 +25,15 @@ export function TourNavigationFrame({
   href,
   requestCount,
   logAction,
+  findClimbsCurrent = false,
   children,
 }: {
   current?: PrimaryArea;
   href: ProductTourPageProps["href"];
   requestCount: number;
   logAction?: ReactNode;
+  /** The Find climbs lesson is open; the row is highlighted as in the app. */
+  findClimbsCurrent?: boolean;
   children: ReactNode;
 }) {
   const router = useRouter();
@@ -72,6 +76,27 @@ export function TourNavigationFrame({
       />
     );
   }
+  /** The app's Find climbs row, opening the browsing lesson. */
+  function findClimbs(collapsed: boolean, appearance: "sidebar" | "menu") {
+    return (
+      <NavLink
+        href={href("find-projects", "full")}
+        appearance={appearance}
+        isCurrent={findClimbsCurrent}
+        onClick={() => setMenuOpen(false)}
+        className={
+          appearance === "sidebar" ? "justify-start overflow-hidden" : "min-h-12 justify-start"
+        }
+      >
+        <span className="flex size-6 shrink-0 items-center justify-center">
+          <Search aria-hidden className="size-5" />
+        </span>
+        <span className={collapsed ? "min-w-0 truncate opacity-0" : "min-w-0 truncate"}>
+          Find climbs
+        </span>
+      </NavLink>
+    );
+  }
   return (
     <div
       ref={frame}
@@ -85,6 +110,7 @@ export function TourNavigationFrame({
           <div className="flex min-h-full flex-col gap-4">
             <div className="flex flex-col gap-1">
               {primary.map((item) => link(item, collapsed, "sidebar"))}
+              {findClimbs(collapsed, "sidebar")}
             </div>
             <div className="mt-auto">{link(account, collapsed, "sidebar")}</div>
           </div>
@@ -149,6 +175,7 @@ export function TourNavigationFrame({
         <Dialog aria-label="Example menu" className="outline-none">
           <nav aria-label="Tour destinations" className="flex flex-col gap-1">
             {typing && primary.map((item) => link(item, false, "menu"))}
+            {findClimbs(false, "menu")}
             {link(account, false, "menu")}
           </nav>
         </Dialog>

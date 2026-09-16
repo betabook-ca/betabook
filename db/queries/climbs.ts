@@ -437,7 +437,7 @@ export type ClimbWithAreaName = Pick<Climb, "id" | "areaId" | "name" | "type" | 
 export const SEARCH_PAGE_SIZE = 25;
 
 /** The ORDER BY every climb list shares, tie-breaks and id stabilizer included. */
-export function climbListOrderBy(sort: SubtreeClimbsSort = "ascents_desc"): SQL {
+function climbListOrderBy(sort: SubtreeClimbsSort = "ascents_desc"): SQL {
   return sql`${SUBTREE_CLIMBS_ORDER_BY[sort]}, ${sortTieBreak(sort)}, climbs.id`;
 }
 
@@ -472,6 +472,34 @@ function searchClimbsWhereClause(conditions: SQL[]): SQL {
   return conditions.length > 0 ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
 }
 
+export type SearchClimbsPlan = { source: SQL; orderBy: SQL };
+
+/** A nameless list has no FTS narrowing, so the catalog (or a large subtree)
+ * is the candidate set: force the sort index and keep an ORDER BY it
+ * satisfies, stopping at LIMIT, the way getSubtreeClimbs treats large areas.
+ * Named searches and small-area lists keep the full tie-break ordering over
+ * a set FTS or the area index already narrowed. */
+export async function searchClimbsPlan(
+  db: Database,
+  params: Pick<SearchClimbsParams, "name" | "areaName" | "areaId" | "sort">,
+): Promise<SearchClimbsPlan> {
+  const sort = params.sort ?? "ascents_desc";
+  // Only allow known sort keys before inserting an index name with sql.raw.
+  if (!Object.prototype.hasOwnProperty.call(SUBTREE_CLIMBS_SORT_INDEX, sort)) {
+    throw new Error(`Invalid sort value: ${sort}`);
+  }
+  const browse =
+    !params.name &&
+    !params.areaName &&
+    (params.areaId === undefined || (await isLargeSubtree(db, params.areaId)));
+  return browse
+    ? {
+        source: sql`climbs INDEXED BY ${sql.raw(SUBTREE_CLIMBS_SORT_INDEX[sort])}`,
+        orderBy: sql`${SUBTREE_CLIMBS_ORDER_BY[sort]}, climbs.id`,
+      }
+    : { source: sql`climbs`, orderBy: climbListOrderBy(sort) };
+}
+
 export type SearchClimbsPage = { climbs: ClimbWithAreaName[]; hasNextPage: boolean };
 
 export async function searchClimbs(
@@ -483,6 +511,7 @@ export async function searchClimbs(
 ): Promise<SearchClimbsPage> {
   const conditions = searchClimbsConditions(params);
   if (conditions === null) return { climbs: [], hasNextPage: false };
+  const plan = await searchClimbsPlan(db, params);
 
   // Raw SQL needs explicit aliases to return the camelCase fields expected by callers.
   const rows = await db.all<ClimbWithAreaName>(sql`
@@ -493,10 +522,10 @@ export async function searchClimbs(
       climbs.type AS type,
       climbs.grade AS grade,
       areas.name AS areaName
-    FROM climbs
+    FROM ${plan.source}
     JOIN areas ON areas.id = climbs.area_id
     ${searchClimbsWhereClause(conditions)}
-    ORDER BY ${climbListOrderBy(params.sort)}
+    ORDER BY ${plan.orderBy}
     LIMIT ${pageSize + 1}
     OFFSET ${offset}
   `);

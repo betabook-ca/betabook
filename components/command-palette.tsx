@@ -12,6 +12,7 @@ import { DeferredLoadError } from "@/components/ui/deferred-load-error";
 import { useDeferredComponent } from "@/hooks/use-deferred-component";
 import { isApplePlatform, useModifierLabels } from "@/hooks/use-platform";
 import { authClient } from "@/lib/auth-client";
+import { SEARCH_PATH } from "@/lib/search";
 
 /** Module-level so its identity is stable across renders — the preload hook
  * keys its effect on the loader. */
@@ -58,7 +59,7 @@ export function SearchPaletteProvider({ children }: { children: ReactNode }) {
   // the call is a no-op.
   const openPalette = useCallback(() => {
     if (!canSearchQuickly) {
-      router.push("/");
+      router.push(SEARCH_PATH);
       return;
     }
     load();
@@ -158,7 +159,7 @@ export function SearchTriggerControl({
   );
   if (!onOpenSearch)
     return (
-      <AppLink href="/" aria-label="Search" className={className}>
+      <AppLink href={SEARCH_PATH} aria-label="Search" className={className}>
         {contents}
       </AppLink>
     );

@@ -32,7 +32,7 @@ export default function ErrorPage({
       </div>
       <div className="flex items-center gap-4">
         <Button onPress={() => retry()}>Try again</Button>
-        <AppLink href="/">Search from the home page</AppLink>
+        <AppLink href="/search">Find climbs</AppLink>
       </div>
     </div>
   );

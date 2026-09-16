@@ -26,13 +26,18 @@ export function AppSearch({
   initial,
   suggestions,
   viewerId,
+  defaultCategory = "all",
   showMemberNotice = true,
+  memberNoticePlacement,
 }: {
   initialState: SearchState;
   initial: SearchSnapshot;
   suggestions: SuggestedClimberRow[] | null;
   viewerId: string | null;
+  /** Must match the server's parse so back/forward to a bare URL agrees with first paint. */
+  defaultCategory?: SearchState["category"];
   showMemberNotice?: boolean;
+  memberNoticePlacement?: "results" | "top";
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -52,7 +57,11 @@ export function AppSearch({
   // History updates do not remount the field. Back/forward adopts the complete URL state.
   useEffect(() => {
     if (params.toString() === lastWritten.current) return;
-    const parsed = parseSearchState(searchParamsToRecord(new URLSearchParams(params.toString())));
+    const parsed = parseSearchState(
+      searchParamsToRecord(new URLSearchParams(params.toString())),
+      null,
+      defaultCategory,
+    );
     const id = parsed.filter.areaId;
     parsed.area =
       id === undefined
@@ -65,12 +74,12 @@ export function AppSearch({
           });
     lastWritten.current = params.toString();
     setState(parsed);
-  }, [params, initialState.area]);
+  }, [params, initialState.area, defaultCategory]);
   function change(next: SearchState) {
     setState(next);
     if (next.area) areas.current.set(next.area.id, next.area);
     const href = searchHref(next);
-    lastWritten.current = href.slice(2);
+    lastWritten.current = href.slice(href.indexOf("?") + 1);
     // Query edits replace a history entry; deliberate category/scope changes add one.
     if (next.category !== state.category || next.area?.id !== state.area?.id)
       window.history.pushState(null, "", href);
@@ -83,6 +92,7 @@ export function AppSearch({
       key={viewerId ?? "anonymous"}
       publicOnly={viewerId === null}
       showMemberNotice={viewerId === null && showMemberNotice}
+      memberNoticePlacement={memberNoticePlacement}
       state={state}
       onChange={change}
       initial={initial}

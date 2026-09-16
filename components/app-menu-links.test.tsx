@@ -31,10 +31,11 @@ beforeEach(() => {
 it("provides primary destinations in the mobile fallback menu", () => {
   const html = renderToStaticMarkup(<AppMenuLinks account={owner} />);
 
-  expect(hrefs(html).slice(0, 4)).toEqual([
+  expect(hrefs(html).slice(0, 5)).toEqual([
     "/users/owner/journal",
     "/users/owner/goals",
     "/feed",
+    "/search",
     "/climbs/new",
   ]);
   expect(link(html, "/account")).toContain("Alex Morgan");
@@ -57,10 +58,11 @@ it("places Account settings with desktop utilities immediately before Sign out",
   state.pathname = "/account";
   const html = renderToStaticMarkup(<AppMenuLinks account={owner} surface="sidebar" />);
 
-  expect(hrefs(html).slice(0, 4)).toEqual([
+  expect(hrefs(html).slice(0, 5)).toEqual([
     "/users/owner/journal",
     "/users/owner/goals",
     "/feed",
+    "/search",
     "/climbs/new",
   ]);
   expect(hrefs(html).at(-1)).toBe("/account");

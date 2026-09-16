@@ -54,7 +54,9 @@ it("keeps account settings in desktop utilities and only three primary mobile li
       "/tutorial/journal/journal",
       "/tutorial/journal/projects",
       "/tutorial/journal/feed",
-      ...(name === "Example desktop navigation" ? ["/tutorial/journal/account"] : []),
+      ...(name === "Example desktop navigation"
+        ? ["/tutorial/journal/find-projects", "/tutorial/journal/account"]
+        : []),
     ]);
     for (const link of links) {
       const url = new URL(link.getAttribute("href") ?? "", "https://betabook.test");
@@ -64,6 +66,25 @@ it("keeps account settings in desktop utilities and only three primary mobile li
   }
   for (const link of screen.getAllByRole("link"))
     expect(link.getAttribute("href")).toMatch(/^\/tutorial\/journal\//);
+});
+
+it("offers the app's Find climbs row, current only on that lesson", () => {
+  const { unmount } = render(lesson());
+  const desktop = () => screen.getByRole("navigation", { name: "Example desktop navigation" });
+  const row = within(desktop()).getByRole("link", { name: "Find climbs" });
+  const url = new URL(row.getAttribute("href") ?? "", "https://betabook.test");
+  expect(url.pathname).toBe("/tutorial/journal/find-projects");
+  // Primary rows always open the full tour with the exit destination kept.
+  expect(url.searchParams.get("from")).toBe("account");
+  expect(url.searchParams.get("mode")).toBeNull();
+  expect(row).not.toHaveAttribute("aria-current");
+  unmount();
+  render(lesson("Find climbs"));
+  expect(within(desktop()).getByRole("link", { name: "Find climbs" })).toHaveAttribute(
+    "aria-current",
+    "location",
+  );
+  expect(screen.getByRole("region", { name: "Find climbs" })).toBeInTheDocument();
 });
 
 it("opens example search instead of real account data", async () => {
@@ -88,7 +109,12 @@ it("opens account settings through the example menu with the replay destination 
 
   await user.click(screen.getByRole("button", { name: "Open example menu" }));
   const menu = screen.getByRole("dialog", { name: "Example menu" });
-  expect(within(menu).getAllByRole("link")).toHaveLength(1);
+  // Secondary rows only, as in the app's mobile menu: Find climbs and Account settings.
+  expect(
+    within(menu)
+      .getAllByRole("link")
+      .map((link) => new URL(link.getAttribute("href") ?? "", "https://betabook.test").pathname),
+  ).toEqual(["/tutorial/journal/find-projects", "/tutorial/journal/account"]);
   expect(within(menu).getByRole("link", { name: "Account settings" })).toHaveAttribute(
     "href",
     productTourPath("journal", { stepId: "account", mode: "full", from: "account" }),

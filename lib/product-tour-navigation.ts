@@ -59,6 +59,15 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
       target: "analytics-chart",
     },
     {
+      id: "find-projects",
+      introducedInVersion: 3,
+      section: "Find climbs",
+      title: "Find your next project",
+      description:
+        "Open Find climbs from the sidebar or menu. Climbs lists the whole catalog before you type a name: pick an area, tap a discipline, then open Filters for grade, rating and ascents. Sort by rating to surface the classics. Try Boulder, then Filters.",
+      target: "climb-filters",
+    },
+    {
       id: "find-climbers",
       introducedInVersion: 2,
       section: "Search",

@@ -9,6 +9,7 @@ import {
   MapPinPlus,
   UserPlus,
   Plus,
+  Search,
   ShieldCheck,
   Smartphone,
 } from "lucide-react";
@@ -25,6 +26,7 @@ import { PrimaryNavigationLink } from "@/components/primary-navigation-link";
 import { SignOutButton } from "@/components/sign-out-button";
 import { ACCOUNT_DESTINATION, primaryAreaForPath, primaryDestinations } from "@/lib/app-navigation";
 import { productTourPath } from "@/lib/product-tour-navigation";
+import { SEARCH_PATH } from "@/lib/search";
 
 export type MenuAccount = { id: string; name: string; image?: string | null; isAdmin: boolean };
 
@@ -88,6 +90,10 @@ export function AppMenuLinks({
                 onNavigate={onNavigate}
               />
             ))}
+          <NavLink {...row} href={SEARCH_PATH} matchWithin>
+            <MenuIcon icon={Search} />
+            <span className={labelClass}>Find climbs</span>
+          </NavLink>
           <NavLink {...row} href="/climbs/new" relatedPaths={["/areas/new"]}>
             <MenuIcon icon={sidebar ? MapPinPlus : Plus} />
             <span className={labelClass}>Add climb or area</span>

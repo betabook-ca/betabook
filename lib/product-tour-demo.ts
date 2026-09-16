@@ -20,6 +20,87 @@ export const TOUR_DEMO_SEARCH_RESULTS = {
   climber: { name: TOUR_DEMO_PEOPLE.search, detail: "Member profile" },
 };
 
+/** The Find climbs lesson's sample area; a negative ID that never reaches a link. */
+export const TOUR_DEMO_AREA = { id: -10, name: DEMO_AREA, path: "Sample Range" };
+
+export type TourDemoClimb = {
+  id: number;
+  name: string;
+  type: "boulder" | "sport" | "trad";
+  /** Ordinal on the discipline's native scale, as the catalog stores it. */
+  grade: number | null;
+  avgRating: number | null;
+  sendCount: number;
+  sent: boolean;
+};
+
+const ordinal = (type: TourDemoClimb["type"], label: string) =>
+  nativeGradeArray(type).indexOf(label);
+
+/** Pine Canyon's catalog for browsing by area, discipline, grade, rating and
+ * ascents. Alex has sent two; the rest are candidates for a project. */
+export const TOUR_DEMO_CLIMBS: readonly TourDemoClimb[] = [
+  {
+    ...climbs.project,
+    type: "boulder",
+    grade: ordinal("boulder", "V5"),
+    avgRating: 4.6,
+    sendCount: 18,
+    sent: false,
+  },
+  {
+    ...climbs.sent,
+    type: "boulder",
+    grade: ordinal("boulder", "V4"),
+    avgRating: 4.2,
+    sendCount: 31,
+    sent: true,
+  },
+  {
+    ...climbs.flash,
+    type: "boulder",
+    grade: ordinal("boulder", "V3"),
+    avgRating: 3.4,
+    sendCount: 12,
+    sent: true,
+  },
+  {
+    ...climbs.warmup,
+    type: "boulder",
+    grade: ordinal("boulder", "V2"),
+    avgRating: 2.8,
+    sendCount: 44,
+    sent: false,
+  },
+  {
+    id: -5,
+    name: "Canyon Corner",
+    type: "sport",
+    grade: ordinal("sport", "5.10b"),
+    avgRating: 4.0,
+    sendCount: 26,
+    sent: false,
+  },
+  {
+    id: -6,
+    name: "Pine Needle Crack",
+    type: "trad",
+    grade: ordinal("trad", "5.8"),
+    avgRating: 3.9,
+    sendCount: 9,
+    sent: false,
+  },
+  {
+    id: -7,
+    name: "Shaded Traverse",
+    type: "boulder",
+    grade: null,
+    avgRating: null,
+    sendCount: 0,
+    sent: false,
+  },
+];
+
 export const TOUR_DEMO_FRIEND_DAY = {
   name: TOUR_DEMO_PEOPLE.requester,
   date: "2026-03-14",

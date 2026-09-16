@@ -27,7 +27,7 @@ vi.mock("@/components/journal/journal-entry-drawer", () => ({ JournalEntryDrawer
 
 function demo(stepId: string, mode: "full" | "updates") {
   const { steps, navigation } = resolveProductTour(PRODUCT_TOUR_STEPS.journal, {
-    version: 2,
+    version: 3,
     savedVersion: 1,
     navigation: { from: "journal", mode },
   });
@@ -65,7 +65,30 @@ it("retains the real Log shortcut for first-time invitations", () => {
   expect(html).toContain("Log an entry");
 });
 
-it.each(["find-climbers", "friend-requests", "feed", "account"])(
+it.each(["full", "updates"] as const)(
+  "browses Pine Canyon's catalog with working filters on Find climbs in the %s tour",
+  (mode) => {
+    const html = demo("find-projects", mode);
+    expect(html).toContain('aria-label="Find climbs"');
+    expect(html).toMatch(/aria-pressed="true"[^>]*>Climbs/);
+    expect(html).toContain('data-tour-target="climb-filters"');
+    // The area is preselected and the nameless list is already populated.
+    expect(html).toContain("In area: Pine Canyon");
+    expect(html).toContain("The Long Way");
+    expect(html).toContain("Canyon Corner");
+    expect(html).toContain("Filters");
+    expect(html).toContain("Sort by");
+    // The sidebar's Find climbs row opens this lesson; no sample climb or the real page is linked.
+    expect(html).toMatch(
+      /href="\/tutorial\/journal\/find-projects[^"]*"[^>]*>(?:(?!<\/a>).)*Find climbs/s,
+    );
+    expect(html).not.toContain('href="/climbs/');
+    expect(html).not.toContain('href="/search');
+    expect(html).not.toContain('data-tour-target="friend-search"');
+  },
+);
+
+it.each(["find-projects", "find-climbers", "friend-requests", "feed", "account"])(
   "omits the demo Log control from the %s update",
   (stepId) => {
     const html = demo(stepId, "updates");

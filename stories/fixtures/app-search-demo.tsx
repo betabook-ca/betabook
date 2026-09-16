@@ -216,6 +216,7 @@ export function IntegratedSearchDemo({
         state={state}
         onChange={setState}
         fetcher={fetcher}
+        areaFetcher={searchAreaFetcher}
         publicOnly={publicOnly}
         suggestions={suggestions ? SUGGESTED_CLIMBERS : undefined}
         renderAction={

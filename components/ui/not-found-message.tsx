@@ -13,8 +13,8 @@ export function NotFoundMessage({ heading, message }: NotFoundMessageProps) {
     <div className="flex flex-col gap-2">
       <PageTitle>{heading}</PageTitle>
       <p className="text-muted">{message}</p>
-      <AppLink href="/" className="self-start">
-        Search from the home page
+      <AppLink href="/search" className="self-start">
+        Find climbs
       </AppLink>
     </div>
   );
