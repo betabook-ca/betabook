@@ -14,6 +14,7 @@ import {
   guessClimbTypeMapping,
   guessColumnMapping,
   guessGradeFeelMapping,
+  guessRatingMapping,
   missingRequiredColumns,
   needsDateFormatChoice,
   normalizeHeader,
@@ -31,6 +32,7 @@ import {
   type GradeFeelMapping,
   type InvalidImportRow,
   type ParsedCsv,
+  type RatingMapping,
 } from "./sends-import";
 
 const SAMPLE_HEADERS = [
@@ -96,11 +98,12 @@ const GRADE_FEEL_MAPPING: GradeFeelMapping = {
 
 const TODAY = "2026-08-19";
 
-type NormalizeFixtureOptions = NonNullable<Parameters<typeof normalizeImportRows>[6]> & {
+type NormalizeFixtureOptions = NonNullable<Parameters<typeof normalizeImportRows>[7]> & {
   mapping?: ColumnMapping;
   ascentStyles?: AscentStyleMapping;
   climbTypes?: ClimbTypeMapping;
   gradeFeels?: GradeFeelMapping;
+  ratings?: RatingMapping;
 };
 
 function normalizeRows(parsed: ParsedCsv, overrides: NormalizeFixtureOptions = {}) {
@@ -109,12 +112,19 @@ function normalizeRows(parsed: ParsedCsv, overrides: NormalizeFixtureOptions = {
     ascentStyles = ASCENT_STYLE_MAPPING,
     climbTypes = CLIMB_TYPE_MAPPING,
     gradeFeels = GRADE_FEEL_MAPPING,
+    ratings = guessRatingMapping(distinctValues(parsed.rows, mapping.rating), "unknown"),
     ...options
   } = overrides;
-  return normalizeImportRows(parsed, mapping, ascentStyles, climbTypes, gradeFeels, "iso", {
-    today: TODAY,
-    ...options,
-  });
+  return normalizeImportRows(
+    parsed,
+    mapping,
+    ascentStyles,
+    climbTypes,
+    gradeFeels,
+    ratings,
+    "iso",
+    { today: TODAY, ...options },
+  );
 }
 
 function csv(rows: Record<string, string>[]): ParsedCsv {
@@ -1268,3 +1278,62 @@ it.each([guessAscentStyleMapping, guessClimbTypeMapping, guessGradeFeelMapping])
     for (const value of values) expect(mapping[value]).toBe("skip");
   },
 );
+
+describe("guessRatingMapping", () => {
+  it("spreads Mountain Project's four stars across Betabook's five", () => {
+    expect(guessRatingMapping(["-1", "1", "2", "3", "4"], "mountainproject")).toEqual({
+      "-1": "skip",
+      "1": "1",
+      "2": "2",
+      "3": "4",
+      "4": "5",
+    });
+  });
+
+  it("rounds Mountain Project half stars to a whole star", () => {
+    expect(guessRatingMapping(["1.5", "2.5", "3.5"], "mountainproject")).toEqual({
+      "1.5": "2",
+      "2.5": "3",
+      "3.5": "4",
+    });
+  });
+
+  it("keeps a five-star source's own numbers", () => {
+    expect(guessRatingMapping(["1", "3", "5"], "sendage")).toEqual({
+      "1": "1",
+      "3": "3",
+      "5": "5",
+    });
+  });
+
+  it("leaves unrated markers and values off the scale unmapped", () => {
+    expect(guessRatingMapping(["0", "-1", "banana", "6", ""], "sendage")).toEqual({
+      "0": "skip",
+      "-1": "skip",
+      banana: "skip",
+      "6": "skip",
+      "": "skip",
+    });
+    // Four is off Mountain Project's scale only when it is above it.
+    expect(guessRatingMapping(["5"], "mountainproject")).toEqual({ "5": "skip" });
+  });
+});
+
+describe("normalizeImportRows with a rating mapping", () => {
+  it("imports the mapped star value rather than the file's number", () => {
+    const parsed = csv([row({ Rating: "3" }), row({ Rating: "4" })]);
+    const { valid, warnings } = normalizeRows(parsed, {
+      ratings: guessRatingMapping(["3", "4"], "mountainproject"),
+    });
+    expect(valid.map((r) => r.rating)).toEqual([4, 5]);
+    expect(warnings).toEqual([]);
+  });
+
+  it("honors a climber's own choice to drop a value without calling it invalid", () => {
+    const { valid, warnings } = normalizeRows(csv([row({ Rating: "4" })]), {
+      ratings: { "4": "skip" },
+    });
+    expect(valid[0].rating).toBeNull();
+    expect(warnings).toEqual([]);
+  });
+});

@@ -421,6 +421,28 @@ type ImportClimbType = ClimbType | "route";
 export type ClimbTypeMapping = Record<string, ImportClimbType | "skip">;
 export type GradeFeelMapping = Record<string, GradeFeel | "skip">;
 
+export const RATING_VALUES = ["1", "2", "3", "4", "5"] as const;
+type RatingValue = (typeof RATING_VALUES)[number];
+export type RatingMapping = Record<string, RatingValue | "skip">;
+
+/** Mountain Project's top personal rating is 4 stars, so its scale is stretched
+ * onto Betabook's 5 rather than compressed against it; every value stays
+ * editable. Zero and negative mean unrated, and halves round to a whole star. */
+export function guessRatingMapping(values: string[], source: ImportSource): RatingMapping {
+  const mapping = Object.create(null) as RatingMapping;
+  const top = source === "mountainproject" ? 4 : 5;
+  for (const value of values) {
+    const stars = Number(value.trim());
+    if (!Number.isFinite(stars) || stars <= 0 || stars > top) {
+      mapping[value] = "skip";
+      continue;
+    }
+    const scaled = Math.round(1 + ((stars - 1) * 4) / (top - 1));
+    mapping[value] = String(Math.min(5, Math.max(1, scaled))) as RatingValue;
+  }
+  return mapping;
+}
+
 // Map common send styles; attempts, top ropes, and follows stay unmapped for review.
 const ASCENT_STYLE_ALIASES: Record<string, AscentStyle> = {
   "red point": "redpoint",
@@ -611,6 +633,7 @@ export function normalizeImportRows(
   ascentStyleMapping: AscentStyleMapping,
   climbTypeMapping: ClimbTypeMapping,
   gradeFeelMapping: GradeFeelMapping,
+  ratingMapping: RatingMapping,
   dateFormat: DateFormat,
   options: NormalizeOptions = {},
 ): { valid: NormalizedImportRow[]; invalid: InvalidImportRow[]; warnings: CoercionWarning[] } {
@@ -682,15 +705,13 @@ export function normalizeImportRows(
       mappedClimbType && mappedClimbType !== "skip" ? mappedClimbType : null;
 
     const rawRating = cell(mapping.rating);
-    const ratingNum = rawRating ? Number(rawRating) : null;
-    const rating =
-      ratingNum !== null && Number.isInteger(ratingNum) && ratingNum >= 1 && ratingNum <= 5
-        ? ratingNum
-        : null;
-    // Zero and negative ratings represent unrated in supported exports; Mountain Project uses -1.
-    if (rawRating && rating === null && !(ratingNum !== null && ratingNum <= 0)) {
+    const mappedRating = rawRating ? ownValue(ratingMapping, rawRating) : undefined;
+    const rating = mappedRating && mappedRating !== "skip" ? Number(mappedRating) : null;
+    // Zero and negative mean unrated in supported exports; Mountain Project uses -1.
+    // A value a climber deliberately left unrated is their choice, not a defect.
+    const ratingNum = Number(rawRating);
+    if (rawRating && rating === null && !(Number.isFinite(ratingNum) && ratingNum <= 5))
       warn("rating", rowIndex, `"${rawRating}"`);
-    }
 
     const rawComment = textCell(mapping.comment);
     if (rawComment.length > MAX_COMMENT_LENGTH) {

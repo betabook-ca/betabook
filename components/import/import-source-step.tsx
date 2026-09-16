@@ -8,14 +8,17 @@ import { SegmentedButtons } from "@/components/ui/segmented-buttons";
 import type { ParsedCsv } from "@/lib/sends-import";
 
 import { KayaImportForm } from "./kaya-import-form";
+import { MountainProjectImportForm } from "./mountain-project-import-form";
 import { SendageImportForm } from "./sendage-import-form";
 
 const SOURCES = [
   { value: "sendage", label: "Sendage" },
   { value: "kaya", label: "KAYA" },
+  { value: "mountainproject", label: "Mountain Project" },
   { value: "csv", label: "CSV file" },
 ] as const;
 type Source = (typeof SOURCES)[number]["value"];
+export type DirectSource = Exclude<Source, "csv">;
 
 export function ImportSourceStep({
   initialSource = "sendage",
@@ -29,7 +32,7 @@ export function ImportSourceStep({
   /** Disable import transport while keeping source selection available in previews. */
   disabled?: boolean;
   onFile: (file: File) => void;
-  onLoaded: (parsed: ParsedCsv, source: "sendage" | "kaya", username: string) => void;
+  onLoaded: (parsed: ParsedCsv, source: DirectSource, label: string) => void;
 }) {
   const [source, setSource] = useState<Source>(initialSource);
   const [busy, setBusy] = useState(false);
@@ -62,6 +65,13 @@ export function ImportSourceStep({
           onBusyChange={setBusy}
           onChooseCsv={() => setSource("csv")}
           onLoaded={(parsed, username) => onLoaded(parsed, "kaya", username)}
+        />
+      )}
+      {source === "mountainproject" && (
+        <MountainProjectImportForm
+          disabled={reading || disabled}
+          onBusyChange={setBusy}
+          onLoaded={(parsed, label) => onLoaded(parsed, "mountainproject", label)}
         />
       )}
       {source === "csv" && (

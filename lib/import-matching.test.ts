@@ -5,13 +5,17 @@ import type { NormalizedImportRow } from "@/lib/sends-import";
 
 import {
   areaLookupsNeeded,
+  climbNameVariants,
   distinctClimbNames,
   duplicateClimbRows,
   foldClimbName,
   impliedGrades,
   matchRow,
   matchRows,
+  looseLookupsNeeded,
+  looseNameKey,
   mergeCandidates,
+  mergeLooseCandidates,
   resolveRows,
   summarizeResolved,
   type MatchOptions,
@@ -491,4 +495,133 @@ it("matches generic outdoor routes to sport or trad while excluding same-name bo
       climb: { id: 12, type },
     });
   }
+});
+
+describe("looseNameKey", () => {
+  it("ignores the decoration and punctuation catalogs disagree about", () => {
+    expect(looseNameKey("**Bouldering at Exit 38")).toBe("bouldering at exit 38");
+    expect(looseNameKey("(g) Black Dyke")).toBe("black dyke");
+    expect(looseNameKey("Central-East Cascades, Wenatchee, & Leavenworth")).toBe(
+      "central east cascades wenatchee leavenworth",
+    );
+    expect(looseNameKey("O\u2019Kelley\u2019s")).toBe(looseNameKey("O'Kelley's"));
+    expect(looseNameKey("Caf\u00e9 Racer")).toBe("cafe racer");
+    expect(looseNameKey("The Nose")).toBe("nose");
+    expect(looseNameKey("  ")).toBe("");
+  });
+});
+
+describe("climbNameVariants", () => {
+  it("offers the spellings another catalog is likely to use", () => {
+    expect(climbNameVariants("The Nose")).toContain("Nose");
+    expect(climbNameVariants("Nose")).toContain("The Nose");
+    expect(climbNameVariants("Rainy Day, Dream Away")).toContain("Rainy Day Dream Away");
+    expect(climbNameVariants("Left-Hand Crack")).toContain("Left Hand Crack");
+    expect(climbNameVariants("Caf\u00e9 Racer")).toContain("Cafe Racer");
+  });
+
+  it("never repeats the name itself and stays bounded", () => {
+    for (const name of ["The Wave", "A Day, In-The: Sun\u2019s Caf\u00e9!"]) {
+      const variants = climbNameVariants(name);
+      expect(variants).not.toContain(name);
+      expect(new Set(variants.map(foldClimbName)).size).toBe(variants.length);
+      expect(variants.length).toBeLessThanOrEqual(8);
+    }
+  });
+});
+
+describe("looseLookupsNeeded", () => {
+  it("asks only for names the catalog lookup could not place", () => {
+    const rows = [
+      row({ climbName: "The Wave" }),
+      row({ climbName: "The Prow", rowIndex: 1 }),
+      row({ climbName: "the prow", rowIndex: 2 }),
+    ];
+    const lookups = looseLookupsNeeded(rows, index);
+    expect(lookups.map((lookup) => lookup.name)).toEqual(["The Prow"]);
+    expect(lookups[0].variants).toContain("Prow");
+  });
+});
+
+describe("matching a close spelling", () => {
+  const PROW = candidate({
+    id: 42,
+    name: "The Prow",
+    key: "the prow",
+    areaId: 4001,
+    areaName: "Happy Boulders",
+    ancestors: [US, CALIFORNIA, BISHOP],
+    total: 1,
+  });
+  const lookups = looseLookupsNeeded([row({ climbName: "Prow" })], new Map());
+  const loose = mergeLooseCandidates(new Map(), lookups, [PROW]);
+  const options = { ...NO_PREFERENCE, looseIndex: loose };
+
+  it("files a variant match under the name the file used", () => {
+    expect([...loose.keys()]).toEqual(["prow"]);
+  });
+
+  it("accepts it for review when an area agrees, naming both spellings", () => {
+    const match = matchRow(row({ climbName: "Prow", areaHints: ["Bishop"] }), new Map(), options);
+    expect(match.kind).toBe("inferred");
+    if (match.kind !== "inferred") throw new Error("expected an inferred match");
+    expect(match.climb.id).toBe(42);
+    expect(match.reason).toContain('"Prow" is spelled "The Prow" here');
+    expect(resolveRows([row({ climbName: "Prow" })], [match], new Map())[0].state).toBe("review");
+  });
+
+  it("matches an area hint whose punctuation differs", () => {
+    const hinted = row({ climbName: "Prow", areaHints: ["** Bouldering in Bishop", "(a) Bishop"] });
+    const match = matchRow(hinted, new Map(), options);
+    expect(match.kind).toBe("inferred");
+  });
+
+  it("refuses it when nothing confirms the location", () => {
+    const match = matchRow(row({ climbName: "Prow" }), new Map(), options);
+    expect(match.kind).toBe("ambiguous");
+    if (match.kind !== "ambiguous") throw new Error("expected an ambiguous match");
+    expect(match.candidates.map((c) => c.id)).toEqual([42]);
+    expect(match.conflict).toContain('No climb is named "Prow"');
+    expect(resolveRows([row({ climbName: "Prow" })], [match], new Map())[0].state).toBe(
+      "attention",
+    );
+  });
+
+  it("refuses it when the area contradicts the row", () => {
+    const match = matchRow(
+      row({ climbName: "Prow", areaName: "Squamish", areaHints: ["Bishop"] }),
+      new Map(),
+      options,
+    );
+    expect(match.kind).toBe("ambiguous");
+  });
+
+  it("is never consulted while the name itself matches", () => {
+    const shortened = candidate({
+      id: 99,
+      name: "Wave",
+      key: "wave",
+      areaId: 4001,
+      areaName: "Happy Boulders",
+      ancestors: [US, CALIFORNIA, BISHOP],
+    });
+    const decoy = mergeLooseCandidates(
+      new Map(),
+      looseLookupsNeeded([row({ climbName: "The Wave" })], new Map()),
+      [shortened],
+    );
+    expect(decoy.get("the wave")?.map((c) => c.id)).toEqual([99]);
+
+    const hinted = row({ areaHints: ["Bishop"] });
+    const withNames = matchRow(hinted, index, { ...NO_PREFERENCE, looseIndex: decoy });
+    expect(withNames.kind).toBe("inferred");
+    if (withNames.kind !== "inferred") throw new Error("expected an inferred match");
+    expect(withNames.climb.id).toBe(1);
+
+    // The same loose index is what an empty catalog lookup would have used.
+    const withoutNames = matchRow(hinted, new Map(), { ...NO_PREFERENCE, looseIndex: decoy });
+    expect(withoutNames.kind).toBe("inferred");
+    if (withoutNames.kind !== "inferred") throw new Error("expected an inferred match");
+    expect(withoutNames.climb.id).toBe(99);
+  });
 });

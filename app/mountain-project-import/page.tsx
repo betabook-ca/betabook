@@ -7,7 +7,7 @@ import { pageMetadata } from "@/lib/seo";
 export const metadata: Metadata = pageMetadata({
   title: "Import your Mountain Project ticks",
   description:
-    "Import your Mountain Project ticks into Betabook from their CSV export. Betabook maps the grade, style and location columns.",
+    "Import your Mountain Project ticks into Betabook from your profile link or their CSV export. Betabook maps the grade, style and location columns.",
   path: IMPORT_PAGES.mountainProject.path,
 });
 

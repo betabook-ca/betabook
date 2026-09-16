@@ -106,32 +106,64 @@ const COPY: Record<
   },
   mountainProject: {
     title: "Import your Mountain Project ticks",
-    lead: "Import the ticks from your Mountain Project CSV export.",
+    lead: "Import the ticks from your Mountain Project profile, or upload their CSV export.",
     steps: [
       ACCOUNT_STEP,
-      "On Mountain Project, export your ticks as a CSV file.",
-      "Open Import sends from your account, choose CSV file and upload the export.",
-      "Betabook recognizes the Mountain Project format and maps the columns.",
+      "Open Import sends from your account and choose Mountain Project.",
+      "Paste your profile link, or the user ID inside it. Betabook downloads the same tick export the site gives you.",
       MATCH_STEP,
       FINISH_STEP,
     ],
     questions: [
+      {
+        question: "Where do I find my user ID?",
+        answer:
+          "Open your Mountain Project profile and copy the address. It looks like mountainproject.com/user/123456789/your-name, and 123456789 is your ID. Either the whole link or the number works.",
+      },
+      {
+        question: "Do I need a Mountain Project login?",
+        answer:
+          "No. Betabook downloads the tick export their site publishes for your profile, and never asks for your Mountain Project password.",
+      },
+      {
+        question: "Which ticks are imported?",
+        answer:
+          "The ones whose style maps to a Betabook ascent. Sends, flashes, onsights and redpoints map on their own; attempts, top ropes and follows are listed as skipped until you map them yourself.",
+      },
+      {
+        question: "How do I import Mountain Project’s CSV export?",
+        answer: `Export your ticks from Mountain Project as a CSV file. ${CSV_ANSWER}`,
+      },
       {
         question: "Which columns does Betabook read?",
         answer:
           "Rating is the route’s grade, Your Rating is your suggested grade and Your Stars is your rating. Location is the area path used to find the climb. The ascent style comes from Lead Style, or from Style when Lead Style is blank.",
       },
       {
+        question: "Mountain Project stars stop at 4. What happens to them?",
+        answer:
+          "They are spread across Betabook's five, so a 4-star classic imports as 5 and a 3-star as 4. Half stars round to a whole star. Every star value is listed in the import steps, so you can change any of them before saving.",
+      },
+      {
+        question: "Will my ticks find the right climbs?",
+        answer:
+          "Betabook matches on the climb's name and uses your tick's location path to tell same-named climbs apart. The two sites organize areas differently, so the path is only a hint. A name Betabook doesn't hold is shown for you to search or skip — it is never guessed at.",
+      },
+      {
         question: "What about grades like 5.10c PG13?",
         answer: "Protection ratings such as PG13, R and X are removed from the grade.",
       },
       {
-        question: "How large can the file be?",
-        answer: "Up to 10 MB or 50,000 rows.",
+        question: "How large can a tick list be?",
+        answer: "Up to 10 MB or 50,000 ticks, whether it is downloaded or uploaded.",
       },
       {
         question: "Can I change the column mapping?",
         answer: "Yes, from the import steps.",
+      },
+      {
+        question: "Does Betabook keep my Mountain Project user ID?",
+        answer: "No. It’s used for the import and not saved.",
       },
     ],
   },

@@ -25,4 +25,5 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 export const Sendage: Story = {};
 export const Kaya: Story = { args: { initialSource: "kaya" } };
+export const MountainProject: Story = { args: { initialSource: "mountainproject" } };
 export const Csv: Story = { args: { initialSource: "csv" } };

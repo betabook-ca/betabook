@@ -27,7 +27,9 @@ import {
   areaLookupsNeeded,
   distinctClimbNames,
   matchRows,
+  looseLookupsNeeded,
   mergeCandidates,
+  mergeLooseCandidates,
   resolveRows,
   summarizeResolved,
   type CandidateIndex,
@@ -48,6 +50,7 @@ import {
   guessClimbTypeMapping,
   guessColumnMapping,
   guessGradeFeelMapping,
+  guessRatingMapping,
   missingRequiredColumns,
   needsDateFormatChoice,
   normalizeImportRows,
@@ -72,6 +75,7 @@ import {
   type InvalidImportRow,
   type NormalizedImportRow,
   type ParsedCsv,
+  type RatingMapping,
 } from "@/lib/sends-import";
 
 import { ImportDateWarning } from "./import-date-warning";
@@ -82,11 +86,12 @@ import {
   type LookupStatus,
 } from "./import-match-step";
 import { ImportResultStep } from "./import-result-step";
-import { ImportSourceStep } from "./import-source-step";
+import { ImportSourceStep, type DirectSource } from "./import-source-step";
 import {
   ASCENT_STYLE_OPTIONS,
   CLIMB_TYPE_OPTIONS,
   GRADE_FEEL_OPTIONS,
+  RATING_OPTIONS,
   Stat,
   ValueMappingSection,
 } from "./value-mapping-section";
@@ -161,6 +166,12 @@ const SOURCE_NOTES: Record<Exclude<ImportSource, "unknown">, string> = {
     "“Rating” is the route's grade and “Your Rating” yours. “Location” is the full area path, used as hints from the wall up. Ascent style comes from “Lead Style”, or from “Style” where that is blank.",
 };
 
+const DIRECT_SOURCE_LABELS: Record<DirectSource, string> = {
+  kaya: "KAYA",
+  sendage: "Sendage",
+  mountainproject: "Mountain Project",
+};
+
 const CONFLICT_MODES = [
   { value: "skip", label: "Skip" },
   { value: "overwrite", label: "Overwrite" },
@@ -207,6 +218,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
   const [ascentStyleMapping, setAscentStyleMapping] = useState<AscentStyleMapping>({});
   const [climbTypeMapping, setClimbTypeMapping] = useState<ClimbTypeMapping>({});
   const [gradeFeelMapping, setGradeFeelMapping] = useState<GradeFeelMapping>({});
+  const [ratingMapping, setRatingMapping] = useState<RatingMapping>({});
   const [dateFormat, setDateFormat] = useState<DateFormat>("iso");
   const [dropPlaceholderDates, setDropPlaceholderDates] = useState(false);
   const [gradeScale, setGradeScale] = useState<GradeScale>("native");
@@ -237,6 +249,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
   );
 
   const [candidateIndex, setCandidateIndex] = useState<CandidateIndex | null>(null);
+  const [looseIndex, setLooseIndex] = useState<CandidateIndex>(new Map());
   const [lookup, setLookup] = useState<LookupStatus>({ phase: "done" });
   const lookupRunRef = useRef(0);
   const [preferredAreas, setPreferredAreas] = useState<PreferredArea[]>([]);
@@ -275,6 +288,10 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
     () => valueCounts(rows, columnMapping?.gradeFeel ?? null),
     [rows, columnMapping?.gradeFeel],
   );
+  const ratingValues = useMemo(
+    () => valueCounts(rows, columnMapping?.rating ?? null),
+    [rows, columnMapping?.rating],
+  );
   const dateValues = useMemo(
     () => distinctValues(rows, columnMapping?.date ?? null).slice(0, DATE_SAMPLE_SIZE),
     [rows, columnMapping?.date],
@@ -306,9 +323,9 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
   const matches = useMemo(
     () =>
       normalized && candidateIndex
-        ? matchRows(normalized.valid, candidateIndex, { gradeScale, preferredAreas })
+        ? matchRows(normalized.valid, candidateIndex, { gradeScale, preferredAreas, looseIndex })
         : null,
-    [normalized, candidateIndex, gradeScale, preferredAreas],
+    [normalized, candidateIndex, gradeScale, preferredAreas, looseIndex],
   );
   const resolved = useMemo(
     () => (normalized && matches ? resolveRows(normalized.valid, matches, manual) : null),
@@ -408,6 +425,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
       setAscentStyleMapping(values.ascentStyleMapping);
       setClimbTypeMapping(values.climbTypeMapping);
       setGradeFeelMapping(values.gradeFeelMapping);
+      setRatingMapping(values.ratingMapping);
       setDateFormat(values.dateFormat);
       setGradeScale(values.gradeScale);
       setAutoMapped(true);
@@ -423,6 +441,10 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
       ascentStyleMapping: guessAscentStyleMapping(distinctValues(parsed.rows, mapping.ascentStyle)),
       climbTypeMapping: guessClimbTypeMapping(distinctValues(parsed.rows, mapping.climbType)),
       gradeFeelMapping: guessGradeFeelMapping(distinctValues(parsed.rows, mapping.gradeFeel)),
+      ratingMapping: guessRatingMapping(
+        distinctValues(parsed.rows, mapping.rating),
+        detectImportSource([...parsed.headers, ...parsed.derived]),
+      ),
       dateFormat: mapping.date ? detectDateFormat(dateSample) : ("iso" as DateFormat),
       gradeScale: detectGradeScale(
         distinctValues(parsed.rows, mapping.suggestedGrade ?? mapping.grade),
@@ -446,6 +468,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
     setAscentStyleMapping(values.ascentStyleMapping);
     setClimbTypeMapping(values.climbTypeMapping);
     setGradeFeelMapping(values.gradeFeelMapping);
+    setRatingMapping(values.ratingMapping);
     setDateFormat(values.dateFormat);
     setGradeScale(values.gradeScale);
     setStep("values");
@@ -464,6 +487,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
       values.ascentStyleMapping,
       values.climbTypeMapping,
       values.gradeFeelMapping,
+      values.ratingMapping,
       values.dateFormat,
       {
         gradeScalePreference: values.gradeScale,
@@ -486,7 +510,14 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
     beginMatching(
       parsedCsv,
       columnMapping,
-      { ascentStyleMapping, climbTypeMapping, gradeFeelMapping, dateFormat, gradeScale },
+      {
+        ascentStyleMapping,
+        climbTypeMapping,
+        gradeFeelMapping,
+        ratingMapping,
+        dateFormat,
+        gradeScale,
+      },
       dropPlaceholderDates,
     );
   }
@@ -501,6 +532,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
         items.slice(i * RESOLVE_BATCH_SIZE, (i + 1) * RESOLVE_BATCH_SIZE),
       );
     setCandidateIndex(null);
+    setLooseIndex(new Map());
     setMatchFilter(null);
 
     const nameChunks = chunk(distinctClimbNames(valid));
@@ -511,6 +543,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
     let index: CandidateIndex = new Map();
     const request = async (
       call: () => Promise<{ ok: true; value: ClimbCandidate[] } | { ok: false; error: string }>,
+      collect?: (found: ClimbCandidate[]) => void,
     ): Promise<boolean> => {
       const result = await call().catch(
         () => ({ ok: false, error: "The lookup request failed" }) as const,
@@ -520,7 +553,8 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
         setLookup({ phase: "failed", error: result.error });
         return false;
       }
-      index = mergeCandidates(index, result.value);
+      if (collect) collect(result.value);
+      else index = mergeCandidates(index, result.value);
       done += 1;
       setLookup({ phase: "loading", done, total });
       return true;
@@ -536,9 +570,32 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
       if (!(await request(() => resolveImportClimbsInAreas(pairs)))) return;
     }
 
+    // Names that found nothing get one more pass under close spellings. The
+    // lookup stays the indexed name query; matching decides what to trust.
+    const lookups = looseLookupsNeeded(valid, index);
+    const variantChunks = chunk(lookups.flatMap((lookup) => lookup.variants));
+    total += variantChunks.length;
+    let loose: CandidateIndex = new Map();
+    for (const variants of variantChunks) {
+      if (
+        !(await request(
+          () => resolveImportClimbs(variants),
+          (found) => {
+            loose = mergeLooseCandidates(loose, lookups, found);
+          },
+        ))
+      )
+        return;
+    }
+
     setCandidateIndex(index);
+    setLooseIndex(loose);
     const summary = summarizeResolved(
-      resolveRows(valid, matchRows(valid, index, { gradeScale: scale, preferredAreas }), new Map()),
+      resolveRows(
+        valid,
+        matchRows(valid, index, { gradeScale: scale, preferredAreas, looseIndex: loose }),
+        new Map(),
+      ),
     );
     setMatchFilter(defaultFilter(summary));
     setLookup({ phase: "done" });
@@ -693,9 +750,9 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
           onFile={(file) => {
             void handleFile(file);
           }}
-          onLoaded={(parsed, source, username) => {
+          onLoaded={(parsed, source, label) => {
             setError(null);
-            setDirectSource(`${source === "kaya" ? "KAYA" : "Sendage"} profile @${username}`);
+            setDirectSource(`${DIRECT_SOURCE_LABELS[source]} profile ${label}`);
             acceptParsedRows(parsed);
           }}
         />
@@ -814,6 +871,20 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
             onChange={setClimbTypeMapping}
             options={CLIMB_TYPE_OPTIONS}
             skipLabel="Ignore"
+          />
+
+          <ValueMappingSection
+            title="Rating"
+            description={
+              source === "mountainproject"
+                ? "Mountain Project's four stars are spread across Betabook's five. Change any row that should land elsewhere."
+                : "How each star value in the file imports."
+            }
+            values={ratingValues}
+            mapping={ratingMapping}
+            onChange={setRatingMapping}
+            options={RATING_OPTIONS}
+            skipLabel="Unrated"
           />
 
           <ValueMappingSection

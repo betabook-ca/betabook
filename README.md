@@ -5,7 +5,7 @@
 - Search climbs and explore the area hierarchy, with community ratings and suggested grades.
 - Log ascents, repeats, climb sessions, and training in a journal with notes and tags.
 - Track open projects and view send history, grade progression, and activity analytics.
-- Import sends directly from a public Sendage or KAYA profile, or a CSV, export sends as CSV, and control profile and journal visibility separately.
+- Import sends directly from a Sendage, KAYA or Mountain Project profile, or a CSV, export sends as CSV, and control profile and journal visibility separately.
 - Contribute areas, climbs, and descriptions; structural changes go through moderation by admins assigned to the affected areas.
 - Learn the logging workflow through an interactive Journal tutorial.
 

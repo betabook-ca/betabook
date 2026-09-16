@@ -145,6 +145,41 @@ it("loads KAYA routes into matching and review with visible style limitations", 
   expect(importSends).not.toHaveBeenCalled();
 });
 
+it("loads a Mountain Project tick export into matching and review", async () => {
+  vi.mocked(resolveImportClimbs).mockClear();
+  vi.mocked(importSends).mockClear();
+  const csv = [
+    'Date,Route,Rating,Notes,URL,Pitches,Location,"Avg Stars","Your Stars",Style,"Lead Style","Route Type","Your Rating",Length,"Rating Code"',
+    '2026-08-16,"Test climb",5.12a,"Fun",https://www.mountainproject.com/route/1/x,1,"Squamish > Wall",3.3,4,Lead,Redpoint,Sport,5.12a,60,3200',
+    '2026-08-17,"Test climb",5.12a,,https://www.mountainproject.com/route/1/x,1,"Squamish > Wall",3.3,4,TR,,Sport,,60,3200',
+  ].join("\n");
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(csv, {
+        headers: {
+          "Content-Type": "text/csv; charset=utf-8",
+          "X-Mountain-Project-User": "eric-bonilla",
+        },
+      }),
+    ),
+  );
+  render(<ImportWizard profileHref="/users/local" />);
+  await userEvent.click(screen.getByRole("button", { name: "Mountain Project" }));
+  await userEvent.type(
+    screen.getByRole("textbox", { name: "Mountain Project user ID or profile link" }),
+    "https://www.mountainproject.com/user/200226064/eric-bonilla/ticks",
+  );
+  await userEvent.click(screen.getByRole("button", { name: "Load ticks" }));
+  await waitFor(() => expect(resolveImportClimbs).toHaveBeenCalledExactlyOnceWith(["Test climb"]));
+  expect(screen.getByText(/Mountain Project profile @eric-bonilla/)).toBeInTheDocument();
+  await waitFor(() => expect(screen.getByRole("button", { name: "Next: Review" })).toBeEnabled());
+  await userEvent.click(screen.getByRole("button", { name: "Next: Review" }));
+  expect(screen.getByText("Will import").parentElement).toHaveTextContent("1");
+  expect(screen.getByText(/Unmapped ascent style value "TR"/)).toBeInTheDocument();
+  expect(importSends).not.toHaveBeenCalled();
+});
+
 it("disables competing import sources while KAYA is loading and releases them on cancel", async () => {
   vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockReturnValue(new Promise(() => {})));
   render(<ImportWizard profileHref="/users/local" />);

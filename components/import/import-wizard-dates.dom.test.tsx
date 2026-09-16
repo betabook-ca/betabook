@@ -23,8 +23,9 @@ beforeEach(() => {
     .mockReset()
     .mockImplementation(async (names) => ({
       ok: true,
+      // A real catalog holds these names only; spelling variants find nothing.
       value: names
-        .filter((name) => name !== unmatched)
+        .filter((name) => name !== unmatched && /^Climb \d+$/.test(name))
         .map((name) => ({
           id: Number(name.slice(6)),
           name,
