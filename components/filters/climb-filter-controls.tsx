@@ -8,6 +8,7 @@ import type { ActiveFilter } from "@/components/filters/active-filter-summary";
 import { statsActiveFilters } from "@/components/filters/active-filter-values";
 import { ClimbFilters } from "@/components/filters/climb-filters";
 import { ClimbStatsFields } from "@/components/filters/climb-stats-filter-fields";
+import type { SortPlacement } from "@/components/filters/filter-toolbar";
 import { AreaLookup } from "@/components/search/area-lookup";
 import { DEFAULT_CLIMB_LIST_SORT } from "@/lib/climb-list-sort";
 import { DEFAULT_CLIMB_FILTER } from "@/lib/filters/climb-filter";
@@ -25,11 +26,13 @@ export function ClimbFilterControls({
   showAreaLookup = false,
   showMinAscents = true,
   showRatingFilters = true,
+  sortPlacement,
   onReset,
   activeFilters = EMPTY_ACTIVE_FILTERS,
 }: {
   onReset?: () => void;
   activeFilters?: ActiveFilter[];
+  sortPlacement?: SortPlacement;
   showAreaLookup?: boolean;
   showMinAscents?: boolean;
   showRatingFilters?: boolean;
@@ -112,6 +115,7 @@ export function ClimbFilterControls({
           </>
         ) : undefined
       }
+      sortPlacement={sortPlacement}
       sortControl={
         <ClimbListSortControl
           sort={value.sort}

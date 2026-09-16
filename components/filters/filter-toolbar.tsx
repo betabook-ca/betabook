@@ -15,6 +15,10 @@ import type { DisciplineFilter } from "@/lib/filters/discipline-filter";
 
 const EMPTY_ACTIVE_FILTERS: ActiveFilter[] = [];
 
+/** `row`: sort shares the toolbar row. `summary`: sort sits under the active
+ * filter chips, directly above the results it orders. */
+export type SortPlacement = "row" | "summary";
+
 /** Narrows an existing list with text, discipline, date, hashtag, and other filters.
  * `textFilter` never renders a separate record-results menu. */
 export function FilterToolbar<T extends DisciplineFilter>({
@@ -23,6 +27,7 @@ export function FilterToolbar<T extends DisciplineFilter>({
   onReset,
   textFilter,
   sortControl,
+  sortPlacement,
   extraFilters,
   activeFilters = EMPTY_ACTIVE_FILTERS,
 }: {
@@ -31,6 +36,7 @@ export function FilterToolbar<T extends DisciplineFilter>({
   onReset: () => void;
   textFilter?: ReactNode;
   sortControl?: ReactNode;
+  sortPlacement?: SortPlacement;
   /** Rendered in the expanded panel above the grade sliders — the filters
    * that are specific to one list (rating range, ascent style, …). */
   extraFilters?: ReactNode;
@@ -47,6 +53,7 @@ export function FilterToolbar<T extends DisciplineFilter>({
         />
       }
       sortControl={sortControl}
+      sortPlacement={sortPlacement}
       filters={
         <>
           {extraFilters}
@@ -65,6 +72,7 @@ export function FilterToolbarLayout({
   search,
   controls,
   sortControl,
+  sortPlacement = "row",
   filters,
   onReset,
   activeFilters = EMPTY_ACTIVE_FILTERS,
@@ -74,11 +82,13 @@ export function FilterToolbarLayout({
   controls: ReactNode;
   triggerClassName?: string;
   sortControl?: ReactNode;
+  sortPlacement?: SortPlacement;
   filters: ReactNode;
   activeFilters?: ActiveFilter[];
   onReset: () => void;
 }) {
-  const sort = sortControl && (
+  const rowSort = sortPlacement === "row" ? sortControl : undefined;
+  const sort = rowSort && (
     <div
       role="group"
       aria-label="Result order"
@@ -87,7 +97,7 @@ export function FilterToolbarLayout({
         search ? "col-start-2 row-start-1 @3xl/filters:ml-auto" : "ml-auto",
       )}
     >
-      {sortControl}
+      {rowSort}
     </div>
   );
   return (
@@ -100,7 +110,7 @@ export function FilterToolbarLayout({
               aria-label="Filter controls"
               className={clsx(
                 "grid gap-2 @3xl/filters:flex @3xl/filters:items-center @3xl/filters:gap-3",
-                search && sortControl ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-1",
+                search && rowSort ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-1",
               )}
             >
               {search && (
@@ -117,7 +127,7 @@ export function FilterToolbarLayout({
                       size: "sm",
                       className: clsx(
                         FIELD_HEIGHT_CLASS,
-                        (search || !sortControl) && "ml-auto @3xl/filters:ml-0",
+                        (search || !rowSort) && "ml-auto @3xl/filters:ml-0",
                         triggerClassName,
                       ),
                     })}
@@ -136,6 +146,11 @@ export function FilterToolbarLayout({
             </div>
 
             <ActiveFilterSummary filters={activeFilters} onClear={onReset} />
+            {sortPlacement === "summary" && sortControl && (
+              <div role="group" aria-label="Result order" className="mt-3 flex min-w-0">
+                {sortControl}
+              </div>
+            )}
 
             {/* Disclosure.Body's own p-2 comes from an outer wrapper div this
              * component doesn't expose a className for — style is the only prop
