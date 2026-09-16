@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { expect, it } from "vitest";
 
-import { DEFAULT_DISCIPLINE_FILTER, type DisciplineFilter } from "@/lib/filters/discipline-filter";
+import { DEFAULT_DISCIPLINE_FILTER } from "@/lib/filters/discipline-filter";
 
 import { FilterToolbar } from "./filter-toolbar";
 
@@ -36,10 +36,10 @@ it("retains grade choices across disclosure changes and reset clears disciplines
   expect(screen.getByRole("button", { name: /Min grade/ })).toHaveTextContent("VB");
 });
 
-function PlacedToolbar({ placement }: { placement?: "row" | "below" }) {
-  const [value, setValue] = useState<DisciplineFilter>({
+function PlacedToolbar({ placement }: { placement?: "row" | "summary" }) {
+  const [value, setValue] = useState({
     ...DEFAULT_DISCIPLINE_FILTER,
-    disciplines: ["sport"],
+    disciplines: ["sport" as const],
   });
   return (
     <FilterToolbar
@@ -51,25 +51,20 @@ function PlacedToolbar({ placement }: { placement?: "row" | "below" }) {
     />
   );
 }
-it("places the sort control in the toolbar row by default and below the expanded filters on request", async () => {
-  const user = userEvent.setup();
+it("places the sort control in the toolbar row by default and under the active filters on request", () => {
   const order = () => {
     const sort = screen.getByRole("group", { name: "Result order" });
     const controls = screen.getByRole("group", { name: "Filter controls" });
+    const summary = screen.getByText("Filtered by");
     const nodes = [...document.querySelectorAll("*")];
-    const after = (node: Element) => nodes.indexOf(sort) > nodes.indexOf(node);
     if (controls.contains(sort)) return "in row";
-    return after(screen.getByText("Filtered by")) &&
-      after(screen.getByRole("region", { name: "Filter options" }))
-      ? "below the panel"
-      : "above the panel";
+    return nodes.indexOf(sort) > nodes.indexOf(summary) ? "after summary" : "before summary";
   };
   const { unmount } = render(<PlacedToolbar />);
   expect(order()).toBe("in row");
   expect(screen.getAllByRole("group", { name: "Result order" })).toHaveLength(1);
   unmount();
-  render(<PlacedToolbar placement="below" />);
-  await user.click(screen.getByRole("button", { name: "Expand filters" }));
-  expect(order()).toBe("below the panel");
+  render(<PlacedToolbar placement="summary" />);
+  expect(order()).toBe("after summary");
   expect(screen.getAllByRole("group", { name: "Result order" })).toHaveLength(1);
 });

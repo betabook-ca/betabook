@@ -15,9 +15,9 @@ import type { DisciplineFilter } from "@/lib/filters/discipline-filter";
 
 const EMPTY_ACTIVE_FILTERS: ActiveFilter[] = [];
 
-/** `row`: sort shares the toolbar row. `below`: sort sits after the chips and
- * the expanded panel, right-aligned, directly above the results it orders. */
-export type SortPlacement = "row" | "below";
+/** `row`: sort shares the toolbar row. `summary`: sort sits under the active
+ * filter chips, directly above the results it orders. */
+export type SortPlacement = "row" | "summary";
 
 /** Narrows an existing list with text, discipline, date, hashtag, and other filters.
  * `textFilter` never renders a separate record-results menu. */
@@ -146,6 +146,11 @@ export function FilterToolbarLayout({
             </div>
 
             <ActiveFilterSummary filters={activeFilters} onClear={onReset} />
+            {sortPlacement === "summary" && sortControl && (
+              <div role="group" aria-label="Result order" className="mt-3 flex min-w-0">
+                {sortControl}
+              </div>
+            )}
 
             {/* Disclosure.Body's own p-2 comes from an outer wrapper div this
              * component doesn't expose a className for — style is the only prop
@@ -163,11 +168,6 @@ export function FilterToolbarLayout({
                 </section>
               </Disclosure.Body>
             </Disclosure.Content>
-            {sortPlacement === "below" && sortControl && (
-              <div role="group" aria-label="Result order" className="mt-3 flex min-w-0 justify-end">
-                {sortControl}
-              </div>
-            )}
           </>
         )}
       </Disclosure>
