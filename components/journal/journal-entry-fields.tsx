@@ -238,7 +238,7 @@ export function JournalEntryFields({
           </div>
 
           <p className="text-xs text-muted">
-            Set separate audiences for send commentary and journal entries in{" "}
+            Set your Send commentary and Journal and goals audiences in{" "}
             <AppLink href="/account">Account settings</AppLink>.
           </p>
         </DetailsDisclosure>

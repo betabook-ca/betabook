@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { scheduleGoalRefresh } from "@/actions/goal-refresh";
 import { getDb } from "@/db/client";
 import { canReadJournal } from "@/db/queries/content-access";
 import { getGoalPage, getGoalContributions, getRecurringGoalHistory } from "@/db/queries/goals";
@@ -78,17 +79,16 @@ export const GET = withApiSession(
     const view = query.get("view") ?? "active";
     if (!["active", "completed"].includes(view))
       return NextResponse.json({ error: "Invalid page" }, { status: 400, headers });
-    return NextResponse.json(
-      await getGoalPage(
-        db,
-        id,
-        session.user.id,
-        view as "active" | "completed",
-        offset,
-        new Date(),
-        year,
-      ),
-      { headers },
+    const page = await getGoalPage(
+      db,
+      id,
+      session.user.id,
+      view as "active" | "completed",
+      offset,
+      new Date(),
+      year,
     );
+    if (id === session.user.id) await scheduleGoalRefresh(db, id);
+    return NextResponse.json(page, { headers });
   },
 );

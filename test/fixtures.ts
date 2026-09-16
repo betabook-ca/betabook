@@ -26,7 +26,7 @@ export async function seedFixtureFriendship(
  * statements to `batch`, which costs one round trip per group rather than one
  * per row. Order is preserved, so ids stay predictable for tests that assert
  * on them. */
-async function insertInBatches<Row>(
+export async function insertInBatches<Row>(
   db: Database,
   rows: Row[],
   rowsPerStatement: number,

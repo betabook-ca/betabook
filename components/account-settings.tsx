@@ -83,7 +83,7 @@ export function AccountSettings({
         </SettingsRow>
         <SettingsRow
           title="Getting started"
-          description="Learn to log sessions, add friends and set privacy."
+          description="Learn to log sessions, set goals, find projects, add friends and choose what you share."
         >
           <ProductTour />
         </SettingsRow>

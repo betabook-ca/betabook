@@ -1,11 +1,16 @@
 import { env } from "cloudflare:test";
 import { beforeEach, expect, it, vi } from "vitest";
 
+import { scheduleGoalRefresh } from "@/actions/goal-refresh";
 import { GET } from "@/app/api/users/[id]/goals/route";
 import { createDb } from "@/db/client";
 import { goals, friendships } from "@/db/schema";
 import { seedFixtureUser, seedFixtureFriendship } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
+
+vi.mock("@/actions/goal-refresh", () => ({
+  scheduleGoalRefresh: vi.fn<typeof scheduleGoalRefresh>(async () => {}),
+}));
 
 const state = vi.hoisted(() => ({ viewer: "friend" as string | null }));
 vi.mock("@/lib/session", () => ({
@@ -20,6 +25,7 @@ const db = createDb(env.DB);
 const params = { params: Promise.resolve({ id: "owner" }) };
 const request = (query = "") => new Request(`https://betabook.ca/api/users/owner/goals?${query}`);
 beforeEach(async () => {
+  vi.mocked(scheduleGoalRefresh).mockClear();
   state.viewer = "friend";
   await resetDb(db);
   await seedFixtureUser(db, { id: "owner", journalVisibility: "friends" });
@@ -61,4 +67,13 @@ it("validates history/year paging and protects history after access changes", as
   expect((await GET(request("historyId=999"), params)).status).toBe(200);
   await db.delete(friendships);
   expect((await GET(request("historyId=1&year=2026"), params)).status).toBe(404);
+});
+
+it("schedules reconciliation only for an owner's Goals read", async () => {
+  await seedFixtureFriendship(db, "owner", "friend");
+  expect((await GET(request(), params)).status).toBe(200);
+  expect(scheduleGoalRefresh).not.toHaveBeenCalled();
+  state.viewer = "owner";
+  expect((await GET(request("view=completed"), params)).status).toBe(200);
+  expect(scheduleGoalRefresh).toHaveBeenCalledWith(expect.anything(), "owner");
 });

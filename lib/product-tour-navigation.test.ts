@@ -27,6 +27,10 @@ describe("route-based tours", () => {
       expect(result.shouldInvite).toBe(true);
       expect(result.navigation.mode).toBe("updates");
       expect(result.steps.map((step) => step.id)).toEqual([
+        "goals",
+        "goal-tags",
+        "goal-progress",
+        "goal-achievements",
         "find-projects",
         "find-climbers",
         "friend-requests",
@@ -36,7 +40,7 @@ describe("route-based tours", () => {
     },
   );
 
-  it("offers only the Find climbs lesson after version 2 was acknowledged", () => {
+  it("offers Goals and Find climbs after version 2 was acknowledged", () => {
     const tour = PRODUCT_TOURS[0];
     const result = resolveProductTour(PRODUCT_TOUR_STEPS[tour.id], {
       version: tour.version,
@@ -45,14 +49,20 @@ describe("route-based tours", () => {
     });
     expect(result.shouldInvite).toBe(true);
     expect(result.navigation.mode).toBe("updates");
-    expect(result.steps.map((step) => step.id)).toEqual(["find-projects"]);
+    expect(result.steps.map((step) => step.id)).toEqual([
+      "goals",
+      "goal-tags",
+      "goal-progress",
+      "goal-achievements",
+      "find-projects",
+    ]);
   });
 
-  it("includes every lesson in full replay and stops inviting after version 3", () => {
+  it("includes every lesson in full replay and stops inviting after version 4", () => {
     const tour = PRODUCT_TOURS[0];
     const result = resolveProductTour(PRODUCT_TOUR_STEPS[tour.id], {
       version: tour.version,
-      savedVersion: 3,
+      savedVersion: 4,
       navigation: { from: "account", mode: "updates" },
     });
     expect(result.shouldInvite).toBe(false);
@@ -61,6 +71,10 @@ describe("route-based tours", () => {
       "journal",
       "journal-filters",
       "sends",
+      "goals",
+      "goal-tags",
+      "goal-progress",
+      "goal-achievements",
       "projects",
       "analytics",
       "find-projects",
@@ -252,3 +266,26 @@ describe("shared tour query parsing", () => {
     expect(parseProductTourNavigation(server)).toEqual(expected);
   });
 });
+
+it.each(["completed", "dismissed"] as const)(
+  "offers the four goal lessons after version 3 was %s",
+  (status) => {
+    const tour = PRODUCT_TOURS[0];
+    expect(tour.version).toBe(4);
+    const savedVersion = getAcknowledgedTourVersion(tour.id, [
+      { tourId: tour.id, version: 3, status },
+    ]);
+    const result = resolveProductTour(PRODUCT_TOUR_STEPS[tour.id], {
+      version: tour.version,
+      savedVersion,
+      navigation: { from: "journal", mode: "updates" },
+    });
+    expect(result.shouldInvite).toBe(true);
+    expect(result.steps.map((step) => step.id)).toEqual([
+      "goals",
+      "goal-tags",
+      "goal-progress",
+      "goal-achievements",
+    ]);
+  },
+);

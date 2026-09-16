@@ -33,7 +33,7 @@ function PeriodCircle({
     ? "Met"
     : start > today
       ? "Upcoming"
-      : end >= today
+      : (period?.periodEnd ?? end) >= today
         ? "In progress"
         : period
           ? "Missed"
@@ -73,10 +73,12 @@ function HistoryYears({
   periods,
   today,
   hasMore,
+  recurringEndDate,
 }: {
   periods: GoalPeriod[];
   today: string;
   hasMore: boolean;
+  recurringEndDate?: string | null;
 }) {
   const firstLoadedMonth = periods.map((p) => p.periodStart.slice(0, 7)).sort()[0];
   const years = [...new Set(periods.map((p) => p.periodStart.slice(0, 4)))].sort((a, b) =>
@@ -93,6 +95,7 @@ function HistoryYears({
           <div className="grid w-fit grid-cols-6 gap-0.5 lg:grid-cols-12">
             {Array.from({ length: 12 }, (_, i) => {
               const start = `${year}-${String(i + 1).padStart(2, "0")}-01`;
+              if (recurringEndDate && start > recurringEndDate) return null;
               const end = new Date(Date.UTC(Number(year), i + 1, 0)).toISOString().slice(0, 10);
               return (
                 <PeriodCircle
@@ -143,11 +146,13 @@ function MixedAnnualHistory({
   currentPeriod,
   today,
   hasMore,
+  recurringEndDate,
 }: {
   periods: GoalPeriod[];
   currentPeriod?: GoalProgress;
   today: string;
   hasMore: boolean;
+  recurringEndDate?: string | null;
 }) {
   const annual = periods.filter((period) => period.repeat === "year");
   return (
@@ -158,6 +163,7 @@ function MixedAnnualHistory({
         currentPeriod={currentPeriod?.repeat === "year" ? undefined : currentPeriod}
         today={today}
         hasMore={hasMore}
+        recurringEndDate={recurringEndDate}
       />
     </>
   );
@@ -168,11 +174,13 @@ function HistoryMonths({
   today,
   currentPeriod,
   hasMore,
+  recurringEndDate,
 }: {
   periods: GoalPeriod[];
   today: string;
   currentPeriod?: GoalProgress;
   hasMore: boolean;
+  recurringEndDate?: string | null;
 }) {
   const records =
     currentPeriod &&
@@ -192,12 +200,20 @@ function HistoryMonths({
         currentPeriod={currentPeriod}
         today={today}
         hasMore={hasMore}
+        recurringEndDate={recurringEndDate}
       />
     );
   }
 
   if (records.every((p) => p.repeat === "month"))
-    return <HistoryYears periods={records} today={today} hasMore={hasMore} />;
+    return (
+      <HistoryYears
+        periods={records}
+        today={today}
+        hasMore={hasMore}
+        recurringEndDate={recurringEndDate}
+      />
+    );
   const months = new Map<string, GoalPeriod[]>();
   for (const period of records) {
     const month = period.periodStart.slice(0, 7);
@@ -235,20 +251,25 @@ function HistoryMonths({
               </span>
               <div className="flex flex-wrap items-center gap-0.5">
                 {hasWeeks &&
-                  goalWeekSlots(month).map((slot) => (
-                    <PeriodCircle
-                      key={slot.periodStart}
-                      start={slot.periodStart}
-                      end={slot.periodEnd}
-                      period={group.find(
-                        (period) =>
-                          period.repeat === "week" &&
-                          period.periodStart === slot.periodStart &&
-                          period.periodEnd === slot.periodEnd,
-                      )}
-                      today={today}
-                    />
-                  ))}
+                  goalWeekSlots(month)
+                    .filter((slot) => !recurringEndDate || slot.periodStart <= recurringEndDate)
+                    .map((slot) => (
+                      <PeriodCircle
+                        key={slot.periodStart}
+                        start={slot.periodStart}
+                        end={slot.periodEnd}
+                        period={group.find(
+                          (period) =>
+                            period.repeat === "week" &&
+                            period.periodStart === slot.periodStart &&
+                            period.periodEnd ===
+                              (recurringEndDate && recurringEndDate < slot.periodEnd
+                                ? recurringEndDate
+                                : slot.periodEnd),
+                        )}
+                        today={today}
+                      />
+                    ))}
                 {group
                   .filter((period) => period.repeat !== "week")
                   .map((period) => (
@@ -354,6 +375,7 @@ export function GoalRecurringHistory({
         today={today}
         currentPeriod={currentPeriod}
         hasMore={moreAvailable}
+        recurringEndDate={goal.recurringEndDate}
       />
 
       {moreAvailable && <LoadMoreButton loading={loading} onPress={more} failed={Boolean(error)} />}
