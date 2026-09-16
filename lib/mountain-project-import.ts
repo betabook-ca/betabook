@@ -70,7 +70,7 @@ function styleWarnings(parsed: ParsedCsv): string[] {
   const shown = skipped.slice(0, STYLE_EXAMPLE_LIMIT).map((value) => `“${value}”`);
   const more = skipped.length - shown.length;
   return [
-    `Mountain Project records attempts and rope styles alongside sends. ${shown.join(", ")}${more ? ` and ${more} more` : ""} ${skipped.length === 1 ? "is" : "are"} not a Betabook ascent style, so those ticks are skipped unless you map them in the ascent style step.`,
+    `Mountain Project records attempts and rope styles alongside sends. ${shown.join(", ")}${more ? ` and ${more} more` : ""} ${skipped.length === 1 ? "is not a Betabook ascent style" : "are not Betabook ascent styles"}, so those ticks are skipped unless you map them in the ascent style step.`,
   ];
 }
 

@@ -106,6 +106,7 @@ describe("Mountain Project import", () => {
     expect(warning).toContain("“TR”");
     expect(warning).toContain("“Fell”");
     expect(warning).not.toContain("“Send”");
+    expect(warning).toContain("are not Betabook ascent styles");
   });
 
   it("does not warn when every tick style maps to an ascent style", async () => {
