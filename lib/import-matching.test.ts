@@ -543,6 +543,17 @@ describe("looseLookupsNeeded", () => {
   });
 });
 
+describe("looseLookupsNeeded bounds", () => {
+  it("stops asking once the recovery pass would cost too many lookups", () => {
+    const many = Array.from({ length: 600 }, (_, i) =>
+      row({ climbName: `Unknown ${i}`, rowIndex: i }),
+    );
+    const lookups = looseLookupsNeeded(many, new Map());
+    expect(lookups).toHaveLength(500);
+    expect(lookups[0].name).toBe("Unknown 0");
+  });
+});
+
 describe("matching a close spelling", () => {
   const PROW = candidate({
     id: 42,

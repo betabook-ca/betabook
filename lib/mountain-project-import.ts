@@ -36,7 +36,7 @@ async function readCsv(
   signal: AbortSignal,
   onProgress?: (bytes: number) => void,
 ): Promise<string> {
-  if (!response.body || !response.headers.get("Content-Type")?.startsWith("text/csv"))
+  if (!response.body || !response.headers.get("Content-Type")?.toLowerCase().startsWith("text/csv"))
     throw new Error(FORMAT_ERROR);
   const reader = response.body.getReader();
   const decoder = new TextDecoder();

@@ -425,9 +425,8 @@ export const RATING_VALUES = ["1", "2", "3", "4", "5"] as const;
 type RatingValue = (typeof RATING_VALUES)[number];
 export type RatingMapping = Record<string, RatingValue | "skip">;
 
-/** Mountain Project's top personal rating is 4 stars, so its scale is stretched
- * onto Betabook's 5 rather than compressed against it; every value stays
- * editable. Zero and negative mean unrated, and halves round to a whole star. */
+/** A 4-star source is stretched onto Betabook's 5 rather than compressed
+ * against it. Every value stays editable in the wizard. */
 export function guessRatingMapping(values: string[], source: ImportSource): RatingMapping {
   const mapping = Object.create(null) as RatingMapping;
   const top = source === "mountainproject" ? 4 : 5;
@@ -707,8 +706,8 @@ export function normalizeImportRows(
     const rawRating = cell(mapping.rating);
     const mappedRating = rawRating ? ownValue(ratingMapping, rawRating) : undefined;
     const rating = mappedRating && mappedRating !== "skip" ? Number(mappedRating) : null;
-    // Zero and negative mean unrated in supported exports; Mountain Project uses -1.
-    // A value a climber deliberately left unrated is their choice, not a defect.
+    // Zero and negative mean unrated (Mountain Project uses -1), and a value the
+    // climber chose to leave unrated is a choice rather than a defect.
     const ratingNum = Number(rawRating);
     if (rawRating && rating === null && !(Number.isFinite(ratingNum) && ratingNum <= 5))
       warn("rating", rowIndex, `"${rawRating}"`);

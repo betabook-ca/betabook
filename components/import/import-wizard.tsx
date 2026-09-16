@@ -570,8 +570,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
       if (!(await request(() => resolveImportClimbsInAreas(pairs)))) return;
     }
 
-    // Names that found nothing get one more pass under close spellings. The
-    // lookup stays the indexed name query; matching decides what to trust.
+    // The lookup stays the indexed name query; matching decides what to trust.
     const lookups = looseLookupsNeeded(valid, index);
     const variantChunks = chunk(lookups.flatMap((lookup) => lookup.variants));
     total += variantChunks.length;

@@ -11,9 +11,8 @@ export function foldClimbName(name: string): string {
 const LEADING_LABEL = /^[^a-z0-9(]*(?:\([a-z0-9]{1,3}\))?[^a-z0-9]*/;
 const LEADING_ARTICLE_KEY = /^(?:the|a|an) /;
 
-/** Compare names across catalogs that punctuate and decorate differently:
- * Mountain Project ships area names such as "**Bouldering at Exit 38" and
- * "(g) Black Dyke". Deliberately lossy, so it only ever confirms a signal. */
+/** Deliberately lossy, so it only ever confirms a signal: catalogs decorate
+ * area names differently ("**Bouldering at Exit 38", "(g) Black Dyke"). */
 export function looseNameKey(name: string): string {
   return name
     .normalize("NFD")
@@ -87,11 +86,11 @@ export type MatchOptions = {
 
 const LEADING_ARTICLE = /^(?:the|a|an) +/i;
 const MAX_NAME_VARIANTS = 8;
+/** Each name costs up to MAX_NAME_VARIANTS extra lookups, so recovery is
+ * bounded; anything past it stays available through the manual search. */
+const MAX_LOOSE_LOOKUP_NAMES = 500;
 
-/** Spellings worth a second exact lookup when a name finds nothing: catalogs
- * disagree about leading articles, apostrophe characters, separators and
- * accents. Generating variants keeps the indexed name lookup; it never widens
- * the query itself. */
+/** Variants keep the indexed name lookup rather than widening the query. */
 export function climbNameVariants(name: string): string[] {
   const original = foldClimbName(name);
   const seen = new Set<string>([original]);
@@ -116,7 +115,6 @@ export function climbNameVariants(name: string): string[] {
   return variants;
 }
 
-/** Rows that found no candidate under their own name, with the variants to try. */
 export function looseLookupsNeeded(
   rows: readonly NormalizedImportRow[],
   index: CandidateIndex,
@@ -124,6 +122,7 @@ export function looseLookupsNeeded(
   const seen = new Set<string>();
   const lookups: { name: string; variants: string[] }[] = [];
   for (const row of rows) {
+    if (lookups.length >= MAX_LOOSE_LOOKUP_NAMES) break;
     const key = foldClimbName(row.climbName);
     if (seen.has(key) || (index.get(key)?.length ?? 0) > 0) continue;
     seen.add(key);
@@ -133,8 +132,7 @@ export function looseLookupsNeeded(
   return lookups;
 }
 
-/** File the variant matches under the row's own name so matching stays keyed by
- * what the file said. */
+/** Keyed by the row's own name, so matching stays keyed by what the file said. */
 export function mergeLooseCandidates(
   index: CandidateIndex,
   lookups: readonly { name: string; variants: string[] }[],

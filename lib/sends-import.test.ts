@@ -1314,7 +1314,6 @@ describe("guessRatingMapping", () => {
       "6": "skip",
       "": "skip",
     });
-    // Four is off Mountain Project's scale only when it is above it.
     expect(guessRatingMapping(["5"], "mountainproject")).toEqual({ "5": "skip" });
   });
 });
