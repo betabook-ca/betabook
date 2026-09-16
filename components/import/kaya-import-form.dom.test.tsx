@@ -16,7 +16,7 @@ beforeEach(() => {
   vi.mocked(fetchKayaImport).mockReset().mockResolvedValue(structuredClone(payload));
 });
 function setup() {
-  const onLoaded = vi.fn<(parsed: ParsedCsv, username: string) => void>();
+  const onLoaded = vi.fn<(parsed: ParsedCsv, label: string) => void>();
   const onBusyChange = vi.fn<(busy: boolean) => void>();
   const rendered = render(<KayaImportForm onLoaded={onLoaded} onBusyChange={onBusyChange} />);
   return { ...rendered, onLoaded, onBusyChange };
@@ -26,7 +26,7 @@ it("imports the entered username and starts blank when opened again", async () =
   const { onLoaded, onBusyChange, unmount } = setup();
   await userEvent.type(screen.getByRole("textbox"), "climber");
   await userEvent.click(screen.getByRole("button", { name: "Load sends" }));
-  await waitFor(() => expect(onLoaded).toHaveBeenCalledExactlyOnceWith(payload.parsed, "climber"));
+  await waitFor(() => expect(onLoaded).toHaveBeenCalledExactlyOnceWith(payload.parsed, "@climber"));
   expect(fetchKayaImport).toHaveBeenCalledWith(
     "climber",
     expect.objectContaining({ signal: expect.any(AbortSignal) }),

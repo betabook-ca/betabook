@@ -421,6 +421,27 @@ type ImportClimbType = ClimbType | "route";
 export type ClimbTypeMapping = Record<string, ImportClimbType | "skip">;
 export type GradeFeelMapping = Record<string, GradeFeel | "skip">;
 
+export const RATING_VALUES = ["1", "2", "3", "4", "5"] as const;
+type RatingValue = (typeof RATING_VALUES)[number];
+export type RatingMapping = Record<string, RatingValue | "skip">;
+
+/** A 4-star source is stretched onto Betabook's 5 rather than compressed
+ * against it. Every value stays editable in the wizard. */
+export function guessRatingMapping(values: string[], source: ImportSource): RatingMapping {
+  const mapping = Object.create(null) as RatingMapping;
+  const top = source === "mountainproject" ? 4 : 5;
+  for (const value of values) {
+    const stars = Number(value.trim());
+    if (!Number.isFinite(stars) || stars <= 0 || stars > top) {
+      mapping[value] = "skip";
+      continue;
+    }
+    const scaled = Math.round(1 + ((stars - 1) * 4) / (top - 1));
+    mapping[value] = String(Math.min(5, Math.max(1, scaled))) as RatingValue;
+  }
+  return mapping;
+}
+
 // Map common send styles; attempts, top ropes, and follows stay unmapped for review.
 const ASCENT_STYLE_ALIASES: Record<string, AscentStyle> = {
   "red point": "redpoint",
@@ -573,7 +594,7 @@ const WARNING_EXAMPLE_LIMIT = 3;
 
 const COERCION_MESSAGES: Record<CoercionWarning["field"], string> = {
   suggestedGrade: "unrecognized grade, imported without a suggested grade",
-  rating: "invalid rating, imported without a rating",
+  rating: "imported without a rating",
   gradeFeel: 'unmapped grade feel, imported as "solid"',
   comment: `comment longer than ${MAX_COMMENT_LENGTH} characters, truncated`,
 };
@@ -611,6 +632,7 @@ export function normalizeImportRows(
   ascentStyleMapping: AscentStyleMapping,
   climbTypeMapping: ClimbTypeMapping,
   gradeFeelMapping: GradeFeelMapping,
+  ratingMapping: RatingMapping,
   dateFormat: DateFormat,
   options: NormalizeOptions = {},
 ): { valid: NormalizedImportRow[]; invalid: InvalidImportRow[]; warnings: CoercionWarning[] } {
@@ -682,15 +704,12 @@ export function normalizeImportRows(
       mappedClimbType && mappedClimbType !== "skip" ? mappedClimbType : null;
 
     const rawRating = cell(mapping.rating);
-    const ratingNum = rawRating ? Number(rawRating) : null;
-    const rating =
-      ratingNum !== null && Number.isInteger(ratingNum) && ratingNum >= 1 && ratingNum <= 5
-        ? ratingNum
-        : null;
-    // Zero and negative ratings represent unrated in supported exports; Mountain Project uses -1.
-    if (rawRating && rating === null && !(ratingNum !== null && ratingNum <= 0)) {
+    const mappedRating = rawRating ? ownValue(ratingMapping, rawRating) : undefined;
+    const rating = mappedRating && mappedRating !== "skip" ? Number(mappedRating) : null;
+    // Zero and negative mean unrated in supported exports; Mountain Project uses -1.
+    const ratingNum = Number(rawRating);
+    if (rawRating && rating === null && !(Number.isFinite(ratingNum) && ratingNum <= 0))
       warn("rating", rowIndex, `"${rawRating}"`);
-    }
 
     const rawComment = textCell(mapping.comment);
     if (rawComment.length > MAX_COMMENT_LENGTH) {

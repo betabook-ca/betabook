@@ -63,7 +63,10 @@ export function AccountSettings({
       </SettingsSection>
 
       <SettingsSection id="sends" title="Sends">
-        <SettingsRow title="Import history" description="From Sendage, KAYA or a CSV file.">
+        <SettingsRow
+          title="Import history"
+          description="From Sendage, KAYA, Mountain Project or a CSV file."
+        >
           <AppLink href="/account/import" className={OUTLINE_LINK_CLASS}>
             <Upload aria-hidden="true" className="size-4" />
             Import sends

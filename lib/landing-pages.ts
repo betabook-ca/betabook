@@ -22,7 +22,7 @@ export const IMPORT_PAGES = {
   mountainProject: {
     path: "/mountain-project-import",
     label: "Import from Mountain Project",
-    description: "Upload Mountain Project’s tick export.",
+    description: "Load your Mountain Project ticks, or upload their CSV export.",
   },
 } satisfies Record<string, LandingPageLink>;
 

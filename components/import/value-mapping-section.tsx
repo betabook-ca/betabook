@@ -7,7 +7,7 @@ import { Eyebrow, EYEBROW_CLASS } from "@/components/ui/eyebrow";
 import { OptionSelect, type SelectOption } from "@/components/ui/option-select";
 import { formatCount } from "@/lib/format";
 import { ASCENT_STYLES, GRADE_FEEL_VALUES } from "@/lib/sends";
-import { CLIMB_TYPES } from "@/lib/sends-import";
+import { CLIMB_TYPES, RATING_VALUES } from "@/lib/sends-import";
 
 /** A stat the review and result steps lead with — the number, then what it
  * counts. */
@@ -99,6 +99,10 @@ export const CLIMB_TYPE_OPTIONS = [
   })),
   { value: "route" as const, label: "Route (sport or trad)" },
 ];
+export const RATING_OPTIONS = RATING_VALUES.map((value) => ({
+  value,
+  label: value === "1" ? "1 star" : `${value} stars`,
+}));
 export const GRADE_FEEL_OPTIONS = GRADE_FEEL_VALUES.map((value) => ({
   value,
   label: GRADE_FEEL_LABELS[value],

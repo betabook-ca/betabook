@@ -10,6 +10,7 @@ import {
   guessClimbTypeMapping,
   guessColumnMapping,
   guessGradeFeelMapping,
+  guessRatingMapping,
   normalizeImportRows,
   parseCsvText,
 } from "./sends-import";
@@ -135,6 +136,7 @@ describe("export → import round trip", () => {
       ascentStyleMapping,
       climbTypeMapping,
       gradeFeelMapping,
+      guessRatingMapping(distinctValues(parsed.rows, mapping.rating), "betabook"),
       "iso",
       { today: "2026-08-19" },
     );

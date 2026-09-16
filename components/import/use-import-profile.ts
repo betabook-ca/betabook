@@ -17,13 +17,14 @@ export function useImportProfile<Progress>({
   initialUsername: string;
   initialProgress: Progress;
   disabled: boolean;
-  service: "KAYA" | "Sendage";
+  service: "KAYA" | "Sendage" | "Mountain Project";
   emptyMessage: string;
   fetchProfile: (
     input: string,
     options: { signal: AbortSignal; onProgress: (progress: Progress) => void },
-  ) => Promise<{ username: string; parsed: ParsedCsv }>;
-  onLoaded: (parsed: ParsedCsv, username: string) => void;
+  ) => Promise<{ username: string; parsed: ParsedCsv; displayName?: string }>;
+  /** The handle, unless the service reports its own display name. */
+  onLoaded: (parsed: ParsedCsv, label: string) => void;
   onBusyChange: (busy: boolean) => void;
 }) {
   const [input, setInput] = useState(initialUsername);
@@ -54,7 +55,7 @@ export function useImportProfile<Progress>({
         return;
       }
       setInput(result.username);
-      onLoaded(result.parsed, result.username);
+      onLoaded(result.parsed, result.displayName ?? `@${result.username}`);
     } catch (cause) {
       if (!controller.signal.aborted)
         setError(
