@@ -10,9 +10,9 @@ const meta = {
   args: {
     value: "solid",
     options: [
-      { value: "soft", label: "Soft" },
+      { value: "low", label: "Low end" },
       { value: "solid", label: "Solid" },
-      { value: "hard", label: "Hard" },
+      { value: "high", label: "High end" },
     ],
     onChange: () => {},
   },

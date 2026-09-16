@@ -29,9 +29,9 @@ export function SendGradeCell({
 }: SendGradeCellProps) {
   const arrow =
     gradeFeel === "high" ? (
-      <GradeArrow direction="up" label="Felt hard for the grade" />
+      <GradeArrow direction="up" label="Felt high-end for the grade" />
     ) : gradeFeel === "low" ? (
-      <GradeArrow direction="down" label="Felt soft for the grade" />
+      <GradeArrow direction="down" label="Felt low-end for the grade" />
     ) : null;
   const showSuggestion = suggestedGrade != null && suggestedGrade !== grade;
 

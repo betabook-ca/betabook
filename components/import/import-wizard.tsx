@@ -113,7 +113,7 @@ const COLUMN_FIELDS: { key: FieldKey; label: string; hint: string }[] = [
   {
     key: "gradeFeel",
     label: "Grade feel",
-    hint: "Soft, fair, or stiff. Values are mapped on the next step.",
+    hint: "Low end, solid, or high end. Values are mapped on the next step.",
   },
   { key: "rating", label: "Rating", hint: "1 to 5 stars." },
   { key: "comment", label: "Comment", hint: "Notes on the send." },

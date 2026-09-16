@@ -114,7 +114,13 @@ function importRow(item: Record<string, unknown>, expectedType: string) {
     Grade: gradeLabel(item.grade, type),
     "Posted Grade": gradeLabel(climb.grade, type),
     Stiffness:
-      stiffness == null ? "" : stiffness === -1 ? "soft" : stiffness === 1 ? "stiff" : "fair",
+      stiffness == null
+        ? ""
+        : stiffness === -1
+          ? "low-end"
+          : stiffness === 1
+            ? "high-end"
+            : "solid",
     Rating: rating ? String(rating) : "",
     Comments: optionalString(item.comment),
   };

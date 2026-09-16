@@ -167,7 +167,7 @@ describe("Sendage import", () => {
       Grade: "5.11b",
       "Posted Grade": "5.12a",
       Rating: "",
-      "Grade Feel": "soft",
+      "Grade Feel": "low-end",
       Comments: "Nice &amp; sunny",
       Area: "Wall",
       Region: "Crag",

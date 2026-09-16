@@ -22,7 +22,7 @@ type Activity = FeedEntry["activity"];
 function GradeFeel({ activity }: { activity: Activity }) {
   if (activity.kind !== "send" && activity.kind !== "repeat") return null;
   const feel =
-    activity.gradeFeel === "high" ? "hard" : activity.gradeFeel === "low" ? "soft" : null;
+    activity.gradeFeel === "high" ? "high-end" : activity.gradeFeel === "low" ? "low-end" : null;
   return feel ? <p className="text-xs text-muted">Felt {feel} for the grade</p> : null;
 }
 

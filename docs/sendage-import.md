@@ -58,7 +58,7 @@ are checked independently. Personal and posted grades stay separate. Matching pr
 falling back to the climber’s grade when the posted grade is absent; the climber’s
 grade remains the send’s suggested grade. Zero
 stars means unrated, null day means undated, and difficulty -1/0/1 maps to
-soft/fair/stiff. The existing parser handles HTML entities and validates dates.
+low-end/solid/high-end. The existing parser handles HTML entities and validates dates.
 
 Beta, attempts, and first-ascent fields have no equivalent send fields in Betabook.
 A visible warning explains that they remain source columns and can be mapped to
