@@ -62,8 +62,9 @@ low-end/solid/high-end. The existing parser handles HTML entities and validates 
 
 Beta, attempts, and first-ascent fields have no equivalent send fields in Betabook.
 A visible warning explains that they remain source columns and can be mapped to
-Comment. The existing review, duplicate handling, batch receipts, and atomic
-send/journal writes are reused.
+Comment. The existing review, duplicate handling, broken-climb rule (only ascents
+dated before a climb's break import; undated and later rows are held at the match
+step), batch receipts, and atomic send/journal writes are reused.
 
 The Journal product tour remains accurate; this adds an entry point to the
 separate account import wizard and does not change the logging tutorial.

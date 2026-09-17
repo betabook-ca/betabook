@@ -236,7 +236,8 @@ export async function getSubtreeClimbs(
   const rows = await db.all<ClimbWithAreaName>(sql`
     ${subtreeAreaIds(area.id)}
     SELECT climbs.id AS id, climbs.area_id AS areaId, climbs.name AS name,
-           climbs.type AS type, climbs.grade AS grade, areas.name AS areaName
+           climbs.type AS type, climbs.grade AS grade, climbs.broken_on AS brokenOn,
+           areas.name AS areaName
     FROM ${climbSource}
     JOIN areas ON areas.id = climbs.area_id
     WHERE ${sql.join(conditions, sql` AND `)}
@@ -270,7 +271,7 @@ export async function getSubtreeGradeHistogram(
   `);
 }
 
-export type ClimbSummary = Pick<Climb, "id" | "areaId" | "name" | "type" | "grade">;
+export type ClimbSummary = Pick<Climb, "id" | "areaId" | "name" | "type" | "grade" | "brokenOn">;
 
 /** Missing IDs are omitted. A single JSON binding avoids D1's parameter limit. */
 export async function getClimbsByIds(
@@ -281,7 +282,7 @@ export async function getClimbsByIds(
   if (distinct.length === 0) return [];
   return db.all<ClimbSummary>(sql`
     SELECT climbs.id AS id, climbs.area_id AS areaId, climbs.name AS name,
-           climbs.type AS type, climbs.grade AS grade
+           climbs.type AS type, climbs.grade AS grade, climbs.broken_on AS brokenOn
     FROM climbs
     WHERE climbs.id IN (SELECT CAST(value AS INTEGER) FROM json_each(${JSON.stringify(distinct)}))
   `);
@@ -289,7 +290,7 @@ export async function getClimbsByIds(
 
 export type ClimbCandidate = Pick<
   Climb,
-  "id" | "areaId" | "name" | "type" | "grade" | "sendCount"
+  "id" | "areaId" | "name" | "type" | "grade" | "sendCount" | "brokenOn"
 > & {
   /** SQLite LOWER(TRIM(name)); must match foldClimbName on the CSV side. */
   key: string;
@@ -326,7 +327,7 @@ export async function findClimbCandidatesInAreas(
       FROM json_each(${JSON.stringify(pairs)})
     ), named AS (
       SELECT climbs.id, climbs.area_id, climbs.name, climbs.type, climbs.grade,
-             climbs.send_count, LOWER(TRIM(climbs.name)) AS key,
+             climbs.send_count, climbs.broken_on, LOWER(TRIM(climbs.name)) AS key,
              COUNT(*) OVER (PARTITION BY LOWER(TRIM(climbs.name))) AS total
       FROM climbs
       WHERE LOWER(TRIM(climbs.name)) IN (SELECT key FROM wanted)
@@ -349,7 +350,8 @@ export async function findClimbCandidatesInAreas(
     SELECT matched.id AS id, matched.key AS key, matched.name AS name,
            matched.type AS type, matched.grade AS grade,
            matched.area_id AS areaId, areas.name AS areaName,
-           matched.send_count AS sendCount, matched.total AS total, (
+           matched.send_count AS sendCount, matched.broken_on AS brokenOn,
+           matched.total AS total, (
       SELECT json_group_array(json_object('id', a.id, 'name', a.name)) FROM (
         SELECT ancestor.id AS id, ancestor.name AS name
         FROM chain
@@ -379,7 +381,7 @@ export async function findClimbCandidatesByNames(
       SELECT LOWER(TRIM(value)) FROM json_each(${JSON.stringify(names)})
     ), ranked AS (
       SELECT climbs.id, climbs.area_id, climbs.name, climbs.type, climbs.grade,
-             climbs.send_count, LOWER(TRIM(climbs.name)) AS key,
+             climbs.send_count, climbs.broken_on, LOWER(TRIM(climbs.name)) AS key,
              ROW_NUMBER() OVER (
                PARTITION BY LOWER(TRIM(climbs.name))
                ORDER BY climbs.send_count DESC, climbs.id
@@ -403,7 +405,8 @@ export async function findClimbCandidatesByNames(
     SELECT matched.id AS id, matched.key AS key, matched.name AS name,
            matched.type AS type, matched.grade AS grade,
            matched.area_id AS areaId, areas.name AS areaName,
-           matched.send_count AS sendCount, matched.total AS total, (
+           matched.send_count AS sendCount, matched.broken_on AS brokenOn,
+           matched.total AS total, (
       -- json_group_array keeps the order it receives rows in, so the ORDER
       -- BY belongs on the subquery it consumes (see searchAreas).
       SELECT json_group_array(json_object('id', a.id, 'name', a.name)) FROM (
@@ -430,7 +433,10 @@ export type SearchClimbsParams = DisciplineGradeFilter &
     sort?: SubtreeClimbsSort;
   };
 
-export type ClimbWithAreaName = Pick<Climb, "id" | "areaId" | "name" | "type" | "grade"> & {
+export type ClimbWithAreaName = Pick<
+  Climb,
+  "id" | "areaId" | "name" | "type" | "grade" | "brokenOn"
+> & {
   areaName: string;
 };
 
@@ -521,6 +527,7 @@ export async function searchClimbs(
       climbs.name AS name,
       climbs.type AS type,
       climbs.grade AS grade,
+      climbs.broken_on AS brokenOn,
       areas.name AS areaName
     FROM ${plan.source}
     JOIN areas ON areas.id = climbs.area_id

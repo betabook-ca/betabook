@@ -10,6 +10,7 @@ import { ClimbSendList } from "@/components/climb-send-list";
 import { ClimbJournalCard, LogEntryButton } from "@/components/journal";
 import { LoggedGradeHistogram } from "@/components/logged-grade-histogram";
 import { PublicClimbSendList } from "@/components/public-climb-send-list";
+import { BrokenChip } from "@/components/ui/broken-chip";
 import { cardClass } from "@/components/ui/card";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -127,6 +128,7 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
           <div className="mt-1 flex items-center gap-2">
             <Grade size="md">{formatGrade(climb.type, climb.grade)}</Grade>
             <DisciplineChip type={climb.type} />
+            {climb.brokenOn && <BrokenChip brokenOn={climb.brokenOn} />}
           </div>
           <p className="mt-1 text-muted">{climb.description || missingDescriptionMessage()}</p>
         </div>
@@ -208,6 +210,7 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
           <div className="mt-1 flex items-center gap-2">
             <Grade size="md">{formatGrade(climb.type, climb.grade)}</Grade>
             <DisciplineChip type={climb.type} />
+            {climb.brokenOn && <BrokenChip brokenOn={climb.brokenOn} />}
           </div>
           <ClimbDescription climb={climb} />
         </div>

@@ -1,4 +1,5 @@
 import type { ClimbCandidate } from "@/db/queries";
+import { isLoggableOnClimb } from "@/lib/broken-climbs";
 import { formatGrade, parseGrade, type ClimbType } from "@/lib/grades";
 import type { NormalizedImportRow } from "@/lib/sends-import";
 
@@ -465,7 +466,38 @@ export type ResolvedRow = {
   match: RowMatch;
   climb: ClimbCandidate | null;
   state: ResolvedState;
+  /** Set when the chosen climb is broken. A row dated before the break keeps
+   * its climb and is flagged for review; any other row loses it and needs
+   * attention, since the server (and the database) would refuse the send. */
+  broken: { climb: ClimbCandidate; brokenOn: string; loggable: boolean } | null;
 };
+
+export function brokenClimbImportReason(brokenOn: string, dateSent: string | null): string {
+  return dateSent === null
+    ? `Climb broke on ${brokenOn}; undated ascents can't be logged on it`
+    : `Climb broke on ${brokenOn}; this ascent is dated on or after it`;
+}
+
+/** Applies the broken-climb rule to whatever climb a row ended up with,
+ * including a manual pick, so no choice can produce a row the commit refuses. */
+function withBrokenRule(resolved: Omit<ResolvedRow, "broken">): ResolvedRow {
+  const { climb, row } = resolved;
+  if (!climb || climb.brokenOn === null) return { ...resolved, broken: null };
+  const brokenOn = climb.brokenOn;
+  if (isLoggableOnClimb(climb, row.dateSent)) {
+    return {
+      ...resolved,
+      state: resolved.state === "matched" ? "review" : resolved.state,
+      broken: { climb, brokenOn, loggable: true },
+    };
+  }
+  return {
+    ...resolved,
+    climb: null,
+    state: "attention",
+    broken: { climb, brokenOn, loggable: false },
+  };
+}
 
 /** Manual choices override automatic matches for the same rows in the same order. */
 export function resolveRows(
@@ -476,20 +508,22 @@ export function resolveRows(
   return rows.map((row, i) => {
     const match = matches[i];
     const choice = manual.get(row.rowIndex);
-    if (choice?.kind === "pick") return { row, match, climb: choice.climb, state: "picked" };
-    if (choice?.kind === "skip") return { row, match, climb: null, state: "skipped" };
+    if (choice?.kind === "pick") {
+      return withBrokenRule({ row, match, climb: choice.climb, state: "picked" });
+    }
+    if (choice?.kind === "skip") return { row, match, climb: null, state: "skipped", broken: null };
     switch (match.kind) {
       case "exact":
-        return {
+        return withBrokenRule({
           row,
           match,
           climb: match.climb,
           state: match.notes.length > 0 ? "review" : "matched",
-        };
+        });
       case "inferred":
-        return { row, match, climb: match.climb, state: "review" };
+        return withBrokenRule({ row, match, climb: match.climb, state: "review" });
       default:
-        return { row, match, climb: null, state: "attention" };
+        return { row, match, climb: null, state: "attention", broken: null };
     }
   });
 }

@@ -18,7 +18,7 @@ const meta = {
     ),
   ],
   args: {
-    climb: { id: -1, areaId: -1, type: "boulder", grade: 5 },
+    climb: { id: -1, areaId: -1, type: "boulder", grade: 5, brokenOn: null },
     existingSend: {
       id: -1,
       ascentStyle: "flash",

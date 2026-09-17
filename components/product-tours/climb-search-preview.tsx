@@ -88,6 +88,7 @@ function demoPage(state: SearchState): SearchPage {
         areaName: TOUR_DEMO_AREA.name,
         type: climb.type,
         grade: climb.grade,
+        brokenOn: null,
       },
       context: { ancestors: [], sendCount: climb.sendCount, sent: climb.sent },
     }));

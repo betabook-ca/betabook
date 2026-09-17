@@ -137,15 +137,18 @@ export function searchesSection(state: SearchState, kind: SearchKind, browse = f
 /** The row every climb result shares. A signed-out page stops here; a member
  * page adds the record and the viewer's own send state on top. */
 function climbSearchItem(
-  climb: Pick<ClimbWithAreaName, "id" | "name" | "areaName" | "type" | "grade">,
+  climb: Pick<ClimbWithAreaName, "id" | "name" | "areaName" | "type" | "grade"> &
+    Partial<Pick<ClimbWithAreaName, "brokenOn">>,
   ancestors: { id: number; name: string }[],
   stats: { avgRating: number | null; sendCount: number },
 ): AppSearchResult {
+  const place = [...ancestors.map((area) => area.name), climb.areaName].join(" / ");
   return {
     id: `climb-${climb.id}`,
     kind: "climb",
     name: climb.name,
-    detail: [...ancestors.map((area) => area.name), climb.areaName].join(" / "),
+    // Result rows have no room for a chip, so a broken climb says so in its detail line.
+    detail: climb.brokenOn ? `${place} · Broken since ${climb.brokenOn}` : place,
     discipline: climb.type,
     grade: climb.grade,
     stats,

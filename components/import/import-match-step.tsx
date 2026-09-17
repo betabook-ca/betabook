@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { AreaLookup } from "@/components/search/area-lookup";
+import { BrokenChip } from "@/components/ui/broken-chip";
 import { cardClass } from "@/components/ui/card";
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
@@ -18,6 +19,7 @@ import type { ClimbCandidate } from "@/db/queries";
 import { formatCount } from "@/lib/format";
 import { formatGrade } from "@/lib/grades";
 import {
+  brokenClimbImportReason,
   duplicateClimbRows,
   foldClimbName,
   summarizeResolved,
@@ -69,7 +71,11 @@ const PAGE = 50;
 function stateLabel(resolved: ResolvedRow): string {
   switch (resolved.state) {
     case "attention":
-      return resolved.match.kind === "none" ? "Not found" : "Needs a pick";
+      return resolved.broken
+        ? "Broken climb"
+        : resolved.match.kind === "none"
+          ? "Not found"
+          : "Needs a pick";
     case "review":
       return "Check";
     case "matched":
@@ -151,6 +157,7 @@ function CandidateRow({
         <span className="hidden text-xs text-muted sm:inline">
           {formatCount(climb.sendCount, "ascent")}
         </span>
+        {climb.brokenOn && <BrokenChip brokenOn={climb.brokenOn} />}
         <DisciplineChip type={climb.type} />
         <Grade>{formatGrade(climb.type, climb.grade)}</Grade>
         {current && (
@@ -193,6 +200,7 @@ function ClimbLine({ climb, rowClimbName }: { climb: ClimbCandidate; rowClimbNam
     <div className={`flex items-center justify-between gap-3 ${cardClass("sm", "inset")}`}>
       <ClimbPlace climb={climb} rowClimbName={rowClimbName} />
       <span className="flex shrink-0 items-center gap-2">
+        {climb.brokenOn && <BrokenChip brokenOn={climb.brokenOn} />}
         <DisciplineChip type={climb.type} />
         <Grade>{formatGrade(climb.type, climb.grade)}</Grade>
       </span>
@@ -258,8 +266,13 @@ function MatchRow({
               {match.reason}.
             </p>
           )}
-          {state === "review" && match.kind === "exact" && (
+          {state === "review" && match.kind === "exact" && match.notes.length > 0 && (
             <p className="text-xs text-muted">{match.notes.join(" · ")}</p>
+          )}
+          {resolved.broken?.loggable && (
+            <p className="text-xs text-muted">
+              Broke on {resolved.broken.brokenOn}; this ascent predates it.
+            </p>
           )}
           {duplicateOf != null && (
             <p className="text-xs text-warning">
@@ -319,7 +332,17 @@ function MatchRow({
         </div>
       )}
 
-      {state === "attention" && match.kind === "none" && (
+      {state === "attention" && resolved.broken && (
+        <div className="flex flex-col gap-2">
+          <ClimbLine climb={resolved.broken.climb} rowClimbName={row.climbName} />
+          <p className="text-xs text-muted">
+            {brokenClimbImportReason(resolved.broken.brokenOn, row.dateSent)}. Search for the
+            post-break climb, or skip the row.
+          </p>
+        </div>
+      )}
+
+      {state === "attention" && !resolved.broken && match.kind === "none" && (
         <p className="text-xs text-muted">
           No climb named “{row.climbName}” in betabook. Search under a different spelling, or skip
           the row.

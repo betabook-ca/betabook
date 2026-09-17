@@ -50,6 +50,7 @@ function Example({
                 name: "Cedar Arete",
                 type: rope ? "sport" : "boulder",
                 grade: 5,
+                brokenOn: null,
               }
         }
         hasPriorSend={repeat}

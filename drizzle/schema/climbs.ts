@@ -14,6 +14,13 @@ export const climbs = sqliteTable(
     type: text("type", { enum: ["boulder", "sport", "trad"] }).notNull(),
     grade: integer("grade"),
     description: text("description"),
+    // ISO date (YYYY-MM-DD) on which the climb broke, or null while intact.
+    // Set only through an approved climb_break change request. Once set, new
+    // sends and journal entries must be dated strictly before it (the
+    // sends_reject_after_break_* / journal_reject_after_break_* triggers in
+    // migration 0044 are the backstop for assertLoggableOnClimb). Existing
+    // rows keep their dates; the triggers watch inserts and date changes only.
+    brokenOn: text("broken_on"),
     // Denormalized aggregates over `sends`, incrementally maintained by
     // AFTER INSERT/UPDATE/DELETE triggers on sends (see
     // drizzle/migrations/0014_sends_aggregate_triggers.sql) — lets

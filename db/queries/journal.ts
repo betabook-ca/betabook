@@ -23,6 +23,8 @@ export type JournalEntry = {
   climbName: string | null;
   climbType: ClimbType | null;
   climbGrade: number | null;
+  /** Break date of the climb, when it has been marked broken; caps the entry's date picker. */
+  climbBrokenOn: string | null;
   /** Original send opinion, available only while this entry is completed. */
   reportedGrade?: number | null;
   areaId: number | null;
@@ -53,6 +55,7 @@ type JournalEntryRow = {
   climbName: string | null;
   climbType: ClimbType | null;
   climbGrade: number | null;
+  climbBrokenOn: string | null;
   reportedGrade: number | null;
   areaId: number | null;
   areaName: string | null;
@@ -140,6 +143,7 @@ function journalEntrySelect(viewerId: string | null): SQL {
       climbs.name AS climbName,
       climbs.type AS climbType,
       climbs.grade AS climbGrade,
+      climbs.broken_on AS climbBrokenOn,
       reported.suggested_grade AS reportedGrade,
       climbs.area_id AS areaId,
       areas.name AS areaName,
@@ -282,6 +286,7 @@ export type OpenProject = {
   climbName: string;
   climbType: ClimbType;
   climbGrade: number | null;
+  climbBrokenOn: string | null;
   areaId: number;
   areaName: string;
   sessionCount: number;
@@ -309,6 +314,7 @@ export async function getOpenProjects(
       climbs.name       AS climbName,
       climbs.type       AS climbType,
       climbs.grade      AS climbGrade,
+      climbs.broken_on  AS climbBrokenOn,
       climbs.area_id    AS areaId,
       areas.name        AS areaName,
       COUNT(*)          AS sessionCount,

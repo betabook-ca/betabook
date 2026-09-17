@@ -70,6 +70,7 @@ function toCandidate(
     name: climb.name,
     type: climb.type,
     grade: climb.grade,
+    brokenOn: climb.brokenOn,
     areaName: climb.areaName,
     sendCount: context.sendCount,
     ancestors: context.ancestors,

@@ -11,7 +11,7 @@ vi.mock("@/actions", () => ({
   updateSend: vi.fn<typeof updateSend>(),
 }));
 const value = {
-  climb: { id: 17, areaId: 3, type: "boulder" as const, grade: 5 },
+  climb: { id: 17, areaId: 3, type: "boulder" as const, grade: 5, brokenOn: null },
   send: {
     id: 91,
     ascentStyle: "flash" as const,
@@ -33,6 +33,7 @@ const value = {
     climbName: "Cedar",
     climbType: "boulder" as const,
     climbGrade: 5,
+    climbBrokenOn: null,
     areaId: 3,
     areaName: "Forest",
     isAscent: true,

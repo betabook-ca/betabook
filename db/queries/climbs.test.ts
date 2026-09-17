@@ -1,4 +1,5 @@
 import { env } from "cloudflare:test";
+import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { createDb, type Database } from "@/db/client";
@@ -154,6 +155,18 @@ describe("getSubtreeClimbs", () => {
     const sportWall = await getArea(db, 3);
     const { climbs } = await getSubtreeClimbs(db, sportWall!);
     expect(climbs.map((c) => c.name).sort()).toEqual(["Test Crack", "Test Crimper"]);
+  });
+
+  it("carries each climb's break date so list rows can show the Broken chip", async () => {
+    await db.update(climbs).set({ brokenOn: "2026-03-05" }).where(eq(climbs.id, 4));
+    try {
+      const sportWall = await getArea(db, 3);
+      const rows = (await getSubtreeClimbs(db, sportWall!)).climbs;
+      expect(rows.find((c) => c.id === 4)?.brokenOn).toBe("2026-03-05");
+      expect(rows.find((c) => c.id === 3)?.brokenOn).toBeNull();
+    } finally {
+      await db.update(climbs).set({ brokenOn: null }).where(eq(climbs.id, 4));
+    }
   });
 
   describe("sort", () => {
@@ -698,6 +711,7 @@ describe("findClimbCandidatesByNames", () => {
       areaId: 3,
       areaName: "Test Sport Wall",
       sendCount: 3,
+      brokenOn: null,
       total: 1,
       ancestors: [{ id: 1, name: "Test Crag" }],
     });
@@ -826,6 +840,7 @@ describe("getClimbsByIds", () => {
       name: "Test Crimper",
       type: "sport",
       grade: 10,
+      brokenOn: null,
     });
   });
 

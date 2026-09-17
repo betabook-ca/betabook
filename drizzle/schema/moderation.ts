@@ -21,6 +21,7 @@ export const CHANGE_REQUEST_TYPES = [
   "climb_delete",
   "climb_move",
   "climb_merge",
+  "climb_break",
 ] as const;
 
 export const changeRequests = sqliteTable(

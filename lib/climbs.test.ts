@@ -11,6 +11,7 @@ const baseClimb: Climb = {
   type: "boulder",
   grade: 3,
   description: null,
+  brokenOn: null,
   sendCount: 0,
   ratingSum: 0,
   ratingCount: 0,

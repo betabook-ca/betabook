@@ -49,6 +49,28 @@ test(
 );
 
 test(
+  "break report keeps its calendar and text preview inside the viewport",
+  { tag: "@layout" },
+  async ({ page }, info) => {
+    await openStory(page, info, "components-forms-climb-break-report--report");
+    await page.getByRole("button", { name: "Report climb as broken" }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByRole("textbox", { name: /What happened/ }).fill("The crux flake came off");
+    const preview = dialog.getByText(/^Cedar Arete - post break \(\d{4}\)$/);
+    await expect(preview).toBeInViewport();
+    await dialog.getByRole("button", { name: /calendar/i }).click();
+    const calendar = page.getByRole("grid");
+    await expect(calendar).toBeVisible();
+    const bounds = await calendar.boundingBox();
+    const viewport = page.viewportSize();
+    if (!bounds || !viewport) throw new Error("Missing calendar popover or viewport");
+    expect(bounds.x).toBeGreaterThanOrEqual(0);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width);
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(viewport.height);
+  },
+);
+
+test(
   "rejection failures remain readable within the open dialog",
   { tag: "@layout" },
   async ({ page }, info) => {

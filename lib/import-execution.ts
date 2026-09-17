@@ -16,6 +16,7 @@ export type ImportProgress = {
 };
 
 export type ImportRunResult = ImportResult & {
+  broken: number[];
   duplicates: number[];
   batchErrors: { indices: number[]; message: string; uncertain: boolean }[];
   notAttempted: number[];
@@ -38,6 +39,7 @@ export async function runImportBatches(
     overwritten: 0,
     alreadyLogged: 0,
     missing: [],
+    broken: [],
     duplicates: [],
     batchErrors: [],
     notAttempted: [],
@@ -74,6 +76,7 @@ export async function runImportBatches(
       result.overwritten += response.value.overwritten;
       result.alreadyLogged += response.value.alreadyLogged;
       result.missing.push(...response.value.missing.map((index) => batch[index].index));
+      result.broken.push(...(response.value.broken ?? []).map((index) => batch[index].index));
       consecutiveFailures = 0;
     } else {
       result.batchErrors.push({

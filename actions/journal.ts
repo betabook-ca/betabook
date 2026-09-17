@@ -7,6 +7,7 @@ import { getDb, type Database } from "@/db/client";
 import { getClimb, getJournalEntry, getUserSendForClimb } from "@/db/queries";
 import { journalEntries, sends } from "@/db/schema";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
+import { assertLoggableOnClimb } from "@/lib/broken-climbs";
 import type { ClimbType } from "@/lib/grades";
 import { validateJournalInput, type JournalEntryInput } from "@/lib/journal";
 import { readCompanionSelection } from "@/lib/journal-companions";
@@ -118,6 +119,8 @@ export async function createJournalEntry(formData: FormData): Promise<ActionResu
     }
     const companions = readCompanionSelection(formData);
     const climb = input.climbId === null ? null : await requireClimb(db, input.climbId);
+    // Sessions and ascents alike must predate a break (triggers in 0044 back this up).
+    if (climb) assertLoggableOnClimb(climb, input.entryDate);
 
     if (input.sent && climb) {
       const existingSend = await getUserSendForClimb(db, session.user.id, climb.id);
@@ -228,6 +231,9 @@ export async function updateJournalEntry(
     }
     if (existing.sent && input.entryDate !== existing.entryDate) {
       throw new ActionError("A sent session's date can't be changed after it is logged");
+    }
+    if (existing.climbId !== null && input.entryDate !== existing.entryDate) {
+      assertLoggableOnClimb(await requireClimb(db, existing.climbId), input.entryDate);
     }
 
     const journalStatement = db

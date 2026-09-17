@@ -5,6 +5,7 @@ import type { NormalizedImportRow } from "@/lib/sends-import";
 
 import {
   areaLookupsNeeded,
+  brokenClimbImportReason,
   climbNameVariants,
   distinctClimbNames,
   duplicateClimbRows,
@@ -38,6 +39,7 @@ function candidate(overrides: Partial<ClimbCandidate> & { id: number }): ClimbCa
     areaId: 1,
     areaName: "Somewhere",
     sendCount: 0,
+    brokenOn: null,
     ancestors: [],
     total: 1,
     ...overrides,
@@ -476,6 +478,49 @@ describe("resolveRows", () => {
     expect([...duplicates.keys()]).toEqual([1]);
     expect(duplicates.get(1)?.rowIndex).toBe(0);
     expect(summarizeResolved(resolved).ready).toBe(1);
+  });
+});
+
+describe("resolveRows on a broken climb", () => {
+  const brokenWave = candidate({ id: 50, brokenOn: "2026-03-05" });
+  const brokenIndex = indexOf([brokenWave]);
+  const rows = [
+    row({ rowIndex: 0, dateSent: "2026-03-04" }), // predates the break: kept, flagged for review
+    row({ rowIndex: 1, dateSent: "2026-03-05" }), // on the break date: refused
+    row({ rowIndex: 2, dateSent: null }), // undated: refused
+    row({ rowIndex: 3, dateSent: "2026-06-01" }), // picked by hand, still refused
+  ];
+
+  it("keeps only rows dated before the break, and never lets a manual pick bypass the rule", () => {
+    const manual = new Map([[3, { kind: "pick" as const, climb: brokenWave }]]);
+    const resolved = resolveRows(rows, matchRows(rows, brokenIndex, NO_PREFERENCE), manual);
+
+    expect(resolved.map((r) => r.state)).toEqual(["review", "attention", "attention", "attention"]);
+    expect(resolved.map((r) => r.climb?.id ?? null)).toEqual([50, null, null, null]);
+    expect(resolved.map((r) => r.broken)).toEqual([
+      { climb: brokenWave, brokenOn: "2026-03-05", loggable: true },
+      { climb: brokenWave, brokenOn: "2026-03-05", loggable: false },
+      { climb: brokenWave, brokenOn: "2026-03-05", loggable: false },
+      { climb: brokenWave, brokenOn: "2026-03-05", loggable: false },
+    ]);
+    expect(summarizeResolved(resolved).ready).toBe(1);
+  });
+
+  it("leaves intact climbs alone and words each refusal by what the row lacks", () => {
+    const intact = resolveRows(
+      rows.slice(0, 3),
+      matchRows(rows.slice(0, 3), index, NO_PREFERENCE),
+      new Map(),
+    );
+    expect(intact.every((r) => r.broken === null)).toBe(true);
+    expect(intact.map((r) => r.state)).toEqual(["attention", "attention", "attention"]);
+
+    expect(brokenClimbImportReason("2026-03-05", null)).toBe(
+      "Climb broke on 2026-03-05; undated ascents can't be logged on it",
+    );
+    expect(brokenClimbImportReason("2026-03-05", "2026-04-01")).toBe(
+      "Climb broke on 2026-03-05; this ascent is dated on or after it",
+    );
   });
 });
 

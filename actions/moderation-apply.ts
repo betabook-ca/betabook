@@ -24,6 +24,7 @@ import {
 } from "@/db/schema";
 import { ActionError } from "@/lib/action-result";
 import type { AreaInput } from "@/lib/areas";
+import { validateClimbBreakInput } from "@/lib/broken-climbs";
 import { validateClimbMergeOverrides, validateClimbEditInput } from "@/lib/climbs";
 import type { ChangeRequestPayload, ChangeRequestType } from "@/lib/moderation";
 
@@ -131,6 +132,7 @@ function rejectOrphanedClimbRequests(db: Database, climbId: number) {
               "climb_delete",
               "climb_move",
               "climb_merge",
+              "climb_break",
             ]),
             eq(changeRequests.entityId, climbId),
           ),
@@ -426,7 +428,115 @@ export async function assertClimbMergeable(
   if (source.type !== target.type) {
     throw new ActionError("Can't mark a climb as a duplicate of a different discipline");
   }
+  // Merged sends would land on a broken climb regardless of their dates, and
+  // a broken climb's own history is exactly what its break notice documents.
+  if (source.brokenOn !== null || target.brokenOn !== null) {
+    throw new ActionError("Can't merge a broken climb");
+  }
   return { source, target };
+}
+
+const BREAK_SUPERSEDED_REVIEW_NOTE = "This climb has already been marked as broken.";
+
+/** A break is refused while any dated activity contradicts the reported
+ * date: a send or session on or after it means either the date is wrong or a
+ * log is. Undated sends are left alone — they can't be placed either way. */
+export async function assertClimbBreakable(
+  db: Database,
+  climbId: number,
+  brokenOn: string,
+): Promise<Climb> {
+  const existing = await getClimb(db, climbId);
+  if (!existing) throw new ActionError("Climb not found");
+  if (existing.brokenOn !== null) {
+    throw new ActionError(`This climb is already marked as broken on ${existing.brokenOn}`);
+  }
+  const [row] = await db.all<{ laterSends: number; laterEntries: number }>(sql`
+    SELECT
+      (SELECT count(*) FROM sends WHERE climb_id = ${climbId}
+        AND date_sent IS NOT NULL AND date_sent >= ${brokenOn}) AS laterSends,
+      (SELECT count(*) FROM journal_entries WHERE climb_id = ${climbId}
+        AND entry_date >= ${brokenOn}) AS laterEntries
+  `);
+  if (row.laterSends > 0 || row.laterEntries > 0) {
+    const parts = [
+      row.laterSends > 0 ? `${row.laterSends} send(s)` : null,
+      row.laterEntries > 0
+        ? `${row.laterEntries} journal entr${row.laterEntries === 1 ? "y" : "ies"}`
+        : null,
+    ].filter((part) => part !== null);
+    throw new ActionError(
+      `${parts.join(" and ")} on this climb are dated on or after ${brokenOn} — check the date or ask the climbers to fix their logs`,
+    );
+  }
+  return existing;
+}
+
+/** Marks the climb broken and creates its post-break successor in one batch.
+ * The payload texts are written verbatim; only the date and reason are
+ * re-validated, since the moderator approved exactly those strings. */
+export async function applyClimbBreak(
+  db: Database,
+  climbId: number,
+  payload: ChangeRequestPayload["climb_break"],
+  decision?: MutationDecision,
+): Promise<void> {
+  const { brokenOn } = validateClimbBreakInput({
+    brokenOn: payload.brokenOn,
+    reason: payload.reason,
+  });
+  for (const key of ["successorName", "appendedDescription", "successorDescription"] as const) {
+    if (typeof payload[key] !== "string" || !payload[key].trim()) {
+      throw new ActionError("This break request is incomplete — reject it and request a new one");
+    }
+  }
+  const existing = await assertClimbBreakable(db, climbId, brokenOn);
+  const guard = sql`${climbUnchanged(existing)} AND EXISTS (
+    SELECT 1 FROM climbs WHERE id = ${climbId} AND broken_on IS NULL)`;
+
+  await commitMutation(
+    db,
+    [
+      db
+        .update(climbs)
+        .set({
+          brokenOn: sql`CASE WHEN ${guard} THEN ${brokenOn} ELSE broken_on END`,
+          description: sql`CASE WHEN ${guard} THEN ${payload.appendedDescription} ELSE description END`,
+        })
+        .where(eq(climbs.id, climbId)),
+      db.insert(climbs).values({
+        areaId: existing.areaId,
+        name: payload.successorName,
+        type: existing.type,
+        grade: existing.grade,
+        description: payload.successorDescription,
+      }),
+      // Other reporters' pending break requests for this climb are now moot.
+      db
+        .update(changeRequests)
+        .set({
+          status: "rejected",
+          reviewNote: BREAK_SUPERSEDED_REVIEW_NOTE,
+          reviewedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(changeRequests.status, "pending"),
+            eq(changeRequests.type, "climb_break"),
+            eq(changeRequests.entityId, climbId),
+          ),
+        ),
+    ],
+    guard,
+    decision,
+  );
+
+  afterCommit(() => {
+    revalidatePath(`/climbs/${climbId}`);
+    revalidatePath(`/areas/${existing.areaId}`);
+    revalidatePath("/");
+    refresh();
+  });
 }
 
 export async function applyClimbMerge(

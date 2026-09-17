@@ -32,6 +32,7 @@ import {
   looseLookupsNeeded,
   mergeCandidates,
   resolveRows,
+  brokenClimbImportReason,
   summarizeResolved,
   type CandidateIndex,
   type ManualChoice,
@@ -179,9 +180,11 @@ const CONFLICT_MODES = [
 ] as const;
 
 type BatchError = { rows: ResolvedRow[]; message: string; uncertain: boolean };
-type WizardResult = Omit<ImportResult, "missing"> & {
+type WizardResult = Omit<ImportResult, "missing" | "broken"> & {
   /** Rows whose climb was gone by the time the batch ran. */
   missing: ResolvedRow[];
+  /** Rows the server refused because their climb broke before the row's date. */
+  broken: ResolvedRow[];
   batchErrors: BatchError[];
   duplicates: number;
   /** Rows never sent to the server because the import stopped early. */
@@ -356,15 +359,27 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
             ? [
                 fromResolved(
                   r,
-                  r.match.kind === "none"
-                    ? "No climb with this name"
-                    : (r.match.kind === "ambiguous" && r.match.conflict) ||
+                  r.broken
+                    ? brokenClimbImportReason(r.broken.brokenOn, r.row.dateSent)
+                    : r.match.kind === "none"
+                      ? "No climb with this name"
+                      : (r.match.kind === "ambiguous" && r.match.conflict) ||
                         "Several climbs share this name and none was picked",
                 ),
               ]
             : [],
       ),
       ...importResult.missing.map((r) => fromResolved(r, "Climb no longer exists")),
+      // The server refused these; normally the climb broke between the
+      // lookup and the commit, so the client copy of it may not carry a date.
+      ...importResult.broken.map((r) =>
+        fromResolved(
+          r,
+          r.climb?.brokenOn
+            ? brokenClimbImportReason(r.climb.brokenOn, r.row.dateSent)
+            : "Climb has since been marked as broken; only ascents dated before the break can be logged",
+        ),
+      ),
       ...importResult.batchErrors.flatMap((batch) =>
         batch.rows.map((r) =>
           fromResolved(r, `${batch.uncertain ? "Unconfirmed" : "Not imported"}: ${batch.message}`),
@@ -643,6 +658,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
         ...result,
         duplicates: result.duplicates.length,
         missing: result.missing.map((index) => toImport[index]),
+        broken: result.broken.map((index) => toImport[index]),
         batchErrors: result.batchErrors.map(({ indices, ...error }) => ({
           ...error,
           rows: indices.map((index) => toImport[index]),

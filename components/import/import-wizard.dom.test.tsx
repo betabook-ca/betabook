@@ -18,6 +18,7 @@ vi.mock("@/actions", () => ({
         key: "test climb",
         type: "sport",
         grade: 18,
+        brokenOn: null,
         sendCount: 1,
         areaName: "Wall",
         ancestors: [],

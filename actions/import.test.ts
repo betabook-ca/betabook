@@ -149,7 +149,7 @@ describe("importSends atomic commit", () => {
 
     expect(result).toEqual({
       ok: true,
-      value: { imported: 25, overwritten: 0, alreadyLogged: 0, missing: [] },
+      value: { imported: 25, overwritten: 0, alreadyLogged: 0, missing: [], broken: [] },
     });
     // One batch total, even though the insert is split into three <=10-row
     // statements (D1's bound-parameter cap) — the chunks ride inside the same
@@ -220,13 +220,13 @@ describe("importSends atomic commit", () => {
     const first = await importSends(rows, IMPORT_OPTIONS);
     expect(first).toEqual({
       ok: true,
-      value: { imported: 3, overwritten: 0, alreadyLogged: 0, missing: [] },
+      value: { imported: 3, overwritten: 0, alreadyLogged: 0, missing: [], broken: [] },
     });
 
     const second = await importSends(rows, IMPORT_OPTIONS);
     expect(second).toEqual({
       ok: true,
-      value: { imported: 0, overwritten: 0, alreadyLogged: 3, missing: [] },
+      value: { imported: 0, overwritten: 0, alreadyLogged: 3, missing: [], broken: [] },
     });
 
     expect(await db.select().from(sends).where(eq(sends.userId, "retry-user")).all()).toHaveLength(
@@ -279,7 +279,7 @@ describe("importSends revalidation", () => {
 
     expect(result).toEqual({
       ok: true,
-      value: { imported: 0, overwritten: 0, alreadyLogged: 1, missing: [1] },
+      value: { imported: 0, overwritten: 0, alreadyLogged: 1, missing: [1], broken: [] },
     });
     expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
     expect(cacheMocks.refresh).not.toHaveBeenCalled();
@@ -309,7 +309,13 @@ describe("importSends against a caller that skipped the wizard", () => {
     const result = await importSends(bulkRows(0, IMPORT_BATCH_SIZE - 1), IMPORT_OPTIONS);
     expect(result).toEqual({
       ok: true,
-      value: { imported: IMPORT_BATCH_SIZE, overwritten: 0, alreadyLogged: 0, missing: [] },
+      value: {
+        imported: IMPORT_BATCH_SIZE,
+        overwritten: 0,
+        alreadyLogged: 0,
+        missing: [],
+        broken: [],
+      },
     });
     expect(batchCalls.count).toBe(1);
   });
@@ -446,7 +452,7 @@ describe("importSends overwrite mode", () => {
     );
     expect(second).toEqual({
       ok: true,
-      value: { imported: 1, overwritten: 1, alreadyLogged: 0, missing: [] },
+      value: { imported: 1, overwritten: 1, alreadyLogged: 0, missing: [], broken: [] },
     });
     expect(batchCalls.count).toBe(1);
 

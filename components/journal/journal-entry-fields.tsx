@@ -176,6 +176,7 @@ export function JournalEntryFields({
           hasPriorSend={hasPriorSend}
           existingEntry={existingEntry}
           today={today}
+          brokenOn={climb?.brokenOn ?? null}
           entryDate={entryDate}
           sent={sent}
           disabled={pending}

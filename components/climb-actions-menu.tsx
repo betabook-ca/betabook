@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { deleteSend, requestClimbDelete } from "@/actions";
+import { ClimbBreakDrawer } from "@/components/climb-break-drawer";
 import { ClimbEditRequestDrawer } from "@/components/climb-edit-request-drawer";
 import { ClimbMergeDrawer } from "@/components/climb-merge-drawer";
 import { ClimbMoveDialog } from "@/components/climb-move-dialog";
@@ -35,6 +36,7 @@ export function ClimbActionsMenu({ climb, send }: ClimbActionsMenuProps) {
   const editState = useOverlayState();
   const moveState = useOverlayState();
   const mergeState = useOverlayState();
+  const breakState = useOverlayState();
   const deleteState = useOverlayState();
   const editSendState = useOverlayState();
   const deleteSendState = useOverlayState();
@@ -84,6 +86,7 @@ export function ClimbActionsMenu({ climb, send }: ClimbActionsMenuProps) {
       <Menu.Item id="edit">Request climb edit…</Menu.Item>
       <Menu.Item id="move">Move climb to area…</Menu.Item>
       <Menu.Item id="merge">Mark climb as duplicate…</Menu.Item>
+      {climb.brokenOn === null && <Menu.Item id="break">Report climb as broken…</Menu.Item>}
       <Menu.Item id="delete" isDisabled={hasSends} textValue="Delete climb">
         {hasSends ? (
           // A disabled Menu.Item gets `pointer-events: none`, which would
@@ -117,6 +120,7 @@ export function ClimbActionsMenu({ climb, send }: ClimbActionsMenuProps) {
           if (key === "edit") editState.open();
           if (key === "move") moveState.open();
           if (key === "merge") mergeState.open();
+          if (key === "break") breakState.open();
           if (key === "delete") {
             setDeleteError(null);
             setDeletePendingNotice(null);
@@ -149,6 +153,7 @@ export function ClimbActionsMenu({ climb, send }: ClimbActionsMenuProps) {
       <ClimbEditRequestDrawer climb={climb} state={editState} />
       <ClimbMoveDialog climbId={climb.id} state={moveState} />
       <ClimbMergeDrawer climbId={climb.id} state={mergeState} />
+      <ClimbBreakDrawer climb={climb} state={breakState} />
       <ConfirmDeleteDialog
         noun="climb"
         state={deleteState}

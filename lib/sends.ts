@@ -197,6 +197,10 @@ export type ImportResult = {
   alreadyLogged: number;
   /** Indices within this batch whose climb no longer exists. */
   missing: number[];
+  /** Indices within this batch refused because the climb broke before the
+   * row's date (or the row is undated). Absent on receipts stored before
+   * broken climbs existed, so readers default it to []. */
+  broken?: number[];
 };
 
 export type ImportOptions = {

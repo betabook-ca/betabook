@@ -48,6 +48,7 @@ export function JournalEntryEditDrawer({
                             name: entry.climbName ?? "",
                             type: entry.climbType,
                             grade: entry.climbGrade,
+                            brokenOn: entry.climbBrokenOn,
                             areaId: entry.areaId ?? 0,
                           }
                         : null

@@ -119,6 +119,7 @@ export function ProjectBoard({ userId, projects, hasMore }: ProjectBoardProps) {
             name: selected.climbName,
             type: selected.climbType,
             grade: selected.climbGrade,
+            brokenOn: selected.climbBrokenOn,
             areaId: selected.areaId,
           }}
           state={drawer}

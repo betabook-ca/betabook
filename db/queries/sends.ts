@@ -25,7 +25,7 @@ export type EditableSend = Pick<
   "id" | "ascentStyle" | "dateSent" | "comment" | "rating" | "suggestedGrade" | "gradeFeel"
 >;
 
-export type SendableClimb = Pick<Climb, "id" | "areaId" | "type" | "grade">;
+export type SendableClimb = Pick<Climb, "id" | "areaId" | "type" | "grade" | "brokenOn">;
 
 export async function getUserSendForClimb(
   db: Database,
@@ -147,6 +147,26 @@ export async function getUserSentClimbIds(
     }
   `);
   return new Set(rows.map((r) => r.climbId));
+}
+
+/** `getUserSentClimbIds` plus each send's date, for callers that must judge
+ * a date change against the climb (imports overwriting sends on a broken climb). */
+export async function getUserSendDatesForClimbs(
+  db: Database,
+  userId: string,
+  climbIds: readonly number[],
+): Promise<Map<number, string | null>> {
+  const distinctIds = [...new Set(climbIds)];
+  if (distinctIds.length === 0) return new Map();
+  const rows = await db.all<{ climbId: number; dateSent: string | null }>(sql`
+    SELECT sends.climb_id AS climbId, sends.date_sent AS dateSent
+    FROM sends
+    WHERE sends.user_id = ${userId}
+      AND sends.climb_id IN (
+        SELECT CAST(value AS INTEGER) FROM json_each(${JSON.stringify(distinctIds)})
+      )
+  `);
+  return new Map(rows.map((r) => [r.climbId, r.dateSent]));
 }
 
 export type UserSendRow = {

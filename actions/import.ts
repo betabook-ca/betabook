@@ -10,11 +10,12 @@ import {
   findClimbCandidatesInAreas,
   getClimbsByIds,
   getImportBatchReceipt,
-  getUserSentClimbIds,
+  getUserSendDatesForClimbs,
   type ClimbCandidate,
 } from "@/db/queries";
 import { importBatches, journalEntries } from "@/db/schema";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
+import { isLoggableOnClimb } from "@/lib/broken-climbs";
 import { parseGrade, type ClimbType } from "@/lib/grades";
 import type { ImportBatchResponse } from "@/lib/import-execution";
 import {
@@ -43,6 +44,30 @@ import { buildMirroredSendUpdate, buildSendInsert } from "./send-statements";
 export type { ImportResult, ImportOptions } from "@/lib/sends";
 
 type SendValues = Omit<SendInput, "suggestedGrade"> & { suggestedGrade: number | null };
+
+/** A blank Suggested Grade stays null; a Grade-only mapping falls back to
+ * the posted grade. See NormalizedImportRow.blankGradeMeans. */
+function resolveSuggestedGrade(
+  row: ImportSendRow,
+  climb: { type: ClimbType; grade: number | null },
+  gradeScale: ImportOptions["gradeScale"],
+): number | null {
+  const gradeText = typeof row.gradeText === "string" ? row.gradeText : null;
+  if (gradeText) return parseGrade(climb.type, gradeText, gradeScale);
+  return row.blankGradeMeans === "no-suggestion" ? null : climb.grade;
+}
+
+/** A broken climb takes only ascents dated before the break. An overwrite
+ * that leaves the date as it was is still fine, matching the 0044 triggers'
+ * date-change rule for legacy undated sends. */
+function refusedByBreak(
+  climb: { brokenOn: string | null },
+  existingDate: string | null | undefined,
+  dateSent: string | null,
+): boolean {
+  const dateChanged = existingDate === undefined || existingDate !== dateSent;
+  return dateChanged && !isLoggableOnClimb(climb, dateSent);
+}
 
 // A guarded journal insert binds 11 values per row; nine fit D1's 100-parameter limit.
 const INSERT_CHUNK_SIZE = 9;
@@ -182,11 +207,12 @@ export async function importSends(
     const identity = { userId: session.user.id, batchId, requestHash };
     const receipt = await readImportReceipt(db, identity);
     if (receipt) return receipt;
-    const [climbList, alreadySent] = await Promise.all([
+    const [climbList, existingDates] = await Promise.all([
       getClimbsByIds(db, climbIds),
-      getUserSentClimbIds(db, session.user.id, climbIds),
+      getUserSendDatesForClimbs(db, session.user.id, climbIds),
     ]);
     const climbsById = new Map(climbList.map((climb) => [climb.id, climb]));
+    const alreadySent = existingDates;
 
     // First row per climb wins, including in overwrite mode.
     const processed = new Set<number>();
@@ -195,6 +221,7 @@ export async function importSends(
     const toUpdate: Array<{ climbId: number; climbType: ClimbType; values: SendValues }> = [];
     const affectedAreaIds = new Set<number>();
     const missing: number[] = [];
+    const broken: number[] = [];
     let alreadyLogged = 0;
 
     for (const [index, row] of rows.entries()) {
@@ -215,17 +242,17 @@ export async function importSends(
       }
 
       // Overwrites replace every imported field, including fields the CSV clears.
-      const gradeText = typeof row.gradeText === "string" ? row.gradeText : null;
       const values: SendValues = {
         ...validateImportSendValues(row, climb.type),
-        // A blank Suggested Grade stays null; a Grade-only mapping falls back
-        // to the posted grade. See NormalizedImportRow.blankGradeMeans.
-        suggestedGrade: gradeText
-          ? parseGrade(climb.type, gradeText, options.gradeScale)
-          : row.blankGradeMeans === "no-suggestion"
-            ? null
-            : climb.grade,
+        suggestedGrade: resolveSuggestedGrade(row, climb, options.gradeScale),
       };
+
+      // Refusing a post-break row here keeps the rest of the batch: the 0044
+      // triggers would abort all of it.
+      if (refusedByBreak(climb, alreadySent.get(climb.id), values.dateSent)) {
+        broken.push(index);
+        continue;
+      }
 
       processed.add(climb.id);
       affectedAreaIds.add(climb.areaId);
@@ -333,6 +360,7 @@ export async function importSends(
       overwritten: toUpdate.length,
       alreadyLogged,
       missing,
+      broken,
     };
     const committed = await commitImportBatch(db, { ...identity, result }, statements);
     if (!committed) {
