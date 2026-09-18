@@ -11,6 +11,7 @@ import {
   type RequestScope,
   type ReviewQueueOptions,
   type ChangeRequest,
+  type Area,
   type Climb,
 } from "@/db/queries";
 import { CHANGE_REQUEST_TYPES } from "@/db/schema";
@@ -32,6 +33,8 @@ export type ChangeRequestPayload = {
   area_edit: Partial<Pick<AreaInput, "name">>;
   area_delete: Record<string, never>;
   area_reparent: { newParentId: number };
+  // Merge targets retain their parent.
+  area_merge: { targetAreaId: number };
   climb_edit: Partial<ClimbEditInput> & { expectedType?: Climb["type"] };
   climb_delete: Record<string, never>;
   climb_move: { newAreaId: number };
@@ -102,6 +105,14 @@ export async function changeRequestScopeAreaIds(
     const target = await getClimb(db, targetClimbId);
     if (!target) return [];
     return source.areaId === target.areaId ? [source.areaId] : [source.areaId, target.areaId];
+  }
+  if (request.type === "area_merge") {
+    const source = await getArea(db, request.entityId);
+    if (!source) return [];
+    const { targetAreaId } = JSON.parse(request.payload) as ChangeRequestPayload["area_merge"];
+    const target = await getArea(db, targetAreaId);
+    if (!target) return [];
+    return source.id === target.id ? [source.id] : [source.id, target.id];
   }
   if (request.type.startsWith("area_")) {
     const area = await getArea(db, request.entityId);
@@ -196,6 +207,11 @@ function climbMergeDetails(
   return details;
 }
 
+function areaMergeDetails(source: Area | undefined, target: Area | undefined): string[] {
+  if (!source || !target) return [];
+  return [`Sub-areas and climbs of "${source.name}" move to "${target.name}"`];
+}
+
 function excerpt(value: string | null | undefined): string {
   if (value == null || value === "") return "(empty)";
   return value.length > 80 ? `${value.slice(0, 80)}…` : value;
@@ -240,6 +256,18 @@ const CHANGE_REQUEST_DESCRIBERS: Record<
       summary: `Move "${area?.name ?? "an area"}" under "${newParent?.name ?? "another area"}"`,
       href: area ? areaHref(area.id, area.name) : null,
       details: [`Parent: "${currentParent?.name ?? "(top level)"}" → "${newParent?.name ?? "?"}"`],
+    };
+  },
+  area_merge: (facts, request) => {
+    const { targetAreaId } = JSON.parse(request.payload) as ChangeRequestPayload["area_merge"];
+    const [source, target] = [facts.areas.get(request.entityId), facts.areas.get(targetAreaId)];
+    const sourceName = source?.name ?? "an area";
+    const targetName = target?.name ?? "another area";
+    return {
+      summary: `Merge "${sourceName}" into "${targetName}"`,
+      requesterSummary: `Mark "${sourceName}" as a duplicate of "${targetName}"`,
+      href: source ? areaHref(source.id, source.name) : null,
+      details: areaMergeDetails(source, target),
     };
   },
   climb_edit: (facts, request) => {

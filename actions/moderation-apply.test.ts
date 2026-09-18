@@ -10,6 +10,8 @@ import {
   applyAreaDelete,
   assertAreaReparentable,
   applyAreaReparent,
+  assertAreaMergeable,
+  applyAreaMerge,
   assertClimbMovable,
   applyClimbMove,
   applyClimbEdit,
@@ -221,6 +223,20 @@ describe("changeRequestScopeAreaIds", () => {
   it("returns [] when a merge's target climb is gone", async () => {
     const id = await submitChangeRequest(db, "climb_merge", 2, "scope-requester", {
       targetClimbId: 999999,
+    });
+    expect(await changeRequestScopeAreaIds(db, await loadRequest(id))).toEqual([]);
+  });
+
+  it("resolves an area_merge request to both the source and target area", async () => {
+    const id = await submitChangeRequest(db, "area_merge", 4, "scope-requester", {
+      targetAreaId: 5,
+    });
+    expect(await changeRequestScopeAreaIds(db, await loadRequest(id))).toEqual([4, 5]);
+  });
+
+  it("returns [] when an area merge's target area is gone", async () => {
+    const id = await submitChangeRequest(db, "area_merge", 4, "scope-requester", {
+      targetAreaId: 999999,
     });
     expect(await changeRequestScopeAreaIds(db, await loadRequest(id))).toEqual([]);
   });
@@ -540,6 +556,41 @@ describe("assertClimbMergeable", () => {
     const { source, target } = await assertClimbMergeable(db, 1, 2);
     expect(source.id).toBe(1);
     expect(target.id).toBe(2);
+  });
+});
+
+describe("assertAreaMergeable", () => {
+  it("rejects merging an area into itself", async () => {
+    await expect(assertAreaMergeable(db, 2, 2)).rejects.toThrow(
+      "Can't mark an area as a duplicate of itself",
+    );
+  });
+
+  it("rejects an unknown source area", async () => {
+    await expect(assertAreaMergeable(db, 999999, 2)).rejects.toThrow("Area not found");
+  });
+
+  it("rejects an unknown target area", async () => {
+    await expect(assertAreaMergeable(db, 2, 999999)).rejects.toThrow("Target area not found");
+  });
+
+  it("rejects merging an area into its own descendant", async () => {
+    // Area 4 is a child of area 2 in the fixture tree.
+    await expect(assertAreaMergeable(db, 2, 4)).rejects.toThrow(
+      "Can't merge an area into one of its own sub-areas",
+    );
+  });
+
+  it("allows merging a descendant into its own ancestor", async () => {
+    const { source, target } = await assertAreaMergeable(db, 4, 2);
+    expect(source.id).toBe(4);
+    expect(target.id).toBe(2);
+  });
+
+  it("returns both areas for a legal sibling merge", async () => {
+    const { source, target } = await assertAreaMergeable(db, 4, 5);
+    expect(source.id).toBe(4);
+    expect(target.id).toBe(5);
   });
 });
 
@@ -999,6 +1050,75 @@ describe("applyClimbMerge", () => {
   });
 });
 
+describe("applyAreaMerge", () => {
+  it("rejects a cyclic merge without touching either area", async () => {
+    await expect(applyAreaMerge(db, 2, 4)).rejects.toThrow(
+      "Can't merge an area into one of its own sub-areas",
+    );
+    expect(await db.select().from(areas).where(eq(areas.id, 2)).get()).toBeDefined();
+    expect(await db.select().from(areas).where(eq(areas.id, 4)).get()).toBeDefined();
+  });
+
+  it("reparents sub-areas and climbs onto the target, then deletes the source", async () => {
+    await db.insert(areas).values([
+      { id: 990, parentId: 1, name: "Merge Source Area" },
+      { id: 991, parentId: 1, name: "Merge Target Area" },
+      { id: 992, parentId: 990, name: "Merge Source Child" },
+    ]);
+    await db.insert(climbs).values({
+      id: 990,
+      areaId: 990,
+      name: "Merge Source Climb",
+      type: "boulder",
+      grade: 3,
+    });
+
+    await applyAreaMerge(db, 990, 991);
+
+    expect(await db.select().from(areas).where(eq(areas.id, 990)).get()).toBeUndefined();
+    const child = await db.select().from(areas).where(eq(areas.id, 992)).get();
+    expect(child?.parentId).toBe(991);
+    const climb = await db.select().from(climbs).where(eq(climbs.id, 990)).get();
+    expect(climb?.areaId).toBe(991);
+  });
+
+  it("consolidates a descendant into its own ancestor", async () => {
+    await db.insert(areas).values({ id: 993, parentId: 5, name: "Nested Under Slab" });
+    await db.insert(climbs).values({
+      id: 993,
+      areaId: 993,
+      name: "Nested Climb",
+      type: "boulder",
+      grade: 2,
+    });
+
+    // Area 5 (target) is area 993's own parent — merging 993 up into it.
+    await applyAreaMerge(db, 993, 5);
+
+    expect(await db.select().from(areas).where(eq(areas.id, 993)).get()).toBeUndefined();
+    const climb = await db.select().from(climbs).where(eq(climbs.id, 993)).get();
+    expect(climb?.areaId).toBe(5);
+  });
+
+  it("cascades admin_area_scopes rows naming the deleted source", async () => {
+    await seedFixtureUser(db, { id: "merge-admin", role: "admin" });
+    await db.insert(areas).values([
+      { id: 994, parentId: 1, name: "Scoped Source" },
+      { id: 995, parentId: 1, name: "Scoped Target" },
+    ]);
+    await db.insert(adminAreaScopes).values({ userId: "merge-admin", areaId: 994 });
+
+    await applyAreaMerge(db, 994, 995);
+
+    const scope = await db
+      .select()
+      .from(adminAreaScopes)
+      .where(and(eq(adminAreaScopes.userId, "merge-admin"), eq(adminAreaScopes.areaId, 994)))
+      .get();
+    expect(scope).toBeUndefined();
+  });
+});
+
 describe("orphaned request auto-rejection", () => {
   beforeEach(async () => {
     await seedFixtureUser(db, { id: "orphan-requester" });
@@ -1035,6 +1155,38 @@ describe("orphaned request auto-rejection", () => {
     });
 
     await applyClimbMerge(db, 886, 887);
+
+    expect((await loadRequest(editId)).status).toBe("rejected");
+  });
+
+  it("rejects pending requests on a deleted area, including merges targeting it", async () => {
+    await db.insert(areas).values([
+      { id: 873, parentId: 1, name: "Orphan Area Deleted" },
+      { id: 874, parentId: 1, name: "Orphan Area Merge Source" },
+    ]);
+    const editId = await submitChangeRequest(db, "area_edit", 873, "orphan-requester", {
+      name: "Never Happens",
+    });
+    const mergeIntoId = await submitChangeRequest(db, "area_merge", 874, "orphan-requester", {
+      targetAreaId: 873,
+    });
+
+    await applyAreaDelete(db, 873);
+
+    expect((await loadRequest(editId)).status).toBe("rejected");
+    expect((await loadRequest(mergeIntoId)).status).toBe("rejected");
+  });
+
+  it("rejects pending requests stranded by an area merge, atomically with it", async () => {
+    await db.insert(areas).values([
+      { id: 875, parentId: 1, name: "Orphan Area Merge Away" },
+      { id: 876, parentId: 1, name: "Orphan Area Merge Target" },
+    ]);
+    const editId = await submitChangeRequest(db, "area_edit", 875, "orphan-requester", {
+      name: "Stranded",
+    });
+
+    await applyAreaMerge(db, 875, 876);
 
     expect((await loadRequest(editId)).status).toBe("rejected");
   });
@@ -1133,6 +1285,25 @@ describe("describeChangeRequest", () => {
       '1 send(s) move to "Describe Target"',
       'Name: "Describe Target" → "Merged Describe"',
       `Grade: ${formatGrade("boulder", 4)} → ${formatGrade("boulder", 6)}`,
+    ]);
+  });
+
+  it("describes an area merge as marking a duplicate", async () => {
+    await db.insert(areas).values([
+      { id: 982, parentId: 1, name: "Describe Area Source" },
+      { id: 983, parentId: 1, name: "Describe Area Target" },
+    ]);
+    const id = await submitChangeRequest(db, "area_merge", 982, "describe-requester", {
+      targetAreaId: 983,
+    });
+
+    const description = await describeChangeRequest(db, await loadRequest(id));
+    expect(description.summary).toBe('Merge "Describe Area Source" into "Describe Area Target"');
+    expect(description.requesterSummary).toBe(
+      'Mark "Describe Area Source" as a duplicate of "Describe Area Target"',
+    );
+    expect(description.details).toEqual([
+      'Sub-areas and climbs of "Describe Area Source" move to "Describe Area Target"',
     ]);
   });
 });

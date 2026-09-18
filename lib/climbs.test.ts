@@ -16,6 +16,8 @@ const baseClimb: Climb = {
   ratingSum: 0,
   ratingCount: 0,
   avgRating: null,
+  latitude: null,
+  longitude: null,
 };
 
 describe("validateClimbEditInput", () => {

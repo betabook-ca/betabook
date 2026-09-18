@@ -32,6 +32,8 @@ const climb = {
   ratingSum: 155,
   ratingCount: 37,
   avgRating: 4.2,
+  latitude: null,
+  longitude: null,
 };
 
 /** The report form, with the successor name and both description texts

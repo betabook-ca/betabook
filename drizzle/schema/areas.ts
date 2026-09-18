@@ -1,4 +1,11 @@
-import { sqliteTable, integer, text, index, type AnySQLiteColumn } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  integer,
+  text,
+  real,
+  index,
+  type AnySQLiteColumn,
+} from "drizzle-orm/sqlite-core";
 
 export const areas = sqliteTable(
   "areas",
@@ -14,6 +21,11 @@ export const areas = sqliteTable(
     }),
     name: text("name").notNull(),
     description: text("description"),
+    // Populated by catalog imports (e.g. the OpenBeta reconciliation
+    // pipeline in scripts/openbeta-import/) or left null otherwise. Not
+    // required for any existing query path.
+    latitude: real("latitude"),
+    longitude: real("longitude"),
   },
   // areas_parent_idx is the whole tree index: every subtree and ancestor
   // query walks parent_id through a recursive CTE, and SQLite reads this as

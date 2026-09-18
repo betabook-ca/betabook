@@ -21,6 +21,8 @@ const climb: Climb = {
   ratingSum: 0,
   ratingCount: 0,
   avgRating: null,
+  latitude: null,
+  longitude: null,
 };
 function Editor({ grade = null }: { grade?: number | null } = {}) {
   const state = useOverlayState({ defaultOpen: true });

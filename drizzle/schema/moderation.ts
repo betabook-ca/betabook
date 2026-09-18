@@ -17,6 +17,7 @@ export const CHANGE_REQUEST_TYPES = [
   "area_edit",
   "area_delete",
   "area_reparent",
+  "area_merge",
   "climb_edit",
   "climb_delete",
   "climb_move",

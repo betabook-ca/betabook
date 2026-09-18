@@ -28,6 +28,8 @@ export function moderationAuthorizedSql(
   ];
   if (request.type === "area_reparent")
     requiredAreas.push(sql`SELECT (SELECT id FROM areas WHERE id = ${payload.newParentId})`);
+  else if (request.type === "area_merge")
+    requiredAreas.push(sql`SELECT (SELECT id FROM areas WHERE id = ${payload.targetAreaId})`);
   else if (request.type === "climb_move")
     requiredAreas.push(sql`SELECT (SELECT id FROM areas WHERE id = ${payload.newAreaId})`);
   else if (request.type === "climb_merge")
@@ -82,6 +84,7 @@ export async function getScopedPendingRequests(
       LEFT JOIN climbs c ON r.type LIKE 'climb_%' AND c.id = r.entity_id
       LEFT JOIN areas destination ON destination.id = CASE r.type
         WHEN 'area_reparent' THEN json_extract(r.payload, '$.newParentId')
+        WHEN 'area_merge' THEN json_extract(r.payload, '$.targetAreaId')
         WHEN 'climb_move' THEN json_extract(r.payload, '$.newAreaId') END
       LEFT JOIN climbs target ON r.type = 'climb_merge' AND target.id = json_extract(r.payload, '$.targetClimbId')
       WHERE r.status = 'pending' AND r.requested_by IS NOT ${viewerId}
@@ -91,7 +94,7 @@ export async function getScopedPendingRequests(
       review_note AS reviewNote, source_area_id AS sourceAreaId, destination_area_id AS destinationAreaId
     FROM scoped
     WHERE source_area_id IS NOT NULL
-      AND (type NOT IN ('area_reparent', 'climb_move', 'climb_merge') OR destination_area_id IS NOT NULL)
+      AND (type NOT IN ('area_reparent', 'area_merge', 'climb_move', 'climb_merge') OR destination_area_id IS NOT NULL)
       AND (source_area_id IN (SELECT id FROM managed) OR destination_area_id IN (SELECT id FROM managed))
       ${after ? sql`AND (requested_at, id) > (${after.requestedAt}, ${after.id})` : sql``}
     ORDER BY requested_at, id
@@ -119,6 +122,7 @@ export async function getModerationFacts(db: Database, requests: ChangeRequest[]
     if (request.type === "climb_merge") climbIds.add(payload.targetClimbId);
     if (request.type === "climb_move") areaIds.add(payload.newAreaId);
     if (request.type === "area_reparent") areaIds.add(payload.newParentId);
+    if (request.type === "area_merge") areaIds.add(payload.targetAreaId);
   }
   const climbRows = climbIds.size
     ? await db

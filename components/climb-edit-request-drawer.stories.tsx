@@ -37,6 +37,8 @@ export const Ungraded: StoryObj = {
             ratingSum: 0,
             ratingCount: 0,
             avgRating: null,
+            latitude: null,
+            longitude: null,
           }}
         />
       </StoryPage>

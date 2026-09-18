@@ -7,6 +7,8 @@ export * from "./journal";
 export * from "./product-tours";
 export * from "./moderation";
 export * from "./imports";
+export * from "./catalog-external-refs";
+export * from "./catalog-import-decisions";
 export * from "./friendships";
 export * from "./journal-companions";
 export * from "./analytics";

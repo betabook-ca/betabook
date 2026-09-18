@@ -25,6 +25,8 @@ const climb: Climb = {
   ratingSum: 12,
   ratingCount: 3,
   avgRating: 4,
+  latitude: null,
+  longitude: null,
 };
 
 function Reporter() {
