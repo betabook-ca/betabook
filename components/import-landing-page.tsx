@@ -15,7 +15,7 @@ const ACCOUNT_IMPORT_PATH = "/account/import";
 
 const ACCOUNT_STEP = "Create a Betabook account, or sign in.";
 const MATCH_STEP =
-  "Review how each ascent matched a Betabook climb. Pick between close matches, search under another spelling, or skip the row. Ascents on a climb that has since broken import only when dated before the break.";
+  "Review how each ascent matched a Betabook climb. Pick between close matches, search under another spelling, or skip the row. Ascents on a climb that has since broken import only when dated before the break; the rest are listed as unable to import.";
 const FINISH_STEP =
   "Choose whether to skip or overwrite climbs you’ve already logged, then import. Nothing is saved until you finish.";
 const CSV_ANSWER =

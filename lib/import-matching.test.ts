@@ -464,6 +464,7 @@ describe("resolveRows", () => {
       attention: 2,
       picked: 1,
       skipped: 1,
+      broken: 0,
       ready: 2,
     });
   });
@@ -485,25 +486,33 @@ describe("resolveRows on a broken climb", () => {
   const brokenWave = candidate({ id: 50, brokenOn: "2026-03-05" });
   const brokenIndex = indexOf([brokenWave]);
   const rows = [
-    row({ rowIndex: 0, dateSent: "2026-03-04" }), // predates the break: kept, flagged for review
-    row({ rowIndex: 1, dateSent: "2026-03-05" }), // on the break date: refused
-    row({ rowIndex: 2, dateSent: null }), // undated: refused
-    row({ rowIndex: 3, dateSent: "2026-06-01" }), // picked by hand, still refused
+    row({ rowIndex: 0, dateSent: "2026-03-04" }), // predates the break: imports as normal
+    row({ rowIndex: 1, dateSent: "2026-03-05" }), // on the break date: terminal
+    row({ rowIndex: 2, dateSent: null }), // undated, so unplaceable: terminal
+    row({ rowIndex: 3, dateSent: "2026-06-01" }), // picked by hand, still terminal
   ];
 
-  it("keeps only rows dated before the break, and never lets a manual pick bypass the rule", () => {
+  it("imports a pre-break ascent untouched and makes every other row terminal", () => {
     const manual = new Map([[3, { kind: "pick" as const, climb: brokenWave }]]);
     const resolved = resolveRows(rows, matchRows(rows, brokenIndex, NO_PREFERENCE), manual);
 
-    expect(resolved.map((r) => r.state)).toEqual(["review", "attention", "attention", "attention"]);
+    // A pre-break row is an ordinary match: no review flag, no note.
+    expect(resolved.map((r) => r.state)).toEqual(["matched", "broken", "broken", "broken"]);
     expect(resolved.map((r) => r.climb?.id ?? null)).toEqual([50, null, null, null]);
-    expect(resolved.map((r) => r.broken)).toEqual([
-      { climb: brokenWave, brokenOn: "2026-03-05", loggable: true },
-      { climb: brokenWave, brokenOn: "2026-03-05", loggable: false },
-      { climb: brokenWave, brokenOn: "2026-03-05", loggable: false },
-      { climb: brokenWave, brokenOn: "2026-03-05", loggable: false },
+    expect(resolved.map((r) => r.brokenBy)).toEqual([
+      null,
+      { climb: brokenWave, brokenOn: "2026-03-05" },
+      { climb: brokenWave, brokenOn: "2026-03-05" },
+      { climb: brokenWave, brokenOn: "2026-03-05" },
     ]);
-    expect(summarizeResolved(resolved).ready).toBe(1);
+    expect(summarizeResolved(resolved)).toMatchObject({ matched: 1, broken: 3, ready: 1 });
+  });
+
+  it("keeps terminal rows out of attention, so the pick-me UI never offers the broken climb", () => {
+    const resolved = resolveRows(rows, matchRows(rows, brokenIndex, NO_PREFERENCE), new Map());
+    // The automatic match still records what it found; only the state changed.
+    expect(resolved[1].match.kind).toBe("exact");
+    expect(resolved.filter((r) => r.state === "attention")).toEqual([]);
   });
 
   it("leaves intact climbs alone and words each refusal by what the row lacks", () => {
@@ -512,11 +521,11 @@ describe("resolveRows on a broken climb", () => {
       matchRows(rows.slice(0, 3), index, NO_PREFERENCE),
       new Map(),
     );
-    expect(intact.every((r) => r.broken === null)).toBe(true);
+    expect(intact.every((r) => r.brokenBy === null)).toBe(true);
     expect(intact.map((r) => r.state)).toEqual(["attention", "attention", "attention"]);
 
     expect(brokenClimbImportReason("2026-03-05", null)).toBe(
-      "Climb broke on 2026-03-05; undated ascents can't be logged on it",
+      "Climb broke on 2026-03-05; an undated ascent can't be placed before it",
     );
     expect(brokenClimbImportReason("2026-03-05", "2026-04-01")).toBe(
       "Climb broke on 2026-03-05; this ascent is dated on or after it",

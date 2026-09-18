@@ -44,12 +44,16 @@ export type Filter = ResolvedState | "all";
 /** The bucket to open on: whatever has work in it. Chosen once, when the
  * lookup finishes, so the list doesn't jump as rows resolve. */
 export function defaultFilter(summary: ResolvedSummary): Filter {
-  return summary.attention > 0 ? "attention" : summary.review > 0 ? "review" : "all";
+  if (summary.attention > 0) return "attention";
+  if (summary.review > 0) return "review";
+  // Terminal, but still the only thing worth reading when it's all there is.
+  return summary.broken > 0 ? "broken" : "all";
 }
 
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "attention", label: "Needs attention" },
   { key: "review", label: "Check" },
+  { key: "broken", label: "Broken climb" },
   { key: "matched", label: "Matched" },
   { key: "picked", label: "Picked" },
   { key: "skipped", label: "Skipped" },
@@ -59,6 +63,7 @@ const FILTERS: { key: Filter; label: string }[] = [
 const STATE_CLASS: Record<ResolvedState, string> = {
   attention: "text-danger",
   review: "text-warning",
+  broken: "text-danger",
   matched: "text-success-soft-foreground",
   picked: "text-success-soft-foreground",
   skipped: "text-muted",
@@ -71,11 +76,9 @@ const PAGE = 50;
 function stateLabel(resolved: ResolvedRow): string {
   switch (resolved.state) {
     case "attention":
-      return resolved.broken
-        ? "Broken climb"
-        : resolved.match.kind === "none"
-          ? "Not found"
-          : "Needs a pick";
+      return resolved.match.kind === "none" ? "Not found" : "Needs a pick";
+    case "broken":
+      return "Can't import";
     case "review":
       return "Check";
     case "matched":
@@ -269,11 +272,6 @@ function MatchRow({
           {state === "review" && match.kind === "exact" && match.notes.length > 0 && (
             <p className="text-xs text-muted">{match.notes.join(" · ")}</p>
           )}
-          {resolved.broken?.loggable && (
-            <p className="text-xs text-muted">
-              Broke on {resolved.broken.brokenOn}; this ascent predates it.
-            </p>
-          )}
           {duplicateOf != null && (
             <p className="text-xs text-warning">
               Same climb as row {duplicateOf + 1}. Only one will import.
@@ -332,17 +330,19 @@ function MatchRow({
         </div>
       )}
 
-      {state === "attention" && resolved.broken && (
+      {/* Terminal: `broken` is never `attention`, so the blocks below stay
+       * silent for it and there is exactly one explanation on screen. */}
+      {state === "broken" && resolved.brokenBy && (
         <div className="flex flex-col gap-2">
-          <ClimbLine climb={resolved.broken.climb} rowClimbName={row.climbName} />
+          <ClimbLine climb={resolved.brokenBy.climb} rowClimbName={row.climbName} />
           <p className="text-xs text-muted">
-            {brokenClimbImportReason(resolved.broken.brokenOn, row.dateSent)}. Search for the
-            post-break climb, or skip the row.
+            {brokenClimbImportReason(resolved.brokenBy.brokenOn, row.dateSent)}, so it can&rsquo;t
+            be imported.
           </p>
         </div>
       )}
 
-      {state === "attention" && !resolved.broken && match.kind === "none" && (
+      {state === "attention" && match.kind === "none" && (
         <p className="text-xs text-muted">
           No climb named “{row.climbName}” in betabook. Search under a different spelling, or skip
           the row.

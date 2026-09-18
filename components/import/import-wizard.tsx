@@ -352,23 +352,22 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
         label: null,
         reason: row.reason,
       })),
-      ...resolved.flatMap((r) =>
-        r.state === "skipped"
-          ? [fromResolved(r, "Skipped")]
-          : r.state === "attention"
-            ? [
-                fromResolved(
-                  r,
-                  r.broken
-                    ? brokenClimbImportReason(r.broken.brokenOn, r.row.dateSent)
-                    : r.match.kind === "none"
-                      ? "No climb with this name"
-                      : (r.match.kind === "ambiguous" && r.match.conflict) ||
-                        "Several climbs share this name and none was picked",
-                ),
-              ]
-            : [],
-      ),
+      ...resolved.flatMap((r) => {
+        if (r.state === "skipped") return [fromResolved(r, "Skipped")];
+        if (r.state === "broken" && r.brokenBy) {
+          return [fromResolved(r, brokenClimbImportReason(r.brokenBy.brokenOn, r.row.dateSent))];
+        }
+        if (r.state !== "attention") return [];
+        return [
+          fromResolved(
+            r,
+            r.match.kind === "none"
+              ? "No climb with this name"
+              : (r.match.kind === "ambiguous" && r.match.conflict) ||
+                  "Several climbs share this name and none was picked",
+          ),
+        ];
+      }),
       ...importResult.missing.map((r) => fromResolved(r, "Climb no longer exists")),
       // The server refused these; normally the climb broke between the
       // lookup and the commit, so the client copy of it may not carry a date.
@@ -1070,12 +1069,35 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
               tone={summary.attention > 0 ? "warning" : undefined}
             />
             <Stat label="Skipped" value={summary.skipped} />
+            {/* Rows rejected outright, whether by normalization or by a climb
+             * that broke before the ascent's date. Neither can be resolved by
+             * picking a different climb. */}
             <Stat
               label="Can't import"
-              value={normalized.invalid.length}
-              tone={normalized.invalid.length > 0 ? "danger" : undefined}
+              value={normalized.invalid.length + summary.broken}
+              tone={normalized.invalid.length + summary.broken > 0 ? "danger" : undefined}
             />
           </div>
+
+          {summary.broken > 0 && (
+            <p className="text-sm text-muted">
+              {formatCount(summary.broken, "row")}{" "}
+              {summary.broken === 1 ? "names a climb" : "name climbs"} that broke before the
+              ascent&rsquo;s date, so {summary.broken === 1 ? "it" : "they"} can&rsquo;t be
+              imported.{" "}
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => {
+                  setMatchFilter("broken");
+                  goBack("match");
+                }}
+                className="cursor-pointer underline decoration-dotted underline-offset-4 hover:text-foreground"
+              >
+                Back to matching
+              </button>
+            </p>
+          )}
 
           {summary.attention > 0 && (
             <p className="text-sm text-muted">
