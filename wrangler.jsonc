@@ -25,15 +25,29 @@
   "triggers": {
     "crons": ["0 6 * * 1"],
   },
-  // Holds the public catalog snapshot. The bucket is created by OpenTofu
-  // (infra/cloudflare/r2.tf) and bound here by name; `wrangler deploy`
-  // validates the binding, so the Spacelift apply must land first.
+  // Both buckets are created by OpenTofu (infra/cloudflare/r2.tf) and bound
+  // here by name; `wrangler deploy` validates the binding, so the Spacelift
+  // apply must land first. CATALOG_EXPORTS holds the public catalog
+  // snapshot; PROFILE_PHOTOS holds one square WebP per climber.
   "r2_buckets": [
     {
       "binding": "CATALOG_EXPORTS",
       "bucket_name": "betabook-exports",
     },
+    {
+      "binding": "PROFILE_PHOTOS",
+      "bucket_name": "betabook-avatars",
+    },
   ],
+  // Re-encodes an uploaded profile photo to the one size and format the app
+  // stores. Needs no provisioning and no subscription: the first 5,000
+  // unique transformations each month are free, and the upload path spends
+  // exactly one per photo. Wrangler and the Workers Vitest pool substitute
+  // an offline implementation supporting width, height, rotate and format —
+  // which is all this app asks of it, so local runs behave like production.
+  "images": {
+    "binding": "IMAGES",
+  },
   "d1_databases": [
     {
       "binding": "DB",
@@ -76,6 +90,18 @@
       "namespace_id": "1003",
       "simple": {
         "limit": 30,
+        "period": 60,
+      },
+    },
+    // A photo upload spends an Images transformation out of a monthly free
+    // allowance and two R2 operations, so this is the one write where the
+    // limit protects a budget rather than the database. Five a minute is
+    // more re-crops than anyone makes by hand.
+    {
+      "name": "PROFILE_PHOTO_RATE_LIMITER",
+      "namespace_id": "1004",
+      "simple": {
+        "limit": 5,
         "period": 60,
       },
     },
