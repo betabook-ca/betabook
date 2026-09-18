@@ -3,6 +3,7 @@
  * depend on a gitignored, machine-local generated file. */
 interface CloudflareEnv {
   DB: D1Database;
+  CATALOG_EXPORTS: R2Bucket;
   CONTACT_RATE_LIMITER: RateLimit;
   JOURNAL_RATE_LIMITER: RateLimit;
   FRIENDSHIP_RATE_LIMITER: RateLimit;
@@ -20,6 +21,7 @@ interface CloudflareEnv {
 declare namespace Cloudflare {
   interface Env {
     DB: CloudflareEnv["DB"];
+    CATALOG_EXPORTS: CloudflareEnv["CATALOG_EXPORTS"];
     CONTACT_RATE_LIMITER: CloudflareEnv["CONTACT_RATE_LIMITER"];
     JOURNAL_RATE_LIMITER: CloudflareEnv["JOURNAL_RATE_LIMITER"];
     FRIENDSHIP_RATE_LIMITER: CloudflareEnv["FRIENDSHIP_RATE_LIMITER"];
