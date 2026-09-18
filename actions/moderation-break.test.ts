@@ -2,7 +2,13 @@ import { env } from "cloudflare:test";
 import { and, eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { approveChangeRequest, requestClimbBreak, requestClimbMerge } from "@/actions";
+import {
+  approveChangeRequest,
+  createJournalEntry,
+  requestClimbBreak,
+  requestClimbMerge,
+  updateSend,
+} from "@/actions";
 import { applyClimbBreak, assertClimbMergeable } from "@/actions/moderation-apply";
 import { createDb } from "@/db/client";
 import { getChangeRequest } from "@/db/queries";
@@ -26,6 +32,10 @@ vi.mock("next/cache", () => ({ refresh: () => {}, revalidatePath: () => {} }));
 
 vi.mock("@/lib/email", () => ({
   sendChangeRequestDecisionEmail: vi.fn<() => Promise<void>>(async () => {}),
+}));
+
+vi.mock("@/lib/rate-limit", () => ({
+  allowJournalWrite: vi.fn<() => Promise<boolean>>(async () => true),
 }));
 
 vi.mock("@/lib/session", async () => {
@@ -297,9 +307,11 @@ describe("moving later history to the successor", () => {
         ascentStyle: "flash",
         rating: 4,
       }),
+      // Undated on purpose: the repeats say when they climbed the new line,
+      // and a dated send here would have no ascent entry to mirror.
       expect.objectContaining({
         userId: "break-early",
-        dateSent: "2026-06-01",
+        dateSent: null,
         ascentStyle: "redpoint",
         rating: null,
         comment: null,
@@ -359,6 +371,52 @@ describe("moving later history to the successor", () => {
       "break-late",
     ]);
     expect((await entriesOn(successor.id)).map((e) => e.userId)).toContain("break-late");
+  });
+});
+
+describe("after the move, a repeat-only climber's successor send behaves like any undated send", () => {
+  it("takes a rating edit without a journal row and a new repeat without a duplicate", async () => {
+    await seedAscent("break-early", HIGHBALL, "2026-01-10", { ascentStyle: "redpoint" });
+    await seedFixtureJournalEntry(db, {
+      userId: "break-early",
+      climbId: HIGHBALL,
+      entryDate: "2026-06-01",
+      sent: true,
+      body: "Back on the new line",
+    });
+    await actAsAdmin();
+    expect((await requestClimbBreak(HIGHBALL, breakForm())).ok).toBe(true);
+    const successor = await successorOf(4, HIGHBALL);
+    const [moved] = await sendsOn(successor.id);
+    expect(moved).toMatchObject({ userId: "break-early", dateSent: null });
+
+    sessionState.userId = "break-early";
+    sessionState.role = null;
+    const rating = new FormData();
+    rating.set("ascentStyle", "redpoint");
+    rating.set("dateSent", "");
+    rating.set("rating", "3");
+    rating.set("suggestedGrade", "5");
+    rating.set("gradeFeel", "solid");
+    expect(await updateSend(moved.id, rating)).toEqual({ ok: true, value: undefined });
+
+    const repeat = new FormData();
+    repeat.set("kind", "session");
+    repeat.set("climbId", String(successor.id));
+    repeat.set("entryDate", "2026-06-01");
+    repeat.set("sent", "true");
+    repeat.set("body", "Same day, second go");
+    expect(await createJournalEntry(repeat)).toEqual({ ok: true, value: undefined });
+
+    // Exactly the moved repeat plus the new one — no ascent entry was
+    // conjured on 2026-06-01, and nothing was mirrored twice.
+    expect((await entriesOn(successor.id)).map((e) => [e.entryDate, e.body, e.isAscent])).toEqual([
+      ["2026-06-01", "Back on the new line", false],
+      ["2026-06-01", "Same day, second go", false],
+    ]);
+    expect(await sendsOn(successor.id)).toEqual([
+      expect.objectContaining({ userId: "break-early", dateSent: null, rating: 3 }),
+    ]);
   });
 });
 

@@ -474,10 +474,14 @@ export async function assertClimbBreakable(
  * guard permits an ascent to change climb once its send is there and none
  * remains on the original. One whose send predates the break but who logged
  * sent repeats afterwards climbed both lines: they get a fresh send on the
- * successor (their style, dated to the earliest such repeat, no rating or
- * comment, since those opinions were about the old line) so the repeats can
- * follow as repeats. Sessions that were never sends move freely. Undated
- * sends stay, as does everything dated before the break. */
+ * successor so the repeats can follow as repeats. That send is undated with
+ * no rating or comment — the repeats already say when they climbed the new
+ * line, their opinions were about the old one, and an undated send with dated
+ * repeats is a state the journal invariants support (see 0029). Dating it
+ * would leave a dated send with no ascent entry, which the guard forbids
+ * creating later, so the next edit mirroring the send would add a second
+ * sent entry on that day. Sessions that were never sends move freely.
+ * Undated sends stay, as does everything dated before the break. */
 export async function applyClimbBreak(
   db: Database,
   climbId: number,
@@ -522,7 +526,8 @@ export async function applyClimbBreak(
         description: payload.successorDescription,
       }),
       // Climbers whose send stays (dated before the break, or undated) but who
-      // logged sent repeats afterwards need a send on the successor first.
+      // logged sent repeats afterwards need a send on the successor first —
+      // undated, so no ascent entry is owed (see the function comment).
       // insert().select() requires all columns in schema order; NULL ID permits autoincrement.
       db.insert(sends).select(
         db
@@ -531,7 +536,7 @@ export async function applyClimbBreak(
             userId: journalEntries.userId,
             climbId: sql<number>`${successorId}`.as("climb_id"),
             ascentStyle: sql<string>`${own.ascentStyle}`.as("ascent_style"),
-            dateSent: sql<string>`min(${journalEntries.entryDate})`.as("date_sent"),
+            dateSent: sql<string | null>`null`.as("date_sent"),
             comment: sql<string | null>`null`.as("comment"),
             rating: sql<number | null>`null`.as("rating"),
             suggestedGrade: sql<number | null>`null`.as("suggested_grade"),
