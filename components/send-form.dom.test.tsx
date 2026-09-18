@@ -12,7 +12,7 @@ vi.mock("@/actions", () => ({
   updateSend: vi.fn<(id: number, formData: FormData) => Promise<ActionResult>>(),
 }));
 
-const climb: SendableClimb = { id: 17, areaId: 3, type: "boulder", grade: 5 };
+const climb: SendableClimb = { id: 17, areaId: 3, type: "boulder", grade: 5, brokenOn: null };
 const send: EditableSend = {
   id: 91,
   ascentStyle: "redpoint",
@@ -60,6 +60,20 @@ it("clears the sent date to make the send undated", async () => {
   await user.click(screen.getByRole("button", { name: "Save changes" }));
   await waitFor(() => expect(save).toHaveBeenCalledOnce());
   expect(save.mock.calls[0][1].get("dateSent")).toBe("");
+});
+
+it("withholds the undated option on a broken climb and explains the date cap", () => {
+  vi.mocked(updateSend).mockResolvedValue({ ok: true, value: undefined });
+  render(
+    <SendForm
+      climb={{ ...climb, brokenOn: "2026-03-05" }}
+      existingSend={{ ...send, dateSent: "2026-02-01" }}
+    />,
+  );
+  expect(screen.queryByRole("checkbox", { name: "I don't know" })).not.toBeInTheDocument();
+  expect(
+    screen.getByText("This climb broke on 2026-03-05; only earlier dates can be logged."),
+  ).toBeVisible();
 });
 
 it("submits edits to a recorded opinion", async () => {

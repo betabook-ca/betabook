@@ -44,6 +44,13 @@ it("offers no I don't know control when editing an entry, which always needs its
   expect(screen.getByRole("spinbutton", { name: /day, Date/ })).toHaveTextContent("01");
   expect(screen.queryByRole("checkbox", { name: "I don't know" })).not.toBeInTheDocument();
 });
+it("withholds I don't know on a broken climb and explains the cap", () => {
+  render(<Dates sent brokenOn="2026-03-05" />);
+  expect(screen.queryByRole("checkbox", { name: "I don't know" })).not.toBeInTheDocument();
+  expect(
+    screen.getByText("This climb broke on 2026-03-05; only earlier dates can be logged."),
+  ).toBeVisible();
+});
 it("offers training only its date, since it can never be saved without one", () => {
   render(<Dates hasClimb={false} />);
   expect(screen.getByRole("spinbutton", { name: /day, Date/ })).toHaveTextContent("01");

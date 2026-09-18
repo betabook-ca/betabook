@@ -22,6 +22,7 @@ import { RatingField } from "@/components/ui/rating-field";
 import type { EditableSend, JournalEntry, SendableClimb } from "@/db/queries";
 import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
+import { latestLoggableDate } from "@/lib/broken-climbs";
 import type { CompanionOption } from "@/lib/journal-companions";
 import { MAX_COMMENT_LENGTH, type AscentStyle, type GradeFeel } from "@/lib/sends";
 
@@ -109,10 +110,17 @@ export function SendForm({
         <DatePickerField
           label="Date sent"
           value={dateSent}
-          max={today}
+          max={latestLoggableDate(climb, today)}
+          description={
+            climb.brokenOn
+              ? `This climb broke on ${climb.brokenOn}; only earlier dates can be logged.`
+              : undefined
+          }
           onChange={setDateSent}
+          // A broken climb can't take an undated send (it can't be shown to
+          // predate the break), so the "I don't know" control is withheld.
           onUnknownChange={
-            existingEntry
+            existingEntry || climb.brokenOn
               ? undefined
               : (unknown) => setDateSent(unknown ? "" : (existingSend.dateSent ?? today))
           }

@@ -29,6 +29,8 @@ export type PublicClimb = {
   type: ClimbType;
   grade: number | null;
   description: string | null;
+  /** ISO date the climb broke, or null. Catalog data like the description. */
+  brokenOn: string | null;
   /** Whole-catalog aggregates over logged sends. They name no one, so they
    * are readable without a session; the sends behind them are not. */
   avgRating: number | null;

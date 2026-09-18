@@ -100,7 +100,9 @@ climber’s grade is still saved as the send’s suggested grade. Verified V/YDS
 unknown grades stop the import, and KAYA's explicit ungraded labels remain
 available for the wizard's normal validation warnings. Null/zero ratings remain
 unrated; stiffness -1/0/1 becomes low-end/solid/high-end. Null dates and the existing
-KAYA January 1, 1970 placeholder become undated. Other timestamps use the
+KAYA January 1, 1970 placeholder become undated; an undated ascent of a climb
+that has since been marked broken can't be placed before the break, so it is
+reported as unable to import like any other broken-climb row. Other timestamps use the
 browser's local calendar date, matching KAYA's web display, including timestamps
 at midnight UTC. Comments use the wizard's existing HTML entity decoding.
 

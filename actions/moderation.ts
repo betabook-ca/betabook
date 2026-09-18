@@ -18,6 +18,8 @@ import {
   applyClimbDelete,
   assertClimbMergeable,
   applyClimbMerge,
+  assertClimbBreakable,
+  applyClimbBreak,
   type MutationDecision,
 } from "@/actions/moderation-apply";
 import type { Database } from "@/db/client";
@@ -26,6 +28,7 @@ import { getArea, getChangeRequest, getClimb, getUser, type ChangeRequest } from
 import { moderationAuthorizedSql } from "@/db/queries/moderation";
 import { changeRequests } from "@/db/schema";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
+import { composeClimbBreakTexts, validateClimbBreakInput } from "@/lib/broken-climbs";
 import {
   validateClimbEditInput,
   validateClimbMergeOverrides,
@@ -52,6 +55,7 @@ import { pickFormFields, requireTrimmed } from "@/lib/validation";
 import { afterCommit } from "./post-commit";
 
 const CLIMB_EDIT_REQUEST_FIELDS = ["name", "type", "grade"] as const;
+const CLIMB_BREAK_REQUEST_FIELDS = ["brokenOn", "reason"] as const;
 
 function readClimbFormData(formData: FormData): RawClimbEditInput {
   return pickFormFields(formData, CLIMB_EDIT_REQUEST_FIELDS);
@@ -270,6 +274,46 @@ export async function requestClimbMerge(
   });
 }
 
+/** Reports that a climb broke on a date. On approval the climb is marked
+ * broken, its description gains a notice, and a post-break climb is created
+ * with the same grade. The successor name and both descriptions are composed
+ * here, from the climb as it is right now, and stored in the payload so the
+ * reviewer approves the exact text (see lib/broken-climbs.ts). */
+export async function requestClimbBreak(
+  climbId: number,
+  formData: FormData,
+): Promise<ActionResult<GatedActionResult>> {
+  return toActionResult(async () => {
+    const session = await requireSession();
+    const db = await getDb();
+
+    if (parseId(climbId) === null) throw new ActionError("Climb not found");
+    const input = validateClimbBreakInput(pickFormFields(formData, CLIMB_BREAK_REQUEST_FIELDS));
+    const {
+      climb: existing,
+      laterSends,
+      laterEntries,
+    } = await assertClimbBreakable(db, climbId, input.brokenOn);
+    const payload: ChangeRequestPayload["climb_break"] = {
+      ...input,
+      ...composeClimbBreakTexts(existing, input),
+      laterSends,
+      laterEntries,
+    };
+
+    if (await isAdminForArea(db, session, existing.areaId)) {
+      await applyClimbBreak(db, climbId, payload, {
+        type: "climb_break",
+        entityId: climbId,
+        payload,
+        reviewerId: session.user.id,
+      });
+      return { status: "applied" };
+    }
+    return queueChangeRequest(db, session, "climb_break", climbId, payload);
+  });
+}
+
 /** An awaiting decision records a vote but leaves the mutation pending. */
 export type ReviewDecision = { decision: "applied" | "awaiting" };
 
@@ -320,6 +364,8 @@ const CHANGE_REQUEST_APPLIERS: Record<
     const { targetClimbId, overrides } = JSON.parse(request.payload);
     return applyClimbMerge(db, request.entityId, targetClimbId, overrides, decision);
   },
+  climb_break: (db, request, decision) =>
+    applyClimbBreak(db, request.entityId, JSON.parse(request.payload), decision),
 };
 
 /** Reject only a still-pending request; concurrent decisions must not be overwritten. */

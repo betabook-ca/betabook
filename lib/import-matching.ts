@@ -1,4 +1,5 @@
 import type { ClimbCandidate } from "@/db/queries";
+import { isLoggableOnClimb } from "@/lib/broken-climbs";
 import { formatGrade, parseGrade, type ClimbType } from "@/lib/grades";
 import type { NormalizedImportRow } from "@/lib/sends-import";
 
@@ -457,15 +458,46 @@ export function matchRows(
 
 export type ManualChoice = { kind: "pick"; climb: ClimbCandidate } | { kind: "skip" };
 
-/** Both matched and review rows import; review marks a match that needs checking. */
-export type ResolvedState = "matched" | "review" | "attention" | "picked" | "skipped";
+/** Both matched and review rows import; review marks a match that needs
+ * checking. `broken` is terminal: the row's climb broke on or before the
+ * ascent's date, so nothing the user picks here can make it importable. */
+export type ResolvedState = "matched" | "review" | "attention" | "picked" | "skipped" | "broken";
 
 export type ResolvedRow = {
   row: NormalizedImportRow;
   match: RowMatch;
   climb: ClimbCandidate | null;
   state: ResolvedState;
+  /** The broken climb behind a `broken` state, for naming it in the message.
+   * Null in every other state. */
+  brokenBy: { climb: ClimbCandidate; brokenOn: string } | null;
 };
+
+/** Two phrasings because the remedy differs: a wrong date can be corrected in
+ * the source file, while an undated ascent simply can't be placed either side
+ * of the break. */
+export function brokenClimbImportReason(brokenOn: string, dateSent: string | null): string {
+  return dateSent === null
+    ? `Climb broke on ${brokenOn}; an undated ascent can't be placed before it`
+    : `Climb broke on ${brokenOn}; this ascent is dated on or after it`;
+}
+
+/** A broken climb takes only ascents dated before it broke. Any other row is
+ * terminal, whether the climb came from the automatic match or a manual pick:
+ * we don't hunt for the post-break climb on the user's behalf, we say why the
+ * row can't import. The `broken` state also keeps such a row out of the
+ * attention bucket, whose UI exists to ask for a pick. */
+function withBrokenRule(resolved: Omit<ResolvedRow, "brokenBy">): ResolvedRow {
+  const { climb, row } = resolved;
+  if (!climb || climb.brokenOn === null) return { ...resolved, brokenBy: null };
+  if (isLoggableOnClimb(climb, row.dateSent)) return { ...resolved, brokenBy: null };
+  return {
+    ...resolved,
+    climb: null,
+    state: "broken",
+    brokenBy: { climb, brokenOn: climb.brokenOn },
+  };
+}
 
 /** Manual choices override automatic matches for the same rows in the same order. */
 export function resolveRows(
@@ -476,20 +508,24 @@ export function resolveRows(
   return rows.map((row, i) => {
     const match = matches[i];
     const choice = manual.get(row.rowIndex);
-    if (choice?.kind === "pick") return { row, match, climb: choice.climb, state: "picked" };
-    if (choice?.kind === "skip") return { row, match, climb: null, state: "skipped" };
+    if (choice?.kind === "pick") {
+      return withBrokenRule({ row, match, climb: choice.climb, state: "picked" });
+    }
+    if (choice?.kind === "skip") {
+      return { row, match, climb: null, state: "skipped", brokenBy: null };
+    }
     switch (match.kind) {
       case "exact":
-        return {
+        return withBrokenRule({
           row,
           match,
           climb: match.climb,
           state: match.notes.length > 0 ? "review" : "matched",
-        };
+        });
       case "inferred":
-        return { row, match, climb: match.climb, state: "review" };
+        return withBrokenRule({ row, match, climb: match.climb, state: "review" });
       default:
-        return { row, match, climb: null, state: "attention" };
+        return { row, match, climb: null, state: "attention", brokenBy: null };
     }
   });
 }
@@ -506,6 +542,7 @@ export function summarizeResolved(rows: readonly ResolvedRow[]): ResolvedSummary
     attention: 0,
     picked: 0,
     skipped: 0,
+    broken: 0,
     ready: 0,
   };
   const climbs = new Set<number>();

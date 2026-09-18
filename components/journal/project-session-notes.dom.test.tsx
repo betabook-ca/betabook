@@ -18,6 +18,7 @@ function session(overrides: Partial<JournalEntry> & { id: number }): JournalEntr
     climbName: "Moon Slab",
     climbType: "boulder",
     climbGrade: 5,
+    climbBrokenOn: null,
     areaId: 8,
     areaName: "Cedar Block",
     isAscent: false,

@@ -82,6 +82,10 @@ export const requestClimbEdit = fn<typeof Actions.requestClimbEdit>().mockResolv
   ok: true,
   value: { status: "pending" },
 });
+export const requestClimbBreak = fn<typeof Actions.requestClimbBreak>().mockResolvedValue({
+  ok: true,
+  value: { status: "pending" },
+});
 export const approveChangeRequest = fn<typeof Actions.approveChangeRequest>().mockResolvedValue({
   ok: true,
   value: { decision: "awaiting" },

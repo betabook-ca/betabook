@@ -24,6 +24,7 @@ import {
 } from "@/db/schema";
 import { ActionError } from "@/lib/action-result";
 import type { AreaInput } from "@/lib/areas";
+import { validateClimbBreakInput, type ClimbBreakImpact } from "@/lib/broken-climbs";
 import { validateClimbMergeOverrides, validateClimbEditInput } from "@/lib/climbs";
 import type { ChangeRequestPayload, ChangeRequestType } from "@/lib/moderation";
 
@@ -43,6 +44,16 @@ function areaUnchanged(area: Area): SQL {
 function climbUnchanged(climb: Climb): SQL {
   return sql`EXISTS (SELECT 1 FROM climbs WHERE id = ${climb.id}
     AND type = ${climb.type} AND area_id = ${climb.areaId})`;
+}
+
+/** Break state, which climbUnchanged does not pin. A merge validated against
+ * two unbroken climbs must not commit once either has broken in between: the
+ * batch would delete a newly broken source or fold sends into a newly broken
+ * target, both of which assertClimbMergeable refuses. An admin merge applies
+ * without a pending request, so the break's own auto-reject cannot catch it.
+ * Edits, moves and deletes stay legal on a broken climb and don't use this. */
+function climbNotBroken(climb: Climb): SQL {
+  return sql`EXISTS (SELECT 1 FROM climbs WHERE id = ${climb.id} AND broken_on IS NULL)`;
 }
 
 /** The NOT NULL guard aborts the entire batch if a concurrent decision or
@@ -131,6 +142,7 @@ function rejectOrphanedClimbRequests(db: Database, climbId: number) {
               "climb_delete",
               "climb_move",
               "climb_merge",
+              "climb_break",
             ]),
             eq(changeRequests.entityId, climbId),
           ),
@@ -426,7 +438,202 @@ export async function assertClimbMergeable(
   if (source.type !== target.type) {
     throw new ActionError("Can't mark a climb as a duplicate of a different discipline");
   }
+  // Merged sends would land on a broken climb regardless of their dates, and
+  // a broken climb's own history is exactly what its break notice documents.
+  if (source.brokenOn !== null || target.brokenOn !== null) {
+    throw new ActionError("Can't merge a broken climb");
+  }
   return { source, target };
+}
+
+const BREAK_SUPERSEDED_REVIEW_NOTE = "This climb has already been marked as broken.";
+const BREAK_BLOCKS_MERGE_REVIEW_NOTE =
+  "This climb has been marked as broken, and broken climbs can't be merged.";
+
+/** Loads the climb for a break report and counts the history dated on or
+ * after the reported date. That history is not an obstacle: those climbers
+ * climbed the post-break line, so approval moves it to the successor. The
+ * counts feed the queue description. Undated sends are never counted or
+ * moved — they can't be placed on either side of the break. */
+export async function assertClimbBreakable(
+  db: Database,
+  climbId: number,
+  brokenOn: string,
+): Promise<{ climb: Climb } & ClimbBreakImpact> {
+  const climb = await getClimb(db, climbId);
+  if (!climb) throw new ActionError("Climb not found");
+  if (climb.brokenOn !== null) {
+    throw new ActionError(`This climb is already marked as broken on ${climb.brokenOn}`);
+  }
+  const [row] = await db.all<ClimbBreakImpact>(sql`
+    SELECT
+      (SELECT count(*) FROM sends WHERE climb_id = ${climbId}
+        AND date_sent IS NOT NULL AND date_sent >= ${brokenOn}) AS laterSends,
+      (SELECT count(*) FROM journal_entries WHERE climb_id = ${climbId}
+        AND entry_date >= ${brokenOn}) AS laterEntries
+  `);
+  return { climb, laterSends: row.laterSends, laterEntries: row.laterEntries };
+}
+
+/** Marks the climb broken, creates its post-break successor, and moves the
+ * history dated on or after the break onto it, all in one batch. The payload
+ * texts are written verbatim; only the date and reason are re-validated,
+ * since the moderator approved exactly those strings.
+ *
+ * Two kinds of climber have later history. One whose send is dated on or
+ * after the break climbed only the new line: the send moves, then every
+ * entry of theirs dated on or after the break, ascent included — the journal
+ * guard permits an ascent to change climb once its send is there and none
+ * remains on the original. One whose send predates the break but who logged
+ * sent repeats afterwards climbed both lines: they get a fresh send on the
+ * successor so the repeats can follow as repeats. That send is undated with
+ * no rating or comment — the repeats already say when they climbed the new
+ * line, their opinions were about the old one, and an undated send with dated
+ * repeats is a state the journal invariants support (see 0029). Dating it
+ * would leave a dated send with no ascent entry, which the guard forbids
+ * creating later, so the next edit mirroring the send would add a second
+ * sent entry on that day. Sessions that were never sends move freely.
+ * Undated sends stay, as does everything dated before the break. */
+export async function applyClimbBreak(
+  db: Database,
+  climbId: number,
+  payload: ChangeRequestPayload["climb_break"],
+  decision?: MutationDecision,
+): Promise<void> {
+  const { brokenOn } = validateClimbBreakInput({
+    brokenOn: payload.brokenOn,
+    reason: payload.reason,
+  });
+  for (const key of ["successorName", "appendedDescription", "successorDescription"] as const) {
+    if (typeof payload[key] !== "string" || !payload[key].trim()) {
+      throw new ActionError("This break request is incomplete — reject it and request a new one");
+    }
+  }
+  const { climb: existing } = await assertClimbBreakable(db, climbId, brokenOn);
+  const guard = sql`${climbUnchanged(existing)} AND EXISTS (
+    SELECT 1 FROM climbs WHERE id = ${climbId} AND broken_on IS NULL)`;
+  // The successor is inserted two statements earlier in this batch; the
+  // highest id with its name in this area is that row, since any older
+  // same-named climb has a lower id and last_insert_rowid() is clobbered by
+  // the send insert below.
+  const successorId = sql`(SELECT MAX(id) FROM climbs
+    WHERE area_id = ${existing.areaId} AND name = ${payload.successorName})`;
+  const own = alias(sends, "own");
+
+  await commitMutation(
+    db,
+    [
+      db
+        .update(climbs)
+        .set({
+          brokenOn: sql`CASE WHEN ${guard} THEN ${brokenOn} ELSE broken_on END`,
+          description: sql`CASE WHEN ${guard} THEN ${payload.appendedDescription} ELSE description END`,
+        })
+        .where(eq(climbs.id, climbId)),
+      db.insert(climbs).values({
+        areaId: existing.areaId,
+        name: payload.successorName,
+        type: existing.type,
+        grade: existing.grade,
+        description: payload.successorDescription,
+      }),
+      // Climbers whose send stays (dated before the break, or undated) but who
+      // logged sent repeats afterwards need a send on the successor first —
+      // undated, so no ascent entry is owed (see the function comment).
+      // insert().select() requires all columns in schema order; NULL ID permits autoincrement.
+      db.insert(sends).select(
+        db
+          .select({
+            id: sql<number>`null`.as("id"),
+            userId: journalEntries.userId,
+            climbId: sql<number>`${successorId}`.as("climb_id"),
+            ascentStyle: sql<string>`${own.ascentStyle}`.as("ascent_style"),
+            dateSent: sql<string | null>`null`.as("date_sent"),
+            comment: sql<string | null>`null`.as("comment"),
+            rating: sql<number | null>`null`.as("rating"),
+            suggestedGrade: sql<number | null>`null`.as("suggested_grade"),
+            gradeFeel: sql<string>`'solid'`.as("grade_feel"),
+            createdAt: sql<number>`(cast(unixepoch('subsecond') * 1000 as integer))`.as(
+              "created_at",
+            ),
+            updatedAt: sql<number>`(cast(unixepoch('subsecond') * 1000 as integer))`.as(
+              "updated_at",
+            ),
+          })
+          .from(journalEntries)
+          .innerJoin(own, and(eq(own.userId, journalEntries.userId), eq(own.climbId, climbId)))
+          .where(
+            and(
+              eq(journalEntries.climbId, climbId),
+              eq(journalEntries.sent, true),
+              sql`${journalEntries.entryDate} >= ${brokenOn}`,
+              sql`(${own.dateSent} IS NULL OR ${own.dateSent} < ${brokenOn})`,
+            ),
+          )
+          .groupBy(journalEntries.userId),
+      ),
+      // Sends dated on or after the break belong to the new line.
+      db
+        .update(sends)
+        .set({ climbId: sql`${successorId}` })
+        .where(and(eq(sends.climbId, climbId), sql`${sends.dateSent} >= ${brokenOn}`)),
+      // Then every entry from the break onwards; ascents pass the journal guard
+      // because their send moved above and none remains on the original.
+      db
+        .update(journalEntries)
+        .set({ climbId: sql`${successorId}` })
+        .where(
+          and(eq(journalEntries.climbId, climbId), sql`${journalEntries.entryDate} >= ${brokenOn}`),
+        ),
+      // Other reporters' pending break requests for this climb are now moot.
+      db
+        .update(changeRequests)
+        .set({
+          status: "rejected",
+          reviewNote: BREAK_SUPERSEDED_REVIEW_NOTE,
+          reviewedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(changeRequests.status, "pending"),
+            eq(changeRequests.type, "climb_break"),
+            eq(changeRequests.entityId, climbId),
+          ),
+        ),
+      // So are pending merges naming this climb on either side: a broken
+      // climb can't be merged (assertClimbMergeable), and leaving them pending
+      // would make every approval attempt fail after recording its vote.
+      // Edits, moves and deletes stay valid and are left alone.
+      db
+        .update(changeRequests)
+        .set({
+          status: "rejected",
+          reviewNote: BREAK_BLOCKS_MERGE_REVIEW_NOTE,
+          reviewedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(changeRequests.status, "pending"),
+            eq(changeRequests.type, "climb_merge"),
+            or(
+              eq(changeRequests.entityId, climbId),
+              sql`json_extract(${changeRequests.payload}, '$.targetClimbId') = ${climbId}`,
+            ),
+          ),
+        ),
+    ],
+    guard,
+    decision,
+  );
+  const successor = await db.get<{ id: number }>(sql`SELECT ${successorId} AS id`);
+
+  afterCommit(() => {
+    revalidatePath(`/climbs/${climbId}`);
+    if (successor?.id) revalidatePath(`/climbs/${successor.id}`);
+    revalidatePath(`/areas/${existing.areaId}`);
+    revalidatePath("/");
+    refresh();
+  });
 }
 
 export async function applyClimbMerge(
@@ -500,7 +707,8 @@ export async function applyClimbMerge(
   await commitMutation(
     db,
     statements,
-    sql`${climbUnchanged(source)} AND ${climbUnchanged(target)}`,
+    sql`${climbUnchanged(source)} AND ${climbUnchanged(target)}
+      AND ${climbNotBroken(source)} AND ${climbNotBroken(target)}`,
     decision,
   );
 

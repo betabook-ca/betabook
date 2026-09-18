@@ -66,6 +66,7 @@ export async function getPublicClimb(db: Database, id: number): Promise<PublicCl
       type: climbs.type,
       grade: climbs.grade,
       description: climbs.description,
+      brokenOn: climbs.brokenOn,
       avgRating: climbs.avgRating,
       sendCount: climbs.sendCount,
     })
@@ -150,7 +151,8 @@ export async function searchPublicClimbs(
   const rows = await db.all<PublicClimb>(sql`
     SELECT climbs.id, climbs.name, climbs.area_id AS areaId, areas.name AS areaName,
       climbs.type, climbs.grade, climbs.description,
-      climbs.avg_rating AS avgRating, climbs.send_count AS sendCount
+      climbs.avg_rating AS avgRating, climbs.send_count AS sendCount,
+      climbs.broken_on AS brokenOn
     FROM ${plan.source} JOIN areas ON areas.id = climbs.area_id
     ${conditions.length ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``}
     ORDER BY ${plan.orderBy}

@@ -112,6 +112,7 @@ function createSearchFixtureFetcher({
               areaName: "Cedar Grove",
               type: item.discipline,
               grade: item.grade,
+              brokenOn: null,
             },
             stats: { avgRating: item.rating ?? null, sendCount: 2 },
             ...(publicOnly

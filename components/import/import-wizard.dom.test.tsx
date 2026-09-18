@@ -18,6 +18,7 @@ vi.mock("@/actions", () => ({
         key: "test climb",
         type: "sport",
         grade: 18,
+        brokenOn: null,
         sendCount: 1,
         areaName: "Wall",
         ancestors: [],
@@ -177,6 +178,93 @@ it("loads a Mountain Project tick export into matching and review", async () => 
   await userEvent.click(screen.getByRole("button", { name: "Next: Review" }));
   expect(screen.getByText("Will import").parentElement).toHaveTextContent("1");
   expect(screen.getByText(/Unmapped ascent style value "TR"/)).toBeInTheDocument();
+  expect(importSends).not.toHaveBeenCalled();
+});
+
+it("reports a post-break ascent as unable to import, with one explanation and no pick prompt", async () => {
+  vi.mocked(resolveImportClimbs).mockClear();
+  vi.mocked(importSends).mockClear();
+  // The only catalog climb with this name broke before the ascent's date.
+  vi.mocked(resolveImportClimbs).mockResolvedValue({
+    ok: true,
+    value: [
+      {
+        id: 1,
+        areaId: 2,
+        name: "Test climb",
+        key: "test climb",
+        type: "sport",
+        grade: 18,
+        brokenOn: "2026-01-01",
+        sendCount: 1,
+        areaName: "Wall",
+        ancestors: [],
+        total: 1,
+      },
+    ],
+  });
+  const envelope = (json: unknown) => Response.json({ result: { data: { json } } });
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        envelope({ profile: { id: 42, slug: "climber", isPrivate: false, totalSends: 1 } }),
+      )
+      .mockResolvedValueOnce(
+        envelope({
+          items: [
+            {
+              type: "sends",
+              day: "2026-08-16",
+              assets: [],
+              sends: [
+                {
+                  id: 200,
+                  climb: {
+                    id: 100,
+                    name: "Test climb",
+                    type: "sport",
+                    gradeId: 62,
+                    area: { name: "Wall" },
+                  },
+                  sendType: "redpoint",
+                  gradeId: 62,
+                  day: "2026-08-16",
+                  rating: 5,
+                  difficulty: 0,
+                  comments: null,
+                },
+              ],
+            },
+          ],
+        }),
+      ),
+  );
+  render(<ImportWizard profileHref="/users/local" />);
+  await userEvent.type(
+    screen.getByRole("textbox", { name: "Sendage username or profile link" }),
+    "climber",
+  );
+  await userEvent.click(screen.getByRole("button", { name: "Load sends" }));
+  await waitFor(() => expect(resolveImportClimbs).toHaveBeenCalledExactlyOnceWith(["Test climb"]));
+
+  // The row names the break and carries the chip. Whether competing copy is
+  // suppressed alongside it is covered where it can actually fail, in
+  // import-match-step.dom.test.tsx's ambiguous-then-picked case.
+  expect(
+    await screen.findByText(/Climb broke on 2026-01-01; this ascent is dated on or after it/),
+  ).toBeVisible();
+  expect(screen.getByText("Can't import")).toBeVisible();
+  expect(screen.getByText("Broken")).toBeVisible();
+
+  await waitFor(() => expect(screen.getByRole("button", { name: "Next: Review" })).toBeEnabled());
+  await userEvent.click(screen.getByRole("button", { name: "Next: Review" }));
+  expect(screen.getByText("Will import").parentElement).toHaveTextContent("0");
+  expect(screen.getByText("Can't import").parentElement).toHaveTextContent("1");
+  expect(screen.getByText(/broke before the ascent/)).toBeVisible();
+
+  await userEvent.click(screen.getByRole("button", { name: /^Import/ }));
   expect(importSends).not.toHaveBeenCalled();
 });
 

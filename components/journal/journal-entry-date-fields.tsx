@@ -2,12 +2,16 @@
 
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import type { JournalEntry } from "@/db/queries";
+import { latestLoggableDate } from "@/lib/broken-climbs";
 
 type JournalEntryDateFieldsProps = {
   hasClimb: boolean;
   hasPriorSend: boolean;
   existingEntry?: Pick<JournalEntry, "sent" | "isAscent">;
   today: string;
+  /** The climb's break date, when it has one: caps the picker to the day
+   * before and withholds the undated option (see lib/broken-climbs.ts). */
+  brokenOn?: string | null;
   /** ISO `YYYY-MM-DD`, or "" once cleared — a send saved without a date. */
   entryDate: string;
   /** Chosen in the owning form's session-or-send picker. */
@@ -21,19 +25,27 @@ export function JournalEntryDateFields({
   hasPriorSend,
   existingEntry,
   today,
+  brokenOn = null,
   entryDate,
   sent,
   disabled = false,
   onDateChange,
 }: JournalEntryDateFieldsProps) {
-  const canMarkUnknown = !existingEntry && hasClimb && sent && !hasPriorSend;
+  // A broken climb can't take an undated ascent: it can't be shown to predate the break.
+  const canMarkUnknown = !existingEntry && hasClimb && sent && !hasPriorSend && !brokenOn;
+  const max = latestLoggableDate({ brokenOn }, today);
 
   return (
     <div className="flex flex-col gap-3">
       <DatePickerField
         label="Date"
         value={entryDate}
-        max={today}
+        max={max}
+        description={
+          brokenOn
+            ? `This climb broke on ${brokenOn}; only earlier dates can be logged.`
+            : undefined
+        }
         isReadOnly={existingEntry?.sent}
         isDisabled={disabled}
         onChange={onDateChange}

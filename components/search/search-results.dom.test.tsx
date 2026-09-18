@@ -8,8 +8,24 @@ import { SearchResults } from "./search-results";
 it("shows community ratings and ascent counts from search data, including unrated climbs", () => {
   const items = climbSearchItems({
     climbs: [
-      { id: 1, areaId: 1, areaName: "Cedar", name: "Arete", type: "sport", grade: 20 },
-      { id: 2, areaId: 1, areaName: "Cedar", name: "Slab", type: "boulder", grade: 3 },
+      {
+        id: 1,
+        areaId: 1,
+        areaName: "Cedar",
+        name: "Arete",
+        type: "sport",
+        grade: 20,
+        brokenOn: null,
+      },
+      {
+        id: 2,
+        areaId: 1,
+        areaName: "Cedar",
+        name: "Slab",
+        type: "boulder",
+        grade: 3,
+        brokenOn: null,
+      },
     ],
     sendStats: { 1: { avgRating: 4.5, sendCount: 12, avgSuggestedGrade: null } },
     areaBreadcrumbs: {},

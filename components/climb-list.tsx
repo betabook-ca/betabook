@@ -2,6 +2,7 @@
 
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
 import { ClimbSentIndicator } from "@/components/climb-sent-indicator";
+import { BrokenChip } from "@/components/ui/broken-chip";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Grade, GradeArrow, GradeSuggestion } from "@/components/ui/grade";
@@ -98,6 +99,7 @@ export function ClimbList({
                 </div>
                 <div className="flex items-center gap-2">
                   <DisciplineChip type={climb.type} />
+                  {climb.brokenOn && <BrokenChip brokenOn={climb.brokenOn} />}
                   {/* Fixed width so the singular/plural swap ("1 ascent" vs
                    * "0 ascents") can't change the column's width and shift
                    * every neighbouring row's chip sideways. */}

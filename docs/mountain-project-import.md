@@ -97,9 +97,13 @@ produce a distinct message and carry their own status, so a mistyped profile
 answers 404 rather than reading as an upstream outage. Format failures tell the
 user to upload Mountain Project's CSV export instead of contacting support first.
 
-The repeated-date review, duplicate handling, batch receipts and atomic
-send/journal writes are the shared ones. The Journal tour remains accurate: this
-adds an entry point to the separate account import wizard.
+The repeated-date review, duplicate handling, broken-climb rule, batch receipts
+and atomic send/journal writes are the shared ones. A tick on a climb that has
+been marked broken imports only when it is dated before the break; undated or
+later ticks are reported as unable to import, naming the climb and the date it
+broke. No attempt is made to find the post-break climb for them. If such a row
+still reaches the server, it is reported per row rather than failing the batch. The Journal tour remains accurate: this adds an
+entry point to the separate account import wizard.
 
 ## Validation
 

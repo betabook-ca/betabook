@@ -15,6 +15,7 @@ import {
 } from "@/db/queries";
 import { CHANGE_REQUEST_TYPES } from "@/db/schema";
 import type { AreaInput } from "@/lib/areas";
+import type { ClimbBreakImpact, ClimbBreakInput, ClimbBreakTexts } from "@/lib/broken-climbs";
 import type { ClimbEditInput, ClimbMergeOverrides } from "@/lib/climbs";
 import { formatGrade } from "@/lib/grades";
 import { isAdmin } from "@/lib/session";
@@ -36,6 +37,9 @@ export type ChangeRequestPayload = {
   climb_move: { newAreaId: number };
   // Merge targets retain their area and discipline.
   climb_merge: { targetClimbId: number; overrides?: ClimbMergeOverrides };
+  // The texts are composed at request time and written verbatim on approval,
+  // so the queue shows exactly what will land (see lib/broken-climbs.ts).
+  climb_break: ClimbBreakInput & ClimbBreakTexts & Partial<ClimbBreakImpact>;
 };
 
 export function changedFields<T extends Record<string, unknown>>(
@@ -293,6 +297,30 @@ const CHANGE_REQUEST_DESCRIBERS: Record<
       requesterSummary: `Mark "${sourceName}" as a duplicate of "${targetName}"`,
       href: source ? climbHref(source.id, source.name) : null,
       details: climbMergeDetails(source, target, overrides),
+    };
+  },
+  climb_break: (facts, request) => {
+    const climb = facts.climbs.get(request.entityId);
+    const payload = JSON.parse(request.payload) as ChangeRequestPayload["climb_break"];
+    const name = climb?.name ?? "a climb";
+    return {
+      summary: `Mark "${name}" as broken on ${payload.brokenOn}`,
+      requesterSummary: `Report "${name}" as broken on ${payload.brokenOn}`,
+      href: climb ? climbHref(climb.id, climb.name) : null,
+      details: [
+        `Broke on: ${payload.brokenOn}`,
+        `Reason: ${payload.reason}`,
+        `New climb: "${payload.successorName}"${
+          climb ? ` at ${formatGrade(climb.type, climb.grade)}` : ""
+        }`,
+        (payload.laterSends ?? 0) + (payload.laterEntries ?? 0) > 0
+          ? `Moves ${payload.laterSends ?? 0} send(s) and ${payload.laterEntries ?? 0} journal entr${
+              payload.laterEntries === 1 ? "y" : "ies"
+            } dated on or after ${payload.brokenOn} to the new climb (counted when reported)`
+          : `Nothing dated on or after ${payload.brokenOn} to move (counted when reported)`,
+        `Description of "${name}" becomes: ${payload.appendedDescription}`,
+        `Description of the new climb: ${payload.successorDescription}`,
+      ],
     };
   },
 };

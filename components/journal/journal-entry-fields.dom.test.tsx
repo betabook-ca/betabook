@@ -7,7 +7,14 @@ import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
 
 import { JournalEntryFields, type JournalEntryFieldsProps } from "./journal-entry-fields";
 
-const climb = { id: 17, areaId: 3, name: "Cedar Arete", type: "boulder" as const, grade: 5 };
+const climb = {
+  id: 17,
+  areaId: 3,
+  name: "Cedar Arete",
+  type: "boulder" as const,
+  grade: 5,
+  brokenOn: null,
+};
 const savedEntry: JournalEntry = {
   id: 41,
   climbId: climb.id,
@@ -20,6 +27,7 @@ const savedEntry: JournalEntry = {
   climbName: climb.name,
   climbType: climb.type,
   climbGrade: climb.grade,
+  climbBrokenOn: null,
   areaId: climb.areaId,
   areaName: "Cedar Block",
   isAscent: false,

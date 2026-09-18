@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { AreaLookup } from "@/components/search/area-lookup";
+import { BrokenChip } from "@/components/ui/broken-chip";
 import { cardClass } from "@/components/ui/card";
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
@@ -18,6 +19,7 @@ import type { ClimbCandidate } from "@/db/queries";
 import { formatCount } from "@/lib/format";
 import { formatGrade } from "@/lib/grades";
 import {
+  brokenClimbImportReason,
   duplicateClimbRows,
   foldClimbName,
   summarizeResolved,
@@ -42,12 +44,16 @@ export type Filter = ResolvedState | "all";
 /** The bucket to open on: whatever has work in it. Chosen once, when the
  * lookup finishes, so the list doesn't jump as rows resolve. */
 export function defaultFilter(summary: ResolvedSummary): Filter {
-  return summary.attention > 0 ? "attention" : summary.review > 0 ? "review" : "all";
+  if (summary.attention > 0) return "attention";
+  if (summary.review > 0) return "review";
+  // Terminal, but still the only thing worth reading when it's all there is.
+  return summary.broken > 0 ? "broken" : "all";
 }
 
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "attention", label: "Needs attention" },
   { key: "review", label: "Check" },
+  { key: "broken", label: "Broken climb" },
   { key: "matched", label: "Matched" },
   { key: "picked", label: "Picked" },
   { key: "skipped", label: "Skipped" },
@@ -57,6 +63,7 @@ const FILTERS: { key: Filter; label: string }[] = [
 const STATE_CLASS: Record<ResolvedState, string> = {
   attention: "text-danger",
   review: "text-warning",
+  broken: "text-danger",
   matched: "text-success-soft-foreground",
   picked: "text-success-soft-foreground",
   skipped: "text-muted",
@@ -70,6 +77,8 @@ function stateLabel(resolved: ResolvedRow): string {
   switch (resolved.state) {
     case "attention":
       return resolved.match.kind === "none" ? "Not found" : "Needs a pick";
+    case "broken":
+      return "Can't import";
     case "review":
       return "Check";
     case "matched":
@@ -151,6 +160,7 @@ function CandidateRow({
         <span className="hidden text-xs text-muted sm:inline">
           {formatCount(climb.sendCount, "ascent")}
         </span>
+        {climb.brokenOn && <BrokenChip brokenOn={climb.brokenOn} />}
         <DisciplineChip type={climb.type} />
         <Grade>{formatGrade(climb.type, climb.grade)}</Grade>
         {current && (
@@ -193,6 +203,7 @@ function ClimbLine({ climb, rowClimbName }: { climb: ClimbCandidate; rowClimbNam
     <div className={`flex items-center justify-between gap-3 ${cardClass("sm", "inset")}`}>
       <ClimbPlace climb={climb} rowClimbName={rowClimbName} />
       <span className="flex shrink-0 items-center gap-2">
+        {climb.brokenOn && <BrokenChip brokenOn={climb.brokenOn} />}
         <DisciplineChip type={climb.type} />
         <Grade>{formatGrade(climb.type, climb.grade)}</Grade>
       </span>
@@ -258,7 +269,7 @@ function MatchRow({
               {match.reason}.
             </p>
           )}
-          {state === "review" && match.kind === "exact" && (
+          {state === "review" && match.kind === "exact" && match.notes.length > 0 && (
             <p className="text-xs text-muted">{match.notes.join(" · ")}</p>
           )}
           {duplicateOf != null && (
@@ -316,6 +327,18 @@ function MatchRow({
                 : `Show all ${match.pool.length} with this name`}
             </button>
           )}
+        </div>
+      )}
+
+      {/* Terminal: `broken` is never `attention`, so the blocks below stay
+       * silent for it and there is exactly one explanation on screen. */}
+      {state === "broken" && resolved.brokenBy && (
+        <div className="flex flex-col gap-2">
+          <ClimbLine climb={resolved.brokenBy.climb} rowClimbName={row.climbName} />
+          <p className="text-xs text-muted">
+            {brokenClimbImportReason(resolved.brokenBy.brokenOn, row.dateSent)}, so it can&rsquo;t
+            be imported.
+          </p>
         </div>
       )}
 

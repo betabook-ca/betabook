@@ -15,6 +15,7 @@ import {
 } from "@/db/queries";
 import { journalEntries, sends } from "@/db/schema";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
+import { assertLoggableOnClimb } from "@/lib/broken-climbs";
 import { normalizeTags } from "@/lib/journal";
 import { readCompanionSelection } from "@/lib/journal-companions";
 import { allowJournalWrite } from "@/lib/rate-limit";
@@ -88,7 +89,13 @@ export async function getSendEditorData(
         gradeFeel: send.gradeFeel,
       },
       entry,
-      climb: { id: climb.id, areaId: climb.areaId, type: climb.type, grade: climb.grade },
+      climb: {
+        id: climb.id,
+        areaId: climb.areaId,
+        type: climb.type,
+        grade: climb.grade,
+        brokenOn: climb.brokenOn,
+      },
     };
   });
 }
@@ -107,6 +114,8 @@ export async function createUndatedSend(formData: FormData): Promise<ActionResul
     const db = await getDb();
     const climb = await getClimb(db, climbId);
     if (!climb) throw new ActionError("Climb not found");
+    // An undated send can't be shown to predate a break, so a broken climb refuses it.
+    assertLoggableOnClimb(climb, null);
     if (await getUserSendForClimb(db, session.user.id, climbId)) {
       throw new ActionError("You've already logged this climb — use Edit send to change it");
     }
@@ -151,6 +160,9 @@ export async function updateSend(sendId: number, formData: FormData): Promise<Ac
     if (!climb) throw new ActionError("Climb not found");
 
     const input = validateSendInput(climb.type, readSendFormData(formData));
+    // Only a date change is judged against a break; a legacy undated send on a
+    // broken climb keeps taking rating and comment edits (mirrors the trigger).
+    if (input.dateSent !== existing.dateSent) assertLoggableOnClimb(climb, input.dateSent);
     const companions = readCompanionSelection(formData);
     if (companions?.length && !input.dateSent) throw new ActionError("Add a date to tag friends");
     const sentEntries = await getSentJournalEntries(db, session.user.id, [existing.climbId]);

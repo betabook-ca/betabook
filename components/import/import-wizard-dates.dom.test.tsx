@@ -30,6 +30,7 @@ beforeEach(() => {
           id: Number(name.slice(6)),
           name,
           key: name.toLowerCase(),
+          brokenOn: null,
           areaId: 2,
           areaName: "Wall",
           ancestors: [],

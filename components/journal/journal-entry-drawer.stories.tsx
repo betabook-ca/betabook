@@ -37,7 +37,9 @@ function Example({
         state={state}
         onSave={async () => ({ ok: true, value: undefined })}
         climb={
-          climb ? { id: -1, areaId: -1, name: "Cedar Arete", type: "boulder", grade: 5 } : undefined
+          climb
+            ? { id: -1, areaId: -1, name: "Cedar Arete", type: "boulder", grade: 5, brokenOn: null }
+            : undefined
         }
         sentClimbIds={repeat ? new Set([-1]) : undefined}
       />
