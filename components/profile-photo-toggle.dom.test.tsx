@@ -22,9 +22,9 @@ beforeEach(() => {
   save.mockResolvedValue({ ok: true, value: undefined });
 });
 
-function renderToggle(initialShowPhoto = true) {
+function renderToggle(initialShowPhoto = true, image: string | null = PHOTO) {
   return render(
-    <ProfilePhotoToggle name="Alex Rivera" image={PHOTO} initialShowPhoto={initialShowPhoto} />,
+    <ProfilePhotoToggle name="Alex Rivera" image={image} initialShowPhoto={initialShowPhoto} />,
   );
 }
 
@@ -110,4 +110,41 @@ it("clears a stale error and ignores repeat clicks while a save is pending", asy
   release();
   await waitFor(() => expect(toggle()).toBeEnabled());
   expect(toggle()).not.toBeChecked();
+});
+
+it("disables the switch and explains why when the account has no photo", async () => {
+  const user = userEvent.setup();
+  renderToggle(true, null);
+
+  // Stored as on, but there is no photo to show, so claiming "on" would lie.
+  expect(toggle()).toBeDisabled();
+  expect(toggle()).not.toBeChecked();
+  expect(photo()).toBeNull();
+  expect(screen.getByText("AR")).toBeVisible();
+
+  await user.click(toggle());
+  expect(save).not.toHaveBeenCalled();
+
+  // The reason is on a focusable button, because a disabled switch can't take
+  // focus and a tooltip bound to it would be unreachable by keyboard.
+  const why = screen.getByRole("button", { name: "Why can't I show a photo?" });
+  await user.click(why);
+  expect(await screen.findByText(/Sign in with Google to show one/)).toBeVisible();
+});
+
+it("treats a photo the app cannot render as no photo at all", () => {
+  // getGoogleProfileImageUrl rejects this host, so UserAvatar would fall back
+  // to initials no matter what the switch said.
+  renderToggle(true, "https://example.com/a/avatar");
+
+  expect(toggle()).toBeDisabled();
+  expect(photo()).toBeNull();
+  expect(screen.getByRole("button", { name: "Why can't I show a photo?" })).toBeVisible();
+});
+
+it("offers no explanation button once there is a photo to control", () => {
+  renderToggle(false);
+
+  expect(toggle()).toBeEnabled();
+  expect(screen.queryByRole("button", { name: "Why can't I show a photo?" })).toBeNull();
 });

@@ -16,7 +16,7 @@ import { AppLink } from "@/components/ui/app-link";
 import { SETTINGS_ROW_CLASS, SettingsRow, SettingsSection } from "@/components/ui/settings";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
-import { hasProfilePhoto, shownProfilePhoto } from "@/lib/profile-photo";
+import { shownProfilePhoto } from "@/lib/profile-photo";
 
 const OUTLINE_LINK_CLASS = `${buttonVariants({ variant: "outline" })} gap-2 text-foreground`;
 
@@ -56,15 +56,11 @@ export function AccountSettings({
         <div className={SETTINGS_ROW_CLASS}>
           <DisplayNameForm initialName={user.name} />
         </div>
-        {/* Only an OAuth photo can be hidden; an email account already shows
-            initials, so the switch would be inert. */}
-        {hasProfilePhoto(user.image) && (
-          <ProfilePhotoToggle
-            name={user.name}
-            image={user.image}
-            initialShowPhoto={user.showProfilePhoto}
-          />
-        )}
+        <ProfilePhotoToggle
+          name={user.name}
+          image={user.image}
+          initialShowPhoto={user.showProfilePhoto}
+        />
         <div className={SETTINGS_ROW_CLASS}>
           <ShareProfileControls name={user.name} url={shareUrl} />
         </div>

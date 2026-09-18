@@ -5,7 +5,7 @@ import { APIError, getOAuthState } from "better-auth/api";
 import { captcha } from "better-auth/plugins";
 
 import { getDb } from "@/db/client";
-import { getShareLinkOwner, getUserIdByName } from "@/db/queries";
+import { getShareLinkOwner, getUserIdByName, getUserNameByEmail } from "@/db/queries";
 import { getTermsAcceptance } from "@/db/queries/terms";
 import * as schema from "@/db/schema";
 import {
@@ -93,6 +93,7 @@ async function authBuilder() {
             google: {
               clientId: env.GOOGLE_CLIENT_ID,
               clientSecret: env.GOOGLE_CLIENT_SECRET,
+              overrideUserInfoOnSignIn: true,
             },
           }
         : {},
@@ -198,6 +199,23 @@ async function authBuilder() {
           // error. Same rules as sign-up, excluding the caller's own name
           // so a case-only change isn't rejected as taken.
           before: async (data, ctx) => {
+            // overrideUserInfoOnSignIn re-sends Google's whole profile on every
+            // sign-in so `image` stays fresh (a rotated photo URL eventually
+            // 404s). The display name is Betabook's, not Google's: keep the
+            // stored one. Letting Google's through would undo a rename on the
+            // next sign-in, and — because an OAuth callback has no session yet
+            // — the uniqueness check below would see the user's own unchanged
+            // name as "taken" and abort the sign-in's profile write entirely.
+            // `show_profile_photo` is absent from this payload: Better Auth
+            // only forwards provider-profile keys, and it is input: false.
+            // Better Auth merges this hook's data over the payload rather
+            // than replacing it, so the provider name has to be overwritten
+            // with the stored one; omitting the key would leave it in place.
+            if (ctx?.path === "/callback/:id") {
+              const email = typeof data.email === "string" ? data.email : null;
+              const storedName = email ? await getUserNameByEmail(db, email) : null;
+              return storedName ? { data: { ...data, name: storedName } } : { data };
+            }
             if (ctx?.path === "/update-user") {
               const userId = ctx.context.session?.user.id;
               if (!userId || !hasAcceptedCurrentTerms(await getTermsAcceptance(db, userId))) {

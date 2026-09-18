@@ -40,15 +40,22 @@ it("offers the Show photo switch to an account that has a Google photo", () => {
   const html = markup({ image: PHOTO, showProfilePhoto: true });
   expect(html).toContain("Show profile photo");
   expect(html).toContain(PHOTO);
+  // Nothing to explain away while the control works.
+  expect(html).not.toContain("Sign in with Google to show one");
 });
 
-it("withholds the switch from an account whose avatar is already initials", () => {
-  // Nothing to hide, so the control would be inert: an email/password account
-  // with no photo, and a stored value next/image is not configured to load.
+it("keeps the switch visible but disabled when there is no photo to show", () => {
+  // An email/password account, and a stored value next/image is not configured
+  // to load: both only ever render initials, so the switch stays but says why
+  // instead of vanishing and looking like a missing setting.
   for (const image of [null, "https://example.com/a/avatar"]) {
     const html = markup({ image, showProfilePhoto: true });
-    expect(html).not.toContain("Show profile photo");
-    expect(html).toContain("Display name");
+    expect(html).toContain("Show profile photo");
+    expect(html).toContain("disabled");
+    // The tooltip body is portalled and only exists while open, so the
+    // server-rendered proof is its trigger; the text is asserted in jsdom.
+    expect(html).toContain("Why can&#x27;t I show a photo?");
+    expect(html).toContain("Your initials appear anywhere you show up.");
   }
 });
 

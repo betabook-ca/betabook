@@ -4,14 +4,20 @@ import { Switch } from "@heroui/react";
 import { useId, useState, useTransition } from "react";
 
 import { setShowProfilePhoto } from "@/actions";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { SETTINGS_ROW_CLASS } from "@/components/ui/settings";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { hasProfilePhoto } from "@/lib/profile-photo";
 
-/** Shown only to accounts that actually have a photo to hide — see
- * hasProfilePhoto in lib/profile-photo.ts. The avatar beside the switch is the
- * preview: it follows local state, so the result is visible before the server
- * action's refresh() reaches the surrounding server components. */
+/** The row is shown to every account, but only one with a photo the app can
+ * render has anything to turn off — see hasProfilePhoto. Without one the switch
+ * is disabled and explains itself rather than disappearing, so the setting
+ * doesn't look missing to someone who signed up with an email address.
+ *
+ * The avatar beside the switch is the preview: it follows local state, so the
+ * result is visible before the server action's refresh() reaches the
+ * surrounding server components. */
 export function ProfilePhotoToggle({
   name,
   image,
@@ -26,6 +32,10 @@ export function ProfilePhotoToggle({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const descriptionId = useId();
+  const canShowPhoto = hasProfilePhoto(image);
+  // An account with no renderable photo reads as off whatever the column says:
+  // there is nothing for the avatar to show, so a selected switch would lie.
+  const isOn = canShowPhoto && showPhoto;
 
   function handleChange(next: boolean) {
     setShowPhoto(next);
@@ -49,11 +59,11 @@ export function ProfilePhotoToggle({
       {/* Top-aligned: the description wraps to three lines on a phone, and a
           centered avatar then floats beside the middle of the paragraph. */}
       <div className="flex items-start gap-3">
-        <UserAvatar name={name} image={showPhoto ? image : null} size="sm" />
+        <UserAvatar name={name} image={isOn ? image : null} size="sm" />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <Switch
-            isDisabled={isPending}
-            isSelected={showPhoto}
+            isDisabled={isPending || !canShowPhoto}
+            isSelected={isOn}
             onChange={handleChange}
             aria-describedby={descriptionId}
           >
@@ -66,11 +76,23 @@ export function ProfilePhotoToggle({
           </Switch>
           {/* Outside Switch, like the privacy switch: a saving switch fades its
               own description below AA contrast. */}
-          <p id={descriptionId} className="text-sm text-pretty text-muted">
-            {showPhoto
-              ? "Your Google photo appears anywhere you show up. Turn this off to use your initials instead."
-              : "Your initials appear anywhere you show up. Your photo is kept, so you can turn this back on."}
-          </p>
+          <div className="flex items-start gap-1">
+            <p id={descriptionId} className="text-sm text-pretty text-muted">
+              {!canShowPhoto
+                ? "Your initials appear anywhere you show up."
+                : isOn
+                  ? "Your Google photo appears anywhere you show up. Turn this off to use your initials instead."
+                  : "Your initials appear anywhere you show up. Your photo is kept, so you can turn this back on."}
+            </p>
+            {/* A disabled switch can't take focus, so the reason lives on a
+                focusable button beside it rather than a tooltip on the switch. */}
+            {!canShowPhoto && (
+              <HelpTooltip label="Why can't I show a photo?">
+                Betabook uses the photo from your Google account. Sign in with Google to show one —
+                an email and password account always shows initials.
+              </HelpTooltip>
+            )}
+          </div>
         </div>
       </div>
       {error && <InlineAlert>{error}</InlineAlert>}

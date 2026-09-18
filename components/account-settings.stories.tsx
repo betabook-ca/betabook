@@ -31,6 +31,8 @@ const meta = {
 } satisfies Meta<typeof AccountSettings>;
 export default meta;
 type Story = StoryObj<typeof meta>;
+/** An email and password account: the switch stays, disabled, with the reason
+ * on a help button beside it. */
 export const Member: Story = {};
 export const PrivateProfile: Story = { args: { isPrivate: true, shareUrl: null } };
 export const Moderator: Story = { args: { isAdmin: true } };
