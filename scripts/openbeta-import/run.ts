@@ -39,11 +39,19 @@ import { breadcrumbExternalId, synthesizeAreaNodes } from "./breadcrumbs.ts";
 import { normalizeCountryName } from "./country-aliases.ts";
 import { mapGradeToOrdinal } from "./grades.ts";
 import { findInternalAreaDuplicates } from "./internal-duplicates.ts";
-import { arbitrate, resolveArbitration, DEFAULT_ARBITRATION_MODEL } from "./llm-arbitrate.ts";
+import {
+  arbitrate,
+  resolveArbitration,
+  DEFAULT_ARBITRATION_MODEL,
+  type ArbitrationCandidate,
+  type ArbitrationDecision,
+  type ArbitrationSubject,
+} from "./llm-arbitrate.ts";
 import { matchArea } from "./match-areas.ts";
 import { matchClimb } from "./match-climbs.ts";
 import { inspectParquetSchema, mapOpenBetaClimbRows, readParquetRows } from "./parquet.ts";
 import {
+  descendantsOf,
   indexAreasByParent,
   indexClimbsByArea,
   loadExistingCrosswalk,
@@ -99,7 +107,34 @@ function firstGradeText(grades: Record<string, string>): string | null {
   return grades.yds ?? grades.vscale ?? grades.french ?? grades.font ?? grades.uiaa ?? null;
 }
 
-type PendingAreaResolution = { status: "matched"; betabookId: number } | { status: "created" };
+/** Arbitrates normally when a real client is available; otherwise skips the
+ * network call entirely and defaults to CREATE_NEW (via resolveArbitration's
+ * existing UNCERTAIN handling, unchanged) with the count and reason recorded
+ * for the audit trail. Extends the pipeline's own existing safety policy — a
+ * missed dedup is cheap to fix later via area_merge/climb_merge, a wrong
+ * merge is not — to the case where no ANTHROPIC_API_KEY is available at all,
+ * rather than requiring every ambiguous case to be reasoned through by hand. */
+async function arbitrateOrOfflineDefault(
+  client: Anthropic | null,
+  subject: ArbitrationSubject,
+  candidates: readonly ArbitrationCandidate[],
+  model: string,
+): Promise<ArbitrationDecision> {
+  if (!client) {
+    return {
+      action: "UNCERTAIN",
+      reasoning:
+        `No ANTHROPIC_API_KEY available this run; ${candidates.length} ambiguous candidate(s) ` +
+        `for "${subject.name}" defaulted to create per project policy (a missed dedup is cheap ` +
+        `to fix later via area_merge/climb_merge; a wrong merge is not).`,
+    };
+  }
+  return arbitrate(client, subject, candidates, model);
+}
+
+type PendingAreaResolution =
+  | { status: "matched"; betabookId: number; nearestMatchedAncestorId: number }
+  | { status: "created"; nearestMatchedAncestorId: number | null };
 
 /** Walks OpenBeta areas top-down by parentUuid (roots first), resolving each
  * against the snapshot's existing areas (blocked to the already-resolved
@@ -107,7 +142,7 @@ type PendingAreaResolution = { status: "matched"; betabookId: number } | { statu
  * deterministic matching leaves ambiguous. Returns per-area decisions plus
  * the externalId -> resolution map climbs need to attach to. */
 async function resolveAreas(
-  client: Anthropic,
+  client: Anthropic | null,
   model: string,
   areaRows: readonly OpenBetaAreaRow[],
   areasByParent: Map<number | null, BetabookAreaCandidate[]>,
@@ -129,29 +164,78 @@ async function resolveAreas(
 
   const decisions: ResolvedAreaDecision[] = [];
   const resolved = new Map<string, PendingAreaResolution>();
+  // Memoized per nearest-matched-ancestor id -- the same anchor (e.g. a whole
+  // matched country) is reused across many rows, and descendantsOf's BFS
+  // cost is proportional to that ancestor's subtree size.
+  const descendantsCache = new Map<number, BetabookAreaCandidate[]>();
+  function cachedDescendantsOf(ancestorId: number): BetabookAreaCandidate[] {
+    const cached = descendantsCache.get(ancestorId);
+    if (cached) return cached;
+    const result = descendantsOf(ancestorId, areasByParent);
+    descendantsCache.set(ancestorId, result);
+    return result;
+  }
 
   async function resolveOne(row: OpenBetaAreaRow): Promise<void> {
     const alreadyLinkedId = alreadyLinked.get(row.uuid);
     if (alreadyLinkedId !== undefined) {
-      resolved.set(row.uuid, { status: "matched", betabookId: alreadyLinkedId });
+      resolved.set(row.uuid, {
+        status: "matched",
+        betabookId: alreadyLinkedId,
+        nearestMatchedAncestorId: alreadyLinkedId,
+      });
       return;
     }
 
     const { parentUuid } = row;
     const isRoot = parentUuid === null;
     const resolvedParent = parentUuid === null ? null : resolved.get(parentUuid);
-    const candidates = isRoot
-      ? countryLevelAreas
-      : resolvedParent?.status === "matched"
+    const nearestMatchedAncestorId = isRoot
+      ? null
+      : (resolvedParent?.nearestMatchedAncestorId ?? null);
+    const directChildren =
+      resolvedParent?.status === "matched"
         ? (areasByParent.get(resolvedParent.betabookId) ?? [])
-        : []; // parent was created (or itself unresolved) -- it has no existing children to match against
+        : [];
 
     // Country-name spelling conventions vary too widely for pure fuzzy
     // matching (see country-aliases.ts) -- normalize only for the match
     // attempt, never for what a "create" decision actually names the area.
     const matchSubject = isRoot ? { ...row, areaName: normalizeCountryName(row.areaName) } : row;
-    const decision =
-      candidates.length === 0 ? { kind: "create" as const } : matchArea(matchSubject, candidates);
+
+    const decision = isRoot
+      ? countryLevelAreas.length === 0
+        ? { kind: "create" as const }
+        : matchArea(matchSubject, countryLevelAreas)
+      : (() => {
+          const direct =
+            directChildren.length === 0
+              ? { kind: "create" as const }
+              : matchArea(matchSubject, directChildren);
+          // OpenBeta's breadcrumb is a fixed 5 levels while Betabook's real
+          // tree isn't that shape -- a plain "create" among the literal
+          // direct children doesn't distinguish "genuinely doesn't exist in
+          // Betabook" from "exists, just not as a child of this specific
+          // resolved node." Whenever the narrow search doesn't land on a
+          // match (empty candidates, or a real "no" among the siblings that
+          // do exist), fall back to searching the nearest real ancestor's
+          // full descendant subtree before giving up. A genuine ambiguous
+          // tie among the literal direct children, though, is left as-is --
+          // that's exactly what arbitration is for at this precise point in
+          // the tree, not a reason to widen the search further. The wide
+          // search itself is exact/loose-only (no fuzzy): confirmed via a
+          // real run that fuzzy matching across a large, structurally-
+          // uncorrelated subtree produces false positives a true-sibling
+          // search wouldn't (e.g. OpenBeta's "Okanagan" region grouping
+          // fuzzy-matching Betabook's unrelated "Okanagan Falls" crag) --
+          // exact name equality is a far safer signal once structural
+          // adjacency (direct parent/child) is no longer vouching for it.
+          if (direct.kind !== "create" || nearestMatchedAncestorId === null) return direct;
+          const wideCandidates = cachedDescendantsOf(nearestMatchedAncestorId);
+          return wideCandidates.length === 0
+            ? direct
+            : matchArea(matchSubject, wideCandidates, { allowFuzzy: false });
+        })();
 
     if (decision.kind === "match") {
       decisions.push({
@@ -163,7 +247,11 @@ async function resolveAreas(
         candidateIds: [decision.candidate.id],
         reasoning: null,
       });
-      resolved.set(row.uuid, { status: "matched", betabookId: decision.candidate.id });
+      resolved.set(row.uuid, {
+        status: "matched",
+        betabookId: decision.candidate.id,
+        nearestMatchedAncestorId: decision.candidate.id,
+      });
     } else if (decision.kind === "create") {
       decisions.push({
         kind: "create",
@@ -173,10 +261,10 @@ async function resolveAreas(
         latitude: row.latitude,
         longitude: row.longitude,
       });
-      resolved.set(row.uuid, { status: "created" });
+      resolved.set(row.uuid, { status: "created", nearestMatchedAncestorId });
     } else {
       const outcome = resolveArbitration(
-        await arbitrate(
+        await arbitrateOrOfflineDefault(
           client,
           {
             entityType: "area",
@@ -212,7 +300,11 @@ async function resolveAreas(
           candidateIds: decision.candidates.map((c) => c.id),
           reasoning: outcome.reasoning,
         });
-        resolved.set(row.uuid, { status: "matched", betabookId: outcome.candidateId });
+        resolved.set(row.uuid, {
+          status: "matched",
+          betabookId: outcome.candidateId,
+          nearestMatchedAncestorId: outcome.candidateId,
+        });
       } else {
         decisions.push({
           kind: "create",
@@ -227,7 +319,7 @@ async function resolveAreas(
             candidateIds: decision.candidates.map((c) => c.id),
           },
         });
-        resolved.set(row.uuid, { status: "created" });
+        resolved.set(row.uuid, { status: "created", nearestMatchedAncestorId });
       }
     }
   }
@@ -257,14 +349,26 @@ async function resolveAreas(
 }
 
 async function resolveClimbs(
-  client: Anthropic,
+  client: Anthropic | null,
   model: string,
   climbRows: readonly OpenBetaClimbRow[],
   resolvedAreas: ReadonlyMap<string, PendingAreaResolution>,
+  areasByParent: Map<number | null, BetabookAreaCandidate[]>,
   climbsByArea: Map<number, BetabookClimbCandidate[]>,
   alreadyLinked: ReadonlyMap<string, number>,
 ): Promise<ResolvedClimbDecision[]> {
   const decisions: ResolvedClimbDecision[] = [];
+  // Same shape as resolveAreas's descendants cache: memoized per ancestor id
+  // since many routes share the same nearest-matched-ancestor area.
+  const climbSubtreeCache = new Map<number, BetabookClimbCandidate[]>();
+  function cachedClimbsInSubtree(ancestorId: number): BetabookClimbCandidate[] {
+    const cached = climbSubtreeCache.get(ancestorId);
+    if (cached) return cached;
+    const areaIds = [ancestorId, ...descendantsOf(ancestorId, areasByParent).map((a) => a.id)];
+    const result = areaIds.flatMap((id) => climbsByArea.get(id) ?? []);
+    climbSubtreeCache.set(ancestorId, result);
+    return result;
+  }
 
   for (const route of climbRows) {
     const alreadyLinkedId = alreadyLinked.get(route.uuid);
@@ -296,12 +400,26 @@ async function resolveClimbs(
     const gradeText = firstGradeText(route.grades);
     const { grade } = mapGradeToOrdinal(discipline, gradeText);
 
-    const candidates =
+    const directCandidates =
       parent.status === "matched" ? (climbsByArea.get(parent.betabookId) ?? []) : [];
-    const decision =
-      candidates.length === 0
+    const direct =
+      directCandidates.length === 0
         ? { kind: "create" as const }
-        : matchClimb(route.name, discipline, grade, candidates);
+        : matchClimb(route.name, discipline, grade, directCandidates);
+    // Mirrors resolveAreas's fallback: a route's exact resolved crag-level
+    // area may not itself exist in Betabook even when a broader ancestor
+    // does (the same breadcrumb-depth mismatch, one level down) -- when the
+    // narrow search comes up empty, widen to every climb anywhere under the
+    // nearest matched ancestor's subtree, exact/loose name tiers only.
+    const decision =
+      direct.kind !== "create" || parent.nearestMatchedAncestorId === null
+        ? direct
+        : (() => {
+            const wideCandidates = cachedClimbsInSubtree(parent.nearestMatchedAncestorId);
+            return wideCandidates.length === 0
+              ? direct
+              : matchClimb(route.name, discipline, grade, wideCandidates, { allowFuzzy: false });
+          })();
 
     if (decision.kind === "match") {
       decisions.push({
@@ -326,7 +444,7 @@ async function resolveClimbs(
       });
     } else {
       const outcome = resolveArbitration(
-        await arbitrate(
+        await arbitrateOrOfflineDefault(
           client,
           {
             entityType: "climb",
@@ -421,7 +539,14 @@ async function main() {
   const climbsByArea = indexClimbsByArea(snapshot.climbs);
   const alreadyLinked = loadExistingCrosswalk(snapshotPath);
 
-  const client = new Anthropic();
+  // oxlint-disable-next-line node/no-process-env
+  const client = process.env.ANTHROPIC_API_KEY ? new Anthropic() : null;
+  if (!client) {
+    console.warn(
+      "No ANTHROPIC_API_KEY set -- ambiguous cases will default to create with a recorded " +
+        "reason instead of being arbitrated by Claude (see arbitrateOrOfflineDefault).",
+    );
+  }
 
   console.log("Resolving areas...");
   const { decisions: areaDecisions, resolved: resolvedAreas } = await resolveAreas(
@@ -439,6 +564,7 @@ async function main() {
     model,
     climbRows,
     resolvedAreas,
+    areasByParent,
     climbsByArea,
     alreadyLinked,
   );

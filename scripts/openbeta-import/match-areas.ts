@@ -65,12 +65,15 @@ function breakTieByProximity(
  * candidates. Name resolution first (resolveByName); a genuine multi-
  * candidate naming tie is then broken by GPS proximity when every tied
  * candidate has coordinates and one is decisively closer — otherwise the
- * tie stands and goes to LLM arbitration. */
+ * tie stands and goes to LLM arbitration. `options.allowFuzzy` forwards to
+ * resolveByName — see its own comment for why a wide, structurally-
+ * uncorrelated candidate pool should pass `allowFuzzy: false`. */
 export function matchArea(
   openBetaArea: OpenBetaAreaRow,
   candidates: readonly BetabookAreaCandidate[],
+  options?: { allowFuzzy?: boolean },
 ): MatchDecision<BetabookAreaCandidate> {
-  const decision = resolveByName(openBetaArea.areaName, candidates, (c) => c.name);
+  const decision = resolveByName(openBetaArea.areaName, candidates, (c) => c.name, options);
   if (decision.kind !== "ambiguous") return decision;
 
   const closest = breakTieByProximity(openBetaArea, decision.candidates);

@@ -69,4 +69,20 @@ describe("matchClimb", () => {
     const candidates = [climb({ id: 1, name: "Totally Different", type: "boulder" })];
     expect(matchClimb("Superfly", "boulder", null, candidates)).toEqual({ kind: "create" });
   });
+
+  it("creates instead of a fuzzy match when allowFuzzy is false", () => {
+    const candidates = [climb({ id: 1, name: "Superflies", type: "boulder" })];
+    expect(matchClimb("Superfly", "boulder", null, candidates, { allowFuzzy: false })).toEqual({
+      kind: "create",
+    });
+  });
+
+  it("still matches exactly when allowFuzzy is false", () => {
+    const candidate = climb({ id: 1, name: "Superfly", type: "boulder" });
+    expect(matchClimb("Superfly", "boulder", null, [candidate], { allowFuzzy: false })).toEqual({
+      kind: "match",
+      candidate,
+      method: "exact",
+    });
+  });
 });

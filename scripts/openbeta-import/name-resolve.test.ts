@@ -59,4 +59,20 @@ describe("resolveByName", () => {
     const decision = resolveByName("Millennium", candidates, named);
     expect(decision.kind).toBe("ambiguous");
   });
+
+  it("skips the fuzzy tier and creates instead when allowFuzzy is false", () => {
+    const candidates: Item[] = [{ id: 1, name: "Okanagan Falls" }];
+    expect(resolveByName("Okanagan", candidates, named, { allowFuzzy: false })).toEqual({
+      kind: "create",
+    });
+  });
+
+  it("still matches via exact/loose tiers when allowFuzzy is false", () => {
+    const candidates: Item[] = [{ id: 1, name: "Millennium" }];
+    expect(resolveByName("millennium", candidates, named, { allowFuzzy: false })).toEqual({
+      kind: "match",
+      candidate: candidates[0],
+      method: "exact",
+    });
+  });
 });

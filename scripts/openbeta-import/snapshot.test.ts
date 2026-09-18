@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildAncestorPaths,
+  descendantsOf,
   indexAreasByParent,
   indexClimbsByArea,
   type AreaRow,
@@ -66,6 +67,43 @@ describe("indexAreasByParent", () => {
     const index = indexAreasByParent([root, child]);
     expect(index.get(null)).toEqual([root]);
     expect(index.get(1)).toEqual([child]);
+  });
+});
+
+describe("descendantsOf", () => {
+  function area(overrides: Partial<BetabookAreaCandidate> & { id: number }): BetabookAreaCandidate {
+    return {
+      name: "Area",
+      parentId: null,
+      latitude: null,
+      longitude: null,
+      ancestors: [],
+      ...overrides,
+    };
+  }
+
+  it("returns grandchildren and great-grandchildren, not just direct children", () => {
+    const country = area({ id: 1, name: "Country" });
+    const state = area({ id: 2, name: "State", parentId: 1 });
+    const crag = area({ id: 3, name: "Crag", parentId: 2 });
+    const wall = area({ id: 4, name: "Wall", parentId: 3 });
+    const index = indexAreasByParent([country, state, crag, wall]);
+    expect(
+      descendantsOf(1, index)
+        .map((a) => a.id)
+        .sort((a, b) => a - b),
+    ).toEqual([2, 3, 4]);
+  });
+
+  it("returns an empty array for a leaf with no children", () => {
+    const leaf = area({ id: 5, name: "Leaf" });
+    const index = indexAreasByParent([leaf]);
+    expect(descendantsOf(5, index)).toEqual([]);
+  });
+
+  it("returns an empty array for an id absent from the index", () => {
+    const index = indexAreasByParent([area({ id: 1 })]);
+    expect(descendantsOf(999999, index)).toEqual([]);
   });
 });
 

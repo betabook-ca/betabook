@@ -106,6 +106,28 @@ export function indexAreasByParent(
   return index;
 }
 
+/** All descendants of an area at any depth (not just direct children) — the
+ * fallback candidate pool when an OpenBeta breadcrumb level has no direct
+ * match under its resolved parent: OpenBeta's breadcrumb is a fixed 5 levels
+ * while Betabook's real tree isn't that shape, so a level that doesn't align
+ * one-for-one with Betabook's actual depth still needs to find its real
+ * counterpart somewhere in the subtree, not just among direct siblings. */
+export function descendantsOf(
+  ancestorId: number,
+  areasByParent: ReadonlyMap<number | null, readonly BetabookAreaCandidate[]>,
+): BetabookAreaCandidate[] {
+  const result: BetabookAreaCandidate[] = [];
+  const stack = [...(areasByParent.get(ancestorId) ?? [])];
+  while (stack.length > 0) {
+    const area = stack.pop();
+    if (!area) continue;
+    result.push(area);
+    const children = areasByParent.get(area.id);
+    if (children) stack.push(...children);
+  }
+  return result;
+}
+
 /** Climbs grouped by area — the blocking unit Phase 3 scans once an OpenBeta
  * route's parent area has been resolved via the Phase 2 crosswalk. */
 export function indexClimbsByArea(

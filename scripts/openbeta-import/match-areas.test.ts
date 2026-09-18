@@ -82,4 +82,12 @@ describe("matchArea", () => {
     ]);
     expect(decision.kind).toBe("ambiguous");
   });
+
+  it("creates instead of a fuzzy match when allowFuzzy is false", () => {
+    const candidate = area({ id: 1, name: "Okanagan Falls" });
+    const decision = matchArea(openBetaArea({ areaName: "Okanagan" }), [candidate], {
+      allowFuzzy: false,
+    });
+    expect(decision).toEqual({ kind: "create" });
+  });
 });

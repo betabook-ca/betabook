@@ -20,11 +20,22 @@ const FUZZY_MATCH_THRESHOLD = 0.92;
  * accent/punctuation-insensitive key, then Jaro-Winkler similarity. A tie at
  * any stage — more than one candidate equally good — is ambiguous, never
  * guessed; a fuzzy match only applies when exactly one candidate clears the
- * threshold with no other candidate tied at the same top score. */
+ * threshold with no other candidate tied at the same top score.
+ *
+ * `allowFuzzy: false` skips the Jaro-Winkler tier entirely, falling straight
+ * to "create" past the exact/loose tiers instead. Callers searching a large,
+ * structurally-uncorrelated candidate pool (e.g. run.ts's area-matching
+ * fallback across an entire subtree rather than true siblings) should pass
+ * this — Jaro-Winkler's prefix bonus readily conflates a short name with an
+ * unrelated longer name that happens to share its start (e.g. "Okanagan" vs
+ * "Okanagan Falls", two different real places), a risk that's much smaller
+ * against a true sibling list where structural adjacency already vouches for
+ * relatedness. */
 export function resolveByName<T>(
   name: string,
   candidates: readonly T[],
   getName: (candidate: T) => string,
+  options?: { allowFuzzy?: boolean },
 ): MatchDecision<T> {
   if (candidates.length === 0) return { kind: "create" };
 
@@ -37,6 +48,8 @@ export function resolveByName<T>(
   const loose = candidates.filter((c) => looseNameKey(getName(c)) === looseKey);
   if (loose.length === 1) return { kind: "match", candidate: loose[0], method: "exact" };
   if (loose.length > 1) return { kind: "ambiguous", candidates: loose };
+
+  if (options?.allowFuzzy === false) return { kind: "create" };
 
   const scored = candidates
     .map((candidate) => ({
