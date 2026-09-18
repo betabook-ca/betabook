@@ -30,6 +30,7 @@ function markup(image: string | null) {
       shareUrl="https://betabook.ca/users/alex?share=0123456789abcdef0123456789abcdef"
       turnstileSiteKey={null}
       isAdmin={false}
+      catalogExport={null}
     />,
   );
 }
