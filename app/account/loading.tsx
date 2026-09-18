@@ -10,6 +10,7 @@ const SECTIONS = [
   { id: "profile", rows: 2 },
   { id: "privacy", rows: 4 },
   { id: "sends", rows: 2 },
+  { id: "catalog", rows: 1 },
   { id: "preferences", rows: 2 },
   { id: "sign-in", rows: 2 },
 ];

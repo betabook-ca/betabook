@@ -1,9 +1,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "betabook",
-  // Checked-in entrypoint that re-exports the generated OpenNext `fetch`;
-  // `.open-next/worker.js` is rebuilt from a template on every build, so it
-  // cannot hold app code.
+  // Checked-in entrypoint that re-exports the generated OpenNext `fetch` and
+  // adds the cron `scheduled()` handler; `.open-next/worker.js` is rebuilt
+  // from a template on every build, so it cannot hold app code.
   "main": "./worker.ts",
   "compatibility_date": "2026-08-17",
   "compatibility_flags": ["nodejs_compat"],
@@ -19,6 +19,11 @@
   ],
   "vars": {
     "BETTER_AUTH_URL": "https://betabook.ca",
+  },
+  // Weekly public catalog snapshot (areas + climbs) → R2, served from
+  // /account. Mondays 06:00 UTC; see lib/catalog-export.ts.
+  "triggers": {
+    "crons": ["0 6 * * 1"],
   },
   // Holds the public catalog snapshot. The bucket is created by OpenTofu
   // (infra/cloudflare/r2.tf) and bound here by name; `wrangler deploy`
