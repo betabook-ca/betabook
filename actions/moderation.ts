@@ -289,10 +289,16 @@ export async function requestClimbBreak(
 
     if (parseId(climbId) === null) throw new ActionError("Climb not found");
     const input = validateClimbBreakInput(pickFormFields(formData, CLIMB_BREAK_REQUEST_FIELDS));
-    const existing = await assertClimbBreakable(db, climbId, input.brokenOn);
+    const {
+      climb: existing,
+      laterSends,
+      laterEntries,
+    } = await assertClimbBreakable(db, climbId, input.brokenOn);
     const payload: ChangeRequestPayload["climb_break"] = {
       ...input,
       ...composeClimbBreakTexts(existing, input),
+      laterSends,
+      laterEntries,
     };
 
     if (await isAdminForArea(db, session, existing.areaId)) {

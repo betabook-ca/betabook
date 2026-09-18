@@ -6,7 +6,7 @@ import { approveChangeRequest, requestClimbBreak, requestClimbMerge } from "@/ac
 import { applyClimbBreak, assertClimbMergeable } from "@/actions/moderation-apply";
 import { createDb } from "@/db/client";
 import { getChangeRequest } from "@/db/queries";
-import { adminAreaScopes, changeRequests, climbs, user } from "@/db/schema";
+import { adminAreaScopes, changeRequests, climbs, journalEntries, sends, user } from "@/db/schema";
 import { sendChangeRequestDecisionEmail } from "@/lib/email";
 import { describeChangeRequest, type ChangeRequestPayload } from "@/lib/moderation";
 import {
@@ -59,10 +59,11 @@ const db = createDb(env.DB);
 /** Fixture: Test Highball (1, boulder V4, in area 4) and Test Crack (4, trad 5.6, area 3). */
 const HIGHBALL = 1;
 const CRACK = 4;
+const BROKEN_ON = "2026-03-05";
 
 function breakForm(overrides: Record<string, string> = {}): FormData {
   const formData = new FormData();
-  const fields = { brokenOn: "2026-03-05", reason: "The key flake snapped off", ...overrides };
+  const fields = { brokenOn: BROKEN_ON, reason: "The key flake snapped off", ...overrides };
   for (const [key, value] of Object.entries(fields)) formData.set(key, value);
   return formData;
 }
@@ -89,11 +90,46 @@ function climbsInArea(areaId: number) {
   return db.select().from(climbs).where(eq(climbs.areaId, areaId));
 }
 
+async function successorOf(areaId: number, originalId: number) {
+  const successor = (await climbsInArea(areaId)).find((row) => row.id !== originalId);
+  if (!successor) throw new Error("expected a successor climb");
+  return successor;
+}
+
 function pendingBreaksFor(climbId: number) {
   return db
     .select()
     .from(changeRequests)
     .where(and(eq(changeRequests.type, "climb_break"), eq(changeRequests.entityId, climbId)));
+}
+
+function sendsOn(climbId: number) {
+  return db.select().from(sends).where(eq(sends.climbId, climbId)).orderBy(sends.userId);
+}
+
+function entriesOn(climbId: number) {
+  return db
+    .select()
+    .from(journalEntries)
+    .where(eq(journalEntries.climbId, climbId))
+    .orderBy(journalEntries.userId, journalEntries.entryDate);
+}
+
+/** A dated send plus its mirrored ascent entry, the way the app logs one. */
+async function seedAscent(
+  userId: string,
+  climbId: number,
+  dateSent: string,
+  extra: { rating?: number; ascentStyle?: "redpoint" | "flash" } = {},
+) {
+  await seedFixtureSend(db, { userId, climbId, dateSent, ...extra });
+  await seedFixtureJournalEntry(db, {
+    userId,
+    climbId,
+    entryDate: dateSent,
+    sent: true,
+    isAscent: true,
+  });
 }
 
 beforeEach(async () => {
@@ -102,6 +138,8 @@ beforeEach(async () => {
   await seedFixtureUser(db, { id: "break-reporter" });
   await seedFixtureUser(db, { id: "break-reviewer", role: "admin" });
   await seedFixtureUser(db, { id: "break-climber" });
+  await seedFixtureUser(db, { id: "break-early" });
+  await seedFixtureUser(db, { id: "break-undated" });
   await db.insert(adminAreaScopes).values([
     { userId: "break-reporter", areaId: 1 },
     { userId: "break-reviewer", areaId: 1 },
@@ -112,7 +150,13 @@ beforeEach(async () => {
 });
 
 describe("requestClimbBreak", () => {
-  it("queues the composed texts for a non-admin without touching the climb", async () => {
+  it("queues the composed texts and the later-history counts without touching the climb", async () => {
+    await seedAscent("break-climber", HIGHBALL, "2026-04-01");
+    await seedFixtureJournalEntry(db, {
+      userId: "break-climber",
+      climbId: HIGHBALL,
+      entryDate: "2026-01-15",
+    });
     expect(await requestClimbBreak(HIGHBALL, breakForm())).toEqual({
       ok: true,
       value: { status: "pending" },
@@ -120,15 +164,18 @@ describe("requestClimbBreak", () => {
     const [request] = await pendingBreaksFor(HIGHBALL);
     expect(request.status).toBe("pending");
     expect(JSON.parse(request.payload)).toEqual({
-      brokenOn: "2026-03-05",
+      brokenOn: BROKEN_ON,
       reason: "The key flake snapped off",
       ...EXPECTED_TEXTS,
+      laterSends: 1,
+      laterEntries: 1,
     });
     expect(await db.select().from(climbs).where(eq(climbs.id, HIGHBALL)).get()).toMatchObject({
       brokenOn: null,
       description: null,
     });
     expect(await climbsInArea(4)).toHaveLength(1);
+    expect((await sendsOn(HIGHBALL)).map((row) => row.userId)).toEqual(["break-climber"]);
   });
 
   it("omits the placeholder-grade sentence for an ungraded climb", async () => {
@@ -138,6 +185,8 @@ describe("requestClimbBreak", () => {
     expect(JSON.parse(request.payload)).toMatchObject({
       successorName: "Test Crack - post break (2025)",
       successorDescription: "Post-break version of Test Crack, which broke on 2025-12-31.",
+      laterSends: 0,
+      laterEntries: 0,
     });
   });
 
@@ -149,29 +198,6 @@ describe("requestClimbBreak", () => {
   ])("rejects %j", async (overrides, error) => {
     expect(await requestClimbBreak(HIGHBALL, breakForm(overrides))).toEqual({ ok: false, error });
     expect(await pendingBreaksFor(HIGHBALL)).toEqual([]);
-  });
-
-  it("refuses when activity on the climb is dated on or after the reported date", async () => {
-    await seedFixtureSend(db, {
-      userId: "break-climber",
-      climbId: HIGHBALL,
-      dateSent: "2026-03-05",
-    });
-    await seedFixtureJournalEntry(db, {
-      userId: "break-climber",
-      climbId: HIGHBALL,
-      entryDate: "2026-04-01",
-    });
-    expect(await requestClimbBreak(HIGHBALL, breakForm())).toEqual({
-      ok: false,
-      error:
-        "1 send(s) and 1 journal entry on this climb are dated on or after 2026-03-05 — check the date or ask the climbers to fix their logs",
-    });
-    // Undated and earlier activity is no obstacle.
-    await db.delete(changeRequests);
-    expect((await requestClimbBreak(HIGHBALL, breakForm({ brokenOn: "2026-05-01" }))).ok).toBe(
-      true,
-    );
   });
 
   it("refuses a climb that is already broken", async () => {
@@ -195,13 +221,11 @@ describe("requestClimbBreak", () => {
 
     const rows = await climbsInArea(4);
     expect(rows).toHaveLength(2);
-    const original = rows.find((row) => row.id === HIGHBALL);
-    const successor = rows.find((row) => row.id !== HIGHBALL);
-    expect(original).toMatchObject({
-      brokenOn: "2026-03-05",
+    expect(rows.find((row) => row.id === HIGHBALL)).toMatchObject({
+      brokenOn: BROKEN_ON,
       description: `Tall and committing.\n\n${EXPECTED_TEXTS.appendedDescription}`,
     });
-    expect(successor).toMatchObject({
+    expect(rows.find((row) => row.id !== HIGHBALL)).toMatchObject({
       name: EXPECTED_TEXTS.successorName,
       type: "boulder",
       grade: 5,
@@ -212,6 +236,129 @@ describe("requestClimbBreak", () => {
     });
     const [audit] = await pendingBreaksFor(HIGHBALL);
     expect(audit).toMatchObject({ status: "approved", reviewedBy: "break-reporter" });
+  });
+});
+
+describe("moving later history to the successor", () => {
+  beforeEach(async () => {
+    // Climbed only the new line: a send after the break, its ascent entry, a
+    // later repeat, and an earlier attempt that stays behind.
+    await seedAscent("break-climber", HIGHBALL, "2026-04-01", { rating: 4, ascentStyle: "flash" });
+    await seedFixtureJournalEntry(db, {
+      userId: "break-climber",
+      climbId: HIGHBALL,
+      entryDate: "2026-05-01",
+      sent: true,
+      body: "Repeated it",
+    });
+    await seedFixtureJournalEntry(db, {
+      userId: "break-climber",
+      climbId: HIGHBALL,
+      entryDate: "2026-01-15",
+      body: "First look",
+    });
+    // Climbed both lines: sent before the break, then logged a repeat and a
+    // plain session after it.
+    await seedAscent("break-early", HIGHBALL, "2026-01-10", { rating: 2, ascentStyle: "redpoint" });
+    await seedFixtureJournalEntry(db, {
+      userId: "break-early",
+      climbId: HIGHBALL,
+      entryDate: "2026-06-01",
+      sent: true,
+      body: "Back on the new line",
+    });
+    await seedFixtureJournalEntry(db, {
+      userId: "break-early",
+      climbId: HIGHBALL,
+      entryDate: "2026-07-01",
+      body: "Working the new crux",
+    });
+    // An undated send can't be placed on either side and stays put.
+    await seedFixtureSend(db, {
+      userId: "break-undated",
+      climbId: HIGHBALL,
+      dateSent: null,
+      rating: 5,
+    });
+  });
+
+  it("moves post-break sends and entries, creates a send for repeat-only climbers, and leaves the rest", async () => {
+    await actAsAdmin();
+    expect(await requestClimbBreak(HIGHBALL, breakForm())).toEqual({
+      ok: true,
+      value: { status: "applied" },
+    });
+    const successor = await successorOf(4, HIGHBALL);
+
+    expect(await sendsOn(successor.id)).toEqual([
+      expect.objectContaining({
+        userId: "break-climber",
+        dateSent: "2026-04-01",
+        ascentStyle: "flash",
+        rating: 4,
+      }),
+      expect.objectContaining({
+        userId: "break-early",
+        dateSent: "2026-06-01",
+        ascentStyle: "redpoint",
+        rating: null,
+        comment: null,
+        suggestedGrade: null,
+        gradeFeel: "solid",
+      }),
+    ]);
+    expect(await sendsOn(HIGHBALL)).toEqual([
+      expect.objectContaining({ userId: "break-early", dateSent: "2026-01-10", rating: 2 }),
+      expect.objectContaining({ userId: "break-undated", dateSent: null, rating: 5 }),
+    ]);
+
+    expect(
+      (await entriesOn(successor.id)).map((e) => [e.userId, e.entryDate, e.sent, e.isAscent]),
+    ).toEqual([
+      ["break-climber", "2026-04-01", true, true],
+      ["break-climber", "2026-05-01", true, false],
+      ["break-early", "2026-06-01", true, false],
+      ["break-early", "2026-07-01", false, false],
+    ]);
+    expect(
+      (await entriesOn(HIGHBALL)).map((e) => [e.userId, e.entryDate, e.sent, e.isAscent]),
+    ).toEqual([
+      ["break-climber", "2026-01-15", false, false],
+      ["break-early", "2026-01-10", true, true],
+    ]);
+
+    // The aggregate triggers followed the moves.
+    expect(await db.select().from(climbs).where(eq(climbs.id, HIGHBALL)).get()).toMatchObject({
+      sendCount: 2,
+      ratingSum: 7,
+      ratingCount: 2,
+    });
+    expect(successor).toMatchObject({ sendCount: 2, ratingSum: 4, ratingCount: 1 });
+
+    const [audit] = await pendingBreaksFor(HIGHBALL);
+    expect(JSON.parse(audit.payload)).toMatchObject({ laterSends: 1, laterEntries: 4 });
+  });
+
+  it("moves whatever is there at approval time, not what was counted at request time", async () => {
+    expect((await requestClimbBreak(HIGHBALL, breakForm())).ok).toBe(true);
+    const [request] = await pendingBreaksFor(HIGHBALL);
+    expect(JSON.parse(request.payload)).toMatchObject({ laterSends: 1, laterEntries: 4 });
+    // A new climber logs the post-break line while the request waits.
+    await seedFixtureUser(db, { id: "break-late" });
+    await seedAscent("break-late", HIGHBALL, "2026-08-01");
+
+    await actAsAdmin("break-reviewer");
+    expect(await approveChangeRequest(request.id)).toEqual({
+      ok: true,
+      value: { decision: "applied" },
+    });
+    const successor = await successorOf(4, HIGHBALL);
+    expect((await sendsOn(successor.id)).map((row) => row.userId)).toEqual([
+      "break-climber",
+      "break-early",
+      "break-late",
+    ]);
+    expect((await entriesOn(successor.id)).map((e) => e.userId)).toContain("break-late");
   });
 });
 
@@ -239,7 +386,7 @@ describe("approving a climb_break request", () => {
       "Test Highball - post break (2026)",
     ]);
     expect(rows.find((row) => row.id === HIGHBALL)).toMatchObject({
-      brokenOn: "2026-03-05",
+      brokenOn: BROKEN_ON,
       description: EXPECTED_TEXTS.appendedDescription,
     });
 
@@ -258,7 +405,8 @@ describe("approving a climb_break request", () => {
     );
   });
 
-  it("describes the request with the date, reason, successor and both texts", async () => {
+  it("describes the request with the date, reason, successor, the move, and both texts", async () => {
+    await seedAscent("break-climber", HIGHBALL, "2026-04-01");
     expect((await requestClimbBreak(HIGHBALL, breakForm())).ok).toBe(true);
     const [request] = await pendingBreaksFor(HIGHBALL);
     const description = await describeChangeRequest(db, request);
@@ -268,9 +416,17 @@ describe("approving a climb_break request", () => {
       "Broke on: 2026-03-05",
       "Reason: The key flake snapped off",
       'New climb: "Test Highball - post break (2026)" at V4',
+      "Moves 1 send(s) and 1 journal entry dated on or after 2026-03-05 to the new climb (counted when reported)",
       `Description of "Test Highball" becomes: ${EXPECTED_TEXTS.appendedDescription}`,
       `Description of the new climb: ${EXPECTED_TEXTS.successorDescription}`,
     ]);
+
+    await db.delete(changeRequests);
+    expect((await requestClimbBreak(CRACK, breakForm())).ok).toBe(true);
+    const [quiet] = await pendingBreaksFor(CRACK);
+    expect((await describeChangeRequest(db, quiet)).details).toContain(
+      "Nothing dated on or after 2026-03-05 to move (counted when reported)",
+    );
   });
 
   it("fails cleanly when the climb was broken between the request and the approval", async () => {
@@ -288,7 +444,7 @@ describe("approving a climb_break request", () => {
 
   it("refuses an incomplete payload instead of writing blanks", async () => {
     const payload = {
-      brokenOn: "2026-03-05",
+      brokenOn: BROKEN_ON,
       reason: "x",
       successorName: "",
       appendedDescription: "",
@@ -308,7 +464,7 @@ describe("approving a climb_break request", () => {
 
 describe("merges and broken climbs", () => {
   it("refuses to merge into or out of a broken climb", async () => {
-    await db.update(climbs).set({ brokenOn: "2026-03-05" }).where(eq(climbs.id, HIGHBALL));
+    await db.update(climbs).set({ brokenOn: BROKEN_ON }).where(eq(climbs.id, HIGHBALL));
     await expect(assertClimbMergeable(db, 2, HIGHBALL)).rejects.toThrow(
       "Can't merge a broken climb",
     );

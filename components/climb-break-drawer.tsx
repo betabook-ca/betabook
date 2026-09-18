@@ -98,7 +98,8 @@ export function ClimbBreakDrawer({ climb, state }: ClimbBreakDrawerProps) {
                 <p className="text-sm text-muted">
                   Once approved, only ascents dated before the break can be logged on this climb,
                   its description gains a note, and a new climb is created for the post-break line
-                  at the same grade.
+                  at the same grade. Sends and sessions already dated on or after the break move to
+                  the new climb.
                 </p>
 
                 <DatePickerField

@@ -40,6 +40,14 @@ export type ClimbBreakTexts = {
   successorDescription: string;
 };
 
+/** How much logged history sat on or after the reported date when the report
+ * was submitted. Informational for the queue: approval moves whatever is
+ * there at that moment, which may differ. */
+export type ClimbBreakImpact = {
+  laterSends: number;
+  laterEntries: number;
+};
+
 type BreakSubject = {
   name: string;
   type: ClimbType;

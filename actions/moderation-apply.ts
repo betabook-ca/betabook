@@ -24,7 +24,7 @@ import {
 } from "@/db/schema";
 import { ActionError } from "@/lib/action-result";
 import type { AreaInput } from "@/lib/areas";
-import { validateClimbBreakInput } from "@/lib/broken-climbs";
+import { validateClimbBreakInput, type ClimbBreakImpact } from "@/lib/broken-climbs";
 import { validateClimbMergeOverrides, validateClimbEditInput } from "@/lib/climbs";
 import type { ChangeRequestPayload, ChangeRequestType } from "@/lib/moderation";
 
@@ -438,43 +438,46 @@ export async function assertClimbMergeable(
 
 const BREAK_SUPERSEDED_REVIEW_NOTE = "This climb has already been marked as broken.";
 
-/** A break is refused while any dated activity contradicts the reported
- * date: a send or session on or after it means either the date is wrong or a
- * log is. Undated sends are left alone — they can't be placed either way. */
+/** Loads the climb for a break report and counts the history dated on or
+ * after the reported date. That history is not an obstacle: those climbers
+ * climbed the post-break line, so approval moves it to the successor. The
+ * counts feed the queue description. Undated sends are never counted or
+ * moved — they can't be placed on either side of the break. */
 export async function assertClimbBreakable(
   db: Database,
   climbId: number,
   brokenOn: string,
-): Promise<Climb> {
-  const existing = await getClimb(db, climbId);
-  if (!existing) throw new ActionError("Climb not found");
-  if (existing.brokenOn !== null) {
-    throw new ActionError(`This climb is already marked as broken on ${existing.brokenOn}`);
+): Promise<{ climb: Climb } & ClimbBreakImpact> {
+  const climb = await getClimb(db, climbId);
+  if (!climb) throw new ActionError("Climb not found");
+  if (climb.brokenOn !== null) {
+    throw new ActionError(`This climb is already marked as broken on ${climb.brokenOn}`);
   }
-  const [row] = await db.all<{ laterSends: number; laterEntries: number }>(sql`
+  const [row] = await db.all<ClimbBreakImpact>(sql`
     SELECT
       (SELECT count(*) FROM sends WHERE climb_id = ${climbId}
         AND date_sent IS NOT NULL AND date_sent >= ${brokenOn}) AS laterSends,
       (SELECT count(*) FROM journal_entries WHERE climb_id = ${climbId}
         AND entry_date >= ${brokenOn}) AS laterEntries
   `);
-  if (row.laterSends > 0 || row.laterEntries > 0) {
-    const parts = [
-      row.laterSends > 0 ? `${row.laterSends} send(s)` : null,
-      row.laterEntries > 0
-        ? `${row.laterEntries} journal entr${row.laterEntries === 1 ? "y" : "ies"}`
-        : null,
-    ].filter((part) => part !== null);
-    throw new ActionError(
-      `${parts.join(" and ")} on this climb are dated on or after ${brokenOn} — check the date or ask the climbers to fix their logs`,
-    );
-  }
-  return existing;
+  return { climb, laterSends: row.laterSends, laterEntries: row.laterEntries };
 }
 
-/** Marks the climb broken and creates its post-break successor in one batch.
- * The payload texts are written verbatim; only the date and reason are
- * re-validated, since the moderator approved exactly those strings. */
+/** Marks the climb broken, creates its post-break successor, and moves the
+ * history dated on or after the break onto it, all in one batch. The payload
+ * texts are written verbatim; only the date and reason are re-validated,
+ * since the moderator approved exactly those strings.
+ *
+ * Two kinds of climber have later history. One whose send is dated on or
+ * after the break climbed only the new line: the send moves, then every
+ * entry of theirs dated on or after the break, ascent included — the journal
+ * guard permits an ascent to change climb once its send is there and none
+ * remains on the original. One whose send predates the break but who logged
+ * sent repeats afterwards climbed both lines: they get a fresh send on the
+ * successor (their style, dated to the earliest such repeat, no rating or
+ * comment, since those opinions were about the old line) so the repeats can
+ * follow as repeats. Sessions that were never sends move freely. Undated
+ * sends stay, as does everything dated before the break. */
 export async function applyClimbBreak(
   db: Database,
   climbId: number,
@@ -490,9 +493,16 @@ export async function applyClimbBreak(
       throw new ActionError("This break request is incomplete — reject it and request a new one");
     }
   }
-  const existing = await assertClimbBreakable(db, climbId, brokenOn);
+  const { climb: existing } = await assertClimbBreakable(db, climbId, brokenOn);
   const guard = sql`${climbUnchanged(existing)} AND EXISTS (
     SELECT 1 FROM climbs WHERE id = ${climbId} AND broken_on IS NULL)`;
+  // The successor is inserted two statements earlier in this batch; the
+  // highest id with its name in this area is that row, since any older
+  // same-named climb has a lower id and last_insert_rowid() is clobbered by
+  // the send insert below.
+  const successorId = sql`(SELECT MAX(id) FROM climbs
+    WHERE area_id = ${existing.areaId} AND name = ${payload.successorName})`;
+  const own = alias(sends, "own");
 
   await commitMutation(
     db,
@@ -511,6 +521,53 @@ export async function applyClimbBreak(
         grade: existing.grade,
         description: payload.successorDescription,
       }),
+      // Climbers whose send stays (dated before the break, or undated) but who
+      // logged sent repeats afterwards need a send on the successor first.
+      // insert().select() requires all columns in schema order; NULL ID permits autoincrement.
+      db.insert(sends).select(
+        db
+          .select({
+            id: sql<number>`null`.as("id"),
+            userId: journalEntries.userId,
+            climbId: sql<number>`${successorId}`.as("climb_id"),
+            ascentStyle: sql<string>`${own.ascentStyle}`.as("ascent_style"),
+            dateSent: sql<string>`min(${journalEntries.entryDate})`.as("date_sent"),
+            comment: sql<string | null>`null`.as("comment"),
+            rating: sql<number | null>`null`.as("rating"),
+            suggestedGrade: sql<number | null>`null`.as("suggested_grade"),
+            gradeFeel: sql<string>`'solid'`.as("grade_feel"),
+            createdAt: sql<number>`(cast(unixepoch('subsecond') * 1000 as integer))`.as(
+              "created_at",
+            ),
+            updatedAt: sql<number>`(cast(unixepoch('subsecond') * 1000 as integer))`.as(
+              "updated_at",
+            ),
+          })
+          .from(journalEntries)
+          .innerJoin(own, and(eq(own.userId, journalEntries.userId), eq(own.climbId, climbId)))
+          .where(
+            and(
+              eq(journalEntries.climbId, climbId),
+              eq(journalEntries.sent, true),
+              sql`${journalEntries.entryDate} >= ${brokenOn}`,
+              sql`(${own.dateSent} IS NULL OR ${own.dateSent} < ${brokenOn})`,
+            ),
+          )
+          .groupBy(journalEntries.userId),
+      ),
+      // Sends dated on or after the break belong to the new line.
+      db
+        .update(sends)
+        .set({ climbId: sql`${successorId}` })
+        .where(and(eq(sends.climbId, climbId), sql`${sends.dateSent} >= ${brokenOn}`)),
+      // Then every entry from the break onwards; ascents pass the journal guard
+      // because their send moved above and none remains on the original.
+      db
+        .update(journalEntries)
+        .set({ climbId: sql`${successorId}` })
+        .where(
+          and(eq(journalEntries.climbId, climbId), sql`${journalEntries.entryDate} >= ${brokenOn}`),
+        ),
       // Other reporters' pending break requests for this climb are now moot.
       db
         .update(changeRequests)
@@ -530,9 +587,11 @@ export async function applyClimbBreak(
     guard,
     decision,
   );
+  const successor = await db.get<{ id: number }>(sql`SELECT ${successorId} AS id`);
 
   afterCommit(() => {
     revalidatePath(`/climbs/${climbId}`);
+    if (successor?.id) revalidatePath(`/climbs/${successor.id}`);
     revalidatePath(`/areas/${existing.areaId}`);
     revalidatePath("/");
     refresh();
