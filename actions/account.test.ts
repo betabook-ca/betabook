@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  removeProfilePhoto,
   resetProfileShareLink,
   setJournalVisibility,
   setSendCommentVisibility,
@@ -98,6 +99,54 @@ describe("setUserPrivate action boundary", () => {
 
     const row = await db.select().from(user).where(eq(user.id, "test-user")).get();
     expect(row?.isPrivate).toBe(false);
+  });
+});
+
+describe("removeProfilePhoto action boundary", () => {
+  const PHOTO = "https://lh3.googleusercontent.com/a/avatar=s96-c";
+
+  beforeEach(async () => {
+    await db.update(user).set({ image: PHOTO });
+  });
+
+  it("requires a signed-in user and leaves every photo in place", async () => {
+    sessionState.userId = null;
+    const before = await db.select().from(user).orderBy(user.id).all();
+
+    const result = await removeProfilePhoto();
+
+    expect(result).toEqual({ ok: false, error: SESSION_EXPIRED_MESSAGE });
+    expect(await db.select().from(user).orderBy(user.id).all()).toEqual(before);
+  });
+
+  it("clears only the signed-in climber's photo", async () => {
+    const otherBefore = await db.select().from(user).where(eq(user.id, "other-user")).get();
+
+    const result = await removeProfilePhoto();
+
+    expect(result).toEqual({ ok: true, value: undefined });
+    expect((await db.select().from(user).where(eq(user.id, "test-user")).get())?.image).toBeNull();
+    expect(await db.select().from(user).where(eq(user.id, "other-user")).get()).toEqual(
+      otherBefore,
+    );
+  });
+
+  it("is safe to repeat once there is no photo left", async () => {
+    await removeProfilePhoto();
+
+    // The row disappears from Account settings after the first removal, but a
+    // second call must not fail if one arrives anyway.
+    expect(await removeProfilePhoto()).toEqual({ ok: true, value: undefined });
+    expect((await db.select().from(user).where(eq(user.id, "test-user")).get())?.image).toBeNull();
+  });
+
+  it("keeps the rest of the account untouched", async () => {
+    const before = await db.select().from(user).where(eq(user.id, "test-user")).get();
+
+    await removeProfilePhoto();
+
+    const after = await db.select().from(user).where(eq(user.id, "test-user")).get();
+    expect(after).toEqual({ ...before, image: null, updatedAt: after?.updatedAt });
   });
 });
 
