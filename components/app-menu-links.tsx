@@ -24,14 +24,11 @@ import {
 } from "@/components/nav-link";
 import { PrimaryNavigationLink } from "@/components/primary-navigation-link";
 import { SignOutButton } from "@/components/sign-out-button";
-import {
-  ACCOUNT_DESTINATION,
-  primaryAreaForPath,
-  primaryDestinations,
-  type MenuAccount,
-} from "@/lib/app-navigation";
+import { ACCOUNT_DESTINATION, primaryAreaForPath, primaryDestinations } from "@/lib/app-navigation";
 import { productTourPath } from "@/lib/product-tour-navigation";
 import { SEARCH_PATH } from "@/lib/search";
+
+export type MenuAccount = { id: string; name: string; image?: string | null; isAdmin: boolean };
 
 function menuClasses(sidebar: boolean, collapsed: boolean) {
   return {

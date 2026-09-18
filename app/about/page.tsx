@@ -81,9 +81,9 @@ export default function AboutPage() {
             signed-out visitors.
           </li>
           <li>
-            Your profile link and QR code show your name, your photo if you show one, send stats and
-            latest sends to anyone who has them. Resetting the link, or making your profile private,
-            stops old links working.
+            Your profile link and QR code show your name, photo, send stats and latest sends to
+            anyone who has them. Resetting the link, or making your profile private, stops old links
+            working.
           </li>
           <li>Only you can see your projects and export your sends.</li>
         </ul>

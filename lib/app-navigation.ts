@@ -1,5 +1,3 @@
-import { shownProfilePhoto } from "@/lib/profile-photo";
-
 export type PrimaryArea = "logbook" | "progress" | "community" | "account";
 
 export type PrimaryDestination = { id: PrimaryArea; label: string; href: string };
@@ -67,31 +65,4 @@ export function workspaceTabs(
         { label: "Friends", href: "/friends", roots: [] },
       ];
   }
-}
-
-/** The account fields navigation renders. */
-export type MenuAccount = { id: string; name: string; image?: string | null; isAdmin: boolean };
-
-/** Navigation renders its avatar from the Better Auth client session rather
- * than a D1 read, so the Show photo setting is applied here — shared by the
- * header menu and the sidebar so the two can't disagree. Both extra fields are
- * optional because Better Auth types additionalFields that way (lib/auth.ts);
- * `show_profile_photo` is NOT NULL DEFAULT 1, so a session that predates this
- * field shows the photo, as it did before. */
-export function menuAccount(user: {
-  id: string;
-  name: string;
-  image?: string | null;
-  role?: string | null;
-  showProfilePhoto?: boolean | null;
-}): MenuAccount {
-  return {
-    id: user.id,
-    name: user.name,
-    image: shownProfilePhoto({
-      image: user.image ?? null,
-      showProfilePhoto: user.showProfilePhoto ?? true,
-    }),
-    isAdmin: user.role === "admin",
-  };
 }

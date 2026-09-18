@@ -6,7 +6,6 @@ import {
   resetProfileShareLink,
   setJournalVisibility,
   setSendCommentVisibility,
-  setShowProfilePhoto,
   setUserPrivate,
 } from "@/actions";
 import { createDb } from "@/db/client";
@@ -99,57 +98,6 @@ describe("setUserPrivate action boundary", () => {
 
     const row = await db.select().from(user).where(eq(user.id, "test-user")).get();
     expect(row?.isPrivate).toBe(false);
-  });
-});
-
-describe("setShowProfilePhoto action boundary", () => {
-  const PHOTO = "https://lh3.googleusercontent.com/a/avatar=s96-c";
-
-  beforeEach(async () => {
-    await db.update(user).set({ image: PHOTO });
-  });
-
-  it("requires a signed-in user and leaves the stored choice alone", async () => {
-    sessionState.userId = null;
-    const before = await db.select().from(user).orderBy(user.id).all();
-
-    const result = await setShowProfilePhoto(false);
-
-    expect(result).toEqual({ ok: false, error: SESSION_EXPIRED_MESSAGE });
-    expect(await db.select().from(user).orderBy(user.id).all()).toEqual(before);
-  });
-
-  it("hides only the signed-in climber's photo, keeping the URL so it can come back", async () => {
-    const otherBefore = await db.select().from(user).where(eq(user.id, "other-user")).get();
-
-    const result = await setShowProfilePhoto(false);
-
-    expect(result).toEqual({ ok: true, value: undefined });
-    const row = await db.select().from(user).where(eq(user.id, "test-user")).get();
-    expect(row?.showProfilePhoto).toBe(false);
-    // The opt-out must not clear image: turning it back on restores this photo,
-    // and a later Google sign-in would otherwise be the only way to recover it.
-    expect(row?.image).toBe(PHOTO);
-    expect(await db.select().from(user).where(eq(user.id, "other-user")).get()).toEqual(
-      otherBefore,
-    );
-  });
-
-  it("shows the photo again without a fresh sign-in", async () => {
-    await db.update(user).set({ showProfilePhoto: false }).where(eq(user.id, "test-user"));
-
-    const result = await setShowProfilePhoto(true);
-
-    expect(result).toEqual({ ok: true, value: undefined });
-    const row = await db.select().from(user).where(eq(user.id, "test-user")).get();
-    expect(row?.showProfilePhoto).toBe(true);
-    expect(row?.image).toBe(PHOTO);
-  });
-
-  it("defaults a new account to showing its photo", async () => {
-    await seedFixtureUser(db, { id: "fresh-user", image: PHOTO });
-    const row = await db.select().from(user).where(eq(user.id, "fresh-user")).get();
-    expect(row?.showProfilePhoto).toBe(true);
   });
 });
 

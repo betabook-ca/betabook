@@ -1,1 +1,0 @@
-ALTER TABLE `user` ADD `show_profile_photo` integer DEFAULT true NOT NULL;

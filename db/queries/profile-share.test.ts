@@ -80,19 +80,3 @@ it("removes the link with the account and clears referrals to it", async () => {
     await db.select({ referredBy: user.referredBy }).from(user).where(eq(user.id, "invited")).get(),
   ).toEqual({ referredBy: null });
 });
-
-it("withholds the owner's photo from a share link once they chose initials", async () => {
-  const token = (await getProfileShareToken(db, "owner"))!;
-  await db.update(user).set({ showProfilePhoto: false }).where(eq(user.id, "owner"));
-
-  // A link holder sees the same avatar a signed-in member does: the name still
-  // identifies the owner, only the photo is withheld.
-  expect(await getShareLinkOwner(db, token)).toEqual({
-    id: "owner",
-    name: "Share Owner",
-    image: null,
-  });
-
-  await db.update(user).set({ showProfilePhoto: true }).where(eq(user.id, "owner"));
-  expect((await getShareLinkOwner(db, token))?.image).toBe(IMAGE);
-});

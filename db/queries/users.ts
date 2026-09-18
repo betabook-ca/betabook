@@ -36,20 +36,6 @@ export async function getTakenNamesAround(db: Database, base: string, stem: stri
   return new Set(rows.map((row) => row.name.toLowerCase()));
 }
 
-/** The stored display name for an email address, case-insensitively because
- * Better Auth lowercases the address it reports from an OAuth profile while
- * the column keeps whatever the account was created with. Used by the
- * user.update.before hook in lib/auth.ts to pin the local name against a
- * provider profile that would otherwise overwrite it. */
-export async function getUserNameByEmail(db: Database, email: string) {
-  const row = await db
-    .select({ name: user.name })
-    .from(user)
-    .where(sql`${user.email} = ${email} COLLATE NOCASE`)
-    .get();
-  return row?.name ?? null;
-}
-
 /** Batch lookup for the review queue — one IN query for a page's worth of
  * requester names instead of one getUser round-trip per row. */
 export async function getUsersByIds(db: Database, ids: string[]) {

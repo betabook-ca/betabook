@@ -30,10 +30,7 @@ export default async function AccountPage() {
         id: session.user.id,
         name: user?.name ?? session.user.name,
         email: session.user.email,
-        image: user?.image ?? session.user.image ?? null,
-        // The column is NOT NULL DEFAULT 1; the fallback only covers a missing
-        // row, which getUser can return between sign-up and the first read.
-        showProfilePhoto: user?.showProfilePhoto ?? true,
+        image: user?.image ?? session.user.image,
       }}
       isPrivate={isPrivate}
       journalVisibility={user?.journalVisibility ?? "friends"}

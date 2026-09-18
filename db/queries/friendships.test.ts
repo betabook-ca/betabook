@@ -212,29 +212,3 @@ it("sorts accepted friends by name case-insensitively", async () => {
     "z-last",
   ]);
 });
-
-it("withholds a photo from search, friends and suggestions once its owner chose initials", async () => {
-  const photo = "https://lh3.googleusercontent.com/a/alice";
-  await seedFixtureUser(db, { id: "mutual", name: "Mutual Friend", image: photo });
-  await seedFixtureFriendship(db, "alice", "mutual");
-  await db.update(user).set({ image: photo }).where(eq(user.id, "alice"));
-
-  const shown = async () => ({
-    search: (await getClimbersPage(db, "viewer", { name: "Alice" })).climbers.find(
-      (climber) => climber.id === "alice",
-    )?.image,
-    friends: (await getFriendsPage(db, "viewer")).friends.find((friend) => friend.id === "alice")
-      ?.image,
-    suggestions: (await getClimberSuggestions(db, "viewer")).find(
-      (climber) => climber.id === "mutual",
-    )?.image,
-  });
-
-  // Establish the photo really does travel these three reads, so the nulls
-  // below can only come from the setting.
-  expect(await shown()).toEqual({ search: photo, friends: photo, suggestions: photo });
-
-  await db.update(user).set({ showProfilePhoto: false });
-
-  expect(await shown()).toEqual({ search: null, friends: null, suggestions: null });
-});

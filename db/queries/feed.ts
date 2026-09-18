@@ -8,7 +8,6 @@ import type { AscentStyle, GradeFeel } from "@/lib/sends";
 
 import { journalVisibleSql, sendCommentVisibleSql } from "./content-access";
 import { companionsJsonSql } from "./journal-companions";
-import { shownUserImageSql } from "./shared";
 
 type FeedActivity = {
   id: number;
@@ -73,7 +72,7 @@ export async function getFeedPage(
       UNION ALL
       SELECT user_id AS id FROM friendships WHERE friend_id = ${viewerId} AND status = 'accepted'
     ), authors AS (
-      SELECT u.id, u.name, ${shownUserImageSql}, ${journalVisibleSql(viewerId, sql`u.id`)} AS journalVisible,
+      SELECT u.id, u.name, u.image, ${journalVisibleSql(viewerId, sql`u.id`)} AS journalVisible,
         ${sendCommentVisibleSql(viewerId, sql`u.id`)} AS sendCommentVisible
       FROM friends f JOIN user u ON u.id = f.id
       WHERE u.is_private = 0

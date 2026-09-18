@@ -52,18 +52,6 @@ export const user = sqliteTable(
     productTourReturning: integer("product_tour_returning", { mode: "boolean" })
       .default(false)
       .notNull(),
-    // Opt-out for the OAuth photo in `image`: false means every avatar falls
-    // back to initials, for this user's own header as well as everyone else's
-    // view of them. Suppression happens where the photo is read — the raw
-    // column keeps the URL, so turning the setting back on restores the photo,
-    // and Google re-sends a rotated URL on each sign-in
-    // (overrideUserInfoOnSignIn in lib/auth.ts). Nothing in that provider
-    // payload can reach this column: Better Auth forwards only
-    // provider-profile keys, and input: false excludes it either way —
-    // lib/auth-profile-photo.test.ts holds that. See lib/profile-photo.ts and
-    // shownUserImageSql in db/queries/shared.ts. Not a privacy audience: the
-    // photo is presentation, so this is under Profile, not Privacy.
-    showProfilePhoto: integer("show_profile_photo", { mode: "boolean" }).default(true).notNull(),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .notNull(),

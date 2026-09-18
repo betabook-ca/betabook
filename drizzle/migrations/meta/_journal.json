@@ -316,13 +316,6 @@
       "when": 1789627746145,
       "tag": "0044_broken_climbs",
       "breakpoints": true
-    },
-    {
-      "idx": 45,
-      "version": "6",
-      "when": 1789711960501,
-      "tag": "0045_show_profile_photo",
-      "breakpoints": true
     }
   ]
 }
