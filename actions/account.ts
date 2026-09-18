@@ -38,6 +38,24 @@ export async function setUserPrivate(isPrivate: boolean): Promise<ActionResult> 
   });
 }
 
+/** Clears the OAuth photo stored by Better Auth, so every avatar falls back to
+ * initials. Irreversible by design: nothing re-fetches the URL, and Better
+ * Auth writes no profile fields on a repeat social sign-in, so signing in with
+ * Google again does not bring the photo back. */
+export async function removeProfilePhoto(): Promise<ActionResult> {
+  return toActionResult(async () => {
+    const session = await requireSession();
+    const db = await getDb();
+
+    await db.update(user).set({ image: null }).where(eq(user.id, session.user.id));
+
+    afterCommit(() => {
+      revalidateProfileSurfaces(session.user.id);
+      refresh();
+    });
+  });
+}
+
 /** Stops links and QR codes already handed out from naming the owner. */
 export async function resetProfileShareLink(): Promise<ActionResult> {
   return toActionResult(async () => {

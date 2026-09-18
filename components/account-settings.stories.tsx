@@ -23,3 +23,15 @@ type Story = StoryObj<typeof meta>;
 export const Member: Story = {};
 export const PrivateProfile: Story = { args: { isPrivate: true, shareUrl: null } };
 export const Moderator: Story = { args: { isAdmin: true } };
+
+/** A Google account: Profile gains a Remove photo row. The gallery makes no
+ * successful request for the URL, so the avatars fall back to initials — this
+ * example is about the row, not the photo itself. */
+export const WithProfilePhoto: Story = {
+  args: {
+    user: {
+      ...meta.args.user,
+      image: "https://lh3.googleusercontent.com/a/story-example=s96-c",
+    },
+  },
+};

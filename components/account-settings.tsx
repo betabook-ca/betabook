@@ -7,6 +7,7 @@ import { ExportSendsButton } from "@/components/export-sends-button";
 import { PrivacyControls } from "@/components/privacy-controls";
 import { PrivacyDetails } from "@/components/privacy-fields";
 import { ProductTour } from "@/components/product-tour";
+import { RemoveProfilePhotoButton } from "@/components/remove-profile-photo-button";
 import { ResetPasswordButton } from "@/components/reset-password-button";
 import { ShareProfileControls } from "@/components/share-profile-controls";
 import { SignOutButton } from "@/components/sign-out-button";
@@ -15,6 +16,7 @@ import { AppLink } from "@/components/ui/app-link";
 import { SETTINGS_ROW_CLASS, SettingsRow, SettingsSection } from "@/components/ui/settings";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
+import { getGoogleProfileImageUrl } from "@/lib/user-initials";
 
 const OUTLINE_LINK_CLASS = `${buttonVariants({ variant: "outline" })} gap-2 text-foreground`;
 
@@ -48,6 +50,16 @@ export function AccountSettings({
         <div className={SETTINGS_ROW_CLASS}>
           <DisplayNameForm initialName={user.name} />
         </div>
+        {/* Only offered when a photo is actually on screen: an account with
+            none, or with a URL next/image won't load, already shows initials. */}
+        {getGoogleProfileImageUrl(user.image) !== null && (
+          <SettingsRow
+            title="Profile photo"
+            description="From your Google account. Remove it to show your initials instead."
+          >
+            <RemoveProfilePhotoButton />
+          </SettingsRow>
+        )}
         <div className={SETTINGS_ROW_CLASS}>
           <ShareProfileControls name={user.name} url={shareUrl} />
         </div>
