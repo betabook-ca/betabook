@@ -1,7 +1,10 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "betabook",
-  "main": ".open-next/worker.js",
+  // Checked-in entrypoint that re-exports the generated OpenNext `fetch`;
+  // `.open-next/worker.js` is rebuilt from a template on every build, so it
+  // cannot hold app code.
+  "main": "./worker.ts",
   "compatibility_date": "2026-08-17",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
