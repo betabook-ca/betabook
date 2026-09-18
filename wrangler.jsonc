@@ -20,6 +20,15 @@
   "vars": {
     "BETTER_AUTH_URL": "https://betabook.ca",
   },
+  // Holds the public catalog snapshot. The bucket is created by OpenTofu
+  // (infra/cloudflare/r2.tf) and bound here by name; `wrangler deploy`
+  // validates the binding, so the Spacelift apply must land first.
+  "r2_buckets": [
+    {
+      "binding": "CATALOG_EXPORTS",
+      "bucket_name": "betabook-exports",
+    },
+  ],
   "d1_databases": [
     {
       "binding": "DB",
