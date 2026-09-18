@@ -46,6 +46,16 @@ function climbUnchanged(climb: Climb): SQL {
     AND type = ${climb.type} AND area_id = ${climb.areaId})`;
 }
 
+/** Break state, which climbUnchanged does not pin. A merge validated against
+ * two unbroken climbs must not commit once either has broken in between: the
+ * batch would delete a newly broken source or fold sends into a newly broken
+ * target, both of which assertClimbMergeable refuses. An admin merge applies
+ * without a pending request, so the break's own auto-reject cannot catch it.
+ * Edits, moves and deletes stay legal on a broken climb and don't use this. */
+function climbNotBroken(climb: Climb): SQL {
+  return sql`EXISTS (SELECT 1 FROM climbs WHERE id = ${climb.id} AND broken_on IS NULL)`;
+}
+
 /** The NOT NULL guard aborts the entire batch if a concurrent decision or
  * entity change invalidated the reads used to prepare this mutation. */
 async function commitMutation(
@@ -697,7 +707,8 @@ export async function applyClimbMerge(
   await commitMutation(
     db,
     statements,
-    sql`${climbUnchanged(source)} AND ${climbUnchanged(target)}`,
+    sql`${climbUnchanged(source)} AND ${climbUnchanged(target)}
+      AND ${climbNotBroken(source)} AND ${climbNotBroken(target)}`,
     decision,
   );
 
