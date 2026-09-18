@@ -37,6 +37,12 @@ export type ResolvedAreaDecision =
       parentExternalId: string | null;
       latitude: number | null;
       longitude: number | null;
+      /** Set only when this create followed arbitration over real
+       * candidates (as opposed to the plain "no candidates at all" path) —
+       * captures *why* the arbitrator declined to match, which is exactly
+       * the record a human sanity-checking the run needs most. Undefined
+       * leaves the audit row's reasoning/candidates null/empty, as before. */
+      arbitration?: { confidence: number | null; reasoning: string; candidateIds: number[] };
     }
   | { kind: "skip"; externalId: string; reason: string; candidateIds: number[] };
 
@@ -59,6 +65,8 @@ export type ResolvedClimbDecision =
       parentAreaExternalId: string;
       latitude: number | null;
       longitude: number | null;
+      /** See ResolvedAreaDecision's "create" variant — same purpose. */
+      arbitration?: { confidence: number | null; reasoning: string; candidateIds: number[] };
     }
   | { kind: "skip"; externalId: string; reason: string; candidateIds: number[] };
 
@@ -175,7 +183,13 @@ export function renderAreaDecisions(
         `INSERT INTO areas (parent_id, name, latitude, longitude) ` +
           `VALUES (${parentIdExpr}, ${sqlString(decision.name)}, ` +
           `${sqlNumberOrNull(decision.latitude)}, ${sqlNumberOrNull(decision.longitude)});`,
-        crosswalkInsert("area", decision.externalId, "last_insert_rowid()", "created", null),
+        crosswalkInsert(
+          "area",
+          decision.externalId,
+          "last_insert_rowid()",
+          "created",
+          decision.arbitration?.confidence ?? null,
+        ),
         decisionAuditInsert(
           runId,
           "area",
@@ -183,9 +197,9 @@ export function renderAreaDecisions(
           "created",
           "last_insert_rowid()",
           "created",
-          null,
-          [],
-          null,
+          decision.arbitration?.confidence ?? null,
+          decision.arbitration?.candidateIds ?? [],
+          decision.arbitration?.reasoning ?? null,
         ),
       );
     } else {
@@ -236,7 +250,13 @@ export function renderClimbDecisions(
           `VALUES (${parentIdSubquery(decision.parentAreaExternalId)}, ${sqlString(decision.name)}, ` +
           `'${decision.type}', ${sqlNumberOrNull(decision.grade)}, ` +
           `${sqlNumberOrNull(decision.latitude)}, ${sqlNumberOrNull(decision.longitude)});`,
-        crosswalkInsert("climb", decision.externalId, "last_insert_rowid()", "created", null),
+        crosswalkInsert(
+          "climb",
+          decision.externalId,
+          "last_insert_rowid()",
+          "created",
+          decision.arbitration?.confidence ?? null,
+        ),
         decisionAuditInsert(
           runId,
           "climb",
@@ -244,9 +264,9 @@ export function renderClimbDecisions(
           "created",
           "last_insert_rowid()",
           "created",
-          null,
-          [],
-          null,
+          decision.arbitration?.confidence ?? null,
+          decision.arbitration?.candidateIds ?? [],
+          decision.arbitration?.reasoning ?? null,
         ),
       );
     } else {

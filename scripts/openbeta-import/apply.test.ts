@@ -47,6 +47,48 @@ describe("renderAreaDecisions", () => {
     expect(sql).toContain("'openbeta', 'ob-area-2', 'area', last_insert_rowid(), 'created', NULL");
   });
 
+  it("carries arbitration confidence and reasoning into both the crosswalk and audit rows for a create", () => {
+    const decisions: ResolvedAreaDecision[] = [
+      {
+        kind: "create",
+        externalId: "ob-area-arb",
+        name: "Ambiguous New Area",
+        parentExternalId: null,
+        latitude: null,
+        longitude: null,
+        arbitration: {
+          confidence: 0.9,
+          reasoning: "Candidates are a different real-world area; safe to create.",
+          candidateIds: [10, 11],
+        },
+      },
+    ];
+    const sql = renderAreaDecisions("run-1", decisions);
+    expect(sql).toContain(
+      "'openbeta', 'ob-area-arb', 'area', last_insert_rowid(), 'created', 0.9);",
+    );
+    expect(sql).toContain("Candidates are a different real-world area; safe to create.");
+    expect(sql).toContain("'[10,11]'");
+  });
+
+  it("leaves confidence/reasoning null and candidates empty for a plain create with no arbitration", () => {
+    const decisions: ResolvedAreaDecision[] = [
+      {
+        kind: "create",
+        externalId: "ob-area-plain",
+        name: "Plain New Area",
+        parentExternalId: null,
+        latitude: null,
+        longitude: null,
+      },
+    ];
+    const sql = renderAreaDecisions("run-1", decisions);
+    expect(sql).toContain(
+      "'openbeta', 'ob-area-plain', 'area', last_insert_rowid(), 'created', NULL);",
+    );
+    expect(sql).toContain("'[]'");
+  });
+
   it("resolves a nested create's parent via a crosswalk subquery, not a literal id", () => {
     const decisions: ResolvedAreaDecision[] = [
       {
@@ -117,6 +159,32 @@ describe("renderClimbDecisions", () => {
     expect(sql).toContain("INSERT INTO climbs (area_id, name, type, grade, latitude, longitude)");
     expect(sql).toContain("entity_type = 'area' AND external_id = 'ob-area-1'");
     expect(sql).toContain("'Superfly', 'boulder', 5, NULL, NULL");
+  });
+
+  it("carries arbitration reasoning into the audit row for a create that followed real candidates", () => {
+    const decisions: ResolvedClimbDecision[] = [
+      {
+        kind: "create",
+        externalId: "ob-climb-arb",
+        name: "Kandahar",
+        type: "trad",
+        grade: null,
+        parentAreaExternalId: "ob-area-1",
+        latitude: null,
+        longitude: null,
+        arbitration: {
+          confidence: 0.9,
+          reasoning: "Candidates are individual pitches of the whole route.",
+          candidateIds: [4466, 7019],
+        },
+      },
+    ];
+    const sql = renderClimbDecisions("run-1", decisions);
+    expect(sql).toContain(
+      "'openbeta', 'ob-climb-arb', 'climb', last_insert_rowid(), 'created', 0.9);",
+    );
+    expect(sql).toContain("Candidates are individual pitches of the whole route.");
+    expect(sql).toContain("'[4466,7019]'");
   });
 
   it("renders a matched climb as a crosswalk insert with confidence and method", () => {

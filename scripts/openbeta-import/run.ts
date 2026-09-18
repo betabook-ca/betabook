@@ -36,6 +36,7 @@ import {
   type ResolvedClimbDecision,
 } from "./apply.ts";
 import { breadcrumbExternalId, synthesizeAreaNodes } from "./breadcrumbs.ts";
+import { normalizeCountryName } from "./country-aliases.ts";
 import { mapGradeToOrdinal } from "./grades.ts";
 import { findInternalAreaDuplicates } from "./internal-duplicates.ts";
 import { arbitrate, resolveArbitration, DEFAULT_ARBITRATION_MODEL } from "./llm-arbitrate.ts";
@@ -110,6 +111,13 @@ async function resolveAreas(
   model: string,
   areaRows: readonly OpenBetaAreaRow[],
   areasByParent: Map<number | null, BetabookAreaCandidate[]>,
+  // Betabook nests countries two levels deep (continent -> country), while
+  // OpenBeta's breadcrumb has no continent level at all -- a root-level
+  // (parentUuid === null) OpenBeta row is a *country*, so it must be blocked
+  // against Betabook's country-level areas (every area one level under a
+  // continent root), never against Betabook's true roots (the continents
+  // themselves, which an OpenBeta row can never legitimately match).
+  countryLevelAreas: readonly BetabookAreaCandidate[],
   alreadyLinked: ReadonlyMap<string, number>,
 ): Promise<{ decisions: ResolvedAreaDecision[]; resolved: Map<string, PendingAreaResolution> }> {
   const childrenByParent = new Map<string | null, OpenBetaAreaRow[]>();
@@ -129,18 +137,21 @@ async function resolveAreas(
       return;
     }
 
-    const resolvedParent = row.parentUuid
-      ? resolved.get(row.parentUuid)
-      : { status: "created" as const };
-    const candidates =
-      resolvedParent?.status === "matched"
+    const { parentUuid } = row;
+    const isRoot = parentUuid === null;
+    const resolvedParent = parentUuid === null ? null : resolved.get(parentUuid);
+    const candidates = isRoot
+      ? countryLevelAreas
+      : resolvedParent?.status === "matched"
         ? (areasByParent.get(resolvedParent.betabookId) ?? [])
-        : resolvedParent?.status === "created"
-          ? []
-          : (areasByParent.get(null) ?? []); // root-level: block against Betabook's own roots
+        : []; // parent was created (or itself unresolved) -- it has no existing children to match against
 
+    // Country-name spelling conventions vary too widely for pure fuzzy
+    // matching (see country-aliases.ts) -- normalize only for the match
+    // attempt, never for what a "create" decision actually names the area.
+    const matchSubject = isRoot ? { ...row, areaName: normalizeCountryName(row.areaName) } : row;
     const decision =
-      candidates.length === 0 ? { kind: "create" as const } : matchArea(row, candidates);
+      candidates.length === 0 ? { kind: "create" as const } : matchArea(matchSubject, candidates);
 
     if (decision.kind === "match") {
       decisions.push({
@@ -210,6 +221,11 @@ async function resolveAreas(
           parentExternalId: row.parentUuid,
           latitude: row.latitude,
           longitude: row.longitude,
+          arbitration: {
+            confidence: outcome.confidence,
+            reasoning: outcome.reasoning,
+            candidateIds: decision.candidates.map((c) => c.id),
+          },
         });
         resolved.set(row.uuid, { status: "created" });
       }
@@ -356,6 +372,11 @@ async function resolveClimbs(
           parentAreaExternalId,
           latitude: route.latitude,
           longitude: route.longitude,
+          arbitration: {
+            confidence: outcome.confidence,
+            reasoning: outcome.reasoning,
+            candidateIds: decision.candidates.map((c) => c.id),
+          },
         });
       }
     }
@@ -396,6 +417,7 @@ async function main() {
   console.log("Loading Betabook snapshot...");
   const snapshot = loadSnapshot(snapshotPath);
   const areasByParent = indexAreasByParent(snapshot.areas);
+  const countryLevelAreas = snapshot.areas.filter((area) => area.ancestors.length === 1);
   const climbsByArea = indexClimbsByArea(snapshot.climbs);
   const alreadyLinked = loadExistingCrosswalk(snapshotPath);
 
@@ -407,6 +429,7 @@ async function main() {
     model,
     areaRows,
     areasByParent,
+    countryLevelAreas,
     alreadyLinked,
   );
 

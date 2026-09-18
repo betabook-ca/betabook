@@ -1,0 +1,751 @@
+{
+  "runId": "781b7cfb-c487-4726-a59c-8e10a177b854",
+  "generatedAt": "2026-09-18T17:35:22.655Z",
+  "source": {
+    "openBetaRelease": "v2026-09-06",
+    "openBetaFile": "openbeta-climbs.parquet",
+    "betabookSnapshot": "production dump provided at session start (10,237 areas, 141,199 climbs)"
+  },
+  "arbitration": {
+    "method": "reasoned inline by the orchestrating Claude Code agent (no ANTHROPIC_API_KEY available in this session; volume was 4 total ambiguous cases, too small to warrant per-case subagent dispatch)",
+    "areaCasesResolved": 1,
+    "climbCasesResolved": 3
+  },
+  "counts": {
+    "areas": {
+      "matched": 443,
+      "created": 16757
+    },
+    "climbs": {
+      "matched": 1366,
+      "created": 179528,
+      "skipped": 8193
+    }
+  },
+  "files": [
+    "001_areas.sql",
+    "002_areas.sql",
+    "003_areas.sql",
+    "004_areas.sql",
+    "005_areas.sql",
+    "006_areas.sql",
+    "007_areas.sql",
+    "008_areas.sql",
+    "009_areas.sql",
+    "010_areas.sql",
+    "011_areas.sql",
+    "012_climbs.sql",
+    "013_climbs.sql",
+    "014_climbs.sql",
+    "015_climbs.sql",
+    "016_climbs.sql",
+    "017_climbs.sql",
+    "018_climbs.sql",
+    "019_climbs.sql",
+    "020_climbs.sql",
+    "021_climbs.sql",
+    "022_climbs.sql",
+    "023_climbs.sql",
+    "024_climbs.sql",
+    "025_climbs.sql",
+    "026_climbs.sql",
+    "027_climbs.sql",
+    "028_climbs.sql",
+    "029_climbs.sql",
+    "030_climbs.sql",
+    "031_climbs.sql",
+    "032_climbs.sql",
+    "033_climbs.sql",
+    "034_climbs.sql",
+    "035_climbs.sql",
+    "036_climbs.sql",
+    "037_climbs.sql",
+    "038_climbs.sql",
+    "039_climbs.sql",
+    "040_climbs.sql",
+    "041_climbs.sql",
+    "042_climbs.sql",
+    "043_climbs.sql",
+    "044_climbs.sql",
+    "045_climbs.sql",
+    "046_climbs.sql",
+    "047_climbs.sql",
+    "048_climbs.sql",
+    "049_climbs.sql",
+    "050_climbs.sql",
+    "051_climbs.sql",
+    "052_climbs.sql",
+    "053_climbs.sql",
+    "054_climbs.sql",
+    "055_climbs.sql",
+    "056_climbs.sql",
+    "057_climbs.sql",
+    "058_climbs.sql",
+    "059_climbs.sql",
+    "060_climbs.sql",
+    "061_climbs.sql",
+    "062_climbs.sql",
+    "063_climbs.sql",
+    "064_climbs.sql",
+    "065_climbs.sql",
+    "066_climbs.sql",
+    "067_climbs.sql",
+    "068_climbs.sql",
+    "069_climbs.sql",
+    "070_climbs.sql",
+    "071_climbs.sql",
+    "072_climbs.sql",
+    "073_climbs.sql",
+    "074_climbs.sql",
+    "075_climbs.sql",
+    "076_climbs.sql",
+    "077_climbs.sql",
+    "078_climbs.sql",
+    "079_climbs.sql",
+    "080_climbs.sql",
+    "081_climbs.sql",
+    "082_climbs.sql",
+    "083_climbs.sql",
+    "084_climbs.sql",
+    "085_climbs.sql",
+    "086_climbs.sql",
+    "087_climbs.sql",
+    "088_climbs.sql",
+    "089_climbs.sql",
+    "090_climbs.sql",
+    "091_climbs.sql",
+    "092_climbs.sql",
+    "093_climbs.sql",
+    "094_climbs.sql",
+    "095_climbs.sql",
+    "096_climbs.sql",
+    "097_climbs.sql",
+    "098_climbs.sql",
+    "099_climbs.sql",
+    "100_climbs.sql",
+    "101_climbs.sql",
+    "102_climbs.sql",
+    "103_climbs.sql",
+    "104_climbs.sql",
+    "105_climbs.sql",
+    "106_climbs.sql",
+    "107_climbs.sql",
+    "108_climbs.sql",
+    "109_climbs.sql",
+    "110_climbs.sql",
+    "111_climbs.sql",
+    "112_climbs.sql",
+    "113_climbs.sql",
+    "114_climbs.sql",
+    "115_climbs.sql",
+    "116_climbs.sql",
+    "117_climbs.sql",
+    "118_climbs.sql",
+    "119_climbs.sql",
+    "120_climbs.sql",
+    "121_climbs.sql",
+    "122_area_merges.sql"
+  ],
+  "areaMergeCandidates": [
+    {
+      "sourceBetabookId": 277,
+      "targetBetabookId": 207
+    },
+    {
+      "sourceBetabookId": 929,
+      "targetBetabookId": 211
+    },
+    {
+      "sourceBetabookId": 253,
+      "targetBetabookId": 219
+    },
+    {
+      "sourceBetabookId": 1763,
+      "targetBetabookId": 219
+    },
+    {
+      "sourceBetabookId": 1342,
+      "targetBetabookId": 221
+    },
+    {
+      "sourceBetabookId": 291,
+      "targetBetabookId": 230
+    },
+    {
+      "sourceBetabookId": 1197,
+      "targetBetabookId": 236
+    },
+    {
+      "sourceBetabookId": 352,
+      "targetBetabookId": 243
+    },
+    {
+      "sourceBetabookId": 276,
+      "targetBetabookId": 272
+    },
+    {
+      "sourceBetabookId": 1132,
+      "targetBetabookId": 355
+    },
+    {
+      "sourceBetabookId": 780,
+      "targetBetabookId": 426
+    },
+    {
+      "sourceBetabookId": 878,
+      "targetBetabookId": 442
+    },
+    {
+      "sourceBetabookId": 592,
+      "targetBetabookId": 460
+    },
+    {
+      "sourceBetabookId": 1900,
+      "targetBetabookId": 477
+    },
+    {
+      "sourceBetabookId": 645,
+      "targetBetabookId": 532
+    },
+    {
+      "sourceBetabookId": 1830,
+      "targetBetabookId": 546
+    },
+    {
+      "sourceBetabookId": 612,
+      "targetBetabookId": 558
+    },
+    {
+      "sourceBetabookId": 1683,
+      "targetBetabookId": 600
+    },
+    {
+      "sourceBetabookId": 1345,
+      "targetBetabookId": 606
+    },
+    {
+      "sourceBetabookId": 1781,
+      "targetBetabookId": 653
+    },
+    {
+      "sourceBetabookId": 675,
+      "targetBetabookId": 661
+    },
+    {
+      "sourceBetabookId": 982,
+      "targetBetabookId": 719
+    },
+    {
+      "sourceBetabookId": 846,
+      "targetBetabookId": 811
+    },
+    {
+      "sourceBetabookId": 1863,
+      "targetBetabookId": 851
+    },
+    {
+      "sourceBetabookId": 1456,
+      "targetBetabookId": 856
+    },
+    {
+      "sourceBetabookId": 1670,
+      "targetBetabookId": 875
+    },
+    {
+      "sourceBetabookId": 1788,
+      "targetBetabookId": 1078
+    },
+    {
+      "sourceBetabookId": 1116,
+      "targetBetabookId": 1084
+    },
+    {
+      "sourceBetabookId": 1579,
+      "targetBetabookId": 1150
+    },
+    {
+      "sourceBetabookId": 1883,
+      "targetBetabookId": 1234
+    },
+    {
+      "sourceBetabookId": 1330,
+      "targetBetabookId": 1270
+    },
+    {
+      "sourceBetabookId": 1413,
+      "targetBetabookId": 1340
+    },
+    {
+      "sourceBetabookId": 1800,
+      "targetBetabookId": 1397
+    },
+    {
+      "sourceBetabookId": 1837,
+      "targetBetabookId": 1515
+    },
+    {
+      "sourceBetabookId": 1927,
+      "targetBetabookId": 1636
+    },
+    {
+      "sourceBetabookId": 1745,
+      "targetBetabookId": 1686
+    },
+    {
+      "sourceBetabookId": 1958,
+      "targetBetabookId": 1957
+    },
+    {
+      "sourceBetabookId": 2107,
+      "targetBetabookId": 2097
+    },
+    {
+      "sourceBetabookId": 2127,
+      "targetBetabookId": 2113
+    },
+    {
+      "sourceBetabookId": 2178,
+      "targetBetabookId": 2145
+    },
+    {
+      "sourceBetabookId": 2172,
+      "targetBetabookId": 2112
+    },
+    {
+      "sourceBetabookId": 2404,
+      "targetBetabookId": 2353
+    },
+    {
+      "sourceBetabookId": 2755,
+      "targetBetabookId": 2714
+    },
+    {
+      "sourceBetabookId": 2752,
+      "targetBetabookId": 2731
+    },
+    {
+      "sourceBetabookId": 2767,
+      "targetBetabookId": 2738
+    },
+    {
+      "sourceBetabookId": 2941,
+      "targetBetabookId": 2880
+    },
+    {
+      "sourceBetabookId": 2974,
+      "targetBetabookId": 2891
+    },
+    {
+      "sourceBetabookId": 2962,
+      "targetBetabookId": 2901
+    },
+    {
+      "sourceBetabookId": 2952,
+      "targetBetabookId": 2915
+    },
+    {
+      "sourceBetabookId": 2991,
+      "targetBetabookId": 2988
+    },
+    {
+      "sourceBetabookId": 3194,
+      "targetBetabookId": 3183
+    },
+    {
+      "sourceBetabookId": 3201,
+      "targetBetabookId": 3193
+    },
+    {
+      "sourceBetabookId": 3235,
+      "targetBetabookId": 3234
+    },
+    {
+      "sourceBetabookId": 3545,
+      "targetBetabookId": 3526
+    },
+    {
+      "sourceBetabookId": 3802,
+      "targetBetabookId": 3786
+    },
+    {
+      "sourceBetabookId": 3892,
+      "targetBetabookId": 3805
+    },
+    {
+      "sourceBetabookId": 4149,
+      "targetBetabookId": 4090
+    },
+    {
+      "sourceBetabookId": 4250,
+      "targetBetabookId": 4249
+    },
+    {
+      "sourceBetabookId": 4386,
+      "targetBetabookId": 4330
+    },
+    {
+      "sourceBetabookId": 4511,
+      "targetBetabookId": 4450
+    },
+    {
+      "sourceBetabookId": 4554,
+      "targetBetabookId": 4527
+    },
+    {
+      "sourceBetabookId": 4561,
+      "targetBetabookId": 4545
+    },
+    {
+      "sourceBetabookId": 4565,
+      "targetBetabookId": 4551
+    },
+    {
+      "sourceBetabookId": 4680,
+      "targetBetabookId": 4679
+    },
+    {
+      "sourceBetabookId": 4917,
+      "targetBetabookId": 4909
+    },
+    {
+      "sourceBetabookId": 4924,
+      "targetBetabookId": 4916
+    },
+    {
+      "sourceBetabookId": 4937,
+      "targetBetabookId": 4936
+    },
+    {
+      "sourceBetabookId": 4952,
+      "targetBetabookId": 4936
+    },
+    {
+      "sourceBetabookId": 4945,
+      "targetBetabookId": 4944
+    },
+    {
+      "sourceBetabookId": 5007,
+      "targetBetabookId": 5003
+    },
+    {
+      "sourceBetabookId": 5015,
+      "targetBetabookId": 5014
+    },
+    {
+      "sourceBetabookId": 5016,
+      "targetBetabookId": 5014
+    },
+    {
+      "sourceBetabookId": 5027,
+      "targetBetabookId": 5025
+    },
+    {
+      "sourceBetabookId": 5092,
+      "targetBetabookId": 5082
+    },
+    {
+      "sourceBetabookId": 5102,
+      "targetBetabookId": 5082
+    },
+    {
+      "sourceBetabookId": 5146,
+      "targetBetabookId": 5142
+    },
+    {
+      "sourceBetabookId": 5254,
+      "targetBetabookId": 5249
+    },
+    {
+      "sourceBetabookId": 5279,
+      "targetBetabookId": 5278
+    },
+    {
+      "sourceBetabookId": 5280,
+      "targetBetabookId": 5278
+    },
+    {
+      "sourceBetabookId": 5281,
+      "targetBetabookId": 5278
+    },
+    {
+      "sourceBetabookId": 5282,
+      "targetBetabookId": 5278
+    },
+    {
+      "sourceBetabookId": 5456,
+      "targetBetabookId": 5453
+    },
+    {
+      "sourceBetabookId": 5589,
+      "targetBetabookId": 5588
+    },
+    {
+      "sourceBetabookId": 5590,
+      "targetBetabookId": 5588
+    },
+    {
+      "sourceBetabookId": 5793,
+      "targetBetabookId": 5787
+    },
+    {
+      "sourceBetabookId": 5805,
+      "targetBetabookId": 5801
+    },
+    {
+      "sourceBetabookId": 5829,
+      "targetBetabookId": 5827
+    },
+    {
+      "sourceBetabookId": 5887,
+      "targetBetabookId": 5886
+    },
+    {
+      "sourceBetabookId": 5903,
+      "targetBetabookId": 5900
+    },
+    {
+      "sourceBetabookId": 5987,
+      "targetBetabookId": 5975
+    },
+    {
+      "sourceBetabookId": 5977,
+      "targetBetabookId": 5964
+    },
+    {
+      "sourceBetabookId": 6049,
+      "targetBetabookId": 6041
+    },
+    {
+      "sourceBetabookId": 6094,
+      "targetBetabookId": 6081
+    },
+    {
+      "sourceBetabookId": 6175,
+      "targetBetabookId": 6159
+    },
+    {
+      "sourceBetabookId": 6191,
+      "targetBetabookId": 6190
+    },
+    {
+      "sourceBetabookId": 6229,
+      "targetBetabookId": 6216
+    },
+    {
+      "sourceBetabookId": 6239,
+      "targetBetabookId": 6216
+    },
+    {
+      "sourceBetabookId": 6262,
+      "targetBetabookId": 6256
+    },
+    {
+      "sourceBetabookId": 6293,
+      "targetBetabookId": 6290
+    },
+    {
+      "sourceBetabookId": 6296,
+      "targetBetabookId": 6292
+    },
+    {
+      "sourceBetabookId": 6493,
+      "targetBetabookId": 6462
+    },
+    {
+      "sourceBetabookId": 6483,
+      "targetBetabookId": 6474
+    },
+    {
+      "sourceBetabookId": 6573,
+      "targetBetabookId": 6568
+    },
+    {
+      "sourceBetabookId": 6679,
+      "targetBetabookId": 6678
+    },
+    {
+      "sourceBetabookId": 6751,
+      "targetBetabookId": 6750
+    },
+    {
+      "sourceBetabookId": 6759,
+      "targetBetabookId": 6756
+    },
+    {
+      "sourceBetabookId": 6785,
+      "targetBetabookId": 6784
+    },
+    {
+      "sourceBetabookId": 6904,
+      "targetBetabookId": 6900
+    },
+    {
+      "sourceBetabookId": 6976,
+      "targetBetabookId": 6949
+    },
+    {
+      "sourceBetabookId": 7148,
+      "targetBetabookId": 7145
+    },
+    {
+      "sourceBetabookId": 7255,
+      "targetBetabookId": 7252
+    },
+    {
+      "sourceBetabookId": 7357,
+      "targetBetabookId": 7353
+    },
+    {
+      "sourceBetabookId": 7521,
+      "targetBetabookId": 7519
+    },
+    {
+      "sourceBetabookId": 7545,
+      "targetBetabookId": 7544
+    },
+    {
+      "sourceBetabookId": 7590,
+      "targetBetabookId": 7588
+    },
+    {
+      "sourceBetabookId": 7711,
+      "targetBetabookId": 7710
+    },
+    {
+      "sourceBetabookId": 7763,
+      "targetBetabookId": 7761
+    },
+    {
+      "sourceBetabookId": 8042,
+      "targetBetabookId": 8040
+    },
+    {
+      "sourceBetabookId": 8064,
+      "targetBetabookId": 8063
+    },
+    {
+      "sourceBetabookId": 8134,
+      "targetBetabookId": 8111
+    },
+    {
+      "sourceBetabookId": 8201,
+      "targetBetabookId": 8197
+    },
+    {
+      "sourceBetabookId": 8286,
+      "targetBetabookId": 8284
+    },
+    {
+      "sourceBetabookId": 8703,
+      "targetBetabookId": 8702
+    },
+    {
+      "sourceBetabookId": 8709,
+      "targetBetabookId": 8707
+    },
+    {
+      "sourceBetabookId": 8772,
+      "targetBetabookId": 8770
+    },
+    {
+      "sourceBetabookId": 8800,
+      "targetBetabookId": 8797
+    },
+    {
+      "sourceBetabookId": 8801,
+      "targetBetabookId": 8797
+    },
+    {
+      "sourceBetabookId": 9010,
+      "targetBetabookId": 9008
+    },
+    {
+      "sourceBetabookId": 9027,
+      "targetBetabookId": 9026
+    },
+    {
+      "sourceBetabookId": 9029,
+      "targetBetabookId": 9028
+    },
+    {
+      "sourceBetabookId": 9076,
+      "targetBetabookId": 9072
+    },
+    {
+      "sourceBetabookId": 9312,
+      "targetBetabookId": 9311
+    },
+    {
+      "sourceBetabookId": 9323,
+      "targetBetabookId": 9322
+    },
+    {
+      "sourceBetabookId": 9325,
+      "targetBetabookId": 9322
+    },
+    {
+      "sourceBetabookId": 9326,
+      "targetBetabookId": 9322
+    },
+    {
+      "sourceBetabookId": 9381,
+      "targetBetabookId": 9379
+    },
+    {
+      "sourceBetabookId": 9490,
+      "targetBetabookId": 9488
+    },
+    {
+      "sourceBetabookId": 9550,
+      "targetBetabookId": 9549
+    },
+    {
+      "sourceBetabookId": 9799,
+      "targetBetabookId": 9798
+    },
+    {
+      "sourceBetabookId": 9800,
+      "targetBetabookId": 9798
+    },
+    {
+      "sourceBetabookId": 9808,
+      "targetBetabookId": 9806
+    },
+    {
+      "sourceBetabookId": 9810,
+      "targetBetabookId": 9809
+    },
+    {
+      "sourceBetabookId": 10069,
+      "targetBetabookId": 10068
+    },
+    {
+      "sourceBetabookId": 10070,
+      "targetBetabookId": 10068
+    },
+    {
+      "sourceBetabookId": 10073,
+      "targetBetabookId": 10068
+    },
+    {
+      "sourceBetabookId": 10136,
+      "targetBetabookId": 10135
+    },
+    {
+      "sourceBetabookId": 10163,
+      "targetBetabookId": 10161
+    },
+    {
+      "sourceBetabookId": 10164,
+      "targetBetabookId": 10162
+    },
+    {
+      "sourceBetabookId": 10172,
+      "targetBetabookId": 10171
+    },
+    {
+      "sourceBetabookId": 10216,
+      "targetBetabookId": 10214
+    }
+  ]
+}
