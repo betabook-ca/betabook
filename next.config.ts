@@ -32,6 +32,16 @@ const nextConfig: NextConfig = {
       .map((origin) => origin.trim())
       .filter(Boolean) ?? []),
   ],
+  experimental: {
+    serverActions: {
+      // Profile photo uploads are the only action carrying a file. The
+      // picker crops and re-encodes to a 512px square first, so a real
+      // submission is well under 100 KB; this leaves room for a photo that
+      // reached the action without that step and matches the cap the action
+      // enforces in lib/profile-photo.ts (plus multipart overhead).
+      bodySizeLimit: "3mb",
+    },
+  },
   env: {
     // Inlined at build time — the footer's copyright year must not come from
     // a runtime `new Date()` in the root layout, which would block making the

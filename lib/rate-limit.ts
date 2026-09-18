@@ -47,3 +47,19 @@ export async function allowJournalWrite(key: string): Promise<boolean> {
   const { success } = await limiter.limit({ key });
   return success;
 }
+
+/** The one limit here that guards a budget rather than the database: each
+ * upload spends an Images transformation from a monthly free allowance and
+ * two R2 operations. */
+export async function allowProfilePhotoWrite(key: string): Promise<boolean> {
+  const { env } = await getCloudflareContext({ async: true });
+
+  const limiter: RateLimit | undefined = env.PROFILE_PHOTO_RATE_LIMITER;
+  if (!limiter) {
+    console.warn("PROFILE_PHOTO_RATE_LIMITER is not bound — allowing the write unthrottled");
+    return true;
+  }
+
+  const { success } = await limiter.limit({ key });
+  return success;
+}
