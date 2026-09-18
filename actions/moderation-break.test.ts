@@ -6,6 +6,7 @@ import {
   approveChangeRequest,
   createJournalEntry,
   requestClimbBreak,
+  requestClimbEdit,
   requestClimbMerge,
   updateSend,
 } from "@/actions";
@@ -421,6 +422,49 @@ describe("after the move, a repeat-only climber's successor send behaves like an
 });
 
 describe("approving a climb_break request", () => {
+  it("auto-rejects pending merges naming the climb on either side, but leaves an edit pending", async () => {
+    // Test Slab (2) shares the discipline, so both merge directions queue.
+    expect((await requestClimbMerge(HIGHBALL, 2)).ok).toBe(true);
+    sessionState.userId = "break-climber";
+    expect((await requestClimbMerge(2, HIGHBALL)).ok).toBe(true);
+    const edit = new FormData();
+    edit.set("name", "Highball Renamed");
+    edit.set("type", "boulder");
+    edit.set("grade", "5");
+    expect((await requestClimbEdit(HIGHBALL, edit)).ok).toBe(true);
+    sessionState.userId = "break-reporter";
+    expect((await requestClimbBreak(HIGHBALL, breakForm())).ok).toBe(true);
+    const [breakRequest] = await pendingBreaksFor(HIGHBALL);
+
+    await actAsAdmin("break-reviewer");
+    expect(await approveChangeRequest(breakRequest.id)).toEqual({
+      ok: true,
+      value: { decision: "applied" },
+    });
+
+    const merges = await db
+      .select()
+      .from(changeRequests)
+      .where(eq(changeRequests.type, "climb_merge"));
+    expect(merges).toHaveLength(2);
+    for (const merge of merges) {
+      expect(merge).toMatchObject({
+        status: "rejected",
+        reviewNote: "This climb has been marked as broken, and broken climbs can't be merged.",
+      });
+    }
+    // Approving a rejected merge is refused up front, with no vote recorded.
+    expect(await approveChangeRequest(merges[0].id)).toEqual({
+      ok: false,
+      error: "This request has already been reviewed",
+    });
+    const [pendingEdit] = await db
+      .select()
+      .from(changeRequests)
+      .where(eq(changeRequests.type, "climb_edit"));
+    expect(pendingEdit.status).toBe("pending");
+  });
+
   it("writes the stored texts verbatim, rejects other pending breaks, and emails the reporter", async () => {
     expect((await requestClimbBreak(HIGHBALL, breakForm())).ok).toBe(true);
     const [request] = await pendingBreaksFor(HIGHBALL);

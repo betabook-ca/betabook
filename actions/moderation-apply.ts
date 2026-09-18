@@ -437,6 +437,8 @@ export async function assertClimbMergeable(
 }
 
 const BREAK_SUPERSEDED_REVIEW_NOTE = "This climb has already been marked as broken.";
+const BREAK_BLOCKS_MERGE_REVIEW_NOTE =
+  "This climb has been marked as broken, and broken climbs can't be merged.";
 
 /** Loads the climb for a break report and counts the history dated on or
  * after the reported date. That history is not an obstacle: those climbers
@@ -586,6 +588,27 @@ export async function applyClimbBreak(
             eq(changeRequests.status, "pending"),
             eq(changeRequests.type, "climb_break"),
             eq(changeRequests.entityId, climbId),
+          ),
+        ),
+      // So are pending merges naming this climb on either side: a broken
+      // climb can't be merged (assertClimbMergeable), and leaving them pending
+      // would make every approval attempt fail after recording its vote.
+      // Edits, moves and deletes stay valid and are left alone.
+      db
+        .update(changeRequests)
+        .set({
+          status: "rejected",
+          reviewNote: BREAK_BLOCKS_MERGE_REVIEW_NOTE,
+          reviewedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(changeRequests.status, "pending"),
+            eq(changeRequests.type, "climb_merge"),
+            or(
+              eq(changeRequests.entityId, climbId),
+              sql`json_extract(${changeRequests.payload}, '$.targetClimbId') = ${climbId}`,
+            ),
           ),
         ),
     ],
