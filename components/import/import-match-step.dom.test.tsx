@@ -34,33 +34,38 @@ const BROKEN: ClimbCandidate = {
   brokenOn: "2026-03-05",
 };
 
-const ROW: NormalizedImportRow = {
-  rowIndex: 0,
-  climbName: "The Wave",
-  areaName: null,
-  areaHints: [],
-  climbTypeHint: null,
-  ascentStyle: "redpoint",
-  dateSent: "2026-06-01",
-  rating: null,
-  comment: null,
-  gradeText: null,
-  blankGradeMeans: "posted-grade",
-  postedGradeText: null,
-  gradeFeel: "solid",
-  raw: {},
-};
+/** The break date the fixture turns on: BROKEN broke on 2026-03-05, so a row
+ * dated before it is loggable there and a row dated after it is not. */
+function row(dateSent: string | null): NormalizedImportRow {
+  return {
+    rowIndex: 0,
+    climbName: "The Wave",
+    areaName: null,
+    areaHints: [],
+    climbTypeHint: null,
+    ascentStyle: "redpoint",
+    dateSent,
+    rating: null,
+    comment: null,
+    gradeText: null,
+    blankGradeMeans: "posted-grade",
+    postedGradeText: null,
+    gradeFeel: "solid",
+    raw: {},
+  };
+}
 
 const index = mergeCandidates(new Map(), [INTACT, BROKEN]);
 
 /** The step as the wizard drives it: manual choices live above it, so a pick
  * re-runs resolveRows and the render reflects the real resolved state rather
  * than one assembled by hand. */
-function Step() {
+function Step({ dateSent }: { dateSent: string | null }) {
   const [manual, setManual] = useState<Map<number, ManualChoice>>(new Map());
+  const rows = [row(dateSent)];
   const resolved = resolveRows(
-    [ROW],
-    matchRows([ROW], index, {
+    rows,
+    matchRows(rows, index, {
       gradeScale: "native",
       preferredAreas: [],
     }),
@@ -90,7 +95,7 @@ function Step() {
 
 it("replaces the pick prompt with one break explanation when a broken candidate is chosen", async () => {
   const user = userEvent.setup();
-  render(<Step />);
+  render(<Step dateSent="2026-06-01" />);
 
   // Ambiguous to start: the prompt and both candidates are offered, and the
   // broken one is labelled before anyone clicks it.
@@ -118,12 +123,25 @@ it("replaces the pick prompt with one break explanation when a broken candidate 
   expect(screen.getByRole("button", { name: "Skip row" })).toBeEnabled();
 });
 
-it("keeps a pre-break ascent as an ordinary pick with no break warning", async () => {
+it("accepts the broken climb for an ascent dated before it broke", async () => {
   const user = userEvent.setup();
-  render(<Step />);
-  await user.click(screen.getByRole("button", { name: /Happy Boulders/ }));
+  // Before BROKEN's 2026-03-05 break, so the broken climb is a legitimate
+  // choice: a rule that refused every ascent on a broken climb would fail here.
+  render(<Step dateSent="2026-02-01" />);
+  await user.click(screen.getByRole("button", { name: /Grand Wall Boulders/ }));
 
   expect(screen.getByText("Picked")).toBeVisible();
   expect(screen.queryByText(/Climb broke on/)).not.toBeInTheDocument();
   expect(screen.queryByText("Can't import")).not.toBeInTheDocument();
+  // The chip still marks the climb; only the row's outcome differs.
+  expect(screen.getByText("Broken")).toBeVisible();
+});
+
+it("leaves an intact pick alone whatever the row's date", async () => {
+  const user = userEvent.setup();
+  render(<Step dateSent="2026-06-01" />);
+  await user.click(screen.getByRole("button", { name: /Happy Boulders/ }));
+
+  expect(screen.getByText("Picked")).toBeVisible();
+  expect(screen.queryByText(/Climb broke on/)).not.toBeInTheDocument();
 });
