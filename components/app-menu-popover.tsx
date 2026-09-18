@@ -3,9 +3,10 @@
 import type { RefObject } from "react";
 import { Dialog, Popover } from "react-aria-components";
 
-import { AppMenuLinks, type MenuAccount } from "@/components/app-menu-links";
+import { AppMenuLinks } from "@/components/app-menu-links";
 import { openMobileAppHelper } from "@/components/mobile-app-helper";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { MenuAccount } from "@/lib/app-navigation";
 import { isMobileDevice, isStandaloneDisplay } from "@/lib/mobile-detection";
 
 /** Lazy-loaded secondary navigation, anchored to the explicit mobile menu button. */

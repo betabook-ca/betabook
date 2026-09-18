@@ -5,19 +5,17 @@ import { clsx } from "clsx";
 import { Menu } from "lucide-react";
 import { useId, useState, type ReactNode } from "react";
 
-import { AppMenuLinks, type MenuAccount } from "@/components/app-menu-links";
+import { AppMenuLinks } from "@/components/app-menu-links";
 import { useFriendRequestCount } from "@/components/friend-requests-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClientSession } from "@/hooks/use-client-session";
+import { menuAccount, type MenuAccount } from "@/lib/app-navigation";
 
 export function AppSidebar({ children }: { children: ReactNode }) {
   const session = useClientSession();
   const requestCount = useFriendRequestCount();
   return (
-    <SidebarLayout
-      account={session && { ...session.user, isAdmin: session.user.role === "admin" }}
-      requestCount={requestCount}
-    >
+    <SidebarLayout account={session && menuAccount(session.user)} requestCount={requestCount}>
       {children}
     </SidebarLayout>
   );

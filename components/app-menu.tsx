@@ -11,6 +11,7 @@ import { DeferredLoadError } from "@/components/ui/deferred-load-error";
 import { useClientSession } from "@/hooks/use-client-session";
 import { useDeferredComponent } from "@/hooks/use-deferred-component";
 import { useMobileTabsVisible } from "@/hooks/use-mobile-tabs-visible";
+import { menuAccount } from "@/lib/app-navigation";
 
 /** Module-level so its identity is stable across renders — the preload hook
  * keys its effect on the loader. */
@@ -73,14 +74,7 @@ export function HeaderNavigation() {
           isOpen={state.isOpen}
           onOpenChange={setOpen}
           onClose={close}
-          account={
-            session && {
-              id: session.user.id,
-              name: session.user.name,
-              image: session.user.image,
-              isAdmin: session.user.role === "admin",
-            }
-          }
+          account={session && menuAccount(session.user)}
           requestCount={requestCount}
           showPrimary={!tabsVisible}
         />

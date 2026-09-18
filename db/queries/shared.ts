@@ -10,6 +10,13 @@ import type { Discipline } from "@/lib/grades";
 
 export const PAGE_SIZE = 50;
 
+/** A climber's avatar photo as `image`, or NULL when they chose initials in
+ * Account settings. Suppressing the photo in the SELECT rather than in each
+ * component keeps every avatar surface honest by construction; the raw column
+ * still holds the URL so the choice is reversible. For queries that join
+ * `user` as `u`. See lib/profile-photo.ts for the non-SQL reads. */
+export const shownUserImageSql = sql`CASE WHEN u.show_profile_photo THEN u.image END AS image`;
+
 /** D1 limits LIKE patterns to 50 bytes. Keep an indexed prefix lookup, then
  * compare the full literal prefix when UTF-8 or escaping reaches that limit. */
 export function literalPrefixCondition(column: SQL, value: string): SQL {

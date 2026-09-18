@@ -95,7 +95,8 @@ export function ShareProfileControls({ name, url }: { name: string; url: string 
             <Label>Profile link</Label>
             <Input onFocus={(event) => event.currentTarget.select()} />
             <Description className="text-sm">
-              Anyone with the link sees your name, photo, send stats and latest sends.
+              Anyone with the link sees your name, your photo if you show one, send stats and latest
+              sends.
             </Description>
           </TextField>
           <div className="flex flex-wrap gap-2">

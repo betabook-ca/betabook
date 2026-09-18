@@ -114,6 +114,11 @@ async function authBuilder() {
         termsVersion: { type: "string", required: false, input: false },
         termsAcceptedAt: { type: "date", required: false, input: false },
         referredBy: { type: "string", required: false, input: false, returned: false },
+        // Read by the navigation avatar, which renders from the client
+        // session rather than D1 — see menuAccount in
+        // components/app-menu-links.tsx. input: false keeps a sign-up or
+        // /update-user payload from setting it; actions/account.ts owns it.
+        showProfilePhoto: { type: "boolean", required: false, input: false },
       },
       deleteUser: {
         enabled: true,

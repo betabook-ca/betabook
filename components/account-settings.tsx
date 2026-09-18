@@ -7,6 +7,7 @@ import { ExportSendsButton } from "@/components/export-sends-button";
 import { PrivacyControls } from "@/components/privacy-controls";
 import { PrivacyDetails } from "@/components/privacy-fields";
 import { ProductTour } from "@/components/product-tour";
+import { ProfilePhotoToggle } from "@/components/profile-photo-toggle";
 import { ResetPasswordButton } from "@/components/reset-password-button";
 import { ShareProfileControls } from "@/components/share-profile-controls";
 import { SignOutButton } from "@/components/sign-out-button";
@@ -15,6 +16,7 @@ import { AppLink } from "@/components/ui/app-link";
 import { SETTINGS_ROW_CLASS, SettingsRow, SettingsSection } from "@/components/ui/settings";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
+import { hasProfilePhoto, shownProfilePhoto } from "@/lib/profile-photo";
 
 const OUTLINE_LINK_CLASS = `${buttonVariants({ variant: "outline" })} gap-2 text-foreground`;
 
@@ -27,7 +29,13 @@ export function AccountSettings({
   turnstileSiteKey,
   isAdmin,
 }: {
-  user: { id: string; name: string; email: string; image?: string | null };
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    image: string | null;
+    showProfilePhoto: boolean;
+  };
   isPrivate: boolean;
   journalVisibility: SharingAudience;
   sendCommentVisibility: SendCommentAudience;
@@ -40,7 +48,7 @@ export function AccountSettings({
     <div className="flex w-full max-w-4xl flex-col gap-6">
       <h1 className="sr-only">Account settings</h1>
       <header className="flex min-h-12 items-center gap-3">
-        <UserAvatar name={user.name} image={user.image} size="md" />
+        <UserAvatar name={user.name} image={shownProfilePhoto(user)} size="md" />
         <p className="min-w-0 truncate text-lg font-semibold">{user.name}</p>
       </header>
 
@@ -48,6 +56,15 @@ export function AccountSettings({
         <div className={SETTINGS_ROW_CLASS}>
           <DisplayNameForm initialName={user.name} />
         </div>
+        {/* Only an OAuth photo can be hidden; an email account already shows
+            initials, so the switch would be inert. */}
+        {hasProfilePhoto(user.image) && (
+          <ProfilePhotoToggle
+            name={user.name}
+            image={user.image}
+            initialShowPhoto={user.showProfilePhoto}
+          />
+        )}
         <div className={SETTINGS_ROW_CLASS}>
           <ShareProfileControls name={user.name} url={shareUrl} />
         </div>

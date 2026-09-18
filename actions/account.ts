@@ -38,6 +38,24 @@ export async function setUserPrivate(isPrivate: boolean): Promise<ActionResult> 
   });
 }
 
+/** The OAuth photo is kept in `user.image` either way, so turning this back
+ * on restores the same photo — see drizzle/schema/auth.ts. Reads suppress it
+ * instead (shownUserImageSql, lib/profile-photo.ts), which is why this
+ * revalidates the same surfaces a rename does. */
+export async function setShowProfilePhoto(showProfilePhoto: boolean): Promise<ActionResult> {
+  return toActionResult(async () => {
+    const session = await requireSession();
+    const db = await getDb();
+
+    await db.update(user).set({ showProfilePhoto }).where(eq(user.id, session.user.id));
+
+    afterCommit(() => {
+      revalidateProfileSurfaces(session.user.id);
+      refresh();
+    });
+  });
+}
+
 /** Stops links and QR codes already handed out from naming the owner. */
 export async function resetProfileShareLink(): Promise<ActionResult> {
   return toActionResult(async () => {

@@ -8,6 +8,7 @@ import { WorkspaceShell } from "@/components/workspace-shell";
 import { getDb } from "@/db/client";
 import { getUser, getFriendship, canReadJournal, getShareLinkOwner } from "@/db/queries";
 import { getClimberHardest } from "@/db/queries/climber-overview";
+import { shownProfilePhoto } from "@/lib/profile-photo";
 
 export const getUserById = cache(async (id: string) => {
   const db = await getDb();
@@ -26,6 +27,7 @@ type ProfileUser = {
   id: string;
   name: string;
   image: string | null;
+  showProfilePhoto: boolean;
 };
 
 /** Owner workspaces use task tabs; visitors retain the climber's profile heading. */
@@ -58,7 +60,7 @@ export async function ProfileHeader({
       heading={
         <ProfileHeading
           name={user.name}
-          image={user.image}
+          image={shownProfilePhoto(user)}
           hardest={hardest}
           nameAction={
             <FriendshipButton

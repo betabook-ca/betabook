@@ -169,8 +169,8 @@ export function PrivacyDetails({ defaultExpanded = false }: { defaultExpanded?: 
             <ul className="flex list-disc flex-col gap-1.5 ps-4">
               <li>Signed-out visitors see your recent sends on climb pages without your name.</li>
               <li>
-                Anyone with your profile link sees your name, photo, send stats and latest sends.
-                Going private resets the link.
+                Anyone with your profile link sees your name, your photo if you show one, send stats
+                and latest sends. Going private resets the link.
               </li>
               <li>
                 Unless your profile is private, friends of your friends may see you suggested.

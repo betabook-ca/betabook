@@ -7,6 +7,7 @@ import { PrimaryNavigationLink } from "@/components/primary-navigation-link";
 import { useClientSession } from "@/hooks/use-client-session";
 import { useMobileTabsVisible } from "@/hooks/use-mobile-tabs-visible";
 import {
+  menuAccount,
   primaryAreaForPath,
   primaryDestinations,
   type PrimaryArea,
@@ -29,7 +30,7 @@ export function AppTabBar() {
         data-app-tab-bar
         className="fixed inset-x-0 bottom-0 z-40 border-t border-separator bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
       >
-        <AppTabs account={session.user} requestCount={requestCount} />
+        <AppTabs account={menuAccount(session.user)} requestCount={requestCount} />
       </nav>
     </>
   );

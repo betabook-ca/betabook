@@ -305,3 +305,18 @@ it("filters journal and sends detail views to the selected day", async () => {
   );
   expect(page.sends.map((s) => s.climbId)).toEqual([3]);
 });
+
+it("withholds a feed author's photo once they chose initials", async () => {
+  const photo = "https://lh3.googleusercontent.com/a/public";
+  await db.update(user).set({ image: photo }).where(eq(user.id, "public"));
+
+  const authorPhoto = async () =>
+    (await getFeedPage(db, "viewer")).days.find((day) => day.userId === "public")?.image;
+
+  // The photo has to reach the feed first, or the null below proves nothing.
+  expect(await authorPhoto()).toBe(photo);
+
+  await db.update(user).set({ showProfilePhoto: false }).where(eq(user.id, "public"));
+
+  expect(await authorPhoto()).toBeNull();
+});
