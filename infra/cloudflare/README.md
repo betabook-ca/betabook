@@ -1,6 +1,6 @@
 # Cloudflare infrastructure
 
-OpenTofu stack for the `betabook.ca` zone, DNS records, managed robots.txt, the `hello@betabook.ca` and `support@betabook.ca` Email Routing rules, the `betabook-db` D1 database, and the Turnstile widget that guards the auth forms. Spacelift plans pull requests and applies merges to `main`.
+OpenTofu stack for the `betabook.ca` zone, DNS records, managed robots.txt, the `hello@betabook.ca` and `support@betabook.ca` Email Routing rules, the `betabook-db` D1 database, the `betabook-exports` R2 bucket that holds the weekly catalog snapshot, and the Turnstile widget that guards the auth forms. Spacelift plans pull requests and applies merges to `main`.
 
 Wrangler owns the Worker: code, bindings, observability, the custom domain and its apex records, secrets, and D1 migrations. `wrangler deploy` overwrites Worker settings, routes, and custom domains, so do not manage them here. Email Routing and its DNS records are configured in the dashboard.
 
@@ -17,6 +17,7 @@ The Worker's `TURNSTILE_SITE_KEY` var is the `turnstile_sitekey` output, and its
 | Scope   | Permission          | Level |
 | ------- | ------------------- | ----- |
 | Account | D1                  | Edit  |
+| Account | Workers R2 Storage  | Edit  |
 | Account | Turnstile           | Edit  |
 | Zone    | Zone                | Edit  |
 | Zone    | DNS                 | Edit  |
