@@ -107,6 +107,66 @@ function firstGradeText(grades: Record<string, string>): string | null {
   return grades.yds ?? grades.vscale ?? grades.french ?? grades.font ?? grades.uiaa ?? null;
 }
 
+/** How many hops of `fullPath` (root-first names) lie strictly beyond the
+ * matched anchor -- i.e. the extra depth between the anchor and this
+ * candidate that the anchor's own match doesn't already vouch for.
+ * `anchorDepth` is the anchor's own depth from Betabook's root; the
+ * anchor's own full path has length `anchorDepth + 1`, so subtracting that
+ * from `fullPath`'s length gives the extra hop count in one step. */
+function depthBeyondAnchor(fullPath: readonly string[], anchorDepth: number): number {
+  return Math.max(0, fullPath.length - (anchorDepth + 1));
+}
+
+/** A wide-fallback candidate (found by searching the anchor's whole subtree,
+ * not just its direct children -- see resolveAreas'/resolveClimbs' own
+ * comments) is only offered to the name matcher when its own extra depth
+ * beyond the anchor doesn't exceed the OpenBeta row's own remaining
+ * (not-yet-consumed) breadcrumb-token count -- capping how far into an
+ * unrelated branch of a large subtree a same-named candidate could be
+ * found, the risk exact-only matching alone doesn't rule out.
+ *
+ * Deliberately depth-only, not name-overlap: OpenBeta and Betabook
+ * routinely use *different* names for an equivalent intermediate grouping
+ * (Betabook's real "Kelowna" vs. OpenBeta's own "Okanagan" region label for
+ * the same crags, confirmed in a real run) -- that mismatch is exactly why
+ * the wide fallback exists, so requiring the intermediate names to overlap
+ * would reject the legitimate deep matches it's for. The remaining
+ * coincidental-collision risk (two unrelated real places sharing one exact
+ * leaf name within the depth cap) is further guarded by resolveByName's own
+ * "more than one exact match is ambiguous, never guessed" rule.
+ *
+ * Built once per anchor (not per row) and cached -- an anchor's subtree can
+ * be tens of thousands of candidates (e.g. a whole matched country), and
+ * every still-unmatched row would otherwise rescan the entire thing on its
+ * own, an O(rows x subtree size) cost that's prohibitively slow at real
+ * scale. Bucketing by depth turns each row's query into an O(1) map lookup
+ * plus a cheap concat, no rescan. */
+class AncestryDepthIndex<T> {
+  private readonly byDepth = new Map<number, T[]>();
+
+  public constructor(
+    items: readonly T[],
+    fullPathOf: (item: T) => readonly string[],
+    anchorDepth: number,
+  ) {
+    for (const item of items) {
+      const depth = depthBeyondAnchor(fullPathOf(item), anchorDepth);
+      const list = this.byDepth.get(depth);
+      if (list) list.push(item);
+      else this.byDepth.set(depth, [item]);
+    }
+  }
+
+  /** Every indexed candidate at or within `maxDepth` hops beyond the anchor. */
+  public query(maxDepth: number): T[] {
+    const result: T[] = [];
+    for (const [depth, items] of this.byDepth) {
+      if (depth <= maxDepth) result.push(...items);
+    }
+    return result;
+  }
+}
+
 /** Arbitrates normally when a real client is available; otherwise skips the
  * network call entirely and defaults to CREATE_NEW (via resolveArbitration's
  * existing UNCERTAIN handling, unchanged) with the count and reason recorded
@@ -133,8 +193,21 @@ async function arbitrateOrOfflineDefault(
 }
 
 type PendingAreaResolution =
-  | { status: "matched"; betabookId: number; nearestMatchedAncestorId: number }
-  | { status: "created"; nearestMatchedAncestorId: number | null };
+  | {
+      status: "matched";
+      betabookId: number;
+      nearestMatchedAncestorId: number;
+      /** How many OpenBeta breadcrumb levels (this row's own pathTokens
+       * plus itself) are "consumed" by this match -- lets a descendant's
+       * wide-fallback search know how many of ITS OWN pathTokens are
+       * already accounted for by this anchor, vs. still unverified. */
+      nearestMatchedAncestorPathDepth: number;
+    }
+  | {
+      status: "created";
+      nearestMatchedAncestorId: number | null;
+      nearestMatchedAncestorPathDepth: number;
+    };
 
 /** Walks OpenBeta areas top-down by parentUuid (roots first), resolving each
  * against the snapshot's existing areas (blocked to the already-resolved
@@ -165,15 +238,28 @@ async function resolveAreas(
   const decisions: ResolvedAreaDecision[] = [];
   const resolved = new Map<string, PendingAreaResolution>();
   // Memoized per nearest-matched-ancestor id -- the same anchor (e.g. a whole
-  // matched country) is reused across many rows, and descendantsOf's BFS
-  // cost is proportional to that ancestor's subtree size.
-  const descendantsCache = new Map<number, BetabookAreaCandidate[]>();
-  function cachedDescendantsOf(ancestorId: number): BetabookAreaCandidate[] {
-    const cached = descendantsCache.get(ancestorId);
+  // matched country) is reused across many rows, and building the index is
+  // proportional to that ancestor's subtree size (see AncestryDepthIndex's
+  // own comment for why this must be cached rather than rebuilt per row).
+  const ancestryIndexCache = new Map<number, AncestryDepthIndex<BetabookAreaCandidate>>();
+  function cachedAncestryIndex(
+    ancestorId: number,
+    anchorDepth: number,
+  ): AncestryDepthIndex<BetabookAreaCandidate> {
+    const cached = ancestryIndexCache.get(ancestorId);
     if (cached) return cached;
-    const result = descendantsOf(ancestorId, areasByParent);
-    descendantsCache.set(ancestorId, result);
+    const result = new AncestryDepthIndex(
+      descendantsOf(ancestorId, areasByParent),
+      (c) => c.ancestors,
+      anchorDepth,
+    );
+    ancestryIndexCache.set(ancestorId, result);
     return result;
+  }
+  // The anchor's own depth is needed to build its index (above).
+  const areaById = new Map<number, BetabookAreaCandidate>();
+  for (const list of areasByParent.values()) {
+    for (const area of list) areaById.set(area.id, area);
   }
 
   async function resolveOne(row: OpenBetaAreaRow): Promise<void> {
@@ -183,6 +269,7 @@ async function resolveAreas(
         status: "matched",
         betabookId: alreadyLinkedId,
         nearestMatchedAncestorId: alreadyLinkedId,
+        nearestMatchedAncestorPathDepth: row.pathTokens.length + 1,
       });
       return;
     }
@@ -193,6 +280,7 @@ async function resolveAreas(
     const nearestMatchedAncestorId = isRoot
       ? null
       : (resolvedParent?.nearestMatchedAncestorId ?? null);
+    const nearestMatchedAncestorPathDepth = resolvedParent?.nearestMatchedAncestorPathDepth ?? 0;
     const directChildren =
       resolvedParent?.status === "matched"
         ? (areasByParent.get(resolvedParent.betabookId) ?? [])
@@ -229,9 +317,21 @@ async function resolveAreas(
           // search wouldn't (e.g. OpenBeta's "Okanagan" region grouping
           // fuzzy-matching Betabook's unrelated "Okanagan Falls" crag) --
           // exact name equality is a far safer signal once structural
-          // adjacency (direct parent/child) is no longer vouching for it.
+          // adjacency (direct parent/child) is no longer vouching for it --
+          // but even an exact name can coincidentally collide between two
+          // unrelated real places somewhere in a large subtree, so a
+          // candidate is only offered to matchArea when its own extra depth
+          // beyond the anchor is within this row's own remaining breadcrumb
+          // depth (see AncestryDepthIndex's own comment).
           if (direct.kind !== "create" || nearestMatchedAncestorId === null) return direct;
-          const wideCandidates = cachedDescendantsOf(nearestMatchedAncestorId);
+          const anchorDepth = areaById.get(nearestMatchedAncestorId)?.ancestors.length ?? 0;
+          const remainingDepth = Math.max(
+            0,
+            row.pathTokens.length - nearestMatchedAncestorPathDepth,
+          );
+          const wideCandidates = cachedAncestryIndex(nearestMatchedAncestorId, anchorDepth).query(
+            remainingDepth,
+          );
           return wideCandidates.length === 0
             ? direct
             : matchArea(matchSubject, wideCandidates, { allowFuzzy: false });
@@ -251,6 +351,7 @@ async function resolveAreas(
         status: "matched",
         betabookId: decision.candidate.id,
         nearestMatchedAncestorId: decision.candidate.id,
+        nearestMatchedAncestorPathDepth: row.pathTokens.length + 1,
       });
     } else if (decision.kind === "create") {
       decisions.push({
@@ -261,7 +362,11 @@ async function resolveAreas(
         latitude: row.latitude,
         longitude: row.longitude,
       });
-      resolved.set(row.uuid, { status: "created", nearestMatchedAncestorId });
+      resolved.set(row.uuid, {
+        status: "created",
+        nearestMatchedAncestorId,
+        nearestMatchedAncestorPathDepth,
+      });
     } else {
       const outcome = resolveArbitration(
         await arbitrateOrOfflineDefault(
@@ -289,6 +394,7 @@ async function resolveAreas(
           })),
           model,
         ),
+        decision.candidates.map((c) => c.id),
       );
       if (outcome.kind === "match") {
         decisions.push({
@@ -304,6 +410,7 @@ async function resolveAreas(
           status: "matched",
           betabookId: outcome.candidateId,
           nearestMatchedAncestorId: outcome.candidateId,
+          nearestMatchedAncestorPathDepth: row.pathTokens.length + 1,
         });
       } else {
         decisions.push({
@@ -319,7 +426,11 @@ async function resolveAreas(
             candidateIds: decision.candidates.map((c) => c.id),
           },
         });
-        resolved.set(row.uuid, { status: "created", nearestMatchedAncestorId });
+        resolved.set(row.uuid, {
+          status: "created",
+          nearestMatchedAncestorId,
+          nearestMatchedAncestorPathDepth,
+        });
       }
     }
   }
@@ -358,15 +469,37 @@ async function resolveClimbs(
   alreadyLinked: ReadonlyMap<string, number>,
 ): Promise<ResolvedClimbDecision[]> {
   const decisions: ResolvedClimbDecision[] = [];
-  // Same shape as resolveAreas's descendants cache: memoized per ancestor id
-  // since many routes share the same nearest-matched-ancestor area.
-  const climbSubtreeCache = new Map<number, BetabookClimbCandidate[]>();
-  function cachedClimbsInSubtree(ancestorId: number): BetabookClimbCandidate[] {
-    const cached = climbSubtreeCache.get(ancestorId);
+  const areaById = new Map<number, BetabookAreaCandidate>();
+  for (const list of areasByParent.values()) {
+    for (const area of list) areaById.set(area.id, area);
+  }
+  // Same shape as resolveAreas's index cache: memoized per ancestor id since
+  // many routes share the same nearest-matched-ancestor area, and building
+  // the index is proportional to that ancestor's subtree size (see
+  // AncestryDepthIndex's own comment).
+  const ancestryIndexCache = new Map<number, AncestryDepthIndex<BetabookClimbCandidate>>();
+  function cachedAncestryIndex(
+    ancestorId: number,
+    anchorDepth: number,
+  ): AncestryDepthIndex<BetabookClimbCandidate> {
+    const cached = ancestryIndexCache.get(ancestorId);
     if (cached) return cached;
     const areaIds = [ancestorId, ...descendantsOf(ancestorId, areasByParent).map((a) => a.id)];
-    const result = areaIds.flatMap((id) => climbsByArea.get(id) ?? []);
-    climbSubtreeCache.set(ancestorId, result);
+    const climbs = areaIds.flatMap((id) => climbsByArea.get(id) ?? []);
+    // A route's own breadcrumb has no separate "own name" excluded from it
+    // the way an area's pathTokens does (the route's own name isn't part of
+    // the breadcrumb at all -- the deepest breadcrumb token, the crag, is
+    // the parent AREA's own name), so the comparison includes the
+    // candidate's area's own name, not just its ancestors.
+    const result = new AncestryDepthIndex(
+      climbs,
+      (c) => {
+        const area = areaById.get(c.areaId);
+        return area ? [...area.ancestors, area.name] : [];
+      },
+      anchorDepth,
+    );
+    ancestryIndexCache.set(ancestorId, result);
     return result;
   }
 
@@ -410,12 +543,23 @@ async function resolveClimbs(
     // area may not itself exist in Betabook even when a broader ancestor
     // does (the same breadcrumb-depth mismatch, one level down) -- when the
     // narrow search comes up empty, widen to every climb anywhere under the
-    // nearest matched ancestor's subtree, exact/loose name tiers only.
+    // nearest matched ancestor's subtree, exact/loose name tiers only, and
+    // (mirroring resolveAreas's own ancestry check) only among candidates
+    // whose own area sits within the route's own remaining breadcrumb depth.
     const decision =
       direct.kind !== "create" || parent.nearestMatchedAncestorId === null
         ? direct
         : (() => {
-            const wideCandidates = cachedClimbsInSubtree(parent.nearestMatchedAncestorId);
+            const anchorDepth =
+              areaById.get(parent.nearestMatchedAncestorId)?.ancestors.length ?? 0;
+            const remainingDepth = Math.max(
+              0,
+              route.breadcrumb.length - parent.nearestMatchedAncestorPathDepth,
+            );
+            const wideCandidates = cachedAncestryIndex(
+              parent.nearestMatchedAncestorId,
+              anchorDepth,
+            ).query(remainingDepth);
             return wideCandidates.length === 0
               ? direct
               : matchClimb(route.name, discipline, grade, wideCandidates, { allowFuzzy: false });
@@ -469,6 +613,7 @@ async function resolveClimbs(
           })),
           model,
         ),
+        decision.candidates.map((c) => c.id),
       );
       if (outcome.kind === "match") {
         decisions.push({
@@ -518,7 +663,15 @@ async function main() {
     (args.get("output-dir") as string | undefined) ?? path.join(import.meta.dirname, "output");
   const runId = (args.get("run-id") as string | undefined) ?? randomUUID();
   const model = (args.get("model") as string | undefined) ?? DEFAULT_ARBITRATION_MODEL;
-  const maxStatements = Number(args.get("max-statements") ?? MAX_STATEMENTS_PER_FILE_DEFAULT);
+  const maxStatementsRaw = args.get("max-statements");
+  const maxStatements =
+    maxStatementsRaw === undefined ? MAX_STATEMENTS_PER_FILE_DEFAULT : Number(maxStatementsRaw);
+  if (!Number.isInteger(maxStatements) || maxStatements <= 0) {
+    // Number(NaN) would otherwise make chunkStatements's loop run once and
+    // slice with NaN bounds, silently writing empty SQL files while main()
+    // still reports success -- a typo'd flag would discard every decision.
+    throw new Error(`--max-statements must be a positive integer, got ${String(maxStatementsRaw)}`);
+  }
 
   console.log(`Run ${runId}: reading the parquet file...`);
   const { rows: climbRows, skipped: skippedClimbRows } = mapOpenBetaClimbRows(

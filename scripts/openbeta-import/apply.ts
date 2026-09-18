@@ -152,14 +152,35 @@ function parentIdSubquery(parentExternalId: string): string {
   );
 }
 
+/** This decision's own real id, resolved via the crosswalk row the same
+ * statement group's crosswalkInsert just wrote. Used for the audit row
+ * rather than a second `last_insert_rowid()` call: SQLite's
+ * `last_insert_rowid()` reflects only the single most recent insert on the
+ * connection, so calling it again after the crosswalk insert (a different
+ * table, its own autoincrement id) would return the crosswalk row's own id,
+ * not the area/climb's. */
+function externalIdSubquery(entityType: "area" | "climb", externalId: string): string {
+  return (
+    `(SELECT betabook_id FROM catalog_external_refs ` +
+    `WHERE source = 'openbeta' AND entity_type = '${entityType}' AND external_id = ${sqlString(externalId)})`
+  );
+}
+
+/** One decision's statements, kept together as a unit: chunkStatements packs
+ * whole groups into a file, never splitting one across two separate
+ * `wrangler d1 execute` invocations, since a later statement in the group
+ * (the crosswalk insert, resolved via `last_insert_rowid()`) depends on the
+ * entity insert immediately preceding it in the same batch/connection. */
+type StatementGroup = string[];
+
 export function renderAreaDecisions(
   runId: string,
   decisions: readonly ResolvedAreaDecision[],
-): string {
-  const statements: string[] = [];
+): StatementGroup[] {
+  const groups: StatementGroup[] = [];
   for (const decision of decisions) {
     if (decision.kind === "match") {
-      statements.push(
+      groups.push([
         `INSERT OR IGNORE INTO catalog_external_refs (source, external_id, entity_type, betabook_id, match_method, confidence) ` +
           `VALUES ('openbeta', ${sqlString(decision.externalId)}, 'area', ${decision.betabookId}, ` +
           `'${decision.method}', ${sqlNumberOrNull(decision.confidence)});`,
@@ -174,12 +195,12 @@ export function renderAreaDecisions(
           decision.candidateIds,
           decision.reasoning,
         ),
-      );
+      ]);
     } else if (decision.kind === "create") {
       const parentIdExpr = decision.parentExternalId
         ? parentIdSubquery(decision.parentExternalId)
         : "NULL";
-      statements.push(
+      groups.push([
         `INSERT INTO areas (parent_id, name, latitude, longitude) ` +
           `VALUES (${parentIdExpr}, ${sqlString(decision.name)}, ` +
           `${sqlNumberOrNull(decision.latitude)}, ${sqlNumberOrNull(decision.longitude)});`,
@@ -195,15 +216,15 @@ export function renderAreaDecisions(
           "area",
           decision.externalId,
           "created",
-          "last_insert_rowid()",
+          externalIdSubquery("area", decision.externalId),
           "created",
           decision.arbitration?.confidence ?? null,
           decision.arbitration?.candidateIds ?? [],
           decision.arbitration?.reasoning ?? null,
         ),
-      );
+      ]);
     } else {
-      statements.push(
+      groups.push([
         decisionAuditInsert(
           runId,
           "area",
@@ -215,20 +236,20 @@ export function renderAreaDecisions(
           decision.candidateIds,
           decision.reason,
         ),
-      );
+      ]);
     }
   }
-  return statements.join("\n");
+  return groups;
 }
 
 export function renderClimbDecisions(
   runId: string,
   decisions: readonly ResolvedClimbDecision[],
-): string {
-  const statements: string[] = [];
+): StatementGroup[] {
+  const groups: StatementGroup[] = [];
   for (const decision of decisions) {
     if (decision.kind === "match") {
-      statements.push(
+      groups.push([
         `INSERT OR IGNORE INTO catalog_external_refs (source, external_id, entity_type, betabook_id, match_method, confidence) ` +
           `VALUES ('openbeta', ${sqlString(decision.externalId)}, 'climb', ${decision.betabookId}, ` +
           `'${decision.method}', ${sqlNumberOrNull(decision.confidence)});`,
@@ -243,9 +264,9 @@ export function renderClimbDecisions(
           decision.candidateIds,
           decision.reasoning,
         ),
-      );
+      ]);
     } else if (decision.kind === "create") {
-      statements.push(
+      groups.push([
         `INSERT INTO climbs (area_id, name, type, grade, latitude, longitude) ` +
           `VALUES (${parentIdSubquery(decision.parentAreaExternalId)}, ${sqlString(decision.name)}, ` +
           `'${decision.type}', ${sqlNumberOrNull(decision.grade)}, ` +
@@ -262,15 +283,15 @@ export function renderClimbDecisions(
           "climb",
           decision.externalId,
           "created",
-          "last_insert_rowid()",
+          externalIdSubquery("climb", decision.externalId),
           "created",
           decision.arbitration?.confidence ?? null,
           decision.arbitration?.candidateIds ?? [],
           decision.arbitration?.reasoning ?? null,
         ),
-      );
+      ]);
     } else {
-      statements.push(
+      groups.push([
         decisionAuditInsert(
           runId,
           "climb",
@@ -282,37 +303,49 @@ export function renderClimbDecisions(
           decision.candidateIds,
           decision.reason,
         ),
-      );
+      ]);
     }
   }
-  return statements.join("\n");
+  return groups;
 }
 
 /** Mirrors applyAreaMerge's batch (actions/moderation-apply.ts) as plain SQL:
- * reparent child areas and climbs onto the target, then delete the source.
- * Safe to render directly because area_merge, unlike climb_merge, has no
- * send/journal collision handling to reproduce. */
-export function renderAreaMerges(candidates: readonly AreaMergeCandidate[]): string {
-  return candidates
-    .map(
-      ({ sourceBetabookId, targetBetabookId }) =>
-        `UPDATE areas SET parent_id = ${targetBetabookId} WHERE parent_id = ${sourceBetabookId};\n` +
-        `UPDATE climbs SET area_id = ${targetBetabookId} WHERE area_id = ${sourceBetabookId};\n` +
-        `DELETE FROM areas WHERE id = ${sourceBetabookId};`,
-    )
-    .join("\n");
+ * retarget the source's crosswalk rows (so a future re-sync doesn't treat a
+ * since-deleted area as still linked), reparent child areas and climbs onto
+ * the target, then delete the source. Safe to render directly because
+ * area_merge, unlike climb_merge, has no send/journal collision handling to
+ * reproduce. */
+export function renderAreaMerges(candidates: readonly AreaMergeCandidate[]): StatementGroup[] {
+  return candidates.map(({ sourceBetabookId, targetBetabookId }) => [
+    `UPDATE catalog_external_refs SET betabook_id = ${targetBetabookId} ` +
+      `WHERE entity_type = 'area' AND betabook_id = ${sourceBetabookId};`,
+    `UPDATE areas SET parent_id = ${targetBetabookId} WHERE parent_id = ${sourceBetabookId};`,
+    `UPDATE climbs SET area_id = ${targetBetabookId} WHERE area_id = ${sourceBetabookId};`,
+    `DELETE FROM areas WHERE id = ${sourceBetabookId};`,
+  ]);
 }
 
-/** Chunks a block of `;`-terminated SQL statements into files of at most
- * `maxStatements` each, so no single `wrangler d1 execute --file` call
- * exceeds D1's (undocumented in this repo) batch limits — see
- * docs/openbeta-import-plan.md Phase 4: tune this empirically, don't trust a
- * guessed number at full scale. */
-export function chunkStatements(sql: string, maxStatements: number): string[] {
-  const statements = sql.split("\n").filter((line) => line.trim() !== "");
+/** Chunks statement groups into files of at most `maxStatements` statements
+ * each, so no single `wrangler d1 execute --file` call exceeds D1's
+ * (undocumented in this repo) batch limits — see docs/openbeta-import-plan.md
+ * Phase 4: tune this empirically, don't trust a guessed number at full
+ * scale. A group is never split across chunks: later statements in a group
+ * (a crosswalk insert resolved via `last_insert_rowid()`) depend on the
+ * statement immediately before them running in the same batch/connection, so
+ * splitting one across two separately-applied files would corrupt it. */
+export function chunkStatements(
+  groups: readonly StatementGroup[],
+  maxStatements: number,
+): string[] {
   const chunks: string[] = [];
-  for (let i = 0; i < statements.length; i += maxStatements) {
-    chunks.push(statements.slice(i, i + maxStatements).join("\n"));
+  let current: string[] = [];
+  for (const group of groups) {
+    if (current.length > 0 && current.length + group.length > maxStatements) {
+      chunks.push(current.join("\n"));
+      current = [];
+    }
+    current.push(...group);
   }
+  if (current.length > 0) chunks.push(current.join("\n"));
   return chunks;
 }

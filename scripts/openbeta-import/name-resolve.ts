@@ -39,17 +39,24 @@ export function resolveByName<T>(
 ): MatchDecision<T> {
   if (candidates.length === 0) return { kind: "create" };
 
+  // A punctuation-only name ("!!!", "???") folds/loose-keys to "" -- an
+  // empty key is not a real signal, so skip a tier entirely rather than
+  // letting two unrelated punctuation-only names "match" each other.
   const foldedName = foldClimbName(name);
-  const exact = candidates.filter((c) => foldClimbName(getName(c)) === foldedName);
-  if (exact.length === 1) return { kind: "match", candidate: exact[0], method: "exact" };
-  if (exact.length > 1) return { kind: "ambiguous", candidates: exact };
+  if (foldedName !== "") {
+    const exact = candidates.filter((c) => foldClimbName(getName(c)) === foldedName);
+    if (exact.length === 1) return { kind: "match", candidate: exact[0], method: "exact" };
+    if (exact.length > 1) return { kind: "ambiguous", candidates: exact };
+  }
 
   const looseKey = looseNameKey(name);
-  const loose = candidates.filter((c) => looseNameKey(getName(c)) === looseKey);
-  if (loose.length === 1) return { kind: "match", candidate: loose[0], method: "exact" };
-  if (loose.length > 1) return { kind: "ambiguous", candidates: loose };
+  if (looseKey !== "") {
+    const loose = candidates.filter((c) => looseNameKey(getName(c)) === looseKey);
+    if (loose.length === 1) return { kind: "match", candidate: loose[0], method: "exact" };
+    if (loose.length > 1) return { kind: "ambiguous", candidates: loose };
+  }
 
-  if (options?.allowFuzzy === false) return { kind: "create" };
+  if (options?.allowFuzzy === false || looseKey === "") return { kind: "create" };
 
   const scored = candidates
     .map((candidate) => ({

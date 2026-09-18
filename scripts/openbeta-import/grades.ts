@@ -20,9 +20,18 @@ type GradeScale = "native" | "converted";
 
 export type GradeMappingResult = { grade: number | null; scale: GradeScale | null };
 
+/** Returns the unique matching index, or -1 if there's none *or* more than
+ * one (e.g. YDS_TO_FRENCH has "7a+" at both 5.11c and 5.11d) -- an ambiguous
+ * reverse lookup is exactly the "don't guess" case this module exists to
+ * avoid, so it's treated the same as no match at all rather than silently
+ * picking the first. */
 function indexOfNormalized(table: readonly string[], value: string): number {
   const key = value.trim().toLowerCase();
-  return table.findIndex((entry) => entry.toLowerCase() === key);
+  const matches: number[] = [];
+  for (const [i, entry] of table.entries()) {
+    if (entry.toLowerCase() === key) matches.push(i);
+  }
+  return matches.length === 1 ? matches[0] : -1;
 }
 
 /** Maps one OpenBeta grade string to climbs.grade's ordinal for the given

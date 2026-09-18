@@ -16,6 +16,7 @@ import {
 import { moderationAuthorizedSql } from "@/db/queries/moderation";
 import {
   areas,
+  catalogExternalRefs,
   changeRequestApprovals,
   changeRequests,
   climbs,
@@ -336,6 +337,19 @@ export async function applyAreaMerge(
   const { source, target } = await assertAreaMergeable(db, sourceAreaId, targetAreaId);
 
   const statements: [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]] = [
+    // Retarget before deleting the source: catalog_external_refs has no FK
+    // onto areas, so without this, an already-linked external row would
+    // keep pointing at an id that no longer exists after the delete below —
+    // a future OpenBeta re-sync would then treat it as still resolved.
+    db
+      .update(catalogExternalRefs)
+      .set({ betabookId: targetAreaId })
+      .where(
+        and(
+          eq(catalogExternalRefs.entityType, "area"),
+          eq(catalogExternalRefs.betabookId, sourceAreaId),
+        ),
+      ),
     db.update(areas).set({ parentId: targetAreaId }).where(eq(areas.parentId, sourceAreaId)),
     db.update(climbs).set({ areaId: targetAreaId }).where(eq(climbs.areaId, sourceAreaId)),
     // admin_area_scopes rows naming the source cascade-delete with it below

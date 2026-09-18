@@ -10,7 +10,11 @@ export function foldClimbName(name: string): string {
   return name.replace(/^ +| +$/g, "").replace(/[A-Z]/g, (c) => c.toLowerCase());
 }
 
-const LEADING_LABEL = /^[^a-z0-9(]*(?:\([a-z0-9]{1,3}\))?[^a-z0-9]*/;
+// Unicode-letter/number-aware (\p{L}\p{N}, not [a-z0-9]) so a name entirely
+// in a non-Latin script (e.g. "北京", "上海") is treated as real name content
+// rather than being stripped as leading decoration/punctuation -- ASCII-only
+// classes previously folded any two such names to the same empty key.
+const LEADING_LABEL = /^[^\p{L}\p{N}(]*(?:\([a-z0-9]{1,3}\))?[^\p{L}\p{N}]*/u;
 const LEADING_ARTICLE_KEY = /^(?:the|a|an) /;
 
 /** Deliberately lossy, so it only ever confirms a signal: catalogs decorate
@@ -22,7 +26,7 @@ export function looseNameKey(name: string): string {
     .toLowerCase()
     .replace(/['‘’ʼ]/g, "")
     .replace(LEADING_LABEL, "")
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
     .replace(/^ | $/g, "")
     .replace(LEADING_ARTICLE_KEY, "");
 }

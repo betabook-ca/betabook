@@ -29,7 +29,7 @@ describe("mapOpenBetaClimbRow", () => {
     });
   });
 
-  it("falls back through alternate field name candidates", () => {
+  it("falls back through alternate field name candidates, stripping a leading continent from the flattened path", () => {
     const result = mapOpenBetaClimbRow({
       uuid: "climb-2",
       name: "Fallback Named Route",
@@ -41,11 +41,33 @@ describe("mapOpenBetaClimbRow", () => {
       row: {
         uuid: "climb-2",
         name: "Fallback Named Route",
-        breadcrumb: ["North America", "United States", "Colorado"],
+        // resolveAreas treats a root-level row as a country, never a
+        // continent -- a flattened path must be country-first like the
+        // five-discrete-column path already is.
+        breadcrumb: ["United States", "Colorado"],
         latitude: 10,
         longitude: 20,
       },
     });
+  });
+
+  it("leaves a flattened path without a leading continent unchanged", () => {
+    const result = mapOpenBetaClimbRow({
+      uuid: "climb-2b",
+      name: "Already Country First",
+      path_tokens: ["United States", "Colorado"],
+    });
+    expect(result).toMatchObject({ row: { breadcrumb: ["United States", "Colorado"] } });
+  });
+
+  it("trims mapped string fields so trailing whitespace doesn't synthesize duplicate areas", () => {
+    const result = mapOpenBetaClimbRow({
+      climb_id: "climb-2c",
+      climb_name: "Padded",
+      country: "USA ",
+      state_province: " Colorado",
+    });
+    expect(result).toMatchObject({ row: { breadcrumb: ["USA", "Colorado"] } });
   });
 
   it("recognizes multiple discipline flag columns at once", () => {

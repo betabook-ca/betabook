@@ -37,4 +37,9 @@ describe("mapGradeToOrdinal", () => {
     expect(mapGradeToOrdinal("boulder", null)).toEqual({ grade: null, scale: null });
     expect(mapGradeToOrdinal("boulder", undefined)).toEqual({ grade: null, scale: null });
   });
+
+  it("returns null rather than guessing when a converted-scale grade is ambiguous", () => {
+    // YDS_TO_FRENCH has "7a+" at both 5.11c and 5.11d -- never pick one.
+    expect(mapGradeToOrdinal("sport", "7a+")).toEqual({ grade: null, scale: null });
+  });
 });

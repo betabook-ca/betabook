@@ -65,7 +65,7 @@ function firstDefined(row: Record<string, unknown>, keys: readonly string[]): un
 }
 
 function asString(value: unknown): string | null {
-  if (typeof value === "string" && value.trim() !== "") return value;
+  if (typeof value === "string" && value.trim() !== "") return value.trim();
   return null;
 }
 
@@ -78,6 +78,25 @@ function asNumber(value: unknown): number | null {
   return null;
 }
 
+// Betabook nests countries under a continent root, but OpenBeta's breadcrumb
+// has no continent level at all -- resolveAreas relies on that (a root-level
+// row is always a country, blocked against Betabook's country-level areas,
+// never its true continent roots). The five-discrete-column path below is
+// inherently country-first by construction, but a flattened "path_tokens"
+// column (extractBreadcrumb's fallback, for a schema.sql variant this
+// pipeline hasn't actually seen) isn't guaranteed to be -- strip a leading
+// continent name so a future export shaped that way doesn't synthesize a
+// duplicate root under it.
+const CONTINENT_NAMES = new Set([
+  "north america",
+  "south america",
+  "europe",
+  "asia",
+  "africa",
+  "oceania",
+  "antarctica",
+]);
+
 function extractBreadcrumb(raw: Record<string, unknown>): string[] {
   // Falls back to a single flattened "path_tokens" array/string column if the
   // five discrete country/state_province/region/area/crag columns aren't
@@ -89,7 +108,10 @@ function extractBreadcrumb(raw: Record<string, unknown>): string[] {
 
   const flattened = firstDefined(raw, ["path_tokens", "pathTokens"]);
   if (Array.isArray(flattened)) {
-    return flattened.filter((v): v is string => typeof v === "string" && v.trim() !== "");
+    const tokens = flattened.filter((v): v is string => typeof v === "string" && v.trim() !== "");
+    const [first, ...rest] = tokens;
+    if (first !== undefined && CONTINENT_NAMES.has(first.trim().toLowerCase())) return rest;
+    return tokens;
   }
   return [];
 }

@@ -75,4 +75,14 @@ describe("resolveByName", () => {
       method: "exact",
     });
   });
+
+  it("creates rather than matching two unrelated punctuation-only names", () => {
+    const candidates: Item[] = [{ id: 1, name: "???" }];
+    expect(resolveByName("!!!", candidates, named)).toEqual({ kind: "create" });
+  });
+
+  it("creates rather than matching two unrelated punctuation-only names even under fuzzy scoring", () => {
+    const candidates: Item[] = [{ id: 1, name: "***" }];
+    expect(resolveByName("###", candidates, named)).toEqual({ kind: "create" });
+  });
 });

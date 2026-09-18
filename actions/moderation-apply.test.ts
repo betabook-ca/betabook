@@ -22,7 +22,15 @@ import {
 } from "@/actions/moderation-apply";
 import { createDb, type Database } from "@/db/client";
 import { getChangeRequest, getJournalForClimb } from "@/db/queries";
-import { adminAreaScopes, areas, changeRequests, climbs, journalEntries, sends } from "@/db/schema";
+import {
+  adminAreaScopes,
+  areas,
+  catalogExternalRefs,
+  changeRequests,
+  climbs,
+  journalEntries,
+  sends,
+} from "@/db/schema";
 import { formatGrade } from "@/lib/grades";
 import {
   seedFixtureJournalEntry,
@@ -1098,6 +1106,47 @@ describe("applyAreaMerge", () => {
     expect(await db.select().from(areas).where(eq(areas.id, 993)).get()).toBeUndefined();
     const climb = await db.select().from(climbs).where(eq(climbs.id, 993)).get();
     expect(climb?.areaId).toBe(5);
+  });
+
+  it("retargets catalog_external_refs rows pointing at the deleted source area", async () => {
+    await db.insert(areas).values([
+      { id: 996, parentId: 1, name: "Crosswalk Source" },
+      { id: 997, parentId: 1, name: "Crosswalk Target" },
+    ]);
+    await db.insert(catalogExternalRefs).values([
+      {
+        source: "openbeta",
+        externalId: "ob-area-source",
+        entityType: "area",
+        betabookId: 996,
+        matchMethod: "exact",
+      },
+      // A climb crosswalk row with the SAME betabookId as an unrelated area
+      // id would be a coincidence, not a reference to this area -- entity
+      // type must gate the update so it's left untouched.
+      {
+        source: "openbeta",
+        externalId: "ob-climb-unrelated",
+        entityType: "climb",
+        betabookId: 996,
+        matchMethod: "exact",
+      },
+    ]);
+
+    await applyAreaMerge(db, 996, 997);
+
+    const areaRef = await db
+      .select()
+      .from(catalogExternalRefs)
+      .where(eq(catalogExternalRefs.externalId, "ob-area-source"))
+      .get();
+    expect(areaRef?.betabookId).toBe(997);
+    const climbRef = await db
+      .select()
+      .from(catalogExternalRefs)
+      .where(eq(catalogExternalRefs.externalId, "ob-climb-unrelated"))
+      .get();
+    expect(climbRef?.betabookId).toBe(996);
   });
 
   it("cascades admin_area_scopes rows naming the deleted source", async () => {
