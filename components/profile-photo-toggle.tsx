@@ -46,7 +46,9 @@ export function ProfilePhotoToggle({
 
   return (
     <div className={`flex flex-col gap-3 ${SETTINGS_ROW_CLASS}`}>
-      <div className="flex items-center gap-3">
+      {/* Top-aligned: the description wraps to three lines on a phone, and a
+          centered avatar then floats beside the middle of the paragraph. */}
+      <div className="flex items-start gap-3">
         <UserAvatar name={name} image={showPhoto ? image : null} size="sm" />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <Switch
