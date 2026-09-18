@@ -4,6 +4,12 @@
   "private": true,
   "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
+  "imports": {
+    "#open-next/worker": {
+      "types": "./worker/open-next-worker.d.ts",
+      "default": "./.open-next/worker.js"
+    }
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
