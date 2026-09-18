@@ -20,6 +20,7 @@ export function SearchPicker({
   loadingMore = false,
   loadMoreFailed = false,
   autoFocus = false,
+  revealResultsOnMobile = false,
 }: {
   query: string;
   onQueryChange: (query: string) => void;
@@ -32,9 +33,13 @@ export function SearchPicker({
   loadingMore?: boolean;
   loadMoreFailed?: boolean;
   autoFocus?: boolean;
+  revealResultsOnMobile?: boolean;
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-4">
+    <div
+      className="flex min-w-0 flex-col gap-4"
+      data-focus-scroll-preview={revealResultsOnMobile || undefined}
+    >
       <SearchInput
         label="Choose a climb"
         placeholder="Search climbs…"

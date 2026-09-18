@@ -9,6 +9,7 @@ import type { JournalEntryFieldsProps } from "@/components/journal/journal-entry
 import { JournalEntryForm } from "@/components/journal/journal-entry-form";
 import { PageTitle } from "@/components/ui/typography";
 import type { SendableClimb } from "@/db/queries";
+import { useFocusedFieldScroll } from "@/hooks/use-focused-field-scroll";
 
 type JournalEntryDrawerProps = {
   climb?: SendableClimb & { name: string };
@@ -24,6 +25,7 @@ export function JournalEntryDrawer({
   onSave,
 }: JournalEntryDrawerProps) {
   const [pending, setPending] = useState(false);
+  const scrollBodyRef = useFocusedFieldScroll();
   return (
     <Modal.Backdrop
       isOpen={state.isOpen}
@@ -37,7 +39,7 @@ export function JournalEntryDrawer({
             <Modal.Heading className="sr-only">Log entry</Modal.Heading>
             <Modal.CloseTrigger isDisabled={pending} />
           </Modal.Header>
-          <Modal.Body>
+          <Modal.Body ref={scrollBodyRef}>
             {state.isOpen &&
               (climb ? (
                 <>
