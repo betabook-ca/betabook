@@ -10,6 +10,10 @@ const stories = [
   "patterns-search--quick-initial",
   "components-filters-toolbar--hashtags",
   "components-journal-log-popup--send",
+  // An overlay whose main control is a drag surface, with a slider and a
+  // button beside it — its own rendered risk, and the one place in the app
+  // where a pointer gesture is the primary interaction.
+  "components-account-photo-cropper--landscape",
   "patterns-email--contact",
 ];
 for (const story of stories) {

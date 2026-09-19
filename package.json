@@ -59,6 +59,7 @@
     "react": "19.2.8",
     "react-aria-components": "1.20.0",
     "react-dom": "19.2.8",
+    "react-easy-crop": "6.2.3",
     "recharts": "^3.10.1",
     "resend": "^6.22.0",
     "uqr": "0.1.3",

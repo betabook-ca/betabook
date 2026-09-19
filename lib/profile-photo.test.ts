@@ -3,6 +3,9 @@ import { expect, it } from "vitest";
 import {
   isProfilePhotoKey,
   MAX_PROFILE_PHOTO_BYTES,
+  MAX_SOURCE_PHOTO_BYTES,
+  SOURCE_PHOTO_TOO_LARGE_MESSAGE,
+  sourcePhotoProblem,
   profilePhotoKey,
   profilePhotoKeyFromImage,
   profilePhotoPath,
@@ -80,6 +83,24 @@ it("identifies no format for bytes that only claim to be an image", () => {
   expect(sniffImageType(heic)).toBeNull();
   expect(sniffImageType(new TextEncoder().encode("<svg xmlns="))).toBeNull();
   expect(sniffImageType(new Uint8Array())).toBeNull();
+});
+
+it("lets the picker open a photo far larger than the upload cap", () => {
+  // The picker uploads the cropped square, not this file, so a phone photo
+  // that the action would refuse is fine to choose and crop.
+  const phonePhoto = file({ size: 9 * 1024 * 1024, type: "image/jpeg" });
+
+  expect(sourcePhotoProblem(phonePhoto)).toBeNull();
+  expect(profilePhotoProblem(phonePhoto)).toBe(PROFILE_PHOTO_TOO_LARGE_MESSAGE);
+});
+
+it("explains a photo too large for the picker to decode", () => {
+  expect(sourcePhotoProblem(file({ size: MAX_SOURCE_PHOTO_BYTES + 1, type: "image/png" }))).toBe(
+    SOURCE_PHOTO_TOO_LARGE_MESSAGE,
+  );
+  expect(sourcePhotoProblem(file({ size: 1024, type: "image/gif" }))).toBe(
+    PROFILE_PHOTO_WRONG_TYPE_MESSAGE,
+  );
 });
 
 it("explains a file the upload cannot accept", () => {

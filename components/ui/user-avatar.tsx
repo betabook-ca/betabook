@@ -4,7 +4,7 @@ import { clsx } from "clsx";
 import Image from "next/image";
 import { useState } from "react";
 
-import { getGoogleProfileImageUrl, getUserInitials } from "@/lib/user-initials";
+import { getAvatarPhoto, getUserInitials } from "@/lib/user-initials";
 
 const AVATAR_SIZE = {
   xs: { pixels: 24, className: "size-6 text-[0.625rem]" },
@@ -20,13 +20,18 @@ type UserAvatarProps = {
   className?: string;
 };
 
-/** A user's OAuth photo when one was stored by Better Auth, with an inline
- * initials treatment for email/password accounts or an image that fails to
- * load. Decorative: its surrounding account UI already provides the label. */
+/** The climber's photo — one they uploaded, or the OAuth photo stored by
+ * Better Auth — with an inline initials treatment for accounts with neither
+ * and for an image that fails to load. Decorative: its surrounding account
+ * UI already provides the label.
+ *
+ * An uploaded photo is served at the size avatars need, so it renders as a
+ * plain <img>; only the Google URL goes through next/image. */
 export function UserAvatar({ name, image, size = "md", className }: UserAvatarProps) {
   const { pixels, className: sizeClassName } = AVATAR_SIZE[size];
   const [failedImage, setFailedImage] = useState<string | null>(null);
-  const imageUrl = getGoogleProfileImageUrl(image);
+  const photo = getAvatarPhoto(image);
+  const imageUrl = photo?.url ?? null;
 
   return (
     <div
@@ -37,18 +42,21 @@ export function UserAvatar({ name, image, size = "md", className }: UserAvatarPr
         className,
       )}
     >
-      {imageUrl != null && imageUrl !== failedImage ? (
+      {photo === null || imageUrl === failedImage ? (
+        getUserInitials(name)
+      ) : (
         <Image
-          src={imageUrl}
+          src={photo.url}
           alt=""
           width={pixels}
           height={pixels}
+          // An uploaded photo is already 256 px of WebP, so optimizing it
+          // would spend Worker CPU to hand back the same bytes.
+          unoptimized={!photo.optimize}
           className="size-full object-cover"
           referrerPolicy="no-referrer"
-          onError={() => setFailedImage(imageUrl)}
+          onError={() => setFailedImage(photo.url)}
         />
-      ) : (
-        getUserInitials(name)
       )}
     </div>
   );

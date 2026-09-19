@@ -27,10 +27,19 @@ export const PROFILE_PHOTO_CACHE_CONTROL = "public, max-age=604800, immutable";
  * skips the picker, and stays under the server action body limit configured
  * in next.config.ts. */
 export const MAX_PROFILE_PHOTO_BYTES = 3 * 1024 * 1024;
-const ACCEPTED_PROFILE_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+
+/** What the picker will open, which is a different question: the photo a
+ * climber chooses is cropped and re-encoded to a ~60 KB square before
+ * anything is uploaded, so a 12 MP phone photo is perfectly fine here. The
+ * cap exists only so the browser is never asked to decode something absurd.
+ * Comfortably inside the Images binding's own 20 MB input limit as well. */
+export const MAX_SOURCE_PHOTO_BYTES = 16 * 1024 * 1024;
+
+export const ACCEPTED_PROFILE_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
 const PROFILE_PHOTO_PATH_PREFIX = "/api/avatars/";
 export const PROFILE_PHOTO_TOO_LARGE_MESSAGE = "That photo is too large — pick one under 3 MB.";
+export const SOURCE_PHOTO_TOO_LARGE_MESSAGE = "That photo is too large — pick one under 16 MB.";
 export const PROFILE_PHOTO_WRONG_TYPE_MESSAGE = "Profile photos must be a JPEG, PNG or WebP image.";
 export const PROFILE_PHOTO_UNREADABLE_MESSAGE =
   "That file doesn't look like an image we can read. Try a JPEG, PNG or WebP.";
@@ -112,8 +121,17 @@ export function sniffImageType(bytes: Uint8Array): AcceptedProfilePhotoType | nu
  * verbatim, or null when it can. Checks the declared type and size only —
  * the bytes are sniffed once they are in hand. */
 export function profilePhotoProblem(file: File): string | null {
+  return photoProblem(file, MAX_PROFILE_PHOTO_BYTES, PROFILE_PHOTO_TOO_LARGE_MESSAGE);
+}
+
+/** The same question for the photo the climber picked, before cropping. */
+export function sourcePhotoProblem(file: File): string | null {
+  return photoProblem(file, MAX_SOURCE_PHOTO_BYTES, SOURCE_PHOTO_TOO_LARGE_MESSAGE);
+}
+
+function photoProblem(file: File, maxBytes: number, tooLarge: string): string | null {
   if (file.size === 0) return PROFILE_PHOTO_UNREADABLE_MESSAGE;
-  if (file.size > MAX_PROFILE_PHOTO_BYTES) return PROFILE_PHOTO_TOO_LARGE_MESSAGE;
+  if (file.size > maxBytes) return tooLarge;
   if (!ACCEPTED_PROFILE_PHOTO_TYPES.includes(file.type as AcceptedProfilePhotoType))
     return PROFILE_PHOTO_WRONG_TYPE_MESSAGE;
   return null;
