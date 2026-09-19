@@ -104,22 +104,30 @@ function CropFrame({
   const [rotation, setRotation] = useState<QuarterTurn>(0);
   const [area, setArea] = useState<CropArea | null>(null);
   const [cropError, setCropError] = useState<string | null>(null);
+  // Encoding the square runs before the upload starts, so `isPending` alone
+  // would leave a window in which pressing Use photo again begins a second
+  // crop — and a second upload once each finishes.
+  const [isCropping, setIsCropping] = useState(false);
 
   const source = useMemo(() => URL.createObjectURL(file), [file]);
   // A blob URL pins the whole photo in memory until it is revoked.
   useEffect(() => () => URL.revokeObjectURL(source), [source]);
 
   async function handleUse() {
-    if (!area) return;
+    if (!area || isCropping) return;
     setCropError(null);
+    setIsCropping(true);
     try {
       onCropped(await cropSquare(file, area, rotation));
     } catch (failure) {
       console.error("Cropping a profile photo failed", failure);
       setCropError(CROP_FAILED_MESSAGE);
+    } finally {
+      setIsCropping(false);
     }
   }
 
+  const isBusy = isCropping || isPending;
   const shownError = cropError ?? error;
 
   return (
@@ -190,11 +198,11 @@ function CropFrame({
       {shownError !== null && <InlineAlert>{shownError}</InlineAlert>}
 
       <div className="flex justify-end gap-2">
-        <Button variant="ghost" onPress={onCancel} isDisabled={isPending}>
+        <Button variant="ghost" onPress={onCancel} isDisabled={isBusy}>
           Cancel
         </Button>
-        <Button onPress={handleUse} isDisabled={isPending || area === null}>
-          {isPending ? "Saving…" : "Use photo"}
+        <Button onPress={handleUse} isDisabled={isBusy || area === null}>
+          {isBusy ? "Saving…" : "Use photo"}
         </Button>
       </div>
     </div>

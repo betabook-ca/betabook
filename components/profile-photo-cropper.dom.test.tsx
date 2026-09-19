@@ -139,6 +139,39 @@ it("zooms the photo from the slider", async () => {
   await waitFor(() => expect(cropper()).not.toHaveAttribute("data-zoom", "1"));
 });
 
+it("crops once however often Use photo is pressed", async () => {
+  const user = userEvent.setup();
+  // Encoding runs before the upload starts, so nothing else disables the
+  // button in that window — a second press would otherwise start a second
+  // crop and, once both finish, a second upload.
+  let release: (photo: File) => void = () => {};
+  const cropSquare = vi.fn<CropSquare>(
+    () =>
+      new Promise<File>((resolve) => {
+        release = resolve;
+      }),
+  );
+  const onCropped = onCroppedMock();
+  render(
+    <ProfilePhotoCropper
+      file={photo()}
+      state={overlayState()}
+      onCropped={onCropped}
+      isPending={false}
+      cropSquare={cropSquare}
+    />,
+  );
+
+  const use = screen.getByRole("button", { name: "Use photo" });
+  await user.click(use);
+  await waitFor(() => expect(screen.getByRole("button", { name: "Saving…" })).toBeDisabled());
+  await user.click(screen.getByRole("button", { name: "Saving…" }));
+
+  expect(cropSquare).toHaveBeenCalledOnce();
+  release(photo());
+  await waitFor(() => expect(onCropped).toHaveBeenCalledOnce());
+});
+
 it("explains a failed crop and uploads nothing", async () => {
   const user = userEvent.setup();
   const onCropped = onCroppedMock();
