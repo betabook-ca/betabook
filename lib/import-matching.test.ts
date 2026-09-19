@@ -564,6 +564,13 @@ describe("looseNameKey", () => {
     expect(looseNameKey("The Nose")).toBe("nose");
     expect(looseNameKey("  ")).toBe("");
   });
+
+  it("preserves non-Latin letters instead of folding distinct names to the same empty key", () => {
+    expect(looseNameKey("北京")).toBe("北京");
+    expect(looseNameKey("上海")).toBe("上海");
+    expect(looseNameKey("北京")).not.toBe(looseNameKey("上海"));
+    expect(looseNameKey("Москва")).toBe("москва");
+  });
 });
 
 describe("climbNameVariants", () => {

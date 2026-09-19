@@ -33,6 +33,11 @@ export const climbs = sqliteTable(
     sendCount: integer("send_count").notNull().default(0),
     ratingSum: integer("rating_sum").notNull().default(0),
     ratingCount: integer("rating_count").notNull().default(0),
+    // Populated by catalog imports when a source provides route-specific GPS
+    // distinct from the parent area's; otherwise left null. Not required for
+    // any existing query path.
+    latitude: real("latitude"),
+    longitude: real("longitude"),
     avgRating: real("avg_rating").generatedAlwaysAs(
       sql`CASE WHEN rating_count > 0 THEN CAST(rating_sum AS REAL) / rating_count ELSE NULL END`,
       { mode: "virtual" },

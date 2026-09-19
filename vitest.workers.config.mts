@@ -33,6 +33,7 @@ export default defineProject({
       "components/**/*.test.{ts,tsx}",
       "db/**/*.test.{ts,tsx}",
       "lib/**/*.test.{ts,tsx}",
+      "scripts/openbeta-import/**/*.test.{ts,tsx}",
     ],
     exclude: [".claude/**", "node_modules/**", "**/*.dom.test.{ts,tsx}"],
     setupFiles: ["./test/apply-migrations.ts"],

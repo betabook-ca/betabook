@@ -16,6 +16,7 @@ import {
 import { moderationAuthorizedSql } from "@/db/queries/moderation";
 import {
   areas,
+  catalogExternalRefs,
   changeRequestApprovals,
   changeRequests,
   climbs,
@@ -164,12 +165,21 @@ function rejectOrphanedAreaRequests(db: Database, areaId: number) {
         eq(changeRequests.status, "pending"),
         or(
           and(
-            inArray(changeRequests.type, ["area_edit", "area_delete", "area_reparent"]),
+            inArray(changeRequests.type, [
+              "area_edit",
+              "area_delete",
+              "area_reparent",
+              "area_merge",
+            ]),
             eq(changeRequests.entityId, areaId),
           ),
           and(
             eq(changeRequests.type, "area_reparent"),
             sql`json_extract(${changeRequests.payload}, '$.newParentId') = ${areaId}`,
+          ),
+          and(
+            eq(changeRequests.type, "area_merge"),
+            sql`json_extract(${changeRequests.payload}, '$.targetAreaId') = ${areaId}`,
           ),
           and(
             eq(changeRequests.type, "climb_move"),
@@ -287,6 +297,82 @@ export async function applyAreaReparent(
     revalidatePath(`/areas/${areaId}`);
     revalidatePath(`/areas/${newParentId}`);
     if (existing.parentId != null) revalidatePath(`/areas/${existing.parentId}`);
+    revalidatePath("/");
+    refresh();
+  });
+}
+
+export async function assertAreaMergeable(
+  db: Database,
+  sourceAreaId: number,
+  targetAreaId: number,
+): Promise<{ source: Area; target: Area }> {
+  if (sourceAreaId === targetAreaId) {
+    throw new ActionError("Can't mark an area as a duplicate of itself");
+  }
+  const source = await getArea(db, sourceAreaId);
+  if (!source) throw new ActionError("Area not found");
+  const target = await getArea(db, targetAreaId);
+  if (!target) throw new ActionError("Target area not found");
+  // Only this direction is cyclic: reparenting source's direct children onto
+  // target would rewrite target's own parent_id to itself if target is (or
+  // descends from) source, exactly the loop areas_reject_parent_cycle_*
+  // exists to reject. Merging a descendant into its own ancestor is the
+  // opposite, safe case (consolidating a subtree upward) and stays allowed.
+  if (await isAreaOrDescendant(db, targetAreaId, sourceAreaId)) {
+    throw new ActionError("Can't merge an area into one of its own sub-areas");
+  }
+  return { source, target };
+}
+
+/** Plain function (not session-gated) so both a future interactive moderation
+ * action and the offline OpenBeta import pipeline (scripts/openbeta-import/)
+ * call identical logic — see actions/moderation-apply.test.ts for coverage. */
+export async function applyAreaMerge(
+  db: Database,
+  sourceAreaId: number,
+  targetAreaId: number,
+  decision?: MutationDecision,
+): Promise<void> {
+  const { source, target } = await assertAreaMergeable(db, sourceAreaId, targetAreaId);
+
+  const statements: [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]] = [
+    // Retarget before deleting the source: catalog_external_refs has no FK
+    // onto areas, so without this, an already-linked external row would
+    // keep pointing at an id that no longer exists after the delete below —
+    // a future OpenBeta re-sync would then treat it as still resolved.
+    db
+      .update(catalogExternalRefs)
+      .set({ betabookId: targetAreaId })
+      .where(
+        and(
+          eq(catalogExternalRefs.entityType, "area"),
+          eq(catalogExternalRefs.betabookId, sourceAreaId),
+        ),
+      ),
+    db.update(areas).set({ parentId: targetAreaId }).where(eq(areas.parentId, sourceAreaId)),
+    db.update(climbs).set({ areaId: targetAreaId }).where(eq(climbs.areaId, sourceAreaId)),
+    // admin_area_scopes rows naming the source cascade-delete with it below
+    // (adminAreaScopes.areaId has onDelete: "cascade"): an admin whose only
+    // scope was the source area silently loses that grant. Acceptable here —
+    // the same as any other area deletion — but worth knowing about.
+    db.delete(areas).where(eq(areas.id, sourceAreaId)),
+    rejectOrphanedAreaRequests(db, sourceAreaId),
+  ];
+  await commitMutation(
+    db,
+    statements,
+    sql`${areaUnchanged(source)} AND ${areaUnchanged(target)}`,
+    decision,
+  );
+
+  afterCommit(() => {
+    revalidatePath(`/areas/${targetAreaId}`);
+    revalidatePath(`/areas/${sourceAreaId}`);
+    if (source.parentId != null) revalidatePath(`/areas/${source.parentId}`);
+    if (target.parentId != null && target.parentId !== source.parentId) {
+      revalidatePath(`/areas/${target.parentId}`);
+    }
     revalidatePath("/");
     refresh();
   });

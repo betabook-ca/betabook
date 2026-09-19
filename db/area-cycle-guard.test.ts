@@ -88,6 +88,8 @@ describe("the database rejects any parent_id write that closes a cycle", () => {
       parentId: TEST_BOULDERS,
       name: "Test Highball Alcove",
       description: null,
+      latitude: null,
+      longitude: null,
     });
     expect(ancestors.map((a) => a.id)).toEqual([TEST_CRAG, TEST_BOULDERS]);
   });

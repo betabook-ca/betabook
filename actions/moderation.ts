@@ -11,6 +11,7 @@ import {
   applyAreaDelete,
   assertAreaReparentable,
   applyAreaReparent,
+  applyAreaMerge,
   assertClimbMovable,
   applyClimbMove,
   applyClimbEdit,
@@ -352,6 +353,10 @@ const CHANGE_REQUEST_APPLIERS: Record<
   area_reparent: (db, request, decision) => {
     const { newParentId } = JSON.parse(request.payload);
     return applyAreaReparent(db, request.entityId, newParentId, decision);
+  },
+  area_merge: (db, request, decision) => {
+    const { targetAreaId } = JSON.parse(request.payload);
+    return applyAreaMerge(db, request.entityId, targetAreaId, decision);
   },
   climb_edit: (db, request, decision) =>
     applyClimbEdit(db, request.entityId, JSON.parse(request.payload), decision),

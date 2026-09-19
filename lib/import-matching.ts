@@ -1,30 +1,13 @@
 import type { ClimbCandidate } from "@/db/queries";
 import { isLoggableOnClimb } from "@/lib/broken-climbs";
 import { formatGrade, parseGrade, type ClimbType } from "@/lib/grades";
+import { foldClimbName, looseNameKey, climbNameVariants } from "@/lib/name-fold";
 import type { NormalizedImportRow } from "@/lib/sends-import";
 
-/** Match SQLite LOWER(TRIM(name)): trim ASCII spaces and lowercase only ASCII
- * letters. JavaScript toLowerCase would also fold accented letters. */
-export function foldClimbName(name: string): string {
-  return name.replace(/^ +| +$/g, "").replace(/[A-Z]/g, (c) => c.toLowerCase());
-}
-
-const LEADING_LABEL = /^[^a-z0-9(]*(?:\([a-z0-9]{1,3}\))?[^a-z0-9]*/;
-const LEADING_ARTICLE_KEY = /^(?:the|a|an) /;
-
-/** Deliberately lossy, so it only ever confirms a signal: catalogs decorate
- * area names differently ("**Bouldering at Exit 38", "(g) Black Dyke"). */
-export function looseNameKey(name: string): string {
-  return name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/['\u2018\u2019\u02bc]/g, "")
-    .replace(LEADING_LABEL, "")
-    .replace(/[^a-z0-9]+/g, " ")
-    .replace(/^ | $/g, "")
-    .replace(LEADING_ARTICLE_KEY, "");
-}
+// Re-exported from the dependency-free leaf module so existing callers of
+// this file are unaffected; scripts/openbeta-import/ imports lib/name-fold.ts
+// directly instead, since it runs outside the app and can't resolve `@/`.
+export { foldClimbName, looseNameKey, climbNameVariants };
 
 export type CandidateIndex = ReadonlyMap<string, ClimbCandidate[]>;
 
@@ -104,38 +87,11 @@ export type MatchOptions = {
   looseIndex?: CandidateIndex;
 };
 
-const LEADING_ARTICLE = /^(?:the|a|an) +/i;
-const MAX_NAME_VARIANTS = 8;
 /** How many of a location path's most specific segments may confirm a name. */
 const CONFIRMING_HINTS = 3;
-/** Each name costs up to MAX_NAME_VARIANTS extra lookups, so recovery is
- * bounded; anything past it stays available through the manual search. */
+/** Each name costs up to lib/name-fold.ts's variant cap extra lookups, so
+ * recovery is bounded; anything past it stays available through manual search. */
 const MAX_LOOSE_LOOKUP_NAMES = 500;
-
-/** Variants keep the indexed name lookup rather than widening the query. */
-export function climbNameVariants(name: string): string[] {
-  const original = foldClimbName(name);
-  const seen = new Set<string>([original]);
-  const variants: string[] = [];
-  const add = (value: string) => {
-    const trimmed = value.replace(/ +/g, " ").replace(/^ | $/g, "");
-    const key = foldClimbName(trimmed);
-    if (!trimmed || seen.has(key) || variants.length >= MAX_NAME_VARIANTS) return;
-    seen.add(key);
-    variants.push(trimmed);
-  };
-  const stripped = name.replace(LEADING_ARTICLE, "");
-  const bases = LEADING_ARTICLE.test(name) ? [name, stripped] : [name, `The ${name}`];
-  for (const base of bases) {
-    add(base);
-    add(base.replace(/[\u2018\u2019\u02bc]/g, "'"));
-    add(base.replace(/'/g, "\u2019"));
-    add(base.replace(/['\u2018\u2019\u02bc,.!?]/g, ""));
-    add(base.replace(/[-\u2013\u2014/]+/g, " "));
-    add(base.normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
-  }
-  return variants;
-}
 
 export function looseLookupsNeeded(
   rows: readonly NormalizedImportRow[],

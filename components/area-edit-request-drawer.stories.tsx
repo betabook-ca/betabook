@@ -25,7 +25,14 @@ export const Rename: StoryObj = {
         <Button onPress={state.open}>Request area rename</Button>
         <AreaEditRequestDrawer
           state={state}
-          area={{ id: -1, parentId: null, name: "Cedar Grove", description: null }}
+          area={{
+            id: -1,
+            parentId: null,
+            name: "Cedar Grove",
+            description: null,
+            latitude: null,
+            longitude: null,
+          }}
         />
       </StoryPage>
     );
