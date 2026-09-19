@@ -38,7 +38,19 @@ const meta = {
     userId: "viewer",
     view: "friends",
     fetcher,
-    page: { friends: [{ ...people[1], isPrivate: false }], hasMore: false },
+    page: {
+      friends: [
+        { ...people[1], isPrivate: false },
+        {
+          id: "riley",
+          name: "Riley Chen",
+          image: null,
+          friendshipStatus: "friends",
+          isPrivate: false,
+        },
+      ],
+      hasMore: false,
+    },
     suggestions: [
       "Sam Rivera",
       "Jordan Park",
@@ -75,6 +87,13 @@ export const Requests: Story = {
           isPrivate: false,
         },
         { ...people[0], isPrivate: false },
+        {
+          id: "jordan",
+          name: "Jordan Park",
+          image: null,
+          friendshipStatus: "incoming",
+          isPrivate: false,
+        },
       ],
       hasMore: false,
     },
