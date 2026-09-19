@@ -9,6 +9,7 @@ import {
   profilePhotoPath,
 } from "@/lib/profile-photo";
 import {
+  deletePreviousProfilePhoto,
   deleteProfilePhoto,
   deleteProfilePhotosForUser,
   PROFILE_PHOTO_FAILED_MESSAGE,
@@ -112,6 +113,72 @@ it("serves a stored photo only through a well-formed key", async () => {
   expect(await readProfilePhoto(env.PROFILE_PHOTOS, key)).not.toBeNull();
   expect(await readProfilePhoto(env.PROFILE_PHOTOS, "climber1/../../secret.webp")).toBeNull();
   expect(profilePhotoKeyFromImage(profilePhotoPath(key))).toBe(key);
+});
+
+it("logs rather than fails when the previous photo is a Google URL", async () => {
+  const logged = vi.spyOn(console, "warn").mockImplementation(() => {});
+  const mine = await storeProfilePhoto(store, "climber1", await makePngFile(300, 300));
+
+  await expect(
+    deletePreviousProfilePhoto(
+      env.PROFILE_PHOTOS,
+      "https://lh3.googleusercontent.com/a/x=s96-c",
+      "climber1",
+    ),
+  ).resolves.toBeUndefined();
+
+  expect(logged).toHaveBeenCalled();
+  // Nothing of ours was named, so nothing of ours was touched.
+  expect(await env.PROFILE_PHOTOS.get(mine)).not.toBeNull();
+  logged.mockRestore();
+});
+
+it("passes quietly when the previous object is already gone", async () => {
+  const failed = vi.spyOn(console, "error").mockImplementation(() => {});
+  const key = await storeProfilePhoto(store, "climber1", await makePngFile(300, 300));
+  await env.PROFILE_PHOTOS.delete(key);
+
+  // R2's delete is idempotent, so a photo a racing removal already took is a
+  // no-op rather than an error — and worth no extra request to detect.
+  await expect(
+    deletePreviousProfilePhoto(env.PROFILE_PHOTOS, profilePhotoPath(key), "climber1"),
+  ).resolves.toBeUndefined();
+
+  expect(failed).not.toHaveBeenCalled();
+  failed.mockRestore();
+});
+
+it("says nothing when there was no previous photo at all", async () => {
+  const logged = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+  await deletePreviousProfilePhoto(env.PROFILE_PHOTOS, null, "climber1");
+  await deletePreviousProfilePhoto(env.PROFILE_PHOTOS, "", "climber1");
+
+  // A brand new account has no photo; that is not worth a log line on every
+  // first upload.
+  expect(logged).not.toHaveBeenCalled();
+  logged.mockRestore();
+});
+
+it("refuses a previous photo belonging to another climber", async () => {
+  const logged = vi.spyOn(console, "warn").mockImplementation(() => {});
+  const theirs = await storeProfilePhoto(store, "climber2", await makePngFile(300, 300));
+
+  await deletePreviousProfilePhoto(env.PROFILE_PHOTOS, profilePhotoPath(theirs), "climber1");
+
+  // The column can hold a path this app never wrote; acting on it would
+  // delete another climber's photo.
+  expect(await env.PROFILE_PHOTOS.get(theirs)).not.toBeNull();
+  expect(logged).toHaveBeenCalled();
+  logged.mockRestore();
+});
+
+it("deletes the previous photo when it is one of ours", async () => {
+  const key = await storeProfilePhoto(store, "climber1", await makePngFile(300, 300));
+
+  await deletePreviousProfilePhoto(env.PROFILE_PHOTOS, profilePhotoPath(key), "climber1");
+
+  expect(await env.PROFILE_PHOTOS.get(key)).toBeNull();
 });
 
 it("deletes one photo and every photo a climber has had", async () => {

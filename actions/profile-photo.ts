@@ -14,6 +14,7 @@ import {
   profilePhotoProblem,
 } from "@/lib/profile-photo";
 import {
+  deletePreviousProfilePhoto,
   deleteProfilePhoto,
   getProfilePhotoStore,
   PROFILE_PHOTO_UNAVAILABLE_MESSAGE,
@@ -74,9 +75,12 @@ export async function uploadProfilePhoto(formData: FormData): Promise<ActionResu
     }
 
     // Re-uploading the identical crop yields the same key, so compare before
-    // deleting: otherwise the replacement would delete what it just wrote.
-    if (currentKey !== null && currentKey !== key)
-      await deleteProfilePhoto(store.bucket, currentKey);
+    // retiring the old photo: otherwise the replacement would delete what it
+    // just wrote. A previous value naming no object of this climber's — a
+    // Google URL, or a path pointing somewhere it has no business pointing —
+    // is logged, not an error.
+    if (currentKey !== key)
+      await deletePreviousProfilePhoto(store.bucket, current?.image, session.user.id);
 
     afterCommit(() => {
       revalidateProfileSurfaces(session.user.id);

@@ -32,8 +32,10 @@ export function getAvatarPhoto(image?: string | null): { url: string; optimize: 
 }
 
 /** Only pass the Google profile-photo URLs the app is configured to optimize
- * to next/image. Better Auth's field is nullable but older/local rows may
- * contain placeholders or malformed values; those should use initials. */
+ * to next/image. No new account stores one — sign-in stopped copying the
+ * provider's photo once /account could upload one — but accounts created
+ * before that keep theirs, and older/local rows may hold placeholders or
+ * malformed values; those should use initials. */
 export function getGoogleProfileImageUrl(image?: string | null): string | null {
   if (!image) return null;
 
