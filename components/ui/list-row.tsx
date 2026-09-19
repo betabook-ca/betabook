@@ -51,7 +51,11 @@ export function ListRow({
        * level with the name it belongs to rather than being pushed down by a
        * comment, and the comment starts at the row's own left edge instead of
        * indenting past the avatar. Same shape as JournalEntryLayout. */}
-      <div className="flex items-center gap-4">
+      {/* `w-full` because `className` lands on the row above and callers use
+       * it to set alignment — GOAL_ROW_CLASS passes `items-start`, which on a
+       * column would otherwise shrink this header to its content and collapse
+       * a `fullWidthTags` slot. */}
+      <div className="flex w-full items-center gap-4">
         {leading && <div className="relative z-10 shrink-0">{leading}</div>}
         {/* Keep trailing values fixed while the text column shrinks. */}
         <div className="flex min-w-0 flex-1 items-center gap-x-4">
