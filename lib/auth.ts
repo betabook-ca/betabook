@@ -208,6 +208,14 @@ async function authBuilder() {
                   message: TERMS_ACCESS_MESSAGE,
                 });
               }
+              // `image` is ours to write, never the caller's. That endpoint
+              // accepts one by default, and `user.image` is read back as the
+              // key of an R2 object to serve and to delete — so a caller who
+              // could set it freely could name another climber's photo (every
+              // avatar URL is visible wherever it renders) and have their own
+              // upload or removal delete it. Uploads go through
+              // actions/profile-photo.ts, which writes the column itself.
+              if ("image" in data) delete (data as { image?: unknown }).image;
             }
             if (typeof data.name !== "string") return { data };
             const name = data.name.trim();

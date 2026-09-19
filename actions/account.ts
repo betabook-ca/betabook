@@ -9,7 +9,7 @@ import { profileShareLinks, user } from "@/db/schema";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
 import { DISPLAY_NAME_TAKEN_MESSAGE, displayNameProblem } from "@/lib/display-name";
 import { parseSendCommentAudience, parseSharingAudience } from "@/lib/privacy";
-import { profilePhotoKeyFromImage } from "@/lib/profile-photo";
+import { profilePhotoKeyOwnedBy } from "@/lib/profile-photo";
 import { deleteProfilePhoto, getProfilePhotoBucket } from "@/lib/profile-photo-store";
 import { requireSession } from "@/lib/session";
 import { requireTrimmed } from "@/lib/validation";
@@ -54,7 +54,8 @@ export async function removeProfilePhoto(): Promise<ActionResult> {
 
     await db.update(user).set({ image: null }).where(eq(user.id, session.user.id));
 
-    const key = profilePhotoKeyFromImage(current?.image);
+    // Owner-scoped: the column can hold a path this app never wrote.
+    const key = profilePhotoKeyOwnedBy(current?.image, session.user.id);
     if (key) {
       const bucket = await getProfilePhotoBucket();
       if (bucket) await deleteProfilePhoto(bucket, key);

@@ -36,10 +36,14 @@ const nextConfig: NextConfig = {
     serverActions: {
       // Profile photo uploads are the only action carrying a file. The
       // picker crops and re-encodes to a 512px square first, so a real
-      // submission is well under 100 KB; this leaves room for a photo that
-      // reached the action without that step and matches the cap the action
-      // enforces in lib/profile-photo.ts (plus multipart overhead).
-      bodySizeLimit: "3mb",
+      // submission is well under 100 KB.
+      //
+      // Deliberately above MAX_PROFILE_PHOTO_BYTES (3 MiB) rather than equal
+      // to it: this limit covers the whole raw request, so multipart
+      // boundaries and part headers ride on top of the file. At 3mb a photo
+      // exactly at the app's cap would be rejected by the framework with a
+      // generic error instead of the sentence lib/profile-photo.ts writes.
+      bodySizeLimit: "4mb",
     },
   },
   env: {

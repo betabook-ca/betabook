@@ -64,6 +64,22 @@ export function profilePhotoKeyFromImage(image?: string | null): string | null {
   return isProfilePhotoKey(key) ? key : null;
 }
 
+/** The same, but only when the key belongs to `ownerId`.
+ *
+ * `user.image` is not a column this app exclusively writes: Better Auth's
+ * session-gated `/update-user` endpoint accepts an `image` of the caller's
+ * choosing, and every avatar URL is visible in any feed or profile that
+ * renders it. Without this check a climber could point their own row at
+ * someone else's object and have the delete paths remove it for them. Use
+ * this — never the unscoped parse — before deleting anything. */
+export function profilePhotoKeyOwnedBy(
+  image: string | null | undefined,
+  ownerId: string,
+): string | null {
+  const key = profilePhotoKeyFromImage(image);
+  return key !== null && key.startsWith(`${ownerId}/`) ? key : null;
+}
+
 /** Content-addressed from a digest of the stored bytes: the same photo
  * cropped the same way is the same key, a different crop is a new one, and
  * no URL ever changes meaning — which is what lets the response be cached as

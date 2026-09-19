@@ -178,6 +178,25 @@ describe("removeProfilePhoto action boundary", () => {
     expect(await env.PROFILE_PHOTOS.get(key)).toBeNull();
   });
 
+  it("refuses to delete another climber's photo named by a tampered image value", async () => {
+    // Better Auth's /update-user accepts an `image`, so the column can hold a
+    // path this app never wrote — including another climber's, whose URL is
+    // visible wherever their avatar renders.
+    const theirs = await storeProfilePhoto(
+      { bucket: env.PROFILE_PHOTOS, images: env.IMAGES },
+      "other-user",
+      await makePngFile(400, 400),
+    );
+    await db
+      .update(user)
+      .set({ image: profilePhotoPath(theirs) })
+      .where(eq(user.id, "test-user"));
+
+    expect(await removeProfilePhoto()).toEqual({ ok: true, value: undefined });
+
+    expect(await env.PROFILE_PHOTOS.get(theirs)).not.toBeNull();
+  });
+
   it("leaves another climber's photo alone", async () => {
     const theirs = await storeProfilePhoto(
       { bucket: env.PROFILE_PHOTOS, images: env.IMAGES },

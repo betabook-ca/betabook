@@ -13,7 +13,9 @@ import {
   PROFILE_PHOTO_TOO_MANY_MESSAGE,
   PROFILE_PHOTO_WRONG_TYPE_MESSAGE,
   profilePhotoKeyFromImage,
+  profilePhotoPath,
 } from "@/lib/profile-photo";
+import { storeProfilePhoto } from "@/lib/profile-photo-store";
 import { seedFixtureUser } from "@/test/fixtures";
 import { makePngFile } from "@/test/image-fixtures";
 
@@ -191,4 +193,34 @@ it("leaves an existing photo in place when a throttled upload is refused", async
 
   expect(await storedImage()).toBe(existing);
   expect(await keys()).toEqual([profilePhotoKeyFromImage(existing)]);
+});
+
+it("refuses to delete another climber's photo named by a tampered image value", async () => {
+  // Better Auth's session-gated /update-user endpoint accepts `image`, so the
+  // column can hold a path this app never wrote — including one addressing
+  // someone else's object, whose URL is visible in any feed or profile.
+  const theirs = await storeProfilePhoto(
+    { bucket: env.PROFILE_PHOTOS, images: env.IMAGES },
+    "other-user",
+    await makePngFile(400, 400),
+  );
+  await db
+    .update(user)
+    .set({ image: profilePhotoPath(theirs) })
+    .where(eq(user.id, "test-user"));
+
+  await uploadProfilePhoto(await form(await makePngFile(512, 512)));
+
+  expect(await env.PROFILE_PHOTOS.get(theirs)).not.toBeNull();
+});
+
+it("keeps the replacement when an identical re-upload cannot be recorded", async () => {
+  await uploadProfilePhoto(await form(await makePngFile(512, 512)));
+  const key = profilePhotoKeyFromImage(await storedImage())!;
+
+  // The same crop hashes to the same key, so a failed row write must not
+  // delete the object the unchanged row still points at.
+  await uploadProfilePhoto(await form(await makePngFile(512, 512)));
+
+  expect(await env.PROFILE_PHOTOS.get(key)).not.toBeNull();
 });

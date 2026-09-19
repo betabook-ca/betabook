@@ -9,7 +9,7 @@ import { ActionError, toActionResult, type ActionResult } from "@/lib/action-res
 import {
   PROFILE_PHOTO_MISSING_MESSAGE,
   PROFILE_PHOTO_TOO_MANY_MESSAGE,
-  profilePhotoKeyFromImage,
+  profilePhotoKeyOwnedBy,
   profilePhotoPath,
   profilePhotoProblem,
 } from "@/lib/profile-photo";
@@ -58,6 +58,7 @@ export async function uploadProfilePhoto(formData: FormData): Promise<ActionResu
       .where(eq(user.id, session.user.id))
       .limit(1);
 
+    const currentKey = profilePhotoKeyOwnedBy(current?.image, session.user.id);
     const key = await storeProfilePhoto(store, session.user.id, file);
     try {
       await db
@@ -65,14 +66,17 @@ export async function uploadProfilePhoto(formData: FormData): Promise<ActionResu
         .set({ image: profilePhotoPath(key) })
         .where(eq(user.id, session.user.id));
     } catch (error) {
-      await deleteProfilePhoto(store.bucket, key);
+      // Only when it is not the object the unchanged row still names: an
+      // identical re-upload writes the same key, and deleting that here
+      // would break the avatar the failed write left in place.
+      if (key !== currentKey) await deleteProfilePhoto(store.bucket, key);
       throw error;
     }
 
     // Re-uploading the identical crop yields the same key, so compare before
     // deleting: otherwise the replacement would delete what it just wrote.
-    const replaced = profilePhotoKeyFromImage(current?.image);
-    if (replaced && replaced !== key) await deleteProfilePhoto(store.bucket, replaced);
+    if (currentKey !== null && currentKey !== key)
+      await deleteProfilePhoto(store.bucket, currentKey);
 
     afterCommit(() => {
       revalidateProfileSurfaces(session.user.id);
