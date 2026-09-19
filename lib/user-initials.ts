@@ -1,3 +1,5 @@
+import { profilePhotoKeyFromImage, profilePhotoPath } from "@/lib/profile-photo";
+
 /** Compact, deterministic initials for profile-photo fallbacks. Names with
  * multiple words use the outside pair (so middle names do not crowd the
  * avatar); a single-word name uses its first two characters. */
@@ -12,6 +14,21 @@ export function getUserInitials(name: string): string {
       : `${first[0] ?? ""}${Array.from(parts.at(-1) ?? "")[0] ?? ""}`;
 
   return initials.toUpperCase();
+}
+
+/** The photo to render for a stored `user.image`, or null for initials.
+ *
+ * Two kinds share that column (see lib/profile-photo.ts). An uploaded photo
+ * is already exactly the size every avatar needs, so it is served as-is —
+ * running 256 px of WebP through the image optimizer would spend Worker CPU
+ * to produce the same bytes. A Google URL keeps going through next/image,
+ * whose allowlist in next.config.ts is pinned to that one host. */
+export function getAvatarPhoto(image?: string | null): { url: string; optimize: boolean } | null {
+  const key = profilePhotoKeyFromImage(image);
+  if (key) return { url: profilePhotoPath(key), optimize: false };
+
+  const google = getGoogleProfileImageUrl(image);
+  return google === null ? null : { url: google, optimize: true };
 }
 
 /** Only pass the Google profile-photo URLs the app is configured to optimize

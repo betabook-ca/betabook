@@ -10,7 +10,9 @@ vi.mock("next/cache", () => ({ refresh: () => {}, revalidatePath: () => {} }));
 // next/image resolves to an object in this runner, so stand in for it and keep
 // the resolved src visible — which photo reaches the avatar is the assertion.
 vi.mock("next/image", () => ({
-  default: ({ src }: { src: string }) => <span data-src={src} />,
+  default: ({ src, unoptimized }: { src: string; unoptimized?: boolean }) => (
+    <span data-src={src} data-unoptimized={unoptimized ? "true" : "false"} />
+  ),
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
@@ -19,6 +21,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 const PHOTO = "https://lh3.googleusercontent.com/a/alex=s96-c";
+const UPLOADED = "/api/avatars/alex/abababababababababababababababab.webp";
 
 function markup(image: string | null) {
   return renderToStaticMarkup(
@@ -52,4 +55,23 @@ it("withholds removal from an account that already shows initials", () => {
     expect(html).toContain("Display name");
     expect(html).toContain("AR");
   }
+});
+
+it("offers an upload to every account, photo or not", () => {
+  // Unlike the Google-only row this replaced, which appeared only for an
+  // account that already had a photo.
+  expect(markup(null)).toContain("Upload photo");
+  expect(markup("https://example.com/a/avatar")).toContain("Upload photo");
+  expect(markup(PHOTO)).toContain("Change photo");
+});
+
+it("serves an uploaded photo straight from its own URL", () => {
+  const html = markup(UPLOADED);
+
+  // The stored object is already exactly the size the avatar needs, so it
+  // must not go through the image optimizer — unlike the Google URL below.
+  expect(html).toContain(`data-src="${UPLOADED}" data-unoptimized="true"`);
+  expect(markup(PHOTO)).toContain(`data-src="${PHOTO}" data-unoptimized="false"`);
+  expect(html).toContain("Change photo");
+  expect(html).toContain("Remove photo");
 });

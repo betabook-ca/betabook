@@ -27,8 +27,10 @@ it("confirms before clearing the photo, because the URL is gone afterwards", asy
 
   const dialog = await screen.findByRole("alertdialog");
   expect(dialog).toHaveTextContent("Remove your profile photo?");
-  // The warning has to say it is permanent: nothing re-fetches the URL.
-  expect(dialog).toHaveTextContent(/signing in with Google again won't bring it back/i);
+  // The warning has to say it is permanent for either kind of photo: an
+  // uploaded object is deleted, and nothing re-fetches a Google URL.
+  expect(dialog).toHaveTextContent(/an uploaded photo is deleted/i);
+  expect(dialog).toHaveTextContent(/signing in with Google again won't bring that photo back/i);
   expect(remove).not.toHaveBeenCalled();
 
   await user.click(confirm());
