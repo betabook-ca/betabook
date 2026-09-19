@@ -24,6 +24,28 @@ test("goal rows begin directly below the toolbar without extra first-row padding
   expect(Math.abs(row.y - toolbar.y - toolbar.height)).toBeLessThanOrEqual(1);
 });
 
+test("@layout empty goal history uses the active row's vertical padding", async ({
+  page,
+}, info) => {
+  await openStory(page, info, "components-goals-goal-panel--active");
+  const activePadding = await page
+    .locator(".divide-y > div")
+    .first()
+    .evaluate((row) => ({
+      top: getComputedStyle(row).paddingTop,
+      bottom: getComputedStyle(row).paddingBottom,
+    }));
+  await page.getByRole("button", { name: "History (0)" }).click();
+  const empty = page.getByText("No goal history yet.", { exact: true });
+  await expect(empty).toBeVisible();
+  expect(
+    await empty.evaluate((message) => ({
+      top: getComputedStyle(message).paddingTop,
+      bottom: getComputedStyle(message).paddingBottom,
+    })),
+  ).toEqual(activePadding);
+});
+
 test("goal controls start at the surface without a redundant heading row", async ({
   page,
 }, info) => {
