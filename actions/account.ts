@@ -9,8 +9,7 @@ import { profileShareLinks, user } from "@/db/schema";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
 import { DISPLAY_NAME_TAKEN_MESSAGE, displayNameProblem } from "@/lib/display-name";
 import { parseSendCommentAudience, parseSharingAudience } from "@/lib/privacy";
-import { profilePhotoKeyOwnedBy } from "@/lib/profile-photo";
-import { deleteProfilePhoto, getProfilePhotoBucket } from "@/lib/profile-photo-store";
+import { deletePreviousProfilePhoto, getProfilePhotoBucket } from "@/lib/profile-photo-store";
 import { requireSession } from "@/lib/session";
 import { requireTrimmed } from "@/lib/validation";
 
@@ -31,12 +30,12 @@ export async function setUserPrivate(isPrivate: boolean): Promise<ActionResult> 
   });
 }
 
-/** Clears whichever photo is showing — an upload or the OAuth photo stored by
- * Better Auth — so every avatar falls back to initials. Irreversible by
- * design: an uploaded object is deleted rather than orphaned, nothing
- * re-fetches a Google URL, and Better Auth writes no profile fields on a
- * repeat social sign-in, so signing in with Google again does not bring the
- * photo back.
+/** Clears whichever photo is showing — an upload, or a Google URL on an
+ * account created before sign-in stopped copying one — so every avatar falls
+ * back to initials. Irreversible by design: an uploaded object is deleted
+ * rather than orphaned, nothing re-fetches a Google URL, and Better Auth
+ * writes no profile fields on a repeat social sign-in, so signing in with
+ * Google again does not bring the photo back.
  *
  * The row is cleared before the object is deleted. That order can leave an
  * unreferenced object behind if the delete fails, which costs ~20 KB; the
@@ -54,11 +53,12 @@ export async function removeProfilePhoto(): Promise<ActionResult> {
 
     await db.update(user).set({ image: null }).where(eq(user.id, session.user.id));
 
-    // Owner-scoped: the column can hold a path this app never wrote.
-    const key = profilePhotoKeyOwnedBy(current?.image, session.user.id);
-    if (key) {
+    // A Google URL names no object of ours, a photo already deleted by a
+    // racing request names one that is gone, and the column can even hold a
+    // path this app never wrote: all three are logged, and the removal stands.
+    if (current?.image) {
       const bucket = await getProfilePhotoBucket();
-      if (bucket) await deleteProfilePhoto(bucket, key);
+      if (bucket) await deletePreviousProfilePhoto(bucket, current.image, session.user.id);
     }
 
     afterCommit(() => {

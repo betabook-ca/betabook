@@ -9,6 +9,7 @@ import {
   PROFILE_PHOTO_QUALITY,
   PROFILE_PHOTO_UNREADABLE_MESSAGE,
   profilePhotoKey,
+  profilePhotoKeyOwnedBy,
   sniffImageType,
 } from "@/lib/profile-photo";
 
@@ -105,13 +106,43 @@ export async function readProfilePhoto(
 }
 
 /** Best effort: a photo nobody links to costs ~20 KB, and failing a climber's
- * upload over its predecessor's funeral would be the worse trade. */
+ * upload over its predecessor's funeral would be the worse trade. An object
+ * that is already gone is a log line, not a failure — a replaced photo can
+ * legitimately have been removed by a request that raced this one. */
 export async function deleteProfilePhoto(bucket: R2Bucket, key: string): Promise<void> {
   try {
+    if ((await bucket.head(key)) === null) {
+      console.warn("No profile photo object to delete", { key });
+      return;
+    }
     await bucket.delete(key);
   } catch (error) {
-    console.error("Couldn't delete a replaced profile photo", error);
+    console.error("Couldn't delete a replaced profile photo", { key }, error);
   }
+}
+
+/** Retires whatever a climber's previous `user.image` pointed at, before it
+ * is replaced or cleared.
+ *
+ * Most stored values name no object of this climber's — a Google URL from an
+ * account created before uploads existed, or nothing at all — and that is the
+ * ordinary case rather than a problem: there is nothing to delete, so it is
+ * recorded and the write carries on. Resolving the key through
+ * `profilePhotoKeyOwnedBy` is also what keeps a path pointing at someone
+ * else's object from being deleted here; see that function for how one could
+ * get into the column. Never throws, for any of those reasons. */
+export async function deletePreviousProfilePhoto(
+  bucket: R2Bucket,
+  previousImage: string | null | undefined,
+  ownerId: string,
+): Promise<void> {
+  const key = profilePhotoKeyOwnedBy(previousImage, ownerId);
+  if (key === null) {
+    if (previousImage)
+      console.warn("Previous profile photo named no object of this climber's — nothing to delete");
+    return;
+  }
+  await deleteProfilePhoto(bucket, key);
 }
 
 /** Every photo this climber has ever had, for account deletion. Normally one

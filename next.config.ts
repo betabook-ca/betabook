@@ -6,7 +6,8 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   poweredByHeader: false,
   images: {
-    // Better Auth stores Google's OpenID `picture` URL on the user row.
+    // Accounts created before lib/auth.ts stopped copying Google's OpenID
+    // `picture` into the user row still carry one, and those keep rendering.
     // Keep the optimizer allowlist pinned to that provider rather than
     // accepting arbitrary remote URLs from a database-backed `src`.
     remotePatterns: [

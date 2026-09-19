@@ -158,10 +158,20 @@ async function authBuilder() {
               typeof registration.sharePath === "string" ? registration.sharePath : undefined,
             );
             const referrer = share ? await getShareLinkOwner(db, share.token) : null;
-            const terms = {
+            const registrationFields = {
               termsVersion: TERMS_VERSION,
               termsAcceptedAt: new Date(),
               referredBy: share && referrer?.id === share.userId ? share.userId : null,
+              // No account starts with a photo, including one created through
+              // Google. Better Auth would otherwise store the provider's
+              // `picture` URL, putting a photo on the climber's profile that
+              // they never chose to publish here — now that /account can
+              // upload one, having it is a decision rather than a side effect
+              // of which sign-in button was pressed. Accounts that already
+              // carry a Google URL keep it: this governs creation only, and
+              // `overrideUserInfoOnSignIn` stays off, so a later sign-in
+              // neither restores a removed photo nor overwrites an upload.
+              image: null,
             };
             if (ctx?.path === "/sign-up/email") {
               const name = newUser.name.trim();
@@ -172,10 +182,14 @@ async function authBuilder() {
                   message: DISPLAY_NAME_TAKEN_MESSAGE,
                 });
               }
-              return { data: { ...newUser, name, ...terms } };
+              return { data: { ...newUser, name, ...registrationFields } };
             }
             return {
-              data: { ...newUser, name: await uniqueDisplayName(db, newUser.name), ...terms },
+              data: {
+                ...newUser,
+                name: await uniqueDisplayName(db, newUser.name),
+                ...registrationFields,
+              },
             };
           },
           after: async (createdUser) => {
