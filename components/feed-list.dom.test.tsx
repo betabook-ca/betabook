@@ -32,6 +32,7 @@ const day: FeedDay = {
   sessions: 1,
   repeats: 0,
   training: 0,
+  goals: 0,
   activities: [
     {
       id: 1,

@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import { refresh } from "next/cache";
 
+import { scheduleGoalRefresh } from "@/actions/goal-refresh";
 import { getDb, type Database } from "@/db/client";
 import {
   findClimbCandidatesByNames,
@@ -368,7 +369,8 @@ export async function importSends(
       throw new ActionError("The import result could not be confirmed");
     }
 
-    if (statements.length > 0)
+    if (statements.length > 0) {
+      await scheduleGoalRefresh(db, session.user.id);
       afterCommit(() => {
         const affectedClimbIds = [
           ...toInsert.map((row) => row.climbId),
@@ -386,6 +388,7 @@ export async function importSends(
         }
         refresh();
       });
+    }
 
     return committed;
   });

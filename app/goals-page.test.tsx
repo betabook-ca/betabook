@@ -2,6 +2,7 @@ import { env } from "cloudflare:test";
 import type { ComponentProps, ReactElement } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 
+import { scheduleGoalRefresh } from "@/actions/goal-refresh";
 import GoalsPage, { generateMetadata } from "@/app/users/[id]/goals/page";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { GoalPanel } from "@/components/goals/goal-panel";
@@ -9,6 +10,10 @@ import { createDb } from "@/db/client";
 import { goals } from "@/db/schema";
 import { seedFixtureUser } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
+
+vi.mock("@/actions/goal-refresh", () => ({
+  scheduleGoalRefresh: vi.fn<typeof scheduleGoalRefresh>(async () => {}),
+}));
 
 const session = vi.hoisted(() => ({ userId: "owner" as string | null }));
 vi.mock("@opennextjs/cloudflare", () => ({
@@ -29,6 +34,7 @@ vi.mock("next/navigation", () => ({
 }));
 const db = createDb(env.DB);
 beforeEach(async () => {
+  vi.mocked(scheduleGoalRefresh).mockClear();
   session.userId = "owner";
   await resetDb(db);
   await seedFixtureUser(db, { id: "owner" });
@@ -50,6 +56,7 @@ it("opens an expanded Goals page with the owner's actual goals", async () => {
     workspace: string;
     children: ReactElement<ComponentProps<typeof GoalPanel>>;
   }>;
+  expect(scheduleGoalRefresh).toHaveBeenCalledWith(expect.anything(), "owner");
   expect(page.props.workspace).toBe("progress");
   expect(page.props.children.type).toBe(GoalPanel);
   expect(page.props.children.props.ownerId).toBe("owner");
@@ -70,4 +77,5 @@ it("denies another member in both the page and metadata", async () => {
   session.userId = "member";
   await expect(GoalsPage({ params: params() })).rejects.toThrow("Not found");
   await expect(generateMetadata({ params: params() })).rejects.toThrow("Not found");
+  expect(scheduleGoalRefresh).not.toHaveBeenCalled();
 });

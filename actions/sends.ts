@@ -3,6 +3,7 @@
 import { eq } from "drizzle-orm";
 import { refresh } from "next/cache";
 
+import { scheduleGoalRefresh } from "@/actions/goal-refresh";
 import { getDb } from "@/db/client";
 import {
   getClimb,
@@ -224,6 +225,7 @@ export async function updateSend(sendId: number, formData: FormData): Promise<Ac
           "The journal changed while this send was being saved — try again",
         );
       }
+      await scheduleGoalRefresh(db, session.user.id);
       afterCommit(() =>
         revalidateJournalSurfaces({ userId: session.user.id, climbIds: [existing.climbId] }),
       );
@@ -253,6 +255,7 @@ export async function deleteSend(sendId: number): Promise<ActionResult> {
     await db.delete(sends).where(eq(sends.id, sendId));
 
     const climb = await getClimb(db, existing.climbId);
+    await scheduleGoalRefresh(db, session.user.id);
     afterCommit(() => {
       revalidateJournalSurfaces({ userId: session.user.id, climbIds: [existing.climbId] });
       revalidateSendSurfaces({

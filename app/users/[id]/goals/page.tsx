@@ -2,6 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { scheduleGoalRefresh } from "@/actions/goal-refresh";
 import { ProfileHeader, getUserById } from "@/app/users/[id]/profile-shell";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { GoalPanel } from "@/components/goals/goal-panel";
@@ -33,6 +34,7 @@ export default async function GoalsPage({ params }: GoalsPageProps) {
     getGoalOverview(db, user.id, user.id),
     getNextGoalGrades(db, user.id, user.id),
   ]);
+  await scheduleGoalRefresh(db, user.id);
   const timezone = cf?.timezone ?? "UTC";
   return (
     <ProfileHeader user={user} viewerId={session.user.id} workspace="progress">

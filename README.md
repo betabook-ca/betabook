@@ -128,7 +128,7 @@ New accounts default to **Members** send commentary and **Friends** journal entr
 Existing audience choices stay unchanged; the Members label uses the stored `public` value.
 Send commentary has its own audience, applied to original-send notes on climb
 pages, Sends, the feed, and mirrored ascent notes in the journal. The journal
-audience controls access to the journal, sessions, repeats, training, and tags.
+audience is labeled **Journal and goals** and controls access to the journal, sessions, repeats, training, tags, and finished goals in friends’ feeds.
 Deleting a send retains its journal entry and keeps its commentary audience, including
 after further edits. Database triggers classify original-send notes for every write path.
 Private profile overrides both audiences and turns the climber's sends into anonymous rows on climb pages;
@@ -280,3 +280,7 @@ those permissions requires a separate license from the copyright holder.
 
 The app serves a copy at `/license.txt`. Keep `public/license.txt` synchronized with
 `LICENSE` when updating the license or required notices.
+
+### Goal completion refresh
+
+Goal progress is calculated live. Owner writes that affect progress and owner Goals visits schedule stored completion events to refresh after the response with Next.js `after()`. The feed displays the last reconciled events: moderator climb edits or merges, failed callbacks, and future-dated completions wait until the owner’s next relevant write or Goals visit. Current privacy and friendship checks still apply on every feed read, and deleting a goal cascades to its events. There is no goal cache, invalidation trigger, or scheduled recovery worker. Local `pnpm dev` exercises the after-response callbacks.
