@@ -40,17 +40,22 @@ export function ListRow({
   return (
     <div
       className={clsx(
-        "relative flex items-center gap-4 px-4 py-3",
+        "relative flex flex-col gap-2 px-4 py-3",
         href != null &&
           "transition-colors focus-within:bg-surface-secondary/60 hover:bg-surface-secondary/60",
         className,
       )}
     >
-      {leading && <div className="relative z-10 shrink-0">{leading}</div>}
-      {/* Keep trailing values fixed while the text column shrinks. */}
-      <div className="flex min-w-0 flex-1 items-center gap-x-4">
-        <div className="flex min-w-0 grow flex-col gap-2">
-          <div>
+      {/* Header first, comment below it: the leading slot and the trailing
+       * values centre on the title and subtitle alone, so an avatar sits
+       * level with the name it belongs to rather than being pushed down by a
+       * comment, and the comment starts at the row's own left edge instead of
+       * indenting past the avatar. Same shape as JournalEntryLayout. */}
+      <div className="flex items-center gap-4">
+        {leading && <div className="relative z-10 shrink-0">{leading}</div>}
+        {/* Keep trailing values fixed while the text column shrinks. */}
+        <div className="flex min-w-0 flex-1 items-center gap-x-4">
+          <div className="min-w-0 grow">
             <div className="flex items-baseline gap-2">
               <span
                 className={clsx(
@@ -93,16 +98,16 @@ export function ListRow({
               </div>
             )}
           </div>
-          {comment != null && (
-            // Keep text selection above the row-link overlay.
-            <div className="relative z-10 text-sm leading-relaxed text-foreground">
-              <ClampedComment>{comment}</ClampedComment>
-            </div>
-          )}
+          {trailing && <div className="shrink-0 text-right tabular-nums">{trailing}</div>}
         </div>
-        {trailing && <div className="shrink-0 text-right tabular-nums">{trailing}</div>}
+        {actions && <div className="relative z-10 shrink-0">{actions}</div>}
       </div>
-      {actions && <div className="relative z-10 shrink-0">{actions}</div>}
+      {comment != null && (
+        // Keep text selection above the row-link overlay.
+        <div className="relative z-10 text-sm leading-relaxed text-foreground">
+          <ClampedComment>{comment}</ClampedComment>
+        </div>
+      )}
     </div>
   );
 }
