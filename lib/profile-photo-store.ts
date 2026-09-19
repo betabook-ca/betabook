@@ -106,15 +106,14 @@ export async function readProfilePhoto(
 }
 
 /** Best effort: a photo nobody links to costs ~20 KB, and failing a climber's
- * upload over its predecessor's funeral would be the worse trade. An object
- * that is already gone is a log line, not a failure — a replaced photo can
- * legitimately have been removed by a request that raced this one. */
+ * upload over its predecessor's funeral would be the worse trade.
+ *
+ * No check that the object is there first: `delete` is idempotent for a key
+ * that is already gone — which a replaced photo legitimately can be, if a
+ * removal raced this — and a preflight would spend a third R2 operation on
+ * every replacement to learn something nothing acts on. */
 export async function deleteProfilePhoto(bucket: R2Bucket, key: string): Promise<void> {
   try {
-    if ((await bucket.head(key)) === null) {
-      console.warn("No profile photo object to delete", { key });
-      return;
-    }
     await bucket.delete(key);
   } catch (error) {
     console.error("Couldn't delete a replaced profile photo", { key }, error);

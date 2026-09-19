@@ -133,17 +133,19 @@ it("logs rather than fails when the previous photo is a Google URL", async () =>
   logged.mockRestore();
 });
 
-it("logs rather than fails when the previous object is already gone", async () => {
-  const logged = vi.spyOn(console, "warn").mockImplementation(() => {});
+it("passes quietly when the previous object is already gone", async () => {
+  const failed = vi.spyOn(console, "error").mockImplementation(() => {});
   const key = await storeProfilePhoto(store, "climber1", await makePngFile(300, 300));
   await env.PROFILE_PHOTOS.delete(key);
 
+  // R2's delete is idempotent, so a photo a racing removal already took is a
+  // no-op rather than an error — and worth no extra request to detect.
   await expect(
     deletePreviousProfilePhoto(env.PROFILE_PHOTOS, profilePhotoPath(key), "climber1"),
   ).resolves.toBeUndefined();
 
-  expect(logged).toHaveBeenCalled();
-  logged.mockRestore();
+  expect(failed).not.toHaveBeenCalled();
+  failed.mockRestore();
 });
 
 it("says nothing when there was no previous photo at all", async () => {
