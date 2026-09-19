@@ -92,10 +92,10 @@ it does not duplicate activity.
 | `climber9@example.com`, `climber11@example.com` | Incoming requests from a private and a member-visible profile respectively                                               |
 | `climber10@example.com`                         | No connection to dev; Friends journal inaccessible                                                                       |
 | `climber12@example.com`                         | Friend of dev with Friends-only commentary and an Only me journal                                                        |
-| `climber13@example.com`                         | Completed tour version 1; gets nine What's new lessons                                                                   |
-| `climber14@example.com`                         | Dismissed tour version 1; gets nine What's new lessons                                                                   |
-| `climber15@example.com`                         | Completed tour version 2; gets five updates: Goals and Find climbs                                                       |
-| `climber16@example.com`                         | No tour progress; gets the full fourteen-lesson tour                                                                     |
+| `climber13@example.com`                         | Completed tour version 1; gets four What's new lessons                                                                   |
+| `climber14@example.com`                         | Dismissed tour version 1; gets four What's new lessons                                                                   |
+| `climber15@example.com`                         | Completed tour version 2; no invitation, full replay in Account                                                          |
+| `climber16@example.com`                         | No tour progress; gets the full nine-lesson tour                                                                         |
 
 Use the seeded password (`password` by default). The full set requires at least
 16 synthetic users. Eight authors have a mixed-activity day on September 1, 2026;

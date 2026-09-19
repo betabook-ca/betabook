@@ -49,10 +49,6 @@ for (const story of [
   "search",
   "you",
   "updates",
-  "goals",
-  "goal-tags",
-  "goal-progress",
-  "goal-achievements",
 ]) {
   test(`tutorial ${story} fits with visible primary navigation`, async ({ page }, info) => {
     await openStory(page, info, `components-tutorials-navigation-preview--${story}`);
@@ -72,20 +68,3 @@ for (const story of [
     expect(dimensions.content).toBeLessThanOrEqual(dimensions.width);
   });
 }
-
-test(
-  "goal hashtag controls fit and scroll within the example workspace",
-  { tag: "@layout" },
-  async ({ page }, info) => {
-    await openStory(page, info, "components-tutorials-navigation-preview--goal-tags");
-    const target = page.locator('[data-tour-target="goal-tags"]');
-    await target.scrollIntoViewIfNeeded();
-    const bounds = await page.locator("[data-tour-scroll]").boundingBox();
-    const targetBounds = await target.boundingBox();
-    if (!bounds || !targetBounds) throw new Error("Missing goal tag controls");
-    expect(targetBounds.x).toBeGreaterThanOrEqual(bounds.x);
-    expect(targetBounds.x + targetBounds.width).toBeLessThanOrEqual(bounds.x + bounds.width + 1);
-    expect(targetBounds.y).toBeGreaterThanOrEqual(bounds.y - 1);
-    expect(targetBounds.y + targetBounds.height).toBeLessThanOrEqual(bounds.y + bounds.height + 1);
-  },
-);

@@ -12,7 +12,7 @@ import { DISCIPLINE_CHIP_CLASSNAME, DISCIPLINE_LABELS } from "@/components/ui/di
 import { FIELD_HEIGHT_CLASS, FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { OptionSelect } from "@/components/ui/option-select";
-import { PageTitle, SectionHeading } from "@/components/ui/typography";
+import { PageTitle } from "@/components/ui/typography";
 import { goalToday, goalWindow, type GoalInput } from "@/lib/goals";
 import { nativeGradeArray, type ClimbType } from "@/lib/grades";
 
@@ -101,7 +101,6 @@ export function GoalForm({
   today = goalToday(new Intl.DateTimeFormat().resolvedOptions().timeZone),
   onPendingChange,
   embedded = false,
-  headingLevel = 1,
   nextGrades = NO_GRADE_HISTORY,
 }: {
   initialCategory?: Category;
@@ -115,13 +114,10 @@ export function GoalForm({
   today?: string;
   onPendingChange?: (pending: boolean) => void;
   embedded?: boolean;
-  /** Use h2 when the surrounding workspace supplies the page heading. */
-  headingLevel?: 1 | 2;
   nextGrades?: Partial<Record<ClimbType, number>>;
   onCancel?: () => void;
   initialRepeat?: GoalInput["repeat"];
 }) {
-  const Title = headingLevel === 2 ? SectionHeading : PageTitle;
   const draft = initialDraft ?? initialValues;
   const [category, setCategory] = useState<Category>(
     draft?.category ?? initialCategory ?? "climbing",
@@ -195,9 +191,7 @@ export function GoalForm({
         {step === "category" ? (
           <>
             <div>
-              <Title className="font-display text-3xl! text-foreground">
-                What do you want to work on?
-              </Title>
+              <PageTitle className="text-foreground">What do you want to work on?</PageTitle>
             </div>
             <div className="flex flex-col gap-3">
               {categories.map(({ value, label, description, icon: Icon }, index) => (
@@ -244,9 +238,9 @@ export function GoalForm({
                 Back
               </Button>
             </div>
-            <Title className="font-display text-2xl!">
+            <PageTitle className="text-2xl!">
               {categories.find((item) => item.value === category)?.label}
-            </Title>
+            </PageTitle>
             <form
               className="flex flex-col gap-3"
               onSubmit={async (event) => {
@@ -387,10 +381,7 @@ export function GoalForm({
                     </Checkbox>
                   )}
                 </div>
-                <div
-                  data-tour-target="goal-target"
-                  className="flex flex-wrap items-center gap-x-1 gap-y-5"
-                >
+                <div className="flex flex-wrap items-center gap-x-1 gap-y-5">
                   <div className="flex flex-wrap items-center gap-1 text-sm">
                     {goal !== "grade" && (
                       <div className={SENTENCE_GROUP_CLASS}>
@@ -535,7 +526,7 @@ export function GoalForm({
                     </p>
                   </div>
                 )}
-                <div data-tour-target="goal-tags" className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1">
                   <TagInput value={tags} onChange={setTags} />
                   <p className="text-xs text-muted">
                     Only entries with every selected hashtag count. Leave empty to count all

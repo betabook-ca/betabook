@@ -41,42 +41,6 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
       target: "send-sort",
     },
     {
-      id: "goals",
-      introducedInVersion: 4,
-      section: "Goals",
-      title: "Set a goal",
-      description:
-        "Open Progress, then Goals. Choose a climbing, training, days-out or new-area target. For recurring goals, choose No end date or set a final date before saving. You can keep five active goals. Try setting a monthly training goal in this example.",
-      target: "goal-target",
-    },
-    {
-      id: "goal-tags",
-      introducedInVersion: 4,
-      section: "Goals",
-      title: "Focus goals with tags",
-      description:
-        "Add hashtags to count only matching entries. For example, #hangboard and #strength require both tags on the same entry. Leave tags empty to count every eligible entry. Goal filters do not add tags to your logs.",
-      target: "goal-tags",
-    },
-    {
-      id: "goal-progress",
-      introducedInVersion: 4,
-      section: "Goals",
-      title: "Log toward your target",
-      description:
-        "When logging, add the goal’s hashtags under Add details. Try a strength-only session here, then two sessions with both tags. Only the matching sessions advance this goal. Correcting or deleting a log can reverse completion.",
-      target: "goal-progress",
-    },
-    {
-      id: "goal-achievements",
-      introducedInVersion: 4,
-      section: "Goals",
-      title: "Keep your achievements",
-      description:
-        "Finished one-time goals do not use active slots. Archive this example, then open History. Use End routine on a recurring goal to choose its final date. It frees its slot after that date, keeping past weeks in History. Archived achievements remain visible to friends when shared.",
-      target: "goal-finish",
-    },
-    {
       id: "projects",
       introducedInVersion: 1,
       section: "Open Projects",
@@ -127,7 +91,7 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
       section: "Feed",
       title: "Catch up with friends",
       description:
-        "See what your friends have been climbing and the goals they’ve accomplished. Switch to Sends to see just their sends.",
+        "See what your friends have been climbing. Switch to Sends to see just their sends.",
       target: "friend-feed",
     },
     {
@@ -137,7 +101,7 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
       section: "Account settings",
       title: "Choose what you share",
       description:
-        "Open Account settings from the sidebar or mobile menu to manage your account and sharing. Send commentary and Journal and goals have separate audiences. Finished goals appear in friends’ feeds when shared with them. Try Members commentary with a Friends-only journal. Turn on Private profile to hide your climbing history from everyone else. Both controls are disabled, and your choices are kept. Audience changes apply to past entries too.",
+        "Open Account settings from the sidebar or mobile menu to manage your account and sharing. Send commentary and journal entries have separate audiences. Try Members commentary with a Friends-only journal. Turn on Private profile to hide your climbing history from everyone else. Both controls are disabled, and your choices are kept. Audience changes apply to past entries too.",
       target: "privacy-controls",
     },
   ],

@@ -4,14 +4,14 @@ import { ActionError } from "@/lib/action-result";
 export const PRODUCT_TOURS = [
   {
     id: "journal",
-    version: 4,
-    name: "Journal, goals, projects and sharing",
+    version: 3,
+    name: "Journal, projects, friends and sharing",
     title: "Keep a climbing journal",
     description:
-      "Learn to log sessions, set goals, find projects, add friends, and choose what you share.",
-    returningTitle: "Make progress with goals",
+      "Learn to log sessions, find your next project, add friends, and choose who can read your notes.",
+    returningTitle: "Find your next project",
     returningDescription:
-      "Set climbing or training goals, focus them with hashtags, and share your achievements with friends.",
+      "Browse climbs by area, grade, rating and ascents on Find climbs. Add your climbing partners as friends and set separate audiences for send commentary and journal entries.",
   },
 ] as const;
 
