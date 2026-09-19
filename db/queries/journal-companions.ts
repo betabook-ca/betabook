@@ -15,6 +15,7 @@ import { journalVisibleSql } from "./content-access";
  * own viewer, so the name links out like any other companion's. */
 export function companionsJsonSql(viewerId: string | null, entryId: SQL): SQL {
   return sql`(SELECT json_group_array(json_object('id', companion.id, 'name', companion.name,
+    'image', companion.image,
     'isSelf', json(CASE WHEN companion.id = ${viewerId} THEN 'true' ELSE 'false' END)))
     FROM journal_companions jc INDEXED BY journal_companions_active_idx
     JOIN journal_entries tagged_entry ON tagged_entry.id = jc.entry_id
@@ -43,7 +44,7 @@ export async function searchCompanionFriends(
       SELECT friend_id AS id FROM friendships WHERE user_id = ${ownerId} AND status = 'accepted'
       UNION ALL SELECT user_id AS id FROM friendships WHERE friend_id = ${ownerId} AND status = 'accepted'
     )
-    SELECT u.id, u.name FROM friends f CROSS JOIN user u ON u.id = f.id
+    SELECT u.id, u.name, u.image FROM friends f CROSS JOIN user u ON u.id = f.id
     WHERE substr(u.name, 1, length(${query})) = ${query} COLLATE NOCASE
     ORDER BY u.name COLLATE NOCASE, u.id LIMIT 20
   `);
@@ -55,7 +56,7 @@ export async function getJournalFilterFriends(
   ownerId: string,
 ): Promise<CompanionOption[]> {
   return db.all<CompanionOption>(sql`
-    SELECT u.id, u.name FROM friendships f
+    SELECT u.id, u.name, u.image FROM friendships f
     JOIN user u ON u.id = CASE WHEN f.user_id = ${ownerId} THEN f.friend_id ELSE f.user_id END
     WHERE (f.user_id = ${ownerId} OR f.friend_id = ${ownerId}) AND f.status = 'accepted'
     ORDER BY u.name COLLATE NOCASE, u.id

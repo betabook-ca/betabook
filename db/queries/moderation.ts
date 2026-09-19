@@ -148,6 +148,7 @@ export async function getApprovalCoverageRows(db: Database, requests: RequestSco
     requestId: number;
     userId: string;
     name: string;
+    image: string | null;
     areaId: number;
     covered: number;
   }>(sql`
@@ -161,7 +162,7 @@ export async function getApprovalCoverageRows(db: Database, requests: RequestSco
       SELECT ancestors.area_id, areas.parent_id FROM ancestors
       JOIN areas ON areas.id = ancestors.ancestor_id WHERE areas.parent_id IS NOT NULL
     )
-    SELECT r.request_id AS requestId, u.id AS userId, u.name, r.area_id AS areaId,
+    SELECT r.request_id AS requestId, u.id AS userId, u.name, u.image, r.area_id AS areaId,
       (u.role = 'admin' AND EXISTS (
         SELECT 1 FROM admin_area_scopes s JOIN ancestors a ON a.ancestor_id = s.area_id
         WHERE s.user_id = u.id AND a.area_id = r.area_id

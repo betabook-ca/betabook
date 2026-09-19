@@ -12,6 +12,7 @@ import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import { ClampedComment } from "@/components/ui/clamped-comment";
 import { Grade } from "@/components/ui/grade";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { feedDayHref, type FeedView } from "@/lib/feed";
 import type { FeedEntry } from "@/lib/feed-groups";
 import { formatDate } from "@/lib/format-date";
@@ -81,16 +82,19 @@ export function FeedActivityCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-3">
             <div className="flex min-h-8 min-w-0 flex-1 flex-col items-start gap-0.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2">
-              {links ? (
-                <AppLink
-                  href={`/users/${day.userId}`}
-                  className="text-sm font-medium break-words text-foreground"
-                >
-                  {day.name}
-                </AppLink>
-              ) : (
-                <span className="text-sm font-medium break-words">{day.name}</span>
-              )}
+              <div className="flex min-w-0 items-center gap-2">
+                <UserAvatar name={day.name} image={day.image} size="xs" />
+                {links ? (
+                  <AppLink
+                    href={`/users/${day.userId}`}
+                    className="text-sm font-medium break-words text-foreground"
+                  >
+                    {day.name}
+                  </AppLink>
+                ) : (
+                  <span className="text-sm font-medium break-words">{day.name}</span>
+                )}
+              </div>
               <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                 <span
                   className={clsx(

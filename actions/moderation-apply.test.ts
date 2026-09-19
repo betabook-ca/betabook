@@ -272,11 +272,18 @@ describe("isAdminForAllAreas", () => {
   });
 });
 
+const COVERAGE_ADMIN_A_PHOTO =
+  "/api/avatars/coverage-admin-a/abababababababababababababababab.webp";
+
 describe("changeRequestCoverage", () => {
   beforeEach(async () => {
     // Roles live on the user row here (not a session object) because
     // coverage re-reads each approver's current role at decision time.
-    await seedFixtureUser(db, { id: "coverage-admin-a", role: "admin" });
+    await seedFixtureUser(db, {
+      id: "coverage-admin-a",
+      role: "admin",
+      image: COVERAGE_ADMIN_A_PHOTO,
+    });
     await seedFixtureUser(db, { id: "coverage-admin-b", role: "admin" });
     await seedFixtureUser(db, { id: "coverage-non-admin" });
     await seedFixtureUser(db, { id: "coverage-requester" });
@@ -373,6 +380,21 @@ describe("changeRequestCoverage", () => {
 
     const coverage = await coverageFor(await loadRequest(id));
     expect(coverage.approvers.map((a) => a.id)).toEqual(["coverage-admin-a"]);
+  });
+
+  it("carries each approver's photo for the queue's Approved by line", async () => {
+    const id = await submitChangeRequest(db, "area_edit", 5, "coverage-requester", {
+      name: "Approver photos",
+    });
+    await recordChangeRequestApproval(db, id, "coverage-admin-a");
+    await recordChangeRequestApproval(db, id, "coverage-admin-b");
+
+    const coverage = await coverageFor(await loadRequest(id));
+    expect(coverage.approvers.map((a) => [a.id, a.image])).toEqual([
+      ["coverage-admin-a", COVERAGE_ADMIN_A_PHOTO],
+      // An admin who never uploaded one falls back to initials in the queue.
+      ["coverage-admin-b", null],
+    ]);
   });
 });
 

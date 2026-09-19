@@ -78,7 +78,7 @@ const groups: FeedEntry[][] = [
         reportedGrade: 7,
         gradeFeel: "low",
         body: "Hard as expected. A lot of micro beta to link into the finish. Moving the foot one inch made a huge difference. Big thanks to Jordan for the support while I was working it out. Ready to come back and try the next line.",
-        companions: [{ id: "jordan-lee", name: "Jordan Lee", isSelf: false }],
+        companions: [{ id: "jordan-lee", name: "Jordan Lee", image: null, isSelf: false }],
       },
       "2026-09-12",
     ),
@@ -211,7 +211,12 @@ function toDays(groups: FeedEntry[][]): FeedDay[] {
         group.length > 1
           ? group
               .filter((other) => other.day.userId !== entry.day.userId)
-              .map((other) => ({ id: other.day.userId, name: other.day.name, isSelf: false }))
+              .map((other) => ({
+                id: other.day.userId,
+                name: other.day.name,
+                image: null,
+                isSelf: false,
+              }))
           : entry.activity.companions;
       current.activities.push({ ...entry.activity, companions });
       const field = {

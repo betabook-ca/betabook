@@ -1,15 +1,16 @@
 import { env } from "cloudflare:test";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { createDb, type Database } from "@/db/client";
-import { areas, climbs, sends } from "@/db/schema";
+import { areas, climbs, sends, user } from "@/db/schema";
 import { BOULDER_HUECO, ROPE_YDS } from "@/lib/grades";
 import { seedFixtureSend, seedFixtureTree, seedFixtureUser, seedManyClimbs } from "@/test/fixtures";
 import { explainQueries } from "@/test/query-plans";
 import { resetDb } from "@/test/reset-db";
 
 import {
+  CLIMB_SENDS_PAGE_SIZE,
   getClimbSendStats,
   getClimbSendSummary,
   getSendsForClimb,
@@ -143,6 +144,30 @@ describe("getSendsForClimb", () => {
     const { sends, hasMore } = await getSendsForClimb(db, 1);
     expect(sends.map((s) => s.userName)).toEqual(["Bob Climber", "Alice Climber"]);
     expect(hasMore).toBe(false);
+  });
+
+  it("carries each named climber's photo and withholds an anonymous one's", async () => {
+    const photo = "/api/avatars/test-user-1/abababababababababababababababab.webp";
+    await db.update(user).set({ image: photo }).where(eq(user.id, "test-user-1"));
+    await db
+      .update(user)
+      .set({ image: "/api/avatars/test-user-2/cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd.webp" })
+      .where(eq(user.id, "test-user-2"));
+
+    const named = await getSendsForClimb(db, 1, 0, CLIMB_SENDS_PAGE_SIZE, "test-user-1");
+    expect(named.sends.map((send) => [send.userName, send.userImage])).toEqual([
+      ["Bob Climber", "/api/avatars/test-user-2/cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd.webp"],
+      ["Alice Climber", photo],
+    ]);
+
+    // A private profile is already anonymous on a climb page; its photo would
+    // put the name straight back.
+    await db.update(user).set({ isPrivate: true }).where(eq(user.id, "test-user-2"));
+    const hidden = await getSendsForClimb(db, 1, 0, CLIMB_SENDS_PAGE_SIZE, "test-user-1");
+    expect(hidden.sends.map((send) => [send.userName, send.userImage])).toEqual([
+      [null, null],
+      ["Alice Climber", photo],
+    ]);
   });
 
   it("returns an empty page for a climb with no sends", async () => {

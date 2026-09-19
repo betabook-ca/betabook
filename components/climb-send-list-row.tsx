@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { AscentStyle } from "@/components/ascent-style";
 import { SendGradeCell } from "@/components/send-grade-cell";
 import { ListRow } from "@/components/ui/list-row";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { formatDate, formatMonth } from "@/lib/format-date";
 import type { ClimbType } from "@/lib/grades";
 import type { PublicClimbSend } from "@/lib/public-catalog";
@@ -20,6 +21,7 @@ export function ClimbSendListRow({
 }) {
   return (
     <ListRow
+      leading={<UserAvatar name={send.userName} image={send.userImage} size="sm" />}
       title={send.userName ?? <span className="text-muted">Betabook climber</span>}
       href={send.userId ? `/users/${send.userId}` : undefined}
       subtitle={sendDateLabel(send)}

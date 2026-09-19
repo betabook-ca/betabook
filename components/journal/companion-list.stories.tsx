@@ -21,9 +21,16 @@ function Example({ error = false }: { error?: boolean }) {
     >
       <CompanionList
         companions={[
-          { id: "sample-alex", name: "Alex Rivera", isSelf: false },
+          { id: "sample-alex", name: "Alex Rivera", image: null, isSelf: false },
           ...(!removed
-            ? [{ id: "sample-sam", name: "Sam With A Long Climbing Name", isSelf: true }]
+            ? [
+                {
+                  id: "sample-sam",
+                  name: "Sam With A Long Climbing Name",
+                  image: null,
+                  isSelf: true,
+                },
+              ]
             : []),
         ]}
         profileLinks={false}

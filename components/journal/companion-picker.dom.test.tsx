@@ -8,8 +8,8 @@ import type { CompanionOption } from "@/lib/journal-companions";
 
 import { CompanionPicker } from "./companion-picker";
 
-const alex = { id: "alex", name: "Alex Rivera" };
-const sam = { id: "sam", name: "Sam Rivera" };
+const alex = { id: "alex", name: "Alex Rivera", image: null };
+const sam = { id: "sam", name: "Sam Rivera", image: null };
 const NO_FRIENDS: CompanionOption[] = [];
 function Picker({
   initial = NO_FRIENDS,
@@ -36,7 +36,11 @@ it("restores a place at the limit, adds a friend by identity, removes them and c
   const fetcher = vi.fn<LookupFetcher<CompanionOption>>().mockResolvedValue([alex]);
   render(
     <Picker
-      initial={Array.from({ length: 10 }, (_, i) => ({ id: String(i), name: `Friend ${i + 1}` }))}
+      initial={Array.from({ length: 10 }, (_, i) => ({
+        id: String(i),
+        name: `Friend ${i + 1}`,
+        image: null,
+      }))}
       fetcher={fetcher}
     />,
   );

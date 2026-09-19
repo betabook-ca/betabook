@@ -6,6 +6,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { ComboBoxStateContext } from "react-aria-components";
 
 import { FIELD_WIDTH_CLASS, FILTER_ROW_CLASS, FILTER_LABEL_CLASS } from "@/components/ui/field";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import type { CompanionOption } from "@/lib/journal-companions";
 
 export function FriendFilter({
@@ -56,7 +57,10 @@ export function FriendFilter({
             >
               {(friend: CompanionOption) => (
                 <ListBox.Item id={friend.id} textValue={friend.name}>
-                  {friend.name}
+                  <span className="flex min-w-0 items-center gap-2">
+                    <UserAvatar name={friend.name} image={friend.image} size="xs" />
+                    <span className="truncate">{friend.name}</span>
+                  </span>
                 </ListBox.Item>
               )}
             </ListBox>
@@ -65,7 +69,8 @@ export function FriendFilter({
         {value.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {value.map((id) => {
-              const name = friends.find((friend) => friend.id === id)?.name ?? "Selected friend";
+              const selected = friends.find((friend) => friend.id === id);
+              const name = selected?.name ?? "Selected friend";
               return (
                 <Button
                   key={id}
@@ -75,6 +80,12 @@ export function FriendFilter({
                   aria-label={`Remove friend ${name}`}
                   onPress={() => onChange(value.filter((selected) => selected !== id))}
                 >
+                  <UserAvatar
+                    name={name}
+                    image={selected?.image ?? null}
+                    size="xs"
+                    className="-ms-1"
+                  />
                   <span className="truncate">{name}</span>
                   <X className="size-3.5" aria-hidden="true" />
                 </Button>

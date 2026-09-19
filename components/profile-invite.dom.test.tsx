@@ -32,14 +32,17 @@ it("names the inviter and returns both authentication paths to the share link", 
   ]);
 });
 
-it("shows an avatar only for an owner with a profile photo", () => {
+it("shows the owner's photo, and their initials when they have none", () => {
   const photo = "https://lh3.googleusercontent.com/a/alex";
   const { container, rerender } = render(
     <ProfileInvite name="Alex Rivera" image={null} next={NEXT} />,
   );
+  // An inviter with no photo keeps the avatar slot rather than collapsing the
+  // card into a bare heading.
   expect(container.querySelector("[data-image-src]")).toBeNull();
-  expect(screen.queryByText("AR")).not.toBeInTheDocument();
+  expect(screen.getByText("AR")).toBeVisible();
 
   rerender(<ProfileInvite name="Alex Rivera" image={photo} next={NEXT} />);
   expect(container.querySelector("[data-image-src]")).toHaveAttribute("data-image-src", photo);
+  expect(screen.queryByText("AR")).not.toBeInTheDocument();
 });

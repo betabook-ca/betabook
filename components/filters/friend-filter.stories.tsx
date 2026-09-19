@@ -11,8 +11,8 @@ const meta = {
   args: {
     value: [],
     friends: [
-      { id: "sam", name: "Sam Rivera" },
-      { id: "lee", name: "Lee Park" },
+      { id: "sam", name: "Sam Rivera", image: null },
+      { id: "lee", name: "Lee Park", image: null },
     ],
     onChange: () => {},
   },

@@ -44,7 +44,7 @@ function setup(props: Partial<JournalEntryFieldsProps> = {}) {
       today="2026-09-06"
       kind="session"
       climb={climb}
-      companionFetcher={async () => [{ id: "sam", name: "Sam Rivera" }]}
+      companionFetcher={async () => [{ id: "sam", name: "Sam Rivera", image: null }]}
       onSave={onSave}
       onDone={onDone}
       onPendingChange={onPendingChange}
@@ -326,7 +326,7 @@ it("opens Add details when editing an entry that already has companions or tags"
     existingEntry: {
       ...savedEntry,
       tags: ["technique"],
-      companions: [{ id: "sam", name: "Sam Rivera", isSelf: false }],
+      companions: [{ id: "sam", name: "Sam Rivera", image: null, isSelf: false }],
     },
   });
   expect(detailsTrigger()).toHaveAttribute("aria-expanded", "true");

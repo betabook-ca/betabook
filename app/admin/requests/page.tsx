@@ -6,6 +6,7 @@ import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { AppLink } from "@/components/ui/app-link";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageTitle } from "@/components/ui/typography";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { getDb } from "@/db/client";
 import {
   getAreasByIds,
@@ -57,16 +58,16 @@ export default async function AdminRequestsPage({
     getUsersByIds(db, [...new Set(described.flatMap(({ request }) => request.requestedBy ?? []))]),
     getAreasByIds(db, [...new Set(described.flatMap(({ coverage }) => coverage.missingAreaIds))]),
   ]);
-  const requesterNames = new Map(requesters.map((requester) => [requester.id, requester.name]));
+  const requestersById = new Map(requesters.map((requester) => [requester.id, requester]));
   const areaNames = new Map(missingAreas.map((area) => [area.id, area.name]));
 
   const rows = described.map(({ request, description, coverage }) => ({
     request,
     description,
-    requesterName:
-      (request.requestedBy && requesterNames.get(request.requestedBy)) ?? "a deleted account",
+    // A deleted account has no row to show a face for, so it stays text-only.
+    requester: (request.requestedBy && requestersById.get(request.requestedBy)) ?? null,
     alreadyApproved: coverage.approvers.some((approver) => approver.id === session.user.id),
-    approverNames: coverage.approvers.map((approver) => approver.name),
+    approvers: coverage.approvers,
     missingAreaNames: coverage.missingAreaIds.flatMap((id) => areaNames.get(id) ?? []),
   }));
 
@@ -101,14 +102,7 @@ export default async function AdminRequestsPage({
       ) : (
         <div className="flex flex-col divide-y divide-separator">
           {rows.map(
-            ({
-              request,
-              requesterName,
-              description,
-              alreadyApproved,
-              approverNames,
-              missingAreaNames,
-            }) => (
+            ({ request, requester, description, alreadyApproved, approvers, missingAreaNames }) => (
               <div
                 key={request.id}
                 className="flex flex-wrap items-start justify-between gap-3 py-4"
@@ -130,14 +124,39 @@ export default async function AdminRequestsPage({
                       ))}
                     </ul>
                   )}
-                  <span className="text-xs text-muted">
-                    Requested by {requesterName} on{" "}
-                    {REQUESTED_AT_FORMAT.format(request.requestedAt)}
+                  <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted">
+                    Requested by{" "}
+                    {requester ? (
+                      <span className="inline-flex min-w-0 items-center gap-1">
+                        <UserAvatar
+                          name={requester.name}
+                          image={requester.image}
+                          size="xs"
+                          className="size-5"
+                        />
+                        {requester.name}
+                      </span>
+                    ) : (
+                      "a deleted account"
+                    )}{" "}
+                    on {REQUESTED_AT_FORMAT.format(request.requestedAt)}
                   </span>
-                  {approverNames.length > 0 && missingAreaNames.length > 0 && (
-                    <span className="text-xs text-muted">
-                      Approved by {approverNames.join(", ")} — still needs an admin for{" "}
-                      {missingAreaNames.join(", ")}
+                  {approvers.length > 0 && missingAreaNames.length > 0 && (
+                    <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted">
+                      Approved by{" "}
+                      {approvers.map((approver, index) => (
+                        <span key={approver.id} className="inline-flex min-w-0 items-center gap-1">
+                          <UserAvatar
+                            name={approver.name}
+                            image={approver.image}
+                            size="xs"
+                            className="size-5"
+                          />
+                          {approver.name}
+                          {index < approvers.length - 1 && ","}
+                        </span>
+                      ))}
+                      — still needs an admin for {missingAreaNames.join(", ")}
                     </span>
                   )}
                 </div>

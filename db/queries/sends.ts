@@ -42,7 +42,11 @@ export async function getUserSendForClimb(
 /** Fields crossing the sends JSON endpoint; excludes Date-valued database timestamps.
  * Another climber's private-profile send is anonymous: null user fields, a
  * "YYYY-MM" date, and its negative list position as `id` (see getPublicSendsForClimb). */
-export type ClimbSendRow = EditableSend & { userId: string | null; userName: string | null };
+export type ClimbSendRow = EditableSend & {
+  userId: string | null;
+  userName: string | null;
+  userImage: string | null;
+};
 
 export const CLIMB_SENDS_PAGE_SIZE = 10;
 
@@ -63,6 +67,7 @@ export async function getSendsForClimb(
       id: sql<number>`CASE WHEN ${anonymous} THEN -(ROW_NUMBER() OVER (ORDER BY sends.date_sent DESC, sends.id ASC)) ELSE ${sends.id} END`,
       userId: sql<string | null>`CASE WHEN ${anonymous} THEN NULL ELSE ${sends.userId} END`,
       userName: sql<string | null>`CASE WHEN ${anonymous} THEN NULL ELSE ${user.name} END`,
+      userImage: sql<string | null>`CASE WHEN ${anonymous} THEN NULL ELSE ${user.image} END`,
       ascentStyle: sends.ascentStyle,
       dateSent: sql<
         string | null

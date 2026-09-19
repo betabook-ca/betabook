@@ -1,6 +1,7 @@
 "use client";
 
 import { clsx } from "clsx";
+import { User } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -14,7 +15,11 @@ const AVATAR_SIZE = {
 } as const;
 
 type UserAvatarProps = {
-  name: string;
+  /** A null name is an anonymous climber — a private profile's send on a
+   * climb page. Initials would hand back the name the row withholds, so the
+   * slot shows a neutral mark instead of standing empty and leaving a mixed
+   * list with two left edges. */
+  name: string | null;
   image?: string | null;
   size?: keyof typeof AVATAR_SIZE;
   className?: string;
@@ -30,19 +35,27 @@ type UserAvatarProps = {
 export function UserAvatar({ name, image, size = "md", className }: UserAvatarProps) {
   const { pixels, className: sizeClassName } = AVATAR_SIZE[size];
   const [failedImage, setFailedImage] = useState<string | null>(null);
-  const photo = getAvatarPhoto(image);
+  const anonymous = name === null;
+  const photo = anonymous ? null : getAvatarPhoto(image);
   const imageUrl = photo?.url ?? null;
 
   return (
-    <div
+    // A span, not a div: an avatar now sits beside a name inside running text
+    // — a journal entry's companion line, the review queue's "Requested by" —
+    // and a div there is invalid HTML that React flags as a nesting error.
+    // `flex` applies to either element, so the layout is unchanged.
+    <span
       aria-hidden="true"
       className={clsx(
-        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-separator bg-accent font-display font-semibold tracking-wide text-accent-foreground",
+        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-separator font-display font-semibold tracking-wide",
+        anonymous ? "bg-surface-secondary text-muted" : "bg-accent text-accent-foreground",
         sizeClassName,
         className,
       )}
     >
-      {photo === null || imageUrl === failedImage ? (
+      {anonymous ? (
+        <User className="size-1/2" />
+      ) : photo === null || imageUrl === failedImage ? (
         getUserInitials(name)
       ) : (
         <Image
@@ -58,6 +71,6 @@ export function UserAvatar({ name, image, size = "md", className }: UserAvatarPr
           onError={() => setFailedImage(photo.url)}
         />
       )}
-    </div>
+    </span>
   );
 }

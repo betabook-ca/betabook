@@ -40,6 +40,9 @@ export type PublicClimb = {
  * with Everyone from a public profile; anonymous rows carry only a "YYYY-MM" month. */
 export type PublicClimbSend = {
   userName: string | null;
+  /** Travels with the name: an anonymous row's photo would identify the
+   * climber its null name withholds. */
+  userImage: string | null;
   dateSent: string | null;
   ascentStyle: AscentStyle;
   rating: number | null;

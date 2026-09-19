@@ -19,7 +19,7 @@ const activity: FeedDay["activities"][number] = {
   areaId: 3,
   areaName: "Pine Canyon",
   body: "Found the sequence.",
-  companions: [{ id: "sam", name: "Sam Rivera", isSelf: false }],
+  companions: [{ id: "sam", name: "Sam Rivera", image: null, isSelf: false }],
 };
 const day: FeedDay = {
   userId: "alex",
@@ -196,6 +196,24 @@ it("renders training and companions without any real destinations in tutorial mo
   expect(screen.getByText("Send · Redpoint")).toBeVisible();
   expect(screen.getAllByText("Training")).toHaveLength(2);
   expect(screen.queryByRole("link")).not.toBeInTheDocument();
+});
+
+it("shows each author's photo, or their initials, beside their name on a feed row", () => {
+  const photo = "/api/avatars/alex/abababababababababababababababab.webp";
+  render(<FeedTimeline days={[{ ...day, image: photo }, friend]} view="all" />);
+
+  // Both authors share the grouped climb card, so one row has a photo and the
+  // other falls back to initials.
+  const card = screen.getByRole("article", { name: "Quiet Arete" });
+  // Avatars are decorative beside the visible name, so they carry an empty alt
+  // and are read off the DOM rather than the accessibility tree.
+  // jsdom resolves the src against the document, so compare the path only.
+  expect([...card.querySelectorAll("img")].map((image) => new URL(image.src).pathname)).toEqual([
+    photo,
+  ]);
+  expect(within(card).getByText("SR")).toBeVisible();
+  // The author with a photo shows it instead of initials.
+  expect(within(card).queryByText("AR")).not.toBeInTheDocument();
 });
 
 it("removes all grades when the send becomes a session, including stale opinions", () => {

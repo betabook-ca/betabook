@@ -14,7 +14,7 @@ export const Avatars: Story = {
   render: () => (
     <StoryPage
       title="Avatar fallbacks"
-      description="Initials are decorative beside a visible name. No external image requests are needed for these examples."
+      description="Initials are decorative beside a visible name; an anonymous row shows a neutral mark instead, so a mixed list keeps one left edge without naming the climber. No external image requests are needed for these examples."
     >
       {(["sm", "md", "lg"] as const).map((size) => (
         <div key={size} className="flex items-center gap-3">
@@ -25,6 +25,10 @@ export const Avatars: Story = {
       <div className="flex items-center gap-3">
         <UserAvatar name="李" />
         <span>李 · single-character name</span>
+      </div>
+      <div className="flex items-center gap-3">
+        <UserAvatar name={null} size="sm" />
+        <span className="text-muted">Betabook climber · anonymous send row</span>
       </div>
     </StoryPage>
   ),

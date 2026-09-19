@@ -1,8 +1,13 @@
 import { ActionError } from "@/lib/action-result";
 
 export const MAX_JOURNAL_COMPANIONS = 10;
-export type JournalCompanion = { id: string; name: string; isSelf: boolean };
-export type CompanionOption = Pick<JournalCompanion, "id" | "name">;
+export type JournalCompanion = {
+  id: string;
+  name: string;
+  image: string | null;
+  isSelf: boolean;
+};
+export type CompanionOption = Pick<JournalCompanion, "id" | "name" | "image">;
 
 /** Omitted controls preserve hidden selections on ordinary edits. */
 export function readCompanionSelection(form: FormData): string[] | undefined {
