@@ -76,11 +76,13 @@ export function FriendshipButton({
   name,
   initialStatus,
   appearance = "row",
+  compact = false,
 }: {
   userId: string;
   name: string;
   initialStatus: FriendshipStatus;
   appearance?: "row" | "profile" | "menu";
+  compact?: boolean;
 }) {
   const [status, setStatus] = useState(initialStatus);
   const [source, setSource] = useState(initialStatus);
@@ -121,7 +123,7 @@ export function FriendshipButton({
   return (
     <div className="flex flex-col gap-1">
       {status === "outgoing" && (
-        <p role="status" className="text-xs text-muted">
+        <p role="status" className={compact ? "sr-only" : "text-xs text-muted"}>
           Friend request sent
         </p>
       )}

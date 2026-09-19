@@ -28,31 +28,31 @@ const meta = {
 } satisfies Meta<typeof GoalPanel>;
 export default meta;
 type Story = StoryObj<typeof meta>;
-export const Active: Story = {
-  args: {
-    initialActive: {
-      hasMore: false,
-      goals: [
-        {
-          id: -1,
-          userId: "story-goals",
-          kind: "training",
-          target: 8,
-          discipline: null,
-          grade: null,
-          timeframe: "month",
-          repeat: "none",
-          startDate: "2026-09-01",
-          endDate: "2026-09-30",
-          periodStart: "2026-09-01",
-          periodEnd: "2026-09-30",
-          timezone: "UTC",
-          progress: 3,
-          completedDate: null,
-        },
-      ],
+const activeTraining: GoalPage = {
+  hasMore: false,
+  goals: [
+    {
+      id: -1,
+      userId: "story-goals",
+      kind: "training",
+      target: 8,
+      discipline: null,
+      grade: null,
+      timeframe: "month",
+      repeat: "none",
+      startDate: "2026-09-01",
+      endDate: "2026-09-30",
+      periodStart: "2026-09-01",
+      periodEnd: "2026-09-30",
+      timezone: "UTC",
+      progress: 3,
+      completedDate: null,
     },
-  },
+  ],
+};
+export const Active: Story = { args: { initialActive: activeTraining } };
+export const EmptyHistory: Story = {
+  args: { initialActive: activeTraining, initialView: "completed" },
 };
 
 export const Empty: Story = {};

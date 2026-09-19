@@ -446,7 +446,7 @@ export function GoalPanel({
           ))}
         </div>
         {rows.length === 0 && (
-          <div className="mt-2 text-xs font-normal text-muted">
+          <div className="py-2.5 text-xs font-normal text-muted">
             {view === "completed" ? "No goal history yet." : "No active goals."}
           </div>
         )}

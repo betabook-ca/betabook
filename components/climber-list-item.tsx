@@ -21,7 +21,7 @@ export function ClimberListItem({
 }) {
   return (
     <article
-      className={`flex min-w-0 items-center justify-between gap-3 border-b border-separator ${compact ? "py-2" : "flex-wrap py-4"}`}
+      className={`flex min-w-0 items-center justify-between gap-3 border-b border-separator ${compact ? "min-h-15 py-1.5" : "flex-wrap py-4"}`}
     >
       <div className="flex min-w-0 flex-auto items-center gap-3">
         <UserAvatar name={climber.name} image={climber.image} size="sm" />
@@ -51,6 +51,7 @@ export function ClimberListItem({
       <div className="ml-auto max-w-full shrink-0">
         <FriendshipButton
           appearance={compact && climber.friendshipStatus === "friends" ? "menu" : "row"}
+          compact={compact}
           userId={climber.id}
           name={climber.name}
           initialStatus={climber.friendshipStatus}

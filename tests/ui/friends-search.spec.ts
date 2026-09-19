@@ -29,3 +29,22 @@ test("compact friend menu stays in the viewport", async ({ page }, testInfo) => 
   expect(bounds.x).toBeGreaterThanOrEqual(0);
   expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width);
 });
+
+test("@layout friend, suggestion, and request rows have matching heights", async ({
+  page,
+}, testInfo) => {
+  const heights: number[] = [];
+  for (const story of ["default", "requests"]) {
+    await openStory(page, testInfo, `components-profile-friends-page--${story}`);
+    const rows = page.locator("#storybook-root article");
+    const count = await rows.count();
+    expect(count).toBe(story === "default" ? 5 : 3);
+    for (let index = 0; index < count; index += 1) {
+      const bounds = await rows.nth(index).boundingBox();
+      if (!bounds) throw new Error("Expected a visible climber row");
+      heights.push(bounds.height);
+    }
+  }
+  expect(Math.max(...heights) - Math.min(...heights)).toBeLessThanOrEqual(1);
+  expect(Math.max(...heights)).toBeLessThanOrEqual(60);
+});
