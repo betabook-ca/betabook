@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
@@ -16,25 +16,23 @@ it("requests self-removal and keeps the other companion when the parent applies 
   await user.click(screen.getByRole("button", { name: "Remove my tag" }));
   expect(remove).toHaveBeenCalledOnce();
   rerender(<CompanionList companions={[companions[0]]} onRemoveSelf={remove} />);
-  // Each companion is now a face plus a name, so the row's raw text carries
-  // the decorative initials too; assert on who is named instead.
-  expect(within(screen.getByText(/With/)).getAllByRole("link")).toHaveLength(1);
+  expect(screen.getByText(/With/)).toHaveTextContent("With Alex Rivera");
   expect(screen.queryByText("Sam Rivera")).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Alex Rivera" })).toHaveAttribute("href", "/users/alex");
   expect(screen.queryByRole("button", { name: "Remove my tag" })).not.toBeInTheDocument();
 });
-it("shows each companion's photo, or their initials, beside their name", () => {
+it("names companions without avatars, which would outweigh this muted line", () => {
   const photo = "/api/avatars/alex/abababababababababababababababab.webp";
   const { container } = render(
     <CompanionList companions={[{ ...companions[0], image: photo }, companions[1]]} />,
   );
 
-  expect(
-    [...container.querySelectorAll("img")].map((image) => new URL(image.src).pathname),
-  ).toEqual([photo]);
-  // The companion with no photo falls back to initials.
-  expect(screen.getByText("SR")).toBeVisible();
+  // A companion carries a photo for the picker's chips; the rendered tag under
+  // an entry stays text-only, so neither the photo nor initials appear here.
+  expect(container.querySelectorAll("img")).toHaveLength(0);
   expect(screen.queryByText("AR")).not.toBeInTheDocument();
+  expect(screen.queryByText("SR")).not.toBeInTheDocument();
+  expect(screen.getByText(/With/)).toHaveTextContent("With Alex Rivera, Sam Rivera");
 });
 
 it("prevents repeated removal while pending", async () => {
