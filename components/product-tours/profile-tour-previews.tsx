@@ -122,14 +122,17 @@ export function DemoJournal() {
             date={entry.date}
             location={entry.climb ? TOUR_DEMO_SEARCH_RESULTS.area.name : undefined}
             status={
-              entry.kind === "training" ? (
-                "Training"
-              ) : (
-                <JournalEntryStatus
-                  isAscent={entry.outcome === "Sent"}
-                  sent={entry.outcome === "Repeat" || entry.outcome === "Sent"}
-                />
-              )
+              <JournalEntryStatus
+                kind={
+                  entry.kind === "training"
+                    ? "training"
+                    : entry.outcome === "Sent"
+                      ? "send"
+                      : entry.outcome === "Repeat"
+                        ? "repeat"
+                        : "session"
+                }
+              />
             }
             grade={
               entry.climb && (entry.outcome === "Sent" || entry.outcome === "Repeat") ? (

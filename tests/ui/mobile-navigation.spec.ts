@@ -20,10 +20,15 @@ for (const story of ["secondary-tools", "primary-fallback", "signed-out"]) {
     await expect(links).toHaveCount(
       story === "primary-fallback" ? 7 : story === "secondary-tools" ? 4 : 2,
     );
-    if (story !== "signed-out")
+    if (story !== "signed-out") {
       await expect(
         menu.getByRole("link", { name: "Account settings", exact: true }),
       ).toHaveAttribute("href", "/account");
+      await expect(menu.getByRole("link", { name: "Tutorials" }).locator("..")).toHaveCSS(
+        "border-top-width",
+        "1px",
+      );
+    }
     for (const link of await links.all()) {
       const bounds = await link.boundingBox();
       if (!bounds) throw new Error("Missing menu destination");

@@ -1,4 +1,5 @@
 import { CompanionList } from "@/components/journal/companion-list";
+import { JournalEntryStatus } from "@/components/journal/journal-entry-layout";
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import { ClampedComment } from "@/components/ui/clamped-comment";
@@ -40,8 +41,10 @@ export function ClimbJournalCard({
             {recentEntries.map((entry) => (
               <li key={entry.id} className="flex flex-col gap-1">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-sm font-medium text-foreground">
-                    {entry.sent ? (entry.isAscent ? "Sent" : "Repeat") : "Session"}
+                  <span className="inline-flex items-center text-sm font-medium">
+                    <JournalEntryStatus
+                      kind={entry.isAscent ? "send" : entry.sent ? "repeat" : "session"}
+                    />
                   </span>
                   <span className="text-xs text-muted">{formatDate(entry.entryDate)}</span>
                 </div>

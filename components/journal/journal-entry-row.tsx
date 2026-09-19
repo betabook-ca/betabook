@@ -44,12 +44,19 @@ export function JournalEntryRow({
     entry.sent,
     entry.reportedGrade,
   );
-  const status =
-    entry.kind === "training" && !entry.isAscent ? (
-      "Training"
-    ) : (
-      <JournalEntryStatus isAscent={entry.isAscent} sent={entry.sent} />
-    );
+  const status = (
+    <JournalEntryStatus
+      kind={
+        entry.isAscent
+          ? "send"
+          : entry.kind === "training"
+            ? "training"
+            : entry.sent
+              ? "repeat"
+              : "session"
+      }
+    />
+  );
   const tags =
     entry.tags.length > 0 || (entry.companions?.length ?? 0) > 0 ? (
       <>

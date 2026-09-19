@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 
 import { ClimbPicker } from "@/components/climb-picker";
+import { ActivityIcon } from "@/components/ui/activity-icon";
 import { PageTitle } from "@/components/ui/typography";
 import type { ClimbWithAreaName } from "@/db/queries";
 
@@ -75,7 +76,10 @@ export function EntryKindStep({
             variant="outline"
             className="h-auto min-h-16 min-w-0 flex-col items-start justify-start rounded-panel! px-3 py-3 text-left whitespace-normal"
           >
-            <span className="block font-medium text-foreground">{choice.label}</span>
+            <span className="flex items-center gap-1 font-medium text-foreground">
+              <ActivityIcon kind={choice.id} />
+              {choice.label}
+            </span>
             <span className="mt-1 block text-sm font-normal text-muted">{choice.description}</span>
           </Button>
         ))}

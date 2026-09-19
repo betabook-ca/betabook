@@ -97,7 +97,7 @@ describe("JournalEntryRow", () => {
     );
   });
 
-  it("labels a training entry in both its title and right-side status", () => {
+  it("keeps the training title plain and labels its right-side status", () => {
     const training = JournalEntryRow({
       entry: {
         ...entry,
@@ -119,8 +119,23 @@ describe("JournalEntryRow", () => {
 
     expect(training.props.title).toBe("Training");
     expect(training.props.date).toBe("2026-09-04");
-    expect(renderToStaticMarkup(<>{training.props.status}</>)).toBe("Training");
-    expect(renderToStaticMarkup(training)).not.toContain("·");
+    expect(renderToStaticMarkup(<>{training.props.status}</>)).toContain("lucide-dumbbell");
+    expect(renderToStaticMarkup(<>{training.props.status}</>)).toContain("Training");
+  });
+
+  it.each([
+    ["send", { sent: true, isAscent: true }, "lucide-circle-check-big"],
+    ["repeat", { sent: true, isAscent: false }, "lucide-repeat-2"],
+    ["session", { sent: false, isAscent: false }, "lucide-circle-dashed"],
+    ["training", { kind: "training" as const }, "lucide-dumbbell"],
+  ])("uses the Feed's %s icon", (activity, changes, icon) => {
+    const result = row(DEFAULT_JOURNAL_FILTER, { ...entry, ...changes });
+    const status = renderToStaticMarkup(<>{result.props.status}</>);
+
+    expect(status).toContain(icon);
+    if (activity === "session" || activity === "training") {
+      expect(status).toContain('class="inline-flex items-center gap-1 text-foreground"');
+    }
   });
 
   it("lets the active tag chip clear its filter", () => {

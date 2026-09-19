@@ -1,24 +1,37 @@
 import { clsx } from "clsx";
-import { CircleCheckBig } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { ActivityIcon, type ActivityKind } from "@/components/ui/activity-icon";
 import { AppLink } from "@/components/ui/app-link";
 import { ClampedComment } from "@/components/ui/clamped-comment";
 import { formatDate } from "@/lib/format-date";
 
-/** Climbing status; training entries supply their own label. */
-export function JournalEntryStatus({ isAscent, sent }: { isAscent: boolean; sent: boolean }) {
-  if (isAscent)
-    return (
-      <span className="inline-flex items-center gap-1 font-medium text-success-soft-foreground">
-        <CircleCheckBig aria-hidden className="size-4" />
-        <span>Sent</span>
-      </span>
-    );
-  return <span>{sent ? "Repeat" : "Session"}</span>;
+const STATUS_LABELS: Record<ActivityKind, string> = {
+  send: "Sent",
+  repeat: "Repeat",
+  session: "Session",
+  training: "Training",
+};
+
+export function JournalEntryStatus({ kind }: { kind: ActivityKind }) {
+  return (
+    <span
+      className={clsx(
+        "inline-flex items-center gap-1",
+        kind === "send"
+          ? "font-medium text-accent-soft-foreground"
+          : kind === "repeat"
+            ? "text-muted"
+            : "text-foreground",
+      )}
+    >
+      <ActivityIcon kind={kind} />
+      <span>{STATUS_LABELS[kind]}</span>
+    </span>
+  );
 }
 
-/** Keep entry details together beside the grade, status, date, and actions. */
+/** Shared Journal/Sends row: prose stays beside the grade, status, date, and actions. */
 export function JournalEntryLayout({
   title,
   href,
@@ -35,7 +48,7 @@ export function JournalEntryLayout({
   location?: ReactNode;
   grade?: ReactNode;
   status?: ReactNode;
-  date: string;
+  date: string | null;
   tags?: ReactNode;
   comment?: string | null;
   actions?: ReactNode;
@@ -43,7 +56,7 @@ export function JournalEntryLayout({
   return (
     <article
       className={clsx(
-        "relative px-4 py-4",
+        "relative px-4 py-3.5",
         href &&
           "transition-colors focus-within:bg-surface-secondary/60 hover:bg-surface-secondary/60",
       )}
@@ -61,27 +74,36 @@ export function JournalEntryLayout({
             )}
           </div>
           {location && (
-            <div className="relative z-10 mt-1 w-fit max-w-full truncate text-sm text-muted">
+            <div className="relative z-10 w-fit max-w-full truncate text-sm text-muted">
               {location}
             </div>
           )}
           {tags && (
-            <div className="relative z-10 mt-1 flex w-fit max-w-full flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+            <div className="relative z-10 mt-1.5 flex w-fit max-w-full flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
               {tags}
             </div>
           )}
           {comment && (
-            <div className="relative z-10 mt-2 max-w-[65ch] text-sm leading-relaxed text-foreground">
+            <div
+              className={clsx(
+                "relative z-10 max-w-[65ch] text-sm leading-relaxed text-foreground",
+                tags ? "mt-0.5" : location ? "mt-2.5" : "mt-1.5",
+              )}
+            >
               <ClampedComment>{comment}</ClampedComment>
             </div>
           )}
         </div>
-        <div className="relative z-10 flex shrink-0 flex-col items-end gap-1 text-right text-sm tabular-nums">
-          {grade}
-          {status}
-          <time dateTime={date} className="text-xs text-muted">
-            {formatDate(date)}
-          </time>
+        <div className="relative z-10 flex shrink-0 flex-col items-end text-right text-sm tabular-nums">
+          <div className="flex h-[26px] items-center justify-end">
+            {grade ?? <span className="text-muted">—</span>}
+          </div>
+          <div className="flex h-[26px] items-center justify-end">
+            {status ?? <span className="text-muted">—</span>}
+          </div>
+          <div className="flex h-[26px] items-center justify-end text-xs text-muted">
+            {date ? <time dateTime={date}>{formatDate(date)}</time> : "Date unknown"}
+          </div>
         </div>
         {actions && <div className="relative z-10 -my-2.5 shrink-0">{actions}</div>}
       </div>

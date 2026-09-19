@@ -1,13 +1,14 @@
 "use client";
 
 import { clsx } from "clsx";
-import { Check, ChevronRight, CircleDashed, Dumbbell, Repeat2, Trophy } from "lucide-react";
+import { ChevronRight, Trophy } from "lucide-react";
 import { useId, useState } from "react";
 
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
 import { ASCENT_STYLE_LABELS } from "@/components/ascent-style";
 import { CompanionList } from "@/components/journal/companion-list";
 import { GradeFeelArrow } from "@/components/send-grade-cell";
+import { ActivityIcon } from "@/components/ui/activity-icon";
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import { ClampedComment } from "@/components/ui/clamped-comment";
@@ -22,16 +23,15 @@ import { climbHref } from "@/lib/slug";
 type Activity = FeedEntry["activity"];
 
 function outcome(activity: Activity) {
-  if (activity.kind === "goal") return { Icon: Trophy, label: "Goal accomplished", sent: true };
+  if (activity.kind === "goal") return { label: "Goal accomplished", sent: true };
   if (activity.kind === "send")
     return {
-      Icon: Check,
       sent: true,
       label: `Send${activity.ascentStyle ? ` · ${ASCENT_STYLE_LABELS[activity.ascentStyle]}` : ""}`,
     };
-  if (activity.kind === "repeat") return { Icon: Repeat2, label: "Repeat", sent: false };
-  if (activity.kind === "training") return { Icon: Dumbbell, label: "Training", sent: false };
-  return { Icon: CircleDashed, label: "Session", sent: false };
+  if (activity.kind === "repeat") return { label: "Repeat", sent: false };
+  if (activity.kind === "training") return { label: "Training", sent: false };
+  return { label: "Session", sent: false };
 }
 
 /** One climb (or connected training group); source entries retain their own author and outcome. */
@@ -61,7 +61,7 @@ export function FeedActivityCard({
     .filter(Boolean)
     .join(" · ");
   const row = ({ day, activity: item }: FeedEntry) => {
-    const { Icon, label, sent } = outcome(item);
+    const { label, sent } = outcome(item);
     const grade = formatActivityGrade(
       item.climbType,
       item.climbGrade,
@@ -70,20 +70,14 @@ export function FeedActivityCard({
     );
     return (
       <div key={`${day.userId}:${item.kind}:${item.id}`} className="py-3">
-        {/* The note hangs below the outcome icon rather than beside it, so a
-         * comment reads from the row's own left edge instead of being
-         * indented twice — past the icon and past the avatar. */}
         <div className="flex gap-3">
-          <span
-            className={clsx(
-              "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full",
-              sent
-                ? "bg-success-soft text-accent-soft-foreground"
-                : "bg-surface-secondary text-muted",
-            )}
-          >
-            <Icon aria-hidden className="size-4" />
-          </span>
+          {item.kind === "goal" ? (
+            <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-success-soft text-accent-soft-foreground">
+              <Trophy aria-hidden className="size-4" />
+            </span>
+          ) : (
+            <ActivityIcon kind={item.kind} className="mt-0 sm:mt-1" />
+          )}
           <div className="min-w-0 flex-1">
             <div className="flex items-start gap-3">
               <div className="flex min-h-8 min-w-0 flex-1 flex-col items-start gap-0.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2">
@@ -136,15 +130,15 @@ export function FeedActivityCard({
             {entries.length === 1 && view === "all" && !!item.companions?.length && (
               <CompanionList companions={item.companions} profileLinks={links} />
             )}
+            {item.body && (
+              <div className="mt-1 text-sm leading-relaxed text-foreground">
+                <ClampedComment expandLabel="Read more" collapseLabel="Read less">
+                  {item.body}
+                </ClampedComment>
+              </div>
+            )}
           </div>
         </div>
-        {item.body && (
-          <div className="mt-1 text-sm leading-relaxed text-foreground">
-            <ClampedComment expandLabel="Read more" collapseLabel="Read less">
-              {item.body}
-            </ClampedComment>
-          </div>
-        )}
       </div>
     );
   };
