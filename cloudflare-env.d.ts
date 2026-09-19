@@ -4,9 +4,12 @@
 interface CloudflareEnv {
   DB: D1Database;
   CATALOG_EXPORTS: R2Bucket;
+  PROFILE_PHOTOS: R2Bucket;
+  IMAGES: ImagesBinding;
   CONTACT_RATE_LIMITER: RateLimit;
   JOURNAL_RATE_LIMITER: RateLimit;
   FRIENDSHIP_RATE_LIMITER: RateLimit;
+  PROFILE_PHOTO_RATE_LIMITER: RateLimit;
   BETTER_AUTH_URL: string;
   BETTER_AUTH_SECRET: string;
   RESEND_API_KEY: string;
@@ -22,9 +25,12 @@ declare namespace Cloudflare {
   interface Env {
     DB: CloudflareEnv["DB"];
     CATALOG_EXPORTS: CloudflareEnv["CATALOG_EXPORTS"];
+    PROFILE_PHOTOS: CloudflareEnv["PROFILE_PHOTOS"];
+    IMAGES: CloudflareEnv["IMAGES"];
     CONTACT_RATE_LIMITER: CloudflareEnv["CONTACT_RATE_LIMITER"];
     JOURNAL_RATE_LIMITER: CloudflareEnv["JOURNAL_RATE_LIMITER"];
     FRIENDSHIP_RATE_LIMITER: CloudflareEnv["FRIENDSHIP_RATE_LIMITER"];
+    PROFILE_PHOTO_RATE_LIMITER: CloudflareEnv["PROFILE_PHOTO_RATE_LIMITER"];
     BETTER_AUTH_URL: CloudflareEnv["BETTER_AUTH_URL"];
     BETTER_AUTH_SECRET: CloudflareEnv["BETTER_AUTH_SECRET"];
     RESEND_API_KEY: CloudflareEnv["RESEND_API_KEY"];
