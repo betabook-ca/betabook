@@ -45,7 +45,9 @@ export function JournalEntryRow({
     entry.reportedGrade,
   );
   const status =
-    entry.kind === "training" && !entry.isAscent ? undefined : (
+    entry.kind === "training" && !entry.isAscent ? (
+      "Training"
+    ) : (
       <JournalEntryStatus isAscent={entry.isAscent} sent={entry.sent} />
     );
   const tags =

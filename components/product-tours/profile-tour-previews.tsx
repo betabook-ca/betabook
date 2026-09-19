@@ -122,7 +122,9 @@ export function DemoJournal() {
             date={entry.date}
             location={entry.climb ? TOUR_DEMO_SEARCH_RESULTS.area.name : undefined}
             status={
-              entry.kind === "training" ? undefined : (
+              entry.kind === "training" ? (
+                "Training"
+              ) : (
                 <JournalEntryStatus
                   isAscent={entry.outcome === "Sent"}
                   sent={entry.outcome === "Repeat" || entry.outcome === "Sent"}

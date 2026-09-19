@@ -97,7 +97,7 @@ describe("JournalEntryRow", () => {
     );
   });
 
-  it("names a training entry once, in its title, without a status pill", () => {
+  it("labels a training entry in both its title and right-side status", () => {
     const training = JournalEntryRow({
       entry: {
         ...entry,
@@ -119,7 +119,7 @@ describe("JournalEntryRow", () => {
 
     expect(training.props.title).toBe("Training");
     expect(training.props.date).toBe("2026-09-04");
-    expect(renderToStaticMarkup(<>{training.props.status}</>)).toBe("");
+    expect(renderToStaticMarkup(<>{training.props.status}</>)).toBe("Training");
     expect(renderToStaticMarkup(training)).not.toContain("·");
   });
 
