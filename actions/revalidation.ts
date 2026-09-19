@@ -25,6 +25,19 @@ export function revalidateSendSurfaces({
   for (const areaId of new Set(areaIds)) revalidatePath(`/areas/${areaId}`);
 }
 
+/** Every cached surface that renders a climber's name or avatar. Shared by
+ * the account mutations that change either, so a new one (a photo upload,
+ * say) cannot quietly leave a stale avatar in the feed. */
+export function revalidateProfileSurfaces(userId: string) {
+  revalidatePath("/feed");
+  revalidatePath("/friends");
+  revalidatePath(`/users/${userId}`);
+  revalidatePath(`/users/${userId}/journal`);
+  revalidatePath(`/users/${userId}/sends`);
+  revalidatePath(`/users/${userId}/projects`);
+  revalidatePath(`/users/${userId}/analytics`);
+}
+
 export function revalidateJournalSurfaces({
   userId,
   climbIds,

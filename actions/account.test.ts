@@ -13,7 +13,10 @@ import { createDb } from "@/db/client";
 import { getProfileShareToken, getShareLinkOwner } from "@/db/queries";
 import { user } from "@/db/schema";
 import { SESSION_EXPIRED_MESSAGE } from "@/lib/action-result";
+import { profilePhotoPath } from "@/lib/profile-photo";
+import { storeProfilePhoto } from "@/lib/profile-photo-store";
 import { seedFixtureUser } from "@/test/fixtures";
+import { makePngFile } from "@/test/image-fixtures";
 
 const sessionState = vi.hoisted(() => ({ userId: "test-user" as string | null }));
 
@@ -40,6 +43,13 @@ vi.mock("@/db/client", async (importOriginal) => {
     ...actual,
     getDb: async () => actual.createDb(env.DB),
   };
+});
+
+// Only the request-context accessor is replaced; the bucket is Miniflare's.
+vi.mock("@/lib/profile-photo-store", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/profile-photo-store")>();
+  const { env } = await import("cloudflare:test");
+  return { ...actual, getProfilePhotoBucket: async () => env.PROFILE_PHOTOS };
 });
 
 const db = createDb(env.DB);
@@ -147,6 +157,60 @@ describe("removeProfilePhoto action boundary", () => {
 
     const after = await db.select().from(user).where(eq(user.id, "test-user")).get();
     expect(after).toEqual({ ...before, image: null, updatedAt: after?.updatedAt });
+  });
+
+  it("deletes the stored object when the photo was uploaded, not from Google", async () => {
+    const key = await storeProfilePhoto(
+      { bucket: env.PROFILE_PHOTOS, images: env.IMAGES },
+      "test-user",
+      await makePngFile(400, 400),
+    );
+    await db
+      .update(user)
+      .set({ image: profilePhotoPath(key) })
+      .where(eq(user.id, "test-user"));
+
+    expect(await removeProfilePhoto()).toEqual({ ok: true, value: undefined });
+
+    expect((await db.select().from(user).where(eq(user.id, "test-user")).get())?.image).toBeNull();
+    // Nothing links to it any more, so leaving the bytes in R2 would be
+    // storage the climber cannot reach and cannot reclaim.
+    expect(await env.PROFILE_PHOTOS.get(key)).toBeNull();
+  });
+
+  it("refuses to delete another climber's photo named by a tampered image value", async () => {
+    // Better Auth's /update-user accepts an `image`, so the column can hold a
+    // path this app never wrote — including another climber's, whose URL is
+    // visible wherever their avatar renders.
+    const theirs = await storeProfilePhoto(
+      { bucket: env.PROFILE_PHOTOS, images: env.IMAGES },
+      "other-user",
+      await makePngFile(400, 400),
+    );
+    await db
+      .update(user)
+      .set({ image: profilePhotoPath(theirs) })
+      .where(eq(user.id, "test-user"));
+
+    expect(await removeProfilePhoto()).toEqual({ ok: true, value: undefined });
+
+    expect(await env.PROFILE_PHOTOS.get(theirs)).not.toBeNull();
+  });
+
+  it("leaves another climber's photo alone", async () => {
+    const theirs = await storeProfilePhoto(
+      { bucket: env.PROFILE_PHOTOS, images: env.IMAGES },
+      "other-user",
+      await makePngFile(400, 400),
+    );
+    await db
+      .update(user)
+      .set({ image: profilePhotoPath(theirs) })
+      .where(eq(user.id, "other-user"));
+
+    await removeProfilePhoto();
+
+    expect(await env.PROFILE_PHOTOS.get(theirs)).not.toBeNull();
   });
 });
 

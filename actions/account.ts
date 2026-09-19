@@ -9,20 +9,13 @@ import { profileShareLinks, user } from "@/db/schema";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
 import { DISPLAY_NAME_TAKEN_MESSAGE, displayNameProblem } from "@/lib/display-name";
 import { parseSendCommentAudience, parseSharingAudience } from "@/lib/privacy";
+import { profilePhotoKeyOwnedBy } from "@/lib/profile-photo";
+import { deleteProfilePhoto, getProfilePhotoBucket } from "@/lib/profile-photo-store";
 import { requireSession } from "@/lib/session";
 import { requireTrimmed } from "@/lib/validation";
 
 import { afterCommit } from "./post-commit";
-
-function revalidateProfileSurfaces(userId: string) {
-  revalidatePath("/feed");
-  revalidatePath("/friends");
-  revalidatePath(`/users/${userId}`);
-  revalidatePath(`/users/${userId}/journal`);
-  revalidatePath(`/users/${userId}/sends`);
-  revalidatePath(`/users/${userId}/projects`);
-  revalidatePath(`/users/${userId}/analytics`);
-}
+import { revalidateProfileSurfaces } from "./revalidation";
 
 export async function setUserPrivate(isPrivate: boolean): Promise<ActionResult> {
   return toActionResult(async () => {
@@ -38,16 +31,35 @@ export async function setUserPrivate(isPrivate: boolean): Promise<ActionResult> 
   });
 }
 
-/** Clears the OAuth photo stored by Better Auth, so every avatar falls back to
- * initials. Irreversible by design: nothing re-fetches the URL, and Better
- * Auth writes no profile fields on a repeat social sign-in, so signing in with
- * Google again does not bring the photo back. */
+/** Clears whichever photo is showing — an upload or the OAuth photo stored by
+ * Better Auth — so every avatar falls back to initials. Irreversible by
+ * design: an uploaded object is deleted rather than orphaned, nothing
+ * re-fetches a Google URL, and Better Auth writes no profile fields on a
+ * repeat social sign-in, so signing in with Google again does not bring the
+ * photo back.
+ *
+ * The row is cleared before the object is deleted. That order can leave an
+ * unreferenced object behind if the delete fails, which costs ~20 KB; the
+ * reverse could leave `user.image` pointing at bytes that no longer exist. */
 export async function removeProfilePhoto(): Promise<ActionResult> {
   return toActionResult(async () => {
     const session = await requireSession();
     const db = await getDb();
 
+    const [current] = await db
+      .select({ image: user.image })
+      .from(user)
+      .where(eq(user.id, session.user.id))
+      .limit(1);
+
     await db.update(user).set({ image: null }).where(eq(user.id, session.user.id));
+
+    // Owner-scoped: the column can hold a path this app never wrote.
+    const key = profilePhotoKeyOwnedBy(current?.image, session.user.id);
+    if (key) {
+      const bucket = await getProfilePhotoBucket();
+      if (bucket) await deleteProfilePhoto(bucket, key);
+    }
 
     afterCommit(() => {
       revalidateProfileSurfaces(session.user.id);

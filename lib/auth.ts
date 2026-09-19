@@ -15,6 +15,7 @@ import {
 } from "@/lib/account";
 import { DISPLAY_NAME_TAKEN_MESSAGE, displayNameProblem } from "@/lib/display-name";
 import { sendResetPasswordEmail, sendVerificationEmail } from "@/lib/email";
+import { deleteProfilePhotosForUser } from "@/lib/profile-photo-store";
 import { profileShareFromPath } from "@/lib/profile-share";
 import {
   hasAcceptedCurrentTerms,
@@ -123,6 +124,12 @@ async function authBuilder() {
         beforeDelete: async (deletedUser) => {
           await deleteAccountSends(db, deletedUser.id);
           await deleteAccountPendingChangeRequests(db, deletedUser.id);
+          // The photo has no row to cascade from: deleting the user row
+          // leaves the R2 object untouched, so it goes here. A prefix sweep
+          // rather than the key in `user.image`, to catch an object orphaned
+          // by a crash between the upload and the row write.
+          if (env.PROFILE_PHOTOS)
+            await deleteProfilePhotosForUser(env.PROFILE_PHOTOS, deletedUser.id);
         },
       },
     },
@@ -201,6 +208,14 @@ async function authBuilder() {
                   message: TERMS_ACCESS_MESSAGE,
                 });
               }
+              // `image` is ours to write, never the caller's. That endpoint
+              // accepts one by default, and `user.image` is read back as the
+              // key of an R2 object to serve and to delete — so a caller who
+              // could set it freely could name another climber's photo (every
+              // avatar URL is visible wherever it renders) and have their own
+              // upload or removal delete it. Uploads go through
+              // actions/profile-photo.ts, which writes the column itself.
+              if ("image" in data) delete (data as { image?: unknown }).image;
             }
             if (typeof data.name !== "string") return { data };
             const name = data.name.trim();
