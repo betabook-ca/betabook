@@ -112,7 +112,7 @@ export function AppMenuLinks({
         </MenuGroup>
       )}
       {(account || canInstall) && (
-        <MenuGroup bottom={sidebar}>
+        <MenuGroup bottom={sidebar} divided={Boolean(account)}>
           {account && (
             <>
               <NavLink {...row} href={productTourPath("journal")}>
@@ -160,6 +160,24 @@ function MenuIcon({ icon: Icon }: { icon: LucideIcon }) {
   );
 }
 
-function MenuGroup({ children, bottom = false }: { children: ReactNode; bottom?: boolean }) {
-  return <div className={clsx("flex flex-col gap-1", bottom && "mt-auto")}>{children}</div>;
+function MenuGroup({
+  children,
+  bottom = false,
+  divided = false,
+}: {
+  children: ReactNode;
+  bottom?: boolean;
+  divided?: boolean;
+}) {
+  return (
+    <div
+      className={clsx(
+        "flex flex-col gap-1",
+        bottom && "mt-auto",
+        divided && "border-t border-separator pt-2",
+      )}
+    >
+      {children}
+    </div>
+  );
 }

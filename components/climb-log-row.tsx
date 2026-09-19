@@ -1,9 +1,8 @@
 import type { ReactNode } from "react";
 
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
-import { ListRow } from "@/components/ui/list-row";
+import { JournalEntryLayout } from "@/components/journal/journal-entry-layout";
 import type { AreaBreadcrumbs } from "@/db/queries";
-import { formatDate } from "@/lib/format-date";
 import { climbHref } from "@/lib/slug";
 
 export function ClimbLogRow({
@@ -31,10 +30,10 @@ export function ClimbLogRow({
   actions?: ReactNode;
 }) {
   return (
-    <ListRow
+    <JournalEntryLayout
       title={climb.name}
       href={climbHref(climb.id, climb.name)}
-      subtitle={
+      location={
         <AreaBreadcrumb
           areaId={climb.areaId}
           areaName={climb.areaName}
@@ -42,13 +41,9 @@ export function ClimbLogRow({
         />
       }
       tags={tags}
-      trailing={
-        <div className="flex flex-col items-end gap-1 text-sm">
-          {grade}
-          {status}
-          <div className="text-xs text-muted">{date ? formatDate(date) : "Date unknown"}</div>
-        </div>
-      }
+      grade={grade}
+      status={status}
+      date={date}
       actions={actions}
       comment={comment}
     />

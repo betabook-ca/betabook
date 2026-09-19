@@ -30,6 +30,10 @@
     --surface-secondary: color-mix(in oklab, var(--palette-paper) 96%, var(--palette-ink));
     --surface-tertiary: color-mix(in oklab, var(--palette-paper) 92%, var(--palette-ink));
     --overlay: color-mix(in oklab, var(--palette-paper) 35%, var(--white));
+    /* Opaque activity marks keep the same painted color on Feed cards and the
+       journal page. Neutral marks lean chalk-grey; sent keeps a lighter green. */
+    --activity-send-bg: color-mix(in oklab, var(--palette-primary) 20%, var(--palette-paper));
+    --activity-neutral-bg: color-mix(in oklab, var(--palette-paper) 90%, var(--palette-ink));
 
     --muted: color-mix(in oklab, var(--palette-ink) 56%, var(--palette-paper));
     --default: color-mix(in oklab, var(--palette-paper) 92%, var(--palette-ink));
@@ -120,6 +124,8 @@
     --surface-secondary: color-mix(in oklab, var(--palette-paper) 20%, var(--palette-ink));
     --surface-tertiary: color-mix(in oklab, var(--palette-paper) 24%, var(--palette-ink));
     --overlay: color-mix(in oklab, var(--palette-paper) 20%, var(--palette-ink));
+    --activity-send-bg: color-mix(in oklab, var(--palette-primary) 44%, var(--palette-ink));
+    --activity-neutral-bg: color-mix(in oklab, var(--palette-paper) 46%, var(--palette-ink));
 
     --muted: color-mix(in oklab, var(--palette-paper) 66%, var(--palette-ink));
     --default: color-mix(in oklab, var(--palette-paper) 24%, var(--palette-ink));

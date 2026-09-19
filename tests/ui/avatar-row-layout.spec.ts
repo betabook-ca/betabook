@@ -51,25 +51,26 @@ test("an anonymous send row keeps the same left edge as a named one @layout", as
   expect(Math.abs(anonymous.x - named.x)).toBeLessThanOrEqual(1);
 });
 
-test("a feed note starts under the outcome icon, not beside it @layout", async ({ page }, info) => {
+test("a feed note starts under the avatar and activity label @layout", async ({ page }, info) => {
   await openStory(page, info, "components-journal-feed-timeline--activity-feed");
 
   const card = page.getByRole("article", { name: "Cedar Arete" }).first();
   const note = card.getByText(/^Painfully close!/).first();
   const author = card.getByRole("link", { name: "Alex Rivera", exact: true }).first();
-  // The card's own heading marks the content edge the note has to reach; the
-  // header and the rows share the same horizontal inset.
-  const heading = card.getByRole("link", { name: "Cedar Arete", exact: true }).first();
+  const avatar = card.getByText("AR", { exact: true }).first();
+  const activity = card.getByText("Session", { exact: true }).first();
 
-  const [noteBox, authorBox, headingBox] = await Promise.all([
+  const [noteBox, authorBox, avatarBox, activityBox] = await Promise.all([
     note.boundingBox(),
     author.boundingBox(),
-    heading.boundingBox(),
+    avatar.boundingBox(),
+    activity.boundingBox(),
   ]);
-  if (!noteBox || !authorBox || !headingBox) throw new Error("Missing feed row bounds");
+  if (!noteBox || !authorBox || !avatarBox || !activityBox)
+    throw new Error("Missing feed row bounds");
 
-  // Indented past neither the outcome icon nor the avatar: comparing against
-  // the author alone would pass while the note still cleared the icon.
-  expect(Math.abs(noteBox.x - headingBox.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(noteBox.x - avatarBox.x)).toBeLessThanOrEqual(1);
+  if (info.project.name.startsWith("mobile"))
+    expect(Math.abs(noteBox.x - activityBox.x)).toBeLessThanOrEqual(1);
   expect(noteBox.x).toBeLessThan(authorBox.x);
 });

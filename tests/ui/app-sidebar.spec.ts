@@ -106,6 +106,7 @@ test("sidebar preview overlays content and pinning reserves space", async ({ pag
     sidebar.getByRole("link", { name: "Account settings", exact: true }),
     sidebar.getByRole("button", { name: "Sign out" }),
   ];
+  await expect(utilities[0].locator("..")).toHaveCSS("border-top-width", "1px");
   let previousY: number | undefined;
   for (const item of utilities) {
     const box = await item.boundingBox();
