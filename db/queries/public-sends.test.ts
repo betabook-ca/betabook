@@ -79,6 +79,7 @@ it("names only Everyone commentary and keeps every other send to its month", asy
   expect(await getPublicSendsForClimb(db, 1)).toEqual([
     {
       userName: "Open Climber",
+      userImage: null,
       dateSent: "2026-09-03",
       ascentStyle: "flash",
       rating: 5,
@@ -88,6 +89,7 @@ it("names only Everyone commentary and keeps every other send to its month", asy
     },
     {
       userName: null,
+      userImage: null,
       dateSent: "2026-08",
       ascentStyle: "redpoint",
       rating: 4,
@@ -97,6 +99,7 @@ it("names only Everyone commentary and keeps every other send to its month", asy
     },
     {
       userName: null,
+      userImage: null,
       dateSent: "2026-07",
       ascentStyle: "flash",
       rating: null,
@@ -106,6 +109,7 @@ it("names only Everyone commentary and keeps every other send to its month", asy
     },
     {
       userName: null,
+      userImage: null,
       dateSent: null,
       ascentStyle: "redpoint",
       rating: 2,
@@ -157,6 +161,36 @@ it("reads current audiences and keeps private profiles anonymous", async () => {
     [null, "2026-09", null],
     [null, "2026-08", null],
   ]);
+});
+
+it("releases a photo only with the name it belongs to", async () => {
+  const photo = "/api/avatars/open/abababababababababababababababab.webp";
+  await seedFixtureUser(db, {
+    id: "open",
+    name: "Open Climber",
+    image: photo,
+    sendCommentVisibility: "everyone",
+  });
+  await seedFixtureUser(db, {
+    id: "member",
+    name: "Member Climber",
+    image: "/api/avatars/member/cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd.webp",
+  });
+  await seedFixtureSend(db, { userId: "open", climbId: 1, dateSent: "2026-09-03" });
+  await seedFixtureSend(db, { userId: "member", climbId: 1, dateSent: "2026-08-14" });
+
+  // The members-only row is anonymous to a signed-out reader, so its photo
+  // would identify the climber the null name is withholding.
+  expect(
+    (await getPublicSendsForClimb(db, 1)).map((send) => [send.userName, send.userImage]),
+  ).toEqual([
+    ["Open Climber", photo],
+    [null, null],
+  ]);
+
+  // A private profile drops the name, and the photo has to follow.
+  await db.update(user).set({ isPrivate: true }).where(eq(user.id, "open"));
+  expect((await getPublicSendsForClimb(db, 1)).map((send) => send.userImage)).toEqual([null, null]);
 });
 
 it("returns the latest sends newest first with ID tie-breaks, capped", async () => {

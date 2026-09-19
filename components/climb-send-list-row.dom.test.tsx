@@ -7,6 +7,7 @@ import { ClimbSendListRow } from "./climb-send-list-row";
 
 const send: PublicClimbSend = {
   userName: "Sam Rivera",
+  userImage: null,
   dateSent: "2026-08-14",
   ascentStyle: "flash",
   rating: 4,
@@ -14,7 +15,15 @@ const send: PublicClimbSend = {
   gradeFeel: "solid",
   comment: "Heel hook at the lip.",
 };
-const anonymous = { ...send, userName: null, dateSent: "2026-08", comment: null };
+const anonymous = {
+  ...send,
+  userName: null,
+  userImage: null,
+  dateSent: "2026-08",
+  comment: null,
+};
+const photos = (container: HTMLElement) =>
+  [...container.querySelectorAll("img")].map((image) => new URL(image.src).pathname);
 
 it("links a member row to the climber with their exact date and commentary", () => {
   render(<ClimbSendListRow type="boulder" send={{ ...send, userId: "sam" }} />);
@@ -31,6 +40,31 @@ it.each([
   expect(screen.getByText("Betabook climber")).toBeInTheDocument();
   expect(screen.getByText("Aug 2026")).toBeInTheDocument();
   expect(screen.queryByRole("link")).not.toBeInTheDocument();
+});
+
+it("leads a named row with the climber's photo, or their initials", () => {
+  const photo = "/api/avatars/sam/abababababababababababababababab.webp";
+  const { container, rerender } = render(
+    <ClimbSendListRow type="boulder" send={{ ...send, userId: "sam", userImage: photo }} />,
+  );
+  expect(photos(container)).toEqual([photo]);
+
+  rerender(<ClimbSendListRow type="boulder" send={{ ...send, userId: "sam" }} />);
+  expect(photos(container)).toEqual([]);
+  expect(screen.getByText("SR")).toBeVisible();
+});
+
+it("leads an anonymous row with a neutral mark that reveals no identity", () => {
+  const { container } = render(
+    <ClimbSendListRow type="boulder" send={{ ...anonymous, userId: null }} />,
+  );
+
+  // The slot stays filled so a mixed list keeps one left edge, but nothing
+  // in it can be traced back to the climber the null name withholds.
+  expect(container.querySelectorAll(".lucide-user")).toHaveLength(1);
+  expect(photos(container)).toEqual([]);
+  expect(screen.queryByText("SR")).not.toBeInTheDocument();
+  expect(screen.queryByText("BC")).not.toBeInTheDocument();
 });
 
 it("names an Everyone climber on a public row without linking the locked profile", () => {

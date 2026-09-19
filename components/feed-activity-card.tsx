@@ -12,6 +12,7 @@ import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import { ClampedComment } from "@/components/ui/clamped-comment";
 import { Grade } from "@/components/ui/grade";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { feedDayHref, type FeedView } from "@/lib/feed";
 import type { FeedEntry } from "@/lib/feed-groups";
 import { formatDate } from "@/lib/format-date";
@@ -67,74 +68,82 @@ export function FeedActivityCard({
       item.reportedGrade,
     );
     return (
-      <div key={`${day.userId}:${item.kind}:${item.id}`} className="flex gap-3 py-3">
-        <span
-          className={clsx(
-            "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full",
-            sent
-              ? "bg-success-soft text-accent-soft-foreground"
-              : "bg-surface-secondary text-muted",
-          )}
-        >
-          <Icon aria-hidden className="size-4" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start gap-3">
-            <div className="flex min-h-8 min-w-0 flex-1 flex-col items-start gap-0.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2">
-              {links ? (
-                <AppLink
-                  href={`/users/${day.userId}`}
-                  className="text-sm font-medium break-words text-foreground"
-                >
-                  {day.name}
-                </AppLink>
-              ) : (
-                <span className="text-sm font-medium break-words">{day.name}</span>
-              )}
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                <span
-                  className={clsx(
-                    "text-sm font-medium whitespace-nowrap",
-                    sent ? "text-accent-soft-foreground" : "text-muted",
+      <div key={`${day.userId}:${item.kind}:${item.id}`} className="py-3">
+        {/* The note hangs below the outcome icon rather than beside it, so a
+         * comment reads from the row's own left edge instead of being
+         * indented twice — past the icon and past the avatar. */}
+        <div className="flex gap-3">
+          <span
+            className={clsx(
+              "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full",
+              sent
+                ? "bg-success-soft text-accent-soft-foreground"
+                : "bg-surface-secondary text-muted",
+            )}
+          >
+            <Icon aria-hidden className="size-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start gap-3">
+              <div className="flex min-h-8 min-w-0 flex-1 flex-col items-start gap-0.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <UserAvatar name={day.name} image={day.image} size="xs" />
+                  {links ? (
+                    <AppLink
+                      href={`/users/${day.userId}`}
+                      className="text-sm font-medium break-words text-foreground"
+                    >
+                      {day.name}
+                    </AppLink>
+                  ) : (
+                    <span className="text-sm font-medium break-words">{day.name}</span>
                   )}
-                >
-                  {label}
-                </span>
-                {grade && (
-                  <Grade className="whitespace-nowrap">
-                    <span title={item.reportedGrade != null ? "Climber's grade" : "Posted grade"}>
-                      {grade}
-                    </span>
-                    {(item.kind === "send" || item.kind === "repeat") && item.gradeFeel && (
-                      <GradeFeelArrow gradeFeel={item.gradeFeel} />
+                </div>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                  <span
+                    className={clsx(
+                      "text-sm font-medium whitespace-nowrap",
+                      sent ? "text-accent-soft-foreground" : "text-muted",
                     )}
-                  </Grade>
-                )}
+                  >
+                    {label}
+                  </span>
+                  {grade && (
+                    <Grade className="whitespace-nowrap">
+                      <span title={item.reportedGrade != null ? "Climber's grade" : "Posted grade"}>
+                        {grade}
+                      </span>
+                      {(item.kind === "send" || item.kind === "repeat") && item.gradeFeel && (
+                        <GradeFeelArrow gradeFeel={item.gradeFeel} />
+                      )}
+                    </Grade>
+                  )}
+                </div>
               </div>
+              {links && (
+                <AppLink
+                  href={feedDayHref(day, view)}
+                  prefetch={false}
+                  aria-label={`View activity for ${day.name} on ${formatDate(day.date)}`}
+                  className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1 text-xs text-muted sm:pointer-fine:min-h-8"
+                >
+                  <span className="hidden sm:inline">View day</span>
+                  <ChevronRight aria-hidden className="size-4" />
+                </AppLink>
+              )}
             </div>
-            {links && (
-              <AppLink
-                href={feedDayHref(day, view)}
-                prefetch={false}
-                aria-label={`View activity for ${day.name} on ${formatDate(day.date)}`}
-                className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1 text-xs text-muted sm:pointer-fine:min-h-8"
-              >
-                <span className="hidden sm:inline">View day</span>
-                <ChevronRight aria-hidden className="size-4" />
-              </AppLink>
+            {entries.length === 1 && view === "all" && !!item.companions?.length && (
+              <CompanionList companions={item.companions} profileLinks={links} />
             )}
           </div>
-          {entries.length === 1 && view === "all" && !!item.companions?.length && (
-            <CompanionList companions={item.companions} profileLinks={links} />
-          )}
-          {item.body && (
-            <div className="mt-1 text-sm leading-relaxed text-foreground">
-              <ClampedComment expandLabel="Read more" collapseLabel="Read less">
-                {item.body}
-              </ClampedComment>
-            </div>
-          )}
         </div>
+        {item.body && (
+          <div className="mt-1 text-sm leading-relaxed text-foreground">
+            <ClampedComment expandLabel="Read more" collapseLabel="Read less">
+              {item.body}
+            </ClampedComment>
+          </div>
+        )}
       </div>
     );
   };

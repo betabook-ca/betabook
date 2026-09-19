@@ -138,7 +138,7 @@ export async function isAdminForAllAreas(
 
 export type ChangeRequestCoverage = {
   scopeAreaIds: number[];
-  approvers: { id: string; name: string }[];
+  approvers: { id: string; name: string; image: string | null }[];
   /** Areas without a current authorized approval. Empty scope is still incomplete. */
   missingAreaIds: number[];
   complete: boolean;
@@ -346,7 +346,7 @@ async function batchCoverage(db: Database, requests: RequestScope[]) {
   for (const { request, scopeAreaIds } of requests) {
     const approvals = rows.filter((row) => row.requestId === request.id);
     const approvers = new Map(
-      approvals.map((row) => [row.userId, { id: row.userId, name: row.name }]),
+      approvals.map((row) => [row.userId, { id: row.userId, name: row.name, image: row.image }]),
     );
     const covered = new Set(approvals.filter((row) => row.covered === 1).map((row) => row.areaId));
     const missingAreaIds = scopeAreaIds.filter((id) => !covered.has(id));

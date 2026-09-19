@@ -8,6 +8,7 @@ import { PublicClimbSendList } from "./public-climb-send-list";
 function anonymous(dateSent: string | null, send: Partial<PublicClimbSend> = {}): PublicClimbSend {
   return {
     userName: null,
+    userImage: null,
     dateSent,
     ascentStyle: "redpoint",
     rating: 3,
@@ -21,6 +22,9 @@ function anonymous(dateSent: string | null, send: Partial<PublicClimbSend> = {})
 const SENDS: PublicClimbSend[] = [
   {
     userName: "Priya Nair",
+    // Initials rather than a photo: these examples make no external image
+    // requests, and initials are the fallback most rows will show anyway.
+    userImage: null,
     dateSent: "2026-09-06",
     ascentStyle: "flash",
     rating: 5,
@@ -33,6 +37,7 @@ const SENDS: PublicClimbSend[] = [
   anonymous("2026-08", { suggestedGrade: 6, gradeFeel: "high" }),
   {
     userName: "Sam Okafor",
+    userImage: null,
     dateSent: "2026-08-17",
     ascentStyle: "redpoint",
     rating: 4,
@@ -45,6 +50,7 @@ const SENDS: PublicClimbSend[] = [
   anonymous("2026-06", { rating: null, suggestedGrade: null }),
   {
     userName: "Jordan Lee",
+    userImage: null,
     dateSent: "2026-05-30",
     ascentStyle: "redpoint",
     rating: 3,

@@ -63,8 +63,8 @@ it("filters the owner's journal by friend and resets the selection", async () =>
       userId="alex"
       isOwner
       friends={[
-        { id: "sam", name: "Sam Rivera" },
-        { id: "lee", name: "Lee Park" },
+        { id: "sam", name: "Sam Rivera", image: null },
+        { id: "lee", name: "Lee Park", image: null },
       ]}
       filter={DEFAULT_JOURNAL_FILTER}
       climbName={null}
@@ -103,8 +103,8 @@ it("filters the owner's journal by friend and resets the selection", async () =>
       userId="alex"
       isOwner
       friends={[
-        { id: "sam", name: "Sam Rivera" },
-        { id: "lee", name: "Lee Park" },
+        { id: "sam", name: "Sam Rivera", image: null },
+        { id: "lee", name: "Lee Park", image: null },
       ]}
       filter={{ ...DEFAULT_JOURNAL_FILTER, friendIds: ["lee"] }}
       climbName={null}

@@ -56,8 +56,8 @@ function Example({
         hasPriorSend={repeat}
         companionFetcher={async (query) =>
           [
-            { id: "sample-sam", name: "Sam Rivera" },
-            { id: "sample-alex", name: "Alex Rivera" },
+            { id: "sample-sam", name: "Sam Rivera", image: null },
+            { id: "sample-alex", name: "Alex Rivera", image: null },
           ].filter((friend) => friend.name.toLowerCase().startsWith(query.toLowerCase()))
         }
         onSave={async (form, undated) => {

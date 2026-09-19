@@ -17,6 +17,7 @@ import { getJournalForClimb, getJournalPage } from "./journal";
 import { getJournalFilterFriends } from "./journal-companions";
 
 const db = createDb(env.DB);
+const PARTNER_PHOTO = "/api/avatars/partner/abababababababababababababababab.webp";
 async function tag(entryId: number, author: string, companion: string) {
   const pair = friendshipPair(author, companion);
   await db.insert(journalCompanions).values({
@@ -67,7 +68,13 @@ beforeEach(async () => {
   await resetDb(db);
   await seedFixtureTree(db);
   for (const id of ["author", "partner", "viewer", "stranger"])
-    await seedFixtureUser(db, { id, journalVisibility: "public" });
+    await seedFixtureUser(db, {
+      id,
+      journalVisibility: "public",
+      // The tag shows a face beside the name, so the photo has to obey the
+      // same audience rules the name does.
+      image: id === "partner" ? PARTNER_PHOTO : null,
+    });
   await seedFixtureFriendship(db, "author", "partner");
   await seedFixtureFriendship(db, "author", "viewer");
 });
@@ -96,7 +103,14 @@ it("applies the author audience and the companion's only-me opt-out to anonymous
           viewer === "author" || viewer === "partner" || partnerAudience !== "private";
         expect(entries[0].companions).toEqual(
           canSeePartner
-            ? [{ id: "partner", name: "Test Climber partner", isSelf: viewer === "partner" }]
+            ? [
+                {
+                  id: "partner",
+                  name: "Test Climber partner",
+                  image: PARTNER_PHOTO,
+                  isSelf: viewer === "partner",
+                },
+              ]
             : [],
         );
       }
@@ -110,7 +124,7 @@ it("applies the author audience and the companion's only-me opt-out to anonymous
   await db.update(user).set({ isPrivate: true }).where(eq(user.id, "partner"));
   expect(await visible(null)).toEqual([]);
   // A private profile does not change who is named: it governs the profile page.
-  const partnerName = { id: "partner", name: "Test Climber partner" };
+  const partnerName = { id: "partner", name: "Test Climber partner", image: PARTNER_PHOTO };
   for (const reader of ["author", "viewer"])
     expect((await visible(reader))[0].companions).toEqual([{ ...partnerName, isSelf: false }]);
   expect((await visible("partner"))[0].companions).toEqual([{ ...partnerName, isSelf: true }]);
@@ -471,7 +485,9 @@ it("matches any selected friend and lists all existing friends independently of 
 it("names tagged partners to readers outside the partner's own friends, honoring an only-me opt-out", async () => {
   const entryId = await entry();
   await tag(entryId, "author", "partner");
-  const named = [{ id: "partner", name: "Test Climber partner", isSelf: false }];
+  const named = [
+    { id: "partner", name: "Test Climber partner", image: PARTNER_PHOTO, isSelf: false },
+  ];
   // `viewer` is the author's friend but never the partner's; `stranger` is
   // neither, and reads the author's entry through the Members audience.
   for (const partnerAudience of ["friends", "public"] as const) {

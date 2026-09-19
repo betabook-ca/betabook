@@ -46,7 +46,7 @@ const day: FeedDay = {
       areaId: null,
       areaName: null,
       body: "Alex's note",
-      companions: [{ id: "sam", name: "Sam", isSelf: false }],
+      companions: [{ id: "sam", name: "Sam", image: null, isSelf: false }],
     },
   ],
 };

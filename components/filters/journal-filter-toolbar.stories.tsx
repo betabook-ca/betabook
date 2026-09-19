@@ -13,8 +13,8 @@ const meta = {
     userId: "example",
     isOwner: true,
     friends: [
-      { id: "sam", name: "Sam Rivera" },
-      { id: "alex", name: "Alex Chen" },
+      { id: "sam", name: "Sam Rivera", image: null },
+      { id: "alex", name: "Alex Chen", image: null },
     ],
     filter: DEFAULT_JOURNAL_FILTER,
     climbName: null,

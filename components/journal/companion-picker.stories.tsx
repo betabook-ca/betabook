@@ -14,9 +14,9 @@ const meta = {
 export default meta;
 type Story = StoryObj;
 const friends = [
-  { id: "alex", name: "Alex Rivera" },
-  { id: "sam", name: "Sam With A Long Climbing Name" },
-  { id: "jo", name: "Jordan Lee" },
+  { id: "alex", name: "Alex Rivera", image: null },
+  { id: "sam", name: "Sam With A Long Climbing Name", image: null },
+  { id: "jo", name: "Jordan Lee", image: null },
 ];
 function Example({
   full = false,
@@ -33,6 +33,7 @@ function Example({
       ? Array.from({ length: 10 }, (_, id) => ({
           id: String(id),
           name: `Climbing friend ${id + 1}`,
+          image: null,
         }))
       : failure
         ? [friends[1]]

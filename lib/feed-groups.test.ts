@@ -30,7 +30,10 @@ function withFriend(
   friend: string,
   extra: Partial<FeedDay["activities"][number]> = {},
 ) {
-  return entry(id, { companions: [{ id: friend, name: friend, isSelf: false }], ...extra });
+  return entry(id, {
+    companions: [{ id: friend, name: friend, image: null, isSelf: false }],
+    ...extra,
+  });
 }
 function training(id: number, companions: string[] = []): FeedDay["activities"][number] {
   return entry(id, {
@@ -38,7 +41,12 @@ function training(id: number, companions: string[] = []): FeedDay["activities"][
     climbId: null,
     climbName: null,
     areaId: null,
-    companions: companions.map((userId) => ({ id: userId, name: userId, isSelf: false })),
+    companions: companions.map((userId) => ({
+      id: userId,
+      name: userId,
+      image: null,
+      isSelf: false,
+    })),
   });
 }
 function day(

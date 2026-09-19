@@ -5,8 +5,8 @@ import { expect, it, vi } from "vitest";
 import { CompanionList } from "./companion-list";
 
 const companions = [
-  { id: "alex", name: "Alex Rivera", isSelf: false },
-  { id: "sam", name: "Sam Rivera", isSelf: true },
+  { id: "alex", name: "Alex Rivera", image: null, isSelf: false },
+  { id: "sam", name: "Sam Rivera", image: null, isSelf: true },
 ];
 it("requests self-removal and keeps the other companion when the parent applies it", async () => {
   const user = userEvent.setup();
@@ -21,6 +21,20 @@ it("requests self-removal and keeps the other companion when the parent applies 
   expect(screen.getByRole("link", { name: "Alex Rivera" })).toHaveAttribute("href", "/users/alex");
   expect(screen.queryByRole("button", { name: "Remove my tag" })).not.toBeInTheDocument();
 });
+it("names companions without avatars, which would outweigh this muted line", () => {
+  const photo = "/api/avatars/alex/abababababababababababababababab.webp";
+  const { container } = render(
+    <CompanionList companions={[{ ...companions[0], image: photo }, companions[1]]} />,
+  );
+
+  // A companion carries a photo for the picker's chips; the rendered tag under
+  // an entry stays text-only, so neither the photo nor initials appear here.
+  expect(container.querySelectorAll("img")).toHaveLength(0);
+  expect(screen.queryByText("AR")).not.toBeInTheDocument();
+  expect(screen.queryByText("SR")).not.toBeInTheDocument();
+  expect(screen.getByText(/With/)).toHaveTextContent("With Alex Rivera, Sam Rivera");
+});
+
 it("prevents repeated removal while pending", async () => {
   const user = userEvent.setup();
   const remove = vi.fn<() => void>();

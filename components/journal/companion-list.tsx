@@ -25,6 +25,10 @@ export function CompanionList({
   if (companions.length === 0) return null;
   return (
     <div className="flex w-full min-w-0 flex-col gap-1 text-xs text-muted">
+      {/* Names only, no avatars: this line is muted text-xs under an entry, and
+       * an avatar on each name outweighs the text it sits beside. The picker
+       * and filter that edit these tags do show one — they are full-size
+       * controls where the face helps pick the right friend. */}
       <p className="break-words">
         With{" "}
         {companions.map((friend, index) => (

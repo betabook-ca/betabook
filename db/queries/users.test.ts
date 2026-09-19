@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { createDb, type Database } from "@/db/client";
 import { seedFixtureUser } from "@/test/fixtures";
 
-import { getTakenNamesAround, getUser, getUserIdByName } from "./users";
+import { getTakenNamesAround, getUser, getUserIdByName, getUsersByIds } from "./users";
 
 let db: Database;
 
@@ -22,6 +22,26 @@ describe("getUser", () => {
   it("returns undefined for an unknown id", async () => {
     const user = await getUser(db, "no-such-user");
     expect(user).toBeUndefined();
+  });
+});
+
+describe("getUsersByIds", () => {
+  const photo = "/api/avatars/queue-requester/abababababababababababababababab.webp";
+
+  it("returns each requester's name and photo for the review queue", async () => {
+    await seedFixtureUser(db, { id: "queue-requester", name: "Queue Requester", image: photo });
+    await seedFixtureUser(db, { id: "queue-plain", name: "Queue Plain" });
+
+    // The queue shows a face beside "Requested by", so the photo has to come
+    // back from the same batch lookup as the name.
+    expect(await getUsersByIds(db, ["queue-requester", "queue-plain", "no-such-user"])).toEqual([
+      { id: "queue-plain", name: "Queue Plain", image: null },
+      { id: "queue-requester", name: "Queue Requester", image: photo },
+    ]);
+  });
+
+  it("returns nothing for an empty id list", async () => {
+    expect(await getUsersByIds(db, [])).toEqual([]);
   });
 });
 

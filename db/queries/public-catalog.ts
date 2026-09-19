@@ -31,6 +31,7 @@ export async function getPublicSendsForClimb(
   return db.all<PublicClimbSend>(sql`
     SELECT
       CASE WHEN ${named} THEN user.name END AS userName,
+      CASE WHEN ${named} THEN user.image END AS userImage,
       CASE WHEN ${named} THEN sends.date_sent ELSE substr(sends.date_sent, 1, 7) END AS dateSent,
       sends.ascent_style AS ascentStyle,
       sends.rating AS rating,

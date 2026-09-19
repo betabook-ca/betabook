@@ -99,7 +99,7 @@ it("edits the original journal details with the send and keeps its date required
       existingEntry={{
         id: 42,
         tags: ["beta"],
-        companions: [{ id: "sam", name: "Sam", isSelf: false }],
+        companions: [{ id: "sam", name: "Sam", image: null, isSelf: false }],
       }}
     />,
   );

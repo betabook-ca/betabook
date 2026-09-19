@@ -7,6 +7,7 @@ import { useState } from "react";
 import { SearchSelectionField } from "@/components/search/search-selection-field";
 import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { useSearchLookup, type LookupFetcher } from "@/hooks/use-search-lookup";
 import { apiFetch } from "@/lib/api-client";
 import { MAX_JOURNAL_COMPANIONS, type CompanionOption } from "@/lib/journal-companions";
@@ -76,6 +77,7 @@ export function CompanionPicker({
           kind: "climber",
           id: friend.id,
           name: friend.name,
+          image: friend.image,
           detail: "Friend",
         }))}
         onSelect={(item) => {
@@ -104,6 +106,7 @@ export function CompanionPicker({
                 onPress={() => onChange(value.filter((item) => item.id !== friend.id))}
                 className="max-w-full"
               >
+                <UserAvatar name={friend.name} image={friend.image} size="xs" className="-ms-1" />
                 <span className="truncate">{friend.name}</span>
                 <X className="size-3.5" aria-hidden="true" />
               </Button>

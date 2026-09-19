@@ -37,11 +37,11 @@ export async function getTakenNamesAround(db: Database, base: string, stem: stri
 }
 
 /** Batch lookup for the review queue — one IN query for a page's worth of
- * requester names instead of one getUser round-trip per row. */
+ * requester names and photos instead of one getUser round-trip per row. */
 export async function getUsersByIds(db: Database, ids: string[]) {
   if (ids.length === 0) return [];
   return db
-    .select({ id: user.id, name: user.name })
+    .select({ id: user.id, name: user.name, image: user.image })
     .from(user)
     .where(sql`${user.id} IN (SELECT value FROM json_each(${JSON.stringify(ids)}))`)
     .all();

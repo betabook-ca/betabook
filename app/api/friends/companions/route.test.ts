@@ -17,11 +17,12 @@ vi.mock("@/db/client", async (original) => {
   return { ...actual, getDb: async () => actual.createDb(env.DB) };
 });
 const db = createDb(env.DB);
+const PARTNER_PHOTO = "/api/avatars/partner/abababababababababababababababab.webp";
 beforeEach(async () => {
   await resetDb(db);
   identity.id = "author";
   await seedFixtureUser(db, { id: "author" });
-  await seedFixtureUser(db, { id: "partner", name: "Partner" });
+  await seedFixtureUser(db, { id: "partner", name: "Partner", image: PARTNER_PHOTO });
   await seedFixtureFriendship(db, "author", "partner");
 });
 it("requires sign-in and uses a private no-store response", async () => {
@@ -33,7 +34,10 @@ it("requires sign-in and uses a private no-store response", async () => {
 it("returns accepted public friend identities and treats blank/wildcard input literally", async () => {
   const response = await GET(new Request("https://example.test/api/friends/companions?q=Par"));
   expect(response.headers.get("Cache-Control")).toBe("private, no-store");
-  expect(await response.json()).toEqual({ friends: [{ id: "partner", name: "Partner" }] });
+  // The picker shows a face beside each name, so the photo travels with it.
+  expect(await response.json()).toEqual({
+    friends: [{ id: "partner", name: "Partner", image: PARTNER_PHOTO }],
+  });
   for (const query of ["", "%25", "_", "x".repeat(500)]) {
     expect(
       await (

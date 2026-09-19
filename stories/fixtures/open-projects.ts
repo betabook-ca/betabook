@@ -45,7 +45,7 @@ export const moonSlab: ProjectWithSessions = {
       entryDate: "2026-09-04",
       body: "Held the crux hold twice. The heel only stays if I drop the left hip first — that is the whole move.",
       tags: ["beta", "heels"],
-      companions: [{ id: "sample-sam", name: "Sam Ortega", isSelf: false }],
+      companions: [{ id: "sample-sam", name: "Sam Ortega", image: null, isSelf: false }],
     }),
     entry({
       id: 902,

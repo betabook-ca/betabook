@@ -31,7 +31,7 @@ const meta = {
     existingEntry: {
       id: -1,
       tags: ["footwork", "outdoors"],
-      companions: [{ id: "sample-sam", name: "Sam Rivera", isSelf: false }],
+      companions: [{ id: "sample-sam", name: "Sam Rivera", image: null, isSelf: false }],
     },
     companionFetcher: async () => [],
     onSave: async () => ({ ok: true, value: undefined }),
