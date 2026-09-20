@@ -20,7 +20,16 @@ import {
 } from "@/actions/moderation-apply";
 import { createDb, type Database } from "@/db/client";
 import { getChangeRequest, getJournalForClimb } from "@/db/queries";
-import { adminAreaScopes, areas, changeRequests, climbs, journalEntries, sends } from "@/db/schema";
+import {
+  adminAreaScopes,
+  areas,
+  catalogAreaSources,
+  catalogRouteSources,
+  changeRequests,
+  climbs,
+  journalEntries,
+  sends,
+} from "@/db/schema";
 import { formatGrade } from "@/lib/grades";
 import {
   seedFixtureJournalEntry,
@@ -656,10 +665,24 @@ describe("applyClimbMove", () => {
 describe("applyAreaDelete", () => {
   it("deletes an empty leaf area", async () => {
     await db.insert(areas).values({ id: 870, parentId: 1, name: "Delete Me" });
+    await db.insert(catalogAreaSources).values({
+      source: "openbeta",
+      sourcePath: "Canada > British Columbia > Delete Me",
+      areaId: 870,
+      quality: "aligned",
+      release: "test-release",
+    });
 
     await applyAreaDelete(db, 870);
 
     expect(await db.select().from(areas).where(eq(areas.id, 870)).get()).toBeUndefined();
+    const sourceLink = await db
+      .select()
+      .from(catalogAreaSources)
+      .where(eq(catalogAreaSources.sourcePath, "Canada > British Columbia > Delete Me"))
+      .get();
+    expect(sourceLink?.areaId).toBeNull();
+    expect(sourceLink?.quality).toBe("area_deleted");
   });
 
   it("refuses an area with sub-areas", async () => {
@@ -677,10 +700,28 @@ describe("applyClimbDelete", () => {
     await db
       .insert(climbs)
       .values({ id: 875, areaId: 3, name: "Delete Climb", type: "sport", grade: 8 });
+    await db.insert(catalogRouteSources).values({
+      source: "openbeta",
+      sourceId: "openbeta-delete-source",
+      climbId: 875,
+      sourceName: "Delete Climb",
+      sourceType: "sport",
+      sourcePath: "Canada > British Columbia > Test Area",
+      status: "matched",
+      release: "test-release",
+    });
 
     await applyClimbDelete(db, 875);
 
     expect(await db.select().from(climbs).where(eq(climbs.id, 875)).get()).toBeUndefined();
+    const sourceLink = await db
+      .select()
+      .from(catalogRouteSources)
+      .where(eq(catalogRouteSources.sourceId, "openbeta-delete-source"))
+      .get();
+    expect(sourceLink?.climbId).toBeNull();
+    expect(sourceLink?.status).toBe("review");
+    expect(sourceLink?.matchKind).toBe("climb_deleted");
   });
 
   it("refuses a climb with logged sends, live-checked at apply time", async () => {
@@ -749,6 +790,16 @@ describe("applyClimbMerge", () => {
       dateSent: "2026-01-01",
       rating: 4,
     });
+    await db.insert(catalogRouteSources).values({
+      source: "openbeta",
+      sourceId: "openbeta-merge-source",
+      climbId: 910,
+      sourceName: "Merge Source A",
+      sourceType: "boulder",
+      sourcePath: "Canada > British Columbia > Test Area",
+      status: "matched",
+      release: "test-release",
+    });
 
     await applyClimbMerge(db, 910, 911);
 
@@ -760,6 +811,12 @@ describe("applyClimbMerge", () => {
     const send = await db.select().from(sends).where(eq(sends.userId, "merge-user-a")).get();
     expect(send?.climbId).toBe(911);
     expect(send?.rating).toBe(4);
+    const sourceLink = await db
+      .select()
+      .from(catalogRouteSources)
+      .where(eq(catalogRouteSources.sourceId, "openbeta-merge-source"))
+      .get();
+    expect(sourceLink?.climbId).toBe(911);
   });
 
   it("keeps the target's send wholesale when a user sent both climbs", async () => {
