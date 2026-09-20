@@ -1,0 +1,141 @@
+import { useOverlayState } from "@heroui/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { expect, it, vi } from "vitest";
+
+import { pinProject } from "@/actions";
+import type { OpenProject } from "@/db/queries";
+import type { ActionResult } from "@/lib/action-result";
+
+import { PinProjectDrawer } from "./pin-project-drawer";
+
+vi.mock("@/actions", () => ({
+  pinProject: vi.fn<() => Promise<ActionResult>>(),
+}));
+
+const refresh = vi.fn<() => void>();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh }),
+  usePathname: () => "/users/climber/projects",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+function suggestion(overrides: Partial<OpenProject> & { climbId: number }): OpenProject {
+  return {
+    climbName: "Moon Slab",
+    climbType: "boulder",
+    climbGrade: 5,
+    climbBrokenOn: null,
+    areaId: 3,
+    areaName: "Cedar Block",
+    sessionCount: 4,
+    noteCount: 2,
+    firstSession: "2026-03-01",
+    lastSession: "2026-09-01",
+    ...overrides,
+  };
+}
+
+const suggestions: OpenProject[] = [
+  suggestion({ climbId: 1 }),
+  suggestion({ climbId: 2, climbName: "Ash Crack", climbType: "trad", sessionCount: 1 }),
+];
+
+const NO_PINS: number[] = [];
+
+function Example({
+  suggested = suggestions,
+  pinnedClimbIds = NO_PINS,
+}: {
+  suggested?: OpenProject[];
+  pinnedClimbIds?: number[];
+}) {
+  const state = useOverlayState({ defaultOpen: true });
+  return <PinProjectDrawer state={state} suggestions={suggested} pinnedClimbIds={pinnedClimbIds} />;
+}
+
+it("offers each unsent climb with the session count that makes it a candidate", async () => {
+  render(<Example />);
+
+  const list = await screen.findByRole("list", { name: "Suggested projects" });
+  const rows = within(list).getAllByRole("listitem");
+  expect(rows).toHaveLength(2);
+  expect(rows[0]).toHaveTextContent("Moon Slab");
+  expect(rows[0]).toHaveTextContent("4 sessions");
+  // Singular, so the count reads as a sentence rather than "1 sessions".
+  expect(rows[1]).toHaveTextContent("1 session");
+});
+
+it("pins the suggestion that was pressed and closes", async () => {
+  const user = userEvent.setup();
+  vi.mocked(pinProject).mockResolvedValue({ ok: true, value: undefined });
+  render(<Example />);
+
+  await user.click(await screen.findByRole("button", { name: "Pin Ash Crack" }));
+
+  await waitFor(() => expect(pinProject).toHaveBeenCalledWith(2));
+  expect(pinProject).toHaveBeenCalledTimes(1);
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+});
+
+it("keeps the drawer open and explains a refused pin", async () => {
+  const user = userEvent.setup();
+  vi.mocked(pinProject).mockResolvedValue({
+    ok: false,
+    error: "You can pin up to 100 projects — unpin one to add another",
+  });
+  render(<Example />);
+
+  await user.click(await screen.findByRole("button", { name: "Pin Moon Slab" }));
+
+  expect(await screen.findByText(/You can pin up to 100 projects/)).toBeVisible();
+  // Still open, so the climber can unpin elsewhere or choose differently.
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  expect(screen.getByRole("list", { name: "Suggested projects" })).toBeInTheDocument();
+});
+
+it("locks the other suggestions while a pin is in flight, so none double-fires", async () => {
+  const user = userEvent.setup();
+  let finish: (result: ActionResult) => void = () => {};
+  vi.mocked(pinProject).mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  render(<Example />);
+
+  await user.click(await screen.findByRole("button", { name: "Pin Moon Slab" }));
+
+  // The disabled state is what actually stops a second pick on this path;
+  // handlePin's pending guard covers the search results, which stay enabled.
+  expect(screen.getByRole("button", { name: "Pin Ash Crack" })).toBeDisabled();
+  await user.click(screen.getByRole("button", { name: "Pin Ash Crack" }));
+
+  expect(pinProject).toHaveBeenCalledTimes(1);
+  expect(pinProject).toHaveBeenCalledWith(1);
+
+  finish({ ok: true, value: undefined });
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+});
+
+it("hides the suggestions once the climber starts searching for something else", async () => {
+  const user = userEvent.setup();
+  render(<Example />);
+
+  expect(await screen.findByRole("list", { name: "Suggested projects" })).toBeInTheDocument();
+
+  await user.type(screen.getByRole("searchbox"), "giant");
+
+  await waitFor(() =>
+    expect(screen.queryByRole("list", { name: "Suggested projects" })).not.toBeInTheDocument(),
+  );
+});
+
+it("says nothing about suggestions when there are none to make", async () => {
+  render(<Example suggested={[]} />);
+
+  await screen.findByRole("dialog");
+  expect(screen.queryByRole("list", { name: "Suggested projects" })).not.toBeInTheDocument();
+  expect(screen.queryByText(/worked but not sent/)).not.toBeInTheDocument();
+});

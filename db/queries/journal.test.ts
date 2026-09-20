@@ -9,14 +9,16 @@ import {
   getJournalForClimb,
   getJournalPage,
   getJournalSessionsForAnalytics,
-  getOpenProjects,
-  getOpenProjectSessions,
+  getOpenProjectSuggestions,
+  getPinnedProjects,
+  getPinnedProjectSessions,
   hasJournalEntries,
 } from "@/db/queries";
 import { sends } from "@/db/schema";
 import { DEFAULT_JOURNAL_FILTER, type JournalFilter } from "@/lib/filters/journal-filter";
 import {
   seedFixtureJournalEntry,
+  seedFixturePinnedProject,
   seedFixtureSend,
   seedFixtureTree,
   seedFixtureUser,
@@ -309,9 +311,11 @@ describe("getJournalSessionsForAnalytics", () => {
   });
 });
 
-describe("getOpenProjects", () => {
-  it("returns climbs with sessions and no send", async () => {
-    const projects = await getOpenProjects(db, OWNER_ID, OWNER_ID);
+describe("getPinnedProjects", () => {
+  it("lists a pinned climb with the sessions it has accumulated", async () => {
+    await seedFixturePinnedProject(db, { userId: OWNER_ID, climbId: SLAB });
+
+    const projects = await getPinnedProjects(db, OWNER_ID, OWNER_ID, { sent: false });
     expect(projects).toHaveLength(1);
     expect(projects[0]).toMatchObject({
       climbId: SLAB,
@@ -321,74 +325,101 @@ describe("getOpenProjects", () => {
       noteCount: 0,
       firstSession: "2025-03-05",
       lastSession: "2025-03-06",
+      sent: false,
+      sentOn: null,
     });
   });
 
-  it("counts only the sessions that carry a written note", async () => {
-    const ownerId = "tl-project-notes";
+  it("lists a pin that has never been climbed, with no dates to show", async () => {
+    const ownerId = "tl-pin-untouched";
     await seedFixtureUser(db, { id: ownerId });
-    await seedFixtureJournalEntry(db, {
-      userId: ownerId,
-      climbId: SLAB,
-      entryDate: "2025-07-01",
-      body: "Crux feels impossible.",
-    });
-    await seedFixtureJournalEntry(db, { userId: ownerId, climbId: SLAB, entryDate: "2025-07-02" });
-    await seedFixtureJournalEntry(db, {
-      userId: ownerId,
-      climbId: SLAB,
-      entryDate: "2025-07-03",
-      body: "   ",
-    });
+    await seedFixturePinnedProject(db, { userId: ownerId, climbId: SLAB, pinnedAt: "2025-09-09" });
 
-    const [project] = await getOpenProjects(db, ownerId, ownerId);
-    expect(project).toMatchObject({ sessionCount: 3, noteCount: 1 });
+    const projects = await getPinnedProjects(db, ownerId, ownerId, { sent: false });
+    expect(projects).toHaveLength(1);
+    expect(projects[0]).toMatchObject({
+      climbId: SLAB,
+      sessionCount: 0,
+      noteCount: 0,
+      firstSession: null,
+      lastSession: null,
+      pinnedAt: "2025-09-09",
+      sent: false,
+    });
   });
 
-  it("drops a climb once it is sent — nothing has to be marked done", async () => {
+  it("does not list a climb with sessions that was never pinned", async () => {
+    // The whole point of the pin: logging sessions no longer enrolls a climb.
+    expect(await getPinnedProjects(db, OWNER_ID, OWNER_ID, { sent: false })).toEqual([]);
+  });
+
+  it("moves a pin to the sent side once it is sent, instead of dropping it", async () => {
+    await seedFixturePinnedProject(db, { userId: OWNER_ID, climbId: SLAB });
     await seedFixtureSend(db, { userId: OWNER_ID, climbId: SLAB, dateSent: "2025-03-07" });
-    expect(await getOpenProjects(db, OWNER_ID, OWNER_ID)).toEqual([]);
+
+    expect(await getPinnedProjects(db, OWNER_ID, OWNER_ID, { sent: false })).toEqual([]);
+    const sent = await getPinnedProjects(db, OWNER_ID, OWNER_ID, { sent: true });
+    expect(sent.map(({ climbId }) => climbId)).toEqual([SLAB]);
+    expect(sent[0]).toMatchObject({ sent: true, sentOn: "2025-03-07", sessionCount: 2 });
   });
 
-  it("orders equal-date projects by climb id", async () => {
-    const ownerId = "tl-project-order";
+  it("keeps an undated send on the sent side", async () => {
+    const ownerId = "tl-pin-undated";
     await seedFixtureUser(db, { id: ownerId });
-    await seedFixtureJournalEntry(db, {
+    await seedFixturePinnedProject(db, { userId: ownerId, climbId: SLAB });
+    await seedFixtureSend(db, { userId: ownerId, climbId: SLAB, dateSent: null });
+
+    expect(await getPinnedProjects(db, ownerId, ownerId, { sent: false })).toEqual([]);
+    const sent = await getPinnedProjects(db, ownerId, ownerId, { sent: true });
+    expect(sent.map(({ climbId }) => climbId)).toEqual([SLAB]);
+    // An undated send still counts as sent; `sent` is what distinguishes it
+    // from a pin that simply has no send.
+    expect(sent[0]).toMatchObject({ sent: true, sentOn: null });
+  });
+
+  it("ignores another climber's send on the same climb", async () => {
+    const ownerId = "tl-pin-other-send";
+    await seedFixtureUser(db, { id: ownerId });
+    await seedFixturePinnedProject(db, { userId: ownerId, climbId: SLAB });
+    await seedFixtureSend(db, { userId: OWNER_ID, climbId: SLAB, dateSent: "2025-03-07" });
+
+    const open = await getPinnedProjects(db, ownerId, ownerId, { sent: false });
+    expect(open.map(({ climbId }) => climbId)).toEqual([SLAB]);
+  });
+
+  it("sorts a pin with no sessions after the active ones, by when it was pinned", async () => {
+    const ownerId = "tl-pin-order";
+    await seedFixtureUser(db, { id: ownerId });
+    await seedFixtureJournalEntry(db, { userId: ownerId, climbId: SLAB, entryDate: "2025-05-01" });
+    await seedFixturePinnedProject(db, { userId: ownerId, climbId: SLAB, pinnedAt: "2025-04-01" });
+    // Pinned most recently, but never climbed: it must not outrank the project
+    // with real activity just because its date sorts as NULL.
+    await seedFixturePinnedProject(db, { userId: ownerId, climbId: 4, pinnedAt: "2025-12-01" });
+    await seedFixturePinnedProject(db, {
       userId: ownerId,
-      climbId: 4,
-      entryDate: "2025-05-01",
-    });
-    await seedFixtureJournalEntry(db, {
-      userId: ownerId,
-      climbId: SLAB,
-      entryDate: "2025-05-01",
+      climbId: CRIMPER,
+      pinnedAt: "2025-11-01",
     });
 
-    const projects = await getOpenProjects(db, ownerId, ownerId);
-    expect(projects.map(({ climbId }) => climbId)).toEqual([SLAB, 4]);
+    const projects = await getPinnedProjects(db, ownerId, ownerId, { sent: false });
+    expect(projects.map(({ climbId }) => climbId)).toEqual([SLAB, 4, CRIMPER]);
   });
 
   it("bounds the number of projects returned", async () => {
-    const ownerId = "tl-project-limit";
+    const ownerId = "tl-pin-limit";
     await seedFixtureUser(db, { id: ownerId });
-    await seedFixtureJournalEntry(db, {
-      userId: ownerId,
-      climbId: SLAB,
-      entryDate: "2025-06-01",
-    });
-    await seedFixtureJournalEntry(db, {
-      userId: ownerId,
-      climbId: 4,
-      entryDate: "2025-06-02",
-    });
+    await seedFixtureJournalEntry(db, { userId: ownerId, climbId: SLAB, entryDate: "2025-06-01" });
+    await seedFixtureJournalEntry(db, { userId: ownerId, climbId: 4, entryDate: "2025-06-02" });
+    await seedFixturePinnedProject(db, { userId: ownerId, climbId: SLAB });
+    await seedFixturePinnedProject(db, { userId: ownerId, climbId: 4 });
 
-    const projects = await getOpenProjects(db, ownerId, ownerId, 1);
+    const projects = await getPinnedProjects(db, ownerId, ownerId, { sent: false }, 1);
     expect(projects).toHaveLength(1);
     expect(projects[0]?.climbId).toBe(4);
   });
 });
 
-describe("getOpenProjectSessions", () => {
+describe("getPinnedProjectSessions", () => {
   const SESSIONS_OWNER = "tl-project-sessions";
 
   beforeEach(async () => {
@@ -427,7 +458,7 @@ describe("getOpenProjectSessions", () => {
   });
 
   it("returns the newest sessions of every requested project in one read", async () => {
-    const sessions = await getOpenProjectSessions(db, SESSIONS_OWNER, SESSIONS_OWNER, [
+    const sessions = await getPinnedProjectSessions(db, SESSIONS_OWNER, SESSIONS_OWNER, [
       SLAB,
       CRIMPER,
     ]);
@@ -450,7 +481,7 @@ describe("getOpenProjectSessions", () => {
   });
 
   it("ranks per climb, so a busy project cannot crowd out a quiet one", async () => {
-    const sessions = await getOpenProjectSessions(
+    const sessions = await getPinnedProjectSessions(
       db,
       SESSIONS_OWNER,
       SESSIONS_OWNER,
@@ -465,23 +496,87 @@ describe("getOpenProjectSessions", () => {
   });
 
   it("reads only the climbs it was asked for", async () => {
-    const sessions = await getOpenProjectSessions(db, SESSIONS_OWNER, SESSIONS_OWNER, [CRIMPER]);
+    const sessions = await getPinnedProjectSessions(db, SESSIONS_OWNER, SESSIONS_OWNER, [CRIMPER]);
     expect(sessions.map((entry) => entry.climbId)).toEqual([CRIMPER]);
-    expect(await getOpenProjectSessions(db, SESSIONS_OWNER, SESSIONS_OWNER, [])).toEqual([]);
+    expect(await getPinnedProjectSessions(db, SESSIONS_OWNER, SESSIONS_OWNER, [])).toEqual([]);
   });
 
-  it("drops a climb from the preload once it is sent", async () => {
+  it("keeps the sessions of a sent project, which still has a card to fill", async () => {
     await seedFixtureSend(db, {
       userId: SESSIONS_OWNER,
       climbId: SLAB,
       dateSent: "2025-08-23",
     });
 
-    const sessions = await getOpenProjectSessions(db, SESSIONS_OWNER, SESSIONS_OWNER, [
+    const sessions = await getPinnedProjectSessions(db, SESSIONS_OWNER, SESSIONS_OWNER, [
       SLAB,
       CRIMPER,
     ]);
-    expect(sessions.map((entry) => entry.climbId)).toEqual([CRIMPER]);
+    expect(sessions.map((entry) => entry.climbId)).toEqual([SLAB, CRIMPER, SLAB, SLAB]);
+  });
+});
+
+describe("getOpenProjectSuggestions", () => {
+  it("offers climbs worked but never sent, with the session count as the evidence", async () => {
+    const suggestions = await getOpenProjectSuggestions(db, OWNER_ID, OWNER_ID);
+    expect(suggestions).toHaveLength(1);
+    expect(suggestions[0]).toMatchObject({
+      climbId: SLAB,
+      climbName: "Test Slab",
+      sessionCount: 2,
+      noteCount: 0,
+    });
+  });
+
+  it("stops offering a climb once it is pinned", async () => {
+    await seedFixturePinnedProject(db, { userId: OWNER_ID, climbId: SLAB });
+    expect(await getOpenProjectSuggestions(db, OWNER_ID, OWNER_ID)).toEqual([]);
+  });
+
+  it("stops offering a climb once it is sent", async () => {
+    await seedFixtureSend(db, { userId: OWNER_ID, climbId: SLAB, dateSent: "2025-03-07" });
+    expect(await getOpenProjectSuggestions(db, OWNER_ID, OWNER_ID)).toEqual([]);
+  });
+
+  it("counts only the sessions that carry a written note", async () => {
+    const ownerId = "tl-project-notes";
+    await seedFixtureUser(db, { id: ownerId });
+    await seedFixtureJournalEntry(db, {
+      userId: ownerId,
+      climbId: SLAB,
+      entryDate: "2025-07-01",
+      body: "Crux feels impossible.",
+    });
+    await seedFixtureJournalEntry(db, { userId: ownerId, climbId: SLAB, entryDate: "2025-07-02" });
+    await seedFixtureJournalEntry(db, {
+      userId: ownerId,
+      climbId: SLAB,
+      entryDate: "2025-07-03",
+      body: "   ",
+    });
+
+    const [project] = await getOpenProjectSuggestions(db, ownerId, ownerId);
+    expect(project).toMatchObject({ sessionCount: 3, noteCount: 1 });
+  });
+
+  it("ranks the most worked climb first", async () => {
+    const ownerId = "tl-suggestion-order";
+    await seedFixtureUser(db, { id: ownerId });
+    await seedFixtureJournalEntry(db, { userId: ownerId, climbId: 4, entryDate: "2025-05-02" });
+    await seedFixtureJournalEntry(db, { userId: ownerId, climbId: SLAB, entryDate: "2025-05-01" });
+    await seedFixtureJournalEntry(db, { userId: ownerId, climbId: SLAB, entryDate: "2025-04-01" });
+
+    const suggestions = await getOpenProjectSuggestions(db, ownerId, ownerId);
+    expect(suggestions.map(({ climbId }) => climbId)).toEqual([SLAB, 4]);
+  });
+
+  it("bounds how many it offers", async () => {
+    const ownerId = "tl-suggestion-limit";
+    await seedFixtureUser(db, { id: ownerId });
+    await seedFixtureJournalEntry(db, { userId: ownerId, climbId: SLAB, entryDate: "2025-06-01" });
+    await seedFixtureJournalEntry(db, { userId: ownerId, climbId: 4, entryDate: "2025-06-02" });
+
+    expect(await getOpenProjectSuggestions(db, ownerId, ownerId, 1)).toHaveLength(1);
   });
 });
 

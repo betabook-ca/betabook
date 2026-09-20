@@ -1,6 +1,6 @@
 "use client";
 import { Button } from "@heroui/react";
-import { useState, type ComponentProps } from "react";
+import { useState, type ComponentProps, type ReactNode } from "react";
 
 import { ClimbFilterControls } from "@/components/filters/climb-filter-controls";
 import { DisciplineChips } from "@/components/filters/discipline-chips";
@@ -28,6 +28,8 @@ export function ClimbPicker({
   showAreaLookup = false,
   showFilters = true,
   onCreateClimb,
+  emptyQuerySlot,
+  disabledClimbIds,
 }: {
   onCreateClimb?: (href: string) => void;
   areaFetcher?: ComponentProps<typeof ClimbFilterControls>["areaFetcher"];
@@ -40,6 +42,13 @@ export function ClimbPicker({
   initialAreaName?: string;
   excludedClimbId?: number;
   fetcher?: SearchFetcher;
+  /** Rendered in place of results while the query is empty. The picker owns the
+   * query state, so a caller wanting to offer something in place of an
+   * untouched search — suggestions, say — cannot know when to show it. */
+  emptyQuerySlot?: ReactNode;
+  /** Climb id to the reason it can't be picked, applied ahead of the built-in
+   * source-climb and already-logged reasons. */
+  disabledClimbIds?: ReadonlyMap<number, string>;
 }) {
   const [state, setState] = useState<SearchState>({
     ...EMPTY_SEARCH,
@@ -53,12 +62,13 @@ export function ClimbPicker({
     items: source.items.map((item) => ({
       ...item,
       disabledReason:
-        item.climb?.id === excludedClimbId
+        (item.climb ? disabledClimbIds?.get(item.climb.id) : undefined) ??
+        (item.climb?.id === excludedClimbId
           ? "This is the source climb"
           : !allowSentClimbs &&
               (item.context?.sent || (item.climb && sentClimbIds?.has(item.climb.id)))
             ? "Already logged"
-            : undefined,
+            : undefined),
     })),
   };
   const newParams = new URLSearchParams({ name: state.query });
@@ -74,6 +84,7 @@ export function ClimbPicker({
         autoFocus
         query={state.query}
         onQueryChange={(query) => setState({ ...state, query })}
+        emptyQuerySlot={emptyQuerySlot}
         section={section}
         onRetry={() => search.retry("climb")}
         onLoadMore={search.loadMore}

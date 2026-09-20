@@ -3,7 +3,10 @@ import { expect, openStory, test } from "./story";
 for (const [story, title, labels] of [
   ["logbook", "Logbook", ["Journal", "Sends"]],
   ["sends", "Logbook", ["Journal", "Sends"]],
-  ["progress", "Progress", ["Goals", "Open Projects", "Analytics"]],
+  ["progress", "Progress", ["Goals", "Projects", "Sent", "Analytics"]],
+  // Same tabs from the sibling route: the `toHaveCount(1)` current-tab check
+  // below is what proves /sent-projects doesn't also light up Projects.
+  ["sent-projects", "Progress", ["Goals", "Projects", "Sent", "Analytics"]],
   ["community", "Community", ["Feed", "Friends"]],
   ["friends", "Community", ["Feed", "Friends"]],
 ] as const) {

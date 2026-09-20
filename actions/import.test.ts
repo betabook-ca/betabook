@@ -256,6 +256,7 @@ describe("importSends revalidation", () => {
         "/users/reval-user/journal",
         "/users/reval-user/sends",
         "/users/reval-user/projects",
+        "/users/reval-user/sent-projects",
         "/users/reval-user/goals",
         "/users/reval-user/analytics",
         "/climbs/1",

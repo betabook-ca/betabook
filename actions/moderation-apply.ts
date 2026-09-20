@@ -1,4 +1,15 @@
-import { and, eq, exists, inArray, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  eq,
+  exists,
+  inArray,
+  isNotNull,
+  isNull,
+  notExists,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import { alias } from "drizzle-orm/sqlite-core";
 import { refresh, revalidatePath } from "next/cache";
@@ -22,6 +33,7 @@ import {
   changeRequests,
   climbs,
   journalEntries,
+  pinnedProjects,
   sends,
 } from "@/db/schema";
 import { ActionError } from "@/lib/action-result";
@@ -675,6 +687,21 @@ export async function applyClimbMerge(
       ),
   );
 
+  // A pin on the duplicate has to follow the climb that survives, or deleting
+  // the source would cascade it away and silently drop the climber's project.
+  // Skip anyone who already pinned the target: that would collide on the
+  // (user_id, climb_id) primary key, and ON CONFLICT isn't available through
+  // the insert-select builder this batch requires.
+  const targetPin = alias(pinnedProjects, "tp");
+  const alreadyPinsTarget = notExists(
+    db
+      .select({ one: sql`1` })
+      .from(targetPin)
+      .where(
+        and(eq(targetPin.climbId, targetClimbId), eq(targetPin.userId, pinnedProjects.userId)),
+      ),
+  );
+
   const statements: [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]] = [
     // Preserve colliding undated comments as notes dated to the merge.
     // insert().select() requires all columns in schema order; NULL ID permits autoincrement.
@@ -713,6 +740,18 @@ export async function applyClimbMerge(
       .update(journalEntries)
       .set({ climbId: targetClimbId })
       .where(eq(journalEntries.climbId, sourceClimbId)),
+    // Move the pins before the source climb goes away; the rows left behind
+    // (a climber who pinned both) cascade off with it.
+    db.insert(pinnedProjects).select(
+      db
+        .select({
+          userId: pinnedProjects.userId,
+          climbId: sql<number>`${targetClimbId}`.as("climb_id"),
+          pinnedAt: pinnedProjects.pinnedAt,
+        })
+        .from(pinnedProjects)
+        .where(and(eq(pinnedProjects.climbId, sourceClimbId), alreadyPinsTarget)),
+    ),
     ...(Object.keys(overrides).length > 0
       ? [db.update(climbs).set(overrides).where(eq(climbs.id, targetClimbId))]
       : []),

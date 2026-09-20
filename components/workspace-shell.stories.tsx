@@ -29,6 +29,12 @@ export const Progress: Story = {
   args: { area: "progress" },
   parameters: { nextjs: { navigation: { pathname: "/users/sample/projects" } } },
 };
+/** The sibling tab. Its pathname must leave Projects un-highlighted —
+ * a nested /projects/sent would mark both current. */
+export const SentProjects: Story = {
+  args: { area: "progress" },
+  parameters: { nextjs: { navigation: { pathname: "/users/sample/sent-projects" } } },
+};
 export const Community: Story = {
   args: { area: "community" },
   parameters: { nextjs: { navigation: { pathname: "/feed" } } },

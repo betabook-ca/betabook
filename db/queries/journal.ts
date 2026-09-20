@@ -281,6 +281,9 @@ export async function getJournalSessionsForAnalytics(
   `);
 }
 
+/** A climb whose unsent sessions suggest it is really a project. Not what the
+ * Projects tab lists — that is `PinnedProject` — only what the pin modal
+ * offers, where "four sessions, no send" is the evidence worth surfacing. */
 export type OpenProject = {
   climbId: number;
   climbName: string;
@@ -295,48 +298,104 @@ export type OpenProject = {
   lastSession: string;
 };
 
+/** A climb the climber pinned, with whatever history it has accumulated.
+ * `firstSession`/`lastSession` are null and `sessionCount` is 0 for a pin that
+ * has never been climbed: membership comes from the pin alone, so a card with
+ * no history is a supported state rather than a missing row. */
+export type PinnedProject = Omit<OpenProject, "firstSession" | "lastSession"> & {
+  pinnedAt: string;
+  firstSession: string | null;
+  lastSession: string | null;
+  /** The send's date, when sent; null for an undated send. Use `sent` to tell
+   * an undated send apart from no send at all. */
+  sentOn: string | null;
+  sent: boolean;
+};
+
 export const OPEN_PROJECT_PAGE_SIZE = 100;
 
-export async function getOpenProjects(
-  db: Database,
-  ownerId: string,
-  viewerId: string | null,
-  limit: number = OPEN_PROJECT_PAGE_SIZE,
-): Promise<OpenProject[]> {
-  if (ownerId !== viewerId) return [];
-  const boundedLimit = Number.isInteger(limit)
-    ? Math.min(Math.max(limit, 1), OPEN_PROJECT_PAGE_SIZE + 1)
-    : OPEN_PROJECT_PAGE_SIZE;
+/** Pins offered in the modal before the climber types anything. */
+const OPEN_PROJECT_SUGGESTION_LIMIT = 8;
 
-  return db.all<OpenProject>(sql`
+/** `ownerId` is bound inside the session aggregate rather than correlated to
+ * `p.user_id`: SQLite derived tables cannot see the enclosing query's columns,
+ * and the read is already scoped to one climber anyway. */
+function projectSelect(ownerId: string, sent: boolean): SQL {
+  return sql`
     SELECT
-      j.climb_id        AS climbId,
+      p.climb_id        AS climbId,
       climbs.name       AS climbName,
       climbs.type       AS climbType,
       climbs.grade      AS climbGrade,
       climbs.broken_on  AS climbBrokenOn,
       climbs.area_id    AS areaId,
       areas.name        AS areaName,
-      COUNT(*)          AS sessionCount,
-      COUNT(*) FILTER (WHERE TRIM(COALESCE(j.body, '')) <> '')
-                        AS noteCount,
-      MIN(j.entry_date) AS firstSession,
-      MAX(j.entry_date) AS lastSession
-    FROM journal_entries j
-    JOIN climbs ON climbs.id = j.climb_id
+      p.pinned_at       AS pinnedAt,
+      COALESCE(agg.sessionCount, 0) AS sessionCount,
+      COALESCE(agg.noteCount, 0)    AS noteCount,
+      agg.firstSession  AS firstSession,
+      agg.lastSession   AS lastSession,
+      s.date_sent       AS sentOn,
+      ${sent ? sql`1` : sql`0`} AS sent
+    FROM pinned_projects p
+    JOIN climbs ON climbs.id = p.climb_id
     JOIN areas ON areas.id = climbs.area_id
-    WHERE j.user_id = ${ownerId} AND ${journalVisibleSql(viewerId, sql`j.user_id`)} AND ${IS_OPEN_PROJECT}
-    GROUP BY j.climb_id
-    ORDER BY lastSession DESC, j.climb_id ASC
+    LEFT JOIN sends s ON s.user_id = p.user_id AND s.climb_id = p.climb_id
+    LEFT JOIN (
+      SELECT
+        j.climb_id        AS climbId,
+        COUNT(*)          AS sessionCount,
+        COUNT(*) FILTER (WHERE TRIM(COALESCE(j.body, '')) <> '') AS noteCount,
+        MIN(j.entry_date) AS firstSession,
+        MAX(j.entry_date) AS lastSession
+      FROM journal_entries j
+      WHERE j.user_id = ${ownerId} AND j.kind = 'session' AND j.climb_id IS NOT NULL
+      GROUP BY j.climb_id
+    ) agg ON agg.climbId = p.climb_id
+  `;
+}
+
+/** The pinned climbs behind one Projects tab: `sent: false` for Projects,
+ * `sent: true` for Sent Projects. Every pin appears in exactly one of the two,
+ * so sending a climb moves its card rather than discarding the pin. */
+export async function getPinnedProjects(
+  db: Database,
+  ownerId: string,
+  viewerId: string | null,
+  { sent }: { sent: boolean },
+  limit: number = OPEN_PROJECT_PAGE_SIZE,
+): Promise<PinnedProject[]> {
+  if (ownerId !== viewerId) return [];
+  const boundedLimit = Number.isInteger(limit)
+    ? Math.min(Math.max(limit, 1), OPEN_PROJECT_PAGE_SIZE + 1)
+    : OPEN_PROJECT_PAGE_SIZE;
+
+  const rows = await db.all<Omit<PinnedProject, "sent"> & { sent: number }>(sql`
+    ${projectSelect(ownerId, sent)}
+    WHERE p.user_id = ${ownerId}
+      AND ${journalVisibleSql(viewerId, sql`p.user_id`)}
+      AND s.id IS ${sent ? sql`NOT NULL` : sql`NULL`}
+    ORDER BY ${
+      sent
+        ? sql`s.date_sent IS NULL, s.date_sent DESC`
+        : // SQLite sorts NULL first under DESC, which would float a pin that
+          // has never been climbed above every active project; the IS NULL key
+          // pushes those to the end, ordered by when they were pinned.
+          sql`agg.lastSession IS NULL, agg.lastSession DESC`
+    },
+      p.pinned_at DESC, p.climb_id ASC
     LIMIT ${boundedLimit}
   `);
+  return rows.map((row) => ({ ...row, sent: row.sent === 1 }));
 }
 
 /** Sessions preloaded per project card. Older ones page in from the journal
  * API, so these rows keep the journal timeline's entry projection. */
 const OPEN_PROJECT_SESSION_PRELOAD = 3;
 
-export async function getOpenProjectSessions(
+/** Unlike the pin listing this is not partitioned by send: a sent project keeps
+ * the sessions it took to get there, and they belong on its card. */
+export async function getPinnedProjectSessions(
   db: Database,
   ownerId: string,
   viewerId: string | null,
@@ -356,7 +415,7 @@ export async function getOpenProjectSessions(
       FROM journal_entries j
       WHERE j.user_id = ${ownerId}
         AND ${journalVisibleSql(viewerId, sql`j.user_id`)}
-        AND ${IS_OPEN_PROJECT}
+        AND j.kind = 'session' AND j.climb_id IS NOT NULL
         AND j.climb_id IN (SELECT value FROM json_each(${JSON.stringify(climbIds)}))
     )
     ${journalEntrySelect(viewerId)}
@@ -364,6 +423,47 @@ export async function getOpenProjectSessions(
     ORDER BY j.entry_date DESC, j.id DESC
   `);
   return rows.map(toJournalEntry);
+}
+
+/** Climbs worth offering as a pin: worked in a session, never sent, not
+ * already pinned. This is the rule that used to populate the tab outright. */
+export async function getOpenProjectSuggestions(
+  db: Database,
+  ownerId: string,
+  viewerId: string | null,
+  limit: number = OPEN_PROJECT_SUGGESTION_LIMIT,
+): Promise<OpenProject[]> {
+  if (ownerId !== viewerId) return [];
+  const boundedLimit = Number.isInteger(limit)
+    ? Math.min(Math.max(limit, 1), OPEN_PROJECT_SUGGESTION_LIMIT)
+    : OPEN_PROJECT_SUGGESTION_LIMIT;
+
+  return db.all<OpenProject>(sql`
+    SELECT
+      j.climb_id        AS climbId,
+      climbs.name       AS climbName,
+      climbs.type       AS climbType,
+      climbs.grade      AS climbGrade,
+      climbs.broken_on  AS climbBrokenOn,
+      climbs.area_id    AS areaId,
+      areas.name        AS areaName,
+      COUNT(*)          AS sessionCount,
+      COUNT(*) FILTER (WHERE TRIM(COALESCE(j.body, '')) <> '')
+                        AS noteCount,
+      MIN(j.entry_date) AS firstSession,
+      MAX(j.entry_date) AS lastSession
+    FROM journal_entries j
+    JOIN climbs ON climbs.id = j.climb_id
+    JOIN areas ON areas.id = climbs.area_id
+    WHERE j.user_id = ${ownerId} AND ${journalVisibleSql(viewerId, sql`j.user_id`)} AND ${IS_OPEN_PROJECT}
+      AND NOT EXISTS (
+        SELECT 1 FROM pinned_projects pp
+        WHERE pp.user_id = j.user_id AND pp.climb_id = j.climb_id
+      )
+    GROUP BY j.climb_id
+    ORDER BY sessionCount DESC, lastSession DESC, j.climb_id ASC
+    LIMIT ${boundedLimit}
+  `);
 }
 
 /** Owner-only editing projection, including currently visible companion selections. */

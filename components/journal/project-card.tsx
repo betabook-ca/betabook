@@ -1,17 +1,20 @@
 "use client";
 
 import { Button } from "@heroui/react";
-import { CirclePlus } from "lucide-react";
+import { CirclePlus, PinOff } from "lucide-react";
+import { useState, useTransition } from "react";
 
+import { unpinProject } from "@/actions";
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
 import { ProjectCardLayout } from "@/components/journal/project-card-layout";
 import { ProjectSessionNotes } from "@/components/journal/project-session-notes";
 import { AppLink } from "@/components/ui/app-link";
-import type { JournalEntry, OpenProject } from "@/db/queries";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import type { JournalEntry, PinnedProject } from "@/db/queries";
 import { climbHref } from "@/lib/slug";
 
-/** An open project with the sessions the server preloaded for it. */
-export type ProjectWithSessions = OpenProject & { sessions: JournalEntry[] };
+/** A pinned project with the sessions the server preloaded for it. */
+export type ProjectWithSessions = PinnedProject & { sessions: JournalEntry[] };
 
 type ProjectCardProps = {
   project: ProjectWithSessions;
@@ -21,6 +24,20 @@ type ProjectCardProps = {
 };
 
 export function ProjectCard({ project, userId, today, onLogSession }: ProjectCardProps) {
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function handleUnpin() {
+    if (pending) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await unpinProject(project.climbId);
+      // The server revalidates and refreshes on success, which drops this card
+      // from the list; only a failure has anything left to render.
+      if (!result.ok) setError(result.error);
+    });
+  }
+
   return (
     <ProjectCardLayout
       project={project}
@@ -30,16 +47,32 @@ export function ProjectCard({ project, userId, today, onLogSession }: ProjectCar
       }
       area={<AreaBreadcrumb areaId={project.areaId} areaName={project.areaName} ancestors={[]} />}
       action={
-        <Button
-          size="sm"
-          variant="ghost"
-          className="gap-1.5 self-start"
-          aria-label={`Log a session on ${project.climbName}`}
-          onPress={onLogSession}
-        >
-          <CirclePlus className="size-4" />
-          Log session
-        </Button>
+        <div className="flex flex-col gap-2 self-start">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="gap-1.5"
+              aria-label={`Log a session on ${project.climbName}`}
+              onPress={onLogSession}
+            >
+              <CirclePlus className="size-4" />
+              Log session
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="gap-1.5"
+              aria-label={`Unpin ${project.climbName}`}
+              isDisabled={pending}
+              onPress={handleUnpin}
+            >
+              <PinOff className="size-4" />
+              Unpin
+            </Button>
+          </div>
+          {error && <InlineAlert>{error}</InlineAlert>}
+        </div>
       }
     >
       <ProjectSessionNotes
