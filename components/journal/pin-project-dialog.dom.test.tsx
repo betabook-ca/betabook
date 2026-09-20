@@ -174,6 +174,17 @@ it("says nothing about suggestions when there are none to make", async () => {
   expect(screen.queryByText(/worked but not sent/)).not.toBeInTheDocument();
 });
 
+it("takes the whole phone screen rather than a sheet", async () => {
+  // A search field over a result list: at 85vh with a keyboard up a sheet caps
+  // the list around three results. Fullscreen also means the search can't be
+  // swiped away mid-query, which is what losing the drag handle represents.
+  stubViewport("mobile");
+  const { container } = render(<Example />);
+
+  await screen.findByRole("dialog");
+  expect(container.ownerDocument.querySelector("[data-slot=drawer-handle]")).toBeNull();
+});
+
 it("offers the same suggestions and pins from the centered desktop variant", async () => {
   // ResponsiveDialog swaps the whole subtree across `md`, so the desktop side
   // is a different tree and needs its own coverage; jsdom reads mobile.

@@ -20,12 +20,13 @@ type PinProjectDialogProps = {
 };
 
 /** Picks a climb to track as a project: a task, so it takes the shared
- * dialog — a sheet on a phone, a centered column from `md` up.
+ * dialog — full screen on a phone, a centered column from `md` up.
  *
- * It stacks a search field and filters above a scrolling list, so it follows
- * the compact-viewport rule rather than going fullscreen: with a keyboard up
- * the explanation and the full filter row are the first things to go, since
- * each one costs a result. */
+ * Fullscreen because the body is a search field over a result list, the same
+ * reason the log entry's climb picker takes the screen: at 85vh with a
+ * keyboard up a sheet caps the list around three results. The compact rule
+ * applies on top of it, since the viewport is just as short either way — the
+ * explanation and the full filter row go first, because each costs a result. */
 export function PinProjectDialog({ state, suggestions, pinnedClimbIds }: PinProjectDialogProps) {
   const [error, setError] = useState<string | null>(null);
   const [pendingClimbId, setPendingClimbId] = useState<number | null>(null);
@@ -64,6 +65,7 @@ export function PinProjectDialog({ state, suggestions, pinnedClimbIds }: PinProj
       state={state}
       title="Pin a project"
       size="lg"
+      presentation="fullscreen"
       isPending={pending}
       onClose={reset}
     >
