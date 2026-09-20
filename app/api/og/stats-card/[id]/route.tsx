@@ -7,7 +7,7 @@ import { DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
 import { getDb } from "@/db/client";
 import { getJournalSessionsForAnalytics, getUserSendsForAnalytics } from "@/db/queries";
 import { withApiSession } from "@/lib/api-session";
-import { BetabookMark, CardFrame, Tile } from "@/lib/og-elements";
+import { Avatar, BetabookMark, CardFrame, Tile } from "@/lib/og-elements";
 import { ogFonts, OG_FONT } from "@/lib/og-fonts";
 import { OG_COLORS, OG_DISCIPLINE_COLOR, withAlpha } from "@/lib/og-theme";
 import {
@@ -17,10 +17,16 @@ import {
   type SocialCardPeriod,
   type SocialCardStats,
 } from "@/lib/social-card";
+import { getUserInitials, resolveAvatarUrl } from "@/lib/user-initials";
 
 export const IMAGE_SIZE = { width: 1080, height: 1350 };
 
 type RouteParams = { params: Promise<{ id: string }> };
+
+/** Just enough about the climber to name and identify them on the card —
+ * split from `SocialCardStats`, which is the period's numbers, not the
+ * owner's identity. */
+export type SocialCardOwner = { name: string; initials: string; avatarUrl: string | null };
 
 export function todayInTimezone(timezone: string | undefined): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: timezone ?? "UTC" }).format(new Date());
@@ -84,7 +90,7 @@ function GradeBadge({ hardest }: { hardest: SocialCardHardest }): ReactElement {
 
 /** The 1080×1350 recap card — pure so layout can be sanity-checked without
  * spinning up `ImageResponse`. */
-export function socialCardElement(name: string, stats: SocialCardStats): ReactElement {
+export function socialCardElement(owner: SocialCardOwner, stats: SocialCardStats): ReactElement {
   if (stats.sendCount === 0 && stats.daysOut === 0) {
     return (
       <CardFrame padding={72}>
@@ -124,16 +130,24 @@ export function socialCardElement(name: string, stats: SocialCardStats): ReactEl
             >
               No sends logged yet
             </span>
-            <span
-              style={{
-                fontFamily: OG_FONT.body,
-                fontWeight: 500,
-                fontSize: 30,
-                color: "rgba(0,0,0,0.6)",
-              }}
-            >
-              {name}
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <Avatar
+                photo={owner.avatarUrl}
+                initials={owner.initials}
+                size={44}
+                color={OG_COLORS.ink}
+              />
+              <span
+                style={{
+                  fontFamily: OG_FONT.body,
+                  fontWeight: 500,
+                  fontSize: 30,
+                  color: "rgba(0,0,0,0.6)",
+                }}
+              >
+                {owner.name}
+              </span>
+            </div>
           </div>
         </div>
       </CardFrame>
@@ -177,16 +191,24 @@ export function socialCardElement(name: string, stats: SocialCardStats): ReactEl
           >
             {stats.sendCount}
           </span>
-          <span
-            style={{
-              fontFamily: OG_FONT.body,
-              fontWeight: 500,
-              fontSize: 40,
-              color: OG_COLORS.ink,
-            }}
-          >
-            {`${stats.sendCount === 1 ? "send" : "sends"} · ${name}`}
-          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <Avatar
+              photo={owner.avatarUrl}
+              initials={owner.initials}
+              size={56}
+              color={OG_COLORS.coral}
+            />
+            <span
+              style={{
+                fontFamily: OG_FONT.body,
+                fontWeight: 500,
+                fontSize: 40,
+                color: OG_COLORS.ink,
+              }}
+            >
+              {`${stats.sendCount === 1 ? "send" : "sends"} · ${owner.name}`}
+            </span>
+          </div>
         </div>
         {stats.hardest.length > 0 && (
           <div style={{ display: "flex", gap: 20 }}>
@@ -224,9 +246,14 @@ export const GET = withApiSession(async (session, request: Request, { params }: 
   const requested = new URL(request.url).searchParams.get("period");
   const period = isSocialCardPeriod(requested) ? requested : "year";
 
-  const stats = await loadSocialCardStats(id, period);
-  return new ImageResponse(socialCardElement(session.user.name, stats), {
-    ...IMAGE_SIZE,
-    fonts: ogFonts(),
-  });
+  const [stats, avatarUrl] = await Promise.all([
+    loadSocialCardStats(id, period),
+    resolveAvatarUrl(session.user.image),
+  ]);
+  const owner: SocialCardOwner = {
+    name: session.user.name,
+    initials: getUserInitials(session.user.name),
+    avatarUrl,
+  };
+  return new ImageResponse(socialCardElement(owner, stats), { ...IMAGE_SIZE, fonts: ogFonts() });
 });

@@ -21,7 +21,13 @@ vi.mock("@/db/client", async (original) => {
 // The vi.mock calls above are hoisted ahead of this import, same as any
 // other, so the route sees the mocked session, @opennextjs/cloudflare and
 // @/db/client.
-import { GET, loadSocialCardStats, socialCardElement, todayInTimezone } from "./route";
+import {
+  GET,
+  loadSocialCardStats,
+  socialCardElement,
+  todayInTimezone,
+  type SocialCardOwner,
+} from "./route";
 
 const db = createDb(env.DB);
 
@@ -76,6 +82,11 @@ describe("loadSocialCardStats", () => {
 });
 
 describe("socialCardElement", () => {
+  const baseOwner: SocialCardOwner = {
+    name: "Share Owner",
+    initials: "SO",
+    avatarUrl: "https://betabook.test/api/avatars/abc123",
+  };
   const baseStats = {
     period: "year" as const,
     periodLabel: "2026",
@@ -91,14 +102,15 @@ describe("socialCardElement", () => {
     longestStreak: 5,
   };
 
-  it("renders the climber's name and totals for an active period, one hardest badge per discipline", () => {
-    const json = JSON.stringify(socialCardElement("Share Owner", baseStats));
+  it("renders the climber's name, avatar, and totals for an active period, one hardest badge per discipline", () => {
+    const json = JSON.stringify(socialCardElement(baseOwner, baseStats));
 
-    // Tile/GradeBadge are unrendered elements here (no React renderer
+    // Tile/GradeBadge/Avatar are unrendered elements here (no React renderer
     // involved), so their own output never appears in this JSON — only the
     // props they were given, which is exactly what wiring this card
     // correctly requires.
     expect(json).toContain("Share Owner");
+    expect(json).toContain('"photo":"https://betabook.test/api/avatars/abc123"');
     expect(json).toContain('"children":24'); // the literal sendCount, not stringified
     expect(json).toContain('"hardest":{"type":"boulder","label":"V6"'); // boulder badge
     expect(json).toContain('"hardest":{"type":"sport","label":"5.12a"'); // sport badge
@@ -108,8 +120,15 @@ describe("socialCardElement", () => {
     expect(json).not.toContain("Boulder · "); // no discipline in the eyebrow — it's a combined recap
   });
 
+  it("falls back to initials when the climber has no avatar photo", () => {
+    const json = JSON.stringify(socialCardElement({ ...baseOwner, avatarUrl: null }, baseStats));
+
+    expect(json).toContain('"photo":null');
+    expect(json).toContain('"initials":"SO"');
+  });
+
   it("skips the hardest-badge row entirely when nothing was graded", () => {
-    const json = JSON.stringify(socialCardElement("Share Owner", { ...baseStats, hardest: [] }));
+    const json = JSON.stringify(socialCardElement(baseOwner, { ...baseStats, hardest: [] }));
 
     expect(json).not.toContain("GradeBadge");
     expect(json).not.toContain('"hardest"');
@@ -117,17 +136,20 @@ describe("socialCardElement", () => {
 
   it("renders a friendly empty state instead of zeroed-out tiles", () => {
     const json = JSON.stringify(
-      socialCardElement("New Climber", {
-        period: "month",
-        periodLabel: "Sep 2026",
-        sendCount: 0,
-        daysOut: 0,
-        hardest: [],
-        areaCount: 0,
-        topArea: null,
-        flashPct: null,
-        longestStreak: null,
-      }),
+      socialCardElement(
+        { name: "New Climber", initials: "NC", avatarUrl: null },
+        {
+          period: "month",
+          periodLabel: "Sep 2026",
+          sendCount: 0,
+          daysOut: 0,
+          hardest: [],
+          areaCount: 0,
+          topArea: null,
+          flashPct: null,
+          longestStreak: null,
+        },
+      ),
     );
 
     expect(json).toContain("No sends logged yet");

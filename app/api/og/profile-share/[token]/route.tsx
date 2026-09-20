@@ -6,12 +6,12 @@ import { DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
 import { getDb } from "@/db/client";
 import { getShareLinkOwner, getUserSendsSummary, type UserStatsSummary } from "@/db/queries";
 import { getBaseUrl } from "@/lib/app-url";
-import { CardFrame, Tile } from "@/lib/og-elements";
+import { Avatar, CardFrame, Tile } from "@/lib/og-elements";
 import { ogFonts, OG_FONT } from "@/lib/og-fonts";
 import { OG_COLORS, OG_DISCIPLINE_COLOR } from "@/lib/og-theme";
 import { parseProfileShareToken } from "@/lib/profile-share";
 import { OG_IMAGE } from "@/lib/site";
-import { getAvatarPhoto, getUserInitials } from "@/lib/user-initials";
+import { getUserInitials, resolveAvatarUrl } from "@/lib/user-initials";
 
 export const IMAGE_SIZE = { width: 1200, height: 630 };
 
@@ -37,8 +37,7 @@ export async function loadProfileShareCard(rawToken: string): Promise<ProfileSha
   if (!owner) return null;
 
   const summary = await getUserSendsSummary(db, owner.id);
-  const avatar = getAvatarPhoto(owner.image);
-  const avatarUrl = avatar ? new URL(avatar.url, await getBaseUrl()).href : null;
+  const avatarUrl = await resolveAvatarUrl(owner.image);
   return { name: owner.name, initials: getUserInitials(owner.name), avatarUrl, summary };
 }
 
@@ -56,41 +55,13 @@ export function profileShareCardElement(card: ProfileShareCard): ReactElement {
     <CardFrame padding={64}>
       <div style={{ display: "flex", flexDirection: "column", gap: 48 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 44 }}>
-          {card.avatarUrl ? (
-            // next/og's ImageResponse (satori) has no use for next/image, and this
-            // never reaches a real accessibility tree — it's rasterized to a PNG.
-            // oxlint-disable-next-line next/no-img-element
-            <img
-              src={card.avatarUrl}
-              alt=""
-              width={AVATAR_SIZE}
-              height={AVATAR_SIZE}
-              style={{
-                borderRadius: 9999,
-                objectFit: "cover",
-                boxSizing: "border-box",
-                border: `${AVATAR_RING}px solid ${accent}`,
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                display: "flex",
-                width: AVATAR_SIZE,
-                height: AVATAR_SIZE,
-                borderRadius: 9999,
-                background: accent,
-                color: OG_COLORS.paper,
-                fontFamily: OG_FONT.display,
-                fontWeight: 700,
-                fontSize: 60,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {card.initials}
-            </div>
-          )}
+          <Avatar
+            photo={card.avatarUrl}
+            initials={card.initials}
+            size={AVATAR_SIZE}
+            color={accent}
+            ringWidth={AVATAR_RING}
+          />
           <span
             style={{
               fontFamily: OG_FONT.display,

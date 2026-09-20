@@ -49,6 +49,63 @@ function BetabookLockup({ color }: { color: string }): ReactElement {
   );
 }
 
+/** A climber's photo, or their initials on a solid color when there is
+ * none — the same fallback rule as the in-app avatar (`lib/user-initials.ts`),
+ * shared by both cards now that the stats recap one also names its owner
+ * this way, not just the profile-share card. `next/og`'s `ImageResponse`
+ * (satori) has no accessibility tree to speak to, so the photo carries no
+ * alt text. */
+export function Avatar({
+  photo,
+  initials,
+  size,
+  color = OG_COLORS.coral,
+  ringWidth = 0,
+}: {
+  photo: string | null;
+  initials: string;
+  size: number;
+  color?: string;
+  ringWidth?: number;
+}): ReactElement {
+  if (photo) {
+    return (
+      // oxlint-disable-next-line next/no-img-element
+      <img
+        src={photo}
+        alt=""
+        width={size}
+        height={size}
+        style={{
+          borderRadius: 9999,
+          objectFit: "cover",
+          boxSizing: "border-box",
+          border: ringWidth ? `${ringWidth}px solid ${color}` : undefined,
+        }}
+      />
+    );
+  }
+  return (
+    <div
+      style={{
+        display: "flex",
+        width: size,
+        height: size,
+        borderRadius: 9999,
+        background: color,
+        color: OG_COLORS.paper,
+        fontFamily: OG_FONT.display,
+        fontWeight: 700,
+        fontSize: size * 0.34,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {initials}
+    </div>
+  );
+}
+
 /** The label/value/sub stat block both cards render, unified into one
  * component so a viewer who has seen one card recognizes the other. `tint`
  * softly colors the tile (a discipline hue, e.g. profile-share's peak-grade

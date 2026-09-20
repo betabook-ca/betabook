@@ -1,3 +1,4 @@
+import { getBaseUrl } from "@/lib/app-url";
 import { profilePhotoKeyFromImage, profilePhotoPath } from "@/lib/profile-photo";
 
 /** Compact, deterministic initials for profile-photo fallbacks. Names with
@@ -29,6 +30,15 @@ export function getAvatarPhoto(image?: string | null): { url: string; optimize: 
 
   const google = getGoogleProfileImageUrl(image);
   return google === null ? null : { url: google, optimize: true };
+}
+
+/** `getAvatarPhoto`'s URL, made absolute — what an OG card needs, since
+ * satori fetches image sources itself rather than through the app's own
+ * server (which a relative `/api/avatars/<key>` path assumes). A Google URL
+ * is already absolute and passes through unchanged. */
+export async function resolveAvatarUrl(image?: string | null): Promise<string | null> {
+  const avatar = getAvatarPhoto(image);
+  return avatar ? new URL(avatar.url, await getBaseUrl()).href : null;
 }
 
 /** Only pass the Google profile-photo URLs the app is configured to optimize

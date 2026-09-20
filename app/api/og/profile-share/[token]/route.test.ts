@@ -129,11 +129,10 @@ describe("profileShareCardElement", () => {
     expect(json).toContain('"value":"4"'); // areaCount
     expect(json).toContain('"value":"V6"'); // peakGrade
     expect(json).toContain("Peak · Boulder");
-    expect(json).toContain('"children":"SO"'); // initials shown in place of a photo
-    expect(json).not.toContain('"src"'); // no <img> when there is no avatar URL
+    expect(json).toContain('"photo":null,"initials":"SO"'); // initials shown in place of a photo
   });
 
-  it("renders an <img> instead of initials when there's an avatar URL", () => {
+  it("passes the avatar photo URL through when there's one on file", () => {
     const json = JSON.stringify(
       profileShareCardElement({
         name: "Share Owner",
