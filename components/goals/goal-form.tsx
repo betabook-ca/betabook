@@ -158,6 +158,7 @@ export function GoalForm({
   initialRepeat = "none",
   today = goalToday(new Intl.DateTimeFormat().resolvedOptions().timeZone),
   onPendingChange,
+  onStepChange,
   embedded = false,
   nextGrades = NO_GRADE_HISTORY,
   availableTags = NO_AVAILABLE_TAGS,
@@ -172,6 +173,7 @@ export function GoalForm({
   onSave?: (draft: GoalDraft) => void | Promise<void>;
   today?: string;
   onPendingChange?: (pending: boolean) => void;
+  onStepChange?: (step: "category" | "details") => void;
   embedded?: boolean;
   nextGrades?: Partial<Record<ClimbType, number>>;
   availableTags?: string[];
@@ -254,6 +256,7 @@ export function GoalForm({
   }
   function navigate(next: typeof step) {
     setStep(next);
+    onStepChange?.(next);
     requestAnimationFrame(() => {
       (next === "details" ? backRef : categoryRef).current?.focus();
     });
