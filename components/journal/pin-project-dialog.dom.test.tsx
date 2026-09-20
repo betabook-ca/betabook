@@ -105,7 +105,7 @@ it("pins the suggestion that was pressed and closes", async () => {
   vi.mocked(pinProject).mockResolvedValue({ ok: true, value: undefined });
   render(<Example />);
 
-  await user.click(await screen.findByRole("button", { name: "Pin Ash Crack" }));
+  await user.click(await screen.findByRole("button", { name: "Track Ash Crack" }));
 
   await waitFor(() => expect(pinProject).toHaveBeenCalledWith(2));
   expect(pinProject).toHaveBeenCalledTimes(1);
@@ -116,13 +116,13 @@ it("keeps the dialog open and explains a refused pin", async () => {
   const user = userEvent.setup();
   vi.mocked(pinProject).mockResolvedValue({
     ok: false,
-    error: "You can pin up to 100 projects — unpin one to add another",
+    error: "You can track up to 100 projects — untrack one to add another",
   });
   render(<Example />);
 
-  await user.click(await screen.findByRole("button", { name: "Pin Moon Slab" }));
+  await user.click(await screen.findByRole("button", { name: "Track Moon Slab" }));
 
-  expect(await screen.findByText(/You can pin up to 100 projects/)).toBeVisible();
+  expect(await screen.findByText(/You can track up to 100 projects/)).toBeVisible();
   // Still open, so the climber can unpin elsewhere or choose differently.
   expect(screen.getByRole("dialog")).toBeInTheDocument();
   expect(screen.getByRole("list", { name: "Suggested projects" })).toBeInTheDocument();
@@ -139,12 +139,12 @@ it("locks the other suggestions while a pin is in flight, so none double-fires",
   );
   render(<Example />);
 
-  await user.click(await screen.findByRole("button", { name: "Pin Moon Slab" }));
+  await user.click(await screen.findByRole("button", { name: "Track Moon Slab" }));
 
   // The disabled state is what actually stops a second pick on this path;
   // handlePin's pending guard covers the search results, which stay enabled.
-  expect(screen.getByRole("button", { name: "Pin Ash Crack" })).toBeDisabled();
-  await user.click(screen.getByRole("button", { name: "Pin Ash Crack" }));
+  expect(screen.getByRole("button", { name: "Track Ash Crack" })).toBeDisabled();
+  await user.click(screen.getByRole("button", { name: "Track Ash Crack" }));
 
   expect(pinProject).toHaveBeenCalledTimes(1);
   expect(pinProject).toHaveBeenCalledWith(1);
@@ -194,7 +194,7 @@ it("offers the same suggestions and pins from the centered desktop variant", asy
   render(<Example />);
 
   await screen.findByRole("dialog");
-  await user.click(await screen.findByRole("button", { name: "Pin Ash Crack" }));
+  await user.click(await screen.findByRole("button", { name: "Track Ash Crack" }));
 
   await waitFor(() => expect(pinProject).toHaveBeenCalledWith(2));
 });

@@ -201,14 +201,14 @@ it("reorders the list without dropping a project", async () => {
   expect(headings()).toEqual(["Ash Crack", "Moon Slab"]);
 });
 
-it("keeps a never-climbed pin in the list under every sort, behind the active ones", async () => {
+it("keeps a never-climbed project in the list under every sort, behind the active ones", async () => {
   const user = userEvent.setup();
   render(<ProjectBoard userId="climber" projects={[untouched, ...projects]} hasMore={false} />);
 
   // Recent activity: it has none, so it sorts last rather than first or out.
   expect(headings()).toEqual(["Moon Slab", "Ash Crack", "Sleeping Giant"]);
 
-  for (const sort of ["Most sessions", "Longest running", "Recently pinned", "Name"]) {
+  for (const sort of ["Most sessions", "Longest running", "Recently tracked", "Name"]) {
     await user.click(screen.getByRole("button", { name: /Sort projects/ }));
     await user.click(await screen.findByRole("option", { name: sort }));
     expect(headings()).toHaveLength(3);
@@ -216,12 +216,12 @@ it("keeps a never-climbed pin in the list under every sort, behind the active on
   }
 });
 
-it("renders a pin with no sessions as a bare card, with no dates to report", () => {
+it("renders a tracked climb with no sessions as a bare card, with no dates to report", () => {
   render(<ProjectBoard userId="climber" projects={[untouched]} hasMore={false} />);
   const bare = card("Sleeping Giant");
 
   expect(within(bare).getByText("No sessions yet")).toBeVisible();
-  expect(within(bare).getByText(/Pinned/)).toBeVisible();
+  expect(within(bare).getByText(/Tracked/)).toBeVisible();
   expect(within(bare).queryByText(/^Last/)).not.toBeInTheDocument();
   expect(within(bare).queryByText(/^Since/)).not.toBeInTheDocument();
   // Nothing to page through, and still loggable — that is the point of pinning
@@ -248,23 +248,23 @@ it("logs a session against the project whose button was pressed", async () => {
   expect(vi.mocked(createJournalEntry).mock.calls[0][0].get("climbId")).toBe("2");
 });
 
-it("unpins the project whose button was pressed", async () => {
+it("untracks the project whose button was pressed", async () => {
   const user = userEvent.setup();
   vi.mocked(unpinProject).mockResolvedValue({ ok: true, value: undefined });
   render(<ProjectBoard userId="climber" projects={projects} hasMore={false} />);
 
-  await user.click(screen.getByRole("button", { name: "Unpin Ash Crack" }));
+  await user.click(screen.getByRole("button", { name: "Untrack Ash Crack" }));
 
   await waitFor(() => expect(unpinProject).toHaveBeenCalledWith(2));
   expect(unpinProject).toHaveBeenCalledTimes(1);
 });
 
-it("keeps a failed unpin on screen with its reason", async () => {
+it("keeps a failed untrack on screen with its reason", async () => {
   const user = userEvent.setup();
   vi.mocked(unpinProject).mockResolvedValue({ ok: false, error: "Climb not found" });
   render(<ProjectBoard userId="climber" projects={projects} hasMore={false} />);
 
-  await user.click(screen.getByRole("button", { name: "Unpin Ash Crack" }));
+  await user.click(screen.getByRole("button", { name: "Untrack Ash Crack" }));
 
   expect(await within(card("Ash Crack")).findByText("Climb not found")).toBeVisible();
   expect(headings()).toEqual(["Moon Slab", "Ash Crack"]);
@@ -277,22 +277,22 @@ it("keeps the whole toolbar on an empty board and puts the message under it", ()
   // climber makes their first pin.
   expect(screen.getByRole("searchbox", { name: "Filter projects" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /Sort projects/ })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Pin project" })).toBeInTheDocument();
-  expect(screen.getByText(/No projects pinned yet/)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Track project" })).toBeInTheDocument();
+  expect(screen.getByText(/No projects tracked yet/)).toBeInTheDocument();
 });
 
-it("lists the sent side separately and does not offer to pin from it", () => {
+it("lists the sent side separately and does not offer to track from it", () => {
   render(<ProjectBoard userId="climber" projects={[sentProject]} hasMore={false} variant="sent" />);
 
   expect(headings("Sent projects")).toEqual(["Long Winter"]);
   expect(within(card("Long Winter")).getByText(/Sent/)).toBeVisible();
-  expect(screen.queryByRole("button", { name: "Pin project" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Track project" })).not.toBeInTheDocument();
 });
 
-it("says nothing is sent yet without inviting a pin that belongs on the other tab", () => {
+it("says nothing is sent yet without inviting a track that belongs on the other tab", () => {
   render(<ProjectBoard userId="climber" projects={[]} hasMore={false} variant="sent" />);
 
   expect(screen.getByText(/No sent projects yet/)).toBeInTheDocument();
   expect(screen.getByRole("searchbox", { name: "Filter projects" })).toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "Pin project" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Track project" })).not.toBeInTheDocument();
 });

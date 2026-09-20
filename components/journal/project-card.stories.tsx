@@ -51,7 +51,7 @@ export const Project: Story = {
           onLogSession={() => {}}
         />
       </Example>
-      <Example title="Pinned, never climbed">
+      <Example title="Tracked, never climbed">
         <ProjectCard
           project={untouchedPin}
           userId="storybook-climber"

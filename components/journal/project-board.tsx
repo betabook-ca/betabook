@@ -19,7 +19,7 @@ const OPEN_SORTS = [
   { value: "recent", label: "Recent activity" },
   { value: "sessions", label: "Most sessions" },
   { value: "longest", label: "Longest running" },
-  { value: "pinned", label: "Recently pinned" },
+  { value: "pinned", label: "Recently tracked" },
   { value: "name", label: "Name" },
 ] as const;
 
@@ -27,7 +27,7 @@ const SENT_SORTS = [
   { value: "sent", label: "Recently sent" },
   { value: "sessions", label: "Most sessions" },
   { value: "longest", label: "Longest running" },
-  { value: "pinned", label: "Recently pinned" },
+  { value: "pinned", label: "Recently tracked" },
   { value: "name", label: "Name" },
 ] as const;
 
@@ -135,9 +135,9 @@ export function ProjectBoard({
   return (
     <div className="flex flex-col gap-4">
       {/* The toolbar renders in every state, including the empty one. It is
-       * where the pin control lives, and an empty board that dropped the row
-       * would move the button on the climber's first pin. Filtering nothing
-       * is harmless; losing the action is not. */}
+       * where the track control lives, and an empty board that dropped the
+       * row would move the button on the climber's first one. Filtering
+       * nothing is harmless; losing the action is not. */}
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
         <QueryInput
           value={query}
@@ -161,8 +161,8 @@ export function ProjectBoard({
         <EmptyState
           message={
             sents
-              ? "No sent projects yet. Pinned climbs move here once you log a send."
-              : "No projects pinned yet. Pin a climb to start tracking it."
+              ? "No sent projects yet. Tracked climbs move here once you log a send."
+              : "No projects tracked yet. Track a climb and it shows up here."
           }
         />
       ) : visible.length === 0 ? (

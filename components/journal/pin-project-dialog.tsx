@@ -29,7 +29,7 @@ type PinProjectDialogProps = {
  * full filter row drops to plain discipline chips, because it costs a result.
  *
  * The title and the suggestion heading carry what the dialog does; a
- * paragraph explaining pinning would push the first result down a row on
+ * paragraph explaining tracking would push the first result down a row on
  * every open to say it once. */
 export function PinProjectDialog({ state, suggestions, pinnedClimbIds }: PinProjectDialogProps) {
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +38,7 @@ export function PinProjectDialog({ state, suggestions, pinnedClimbIds }: PinProj
   const compact = useCompactViewport();
 
   const disabledClimbIds = useMemo(
-    () => new Map(pinnedClimbIds.map((id) => [id, "Already pinned"] as const)),
+    () => new Map(pinnedClimbIds.map((id) => [id, "Already tracked"] as const)),
     [pinnedClimbIds],
   );
 
@@ -67,7 +67,7 @@ export function PinProjectDialog({ state, suggestions, pinnedClimbIds }: PinProj
   return (
     <ResponsiveDialog
       state={state}
-      title="Pin a project"
+      title="Track a project"
       size="lg"
       presentation="fullscreen"
       isPending={pending}
@@ -88,7 +88,7 @@ export function PinProjectDialog({ state, suggestions, pinnedClimbIds }: PinProj
           onPick={(climb) => handlePin(climb.id)}
         />
         {error && <InlineAlert>{error}</InlineAlert>}
-        {pending && <p className="text-sm text-muted">Pinning…</p>}
+        {pending && <p className="text-sm text-muted">Tracking…</p>}
       </div>
     </ResponsiveDialog>
   );

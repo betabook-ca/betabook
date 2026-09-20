@@ -33,7 +33,7 @@ export function ProjectSuggestionList({
               variant="ghost"
               className="h-auto w-full justify-between gap-3 px-3 py-2 text-left"
               isDisabled={pendingClimbId != null}
-              aria-label={`Pin ${climb.climbName}`}
+              aria-label={`Track ${climb.climbName}`}
               onPress={() => onPin(climb)}
             >
               <span className="flex min-w-0 flex-col">

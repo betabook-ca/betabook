@@ -75,7 +75,7 @@ export function ProjectCardLayout({
             <>
               <Separator />
               <span>
-                Pinned <time dateTime={project.pinnedAt}>{formatDate(project.pinnedAt)}</time>
+                Tracked <time dateTime={project.pinnedAt}>{formatDate(project.pinnedAt)}</time>
               </span>
             </>
           )

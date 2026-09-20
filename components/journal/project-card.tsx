@@ -63,12 +63,12 @@ export function ProjectCard({ project, userId, today, onLogSession }: ProjectCar
               size="sm"
               variant="ghost"
               className="gap-1.5"
-              aria-label={`Unpin ${project.climbName}`}
+              aria-label={`Untrack ${project.climbName}`}
               isDisabled={pending}
               onPress={handleUnpin}
             >
               <PinOff className="size-4" />
-              Unpin
+              Untrack
             </Button>
           </div>
           {error && <InlineAlert>{error}</InlineAlert>}

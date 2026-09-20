@@ -33,7 +33,7 @@ export function PinProjectButton({
         }}
       >
         <Pin className="size-4" />
-        Pin project
+        Track project
       </Button>
       {PinProjectDialog && (
         <PinProjectDialog state={state} suggestions={suggestions} pinnedClimbIds={pinnedClimbIds} />

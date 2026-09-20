@@ -6,4 +6,4 @@
  * `pnpm check` stays green. */
 export const PINNED_PROJECT_LIMIT = 100;
 
-export const PIN_LIMIT_MESSAGE = `You can pin up to ${PINNED_PROJECT_LIMIT} projects — unpin one to add another`;
+export const PIN_LIMIT_MESSAGE = `You can track up to ${PINNED_PROJECT_LIMIT} projects — untrack one to add another`;
