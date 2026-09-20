@@ -99,6 +99,18 @@ it("suggests only this user's visible tags and distinguishes ascents from sessio
     "trip",
     "trip-long",
   ]);
+  await seedFixtureJournalEntry(db, {
+    userId: "owner",
+    kind: "training",
+    entryDate: "2025-02-02",
+    tags: ["hangboard"],
+  });
+  expect(await getUserHashtags(db, "owner", "owner", false, true)).toEqual([
+    "hangboard",
+    "session-only",
+    "trip",
+    "trip-long",
+  ]);
   await db.run(sql`UPDATE user SET journal_visibility = 'public' WHERE id = 'owner'`);
   expect(await getUserHashtags(db, "owner", "reader", true)).toEqual(["trip", "trip-long"]);
   await db.run(sql`UPDATE user SET journal_visibility = 'private' WHERE id = 'owner'`);

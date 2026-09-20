@@ -135,6 +135,7 @@ export function GoalPanel({
   timezone,
   today,
   nextGrades,
+  availableTags,
   initialView = "active",
   loadPage,
   loadItems,
@@ -150,6 +151,7 @@ export function GoalPanel({
   loadItems?: (goal: GoalProgress) => Promise<GoalContribution[]>;
   loadHistory?: (goalId: number, offset: number, anchor?: string) => Promise<GoalHistoryPage>;
   nextGrades?: Partial<Record<"boulder" | "sport" | "trad", number>>;
+  availableTags?: string[];
 }) {
   const mounted = useMounted();
   const [dismissedCompletions, setDismissedCompletions] = useState<Set<string>>(new Set());
@@ -318,7 +320,7 @@ export function GoalPanel({
     );
   }
   function endRoutineButton(goal: GoalProgress) {
-    if (view !== "active" || !runningRoutine(goal)) return null;
+    if (view !== "active" || !runningRoutine(goal) || goal.recurringEndDate) return null;
     return (
       <span className="ml-auto flex justify-end">
         <Button
@@ -327,12 +329,13 @@ export function GoalPanel({
           className="-mr-3 text-xs!"
           onPress={() => openEndRoutine(goal)}
         >
-          {goal.recurringEndDate ? "Change end date" : "End routine"}
+          End routine
         </Button>
       </span>
     );
   }
   function goalActions(goal: GoalProgress) {
+    const routine = runningRoutine(goal);
     return (
       <ActionsMenu
         ariaLabel={`Actions for ${goalTitle(goal)}`}
@@ -358,11 +361,7 @@ export function GoalPanel({
             Archive goal
           </Menu.Item>
         )}
-        {runningRoutine(goal) && (
-          <Menu.Item id="end">
-            {goal.recurringEndDate ? "Change end date" : "End routine"}
-          </Menu.Item>
-        )}
+        {routine && !routine.recurringEndDate && <Menu.Item id="end">End routine</Menu.Item>}
         <Menu.Item id="delete">Delete</Menu.Item>
       </ActionsMenu>
     );
@@ -654,6 +653,7 @@ export function GoalPanel({
           initialValues={editor.kind === "retry" ? editor.draft : undefined}
           today={editing?.today ?? today}
           nextGrades={nextGrades}
+          availableTags={availableTags}
           onSave={save}
           onCancel={editState.close}
           onPendingChange={setPending}
