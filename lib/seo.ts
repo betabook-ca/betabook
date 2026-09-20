@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { formatGrade, type ClimbType } from "@/lib/grades";
+import { profileShareImagePath } from "@/lib/profile-share";
 import { OG_IMAGE, SITE_NAME, SITE_URL } from "@/lib/site";
 
 /** Full per-page metadata fragment for an indexable content page.
@@ -36,16 +37,25 @@ export function pageMetadata(opts: {
 }
 
 /** Link preview for a valid profile share link. No canonical or `og:url`:
- * crawlers that follow either fetch the plain profile, which names no one. */
-export function sharedProfileMetadata(name: string): Metadata {
+ * crawlers that follow either fetch the plain profile, which names no one.
+ * The image is the token's own personalized card — `app/api/og/profile-share`
+ * re-checks the token before naming anyone, so an expired or reset link
+ * still resolves to an image (the sitewide one), never a broken preview. */
+export function sharedProfileMetadata(name: string, token: string): Metadata {
   const title = `${name} on ${SITE_NAME}`;
   const description = `${name} invited you to ${SITE_NAME}, a climbing logbook and crag database.`;
+  const image = {
+    url: profileShareImagePath(token),
+    width: OG_IMAGE.width,
+    height: OG_IMAGE.height,
+    alt: title,
+  };
   return {
     title: { absolute: title },
     description,
     robots: { index: false },
-    openGraph: { type: "profile", siteName: SITE_NAME, title, description, images: [OG_IMAGE] },
-    twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE.url] },
+    openGraph: { type: "profile", siteName: SITE_NAME, title, description, images: [image] },
+    twitter: { card: "summary_large_image", title, description, images: [image.url] },
   };
 }
 

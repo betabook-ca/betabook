@@ -50,6 +50,7 @@ export function AnalyticsDashboard({
   canCustomize = false,
   initialLayout,
   onSave,
+  shareCard,
   highlights = buildAnalyticsHighlights([], scope, selectedYears),
 }: {
   analytics: UserAnalytics;
@@ -66,6 +67,8 @@ export function AnalyticsDashboard({
   canCustomize?: boolean;
   initialLayout?: AnalyticsLayout;
   onSave?: (layout: AnalyticsLayout) => Promise<ActionResult>;
+  /** The owner's "Share stats" launcher, beside Customize. */
+  shareCard?: ReactNode;
 }) {
   const chartSends = selectChartSends(sends, scope, selectedYears);
   const activities = journalVisible
@@ -331,6 +334,7 @@ export function AnalyticsDashboard({
       canCustomize={canCustomize && !noActivity}
       initialLayout={initialLayout}
       onSave={onSave}
+      actions={noActivity ? undefined : shareCard}
       heading={
         <div className="flex flex-col gap-1">
           <SectionHeading>

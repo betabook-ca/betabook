@@ -35,7 +35,7 @@ async function getSharedProfile(id: string, search: UrlParamsRecord) {
   const token = parseProfileShareToken(search[PROFILE_SHARE_PARAM]);
   if (!token) return null;
   const owner = await getShareLinkOwnerByToken(token);
-  return owner?.id === id ? { ...owner, path: profileSharePath(id, token) } : null;
+  return owner?.id === id ? { ...owner, path: profileSharePath(id, token), token } : null;
 }
 
 export async function generateMetadata({ params, searchParams }: UserPageProps): Promise<Metadata> {
@@ -44,7 +44,7 @@ export async function generateMetadata({ params, searchParams }: UserPageProps):
   if (!session) {
     const shared = await getSharedProfile(id, search);
     return shared
-      ? sharedProfileMetadata(shared.name)
+      ? sharedProfileMetadata(shared.name, shared.token)
       : { title: "Member content", robots: { index: false } };
   }
   const user = await getUserById(id);

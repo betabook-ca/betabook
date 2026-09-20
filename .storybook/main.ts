@@ -49,6 +49,10 @@ const config: StorybookConfig = {
             find: /^@\/lib\/search-suggestions$/,
             replacement: fileURLToPath(new URL("./mocks/search-suggestions.ts", import.meta.url)),
           },
+          {
+            find: /^@\/lib\/social-card-fetch$/,
+            replacement: fileURLToPath(new URL("./mocks/social-card-fetch.ts", import.meta.url)),
+          },
           { find: "@", replacement: fileURLToPath(new URL("../", import.meta.url)) },
         ],
       },

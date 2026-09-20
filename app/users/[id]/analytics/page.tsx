@@ -9,6 +9,7 @@ import { AnalyticsYearNavigation } from "@/components/analytics-year-filter";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { FeatureAnnouncementScope } from "@/components/feature-announcement";
 import { AnalyticsHashtagFilter } from "@/components/filters/analytics-hashtag-filter";
+import { SocialCardLauncher } from "@/components/social-card-launcher";
 import { AppLink } from "@/components/ui/app-link";
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { DISCIPLINE_CHIP_CLASSNAME, DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
@@ -160,6 +161,7 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
           canCustomize={isOwner}
           initialLayout={initialLayout}
           onSave={isOwner ? saveAnalyticsLayout : undefined}
+          shareCard={isOwner ? <SocialCardLauncher userId={id} name={user.name} /> : undefined}
           analytics={analytics}
           sends={rows}
           sessions={highlightSessions}
