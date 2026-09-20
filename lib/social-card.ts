@@ -35,7 +35,7 @@ export function socialCardPeriodLabel(period: SocialCardPeriod, today: string): 
   return formatMonthLabel(today.slice(0, 7));
 }
 
-export type SocialCardPyramidRow = { grade: number; label: string; count: number };
+type SocialCardPyramidRow = { grade: number; label: string; count: number };
 export type SocialCardPyramid = { type: ClimbType; rows: SocialCardPyramidRow[] };
 
 /** How many grade rungs a discipline's pyramid shows on the card, hardest
