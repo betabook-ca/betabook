@@ -4,16 +4,9 @@ import { Button, Menu, useOverlayState } from "@heroui/react";
 import { CirclePlus } from "lucide-react";
 import { useState } from "react";
 
-import {
-  saveGoal,
-  deleteGoal,
-  acknowledgeGoalAchievements,
-  archiveGoal,
-  endRecurringGoal,
-} from "@/actions";
+import { saveGoal, deleteGoal, acknowledgeGoalAchievements, archiveGoal } from "@/actions";
 import { ActionsMenu } from "@/components/ui/actions-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
-import { DatePickerField } from "@/components/ui/date-picker-field";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { InlineAlert } from "@/components/ui/inline-alert";
@@ -82,6 +75,65 @@ function draftFor(goal: GoalProgress): GoalDraft {
   };
 }
 
+function GoalRowDateStack({
+  goal,
+  view,
+  today,
+  isMissed,
+  dateLabel,
+  longRange,
+  mobileLongClimb,
+}: {
+  goal: GoalProgress;
+  view: "active" | "completed";
+  today: string;
+  isMissed: boolean;
+  dateLabel: string;
+  longRange: string[] | null;
+  mobileLongClimb: boolean;
+}) {
+  const showPeriod = !(view === "completed" && goal.recurring && goal.repeat !== "none");
+  const showReset =
+    view === "active" &&
+    goal.repeat !== "none" &&
+    goal.progress >= goal.target &&
+    goal.recurringEndDate !== goal.periodEnd;
+  const showEnd = Boolean(goal.recurringEndDate || (view === "active" && goal.repeat !== "none"));
+  return (
+    <div
+      className={`flex shrink-0 flex-col items-end gap-1 text-right ${mobileLongClimb ? "max-[480px]:col-start-2 max-[480px]:row-start-2" : ""}`}
+    >
+      {showPeriod && (
+        <>
+          <GoalDate completed={Boolean(goal.completedDate)}>
+            {longRange ? (
+              <span className="inline-flex flex-col items-end">
+                <span className="whitespace-nowrap">{longRange[0]} –</span>
+                <span className="whitespace-nowrap">{longRange[1]}</span>
+              </span>
+            ) : (
+              dateLabel
+            )}
+          </GoalDate>
+          {isMissed && <span className="text-xs text-muted">Not met</span>}
+        </>
+      )}
+      {showReset && (
+        <span className="text-xs font-normal text-muted">
+          {recurringGoalResetLabel(goal, goal.today ?? today)}
+        </span>
+      )}
+      {showEnd && (
+        <span className="text-xs font-normal text-muted">
+          {goal.recurringEndDate
+            ? recurringGoalEndLabel(goal.recurringEndDate, goal.today ?? today)
+            : "No end date"}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function GoalRowTitle({
   goal,
   view,
@@ -93,37 +145,58 @@ function GoalRowTitle({
   today: string;
   isMissed: boolean;
 }) {
+  const dateLabel = goalDateLabel(
+    {
+      ...goal,
+      completedDate: view === "completed" || goal.repeat === "none" ? goal.completedDate : null,
+    },
+    today,
+  );
+  const longRange =
+    dateLabel.length > 22 && dateLabel.includes(" – ") ? dateLabel.split(" – ") : null;
+  const mobileLongClimb = Boolean(goal.discipline && longRange);
+  const showProgress =
+    view === "active" && goal.kind !== "grade" && !(goal.repeat === "none" && goal.completedDate);
   return (
-    <span className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1 text-sm">
-      <span className="flex min-w-0 flex-wrap items-center gap-x-1">
-        <span>{goalTitle(goal)}</span>
-        {goal.discipline && <DisciplineChip type={goal.discipline} />}
-      </span>
-      <span className="ml-auto flex shrink-0 flex-col items-end gap-1 text-right">
-        {!(view === "completed" && goal.recurring && goal.repeat !== "none") && (
-          <>
-            <GoalDate completed={Boolean(goal.completedDate)}>
-              {goalDateLabel(
-                {
-                  ...goal,
-                  completedDate:
-                    view === "completed" || goal.repeat === "none" ? goal.completedDate : null,
-                },
-                today,
-              )}
-            </GoalDate>
-            {isMissed && view === "completed" && (
-              <span className="text-xs text-muted">Not met</span>
-            )}
-          </>
+    <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_max-content] items-baseline gap-x-2 gap-y-1 text-sm">
+      <div
+        className={`flex min-w-0 flex-col items-start gap-1 ${mobileLongClimb ? "max-[480px]:contents" : ""}`}
+      >
+        <div className={`min-w-0 ${mobileLongClimb ? "max-[480px]:col-span-2" : ""}`}>
+          <span data-goal-title>{goalTitle(goal)}</span>
+          {goal.discipline && (
+            <span className="ml-1 inline-flex align-middle">
+              <DisciplineChip type={goal.discipline} />
+            </span>
+          )}
+        </div>
+        {showProgress && (
+          <div
+            className={`flex items-center gap-2 font-normal ${mobileLongClimb ? "max-[480px]:col-start-1 max-[480px]:row-start-2" : ""}`}
+          >
+            <div className="w-20 md:w-24 [&>div]:h-1 dark:[&>div]:bg-white">
+              <ProgressBar
+                value={Math.min(goal.progress, goal.target)}
+                max={goal.target}
+                label={goalTitle(goal)}
+              />
+            </div>
+            <span className="text-xs tabular-nums">
+              {goal.progress}/{goal.target}
+            </span>
+          </div>
         )}
-        {goal.recurringEndDate && (
-          <span className="text-xs text-muted">
-            {recurringGoalEndLabel(goal.recurringEndDate, goal.today ?? today)}
-          </span>
-        )}
-      </span>
-    </span>
+      </div>
+      <GoalRowDateStack
+        goal={goal}
+        view={view}
+        today={today}
+        isMissed={isMissed}
+        dateLabel={dateLabel}
+        longRange={longRange}
+        mobileLongClimb={mobileLongClimb}
+      />
+    </div>
   );
 }
 
@@ -165,16 +238,12 @@ export function GoalPanel({
   const needsDecision = (goal: GoalProgress) =>
     goal.needsAction ?? missedGoalNeedsAction(goal, today);
   const missed = (goal: GoalProgress) => goal.missed ?? isMissedGoal(goal, today);
-  const finished = (goal: GoalProgress) => goal.repeat === "none" && Boolean(goal.completedDate);
-  const canArchive = (goal: GoalProgress) => !goal.archived && finished(goal);
   const showMissedActions = (goal: GoalProgress) => view === "active" && needsDecision(goal);
 
   const canEditGoal = (goal: GoalProgress) =>
     !goal.archived &&
     (!goal.recurringEndDate || goal.recurringEndDate >= (goal.today ?? today)) &&
     (view === "active" || !missed(goal));
-  const runningRoutine = (goal: GoalProgress) =>
-    active.goals.find((item) => item.id === goal.id && item.repeat !== "none" && !item.archived);
   const [deleteError, setDeleteError] = useState("");
   const [archivingId, setArchivingId] = useState<number | null>(null);
   const [archiveError, setArchiveError] = useState("");
@@ -185,33 +254,6 @@ export function GoalPanel({
   const [deletePending, setDeletePending] = useState(false);
   const editState = useOverlayState();
   const deleteState = useOverlayState();
-  const [ending, setEnding] = useState<GoalProgress | null>(null);
-  const [endDate, setEndDate] = useState("");
-  const [endPending, setEndPending] = useState(false);
-  const [endError, setEndError] = useState("");
-  const endState = useOverlayState();
-  function openEndRoutine(goal: GoalProgress) {
-    const routine = runningRoutine(goal);
-    if (!routine) return;
-    setEnding(routine);
-    setEndDate(routine.recurringEndDate ?? routine.periodEnd);
-    setEndError("");
-    endState.open();
-  }
-  async function endRoutine() {
-    if (!ending) return;
-    setEndPending(true);
-    setEndError("");
-    try {
-      const result = await endRecurringGoal(ending.id, endDate);
-      if (!result.ok) setEndError(result.error);
-      else endState.close();
-    } catch {
-      setEndError("Could not save the end date. Try again.");
-    } finally {
-      setEndPending(false);
-    }
-  }
   const {
     page: completed,
     year,
@@ -301,41 +343,7 @@ export function GoalPanel({
       setDeletePending(false);
     }
   }
-  function finishedArchiveButton(goal: GoalProgress) {
-    if (view !== "active" || !finished(goal) || goal.archived) return null;
-    return (
-      <span className="ml-auto flex justify-end">
-        <Button
-          size="sm"
-          variant="ghost"
-          className="-mr-3 text-xs!"
-          isDisabled={archivingId !== null}
-          onPress={() => {
-            void archive(goal);
-          }}
-        >
-          {archivingId === goal.id ? "Archiving…" : "Archive goal"}
-        </Button>
-      </span>
-    );
-  }
-  function endRoutineButton(goal: GoalProgress) {
-    if (view !== "active" || !runningRoutine(goal) || goal.recurringEndDate) return null;
-    return (
-      <span className="ml-auto flex justify-end">
-        <Button
-          size="sm"
-          variant="ghost"
-          className="-mr-3 text-xs!"
-          onPress={() => openEndRoutine(goal)}
-        >
-          End routine
-        </Button>
-      </span>
-    );
-  }
   function goalActions(goal: GoalProgress) {
-    const routine = runningRoutine(goal);
     return (
       <ActionsMenu
         ariaLabel={`Actions for ${goalTitle(goal)}`}
@@ -344,10 +352,6 @@ export function GoalPanel({
             const selected = active.goals.find((item) => item.id === goal.id) ?? goal;
             setEditor({ kind: "edit", goal: selected });
             editState.open();
-          } else if (key === "end") {
-            openEndRoutine(goal);
-          } else if (key === "archive") {
-            void archive(goal);
           } else {
             setDeleting(goal);
             deleteState.open();
@@ -356,12 +360,6 @@ export function GoalPanel({
         }}
       >
         {canEditGoal(goal) && <Menu.Item id="edit">Edit</Menu.Item>}
-        {view === "completed" && canArchive(goal) && (
-          <Menu.Item id="archive" isDisabled={archivingId !== null}>
-            Archive goal
-          </Menu.Item>
-        )}
-        {routine && !routine.recurringEndDate && <Menu.Item id="end">End routine</Menu.Item>}
         <Menu.Item id="delete">Delete</Menu.Item>
       </ActionsMenu>
     );
@@ -472,12 +470,6 @@ export function GoalPanel({
             />
           </div>
         )}
-        {view === "active" && active.goals.some(finished) && (
-          <p className="py-3 text-xs text-muted">
-            Finished goals stay here until you archive them. They don’t count toward your active
-            limit.
-          </p>
-        )}
         <div className="divide-y divide-foreground/20">
           {rows.map((goal) => (
             <ListRow
@@ -487,83 +479,56 @@ export function GoalPanel({
               className={GOAL_ROW_CLASS}
               title={<GoalRowTitle goal={goal} view={view} today={today} isMissed={missed(goal)} />}
               tags={
-                <div className="flex w-full min-w-0 flex-col gap-2">
-                  {view === "completed" && goal.repeat !== "none" && !goal.completedDate && (
-                    <span className="text-xs text-muted">Not met</span>
-                  )}
-                  {view === "completed" || finished(goal) ? (
-                    <GoalItems ownerId={ownerId} goal={goal} loadItems={loadItems} />
-                  ) : goal.kind !== "grade" || needsDecision(goal) ? (
-                    <div className="flex w-full items-center gap-2">
-                      {goal.kind !== "grade" && (
-                        <>
-                          <div className="w-24 [&>div]:h-1 dark:[&>div]:bg-white">
-                            <ProgressBar
-                              value={Math.min(goal.progress, goal.target)}
-                              max={goal.target}
-                              label={goalTitle(goal)}
-                            />
-                          </div>
-                          <span className="text-xs tabular-nums">
-                            {goal.progress}/{goal.target}
-                          </span>
-                        </>
-                      )}
-                      {missed(goal) && (
-                        <span className="ml-auto text-right text-xs text-muted">Not met</span>
-                      )}
-                      {goal.repeat !== "none" &&
-                        goal.progress >= goal.target &&
-                        goal.recurringEndDate !== goal.periodEnd && (
-                          <span className="ml-auto shrink-0 text-right text-xs font-normal text-muted">
-                            {recurringGoalResetLabel(goal, goal.today ?? today)}
-                          </span>
+                view === "completed" || showMissedActions(goal) ? (
+                  <div className="flex w-full min-w-0 flex-col gap-2">
+                    {view === "completed" && goal.repeat !== "none" && !goal.completedDate && (
+                      <span className="text-xs text-muted">Not met</span>
+                    )}
+                    {view === "completed" && (
+                      <GoalItems ownerId={ownerId} goal={goal} loadItems={loadItems} />
+                    )}
+                    {showMissedActions(goal) && (
+                      <span className="ml-auto flex flex-wrap justify-end gap-2">
+                        <Button
+                          size="sm"
+                          className="bg-navigation-active! text-xs! text-link! hover:bg-navigation-active!"
+                          variant="outline"
+                          isDisabled={archivingId === goal.id || activeCount >= MAX_ACTIVE_GOALS}
+                          onPress={() => tryAgain(goal)}
+                        >
+                          Try again
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="-mr-3 text-xs!"
+                          variant="ghost"
+                          isDisabled={archivingId !== null}
+                          onPress={() => {
+                            void archive(goal);
+                          }}
+                        >
+                          {archivingId === goal.id ? "Archiving…" : "Archive goal"}
+                        </Button>
+                      </span>
+                    )}
+                    {view === "completed" && goal.recurring && (
+                      <GoalRecurringHistory
+                        key={`${goal.id}-${year}-${JSON.stringify(goal.recurring)}`}
+                        ownerId={ownerId}
+                        goal={goal}
+                        today={today}
+                        currentPeriod={active.goals.find(
+                          (item) => item.id === goal.id && item.repeat !== "none",
                         )}
-                    </div>
-                  ) : undefined}
-                  {finishedArchiveButton(goal)}
-                  {endRoutineButton(goal)}
-                  {showMissedActions(goal) && (
-                    <span className="ml-auto flex flex-wrap justify-end gap-2">
-                      <Button
-                        size="sm"
-                        className="bg-navigation-active! text-xs! text-link! hover:bg-navigation-active!"
-                        variant="outline"
-                        isDisabled={archivingId === goal.id || activeCount >= MAX_ACTIVE_GOALS}
-                        onPress={() => tryAgain(goal)}
-                      >
-                        Try again
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="-mr-3 text-xs!"
-                        variant="ghost"
-                        isDisabled={archivingId !== null}
-                        onPress={() => {
-                          void archive(goal);
-                        }}
-                      >
-                        {archivingId === goal.id ? "Archiving…" : "Archive goal"}
-                      </Button>
-                    </span>
-                  )}
-                  {view === "completed" && goal.recurring && (
-                    <GoalRecurringHistory
-                      key={`${goal.id}-${year}-${JSON.stringify(goal.recurring)}`}
-                      ownerId={ownerId}
-                      goal={goal}
-                      today={today}
-                      currentPeriod={active.goals.find(
-                        (item) => item.id === goal.id && item.repeat !== "none",
-                      )}
-                      loadHistory={
-                        loadHistory
-                          ? (offset, anchor) => loadHistory(goal.id, offset, anchor)
-                          : undefined
-                      }
-                    />
-                  )}
-                </div>
+                        loadHistory={
+                          loadHistory
+                            ? (offset, anchor) => loadHistory(goal.id, offset, anchor)
+                            : undefined
+                        }
+                      />
+                    )}
+                  </div>
+                ) : undefined
               }
               actions={goalActions(goal)}
             />
@@ -583,40 +548,6 @@ export function GoalPanel({
           <LoadMoreButton onPress={more} loading={loading} failed={moreFailed} />
         )}
       </GoalSection>
-      <ResponsiveDialog
-        state={endState}
-        title="End recurring goal"
-        size="sm"
-        isPending={endPending}
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onPress={endState.close} isDisabled={endPending}>
-              Cancel
-            </Button>
-            <Button
-              onPress={() => {
-                void endRoutine();
-              }}
-              isDisabled={endPending || !endDate || endDate < (ending?.today ?? today)}
-            >
-              {endPending ? "Saving…" : "Save end date"}
-            </Button>
-          </div>
-        }
-      >
-        <p className="mb-4 text-sm text-muted">
-          Count logs through this date, then stop repeating and free the active slot. Past results
-          and shared achievements stay in History and feeds.
-        </p>
-        <DatePickerField
-          label="End date"
-          value={endDate}
-          onChange={setEndDate}
-          isReadOnly={endPending}
-          description="Choose today or a future date. The final period keeps the same target."
-        />
-        {endError && <InlineAlert>{endError}</InlineAlert>}
-      </ResponsiveDialog>
       {archiveError && <InlineAlert>{archiveError}</InlineAlert>}
       {error && (
         <div>

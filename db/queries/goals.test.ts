@@ -39,10 +39,7 @@ it("derives training progress and reverses completion after a deleted log", asyn
   expect(page.goals).toHaveLength(1);
   expect(page.goals[0].progress).toBe(1);
   await seedFixtureJournalEntry(db, { userId: "owner", kind: "training", entryDate: "2026-09-03" });
-  expect((await getGoalPage(db, "owner", "owner", "active", 0, now)).goals[0]).toMatchObject({
-    progress: 2,
-    completedDate: "2026-09-03",
-  });
+  expect((await getGoalPage(db, "owner", "owner", "active", 0, now)).goals).toEqual([]);
   expect((await getGoalPage(db, "owner", "owner", "completed", 0, now)).goals[0]).toMatchObject({
     progress: 2,
     completedDate: "2026-09-03",
