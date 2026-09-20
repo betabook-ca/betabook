@@ -2,7 +2,15 @@ import { eq } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 
 import type { Database } from "@/db/client";
-import { areas, climbs, user, sends, journalEntries, friendships } from "@/db/schema";
+import {
+  areas,
+  climbs,
+  user,
+  sends,
+  journalEntries,
+  friendships,
+  pinnedProjects,
+} from "@/db/schema";
 import { friendshipPair } from "@/lib/friendships";
 import { TERMS_VERSION } from "@/lib/terms";
 
@@ -195,6 +203,17 @@ export async function seedFixtureSend(db: Database, overrides: FixtureSendOverri
     ...overrides,
   };
   await db.insert(sends).values(row);
+  return row;
+}
+
+/** Pins a climb as a project. Membership of the Projects tabs comes from this
+ * row alone, so a test can seed one with no sessions and no send behind it. */
+export async function seedFixturePinnedProject(
+  db: Database,
+  overrides: Partial<typeof pinnedProjects.$inferInsert> & { userId: string; climbId: number },
+) {
+  const row = { pinnedAt: "2025-01-01", ...overrides };
+  await db.insert(pinnedProjects).values(row);
   return row;
 }
 

@@ -12,6 +12,7 @@ import {
   seedFixtureTree,
   seedFixtureSend,
   seedFixtureJournalEntry,
+  seedFixturePinnedProject,
 } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
 
@@ -20,7 +21,7 @@ import { getFeedPage } from "./feed";
 import {
   getJournalPage,
   getJournalSessionsForAnalytics,
-  getOpenProjects,
+  getPinnedProjects,
   hasJournalEntries,
 } from "./journal";
 
@@ -60,6 +61,9 @@ beforeEach(async () => {
     entryDate: "2026-09-01",
     body: "Restricted training",
   });
+  // Projects are pin-driven now, so the climb has to be pinned before this
+  // read has anything to gate.
+  await seedFixturePinnedProject(db, { userId: "author", climbId: 2 });
 });
 
 it.each<SharingAudience>(["private", "public", "friends"])(
@@ -79,7 +83,9 @@ it.each<SharingAudience>(["private", "public", "friends"])(
         canRead ? [{ entryDate: "2026-09-01", climbType: "boulder", count: 2 }] : [],
       );
       expect(
-        (await getOpenProjects(db, ownerId, viewer)).map((project) => project.climbId),
+        (await getPinnedProjects(db, ownerId, viewer, { sent: false })).map(
+          (project) => project.climbId,
+        ),
       ).toEqual(viewer === "author" ? [2] : []);
     }
   },

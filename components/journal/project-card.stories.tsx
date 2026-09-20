@@ -1,6 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { ashCrack, moonSlab, riverRoute } from "@/stories/fixtures/open-projects";
+import {
+  ashCrack,
+  moonSlab,
+  riverRoute,
+  sentPin,
+  untouchedPin,
+} from "@/stories/fixtures/open-projects";
 import { Example, StoryPage } from "@/stories/fixtures/story-layout";
 
 import { ProjectCard } from "./project-card";
@@ -40,6 +46,22 @@ export const Project: Story = {
       <Example title="Dates only, no notes written">
         <ProjectCard
           project={ashCrack}
+          userId="storybook-climber"
+          today={TODAY}
+          onLogSession={() => {}}
+        />
+      </Example>
+      <Example title="Tracked, never climbed">
+        <ProjectCard
+          project={untouchedPin}
+          userId="storybook-climber"
+          today={TODAY}
+          onLogSession={() => {}}
+        />
+      </Example>
+      <Example title="Sent, kept on the sent tab">
+        <ProjectCard
+          project={sentPin}
           userId="storybook-climber"
           today={TODAY}
           onLogSession={() => {}}

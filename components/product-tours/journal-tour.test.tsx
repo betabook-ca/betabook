@@ -114,7 +114,7 @@ it("keeps Journal and Sends together without Progress tabs", () => {
   const html = demo("sends", "full");
   const tabs = html.slice(html.indexOf('aria-label="Logbook sections"'));
   expect(tabs).toMatch(/>Journal<.*>Sends</s);
-  expect(tabs).not.toMatch(/>Open Projects<|>Analytics</);
+  expect(tabs).not.toMatch(/>Projects<|>Analytics</);
   expect(tabs).not.toMatch(/>Feed<|>Friends<|>Account settings</);
 });
 

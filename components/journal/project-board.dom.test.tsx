@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
-import { createJournalEntry, createUndatedSend, updateJournalEntry } from "@/actions";
+import { createJournalEntry, createUndatedSend, unpinProject, updateJournalEntry } from "@/actions";
 import type { JournalEntry } from "@/db/queries";
 
 import { ProjectBoard } from "./project-board";
@@ -12,6 +12,8 @@ vi.mock("@/actions", () => ({
   createJournalEntry: vi.fn<typeof createJournalEntry>(),
   createUndatedSend: vi.fn<typeof createUndatedSend>(),
   updateJournalEntry: vi.fn<typeof updateJournalEntry>(),
+  unpinProject: vi.fn<typeof unpinProject>(),
+  pinProject: vi.fn<() => Promise<never>>(),
 }));
 
 function session(overrides: Partial<JournalEntry> & { id: number }): JournalEntry {
@@ -46,8 +48,11 @@ const slab: ProjectWithSessions = {
   areaName: "Cedar Block",
   sessionCount: 2,
   noteCount: 2,
+  pinnedAt: "2026-08-02",
   firstSession: "2026-08-02",
   lastSession: "2026-09-01",
+  sentOn: null,
+  sent: false,
   sessions: [
     session({
       id: 11,
@@ -70,9 +75,40 @@ const crack: ProjectWithSessions = {
   areaName: "Granite Wall",
   sessionCount: 9,
   noteCount: 1,
+  pinnedAt: "2026-01-04",
   firstSession: "2026-01-04",
   lastSession: "2026-07-15",
+  sentOn: null,
+  sent: false,
   sessions: [session({ id: 21, climbId: 2, entryDate: "2026-07-15", body: "Ran out of cams." })],
+};
+
+/** Pinned off a guidebook and never touched: no sessions, so no dates to sort
+ * or print. The board has to survive it and the card has to say so. */
+const untouched: ProjectWithSessions = {
+  climbId: 3,
+  climbName: "Sleeping Giant",
+  climbType: "boulder",
+  climbGrade: 10,
+  climbBrokenOn: null,
+  areaId: 3,
+  areaName: "Cedar Block",
+  sessionCount: 0,
+  noteCount: 0,
+  pinnedAt: "2026-09-10",
+  firstSession: null,
+  lastSession: null,
+  sentOn: null,
+  sent: false,
+  sessions: [],
+};
+
+const sentProject: ProjectWithSessions = {
+  ...crack,
+  climbId: 4,
+  climbName: "Long Winter",
+  sentOn: "2026-08-15",
+  sent: true,
 };
 
 const projects = [slab, crack];
@@ -84,8 +120,8 @@ function card(climbName: string): HTMLElement {
   return article;
 }
 
-function headings() {
-  const list = screen.queryByRole("list", { name: "Open projects" });
+function headings(label = "Open projects") {
+  const list = screen.queryByRole("list", { name: label });
   return list
     ? within(list)
         .queryAllByRole("heading", { level: 3 })
@@ -141,7 +177,7 @@ it("says so when nothing matches, and restores the list when the search is clear
   await user.type(search, "kneebar");
 
   expect(headings()).toEqual([]);
-  expect(screen.getByText("No open projects match this search.")).toBeInTheDocument();
+  expect(screen.getByText("No projects match this search.")).toBeInTheDocument();
 
   await user.clear(search);
 
@@ -165,6 +201,37 @@ it("reorders the list without dropping a project", async () => {
   expect(headings()).toEqual(["Ash Crack", "Moon Slab"]);
 });
 
+it("keeps a never-climbed project in the list under every sort, behind the active ones", async () => {
+  const user = userEvent.setup();
+  render(<ProjectBoard userId="climber" projects={[untouched, ...projects]} hasMore={false} />);
+
+  // Recent activity: it has none, so it sorts last rather than first or out.
+  expect(headings()).toEqual(["Moon Slab", "Ash Crack", "Sleeping Giant"]);
+
+  for (const sort of ["Most sessions", "Longest running", "Recently tracked", "Name"]) {
+    await user.click(screen.getByRole("button", { name: /Sort projects/ }));
+    await user.click(await screen.findByRole("option", { name: sort }));
+    expect(headings()).toHaveLength(3);
+    expect(headings()).toContain("Sleeping Giant");
+  }
+});
+
+it("renders a tracked climb with no sessions as a bare card, with no dates to report", () => {
+  render(<ProjectBoard userId="climber" projects={[untouched]} hasMore={false} />);
+  const bare = card("Sleeping Giant");
+
+  expect(within(bare).getByText("No sessions yet")).toBeVisible();
+  expect(within(bare).getByText(/Tracked/)).toBeVisible();
+  expect(within(bare).queryByText(/^Last/)).not.toBeInTheDocument();
+  expect(within(bare).queryByText(/^Since/)).not.toBeInTheDocument();
+  // Nothing to page through, and still loggable — that is the point of pinning
+  // a climb before touching it.
+  expect(within(bare).queryByRole("button", { name: "Load more" })).not.toBeInTheDocument();
+  expect(
+    within(bare).getByRole("button", { name: "Log a session on Sleeping Giant" }),
+  ).toBeInTheDocument();
+});
+
 it("logs a session against the project whose button was pressed", async () => {
   const user = userEvent.setup();
   render(<ProjectBoard userId="climber" projects={projects} hasMore={false} />);
@@ -181,11 +248,83 @@ it("logs a session against the project whose button was pressed", async () => {
   expect(vi.mocked(createJournalEntry).mock.calls[0][0].get("climbId")).toBe("2");
 });
 
-it("invites a first session when there are no open projects", () => {
+it("asks before untracking, and says the climbing history is kept", async () => {
+  const user = userEvent.setup();
+  render(<ProjectBoard userId="climber" projects={projects} hasMore={false} />);
+
+  await user.click(screen.getByRole("button", { name: "Untrack Ash Crack" }));
+
+  const dialog = await screen.findByRole("alertdialog");
+  expect(dialog).toHaveTextContent("Untrack Ash Crack?");
+  // The whole reason for the confirmation: the button sits under the
+  // climber's own notes and shouldn't read like it deletes them.
+  expect(dialog).toHaveTextContent(/session and journal entry on this climb is kept/);
+  expect(unpinProject).not.toHaveBeenCalled();
+});
+
+it("keeps the project when the confirmation is declined", async () => {
+  const user = userEvent.setup();
+  render(<ProjectBoard userId="climber" projects={projects} hasMore={false} />);
+
+  await user.click(screen.getByRole("button", { name: "Untrack Ash Crack" }));
+  await user.click(await screen.findByRole("button", { name: "Keep tracking" }));
+
+  expect(unpinProject).not.toHaveBeenCalled();
+  expect(headings()).toEqual(["Moon Slab", "Ash Crack"]);
+});
+
+it("untracks the project whose button was pressed once confirmed", async () => {
+  const user = userEvent.setup();
+  vi.mocked(unpinProject).mockResolvedValue({ ok: true, value: undefined });
+  render(<ProjectBoard userId="climber" projects={projects} hasMore={false} />);
+
+  await user.click(screen.getByRole("button", { name: "Untrack Ash Crack" }));
+  await user.click(await screen.findByRole("button", { name: /^Untrack$/ }));
+
+  await waitFor(() => expect(unpinProject).toHaveBeenCalledWith(2));
+  expect(unpinProject).toHaveBeenCalledTimes(1);
+});
+
+it("keeps a failed untrack in the dialog with its reason", async () => {
+  const user = userEvent.setup();
+  vi.mocked(unpinProject).mockResolvedValue({ ok: false, error: "Climb not found" });
+  render(<ProjectBoard userId="climber" projects={projects} hasMore={false} />);
+
+  await user.click(screen.getByRole("button", { name: "Untrack Ash Crack" }));
+  await user.click(await screen.findByRole("button", { name: /^Untrack$/ }));
+
+  const dialog = await screen.findByRole("alertdialog");
+  expect(await within(dialog).findByText("Climb not found")).toBeVisible();
+
+  // The list is behind an open modal, so read it back once the dialog is gone.
+  await user.click(within(dialog).getByRole("button", { name: "Keep tracking" }));
+  await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+  expect(headings()).toEqual(["Moon Slab", "Ash Crack"]);
+});
+
+it("keeps the whole toolbar on an empty board and puts the message under it", () => {
   render(<ProjectBoard userId="climber" projects={[]} hasMore={false} />);
 
-  expect(
-    screen.getByText(/No open projects\. Log a session on a climb you haven't sent/),
-  ).toBeInTheDocument();
-  expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
+  // Same row as a populated board, so the pin control does not jump once the
+  // climber makes their first pin.
+  expect(screen.getByRole("searchbox", { name: "Filter projects" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /Sort projects/ })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Track project" })).toBeInTheDocument();
+  expect(screen.getByText(/No projects tracked yet/)).toBeInTheDocument();
+});
+
+it("lists the sent side separately and does not offer to track from it", () => {
+  render(<ProjectBoard userId="climber" projects={[sentProject]} hasMore={false} variant="sent" />);
+
+  expect(headings("Sent projects")).toEqual(["Long Winter"]);
+  expect(within(card("Long Winter")).getByText(/Sent/)).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Track project" })).not.toBeInTheDocument();
+});
+
+it("says nothing is sent yet without inviting a track that belongs on the other tab", () => {
+  render(<ProjectBoard userId="climber" projects={[]} hasMore={false} variant="sent" />);
+
+  expect(screen.getByText(/No sent projects yet/)).toBeInTheDocument();
+  expect(screen.getByRole("searchbox", { name: "Filter projects" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Track project" })).not.toBeInTheDocument();
 });

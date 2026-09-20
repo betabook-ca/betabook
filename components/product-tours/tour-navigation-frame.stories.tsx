@@ -27,7 +27,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Logbook: Story = {};
 export const Sends: Story = { args: { section: "Sends" } };
-export const Progress: Story = { args: { section: "Open Projects" } };
+export const Progress: Story = { args: { section: "Projects" } };
 export const Analytics: Story = { args: { section: "Analytics" } };
 export const Community: Story = { args: { section: "Friends" } };
 export const Feed: Story = { args: { section: "Feed" } };

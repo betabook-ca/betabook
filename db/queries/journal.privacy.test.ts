@@ -7,13 +7,19 @@ import {
   getJournalForClimb,
   getJournalPage,
   getJournalSessionsForAnalytics,
-  getOpenProjects,
-  getOpenProjectSessions,
+  getOpenProjectSuggestions,
+  getPinnedProjects,
+  getPinnedProjectSessions,
   hasJournalEntries,
 } from "@/db/queries";
 import { user } from "@/db/schema";
 import { DEFAULT_JOURNAL_FILTER } from "@/lib/filters/journal-filter";
-import { seedFixtureJournalEntry, seedFixtureTree, seedFixtureUser } from "@/test/fixtures";
+import {
+  seedFixtureJournalEntry,
+  seedFixturePinnedProject,
+  seedFixtureTree,
+  seedFixtureUser,
+} from "@/test/fixtures";
 
 let db: Database;
 
@@ -30,6 +36,7 @@ beforeAll(async () => {
     entryDate: "2026-02-01",
     body: "Nobody else's business.",
   });
+  await seedFixturePinnedProject(db, { userId: OWNER_ID, climbId: CLIMB, pinnedAt: "2026-01-20" });
 });
 
 beforeEach(async () => {
@@ -75,8 +82,9 @@ const GATED_READS = [
     empty: [],
   },
   {
-    name: "getOpenProjects",
-    read: (ownerId: string, viewerId: string | null) => getOpenProjects(db, ownerId, viewerId),
+    name: "getPinnedProjects",
+    read: (ownerId: string, viewerId: string | null) =>
+      getPinnedProjects(db, ownerId, viewerId, { sent: false }),
     visible: [
       {
         climbId: CLIMB,
@@ -88,16 +96,19 @@ const GATED_READS = [
         areaName: "Test Highball Alcove",
         sessionCount: 1,
         noteCount: 1,
+        pinnedAt: "2026-01-20",
         firstSession: "2026-02-01",
         lastSession: "2026-02-01",
+        sentOn: null,
+        sent: false,
       },
     ],
     empty: [],
   },
   {
-    name: "getOpenProjectSessions",
+    name: "getPinnedProjectSessions",
     read: (ownerId: string, viewerId: string | null) =>
-      getOpenProjectSessions(db, ownerId, viewerId, [CLIMB]),
+      getPinnedProjectSessions(db, ownerId, viewerId, [CLIMB]),
     visible: [expectedEntry],
     empty: [],
   },
@@ -141,7 +152,41 @@ describe.each(GATED_READS)("$name", ({ name, read, empty, visible }) => {
     await db.update(user).set({ journalVisibility: "public" }).where(eq(user.id, OWNER_ID));
     expect(await read(OWNER_ID, null)).toEqual(empty);
     expect(await read(OWNER_ID, "someone-else")).toEqual(
-      name.startsWith("getOpenProject") ? empty : visible,
+      name.startsWith("getPinned") ? empty : visible,
     );
+  });
+});
+
+/** Kept out of GATED_READS because it needs the opposite fixture: a climb that
+ * is *not* pinned, where every other project read needs one that is. */
+describe("getOpenProjectSuggestions", () => {
+  const SUGGESTION_OWNER = "priv-suggestion-owner";
+  const UNPINNED_CLIMB = 2; // Test Slab, from seedFixtureTree
+
+  // Seeded once, like the rest of this file: nothing here mutates it, and the
+  // outer beforeEach only resets the shared owner's visibility.
+  beforeAll(async () => {
+    await seedFixtureUser(db, { id: SUGGESTION_OWNER, name: "Suggestion Owner" });
+    await seedFixtureJournalEntry(db, {
+      userId: SUGGESTION_OWNER,
+      climbId: UNPINNED_CLIMB,
+      entryDate: "2026-02-03",
+      body: "Worked, never sent, never pinned.",
+    });
+    await db
+      .update(user)
+      .set({ isPrivate: false, journalVisibility: "public" })
+      .where(eq(user.id, SUGGESTION_OWNER));
+  });
+
+  it("offers the owner a climb they have worked but not sent or pinned", async () => {
+    const suggestions = await getOpenProjectSuggestions(db, SUGGESTION_OWNER, SUGGESTION_OWNER);
+    expect(suggestions.map(({ climbId }) => climbId)).toEqual([UNPINNED_CLIMB]);
+    expect(suggestions[0]).toMatchObject({ climbName: "Test Slab", sessionCount: 1 });
+  });
+
+  it("offers nothing to anyone else, even with the journal shared with members", async () => {
+    expect(await getOpenProjectSuggestions(db, SUGGESTION_OWNER, "someone-else")).toEqual([]);
+    expect(await getOpenProjectSuggestions(db, SUGGESTION_OWNER, null)).toEqual([]);
   });
 });

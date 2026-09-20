@@ -37,11 +37,11 @@ function DemoLog() {
 export function JournalTourPage({ section, mode, href, steps }: ProductTourPageProps) {
   const isJournal = section === "Journal";
   const inLogbook = isJournal || section === "Sends";
-  const areaSections = inLogbook ? ["Journal", "Sends"] : ["Open Projects", "Analytics"];
+  const areaSections = inLogbook ? ["Journal", "Sends"] : ["Projects", "Analytics"];
   const [friendRequest, setFriendRequest] = useState<"pending" | "accepted" | null>("pending");
   const current: PrimaryArea | undefined = inLogbook
     ? "logbook"
-    : section === "Open Projects" || section === "Analytics"
+    : section === "Projects" || section === "Analytics"
       ? "progress"
       : section === "Friends" || section === "Feed"
         ? "community"
@@ -101,7 +101,7 @@ export function JournalTourPage({ section, mode, href, steps }: ProductTourPageP
             <DemoJournal />
           ) : section === "Sends" ? (
             <DemoSends />
-          ) : section === "Open Projects" ? (
+          ) : section === "Projects" ? (
             <DemoProjects />
           ) : (
             <div className="max-w-4xl">

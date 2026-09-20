@@ -56,7 +56,10 @@ export function workspaceTabs(
     case "progress":
       return [
         { label: "Goals", href: `${owner}/goals`, roots: [] },
-        { label: "Open Projects", href: `${owner}/projects`, roots: [] },
+        // Open and Sent are sub-tabs inside this one, so /projects/sent nests
+        // under it and WorkspaceShell's prefix match is what keeps Projects
+        // lit while the climber is on either.
+        { label: "Projects", href: `${owner}/projects`, roots: [] },
         { label: "Analytics", href: `${owner}/analytics`, roots: [] },
       ];
     default:
