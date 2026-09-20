@@ -3,7 +3,7 @@ import type { ReactElement } from "react";
 import { MOUNTAIN_PATH } from "@/lib/brand-mark";
 import { OG_FONT } from "@/lib/og-fonts";
 import { OG_COLORS, withAlpha } from "@/lib/og-theme";
-import { SITE_NAME } from "@/lib/site";
+import { SITE_NAME, SITE_TAGLINE } from "@/lib/site";
 
 /** The icon-only mark: a mountain becomes a checkmark beneath the sun. Same
  * `viewBox` as `betabook-icon-*.svg` (see assets/branding/README.md), so
@@ -175,7 +175,7 @@ export function CardFrame({
             color: "rgba(0,0,0,0.56)",
           }}
         >
-          Climbing logbook & crag database
+          {SITE_TAGLINE}
         </span>
         <span
           style={{
