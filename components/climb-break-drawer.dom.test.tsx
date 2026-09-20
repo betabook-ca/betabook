@@ -83,7 +83,11 @@ it("shows the server's refusal and keeps the form for another try", async () => 
   await user.type(screen.getByRole("textbox", { name: "What happened" }), "Rockfall");
   await user.click(screen.getByRole("button", { name: "Report as broken" }));
   expect(await screen.findByText(/2 send\(s\) on this climb are dated on or after/)).toBeVisible();
-  expect(screen.getByRole("button", { name: "Report as broken" })).toBeEnabled();
+  // The error commits before the transition ends, so the submit is still
+  // disabled for a moment after the message appears.
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Report as broken" })).toBeEnabled(),
+  );
 });
 
 it("clears the queued notice and the form when the acknowledgement is dismissed", async () => {
