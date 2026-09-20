@@ -28,11 +28,13 @@ import {
   changeRequests,
   climbs,
   journalEntries,
+  pinnedProjects,
   sends,
 } from "@/db/schema";
 import { formatGrade } from "@/lib/grades";
 import {
   seedFixtureJournalEntry,
+  seedFixturePinnedProject,
   seedFixtureSend,
   seedFixtureTree,
   seedFixtureUser,
@@ -817,6 +819,61 @@ describe("applyClimbMerge", () => {
       .where(eq(catalogRouteSources.sourceId, "openbeta-merge-source"))
       .get();
     expect(sourceLink?.climbId).toBe(911);
+  });
+
+  it("moves a pinned project onto the surviving climb", async () => {
+    await seedFixtureUser(db, { id: "merge-pinner" });
+    await db.insert(climbs).values([
+      { id: 930, areaId: 3, name: "Merge Source P", type: "boulder", grade: 3 },
+      { id: 931, areaId: 3, name: "Merge Target P", type: "boulder", grade: 3 },
+    ]);
+    await seedFixturePinnedProject(db, {
+      userId: "merge-pinner",
+      climbId: 930,
+      pinnedAt: "2026-03-04",
+    });
+
+    await applyClimbMerge(db, 930, 931);
+
+    // The pin follows the climb that survives; letting it cascade with the
+    // source would silently drop the climber's project.
+    const rows = await db
+      .select()
+      .from(pinnedProjects)
+      .where(eq(pinnedProjects.userId, "merge-pinner"));
+    expect(rows).toHaveLength(1);
+    expect(rows[0].climbId).toBe(931);
+    expect(rows[0].pinnedAt).toBe("2026-03-04");
+  });
+
+  it("leaves one pin behind when a climber had pinned both climbs", async () => {
+    await seedFixtureUser(db, { id: "merge-double-pinner" });
+    await db.insert(climbs).values([
+      { id: 940, areaId: 3, name: "Merge Source Q", type: "boulder", grade: 3 },
+      { id: 941, areaId: 3, name: "Merge Target Q", type: "boulder", grade: 3 },
+    ]);
+    await seedFixturePinnedProject(db, {
+      userId: "merge-double-pinner",
+      climbId: 940,
+      pinnedAt: "2026-01-01",
+    });
+    await seedFixturePinnedProject(db, {
+      userId: "merge-double-pinner",
+      climbId: 941,
+      pinnedAt: "2026-02-02",
+    });
+
+    await applyClimbMerge(db, 940, 941);
+
+    // Moving the source's row would collide on (user_id, climb_id), so it is
+    // skipped and cascades with the source instead of failing the merge.
+    const rows = await db
+      .select()
+      .from(pinnedProjects)
+      .where(eq(pinnedProjects.userId, "merge-double-pinner"));
+    expect(rows).toHaveLength(1);
+    expect(rows[0].climbId).toBe(941);
+    expect(rows[0].pinnedAt).toBe("2026-02-02");
   });
 
   it("keeps the target's send wholesale when a user sent both climbs", async () => {
