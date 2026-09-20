@@ -20,9 +20,7 @@ test("friend-tag guidance is in a tooltip accessible by pointer and keyboard", a
   await expect(tooltip).toContainText(
     "Tagging doesn’t log the climb for them or share the entry with them.",
   );
-  await expect(tooltip).toContainText(
-    "Anyone who can read this entry sees who you tagged. A friend whose journal is Only me is shown only to you and them.",
-  );
+  await expect(tooltip).toContainText("Anyone who can read this entry sees who you tagged.");
   await expect(tooltip).toContainText("Changes replace all tags, including hidden ones.");
   await expect(tooltip).toHaveCSS("word-break", "normal");
   await expect(tooltip).toHaveCSS("opacity", "1");

@@ -78,7 +78,7 @@ beforeEach(async () => {
   await seedFixtureFriendship(db, "author", "partner");
   await seedFixtureFriendship(db, "author", "viewer");
 });
-it("applies the author audience and the companion's only-me opt-out to anonymous, self, friend and stranger readers", async () => {
+it("applies the author's audience to companions regardless of their journal audience", async () => {
   const entryId = await entry();
   await tag(entryId, "author", "partner");
   for (const authorAudience of ["private", "friends", "public"] as const) {
@@ -99,20 +99,14 @@ it("applies the author audience and the companion's only-me opt-out to anonymous
           continue;
         }
         expect(entries.map((row) => row.id)).toEqual([entryId]);
-        const canSeePartner =
-          viewer === "author" || viewer === "partner" || partnerAudience !== "private";
-        expect(entries[0].companions).toEqual(
-          canSeePartner
-            ? [
-                {
-                  id: "partner",
-                  name: "Test Climber partner",
-                  image: PARTNER_PHOTO,
-                  isSelf: viewer === "partner",
-                },
-              ]
-            : [],
-        );
+        expect(entries[0].companions).toEqual([
+          {
+            id: "partner",
+            name: "Test Climber partner",
+            image: PARTNER_PHOTO,
+            isSelf: viewer === "partner",
+          },
+        ]);
       }
     }
   }
@@ -162,13 +156,12 @@ it("uses the same fresh permissions for journal and feed, without altering feed 
     activities: [{ id: entryId, kind: "session", companions: [{ id: "partner" }] }],
   });
   await db.update(user).set({ journalVisibility: "private" }).where(eq(user.id, "partner"));
-  const hidden = await getFeedPage(db, "viewer");
-  expect(hidden.days[0]).toMatchObject({
+  const stillVisible = await getFeedPage(db, "viewer");
+  expect(stillVisible.days[0]).toMatchObject({
     userId: "author",
     sessions: 1,
-    activities: [{ id: entryId, companions: [] }],
+    activities: [{ id: entryId, companions: [{ id: "partner" }] }],
   });
-  expect(JSON.stringify(hidden)).not.toContain('"partner"');
   const pair = friendshipPair("author", "viewer");
   await db
     .delete(friendships)
@@ -251,13 +244,18 @@ it("keeps send companions behind journal permissions independently of public sen
     { id: 4000, body: null, companions: [{ id: "partner" }] },
   ]);
   await db.update(user).set({ journalVisibility: "private" }).where(eq(user.id, "partner"));
-  expect((await visible("viewer"))[0]).toMatchObject({ id: 5000, body: null, companions: [] });
-  expect((await getFeedPage(db, "viewer")).days[0].activities[0].companions).toEqual([]);
-  // Only me still hides the partner from the viewer; going private on top of it
-  // changes nothing, because a private profile is not a journal audience.
+  expect((await visible("viewer"))[0]).toMatchObject({
+    id: 5000,
+    body: null,
+    companions: [{ id: "partner" }],
+  });
+  expect((await getFeedPage(db, "viewer")).days[0].activities[0].companions).toMatchObject([
+    { id: "partner" },
+  ]);
+  // The partner's profile setting also leaves the author's tag readable.
   await db.update(user).set({ isPrivate: true }).where(eq(user.id, "partner"));
   expect((await visible("author"))[0].companions).toMatchObject([{ id: "partner" }]);
-  expect((await visible("viewer"))[0].companions).toEqual([]);
+  expect((await visible("viewer"))[0].companions).toMatchObject([{ id: "partner" }]);
 });
 it("preserves readable companions when a deleted send leaves independently protected commentary", async () => {
   await datedSend();
@@ -482,29 +480,27 @@ it("matches any selected friend and lists all existing friends independently of 
   ).toEqual([second, first]);
 });
 
-it("names tagged partners to readers outside the partner's own friends, honoring an only-me opt-out", async () => {
+it("names an Only me partner when the author shares a journal entry with a nonfriend of that partner", async () => {
   const entryId = await entry();
   await tag(entryId, "author", "partner");
   const named = [
     { id: "partner", name: "Test Climber partner", image: PARTNER_PHOTO, isSelf: false },
   ];
-  // `viewer` is the author's friend but never the partner's; `stranger` is
-  // neither, and reads the author's entry through the Members audience.
-  for (const partnerAudience of ["friends", "public"] as const) {
-    await db.update(user).set({ journalVisibility: partnerAudience }).where(eq(user.id, "partner"));
-    expect((await visible("viewer"))[0].companions).toEqual(named);
-    expect((await visible("stranger"))[0].companions).toEqual(named);
-    expect((await getFeedPage(db, "viewer")).days[0].activities[0].companions).toEqual(named);
-  }
+  await db.update(user).set({ journalVisibility: "private" }).where(eq(user.id, "author"));
   await db.update(user).set({ journalVisibility: "private" }).where(eq(user.id, "partner"));
-  expect((await visible("viewer"))[0].companions).toEqual([]);
-  expect((await getFeedPage(db, "viewer")).days[0].activities[0].companions).toEqual([]);
-  // The opt-out never hides the tag from the author who wrote it, nor from the
-  // partner themselves, who needs it to remove their own tag.
+  expect(await visible("viewer")).toEqual([]);
+  expect((await getFeedPage(db, "viewer")).days).toEqual([]);
+  await db.update(user).set({ journalVisibility: "friends" }).where(eq(user.id, "author"));
+  // `viewer` is the author's friend but never the partner's. The author's
+  // audience makes the entry and its active companion tag visible together.
+  expect((await visible("viewer"))[0].companions).toEqual(named);
+  expect((await getFeedPage(db, "viewer")).days[0].activities[0].companions).toEqual(named);
+  expect(await visible("stranger")).toEqual([]);
   expect((await visible("author"))[0].companions).toEqual(named);
   expect((await visible("partner"))[0].companions).toEqual([{ ...named[0], isSelf: true }]);
-  // A private profile is not an opt-out from being named as company.
-  await db.update(user).set({ journalVisibility: "friends" }).where(eq(user.id, "partner"));
+  await db.update(user).set({ journalVisibility: "public" }).where(eq(user.id, "author"));
+  expect((await visible("stranger"))[0].companions).toEqual(named);
+  // A private profile still governs only the partner's own profile page.
   await db.update(user).set({ isPrivate: true }).where(eq(user.id, "partner"));
   for (const reader of ["viewer", "stranger", "author"])
     expect((await visible(reader))[0].companions).toEqual(named);

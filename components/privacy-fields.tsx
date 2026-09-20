@@ -185,10 +185,6 @@ export function PrivacyDetails({ defaultExpanded = false }: { defaultExpanded?: 
               </li>
               <li>Your note on a send follows Send commentary, including in your journal.</li>
               <li>
-                With Journal and goals set to Only me, a friend who tags you still sees your name,
-                but their other readers don&apos;t.
-              </li>
-              <li>
                 Changes apply to past and future entries and goal achievements. Your sends still
                 count toward community ratings.
               </li>
