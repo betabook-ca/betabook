@@ -172,7 +172,7 @@ it("logs a session against the project whose button was pressed", async () => {
   await user.click(screen.getByRole("button", { name: "Log a session on Ash Crack" }));
 
   const drawer = await screen.findByRole("dialog");
-  expect(within(drawer).getByText("Logging an outdoor session on Ash Crack.")).toBeInTheDocument();
+  expect(within(drawer).getByText("Ash Crack")).toBeInTheDocument();
 
   vi.mocked(createJournalEntry).mockResolvedValue({ ok: true, value: undefined });
   await user.click(within(drawer).getByRole("button", { name: "Save entry" }));
