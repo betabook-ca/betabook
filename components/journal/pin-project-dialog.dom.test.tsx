@@ -199,25 +199,22 @@ it("offers the same suggestions and pins from the centered desktop variant", asy
   await waitFor(() => expect(pinProject).toHaveBeenCalledWith(2));
 });
 
-it("drops the explanation and the full filters when a keyboard takes the viewport", async () => {
-  // Each row above the results costs a result, and the keyboard has already
+it("drops the full filters for plain chips when a keyboard takes the viewport", async () => {
+  // Every row above the results costs a result, and the keyboard has already
   // taken half the screen.
   const viewport = stubVisualViewport(812);
   render(<Example />);
 
   await screen.findByRole("dialog");
-  expect(screen.getByText(/Pinned climbs are the only ones/)).toBeVisible();
   expect(screen.getByRole("button", { name: /Sort by/ })).toBeInTheDocument();
 
   viewport.resizeTo(470);
 
   await waitFor(() =>
-    expect(screen.queryByText(/Pinned climbs are the only ones/)).not.toBeInTheDocument(),
+    expect(screen.queryByRole("button", { name: /Sort by/ })).not.toBeInTheDocument(),
   );
-  // The rich filter row is gone; the lighter discipline chips remain.
-  expect(screen.queryByRole("button", { name: /Sort by/ })).not.toBeInTheDocument();
+  // The lighter discipline chips remain, and so does what the space is for.
   expect(screen.getByRole("button", { name: "Boulder" })).toBeInTheDocument();
-  // The search and its suggestions are what the space is being spent on.
   expect(screen.getByRole("searchbox")).toBeVisible();
   expect(screen.getByRole("list", { name: "Suggested projects" })).toBeInTheDocument();
 });

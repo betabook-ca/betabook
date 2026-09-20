@@ -26,7 +26,11 @@ type PinProjectDialogProps = {
  * reason the log entry's climb picker takes the screen: at 85vh with a
  * keyboard up a sheet caps the list around three results. The compact rule
  * applies on top of it, since the viewport is just as short either way — the
- * explanation and the full filter row go first, because each costs a result. */
+ * full filter row drops to plain discipline chips, because it costs a result.
+ *
+ * The title and the suggestion heading carry what the dialog does; a
+ * paragraph explaining pinning would push the first result down a row on
+ * every open to say it once. */
 export function PinProjectDialog({ state, suggestions, pinnedClimbIds }: PinProjectDialogProps) {
   const [error, setError] = useState<string | null>(null);
   const [pendingClimbId, setPendingClimbId] = useState<number | null>(null);
@@ -70,12 +74,6 @@ export function PinProjectDialog({ state, suggestions, pinnedClimbIds }: PinProj
       onClose={reset}
     >
       <div className="flex flex-col gap-3">
-        {!compact && (
-          <p className="text-sm text-muted">
-            Pinned climbs are the only ones on your Projects tab. Pin one you haven&apos;t touched
-            yet and it waits there for your first session.
-          </p>
-        )}
         <ClimbPicker
           allowSentClimbs
           showFilters={!compact}
