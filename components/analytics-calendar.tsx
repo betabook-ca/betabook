@@ -8,7 +8,7 @@ import { useState } from "react";
 import { ClimbingCalendar } from "@/components/climbing-calendar";
 import type { ChartClimbRow } from "@/lib/chart-details";
 
-/** One fitted calendar at a time, with ascending year navigation. */
+/** One fitted calendar at a time, opening on the most recent year. */
 export function AnalyticsCalendar({
   years,
   countsByDay,
@@ -22,7 +22,8 @@ export function AnalyticsCalendar({
   unit: "send" | "session";
   activities?: ChartClimbRow[];
 }) {
-  const [index, setIndex] = useState(0);
+  // Years arrive oldest first, so the newest calendar is the one worth seeing first.
+  const [index, setIndex] = useState(years.length - 1);
   const active = Math.min(index, years.length - 1);
   const go = (next: number) => {
     if (next < 0 || next >= years.length) return;

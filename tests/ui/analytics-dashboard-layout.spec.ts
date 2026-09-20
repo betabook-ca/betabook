@@ -50,8 +50,8 @@ test(
     const older = page.getByRole("button", { name: "Older calendar year" });
     const newer = page.getByRole("button", { name: "Newer calendar year" });
     const year = page.getByLabel("Displayed calendar year");
-    await expect(older).toBeDisabled();
-    await expect(year).toHaveText("2024");
+    await expect(newer).toBeDisabled();
+    await expect(year).toHaveText("2025");
     const leftBounds = await older.boundingBox();
     const yearBounds = await year.boundingBox();
     const rightBounds = await newer.boundingBox();
@@ -59,11 +59,11 @@ test(
       throw new Error("Calendar controls must be visible");
     expect(leftBounds.x + leftBounds.width).toBeLessThanOrEqual(yearBounds.x);
     expect(yearBounds.x + yearBounds.width).toBeLessThanOrEqual(rightBounds.x);
-    await newer.click();
-    await expect(year).toHaveText("2025");
-    await expect(newer).toBeDisabled();
     await older.click();
     await expect(year).toHaveText("2024");
+    await expect(older).toBeDisabled();
+    await newer.click();
+    await expect(year).toHaveText("2025");
   },
 );
 

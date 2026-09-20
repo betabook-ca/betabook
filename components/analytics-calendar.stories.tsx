@@ -17,7 +17,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Ascending year navigation with an arrow on each side of the year. Only the current calendar is rendered; it fits the card without horizontal scrolling. Hover, tap, or use arrow keys on the day grid for compact floating details.",
+          "Opens on the most recent year, with an arrow on each side for older and newer years. Only the current calendar is rendered; it fits the card without horizontal scrolling. Hover, tap, or use arrow keys on the day grid for compact floating details.",
       },
     },
   },
