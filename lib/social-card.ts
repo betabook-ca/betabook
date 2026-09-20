@@ -2,7 +2,6 @@ import type { AnalyticsSendRow } from "@/db/queries";
 import type { ClimbType } from "@/lib/grades";
 import {
   buildUserAnalytics,
-  DISCIPLINE_ORDER,
   formatMonthLabel,
   type AnalyticsJournalSession,
 } from "@/lib/user-analytics";
@@ -36,14 +35,17 @@ export function socialCardPeriodLabel(period: SocialCardPeriod, today: string): 
   return formatMonthLabel(today.slice(0, 7));
 }
 
+export type SocialCardHardest = { type: ClimbType; label: string; climbName: string };
+
 export type SocialCardStats = {
   period: SocialCardPeriod;
   periodLabel: string;
-  /** The discipline with the most activity in the period; null with none. */
-  scope: ClimbType | null;
   sendCount: number;
   daysOut: number;
-  hardest: { label: string; climbName: string } | null;
+  /** Hardest graded send per discipline present, boulder → sport → trad —
+   * grades don't compare across disciplines, so a card combining all three
+   * never has a single "hardest", only one per discipline. */
+  hardest: SocialCardHardest[];
   areaCount: number;
   topArea: { name: string } | null;
   /** Percent of sends flashed or onsighted, rounded; null with no sends. */
@@ -55,10 +57,9 @@ function emptyStats(period: SocialCardPeriod, today: string): SocialCardStats {
   return {
     period,
     periodLabel: socialCardPeriodLabel(period, today),
-    scope: null,
     sendCount: 0,
     daysOut: 0,
-    hardest: null,
+    hardest: [],
     areaCount: 0,
     topArea: null,
     flashPct: null,
@@ -67,11 +68,11 @@ function emptyStats(period: SocialCardPeriod, today: string): SocialCardStats {
 }
 
 /** Headline stats for a shareable recap card, scoped to a month/year/all-time
- * period and — like the analytics page itself — to whichever discipline was
- * most active in it, since grades only compare within one discipline. Reuses
- * `buildUserAnalytics` for the actual aggregation rather than recomputing it,
- * pre-filtering to the period instead of passing `selectedYears`: analytics
- * only filters by year, and a recap card also needs month granularity. */
+ * period across every discipline combined — a climbing recap, not a
+ * boulder-only or sport-only one. Reuses `buildUserAnalytics` for the actual
+ * aggregation rather than recomputing it, pre-filtering to the period instead
+ * of passing `selectedYears`: analytics only filters by year, and a recap
+ * card also needs month granularity. */
 export function buildSocialCardStats(
   allSends: readonly AnalyticsSendRow[],
   allJournalSessions: readonly AnalyticsJournalSession[] | undefined,
@@ -82,30 +83,17 @@ export function buildSocialCardStats(
   const journalSessions = allJournalSessions?.filter((session) =>
     inPeriod(session.entryDate, period, today),
   );
+  if (sends.length === 0 && (journalSessions?.length ?? 0) === 0) {
+    return emptyStats(period, today);
+  }
 
-  const volume = (type: ClimbType) =>
-    journalSessions
-      ? journalSessions
-          .filter((session) => session.climbType === type)
-          .reduce((total, session) => total + (session.count ?? 1), 0)
-      : sends.filter((send) => send.climbType === type).length;
-  const present = DISCIPLINE_ORDER.filter(
-    (type) =>
-      sends.some((send) => send.climbType === type) ||
-      journalSessions?.some((session) => session.climbType === type),
-  );
-  const scope = [...present].sort((a, b) => volume(b) - volume(a))[0];
-  if (scope === undefined) return emptyStats(period, today);
-
-  const analytics = buildUserAnalytics(sends, scope, journalSessions, []);
-  const hardest = analytics.hardest[0] ?? null;
+  const analytics = buildUserAnalytics(sends, "all", journalSessions, []);
   return {
     period,
     periodLabel: socialCardPeriodLabel(period, today),
-    scope,
     sendCount: analytics.sendCount,
     daysOut: analytics.daysOut,
-    hardest: hardest ? { label: hardest.label, climbName: hardest.climbName } : null,
+    hardest: analytics.hardest.map(({ type, label, climbName }) => ({ type, label, climbName })),
     areaCount: analytics.areaCount,
     topArea: analytics.topArea ? { name: analytics.topArea.name } : null,
     flashPct: analytics.sendCount

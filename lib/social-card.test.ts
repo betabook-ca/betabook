@@ -46,29 +46,25 @@ describe("socialCardPeriodLabel", () => {
 });
 
 describe("buildSocialCardStats", () => {
-  it("scopes to the dominant discipline within the period, narrowing every stat to it", () => {
+  it("combines every discipline's sends within the period instead of scoping to one", () => {
     const sends = [
-      send({ climbType: "boulder", suggestedGrade: 5, dateSent: "2026-09-01" }), // V4, this month
       send({ climbType: "boulder", suggestedGrade: 8, dateSent: "2026-09-05" }), // V7, this month
       send({ climbType: "sport", suggestedGrade: 20, dateSent: "2026-01-01" }), // this year only
       send({ climbType: "trad", suggestedGrade: 6, dateSent: "2025-12-01" }), // last year
     ];
 
     const month = buildSocialCardStats(sends, undefined, "month", TODAY);
-    expect(month.scope).toBe("boulder");
-    expect(month.sendCount).toBe(2);
-    expect(month.hardest).toEqual({ label: "V7", climbName: "Some Climb" });
+    expect(month.sendCount).toBe(1);
+    expect(month.hardest).toEqual([{ type: "boulder", label: "V7", climbName: "Some Climb" }]);
 
-    // Boulder still leads by volume (2 vs 1 sport) once the year widens the
-    // window, so the sport send in January narrows back out of every stat —
-    // the same way choosing a discipline on the analytics page does.
     const year = buildSocialCardStats(sends, undefined, "year", TODAY);
-    expect(year.scope).toBe("boulder");
     expect(year.sendCount).toBe(2);
+    expect(year.hardest.map((h) => h.type)).toEqual(["boulder", "sport"]);
 
     const all = buildSocialCardStats(sends, undefined, "all", TODAY);
-    expect(all.scope).toBe("boulder");
-    expect(all.sendCount).toBe(2);
+    expect(all.sendCount).toBe(3);
+    // One hardest badge per discipline present, boulder → sport → trad.
+    expect(all.hardest.map((h) => h.type)).toEqual(["boulder", "sport", "trad"]);
   });
 
   it("includes undated sends in all time but excludes them from month/year", () => {
@@ -87,10 +83,9 @@ describe("buildSocialCardStats", () => {
     expect(stats).toEqual({
       period: "month",
       periodLabel: "Sep 2026",
-      scope: null,
       sendCount: 0,
       daysOut: 0,
-      hardest: null,
+      hardest: [],
       areaCount: 0,
       topArea: null,
       flashPct: null,
@@ -98,27 +93,17 @@ describe("buildSocialCardStats", () => {
     });
   });
 
-  it("breaks a volume tie boulder → sport → trad", () => {
-    const sends = [
-      send({ climbType: "trad", dateSent: "2026-09-01" }),
-      send({ climbType: "sport", dateSent: "2026-09-02" }),
-      send({ climbType: "boulder", dateSent: "2026-09-03" }),
-    ];
-
-    expect(buildSocialCardStats(sends, undefined, "month", TODAY).scope).toBe("boulder");
-  });
-
-  it("prefers journal session volume over raw send counts, like the analytics page", () => {
+  it("counts days out from journal sessions across every discipline, not just one", () => {
     const sends = [send({ climbType: "boulder", dateSent: "2026-09-01" })];
     const sessions: AnalyticsJournalSession[] = [
       { entryDate: "2026-09-02", climbType: "sport", count: 5 },
-      { entryDate: "2026-09-03", climbType: "sport", count: 5 },
+      { entryDate: "2026-09-03", climbType: "trad", count: 5 },
     ];
 
     const stats = buildSocialCardStats(sends, sessions, "month", TODAY);
 
-    expect(stats.scope).toBe("sport");
-    // Days out follows the sessions too, including the day with no send.
+    // Once journal sessions exist for the period, days out comes from them —
+    // both the sport and trad session days count, not just one discipline's.
     expect(stats.daysOut).toBe(2);
   });
 

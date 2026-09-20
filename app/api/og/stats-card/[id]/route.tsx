@@ -9,10 +9,11 @@ import { getJournalSessionsForAnalytics, getUserSendsForAnalytics } from "@/db/q
 import { withApiSession } from "@/lib/api-session";
 import { BetabookMark, CardFrame, Tile } from "@/lib/og-elements";
 import { ogFonts, OG_FONT } from "@/lib/og-fonts";
-import { OG_COLORS, OG_DISCIPLINE_COLOR } from "@/lib/og-theme";
+import { OG_COLORS, OG_DISCIPLINE_COLOR, withAlpha } from "@/lib/og-theme";
 import {
   buildSocialCardStats,
   isSocialCardPeriod,
+  type SocialCardHardest,
   type SocialCardPeriod,
   type SocialCardStats,
 } from "@/lib/social-card";
@@ -41,23 +42,50 @@ export async function loadSocialCardStats(
   return buildSocialCardStats(sends, sessions, period, todayInTimezone(cf?.timezone));
 }
 
-/** The small accent-colored dot before an eyebrow line — the one spot on
- * this card that still uses the climber's dominant discipline color now
- * that the header lockup is the real (uncolored) logo mark, not a colored
- * stand-in for it. */
-function AccentDot({ color }: { color: string }): ReactElement {
+/** One discipline's hardest send, tinted by discipline — grades don't
+ * compare across boulder/sport/trad, so a card combining all three names
+ * each discipline's ceiling as its own badge instead of picking one to lead
+ * with the way a single-discipline "Hardest" tile would. */
+function GradeBadge({ hardest }: { hardest: SocialCardHardest }): ReactElement {
+  const color = OG_DISCIPLINE_COLOR[hardest.type];
   return (
     <div
-      style={{ display: "flex", width: 12, height: 12, borderRadius: 9999, background: color }}
-    />
+      style={{
+        display: "flex",
+        flex: 1,
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 6,
+        background: withAlpha(color, 0.14),
+        borderRadius: 22,
+        padding: "26px 20px",
+      }}
+    >
+      <span
+        style={{ fontFamily: OG_FONT.display, fontWeight: 700, fontSize: 44, color, lineHeight: 1 }}
+      >
+        {hardest.label}
+      </span>
+      <span
+        style={{
+          fontFamily: OG_FONT.body,
+          fontWeight: 500,
+          fontSize: 17,
+          color: "rgba(0,0,0,0.56)",
+          textTransform: "uppercase",
+          letterSpacing: 2,
+        }}
+      >
+        {DISCIPLINE_LABELS[hardest.type]}
+      </span>
+    </div>
   );
 }
 
 /** The 1080×1350 recap card — pure so layout can be sanity-checked without
  * spinning up `ImageResponse`. */
 export function socialCardElement(name: string, stats: SocialCardStats): ReactElement {
-  const accent = stats.scope ? OG_DISCIPLINE_COLOR[stats.scope] : OG_COLORS.primary;
-  if (stats.scope === null) {
+  if (stats.sendCount === 0 && stats.daysOut === 0) {
     return (
       <CardFrame padding={72}>
         <div
@@ -113,10 +141,18 @@ export function socialCardElement(name: string, stats: SocialCardStats): ReactEl
   }
   return (
     <CardFrame padding={72} align="start">
-      <div style={{ display: "flex", flexDirection: "column", gap: 64 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 56 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <AccentDot color={accent} />
+            <div
+              style={{
+                display: "flex",
+                width: 12,
+                height: 12,
+                borderRadius: 9999,
+                background: OG_COLORS.coral,
+              }}
+            />
             <span
               style={{
                 fontFamily: OG_FONT.body,
@@ -127,7 +163,7 @@ export function socialCardElement(name: string, stats: SocialCardStats): ReactEl
                 letterSpacing: 3,
               }}
             >
-              {`${stats.periodLabel} · ${DISCIPLINE_LABELS[stats.scope]}`}
+              {stats.periodLabel}
             </span>
           </div>
           <span
@@ -135,7 +171,7 @@ export function socialCardElement(name: string, stats: SocialCardStats): ReactEl
               fontFamily: OG_FONT.display,
               fontWeight: 700,
               fontSize: 200,
-              color: accent,
+              color: OG_COLORS.coral,
               lineHeight: 1,
             }}
           >
@@ -152,27 +188,25 @@ export function socialCardElement(name: string, stats: SocialCardStats): ReactEl
             {`${stats.sendCount === 1 ? "send" : "sends"} · ${name}`}
           </span>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          <div style={{ display: "flex", gap: 24 }}>
-            <Tile label="Days out" value={String(stats.daysOut)} />
-            <Tile
-              label="Hardest"
-              value={stats.hardest?.label ?? "—"}
-              sub={stats.hardest?.climbName}
-            />
+        {stats.hardest.length > 0 && (
+          <div style={{ display: "flex", gap: 20 }}>
+            {stats.hardest.map((hardest) => (
+              <GradeBadge key={hardest.type} hardest={hardest} />
+            ))}
           </div>
-          <div style={{ display: "flex", gap: 24 }}>
-            <Tile label="Areas" value={String(stats.areaCount)} sub={stats.topArea?.name} />
-            <Tile
-              label="Flash rate"
-              value={stats.flashPct != null ? `${stats.flashPct}%` : "—"}
-              sub={
-                stats.longestStreak != null && stats.longestStreak > 1
-                  ? `${stats.longestStreak}-day streak`
-                  : undefined
-              }
-            />
-          </div>
+        )}
+        <div style={{ display: "flex", gap: 24 }}>
+          <Tile label="Days out" value={String(stats.daysOut)} />
+          <Tile label="Areas" value={String(stats.areaCount)} sub={stats.topArea?.name} />
+          <Tile
+            label="Flash rate"
+            value={stats.flashPct != null ? `${stats.flashPct}%` : "—"}
+            sub={
+              stats.longestStreak != null && stats.longestStreak > 1
+                ? `${stats.longestStreak}-day streak`
+                : undefined
+            }
+          />
         </div>
       </div>
     </CardFrame>

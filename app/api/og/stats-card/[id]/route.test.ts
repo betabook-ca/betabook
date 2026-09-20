@@ -60,7 +60,7 @@ describe("loadSocialCardStats", () => {
 
   it("scopes a climber's own sends to the requested period", async () => {
     // Both boulder sends, so period filtering is what's under test here —
-    // lib/social-card.test.ts covers picking the dominant discipline.
+    // lib/social-card.test.ts covers combining every discipline.
     await seedFixtureSend(db, { userId: "owner", climbId: 1, dateSent: "2026-09-01" }); // this month
     await seedFixtureSend(db, { userId: "owner", climbId: 2, dateSent: "2025-01-01" }); // last year
 
@@ -81,28 +81,38 @@ describe("socialCardElement", () => {
     periodLabel: "2026",
     sendCount: 24,
     daysOut: 10,
-    hardest: { label: "V6", climbName: "Test Highball" },
+    hardest: [
+      { type: "boulder" as const, label: "V6", climbName: "Test Highball" },
+      { type: "sport" as const, label: "5.12a", climbName: "Test Sport Route" },
+    ],
     areaCount: 3,
     topArea: { name: "Test Boulders" },
     flashPct: 40,
     longestStreak: 5,
   };
 
-  it("renders the climber's name and totals for an active period", () => {
-    const json = JSON.stringify(
-      socialCardElement("Share Owner", { ...baseStats, scope: "boulder" }),
-    );
+  it("renders the climber's name and totals for an active period, one hardest badge per discipline", () => {
+    const json = JSON.stringify(socialCardElement("Share Owner", baseStats));
 
-    // Tile is an unrendered element here (no React renderer involved), so
-    // its own output never appears in this JSON — only the props it was
-    // given, which is exactly what wiring this card correctly requires.
+    // Tile/GradeBadge are unrendered elements here (no React renderer
+    // involved), so their own output never appears in this JSON — only the
+    // props they were given, which is exactly what wiring this card
+    // correctly requires.
     expect(json).toContain("Share Owner");
     expect(json).toContain('"children":24'); // the literal sendCount, not stringified
-    expect(json).toContain('"value":"V6"'); // hardest.label
-    expect(json).toContain('"sub":"Test Highball"'); // hardest.climbName
+    expect(json).toContain('"hardest":{"type":"boulder","label":"V6"'); // boulder badge
+    expect(json).toContain('"hardest":{"type":"sport","label":"5.12a"'); // sport badge
     expect(json).toContain('"sub":"Test Boulders"'); // topArea.name
     expect(json).toContain('"sub":"5-day streak"');
-    expect(json).toContain("2026 · Boulder");
+    expect(json).toContain("2026");
+    expect(json).not.toContain("Boulder · "); // no discipline in the eyebrow — it's a combined recap
+  });
+
+  it("skips the hardest-badge row entirely when nothing was graded", () => {
+    const json = JSON.stringify(socialCardElement("Share Owner", { ...baseStats, hardest: [] }));
+
+    expect(json).not.toContain("GradeBadge");
+    expect(json).not.toContain('"hardest"');
   });
 
   it("renders a friendly empty state instead of zeroed-out tiles", () => {
@@ -110,10 +120,9 @@ describe("socialCardElement", () => {
       socialCardElement("New Climber", {
         period: "month",
         periodLabel: "Sep 2026",
-        scope: null,
         sendCount: 0,
         daysOut: 0,
-        hardest: null,
+        hardest: [],
         areaCount: 0,
         topArea: null,
         flashPct: null,
