@@ -2,7 +2,7 @@ import { expect, test, openStory } from "./story";
 
 for (const story of ["training", "climb", "send", "repeat"]) {
   test(
-    `Log ${story} uses a centered popup with the save button on the right`,
+    `Log ${story} puts the save button on the right, within reach`,
     { tag: "@layout" },
     async ({ page }, info) => {
       await openStory(page, info, `components-journal-log-popup--${story}`);
@@ -13,11 +13,22 @@ for (const story of ["training", "climb", "send", "repeat"]) {
       const form = await dialog.locator("form").boundingBox();
       const viewport = page.viewportSize();
       if (!box || !action || !form || !viewport) throw new Error("Expected log popup geometry");
-      expect(box.width).toBeLessThanOrEqual(512);
-      expect(Math.abs(box.x + box.width / 2 - viewport.width / 2)).toBeLessThanOrEqual(2);
+
+      // Logging an entry is the overlay opened most often from a phone, so
+      // below md it is a sheet: full width, flush to the bottom edge, with
+      // the save action in the thumb's half of the screen. From md up the
+      // same dialog is a centered column.
+      if (viewport.width < 768) {
+        expect(box.width).toBe(viewport.width);
+        expect(Math.abs(box.y + box.height - viewport.height)).toBeLessThanOrEqual(1);
+        expect(action.y).toBeGreaterThan(viewport.height / 2);
+      } else {
+        expect(box.width).toBeLessThanOrEqual(512);
+        expect(Math.abs(box.x + box.width / 2 - viewport.width / 2)).toBeLessThanOrEqual(2);
+        expect(Math.abs(box.y + box.height / 2 - viewport.height / 2)).toBeLessThanOrEqual(2);
+      }
       expect(Math.abs(action.x + action.width - form.x - form.width)).toBeLessThanOrEqual(2);
       expect(action.width).toBeLessThan(form.width / 2);
-      expect(Math.abs(box.y + box.height / 2 - viewport.height / 2)).toBeLessThanOrEqual(2);
       await save.scrollIntoViewIfNeeded();
       const visibleAction = await save.boundingBox();
       if (!visibleAction) throw new Error("Expected reachable save action");

@@ -75,7 +75,9 @@ test(
   { tag: "@layout" },
   async ({ page }, info) => {
     await openStory(page, info, "components-moderation-review-controls--rejection-fails");
-    const dialog = page.getByRole("dialog");
+    // Rejecting is a question, not a task, so this one stays an alert dialog
+    // at every width — unlike the move picker above.
+    const dialog = page.getByRole("alertdialog");
     const error = dialog.getByRole("alert");
     await expect(error).toHaveText("Couldn't save this decision. Try again.");
     await expect(error).toBeInViewport();
