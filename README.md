@@ -64,7 +64,7 @@ Social seeding assigns a repeatable mix of profile, send commentary, and journal
 | `climber3@example.com` | Members | Members                  | Only me                  |
 | `climber4@example.com` | Private | Only me (saved: Members) | Only me (saved: Members) |
 
-Each account has journal history to exercise visibility as its owner, another climber, or a signed-out visitor. Projects remain owner-only for every account. Seeding preserves the development account's privacy preferences.
+Each account has journal history to exercise visibility as its owner, another climber, or a signed-out visitor. No account starts with a shared project, so the Projects tabs are owner-only until you share one from a project card; seeding creates no share links. Seeding preserves the development account's privacy preferences.
 
 ```bash
 pnpm seed --email me@example.com --password local-password --name "Local Climber"

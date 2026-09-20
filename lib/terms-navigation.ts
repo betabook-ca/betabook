@@ -18,6 +18,12 @@ export function isTermsExemptPath(path: string) {
     path === "/accept-terms" ||
     path === "/terms" ||
     path.startsWith("/terms/") ||
+    // A shared project link is someone else's invitation, and the reader may
+    // not even have an account. Blocking it behind this member's outstanding
+    // agreement would break a link its owner sent to a person who is not the
+    // subject of it. The page authorizes its own reader, and treats a member
+    // who has not accepted as signed out.
+    path.startsWith("/projects/") ||
     ["/contact", "/about", "/forgot-password", "/reset-password", ...LANDING_PAGE_PATHS].includes(
       path,
     )

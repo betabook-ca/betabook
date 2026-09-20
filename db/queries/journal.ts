@@ -6,6 +6,7 @@ import type { JournalFilter, JournalView } from "@/lib/filters/journal-filter";
 import type { ClimbType } from "@/lib/grades";
 import type { JournalKind } from "@/lib/journal";
 import type { JournalCompanion } from "@/lib/journal-companions";
+import type { ProjectShareAudience } from "@/lib/privacy";
 
 import { journalVisibleSql, sendCommentVisibleSql } from "./content-access";
 import { journalHashtagsCondition } from "./hashtag-filter";
@@ -310,6 +311,10 @@ export type PinnedProject = Omit<OpenProject, "firstSession" | "lastSession"> & 
    * an undated send apart from no send at all. */
   sentOn: string | null;
   sent: boolean;
+  /** The link the owner published for this project, if there is one. Present
+   * only on the owner's own board — a token is a credential, and these reads
+   * already refuse a viewer who is not the owner. */
+  share: { token: string; audience: ProjectShareAudience; expiresAt: string | null } | null;
 };
 
 export const OPEN_PROJECT_PAGE_SIZE = 100;
@@ -336,11 +341,16 @@ function projectSelect(ownerId: string, sent: boolean): SQL {
       agg.firstSession  AS firstSession,
       agg.lastSession   AS lastSession,
       s.date_sent       AS sentOn,
-      ${sent ? sql`1` : sql`0`} AS sent
+      ${sent ? sql`1` : sql`0`} AS sent,
+      share.token       AS shareToken,
+      share.audience    AS shareAudience,
+      share.expires_at  AS shareExpiresAt
     FROM pinned_projects p
     JOIN climbs ON climbs.id = p.climb_id
     JOIN areas ON areas.id = climbs.area_id
     LEFT JOIN sends s ON s.user_id = p.user_id AND s.climb_id = p.climb_id
+    LEFT JOIN project_share_links share
+      ON share.user_id = p.user_id AND share.climb_id = p.climb_id
     LEFT JOIN (
       SELECT
         j.climb_id        AS climbId,
@@ -370,7 +380,14 @@ export async function getPinnedProjects(
     ? Math.min(Math.max(limit, 1), OPEN_PROJECT_PAGE_SIZE + 1)
     : OPEN_PROJECT_PAGE_SIZE;
 
-  const rows = await db.all<Omit<PinnedProject, "sent"> & { sent: number }>(sql`
+  const rows = await db.all<
+    Omit<PinnedProject, "sent" | "share"> & {
+      sent: number;
+      shareToken: string | null;
+      shareAudience: ProjectShareAudience | null;
+      shareExpiresAt: string | null;
+    }
+  >(sql`
     ${projectSelect(ownerId, sent)}
     WHERE p.user_id = ${ownerId}
       AND ${journalVisibleSql(viewerId, sql`p.user_id`)}
@@ -386,7 +403,14 @@ export async function getPinnedProjects(
       p.pinned_at DESC, p.climb_id ASC
     LIMIT ${boundedLimit}
   `);
-  return rows.map((row) => ({ ...row, sent: row.sent === 1 }));
+  return rows.map(({ shareToken, shareAudience, shareExpiresAt, ...row }) => ({
+    ...row,
+    sent: row.sent === 1,
+    share:
+      shareToken && shareAudience
+        ? { token: shareToken, audience: shareAudience, expiresAt: shareExpiresAt }
+        : null,
+  }));
 }
 
 /** Sessions preloaded per project card. Older ones page in from the journal

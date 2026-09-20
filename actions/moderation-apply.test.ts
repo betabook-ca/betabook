@@ -29,6 +29,7 @@ import {
   climbs,
   journalEntries,
   pinnedProjects,
+  projectShareLinks,
   sends,
 } from "@/db/schema";
 import { formatGrade } from "@/lib/grades";
@@ -882,6 +883,58 @@ describe("applyClimbMerge", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].climbId).toBe(941);
     expect(rows[0].pinnedAt).toBe("2026-02-02");
+  });
+
+  it("carries a share link onto the surviving climb with its token intact", async () => {
+    await seedFixtureUser(db, { id: "merge-sharer" });
+    await db.insert(climbs).values([
+      { id: 950, areaId: 3, name: "Merge Source S", type: "boulder", grade: 3 },
+      { id: 951, areaId: 3, name: "Merge Target S", type: "boulder", grade: 3 },
+    ]);
+    await seedFixturePinnedProject(db, { userId: "merge-sharer", climbId: 950 });
+    const [before] = await db
+      .insert(projectShareLinks)
+      .values({ userId: "merge-sharer", climbId: 950, audience: "everyone" })
+      .returning({ token: projectShareLinks.token });
+
+    await applyClimbMerge(db, 950, 951);
+
+    // The token is the whole URL, so re-issuing it would break a link the
+    // climber already handed out because a moderator merged a duplicate.
+    const rows = await db
+      .select()
+      .from(projectShareLinks)
+      .where(eq(projectShareLinks.userId, "merge-sharer"));
+    expect(rows).toHaveLength(1);
+    expect(rows[0].token).toBe(before.token);
+    expect(rows[0].climbId).toBe(951);
+    expect(rows[0].audience).toBe("everyone");
+  });
+
+  it("keeps the target's share when a climber had shared both climbs", async () => {
+    await seedFixtureUser(db, { id: "merge-double-sharer" });
+    await db.insert(climbs).values([
+      { id: 960, areaId: 3, name: "Merge Source T", type: "boulder", grade: 3 },
+      { id: 961, areaId: 3, name: "Merge Target T", type: "boulder", grade: 3 },
+    ]);
+    await seedFixturePinnedProject(db, { userId: "merge-double-sharer", climbId: 960 });
+    await seedFixturePinnedProject(db, { userId: "merge-double-sharer", climbId: 961 });
+    await db.insert(projectShareLinks).values([
+      { userId: "merge-double-sharer", climbId: 960, audience: "everyone" },
+      { userId: "merge-double-sharer", climbId: 961, audience: "friends" },
+    ]);
+
+    await applyClimbMerge(db, 960, 961);
+
+    // Moving the source's row would collide on (user_id, climb_id), so it is
+    // skipped and cascades with the source rather than failing the merge.
+    const rows = await db
+      .select()
+      .from(projectShareLinks)
+      .where(eq(projectShareLinks.userId, "merge-double-sharer"));
+    expect(rows).toHaveLength(1);
+    expect(rows[0].climbId).toBe(961);
+    expect(rows[0].audience).toBe("friends");
   });
 
   it("keeps the target's send wholesale when a user sent both climbs", async () => {

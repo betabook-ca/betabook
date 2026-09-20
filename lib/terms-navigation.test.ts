@@ -33,8 +33,19 @@ it("keeps terms, public pages, recovery, and acceptance reachable but protects a
     "/accept-terms",
     "/forgot-password",
     "/reset-password",
+    // Someone else's shared project, which the page authorizes itself.
+    "/projects/4f9c2a7e1b8d6035c9e4a1f7b2d80e36",
   ])
     expect(isTermsExemptPath(path)).toBe(true);
-  for (const path of ["/account", "/account/import", "/friends", "/users/one", "/terms-other"])
+  for (const path of [
+    "/account",
+    "/account/import",
+    "/friends",
+    "/users/one",
+    "/terms-other",
+    // The owner's own Projects board is member content, unlike a share link.
+    "/users/one/projects",
+    "/projects",
+  ])
     expect(isTermsExemptPath(path)).toBe(false);
 });

@@ -337,6 +337,13 @@
       "when": 1789892198610,
       "tag": "0047_pinned_projects",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "6",
+      "when": 1789925891283,
+      "tag": "0048_project_share_links",
+      "breakpoints": true
     }
   ]
 }

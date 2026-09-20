@@ -41,3 +41,34 @@ test(
     expect(pin.x + pin.width).toBeLessThanOrEqual(viewport.width);
   },
 );
+
+test(
+  "the share dialog fits its audience choice and expiry at both widths",
+  { tag: "@layout" },
+  async ({ page }, testInfo) => {
+    // Three segments plus a dropdown in one overlay is the width risk, and it
+    // is a real overlay at two very different widths that decides it: a sheet
+    // on the phone, a centered column on the desktop.
+    await openStory(page, testInfo, "components-journal-project-board--projects");
+    await page.getByRole("button", { name: "Share Moonlight Arete" }).click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    const bounds = await dialog.boundingBox();
+    if (!bounds) throw new Error("Expected the share dialog to be laid out");
+
+    for (const label of ["Friends", "Members", "Everyone"]) {
+      const segment = await dialog.getByRole("button", { name: label, exact: true }).boundingBox();
+      if (!segment) throw new Error(`Expected the ${label} segment`);
+      expect(segment.x).toBeGreaterThanOrEqual(bounds.x - 1);
+      expect(segment.x + segment.width).toBeLessThanOrEqual(bounds.x + bounds.width + 1);
+    }
+
+    const expiry = await dialog.getByRole("button", { name: "Link expires" }).boundingBox();
+    const create = await dialog.getByRole("button", { name: "Create link" }).boundingBox();
+    if (!expiry || !create) throw new Error("Expected the expiry control and the primary action");
+    expect(expiry.x + expiry.width).toBeLessThanOrEqual(bounds.x + bounds.width + 1);
+    // The primary action is pinned in the footer, below the body either way.
+    expect(create.y).toBeGreaterThan(expiry.y);
+  },
+);

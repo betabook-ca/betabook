@@ -107,3 +107,11 @@ export const unpinProject = fn<typeof Actions.unpinProject>().mockResolvedValue(
   ok: true,
   value: undefined,
 });
+export const shareProject = fn<typeof Actions.shareProject>().mockResolvedValue({
+  ok: true,
+  value: { token: "4f9c2a7e1b8d6035c9e4a1f7b2d80e36" },
+});
+export const unshareProject = fn<typeof Actions.unshareProject>().mockResolvedValue({
+  ok: true,
+  value: undefined,
+});

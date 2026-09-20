@@ -95,6 +95,9 @@ type ProjectBoardProps = {
    * server passes it because this board only holds one side; the fallback
    * below is enough for a story, not for the live page. */
   pinnedClimbIds?: readonly number[];
+  /** The site's own origin, resolved on the server so a share link is the
+   * same string in the render and in the hydration on a preview domain. */
+  shareOrigin: string;
 };
 
 /** Filtering and sorting stay client-side: the page holds at most `OPEN_PROJECT_PAGE_SIZE` projects. */
@@ -105,6 +108,7 @@ export function ProjectBoard({
   variant = "open",
   suggestions = NO_SUGGESTIONS,
   pinnedClimbIds,
+  shareOrigin,
 }: ProjectBoardProps) {
   const sents = variant === "sent";
   const sorts = sents ? SENT_SORTS : OPEN_SORTS;
@@ -175,6 +179,7 @@ export function ProjectBoard({
                 project={project}
                 userId={userId}
                 today={today}
+                shareOrigin={shareOrigin}
                 onLogSession={() => {
                   setSelected(project);
                   drawer.open();

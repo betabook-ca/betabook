@@ -85,7 +85,12 @@ export default function AboutPage() {
             anyone who has them. Resetting the link, or making your profile private, stops old links
             working.
           </li>
-          <li>Only you can see your projects and export your sends.</li>
+          <li>
+            Only you can see your projects, unless you share one: that makes a link to a single
+            climb showing your name, its sessions and your notes on it. You pick who can open it —
+            friends, members, or anyone — and when it expires, and you can stop sharing at any time.
+          </li>
+          <li>Only you can export your sends.</li>
         </ul>
       </section>
 

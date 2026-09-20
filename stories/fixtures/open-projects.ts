@@ -41,6 +41,7 @@ export const moonSlab: ProjectWithSessions = {
   lastSession: "2026-09-04",
   sentOn: null,
   sent: false,
+  share: null,
   sessions: [
     entry({
       id: 901,
@@ -81,6 +82,7 @@ export const riverRoute: ProjectWithSessions = {
   lastSession: "2026-07-02",
   sentOn: null,
   sent: false,
+  share: null,
   sessions: [
     entry({
       id: 904,
@@ -109,6 +111,7 @@ export const ashCrack: ProjectWithSessions = {
   lastSession: "2026-08-30",
   sentOn: null,
   sent: false,
+  share: null,
   sessions: [
     entry({ id: 906, climbId: 103, climbType: "trad", entryDate: "2026-08-30" }),
     entry({ id: 907, climbId: 103, climbType: "trad", entryDate: "2026-08-08" }),
@@ -133,6 +136,7 @@ export const untouchedPin: ProjectWithSessions = {
   lastSession: null,
   sentOn: null,
   sent: false,
+  share: null,
   sessions: [],
 };
 
@@ -153,6 +157,7 @@ export const sentPin: ProjectWithSessions = {
   lastSession: "2026-08-15",
   sentOn: "2026-08-15",
   sent: true,
+  share: null,
   sessions: [
     entry({
       id: 908,
@@ -168,3 +173,18 @@ export const sentPin: ProjectWithSessions = {
 export const openProjects: ProjectWithSessions[] = [moonSlab, ashCrack, riverRoute, untouchedPin];
 
 export const sentProjects: ProjectWithSessions[] = [sentPin];
+
+/** A live link beside an unshared project, so the gallery shows both states of
+ * the control. The deadline is far enough out that the chip's wording does not
+ * drift as the gallery's clock moves. */
+export const sharedProjects: ProjectWithSessions[] = [
+  {
+    ...moonSlab,
+    share: {
+      token: "4f9c2a7e1b8d6035c9e4a1f7b2d80e36",
+      audience: "friends",
+      expiresAt: "2099-01-01 00:00:00",
+    },
+  },
+  ashCrack,
+];
