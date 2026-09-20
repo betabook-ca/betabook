@@ -47,6 +47,7 @@ export function SocialCardDialog({
         // The object URL of whatever card this replaces is revoked by the
         // cleanup on the effect below, keyed off the same `card` state.
         setCard({ period, blob, url: URL.createObjectURL(blob) });
+        setError((current) => (current?.period === period ? null : current));
         setStatus("");
       } catch {
         if (!cancelled) setError({ period, message: "Couldn't generate your card. Try again." });

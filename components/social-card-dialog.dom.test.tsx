@@ -86,6 +86,21 @@ it("shows an error instead of a stale or broken preview when generation fails", 
   expect(screen.queryByRole("img")).not.toBeInTheDocument();
 });
 
+it("clears a period's error once a later retry for that same period succeeds", async () => {
+  const user = userEvent.setup();
+  fetchMock.mockResolvedValueOnce({ ok: false } as Response); // "This year" fails first
+  render(<SocialCardDialog state={overlayState(true)} userId="climber1" name="Alex Rivera" />);
+  await screen.findByRole("alert");
+
+  await user.click(screen.getByRole("button", { name: "This month" })); // succeeds (default mock)
+  await screen.findByRole("img", { name: "This month recap card preview" });
+
+  await user.click(screen.getByRole("button", { name: "This year" })); // retried, now succeeds
+
+  await screen.findByRole("img", { name: "This year recap card preview" });
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+
 it("downloads the generated card under a period-named file", async () => {
   const user = userEvent.setup();
   render(<SocialCardDialog state={overlayState(true)} userId="climber1" name="Alex Rivera" />);
