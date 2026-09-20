@@ -130,15 +130,16 @@ export function FeedActivityCard({
             {entries.length === 1 && view === "all" && !!item.companions?.length && (
               <CompanionList companions={item.companions} profileLinks={links} />
             )}
-            {item.body && (
-              <div className="mt-1 text-sm leading-relaxed text-foreground">
-                <ClampedComment expandLabel="Read more" collapseLabel="Read less">
-                  {item.body}
-                </ClampedComment>
-              </div>
-            )}
           </div>
         </div>
+        {/* Outside the icon column so the note reads from the card's own left edge. */}
+        {item.body && (
+          <div className="mt-1 text-sm leading-relaxed text-foreground">
+            <ClampedComment expandLabel="Read more" collapseLabel="Read less">
+              {item.body}
+            </ClampedComment>
+          </div>
+        )}
       </div>
     );
   };
