@@ -1,7 +1,7 @@
 "use client";
 import { Button, Kbd, Modal } from "@heroui/react";
 import { clsx } from "clsx";
-import { ArrowRight, X } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 
@@ -29,7 +29,8 @@ type SearchSurfaceProps = {
   loadingMore?: boolean;
   loadMoreFailed?: boolean;
   area?: AreaSelection | null;
-  suggestedArea?: AreaSelection;
+  /** Not used by the surface itself — callers compose it into `filters`,
+   * where the full page's area lookup lives. */
   onAreaChange: (area: AreaSelection | null) => void;
   filters?: ReactNode;
   memberNotice?: ReactNode;
@@ -61,8 +62,6 @@ export function SearchSurface({
   loadingMore = false,
   loadMoreFailed = false,
   area,
-  suggestedArea,
-  onAreaChange,
   filters,
   memberNotice,
   memberNoticePlacement = "results",
@@ -76,12 +75,12 @@ export function SearchSurface({
 }: SearchSurfaceProps & {
   quick?: boolean;
   onClose?: () => void;
-  /** Sits on the input's own row. The quick dialog passes its Cancel here
-   * once the viewport is too short to spend a whole row on a header. */
+  /** Rendered on the input's row. The quick dialog puts its Cancel here
+   * when the viewport is too short to afford a separate header row. */
   headerAction?: ReactNode;
-  /** Collapses the filter chrome above the result list. Owned by the quick
-   * dialog, which measures the viewport — the full search page scrolls, so
-   * it always has room and never asks for this. */
+  /** Collapses the filters above the result list. The quick dialog measures
+   * the viewport and sets this; the full search page scrolls, so it never
+   * needs it. */
   compact?: boolean;
 }) {
   const { rootRef, listId, activeId, onKeyDown } = useQuickSearchNavigation({
@@ -135,11 +134,8 @@ export function SearchSurface({
       />
       <SearchFilterRow
         category={category}
-        area={area}
-        suggestedArea={suggestedArea}
         quick={quick}
         compact={compact}
-        onAreaChange={onAreaChange}
         onCategoryChange={onCategoryChange}
       />
       {filters}
@@ -205,9 +201,9 @@ function When({ show, children }: { show: boolean; children: ReactNode }) {
   return show ? children : null;
 }
 
-/** The query field, plus whatever action shares its row. Only the quick
- * dialog wires the combobox relationship to the result list; the full page's
- * results are an ordinary region below the field. */
+/** The query field and whatever shares its row. Only the quick dialog
+ * wires up the combobox relationship to the results; on the full page they
+ * are just a region below the field. */
 function SearchQueryRow({
   query,
   onQueryChange,
@@ -230,8 +226,8 @@ function SearchQueryRow({
     <div className="flex shrink-0 items-center gap-2">
       <SearchInput
         label="Search Betabook"
-        // Sharing the row means the field can no longer claim its standard
-        // width — it takes what Cancel leaves.
+        // Sharing the row means the field takes what Cancel leaves rather
+        // than its standard width.
         className={headerAction ? "min-w-0 flex-1" : undefined}
         placeholder={SEARCH_PLACEHOLDERS[category]}
         value={query}
@@ -255,23 +251,21 @@ function SearchQueryRow({
   );
 }
 
-/** The scoping controls between the input and the results.
+/** The quick dialog's category pills. The full page renders its own set
+ * above the input, so this is only for the dialog.
  *
- * The full page shows only the area chip here — its category pills sit above
- * the input. The quick dialog shows both, stacked while there is room and
- * folded onto one horizontally scrolling line once there isn't: with a
- * keyboard up those two rows would otherwise cost the result list half of
- * what it has left. */
+ * Compact keeps them on one non-wrapping line that scrolls sideways — with
+ * a keyboard up, wrapping would cost the result list a row it needs. */
 function SearchFilterRow({
   quick,
   compact,
-  ...scope
-}: Pick<
-  SearchSurfaceProps,
-  "category" | "area" | "suggestedArea" | "onAreaChange" | "onCategoryChange"
-> & { quick: boolean; compact: boolean }) {
-  const chip = <SearchScope {...scope} quick={quick} />;
-  if (!quick) return chip;
+  category,
+  onCategoryChange,
+}: Pick<SearchSurfaceProps, "category" | "onCategoryChange"> & {
+  quick: boolean;
+  compact: boolean;
+}) {
+  if (!quick) return null;
   return (
     <div
       className={clsx(
@@ -281,12 +275,7 @@ function SearchFilterRow({
           : "flex-col items-start gap-4",
       )}
     >
-      <SearchCategories
-        value={scope.category}
-        onChange={scope.onCategoryChange}
-        compact={compact}
-      />
-      {chip}
+      <SearchCategories value={category} onChange={onCategoryChange} compact={compact} />
     </div>
   );
 }
@@ -400,9 +389,9 @@ export function QuickSearchDialog({
           aria-label="Search Betabook"
           className="max-h-full rounded-none sm:max-h-[85dvh] sm:rounded-panel"
         >
-          {/* With a keyboard up this row is a fifth of what is left, and it
-           * carries one word and one button — so Cancel moves onto the
-           * input's row and the heading stays for assistive tech only. */}
+          {/* This row holds one word and one button, and with a keyboard up
+           * it costs about a fifth of the remaining height. Cancel moves
+           * next to the input and the heading stays for screen readers. */}
           <Modal.Header
             className={clsx(
               "flex flex-row items-center justify-between gap-2",
@@ -424,53 +413,6 @@ export function QuickSearchDialog({
         </Modal.Dialog>
       </Modal.Container>
     </Modal.Backdrop>
-  );
-}
-
-function SearchScope({
-  category,
-  area,
-  suggestedArea,
-  quick,
-  onAreaChange,
-  onCategoryChange,
-}: Pick<
-  SearchSurfaceProps,
-  "category" | "area" | "suggestedArea" | "onAreaChange" | "onCategoryChange"
-> & {
-  quick: boolean;
-}) {
-  const [dismissedAreaId, setDismissedAreaId] = useState<string | null>(null);
-  if (category !== "all" && category !== "climb") return null;
-  if (area && quick)
-    return (
-      <Button
-        variant="secondary"
-        size="sm"
-        className="max-w-full shrink-0 self-start"
-        onPress={() => {
-          setDismissedAreaId(area.id);
-          onAreaChange(null);
-        }}
-        aria-label={`Clear area ${area.name}`}
-      >
-        <span className="truncate">Climbs in {area.name}</span>
-        <X className="size-3.5 shrink-0" aria-hidden />
-      </Button>
-    );
-  if (area || !suggestedArea || suggestedArea.id === dismissedAreaId) return null;
-  return (
-    <Button
-      variant="outline"
-      size="sm"
-      className="max-w-full shrink-0 self-start"
-      onPress={() => {
-        onCategoryChange("climb");
-        onAreaChange(suggestedArea);
-      }}
-    >
-      <span className="truncate">Climbs in {suggestedArea.name}</span>
-    </Button>
   );
 }
 

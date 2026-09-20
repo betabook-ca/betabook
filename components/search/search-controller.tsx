@@ -27,7 +27,6 @@ export function SearchController({
   quick = false,
   isOpen = true,
   onOpenChange = ignoreOpenChange,
-  suggestedArea,
   renderAction,
   resultHref,
   suggestions,
@@ -51,7 +50,6 @@ export function SearchController({
   quick?: boolean;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
-  suggestedArea?: AreaSelection;
   renderAction?: (item: AppSearchResult) => ReactNode;
   resultHref?: (item: AppSearchResult) => string;
   /** Shown in place of the prompt while the full climber search is empty. */
@@ -95,7 +93,6 @@ export function SearchController({
     area: state.area,
     onAreaChange: (area: AreaSelection | null) =>
       onChange(withClimbFilterArea({ ...state, category: area ? "climb" : state.category }, area)),
-    suggestedArea,
     sections: search.sections,
     suggestions: suggested.length
       ? {

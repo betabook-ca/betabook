@@ -98,7 +98,6 @@ export function SearchDemo({
     loadingMore: demo.pending,
     area: demo.filters.area,
     onAreaChange: (area: AreaSelection | null) => demo.setFilters({ ...demo.filters, area }),
-    suggestedArea: SAMPLE_AREAS[0],
   };
   return (
     <StoryPage
@@ -110,7 +109,6 @@ export function SearchDemo({
       {full ? (
         <SearchSurface
           {...props}
-          suggestedArea={undefined}
           filters={
             demo.category === "climb" ? (
               <ClimbFilters
@@ -146,12 +144,12 @@ export function SearchDemo({
   );
 }
 
-/** The quick dialog's arrangement once a mobile keyboard has taken the
- * bottom of the screen: Cancel joins the input's row, the category pills and
- * the area chip share one scrolling line, and everything the list does not
- * need is given back to it. Framed at the height a 375x812 phone actually
- * has left with a keyboard up, since the gallery's own viewports are tall
- * enough that the surface would otherwise never show this state. */
+/** The quick dialog with a mobile keyboard open: Cancel moves next to the
+ * input, and the category pills and area chip share one scrolling line.
+ *
+ * Framed at the height a 375x812 phone has left with a keyboard up. The
+ * gallery's own viewports are too tall to trigger this state on their
+ * own. */
 export function QuickSearchCompactDemo({ scenario = "ready" }: { scenario?: SearchScenario }) {
   const demo = useSearchDemo({ scenario, limit: 3 });
   const [selected, setSelected] = useState<SearchResult | null>(null);
@@ -178,7 +176,6 @@ export function QuickSearchCompactDemo({ scenario = "ready" }: { scenario?: Sear
           onViewAll={() => {}}
           area={demo.filters.area}
           onAreaChange={(area: AreaSelection | null) => demo.setFilters({ ...demo.filters, area })}
-          suggestedArea={SAMPLE_AREAS[0]}
           headerAction={
             <Button variant="ghost" size="sm">
               Cancel
