@@ -92,9 +92,15 @@ describe("socialCardElement", () => {
     periodLabel: "2026",
     sendCount: 24,
     daysOut: 10,
-    hardest: [
-      { type: "boulder" as const, label: "V6", climbName: "Test Highball" },
-      { type: "sport" as const, label: "5.12a", climbName: "Test Sport Route" },
+    pyramid: [
+      {
+        type: "boulder" as const,
+        rows: [
+          { grade: 8, label: "V6", count: 3 },
+          { grade: 7, label: "V5", count: 5 },
+        ],
+      },
+      { type: "sport" as const, rows: [{ grade: 20, label: "5.12a", count: 2 }] },
     ],
     areaCount: 3,
     topArea: { name: "Test Boulders" },
@@ -102,18 +108,18 @@ describe("socialCardElement", () => {
     longestStreak: 5,
   };
 
-  it("renders the climber's name, avatar, and totals for an active period, one hardest badge per discipline", () => {
+  it("renders the climber's name, avatar, and totals for an active period, one pyramid per discipline", () => {
     const json = JSON.stringify(socialCardElement(baseOwner, baseStats));
 
-    // Tile/GradeBadge/Avatar are unrendered elements here (no React renderer
-    // involved), so their own output never appears in this JSON — only the
-    // props they were given, which is exactly what wiring this card
-    // correctly requires.
+    // Tile/PyramidColumn/Avatar are unrendered elements here (no React
+    // renderer involved), so their own output never appears in this JSON —
+    // only the props they were given, which is exactly what wiring this
+    // card correctly requires.
     expect(json).toContain("Share Owner");
     expect(json).toContain('"photo":"https://betabook.test/api/avatars/abc123"');
     expect(json).toContain('"children":24'); // the literal sendCount, not stringified
-    expect(json).toContain('"hardest":{"type":"boulder","label":"V6"'); // boulder badge
-    expect(json).toContain('"hardest":{"type":"sport","label":"5.12a"'); // sport badge
+    expect(json).toContain('"pyramid":{"type":"boulder","rows":[{"grade":8,"label":"V6"'); // boulder pyramid
+    expect(json).toContain('"pyramid":{"type":"sport","rows":[{"grade":20,"label":"5.12a"'); // sport pyramid
     expect(json).toContain('"sub":"Test Boulders"'); // topArea.name
     expect(json).toContain('"sub":"5-day streak"');
     expect(json).toContain("2026");
@@ -127,11 +133,10 @@ describe("socialCardElement", () => {
     expect(json).toContain('"initials":"SO"');
   });
 
-  it("skips the hardest-badge row entirely when nothing was graded", () => {
-    const json = JSON.stringify(socialCardElement(baseOwner, { ...baseStats, hardest: [] }));
+  it("skips the pyramid row entirely when nothing was graded", () => {
+    const json = JSON.stringify(socialCardElement(baseOwner, { ...baseStats, pyramid: [] }));
 
-    expect(json).not.toContain("GradeBadge");
-    expect(json).not.toContain('"hardest"');
+    expect(json).not.toContain('"pyramid"');
   });
 
   it("renders a friendly empty state instead of zeroed-out tiles", () => {
@@ -143,7 +148,7 @@ describe("socialCardElement", () => {
           periodLabel: "Sep 2026",
           sendCount: 0,
           daysOut: 0,
-          hardest: [],
+          pyramid: [],
           areaCount: 0,
           topArea: null,
           flashPct: null,

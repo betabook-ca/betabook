@@ -35,17 +35,26 @@ export function socialCardPeriodLabel(period: SocialCardPeriod, today: string): 
   return formatMonthLabel(today.slice(0, 7));
 }
 
-export type SocialCardHardest = { type: ClimbType; label: string; climbName: string };
+export type SocialCardPyramidRow = { grade: number; label: string; count: number };
+export type SocialCardPyramid = { type: ClimbType; rows: SocialCardPyramidRow[] };
+
+/** How many grade rungs a discipline's pyramid shows on the card, hardest
+ * first — a full pyramid can run dozens of rungs deep, which reads fine as
+ * a chart on the analytics page but would dwarf everything else on a
+ * portrait recap card. Capping (rather than, say, only the top grade) keeps
+ * the shape a real pyramid, gaps and all, just a shorter one. */
+const PYRAMID_ROWS_SHOWN = 5;
 
 export type SocialCardStats = {
   period: SocialCardPeriod;
   periodLabel: string;
   sendCount: number;
   daysOut: number;
-  /** Hardest graded send per discipline present, boulder → sport → trad —
-   * grades don't compare across disciplines, so a card combining all three
-   * never has a single "hardest", only one per discipline. */
-  hardest: SocialCardHardest[];
+  /** One pyramid per discipline present, boulder → sport → trad, each
+   * capped to its top `PYRAMID_ROWS_SHOWN` rungs — grades don't compare
+   * across disciplines, so a card combining all three never has one
+   * pyramid, only one per discipline. */
+  pyramid: SocialCardPyramid[];
   areaCount: number;
   topArea: { name: string } | null;
   /** Percent of sends flashed or onsighted, rounded; null with no sends. */
@@ -59,7 +68,7 @@ function emptyStats(period: SocialCardPeriod, today: string): SocialCardStats {
     periodLabel: socialCardPeriodLabel(period, today),
     sendCount: 0,
     daysOut: 0,
-    hardest: [],
+    pyramid: [],
     areaCount: 0,
     topArea: null,
     flashPct: null,
@@ -93,7 +102,10 @@ export function buildSocialCardStats(
     periodLabel: socialCardPeriodLabel(period, today),
     sendCount: analytics.sendCount,
     daysOut: analytics.daysOut,
-    hardest: analytics.hardest.map(({ type, label, climbName }) => ({ type, label, climbName })),
+    pyramid: analytics.pyramid.map(({ type, rows }) => ({
+      type,
+      rows: rows.slice(0, PYRAMID_ROWS_SHOWN),
+    })),
     areaCount: analytics.areaCount,
     topArea: analytics.topArea ? { name: analytics.topArea.name } : null,
     flashPct: analytics.sendCount

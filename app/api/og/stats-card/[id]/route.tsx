@@ -13,8 +13,8 @@ import { OG_COLORS, OG_DISCIPLINE_COLOR, withAlpha } from "@/lib/og-theme";
 import {
   buildSocialCardStats,
   isSocialCardPeriod,
-  type SocialCardHardest,
   type SocialCardPeriod,
+  type SocialCardPyramid,
   type SocialCardStats,
 } from "@/lib/social-card";
 import { getUserInitials, resolveAvatarUrl } from "@/lib/user-initials";
@@ -48,42 +48,83 @@ export async function loadSocialCardStats(
   return buildSocialCardStats(sends, sessions, period, todayInTimezone(cf?.timezone));
 }
 
-/** One discipline's hardest send, tinted by discipline — grades don't
- * compare across boulder/sport/trad, so a card combining all three names
- * each discipline's ceiling as its own badge instead of picking one to lead
- * with the way a single-discipline "Hardest" tile would. */
-function GradeBadge({ hardest }: { hardest: SocialCardHardest }): ReactElement {
-  const color = OG_DISCIPLINE_COLOR[hardest.type];
+/** One discipline's send pyramid, tinted by discipline and capped to its
+ * hardest few rungs (see `PYRAMID_ROWS_SHOWN` in lib/social-card.ts) — the
+ * same "thin peak, wider base" shape as `AnalyticsGradePyramid` on the
+ * analytics page, redrawn in flexbox bars since satori has no chart
+ * library. Grades don't compare across boulder/sport/trad, so a card
+ * combining all three gets one pyramid per discipline, not one shared
+ * chart. */
+function PyramidColumn({ pyramid }: { pyramid: SocialCardPyramid }): ReactElement {
+  const { type, rows } = pyramid;
+  const color = OG_DISCIPLINE_COLOR[type];
+  const max = Math.max(...rows.map((row) => row.count), 1);
   return (
-    <div
-      style={{
-        display: "flex",
-        flex: 1,
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 10,
-        background: withAlpha(color, 0.14),
-        borderRadius: 24,
-        padding: "36px 20px",
-      }}
-    >
-      <span
-        style={{ fontFamily: OG_FONT.display, fontWeight: 700, fontSize: 52, color, lineHeight: 1 }}
-      >
-        {hardest.label}
-      </span>
+    <div style={{ display: "flex", flex: 1, flexDirection: "column", gap: 16 }}>
       <span
         style={{
           fontFamily: OG_FONT.body,
           fontWeight: 500,
           fontSize: 18,
-          color: "rgba(0,0,0,0.56)",
+          color,
           textTransform: "uppercase",
           letterSpacing: 2,
         }}
       >
-        {DISCIPLINE_LABELS[hardest.type]}
+        {DISCIPLINE_LABELS[type]}
       </span>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {rows.map((row) => (
+          <div key={row.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span
+              style={{
+                display: "flex",
+                width: 58,
+                fontFamily: OG_FONT.body,
+                fontWeight: 500,
+                fontSize: 17,
+                color: OG_COLORS.ink,
+              }}
+            >
+              {row.label}
+            </span>
+            <div
+              style={{
+                display: "flex",
+                flex: 1,
+                height: 14,
+                borderRadius: 7,
+                background: withAlpha(color, 0.14),
+              }}
+            >
+              {row.count > 0 && (
+                <div
+                  style={{
+                    display: "flex",
+                    width: `${Math.max((row.count / max) * 100, 14)}%`,
+                    height: "100%",
+                    borderRadius: 7,
+                    background: color,
+                  }}
+                />
+              )}
+            </div>
+            <span
+              style={{
+                display: "flex",
+                width: 20,
+                justifyContent: "flex-end",
+                fontFamily: OG_FONT.body,
+                fontWeight: 500,
+                fontSize: 15,
+                color: "rgba(0,0,0,0.5)",
+              }}
+            >
+              {row.count}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -210,10 +251,10 @@ export function socialCardElement(owner: SocialCardOwner, stats: SocialCardStats
             </span>
           </div>
         </div>
-        {stats.hardest.length > 0 && (
-          <div style={{ display: "flex", gap: 20 }}>
-            {stats.hardest.map((hardest) => (
-              <GradeBadge key={hardest.type} hardest={hardest} />
+        {stats.pyramid.length > 0 && (
+          <div style={{ display: "flex", gap: 28 }}>
+            {stats.pyramid.map((pyramid) => (
+              <PyramidColumn key={pyramid.type} pyramid={pyramid} />
             ))}
           </div>
         )}

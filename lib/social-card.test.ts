@@ -55,16 +55,30 @@ describe("buildSocialCardStats", () => {
 
     const month = buildSocialCardStats(sends, undefined, "month", TODAY);
     expect(month.sendCount).toBe(1);
-    expect(month.hardest).toEqual([{ type: "boulder", label: "V7", climbName: "Some Climb" }]);
+    expect(month.pyramid).toEqual([
+      { type: "boulder", rows: [{ grade: 8, label: "V7", count: 1 }] },
+    ]);
 
     const year = buildSocialCardStats(sends, undefined, "year", TODAY);
     expect(year.sendCount).toBe(2);
-    expect(year.hardest.map((h) => h.type)).toEqual(["boulder", "sport"]);
+    expect(year.pyramid.map((p) => p.type)).toEqual(["boulder", "sport"]);
 
     const all = buildSocialCardStats(sends, undefined, "all", TODAY);
     expect(all.sendCount).toBe(3);
-    // One hardest badge per discipline present, boulder → sport → trad.
-    expect(all.hardest.map((h) => h.type)).toEqual(["boulder", "sport", "trad"]);
+    // One pyramid per discipline present, boulder → sport → trad.
+    expect(all.pyramid.map((p) => p.type)).toEqual(["boulder", "sport", "trad"]);
+  });
+
+  it("caps each discipline's pyramid to its hardest few rungs", () => {
+    const sends = [3, 4, 5, 6, 7, 8].map((suggestedGrade) =>
+      send({ suggestedGrade, dateSent: "2026-09-01" }),
+    );
+
+    const stats = buildSocialCardStats(sends, undefined, "month", TODAY);
+
+    expect(stats.pyramid).toHaveLength(1);
+    // Six rungs climbed, but only the hardest five make the card.
+    expect(stats.pyramid[0].rows.map((row) => row.grade)).toEqual([8, 7, 6, 5, 4]);
   });
 
   it("includes undated sends in all time but excludes them from month/year", () => {
@@ -85,7 +99,7 @@ describe("buildSocialCardStats", () => {
       periodLabel: "Sep 2026",
       sendCount: 0,
       daysOut: 0,
-      hardest: [],
+      pyramid: [],
       areaCount: 0,
       topArea: null,
       flashPct: null,
