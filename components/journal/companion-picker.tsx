@@ -59,9 +59,8 @@ export function CompanionPicker({
         label="Find a friend to tag"
         labelSuffix={
           <HelpTooltip label="About tagged friends">
-            Anyone who can read this entry sees who you tagged. A friend whose journal is Only me is
-            shown only to you and them. Tagging doesn’t log the climb for them or share the entry
-            with them.
+            Anyone who can read this entry sees who you tagged. Tagging doesn’t log the climb for
+            them or share the entry with them.
             {editing && " Changes replace all tags, including hidden ones."}
           </HelpTooltip>
         }

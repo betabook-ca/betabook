@@ -8,11 +8,8 @@ import { journalVisibleSql } from "./content-access";
 /** Correlated only with already selected journal rows / final feed previews.
  * The partial index excludes arbitrarily many self-removal tombstones.
  * A tag is company on the author's entry, so it follows the author's audience,
- * not the companion's. An explicit `private` journal is the one opt-out, and it
- * withdraws the name from other readers only: never from the author, whose record
- * it is, nor the companion, who needs it to remove the tag. A private profile does
- * not hide the name here; it is a rule about the profile page, which authorizes its
- * own viewer, so the name links out like any other companion's. */
+ * not the companion's journal or profile settings. A companion's profile page
+ * still authorizes its own viewer when the name is followed as a link. */
 export function companionsJsonSql(viewerId: string | null, entryId: SQL): SQL {
   return sql`(SELECT json_group_array(json_object('id', companion.id, 'name', companion.name,
     'image', companion.image,
@@ -25,8 +22,6 @@ export function companionsJsonSql(viewerId: string | null, entryId: SQL): SQL {
     WHERE jc.entry_id = ${entryId} AND jc.suppressed = 0
       AND tagged_friendship.status = 'accepted'
       AND ${journalVisibleSql(viewerId, sql`tagged_entry.user_id`)}
-      AND (tagged_entry.user_id = ${viewerId} OR companion.id = ${viewerId}
-        OR companion.journal_visibility <> 'private')
   )`;
 }
 
