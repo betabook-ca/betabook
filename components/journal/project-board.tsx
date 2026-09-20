@@ -91,6 +91,10 @@ type ProjectBoardProps = {
   variant?: ProjectBoardVariant;
   /** Unsent climbs offered in the pin modal; empty on the sent board. */
   suggestions?: readonly OpenProject[];
+  /** Every climb the owner has pinned, both sides of the send split. The
+   * server passes it because this board only holds one side; the fallback
+   * below is enough for a story, not for the live page. */
+  pinnedClimbIds?: readonly number[];
 };
 
 /** Filtering and sorting stay client-side: the page holds at most `OPEN_PROJECT_PAGE_SIZE` projects. */
@@ -100,6 +104,7 @@ export function ProjectBoard({
   hasMore,
   variant = "open",
   suggestions = NO_SUGGESTIONS,
+  pinnedClimbIds,
 }: ProjectBoardProps) {
   const sents = variant === "sent";
   const sorts = sents ? SENT_SORTS : OPEN_SORTS;
@@ -112,7 +117,7 @@ export function ProjectBoard({
   // date that disagreed across the hydration boundary would be a mismatch.
   const today = mounted ? new Intl.DateTimeFormat("en-CA").format(new Date()) : null;
 
-  const pinnedClimbIds = useMemo(() => projects.map((project) => project.climbId), [projects]);
+  const shownClimbIds = useMemo(() => projects.map((project) => project.climbId), [projects]);
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -123,7 +128,7 @@ export function ProjectBoard({
   }, [projects, query, sort]);
 
   const pinButton = sents ? null : (
-    <PinProjectButton suggestions={suggestions} pinnedClimbIds={pinnedClimbIds} />
+    <PinProjectButton suggestions={suggestions} pinnedClimbIds={pinnedClimbIds ?? shownClimbIds} />
   );
   const empty = projects.length === 0;
 

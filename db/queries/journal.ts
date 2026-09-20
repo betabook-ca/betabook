@@ -425,6 +425,23 @@ export async function getPinnedProjectSessions(
   return rows.map(toJournalEntry);
 }
 
+/** Every climb the owner has pinned, both sides of the send split. The board
+ * only ever holds one side, so it cannot tell the pin dialog that a climb it
+ * isn't showing is already pinned — a sent project would otherwise look
+ * pinnable, and picking it would close the dialog with nothing new on the
+ * tab. */
+export async function getPinnedClimbIds(
+  db: Database,
+  ownerId: string,
+  viewerId: string | null,
+): Promise<number[]> {
+  if (ownerId !== viewerId) return [];
+  const rows = await db.all<{ climbId: number }>(sql`
+    SELECT climb_id AS climbId FROM pinned_projects WHERE user_id = ${ownerId}
+  `);
+  return rows.map((row) => row.climbId);
+}
+
 /** Climbs worth offering as a pin: worked in a session, never sent, not
  * already pinned. This is the rule that used to populate the tab outright. */
 export async function getOpenProjectSuggestions(

@@ -8,6 +8,7 @@ type BoardProps = {
   hasMore: boolean;
   variant: "open" | "sent";
   suggestions: { climbId: number }[];
+  pinnedClimbIds: number[];
 };
 
 const mocks = vi.hoisted(() => ({
@@ -16,6 +17,7 @@ const mocks = vi.hoisted(() => ({
     async () => [],
   ),
   getOpenProjectSuggestions: vi.fn<() => Promise<Array<{ climbId: number }>>>(async () => []),
+  getPinnedClimbIds: vi.fn<() => Promise<number[]>>(async () => []),
   ProjectBoard: vi.fn<(props: BoardProps) => null>(() => null),
 }));
 
@@ -27,6 +29,7 @@ vi.mock("@/db/queries", () => ({
   getPinnedProjects: mocks.getPinnedProjects,
   getPinnedProjectSessions: mocks.getPinnedProjectSessions,
   getOpenProjectSuggestions: mocks.getOpenProjectSuggestions,
+  getPinnedClimbIds: mocks.getPinnedClimbIds,
   OPEN_PROJECT_PAGE_SIZE: 100,
 }));
 
@@ -99,6 +102,17 @@ describe("ProjectsView", () => {
     );
     expect(props.variant).toBe("open");
     expect(props.suggestions).toEqual([{ climbId: 21 }]);
+  });
+
+  it("hands the dialog every pin, including ones that moved to the sent tab", async () => {
+    mocks.getPinnedProjects.mockResolvedValue([{ climbId: 7 }]);
+    // 9 is pinned and already sent, so it is absent from this board but must
+    // still read as pinned in the search.
+    mocks.getPinnedClimbIds.mockResolvedValue([7, 9]);
+
+    const props = await renderBoardProps("open");
+
+    expect(props.pinnedClimbIds).toEqual([7, 9]);
   });
 
   it("reads the sent side and offers nothing to pin there", async () => {

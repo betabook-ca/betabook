@@ -5,6 +5,7 @@ import { SectionHeading } from "@/components/ui/typography";
 import { getDb } from "@/db/client";
 import {
   getOpenProjectSuggestions,
+  getPinnedClimbIds,
   getPinnedProjects,
   getPinnedProjectSessions,
   OPEN_PROJECT_PAGE_SIZE,
@@ -48,6 +49,9 @@ export async function ProjectsView({
   // is short, the ownership check is already done here, and refresh() after a
   // pin re-renders this tree with the pinned climb removed from it.
   const suggestions = sent ? [] : await getOpenProjectSuggestions(db, ownerId, ownerId);
+  // Both sides of the split, not just this board's: a climb that is pinned and
+  // already sent must still read as "Already pinned" in the dialog.
+  const pinnedClimbIds = sent ? [] : await getPinnedClimbIds(db, ownerId, ownerId);
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
@@ -61,6 +65,7 @@ export async function ProjectsView({
         hasMore={hasMore}
         variant={variant}
         suggestions={suggestions}
+        pinnedClimbIds={pinnedClimbIds}
       />
     </div>
   );

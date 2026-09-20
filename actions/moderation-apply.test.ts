@@ -41,7 +41,8 @@ import {
 } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
 
-vi.mock("next/cache", () => ({ refresh: () => {}, revalidatePath: () => {} }));
+const cache = vi.hoisted(() => ({ revalidatePath: vi.fn<(path: string) => void>() }));
+vi.mock("next/cache", () => ({ refresh: () => {}, revalidatePath: cache.revalidatePath }));
 
 import {
   changedFields,
@@ -822,6 +823,7 @@ describe("applyClimbMerge", () => {
   });
 
   it("moves a pinned project onto the surviving climb", async () => {
+    cache.revalidatePath.mockClear();
     await seedFixtureUser(db, { id: "merge-pinner" });
     await db.insert(climbs).values([
       { id: 930, areaId: 3, name: "Merge Source P", type: "boulder", grade: 3 },
@@ -844,6 +846,12 @@ describe("applyClimbMerge", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].climbId).toBe(931);
     expect(rows[0].pinnedAt).toBe("2026-03-04");
+
+    // The climber's Projects pages are cached per user, and this merge changed
+    // which climb their pin points at.
+    const paths = cache.revalidatePath.mock.calls.map(([path]) => path);
+    expect(paths).toContain("/users/merge-pinner/projects");
+    expect(paths).toContain("/users/merge-pinner/projects/sent");
   });
 
   it("leaves one pin behind when a climber had pinned both climbs", async () => {

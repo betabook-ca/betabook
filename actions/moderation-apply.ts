@@ -43,6 +43,7 @@ import { validateClimbMergeOverrides, validateClimbEditInput } from "@/lib/climb
 import type { ChangeRequestPayload, ChangeRequestType } from "@/lib/moderation";
 
 import { afterCommit } from "./post-commit";
+import { revalidateProjectSurfaces } from "./revalidation";
 
 const ORPHANED_REVIEW_NOTE = "The area or climb this request affected no longer exists.";
 
@@ -687,6 +688,14 @@ export async function applyClimbMerge(
       ),
   );
 
+  // Read before the batch, because afterwards the source's rows are gone.
+  // Every one of these climbers has a Projects page whose membership or card
+  // contents this merge changes, and those pages are cached per user.
+  const affectedPinners = await db.all<{ userId: string }>(sql`
+    SELECT DISTINCT user_id AS userId FROM pinned_projects
+    WHERE climb_id IN (${sourceClimbId}, ${targetClimbId})
+  `);
+
   // A pin on the duplicate has to follow the climb that survives, or deleting
   // the source would cascade it away and silently drop the climber's project.
   // Skip anyone who already pinned the target: that would collide on the
@@ -776,6 +785,9 @@ export async function applyClimbMerge(
     revalidatePath(`/climbs/${sourceClimbId}`);
     revalidatePath(`/areas/${target.areaId}`);
     if (source.areaId !== target.areaId) revalidatePath(`/areas/${source.areaId}`);
+    // A pin either moved to the target or was folded into an existing one, and
+    // the sends and sessions behind its card moved with it.
+    for (const { userId } of affectedPinners) revalidateProjectSurfaces(userId);
     revalidatePath("/");
     refresh();
   });
