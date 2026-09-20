@@ -1,11 +1,10 @@
 "use client";
 
-import { Drawer } from "@heroui/react";
 import type { UseOverlayStateReturn } from "@heroui/react";
 import { useRouter } from "next/navigation";
 
 import { AreaForm } from "@/components/area-form";
-import { PAGE_MAX_WIDTH_CLASS } from "@/components/ui/layout";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { Area } from "@/db/queries";
 import { areaHref } from "@/lib/slug";
 
@@ -26,18 +25,8 @@ export function AreaFormDrawer({ parentId, area, state }: AreaFormDrawerProps) {
   }
 
   return (
-    <Drawer.Backdrop isOpen={state.isOpen} onOpenChange={state.setOpen}>
-      <Drawer.Content>
-        <Drawer.Dialog className={`mx-auto w-full ${PAGE_MAX_WIDTH_CLASS}`}>
-          <Drawer.Header>
-            <Drawer.Heading>{area ? "Edit area" : "Add area"}</Drawer.Heading>
-            <Drawer.CloseTrigger />
-          </Drawer.Header>
-          <Drawer.Body>
-            <AreaForm parentId={parentId ?? null} area={area} onDone={handleDone} />
-          </Drawer.Body>
-        </Drawer.Dialog>
-      </Drawer.Content>
-    </Drawer.Backdrop>
+    <ResponsiveDialog state={state} title={area ? "Edit area" : "Add area"}>
+      <AreaForm parentId={parentId ?? null} area={area} onDone={handleDone} />
+    </ResponsiveDialog>
   );
 }

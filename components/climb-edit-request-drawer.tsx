@@ -1,13 +1,13 @@
 "use client";
 
-import { Button, Drawer, Input, Label, ListBox, Select, TextField } from "@heroui/react";
+import { Button, Input, Label, ListBox, Select, TextField } from "@heroui/react";
 import type { UseOverlayStateReturn } from "@heroui/react";
 import { useId, useState, useTransition } from "react";
 
 import { requestClimbEdit } from "@/actions";
 import { FIELD_CLASS } from "@/components/ui/field";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { PAGE_MAX_WIDTH_CLASS } from "@/components/ui/layout";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { Climb } from "@/db/queries";
 import { nativeGradeArray, type ClimbType } from "@/lib/grades";
 
@@ -74,102 +74,89 @@ export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerP
     });
   }
 
-  function handleOpenChange(isOpen: boolean) {
-    state.setOpen(isOpen);
-    if (!isOpen) {
-      setName(climb.name);
-      setType(climb.type);
-      setGrade(originalGrade);
-      setError(null);
-      setPendingNotice(null);
-    }
+  function reset() {
+    setName(climb.name);
+    setType(climb.type);
+    setGrade(originalGrade);
+    setError(null);
+    setPendingNotice(null);
   }
 
   return (
-    <Drawer.Backdrop isOpen={state.isOpen} onOpenChange={handleOpenChange}>
-      <Drawer.Content>
-        <Drawer.Dialog className={`mx-auto w-full ${PAGE_MAX_WIDTH_CLASS}`}>
-          <Drawer.Header>
-            <Drawer.Heading>Request a full edit</Drawer.Heading>
-            <Drawer.CloseTrigger />
-          </Drawer.Header>
-          <Drawer.Body>
-            {pendingNotice ? (
-              // Swap the whole form out once the request is queued — leaving
-              // it enabled invites a second click and a duplicate request.
-              <div className="flex flex-col gap-4">
-                <p className="text-sm text-muted">{pendingNotice}</p>
-                <Button variant="ghost" onPress={state.close} fullWidth>
-                  Close
-                </Button>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                <TextField value={name} onChange={setName} isRequired>
-                  <Label>Name</Label>
-                  <Input />
-                </TextField>
+    <ResponsiveDialog state={state} title="Request a full edit" isPending={pending} onClose={reset}>
+      {pendingNotice ? (
+        // Swap the whole form out once the request is queued — leaving
+        // it enabled invites a second click and a duplicate request.
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-muted">{pendingNotice}</p>
+          <Button variant="ghost" onPress={state.close} fullWidth>
+            Close
+          </Button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <TextField value={name} onChange={setName} isRequired>
+            <Label>Name</Label>
+            <Input />
+          </TextField>
 
-                <TextField>
-                  <Label htmlFor={disciplineId}>Discipline</Label>
-                  <select
-                    id={disciplineId}
-                    value={type}
-                    disabled={disciplineLocked}
-                    onChange={(e) => handleTypeChange(e.target.value as ClimbType)}
-                    className={FIELD_CLASS}
-                  >
-                    {Object.entries(CLIMB_TYPE_LABELS).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                  {disciplineLocked && (
-                    <p className="mt-1 text-xs text-muted">
-                      Discipline can&rsquo;t be changed once sends have been logged.
-                    </p>
-                  )}
-                </TextField>
-
-                <TextField>
-                  <Label>Grade</Label>
-                  <Select
-                    aria-label="Grade"
-                    fullWidth
-                    selectedKey={grade}
-                    onSelectionChange={(key) => setGrade(String(key))}
-                  >
-                    <Select.Trigger>
-                      <Select.Value />
-                      <Select.Indicator />
-                    </Select.Trigger>
-                    <Select.Popover>
-                      <ListBox className="max-h-64 overflow-y-auto">
-                        {climb.grade === null && type === climb.type && (
-                          <ListBox.Item id={UNKNOWN_GRADE}>Unknown</ListBox.Item>
-                        )}
-                        {gradeOptions.map((label, i) => (
-                          // oxlint-disable-next-line react/no-array-index-key -- grade index is stable option id
-                          <ListBox.Item key={i} id={String(i)}>
-                            {label}
-                          </ListBox.Item>
-                        ))}
-                      </ListBox>
-                    </Select.Popover>
-                  </Select>
-                </TextField>
-
-                {error && <InlineAlert>{error}</InlineAlert>}
-
-                <Button type="submit" isDisabled={pending || !trimmedName} fullWidth>
-                  Save changes
-                </Button>
-              </form>
+          <TextField>
+            <Label htmlFor={disciplineId}>Discipline</Label>
+            <select
+              id={disciplineId}
+              value={type}
+              disabled={disciplineLocked}
+              onChange={(e) => handleTypeChange(e.target.value as ClimbType)}
+              className={FIELD_CLASS}
+            >
+              {Object.entries(CLIMB_TYPE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            {disciplineLocked && (
+              <p className="mt-1 text-xs text-muted">
+                Discipline can&rsquo;t be changed once sends have been logged.
+              </p>
             )}
-          </Drawer.Body>
-        </Drawer.Dialog>
-      </Drawer.Content>
-    </Drawer.Backdrop>
+          </TextField>
+
+          <TextField>
+            <Label>Grade</Label>
+            <Select
+              aria-label="Grade"
+              fullWidth
+              selectedKey={grade}
+              onSelectionChange={(key) => setGrade(String(key))}
+            >
+              <Select.Trigger>
+                <Select.Value />
+                <Select.Indicator />
+              </Select.Trigger>
+              <Select.Popover>
+                <ListBox className="max-h-64 overflow-y-auto">
+                  {climb.grade === null && type === climb.type && (
+                    <ListBox.Item id={UNKNOWN_GRADE}>Unknown</ListBox.Item>
+                  )}
+                  {gradeOptions.map((label, i) => (
+                    // oxlint-disable-next-line react/no-array-index-key -- grade index is stable option id
+                    <ListBox.Item key={i} id={String(i)}>
+                      {label}
+                    </ListBox.Item>
+                  ))}
+                </ListBox>
+              </Select.Popover>
+            </Select>
+          </TextField>
+
+          {error && <InlineAlert>{error}</InlineAlert>}
+
+          <Button type="submit" isDisabled={pending || !trimmedName} fullWidth>
+            Save changes
+          </Button>
+        </form>
+      )}
+    </ResponsiveDialog>
   );
 }

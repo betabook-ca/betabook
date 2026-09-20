@@ -1,12 +1,12 @@
 "use client";
 
-import { Button, Drawer, Input, Label, TextField } from "@heroui/react";
+import { Button, Input, Label, TextField } from "@heroui/react";
 import type { UseOverlayStateReturn } from "@heroui/react";
 import { useState, useTransition } from "react";
 
 import { requestAreaEdit } from "@/actions";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { PAGE_MAX_WIDTH_CLASS } from "@/components/ui/layout";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { Area } from "@/db/queries";
 
 type AreaEditRequestDrawerProps = {
@@ -51,50 +51,37 @@ export function AreaEditRequestDrawer({ area, state }: AreaEditRequestDrawerProp
     });
   }
 
-  function handleOpenChange(isOpen: boolean) {
-    state.setOpen(isOpen);
-    if (!isOpen) {
-      setName(area.name);
-      setError(null);
-      setPendingNotice(null);
-    }
+  function reset() {
+    setName(area.name);
+    setError(null);
+    setPendingNotice(null);
   }
 
   return (
-    <Drawer.Backdrop isOpen={state.isOpen} onOpenChange={handleOpenChange}>
-      <Drawer.Content>
-        <Drawer.Dialog className={`mx-auto w-full ${PAGE_MAX_WIDTH_CLASS}`}>
-          <Drawer.Header>
-            <Drawer.Heading>Request a rename</Drawer.Heading>
-            <Drawer.CloseTrigger />
-          </Drawer.Header>
-          <Drawer.Body>
-            {pendingNotice ? (
-              // Swap the whole form out once the request is queued — leaving
-              // it enabled invites a second click and a duplicate request.
-              <div className="flex flex-col gap-4">
-                <p className="text-sm text-muted">{pendingNotice}</p>
-                <Button variant="ghost" onPress={state.close} fullWidth>
-                  Close
-                </Button>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                <TextField value={name} onChange={setName} isRequired>
-                  <Label>Name</Label>
-                  <Input />
-                </TextField>
+    <ResponsiveDialog state={state} title="Request a rename" isPending={pending} onClose={reset}>
+      {pendingNotice ? (
+        // Swap the whole form out once the request is queued — leaving
+        // it enabled invites a second click and a duplicate request.
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-muted">{pendingNotice}</p>
+          <Button variant="ghost" onPress={state.close} fullWidth>
+            Close
+          </Button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <TextField value={name} onChange={setName} isRequired>
+            <Label>Name</Label>
+            <Input />
+          </TextField>
 
-                {error && <InlineAlert>{error}</InlineAlert>}
+          {error && <InlineAlert>{error}</InlineAlert>}
 
-                <Button type="submit" isDisabled={pending || !trimmedName} fullWidth>
-                  Submit rename
-                </Button>
-              </form>
-            )}
-          </Drawer.Body>
-        </Drawer.Dialog>
-      </Drawer.Content>
-    </Drawer.Backdrop>
+          <Button type="submit" isDisabled={pending || !trimmedName} fullWidth>
+            Submit rename
+          </Button>
+        </form>
+      )}
+    </ResponsiveDialog>
   );
 }
