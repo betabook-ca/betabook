@@ -250,8 +250,6 @@ export function GoalForm({
       return "End date must be on or after start date.";
     if (selectedRecurringEndDate === "") return "Choose an end date.";
     if (invalidRecurringEnd) return "End date must be today or later.";
-    if ((goal === "training" || goal === "volume") && tagsExpanded && tags.length === 0)
-      return "Add a hashtag or remove the tag filter.";
     return "";
   }
   function navigate(next: typeof step) {
