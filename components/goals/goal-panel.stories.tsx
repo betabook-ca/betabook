@@ -24,6 +24,7 @@ const meta = {
     today: "2026-09-11",
     initialActive: { goals: [], hasMore: false },
     initialCompleted: { goals: [], hasMore: false },
+    availableTags: ["hangboard", "strength", "outdoor", "trip"],
   },
 } satisfies Meta<typeof GoalPanel>;
 export default meta;

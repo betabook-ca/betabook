@@ -135,6 +135,7 @@ export function GoalPanel({
   timezone,
   today,
   nextGrades,
+  availableTags,
   initialView = "active",
   loadPage,
   loadItems,
@@ -150,6 +151,7 @@ export function GoalPanel({
   loadItems?: (goal: GoalProgress) => Promise<GoalContribution[]>;
   loadHistory?: (goalId: number, offset: number, anchor?: string) => Promise<GoalHistoryPage>;
   nextGrades?: Partial<Record<"boulder" | "sport" | "trad", number>>;
+  availableTags?: string[];
 }) {
   const mounted = useMounted();
   const [dismissedCompletions, setDismissedCompletions] = useState<Set<string>>(new Set());
@@ -654,6 +656,7 @@ export function GoalPanel({
           initialValues={editor.kind === "retry" ? editor.draft : undefined}
           today={editing?.today ?? today}
           nextGrades={nextGrades}
+          availableTags={availableTags}
           onSave={save}
           onCancel={editState.close}
           onPendingChange={setPending}

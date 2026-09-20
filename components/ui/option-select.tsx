@@ -37,7 +37,7 @@ export function OptionSelect<V extends string>({
           if (key != null) onChange(String(key) as V);
         }}
       >
-        <Select.Trigger className={FIELD_HEIGHT_CLASS}>
+        <Select.Trigger className={`${FIELD_HEIGHT_CLASS} items-center`}>
           <Select.Value className="min-w-0 truncate" />
           <Select.Indicator />
         </Select.Trigger>

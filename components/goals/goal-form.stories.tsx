@@ -6,7 +6,12 @@ import { GoalForm } from "./goal-form";
 const meta = {
   title: "Components/Goals/Goal form",
   component: GoalForm,
-  args: { today: "2026-09-11", nextGrades: { boulder: 6, sport: 6, trad: 6 }, embedded: true },
+  args: {
+    today: "2026-09-11",
+    nextGrades: { boulder: 6, sport: 6, trad: 6 },
+    availableTags: ["hangboard", "strength", "outdoor", "trip"],
+    embedded: true,
+  },
   decorators: [
     function GoalFormPopup(Story) {
       const [open, setOpen] = useState(true);
@@ -43,7 +48,13 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 export const Categories: Story = {};
 export const Climbing: Story = { args: { initialCategory: "climbing" } };
+export const ClimbingWithoutTags: Story = {
+  args: { initialCategory: "climbing", availableTags: [] },
+};
 export const Training: Story = { args: { initialCategory: "training" } };
+export const TrainingWithoutTags: Story = {
+  args: { initialCategory: "training", availableTags: [] },
+};
 export const Recurring: Story = { args: { initialCategory: "training", initialRepeat: "week" } };
 export const MonthlyTraining: Story = {
   args: { initialCategory: "training", initialRepeat: "month" },

@@ -9,6 +9,25 @@ import { FIELD_WIDTH_CLASS, FILTER_ROW_CLASS, FILTER_LABEL_CLASS } from "@/compo
 import { FieldHeader, FieldFeedback } from "@/components/ui/field-support";
 
 const EMPTY_TAGS: string[] = [];
+function fieldLayout(inlineLabel: boolean, sentenceLayout: boolean) {
+  if (sentenceLayout) return "contents";
+  return inlineLabel ? FILTER_ROW_CLASS : `${FIELD_WIDTH_CLASS.medium} flex flex-col gap-2`;
+}
+function fieldAriaLabel(inlineLabel: boolean, showLabel: boolean) {
+  return inlineLabel || !showLabel ? "Tags" : undefined;
+}
+function fieldHelper(showHelper: boolean, full: boolean, maxTags: number | undefined) {
+  if (!showHelper) return undefined;
+  return full
+    ? `That's all ${maxTags} tags — remove one to add another.`
+    : "Enter, Space, or comma to add.";
+}
+function shouldBrowse(allowCreate: boolean, tags: string[]) {
+  return !allowCreate || tags.length > 0;
+}
+function showTagExamples(allowCreate: boolean, showExamples: boolean, draft: string) {
+  return allowCreate && showExamples && draft === "#";
+}
 
 export function TagsField({
   value,
@@ -18,6 +37,12 @@ export function TagsField({
   allowCreate = false,
   validateTag,
   maxTags,
+  showUsage = true,
+  showLabel = true,
+  showHelper = true,
+  sentenceLayout = false,
+  showExamples = true,
+  onTagSelected,
 }: {
   value: string[];
   onChange: (value: string[]) => void;
@@ -25,10 +50,17 @@ export function TagsField({
   allowCreate?: boolean;
   validateTag?: (tag: string) => string | null;
   maxTags?: number;
+  showUsage?: boolean;
+  showLabel?: boolean;
+  showHelper?: boolean;
+  sentenceLayout?: boolean;
+  showExamples?: boolean;
+  onTagSelected?: () => void;
   inlineLabel?: boolean;
 }) {
   const [draft, setDraft] = useState("#");
   const [error, setError] = useState<string | null>(null);
+  const examplesVisible = showTagExamples(allowCreate, showExamples, draft);
   const full = maxTags !== undefined && value.length >= maxTags;
   const normalize = (text: string) => text.trim().replace(/^#+/, "").toLowerCase();
   const fingerprint = JSON.stringify(value);
@@ -59,13 +91,11 @@ export function TagsField({
   }
 
   return (
-    <div
-      className={inlineLabel ? FILTER_ROW_CLASS : `${FIELD_WIDTH_CLASS.medium} flex flex-col gap-2`}
-    >
+    <div className={fieldLayout(inlineLabel, sentenceLayout)}>
       {inlineLabel && <span className={FILTER_LABEL_CLASS}>Tags</span>}
       <div className={`${FIELD_WIDTH_CLASS.medium} flex flex-col gap-2`}>
         <ComboBox
-          aria-label={inlineLabel ? "Tags" : undefined}
+          aria-label={fieldAriaLabel(inlineLabel, showLabel)}
           isDisabled={full}
           isInvalid={Boolean(error)}
           allowsCustomValue
@@ -81,13 +111,16 @@ export function TagsField({
           fullWidth
           onSelectionChange={(key) => {
             const item = availableItems.find((item) => item.tag === key);
-            if (item) commit(item.tag);
+            if (item) {
+              commit(item.tag);
+              onTagSelected?.();
+            }
           }}
         >
-          {!inlineLabel && (
+          {!inlineLabel && showLabel && (
             <FieldHeader
               usage={
-                maxTags === undefined
+                maxTags === undefined || !showUsage
                   ? undefined
                   : { used: value.length, limit: maxTags, unit: "tags" }
               }
@@ -97,13 +130,17 @@ export function TagsField({
           )}
           <ComboBox.InputGroup className="relative">
             <TagFieldInput
-              showHint={allowCreate && draft === "#"}
-              browse={!allowCreate}
+              showHint={examplesVisible}
+              browse={shouldBrowse(allowCreate, tags)}
               onBlurCommit={allowCreate ? () => commit(draft) : undefined}
               scope={JSON.stringify([tags, value])}
-              onCommit={() => commit(draft)}
+              onCommit={() => {
+                const saved = commit(draft);
+                if (saved) onTagSelected?.();
+                return saved;
+              }}
             />
-            {allowCreate && draft === "#" && (
+            {examplesVisible && (
               <span
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-x-3 top-1/2 -translate-y-1/2 truncate text-xs text-muted"
@@ -113,14 +150,7 @@ export function TagsField({
             )}
             <ComboBox.Trigger className="hidden" />
           </ComboBox.InputGroup>
-          <FieldFeedback
-            error={error}
-            helper={
-              full
-                ? `That's all ${maxTags} tags — remove one to add another.`
-                : "Enter, Space, or comma to add."
-            }
-          />
+          <FieldFeedback error={error} helper={fieldHelper(showHelper, full, maxTags)} />
           <ComboBox.Popover>
             <ListBox
               renderEmptyState={() => (
@@ -135,28 +165,28 @@ export function TagsField({
             </ListBox>
           </ComboBox.Popover>
         </ComboBox>
-        {value.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {value.map((tag) => (
-              <Button
-                key={tag}
-                size="sm"
-                variant="secondary"
-                type="button"
-                onPress={() => {
-                  onChange(value.filter((selected) => selected !== tag));
-                  setDraft("#");
-                }}
-                aria-label={`Remove tag ${tag}`}
-                className="max-w-full"
-              >
-                <span className="truncate">#{tag}</span>
-                <X className="size-3.5" aria-hidden="true" />
-              </Button>
-            ))}
-          </div>
-        )}
       </div>
+      {value.length > 0 && (
+        <div className="flex w-full flex-wrap gap-2">
+          {value.map((tag) => (
+            <Button
+              key={tag}
+              size="sm"
+              variant="secondary"
+              type="button"
+              onPress={() => {
+                onChange(value.filter((selected) => selected !== tag));
+                setDraft("#");
+              }}
+              aria-label={`Remove tag ${tag}`}
+              className="max-w-full"
+            >
+              <span className="truncate">#{tag}</span>
+              <X className="size-3.5" aria-hidden="true" />
+            </Button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
