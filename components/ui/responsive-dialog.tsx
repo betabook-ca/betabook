@@ -3,7 +3,7 @@
 import { Drawer, Modal } from "@heroui/react";
 import type { UseOverlayStateReturn } from "@heroui/react";
 import { clsx } from "clsx";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { useIsAtLeast } from "@/hooks/use-breakpoint";
 
@@ -15,6 +15,9 @@ export type DialogSize = "sm" | "md" | "lg";
  * 85vh. `fullscreen` takes the whole viewport — use it for forms long enough
  * that 85vh minus a keyboard leaves too little to work in. */
 export type DialogPresentation = "sheet" | "fullscreen";
+
+/** HeroUI's drawer exit runs 200ms; this leaves room either side of it. */
+const EXIT_SETTLE_MS = 300;
 
 const DESKTOP_WIDTH_CLASS: Record<DialogSize, string> = {
   sm: "w-full max-w-md",
@@ -63,10 +66,28 @@ export function ResponsiveDialog({
   footer,
   children,
 }: ResponsiveDialogProps) {
-  // Held still while open. Crossing the breakpoint swaps Drawer for Modal,
-  // which unmounts the body, so a phone rotated mid-form would lose
-  // everything typed into it.
-  const desktop = useIsAtLeast("md", { live: !state.isOpen }) ?? false;
+  const live = useIsAtLeast("md");
+  // The variant is held still for as long as the dialog is on screen,
+  // including its exit animation. Swapping Drawer for Modal unmounts the
+  // body, so a phone rotated mid-form would lose everything typed into it,
+  // and a swap part-way through the exit would make the dialog vanish
+  // instead of sliding away. `EXIT_SETTLE_MS` clears HeroUI's exit before
+  // the viewport is followed again.
+  const [pinned, setPinned] = useState<boolean | undefined>(undefined);
+  useEffect(() => {
+    if (live === undefined) return;
+    // The first real reading is adopted straight away, so a dialog that
+    // starts open still opens as the right variant.
+    if (pinned === undefined) {
+      // oxlint-disable-next-line react/set-state-in-effect -- one-time adoption of the resolved viewport
+      setPinned(live);
+      return;
+    }
+    if (state.isOpen || pinned === live) return;
+    const timer = setTimeout(() => setPinned(live), EXIT_SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [live, pinned, state.isOpen]);
+  const desktop = pinned ?? live ?? false;
 
   function handleOpenChange(open: boolean) {
     if (isPending) return;
@@ -75,8 +96,11 @@ export function ResponsiveDialog({
   }
 
   const heading = <span className={clsx(hideTitle && "sr-only")}>{title}</span>;
-  // Mounted only while open, so reopening starts from a clean form.
-  const body = state.isOpen ? children : null;
+  // `children` is rendered as-is rather than gated on `isOpen`: react-aria
+  // keeps the overlay mounted for its exit animation, so blanking the body
+  // there would empty the dialog for 200ms while it slid away. Closing
+  // unmounts the whole subtree anyway, so a reopened form still starts
+  // clean.
 
   if (desktop) {
     return (
@@ -87,7 +111,7 @@ export function ResponsiveDialog({
               <Modal.Heading>{heading}</Modal.Heading>
               <Modal.CloseTrigger isDisabled={isPending} />
             </Modal.Header>
-            <Modal.Body>{body}</Modal.Body>
+            <Modal.Body>{children}</Modal.Body>
             {footer && <Modal.Footer>{footer}</Modal.Footer>}
           </Modal.Dialog>
         </Modal.Container>
@@ -115,7 +139,7 @@ export function ResponsiveDialog({
             <Drawer.Heading>{heading}</Drawer.Heading>
             <Drawer.CloseTrigger isDisabled={isPending} />
           </Drawer.Header>
-          <Drawer.Body>{body}</Drawer.Body>
+          <Drawer.Body>{children}</Drawer.Body>
           {footer && <Drawer.Footer>{footer}</Drawer.Footer>}
         </Drawer.Dialog>
       </Drawer.Content>

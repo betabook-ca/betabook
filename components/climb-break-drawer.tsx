@@ -72,6 +72,13 @@ export function ClimbBreakDrawer({ climb, state }: ClimbBreakDrawerProps) {
     setPendingNotice(null);
   }
 
+  // Closing from inside the body doesn't pass through the dialog's own
+  // dismissal, so it has to clear the form itself.
+  function close() {
+    state.close();
+    reset();
+  }
+
   return (
     <ResponsiveDialog state={state} title="Report as broken" isPending={pending} onClose={reset}>
       {pendingNotice ? (
@@ -79,8 +86,8 @@ export function ClimbBreakDrawer({ climb, state }: ClimbBreakDrawerProps) {
         // trip the one-pending-request rule.
         <div className="flex flex-col gap-4">
           <p className="text-sm text-muted">{pendingNotice}</p>
-          <Button variant="ghost" onPress={state.close} fullWidth>
-            Close
+          <Button variant="ghost" onPress={close} fullWidth>
+            Done
           </Button>
         </div>
       ) : (

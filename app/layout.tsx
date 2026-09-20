@@ -123,10 +123,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Skip to content
         </a>
         <Providers>
-          {/* Wraps everything below the providers: the palette reads the
-           * scope, and the pages that set it are rendered as children. */}
-          {/* Inside the scope provider, which the palette reads, and around
-           * the page, whose own search entry opens the same palette. */}
+          {/* Wraps the page, whose own search entry opens the same palette
+           * the ⌘K shortcut does. */}
           <SearchPaletteProvider>
             <AppSidebar>
               <header className="flex h-14 shrink-0 items-center px-4">

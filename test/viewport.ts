@@ -11,9 +11,11 @@ export function stubViewport(side: "mobile" | "desktop") {
   const desktop = side === "desktop";
   vi.stubGlobal("matchMedia", (media: string) => ({
     media,
-    // Every breakpoint query in the app is a min-width, so one answer per
-    // side covers all of them.
-    matches: desktop,
+    // Only answers width queries. Everything else — (pointer: coarse),
+    // (display-mode: standalone), (prefers-reduced-motion) — reads as
+    // unmatched, so a test that needs one stubs it itself rather than
+    // inheriting an answer this helper never meant to give.
+    matches: media.includes("min-width") ? desktop : false,
     addEventListener: vi.fn<() => void>(),
     removeEventListener: vi.fn<() => void>(),
   }));

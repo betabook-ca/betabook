@@ -158,7 +158,6 @@ export default async function AreaPage({ params, searchParams }: AreaPageProps) 
           ancestorNames,
         })}
       />
-      {/* Lets ⌘K lead with this area's own routes while the viewer is here. */}
       <AreaBreadcrumbs ancestors={ancestors} current={area} />
 
       <AreaCragHeader

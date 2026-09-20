@@ -25,14 +25,10 @@ export const BREAKPOINT_QUERY: Record<Breakpoint, string> = {
  * Handle the `undefined` case rather than treating it as `false` — the
  * server has no viewport, and guessing causes a hydration mismatch.
  *
- * Pass `live: false` to read once and then hold that answer. Callers that
- * swap one subtree for another across the breakpoint use it to pin the
- * result for the length of an interaction, so a rotated phone doesn't
- * unmount a form mid-edit. */
-export function useIsAtLeast(
-  breakpoint: Breakpoint,
-  { live = true }: { live?: boolean } = {},
-): boolean | undefined {
+ * This always tracks the viewport. A caller that swaps one subtree for
+ * another across the breakpoint should hold the answer in its own state for
+ * the length of an interaction — see ResponsiveDialog. */
+export function useIsAtLeast(breakpoint: Breakpoint): boolean | undefined {
   const [matches, setMatches] = useState<boolean | undefined>(undefined);
 
   useIsomorphicLayoutEffect(() => {
@@ -42,10 +38,9 @@ export function useIsAtLeast(
     if (!query) return;
     const update = () => setMatches(query.matches);
     update();
-    if (!live) return;
     query.addEventListener("change", update);
     return () => query.removeEventListener("change", update);
-  }, [breakpoint, live]);
+  }, [breakpoint]);
 
   return matches;
 }
