@@ -35,7 +35,12 @@ export const Open: StoryObj = {
     return (
       <StoryPage title="Share your stats">
         <Button onPress={state.open}>Share stats</Button>
-        <SocialCardDialog state={state} userId="climber1" name="Alex Rivera" />
+        <SocialCardDialog
+          state={state}
+          userId="climber1"
+          name="Alex Rivera"
+          shareUrl="https://betabook.ca/users/climber1?share=0123456789abcdef0123456789abcdef"
+        />
       </StoryPage>
     );
   },

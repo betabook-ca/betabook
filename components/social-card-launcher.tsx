@@ -8,7 +8,18 @@ import { SocialCardDialog } from "@/components/social-card-dialog";
 /** Entry point for the owner's shareable recap card, beside Customize on the
  * analytics page. Split from the dialog so opening it doesn't pull the
  * dialog's own state into this always-mounted button. */
-export function SocialCardLauncher({ userId, name }: { userId: string; name: string }) {
+export function SocialCardLauncher({
+  userId,
+  name,
+  shareUrl,
+}: {
+  userId: string;
+  name: string;
+  /** The climber's own profile link, to invite the recipient along — null
+   * while their profile is private, in which case the share text names
+   * Betabook without a link nobody could open. */
+  shareUrl: string | null;
+}) {
   const state = useOverlayState();
   return (
     <>
@@ -16,7 +27,7 @@ export function SocialCardLauncher({ userId, name }: { userId: string; name: str
         <Share aria-hidden="true" size={16} />
         Share stats
       </Button>
-      <SocialCardDialog state={state} userId={userId} name={name} />
+      <SocialCardDialog state={state} userId={userId} name={name} shareUrl={shareUrl} />
     </>
   );
 }

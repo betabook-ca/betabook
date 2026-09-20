@@ -32,6 +32,7 @@ import {
 } from "@/lib/feature-announcements";
 import { normalizeHashtagFilters } from "@/lib/filters/hashtag-filter";
 import type { ClimbType } from "@/lib/grades";
+import { getOwnProfileShareUrl } from "@/lib/profile-share-url";
 import { getMemberSession } from "@/lib/session";
 import { toArray, type UrlParamsRecord } from "@/lib/url-params";
 import {
@@ -83,7 +84,7 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
   const selectedTags = normalizeHashtagFilters(toArray(search.tag));
   const journalVisible = await canReadJournal(db, user.id, viewerId);
   const isOwner = viewerId === id;
-  const [rows, journalSessions, tags, viewerAnnouncements] = await Promise.all([
+  const [rows, journalSessions, tags, viewerAnnouncements, shareUrl] = await Promise.all([
     getUserSendsForAnalytics(db, id, viewerId, selectedTags),
     journalVisible
       ? getJournalSessionsForAnalytics(db, user.id, viewerId, selectedTags)
@@ -92,6 +93,7 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
     isOwner
       ? getViewerFeatureAnnouncements(session.user.id, session.user.createdAt.getTime())
       : Promise.resolve([]),
+    isOwner ? getOwnProfileShareUrl(db, user) : Promise.resolve(null),
   ]);
 
   // Grades only compare within one discipline, so the page is always scoped to one.
@@ -161,7 +163,11 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
           canCustomize={isOwner}
           initialLayout={initialLayout}
           onSave={isOwner ? saveAnalyticsLayout : undefined}
-          shareCard={isOwner ? <SocialCardLauncher userId={id} name={user.name} /> : undefined}
+          shareCard={
+            isOwner ? (
+              <SocialCardLauncher userId={id} name={user.name} shareUrl={shareUrl} />
+            ) : undefined
+          }
           analytics={analytics}
           sends={rows}
           sessions={highlightSessions}

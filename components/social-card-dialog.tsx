@@ -21,14 +21,33 @@ type Card = { period: SocialCardPeriod; blob: Blob; url: string };
  * period that hasn't failed never shows a stale failure while it loads. */
 type FetchError = { period: SocialCardPeriod; message: string };
 
+const PERIOD_SHARE_PHRASE: Record<SocialCardPeriod, string> = {
+  month: "this month",
+  year: "this year",
+  all: "so far",
+};
+
+/** The caption that travels with the shared image. The link lives inside
+ * `text`, not a separate `url` member: Chromium's Web Share API rejects a
+ * share that combines `files` with `url`, so `text` is the only place a
+ * link can ride along with the card image. */
+function shareText(period: SocialCardPeriod, shareUrl: string | null): string {
+  const progress = `Here's my climbing progress ${PERIOD_SHARE_PHRASE[period]}.`;
+  return shareUrl
+    ? `${progress} Join me on Betabook: ${shareUrl}`
+    : `${progress} Join me on Betabook`;
+}
+
 export function SocialCardDialog({
   state,
   userId,
   name,
+  shareUrl,
 }: {
   state: UseOverlayStateReturn;
   userId: string;
   name: string;
+  shareUrl: string | null;
 }) {
   const nativeShare = useNativeShare();
   const [period, setPeriod] = useState<SocialCardPeriod>("year");
@@ -81,7 +100,11 @@ export function SocialCardDialog({
     const file = new File([ready.blob], `betabook-${period}-recap.png`, { type: "image/png" });
     try {
       if (navigator.canShare?.({ files: [file] })) {
-        await openShareSheet({ files: [file], title: `${name}'s Betabook recap` });
+        await openShareSheet({
+          files: [file],
+          title: `${name}'s Betabook recap`,
+          text: shareText(period, shareUrl),
+        });
         setStatus("");
       } else {
         download();

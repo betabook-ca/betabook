@@ -11,6 +11,7 @@ vi.mock("@/lib/download", () => ({ downloadBlob: vi.fn<typeof downloadBlob>() })
 
 const IPHONE =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
+const SHARE_URL = "https://betabook.ca/users/climber1?share=0123456789abcdef0123456789abcdef";
 
 const download = vi.mocked(downloadBlob);
 const fetchMock = vi.fn<typeof fetch>();
@@ -57,11 +58,23 @@ afterEach(() => {
 it("fetches the default period on open and refetches on every period change", async () => {
   const user = userEvent.setup();
   const { rerender } = render(
-    <SocialCardDialog state={overlayState(false)} userId="climber1" name="Alex Rivera" />,
+    <SocialCardDialog
+      state={overlayState(false)}
+      userId="climber1"
+      name="Alex Rivera"
+      shareUrl={SHARE_URL}
+    />,
   );
   expect(fetchMock).not.toHaveBeenCalled();
 
-  rerender(<SocialCardDialog state={overlayState(true)} userId="climber1" name="Alex Rivera" />);
+  rerender(
+    <SocialCardDialog
+      state={overlayState(true)}
+      userId="climber1"
+      name="Alex Rivera"
+      shareUrl={SHARE_URL}
+    />,
+  );
   await waitFor(() =>
     expect(fetchMock).toHaveBeenCalledWith("/api/og/stats-card/climber1?period=year"),
   );
@@ -78,7 +91,14 @@ it("fetches the default period on open and refetches on every period change", as
 it("shows an error instead of a stale or broken preview when generation fails", async () => {
   fetchMock.mockResolvedValue({ ok: false } as Response);
 
-  render(<SocialCardDialog state={overlayState(true)} userId="climber1" name="Alex Rivera" />);
+  render(
+    <SocialCardDialog
+      state={overlayState(true)}
+      userId="climber1"
+      name="Alex Rivera"
+      shareUrl={SHARE_URL}
+    />,
+  );
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
     "Couldn't generate your card. Try again.",
@@ -89,7 +109,14 @@ it("shows an error instead of a stale or broken preview when generation fails", 
 it("clears a period's error once a later retry for that same period succeeds", async () => {
   const user = userEvent.setup();
   fetchMock.mockResolvedValueOnce({ ok: false } as Response); // "This year" fails first
-  render(<SocialCardDialog state={overlayState(true)} userId="climber1" name="Alex Rivera" />);
+  render(
+    <SocialCardDialog
+      state={overlayState(true)}
+      userId="climber1"
+      name="Alex Rivera"
+      shareUrl={SHARE_URL}
+    />,
+  );
   await screen.findByRole("alert");
 
   await user.click(screen.getByRole("button", { name: "This month" })); // succeeds (default mock)
@@ -103,7 +130,14 @@ it("clears a period's error once a later retry for that same period succeeds", a
 
 it("downloads the generated card under a period-named file", async () => {
   const user = userEvent.setup();
-  render(<SocialCardDialog state={overlayState(true)} userId="climber1" name="Alex Rivera" />);
+  render(
+    <SocialCardDialog
+      state={overlayState(true)}
+      userId="climber1"
+      name="Alex Rivera"
+      shareUrl={SHARE_URL}
+    />,
+  );
   await screen.findByRole("img", { name: "This year recap card preview" });
 
   await user.click(screen.getByRole("button", { name: "Download" }));
@@ -113,7 +147,14 @@ it("downloads the generated card under a period-named file", async () => {
 });
 
 it("has no Share button on a desktop browser without the Web Share API", async () => {
-  render(<SocialCardDialog state={overlayState(true)} userId="climber1" name="Alex Rivera" />);
+  render(
+    <SocialCardDialog
+      state={overlayState(true)}
+      userId="climber1"
+      name="Alex Rivera"
+      shareUrl={SHARE_URL}
+    />,
+  );
   await screen.findByRole("img", { name: "This year recap card preview" });
 
   expect(screen.queryByRole("button", { name: "Share" })).not.toBeInTheDocument();
@@ -126,7 +167,14 @@ it("shares the card as a file on a phone that supports sharing files", async () 
   shareMock.mockReset().mockResolvedValue(undefined);
   canShareMock.mockReset().mockReturnValue(true);
   const user = userEvent.setup();
-  render(<SocialCardDialog state={overlayState(true)} userId="climber1" name="Alex Rivera" />);
+  render(
+    <SocialCardDialog
+      state={overlayState(true)}
+      userId="climber1"
+      name="Alex Rivera"
+      shareUrl={SHARE_URL}
+    />,
+  );
   await screen.findByRole("img", { name: "This year recap card preview" });
 
   await user.click(await screen.findByRole("button", { name: "Share" }));
@@ -134,10 +182,36 @@ it("shares the card as a file on a phone that supports sharing files", async () 
   expect(shareMock).toHaveBeenCalledOnce();
   const [data] = shareMock.mock.calls[0];
   expect(data.title).toBe("Alex Rivera's Betabook recap");
+  expect(data.text).toBe(
+    `Here's my climbing progress this year. Join me on Betabook: ${SHARE_URL}`,
+  );
   expect(data.files).toHaveLength(1);
   expect(data.files?.[0].name).toBe("betabook-year-recap.png");
   expect(data.files?.[0].type).toBe("image/png");
   expect(download).not.toHaveBeenCalled();
+});
+
+it("invites without a link when the climber's profile is private", async () => {
+  Object.defineProperty(navigator, "userAgent", { configurable: true, get: () => IPHONE });
+  Object.defineProperty(navigator, "share", { configurable: true, value: shareMock });
+  Object.defineProperty(navigator, "canShare", { configurable: true, value: canShareMock });
+  shareMock.mockReset().mockResolvedValue(undefined);
+  canShareMock.mockReset().mockReturnValue(true);
+  const user = userEvent.setup();
+  render(
+    <SocialCardDialog
+      state={overlayState(true)}
+      userId="climber1"
+      name="Alex Rivera"
+      shareUrl={null}
+    />,
+  );
+  await screen.findByRole("img", { name: "This year recap card preview" });
+
+  await user.click(await screen.findByRole("button", { name: "Share" }));
+
+  const [data] = shareMock.mock.calls[0];
+  expect(data.text).toBe("Here's my climbing progress this year. Join me on Betabook");
 });
 
 it("falls back to a download when the platform can't share files", async () => {
@@ -147,7 +221,14 @@ it("falls back to a download when the platform can't share files", async () => {
   shareMock.mockReset();
   canShareMock.mockReset().mockReturnValue(false);
   const user = userEvent.setup();
-  render(<SocialCardDialog state={overlayState(true)} userId="climber1" name="Alex Rivera" />);
+  render(
+    <SocialCardDialog
+      state={overlayState(true)}
+      userId="climber1"
+      name="Alex Rivera"
+      shareUrl={SHARE_URL}
+    />,
+  );
   await screen.findByRole("img", { name: "This year recap card preview" });
 
   await user.click(await screen.findByRole("button", { name: "Share" }));
