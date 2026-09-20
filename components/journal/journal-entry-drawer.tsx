@@ -27,8 +27,20 @@ export function JournalEntryDrawer({
   onSave,
 }: JournalEntryDrawerProps) {
   const [pending, setPending] = useState(false);
+  // The climb search is a search field over a result list, which wants the
+  // whole phone screen rather than a sheet's 85vh — with a keyboard up the
+  // sheet caps after about two results. Only the presentation changes, so
+  // the picker keeps its query and results across the switch.
+  const [browsing, setBrowsing] = useState(false);
   return (
-    <ResponsiveDialog state={state} title="Log entry" hideTitle isPending={pending}>
+    <ResponsiveDialog
+      state={state}
+      title="Log entry"
+      hideTitle
+      isPending={pending}
+      presentation={browsing ? "fullscreen" : "sheet"}
+      onClose={() => setBrowsing(false)}
+    >
       {climb ? (
         <>
           <PageTitle className="mb-3 text-2xl! text-foreground">{climb.name}</PageTitle>
@@ -48,6 +60,7 @@ export function JournalEntryDrawer({
           sentClimbIds={sentClimbIds}
           onDone={state.close}
           onPendingChange={setPending}
+          onBrowseChange={setBrowsing}
         />
       )}
     </ResponsiveDialog>
