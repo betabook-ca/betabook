@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@heroui/react";
-import { Pin } from "lucide-react";
+import { Target } from "lucide-react";
 
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { Grade } from "@/components/ui/grade";
@@ -45,7 +45,7 @@ export function ProjectSuggestionList({
               <span className="flex shrink-0 items-center gap-2">
                 <Grade size="sm">{formatGrade(climb.climbType, climb.climbGrade)}</Grade>
                 <DisciplineChip type={climb.climbType} />
-                <Pin className="size-4" />
+                <Target className="size-4" />
               </span>
             </Button>
           </li>

@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, useOverlayState } from "@heroui/react";
-import { Pin } from "lucide-react";
+import { Target } from "lucide-react";
 
 import { DeferredLoadError } from "@/components/ui/deferred-load-error";
 import type { OpenProject } from "@/db/queries";
@@ -32,7 +32,7 @@ export function PinProjectButton({
           state.open();
         }}
       >
-        <Pin className="size-4" />
+        <Target className="size-4" />
         Track project
       </Button>
       {PinProjectDialog && (

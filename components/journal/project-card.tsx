@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@heroui/react";
-import { CirclePlus, PinOff } from "lucide-react";
+import { CircleOff, CirclePlus } from "lucide-react";
 import { useState, useTransition } from "react";
 
 import { unpinProject } from "@/actions";
@@ -67,7 +67,7 @@ export function ProjectCard({ project, userId, today, onLogSession }: ProjectCar
               isDisabled={pending}
               onPress={handleUnpin}
             >
-              <PinOff className="size-4" />
+              <CircleOff className="size-4" />
               Untrack
             </Button>
           </div>
