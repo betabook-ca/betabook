@@ -135,58 +135,62 @@ export function socialCardElement(owner: SocialCardOwner, stats: SocialCardStats
   if (stats.sendCount === 0 && stats.daysOut === 0) {
     return (
       <CardFrame padding={72}>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 28,
-            textAlign: "center",
-          }}
-        >
-          <div style={{ display: "flex", opacity: 0.14 }}>
-            <BetabookMark size={140} color={OG_COLORS.ink} sunColor={OG_COLORS.ink} />
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-            <span
-              style={{
-                fontFamily: OG_FONT.body,
-                fontWeight: 500,
-                fontSize: 28,
-                color: "rgba(0,0,0,0.56)",
-                textTransform: "uppercase",
-                letterSpacing: 3,
-              }}
-            >
-              {stats.periodLabel}
-            </span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 56 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+            <Avatar
+              photo={owner.avatarUrl}
+              initials={owner.initials}
+              size={64}
+              color={OG_COLORS.ink}
+            />
             <span
               style={{
                 fontFamily: OG_FONT.display,
                 fontWeight: 700,
-                fontSize: 64,
+                fontSize: 40,
                 color: OG_COLORS.ink,
-                lineHeight: 1.1,
               }}
             >
-              No sends logged yet
+              {owner.name}
             </span>
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <Avatar
-                photo={owner.avatarUrl}
-                initials={owner.initials}
-                size={44}
-                color={OG_COLORS.ink}
-              />
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 28,
+              textAlign: "center",
+            }}
+          >
+            <div style={{ display: "flex", opacity: 0.14 }}>
+              <BetabookMark size={140} color={OG_COLORS.ink} sunColor={OG_COLORS.ink} />
+            </div>
+            <div
+              style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}
+            >
               <span
                 style={{
                   fontFamily: OG_FONT.body,
                   fontWeight: 500,
-                  fontSize: 30,
-                  color: "rgba(0,0,0,0.6)",
+                  fontSize: 28,
+                  color: "rgba(0,0,0,0.56)",
+                  textTransform: "uppercase",
+                  letterSpacing: 3,
                 }}
               >
-                {owner.name}
+                {stats.periodLabel}
+              </span>
+              <span
+                style={{
+                  fontFamily: OG_FONT.display,
+                  fontWeight: 700,
+                  fontSize: 64,
+                  color: OG_COLORS.ink,
+                  lineHeight: 1.1,
+                }}
+              >
+                No sends logged yet
               </span>
             </div>
           </div>
@@ -196,8 +200,26 @@ export function socialCardElement(owner: SocialCardOwner, stats: SocialCardStats
   }
   return (
     <CardFrame padding={72}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 88 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 64 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+          <Avatar
+            photo={owner.avatarUrl}
+            initials={owner.initials}
+            size={64}
+            color={OG_COLORS.coral}
+          />
+          <span
+            style={{
+              fontFamily: OG_FONT.display,
+              fontWeight: 700,
+              fontSize: 40,
+              color: OG_COLORS.ink,
+            }}
+          >
+            {owner.name}
+          </span>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div
               style={{
@@ -232,24 +254,18 @@ export function socialCardElement(owner: SocialCardOwner, stats: SocialCardStats
           >
             {stats.sendCount}
           </span>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <Avatar
-              photo={owner.avatarUrl}
-              initials={owner.initials}
-              size={56}
-              color={OG_COLORS.coral}
-            />
-            <span
-              style={{
-                fontFamily: OG_FONT.body,
-                fontWeight: 500,
-                fontSize: 40,
-                color: OG_COLORS.ink,
-              }}
-            >
-              {`${stats.sendCount === 1 ? "send" : "sends"} · ${owner.name}`}
-            </span>
-          </div>
+          <span
+            style={{
+              fontFamily: OG_FONT.body,
+              fontWeight: 500,
+              fontSize: 24,
+              color: "rgba(0,0,0,0.56)",
+              textTransform: "uppercase",
+              letterSpacing: 3,
+            }}
+          >
+            {stats.sendCount === 1 ? "Send" : "Sends"}
+          </span>
         </div>
         {stats.pyramid.length > 0 && (
           <div style={{ display: "flex", gap: 28 }}>
