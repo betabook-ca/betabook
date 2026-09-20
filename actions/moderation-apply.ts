@@ -16,6 +16,8 @@ import {
 import { moderationAuthorizedSql } from "@/db/queries/moderation";
 import {
   areas,
+  catalogAreaSources,
+  catalogRouteSources,
   changeRequestApprovals,
   changeRequests,
   climbs,
@@ -223,7 +225,14 @@ export async function applyAreaDelete(
 
   await commitMutation(
     db,
-    [db.delete(areas).where(eq(areas.id, areaId)), rejectOrphanedAreaRequests(db, areaId)],
+    [
+      db
+        .update(catalogAreaSources)
+        .set({ areaId: null, quality: "area_deleted" })
+        .where(eq(catalogAreaSources.areaId, areaId)),
+      db.delete(areas).where(eq(areas.id, areaId)),
+      rejectOrphanedAreaRequests(db, areaId),
+    ],
     areaUnchanged(existing),
     decision,
   );
@@ -411,7 +420,14 @@ export async function applyClimbDelete(
   const existing = await assertClimbDeletable(db, climbId);
   await commitMutation(
     db,
-    [db.delete(climbs).where(eq(climbs.id, climbId)), rejectOrphanedClimbRequests(db, climbId)],
+    [
+      db
+        .update(catalogRouteSources)
+        .set({ climbId: null, status: "review", matchKind: "climb_deleted", matchScore: null })
+        .where(eq(catalogRouteSources.climbId, climbId)),
+      db.delete(climbs).where(eq(climbs.id, climbId)),
+      rejectOrphanedClimbRequests(db, climbId),
+    ],
     climbUnchanged(existing),
     decision,
   );
@@ -700,6 +716,10 @@ export async function applyClimbMerge(
     ...(Object.keys(overrides).length > 0
       ? [db.update(climbs).set(overrides).where(eq(climbs.id, targetClimbId))]
       : []),
+    db
+      .update(catalogRouteSources)
+      .set({ climbId: targetClimbId })
+      .where(eq(catalogRouteSources.climbId, sourceClimbId)),
     db.delete(climbs).where(eq(climbs.id, sourceClimbId)),
     // The current request is already approved; reject the remaining orphaned requests.
     rejectOrphanedClimbRequests(db, sourceClimbId),
