@@ -270,12 +270,15 @@ it("keeps a failed unpin on screen with its reason", async () => {
   expect(headings()).toEqual(["Moon Slab", "Ash Crack"]);
 });
 
-it("offers the pin control when there are no projects yet, which is the only way out", () => {
+it("keeps the whole toolbar on an empty board and puts the message under it", () => {
   render(<ProjectBoard userId="climber" projects={[]} hasMore={false} />);
 
-  expect(screen.getByText(/No projects pinned yet/)).toBeInTheDocument();
+  // Same row as a populated board, so the pin control does not jump once the
+  // climber makes their first pin.
+  expect(screen.getByRole("searchbox", { name: "Filter projects" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /Sort projects/ })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Pin project" })).toBeInTheDocument();
-  expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
+  expect(screen.getByText(/No projects pinned yet/)).toBeInTheDocument();
 });
 
 it("lists the sent side separately and does not offer to pin from it", () => {
@@ -290,5 +293,6 @@ it("says nothing is sent yet without inviting a pin that belongs on the other ta
   render(<ProjectBoard userId="climber" projects={[]} hasMore={false} variant="sent" />);
 
   expect(screen.getByText(/No sent projects yet/)).toBeInTheDocument();
+  expect(screen.getByRole("searchbox", { name: "Filter projects" })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Pin project" })).not.toBeInTheDocument();
 });

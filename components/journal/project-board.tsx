@@ -122,74 +122,65 @@ export function ProjectBoard({
     return [...matched].sort(COMPARATORS[sort]);
   }, [projects, query, sort]);
 
-  // The pin control has to stay reachable from an empty board — that is
-  // exactly the state a climber starts in and the only way out of it.
   const pinButton = sents ? null : (
     <PinProjectButton suggestions={suggestions} pinnedClimbIds={pinnedClimbIds} />
   );
+  const empty = projects.length === 0;
 
   return (
     <div className="flex flex-col gap-4">
-      {projects.length === 0 ? (
-        <div className="flex flex-col items-start gap-3">
-          <EmptyState
-            message={
-              sents
-                ? "No sent projects yet. Pinned climbs move here once you log a send."
-                : "No projects pinned yet. Pin a climb to start tracking it."
-            }
+      {/* The toolbar renders in every state, including the empty one. It is
+       * where the pin control lives, and an empty board that dropped the row
+       * would move the button on the climber's first pin. Filtering nothing
+       * is harmless; losing the action is not. */}
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+        <QueryInput
+          value={query}
+          onChange={setQuery}
+          label="Filter projects"
+          placeholder="Search…"
+        />
+        <div className="flex items-center gap-2">
+          <OptionSelect
+            ariaLabel="Sort projects"
+            value={sort}
+            onChange={setSort}
+            options={sorts}
+            className={FIELD_WIDTH_CLASS.medium}
           />
           {pinButton}
         </div>
+      </div>
+
+      {empty ? (
+        <EmptyState
+          message={
+            sents
+              ? "No sent projects yet. Pinned climbs move here once you log a send."
+              : "No projects pinned yet. Pin a climb to start tracking it."
+          }
+        />
+      ) : visible.length === 0 ? (
+        <EmptyState message="No projects match this search." />
       ) : (
-        <>
-          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-            <QueryInput
-              value={query}
-              onChange={setQuery}
-              label="Filter projects"
-              placeholder="Search…"
-            />
-            <div className="flex items-center gap-2">
-              <OptionSelect
-                ariaLabel="Sort projects"
-                value={sort}
-                onChange={setSort}
-                options={sorts}
-                className={FIELD_WIDTH_CLASS.medium}
+        <ul aria-label={sents ? "Sent projects" : "Open projects"} className="flex flex-col gap-3">
+          {visible.map((project) => (
+            <li key={project.climbId}>
+              <ProjectCard
+                project={project}
+                userId={userId}
+                today={today}
+                onLogSession={() => {
+                  setSelected(project);
+                  drawer.open();
+                }}
               />
-              {pinButton}
-            </div>
-          </div>
-
-          {visible.length === 0 ? (
-            <EmptyState message="No projects match this search." />
-          ) : (
-            <ul
-              aria-label={sents ? "Sent projects" : "Open projects"}
-              className="flex flex-col gap-3"
-            >
-              {visible.map((project) => (
-                <li key={project.climbId}>
-                  <ProjectCard
-                    project={project}
-                    userId={userId}
-                    today={today}
-                    onLogSession={() => {
-                      setSelected(project);
-                      drawer.open();
-                    }}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {hasMore && (
-            <p className="text-sm text-muted">Showing the most recently active projects.</p>
-          )}
-        </>
+            </li>
+          ))}
+        </ul>
       )}
+
+      {hasMore && <p className="text-sm text-muted">Showing the most recently active projects.</p>}
       {selected && (
         <JournalEntryDrawer
           climb={{
