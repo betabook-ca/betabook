@@ -9,8 +9,8 @@ import { useDeferredComponent } from "@/hooks/use-deferred-component";
 
 /** Module-level so its identity is stable across renders — the preload hook
  * keys its effect on the loader. Keeps the climb search out of the page bundle. */
-const loadDrawer = () =>
-  import("@/components/journal/pin-project-drawer").then((m) => m.PinProjectDrawer);
+const loadDialog = () =>
+  import("@/components/journal/pin-project-dialog").then((m) => m.PinProjectDialog);
 
 export function PinProjectButton({
   suggestions,
@@ -20,7 +20,7 @@ export function PinProjectButton({
   pinnedClimbIds: readonly number[];
 }) {
   const state = useOverlayState();
-  const { Component: PinProjectDrawer, load, failed } = useDeferredComponent(loadDrawer);
+  const { Component: PinProjectDialog, load, failed } = useDeferredComponent(loadDialog);
 
   return (
     <>
@@ -35,8 +35,8 @@ export function PinProjectButton({
         <Pin className="size-4" />
         Pin project
       </Button>
-      {PinProjectDrawer && (
-        <PinProjectDrawer state={state} suggestions={suggestions} pinnedClimbIds={pinnedClimbIds} />
+      {PinProjectDialog && (
+        <PinProjectDialog state={state} suggestions={suggestions} pinnedClimbIds={pinnedClimbIds} />
       )}
       {state.isOpen && failed && (
         <DeferredLoadError feature="the climb search" onRetry={load} onDismiss={state.close} />

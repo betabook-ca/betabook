@@ -1,13 +1,47 @@
 import { useOverlayState } from "@heroui/react";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 
 import { pinProject } from "@/actions";
 import type { OpenProject } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
+import { stubViewport } from "@/test/viewport";
 
-import { PinProjectDrawer } from "./pin-project-drawer";
+import { PinProjectDialog } from "./pin-project-dialog";
+
+type Listener = () => void;
+
+/** jsdom has no visual viewport; this stands in for one so the dialog's own
+ * compact branch is exercised. What the collapsed layout measures is a
+ * geometry question and stays in Playwright. */
+function stubVisualViewport(height: number) {
+  const listeners = new Set<Listener>();
+  const viewport = {
+    height,
+    offsetTop: 0,
+    addEventListener: (_type: string, listener: Listener) => listeners.add(listener),
+    removeEventListener: (_type: string, listener: Listener) => listeners.delete(listener),
+  };
+  Object.defineProperty(window, "visualViewport", {
+    value: viewport,
+    configurable: true,
+    writable: true,
+  });
+  return {
+    resizeTo(next: number) {
+      viewport.height = next;
+      act(() => {
+        for (const listener of listeners) listener();
+      });
+    },
+  };
+}
+
+afterEach(() => {
+  Reflect.deleteProperty(window, "visualViewport");
+  vi.unstubAllGlobals();
+});
 
 vi.mock("@/actions", () => ({
   pinProject: vi.fn<() => Promise<ActionResult>>(),
@@ -51,7 +85,7 @@ function Example({
   pinnedClimbIds?: number[];
 }) {
   const state = useOverlayState({ defaultOpen: true });
-  return <PinProjectDrawer state={state} suggestions={suggested} pinnedClimbIds={pinnedClimbIds} />;
+  return <PinProjectDialog state={state} suggestions={suggested} pinnedClimbIds={pinnedClimbIds} />;
 }
 
 it("offers each unsent climb with the session count that makes it a candidate", async () => {
@@ -78,7 +112,7 @@ it("pins the suggestion that was pressed and closes", async () => {
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 });
 
-it("keeps the drawer open and explains a refused pin", async () => {
+it("keeps the dialog open and explains a refused pin", async () => {
   const user = userEvent.setup();
   vi.mocked(pinProject).mockResolvedValue({
     ok: false,
@@ -138,4 +172,41 @@ it("says nothing about suggestions when there are none to make", async () => {
   await screen.findByRole("dialog");
   expect(screen.queryByRole("list", { name: "Suggested projects" })).not.toBeInTheDocument();
   expect(screen.queryByText(/worked but not sent/)).not.toBeInTheDocument();
+});
+
+it("offers the same suggestions and pins from the centered desktop variant", async () => {
+  // ResponsiveDialog swaps the whole subtree across `md`, so the desktop side
+  // is a different tree and needs its own coverage; jsdom reads mobile.
+  stubViewport("desktop");
+  const user = userEvent.setup();
+  vi.mocked(pinProject).mockResolvedValue({ ok: true, value: undefined });
+  render(<Example />);
+
+  await screen.findByRole("dialog");
+  await user.click(await screen.findByRole("button", { name: "Pin Ash Crack" }));
+
+  await waitFor(() => expect(pinProject).toHaveBeenCalledWith(2));
+});
+
+it("drops the explanation and the full filters when a keyboard takes the viewport", async () => {
+  // Each row above the results costs a result, and the keyboard has already
+  // taken half the screen.
+  const viewport = stubVisualViewport(812);
+  render(<Example />);
+
+  await screen.findByRole("dialog");
+  expect(screen.getByText(/Pinned climbs are the only ones/)).toBeVisible();
+  expect(screen.getByRole("button", { name: /Sort by/ })).toBeInTheDocument();
+
+  viewport.resizeTo(470);
+
+  await waitFor(() =>
+    expect(screen.queryByText(/Pinned climbs are the only ones/)).not.toBeInTheDocument(),
+  );
+  // The rich filter row is gone; the lighter discipline chips remain.
+  expect(screen.queryByRole("button", { name: /Sort by/ })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Boulder" })).toBeInTheDocument();
+  // The search and its suggestions are what the space is being spent on.
+  expect(screen.getByRole("searchbox")).toBeVisible();
+  expect(screen.getByRole("list", { name: "Suggested projects" })).toBeInTheDocument();
 });
