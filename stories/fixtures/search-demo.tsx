@@ -146,6 +146,51 @@ export function SearchDemo({
   );
 }
 
+/** The quick dialog's arrangement once a mobile keyboard has taken the
+ * bottom of the screen: Cancel joins the input's row, the category pills and
+ * the area chip share one scrolling line, and everything the list does not
+ * need is given back to it. Framed at the height a 375x812 phone actually
+ * has left with a keyboard up, since the gallery's own viewports are tall
+ * enough that the surface would otherwise never show this state. */
+export function QuickSearchCompactDemo({ scenario = "ready" }: { scenario?: SearchScenario }) {
+  const demo = useSearchDemo({ scenario, limit: 3 });
+  const [selected, setSelected] = useState<SearchResult | null>(null);
+  return (
+    <StoryPage
+      title="Quick search with a keyboard up"
+      description="Shared search presentation · sample data and local interactions."
+    >
+      <div
+        className={`${cardClass("sm", "bordered")} flex h-[382px] flex-col overflow-hidden`}
+        aria-label="Keyboard-sized frame"
+      >
+        <SearchSurface
+          canCreate
+          quick
+          compact
+          query={demo.query}
+          onQueryChange={demo.setQuery}
+          category={demo.category}
+          onCategoryChange={demo.changeCategory}
+          sections={demo.sections}
+          onSelect={setSelected}
+          onRetry={demo.retry}
+          onViewAll={() => {}}
+          area={demo.filters.area}
+          onAreaChange={(area: AreaSelection | null) => demo.setFilters({ ...demo.filters, area })}
+          suggestedArea={SAMPLE_AREAS[0]}
+          headerAction={
+            <Button variant="ghost" size="sm">
+              Cancel
+            </Button>
+          }
+        />
+      </div>
+      <SelectedResult item={selected} onClear={() => setSelected(null)} />
+    </StoryPage>
+  );
+}
+
 export function ClimbPickerDemo({
   mode = "logging",
   selectedInitially = false,

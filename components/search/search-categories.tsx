@@ -7,15 +7,23 @@ import { SEARCH_LABELS, type SearchCategory } from "./search-types";
 export function SearchCategories({
   value,
   onChange,
+  compact = false,
 }: {
   value: SearchCategory;
   onChange: (category: SearchCategory) => void;
+  /** Short viewports keep the pills on one non-wrapping line and trade some
+   * of their vertical padding for result rows. Touch targets stay at least
+   * 32px tall, and the row they sit in scrolls sideways. */
+  compact?: boolean;
 }) {
   return (
     <div
       role="group"
       aria-label="Search category"
-      className="flex max-w-full shrink-0 flex-wrap gap-1 self-start rounded-2xl bg-surface-secondary p-1"
+      className={clsx(
+        "flex max-w-full shrink-0 gap-1 self-start rounded-2xl bg-surface-secondary p-1",
+        compact ? "flex-nowrap" : "flex-wrap",
+      )}
     >
       {(["all", "climb", "area", "climber"] as const).map((category) => (
         <button
@@ -24,7 +32,8 @@ export function SearchCategories({
           aria-pressed={value === category}
           onClick={() => onChange(category)}
           className={clsx(
-            "cursor-pointer rounded-full px-3 py-2 text-sm focus-visible:status-focused",
+            "cursor-pointer rounded-full text-sm whitespace-nowrap focus-visible:status-focused",
+            compact ? "px-3 py-1.5" : "px-3 py-2",
             value === category ? "bg-segment font-semibold text-segment-foreground" : "text-muted",
           )}
         >

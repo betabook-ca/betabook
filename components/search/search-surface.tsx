@@ -1,11 +1,13 @@
 "use client";
 import { Button, Kbd, Modal } from "@heroui/react";
+import { clsx } from "clsx";
 import { ArrowRight, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 
 import { AppLink } from "@/components/ui/app-link";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
+import { useCompactViewport } from "@/hooks/use-compact-viewport";
 import type { AreaSelection } from "@/lib/area-selection";
 
 import { SearchCategories } from "./search-categories";
@@ -69,7 +71,19 @@ export function SearchSurface({
   resultHref,
   quick = false,
   onClose,
-}: SearchSurfaceProps & { quick?: boolean; onClose?: () => void }) {
+  headerAction,
+  compact = false,
+}: SearchSurfaceProps & {
+  quick?: boolean;
+  onClose?: () => void;
+  /** Sits on the input's own row. The quick dialog passes its Cancel here
+   * once the viewport is too short to spend a whole row on a header. */
+  headerAction?: ReactNode;
+  /** Collapses the filter chrome above the result list. Owned by the quick
+   * dialog, which measures the viewport — the full search page scrolls, so
+   * it always has room and never asks for this. */
+  compact?: boolean;
+}) {
   const { rootRef, listId, activeId, onKeyDown } = useQuickSearchNavigation({
     query,
     category,
@@ -89,7 +103,14 @@ export function SearchSurface({
       section.items.length > 0 || section.status === "loading" || section.status === "error",
   );
   return (
-    <div ref={rootRef} className={`flex min-h-0 min-w-0 flex-col gap-4 ${quick ? "flex-1" : ""}`}>
+    <div
+      ref={rootRef}
+      className={clsx(
+        "flex min-h-0 min-w-0 flex-col",
+        compact ? "gap-2" : "gap-4",
+        quick && "flex-1",
+      )}
+    >
       <MemberNoticeSlot
         notice={memberNotice}
         placement={memberNoticePlacement}
@@ -101,35 +122,23 @@ export function SearchSurface({
       <When show={!quick}>
         <SearchCategories value={category} onChange={onCategoryChange} />
       </When>
-      <div className="shrink-0">
-        <SearchInput
-          label="Search Betabook"
-          placeholder={SEARCH_PLACEHOLDERS[category]}
-          value={query}
-          onChange={onQueryChange}
-          inputProps={{
-            autoFocus: quick,
-            onKeyDownCapture: onKeyDown,
-            ...(quick
-              ? {
-                  role: "combobox",
-                  "aria-autocomplete": "list",
-                  "aria-expanded": !idle && hasResults,
-                  "aria-controls": idle || !hasResults ? undefined : listId,
-                  "aria-activedescendant": activeId ? `${listId}-${activeId}` : undefined,
-                }
-              : {}),
-          }}
-        />
-      </div>
-      <When show={quick}>
-        <SearchCategories value={category} onChange={onCategoryChange} />
-      </When>
-      <SearchScope
+      <SearchQueryRow
+        query={query}
+        onQueryChange={onQueryChange}
+        category={category}
+        quick={quick}
+        headerAction={headerAction}
+        onKeyDown={onKeyDown}
+        listId={listId}
+        activeId={activeId}
+        expanded={!idle && hasResults}
+      />
+      <SearchFilterRow
         category={category}
         area={area}
         suggestedArea={suggestedArea}
         quick={quick}
+        compact={compact}
         onAreaChange={onAreaChange}
         onCategoryChange={onCategoryChange}
       />
@@ -194,6 +203,92 @@ export function SearchSurface({
 /** Keeps a surface's two element orders out of SearchSurface's own branch count. */
 function When({ show, children }: { show: boolean; children: ReactNode }) {
   return show ? children : null;
+}
+
+/** The query field, plus whatever action shares its row. Only the quick
+ * dialog wires the combobox relationship to the result list; the full page's
+ * results are an ordinary region below the field. */
+function SearchQueryRow({
+  query,
+  onQueryChange,
+  category,
+  quick,
+  headerAction,
+  onKeyDown,
+  listId,
+  activeId,
+  expanded,
+}: Pick<SearchSurfaceProps, "query" | "onQueryChange" | "category"> & {
+  quick: boolean;
+  headerAction?: ReactNode;
+  onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
+  listId: string;
+  activeId: string | null;
+  expanded: boolean;
+}) {
+  return (
+    <div className="flex shrink-0 items-center gap-2">
+      <SearchInput
+        label="Search Betabook"
+        // Sharing the row means the field can no longer claim its standard
+        // width — it takes what Cancel leaves.
+        className={headerAction ? "min-w-0 flex-1" : undefined}
+        placeholder={SEARCH_PLACEHOLDERS[category]}
+        value={query}
+        onChange={onQueryChange}
+        inputProps={{
+          autoFocus: quick,
+          onKeyDownCapture: onKeyDown,
+          ...(quick
+            ? {
+                role: "combobox",
+                "aria-autocomplete": "list",
+                "aria-expanded": expanded,
+                "aria-controls": expanded ? listId : undefined,
+                "aria-activedescendant": activeId ? `${listId}-${activeId}` : undefined,
+              }
+            : {}),
+        }}
+      />
+      {headerAction}
+    </div>
+  );
+}
+
+/** The scoping controls between the input and the results.
+ *
+ * The full page shows only the area chip here — its category pills sit above
+ * the input. The quick dialog shows both, stacked while there is room and
+ * folded onto one horizontally scrolling line once there isn't: with a
+ * keyboard up those two rows would otherwise cost the result list half of
+ * what it has left. */
+function SearchFilterRow({
+  quick,
+  compact,
+  ...scope
+}: Pick<
+  SearchSurfaceProps,
+  "category" | "area" | "suggestedArea" | "onAreaChange" | "onCategoryChange"
+> & { quick: boolean; compact: boolean }) {
+  const chip = <SearchScope {...scope} quick={quick} />;
+  if (!quick) return chip;
+  return (
+    <div
+      className={clsx(
+        "flex min-w-0 shrink-0",
+        compact
+          ? "-mx-1 [scrollbar-width:none] items-center gap-2 overflow-x-auto px-1"
+          : "flex-col items-start gap-4",
+      )}
+    >
+      <SearchCategories
+        value={scope.category}
+        onChange={scope.onCategoryChange}
+        compact={compact}
+      />
+      {chip}
+    </div>
+  );
 }
 
 /** Renders the notice in exactly one of its two homes. */
@@ -292,6 +387,12 @@ export function QuickSearchDialog({
   onOpenChange,
   ...props
 }: SearchSurfaceProps & { isOpen: boolean; onOpenChange: (open: boolean) => void }) {
+  const compact = useCompactViewport();
+  const cancel = (
+    <Button variant="ghost" size="sm" onPress={() => onOpenChange(false)}>
+      Cancel
+    </Button>
+  );
   return (
     <Modal.Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
       <Modal.Container placement="top" size="lg" className="p-0 sm:p-4 sm:pt-12">
@@ -299,14 +400,26 @@ export function QuickSearchDialog({
           aria-label="Search Betabook"
           className="max-h-full rounded-none sm:max-h-[85dvh] sm:rounded-panel"
         >
-          <Modal.Header className="flex flex-row items-center justify-between gap-2">
+          {/* With a keyboard up this row is a fifth of what is left, and it
+           * carries one word and one button — so Cancel moves onto the
+           * input's row and the heading stays for assistive tech only. */}
+          <Modal.Header
+            className={clsx(
+              "flex flex-row items-center justify-between gap-2",
+              compact && "sr-only",
+            )}
+          >
             <Modal.Heading>Search</Modal.Heading>
-            <Button variant="ghost" size="sm" onPress={() => onOpenChange(false)}>
-              Cancel
-            </Button>
+            {!compact && cancel}
           </Modal.Header>
           <Modal.Body className="flex min-h-0 flex-col overflow-hidden">
-            <SearchSurface {...props} quick onClose={() => onOpenChange(false)} />
+            <SearchSurface
+              {...props}
+              quick
+              compact={compact}
+              onClose={() => onOpenChange(false)}
+              headerAction={compact ? cancel : undefined}
+            />
           </Modal.Body>
         </Modal.Dialog>
       </Modal.Container>
