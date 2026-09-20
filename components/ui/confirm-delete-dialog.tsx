@@ -1,9 +1,8 @@
 "use client";
 
-import { AlertDialog, Button } from "@heroui/react";
 import type { UseOverlayStateReturn } from "@heroui/react";
 
-import { InlineAlert } from "@/components/ui/inline-alert";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type ConfirmDeleteDialogProps = {
   state: UseOverlayStateReturn;
@@ -25,11 +24,8 @@ type ConfirmDeleteDialogProps = {
   pendingNotice?: string | null;
 };
 
-/** The one delete confirmation: a centered alert dialog, not a bottom sheet
- * — a yes/no is a question the page asks, and a form-sized drawer holding
- * one sentence and two buttons read as a page takeover. Every destructive
- * action in the app confirms through this so the wording, the button order,
- * and the danger styling never drift between entities. */
+/** ConfirmDialog with the standard delete wording filled in, so callers
+ * don't retype "Delete this X?" and "This can't be undone." each time. */
 export function ConfirmDeleteDialog({
   state,
   noun,
@@ -43,47 +39,16 @@ export function ConfirmDeleteDialog({
   pendingNotice,
 }: ConfirmDeleteDialogProps) {
   return (
-    <AlertDialog.Backdrop
-      isOpen={state.isOpen}
-      onOpenChange={(open) => {
-        if (!isPending) state.setOpen(open);
-      }}
-    >
-      <AlertDialog.Container placement="center" size="sm">
-        <AlertDialog.Dialog>
-          <AlertDialog.Header>
-            <AlertDialog.Heading>
-              {pendingNotice ? "Submitted for review" : (title ?? `Delete this ${noun}?`)}
-            </AlertDialog.Heading>
-          </AlertDialog.Header>
-          <AlertDialog.Body>
-            {pendingNotice ? (
-              <InlineAlert status="success">{pendingNotice}</InlineAlert>
-            ) : (
-              <>
-                <p className="text-sm text-muted">{description}</p>
-                {error && <InlineAlert>{error}</InlineAlert>}
-              </>
-            )}
-          </AlertDialog.Body>
-          <AlertDialog.Footer className="flex justify-end gap-2">
-            {pendingNotice ? (
-              <Button variant="ghost" onPress={state.close}>
-                Close
-              </Button>
-            ) : (
-              <>
-                <Button variant="ghost" onPress={state.close} isDisabled={isPending}>
-                  {cancelLabel}
-                </Button>
-                <Button variant="danger" onPress={onConfirm} isDisabled={isPending}>
-                  {isPending ? "Saving…" : confirmLabel}
-                </Button>
-              </>
-            )}
-          </AlertDialog.Footer>
-        </AlertDialog.Dialog>
-      </AlertDialog.Container>
-    </AlertDialog.Backdrop>
+    <ConfirmDialog
+      state={state}
+      title={title ?? `Delete this ${noun}?`}
+      description={description}
+      confirmLabel={confirmLabel}
+      cancelLabel={cancelLabel}
+      onConfirm={onConfirm}
+      isPending={isPending}
+      error={error}
+      pendingNotice={pendingNotice}
+    />
   );
 }

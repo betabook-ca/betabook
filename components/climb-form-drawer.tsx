@@ -1,11 +1,10 @@
 "use client";
 
-import { Drawer } from "@heroui/react";
 import type { UseOverlayStateReturn } from "@heroui/react";
 import { useRouter } from "next/navigation";
 
 import { ClimbForm } from "@/components/climb-form";
-import { PAGE_MAX_WIDTH_CLASS } from "@/components/ui/layout";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { Climb } from "@/db/queries";
 import { climbHref } from "@/lib/slug";
 
@@ -26,18 +25,13 @@ export function ClimbFormDrawer({ areaId, climb, state }: ClimbFormDrawerProps) 
   }
 
   return (
-    <Drawer.Backdrop isOpen={state.isOpen} onOpenChange={state.setOpen}>
-      <Drawer.Content>
-        <Drawer.Dialog className={`mx-auto w-full ${PAGE_MAX_WIDTH_CLASS}`}>
-          <Drawer.Header>
-            <Drawer.Heading>{climb ? "Edit climb" : "Add climb"}</Drawer.Heading>
-            <Drawer.CloseTrigger />
-          </Drawer.Header>
-          <Drawer.Body>
-            <ClimbForm areaId={areaId} climb={climb} onDone={handleDone} />
-          </Drawer.Body>
-        </Drawer.Dialog>
-      </Drawer.Content>
-    </Drawer.Backdrop>
+    <ResponsiveDialog
+      state={state}
+      title={climb ? "Edit climb" : "Add climb"}
+      size="lg"
+      presentation="fullscreen"
+    >
+      <ClimbForm areaId={areaId} climb={climb} onDone={handleDone} />
+    </ResponsiveDialog>
   );
 }

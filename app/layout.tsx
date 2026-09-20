@@ -9,7 +9,6 @@ import { SearchPaletteProvider, SearchTrigger } from "@/components/command-palet
 import { HeaderAuthLinks } from "@/components/header-auth-links";
 import { HeaderLogButton } from "@/components/header-log-button";
 import { MobileAppHelper } from "@/components/mobile-app-helper";
-import { SearchScopeProvider } from "@/components/search-scope";
 import { AppLink } from "@/components/ui/app-link";
 import { JsonLd } from "@/components/ui/json-ld";
 import { PAGE_MAX_WIDTH_CLASS } from "@/components/ui/layout";
@@ -124,61 +123,57 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Skip to content
         </a>
         <Providers>
-          {/* Wraps everything below the providers: the palette reads the
-           * scope, and the pages that set it are rendered as children. */}
-          <SearchScopeProvider>
-            {/* Inside the scope provider, which the palette reads, and around
-             * the page, whose own search entry opens the same palette. */}
-            <SearchPaletteProvider>
-              <AppSidebar>
-                <header className="flex h-14 shrink-0 items-center px-4">
-                  <div
-                    className={`mx-auto grid w-full ${PAGE_MAX_WIDTH_CLASS} grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-2 md:grid-cols-[minmax(8rem,1fr)_minmax(0,32rem)_minmax(8rem,1fr)] md:gap-4`}
-                  >
-                    <div>
-                      <HeaderNavigation />
-                    </div>
-                    <div className="min-w-0">
-                      <SearchTrigger />
-                    </div>
-                    <div className="flex min-w-11 items-center justify-end gap-3">
-                      <HeaderLogButton />
-                      <div className="hidden md:flex">
-                        <HeaderAuthLinks />
-                      </div>
+          {/* Wraps the page, whose own search entry opens the same palette
+           * the ⌘K shortcut does. */}
+          <SearchPaletteProvider>
+            <AppSidebar>
+              <header className="flex h-14 shrink-0 items-center px-4">
+                <div
+                  className={`mx-auto grid w-full ${PAGE_MAX_WIDTH_CLASS} grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-2 md:grid-cols-[minmax(8rem,1fr)_minmax(0,32rem)_minmax(8rem,1fr)] md:gap-4`}
+                >
+                  <div>
+                    <HeaderNavigation />
+                  </div>
+                  <div className="min-w-0">
+                    <SearchTrigger />
+                  </div>
+                  <div className="flex min-w-11 items-center justify-end gap-3">
+                    <HeaderLogButton />
+                    <div className="hidden md:flex">
+                      <HeaderAuthLinks />
                     </div>
                   </div>
-                </header>
-                {/* tabIndex lets the skip link move focus here, not just scroll. */}
-                <main id="main" tabIndex={-1} className="flex-1 p-4 outline-none md:pt-2">
-                  <div className={`mx-auto w-full ${PAGE_MAX_WIDTH_CLASS}`}>{children}</div>
-                </main>
-                <footer className="border-t border-separator px-4 py-4 text-sm text-muted">
-                  {/* Same rail as the header's inner div. Plain AppLink, not
-                   * NavLink: footer links have no current-state treatment, so
-                   * aria-current would announce a state the design doesn't show. */}
-                  <div
-                    className={`mx-auto flex w-full ${PAGE_MAX_WIDTH_CLASS} flex-wrap items-center justify-between gap-2`}
-                  >
-                    <span>
-                      {/* oxlint-disable-next-line node/no-process-env */}
-                      &copy; {process.env.NEXT_PUBLIC_BUILD_YEAR} {SITE_NAME} —{" "}
-                      <span className="whitespace-nowrap">{SITE_TAGLINE}</span>
-                    </span>
-                    <div className="flex flex-wrap items-center gap-4">
-                      <AppLink href="/about">About</AppLink>
-                      <AppLink href={LOGBOOK_PAGE.path}>Features</AppLink>
-                      <AppLink href={COSTS_PAGE.path}>Costs</AppLink>
-                      <AppLink href="/contact">Contact Us</AppLink>
-                      <AppLink href="/terms">Terms of Service</AppLink>
-                    </div>
+                </div>
+              </header>
+              {/* tabIndex lets the skip link move focus here, not just scroll. */}
+              <main id="main" tabIndex={-1} className="flex-1 p-4 outline-none md:pt-2">
+                <div className={`mx-auto w-full ${PAGE_MAX_WIDTH_CLASS}`}>{children}</div>
+              </main>
+              <footer className="border-t border-separator px-4 py-4 text-sm text-muted">
+                {/* Same rail as the header's inner div. Plain AppLink, not
+                 * NavLink: footer links have no current-state treatment, so
+                 * aria-current would announce a state the design doesn't show. */}
+                <div
+                  className={`mx-auto flex w-full ${PAGE_MAX_WIDTH_CLASS} flex-wrap items-center justify-between gap-2`}
+                >
+                  <span>
+                    {/* oxlint-disable-next-line node/no-process-env */}
+                    &copy; {process.env.NEXT_PUBLIC_BUILD_YEAR} {SITE_NAME} —{" "}
+                    <span className="whitespace-nowrap">{SITE_TAGLINE}</span>
+                  </span>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <AppLink href="/about">About</AppLink>
+                    <AppLink href={LOGBOOK_PAGE.path}>Features</AppLink>
+                    <AppLink href={COSTS_PAGE.path}>Costs</AppLink>
+                    <AppLink href="/contact">Contact Us</AppLink>
+                    <AppLink href="/terms">Terms of Service</AppLink>
                   </div>
-                </footer>
-                <AppTabBar />
-                <MobileAppHelper />
-              </AppSidebar>
-            </SearchPaletteProvider>
-          </SearchScopeProvider>
+                </div>
+              </footer>
+              <AppTabBar />
+              <MobileAppHelper />
+            </AppSidebar>
+          </SearchPaletteProvider>
         </Providers>
       </body>
     </html>

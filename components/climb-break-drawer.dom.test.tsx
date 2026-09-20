@@ -32,6 +32,19 @@ function Reporter() {
   return <ClimbBreakDrawer climb={climb} state={state} />;
 }
 
+/** Reopenable, for checking that a closed report doesn't leave anything behind. */
+function ReopenableReporter() {
+  const state = useOverlayState();
+  return (
+    <>
+      <button type="button" onClick={state.open}>
+        Report
+      </button>
+      <ClimbBreakDrawer climb={climb} state={state} />
+    </>
+  );
+}
+
 it("previews the composed texts and submits the date and reason", async () => {
   const request = vi.mocked(requestClimbBreak).mockReset();
   request.mockResolvedValue({ ok: true, value: { status: "pending" } });
@@ -70,5 +83,33 @@ it("shows the server's refusal and keeps the form for another try", async () => 
   await user.type(screen.getByRole("textbox", { name: "What happened" }), "Rockfall");
   await user.click(screen.getByRole("button", { name: "Report as broken" }));
   expect(await screen.findByText(/2 send\(s\) on this climb are dated on or after/)).toBeVisible();
-  expect(screen.getByRole("button", { name: "Report as broken" })).toBeEnabled();
+  // The error commits before the transition ends, so the submit is still
+  // disabled for a moment after the message appears.
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Report as broken" })).toBeEnabled(),
+  );
+});
+
+it("clears the queued notice and the form when the acknowledgement is dismissed", async () => {
+  vi.mocked(requestClimbBreak)
+    .mockReset()
+    .mockResolvedValue({ ok: true, value: { status: "pending" } });
+  const user = userEvent.setup();
+  render(<ReopenableReporter />);
+
+  await user.click(screen.getByRole("button", { name: "Report" }));
+  await user.type(
+    await screen.findByRole("textbox", { name: "What happened" }),
+    "The flake snapped",
+  );
+  await user.click(screen.getByRole("button", { name: "Report as broken" }));
+  expect(await screen.findByText(/Submitted for admin review/)).toBeVisible();
+
+  // Dismissing from inside the body has to reset too — it doesn't pass
+  // through the dialog's own dismissal.
+  await user.click(screen.getByRole("button", { name: "Done" }));
+  await user.click(screen.getByRole("button", { name: "Report" }));
+
+  expect(screen.queryByText(/Submitted for admin review/)).not.toBeInTheDocument();
+  expect(await screen.findByRole("textbox", { name: "What happened" })).toHaveValue("");
 });

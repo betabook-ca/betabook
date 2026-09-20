@@ -98,7 +98,6 @@ export function SearchDemo({
     loadingMore: demo.pending,
     area: demo.filters.area,
     onAreaChange: (area: AreaSelection | null) => demo.setFilters({ ...demo.filters, area }),
-    suggestedArea: SAMPLE_AREAS[0],
   };
   return (
     <StoryPage
@@ -110,7 +109,6 @@ export function SearchDemo({
       {full ? (
         <SearchSurface
           {...props}
-          suggestedArea={undefined}
           filters={
             demo.category === "climb" ? (
               <ClimbFilters
@@ -141,6 +139,49 @@ export function SearchDemo({
         </Button>
       )}
       <QuickSearchDialog {...props} isOpen={overlay.isOpen} onOpenChange={overlay.setOpen} />
+      <SelectedResult item={selected} onClear={() => setSelected(null)} />
+    </StoryPage>
+  );
+}
+
+/** The quick dialog with a mobile keyboard open: Cancel moves next to the
+ * input, and the category pills and area chip share one scrolling line.
+ *
+ * Framed at the height a 375x812 phone has left with a keyboard up. The
+ * gallery's own viewports are too tall to trigger this state on their
+ * own. */
+export function QuickSearchCompactDemo({ scenario = "ready" }: { scenario?: SearchScenario }) {
+  const demo = useSearchDemo({ scenario, limit: 3 });
+  const [selected, setSelected] = useState<SearchResult | null>(null);
+  return (
+    <StoryPage
+      title="Quick search with a keyboard up"
+      description="Shared search presentation · sample data and local interactions."
+    >
+      <div
+        className={`${cardClass("sm", "bordered")} flex h-[382px] flex-col overflow-hidden`}
+        aria-label="Keyboard-sized frame"
+      >
+        <SearchSurface
+          canCreate
+          quick
+          compact
+          query={demo.query}
+          onQueryChange={demo.setQuery}
+          category={demo.category}
+          onCategoryChange={demo.changeCategory}
+          sections={demo.sections}
+          onSelect={setSelected}
+          onRetry={demo.retry}
+          onViewAll={() => {}}
+          area={demo.filters.area}
+          headerAction={
+            <Button variant="ghost" size="sm">
+              Cancel
+            </Button>
+          }
+        />
+      </div>
       <SelectedResult item={selected} onClear={() => setSelected(null)} />
     </StoryPage>
   );

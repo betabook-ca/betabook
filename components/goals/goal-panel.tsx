@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Menu, Modal, useOverlayState } from "@heroui/react";
+import { Button, Menu, useOverlayState } from "@heroui/react";
 import { CirclePlus } from "lucide-react";
 import { useState } from "react";
 
@@ -21,6 +21,7 @@ import { ListRow } from "@/components/ui/list-row";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
 import { OptionSelect } from "@/components/ui/option-select";
 import { ProgressBar } from "@/components/ui/progress-bar";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { SectionNavigation } from "@/components/ui/section-navigation";
 import { useGoalPages } from "@/hooks/use-goal-pages";
 import { useMounted } from "@/hooks/use-mounted";
@@ -583,48 +584,40 @@ export function GoalPanel({
           <LoadMoreButton onPress={more} loading={loading} failed={moreFailed} />
         )}
       </GoalSection>
-      <Modal.Backdrop
-        isOpen={endState.isOpen}
-        onOpenChange={(open) => {
-          if (!endPending) endState.setOpen(open);
-        }}
+      <ResponsiveDialog
+        state={endState}
+        title="End recurring goal"
+        size="sm"
+        isPending={endPending}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onPress={endState.close} isDisabled={endPending}>
+              Cancel
+            </Button>
+            <Button
+              onPress={() => {
+                void endRoutine();
+              }}
+              isDisabled={endPending || !endDate || endDate < (ending?.today ?? today)}
+            >
+              {endPending ? "Saving…" : "Save end date"}
+            </Button>
+          </div>
+        }
       >
-        <Modal.Container placement="center" scroll="inside">
-          <Modal.Dialog className="w-full max-w-md">
-            <Modal.Header>
-              <Modal.Heading>End recurring goal</Modal.Heading>
-              <Modal.CloseTrigger isDisabled={endPending} />
-            </Modal.Header>
-            <Modal.Body>
-              <p className="mb-4 text-sm text-muted">
-                Count logs through this date, then stop repeating and free the active slot. Past
-                results and shared achievements stay in History and feeds.
-              </p>
-              <DatePickerField
-                label="End date"
-                value={endDate}
-                onChange={setEndDate}
-                isReadOnly={endPending}
-                description="Choose today or a future date. The final period keeps the same target."
-              />
-              {endError && <InlineAlert>{endError}</InlineAlert>}
-            </Modal.Body>
-            <Modal.Footer className="flex justify-end gap-2">
-              <Button variant="ghost" onPress={endState.close} isDisabled={endPending}>
-                Cancel
-              </Button>
-              <Button
-                onPress={() => {
-                  void endRoutine();
-                }}
-                isDisabled={endPending || !endDate || endDate < (ending?.today ?? today)}
-              >
-                {endPending ? "Saving…" : "Save end date"}
-              </Button>
-            </Modal.Footer>
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
+        <p className="mb-4 text-sm text-muted">
+          Count logs through this date, then stop repeating and free the active slot. Past results
+          and shared achievements stay in History and feeds.
+        </p>
+        <DatePickerField
+          label="End date"
+          value={endDate}
+          onChange={setEndDate}
+          isReadOnly={endPending}
+          description="Choose today or a future date. The final period keeps the same target."
+        />
+        {endError && <InlineAlert>{endError}</InlineAlert>}
+      </ResponsiveDialog>
       {archiveError && <InlineAlert>{archiveError}</InlineAlert>}
       {error && (
         <div>
@@ -639,46 +632,33 @@ export function GoalPanel({
           </Button>
         </div>
       )}
-      <Modal.Backdrop
-        isOpen={editState.isOpen}
-        onOpenChange={(open) => {
-          if (!pending) editState.setOpen(open);
-        }}
+      <ResponsiveDialog
+        state={editState}
+        title={editing ? "Edit goal" : "Set goal"}
+        hideTitle
+        presentation="fullscreen"
+        isPending={pending}
       >
-        <Modal.Container placement="center" scroll="inside">
-          <Modal.Dialog className="w-full max-w-lg">
-            <Modal.Header>
-              <Modal.Heading className="sr-only">
-                {editing ? "Edit goal" : "Set goal"}
-              </Modal.Heading>
-              <Modal.CloseTrigger isDisabled={pending} />
-            </Modal.Header>
-            <Modal.Body>
-              {editState.isOpen && (
-                <GoalForm
-                  embedded
-                  initialDraft={
-                    editing
-                      ? {
-                          ...draftFor(editing),
-                          ...(editing.repeat === "none" && editing.periodEnd < today
-                            ? { period: "custom" as const }
-                            : {}),
-                        }
-                      : undefined
-                  }
-                  initialValues={editor.kind === "retry" ? editor.draft : undefined}
-                  today={editing?.today ?? today}
-                  nextGrades={nextGrades}
-                  onSave={save}
-                  onCancel={editState.close}
-                  onPendingChange={setPending}
-                />
-              )}
-            </Modal.Body>
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
+        <GoalForm
+          embedded
+          initialDraft={
+            editing
+              ? {
+                  ...draftFor(editing),
+                  ...(editing.repeat === "none" && editing.periodEnd < today
+                    ? { period: "custom" as const }
+                    : {}),
+                }
+              : undefined
+          }
+          initialValues={editor.kind === "retry" ? editor.draft : undefined}
+          today={editing?.today ?? today}
+          nextGrades={nextGrades}
+          onSave={save}
+          onCancel={editState.close}
+          onPendingChange={setPending}
+        />
+      </ResponsiveDialog>
       <ConfirmDeleteDialog
         state={deleteState}
         noun="goal"

@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Drawer, Label, Slider } from "@heroui/react";
+import { Button, Label, Slider } from "@heroui/react";
 import type { UseOverlayStateReturn } from "@heroui/react";
 import { RotateCw } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Area, Point } from "react-easy-crop";
 
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { PAGE_MAX_WIDTH_CLASS } from "@/components/ui/layout";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cropToSquarePhoto, type CropSquare } from "@/lib/photo-canvas";
 import { nextQuarterTurn, sameCropArea, type CropArea, type QuarterTurn } from "@/lib/photo-crop";
@@ -55,32 +55,22 @@ export function ProfilePhotoCropper({
   cropSquare = cropToSquarePhoto,
 }: ProfilePhotoCropperProps) {
   return (
-    <Drawer.Backdrop isOpen={state.isOpen} onOpenChange={state.setOpen}>
-      <Drawer.Content>
-        <Drawer.Dialog className={`mx-auto w-full ${PAGE_MAX_WIDTH_CLASS}`}>
-          <Drawer.Header>
-            <Drawer.Heading>Crop your photo</Drawer.Heading>
-            <Drawer.CloseTrigger />
-          </Drawer.Header>
-          <Drawer.Body>
-            {file && (
-              // Keyed by the photo, so choosing another one starts from a
-              // fresh frame rather than inheriting the last one's zoom and
-              // rotation — a remount instead of an effect that resets state.
-              <CropFrame
-                key={`${file.name}:${file.size}:${file.lastModified}`}
-                file={file}
-                onCancel={state.close}
-                onCropped={onCropped}
-                isPending={isPending}
-                error={error ?? null}
-                cropSquare={cropSquare}
-              />
-            )}
-          </Drawer.Body>
-        </Drawer.Dialog>
-      </Drawer.Content>
-    </Drawer.Backdrop>
+    <ResponsiveDialog state={state} title="Crop your photo" isPending={isPending}>
+      {file && (
+        // Keyed by the photo so picking a different one starts fresh instead
+        // of inheriting the last one's zoom and rotation. A remount is
+        // simpler here than an effect that resets state.
+        <CropFrame
+          key={`${file.name}:${file.size}:${file.lastModified}`}
+          file={file}
+          onCancel={state.close}
+          onCropped={onCropped}
+          isPending={isPending}
+          error={error ?? null}
+          cropSquare={cropSquare}
+        />
+      )}
+    </ResponsiveDialog>
   );
 }
 
@@ -137,7 +127,10 @@ function CropFrame({
         sees. Arrow keys nudge the photo.
       </p>
 
-      <div className="relative aspect-square w-full overflow-hidden rounded-panel bg-accent">
+      {/* The frame is square, so its height follows its width. Capping the
+       * width against the viewport height keeps a wide dialog from pushing
+       * the buttons below the fold. */}
+      <div className="relative mx-auto aspect-square w-full max-w-[min(100%,55vh)] overflow-hidden rounded-panel bg-accent">
         <Cropper
           image={source}
           crop={crop}

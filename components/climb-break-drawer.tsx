@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Drawer, Label, TextArea, TextField } from "@heroui/react";
+import { Button, Label, TextArea, TextField } from "@heroui/react";
 import type { UseOverlayStateReturn } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -8,7 +8,7 @@ import { useState, useTransition } from "react";
 import { requestClimbBreak } from "@/actions";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { PAGE_MAX_WIDTH_CLASS } from "@/components/ui/layout";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { Climb } from "@/db/queries";
 import { composeClimbBreakTexts, MAX_BREAK_REASON_LENGTH } from "@/lib/broken-climbs";
 
@@ -65,90 +65,76 @@ export function ClimbBreakDrawer({ climb, state }: ClimbBreakDrawerProps) {
     });
   }
 
-  function handleOpenChange(isOpen: boolean) {
-    state.setOpen(isOpen);
-    if (!isOpen) {
-      setBrokenOn(today);
-      setReason("");
-      setError(null);
-      setPendingNotice(null);
-    }
+  function reset() {
+    setBrokenOn(today);
+    setReason("");
+    setError(null);
+    setPendingNotice(null);
   }
 
   return (
-    <Drawer.Backdrop isOpen={state.isOpen} onOpenChange={handleOpenChange}>
-      <Drawer.Content>
-        <Drawer.Dialog className={`mx-auto w-full ${PAGE_MAX_WIDTH_CLASS}`}>
-          <Drawer.Header>
-            <Drawer.Heading>Report as broken</Drawer.Heading>
-            <Drawer.CloseTrigger />
-          </Drawer.Header>
-          <Drawer.Body>
-            {pendingNotice ? (
-              // Swap the form out once queued — a second click would only
-              // trip the one-pending-request rule.
-              <div className="flex flex-col gap-4">
-                <p className="text-sm text-muted">{pendingNotice}</p>
-                <Button variant="ghost" onPress={state.close} fullWidth>
-                  Close
-                </Button>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                <p className="text-sm text-muted">
-                  Once approved, only ascents dated before the break can be logged on this climb,
-                  its description gains a note, and a new climb is created for the post-break line
-                  at the same grade. Sends and sessions already dated on or after the break move to
-                  the new climb.
-                </p>
+    <ResponsiveDialog state={state} title="Report as broken" isPending={pending} onClose={reset}>
+      {pendingNotice ? (
+        // Swap the form out once queued — a second click would only
+        // trip the one-pending-request rule.
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-muted">{pendingNotice}</p>
+          <Button variant="ghost" onPress={state.close} fullWidth>
+            Done
+          </Button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <p className="text-sm text-muted">
+            Once approved, only ascents dated before the break can be logged on this climb, its
+            description gains a note, and a new climb is created for the post-break line at the same
+            grade. Sends and sessions already dated on or after the break move to the new climb.
+          </p>
 
-                <DatePickerField
-                  label="Date it broke"
-                  value={brokenOn}
-                  max={today}
-                  onChange={setBrokenOn}
-                />
+          <DatePickerField
+            label="Date it broke"
+            value={brokenOn}
+            max={today}
+            onChange={setBrokenOn}
+          />
 
-                <TextField
-                  value={reason}
-                  onChange={setReason}
-                  isRequired
-                  maxLength={MAX_BREAK_REASON_LENGTH}
-                >
-                  <Label>What happened</Label>
-                  <TextArea rows={3} placeholder="The crux flake came off in the spring thaw." />
-                </TextField>
+          <TextField
+            value={reason}
+            onChange={setReason}
+            isRequired
+            maxLength={MAX_BREAK_REASON_LENGTH}
+          >
+            <Label>What happened</Label>
+            <TextArea rows={3} placeholder="The crux flake came off in the spring thaw." />
+          </TextField>
 
-                {preview && (
-                  <div className="flex flex-col gap-2 text-sm">
-                    <p className="text-muted">
-                      New climb: <span className="text-foreground">{preview.successorName}</span>
-                    </p>
-                    <p className="text-muted">
-                      Added to this climb&rsquo;s description:{" "}
-                      <span className="text-foreground">
-                        {preview.appendedDescription.slice(
-                          climb.description ? climb.description.length + 2 : 0,
-                        )}
-                      </span>
-                    </p>
-                    <p className="text-muted">
-                      New climb&rsquo;s description:{" "}
-                      <span className="text-foreground">{preview.successorDescription}</span>
-                    </p>
-                  </div>
-                )}
+          {preview && (
+            <div className="flex flex-col gap-2 text-sm">
+              <p className="text-muted">
+                New climb: <span className="text-foreground">{preview.successorName}</span>
+              </p>
+              <p className="text-muted">
+                Added to this climb&rsquo;s description:{" "}
+                <span className="text-foreground">
+                  {preview.appendedDescription.slice(
+                    climb.description ? climb.description.length + 2 : 0,
+                  )}
+                </span>
+              </p>
+              <p className="text-muted">
+                New climb&rsquo;s description:{" "}
+                <span className="text-foreground">{preview.successorDescription}</span>
+              </p>
+            </div>
+          )}
 
-                {error && <InlineAlert>{error}</InlineAlert>}
+          {error && <InlineAlert>{error}</InlineAlert>}
 
-                <Button type="submit" isDisabled={pending || !brokenOn || !trimmedReason} fullWidth>
-                  Report as broken
-                </Button>
-              </form>
-            )}
-          </Drawer.Body>
-        </Drawer.Dialog>
-      </Drawer.Content>
-    </Drawer.Backdrop>
+          <Button type="submit" isDisabled={pending || !brokenOn || !trimmedReason} fullWidth>
+            Report as broken
+          </Button>
+        </form>
+      )}
+    </ResponsiveDialog>
   );
 }

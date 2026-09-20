@@ -228,9 +228,6 @@ export function IntegratedSearchDemo({
         quick={!full}
         isOpen={full || open}
         onOpenChange={setOpen}
-        suggestedArea={
-          !full ? { id: "1", name: "Cedar Grove", path: "California / North Woods" } : undefined
-        }
         onExpand={() => {
           setOpen(false);
           setFull(true);

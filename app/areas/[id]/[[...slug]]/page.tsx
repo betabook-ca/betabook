@@ -7,7 +7,6 @@ import { AreaHeaderActions } from "@/components/area-header-actions";
 import { AreaBreadcrumbs } from "@/components/breadcrumbs";
 import { AreaClimbsToolbar } from "@/components/filters/area-climbs-toolbar";
 import { NavigationPendingProvider } from "@/components/navigation-pending";
-import { RegisterSearchScope } from "@/components/search-scope";
 import { SubareaRail } from "@/components/subarea-rail";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { JsonLd } from "@/components/ui/json-ld";
@@ -159,8 +158,6 @@ export default async function AreaPage({ params, searchParams }: AreaPageProps) 
           ancestorNames,
         })}
       />
-      {/* Lets ⌘K lead with this area's own routes while the viewer is here. */}
-      <RegisterSearchScope areaId={area.id} areaName={area.name} />
       <AreaBreadcrumbs ancestors={ancestors} current={area} />
 
       <AreaCragHeader

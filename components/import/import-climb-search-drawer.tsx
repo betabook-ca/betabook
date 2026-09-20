@@ -1,10 +1,9 @@
 "use client";
 
-import { Drawer } from "@heroui/react";
 import type { UseOverlayStateReturn } from "@heroui/react";
 
 import { ClimbPicker } from "@/components/climb-picker";
-import { PAGE_MAX_WIDTH_CLASS } from "@/components/ui/layout";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { ClimbCandidate, ClimbWithAreaName } from "@/db/queries";
 import { foldClimbName } from "@/lib/import-matching";
 
@@ -27,34 +26,28 @@ export function ImportClimbSearchDrawer({
   onPick: (rowIndex: number, climb: ClimbCandidate) => void;
 }) {
   return (
-    <Drawer.Backdrop isOpen={state.isOpen} onOpenChange={state.setOpen}>
-      <Drawer.Content>
-        <Drawer.Dialog className={`mx-auto w-full ${PAGE_MAX_WIDTH_CLASS}`}>
-          <Drawer.Header>
-            <Drawer.Heading>{target ? `Find “${target.climbName}”` : "Find climb"}</Drawer.Heading>
-            <Drawer.CloseTrigger />
-          </Drawer.Header>
-          <Drawer.Body>
-            {/* Keyed by row so the picker's seeded fields reset per target
-             * even if the drawer is reopened before its exit animation
-             * has unmounted the previous one. */}
-            {target && (
-              <ClimbPicker
-                key={target.rowIndex}
-                allowSentClimbs
-                showAreaLookup
-                initialName={target.climbName}
-                initialAreaName={target.areaName ?? ""}
-                onPick={(climb, context) => {
-                  onPick(target.rowIndex, toCandidate(climb, context));
-                  state.close();
-                }}
-              />
-            )}
-          </Drawer.Body>
-        </Drawer.Dialog>
-      </Drawer.Content>
-    </Drawer.Backdrop>
+    <ResponsiveDialog
+      state={state}
+      title={target ? `Find “${target.climbName}”` : "Find climb"}
+      size="lg"
+    >
+      {/* Keyed by row so the picker's seeded fields reset per target
+       * even if the drawer is reopened before its exit animation
+       * has unmounted the previous one. */}
+      {target && (
+        <ClimbPicker
+          key={target.rowIndex}
+          allowSentClimbs
+          showAreaLookup
+          initialName={target.climbName}
+          initialAreaName={target.areaName ?? ""}
+          onPick={(climb, context) => {
+            onPick(target.rowIndex, toCandidate(climb, context));
+            state.close();
+          }}
+        />
+      )}
+    </ResponsiveDialog>
   );
 }
 

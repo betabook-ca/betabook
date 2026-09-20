@@ -1,9 +1,10 @@
 "use client";
 
-import { AlertDialog, Button, Label, TextArea, TextField, useOverlayState } from "@heroui/react";
+import { Button, Label, TextArea, TextField, useOverlayState } from "@heroui/react";
 import { useState, useTransition } from "react";
 
 import { approveChangeRequest, rejectChangeRequest } from "@/actions";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 
@@ -55,21 +56,19 @@ export function ApproveRejectControls({ requestId, alreadyApproved }: ApproveRej
           setError(result.error);
           return;
         }
-        handleRejectOpenChange(false);
+        rejectState.close();
+        resetReject();
       } catch {
         setError(GENERIC_ERROR_MESSAGE);
       }
     });
   }
 
-  function handleRejectOpenChange(isOpen: boolean) {
-    // Reset on any close (Esc, overlay, Cancel) so a stale note can't ride
-    // along on the next reject.
-    if (!isOpen) {
-      setNote("");
-      setError(null);
-    }
-    rejectState.setOpen(isOpen);
+  // Runs on any close (Esc, overlay, Cancel) so an old note or error
+  // doesn't show up on the next reject.
+  function resetReject() {
+    setNote("");
+    setError(null);
   }
 
   return (
@@ -85,34 +84,20 @@ export function ApproveRejectControls({ requestId, alreadyApproved }: ApproveRej
       {notice && <InlineAlert status="success">{notice}</InlineAlert>}
       {error && !rejectState.isOpen && <InlineAlert>{error}</InlineAlert>}
 
-      <AlertDialog.Backdrop isOpen={rejectState.isOpen} onOpenChange={handleRejectOpenChange}>
-        <AlertDialog.Container placement="center" size="sm">
-          <AlertDialog.Dialog>
-            <AlertDialog.Header>
-              <AlertDialog.Heading>Reject this request?</AlertDialog.Heading>
-            </AlertDialog.Header>
-            <AlertDialog.Body>
-              <TextField value={note} onChange={setNote}>
-                <Label>Reason (shown to the requester)</Label>
-                <TextArea placeholder="Optional — why this doesn't work…" />
-              </TextField>
-              {error && <InlineAlert>{error}</InlineAlert>}
-            </AlertDialog.Body>
-            <AlertDialog.Footer className="flex justify-end gap-2">
-              <Button
-                variant="ghost"
-                onPress={() => handleRejectOpenChange(false)}
-                isDisabled={pending}
-              >
-                Cancel
-              </Button>
-              <Button variant="danger" onPress={handleReject} isDisabled={pending}>
-                Reject
-              </Button>
-            </AlertDialog.Footer>
-          </AlertDialog.Dialog>
-        </AlertDialog.Container>
-      </AlertDialog.Backdrop>
+      <ConfirmDialog
+        state={rejectState}
+        title="Reject this request?"
+        confirmLabel="Reject"
+        onConfirm={handleReject}
+        isPending={pending}
+        error={error}
+        onClose={resetReject}
+      >
+        <TextField value={note} onChange={setNote}>
+          <Label>Reason (shown to the requester)</Label>
+          <TextArea placeholder="Optional — why this doesn't work…" />
+        </TextField>
+      </ConfirmDialog>
     </div>
   );
 }
