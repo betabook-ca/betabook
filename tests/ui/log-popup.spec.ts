@@ -59,8 +59,17 @@ for (const kind of ["session", "training"]) {
     const save = await dialog.getByRole("button", { name: "Save changes" }).boundingBox();
     const viewport = page.viewportSize();
     if (!box || !form || !save || !viewport) throw new Error("Expected edit popup geometry");
-    expect(box.width).toBeLessThanOrEqual(512);
-    expect(Math.abs(box.x + box.width / 2 - viewport.width / 2)).toBeLessThanOrEqual(2);
+
+    // One dialog, two shapes. Below md it is a bottom sheet: the full width
+    // of the phone and flush to its bottom edge, so the form sits under the
+    // thumb. From md up it is a centered column no wider than 32rem.
+    if (viewport.width < 768) {
+      expect(box.width).toBe(viewport.width);
+      expect(Math.abs(box.y + box.height - viewport.height)).toBeLessThanOrEqual(1);
+    } else {
+      expect(box.width).toBeLessThanOrEqual(512);
+      expect(Math.abs(box.x + box.width / 2 - viewport.width / 2)).toBeLessThanOrEqual(2);
+    }
     expect(Math.abs(form.x + form.width - save.x - save.width)).toBeLessThanOrEqual(2);
   });
 }
