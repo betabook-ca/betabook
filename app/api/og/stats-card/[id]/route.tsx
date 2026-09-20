@@ -7,8 +7,9 @@ import { DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
 import { getDb } from "@/db/client";
 import { getJournalSessionsForAnalytics, getUserSendsForAnalytics } from "@/db/queries";
 import { withApiSession } from "@/lib/api-session";
+import { BetabookMark, CardFrame, Tile } from "@/lib/og-elements";
+import { ogFonts, OG_FONT } from "@/lib/og-fonts";
 import { OG_COLORS, OG_DISCIPLINE_COLOR } from "@/lib/og-theme";
-import { SITE_NAME } from "@/lib/site";
 import {
   buildSocialCardStats,
   isSocialCardPeriod,
@@ -40,80 +41,15 @@ export async function loadSocialCardStats(
   return buildSocialCardStats(sends, sessions, period, todayInTimezone(cf?.timezone));
 }
 
-function Tile({ label, value, sub }: { label: string; value: string; sub?: string }): ReactElement {
+/** The small accent-colored dot before an eyebrow line — the one spot on
+ * this card that still uses the climber's dominant discipline color now
+ * that the header lockup is the real (uncolored) logo mark, not a colored
+ * stand-in for it. */
+function AccentDot({ color }: { color: string }): ReactElement {
   return (
     <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 6,
-        flex: 1,
-        background: "rgba(0,0,0,0.05)",
-        borderRadius: 28,
-        padding: "28px 32px",
-      }}
-    >
-      <span
-        style={{
-          fontSize: 22,
-          color: "rgba(0,0,0,0.55)",
-          textTransform: "uppercase",
-          letterSpacing: 2,
-        }}
-      >
-        {label}
-      </span>
-      <span style={{ fontSize: 52, fontWeight: 700, color: OG_COLORS.ink, lineHeight: 1.1 }}>
-        {value}
-      </span>
-      {sub && (
-        <span
-          style={{
-            fontSize: 20,
-            color: "rgba(0,0,0,0.55)",
-            maxWidth: 380,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {sub}
-        </span>
-      )}
-    </div>
-  );
-}
-
-function CardFrame({ accent, children }: { accent: string; children: ReactElement }): ReactElement {
-  return (
-    <div
-      style={{
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        background: OG_COLORS.paper,
-        padding: 72,
-        fontFamily: "sans-serif",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <div
-          style={{ display: "flex", width: 30, height: 30, borderRadius: 9999, background: accent }}
-        />
-        <span style={{ fontSize: 34, fontWeight: 700, color: OG_COLORS.ink, letterSpacing: 1 }}>
-          {SITE_NAME.toLowerCase()}
-        </span>
-      </div>
-      {children}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <span style={{ fontSize: 24, color: "rgba(0,0,0,0.6)" }}>
-          Climbing logbook & crag database
-        </span>
-        <span style={{ fontSize: 24, color: "rgba(0,0,0,0.6)" }}>betabook.ca</span>
-      </div>
-    </div>
+      style={{ display: "flex", width: 12, height: 12, borderRadius: 9999, background: color }}
+    />
   );
 }
 
@@ -123,40 +59,101 @@ export function socialCardElement(name: string, stats: SocialCardStats): ReactEl
   const accent = stats.scope ? OG_DISCIPLINE_COLOR[stats.scope] : OG_COLORS.primary;
   if (stats.scope === null) {
     return (
-      <CardFrame accent={accent}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <span style={{ fontSize: 30, color: "rgba(0,0,0,0.6)" }}>{stats.periodLabel}</span>
-          <span style={{ fontSize: 64, fontWeight: 700, color: OG_COLORS.ink, lineHeight: 1.1 }}>
-            No sends logged yet
-          </span>
-          <span style={{ fontSize: 30, color: "rgba(0,0,0,0.6)" }}>{name}</span>
+      <CardFrame padding={72}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 28,
+            textAlign: "center",
+          }}
+        >
+          <div style={{ display: "flex", opacity: 0.14 }}>
+            <BetabookMark size={140} color={OG_COLORS.ink} sunColor={OG_COLORS.ink} />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+            <span
+              style={{
+                fontFamily: OG_FONT.body,
+                fontWeight: 500,
+                fontSize: 28,
+                color: "rgba(0,0,0,0.56)",
+                textTransform: "uppercase",
+                letterSpacing: 3,
+              }}
+            >
+              {stats.periodLabel}
+            </span>
+            <span
+              style={{
+                fontFamily: OG_FONT.display,
+                fontWeight: 700,
+                fontSize: 64,
+                color: OG_COLORS.ink,
+                lineHeight: 1.1,
+              }}
+            >
+              No sends logged yet
+            </span>
+            <span
+              style={{
+                fontFamily: OG_FONT.body,
+                fontWeight: 500,
+                fontSize: 30,
+                color: "rgba(0,0,0,0.6)",
+              }}
+            >
+              {name}
+            </span>
+          </div>
         </div>
       </CardFrame>
     );
   }
   return (
-    <CardFrame accent={accent}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 40 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <CardFrame padding={72} align="start">
+      <div style={{ display: "flex", flexDirection: "column", gap: 64 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <AccentDot color={accent} />
+            <span
+              style={{
+                fontFamily: OG_FONT.body,
+                fontWeight: 500,
+                fontSize: 26,
+                color: "rgba(0,0,0,0.56)",
+                textTransform: "uppercase",
+                letterSpacing: 3,
+              }}
+            >
+              {`${stats.periodLabel} · ${DISCIPLINE_LABELS[stats.scope]}`}
+            </span>
+          </div>
           <span
             style={{
-              fontSize: 26,
-              color: "rgba(0,0,0,0.55)",
-              textTransform: "uppercase",
-              letterSpacing: 3,
+              fontFamily: OG_FONT.display,
+              fontWeight: 700,
+              fontSize: 200,
+              color: accent,
+              lineHeight: 1,
             }}
           >
-            {`${stats.periodLabel} · ${DISCIPLINE_LABELS[stats.scope]}`}
-          </span>
-          <span style={{ fontSize: 140, fontWeight: 700, color: OG_COLORS.ink, lineHeight: 1 }}>
             {stats.sendCount}
           </span>
-          <span style={{ fontSize: 40, color: OG_COLORS.ink }}>
+          <span
+            style={{
+              fontFamily: OG_FONT.body,
+              fontWeight: 500,
+              fontSize: 40,
+              color: OG_COLORS.ink,
+            }}
+          >
             {`${stats.sendCount === 1 ? "send" : "sends"} · ${name}`}
           </span>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          <div style={{ display: "flex", gap: 20 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <div style={{ display: "flex", gap: 24 }}>
             <Tile label="Days out" value={String(stats.daysOut)} />
             <Tile
               label="Hardest"
@@ -164,7 +161,7 @@ export function socialCardElement(name: string, stats: SocialCardStats): ReactEl
               sub={stats.hardest?.climbName}
             />
           </div>
-          <div style={{ display: "flex", gap: 20 }}>
+          <div style={{ display: "flex", gap: 24 }}>
             <Tile label="Areas" value={String(stats.areaCount)} sub={stats.topArea?.name} />
             <Tile
               label="Flash rate"
@@ -194,5 +191,8 @@ export const GET = withApiSession(async (session, request: Request, { params }: 
   const period = isSocialCardPeriod(requested) ? requested : "year";
 
   const stats = await loadSocialCardStats(id, period);
-  return new ImageResponse(socialCardElement(session.user.name, stats), IMAGE_SIZE);
+  return new ImageResponse(socialCardElement(session.user.name, stats), {
+    ...IMAGE_SIZE,
+    fonts: ogFonts(),
+  });
 });

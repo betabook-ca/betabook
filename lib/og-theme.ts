@@ -20,3 +20,16 @@ export const OG_DISCIPLINE_COLOR: Record<ClimbType, string> = {
   sport: OG_COLORS.support,
   boulder: OG_COLORS.accent,
 };
+
+/** A translucent tint of an `OG_COLORS`/`OG_DISCIPLINE_COLOR` hex, for the
+ * soft chip-style backgrounds `--discipline-*-bg` uses elsewhere
+ * (`color-mix(in oklab, <hue> 22%, white)`) — satori has no `color-mix`, but
+ * an alpha overlay on the same paper backdrop reads the same and stays
+ * mechanically in sync with the hex above it instead of a second hand-copied
+ * constant. 6-digit hex only, which is all `OG_COLORS` ever holds. */
+export function withAlpha(hex: string, alpha: number): string {
+  const r = Number.parseInt(hex.slice(1, 3), 16);
+  const g = Number.parseInt(hex.slice(3, 5), 16);
+  const b = Number.parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
