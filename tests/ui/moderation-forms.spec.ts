@@ -5,7 +5,7 @@ test(
   { tag: "@layout" },
   async ({ page }, info) => {
     await openStory(page, info, "components-forms-area-move-dialog--queued-move");
-    const dialog = page.getByRole("alertdialog");
+    const dialog = page.getByRole("dialog");
     await dialog.getByRole("combobox", { name: "Area" }).fill("Cedar");
     await expect(
       page.getByRole("option", { name: "Cedar Grove California / North Woods", exact: true }),
@@ -75,7 +75,7 @@ test(
   { tag: "@layout" },
   async ({ page }, info) => {
     await openStory(page, info, "components-moderation-review-controls--rejection-fails");
-    const dialog = page.getByRole("alertdialog");
+    const dialog = page.getByRole("dialog");
     const error = dialog.getByRole("alert");
     await expect(error).toHaveText("Couldn't save this decision. Try again.");
     await expect(error).toBeInViewport();

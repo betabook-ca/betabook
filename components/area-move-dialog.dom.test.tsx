@@ -53,7 +53,7 @@ it.each(["area", "climb"] as const)(
     await user.click(screen.getByRole("button", { name: "Move" }));
     expect(action).toHaveBeenCalledWith(kind === "area" ? 10 : 11, 20);
     expect(await screen.findByRole("heading", { name: "Submitted for review" })).toBeVisible();
-    await user.click(screen.getByRole("button", { name: "Close" }));
+    await user.click(screen.getByRole("button", { name: "Done" }));
     await user.click(screen.getByRole("button", { name: "Open move" }));
     expect(screen.queryByRole("heading", { name: "Submitted for review" })).not.toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Area" })).toHaveValue("");
