@@ -1,14 +1,9 @@
 import type { ReactElement } from "react";
 
+import { MOUNTAIN_PATH } from "@/lib/brand-mark";
 import { OG_FONT } from "@/lib/og-fonts";
 import { OG_COLORS, withAlpha } from "@/lib/og-theme";
 import { SITE_NAME } from "@/lib/site";
-
-/** The mountain-into-checkmark silhouette, verbatim from the `mountain`
- * constant in scripts/generate-brand-assets.ts (the icon SVGs' shared path).
- * There is one canonical shape; keep both copies in sync by hand. */
-const MOUNTAIN_PATH =
-  "M129 151 L202 78 Q205 75 208 78 L237 108 L249 97 Q252 94 255 97 L282 124 L359 62 Q361 60.5 360 63 L285 138 Q282 141 279 138 L252 111 L240 122 Q237 125 234 122 L205 92 L147 151 Z";
 
 /** The icon-only mark: a mountain becomes a checkmark beneath the sun. Same
  * `viewBox` as `betabook-icon-*.svg` (see assets/branding/README.md), so
