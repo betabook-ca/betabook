@@ -1,5 +1,5 @@
 import { useOverlayState } from "@heroui/react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { expect, it, vi } from "vitest";
@@ -78,7 +78,7 @@ it("refuses to close while a submit is in flight", async () => {
   expect(onClose).not.toHaveBeenCalled();
 });
 
-it("reports the close so the body can reset itself", async () => {
+it("reports the close once the exit has finished, not while it runs", async () => {
   stubViewport("mobile");
   const user = userEvent.setup();
   const onClose = vi.fn<() => void>();
@@ -87,7 +87,10 @@ it("reports the close so the body can reset itself", async () => {
   await screen.findByRole("dialog");
   await user.keyboard("{Escape}");
 
-  expect(onClose).toHaveBeenCalledOnce();
+  // Resetting straight away would swap the body out while the dialog is
+  // still sliding off screen.
+  expect(onClose).not.toHaveBeenCalled();
+  await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
 });
 
 it("mounts the body only while open, so a reopened form starts clean", async () => {

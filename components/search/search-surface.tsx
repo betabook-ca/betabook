@@ -29,9 +29,6 @@ type SearchSurfaceProps = {
   loadingMore?: boolean;
   loadMoreFailed?: boolean;
   area?: AreaSelection | null;
-  /** Not used by the surface itself — callers compose it into `filters`,
-   * where the full page's area lookup lives. */
-  onAreaChange: (area: AreaSelection | null) => void;
   filters?: ReactNode;
   memberNotice?: ReactNode;
   /** The full page leads with the notice; the palette and landing keep it by the results. */

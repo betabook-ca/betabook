@@ -4,10 +4,8 @@ import type { ComponentProps, ReactNode } from "react";
 import { AuthCallout } from "@/components/auth-callout";
 import { ClimbFilterControls } from "@/components/filters/climb-filter-controls";
 import { useSearch } from "@/hooks/use-search";
-import type { AreaSelection } from "@/lib/area-selection";
 import { DEFAULT_CLIMB_LIST_SORT } from "@/lib/climb-list-sort";
 import { DEFAULT_CLIMB_FILTER } from "@/lib/filters/climb-filter";
-import { withClimbFilterArea } from "@/lib/filters/climb-filter-state";
 import { searchHref } from "@/lib/search";
 import type { AppSearchResult, SearchFetcher, SearchSnapshot, SearchState } from "@/lib/search";
 import { fetchPublicSearchPage, fetchSearchPage } from "@/lib/search-client";
@@ -91,8 +89,6 @@ export function SearchController({
             },
       ),
     area: state.area,
-    onAreaChange: (area: AreaSelection | null) =>
-      onChange(withClimbFilterArea({ ...state, category: area ? "climb" : state.category }, area)),
     sections: search.sections,
     suggestions: suggested.length
       ? {

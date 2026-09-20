@@ -82,13 +82,6 @@ export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerP
     setPendingNotice(null);
   }
 
-  // Closing from inside the body doesn't pass through the dialog's own
-  // dismissal, so it has to clear the form itself.
-  function close() {
-    state.close();
-    reset();
-  }
-
   return (
     <ResponsiveDialog state={state} title="Request a full edit" isPending={pending} onClose={reset}>
       {pendingNotice ? (
@@ -96,7 +89,7 @@ export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerP
         // it enabled invites a second click and a duplicate request.
         <div className="flex flex-col gap-4">
           <p className="text-sm text-muted">{pendingNotice}</p>
-          <Button variant="ghost" onPress={close} fullWidth>
+          <Button variant="ghost" onPress={state.close} fullWidth>
             Done
           </Button>
         </div>

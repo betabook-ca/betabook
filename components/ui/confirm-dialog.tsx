@@ -53,6 +53,11 @@ export function ConfirmDialog({
   pendingNotice,
   onClose,
 }: ConfirmDialogProps) {
+  // Cleared as soon as it closes, not after the exit. Unlike the sheet
+  // dialogs, some callers also render this state outside the dialog (the
+  // admin reject control shows its error on the page once the dialog is
+  // gone), so holding the reset would leak the old error into the page for
+  // as long as the animation ran.
   function close() {
     state.close();
     onClose?.();

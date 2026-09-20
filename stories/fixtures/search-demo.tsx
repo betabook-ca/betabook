@@ -175,7 +175,6 @@ export function QuickSearchCompactDemo({ scenario = "ready" }: { scenario?: Sear
           onRetry={demo.retry}
           onViewAll={() => {}}
           area={demo.filters.area}
-          onAreaChange={(area: AreaSelection | null) => demo.setFilters({ ...demo.filters, area })}
           headerAction={
             <Button variant="ghost" size="sm">
               Cancel

@@ -38,10 +38,9 @@ export function AreaMoveDialog({
     setQueued(false);
   }
 
-  function close() {
-    state.close();
-    reset();
-  }
+  // The dialog runs `reset` once its exit has finished, so closing from the
+  // body only has to close.
+  const close = state.close;
 
   function move() {
     if (!picked || pending) return;
