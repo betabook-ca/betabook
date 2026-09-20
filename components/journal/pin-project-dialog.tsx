@@ -72,7 +72,7 @@ export function PinProjectDialog({ state, suggestions, pinnedClimbIds }: PinProj
       <div className="flex flex-col gap-3">
         {!compact && (
           <p className="text-sm text-muted">
-            Pinned climbs are the only ones on your Projects tabs. Pin one you haven&apos;t touched
+            Pinned climbs are the only ones on your Projects tab. Pin one you haven&apos;t touched
             yet and it waits there for your first session.
           </p>
         )}
