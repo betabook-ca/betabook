@@ -47,7 +47,7 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
       section: "Projects",
       title: "Pick up where you left off",
       description:
-        "Pin a climb and it appears in Progress, Projects, with its latest note — even before your first session on it. Use Load more to read earlier sessions, and Sent to revisit the ones you finished. This list is private.",
+        "Pin a climb and it appears in Progress, Projects, with its latest note — even before your first session on it. Use Load more to read earlier sessions, and the Sent tab to revisit the ones you finished. This list is private.",
       target: "project-sessions",
     },
     {

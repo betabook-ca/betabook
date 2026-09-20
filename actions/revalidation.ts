@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
  * list, or missing a climb that just moved into it. */
 export function revalidateProjectSurfaces(userId: string) {
   revalidatePath(`/users/${userId}/projects`);
-  revalidatePath(`/users/${userId}/sent-projects`);
+  revalidatePath(`/users/${userId}/projects/sent`);
 }
 
 /** Every cached surface whose rendered aggregates or rows can change after a

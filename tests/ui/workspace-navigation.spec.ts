@@ -3,10 +3,10 @@ import { expect, openStory, test } from "./story";
 for (const [story, title, labels] of [
   ["logbook", "Logbook", ["Journal", "Sends"]],
   ["sends", "Logbook", ["Journal", "Sends"]],
-  ["progress", "Progress", ["Goals", "Projects", "Sent", "Analytics"]],
-  // Same tabs from the sibling route: the `toHaveCount(1)` current-tab check
-  // below is what proves /sent-projects doesn't also light up Projects.
-  ["sent-projects", "Progress", ["Goals", "Projects", "Sent", "Analytics"]],
+  ["progress", "Progress", ["Goals", "Projects", "Analytics"]],
+  // The sent sub-page nests under /projects, so the same row renders and the
+  // `toHaveCount(1)` check below proves exactly one tab reads as current.
+  ["sent-projects", "Progress", ["Goals", "Projects", "Analytics"]],
   ["community", "Community", ["Feed", "Friends"]],
   ["friends", "Community", ["Feed", "Friends"]],
 ] as const) {

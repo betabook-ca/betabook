@@ -33,7 +33,6 @@ export function primaryAreaForPath(pathname: string, userId: string): PrimaryAre
   if (
     within(pathname, `${owner}/goals`) ||
     within(pathname, `${owner}/projects`) ||
-    within(pathname, `${owner}/sent-projects`) ||
     within(pathname, `${owner}/analytics`)
   )
     return "progress";
@@ -57,11 +56,10 @@ export function workspaceTabs(
     case "progress":
       return [
         { label: "Goals", href: `${owner}/goals`, roots: [] },
+        // Open and Sent are sub-tabs inside this one, so /projects/sent nests
+        // under it and WorkspaceShell's prefix match is what keeps Projects
+        // lit while the climber is on either.
         { label: "Projects", href: `${owner}/projects`, roots: [] },
-        // Deliberately a sibling of /projects, not /projects/sent: WorkspaceShell
-        // marks a tab current with a `startsWith` prefix test, so a nested path
-        // would light up Projects here too.
-        { label: "Sent", href: `${owner}/sent-projects`, roots: [] },
         { label: "Analytics", href: `${owner}/analytics`, roots: [] },
       ];
     default:

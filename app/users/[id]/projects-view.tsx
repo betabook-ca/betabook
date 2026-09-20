@@ -1,5 +1,6 @@
 import { ProjectBoard } from "@/components/journal";
 import type { ProjectWithSessions } from "@/components/journal";
+import { ProjectTabs } from "@/components/journal/project-tabs";
 import { SectionHeading } from "@/components/ui/typography";
 import { getDb } from "@/db/client";
 import {
@@ -50,7 +51,10 @@ export async function ProjectsView({
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <SectionHeading className="sr-only">{sent ? "Sent projects" : "Projects"}</SectionHeading>
+      <SectionHeading className="sr-only">
+        {sent ? "Sent projects" : "Open projects"}
+      </SectionHeading>
+      <ProjectTabs view={variant} userId={ownerId} />
       <ProjectBoard
         userId={ownerId}
         projects={withSessions}

@@ -15,7 +15,7 @@ it.each([
   ["/users/alex/journal", "logbook"],
   ["/users/alex/sends", "logbook"],
   ["/users/alex/projects", "progress"],
-  ["/users/alex/sent-projects", "progress"],
+  ["/users/alex/projects/sent", "progress"],
   ["/users/alex/goals", "progress"],
   ["/users/alex/analytics", "progress"],
   ["/feed", "community"],
@@ -34,7 +34,6 @@ it("keeps workspace sections small and preserves existing routes", () => {
   expect(workspaceTabs("progress", "alex").map(({ label }) => label)).toEqual([
     "Goals",
     "Projects",
-    "Sent",
     "Analytics",
   ]);
   expect(workspaceTabs("community", "alex").map(({ href }) => href)).toEqual(["/feed", "/friends"]);
@@ -45,8 +44,8 @@ it.each(["logbook", "progress", "community"] as const)(
   (area) => {
     // WorkspaceShell marks a tab current with `pathname.startsWith(`${href}/`)`,
     // so a tab nested under a sibling would light both up and make the
-    // screen-reader heading announce the wrong page. Sent Projects is a sibling
-    // of Projects for exactly this reason.
+    // screen-reader heading announce the wrong page. Sub-pages like
+    // /projects/sent nest under their tab on purpose; two tabs must not.
     const hrefs = workspaceTabs(area, "alex").map(({ href }) => href);
     for (const href of hrefs) {
       const nested = hrefs.filter((other) => other !== href && other.startsWith(`${href}/`));
