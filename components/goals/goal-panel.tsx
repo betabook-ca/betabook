@@ -320,7 +320,7 @@ export function GoalPanel({
     );
   }
   function endRoutineButton(goal: GoalProgress) {
-    if (view !== "active" || !runningRoutine(goal)) return null;
+    if (view !== "active" || !runningRoutine(goal) || goal.recurringEndDate) return null;
     return (
       <span className="ml-auto flex justify-end">
         <Button
@@ -329,12 +329,13 @@ export function GoalPanel({
           className="-mr-3 text-xs!"
           onPress={() => openEndRoutine(goal)}
         >
-          {goal.recurringEndDate ? "Change end date" : "End routine"}
+          End routine
         </Button>
       </span>
     );
   }
   function goalActions(goal: GoalProgress) {
+    const routine = runningRoutine(goal);
     return (
       <ActionsMenu
         ariaLabel={`Actions for ${goalTitle(goal)}`}
@@ -360,11 +361,7 @@ export function GoalPanel({
             Archive goal
           </Menu.Item>
         )}
-        {runningRoutine(goal) && (
-          <Menu.Item id="end">
-            {goal.recurringEndDate ? "Change end date" : "End routine"}
-          </Menu.Item>
-        )}
+        {routine && !routine.recurringEndDate && <Menu.Item id="end">End routine</Menu.Item>}
         <Menu.Item id="delete">Delete</Menu.Item>
       </ActionsMenu>
     );

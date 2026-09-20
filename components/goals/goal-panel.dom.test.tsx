@@ -466,8 +466,7 @@ it("offers an end date for recurring routines from Active and History", async ()
   expect(await screen.findByRole("menuitem", { name: "End routine" })).toBeVisible();
 });
 
-it("uses the goal's civil date when scheduling its last day across timezones", async () => {
-  const { endRecurringGoal } = await import("@/actions");
+it("keeps a scheduled routine's end date editable through Edit only", async () => {
   const user = userEvent.setup();
   render(
     <GoalPanel
@@ -491,10 +490,11 @@ it("uses the goal's civil date when scheduling its last day across timezones", a
     />,
   );
   expect(screen.getByText("Ends Sep 11")).toBeVisible();
-  await user.click(screen.getByRole("button", { name: "Change end date" }));
-  await user.click(screen.getByRole("button", { name: "Save end date" }));
-  await waitFor(() => expect(endRecurringGoal).toHaveBeenLastCalledWith(1, "2026-09-11"));
-  expect(screen.queryByRole("heading", { name: "End recurring goal" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Change end date" })).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: /Actions for/ }));
+  expect(screen.queryByRole("menuitem", { name: "Change end date" })).not.toBeInTheDocument();
+  await user.click(screen.getByRole("menuitem", { name: "Edit" }));
+  expect(await screen.findByRole("spinbutton", { name: "day, End date" })).toHaveTextContent("11");
 });
 
 it("creates recurring training without an end date by default", async () => {

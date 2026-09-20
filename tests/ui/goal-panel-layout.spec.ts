@@ -163,8 +163,8 @@ for (const story of ["missed-goal", "archived-missed-goal", "month-old-missed-go
 test("recurring end-date dialog fits the viewport and exposes the date and save controls", async ({
   page,
 }, info) => {
-  await openStory(page, info, "components-goals-goal-panel--ending-routine");
-  await page.getByRole("button", { name: "Change end date" }).click();
+  await openStory(page, info, "components-goals-goal-panel--monthly-target-met");
+  await page.getByRole("button", { name: "End routine" }).click();
   const dialog = page.getByRole("dialog", { name: "End recurring goal" });
   await expect(dialog).toBeVisible();
   const bounds = await dialog.boundingBox();
