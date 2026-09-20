@@ -248,25 +248,57 @@ it("logs a session against the project whose button was pressed", async () => {
   expect(vi.mocked(createJournalEntry).mock.calls[0][0].get("climbId")).toBe("2");
 });
 
-it("untracks the project whose button was pressed", async () => {
+it("asks before untracking, and says the climbing history is kept", async () => {
+  const user = userEvent.setup();
+  render(<ProjectBoard userId="climber" projects={projects} hasMore={false} />);
+
+  await user.click(screen.getByRole("button", { name: "Untrack Ash Crack" }));
+
+  const dialog = await screen.findByRole("alertdialog");
+  expect(dialog).toHaveTextContent("Untrack Ash Crack?");
+  // The whole reason for the confirmation: the button sits under the
+  // climber's own notes and shouldn't read like it deletes them.
+  expect(dialog).toHaveTextContent(/session and journal entry on this climb is kept/);
+  expect(unpinProject).not.toHaveBeenCalled();
+});
+
+it("keeps the project when the confirmation is declined", async () => {
+  const user = userEvent.setup();
+  render(<ProjectBoard userId="climber" projects={projects} hasMore={false} />);
+
+  await user.click(screen.getByRole("button", { name: "Untrack Ash Crack" }));
+  await user.click(await screen.findByRole("button", { name: "Keep tracking" }));
+
+  expect(unpinProject).not.toHaveBeenCalled();
+  expect(headings()).toEqual(["Moon Slab", "Ash Crack"]);
+});
+
+it("untracks the project whose button was pressed once confirmed", async () => {
   const user = userEvent.setup();
   vi.mocked(unpinProject).mockResolvedValue({ ok: true, value: undefined });
   render(<ProjectBoard userId="climber" projects={projects} hasMore={false} />);
 
   await user.click(screen.getByRole("button", { name: "Untrack Ash Crack" }));
+  await user.click(await screen.findByRole("button", { name: /^Untrack$/ }));
 
   await waitFor(() => expect(unpinProject).toHaveBeenCalledWith(2));
   expect(unpinProject).toHaveBeenCalledTimes(1);
 });
 
-it("keeps a failed untrack on screen with its reason", async () => {
+it("keeps a failed untrack in the dialog with its reason", async () => {
   const user = userEvent.setup();
   vi.mocked(unpinProject).mockResolvedValue({ ok: false, error: "Climb not found" });
   render(<ProjectBoard userId="climber" projects={projects} hasMore={false} />);
 
   await user.click(screen.getByRole("button", { name: "Untrack Ash Crack" }));
+  await user.click(await screen.findByRole("button", { name: /^Untrack$/ }));
 
-  expect(await within(card("Ash Crack")).findByText("Climb not found")).toBeVisible();
+  const dialog = await screen.findByRole("alertdialog");
+  expect(await within(dialog).findByText("Climb not found")).toBeVisible();
+
+  // The list is behind an open modal, so read it back once the dialog is gone.
+  await user.click(within(dialog).getByRole("button", { name: "Keep tracking" }));
+  await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
   expect(headings()).toEqual(["Moon Slab", "Ash Crack"]);
 });
 
