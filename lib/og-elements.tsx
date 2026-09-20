@@ -127,18 +127,9 @@ export function Tile({
  * rather than hard-coding either card's own pixel size. */
 export function CardFrame({
   padding,
-  align = "center",
   children,
 }: {
   padding: number;
-  /** `"center"` (default) vertically centers the content in the space
-   * between header and footer — right for a short, self-contained moment
-   * (the empty state's icon+message). `"start"` anchors it a fixed distance
-   * below the header instead and pushes the rest of the leftover height
-   * below it, so a content block much shorter than the card (the portrait
-   * recap card especially) reads as "generous margin above the footer," not
-   * as an accidentally empty middle. */
-  align?: "center" | "start";
   children: ReactElement;
 }): ReactElement {
   return (
@@ -155,15 +146,7 @@ export function CardFrame({
       }}
     >
       <BetabookLockup color={OG_COLORS.ink} />
-      {align === "start" && <div style={{ display: "flex", height: padding }} />}
-      <div
-        style={{
-          display: "flex",
-          flex: 1,
-          flexDirection: "column",
-          justifyContent: align === "center" ? "center" : "flex-start",
-        }}
-      >
+      <div style={{ display: "flex", flex: 1, flexDirection: "column", justifyContent: "center" }}>
         {children}
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>

@@ -55,14 +55,14 @@ function GradeBadge({ hardest }: { hardest: SocialCardHardest }): ReactElement {
         flex: 1,
         flexDirection: "column",
         alignItems: "center",
-        gap: 6,
+        gap: 10,
         background: withAlpha(color, 0.14),
-        borderRadius: 22,
-        padding: "26px 20px",
+        borderRadius: 24,
+        padding: "36px 20px",
       }}
     >
       <span
-        style={{ fontFamily: OG_FONT.display, fontWeight: 700, fontSize: 44, color, lineHeight: 1 }}
+        style={{ fontFamily: OG_FONT.display, fontWeight: 700, fontSize: 52, color, lineHeight: 1 }}
       >
         {hardest.label}
       </span>
@@ -70,7 +70,7 @@ function GradeBadge({ hardest }: { hardest: SocialCardHardest }): ReactElement {
         style={{
           fontFamily: OG_FONT.body,
           fontWeight: 500,
-          fontSize: 17,
+          fontSize: 18,
           color: "rgba(0,0,0,0.56)",
           textTransform: "uppercase",
           letterSpacing: 2,
@@ -140,9 +140,9 @@ export function socialCardElement(name: string, stats: SocialCardStats): ReactEl
     );
   }
   return (
-    <CardFrame padding={72} align="start">
-      <div style={{ display: "flex", flexDirection: "column", gap: 56 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+    <CardFrame padding={72}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 88 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div
               style={{
@@ -170,7 +170,7 @@ export function socialCardElement(name: string, stats: SocialCardStats): ReactEl
             style={{
               fontFamily: OG_FONT.display,
               fontWeight: 700,
-              fontSize: 200,
+              fontSize: 224,
               color: OG_COLORS.coral,
               lineHeight: 1,
             }}
