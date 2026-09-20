@@ -10,8 +10,8 @@ export type QueryInputProps = {
   onChange: (value: string) => void;
   label: string;
   placeholder?: string;
-  /** Replaces the standard long-field width — for the callers that share a
-   * row with an adjacent action and need the field to take the remainder. */
+  /** Replaces the standard long-field width, for callers that share a row
+   * with another control and need the field to fill what's left. */
   className?: string;
   inputProps?: Pick<
     ComponentProps<typeof SearchField.Input>,
@@ -50,9 +50,9 @@ export function QueryInput({
         }
       >
         <SearchField.SearchIcon />
-        {/* A flex item's default `min-width: auto` is its content width, so
-         * without this the text pushes the clear button out past the field's
-         * own rounded edge once the field has to share a row. */}
+        {/* A flex item's default min-width is its content width, so without
+         * this the text pushes the clear button outside the field's rounded
+         * edge whenever the field has to share a row. */}
         <SearchField.Input
           className="min-w-0"
           placeholder={placeholder ?? label}

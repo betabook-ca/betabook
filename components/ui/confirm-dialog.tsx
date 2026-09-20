@@ -10,40 +10,35 @@ type ConfirmDialogProps = {
   state: UseOverlayStateReturn;
   title: string;
   description?: string;
-  /** Anything the viewer fills in before confirming — a reason, a date.
-   * Keep it to one field: past that this is a form, and a form belongs in a
-   * ResponsiveDialog. */
+  /** One field the viewer fills in before confirming, like a reason or a
+   * date. More than one and this is really a form — use ResponsiveDialog. */
   children?: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
-  /** `danger` for anything that destroys or rejects; the default for the
-   * rest. */
+  /** `danger` for anything that destroys or rejects. */
   tone?: "danger" | "default";
   onConfirm: () => void;
   isPending: boolean;
-  /** Failure message from the last attempt, if any — shown inline so the
-   * viewer can retry or cancel. */
+  /** Failure from the last attempt, shown inline so the viewer can retry
+   * or cancel. */
   error?: string | null;
-  /** Set instead of closing when a non-admin's action was queued for review
-   * rather than applied — swaps the confirm/cancel footer for a single
-   * acknowledgement, since nothing actually happened yet. */
+  /** Set instead of closing when the action was queued for admin review
+   * rather than applied. Replaces the confirm/cancel footer with a single
+   * acknowledgement, since nothing has happened yet. */
   pendingNotice?: string | null;
-  /** Runs after the dialog closes by any route — Cancel, Escape or the
-   * backdrop — so a reason typed into `children` and a failed attempt's
-   * error can't ride along into the next one. */
+  /** Runs after close by any route (Cancel, Escape, backdrop). Use it to
+   * clear `children` and any error, so they don't reappear next time. */
   onClose?: () => void;
 };
 
-/** The app's one confirmation: a centered alert dialog at every width.
+/** The shared confirmation: a centered alert dialog at every width.
  *
- * Deliberately not responsive. A question the page asks is an interruption,
- * not a task — a bottom sheet's chrome dwarfs one sentence and two buttons,
- * and its drag-to-dismiss advertises a gesture that should not be how a
- * destructive choice gets resolved. Everything that destroys, rejects or
- * gates goes through here, so the wording, the button order and the danger
- * styling never drift between entities.
+ * Not responsive, on purpose. A sheet is a lot of chrome for one sentence
+ * and two buttons, and swiping it away is the wrong gesture for settling a
+ * destructive choice. Routing every delete, reject and gate through here
+ * also keeps the wording, button order and danger styling consistent.
  *
- * Anything with a form in it wants ResponsiveDialog instead. */
+ * If it contains a form, use ResponsiveDialog instead. */
 export function ConfirmDialog({
   state,
   title,

@@ -9,14 +9,13 @@ import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
 import type { GatedActionResult } from "@/lib/moderation";
 
-/** Choosing where a climb or an area moves to.
+/** Picking where a climb or area moves to.
  *
- * Searching a tree for a destination is a task, not an urgent question, so
- * this is an ordinary dialog rather than the alert dialog it used to be:
- * `alertdialog` is for an interruption a viewer must answer, and it was
- * wrapping a combobox and a result list inside a 24rem box. The list now
- * gets a column it fits in, and a phone gets the sheet every other picker
- * in the app gets. */
+ * This was an AlertDialog, which is the wrong role — `alertdialog` is for
+ * interruptions the viewer has to answer, not for searching a tree. It also
+ * meant a combobox and its results squeezed into 24rem. Now it's a normal
+ * dialog: a wider column on desktop, a sheet on phones like every other
+ * picker. */
 export function AreaMoveDialog({
   state,
   title,
@@ -69,9 +68,8 @@ export function AreaMoveDialog({
       footer={
         <div className="flex justify-end gap-2">
           {queued ? (
-            // "Done", not "Close": the dialog's own close control already
-            // carries that label, and two buttons reading Close in one
-            // dialog is a coin toss for anyone listening to it.
+            // "Done" rather than "Close", because the dialog's own close
+            // button already uses that label.
             <Button variant="ghost" onPress={close}>
               Done
             </Button>

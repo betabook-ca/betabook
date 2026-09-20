@@ -24,9 +24,8 @@ type ConfirmDeleteDialogProps = {
   pendingNotice?: string | null;
 };
 
-/** Deleting, specifically: ConfirmDialog with the wording every delete in
- * the app shares, so no caller has to spell out "Delete this X?" and
- * "This can't be undone." and risk phrasing it differently. */
+/** ConfirmDialog with the standard delete wording filled in, so callers
+ * don't retype "Delete this X?" and "This can't be undone." each time. */
 export function ConfirmDeleteDialog({
   state,
   noun,

@@ -64,8 +64,8 @@ export function ApproveRejectControls({ requestId, alreadyApproved }: ApproveRej
     });
   }
 
-  // Reset on any close (Esc, overlay, Cancel) so a stale note can't ride
-  // along on the next reject.
+  // Runs on any close (Esc, overlay, Cancel) so an old note or error
+  // doesn't show up on the next reject.
   function resetReject() {
     setNote("");
     setError(null);

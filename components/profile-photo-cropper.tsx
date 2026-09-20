@@ -57,9 +57,9 @@ export function ProfilePhotoCropper({
   return (
     <ResponsiveDialog state={state} title="Crop your photo" isPending={isPending}>
       {file && (
-        // Keyed by the photo, so choosing another one starts from a fresh
-        // frame rather than inheriting the last one's zoom and rotation — a
-        // remount instead of an effect that resets state.
+        // Keyed by the photo so picking a different one starts fresh instead
+        // of inheriting the last one's zoom and rotation. A remount is
+        // simpler here than an effect that resets state.
         <CropFrame
           key={`${file.name}:${file.size}:${file.lastModified}`}
           file={file}
@@ -127,9 +127,9 @@ function CropFrame({
         sees. Arrow keys nudge the photo.
       </p>
 
-      {/* The frame is square, so its height follows its width — bounding the
-       * width by the viewport is what stops a wide dialog from producing a
-       * square taller than the screen and pushing Use photo below the fold. */}
+      {/* The frame is square, so its height follows its width. Capping the
+       * width against the viewport height keeps a wide dialog from pushing
+       * the buttons below the fold. */}
       <div className="relative mx-auto aspect-square w-full max-w-[min(100%,55vh)] overflow-hidden rounded-panel bg-accent">
         <Cropper
           image={source}

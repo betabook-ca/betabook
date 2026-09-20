@@ -6,33 +6,29 @@ import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-layout-effect"
 
 export type Breakpoint = "sm" | "md" | "lg";
 
-// Tailwind v4's default breakpoints — matchMedia takes rem units and, like
-// Tailwind's own media queries, resolves them against the initial font size,
-// so these track the sm:/md:/lg: classes exactly.
+// Tailwind v4's defaults. matchMedia takes rem units and resolves them
+// against the initial font size, same as Tailwind's own media queries, so
+// these track the sm:/md:/lg: classes exactly.
 //
-// `md` is the app's own mobile/desktop line: it is where the tab bar appears
-// (app-tab-bar.tsx) and where the mobile menu closes (app-menu.tsx). Overlays
-// use the same one, so the app never disagrees with itself about which side
-// of the divide a viewer is on.
+// `md` is the app's mobile/desktop line: the tab bar appears there
+// (app-tab-bar.tsx), the mobile menu closes there (app-menu.tsx), and
+// dialogs switch shape there.
 export const BREAKPOINT_QUERY: Record<Breakpoint, string> = {
   sm: "(min-width: 40rem)",
   md: "(min-width: 48rem)",
   lg: "(min-width: 64rem)",
 };
 
-/** `undefined` on the server and during hydration, then live viewport state.
- * Resolved in a layout effect so the first client value commits before paint
- * — no flash of the wrong variant.
+/** `undefined` until the client resolves it, then live viewport state. Runs
+ * in a layout effect so the first real value commits before paint.
  *
- * Callers that render different markup per side must handle `undefined`
- * rather than treating it as `false`; the server has no viewport, and
- * guessing produces a hydration mismatch.
+ * Handle the `undefined` case rather than treating it as `false` — the
+ * server has no viewport, and guessing causes a hydration mismatch.
  *
- * `live: false` re-reads the viewport once and then holds that answer until
- * it is true again. Callers that swap one subtree for another across the
- * breakpoint use it to pin the answer for the life of an interaction: a
- * phone rotated mid-form would otherwise unmount the form and lose every
- * field the viewer had filled in. */
+ * Pass `live: false` to read once and then hold that answer. Callers that
+ * swap one subtree for another across the breakpoint use it to pin the
+ * result for the length of an interaction, so a rotated phone doesn't
+ * unmount a form mid-edit. */
 export function useIsAtLeast(
   breakpoint: Breakpoint,
   { live = true }: { live?: boolean } = {},
@@ -40,8 +36,8 @@ export function useIsAtLeast(
   const [matches, setMatches] = useState<boolean | undefined>(undefined);
 
   useIsomorphicLayoutEffect(() => {
-    // jsdom has no media queries at all, so component tests opt in per case
-    // (see test/viewport.ts); without a stub every query reads as unmatched.
+    // jsdom has no matchMedia at all, so tests opt in per case via
+    // test/viewport.ts. Without a stub every query reads as unmatched.
     const query = window.matchMedia?.(BREAKPOINT_QUERY[breakpoint]);
     if (!query) return;
     const update = () => setMatches(query.matches);

@@ -17,10 +17,9 @@ type JournalEntryDrawerProps = {
   onSave?: JournalEntryFieldsProps["onSave"];
 };
 
-/** Logging an entry — the thing this app is for, and the overlay opened
- * most often from a phone at a crag. A sheet puts the form under the thumb
- * and resizes against the keyboard; the same dialog centers itself once
- * there is a mouse and a wide screen. */
+/** Logging an entry. This is the overlay opened most often, usually from a
+ * phone, so it's a sheet there — the form stays near the thumb and resizes
+ * against the keyboard. On desktop it centers like every other dialog. */
 export function JournalEntryDrawer({
   climb,
   sentClimbIds,

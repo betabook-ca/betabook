@@ -14,13 +14,13 @@ function editTitle(entry: JournalEntry): string {
   return entry.kind === "training" ? "Edit training" : "Edit session";
 }
 
-/** Editing one journal entry, whichever kind it is.
+/** Editing a journal entry, whichever kind it is.
  *
- * An ascent and a session are the same row in the same list, reached by the
- * same Edit item in the same menu — so they get the same surface. They used
- * to split here, a centered modal for one and a bottom sheet for the other,
- * which made the chrome depend on a property of the entry the viewer never
- * chose. Only the body differs now: a send has its own editor. */
+ * Ascents and sessions are the same row in the same list, reached from the
+ * same Edit menu item, so they use the same dialog. This used to branch —
+ * a centered modal for sessions, a bottom sheet for ascents — which made
+ * the chrome depend on the entry kind for no reason the viewer could see.
+ * Only the body differs now, since sends have their own editor. */
 export function JournalEntryEditDrawer({
   entry,
   state,
@@ -35,9 +35,8 @@ export function JournalEntryEditDrawer({
     <ResponsiveDialog
       state={state}
       title={title}
-      // The session and training bodies lead with the same words as a page
-      // title; the send editor has no heading of its own, so it keeps the
-      // dialog's.
+      // Session and training bodies start with their own page title. The
+      // send editor has no heading, so it keeps the dialog's.
       hideTitle={!entry.isAscent}
       isPending={pending}
     >

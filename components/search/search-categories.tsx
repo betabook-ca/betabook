@@ -11,9 +11,9 @@ export function SearchCategories({
 }: {
   value: SearchCategory;
   onChange: (category: SearchCategory) => void;
-  /** Short viewports keep the pills on one non-wrapping line and trade some
-   * of their vertical padding for result rows. Touch targets stay at least
-   * 32px tall, and the row they sit in scrolls sideways. */
+  /** On short viewports the pills stop wrapping and lose some vertical
+   * padding to free up result rows. They stay at least 32px tall, and the
+   * row scrolls sideways. */
   compact?: boolean;
 }) {
   return (

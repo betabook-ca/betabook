@@ -14,10 +14,9 @@ for (const story of ["training", "climb", "send", "repeat"]) {
       const viewport = page.viewportSize();
       if (!box || !action || !form || !viewport) throw new Error("Expected log popup geometry");
 
-      // Logging an entry is the overlay opened most often from a phone, so
-      // below md it is a sheet: full width, flush to the bottom edge, with
-      // the save action in the thumb's half of the screen. From md up the
-      // same dialog is a centered column.
+      // Below md this is a sheet: full width, flush to the bottom, with the
+      // save button in the lower half of the screen. From md up it's a
+      // centered column.
       if (viewport.width < 768) {
         expect(box.width).toBe(viewport.width);
         expect(Math.abs(box.y + box.height - viewport.height)).toBeLessThanOrEqual(1);
@@ -71,9 +70,8 @@ for (const kind of ["session", "training"]) {
     const viewport = page.viewportSize();
     if (!box || !form || !save || !viewport) throw new Error("Expected edit popup geometry");
 
-    // One dialog, two shapes. Below md it is a bottom sheet: the full width
-    // of the phone and flush to its bottom edge, so the form sits under the
-    // thumb. From md up it is a centered column no wider than 32rem.
+    // Same dialog, two shapes: a full-width sheet flush to the bottom below
+    // md, a centered column of at most 32rem above it.
     if (viewport.width < 768) {
       expect(box.width).toBe(viewport.width);
       expect(Math.abs(box.y + box.height - viewport.height)).toBeLessThanOrEqual(1);
