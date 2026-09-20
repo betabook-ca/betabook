@@ -318,14 +318,20 @@ it("keeps missed goals actionable for a calendar month, then moves them to histo
   ).toHaveLength(1);
 });
 
-it("keeps unlimited finished goals on the main view until individually archived", () => {
+it("moves finished one-time goals to History without an archive action", () => {
   const periods = Array.from({ length: 12 }, (_, i) => ({
     ...base,
     id: i + 1,
     repeat: "none" as const,
     archived: i === 0,
+    periodStart: "2026-09-01",
+    periodEnd: "2026-09-30",
+    completedDate: "2026-09-02",
   }));
-  const page = summarizeGoalPeriods(periods, "active", 0, new Date("2026-09-12T12:00:00Z"));
-  expect(page.goals.map((goal) => goal.id)).toEqual(periods.slice(1).map((goal) => goal.id));
-  expect(page.hasMore).toBe(false);
+  const now = new Date("2026-09-12T12:00:00Z");
+  expect(summarizeGoalPeriods(periods, "active", 0, now).goals).toEqual([]);
+  const history = summarizeGoalPeriods(periods, "completed", 0, now);
+  expect(history.total).toBe(12);
+  expect(history.goals).toHaveLength(5);
+  expect(history.summary?.achieved).toBe(12);
 });

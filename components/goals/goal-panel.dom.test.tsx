@@ -9,7 +9,6 @@ import { GoalPanel } from "./goal-panel";
 vi.mock("@/actions", () => ({
   saveGoal: vi.fn<() => Promise<unknown>>(),
   deleteGoal: vi.fn<() => Promise<unknown>>(),
-  endRecurringGoal: vi.fn<() => Promise<unknown>>().mockResolvedValue({ ok: true }),
   archiveGoal: vi.fn<() => Promise<unknown>>().mockResolvedValue({ ok: true }),
   acknowledgeGoalAchievements: vi.fn<() => Promise<unknown>>().mockResolvedValue({ ok: true }),
 }));
@@ -392,12 +391,7 @@ it("retains Edit and Delete alongside the visible missed-goal actions", async ()
   expect(screen.getByRole("menuitem", { name: "Delete" })).toBeVisible();
 });
 
-it("keeps unlimited finishes outside active capacity and offers archive with retry", async () => {
-  const { archiveGoal } = await import("@/actions");
-  vi.mocked(archiveGoal)
-    .mockReset()
-    .mockResolvedValueOnce({ ok: false, error: "Please try again." })
-    .mockResolvedValue({ ok: true, value: undefined });
+it("shows completed one-time goals in History without an archive option", async () => {
   const user = userEvent.setup();
   const finished = Array.from({ length: 8 }, (_, index) => ({
     ...goal,
@@ -406,29 +400,33 @@ it("keeps unlimited finishes outside active capacity and offers archive with ret
     progress: index + 1,
     completedDate: "2026-09-02",
   }));
-  const props = {
-    ownerId: "owner",
-    timezone: "UTC",
-    today: "2026-09-11",
-    initialActive: { goals: finished, hasMore: false },
-    initialCompleted: { goals: [], hasMore: false },
-  };
-  const { rerender } = render(<GoalPanel {...props} />);
+  render(
+    <GoalPanel
+      ownerId="owner"
+      timezone="UTC"
+      today="2026-09-11"
+      initialActive={{ goals: [], hasMore: false }}
+      initialCompleted={{
+        goals: finished.slice(0, 5),
+        total: 8,
+        hasMore: true,
+        summary: { year: 2026, achieved: 8 },
+        years: [2026],
+      }}
+    />,
+  );
   expect(screen.getByRole("button", { name: "Active (0/5)" })).toBeVisible();
   expect(screen.getByRole("button", { name: "Set goal" })).toBeEnabled();
-  expect(screen.getAllByRole("button", { name: "Archive goal" })).toHaveLength(8);
-  await user.click(screen.getAllByRole("button", { name: "Archive goal" })[0]);
-  expect(await screen.findByText("Please try again.")).toBeVisible();
+  expect(screen.getByText("No active goals.")).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "History (8)" }));
   expect(screen.getByText("Train 1 time")).toBeVisible();
-  await user.click(screen.getAllByRole("button", { name: "Archive goal" })[0]);
-  await waitFor(() => expect(archiveGoal).toHaveBeenCalledTimes(2));
-  expect(archiveGoal).toHaveBeenLastCalledWith(1);
-  rerender(<GoalPanel {...props} initialActive={{ goals: finished.slice(1), hasMore: false }} />);
-  expect(screen.queryByText("Train 1 time")).not.toBeInTheDocument();
-  expect(screen.getAllByRole("button", { name: "Archive goal" })).toHaveLength(7);
+  await user.click(screen.getByRole("button", { name: "Actions for Train 1 time" }));
+  expect(screen.queryByRole("menuitem", { name: "Archive goal" })).not.toBeInTheDocument();
+  expect(screen.getByRole("menuitem", { name: "Edit" })).toBeVisible();
+  expect(screen.getByRole("menuitem", { name: "Delete" })).toBeVisible();
 });
 
-it("offers an end date for recurring routines from Active and History", async () => {
+it("shows no end date for an ongoing routine and edits it from the actions menu", async () => {
   const user = userEvent.setup();
   const routine = {
     ...goal,
@@ -449,21 +447,14 @@ it("offers an end date for recurring routines from Active and History", async ()
       }}
     />,
   );
-  await user.click(screen.getByRole("button", { name: "End routine" }));
-  expect(await screen.findByRole("heading", { name: "End recurring goal" })).toBeVisible();
-  expect(screen.getByRole("spinbutton", { name: "day, End date" })).toHaveTextContent("13");
-  const { endRecurringGoal } = await import("@/actions");
-  vi.mocked(endRecurringGoal).mockResolvedValueOnce({
-    ok: false,
-    error: "Try the end date again.",
-  });
-  await user.click(screen.getByRole("button", { name: "Save end date" }));
-  expect(await screen.findByText("Try the end date again.")).toBeVisible();
-  expect(endRecurringGoal).toHaveBeenLastCalledWith(1, "2026-09-13");
-  await user.click(screen.getByRole("button", { name: "Cancel" }));
-  await user.click(screen.getByRole("button", { name: "History (1)" }));
+  expect(screen.getByText("No end date")).toBeVisible();
+  expect(screen.queryByRole("button", { name: "End routine" })).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: /Actions for/ }));
-  expect(await screen.findByRole("menuitem", { name: "End routine" })).toBeVisible();
+  expect(screen.queryByRole("menuitem", { name: "End routine" })).not.toBeInTheDocument();
+  await user.click(screen.getByRole("menuitem", { name: "Edit" }));
+  await user.click(await screen.findByRole("button", { name: /Recurrence end/ }));
+  await user.click(screen.getByRole("option", { name: "Custom date" }));
+  expect(screen.getByRole("spinbutton", { name: "day, End date" })).toBeVisible();
 });
 
 it("keeps a scheduled routine's end date editable through Edit only", async () => {

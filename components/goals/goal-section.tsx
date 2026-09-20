@@ -2,8 +2,6 @@
 
 import type { ReactNode } from "react";
 
-import { cardClass } from "@/components/ui/card";
-
 export function GoalSection({
   hasGoals,
   action,
@@ -17,10 +15,7 @@ export function GoalSection({
 }) {
   if (!hasGoals) {
     return (
-      <section
-        aria-label="My goals"
-        className="flex max-w-160 flex-col items-start gap-2 rounded-panel bg-surface-secondary p-5 sm:p-6"
-      >
+      <section aria-label="My goals" className="flex max-w-160 flex-col items-start gap-2">
         <h2 className="text-lg font-semibold">Set your first goal</h2>
         <p className="text-sm text-muted">
           Choose a climbing or training target and track progress from your logs.
@@ -32,10 +27,10 @@ export function GoalSection({
   return (
     <section aria-label="My goals" className="flex flex-col gap-0">
       <h2 className="sr-only">My goals</h2>
-      <div className={`flex flex-col gap-0 p-2 ${cardClass("none")}`}>
-        <div className="flex items-center gap-3">
-          <div className="min-w-0 flex-1">{navigation}</div>
-          <div className="shrink-0">{action}</div>
+      <div className="flex flex-col gap-0">
+        <div className="flex flex-wrap-reverse items-center gap-x-3 gap-y-2">
+          <div className="min-w-max flex-1">{navigation}</div>
+          <div className="ml-auto shrink-0">{action}</div>
         </div>
         {children}
       </div>
