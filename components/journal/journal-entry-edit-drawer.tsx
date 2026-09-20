@@ -9,6 +9,7 @@ import { SendEditor } from "@/components/send-editor";
 import { PAGE_MAX_WIDTH_CLASS } from "@/components/ui/layout";
 import { PageTitle } from "@/components/ui/typography";
 import type { JournalEntry } from "@/db/queries";
+import { useFocusedFieldScroll } from "@/hooks/use-focused-field-scroll";
 
 export function JournalEntryEditDrawer({
   entry,
@@ -18,6 +19,7 @@ export function JournalEntryEditDrawer({
   state: UseOverlayStateReturn;
 }) {
   const [pending, setPending] = useState(false);
+  const scrollBodyRef = useFocusedFieldScroll();
   if (!entry.isAscent) {
     const title = entry.kind === "training" ? "Edit training" : "Edit session";
     return (
@@ -33,7 +35,7 @@ export function JournalEntryEditDrawer({
               <Modal.Heading className="sr-only">{title}</Modal.Heading>
               <Modal.CloseTrigger isDisabled={pending} />
             </Modal.Header>
-            <Modal.Body>
+            <Modal.Body ref={scrollBodyRef}>
               {state.isOpen && (
                 <>
                   <PageTitle className="mb-3 text-2xl! text-foreground">{title}</PageTitle>
@@ -72,7 +74,7 @@ export function JournalEntryEditDrawer({
             <Drawer.Heading>Edit send</Drawer.Heading>
             <Drawer.CloseTrigger />
           </Drawer.Header>
-          <Drawer.Body>
+          <Drawer.Body ref={scrollBodyRef}>
             {state.isOpen && <SendEditor entryId={entry.id} onDone={state.close} />}
           </Drawer.Body>
         </Drawer.Dialog>

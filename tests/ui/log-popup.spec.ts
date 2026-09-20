@@ -1,5 +1,53 @@
 import { expect, test, openStory } from "./story";
 
+for (const [field, viewportOnly] of [
+  ["Find a friend to tag", false],
+  ["Tags", false],
+  ["Find a friend to tag", true],
+  ["Tags", true],
+] as const) {
+  test(`Log keeps ${field} visible as the keyboard opens (${viewportOnly ? "visual viewport" : "window resize"})`, async ({
+    page,
+  }, info) => {
+    await openStory(page, info, "components-journal-log-popup--climb");
+    const dialog = page.getByRole("dialog", { name: "Log entry" });
+    await dialog.getByRole("button", { name: "Add details" }).click();
+    const input = dialog.getByRole("combobox", { name: field, exact: true });
+    await input.click();
+    // Desktop automation has no software keyboard. Exercise both browsers that
+    // resize the window and those that shrink only the visual viewport.
+    if (viewportOnly) {
+      await page.evaluate(() => {
+        const viewport = window.visualViewport;
+        if (!viewport) throw new Error("Missing visual viewport");
+        Object.defineProperty(viewport, "height", { configurable: true, value: 380 });
+        viewport.dispatchEvent(new Event("resize"));
+      });
+    } else {
+      await page.setViewportSize({ width: page.viewportSize()?.width ?? 375, height: 380 });
+    }
+    await expect(input).toBeFocused();
+    await expect
+      .poll(async () =>
+        input.evaluate((element) => {
+          const field = element.getBoundingClientRect();
+          const body = element.closest(".modal__body")?.getBoundingClientRect();
+          if (!body) throw new Error("Missing modal scroll body");
+          return (
+            field.top >= body.top &&
+            field.bottom <=
+              Math.min(body.bottom, window.visualViewport?.height ?? window.innerHeight)
+          );
+        }),
+      )
+      .toBe(true);
+    await info.attach("keyboard-field", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    });
+  });
+}
+
 for (const story of ["training", "climb", "send", "repeat"]) {
   test(
     `Log ${story} uses a centered popup with the save button on the right`,
