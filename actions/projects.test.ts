@@ -1,6 +1,5 @@
 import { env } from "cloudflare:test";
 import { eq } from "drizzle-orm";
-import * as cache from "next/cache";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { pinProject, unpinProject } from "@/actions";
@@ -198,32 +197,15 @@ it("drops the pin when the climb itself is deleted", async () => {
   expect(await pinnedClimbIds("climber")).toEqual([]);
 });
 
-it("takes the share link with the pin, and purges the page it served", async () => {
+it("takes the share link with the pin", async () => {
   await pinProject(SLAB);
-  const [{ token }] = await db
-    .insert(projectShareLinks)
-    .values({ userId: "climber", climbId: SLAB })
-    .returning({ token: projectShareLinks.token });
-  vi.mocked(cache.revalidatePath).mockClear();
+  await db.insert(projectShareLinks).values({ userId: "climber", climbId: SLAB });
 
   const result = await unpinProject(SLAB);
 
   expect(result.ok).toBe(true);
   // The row goes with the pin through the composite foreign key, so the link
-  // stops resolving for anyone holding it.
+  // stops resolving for anyone holding it. Nothing has to purge a page:
+  // /projects/[token] is dynamic and re-reads on every request.
   expect(await db.select().from(projectShareLinks).all()).toEqual([]);
-  // And the page that token addressed is purged. It cannot be looked up
-  // afterwards, so the action has to read it before the delete.
-  const paths = vi.mocked(cache.revalidatePath).mock.calls.map(([path]) => path);
-  expect(paths).toContain(`/projects/${token}`);
-});
-
-it("purges nothing extra when the untracked project was never shared", async () => {
-  await pinProject(SLAB);
-  vi.mocked(cache.revalidatePath).mockClear();
-
-  await unpinProject(SLAB);
-
-  const paths = vi.mocked(cache.revalidatePath).mock.calls.map(([path]) => path);
-  expect(paths.filter((path) => path.startsWith("/projects/"))).toEqual([]);
 });

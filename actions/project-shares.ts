@@ -11,7 +11,7 @@ import { allowJournalWrite } from "@/lib/rate-limit";
 import { requireSession } from "@/lib/session";
 
 import { afterCommit } from "./post-commit";
-import { revalidateProjectShare, revalidateProjectSurfaces } from "./revalidation";
+import { revalidateProjectSurfaces } from "./revalidation";
 
 const PRIVATE_PROFILE_MESSAGE =
   "Sharing is off while your profile is private — change it in Account settings.";
@@ -68,7 +68,6 @@ export async function shareProject(
     }
 
     afterCommit(() => {
-      revalidateProjectShare(shared.token);
       revalidateProjectSurfaces(user.id);
       refresh();
     });
@@ -87,15 +86,11 @@ export async function unshareProject(climbId: number): Promise<ActionResult> {
       throw new ActionError("Too many changes — try again in a minute");
 
     const db = await getDb();
-    // RETURNING, because the token is the cache key for the page it served and
-    // there is nothing left to look it up from once the row is gone.
-    const removed = await db
+    await db
       .delete(projectShareLinks)
-      .where(and(eq(projectShareLinks.userId, user.id), eq(projectShareLinks.climbId, climbId)))
-      .returning({ token: projectShareLinks.token });
+      .where(and(eq(projectShareLinks.userId, user.id), eq(projectShareLinks.climbId, climbId)));
 
     afterCommit(() => {
-      for (const { token } of removed) revalidateProjectShare(token);
       revalidateProjectSurfaces(user.id);
       refresh();
     });

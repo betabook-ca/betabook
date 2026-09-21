@@ -64,10 +64,17 @@ export function describeProjectShare(expiresAt: string | null): string {
   return /^\d{4}-\d{2}-\d{2}$/.test(date) ? `Link expires ${formatDate(date)}` : "Link";
 }
 
-/** Whether a stored deadline has passed. The database is the authority while
- * a link is being read — this only decides how the owner's own card reads. */
-export function isProjectShareExpired(expiresAt: string | null, today: Date = new Date()): boolean {
-  if (!expiresAt) return false;
-  const deadline = new Date(`${expiresAt.replace(" ", "T")}Z`);
-  return !Number.isNaN(deadline.getTime()) && deadline.getTime() <= today.getTime();
+/** Whether a stored deadline has passed, for the owner's own card. The
+ * database is the authority while a link is being read; this only decides how
+ * the card describes it.
+ *
+ * `today` is the caller's `YYYY-MM-DD`, not a `Date`, and there is no default.
+ * Reading the clock here would put the current time inside a render that runs
+ * on the server and again on the client, which is how a card ends up
+ * disagreeing with its own hydration. Callers pass the date they already
+ * resolve on the client after mount, and `null` before that — unknown clock,
+ * so the link reads as live until the client says otherwise. */
+export function isProjectShareExpired(expiresAt: string | null, today: string | null): boolean {
+  if (!expiresAt || !today) return false;
+  return expiresAt.slice(0, 10) < today;
 }

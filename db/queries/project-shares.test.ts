@@ -18,7 +18,6 @@ import { getPinnedProjects } from "./journal";
 import {
   getProjectShareAccess,
   getProjectShareForOwner,
-  getProjectShareTokens,
   getSharedProject,
   getSharedProjectSessions,
 } from "./project-shares";
@@ -258,7 +257,7 @@ describe("the link cannot outlive the pin", () => {
 
     await db.update(user).set({ isPrivate: true }).where(eq(user.id, OWNER));
 
-    expect(await getProjectShareTokens(db, OWNER)).toEqual([]);
+    expect(await db.select().from(projectShareLinks).all()).toEqual([]);
   });
 });
 
@@ -288,7 +287,6 @@ describe("the owner's own view", () => {
     await share();
 
     expect(await getProjectShareForOwner(db, MEMBER, CLIMB)).toBeNull();
-    expect(await getProjectShareTokens(db, MEMBER)).toEqual([]);
   });
 
   it("does not resolve a token against the wrong climb", async () => {

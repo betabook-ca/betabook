@@ -14,6 +14,8 @@ vi.mock("@/actions", () => ({
   updateJournalEntry: vi.fn<typeof updateJournalEntry>(),
   unpinProject: vi.fn<typeof unpinProject>(),
   pinProject: vi.fn<() => Promise<never>>(),
+  shareProject: vi.fn<() => Promise<never>>(),
+  unshareProject: vi.fn<() => Promise<never>>(),
 }));
 
 function session(overrides: Partial<JournalEntry> & { id: number }): JournalEntry {
@@ -378,4 +380,32 @@ it("says nothing is sent yet without inviting a track that belongs on the other 
   expect(screen.getByText(/No sent projects yet/)).toBeInTheDocument();
   expect(screen.getByRole("searchbox", { name: "Filter projects" })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Track project" })).not.toBeInTheDocument();
+});
+
+it("does not offer an expired link as a live one, on the card or in its dialog", async () => {
+  const user = userEvent.setup();
+  const expired = { token: "4f9c2a7e1b8d6035c9e4a1f7b2d80e36", expiresAt: "2020-01-01 00:00:00" };
+
+  render(
+    <ProjectBoard
+      shareOrigin={ORIGIN}
+      userId="climber"
+      projects={[{ ...slab, share: expired }]}
+      hasMore={false}
+    />,
+  );
+
+  // The card reads as unshared once the client clock says the link is dead.
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Share Moon Slab" })).toBeInTheDocument(),
+  );
+  expect(screen.queryByText(/Link expires/)).not.toBeInTheDocument();
+
+  // And the dialog agrees: no dead URL to copy, no Renew or Stop sharing
+  // beside a link that no longer resolves.
+  await user.click(screen.getByRole("button", { name: "Share Moon Slab" }));
+  await screen.findByRole("dialog");
+  expect(screen.queryByLabelText("Project link")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Stop sharing" })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Create link" })).toBeInTheDocument();
 });

@@ -59,10 +59,18 @@ describe("expiry", () => {
   });
 
   it("reads a passed deadline as expired and a future one as live", () => {
-    const now = new Date("2026-09-20T12:00:00Z");
-    expect(isProjectShareExpired("2026-09-20 11:59:59", now)).toBe(true);
-    expect(isProjectShareExpired("2026-09-20 12:00:01", now)).toBe(false);
-    expect(isProjectShareExpired(null, now)).toBe(false);
+    const today = "2026-09-20";
+    expect(isProjectShareExpired("2026-09-19 23:59:59", today)).toBe(true);
+    expect(isProjectShareExpired("2026-09-21 00:00:01", today)).toBe(false);
+    // A link running out later today is still live today.
+    expect(isProjectShareExpired("2026-09-20 00:00:01", today)).toBe(false);
+    expect(isProjectShareExpired(null, today)).toBe(false);
+  });
+
+  it("treats an unknown clock as live, so a server render matches its hydration", () => {
+    // The board resolves `today` on the client only; before that the card
+    // must not decide expiry, or it renders one way and hydrates another.
+    expect(isProjectShareExpired("2020-01-01 00:00:00", null)).toBe(false);
   });
 });
 

@@ -195,13 +195,3 @@ export async function getProjectShareForOwner(
   `);
   return row ?? null;
 }
-
-/** Every live token a climber holds. Read before a write that destroys them —
- * going private deletes the rows through a trigger, so the paths to purge have
- * to be collected first. */
-export async function getProjectShareTokens(db: Database, ownerId: string): Promise<string[]> {
-  const rows = await db.all<{ token: string }>(sql`
-    SELECT token FROM project_share_links WHERE user_id = ${ownerId}
-  `);
-  return rows.map((row) => row.token);
-}

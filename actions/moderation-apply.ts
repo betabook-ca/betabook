@@ -44,7 +44,7 @@ import { validateClimbMergeOverrides, validateClimbEditInput } from "@/lib/climb
 import type { ChangeRequestPayload, ChangeRequestType } from "@/lib/moderation";
 
 import { afterCommit } from "./post-commit";
-import { revalidateProjectShare, revalidateProjectSurfaces } from "./revalidation";
+import { revalidateProjectSurfaces } from "./revalidation";
 
 const ORPHANED_REVIEW_NOTE = "The area or climb this request affected no longer exists.";
 
@@ -697,15 +697,6 @@ export async function applyClimbMerge(
     WHERE climb_id IN (${sourceClimbId}, ${targetClimbId})
   `);
 
-  // Same reason, one level down: a shared project's page is addressed only by
-  // its token, and after the batch a source link has either moved to the
-  // target or cascaded away. Either way the page it serves now describes a
-  // different climb, or none.
-  const affectedShares = await db.all<{ token: string }>(sql`
-    SELECT token FROM project_share_links
-    WHERE climb_id IN (${sourceClimbId}, ${targetClimbId})
-  `);
-
   // A pin on the duplicate has to follow the climb that survives, or deleting
   // the source would cascade it away and silently drop the climber's project.
   // Skip anyone who already pinned the target: that would collide on the
@@ -825,7 +816,6 @@ export async function applyClimbMerge(
     // A pin either moved to the target or was folded into an existing one, and
     // the sends and sessions behind its card moved with it.
     for (const { userId } of affectedPinners) revalidateProjectSurfaces(userId);
-    for (const { token } of affectedShares) revalidateProjectShare(token);
     revalidatePath("/");
     refresh();
   });

@@ -4,7 +4,7 @@ import { eq, sql } from "drizzle-orm";
 import { refresh, revalidatePath } from "next/cache";
 
 import { getDb } from "@/db/client";
-import { getProjectShareTokens, getUserIdByName } from "@/db/queries";
+import { getUserIdByName } from "@/db/queries";
 import { profileShareLinks, user } from "@/db/schema";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
 import { DISPLAY_NAME_TAKEN_MESSAGE, displayNameProblem } from "@/lib/display-name";
@@ -15,7 +15,7 @@ import { requireSession } from "@/lib/session";
 import { requireTrimmed } from "@/lib/validation";
 
 import { afterCommit } from "./post-commit";
-import { revalidateProfileSurfaces, revalidateProjectShare } from "./revalidation";
+import { revalidateProfileSurfaces } from "./revalidation";
 
 export async function setUserPrivate(isPrivate: boolean): Promise<ActionResult> {
   return toActionResult(async () => {
@@ -23,15 +23,12 @@ export async function setUserPrivate(isPrivate: boolean): Promise<ActionResult> 
     const db = await getDb();
 
     // Going private revokes every project share link through the trigger in
-    // migration 0048, which deletes the rows. Their tokens are the only handle
-    // on the pages they served, so collect them before the write or those
-    // pages keep answering from the cache with a profile that just closed.
-    const revoked = isPrivate ? await getProjectShareTokens(db, session.user.id) : [];
-
+    // migration 0048, which deletes the rows. Nothing else is needed to close
+    // them: /projects/[token] is a dynamic route, so the next request finds
+    // no row rather than a cached page.
     await db.update(user).set({ isPrivate }).where(eq(user.id, session.user.id));
 
     afterCommit(() => {
-      for (const token of revoked) revalidateProjectShare(token);
       revalidateProfileSurfaces(session.user.id);
       refresh();
     });

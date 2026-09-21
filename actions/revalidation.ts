@@ -1,12 +1,5 @@
 import { revalidatePath } from "next/cache";
 
-/** The page one share link serves. Keyed by token because that is the whole
- * URL — there is no user or climb id in it to derive the path from, so every
- * caller has to read the tokens before a write that destroys them. */
-export function revalidateProjectShare(token: string) {
-  revalidatePath(`/projects/${token}`);
-}
-
 /** Both Projects tabs. A pin moves between them rather than disappearing, so
  * anything that can create or remove a send has to invalidate the pair —
  * invalidating only Projects would leave the sent tab showing a stale
