@@ -155,7 +155,8 @@ it("combines calendar disciplines independently of the grade-chart scope", async
 
   const filter = screen.getByRole("button", { name: "Calendar disciplines: All disciplines" });
   expect(filter).toBeVisible();
-  await user.click(screen.getByRole("button", { name: "Newer calendar year" }));
+  // The calendar opens on the newest year (2026), so one step back reaches 2025.
+  await user.click(screen.getByRole("button", { name: "Older calendar year" }));
   expect(screen.getByRole("region", { name: "Calendar 2025" })).toHaveTextContent(
     "3 climbing days in 2025.",
   );
@@ -172,7 +173,9 @@ it("combines calendar disciplines independently of the grade-chart scope", async
   await user.click(screen.getByRole("menuitemcheckbox", { name: "Boulder" }));
   await user.keyboard("{Escape}");
   expect(filter).toHaveAccessibleName("Calendar disciplines: Boulder + Sport");
-  await user.click(screen.getByRole("button", { name: "Newer calendar year" }));
+  // Re-adding boulder brings 2024/2026 back into range, remounting the
+  // calendar on the newest year again — one step back reaches 2025.
+  await user.click(screen.getByRole("button", { name: "Older calendar year" }));
   expect(screen.getByRole("region", { name: "Calendar 2025" })).toHaveTextContent(
     "2 climbing days in 2025.",
   );
