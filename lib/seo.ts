@@ -55,9 +55,14 @@ export function sharedProfileMetadata(name: string): Metadata {
  * nothing rather than naming the climber and the climb to the room. No
  * canonical or `og:url`, for the same reason as the profile preview, and no
  * session notes — a preview is not a place to publish them. */
-export function sharedProjectMetadata(name: string, climbName: string): Metadata {
-  const title = `${name} is projecting ${climbName}`;
-  const description = `Follow ${name}'s progress on ${climbName} on ${SITE_NAME}, a climbing logbook and crag database.`;
+export function sharedProjectMetadata(name: string, climbName: string, sent = false): Metadata {
+  // The same verb the page's own heading uses. A sent project shares the
+  // route, so a preview fixed on "is projecting" would contradict the page it
+  // is previewing.
+  const title = sent ? `${name} sent ${climbName}` : `${name} is projecting ${climbName}`;
+  const description = sent
+    ? `See the sessions behind ${name}'s ascent of ${climbName} on ${SITE_NAME}, a climbing logbook and crag database.`
+    : `Follow ${name}'s progress on ${climbName} on ${SITE_NAME}, a climbing logbook and crag database.`;
   return {
     title: { absolute: title },
     description,

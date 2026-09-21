@@ -25,7 +25,7 @@ export async function generateMetadata(props: SharedProjectPageProps): Promise<M
   const db = await getDb();
   const project = await getSharedProject(db, token);
   return project
-    ? sharedProjectMetadata(project.ownerName, project.climbName)
+    ? sharedProjectMetadata(project.ownerName, project.climbName, project.sent)
     : { title: "Shared project", robots: { index: false } };
 }
 

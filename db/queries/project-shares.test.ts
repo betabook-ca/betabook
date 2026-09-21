@@ -183,6 +183,35 @@ describe("what a link reaches", () => {
     expect(JSON.stringify(project)).not.toContain("2026-03-14");
   });
 
+  it("keeps the exact send date out of the timeline, not only out of sentMonth", async () => {
+    // The ascent entry mirrors the send's date, so listing it would republish
+    // the very date the month-only field exists to withhold.
+    // The ascent mirrors the send's date and comment, which the journal/send
+    // invariant enforces on insert.
+    const sentNote = "Sent it first go after the rest day.";
+    await seedFixtureSend(db, {
+      userId: OWNER,
+      climbId: CLIMB,
+      dateSent: "2026-03-14",
+      comment: sentNote,
+    });
+    await seedFixtureJournalEntry(db, {
+      userId: OWNER,
+      climbId: CLIMB,
+      entryDate: "2026-03-14",
+      isAscent: true,
+      sent: true,
+      body: sentNote,
+    });
+    const token = await share();
+
+    const sessions = await getSharedProjectSessions(db, token);
+    const project = await getSharedProject(db, token);
+
+    expect(JSON.stringify({ sessions, project })).not.toContain("2026-03-14");
+    expect(project?.sentMonth).toBe("2026-03");
+  });
+
   it("keeps an unsent, never-climbed pin readable", async () => {
     await db.delete(pinnedProjects).where(eq(pinnedProjects.climbId, CLIMB));
     await seedFixturePinnedProject(db, { userId: OWNER, climbId: OTHER_CLIMB });

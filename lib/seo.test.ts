@@ -135,6 +135,15 @@ describe("sharedProjectMetadata", () => {
   });
 });
 
+describe("sharedProjectMetadata for a sent project", () => {
+  it("matches the verb the page's own heading uses", () => {
+    const sent = sharedProjectMetadata("Alex Rivera", "Midnight Lightning", true);
+    expect(sent.title).toEqual({ absolute: "Alex Rivera sent Midnight Lightning" });
+    expect(JSON.stringify(sent)).not.toContain("is projecting");
+    expect(sent.robots).toEqual({ index: false });
+  });
+});
+
 describe("pageMetadata", () => {
   it.each([undefined, "article"] as const)(
     "supplies canonical and complete social metadata for %s",

@@ -79,10 +79,19 @@ const shareFromSql = sql`
  * of the merge to preserve a colliding send comment, so including them would
  * put a bodyless "session" on a stranger's page dated to a moderation action,
  * and inflate the count beside it. Excluding them also keeps send commentary,
- * which has its own audience, out of a surface that does not read it. */
+ * which has its own audience, out of a surface that does not read it.
+ *
+ * The `is_ascent` clause is redundant today and kept deliberately. An ascent
+ * mirrors the send's exact date, so listing one would republish the date that
+ * `sentMonth` exists to withhold — quietly, through the timeline rather than
+ * the field anyone would think to check. Migration 0035's triggers already
+ * force `is_send_comment = 1` on every ascent, so the clause above catches
+ * them; this one says so at the read site, and keeps the date out if that
+ * commentary filter is ever loosened. `keeps the exact send date out of the
+ * timeline` is the test that holds the line either way. */
 const sharedSessionRowsSql = sql`
   j.user_id = link.user_id AND j.climb_id = link.climb_id
-    AND j.kind = 'session' AND j.is_send_comment = 0
+    AND j.kind = 'session' AND j.is_send_comment = 0 AND j.is_ascent = 0
 `;
 
 /** Resolves a token to an outcome without reading a single fact about the

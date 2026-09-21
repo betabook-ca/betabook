@@ -153,3 +153,24 @@ it("reports a failure to stop without dropping the link", async () => {
   await waitFor(() => expect(dialog).toHaveTextContent("Too many changes"));
   expect(screen.getByLabelText("Project link")).toHaveValue(`${ORIGIN}/projects/${TOKEN}`);
 });
+
+it("replaces a stale copy failure with a later renewal failure", async () => {
+  const user = userEvent.setup();
+  // The clipboard is unavailable, as it is on an insecure origin.
+  Object.defineProperty(navigator, "clipboard", {
+    value: { writeText: () => Promise.reject(new Error("denied")) },
+    configurable: true,
+  });
+  render(<Example share={{ token: TOKEN, expiresAt: EXPIRES }} />);
+
+  await user.click(screen.getByRole("button", { name: "Copy link" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(/Couldn't copy the link/);
+
+  vi.mocked(shareProject).mockResolvedValue({ ok: false, error: "Too many changes" });
+  await user.click(screen.getByRole("button", { name: "Renew link" }));
+
+  // The newer failure is the one that matters; leaving the clipboard message
+  // in front of it would describe the wrong problem.
+  await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Too many changes"));
+  expect(screen.queryByText(/Couldn't copy the link/)).not.toBeInTheDocument();
+});
