@@ -25,7 +25,7 @@ export function ProjectSuggestionList({
 
   return (
     <section className="flex flex-col gap-2">
-      <h3 className="text-sm font-medium text-muted">Climbs you&apos;ve worked but not sent</h3>
+      <h3 className="text-sm font-medium text-muted">Recommended projects</h3>
       <ul aria-label="Suggested projects" className="flex flex-col gap-1.5">
         {suggestions.map((climb) => (
           <li key={climb.climbId}>

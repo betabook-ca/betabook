@@ -18,6 +18,7 @@ export function ClimbFilters({
   onChange,
   areaControl,
   sortControl,
+  showSort = true,
   ratingControl,
   onReset,
   activeFilters,
@@ -26,6 +27,11 @@ export function ClimbFilters({
   onChange: (value: ClimbRefinements) => void;
   areaControl?: ReactNode;
   sortControl?: ReactNode;
+  /** Drops the order control entirely. A picker is answering "which climb did
+   * I mean", where the ordering of a short result list is not the question;
+   * `sortControl ?? default` cannot express that, since the default is what
+   * an absent control falls back to. */
+  showSort?: boolean;
   ratingControl?: ReactNode;
   onReset?: () => void;
   activeFilters?: ActiveFilter[];
@@ -64,18 +70,20 @@ export function ClimbFilters({
             : []),
         ]}
         sortControl={
-          sortControl ?? (
-            <OptionSelect
-              ariaLabel="Sort results"
-              value={value.sort}
-              onChange={(sort) => onChange({ ...value, sort })}
-              options={[
-                { value: "name_asc", label: "Name A–Z" },
-                { value: "name_desc", label: "Name Z–A" },
-              ]}
-              className={FIELD_WIDTH_CLASS.medium}
-            />
-          )
+          showSort
+            ? (sortControl ?? (
+                <OptionSelect
+                  ariaLabel="Sort results"
+                  value={value.sort}
+                  onChange={(sort) => onChange({ ...value, sort })}
+                  options={[
+                    { value: "name_asc", label: "Name A–Z" },
+                    { value: "name_desc", label: "Name Z–A" },
+                  ]}
+                  className={FIELD_WIDTH_CLASS.medium}
+                />
+              ))
+            : undefined
         }
         extraFilters={
           ratingControl ?? (

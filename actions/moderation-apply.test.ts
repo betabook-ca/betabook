@@ -886,6 +886,7 @@ describe("applyClimbMerge", () => {
   });
 
   it("carries a share link onto the surviving climb with its token intact", async () => {
+    cache.revalidatePath.mockClear();
     await seedFixtureUser(db, { id: "merge-sharer" });
     await db.insert(climbs).values([
       { id: 950, areaId: 3, name: "Merge Source S", type: "boulder", grade: 3 },
@@ -908,6 +909,12 @@ describe("applyClimbMerge", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].token).toBe(before.token);
     expect(rows[0].climbId).toBe(951);
+
+    // The page that token serves now describes the surviving climb, so it
+    // has to be purged — and the token cannot be looked up from the source
+    // afterwards, which is why it is read before the batch.
+    const paths = cache.revalidatePath.mock.calls.map(([path]) => path);
+    expect(paths).toContain(`/projects/${before.token}`);
   });
 
   it("keeps the target's share when a climber had shared both climbs", async () => {

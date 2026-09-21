@@ -106,3 +106,17 @@ it("logging narrows to one discipline at a time without an expanded filter panel
   expect(sport).toHaveAttribute("aria-pressed", "false");
   expect(screen.getByRole("button", { name: "Trad" })).toHaveAttribute("aria-pressed", "false");
 });
+
+it("offers no result ordering: picking a climb is a lookup, not a browse", async () => {
+  // A mode that shows the full filter row, which is where the order control
+  // used to sit — the logging picker renders discipline chips instead.
+  render(<IntegratedClimbPickerDemo mode="merge" />);
+
+  await screen.findByRole("region", { name: "Climbs results" });
+  expect(screen.getByRole("group", { name: "Filter controls" })).toBeInTheDocument();
+
+  // The order control belongs to the search page, where a climber is
+  // browsing. Here they already know which climb they mean.
+  expect(screen.queryByRole("group", { name: "Result order" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Sort/ })).not.toBeInTheDocument();
+});

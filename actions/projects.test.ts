@@ -1,11 +1,12 @@
 import { env } from "cloudflare:test";
 import { eq } from "drizzle-orm";
+import * as cache from "next/cache";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { pinProject, unpinProject } from "@/actions";
 import { createDb } from "@/db/client";
 import { getPinnedProjects } from "@/db/queries/journal";
-import { climbs, pinnedProjects } from "@/db/schema";
+import { climbs, pinnedProjects, projectShareLinks } from "@/db/schema";
 import { PINNED_PROJECT_LIMIT } from "@/lib/projects";
 import {
   seedFixturePinnedProject,
@@ -195,4 +196,34 @@ it("drops the pin when the climb itself is deleted", async () => {
   // A pin is a bookmark, not history: it has nothing to preserve once its
   // climb is gone, so it cascades rather than blocking the delete.
   expect(await pinnedClimbIds("climber")).toEqual([]);
+});
+
+it("takes the share link with the pin, and purges the page it served", async () => {
+  await pinProject(SLAB);
+  const [{ token }] = await db
+    .insert(projectShareLinks)
+    .values({ userId: "climber", climbId: SLAB })
+    .returning({ token: projectShareLinks.token });
+  vi.mocked(cache.revalidatePath).mockClear();
+
+  const result = await unpinProject(SLAB);
+
+  expect(result.ok).toBe(true);
+  // The row goes with the pin through the composite foreign key, so the link
+  // stops resolving for anyone holding it.
+  expect(await db.select().from(projectShareLinks).all()).toEqual([]);
+  // And the page that token addressed is purged. It cannot be looked up
+  // afterwards, so the action has to read it before the delete.
+  const paths = vi.mocked(cache.revalidatePath).mock.calls.map(([path]) => path);
+  expect(paths).toContain(`/projects/${token}`);
+});
+
+it("purges nothing extra when the untracked project was never shared", async () => {
+  await pinProject(SLAB);
+  vi.mocked(cache.revalidatePath).mockClear();
+
+  await unpinProject(SLAB);
+
+  const paths = vi.mocked(cache.revalidatePath).mock.calls.map(([path]) => path);
+  expect(paths.filter((path) => path.startsWith("/projects/"))).toEqual([]);
 });

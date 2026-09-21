@@ -126,13 +126,11 @@ export function ShareProjectDialog({
            * least likely to expect: that the notes travel with it, and that
            * the link does not care who is holding it. */}
           <p className="text-sm">
-            Anyone with this link can open it, signed in to {SITE_NAME} or not, and anyone you send
-            it to can pass it on. They see your sessions and notes for {climbName}, and whether you
-            have sent it.
+            Anyone with this link can open it, and pass it on. They see your sessions and notes for{" "}
+            {climbName}.
           </p>
           <p className="text-sm text-muted">
-            The rest of your journal, your other projects and your other climbs stay private, and
-            this link changes nothing about who sees you in the feed.
+            Nothing else is shared, and it doesn&apos;t appear in anyone&apos;s feed.
           </p>
 
           <div className="flex items-center justify-between gap-3">

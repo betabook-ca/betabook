@@ -4,6 +4,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { refresh } from "next/cache";
 
 import { getDb } from "@/db/client";
+import { getProjectShareForOwner } from "@/db/queries";
 import { pinnedProjects } from "@/db/schema";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
 import { PINNED_PROJECT_LIMIT, PIN_LIMIT_MESSAGE } from "@/lib/projects";
@@ -11,7 +12,7 @@ import { allowJournalWrite } from "@/lib/rate-limit";
 import { requireSession } from "@/lib/session";
 
 import { afterCommit } from "./post-commit";
-import { revalidateProjectSurfaces } from "./revalidation";
+import { revalidateProjectShare, revalidateProjectSurfaces } from "./revalidation";
 
 /** Marks a climb as one of the climber's projects, which is the only thing
  * that puts it on the Projects tabs. Idempotent: pinning twice is a no-op
@@ -69,11 +70,18 @@ export async function unpinProject(climbId: number): Promise<ActionResult> {
       throw new ActionError("Too many changes — try again in a minute");
 
     const db = await getDb();
+    // A share link is keyed to the pin, so this delete cascades it away and
+    // the shared page stops resolving. The token is the only handle on the
+    // page it served and it goes with the row, so read it first — the same
+    // ordering `setUserPrivate` needs before its trigger fires.
+    const shared = await getProjectShareForOwner(db, user.id, climbId);
+
     await db
       .delete(pinnedProjects)
       .where(and(eq(pinnedProjects.userId, user.id), eq(pinnedProjects.climbId, climbId)));
 
     afterCommit(() => {
+      if (shared) revalidateProjectShare(shared.token);
       revalidateProjectSurfaces(user.id);
       refresh();
     });
