@@ -1,5 +1,31 @@
 import { expect, test, openStory } from "./story";
 
+test("@layout goal category chooser uses a mobile sheet before the full form", async ({
+  page,
+}, info) => {
+  await openStory(page, info, "components-goals-goal-panel--active");
+  await page.getByRole("button", { name: "Set goal" }).click();
+  const dialog = page.getByRole("dialog", { name: "Set goal" });
+  await expect(page.getByRole("heading", { name: "What do you want to work on?" })).toBeVisible();
+  if (!info.project.name.startsWith("mobile")) return;
+
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error("Expected a fixed mobile viewport");
+  const firstScreen = await dialog.boundingBox();
+  if (!firstScreen) throw new Error("Expected the goal category sheet");
+  expect(firstScreen.height).toBeLessThan(viewport.height * 0.85);
+
+  await page.getByRole("button", { name: /Training Set a session target/ }).click();
+  await expect(page.getByRole("heading", { name: "Training", exact: true })).toBeVisible();
+  await expect
+    .poll(async () => (await dialog.boundingBox())?.height)
+    .toBeGreaterThan(viewport.height * 0.95);
+  await page.getByRole("button", { name: "Back" }).click();
+  await expect
+    .poll(async () => (await dialog.boundingBox())?.height)
+    .toBeLessThan(viewport.height * 0.85);
+});
+
 test("goal progress track remains visible in dark mode", async ({ page }, info) => {
   await openStory(page, info, "components-goals-goal-panel--active");
   if (info.project.name.endsWith("dark")) {
@@ -54,52 +80,95 @@ test("goal controls start at the surface without a redundant heading row", async
   const action = page.getByRole("button", { name: "Set goal" });
   const content = page.getByText("Train 8 times");
   const tabs = page.getByRole("navigation", { name: "Goal views" });
+  const activeTab = tabs.getByRole("button", { name: /Active/ });
+  const historyTab = tabs.getByRole("button", { name: /History/ });
   const tabsBox = await tabs.boundingBox();
+  const activeBox = await activeTab.boundingBox();
+  const historyBox = await historyTab.boundingBox();
   const headerBox = await heading.boundingBox();
   const actionBox = await action.boundingBox();
   const contentBox = await content.boundingBox();
   const section = page.getByRole("region", { name: "My goals", exact: true });
   const sectionBox = await section.boundingBox();
   const surfaceBox = await section.locator(":scope > div").boundingBox();
-  if (!headerBox || !actionBox || !contentBox || !tabsBox) throw new Error("Expected goal section");
+  if (!headerBox || !actionBox || !contentBox || !tabsBox || !activeBox || !historyBox)
+    throw new Error("Expected goal section");
   if (!sectionBox || !surfaceBox) throw new Error("Expected goal surface");
   expect(headerBox.width).toBeLessThanOrEqual(1);
   expect(headerBox.height).toBeLessThanOrEqual(1);
   expect(surfaceBox.y).toBe(sectionBox.y);
+  await expect(section.locator(":scope > div")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   expect(
     Math.abs(actionBox.y + actionBox.height / 2 - tabsBox.y - tabsBox.height / 2),
   ).toBeLessThanOrEqual(1);
   expect(actionBox.x).toBeGreaterThanOrEqual(tabsBox.x + tabsBox.width);
+  expect(Math.abs(activeBox.y - historyBox.y)).toBeLessThanOrEqual(1);
   expect(actionBox.y).toBeGreaterThanOrEqual(surfaceBox.y);
-  expect(contentBox.y).toBeGreaterThan(actionBox.y + actionBox.height);
+  expect(contentBox.y).toBeGreaterThan(
+    Math.max(actionBox.y + actionBox.height, tabsBox.y + tabsBox.height),
+  );
+  if (info.project.name.startsWith("mobile")) {
+    await page.setViewportSize({ width: 320, height: 812 });
+    const narrowAction = await action.boundingBox();
+    const narrowActive = await activeTab.boundingBox();
+    const narrowHistory = await historyTab.boundingBox();
+    const narrowSection = await section.boundingBox();
+    if (!narrowAction || !narrowActive || !narrowHistory || !narrowSection)
+      throw new Error("Expected narrow goal controls");
+    expect(narrowAction.y + narrowAction.height).toBeLessThanOrEqual(narrowActive.y);
+    expect(Math.abs(narrowActive.y - narrowHistory.y)).toBeLessThanOrEqual(1);
+    expect(
+      narrowSection.x + narrowSection.width - narrowAction.x - narrowAction.width,
+    ).toBeLessThanOrEqual(1);
+  }
 });
 
-test("a cross-year goal range wraps below its title on mobile without overlap", async ({
+test("a cross-year goal range splits into right-aligned dates beside the title", async ({
   page,
 }, info) => {
   await openStory(page, info, "components-goals-goal-panel--cross-year-season");
-  const title = await page
-    .getByText("Send 8 climbs at V4 or harder", { exact: true })
-    .boundingBox();
-  const date = await page.getByText("Dec 1, 2026 – Feb 28, 2027", { exact: true }).boundingBox();
-  if (!title || !date) throw new Error("Expected goal title and seasonal range");
-  if (info.project.name.startsWith("mobile"))
-    expect(date.y).toBeGreaterThanOrEqual(title.y + title.height);
-  else expect(date.x).toBeGreaterThan(title.x + title.width);
+  const title = await page.locator("[data-goal-title]").boundingBox();
+  const first = await page.getByText("Dec 1, 2026 –", { exact: true }).boundingBox();
+  const second = await page.getByText("Feb 28, 2027", { exact: true }).boundingBox();
+  const chip = await page.getByText("Boulder", { exact: true }).boundingBox();
+  const bar = await page.getByRole("progressbar").boundingBox();
+  if (!title || !first || !second || !chip || !bar)
+    throw new Error("Expected goal range and progress");
+  expect(second.y).toBeGreaterThanOrEqual(first.y + first.height);
+  expect(Math.abs(first.x + first.width - second.x - second.width)).toBeLessThanOrEqual(1);
+  expect(chip.y).toBeLessThan(title.y + title.height);
+  expect(bar.y).toBeGreaterThanOrEqual(title.y + title.height);
+  expect(Math.abs(bar.x - title.x)).toBeLessThanOrEqual(1);
+  if (info.project.name.startsWith("mobile")) {
+    await page.setViewportSize({ width: 320, height: 812 });
+    const narrowTitle = await page.locator("[data-goal-title]").boundingBox();
+    const narrowBar = await page.getByRole("progressbar").boundingBox();
+    if (!narrowTitle || !narrowBar) throw new Error("Expected narrow climb title and progress");
+    expect(narrowBar.y).toBeGreaterThanOrEqual(narrowTitle.y + narrowTitle.height);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      320,
+    );
+  }
 });
 
-test("met recurring goals align the reset with the progress row", async ({ page }, info) => {
+test("met recurring goals stack period, reset, and end date on the right", async ({
+  page,
+}, info) => {
   await openStory(page, info, "components-goals-goal-panel--monthly-target-met");
   await expect(page.getByRole("progressbar")).toBeVisible();
   const period = await page.locator("[data-goal-date]").boundingBox();
   const reset = await page.getByText("Resets Oct 1", { exact: true }).boundingBox();
-  if (!period || !reset) throw new Error("Expected period and reset labels");
-  const progress = await page.getByRole("progressbar").boundingBox();
-  if (!progress) throw new Error("Expected progress bar");
-  expect(
-    Math.abs(reset.y + reset.height / 2 - progress.y - progress.height / 2),
-  ).toBeLessThanOrEqual(1);
+  const end = await page.getByText("No end date", { exact: true }).boundingBox();
+  const title = await page.getByText("Train 1 time every month", { exact: true }).boundingBox();
+  const bar = await page.getByRole("progressbar").boundingBox();
+  if (!period || !reset || !end || !title || !bar)
+    throw new Error("Expected recurring goal date labels and progress");
+  expect(reset.y).toBeGreaterThanOrEqual(period.y + period.height);
+  expect(end.y).toBeGreaterThanOrEqual(reset.y + reset.height);
   expect(Math.abs(reset.x + reset.width - period.x - period.width)).toBeLessThanOrEqual(1);
+  expect(Math.abs(end.x + end.width - period.x - period.width)).toBeLessThanOrEqual(1);
+  expect(bar.y).toBeGreaterThanOrEqual(title.y + title.height);
+  expect(bar.y).toBeLessThan(end.y + end.height);
   await expect(page.getByRole("button", { name: "See history" })).toHaveCount(0);
 });
 
@@ -119,7 +188,7 @@ test("history remains accessible after loading its final page", async ({ page },
   expect(results.violations).toEqual([]);
 });
 
-for (const story of ["missed-goal", "archived-missed-goal", "month-old-missed-goal"]) {
+for (const story of ["missed-goal", "missed-goal-in-history"]) {
   test(
     `${story} keeps missed status below the date and actions on the right`,
     { tag: "@layout" },
@@ -147,11 +216,11 @@ for (const story of ["missed-goal", "archived-missed-goal", "month-old-missed-go
         expect(Math.abs(archiveTextRight - status.x - status.width)).toBeLessThanOrEqual(1);
         const bar = await page.getByRole("progressbar").boundingBox();
         const action = await retry.boundingBox();
-        if (!bar || !action) throw new Error("Expected missed goal controls");
+        const title = await page.getByText("Train 8 times", { exact: true }).boundingBox();
+        if (!bar || !action || !title) throw new Error("Expected missed goal controls");
         expect(action.x).toBeGreaterThan(bar.x + bar.width);
-        expect(Math.abs(bar.y + bar.height / 2 - status.y - status.height / 2)).toBeLessThanOrEqual(
-          1,
-        );
+        expect(bar.y).toBeGreaterThanOrEqual(title.y + title.height);
+        expect(Math.abs(bar.x - title.x)).toBeLessThanOrEqual(1);
       } else {
         await expect(retry).toHaveCount(0);
         await expect(archive).toHaveCount(0);
@@ -160,26 +229,36 @@ for (const story of ["missed-goal", "archived-missed-goal", "month-old-missed-go
   );
 }
 
-test("recurring end-date dialog fits the viewport and exposes the date and save controls", async ({
+test("ongoing recurring goal shows no end date below the right-side date", async ({
   page,
 }, info) => {
-  await openStory(page, info, "components-goals-goal-panel--ending-routine");
-  await page.getByRole("button", { name: "Change end date" }).click();
-  const dialog = page.getByRole("dialog", { name: "End recurring goal" });
-  await expect(dialog).toBeVisible();
-  const bounds = await dialog.boundingBox();
-  const viewport = page.viewportSize();
-  if (!bounds || !viewport) throw new Error("Missing end-date dialog bounds");
-  expect(bounds.x).toBeGreaterThanOrEqual(0);
-  expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width);
-  await expect(page.getByRole("spinbutton", { name: "day, End date" })).toBeInViewport();
-  await expect(page.getByRole("button", { name: "Save end date" })).toBeInViewport();
-  const { AxeBuilder } = await import("@axe-core/playwright");
-  expect(
-    (
-      await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-        .analyze()
-    ).violations,
-  ).toEqual([]);
+  await openStory(page, info, "components-goals-goal-panel--weekly-consistency");
+  const endLabel = page.getByText("No end date", { exact: true });
+  await expect(endLabel).toBeVisible();
+  const title = await page.getByText("Train 3 times every week", { exact: true }).boundingBox();
+  const period = await page.locator("[data-goal-date]").boundingBox();
+  const titleTextBottom = await page
+    .getByText("Train 3 times every week", { exact: true })
+    .evaluate((element) => {
+      if (!element.firstChild) throw new Error("Expected goal title text");
+      const range = document.createRange();
+      range.selectNodeContents(element.firstChild);
+      return range.getClientRects()[0].bottom;
+    });
+  const periodTextBottom = await page.locator("[data-goal-date]").evaluate((element) => {
+    if (!element.lastChild) throw new Error("Expected goal period text");
+    const range = document.createRange();
+    range.selectNodeContents(element.lastChild);
+    return range.getClientRects()[0].bottom;
+  });
+  const date = await endLabel.locator("..").locator(":scope > :first-child").boundingBox();
+  const label = await endLabel.boundingBox();
+  if (!title || !period || !date || !label) throw new Error("Expected recurring goal date labels");
+  expect(Math.abs(titleTextBottom - periodTextBottom)).toBeLessThanOrEqual(1);
+  expect(label.y).toBeGreaterThanOrEqual(date.y + date.height);
+  expect(Math.abs(label.x + label.width - date.x - date.width)).toBeLessThanOrEqual(1);
+  await expect(page.getByRole("button", { name: "End routine" })).toHaveCount(0);
+  await page.getByRole("button", { name: /Actions for/ }).click();
+  await expect(page.getByRole("menuitem", { name: "Edit" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "End routine" })).toHaveCount(0);
 });

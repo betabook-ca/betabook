@@ -19,35 +19,32 @@ async function quick() {
   return user;
 }
 
-it("offers explicit area context only for climb categories", async () => {
+it("never offers to narrow to an area from the quick dialog", async () => {
   const user = await quick();
-  expect(button("Climbs in Cedar Grove")).toBeInTheDocument();
-  await user.click(button("Climbers"));
-  expect(screen.queryByRole("button", { name: "Climbs in Cedar Grove" })).not.toBeInTheDocument();
+  for (const category of ["Climbs", "Areas", "Climbers"]) {
+    await user.click(button(category));
+    expect(screen.queryByRole("button", { name: /Climbs in / })).not.toBeInTheDocument();
+  }
+  // Narrowing by area belongs to the full page, which has a real area
+  // filter; offering it here only cost a row above the results.
   expect(
     await screen.findByRole("option", { name: "Cedar Lee, Climbing partner" }),
   ).toBeInTheDocument();
-  await user.click(button("Areas"));
-  expect(screen.queryByRole("button", { name: "Climbs in Cedar Grove" })).not.toBeInTheDocument();
-  await user.click(button("Climbs"));
-  expect(button("Climbs in Cedar Grove")).toBeInTheDocument();
 });
 
 it("clearing area scope restores global results without changing the query", async () => {
-  const user = await quick();
-  await user.click(button("Climbs in Cedar Grove"));
+  const user = userEvent.setup();
+  render(<IntegratedSearchDemo initialCategory="climb" />);
+  await user.type(screen.getByRole("combobox", { name: "In area" }), "cedar");
+  await user.click(await screen.findByRole("option", { name: /California \/ North Woods/ }));
   await waitFor(() =>
-    expect(screen.getByRole("option", { name: local })).toHaveAttribute("aria-disabled", "false"),
+    expect(screen.queryByRole("button", { name: `Open ${other}` })).not.toBeInTheDocument(),
   );
-  expect(screen.queryByRole("option", { name: other })).not.toBeInTheDocument();
+  await waitFor(async () => expect(await result(local)).toBeEnabled());
   await user.click(button("Clear area Cedar Grove"));
-  expect(
-    screen.queryByRole("button", { name: /Climbs in Cedar Grove|Clear area Cedar Grove/ }),
-  ).not.toBeInTheDocument();
-  expect(screen.getByRole("combobox", { name: "Search Betabook" })).toHaveValue("cedar");
-  await waitFor(() =>
-    expect(screen.getByRole("option", { name: other })).toHaveAttribute("aria-disabled", "false"),
-  );
+  expect(screen.queryByRole("button", { name: "Clear area Cedar Grove" })).not.toBeInTheDocument();
+  expect(screen.getByRole("searchbox", { name: "Search Betabook" })).toHaveValue("cedar");
+  await waitFor(async () => expect(await result(other)).toBeEnabled());
 });
 
 it("clears quick results and keeps only the input placeholder in every category", async () => {
@@ -66,8 +63,6 @@ it("clears quick results and keeps only the input placeholder in every category"
     );
   }
   await user.click(button("Climbs"));
-  await user.click(button("Climbs in Cedar Grove"));
-  expect(button("Clear area Cedar Grove")).toBeInTheDocument();
   expect(screen.queryByRole("option")).not.toBeInTheDocument();
 });
 
@@ -113,17 +108,15 @@ it("quick search keeps waiting for a name in every category", async () => {
   expect(screen.queryByRole("combobox", { name: "In area" })).not.toBeInTheDocument();
 });
 
-it("expanding quick search preserves query, category and explicit area identity", async () => {
+it("expanding quick search preserves the query and category", async () => {
   const user = await quick();
-  await user.click(button("Climbs in Cedar Grove"));
+  await user.click(button("Climbs"));
   await user.click(button("View all results for “cedar”"));
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   expect(screen.getByRole("searchbox", { name: "Search Betabook" })).toHaveValue("cedar");
   expect(button("Climbs")).toHaveAttribute("aria-pressed", "true");
-  expect(button("Clear area Cedar Grove")).toBeInTheDocument();
-  expect(screen.getByLabelText("Search URL")).toHaveTextContent("areaId=1");
   expect(await result(local)).toBeEnabled();
-  expect(screen.queryByRole("button", { name: `Open ${crack}` })).not.toBeInTheDocument();
+  expect(await result(other)).toBeEnabled();
 });
 
 it("pending quick results cannot select an old record", async () => {

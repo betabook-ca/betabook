@@ -103,3 +103,11 @@ export const rejectChangeRequest = fn<typeof Actions.rejectChangeRequest>().mock
   ok: true,
   value: undefined,
 });
+export const pinProject = fn<typeof Actions.pinProject>().mockResolvedValue({
+  ok: true,
+  value: undefined,
+});
+export const unpinProject = fn<typeof Actions.unpinProject>().mockResolvedValue({
+  ok: true,
+  value: undefined,
+});

@@ -20,6 +20,7 @@ export function SearchPicker({
   loadingMore = false,
   loadMoreFailed = false,
   autoFocus = false,
+  emptyQuerySlot,
 }: {
   query: string;
   onQueryChange: (query: string) => void;
@@ -32,6 +33,9 @@ export function SearchPicker({
   loadingMore?: boolean;
   loadMoreFailed?: boolean;
   autoFocus?: boolean;
+  /** Offered in place of results while the query is empty, below the input so
+   * searching stays the first thing the picker presents. */
+  emptyQuerySlot?: ReactNode;
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-4">
@@ -43,6 +47,7 @@ export function SearchPicker({
         inputProps={{ autoFocus }}
       />
       {filters}
+      {emptyQuerySlot && query.trim() === "" && emptyQuerySlot}
       {section.status !== "idle" && (
         <SearchResults
           sections={[section]}

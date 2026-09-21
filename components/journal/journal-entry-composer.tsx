@@ -61,17 +61,38 @@ export function JournalEntryComposer({
   onDone,
   onPendingChange,
   onSave,
+  onBrowseChange,
 }: {
   sentClimbIds?: Set<number>;
   onDone: () => void;
   onPendingChange?: (pending: boolean) => void;
   onSave?: JournalEntryFieldsProps["onSave"];
+  /** True while the climb search is open. The dialog takes the whole screen
+   * for it — a search and its results need more than a sheet's 85vh once a
+   * keyboard is up. */
+  onBrowseChange?: (browsing: boolean) => void;
 }) {
   const [pending, setPending] = useState(false);
   const [choice, setChoice] = useState<EntryKindChoice | null>(null);
+  const [choosingClimb, setChoosingClimb] = useState(false);
+
+  function chooseClimb(choosing: boolean) {
+    setChoosingClimb(choosing);
+    onBrowseChange?.(choosing);
+  }
 
   if (!choice) {
-    return <EntryKindStep sentClimbIds={sentClimbIds} onChoose={setChoice} />;
+    return (
+      <EntryKindStep
+        sentClimbIds={sentClimbIds}
+        onChoose={(next) => {
+          setChoice(next);
+          chooseClimb(false);
+        }}
+        choosingClimb={choosingClimb}
+        onChoosingClimbChange={chooseClimb}
+      />
+    );
   }
 
   const climb: ClimbWithAreaName | undefined = choice.kind === "session" ? choice.climb : undefined;

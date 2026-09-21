@@ -29,6 +29,12 @@ export const Progress: Story = {
   args: { area: "progress" },
   parameters: { nextjs: { navigation: { pathname: "/users/sample/projects" } } },
 };
+/** The sent sub-page. It nests under /projects, so the Projects tab
+ * stays lit while the climber is on it. */
+export const SentProjects: Story = {
+  args: { area: "progress" },
+  parameters: { nextjs: { navigation: { pathname: "/users/sample/projects/sent" } } },
+};
 export const Community: Story = {
   args: { area: "community" },
   parameters: { nextjs: { navigation: { pathname: "/feed" } } },

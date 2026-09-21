@@ -15,16 +15,31 @@ async function moveEarlier(
     return;
   }
   const grid = page.getByRole("grid", { name: `Reorder ${section}`, exact: true });
-  await grid.focus();
-  await grid.getByRole("row", { name, exact: true }).focus();
-  await page.keyboard.press("Tab");
-  await expect(page.getByRole("button", { name: `Drag ${name}`, exact: true })).toBeFocused();
+  const row = grid.getByRole("row", { name, exact: true });
+  const handle = page.getByRole("button", { name: `Drag ${name}`, exact: true });
+
+  // Getting onto the row's drag handle is retried as a unit. The grid owns
+  // focus inside itself and a previous drop's session tears down
+  // asynchronously, so a single focus-then-Tab can land on another row's
+  // handle — and did, for roughly two runs in three before this. Retrying
+  // keeps the assertion honest (the handle really is Tab-reachable from the
+  // row) without depending on when react-aria finishes.
+  await expect(async () => {
+    await grid.focus();
+    await row.focus();
+    await page.keyboard.press("Tab");
+    await expect(handle).toBeFocused({ timeout: 1000 });
+  }).toPass({ timeout: 15000 });
+
   await page.keyboard.press("Enter");
   await expect(page.locator("[data-dragging]")).toHaveCount(1);
   await expect(page.locator('[data-drop-target] [role="button"]')).toBeFocused();
   await page.keyboard.press("Home");
   await expect(page.locator("[data-drop-target]")).toContainText(`Insert before ${before}`);
   await page.keyboard.press("Enter");
+  // The drop has to finish before the next call starts, or its indicators are
+  // still in the DOM and still taking focus.
+  await expect(page.locator("[data-dragging]")).toHaveCount(0);
 }
 
 test(
@@ -35,8 +50,8 @@ test(
     const older = page.getByRole("button", { name: "Older calendar year" });
     const newer = page.getByRole("button", { name: "Newer calendar year" });
     const year = page.getByLabel("Displayed calendar year");
-    await expect(older).toBeDisabled();
-    await expect(year).toHaveText("2024");
+    await expect(newer).toBeDisabled();
+    await expect(year).toHaveText("2025");
     const leftBounds = await older.boundingBox();
     const yearBounds = await year.boundingBox();
     const rightBounds = await newer.boundingBox();
@@ -44,11 +59,11 @@ test(
       throw new Error("Calendar controls must be visible");
     expect(leftBounds.x + leftBounds.width).toBeLessThanOrEqual(yearBounds.x);
     expect(yearBounds.x + yearBounds.width).toBeLessThanOrEqual(rightBounds.x);
-    await newer.click();
-    await expect(year).toHaveText("2025");
-    await expect(newer).toBeDisabled();
     await older.click();
     await expect(year).toHaveText("2024");
+    await expect(older).toBeDisabled();
+    await newer.click();
+    await expect(year).toHaveText("2025");
   },
 );
 

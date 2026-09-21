@@ -2,7 +2,6 @@ import { AuthCallout } from "@/components/auth-callout";
 import { AreaBreadcrumbs } from "@/components/breadcrumbs";
 import { AreaClimbsToolbar } from "@/components/filters/area-climbs-toolbar";
 import { PublicClimbList } from "@/components/public-climb-list";
-import { RegisterSearchScope } from "@/components/search-scope";
 import { SubareaRail } from "@/components/subarea-rail";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { JsonLd } from "@/components/ui/json-ld";
@@ -73,7 +72,6 @@ export async function PublicAreaPage({
           ],
         })}
       />
-      <RegisterSearchScope areaId={area.id} areaName={area.name} />
       <AreaBreadcrumbs ancestors={ancestors} current={area} />
       <PageTitle>{area.name}</PageTitle>
       <p className="text-muted">{area.description || missingDescriptionMessage()}</p>

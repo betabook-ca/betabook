@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "ea05f4a7-e0bc-49c5-ac32-7f755a64b5d5",
+  "id": "c49f03f1-f48c-47ae-8749-65666c34ac6f",
   "prevId": "c92cf2dd-0240-4e89-bb9c-39be5f759104",
   "tables": {
     "areas": {
@@ -1782,74 +1782,6 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "recap_shares": {
-      "name": "recap_shares",
-      "columns": {
-        "token": {
-          "name": "token",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "profile_token": {
-          "name": "profile_token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "snapshot": {
-          "name": "snapshot",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
-        }
-      },
-      "indexes": {
-        "recap_shares_user_idx": {
-          "name": "recap_shares_user_idx",
-          "columns": [
-            "user_id"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "recap_shares_user_id_user_id_fk": {
-          "name": "recap_shares_user_id_user_id_fk",
-          "tableFrom": "recap_shares",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
     "catalog_area_sources": {
       "name": "catalog_area_sources",
       "columns": {
@@ -2481,6 +2413,81 @@
         }
       },
       "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "pinned_projects": {
+      "name": "pinned_projects",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "climb_id": {
+          "name": "climb_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "pinned_at": {
+          "name": "pinned_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(date('now'))"
+        }
+      },
+      "indexes": {
+        "pinned_projects_climb_idx": {
+          "name": "pinned_projects_climb_idx",
+          "columns": [
+            "climb_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "pinned_projects_user_id_user_id_fk": {
+          "name": "pinned_projects_user_id_user_id_fk",
+          "tableFrom": "pinned_projects",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "pinned_projects_climb_id_climbs_id_fk": {
+          "name": "pinned_projects_climb_id_climbs_id_fk",
+          "tableFrom": "pinned_projects",
+          "tableTo": "climbs",
+          "columnsFrom": [
+            "climb_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "pinned_projects_user_id_climb_id_pk": {
+          "columns": [
+            "user_id",
+            "climb_id"
+          ],
+          "name": "pinned_projects_user_id_climb_id_pk"
+        }
+      },
       "uniqueConstraints": {},
       "checkConstraints": {}
     }

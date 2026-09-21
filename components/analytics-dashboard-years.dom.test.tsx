@@ -117,8 +117,9 @@ it("filters summaries, charts and calendar years together and restores all-time 
   expect(within(tile("Best year")).getByText("2025", { exact: true })).toBeVisible();
   expect(screen.getByText(/Send pyramid:/)).toHaveTextContent("V5: 1 send, V3: 1 send, V2: 1 send");
   expect(screen.getAllByRole("region", { name: /^Calendar \d{4}$/ })).toHaveLength(1);
-  await user.click(screen.getByRole("button", { name: "Newer calendar year" }));
   expect(calendar(2025)).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Older calendar year" }));
+  expect(calendar(2024)).toBeVisible();
   expect(progression()).not.toHaveTextContent("Apr 2026");
 
   await user.click(yearButton());
@@ -135,9 +136,9 @@ it("filters summaries, charts and calendar years together and restores all-time 
       .map((link) => link.textContent),
   ).toEqual(["New high point", "First high point"]);
   expect(screen.queryByRole("region", { name: "Calendar 2025" })).not.toBeInTheDocument();
-  expect(calendar(2024)).toBeVisible();
-  await user.click(screen.getByRole("button", { name: "Newer calendar year" }));
   expect(calendar(2026)).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Older calendar year" }));
+  expect(calendar(2024)).toBeVisible();
 
   await user.click(yearButton());
   yearOption("All years").focus();

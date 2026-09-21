@@ -2,6 +2,8 @@
 
 import { useEffect, useState, type RefObject } from "react";
 
+import { onVisualViewportChange } from "@/lib/visual-viewport";
+
 /** Fit the demo and guide below the app header, including a resized mobile keyboard viewport. */
 export function useTourFrame(frame: RefObject<HTMLDivElement | null>) {
   const [height, setHeight] = useState<number>();
@@ -14,15 +16,11 @@ export function useTourFrame(frame: RefObject<HTMLDivElement | null>) {
     }
     const resize = new ResizeObserver(measure);
     if (frame.current) resize.observe(frame.current);
-    window.addEventListener("resize", measure);
-    window.visualViewport?.addEventListener("resize", measure);
-    window.visualViewport?.addEventListener("scroll", measure);
+    const unsubscribe = onVisualViewportChange(measure);
     measure();
     return () => {
       resize.disconnect();
-      window.removeEventListener("resize", measure);
-      window.visualViewport?.removeEventListener("resize", measure);
-      window.visualViewport?.removeEventListener("scroll", measure);
+      unsubscribe();
     };
   }, [frame]);
   return height;

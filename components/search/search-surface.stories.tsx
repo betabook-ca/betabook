@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { SearchDemo } from "@/stories/fixtures/search-demo";
+import { QuickSearchCompactDemo, SearchDemo } from "@/stories/fixtures/search-demo";
 
 import { SearchSurface } from "./search-surface";
 
@@ -11,6 +11,7 @@ export default meta;
 type Story = StoryObj;
 export const FullResults: Story = { render: () => <SearchDemo /> };
 export const QuickDialog: Story = { render: () => <SearchDemo surface="quick" /> };
+export const QuickCompact: Story = { render: () => <QuickSearchCompactDemo /> };
 
 export const Initial: Story = { render: () => <SearchDemo scenario="initial" /> };
 export const NoMatches: Story = { render: () => <SearchDemo scenario="empty" /> };

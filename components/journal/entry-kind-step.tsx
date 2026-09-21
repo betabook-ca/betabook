@@ -2,7 +2,6 @@
 
 import { Button } from "@heroui/react";
 import { ArrowLeft } from "lucide-react";
-import { useState } from "react";
 
 import { ClimbPicker } from "@/components/climb-picker";
 import { ActivityIcon } from "@/components/ui/activity-icon";
@@ -23,29 +22,33 @@ const ENTRY_TYPES = [
 export function EntryKindStep({
   sentClimbIds,
   onChoose,
+  choosingClimb,
+  onChoosingClimbChange,
 }: {
   sentClimbIds?: Set<number>;
   onChoose: (choice: EntryKindChoice) => void;
+  /** Controlled by the composer, which passes it up to the dialog: the climb
+   * search needs the whole screen on a phone, the kind picker doesn't. */
+  choosingClimb: boolean;
+  onChoosingClimbChange: (choosing: boolean) => void;
 }) {
-  const [choosingClimb, setChoosingClimb] = useState(false);
-
   if (choosingClimb) {
     return (
-      <div className="flex flex-col gap-5">
-        <Button
-          size="sm"
-          variant="ghost"
-          className="self-start"
-          onPress={() => setChoosingClimb(false)}
-        >
-          <ArrowLeft aria-hidden className="size-4" />
-          Back
-        </Button>
-        <div className="flex flex-col gap-1">
+      // Everything above the results costs a result row. With a keyboard up
+      // there are only a few to spend, so Back shares the title's row and the
+      // step explains itself rather than carrying a paragraph.
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            isIconOnly
+            aria-label="Back"
+            onPress={() => onChoosingClimbChange(false)}
+          >
+            <ArrowLeft aria-hidden className="size-4" />
+          </Button>
           <PageTitle className="text-2xl! text-foreground">Choose a climb</PageTitle>
-          <p className="text-sm text-muted">
-            Log one climb at a time. You can record another entry for each climb you worked on.
-          </p>
         </div>
         <ClimbPicker
           showFilters={false}
@@ -70,7 +73,7 @@ export function EntryKindStep({
             key={choice.id}
             type="button"
             onPress={() =>
-              choice.id === "session" ? setChoosingClimb(true) : onChoose({ kind: "training" })
+              choice.id === "session" ? onChoosingClimbChange(true) : onChoose({ kind: "training" })
             }
             fullWidth
             variant="outline"

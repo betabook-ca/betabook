@@ -105,8 +105,8 @@ export function summarizeGoalPeriods(
       .filter((g) =>
         g.repeat === "none"
           ? !g.archived &&
-            (g.completedDate ||
-              g.periodEnd >= goalToday(g.timezone, now) ||
+            !g.completedDate &&
+            (g.periodEnd >= goalToday(g.timezone, now) ||
               missedGoalNeedsAction(g, goalToday(g.timezone, now)))
           : g.periodStart <= goalToday(g.timezone, now) &&
             g.periodEnd >= goalToday(g.timezone, now),

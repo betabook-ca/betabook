@@ -36,8 +36,11 @@ export const moonSlab: ProjectWithSessions = {
   areaName: "Cedar Block",
   sessionCount: 9,
   noteCount: 7,
+  pinnedAt: "2026-04-18",
   firstSession: "2026-04-18",
   lastSession: "2026-09-04",
+  sentOn: null,
+  sent: false,
   sessions: [
     entry({
       id: 901,
@@ -73,8 +76,11 @@ export const riverRoute: ProjectWithSessions = {
   areaName: "Granite Amphitheatre",
   sessionCount: 4,
   noteCount: 2,
+  pinnedAt: "2026-05-30",
   firstSession: "2026-05-30",
   lastSession: "2026-07-02",
+  sentOn: null,
+  sent: false,
   sessions: [
     entry({
       id: 904,
@@ -98,12 +104,67 @@ export const ashCrack: ProjectWithSessions = {
   areaName: "Granite Amphitheatre",
   sessionCount: 2,
   noteCount: 0,
+  pinnedAt: "2026-08-08",
   firstSession: "2026-08-08",
   lastSession: "2026-08-30",
+  sentOn: null,
+  sent: false,
   sessions: [
     entry({ id: 906, climbId: 103, climbType: "trad", entryDate: "2026-08-30" }),
     entry({ id: 907, climbId: 103, climbType: "trad", entryDate: "2026-08-08" }),
   ],
 };
 
-export const openProjects: ProjectWithSessions[] = [moonSlab, ashCrack, riverRoute];
+/** Pinned but never touched — the state a climber creates by pinning a climb
+ * off a guidebook before their first session on it. Nothing to date, nothing
+ * to summarize; the card is the climb and the pin. */
+export const untouchedPin: ProjectWithSessions = {
+  climbId: 104,
+  climbName: "Sleeping Giant",
+  climbType: "boulder",
+  climbGrade: 10,
+  climbBrokenOn: null,
+  areaId: 11,
+  areaName: "Cedar Block",
+  sessionCount: 0,
+  noteCount: 0,
+  pinnedAt: "2026-09-10",
+  firstSession: null,
+  lastSession: null,
+  sentOn: null,
+  sent: false,
+  sessions: [],
+};
+
+/** A pin that made it: sent, so it lists under Sent Projects rather than
+ * vanishing, and keeps the sessions it took to get there. */
+export const sentPin: ProjectWithSessions = {
+  climbId: 105,
+  climbName: "The Long Winter",
+  climbType: "sport",
+  climbGrade: 23,
+  climbBrokenOn: null,
+  areaId: 12,
+  areaName: "Granite Amphitheatre",
+  sessionCount: 6,
+  noteCount: 1,
+  pinnedAt: "2026-03-02",
+  firstSession: "2026-03-02",
+  lastSession: "2026-08-15",
+  sentOn: "2026-08-15",
+  sent: true,
+  sessions: [
+    entry({
+      id: 908,
+      climbId: 105,
+      climbType: "sport",
+      entryDate: "2026-08-15",
+      body: "Clipped the chains. Six sessions and the right shoe finally stuck on the slab.",
+      tags: ["send"],
+    }),
+  ],
+};
+
+export const openProjects: ProjectWithSessions[] = [moonSlab, ashCrack, riverRoute, untouchedPin];
+
+export const sentProjects: ProjectWithSessions[] = [sentPin];

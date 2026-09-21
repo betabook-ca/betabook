@@ -8,6 +8,7 @@ import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { GoalPanel } from "@/components/goals/goal-panel";
 import { getDb } from "@/db/client";
 import { getGoalOverview, getNextGoalGrades } from "@/db/queries/goals";
+import { getUserHashtags } from "@/db/queries/hashtag-filter";
 import { goalToday } from "@/lib/goals";
 import { getMemberSession } from "@/lib/session";
 
@@ -29,10 +30,11 @@ export default async function GoalsPage({ params }: GoalsPageProps) {
   const user = await getUserById(id);
   if (!user || user.id !== session.user.id) notFound();
   const db = await getDb();
-  const [{ cf }, overview, nextGrades] = await Promise.all([
+  const [{ cf }, overview, nextGrades, availableTags] = await Promise.all([
     getCloudflareContext({ async: true }),
     getGoalOverview(db, user.id, user.id),
     getNextGoalGrades(db, user.id, user.id),
+    getUserHashtags(db, user.id, user.id, false, true),
   ]);
   await scheduleGoalRefresh(db, user.id);
   const timezone = cf?.timezone ?? "UTC";
@@ -46,6 +48,7 @@ export default async function GoalsPage({ params }: GoalsPageProps) {
         timezone={timezone}
         today={goalToday(timezone)}
         nextGrades={nextGrades}
+        availableTags={availableTags}
       />
     </ProfileHeader>
   );

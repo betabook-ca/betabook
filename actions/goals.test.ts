@@ -535,7 +535,10 @@ it.each(["2023-01-01", null])(
     // The completed milestone must not consume one of the five active slots.
     for (let i = 0; i < 5; i += 1) expect((await saveGoal(null, input)).ok).toBe(true);
     vi.setSystemTime(new Date("2026-10-05T12:00:00Z"));
-    expect((await getGoalPage(db, "owner", "owner", "active")).goals.map((g) => g.id)).toContain(
+    expect(
+      (await getGoalPage(db, "owner", "owner", "active")).goals.map((g) => g.id),
+    ).not.toContain(saved.value);
+    expect((await getGoalPage(db, "owner", "owner", "completed")).goals.map((g) => g.id)).toContain(
       saved.value,
     );
     expect((await saveGoal(null, milestone, saved.value)).ok).toBe(false);

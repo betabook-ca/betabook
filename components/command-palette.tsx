@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, type ReactNode } from "react";
 
 import { Brand } from "@/components/brand";
-import { useSearchScope } from "@/components/search-scope";
 import { AppLink } from "@/components/ui/app-link";
 import { DeferredLoadError } from "@/components/ui/deferred-load-error";
 import { useDeferredComponent } from "@/hooks/use-deferred-component";
@@ -50,7 +49,6 @@ export function SearchPaletteProvider({ children }: { children: ReactNode }) {
   const { data: session, isPending } = authClient.useSession();
   const canSearchQuickly = !!session && !isPending;
   const state = useOverlayState();
-  const scope = useSearchScope();
   const { Component: PaletteDialog, load, failed } = useDeferredComponent(loadPaletteDialog);
 
   const { open, setOpen, close } = state;
@@ -99,13 +97,7 @@ export function SearchPaletteProvider({ children }: { children: ReactNode }) {
         <DeferredLoadError feature="search" onRetry={load} onDismiss={close} />
       )}
       {canSearchQuickly && PaletteDialog && (
-        <PaletteDialog
-          isOpen={state.isOpen}
-          onOpenChange={setOpen}
-          scopeAreaId={scope?.areaId}
-          scopeAreaName={scope?.areaName}
-          onNavigate={onNavigate}
-        />
+        <PaletteDialog isOpen={state.isOpen} onOpenChange={setOpen} onNavigate={onNavigate} />
       )}
     </OpenSearchContext.Provider>
   );

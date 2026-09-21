@@ -15,3 +15,4 @@ export * from "./recap-share";
 export * from "./feature-announcements";
 
 export * from "./goals";
+export * from "./projects";

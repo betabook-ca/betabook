@@ -61,7 +61,7 @@ export function ListRow({
         <div className="flex min-w-0 flex-1 items-center gap-x-4">
           <div className="min-w-0 grow">
             <div className="flex items-baseline gap-2">
-              <span
+              <div
                 className={clsx(
                   "min-w-0 flex-1 font-medium text-foreground",
                   wrapTitle ? "break-words" : "truncate",
@@ -82,7 +82,7 @@ export function ListRow({
                 ) : (
                   title
                 )}
-              </span>
+              </div>
               {meta && <span className="shrink-0 text-sm text-muted">{meta}</span>}
             </div>
             {/* Bound fit-content so long subtitles truncate within the column. */}

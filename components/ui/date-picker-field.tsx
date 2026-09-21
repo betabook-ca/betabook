@@ -4,6 +4,7 @@ import { Calendar, Checkbox, DateField, DatePicker, Description, Label } from "@
 import { parseDate, type CalendarDate } from "@internationalized/date";
 
 import { FIELD_HEIGHT_CLASS, FIELD_WIDTH_CLASS } from "@/components/ui/field";
+import { FieldFeedback } from "@/components/ui/field-support";
 
 function toCalendarDate(value: string | undefined): CalendarDate | null {
   if (!value) return null;
@@ -24,6 +25,7 @@ export type DatePickerFieldProps = {
   isReadOnly?: boolean;
   isDisabled?: boolean;
   description?: string;
+  error?: string | null;
   /** Renders an "I don't know" checkbox to the right of the field for a date
    * the user can't recall. Checked mirrors an empty value, so the caller
    * empties or restores the date here and typing a date unchecks it. */
@@ -41,6 +43,7 @@ export function DatePickerField({
   isReadOnly,
   isDisabled,
   description,
+  error,
   onUnknownChange,
 }: DatePickerFieldProps) {
   const maxDate = toCalendarDate(max);
@@ -52,6 +55,7 @@ export function DatePickerField({
       maxValue={maxDate}
       isReadOnly={isReadOnly}
       isDisabled={isDisabled}
+      isInvalid={Boolean(error)}
       // Segments are padded individually; unpadded, the field's width jumps.
       shouldForceLeadingZeros
       onChange={(date) => onChange(date?.toString() ?? "")}
@@ -61,7 +65,7 @@ export function DatePickerField({
         <DateField.InputContainer>
           <DateField.Input>
             {(segment: DateField["SegmentProps"]["segment"]) => (
-              <DateField.Segment segment={segment} />
+              <DateField.Segment segment={segment} className="text-sm!" />
             )}
           </DateField.Input>
         </DateField.InputContainer>
@@ -72,6 +76,7 @@ export function DatePickerField({
         </DateField.Suffix>
       </DateField.Group>
       {description && <Description>{description}</Description>}
+      {error && <FieldFeedback error={error} className="text-danger" />}
       <DatePicker.Popover>
         {/* Not redundant: HeroUI's Calendar always passes its grid an explicit
          * maxValue, defaulting to 2099-12-31, which overrides the DatePicker's. */}

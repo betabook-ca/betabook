@@ -1,6 +1,5 @@
 "use client";
 
-import { Drawer } from "@heroui/react";
 import type { UseOverlayStateReturn } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -8,7 +7,7 @@ import { useState, useTransition } from "react";
 import { requestClimbMerge } from "@/actions";
 import { ClimbPicker } from "@/components/climb-picker";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { PAGE_MAX_WIDTH_CLASS } from "@/components/ui/layout";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { ClimbWithAreaName } from "@/db/queries";
 import { climbHref } from "@/lib/slug";
 
@@ -54,39 +53,32 @@ export function ClimbMergeDrawer({ climbId, state }: ClimbMergeDrawerProps) {
     });
   }
 
-  function handleOpenChange(isOpen: boolean) {
-    state.setOpen(isOpen);
-    if (!isOpen) {
-      setError(null);
-      setPendingNotice(null);
-    }
+  function reset() {
+    setError(null);
+    setPendingNotice(null);
   }
 
   return (
-    <Drawer.Backdrop isOpen={state.isOpen} onOpenChange={handleOpenChange}>
-      <Drawer.Content>
-        <Drawer.Dialog className={`mx-auto w-full ${PAGE_MAX_WIDTH_CLASS}`}>
-          <Drawer.Header>
-            <Drawer.Heading>Mark as a duplicate</Drawer.Heading>
-            <Drawer.CloseTrigger />
-          </Drawer.Header>
-          <Drawer.Body>
-            {pendingNotice ? (
-              <p className="text-sm text-muted">{pendingNotice}</p>
-            ) : (
-              <div className="flex flex-col gap-3">
-                <p className="text-sm text-muted">
-                  Pick the climb this one duplicates — this climb and its sends fold into it, and
-                  this page won&apos;t exist separately once that lands.
-                </p>
-                <ClimbPicker onPick={handlePick} allowSentClimbs excludedClimbId={climbId} />
-                {error && <InlineAlert>{error}</InlineAlert>}
-                {pending && <p className="text-sm text-muted">Marking as duplicate…</p>}
-              </div>
-            )}
-          </Drawer.Body>
-        </Drawer.Dialog>
-      </Drawer.Content>
-    </Drawer.Backdrop>
+    <ResponsiveDialog
+      state={state}
+      title="Mark as a duplicate"
+      size="lg"
+      isPending={pending}
+      onClose={reset}
+    >
+      {pendingNotice ? (
+        <p className="text-sm text-muted">{pendingNotice}</p>
+      ) : (
+        <div className="flex flex-col gap-3">
+          <p className="text-sm text-muted">
+            Pick the climb this one duplicates — this climb and its sends fold into it, and this
+            page won&apos;t exist separately once that lands.
+          </p>
+          <ClimbPicker onPick={handlePick} allowSentClimbs excludedClimbId={climbId} />
+          {error && <InlineAlert>{error}</InlineAlert>}
+          {pending && <p className="text-sm text-muted">Marking as duplicate…</p>}
+        </div>
+      )}
+    </ResponsiveDialog>
   );
 }

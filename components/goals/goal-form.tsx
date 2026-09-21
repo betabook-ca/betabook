@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, Checkbox, Input, TextField } from "@heroui/react";
-import { ArrowLeft, ArrowRight, Dumbbell, MapPin, Mountain } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, Dumbbell, MapPin, Mountain } from "lucide-react";
 import { useId, useRef, useState } from "react";
 
 import { TagInput } from "@/components/journal/tag-input";
@@ -9,7 +9,7 @@ import { cardClass } from "@/components/ui/card";
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { DISCIPLINE_CHIP_CLASSNAME, DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
-import { FIELD_HEIGHT_CLASS, FIELD_WIDTH_CLASS } from "@/components/ui/field";
+import { FIELD_HEIGHT_CLASS } from "@/components/ui/field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { OptionSelect } from "@/components/ui/option-select";
 import { PageTitle } from "@/components/ui/typography";
@@ -18,6 +18,7 @@ import { nativeGradeArray, type ClimbType } from "@/lib/grades";
 
 const SENTENCE_GROUP_CLASS = "inline-flex max-w-full items-center gap-1";
 const SENTENCE_SHORT_FIELD = "w-20 max-w-full min-w-0";
+const SENTENCE_SELECT_TEXT_CLASS = "[&_[data-slot=select-value]]:text-sm! [&_button]:text-sm";
 function sentenceTimeframeWidth(timeframe: string) {
   return timeframe === "custom" ? "w-52 max-w-full shrink-0" : "w-40 shrink-0";
 }
@@ -35,6 +36,7 @@ function timeframeOptions(
 }
 
 const NO_GRADE_HISTORY: Partial<Record<ClimbType, number>> = {};
+const NO_AVAILABLE_TAGS: string[] = [];
 const GOAL_CHOICE_CLASS = "h-auto w-full justify-start gap-3 px-4 py-4 text-left whitespace-normal";
 
 const categories = [
@@ -85,6 +87,62 @@ export type GoalDraft = {
   recurringEndDate?: string | null;
 };
 
+function GoalTagDisclosure({
+  kind,
+  tags,
+  availableTags,
+  expanded,
+  onToggle,
+  onChange,
+}: {
+  kind: "training" | "volume";
+  tags: string[];
+  availableTags: string[];
+  expanded: boolean;
+  onToggle: () => void;
+  onChange: (tags: string[]) => void;
+}) {
+  const disclosureRef = useRef<HTMLButtonElement>(null);
+  if (availableTags.length === 0 && tags.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-1">
+      <button
+        ref={disclosureRef}
+        type="button"
+        aria-expanded={expanded}
+        className="flex min-h-10 cursor-pointer items-center gap-2 text-left text-sm font-medium focus-visible:status-focused"
+        onClick={onToggle}
+      >
+        <span>Tags {tags.length > 0 ? `(${tags.length} active)` : "(optional)"}</span>
+        <ChevronDown
+          aria-hidden
+          className={`size-4 shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
+        />
+      </button>
+      {expanded && (
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-4 text-sm">
+          <span>Count {kind === "training" ? "sessions" : "climbs"} with all these tags:</span>
+          <TagInput
+            value={tags}
+            onChange={onChange}
+            showUsage={false}
+            showLabel={false}
+            showHelper={false}
+            sentenceLayout
+            availableTags={availableTags}
+            showExamples={false}
+            onTagSelected={() => setTimeout(() => disclosureRef.current?.focus(), 0)}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function submittedTags(goal: Goal, originalGoal: Goal | undefined, tags: string[]) {
+  return goal === "training" || goal === "volume" || originalGoal === goal ? tags : [];
+}
+
 /** Shared goal editor; persistence is supplied by the journal panel. */
 // oxlint-disable-next-line complexity -- conditional fields and validation for goal templates
 export function GoalForm({
@@ -100,8 +158,10 @@ export function GoalForm({
   initialRepeat = "none",
   today = goalToday(new Intl.DateTimeFormat().resolvedOptions().timeZone),
   onPendingChange,
+  onStepChange,
   embedded = false,
   nextGrades = NO_GRADE_HISTORY,
+  availableTags = NO_AVAILABLE_TAGS,
 }: {
   initialCategory?: Category;
   initialGoal?: Goal;
@@ -113,8 +173,10 @@ export function GoalForm({
   onSave?: (draft: GoalDraft) => void | Promise<void>;
   today?: string;
   onPendingChange?: (pending: boolean) => void;
+  onStepChange?: (step: "category" | "details") => void;
   embedded?: boolean;
   nextGrades?: Partial<Record<ClimbType, number>>;
+  availableTags?: string[];
   onCancel?: () => void;
   initialRepeat?: GoalInput["repeat"];
 }) {
@@ -134,6 +196,7 @@ export function GoalForm({
   );
   const [gradeMatch, setGradeMatch] = useState<"exact" | "at-least">(draft?.gradeMatch ?? "exact");
   const [tags, setTags] = useState<string[]>(draft?.tags ?? []);
+  const [tagsExpanded, setTagsExpanded] = useState(Boolean(draft?.tags?.length));
   const [amount, setAmount] = useState(draft?.amount ?? (category === "training" ? "8" : "3"));
   const requestedPeriod = draft?.period ?? (initialCustomDate ? "custom" : "month");
   const [period, setPeriod] = useState<GoalInput["timeframe"]>(
@@ -162,6 +225,12 @@ export function GoalForm({
   const isEditing = Boolean(initialDraft);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const endDateError =
+    error === "Choose an end date." ||
+    error === "End date must be today or later." ||
+    error === "End date must be on or after start date."
+      ? error
+      : null;
   const backRef = useRef<HTMLButtonElement>(null);
   const categoryRef = useRef<HTMLButtonElement>(null);
   const id = useId();
@@ -176,8 +245,18 @@ export function GoalForm({
         : isClimbing
           ? "Number of climbs"
           : "Number of areas";
+  function validationError() {
+    if (goal !== "grade" && (!Number.isInteger(Number(amount)) || Number(amount) < 1))
+      return "Enter a whole number of at least 1.";
+    if (repeat === "none" && period === "custom" && (!startDate || !endDate || endDate < startDate))
+      return "End date must be on or after start date.";
+    if (selectedRecurringEndDate === "") return "Choose an end date.";
+    if (invalidRecurringEnd) return "End date must be today or later.";
+    return "";
+  }
   function navigate(next: typeof step) {
     setStep(next);
+    onStepChange?.(next);
     requestAnimationFrame(() => {
       (next === "details" ? backRef : categoryRef).current?.focus();
     });
@@ -242,26 +321,12 @@ export function GoalForm({
               {categories.find((item) => item.value === category)?.label}
             </PageTitle>
             <form
-              className="flex flex-col gap-3"
+              className="flex flex-col gap-4"
               onSubmit={async (event) => {
                 event.preventDefault();
                 if (pending) return;
-                if (goal !== "grade" && (!Number.isInteger(Number(amount)) || Number(amount) < 1)) {
-                  setError("Enter a whole number of at least 1.");
-                  return;
-                }
-                if (
-                  repeat === "none" &&
-                  period === "custom" &&
-                  (!startDate || !endDate || endDate < startDate)
-                ) {
-                  setError("End date must be on or after start date.");
-                  return;
-                }
-                if (invalidRecurringEnd) {
-                  setError("End date must be today or later.");
-                  return;
-                }
+                const error = validationError();
+                if (error) return setError(error);
                 setError("");
                 setPending(true);
                 onPendingChange?.(true);
@@ -279,7 +344,7 @@ export function GoalForm({
                       endDate,
                       repeat,
                       recurringEndDate: selectedRecurringEndDate,
-                      tags,
+                      tags: submittedTags(goal, draft?.goal, tags),
                     });
                 } catch (cause) {
                   setError(
@@ -330,7 +395,7 @@ export function GoalForm({
                     </div>
                   </div>
                 )}
-                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-4">
                   {isClimbing && (
                     <fieldset>
                       <legend className="sr-only">Climbing discipline</legend>
@@ -381,8 +446,8 @@ export function GoalForm({
                     </Checkbox>
                   )}
                 </div>
-                <div className="flex flex-wrap items-center gap-x-1 gap-y-5">
-                  <div className="flex flex-wrap items-center gap-1 text-sm">
+                <div className="flex flex-wrap items-center gap-x-1 gap-y-4">
+                  <div className="flex flex-wrap items-center gap-x-1 gap-y-4 text-sm">
                     {goal !== "grade" && (
                       <div className={SENTENCE_GROUP_CLASS}>
                         <span className="whitespace-nowrap">
@@ -425,7 +490,7 @@ export function GoalForm({
                               ? gradeOptions
                               : [{ value: "any", label: "Any" }, ...gradeOptions]
                           }
-                          className={`${discipline === "boulder" ? "w-20" : "w-24"} min-w-0 shrink-0 [&_[data-slot=select-value]]:text-sm! [&_button]:text-sm`}
+                          className={`${discipline === "boulder" ? "w-20" : "w-24"} min-w-0 shrink-0 ${SENTENCE_SELECT_TEXT_CLASS}`}
                         />
                         {goal === "volume" && grade !== "any" && (
                           <Checkbox
@@ -469,13 +534,13 @@ export function GoalForm({
                         else if (value !== "custom") setCadence(value);
                         setError("");
                       }}
-                      className={`${sentenceTimeframeWidth(repeat === "none" ? period : repeat)} [&_[data-slot=select-value]]:text-sm! [&_button]:text-sm`}
+                      className={`${sentenceTimeframeWidth(repeat === "none" ? period : repeat)} ${SENTENCE_SELECT_TEXT_CLASS}`}
                       options={timeframeOptions(goal, repeat !== "none")}
                     />
                   </div>
                 </div>
                 {period === "custom" && repeat === "none" && (
-                  <div className="flex flex-wrap items-center gap-1 text-sm [&_.date-input-group]:text-sm [&_.label]:sr-only [&_[role=spinbutton]]:text-sm">
+                  <div className="flex flex-wrap items-center gap-x-1 gap-y-4 text-sm [&_.label]:sr-only">
                     <div className={SENTENCE_GROUP_CLASS}>
                       <span>between</span>
                       <DatePickerField
@@ -486,54 +551,75 @@ export function GoalForm({
                     </div>
                     <div className={SENTENCE_GROUP_CLASS}>
                       <span>and</span>
-                      <DatePickerField label="End date" value={endDate} onChange={setEndDate} />
+                      <DatePickerField
+                        label="End date"
+                        value={endDate}
+                        onChange={(value) => {
+                          setEndDate(value);
+                          setError("");
+                        }}
+                        error={endDateError}
+                      />
                     </div>
                   </div>
                 )}
                 {repeat !== "none" && (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex flex-wrap items-end gap-3">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-sm">Ends</span>
-                        <OptionSelect
-                          ariaLabel="Recurrence end"
-                          value={hasEndDate ? "date" : "none"}
-                          options={[
-                            { value: "none", label: "No end date" },
-                            { value: "date", label: "On a date" },
-                          ]}
-                          className={FIELD_WIDTH_CLASS.medium}
-                          onChange={(value) => {
-                            setHasEndDate(value === "date");
-                            if (value === "date" && !recurringEndDate)
-                              setRecurringEndDate(goalWindow(repeat, today, today).endDate);
-                            setError("");
-                          }}
-                        />
-                      </div>
-                      {hasEndDate && (
+                  <div className="flex min-h-10 flex-wrap items-center gap-x-1 gap-y-4 text-sm">
+                    <span>until</span>
+                    <OptionSelect
+                      ariaLabel="Recurrence end"
+                      value={hasEndDate ? "date" : "none"}
+                      options={[
+                        { value: "none", label: "No end date" },
+                        { value: "date", label: "Custom date" },
+                      ]}
+                      className={`w-40 ${SENTENCE_SELECT_TEXT_CLASS}`}
+                      onChange={(value) => {
+                        setHasEndDate(value === "date");
+                        setError("");
+                      }}
+                    />
+                    {hasEndDate && (
+                      <span className="[&_.label]:sr-only">
                         <DatePickerField
                           label="End date"
                           value={recurringEndDate}
-                          onChange={setRecurringEndDate}
+                          onChange={(value) => {
+                            setRecurringEndDate(value);
+                            setError("");
+                          }}
+                          error={endDateError}
                         />
-                      )}
-                    </div>
-                    <p className="text-xs text-muted">
-                      {hasEndDate
-                        ? "Counts logs through this date, then stops repeating. Past results stay in History."
-                        : "Repeats until you choose to end it. You can change this later."}
-                    </p>
+                      </span>
+                    )}
                   </div>
                 )}
-                <div className="flex flex-col gap-1">
-                  <TagInput value={tags} onChange={setTags} />
-                  <p className="text-xs text-muted">
-                    Only entries with every selected hashtag count. Leave empty to count all
-                    entries.
-                  </p>
-                </div>
-                {error && <InlineAlert>{error}</InlineAlert>}
+                {category === "training" ? (
+                  <GoalTagDisclosure
+                    kind="training"
+                    tags={tags}
+                    availableTags={availableTags}
+                    expanded={tagsExpanded}
+                    onToggle={() => {
+                      setTagsExpanded(!tagsExpanded);
+                      setError("");
+                    }}
+                    onChange={setTags}
+                  />
+                ) : goal === "volume" ? (
+                  <GoalTagDisclosure
+                    kind="volume"
+                    tags={tags}
+                    availableTags={availableTags}
+                    expanded={tagsExpanded}
+                    onToggle={() => {
+                      setTagsExpanded(!tagsExpanded);
+                      setError("");
+                    }}
+                    onChange={setTags}
+                  />
+                ) : null}
+                {error && !endDateError && <InlineAlert>{error}</InlineAlert>}
                 <div className="flex flex-wrap items-center justify-end gap-3 border-t border-separator pt-4">
                   <Button type="submit" isPending={pending}>
                     {isEditing ? "Save changes" : "Create goal"}

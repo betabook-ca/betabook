@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { BrandHomeLink } from "@/components/brand";
 import { useFriendRequestCount } from "@/components/friend-requests-provider";
 import { DeferredLoadError } from "@/components/ui/deferred-load-error";
+import { BREAKPOINT_QUERY } from "@/hooks/use-breakpoint";
 import { useClientSession } from "@/hooks/use-client-session";
 import { useDeferredComponent } from "@/hooks/use-deferred-component";
 import { useMobileTabsVisible } from "@/hooks/use-mobile-tabs-visible";
@@ -39,7 +40,7 @@ export function HeaderNavigation() {
   }, [pathname, close]);
 
   useEffect(() => {
-    const desktop = window.matchMedia("(min-width: 768px)");
+    const desktop = window.matchMedia(BREAKPOINT_QUERY.md);
     const closeOnDesktop = () => {
       if (desktop.matches) close();
     };

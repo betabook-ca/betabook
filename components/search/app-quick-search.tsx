@@ -11,14 +11,10 @@ import { SearchController } from "./search-controller";
 export function AppQuickSearch({
   isOpen,
   onOpenChange,
-  scopeAreaId,
-  scopeAreaName,
   onNavigate,
 }: {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  scopeAreaId?: number;
-  scopeAreaName?: string;
   onNavigate: (href: string) => void;
 }) {
   const mounted = useMounted();
@@ -51,11 +47,6 @@ export function AppQuickSearch({
       onChange={setState}
       isOpen={isOpen}
       onOpenChange={onOpenChange}
-      suggestedArea={
-        scopeAreaId !== undefined && scopeAreaName
-          ? { id: String(scopeAreaId), name: scopeAreaName, path: "" }
-          : undefined
-      }
       onNavigate={(item) => onNavigate(item.href)}
       onExpand={() => onNavigate(searchHref(state))}
     />

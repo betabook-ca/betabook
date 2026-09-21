@@ -43,10 +43,11 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
     {
       id: "projects",
       introducedInVersion: 1,
-      section: "Open Projects",
+      updatedInVersion: 4,
+      section: "Projects",
       title: "Pick up where you left off",
       description:
-        "In Progress, Open Projects lists climbs you haven't sent automatically, each with its latest note. Use Load more to read earlier sessions. This list is private.",
+        "Track a climb and it appears in Progress, Projects, with its latest note — even before your first session on it. Use Load more to read earlier sessions, and the Sent tab to revisit the ones you finished. This list is private.",
       target: "project-sessions",
     },
     {

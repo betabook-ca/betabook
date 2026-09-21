@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useEffect, useState } from "react";
 import { mocked } from "storybook/test";
 
-import { archiveGoal, saveGoal, endRecurringGoal } from "@/actions";
+import { archiveGoal, saveGoal } from "@/actions";
 import { summarizeGoalPeriods } from "@/lib/goal-history";
 import { goalInputSchema, goalWindow, type GoalPage, type GoalProgress } from "@/lib/goals";
 import { StoryPage } from "@/stories/fixtures/story-layout";
@@ -24,6 +24,7 @@ const meta = {
     today: "2026-09-11",
     initialActive: { goals: [], hasMore: false },
     initialCompleted: { goals: [], hasMore: false },
+    availableTags: ["hangboard", "strength", "outdoor", "trip"],
   },
 } satisfies Meta<typeof GoalPanel>;
 export default meta;
@@ -51,10 +52,6 @@ const activeTraining: GoalPage = {
   ],
 };
 export const Active: Story = { args: { initialActive: activeTraining } };
-export const EmptyHistory: Story = {
-  args: { initialActive: activeTraining, initialView: "completed" },
-};
-
 export const Empty: Story = {};
 export const CrossYearSeason: Story = {
   args: {
@@ -233,19 +230,7 @@ export const MissedGoal: Story = {
     return <GoalPanel {...args} initialActive={pages.active} initialCompleted={pages.history} />;
   },
 };
-export const ArchivedMissedGoal: Story = {
-  args: {
-    initialView: "completed",
-    initialCompleted: {
-      goals: [{ ...missedGoal, archived: true }],
-      hasMore: false,
-      total: 1,
-      summary: { year: 2026, achieved: 0 },
-      years: [2026],
-    },
-  },
-};
-export const MonthOldMissedGoal: Story = {
+export const MissedGoalInHistory: Story = {
   args: {
     today: "2026-10-01",
     initialView: "completed",
@@ -289,18 +274,25 @@ export const BackdatedAchievement: Story = {
   },
 };
 
-export const UnarchivedFinishes: Story = {
+const completedFinishes = Array.from({ length: 8 }, (_, i) => ({
+  ...backdatedGoal,
+  id: -100 - i,
+  userId: "story-goals",
+  target: i + 1,
+  progress: i + 1,
+  completedDate: "2026-09-02",
+  startDate: "2026-09-01",
+  endDate: "2026-09-30",
+  periodStart: "2026-09-01",
+  periodEnd: "2026-09-30",
+}));
+const completedNow = new Date("2026-09-11T12:00:00Z");
+export const CompletedGoalsInHistory: Story = {
   args: {
-    initialActive: {
-      hasMore: false,
-      goals: Array.from({ length: 8 }, (_, i) => ({
-        ...backdatedGoal,
-        id: -100 - i,
-        target: i + 1,
-        progress: i + 1,
-        completedDate: "2026-09-02",
-      })),
-    },
+    initialView: "completed",
+    initialCompleted: summarizeGoalPeriods(completedFinishes, "completed", 0, completedNow),
+    loadPage: async (view, offset, year) =>
+      summarizeGoalPeriods(completedFinishes, view, offset, completedNow, year),
   },
 };
 
@@ -314,16 +306,18 @@ export const EndingRoutine: Story = {
   render: function EndingRoutineExample(args) {
     const [routine, setRoutine] = useState(args.initialActive.goals[0]);
     useEffect(() => {
-      mocked(endRecurringGoal).mockImplementation(async (_id, endDate) => {
+      mocked(saveGoal).mockImplementation(async (_id, raw) => {
+        const input = goalInputSchema.parse(raw);
+        const endDate = input.recurringEndDate ?? null;
         setRoutine((goal) => ({
           ...goal,
           recurringEndDate: endDate,
-          periodEnd: endDate < goal.periodEnd ? endDate : goal.periodEnd,
+          periodEnd: endDate && endDate < goal.endDate ? endDate : goal.endDate,
         }));
-        return { ok: true, value: undefined };
+        return { ok: true, value: -3 };
       });
       return () => {
-        mocked(endRecurringGoal).mockReset().mockResolvedValue({ ok: true, value: undefined });
+        mocked(saveGoal).mockReset().mockResolvedValue({ ok: true, value: -1 });
       };
     }, []);
     return <GoalPanel {...args} initialActive={{ goals: [routine], hasMore: false }} />;

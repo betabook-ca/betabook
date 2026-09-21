@@ -4,17 +4,9 @@ import { Disclosure } from "@heroui/react";
 import { clsx } from "clsx";
 import { useState, type ReactNode } from "react";
 
-import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-layout-effect";
+import { useIsAtLeast } from "@/hooks/use-breakpoint";
 
 type Breakpoint = "md" | "lg";
-
-// Tailwind v4's default md/lg breakpoints — matchMedia takes rem units and,
-// like Tailwind's own media queries, resolves them against the initial font
-// size, so these track the md:/lg: classes below exactly.
-const BREAKPOINT_QUERY: Record<Breakpoint, string> = {
-  md: "(min-width: 48rem)",
-  lg: "(min-width: 64rem)",
-};
 
 // Tailwind only generates CSS for classes it finds as complete literal
 // strings in source — building one via `${breakpoint}:hidden` wouldn't
@@ -41,7 +33,7 @@ const CONTENT_CLASSNAME: Record<Breakpoint, string> = {
   md: "md:overflow-visible",
   lg: "lg:overflow-visible",
 };
-// First-paint fallback, applied only until `useIsDesktop` resolves: the
+// First-paint fallback, applied only until `useIsAtLeast` resolves: the
 // server renders the panel expanded (see below), and this class keeps it
 // visually collapsed below the breakpoint until then. It can't linger
 // longer, or it would override the user expanding the section on mobile.
@@ -49,23 +41,6 @@ const PREHYDRATION_CONTENT_CLASSNAME: Record<Breakpoint, string> = {
   md: "max-md:hidden",
   lg: "max-lg:hidden",
 };
-
-/** `undefined` on the server and during hydration, then live viewport
- * state. Resolved in a layout effect so the first client value commits
- * before paint — no flash of the wrong variant. */
-function useIsDesktop(breakpoint: Breakpoint): boolean | undefined {
-  const [isDesktop, setIsDesktop] = useState<boolean | undefined>(undefined);
-
-  useIsomorphicLayoutEffect(() => {
-    const mql = window.matchMedia(BREAKPOINT_QUERY[breakpoint]);
-    const update = () => setIsDesktop(mql.matches);
-    update();
-    mql.addEventListener("change", update);
-    return () => mql.removeEventListener("change", update);
-  }, [breakpoint]);
-
-  return isDesktop;
-}
 
 /** A section that's always open on desktop (from `breakpoint` up) and a
  * closed-by-default accordion below it, mounting `children` exactly once.
@@ -81,7 +56,7 @@ function useIsDesktop(breakpoint: Breakpoint): boolean | undefined {
  * avoids fighting the `hidden` attribute a collapsed panel carries (the
  * preflight `[hidden]` rule is `!important` in an early cascade layer, which
  * beats `!` utilities). Below the breakpoint a pre-hydration-only CSS class
- * keeps the panel visually collapsed until `useIsDesktop` resolves, in the
+ * keeps the panel visually collapsed until `useIsAtLeast` resolves, in the
  * same pre-paint commit that hands control to `isExpanded`. Tradeoff: below
  * the breakpoint without JS the panel can't be expanded, and until hydration
  * the trigger's indicator/aria-expanded read as expanded while the panel is
@@ -100,7 +75,7 @@ export function CollapsibleSection({
   showTitleOnDesktop?: boolean;
   children: ReactNode;
 }) {
-  const isDesktop = useIsDesktop(breakpoint);
+  const isDesktop = useIsAtLeast(breakpoint);
   const [mobileExpanded, setMobileExpanded] = useState(false);
   const isExpanded = isDesktop === undefined ? true : isDesktop || mobileExpanded;
 

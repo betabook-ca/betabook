@@ -4,10 +4,8 @@ import type { ComponentProps, ReactNode } from "react";
 import { AuthCallout } from "@/components/auth-callout";
 import { ClimbFilterControls } from "@/components/filters/climb-filter-controls";
 import { useSearch } from "@/hooks/use-search";
-import type { AreaSelection } from "@/lib/area-selection";
 import { DEFAULT_CLIMB_LIST_SORT } from "@/lib/climb-list-sort";
 import { DEFAULT_CLIMB_FILTER } from "@/lib/filters/climb-filter";
-import { withClimbFilterArea } from "@/lib/filters/climb-filter-state";
 import { searchHref } from "@/lib/search";
 import type { AppSearchResult, SearchFetcher, SearchSnapshot, SearchState } from "@/lib/search";
 import { fetchPublicSearchPage, fetchSearchPage } from "@/lib/search-client";
@@ -27,7 +25,6 @@ export function SearchController({
   quick = false,
   isOpen = true,
   onOpenChange = ignoreOpenChange,
-  suggestedArea,
   renderAction,
   resultHref,
   suggestions,
@@ -51,7 +48,6 @@ export function SearchController({
   quick?: boolean;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
-  suggestedArea?: AreaSelection;
   renderAction?: (item: AppSearchResult) => ReactNode;
   resultHref?: (item: AppSearchResult) => string;
   /** Shown in place of the prompt while the full climber search is empty. */
@@ -93,9 +89,6 @@ export function SearchController({
             },
       ),
     area: state.area,
-    onAreaChange: (area: AreaSelection | null) =>
-      onChange(withClimbFilterArea({ ...state, category: area ? "climb" : state.category }, area)),
-    suggestedArea,
     sections: search.sections,
     suggestions: suggested.length
       ? {

@@ -4,13 +4,13 @@ import type { ReactNode } from "react";
 import { cardClass } from "@/components/ui/card";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { Grade } from "@/components/ui/grade";
-import type { OpenProject } from "@/db/queries";
+import type { PinnedProject } from "@/db/queries";
 import { formatCount } from "@/lib/format";
 import { daysBetween, describeDaysAgo, formatDate } from "@/lib/format-date";
 import { formatGrade } from "@/lib/grades";
 
 type ProjectSummary = Pick<
-  OpenProject,
+  PinnedProject,
   | "climbName"
   | "climbType"
   | "climbGrade"
@@ -18,7 +18,8 @@ type ProjectSummary = Pick<
   | "sessionCount"
   | "firstSession"
   | "lastSession"
->;
+> &
+  Partial<Pick<PinnedProject, "pinnedAt" | "sentOn" | "sent">>;
 
 /** Shared project presentation; callers supply links, session data and actions. */
 export function ProjectCardLayout({
@@ -36,7 +37,10 @@ export function ProjectCardLayout({
   children: ReactNode;
   action?: ReactNode;
 }) {
-  const daysSince = today == null ? null : daysBetween(project.lastSession, today);
+  // A climb can be pinned before it is ever touched, so there may be no last
+  // session to measure from and no dates to print at all.
+  const daysSince =
+    today == null || project.lastSession == null ? null : daysBetween(project.lastSession, today);
   return (
     <article className={clsx(cardClass("sm", "bordered"), "flex flex-col gap-3")}>
       <div className="flex items-start justify-between gap-3">
@@ -53,27 +57,51 @@ export function ProjectCardLayout({
       </div>
 
       <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-muted">
-        <span className="font-medium text-foreground tabular-nums">
-          {formatCount(project.sessionCount, "session")}
-        </span>
-        {/* A project worked on one day only would otherwise print that date
-         * twice, once as "Since" and once as "Last". */}
-        {project.firstSession !== project.lastSession && (
+        {project.sent && (
           <>
-            <Separator />
-            <span>
-              Since <time dateTime={project.firstSession}>{formatDate(project.firstSession)}</time>
+            <span className="font-medium text-success-soft-foreground">
+              {project.sentOn ? <>Sent {formatDate(project.sentOn)}</> : "Sent"}
             </span>
+            <Separator />
           </>
         )}
-        <Separator />
-        <span>
-          Last <time dateTime={project.lastSession}>{formatDate(project.lastSession)}</time>
+        <span className="font-medium text-foreground tabular-nums">
+          {project.sessionCount === 0
+            ? "No sessions yet"
+            : formatCount(project.sessionCount, "session")}
         </span>
-        {daysSince != null && (
+        {project.lastSession == null ? (
+          project.pinnedAt && (
+            <>
+              <Separator />
+              <span>
+                Tracked <time dateTime={project.pinnedAt}>{formatDate(project.pinnedAt)}</time>
+              </span>
+            </>
+          )
+        ) : (
           <>
+            {/* A project worked on one day only would otherwise print that date
+             * twice, once as "Since" and once as "Last". */}
+            {project.firstSession !== project.lastSession && project.firstSession != null && (
+              <>
+                <Separator />
+                <span>
+                  Since{" "}
+                  <time dateTime={project.firstSession}>{formatDate(project.firstSession)}</time>
+                </span>
+              </>
+            )}
             <Separator />
-            <span>{describeDaysAgo(daysSince)}</span>
+            <span>
+              Last <time dateTime={project.lastSession}>{formatDate(project.lastSession)}</time>
+            </span>
+            {daysSince != null && (
+              <>
+                <Separator />
+                <span>{describeDaysAgo(daysSince)}</span>
+              </>
+            )}
           </>
         )}
       </p>
