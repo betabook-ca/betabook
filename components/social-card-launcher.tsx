@@ -5,29 +5,33 @@ import { Share } from "lucide-react";
 
 import { SocialCardDialog } from "@/components/social-card-dialog";
 
-/** Entry point for the owner's shareable recap card, beside Customize on the
- * analytics page. Split from the dialog so opening it doesn't pull the
- * dialog's own state into this always-mounted button. */
+/** December-only entry point for the owner's yearly recap, beside Customize
+ * on Analytics. The server page decides seasonal visibility. */
 export function SocialCardLauncher({
   userId,
   name,
-  shareUrl,
+  year,
+  linkedRecapAvailable,
 }: {
   userId: string;
   name: string;
-  /** The climber's own profile link, to invite the recipient along — null
-   * while their profile is private, in which case the share text names
-   * Betabook without a link nobody could open. */
-  shareUrl: string | null;
+  year: number;
+  linkedRecapAvailable: boolean;
 }) {
   const state = useOverlayState();
   return (
     <>
-      <Button variant="outline" size="sm" onPress={state.open}>
+      <Button size="sm" onPress={state.open}>
         <Share aria-hidden="true" size={16} />
-        Share stats
+        Year in review
       </Button>
-      <SocialCardDialog state={state} userId={userId} name={name} shareUrl={shareUrl} />
+      <SocialCardDialog
+        state={state}
+        userId={userId}
+        name={name}
+        year={year}
+        linkedRecapAvailable={linkedRecapAvailable}
+      />
     </>
   );
 }

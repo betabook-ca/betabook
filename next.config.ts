@@ -77,6 +77,16 @@ const nextConfig: NextConfig = {
         source: "/api/:path*",
         headers: [{ key: "X-Robots-Tag", value: "noindex" }],
       },
+      {
+        // A recap URL is a bearer grant. Even a revoked 404 must not be
+        // cached or passed as a referrer to another page.
+        source: "/r/:token",
+        headers: [
+          { key: "Cache-Control", value: "private, no-store, max-age=0" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex" },
+        ],
+      },
     ];
   },
 };

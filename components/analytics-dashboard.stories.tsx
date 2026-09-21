@@ -32,7 +32,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "New dashboards start with Sends, Hardest, Days out, Flash, and Best year. Customize placeholders appear when a section has hidden items and open the same layout editor; Save layout persists the selection. Existing saved layouts remain unchanged. All cards and charts follow the selected years. The laptop grid fits six stat slots. Grade pyramid, Breakthroughs, and Flash rate use half-width slots, while time charts span the row. Volume and Flash rate are optional smooth Recharts charts with floating tooltips; all calendars fit without horizontal scrolling. Customization changes only the owner’s view.",
+          "New dashboards start with Sends, Hardest, Days out, Flash, and Best year. Customize placeholders appear when a section has hidden items and open the same layout editor; Save layout persists the selection. Existing saved layouts remain unchanged. All cards and charts follow the selected years. Grade charts follow the page discipline; the calendar starts with all disciplines and has its own subset menu. The laptop grid fits six stat slots. Grade pyramid, Breakthroughs, and Flash rate use half-width slots, while time charts span the row. Volume and Flash rate are optional smooth Recharts charts with floating tooltips; all calendars fit without horizontal scrolling. Customization changes only the owner’s view.",
       },
     },
   },
@@ -102,6 +102,16 @@ const sessions: HighlightSession[] = [
 
 const ALL_YEARS: number[] = [];
 
+function demoRows(undatedOnly: boolean, calendarMix: boolean): AnalyticsSendRow[] {
+  if (undatedOnly) return sends.filter((send) => send.dateSent == null);
+  if (!calendarMix) return sends;
+  return [
+    ...sends,
+    { ...sends[1], climbId: 60, climbName: "Sport afternoon", climbType: "sport" },
+    { ...sends[2], climbId: 61, climbName: "Trad morning", climbType: "trad" },
+  ];
+}
+
 function getDemoAnnouncements(
   announcement: boolean,
   announcementDismissed: boolean,
@@ -128,6 +138,7 @@ function DashboardExample({
   showHighlights = false,
   hiddenCharts = false,
   showFilters = false,
+  calendarMix = false,
   announcement = false,
   announcementDismissed = false,
   announcementNewUser = false,
@@ -140,13 +151,14 @@ function DashboardExample({
   showHighlights?: boolean;
   hiddenCharts?: boolean;
   showFilters?: boolean;
+  calendarMix?: boolean;
   announcement?: boolean;
   announcementDismissed?: boolean;
   announcementNewUser?: boolean;
 }) {
   const [scope, setScope] = useState<ClimbType>("boulder");
   const [period, setPeriod] = useState<number[]>(initialPeriod);
-  const rows = undatedOnly ? sends.filter((send) => send.dateSent == null) : sends;
+  const rows = demoRows(undatedOnly, calendarMix);
   const lifetime = buildUserAnalytics(rows, scope);
   const analytics = buildUserAnalytics(rows, scope, undefined, period);
   const content = (
@@ -279,6 +291,9 @@ export const Highlights: Story = {
 export const HiddenChart: Story = { render: () => <DashboardExample hiddenCharts /> };
 
 export const Filters: Story = { render: () => <DashboardExample showFilters /> };
+export const CalendarDisciplines: Story = {
+  render: () => <DashboardExample showFilters calendarMix />,
+};
 
 export const OptionalCharts: Story = {
   render: () => <DashboardExample initialPeriod={[2024, 2025]} />,

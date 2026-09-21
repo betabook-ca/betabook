@@ -2,6 +2,7 @@ import { env } from "cloudflare:test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createDb } from "@/db/client";
+import { socialCardElement, type SocialCardOwner } from "@/lib/og-recap";
 import { seedFixtureSend, seedFixtureTree, seedFixtureUser } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
 
@@ -21,13 +22,7 @@ vi.mock("@/db/client", async (original) => {
 // The vi.mock calls above are hoisted ahead of this import, same as any
 // other, so the route sees the mocked session, @opennextjs/cloudflare and
 // @/db/client.
-import {
-  GET,
-  loadSocialCardStats,
-  socialCardElement,
-  todayInTimezone,
-  type SocialCardOwner,
-} from "./route";
+import { GET, loadSocialCardStats, todayInTimezone } from "./route";
 
 const db = createDb(env.DB);
 
@@ -92,38 +87,49 @@ describe("socialCardElement", () => {
     periodLabel: "2026",
     sendCount: 24,
     daysOut: 10,
-    pyramid: [
+    disciplines: [
       {
         type: "boulder" as const,
-        rows: [
-          { grade: 8, label: "V6", count: 3 },
-          { grade: 7, label: "V5", count: 5 },
-        ],
+        sendCount: 18,
+        hardest: { climbId: 1, grade: "V7", climbName: "Greedy Creator" },
+        pyramid: [{ label: "V7", count: 1 }],
+        favorites: [{ climbId: 1, climbName: "Greedy Creator", rating: 5, grade: "V7" }],
       },
-      { type: "sport" as const, rows: [{ grade: 20, label: "5.12a", count: 2 }] },
+      {
+        type: "sport" as const,
+        sendCount: 6,
+        hardest: { climbId: 2, grade: "5.12a", climbName: "Skyline" },
+        pyramid: [{ label: "5.12a", count: 1 }],
+        favorites: [{ climbId: 2, climbName: "Skyline", rating: 4, grade: "5.12a" }],
+      },
     ],
-    areaCount: 3,
-    topArea: { name: "Test Boulders" },
-    flashPct: 40,
+    calendar: {
+      year: 2026,
+      throughDate: "2026-09-15",
+      highlightMonth: null,
+      label: "2026 TO DATE",
+      counts: { "2026-09-01": 2 },
+    },
     longestStreak: 5,
   };
 
-  it("renders the climber's name, avatar, and totals for an active period, one pyramid per discipline", () => {
+  it("makes days out the headline and includes the combined calendar", () => {
     const json = JSON.stringify(socialCardElement(baseOwner, baseStats));
 
-    // Tile/PyramidColumn/Avatar are unrendered elements here (no React
-    // renderer involved), so their own output never appears in this JSON —
-    // only the props they were given, which is exactly what wiring this
-    // card correctly requires.
+    // SendsBand/OgActivityCalendar/Avatar are unrendered here, so inspect their
+    // props alongside the text owned by the poster itself.
     expect(json).toContain("Share Owner");
+    expect(json).toContain("A YEAR ON THE WALL");
     expect(json).toContain('"photo":"https://betabook.test/api/avatars/abc123"');
-    expect(json).toContain('"children":24'); // the literal sendCount, not stringified
-    expect(json).toContain('"pyramid":{"type":"boulder","rows":[{"grade":8,"label":"V6"'); // boulder pyramid
-    expect(json).toContain('"pyramid":{"type":"sport","rows":[{"grade":20,"label":"5.12a"'); // sport pyramid
-    expect(json).toContain('"sub":"Test Boulders"'); // topArea.name
-    expect(json).toContain('"sub":"5-day streak"');
+    expect(json).toContain('"children":10'); // days-out hero
+    expect(json).toContain("DAYS OUT");
+    expect(json).toContain('"disciplines":[{"type":"boulder","sendCount":18');
+    expect(json).toContain('"climbName":"Greedy Creator"');
+    expect(json).toContain('"calendar":{"year":2026');
+    expect(json).toContain('"2026-09-01":2');
+    expect(json).toContain("5-DAY STREAK");
     expect(json).toContain("2026");
-    expect(json).not.toContain("Boulder · "); // no discipline in the eyebrow — it's a combined recap
+    expect(json).not.toContain("AREAS EXPLORED");
   });
 
   it("falls back to initials when the climber has no avatar photo", () => {
@@ -133,10 +139,20 @@ describe("socialCardElement", () => {
     expect(json).toContain('"initials":"SO"');
   });
 
-  it("skips the pyramid row entirely when nothing was graded", () => {
-    const json = JSON.stringify(socialCardElement(baseOwner, { ...baseStats, pyramid: [] }));
+  it("shows the calendar without needing a graded send", () => {
+    const json = JSON.stringify(
+      socialCardElement(baseOwner, { ...baseStats, sendCount: 0, disciplines: [] }),
+    );
 
-    expect(json).not.toContain('"pyramid"');
+    expect(json).toContain('"disciplines":[]');
+    expect(json).toContain('"calendar":{"year":2026');
+  });
+
+  it("uses sends as the headline when there were no dated days out", () => {
+    const json = JSON.stringify(socialCardElement(baseOwner, { ...baseStats, daysOut: 0 }));
+
+    expect(json).toContain('"children":24');
+    expect(json).not.toContain("AREAS EXPLORED");
   });
 
   it("renders a friendly empty state instead of zeroed-out tiles", () => {
@@ -148,16 +164,22 @@ describe("socialCardElement", () => {
           periodLabel: "Sep 2026",
           sendCount: 0,
           daysOut: 0,
-          pyramid: [],
-          areaCount: 0,
-          topArea: null,
-          flashPct: null,
+          disciplines: [],
+          calendar: {
+            year: 2026,
+            throughDate: "2026-09-15",
+            highlightMonth: 9,
+            label: "SEP 2026",
+            counts: {},
+          },
           longestStreak: null,
         },
       ),
     );
 
-    expect(json).toContain("No sends logged yet");
+    expect(json).toContain("No activity this period");
+    expect(json).toContain("NEXT");
+    expect(json).toContain("CLIMB AWAITS");
     expect(json).toContain("New Climber");
     expect(json).toContain("Sep 2026");
     expect(json).not.toContain("—"); // no dashed-out tiles in the friendly empty state

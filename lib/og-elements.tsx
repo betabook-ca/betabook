@@ -30,7 +30,7 @@ export function BetabookMark({
  * wider" placement from assets/branding/README.md (both cards are far past
  * that width), at that same 48px mark size so it is the identical lockup,
  * not a scaled-down approximation. */
-function BetabookLockup({ color }: { color: string }): ReactElement {
+export function BetabookLockup({ color }: { color: string }): ReactElement {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
       <BetabookMark size={48} color={color} />

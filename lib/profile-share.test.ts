@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { parseProfileShareToken, profileShareFromPath, profileSharePath } from "./profile-share";
+import {
+  parseProfileShareShortToken,
+  parseProfileShareToken,
+  profileShareFromPath,
+  profileSharePath,
+  profileShareShortPath,
+} from "./profile-share";
 
 const TOKEN = "0123456789abcdef0123456789abcdef";
 
@@ -17,6 +23,20 @@ describe("parseProfileShareToken", () => {
     ]) {
       expect(parseProfileShareToken(value)).toBeNull();
     }
+  });
+});
+
+describe("compact profile share links", () => {
+  it("represents the same 16-byte token in a shorter URL-safe path", () => {
+    expect(profileShareShortPath(TOKEN)).toBe("/s/ASNFZ4mrze8BI0VniavN7w");
+    expect(parseProfileShareShortToken("ASNFZ4mrze8BI0VniavN7w")).toBe(TOKEN);
+  });
+
+  it("rejects malformed and noncanonical compact tokens", () => {
+    for (const value of [undefined, "not-a-token", "ASNFZ4mrze8BI0VniavN7x", "../account"]) {
+      expect(parseProfileShareShortToken(value)).toBeNull();
+    }
+    expect(() => profileShareShortPath("not-a-token")).toThrow("Invalid profile share token");
   });
 });
 

@@ -2,7 +2,7 @@ import { Button, useOverlayState } from "@heroui/react";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { mocked } from "storybook/test";
 
-import { fetchStatsCardImage } from "@/lib/social-card-fetch";
+import { fetchRecapCoverImage, fetchStatsCardImage } from "@/lib/social-card-fetch";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { SocialCardDialog } from "./social-card-dialog";
@@ -20,11 +20,15 @@ function placeholderBlob(): Blob {
 }
 
 const meta = {
-  title: "Components/Analytics/Share stats card",
+  title: "Components/Analytics/Year in review",
   component: SocialCardDialog,
   beforeEach: () => {
     mocked(fetchStatsCardImage).mockImplementation(async () => placeholderBlob());
-    return () => mocked(fetchStatsCardImage).mockReset();
+    mocked(fetchRecapCoverImage).mockImplementation(async () => placeholderBlob());
+    return () => {
+      mocked(fetchStatsCardImage).mockReset();
+      mocked(fetchRecapCoverImage).mockReset();
+    };
   },
 } satisfies Meta<typeof SocialCardDialog>;
 export default meta;
@@ -33,13 +37,14 @@ export const Open: StoryObj = {
   render: function Example() {
     const state = useOverlayState({ defaultOpen: true });
     return (
-      <StoryPage title="Share your stats">
-        <Button onPress={state.open}>Share stats</Button>
+      <StoryPage title="Year in review">
+        <Button onPress={state.open}>Year in review</Button>
         <SocialCardDialog
           state={state}
           userId="climber1"
           name="Alex Rivera"
-          shareUrl="https://betabook.ca/users/climber1?share=0123456789abcdef0123456789abcdef"
+          year={2026}
+          linkedRecapAvailable
         />
       </StoryPage>
     );

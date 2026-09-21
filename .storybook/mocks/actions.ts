@@ -25,6 +25,10 @@ export const resetProfileShareLink = fn<typeof Actions.resetProfileShareLink>().
   ok: true,
   value: undefined,
 });
+export const prepareRecapShare = fn<typeof Actions.prepareRecapShare>().mockResolvedValue({
+  ok: true,
+  value: { token: "ASNFZ4mrze8BI0VniavN7w", path: "/r/ASNFZ4mrze8BI0VniavN7w" },
+});
 export const requestFriendship = fn<typeof Actions.requestFriendship>().mockResolvedValue({
   ok: true,
   value: "outgoing",

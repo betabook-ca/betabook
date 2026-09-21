@@ -32,8 +32,9 @@ import {
 } from "@/lib/feature-announcements";
 import { normalizeHashtagFilters } from "@/lib/filters/hashtag-filter";
 import type { ClimbType } from "@/lib/grades";
-import { getOwnProfileShareUrl } from "@/lib/profile-share-url";
+import { getOwnProfileShareToken } from "@/lib/profile-share-url";
 import { getMemberSession } from "@/lib/session";
+import { isYearInReviewMonth } from "@/lib/social-card";
 import { toArray, type UrlParamsRecord } from "@/lib/url-params";
 import {
   buildUserAnalytics,
@@ -80,11 +81,16 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
   if (!user) notFound();
   const viewerId = session.user.id;
   if (!canViewUser(user, viewerId)) notFound();
+  const { cf } = await getCloudflareContext({ async: true });
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: cf?.timezone ?? "UTC" }).format(
+    new Date(),
+  );
 
   const selectedTags = normalizeHashtagFilters(toArray(search.tag));
   const journalVisible = await canReadJournal(db, user.id, viewerId);
   const isOwner = viewerId === id;
-  const [rows, journalSessions, tags, viewerAnnouncements, shareUrl] = await Promise.all([
+  const showYearInReview = isOwner && isYearInReviewMonth(today);
+  const [rows, journalSessions, tags, viewerAnnouncements, shareToken] = await Promise.all([
     getUserSendsForAnalytics(db, id, viewerId, selectedTags),
     journalVisible
       ? getJournalSessionsForAnalytics(db, user.id, viewerId, selectedTags)
@@ -93,7 +99,7 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
     isOwner
       ? getViewerFeatureAnnouncements(session.user.id, session.user.createdAt.getTime())
       : Promise.resolve([]),
-    isOwner ? getOwnProfileShareUrl(db, user) : Promise.resolve(null),
+    showYearInReview ? getOwnProfileShareToken(db, user) : Promise.resolve(null),
   ]);
 
   // Grades only compare within one discipline, so the page is always scoped to one.
@@ -143,10 +149,6 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
   const { years, undatedCount } = getAnalyticsHistorySummary(rows, scope, journalSessions);
   const selectedYears = parseAnalyticsYears(search.years ?? search.period, years);
   const analytics = buildUserAnalytics(rows, scope, journalSessions, selectedYears);
-  const { cf } = await getCloudflareContext({ async: true });
-  const today = new Intl.DateTimeFormat("en-CA", { timeZone: cf?.timezone ?? "UTC" }).format(
-    new Date(),
-  );
   const overview = await getClimberOverview(db, user.id, viewerId, today);
   const summary = [describeClimber(overview), describeRecency(overview)].filter(Boolean).join(" ");
 
@@ -164,8 +166,13 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
           initialLayout={initialLayout}
           onSave={isOwner ? saveAnalyticsLayout : undefined}
           shareCard={
-            isOwner ? (
-              <SocialCardLauncher userId={id} name={user.name} shareUrl={shareUrl} />
+            showYearInReview ? (
+              <SocialCardLauncher
+                userId={id}
+                name={user.name}
+                year={Number(today.slice(0, 4))}
+                linkedRecapAvailable={shareToken !== null}
+              />
             ) : undefined
           }
           analytics={analytics}

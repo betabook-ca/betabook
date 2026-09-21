@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { AnalyticsCalendar } from "@/components/analytics-calendar";
+import { AnalyticsCalendarPanel } from "@/components/analytics-calendar-panel";
 import { AnalyticsFlashChart } from "@/components/analytics-flash-chart";
 import { AnalyticsGradePyramid } from "@/components/analytics-grade-pyramid";
 import { StatTileContent, type StatTile } from "@/components/analytics-stat-tiles";
@@ -8,7 +8,6 @@ import { AnalyticsVolumeChart } from "@/components/analytics-volume-chart";
 import { AnalyticsWorkspace, type AnalyticsPanel } from "@/components/analytics-workspace";
 import { BreakthroughList } from "@/components/breakthrough-list";
 import { ProgressionChart } from "@/components/progression-chart";
-import { DISCIPLINE_HUE } from "@/components/ui/discipline-chip";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { SectionHeading } from "@/components/ui/typography";
 import type { AnalyticsSendRow } from "@/db/queries";
@@ -67,7 +66,7 @@ export function AnalyticsDashboard({
   canCustomize?: boolean;
   initialLayout?: AnalyticsLayout;
   onSave?: (layout: AnalyticsLayout) => Promise<ActionResult>;
-  /** The owner's "Share stats" launcher, beside Customize. */
+  /** The owner's seasonal Year in review launcher, beside Customize. */
   shareCard?: ReactNode;
 }) {
   const chartSends = selectChartSends(sends, scope, selectedYears);
@@ -81,9 +80,9 @@ export function AnalyticsDashboard({
     : sendChartRows(chartSends);
   const period = selectedYears.length ? formatAnalyticsYears(selectedYears) : null;
   const noActivity = period != null && analytics.sendCount === 0 && analytics.daysOut === 0;
-  const calendarYears = (selectedYears.length ? selectedYears : analytics.calendarYears).toSorted(
-    (a, b) => a - b,
-  );
+  const hasCalendarActivity = journalVisible
+    ? sessions.some((entry) => inSelectedYears(entry.entryDate, selectedYears))
+    : sends.some((send) => send.dateSent != null && inSelectedYears(send.dateSent, selectedYears));
   const calendarTitle = journalVisible ? "Outdoor calendar" : "Sending calendar";
   const hardest = analytics.hardest[0] ?? null;
   const tiles: Record<AnalyticsCardId, StatTile> = {
@@ -302,35 +301,24 @@ export function AnalyticsDashboard({
       id: "calendar",
       title: calendarTitle,
       content: (
-        <div className="min-w-0">
-          <div className="mb-4 flex flex-col gap-1">
-            <Eyebrow>{calendarTitle}</Eyebrow>
-            <p className="text-xs text-muted">
-              {journalVisible ? "Sessions per day." : "Sends per day."}
-            </p>
-          </div>
-          {calendarYears.length ? (
-            <AnalyticsCalendar
-              key={calendarYears.join(",")}
-              years={calendarYears}
-              countsByDay={analytics.calendarCounts}
-              activities={activities}
-              hue={DISCIPLINE_HUE[scope]}
-              unit={journalVisible ? "session" : "send"}
-            />
-          ) : (
-            <p className="text-sm text-muted">
-              {journalVisible ? "No logged sessions." : "No dated sends."}
-            </p>
-          )}
-        </div>
+        <AnalyticsCalendarPanel
+          sends={sends}
+          sessions={sessions}
+          selectedYears={selectedYears}
+          journalVisible={journalVisible}
+        />
       ),
     },
   ];
+  const visibleCharts = noActivity
+    ? hasCalendarActivity
+      ? charts.filter((chart) => chart.id === "calendar")
+      : NO_PANELS
+    : charts;
   return (
     <AnalyticsWorkspace
       cards={noActivity ? NO_PANELS : cards}
-      charts={noActivity ? NO_PANELS : charts}
+      charts={visibleCharts}
       canCustomize={canCustomize && !noActivity}
       initialLayout={initialLayout}
       onSave={onSave}

@@ -521,6 +521,18 @@ export type AnalyticsSendRow = {
   ascentStyle: AscentStyle;
   dateSent: string | null;
 };
+export type RecapSendRow = AnalyticsSendRow & { rating: number | null };
+
+const analyticsSendColumns = {
+  climbId: sends.climbId,
+  climbName: climbs.name,
+  climbType: climbs.type,
+  suggestedGrade: sends.suggestedGrade,
+  areaId: climbs.areaId,
+  areaName: areas.name,
+  ascentStyle: sends.ascentStyle,
+  dateSent: sends.dateSent,
+};
 
 /** Full send history for analytics. Unlike list pages, this loads all of a user's sends. */
 export async function getUserSendsForAnalytics(
@@ -530,16 +542,7 @@ export async function getUserSendsForAnalytics(
   tags?: string[],
 ): Promise<AnalyticsSendRow[]> {
   return db
-    .select({
-      climbId: sends.climbId,
-      climbName: climbs.name,
-      climbType: climbs.type,
-      suggestedGrade: sends.suggestedGrade,
-      areaId: climbs.areaId,
-      areaName: areas.name,
-      ascentStyle: sends.ascentStyle,
-      dateSent: sends.dateSent,
-    })
+    .select(analyticsSendColumns)
     .from(sends)
     .innerJoin(climbs, eq(sends.climbId, climbs.id))
     .innerJoin(areas, eq(climbs.areaId, areas.id))
@@ -549,5 +552,18 @@ export async function getUserSendsForAnalytics(
         tags?.length ? sendHashtagCondition(tags, viewerId) : undefined,
       ),
     )
+    .orderBy(sends.dateSent, sends.id);
+}
+
+/** Owner-only recap snapshot source. Personal ratings stay out of the general
+ * Analytics rows sent to other viewers' pages. Authenticate ownership before
+ * calling this query. */
+export async function getUserSendsForRecap(db: Database, ownerId: string): Promise<RecapSendRow[]> {
+  return db
+    .select({ ...analyticsSendColumns, rating: sends.rating })
+    .from(sends)
+    .innerJoin(climbs, eq(sends.climbId, climbs.id))
+    .innerJoin(areas, eq(climbs.areaId, areas.id))
+    .where(eq(sends.userId, ownerId))
     .orderBy(sends.dateSent, sends.id);
 }
