@@ -158,6 +158,7 @@ export function GoalForm({
   initialRepeat = "none",
   today = goalToday(new Intl.DateTimeFormat().resolvedOptions().timeZone),
   onPendingChange,
+  onStepChange,
   embedded = false,
   nextGrades = NO_GRADE_HISTORY,
   availableTags = NO_AVAILABLE_TAGS,
@@ -172,6 +173,7 @@ export function GoalForm({
   onSave?: (draft: GoalDraft) => void | Promise<void>;
   today?: string;
   onPendingChange?: (pending: boolean) => void;
+  onStepChange?: (step: "category" | "details") => void;
   embedded?: boolean;
   nextGrades?: Partial<Record<ClimbType, number>>;
   availableTags?: string[];
@@ -250,12 +252,11 @@ export function GoalForm({
       return "End date must be on or after start date.";
     if (selectedRecurringEndDate === "") return "Choose an end date.";
     if (invalidRecurringEnd) return "End date must be today or later.";
-    if ((goal === "training" || goal === "volume") && tagsExpanded && tags.length === 0)
-      return "Add a hashtag or remove the tag filter.";
     return "";
   }
   function navigate(next: typeof step) {
     setStep(next);
+    onStepChange?.(next);
     requestAnimationFrame(() => {
       (next === "details" ? backRef : categoryRef).current?.focus();
     });

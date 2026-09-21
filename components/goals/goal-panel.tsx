@@ -248,6 +248,7 @@ export function GoalPanel({
   const [archivingId, setArchivingId] = useState<number | null>(null);
   const [archiveError, setArchiveError] = useState("");
   const [editor, setEditor] = useState<GoalEditor>({ kind: "create" });
+  const [detailsStep, setDetailsStep] = useState(false);
   const editing = editor.kind === "edit" ? editor.goal : null;
   const [deleting, setDeleting] = useState<GoalProgress | null>(null);
   const [pending, setPending] = useState(false);
@@ -426,6 +427,7 @@ export function GoalPanel({
             isDisabled={activeCount >= MAX_ACTIVE_GOALS}
             onPress={() => {
               setEditor({ kind: "create" });
+              setDetailsStep(false);
               editState.open();
             }}
           >
@@ -566,8 +568,9 @@ export function GoalPanel({
         state={editState}
         title={editing ? "Edit goal" : "Set goal"}
         hideTitle
-        presentation="fullscreen"
+        presentation={editor.kind !== "create" || detailsStep ? "fullscreen" : "sheet"}
         isPending={pending}
+        onClose={() => setDetailsStep(false)}
       >
         <GoalForm
           embedded
@@ -588,6 +591,7 @@ export function GoalPanel({
           onSave={save}
           onCancel={editState.close}
           onPendingChange={setPending}
+          onStepChange={(step) => setDetailsStep(step === "details")}
         />
       </ResponsiveDialog>
       <ConfirmDeleteDialog

@@ -365,7 +365,7 @@ it("loads an existing recurring end date and lets the owner remove it", async ()
   expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ recurringEndDate: null }));
 });
 
-it("keeps tags optional and requires a hashtag when the filter is added", async () => {
+it("keeps tags optional when their section is open", async () => {
   const save = vi.fn<(draft: unknown) => void>();
   const user = userEvent.setup();
   render(
@@ -388,14 +388,11 @@ it("keeps tags optional and requires a hashtag when the filter is added", async 
   expect(screen.queryByText("#technical, #moonboard...")).not.toBeInTheDocument();
   expect(screen.getByRole("combobox", { name: "Tags" })).toBeVisible();
   await user.click(screen.getByRole("button", { name: "Create goal" }));
-  expect(await screen.findByRole("alert")).toHaveTextContent(
-    "Add a hashtag or remove the tag filter.",
-  );
-  expect(save).not.toHaveBeenCalled();
+  expect(save).toHaveBeenCalledWith(expect.objectContaining({ tags: [] }));
   await user.click(disclosure);
   expect(disclosure).toHaveAttribute("aria-expanded", "false");
   await user.click(screen.getByRole("button", { name: "Create goal" }));
-  expect(save).toHaveBeenCalledWith(expect.objectContaining({ tags: [] }));
+  expect(save).toHaveBeenCalledTimes(2);
 });
 
 it("keeps selected training tags active when their section is collapsed", async () => {
@@ -442,6 +439,44 @@ it("suggests the owner's existing tags in a new training goal", async () => {
   expect(screen.getByRole("button", { name: "Remove tag hangboard" })).toBeVisible();
   await user.click(screen.getByRole("button", { name: "Create goal" }));
   expect(save).toHaveBeenCalledWith(expect.objectContaining({ tags: ["hangboard"] }));
+});
+
+it("saves a goal with no tags after clearing a selected tag while tags remain open", async () => {
+  const user = userEvent.setup();
+  const save = vi.fn<(draft: unknown) => void>();
+  render(
+    <GoalForm
+      initialCategory="training"
+      availableTags={["hangboard"]}
+      today="2026-09-11"
+      onSave={save}
+    />,
+  );
+  await user.click(screen.getByRole("button", { name: "Tags (optional)" }));
+  await user.type(screen.getByRole("combobox", { name: "Tags" }), "hangboard{Enter}");
+  await user.click(screen.getByRole("button", { name: "Remove tag hangboard" }));
+  expect(screen.getByRole("button", { name: "Tags (optional)" })).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+  await user.click(screen.getByRole("button", { name: "Create goal" }));
+  expect(save).toHaveBeenCalledWith(expect.objectContaining({ tags: [] }));
+});
+
+it("saves a volume goal with the empty tag section open", async () => {
+  const user = userEvent.setup();
+  const save = vi.fn<(draft: unknown) => void>();
+  render(
+    <GoalForm
+      initialCategory="climbing"
+      availableTags={["outdoor"]}
+      today="2026-09-11"
+      onSave={save}
+    />,
+  );
+  await user.click(screen.getByRole("button", { name: "Tags (optional)" }));
+  await user.click(screen.getByRole("button", { name: "Create goal" }));
+  expect(save).toHaveBeenCalledWith(expect.objectContaining({ goal: "volume", tags: [] }));
 });
 
 it("rejects a recurring end date before the goal's current date", async () => {

@@ -1,5 +1,31 @@
 import { expect, test, openStory } from "./story";
 
+test("@layout goal category chooser uses a mobile sheet before the full form", async ({
+  page,
+}, info) => {
+  await openStory(page, info, "components-goals-goal-panel--active");
+  await page.getByRole("button", { name: "Set goal" }).click();
+  const dialog = page.getByRole("dialog", { name: "Set goal" });
+  await expect(page.getByRole("heading", { name: "What do you want to work on?" })).toBeVisible();
+  if (!info.project.name.startsWith("mobile")) return;
+
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error("Expected a fixed mobile viewport");
+  const firstScreen = await dialog.boundingBox();
+  if (!firstScreen) throw new Error("Expected the goal category sheet");
+  expect(firstScreen.height).toBeLessThan(viewport.height * 0.85);
+
+  await page.getByRole("button", { name: /Training Set a session target/ }).click();
+  await expect(page.getByRole("heading", { name: "Training", exact: true })).toBeVisible();
+  await expect
+    .poll(async () => (await dialog.boundingBox())?.height)
+    .toBeGreaterThan(viewport.height * 0.95);
+  await page.getByRole("button", { name: "Back" }).click();
+  await expect
+    .poll(async () => (await dialog.boundingBox())?.height)
+    .toBeLessThan(viewport.height * 0.85);
+});
+
 test("goal progress track remains visible in dark mode", async ({ page }, info) => {
   await openStory(page, info, "components-goals-goal-panel--active");
   if (info.project.name.endsWith("dark")) {
