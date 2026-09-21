@@ -43,32 +43,35 @@ test(
 );
 
 test(
-  "the share dialog fits its audience choice and expiry at both widths",
+  "the share dialog fits its warning, expiry and link at both widths",
   { tag: "@layout" },
   async ({ page }, testInfo) => {
-    // Three segments plus a dropdown in one overlay is the width risk, and it
-    // is a real overlay at two very different widths that decides it: a sheet
-    // on the phone, a centered column on the desktop.
-    await openStory(page, testInfo, "components-journal-project-board--projects");
-    await page.getByRole("button", { name: "Share Moonlight Arete" }).click();
+    // A long warning above a dropdown above a read-only URL is the width and
+    // height risk, and it is a real overlay at two very different sizes that
+    // decides it: a sheet on the phone, a centered column on the desktop.
+    await openStory(page, testInfo, "components-journal-project-board--shared-project");
+    await page.getByRole("button", { name: "Manage the link for Moonlight Arete" }).click();
 
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
     const bounds = await dialog.boundingBox();
     if (!bounds) throw new Error("Expected the share dialog to be laid out");
+    const right = bounds.x + bounds.width + 1;
 
-    for (const label of ["Friends", "Members", "Everyone"]) {
-      const segment = await dialog.getByRole("button", { name: label, exact: true }).boundingBox();
-      if (!segment) throw new Error(`Expected the ${label} segment`);
-      expect(segment.x).toBeGreaterThanOrEqual(bounds.x - 1);
-      expect(segment.x + segment.width).toBeLessThanOrEqual(bounds.x + bounds.width + 1);
+    const expiry = await dialog.getByRole("button", { name: "Expires after" }).boundingBox();
+    const field = await dialog.getByLabel("Project link").boundingBox();
+    const renew = await dialog.getByRole("button", { name: "Renew link" }).boundingBox();
+    if (!expiry || !field || !renew) {
+      throw new Error("Expected the expiry control, the link field and the primary action");
     }
-
-    const expiry = await dialog.getByRole("button", { name: "Link expires" }).boundingBox();
-    const create = await dialog.getByRole("button", { name: "Create link" }).boundingBox();
-    if (!expiry || !create) throw new Error("Expected the expiry control and the primary action");
-    expect(expiry.x + expiry.width).toBeLessThanOrEqual(bounds.x + bounds.width + 1);
+    // The URL is long and read-only; it must not push the dialog wider than
+    // the viewport allows or hide its own right-hand end.
+    expect(field.x + field.width).toBeLessThanOrEqual(right);
+    expect(expiry.x + expiry.width).toBeLessThanOrEqual(right);
     // The primary action is pinned in the footer, below the body either way.
-    expect(create.y).toBeGreaterThan(expiry.y);
+    expect(renew.y).toBeGreaterThan(field.y);
+
+    // The deadline is a date the owner can read, not a countdown.
+    await expect(dialog.getByText(/Link expires \w+ \d+, \d{4}/)).toBeVisible();
   },
 );

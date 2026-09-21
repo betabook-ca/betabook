@@ -175,16 +175,12 @@ export const openProjects: ProjectWithSessions[] = [moonSlab, ashCrack, riverRou
 export const sentProjects: ProjectWithSessions[] = [sentPin];
 
 /** A live link beside an unshared project, so the gallery shows both states of
- * the control. The deadline is far enough out that the chip's wording does not
- * drift as the gallery's clock moves. */
+ * the control. The chip prints the deadline as a date, so it reads the same in
+ * every capture whatever the gallery's clock says. */
 export const sharedProjects: ProjectWithSessions[] = [
   {
     ...moonSlab,
-    share: {
-      token: "4f9c2a7e1b8d6035c9e4a1f7b2d80e36",
-      audience: "friends",
-      expiresAt: "2099-01-01 00:00:00",
-    },
+    share: { token: "4f9c2a7e1b8d6035c9e4a1f7b2d80e36", expiresAt: "2026-10-06 12:00:00" },
   },
   ashCrack,
 ];

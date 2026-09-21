@@ -47,7 +47,7 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
       section: "Projects",
       title: "Pick up where you left off",
       description:
-        "Track a climb and it appears in Progress, Projects, with its latest note — even before your first session on it. Use Load more to read earlier sessions, and the Sent tab to revisit the ones you finished. The list is private, but Share puts one project behind a link: choose who can open it and when it expires, and stop sharing whenever you like.",
+        "Track a climb and it appears in Progress, Projects, with its latest note — even before your first session on it. Use Load more to read earlier sessions, and the Sent tab to revisit the ones you finished. The list is private, but Share puts one project behind a link that anyone holding it can open: pick when it expires, and stop sharing whenever you like.",
       target: "project-sessions",
     },
     {

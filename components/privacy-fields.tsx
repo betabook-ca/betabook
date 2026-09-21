@@ -139,7 +139,7 @@ function AudienceField<T extends string>({
 const AUDIENCE_READERS = [
   [
     "Everyone",
-    "Anyone, including signed-out visitors and search engines, with your name on those sends. Offered for send commentary, and for a project you choose to share by link.",
+    "Anyone, including signed-out visitors and search engines, with your name on those sends. Send commentary only.",
   ],
   ["Members", "Anyone signed in to Betabook."],
   ["Friends", "Climbers you're friends with."],
@@ -174,8 +174,9 @@ export function PrivacyDetails({ defaultExpanded = false }: { defaultExpanded?: 
               </li>
               <li>
                 Sharing a project makes a link to that one climb: your name, its sessions and your
-                notes on it. You choose who can open it and when it expires, and Stop sharing ends
-                it. Going private ends every project link.
+                notes on it. Anyone with the link can open it, so it is separate from the audiences
+                above and changes nothing about your feed. You choose when it expires, Stop sharing
+                ends it, and going private ends every project link.
               </li>
               <li>
                 Unless your profile is private, friends of your friends may see you suggested.

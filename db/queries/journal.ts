@@ -6,7 +6,6 @@ import type { JournalFilter, JournalView } from "@/lib/filters/journal-filter";
 import type { ClimbType } from "@/lib/grades";
 import type { JournalKind } from "@/lib/journal";
 import type { JournalCompanion } from "@/lib/journal-companions";
-import type { ProjectShareAudience } from "@/lib/privacy";
 
 import { journalVisibleSql, sendCommentVisibleSql } from "./content-access";
 import { journalHashtagsCondition } from "./hashtag-filter";
@@ -314,7 +313,7 @@ export type PinnedProject = Omit<OpenProject, "firstSession" | "lastSession"> & 
   /** The link the owner published for this project, if there is one. Present
    * only on the owner's own board — a token is a credential, and these reads
    * already refuse a viewer who is not the owner. */
-  share: { token: string; audience: ProjectShareAudience; expiresAt: string | null } | null;
+  share: { token: string; expiresAt: string | null } | null;
 };
 
 export const OPEN_PROJECT_PAGE_SIZE = 100;
@@ -343,7 +342,6 @@ function projectSelect(ownerId: string, sent: boolean): SQL {
       s.date_sent       AS sentOn,
       ${sent ? sql`1` : sql`0`} AS sent,
       share.token       AS shareToken,
-      share.audience    AS shareAudience,
       share.expires_at  AS shareExpiresAt
     FROM pinned_projects p
     JOIN climbs ON climbs.id = p.climb_id
@@ -384,7 +382,6 @@ export async function getPinnedProjects(
     Omit<PinnedProject, "sent" | "share"> & {
       sent: number;
       shareToken: string | null;
-      shareAudience: ProjectShareAudience | null;
       shareExpiresAt: string | null;
     }
   >(sql`
@@ -403,13 +400,10 @@ export async function getPinnedProjects(
       p.pinned_at DESC, p.climb_id ASC
     LIMIT ${boundedLimit}
   `);
-  return rows.map(({ shareToken, shareAudience, shareExpiresAt, ...row }) => ({
+  return rows.map(({ shareToken, shareExpiresAt, ...row }) => ({
     ...row,
     sent: row.sent === 1,
-    share:
-      shareToken && shareAudience
-        ? { token: shareToken, audience: shareAudience, expiresAt: shareExpiresAt }
-        : null,
+    share: shareToken ? { token: shareToken, expiresAt: shareExpiresAt } : null,
   }));
 }
 

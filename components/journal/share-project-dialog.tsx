@@ -8,12 +8,11 @@ import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { OptionSelect } from "@/components/ui/option-select";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
-import { SegmentedButtons } from "@/components/ui/segmented-buttons";
 import { ShareLinkField } from "@/components/ui/share-link-field";
 import type { PinnedProject } from "@/db/queries";
-import { PROJECT_SHARE_AUDIENCES, type ProjectShareAudience } from "@/lib/privacy";
 import {
   DEFAULT_PROJECT_SHARE_EXPIRY,
+  describeProjectShare,
   PROJECT_SHARE_EXPIRIES,
   projectSharePath,
   type ProjectShareExpiry,
@@ -33,16 +32,18 @@ type ShareProjectDialogProps = {
   shareOrigin: string;
 };
 
-/** Publishes one project behind a link, and says plainly what that link shows
- * before it exists. A picker with two controls, so by the overlay rule it is a
+/** Publishes one project behind a link, and says plainly what that link is
+ * before it exists. A short form, so by the overlay rule it is a
  * ResponsiveDialog — a sheet on a phone, a centered column from `md` up, and
  * not fullscreen, which is reserved for forms taller than 85vh.
  *
- * The audience is a segmented control rather than a dropdown: there are three
- * options, the difference between them is the whole decision, and the app's
- * settings dropdowns are for a standing default rather than a choice made per
- * link. The expiry is a dropdown because one of its four values is the answer
- * and the others are just durations. */
+ * There is no audience control, deliberately. A link cannot enforce who holds
+ * it, and offering Friends or Members here would borrow the words the journal
+ * audience uses for something it does not mean: that setting decides who sees
+ * an entry in a feed, this one only decides whether a URL still answers.
+ * Someone reading "Friends" on a URL would reasonably conclude it was safe to
+ * forward. So the dialog says the true thing instead, and spends its controls
+ * on the two that are real — how long the link lasts, and stopping it. */
 export function ShareProjectDialog({
   state,
   climbId,
@@ -50,29 +51,30 @@ export function ShareProjectDialog({
   share,
   shareOrigin,
 }: ShareProjectDialogProps) {
-  const [audience, setAudience] = useState<ProjectShareAudience>(share?.audience ?? "friends");
   const [expiry, setExpiry] = useState<ProjectShareExpiry>(DEFAULT_PROJECT_SHARE_EXPIRY);
-  const [token, setToken] = useState<string | null>(share?.token ?? null);
+  // The live link as the server last confirmed it, including the deadline it
+  // computed — so the dialog reports the real expiry the moment it changes
+  // rather than after a round trip through the board.
+  const [link, setLink] = useState<PinnedProject["share"]>(share);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const stopState = useOverlayState();
   const [stopError, setStopError] = useState<string | null>(null);
-  const audienceLabelId = useId();
   const expiryLabelId = useId();
 
   function handleShare() {
     if (pending) return;
     setError(null);
     startTransition(async () => {
-      const result = await shareProject(climbId, audience, expiry);
+      const result = await shareProject(climbId, expiry);
       if (!result.ok) {
         // Stay open: the climber can fix the reason, or copy the old link.
         setError(result.error);
         return;
       }
-      setToken(result.value.token);
-      setNotice(token ? "Link updated." : "Link created.");
+      setNotice(link ? "Link renewed." : "Link created.");
+      setLink(result.value);
     });
   }
 
@@ -85,15 +87,14 @@ export function ShareProjectDialog({
         return;
       }
       stopState.close();
-      setToken(null);
+      setLink(null);
       setNotice("Sharing stopped.");
     });
   }
 
   function reset() {
-    setAudience(share?.audience ?? "friends");
     setExpiry(DEFAULT_PROJECT_SHARE_EXPIRY);
-    setToken(share?.token ?? null);
+    setLink(share);
     setNotice("");
     setError(null);
     setStopError(null);
@@ -109,40 +110,40 @@ export function ShareProjectDialog({
         onClose={reset}
         footer={
           <div className="flex w-full flex-wrap justify-end gap-2">
-            {token && (
+            {link && (
               <Button variant="ghost" isDisabled={pending} onPress={stopState.open}>
                 Stop sharing
               </Button>
             )}
             <Button isDisabled={pending} onPress={handleShare}>
-              {token ? "Save changes" : "Create link"}
+              {link ? "Renew link" : "Create link"}
             </Button>
           </div>
         }
       >
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <span id={audienceLabelId} className="text-sm font-medium">
-              Who can open this link
-            </span>
-            {/* SegmentedButtons renders a plain button group, so the choice
-             * needs a group to hang the question off for a screen reader. */}
-            <div role="group" aria-labelledby={audienceLabelId}>
-              <SegmentedButtons
-                value={audience}
-                onChange={setAudience}
-                options={PROJECT_SHARE_AUDIENCES}
-                isDisabled={pending}
-              />
-            </div>
-          </div>
+          {/* Said before the link exists, not after. Two things a climber is
+           * least likely to expect: that the notes travel with it, and that
+           * the link does not care who is holding it. */}
+          <p className="text-sm">
+            Anyone with this link can open it, signed in to {SITE_NAME} or not, and anyone you send
+            it to can pass it on. They see your sessions and notes for {climbName}, and whether you
+            have sent it.
+          </p>
+          <p className="text-sm text-muted">
+            The rest of your journal, your other projects and your other climbs stay private, and
+            this link changes nothing about who sees you in the feed.
+          </p>
 
           <div className="flex items-center justify-between gap-3">
+            {/* The control sets a duration; the line under the link below
+             * reports the date it works out to. Naming both "Link expires"
+             * read as the same thing said twice. */}
             <span id={expiryLabelId} className="text-sm font-medium">
-              Link expires
+              Expires after
             </span>
             <OptionSelect
-              ariaLabel="Link expires"
+              ariaLabel="Expires after"
               value={expiry}
               onChange={setExpiry}
               options={EXPIRY_OPTIONS}
@@ -150,19 +151,12 @@ export function ShareProjectDialog({
             />
           </div>
 
-          {/* Said before the link exists, not after. The notes are the part a
-           * climber is least likely to expect to be publishing. */}
-          <p className="text-sm text-muted">
-            Anyone who can open this link sees your sessions and notes for {climbName}, and whether
-            you have sent it. The rest of your journal, your other projects and your other climbs
-            stay private.
-          </p>
-
-          {token ? (
+          {link ? (
             <ShareLinkField
               label="Project link"
-              url={`${shareOrigin}${projectSharePath(token)}`}
+              url={`${shareOrigin}${projectSharePath(link.token)}`}
               shareTitle={`${climbName} on ${SITE_NAME}`}
+              description={describeProjectShare(link.expiresAt)}
               notice={notice}
               error={error}
             />
@@ -175,10 +169,10 @@ export function ShareProjectDialog({
             </>
           )}
 
-          {token && (
+          {link && (
             <p className="text-sm text-muted">
-              Saving keeps the same link, so anything you have already sent goes on working — it
-              applies the audience above and starts the expiry again from now.
+              Renewing keeps the same link, so anything you have already sent goes on working — it
+              starts the expiry again from now.
             </p>
           )}
         </div>

@@ -1,8 +1,7 @@
-import { sql, type SQL } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import type { ClimbType } from "@/lib/grades";
-import type { ProjectShareAudience } from "@/lib/privacy";
 
 /** One session on a shared project. Deliberately narrower than `JournalEntry`:
  * no entry id (ids reach the RSC payload through React keys), no companions
@@ -38,46 +37,31 @@ export type SharedProject = {
   sent: boolean;
 };
 
-/** Why a link did not resolve, so the page can tell a reader who needs to sign
- * in from one who will never get in. `hidden` covers both "no such token" and
- * "you are signed in and outside the audience": the reader holds the link
- * either way, and naming the difference would confirm that a token is real. */
-export type ProjectShareAccess =
-  | { status: "hidden" }
-  | { status: "expired" }
-  | { status: "needs-sign-in" }
-  | { status: "visible" };
+/** Why a link did not resolve. `hidden` covers "no such token", "the pin is
+ * gone" and "the owner went private" alike: a reader is never told which,
+ * though in practice only someone who was given the link ever asks. */
+export type ProjectShareAccess = { status: "hidden" | "expired" | "visible" };
 
 /**
- * Who may read a share, as conditions over an aliased `link` row and its
- * `share_owner`. Shaped after `contentVisibleSql` and, like it, kept inside
- * the read statement: unsharing, an expiry passing, an unfriend, an unpin or
- * the owner going private must change what comes back even when the page was
- * rendered from props that predate them.
+ * What makes a link readable, as conditions over an aliased `link` row.
  *
- * Unlike `contentVisibleSql` the owner branch sits *inside* the private check
- * rather than beside it. A private owner has no live links at all — the
- * trigger in migration 0048 deletes them — so letting the owner preview one
- * would show them a page nobody else can load. Do not "simplify" it.
+ * There is no viewer in it, and that is the design: a project link carries no
+ * audience, so holding the URL is the whole of the permission. What can still
+ * revoke it lives here instead — the deadline passing, and the owner having
+ * gone private. Both are read inside the statement rather than trusted from
+ * page props, so a link stops answering on the next load rather than whenever
+ * some cache happens to turn over.
+ *
+ * The private check is belt and braces: the trigger in migration 0048 deletes
+ * every row when a profile closes, so a row should not survive to be caught
+ * here. It covers the one case the trigger cannot — a share written in the
+ * same moment the profile was closing.
  */
-function shareAudienceSql(viewerId: string | null): SQL {
-  return sql`share_owner.is_private = 0 AND (
-    share_owner.id = ${viewerId}
-    OR link.audience = 'everyone'
-    OR (${viewerId} IS NOT NULL AND (
-      link.audience = 'public'
-      OR (link.audience = 'friends' AND EXISTS (
-        SELECT 1 FROM friendships
-        WHERE user_id = min(share_owner.id, ${viewerId})
-          AND friend_id = max(share_owner.id, ${viewerId})
-          AND status = 'accepted'
-      ))
-    ))
-  )`;
-}
-
-/** NULL > datetime('now') is NULL, not true, so the null branch is explicit. */
-const notExpiredSql = sql`(link.expires_at IS NULL OR link.expires_at > datetime('now'))`;
+const readableSql = sql`
+  share_owner.is_private = 0
+  -- NULL > datetime('now') is NULL, not true, so the null branch is explicit.
+  AND (link.expires_at IS NULL OR link.expires_at > datetime('now'))
+`;
 
 /** The pin join is what ties a link to a project that still exists. The
  * composite foreign key already guarantees it, and the join is here anyway so
@@ -102,42 +86,30 @@ const sharedSessionRowsSql = sql`
 `;
 
 /** Resolves a token to an outcome without reading a single fact about the
- * owner or the climb, so the page can choose between 404, an expiry notice and
- * a sign-in prompt before anything sensitive is selected. */
+ * owner or the climb, so the page can choose between a 404 and an expiry
+ * notice before anything sensitive is selected. */
 export async function getProjectShareAccess(
   db: Database,
   token: string,
-  viewerId: string | null,
 ): Promise<ProjectShareAccess> {
-  const row = await db.get<{ expired: number; permitted: number }>(sql`
-    SELECT
-      NOT ${notExpiredSql} AS expired,
-      ${shareAudienceSql(viewerId)} AS permitted
+  const row = await db.get<{ readable: number; ownerIsPrivate: number }>(sql`
+    SELECT ${readableSql} AS readable, share_owner.is_private AS ownerIsPrivate
     ${shareFromSql}
     WHERE link.token = ${token}
   `);
 
   if (!row) return { status: "hidden" };
-  if (row.permitted !== 1) {
-    // A signed-out reader of a Members or Friends link may well be entitled
-    // to it once they sign in; a signed-in one has already been judged.
-    return viewerId === null ? { status: "needs-sign-in" } : { status: "hidden" };
-  }
-  // Audience before expiry on purpose. Only a reader who would otherwise be
-  // let in is told a link has expired — to everyone else it stays a 404, so
-  // an expiry notice never confirms a token to someone outside the audience.
-  return row.expired === 1 ? { status: "expired" } : { status: "visible" };
+  if (row.readable === 1) return { status: "visible" };
+  // A closed profile is not an expiry, and saying so would report on the
+  // owner rather than on the link.
+  return row.ownerIsPrivate === 1 ? { status: "hidden" } : { status: "expired" };
 }
 
 /** The shared project itself. Re-applies the whole predicate rather than
  * trusting `getProjectShareAccess`, and derives the owner and the climb from
  * the token row — never from the route — so a link can only ever reach the one
  * project it was made for. */
-export async function getSharedProject(
-  db: Database,
-  token: string,
-  viewerId: string | null,
-): Promise<SharedProject | null> {
+export async function getSharedProject(db: Database, token: string): Promise<SharedProject | null> {
   const row = await db.get<Omit<SharedProject, "sent"> & { sent: number }>(sql`
     SELECT
       share_owner.name  AS ownerName,
@@ -165,7 +137,7 @@ export async function getSharedProject(
     JOIN climbs ON climbs.id = link.climb_id
     JOIN areas ON areas.id = climbs.area_id
     LEFT JOIN sends s ON s.user_id = link.user_id AND s.climb_id = link.climb_id
-    WHERE link.token = ${token} AND ${notExpiredSql} AND ${shareAudienceSql(viewerId)}
+    WHERE link.token = ${token} AND ${readableSql}
   `);
   return row ? { ...row, sent: row.sent === 1 } : null;
 }
@@ -179,7 +151,6 @@ const SHARED_PROJECT_SESSIONS = 20;
 export async function getSharedProjectSessions(
   db: Database,
   token: string,
-  viewerId: string | null,
   limit: number = SHARED_PROJECT_SESSIONS,
 ): Promise<SharedProjectSession[]> {
   const bounded = Number.isInteger(limit)
@@ -190,7 +161,7 @@ export async function getSharedProjectSessions(
     SELECT j.entry_date AS entryDate, j.body AS body, j.tags AS tags
     ${shareFromSql}
     JOIN journal_entries j ON ${sharedSessionRowsSql}
-    WHERE link.token = ${token} AND ${notExpiredSql} AND ${shareAudienceSql(viewerId)}
+    WHERE link.token = ${token} AND ${readableSql}
     ORDER BY j.entry_date DESC, j.id DESC
     LIMIT ${bounded}
   `);
@@ -208,13 +179,9 @@ export async function getProjectShareForOwner(
   db: Database,
   ownerId: string,
   climbId: number,
-): Promise<{ token: string; audience: ProjectShareAudience; expiresAt: string | null } | null> {
-  const row = await db.get<{
-    token: string;
-    audience: ProjectShareAudience;
-    expiresAt: string | null;
-  }>(sql`
-    SELECT token, audience, expires_at AS expiresAt
+): Promise<{ token: string; expiresAt: string | null } | null> {
+  const row = await db.get<{ token: string; expiresAt: string | null }>(sql`
+    SELECT token, expires_at AS expiresAt
     FROM project_share_links WHERE user_id = ${ownerId} AND climb_id = ${climbId}
   `);
   return row ?? null;

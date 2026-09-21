@@ -59,7 +59,7 @@ export const SignedIn: Story = {
   render: (args) => (
     <StoryPage
       title="Shared project"
-      description="A member opening the same link. The invitation drops away; nothing else changes, because the link grants the same project either way."
+      description="A member opening the same link. Only the sign-up prompt drops away — a link has no audience, so being signed in changes nothing about access."
     >
       <SharedProject {...args} />
     </StoryPage>

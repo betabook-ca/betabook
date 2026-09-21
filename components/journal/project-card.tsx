@@ -85,7 +85,7 @@ export function ProjectCard({
             variant={liveShare ? "outline" : "ghost"}
             className="gap-1.5"
             aria-label={
-              liveShare ? `Change who can see ${project.climbName}` : `Share ${project.climbName}`
+              liveShare ? `Manage the link for ${project.climbName}` : `Share ${project.climbName}`
             }
             onPress={shareDialog.open}
           >
@@ -93,9 +93,7 @@ export function ProjectCard({
             {liveShare ? "Shared" : "Share"}
           </Button>
           {liveShare && (
-            <span className="text-xs text-muted">
-              {describeProjectShare(liveShare.audience, liveShare.expiresAt)}
-            </span>
+            <span className="text-xs text-muted">{describeProjectShare(liveShare.expiresAt)}</span>
           )}
           <ShareProjectDialog
             state={shareDialog}

@@ -39,10 +39,10 @@ const STRANGER = "stranger";
 const CLIMB = 1;
 const OTHER_CLIMB = 2;
 
-async function share(audience: "everyone" | "public" | "friends", expiresAt: string | null = null) {
+async function share(expiresAt: string | null = null) {
   const [row] = await db
     .insert(projectShareLinks)
-    .values({ userId: OWNER, climbId: CLIMB, audience, expiresAt })
+    .values({ userId: OWNER, climbId: CLIMB, expiresAt })
     .returning({ token: projectShareLinks.token });
   return row.token;
 }
@@ -82,7 +82,7 @@ it("shows the owner, the climb and the notes, and nothing else about them", asyn
     entryDate: "2026-04-01",
     body: "A different project entirely.",
   });
-  const token = await share("everyone");
+  const token = await share();
 
   const rendered = await pageJson(token);
 
@@ -115,7 +115,7 @@ it("never carries a companion's name to a link holder", async () => {
     friendshipUserId: pair.userId,
     friendshipFriendId: pair.friendId,
   });
-  const token = await share("everyone");
+  const token = await share();
 
   const rendered = await pageJson(token);
 
@@ -127,7 +127,7 @@ it("never carries a companion's name to a link holder", async () => {
 
 it("publishes a send by month, not by date", async () => {
   await seedFixtureSend(db, { userId: OWNER, climbId: CLIMB, dateSent: "2026-03-14" });
-  const token = await share("everyone");
+  const token = await share();
 
   const rendered = await pageJson(token);
 
@@ -135,17 +135,32 @@ it("publishes a send by month, not by date", async () => {
   expect(rendered).not.toContain("2026-03-14");
 });
 
-it("404s a token that does not resolve, and one the viewer is outside", async () => {
-  const token = await share("friends");
-  session.userId = STRANGER;
+it("404s a token that does not resolve", async () => {
+  await share();
 
-  await expect(pageJson(token)).rejects.toThrow("NOT_FOUND");
   await expect(pageJson("0".repeat(32))).rejects.toThrow("NOT_FOUND");
   await expect(pageJson("not-a-token")).rejects.toThrow("NOT_FOUND");
 });
 
+it("opens for a signed-out reader and a signed-in stranger alike", async () => {
+  // A link has no audience, so being logged in changes nothing about access.
+  // Only the sign-up prompt differs, which is why the session is read at all.
+  const token = await share();
+
+  const anonymous = await pageJson(token);
+  session.userId = STRANGER;
+  const stranger = await pageJson(token);
+
+  for (const rendered of [anonymous, stranger]) {
+    expect(rendered).toContain("Project Owner");
+    expect(rendered).toContain("Test Highball");
+  }
+  expect(anonymous).toContain('"signedIn":false');
+  expect(stranger).toContain('"signedIn":true');
+});
+
 it("says the link expired rather than naming anyone", async () => {
-  const token = await share("everyone", "2020-01-01 00:00:00");
+  const token = await share("2020-01-01 00:00:00");
 
   const rendered = await pageJson(token);
 
@@ -154,11 +169,9 @@ it("says the link expired rather than naming anyone", async () => {
   expect(rendered).not.toContain("Stuck the crux move.");
 });
 
-it("previews as nothing for an unfurl bot outside the audience", async () => {
-  const token = await share("friends");
+it("previews as nothing once a link no longer resolves", async () => {
+  const token = await share("2020-01-01 00:00:00");
 
-  // An unfurl bot is signed out, so a friends-only link pasted into a public
-  // channel must not name the climber or the climb in its preview.
   const metadata = await generateMetadata({ params: Promise.resolve({ token }) });
 
   expect(JSON.stringify(metadata)).not.toContain("Project Owner");
@@ -166,14 +179,14 @@ it("previews as nothing for an unfurl bot outside the audience", async () => {
   expect(metadata.robots).toEqual({ index: false });
 });
 
-it("previews the project for a reader who is inside the audience", async () => {
-  const token = await share("everyone");
+it("previews the project for anyone holding a live link", async () => {
+  const token = await share();
 
   const metadata = await generateMetadata({ params: Promise.resolve({ token }) });
 
   expect(JSON.stringify(metadata)).toContain("Project Owner");
   expect(JSON.stringify(metadata)).toContain("Test Highball");
-  // Still noindex: it is a user-profile view however public the audience.
+  // Still noindex: it names a climber, however open the link.
   expect(metadata.robots).toEqual({ index: false });
   // A preview is not a place to republish the climber's notes.
   expect(JSON.stringify(metadata)).not.toContain("Stuck the crux move.");

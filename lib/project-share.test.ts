@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import { ActionError } from "./action-result";
-import { parseProjectShareAudience } from "./privacy";
 import {
   describeProjectShare,
   isProjectShareExpired,
@@ -33,21 +32,6 @@ describe("tokens", () => {
 
   it("builds a path carrying nothing but the token", () => {
     expect(projectSharePath(TOKEN)).toBe(`/projects/${TOKEN}`);
-  });
-});
-
-describe("audience", () => {
-  it("takes the three a link can carry", () => {
-    for (const audience of ["friends", "public", "everyone"]) {
-      expect(parseProjectShareAudience(audience)).toBe(audience);
-    }
-  });
-
-  it("refuses Only me, which would be a link nobody can open", () => {
-    // parseSendCommentAudience would accept it, and the CHECK constraint would
-    // then fail as a generic error instead of a sentence.
-    expect(() => parseProjectShareAudience("private")).toThrow(ActionError);
-    expect(() => parseProjectShareAudience("nobody")).toThrow(ActionError);
   });
 });
 
@@ -83,19 +67,20 @@ describe("expiry", () => {
 });
 
 describe("description", () => {
-  const now = new Date("2026-09-20T12:00:00Z");
-
-  it("names the audience and how long is left", () => {
-    expect(describeProjectShare("friends", "2026-09-27 12:00:00", now)).toBe(
-      "Friends · expires in 7 days",
-    );
-    expect(describeProjectShare("public", "2026-09-21 06:00:00", now)).toBe(
-      "Members · expires tomorrow",
-    );
-    expect(describeProjectShare("everyone", null, now)).toBe("Everyone · no expiry");
+  it("prints the date the link runs out, never an audience", () => {
+    // A link has no audience to name: holding it is the whole permission.
+    expect(describeProjectShare("2026-09-27 12:00:00")).toBe("Link expires Sep 27, 2026");
+    expect(describeProjectShare("2027-03-01 00:00:00")).toBe("Link expires Mar 1, 2027");
   });
 
-  it("says expired rather than counting backwards", () => {
-    expect(describeProjectShare("friends", "2026-09-19 12:00:00", now)).toBe("Friends · expired");
+  it("says so when there is no deadline at all", () => {
+    expect(describeProjectShare(null)).toBe("Link never expires");
+  });
+
+  it("does not depend on the current time, so a render and its hydration agree", () => {
+    // The string is the stored date formatted, with no "now" in it — the
+    // reason the countdown it replaced was a hydration hazard.
+    const past = describeProjectShare("2020-01-01 12:00:00");
+    expect(past).toBe("Link expires Jan 1, 2020");
   });
 });

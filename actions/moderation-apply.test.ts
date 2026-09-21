@@ -894,7 +894,7 @@ describe("applyClimbMerge", () => {
     await seedFixturePinnedProject(db, { userId: "merge-sharer", climbId: 950 });
     const [before] = await db
       .insert(projectShareLinks)
-      .values({ userId: "merge-sharer", climbId: 950, audience: "everyone" })
+      .values({ userId: "merge-sharer", climbId: 950 })
       .returning({ token: projectShareLinks.token });
 
     await applyClimbMerge(db, 950, 951);
@@ -908,7 +908,6 @@ describe("applyClimbMerge", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].token).toBe(before.token);
     expect(rows[0].climbId).toBe(951);
-    expect(rows[0].audience).toBe("everyone");
   });
 
   it("keeps the target's share when a climber had shared both climbs", async () => {
@@ -920,8 +919,8 @@ describe("applyClimbMerge", () => {
     await seedFixturePinnedProject(db, { userId: "merge-double-sharer", climbId: 960 });
     await seedFixturePinnedProject(db, { userId: "merge-double-sharer", climbId: 961 });
     await db.insert(projectShareLinks).values([
-      { userId: "merge-double-sharer", climbId: 960, audience: "everyone" },
-      { userId: "merge-double-sharer", climbId: 961, audience: "friends" },
+      { userId: "merge-double-sharer", climbId: 960, expiresAt: "2030-01-01 00:00:00" },
+      { userId: "merge-double-sharer", climbId: 961, expiresAt: "2031-02-02 00:00:00" },
     ]);
 
     await applyClimbMerge(db, 960, 961);
@@ -934,7 +933,7 @@ describe("applyClimbMerge", () => {
       .where(eq(projectShareLinks.userId, "merge-double-sharer"));
     expect(rows).toHaveLength(1);
     expect(rows[0].climbId).toBe(961);
-    expect(rows[0].audience).toBe("friends");
+    expect(rows[0].expiresAt).toBe("2031-02-02 00:00:00");
   });
 
   it("keeps the target's send wholesale when a user sent both climbs", async () => {
