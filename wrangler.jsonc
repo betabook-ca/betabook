@@ -7,10 +7,6 @@
   "main": "./worker.ts",
   "compatibility_date": "2026-08-17",
   "compatibility_flags": ["nodejs_compat"],
-  // This Worker is single-homed to one D1 primary and two R2 buckets, which
-  // is exactly Smart Placement's documented case: it runs the Worker near
-  // that backend instead of the edge PoP nearest each visitor, so a request
-  // isn't paying full D1/R2 round-trip latency on top of edge-to-origin hops.
   "placement": {
     "mode": "smart",
   },
