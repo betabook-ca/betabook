@@ -1,0 +1,19 @@
+original_anchor_id,missing_source_parents,verdict,explanation,evidence_url
+3504,Ontario South > Conservation Halton Parks,source_parent_conflict,Niagara Glen belongs to Niagara Parks in Niagara Falls; its Conservation Halton prefix is false.,https://www.niagaraparks.com/visit/attractions/niagara-glen-nature-centre
+3911,Newfoundland,source_repeated_name,The source repeats Newfoundland below the province before Avalon Peninsula; no new geographic parent is needed.,
+4008,Sedona Area,area_alias,Sedona Area is a broad source label; original Sedona is already under Northern Arizona and retains West Sedona descendants.,https://www.mountainproject.com/area/105787787/northern-arizona
+8593,Arrow Lake,activity_alias,Arrow Lake Bouldering is an activity label for original Arrow Lakes under West Kootenay.,
+4410,RMNP - Rock,activity_alias,RMNP - Rock and Alpine Rock split disciplines; original RMNP retains bouldering and rock together.,https://www.mountainproject.com/area/105744460/rmnp-rock
+3690,Kootenays West,source_parent_conflict,"Grand Forks is Boundary Country, not West Kootenay; original area was reparented and source prefix flagged.",https://www.grandforks.ca/geography/
+6185,Comox Lake,source_repeated_name,OpenBeta repeats Comox Lake as both parent and leaf; original Comox Lake already has the specific island parent.,
+8592,Arrow Lake,activity_alias,Arrow Lake Bouldering is an activity label for original Arrow Lakes under West Kootenay.,
+6558,Bow Valley,source_parent_conflict,Carrot Creek is in Banff National Park; retain the more specific original park parent.,https://www.mountainproject.com/area/112495104/carrot-creek
+8594,Arrow Lake,activity_alias,Arrow Lake Bouldering is an activity label for original Arrow Lakes under West Kootenay.,
+8596,Arrow Lake,activity_alias,Arrow Lake Bouldering is an activity label for original Arrow Lakes under West Kootenay.,
+8176,Sea to Sky (Squamish to Whistler),more_specific_existing,Squamish > Cheakamus Canyon > Chek is more precise than source Sea to Sky regional prefix.,https://www.mountainproject.com/area/105798170/squamish
+8490,Victoria,more_specific_existing,Greater Victoria is a more specific local area label for Mt Wells than source Victoria.,
+8486,Victoria,more_specific_existing,Greater Victoria is a more specific local area label for Glen Lake Crag than source Victoria.,
+8179,Sea to Sky (Squamish to Whistler),more_specific_existing,Squamish > Cheakamus Canyon > Chek is more precise than source Sea to Sky regional prefix.,https://www.mountainproject.com/area/105798170/squamish
+8532,Strathcona Provincial Park,area_alias,Strathcona Provincial Park and original Strathcona Park describe the same park; original Crest Creek hierarchy is retained.,
+4615,Enchanted Tower,source_repeated_name,OpenBeta repeats Enchanted Tower as a region and leaf; original Enchanted tower needs no duplicate parent.,
+8205,Sea to Sky (Squamish to Whistler),more_specific_existing,"The surviving Pillary now sits under Squamish > Brohm Lake > Area 44, a more precise hierarchy than the source regional prefix.",https://www.mountainproject.com/area/108504059/the-pillary
