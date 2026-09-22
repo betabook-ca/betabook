@@ -4,7 +4,7 @@ import { ActionError } from "@/lib/action-result";
 export const PRODUCT_TOURS = [
   {
     id: "journal",
-    version: 4,
+    version: 5,
     name: "Journal, projects, friends and sharing",
     title: "Keep a climbing journal",
     description:

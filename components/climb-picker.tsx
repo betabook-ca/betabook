@@ -93,6 +93,10 @@ export function ClimbPicker({
         filters={
           showFilters ? (
             <ClimbFilterControls
+              // Picking a climb is a lookup, not a browse: the climber knows
+              // which one they want and types its name. Ordering a handful of
+              // matches is the search page's job, not this dialog's.
+              showSort={false}
               showMinAscents={false}
               showAreaLookup={showAreaLookup}
               areaFetcher={areaFetcher}

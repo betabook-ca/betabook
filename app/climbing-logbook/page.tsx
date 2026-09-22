@@ -83,7 +83,7 @@ export default function ClimbingLogbookPage() {
             {
               question: "Can I keep my climbing private?",
               answer:
-                "Yes. You can make your profile private and choose who reads your journal and send notes.",
+                "Yes. You can make your profile private and choose who reads your journal and send notes. Sharing a project is separate and opt-in: you can put a single climb behind a link that anyone holding it can open, choose when it expires, and stop sharing whenever you like.",
             },
             {
               question: "Does it work on my phone?",

@@ -173,6 +173,12 @@ export function PrivacyDetails({ defaultExpanded = false }: { defaultExpanded?: 
                 Going private resets the link.
               </li>
               <li>
+                Sharing a project makes a link to that one climb: your name, its sessions and your
+                notes on it. Anyone with the link can open it, so it is separate from the audiences
+                above and changes nothing about your feed. You choose when it expires, Stop sharing
+                ends it, and going private ends every project link.
+              </li>
+              <li>
                 Unless your profile is private, friends of your friends may see you suggested.
               </li>
               <li>

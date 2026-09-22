@@ -171,7 +171,7 @@ it("says nothing about suggestions when there are none to make", async () => {
 
   await screen.findByRole("dialog");
   expect(screen.queryByRole("list", { name: "Suggested projects" })).not.toBeInTheDocument();
-  expect(screen.queryByText(/worked but not sent/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/Recommended projects/)).not.toBeInTheDocument();
 });
 
 it("takes the whole phone screen rather than a sheet", async () => {
@@ -206,13 +206,17 @@ it("drops the full filters for plain chips when a keyboard takes the viewport", 
   render(<Example />);
 
   await screen.findByRole("dialog");
-  expect(screen.getByRole("button", { name: /Sort by/ })).toBeInTheDocument();
+  // The full filter row, not the order control that used to stand in for it
+  // here — a picker has no order control at all now.
+  expect(screen.getByRole("group", { name: "Filter controls" })).toBeInTheDocument();
 
   viewport.resizeTo(470);
 
   await waitFor(() =>
-    expect(screen.queryByRole("button", { name: /Sort by/ })).not.toBeInTheDocument(),
+    expect(screen.queryByRole("group", { name: "Filter controls" })).not.toBeInTheDocument(),
   );
+  // Whichever row is showing, neither offers an order control.
+  expect(screen.queryByRole("group", { name: "Result order" })).not.toBeInTheDocument();
   // The lighter discipline chips remain, and so does what the space is for.
   expect(screen.getByRole("button", { name: "Boulder" })).toBeInTheDocument();
   expect(screen.getByRole("searchbox")).toBeVisible();

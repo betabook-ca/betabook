@@ -14,6 +14,8 @@ vi.mock("@/actions", () => ({
   updateJournalEntry: vi.fn<typeof updateJournalEntry>(),
   unpinProject: vi.fn<typeof unpinProject>(),
   pinProject: vi.fn<() => Promise<never>>(),
+  shareProject: vi.fn<() => Promise<never>>(),
+  unshareProject: vi.fn<() => Promise<never>>(),
 }));
 
 function session(overrides: Partial<JournalEntry> & { id: number }): JournalEntry {
@@ -53,6 +55,7 @@ const slab: ProjectWithSessions = {
   lastSession: "2026-09-01",
   sentOn: null,
   sent: false,
+  share: null,
   sessions: [
     session({
       id: 11,
@@ -80,6 +83,7 @@ const crack: ProjectWithSessions = {
   lastSession: "2026-07-15",
   sentOn: null,
   sent: false,
+  share: null,
   sessions: [session({ id: 21, climbId: 2, entryDate: "2026-07-15", body: "Ran out of cams." })],
 };
 
@@ -100,6 +104,7 @@ const untouched: ProjectWithSessions = {
   lastSession: null,
   sentOn: null,
   sent: false,
+  share: null,
   sessions: [],
 };
 
@@ -109,6 +114,7 @@ const sentProject: ProjectWithSessions = {
   climbName: "Long Winter",
   sentOn: "2026-08-15",
   sent: true,
+  share: null,
 };
 
 const projects = [slab, crack];
@@ -129,14 +135,18 @@ function headings(label = "Open projects") {
     : [];
 }
 
+const ORIGIN = "https://betabook.ca";
+
 it("explains that only recent projects are shown when the page is capped", () => {
-  render(<ProjectBoard userId="climber" projects={projects} hasMore />);
+  render(<ProjectBoard shareOrigin={ORIGIN} userId="climber" projects={projects} hasMore />);
 
   expect(screen.getByText(/most recently active projects/)).not.toHaveTextContent(/\d/);
 });
 
 it("shows every preloaded session on its card", () => {
-  render(<ProjectBoard userId="climber" projects={projects} hasMore={false} />);
+  render(
+    <ProjectBoard shareOrigin={ORIGIN} userId="climber" projects={projects} hasMore={false} />,
+  );
   const slabCard = card("Moon Slab");
 
   expect(within(slabCard).getByText("Heel slipping off the arete.")).toBeVisible();
@@ -146,7 +156,9 @@ it("shows every preloaded session on its card", () => {
 });
 
 it("offers to page in only the histories longer than the card carries", () => {
-  render(<ProjectBoard userId="climber" projects={projects} hasMore={false} />);
+  render(
+    <ProjectBoard shareOrigin={ORIGIN} userId="climber" projects={projects} hasMore={false} />,
+  );
 
   expect(
     within(card("Moon Slab")).queryByRole("button", { name: "Load more" }),
@@ -161,7 +173,9 @@ it.each([
   ["the text of a note", "cams"],
 ])("filters the list by %s", async (_label, needle) => {
   const user = userEvent.setup();
-  render(<ProjectBoard userId="climber" projects={projects} hasMore={false} />);
+  render(
+    <ProjectBoard shareOrigin={ORIGIN} userId="climber" projects={projects} hasMore={false} />,
+  );
 
   await user.type(screen.getByRole("searchbox", { name: "Filter projects" }), needle);
 
@@ -171,7 +185,9 @@ it.each([
 
 it("says so when nothing matches, and restores the list when the search is cleared", async () => {
   const user = userEvent.setup();
-  render(<ProjectBoard userId="climber" projects={projects} hasMore={false} />);
+  render(
+    <ProjectBoard shareOrigin={ORIGIN} userId="climber" projects={projects} hasMore={false} />,
+  );
   const search = screen.getByRole("searchbox", { name: "Filter projects" });
 
   await user.type(search, "kneebar");
@@ -186,7 +202,9 @@ it("says so when nothing matches, and restores the list when the search is clear
 
 it("reorders the list without dropping a project", async () => {
   const user = userEvent.setup();
-  render(<ProjectBoard userId="climber" projects={projects} hasMore={false} />);
+  render(
+    <ProjectBoard shareOrigin={ORIGIN} userId="climber" projects={projects} hasMore={false} />,
+  );
 
   expect(headings()).toEqual(["Moon Slab", "Ash Crack"]);
 
@@ -203,7 +221,14 @@ it("reorders the list without dropping a project", async () => {
 
 it("keeps a never-climbed project in the list under every sort, behind the active ones", async () => {
   const user = userEvent.setup();
-  render(<ProjectBoard userId="climber" projects={[untouched, ...projects]} hasMore={false} />);
+  render(
+    <ProjectBoard
+      shareOrigin={ORIGIN}
+      userId="climber"
+      projects={[untouched, ...projects]}
+      hasMore={false}
+    />,
+  );
 
   // Recent activity: it has none, so it sorts last rather than first or out.
   expect(headings()).toEqual(["Moon Slab", "Ash Crack", "Sleeping Giant"]);
@@ -217,7 +242,9 @@ it("keeps a never-climbed project in the list under every sort, behind the activ
 });
 
 it("renders a tracked climb with no sessions as a bare card, with no dates to report", () => {
-  render(<ProjectBoard userId="climber" projects={[untouched]} hasMore={false} />);
+  render(
+    <ProjectBoard shareOrigin={ORIGIN} userId="climber" projects={[untouched]} hasMore={false} />,
+  );
   const bare = card("Sleeping Giant");
 
   expect(within(bare).getByText("No sessions yet")).toBeVisible();
@@ -234,7 +261,9 @@ it("renders a tracked climb with no sessions as a bare card, with no dates to re
 
 it("logs a session against the project whose button was pressed", async () => {
   const user = userEvent.setup();
-  render(<ProjectBoard userId="climber" projects={projects} hasMore={false} />);
+  render(
+    <ProjectBoard shareOrigin={ORIGIN} userId="climber" projects={projects} hasMore={false} />,
+  );
 
   await user.click(screen.getByRole("button", { name: "Log a session on Ash Crack" }));
 
@@ -250,7 +279,9 @@ it("logs a session against the project whose button was pressed", async () => {
 
 it("asks before untracking, and says the climbing history is kept", async () => {
   const user = userEvent.setup();
-  render(<ProjectBoard userId="climber" projects={projects} hasMore={false} />);
+  render(
+    <ProjectBoard shareOrigin={ORIGIN} userId="climber" projects={projects} hasMore={false} />,
+  );
 
   await user.click(screen.getByRole("button", { name: "Untrack Ash Crack" }));
 
@@ -264,7 +295,9 @@ it("asks before untracking, and says the climbing history is kept", async () => 
 
 it("keeps the project when the confirmation is declined", async () => {
   const user = userEvent.setup();
-  render(<ProjectBoard userId="climber" projects={projects} hasMore={false} />);
+  render(
+    <ProjectBoard shareOrigin={ORIGIN} userId="climber" projects={projects} hasMore={false} />,
+  );
 
   await user.click(screen.getByRole("button", { name: "Untrack Ash Crack" }));
   await user.click(await screen.findByRole("button", { name: "Keep tracking" }));
@@ -276,7 +309,9 @@ it("keeps the project when the confirmation is declined", async () => {
 it("untracks the project whose button was pressed once confirmed", async () => {
   const user = userEvent.setup();
   vi.mocked(unpinProject).mockResolvedValue({ ok: true, value: undefined });
-  render(<ProjectBoard userId="climber" projects={projects} hasMore={false} />);
+  render(
+    <ProjectBoard shareOrigin={ORIGIN} userId="climber" projects={projects} hasMore={false} />,
+  );
 
   await user.click(screen.getByRole("button", { name: "Untrack Ash Crack" }));
   await user.click(await screen.findByRole("button", { name: /^Untrack$/ }));
@@ -288,7 +323,9 @@ it("untracks the project whose button was pressed once confirmed", async () => {
 it("keeps a failed untrack in the dialog with its reason", async () => {
   const user = userEvent.setup();
   vi.mocked(unpinProject).mockResolvedValue({ ok: false, error: "Climb not found" });
-  render(<ProjectBoard userId="climber" projects={projects} hasMore={false} />);
+  render(
+    <ProjectBoard shareOrigin={ORIGIN} userId="climber" projects={projects} hasMore={false} />,
+  );
 
   await user.click(screen.getByRole("button", { name: "Untrack Ash Crack" }));
   await user.click(await screen.findByRole("button", { name: /^Untrack$/ }));
@@ -303,7 +340,7 @@ it("keeps a failed untrack in the dialog with its reason", async () => {
 });
 
 it("keeps the whole toolbar on an empty board and puts the message under it", () => {
-  render(<ProjectBoard userId="climber" projects={[]} hasMore={false} />);
+  render(<ProjectBoard shareOrigin={ORIGIN} userId="climber" projects={[]} hasMore={false} />);
 
   // Same row as a populated board, so the pin control does not jump once the
   // climber makes their first pin.
@@ -314,7 +351,15 @@ it("keeps the whole toolbar on an empty board and puts the message under it", ()
 });
 
 it("lists the sent side separately and does not offer to track from it", () => {
-  render(<ProjectBoard userId="climber" projects={[sentProject]} hasMore={false} variant="sent" />);
+  render(
+    <ProjectBoard
+      shareOrigin={ORIGIN}
+      userId="climber"
+      projects={[sentProject]}
+      hasMore={false}
+      variant="sent"
+    />,
+  );
 
   expect(headings("Sent projects")).toEqual(["Long Winter"]);
   expect(within(card("Long Winter")).getByText(/Sent/)).toBeVisible();
@@ -322,9 +367,45 @@ it("lists the sent side separately and does not offer to track from it", () => {
 });
 
 it("says nothing is sent yet without inviting a track that belongs on the other tab", () => {
-  render(<ProjectBoard userId="climber" projects={[]} hasMore={false} variant="sent" />);
+  render(
+    <ProjectBoard
+      shareOrigin={ORIGIN}
+      userId="climber"
+      projects={[]}
+      hasMore={false}
+      variant="sent"
+    />,
+  );
 
   expect(screen.getByText(/No sent projects yet/)).toBeInTheDocument();
   expect(screen.getByRole("searchbox", { name: "Filter projects" })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Track project" })).not.toBeInTheDocument();
+});
+
+it("does not offer an expired link as a live one, on the card or in its dialog", async () => {
+  const user = userEvent.setup();
+  const expired = { token: "4f9c2a7e1b8d6035c9e4a1f7b2d80e36", expiresAt: "2020-01-01 00:00:00" };
+
+  render(
+    <ProjectBoard
+      shareOrigin={ORIGIN}
+      userId="climber"
+      projects={[{ ...slab, share: expired }]}
+      hasMore={false}
+    />,
+  );
+
+  // The card reads as unshared once the client clock says the link is dead.
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Share Moon Slab" })).toBeInTheDocument(),
+  );
+  expect(screen.queryByText(/Link expires/)).not.toBeInTheDocument();
+
+  // And the dialog agrees: no dead URL to copy, no Renew or Stop sharing
+  // beside a link that no longer resolves.
+  await user.click(screen.getByRole("button", { name: "Share Moon Slab" }));
+  await screen.findByRole("dialog");
+  expect(screen.queryByLabelText("Project link")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Stop sharing" })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Create link" })).toBeInTheDocument();
 });

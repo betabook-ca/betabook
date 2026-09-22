@@ -11,6 +11,7 @@ import {
   OPEN_PROJECT_PAGE_SIZE,
   type JournalEntry,
 } from "@/db/queries";
+import { getBaseUrl } from "@/lib/app-url";
 
 /** Both Projects tabs render from here: `variant` only chooses which side of
  * the pin/send split to list, so the two stay consistent by construction. */
@@ -48,6 +49,10 @@ export async function ProjectsView({
   // Suggestions ride along as props rather than through an API route: the list
   // is short, the ownership check is already done here, and refresh() after a
   // pin re-renders this tree with the pinned climb removed from it.
+  // Resolved here rather than from `window.location` in the dialog: the same
+  // string has to come out of the server render and the hydration, and a
+  // preview deployment's links must point at the preview.
+  const shareOrigin = await getBaseUrl();
   const suggestions = sent ? [] : await getOpenProjectSuggestions(db, ownerId, ownerId);
   // Both sides of the split, not just this board's: a climb that is pinned and
   // already sent must still read as "Already pinned" in the dialog.
@@ -66,6 +71,7 @@ export async function ProjectsView({
         variant={variant}
         suggestions={suggestions}
         pinnedClimbIds={pinnedClimbIds}
+        shareOrigin={shareOrigin}
       />
     </div>
   );

@@ -12,6 +12,7 @@ import {
   climbTitle,
   locationTrail,
   sharedProfileMetadata,
+  sharedProjectMetadata,
   websiteJsonLd,
 } from "./seo";
 
@@ -116,6 +117,30 @@ describe("sharedProfileMetadata", () => {
       openGraph: { type: "profile", siteName: "Betabook", title, description, images: [OG_IMAGE] },
       twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE.url] },
     });
+  });
+});
+
+describe("sharedProjectMetadata", () => {
+  it("names the climber and the climb without indexing or a canonical URL", () => {
+    const title = "Alex Rivera is projecting Midnight Lightning";
+    const description =
+      "Follow Alex Rivera's progress on Midnight Lightning on Betabook, a climbing logbook and crag database.";
+    expect(sharedProjectMetadata("Alex Rivera", "Midnight Lightning")).toEqual({
+      title: { absolute: title },
+      description,
+      robots: { index: false },
+      openGraph: { type: "article", siteName: "Betabook", title, description, images: [OG_IMAGE] },
+      twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE.url] },
+    });
+  });
+});
+
+describe("sharedProjectMetadata for a sent project", () => {
+  it("matches the verb the page's own heading uses", () => {
+    const sent = sharedProjectMetadata("Alex Rivera", "Midnight Lightning", true);
+    expect(sent.title).toEqual({ absolute: "Alex Rivera sent Midnight Lightning" });
+    expect(JSON.stringify(sent)).not.toContain("is projecting");
+    expect(sent.robots).toEqual({ index: false });
   });
 });
 

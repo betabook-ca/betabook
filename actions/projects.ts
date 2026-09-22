@@ -69,6 +69,10 @@ export async function unpinProject(climbId: number): Promise<ActionResult> {
       throw new ActionError("Too many changes — try again in a minute");
 
     const db = await getDb();
+    // Any share link on this pin cascades away with it through the composite
+    // foreign key, so the link stops resolving for everyone holding it. There
+    // is no page to purge on top of that: /projects/[token] is a dynamic
+    // route that re-runs its predicate on every request.
     await db
       .delete(pinnedProjects)
       .where(and(eq(pinnedProjects.userId, user.id), eq(pinnedProjects.climbId, climbId)));
