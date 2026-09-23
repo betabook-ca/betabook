@@ -29,26 +29,25 @@ export type TripSummary = Trip & {
  * Which journal rows belong to a trip, as conditions over an aliased `j` row
  * and an aliased `t` trip row.
  *
- * A named fragment rather than two inline copies because both counts below
- * and, later, the share link's own reads have to agree on what "in the trip"
- * means. A second copy is how a trip ends up reporting one count on the
- * owner's card and another on the page that card links to — a drift this repo
- * has already had to repair once, in the project share. Export it when the
- * second reader arrives; until then it stays local.
+ * Exported because the share link reads the same rows through a different
+ * join, and both have to agree on what "in the trip" means. A second copy is
+ * how a trip ends up reporting one count on the owner's card and another on
+ * the page that card links to — a drift this repo has already had to repair
+ * once, in the project share.
  *
  * Every kind counts, `session` and `training` alike, because the trip's
  * Journal tab lists both. Send commentary and ascent entries are included for
  * the same reason: they are rows the owner's own timeline shows, and a trip is
  * a window onto that timeline, not a filtered view of it.
  */
-const tripEntryRowsSql = sql`
+export const tripEntryRowsSql = sql`
   j.user_id = t.user_id AND j.entry_date BETWEEN t.start_date AND t.end_date
 `;
 
 /** Which sends belong to a trip, over an aliased `s` send row and `t` trip row.
  * `date_sent` is nullable and `NULL BETWEEN …` is NULL rather than true, so an
  * undated send is excluded by the comparison itself. */
-const tripSendRowsSql = sql`
+export const tripSendRowsSql = sql`
   s.user_id = t.user_id AND s.date_sent BETWEEN t.start_date AND t.end_date
 `;
 

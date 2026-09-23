@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { JournalView } from "@/app/users/[id]/journal-view";
 import { ProfileHeader } from "@/app/users/[id]/profile-shell";
 import {
+  getTripShareContext,
   resolveTripPage,
   tripMetadata,
   type TripPageParams,
@@ -26,6 +27,7 @@ export default async function TripJournalPage({ params, searchParams }: TripPage
   if (!resolved.signedIn) return <CurrentPageAuthCallout />;
   if (!resolved.ok) notFound();
   const { trip, user } = resolved;
+  const { share, shareOrigin } = await getTripShareContext(user.id, trip.id);
 
   // The window is applied here, after the rest of the filter is parsed, and
   // the URL's own date parameters are discarded rather than merged. A trip is
@@ -41,7 +43,13 @@ export default async function TripJournalPage({ params, searchParams }: TripPage
 
   return (
     <ProfileHeader user={user} viewerId={user.id} workspace="logbook">
-      <TripHeader trip={trip} userId={user.id} current="journal">
+      <TripHeader
+        trip={trip}
+        userId={user.id}
+        current="journal"
+        share={share}
+        shareOrigin={shareOrigin}
+      >
         <JournalView
           ownerId={user.id}
           viewerId={user.id}

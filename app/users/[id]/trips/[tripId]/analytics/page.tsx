@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { ProfileHeader } from "@/app/users/[id]/profile-shell";
 import {
+  getTripShareContext,
   resolveTripPage,
   tripMetadata,
   type TripPageParams,
@@ -55,6 +56,7 @@ export default async function TripAnalyticsPage({ params, searchParams }: TripPa
   if (!resolved.signedIn) return <CurrentPageAuthCallout />;
   if (!resolved.ok) notFound();
   const { trip, user } = resolved;
+  const { share, shareOrigin } = await getTripShareContext(user.id, trip.id);
 
   const db = await getDb();
   const [allSends, allSessions, highlights] = await Promise.all([
@@ -95,7 +97,13 @@ export default async function TripAnalyticsPage({ params, searchParams }: TripPa
   if (scope == null) {
     return (
       <ProfileHeader user={user} viewerId={user.id} workspace="logbook">
-        <TripHeader trip={trip} userId={user.id} current="analytics">
+        <TripHeader
+          trip={trip}
+          userId={user.id}
+          current="analytics"
+          share={share}
+          shareOrigin={shareOrigin}
+        >
           <EmptyState message={`Nothing logged between ${dates}.`} />
         </TripHeader>
       </ProfileHeader>
@@ -111,7 +119,13 @@ export default async function TripAnalyticsPage({ params, searchParams }: TripPa
 
   return (
     <ProfileHeader user={user} viewerId={user.id} workspace="logbook">
-      <TripHeader trip={trip} userId={user.id} current="analytics">
+      <TripHeader
+        trip={trip}
+        userId={user.id}
+        current="analytics"
+        share={share}
+        shareOrigin={shareOrigin}
+      >
         <AnalyticsDashboard
           activityHeading="Activity on this trip"
           // No summary line: the header above already states the trip's dates,

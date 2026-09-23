@@ -179,6 +179,12 @@ export function PrivacyDetails({ defaultExpanded = false }: { defaultExpanded?: 
                 when it expires, Stop sharing ends it, and going private ends every project link.
               </li>
               <li>
+                Sharing a trip works the same way, for every session, note and send inside its
+                dates. Only you can see your trips otherwise. Climbers you tagged are not named, you
+                choose when the link expires, Stop sharing ends it, and going private ends every
+                trip link.
+              </li>
+              <li>
                 Unless your profile is private, friends of your friends may see you suggested.
               </li>
               <li>

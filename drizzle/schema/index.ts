@@ -22,3 +22,4 @@ export * from "./goal-completions";
 export * from "./pinned-projects";
 
 export * from "./trips";
+export * from "./trip-share-links";

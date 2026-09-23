@@ -30,6 +30,9 @@ vi.mock("next/navigation", () => ({
     throw new Error("NOT_FOUND");
   },
 }));
+// The deployment's own origin, which is a Cloudflare-context read rather than
+// anything these assertions are about.
+vi.mock("@/lib/app-url", () => ({ getBaseUrl: async () => "https://betabook.ca" }));
 
 const db = createDb(env.DB);
 const OWNER = "owner";
