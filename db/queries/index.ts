@@ -14,3 +14,4 @@ export * from "./feature-announcements";
 export * from "./profile-share";
 export * from "./recap-share";
 export * from "./analytics-highlights";
+export * from "./project-shares";

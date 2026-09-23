@@ -22,6 +22,10 @@ export async function setUserPrivate(isPrivate: boolean): Promise<ActionResult> 
     const session = await requireSession();
     const db = await getDb();
 
+    // Going private revokes every project share link through the trigger in
+    // migration 0048, which deletes the rows. Nothing else is needed to close
+    // them: /projects/[token] is a dynamic route, so the next request finds
+    // no row rather than a cached page.
     await db.update(user).set({ isPrivate }).where(eq(user.id, session.user.id));
 
     afterCommit(() => {

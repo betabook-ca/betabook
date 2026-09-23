@@ -34,6 +34,7 @@ import {
   climbs,
   journalEntries,
   pinnedProjects,
+  projectShareLinks,
   sends,
 } from "@/db/schema";
 import { ActionError } from "@/lib/action-result";
@@ -702,6 +703,7 @@ export async function applyClimbMerge(
   // (user_id, climb_id) primary key, and ON CONFLICT isn't available through
   // the insert-select builder this batch requires.
   const targetPin = alias(pinnedProjects, "tp");
+  const targetShare = alias(projectShareLinks, "ts");
   const alreadyPinsTarget = notExists(
     db
       .select({ one: sql`1` })
@@ -761,6 +763,32 @@ export async function applyClimbMerge(
         .from(pinnedProjects)
         .where(and(eq(pinnedProjects.climbId, sourceClimbId), alreadyPinsTarget)),
     ),
+    // A share link is keyed to the pin, so the cascade above would take it
+    // with the source climb and a link the climber already handed out would
+    // die because a moderator merged a duplicate. Move it instead of
+    // re-issuing it: an UPDATE keeps the token, which is the whole URL. The
+    // guard is the share equivalent of `alreadyPinsTarget` — a climber who
+    // shared both keeps the target's link rather than colliding on
+    // (user_id, climb_id).
+    db
+      .update(projectShareLinks)
+      .set({ climbId: targetClimbId })
+      .where(
+        and(
+          eq(projectShareLinks.climbId, sourceClimbId),
+          notExists(
+            db
+              .select({ one: sql`1` })
+              .from(targetShare)
+              .where(
+                and(
+                  eq(targetShare.climbId, targetClimbId),
+                  eq(targetShare.userId, projectShareLinks.userId),
+                ),
+              ),
+          ),
+        ),
+      ),
     ...(Object.keys(overrides).length > 0
       ? [db.update(climbs).set(overrides).where(eq(climbs.id, targetClimbId))]
       : []),

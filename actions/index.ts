@@ -16,3 +16,4 @@ export * from "./feature-announcements";
 
 export * from "./goals";
 export * from "./projects";
+export * from "./project-shares";

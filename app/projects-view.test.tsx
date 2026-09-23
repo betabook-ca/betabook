@@ -9,6 +9,7 @@ type BoardProps = {
   variant: "open" | "sent";
   suggestions: { climbId: number }[];
   pinnedClimbIds: number[];
+  shareOrigin: string;
 };
 
 const mocks = vi.hoisted(() => ({
@@ -36,6 +37,10 @@ vi.mock("@/db/queries", () => ({
 vi.mock("@/components/journal", () => ({
   ProjectBoard: mocks.ProjectBoard,
 }));
+
+// The share link's origin comes from the worker's own environment, which this
+// view reads so the dialog does not have to guess one on the client.
+vi.mock("@/lib/app-url", () => ({ getBaseUrl: async () => "https://betabook.test" }));
 
 const ownerId = "journal-owner";
 
@@ -113,6 +118,14 @@ describe("ProjectsView", () => {
     const props = await renderBoardProps("open");
 
     expect(props.pinnedClimbIds).toEqual([7, 9]);
+  });
+
+  it("resolves the share origin on the server for both tabs", async () => {
+    // A client-built origin would differ between the render and the
+    // hydration on a preview domain, and would point at the wrong host.
+    for (const variant of ["open", "sent"] as const) {
+      expect((await renderBoardProps(variant)).shareOrigin).toBe("https://betabook.test");
+    }
   });
 
   it("reads the sent side and offers nothing to pin there", async () => {

@@ -1,14 +1,15 @@
+import { parseShareToken } from "@/lib/share-token";
+
 export const PROFILE_SHARE_PARAM = "share";
 
 /** Sends a signed-out share link previews; the rest stays behind sign-up. */
 export const SHARED_PROFILE_SENDS = 5;
 
 // Matches lower(hex(randomblob(16))) in drizzle/migrations/0041_profile_share_links.sql.
-const SHARE_TOKEN = /^[0-9a-f]{32}$/;
 const SHORT_SHARE_TOKEN = /^[A-Za-z0-9_-]{22}$/;
 
 export function parseProfileShareToken(value: unknown): string | null {
-  return typeof value === "string" && SHARE_TOKEN.test(value) ? value : null;
+  return parseShareToken(value);
 }
 
 export function profileSharePath(userId: string, token: string): string {

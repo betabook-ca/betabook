@@ -28,7 +28,7 @@ describe("route-based tours", () => {
       expect(result.navigation.mode).toBe("updates");
       expect(result.steps.map((step) => step.id)).toEqual([
         // `projects` was introduced in version 1 but substantially revised in
-        // version 4 for pinning, so it re-enters the update subset.
+        // version 5 for sharing, so it re-enters the update subset.
         "projects",
         "find-projects",
         "find-climbers",
@@ -62,11 +62,24 @@ describe("route-based tours", () => {
     expect(updated.steps.map((step) => step.id)).toEqual(["projects"]);
   });
 
-  it("includes every lesson in full replay and stops inviting after version 4", () => {
+  it("offers the revised projects lesson again after version 4 was acknowledged", () => {
+    const tour = PRODUCT_TOURS[0];
+    // Version 5 revises `projects` for sharing, so a climber who acknowledged
+    // the pinning revision is owed the sharing one.
+    const updated = resolveProductTour(PRODUCT_TOUR_STEPS[tour.id], {
+      version: tour.version,
+      savedVersion: 4,
+      navigation: { from: "journal", mode: "updates" },
+    });
+    expect(updated.shouldInvite).toBe(true);
+    expect(updated.steps.map((step) => step.id)).toEqual(["projects"]);
+  });
+
+  it("includes every lesson in full replay and stops inviting after version 5", () => {
     const tour = PRODUCT_TOURS[0];
     const result = resolveProductTour(PRODUCT_TOUR_STEPS[tour.id], {
       version: tour.version,
-      savedVersion: 4,
+      savedVersion: 5,
       navigation: { from: "account", mode: "updates" },
     });
     expect(result.shouldInvite).toBe(false);

@@ -101,6 +101,7 @@ const GATED_READS = [
         lastSession: "2026-02-01",
         sentOn: null,
         sent: false,
+        share: null,
       },
     ],
     empty: [],

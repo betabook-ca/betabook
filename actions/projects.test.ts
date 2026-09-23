@@ -5,7 +5,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { pinProject, unpinProject } from "@/actions";
 import { createDb } from "@/db/client";
 import { getPinnedProjects } from "@/db/queries/journal";
-import { climbs, pinnedProjects } from "@/db/schema";
+import { climbs, pinnedProjects, projectShareLinks } from "@/db/schema";
 import { PINNED_PROJECT_LIMIT } from "@/lib/projects";
 import {
   seedFixturePinnedProject,
@@ -195,4 +195,17 @@ it("drops the pin when the climb itself is deleted", async () => {
   // A pin is a bookmark, not history: it has nothing to preserve once its
   // climb is gone, so it cascades rather than blocking the delete.
   expect(await pinnedClimbIds("climber")).toEqual([]);
+});
+
+it("takes the share link with the pin", async () => {
+  await pinProject(SLAB);
+  await db.insert(projectShareLinks).values({ userId: "climber", climbId: SLAB });
+
+  const result = await unpinProject(SLAB);
+
+  expect(result.ok).toBe(true);
+  // The row goes with the pin through the composite foreign key, so the link
+  // stops resolving for anyone holding it. Nothing has to purge a page:
+  // /projects/[token] is dynamic and re-reads on every request.
+  expect(await db.select().from(projectShareLinks).all()).toEqual([]);
 });

@@ -59,6 +59,29 @@ export function sharedProfileMetadata(name: string, token: string): Metadata {
   };
 }
 
+/** Link preview for a valid project share link. Callers must run the share
+ * predicate before reaching for this: an unfurl bot is signed out, so a
+ * Members or Friends link pasted into a public channel has to preview as
+ * nothing rather than naming the climber and the climb to the room. No
+ * canonical or `og:url`, for the same reason as the profile preview, and no
+ * session notes — a preview is not a place to publish them. */
+export function sharedProjectMetadata(name: string, climbName: string, sent = false): Metadata {
+  // The same verb the page's own heading uses. A sent project shares the
+  // route, so a preview fixed on "is projecting" would contradict the page it
+  // is previewing.
+  const title = sent ? `${name} sent ${climbName}` : `${name} is projecting ${climbName}`;
+  const description = sent
+    ? `See the sessions behind ${name}'s ascent of ${climbName} on ${SITE_NAME}, a climbing logbook and crag database.`
+    : `Follow ${name}'s progress on ${climbName} on ${SITE_NAME}, a climbing logbook and crag database.`;
+  return {
+    title: { absolute: title },
+    description,
+    robots: { index: false },
+    openGraph: { type: "article", siteName: SITE_NAME, title, description, images: [OG_IMAGE] },
+    twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE.url] },
+  };
+}
+
 /** The `max` nearest names joined nearest-last into a short location trail
  * for a meta description, e.g. "Squamish, Grand Wall Boulders, Superfly".
  * Capped because a full root-to-crag chain ("North America, Canada, …")

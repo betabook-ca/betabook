@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { openProjects, sentProjects } from "@/stories/fixtures/open-projects";
+import { openProjects, sentProjects, sharedProjects } from "@/stories/fixtures/open-projects";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { ProjectBoard } from "./project-board";
@@ -8,6 +8,9 @@ import { ProjectBoard } from "./project-board";
 const meta = {
   title: "Components/Journal/Project board",
   component: ProjectBoard,
+  // Every story shares one origin so the copyable link in the share dialog
+  // reads like the real one rather than "undefined/projects/…".
+  args: { shareOrigin: "https://betabook.ca" },
 } satisfies Meta<typeof ProjectBoard>;
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -36,6 +39,18 @@ export const NoProjects: Story = {
     <StoryPage
       title="Projects"
       description="Nothing tracked yet — the starting state, where the track control is the only way forward."
+    >
+      <ProjectBoard {...args} />
+    </StoryPage>
+  ),
+};
+
+export const SharedProject: Story = {
+  args: { userId: "storybook-climber", projects: sharedProjects, hasMore: false },
+  render: (args) => (
+    <StoryPage
+      title="Projects"
+      description="A project with a live link beside one without: the control reads as state, not just an action."
     >
       <ProjectBoard {...args} />
     </StoryPage>

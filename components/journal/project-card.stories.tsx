@@ -20,6 +20,7 @@ type Story = StoryObj;
 
 // The gallery's clock, so the staleness line is the same in every capture.
 const TODAY = "2026-09-06";
+const ORIGIN = "https://betabook.ca";
 
 export const Project: Story = {
   render: () => (
@@ -32,6 +33,7 @@ export const Project: Story = {
           project={moonSlab}
           userId="storybook-climber"
           today={TODAY}
+          shareOrigin={ORIGIN}
           onLogSession={() => {}}
         />
       </Example>
@@ -40,6 +42,7 @@ export const Project: Story = {
           project={riverRoute}
           userId="storybook-climber"
           today={TODAY}
+          shareOrigin={ORIGIN}
           onLogSession={() => {}}
         />
       </Example>
@@ -48,6 +51,7 @@ export const Project: Story = {
           project={ashCrack}
           userId="storybook-climber"
           today={TODAY}
+          shareOrigin={ORIGIN}
           onLogSession={() => {}}
         />
       </Example>
@@ -56,6 +60,7 @@ export const Project: Story = {
           project={untouchedPin}
           userId="storybook-climber"
           today={TODAY}
+          shareOrigin={ORIGIN}
           onLogSession={() => {}}
         />
       </Example>
@@ -64,6 +69,7 @@ export const Project: Story = {
           project={sentPin}
           userId="storybook-climber"
           today={TODAY}
+          shareOrigin={ORIGIN}
           onLogSession={() => {}}
         />
       </Example>

@@ -13,6 +13,7 @@ export * from "./analytics";
 export * from "./feature-announcements";
 export * from "./profile-share-links";
 export * from "./recap-shares";
+export * from "./project-share-links";
 export * from "./catalog-sources";
 
 export * from "./goals";

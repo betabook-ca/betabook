@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "a1632a24-2511-411f-920b-79c5f78cda63",
+  "id": "8249b5d2-6097-49be-8a13-aa5b6fb2979b",
   "prevId": "c49f03f1-f48c-47ae-8749-65666c34ac6f",
   "tables": {
     "areas": {
@@ -1782,15 +1782,16 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "recap_shares": {
-      "name": "recap_shares",
+    "project_share_links": {
+      "name": "project_share_links",
       "columns": {
         "token": {
           "name": "token",
           "type": "text",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "(lower(hex(randomblob(16))))"
         },
         "user_id": {
           "name": "user_id",
@@ -1799,42 +1800,43 @@
           "notNull": true,
           "autoincrement": false
         },
-        "profile_token": {
-          "name": "profile_token",
-          "type": "text",
+        "climb_id": {
+          "name": "climb_id",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "snapshot": {
-          "name": "snapshot",
+        "expires_at": {
+          "name": "expires_at",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "created_at": {
           "name": "created_at",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
+          "default": "(datetime('now'))"
         }
       },
       "indexes": {
-        "recap_shares_user_idx": {
-          "name": "recap_shares_user_idx",
+        "project_share_links_project_idx": {
+          "name": "project_share_links_project_idx",
           "columns": [
-            "user_id"
+            "user_id",
+            "climb_id"
           ],
-          "isUnique": false
+          "isUnique": true
         }
       },
       "foreignKeys": {
-        "recap_shares_user_id_user_id_fk": {
-          "name": "recap_shares_user_id_user_id_fk",
-          "tableFrom": "recap_shares",
+        "project_share_links_user_id_user_id_fk": {
+          "name": "project_share_links_user_id_user_id_fk",
+          "tableFrom": "project_share_links",
           "tableTo": "user",
           "columnsFrom": [
             "user_id"
@@ -1844,11 +1846,31 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "project_share_links_user_id_climb_id_pinned_projects_user_id_climb_id_fk": {
+          "name": "project_share_links_user_id_climb_id_pinned_projects_user_id_climb_id_fk",
+          "tableFrom": "project_share_links",
+          "tableTo": "pinned_projects",
+          "columnsFrom": [
+            "user_id",
+            "climb_id"
+          ],
+          "columnsTo": [
+            "user_id",
+            "climb_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "project_share_links_expires_at_format": {
+          "name": "project_share_links_expires_at_format",
+          "value": "\"project_share_links\".\"expires_at\" IS NULL OR \"project_share_links\".\"expires_at\" = datetime(\"project_share_links\".\"expires_at\")"
+        }
+      }
     },
     "catalog_area_sources": {
       "name": "catalog_area_sources",
