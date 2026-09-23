@@ -52,6 +52,11 @@ export function workspaceTabs(
       return [
         { label: "Journal", href: `${owner}/journal`, roots: [owner] },
         { label: "Sends", href: `${owner}/sends`, roots: [] },
+        // A trip is a named window over the two tabs beside it rather than a
+        // third kind of record, so it belongs here and not under Progress.
+        // Trip detail pages nest under this href, and WorkspaceShell's prefix
+        // match is what keeps Trips lit while the climber is inside one.
+        { label: "Trips", href: `${owner}/trips`, roots: [] },
       ];
     case "progress":
       return [
