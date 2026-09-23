@@ -39,9 +39,6 @@ export const Ascent: Story = { args: { sent: true } };
 export const UndatedSend: Story = { args: { sent: true, entryDate: "" } };
 export const Repeat: Story = { args: { sent: true, hasPriorSend: true } };
 export const Training: Story = { args: { hasClimb: false } };
-export const EditAscent: Story = {
-  args: { sent: true, existingEntry: { sent: true, isAscent: true } },
-};
 export const EditRepeat: Story = {
-  args: { sent: true, hasPriorSend: true, existingEntry: { sent: true, isAscent: false } },
+  args: { sent: true, hasPriorSend: true, existingEntry: { sent: true } },
 };

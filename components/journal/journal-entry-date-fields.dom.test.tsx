@@ -40,7 +40,7 @@ it("hides I don't know for a repeat, which always needs a date", () => {
   expect(screen.queryByText(/need a date/)).not.toBeInTheDocument();
 });
 it("offers no I don't know control when editing an entry, which always needs its date", () => {
-  render(<Dates existingEntry={{ sent: false, isAscent: false }} sent />);
+  render(<Dates existingEntry={{ sent: false }} sent />);
   expect(screen.getByRole("spinbutton", { name: /day, Date/ })).toHaveTextContent("01");
   expect(screen.queryByRole("checkbox", { name: "I don't know" })).not.toBeInTheDocument();
 });
@@ -62,25 +62,18 @@ it("shows no date hint on a sent climb before a pill is chosen", () => {
   expect(screen.queryByText(/need a date/)).not.toBeInTheDocument();
   expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
 });
-it.each([true, false])(
-  "prevents editing a recorded date and gives ascent=%s guidance",
-  async (isAscent) => {
-    const user = userEvent.setup();
-    const change = vi.fn<(date: string) => void>();
-    render(<Dates existingEntry={{ sent: true, isAscent }} sent onDateChange={change} />);
-    expect(
-      screen.getByText(
-        isAscent
-          ? "To change the ascent date, use Edit send on the climb page."
-          : "To change this repeat’s date, delete the entry and log it again.",
-      ),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Calendar Date" })).toBeDisabled();
-    const day = screen.getByRole("spinbutton", { name: /day, Date/ });
-    await user.click(day);
-    await user.keyboard("{ArrowUp}");
-    expect(day).toHaveTextContent("01");
-    expect(change).not.toHaveBeenCalled();
-  },
-);
+it("prevents editing a recorded repeat date and explains how to change it", async () => {
+  const user = userEvent.setup();
+  const change = vi.fn<(date: string) => void>();
+  render(<Dates existingEntry={{ sent: true }} sent onDateChange={change} />);
+  expect(
+    screen.getByText("To change this repeat’s date, delete the entry and log it again."),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Calendar Date" })).toBeDisabled();
+  const day = screen.getByRole("spinbutton", { name: /day, Date/ });
+  await user.click(day);
+  await user.keyboard("{ArrowUp}");
+  expect(day).toHaveTextContent("01");
+  expect(change).not.toHaveBeenCalled();
+});

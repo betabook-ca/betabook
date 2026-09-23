@@ -5,7 +5,6 @@ import { ArrowLeft, ArrowRight, ChevronDown, Dumbbell, MapPin, Mountain } from "
 import { useId, useRef, useState } from "react";
 
 import { TagInput } from "@/components/journal/tag-input";
-import { cardClass } from "@/components/ui/card";
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { DISCIPLINE_CHIP_CLASSNAME, DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
@@ -143,7 +142,6 @@ function submittedTags(goal: Goal, originalGoal: Goal | undefined, tags: string[
   return goal === "training" || goal === "volume" || originalGoal === goal ? tags : [];
 }
 
-/** Shared goal editor; persistence is supplied by the journal panel. */
 // oxlint-disable-next-line complexity -- conditional fields and validation for goal templates
 export function GoalForm({
   initialCategory,
@@ -159,7 +157,6 @@ export function GoalForm({
   today = goalToday(new Intl.DateTimeFormat().resolvedOptions().timeZone),
   onPendingChange,
   onStepChange,
-  embedded = false,
   nextGrades = NO_GRADE_HISTORY,
   availableTags = NO_AVAILABLE_TAGS,
 }: {
@@ -174,13 +171,14 @@ export function GoalForm({
   today?: string;
   onPendingChange?: (pending: boolean) => void;
   onStepChange?: (step: "category" | "details") => void;
-  embedded?: boolean;
   nextGrades?: Partial<Record<ClimbType, number>>;
   availableTags?: string[];
   onCancel?: () => void;
   initialRepeat?: GoalInput["repeat"];
 }) {
   const draft = initialDraft ?? initialValues;
+  const nextGradeFor = (value: ClimbType) =>
+    String(Math.min(nextGrades[value] ?? 0, nativeGradeArray(value).length - 1));
   const [category, setCategory] = useState<Category>(
     draft?.category ?? initialCategory ?? "climbing",
   );
@@ -192,7 +190,7 @@ export function GoalForm({
   );
   const [discipline, setDiscipline] = useState<ClimbType>(draft?.discipline ?? "boulder");
   const [grade, setGrade] = useState(
-    draft?.grade ?? (initialGoal === "grade" ? String(nextGrades.boulder ?? 0) : "any"),
+    draft?.grade ?? (initialGoal === "grade" ? nextGradeFor("boulder") : "any"),
   );
   const [gradeMatch, setGradeMatch] = useState<"exact" | "at-least">(draft?.gradeMatch ?? "exact");
   const [tags, setTags] = useState<string[]>(draft?.tags ?? []);
@@ -224,13 +222,8 @@ export function GoalForm({
   }
   const isEditing = Boolean(initialDraft);
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
-  const endDateError =
-    error === "Choose an end date." ||
-    error === "End date must be today or later." ||
-    error === "End date must be on or after start date."
-      ? error
-      : null;
+  const [error, setError] = useState<{ message: string; field?: "endDate" } | null>(null);
+  const endDateError = error?.field === "endDate" ? error.message : null;
   const backRef = useRef<HTMLButtonElement>(null);
   const categoryRef = useRef<HTMLButtonElement>(null);
   const id = useId();
@@ -245,14 +238,16 @@ export function GoalForm({
         : isClimbing
           ? "Number of climbs"
           : "Number of areas";
-  function validationError() {
+  function validationError(): { message: string; field?: "endDate" } | null {
     if (goal !== "grade" && (!Number.isInteger(Number(amount)) || Number(amount) < 1))
-      return "Enter a whole number of at least 1.";
+      return { message: "Enter a whole number of at least 1." };
     if (repeat === "none" && period === "custom" && (!startDate || !endDate || endDate < startDate))
-      return "End date must be on or after start date.";
-    if (selectedRecurringEndDate === "") return "Choose an end date.";
-    if (invalidRecurringEnd) return "End date must be today or later.";
-    return "";
+      return { message: "End date must be on or after start date.", field: "endDate" };
+    if (selectedRecurringEndDate === "")
+      return { message: "Choose an end date.", field: "endDate" };
+    if (invalidRecurringEnd)
+      return { message: "End date must be today or later.", field: "endDate" };
+    return null;
   }
   function navigate(next: typeof step) {
     setStep(next);
@@ -266,7 +261,7 @@ export function GoalForm({
     <div
       className={`mx-auto flex w-full flex-col gap-3 text-foreground ${step === "details" ? "max-w-lg" : "max-w-xl"}`}
     >
-      <section className={`flex flex-col gap-3 ${embedded ? "" : cardClass("sm", "bordered")}`}>
+      <section className="flex flex-col gap-3">
         {step === "category" ? (
           <>
             <div>
@@ -290,7 +285,7 @@ export function GoalForm({
                       setAmount(value === "climbing" ? "3" : "8");
                     }
                     setCategory(value);
-                    setError("");
+                    setError(null);
                     navigate("details");
                   }}
                 >
@@ -327,7 +322,7 @@ export function GoalForm({
                 if (pending) return;
                 const error = validationError();
                 if (error) return setError(error);
-                setError("");
+                setError(null);
                 setPending(true);
                 onPendingChange?.(true);
                 try {
@@ -347,9 +342,12 @@ export function GoalForm({
                       tags: submittedTags(goal, draft?.goal, tags),
                     });
                 } catch (cause) {
-                  setError(
-                    cause instanceof Error ? cause.message : "Could not save the goal. Try again.",
-                  );
+                  setError({
+                    message:
+                      cause instanceof Error
+                        ? cause.message
+                        : "Could not save the goal. Try again.",
+                  });
                 } finally {
                   setPending(false);
                   onPendingChange?.(false);
@@ -370,23 +368,11 @@ export function GoalForm({
                           type="button"
                           aria-pressed={goal === option.value}
                           variant="outline"
-                          style={
-                            goal === option.value
-                              ? { backgroundColor: "var(--button-bg-hover)" }
-                              : undefined
-                          }
-                          className="h-auto min-h-16 w-full justify-start rounded-panel! px-3 py-3 text-left text-sm whitespace-normal"
+                          className="h-auto min-h-16 w-full justify-start rounded-panel! px-3 py-3 text-left text-sm whitespace-normal aria-pressed:bg-(--button-bg-hover)"
                           onPress={() => {
                             setGoal(option.value);
                             if (option.value === "grade" && grade === "any")
-                              setGrade(
-                                String(
-                                  Math.min(
-                                    nextGrades[discipline] ?? 0,
-                                    nativeGradeArray(discipline).length - 1,
-                                  ),
-                                ),
-                              );
+                              setGrade(nextGradeFor(discipline));
                           }}
                         >
                           {option.label}
@@ -413,14 +399,7 @@ export function GoalForm({
                               onChange={() => {
                                 setDiscipline(value);
                                 if (goal === "grade" || grade !== "any")
-                                  setGrade(
-                                    String(
-                                      Math.min(
-                                        nextGrades[value] ?? 0,
-                                        nativeGradeArray(value).length - 1,
-                                      ),
-                                    ),
-                                  );
+                                  setGrade(nextGradeFor(value));
                               }}
                             />
                             {DISCIPLINE_LABELS[value]}
@@ -434,7 +413,7 @@ export function GoalForm({
                       isSelected={repeat !== "none"}
                       onChange={(selected) => {
                         toggleRecurring(selected);
-                        setError("");
+                        setError(null);
                       }}
                     >
                       <Checkbox.Content className="flex items-center gap-2">
@@ -532,7 +511,7 @@ export function GoalForm({
                       onChange={(value) => {
                         if (repeat === "none") setPeriod(value);
                         else if (value !== "custom") setCadence(value);
-                        setError("");
+                        setError(null);
                       }}
                       className={`${sentenceTimeframeWidth(repeat === "none" ? period : repeat)} ${SENTENCE_SELECT_TEXT_CLASS}`}
                       options={timeframeOptions(goal, repeat !== "none")}
@@ -556,7 +535,7 @@ export function GoalForm({
                         value={endDate}
                         onChange={(value) => {
                           setEndDate(value);
-                          setError("");
+                          setError(null);
                         }}
                         error={endDateError}
                       />
@@ -576,7 +555,7 @@ export function GoalForm({
                       className={`w-40 ${SENTENCE_SELECT_TEXT_CLASS}`}
                       onChange={(value) => {
                         setHasEndDate(value === "date");
-                        setError("");
+                        setError(null);
                       }}
                     />
                     {hasEndDate && (
@@ -586,7 +565,7 @@ export function GoalForm({
                           value={recurringEndDate}
                           onChange={(value) => {
                             setRecurringEndDate(value);
-                            setError("");
+                            setError(null);
                           }}
                           error={endDateError}
                         />
@@ -594,32 +573,20 @@ export function GoalForm({
                     )}
                   </div>
                 )}
-                {category === "training" ? (
+                {(goal === "training" || goal === "volume") && (
                   <GoalTagDisclosure
-                    kind="training"
+                    kind={goal}
                     tags={tags}
                     availableTags={availableTags}
                     expanded={tagsExpanded}
                     onToggle={() => {
                       setTagsExpanded(!tagsExpanded);
-                      setError("");
+                      setError(null);
                     }}
                     onChange={setTags}
                   />
-                ) : goal === "volume" ? (
-                  <GoalTagDisclosure
-                    kind="volume"
-                    tags={tags}
-                    availableTags={availableTags}
-                    expanded={tagsExpanded}
-                    onToggle={() => {
-                      setTagsExpanded(!tagsExpanded);
-                      setError("");
-                    }}
-                    onChange={setTags}
-                  />
-                ) : null}
-                {error && !endDateError && <InlineAlert>{error}</InlineAlert>}
+                )}
+                {error && !endDateError && <InlineAlert>{error.message}</InlineAlert>}
                 <div className="flex flex-wrap items-center justify-end gap-3 border-t border-separator pt-4">
                   <Button type="submit" isPending={pending}>
                     {isEditing ? "Save changes" : "Create goal"}

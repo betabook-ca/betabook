@@ -13,7 +13,6 @@ vi.mock("@/actions", () => ({
   saveGoal: vi.fn<typeof import("@/actions").saveGoal>(),
   deleteGoal: vi.fn<typeof import("@/actions").deleteGoal>(),
   archiveGoal: vi.fn<typeof import("@/actions").archiveGoal>(),
-  endRecurringGoal: vi.fn<typeof import("@/actions").endRecurringGoal>(),
   acknowledgeGoalAchievements: vi.fn<typeof import("@/actions").acknowledgeGoalAchievements>(),
 }));
 
@@ -128,7 +127,7 @@ it("shows a fresh monthly period while the selected history year is still refres
       initialCompleted={summarizeGoalPeriods(freshPeriods, "completed", 0, now)}
     />,
   );
-  await waitFor(() => expect(loadPage).toHaveBeenCalledExactlyOnceWith("completed", 0, 2025));
+  await waitFor(() => expect(loadPage).toHaveBeenCalledExactlyOnceWith(0, 2025));
   expect(screen.getByRole("button", { name: "Week of Jun 1 · Met · 3/3" })).toBeVisible();
   expect(screen.getByText("Month · In progress · 1/8")).toBeVisible();
   await act(async () => finish(summarizeGoalPeriods(freshPeriods, "completed", 0, now, 2025)));

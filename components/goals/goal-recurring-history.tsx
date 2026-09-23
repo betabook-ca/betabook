@@ -11,6 +11,11 @@ import { goalDateLabel } from "@/lib/goal-date-label";
 import { goalWeekSlots } from "@/lib/goal-week-slots";
 import type { GoalPeriod, GoalProgress, GoalHistoryPage } from "@/lib/goals";
 
+function periodStatus(period: GoalPeriod, today: string) {
+  if (period.progress >= period.target) return "Met";
+  return period.periodEnd < today ? "Missed" : "In progress";
+}
+
 function PeriodCircle({
   period,
   start,
@@ -29,14 +34,13 @@ function PeriodCircle({
   const [open, setOpen] = useState(false);
   const number = monthly ? Number(start.slice(5, 7)) : Math.ceil(Number(start.slice(8, 10)) / 7);
   const met = Boolean(period && period.progress >= period.target);
-  const status = met
-    ? "Met"
-    : start > today
-      ? "Upcoming"
-      : (period?.periodEnd ?? end) >= today
-        ? "In progress"
-        : period
-          ? "Missed"
+  const status =
+    period && (met || start <= today)
+      ? periodStatus(period, today)
+      : start > today
+        ? "Upcoming"
+        : end >= today
+          ? "In progress"
           : unloaded
             ? "Not loaded"
             : "No record";
@@ -122,15 +126,13 @@ function AnnualHistory({ periods, today }: { periods: GoalPeriod[]; today: strin
       {periods.map((period) => (
         <li key={period.periodStart} className="flex items-center gap-2">
           <span className="w-18 text-muted">{period.periodStart.slice(0, 4)}</span>
-          {period.progress >= period.target ? (
+          {periodStatus(period, today) === "Met" ? (
             <>
               <CircleCheckBig aria-hidden className="size-3.5 text-success-soft-foreground" />
               <span className="sr-only">Met</span>
             </>
           ) : (
-            <span className="text-muted">
-              {period.periodEnd < today ? "Missed" : "In progress"}
-            </span>
+            <span className="text-muted">{periodStatus(period, today)}</span>
           )}
           <span className="tabular-nums">
             {period.progress}/{period.target}
@@ -277,17 +279,13 @@ function HistoryMonths({
                       key={`${period.repeat}-${period.periodStart}-${period.periodEnd}`}
                       className="flex basis-full items-center gap-1 tabular-nums"
                     >
-                      {period.progress >= period.target ? (
-                        <>
-                          <CircleCheckBig
-                            aria-hidden
-                            className="size-3.5 text-success-soft-foreground"
-                          />
-                          {`${hasWeeks ? "Month · " : ""}Met · ${period.progress}/${period.target}`}
-                        </>
-                      ) : (
-                        `${hasWeeks ? "Month · " : ""}${period.periodEnd < today ? "Missed" : "In progress"} · ${period.progress}/${period.target}`
+                      {periodStatus(period, today) === "Met" && (
+                        <CircleCheckBig
+                          aria-hidden
+                          className="size-3.5 text-success-soft-foreground"
+                        />
                       )}
+                      {`${hasWeeks ? "Month · " : ""}${periodStatus(period, today)} · ${period.progress}/${period.target}`}
                     </span>
                   ))}
               </div>
@@ -339,14 +337,14 @@ export function GoalRecurringHistory({
   const [extra, setExtra] = useState<GoalPeriod[]>([]);
   const [moreAvailable, setMoreAvailable] = useState(goal.recurring?.hasMore ?? false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [failed, setFailed] = useState(false);
   const history = goal.recurring;
   if (!history) return null;
   if (history.total === 0) return null;
   const recent = history.recent;
   async function more() {
     setLoading(true);
-    setError("");
+    setFailed(false);
     try {
       const offset = monthOffset;
       let page;
@@ -355,7 +353,7 @@ export function GoalRecurringHistory({
         const params = new URLSearchParams({ historyId: String(goal.id), offset: String(offset) });
         if (anchorMonth) params.set("anchor", anchorMonth);
         const res = await apiFetch(`/api/users/${ownerId}/goals?${params}`);
-        if (!res.ok) throw new Error("Could not load history. Try again.");
+        if (!res.ok) throw new Error(res.statusText);
         page = (await res.json()) as GoalHistoryPage;
       }
       setExtra((current) => [...current, ...page.periods]);
@@ -363,7 +361,7 @@ export function GoalRecurringHistory({
       setMonthOffset(page.nextOffset);
       setAnchorMonth(page.anchorMonth);
     } catch {
-      setError("Could not load history. Try again.");
+      setFailed(true);
     } finally {
       setLoading(false);
     }
@@ -378,7 +376,7 @@ export function GoalRecurringHistory({
         recurringEndDate={goal.recurringEndDate}
       />
 
-      {moreAvailable && <LoadMoreButton loading={loading} onPress={more} failed={Boolean(error)} />}
+      {moreAvailable && <LoadMoreButton loading={loading} onPress={more} failed={failed} />}
     </HistoryDisclosure>
   );
 }

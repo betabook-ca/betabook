@@ -19,11 +19,10 @@ import {
   type GoalInput,
 } from "@/lib/goals";
 import { allowJournalWrite } from "@/lib/rate-limit";
-import { isRealIsoDate } from "@/lib/sends";
 import { requireSession } from "@/lib/session";
 
 import { afterCommit } from "./post-commit";
-import { revalidateJournalSurfaces } from "./revalidation";
+import { revalidateGoalSurfaces } from "./revalidation";
 
 function validateGoalId(id: number | null) {
   if (id !== null && (!Number.isSafeInteger(id) || id < 1))
@@ -176,14 +175,17 @@ export async function saveGoal(
     const input = { ...parsed.data, tags: parsed.data.tags ?? [] };
     const ownerId = session.user.id;
     const db = await getDb();
-    const retrySource =
-      retryOf === undefined ? null : await actionableMissedGoal(db, retryOf, ownerId);
-    const existing =
+    const [retrySource, existing, zones] = await Promise.all([
+      retryOf === undefined ? null : actionableMissedGoal(db, retryOf, ownerId),
       id === null
         ? null
-        : await db.get<ExistingGoal>(
+        : db.get<ExistingGoal>(
             sql`SELECT g.kind,g.discipline,g.grade,g.start_date AS startDate,g.end_date AS endDate,g.timeframe,g.repeat,g.timezone,g.archive_token AS archiveToken,g.recurring_end_date AS recurringEndDate,g.target,${goalCountSql()} AS progress FROM goals g WHERE g.id = ${id} AND g.user_id = ${ownerId}`,
-          );
+          ),
+      db.all<{ timezone: string }>(
+        sql`SELECT DISTINCT timezone FROM goals WHERE user_id=${ownerId}`,
+      ),
+    ]);
     if (id !== null && !existing) throw new ActionError("Goal not found.");
     const window = goalSaveWindow(existing, input);
     const recurringEnd = recurringEndSetting(existing, input);
@@ -196,9 +198,6 @@ export async function saveGoal(
           "You’ve already sent this grade. Choose a new grade or a volume goal.",
         );
     }
-    const zones = await db.all<{ timezone: string }>(
-      sql`SELECT DISTINCT timezone FROM goals WHERE user_id=${ownerId}`,
-    );
     const now = new Date();
     const civilDates = JSON.stringify(
       Object.fromEntries(
@@ -314,10 +313,12 @@ export async function saveGoal(
     }
     if (!result && retrySource) await actionableMissedGoal(db, retrySource.id, ownerId);
     if (!result)
-      throw new ActionError("You can have up to 5 active goals. Delete a goal to make room.");
+      throw new ActionError(
+        `You can have up to ${MAX_ACTIVE_GOALS} active goals. Delete a goal to make room.`,
+      );
     await scheduleGoalRefresh(db, ownerId);
     afterCommit(() => {
-      revalidateJournalSurfaces({ userId: ownerId, climbIds: [] });
+      revalidateGoalSurfaces(ownerId);
       refresh();
     });
     return result.id;
@@ -335,7 +336,7 @@ export async function deleteGoal(id: number): Promise<ActionResult> {
     if (!result) throw new ActionError("Goal not found.");
     await scheduleGoalRefresh(db, session.user.id);
     afterCommit(() => {
-      revalidateJournalSurfaces({ userId: session.user.id, climbIds: [] });
+      revalidateGoalSurfaces(session.user.id);
       refresh();
     });
   });
@@ -382,39 +383,7 @@ export async function archiveGoal(id: number): Promise<ActionResult> {
     if (!updated.length) throw new ActionError("This goal no longer needs a decision.");
     await scheduleGoalRefresh(db, session.user.id);
     afterCommit(() => {
-      revalidateJournalSurfaces({ userId: session.user.id, climbIds: [] });
-      refresh();
-    });
-  });
-}
-
-/** Schedule the last inclusive day without changing cadence or historical event identities. */
-export async function endRecurringGoal(id: number, endDate: string): Promise<ActionResult> {
-  return toActionResult(async () => {
-    const session = await requireSession();
-    if (!(await allowJournalWrite(session.user.id)))
-      throw new ActionError("Please wait before changing another goal.");
-    validateGoalId(id);
-    if (!isRealIsoDate(endDate)) throw new ActionError("Choose a valid end date.");
-    const db = await getDb();
-    const goal = await db.get<{ timezone: string }>(
-      sql`SELECT timezone FROM goals WHERE id=${id} AND user_id=${session.user.id} AND repeat<>'none' AND archive_token IS NULL`,
-    );
-    if (!goal) throw new ActionError("Recurring goal not found.");
-    const today = goalToday(goal.timezone);
-    if (endDate < today) throw new ActionError("End date must be today or later.");
-    const updated = await db
-      .update(goals)
-      .set({ recurringEndDate: endDate })
-      .where(
-        sql`id=${id} AND user_id=${session.user.id} AND repeat<>'none' AND archive_token IS NULL AND timezone=${goal.timezone} AND start_date<=${endDate} AND (recurring_end_date IS NULL OR recurring_end_date>=${today})`,
-      )
-      .returning({ id: goals.id });
-    if (!updated.length)
-      throw new ActionError("This routine has ended or changed. Reload your goals.");
-    await scheduleGoalRefresh(db, session.user.id);
-    afterCommit(() => {
-      revalidateJournalSurfaces({ userId: session.user.id, climbIds: [] });
+      revalidateGoalSurfaces(session.user.id);
       refresh();
     });
   });
