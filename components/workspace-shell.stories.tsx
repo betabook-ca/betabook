@@ -25,6 +25,12 @@ export const Logbook: Story = {};
 export const Sends: Story = {
   parameters: { nextjs: { navigation: { pathname: "/users/sample/sends" } } },
 };
+/** A trip's own page. It nests under /trips, so the Trips tab stays lit
+ * while the climber is inside one — the same prefix match that keeps
+ * Projects lit on the sent sub-page. */
+export const TripDetail: Story = {
+  parameters: { nextjs: { navigation: { pathname: "/users/sample/trips/1" } } },
+};
 export const Progress: Story = {
   args: { area: "progress" },
   parameters: { nextjs: { navigation: { pathname: "/users/sample/projects" } } },
