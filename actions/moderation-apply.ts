@@ -11,7 +11,7 @@ import {
   type SQL,
 } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
-import { alias } from "drizzle-orm/sqlite-core";
+import { alias, type SQLiteColumn, type SQLiteTable } from "drizzle-orm/sqlite-core";
 import { refresh, revalidatePath } from "next/cache";
 
 import type { Database } from "@/db/client";
@@ -699,19 +699,29 @@ export async function applyClimbMerge(
 
   // A pin on the duplicate has to follow the climb that survives, or deleting
   // the source would cascade it away and silently drop the climber's project.
-  // Skip anyone who already pinned the target: that would collide on the
-  // (user_id, climb_id) primary key, and ON CONFLICT isn't available through
-  // the insert-select builder this batch requires.
+  //
+  // Both the pin and its share skip a climber who already has a row on the
+  // target, for the same reason in two shapes: the pin would collide on its
+  // (user_id, climb_id) primary key, the share on the unique index over the
+  // same pair, and ON CONFLICT isn't available through the insert-select
+  // builder this batch requires. The two guards have to stay in step — the
+  // pin is copied by an insert-select while the share is moved by an update,
+  // so a handed-out link only survives a merge if they agree on who is
+  // skipped.
+  const lacksTargetRow = (
+    target: SQLiteTable & { userId: SQLiteColumn; climbId: SQLiteColumn },
+    outerUserId: SQLiteColumn,
+  ) =>
+    notExists(
+      db
+        .select({ one: sql`1` })
+        .from(target)
+        .where(and(eq(target.climbId, targetClimbId), eq(target.userId, outerUserId))),
+    );
+
   const targetPin = alias(pinnedProjects, "tp");
   const targetShare = alias(projectShareLinks, "ts");
-  const alreadyPinsTarget = notExists(
-    db
-      .select({ one: sql`1` })
-      .from(targetPin)
-      .where(
-        and(eq(targetPin.climbId, targetClimbId), eq(targetPin.userId, pinnedProjects.userId)),
-      ),
-  );
+  const lacksTargetPin = lacksTargetRow(targetPin, pinnedProjects.userId);
 
   const statements: [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]] = [
     // Preserve colliding undated comments as notes dated to the merge.
@@ -761,32 +771,20 @@ export async function applyClimbMerge(
           pinnedAt: pinnedProjects.pinnedAt,
         })
         .from(pinnedProjects)
-        .where(and(eq(pinnedProjects.climbId, sourceClimbId), alreadyPinsTarget)),
+        .where(and(eq(pinnedProjects.climbId, sourceClimbId), lacksTargetPin)),
     ),
     // A share link is keyed to the pin, so the cascade above would take it
     // with the source climb and a link the climber already handed out would
     // die because a moderator merged a duplicate. Move it instead of
-    // re-issuing it: an UPDATE keeps the token, which is the whole URL. The
-    // guard is the share equivalent of `alreadyPinsTarget` — a climber who
-    // shared both keeps the target's link rather than colliding on
-    // (user_id, climb_id).
+    // re-issuing it: an UPDATE keeps the token, which is the whole URL. A
+    // climber who shared both keeps the target's link.
     db
       .update(projectShareLinks)
       .set({ climbId: targetClimbId })
       .where(
         and(
           eq(projectShareLinks.climbId, sourceClimbId),
-          notExists(
-            db
-              .select({ one: sql`1` })
-              .from(targetShare)
-              .where(
-                and(
-                  eq(targetShare.climbId, targetClimbId),
-                  eq(targetShare.userId, projectShareLinks.userId),
-                ),
-              ),
-          ),
+          lacksTargetRow(targetShare, projectShareLinks.userId),
         ),
       ),
     ...(Object.keys(overrides).length > 0

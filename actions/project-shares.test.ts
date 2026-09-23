@@ -150,7 +150,7 @@ it("closes the link on unshare and leaves the pin alone", async () => {
 
   expect(result.ok).toBe(true);
   expect(await storedShares()).toEqual([]);
-  expect(await getSharedProject(db, token)).toBeNull();
+  expect(await getSharedProject(db, token)).toEqual({ status: "hidden" });
   expect(await getProjectShareForOwner(db, "climber", HIGHBALL)).toBeNull();
 });
 

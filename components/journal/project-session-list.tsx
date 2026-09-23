@@ -3,22 +3,18 @@ import { ClampedComment } from "@/components/ui/clamped-comment";
 import type { JournalEntry } from "@/db/queries";
 import { formatDate } from "@/lib/format-date";
 
-/** `id` and `companions` are optional because the shared project page renders
- * this same timeline without either: entry ids are sequential and stay out of
- * the payload, and a companion tag names a third party who never agreed to
- * the link. */
-type SessionNote = Pick<JournalEntry, "entryDate" | "tags" | "companions" | "body"> & {
-  id?: number;
-};
+/** `companions` stays optional — it already is on `JournalEntry` — because the
+ * shared project page renders this same timeline without it: a companion tag
+ * names a third party who never agreed to the link. Entry ids do travel; they
+ * are not a capability anywhere (every consumer is an owner-scoped action),
+ * and keying on one beats keying on a date that repeats. */
+type SessionNote = Pick<JournalEntry, "id" | "entryDate" | "tags" | "companions" | "body">;
 
 export function ProjectSessionList({ sessions }: { sessions: readonly SessionNote[] }) {
   return (
     <ol className="flex flex-col gap-4 border-l border-separator pl-4">
-      {sessions.map((entry, index) => (
-        <li
-          key={entry.id ?? `${entry.entryDate}-${index}`}
-          className="relative flex flex-col gap-1"
-        >
+      {sessions.map((entry) => (
+        <li key={entry.id} className="relative flex flex-col gap-1">
           {/* The tick on the timeline rule: -left-[1.3125rem] backs the
            * dot out over the ol's pl-4 and centres it on the 1px rule. */}
           <span

@@ -16,7 +16,6 @@ import { resetDb } from "@/test/reset-db";
 
 import { getPinnedProjects } from "./journal";
 import {
-  getProjectShareAccess,
   getProjectShareForOwner,
   getSharedProject,
   getSharedProjectSessions,
@@ -41,6 +40,11 @@ async function share(overrides: { expiresAt?: string | null; climbId?: number } 
     .returning({ token: projectShareLinks.token });
   return row.token;
 }
+
+/** Status and project come back together now, and nearly every case here
+ * wants one or the other rather than both. */
+const statusOf = async (token: string) => (await getSharedProject(db, token)).status;
+const projectOf = async (token: string) => (await getSharedProject(db, token)).project;
 
 beforeEach(async () => {
   await resetDb(db);
@@ -71,8 +75,9 @@ describe("who can read a link", () => {
 
     // No audience, so no viewer: the token is the whole permission. Asserted
     // for every kind of reader, because that is the property being claimed.
-    expect(await getProjectShareAccess(db, token)).toEqual({ status: "visible" });
-    const project = await getSharedProject(db, token);
+    const { status, project } = await getSharedProject(db, token);
+    expect(status).toBe("visible");
+    expect(project?.ownerId).toBe(OWNER);
     expect(project?.ownerName).toBe("Project Owner");
     expect(project?.climbName).toBe("Test Highball");
     expect(project?.sessionCount).toBe(2);
@@ -86,14 +91,13 @@ describe("who can read a link", () => {
     const before = await getSharedProject(db, token);
     await db.delete(friendships);
     expect(await getSharedProject(db, token)).toEqual(before);
-    expect(await getProjectShareAccess(db, token)).toEqual({ status: "visible" });
+    expect(before.status).toBe("visible");
   });
 
   it("stays shut on a token nobody issued", async () => {
     await share();
 
-    expect(await getProjectShareAccess(db, "0".repeat(32))).toEqual({ status: "hidden" });
-    expect(await getSharedProject(db, "0".repeat(32))).toBeNull();
+    expect(await getSharedProject(db, "0".repeat(32))).toEqual({ status: "hidden" });
   });
 
   it("hides the link while the owner is private, without calling it expired", async () => {
@@ -104,8 +108,7 @@ describe("who can read a link", () => {
     // the case the predicate exists to cover.
     const token = await share();
 
-    expect(await getProjectShareAccess(db, token)).toEqual({ status: "hidden" });
-    expect(await getSharedProject(db, token)).toBeNull();
+    expect(await getSharedProject(db, token)).toEqual({ status: "hidden" });
     expect(await getSharedProjectSessions(db, token)).toEqual([]);
   });
 });
@@ -114,22 +117,26 @@ describe("expiry", () => {
   it("reads as expired once the deadline passes, without naming the owner", async () => {
     const token = await share({ expiresAt: "2020-01-01 00:00:00" });
 
-    expect(await getProjectShareAccess(db, token)).toEqual({ status: "expired" });
-    expect(await getSharedProject(db, token)).toBeNull();
+    const access = await getSharedProject(db, token);
+
+    expect(access).toEqual({ status: "expired" });
+    // The status read selects the owner's name to decide this, so the point
+    // worth pinning is that it never leaves: no project, and no notes.
+    expect(JSON.stringify(access)).not.toContain("Project Owner");
     expect(await getSharedProjectSessions(db, token)).toEqual([]);
   });
 
   it("stays open until then", async () => {
     const token = await share({ expiresAt: "2099-01-01 00:00:00" });
 
-    expect(await getProjectShareAccess(db, token)).toEqual({ status: "visible" });
-    expect(await getSharedProject(db, token)).not.toBeNull();
+    expect(await statusOf(token)).toBe("visible");
+    expect(await projectOf(token)).not.toBeUndefined();
   });
 
   it("treats a null deadline as no deadline", async () => {
     const token = await share({ expiresAt: null });
 
-    expect(await getProjectShareAccess(db, token)).toEqual({ status: "visible" });
+    expect(await statusOf(token)).toBe("visible");
   });
 });
 
@@ -147,12 +154,22 @@ describe("what a link reaches", () => {
     const sessions = await getSharedProjectSessions(db, token);
 
     expect(sessions).toEqual([
-      { entryDate: "2026-03-05", body: "Stuck the crux move.", tags: [] },
-      { entryDate: "2026-02-01", body: "First look at the crux.", tags: ["beta"] },
+      {
+        id: expect.any(Number),
+        entryDate: "2026-03-05",
+        body: "Stuck the crux move.",
+        tags: [],
+      },
+      {
+        id: expect.any(Number),
+        entryDate: "2026-02-01",
+        body: "First look at the crux.",
+        tags: ["beta"],
+      },
     ]);
   });
 
-  it("leaves out send-comment rows, which a merge can date to the merge itself", async () => {
+  it("carries send commentary, which the owner's own card also counts", async () => {
     await seedFixtureJournalEntry(db, {
       userId: OWNER,
       climbId: CLIMB,
@@ -163,30 +180,70 @@ describe("what a link reaches", () => {
     const token = await share();
 
     const sessions = await getSharedProjectSessions(db, token);
-    const project = await getSharedProject(db, token);
+    const project = await projectOf(token);
 
-    expect(sessions.map((session) => session.entryDate)).toEqual(["2026-03-05", "2026-02-01"]);
-    expect(sessions.every((session) => session.body !== "Retained send comment.")).toBe(true);
-    expect(project?.sessionCount).toBe(2);
-    expect(project?.lastSession).toBe("2026-03-05");
+    expect(sessions.map((session) => session.entryDate)).toEqual([
+      "2026-03-20",
+      "2026-03-05",
+      "2026-02-01",
+    ]);
+    expect(sessions.some((session) => session.body === "Retained send comment.")).toBe(true);
+    expect(project?.sessionCount).toBe(3);
+    expect(project?.lastSession).toBe("2026-03-20");
   });
 
-  it("reports a send by month only, never by date", async () => {
-    await seedFixtureSend(db, { userId: OWNER, climbId: CLIMB, dateSent: "2026-03-14" });
+  it("counts exactly what the owner's own card counts", async () => {
+    // The two used to disagree: the share page filtered send commentary out
+    // of a count the owner's board leaves in, so a project could read N on
+    // the card and N-1 on the page it links to.
+    await seedFixtureJournalEntry(db, {
+      userId: OWNER,
+      climbId: CLIMB,
+      entryDate: "2026-03-20",
+      body: "Retained send comment.",
+      isSendComment: true,
+    });
     const token = await share();
 
-    const project = await getSharedProject(db, token);
+    const project = await projectOf(token);
+    const [card] = await getPinnedProjects(db, OWNER, OWNER, { sent: false });
 
-    expect(project?.sent).toBe(true);
-    expect(project?.sentMonth).toBe("2026-03");
-    expect(JSON.stringify(project)).not.toContain("2026-03-14");
+    expect(project?.sessionCount).toBe(card.sessionCount);
+    expect(project?.firstSession).toBe(card.firstSession);
+    expect(project?.lastSession).toBe(card.lastSession);
   });
 
-  it("keeps the exact send date out of the timeline, not only out of sentMonth", async () => {
-    // The ascent entry mirrors the send's date, so listing it would republish
-    // the very date the month-only field exists to withhold.
+  it("reports the send whole, exact date and all", async () => {
+    await seedFixtureSend(db, {
+      userId: OWNER,
+      climbId: CLIMB,
+      dateSent: "2026-03-14",
+      ascentStyle: "flash",
+      rating: 4,
+      suggestedGrade: 9,
+      gradeFeel: "high",
+      comment: "Felt a grade harder than the book says.",
+    });
+    const token = await share();
+
+    const project = await projectOf(token);
+
+    expect(project).toMatchObject({
+      sent: true,
+      sentOn: "2026-03-14",
+      ascentStyle: "flash",
+      rating: 4,
+      suggestedGrade: 9,
+      gradeFeel: "high",
+      sendComment: "Felt a grade harder than the book says.",
+    });
+  });
+
+  it("lists the ascent entry at the send's own date", async () => {
     // The ascent mirrors the send's date and comment, which the journal/send
-    // invariant enforces on insert.
+    // invariant enforces on insert. Both now travel: a link publishes the
+    // send, so hiding the note attached to it would withhold the entry a
+    // reader most expects to find.
     const sentNote = "Sent it first go after the rest day.";
     await seedFixtureSend(db, {
       userId: OWNER,
@@ -205,10 +262,10 @@ describe("what a link reaches", () => {
     const token = await share();
 
     const sessions = await getSharedProjectSessions(db, token);
-    const project = await getSharedProject(db, token);
+    const project = await projectOf(token);
 
-    expect(JSON.stringify({ sessions, project })).not.toContain("2026-03-14");
-    expect(project?.sentMonth).toBe("2026-03");
+    expect(sessions[0]).toMatchObject({ entryDate: "2026-03-14", body: sentNote });
+    expect(project?.sentOn).toBe("2026-03-14");
   });
 
   it("keeps an unsent, never-climbed pin readable", async () => {
@@ -216,10 +273,15 @@ describe("what a link reaches", () => {
     await seedFixturePinnedProject(db, { userId: OWNER, climbId: OTHER_CLIMB });
     const token = await share({ climbId: OTHER_CLIMB });
 
-    const project = await getSharedProject(db, token);
+    const project = await projectOf(token);
 
-    expect(project).toMatchObject({ sessionCount: 0, firstSession: null, lastSession: null });
-    expect(project?.sent).toBe(false);
+    expect(project).toMatchObject({
+      sessionCount: 0,
+      firstSession: null,
+      lastSession: null,
+      sent: false,
+      sentOn: null,
+    });
   });
 });
 
@@ -230,7 +292,7 @@ describe("the link cannot outlive the pin", () => {
     await db.delete(pinnedProjects).where(eq(pinnedProjects.userId, OWNER));
 
     expect(await db.select().from(projectShareLinks).all()).toEqual([]);
-    expect(await getProjectShareAccess(db, token)).toEqual({ status: "hidden" });
+    expect(await statusOf(token)).toBe("hidden");
   });
 
   it("dies with the climb", async () => {
@@ -241,7 +303,7 @@ describe("the link cannot outlive the pin", () => {
 
     await db.delete(climbs).where(eq(climbs.id, OTHER_CLIMB));
 
-    expect(await getProjectShareAccess(db, token)).toEqual({ status: "hidden" });
+    expect(await statusOf(token)).toBe("hidden");
   });
 
   it("dies with the account", async () => {
@@ -249,7 +311,7 @@ describe("the link cannot outlive the pin", () => {
 
     await db.delete(user).where(eq(user.id, OWNER));
 
-    expect(await getProjectShareAccess(db, token)).toEqual({ status: "hidden" });
+    expect(await statusOf(token)).toBe("hidden");
   });
 
   it("dies when the owner goes private", async () => {
@@ -293,7 +355,7 @@ describe("the owner's own view", () => {
     await seedFixturePinnedProject(db, { userId: OWNER, climbId: OTHER_CLIMB });
     const token = await share({ climbId: OTHER_CLIMB });
 
-    const project = await getSharedProject(db, token);
+    const project = await projectOf(token);
 
     expect(project?.climbId).toBe(OTHER_CLIMB);
     expect(project?.climbName).toBe("Test Slab");
