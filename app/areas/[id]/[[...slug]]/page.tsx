@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 
+import { getPublicAncestorsById, getPublicAreaById } from "@/app/public-catalog-reads";
 import { AreaClimbsSection } from "@/components/area-climbs-section";
 import { AreaCragHeader } from "@/components/area-crag-header";
 import { AreaHeaderActions } from "@/components/area-header-actions";
@@ -24,7 +25,6 @@ import {
   getUserSentClimbIds,
   resolveSubareaScope,
 } from "@/db/queries";
-import { getPublicArea, getPublicAncestors } from "@/db/queries/public-catalog";
 import {
   parseAreaClimbsFilter,
   parseAreaClimbsSort,
@@ -51,21 +51,16 @@ export async function generateMetadata({ params, searchParams }: AreaPageProps):
   const areaId = Number(id);
   if (!Number.isInteger(areaId)) notFound();
 
-  const area = await getPublicArea(await getDb(), areaId);
+  const area = await getPublicAreaById(areaId);
   if (!area) notFound();
 
-  // Normalize any other spelling of the URL to the canonical id + slug,
-  // keeping the query string so a shared "?grade=..." link still lands
-  // filtered. Done in generateMetadata so it runs before the page's data
-  // fetches. On this streamed Workers deployment this is a
-  // `<meta http-equiv="refresh" content="0;url=...">`, which Google treats
-  // as a permanent redirect (and rel=canonical agrees); see the climb page
-  // for why a real 308 would need middleware.
+  // Keeps the query so a shared filtered link still lands filtered. Streamed,
+  // this is a 0-second meta refresh, which Google treats as permanent.
   if ((slug?.join("/") ?? "") !== slugify(area.name)) {
     permanentRedirect(withQuery(areaHref(area.id, area.name), search));
   }
 
-  const ancestors = await getPublicAncestors(await getDb(), area);
+  const ancestors = await getPublicAncestorsById(area.id);
 
   const trail = locationTrail(ancestors.map((a) => a.name));
   return {
@@ -87,7 +82,7 @@ export default async function AreaPage({ params, searchParams }: AreaPageProps) 
   const db = await getDb();
   const session = await getMemberSession();
   if (!session) {
-    const area = await getPublicArea(db, areaId);
+    const area = await getPublicAreaById(areaId);
     if (!area) notFound();
     if ((slug?.join("/") ?? "") !== slugify(area.name))
       permanentRedirect(withQuery(areaHref(area.id, area.name), search));
@@ -147,6 +142,31 @@ export default async function AreaPage({ params, searchParams }: AreaPageProps) 
     ),
   ]);
 
+  const climbsBlock = (
+    <div className="flex flex-col gap-3">
+      <SectionHeading>Climbs</SectionHeading>
+      <AreaClimbsToolbar areaPath={areaPath} sort={sort} filter={filter} />
+      <AreaClimbsSection
+        // Remounts with fresh initial* state on a sort/filter change rather
+        // than syncing "load more" state to changed props via an effect.
+        key={JSON.stringify({ sort, filter })}
+        areaId={area.id}
+        sort={sort}
+        filter={filter}
+        initialClimbs={subtreeClimbs.climbs}
+        initialHasNextPage={subtreeClimbs.hasNextPage}
+        initialSendStats={sendStats}
+        initialAreaBreadcrumbs={areaBreadcrumbs}
+        sentClimbIds={sentClimbIds}
+        emptyMessage={
+          filter.subareaId != null
+            ? "No climbs match in this sub-area."
+            : "No climbs found in this area or its sub-areas."
+        }
+      />
+    </div>
+  );
+
   return (
     <div className="flex flex-col gap-6">
       <JsonLd
@@ -171,50 +191,20 @@ export default async function AreaPage({ params, searchParams }: AreaPageProps) 
       {/* The provider links the toolbar's in-flight navigation to the climb
        * list it re-fetches, which dims while pending. */}
       <NavigationPendingProvider>
-        {(() => {
-          const climbsBlock = (
-            <div className="flex flex-col gap-3">
-              <SectionHeading>Climbs</SectionHeading>
-              <AreaClimbsToolbar areaPath={areaPath} sort={sort} filter={filter} />
-              <AreaClimbsSection
-                // Remounts with fresh initial* state on a sort/filter change,
-                // rather than syncing local "load more" state to changed props
-                // via an effect — same reasoning as UserSendList.
-                key={JSON.stringify({ sort, filter })}
-                areaId={area.id}
-                sort={sort}
-                filter={filter}
-                initialClimbs={subtreeClimbs.climbs}
-                initialHasNextPage={subtreeClimbs.hasNextPage}
-                initialSendStats={sendStats}
-                initialAreaBreadcrumbs={areaBreadcrumbs}
-                sentClimbIds={sentClimbIds}
-                emptyMessage={
-                  filter.subareaId != null
-                    ? "No climbs match in this sub-area."
-                    : "No climbs found in this area or its sub-areas."
-                }
-              />
-            </div>
-          );
-
-          if (subareas.length === 0) return climbsBlock;
-
-          return (
-            <SidebarLayout
-              sidebarWidthClass="lg:w-64"
-              sidebar={
-                /* Gated on lg to match where the rail becomes a side column;
-                 * on mobile it's a collapsed accordion above the list. */
-                <CollapsibleSection title="Sub-areas" breakpoint="lg">
-                  <SubareaRail subareas={subareas.map(({ id, name }) => ({ id, name }))} />
-                </CollapsibleSection>
-              }
-            >
-              {climbsBlock}
-            </SidebarLayout>
-          );
-        })()}
+        {subareas.length === 0 ? (
+          climbsBlock
+        ) : (
+          <SidebarLayout
+            sidebarWidthClass="lg:w-64"
+            sidebar={
+              <CollapsibleSection title="Sub-areas" breakpoint="lg">
+                <SubareaRail subareas={subareas.map(({ id, name }) => ({ id, name }))} />
+              </CollapsibleSection>
+            }
+          >
+            {climbsBlock}
+          </SidebarLayout>
+        )}
       </NavigationPendingProvider>
     </div>
   );

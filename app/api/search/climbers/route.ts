@@ -13,8 +13,8 @@ export const GET = withApiSession(async (session, request: Request) => {
           name: params.get("name") ?? "",
           offset,
         });
-  return Response.json(
-    { ...page, hasMore: page.hasMore && !offsetReachesPaginationLimit(offset ?? 0, 20) },
-    { headers: { "Cache-Control": "private, no-store" } },
-  );
+  return Response.json({
+    ...page,
+    hasMore: page.hasMore && !offsetReachesPaginationLimit(offset ?? 0, 20),
+  });
 });

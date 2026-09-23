@@ -22,8 +22,13 @@ export default async function AccountPage() {
   }
 
   const db = await getDb();
-  const user = await getUser(db, session.user.id);
+  const [user, turnstileSiteKey, catalogExport] = await Promise.all([
+    getUser(db, session.user.id),
+    getTurnstileSiteKey(),
+    getCatalogExportBucket().then(getCatalogExportInfo),
+  ]);
   const isPrivate = user?.isPrivate ?? false;
+  const shareUrl = await getOwnProfileShareUrl(db, { id: session.user.id, isPrivate });
 
   return (
     <AccountSettings
@@ -36,9 +41,9 @@ export default async function AccountPage() {
       isPrivate={isPrivate}
       journalVisibility={user?.journalVisibility ?? "friends"}
       sendCommentVisibility={user?.sendCommentVisibility ?? "public"}
-      shareUrl={await getOwnProfileShareUrl(db, { id: session.user.id, isPrivate })}
-      turnstileSiteKey={await getTurnstileSiteKey()}
-      catalogExport={await getCatalogExportInfo(await getCatalogExportBucket())}
+      shareUrl={shareUrl}
+      turnstileSiteKey={turnstileSiteKey}
+      catalogExport={catalogExport}
       isAdmin={isAdmin({ user: { role: user?.role } })}
     />
   );

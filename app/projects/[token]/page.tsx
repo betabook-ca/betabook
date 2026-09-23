@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 
 import { SharedProject } from "@/components/shared-project";
 import { cardClass } from "@/components/ui/card";
@@ -12,6 +13,10 @@ import { getMemberSession } from "@/lib/session";
 import { parseShareToken } from "@/lib/share-token";
 import { SITE_NAME } from "@/lib/site";
 
+const getSharedProjectByToken = cache(async (token: string) =>
+  getSharedProject(await getDb(), token),
+);
+
 type SharedProjectPageProps = {
   params: Promise<{ token: string }>;
 };
@@ -23,8 +28,7 @@ export async function generateMetadata(props: SharedProjectPageProps): Promise<M
   const token = parseShareToken((await props.params).token);
   if (!token) return { title: "Shared project", robots: { index: false } };
 
-  const db = await getDb();
-  const { project } = await getSharedProject(db, token);
+  const { project } = await getSharedProjectByToken(token);
   return project
     ? sharedProjectMetadata(project.ownerName, project.climbName, project.sent)
     : { title: "Shared project", robots: { index: false } };
@@ -37,7 +41,7 @@ export default async function SharedProjectPage(props: SharedProjectPageProps) {
   const db = await getDb();
   // The session decides the sign-up prompt, not what may be read, so it does
   // not gate the project read and rides alongside it.
-  const [access, session] = await Promise.all([getSharedProject(db, token), getMemberSession()]);
+  const [access, session] = await Promise.all([getSharedProjectByToken(token), getMemberSession()]);
 
   // Described as a state of the link rather than of the project: the reader is
   // not being refused, and nothing about the climber is disclosed either way.

@@ -1,3 +1,4 @@
+import { getPublicAncestorsById } from "@/app/public-catalog-reads";
 import { AuthCallout } from "@/components/auth-callout";
 import { AreaBreadcrumbs } from "@/components/breadcrumbs";
 import { AreaClimbsToolbar } from "@/components/filters/area-climbs-toolbar";
@@ -9,7 +10,6 @@ import { SidebarLayout } from "@/components/ui/page-shell";
 import { PageTitle, SectionHeading } from "@/components/ui/typography";
 import { getDb } from "@/db/client";
 import {
-  getPublicAncestors,
   getPublicSubareas,
   resolvePublicSubarea,
   searchPublicClimbs,
@@ -40,7 +40,7 @@ export async function PublicAreaPage({
   const options = publicCatalogOptions(params);
   const scope = await resolvePublicSubarea(db, area, filter.subareaId);
   const [ancestors, subareas, initial] = await Promise.all([
-    getPublicAncestors(db, area),
+    getPublicAncestorsById(area.id),
     getPublicSubareas(db, area.id),
     searchPublicClimbs(db, { ...options, areaId: scope.id }),
   ]);

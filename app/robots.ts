@@ -4,7 +4,7 @@ import { SITE_URL } from "@/lib/site";
 
 // Cloudflare prepends its managed AI crawler policy to this static response.
 // Prefix rules include ?next= variants without excluding the public catalog.
-// Any homepage query is a search state (now a free redirect to /search);
+// Any homepage query is a search state that redirects to /search;
 // /search queries are unbounded filter states; area queries are
 // filters/sorts/pages. The bare /search stays crawlable: it is linked from
 // every signed-out page, so Google must be able to fetch it to read its

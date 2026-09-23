@@ -11,9 +11,6 @@ export const metadata: Metadata = pageMetadata({
   path: "/contact",
 });
 
-// No session read here on purpose: prefilling from the server would pull in
-// headers() and make the whole page dynamic for the sake of one field. The
-// form reads the session on the client, the way the header's menu does.
 export default function ContactPage() {
   return (
     // Same measure as /about — the shell's <main> is max-w-7xl, which is
