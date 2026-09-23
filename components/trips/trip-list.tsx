@@ -69,10 +69,17 @@ export function TripList({
     <div className="flex min-w-0 flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <SectionHeading className="sr-only">Trips</SectionHeading>
-        <p className="text-sm text-muted">
-          A trip is a window over your logbook. Nothing is moved into it — every session and send
-          inside its dates is already there.
-        </p>
+        {/* What the climber gets, not how it works. An earlier draft explained
+         * the mechanism — a window, nothing moved — which is a reassurance
+         * only someone worried about duplicated data needs, and raises a doubt
+         * the reader did not arrive with.
+         *
+         * Hidden while the list is empty, where the empty state makes the same
+         * promise with the instruction attached. Two sentences saying one
+         * thing is worse than either alone. */}
+        {trips.length > 0 && (
+          <p className="text-sm text-muted">Everything from one trip, in one place.</p>
+        )}
         {/* One "New trip" on screen at a time. While the list is empty the
          * empty state carries it, where the climber is already reading; once
          * there are trips it moves up here, clear of the cards. Showing both
@@ -87,7 +94,7 @@ export function TripList({
 
       {trips.length === 0 ? (
         <EmptyState
-          message="No trips yet. Name a stretch of dates and its sessions, sends and stats come with it."
+          message="No trips yet. Add the dates you were away and that trip's sessions, sends and stats come with it."
           cta={
             <Button onPress={() => openEditor()}>
               <Plus className="size-4" />
@@ -139,7 +146,7 @@ export function TripList({
         state={deleteState}
         noun="trip"
         title={deleting ? `Delete ${deleting.name}?` : "Delete this trip?"}
-        description="The trip is removed. Every session and send inside its dates stays exactly where it is — a trip only ever named them."
+        description="Deleting a trip won't delete any climbs — your sessions and sends stay in your logbook."
         onConfirm={handleDelete}
         isPending={pending}
         error={deleteError}

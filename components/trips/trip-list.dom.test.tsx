@@ -66,6 +66,16 @@ it("offers exactly one way to start a trip, wherever the list stands", () => {
   expect(screen.getAllByRole("button", { name: /new trip/i })).toHaveLength(1);
 });
 
+it("makes its promise once, not twice on the same empty screen", () => {
+  const { rerender } = render(<TripList trips={[]} userId="alex" today={TODAY} />);
+  // The empty state carries it, with the instruction attached.
+  expect(screen.getByText(/No trips yet/)).toBeInTheDocument();
+  expect(screen.queryByText("Everything from one trip, in one place.")).not.toBeInTheDocument();
+
+  rerender(<TripList trips={[past]} userId="alex" today={TODAY} />);
+  expect(screen.getByText("Everything from one trip, in one place.")).toBeInTheDocument();
+});
+
 it("shows each trip's counts and links its name to the trip", () => {
   render(<TripList trips={[past]} userId="alex" today={TODAY} />);
 
@@ -89,7 +99,7 @@ it("badges only the trips whose status is worth saying, against the given day", 
   expect(pastCard).not.toHaveTextContent("On now");
 });
 
-it("says plainly that deleting a trip keeps the climbing, then deletes it", async () => {
+it("says plainly that deleting a trip keeps the climbs, then deletes it", async () => {
   const user = userEvent.setup();
   render(<TripList trips={[past]} userId="alex" today={TODAY} />);
 
@@ -98,7 +108,7 @@ it("says plainly that deleting a trip keeps the climbing, then deletes it", asyn
 
   const dialog = await screen.findByRole("alertdialog");
   expect(dialog).toHaveTextContent("Delete Bishop, March 2026?");
-  expect(dialog).toHaveTextContent(/stays exactly where it is/i);
+  expect(dialog).toHaveTextContent(/won't delete any climbs/i);
 
   await user.click(within(dialog).getByRole("button", { name: "Delete" }));
 

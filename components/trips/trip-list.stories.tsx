@@ -18,7 +18,7 @@ export const Default: Story = {
   render: (args) => (
     <StoryPage
       title="Trips"
-      description="The owner's trips, newest window first. Counts come from the same SQL the trip's own tabs read, so a card cannot promise a number the page behind it contradicts."
+      description="The climber's trips, most recent first. Each card carries what that trip came to: days logged, entries and sends."
     >
       <TripList {...args} />
     </StoryPage>
@@ -42,7 +42,7 @@ export const Empty: Story = {
   render: (args) => (
     <StoryPage
       title="Trips"
-      description="Before the first trip. The empty state says what a trip is for, because nothing on the page demonstrates it yet."
+      description="Before the first trip. The empty state carries the explanation, because nothing on the page demonstrates it yet — and the only New trip button, so there are never two on one screen."
     >
       <TripList {...args} />
     </StoryPage>
