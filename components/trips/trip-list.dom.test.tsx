@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { deleteTrip } from "@/actions";
+import { deleteTrip, saveTrip } from "@/actions";
 import type { TripSummary } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
 
@@ -54,6 +54,7 @@ const upcoming: TripSummary = {
 beforeEach(() => {
   vi.mocked(deleteTrip).mockReset();
   vi.mocked(deleteTrip).mockResolvedValue({ ok: true, value: undefined });
+  vi.mocked(saveTrip).mockReset();
   refresh.mockReset();
 });
 
@@ -122,4 +123,31 @@ it("keeps the trip listed and shows the reason when the delete is refused", asyn
     screen.getByRole("link", { name: "Bishop, March 2026", hidden: true }),
   ).toBeInTheDocument();
   expect(refresh).not.toHaveBeenCalled();
+});
+
+it("reopens an edited trip showing what was saved, not what it used to say", async () => {
+  const user = userEvent.setup();
+  vi.mocked(saveTrip).mockResolvedValue({ ok: true, value: past.id });
+  const { rerender } = render(<TripList trips={[past]} userId="alex" today={TODAY} />);
+
+  await user.click(screen.getByRole("button", { name: `Actions for ${past.name}` }));
+  await user.click(await screen.findByRole("menuitem", { name: "Edit" }));
+
+  const name = await screen.findByRole("textbox", { name: /name/i });
+  await user.clear(name);
+  await user.type(name, "Bishop, take two");
+  await user.click(screen.getByRole("button", { name: "Save changes" }));
+  await waitFor(() => expect(saveTrip).toHaveBeenCalled());
+
+  // The server accepted it, so the list re-renders with the saved trip. The
+  // dialog closes on a timer, and its reset reads whichever trip it was last
+  // handed — which is how a stale draft survives into the next session.
+  const saved = { ...past, name: "Bishop, take two" };
+  rerender(<TripList trips={[saved]} userId="alex" today={TODAY} />);
+  await new Promise((resolve) => setTimeout(resolve, 400));
+
+  await user.click(screen.getByRole("button", { name: `Actions for ${saved.name}` }));
+  await user.click(await screen.findByRole("menuitem", { name: "Edit" }));
+
+  expect(await screen.findByRole("textbox", { name: /name/i })).toHaveValue("Bishop, take two");
 });

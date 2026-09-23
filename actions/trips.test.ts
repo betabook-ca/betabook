@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { deleteTrip, saveTrip } from "@/actions";
@@ -166,6 +166,21 @@ describe("editing a trip", () => {
 
     await saveTrip(id, { ...BISHOP, description: "  " });
     expect(await storedTripById(id)).toMatchObject({ description: null });
+  });
+
+  it("moves updated_at forward, so the column does not quietly lie", async () => {
+    const created = await saveTrip(null, BISHOP);
+    const id = created.ok ? created.value : 0;
+
+    // Pinned to a known past value rather than compared against `created_at`:
+    // both default to the same millisecond expression, so a same-tick edit
+    // would make an untouched column look updated.
+    await db.run(sql`UPDATE trips SET updated_at = 0 WHERE id = ${id}`);
+
+    await saveTrip(id, { ...BISHOP, name: "Bishop, take two" });
+
+    const [stored] = await storedTrips();
+    expect(stored.updatedAt.getTime()).toBeGreaterThan(0);
   });
 
   it("refuses to edit another climber's trip, and leaves it unchanged", async () => {
