@@ -187,7 +187,36 @@ describe("who can open a trip", () => {
   it("refuses a route parameter that is not an id at all", async () => {
     await seedTrip();
 
-    for (const raw of ["abc", "-1", "0", "1.5", "1e3"]) {
+    for (const raw of ["abc", "-1", "0", "1.5", ""]) {
+      await expect(
+        TripJournalPage({
+          params: Promise.resolve({ id: OWNER, tripId: raw }),
+          searchParams: Promise.resolve({}),
+        }),
+      ).rejects.toThrow("NOT_FOUND");
+    }
+  });
+
+  it("refuses every non-canonical spelling of a trip that does exist", async () => {
+    const trip = await seedTrip();
+
+    // Aliases of a *live* id, so a refusal proves the parser rejected the
+    // shape rather than the database missing the row. `Number` accepts all of
+    // these; without the shape check each would render the same trip at a
+    // different URL.
+    const aliases = [
+      `${trip.id}e0`,
+      `0x${trip.id.toString(16)}`,
+      `${trip.id}.0`,
+      `0${trip.id}`,
+      ` ${trip.id} `,
+      `+${trip.id}`,
+    ];
+    // The canonical spelling still resolves, so the loop below is not simply
+    // refusing everything.
+    expect(await renderJournal(trip.id)).toContain(INSIDE);
+
+    for (const raw of aliases) {
       await expect(
         TripJournalPage({
           params: Promise.resolve({ id: OWNER, tripId: raw }),

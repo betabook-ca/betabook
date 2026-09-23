@@ -77,7 +77,7 @@ describe("what a trip contains", () => {
     expect(summary.entryCount).toBe(2);
   });
 
-  it("counts days out as distinct logged dates, not the length of the window", async () => {
+  it("counts days logged as distinct dates with an entry, not the length of the window", async () => {
     await seedFixtureTrip(db, { userId: OWNER, ...BISHOP });
     await seedFixtureJournalEntry(db, { userId: OWNER, climbId: CLIMB, entryDate: "2026-03-12" });
     await seedFixtureJournalEntry(db, {

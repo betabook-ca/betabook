@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { TripTabs } from "@/components/trips/trip-tabs";
 import { AppLink } from "@/components/ui/app-link";
-import { PageTitle } from "@/components/ui/typography";
+import { SectionHeading } from "@/components/ui/typography";
 import type { TripSummary } from "@/db/queries";
 import { formatTripDates, tripsHref, type TripTab } from "@/lib/trips";
 
@@ -28,7 +28,7 @@ export function TripHeader({
         <AppLink href={tripsHref(userId)} className="text-sm text-muted">
           ← All trips
         </AppLink>
-        <PageTitle>{trip.name}</PageTitle>
+        <SectionHeading>{trip.name}</SectionHeading>
         {/* The dates and nothing else. A count here would be the trip's
          * whole window, while the Analytics tab counts one discipline at a
          * time — so the two would sit on the same screen disagreeing about

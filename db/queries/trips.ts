@@ -17,8 +17,11 @@ export type TripSummary = Trip & {
   /** Dated sends inside the window. Undated sends are never counted: a null
    * `date_sent` cannot be shown to fall in the trip. */
   sendCount: number;
-  /** Distinct days the climber logged something, which is what "6 days out"
-   * on the card means — not the calendar length of the trip. */
+  /** Distinct dates with any entry, training included — not the calendar
+   * length of the trip, and deliberately not the Analytics tab's "Days out".
+   * That tile counts outdoor sessions in one discipline, so it answers a
+   * narrower question; the card says "days logged" rather than borrowing its
+   * words for a different number. */
   dayCount: number;
 };
 

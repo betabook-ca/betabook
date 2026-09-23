@@ -74,7 +74,7 @@ it("shows each trip's counts and links its name to the trip", () => {
     "href",
     "/users/alex/trips/1",
   );
-  expect(card).toHaveTextContent("7 days out");
+  expect(card).toHaveTextContent("7 days logged");
   expect(card).toHaveTextContent("14 entries");
   expect(card).toHaveTextContent("9 sends");
 });

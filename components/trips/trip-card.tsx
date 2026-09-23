@@ -67,10 +67,14 @@ export function TripCard({
         <p className="line-clamp-2 text-sm leading-relaxed">{trip.description}</p>
       )}
 
-      {/* Counts come from the same SQL the trip's own tabs read, so a card
-       * cannot promise a number the page behind it then contradicts. */}
+      {/* Entries and sends come from the same SQL the trip's own tabs read, so
+       * the card cannot promise a number the page behind it contradicts.
+       * "Days logged" is deliberately not the Analytics tab's "Days out":
+       * that tile counts outdoor sessions in a single discipline, a narrower
+       * question, so it gets its own words rather than a shared label and two
+       * different numbers. */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-        <Stat value={trip.dayCount} label={trip.dayCount === 1 ? "day out" : "days out"} />
+        <Stat value={trip.dayCount} label={trip.dayCount === 1 ? "day logged" : "days logged"} />
         <Stat value={trip.entryCount} label={trip.entryCount === 1 ? "entry" : "entries"} />
         <Stat value={trip.sendCount} label={trip.sendCount === 1 ? "send" : "sends"} />
       </div>

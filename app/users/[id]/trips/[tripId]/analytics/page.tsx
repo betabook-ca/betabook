@@ -80,11 +80,16 @@ export default async function TripAnalyticsPage({ params, searchParams }: TripPa
   const requested = parseDisciplineScope(
     typeof search.discipline === "string" ? search.discipline : undefined,
   );
-  const dominant = [...present].sort(
-    (a, b) =>
-      sessions.filter((entry) => entry.climbType === b).length -
-      sessions.filter((entry) => entry.climbType === a).length,
-  )[0];
+  // Volume, not days. These rows are already grouped by (entry_date,
+  // climb_type) with a `count`, so counting rows would rank a discipline by
+  // how many days it appeared on — opening a trip with one big sport day on
+  // Bouldering because two boulder days had one climb each. Summing `count`
+  // is the same decision the main analytics page makes.
+  const disciplineVolume = (type: ClimbType) =>
+    sessions
+      .filter((entry) => entry.climbType === type)
+      .reduce((total, entry) => total + entry.count, 0);
+  const dominant = [...present].sort((a, b) => disciplineVolume(b) - disciplineVolume(a))[0];
   const scope = requested !== "all" && present.includes(requested) ? requested : (dominant ?? null);
 
   if (scope == null) {

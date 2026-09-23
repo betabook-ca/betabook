@@ -13,11 +13,20 @@ const getTripFor = cache(async (ownerId: string, tripId: number) =>
   getTripForOwner(await getDb(), ownerId, tripId),
 );
 
-/** A trip id arrives as a route string. Anything that is not a positive
- * integer is not an id at all, so it is refused before it reaches SQL. */
+/** A trip id arrives as a route string, and only the canonical decimal form
+ * of a positive integer is one.
+ *
+ * The shape is checked before the conversion, not after. `Number` also accepts
+ * exponent, hex, padded and trailing-zero forms, so `1e0`, `0x1`, ` 1 ` and
+ * `1.0` all become 1 — which would give every trip an unbounded set of URL
+ * aliases, each rendering the same page under a different address with no
+ * canonical among them. */
+const TRIP_ID = /^[1-9]\d*$/;
+
 function parseTripId(raw: string): number | null {
+  if (!TRIP_ID.test(raw)) return null;
   const id = Number(raw);
-  return Number.isSafeInteger(id) && id > 0 ? id : null;
+  return Number.isSafeInteger(id) ? id : null;
 }
 
 export type TripPageParams = {
