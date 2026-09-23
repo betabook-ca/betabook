@@ -7,16 +7,11 @@ import {
   shareExpiryModifier,
   type ShareExpiry,
 } from "@/lib/share-expiry";
-import { parseShareToken } from "@/lib/share-token";
 
 /** The token is the whole URL: no user id, no climb id, nothing to enumerate
  * and nothing revealed until it resolves against a live row. */
 export function projectSharePath(token: string): string {
   return `/projects/${token}`;
-}
-
-export function parseProjectShareToken(value: unknown): string | null {
-  return parseShareToken(value);
 }
 
 /** The expiry options and their helpers are shared with every other link

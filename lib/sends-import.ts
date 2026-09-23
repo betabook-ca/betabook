@@ -126,7 +126,7 @@ export type ColumnMapping = {
   areaName: string | null;
   /** Soft location signals: unmatched hints do not disqualify a candidate. */
   areaHints: string[];
-  climbType: string | null; // Optional discipline constraint.
+  climbType: string | null;
   grade: string | null;
   suggestedGrade: string | null; // optional — takes precedence over `grade` for the send's suggested grade
   gradeFeel: string | null;

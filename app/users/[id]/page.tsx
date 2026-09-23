@@ -15,14 +15,10 @@ import { getDb } from "@/db/client";
 import { getAreaBreadcrumbs, getSendsForUserPage, getUserSendsSummary } from "@/db/queries";
 import { parseJournalFilter } from "@/lib/filters/journal-filter";
 import { DEFAULT_USER_SENDS_FILTER, parseUserSendsFilter } from "@/lib/filters/user-sends-filter";
-import {
-  PROFILE_SHARE_PARAM,
-  SHARED_PROFILE_SENDS,
-  parseProfileShareToken,
-  profileSharePath,
-} from "@/lib/profile-share";
+import { PROFILE_SHARE_PARAM, SHARED_PROFILE_SENDS, profileSharePath } from "@/lib/profile-share";
 import { sharedProfileMetadata } from "@/lib/seo";
 import { getMemberSession } from "@/lib/session";
+import { parseShareToken } from "@/lib/share-token";
 import type { UrlParamsRecord } from "@/lib/url-params";
 import { canViewUser } from "@/lib/user-visibility";
 
@@ -32,7 +28,7 @@ type UserPageProps = {
 };
 
 async function getSharedProfile(id: string, search: UrlParamsRecord) {
-  const token = parseProfileShareToken(search[PROFILE_SHARE_PARAM]);
+  const token = parseShareToken(search[PROFILE_SHARE_PARAM]);
   if (!token) return null;
   const owner = await getShareLinkOwnerByToken(token);
   return owner?.id === id ? { ...owner, path: profileSharePath(id, token) } : null;

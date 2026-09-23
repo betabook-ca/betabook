@@ -11,10 +11,10 @@ import {
   parseCsvText,
   type ParsedCsv,
 } from "@/lib/sends-import";
-import { SUPPORT_EMAIL } from "@/lib/support";
+import { importTooLargeMessage, SUPPORT_EMAIL } from "@/lib/support";
 
 const FORMAT_ERROR = `Mountain Project returned an unfamiliar tick export. Download it as a CSV and upload that file instead, or email ${SUPPORT_EMAIL}.`;
-const SIZE_ERROR = `This Mountain Project tick list is too large for a direct import. Email ${SUPPORT_EMAIL} for help importing it.`;
+const SIZE_ERROR = importTooLargeMessage("Mountain Project tick list");
 
 async function responseError(response: Response) {
   let message: unknown;

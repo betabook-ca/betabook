@@ -93,7 +93,7 @@ export function MobileAppHelper() {
   }, [mounted, load, paused]);
 
   const handleDismiss = useCallback(() => {
-    setMobileHelperDismissed(true);
+    setMobileHelperDismissed();
     setIsOpen(false);
   }, []);
 
@@ -105,7 +105,7 @@ export function MobileAppHelper() {
       await promptEvent.prompt();
       const choice = await promptEvent.userChoice;
       if (choice.outcome === "accepted") {
-        setMobileHelperDismissed(true);
+        setMobileHelperDismissed();
         setIsOpen(false);
       }
     } catch {

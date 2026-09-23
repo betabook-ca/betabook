@@ -8,7 +8,7 @@ import {
 import { parseKayaUsername } from "@/lib/kaya-profile";
 import { readKayaStream } from "@/lib/kaya-stream-reader";
 import { MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS, type ParsedCsv } from "@/lib/sends-import";
-import { SUPPORT_EMAIL } from "@/lib/support";
+import { importTooLargeMessage, SUPPORT_EMAIL } from "@/lib/support";
 
 const FORMAT_ERROR = `KAYA returned an unexpected format. Please try again, or email ${SUPPORT_EMAIL}.`;
 const INCOMPLETE_ERROR = `Couldn't load your complete KAYA history, or it changed during download. Please try again, or email ${SUPPORT_EMAIL}.`;
@@ -198,10 +198,7 @@ export async function fetchKayaImport(
       if (received > total || (event.items.length < KAYA_PAGE_SIZE && received !== total))
         throw new Error(INCOMPLETE_ERROR);
       size += new TextEncoder().encode(JSON.stringify(event.items)).byteLength;
-      if (size > MAX_IMPORT_FILE_BYTES)
-        throw new Error(
-          `This KAYA history is too large for a direct import. Email ${SUPPORT_EMAIL} for help importing it.`,
-        );
+      if (size > MAX_IMPORT_FILE_BYTES) throw new Error(importTooLargeMessage("KAYA history"));
       progress();
     };
     await readKayaStream(username, type, signal, (value) => {

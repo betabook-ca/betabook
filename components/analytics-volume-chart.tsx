@@ -15,8 +15,9 @@ import {
   type ChartDetailGroup,
 } from "@/lib/chart-details";
 import { formatCount } from "@/lib/format";
+import { formatMonth } from "@/lib/format-date";
 import type { ClimbType } from "@/lib/grades";
-import { formatMonthLabel, type MonthlyVolume } from "@/lib/user-analytics";
+import type { MonthlyVolume } from "@/lib/user-analytics";
 
 export function AnalyticsVolumeChart({
   rows,
@@ -36,7 +37,7 @@ export function AnalyticsVolumeChart({
   const label = metric === "sends" ? "Sends" : "Days out";
   const { ref, width } = useChartWidth();
   const labels = rows.map(
-    (row) => `${formatMonthLabel(row.month)}: ${row[metric]} ${label.toLowerCase()}`,
+    (row) => `${formatMonth(row.month)}: ${row[metric]} ${label.toLowerCase()}`,
   );
   const detailRows = metric === "sends" ? sends && sendChartRows(sends) : activities;
   const rowsByMonth = groupDatedRows(detailRows ?? [], (entry) => entry.date, "month");
@@ -48,7 +49,7 @@ export function AnalyticsVolumeChart({
         return [
           labels[i],
           {
-            title: formatMonthLabel(row.month),
+            title: formatMonth(row.month),
             rows: matches,
             summary:
               metric === "sends" ? formatCount(row.sends, "send") : formatCount(row.days, "day"),
@@ -96,7 +97,7 @@ export function AnalyticsVolumeChart({
               <CartesianGrid vertical={false} stroke="var(--separator)" />
               <XAxis
                 dataKey="month"
-                tickFormatter={formatMonthLabel}
+                tickFormatter={formatMonth}
                 minTickGap={40}
                 tick={{ fontSize: 11, fill: "var(--muted)" }}
                 tickLine={false}

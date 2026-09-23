@@ -38,8 +38,9 @@ export const MAX_SOURCE_PHOTO_BYTES = 16 * 1024 * 1024;
 export const ACCEPTED_PROFILE_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
 const PROFILE_PHOTO_PATH_PREFIX = "/api/avatars/";
-export const PROFILE_PHOTO_TOO_LARGE_MESSAGE = "That photo is too large — pick one under 3 MB.";
-export const SOURCE_PHOTO_TOO_LARGE_MESSAGE = "That photo is too large — pick one under 16 MB.";
+const MB = 1024 * 1024;
+export const PROFILE_PHOTO_TOO_LARGE_MESSAGE = `That photo is too large — pick one under ${MAX_PROFILE_PHOTO_BYTES / MB} MB.`;
+export const SOURCE_PHOTO_TOO_LARGE_MESSAGE = `That photo is too large — pick one under ${MAX_SOURCE_PHOTO_BYTES / MB} MB.`;
 export const PROFILE_PHOTO_WRONG_TYPE_MESSAGE = "Profile photos must be a JPEG, PNG or WebP image.";
 export const PROFILE_PHOTO_UNREADABLE_MESSAGE =
   "That file doesn't look like an image we can read. Try a JPEG, PNG or WebP.";

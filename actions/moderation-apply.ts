@@ -18,7 +18,6 @@ import type { Database } from "@/db/client";
 import {
   getArea,
   getClimb,
-  getSubareas,
   hasClimbsInArea,
   type Area,
   type ChangeRequest,
@@ -37,7 +36,7 @@ import {
   projectShareLinks,
   sends,
 } from "@/db/schema";
-import { ActionError } from "@/lib/action-result";
+import { ActionError, errorChainIncludes } from "@/lib/action-result";
 import type { AreaInput } from "@/lib/areas";
 import { validateClimbBreakInput, type ClimbBreakImpact } from "@/lib/broken-climbs";
 import { validateClimbMergeOverrides, validateClimbEditInput } from "@/lib/climbs";
@@ -132,13 +131,14 @@ async function commitMutation(
   try {
     await db.batch([...audit, ...statements] as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
   } catch (error) {
-    for (let cause = error; cause instanceof Error; cause = cause.cause) {
-      if (
-        cause.message.includes("NOT NULL constraint failed: change_request_approvals.request_id") ||
-        cause.message.includes("NOT NULL constraint failed: change_requests.payload")
-      ) {
-        throw new ActionError("The request or affected area/climb changed — reload and try again");
-      }
+    if (
+      errorChainIncludes(
+        error,
+        "NOT NULL constraint failed: change_request_approvals.request_id",
+        "NOT NULL constraint failed: change_requests.payload",
+      )
+    ) {
+      throw new ActionError("The request or affected area/climb changed — reload and try again");
     }
     throw error;
   }
@@ -222,11 +222,14 @@ export async function applyAreaEdit(
 }
 
 export async function assertAreaDeletable(db: Database, areaId: number): Promise<Area> {
-  const existing = await getArea(db, areaId);
+  const [existing, subarea, hasClimbs] = await Promise.all([
+    getArea(db, areaId),
+    db.select({ id: areas.id }).from(areas).where(eq(areas.parentId, areaId)).limit(1).get(),
+    hasClimbsInArea(db, areaId),
+  ]);
   if (!existing) throw new ActionError("Area not found");
-  const subareas = await getSubareas(db, areaId);
-  if (subareas.length > 0) throw new ActionError("Can't delete an area with sub-areas");
-  if (await hasClimbsInArea(db, areaId)) throw new ActionError("Can't delete an area with climbs");
+  if (subarea) throw new ActionError("Can't delete an area with sub-areas");
+  if (hasClimbs) throw new ActionError("Can't delete an area with climbs");
   return existing;
 }
 
@@ -490,11 +493,7 @@ export async function assertClimbBreakable(
   climbId: number,
   brokenOn: string,
 ): Promise<{ climb: Climb } & ClimbBreakImpact> {
-  const climb = await getClimb(db, climbId);
-  if (!climb) throw new ActionError("Climb not found");
-  if (climb.brokenOn !== null) {
-    throw new ActionError(`This climb is already marked as broken on ${climb.brokenOn}`);
-  }
+  const climb = await getUnbrokenClimb(db, climbId);
   const [row] = await db.all<ClimbBreakImpact>(sql`
     SELECT
       (SELECT count(*) FROM sends WHERE climb_id = ${climbId}
@@ -503,6 +502,15 @@ export async function assertClimbBreakable(
         AND entry_date >= ${brokenOn}) AS laterEntries
   `);
   return { climb, laterSends: row.laterSends, laterEntries: row.laterEntries };
+}
+
+async function getUnbrokenClimb(db: Database, climbId: number): Promise<Climb> {
+  const climb = await getClimb(db, climbId);
+  if (!climb) throw new ActionError("Climb not found");
+  if (climb.brokenOn !== null) {
+    throw new ActionError(`This climb is already marked as broken on ${climb.brokenOn}`);
+  }
+  return climb;
 }
 
 /** Marks the climb broken, creates its post-break successor, and moves the
@@ -539,9 +547,8 @@ export async function applyClimbBreak(
       throw new ActionError("This break request is incomplete — reject it and request a new one");
     }
   }
-  const { climb: existing } = await assertClimbBreakable(db, climbId, brokenOn);
-  const guard = sql`${climbUnchanged(existing)} AND EXISTS (
-    SELECT 1 FROM climbs WHERE id = ${climbId} AND broken_on IS NULL)`;
+  const existing = await getUnbrokenClimb(db, climbId);
+  const guard = sql`${climbUnchanged(existing)} AND ${climbNotBroken(existing)}`;
   // The successor is inserted two statements earlier in this batch; the
   // highest id with its name in this area is that row, since any older
   // same-named climb has a lower id and last_insert_rowid() is clobbered by
@@ -819,16 +826,6 @@ export async function applyClimbMerge(
   });
 }
 
-/** Drizzle wraps SQLite constraint errors in the cause chain. */
-function isUniqueConstraintError(err: unknown): boolean {
-  let current = err;
-  while (current instanceof Error) {
-    if (current.message.includes("UNIQUE constraint failed")) return true;
-    current = current.cause;
-  }
-  return false;
-}
-
 /** The partial unique index permits one pending request per type/entity/requester. */
 export async function submitChangeRequest<T extends ChangeRequestType>(
   db: Database,
@@ -844,7 +841,7 @@ export async function submitChangeRequest<T extends ChangeRequestType>(
       .returning({ id: changeRequests.id });
     return id;
   } catch (err) {
-    if (isUniqueConstraintError(err)) {
+    if (errorChainIncludes(err, "UNIQUE constraint failed")) {
       throw new ActionError(
         "You already have a pending request for this — an admin will review it",
       );

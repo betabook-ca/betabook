@@ -17,14 +17,14 @@ export function toRange(
   return [Math.min(...values), Math.max(...values)];
 }
 
-export function parseDisciplines(params: UrlParamsRecord, key = "discipline"): Discipline[] {
-  return toArray(params[key]).filter(
+export function parseDisciplines(params: UrlParamsRecord): Discipline[] {
+  return toArray(params.discipline).filter(
     (d): d is Discipline => d === "boulder" || d === "sport" || d === "trad",
   );
 }
 
-export function parseAscentStyles(params: UrlParamsRecord, key = "ascentStyle"): AscentStyle[] {
-  return toArray(params[key]).filter((s): s is AscentStyle =>
+export function parseAscentStyles(params: UrlParamsRecord): AscentStyle[] {
+  return toArray(params.ascentStyle).filter((s): s is AscentStyle =>
     (ASCENT_STYLES as readonly string[]).includes(s),
   );
 }
@@ -59,16 +59,15 @@ export function parseSuggestionLimit(searchParams: URLSearchParams): number | nu
 export const MAX_PAGINATION_OFFSET = 10_000;
 
 /** Reads a 1-based `page`. Junk reads as page 1; a request beyond the scan
- * budget returns null so handlers can return an exhausted page. Saturating
- * at the maximum used to replay that same last page forever. */
+ * budget returns null so handlers can return an exhausted page. */
 export function parsePage(searchParams: URLSearchParams, pageSize: number): number | null {
   const page = Math.max(1, Math.trunc(Number(searchParams.get("page"))) || 1);
   const lastPage = Math.floor(MAX_PAGINATION_OFFSET / pageSize) + 1;
   return page > lastPage ? null : page;
 }
 
-/** Row `offset` for the two endpoints that paginate by offset rather than
- * page number, under the same MAX_PAGINATION_OFFSET budget. Junk reads as 0;
+/** Row `offset` for endpoints that paginate by offset rather than page
+ * number, under the same MAX_PAGINATION_OFFSET budget. Junk reads as 0;
  * a request past the budget is terminal rather than a replay of offset
  * 10,000. */
 export function parseOffset(searchParams: URLSearchParams): number | null {

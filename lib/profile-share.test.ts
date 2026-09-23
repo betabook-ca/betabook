@@ -1,24 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { parseProfileShareToken, profileShareFromPath, profileSharePath } from "./profile-share";
+import { profileShareFromPath, profileSharePath } from "./profile-share";
 
 const TOKEN = "0123456789abcdef0123456789abcdef";
-
-describe("parseProfileShareToken", () => {
-  it("accepts only the issued token format", () => {
-    expect(parseProfileShareToken(TOKEN)).toBe(TOKEN);
-    for (const value of [
-      undefined,
-      [TOKEN],
-      TOKEN.toUpperCase(),
-      `${TOKEN}0`,
-      TOKEN.slice(1),
-      "../../account",
-    ]) {
-      expect(parseProfileShareToken(value)).toBeNull();
-    }
-  });
-});
 
 describe("profileShareFromPath", () => {
   it("recovers the profile and token from a share link continuation", () => {

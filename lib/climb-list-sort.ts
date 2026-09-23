@@ -1,10 +1,7 @@
 import type { SubtreeClimbsSort } from "@/db/queries";
 import { toArray, type UrlParamsRecord } from "@/lib/url-params";
 
-// Shared by the area page and climb search — both list climbs via the same
-// <ClimbList> and sort on the same denormalized columns (see
-// SUBTREE_CLIMBS_ORDER_BY in db/queries/climbs.ts), so one validation list,
-// not two near-identical copies.
+// Must match SUBTREE_CLIMBS_ORDER_BY in db/queries/climbs.ts.
 const CLIMB_LIST_SORTS = new Set<SubtreeClimbsSort>([
   "name_asc",
   "name_desc",

@@ -16,6 +16,7 @@ import type { ClimbFilterState } from "@/lib/filters/climb-filter-state";
 import { formatCount } from "@/lib/format";
 import type { ClimbType } from "@/lib/grades";
 import type { PublicClimbsPage } from "@/lib/public-catalog";
+import { toBreadcrumbPath } from "@/lib/search-suggestions";
 import { areaHref, climbHref } from "@/lib/slug";
 import { toArray, type UrlParamsRecord } from "@/lib/url-params";
 
@@ -177,7 +178,7 @@ export function areaSearchItems(
     id: `area-${area.id}`,
     kind: "area",
     name: area.name,
-    detail: area.ancestorPath?.split(" > ").join(" / ") ?? "Area",
+    detail: toBreadcrumbPath(area.ancestorPath) ?? "Area",
     href: areaHref(area.id, area.name),
   }));
 }

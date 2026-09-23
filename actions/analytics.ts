@@ -10,7 +10,6 @@ import { requireSession } from "@/lib/session";
 
 import { afterCommit } from "./post-commit";
 
-/** The target always comes from the session; clients cannot choose another account. */
 export async function saveAnalyticsLayout(layout: AnalyticsLayout): Promise<ActionResult> {
   return toActionResult(async () => {
     const session = await requireSession();

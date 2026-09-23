@@ -122,12 +122,10 @@ export function climbDescription(climb: PublicClimbFacts, trail: string): string
   return `${climb.name} is a ${grade === "—" ? "" : `${grade} `}${discipline}${trail ? ` in ${trail}` : ""}. ${detail || CLIMB_FALLBACK}`;
 }
 
-/** `<title>` for an area page. */
 export function areaTitle(name: string, parentName: string | null): string {
   return parentName ? `${name} climbing · ${parentName}` : `${name} climbing`;
 }
 
-/** `<meta name="description">` for an area page. */
 export function areaDescription(name: string, trail: string, description?: string | null): string {
   const where = trail ? `${name}, ${trail}` : name;
   return `Explore climbing in ${where}. ${description?.trim() || AREA_FALLBACK}`;

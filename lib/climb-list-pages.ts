@@ -37,7 +37,7 @@ export function createClimbListMeta({
   };
 }
 
-/** Add one newly loaded page's metadata to the visible list. */
+/** A page without `sentClimbIds` clears the set rather than keeping the old one. */
 export function mergeClimbListMeta(current: ClimbListMeta, incoming: ClimbListMeta): ClimbListMeta {
   return {
     sendStats: { ...current.sendStats, ...incoming.sendStats },

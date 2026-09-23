@@ -6,9 +6,10 @@ import { cardClass } from "@/components/ui/card";
 import { PageTitle } from "@/components/ui/typography";
 import { getDb } from "@/db/client";
 import { getSharedProject, getSharedProjectSessions } from "@/db/queries";
-import { parseProjectShareToken, projectSharePath } from "@/lib/project-share";
+import { projectSharePath } from "@/lib/project-share";
 import { sharedProjectMetadata } from "@/lib/seo";
 import { getMemberSession } from "@/lib/session";
+import { parseShareToken } from "@/lib/share-token";
 import { SITE_NAME } from "@/lib/site";
 
 type SharedProjectPageProps = {
@@ -19,7 +20,7 @@ type SharedProjectPageProps = {
  * before deciding what a reader may see: holding the token is the permission.
  * The session is read only to decide whether to show a sign-up prompt. */
 export async function generateMetadata(props: SharedProjectPageProps): Promise<Metadata> {
-  const token = parseProjectShareToken((await props.params).token);
+  const token = parseShareToken((await props.params).token);
   if (!token) return { title: "Shared project", robots: { index: false } };
 
   const db = await getDb();
@@ -30,7 +31,7 @@ export async function generateMetadata(props: SharedProjectPageProps): Promise<M
 }
 
 export default async function SharedProjectPage(props: SharedProjectPageProps) {
-  const token = parseProjectShareToken((await props.params).token);
+  const token = parseShareToken((await props.params).token);
   if (!token) notFound();
 
   const db = await getDb();
