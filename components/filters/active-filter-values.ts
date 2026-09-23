@@ -1,6 +1,7 @@
 import type { ActiveFilter } from "@/components/filters/active-filter-summary";
 import { DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
-import type { DateFilterValue } from "@/lib/filters/date-filter";
+import { MAX_RATING } from "@/lib/filters/climb-stats-filter";
+import type { DateFilterValue, RelativeDatePreset } from "@/lib/filters/date-filter";
 import { DEFAULT_DISCIPLINE_FILTER, type DisciplineFilter } from "@/lib/filters/discipline-filter";
 import { formatDate } from "@/lib/format-date";
 import { nativeGradeArray } from "@/lib/grades";
@@ -32,19 +33,25 @@ export function disciplineActiveFilters<T extends DisciplineFilter>(
   });
 }
 
+export const DATE_PRESET_LABELS: Record<RelativeDatePreset, string> = {
+  "this-month": "This month",
+  "this-year": "This year",
+  "last-year": "Last year",
+};
+
+/** 0 on either side means unbounded. */
+export function ratingBounds(range: [number, number]): [number, number] {
+  return [range[0] || 1, range[1] || MAX_RATING];
+}
+
 export function dateActiveFilters<T extends DateFilterValue>(
   value: T,
   onChange: (value: T) => void,
 ): ActiveFilter[] {
   if (!value.date && !value.dateFrom && !value.dateTo) return [];
-  const presets = {
-    "this-month": "This month",
-    "this-year": "This year",
-    "last-year": "Last year",
-  };
   const day = (date: string | undefined) => (date ? formatDate(date) : "Any time");
   const label = value.datePreset
-    ? presets[value.datePreset]
+    ? DATE_PRESET_LABELS[value.datePreset]
     : value.date
       ? formatDate(value.date)
       : `${day(value.dateFrom)} – ${day(value.dateTo)}`;
@@ -79,15 +86,14 @@ export function ratingActiveFilters(
   range: [number, number],
   onChange: (range: [number, number]) => void,
 ): ActiveFilter[] {
-  const min = range[0] || 1;
-  const max = range[1] || 5;
-  if (min === 1 && max === 5) return [];
+  const [min, max] = ratingBounds(range);
+  if (min === 1 && max === MAX_RATING) return [];
   return [
     {
       id: "rating",
       label: `Rating: ${min === max ? min : `${min}–${max}`} ${min === max && min === 1 ? "star" : "stars"}`,
       ratingRange: [min, max],
-      onRemove: () => onChange([1, 5]),
+      onRemove: () => onChange([1, MAX_RATING]),
     },
   ];
 }

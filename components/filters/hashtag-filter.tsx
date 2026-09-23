@@ -7,12 +7,10 @@ export function HashtagFilter({
   value,
   onChange,
   tags,
-  inlineLabel = false,
 }: {
   value: string[];
   onChange: (value: string[]) => void;
   tags: string[];
-  inlineLabel?: boolean;
 }) {
-  return <TagsField value={value} onChange={onChange} tags={tags} inlineLabel={inlineLabel} />;
+  return <TagsField value={value} onChange={onChange} tags={tags} inlineLabel />;
 }

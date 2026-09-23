@@ -227,7 +227,6 @@ export function UserSendsFilterToolbar({
             </div>
           </div>
           <HashtagFilter
-            inlineLabel
             value={disciplineFilter.tags ?? EMPTY_TAGS}
             tags={tags}
             onChange={(tags) => setDisciplineFilter({ ...disciplineFilter, tags })}

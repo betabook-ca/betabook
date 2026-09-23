@@ -2,16 +2,22 @@ import { Button, useOverlayState } from "@heroui/react";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { ratingActiveFilters } from "@/components/filters/active-filter-values";
 import { ClimbFilters } from "@/components/filters/climb-filters";
+import { RatingRangeFilter } from "@/components/filters/min-rating-filter";
 import { SearchPicker } from "@/components/search/search-picker";
 import { SearchSelectionField } from "@/components/search/search-selection-field";
 import { QuickSearchDialog, SearchSurface } from "@/components/search/search-surface";
 import type { SearchResult, SearchStatus } from "@/components/search/search-types";
 import { cardClass } from "@/components/ui/card";
+import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
+import { OptionSelect } from "@/components/ui/option-select";
 import { SectionHeading } from "@/components/ui/typography";
 import type { AreaSelection } from "@/lib/area-selection";
+import type { ClimbRefinements } from "@/lib/filters/climb-refinements";
 
 import { SAMPLE_AREAS, CATALOG_FIXTURES } from "./catalog-data";
+import { DEFAULT_CLIMB_REFINEMENTS } from "./climb-refinements";
 import { StoryPage } from "./story-layout";
 import { useSearchDemo, type SearchScenario } from "./use-search-demo";
 
@@ -30,7 +36,7 @@ function SelectedResult({ item, onClear }: { item: SearchResult | null; onClear:
   );
 }
 
-export function DemoAreaControl({
+function DemoAreaControl({
   selected,
   onChange,
 }: {
@@ -59,6 +65,53 @@ export function DemoAreaControl({
         onChange(SAMPLE_AREAS.find((area) => area.id === item.id) ?? null);
         setQuery("");
       }}
+    />
+  );
+}
+
+/** ClimbFilters over the fixture catalog: name sort, a rating range and the
+ * area picker, without the app's URL-backed filter state. */
+export function DemoClimbFilters({
+  value,
+  onChange,
+  showSort = true,
+}: {
+  value: ClimbRefinements;
+  onChange: (value: ClimbRefinements) => void;
+  showSort?: boolean;
+}) {
+  return (
+    <ClimbFilters
+      value={value}
+      onChange={onChange}
+      areaControl={
+        <DemoAreaControl selected={value.area} onChange={(area) => onChange({ ...value, area })} />
+      }
+      activeFilters={ratingActiveFilters(
+        [value.minRating, value.maxRating],
+        ([minRating, maxRating]) => onChange({ ...value, minRating, maxRating }),
+      )}
+      sortControl={
+        showSort ? (
+          <OptionSelect
+            ariaLabel="Sort results"
+            value={value.sort}
+            onChange={(sort) => onChange({ ...value, sort })}
+            options={[
+              { value: "name_asc", label: "Name A–Z" },
+              { value: "name_desc", label: "Name Z–A" },
+            ]}
+            className={FIELD_WIDTH_CLASS.medium}
+          />
+        ) : undefined
+      }
+      ratingControl={
+        <RatingRangeFilter
+          value={[value.minRating, value.maxRating]}
+          onChange={([minRating, maxRating]) => onChange({ ...value, minRating, maxRating })}
+        />
+      }
+      onReset={() => onChange(DEFAULT_CLIMB_REFINEMENTS)}
     />
   );
 }
@@ -111,13 +164,7 @@ export function SearchDemo({
           {...props}
           filters={
             demo.category === "climb" ? (
-              <ClimbFilters
-                value={demo.filters}
-                onChange={demo.setFilters}
-                areaControl={
-                  <DemoAreaControl selected={demo.filters.area} onChange={props.onAreaChange} />
-                }
-              />
+              <DemoClimbFilters value={demo.filters} onChange={demo.setFilters} />
             ) : undefined
           }
         />
@@ -224,18 +271,7 @@ export function ClimbPickerDemo({
         selectedId={selected?.id}
         onLoadMore={demo.loadMore}
         loadingMore={demo.pending}
-        filters={
-          <ClimbFilters
-            value={demo.filters}
-            onChange={demo.setFilters}
-            areaControl={
-              <DemoAreaControl
-                selected={demo.filters.area}
-                onChange={(area) => demo.setFilters({ ...demo.filters, area })}
-              />
-            }
-          />
-        }
+        filters={<DemoClimbFilters value={demo.filters} onChange={demo.setFilters} />}
       />
       <SelectedResult item={selected} onClear={() => setSelected(null)} />
     </StoryPage>

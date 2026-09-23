@@ -24,7 +24,6 @@ export function ClimbFilterControls({
   areaFetcher,
   showAreaLookup = false,
   showMinAscents = true,
-  showRatingFilters = true,
   showSort = true,
   onReset,
   activeFilters = EMPTY_ACTIVE_FILTERS,
@@ -33,7 +32,6 @@ export function ClimbFilterControls({
   activeFilters?: ActiveFilter[];
   showAreaLookup?: boolean;
   showMinAscents?: boolean;
-  showRatingFilters?: boolean;
   showSort?: boolean;
   areaFetcher?: ComponentProps<typeof AreaLookup>["fetcher"];
   value: ClimbFilterState;
@@ -114,7 +112,6 @@ export function ClimbFilterControls({
           </>
         ) : undefined
       }
-      showSort={showSort}
       sortControl={
         showSort ? (
           <ClimbListSortControl
@@ -126,7 +123,6 @@ export function ClimbFilterControls({
       ratingControl={
         <ClimbStatsFields
           showMinAscents={showMinAscents}
-          showRatingFilters={showRatingFilters}
           ratingRange={value.filter.ratingRange}
           minAscents={value.filter.minAscents}
           onRatingRangeChange={(ratingRange) =>

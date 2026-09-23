@@ -13,9 +13,8 @@ export type SearchTarget = {
   areaName: string | null;
 };
 
-/** The climb search from the Log Send drawer, seeded with the CSV row's
- * climb and area names so a spelling fix is one edit away. A pick becomes
- * that row's climb. */
+/** Seeded with the CSV row's climb and area names so a spelling fix is one
+ * edit away. A pick becomes that row's climb. */
 export function ImportClimbSearchDrawer({
   state,
   target,

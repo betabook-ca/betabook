@@ -143,7 +143,6 @@ export function JournalFilterToolbar({
             />
           )}
           <HashtagFilter
-            inlineLabel
             value={localFilter.tags}
             tags={tags}
             onChange={(tags) => setFilter({ ...localFilter, tags })}

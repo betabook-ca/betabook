@@ -4,7 +4,13 @@ import { useState } from "react";
 import { expect, it, vi } from "vitest";
 
 import type { ClimbCandidate } from "@/db/queries";
-import { matchRows, mergeCandidates, resolveRows, type ManualChoice } from "@/lib/import-matching";
+import {
+  matchRows,
+  mergeCandidates,
+  resolveRows,
+  summarizeResolved,
+  type ManualChoice,
+} from "@/lib/import-matching";
 import type { NormalizedImportRow } from "@/lib/sends-import";
 
 import { ImportMatchStep } from "./import-match-step";
@@ -74,6 +80,7 @@ function Step({ dateSent }: { dateSent: string | null }) {
   return (
     <ImportMatchStep
       resolved={resolved}
+      summary={summarizeResolved(resolved)}
       lookup={{ phase: "done" }}
       onRetryLookup={vi.fn<() => void>()}
       preferredAreas={[]}

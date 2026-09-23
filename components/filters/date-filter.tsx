@@ -4,6 +4,7 @@ import { Button } from "@heroui/react";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import { useState } from "react";
 
+import { DATE_PRESET_LABELS } from "@/components/filters/active-filter-values";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { FIELD_WIDTH_CLASS, FILTER_ROW_CLASS, FILTER_LABEL_CLASS } from "@/components/ui/field";
 import { InlineAlert } from "@/components/ui/inline-alert";
@@ -16,9 +17,9 @@ import {
 
 const OPTIONS = [
   { value: "any", label: "All time" },
-  { value: "this-month", label: "This month" },
-  { value: "this-year", label: "This year" },
-  { value: "last-year", label: "Last year" },
+  { value: "this-month", label: DATE_PRESET_LABELS["this-month"] },
+  { value: "this-year", label: DATE_PRESET_LABELS["this-year"] },
+  { value: "last-year", label: DATE_PRESET_LABELS["last-year"] },
   { value: "custom", label: "Custom dates" },
 ] as const;
 type DateOption = RelativeDatePreset | "any" | "custom";
@@ -101,32 +102,35 @@ export function DateFilter({
       </div>
       {option === "custom" && (
         <>
-          <div className="flex flex-wrap gap-3 sm:ml-27">
-            <div className={FIELD_WIDTH_CLASS.medium}>
-              <DatePickerField
-                label="Start date"
-                value={start}
-                onChange={(date) => updateCustom(date, end)}
-                description="Choose a day, or the first day of a range."
-              />
-            </div>
-            <div className={`${FIELD_WIDTH_CLASS.medium} flex flex-col gap-1`}>
-              <DatePickerField
-                label="End date (optional)"
-                value={end}
-                onChange={(date) => updateCustom(start, date)}
-                description="Leave blank for one day. A range includes both dates."
-              />
-              {end && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="self-start"
-                  onPress={() => updateCustom(start, "")}
-                >
-                  Clear end date
-                </Button>
-              )}
+          <div className={FILTER_ROW_CLASS}>
+            <span className="hidden sm:block" aria-hidden />
+            <div className="flex flex-wrap gap-3">
+              <div className={FIELD_WIDTH_CLASS.medium}>
+                <DatePickerField
+                  label="Start date"
+                  value={start}
+                  onChange={(date) => updateCustom(date, end)}
+                  description="Choose a day, or the first day of a range."
+                />
+              </div>
+              <div className={`${FIELD_WIDTH_CLASS.medium} flex flex-col gap-1`}>
+                <DatePickerField
+                  label="End date (optional)"
+                  value={end}
+                  onChange={(date) => updateCustom(start, date)}
+                  description="Leave blank for one day. A range includes both dates."
+                />
+                {end && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="self-start"
+                    onPress={() => updateCustom(start, "")}
+                  >
+                    Clear end date
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
           {reversed && <InlineAlert>End date must be on or after start date.</InlineAlert>}

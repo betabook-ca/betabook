@@ -5,20 +5,14 @@ import { X } from "lucide-react";
 import type { ReactNode } from "react";
 
 import type { ActiveFilter } from "@/components/filters/active-filter-summary";
-import { ratingActiveFilters } from "@/components/filters/active-filter-values";
 import { FilterToolbar } from "@/components/filters/filter-toolbar";
-import { RatingRangeFilter } from "@/components/filters/min-rating-filter";
-import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
-import { OptionSelect } from "@/components/ui/option-select";
 import type { ClimbRefinements } from "@/lib/filters/climb-refinements";
-import { DEFAULT_DISCIPLINE_FILTER } from "@/lib/filters/discipline-filter";
 
 export function ClimbFilters({
   value,
   onChange,
   areaControl,
   sortControl,
-  showSort = true,
   ratingControl,
   onReset,
   activeFilters,
@@ -26,15 +20,11 @@ export function ClimbFilters({
   value: ClimbRefinements;
   onChange: (value: ClimbRefinements) => void;
   areaControl?: ReactNode;
+  /** Absent in a picker, where the order of a short result list is not the question. */
   sortControl?: ReactNode;
-  /** Drops the order control entirely. A picker is answering "which climb did
-   * I mean", where the ordering of a short result list is not the question;
-   * `sortControl ?? default` cannot express that, since the default is what
-   * an absent control falls back to. */
-  showSort?: boolean;
-  ratingControl?: ReactNode;
-  onReset?: () => void;
-  activeFilters?: ActiveFilter[];
+  ratingControl: ReactNode;
+  onReset: () => void;
+  activeFilters: ActiveFilter[];
 }) {
   return (
     <div className="flex flex-col gap-3">
@@ -55,10 +45,7 @@ export function ClimbFilters({
         value={value}
         onChange={onChange}
         activeFilters={[
-          ...(activeFilters ??
-            ratingActiveFilters([value.minRating, value.maxRating], ([minRating, maxRating]) =>
-              onChange({ ...value, minRating, maxRating }),
-            )),
+          ...activeFilters,
           ...(value.area
             ? [
                 {
@@ -69,43 +56,9 @@ export function ClimbFilters({
               ]
             : []),
         ]}
-        sortControl={
-          showSort
-            ? (sortControl ?? (
-                <OptionSelect
-                  ariaLabel="Sort results"
-                  value={value.sort}
-                  onChange={(sort) => onChange({ ...value, sort })}
-                  options={[
-                    { value: "name_asc", label: "Name A–Z" },
-                    { value: "name_desc", label: "Name Z–A" },
-                  ]}
-                  className={FIELD_WIDTH_CLASS.medium}
-                />
-              ))
-            : undefined
-        }
-        extraFilters={
-          ratingControl ?? (
-            <>
-              <RatingRangeFilter
-                value={[value.minRating, value.maxRating]}
-                onChange={([minRating, maxRating]) => onChange({ ...value, minRating, maxRating })}
-              />
-            </>
-          )
-        }
-        onReset={
-          onReset ??
-          (() =>
-            onChange({
-              ...DEFAULT_DISCIPLINE_FILTER,
-              area: null,
-              minRating: 0,
-              maxRating: 0,
-              sort: "name_asc",
-            }))
-        }
+        sortControl={sortControl}
+        extraFilters={ratingControl}
+        onReset={onReset}
       />
     </div>
   );

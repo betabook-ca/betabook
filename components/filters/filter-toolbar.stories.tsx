@@ -63,12 +63,7 @@ function HashtagFiltersExample() {
         textFilter={<FilterInput label="Filter climbs" value={query} onChange={setQuery} />}
         activeFilters={hashtagActiveFilters(tags, setTags)}
         extraFilters={
-          <HashtagFilter
-            inlineLabel
-            value={tags}
-            onChange={setTags}
-            tags={["power", "strength", "trip"]}
-          />
+          <HashtagFilter value={tags} onChange={setTags} tags={["power", "strength", "trip"]} />
         }
       />
     </StoryPage>

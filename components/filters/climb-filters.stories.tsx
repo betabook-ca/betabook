@@ -4,7 +4,7 @@ import { userEvent, within } from "storybook/test";
 
 import { ClimbFilters } from "@/components/filters/climb-filters";
 import { DEFAULT_CLIMB_REFINEMENTS } from "@/stories/fixtures/climb-refinements";
-import { DemoAreaControl } from "@/stories/fixtures/search-demo";
+import { DemoClimbFilters } from "@/stories/fixtures/search-demo";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 const meta = { title: "Components/Filters/Climb filters", component: ClimbFilters } satisfies Meta<
@@ -16,16 +16,7 @@ function Example() {
   const [value, setValue] = useState(DEFAULT_CLIMB_REFINEMENTS);
   return (
     <StoryPage title="Climb refinements">
-      <ClimbFilters
-        value={value}
-        onChange={setValue}
-        areaControl={
-          <DemoAreaControl
-            selected={value.area}
-            onChange={(area) => setValue({ ...value, area })}
-          />
-        }
-      />
+      <DemoClimbFilters value={value} onChange={setValue} />
     </StoryPage>
   );
 }

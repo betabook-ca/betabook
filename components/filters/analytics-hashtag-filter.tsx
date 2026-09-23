@@ -36,7 +36,7 @@ export function AnalyticsHashtagFilter({
       triggerClassName="h-9"
       activeFilters={hashtagActiveFilters(filter, setFilter)}
       onReset={() => setFilter([])}
-      filters={<HashtagFilter inlineLabel value={filter} onChange={setFilter} tags={tags} />}
+      filters={<HashtagFilter value={filter} onChange={setFilter} tags={tags} />}
     />
   );
 }
