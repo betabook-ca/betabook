@@ -74,7 +74,7 @@ beforeEach(async () => {
   });
 });
 
-it("shows the owner, the climb and the notes, and nothing else about them", async () => {
+it("shows one project as the owner sees it, and nothing beyond it", async () => {
   await seedFixturePinnedProject(db, { userId: OWNER, climbId: OTHER_CLIMB });
   await seedFixtureJournalEntry(db, {
     userId: OWNER,
@@ -93,8 +93,9 @@ it("shows the owner, the climb and the notes, and nothing else about them", asyn
   expect(rendered).not.toContain("A different project entirely.");
   expect(rendered).not.toContain("Test Slab");
   expect(rendered).not.toContain("owner@example.com");
-  expect(rendered).not.toContain(`"${OWNER}"`);
-  expect(rendered).not.toContain("/users/owner");
+  // The owner id does travel: the page links their profile, which a link can
+  // only ever reach while that profile is public. The email is the line.
+  expect(rendered).toContain(`"ownerId":"${OWNER}"`);
 });
 
 it("never carries a companion's name to a link holder", async () => {
@@ -125,14 +126,22 @@ it("never carries a companion's name to a link holder", async () => {
   expect(rendered).not.toContain("Tagged Friend");
 });
 
-it("publishes a send by month, not by date", async () => {
-  await seedFixtureSend(db, { userId: OWNER, climbId: CLIMB, dateSent: "2026-03-14" });
+it("publishes the send whole, exact date and all", async () => {
+  await seedFixtureSend(db, {
+    userId: OWNER,
+    climbId: CLIMB,
+    dateSent: "2026-03-14",
+    rating: 4,
+    suggestedGrade: 9,
+    comment: "Better than it looks from the ground.",
+  });
   const token = await share();
 
   const rendered = await pageJson(token);
 
-  expect(rendered).toContain("2026-03");
-  expect(rendered).not.toContain("2026-03-14");
+  expect(rendered).toContain("2026-03-14");
+  expect(rendered).toContain("Better than it looks from the ground.");
+  expect(rendered).toContain('"rating":4');
 });
 
 it("404s a token that does not resolve", async () => {

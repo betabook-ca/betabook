@@ -27,7 +27,6 @@ export function ProjectCardLayout({
   title,
   area,
   today,
-  sentLabel,
   children,
   action,
 }: {
@@ -35,10 +34,6 @@ export function ProjectCardLayout({
   title?: ReactNode;
   area?: ReactNode;
   today: string | null;
-  /** Replaces the "Sent <date>" text. The shared project page publishes the
-   * send by month, matching what the signed-out climb page already shows, so
-   * it cannot reuse `sentOn`. */
-  sentLabel?: ReactNode;
   children: ReactNode;
   action?: ReactNode;
 }) {
@@ -65,7 +60,7 @@ export function ProjectCardLayout({
         {project.sent && (
           <>
             <span className="font-medium text-success-soft-foreground">
-              {sentLabel ?? (project.sentOn ? <>Sent {formatDate(project.sentOn)}</> : "Sent")}
+              {project.sentOn ? <>Sent {formatDate(project.sentOn)}</> : "Sent"}
             </span>
             <Separator />
           </>

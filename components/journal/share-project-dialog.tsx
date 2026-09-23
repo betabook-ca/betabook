@@ -122,16 +122,14 @@ export function ShareProjectDialog({
         }
       >
         <div className="flex flex-col gap-4">
-          {/* Said before the link exists, not after. Two things a climber is
-           * least likely to expect: that the notes travel with it, and that
-           * the link does not care who is holding it. */}
-          <p className="text-sm">
-            Anyone with this link can open it, and pass it on. They see your sessions and notes for{" "}
-            {climbName}.
-          </p>
-          <p className="text-sm text-muted">
-            Nothing else is shared, and it doesn&apos;t appear in anyone&apos;s feed.
-          </p>
+          {/* Said before the link exists, not after, and in the same shape as
+           * the profile share control: one sentence naming what travels. The
+           * page shows this project as the climber's own board shows it,
+           * overriding their journal and send-comment audiences for this one
+           * climb, so "send" has to keep covering its date, rating, grade and
+           * comment. The dialog title already names the climb. */}
+          <p className="text-sm">Anyone with the link sees your sessions, notes and send.</p>
+          <p className="text-sm text-muted">Climbers you tagged aren&apos;t named.</p>
 
           <div className="flex items-center justify-between gap-3">
             {/* The control sets a duration; the line under the link below

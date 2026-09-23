@@ -87,9 +87,8 @@ export default function AboutPage() {
           </li>
           <li>
             Only you can see your projects, unless you share one: that makes a link to a single
-            climb showing your name, its sessions and your notes on it. Anyone with the link can
-            open it, so share it the way you would a photo. You choose when it expires and can stop
-            sharing at any time.
+            climb. Anyone with the link sees your name, sessions, notes and send, so share it the
+            way you would a photo. You choose when it expires and can stop sharing at any time.
           </li>
           <li>Only you can export your sends.</li>
         </ul>

@@ -46,9 +46,11 @@ it("warns that the link is open to anyone holding it, before one exists", async 
   render(<Example />);
 
   expect(
-    screen.getByText(/Anyone with this link can open it, and pass it on/i),
+    screen.getByText(/Anyone with the link sees your sessions, notes and send/i),
   ).toBeInTheDocument();
-  expect(screen.getByText(/see your sessions and notes for/i)).toHaveTextContent("Moon Slab");
+  // The climb is named once, in the title; the sentence does not repeat it.
+  expect(screen.getByRole("heading", { name: /Share Moon Slab/i })).toBeInTheDocument();
+  expect(screen.getByText(/Climbers you tagged aren't named/i)).toBeInTheDocument();
   // No link to copy until the climber asks for one.
   expect(screen.queryByLabelText("Project link")).not.toBeInTheDocument();
 });
@@ -59,7 +61,9 @@ it("offers no audience to choose, so a link cannot be mistaken for a feed settin
   for (const label of ["Friends", "Members", "Everyone", "Only me"]) {
     expect(screen.queryByRole("button", { name: label })).not.toBeInTheDocument();
   }
-  expect(screen.getByText(/doesn't appear in anyone's feed/i)).toBeInTheDocument();
+  expect(
+    screen.getByText(/Anyone with the link sees your sessions, notes and send/i),
+  ).toBeInTheDocument();
 });
 
 it("creates a link with the chosen expiry and shows it, dated", async () => {

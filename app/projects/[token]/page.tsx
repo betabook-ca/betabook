@@ -5,7 +5,7 @@ import { SharedProject } from "@/components/shared-project";
 import { cardClass } from "@/components/ui/card";
 import { PageTitle } from "@/components/ui/typography";
 import { getDb } from "@/db/client";
-import { getProjectShareAccess, getSharedProject, getSharedProjectSessions } from "@/db/queries";
+import { getSharedProject, getSharedProjectSessions } from "@/db/queries";
 import { parseProjectShareToken, projectSharePath } from "@/lib/project-share";
 import { sharedProjectMetadata } from "@/lib/seo";
 import { getMemberSession } from "@/lib/session";
@@ -23,7 +23,7 @@ export async function generateMetadata(props: SharedProjectPageProps): Promise<M
   if (!token) return { title: "Shared project", robots: { index: false } };
 
   const db = await getDb();
-  const project = await getSharedProject(db, token);
+  const { project } = await getSharedProject(db, token);
   return project
     ? sharedProjectMetadata(project.ownerName, project.climbName, project.sent)
     : { title: "Shared project", robots: { index: false } };
@@ -34,7 +34,9 @@ export default async function SharedProjectPage(props: SharedProjectPageProps) {
   if (!token) notFound();
 
   const db = await getDb();
-  const access = await getProjectShareAccess(db, token);
+  // The session decides the sign-up prompt, not what may be read, so it does
+  // not gate the project read and rides alongside it.
+  const [access, session] = await Promise.all([getSharedProject(db, token), getMemberSession()]);
 
   // Described as a state of the link rather than of the project: the reader is
   // not being refused, and nothing about the climber is disclosed either way.
@@ -50,18 +52,14 @@ export default async function SharedProjectPage(props: SharedProjectPageProps) {
   }
   if (access.status === "hidden") notFound();
 
-  const [project, sessions, session] = await Promise.all([
-    getSharedProject(db, token),
-    getSharedProjectSessions(db, token),
-    getMemberSession(),
-  ]);
-  // Both reads re-run the predicate, so this also covers a share revoked
-  // between the access check and them.
-  if (!project) notFound();
+  // Fetched only once the link is known good, and re-running the predicate
+  // itself, so notes are never selected for a reader who may not read them --
+  // including a share revoked between the two statements.
+  const sessions = await getSharedProjectSessions(db, token);
 
   return (
     <SharedProject
-      project={project}
+      project={access.project}
       sessions={sessions}
       signedIn={session !== null}
       path={projectSharePath(token)}
