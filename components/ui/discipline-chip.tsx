@@ -31,7 +31,7 @@ export const DISCIPLINE_HUE: Record<ClimbType, string> = {
   trad: "var(--color-palette-primary)",
 };
 
-/** The one place discipline gets a color: a soft palette-tinted chip.
+/** The discipline tag: a soft palette-tinted chip.
  * Chips mean discipline; ascent styles have their own chip set
  * (AscentStyle); the sent tick is its own device. */
 export function DisciplineChip({ type }: { type: ClimbType }) {

@@ -70,12 +70,6 @@ it("treats the threshold as exclusive", () => {
   expect(result.current).toBe(false);
 });
 
-it("accepts a caller's own threshold", () => {
-  stubVisualViewport(700);
-  const { result } = renderHook(() => useCompactViewport(760));
-  expect(result.current).toBe(true);
-});
-
 it("falls back to the layout viewport where there is no visual viewport", () => {
   vi.stubGlobal("innerHeight", 400);
   const { result } = renderHook(() => useCompactViewport());

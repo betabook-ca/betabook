@@ -5,11 +5,9 @@ import { expect, it } from "vitest";
 
 import { IndexRangeSelect } from "./index-select";
 
-function Range({ any = false }: { any?: boolean }) {
-  const [range, setRange] = useState<[number, number]>([0, any ? 0 : 2]);
-  const options = any
-    ? ["Any", "1 star", "2 stars", "3 stars", "4 stars"]
-    : ["V0", "V1", "V2", "V3", "V4", "V5"];
+function Range() {
+  const [range, setRange] = useState<[number, number]>([0, 2]);
+  const options = ["V0", "V1", "V2", "V3", "V4", "V5"];
   return (
     <IndexRangeSelect
       label="Range"
@@ -17,9 +15,7 @@ function Range({ any = false }: { any?: boolean }) {
       maxLabel="Maximum"
       range={range}
       onChange={setRange}
-      minOptions={options}
-      maxOptions={options}
-      anyIndex={any ? 0 : undefined}
+      options={options}
     />
   );
 }
@@ -36,16 +32,4 @@ it("clamps the opposite grade bound in both directions", async () => {
   await choose(user, "Maximum", "V0");
   expect(screen.getByRole("button", { name: /Minimum/ })).toHaveTextContent("V0");
   expect(screen.getByRole("button", { name: /Maximum/ })).toHaveTextContent("V0");
-});
-it("keeps Any unbounded on either side while clamping concrete ratings", async () => {
-  const user = userEvent.setup();
-  render(<Range any />);
-  await choose(user, "Minimum", "4 stars");
-  expect(screen.getByRole("button", { name: /Maximum/ })).toHaveTextContent("Any");
-  await choose(user, "Maximum", "1 star");
-  expect(screen.getByRole("button", { name: /Minimum/ })).toHaveTextContent("1 star");
-  await choose(user, "Minimum", "Any");
-  expect(screen.getByRole("button", { name: /Maximum/ })).toHaveTextContent("1 star");
-  await choose(user, "Maximum", "Any");
-  expect(screen.getByRole("button", { name: /Minimum/ })).toHaveTextContent("Any");
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import type { GoalPage } from "@/lib/goals";
 
@@ -70,14 +70,13 @@ export function useGoalPages(
       if (request.current === controller) request.current = null;
     }
   }
-  const reload = useRef(load);
-  useEffect(() => {
-    reload.current = load;
-  });
+  const reload = useEffectEvent((serverPage: GoalPage) =>
+    load(latest.current.year, false, serverPage),
+  );
   useEffect(() => {
     if (source.current === initial) return;
     source.current = initial;
-    void reload.current(latest.current.year, false, initial);
+    void reload(initial);
   }, [initial]);
   return {
     ...state,

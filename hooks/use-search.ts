@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { AuthenticationRequiredError } from "@/lib/api-client";
 import {
@@ -44,10 +44,7 @@ function useSearchSection(
     key: string;
     loadingMore?: boolean;
   } | null>(null);
-  const latest = useRef({ state, fetcher });
-  useEffect(() => {
-    latest.current = { state, fetcher };
-  });
+  const fetchFirstPage = useEffectEvent((signal: AbortSignal) => fetcher(state, kind, 1, signal));
   if (observed !== key) {
     setObserved(key);
     setSettled((old) => ({ ...old, key, status: enabled ? "loading" : "idle" }));
@@ -65,8 +62,7 @@ function useSearchSection(
     if (enabled && !useInitial) {
       timer = setTimeout(
         () => {
-          void latest.current
-            .fetcher(latest.current.state, kind, 1, controller.signal)
+          void fetchFirstPage(controller.signal)
             .then((page) => {
               if (!controller.signal.aborted) setSettled({ key, page, status: "ready" });
               return undefined;

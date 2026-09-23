@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 type PagedListPage<T, Meta> = {
   items: T[];
@@ -32,10 +32,7 @@ export function usePagedList<T, Meta>({
   fetchPage,
   mergeMeta,
 }: Options<T, Meta>) {
-  const callbacks = useRef({ fetchPage, itemKey, mergeMeta });
-  useEffect(() => {
-    callbacks.current = { fetchPage, itemKey, mergeMeta };
-  });
+  const latestCallbacks = useEffectEvent(() => ({ fetchPage, itemKey, mergeMeta }));
   const loadController = useRef<AbortController | null>(null);
   const [state, setState] = useState(() => ({
     sourceItems: initialItems,
@@ -77,7 +74,7 @@ export function usePagedList<T, Meta>({
     if (!refresh) return;
     const request = refresh;
     const controller = new AbortController();
-    const { fetchPage, itemKey, mergeMeta } = callbacks.current;
+    const { fetchPage, itemKey, mergeMeta } = latestCallbacks();
     async function revalidate() {
       let next = request.first;
       let pagesLoaded = 1;

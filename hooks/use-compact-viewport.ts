@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 import { onVisualViewportChange, visualViewportHeight } from "@/lib/visual-viewport";
 
@@ -10,22 +10,14 @@ import { onVisualViewportChange, visualViewportHeight } from "@/lib/visual-viewp
 // same treatment.
 export const COMPACT_VIEWPORT_HEIGHT = 600;
 
+const isCompact = () => visualViewportHeight() < COMPACT_VIEWPORT_HEIGHT;
+const serverSnapshot = () => false;
+
 /** True when there isn't enough height to spend on chrome. Surfaces that
  * stack filters above a scrolling list collapse them when this is set.
  *
- * Starts `false` so the server and the first client render agree. The
- * overlays using it only open on a click, by which point the real
- * measurement has landed. */
-export function useCompactViewport(maxHeight: number = COMPACT_VIEWPORT_HEIGHT): boolean {
-  const [compact, setCompact] = useState(false);
-
-  useEffect(() => {
-    function measure() {
-      setCompact(visualViewportHeight() < maxHeight);
-    }
-    measure();
-    return onVisualViewportChange(measure);
-  }, [maxHeight]);
-
-  return compact;
+ * `false` on the server and during hydration. The overlays using it only
+ * open on a click, by which point the real measurement has landed. */
+export function useCompactViewport(): boolean {
+  return useSyncExternalStore(onVisualViewportChange, isCompact, serverSnapshot);
 }

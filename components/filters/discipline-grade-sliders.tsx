@@ -30,8 +30,7 @@ export function DisciplineGradeSliders<T extends DisciplineFilter>({
       {showBoulder && (
         <IndexRangeSelect
           label="Boulder"
-          minOptions={BOULDER_HUECO}
-          maxOptions={BOULDER_HUECO}
+          options={BOULDER_HUECO}
           minLabel="Min grade"
           maxLabel="Max grade"
           range={value.boulderRange}
@@ -42,8 +41,7 @@ export function DisciplineGradeSliders<T extends DisciplineFilter>({
       {showSport && (
         <IndexRangeSelect
           label="Sport"
-          minOptions={ROPE_YDS}
-          maxOptions={ROPE_YDS}
+          options={ROPE_YDS}
           minLabel="Min grade"
           maxLabel="Max grade"
           range={value.sportRange}
@@ -54,8 +52,7 @@ export function DisciplineGradeSliders<T extends DisciplineFilter>({
       {showTrad && (
         <IndexRangeSelect
           label="Trad"
-          minOptions={ROPE_YDS}
-          maxOptions={ROPE_YDS}
+          options={ROPE_YDS}
           minLabel="Min grade"
           maxLabel="Max grade"
           range={value.tradRange}

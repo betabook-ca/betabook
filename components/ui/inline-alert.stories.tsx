@@ -35,9 +35,6 @@ export const Warning: Story = {
   },
 };
 export const Success: Story = { args: { status: "success", children: "Display name updated." } };
-export const Information: Story = {
-  args: { status: "accent", children: "Your request was submitted for review." },
-};
 export const LongMessage: Story = {
   args: {
     children: `Could not import this profile: https://example.test/${"long-profile-name-".repeat(12)}. Check the address and try again.`,
