@@ -12,7 +12,15 @@ import { FIELD_HEIGHT_CLASS } from "@/components/ui/field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { OptionSelect } from "@/components/ui/option-select";
 import { PageTitle } from "@/components/ui/typography";
-import { goalToday, goalWindow, type GoalInput } from "@/lib/goals";
+import {
+  END_DATE_MESSAGES,
+  END_DATE_MISSING_MESSAGE,
+  END_DATE_ORDER_MESSAGE,
+  END_DATE_PAST_MESSAGE,
+  goalToday,
+  goalWindow,
+  type GoalInput,
+} from "@/lib/goals";
 import { nativeGradeArray, type ClimbType } from "@/lib/grades";
 
 const SENTENCE_GROUP_CLASS = "inline-flex max-w-full items-center gap-1";
@@ -242,11 +250,10 @@ export function GoalForm({
     if (goal !== "grade" && (!Number.isInteger(Number(amount)) || Number(amount) < 1))
       return { message: "Enter a whole number of at least 1." };
     if (repeat === "none" && period === "custom" && (!startDate || !endDate || endDate < startDate))
-      return { message: "End date must be on or after start date.", field: "endDate" };
+      return { message: END_DATE_ORDER_MESSAGE, field: "endDate" };
     if (selectedRecurringEndDate === "")
-      return { message: "Choose an end date.", field: "endDate" };
-    if (invalidRecurringEnd)
-      return { message: "End date must be today or later.", field: "endDate" };
+      return { message: END_DATE_MISSING_MESSAGE, field: "endDate" };
+    if (invalidRecurringEnd) return { message: END_DATE_PAST_MESSAGE, field: "endDate" };
     return null;
   }
   function navigate(next: typeof step) {
@@ -342,12 +349,11 @@ export function GoalForm({
                       tags: submittedTags(goal, draft?.goal, tags),
                     });
                 } catch (cause) {
-                  setError({
-                    message:
-                      cause instanceof Error
-                        ? cause.message
-                        : "Could not save the goal. Try again.",
-                  });
+                  const message =
+                    cause instanceof Error ? cause.message : "Could not save the goal. Try again.";
+                  setError(
+                    END_DATE_MESSAGES.has(message) ? { message, field: "endDate" } : { message },
+                  );
                 } finally {
                   setPending(false);
                   onPendingChange?.(false);

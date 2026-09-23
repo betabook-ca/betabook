@@ -25,7 +25,8 @@ it("shows counts, loading guidance, and a countdown that resets for each retry",
   expect(screen.getByRole("status")).not.toHaveTextContent("Retrying");
   expect(screen.getByText("Retrying in 5s")).toBeVisible();
   await act(async () => vi.advanceTimersByTimeAsync(5_000));
-  expect(screen.getByText("Trying again…")).toBeVisible();
+  expect(screen.getByRole("status")).toHaveTextContent("Attempt 1/3. Trying again…");
+  expect(screen.queryByText(/Retrying in/)).not.toBeInTheDocument();
   rerender(
     <KayaImportProgress
       progress={{

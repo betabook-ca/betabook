@@ -5,6 +5,16 @@ import { nativeGradeArray, type ClimbType } from "@/lib/grades";
 import { normalizeTags } from "@/lib/journal";
 import { isRealIsoDate } from "@/lib/sends";
 
+export const END_DATE_ORDER_MESSAGE = "End date must be on or after start date.";
+export const END_DATE_PAST_MESSAGE = "End date must be today or later.";
+export const END_DATE_MISSING_MESSAGE = "Choose an end date.";
+/** Messages the goal form shows on its end-date field, whichever side raised them. */
+export const END_DATE_MESSAGES: ReadonlySet<string> = new Set([
+  END_DATE_ORDER_MESSAGE,
+  END_DATE_PAST_MESSAGE,
+  END_DATE_MISSING_MESSAGE,
+]);
+
 export const MAX_ACTIVE_GOALS = 5;
 const isoDate = z.string().refine(isRealIsoDate, "Choose a valid date.");
 function validGradeMatch(value: { gradeMatch: string; kind: string; grade: number | null }) {
@@ -69,7 +79,7 @@ export const goalInputSchema = z
     )
       ctx.addIssue({
         code: "custom",
-        message: "End date must be on or after start date.",
+        message: END_DATE_ORDER_MESSAGE,
         path: ["endDate"],
       });
     if (value.repeat === "none" && value.recurringEndDate != null)
@@ -183,7 +193,7 @@ export function goalWindow(
   if (timeframe === "custom") {
     if (!isoDate.safeParse(startDate).success || !isoDate.safeParse(endDate).success)
       throw new ActionError("Choose valid start and end dates.");
-    if (endDate < startDate) throw new ActionError("End date must be on or after start date.");
+    if (endDate < startDate) throw new ActionError(END_DATE_ORDER_MESSAGE);
     return { startDate, endDate };
   }
   if (timeframe === "week") {

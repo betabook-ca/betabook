@@ -15,6 +15,7 @@ import {
   type ActionResult,
 } from "@/lib/action-result";
 import {
+  END_DATE_PAST_MESSAGE,
   goalInputSchema,
   missedGoalNeedsAction,
   type GoalProgress,
@@ -147,8 +148,7 @@ function recurringEndSetting(existing: ExistingGoal | null | undefined, input: G
       : input.recurringEndDate === undefined
         ? (existing?.recurringEndDate ?? null)
         : input.recurringEndDate;
-  if (value && value < goalToday(input.timezone))
-    throw new ActionError("End date must be today or later.");
+  if (value && value < goalToday(input.timezone)) throw new ActionError(END_DATE_PAST_MESSAGE);
   return {
     value,
     update:

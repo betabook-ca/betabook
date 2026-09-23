@@ -365,6 +365,35 @@ it("loads an existing recurring end date and lets the owner remove it", async ()
   expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ recurringEndDate: null }));
 });
 
+it("shows a server end-date rejection on the date field, not the form alert", async () => {
+  const save = vi
+    .fn<(draft: unknown) => Promise<void>>()
+    .mockRejectedValue(new Error("End date must be today or later."));
+  const user = userEvent.setup();
+  render(
+    <GoalForm
+      today="2026-09-11"
+      onSave={save}
+      initialDraft={{
+        category: "training",
+        goal: "training",
+        discipline: "boulder",
+        grade: "any",
+        amount: "3",
+        period: "week",
+        repeat: "week",
+        endDate: "2026-09-13",
+        recurringEndDate: "2026-09-20",
+      }}
+    />,
+  );
+  await user.click(screen.getByRole("button", { name: "Save changes" }));
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("End date must be today or later.");
+  expect(screen.getAllByRole("alert")).toHaveLength(1);
+  expect(alert.closest("[data-invalid]")).not.toBeNull();
+});
+
 it("keeps tags optional when their section is open", async () => {
   const save = vi.fn<(draft: unknown) => void>();
   const user = userEvent.setup();
