@@ -19,7 +19,7 @@ export function ProgressBar({
       aria-valuenow={value}
       aria-valuemin={0}
       aria-valuemax={max}
-      className={`w-full overflow-hidden rounded-full bg-surface ${size === "sm" ? "h-1 dark:bg-foreground" : "h-2"}`}
+      className={`w-full overflow-hidden rounded-full bg-surface ${size === "sm" ? "h-1 dark:bg-white" : "h-2"}`}
     >
       <div className="h-full bg-accent transition-all" style={{ width: `${percentage}%` }} />
     </div>
