@@ -56,6 +56,11 @@ it("links the climber's profile, which a link can only reach while it is public"
   expect(render(PROJECT)).toContain('href="/users/usr_alex"');
 });
 
+it("links the climb, which the catalog makes public to everyone", () => {
+  // The owner's own card links it, and this page claims to show what they see.
+  expect(render(PROJECT)).toContain('href="/climbs/101/moon-slab"');
+});
+
 it("dates a send to the day, not the month it landed in", () => {
   // The page used to publish a month, to stop a reader picking the owner's
   // row out of the climb page's anonymous send list. A share overrides that.

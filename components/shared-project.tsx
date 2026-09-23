@@ -13,6 +13,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import type { SharedProject, SharedProjectSession } from "@/db/queries";
 import { signUpUrl } from "@/lib/sign-in-redirect";
 import { SITE_NAME } from "@/lib/site";
+import { climbHref } from "@/lib/slug";
 
 /** What a valid project link shows: one climber, one climb, and the work they
  * have put into it — the owner's own view of the project, which is what they
@@ -57,6 +58,11 @@ export function SharedProject({
         <ProjectCardLayout
           project={project}
           today={null}
+          title={
+            <AppLink href={climbHref(project.climbId, project.climbName)}>
+              {project.climbName}
+            </AppLink>
+          }
           area={<span className="text-sm text-muted">{project.areaName}</span>}
         >
           {project.sent && (
