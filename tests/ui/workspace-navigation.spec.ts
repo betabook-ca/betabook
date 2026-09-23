@@ -3,6 +3,9 @@ import { expect, openStory, test } from "./story";
 for (const [story, title, labels] of [
   ["logbook", "Logbook", ["Journal", "Sends", "Trips"]],
   ["sends", "Logbook", ["Journal", "Sends", "Trips"]],
+  // A trip's own page nests under /trips, so the same row renders and the
+  // `toHaveCount(1)` check below proves Trips is the one tab reading current.
+  ["trip-detail", "Logbook", ["Journal", "Sends", "Trips"]],
   ["progress", "Progress", ["Goals", "Projects", "Analytics"]],
   // The sent sub-page nests under /projects, so the same row renders and the
   // `toHaveCount(1)` check below proves exactly one tab reads as current.
