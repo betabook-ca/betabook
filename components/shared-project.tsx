@@ -34,6 +34,13 @@ export function SharedProject({
   path: string;
 }) {
   const verb = project.sent ? "sent" : "is projecting";
+  // A dated send mirrors its comment into the ascent entry, so the timeline
+  // below is already printing it and the card would say it twice — which the
+  // owner's own board never does. Printing it here is for the cases with no
+  // entry to carry it: an undated send, an ascent demoted by a deleted send,
+  // or one old enough to fall outside the session cap.
+  const commentInTimeline =
+    project.sendComment != null && sessions.some((entry) => entry.body === project.sendComment);
   return (
     <div className="flex flex-col gap-6">
       <section aria-label="Shared project" className={`flex flex-col gap-4 ${cardClass("md")}`}>
@@ -66,7 +73,7 @@ export function SharedProject({
                 />
                 {project.ascentStyle && <AscentStyle type={project.ascentStyle} />}
               </div>
-              {project.sendComment && (
+              {project.sendComment && !commentInTimeline && (
                 <div className="text-sm leading-relaxed text-foreground">
                   <ClampedComment>{project.sendComment}</ClampedComment>
                 </div>

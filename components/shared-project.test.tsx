@@ -69,6 +69,35 @@ it("prints the send's own opinion of the climb beside it", () => {
   expect(html).toContain("Felt a grade harder than the book says.");
 });
 
+it("says the send comment once when the timeline already carries it", () => {
+  // A dated send mirrors its comment into the ascent entry, so both the card
+  // and the timeline hold the same text. The owner's own board never prints
+  // it twice, and neither should this.
+  const mirrored: SharedProjectSession[] = [
+    { id: 4100, entryDate: "2026-09-14", body: SENT.sendComment, tags: [] },
+    ...SESSIONS,
+  ];
+  const html = renderToStaticMarkup(
+    <SharedProject project={SENT} sessions={mirrored} signedIn path="/projects/abc" />,
+  );
+
+  const comment = SENT.sendComment!;
+  expect(html.split(comment).length - 1).toBe(1);
+});
+
+it("still says it when no entry carries it, as an undated send has none", () => {
+  const html = renderToStaticMarkup(
+    <SharedProject
+      project={{ ...SENT, sentOn: null }}
+      sessions={SESSIONS}
+      signedIn
+      path="/projects/abc"
+    />,
+  );
+
+  expect(html).toContain("Felt a grade harder than the book says.");
+});
+
 it("prints no send line while a project is still open", () => {
   const html = render(PROJECT);
 
