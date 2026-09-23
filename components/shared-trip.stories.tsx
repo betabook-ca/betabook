@@ -23,8 +23,8 @@ const trip: SharedTripData = {
   description: "Buttermilks and the Happies, with two rest days for the storm.",
   startDate: "2026-03-10",
   endDate: "2026-03-20",
-  entryCount: 9,
-  sendCount: 3,
+  entryCount: 3,
+  sendCount: 2,
   dayCount: 6,
 };
 
@@ -140,6 +140,24 @@ export const NothingLogged: Story = {
     <StoryPage
       title="Shared trip"
       description="A trip shared before it happened, or one with nothing inside its dates. The window is still the trip; it simply has nothing in it yet."
+    >
+      <SharedTrip {...args} />
+    </StoryPage>
+  ),
+};
+
+export const LongerThanTheList: Story = {
+  args: {
+    trip: { ...trip, name: "The 2026 season", entryCount: 412, sendCount: 260, dayCount: 96 },
+    entries,
+    sends,
+    signedIn: false,
+    path: PATH,
+  },
+  render: (args) => (
+    <StoryPage
+      title="Shared trip"
+      description="A whole season named as a trip. The counts come from unbounded COUNT(*) while the lists are capped — paginating a public endpoint would be a second door onto this data — so the page says what it is showing rather than quietly dropping the oldest."
     >
       <SharedTrip {...args} />
     </StoryPage>

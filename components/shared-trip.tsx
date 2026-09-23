@@ -15,6 +15,22 @@ import { SITE_NAME } from "@/lib/site";
 import { climbHref } from "@/lib/slug";
 import { formatTripDates } from "@/lib/trips";
 
+/** Said when the bounded read did not reach the end.
+ *
+ * The counts above come from unbounded `COUNT(*)`, while these lists are
+ * capped — deliberately, because paginating a public endpoint would be a
+ * second door onto this data. Nothing stops a climber naming a whole season a
+ * trip, so a page can honestly read "412 entries" above 200 of them. Rather
+ * than quietly dropping the oldest, it says so. */
+function Truncated({ shown, total, noun }: { shown: number; total: number; noun: string }) {
+  if (shown >= total) return null;
+  return (
+    <p className="text-sm text-muted">
+      Showing the {shown} most recent of {total} {noun}.
+    </p>
+  );
+}
+
 function Stat({ value, label }: { value: number; label: string }) {
   return (
     <span className="text-sm text-muted">
@@ -36,11 +52,18 @@ function SendRow({ send }: { send: SharedTripSend }) {
         <span className="text-sm text-muted">{formatDate(send.dateSent)}</span>
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        {/* The send as the owner logged it: their suggested grade, how it
-         * felt, and their rating — the same cell their own Sends list uses. */}
+        {/* The posted grade leads and the suggestion rides alongside it, the
+         * same way the owner's own Sends list and the shared profile do it.
+         *
+         * The project share leads with the suggestion instead, and this was
+         * copied from there — but that page can only do it because its card
+         * header already carries the posted grade. A trip row has no such
+         * header, so leading with the suggestion rendered a dash for every
+         * send logged without one, which is the default. */}
         <SendGradeCell
           type={send.climbType}
-          grade={send.suggestedGrade}
+          grade={send.climbGrade}
+          suggestedGrade={send.suggestedGrade}
           gradeFeel={send.gradeFeel ?? "solid"}
           rating={send.rating}
         />
@@ -145,6 +168,7 @@ export function SharedTrip({
 
       <section aria-label="Sends" className="flex flex-col gap-3">
         <SectionHeading>Sends</SectionHeading>
+        <Truncated shown={sends.length} total={trip.sendCount} noun="sends" />
         {sends.length === 0 ? (
           <EmptyState message={`${trip.ownerName} didn't log a send on this trip.`} />
         ) : (
@@ -158,6 +182,7 @@ export function SharedTrip({
 
       <section aria-label="Journal" className="flex flex-col gap-3">
         <SectionHeading>Journal</SectionHeading>
+        <Truncated shown={entries.length} total={trip.entryCount} noun="entries" />
         {entries.length === 0 ? (
           <EmptyState message={`${trip.ownerName} didn't log a session on this trip.`} />
         ) : (
