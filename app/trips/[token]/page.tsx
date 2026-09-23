@@ -8,8 +8,9 @@ import { getDb } from "@/db/client";
 import { getSharedTrip, getSharedTripEntries, getSharedTripSends } from "@/db/queries";
 import { sharedTripMetadata } from "@/lib/seo";
 import { getMemberSession } from "@/lib/session";
+import { parseShareToken } from "@/lib/share-token";
 import { SITE_NAME } from "@/lib/site";
-import { parseTripShareToken, tripSharePath } from "@/lib/trip-share";
+import { tripSharePath } from "@/lib/trip-share";
 
 type SharedTripPageProps = {
   params: Promise<{ token: string }>;
@@ -19,7 +20,7 @@ type SharedTripPageProps = {
  * deciding what a reader may see: holding the token is the permission. The
  * session is read only to decide whether to show a sign-up prompt. */
 export async function generateMetadata(props: SharedTripPageProps): Promise<Metadata> {
-  const token = parseTripShareToken((await props.params).token);
+  const token = parseShareToken((await props.params).token);
   if (!token) return { title: "Shared trip", robots: { index: false } };
 
   const db = await getDb();
@@ -30,7 +31,7 @@ export async function generateMetadata(props: SharedTripPageProps): Promise<Meta
 }
 
 export default async function SharedTripPage(props: SharedTripPageProps) {
-  const token = parseTripShareToken((await props.params).token);
+  const token = parseShareToken((await props.params).token);
   if (!token) notFound();
 
   const db = await getDb();

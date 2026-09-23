@@ -56,6 +56,7 @@ export function revalidateProfileSurfaces(userId: string) {
   revalidatePath(`/users/${userId}/journal`);
   revalidatePath(`/users/${userId}/sends`);
   revalidateProjectSurfaces(userId);
+  revalidateTripSurfaces(userId);
   revalidatePath(`/users/${userId}/goals`);
   revalidatePath(`/users/${userId}/analytics`);
 }
