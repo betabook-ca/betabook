@@ -10,6 +10,7 @@ import {
   journalEntries,
   friendships,
   pinnedProjects,
+  trips,
 } from "@/db/schema";
 import { friendshipPair } from "@/lib/friendships";
 import { TERMS_VERSION } from "@/lib/terms";
@@ -243,4 +244,19 @@ export async function seedFixtureJournalEntry(
  * rather than filling defaults — bulk callers describe every field anyway. */
 export function seedManyJournalEntries(db: Database, rows: (typeof journalEntries.$inferInsert)[]) {
   return insertInBatches(db, rows, 12, (chunk) => db.insert(journalEntries).values(chunk));
+}
+
+type FixtureTripOverrides = Partial<typeof trips.$inferInsert> & {
+  userId: string;
+  startDate: string;
+  endDate: string;
+};
+
+/** Inserts a `trips` row. A trip owns no entries, so a test seeds the window
+ * and the journal/send rows independently — which is the point of the feature
+ * and the thing its queries have to get right. */
+export async function seedFixtureTrip(db: Database, overrides: FixtureTripOverrides) {
+  const row = { name: "Test trip", description: null, ...overrides };
+  const [created] = await db.insert(trips).values(row).returning({ id: trips.id });
+  return { ...row, id: created.id };
 }
