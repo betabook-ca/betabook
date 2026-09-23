@@ -15,6 +15,7 @@ type Story = StoryObj<typeof meta>;
 const PATH = "/projects/4f9c2a7e1b8d6035c9e4a1f7b2d80e36";
 
 const project: SharedProjectData = {
+  ownerId: "usr_alex_rivera",
   ownerName: "Alex Rivera",
   ownerImage: null,
   climbId: 101,
@@ -28,18 +29,29 @@ const project: SharedProjectData = {
   sessionCount: 9,
   firstSession: "2026-03-02",
   lastSession: "2026-09-01",
-  sentMonth: null,
+  sentOn: null,
+  ascentStyle: null,
+  rating: null,
+  suggestedGrade: null,
+  gradeFeel: null,
+  sendComment: null,
   sent: false,
 };
 
 const sessions: SharedProjectSession[] = [
   {
+    id: 4021,
     entryDate: "2026-09-01",
     body: "Heel slipping off the arete. Tried the low start twice and it felt closer.",
     tags: ["beta"],
   },
-  { entryDate: "2026-08-24", body: "Skin wrecked after six goes. Held the crux once.", tags: [] },
-  { entryDate: "2026-08-02", body: null, tags: ["warm-up"] },
+  {
+    id: 3884,
+    entryDate: "2026-08-24",
+    body: "Skin wrecked after six goes. Held the crux once.",
+    tags: [],
+  },
+  { id: 3610, entryDate: "2026-08-02", body: null, tags: ["warm-up"] },
 ];
 
 export const SignedOut: Story = {
@@ -68,7 +80,16 @@ export const SignedIn: Story = {
 
 export const Sent: Story = {
   args: {
-    project: { ...project, sent: true, sentMonth: "2026-09" },
+    project: {
+      ...project,
+      sent: true,
+      sentOn: "2026-09-14",
+      ascentStyle: "redpoint",
+      rating: 4,
+      suggestedGrade: 9,
+      gradeFeel: "high",
+      sendComment: "Went second go of the session. Felt a grade harder than the book says.",
+    },
     sessions,
     signedIn: false,
     path: PATH,
@@ -76,7 +97,7 @@ export const Sent: Story = {
   render: (args) => (
     <StoryPage
       title="Shared project"
-      description="A project that went. The send is dated to the month, matching what a signed-out climb page already shows, so the climber cannot be picked out of that list by date."
+      description="A project that went. The send travels whole — exact date, rating, suggested grade and comment — because the share dialog names all of it before the link exists."
     >
       <SharedProject {...args} />
     </StoryPage>
