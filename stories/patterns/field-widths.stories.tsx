@@ -28,8 +28,7 @@ function Widths({ size }: { size?: keyof typeof FIELD_WIDTH_CLASS }) {
             label="Grades"
             minLabel="Min grade"
             maxLabel="Max grade"
-            minOptions={["V0", "V1", "V2", "V3"]}
-            maxOptions={["V0", "V1", "V2", "V3"]}
+            options={["V0", "V1", "V2", "V3"]}
             range={grades}
             onChange={setGrades}
           />

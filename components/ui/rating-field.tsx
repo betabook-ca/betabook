@@ -1,8 +1,8 @@
 "use client";
-import { Label, TextField } from "@heroui/react";
+import { Label } from "@heroui/react";
 import { clsx } from "clsx";
 import { Star } from "lucide-react";
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 
 const RATING_VALUES = [1, 2, 3, 4, 5];
 
@@ -13,7 +13,7 @@ function RatingPicker({
   compact,
   allowClear,
 }: {
-  label: string;
+  label: { "aria-label": string } | { "aria-labelledby": string };
   compact: boolean;
   allowClear: boolean;
   value: number | null;
@@ -26,7 +26,7 @@ function RatingPicker({
   return (
     <div
       role="radiogroup"
-      aria-label={label}
+      {...label}
       className="flex items-center"
       onMouseLeave={() => setHovered(null)}
     >
@@ -91,16 +91,21 @@ export function RatingField({
   compact?: boolean;
   allowClear?: boolean;
 }) {
+  const labelId = useId();
   return (
-    <TextField>
-      {!hideLabel && <Label>{label}</Label>}
+    <div className="flex flex-col gap-1">
+      {!hideLabel && (
+        <Label id={labelId} elementType="span">
+          {label}
+        </Label>
+      )}
       <RatingPicker
-        label={label}
+        label={hideLabel ? { "aria-label": label } : { "aria-labelledby": labelId }}
         value={value}
         onChange={onValueChange}
         compact={compact}
         allowClear={allowClear}
       />
-    </TextField>
+    </div>
   );
 }

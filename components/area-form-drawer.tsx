@@ -19,9 +19,9 @@ type AreaFormDrawerProps = {
 export function AreaFormDrawer({ parentId, area, state }: AreaFormDrawerProps) {
   const router = useRouter();
 
-  function handleDone(areaId: number, areaName?: string) {
+  function handleDone(areaId: number, areaName: string) {
     state.close();
-    if (!area) router.push(areaName ? areaHref(areaId, areaName) : `/areas/${areaId}`);
+    if (!area) router.push(areaHref(areaId, areaName));
   }
 
   return (

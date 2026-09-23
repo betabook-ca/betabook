@@ -1,7 +1,7 @@
 import { clsx } from "clsx";
 
 import { AppLink } from "@/components/ui/app-link";
-import { DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
+import { DISCIPLINE_HUE, DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import {
   areaClimbsFilterToSearchParams,
@@ -12,13 +12,6 @@ import {
 import { formatCount } from "@/lib/format";
 import type { GradeHistogram, DisciplineHistogram, GradeBucket } from "@/lib/grade-histogram";
 import type { ClimbType } from "@/lib/grades";
-
-// Same discipline → palette hue mapping as the discipline chips.
-const BAR_COLOR: Record<ClimbType, string> = {
-  boulder: "bg-palette-accent",
-  sport: "bg-palette-support",
-  trad: "bg-palette-primary",
-};
 
 const GROUP_LABELS: Record<ClimbType, string> = {
   boulder: "Boulders",
@@ -122,11 +115,9 @@ function DisciplineChart({
           const bar = bucket.count > 0 && (
             <div
               aria-hidden
-              className={clsx(
-                "w-full rounded-t-xs motion-safe:animate-bar-grow",
-                BAR_COLOR[group.type],
-              )}
+              className="w-full rounded-t-xs motion-safe:animate-bar-grow"
               style={{
+                backgroundColor: DISCIPLINE_HUE[group.type],
                 height: `${barHeight(bucket.count, max)}px`,
                 animationDelay: `${(delayBase + i) * 15}ms`,
               }}

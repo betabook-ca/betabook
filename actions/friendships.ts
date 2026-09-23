@@ -27,7 +27,7 @@ function refreshFriends(viewerId: string, targetId: string) {
     revalidatePath("/friends");
     revalidatePath("/");
     for (const id of [viewerId, targetId])
-      for (const suffix of ["", "/journal", "/sends", "/analytics"])
+      for (const suffix of ["", "/journal", "/sends", "/goals", "/analytics"])
         revalidatePath(`/users/${id}${suffix}`);
     refresh();
   });

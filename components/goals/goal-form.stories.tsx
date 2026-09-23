@@ -10,7 +10,6 @@ const meta = {
     today: "2026-09-11",
     nextGrades: { boulder: 6, sport: 6, trad: 6 },
     availableTags: ["hangboard", "strength", "outdoor", "trip"],
-    embedded: true,
   },
   decorators: [
     function GoalFormPopup(Story) {

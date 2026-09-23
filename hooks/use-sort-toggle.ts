@@ -12,10 +12,8 @@ type UseSortToggleOptions<Field extends string, Sort extends string> = {
   navigate: (sort: Sort) => void;
 };
 
-/** Shared "field dropdown + direction arrow button" sort control logic,
- * generalized from the area-climbs and user-sends list pages (same shape,
- * different field sets). Callers keep their own JSX — only the field/
- * direction derivation and the two handlers are shared here. */
+/** Field and direction state for a "field dropdown + direction arrow" sort
+ * control, over sort strings shaped `${field}_${direction}`. */
 export function useSortToggle<Field extends string, Sort extends string>({
   sort,
   fields,

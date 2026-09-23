@@ -69,8 +69,6 @@ const COMPARATORS: Record<ProjectSort, (a: ProjectWithSessions, b: ProjectWithSe
     name: (a, b) => a.climbName.localeCompare(b.climbName) || a.climbId - b.climbId,
   };
 
-/** Stable identity for the default, so an open board without suggestions does
- * not hand the pin button a fresh array on every render. */
 const NO_SUGGESTIONS: readonly OpenProject[] = [];
 
 /** Search includes only the preloaded notes, not older paginated sessions. */
@@ -91,9 +89,8 @@ type ProjectBoardProps = {
   variant?: ProjectBoardVariant;
   /** Unsent climbs offered in the pin modal; empty on the sent board. */
   suggestions?: readonly OpenProject[];
-  /** Every climb the owner has pinned, both sides of the send split. The
-   * server passes it because this board only holds one side; the fallback
-   * below is enough for a story, not for the live page. */
+  /** Every climb the owner has pinned, both sides of the send split; this
+   * board only holds one side. */
   pinnedClimbIds?: readonly number[];
   /** The site's own origin, resolved on the server so a share link is the
    * same string in the render and in the hydration on a preview domain. */
@@ -121,8 +118,6 @@ export function ProjectBoard({
   // date that disagreed across the hydration boundary would be a mismatch.
   const today = mounted ? new Intl.DateTimeFormat("en-CA").format(new Date()) : null;
 
-  const shownClimbIds = useMemo(() => projects.map((project) => project.climbId), [projects]);
-
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
     const matched = needle
@@ -132,7 +127,10 @@ export function ProjectBoard({
   }, [projects, query, sort]);
 
   const pinButton = sents ? null : (
-    <PinProjectButton suggestions={suggestions} pinnedClimbIds={pinnedClimbIds ?? shownClimbIds} />
+    <PinProjectButton
+      suggestions={suggestions}
+      pinnedClimbIds={pinnedClimbIds ?? projects.map((project) => project.climbId)}
+    />
   );
   const empty = projects.length === 0;
 

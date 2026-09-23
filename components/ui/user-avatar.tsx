@@ -40,10 +40,8 @@ export function UserAvatar({ name, image, size = "md", className }: UserAvatarPr
   const imageUrl = photo?.url ?? null;
 
   return (
-    // A span, not a div: an avatar now sits beside a name inside running text
-    // — a journal entry's companion line, the review queue's "Requested by" —
-    // and a div there is invalid HTML that React flags as a nesting error.
-    // `flex` applies to either element, so the layout is unchanged.
+    // A span, not a div: avatars sit inside phrasing content (a journal
+    // entry's companion line, the review queue's "Requested by").
     <span
       aria-hidden="true"
       className={clsx(

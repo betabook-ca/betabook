@@ -1,5 +1,3 @@
-"use client";
-
 import { SectionNavigation } from "@/components/ui/section-navigation";
 
 /** Open and Sent are two views of one list — the climbs you pinned, split by

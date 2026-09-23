@@ -102,7 +102,6 @@ export function JournalEntryComposer({
       <ChosenStrip choice={choice} onChange={() => setChoice(null)} pending={pending} />
       <JournalEntryForm
         onSave={onSave}
-        embedded
         kind={choice.kind}
         climb={climb}
         hasPriorSend={choice.kind === "session" ? choice.hasPriorSend : false}

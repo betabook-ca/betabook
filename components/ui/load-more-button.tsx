@@ -14,8 +14,8 @@ type LoadMoreButtonProps = {
 };
 
 /** The foot of every paged list: an optional failure line and the button
- * that fetches the next page. Owns the copy so the seven lists that page
- * can't drift apart.
+ * that fetches the next page. Owns the copy so paged lists can't drift
+ * apart.
  * React Aria isPending leaves an unlabeled announcement clone when the final
  * page removes the focused button. Use aria-disabled and a stable status region
  * until that upstream behavior is fixed (covered by the final-page browser test). */

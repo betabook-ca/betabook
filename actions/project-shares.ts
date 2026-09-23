@@ -5,7 +5,12 @@ import { refresh } from "next/cache";
 
 import { getDb } from "@/db/client";
 import { projectShareLinks } from "@/db/schema";
-import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
+import {
+  ActionError,
+  JOURNAL_RATE_LIMIT_MESSAGE,
+  toActionResult,
+  type ActionResult,
+} from "@/lib/action-result";
 import { parseProjectShareExpiry, projectShareExpiryModifier } from "@/lib/project-share";
 import { allowJournalWrite } from "@/lib/rate-limit";
 import { requireSession } from "@/lib/session";
@@ -39,8 +44,7 @@ export async function shareProject(
     const { user } = await requireSession();
     if (!Number.isSafeInteger(climbId) || climbId < 1) throw new ActionError("Climb not found");
     const modifier = projectShareExpiryModifier(parseProjectShareExpiry(expiry));
-    if (!(await allowJournalWrite(user.id)))
-      throw new ActionError("Too many changes — try again in a minute");
+    if (!(await allowJournalWrite(user.id))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
 
     const db = await getDb();
     // The deadline comes back rather than being recomputed on the client: it
@@ -82,8 +86,7 @@ export async function unshareProject(climbId: number): Promise<ActionResult> {
   return toActionResult(async () => {
     const { user } = await requireSession();
     if (!Number.isSafeInteger(climbId) || climbId < 1) throw new ActionError("Climb not found");
-    if (!(await allowJournalWrite(user.id)))
-      throw new ActionError("Too many changes — try again in a minute");
+    if (!(await allowJournalWrite(user.id))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
 
     const db = await getDb();
     await db

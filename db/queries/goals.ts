@@ -255,11 +255,6 @@ export async function getNextGoalGrades(db: Database, ownerId: string, viewerId:
   >;
 }
 
-/** Reconcile events after an owner write or Goals visit. */
-export async function refreshGoalAchievements(db: Database, ownerId: string, now = new Date()) {
-  await persistGoalCompletions(db, ownerId, now);
-}
-
 /** A derived feed refresh must not turn an already committed log into a failed save.
  * Failed refreshes leave the last reconciled events until the next owner activity. */
 export async function refreshGoalsAfterWrite(db: Database, ownerId: string) {
@@ -270,8 +265,9 @@ export async function refreshGoalsAfterWrite(db: Database, ownerId: string) {
   }
 }
 
-/** Recompute inside the D1 batch, so an earlier read cannot overwrite newer logs or goals. */
-async function persistGoalCompletions(db: Database, ownerId: string, now: Date) {
+/** Reconcile events after an owner write or Goals visit. Recomputes inside the
+ * D1 batch, so an earlier read cannot overwrite newer logs or goals. */
+export async function refreshGoalAchievements(db: Database, ownerId: string, now = new Date()) {
   const source = await goalPeriodsQuery(db, ownerId, ownerId, now);
   if (!source) return;
   const completed = sql`SELECT * FROM (${source.query}) current WHERE current.completedDate IS NOT NULL AND current.completedDate <= json_extract(${source.dates}, '$."' || current.timezone || '"')`;

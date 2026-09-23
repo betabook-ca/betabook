@@ -23,25 +23,24 @@ function validGoalPeriod(id: string, start: string, end?: string) {
     (end === undefined || (isRealIsoDate(end) && end >= start))
   );
 }
-const headers = { "Cache-Control": "private, no-store" };
 export const GET = withApiSession(
   async (session, request: Request, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
     const db = await getDb();
     if (!(await canReadJournal(db, id, session.user.id)))
-      return NextResponse.json({ error: "Journal not found" }, { status: 404, headers });
+      return NextResponse.json({ error: "Journal not found" }, { status: 404 });
     const query = new URL(request.url).searchParams;
     const offset = Number(query.get("offset") ?? 0);
     const year = query.has("year") ? Number(query.get("year")) : undefined;
     if (!validPage(offset, year))
-      return NextResponse.json({ error: "Invalid page" }, { status: 400, headers });
+      return NextResponse.json({ error: "Invalid page" }, { status: 400 });
     const historyId = query.get("historyId");
     const anchor = query.get("anchor") ?? undefined;
     if (anchor !== undefined && !isRealIsoDate(`${anchor}-01`))
-      return NextResponse.json({ error: "Invalid history cursor" }, { status: 400, headers });
+      return NextResponse.json({ error: "Invalid history cursor" }, { status: 400 });
     if (historyId !== null) {
       if (!Number.isSafeInteger(Number(historyId)) || Number(historyId) < 1)
-        return NextResponse.json({ error: "Invalid goal" }, { status: 400, headers });
+        return NextResponse.json({ error: "Invalid goal" }, { status: 400 });
       return NextResponse.json(
         await getRecurringGoalHistory(
           db,
@@ -52,7 +51,6 @@ export const GET = withApiSession(
           new Date(),
           anchor,
         ),
-        { headers },
       );
     }
     const goalId = query.get("goalId");
@@ -60,25 +58,22 @@ export const GET = withApiSession(
       const start = query.get("periodStart") ?? "";
       const end = query.get("periodEnd") ?? undefined;
       if (!validGoalPeriod(goalId, start, end))
-        return NextResponse.json({ error: "Invalid goal period" }, { status: 400, headers });
-      return NextResponse.json(
-        {
-          items: await getGoalContributions(
-            db,
-            id,
-            session.user.id,
-            Number(goalId),
-            start,
-            new Date(),
-            end,
-          ),
-        },
-        { headers },
-      );
+        return NextResponse.json({ error: "Invalid goal period" }, { status: 400 });
+      return NextResponse.json({
+        items: await getGoalContributions(
+          db,
+          id,
+          session.user.id,
+          Number(goalId),
+          start,
+          new Date(),
+          end,
+        ),
+      });
     }
     const view = query.get("view") ?? "active";
     if (!["active", "completed"].includes(view))
-      return NextResponse.json({ error: "Invalid page" }, { status: 400, headers });
+      return NextResponse.json({ error: "Invalid page" }, { status: 400 });
     const page = await getGoalPage(
       db,
       id,
@@ -89,6 +84,6 @@ export const GET = withApiSession(
       year,
     );
     if (id === session.user.id) await scheduleGoalRefresh(db, id);
-    return NextResponse.json(page, { headers });
+    return NextResponse.json(page);
   },
 );

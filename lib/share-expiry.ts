@@ -24,9 +24,8 @@ export type ShareExpiry = (typeof SHARE_EXPIRIES)[number]["value"];
 
 /** Long enough to be useful for a season's project or a trip written up after
  * the fact, short enough that a link pasted somewhere forgotten does not
- * outlive the thing it describes. It is also the safer default now that every
- * link is readable by anyone holding it: the expiry is the control that still
- * limits a link that got away. */
+ * outlive the thing it describes. Anyone holding a link can read it, so the
+ * expiry is what limits one that got away. */
 export const DEFAULT_SHARE_EXPIRY: ShareExpiry = "30d";
 
 export function parseShareExpiry(value: unknown): ShareExpiry {

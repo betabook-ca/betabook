@@ -5,7 +5,6 @@ import {
   describeProjectShare,
   isProjectShareExpired,
   parseProjectShareExpiry,
-  parseProjectShareToken,
   projectShareExpiryModifier,
   projectSharePath,
   PROJECT_SHARE_EXPIRIES,
@@ -14,22 +13,6 @@ import {
 const TOKEN = "4f9c2a7e1b8d6035c9e4a1f7b2d80e36";
 
 describe("tokens", () => {
-  it("accepts the shape the database issues and nothing else", () => {
-    expect(parseProjectShareToken(TOKEN)).toBe(TOKEN);
-    for (const value of [
-      TOKEN.toUpperCase(),
-      `${TOKEN}0`,
-      TOKEN.slice(0, 31),
-      "../../users/owner",
-      "",
-      null,
-      undefined,
-      42,
-    ]) {
-      expect(parseProjectShareToken(value)).toBeNull();
-    }
-  });
-
   it("builds a path carrying nothing but the token", () => {
     expect(projectSharePath(TOKEN)).toBe(`/projects/${TOKEN}`);
   });

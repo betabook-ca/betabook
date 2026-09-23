@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import type { SearchStatus } from "@/lib/search";
 
@@ -27,10 +27,7 @@ export function useSearchLookup<T>({
     items: [],
     status: "idle",
   });
-  const fetcherRef = useRef(fetcher);
-  useEffect(() => {
-    fetcherRef.current = fetcher;
-  });
+  const fetchLatest = useEffectEvent((text: string, signal: AbortSignal) => fetcher(text, signal));
   useEffect(() => {
     const retryOnly = previousIdentity.current === identity && attempt > 0;
     previousIdentity.current = identity;
@@ -38,8 +35,7 @@ export function useSearchLookup<T>({
     const controller = new AbortController();
     const timer = setTimeout(
       () => {
-        void fetcherRef
-          .current(query.trim(), controller.signal)
+        void fetchLatest(query.trim(), controller.signal)
           .then((items) => {
             if (!controller.signal.aborted) setSettled({ key, items, status: "ready" });
             return undefined;

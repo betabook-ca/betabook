@@ -3,13 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
+const DELAY_MS = 400;
+
 /** Debounce href changes relative to the canonical URL represented by currentHref.
  * urlChangedExternally distinguishes incoming navigation from this hook's own
  * replaces, so callers can reseed state without discarding in-progress typing. */
 export function useDebouncedReplace(
   href: string,
   currentHref: string,
-  delayMs = 400,
 ): { isPending: boolean; urlChangedExternally: boolean } {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -34,9 +35,9 @@ export function useDebouncedReplace(
       startTransition(() => {
         router.replace(href, { scroll: false });
       });
-    }, delayMs);
+    }, DELAY_MS);
     return () => clearTimeout(timeout);
-  }, [href, currentHref, delayMs, router, startTransition]);
+  }, [href, currentHref, router, startTransition]);
 
   return { isPending, urlChangedExternally };
 }

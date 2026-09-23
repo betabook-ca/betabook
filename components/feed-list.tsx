@@ -9,10 +9,9 @@ import { AppLink } from "@/components/ui/app-link";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
 import type { FeedDay, FeedPage } from "@/db/queries";
-import { useMounted } from "@/hooks/use-mounted";
+import { useClientSession } from "@/hooks/use-client-session";
 import { usePagedList } from "@/hooks/use-paged-list";
 import { apiFetch } from "@/lib/api-client";
-import { authClient } from "@/lib/auth-client";
 import type { FeedCursor, FeedView } from "@/lib/feed";
 import { signInUrl } from "@/lib/sign-in-redirect";
 
@@ -32,9 +31,7 @@ export function FeedList({
 }) {
   const router = useRouter();
   const [refreshing, startRefresh] = useTransition();
-  const mounted = useMounted();
-  const { data: session, isPending } = authClient.useSession();
-  // The page's ViewerBoundary refreshes permissions and data on return.
+  const session = useClientSession();
   const { items, hasMore, loadingMore, loadMoreFailed, loadMore } = usePagedList<FeedDay, null>({
     initialItems: initialPage.days,
     initialHasMore: initialPage.hasMore,
@@ -60,7 +57,7 @@ export function FeedList({
       return { items: page.days, hasMore: page.hasMore, meta: null };
     },
   });
-  if (mounted && !isPending && session?.user.id !== viewerId)
+  if (session !== undefined && session?.user.id !== viewerId)
     return (
       <EmptyState
         message={

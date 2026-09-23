@@ -14,8 +14,7 @@ export type CatalogAreaRow = {
 
 /** Public projection of a `climbs` row. The trigger-maintained aggregates
  * (`sendCount`, `ratingSum`, `ratingCount`, `avgRating`) are activity data and
- * stay out of every public payload (docs/repository-guide.md, "Routes and
- * metadata"). */
+ * stay out of the export. */
 export type CatalogClimbRow = {
   id: number;
   areaId: number;

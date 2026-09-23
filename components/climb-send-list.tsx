@@ -5,36 +5,21 @@ import type { ReactNode } from "react";
 import { ClimbSendListRow } from "@/components/climb-send-list-row";
 import { SendActionsMenu } from "@/components/send-actions-menu";
 import { SendListShell } from "@/components/send-list-shell";
-import { ViewerBoundary } from "@/components/viewer-boundary";
 import type { Climb, ClimbSendRow, ClimbSendsPage } from "@/db/queries";
 import { usePagedList } from "@/hooks/use-paged-list";
 import { apiFetch } from "@/lib/api-client";
 
 type ClimbSendListProps = {
   climb: Climb;
-  /** The server-rendered first page; subsequent pages come from
-   * /api/climbs/[id]/sends via "load more". */
   initialSends: ClimbSendRow[];
   initialHasMore: boolean;
   /** Shows the actions menu on the viewer's own row (one send per climb). */
   currentUserId: string;
-  /** Rendered when the climb has no sends — the page supplies a
-   * first-ascent invitation (see app/climbs/[id]/page.tsx). */
   emptyState?: ReactNode;
 };
 
-/** Community ascents for a single climb — one row per climber, paged from
- * the server the same way UserSendList is: server-rendered first page,
- * "load more" fetching subsequent pages. Refreshes revalidate loaded pages. */
-export function ClimbSendList(props: ClimbSendListProps) {
-  return (
-    <ViewerBoundary viewerId={props.currentUserId}>
-      <ClimbSendListContent {...props} />
-    </ViewerBoundary>
-  );
-}
-
-function ClimbSendListContent({
+/** Community ascents for a single climb, one row per climber. */
+export function ClimbSendList({
   climb,
   initialSends,
   initialHasMore,

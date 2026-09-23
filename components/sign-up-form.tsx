@@ -3,6 +3,7 @@
 import { Button, Checkbox, Input, Label, TextField } from "@heroui/react";
 import { useId, useState } from "react";
 
+import { AuthDivider, ResendVerificationButton } from "@/components/auth-form-parts";
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
 import { useTurnstile } from "@/components/turnstile";
 import { AppLink } from "@/components/ui/app-link";
@@ -40,9 +41,6 @@ export function SignUpForm({
   const [error, setError] = useState<string | null>(null);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [done, setDone] = useState(false);
-  const [resent, setResent] = useState(false);
-  const [resendPending, setResendPending] = useState(false);
-  const [resendError, setResendError] = useState<string | null>(null);
 
   const passwordMismatch = submitAttempted && password !== confirmPassword;
 
@@ -78,28 +76,6 @@ export function SignUpForm({
     }
   }
 
-  // Bound to the just-registered address; same better-auth call (and the
-  // same land-back-on-sign-in callback) as the sign-in form's resend.
-  async function resendVerification() {
-    setResent(false);
-    setResendError(null);
-    setResendPending(true);
-    try {
-      await authClient.sendVerificationEmail(
-        { email, callbackURL: signInUrl(nextPath) },
-        {
-          onSuccess: () => setResent(true),
-          onError: (ctx) =>
-            setResendError(ctx.error.message ?? "Could not resend the verification email"),
-          onResponse: () => setResendPending(false),
-        },
-      );
-    } catch {
-      setResendError(GENERIC_ERROR_MESSAGE);
-      setResendPending(false);
-    }
-  }
-
   if (done) {
     return (
       <div className={FORM_CARD_CLASS}>
@@ -108,10 +84,7 @@ export function SignUpForm({
           We sent a verification link to {email}. Verify your address, then{" "}
           <AppLink href={signInUrl(nextPath)}>sign in</AppLink>.
         </InlineAlert>
-        <Button variant="ghost" onPress={resendVerification} isDisabled={resent || resendPending}>
-          {resent ? "Verification email sent" : "Resend verification email"}
-        </Button>
-        {resendError && <InlineAlert>{resendError}</InlineAlert>}
+        <ResendVerificationButton email={email} nextPath={nextPath} />
       </div>
     );
   }
@@ -153,11 +126,7 @@ export function SignUpForm({
             onError={setError}
             disabled={pending || !termsAccepted}
           />
-          <div className="relative flex items-center py-1">
-            <div className="grow border-t border-separator" />
-            <span className="mx-3 shrink text-xs text-muted uppercase">or</span>
-            <div className="grow border-t border-separator" />
-          </div>
+          <AuthDivider />
         </>
       )}
       <TextField value={name} onChange={setName} isRequired maxLength={MAX_DISPLAY_NAME_LENGTH}>

@@ -1,12 +1,14 @@
 "use client";
 
-import { Button, Input, Label, ListBox, Select, TextField } from "@heroui/react";
+import { Button, Input, Label, TextField } from "@heroui/react";
 import type { UseOverlayStateReturn } from "@heroui/react";
 import { useId, useState, useTransition } from "react";
 
 import { requestClimbEdit } from "@/actions";
+import { DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
 import { FIELD_CLASS } from "@/components/ui/field";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import { OptionSelect } from "@/components/ui/option-select";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { Climb } from "@/db/queries";
 import { nativeGradeArray, type ClimbType } from "@/lib/grades";
@@ -16,11 +18,6 @@ type ClimbEditRequestDrawerProps = {
   state: UseOverlayStateReturn;
 };
 
-const CLIMB_TYPE_LABELS: Record<ClimbType, string> = {
-  boulder: "Boulder",
-  sport: "Sport",
-  trad: "Trad",
-};
 const UNKNOWN_GRADE = "unknown";
 
 /** A full edit (name/discipline/grade) — gated behind admin approval (see
@@ -100,7 +97,7 @@ export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerP
             <Input />
           </TextField>
 
-          <TextField>
+          <div className="flex flex-col gap-2">
             <Label htmlFor={disciplineId}>Discipline</Label>
             <select
               id={disciplineId}
@@ -109,7 +106,7 @@ export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerP
               onChange={(e) => handleTypeChange(e.target.value as ClimbType)}
               className={FIELD_CLASS}
             >
-              {Object.entries(CLIMB_TYPE_LABELS).map(([value, label]) => (
+              {Object.entries(DISCIPLINE_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
                 </option>
@@ -120,35 +117,22 @@ export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerP
                 Discipline can&rsquo;t be changed once sends have been logged.
               </p>
             )}
-          </TextField>
+          </div>
 
-          <TextField>
+          <div className="flex flex-col gap-2">
             <Label>Grade</Label>
-            <Select
-              aria-label="Grade"
-              fullWidth
-              selectedKey={grade}
-              onSelectionChange={(key) => setGrade(String(key))}
-            >
-              <Select.Trigger>
-                <Select.Value />
-                <Select.Indicator />
-              </Select.Trigger>
-              <Select.Popover>
-                <ListBox className="max-h-64 overflow-y-auto">
-                  {climb.grade === null && type === climb.type && (
-                    <ListBox.Item id={UNKNOWN_GRADE}>Unknown</ListBox.Item>
-                  )}
-                  {gradeOptions.map((label, i) => (
-                    // oxlint-disable-next-line react/no-array-index-key -- grade index is stable option id
-                    <ListBox.Item key={i} id={String(i)}>
-                      {label}
-                    </ListBox.Item>
-                  ))}
-                </ListBox>
-              </Select.Popover>
-            </Select>
-          </TextField>
+            <OptionSelect
+              ariaLabel="Grade"
+              value={grade}
+              onChange={setGrade}
+              options={[
+                ...(climb.grade === null && type === climb.type
+                  ? [{ value: UNKNOWN_GRADE, label: "Unknown" }]
+                  : []),
+                ...gradeOptions.map((label, i) => ({ value: String(i), label })),
+              ]}
+            />
+          </div>
 
           {error && <InlineAlert>{error}</InlineAlert>}
 

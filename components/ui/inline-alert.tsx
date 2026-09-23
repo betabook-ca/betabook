@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 
 type InlineAlertProps = {
   children: ReactNode;
-  status?: "danger" | "warning" | "success" | "accent";
+  status?: "danger" | "warning" | "success";
   title?: string;
   action?: ReactNode;
   id?: string;
@@ -13,7 +13,7 @@ type InlineAlertProps = {
 };
 
 /** Operation feedback: errors interrupt, other notices announce politely.
- * Use FieldFeedback inside a field and ConfirmDeleteDialog for confirmation. */
+ * Use FieldFeedback inside a field and ConfirmDialog for confirmation. */
 export function InlineAlert({
   children,
   status = "danger",

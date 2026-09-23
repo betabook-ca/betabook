@@ -14,9 +14,6 @@ function hasCoarsePointer(): boolean {
   return window.matchMedia("(pointer: coarse)").matches;
 }
 
-/**
- * Detects if the platform is iOS, Android, or other based on user agent and navigator details.
- */
 export function detectMobilePlatform(
   userAgent = typeof navigator !== "undefined" ? navigator.userAgent : "",
   platform = typeof navigator !== "undefined" ? (navigator.platform ?? "") : "",
@@ -26,7 +23,9 @@ export function detectMobilePlatform(
   if (/iPhone|iPad|iPod/i.test(userAgent) || /iPhone|iPad|iPod/i.test(platform)) {
     return "ios";
   }
-  // iPad on iOS 13+ reports user agent as MacIntel/Macintosh with touch points
+  // iPadOS 13+ reports a Mac user agent. Touch points alone can't settle it:
+  // a Mac reports them for an attached touchscreen or screen-sharing display,
+  // and would then be offered a home screen it hasn't got.
   if (
     (/Macintosh|MacIntel/i.test(platform) || /Macintosh|MacIntel/i.test(userAgent)) &&
     maxTouchPoints > 1 &&
@@ -40,9 +39,6 @@ export function detectMobilePlatform(
   return "other";
 }
 
-/**
- * Detects if the browser is Chrome, Safari, or another browser.
- */
 export function detectMobileBrowser(
   userAgent = typeof navigator !== "undefined" ? navigator.userAgent : "",
 ): MobileBrowser {
@@ -64,9 +60,6 @@ export function detectMobileBrowser(
   return "other";
 }
 
-/**
- * Detects whether the current display mode is standalone or minimal-ui (i.e. already installed as a PWA / home screen shortcut).
- */
 export function isStandaloneDisplay(): boolean {
   if (typeof window === "undefined" || window.matchMedia == null) return false;
   const isStandaloneMatch =
@@ -79,38 +72,18 @@ export function isStandaloneDisplay(): boolean {
   return isStandaloneMatch || isNavStandalone;
 }
 
-/**
- * Checks if the user agent or platform indicates a mobile or tablet device.
- */
 export function isMobileDevice(
   userAgent = typeof navigator !== "undefined" ? navigator.userAgent : "",
   platform = typeof navigator !== "undefined" ? (navigator.platform ?? "") : "",
   maxTouchPoints = typeof navigator !== "undefined" ? (navigator.maxTouchPoints ?? 0) : 0,
   coarsePointer = hasCoarsePointer(),
 ): boolean {
-  if (
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent) ||
-    /iPhone|iPad|iPod/i.test(platform)
-  ) {
-    return true;
-  }
-  // Desktop-class iPad (see detectMobilePlatform). Touch points alone can't
-  // carry this branch: a Mac reports them for an attached touchscreen, tablet,
-  // or screen-sharing display, and would then be offered a home screen it
-  // hasn't got. Only a coarse primary pointer settles it.
-  if (
-    (/Macintosh|MacIntel/i.test(userAgent) || /Macintosh|MacIntel/i.test(platform)) &&
-    maxTouchPoints > 1 &&
-    coarsePointer
-  ) {
-    return true;
-  }
-  return false;
+  return (
+    detectMobilePlatform(userAgent, platform, maxTouchPoints, coarsePointer) !== "other" ||
+    /webOS|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)
+  );
 }
 
-/**
- * Checks if the mobile app helper has been dismissed by the user in localStorage.
- */
 export function isMobileHelperDismissed(): boolean {
   if (typeof localStorage === "undefined") return false;
   try {
@@ -120,17 +93,10 @@ export function isMobileHelperDismissed(): boolean {
   }
 }
 
-/**
- * Persists dismissal of the mobile app helper to localStorage.
- */
-export function setMobileHelperDismissed(dismissed = true): void {
+export function setMobileHelperDismissed(): void {
   if (typeof localStorage === "undefined") return;
   try {
-    if (dismissed) {
-      localStorage.setItem(MOBILE_HELPER_DISMISS_KEY, "true");
-    } else {
-      localStorage.removeItem(MOBILE_HELPER_DISMISS_KEY);
-    }
+    localStorage.setItem(MOBILE_HELPER_DISMISS_KEY, "true");
   } catch {
     // Ignore storage quota or privacy errors
   }

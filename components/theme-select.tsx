@@ -9,14 +9,8 @@ import { syncThemeColorMeta } from "@/lib/theme-color";
 /** The three-option theme picker, on /account only. Its own file keeps `Select`
  * and `ListBox` out of the bundle every route loads. */
 export function ThemeSelect() {
-  // `theme` is only known client-side, so we gate on `mounted` to keep the
-  // server/first-client render identical and avoid a hydration mismatch,
-  // matching the pattern in app-menu.tsx. Crucially, useTheme's own useState
-  // initializer already reads localStorage ("heroui-theme" — the same key the
-  // blocking script in app/layout.tsx resolves pre-paint) with a "system"
-  // fallback, so `theme` holds the real value from the very first client
-  // render: once the select appears it shows the right value immediately,
-  // never a "System" placeholder that swaps after mount.
+  // Theme is client-only, so gate on mount. useTheme reads localStorage in its
+  // initializer, so the first mounted render already shows the stored value.
   const mounted = useMounted();
   const { theme, setTheme } = useTheme("system");
 

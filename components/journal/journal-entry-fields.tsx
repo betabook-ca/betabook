@@ -13,7 +13,7 @@ import {
   type SendStyleChoice,
 } from "@/components/send-fields";
 import { AppLink } from "@/components/ui/app-link";
-import { cardClass, SURFACE_CARD_CLASS } from "@/components/ui/card";
+import { cardClass } from "@/components/ui/card";
 import { DetailsDisclosure } from "@/components/ui/details-disclosure";
 import { FieldHeader } from "@/components/ui/field-support";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
@@ -36,13 +36,11 @@ export type JournalEntryFieldsProps = {
   existingEntry?: JournalEntry;
   onDone?: () => void;
   onPendingChange?: (pending: boolean) => void;
-  embedded?: boolean;
 };
 
 // oxlint-disable-next-line complexity
 export function JournalEntryFields({
   today,
-  embedded = false,
   onSave,
   companionFetcher,
   kind,
@@ -136,10 +134,7 @@ export function JournalEntryFields({
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className={embedded ? "flex flex-col gap-3" : `${SURFACE_CARD_CLASS} gap-4`}
-    >
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       <fieldset disabled={pending} className="contents">
         {climb && !existingEntry && (
           <SendStylePicker

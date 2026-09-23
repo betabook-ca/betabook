@@ -129,27 +129,22 @@ export async function getClimbSendSummary(
   return { ...stats[climbId], styleBreakdown, suggestedGradeCounts };
 }
 
-/** Pass climbIds for list pages to bound the lookup to the displayed climbs. */
+/** Which of `climbIds` the user has sent. A single JSON binding avoids D1's
+ * parameter limit. */
 export async function getUserSentClimbIds(
   db: Database,
   userId: string,
-  climbIds?: readonly number[],
+  climbIds: readonly number[],
 ): Promise<Set<number>> {
-  const distinctIds = climbIds ? [...new Set(climbIds)] : undefined;
-  if (distinctIds?.length === 0) return new Set();
-
-  // A single JSON binding avoids D1's parameter limit.
+  const distinctIds = [...new Set(climbIds)];
+  if (distinctIds.length === 0) return new Set();
   const rows = await db.all<{ climbId: number }>(sql`
     SELECT sends.climb_id AS climbId
     FROM sends
     WHERE sends.user_id = ${userId}
-    ${
-      distinctIds
-        ? sql`AND sends.climb_id IN (
-            SELECT CAST(value AS INTEGER) FROM json_each(${JSON.stringify(distinctIds)})
-          )`
-        : sql``
-    }
+      AND sends.climb_id IN (
+        SELECT CAST(value AS INTEGER) FROM json_each(${JSON.stringify(distinctIds)})
+      )
   `);
   return new Set(rows.map((r) => r.climbId));
 }

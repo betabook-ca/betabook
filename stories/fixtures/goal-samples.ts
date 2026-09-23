@@ -112,8 +112,8 @@ export const goalPanelStoryArgs = {
   initialActive: summarizeGoalPeriods(goalStoryPeriods, "active", 0, goalStoryNow),
   initialCompleted: summarizeGoalPeriods(goalStoryPeriods, "completed", 0, goalStoryNow),
   nextGrades: { boulder: 6, sport: 6, trad: 6 },
-  loadPage: async (view, offset, year) =>
-    summarizeGoalPeriods(goalStoryPeriods, view, offset, goalStoryNow, year),
+  loadPage: async (offset, year) =>
+    summarizeGoalPeriods(goalStoryPeriods, "completed", offset, goalStoryNow, year),
   loadItems: async (goal) =>
     (goal.kind === "new-areas"
       ? [

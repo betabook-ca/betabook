@@ -1,13 +1,13 @@
 import { ActionError } from "@/lib/action-result";
 import { parseMountainProjectUserId } from "@/lib/mountain-project-profile";
 import { MAX_IMPORT_FILE_BYTES } from "@/lib/sends-import";
-import { SUPPORT_EMAIL } from "@/lib/support";
+import { importTooLargeMessage, SUPPORT_EMAIL } from "@/lib/support";
 
 const ORIGIN = "https://www.mountainproject.com";
 const FORMAT_ERROR = `Mountain Project returned an unexpected response. Download your ticks as a CSV from Mountain Project and upload that file instead, or email ${SUPPORT_EMAIL}.`;
 const NOT_FOUND_ERROR =
   "That Mountain Project profile could not be found. Check the user ID or profile link.";
-const SIZE_ERROR = `This Mountain Project tick list is too large for a direct import. Email ${SUPPORT_EMAIL} for help importing it.`;
+const SIZE_ERROR = importTooLargeMessage("Mountain Project tick list");
 const REDIRECTS = new Set([301, 302, 303, 307, 308]);
 
 /** Tick-export paths ignore the slug, so an unresolved name still downloads. */

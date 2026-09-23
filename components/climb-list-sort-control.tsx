@@ -22,11 +22,6 @@ const DEFAULT_DIRECTION: Record<SortField, "asc" | "desc"> = {
   ascents: "desc",
 };
 
-/** The field-dropdown + direction-arrow-button sort control shared by the
- * area page and climb search — both list climbs via the same <ClimbList>
- * and sort on the same name/grade/rating/ascents fields. Callers own
- * navigation (each builds its own URL); this just fixes `SortSelect`'s
- * fields to the ones climb lists sort on. */
 export function ClimbListSortControl({
   sort,
   onNavigate,

@@ -16,21 +16,12 @@ import type { Climb, EditableSend } from "@/db/queries";
 
 type ClimbActionsMenuProps = {
   climb: Climb;
-  /** The viewer's own send of this climb, when they have one — folds "Edit
-   * send" / "Delete send" into this menu so the header doesn't grow a second,
-   * identical "…" button (send rows elsewhere keep their own
-   * SendActionsMenu). */
+  /** The viewer's own send, folded in so the header has one "…" button. */
   send?: EditableSend;
 };
 
-/** The "..." menu next to a climb's title. Structural changes to the climb
- * live here — description-only edits are the pencil next to ClimbDescription
- * instead (unrestricted for every signed-in user); a full edit
- * (name/discipline/grade), move, duplicate, or deletion is moderation-gated
- * (see actions/moderation.ts): applied immediately for an admin, otherwise
- * queued for review. When the viewer has sent the climb, their send's
- * actions come first, labeled explicitly so "Edit send" can't be mistaken
- * for editing the climb. */
+/** The "..." menu next to a climb's title. Structural changes are
+ * moderation-gated: applied immediately for an admin, otherwise queued. */
 export function ClimbActionsMenu({ climb, send }: ClimbActionsMenuProps) {
   const router = useRouter();
   const editState = useOverlayState();

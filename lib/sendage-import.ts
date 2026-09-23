@@ -1,10 +1,10 @@
 import { parseSendageUsername } from "@/lib/sendage-profile";
 import { MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS, type ParsedCsv } from "@/lib/sends-import";
-import { SUPPORT_EMAIL } from "@/lib/support";
+import { importTooLargeMessage, SUPPORT_EMAIL } from "@/lib/support";
 
 const FORMAT_ERROR = `Sendage returned an unfamiliar data format. Please try again later, or email ${SUPPORT_EMAIL}.`;
 const INCOMPLETE_ERROR = `Sendage did not return your complete send history. Please try again, or email ${SUPPORT_EMAIL}.`;
-const SIZE_ERROR = `This Sendage history is too large for a direct import. Email ${SUPPORT_EMAIL} for help importing it.`;
+const SIZE_ERROR = importTooLargeMessage("Sendage history");
 const MAX_PAGE_BYTES = 2 * 1024 * 1024;
 const COMPLETED_STYLES = new Set(["redpoint", "flash", "onsight"]);
 const SKIPPED_STYLES = new Set(["project", "repeat"]);

@@ -46,7 +46,7 @@ const examples: Record<string, string> = {
   "ui/date-picker-field.tsx": "components-inputs-date-picker-field--dates",
   "ui/discipline-chip.tsx": "components-data-display-discipline-chip--boulder",
   "ui/empty-state.tsx": "components-feedback-empty-state--no-results",
-  "ui/eyebrow.tsx": "components-data-display-eyebrow--with-icon",
+  "ui/eyebrow.tsx": "components-data-display-eyebrow--text",
   "ui/field.ts": "patterns-fields-standard-widths--comparison",
   "ui/grade.tsx": "components-data-display-grade--boulder",
   "ui/index-select.tsx": "components-inputs-index-select--range",

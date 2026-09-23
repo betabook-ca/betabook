@@ -15,11 +15,7 @@ import {
 import { resetDb } from "@/test/reset-db";
 
 import { getPinnedProjects } from "./journal";
-import {
-  getProjectShareForOwner,
-  getSharedProject,
-  getSharedProjectSessions,
-} from "./project-shares";
+import { getSharedProject, getSharedProjectSessions } from "./project-shares";
 
 const db = createDb(env.DB);
 
@@ -336,19 +332,10 @@ describe("the owner's own view", () => {
     expect(unshared?.share).toBeNull();
   });
 
-  it("hands back the settings for their link", async () => {
-    const token = await share({ expiresAt: "2099-01-01 00:00:00" });
-
-    expect(await getProjectShareForOwner(db, OWNER, CLIMB)).toEqual({
-      token,
-      expiresAt: "2099-01-01 00:00:00",
-    });
-  });
-
   it("hands nothing to another climber", async () => {
     await share();
 
-    expect(await getProjectShareForOwner(db, MEMBER, CLIMB)).toBeNull();
+    expect(await getPinnedProjects(db, OWNER, MEMBER, { sent: false })).toEqual([]);
   });
 
   it("does not resolve a token against the wrong climb", async () => {

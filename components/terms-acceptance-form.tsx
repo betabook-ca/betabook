@@ -58,7 +58,7 @@ export function TermsAcceptanceForm({
   }
 
   return (
-    <Modal.Backdrop isOpen isDismissable={false} isKeyboardDismissDisabled className="bg-black/20">
+    <Modal.Backdrop isOpen isDismissable={false} isKeyboardDismissDisabled>
       <Modal.Container placement="center" size="sm">
         <Modal.Dialog aria-label="Terms of Service">
           <form onSubmit={submit} className="flex flex-col gap-4">

@@ -46,7 +46,6 @@ export function PrimaryNavigationLink({
       }
     >
       <span
-        key="icon"
         className={
           tab
             ? clsx(
@@ -68,11 +67,9 @@ export function PrimaryNavigationLink({
             <FriendRequestDot className="absolute -top-1 -right-1" />
           ) : null)}
       </span>
-      <span key="label" className={clsx("min-w-0 truncate", collapsed && "opacity-0")}>
-        {item.label}
-      </span>
+      <span className={clsx("min-w-0 truncate", collapsed && "opacity-0")}>{item.label}</span>
       {community && !tab && !collapsed && (
-        <FriendRequestBadge key="requests" decorative count={requestCount} className="ms-auto" />
+        <FriendRequestBadge decorative count={requestCount} className="ms-auto" />
       )}
     </NavLink>
   );

@@ -25,8 +25,7 @@ const DESCRIPTION = {
 } as const;
 
 /** The Profile photo row: choose a photo, frame it, and it replaces whatever
- * was there. Always offered — unlike the Google-only row it replaces, which
- * appeared only for accounts that already had a photo. */
+ * was there. */
 export function ProfilePhotoSettings({
   image,
   cropSquare,

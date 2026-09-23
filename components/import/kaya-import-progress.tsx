@@ -31,11 +31,14 @@ export function KayaImportProgress({ progress }: { progress: ImportProgress }) {
             {progress.retry.reason === "rate-limit"
               ? "KAYA asked us to slow down."
               : "KAYA is temporarily unavailable."}{" "}
-            {seconds > 0 ? `Retrying in ${seconds}s` : "Trying again…"} ({progress.retry.attempt}/
-            {KAYA_MAX_RETRIES}).
+            Attempt {progress.retry.attempt}/{KAYA_MAX_RETRIES}.{seconds === 0 && " Trying again…"}
           </span>
         )}
       </p>
+      {/* Outside the live region: a per-second countdown would be re-announced every tick. */}
+      {progress.retry && seconds > 0 && (
+        <p className="text-sm text-muted">Retrying in {seconds}s</p>
+      )}
       {progress.total !== null && progress.total > 0 && (
         <ProgressBar
           value={progress.loaded}

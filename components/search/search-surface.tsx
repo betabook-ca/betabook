@@ -115,9 +115,7 @@ export function SearchSurface({
       />
       {/* The page picks what to search before typing; the palette types first
        * so an early ⌘K lands in a focused field. */}
-      <When show={!quick}>
-        <SearchCategories value={category} onChange={onCategoryChange} />
-      </When>
+      {!quick && <SearchCategories value={category} onChange={onCategoryChange} />}
       <SearchQueryRow
         query={query}
         onQueryChange={onQueryChange}
@@ -191,11 +189,6 @@ export function SearchSurface({
       )}
     </div>
   );
-}
-
-/** Keeps a surface's two element orders out of SearchSurface's own branch count. */
-function When({ show, children }: { show: boolean; children: ReactNode }) {
-  return show ? children : null;
 }
 
 /** The query field and whatever shares its row. Only the quick dialog
@@ -452,7 +445,7 @@ function useQuickSearchNavigation({
 > & { quick: boolean; onClose?: () => void }) {
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
-  const [active, setActive] = useState<{ key: string; id: string } | null>(null);
+  const [active, setActive] = useState<string | null>(null);
   const identity = JSON.stringify([query, category, area?.id]);
   const [previousIdentity, setPreviousIdentity] = useState(identity);
   // A changed query/scope must forget the old explicit selection, including A → B → A.
@@ -463,8 +456,7 @@ function useQuickSearchNavigation({
   const items = sections.flatMap((section) =>
     section.status === "ready" ? section.items.filter((item) => !item.disabledReason) : [],
   );
-  const activeId =
-    active?.key === identity && items.some((item) => item.id === active.id) ? active.id : null;
+  const activeId = items.some((item) => item.id === active) ? active : null;
 
   useEffect(() => {
     if (activeId)
@@ -491,7 +483,7 @@ function useQuickSearchNavigation({
             ? 0
             : items.length - 1
           : (index + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
-      setActive({ key: identity, id: items[next].id });
+      setActive(items[next].id);
     }
     if (event.key === "Enter") {
       event.preventDefault();

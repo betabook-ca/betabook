@@ -6,7 +6,12 @@ import { refresh } from "next/cache";
 import { getDb } from "@/db/client";
 import { journalVisibleSql } from "@/db/queries/content-access";
 import { journalCompanions } from "@/db/schema";
-import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
+import {
+  ActionError,
+  JOURNAL_RATE_LIMIT_MESSAGE,
+  toActionResult,
+  type ActionResult,
+} from "@/lib/action-result";
 import { allowJournalWrite } from "@/lib/rate-limit";
 import { requireSession } from "@/lib/session";
 
@@ -17,8 +22,7 @@ export async function removeMyJournalTag(entryId: number): Promise<ActionResult>
   return toActionResult(async () => {
     const { user } = await requireSession();
     if (!Number.isSafeInteger(entryId) || entryId < 1) throw new ActionError("Entry not found");
-    if (!(await allowJournalWrite(user.id)))
-      throw new ActionError("Too many changes — try again in a minute");
+    if (!(await allowJournalWrite(user.id))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
     const db = await getDb();
     const [removed] = await db
       .update(journalCompanions)

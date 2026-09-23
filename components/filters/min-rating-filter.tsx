@@ -2,8 +2,10 @@
 
 import { useId } from "react";
 
+import { ratingBounds } from "@/components/filters/active-filter-values";
 import { FILTER_ROW_CLASS, FILTER_LABEL_CLASS, FILTER_CONTROL_CLASS } from "@/components/ui/field";
 import { RatingField } from "@/components/ui/rating-field";
+import { MAX_RATING } from "@/lib/filters/climb-stats-filter";
 
 /** A full 1–5 range is unfiltered; narrowing either side keeps the bounds ordered. */
 export function RatingRangeFilter({
@@ -13,8 +15,7 @@ export function RatingRangeFilter({
   value: [number, number];
   onChange: (value: [number, number]) => void;
 }) {
-  const min = value[0] || 1;
-  const max = value[1] || 5;
+  const [min, max] = ratingBounds(value);
   const helperId = useId();
   return (
     <div
@@ -49,13 +50,13 @@ export function RatingRangeFilter({
             compact
             allowClear={false}
             onValueChange={(rating) => {
-              const next = rating ?? 5;
+              const next = rating ?? MAX_RATING;
               onChange([Math.min(min, next), next]);
             }}
           />
         </div>
         <p id={helperId} className="text-xs text-muted">
-          {min === 1 && max === 5 ? "Includes unrated climbs" : "Excludes unrated climbs"}
+          {min === 1 && max === MAX_RATING ? "Includes unrated climbs" : "Excludes unrated climbs"}
         </p>
       </div>
     </div>

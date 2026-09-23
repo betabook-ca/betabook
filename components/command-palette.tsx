@@ -8,9 +8,9 @@ import { createContext, useCallback, useContext, useEffect, type ReactNode } fro
 import { Brand } from "@/components/brand";
 import { AppLink } from "@/components/ui/app-link";
 import { DeferredLoadError } from "@/components/ui/deferred-load-error";
+import { useClientSession } from "@/hooks/use-client-session";
 import { useDeferredComponent } from "@/hooks/use-deferred-component";
 import { isApplePlatform, useModifierLabels } from "@/hooks/use-platform";
-import { authClient } from "@/lib/auth-client";
 import { SEARCH_PATH } from "@/lib/search";
 
 /** Module-level so its identity is stable across renders — the preload hook
@@ -20,21 +20,9 @@ const loadPaletteDialog = () =>
 
 const OpenSearchContext = createContext<(() => void) | null>(null);
 
-/** Opens the site-wide search palette from anywhere under the provider, so
- * every search affordance on the page is a way into the same palette rather
- * than a second search of its own. Null outside the provider. */
-function useOpenSearch(): (() => void) | null {
-  return useContext(OpenSearchContext);
-}
-
 /** Site-wide search on ⌘K (Ctrl+K off macOS) — a navigator, so every row
  * goes somewhere and the last one always escapes to full search rather than
  * dead-ending on "no results".
- *
- * Owns the palette and binds the chord, and hands `open` down so the header
- * button, the home page's entry, and the shortcut are three doors into one
- * search rather than three searches. Wraps the app because those doors sit
- * in different parts of the tree.
  *
  * The current area is offered as an explicit narrowing action. Search starts
  * globally so opening it in a crag does not silently change its meaning.
@@ -46,8 +34,7 @@ function useOpenSearch(): (() => void) | null {
  * bound before the chunk arrives so an early ⌘K isn't swallowed. */
 export function SearchPaletteProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const { data: session, isPending } = authClient.useSession();
-  const canSearchQuickly = !!session && !isPending;
+  const canSearchQuickly = !!useClientSession();
   const state = useOverlayState();
   const { Component: PaletteDialog, load, failed } = useDeferredComponent(loadPaletteDialog);
 
@@ -107,13 +94,9 @@ export function SearchPaletteProvider({ children }: { children: ReactNode }) {
  * Purely an affordance — the chord itself is bound by the provider, so it
  * works on pages that never render this. */
 export function SearchTrigger() {
-  const openSearch = useOpenSearch();
-  const { data: session, isPending } = authClient.useSession();
-  return (
-    <SearchTriggerControl
-      onOpenSearch={session && !isPending ? (openSearch ?? undefined) : undefined}
-    />
-  );
+  const openSearch = useContext(OpenSearchContext);
+  const session = useClientSession();
+  return <SearchTriggerControl onOpenSearch={session ? (openSearch ?? undefined) : undefined} />;
 }
 
 export function SearchTriggerControl({

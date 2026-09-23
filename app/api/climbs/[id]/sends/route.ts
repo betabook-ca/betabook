@@ -6,8 +6,6 @@ import { withApiSession } from "@/lib/api-session";
 import { parseId } from "@/lib/parse-id";
 import { offsetReachesPaginationLimit, parseOffset } from "@/lib/url-params";
 
-const headers = { "Cache-Control": "private, no-store" };
-
 type RouteParams = { params: Promise<{ id: string }> };
 
 /** Incremental "load more" for a climb's community-ascents list — the
@@ -26,11 +24,11 @@ export const GET = withApiSession(async (session, request: Request, { params }: 
   // res.ok, and an empty 200 would read as "end of list".
   const climb = climbId === null ? undefined : await getClimb(db, climbId);
   if (!climb) {
-    return NextResponse.json({ error: "Climb not found" }, { status: 404, headers });
+    return NextResponse.json({ error: "Climb not found" }, { status: 404 });
   }
 
   if (safeOffset === null) {
-    return NextResponse.json({ sends: [], hasMore: false }, { headers });
+    return NextResponse.json({ sends: [], hasMore: false });
   }
 
   const page = await getSendsForClimb(
@@ -40,11 +38,8 @@ export const GET = withApiSession(async (session, request: Request, { params }: 
     CLIMB_SENDS_PAGE_SIZE,
     session.user.id,
   );
-  return NextResponse.json(
-    {
-      ...page,
-      hasMore: page.hasMore && !offsetReachesPaginationLimit(safeOffset, CLIMB_SENDS_PAGE_SIZE),
-    },
-    { headers },
-  );
+  return NextResponse.json({
+    ...page,
+    hasMore: page.hasMore && !offsetReachesPaginationLimit(safeOffset, CLIMB_SENDS_PAGE_SIZE),
+  });
 });

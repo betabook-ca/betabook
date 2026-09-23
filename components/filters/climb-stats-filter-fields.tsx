@@ -40,22 +40,16 @@ export function ClimbStatsFields({
   minAscents,
   onMinAscentsChange,
   showMinAscents = true,
-  showRatingFilters = true,
 }: {
   ratingRange: [number, number];
   onRatingRangeChange: (range: [number, number]) => void;
   showMinAscents?: boolean;
-  showRatingFilters?: boolean;
   minAscents: number;
   onMinAscentsChange: (value: number) => void;
 }) {
-  // An empty wrapper would still open a gap above the grade sliders.
-  if (!showRatingFilters && !showMinAscents) return null;
   return (
     <div className="flex flex-col gap-4">
-      {showRatingFilters && (
-        <RatingRangeFilter value={ratingRange} onChange={onRatingRangeChange} />
-      )}
+      <RatingRangeFilter value={ratingRange} onChange={onRatingRangeChange} />
       {showMinAscents && <MinAscentsField value={minAscents} onChange={onMinAscentsChange} />}
     </div>
   );

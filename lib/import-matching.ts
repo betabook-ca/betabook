@@ -259,10 +259,6 @@ function describeConflict(total: number, subject: string, predicate: string, suf
     : `None of the ${total} climbs ${subject} is ${predicate}${suffix}`;
 }
 
-/** Apply hard filters first; conflicts leave candidates available for manual selection.
- * Soft signals narrow ties only if candidates remain. A truncated list cannot
- * resolve automatically without an area-specific lookup confirming its candidates. */
-// oxlint-disable-next-line complexity -- layered hard-then-soft signal filters, each a guarded branch
 export function matchRow(
   row: NormalizedImportRow,
   index: CandidateIndex,
@@ -276,6 +272,9 @@ export function matchRow(
   return matchCandidates(row, loose, options, true);
 }
 
+/** Apply hard filters first; conflicts leave candidates available for manual selection.
+ * Soft signals narrow ties only if candidates remain. A truncated list cannot
+ * resolve automatically without an area-specific lookup confirming its candidates. */
 // oxlint-disable-next-line complexity -- layered hard-then-soft signal filters, each a guarded branch
 function matchCandidates(
   row: NormalizedImportRow,

@@ -5,7 +5,7 @@ import { expect, it, vi } from "vitest";
 
 import { InlineAlert } from "./inline-alert";
 
-it.each(["warning", "success", "accent"] as const)("announces %s feedback politely", (status) => {
+it.each(["warning", "success"] as const)("announces %s feedback politely", (status) => {
   render(<InlineAlert status={status}>Saved feedback</InlineAlert>);
   expect(screen.getByRole("status")).toHaveTextContent("Saved feedback");
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();

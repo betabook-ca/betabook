@@ -7,17 +7,18 @@ import { Chip } from "@heroui/react";
  * text, which anyone can edit. HeroUI's soft `danger` is free here: success
  * and warning are spoken for by ascent styles and rating stars, and a broken
  * line is the one red fact a climb can carry. */
-export function BrokenChip({ brokenOn, className = "" }: { brokenOn: string; className?: string }) {
+export function BrokenChip({ brokenOn }: { brokenOn: string }) {
+  // Chip renders a span, where aria-label isn't announced, so the date is
+  // real text for screen readers and a tooltip for pointers.
   return (
     <Chip
       variant="soft"
       color="danger"
       size="sm"
-      className={`font-sans ${className}`}
-      aria-label={`Broken since ${brokenOn}`}
-      title={`Broke on ${brokenOn}`}
+      className="font-sans"
+      title={`Broken since ${brokenOn}`}
     >
-      Broken
+      Broken<span className="sr-only"> since {brokenOn}</span>
     </Chip>
   );
 }

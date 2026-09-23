@@ -291,8 +291,8 @@ export const CompletedGoalsInHistory: Story = {
   args: {
     initialView: "completed",
     initialCompleted: summarizeGoalPeriods(completedFinishes, "completed", 0, completedNow),
-    loadPage: async (view, offset, year) =>
-      summarizeGoalPeriods(completedFinishes, view, offset, completedNow, year),
+    loadPage: async (offset, year) =>
+      summarizeGoalPeriods(completedFinishes, "completed", offset, completedNow, year),
   },
 };
 

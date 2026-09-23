@@ -49,21 +49,10 @@ export function LandingHero({
   );
 }
 
-export function LandingSection({
-  title,
-  lead,
-  children,
-}: {
-  title: string;
-  lead?: string;
-  children: ReactNode;
-}) {
+export function LandingSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex max-w-2xl flex-col gap-1">
-        <SectionHeading>{title}</SectionHeading>
-        {lead && <p className="leading-relaxed text-pretty text-muted">{lead}</p>}
-      </div>
+      <SectionHeading>{title}</SectionHeading>
       {children}
     </section>
   );

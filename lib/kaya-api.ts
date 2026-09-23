@@ -7,7 +7,7 @@ import {
 } from "@/lib/kaya-import-stream";
 import { parseKayaUsername } from "@/lib/kaya-profile";
 import { MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS } from "@/lib/sends-import";
-import { SUPPORT_EMAIL } from "@/lib/support";
+import { importTooLargeMessage, SUPPORT_EMAIL } from "@/lib/support";
 
 const FORMAT_ERROR = `KAYA returned an unexpected format. Please try again, or email ${SUPPORT_EMAIL}.`;
 const MAX_RESPONSE_BYTES = 1024 * 1024;
@@ -186,10 +186,7 @@ function readTotal(value: unknown): number {
       throw new ActionError(FORMAT_ERROR);
     total += count;
   }
-  if (total > MAX_IMPORT_ROWS)
-    throw new ActionError(
-      `This KAYA history is too large for a direct import. Email ${SUPPORT_EMAIL} for help importing it.`,
-    );
+  if (total > MAX_IMPORT_ROWS) throw new ActionError(importTooLargeMessage("KAYA history"));
   return total;
 }
 
@@ -263,10 +260,7 @@ export async function fetchKayaAscents(
     if (offset === 0) total = readTotal(page.webFilterDistributionForAscents);
     received += batch.length;
     size += new TextEncoder().encode(JSON.stringify(batch)).byteLength;
-    if (size > MAX_IMPORT_FILE_BYTES)
-      throw new ActionError(
-        `This KAYA history is too large for a direct import. Email ${SUPPORT_EMAIL} for help importing it.`,
-      );
+    if (size > MAX_IMPORT_FILE_BYTES) throw new ActionError(importTooLargeMessage("KAYA history"));
     if (received > total || (batch.length < KAYA_PAGE_SIZE && received !== total))
       throw new ActionError(
         `Couldn't load your complete KAYA history, or it changed during download. Please try again, or email ${SUPPORT_EMAIL}.`,

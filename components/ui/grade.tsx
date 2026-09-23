@@ -31,7 +31,7 @@ export function Grade({ children, size = "sm", className }: GradeProps) {
  * so the reader learns one sign instead of two glyph families. */
 export function GradeArrow({ direction, label }: { direction: "up" | "down"; label: string }) {
   const Icon = direction === "up" ? ArrowUp : ArrowDown;
-  return <Icon className="size-3.5 text-muted" aria-label={label} />;
+  return <Icon className="size-3.5 text-muted" role="img" aria-label={label} />;
 }
 
 /** A grade compared against the one it sits beside — the community's or a
