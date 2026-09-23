@@ -9,6 +9,7 @@ import {
   resolveImportClimbsInAreas,
   type ImportResult,
 } from "@/actions";
+import { GRADE_FEEL_OPTIONS } from "@/components/send-fields";
 import { cardClass } from "@/components/ui/card";
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { Eyebrow } from "@/components/ui/eyebrow";
@@ -92,7 +93,6 @@ import { ImportSourceStep, type DirectSource } from "./import-source-step";
 import {
   ASCENT_STYLE_OPTIONS,
   CLIMB_TYPE_OPTIONS,
-  GRADE_FEEL_OPTIONS,
   RATING_OPTIONS,
   Stat,
   ValueMappingSection,

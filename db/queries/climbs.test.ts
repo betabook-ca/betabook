@@ -16,7 +16,6 @@ import { resetDb } from "@/test/reset-db";
 
 import { getArea } from "./areas";
 import {
-  countSearchClimbs,
   findClimbCandidatesByNames,
   findClimbCandidatesInAreas,
   getAreaWithSubtreeSize,
@@ -100,7 +99,6 @@ describe("getClimb", () => {
     const params = { name: "Test", areaId: 2, disciplines: [] };
     const result = await searchClimbs(db, params);
     expect(result.climbs.map((climb) => climb.id).sort((a, b) => a - b)).toEqual([1, 2]);
-    expect(await countSearchClimbs(db, params)).toBe(2);
     expect(
       (await searchClimbs(db, { ...params, areaId: 3 })).climbs
         .map((climb) => climb.id)
@@ -665,26 +663,6 @@ describe("searchClimbs pagination", () => {
       expect(ids).toHaveLength(55);
       expect(new Set(ids).size).toBe(55);
     }
-  });
-
-  it("counts every match, not just the first page", async () => {
-    expect(await countSearchClimbs(db, SCOPE)).toBe(55);
-  });
-
-  it("counts with the same filters as the page query", async () => {
-    // Grades are i % 19 over 55 climbs: each grade in [0, 4] appears 3
-    // times, so a boulder range of [0, 4] matches 15.
-    expect(
-      await countSearchClimbs(db, {
-        ...SCOPE,
-        disciplines: ["boulder"],
-        boulderRange: [0, 4],
-      }),
-    ).toBe(15);
-  });
-
-  it("counts zero for a name with no matchable tokens", async () => {
-    expect(await countSearchClimbs(db, { name: " ", disciplines: [] })).toBe(0);
   });
 });
 

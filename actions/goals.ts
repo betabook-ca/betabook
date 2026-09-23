@@ -8,7 +8,12 @@ import { scheduleGoalRefresh } from "@/actions/goal-refresh";
 import { getDb } from "@/db/client";
 import { goalCountSql } from "@/db/queries/goals";
 import { goals, goalPeriods } from "@/db/schema";
-import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
+import {
+  ActionError,
+  JOURNAL_RATE_LIMIT_MESSAGE,
+  toActionResult,
+  type ActionResult,
+} from "@/lib/action-result";
 import {
   goalInputSchema,
   missedGoalNeedsAction,
@@ -163,7 +168,7 @@ export async function saveGoal(
   return toActionResult(async () => {
     const session = await requireSession();
     if (!(await allowJournalWrite(session.user.id)))
-      throw new ActionError("Please wait before changing another goal.");
+      throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
     validateGoalId(id);
     if (retryOf !== undefined) {
       validateGoalId(retryOf);
@@ -367,7 +372,7 @@ export async function archiveGoal(id: number): Promise<ActionResult> {
   return toActionResult(async () => {
     const session = await requireSession();
     if (!(await allowJournalWrite(session.user.id)))
-      throw new ActionError("Please wait before changing another goal.");
+      throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
     validateGoalId(id);
     const db = await getDb();
     const finished = sql`g.id=${id} AND g.user_id=${session.user.id} AND g.archive_token IS NULL AND g.repeat='none' AND ${goalCountSql()}>=g.target`;

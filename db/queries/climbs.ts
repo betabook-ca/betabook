@@ -544,19 +544,3 @@ export async function searchClimbs(
     hasNextPage: rows.length > pageSize,
   };
 }
-
-/** Skip this full count for unfiltered landing pages. The areas join is needed
- * only when areaNameCondition references the outer areas alias. */
-export async function countSearchClimbs(db: Database, params: SearchClimbsParams): Promise<number> {
-  const conditions = searchClimbsConditions(params);
-  if (conditions === null) return 0;
-
-  const areasJoin = params.areaName ? sql`JOIN areas ON areas.id = climbs.area_id` : sql``;
-  const [row] = await db.all<{ count: number }>(sql`
-    SELECT COUNT(*) AS count
-    FROM climbs
-    ${areasJoin}
-    ${searchClimbsWhereClause(conditions)}
-  `);
-  return row?.count ?? 0;
-}

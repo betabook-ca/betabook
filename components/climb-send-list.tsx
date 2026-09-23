@@ -5,7 +5,6 @@ import type { ReactNode } from "react";
 import { ClimbSendListRow } from "@/components/climb-send-list-row";
 import { SendActionsMenu } from "@/components/send-actions-menu";
 import { SendListShell } from "@/components/send-list-shell";
-import { ViewerBoundary } from "@/components/viewer-boundary";
 import type { Climb, ClimbSendRow, ClimbSendsPage } from "@/db/queries";
 import { usePagedList } from "@/hooks/use-paged-list";
 import { apiFetch } from "@/lib/api-client";
@@ -20,15 +19,7 @@ type ClimbSendListProps = {
 };
 
 /** Community ascents for a single climb, one row per climber. */
-export function ClimbSendList(props: ClimbSendListProps) {
-  return (
-    <ViewerBoundary viewerId={props.currentUserId}>
-      <ClimbSendListContent {...props} />
-    </ViewerBoundary>
-  );
-}
-
-function ClimbSendListContent({
+export function ClimbSendList({
   climb,
   initialSends,
   initialHasMore,

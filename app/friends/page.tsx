@@ -28,13 +28,7 @@ export default async function FriendsPage({
   ]);
   return (
     <WorkspaceShell area="community" userId={session.user.id}>
-      <FriendsContent
-        embedded
-        userId={session.user.id}
-        view={view}
-        page={page}
-        suggestions={suggestions}
-      />
+      <FriendsContent userId={session.user.id} view={view} page={page} suggestions={suggestions} />
     </WorkspaceShell>
   );
 }

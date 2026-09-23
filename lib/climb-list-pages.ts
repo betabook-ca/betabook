@@ -1,8 +1,6 @@
 import type { AreaBreadcrumbs, ClimbSendStats, ClimbWithAreaName } from "@/db/queries";
 
-/** One page of /api/search/climbs in its full (non-suggestion) shape — what
- * the home search and the climb picker both page through. `count` only comes
- * back for a request that asked for it. */
+/** One page of /api/search/climbs. */
 export type ClimbListPage = {
   climbs: ClimbWithAreaName[];
   hasNextPage: boolean;
@@ -10,7 +8,6 @@ export type ClimbListPage = {
   areaBreadcrumbs: AreaBreadcrumbs;
   /** Sent ids for this page only; omitted for signed-out viewers. */
   sentClimbIds?: number[];
-  count?: number;
 };
 
 /** Per-row metadata accumulated as the viewer loads more climbs. A fresh

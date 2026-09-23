@@ -21,13 +21,13 @@ export function FormSection({ label, children }: { label: string; children: Reac
   );
 }
 
-export const GRADE_FEEL_LABELS: Record<GradeFeel, string> = {
+const GRADE_FEEL_LABELS: Record<GradeFeel, string> = {
   low: "Low end",
   solid: "Solid",
   high: "High end",
 };
 
-const GRADE_FEEL_OPTIONS = GRADE_FEEL_VALUES.map((value) => ({
+export const GRADE_FEEL_OPTIONS = GRADE_FEEL_VALUES.map((value) => ({
   value,
   label: GRADE_FEEL_LABELS[value],
 }));

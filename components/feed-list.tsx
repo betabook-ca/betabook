@@ -32,7 +32,6 @@ export function FeedList({
   const router = useRouter();
   const [refreshing, startRefresh] = useTransition();
   const session = useClientSession();
-  // The page's ViewerBoundary refreshes permissions and data on return.
   const { items, hasMore, loadingMore, loadMoreFailed, loadMore } = usePagedList<FeedDay, null>({
     initialItems: initialPage.days,
     initialHasMore: initialPage.hasMore,
