@@ -11,9 +11,7 @@ export function NewAreaForm() {
   return (
     <AreaForm
       parentId={null}
-      onDone={(areaId, areaName) =>
-        router.push(areaName ? areaHref(areaId, areaName) : `/areas/${areaId}`)
-      }
+      onDone={(areaId, areaName) => router.push(areaHref(areaId, areaName))}
     />
   );
 }

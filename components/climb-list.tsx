@@ -1,5 +1,3 @@
-"use client";
-
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
 import { ClimbSentIndicator } from "@/components/climb-sent-indicator";
 import { BrokenChip } from "@/components/ui/broken-chip";

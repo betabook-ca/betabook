@@ -4,6 +4,7 @@ import { Button, Input, Label, TextField } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { AuthDivider, ResendVerificationButton } from "@/components/auth-form-parts";
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
 import { useTurnstile } from "@/components/turnstile";
 import { AppLink } from "@/components/ui/app-link";
@@ -12,7 +13,7 @@ import { InlineAlert } from "@/components/ui/inline-alert";
 import { PageTitle } from "@/components/ui/typography";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { authClient } from "@/lib/auth-client";
-import { DEFAULT_SIGNED_IN_PATH, safeNextPath, signInUrl, signUpUrl } from "@/lib/sign-in-redirect";
+import { DEFAULT_SIGNED_IN_PATH, safeNextPath, signUpUrl } from "@/lib/sign-in-redirect";
 import { termsHref } from "@/lib/terms";
 
 export function SignInForm({
@@ -39,17 +40,12 @@ export function SignInForm({
   // affordance is bound to this, not to whatever is currently typed in the
   // email field.
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
-  const [resent, setResent] = useState(false);
-  const [resendPending, setResendPending] = useState(false);
-  const [resendError, setResendError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const attemptedEmail = email;
     setError(null);
     setUnverifiedEmail(null);
-    setResent(false);
-    setResendError(null);
     setPending(true);
     try {
       await authClient.signIn.email(
@@ -88,34 +84,7 @@ export function SignInForm({
     setEmail(value);
     // The unverified prompt refers to the attempted address; once the field
     // is edited it no longer applies.
-    if (unverifiedEmail !== null) {
-      setUnverifiedEmail(null);
-      setResent(false);
-      setResendError(null);
-    }
-  }
-
-  async function resendVerification() {
-    if (!unverifiedEmail) return;
-    setResent(false);
-    setResendError(null);
-    setResendPending(true);
-    try {
-      await authClient.sendVerificationEmail(
-        // After the verification link is clicked, land back on this sign-in
-        // URL, continuation included.
-        { email: unverifiedEmail, callbackURL: signInUrl(nextPath) },
-        {
-          onSuccess: () => setResent(true),
-          onError: (ctx) =>
-            setResendError(ctx.error.message ?? "Could not resend the verification email"),
-          onResponse: () => setResendPending(false),
-        },
-      );
-    } catch {
-      setResendError(GENERIC_ERROR_MESSAGE);
-      setResendPending(false);
-    }
+    setUnverifiedEmail(null);
   }
 
   return (
@@ -136,11 +105,7 @@ export function SignInForm({
             .
           </p>
           <GoogleSignInButton nextPath={nextPath} onError={setError} disabled={pending} />
-          <div className="relative flex items-center py-1">
-            <div className="grow border-t border-separator" />
-            <span className="mx-3 shrink text-xs text-muted uppercase">or</span>
-            <div className="grow border-t border-separator" />
-          </div>
+          <AuthDivider />
         </>
       )}
       <TextField value={email} onChange={handleEmailChange} type="email" isRequired>
@@ -160,10 +125,7 @@ export function SignInForm({
           <InlineAlert status="warning">
             Please verify your email address before signing in.
           </InlineAlert>
-          <Button variant="ghost" onPress={resendVerification} isDisabled={resent || resendPending}>
-            {resent ? "Verification email sent" : "Resend verification email"}
-          </Button>
-          {resendError && <InlineAlert>{resendError}</InlineAlert>}
+          <ResendVerificationButton email={unverifiedEmail} nextPath={nextPath} />
         </div>
       )}
       {captcha.widget}

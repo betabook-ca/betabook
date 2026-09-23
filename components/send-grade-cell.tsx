@@ -38,7 +38,7 @@ export function SendGradeCell({
   gradeFeel,
   rating,
 }: SendGradeCellProps) {
-  const arrow = gradeFeel === "solid" ? null : <GradeFeelArrow gradeFeel={gradeFeel} />;
+  const arrow = <GradeFeelArrow gradeFeel={gradeFeel} />;
   const showSuggestion = suggestedGrade != null && suggestedGrade !== grade;
 
   return (

@@ -88,7 +88,6 @@ export function AnalyticsVolumeChart({
         <ChartInspection key={metric} label={`Monthly ${label.toLowerCase()}`} details={details}>
           <div className="relative">
             <LineChart
-              key={metric}
               width={width}
               height={240}
               data={rows}

@@ -22,10 +22,7 @@ export function ProfileInvite({
       className={`flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between ${cardClass("md")}`}
     >
       <div className="flex min-w-0 items-center gap-4">
-        {/* Always shown, photo or not: an inviter with no photo used to get a
-         * bare heading, which read as a different card from the one every
-         * other climber's link produces. Initials keep the invitation's
-         * shape and are the same fallback the rest of the app uses. */}
+        {/* Initials fallback keeps every invite the same shape. */}
         <UserAvatar name={name} image={image} size="lg" />
         <div className="flex min-w-0 flex-col gap-1">
           <PageTitle className="break-words">

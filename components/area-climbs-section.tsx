@@ -1,7 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
-
 import { ClimbList } from "@/components/climb-list";
 import { NavigationPendingRegion } from "@/components/navigation-pending";
 import type {
@@ -30,16 +28,8 @@ type AreaClimbsSectionProps = {
   emptyMessage?: string;
 };
 
-/** Owns the area page's accumulated "load more" list state and the fetch
- * that backs it — separate from ClimbList itself since ClimbList is also
- * used by climb search, which doesn't have any of this. Search, filters,
- * and sort live in AreaClimbsToolbar above it; this just renders whatever
- * the URL's sort+filter selected, page by page.
- *
- * The caller keys this component on `{ sort, filter }` (see
- * app/areas/[id]/page.tsx) so a sort/filter change remounts it with fresh
- * initial state, rather than this component syncing accumulated state to
- * changed props via an effect. */
+/** The caller keys this on `{ sort, filter }` so a change remounts it with
+ * fresh paging state instead of syncing accumulated pages to new props. */
 export function AreaClimbsSection({
   areaId,
   sort,
@@ -51,15 +41,11 @@ export function AreaClimbsSection({
   sentClimbIds,
   emptyMessage,
 }: AreaClimbsSectionProps) {
-  const initialMeta = useMemo(
-    () =>
-      createClimbListMeta({
-        sendStats: initialSendStats,
-        areaBreadcrumbs: initialAreaBreadcrumbs,
-        sentClimbIds,
-      }),
-    [initialSendStats, initialAreaBreadcrumbs, sentClimbIds],
-  );
+  const initialMeta = createClimbListMeta({
+    sendStats: initialSendStats,
+    areaBreadcrumbs: initialAreaBreadcrumbs,
+    sentClimbIds,
+  });
 
   const {
     items: climbs,

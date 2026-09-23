@@ -1,7 +1,5 @@
-import { AscentStyle } from "@/components/ascent-style";
-import { ClimbLogRow } from "@/components/climb-log-row";
+import { UserSendLogRow } from "@/components/climb-log-row";
 import { ProfileInvite } from "@/components/profile-invite";
-import { SendGradeCell } from "@/components/send-grade-cell";
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -43,28 +41,7 @@ export function SharedProfile({
             <div className="flex flex-col divide-y divide-separator">
               {sends.map((send) => (
                 // Keys reach the RSC payload; sequential send ids stay out of it.
-                <ClimbLogRow
-                  key={send.climbId}
-                  climb={{
-                    id: send.climbId,
-                    name: send.climbName,
-                    areaId: send.areaId,
-                    areaName: send.areaName,
-                  }}
-                  areaBreadcrumbs={areaBreadcrumbs}
-                  grade={
-                    <SendGradeCell
-                      type={send.climbType}
-                      grade={send.climbGrade}
-                      suggestedGrade={send.suggestedGrade}
-                      gradeFeel={send.gradeFeel}
-                      rating={send.rating}
-                    />
-                  }
-                  status={<AscentStyle type={send.ascentStyle} />}
-                  date={send.dateSent}
-                  comment={send.comment}
-                />
+                <UserSendLogRow key={send.climbId} send={send} areaBreadcrumbs={areaBreadcrumbs} />
               ))}
             </div>
           )}

@@ -16,13 +16,8 @@ type ClimbMergeDrawerProps = {
   state: UseOverlayStateReturn;
 };
 
-/** Lets a viewer fold a duplicate climb into another one — the picked climb
- * survives with this climb's sends merged into it (see
- * actions/moderation.ts's requestClimbMerge). Gated the same as every other
- * structural change: applies immediately for an admin, otherwise queues a
- * change request. Attribute overrides on the surviving climb aren't exposed
- * here yet — the action supports them, but merging as-is and following up
- * with a normal edit covers this first pass. */
+/** Folds this climb into the picked one, which keeps both climbs' sends.
+ * Applies immediately for an admin, otherwise queues a change request. */
 export function ClimbMergeDrawer({ climbId, state }: ClimbMergeDrawerProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -30,13 +25,7 @@ export function ClimbMergeDrawer({ climbId, state }: ClimbMergeDrawerProps) {
   const [pending, startTransition] = useTransition();
 
   function handlePick(target: ClimbWithAreaName): void {
-    // Picking is a single click — ignore further picks while one is already
-    // in flight, and catch a self-pick without a server round-trip.
     if (pending) return;
-    if (target.id === climbId) {
-      setError("Can't mark a climb as a duplicate of itself");
-      return;
-    }
     setError(null);
     startTransition(async () => {
       const result = await requestClimbMerge(climbId, target.id);

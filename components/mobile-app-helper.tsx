@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import type { BeforeInstallPromptEvent } from "@/components/mobile-app-helper-panel";
 import { DeferredLoadError } from "@/components/ui/deferred-load-error";
@@ -31,15 +31,9 @@ export function openMobileAppHelper(): void {
   window.dispatchEvent(new CustomEvent(OPEN_MOBILE_HELPER_EVENT));
 }
 
-/**
- * A floating helper callout rendered on mobile screens explaining how to create
- * a Chrome (or Safari) app shortcut tailored directly to the detected OS (iOS or Android).
- *
- * Only the decision to show it lives here; the callout itself is a deferred
- * chunk (see use-deferred-component). This component sits in the root layout,
- * so on desktop — where it never renders anything — the markup and its icons
- * would otherwise be dead weight on every page.
- */
+/** Decides whether to show the add-to-home-screen callout. The callout is a
+ * deferred chunk: this shell is in the root layout, and desktop never renders
+ * it. */
 export function MobileAppHelper() {
   const mounted = useMounted();
   const paused = useSyncExternalStore(
@@ -64,12 +58,10 @@ export function MobileAppHelper() {
   useEffect(() => {
     if (!mounted || paused) return;
 
-    // Check if running already as a standalone shortcut or if user previously dismissed
     const isStandalone = isStandaloneDisplay();
     const isMobile = isMobileDevice();
     const isDismissed = isMobileHelperDismissed();
 
-    // Show after a brief delay so the initial page paint settles
     let timer: ReturnType<typeof setTimeout> | null = null;
     if (isMobile && !isStandalone && !isDismissed) {
       timer = setTimeout(() => {
@@ -92,12 +84,12 @@ export function MobileAppHelper() {
     };
   }, [mounted, load, paused]);
 
-  const handleDismiss = useCallback(() => {
+  function handleDismiss() {
     setMobileHelperDismissed();
     setIsOpen(false);
-  }, []);
+  }
 
-  const handleNativeInstall = useCallback(async () => {
+  async function handleNativeInstall() {
     if (!installPrompt) return;
     const promptEvent = installPrompt;
     setInstallPrompt(null);
@@ -109,9 +101,9 @@ export function MobileAppHelper() {
         setIsOpen(false);
       }
     } catch {
-      // Chrome prompt error fallback
+      // prompt() throws once the event has been used; nothing to recover.
     }
-  }, [installPrompt]);
+  }
 
   if (!mounted || paused || !isOpen) {
     return null;

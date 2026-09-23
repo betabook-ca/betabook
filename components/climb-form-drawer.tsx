@@ -17,11 +17,9 @@ type ClimbFormDrawerProps = {
 export function ClimbFormDrawer({ areaId, climb, state }: ClimbFormDrawerProps) {
   const router = useRouter();
 
-  function handleDone(climbId: number, climbName?: string) {
+  function handleDone(climbId: number, climbName: string) {
     state.close();
-    // Editing an existing climb just closes the drawer in place; creating a
-    // new one lands the viewer on it, same as the standalone /climbs/new page.
-    if (!climb) router.push(climbName ? climbHref(climbId, climbName) : `/climbs/${climbId}`);
+    if (!climb) router.push(climbHref(climbId, climbName));
   }
 
   return (

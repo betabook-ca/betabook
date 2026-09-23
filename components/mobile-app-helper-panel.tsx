@@ -12,11 +12,6 @@ export interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-/** The callout's actual markup, split from the shell that decides whether to
- * show it. The shell is in the root layout and so is on every route, while
- * this renders only on a mobile browser that hasn't dismissed it — keeping
- * the two apart takes the icons and `Button` off every other page. The shell
- * preloads it on idle, so the 1s reveal timer never waits on a fetch. */
 export function MobileAppHelperPanel({
   installPrompt,
   onDismiss,

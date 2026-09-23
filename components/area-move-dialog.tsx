@@ -9,13 +9,8 @@ import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
 import type { GatedActionResult } from "@/lib/moderation";
 
-/** Picking where a climb or area moves to.
- *
- * This was an AlertDialog, which is the wrong role — `alertdialog` is for
- * interruptions the viewer has to answer, not for searching a tree. It also
- * meant a combobox and its results squeezed into 24rem. Now it's a normal
- * dialog: a wider column on desktop, a sheet on phones like every other
- * picker. */
+/** Picking where a climb or area moves to. A plain dialog, not an
+ * alertdialog: this is a tree search, not an interruption. */
 export function AreaMoveDialog({
   state,
   title,
