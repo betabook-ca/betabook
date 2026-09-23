@@ -4,7 +4,8 @@ import { cache } from "react";
 
 import { getUserById } from "@/app/users/[id]/profile-shell";
 import { getDb } from "@/db/client";
-import { getTripForOwner, type TripSummary } from "@/db/queries";
+import { getTripForOwner, getTripShareForOwner, type TripSummary } from "@/db/queries";
+import { getBaseUrl } from "@/lib/app-url";
 import { getMemberSession } from "@/lib/session";
 
 /** Cached per request so a page and its `generateMetadata` resolve the same
@@ -27,6 +28,17 @@ function parseTripId(raw: string): number | null {
   if (!TRIP_ID.test(raw)) return null;
   const id = Number(raw);
   return Number.isSafeInteger(id) ? id : null;
+}
+
+/** The trip's link and the origin to build it against, resolved once here so
+ * every tab's header shows the same thing. `getTripShareForOwner` is the only
+ * read that hands out a token, and it is scoped to the owner. */
+export async function getTripShareContext(ownerId: string, tripId: number) {
+  const [share, shareOrigin] = await Promise.all([
+    getTripShareForOwner(await getDb(), ownerId, tripId),
+    getBaseUrl(),
+  ]);
+  return { share, shareOrigin };
 }
 
 export type TripPageParams = {

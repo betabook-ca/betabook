@@ -17,3 +17,4 @@ export * from "./goals";
 export * from "./projects";
 export * from "./trips";
 export * from "./project-shares";
+export * from "./trip-shares";

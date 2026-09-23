@@ -24,6 +24,9 @@ export function isTermsExemptPath(path: string) {
     // subject of it. The page authorizes its own reader, and treats a member
     // who has not accepted as signed out.
     path.startsWith("/projects/") ||
+    // A shared trip link is the same case as a shared project link: the reader
+    // may not have an account, and the page authorizes its own reader.
+    path.startsWith("/trips/") ||
     ["/contact", "/about", "/forgot-password", "/reset-password", ...LANDING_PAGE_PATHS].includes(
       path,
     )

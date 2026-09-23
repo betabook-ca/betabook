@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ProfileHeader } from "@/app/users/[id]/profile-shell";
 import { SendsView } from "@/app/users/[id]/sends-view";
 import {
+  getTripShareContext,
   resolveTripPage,
   tripMetadata,
   type TripPageParams,
@@ -27,6 +28,7 @@ export default async function TripSendsPage({ params, searchParams }: TripPagePa
   if (!resolved.signedIn) return <CurrentPageAuthCallout />;
   if (!resolved.ok) notFound();
   const { trip, user } = resolved;
+  const { share, shareOrigin } = await getTripShareContext(user.id, trip.id);
 
   // Same rule as the Journal tab: the trip's dates replace whatever the URL
   // asked for, so the window cannot be widened by hand.
@@ -40,7 +42,13 @@ export default async function TripSendsPage({ params, searchParams }: TripPagePa
 
   return (
     <ProfileHeader user={user} viewerId={user.id} workspace="logbook">
-      <TripHeader trip={trip} userId={user.id} current="sends">
+      <TripHeader
+        trip={trip}
+        userId={user.id}
+        current="sends"
+        share={share}
+        shareOrigin={shareOrigin}
+      >
         <SendsView
           userId={user.id}
           viewerId={user.id}

@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import type { TripShare } from "@/components/trips/share-trip-dialog";
+import { TripShareControls } from "@/components/trips/trip-share-controls";
 import { TripTabs } from "@/components/trips/trip-tabs";
 import { AppLink } from "@/components/ui/app-link";
 import { SectionHeading } from "@/components/ui/typography";
@@ -15,11 +17,19 @@ export function TripHeader({
   trip,
   userId,
   current,
+  share,
+  shareOrigin,
   children,
 }: {
   trip: TripSummary;
   userId: string;
   current: TripTab;
+  /** The trip's link as the server last saw it, or null when not shared. */
+  share: TripShare;
+  /** Resolved on the server so the copyable URL is the same string before and
+   * after hydration, and points at a preview deployment when that is where
+   * the climber is. */
+  shareOrigin: string;
   children: ReactNode;
 }) {
   return (
@@ -28,12 +38,23 @@ export function TripHeader({
         <AppLink href={tripsHref(userId)} className="text-sm text-muted">
           ← All trips
         </AppLink>
-        <SectionHeading>{trip.name}</SectionHeading>
-        {/* The dates and nothing else. A count here would be the trip's
-         * whole window, while the Analytics tab counts one discipline at a
-         * time — so the two would sit on the same screen disagreeing about
-         * "days out". The list card, where no scoped figure competes with it,
-         * is where the totals belong. */}
+        {/* A SectionHeading, not a PageTitle: WorkspaceSection already emits
+         * the page's only h1 ("Trips · Logbook", screen-reader only), and a
+         * second one here would give every trip detail page two — which axe's
+         * default rules do not flag, so nothing else would catch it. */}
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <SectionHeading>{trip.name}</SectionHeading>
+          <TripShareControls
+            tripId={trip.id}
+            tripName={trip.name}
+            share={share}
+            shareOrigin={shareOrigin}
+          />
+        </div>
+        {/* The dates and nothing else. A count here would describe the whole
+         * window while the Analytics tab counts one discipline, so the two
+         * would sit on the same screen disagreeing. Totals live on the list
+         * card, where no scoped figure competes with them. */}
         <p className="text-sm text-muted">{formatTripDates(trip.startDate, trip.endDate)}</p>
         {trip.description && <p className="text-sm leading-relaxed">{trip.description}</p>}
       </div>
