@@ -40,8 +40,20 @@ export const tripInputSchema = z
       });
   });
 
-export function tripHref(userId: string, tripId: number): string {
-  return `/users/${userId}/trips/${tripId}`;
+export function tripsHref(userId: string): string {
+  return `/users/${userId}/trips`;
+}
+
+/** Each tab is a path segment rather than a query parameter, so it is its own
+ * route with its own metadata and its own entry in history — the same shape
+ * Projects uses for Open and Sent. */
+export type TripTab = "journal" | "sends" | "analytics";
+
+export function tripHref(userId: string, tripId: number, tab: TripTab = "journal"): string {
+  const base = `/users/${userId}/trips/${tripId}`;
+  // Journal is the trip's own page rather than a child, so a trip link and
+  // its first tab are one URL instead of two that render the same thing.
+  return tab === "journal" ? base : `${base}/${tab}`;
 }
 
 export type TripStatus = "upcoming" | "current" | "past";

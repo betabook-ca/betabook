@@ -7,6 +7,7 @@ import {
   buildUserAnalytics,
   formatDaySpan,
   getAnalyticsHistorySummary,
+  inDateWindow,
   parseDisciplineScope,
 } from "./user-analytics";
 
@@ -441,4 +442,45 @@ it("builds monthly volume and flash rates from the selected years and discipline
     days: 1,
   });
   expect(buildUserAnalytics(rows, "boulder", undefined, [2022]).volume).toEqual([]);
+});
+
+describe("inDateWindow", () => {
+  const FROM = "2026-03-10";
+  const TO = "2026-03-20";
+
+  it("includes both ends, so a one-day window contains its day", () => {
+    expect(inDateWindow("2026-03-10", FROM, TO)).toBe(true);
+    expect(inDateWindow("2026-03-20", FROM, TO)).toBe(true);
+    expect(inDateWindow("2026-03-15", FROM, TO)).toBe(true);
+    expect(inDateWindow("2026-03-10", "2026-03-10", "2026-03-10")).toBe(true);
+  });
+
+  it("excludes the days either side", () => {
+    expect(inDateWindow("2026-03-09", FROM, TO)).toBe(false);
+    expect(inDateWindow("2026-03-21", FROM, TO)).toBe(false);
+  });
+
+  it("excludes an undated row, unlike an empty year selection", () => {
+    // The distinction that matters: "all years" admits a null date, a window
+    // cannot, because a send with no date cannot be shown to fall in it.
+    expect(inDateWindow(null, FROM, TO)).toBe(false);
+  });
+});
+
+describe("analytics scoped to a window", () => {
+  it("reports only what happened inside it, with no lifetime history leaking in", () => {
+    const rows = [
+      send({ dateSent: "2020-01-01", suggestedGrade: 9 }),
+      send({ dateSent: "2026-03-15", suggestedGrade: 4 }),
+      send({ dateSent: null, suggestedGrade: 7 }),
+    ];
+    const windowed = rows.filter((row) => inDateWindow(row.dateSent, "2026-03-10", "2026-03-20"));
+
+    expect(windowed).toHaveLength(1);
+    const analytics = buildUserAnalytics(windowed, "boulder", undefined, []);
+    // The V9 from 2020 is the climber's hardest ever and must not be reported
+    // as the hardest of a trip it falls outside.
+    expect(analytics.hardest.map((entry) => entry.grade)).toEqual([4]);
+    expect(analytics.volume.map((month) => month.month)).toEqual(["2026-03"]);
+  });
 });

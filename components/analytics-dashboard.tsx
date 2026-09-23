@@ -47,6 +47,7 @@ export function AnalyticsDashboard({
   selectedYears,
   periodPicker,
   summary,
+  activityHeading,
   canCustomize = false,
   initialLayout,
   onSave,
@@ -63,6 +64,10 @@ export function AnalyticsDashboard({
   periodPicker: ReactNode;
   /** The climber's all-time record, under the activity heading. */
   summary?: ReactNode;
+  /** Replaces the computed "All-time activity" / "Activity in <year>" heading.
+   * A trip selects no years — its window is already narrower than one — so the
+   * computed heading would announce an eleven-day window as all-time. */
+  activityHeading?: string;
   canCustomize?: boolean;
   initialLayout?: AnalyticsLayout;
   onSave?: (layout: AnalyticsLayout) => Promise<ActionResult>;
@@ -334,7 +339,7 @@ export function AnalyticsDashboard({
       heading={
         <div className="flex flex-col gap-1">
           <SectionHeading>
-            {period == null ? "All-time activity" : `Activity in ${period}`}
+            {activityHeading ?? (period == null ? "All-time activity" : `Activity in ${period}`)}
           </SectionHeading>
           {summary && <p className="text-sm text-muted">{summary}</p>}
         </div>
