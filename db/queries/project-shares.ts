@@ -20,9 +20,11 @@ export type SharedProjectSession = {
 /** What a valid link resolves to: the owner's own view of one project.
  *
  * The send travels whole — exact date, rating, suggested grade, grade feel
- * and comment — because the share dialog names all of it before the link
- * exists. That is the consent this page rests on, so the dialog copy and this
- * type have to be changed together. */
+ * and comment. The share dialog says "your sessions, notes and send" before
+ * the link exists, and that sentence is the consent this page rests on, so
+ * anything added here has to stay inside what it already covers. A field a
+ * climber would not expect under those three words needs the copy changed
+ * first. */
 export type SharedProject = {
   ownerId: string;
   ownerName: string;

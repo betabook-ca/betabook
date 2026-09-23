@@ -173,12 +173,10 @@ export function PrivacyDetails({ defaultExpanded = false }: { defaultExpanded?: 
                 Going private resets the link.
               </li>
               <li>
-                Sharing a project makes a link to that one climb: your name and profile, its
-                sessions and notes, and your send with its date, rating, suggested grade and
-                comment. Anyone with the link can open it, so it overrides the audiences above for
-                that climb and changes nothing about your feed. Climbers you tagged are not named.
-                You choose when it expires, Stop sharing ends it, and going private ends every
-                project link.
+                Sharing a project makes a link to that one climb. Anyone with the link sees your
+                name, sessions, notes and send, so it overrides the audiences above for that climb
+                and changes nothing about your feed. Climbers you tagged are not named. You choose
+                when it expires, Stop sharing ends it, and going private ends every project link.
               </li>
               <li>
                 Unless your profile is private, friends of your friends may see you suggested.

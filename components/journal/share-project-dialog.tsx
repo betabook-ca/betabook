@@ -122,19 +122,14 @@ export function ShareProjectDialog({
         }
       >
         <div className="flex flex-col gap-4">
-          {/* Said before the link exists, not after. The page shows this
-           * project as the climber's own board shows it, which overrides
-           * their journal and send-comment audiences for this one climb — so
-           * everything that travels is named here, not summarised. Change
-           * this copy and `SharedProject` together. */}
-          <p className="text-sm">
-            Anyone with this link can open it, and pass it on. They see your sessions and notes for{" "}
-            {climbName}, your send — its date, your rating, your suggested grade and your comment —
-            and a link to your profile.
-          </p>
-          <p className="text-sm text-muted">
-            Climbers you tagged are not named, and it doesn&apos;t appear in anyone&apos;s feed.
-          </p>
+          {/* Said before the link exists, not after, and in the same shape as
+           * the profile share control: one sentence naming what travels. The
+           * page shows this project as the climber's own board shows it,
+           * overriding their journal and send-comment audiences for this one
+           * climb, so "send" has to keep covering its date, rating, grade and
+           * comment. The dialog title already names the climb. */}
+          <p className="text-sm">Anyone with the link sees your sessions, notes and send.</p>
+          <p className="text-sm text-muted">Climbers you tagged aren&apos;t named.</p>
 
           <div className="flex items-center justify-between gap-3">
             {/* The control sets a duration; the line under the link below
