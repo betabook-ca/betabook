@@ -49,7 +49,11 @@ export async function saveTrip(tripId: number | null, raw: unknown): Promise<Act
       const [updated] = await db.all<{ id: number }>(sql`
         UPDATE trips
         SET name = ${name}, description = ${description ?? null},
-            start_date = ${startDate}, end_date = ${endDate}
+            start_date = ${startDate}, end_date = ${endDate},
+            -- Set here, not by the schema's \$onUpdate: that hook belongs to
+            -- the query builder, and this statement is raw SQL, so without
+            -- this line every edit would leave updated_at at creation time.
+            updated_at = cast(unixepoch('subsecond') * 1000 as integer)
         WHERE id = ${id} AND user_id = ${user.id}
         RETURNING id
       `);

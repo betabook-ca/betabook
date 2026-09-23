@@ -34,12 +34,19 @@ export function TripList({
   const editState = useOverlayState();
   const deleteState = useOverlayState();
   const [editing, setEditing] = useState<TripSummary | undefined>(undefined);
+  // Bumped every time the dialog is opened, and part of its key, so each
+  // session gets a fresh mount. Keying by trip id alone is not enough: the
+  // dialog resets its draft from the trip it was handed, on a timer after it
+  // closes, and a saved edit keeps the same id — so the next Edit on that trip
+  // would reopen showing the values the save replaced.
+  const [session, setSession] = useState(0);
   const [deleting, setDeleting] = useState<TripSummary | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  function openCreate() {
-    setEditing(undefined);
+  function openEditor(trip?: TripSummary) {
+    setEditing(trip);
+    setSession((count) => count + 1);
     editState.open();
   }
 
@@ -71,7 +78,7 @@ export function TripList({
          * there are trips it moves up here, clear of the cards. Showing both
          * put two identical buttons on the same empty screen. */}
         {trips.length > 0 && (
-          <Button onPress={openCreate} className="shrink-0">
+          <Button onPress={() => openEditor()} className="shrink-0">
             <Plus className="size-4" />
             New trip
           </Button>
@@ -82,7 +89,7 @@ export function TripList({
         <EmptyState
           message="No trips yet. Name a stretch of dates and its sessions, sends and stats come with it."
           cta={
-            <Button onPress={openCreate}>
+            <Button onPress={() => openEditor()}>
               <Plus className="size-4" />
               New trip
             </Button>
@@ -101,8 +108,7 @@ export function TripList({
                   ariaLabel={`Actions for ${trip.name}`}
                   onAction={(key) => {
                     if (key === "edit") {
-                      setEditing(trip);
-                      editState.open();
+                      openEditor(trip);
                     } else {
                       setDeleting(trip);
                       setDeleteError(null);
@@ -119,10 +125,15 @@ export function TripList({
         </ul>
       )}
 
-      {/* Keyed by the trip being edited so the dialog's draft state is rebuilt
-       * when the climber switches from one trip's menu to another's without
-       * the overlay unmounting in between. */}
-      <TripDialog key={editing?.id ?? "new"} state={editState} userId={userId} trip={editing} />
+      {/* Keyed by the session as well as the trip, so every open starts from
+       * the trip as it stands now rather than from whatever the last session
+       * left behind. */}
+      <TripDialog
+        key={`${editing?.id ?? "new"}-${session}`}
+        state={editState}
+        userId={userId}
+        trip={editing}
+      />
 
       <ConfirmDeleteDialog
         state={deleteState}
