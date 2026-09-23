@@ -87,3 +87,19 @@ export async function getTripsForOwner(db: Database, ownerId: string): Promise<T
     ORDER BY t.start_date DESC, t.id DESC
   `);
 }
+
+/** One trip, or null when it is not this climber's. The owner scope is in the
+ * WHERE rather than checked afterwards, so a guessed id reads as "no such
+ * trip" instead of confirming that someone else's exists. */
+export async function getTripForOwner(
+  db: Database,
+  ownerId: string,
+  tripId: number,
+): Promise<TripSummary | null> {
+  const row = await db.get<TripSummary>(sql`
+    SELECT ${tripColumnsSql}, ${tripCountsSql}
+    FROM trips t
+    WHERE t.user_id = ${ownerId} AND t.id = ${tripId}
+  `);
+  return row ?? null;
+}

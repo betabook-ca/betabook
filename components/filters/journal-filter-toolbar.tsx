@@ -42,6 +42,8 @@ export function JournalFilterToolbar({
   tags,
   isOwner = false,
   friends = NO_FRIENDS,
+  basePath,
+  lockedDateRange = false,
 }: {
   userId: string;
   filter: JournalFilter;
@@ -49,8 +51,18 @@ export function JournalFilterToolbar({
   tags: string[];
   isOwner?: boolean;
   friends?: CompanionOption[];
+  /** Where this toolbar's links point. Defaults to the climber's own journal;
+   * a trip mounts the same view under its own route and needs filter changes
+   * to stay inside the trip rather than navigating out of it. */
+  basePath?: string;
+  /** Hides the date control and its removable chip. The dates are not a filter
+   * the reader chose — they are the trip they are looking at — so offering a
+   * way to clear them would let the climber empty a trip from inside it. The
+   * page re-pins the window server-side regardless; this keeps the UI honest
+   * about what can be changed. */
+  lockedDateRange?: boolean;
 }) {
-  const base = `/users/${userId}/journal`;
+  const base = basePath ?? `/users/${userId}/journal`;
   const {
     filter: localFilter,
     setFilter,
@@ -76,7 +88,7 @@ export function JournalFilterToolbar({
                 }),
             }))
           : []),
-        ...dateActiveFilters(localFilter, setFilter),
+        ...(lockedDateRange ? [] : dateActiveFilters(localFilter, setFilter)),
         ...hashtagActiveFilters(localFilter.tags, (tags) => setFilter({ ...localFilter, tags })),
         ...(localFilter.query
           ? [
@@ -117,10 +129,12 @@ export function JournalFilterToolbar({
       ]}
       filters={
         <>
-          <DateFilter
-            value={localFilter}
-            onChange={(dates) => setFilter({ ...localFilter, ...dates, year: null })}
-          />
+          {!lockedDateRange && (
+            <DateFilter
+              value={localFilter}
+              onChange={(dates) => setFilter({ ...localFilter, ...dates, year: null })}
+            />
+          )}
           {isOwner && (
             <FriendFilter
               value={localFilter.friendIds}
