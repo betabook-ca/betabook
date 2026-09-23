@@ -1,8 +1,11 @@
 import { expect, openStory, test } from "./story";
 
 for (const [story, title, labels] of [
-  ["logbook", "Logbook", ["Journal", "Sends"]],
-  ["sends", "Logbook", ["Journal", "Sends"]],
+  ["logbook", "Logbook", ["Journal", "Sends", "Trips"]],
+  ["sends", "Logbook", ["Journal", "Sends", "Trips"]],
+  // A trip's own page nests under /trips, so the same row renders and the
+  // `toHaveCount(1)` check below proves Trips is the one tab reading current.
+  ["trip-detail", "Logbook", ["Journal", "Sends", "Trips"]],
   ["progress", "Progress", ["Goals", "Projects", "Analytics"]],
   // The sent sub-page nests under /projects, so the same row renders and the
   // `toHaveCount(1)` check below proves exactly one tab reads as current.
@@ -38,7 +41,10 @@ for (const [story, title, labels] of [
     await expect(current).toHaveCount(1);
     await expect(current).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
     expect(await current.evaluate((node) => getComputedStyle(node, "::after").height)).toBe("2px");
-    if (story === "progress") {
+    // Both three-tab workspaces have to survive the narrowest supported
+    // screen. Logbook only joined them when Trips arrived, and a row that
+    // silently starts scrolling is exactly the regression this catches.
+    if (story === "progress" || story === "logbook") {
       await page.setViewportSize({ width: 320, height: 812 });
       const widths = await nav.evaluate((node) => ({
         content: node.scrollWidth,

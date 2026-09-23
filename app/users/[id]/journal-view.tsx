@@ -18,20 +18,31 @@ export async function JournalView({
   ownerId,
   viewerId,
   filter: requestedFilter,
+  basePath,
+  lockedDateRange = false,
 }: {
   ownerId: string;
   viewerId: string;
   filter: JournalFilter;
+  /** Where the filter toolbar's links point, for the trip view that mounts
+   * this same timeline under its own route. */
+  basePath?: string;
+  lockedDateRange?: boolean;
 }) {
   const db = await getDb();
   const isOwner = viewerId === ownerId;
   const filter = isOwner ? requestedFilter : { ...requestedFilter, friendIds: [] };
+  // The guided tour teaches the climber to keep a journal, and it anchors on
+  // this page's own controls. A trip mounts the same timeline under a
+  // different route with its dates pinned, which is neither the place to
+  // start that lesson nor a page its steps can point at.
+  const isMainJournal = basePath == null;
 
   const [hasEntries, firstPage, filteredClimb, tourState, tags, friends] = await Promise.all([
     hasJournalEntries(db, ownerId, viewerId),
     getJournalPage(db, ownerId, viewerId, filter),
     filter.climbId === null ? Promise.resolve(null) : getClimb(db, filter.climbId),
-    isOwner ? getProductTourState(db, ownerId) : Promise.resolve(null),
+    isOwner && isMainJournal ? getProductTourState(db, ownerId) : Promise.resolve(null),
     getUserHashtags(db, ownerId, viewerId, false, true),
     isOwner ? getJournalFilterFriends(db, ownerId) : Promise.resolve([]),
   ]);
@@ -53,6 +64,8 @@ export async function JournalView({
             friends={friends}
             filter={filter}
             climbName={filteredClimb?.name ?? null}
+            basePath={basePath}
+            lockedDateRange={lockedDateRange}
           />
         )}
         <JournalTimeline

@@ -210,6 +210,19 @@ export function buildPyramid(sends: AnalyticsSendRow[], type: ClimbType): Pyrami
   return rows;
 }
 
+/** Whether a logged date falls inside a fixed window, inclusive at both ends.
+ *
+ * Deliberately unlike `inSelectedYears` in the one way that matters: an
+ * undated row is excluded rather than admitted. An empty year selection means
+ * "all years", so a null date belongs there; a trip is a claim about two
+ * specific days, and a send with no date cannot be shown to fall between them.
+ *
+ * Callers filter their rows with this *before* `buildUserAnalytics` and pass no
+ * selected years, so every stat below is computed over the window alone. */
+export function inDateWindow(date: string | null, from: string, to: string): boolean {
+  return date != null && date >= from && date <= to;
+}
+
 /** An empty selection is All years, which includes undated rows. */
 export function inSelectedYears(date: string | null, selectedYears: readonly number[]): boolean {
   return (

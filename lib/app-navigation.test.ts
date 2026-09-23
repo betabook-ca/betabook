@@ -14,6 +14,12 @@ it.each([
   ["/users/alex", "logbook"],
   ["/users/alex/journal", "logbook"],
   ["/users/alex/sends", "logbook"],
+  ["/users/alex/trips", "logbook"],
+  ["/users/alex/trips/7", "logbook"],
+  ["/users/alex/trips/7/analytics", "logbook"],
+  // The owner's own trip analytics stays in Logbook. Only the standalone
+  // /users/alex/analytics page belongs to Progress, and the trip tab must not
+  // be pulled across by sharing the word.
   ["/users/alex/projects", "progress"],
   ["/users/alex/projects/sent", "progress"],
   ["/users/alex/goals", "progress"],
@@ -30,7 +36,11 @@ it.each([
 });
 
 it("keeps workspace sections small and preserves existing routes", () => {
-  expect(workspaceTabs("logbook", "alex").map(({ label }) => label)).toEqual(["Journal", "Sends"]);
+  expect(workspaceTabs("logbook", "alex").map(({ label }) => label)).toEqual([
+    "Journal",
+    "Sends",
+    "Trips",
+  ]);
   expect(workspaceTabs("progress", "alex").map(({ label }) => label)).toEqual([
     "Goals",
     "Projects",
