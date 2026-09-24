@@ -90,6 +90,7 @@ import {
 } from "./import-match-step";
 import { ImportResultStep } from "./import-result-step";
 import { ImportSourceStep, type DirectSource } from "./import-source-step";
+import { TEXT_BUTTON_CLASS } from "./text-button";
 import {
   ASCENT_STYLE_OPTIONS,
   CLIMB_TYPE_OPTIONS,
@@ -207,9 +208,6 @@ function toImportSendRow(resolved: ResolvedRow, climb: ClimbCandidate): ImportSe
     blankGradeMeans: row.blankGradeMeans,
   };
 }
-
-const TEXT_BUTTON_CLASS =
-  "cursor-pointer underline decoration-dotted underline-offset-4 hover:text-foreground";
 
 function CsvWarnings({ warnings, subject }: { warnings: readonly string[]; subject: string }) {
   if (warnings.length === 0) return null;

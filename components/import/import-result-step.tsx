@@ -3,6 +3,7 @@ import { Button } from "@heroui/react";
 import { AppLink } from "@/components/ui/app-link";
 import { InlineAlert } from "@/components/ui/inline-alert";
 
+import { TEXT_BUTTON_CLASS } from "./text-button";
 import { Stat } from "./value-mapping-section";
 
 const MAX_LISTED_FAILURES = 50;
@@ -46,7 +47,7 @@ export function ImportResultStep({
       </div>
       {failures.length > 0 && (
         <details>
-          <summary className="cursor-pointer text-sm text-muted underline decoration-dotted underline-offset-4 hover:text-foreground">
+          <summary className={`text-sm text-muted ${TEXT_BUTTON_CLASS}`}>
             View rows needing attention
           </summary>
           <ul className="mt-2 flex flex-col gap-1 text-xs text-muted">

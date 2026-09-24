@@ -37,7 +37,7 @@ export function MobileAppHelperPanel({
           </div>
           <div>
             <h3 className="text-sm font-semibold text-foreground">Add to Home Screen</h3>
-            <p className="text-xs text-foreground/80">
+            <p className="text-xs text-muted">
               {isIOS ? "Create an iOS app shortcut" : "Create an Android app shortcut"}
             </p>
           </div>
@@ -62,7 +62,7 @@ export function MobileAppHelperPanel({
                 ? "Add shortcut in Chrome for iOS:"
                 : "Add shortcut in Safari or Chrome for iOS:"}
             </p>
-            <ol className="flex flex-col gap-2 pl-4 text-foreground/90">
+            <ol className="flex flex-col gap-2 pl-4">
               <li className="list-decimal marker:font-semibold marker:text-accent">
                 Tap the <span className="font-semibold text-foreground">Share</span> button (
                 <Share className="inline size-3.5 align-text-bottom text-accent" />) in the address
@@ -84,7 +84,7 @@ export function MobileAppHelperPanel({
         ) : (
           <div className="flex flex-col gap-2">
             <p className="font-semibold text-foreground">Add shortcut in Chrome for Android:</p>
-            <ol className="flex flex-col gap-2 pl-4 text-foreground/90">
+            <ol className="flex flex-col gap-2 pl-4">
               <li className="list-decimal marker:font-semibold marker:text-accent">
                 Tap the <span className="font-semibold text-foreground">menu</span> (
                 <MoreVertical className="inline size-3.5 align-text-bottom text-accent" />) in the

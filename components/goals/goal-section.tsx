@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { SectionHeading } from "@/components/ui/typography";
+
 export function GoalSection({
   hasGoals,
   action,
@@ -14,7 +16,7 @@ export function GoalSection({
   if (!hasGoals) {
     return (
       <section aria-label="My goals" className="flex max-w-160 flex-col items-start gap-2">
-        <h2 className="text-lg font-semibold">Set your first goal</h2>
+        <SectionHeading>Set your first goal</SectionHeading>
         <p className="text-sm text-muted">
           Choose a climbing or training target and track progress from your logs.
         </p>
