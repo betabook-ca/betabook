@@ -2,6 +2,8 @@
 
 import { clsx } from "clsx";
 
+import { SEGMENT_TRACK_CLASS, segmentPillClass } from "@/components/ui/segment-pills";
+
 import { SEARCH_LABELS, type SearchCategory } from "./search-types";
 
 export function SearchCategories({
@@ -20,10 +22,7 @@ export function SearchCategories({
     <div
       role="group"
       aria-label="Search category"
-      className={clsx(
-        "flex max-w-full shrink-0 gap-1 self-start rounded-2xl bg-surface-secondary p-1",
-        compact ? "flex-nowrap" : "flex-wrap",
-      )}
+      className={clsx(SEGMENT_TRACK_CLASS, compact ? "flex-nowrap" : "flex-wrap")}
     >
       {(["all", "climb", "area", "climber"] as const).map((category) => (
         <button
@@ -31,11 +30,7 @@ export function SearchCategories({
           type="button"
           aria-pressed={value === category}
           onClick={() => onChange(category)}
-          className={clsx(
-            "cursor-pointer rounded-full text-sm whitespace-nowrap focus-visible:status-focused",
-            compact ? "px-3 py-1.5" : "px-3 py-2",
-            value === category ? "bg-segment font-semibold text-segment-foreground" : "text-muted",
-          )}
+          className={segmentPillClass(value === category, compact)}
         >
           {SEARCH_LABELS[category]}
         </button>

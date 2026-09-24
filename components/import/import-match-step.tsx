@@ -30,6 +30,7 @@ import {
 } from "@/lib/import-matching";
 
 import { ImportClimbSearchDrawer, type SearchTarget } from "./import-climb-search-drawer";
+import { TEXT_BUTTON_CLASS } from "./text-button";
 
 /** Where the climb-name lookup stands — the step renders its list only once
  * every name has been asked about. */
@@ -319,7 +320,7 @@ function MatchRow({
             <button
               type="button"
               onClick={() => setShowPool((v) => !v)}
-              className="self-start text-xs text-muted underline decoration-dotted underline-offset-4 hover:text-foreground"
+              className={`self-start text-xs text-muted ${TEXT_BUTTON_CLASS}`}
             >
               {showPool
                 ? "Show likely matches only"
