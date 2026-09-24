@@ -1,12 +1,11 @@
 import type { AnalyticsSendRow } from "@/db/queries";
 import { buildAnalyticsHighlights, type HighlightSession } from "@/lib/analytics-highlights";
 import { calendarCountsForDisciplines } from "@/lib/calendar-activity";
-import { formatDate } from "@/lib/format-date";
+import { formatDate, formatMonth } from "@/lib/format-date";
 import { formatGrade, type ClimbType } from "@/lib/grades";
 import {
   buildUserAnalytics,
   DISCIPLINE_ORDER,
-  formatMonthLabel,
   type AnalyticsJournalSession,
 } from "@/lib/user-analytics";
 
@@ -35,7 +34,7 @@ function inPeriod(date: string | null, period: SocialCardPeriod, today: string):
 export function socialCardPeriodLabel(period: SocialCardPeriod, today: string): string {
   if (period === "all") return "All time";
   if (period === "year") return today.slice(0, 4);
-  return formatMonthLabel(today.slice(0, 7));
+  return formatMonth(today.slice(0, 7));
 }
 
 export type SocialCardCalendar = {
@@ -110,7 +109,7 @@ export function socialCardCoverHighlights(stats: SocialCardStats): SocialCardCov
     });
   }
   if (stats.busiestMonth) {
-    const [month] = formatMonthLabel(stats.busiestMonth.month).split(" ");
+    const [month] = formatMonth(stats.busiestMonth.month).split(" ");
     candidates.push({
       id: "peakMonth",
       label: "Peak month",
@@ -186,7 +185,7 @@ function buildSocialCardCalendar(
       period === "all"
         ? `MOST ACTIVE YEAR · ${year}`
         : period === "month"
-          ? `${formatMonthLabel(today.slice(0, 7)).toUpperCase()} IN FOCUS`
+          ? `${formatMonth(today.slice(0, 7)).toUpperCase()} IN FOCUS`
           : `${year} TO DATE`,
     counts: Object.fromEntries(
       Object.entries(counts).filter(([date]) => date.startsWith(`${year}-`)),
