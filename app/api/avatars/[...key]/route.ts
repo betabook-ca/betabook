@@ -8,9 +8,8 @@ type RouteParams = { params: Promise<{ key: string[] }> };
  *
  * - it has to render for every reader of a feed, a friends list and a
  *   signed-out share-link preview, which no single viewer check covers;
- * - a Google profile photo, the only avatar source until now, is likewise a
- *   public unauthenticated URL on Google's CDN, so this changes no exposure
- *   that private profiles did not already have;
+ * - a Google profile photo is likewise a public unauthenticated URL on
+ *   Google's CDN, so this exposes nothing private profiles didn't already;
  * - the key is a digest of the bytes, so a URL is unguessable and names
  *   nothing about the climber beyond their opaque id.
  *
@@ -31,10 +30,6 @@ export async function GET(_request: Request, { params }: RouteParams): Promise<R
   return new Response(object.body, {
     headers: {
       "Content-Type": PROFILE_PHOTO_CONTENT_TYPE,
-      // A week, immutable: replacing a photo mints a new key, so this URL's
-      // bytes can never change. The window is finite rather than a year
-      // because removing a photo deletes the object while caches downstream
-      // may still hold it.
       "Cache-Control": PROFILE_PHOTO_CACHE_CONTROL,
       "Content-Length": String(object.size),
       ETag: object.httpEtag,

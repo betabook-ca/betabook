@@ -25,7 +25,7 @@ export function WorkspaceShell({
     ...tab,
     badge:
       area === "community" && tab.href === "/friends" && requestCount > 0 ? (
-        <FriendRequestBadge key="requests" count={requestCount} />
+        <FriendRequestBadge count={requestCount} />
       ) : undefined,
     current:
       pathname === tab.href || tab.roots.includes(pathname) || pathname.startsWith(`${tab.href}/`),

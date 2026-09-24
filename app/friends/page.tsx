@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 
 import { AuthCallout } from "@/components/auth-callout";
 import { FriendsContent } from "@/components/friends-content";
-import { ViewerBoundary } from "@/components/viewer-boundary";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { getDb } from "@/db/client";
 import { getClimberSuggestions, getFriendsPage } from "@/db/queries";
@@ -28,16 +27,8 @@ export default async function FriendsPage({
     requestsOnly ? null : getClimberSuggestions(db, session.user.id).catch(() => null),
   ]);
   return (
-    <ViewerBoundary viewerId={session.user.id}>
-      <WorkspaceShell area="community" userId={session.user.id}>
-        <FriendsContent
-          embedded
-          userId={session.user.id}
-          view={view}
-          page={page}
-          suggestions={suggestions}
-        />
-      </WorkspaceShell>
-    </ViewerBoundary>
+    <WorkspaceShell area="community" userId={session.user.id}>
+      <FriendsContent userId={session.user.id} view={view} page={page} suggestions={suggestions} />
+    </WorkspaceShell>
   );
 }

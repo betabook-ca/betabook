@@ -357,7 +357,8 @@ function projectSelect(ownerId: string, sent: boolean): SQL {
         MIN(j.entry_date) AS firstSession,
         MAX(j.entry_date) AS lastSession
       FROM journal_entries j
-      WHERE j.user_id = ${ownerId} AND j.kind = 'session' AND j.climb_id IS NOT NULL
+      WHERE j.user_id = ${ownerId} AND j.kind = 'session'
+        AND j.climb_id IN (SELECT climb_id FROM pinned_projects WHERE user_id = ${ownerId})
       GROUP BY j.climb_id
     ) agg ON agg.climbId = p.climb_id
   `;
@@ -461,7 +462,7 @@ export async function getPinnedClimbIds(
 }
 
 /** Climbs worth offering as a pin: worked in a session, never sent, not
- * already pinned. This is the rule that used to populate the tab outright. */
+ * already pinned. */
 export async function getOpenProjectSuggestions(
   db: Database,
   ownerId: string,

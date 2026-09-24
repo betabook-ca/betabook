@@ -19,18 +19,7 @@ type PinProjectDialogProps = {
   pinnedClimbIds: readonly number[];
 };
 
-/** Picks a climb to track as a project: a task, so it takes the shared
- * dialog — full screen on a phone, a centered column from `md` up.
- *
- * Fullscreen because the body is a search field over a result list, the same
- * reason the log entry's climb picker takes the screen: at 85vh with a
- * keyboard up a sheet caps the list around three results. The compact rule
- * applies on top of it, since the viewport is just as short either way — the
- * full filter row drops to plain discipline chips, because it costs a result.
- *
- * The title and the suggestion heading carry what the dialog does; a
- * paragraph explaining tracking would push the first result down a row on
- * every open to say it once. */
+/** Fullscreen: with the keyboard up, a sheet would show about three results. */
 export function PinProjectDialog({ state, suggestions, pinnedClimbIds }: PinProjectDialogProps) {
   const [error, setError] = useState<string | null>(null);
   const [pendingClimbId, setPendingClimbId] = useState<number | null>(null);
@@ -43,7 +32,6 @@ export function PinProjectDialog({ state, suggestions, pinnedClimbIds }: PinProj
   );
 
   function handlePin(climbId: number) {
-    // Picking is a single click — ignore further picks while one is in flight.
     if (pending) return;
     setError(null);
     setPendingClimbId(climbId);
@@ -51,7 +39,6 @@ export function PinProjectDialog({ state, suggestions, pinnedClimbIds }: PinProj
       const result = await pinProject(climbId);
       setPendingClimbId(null);
       if (!result.ok) {
-        // Keep the dialog open so the climber can pick something else.
         setError(result.error);
         return;
       }

@@ -5,8 +5,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 
 import { SURFACE_CARD_CLASS } from "@/components/ui/card";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { useMounted } from "@/hooks/use-mounted";
-import { authClient } from "@/lib/auth-client";
+import { useClientSession } from "@/hooks/use-client-session";
 import {
   HONEYPOT_FIELD,
   MAX_EMAIL_LENGTH,
@@ -27,13 +26,7 @@ export function ContactForm() {
     mountedAt.current = Date.now();
   }, []);
 
-  // Prefill for a signed-in visitor, read on the client the same way the
-  // header's menu reads it, so /contact stays prerenderable — a
-  // getSession() in the page would make it dynamic to fill in one field.
-  // `mounted` keeps the server render and the first client render identical.
-  const mounted = useMounted();
-  const { data: session } = authClient.useSession();
-  const sessionUser = mounted ? session?.user : undefined;
+  const sessionUser = useClientSession()?.user;
 
   // null means "the visitor hasn't touched this yet", so the session can
   // fill in behind it whenever it resolves and the first keystroke pins the

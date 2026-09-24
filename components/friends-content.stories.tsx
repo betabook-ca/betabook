@@ -26,6 +26,15 @@ const fetcher: SearchFetcher = async (state) => ({
 const meta = {
   title: "Components/Profile/Friends page",
   component: FriendsContent,
+  // WorkspaceShell supplies the page heading in the app.
+  decorators: [
+    (Story) => (
+      <>
+        <h1 className="sr-only">Friends</h1>
+        <Story />
+      </>
+    ),
+  ],
   parameters: {
     docs: {
       description: {

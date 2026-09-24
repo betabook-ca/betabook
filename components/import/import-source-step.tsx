@@ -5,7 +5,7 @@ import { Upload } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { SegmentedButtons } from "@/components/ui/segmented-buttons";
-import type { ParsedCsv } from "@/lib/sends-import";
+import { MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS, type ParsedCsv } from "@/lib/sends-import";
 
 import { KayaImportForm } from "./kaya-import-form";
 import { MountainProjectImportForm } from "./mountain-project-import-form";
@@ -125,7 +125,10 @@ export function ImportSourceStep({
             <p className="text-sm font-medium">
               {reading ? "Reading file…" : "Drop your CSV here or choose a file"}
             </p>
-            <p className="text-xs text-muted">Up to 10 MB · 50,000 rows</p>
+            <p className="text-xs text-muted">
+              Up to {MAX_IMPORT_FILE_BYTES / 1024 / 1024} MB ·{" "}
+              {MAX_IMPORT_ROWS.toLocaleString("en-US")} rows
+            </p>
           </div>
           <p className="text-xs text-muted">
             Columns are mapped automatically. You’ll review climb matches before saving.

@@ -47,7 +47,7 @@ export const Sections: Story = {
   render: () => (
     <StoryPage title="Landing page sections">
       <LandingPage>
-        <LandingSection title="Features" lead="Cards wrap from three across to one on a phone.">
+        <LandingSection title="Features">
           <FeatureList
             features={[
               {

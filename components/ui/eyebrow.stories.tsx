@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { MapPin } from "lucide-react";
 
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
@@ -19,4 +18,3 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Text: Story = {};
-export const WithIcon: Story = { args: { icon: MapPin } };

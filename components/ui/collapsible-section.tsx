@@ -27,8 +27,8 @@ const TRIGGER_HEADING_CLASSNAME: Record<Breakpoint, string> = {
   lg: "contents lg:hidden",
 };
 // From the breakpoint up the panel is permanently expanded, so the collapse
-// animation's `overflow: clip` only costs (it clips focus outlines at the
-// panel edges, which the un-wrapped desktop markup never did).
+// animation's `overflow: clip` only costs: it clips focus outlines at the
+// panel edges.
 const CONTENT_CLASSNAME: Record<Breakpoint, string> = {
   md: "md:overflow-visible",
   lg: "lg:overflow-visible",
@@ -101,8 +101,6 @@ export function CollapsibleSection({
       <Disclosure.Heading level={2} className={TRIGGER_HEADING_CLASSNAME[breakpoint]}>
         <Disclosure.Trigger className="flex min-h-11 w-full items-center gap-1 text-lg font-semibold">
           {title}
-          {/* The indicator's own styles put it at the row's far edge
-           * (ms-auto), which the full-width trigger now gives room for. */}
           <Disclosure.Indicator className="size-4" />
         </Disclosure.Trigger>
       </Disclosure.Heading>

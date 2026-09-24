@@ -4,7 +4,7 @@ import { Button, Label, Slider } from "@heroui/react";
 import type { UseOverlayStateReturn } from "@heroui/react";
 import { RotateCw } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Area, Point } from "react-easy-crop";
 
 import { InlineAlert } from "@/components/ui/inline-alert";
@@ -99,9 +99,16 @@ function CropFrame({
   // crop — and a second upload once each finishes.
   const [isCropping, setIsCropping] = useState(false);
 
-  const source = useMemo(() => URL.createObjectURL(file), [file]);
-  // A blob URL pins the whole photo in memory until it is revoked.
-  useEffect(() => () => URL.revokeObjectURL(source), [source]);
+  // A blob URL pins the whole photo in memory until it is revoked. Creating it
+  // in the effect that revokes it keeps Strict Mode's remount from reusing a
+  // revoked URL.
+  const [source, setSource] = useState<string | null>(null);
+  useEffect(() => {
+    const url = URL.createObjectURL(file);
+    // oxlint-disable-next-line react/set-state-in-effect -- the URL is an external resource tied to this effect's lifetime
+    setSource(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
 
   async function handleUse() {
     if (!area || isCropping) return;
@@ -131,36 +138,40 @@ function CropFrame({
        * width against the viewport height keeps a wide dialog from pushing
        * the buttons below the fold. */}
       <div className="relative mx-auto aspect-square w-full max-w-[min(100%,55vh)] overflow-hidden rounded-panel bg-accent">
-        <Cropper
-          image={source}
-          crop={crop}
-          zoom={zoom}
-          rotation={rotation}
-          aspect={1}
-          minZoom={MIN_ZOOM}
-          maxZoom={MAX_ZOOM}
-          zoomSpeed={1}
-          cropShape="round"
-          showGrid={false}
-          restrictPosition
-          keyboardStep={8}
-          onCropChange={setCrop}
-          onZoomChange={setZoom}
-          // Held by value, not by the object the cropper hands over: a
-          // report that changed nothing must not re-render the drawer.
-          onCropComplete={(_percent: Area, pixels: Area) =>
-            setArea((current) =>
-              current !== null && sameCropArea(current, pixels) ? current : pixels,
-            )
-          }
-          style={{}}
-          classes={{}}
-          mediaProps={{ alt: "" }}
-          // The crop window is a focusable div the cropper pans with the
-          // arrow keys; a role is what makes its label legal, and `group` is
-          // the honest one for a labelled region holding a custom gesture.
-          cropperProps={{ role: "group", "aria-label": "Photo crop area" }}
-        />
+        {source === null ? (
+          <Skeleton className="size-full" rounded="rounded-panel" />
+        ) : (
+          <Cropper
+            image={source}
+            crop={crop}
+            zoom={zoom}
+            rotation={rotation}
+            aspect={1}
+            minZoom={MIN_ZOOM}
+            maxZoom={MAX_ZOOM}
+            zoomSpeed={1}
+            cropShape="round"
+            showGrid={false}
+            restrictPosition
+            keyboardStep={8}
+            onCropChange={setCrop}
+            onZoomChange={setZoom}
+            // Held by value, not by the object the cropper hands over: a
+            // report that changed nothing must not re-render the drawer.
+            onCropComplete={(_percent: Area, pixels: Area) =>
+              setArea((current) =>
+                current !== null && sameCropArea(current, pixels) ? current : pixels,
+              )
+            }
+            style={{}}
+            classes={{}}
+            mediaProps={{ alt: "" }}
+            // The crop window is a focusable div the cropper pans with the
+            // arrow keys; a role is what makes its label legal, and `group` is
+            // the honest one for a labelled region holding a custom gesture.
+            cropperProps={{ role: "group", "aria-label": "Photo crop area" }}
+          />
+        )}
       </div>
 
       <div className="flex flex-wrap items-end gap-4">

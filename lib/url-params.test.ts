@@ -55,10 +55,6 @@ describe("parseDisciplines", () => {
   it("returns an empty array when the key is absent", () => {
     expect(parseDisciplines({})).toEqual([]);
   });
-
-  it("supports a custom key", () => {
-    expect(parseDisciplines({ style: "sport" }, "style")).toEqual(["sport"]);
-  });
 });
 
 describe("parseAscentStyles", () => {
@@ -71,10 +67,6 @@ describe("parseAscentStyles", () => {
 
   it("returns an empty array when the key is absent", () => {
     expect(parseAscentStyles({})).toEqual([]);
-  });
-
-  it("supports a custom key", () => {
-    expect(parseAscentStyles({ style: "redpoint" }, "style")).toEqual(["redpoint"]);
   });
 });
 

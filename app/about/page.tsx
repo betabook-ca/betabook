@@ -90,6 +90,12 @@ export default function AboutPage() {
             climb. Anyone with the link sees your name, sessions, notes and send, so share it the
             way you would a photo. You choose when it expires and can stop sharing at any time.
           </li>
+          <li>
+            Only you can see your trips, unless you share one: that makes a link to one stretch of
+            dates showing your name and every session, note and send inside it. Anyone with the link
+            can open it, so share it the way you would a photo. You choose when it expires and can
+            stop sharing at any time.
+          </li>
           <li>Only you can export your sends.</li>
         </ul>
       </section>

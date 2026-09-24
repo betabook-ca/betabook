@@ -1,6 +1,4 @@
-/** Triggers a browser download of `blob` as a file named `filename`.
- *
- * Two details matter here: the anchor is appended to the document before
+/** Two details matter here: the anchor is appended to the document before
  * click() (some browsers ignore synthetic clicks on detached anchors), and
  * the object URL is revoked on a delay — revoking in the same tick as
  * click() can abort the download before the browser has opened the blob.

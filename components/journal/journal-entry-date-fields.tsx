@@ -7,7 +7,8 @@ import { latestLoggableDate } from "@/lib/broken-climbs";
 type JournalEntryDateFieldsProps = {
   hasClimb: boolean;
   hasPriorSend: boolean;
-  existingEntry?: Pick<JournalEntry, "sent" | "isAscent">;
+  /** Never an ascent: those are edited in SendEditor. */
+  existingEntry?: Pick<JournalEntry, "sent">;
   today: string;
   /** The climb's break date, when it has one: caps the picker to the day
    * before and withholds the undated option (see lib/broken-climbs.ts). */
@@ -59,9 +60,7 @@ export function JournalEntryDateFields({
 
       {hasClimb && existingEntry?.sent && (
         <p className="text-sm text-muted">
-          {existingEntry.isAscent
-            ? "To change the ascent date, use Edit send on the climb page."
-            : "To change this repeat’s date, delete the entry and log it again."}
+          To change this repeat’s date, delete the entry and log it again.
         </p>
       )}
     </div>

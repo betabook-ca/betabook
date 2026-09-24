@@ -13,9 +13,6 @@ type SendActionsMenuProps = {
   send: EditableSend;
 };
 
-/** The "..." actions menu shown on a viewer's own send row — Edit opens the
- * shared SendFormDrawer, Delete asks for confirmation before removing the
- * send. */
 export function SendActionsMenu({ send }: SendActionsMenuProps) {
   const editState = useOverlayState();
   const deleteState = useOverlayState();

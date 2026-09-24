@@ -17,8 +17,8 @@ type HomePageProps = {
 };
 
 export async function generateMetadata({ searchParams }: HomePageProps): Promise<Metadata> {
-  // Any param at all is a search state that now lives on /search (see the
-  // page body) — kept out of the index and canonicalized to the bare home.
+  // Any param is a search state that redirects to /search; keep it out of the
+  // index and canonicalized to the bare home.
   const isSearch = Object.keys(await searchParams).length > 0;
   return isSearch
     ? { title: "Search", robots: { index: false }, alternates: { canonical: "/" } }
@@ -31,8 +31,7 @@ export async function generateMetadata({ searchParams }: HomePageProps): Promise
       });
 }
 
-/** Search states moved to /search; every old `/?…` link and history entry
- * lands there permanently, with its query intact. */
+/** `/?…` links land on /search permanently, with the query intact. */
 function searchRedirectHref(params: UrlParamsRecord): string {
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {

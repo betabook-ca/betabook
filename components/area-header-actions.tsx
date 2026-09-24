@@ -18,13 +18,8 @@ type AreaHeaderActionsProps = {
   area: Area;
 };
 
-/** An area's editor actions, beside its title. Adding a climb or a subarea
- * are the two things people come to an area page to do, so they're buttons.
- * Description-only edits are the pencil next to AreaDescription instead
- * (unrestricted for every signed-in user); everything behind the "..." here
- * — a full rename, or deletion — is moderation-gated (see
- * actions/moderation.ts): applied immediately for an admin, otherwise
- * queued for review. */
+/** An area's editor actions. Everything behind the "..." is moderation-gated:
+ * applied immediately for an admin, otherwise queued for review. */
 export function AreaHeaderActions({ area }: AreaHeaderActionsProps) {
   const router = useRouter();
   const addClimbState = useOverlayState();
@@ -57,9 +52,6 @@ export function AreaHeaderActions({ area }: AreaHeaderActionsProps) {
 
   return (
     <>
-      {/* Wraps rather than shrink-0: on a phone these sit on their own line
-       * under the title (see AreaCragHeader), where refusing to shrink is
-       * what dragged the page past the viewport edge. */}
       <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
         <Button size="sm" onPress={addClimbState.open} className="gap-1.5">
           <CirclePlus className="size-4" />

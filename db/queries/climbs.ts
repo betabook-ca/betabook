@@ -146,6 +146,14 @@ const SUBTREE_CLIMBS_SORT_INDEX: Record<SubtreeClimbsSort, string> = {
   ascents_desc: "climbs_send_count_desc_idx",
 };
 
+/** Validates `sort` before its index name reaches sql.raw. */
+function sortIndexName(sort: SubtreeClimbsSort): string {
+  if (!Object.prototype.hasOwnProperty.call(SUBTREE_CLIMBS_SORT_INDEX, sort)) {
+    throw new Error(`Invalid sort value: ${sort}`);
+  }
+  return SUBTREE_CLIMBS_SORT_INDEX[sort];
+}
+
 export type ClimbStatsFilter = {
   ratingRange?: [number, number];
   minAscents?: number;
@@ -191,10 +199,7 @@ export async function getSubtreeClimbs(
     conditions.push(...climbStatsConditions(filter));
   }
 
-  // Only allow known sort keys before inserting an index name with sql.raw.
-  if (!Object.prototype.hasOwnProperty.call(SUBTREE_CLIMBS_SORT_INDEX, sort)) {
-    throw new Error(`Invalid sort value: ${sort}`);
-  }
+  const sortIndex = sortIndexName(sort);
 
   const isLarge = "largeSubtree" in area ? area.largeSubtree : await isLargeSubtree(db, area.id);
   // Rare names use FTS first; scanning a global sort index could exhaust it
@@ -222,7 +227,7 @@ export async function getSubtreeClimbs(
             )`,
     );
   }
-  const indexName = isLarge ? SUBTREE_CLIMBS_SORT_INDEX[sort] : "climbs_area_idx";
+  const indexName = isLarge ? sortIndex : "climbs_area_idx";
 
   // The large-area sort scan must keep an ORDER BY satisfied by its index.
   const orderBy =
@@ -490,17 +495,14 @@ export async function searchClimbsPlan(
   params: Pick<SearchClimbsParams, "name" | "areaName" | "areaId" | "sort">,
 ): Promise<SearchClimbsPlan> {
   const sort = params.sort ?? "ascents_desc";
-  // Only allow known sort keys before inserting an index name with sql.raw.
-  if (!Object.prototype.hasOwnProperty.call(SUBTREE_CLIMBS_SORT_INDEX, sort)) {
-    throw new Error(`Invalid sort value: ${sort}`);
-  }
+  const sortIndex = sortIndexName(sort);
   const browse =
     !params.name &&
     !params.areaName &&
     (params.areaId === undefined || (await isLargeSubtree(db, params.areaId)));
   return browse
     ? {
-        source: sql`climbs INDEXED BY ${sql.raw(SUBTREE_CLIMBS_SORT_INDEX[sort])}`,
+        source: sql`climbs INDEXED BY ${sql.raw(sortIndex)}`,
         orderBy: sql`${SUBTREE_CLIMBS_ORDER_BY[sort]}, climbs.id`,
       }
     : { source: sql`climbs`, orderBy: climbListOrderBy(sort) };
@@ -541,20 +543,4 @@ export async function searchClimbs(
     climbs: rows.slice(0, pageSize),
     hasNextPage: rows.length > pageSize,
   };
-}
-
-/** Skip this full count for unfiltered landing pages. The areas join is needed
- * only when areaNameCondition references the outer areas alias. */
-export async function countSearchClimbs(db: Database, params: SearchClimbsParams): Promise<number> {
-  const conditions = searchClimbsConditions(params);
-  if (conditions === null) return 0;
-
-  const areasJoin = params.areaName ? sql`JOIN areas ON areas.id = climbs.area_id` : sql``;
-  const [row] = await db.all<{ count: number }>(sql`
-    SELECT COUNT(*) AS count
-    FROM climbs
-    ${areasJoin}
-    ${searchClimbsWhereClause(conditions)}
-  `);
-  return row?.count ?? 0;
 }

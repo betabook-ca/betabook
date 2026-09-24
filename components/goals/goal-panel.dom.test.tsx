@@ -191,7 +191,7 @@ it("preserves the history year and loaded depth when the server snapshot changes
     completedDate: "2025-09-01",
   }));
   const loadPage = vi.fn<NonNullable<Parameters<typeof GoalPanel>[0]["loadPage"]>>(
-    async (_view, offset, year) => ({
+    async (offset, year) => ({
       goals: past
         .slice(offset, offset + 5)
         .map((goal) => ({ ...goal, target: updated ? goal.target + 100 : goal.target })),
@@ -235,7 +235,7 @@ it("preserves the history year and loaded depth when the server snapshot changes
     "aria-pressed",
     "true",
   );
-  expect(loadPage).toHaveBeenLastCalledWith("completed", 5, 2025);
+  expect(loadPage).toHaveBeenLastCalledWith(5, 2025);
 });
 
 it("restarts an expired goal as a new goal instead of rewriting its history", async () => {

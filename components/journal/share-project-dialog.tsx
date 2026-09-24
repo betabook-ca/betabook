@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, useOverlayState, type UseOverlayStateReturn } from "@heroui/react";
-import { useId, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 
 import { shareProject, unshareProject } from "@/actions";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
@@ -32,18 +32,8 @@ type ShareProjectDialogProps = {
   shareOrigin: string;
 };
 
-/** Publishes one project behind a link, and says plainly what that link is
- * before it exists. A short form, so by the overlay rule it is a
- * ResponsiveDialog — a sheet on a phone, a centered column from `md` up, and
- * not fullscreen, which is reserved for forms taller than 85vh.
- *
- * There is no audience control, deliberately. A link cannot enforce who holds
- * it, and offering Friends or Members here would borrow the words the journal
- * audience uses for something it does not mean: that setting decides who sees
- * an entry in a feed, this one only decides whether a URL still answers.
- * Someone reading "Friends" on a URL would reasonably conclude it was safe to
- * forward. So the dialog says the true thing instead, and spends its controls
- * on the two that are real — how long the link lasts, and stopping it. */
+/** No audience control: a link can't enforce who holds it, so offering
+ * Friends or Members would imply it is safe to forward. */
 export function ShareProjectDialog({
   state,
   climbId,
@@ -52,16 +42,13 @@ export function ShareProjectDialog({
   shareOrigin,
 }: ShareProjectDialogProps) {
   const [expiry, setExpiry] = useState<ProjectShareExpiry>(DEFAULT_PROJECT_SHARE_EXPIRY);
-  // The live link as the server last confirmed it, including the deadline it
-  // computed — so the dialog reports the real expiry the moment it changes
-  // rather than after a round trip through the board.
+  // The server's deadline, shown without waiting for the board to refresh.
   const [link, setLink] = useState<PinnedProject["share"]>(share);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const stopState = useOverlayState();
   const [stopError, setStopError] = useState<string | null>(null);
-  const expiryLabelId = useId();
 
   function handleShare() {
     if (pending) return;
@@ -69,7 +56,6 @@ export function ShareProjectDialog({
     startTransition(async () => {
       const result = await shareProject(climbId, expiry);
       if (!result.ok) {
-        // Stay open: the climber can fix the reason, or copy the old link.
         setError(result.error);
         return;
       }
@@ -122,20 +108,13 @@ export function ShareProjectDialog({
         }
       >
         <div className="flex flex-col gap-4">
-          {/* Said before the link exists, not after, and in the same shape as
-           * the profile share control: one sentence naming what travels. The
-           * page shows this project as the climber's own board shows it,
-           * overriding their journal and send-comment audiences for this one
-           * climb, so "send" has to keep covering its date, rating, grade and
-           * comment. The dialog title already names the climb. */}
+          {/* The shared page overrides journal and comment audiences for this
+           * climb, so "send" covers its date, rating, grade and comment. */}
           <p className="text-sm">Anyone with the link sees your sessions, notes and send.</p>
           <p className="text-sm text-muted">Climbers you tagged aren&apos;t named.</p>
 
           <div className="flex items-center justify-between gap-3">
-            {/* The control sets a duration; the line under the link below
-             * reports the date it works out to. Naming both "Link expires"
-             * read as the same thing said twice. */}
-            <span id={expiryLabelId} className="text-sm font-medium">
+            <span aria-hidden className="text-sm font-medium">
               Expires after
             </span>
             <OptionSelect

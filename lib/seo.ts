@@ -82,6 +82,24 @@ export function sharedProjectMetadata(name: string, climbName: string, sent = fa
   };
 }
 
+/** Link preview for a valid trip share link. Callers must run the share
+ * predicate before reaching for this: an unfurl bot is signed out, so a link
+ * pasted into a public channel has to preview as nothing rather than naming
+ * the climber and their trip to the room. No canonical or `og:url`, for the
+ * same reason as the other previews, and no entries — a preview is not a
+ * place to publish them. */
+export function sharedTripMetadata(name: string, tripName: string): Metadata {
+  const title = `${name}'s trip: ${tripName}`;
+  const description = `See the sessions and sends from ${name}'s ${tripName} on ${SITE_NAME}, a climbing logbook and crag database.`;
+  return {
+    title: { absolute: title },
+    description,
+    robots: { index: false },
+    openGraph: { type: "article", siteName: SITE_NAME, title, description, images: [OG_IMAGE] },
+    twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE.url] },
+  };
+}
+
 /** The `max` nearest names joined nearest-last into a short location trail
  * for a meta description, e.g. "Squamish, Grand Wall Boulders, Superfly".
  * Capped because a full root-to-crag chain ("North America, Canada, …")
@@ -114,12 +132,10 @@ export function climbDescription(climb: PublicClimbFacts, trail: string): string
   return `${climb.name} is a ${grade === "—" ? "" : `${grade} `}${discipline}${trail ? ` in ${trail}` : ""}. ${detail || CLIMB_FALLBACK}`;
 }
 
-/** `<title>` for an area page. */
 export function areaTitle(name: string, parentName: string | null): string {
   return parentName ? `${name} climbing · ${parentName}` : `${name} climbing`;
 }
 
-/** `<meta name="description">` for an area page. */
 export function areaDescription(name: string, trail: string, description?: string | null): string {
   const where = trail ? `${name}, ${trail}` : name;
   return `Explore climbing in ${where}. ${description?.trim() || AREA_FALLBACK}`;

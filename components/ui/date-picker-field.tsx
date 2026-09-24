@@ -15,7 +15,7 @@ function toCalendarDate(value: string | undefined): CalendarDate | null {
   }
 }
 
-export type DatePickerFieldProps = {
+type DatePickerFieldProps = {
   label: string;
   /** ISO `YYYY-MM-DD`, or "" for no date. */
   value: string;

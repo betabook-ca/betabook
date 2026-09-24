@@ -4,8 +4,9 @@ import { ChartClimbDetails } from "@/components/chart-climb-details";
 import { DISCIPLINE_HUE } from "@/components/ui/discipline-chip";
 import { useChartWidth } from "@/hooks/use-chart-width";
 import { groupDatedRows, type ChartSend } from "@/lib/chart-details";
+import { formatMonth } from "@/lib/format-date";
 import { nativeGradeArray, type ClimbType } from "@/lib/grades";
-import { formatMonthLabel, type ProgressionPoint } from "@/lib/user-analytics";
+import type { ProgressionPoint } from "@/lib/user-analytics";
 
 const H = 200;
 const MARGIN = { top: 10, right: 12, bottom: 24, left: 40 };
@@ -99,8 +100,8 @@ export function ProgressionChart({
   return (
     <div ref={ref}>
       <p className="sr-only">
-        Personal best {scale[latest.best]}, from {formatMonthLabel(points[0].month)} (
-        {scale[points[0].hardest]}) to {formatMonthLabel(latest.month)}.
+        Personal best {scale[latest.best]}, from {formatMonth(points[0].month)} (
+        {scale[points[0].hardest]}) to {formatMonth(latest.month)}.
       </p>
       <div
         role="region"
@@ -188,7 +189,7 @@ export function ProgressionChart({
                 fill={hue}
                 fillOpacity={0.55}
               >
-                <title>{`${formatMonthLabel(point.month)} · ${scale[point.hardest]}`}</title>
+                <title>{`${formatMonth(point.month)} · ${scale[point.hardest]}`}</title>
               </circle>
             ))}
           </svg>
@@ -196,7 +197,7 @@ export function ProgressionChart({
             <ChartClimbDetails
               key={point.month}
               hideSingleCount
-              label={`${formatMonthLabel(point.month)} · ${scale[point.hardest]}`}
+              label={`${formatMonth(point.month)} · ${scale[point.hardest]}`}
               sends={(sendsByMonth.get(point.month) ?? []).filter(
                 (send) => send.climbType === type && send.suggestedGrade === point.hardest,
               )}

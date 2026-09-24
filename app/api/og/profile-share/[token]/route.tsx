@@ -9,7 +9,7 @@ import { getBaseUrl } from "@/lib/app-url";
 import { Avatar, CardFrame, Tile } from "@/lib/og-elements";
 import { ogFonts, OG_FONT } from "@/lib/og-fonts";
 import { OG_COLORS, OG_DISCIPLINE_COLOR } from "@/lib/og-theme";
-import { parseProfileShareToken } from "@/lib/profile-share";
+import { parseShareToken } from "@/lib/share-token";
 import { OG_IMAGE } from "@/lib/site";
 import { getUserInitials, resolveAvatarUrl } from "@/lib/user-initials";
 
@@ -30,7 +30,7 @@ type ProfileShareCard = {
  * unrelated to this app). Verified instead by `opennextjs-cloudflare build`
  * + `pnpm preview`. */
 export async function loadProfileShareCard(rawToken: string): Promise<ProfileShareCard | null> {
-  const token = parseProfileShareToken(rawToken);
+  const token = parseShareToken(rawToken);
   if (!token) return null;
   const db = await getDb();
   const owner = await getShareLinkOwner(db, token);

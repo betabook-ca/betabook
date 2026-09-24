@@ -108,7 +108,7 @@ it.each(["missing", "forged", "unknown", "expired"])(
 it("accepts the same signed-cookie format with a live session and returns member data", async () => {
   context.cookie = await signedCookie("active-token");
   const response = await climbs(
-    new Request("http://localhost:3000/api/search/climbs?name=Highball&limit=5"),
+    new Request("http://localhost:3000/api/search/climbs?name=Highball"),
   );
   expect(response.status).toBe(200);
   expect(await response.json()).toMatchObject({

@@ -575,18 +575,18 @@ describe("hasUserSends", () => {
 
 describe("getUserSentClimbIds", () => {
   it("returns every climb id the user has sent", async () => {
-    const ids = await getUserSentClimbIds(db, "test-user-1");
+    const ids = await getUserSentClimbIds(db, "test-user-1", [1, 2, 3]);
     expect(ids).toEqual(new Set([1, 2]));
   });
 
   it("only includes the given user's own sends", async () => {
-    const ids = await getUserSentClimbIds(db, "test-user-2");
+    const ids = await getUserSentClimbIds(db, "test-user-2", [1, 2, 3]);
     expect(ids).toEqual(new Set([1]));
   });
 
   it("returns an empty set for a user with no sends", async () => {
     await seedFixtureUser(db, { id: "test-user-4", name: "Still No Sends" });
-    const ids = await getUserSentClimbIds(db, "test-user-4");
+    const ids = await getUserSentClimbIds(db, "test-user-4", [1, 2, 3]);
     expect(ids).toEqual(new Set());
   });
 

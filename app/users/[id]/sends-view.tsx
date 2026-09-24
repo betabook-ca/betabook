@@ -12,11 +12,13 @@ export async function SendsView({
   viewerId,
   filter,
   basePath,
+  lockedDateRange = false,
 }: {
   userId: string;
   viewerId: string;
   filter: UserSendsFilter;
   basePath: string;
+  lockedDateRange?: boolean;
 }) {
   const db = await getDb();
 
@@ -35,7 +37,14 @@ export async function SendsView({
     <NavigationPendingProvider>
       <div className="flex min-w-0 flex-col gap-4">
         <SectionHeading className="sr-only">Sends</SectionHeading>
-        {hasSends && <UserSendsFilterToolbar filter={filter} basePath={basePath} tags={tags} />}
+        {hasSends && (
+          <UserSendsFilterToolbar
+            filter={filter}
+            basePath={basePath}
+            tags={tags}
+            lockedDateRange={lockedDateRange}
+          />
+        )}
         <UserSendList
           key={JSON.stringify(filter)}
           userId={userId}

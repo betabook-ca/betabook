@@ -1,5 +1,3 @@
-"use client";
-
 import { buttonVariants } from "@heroui/react";
 
 import { AppLink } from "@/components/ui/app-link";

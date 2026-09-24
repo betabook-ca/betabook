@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { saveAnalyticsLayout } from "@/actions";
-import { ProfileHeader, getUserById } from "@/app/users/[id]/profile-shell";
+import { ProfileHeader, canReadUserJournal, getUserById } from "@/app/users/[id]/profile-shell";
 import { AnalyticsDashboard } from "@/components/analytics-dashboard";
 import { AnalyticsYearNavigation } from "@/components/analytics-year-filter";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
@@ -20,7 +20,6 @@ import { getJournalSessionsForAnalytics, getUserSendsForAnalytics } from "@/db/q
 import { getAnalyticsHighlightSessions } from "@/db/queries/analytics-highlights";
 import { getAnalyticsLayout } from "@/db/queries/analytics-layout";
 import { getClimberOverview } from "@/db/queries/climber-overview";
-import { canReadJournal } from "@/db/queries/content-access";
 import { getViewerFeatureAnnouncements } from "@/db/queries/feature-announcements";
 import { getUserHashtags } from "@/db/queries/hashtag-filter";
 import { buildAnalyticsHighlights } from "@/lib/analytics-highlights";
@@ -87,7 +86,7 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
   );
 
   const selectedTags = normalizeHashtagFilters(toArray(search.tag));
-  const journalVisible = await canReadJournal(db, user.id, viewerId);
+  const journalVisible = await canReadUserJournal(user.id, viewerId);
   const isOwner = viewerId === id;
   const showYearInReview = isOwner && isYearInReviewMonth(today);
   const [rows, journalSessions, tags, viewerAnnouncements, shareToken] = await Promise.all([
@@ -136,16 +135,16 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
     );
   }
 
-  const initialLayout = await getAnalyticsLayout(db, id, viewerId);
+  const [initialLayout, highlightSessions] = await Promise.all([
+    getAnalyticsLayout(db, id, viewerId),
+    journalVisible ? getAnalyticsHighlightSessions(db, id, viewerId, selectedTags) : [],
+  ]);
   const announcements = getAnnouncementCandidates(viewerAnnouncements, {
     page: ANALYTICS_CUSTOMIZE_ANNOUNCEMENT.page,
     availableFeatureIds: [ANALYTICS_CUSTOMIZE_ANNOUNCEMENT.featureId],
     userCreatedAt: session.user.createdAt,
     now: new Date(),
   });
-  const highlightSessions = journalVisible
-    ? await getAnalyticsHighlightSessions(db, id, viewerId, selectedTags)
-    : [];
   const { years, undatedCount } = getAnalyticsHistorySummary(rows, scope, journalSessions);
   const selectedYears = parseAnalyticsYears(search.years ?? search.period, years);
   const analytics = buildUserAnalytics(rows, scope, journalSessions, selectedYears);

@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 
+import {
+  getPublicAncestorsById,
+  getPublicAreaById,
+  getPublicClimbById,
+} from "@/app/public-catalog-reads";
 import { ASCENT_STYLE_LABELS } from "@/components/ascent-style";
 import { AreaBreadcrumbs } from "@/components/breadcrumbs";
 import { ClimbActionsMenu } from "@/components/climb-actions-menu";
@@ -31,12 +36,7 @@ import {
   getSendsForClimb,
   getUserSendForClimb,
 } from "@/db/queries";
-import {
-  getPublicArea,
-  getPublicAncestors,
-  getPublicClimb,
-  getPublicSendsForClimb,
-} from "@/db/queries/public-catalog";
+import { getPublicSendsForClimb } from "@/db/queries/public-catalog";
 import { missingDescriptionMessage } from "@/lib/descriptions";
 import { buildLoggedGradeRows } from "@/lib/grade-histogram";
 import { formatGrade } from "@/lib/grades";
@@ -62,7 +62,7 @@ export async function generateMetadata({
   const climbId = Number(id);
   if (!Number.isInteger(climbId)) notFound();
 
-  const climb = await getPublicClimb(await getDb(), climbId);
+  const climb = await getPublicClimbById(climbId);
   if (!climb) notFound();
 
   // Normalize any other spelling of the URL (no slug, stale slug, extra
@@ -74,9 +74,11 @@ export async function generateMetadata({
     permanentRedirect(withQuery(climbHref(climb.id, climb.name), search));
   }
 
-  const area = await getPublicArea(await getDb(), climb.areaId);
+  const [area, ancestors] = await Promise.all([
+    getPublicAreaById(climb.areaId),
+    getPublicAncestorsById(climb.areaId),
+  ]);
   if (!area) notFound();
-  const ancestors = await getPublicAncestors(await getDb(), area);
 
   const trail = locationTrail([...ancestors.map((a) => a.name), area.name]);
   return pageMetadata({
@@ -97,16 +99,16 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
   const session = await getMemberSession();
   const db = await getDb();
   if (!session) {
-    const climb = await getPublicClimb(db, climbId);
+    const climb = await getPublicClimbById(climbId);
     if (!climb) notFound();
     const path = climbHref(climb.id, climb.name);
     if ((slug?.join("/") ?? "") !== slugify(climb.name)) permanentRedirect(withQuery(path, search));
-    const [area, sends] = await Promise.all([
-      getPublicArea(db, climb.areaId),
+    const [area, ancestors, sends] = await Promise.all([
+      getPublicAreaById(climb.areaId),
+      getPublicAncestorsById(climb.areaId),
       getPublicSendsForClimb(db, climb.id),
     ]);
     if (!area) notFound();
-    const ancestors = await getPublicAncestors(db, area);
     const trail = locationTrail([...ancestors.map((a) => a.name), area.name]);
     return (
       <div className="flex flex-col gap-6">
@@ -163,18 +165,16 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
   // Stats come from whole-history aggregates and the list from a paginated
   // query — a popular climb's full send history never ships in the RSC
   // payload (ClimbSendList "load more"-fetches the rest on demand).
-  const [area, userSend, sendsPage, summary] = await Promise.all([
+  const [area, userSend, sendsPage, summary, journalEntries] = await Promise.all([
     getArea(db, climb.areaId),
     getUserSendForClimb(db, session.user.id, climb.id),
     getSendsForClimb(db, climb.id, 0, undefined, session.user.id),
     getClimbSendSummary(db, climb.id),
+    getJournalForClimb(db, session.user.id, session.user.id, climb.id),
   ]);
   if (!area) notFound();
 
-  const [ancestors, journalEntries] = await Promise.all([
-    getAncestors(db, area),
-    getJournalForClimb(db, session.user.id, session.user.id, climb.id),
-  ]);
+  const ancestors = await getAncestors(db, area);
 
   const trail = locationTrail([...ancestors.map((a) => a.name), area.name]);
   const breadcrumbCrumbs = [

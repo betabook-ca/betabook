@@ -22,7 +22,18 @@ export const SESSION_EXPIRED_MESSAGE = "Your session has expired — sign in aga
 
 export const NOT_ADMIN_MESSAGE = "Admins only.";
 
+export const JOURNAL_RATE_LIMIT_MESSAGE = "Too many changes — try again in a minute";
+
 export const GENERIC_ERROR_MESSAGE = "Something went wrong. Please try again.";
+
+/** Drizzle wraps SQLite errors, so the message that matters is often a cause. */
+export function errorChainIncludes(error: unknown, ...texts: string[]): boolean {
+  for (let current = error; current instanceof Error; current = current.cause) {
+    const { message } = current;
+    if (texts.some((text) => message.includes(text))) return true;
+  }
+  return false;
+}
 
 /** Keep session error types here so result handling does not import the auth stack. */
 export class NotSignedInError extends Error {

@@ -7,7 +7,12 @@ import { scheduleGoalRefresh } from "@/actions/goal-refresh";
 import { getDb, type Database } from "@/db/client";
 import { getClimb, getJournalEntry, getUserSendForClimb } from "@/db/queries";
 import { journalEntries, sends } from "@/db/schema";
-import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
+import {
+  ActionError,
+  JOURNAL_RATE_LIMIT_MESSAGE,
+  toActionResult,
+  type ActionResult,
+} from "@/lib/action-result";
 import { assertLoggableOnClimb } from "@/lib/broken-climbs";
 import type { ClimbType } from "@/lib/grades";
 import { validateJournalInput, type JournalEntryInput } from "@/lib/journal";
@@ -28,11 +33,14 @@ import {
   buildSentJournalInsert,
   getSentJournalEntries,
   journalEntryFromSend,
+  REPEAT_BEFORE_ASCENT_MESSAGE,
   rethrowJournalSendInvariant,
 } from "./journal-sync";
 import { afterCommit } from "./post-commit";
 import { revalidateJournalSurfaces, revalidateSendSurfaces } from "./revalidation";
 import { buildMirroredSendUpdate, buildSendInsert } from "./send-statements";
+
+const ENTRY_CHANGED_MESSAGE = "The entry changed — refresh and try again";
 
 const JOURNAL_FORM_FIELDS = ["kind", "climbId", "sent", "entryDate", "body"] as const;
 
@@ -57,7 +65,7 @@ function carriesSendFields(formData: FormData): boolean {
 async function requireJournalSession() {
   const session = await requireSession();
   if (!(await allowJournalWrite(session.user.id))) {
-    throw new ActionError("You're logging entries faster than we can save them — give it a minute");
+    throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
   }
   return session;
 }
@@ -140,7 +148,7 @@ export async function createJournalEntry(formData: FormData): Promise<ActionResu
         const dateSent = existingSend.dateSent;
         const comment = existingSend.comment;
         if (input.entryDate < dateSent) {
-          throw new ActionError("A repeat can't be earlier than the recorded ascent");
+          throw new ActionError(REPEAT_BEFORE_ASCENT_MESSAGE);
         }
         const entry = { ...entryValues(session.user.id, input), climbId: climb.id };
         // A dated send can predate the journal rollout. Recover its ascent
@@ -275,9 +283,9 @@ export async function updateJournalEntry(
             ]
           : []),
       ]);
-      if (!updated.length) throw new ActionError("The entry changed — refresh and try again");
+      if (!updated.length) throw new ActionError(ENTRY_CHANGED_MESSAGE);
     } catch (error) {
-      rethrowJournalSendInvariant(error, "The entry changed — refresh and try again");
+      rethrowJournalSendInvariant(error, ENTRY_CHANGED_MESSAGE);
     }
 
     if (existing.isAscent && existing.climbId !== null) {
@@ -332,7 +340,7 @@ export async function deleteJournalEntry(entryId: number): Promise<ActionResult>
         db.delete(journalEntries).where(eq(journalEntries.id, entryId)),
       ]);
     } catch (error) {
-      rethrowJournalSendInvariant(error, "The entry changed — refresh and try again");
+      rethrowJournalSendInvariant(error, ENTRY_CHANGED_MESSAGE);
     }
 
     if (existing.isAscent && climbId !== null) {

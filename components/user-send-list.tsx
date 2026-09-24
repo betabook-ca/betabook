@@ -1,11 +1,9 @@
 "use client";
 
-import { AscentStyle } from "@/components/ascent-style";
-import { ClimbLogRow } from "@/components/climb-log-row";
+import { UserSendLogRow } from "@/components/climb-log-row";
 import { LogEntryButton } from "@/components/journal";
 import { NavigationPendingRegion } from "@/components/navigation-pending";
 import { SendActionsMenu } from "@/components/send-actions-menu";
-import { SendGradeCell } from "@/components/send-grade-cell";
 import { SendListShell } from "@/components/send-list-shell";
 import { AppLink } from "@/components/ui/app-link";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -100,27 +98,10 @@ export function UserSendList({
         loadingMore={loadingMore}
         loadMoreFailed={loadMoreFailed}
         renderRow={(send) => (
-          <ClimbLogRow
-            climb={{
-              id: send.climbId,
-              name: send.climbName,
-              areaId: send.areaId,
-              areaName: send.areaName,
-            }}
+          <UserSendLogRow
+            send={send}
             areaBreadcrumbs={areaBreadcrumbs}
-            grade={
-              <SendGradeCell
-                type={send.climbType}
-                grade={send.climbGrade}
-                suggestedGrade={send.suggestedGrade}
-                gradeFeel={send.gradeFeel}
-                rating={send.rating}
-              />
-            }
-            status={<AscentStyle type={send.ascentStyle} />}
-            date={send.dateSent}
             actions={currentUserId === userId && <SendActionsMenu send={send} />}
-            comment={send.comment}
           />
         )}
       />

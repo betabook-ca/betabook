@@ -17,24 +17,11 @@ import {
   toSubtreeQueryFilter,
 } from "@/lib/filters/area-climbs-filter";
 import { parseId } from "@/lib/parse-id";
-import {
-  offsetReachesPaginationLimit,
-  pageReachesPaginationLimit,
-  parseOffset,
-  parsePage,
-  parseSuggestionLimit,
-  searchParamsToRecord,
-} from "@/lib/url-params";
+import { offsetReachesPaginationLimit, parseOffset, searchParamsToRecord } from "@/lib/url-params";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-/** Backs two callers with the same query.
- *
- * With `offset`: incremental loading for an area's climb list.
- *
- * With `limit`: suggestion mode for the area page's route typeahead, which
- * searches names within this area's subtree. Same skip-the-join-passes
- * reasoning as /api/search/climbs. */
+/** "Load more" for an area's climb list. */
 export const GET = withApiSession(async (session, request: Request, { params }: RouteParams) => {
   const { id } = await params;
   const areaId = parseId(id);
@@ -43,11 +30,7 @@ export const GET = withApiSession(async (session, request: Request, { params }: 
 
   const sort = parseAreaClimbsSort(searchParams);
   const filter = parseAreaClimbsFilter(searchParams);
-  const offsetMode = url.searchParams.has("offset");
-  const suggestionLimit = offsetMode ? null : parseSuggestionLimit(url.searchParams);
-  const pageSize = suggestionLimit ?? PAGE_SIZE;
-  const page = offsetMode ? 1 : parsePage(url.searchParams, pageSize);
-  const offset = offsetMode ? parseOffset(url.searchParams) : undefined;
+  const offset = parseOffset(url.searchParams);
 
   const db = await getDb();
   const area = areaId === null ? undefined : await getAreaWithSubtreeSize(db, areaId);
@@ -57,34 +40,26 @@ export const GET = withApiSession(async (session, request: Request, { params }: 
     return NextResponse.json({ error: "Area not found" }, { status: 404 });
   }
 
-  if (page === null || offset === null) {
-    return NextResponse.json(
-      suggestionLimit === null
-        ? {
-            climbs: [],
-            hasNextPage: false,
-            sendStats: {},
-            areaBreadcrumbs: {},
-            sentClimbIds: [],
-          }
-        : { climbs: [] },
-    );
+  if (offset === null) {
+    return NextResponse.json({
+      climbs: [],
+      hasNextPage: false,
+      sendStats: {},
+      areaBreadcrumbs: {},
+      sentClimbIds: [],
+    });
   }
 
   const listScope = await resolveSubareaScope(db, area, filter.subareaId);
   const subtreeClimbs = await getSubtreeClimbs(
     db,
     listScope,
-    page,
+    1,
     sort,
     toSubtreeQueryFilter(filter),
-    pageSize,
+    PAGE_SIZE,
     offset,
   );
-
-  if (suggestionLimit !== null) {
-    return NextResponse.json({ climbs: subtreeClimbs.climbs.slice(0, suggestionLimit) });
-  }
 
   const [sendStats, areaBreadcrumbs, sentClimbIds] = await Promise.all([
     getClimbSendStats(
@@ -104,11 +79,7 @@ export const GET = withApiSession(async (session, request: Request, { params }: 
 
   return NextResponse.json({
     ...subtreeClimbs,
-    hasNextPage:
-      subtreeClimbs.hasNextPage &&
-      !(offsetMode
-        ? offsetReachesPaginationLimit(offset ?? 0, pageSize)
-        : pageReachesPaginationLimit(page, pageSize)),
+    hasNextPage: subtreeClimbs.hasNextPage && !offsetReachesPaginationLimit(offset, PAGE_SIZE),
     sendStats,
     areaBreadcrumbs,
     sentClimbIds: [...sentClimbIds],

@@ -1,9 +1,7 @@
 import { clsx } from "clsx";
 import type { ReactNode } from "react";
 
-/** The guidebook display voice (Barlow Condensed) for page h1s — one
- * canonical treatment so content pages and card pages stop disagreeing
- * about what an h1 looks like. */
+/** The guidebook display voice (Barlow Condensed) for page h1s. */
 export function PageTitle({
   children,
   className,

@@ -94,7 +94,7 @@ export function GoalCompletionNotice({
         <X aria-hidden className="size-4" />
       </Button>
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <span className="relative flex size-9 shrink-0 items-center justify-center rounded-full bg-black/10">
+        <span className="relative flex size-9 shrink-0 items-center justify-center rounded-full bg-accent-foreground/10">
           <CircleCheckBig aria-hidden className="size-5" />
           <Sparkles aria-hidden className="absolute -top-1 -right-2 size-4" />
         </span>

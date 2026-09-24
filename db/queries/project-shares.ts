@@ -52,8 +52,7 @@ export type SharedProject = {
 };
 
 /** Why a link did not resolve. `hidden` covers "no such token", "the pin is
- * gone" and "the owner went private" alike: a reader is never told which,
- * though in practice only someone who was given the link ever asks. */
+ * gone" and "the owner went private" alike: a reader is never told which. */
 export type SharedProjectAccess =
   | { status: "hidden"; project?: undefined }
   | { status: "expired"; project?: undefined }
@@ -195,19 +194,4 @@ export async function getSharedProjectSessions(
     body: row.body,
     tags: row.tags ? (JSON.parse(row.tags) as string[]) : [],
   }));
-}
-
-/** The owner's own view of a link, for the card and the dialog. Scoped to the
- * owner: this is the only read that hands out a token, and a token is the
- * credential. */
-export async function getProjectShareForOwner(
-  db: Database,
-  ownerId: string,
-  climbId: number,
-): Promise<{ token: string; expiresAt: string | null } | null> {
-  const row = await db.get<{ token: string; expiresAt: string | null }>(sql`
-    SELECT token, expires_at AS expiresAt
-    FROM project_share_links WHERE user_id = ${ownerId} AND climb_id = ${climbId}
-  `);
-  return row ?? null;
 }

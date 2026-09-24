@@ -5,7 +5,12 @@ import { refresh } from "next/cache";
 
 import { getDb } from "@/db/client";
 import { pinnedProjects } from "@/db/schema";
-import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
+import {
+  ActionError,
+  JOURNAL_RATE_LIMIT_MESSAGE,
+  toActionResult,
+  type ActionResult,
+} from "@/lib/action-result";
 import { PINNED_PROJECT_LIMIT, PIN_LIMIT_MESSAGE } from "@/lib/projects";
 import { allowJournalWrite } from "@/lib/rate-limit";
 import { requireSession } from "@/lib/session";
@@ -21,8 +26,7 @@ export async function pinProject(climbId: number): Promise<ActionResult> {
   return toActionResult(async () => {
     const { user } = await requireSession();
     if (!Number.isSafeInteger(climbId) || climbId < 1) throw new ActionError("Climb not found");
-    if (!(await allowJournalWrite(user.id)))
-      throw new ActionError("Too many changes — try again in a minute");
+    if (!(await allowJournalWrite(user.id))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
 
     const db = await getDb();
     const climb = await db.get<{ id: number }>(
@@ -65,8 +69,7 @@ export async function unpinProject(climbId: number): Promise<ActionResult> {
   return toActionResult(async () => {
     const { user } = await requireSession();
     if (!Number.isSafeInteger(climbId) || climbId < 1) throw new ActionError("Climb not found");
-    if (!(await allowJournalWrite(user.id)))
-      throw new ActionError("Too many changes — try again in a minute");
+    if (!(await allowJournalWrite(user.id))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
 
     const db = await getDb();
     // Any share link on this pin cascades away with it through the composite

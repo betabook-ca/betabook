@@ -1,4 +1,5 @@
 import type { AnalyticsSendRow } from "@/db/queries";
+import { daysBetween } from "@/lib/format-date";
 import { nativeGradeArray, type ClimbType } from "@/lib/grades";
 import type { AscentStyle } from "@/lib/sends";
 
@@ -124,7 +125,6 @@ export function getAnalyticsHistorySummary(
   return { years: [...years].sort((a, b) => b - a), undatedCount };
 }
 
-const MS_PER_DAY = 86_400_000;
 const WEEKDAYS = [
   "Sunday",
   "Monday",
@@ -134,35 +134,6 @@ const WEEKDAYS = [
   "Friday",
   "Saturday",
 ] as const;
-const MONTHS_SHORT = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-] as const;
-
-function dayMs(isoDate: string): number {
-  return Date.parse(`${isoDate}T00:00:00Z`);
-}
-
-function diffDays(fromIso: string, toIso: string): number {
-  return Math.round((dayMs(toIso) - dayMs(fromIso)) / MS_PER_DAY);
-}
-
-/** "2023-12" → "Dec 2023" — chart/stat month labels. */
-export function formatMonthLabel(month: string): string {
-  const [year, m] = month.split("-");
-  return `${MONTHS_SHORT[Number(m) - 1]} ${year}`;
-}
-
 /** Humanized gap for breakthrough waits and layoffs: "12d", "4 mo", "2.2 yr". */
 export function formatDaySpan(days: number): string {
   if (days < 1) return "same day";
@@ -208,6 +179,19 @@ export function buildPyramid(sends: AnalyticsSendRow[], type: ClimbType): Pyrami
     rows.push({ grade, label: scale[grade], count: gradeCounts.get(grade) ?? 0 });
   }
   return rows;
+}
+
+/** Whether a logged date falls inside a fixed window, inclusive at both ends.
+ *
+ * Deliberately unlike `inSelectedYears` in the one way that matters: an
+ * undated row is excluded rather than admitted. An empty year selection means
+ * "all years", so a null date belongs there; a trip is a claim about two
+ * specific days, and a send with no date cannot be shown to fall between them.
+ *
+ * Callers filter their rows with this *before* `buildUserAnalytics` and pass no
+ * selected years, so every stat below is computed over the window alone. */
+export function inDateWindow(date: string | null, from: string, to: string): boolean {
+  return date != null && date >= from && date <= to;
 }
 
 /** An empty selection is All years, which includes undated rows. */
@@ -322,7 +306,7 @@ export function buildUserAnalytics(
   let streak = 1;
   for (let i = 0; i < days.length; i += 1) {
     if (i > 0) {
-      const gap = diffDays(days[i - 1], days[i]);
+      const gap = daysBetween(days[i - 1], days[i]) ?? 0;
       streak = gap === 1 ? streak + 1 : 1;
       // A gap of 1 is back-to-back climbing days, not a break — only an
       // actual day off the wall counts, so a climber who never missed a day
@@ -342,7 +326,7 @@ export function buildUserAnalytics(
   for (const s of dated) {
     const year = Number(s.dateSent.slice(0, 4));
     const month = s.dateSent.slice(0, 7);
-    const weekday = new Date(dayMs(s.dateSent)).getUTCDay();
+    const weekday = new Date(`${s.dateSent}T00:00:00Z`).getUTCDay();
     byYear.set(year, (byYear.get(year) ?? 0) + 1);
     byMonth.set(month, (byMonth.get(month) ?? 0) + 1);
     byWeekday.set(weekday, (byWeekday.get(weekday) ?? 0) + 1);
@@ -441,7 +425,7 @@ export function buildUserAnalytics(
         climbId: s.climbId,
         climbName: s.climbName,
         dateSent: s.dateSent,
-        waitDays: previousDate == null ? null : diffDays(previousDate, s.dateSent),
+        waitDays: previousDate == null ? null : daysBetween(previousDate, s.dateSent),
       });
       ceiling = s.grade;
       previousDate = s.dateSent;

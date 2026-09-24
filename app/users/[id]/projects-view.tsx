@@ -24,7 +24,19 @@ export async function ProjectsView({
 }) {
   const sent = variant === "sent";
   const db = await getDb();
-  const rows = await getPinnedProjects(db, ownerId, ownerId, { sent }, OPEN_PROJECT_PAGE_SIZE + 1);
+  // Suggestions ride along as props rather than through an API route: the list
+  // is short, the ownership check is already done here, and refresh() after a
+  // pin re-renders this tree with the pinned climb removed from it.
+  // The share origin comes from the server, not `window.location`, so server
+  // render and hydration agree and preview links point at the preview.
+  // Pinned ids span both sides of the split: a pinned, already-sent climb must
+  // still read as "Already pinned" in the dialog.
+  const [rows, shareOrigin, suggestions, pinnedClimbIds] = await Promise.all([
+    getPinnedProjects(db, ownerId, ownerId, { sent }, OPEN_PROJECT_PAGE_SIZE + 1),
+    getBaseUrl(),
+    sent ? [] : getOpenProjectSuggestions(db, ownerId, ownerId),
+    sent ? [] : getPinnedClimbIds(db, ownerId, ownerId),
+  ]);
   const hasMore = rows.length > OPEN_PROJECT_PAGE_SIZE;
   const projects = rows.slice(0, OPEN_PROJECT_PAGE_SIZE);
 
@@ -45,18 +57,6 @@ export async function ProjectsView({
     ...project,
     sessions: byClimb.get(project.climbId) ?? [],
   }));
-
-  // Suggestions ride along as props rather than through an API route: the list
-  // is short, the ownership check is already done here, and refresh() after a
-  // pin re-renders this tree with the pinned climb removed from it.
-  // Resolved here rather than from `window.location` in the dialog: the same
-  // string has to come out of the server render and the hydration, and a
-  // preview deployment's links must point at the preview.
-  const shareOrigin = await getBaseUrl();
-  const suggestions = sent ? [] : await getOpenProjectSuggestions(db, ownerId, ownerId);
-  // Both sides of the split, not just this board's: a climb that is pinned and
-  // already sent must still read as "Already pinned" in the dialog.
-  const pinnedClimbIds = sent ? [] : await getPinnedClimbIds(db, ownerId, ownerId);
 
   return (
     <div className="flex min-w-0 flex-col gap-4">

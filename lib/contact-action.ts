@@ -21,8 +21,7 @@ const THROTTLED_MESSAGE = "Too many messages from this network. Try again in a m
  *
  * Kept in lib/ rather than db/ because it touches no database, and split
  * from lib/contact.ts because a "use server" file can only export async
- * functions — the same constraint lib/sends.ts documents for
- * IMPORT_BATCH_SIZE — while the form needs the length caps as constants.
+ * functions, while the form needs the length caps as constants.
  */
 export async function submitContactMessage(formData: FormData): Promise<ActionResult> {
   return toActionResult(async () => {

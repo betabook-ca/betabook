@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { SearchView } from "@/app/search-view";
+import { PageTitle } from "@/components/ui/typography";
 import { getMemberSession } from "@/lib/session";
 import type { UrlParamsRecord } from "@/lib/url-params";
 
@@ -20,7 +21,7 @@ export default async function FindClimbsPage({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">Find climbs</h1>
+        <PageTitle>Find climbs</PageTitle>
         <p className="text-sm text-muted">
           Browse an area by grade, rating and ascents, or search by name.
         </p>

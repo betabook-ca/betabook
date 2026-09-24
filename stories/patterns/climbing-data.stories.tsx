@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { MapPin } from "lucide-react";
 
 import { AscentStyle } from "@/components/ascent-style";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
@@ -42,7 +41,7 @@ export const LabelsAndGrades: Story = {
           </Grade>
         </div>
       </Example>
-      <Eyebrow icon={MapPin}>North Woods</Eyebrow>
+      <Eyebrow>North Woods</Eyebrow>
     </StoryPage>
   ),
 };

@@ -30,7 +30,7 @@ type ClimbFormProps = {
     areaName?: string;
     area?: { id: number; name: string; ancestorPath: string | null };
   };
-  onDone?: (climbId: number, climbName?: string) => void;
+  onDone?: (climbId: number, climbName: string) => void;
 };
 
 // oxlint-disable-next-line complexity -- create/edit form with many conditionally-rendered fields

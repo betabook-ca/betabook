@@ -478,7 +478,7 @@ export function AnalyticsWorkspace({
             .filter((group) => group.items.length > 0)
             .map((group) => (
               <fieldset key={group.label} className="min-w-0">
-                <legend className={`${EYEBROW_CLASS} mb-2`} style={{ color: "var(--foreground)" }}>
+                <legend className="mb-2 text-xs font-medium tracking-widest text-foreground uppercase">
                   {group.label}
                 </legend>
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-3">
@@ -488,8 +488,7 @@ export function AnalyticsWorkspace({
                       variant="secondary"
                       isDisabled={saving}
                       aria-label={`Add ${item.title}`}
-                      className={`h-auto min-h-20 w-full items-start justify-start gap-3 text-left whitespace-normal ${cardClass("sm", "bordered")}`}
-                      style={{ borderWidth: 0 }}
+                      className="h-auto min-h-20 w-full items-start justify-start gap-3 rounded-panel bg-surface p-4 text-left whitespace-normal"
                       onPress={() =>
                         change(
                           parseAnalyticsLayout({

@@ -32,17 +32,14 @@ export function safeNextPath(value: string | string[] | undefined): string | und
   return value;
 }
 
-/** The sign-in URL that continues to `next` after a successful sign-in. */
 export function signInUrl(next?: string): string {
   return next ? `/sign-in?next=${encodeURIComponent(next)}` : "/sign-in";
 }
 
-/** The sign-up URL that carries the continuation through to sign-in. */
 export function signUpUrl(next?: string): string {
   return next ? `/sign-up?next=${encodeURIComponent(next)}` : "/sign-up";
 }
 
-/** Maps OAuth error codes to friendly display messages. */
 export function formatAuthErrorMessage(error?: string | string[]): string | undefined {
   if (typeof error !== "string" || !error) return undefined;
   switch (error.toLowerCase()) {

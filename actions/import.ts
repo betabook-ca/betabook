@@ -15,7 +15,12 @@ import {
   type ClimbCandidate,
 } from "@/db/queries";
 import { importBatches, journalEntries } from "@/db/schema";
-import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
+import {
+  ActionError,
+  errorChainIncludes,
+  toActionResult,
+  type ActionResult,
+} from "@/lib/action-result";
 import { isLoggableOnClimb } from "@/lib/broken-climbs";
 import { parseGrade, type ClimbType } from "@/lib/grades";
 import type { ImportBatchResponse } from "@/lib/import-execution";
@@ -166,13 +171,11 @@ async function commitImportBatch(
       return null;
     }
     // SQLite errors confirm rollback. A lost database response does not.
-    for (let cause = error; cause instanceof Error; cause = cause.cause) {
-      if (cause.message.includes("SQLITE_")) {
-        rethrowJournalSendInvariant(
-          error,
-          "The journal changed while these sends were being imported — try again",
-        );
-      }
+    if (errorChainIncludes(error, "SQLITE_")) {
+      rethrowJournalSendInvariant(
+        error,
+        "The journal changed while these sends were being imported — try again",
+      );
     }
     return null;
   }
@@ -208,12 +211,11 @@ export async function importSends(
     const identity = { userId: session.user.id, batchId, requestHash };
     const receipt = await readImportReceipt(db, identity);
     if (receipt) return receipt;
-    const [climbList, existingDates] = await Promise.all([
+    const [climbList, alreadySent] = await Promise.all([
       getClimbsByIds(db, climbIds),
       getUserSendDatesForClimbs(db, session.user.id, climbIds),
     ]);
     const climbsById = new Map(climbList.map((climb) => [climb.id, climb]));
-    const alreadySent = existingDates;
 
     // First row per climb wins, including in overwrite mode.
     const processed = new Set<number>();

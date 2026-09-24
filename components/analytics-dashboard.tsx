@@ -23,13 +23,9 @@ import {
   type ChartSession,
 } from "@/lib/chart-details";
 import { formatCount } from "@/lib/format";
+import { formatMonth } from "@/lib/format-date";
 import type { ClimbType } from "@/lib/grades";
-import {
-  formatDaySpan,
-  formatMonthLabel,
-  inSelectedYears,
-  type UserAnalytics,
-} from "@/lib/user-analytics";
+import { formatDaySpan, inSelectedYears, type UserAnalytics } from "@/lib/user-analytics";
 
 const EMPTY_SESSIONS: ChartSession[] = [];
 const NO_PANELS: AnalyticsPanel[] = [];
@@ -46,6 +42,7 @@ export function AnalyticsDashboard({
   selectedYears,
   periodPicker,
   summary,
+  activityHeading,
   canCustomize = false,
   initialLayout,
   onSave,
@@ -63,6 +60,10 @@ export function AnalyticsDashboard({
   periodPicker: ReactNode;
   /** The climber's all-time record, under the activity heading. */
   summary?: ReactNode;
+  /** Replaces the computed "All-time activity" / "Activity in <year>" heading.
+   * A trip selects no years — its window is already narrower than one — so the
+   * computed heading would announce an eleven-day window as all-time. */
+  activityHeading?: string;
   canCustomize?: boolean;
   initialLayout?: AnalyticsLayout;
   onSave?: (layout: AnalyticsLayout) => Promise<ActionResult>;
@@ -120,7 +121,7 @@ export function AnalyticsDashboard({
       label: "Sends",
       value: analytics.sendCount,
       sub: analytics.dateSpan
-        ? `${formatMonthLabel(analytics.dateSpan[0].slice(0, 7))} – ${formatMonthLabel(analytics.dateSpan[1].slice(0, 7))}`
+        ? `${formatMonth(analytics.dateSpan[0].slice(0, 7))} – ${formatMonth(analytics.dateSpan[1].slice(0, 7))}`
         : "no dated sends",
     },
     hardest: {
@@ -152,7 +153,7 @@ export function AnalyticsDashboard({
       label: journalVisible ? "Longest streak" : "Longest send streak",
       value: analytics.longestStreak ? formatCount(analytics.longestStreak.days, "day") : "—",
       sub: analytics.longestStreak
-        ? formatMonthLabel(analytics.longestStreak.end.slice(0, 7))
+        ? formatMonth(analytics.longestStreak.end.slice(0, 7))
         : "no dated activity",
     },
     bestYear: {
@@ -162,7 +163,7 @@ export function AnalyticsDashboard({
     },
     busiestMonth: {
       label: "Busiest month",
-      value: analytics.busiestMonth ? formatMonthLabel(analytics.busiestMonth.month) : "—",
+      value: analytics.busiestMonth ? formatMonth(analytics.busiestMonth.month) : "—",
       sub: analytics.busiestMonth
         ? formatCount(analytics.busiestMonth.count, "send")
         : "no dated sends",
@@ -183,7 +184,7 @@ export function AnalyticsDashboard({
       label: journalVisible ? "Longest layoff" : "Longest send gap",
       value: analytics.longestLayoff ? formatDaySpan(analytics.longestLayoff.days) : "—",
       sub: analytics.longestLayoff
-        ? `${formatMonthLabel(analytics.longestLayoff.from.slice(0, 7))} – ${formatMonthLabel(analytics.longestLayoff.to.slice(0, 7))}`
+        ? `${formatMonth(analytics.longestLayoff.from.slice(0, 7))} – ${formatMonth(analytics.longestLayoff.to.slice(0, 7))}`
         : "no gaps between dated activity",
     },
   };
@@ -326,7 +327,7 @@ export function AnalyticsDashboard({
       heading={
         <div className="flex flex-col gap-1">
           <SectionHeading>
-            {period == null ? "All-time activity" : `Activity in ${period}`}
+            {activityHeading ?? (period == null ? "All-time activity" : `Activity in ${period}`)}
           </SectionHeading>
           {summary && <p className="text-sm text-muted">{summary}</p>}
         </div>

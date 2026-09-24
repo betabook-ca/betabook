@@ -15,7 +15,12 @@ import {
   type SendableClimb,
 } from "@/db/queries";
 import { journalEntries, sends } from "@/db/schema";
-import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
+import {
+  ActionError,
+  JOURNAL_RATE_LIMIT_MESSAGE,
+  toActionResult,
+  type ActionResult,
+} from "@/lib/action-result";
 import { assertLoggableOnClimb } from "@/lib/broken-climbs";
 import { normalizeTags } from "@/lib/journal";
 import { readCompanionSelection } from "@/lib/journal-companions";
@@ -73,12 +78,16 @@ export async function getSendEditorData(
           ? await getUserSendForClimb(db, session.user.id, requestedEntry.climbId)
           : null;
     if (!send || send.userId !== session.user.id) throw new ActionError("Send not found");
-    const climb = await getClimb(db, send.climbId);
+    const [climb, entryId] = await Promise.all([
+      getClimb(db, send.climbId),
+      getAscentEntryId(db, session.user.id, send.climbId),
+    ]);
     if (!climb) throw new ActionError("Climb not found");
-    const entryId = await getAscentEntryId(db, session.user.id, send.climbId);
     if (requestedEntry && entryId !== requestedEntry.id)
       throw new ActionError("The journal changed — refresh and try again");
-    const entry = entryId ? await getJournalEntryForEdit(db, entryId, session.user.id) : null;
+    const entry =
+      requestedEntry ??
+      (entryId ? await getJournalEntryForEdit(db, entryId, session.user.id) : null);
     return {
       send: {
         id: send.id,
@@ -105,9 +114,7 @@ export async function createUndatedSend(formData: FormData): Promise<ActionResul
   return toActionResult(async () => {
     const session = await requireSession();
     if (!(await allowJournalWrite(session.user.id))) {
-      throw new ActionError(
-        "You're logging entries faster than we can save them — give it a minute",
-      );
+      throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
     }
     if (formData.getAll("companion").length) throw new ActionError("Add a date to tag friends");
     const climbId = Number(formData.get("climbId"));

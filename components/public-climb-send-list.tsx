@@ -1,5 +1,3 @@
-"use client";
-
 import { AuthCallout } from "@/components/auth-callout";
 import { ClimbSendListRow } from "@/components/climb-send-list-row";
 import { EmptyState } from "@/components/ui/empty-state";

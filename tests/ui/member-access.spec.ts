@@ -70,8 +70,8 @@ test(
   { tag: ["@behavior", "@app"] },
   async ({ request }) => {
     const endpoints = [
-      "/api/search/areas?limit=5",
-      "/api/search/climbs?offset=10001",
+      "/api/search/areas?name=Test",
+      "/api/search/climbs?page=100000",
       "/api/search/climbers?name=Test",
       "/api/areas/missing/climbs",
       "/api/climbs/missing/sends",

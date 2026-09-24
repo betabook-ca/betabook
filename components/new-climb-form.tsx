@@ -22,9 +22,7 @@ export function NewClimbForm({
     <ClimbForm
       areaId={null}
       initial={initial}
-      onDone={(climbId, climbName) =>
-        router.push(climbName ? climbHref(climbId, climbName) : `/climbs/${climbId}`)
-      }
+      onDone={(climbId, climbName) => router.push(climbHref(climbId, climbName))}
     />
   );
 }

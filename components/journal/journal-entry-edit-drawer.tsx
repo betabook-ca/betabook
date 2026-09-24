@@ -14,13 +14,7 @@ function editTitle(entry: JournalEntry): string {
   return entry.kind === "training" ? "Edit training" : "Edit session";
 }
 
-/** Editing a journal entry, whichever kind it is.
- *
- * Ascents and sessions are the same row in the same list, reached from the
- * same Edit menu item, so they use the same dialog. This used to branch —
- * a centered modal for sessions, a bottom sheet for ascents — which made
- * the chrome depend on the entry kind for no reason the viewer could see.
- * Only the body differs now, since sends have their own editor. */
+/** Sends use SendEditor; sessions and training use the journal form. */
 export function JournalEntryEditDrawer({
   entry,
   state,
@@ -46,7 +40,6 @@ export function JournalEntryEditDrawer({
         <>
           <PageTitle className="mb-3 text-2xl! text-foreground">{title}</PageTitle>
           <JournalEntryForm
-            embedded
             onPendingChange={setPending}
             kind={entry.kind}
             climb={

@@ -21,11 +21,12 @@ it("shows counts, loading guidance, and a countdown that resets for each retry",
       }}
     />,
   );
-  expect(screen.getByRole("status")).toHaveTextContent(
-    "KAYA asked us to slow down. Retrying in 5s (1/3)",
-  );
+  expect(screen.getByRole("status")).toHaveTextContent("KAYA asked us to slow down. Attempt 1/3.");
+  expect(screen.getByRole("status")).not.toHaveTextContent("Retrying");
+  expect(screen.getByText("Retrying in 5s")).toBeVisible();
   await act(async () => vi.advanceTimersByTimeAsync(5_000));
-  expect(screen.getByRole("status")).toHaveTextContent("Trying again…");
+  expect(screen.getByRole("status")).toHaveTextContent("Attempt 1/3. Trying again…");
+  expect(screen.queryByText(/Retrying in/)).not.toBeInTheDocument();
   rerender(
     <KayaImportProgress
       progress={{
@@ -34,7 +35,8 @@ it("shows counts, loading guidance, and a countdown that resets for each retry",
       }}
     />,
   );
-  expect(screen.getByRole("status")).toHaveTextContent("Retrying in 10s (2/3)");
+  expect(screen.getByRole("status")).toHaveTextContent("Attempt 2/3.");
+  expect(screen.getByText("Retrying in 10s")).toBeVisible();
   unmount();
   expect(vi.getTimerCount()).toBe(0);
 });

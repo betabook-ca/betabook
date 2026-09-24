@@ -4,7 +4,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 
 import { shareProject, unshareProject } from "@/actions";
 import { createDb } from "@/db/client";
-import { getProjectShareForOwner, getSharedProject } from "@/db/queries";
+import { getSharedProject } from "@/db/queries";
 import { projectShareLinks, user } from "@/db/schema";
 import { seedFixturePinnedProject, seedFixtureTree, seedFixtureUser } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
@@ -151,7 +151,6 @@ it("closes the link on unshare and leaves the pin alone", async () => {
   expect(result.ok).toBe(true);
   expect(await storedShares()).toEqual([]);
   expect(await getSharedProject(db, token)).toEqual({ status: "hidden" });
-  expect(await getProjectShareForOwner(db, "climber", HIGHBALL)).toBeNull();
 });
 
 it("treats unsharing something unshared as already done", async () => {

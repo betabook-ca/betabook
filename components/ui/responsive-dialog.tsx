@@ -3,7 +3,7 @@
 import { Drawer, Modal } from "@heroui/react";
 import type { UseOverlayStateReturn } from "@heroui/react";
 import { clsx } from "clsx";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 
 import { useIsAtLeast } from "@/hooks/use-breakpoint";
 
@@ -68,23 +68,19 @@ export function ResponsiveDialog({
 }: ResponsiveDialogProps) {
   const live = useIsAtLeast("md");
   const [pinned, setPinned] = useState<boolean | undefined>(undefined);
+  const [wasOpen, setWasOpen] = useState(false);
 
-  const onCloseRef = useRef(onClose);
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  });
+  const fireClose = useEffectEvent(() => onClose?.());
 
   // Swapping Drawer for Modal unmounts the body, so a phone rotated mid-form
   // would lose everything typed into it, and a swap part-way through the exit
   // would make the dialog vanish instead of sliding away. The viewport is
-  // read once when it opens and held for that dialog's lifetime, so crossing
-  // the breakpoint while it is closed still gets picked up on the next open.
-  useEffect(() => {
-    if (live !== undefined && pinned === undefined) {
-      // oxlint-disable-next-line react/set-state-in-effect -- adopts the first resolved viewport
-      setPinned(live);
-    }
-  }, [live, pinned]);
+  // read during the render that opens it and held until the next open.
+  if (state.isOpen !== wasOpen) {
+    setWasOpen(state.isOpen);
+    if (state.isOpen) setPinned(live);
+  }
+  if (state.isOpen && pinned === undefined && live !== undefined) setPinned(live);
 
   const openedRef = useRef(false);
   // Held outside the effect's cleanup on purpose: an unrelated re-render
@@ -102,10 +98,8 @@ export function ResponsiveDialog({
       if (resetTimerRef.current !== undefined) {
         clearTimeout(resetTimerRef.current);
         resetTimerRef.current = undefined;
-        onCloseRef.current?.();
+        fireClose();
       }
-      // oxlint-disable-next-line react/set-state-in-effect -- re-reads the viewport at the moment of opening
-      if (live !== undefined) setPinned(live);
       return;
     }
 
@@ -113,9 +107,9 @@ export function ResponsiveDialog({
     // out in full view — the same artifact as blanking it.
     resetTimerRef.current = setTimeout(() => {
       resetTimerRef.current = undefined;
-      onCloseRef.current?.();
+      fireClose();
     }, EXIT_SETTLE_MS);
-  }, [state.isOpen, live]);
+  }, [state.isOpen]);
 
   useEffect(
     () => () => {

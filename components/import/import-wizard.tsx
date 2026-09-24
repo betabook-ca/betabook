@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Checkbox, Label, TextField } from "@heroui/react";
+import { Button, Checkbox, Label } from "@heroui/react";
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 
 import {
@@ -9,6 +9,7 @@ import {
   resolveImportClimbsInAreas,
   type ImportResult,
 } from "@/actions";
+import { GRADE_FEEL_OPTIONS } from "@/components/send-fields";
 import { cardClass } from "@/components/ui/card";
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { Eyebrow } from "@/components/ui/eyebrow";
@@ -92,7 +93,6 @@ import { ImportSourceStep, type DirectSource } from "./import-source-step";
 import {
   ASCENT_STYLE_OPTIONS,
   CLIMB_TYPE_OPTIONS,
-  GRADE_FEEL_OPTIONS,
   RATING_OPTIONS,
   Stat,
   ValueMappingSection,
@@ -206,6 +206,24 @@ function toImportSendRow(resolved: ResolvedRow, climb: ClimbCandidate): ImportSe
     gradeText: row.gradeText,
     blankGradeMeans: row.blankGradeMeans,
   };
+}
+
+const TEXT_BUTTON_CLASS =
+  "cursor-pointer underline decoration-dotted underline-offset-4 hover:text-foreground";
+
+function CsvWarnings({ warnings, subject }: { warnings: readonly string[]; subject: string }) {
+  if (warnings.length === 0) return null;
+  return (
+    <InlineAlert status="warning">
+      <ul className="flex flex-col gap-1">
+        {warnings.map((warning) => (
+          <li key={warning}>
+            <SupportText subject={subject}>{warning}</SupportText>
+          </li>
+        ))}
+      </ul>
+    </InlineAlert>
+  );
 }
 
 // oxlint-disable-next-line complexity -- multi-step wizard state machine; each step adds a branch
@@ -394,7 +412,9 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
     if (reading) return;
     setError(null);
     if (file.size > MAX_IMPORT_FILE_BYTES) {
-      setError("That CSV is larger than 10 MB. Split it into smaller files and try again.");
+      setError(
+        `That CSV is larger than ${MAX_IMPORT_FILE_BYTES / 1024 / 1024} MB. Split it into smaller files and try again.`,
+      );
       return;
     }
 
@@ -435,19 +455,24 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
 
     // Known formats with required columns mapped can skip ahead.
     // Column and value mappings remain editable from the step list.
-    if (detected !== "unknown" && missingRequiredColumns(mapping).length === 0) {
+    const skipAhead = detected !== "unknown" && missingRequiredColumns(mapping).length === 0;
+    setAutoMapped(skipAhead);
+    if (skipAhead) {
       const values = guessValueMappings(withDerived, mapping);
-      setAscentStyleMapping(values.ascentStyleMapping);
-      setClimbTypeMapping(values.climbTypeMapping);
-      setGradeFeelMapping(values.gradeFeelMapping);
-      setRatingMapping(values.ratingMapping);
-      setDateFormat(values.dateFormat);
-      setGradeScale(values.gradeScale);
-      setAutoMapped(true);
+      applyValueMappings(values);
       beginMatching(withDerived, mapping, values, dropPlaceholders);
     } else {
       setStep("columns");
     }
+  }
+
+  function applyValueMappings(values: ReturnType<typeof guessValueMappings>) {
+    setAscentStyleMapping(values.ascentStyleMapping);
+    setClimbTypeMapping(values.climbTypeMapping);
+    setGradeFeelMapping(values.gradeFeelMapping);
+    setRatingMapping(values.ratingMapping);
+    setDateFormat(values.dateFormat);
+    setGradeScale(values.gradeScale);
   }
 
   function guessValueMappings(parsed: ParsedCsv, mapping: ColumnMapping) {
@@ -479,13 +504,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
       return;
     }
     setError(null);
-    const values = guessValueMappings(parsedCsv, columnMapping);
-    setAscentStyleMapping(values.ascentStyleMapping);
-    setClimbTypeMapping(values.climbTypeMapping);
-    setGradeFeelMapping(values.gradeFeelMapping);
-    setRatingMapping(values.ratingMapping);
-    setDateFormat(values.dateFormat);
-    setGradeScale(values.gradeScale);
+    applyValueMappings(guessValueMappings(parsedCsv, columnMapping));
     setStep("values");
   }
 
@@ -699,6 +718,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
     setAscentStyleMapping({});
     setClimbTypeMapping({});
     setGradeFeelMapping({});
+    setRatingMapping({});
     setDateFormat("iso");
     setDropPlaceholderDates(false);
     setGradeScale("native");
@@ -707,6 +727,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
     setUndatedDates(new Set());
     setAutoMapped(false);
     setCandidateIndex(null);
+    setLooseIndex(new Map());
     setLookup({ phase: "done" });
     setPreferredAreas([]);
     setManual(new Map());
@@ -732,7 +753,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
     const preview = value ? columnPreviews.get(value) : null;
     return (
       // Allow the grid cell to shrink below a long preview's intrinsic width.
-      <TextField key={key} className="min-w-0">
+      <div key={key} className="flex min-w-0 flex-col gap-2">
         <Label>{label}</Label>
         <OptionSelect
           ariaLabel={label}
@@ -746,7 +767,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
         <p className="mt-1.5 text-xs wrap-break-word text-muted">
           {preview ? `From the file: ${preview}` : hint}
         </p>
-      </TextField>
+      </div>
     );
   };
 
@@ -790,17 +811,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
                 </p>
               </div>
             )}
-            {parsedCsv.warnings.length > 0 && (
-              <InlineAlert status="warning">
-                <ul className="flex flex-col gap-1">
-                  {parsedCsv.warnings.map((warning) => (
-                    <li key={warning}>
-                      <SupportText subject={directSource ?? "Import"}>{warning}</SupportText>
-                    </li>
-                  ))}
-                </ul>
-              </InlineAlert>
-            )}
+            <CsvWarnings warnings={parsedCsv.warnings} subject={directSource ?? "Import"} />
           </div>
 
           <section className="flex flex-col gap-4 border-t border-separator pt-4">
@@ -921,7 +932,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
                   reads as "your dates aren't supported". */}
               {needsDateFormat ? (
                 <>
-                  <TextField>
+                  <div className="flex flex-col gap-2">
                     <Label>Date format</Label>
                     <OptionSelect
                       ariaLabel="Date format"
@@ -929,7 +940,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
                       onChange={setDateFormat}
                       options={DATE_FORMAT_OPTIONS}
                     />
-                  </TextField>
+                  </div>
                   <p className="text-xs text-muted">
                     This file has all-numeric dates, so 05/06/2019 could be May 6th or June 5th.
                     Pick the order the file uses.
@@ -975,7 +986,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
           {(columnMapping?.grade || columnMapping?.suggestedGrade) && (
             <section className="flex flex-col gap-3">
               <Eyebrow>Grades</Eyebrow>
-              <TextField>
+              <div className="flex flex-col gap-2">
                 <Label>Grade notation</Label>
                 <OptionSelect
                   ariaLabel="Grade notation"
@@ -983,7 +994,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
                   onChange={setGradeScale}
                   options={GRADE_SCALE_OPTIONS}
                 />
-              </TextField>
+              </div>
             </section>
           )}
 
@@ -1007,7 +1018,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
 
       {step === "match" && normalized && (
         <div className="flex flex-col gap-6">
-          {autoMapped && source !== "unknown" && (
+          {autoMapped && (
             <div className="flex flex-col gap-2">
               <p className="text-sm text-muted">
                 {directSource ?? `Recognized as a ${IMPORT_SOURCE_LABELS[source]}`}: columns and
@@ -1016,27 +1027,20 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
                 <button
                   type="button"
                   onClick={() => goBack("columns")}
-                  className="cursor-pointer underline decoration-dotted underline-offset-4 hover:text-foreground"
+                  className={TEXT_BUTTON_CLASS}
                 >
                   Adjust the mapping
                 </button>
               </p>
               {/* The columns step would have shown these; this path skipped it. */}
-              {parsedCsv && parsedCsv.warnings.length > 0 && (
-                <InlineAlert status="warning">
-                  <ul className="flex flex-col gap-1">
-                    {parsedCsv.warnings.map((warning) => (
-                      <li key={warning}>
-                        <SupportText subject={directSource ?? "Import"}>{warning}</SupportText>
-                      </li>
-                    ))}
-                  </ul>
-                </InlineAlert>
+              {parsedCsv && (
+                <CsvWarnings warnings={parsedCsv.warnings} subject={directSource ?? "Import"} />
               )}
             </div>
           )}
           <ImportMatchStep
             resolved={resolved}
+            summary={summary}
             lookup={lookup}
             onRetryLookup={() => {
               void runLookup(normalized.valid, gradeScale);
@@ -1092,7 +1096,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
                   setMatchFilter("broken");
                   goBack("match");
                 }}
-                className="cursor-pointer underline decoration-dotted underline-offset-4 hover:text-foreground"
+                className={TEXT_BUTTON_CLASS}
               >
                 Back to matching
               </button>
@@ -1110,7 +1114,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
                   setMatchFilter("attention");
                   goBack("match");
                 }}
-                className="cursor-pointer underline decoration-dotted underline-offset-4 hover:text-foreground"
+                className={TEXT_BUTTON_CLASS}
               >
                 Back to matching
               </button>
@@ -1128,7 +1132,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
                   setMatchFilter("review");
                   goBack("match");
                 }}
-                className="cursor-pointer underline decoration-dotted underline-offset-4 hover:text-foreground"
+                className={TEXT_BUTTON_CLASS}
               >
                 Check them
               </button>
@@ -1137,7 +1141,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
 
           {normalized.invalid.length > 0 && (
             <details>
-              <summary className="cursor-pointer text-sm text-muted underline decoration-dotted underline-offset-4 hover:text-foreground">
+              <summary className={`${TEXT_BUTTON_CLASS} text-sm text-muted`}>
                 View rows that can&apos;t be imported
               </summary>
               <ul className="mt-2 flex flex-col gap-1 text-xs text-muted">
@@ -1196,15 +1200,15 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
             </div>
           ) : (
             <>
-              <TextField>
-                <Label>Already-logged climbs</Label>
+              <fieldset className="flex min-w-0 flex-col gap-2">
+                <legend className="mb-2 text-sm font-medium">Already-logged climbs</legend>
                 <SegmentedButtons
                   value={onConflict}
                   onChange={setOnConflict}
                   options={CONFLICT_MODES}
                   className="lg:w-auto lg:self-start"
                 />
-              </TextField>
+              </fieldset>
               {onConflict === "overwrite" ? (
                 <InlineAlert status="warning">
                   Imported values will replace your existing send data for any already-logged

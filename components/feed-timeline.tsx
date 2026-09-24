@@ -44,7 +44,7 @@ export function FeedTimeline({
               day.training +
               day.goals -
               day.activities.length;
-            const label = `See ${remaining} more ${remaining === 1 ? "activity" : "activities"} from ${day.name}`;
+            const more = `${remaining} more ${remaining === 1 ? "activity" : "activities"} from ${day.name}`;
             return (
               <Fragment key={card.key}>
                 {day.activities.map((activity) => (
@@ -62,12 +62,10 @@ export function FeedTimeline({
                       prefetch={false}
                       className="self-start py-2 text-sm"
                     >
-                      {label}
+                      See {more}
                     </AppLink>
                   ) : (
-                    <p className="text-sm text-muted">
-                      {remaining} more activities from {day.name}
-                    </p>
+                    <p className="text-sm text-muted">{more}</p>
                   ))}
               </Fragment>
             );

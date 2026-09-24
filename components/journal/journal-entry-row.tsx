@@ -1,5 +1,3 @@
-"use client";
-
 import { clsx } from "clsx";
 
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";

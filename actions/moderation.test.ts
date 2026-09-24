@@ -23,6 +23,7 @@ import {
   climbs,
   user,
 } from "@/db/schema";
+import { NOT_ADMIN_MESSAGE } from "@/lib/action-result";
 import { sendChangeRequestDecisionEmail } from "@/lib/email";
 import type { ChangeRequestType } from "@/lib/moderation";
 import { seedFixtureSend, seedFixtureTree, seedFixtureUser } from "@/test/fixtures";
@@ -692,7 +693,7 @@ describe("approveChangeRequest", () => {
     sessionState.userId = "moderation-user";
     sessionState.role = null;
 
-    expect(await approveChangeRequest(1)).toEqual({ ok: false, error: "Admins only." });
+    expect(await approveChangeRequest(1)).toEqual({ ok: false, error: NOT_ADMIN_MESSAGE });
   });
 
   it("rejects reviewing an unknown request", async () => {

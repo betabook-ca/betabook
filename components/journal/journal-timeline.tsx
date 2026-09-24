@@ -1,13 +1,13 @@
 "use client";
 
+import { fetchJournalPage } from "@/components/journal/fetch-journal-page";
 import { JournalEntryRow } from "@/components/journal/journal-entry-row";
 import { NavigationPendingRegion } from "@/components/navigation-pending";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
-import type { AreaBreadcrumbs, JournalCursor, JournalEntry } from "@/db/queries";
+import type { AreaBreadcrumbs, JournalEntry } from "@/db/queries";
 import { usePagedList } from "@/hooks/use-paged-list";
-import { apiFetch } from "@/lib/api-client";
-import { journalFilterToSearchParams, type JournalFilter } from "@/lib/filters/journal-filter";
+import type { JournalFilter } from "@/lib/filters/journal-filter";
 
 type JournalTimelineProps = {
   userId: string;
@@ -47,25 +47,7 @@ export function JournalTimeline({
     initialMeta: initialAreaBreadcrumbs,
     itemKey: (entry) => entry.id,
     fetchPage: async (_offset, _page, lastItem, signal) => {
-      const cursor: JournalCursor | undefined = lastItem
-        ? { entryDate: lastItem.entryDate, id: lastItem.id }
-        : undefined;
-      const params = journalFilterToSearchParams(filter);
-      if (cursor) {
-        params.set("cursorDate", cursor.entryDate);
-        params.set("cursorId", String(cursor.id));
-      }
-
-      const res = await apiFetch(`/api/users/${userId}/journal?${params}`, {
-        cache: "no-store",
-        signal,
-      });
-      if (!res.ok) throw new Error("Failed to load more entries");
-      const data = (await res.json()) as {
-        entries: JournalEntry[];
-        hasMore: boolean;
-        areaBreadcrumbs: AreaBreadcrumbs;
-      };
+      const data = await fetchJournalPage(userId, filter, lastItem, signal);
       return { items: data.entries, hasMore: data.hasMore, meta: data.areaBreadcrumbs };
     },
     mergeMeta: (current, incoming) => ({ ...current, ...incoming }),

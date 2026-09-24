@@ -19,6 +19,7 @@ import { SectionNavigation } from "@/components/ui/section-navigation";
 import { useGoalPages } from "@/hooks/use-goal-pages";
 import { useMounted } from "@/hooks/use-mounted";
 import { apiFetch } from "@/lib/api-client";
+import { daysBetween } from "@/lib/format-date";
 import {
   goalDateLabel,
   recurringGoalResetLabel,
@@ -174,8 +175,9 @@ function GoalRowTitle({
           <div
             className={`flex items-center gap-2 font-normal ${mobileLongClimb ? "max-[480px]:col-start-1 max-[480px]:row-start-2" : ""}`}
           >
-            <div className="w-20 md:w-24 [&>div]:h-1 dark:[&>div]:bg-white">
+            <div className="w-20 md:w-24">
               <ProgressBar
+                size="sm"
                 value={Math.min(goal.progress, goal.target)}
                 max={goal.target}
                 label={goalTitle(goal)}
@@ -220,7 +222,7 @@ export function GoalPanel({
   timezone: string;
   today: string;
   initialView?: "active" | "completed";
-  loadPage?: (view: "active" | "completed", offset: number, year: number) => Promise<GoalPage>;
+  loadPage?: (offset: number, year: number) => Promise<GoalPage>;
   loadItems?: (goal: GoalProgress) => Promise<GoalContribution[]>;
   loadHistory?: (goalId: number, offset: number, anchor?: string) => Promise<GoalHistoryPage>;
   nextGrades?: Partial<Record<"boulder" | "sport" | "trad", number>>;
@@ -265,7 +267,7 @@ export function GoalPanel({
     more,
     retry,
   } = useGoalPages(initialCompleted, today, async (selectedYear, offset, signal) => {
-    if (loadPage) return loadPage("completed", offset, selectedYear);
+    if (loadPage) return loadPage(offset, selectedYear);
     const res = await apiFetch(
       `/api/users/${ownerId}/goals?view=completed&offset=${offset}&year=${selectedYear}`,
       { signal },
@@ -305,10 +307,7 @@ export function GoalPanel({
   function tryAgain(goal: GoalProgress) {
     const draft = draftFor(goal);
     const end = new Date(`${today}T12:00:00Z`);
-    end.setUTCDate(
-      end.getUTCDate() +
-        Math.round((Date.parse(goal.endDate) - Date.parse(goal.startDate)) / 86400000),
-    );
+    end.setUTCDate(end.getUTCDate() + (daysBetween(goal.startDate, goal.endDate) ?? 0));
     const window = goalWindow(draft.period, today, end.toISOString().slice(0, 10), today);
     setEditor({ kind: "retry", goalId: goal.id, draft: { ...draft, ...window, repeat: "none" } });
     editState.open();
@@ -573,7 +572,6 @@ export function GoalPanel({
         onClose={() => setDetailsStep(false)}
       >
         <GoalForm
-          embedded
           initialDraft={
             editing
               ? {

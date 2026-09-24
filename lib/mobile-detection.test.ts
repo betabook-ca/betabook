@@ -153,16 +153,13 @@ describe("localStorage dismissal helpers", () => {
       },
     });
     expect(isMobileHelperDismissed()).toBe(false);
-    expect(() => setMobileHelperDismissed(true)).not.toThrow();
-    expect(() => setMobileHelperDismissed(false)).not.toThrow();
+    expect(() => setMobileHelperDismissed()).not.toThrow();
   });
 
   it("reads and sets dismissed state", () => {
     expect(isMobileHelperDismissed()).toBe(false);
-    setMobileHelperDismissed(true);
+    setMobileHelperDismissed();
     expect(isMobileHelperDismissed()).toBe(true);
-    setMobileHelperDismissed(false);
-    expect(isMobileHelperDismissed()).toBe(false);
   });
 });
 

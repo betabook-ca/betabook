@@ -22,9 +22,8 @@ export function toBreadcrumbPath(ancestorPath: string | null): string | null {
 export async function fetchAreaSuggestions(
   query: string,
   signal: AbortSignal,
-  { limit = DEFAULT_SUGGESTION_LIMIT }: { limit?: number } = {},
 ): Promise<AreaSuggestion[]> {
-  const params = new URLSearchParams({ name: query, limit: String(limit) });
+  const params = new URLSearchParams({ name: query, limit: String(DEFAULT_SUGGESTION_LIMIT) });
 
   const res = await apiFetch(`/api/public/search/areas?${params.toString()}`, { signal });
   if (!res.ok) throw new Error(`Area suggestions failed: ${res.status}`);

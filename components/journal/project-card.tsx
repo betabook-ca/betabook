@@ -55,12 +55,10 @@ export function ProjectCard({
     startTransition(async () => {
       const result = await unpinProject(project.climbId);
       if (!result.ok) {
-        // Keep the dialog open with the reason, so the climber can retry.
         setError(result.error);
         return;
       }
-      // The server revalidates and refreshes, which drops this card from the
-      // list; closing covers the case where it is still mounted.
+      // Revalidation removes this card; close in case it is still mounted.
       confirm.close();
     });
   }

@@ -75,8 +75,8 @@ export const ManyCompletedGoals: Story = {
   args: {
     initialView: "completed",
     initialCompleted: summarizeGoalPeriods(oneYearPeriods, "completed", 0, goalStoryNow),
-    loadPage: async (view, offset, year) =>
-      summarizeGoalPeriods(oneYearPeriods, view, offset, goalStoryNow, year),
+    loadPage: async (offset, year) =>
+      summarizeGoalPeriods(oneYearPeriods, "completed", offset, goalStoryNow, year),
   },
   play: async ({ canvasElement }) => {
     await userEvent.click(within(canvasElement).getByRole("button", { name: "Load more" }));
@@ -110,8 +110,8 @@ export const WeeklyCompletedHistory: Story = {
     initialView: "completed",
     initialActive: summarizeGoalPeriods(weeklyHistoryPeriods, "active", 0, weeklyHistoryNow),
     initialCompleted: summarizeGoalPeriods(weeklyHistoryPeriods, "completed", 0, weeklyHistoryNow),
-    loadPage: async (view, offset, year) =>
-      summarizeGoalPeriods(weeklyHistoryPeriods, view, offset, weeklyHistoryNow, year),
+    loadPage: async (offset, year) =>
+      summarizeGoalPeriods(weeklyHistoryPeriods, "completed", offset, weeklyHistoryNow, year),
     loadHistory: async (id, offset, anchor) =>
       pageGoalHistory(
         weeklyHistoryPeriods.filter((goal) => goal.id === id),
@@ -142,8 +142,8 @@ export const MonthlyCompletedHistory: Story = {
     initialView: "completed",
     initialActive: summarizeGoalPeriods(monthlyHistoryPeriods, "active", 0, goalStoryNow),
     initialCompleted: summarizeGoalPeriods(monthlyHistoryPeriods, "completed", 0, goalStoryNow),
-    loadPage: async (view, offset, year) =>
-      summarizeGoalPeriods(monthlyHistoryPeriods, view, offset, goalStoryNow, year),
+    loadPage: async (offset, year) =>
+      summarizeGoalPeriods(monthlyHistoryPeriods, "completed", offset, goalStoryNow, year),
   },
   parameters: {
     docs: {
@@ -191,8 +191,8 @@ function paginatedHistoryArgs(periods: typeof goalStoryPeriods) {
     initialView: "completed" as const,
     initialActive: summarizeGoalPeriods(periods, "active", 0, goalStoryNow),
     initialCompleted: summarizeGoalPeriods(periods, "completed", 0, goalStoryNow),
-    loadPage: async (view: "active" | "completed", offset: number, year: number) =>
-      summarizeGoalPeriods(periods, view, offset, goalStoryNow, year),
+    loadPage: async (offset: number, year: number) =>
+      summarizeGoalPeriods(periods, "completed", offset, goalStoryNow, year),
     loadHistory: async (_id: number, offset: number, anchor?: string) =>
       pageGoalHistory(periods, periods[0].repeat, offset, goalStoryNow, anchor),
   };

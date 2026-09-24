@@ -22,7 +22,6 @@ import {
   brokenClimbImportReason,
   duplicateClimbRows,
   foldClimbName,
-  summarizeResolved,
   type ManualChoice,
   type PreferredArea,
   type ResolvedRow,
@@ -387,6 +386,7 @@ function MatchRow({
  * once. */
 export function ImportMatchStep({
   resolved,
+  summary,
   lookup,
   onRetryLookup,
   preferredAreas,
@@ -397,6 +397,7 @@ export function ImportMatchStep({
   onChooseMany,
 }: {
   resolved: ResolvedRow[] | null;
+  summary: ResolvedSummary | null;
   lookup: LookupStatus;
   onRetryLookup: () => void;
   preferredAreas: PreferredArea[];
@@ -409,15 +410,13 @@ export function ImportMatchStep({
   /** Several choices in one state update, for "Skip all unresolved". */
   onChooseMany: (choices: { rowIndex: number; choice: ManualChoice | null }[]) => void;
 }) {
-  const summary = useMemo(() => (resolved ? summarizeResolved(resolved) : null), [resolved]);
   const duplicates = useMemo(
     () => (resolved ? duplicateClimbRows(resolved) : new Map()),
     [resolved],
   );
   const activeFilter: Filter = filter ?? "all";
 
-  // How far the list is unrolled, remembered per filter so switching tabs
-  // starts each at the top rather than wherever the last one was left.
+  // How far the list is unrolled; switching filters resets it to one page.
   const [unrolled, setUnrolled] = useState<{ filter: Filter; count: number } | null>(null);
   const shown = unrolled?.filter === activeFilter ? unrolled.count : PAGE;
 
@@ -516,18 +515,17 @@ export function ImportMatchStep({
 
       {resolved && summary && (
         <>
-          <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filter rows">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Filter rows">
             {FILTERS.map(({ key, label }) => {
               const count = key === "all" ? resolved.length : summary[key];
               // An empty bucket is hidden, unless it's the one being looked
-              // at: the tab must outlive its last row.
+              // at: the filter must outlive its last row.
               if (count === 0 && key !== "all" && activeFilter !== key) return null;
               return (
                 <button
                   key={key}
                   type="button"
-                  role="tab"
-                  aria-selected={activeFilter === key}
+                  aria-pressed={activeFilter === key}
                   onClick={() => onFilterChange(key)}
                   className={`${choicePillClass(activeFilter === key, "bg-surface text-foreground")} tabular-nums`}
                 >

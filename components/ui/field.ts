@@ -2,8 +2,7 @@
  * TextFields wear HeroUI's own `.input` class — the exact rules its Input
  * renders (field radius, background, shadow, border, hover/focus/invalid/
  * disabled states) — so a native select is indistinguishable from the styled
- * field beside it. A hand-rolled approximation used to give these a hairline
- * border and a smaller radius that HeroUI fields never had. */
+ * field beside it. */
 export const FIELD_CLASS = "input";
 
 /** One-line fields share responsive height, including the theme border. */

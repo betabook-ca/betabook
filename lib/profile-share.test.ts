@@ -2,29 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   parseProfileShareShortToken,
-  parseProfileShareToken,
   profileShareFromPath,
   profileSharePath,
   profileShareShortPath,
 } from "./profile-share";
 
 const TOKEN = "0123456789abcdef0123456789abcdef";
-
-describe("parseProfileShareToken", () => {
-  it("accepts only the issued token format", () => {
-    expect(parseProfileShareToken(TOKEN)).toBe(TOKEN);
-    for (const value of [
-      undefined,
-      [TOKEN],
-      TOKEN.toUpperCase(),
-      `${TOKEN}0`,
-      TOKEN.slice(1),
-      "../../account",
-    ]) {
-      expect(parseProfileShareToken(value)).toBeNull();
-    }
-  });
-});
 
 describe("compact profile share links", () => {
   it("represents the same 16-byte token in a shorter URL-safe path", () => {
