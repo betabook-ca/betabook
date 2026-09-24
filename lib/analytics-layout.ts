@@ -1,4 +1,5 @@
-import { z } from "zod";
+import type { z } from "zod";
+import { array, enum as zodEnum, strictObject } from "zod";
 
 /** The catalog lists everything available; a layout lists only visible items.
  * Saved layouts store these ids, so rename titles rather than ids. */
@@ -26,14 +27,14 @@ const ANALYTICS_CHART_IDS = [
   "volume",
   "flashRate",
 ] as const;
-const cardId = z.enum(ANALYTICS_CARD_IDS);
-const chartId = z.enum(ANALYTICS_CHART_IDS);
+const cardId = zodEnum(ANALYTICS_CARD_IDS);
+const chartId = zodEnum(ANALYTICS_CHART_IDS);
 const unique = (items: readonly string[]) => new Set(items).size === items.length;
 
 /** Writes are strict: invalid IDs, duplicates, and extra fields are rejected. */
-export const analyticsLayoutSchema = z.strictObject({
-  cards: z.array(cardId).refine(unique, "Duplicate cards"),
-  charts: z.array(chartId).refine(unique, "Duplicate charts"),
+export const analyticsLayoutSchema = strictObject({
+  cards: array(cardId).refine(unique, "Duplicate cards"),
+  charts: array(chartId).refine(unique, "Duplicate charts"),
 });
 export type AnalyticsLayout = z.infer<typeof analyticsLayoutSchema>;
 export type AnalyticsCardId = z.infer<typeof cardId>;

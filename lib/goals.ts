@@ -1,4 +1,5 @@
-import { z } from "zod";
+import type { z } from "zod";
+import { NEVER, enum as zodEnum, number, object, string, unknown } from "zod";
 
 import { ActionError } from "@/lib/action-result";
 import { nativeGradeArray, type ClimbType } from "@/lib/grades";
@@ -16,7 +17,7 @@ export const END_DATE_MESSAGES: ReadonlySet<string> = new Set([
 ]);
 
 export const MAX_ACTIVE_GOALS = 5;
-const isoDate = z.string().refine(isRealIsoDate, "Choose a valid date.");
+const isoDate = string().refine(isRealIsoDate, "Choose a valid date.");
 function validGradeMatch(value: { gradeMatch: string; kind: string; grade: number | null }) {
   return value.gradeMatch === "exact" || (value.kind === "volume" && value.grade !== null);
 }
@@ -32,80 +33,76 @@ function validateRecurrence(
       message: "Choose a week, month, or custom dates for training.",
     });
 }
-export const goalInputSchema = z
-  .object({
-    kind: z.enum(["volume", "grade", "training", "days", "new-areas"]),
-    target: z.number().int().min(1).max(1000),
-    tags: z
-      .unknown()
-      .transform((value, ctx) => {
-        try {
-          return normalizeTags(value).sort();
-        } catch (error) {
-          ctx.addIssue({
-            code: "custom",
-            message: error instanceof Error ? error.message : "Invalid tags",
-          });
-          return z.NEVER;
-        }
-      })
-      .optional(),
-    discipline: z.enum(["boulder", "sport", "trad"]).nullable(),
-    grade: z.number().int().min(0).nullable(),
-    gradeMatch: z.enum(["exact", "at-least"]).default("exact"),
-    timeframe: z.enum(["week", "month", "year", "custom"]),
-    startDate: isoDate.optional(),
-    endDate: isoDate,
-    recurringEndDate: isoDate.nullable().optional(),
-    repeat: z.enum(["none", "week", "month", "year"]),
-    timezone: z
-      .string()
-      .max(100)
-      .refine((value) => {
-        try {
-          new Intl.DateTimeFormat("en-US", { timeZone: value }).format();
-          return true;
-        } catch {
-          return false;
-        }
-      }),
-  })
-  .superRefine((value, ctx) => {
-    if (
-      value.timeframe === "custom" &&
-      value.repeat === "none" &&
-      value.startDate &&
-      value.endDate < value.startDate
-    )
-      ctx.addIssue({
-        code: "custom",
-        message: END_DATE_ORDER_MESSAGE,
-        path: ["endDate"],
-      });
-    if (value.repeat === "none" && value.recurringEndDate != null)
-      ctx.addIssue({
-        code: "custom",
-        message: "Only recurring goals have a recurrence end date.",
-        path: ["recurringEndDate"],
-      });
-    if (!validGradeMatch(value))
-      ctx.addIssue({ code: "custom", message: "Choose a grade for an or-harder volume goal." });
-    const climbing = value.kind === "volume" || value.kind === "grade";
-    if (
-      climbing &&
-      (!value.discipline ||
-        (value.grade !== null && value.grade >= nativeGradeArray(value.discipline).length))
-    )
-      ctx.addIssue({ code: "custom", message: "Choose a valid discipline and grade." });
-    if (value.kind === "grade" && (value.grade === null || value.target !== 1))
-      ctx.addIssue({
-        code: "custom",
-        message: "A new-grade goal needs one climb at a specific grade.",
-      });
-    if (!climbing && (value.discipline !== null || value.grade !== null))
-      ctx.addIssue({ code: "custom", message: "Only climbing goals can specify a grade." });
-    validateRecurrence(value, ctx);
-  });
+export const goalInputSchema = object({
+  kind: zodEnum(["volume", "grade", "training", "days", "new-areas"]),
+  target: number().int().min(1).max(1000),
+  tags: unknown()
+    .transform((value, ctx) => {
+      try {
+        return normalizeTags(value).sort();
+      } catch (error) {
+        ctx.addIssue({
+          code: "custom",
+          message: error instanceof Error ? error.message : "Invalid tags",
+        });
+        return NEVER;
+      }
+    })
+    .optional(),
+  discipline: zodEnum(["boulder", "sport", "trad"]).nullable(),
+  grade: number().int().min(0).nullable(),
+  gradeMatch: zodEnum(["exact", "at-least"]).default("exact"),
+  timeframe: zodEnum(["week", "month", "year", "custom"]),
+  startDate: isoDate.optional(),
+  endDate: isoDate,
+  recurringEndDate: isoDate.nullable().optional(),
+  repeat: zodEnum(["none", "week", "month", "year"]),
+  timezone: string()
+    .max(100)
+    .refine((value) => {
+      try {
+        new Intl.DateTimeFormat("en-US", { timeZone: value }).format();
+        return true;
+      } catch {
+        return false;
+      }
+    }),
+}).superRefine((value, ctx) => {
+  if (
+    value.timeframe === "custom" &&
+    value.repeat === "none" &&
+    value.startDate &&
+    value.endDate < value.startDate
+  )
+    ctx.addIssue({
+      code: "custom",
+      message: END_DATE_ORDER_MESSAGE,
+      path: ["endDate"],
+    });
+  if (value.repeat === "none" && value.recurringEndDate != null)
+    ctx.addIssue({
+      code: "custom",
+      message: "Only recurring goals have a recurrence end date.",
+      path: ["recurringEndDate"],
+    });
+  if (!validGradeMatch(value))
+    ctx.addIssue({ code: "custom", message: "Choose a grade for an or-harder volume goal." });
+  const climbing = value.kind === "volume" || value.kind === "grade";
+  if (
+    climbing &&
+    (!value.discipline ||
+      (value.grade !== null && value.grade >= nativeGradeArray(value.discipline).length))
+  )
+    ctx.addIssue({ code: "custom", message: "Choose a valid discipline and grade." });
+  if (value.kind === "grade" && (value.grade === null || value.target !== 1))
+    ctx.addIssue({
+      code: "custom",
+      message: "A new-grade goal needs one climb at a specific grade.",
+    });
+  if (!climbing && (value.discipline !== null || value.grade !== null))
+    ctx.addIssue({ code: "custom", message: "Only climbing goals can specify a grade." });
+  validateRecurrence(value, ctx);
+});
 export type GoalInput = z.infer<typeof goalInputSchema>;
 type GoalKind = GoalInput["kind"];
 export type GoalDefinition = {

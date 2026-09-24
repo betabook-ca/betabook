@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { object, string } from "zod";
 
 import { formatDate } from "@/lib/format-date";
 import { isRealIsoDate } from "@/lib/sends";
@@ -14,31 +14,27 @@ export const MAX_TRIP_DESCRIPTION = 2000;
  * so concurrent requests cannot race past it. */
 export const MAX_TRIPS = 200;
 
-const isoDate = z.string().refine(isRealIsoDate, "Choose a valid date.");
+const isoDate = string().refine(isRealIsoDate, "Choose a valid date.");
 
-export const tripInputSchema = z
-  .object({
-    name: z
-      .string()
-      .transform((value) => value.trim())
-      .pipe(z.string().min(1, "Name your trip.").max(MAX_TRIP_NAME, "That name is too long.")),
-    description: z
-      .string()
-      .max(MAX_TRIP_DESCRIPTION, "That description is too long.")
-      .transform((value) => value.trim() || null)
-      .nullable()
-      .optional(),
-    startDate: isoDate,
-    endDate: isoDate,
-  })
-  .superRefine((value, ctx) => {
-    if (value.endDate < value.startDate)
-      ctx.addIssue({
-        code: "custom",
-        message: "End date must be on or after start date.",
-        path: ["endDate"],
-      });
-  });
+export const tripInputSchema = object({
+  name: string()
+    .transform((value) => value.trim())
+    .pipe(string().min(1, "Name your trip.").max(MAX_TRIP_NAME, "That name is too long.")),
+  description: string()
+    .max(MAX_TRIP_DESCRIPTION, "That description is too long.")
+    .transform((value) => value.trim() || null)
+    .nullable()
+    .optional(),
+  startDate: isoDate,
+  endDate: isoDate,
+}).superRefine((value, ctx) => {
+  if (value.endDate < value.startDate)
+    ctx.addIssue({
+      code: "custom",
+      message: "End date must be on or after start date.",
+      path: ["endDate"],
+    });
+});
 
 export function tripsHref(userId: string): string {
   return `/users/${userId}/trips`;
