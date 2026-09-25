@@ -4,8 +4,7 @@ import { createDb, type Database } from "@/db/client";
 import {
   getCatalogAreasAfter,
   getCatalogClimbsAfter,
-  type CatalogAreaRow,
-  type CatalogClimbRow,
+  getCatalogCounts,
 } from "@/db/queries/catalog-export";
 import { formatGrade } from "@/lib/grades";
 
@@ -15,28 +14,24 @@ import { formatGrade } from "@/lib/grades";
  * request context, so `getDb()`/`getCloudflareContext()` are unavailable
  * there. Only `getCatalogExportBucket` is request-path code.
  *
+ * The snapshot is streamed: JSON text is produced one D1 page at a time and
+ * uploaded as fixed-size multipart parts, so memory stays at one part plus
+ * one page whatever the catalog's size. The Worker has 128 MB; a 300k-climb
+ * document is tens of MB before the copies `JSON.stringify` and encoding
+ * would add.
+ *
  * Do not import the db/queries barrel here — it reaches next/headers and
  * Better Auth, and wrangler bundles worker.ts outside Next. */
 
 export const CATALOG_EXPORT_KEY = "catalog/latest.json";
 export const CATALOG_EXPORT_SCHEMA_VERSION = 1;
 /** Rows per D1 round trip. Well under D1's response-size limits at any
- * realistic description length, and enough that a 100k-climb catalog is
- * ~100 queries. Tests pass a smaller size to prove the cursor advances. */
+ * realistic description length, and enough that a 300k-climb catalog is
+ * ~300 queries. Tests pass a smaller size to prove the cursor advances. */
 const PAGE_SIZE = 1000;
-
-type CatalogExportClimb = CatalogClimbRow & {
-  /** Human-readable grade in the discipline's native scale (Hueco for
-   * boulders, YDS for ropes); `grade` alone is an ordinal only this app
-   * understands. */
-  gradeLabel: string | null;
-};
-type CatalogExport = {
-  schemaVersion: number;
-  generatedAt: string;
-  areas: CatalogAreaRow[];
-  climbs: CatalogExportClimb[];
-};
+/** R2's multipart rule: every part but the last must be exactly this size,
+ * and no smaller than 5 MiB. */
+export const CATALOG_EXPORT_PART_SIZE = 5 * 1024 * 1024;
 
 /** What /account shows without downloading the file: read back from the R2
  * object's custom metadata. */
@@ -48,63 +43,142 @@ export type CatalogExportInfo = {
   size: number;
 };
 
-async function walk<T extends { id: number }>(
+/** The subset of R2Bucket the writer needs; tests wrap the real binding to
+ * inject part failures. */
+export type CatalogExportBucket = Pick<R2Bucket, "createMultipartUpload">;
+
+async function* jsonRows<T extends { id: number }>(
   page: (afterId: number) => Promise<T[]>,
   pageSize: number,
-): Promise<T[]> {
-  const rows: T[] = [];
+  encode: (row: T) => string,
+): AsyncGenerator<string> {
   let afterId = 0;
+  let first = true;
   for (;;) {
     const batch = await page(afterId);
-    rows.push(...batch);
-    if (batch.length < pageSize) return rows;
+    if (batch.length > 0) {
+      yield (first ? "" : ",") + batch.map(encode).join(",");
+      first = false;
+    }
+    if (batch.length < pageSize) return;
     const last = batch.at(-1);
     if (!last || last.id <= afterId) throw new Error("Catalog export cursor did not advance");
     afterId = last.id;
   }
 }
 
-export async function buildCatalogExport(
+/** The snapshot as JSON text, one chunk per D1 page. Concatenated, the chunks
+ * are byte-for-byte what `JSON.stringify` of the whole document would be:
+ * `{ schemaVersion, generatedAt, areas: [...], climbs: [...] }`, each climb
+ * carrying `gradeLabel`, the grade in the discipline's native scale (Hueco
+ * for boulders, YDS for ropes), since `grade` alone is an ordinal only this
+ * app understands. */
+export async function* catalogExportJson(
   db: Database,
   now: Date,
   pageSize = PAGE_SIZE,
-): Promise<CatalogExport> {
-  const [areas, climbRows] = await Promise.all([
-    walk((afterId) => getCatalogAreasAfter(db, afterId, pageSize), pageSize),
-    walk((afterId) => getCatalogClimbsAfter(db, afterId, pageSize), pageSize),
-  ]);
-  const climbs = climbRows.map((climb) => ({
-    ...climb,
-    gradeLabel: climb.grade === null ? null : formatGrade(climb.type, climb.grade),
-  }));
-  return {
-    schemaVersion: CATALOG_EXPORT_SCHEMA_VERSION,
-    generatedAt: now.toISOString(),
-    areas,
-    climbs,
-  };
+): AsyncGenerator<string> {
+  yield `{"schemaVersion":${CATALOG_EXPORT_SCHEMA_VERSION},"generatedAt":${JSON.stringify(now.toISOString())},"areas":[`;
+  yield* jsonRows(
+    (afterId) => getCatalogAreasAfter(db, afterId, pageSize),
+    pageSize,
+    (area) => JSON.stringify(area),
+  );
+  yield `],"climbs":[`;
+  yield* jsonRows(
+    (afterId) => getCatalogClimbsAfter(db, afterId, pageSize),
+    pageSize,
+    (climb) =>
+      JSON.stringify({
+        ...climb,
+        gradeLabel: climb.grade === null ? null : formatGrade(climb.type, climb.grade),
+      }),
+  );
+  yield "]}";
 }
 
+/** Re-cuts text chunks into byte parts of exactly `partSize`, then one
+ * shorter part for whatever is left. Cuts fall anywhere, including inside a
+ * multi-byte character: R2 joins parts byte-wise, so the object is still the
+ * chunks' UTF-8 encoding. */
+export async function* fixedSizeParts(
+  chunks: AsyncIterable<string>,
+  partSize: number,
+): AsyncGenerator<Uint8Array> {
+  if (!Number.isInteger(partSize) || partSize < 1) {
+    throw new RangeError(`Part size must be a positive integer, got ${partSize}`);
+  }
+  const encoder = new TextEncoder();
+  let pending: Uint8Array[] = [];
+  let pendingBytes = 0;
+  for await (const chunk of chunks) {
+    const bytes = encoder.encode(chunk);
+    if (bytes.length === 0) continue;
+    pending.push(bytes);
+    pendingBytes += bytes.length;
+    while (pendingBytes >= partSize) {
+      const part = new Uint8Array(partSize);
+      const rest: Uint8Array[] = [];
+      let filled = 0;
+      for (const piece of pending) {
+        const take = Math.min(piece.length, partSize - filled);
+        if (take > 0) part.set(piece.subarray(0, take), filled);
+        filled += take;
+        if (take < piece.length) rest.push(piece.subarray(take));
+      }
+      pending = rest;
+      pendingBytes -= partSize;
+      yield part;
+    }
+  }
+  if (pendingBytes > 0) {
+    const tail = new Uint8Array(pendingBytes);
+    let filled = 0;
+    for (const piece of pending) {
+      tail.set(piece, filled);
+      filled += piece.length;
+    }
+    yield tail;
+  }
+}
+
+/** Streams the snapshot into `CATALOG_EXPORT_KEY` as a multipart upload; the
+ * previous object stays live until `complete` swaps it. The counts in the
+ * metadata are read before the first page, because R2 fixes metadata when
+ * the upload is created: a catalog write landing mid-export can leave the
+ * file a row off the numbers /account shows. */
 export async function writeCatalogExport(
-  bucket: R2Bucket,
-  snapshot: CatalogExport,
+  bucket: CatalogExportBucket,
+  db: Database,
+  now: Date,
+  { pageSize = PAGE_SIZE, partSize = CATALOG_EXPORT_PART_SIZE } = {},
 ): Promise<CatalogExportInfo> {
-  const body = JSON.stringify(snapshot);
-  const info = {
-    generatedAt: snapshot.generatedAt,
-    areaCount: snapshot.areas.length,
-    climbCount: snapshot.climbs.length,
-  };
-  await bucket.put(CATALOG_EXPORT_KEY, body, {
+  const generatedAt = now.toISOString();
+  const counts = await getCatalogCounts(db);
+  const upload = await bucket.createMultipartUpload(CATALOG_EXPORT_KEY, {
     httpMetadata: { contentType: "application/json; charset=utf-8" },
     customMetadata: {
-      generatedAt: info.generatedAt,
-      areaCount: String(info.areaCount),
-      climbCount: String(info.climbCount),
-      schemaVersion: String(snapshot.schemaVersion),
+      generatedAt,
+      areaCount: String(counts.areaCount),
+      climbCount: String(counts.climbCount),
+      schemaVersion: String(CATALOG_EXPORT_SCHEMA_VERSION),
     },
   });
-  return { ...info, size: new TextEncoder().encode(body).byteLength };
+  let size = 0;
+  try {
+    const parts: R2UploadedPart[] = [];
+    for await (const part of fixedSizeParts(catalogExportJson(db, now, pageSize), partSize)) {
+      parts.push(await upload.uploadPart(parts.length + 1, part));
+      size += part.byteLength;
+    }
+    await upload.complete(parts);
+  } catch (error) {
+    // Parts of an unfinished upload are stored, and billed, until it is
+    // aborted. The original error is the one worth surfacing.
+    await upload.abort().catch(() => undefined);
+    throw error;
+  }
+  return { generatedAt, ...counts, size };
 }
 
 /** The cron job. Bindings come straight from `env`; see the module comment. */
@@ -113,8 +187,7 @@ export async function runScheduledCatalogExport(
   now: Date = new Date(),
 ): Promise<CatalogExportInfo> {
   try {
-    const snapshot = await buildCatalogExport(createDb(env.DB), now);
-    const info = await writeCatalogExport(env.CATALOG_EXPORTS, snapshot);
+    const info = await writeCatalogExport(env.CATALOG_EXPORTS, createDb(env.DB), now);
     // `warn` is the lowest level the repo's no-console rule allows.
     console.warn(
       `Catalog export written: ${info.areaCount} areas, ${info.climbCount} climbs, ${info.size} bytes`,

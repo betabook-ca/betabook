@@ -1,4 +1,4 @@
-import { gt } from "drizzle-orm";
+import { gt, sql } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { areas, climbs } from "@/db/schema";
@@ -23,6 +23,18 @@ export type CatalogClimbRow = {
   grade: number | null;
   description: string | null;
 };
+
+export type CatalogCounts = { areaCount: number; climbCount: number };
+
+/** Both counts in one round trip. They become the export object's metadata,
+ * which R2 fixes when the multipart upload is created, before any row is
+ * streamed. */
+export async function getCatalogCounts(db: Database): Promise<CatalogCounts> {
+  const row = await db.get<{ area_count: number; climb_count: number }>(
+    sql`SELECT (SELECT count(*) FROM ${areas}) AS area_count, (SELECT count(*) FROM ${climbs}) AS climb_count`,
+  );
+  return { areaCount: row?.area_count ?? 0, climbCount: row?.climb_count ?? 0 };
+}
 
 /** Whole-table walkers for the weekly catalog export. Keyset on the primary
  * key rather than OFFSET: the export must reach every row however large the
