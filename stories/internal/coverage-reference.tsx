@@ -69,6 +69,8 @@ const examples: Record<string, string> = {
   "ui/sort-select.tsx": "components-inputs-sort-select--default",
   "ui/stat-strip.tsx": "components-data-display-stat-strip--statistics",
   "ui/typography.tsx": "components-data-display-typography--page-heading",
+  "ui/stat-value.tsx": "components-data-display-stat-value--values",
+  "ui/hint-callout.tsx": "components-feedback-hint-callout--hint",
   "ui/user-avatar.tsx": "components-data-display-user-avatar--avatars",
   "ascent-style.tsx": "patterns-climbing-data--labels-and-grades",
   "analytics-calendar.tsx": "components-charts-analytics-calendar--multiple-years",

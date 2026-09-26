@@ -48,7 +48,9 @@ export function EntryKindStep({
           >
             <ArrowLeft aria-hidden className="size-4" />
           </Button>
-          <PageTitle className="text-2xl! text-foreground">Choose a climb</PageTitle>
+          <PageTitle size="sm" className="text-foreground">
+            Choose a climb
+          </PageTitle>
         </div>
         <ClimbPicker
           showFilters={false}

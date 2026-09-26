@@ -14,7 +14,7 @@ export function DeferredLoadError({
   onDismiss: () => void;
 }) {
   return (
-    <div className="fixed inset-x-4 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-50 mx-auto max-w-sm">
+    <div className="fixed inset-x-4 floating-panel-bottom z-50 mx-auto max-w-sm">
       <InlineAlert
         action={
           <>

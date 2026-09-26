@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { RunningCosts } from "@/components/running-costs";
+import { READING_MAX_WIDTH_CLASS } from "@/components/ui/layout";
 import { PageTitle } from "@/components/ui/typography";
 import { getCloudflareUsage } from "@/lib/cloudflare-usage";
 import { COSTS_PAGE } from "@/lib/landing-pages";
@@ -20,7 +21,7 @@ export default async function CostsPage() {
   const usage = await getCloudflareUsage();
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+    <div className={`mx-auto flex w-full ${READING_MAX_WIDTH_CLASS} flex-col gap-6`}>
       <div className="flex flex-col gap-3">
         <PageTitle>Cost transparency</PageTitle>
         <p className="text-lg leading-relaxed text-pretty text-muted">

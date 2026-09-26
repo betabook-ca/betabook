@@ -43,7 +43,9 @@ export function JournalEntryDrawer({
     >
       {climb ? (
         <>
-          <PageTitle className="mb-3 text-2xl! text-foreground">{climb.name}</PageTitle>
+          <PageTitle size="sm" className="mb-3 text-foreground">
+            {climb.name}
+          </PageTitle>
           <JournalEntryForm
             onSave={onSave}
             onPendingChange={setPending}

@@ -319,7 +319,7 @@ export function GoalForm({
                 Back
               </Button>
             </div>
-            <PageTitle className="text-2xl!">
+            <PageTitle size="sm">
               {categories.find((item) => item.value === category)?.label}
             </PageTitle>
             <form

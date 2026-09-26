@@ -1,6 +1,14 @@
 import { clsx } from "clsx";
 import type { ReactNode } from "react";
 
+const PAGE_TITLE_SIZE = {
+  /** A dialog's visible heading, behind ResponsiveDialog's hidden title. */
+  sm: "text-2xl",
+  md: "text-3xl",
+  /** The climber name, sized by ProfileHeading's container. */
+  lg: "text-4xl leading-none @2xl:text-5xl",
+} as const;
+
 /** The guidebook display voice (Barlow Condensed) for page h1s. */
 export function PageTitle({
   children,
@@ -9,14 +17,13 @@ export function PageTitle({
 }: {
   children: ReactNode;
   className?: string;
-  /** `lg` is the climber name, sized by ProfileHeading's container. */
-  size?: "md" | "lg";
+  size?: keyof typeof PAGE_TITLE_SIZE;
 }) {
   return (
     <h1
       className={clsx(
         "font-display font-semibold tracking-tight",
-        size === "lg" ? "text-4xl leading-none @2xl:text-5xl" : "text-3xl",
+        PAGE_TITLE_SIZE[size],
         className,
       )}
     >

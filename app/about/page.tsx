@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Brand } from "@/components/brand";
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
+import { READING_MAX_WIDTH_CLASS } from "@/components/ui/layout";
 import { SectionHeading } from "@/components/ui/typography";
 import { COSTS_PAGE, IMPORT_PAGES, LOGBOOK_PAGE } from "@/lib/landing-pages";
 import { pageMetadata } from "@/lib/seo";
@@ -17,16 +18,12 @@ export const metadata: Metadata = pageMetadata({
 
 export default function AboutPage() {
   return (
-    // max-w-2xl rather than inheriting the shell's width: the root layout's
-    // <main> is max-w-7xl, which is right for climb lists and roughly twice a
-    // comfortable line length for running text.
-    //
     // gap, not per-element margins: @heroui/styles brings Tailwind's preflight,
     // which zeroes every block margin, so this flex column is the whole
     // spacing system for the page. Headings then add `mt-4` on top of the gap
     // — margins don't collapse in a flex container, so that opens a real
     // section break instead of being swallowed by the larger of the two.
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
+    <div className={`mx-auto flex w-full ${READING_MAX_WIDTH_CLASS} flex-col gap-4`}>
       <h1>
         <Brand variant="lockup" className="mx-auto w-full max-w-90" />
       </h1>

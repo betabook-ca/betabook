@@ -3,6 +3,7 @@ import { buttonVariants } from "@heroui/react";
 import { cardClass } from "@/components/ui/card";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ProgressBar } from "@/components/ui/progress-bar";
+import { StatValue } from "@/components/ui/stat-value";
 import { SectionHeading } from "@/components/ui/typography";
 import { formatCompact, formatUsd } from "@/lib/format";
 import { type CloudflareUsage, monthlyCosts, usageMeters } from "@/lib/running-costs";
@@ -82,8 +83,8 @@ export function RunningCosts({
           ))}
           <div className="flex items-baseline justify-between gap-4 p-4">
             <dt className="font-semibold">Total per month</dt>
-            <dd className="font-display text-2xl font-semibold tabular-nums">
-              {formatUsd(costs.totalUsd)}
+            <dd>
+              <StatValue>{formatUsd(costs.totalUsd)}</StatValue>
             </dd>
           </div>
         </dl>
