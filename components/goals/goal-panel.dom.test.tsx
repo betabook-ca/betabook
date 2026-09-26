@@ -1,8 +1,8 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
-import type { GoalProgress } from "@/lib/goals";
+import type { GoalPage, GoalProgress } from "@/lib/goals";
 
 import { GoalPanel } from "./goal-panel";
 
@@ -238,6 +238,52 @@ it("preserves the history year and loaded depth when the server snapshot changes
   expect(loadPage).toHaveBeenLastCalledWith(5, 2025);
 });
 
+it("shows the chosen year and marks the rows busy until that year loads", async () => {
+  let finish!: (page: GoalPage) => void;
+  const loadPage = vi
+    .fn<NonNullable<Parameters<typeof GoalPanel>[0]["loadPage"]>>()
+    .mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+  render(
+    <GoalPanel
+      ownerId="pending-owner"
+      initialView="completed"
+      timezone="UTC"
+      today="2026-09-11"
+      initialActive={{ goals: [], hasMore: false }}
+      initialCompleted={{
+        goals: [goal],
+        hasMore: false,
+        total: 1,
+        years: [2026, 2025],
+        summary: { year: 2026, achieved: 1 },
+      }}
+      loadPage={loadPage}
+    />,
+  );
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: /History year/ }));
+  await user.click(screen.getByRole("option", { name: "2025" }));
+  expect(screen.getByRole("button", { name: /History year/ })).toHaveTextContent("2025");
+  const rows = screen.getByText("Train 8 times").closest("[aria-busy]");
+  expect(rows).toHaveAttribute("aria-busy", "true");
+  await act(async () =>
+    finish({
+      goals: [{ ...goal, id: 2, target: 9, progress: 9, completedDate: "2025-09-01" }],
+      hasMore: false,
+      total: 1,
+      years: [2026, 2025],
+      summary: { year: 2025, achieved: 1 },
+    }),
+  );
+  expect(await screen.findByText("Train 9 times")).toBeVisible();
+  expect(screen.queryByText("Train 8 times")).not.toBeInTheDocument();
+  expect(rows).toHaveAttribute("aria-busy", "false");
+});
+
 it("restarts an expired goal as a new goal instead of rewriting its history", async () => {
   const { saveGoal } = await import("@/actions");
   vi.mocked(saveGoal).mockResolvedValueOnce({ ok: true, value: 42 });
@@ -305,8 +351,11 @@ it("retries the failed year request without marking Load more as failed", async 
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /History year/ }));
     await user.click(screen.getByRole("option", { name: "2025" }));
-    expect(await screen.findAllByRole("alert")).toHaveLength(1);
+    const alerts = await screen.findAllByRole("alert");
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toHaveTextContent("Couldn't refresh goals. Try again.");
     expect(screen.queryByText("Couldn't load more — try again.")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /History year/ })).toHaveTextContent("2026");
     await user.click(screen.getByRole("button", { name: "Retry" }));
     await waitFor(() =>
       expect(screen.getByRole("button", { name: /History year/ })).toHaveTextContent("2025"),

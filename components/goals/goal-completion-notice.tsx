@@ -62,7 +62,7 @@ export function GoalCompletionNotice({
       setDismissed(true);
       if (view) onView();
     } catch {
-      setError("Could not dismiss achievements. Try again.");
+      setError("Couldn't dismiss achievements. Try again.");
     } finally {
       setPending(false);
     }

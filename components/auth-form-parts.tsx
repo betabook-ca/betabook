@@ -41,7 +41,7 @@ export function ResendVerificationButton({
         {
           onSuccess: () => setResent(true),
           onError: (ctx) =>
-            setError(ctx.error.message ?? "Could not resend the verification email"),
+            setError(ctx.error.message ?? "Couldn't resend the verification email."),
           onResponse: () => setPending(false),
         },
       );

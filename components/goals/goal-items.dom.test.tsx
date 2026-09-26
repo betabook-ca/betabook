@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
@@ -52,7 +52,10 @@ it("requests the exact period bounds and handles a failed real fetch", async () 
     if (!goal) throw new Error("Missing volume fixture");
     render(<GoalItems ownerId="api-owner" goal={{ ...goal, progress: 1 }} />);
     await userEvent.click(screen.getByRole("button", { name: "1 climb" }));
-    expect(await screen.findByRole("alert")).toBeVisible();
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Couldn't load this goal's items.");
+    expect(alert).not.toHaveTextContent("reopen");
+    expect(within(alert).getByRole("button", { name: "Try again" })).toBeVisible();
     const request = fetcher.mock.calls[0][0];
     const url = new URL(request instanceof Request ? request.url : request, "http://localhost");
     expect(Object.fromEntries(url.searchParams)).toEqual({
@@ -63,6 +66,25 @@ it("requests the exact period bounds and handles a failed real fetch", async () 
   } finally {
     vi.unstubAllGlobals();
   }
+});
+
+it("retries a failed items load from the alert without collapsing the disclosure", async () => {
+  const goal = goalPanelStoryArgs.initialCompleted.goals.find((g) => g.kind === "volume");
+  if (!goal) throw new Error("Missing volume fixture");
+  const load = vi
+    .fn<() => Promise<GoalContribution[]>>()
+    .mockRejectedValueOnce(new Error("Couldn't load items."))
+    .mockResolvedValueOnce([{ id: 1, name: "Cedar Arete", type: "climb" }]);
+  render(<GoalItems ownerId="story-goals" goal={goal} loadItems={load} />);
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "5 climbs" }));
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("Couldn't load items.");
+  await user.click(within(alert).getByRole("button", { name: "Try again" }));
+  expect(await screen.findByText("Cedar Arete")).toBeVisible();
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "5 climbs" })).toHaveAttribute("aria-expanded", "true");
+  expect(load).toHaveBeenCalledTimes(2);
 });
 
 it("invalidates loaded names when the goal receives a refreshed server snapshot", async () => {

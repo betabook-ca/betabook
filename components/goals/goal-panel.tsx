@@ -260,6 +260,7 @@ export function GoalPanel({
   const {
     page: completed,
     year,
+    pendingYear,
     loading,
     moreFailed,
     error,
@@ -272,7 +273,7 @@ export function GoalPanel({
       `/api/users/${ownerId}/goals?view=completed&offset=${offset}&year=${selectedYear}`,
       { signal },
     );
-    if (!res.ok) throw new Error("Could not load goals.");
+    if (!res.ok) throw new Error("Couldn't load goals.");
     return res.json();
   });
   async function save(draft: GoalDraft) {
@@ -320,7 +321,7 @@ export function GoalPanel({
       const result = await archiveGoal(goal.id);
       if (!result.ok) setArchiveError(result.error);
     } catch {
-      setArchiveError("Could not archive the goal. Try again.");
+      setArchiveError("Couldn't archive the goal. Try again.");
     } finally {
       setArchivingId(null);
     }
@@ -338,7 +339,7 @@ export function GoalPanel({
       deleteState.close();
       setDeleting(null);
     } catch {
-      setDeleteError("Could not delete the goal. Try again.");
+      setDeleteError("Couldn't delete the goal. Try again.");
     } finally {
       setDeletePending(false);
     }
@@ -370,7 +371,11 @@ export function GoalPanel({
     completed.goals.length > 0 ||
     (completed.years?.length ?? 0) > 1;
   const rows = view === "active" ? active.goals : completed.goals;
-  const historyYears = [...new Set([...(completed.years ?? []), year])].sort((a, b) => b - a);
+  const chosenYear = pendingYear ?? year;
+  const historyPending = view === "completed" && pendingYear !== null;
+  const historyYears = [...new Set([...(completed.years ?? []), year, chosenYear])].sort(
+    (a, b) => b - a,
+  );
   const newlyCompleted = mounted
     ? [
         ...new Map(
@@ -414,7 +419,7 @@ export function GoalPanel({
                 ),
               ),
             );
-            if (year !== achievementYear) void changeYear(String(achievementYear));
+            if (chosenYear !== achievementYear) void changeYear(String(achievementYear));
           }}
         />
       )}
@@ -459,7 +464,7 @@ export function GoalPanel({
           <div className="flex justify-end py-3">
             <OptionSelect
               ariaLabel="History year"
-              value={String(year)}
+              value={String(chosenYear)}
               onChange={(value) => {
                 void changeYear(value);
               }}
@@ -471,7 +476,10 @@ export function GoalPanel({
             />
           </div>
         )}
-        <div className="divide-y divide-foreground/20">
+        <div
+          className={`divide-y divide-foreground/20 transition-opacity ${historyPending ? "opacity-60" : ""}`}
+          aria-busy={historyPending}
+        >
           {rows.map((goal) => (
             <ListRow
               key={`${goal.id}-${goal.periodStart}`}
