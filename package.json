@@ -39,6 +39,7 @@
     "storybook:build": "storybook build --disable-telemetry",
     "test:ui": "pnpm storybook:build && playwright test",
     "brand:generate": "node scripts/generate-brand-assets.ts",
+    "brand:og-fonts": "node scripts/generate-og-fonts.ts",
     "chromatic": "chromatic"
   },
   "dependencies": {

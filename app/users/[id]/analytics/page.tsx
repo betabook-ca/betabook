@@ -20,6 +20,7 @@ import {
   NavigationPendingProvider,
   NavigationPendingRegion,
 } from "@/components/navigation-pending";
+import { SocialCardLauncher } from "@/components/social-card-launcher";
 import { AppLink } from "@/components/ui/app-link";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeading } from "@/components/ui/typography";
@@ -40,6 +41,8 @@ import {
 import { normalizeHashtagFilters } from "@/lib/filters/hashtag-filter";
 import { goalToday } from "@/lib/goals";
 import type { ClimbType } from "@/lib/grades";
+import { getOwnProfileShareToken } from "@/lib/profile-share-url";
+import { isYearInReviewMonth } from "@/lib/social-card";
 import { toArray, type UrlParamsRecord } from "@/lib/url-params";
 import {
   buildUserAnalytics,
@@ -82,11 +85,14 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
   if (!resolved.ok) notFound();
   const { user, viewerId, session } = resolved;
   const db = await getDb();
+  const { cf } = await getCloudflareContext({ async: true });
+  const today = goalToday(cf?.timezone ?? "UTC");
 
   const selectedTags = normalizeHashtagFilters(toArray(search.tag));
   const journalVisible = await canReadUserJournal(user.id, viewerId);
   const isOwner = viewerId === id;
-  const [rows, journalSessions, tags, viewerAnnouncements] = await Promise.all([
+  const showYearInReview = isOwner && isYearInReviewMonth(today);
+  const [rows, journalSessions, tags, viewerAnnouncements, shareToken] = await Promise.all([
     getUserSendsForAnalytics(db, id, viewerId, selectedTags),
     journalVisible
       ? getJournalSessionsForAnalytics(db, user.id, viewerId, selectedTags)
@@ -95,6 +101,7 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
     isOwner
       ? getViewerFeatureAnnouncements(viewerId, session.user.createdAt.getTime())
       : Promise.resolve([]),
+    showYearInReview ? getOwnProfileShareToken(db, user) : Promise.resolve(null),
   ]);
 
   const { present, scope } = resolveDisciplineScope({
@@ -137,10 +144,9 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
     );
   }
 
-  const [initialLayout, highlightSessions, { cf }] = await Promise.all([
+  const [initialLayout, highlightSessions] = await Promise.all([
     getAnalyticsLayout(db, id, viewerId),
     journalVisible ? getAnalyticsHighlightSessions(db, id, viewerId, selectedTags) : [],
-    getCloudflareContext({ async: true }),
   ]);
   const announcements = getAnnouncementCandidates(viewerAnnouncements, {
     page: ANALYTICS_CUSTOMIZE_ANNOUNCEMENT.page,
@@ -151,7 +157,6 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
   const { years, undatedCount } = getAnalyticsHistorySummary(rows, scope, journalSessions);
   const selectedYears = parseAnalyticsYears(search.years ?? search.period, years);
   const analytics = buildUserAnalytics(rows, scope, journalSessions, selectedYears);
-  const today = goalToday(cf?.timezone ?? "UTC");
   const overview = await getClimberOverview(db, user.id, viewerId, today);
   const summary = [describeClimber(overview), describeRecency(overview)].filter(Boolean).join(" ");
 
@@ -172,6 +177,16 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
               canCustomize={isOwner}
               initialLayout={initialLayout}
               onSave={isOwner ? saveAnalyticsLayout : undefined}
+              shareCard={
+                showYearInReview ? (
+                  <SocialCardLauncher
+                    userId={id}
+                    name={user.name}
+                    year={Number(today.slice(0, 4))}
+                    linkedRecapAvailable={shareToken !== null}
+                  />
+                ) : undefined
+              }
               analytics={analytics}
               sends={rows}
               sessions={highlightSessions}

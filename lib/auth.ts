@@ -25,6 +25,8 @@ import {
 } from "@/lib/terms";
 import { welcomeNewAccountOnce } from "@/lib/welcome-email";
 
+const LOCAL_DEV_PORTS = [3000, 3001, 3002, 3003] as const;
+
 // Public recovery responses must not reveal whether an email address exists.
 async function deliverAuthenticationEmail(deliver: () => Promise<void>) {
   try {
@@ -41,15 +43,18 @@ async function authBuilder() {
     database: drizzleAdapter(db, { provider: "sqlite", schema }),
     baseURL: env.BETTER_AUTH_URL,
     secret: env.BETTER_AUTH_SECRET,
-    // `next dev` falls back to a different port whenever 3000 (or the next
-    // few) are already taken locally (e.g. by Docker) — trust the common
-    // local dev ports so sign-in/sign-up don't 403 on an origin mismatch
-    // just because of which port happened to be free.
+    // `next dev` may use another port when 3000 is busy. Trust the LAN host
+    // already allowed by next.config.ts when using the local auth URL, so
+    // sign-in also works from a phone over HTTP or a trusted local HTTPS
+    // certificate without trusting that host in production.
     trustedOrigins: [
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "http://localhost:3002",
-      "http://localhost:3003",
+      ...LOCAL_DEV_PORTS.map((port) => `http://localhost:${port}`),
+      ...(new URL(env.BETTER_AUTH_URL).hostname === "localhost"
+        ? LOCAL_DEV_PORTS.flatMap((port) => [
+            `http://192.168.50.242:${port}`,
+            `https://192.168.50.242:${port}`,
+          ])
+        : []),
       "https://betabook.ca",
     ],
     advanced: {

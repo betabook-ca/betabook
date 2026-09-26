@@ -13,13 +13,13 @@ export type HighlightSession = {
 
 export function buildAnalyticsHighlights(
   rows: readonly HighlightSession[],
-  scope: ClimbType,
+  scope: ClimbType | "all",
   years: readonly number[],
 ) {
   const sessions = rows
     .filter(
       (row) =>
-        row.climbType === scope &&
+        (scope === "all" || row.climbType === scope) &&
         (!years.length || years.includes(Number(row.entryDate.slice(0, 4)))),
     )
     .toSorted((a, b) => a.entryDate.localeCompare(b.entryDate) || a.id - b.id);

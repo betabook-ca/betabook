@@ -3,6 +3,10 @@ import { fileURLToPath } from "node:url";
 
 import { chromium } from "@playwright/test";
 
+// Bare Node.js does not resolve the app's @/ alias; share the mountain path directly.
+// oxlint-disable-next-line import/no-relative-parent-imports
+import { MOUNTAIN_PATH as mountain } from "../lib/brand-mark.ts";
+
 async function main() {
   // Embed the exact system fonts so standalone SVGs and their PNG previews
   // render identically, without relying on fonts installed on the viewer's OS.
@@ -24,10 +28,6 @@ async function main() {
     return match[1].trim();
   }
 
-  // The mountain keeps its broad base. The check's rising edges converge
-  // from a substantial join at (282, 131) to a narrow, almost pointed tip.
-  const mountain =
-    "M129 151 L202 78 Q205 75 208 78 L237 108 L249 97 Q252 94 255 97 L282 124 L359 62 Q361 60.5 360 63 L285 138 Q282 141 279 138 L252 111 L240 122 Q237 125 234 122 L205 92 L147 151 Z";
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage({ viewport: { width: 1000, height: 640 } });

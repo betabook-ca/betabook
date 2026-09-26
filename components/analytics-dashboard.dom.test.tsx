@@ -163,3 +163,125 @@ it("summarizes the climber under the activity heading", () => {
   const heading = screen.getByRole("heading", { name: "All-time activity" });
   expect(heading.nextElementSibling).toBe(screen.getByText(summary));
 });
+
+it("combines calendar disciplines independently of the grade-chart scope", async () => {
+  const user = userEvent.setup();
+  const mixedSends: AnalyticsSendRow[] = [
+    ...sends,
+    { ...sends[1], climbId: 99, climbType: "sport", dateSent: "2025-02-03" },
+    { ...sends[1], climbId: 100, climbType: "trad", dateSent: "2025-02-04" },
+  ];
+  render(
+    <AnalyticsDashboard
+      analytics={buildUserAnalytics(mixedSends, "boulder")}
+      sends={mixedSends}
+      selectedYears={[]}
+      undatedCount={1}
+      scope="boulder"
+      journalVisible={false}
+      periodPicker={null}
+    />,
+  );
+
+  const filter = screen.getByRole("button", { name: "Calendar disciplines: All disciplines" });
+  expect(filter).toBeVisible();
+  // The calendar opens on the newest year (2026), so one step back reaches 2025.
+  await user.click(screen.getByRole("button", { name: "Older calendar year" }));
+  expect(screen.getByRole("region", { name: "Calendar 2025" })).toHaveTextContent(
+    "3 climbing days in 2025.",
+  );
+
+  await user.click(filter);
+  await user.click(screen.getByRole("menuitemcheckbox", { name: "Sport" }));
+  await user.keyboard("{Escape}");
+  expect(filter).toHaveAccessibleName("Calendar disciplines: Sport");
+  expect(screen.getByRole("region", { name: "Calendar 2025" })).toHaveTextContent(
+    "1 climbing day in 2025.",
+  );
+
+  await user.click(filter);
+  await user.click(screen.getByRole("menuitemcheckbox", { name: "Boulder" }));
+  await user.keyboard("{Escape}");
+  expect(filter).toHaveAccessibleName("Calendar disciplines: Boulder + Sport");
+  // Re-adding boulder brings 2024/2026 back into range, remounting the
+  // calendar on the newest year again — one step back reaches 2025.
+  await user.click(screen.getByRole("button", { name: "Older calendar year" }));
+  expect(screen.getByRole("region", { name: "Calendar 2025" })).toHaveTextContent(
+    "2 climbing days in 2025.",
+  );
+
+  await user.click(filter);
+  await user.click(screen.getByRole("menuitemcheckbox", { name: "Trad" }));
+  await user.keyboard("{Escape}");
+  expect(filter).toHaveAccessibleName("Calendar disciplines: All disciplines");
+  expect(screen.getByRole("region", { name: "Calendar 2025" })).toHaveTextContent(
+    "3 climbing days in 2025.",
+  );
+});
+
+it("offers only disciplines with dated activity in the selected years", async () => {
+  const user = userEvent.setup();
+  const mixedSends: AnalyticsSendRow[] = [
+    ...sends,
+    { ...sends[1], climbId: 99, climbType: "sport", dateSent: "2025-02-03" },
+    { ...sends[1], climbId: 100, climbType: "trad", dateSent: "2023-02-04" },
+    { ...sends[1], climbId: 101, climbType: "trad", dateSent: null },
+  ];
+  const { rerender } = render(
+    <AnalyticsDashboard
+      analytics={buildUserAnalytics(mixedSends, "boulder", undefined, [2025])}
+      sends={mixedSends}
+      selectedYears={[2025]}
+      undatedCount={1}
+      scope="boulder"
+      journalVisible={false}
+      periodPicker={null}
+    />,
+  );
+
+  await user.click(screen.getByRole("button", { name: "Calendar disciplines: All disciplines" }));
+  expect(screen.getByRole("menuitemcheckbox", { name: "Boulder" })).toBeVisible();
+  expect(screen.getByRole("menuitemcheckbox", { name: "Sport" })).toBeVisible();
+  expect(screen.queryByRole("menuitemcheckbox", { name: "Trad" })).not.toBeInTheDocument();
+  await user.keyboard("{Escape}");
+
+  rerender(
+    <AnalyticsDashboard
+      analytics={buildUserAnalytics(mixedSends, "boulder", undefined, [2023])}
+      sends={mixedSends}
+      selectedYears={[2023]}
+      undatedCount={1}
+      scope="boulder"
+      journalVisible={false}
+      periodPicker={null}
+    />,
+  );
+  expect(screen.queryByRole("button", { name: /Calendar disciplines/ })).not.toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "Calendar 2023" })).toHaveTextContent(
+    "1 climbing day in 2023.",
+  );
+});
+
+it("keeps the combined calendar when the page discipline has no activity in a selected year", () => {
+  const mixedSends: AnalyticsSendRow[] = [
+    ...sends,
+    { ...sends[1], climbId: 99, climbType: "sport", dateSent: "2023-02-03" },
+  ];
+  render(
+    <AnalyticsDashboard
+      analytics={buildUserAnalytics(mixedSends, "boulder", undefined, [2023])}
+      sends={mixedSends}
+      selectedYears={[2023]}
+      undatedCount={1}
+      scope="boulder"
+      journalVisible={false}
+      periodPicker={null}
+    />,
+  );
+
+  expect(screen.getByText(/^No activity in 2023/)).toHaveAttribute("role", "status");
+  expect(screen.getByRole("article", { name: "Sending calendar" })).toBeVisible();
+  expect(screen.getByRole("region", { name: "Calendar 2023" })).toHaveTextContent(
+    "1 climbing day in 2023.",
+  );
+});
