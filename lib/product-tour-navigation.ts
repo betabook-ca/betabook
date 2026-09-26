@@ -71,10 +71,10 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
     {
       id: "find-climbers",
       introducedInVersion: 2,
-      section: "Search",
+      section: "Find climbers",
       title: "Find your climbing partners",
       description:
-        "Open Search, choose Climbers, and enter a name. View all results, then select Add friend on a result or profile. Private profiles don't appear in search. Try sending Riley a request.",
+        "Open Find climbs, choose Climbers, and enter a name. View all results, then select Add friend on a result or profile. Private profiles don't appear in search. Try sending Riley a request.",
       target: "friend-search",
     },
     {

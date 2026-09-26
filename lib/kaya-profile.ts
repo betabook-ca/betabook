@@ -1,7 +1,9 @@
+import { ActionError } from "@/lib/action-result";
+
 /** Normalize profile input; callers always fetch a fixed KAYA endpoint. */
 export function parseKayaUsername(input: unknown): string {
   const message = "Enter your KAYA username or a kaya-app.kayaclimb.com/user/ profile link.";
-  if (typeof input !== "string") throw new Error(message);
+  if (typeof input !== "string") throw new ActionError(message);
   let name = input.trim();
   if (/^(?:https?:\/\/|kaya-app\.kayaclimb\.com\/)/i.test(name)) {
     try {
@@ -14,13 +16,13 @@ export function parseKayaUsername(input: unknown): string {
         url.port ||
         !match
       )
-        throw new Error(message);
+        throw new ActionError(message);
       name = decodeURIComponent(match[1]);
     } catch {
-      throw new Error(message);
+      throw new ActionError(message);
     }
   }
   name = name.replace(/^@/, "");
-  if (!/^[a-zA-Z0-9_.-]{1,255}$/.test(name)) throw new Error(message);
+  if (!/^[a-zA-Z0-9_.-]{1,255}$/.test(name)) throw new ActionError(message);
   return name;
 }

@@ -206,10 +206,8 @@ function parseCount(value: string | undefined): number | null {
 
 /** `null` until the first run has written an object (or if its metadata is
  * missing/unparseable — treated the same so the page never renders garbage). */
-export async function getCatalogExportInfo(
-  bucket: R2Bucket | undefined,
-): Promise<CatalogExportInfo | null> {
-  const head = bucket ? await bucket.head(CATALOG_EXPORT_KEY) : null;
+export async function getCatalogExportInfo(bucket: R2Bucket): Promise<CatalogExportInfo | null> {
+  const head = await bucket.head(CATALOG_EXPORT_KEY);
   if (!head) return null;
   const metadata = head.customMetadata ?? {};
   const generatedAt = metadata.generatedAt;
@@ -220,14 +218,10 @@ export async function getCatalogExportInfo(
   return { generatedAt, areaCount, climbCount, size: head.size };
 }
 
-/** Request-path accessor. Widened to `undefined` like lib/rate-limit.ts so a
- * Worker deployed ahead of the binding degrades to "no snapshot yet" rather
- * than throwing on /account. */
-export async function getCatalogExportBucket(): Promise<R2Bucket | undefined> {
+/** Request-path accessor. */
+export async function getCatalogExportBucket(): Promise<R2Bucket> {
   const { env } = await getCloudflareContext({ async: true });
-  const bucket: R2Bucket | undefined = env.CATALOG_EXPORTS;
-  if (!bucket) console.warn("CATALOG_EXPORTS is not bound — catalog export unavailable");
-  return bucket;
+  return env.CATALOG_EXPORTS;
 }
 
 /** `betabook-catalog-2026-09-14.json`; falls back to an undated name when

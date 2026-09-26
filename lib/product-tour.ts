@@ -1,4 +1,5 @@
-import { ActionError } from "@/lib/action-result";
+// Explicit sibling specifiers: scripts/ import this module under plain node.
+import { ActionError } from "./action-result.ts";
 
 /** Add a new feature here; UI step loaders live in components/product-tours/registry.ts. */
 export const PRODUCT_TOURS = [

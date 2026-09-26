@@ -52,7 +52,7 @@ test(
       if (variant === "welcome") {
         await expect(email.locator("body")).not.toContainText("https://");
         await expect(
-          email.getByRole("link", { name: "Import your logbook", exact: true }),
+          email.getByRole("link", { name: "Import your sends", exact: true }),
         ).toHaveAttribute("href", "https://example.test/account/import");
         await expect(
           email.getByRole("link", { name: "Log your first send", exact: true }),

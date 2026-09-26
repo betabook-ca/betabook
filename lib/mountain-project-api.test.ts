@@ -149,6 +149,19 @@ it("rejects an empty export and input that is not a user ID", async () => {
   expect(fetcher).not.toHaveBeenCalled();
 });
 
+it("answers a link with malformed percent-encoding with the link message, not the URIError", async () => {
+  const fetcher = vi.fn<typeof fetch>();
+  vi.stubGlobal("fetch", fetcher);
+  await expect(
+    fetchMountainProjectTicks("mountainproject.com/user/%E0%A4%A/name", signal()),
+  ).rejects.toMatchObject({
+    message:
+      "Use your Mountain Project profile link: mountainproject.com/user/123456789/your-name.",
+    status: 400,
+  });
+  expect(fetcher).not.toHaveBeenCalled();
+});
+
 /** A body that stalls after its first chunk and only ends when the request's
  * own signal aborts, the way a real fetch body behaves. */
 function stallingExport(header: string, onStall: () => void = () => {}) {

@@ -144,7 +144,7 @@ it("shows welcome buttons without duplicate URLs and retains every plain-text de
 
   const base = "https://preview.betabook.ca";
   expect(visibleText.join("")).not.toContain("https://");
-  expect(visibleText.join("")).toContain("Import your logbook");
+  expect(visibleText.join("")).toContain("Import your sends");
   expect(visibleText.join("")).toContain("Log your first send");
   expect(visibleText.join("")).toContain("Get in touch");
   expect(destinations).toEqual([base, `${base}/account/import`, base, `${base}/contact`, base]);

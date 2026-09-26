@@ -2,12 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 export async function allowFriendshipWrite(key: string): Promise<boolean> {
   const { env } = await getCloudflareContext({ async: true });
-  const limiter: RateLimit | undefined = env.FRIENDSHIP_RATE_LIMITER;
-  if (!limiter) {
-    console.warn("FRIENDSHIP_RATE_LIMITER is not bound — allowing the write unthrottled");
-    return true;
-  }
-  return (await limiter.limit({ key })).success;
+  return (await env.FRIENDSHIP_RATE_LIMITER.limit({ key })).success;
 }
 
 /** True while `key` is still under the /contact limit set in wrangler.jsonc.
@@ -20,32 +15,12 @@ export async function allowFriendshipWrite(key: string): Promise<boolean> {
  */
 export async function allowContactSubmission(key: string): Promise<boolean> {
   const { env } = await getCloudflareContext({ async: true });
-
-  // Widened: `wrangler types` declares the binding non-optional, but a
-  // Worker deployed before it landed would still be missing it, and a
-  // TypeError here would reach a visitor as "Something went wrong" — worse
-  // than an unthrottled submit, which the honeypot still filters.
-  const limiter: RateLimit | undefined = env.CONTACT_RATE_LIMITER;
-  if (!limiter) {
-    console.warn("CONTACT_RATE_LIMITER is not bound — allowing the submission unthrottled");
-    return true;
-  }
-
-  const { success } = await limiter.limit({ key });
-  return success;
+  return (await env.CONTACT_RATE_LIMITER.limit({ key })).success;
 }
 
 export async function allowJournalWrite(key: string): Promise<boolean> {
   const { env } = await getCloudflareContext({ async: true });
-
-  const limiter: RateLimit | undefined = env.JOURNAL_RATE_LIMITER;
-  if (!limiter) {
-    console.warn("JOURNAL_RATE_LIMITER is not bound — allowing the write unthrottled");
-    return true;
-  }
-
-  const { success } = await limiter.limit({ key });
-  return success;
+  return (await env.JOURNAL_RATE_LIMITER.limit({ key })).success;
 }
 
 /** The one limit here that guards a budget rather than the database: each
@@ -53,13 +28,5 @@ export async function allowJournalWrite(key: string): Promise<boolean> {
  * two R2 operations. */
 export async function allowProfilePhotoWrite(key: string): Promise<boolean> {
   const { env } = await getCloudflareContext({ async: true });
-
-  const limiter: RateLimit | undefined = env.PROFILE_PHOTO_RATE_LIMITER;
-  if (!limiter) {
-    console.warn("PROFILE_PHOTO_RATE_LIMITER is not bound — allowing the write unthrottled");
-    return true;
-  }
-
-  const { success } = await limiter.limit({ key });
-  return success;
+  return (await env.PROFILE_PHOTO_RATE_LIMITER.limit({ key })).success;
 }

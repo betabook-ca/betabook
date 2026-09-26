@@ -165,7 +165,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                     <AppLink href="/about">About</AppLink>
                     <AppLink href={LOGBOOK_PAGE.path}>Features</AppLink>
                     <AppLink href={COSTS_PAGE.path}>Costs</AppLink>
-                    <AppLink href="/contact">Contact Us</AppLink>
+                    <AppLink href="/contact">Contact us</AppLink>
                     <AppLink href="/terms">Terms of Service</AppLink>
                   </div>
                 </div>

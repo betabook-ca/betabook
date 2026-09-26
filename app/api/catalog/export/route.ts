@@ -13,7 +13,7 @@ import {
  * links to it. `withApiSession` adds `Cache-Control: private, no-store`. */
 export const GET = withApiSession(async (_session, _request: Request) => {
   const bucket = await getCatalogExportBucket();
-  const object = bucket ? await bucket.get(CATALOG_EXPORT_KEY) : null;
+  const object = await bucket.get(CATALOG_EXPORT_KEY);
   if (!object) {
     return NextResponse.json({ error: "No catalog export yet" }, { status: 404 });
   }

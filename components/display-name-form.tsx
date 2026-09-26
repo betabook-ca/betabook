@@ -48,7 +48,7 @@ export function DisplayNameForm({ initialName }: { initialName: string }) {
       >
         <Label>Display name</Label>
         <div className="flex items-start gap-2">
-          <Input placeholder="Your display name" className="min-w-0 flex-1" />
+          <Input placeholder="How you'll appear to other climbers" className="min-w-0 flex-1" />
           <Button type="submit" isDisabled={pending || unchanged || !name.trim()}>
             Save
           </Button>
