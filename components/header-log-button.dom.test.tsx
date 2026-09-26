@@ -1,7 +1,8 @@
-import type { UseOverlayStateReturn } from "@heroui/react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
+
+import type { ActionResult } from "@/lib/action-result";
 
 import { HeaderLogButton } from "./header-log-button";
 
@@ -9,9 +10,10 @@ const state = vi.hoisted(() => ({ session: null as { user: { id: string } } | nu
 vi.mock("@/lib/auth-client", () => ({
   authClient: { useSession: () => ({ data: state.session, isPending: false }) },
 }));
-vi.mock("@/components/journal/journal-entry-drawer", () => ({
-  JournalEntryDrawer: ({ state: overlay }: { state: UseOverlayStateReturn }) =>
-    overlay.isOpen ? <div role="dialog" aria-label="Log entry" /> : null,
+vi.mock("@/actions", () => ({
+  createJournalEntry: vi.fn<() => Promise<ActionResult>>(),
+  createUndatedSend: vi.fn<() => Promise<ActionResult>>(),
+  updateJournalEntry: vi.fn<() => Promise<ActionResult>>(),
 }));
 
 beforeEach(() => {
@@ -24,7 +26,8 @@ it("opens a new log entry from the header", async () => {
 
   await user.click(screen.getByRole("button", { name: "Log" }));
 
-  expect(await screen.findByRole("dialog", { name: "Log entry" })).toBeInTheDocument();
+  const dialog = await screen.findByRole("dialog", { name: "Log entry" });
+  expect(within(dialog).getByRole("button", { name: /^Training/ })).toBeInTheDocument();
 });
 
 it("leaves Log out of the header when signed out", () => {

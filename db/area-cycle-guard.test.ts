@@ -143,7 +143,7 @@ describe("the readers that depend on the invariant", () => {
     // (subtreeAreaIds) and up (findClimbCandidatesByNames, the import lookup).
     const crag = await db.select().from(areas).where(eq(areas.id, TEST_CRAG)).get();
     const { climbs } = await getSubtreeClimbs(db, crag!);
-    expect(climbs.length).toBeGreaterThan(0);
+    expect(climbs.map((c) => c.id).sort((a, b) => a - b)).toEqual([1, 2, 3, 4]);
 
     const found = await findClimbCandidatesByNames(db, ["Test Highball"]);
     expect(found.map((c) => c.id)).toEqual([1]);

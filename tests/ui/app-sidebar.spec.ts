@@ -5,13 +5,13 @@ test(
   "sidebar icons stay fixed throughout animated previews",
   { tag: "@layout" },
   async ({ page }, info) => {
-    test.skip(
-      info.project.name.startsWith("mobile"),
-      "Animation applies only to the desktop sidebar",
-    );
     await openStory(page, info, "components-navigation-sidebar--moderator");
-    await page.emulateMedia({ reducedMotion: "no-preference" });
     const sidebar = page.getByRole("complementary", { name: "Sidebar" });
+    if (info.project.name.startsWith("mobile")) {
+      await expect(sidebar).toBeHidden();
+      return;
+    }
+    await page.emulateMedia({ reducedMotion: "no-preference" });
     const heading = page.locator("[data-sidebar-content]");
     await heading.hover();
     const [samples] = await Promise.all([

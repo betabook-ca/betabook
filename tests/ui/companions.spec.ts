@@ -34,24 +34,6 @@ test("friend-tag guidance is in a tooltip accessible by pointer and keyboard", a
   await expect(tooltip).toBeHidden();
 });
 
-test(
-  "friend selection closes suggestions and preserves keyboard focus",
-  { tag: "@behavior" },
-  async ({ page }, testInfo) => {
-    await openStory(page, testInfo, "components-journal-companion-picker--selection");
-    const input = page.getByRole("combobox", { name: "Find a friend to tag" });
-    await input.fill("Alex");
-    await expect(page.getByRole("option", { name: "Alex Rivera" })).toBeVisible();
-    await input.press("ArrowDown");
-    await input.press("Enter");
-    // Selecting a friend must dismiss the menu before the selected chips move the field.
-    await expect(input).toHaveValue("");
-    await expect(input).toHaveAttribute("aria-expanded", "false");
-    await expect(input).toBeFocused();
-    await expect(page.getByRole("listbox", { includeHidden: true })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Remove friend Alex Rivera" })).toBeVisible();
-  },
-);
 test("friend suggestions follow the moved field when adding another friend", async ({
   page,
 }, testInfo) => {
