@@ -1,5 +1,5 @@
 import { getDb } from "@/db/client";
-import { getClimbersPage } from "@/db/queries";
+import { CLIMBERS_PAGE_SIZE, getClimbersPage } from "@/db/queries";
 import { withApiSession } from "@/lib/api-session";
 import { parseOffset, offsetReachesPaginationLimit } from "@/lib/url-params";
 
@@ -15,6 +15,6 @@ export const GET = withApiSession(async (session, request: Request) => {
         });
   return Response.json({
     ...page,
-    hasMore: page.hasMore && !offsetReachesPaginationLimit(offset ?? 0, 20),
+    hasMore: page.hasMore && !offsetReachesPaginationLimit(offset ?? 0, CLIMBERS_PAGE_SIZE),
   });
 });
