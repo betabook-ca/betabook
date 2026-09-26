@@ -7,7 +7,7 @@ import { MenuTrigger, Popover, type Selection } from "react-aria-components";
 
 import { AnalyticsCalendar } from "@/components/analytics-calendar";
 import { DISCIPLINE_HUE, DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
-import { Eyebrow } from "@/components/ui/eyebrow";
+import { EYEBROW_CLASS } from "@/components/ui/eyebrow";
 import type { AnalyticsSendRow } from "@/db/queries";
 import { calendarCountsForDisciplines } from "@/lib/calendar-activity";
 import { sendChartRows, sessionChartRows, type ChartSession } from "@/lib/chart-details";
@@ -134,7 +134,7 @@ export function AnalyticsCalendarPanel({
     <div className="min-w-0">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
         <div className="flex flex-col gap-1">
-          <Eyebrow>{title}</Eyebrow>
+          <h3 className={EYEBROW_CLASS}>{title}</h3>
           <p className="text-xs text-muted">{description}</p>
         </div>
         {available.length > 1 && (
