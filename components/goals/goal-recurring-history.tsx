@@ -329,8 +329,8 @@ type HistoryProps = {
 
 type HistoryCursor = {
   anchorMonth?: string;
-  /** Request offset by page: each response hands back the next page's, and a
-   * snapshot refresh re-walks the loaded pages from the first. */
+  /** Request offset by page: each response hands back the next page's, so a
+   * snapshot refresh re-walks the loaded pages from its own first page. */
   offsets: Record<number, number>;
 };
 
@@ -358,8 +358,8 @@ function RecurringHistoryPages({
       anchorMonth: incoming.anchorMonth,
       offsets: { ...current.offsets, ...incoming.offsets },
     }),
-    fetchPage: async (_offset, page, _last, signal) => {
-      const next = await fetchHistoryPage(page, signal);
+    fetchPage: async (_offset, page, _last, signal, cursor) => {
+      const next = await fetchHistoryPage(page, signal, cursor);
       return {
         items: next.periods,
         hasMore: next.hasMore,
@@ -367,8 +367,11 @@ function RecurringHistoryPages({
       };
     },
   });
-  async function fetchHistoryPage(page: number, signal: AbortSignal): Promise<GoalHistoryPage> {
-    const { anchorMonth, offsets } = list.meta;
+  async function fetchHistoryPage(
+    page: number,
+    signal: AbortSignal,
+    { anchorMonth, offsets }: HistoryCursor,
+  ): Promise<GoalHistoryPage> {
     const offset = offsets[page];
     if (loadHistory) return loadHistory(offset, anchorMonth);
     const params = new URLSearchParams({ historyId: String(goal.id), offset: String(offset) });

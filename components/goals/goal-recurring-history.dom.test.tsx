@@ -454,3 +454,50 @@ it("omits months after a routine ends", async () => {
   expect(screen.queryByRole("button", { name: /October ·/ })).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: /September ·/ })).toBeVisible();
 });
+
+it("re-walks with the refreshed snapshot's anchor month and offsets", async () => {
+  const { pageGoalHistory, summarizeGoalPeriods } = await import("@/lib/goal-history");
+  const base = goalPanelStoryArgs.initialActive.goals.find((goal) => goal.id === 3);
+  if (!base) throw new Error("Missing weekly fixture");
+  const weekly = (count: number) =>
+    Array.from({ length: count }, (_, i) => {
+      const start = new Date("2026-01-05T12:00:00Z");
+      start.setUTCDate(start.getUTCDate() + i * 7);
+      const end = new Date(start);
+      end.setUTCDate(end.getUTCDate() + 6);
+      return {
+        ...base,
+        periodStart: start.toISOString().slice(0, 10),
+        periodEnd: end.toISOString().slice(0, 10),
+        progress: 3,
+        completedDate: start.toISOString().slice(0, 10),
+      };
+    });
+  let snapshot = { periods: weekly(36), now: new Date("2026-09-11T12:00:00Z") };
+  const loadHistory = vi.fn<NonNullable<Parameters<typeof GoalRecurringHistory>[0]["loadHistory"]>>(
+    async (offset, anchor) =>
+      pageGoalHistory(snapshot.periods, "week", offset, snapshot.now, anchor),
+  );
+  const summarize = () => {
+    const goal = summarizeGoalPeriods(snapshot.periods, "completed", 0, snapshot.now).goals[0];
+    if (!goal.recurring) throw new Error("Missing history");
+    return goal;
+  };
+  const props = { ownerId: "story-goals", loadHistory };
+  const { rerender } = render(
+    <GoalRecurringHistory {...props} today="2026-09-11" goal={summarize()} />,
+  );
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "See history" }));
+  await user.click(screen.getByRole("button", { name: "Load more" }));
+  expect(await screen.findByText("April")).toBeVisible();
+
+  // A month passes with four more weeks logged, so the anchor moves to October
+  // and the second page now covers May to July.
+  snapshot = { periods: weekly(40), now: new Date("2026-10-11T12:00:00Z") };
+  rerender(<GoalRecurringHistory {...props} today="2026-10-11" goal={summarize()} />);
+  await waitFor(() => expect(loadHistory).toHaveBeenCalledTimes(2));
+  expect(loadHistory).toHaveBeenLastCalledWith(3, "2026-10");
+  expect(await screen.findByText("July")).toBeVisible();
+  await waitFor(() => expect(screen.queryByText("April")).not.toBeInTheDocument());
+});

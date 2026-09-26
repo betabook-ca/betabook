@@ -50,15 +50,18 @@ export function NavigationPendingRegion({
 }) {
   const isPending = useContext(NavigationPendingContext)?.isPending ?? false;
   return (
-    <div
-      aria-busy={isPending}
-      className={clsx("transition-opacity", isPending && "opacity-60", className)}
-    >
-      {/* aria-busy alone is silent in screen readers. */}
+    <>
+      {/* aria-busy alone is silent in screen readers, and a live region inside
+       * a busy subtree can be held back until it is no longer busy. */}
       <p role="status" className="sr-only">
         {isPending ? "Updating results…" : ""}
       </p>
-      {children}
-    </div>
+      <div
+        aria-busy={isPending}
+        className={clsx("transition-opacity", isPending && "opacity-60", className)}
+      >
+        {children}
+      </div>
+    </>
   );
 }
