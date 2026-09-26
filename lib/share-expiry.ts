@@ -1,5 +1,6 @@
 import { ActionError } from "@/lib/action-result";
 import { formatDate } from "@/lib/format-date";
+import { ISO_DATE_RE } from "@/lib/sends";
 
 /** How long a new share link lives, for every feature that has one.
  *
@@ -52,7 +53,7 @@ export function shareExpiryModifier(expiry: ShareExpiry): string | null {
 export function describeShareExpiry(expiresAt: string | null): string {
   if (!expiresAt) return "Link never expires";
   const date = expiresAt.slice(0, 10);
-  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? `Link expires ${formatDate(date)}` : "Link";
+  return ISO_DATE_RE.test(date) ? `Link expires ${formatDate(date)}` : "Link";
 }
 
 /** Whether a stored deadline has passed, for the owner's own card. The

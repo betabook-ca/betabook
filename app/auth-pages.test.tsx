@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import ResetPasswordPage from "@/app/reset-password/page";
 import SignInPage from "@/app/sign-in/page";
 import SignUpPage from "@/app/sign-up/page";
 
@@ -47,6 +48,13 @@ vi.mock("@/components/sign-in-form", () => ({
 
 vi.mock("@/components/sign-up-form", () => ({
   SignUpForm: mockSignUpForm,
+}));
+
+const mockResetPasswordForm = vi.hoisted(() =>
+  vi.fn<(props: { token: string }) => null>(() => null),
+);
+vi.mock("@/components/reset-password-form", () => ({
+  ResetPasswordForm: mockResetPasswordForm,
 }));
 
 describe("SignInPage", () => {
@@ -222,5 +230,15 @@ describe("Turnstile", () => {
 
     expect(signIn.props.turnstileSiteKey).toBe("site-key");
     expect(signUp.props.turnstileSiteKey).toBe("site-key");
+  });
+});
+
+describe("ResetPasswordPage", () => {
+  it("hands the form a single token, taking the first when the query repeats it", async () => {
+    for (const token of ["one", ["one", "two"]]) {
+      const page = await ResetPasswordPage({ searchParams: Promise.resolve({ token }) });
+      expect(page.type).toBe(mockResetPasswordForm);
+      expect(page.props).toEqual({ token: "one" });
+    }
   });
 });

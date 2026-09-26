@@ -10,28 +10,13 @@ import {
 import { getDb } from "@/db/client";
 import { getTripForOwner, getTripShareForOwner, type TripSummary } from "@/db/queries";
 import { getBaseUrl } from "@/lib/app-url";
+import { parseId } from "@/lib/parse-id";
 
 /** Cached per request so a page and its `generateMetadata` resolve the same
  * trip with one read rather than two. */
 const getTripFor = cache(async (ownerId: string, tripId: number) =>
   getTripForOwner(await getDb(), ownerId, tripId),
 );
-
-/** A trip id arrives as a route string, and only the canonical decimal form
- * of a positive integer is one.
- *
- * The shape is checked before the conversion, not after. `Number` also accepts
- * exponent, hex, padded and trailing-zero forms, so `1e0`, `0x1`, ` 1 ` and
- * `1.0` all become 1 — which would give every trip an unbounded set of URL
- * aliases, each rendering the same page under a different address with no
- * canonical among them. */
-const TRIP_ID = /^[1-9]\d*$/;
-
-function parseTripId(raw: string): number | null {
-  if (!TRIP_ID.test(raw)) return null;
-  const id = Number(raw);
-  return Number.isSafeInteger(id) ? id : null;
-}
 
 /** The trip's link and the origin to build it against, resolved once here so
  * every tab's header shows the same thing. `getTripShareForOwner` is the only
@@ -65,8 +50,8 @@ export async function resolveTripPage(
   const resolved = await resolveProfilePage(idParam, "owner");
   if (!resolved.signedIn || !resolved.ok) return resolved;
 
-  const tripId = parseTripId(tripIdParam);
-  if (tripId == null) return { signedIn: true, ok: false };
+  const tripId = parseId(tripIdParam);
+  if (tripId === null) return { signedIn: true, ok: false };
 
   const trip = await getTripFor(resolved.user.id, tripId);
   return trip

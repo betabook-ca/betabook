@@ -1,4 +1,5 @@
 import type { Discipline } from "@/lib/grades";
+import { parseId } from "@/lib/parse-id";
 import { ASCENT_STYLES, type AscentStyle } from "@/lib/sends";
 
 export type UrlParamsRecord = Record<string, string | string[] | undefined>;
@@ -100,6 +101,5 @@ export function searchParamsToRecord(searchParams: URLSearchParams): UrlParamsRe
 /** Absent means global; an invalid explicit identity matches no area, never everything. */
 export function parseAreaId(value: string | undefined): number | undefined {
   if (value === undefined) return undefined;
-  const id = Number(value);
-  return /^\d+$/.test(value) && Number.isSafeInteger(id) && id > 0 ? id : 0;
+  return parseId(value) ?? 0;
 }

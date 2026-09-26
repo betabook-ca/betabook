@@ -17,6 +17,7 @@ import {
 import { getReviewQueueDetails } from "@/lib/moderation";
 import { getMemberSession } from "@/lib/session";
 import { areaHref } from "@/lib/slug";
+import { toArray, type UrlParamsRecord } from "@/lib/url-params";
 
 export const metadata: Metadata = { title: "Review requests" };
 
@@ -29,12 +30,12 @@ const REQUESTED_AT_FORMAT = new Intl.DateTimeFormat("en-US", {
 export default async function AdminRequestsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ after?: string; at?: string }>;
+  searchParams: Promise<UrlParamsRecord>;
 }) {
   if (!(await getMemberSession())) return <CurrentPageAuthCallout />;
   const params = await searchParams;
-  const id = Number(params.after);
-  const requestedAt = Number(params.at);
+  const id = Number(toArray(params.after)[0]);
+  const requestedAt = Number(toArray(params.at)[0]);
   const after =
     Number.isSafeInteger(id) && id > 0 && Number.isSafeInteger(requestedAt) && requestedAt >= 0
       ? { id, requestedAt }
