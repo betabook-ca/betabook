@@ -8,18 +8,18 @@ import { projectShareLinks } from "@/db/schema";
 import {
   ActionError,
   JOURNAL_RATE_LIMIT_MESSAGE,
+  PRIVATE_PROFILE_MESSAGE,
   toActionResult,
   type ActionResult,
 } from "@/lib/action-result";
 import { parseProjectShareExpiry, projectShareExpiryModifier } from "@/lib/project-share";
 import { allowJournalWrite } from "@/lib/rate-limit";
 import { requireSession } from "@/lib/session";
+import { requirePositiveId } from "@/lib/validation";
 
 import { afterCommit } from "./post-commit";
 import { revalidateProjectSurfaces } from "./revalidation";
 
-const PRIVATE_PROFILE_MESSAGE =
-  "Sharing is off while your profile is private — change it in Account settings.";
 const NOT_TRACKED_MESSAGE = "Track this climb as a project before sharing it";
 
 /** Publishes one tracked project behind a link, or resets the clock on a link
@@ -42,7 +42,7 @@ export async function shareProject(
 ): Promise<ActionResult<{ token: string; expiresAt: string | null }>> {
   return toActionResult(async () => {
     const { user } = await requireSession();
-    if (!Number.isSafeInteger(climbId) || climbId < 1) throw new ActionError("Climb not found");
+    requirePositiveId(climbId, "Climb not found");
     const modifier = projectShareExpiryModifier(parseProjectShareExpiry(expiry));
     if (!(await allowJournalWrite(user.id))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
 
@@ -85,7 +85,7 @@ export async function shareProject(
 export async function unshareProject(climbId: number): Promise<ActionResult> {
   return toActionResult(async () => {
     const { user } = await requireSession();
-    if (!Number.isSafeInteger(climbId) || climbId < 1) throw new ActionError("Climb not found");
+    requirePositiveId(climbId, "Climb not found");
     if (!(await allowJournalWrite(user.id))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
 
     const db = await getDb();

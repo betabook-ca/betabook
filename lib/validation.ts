@@ -1,4 +1,14 @@
 import { ActionError } from "@/lib/action-result";
+import { parseId } from "@/lib/parse-id";
+
+/** A client-supplied record id, or the caller's "not found". Refused before it
+ * reaches a query: SQLite's affinity would let the string "7" match row 7, and
+ * a non-primitive would surface as D1's type error instead of this message. */
+export function requirePositiveId(value: unknown, notFound: string): number {
+  const id = typeof value === "number" ? parseId(value) : null;
+  if (id === null) throw new ActionError(notFound);
+  return id;
+}
 
 export function trimOrNull(value: FormDataEntryValue | null): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;

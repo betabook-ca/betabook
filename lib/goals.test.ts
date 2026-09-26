@@ -1,6 +1,14 @@
 import { expect, it } from "vitest";
 
-import { goalInputSchema, goalToday, goalWindow } from "./goals";
+import { goalInputSchema, goalToday, goalWindow, parseGoalView } from "./goals";
+
+it("names a goals view only when it is one the page has", () => {
+  expect(parseGoalView("active")).toBe("active");
+  expect(parseGoalView("completed")).toBe("completed");
+  for (const value of ["all", "", "Active", null, undefined, 1]) {
+    expect(parseGoalView(value)).toBeNull();
+  }
+});
 
 it("uses calendar weeks and handles leap-month and year boundaries", () => {
   expect(goalWindow("week", "2026-09-13", "2026-09-13")).toEqual({

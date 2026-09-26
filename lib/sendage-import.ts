@@ -1,4 +1,5 @@
 import { parseSendageUsername } from "@/lib/sendage-profile";
+import { ISO_DATE_RE } from "@/lib/sends";
 import { MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS, type ParsedCsv } from "@/lib/sends-import";
 import { importTooLargeMessage, SUPPORT_EMAIL } from "@/lib/support";
 
@@ -176,7 +177,7 @@ function nextCursor(next: unknown, itemCount: number, cursor: { day: string } | 
   if (
     !itemCount ||
     typeof day !== "string" ||
-    !/^\d{4}-\d{2}-\d{2}$/.test(day) ||
+    !ISO_DATE_RE.test(day) ||
     (cursor && day >= cursor.day)
   )
     throw new Error(INCOMPLETE_ERROR);
@@ -204,7 +205,7 @@ function importRow(value: unknown) {
   if (![-1, 0, 1].includes(Number(send.difficulty)) || typeof send.difficulty !== "number")
     throw new Error(FORMAT_ERROR);
   const date = optionalString(send.day);
-  if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error(FORMAT_ERROR);
+  if (date && !ISO_DATE_RE.test(date)) throw new Error(FORMAT_ERROR);
   const row: Record<string, string> = {
     Date: date,
     "Send Type": style,

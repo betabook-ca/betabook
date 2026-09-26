@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { formatDate } from "@/lib/format-date";
-import { isRealIsoDate } from "@/lib/sends";
+import { isoDateSchema } from "@/lib/sends";
 
 /** Enough for "Bishop, March 2026" or "Spring road trip — Utah and Nevada"
  * without letting a name push the trip card's heading onto four lines. */
@@ -13,8 +13,6 @@ export const MAX_TRIP_DESCRIPTION = 2000;
  * scripted client cannot fill the table, and it is enforced inside the INSERT
  * so concurrent requests cannot race past it. */
 export const MAX_TRIPS = 200;
-
-const isoDate = z.string().refine(isRealIsoDate, "Choose a valid date.");
 
 export const tripInputSchema = z
   .object({
@@ -28,8 +26,8 @@ export const tripInputSchema = z
       .transform((value) => value.trim() || null)
       .nullable()
       .optional(),
-    startDate: isoDate,
-    endDate: isoDate,
+    startDate: isoDateSchema,
+    endDate: isoDateSchema,
   })
   .superRefine((value, ctx) => {
     if (value.endDate < value.startDate)

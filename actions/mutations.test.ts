@@ -279,6 +279,19 @@ describe("send ownership", () => {
       );
     },
   );
+
+  it.each([0, -1, 1.5, Number.NaN, "1" as unknown as number])(
+    "rejects the invalid send id %s before it reaches a query",
+    async (sendId) => {
+      const before = await db.select().from(sends).orderBy(sends.id);
+      expect(await updateSend(sendId, sendFormData({ comment: "Nope" }))).toEqual({
+        ok: false,
+        error: "Send not found",
+      });
+      expect(await deleteSend(sendId)).toEqual({ ok: false, error: "Send not found" });
+      expect(await db.select().from(sends).orderBy(sends.id)).toEqual(before);
+    },
+  );
 });
 
 describe("climb type immutability (DB trigger)", () => {

@@ -91,6 +91,18 @@ it("requires an accepted friendship for journal pagination and removes access wh
   expect((await journal(request("/api/users/author/journal"), owner)).status).toBe(200);
 });
 
+it("accepts a journal cursor only with a canonical positive entry id", async () => {
+  await db.update(friendships).set({ status: "accepted" });
+  const page = (query: string) => journal(request(`/api/users/author/journal?${query}`), owner);
+  expect((await page("cursorDate=2026-09-01&cursorId=30")).status).toBe(200);
+  for (const query of [
+    "cursorDate=2026-09-01&cursorId=1e3",
+    "cursorDate=2026-09-01&cursorId=0",
+    "cursorId=30",
+  ])
+    expect((await page(query)).status).toBe(400);
+});
+
 it("protects journal metadata using the same friendship rules", async () => {
   const props = { ...owner, searchParams: Promise.resolve({}) };
   await expect(journalMetadata(props)).rejects.toThrow("not found");

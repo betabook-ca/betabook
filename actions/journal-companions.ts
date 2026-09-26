@@ -14,6 +14,7 @@ import {
 } from "@/lib/action-result";
 import { allowJournalWrite } from "@/lib/rate-limit";
 import { requireSession } from "@/lib/session";
+import { requirePositiveId } from "@/lib/validation";
 
 import { afterCommit } from "./post-commit";
 import { revalidateJournalSurfaces } from "./revalidation";
@@ -21,7 +22,7 @@ import { revalidateJournalSurfaces } from "./revalidation";
 export async function removeMyJournalTag(entryId: number): Promise<ActionResult> {
   return toActionResult(async () => {
     const { user } = await requireSession();
-    if (!Number.isSafeInteger(entryId) || entryId < 1) throw new ActionError("Entry not found");
+    requirePositiveId(entryId, "Entry not found");
     if (!(await allowJournalWrite(user.id))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
     const db = await getDb();
     const [removed] = await db

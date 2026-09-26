@@ -4,6 +4,7 @@ import { ResetPasswordForm } from "@/components/reset-password-form";
 import { AppLink } from "@/components/ui/app-link";
 import { FORM_CARD_CLASS } from "@/components/ui/card";
 import { PageTitle } from "@/components/ui/typography";
+import { toArray, type UrlParamsRecord } from "@/lib/url-params";
 
 export const metadata: Metadata = {
   title: "Reset password",
@@ -13,9 +14,11 @@ export const metadata: Metadata = {
 export default async function ResetPasswordPage({
   searchParams,
 }: {
-  searchParams: Promise<{ token?: string; error?: string }>;
+  searchParams: Promise<UrlParamsRecord>;
 }) {
-  const { token, error } = await searchParams;
+  const params = await searchParams;
+  const token = toArray(params.token)[0];
+  const error = toArray(params.error)[0];
 
   // better-auth's emailed link runs through /api/auth/reset-password/:token,
   // which validates the token server-side and redirects here with ?token=…

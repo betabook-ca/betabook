@@ -24,6 +24,9 @@ export const NOT_ADMIN_MESSAGE = "Admins only.";
 
 export const JOURNAL_RATE_LIMIT_MESSAGE = "Too many changes — try again in a minute";
 
+export const PRIVATE_PROFILE_MESSAGE =
+  "Sharing is off while your profile is private — change it in Account settings.";
+
 export const GENERIC_ERROR_MESSAGE = "Something went wrong. Please try again.";
 
 /** Drizzle wraps SQLite errors, so the message that matters is often a cause. */
