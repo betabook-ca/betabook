@@ -104,6 +104,9 @@ export default defineConfig({
     // Custom composite accessible widgets (e.g. <div role="progressbar">) cannot be native elements due to styling limits.
     "jsx-a11y/prefer-tag-over-role": "off",
 
+    // Preflight sets list-style:none on ul/ol and Safari then drops their list semantics; the explicit role restores them.
+    "jsx-a11y/no-redundant-roles": ["error", { ul: ["list"], ol: ["list"] }],
+
     // Composite interactive containers (comboboxes, radiogroups) manage roving tabindex and keys across children.
     "jsx-a11y/no-noninteractive-element-to-interactive-role": "off",
     "jsx-a11y/click-events-have-key-events": "off",

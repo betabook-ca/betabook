@@ -9,6 +9,7 @@ import { ClimbPicker } from "@/components/climb-picker";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { ClimbWithAreaName } from "@/db/queries";
+import { useCompactViewport } from "@/hooks/use-compact-viewport";
 import { climbHref } from "@/lib/slug";
 
 type ClimbMergeDrawerProps = {
@@ -17,12 +18,15 @@ type ClimbMergeDrawerProps = {
 };
 
 /** Folds this climb into the picked one, which keeps both climbs' sends.
- * Applies immediately for an admin, otherwise queues a change request. */
+ * Applies immediately for an admin, otherwise queues a change request.
+ *
+ * Fullscreen: with the keyboard up, a sheet would show about two results. */
 export function ClimbMergeDrawer({ climbId, state }: ClimbMergeDrawerProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pendingNotice, setPendingNotice] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const compact = useCompactViewport();
 
   function handlePick(target: ClimbWithAreaName): void {
     if (pending) return;
@@ -52,6 +56,7 @@ export function ClimbMergeDrawer({ climbId, state }: ClimbMergeDrawerProps) {
       state={state}
       title="Mark as a duplicate"
       size="lg"
+      presentation="fullscreen"
       isPending={pending}
       onClose={reset}
     >
@@ -63,7 +68,12 @@ export function ClimbMergeDrawer({ climbId, state }: ClimbMergeDrawerProps) {
             Pick the climb this one duplicates — this climb and its sends fold into it, and this
             page won&apos;t exist separately once that lands.
           </p>
-          <ClimbPicker onPick={handlePick} allowSentClimbs excludedClimbId={climbId} />
+          <ClimbPicker
+            onPick={handlePick}
+            allowSentClimbs
+            showFilters={!compact}
+            excludedClimbId={climbId}
+          />
           {error && <InlineAlert>{error}</InlineAlert>}
           {pending && <p className="text-sm text-muted">Marking as duplicate…</p>}
         </div>

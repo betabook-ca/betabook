@@ -102,6 +102,8 @@ export function SearchResults({
   picking?: boolean;
 }) {
   const listed = listboxId ? sections.filter((section) => section.items.length > 0) : sections;
+  // Page results are a real list; combobox results stay options under the listbox.
+  const ItemsTag = listboxId ? "div" : "ul";
   return (
     <div className="flex flex-col gap-5">
       {listed.length > 0 && (
@@ -136,8 +138,8 @@ export function SearchResults({
                   </Button>
                 )}
               </div>
-              <div
-                role={listboxId ? "presentation" : undefined}
+              <ItemsTag
+                role={listboxId ? "presentation" : "list"}
                 className="divide-y divide-separator"
               >
                 {section.items.map((item) => {
@@ -166,10 +168,7 @@ export function SearchResults({
                       <SearchResultContent item={item} picking={picking} />
                     </div>
                   ) : (
-                    <div
-                      key={item.id}
-                      className="flex min-w-0 flex-col sm:flex-row sm:items-center"
-                    >
+                    <li key={item.id} className="flex min-w-0 flex-col sm:flex-row sm:items-center">
                       {href ? (
                         <AppLink
                           href={href}
@@ -197,10 +196,10 @@ export function SearchResults({
                         </button>
                       )}
                       {action && <div className="shrink-0 px-3 pb-3 sm:pb-0">{action}</div>}
-                    </div>
+                    </li>
                   );
                 })}
-              </div>
+              </ItemsTag>
               {!listboxId && <ResultState section={section} onRetry={onRetry} />}
             </div>
           ))}

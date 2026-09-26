@@ -104,94 +104,97 @@ export function SendForm({
 
   return (
     <form onSubmit={handleSubmit} className={`${SURFACE_CARD_CLASS} gap-6`}>
-      <FormSection label="Ascent">
-        <AscentStylePicker climbType={climb.type} value={ascentStyle} onChange={setAscentStyle} />
+      {/* onDone closes the dialog, so edits made mid-save would be lost. */}
+      <fieldset disabled={pending} className="contents">
+        <FormSection label="Ascent">
+          <AscentStylePicker climbType={climb.type} value={ascentStyle} onChange={setAscentStyle} />
 
-        <DatePickerField
-          label="Date sent"
-          value={dateSent}
-          max={latestLoggableDate(climb, today)}
-          description={
-            climb.brokenOn
-              ? `This climb broke on ${climb.brokenOn}; only earlier dates can be logged.`
-              : undefined
-          }
-          onChange={setDateSent}
-          // A broken climb can't take an undated send (it can't be shown to
-          // predate the break), so the "I don't know" control is withheld.
-          onUnknownChange={
-            existingEntry || climb.brokenOn
-              ? undefined
-              : (unknown) => setDateSent(unknown ? "" : (existingSend.dateSent ?? today))
-          }
-        />
-      </FormSection>
-
-      <FormSection label="Your opinion">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <RatingField value={rating} onValueChange={setRating} />
-          <SuggestedGradeField
-            climbType={climb.type}
-            value={suggestedGrade}
-            onChange={setSuggestedGrade}
+          <DatePickerField
+            label="Date sent"
+            value={dateSent}
+            max={latestLoggableDate(climb, today)}
+            description={
+              climb.brokenOn
+                ? `This climb broke on ${climb.brokenOn}; only earlier dates can be logged.`
+                : undefined
+            }
+            onChange={setDateSent}
+            // A broken climb can't take an undated send (it can't be shown to
+            // predate the break), so the "I don't know" control is withheld.
+            onUnknownChange={
+              existingEntry || climb.brokenOn
+                ? undefined
+                : (unknown) => setDateSent(unknown ? "" : (existingSend.dateSent ?? today))
+            }
           />
-        </div>
+        </FormSection>
 
-        <GradeFeelField value={gradeFeel} onChange={setGradeFeel} />
-      </FormSection>
-
-      <FormSection label="Send commentary">
-        <TextField value={comment} onChange={setComment}>
-          <FieldHeader
-            usage={{ used: comment.length, limit: MAX_COMMENT_LENGTH, unit: "characters" }}
-          >
-            <Label>Notes</Label>
-            <HelpTooltip label="About Send commentary">
-              Uses your Send commentary audience wherever this note appears.
-            </HelpTooltip>
-          </FieldHeader>
-          <TextArea maxLength={MAX_COMMENT_LENGTH} placeholder="How'd it go?" />
-        </TextField>
-      </FormSection>
-
-      {dateSent ? (
-        <DetailsDisclosure
-          title="Add details"
-          isExpanded={detailsExpanded}
-          onExpandedChange={setDetailsExpanded}
-        >
-          <div className="flex flex-wrap items-start gap-4">
-            <CompanionPicker
-              value={companions}
-              onChange={(value) => {
-                setCompanions(value);
-                setCompanionsChanged(true);
-              }}
-              disabled={pending}
-              editing={!!existingEntry}
-              fetcher={companionFetcher}
+        <FormSection label="Your opinion">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <RatingField value={rating} onValueChange={setRating} />
+            <SuggestedGradeField
+              climbType={climb.type}
+              value={suggestedGrade}
+              onChange={setSuggestedGrade}
             />
-            <TagInput value={tags} onChange={setTags} />
           </div>
-          <p className="text-xs text-muted">
-            Tags and tagged friends follow your journal audience.
-          </p>
-        </DetailsDisclosure>
-      ) : (
-        <p className="text-sm text-muted">
-          Add a date to include this send in your journal with tags and friends.
-        </p>
-      )}
-      {existingEntry && (
-        <p className="text-sm text-muted">
-          Changes update your send and its original journal entry together.
-        </p>
-      )}
-      {error && <InlineAlert>{error}</InlineAlert>}
 
-      <Button type="submit" isDisabled={pending} fullWidth>
-        Save changes
-      </Button>
+          <GradeFeelField value={gradeFeel} onChange={setGradeFeel} />
+        </FormSection>
+
+        <FormSection label="Send commentary">
+          <TextField value={comment} onChange={setComment}>
+            <FieldHeader
+              usage={{ used: comment.length, limit: MAX_COMMENT_LENGTH, unit: "characters" }}
+            >
+              <Label>Notes</Label>
+              <HelpTooltip label="About Send commentary">
+                Uses your Send commentary audience wherever this note appears.
+              </HelpTooltip>
+            </FieldHeader>
+            <TextArea maxLength={MAX_COMMENT_LENGTH} placeholder="How'd it go?" />
+          </TextField>
+        </FormSection>
+
+        {dateSent ? (
+          <DetailsDisclosure
+            title="Add details"
+            isExpanded={detailsExpanded}
+            onExpandedChange={setDetailsExpanded}
+          >
+            <div className="flex flex-wrap items-start gap-4">
+              <CompanionPicker
+                value={companions}
+                onChange={(value) => {
+                  setCompanions(value);
+                  setCompanionsChanged(true);
+                }}
+                disabled={pending}
+                editing={!!existingEntry}
+                fetcher={companionFetcher}
+              />
+              <TagInput value={tags} onChange={setTags} />
+            </div>
+            <p className="text-xs text-muted">
+              Tags and tagged friends follow your journal audience.
+            </p>
+          </DetailsDisclosure>
+        ) : (
+          <p className="text-sm text-muted">
+            Add a date to include this send in your journal with tags and friends.
+          </p>
+        )}
+        {existingEntry && (
+          <p className="text-sm text-muted">
+            Changes update your send and its original journal entry together.
+          </p>
+        )}
+        {error && <InlineAlert>{error}</InlineAlert>}
+
+        <Button type="submit" isDisabled={pending} fullWidth>
+          Save changes
+        </Button>
+      </fieldset>
     </form>
   );
 }

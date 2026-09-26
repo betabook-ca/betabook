@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
@@ -49,6 +49,34 @@ it("shows the loaded friend count and appends the next batch only on request", a
     "All 11 friends shown",
   );
   expect(screen.queryByRole("button", { name: "Load more" })).not.toBeInTheDocument();
+});
+
+it("heads the list for heading navigation and lists the climbers as items", () => {
+  const page = {
+    friends: [
+      {
+        id: "sam",
+        name: "Sam Rivera",
+        image: null,
+        isPrivate: true,
+        friendshipStatus: "friends" as const,
+      },
+      {
+        id: "ana",
+        name: "Ana Lopez",
+        image: null,
+        isPrivate: true,
+        friendshipStatus: "incoming" as const,
+      },
+    ],
+    hasMore: false,
+  };
+  const { rerender } = render(<FriendList initialPage={page} requestsOnly={false} />);
+  expect(screen.getByRole("heading", { level: 2, name: "Friends" })).toBeInTheDocument();
+  expect(within(screen.getByRole("list")).getAllByRole("listitem")).toHaveLength(2);
+  rerender(<FriendList initialPage={page} requestsOnly />);
+  expect(screen.getByRole("heading", { level: 2, name: "Friend requests" })).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { level: 2, name: "Friends" })).not.toBeInTheDocument();
 });
 
 it("keeps removal in the friend menu and asks for confirmation", async () => {

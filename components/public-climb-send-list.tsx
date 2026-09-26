@@ -18,17 +18,15 @@ export function PublicClimbSendList({
       {sends.length === 0 ? (
         <EmptyState message="No sends yet — this line is waiting for its first ascent." />
       ) : (
-        <div className="flex flex-col divide-y divide-separator">
+        <ul role="list" className="flex flex-col divide-y divide-separator">
           {sends.map((send, index) => (
-            <ClimbSendListRow
-              // Public rows carry no send IDs (see getPublicSendsForClimb).
-              // oxlint-disable-next-line react/no-array-index-key
-              key={index}
-              type={type}
-              send={send}
-            />
+            // Public rows carry no send IDs (see getPublicSendsForClimb).
+            // oxlint-disable-next-line react/no-array-index-key
+            <li key={index}>
+              <ClimbSendListRow type={type} send={send} />
+            </li>
           ))}
-        </div>
+        </ul>
       )}
       <AuthCallout
         next={next}
