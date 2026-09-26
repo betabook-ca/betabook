@@ -28,11 +28,11 @@ type ProfilePhotoCropperProps = {
   /** The photo just chosen. */
   file: File | null;
   state: UseOverlayStateReturn;
-  /** Handed the square to upload. The drawer stays open until the upload
+  /** Handed the square to upload. The dialog stays open until the upload
    * succeeds, so a failure can be shown against the photo it happened to. */
   onCropped: (photo: File) => void;
   isPending: boolean;
-  /** Failure from the upload, shown alongside this drawer's own. */
+  /** Failure from the upload, shown alongside this dialog's own. */
   error?: string | null;
   /** Seam for jsdom, which has neither `OffscreenCanvas` nor
    * `createImageBitmap`. Production always uses the default. */

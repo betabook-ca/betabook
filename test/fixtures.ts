@@ -127,11 +127,10 @@ export async function seedManyClimbs(db: Database, areaId: number, count: number
 }
 
 /** Inserts `count` leaf areas sharing a common name prefix, root-level by
- * default. Two uses: exercising an area-name filter that matches many areas at
- * once (regression coverage: matching N areas used to bind 2 SQL parameters
- * per match, blowing past D1's per-statement bound-parameter limit — the same
- * limit `seedManyClimbs`'s chunking works around), and, with `parentId`,
- * building a subtree wide enough to reach LARGE_AREA_SUBTREE_AREAS. */
+ * default. Two uses: an area-name filter that matches many areas at once,
+ * whose SQL must stay under D1's per-statement bound-parameter limit (the
+ * same limit `seedManyClimbs`'s chunking works around), and, with `parentId`,
+ * a subtree wide enough to reach LARGE_AREA_SUBTREE_AREAS. */
 export async function seedManyAreas(
   db: Database,
   count: number,

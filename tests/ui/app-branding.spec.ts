@@ -84,7 +84,7 @@ test(
     const colophon = page.getByRole("contentinfo");
     await expect(colophon).toContainText(/© \d{4} Betabook — Climb · Log · Progress/);
     await expect(colophon.getByRole("link", { name: "About" })).toBeVisible();
-    await expect(colophon.getByRole("link", { name: "Contact Us" })).toBeVisible();
+    await expect(colophon.getByRole("link", { name: "Contact us" })).toBeVisible();
     // Unbroken at every width — the line wraps before the tagline, not at a middle dot.
     expect(
       await colophon

@@ -79,9 +79,9 @@ export async function sendWelcomeEmail(to: string, name: string) {
     `Hi ${name},`,
     "Your email is verified — welcome to Betabook, a climbing logbook and crag database for keeping the routes you've climbed and the places you climbed them.",
     "Somewhere to start:",
-    `Already tracking sends somewhere else? Export a CSV and bring the whole history across.\n${base}/account/import`,
+    `Already logging sends somewhere else? Export a CSV and bring the whole history across.\n${base}/account/import`,
     // Browsing areas and climbs starts with the search on the home page.
-    `Search for a climb and record your first ascent.\n${base}`,
+    `Search for a climb and log your first send.\n${base}`,
     `Betabook is free, ad-free, and source available. Questions or corrections? Get in touch:\n${base}/contact`,
   ].join("\n\n");
 
@@ -93,7 +93,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
     text,
     showLinkUrls: false,
     links: [
-      { href: `${base}/account/import`, label: "Import your logbook" },
+      { href: `${base}/account/import`, label: "Import your sends" },
       { href: base, label: "Log your first send" },
       { href: `${base}/contact`, label: "Get in touch" },
     ],

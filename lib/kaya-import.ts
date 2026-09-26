@@ -8,10 +8,11 @@ import {
 import { parseKayaUsername } from "@/lib/kaya-profile";
 import { readKayaStream } from "@/lib/kaya-stream-reader";
 import { MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS, type ParsedCsv } from "@/lib/sends-import";
-import { importTooLargeMessage, SUPPORT_EMAIL } from "@/lib/support";
+import { importCsvFallback, importTooLargeMessage } from "@/lib/support";
 
-const FORMAT_ERROR = `KAYA returned an unexpected format. Please try again, or email ${SUPPORT_EMAIL}.`;
-const INCOMPLETE_ERROR = `Couldn't load your complete KAYA history, or it changed during download. Please try again, or email ${SUPPORT_EMAIL}.`;
+const CSV_FALLBACK = importCsvFallback("KAYA", "logbook");
+const FORMAT_ERROR = `KAYA returned an unexpected format. ${CSV_FALLBACK}`;
+const INCOMPLETE_ERROR = `Couldn't load your complete KAYA history, or it changed during download. Please try again. ${CSV_FALLBACK}`;
 const HEADERS = [
   "Date",
   "Ascent Type",
@@ -48,9 +49,7 @@ function gradeLabel(value: unknown, type: string): string {
   if (["v?", "vIntro", "?"].includes(name)) return name;
   const label = name.replace(/^v/i, "V");
   if (parseGrade(type === "1" ? "boulder" : "sport", label) === null)
-    throw new Error(
-      `KAYA returned an unknown grade. Import stopped; email ${SUPPORT_EMAIL} for help.`,
-    );
+    throw new Error(`KAYA returned an unknown grade. Import stopped. ${CSV_FALLBACK}`);
   return label;
 }
 
@@ -198,7 +197,8 @@ export async function fetchKayaImport(
       if (received > total || (event.items.length < KAYA_PAGE_SIZE && received !== total))
         throw new Error(INCOMPLETE_ERROR);
       size += new TextEncoder().encode(JSON.stringify(event.items)).byteLength;
-      if (size > MAX_IMPORT_FILE_BYTES) throw new Error(importTooLargeMessage("KAYA history"));
+      if (size > MAX_IMPORT_FILE_BYTES)
+        throw new Error(importTooLargeMessage("KAYA history", CSV_FALLBACK));
       progress();
     };
     await readKayaStream(username, type, signal, (value) => {

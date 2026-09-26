@@ -25,7 +25,7 @@ const loadPanel = () =>
 
 export const OPEN_MOBILE_HELPER_EVENT = "betabook:open-mobile-app-helper";
 
-/** Dispatches a global event to open the mobile app shortcut helper drawer/callout. */
+/** Dispatches a global event to open the mobile app shortcut helper callout. */
 export function openMobileAppHelper(): void {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent(OPEN_MOBILE_HELPER_EVENT));

@@ -57,7 +57,7 @@ export function DemoClimberSearch({ feedHref }: { feedHref: string }) {
       data-tour-target="friend-search"
       className="flex max-w-2xl flex-col gap-6"
     >
-      <h1 className="sr-only">Search</h1>
+      <h1 className="sr-only">Find climbs</h1>
       <SearchController
         initial={initial}
         state={state}

@@ -72,9 +72,8 @@ beforeEach(() => {
 });
 
 describe("FTS sync triggers", () => {
-  // Runs first, against the pristine fixture tree: seedFixtureTree no longer
-  // seeds the FTS tables by hand, so a duplicate here would mean the
-  // triggers and some manual insert both indexed the same row.
+  // Runs first, against the pristine fixture tree: seedFixtureTree relies on
+  // the triggers, so a duplicate here would mean a manual insert also indexed the row.
   it("indexes each seeded row exactly once", async () => {
     expect((await searchAreas(db, "Test Crag")).areas).toHaveLength(1);
     expect((await searchClimbs(db, { name: "Test Crack", disciplines: [] })).climbs).toHaveLength(

@@ -1,4 +1,5 @@
-import { TERMS_ACCESS_MESSAGE } from "@/lib/terms";
+// Explicit sibling specifier: scripts/ reach this through lib/product-tour.ts under plain node.
+import { TERMS_ACCESS_MESSAGE } from "./terms.ts";
 
 /** Return intentional action failures as data because Next.js redacts uncaught server errors. */
 export type ActionResult<T = void> = { ok: true; value: T } | { ok: false; error: string };

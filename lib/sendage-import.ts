@@ -1,11 +1,12 @@
 import { parseSendageUsername } from "@/lib/sendage-profile";
 import { ISO_DATE_RE } from "@/lib/sends";
 import { MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS, type ParsedCsv } from "@/lib/sends-import";
-import { importTooLargeMessage, SUPPORT_EMAIL } from "@/lib/support";
+import { importCsvFallback, importTooLargeMessage, SUPPORT_EMAIL } from "@/lib/support";
 
-const FORMAT_ERROR = `Sendage returned an unfamiliar data format. Please try again later, or email ${SUPPORT_EMAIL}.`;
-const INCOMPLETE_ERROR = `Sendage did not return your complete send history. Please try again, or email ${SUPPORT_EMAIL}.`;
-const SIZE_ERROR = importTooLargeMessage("Sendage history");
+const CSV_FALLBACK = importCsvFallback("Sendage", "sends");
+const FORMAT_ERROR = `Sendage returned an unfamiliar data format. ${CSV_FALLBACK}`;
+const INCOMPLETE_ERROR = `Sendage did not return your complete send history. Please try again. ${CSV_FALLBACK}`;
+const SIZE_ERROR = importTooLargeMessage("Sendage history", CSV_FALLBACK);
 const MAX_PAGE_BYTES = 2 * 1024 * 1024;
 const COMPLETED_STYLES = new Set(["redpoint", "flash", "onsight"]);
 const SKIPPED_STYLES = new Set(["project", "repeat"]);
@@ -98,7 +99,7 @@ async function request(
       );
     if (response.status === 401 || response.status === 403)
       throw new Error(
-        `Sendage could not share this public profile. Check its visibility, or email ${SUPPORT_EMAIL}.`,
+        `Sendage could not share this public profile. Check its visibility. ${CSV_FALLBACK}`,
       );
     if (response.status === 429)
       throw new Error("Sendage is receiving too many requests. Wait a moment and try again.");
@@ -131,7 +132,7 @@ async function request(
       throw new Error("Sendage took too long to respond. Please try again.", { cause: error });
     if (error instanceof TypeError)
       throw new Error(
-        `Couldn't connect to Sendage. Check your connection and try again, or email ${SUPPORT_EMAIL}.`,
+        `Couldn't connect to Sendage. Check your connection and try again. ${CSV_FALLBACK}`,
         { cause: error },
       );
     if (error instanceof SyntaxError) throw new Error(FORMAT_ERROR, { cause: error });
@@ -150,7 +151,7 @@ function readProfile(value: unknown) {
   const profile = record(data.profile);
   if (profile.isPrivate !== false)
     throw new Error(
-      `Sendage imports need a public profile. Make your profile public, or email ${SUPPORT_EMAIL}.`,
+      `Sendage imports need a public profile. Make your profile public, upload Sendage’s CSV export instead, or email ${SUPPORT_EMAIL}.`,
     );
   const total = profile.totalSends;
   if (typeof total !== "number" || !Number.isSafeInteger(total) || total < 0)
@@ -265,7 +266,7 @@ export async function fetchSendageImport(
   // totalSends can count sends the activity feed leaves out.
   if (rows.length < total)
     warnings.push(
-      `Sendage lists ${total} sends, but its activity feed returned ${rows.length}. Check for missing sends after importing, or email ${SUPPORT_EMAIL}.`,
+      `Sendage lists ${total} sends, but its activity feed returned ${rows.length}. Check for missing sends after importing. ${CSV_FALLBACK}`,
     );
   if (rows.some((row) => row.Beta || row.Attempts || row["First Ascent"]))
     warnings.push(

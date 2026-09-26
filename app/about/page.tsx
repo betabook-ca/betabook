@@ -100,7 +100,7 @@ export default function AboutPage() {
         </ul>
       </section>
 
-      <SectionHeading className="mt-4">Not a Guidebook or Social Media</SectionHeading>
+      <SectionHeading className="mt-4">Not a guidebook or social media</SectionHeading>
       <p className="leading-relaxed text-pretty">
         Betabook does not aim to become a guidebook site or a social media platform. While there is
         detailed info on the platform to help find and share crags, the aim of this site is not to
@@ -108,7 +108,7 @@ export default function AboutPage() {
         what they’re climbing.
       </p>
 
-      <SectionHeading className="mt-4">For the Community</SectionHeading>
+      <SectionHeading className="mt-4">For the community</SectionHeading>
       <p className="leading-relaxed text-pretty">
         The success of Betabook depends on its community. It will only hold value as users join,
         keep information on this site accurate, and log sessions to help drive consensus on climbs.

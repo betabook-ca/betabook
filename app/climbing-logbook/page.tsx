@@ -99,7 +99,7 @@ export default function ClimbingLogbookPage() {
                 <>
                   Use the{" "}
                   <AppLink href="/contact" className="inline underline">
-                    Contact Us
+                    Contact us
                   </AppLink>{" "}
                   form, or open an issue on{" "}
                   <a

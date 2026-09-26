@@ -1,4 +1,4 @@
-// A temporary, reference-counted pause shared by tour drawers and the mobile
+// A temporary, reference-counted pause shared by the tour and the mobile
 // installation helper. It never changes the user's saved install preference.
 let activeTours = 0;
 const listeners = new Set<() => void>();

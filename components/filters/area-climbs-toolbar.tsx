@@ -74,7 +74,7 @@ export function AreaClimbsToolbar({
           ? [
               {
                 id: "subarea",
-                label: "Selected subarea",
+                label: "Selected sub-area",
                 onRemove: () => setValue({ ...value, subareaId: null }),
               },
             ]
