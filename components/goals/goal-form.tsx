@@ -12,12 +12,12 @@ import { FIELD_HEIGHT_CLASS } from "@/components/ui/field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { OptionSelect } from "@/components/ui/option-select";
 import { PageTitle } from "@/components/ui/typography";
+import { localToday } from "@/lib/format-date";
 import {
   END_DATE_MESSAGES,
   END_DATE_MISSING_MESSAGE,
   END_DATE_ORDER_MESSAGE,
   END_DATE_PAST_MESSAGE,
-  goalToday,
   goalWindow,
   type GoalInput,
 } from "@/lib/goals";
@@ -162,7 +162,7 @@ export function GoalForm({
   onSave,
   onCancel,
   initialRepeat = "none",
-  today = goalToday(new Intl.DateTimeFormat().resolvedOptions().timeZone),
+  today = localToday(),
   onPendingChange,
   onStepChange,
   nextGrades = NO_GRADE_HISTORY,

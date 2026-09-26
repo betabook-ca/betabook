@@ -12,6 +12,7 @@ import { OptionSelect } from "@/components/ui/option-select";
 import { QueryInput } from "@/components/ui/query-input";
 import type { OpenProject } from "@/db/queries";
 import { useMounted } from "@/hooks/use-mounted";
+import { localToday } from "@/lib/format-date";
 
 type ProjectBoardVariant = "open" | "sent";
 
@@ -116,7 +117,7 @@ export function ProjectBoard({
   const mounted = useMounted();
   // Resolved on the client only: the server has no reader timezone, and a
   // date that disagreed across the hydration boundary would be a mismatch.
-  const today = mounted ? new Intl.DateTimeFormat("en-CA").format(new Date()) : null;
+  const today = mounted ? localToday() : null;
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();

@@ -5,6 +5,7 @@ import { Share2 } from "lucide-react";
 
 import { ShareTripDialog, type TripShare } from "@/components/trips/share-trip-dialog";
 import { useMounted } from "@/hooks/use-mounted";
+import { localToday } from "@/lib/format-date";
 import { describeShareExpiry, isShareExpired } from "@/lib/share-expiry";
 
 /** The Share control in a trip's header, and the chip that says whether a link
@@ -27,7 +28,7 @@ export function TripShareControls({
 }) {
   const state = useOverlayState();
   const mounted = useMounted();
-  const today = mounted ? new Intl.DateTimeFormat("en-CA").format(new Date()) : null;
+  const today = mounted ? localToday() : null;
   const liveShare = share && !isShareExpired(share.expiresAt, today) ? share : null;
 
   return (
