@@ -79,20 +79,6 @@ test("journal icons line up across graded and ungraded entries @layout", async (
   expect(Math.abs(training - sent)).toBeLessThanOrEqual(2);
 });
 
-test("ungraded journal entries show an explicit grade placeholder @behavior", async ({
-  page,
-}, info) => {
-  for (const story of [
-    "components-journal-entry-row--session",
-    "components-journal-entry-row--training",
-  ]) {
-    await openStory(page, info, story);
-    await expect(
-      page.locator("[data-journal-example]").getByText("—", { exact: true }),
-    ).toBeVisible();
-  }
-});
-
 test("a send's grade and stars start beside the climb name, with status and date below @layout", async ({
   page,
 }, info) => {

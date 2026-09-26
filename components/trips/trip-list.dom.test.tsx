@@ -1,6 +1,6 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { deleteTrip, saveTrip } from "@/actions";
 import type { TripSummary } from "@/db/queries";
@@ -57,6 +57,7 @@ beforeEach(() => {
   vi.mocked(saveTrip).mockReset();
   refresh.mockReset();
 });
+afterEach(() => vi.useRealTimers());
 
 it("offers exactly one way to start a trip, wherever the list stands", () => {
   const { rerender } = render(<TripList trips={[]} userId="alex" today={TODAY} />);
@@ -137,7 +138,13 @@ it("keeps the trip listed and shows the reason when the delete is refused", asyn
 
 it("reopens an edited trip showing what was saved, not what it used to say", async () => {
   const user = userEvent.setup();
-  vi.mocked(saveTrip).mockResolvedValue({ ok: true, value: past.id });
+  let finish!: (result: ActionResult<number>) => void;
+  vi.mocked(saveTrip).mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
   const { rerender } = render(<TripList trips={[past]} userId="alex" today={TODAY} />);
 
   await user.click(screen.getByRole("button", { name: `Actions for ${past.name}` }));
@@ -149,12 +156,17 @@ it("reopens an edited trip showing what was saved, not what it used to say", asy
   await user.click(screen.getByRole("button", { name: "Save changes" }));
   await waitFor(() => expect(saveTrip).toHaveBeenCalled());
 
-  // The server accepted it, so the list re-renders with the saved trip. The
-  // dialog closes on a timer, and its reset reads whichever trip it was last
-  // handed — which is how a stale draft survives into the next session.
+  // The server accepts it, the dialog closes and the list re-renders with the
+  // saved trip. The dialog's reset runs EXIT_SETTLE_MS later and reads
+  // whichever trip it was last handed — which is how a stale draft survives
+  // into the next session. Testing Library's waits drain through a real
+  // setTimeout, so the clock is faked only around the close and the reset.
+  vi.useFakeTimers();
+  await act(async () => finish({ ok: true, value: past.id }));
   const saved = { ...past, name: "Bishop, take two" };
   rerender(<TripList trips={[saved]} userId="alex" today={TODAY} />);
-  await new Promise((resolve) => setTimeout(resolve, 400));
+  await act(() => vi.advanceTimersByTimeAsync(300));
+  vi.useRealTimers();
 
   await user.click(screen.getByRole("button", { name: `Actions for ${saved.name}` }));
   await user.click(await screen.findByRole("menuitem", { name: "Edit" }));

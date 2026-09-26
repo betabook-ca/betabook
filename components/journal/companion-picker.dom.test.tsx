@@ -74,6 +74,23 @@ it("filters selected identities out of suggestions and rejects interaction durin
   await user.click(remove);
   expect(screen.getByText("2/10 friends")).toBeInTheDocument();
 });
+it("selects a friend from the keyboard, closing the suggestions and keeping focus in the field", async () => {
+  const user = userEvent.setup();
+  const fetcher = vi.fn<LookupFetcher<CompanionOption>>().mockResolvedValue([alex]);
+  render(<Picker fetcher={fetcher} />);
+  const input = screen.getByRole("combobox", { name: "Find a friend to tag" });
+  await user.type(input, "Alex");
+  expect(await screen.findByRole("option", { name: "Alex Rivera" })).toBeInTheDocument();
+  await user.keyboard("{ArrowDown}{Enter}");
+  // The menu must go before the chips move the field, or it hides them.
+  expect(input).toHaveAttribute("aria-expanded", "false");
+  await waitFor(() =>
+    expect(screen.queryByRole("listbox", { hidden: true })).not.toBeInTheDocument(),
+  );
+  expect(input).toHaveValue("");
+  expect(input).toHaveFocus();
+  expect(screen.getByRole("button", { name: "Remove friend Alex Rivera" })).toBeInTheDocument();
+});
 it.each(["Retry", "new query"])(
   "retains selected friends after lookup failure and recovers through %s",
   async (recovery) => {
