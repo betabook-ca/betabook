@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { notFound, permanentRedirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
+import { redirectToCanonicalSlug } from "@/app/canonical-slug";
 import { getPublicAncestorsById, getPublicAreaById } from "@/app/public-catalog-reads";
 import { AreaClimbsSection } from "@/components/area-climbs-section";
 import { AreaCragHeader } from "@/components/area-crag-header";
@@ -33,7 +34,7 @@ import {
 import { buildGradeHistogram } from "@/lib/grade-histogram";
 import { areaDescription, areaJsonLd, areaTitle, locationTrail, pageMetadata } from "@/lib/seo";
 import { getMemberSession } from "@/lib/session";
-import { areaHref, slugify, withQuery } from "@/lib/slug";
+import { areaHref } from "@/lib/slug";
 import type { UrlParamsRecord } from "@/lib/url-params";
 
 import { PublicAreaPage } from "./public-area-page";
@@ -53,12 +54,7 @@ export async function generateMetadata({ params, searchParams }: AreaPageProps):
 
   const area = await getPublicAreaById(areaId);
   if (!area) notFound();
-
-  // Keeps the query so a shared filtered link still lands filtered. Streamed,
-  // this is a 0-second meta refresh, which Google treats as permanent.
-  if ((slug?.join("/") ?? "") !== slugify(area.name)) {
-    permanentRedirect(withQuery(areaHref(area.id, area.name), search));
-  }
+  redirectToCanonicalSlug(slug, area.name, areaHref(area.id, area.name), search);
 
   const ancestors = await getPublicAncestorsById(area.id);
 
@@ -84,16 +80,12 @@ export default async function AreaPage({ params, searchParams }: AreaPageProps) 
   if (!session) {
     const area = await getPublicAreaById(areaId);
     if (!area) notFound();
-    if ((slug?.join("/") ?? "") !== slugify(area.name))
-      permanentRedirect(withQuery(areaHref(area.id, area.name), search));
+    redirectToCanonicalSlug(slug, area.name, areaHref(area.id, area.name), search);
     return <PublicAreaPage area={area} search={search} />;
   }
   const area = await getAreaWithSubtreeSize(db, areaId);
   if (!area) notFound();
-
-  if ((slug?.join("/") ?? "") !== slugify(area.name)) {
-    permanentRedirect(withQuery(areaHref(area.id, area.name), search));
-  }
+  redirectToCanonicalSlug(slug, area.name, areaHref(area.id, area.name), search);
 
   const sort = parseAreaClimbsSort(search);
   const filter = parseAreaClimbsFilter(search);

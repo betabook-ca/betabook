@@ -23,6 +23,7 @@ import type { EditableSend, JournalEntry, SendableClimb } from "@/db/queries";
 import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
 import { latestLoggableDate } from "@/lib/broken-climbs";
+import { localToday } from "@/lib/format-date";
 import type { CompanionOption } from "@/lib/journal-companions";
 import { MAX_COMMENT_LENGTH, type AscentStyle, type GradeFeel } from "@/lib/sends";
 
@@ -43,7 +44,7 @@ export function SendForm({
   companionFetcher,
   onDone,
 }: SendFormProps) {
-  const today = new Intl.DateTimeFormat("en-CA").format(new Date());
+  const today = localToday();
 
   const [ascentStyle, setAscentStyle] = useState<AscentStyle>(existingSend.ascentStyle);
   const [dateSent, setDateSent] = useState(existingSend.dateSent ?? "");
