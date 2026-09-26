@@ -11,9 +11,9 @@ import {
   toActionResult,
   type ActionResult,
 } from "@/lib/action-result";
-import { parseProjectShareExpiry, projectShareExpiryModifier } from "@/lib/project-share";
 import { allowJournalWrite } from "@/lib/rate-limit";
 import { requireSession } from "@/lib/session";
+import { parseShareExpiry, shareExpiryModifier } from "@/lib/share-expiry";
 
 import { afterCommit } from "./post-commit";
 import { revalidateProjectSurfaces } from "./revalidation";
@@ -43,7 +43,7 @@ export async function shareProject(
   return toActionResult(async () => {
     const { user } = await requireSession();
     if (!Number.isSafeInteger(climbId) || climbId < 1) throw new ActionError("Climb not found");
-    const modifier = projectShareExpiryModifier(parseProjectShareExpiry(expiry));
+    const modifier = shareExpiryModifier(parseShareExpiry(expiry));
     if (!(await allowJournalWrite(user.id))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
 
     const db = await getDb();

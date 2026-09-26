@@ -63,7 +63,7 @@ export type TripStatus = "upcoming" | "current" | "past";
  * `today` is the caller's `YYYY-MM-DD` and there is no default. Reading the
  * clock here would put the current date inside a render that runs on the
  * server and again on the client, which is how a card ends up disagreeing with
- * its own hydration — the same rule `isProjectShareExpired` follows. */
+ * its own hydration — the same rule `isShareExpired` follows. */
 export function tripStatus(
   trip: { startDate: string; endDate: string },
   today: string,
