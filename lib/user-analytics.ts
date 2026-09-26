@@ -8,10 +8,45 @@ import type { AscentStyle } from "@/lib/sends";
  * groupings for every grade-axis chart while the volume stats merge. */
 export type DisciplineScope = ClimbType | "all";
 
-export const DISCIPLINE_ORDER: readonly ClimbType[] = ["boulder", "sport", "trad"];
+const DISCIPLINE_ORDER: readonly ClimbType[] = ["boulder", "sport", "trad"];
 
 export function parseDisciplineScope(value: string | undefined): DisciplineScope {
   return value === "boulder" || value === "sport" || value === "trad" ? value : "all";
+}
+
+/** Which discipline an analytics page shows: the requested one when the
+ * climber has logged it, otherwise the one with the most climbing, or null
+ * with nothing logged. Grades only compare within one discipline, so a page
+ * is always scoped to exactly one.
+ *
+ * Volume, not days. Sessions arrive grouped by (entry_date, climb_type) with a
+ * `count`, so counting rows would rank a discipline by how many days it
+ * appeared on — opening a trip with one big sport day on Bouldering because
+ * two boulder days had one climb each. Sends stand in only when the viewer
+ * cannot read the journal. */
+export function resolveDisciplineScope({
+  rows,
+  sessions,
+  requested,
+}: {
+  rows: readonly { climbType: ClimbType }[];
+  sessions?: readonly AnalyticsJournalSession[];
+  requested: DisciplineScope;
+}): { present: ClimbType[]; scope: ClimbType | null } {
+  const present = DISCIPLINE_ORDER.filter(
+    (type) =>
+      rows.some((row) => row.climbType === type) ||
+      sessions?.some((entry) => entry.climbType === type),
+  );
+  const volume = (type: ClimbType) =>
+    sessions
+      ? sessions
+          .filter((entry) => entry.climbType === type)
+          .reduce((total, entry) => total + (entry.count ?? 1), 0)
+      : rows.filter((row) => row.climbType === type).length;
+  const dominant = [...present].sort((a, b) => volume(b) - volume(a))[0];
+  const scope = requested !== "all" && present.includes(requested) ? requested : (dominant ?? null);
+  return { present, scope };
 }
 
 type HardestSend = {

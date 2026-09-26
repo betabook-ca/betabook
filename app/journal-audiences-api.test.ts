@@ -25,16 +25,10 @@ vi.mock("next/navigation", () => ({
   },
 }));
 vi.mock("@/app/users/[id]/journal-view", () => ({ JournalView: () => null }));
-vi.mock("@/app/users/[id]/profile-shell", async () => {
-  const { getDb } = await import("@/db/client");
-  const { getUser, canReadJournal } = await import("@/db/queries");
-  return {
-    ProfileHeader: () => null,
-    getUserById: async (id: string) => getUser(await getDb(), id),
-    canReadUserJournal: async (id: string, viewerId: string | null) =>
-      canReadJournal(await getDb(), id, viewerId),
-  };
-});
+vi.mock("@/app/users/[id]/profile-shell", async (original) => ({
+  ...(await original<typeof import("@/app/users/[id]/profile-shell")>()),
+  ProfileHeader: () => null,
+}));
 vi.mock("@/lib/session", () => ({
   getSession: async () => (state.viewer ? { user: { id: state.viewer } } : null),
   getMemberSession: async () => (state.viewer ? { user: { id: state.viewer } } : null),

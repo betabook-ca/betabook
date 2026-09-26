@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { ProfileHeader, getUserById } from "@/app/users/[id]/profile-shell";
+import { ProfileHeader, memberMetadata, resolveProfilePage } from "@/app/users/[id]/profile-shell";
 import { ProjectsView } from "@/app/users/[id]/projects-view";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
-import { getMemberSession } from "@/lib/session";
 
 type UserProjectsPageProps = {
   params: Promise<{ id: string }>;
@@ -12,23 +11,18 @@ type UserProjectsPageProps = {
 
 export async function generateMetadata({ params }: UserProjectsPageProps): Promise<Metadata> {
   const { id } = await params;
-  const session = await getMemberSession();
-  if (!session) return { title: "Member content", robots: { index: false } };
-  const user = await getUserById(id);
-  if (!user || session.user.id !== user.id) notFound();
-
-  return { title: `${user.name} · Projects`, robots: { index: false } };
+  return memberMetadata(await resolveProfilePage(id, "owner"), (user) => `${user.name} · Projects`);
 }
 
 export default async function UserProjectsPage({ params }: UserProjectsPageProps) {
   const { id } = await params;
-  const session = await getMemberSession();
-  if (!session) return <CurrentPageAuthCallout />;
-  const user = await getUserById(id);
-  if (!user || session.user.id !== user.id) notFound();
+  const resolved = await resolveProfilePage(id, "owner");
+  if (!resolved.signedIn) return <CurrentPageAuthCallout />;
+  if (!resolved.ok) notFound();
+  const { user, viewerId } = resolved;
 
   return (
-    <ProfileHeader user={user} viewerId={session.user.id} workspace="progress">
+    <ProfileHeader user={user} viewerId={viewerId} workspace="progress">
       <ProjectsView ownerId={user.id} />
     </ProfileHeader>
   );
