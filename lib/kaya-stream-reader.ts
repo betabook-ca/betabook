@@ -1,6 +1,6 @@
 import { apiFetch } from "@/lib/api-client";
 import { MAX_IMPORT_FILE_BYTES } from "@/lib/sends-import";
-import { SUPPORT_EMAIL } from "@/lib/support";
+import { importCsvFallback, importTooLargeMessage } from "@/lib/support";
 
 async function responseError(response: Response) {
   const result: unknown = await response.json();
@@ -52,7 +52,7 @@ export async function readKayaStream(
       bytes += value.byteLength;
       if (bytes > MAX_IMPORT_FILE_BYTES + 1024 * 1024)
         throw new Error(
-          `This KAYA history is too large. Email ${SUPPORT_EMAIL} for help importing it.`,
+          importTooLargeMessage("KAYA history", importCsvFallback("KAYA", "logbook")),
         );
       buffer += decoder.decode(value, { stream: true });
       let newline: number;

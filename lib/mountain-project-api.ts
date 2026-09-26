@@ -138,7 +138,7 @@ export async function fetchMountainProjectTicks(
     userId = parseMountainProjectUserId(input);
   } catch (error) {
     throw new MountainProjectError(
-      error instanceof Error ? error.message : "Enter your Mountain Project user ID.",
+      error instanceof ActionError ? error.message : "Enter your Mountain Project user ID.",
       400,
     );
   }

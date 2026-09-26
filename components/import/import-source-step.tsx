@@ -4,6 +4,7 @@ import { clsx } from "clsx";
 import { Upload } from "lucide-react";
 import { useRef, useState } from "react";
 
+import { OptionSelect } from "@/components/ui/option-select";
 import { SegmentedButtons } from "@/components/ui/segmented-buttons";
 import { MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS, type ParsedCsv } from "@/lib/sends-import";
 
@@ -45,11 +46,22 @@ export function ImportSourceStep({
     <div className="flex flex-col gap-5">
       <fieldset className="flex min-w-0 flex-col gap-2">
         <legend className="mb-2 text-sm font-medium">Import from</legend>
+        {/* Four labels outgrow a phone-width card as a button row, so the
+         * same choice is a select below md. */}
+        <OptionSelect
+          ariaLabel="Import from"
+          value={source}
+          onChange={setSource}
+          options={SOURCES}
+          isDisabled={locked}
+          className="md:hidden"
+        />
         <SegmentedButtons
           value={source}
           onChange={setSource}
           options={SOURCES}
           isDisabled={locked}
+          className="hidden md:flex"
         />
       </fieldset>
       {source === "sendage" && (

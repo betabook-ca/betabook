@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 
-import { seedSocialData } from "./seed-social.ts";
+import { JOURNAL_TOUR_VERSION, seedSocialData } from "./seed-social.ts";
 
 const filename = process.argv[2];
 if (!filename) throw new Error("Pass a disposable SQLite database path");
@@ -33,7 +33,7 @@ try {
   const expectedTours = [
     ["climber13@example.com", 1, "completed"],
     ["climber14@example.com", 1, "dismissed"],
-    ["climber15@example.com", 2, "completed"],
+    ["climber15@example.com", JOURNAL_TOUR_VERSION, "completed"],
     ["climber16@example.com", null, null],
   ];
   assert.deepEqual(tourProgress(), expectedTours);

@@ -13,11 +13,14 @@ type Options<T, Meta> = {
   initialHasMore: boolean;
   initialMeta: Meta;
   itemKey: (item: T) => string | number;
+  /** `meta` is the cursor of the list being extended: the hook's own during a
+   * load, or the refreshed snapshot's while a replay re-walks loaded pages. */
   fetchPage: (
     offset: number,
     page: number,
     lastItem: T | undefined,
     signal: AbortSignal,
+    meta: Meta,
   ) => Promise<PagedListPage<T, Meta>>;
   mergeMeta: (current: Meta, incoming: Meta) => Meta;
 };
@@ -85,6 +88,7 @@ export function usePagedList<T, Meta>({
             pagesLoaded + 1,
             next.items.at(-1),
             controller.signal,
+            next.meta,
           );
           if (controller.signal.aborted) return;
           next = appendPage(next, page, itemKey, mergeMeta);
@@ -123,6 +127,7 @@ export function usePagedList<T, Meta>({
         state.pagesLoaded + 1,
         state.items.at(-1),
         controller.signal,
+        state.meta,
       );
       if (controller.signal.aborted) return;
       const next = appendPage(state, page, itemKey, mergeMeta);

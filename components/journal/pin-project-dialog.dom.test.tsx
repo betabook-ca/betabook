@@ -206,8 +206,7 @@ it("drops the full filters for plain chips when a keyboard takes the viewport", 
   render(<Example />);
 
   await screen.findByRole("dialog");
-  // The full filter row, not the order control that used to stand in for it
-  // here — a picker has no order control at all now.
+  // Pickers have no order control; ordering belongs to /search.
   expect(screen.getByRole("group", { name: "Filter controls" })).toBeInTheDocument();
 
   viewport.resizeTo(470);

@@ -18,7 +18,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const db = await getDb();
   const area = id === null ? undefined : await getPublicArea(db, id);
   if (!area) return Response.json({ error: "Area not found" }, { status: 404 });
-  const scope = await resolvePublicSubarea(db, area, parseId(search.get("subarea") ?? ""));
+  const scope = await resolvePublicSubarea(db, area, parseId(search.get("subarea")));
   return Response.json(
     await searchPublicClimbs(db, { ...publicCatalogOptions(search), areaId: scope.id }),
   );

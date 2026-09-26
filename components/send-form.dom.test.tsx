@@ -117,6 +117,24 @@ it("edits the original journal details with the send and keeps its date required
   expect(form.get("journalEntryId")).toBe("42");
 });
 
+it("locks every field while the save is in flight", async () => {
+  const { user, save, onDone } = setup();
+  let finish: (result: ActionResult) => void = () => {};
+  save.mockReturnValueOnce(
+    new Promise<ActionResult>((resolve) => {
+      finish = resolve;
+    }),
+  );
+  await user.type(screen.getByRole("textbox", { name: "Notes" }), "Keep this beta");
+  await user.click(screen.getByRole("button", { name: "Save changes" }));
+  expect(screen.getByRole("textbox", { name: "Notes" })).toBeDisabled();
+  expect(screen.getByRole("radio", { name: "Redpoint" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
+  expect(onDone).not.toHaveBeenCalled();
+  finish({ ok: true, value: undefined });
+  await waitFor(() => expect(onDone).toHaveBeenCalledOnce());
+});
+
 it("preserves journal edits after a rejected save and retries", async () => {
   const { user, save, onDone } = setup();
   save.mockResolvedValueOnce({

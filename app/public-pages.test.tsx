@@ -6,13 +6,14 @@ import { beforeEach, expect, it, vi } from "vitest";
 import AreaPage, { generateMetadata as areaMetadata } from "@/app/areas/[id]/[[...slug]]/page";
 import { PublicAreaPage } from "@/app/areas/[id]/[[...slug]]/public-area-page";
 import ClimbPage, { generateMetadata as climbMetadata } from "@/app/climbs/[id]/[[...slug]]/page";
+import { PublicClimbPage } from "@/app/climbs/[id]/[[...slug]]/public-climb-page";
 import UserAnalyticsPage from "@/app/users/[id]/analytics/page";
 import UserJournalPage from "@/app/users/[id]/journal/page";
 import UserPage, { generateMetadata as userMetadata } from "@/app/users/[id]/page";
 import UserSendsPage from "@/app/users/[id]/sends/page";
 import { createDb } from "@/db/client";
 import { getProfileShareToken } from "@/db/queries";
-import { getPublicArea } from "@/db/queries/public-catalog";
+import { getPublicArea, getPublicClimb } from "@/db/queries/public-catalog";
 import { climbs, user } from "@/db/schema";
 import {
   seedFixtureJournalEntry,
@@ -156,7 +157,10 @@ it("renders public route details and anonymized sends in the page and metadata",
     comment: "Private beta sentinel",
   });
   const page = await ClimbPage(climbProps);
-  const serialized = JSON.stringify(page);
+  expect(page.type).toBe(PublicClimbPage);
+  const climb = await getPublicClimb(db, 1);
+  const content = await PublicClimbPage({ climb: climb!, search: {} });
+  const serialized = JSON.stringify(content);
   expect(serialized).toContain("Test Highball");
   expect(serialized).toContain("Public route description sentinel");
   expect(serialized).toContain('"type":"boulder"');
@@ -171,7 +175,7 @@ it("renders public route details and anonymized sends in the page and metadata",
   for (const value of restricted) expect(serialized).not.toContain(value);
   expect(serialized).not.toContain('"userId"');
   expect(serialized).toContain('"dateSent":"2026-07"');
-  const html = renderToStaticMarkup(page);
+  const html = renderToStaticMarkup(content);
   expect(html).toContain("Everyone climber sentinel");
   expect(html).toContain("Everyone beta sentinel");
   expect(html).toContain("Sep 3, 2026");

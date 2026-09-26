@@ -11,6 +11,7 @@ import { InlineAlert } from "@/components/ui/inline-alert";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { Climb } from "@/db/queries";
 import { composeClimbBreakTexts, MAX_BREAK_REASON_LENGTH } from "@/lib/broken-climbs";
+import { localToday } from "@/lib/format-date";
 
 type ClimbBreakDrawerProps = {
   climb: Climb;
@@ -24,7 +25,7 @@ type ClimbBreakDrawerProps = {
  * shown here verbatim, since that exact text is what the request carries. */
 export function ClimbBreakDrawer({ climb, state }: ClimbBreakDrawerProps) {
   const router = useRouter();
-  const today = new Intl.DateTimeFormat("en-CA").format(new Date());
+  const today = localToday();
 
   const [brokenOn, setBrokenOn] = useState(today);
   const [reason, setReason] = useState("");

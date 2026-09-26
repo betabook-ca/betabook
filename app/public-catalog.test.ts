@@ -11,16 +11,18 @@ import type { PublicClimbsPage } from "@/lib/public-catalog";
 import { seedFixtureTree } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
 
+const binding = vi.hoisted(() => ({ d1: null as D1Database | null }));
 vi.mock("@/db/client", async (original) => {
   const actual = await original<typeof import("@/db/client")>();
   const { env } = await import("cloudflare:test");
-  return { ...actual, getDb: async () => actual.createDb(env.DB) };
+  return { ...actual, getDb: async () => actual.createDb(binding.d1 ?? env.DB) };
 });
 const db = createDb(env.DB);
 const request = (query: string) =>
   new Request(`https://betabook.ca/api/public/search/climbs?${query}`);
 const context = (id: string) => ({ params: Promise.resolve({ id }) });
 beforeEach(async () => {
+  binding.d1 = null;
   await resetDb(db);
   await seedFixtureTree(db);
 });
@@ -161,6 +163,29 @@ it("keeps area lists inside the requested subtree, including invalid subarea sel
   expect((await read("subarea=4", "1")).climbs.map((row) => row.id)).toEqual([1]);
   expect((await read("subarea=10&areaId=10")).climbs.map((row) => row.id)).toEqual([1, 2]);
   expect((await areaClimbs(request(""), context("missing"))).status).toBe(404);
+});
+it("looks a subarea up only when one is requested", async () => {
+  // The real binding, observed: every statement still runs against D1.
+  const prepared: string[] = [];
+  binding.d1 = new Proxy(env.DB, {
+    get(target, property) {
+      if (property === "prepare")
+        return (query: string) => {
+          prepared.push(query);
+          return target.prepare(query);
+        };
+      const value = Reflect.get(target, property, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+  const statements = async (query: string) => {
+    prepared.length = 0;
+    expect((await areaClimbs(request(query), context("2"))).status).toBe(200);
+    return prepared.length;
+  };
+  const unscoped = await statements("subarea=2");
+  expect(await statements("subarea=4")).toBeGreaterThan(unscoped);
+  expect(await statements("")).toBe(unscoped);
 });
 it("narrows public climbs by discipline, alone and combined", async () => {
   const read = async (query: string) =>

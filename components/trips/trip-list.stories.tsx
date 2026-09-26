@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { mocked, userEvent, within } from "storybook/test";
 
+import { deleteTrip } from "@/actions";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 import { TRIPS_TODAY, currentTrip, tripSamples } from "@/stories/fixtures/trips";
 
@@ -47,4 +49,30 @@ export const Empty: Story = {
       <TripList {...args} />
     </StoryPage>
   ),
+};
+
+/** The server refused the delete: the dialog stays open with the reason, so
+ * the climber can retry or keep the trip. */
+export const DeleteFails: Story = {
+  args: { trips: tripSamples },
+  beforeEach: () => {
+    mocked(deleteTrip).mockResolvedValue({
+      ok: false,
+      error: "Too many changes — try again in a minute",
+    });
+    return () => mocked(deleteTrip).mockReset();
+  },
+  render: (args) => (
+    <StoryPage title="Trips">
+      <TripList {...args} />
+    </StoryPage>
+  ),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(page.getByRole("button", { name: "Actions for Squamish, July 2026" }));
+    await userEvent.click(await page.findByRole("menuitem", { name: "Delete" }));
+    const dialog = within(await page.findByRole("alertdialog"));
+    await userEvent.click(dialog.getByRole("button", { name: "Delete" }));
+    await dialog.findByRole("alert");
+  },
 };

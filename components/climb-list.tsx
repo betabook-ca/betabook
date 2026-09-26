@@ -61,10 +61,11 @@ export function ClimbList({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col divide-y divide-separator">
+      <ul role="list" className="flex flex-col divide-y divide-separator">
         {climbs.map((climb) => (
           <ListRow
             key={climb.id}
+            as="li"
             leading={
               sentClimbIds && <ClimbSentIndicator climb={climb} sent={sentClimbIds.has(climb.id)} />
             }
@@ -109,7 +110,7 @@ export function ClimbList({
             }
           />
         ))}
-      </div>
+      </ul>
       {loadMoreBlock}
     </div>
   );

@@ -12,7 +12,7 @@ import { ShareProjectDialog } from "@/components/journal/share-project-dialog";
 import { AppLink } from "@/components/ui/app-link";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { JournalEntry, PinnedProject } from "@/db/queries";
-import { describeProjectShare, isProjectShareExpired } from "@/lib/project-share";
+import { describeShareExpiry, isShareExpired } from "@/lib/share-expiry";
 import { climbHref } from "@/lib/slug";
 
 /** A tracked project with the sessions the server preloaded for it. */
@@ -47,7 +47,7 @@ export function ProjectCard({
   // decide this during the server render too, and a link expiring between the
   // two would hydrate into a different card than it rendered as.
   const liveShare =
-    project.share && !isProjectShareExpired(project.share.expiresAt, today) ? project.share : null;
+    project.share && !isShareExpired(project.share.expiresAt, today) ? project.share : null;
 
   function handleUntrack() {
     if (pending) return;
@@ -96,7 +96,7 @@ export function ProjectCard({
             {liveShare ? "Shared" : "Share"}
           </Button>
           {liveShare && (
-            <span className="text-xs text-muted">{describeProjectShare(liveShare.expiresAt)}</span>
+            <span className="text-xs text-muted">{describeShareExpiry(liveShare.expiresAt)}</span>
           )}
           {/* Held back until the client clock is known. The dialog seeds its
            * state from `share` on mount and keeps it, so mounting it while

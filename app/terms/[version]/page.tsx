@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { TermsContent } from "@/components/terms-content";
 import { AppLink } from "@/components/ui/app-link";
+import { READING_MAX_WIDTH_CLASS } from "@/components/ui/layout";
 import { pageMetadata } from "@/lib/seo";
 import { getTermsVersion, TERMS_VERSIONS, termsHref } from "@/lib/terms";
 
@@ -30,9 +31,9 @@ export default async function ArchivedTermsPage({
   const entry = getTermsVersion((await params).version);
   if (!entry) notFound();
   return (
-    <div className="flex flex-col gap-6">
+    <div className={`mx-auto flex w-full ${READING_MAX_WIDTH_CLASS} flex-col gap-6`}>
       <TermsContent version={entry.version} />
-      <div className="mx-auto w-full max-w-2xl">
+      <div>
         <AppLink href="/terms">Current terms and published versions</AppLink>
       </div>
     </div>

@@ -605,6 +605,48 @@ describe("updateJournalEntry", () => {
   });
 });
 
+describe("invalid record ids", () => {
+  async function seedKept() {
+    await seedFixtureJournalEntry(db, {
+      userId: "j-user",
+      entryDate: "2026-03-01",
+      body: "Kept.",
+    });
+    return entriesFor("j-user");
+  }
+
+  it.each([0, -1, 1.5, Number.NaN])("rejects %s before it reaches a query", async (id) => {
+    const before = await seedKept();
+
+    expect(await updateJournalEntry(id, entryFormData({ body: "Changed." }))).toEqual({
+      ok: false,
+      error: "Entry not found",
+    });
+    expect(await deleteJournalEntry(id)).toEqual({ ok: false, error: "Entry not found" });
+    expect(await getSendEditorData({ sendId: id })).toEqual({
+      ok: false,
+      error: "Send not found",
+    });
+    expect(await getSendEditorData({ entryId: id })).toEqual({
+      ok: false,
+      error: "This entry is no longer linked to a send — refresh and try again",
+    });
+    expect(await entriesFor("j-user")).toEqual(before);
+  });
+
+  it("rejects a string id even where SQLite's affinity would match it to a row", async () => {
+    const [entry] = await seedKept();
+    const id = String(entry.id) as unknown as number;
+
+    expect(await updateJournalEntry(id, entryFormData({ body: "Changed." }))).toEqual({
+      ok: false,
+      error: "Entry not found",
+    });
+    expect(await deleteJournalEntry(id)).toEqual({ ok: false, error: "Entry not found" });
+    expect(await entriesFor("j-user")).toMatchObject([{ body: "Kept." }]);
+  });
+});
+
 describe("deleteJournalEntry", () => {
   it("takes the send with the session that carries the ascent", async () => {
     await createJournalEntry(ascentFormData());

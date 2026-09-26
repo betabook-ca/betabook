@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@heroui/react";
 import { useEffect, useRef, useState } from "react";
 
 import { AppLink } from "@/components/ui/app-link";
@@ -55,12 +56,12 @@ export function GoalItems({
         periodEnd: goal.periodEnd,
       });
       const res = await apiFetch(`/api/users/${ownerId}/goals?${params}`);
-      if (!res.ok) throw new Error("Could not load this goal’s items. Close and reopen to retry.");
+      if (!res.ok) throw new Error("Couldn't load this goal's items.");
       const data = (await res.json()) as { items: GoalContribution[] };
       if (request === requestId.current) setItems(data.items);
     } catch (cause) {
       if (request === requestId.current)
-        setError(cause instanceof Error ? cause.message : "Could not load items.");
+        setError(cause instanceof Error ? cause.message : "Couldn't load items.");
     }
   }
   return (
@@ -71,7 +72,20 @@ export function GoalItems({
         onExpandedChange={toggle}
       >
         {error ? (
-          <InlineAlert>{error}</InlineAlert>
+          <InlineAlert
+            action={
+              <Button
+                size="sm"
+                onPress={() => {
+                  void toggle(true);
+                }}
+              >
+                Try again
+              </Button>
+            }
+          >
+            {error}
+          </InlineAlert>
         ) : items === null ? (
           <p className="text-xs text-muted">Loading…</p>
         ) : (

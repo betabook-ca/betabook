@@ -24,7 +24,7 @@ export function DeleteAccountButton() {
             router.push("/");
             router.refresh();
           },
-          onError: (ctx) => setError(ctx.error.message ?? "Could not delete your account"),
+          onError: (ctx) => setError(ctx.error.message ?? "Couldn't delete your account."),
           onResponse: () => setPending(false),
         },
       });

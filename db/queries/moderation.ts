@@ -3,8 +3,21 @@ import { eq, sql, type SQL } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import type { Area } from "@/db/queries/areas";
 import { adminAreaScopes, areas, changeRequests, climbs } from "@/db/schema";
+import type { ChangeRequestPayload, ChangeRequestType } from "@/lib/moderation";
 
 export type ChangeRequest = typeof changeRequests.$inferSelect;
+
+/** The stored JSON is untyped, so the row's type discriminator vouches for the
+ * shape the caller names; every consumer shares this one reading of it. */
+export function readChangeRequestPayload<T extends ChangeRequestType>(
+  request: Pick<ChangeRequest, "type" | "payload">,
+  type: T,
+): ChangeRequestPayload[T] {
+  if (request.type !== type) {
+    throw new Error(`Expected a ${type} request, got ${request.type}`);
+  }
+  return JSON.parse(request.payload) as ChangeRequestPayload[T];
+}
 
 export type RequestScope = { request: ChangeRequest; scopeAreaIds: number[] };
 type ReviewQueueCursor = { requestedAt: number; id: number };
@@ -20,20 +33,21 @@ export function moderationAuthorizedSql(
     requireAll = true,
   }: { approvalRequestId?: number; requireAll?: boolean } = {},
 ): SQL {
-  const payload = JSON.parse(request.payload);
   const requiredAreas = [
     request.type.startsWith("area_")
       ? sql`SELECT (SELECT id FROM areas WHERE id = ${request.entityId})`
       : sql`SELECT (SELECT area_id FROM climbs WHERE id = ${request.entityId})`,
   ];
-  if (request.type === "area_reparent")
-    requiredAreas.push(sql`SELECT (SELECT id FROM areas WHERE id = ${payload.newParentId})`);
-  else if (request.type === "climb_move")
-    requiredAreas.push(sql`SELECT (SELECT id FROM areas WHERE id = ${payload.newAreaId})`);
-  else if (request.type === "climb_merge")
-    requiredAreas.push(
-      sql`SELECT (SELECT area_id FROM climbs WHERE id = ${payload.targetClimbId})`,
-    );
+  if (request.type === "area_reparent") {
+    const { newParentId } = readChangeRequestPayload(request, "area_reparent");
+    requiredAreas.push(sql`SELECT (SELECT id FROM areas WHERE id = ${newParentId})`);
+  } else if (request.type === "climb_move") {
+    const { newAreaId } = readChangeRequestPayload(request, "climb_move");
+    requiredAreas.push(sql`SELECT (SELECT id FROM areas WHERE id = ${newAreaId})`);
+  } else if (request.type === "climb_merge") {
+    const { targetClimbId } = readChangeRequestPayload(request, "climb_merge");
+    requiredAreas.push(sql`SELECT (SELECT area_id FROM climbs WHERE id = ${targetClimbId})`);
+  }
 
   return sql`EXISTS (
     WITH RECURSIVE required(area_id) AS (${sql.join(requiredAreas, sql` UNION `)}),
@@ -115,10 +129,15 @@ export async function getModerationFacts(db: Database, requests: ChangeRequest[]
   const areaIds = new Set<number>();
   for (const request of requests) {
     (request.type.startsWith("area_") ? areaIds : climbIds).add(request.entityId);
-    const payload = JSON.parse(request.payload);
-    if (request.type === "climb_merge") climbIds.add(payload.targetClimbId);
-    if (request.type === "climb_move") areaIds.add(payload.newAreaId);
-    if (request.type === "area_reparent") areaIds.add(payload.newParentId);
+    if (request.type === "climb_merge") {
+      climbIds.add(readChangeRequestPayload(request, "climb_merge").targetClimbId);
+    }
+    if (request.type === "climb_move") {
+      areaIds.add(readChangeRequestPayload(request, "climb_move").newAreaId);
+    }
+    if (request.type === "area_reparent") {
+      areaIds.add(readChangeRequestPayload(request, "area_reparent").newParentId);
+    }
   }
   const climbRows = climbIds.size
     ? await db

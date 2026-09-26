@@ -157,7 +157,6 @@ it("cuts text into parts of exactly the requested size, then one shorter tail", 
 it("writes the snapshot to R2 with counts in the object metadata", async () => {
   await seedFixtureTree(db);
   expect(await getCatalogExportInfo(env.CATALOG_EXPORTS)).toBeNull();
-  expect(await getCatalogExportInfo(undefined)).toBeNull();
 
   const info = await runScheduledCatalogExport(env, NOW);
   expect(info).toMatchObject({

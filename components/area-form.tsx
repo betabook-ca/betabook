@@ -75,6 +75,44 @@ export function AreaForm({ parentId: fixedParentId, area, onDone }: AreaFormProp
   if (area) {
     return (
       <form onSubmit={handleSubmit} className={SURFACE_CARD_CLASS}>
+        <fieldset disabled={pending} className="contents">
+          <TextField className="w-full" value={description} onChange={setDescription}>
+            <Label>Description</Label>
+            <TextArea placeholder="Describe the area…" rows={6} />
+          </TextField>
+
+          {error && <InlineAlert>{error}</InlineAlert>}
+
+          <Button type="submit" isDisabled={pending} className="self-start">
+            Save changes
+          </Button>
+        </fieldset>
+      </form>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className={SURFACE_CARD_CLASS}>
+      {/* onDone closes the dialog, so edits made mid-save would be lost. */}
+      <fieldset disabled={pending} className="contents">
+        {fixedParentId == null && (
+          <div className="flex flex-col gap-2">
+            <AreaPicker
+              isRequired
+              label="Parent area"
+              selected={pickedParent}
+              onSelectedChange={setPickedParent}
+              isInvalid={parentInvalid}
+              validationError={parentInvalid ? "Select a parent area." : undefined}
+            />
+          </div>
+        )}
+
+        <TextField className={FIELD_WIDTH_CLASS.long} value={name} onChange={setName} isRequired>
+          <Label>Name</Label>
+          <Input />
+        </TextField>
+
         <TextField className="w-full" value={description} onChange={setDescription}>
           <Label>Description</Label>
           <TextArea placeholder="Describe the area…" rows={6} />
@@ -82,43 +120,10 @@ export function AreaForm({ parentId: fixedParentId, area, onDone }: AreaFormProp
 
         {error && <InlineAlert>{error}</InlineAlert>}
 
-        <Button type="submit" isDisabled={pending} className="self-start">
-          Save changes
+        <Button type="submit" isDisabled={pending || !trimmedName} className="self-start">
+          Add area
         </Button>
-      </form>
-    );
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className={SURFACE_CARD_CLASS}>
-      {fixedParentId == null && (
-        <div className="flex flex-col gap-2">
-          <AreaPicker
-            isRequired
-            label="Parent area"
-            selected={pickedParent}
-            onSelectedChange={setPickedParent}
-            isInvalid={parentInvalid}
-            validationError={parentInvalid ? "Select a parent area." : undefined}
-          />
-        </div>
-      )}
-
-      <TextField className={FIELD_WIDTH_CLASS.long} value={name} onChange={setName} isRequired>
-        <Label>Name</Label>
-        <Input />
-      </TextField>
-
-      <TextField className="w-full" value={description} onChange={setDescription}>
-        <Label>Description</Label>
-        <TextArea placeholder="Describe the area…" rows={6} />
-      </TextField>
-
-      {error && <InlineAlert>{error}</InlineAlert>}
-
-      <Button type="submit" isDisabled={pending || !trimmedName} className="self-start">
-        Add area
-      </Button>
+      </fieldset>
     </form>
   );
 }

@@ -53,7 +53,7 @@ it("keeps input and offers retry after a failed download", async () => {
 it("links the support address in a failed download to a prefilled email", async () => {
   vi.mocked(fetchSendageImport).mockRejectedValueOnce(
     new Error(
-      "Sendage returned an unfamiliar data format. Please try again later, or email support@betabook.ca.",
+      "Sendage returned an unfamiliar data format. Export your sends from Sendage as a CSV and upload that file instead, or email support@betabook.ca.",
     ),
   );
   setup();
@@ -63,7 +63,7 @@ it("links the support address in a failed download to a prefilled email", async 
   expect(screen.getByRole("alert")).toContainElement(link);
   expect(link).toHaveAttribute(
     "href",
-    "mailto:support@betabook.ca?subject=Sendage%20import&body=Sendage%20returned%20an%20unfamiliar%20data%20format.%20Please%20try%20again%20later%2C%20or%20email%20support%40betabook.ca.",
+    "mailto:support@betabook.ca?subject=Sendage%20import&body=Sendage%20returned%20an%20unfamiliar%20data%20format.%20Export%20your%20sends%20from%20Sendage%20as%20a%20CSV%20and%20upload%20that%20file%20instead%2C%20or%20email%20support%40betabook.ca.",
   );
 });
 

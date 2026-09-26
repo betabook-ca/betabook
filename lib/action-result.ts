@@ -1,4 +1,5 @@
-import { TERMS_ACCESS_MESSAGE } from "@/lib/terms";
+// Explicit sibling specifier: scripts/ reach this through lib/product-tour.ts under plain node.
+import { TERMS_ACCESS_MESSAGE } from "./terms.ts";
 
 /** Return intentional action failures as data because Next.js redacts uncaught server errors. */
 export type ActionResult<T = void> = { ok: true; value: T } | { ok: false; error: string };
@@ -23,6 +24,9 @@ export const SESSION_EXPIRED_MESSAGE = "Your session has expired — sign in aga
 export const NOT_ADMIN_MESSAGE = "Admins only.";
 
 export const JOURNAL_RATE_LIMIT_MESSAGE = "Too many changes — try again in a minute";
+
+export const PRIVATE_PROFILE_MESSAGE =
+  "Sharing is off while your profile is private — change it in Account settings.";
 
 export const GENERIC_ERROR_MESSAGE = "Something went wrong. Please try again.";
 

@@ -8,7 +8,7 @@ import { useState } from "react";
 import { getAvatarPhoto, getUserInitials } from "@/lib/user-initials";
 
 const AVATAR_SIZE = {
-  xs: { pixels: 24, className: "size-6 text-[0.625rem]" },
+  xs: { pixels: 24, className: "size-6 text-2xs" },
   sm: { pixels: 32, className: "size-8 text-xs" },
   md: { pixels: 48, className: "size-12 text-sm" },
   lg: { pixels: 64, className: "size-16 text-xl" },

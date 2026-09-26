@@ -60,7 +60,7 @@ function BucketColumn({
           <span
             aria-hidden
             className={clsx(
-              "text-[10px] leading-none tabular-nums transition-opacity",
+              "text-2xs leading-none tabular-nums transition-opacity",
               active
                 ? "text-foreground opacity-100"
                 : "text-muted opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100",
@@ -77,7 +77,7 @@ function BucketColumn({
       <span
         aria-hidden
         className={clsx(
-          "h-3 text-[10px] leading-none transition-all duration-150",
+          "h-3 text-2xs leading-none transition-all duration-150",
           active
             ? "font-medium text-foreground underline underline-offset-2"
             : "text-muted group-hover:-translate-y-0.5 group-hover:font-medium group-hover:text-foreground group-focus-visible:-translate-y-0.5 group-focus-visible:font-medium group-focus-visible:text-foreground",

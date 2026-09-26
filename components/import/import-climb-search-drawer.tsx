@@ -5,6 +5,7 @@ import type { UseOverlayStateReturn } from "@heroui/react";
 import { ClimbPicker } from "@/components/climb-picker";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { ClimbCandidate, ClimbWithAreaName } from "@/db/queries";
+import { useCompactViewport } from "@/hooks/use-compact-viewport";
 import { foldClimbName } from "@/lib/import-matching";
 
 export type SearchTarget = {
@@ -14,7 +15,9 @@ export type SearchTarget = {
 };
 
 /** Seeded with the CSV row's climb and area names so a spelling fix is one
- * edit away. A pick becomes that row's climb. */
+ * edit away. A pick becomes that row's climb.
+ *
+ * Fullscreen: with the keyboard up, a sheet would show about two results. */
 export function ImportClimbSearchDrawer({
   state,
   target,
@@ -24,11 +27,13 @@ export function ImportClimbSearchDrawer({
   target: SearchTarget | null;
   onPick: (rowIndex: number, climb: ClimbCandidate) => void;
 }) {
+  const compact = useCompactViewport();
   return (
     <ResponsiveDialog
       state={state}
       title={target ? `Find “${target.climbName}”` : "Find climb"}
       size="lg"
+      presentation="fullscreen"
     >
       {/* Keyed by row so the picker's seeded fields reset per target
        * even if the drawer is reopened before its exit animation
@@ -38,6 +43,7 @@ export function ImportClimbSearchDrawer({
           key={target.rowIndex}
           allowSentClimbs
           showAreaLookup
+          showFilters={!compact}
           initialName={target.climbName}
           initialAreaName={target.areaName ?? ""}
           onPick={(climb, context) => {

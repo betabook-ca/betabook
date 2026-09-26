@@ -51,7 +51,7 @@ export function TermsAcceptanceForm({
         router.refresh();
       }
     } catch {
-      setError("Could not save your agreement. Please try again.");
+      setError("Couldn't save your agreement. Please try again.");
     } finally {
       setPending(false);
     }

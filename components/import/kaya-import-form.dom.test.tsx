@@ -53,7 +53,7 @@ it("keeps input and offers retry after a failed download", async () => {
 it("links the support address in a failed download to a prefilled email", async () => {
   vi.mocked(fetchKayaImport).mockRejectedValueOnce(
     new Error(
-      "This KAYA history is too large for a direct import. Email support@betabook.ca for help importing it.",
+      "This KAYA history is too large for a direct import. Export your logbook from KAYA as a CSV and upload that file instead, or email support@betabook.ca.",
     ),
   );
   setup();
@@ -63,7 +63,7 @@ it("links the support address in a failed download to a prefilled email", async 
   expect(screen.getByRole("alert")).toContainElement(link);
   expect(link).toHaveAttribute(
     "href",
-    "mailto:support@betabook.ca?subject=KAYA%20import&body=This%20KAYA%20history%20is%20too%20large%20for%20a%20direct%20import.%20Email%20support%40betabook.ca%20for%20help%20importing%20it.",
+    "mailto:support@betabook.ca?subject=KAYA%20import&body=This%20KAYA%20history%20is%20too%20large%20for%20a%20direct%20import.%20Export%20your%20logbook%20from%20KAYA%20as%20a%20CSV%20and%20upload%20that%20file%20instead%2C%20or%20email%20support%40betabook.ca.",
   );
 });
 

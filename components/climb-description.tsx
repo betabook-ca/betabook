@@ -9,7 +9,7 @@ import { missingDescriptionMessage } from "@/lib/descriptions";
 
 /** A climb's description, with the pencil that edits it sitting right next to
  * it — same affordance as AreaDescription. Name, discipline, and grade are
- * fixed at creation, so the edit drawer this opens only ever touches the
+ * fixed at creation, so the edit dialog this opens only ever touches the
  * description. */
 export function ClimbDescription({ climb }: { climb: Climb }) {
   const editState = useOverlayState();

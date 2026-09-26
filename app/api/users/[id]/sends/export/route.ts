@@ -4,6 +4,7 @@ import { getDb } from "@/db/client";
 import { getSendsForUserExportPage, type UserSendsExportCursor } from "@/db/queries";
 import { withApiSession } from "@/lib/api-session";
 import { parseId } from "@/lib/parse-id";
+import { ISO_DATE_RE } from "@/lib/sends";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -21,7 +22,7 @@ export const GET = withApiSession(async (session, request: Request, { params }: 
   const afterId = rawAfterId === null ? null : parseId(rawAfterId);
   const rawAfterDate = searchParams.get("afterDate");
   const validAfterDate =
-    rawAfterDate === "null" || (rawAfterDate !== null && /^\d{4}-\d{2}-\d{2}$/.test(rawAfterDate));
+    rawAfterDate === "null" || (rawAfterDate !== null && ISO_DATE_RE.test(rawAfterDate));
   const cursor: UserSendsExportCursor | null =
     afterId === null
       ? null

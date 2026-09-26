@@ -14,6 +14,7 @@ export type SelectOption<V extends string> = { value: V; label: string };
 export function OptionSelect<V extends string>({
   ariaLabel,
   isRequired,
+  isDisabled,
   value,
   onChange,
   options,
@@ -21,6 +22,7 @@ export function OptionSelect<V extends string>({
 }: {
   ariaLabel: string;
   isRequired?: boolean;
+  isDisabled?: boolean;
   value: V;
   onChange: (value: V) => void;
   options: readonly SelectOption<V>[];
@@ -31,6 +33,7 @@ export function OptionSelect<V extends string>({
       <Select
         aria-label={ariaLabel}
         isRequired={isRequired}
+        isDisabled={isDisabled}
         fullWidth
         selectedKey={value}
         onSelectionChange={(key) => {

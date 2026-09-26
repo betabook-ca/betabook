@@ -6,6 +6,7 @@ import { useState, type ReactNode } from "react";
 
 import { DetailsDisclosure } from "@/components/ui/details-disclosure";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
+import { usePagedList } from "@/hooks/use-paged-list";
 import { apiFetch } from "@/lib/api-client";
 import { goalDateLabel } from "@/lib/goal-date-label";
 import { goalWeekSlots } from "@/lib/goal-week-slots";
@@ -318,65 +319,83 @@ function HistoryDisclosure({
   );
 }
 
-export function GoalRecurringHistory({
-  ownerId,
-  goal,
-  today,
-  loadHistory,
-  currentPeriod,
-}: {
+type HistoryProps = {
   ownerId: string;
   goal: GoalProgress;
   today: string;
   currentPeriod?: GoalProgress;
   loadHistory?: (offset: number, anchor?: string) => Promise<GoalHistoryPage>;
-}) {
+};
+
+type HistoryCursor = {
+  anchorMonth?: string;
+  /** Request offset by page: each response hands back the next page's, so a
+   * snapshot refresh re-walks the loaded pages from its own first page. */
+  offsets: Record<number, number>;
+};
+
+export function GoalRecurringHistory(props: HistoryProps) {
+  const history = props.goal.recurring;
+  if (!history || history.total === 0) return null;
+  return <RecurringHistoryPages {...props} history={history} />;
+}
+
+function RecurringHistoryPages({
+  ownerId,
+  goal,
+  history,
+  today,
+  loadHistory,
+  currentPeriod,
+}: HistoryProps & { history: NonNullable<GoalProgress["recurring"]> }) {
   const [expanded, setExpanded] = useState(false);
-  const [anchorMonth, setAnchorMonth] = useState(goal.recurring?.anchorMonth);
-  const [monthOffset, setMonthOffset] = useState(goal.recurring?.nextOffset ?? 0);
-  const [extra, setExtra] = useState<GoalPeriod[]>([]);
-  const [moreAvailable, setMoreAvailable] = useState(goal.recurring?.hasMore ?? false);
-  const [loading, setLoading] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const history = goal.recurring;
-  if (!history) return null;
-  if (history.total === 0) return null;
-  const recent = history.recent;
-  async function more() {
-    setLoading(true);
-    setFailed(false);
-    try {
-      const offset = monthOffset;
-      let page;
-      if (loadHistory) page = await loadHistory(offset, anchorMonth);
-      else {
-        const params = new URLSearchParams({ historyId: String(goal.id), offset: String(offset) });
-        if (anchorMonth) params.set("anchor", anchorMonth);
-        const res = await apiFetch(`/api/users/${ownerId}/goals?${params}`);
-        if (!res.ok) throw new Error(res.statusText);
-        page = (await res.json()) as GoalHistoryPage;
-      }
-      setExtra((current) => [...current, ...page.periods]);
-      setMoreAvailable(page.hasMore);
-      setMonthOffset(page.nextOffset);
-      setAnchorMonth(page.anchorMonth);
-    } catch {
-      setFailed(true);
-    } finally {
-      setLoading(false);
-    }
+  const list = usePagedList<GoalPeriod, HistoryCursor>({
+    initialItems: history.recent,
+    initialHasMore: history.hasMore,
+    initialMeta: { anchorMonth: history.anchorMonth, offsets: { 2: history.nextOffset ?? 0 } },
+    itemKey: (period) => `${period.repeat}-${period.periodStart}-${period.periodEnd}`,
+    mergeMeta: (current, incoming) => ({
+      anchorMonth: incoming.anchorMonth,
+      offsets: { ...current.offsets, ...incoming.offsets },
+    }),
+    fetchPage: async (_offset, page, _last, signal, cursor) => {
+      const next = await fetchHistoryPage(page, signal, cursor);
+      return {
+        items: next.periods,
+        hasMore: next.hasMore,
+        meta: { anchorMonth: next.anchorMonth, offsets: { [page + 1]: next.nextOffset } },
+      };
+    },
+  });
+  async function fetchHistoryPage(
+    page: number,
+    signal: AbortSignal,
+    { anchorMonth, offsets }: HistoryCursor,
+  ): Promise<GoalHistoryPage> {
+    const offset = offsets[page];
+    if (loadHistory) return loadHistory(offset, anchorMonth);
+    const params = new URLSearchParams({ historyId: String(goal.id), offset: String(offset) });
+    if (anchorMonth) params.set("anchor", anchorMonth);
+    const res = await apiFetch(`/api/users/${ownerId}/goals?${params}`, { signal });
+    if (!res.ok) throw new Error(res.statusText);
+    return (await res.json()) as GoalHistoryPage;
   }
   return (
     <HistoryDisclosure expanded={expanded} onExpandedChange={setExpanded}>
       <HistoryMonths
-        periods={[...recent, ...extra]}
+        periods={list.items}
         today={today}
         currentPeriod={currentPeriod}
-        hasMore={moreAvailable}
+        hasMore={list.hasMore}
         recurringEndDate={goal.recurringEndDate}
       />
-
-      {moreAvailable && <LoadMoreButton loading={loading} onPress={more} failed={failed} />}
+      {list.hasMore && (
+        <LoadMoreButton
+          loading={list.loadingMore}
+          onPress={list.loadMore}
+          failed={list.loadMoreFailed}
+        />
+      )}
     </HistoryDisclosure>
   );
 }

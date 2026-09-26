@@ -203,8 +203,8 @@ for (const story of ["missed-goal", "missed-goal-in-history"]) {
       const archive = page.getByRole("button", { name: "Archive goal", exact: true });
       if (story === "missed-goal") {
         await expect(retry).toBeVisible();
-        await expect(retry).toHaveCSS("font-size", "12px");
-        await expect(archive).toHaveCSS("font-size", "12px");
+        await expect(retry).toHaveCSS("font-size", "14px");
+        await expect(archive).toHaveCSS("font-size", "14px");
         await expect(archive).toBeVisible();
         await expect(archive).toHaveCSS("padding-left", "12px");
         await expect(archive).toHaveCSS("padding-right", "12px");

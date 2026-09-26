@@ -80,7 +80,7 @@ export function LoggedGradeHistogram({ type, rows }: { type: ClimbType; rows: Lo
                         />
                       ))}
                     </div>
-                    <span className="pointer-events-none absolute -top-7 left-0 z-10 hidden rounded-md border border-separator bg-surface px-2 py-1 text-[11px] whitespace-nowrap shadow-sm group-hover:block">
+                    <span className="pointer-events-none absolute -top-7 left-0 z-10 hidden rounded-md border border-separator bg-surface px-2 py-1 text-2xs whitespace-nowrap shadow-sm group-hover:block">
                       {breakdown}
                     </span>
                   </div>
@@ -96,7 +96,7 @@ export function LoggedGradeHistogram({ type, rows }: { type: ClimbType; rows: Lo
         })}
       </div>
       {hasFeelSplit && (
-        <p className="flex items-center gap-3 text-[11px] text-muted" aria-hidden>
+        <p className="flex items-center gap-3 text-2xs text-muted" aria-hidden>
           {FEEL_ORDER.map((feel) => (
             <span key={feel} className="flex items-center gap-1.5">
               <span

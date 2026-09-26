@@ -3,7 +3,7 @@ import { ReferenceLine, Bar, CartesianGrid, ComposedChart, Line, XAxis, YAxis } 
 
 import { ChartInspection, ChartHitRegions } from "@/components/chart-inspection";
 import { DISCIPLINE_HUE } from "@/components/ui/discipline-chip";
-import { Eyebrow } from "@/components/ui/eyebrow";
+import { EYEBROW_CLASS } from "@/components/ui/eyebrow";
 import { useChartWidth } from "@/hooks/use-chart-width";
 import { sendChartRows, type ChartSend, type ChartDetailGroup } from "@/lib/chart-details";
 import { formatCount } from "@/lib/format";
@@ -40,7 +40,7 @@ export function AnalyticsFlashChart({
     );
   return (
     <div className="min-w-0" ref={ref}>
-      <Eyebrow className="mb-4">Flash rate by grade</Eyebrow>
+      <h3 className={`mb-4 ${EYEBROW_CLASS}`}>Flash rate by grade</h3>
       {rows.length ? (
         <>
           <div className="mb-2 flex flex-wrap gap-4 text-xs text-muted">

@@ -11,7 +11,7 @@ const meta = {
   args: {
     subject: "Sendage import",
     children:
-      "Sendage returned an unfamiliar data format. Please try again later, or email support@betabook.ca.",
+      "Sendage returned an unfamiliar data format. Export your sends from Sendage as a CSV and upload that file instead, or email support@betabook.ca.",
   },
   decorators: [
     (Story) => (
@@ -37,7 +37,7 @@ export const InWarning: Story = {
   args: {
     subject: "Sendage profile @climber",
     children:
-      "Sendage lists 50 sends, but its activity feed returned 49. Check for missing sends after importing, or email support@betabook.ca.",
+      "Sendage lists 50 sends, but its activity feed returned 49. Check for missing sends after importing. Export your sends from Sendage as a CSV and upload that file instead, or email support@betabook.ca.",
   },
   render: (args) => (
     <InlineAlert status="warning">

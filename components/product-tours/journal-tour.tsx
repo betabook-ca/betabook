@@ -45,12 +45,12 @@ export function JournalTourPage({ section, mode, href, steps }: ProductTourPageP
       ? "progress"
       : section === "Friends" || section === "Feed"
         ? "community"
-        : section === "Search" || section === "Find climbs"
+        : section === "Find climbers" || section === "Find climbs"
           ? undefined
           : "account";
   function content() {
     if (section === "Find climbs") return <DemoClimbSearch />;
-    if (section === "Search") return <DemoClimberSearch feedHref={href("feed")} />;
+    if (section === "Find climbers") return <DemoClimberSearch feedHref={href("feed")} />;
     if (section === "Friends" || section === "Feed")
       return (
         <WorkspaceSection

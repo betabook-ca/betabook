@@ -30,9 +30,9 @@ export const Welcome: Story = {
   args: {
     title: "Welcome to Betabook",
     showLinkUrls: false,
-    text: `Hi Casey,\n\nYour email is verified — welcome to Betabook, a climbing logbook and crag database for keeping the routes you've climbed and the places you climbed them.\n\nSomewhere to start:\n\nAlready tracking sends somewhere else? Export a CSV and bring the whole history across.\n${base}/account/import\n\nSearch for a climb and record your first ascent.\n${base}\n\nBetabook is free, ad-free, and source available. Questions or corrections? Get in touch:\n${base}/contact`,
+    text: `Hi Casey,\n\nYour email is verified — welcome to Betabook, a climbing logbook and crag database for keeping the routes you've climbed and the places you climbed them.\n\nSomewhere to start:\n\nAlready logging sends somewhere else? Export a CSV and bring the whole history across.\n${base}/account/import\n\nSearch for a climb and log your first send.\n${base}\n\nBetabook is free, ad-free, and source available. Questions or corrections? Get in touch:\n${base}/contact`,
     links: [
-      { href: `${base}/account/import`, label: "Import your logbook" },
+      { href: `${base}/account/import`, label: "Import your sends" },
       { href: base, label: "Log your first send" },
       { href: `${base}/contact`, label: "Get in touch" },
     ],

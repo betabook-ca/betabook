@@ -34,6 +34,15 @@ export function formatMonth(yearMonth: string): string {
   return MONTH_FORMAT.format(parsed);
 }
 
+const LOCAL_DATE_FORMAT = new Intl.DateTimeFormat("en-CA");
+
+/** Today as a civil "YYYY-MM-DD" in the runtime's own timezone — the viewer's
+ * on the client, where forms default and cap their date pickers. The server
+ * has no reader timezone; pages resolve today from `cf.timezone` instead. */
+export function localToday(now = new Date()): string {
+  return LOCAL_DATE_FORMAT.format(now);
+}
+
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /** Whole days from one civil date to the other, both read as UTC midnight

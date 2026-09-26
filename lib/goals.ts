@@ -3,7 +3,7 @@ import { z } from "zod";
 import { ActionError } from "@/lib/action-result";
 import { nativeGradeArray, type ClimbType } from "@/lib/grades";
 import { normalizeTags } from "@/lib/journal";
-import { isRealIsoDate } from "@/lib/sends";
+import { isoDateSchema } from "@/lib/sends";
 
 export const END_DATE_ORDER_MESSAGE = "End date must be on or after start date.";
 export const END_DATE_PAST_MESSAGE = "End date must be today or later.";
@@ -16,7 +16,11 @@ export const END_DATE_MESSAGES: ReadonlySet<string> = new Set([
 ]);
 
 export const MAX_ACTIVE_GOALS = 5;
-const isoDate = z.string().refine(isRealIsoDate, "Choose a valid date.");
+
+/** The Goals tab a request names, or null for one the page does not have. */
+export function parseGoalView(value: unknown): "active" | "completed" | null {
+  return value === "active" || value === "completed" ? value : null;
+}
 function validGradeMatch(value: { gradeMatch: string; kind: string; grade: number | null }) {
   return value.gradeMatch === "exact" || (value.kind === "volume" && value.grade !== null);
 }
@@ -54,9 +58,9 @@ export const goalInputSchema = z
     grade: z.number().int().min(0).nullable(),
     gradeMatch: z.enum(["exact", "at-least"]).default("exact"),
     timeframe: z.enum(["week", "month", "year", "custom"]),
-    startDate: isoDate.optional(),
-    endDate: isoDate,
-    recurringEndDate: isoDate.nullable().optional(),
+    startDate: isoDateSchema.optional(),
+    endDate: isoDateSchema,
+    recurringEndDate: isoDateSchema.nullable().optional(),
     repeat: z.enum(["none", "week", "month", "year"]),
     timezone: z
       .string()
@@ -191,7 +195,7 @@ export function goalWindow(
 ) {
   const date = new Date(`${today}T12:00:00Z`);
   if (timeframe === "custom") {
-    if (!isoDate.safeParse(startDate).success || !isoDate.safeParse(endDate).success)
+    if (!isoDateSchema.safeParse(startDate).success || !isoDateSchema.safeParse(endDate).success)
       throw new ActionError("Choose valid start and end dates.");
     if (endDate < startDate) throw new ActionError(END_DATE_ORDER_MESSAGE);
     return { startDate, endDate };

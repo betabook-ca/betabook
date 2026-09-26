@@ -2,9 +2,16 @@ import { env } from "cloudflare:test";
 import { eq } from "drizzle-orm";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createClimb, deleteSend, updateClimb, updateDisplayName, updateSend } from "@/actions";
+import {
+  createClimb,
+  deleteSend,
+  updateArea,
+  updateClimb,
+  updateDisplayName,
+  updateSend,
+} from "@/actions";
 import { createDb } from "@/db/client";
-import { climbs, journalEntries, sends, user } from "@/db/schema";
+import { areas, climbs, journalEntries, sends, user } from "@/db/schema";
 import { SESSION_EXPIRED_MESSAGE } from "@/lib/action-result";
 import { DISPLAY_NAME_TAKEN_MESSAGE } from "@/lib/display-name";
 import { seedFixtureSend, seedFixtureTree, seedFixtureUser } from "@/test/fixtures";
@@ -259,6 +266,37 @@ describe("updateClimb action boundary", () => {
   });
 });
 
+describe("updateArea action boundary", () => {
+  it("returns ok:false when the area doesn't exist", async () => {
+    const formData = new FormData();
+    formData.set("description", "New description");
+    expect(await updateArea(999, formData)).toEqual({ ok: false, error: "Area not found" });
+  });
+
+  it("updates the description, ignoring any other submitted fields", async () => {
+    const formData = new FormData();
+    formData.set("name", "Hacked Name");
+    formData.set("description", "Bolted in 2019.");
+
+    expect(await updateArea(3, formData)).toEqual({ ok: true, value: undefined });
+
+    const row = await db.select().from(areas).where(eq(areas.id, 3)).get();
+    expect(row?.name).toBe("Test Sport Wall");
+    expect(row?.description).toBe("Bolted in 2019.");
+  });
+
+  it("returns the friendly session message when signed out, leaving the area unchanged", async () => {
+    sessionState.userId = null;
+    const formData = new FormData();
+    formData.set("description", "Signed-out edit");
+
+    expect(await updateArea(1, formData)).toEqual({ ok: false, error: SESSION_EXPIRED_MESSAGE });
+
+    const row = await db.select().from(areas).where(eq(areas.id, 1)).get();
+    expect(row).toMatchObject({ name: "Test Crag", description: "A test crag." });
+  });
+});
+
 describe("send ownership", () => {
   it.each(["update", "delete"] as const)(
     "rejects %s of another user's send without changing stored data",
@@ -277,6 +315,19 @@ describe("send ownership", () => {
       expect(await db.select().from(journalEntries).orderBy(journalEntries.id)).toEqual(
         journalBefore,
       );
+    },
+  );
+
+  it.each([0, -1, 1.5, Number.NaN, "1" as unknown as number])(
+    "rejects the invalid send id %s before it reaches a query",
+    async (sendId) => {
+      const before = await db.select().from(sends).orderBy(sends.id);
+      expect(await updateSend(sendId, sendFormData({ comment: "Nope" }))).toEqual({
+        ok: false,
+        error: "Send not found",
+      });
+      expect(await deleteSend(sendId)).toEqual({ ok: false, error: "Send not found" });
+      expect(await db.select().from(sends).orderBy(sends.id)).toEqual(before);
     },
   );
 });

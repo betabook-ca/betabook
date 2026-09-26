@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
@@ -26,6 +26,28 @@ it("selects exactly one discipline and resets the grade when it changes", async 
     nativeGradeArray("boulder")[0],
   );
   expect(screen.getAllByRole("radio", { checked: true })).toHaveLength(1);
+});
+
+it("locks every field while the save is in flight", async () => {
+  const { createClimb } = await import("@/actions");
+  let finish: (result: Awaited<ReturnType<typeof createClimb>>) => void = () => {};
+  vi.mocked(createClimb).mockReturnValue(
+    new Promise((resolve) => {
+      finish = resolve;
+    }),
+  );
+  const onDone = vi.fn<(climbId: number, climbName: string) => void>();
+  const user = userEvent.setup();
+  render(<ClimbForm areaId={1} onDone={onDone} />);
+  await user.type(screen.getByRole("textbox", { name: "Name" }), "Cedar Arete");
+  await user.click(screen.getByRole("button", { name: "Add climb" }));
+  expect(screen.getByRole("textbox", { name: "Name" })).toBeDisabled();
+  expect(screen.getByRole("radio", { name: "Sport" })).toBeDisabled();
+  expect(screen.getByRole("textbox", { name: "Description" })).toBeDisabled();
+  expect(onDone).not.toHaveBeenCalled();
+  finish({ ok: true, value: 5 });
+  await waitFor(() => expect(onDone).toHaveBeenCalledWith(5, "Cedar Arete"));
+  expect(screen.getByRole("textbox", { name: "Name" })).toBeEnabled();
 });
 
 it("announces a failed save as an alert and preserves the form for retry", async () => {

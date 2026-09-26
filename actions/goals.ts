@@ -25,14 +25,15 @@ import {
   type GoalInput,
 } from "@/lib/goals";
 import { allowJournalWrite } from "@/lib/rate-limit";
+import { ISO_DATE_RE } from "@/lib/sends";
 import { requireSession } from "@/lib/session";
+import { requirePositiveId } from "@/lib/validation";
 
 import { afterCommit } from "./post-commit";
 import { revalidateGoalSurfaces } from "./revalidation";
 
 function validateGoalId(id: number | null) {
-  if (id !== null && (!Number.isSafeInteger(id) || id < 1))
-    throw new ActionError("Goal not found.");
+  if (id !== null) requirePositiveId(id, "Goal not found.");
 }
 
 function historyCutoff(
@@ -333,7 +334,7 @@ export async function saveGoal(
 export async function deleteGoal(id: number): Promise<ActionResult> {
   return toActionResult(async () => {
     const session = await requireSession();
-    if (!Number.isSafeInteger(id) || id < 1) throw new ActionError("Goal not found.");
+    validateGoalId(id);
     const db = await getDb();
     const result = await db.get(
       sql`DELETE FROM goals WHERE id = ${id} AND user_id = ${session.user.id} RETURNING id`,
@@ -351,7 +352,7 @@ const acknowledgementSchema = z
   .array(
     z.object({
       id: z.number().int().positive(),
-      periodStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      periodStart: z.string().regex(ISO_DATE_RE),
       repeat: z.enum(["none", "week", "month", "year"]),
     }),
   )

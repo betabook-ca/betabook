@@ -7,8 +7,21 @@ import {
   type DisciplineGradeFilter,
 } from "@/lib/filters/discipline-filter";
 import type { Discipline } from "@/lib/grades";
+import { MAX_PAGINATION_OFFSET } from "@/lib/url-params";
 
 export const PAGE_SIZE = 50;
+
+/** A caller-supplied page size, held between 1 and the largest page any
+ * list query serves; anything that is not an integer reads as `fallback`. */
+export function clampPageSize(pageSize: number, fallback: number): number {
+  return Number.isInteger(pageSize) ? Math.min(50, Math.max(1, pageSize)) : fallback;
+}
+
+/** Offsets saturate at the scan budget rather than reject: the routes have
+ * already answered a past-budget request with an exhausted page. */
+export function clampOffset(offset: number): number {
+  return Number.isInteger(offset) ? Math.min(MAX_PAGINATION_OFFSET, Math.max(0, offset)) : 0;
+}
 
 /** D1 limits LIKE patterns to 50 bytes. Keep an indexed prefix lookup, then
  * compare the full literal prefix when UTF-8 or escaping reaches that limit. */

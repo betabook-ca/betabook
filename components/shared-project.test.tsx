@@ -62,8 +62,7 @@ it("links the climb, which the catalog makes public to everyone", () => {
 });
 
 it("dates a send to the day, not the month it landed in", () => {
-  // The page used to publish a month, to stop a reader picking the owner's
-  // row out of the climb page's anonymous send list. A share overrides that.
+  // A share overrides the month-only date the anonymous climb-page list uses.
   expect(render(SENT)).toContain(formatDate("2026-09-14"));
 });
 

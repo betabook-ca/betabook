@@ -12,6 +12,7 @@ import { OptionSelect } from "@/components/ui/option-select";
 import { QueryInput } from "@/components/ui/query-input";
 import type { OpenProject } from "@/db/queries";
 import { useMounted } from "@/hooks/use-mounted";
+import { localToday } from "@/lib/format-date";
 
 type ProjectBoardVariant = "open" | "sent";
 
@@ -116,7 +117,7 @@ export function ProjectBoard({
   const mounted = useMounted();
   // Resolved on the client only: the server has no reader timezone, and a
   // date that disagreed across the hydration boundary would be a mismatch.
-  const today = mounted ? new Intl.DateTimeFormat("en-CA").format(new Date()) : null;
+  const today = mounted ? localToday() : null;
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -141,12 +142,7 @@ export function ProjectBoard({
        * row would move the button on the climber's first one. Filtering
        * nothing is harmless; losing the action is not. */}
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-        <QueryInput
-          value={query}
-          onChange={setQuery}
-          label="Filter projects"
-          placeholder="Search…"
-        />
+        <QueryInput value={query} onChange={setQuery} label="Filter projects" />
         <div className="flex items-center gap-2">
           <OptionSelect
             ariaLabel="Sort projects"
@@ -168,7 +164,7 @@ export function ProjectBoard({
           }
         />
       ) : visible.length === 0 ? (
-        <EmptyState message="No projects match this search." />
+        <EmptyState message="No projects match this filter." />
       ) : (
         <ul aria-label={sents ? "Sent projects" : "Open projects"} className="flex flex-col gap-3">
           {visible.map((project) => (

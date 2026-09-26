@@ -96,6 +96,89 @@ export function ClimbForm({ areaId: fixedAreaId, climb, initial, onDone }: Climb
   if (climb) {
     return (
       <form onSubmit={handleSubmit} className={SURFACE_CARD_CLASS}>
+        <fieldset disabled={pending} className="contents">
+          <TextField className="w-full" value={description} onChange={setDescription}>
+            <Label>Description</Label>
+            <TextArea placeholder="Describe the climb…" rows={6} />
+          </TextField>
+
+          {error && <InlineAlert>{error}</InlineAlert>}
+
+          <Button type="submit" isDisabled={pending} className="self-start">
+            Save changes
+          </Button>
+        </fieldset>
+      </form>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className={SURFACE_CARD_CLASS}>
+      {/* onDone closes the dialog, so edits made mid-save would be lost. */}
+      <fieldset disabled={pending} className="contents">
+        {fixedAreaId == null && (
+          <div className="flex flex-col gap-2">
+            <AreaPicker
+              isRequired
+              selected={pickedArea}
+              onSelectedChange={setPickedArea}
+              isInvalid={areaInvalid}
+              validationError={areaInvalid ? "Select an area." : undefined}
+              defaultQuery={initial?.areaName}
+            />
+          </div>
+        )}
+
+        <TextField
+          className={FIELD_WIDTH_CLASS.long}
+          value={name}
+          onChange={setName}
+          isInvalid={nameInvalid}
+          isRequired
+          validationBehavior="aria"
+        >
+          <Label>Name</Label>
+          <Input />
+          <FieldFeedback error={nameInvalid ? "Name is required." : null} />
+        </TextField>
+
+        <fieldset>
+          <legend className="mb-2">
+            <Label isRequired>Discipline</Label>
+          </legend>
+          <div className="flex flex-wrap gap-1.5">
+            {(Object.keys(DISCIPLINE_LABELS) as ClimbType[]).map((discipline) => (
+              <label
+                key={discipline}
+                className={`${choicePillClass(type === discipline, DISCIPLINE_CHIP_CLASSNAME[discipline])} has-focus-visible:status-focused`}
+              >
+                <input
+                  type="radio"
+                  name="discipline"
+                  value={discipline}
+                  checked={type === discipline}
+                  onChange={() => handleTypeChange(discipline)}
+                  required
+                  className="sr-only"
+                />
+                {DISCIPLINE_LABELS[discipline]}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <div className="flex flex-col gap-2">
+          <Label isRequired>Grade</Label>
+          <OptionSelect
+            ariaLabel="Grade"
+            isRequired
+            className={FIELD_WIDTH_CLASS.short}
+            value={grade}
+            onChange={setGrade}
+            options={gradeOptions.map((label, i) => ({ value: String(i), label }))}
+          />
+        </div>
+
         <TextField className="w-full" value={description} onChange={setDescription}>
           <Label>Description</Label>
           <TextArea placeholder="Describe the climb…" rows={6} />
@@ -104,87 +187,9 @@ export function ClimbForm({ areaId: fixedAreaId, climb, initial, onDone }: Climb
         {error && <InlineAlert>{error}</InlineAlert>}
 
         <Button type="submit" isDisabled={pending} className="self-start">
-          Save changes
+          Add climb
         </Button>
-      </form>
-    );
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className={SURFACE_CARD_CLASS}>
-      {fixedAreaId == null && (
-        <div className="flex flex-col gap-2">
-          <AreaPicker
-            isRequired
-            selected={pickedArea}
-            onSelectedChange={setPickedArea}
-            isInvalid={areaInvalid}
-            validationError={areaInvalid ? "Select an area." : undefined}
-            defaultQuery={initial?.areaName}
-          />
-        </div>
-      )}
-
-      <TextField
-        className={FIELD_WIDTH_CLASS.long}
-        value={name}
-        onChange={setName}
-        isInvalid={nameInvalid}
-        isRequired
-        validationBehavior="aria"
-      >
-        <Label>Name</Label>
-        <Input />
-        <FieldFeedback error={nameInvalid ? "Name is required." : null} />
-      </TextField>
-
-      <fieldset>
-        <legend className="mb-2">
-          <Label isRequired>Discipline</Label>
-        </legend>
-        <div className="flex flex-wrap gap-1.5">
-          {(Object.keys(DISCIPLINE_LABELS) as ClimbType[]).map((discipline) => (
-            <label
-              key={discipline}
-              className={`${choicePillClass(type === discipline, DISCIPLINE_CHIP_CLASSNAME[discipline])} has-focus-visible:status-focused`}
-            >
-              <input
-                type="radio"
-                name="discipline"
-                value={discipline}
-                checked={type === discipline}
-                onChange={() => handleTypeChange(discipline)}
-                required
-                className="sr-only"
-              />
-              {DISCIPLINE_LABELS[discipline]}
-            </label>
-          ))}
-        </div>
       </fieldset>
-
-      <div className="flex flex-col gap-2">
-        <Label isRequired>Grade</Label>
-        <OptionSelect
-          ariaLabel="Grade"
-          isRequired
-          className={FIELD_WIDTH_CLASS.short}
-          value={grade}
-          onChange={setGrade}
-          options={gradeOptions.map((label, i) => ({ value: String(i), label }))}
-        />
-      </div>
-
-      <TextField className="w-full" value={description} onChange={setDescription}>
-        <Label>Description</Label>
-        <TextArea placeholder="Describe the climb…" rows={6} />
-      </TextField>
-
-      {error && <InlineAlert>{error}</InlineAlert>}
-
-      <Button type="submit" isDisabled={pending} className="self-start">
-        Add climb
-      </Button>
     </form>
   );
 }

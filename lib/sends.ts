@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import { ActionError } from "@/lib/action-result";
 import { nativeGradeArray, type ClimbType } from "@/lib/grades";
 import { MAX_LOG_NOTE_LENGTH } from "@/lib/log-note";
@@ -52,7 +54,9 @@ export type RawSendInput = {
   gradeFeel: FormDataEntryValue | null;
 };
 
-const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** The `YYYY-MM-DD` shape alone. Enough for a key that only has to match
+ * stored dates; user-entered dates go through `isRealIsoDate`. */
+export const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Allow one day past UTC today because the client's calendar date may be ahead. */
 export function latestAcceptableSendDate(todayUtc: string): string {
@@ -91,6 +95,8 @@ export function isRealIsoDate(value: string): boolean {
     parsed.getUTCDate() === day
   );
 }
+
+export const isoDateSchema = z.string().refine(isRealIsoDate, "Choose a valid date.");
 
 function parseDateSent(value: unknown, today: string): string | null {
   if (value === null || value === undefined) return null;

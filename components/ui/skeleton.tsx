@@ -26,7 +26,7 @@ export function Skeleton({ className, tone = "base", rounded = "rounded-md" }: S
   return (
     <div
       aria-hidden="true"
-      className={clsx("animate-pulse", rounded, TONE_CLASSNAME[tone], className)}
+      className={clsx("motion-safe:animate-pulse", rounded, TONE_CLASSNAME[tone], className)}
     />
   );
 }

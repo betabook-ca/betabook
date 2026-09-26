@@ -81,24 +81,26 @@ export function AnalyticsYearNavigation({
   const [optimistic, setOptimistic] = useOptimistic(selected);
   const [pending, startTransition] = useTransition();
   return (
-    <div className="flex flex-col gap-2" aria-busy={pending}>
-      <AnalyticsYearFilter
-        years={years}
-        selected={optimistic}
-        onChange={(next) => {
-          startTransition(() => {
-            setOptimistic(next);
-            const query = new URLSearchParams(search);
-            query.delete("period");
-            if (next.length) query.set("years", next.join(","));
-            else query.delete("years");
-            router.push(`${pathname}?${query}`, { scroll: false });
-          });
-        }}
-      />
+    <div className="flex flex-col gap-2">
       <p role="status" className="sr-only">
         {pending ? "Updating charts…" : ""}
       </p>
+      <div aria-busy={pending}>
+        <AnalyticsYearFilter
+          years={years}
+          selected={optimistic}
+          onChange={(next) => {
+            startTransition(() => {
+              setOptimistic(next);
+              const query = new URLSearchParams(search);
+              query.delete("period");
+              if (next.length) query.set("years", next.join(","));
+              else query.delete("years");
+              router.push(`${pathname}?${query}`, { scroll: false });
+            });
+          }}
+        />
+      </div>
     </div>
   );
 }

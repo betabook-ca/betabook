@@ -20,7 +20,7 @@ import { readCompanionSelection } from "@/lib/journal-companions";
 import { allowJournalWrite } from "@/lib/rate-limit";
 import { validateSendInput, type RawSendInput } from "@/lib/sends";
 import { requireSession } from "@/lib/session";
-import { pickFormFields } from "@/lib/validation";
+import { pickFormFields, requirePositiveId } from "@/lib/validation";
 
 import {
   buildCompanionInsert,
@@ -40,6 +40,7 @@ import { afterCommit } from "./post-commit";
 import { revalidateJournalSurfaces, revalidateSendSurfaces } from "./revalidation";
 import { buildMirroredSendUpdate, buildSendInsert } from "./send-statements";
 
+const ENTRY_NOT_FOUND = "Entry not found";
 const ENTRY_CHANGED_MESSAGE = "The entry changed — refresh and try again";
 
 const JOURNAL_FORM_FIELDS = ["kind", "climbId", "sent", "entryDate", "body"] as const;
@@ -220,10 +221,11 @@ export async function updateJournalEntry(
 ): Promise<ActionResult> {
   return toActionResult(async () => {
     const session = await requireJournalSession();
+    requirePositiveId(entryId, ENTRY_NOT_FOUND);
     const db = await getDb();
 
     const existing = await getJournalEntry(db, entryId, session.user.id);
-    if (!existing) throw new ActionError("Entry not found");
+    if (!existing) throw new ActionError(ENTRY_NOT_FOUND);
 
     const input = validateJournalInput(readJournalFormData(formData));
     if (!input.sent && carriesSendFields(formData)) {
@@ -314,10 +316,11 @@ export async function updateJournalEntry(
 export async function deleteJournalEntry(entryId: number): Promise<ActionResult> {
   return toActionResult(async () => {
     const session = await requireJournalSession();
+    requirePositiveId(entryId, ENTRY_NOT_FOUND);
     const db = await getDb();
 
     const existing = await getJournalEntry(db, entryId, session.user.id);
-    if (!existing) throw new ActionError("Entry not found");
+    if (!existing) throw new ActionError(ENTRY_NOT_FOUND);
 
     const climbId = existing.climbId;
     try {

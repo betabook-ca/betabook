@@ -20,6 +20,10 @@ type ListRowProps = {
   comment?: string | null;
   /** Keep author names readable in activity rows with a fixed outcome column. */
   wrapTitle?: boolean;
+  /** `li` inside a `<ul role="list">` so assistive tech gets item count and
+   * position. The role is explicit because preflight's list-style:none makes
+   * Safari drop list semantics. */
+  as?: "div" | "li";
   className?: string;
 };
 
@@ -35,10 +39,11 @@ export function ListRow({
   actions,
   comment,
   wrapTitle = false,
+  as: Tag = "div",
   className,
 }: ListRowProps) {
   return (
-    <div
+    <Tag
       className={clsx(
         "relative flex flex-col gap-2 px-4 py-3",
         href != null &&
@@ -112,6 +117,6 @@ export function ListRow({
           <ClampedComment>{comment}</ClampedComment>
         </div>
       )}
-    </div>
+    </Tag>
   );
 }

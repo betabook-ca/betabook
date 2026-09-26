@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 
+import { PALETTE_PAPER } from "@/lib/palette";
 import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
 
 export default function manifest(): MetadataRoute.Manifest {
@@ -9,8 +10,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: SITE_DESCRIPTION,
     start_url: "/",
     display: "standalone",
-    background_color: "#eaf7ef",
-    theme_color: "#eaf7ef",
+    background_color: PALETTE_PAPER,
+    theme_color: PALETTE_PAPER,
     icons: [
       {
         src: "/branding/app-icon-192.png",

@@ -79,6 +79,17 @@ it("preserves authenticated resource errors with private caching", async () => {
   expect(forbidden.headers.get("cache-control")).toBe("private, no-store");
 });
 
+it("accepts an export cursor only with a canonical positive send id", async () => {
+  identity.id = "reader";
+  const page = (query: string) =>
+    exportSends(new Request(`https://betabook.ca/api/users/reader/sends/export?${query}`), {
+      params: Promise.resolve({ id: "reader" }),
+    });
+  expect((await page("afterId=1&afterDate=2026-01-01")).status).toBe(200);
+  for (const query of ["afterId=0&afterDate=2026-01-01", "afterId=1e3&afterDate=2026-01-01"])
+    expect((await page(query)).status).toBe(400);
+});
+
 it("keeps unexpected API failures private and omits internal error details", async () => {
   identity.id = "reader";
   const log = vi.spyOn(console, "error").mockImplementation(() => {});

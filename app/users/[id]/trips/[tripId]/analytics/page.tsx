@@ -10,23 +10,20 @@ import {
 } from "@/app/users/[id]/trips/[tripId]/trip-shell";
 import { AnalyticsDashboard } from "@/components/analytics-dashboard";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
+import { DisciplineScopeNav } from "@/components/discipline-scope-nav";
 import { TripHeader } from "@/components/trips/trip-header";
-import { AppLink } from "@/components/ui/app-link";
-import { choicePillClass } from "@/components/ui/choice-pill";
-import { DISCIPLINE_CHIP_CLASSNAME, DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getDb } from "@/db/client";
 import { getJournalSessionsForAnalytics, getUserSendsForAnalytics } from "@/db/queries";
 import { getAnalyticsHighlightSessions } from "@/db/queries/analytics-highlights";
 import { getAnalyticsLayout } from "@/db/queries/analytics-layout";
 import { buildAnalyticsHighlights } from "@/lib/analytics-highlights";
-import type { ClimbType } from "@/lib/grades";
 import { formatTripDates, tripHref } from "@/lib/trips";
 import {
   buildUserAnalytics,
-  DISCIPLINE_ORDER,
   inDateWindow,
   parseDisciplineScope,
+  resolveDisciplineScope,
 } from "@/lib/user-analytics";
 
 const NO_YEARS: number[] = [];
@@ -72,27 +69,13 @@ export default async function TripAnalyticsPage({ params, searchParams }: TripPa
 
   const dates = formatTripDates(trip.startDate, trip.endDate);
 
-  // Grades only compare within one discipline, so the page is always scoped to
-  // one — the same rule the main analytics page follows.
-  const present = DISCIPLINE_ORDER.filter(
-    (type) =>
-      rows.some((row) => row.climbType === type) ||
-      sessions.some((entry) => entry.climbType === type),
-  );
-  const requested = parseDisciplineScope(
-    typeof search.discipline === "string" ? search.discipline : undefined,
-  );
-  // Volume, not days. These rows are already grouped by (entry_date,
-  // climb_type) with a `count`, so counting rows would rank a discipline by
-  // how many days it appeared on — opening a trip with one big sport day on
-  // Bouldering because two boulder days had one climb each. Summing `count`
-  // is the same decision the main analytics page makes.
-  const disciplineVolume = (type: ClimbType) =>
-    sessions
-      .filter((entry) => entry.climbType === type)
-      .reduce((total, entry) => total + entry.count, 0);
-  const dominant = [...present].sort((a, b) => disciplineVolume(b) - disciplineVolume(a))[0];
-  const scope = requested !== "all" && present.includes(requested) ? requested : (dominant ?? null);
+  const { present, scope } = resolveDisciplineScope({
+    rows,
+    sessions,
+    requested: parseDisciplineScope(
+      typeof search.discipline === "string" ? search.discipline : undefined,
+    ),
+  });
 
   if (scope == null) {
     return (
@@ -112,10 +95,6 @@ export default async function TripAnalyticsPage({ params, searchParams }: TripPa
 
   const analytics = buildUserAnalytics(rows, scope, sessions, NO_YEARS);
   const initialLayout = await getAnalyticsLayout(db, user.id, user.id);
-
-  function disciplineHref(type: ClimbType) {
-    return `${tripHref(user.id, trip.id, "analytics")}?discipline=${type}`;
-  }
 
   return (
     <ProfileHeader user={user} viewerId={user.id} workspace="logbook">
@@ -150,20 +129,11 @@ export default async function TripAnalyticsPage({ params, searchParams }: TripPa
           journalVisible
           selectedYears={NO_YEARS}
           periodPicker={
-            present.length > 1 && (
-              <nav aria-label="Discipline" className="flex flex-wrap gap-2">
-                {present.map((type) => (
-                  <AppLink
-                    key={type}
-                    href={disciplineHref(type)}
-                    aria-current={type === scope ? "true" : undefined}
-                    className={choicePillClass(type === scope, DISCIPLINE_CHIP_CLASSNAME[type])}
-                  >
-                    {DISCIPLINE_LABELS[type]}
-                  </AppLink>
-                ))}
-              </nav>
-            )
+            <DisciplineScopeNav
+              present={present}
+              scope={scope}
+              href={(type) => `${tripHref(user.id, trip.id, "analytics")}?discipline=${type}`}
+            />
           }
         />
       </TripHeader>

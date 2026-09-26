@@ -1,5 +1,5 @@
 import { getDb } from "@/db/client";
-import { getFriendsPage, getPendingFriendRequestCount } from "@/db/queries";
+import { FRIENDS_PAGE_SIZE, getFriendsPage, getPendingFriendRequestCount } from "@/db/queries";
 import { withApiSession } from "@/lib/api-session";
 import { parseOffset, offsetReachesPaginationLimit } from "@/lib/url-params";
 
@@ -21,6 +21,6 @@ export const GET = withApiSession(async (session, request: Request) => {
         );
   return Response.json({
     ...page,
-    hasMore: page.hasMore && !offsetReachesPaginationLimit(offset ?? 0, 10),
+    hasMore: page.hasMore && !offsetReachesPaginationLimit(offset ?? 0, FRIENDS_PAGE_SIZE),
   });
 });

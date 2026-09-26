@@ -2,37 +2,30 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { ProfileHeader, getUserById } from "@/app/users/[id]/profile-shell";
+import { ProfileHeader, memberMetadata, resolveProfilePage } from "@/app/users/[id]/profile-shell";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { TripList } from "@/components/trips/trip-list";
 import { getDb } from "@/db/client";
 import { getTripsForOwner } from "@/db/queries";
-import { getMemberSession } from "@/lib/session";
+import { goalToday } from "@/lib/goals";
 
 type UserTripsPageProps = {
   params: Promise<{ id: string }>;
 };
 
-/** Owner-only, like Projects: the comparison is against the session's own id
- * rather than a visibility helper, because there is no audience that opens
- * this page to anyone else. A stranger gets the same 404 as a climber who does
- * not exist. */
+/** Owner-only, like Projects: no audience opens this page to anyone else, so
+ * a stranger gets the same 404 as a climber who does not exist. */
 export async function generateMetadata({ params }: UserTripsPageProps): Promise<Metadata> {
   const { id } = await params;
-  const session = await getMemberSession();
-  if (!session) return { title: "Member content", robots: { index: false } };
-  const user = await getUserById(id);
-  if (!user || session.user.id !== user.id) notFound();
-
-  return { title: `${user.name} · Trips`, robots: { index: false } };
+  return memberMetadata(await resolveProfilePage(id, "owner"), (user) => `${user.name} · Trips`);
 }
 
 export default async function UserTripsPage({ params }: UserTripsPageProps) {
   const { id } = await params;
-  const session = await getMemberSession();
-  if (!session) return <CurrentPageAuthCallout />;
-  const user = await getUserById(id);
-  if (!user || session.user.id !== user.id) notFound();
+  const resolved = await resolveProfilePage(id, "owner");
+  if (!resolved.signedIn) return <CurrentPageAuthCallout />;
+  if (!resolved.ok) notFound();
+  const { user, viewerId } = resolved;
 
   const db = await getDb();
   const trips = await getTripsForOwner(db, user.id);
@@ -42,12 +35,10 @@ export default async function UserTripsPage({ params }: UserTripsPageProps) {
   // client, which is how "Upcoming" and "Now" end up disagreeing across a
   // hydration near midnight.
   const { cf } = await getCloudflareContext({ async: true });
-  const today = new Intl.DateTimeFormat("en-CA", { timeZone: cf?.timezone ?? "UTC" }).format(
-    new Date(),
-  );
+  const today = goalToday(cf?.timezone ?? "UTC");
 
   return (
-    <ProfileHeader user={user} viewerId={session.user.id} workspace="logbook">
+    <ProfileHeader user={user} viewerId={viewerId} workspace="logbook">
       <TripList trips={trips} userId={user.id} today={today} />
     </ProfileHeader>
   );
