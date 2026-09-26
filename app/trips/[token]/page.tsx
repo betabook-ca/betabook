@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 
+import { expiredLinkCard } from "@/components/expired-link-card";
 import { SharedTrip } from "@/components/shared-trip";
-import { cardClass } from "@/components/ui/card";
-import { PageTitle } from "@/components/ui/typography";
 import { getDb } from "@/db/client";
 import { getSharedTrip, getSharedTripEntries, getSharedTripSends } from "@/db/queries";
 import { sharedTripMetadata } from "@/lib/seo";
 import { getMemberSession } from "@/lib/session";
 import { parseShareToken } from "@/lib/share-token";
-import { SITE_NAME } from "@/lib/site";
 import { tripSharePath } from "@/lib/trip-share";
+
+const getSharedTripByToken = cache(async (token: string) => getSharedTrip(await getDb(), token));
 
 type SharedTripPageProps = {
   params: Promise<{ token: string }>;
@@ -23,8 +24,7 @@ export async function generateMetadata(props: SharedTripPageProps): Promise<Meta
   const token = parseShareToken((await props.params).token);
   if (!token) return { title: "Shared trip", robots: { index: false } };
 
-  const db = await getDb();
-  const { trip } = await getSharedTrip(db, token);
+  const { trip } = await getSharedTripByToken(token);
   return trip
     ? sharedTripMetadata(trip.ownerName, trip.name)
     : { title: "Shared trip", robots: { index: false } };
@@ -37,20 +37,9 @@ export default async function SharedTripPage(props: SharedTripPageProps) {
   const db = await getDb();
   // The session decides the sign-up prompt, not what may be read, so it does
   // not gate the trip read and rides alongside it.
-  const [access, session] = await Promise.all([getSharedTrip(db, token), getMemberSession()]);
+  const [access, session] = await Promise.all([getSharedTripByToken(token), getMemberSession()]);
 
-  // Described as a state of the link rather than of the trip: the reader is
-  // not being refused, and nothing about the climber is disclosed either way.
-  if (access.status === "expired") {
-    return (
-      <section aria-label="Expired link" className={`flex flex-col gap-2 ${cardClass("md")}`}>
-        <PageTitle>This link has expired</PageTitle>
-        <p className="text-sm text-muted">
-          Shared trips on {SITE_NAME} can be set to expire. Ask the climber for a new link.
-        </p>
-      </section>
-    );
-  }
+  if (access.status === "expired") return expiredLinkCard("trips");
   if (access.status === "hidden") notFound();
 
   // Fetched only once the link is known good, and re-running the predicate
