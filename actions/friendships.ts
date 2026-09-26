@@ -14,6 +14,7 @@ import { allowFriendshipWrite } from "@/lib/rate-limit";
 import { requireSession } from "@/lib/session";
 
 import { afterCommit } from "./post-commit";
+import { revalidateProfileSurfaces } from "./revalidation";
 
 function validateTarget(targetId: string, viewerId: string) {
   if (typeof targetId !== "string" || !targetId.trim() || targetId.length > 128)
@@ -23,12 +24,9 @@ function validateTarget(targetId: string, viewerId: string) {
 
 function refreshFriends(viewerId: string, targetId: string) {
   afterCommit(() => {
-    revalidatePath("/feed");
     revalidatePath("/friends");
     revalidatePath("/");
-    for (const id of [viewerId, targetId])
-      for (const suffix of ["", "/journal", "/sends", "/goals", "/analytics"])
-        revalidatePath(`/users/${id}${suffix}`);
+    for (const id of [viewerId, targetId]) revalidateProfileSurfaces(id);
     refresh();
   });
 }

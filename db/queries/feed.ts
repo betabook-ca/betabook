@@ -7,8 +7,11 @@ import type { ClimbType } from "@/lib/grades";
 import type { JournalCompanion } from "@/lib/journal-companions";
 import type { AscentStyle, GradeFeel } from "@/lib/sends";
 
-import { journalVisibleSql, sendCommentVisibleSql } from "./content-access";
+import { acceptedFriendIdsSql, journalVisibleSql, sendCommentVisibleSql } from "./content-access";
 import { companionsJsonSql } from "./journal-companions";
+import { clampPageSize } from "./shared";
+
+const FEED_PAGE_SIZE = 20;
 
 type FeedActivity = {
   id: number;
@@ -49,9 +52,9 @@ export async function getFeedPage(
   viewerId: string,
   view: FeedView = "all",
   cursor: FeedCursor | null = null,
-  pageSize = 20,
+  pageSize = FEED_PAGE_SIZE,
 ): Promise<FeedPage> {
-  const limit = Number.isInteger(pageSize) ? Math.min(50, Math.max(1, pageSize)) : 20;
+  const limit = clampPageSize(pageSize, FEED_PAGE_SIZE);
   type Row = Omit<FeedDay, "activities" | "journalVisible"> &
     Omit<FeedActivity, "companions" | "areaAncestors"> & {
       journalVisible: number;
@@ -71,11 +74,7 @@ export async function getFeedPage(
     LIMIT 1
   ) ELSE p.id END`;
   const rows = await db.all<Row>(sql`
-    WITH friends AS (
-      SELECT friend_id AS id FROM friendships WHERE user_id = ${viewerId} AND status = 'accepted'
-      UNION ALL
-      SELECT user_id AS id FROM friendships WHERE friend_id = ${viewerId} AND status = 'accepted'
-    ), authors AS (
+    WITH friends AS (${acceptedFriendIdsSql(viewerId)}), authors AS (
       SELECT u.id, u.name, u.image, ${journalVisibleSql(viewerId, sql`u.id`)} AS journalVisible,
         ${sendCommentVisibleSql(viewerId, sql`u.id`)} AS sendCommentVisible
       FROM friends f JOIN user u ON u.id = f.id
