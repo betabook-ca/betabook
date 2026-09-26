@@ -2,8 +2,11 @@
 
 import { fetchJournalPage } from "@/components/journal/fetch-journal-page";
 import { JournalEntryRow } from "@/components/journal/journal-entry-row";
+import { LogEntryButton } from "@/components/journal/log-entry-button";
 import { NavigationPendingRegion } from "@/components/navigation-pending";
+import { AppLink } from "@/components/ui/app-link";
 import { EmptyState } from "@/components/ui/empty-state";
+import { EYEBROW_CLASS } from "@/components/ui/eyebrow";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
 import type { AreaBreadcrumbs, JournalEntry } from "@/db/queries";
 import { usePagedList } from "@/hooks/use-paged-list";
@@ -56,21 +59,33 @@ export function JournalTimeline({
   if (items.length === 0) {
     return (
       <EmptyState
-        message={hasAnyEntries ? "No entries match these filters." : "Nothing logged yet."}
+        message={hasAnyEntries ? "No entries match these filters." : "No entries yet."}
+        cta={
+          isOwner && !hasAnyEntries ? (
+            <div className="flex flex-col items-center gap-3">
+              <LogEntryButton />
+              <AppLink href="/account/import" className="text-sm">
+                Import your sends
+              </AppLink>
+            </div>
+          ) : undefined
+        }
       />
     );
   }
 
   return (
     <NavigationPendingRegion className="flex flex-col gap-4">
-      <div className="flex flex-col">
+      <ul role="list" className="flex flex-col">
         {items.map((entry, index) => {
           const month = monthLabel(entry.entryDate);
           const newMonth = index === 0 || month !== monthLabel(items[index - 1].entryDate);
           return (
-            <div key={entry.id}>
+            <li key={entry.id}>
               {newMonth && (
-                <h3 className="sticky top-0 z-10 border-b border-separator bg-background px-4 py-2 text-xs font-medium tracking-widest text-muted uppercase">
+                <h3
+                  className={`sticky top-0 z-10 border-b border-separator bg-background px-4 py-2 ${EYEBROW_CLASS}`}
+                >
                   {month}
                 </h3>
               )}
@@ -83,10 +98,10 @@ export function JournalTimeline({
                   areaBreadcrumbs={meta}
                 />
               </div>
-            </div>
+            </li>
           );
         })}
-      </div>
+      </ul>
       {hasMore && (
         <LoadMoreButton onPress={loadMore} loading={loadingMore} failed={loadMoreFailed} />
       )}

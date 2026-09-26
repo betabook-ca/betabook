@@ -3,6 +3,7 @@
 import { ClimberListItem } from "@/components/climber-list-item";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
+import { SectionHeading } from "@/components/ui/typography";
 import type { FriendRow, FriendsPage } from "@/db/queries";
 import { usePagedList } from "@/hooks/use-paged-list";
 import { apiFetch } from "@/lib/api-client";
@@ -47,6 +48,10 @@ export function FriendList({
     );
   return (
     <div className="flex flex-col gap-4">
+      {/* Keeps the climber h3s from following the page's h1 directly. */}
+      <SectionHeading className="sr-only">
+        {requestsOnly ? "Friend requests" : "Friends"}
+      </SectionHeading>
       {!requestsOnly && (
         <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm text-muted">
           <p role="status" aria-label="Friend count">
@@ -57,7 +62,7 @@ export function FriendList({
           {hasMore && <p>{FRIENDS_PAGE_SIZE} at a time · Load more below</p>}
         </div>
       )}
-      <div className="grid gap-x-8 lg:grid-cols-2">
+      <ul role="list" className="grid gap-x-8 lg:grid-cols-2">
         {items.map((friend) => {
           const detail = [
             friend.friendshipStatus === "incoming"
@@ -69,9 +74,14 @@ export function FriendList({
           ]
             .filter(Boolean)
             .join(" · ");
-          return <ClimberListItem compact key={friend.id} climber={friend} detail={detail} />;
+          return (
+            // The item is the grid cell: min-w-0 lets long names shrink instead of overflowing.
+            <li key={friend.id} className="min-w-0">
+              <ClimberListItem compact climber={friend} detail={detail} />
+            </li>
+          );
         })}
-      </div>
+      </ul>
       {hasMore && (
         <LoadMoreButton onPress={loadMore} loading={loadingMore} failed={loadMoreFailed} />
       )}

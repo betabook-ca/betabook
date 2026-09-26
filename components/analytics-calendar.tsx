@@ -44,9 +44,10 @@ export function AnalyticsCalendar({
             <ChevronLeft size={16} />
           </Button>
         )}
+        {/* A generic span can't carry a name; status is polite and atomic. */}
         <span
+          role="status"
           aria-label="Displayed calendar year"
-          aria-live="polite"
           className="text-sm font-medium tabular-nums"
         >
           {years[active]}

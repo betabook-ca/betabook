@@ -5,7 +5,7 @@ import { ReferenceLine, CartesianGrid, Line, LineChart, XAxis, YAxis } from "rec
 import { ChartInspection, ChartHitRegions } from "@/components/chart-inspection";
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { DISCIPLINE_HUE } from "@/components/ui/discipline-chip";
-import { Eyebrow } from "@/components/ui/eyebrow";
+import { EYEBROW_CLASS } from "@/components/ui/eyebrow";
 import { useChartWidth } from "@/hooks/use-chart-width";
 import {
   sendChartRows,
@@ -61,7 +61,7 @@ export function AnalyticsVolumeChart({
     <div className="min-w-0" ref={ref}>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <Eyebrow>Volume over time</Eyebrow>
+          <h3 className={EYEBROW_CLASS}>Volume over time</h3>
           <p className="text-xs text-muted">
             {metric === "sends"
               ? "Dated sends each month."
