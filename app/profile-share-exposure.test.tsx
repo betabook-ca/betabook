@@ -16,9 +16,14 @@ import { resetDb } from "@/test/reset-db";
 
 const session = vi.hoisted(() => ({ userId: "owner" }));
 
-vi.mock("@opennextjs/cloudflare", () => ({
-  getCloudflareContext: async () => ({ env: { BETTER_AUTH_URL: "https://betabook.test" } }),
-}));
+vi.mock("@opennextjs/cloudflare", async () => {
+  const { env } = await import("cloudflare:test");
+  return {
+    getCloudflareContext: async () => ({
+      env: { ...env, BETTER_AUTH_URL: "https://betabook.test" },
+    }),
+  };
+});
 vi.mock("@/db/client", async (original) => {
   const actual = await original<typeof import("@/db/client")>();
   const { env } = await import("cloudflare:test");
