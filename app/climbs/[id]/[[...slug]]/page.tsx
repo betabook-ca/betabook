@@ -89,10 +89,7 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
     const climb = await getPublicClimbById(climbId);
     if (!climb) notFound();
     redirectToCanonicalSlug(slug, climb.name, climbHref(climb.id, climb.name), search);
-    // Invoked rather than rendered so the page resolves to the full public
-    // tree, which app/public-pages.test.tsx renders synchronously.
-    // oxlint-disable-next-line react/capitalized-calls -- async server component, no hooks or fiber to lose
-    return PublicClimbPage({ climb, search });
+    return <PublicClimbPage climb={climb} search={search} />;
   }
   const db = await getDb();
   const climb = await getClimb(db, climbId);
