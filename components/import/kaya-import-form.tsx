@@ -1,8 +1,9 @@
 "use client";
 
 import { Button, Input, Label, TextField } from "@heroui/react";
-import { Download, Info } from "lucide-react";
+import { Download } from "lucide-react";
 
+import { HintCallout } from "@/components/ui/hint-callout";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { SupportText } from "@/components/ui/support-text";
 import { fetchKayaImport } from "@/lib/kaya-import";
@@ -53,25 +54,22 @@ export function KayaImportForm({
           <Label>KAYA username or profile link</Label>
           <Input placeholder="@your-username" autoComplete="off" spellCheck={false} />
         </TextField>
-        <div className="flex items-start gap-2 rounded-lg bg-surface-tertiary px-3 py-2.5 text-xs text-muted">
-          <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
-          <p>
-            Sends import as redpoints only.{" "}
-            {onChooseCsv ? (
-              <button
-                type="button"
-                disabled={busy || disabled}
-                onClick={onChooseCsv}
-                className="rounded-sm font-medium text-foreground underline underline-offset-2 focus-visible:status-focused"
-              >
-                Use CSV
-              </button>
-            ) : (
-              "Use CSV"
-            )}{" "}
-            to keep flash and onsight styles.
-          </p>
-        </div>
+        <HintCallout>
+          Sends import as redpoints only.{" "}
+          {onChooseCsv ? (
+            <button
+              type="button"
+              disabled={busy || disabled}
+              onClick={onChooseCsv}
+              className="rounded-sm font-medium text-foreground underline underline-offset-2 focus-visible:status-focused"
+            >
+              Use CSV
+            </button>
+          ) : (
+            "Use CSV"
+          )}{" "}
+          to keep flash and onsight styles.
+        </HintCallout>
         <div className="flex items-center gap-2">
           <Button
             type="submit"

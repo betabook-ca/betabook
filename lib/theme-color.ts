@@ -1,3 +1,5 @@
+import { PALETTE_INK, PALETTE_PAPER } from "@/lib/palette";
+
 /** Keeps the browser-chrome theme-color in step with an explicit theme
  * choice. Browsers use the first matching meta, so an explicit light/dark
  * pick precedes the layout's media-scoped OS defaults. "system" removes it so the
@@ -11,7 +13,7 @@ export function syncThemeColorMeta(theme: string): void {
   if (theme === "light" || theme === "dark") {
     const m = document.createElement("meta");
     m.name = "theme-color";
-    m.content = theme === "dark" ? "#000000" : "#eaf7ef";
+    m.content = theme === "dark" ? PALETTE_INK : PALETTE_PAPER;
     m.setAttribute("data-explicit-theme", "");
     document.head.insertBefore(m, document.head.firstChild);
   }

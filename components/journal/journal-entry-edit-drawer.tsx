@@ -38,7 +38,9 @@ export function JournalEntryEditDrawer({
         <SendEditor entryId={entry.id} onDone={state.close} />
       ) : (
         <>
-          <PageTitle className="mb-3 text-2xl! text-foreground">{title}</PageTitle>
+          <PageTitle size="sm" className="mb-3 text-foreground">
+            {title}
+          </PageTitle>
           <JournalEntryForm
             onPendingChange={setPending}
             kind={entry.kind}

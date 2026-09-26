@@ -197,12 +197,20 @@
   --radius-panel: 0.75rem;
 }
 
+/* One type step below text-xs: chart axis and legend labels, the xs
+   avatar's initials. */
+@theme {
+  --text-2xs: 0.625rem;
+  --text-2xs--line-height: calc(0.875 / 0.625);
+}
+
 @theme inline {
   --font-sans: var(--font-geist-sans);
   /* The guidebook display voice — Barlow Condensed (loaded in
-     app/layout.tsx), reserved for the wordmark, page titles, and entity
-     names. Everything else, grades included, stays on Geist Sans — there
-     is no third face. */
+     app/layout.tsx), reserved for the wordmark, page titles, entity
+     names and the large stat numerals under an eyebrow (StatValue).
+     Everything else, grades included, stays on Geist Sans — there is no
+     third face. */
   --font-display: var(--font-barlow-condensed);
 
   /* Raw palette as utilities (bg-palette-primary, text-palette-support, …)
@@ -227,6 +235,12 @@
   :root:has([data-app-tab-bar]) {
     --app-tab-bar-height: calc(3.5rem + env(safe-area-inset-bottom));
   }
+}
+
+/* The one bottom offset for those panels; the fallback keeps them above
+   the home indicator when the bar is hidden or absent. */
+@utility floating-panel-bottom {
+  bottom: calc(--spacing(4) + var(--app-tab-bar-height, env(safe-area-inset-bottom)));
 }
 
 /* Stroke draw-in for the sent tick (climb-sent-indicator) — used behind

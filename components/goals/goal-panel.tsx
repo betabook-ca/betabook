@@ -500,8 +500,8 @@ export function GoalPanel({
                       <span className="ml-auto flex flex-wrap justify-end gap-2">
                         <Button
                           size="sm"
-                          className="bg-navigation-active! text-xs! text-link! hover:bg-navigation-active!"
-                          variant="outline"
+                          className="text-link"
+                          variant="ghost"
                           isDisabled={archivingId === goal.id || activeCount >= MAX_ACTIVE_GOALS}
                           onPress={() => tryAgain(goal)}
                         >
@@ -509,7 +509,7 @@ export function GoalPanel({
                         </Button>
                         <Button
                           size="sm"
-                          className="-mr-3 text-xs!"
+                          className="-mr-3"
                           variant="ghost"
                           isDisabled={archivingId !== null}
                           onPress={() => {
