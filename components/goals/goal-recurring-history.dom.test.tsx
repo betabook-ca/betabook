@@ -308,6 +308,49 @@ it("loads three older months using a month cursor instead of the number of weeks
   expect(screen.queryByRole("button", { name: "Load more" })).not.toBeInTheDocument();
 });
 
+it("re-walks loaded pages with their own cursors when the history snapshot is refreshed", async () => {
+  const { pageGoalHistory, summarizeGoalPeriods } = await import("@/lib/goal-history");
+  const base = goalPanelStoryArgs.initialActive.goals.find((goal) => goal.id === 3);
+  if (!base) throw new Error("Missing weekly fixture");
+  const now = new Date("2026-09-11T12:00:00Z");
+  const periods = Array.from({ length: 36 }, (_, i) => {
+    const start = new Date("2026-01-05T12:00:00Z");
+    start.setUTCDate(start.getUTCDate() + i * 7);
+    const end = new Date(start);
+    end.setUTCDate(end.getUTCDate() + 6);
+    return {
+      ...base,
+      periodStart: start.toISOString().slice(0, 10),
+      periodEnd: end.toISOString().slice(0, 10),
+      progress: 3,
+      completedDate: start.toISOString().slice(0, 10),
+    };
+  });
+  const goal = summarizeGoalPeriods(periods, "completed", 0, now).goals[0];
+  if (!goal.recurring) throw new Error("Missing history");
+  const loadHistory = vi.fn<NonNullable<Parameters<typeof GoalRecurringHistory>[0]["loadHistory"]>>(
+    async (offset, anchor) => pageGoalHistory(periods, "week", offset, now, anchor),
+  );
+  const props = { ownerId: "story-goals", today: "2026-09-11", loadHistory };
+  const { rerender } = render(<GoalRecurringHistory {...props} goal={goal} />);
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "See history" }));
+  await user.click(screen.getByRole("button", { name: "Load more" }));
+  expect(await screen.findByText("April")).toBeVisible();
+  expect(screen.queryByText("January")).not.toBeInTheDocument();
+  rerender(
+    <GoalRecurringHistory
+      {...props}
+      goal={{ ...goal, recurring: { ...goal.recurring, recent: [...goal.recurring.recent] } }}
+    />,
+  );
+  await waitFor(() => expect(loadHistory).toHaveBeenCalledTimes(2));
+  expect(loadHistory).toHaveBeenLastCalledWith(...loadHistory.mock.calls[0]);
+  expect(await screen.findByText("April")).toBeVisible();
+  expect(screen.queryByText("January")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Load more" })).toBeVisible();
+});
+
 it("sends the history cursor through the real fetch path and shows one retry alert", async () => {
   const { goalHistorySample } = await import("@/stories/fixtures/goal-samples");
   const source = goalHistorySample(3);

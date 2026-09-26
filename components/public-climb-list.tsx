@@ -33,7 +33,7 @@ export function PublicClimbList({
       const params = new URLSearchParams(query);
       params.set("offset", String(offset));
       const response = await fetch(`/api/public/areas/${areaId}/climbs?${params}`, { signal });
-      if (!response.ok) throw new Error("Could not load climbs");
+      if (!response.ok) throw new Error("Couldn't load climbs.");
       const page: PublicClimbsPage = await response.json();
       return { items: page.climbs, hasMore: page.hasNextPage, meta: page.areaBreadcrumbs };
     },

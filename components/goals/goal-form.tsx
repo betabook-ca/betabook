@@ -350,7 +350,7 @@ export function GoalForm({
                     });
                 } catch (cause) {
                   const message =
-                    cause instanceof Error ? cause.message : "Could not save the goal. Try again.";
+                    cause instanceof Error ? cause.message : "Couldn't save the goal. Try again.";
                   setError(
                     END_DATE_MESSAGES.has(message) ? { message, field: "endDate" } : { message },
                   );
