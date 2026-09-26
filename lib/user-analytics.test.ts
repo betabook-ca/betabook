@@ -9,6 +9,7 @@ import {
   getAnalyticsHistorySummary,
   inDateWindow,
   parseDisciplineScope,
+  resolveDisciplineScope,
 } from "./user-analytics";
 
 let nextClimbId = 1;
@@ -56,6 +57,48 @@ describe("parseDisciplineScope", () => {
     expect(parseDisciplineScope("sport")).toBe("sport");
     expect(parseDisciplineScope("alpine")).toBe("all");
     expect(parseDisciplineScope(undefined)).toBe("all");
+  });
+});
+
+describe("resolveDisciplineScope", () => {
+  const rows = [
+    send({ climbType: "sport" }),
+    send({ climbType: "boulder" }),
+    send({ climbType: "sport" }),
+  ];
+
+  it("honors a requested discipline the climber has logged, in DISCIPLINE_ORDER", () => {
+    expect(resolveDisciplineScope({ rows, sessions: [], requested: "boulder" })).toEqual({
+      present: ["boulder", "sport"],
+      scope: "boulder",
+    });
+  });
+
+  it("ranks the default by session volume, not by the days a discipline appeared on", () => {
+    const sessions = [
+      { entryDate: "2026-03-10", climbType: "boulder" as const, count: 1 },
+      { entryDate: "2026-03-11", climbType: "boulder" as const, count: 1 },
+      { entryDate: "2026-03-12", climbType: "sport" as const, count: 5 },
+    ];
+    expect(resolveDisciplineScope({ rows: [], sessions, requested: "all" })).toEqual({
+      present: ["boulder", "sport"],
+      scope: "sport",
+    });
+    expect(resolveDisciplineScope({ rows: [], sessions, requested: "trad" }).scope).toBe("sport");
+  });
+
+  it("counts sends instead when the journal is not readable", () => {
+    expect(resolveDisciplineScope({ rows, requested: "all" })).toEqual({
+      present: ["boulder", "sport"],
+      scope: "sport",
+    });
+  });
+
+  it("has no scope with nothing logged", () => {
+    expect(resolveDisciplineScope({ rows: [], sessions: [], requested: "sport" })).toEqual({
+      present: [],
+      scope: null,
+    });
   });
 });
 

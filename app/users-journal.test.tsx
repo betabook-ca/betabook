@@ -39,12 +39,30 @@ vi.mock("@/lib/session", () => ({
   ),
 }));
 
-vi.mock("@/app/users/[id]/profile-shell", () => ({
-  getUserById: vi.fn<(id: string) => Promise<typeof state.user>>(async () => state.user),
-  canReadUserJournal: async (_id: string, viewerId: string | null) =>
-    state.user.journalVisibility === "public" || state.user.id === viewerId,
-  ProfileHeader: mocks.ProfileHeader,
-}));
+vi.mock("@/app/users/[id]/profile-shell", async () => {
+  const { canViewUser } = await import("@/lib/user-visibility");
+  const canReadUserJournal = async (_id: string, viewerId: string | null) =>
+    state.user.journalVisibility === "public" || state.user.id === viewerId;
+  // The three gates the real resolver applies, over the in-memory user, so a
+  // page that asked for the wrong one still fails these tests.
+  const admits = async (gate: "owner" | "viewer" | "journal", viewerId: string) =>
+    gate === "owner"
+      ? state.user.id === viewerId
+      : gate === "viewer"
+        ? canViewUser(state.user, viewerId)
+        : canReadUserJournal(state.user.id, viewerId);
+  return {
+    ProfileHeader: mocks.ProfileHeader,
+    canReadUserJournal,
+    resolveProfilePage: async (id: string, gate: "owner" | "viewer" | "journal") => {
+      if (!state.session) return { signedIn: false };
+      const viewerId = state.session.user.id;
+      if (id !== state.user.id || !(await admits(gate, viewerId)))
+        return { signedIn: true, ok: false };
+      return { signedIn: true, ok: true, user: state.user, viewerId, session: state.session };
+    },
+  };
+});
 
 vi.mock("@/app/users/[id]/journal-view", () => ({
   JournalView: mocks.JournalView,

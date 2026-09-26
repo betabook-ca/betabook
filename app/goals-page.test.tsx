@@ -57,6 +57,10 @@ it("opens an expanded Goals page with the owner's actual goals", async () => {
     children: ReactElement<ComponentProps<typeof GoalPanel>>;
   }>;
   expect(scheduleGoalRefresh).toHaveBeenCalledWith(expect.anything(), "owner");
+  expect(await generateMetadata({ params: params() })).toEqual({
+    title: "Test Climber owner · Goals",
+    robots: { index: false },
+  });
   expect(page.props.workspace).toBe("progress");
   expect(page.props.children.type).toBe(GoalPanel);
   expect(page.props.children.props.ownerId).toBe("owner");

@@ -4,7 +4,13 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { createDb, type Database } from "@/db/client";
 import { seedFixtureUser } from "@/test/fixtures";
 
-import { getTakenNamesAround, getUser, getUserIdByName, getUsersByIds } from "./users";
+import {
+  getTakenNamesAround,
+  getUser,
+  getUserIdByName,
+  getUserProfile,
+  getUsersByIds,
+} from "./users";
 
 let db: Database;
 
@@ -22,6 +28,21 @@ describe("getUser", () => {
   it("returns undefined for an unknown id", async () => {
     const user = await getUser(db, "no-such-user");
     expect(user).toBeUndefined();
+  });
+});
+
+describe("getUserProfile", () => {
+  it("reads only what a profile page shows and gates on, never the email", async () => {
+    expect(await getUserProfile(db, "test-user-1")).toEqual({
+      id: "test-user-1",
+      name: "Alice Climber",
+      image: null,
+      isPrivate: false,
+    });
+  });
+
+  it("returns undefined for an unknown id", async () => {
+    expect(await getUserProfile(db, "no-such-user")).toBeUndefined();
   });
 });
 
