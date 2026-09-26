@@ -5,6 +5,7 @@ import { getAreaBreadcrumbs, getJournalPage, type JournalCursor } from "@/db/que
 import { canReadJournal } from "@/db/queries/content-access";
 import { withApiSession } from "@/lib/api-session";
 import { parseJournalFilter } from "@/lib/filters/journal-filter";
+import { parseId } from "@/lib/parse-id";
 import { isRealIsoDate } from "@/lib/sends";
 import { searchParamsToRecord } from "@/lib/url-params";
 
@@ -30,8 +31,8 @@ export const GET = withApiSession(async (session, request: Request, { params }: 
 
   let cursor: JournalCursor | null = null;
   if (cursorDate !== null && rawCursorId !== null) {
-    const cursorId = Number(rawCursorId);
-    if (!isRealIsoDate(cursorDate) || !Number.isInteger(cursorId) || cursorId < 1) {
+    const cursorId = parseId(rawCursorId);
+    if (!isRealIsoDate(cursorDate) || cursorId === null) {
       return NextResponse.json({ error: "Invalid cursor" }, { status: 400 });
     }
     cursor = { entryDate: cursorDate, id: cursorId };

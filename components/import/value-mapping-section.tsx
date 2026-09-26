@@ -1,9 +1,8 @@
-import { clsx } from "clsx";
-
 import { ASCENT_STYLE_LABELS } from "@/components/ascent-style";
 import { DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
 import { Eyebrow, EYEBROW_CLASS } from "@/components/ui/eyebrow";
 import { OptionSelect, type SelectOption } from "@/components/ui/option-select";
+import { StatValue } from "@/components/ui/stat-value";
 import { formatCount } from "@/lib/format";
 import { ASCENT_STYLES } from "@/lib/sends";
 import { CLIMB_TYPES, RATING_VALUES } from "@/lib/sends-import";
@@ -22,18 +21,7 @@ export function Stat({
   return (
     <div className="flex flex-col gap-1">
       <span className={EYEBROW_CLASS}>{label}</span>
-      <span
-        className={clsx(
-          "font-display text-3xl font-semibold tabular-nums",
-          tone === "danger"
-            ? "text-danger"
-            : tone === "warning"
-              ? "text-warning"
-              : "text-foreground",
-        )}
-      >
-        {value.toLocaleString("en-US")}
-      </span>
+      <StatValue tone={tone}>{value.toLocaleString("en-US")}</StatValue>
     </div>
   );
 }

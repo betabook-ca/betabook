@@ -8,7 +8,7 @@ import { AnalyticsVolumeChart } from "@/components/analytics-volume-chart";
 import { AnalyticsWorkspace, type AnalyticsPanel } from "@/components/analytics-workspace";
 import { BreakthroughList } from "@/components/breakthrough-list";
 import { ProgressionChart } from "@/components/progression-chart";
-import { Eyebrow } from "@/components/ui/eyebrow";
+import { EYEBROW_CLASS } from "@/components/ui/eyebrow";
 import { SectionHeading } from "@/components/ui/typography";
 import type { AnalyticsSendRow } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
@@ -247,7 +247,7 @@ export function AnalyticsDashboard({
       content: (
         <section aria-label="Progression" className="min-w-0">
           <div className="mb-4 flex flex-col gap-1">
-            <Eyebrow>Progression</Eyebrow>
+            <h3 className={EYEBROW_CLASS}>Progression</h3>
             <p className="text-xs text-muted">
               Each dot is a month’s hardest send; the line is your best so far.
             </p>
@@ -270,7 +270,7 @@ export function AnalyticsDashboard({
       content: (
         <div className="min-w-0">
           <div className="mb-4 flex flex-col gap-1">
-            <Eyebrow>Grade pyramid</Eyebrow>
+            <h3 className={EYEBROW_CLASS}>Grade pyramid</h3>
             <p className="text-xs text-muted">Sends per grade, hardest on top.</p>
           </div>
           {pyramidRows.length ? (
@@ -287,7 +287,7 @@ export function AnalyticsDashboard({
       content: (
         <section aria-label="Breakthroughs" className="min-w-0">
           <div className="mb-4 flex flex-col gap-1">
-            <Eyebrow>Breakthroughs</Eyebrow>
+            <h3 className={EYEBROW_CLASS}>Breakthroughs</h3>
             <p className="text-xs text-muted">Sends that set a new highest grade, newest first.</p>
           </div>
           {analytics.breakthroughs.length ? (

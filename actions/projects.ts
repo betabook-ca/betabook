@@ -14,6 +14,7 @@ import {
 import { PINNED_PROJECT_LIMIT, PIN_LIMIT_MESSAGE } from "@/lib/projects";
 import { allowJournalWrite } from "@/lib/rate-limit";
 import { requireSession } from "@/lib/session";
+import { requirePositiveId } from "@/lib/validation";
 
 import { afterCommit } from "./post-commit";
 import { revalidateProjectSurfaces } from "./revalidation";
@@ -25,7 +26,7 @@ import { revalidateProjectSurfaces } from "./revalidation";
 export async function pinProject(climbId: number): Promise<ActionResult> {
   return toActionResult(async () => {
     const { user } = await requireSession();
-    if (!Number.isSafeInteger(climbId) || climbId < 1) throw new ActionError("Climb not found");
+    requirePositiveId(climbId, "Climb not found");
     if (!(await allowJournalWrite(user.id))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
 
     const db = await getDb();
@@ -68,7 +69,7 @@ export async function pinProject(climbId: number): Promise<ActionResult> {
 export async function unpinProject(climbId: number): Promise<ActionResult> {
   return toActionResult(async () => {
     const { user } = await requireSession();
-    if (!Number.isSafeInteger(climbId) || climbId < 1) throw new ActionError("Climb not found");
+    requirePositiveId(climbId, "Climb not found");
     if (!(await allowJournalWrite(user.id))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
 
     const db = await getDb();

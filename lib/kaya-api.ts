@@ -7,9 +7,10 @@ import {
 } from "@/lib/kaya-import-stream";
 import { parseKayaUsername } from "@/lib/kaya-profile";
 import { MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS } from "@/lib/sends-import";
-import { importTooLargeMessage, SUPPORT_EMAIL } from "@/lib/support";
+import { importCsvFallback, importTooLargeMessage, SUPPORT_EMAIL } from "@/lib/support";
 
-const FORMAT_ERROR = `KAYA returned an unexpected format. Please try again, or email ${SUPPORT_EMAIL}.`;
+const CSV_FALLBACK = importCsvFallback("KAYA", "logbook");
+const FORMAT_ERROR = `KAYA returned an unexpected format. ${CSV_FALLBACK}`;
 const MAX_RESPONSE_BYTES = 1024 * 1024;
 const PROFILE_QUERY = `query webUser($username: String!) {
   webUser(username: $username) { id username is_private }
@@ -60,9 +61,7 @@ async function readResponse(response: Response) {
   if ([408, 500, 502, 503, 504].includes(response.status))
     throw new RetryableKayaError("unavailable", retryAfterMs(response.headers.get("Retry-After")));
   if (!response.ok)
-    throw new ActionError(
-      `KAYA could not share this public profile. Please try again, or email ${SUPPORT_EMAIL}.`,
-    );
+    throw new ActionError(`KAYA could not share this public profile. ${CSV_FALLBACK}`);
   if (!response.body || Number(response.headers.get("content-length")) > MAX_RESPONSE_BYTES)
     throw new ActionError(FORMAT_ERROR);
   const reader = response.body.getReader();
@@ -186,7 +185,8 @@ function readTotal(value: unknown): number {
       throw new ActionError(FORMAT_ERROR);
     total += count;
   }
-  if (total > MAX_IMPORT_ROWS) throw new ActionError(importTooLargeMessage("KAYA history"));
+  if (total > MAX_IMPORT_ROWS)
+    throw new ActionError(importTooLargeMessage("KAYA history", CSV_FALLBACK));
   return total;
 }
 
@@ -215,7 +215,7 @@ function readProfile(value: unknown, username: string) {
   const profile = record(value);
   if (profile.is_private !== false)
     throw new ActionError(
-      `KAYA imports need a public profile. Make your profile public, or email ${SUPPORT_EMAIL}.`,
+      `KAYA imports need a public profile. Make your profile public, upload KAYA’s CSV export instead, or email ${SUPPORT_EMAIL}.`,
     );
   if (
     typeof profile.id !== "string" ||
@@ -238,7 +238,8 @@ export async function fetchKayaAscents(
   try {
     username = parseKayaUsername(input.username);
   } catch (error) {
-    throw new ActionError(error instanceof Error ? error.message : "Enter your KAYA username.");
+    if (error instanceof ActionError) throw error;
+    throw new ActionError("Enter your KAYA username.");
   }
   if (!["1", "2"].includes(input.climbTypeId)) throw new ActionError("Invalid KAYA discipline.");
   const data = await queryKaya(PROFILE_QUERY, { username }, signal, emit);
@@ -260,10 +261,11 @@ export async function fetchKayaAscents(
     if (offset === 0) total = readTotal(page.webFilterDistributionForAscents);
     received += batch.length;
     size += new TextEncoder().encode(JSON.stringify(batch)).byteLength;
-    if (size > MAX_IMPORT_FILE_BYTES) throw new ActionError(importTooLargeMessage("KAYA history"));
+    if (size > MAX_IMPORT_FILE_BYTES)
+      throw new ActionError(importTooLargeMessage("KAYA history", CSV_FALLBACK));
     if (received > total || (batch.length < KAYA_PAGE_SIZE && received !== total))
       throw new ActionError(
-        `Couldn't load your complete KAYA history, or it changed during download. Please try again, or email ${SUPPORT_EMAIL}.`,
+        `Couldn't load your complete KAYA history, or it changed during download. Please try again. ${CSV_FALLBACK}`,
       );
     emit({ type: "page", items: batch, total });
     if (batch.length < KAYA_PAGE_SIZE) break;

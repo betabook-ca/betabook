@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { notFound, permanentRedirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
+import { redirectToCanonicalSlug } from "@/app/canonical-slug";
 import {
   getPublicAncestorsById,
   getPublicAreaById,
@@ -14,18 +15,14 @@ import { GradeWithTrend } from "@/components/climb-list";
 import { ClimbSendList } from "@/components/climb-send-list";
 import { ClimbJournalCard, LogEntryButton } from "@/components/journal";
 import { LoggedGradeHistogram } from "@/components/logged-grade-histogram";
-import { PublicClimbSendList } from "@/components/public-climb-send-list";
-import { BrokenChip } from "@/components/ui/broken-chip";
 import { cardClass } from "@/components/ui/card";
-import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Eyebrow } from "@/components/ui/eyebrow";
-import { Grade } from "@/components/ui/grade";
 import { JsonLd } from "@/components/ui/json-ld";
 import { SidebarLayout } from "@/components/ui/page-shell";
 import { RatingStars } from "@/components/ui/rating-stars";
 import { StatStrip } from "@/components/ui/stat-strip";
-import { PageTitle, SectionHeading } from "@/components/ui/typography";
+import { SectionHeading } from "@/components/ui/typography";
 import { getDb } from "@/db/client";
 import {
   getAncestors,
@@ -36,20 +33,20 @@ import {
   getSendsForClimb,
   getUserSendForClimb,
 } from "@/db/queries";
-import { getPublicSendsForClimb } from "@/db/queries/public-catalog";
-import { missingDescriptionMessage } from "@/lib/descriptions";
 import { buildLoggedGradeRows } from "@/lib/grade-histogram";
-import { formatGrade } from "@/lib/grades";
 import type { AscentStyle as AscentStyleType } from "@/lib/sends";
 import { climbDescription, climbJsonLd, climbTitle, locationTrail, pageMetadata } from "@/lib/seo";
 import { getMemberSession } from "@/lib/session";
-import { areaHref, climbHref, slugify, withQuery } from "@/lib/slug";
+import { areaHref, climbHref } from "@/lib/slug";
 import type { UrlParamsRecord } from "@/lib/url-params";
+
+import { ClimbHeader } from "./climb-header";
+import { PublicClimbPage } from "./public-climb-page";
 
 type ClimbPageProps = {
   // Optional catch-all: `slug` is undefined for /climbs/:id and a segment
   // array for /climbs/:id/anything. The id is authoritative; the slug is
-  // decorative and normalized by the redirect below.
+  // decorative and normalized by redirectToCanonicalSlug.
   params: Promise<{ id: string; slug?: string[] }>;
   searchParams: Promise<UrlParamsRecord>;
 };
@@ -64,15 +61,7 @@ export async function generateMetadata({
 
   const climb = await getPublicClimbById(climbId);
   if (!climb) notFound();
-
-  // Normalize any other spelling of the URL (no slug, stale slug, extra
-  // segments) to the canonical id + slug. On this streamed Workers deployment
-  // it emits a `<meta http-equiv="refresh" content="0;url=...">` rather than a
-  // 308 — Google treats a 0-second refresh as a permanent redirect, and the
-  // rendered page's rel=canonical points at the same URL.
-  if ((slug?.join("/") ?? "") !== slugify(climb.name)) {
-    permanentRedirect(withQuery(climbHref(climb.id, climb.name), search));
-  }
+  redirectToCanonicalSlug(slug, climb.name, climbHref(climb.id, climb.name), search);
 
   const [area, ancestors] = await Promise.all([
     getPublicAreaById(climb.areaId),
@@ -89,7 +78,6 @@ export async function generateMetadata({
   });
 }
 
-// oxlint-disable-next-line complexity
 export default async function ClimbPage({ params, searchParams }: ClimbPageProps) {
   const [{ id, slug }, search] = await Promise.all([params, searchParams]);
   const climbId = Number(id);
@@ -97,70 +85,16 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
   if (!Number.isInteger(climbId)) notFound();
 
   const session = await getMemberSession();
-  const db = await getDb();
   if (!session) {
     const climb = await getPublicClimbById(climbId);
     if (!climb) notFound();
-    const path = climbHref(climb.id, climb.name);
-    if ((slug?.join("/") ?? "") !== slugify(climb.name)) permanentRedirect(withQuery(path, search));
-    const [area, ancestors, sends] = await Promise.all([
-      getPublicAreaById(climb.areaId),
-      getPublicAncestorsById(climb.areaId),
-      getPublicSendsForClimb(db, climb.id),
-    ]);
-    if (!area) notFound();
-    const trail = locationTrail([...ancestors.map((a) => a.name), area.name]);
-    return (
-      <div className="flex flex-col gap-6">
-        <JsonLd
-          data={climbJsonLd({
-            name: climb.name,
-            path,
-            description: climbDescription(climb, trail),
-            crumbs: [
-              { name: "Home", path: "/" },
-              ...[...ancestors, area].map((a) => ({ name: a.name, path: areaHref(a.id, a.name) })),
-              { name: climb.name, path },
-            ],
-          })}
-        />
-        <AreaBreadcrumbs ancestors={[...ancestors, area]} current={climb} />
-        <div className="flex flex-col gap-1">
-          <PageTitle>{climb.name}</PageTitle>
-          <div className="mt-1 flex items-center gap-2">
-            <Grade size="md">{formatGrade(climb.type, climb.grade)}</Grade>
-            <DisciplineChip type={climb.type} />
-            {climb.brokenOn && <BrokenChip brokenOn={climb.brokenOn} />}
-          </div>
-          <p className="mt-1 text-muted">{climb.description || missingDescriptionMessage()}</p>
-        </div>
-        <StatStrip
-          cards={[
-            {
-              key: "summary",
-              stats: [
-                {
-                  label: "Community rating",
-                  value: <RatingStars rating={climb.avgRating} precision="decimal" />,
-                },
-                { label: "Logged ascents", value: climb.sendCount },
-              ],
-            },
-          ]}
-        />
-        <div className="flex flex-col gap-3">
-          <SectionHeading>Sends</SectionHeading>
-          <PublicClimbSendList type={climb.type} sends={sends} next={withQuery(path, search)} />
-        </div>
-      </div>
-    );
+    redirectToCanonicalSlug(slug, climb.name, climbHref(climb.id, climb.name), search);
+    return <PublicClimbPage climb={climb} search={search} />;
   }
+  const db = await getDb();
   const climb = await getClimb(db, climbId);
   if (!climb) notFound();
-
-  if ((slug?.join("/") ?? "") !== slugify(climb.name)) {
-    permanentRedirect(withQuery(climbHref(climb.id, climb.name), search));
-  }
+  redirectToCanonicalSlug(slug, climb.name, climbHref(climb.id, climb.name), search);
 
   // Stats come from whole-history aggregates and the list from a paginated
   // query — a popular climb's full send history never ships in the RSC
@@ -204,16 +138,9 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
       <AreaBreadcrumbs ancestors={[...ancestors, area]} current={climb} />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex flex-col gap-1">
-          <Eyebrow>Climb</Eyebrow>
-          <PageTitle>{climb.name}</PageTitle>
-          <div className="mt-1 flex items-center gap-2">
-            <Grade size="md">{formatGrade(climb.type, climb.grade)}</Grade>
-            <DisciplineChip type={climb.type} />
-            {climb.brokenOn && <BrokenChip brokenOn={climb.brokenOn} />}
-          </div>
+        <ClimbHeader climb={climb} eyebrow="Climb">
           <ClimbDescription climb={climb} />
-        </div>
+        </ClimbHeader>
         <div className="flex shrink-0 items-center gap-2">
           <LogEntryButton climb={climb} sentClimbIds={userSend ? new Set([climb.id]) : undefined} />
           <ClimbActionsMenu climb={climb} send={userSend} />

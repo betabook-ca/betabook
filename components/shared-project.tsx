@@ -1,9 +1,8 @@
-import { buttonVariants } from "@heroui/react";
-
 import { AscentStyle } from "@/components/ascent-style";
 import { ProjectCardLayout } from "@/components/journal/project-card-layout";
 import { ProjectSessionList } from "@/components/journal/project-session-list";
 import { SendGradeCell } from "@/components/send-grade-cell";
+import { signUpCard } from "@/components/sign-up-card";
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import { ClampedComment } from "@/components/ui/clamped-comment";
@@ -11,8 +10,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageTitle, SectionHeading } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import type { SharedProject, SharedProjectSession } from "@/db/queries";
-import { signUpUrl } from "@/lib/sign-in-redirect";
-import { SITE_NAME } from "@/lib/site";
 import { climbHref } from "@/lib/slug";
 
 /** What a valid project link shows: one climber, one climb, and the work they
@@ -105,20 +102,12 @@ export function SharedProject({
         )}
       </section>
 
-      {!signedIn && (
-        <section
-          aria-label={`Climb with ${project.ownerName} on ${SITE_NAME}`}
-          className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${cardClass("md", "bordered")}`}
-        >
-          <p className="text-sm text-muted">
-            {SITE_NAME} is a climbing logbook and crag database. Track your own projects and see the
-            work behind every send.
-          </p>
-          <AppLink href={signUpUrl(path)} className={`${buttonVariants()} shrink-0`}>
-            Sign up
-          </AppLink>
-        </section>
-      )}
+      {!signedIn &&
+        signUpCard({
+          ownerName: project.ownerName,
+          path,
+          pitch: "Track your own projects and see the work behind every send.",
+        })}
     </div>
   );
 }

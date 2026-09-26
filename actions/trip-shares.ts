@@ -5,16 +5,21 @@ import { refresh } from "next/cache";
 
 import { getDb } from "@/db/client";
 import { tripShareLinks } from "@/db/schema";
-import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
+import {
+  ActionError,
+  JOURNAL_RATE_LIMIT_MESSAGE,
+  PRIVATE_PROFILE_MESSAGE,
+  toActionResult,
+  type ActionResult,
+} from "@/lib/action-result";
 import { allowJournalWrite } from "@/lib/rate-limit";
 import { requireSession } from "@/lib/session";
 import { parseShareExpiry, shareExpiryModifier } from "@/lib/share-expiry";
+import { requirePositiveId } from "@/lib/validation";
 
 import { afterCommit } from "./post-commit";
 import { revalidateTripSurfaces } from "./revalidation";
 
-const PRIVATE_PROFILE_MESSAGE =
-  "Sharing is off while your profile is private — change it in Account settings.";
 const TRIP_NOT_FOUND = "Trip not found";
 
 /** Publishes one trip behind a link, or resets the clock on a link that
@@ -37,10 +42,9 @@ export async function shareTrip(
 ): Promise<ActionResult<{ token: string; expiresAt: string | null }>> {
   return toActionResult(async () => {
     const { user } = await requireSession();
-    if (!Number.isSafeInteger(tripId) || tripId < 1) throw new ActionError(TRIP_NOT_FOUND);
+    requirePositiveId(tripId, TRIP_NOT_FOUND);
     const modifier = shareExpiryModifier(parseShareExpiry(expiry));
-    if (!(await allowJournalWrite(user.id)))
-      throw new ActionError("Too many changes — try again in a minute");
+    if (!(await allowJournalWrite(user.id))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
 
     const db = await getDb();
     // The deadline comes back rather than being recomputed on the client: it
@@ -82,9 +86,8 @@ export async function shareTrip(
 export async function unshareTrip(tripId: number): Promise<ActionResult> {
   return toActionResult(async () => {
     const { user } = await requireSession();
-    if (!Number.isSafeInteger(tripId) || tripId < 1) throw new ActionError(TRIP_NOT_FOUND);
-    if (!(await allowJournalWrite(user.id)))
-      throw new ActionError("Too many changes — try again in a minute");
+    requirePositiveId(tripId, TRIP_NOT_FOUND);
+    if (!(await allowJournalWrite(user.id))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
 
     const db = await getDb();
     await db

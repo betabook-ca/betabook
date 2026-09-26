@@ -7,7 +7,7 @@ import { ProfilePhotoCropper } from "@/components/profile-photo-cropper";
  * fixture and cropping it has a visible effect: the quadrants and the centre
  * circle make it obvious which part of the photo was framed, and which way
  * up it ended. */
-async function drawDemoPhoto(width: number, height: number): Promise<File> {
+export async function drawDemoPhoto(width: number, height: number): Promise<File> {
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;

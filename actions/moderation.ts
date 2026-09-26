@@ -24,7 +24,14 @@ import {
 } from "@/actions/moderation-apply";
 import type { Database } from "@/db/client";
 import { getDb } from "@/db/client";
-import { getArea, getChangeRequest, getClimb, getUser, type ChangeRequest } from "@/db/queries";
+import {
+  getArea,
+  getChangeRequest,
+  getClimb,
+  getUser,
+  readChangeRequestPayload,
+  type ChangeRequest,
+} from "@/db/queries";
 import { moderationAuthorizedSql } from "@/db/queries/moderation";
 import { changeRequests } from "@/db/schema";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
@@ -347,25 +354,30 @@ const CHANGE_REQUEST_APPLIERS: Record<
   (db: Database, request: ChangeRequest, decision: MutationDecision) => Promise<void>
 > = {
   area_edit: (db, request, decision) =>
-    applyAreaEdit(db, request.entityId, JSON.parse(request.payload), decision),
+    applyAreaEdit(db, request.entityId, readChangeRequestPayload(request, "area_edit"), decision),
   area_delete: (db, request, decision) => applyAreaDelete(db, request.entityId, decision),
   area_reparent: (db, request, decision) => {
-    const { newParentId } = JSON.parse(request.payload);
+    const { newParentId } = readChangeRequestPayload(request, "area_reparent");
     return applyAreaReparent(db, request.entityId, newParentId, decision);
   },
   climb_edit: (db, request, decision) =>
-    applyClimbEdit(db, request.entityId, JSON.parse(request.payload), decision),
+    applyClimbEdit(db, request.entityId, readChangeRequestPayload(request, "climb_edit"), decision),
   climb_delete: (db, request, decision) => applyClimbDelete(db, request.entityId, decision),
   climb_move: (db, request, decision) => {
-    const { newAreaId } = JSON.parse(request.payload);
+    const { newAreaId } = readChangeRequestPayload(request, "climb_move");
     return applyClimbMove(db, request.entityId, newAreaId, decision);
   },
   climb_merge: (db, request, decision) => {
-    const { targetClimbId, overrides } = JSON.parse(request.payload);
+    const { targetClimbId, overrides } = readChangeRequestPayload(request, "climb_merge");
     return applyClimbMerge(db, request.entityId, targetClimbId, overrides, decision);
   },
   climb_break: (db, request, decision) =>
-    applyClimbBreak(db, request.entityId, JSON.parse(request.payload), decision),
+    applyClimbBreak(
+      db,
+      request.entityId,
+      readChangeRequestPayload(request, "climb_break"),
+      decision,
+    ),
 };
 
 /** Reject only a still-pending request; concurrent decisions must not be overwritten. */

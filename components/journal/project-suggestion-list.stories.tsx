@@ -12,8 +12,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Climbs with sessions and no send: the rule that used to fill the Projects
- * tab outright, now reduced to a suggestion the climber can accept. */
+/** Unpinned climbs with sessions and no send; the Projects tab lists only pinned climbs. */
 const suggestions: OpenProject[] = [
   {
     climbId: 201,

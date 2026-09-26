@@ -7,6 +7,7 @@ import {
   getApprovalCoverageRows,
   getModerationFacts,
   getScopedPendingRequests,
+  readChangeRequestPayload,
   type ModerationFacts,
   type RequestScope,
   type ReviewQueueOptions,
@@ -84,21 +85,21 @@ export async function changeRequestScopeAreaIds(
   if (request.type === "area_reparent") {
     const area = await getArea(db, request.entityId);
     if (!area) return [];
-    const { newParentId } = JSON.parse(request.payload) as ChangeRequestPayload["area_reparent"];
+    const { newParentId } = readChangeRequestPayload(request, "area_reparent");
     if (!(await getArea(db, newParentId))) return [];
     return area.id === newParentId ? [area.id] : [area.id, newParentId];
   }
   if (request.type === "climb_move") {
     const climb = await getClimb(db, request.entityId);
     if (!climb) return [];
-    const { newAreaId } = JSON.parse(request.payload) as ChangeRequestPayload["climb_move"];
+    const { newAreaId } = readChangeRequestPayload(request, "climb_move");
     if (!(await getArea(db, newAreaId))) return [];
     return climb.areaId === newAreaId ? [climb.areaId] : [climb.areaId, newAreaId];
   }
   if (request.type === "climb_merge") {
     const source = await getClimb(db, request.entityId);
     if (!source) return [];
-    const { targetClimbId } = JSON.parse(request.payload) as ChangeRequestPayload["climb_merge"];
+    const { targetClimbId } = readChangeRequestPayload(request, "climb_merge");
     const target = await getClimb(db, targetClimbId);
     if (!target) return [];
     return source.areaId === target.areaId ? [source.areaId] : [source.areaId, target.areaId];
@@ -210,7 +211,7 @@ const CHANGE_REQUEST_DESCRIBERS: Record<
 > = {
   area_edit: (facts, request) => {
     const area = facts.areas.get(request.entityId);
-    const payload = JSON.parse(request.payload) as ChangeRequestPayload["area_edit"];
+    const payload = readChangeRequestPayload(request, "area_edit");
     const details: string[] = [];
     if (payload.name !== undefined) {
       details.push(`Name: "${area?.name ?? "?"}" → "${payload.name}"`);
@@ -233,7 +234,7 @@ const CHANGE_REQUEST_DESCRIBERS: Record<
     };
   },
   area_reparent: (facts, request) => {
-    const { newParentId } = JSON.parse(request.payload) as ChangeRequestPayload["area_reparent"];
+    const { newParentId } = readChangeRequestPayload(request, "area_reparent");
     const [area, newParent] = [facts.areas.get(request.entityId), facts.areas.get(newParentId)];
     const currentParent = area?.parentId != null ? facts.areas.get(area.parentId) : undefined;
     return {
@@ -244,7 +245,7 @@ const CHANGE_REQUEST_DESCRIBERS: Record<
   },
   climb_edit: (facts, request) => {
     const climb = facts.climbs.get(request.entityId);
-    const payload = JSON.parse(request.payload) as ChangeRequestPayload["climb_edit"];
+    const payload = readChangeRequestPayload(request, "climb_edit");
     const details: string[] = [];
     if (payload.name !== undefined) {
       details.push(`Name: "${climb?.name ?? "?"}" → "${payload.name}"`);
@@ -276,7 +277,7 @@ const CHANGE_REQUEST_DESCRIBERS: Record<
     };
   },
   climb_move: (facts, request) => {
-    const { newAreaId } = JSON.parse(request.payload) as ChangeRequestPayload["climb_move"];
+    const { newAreaId } = readChangeRequestPayload(request, "climb_move");
     const [climb, newArea] = [facts.climbs.get(request.entityId), facts.areas.get(newAreaId)];
     const currentArea = climb ? facts.areas.get(climb.areaId) : undefined;
     return {
@@ -286,9 +287,7 @@ const CHANGE_REQUEST_DESCRIBERS: Record<
     };
   },
   climb_merge: (facts, request) => {
-    const { targetClimbId, overrides } = JSON.parse(
-      request.payload,
-    ) as ChangeRequestPayload["climb_merge"];
+    const { targetClimbId, overrides } = readChangeRequestPayload(request, "climb_merge");
     const [source, target] = [facts.climbs.get(request.entityId), facts.climbs.get(targetClimbId)];
     const sourceName = source?.name ?? "a climb";
     const targetName = target?.name ?? "another climb";
@@ -301,7 +300,7 @@ const CHANGE_REQUEST_DESCRIBERS: Record<
   },
   climb_break: (facts, request) => {
     const climb = facts.climbs.get(request.entityId);
-    const payload = JSON.parse(request.payload) as ChangeRequestPayload["climb_break"];
+    const payload = readChangeRequestPayload(request, "climb_break");
     const name = climb?.name ?? "a climb";
     return {
       summary: `Mark "${name}" as broken on ${payload.brokenOn}`,

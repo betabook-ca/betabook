@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { SearchController } from "@/components/search/search-controller";
+import { PageTitle } from "@/components/ui/typography";
 import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import { withClimbFilterArea } from "@/lib/filters/climb-filter-state";
 import { MAX_RATING } from "@/lib/filters/climb-stats-filter";
@@ -113,7 +114,7 @@ export function DemoClimbSearch() {
   return (
     <section aria-label="Find climbs" className="flex max-w-3xl flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">Find climbs</h1>
+        <PageTitle>Find climbs</PageTitle>
         <p className="text-sm text-muted">
           Browse an area by grade, rating and ascents, or search by name.
         </p>

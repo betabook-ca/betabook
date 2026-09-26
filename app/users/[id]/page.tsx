@@ -6,7 +6,8 @@ import {
   ProfileHeader,
   canReadUserJournal,
   getShareLinkOwnerByToken,
-  getUserById,
+  memberMetadata,
+  resolveProfilePage,
 } from "@/app/users/[id]/profile-shell";
 import { SendsView } from "@/app/users/[id]/sends-view";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
@@ -17,10 +18,8 @@ import { parseJournalFilter } from "@/lib/filters/journal-filter";
 import { DEFAULT_USER_SENDS_FILTER, parseUserSendsFilter } from "@/lib/filters/user-sends-filter";
 import { PROFILE_SHARE_PARAM, SHARED_PROFILE_SENDS, profileSharePath } from "@/lib/profile-share";
 import { sharedProfileMetadata } from "@/lib/seo";
-import { getMemberSession } from "@/lib/session";
 import { parseShareToken } from "@/lib/share-token";
 import type { UrlParamsRecord } from "@/lib/url-params";
-import { canViewUser } from "@/lib/user-visibility";
 
 type UserPageProps = {
   params: Promise<{ id: string }>;
@@ -36,23 +35,18 @@ async function getSharedProfile(id: string, search: UrlParamsRecord) {
 
 export async function generateMetadata({ params, searchParams }: UserPageProps): Promise<Metadata> {
   const [{ id }, search] = await Promise.all([params, searchParams]);
-  const session = await getMemberSession();
-  if (!session) {
+  const resolved = await resolveProfilePage(id, "viewer");
+  if (!resolved.signedIn) {
     const shared = await getSharedProfile(id, search);
-    return shared
-      ? sharedProfileMetadata(shared.name, shared.token)
-      : { title: "Member content", robots: { index: false } };
+    if (shared) return sharedProfileMetadata(shared.name, shared.token);
   }
-  const user = await getUserById(id);
-  if (!user || !canViewUser(user, session.user.id)) notFound();
-
-  return { title: user.name, robots: { index: false } };
+  return memberMetadata(resolved, (user) => user.name);
 }
 
 export default async function UserPage({ params, searchParams }: UserPageProps) {
   const [{ id }, search] = await Promise.all([params, searchParams]);
-  const session = await getMemberSession();
-  if (!session) {
+  const resolved = await resolveProfilePage(id, "viewer");
+  if (!resolved.signedIn) {
     const shared = await getSharedProfile(id, search);
     if (!shared) return <CurrentPageAuthCallout />;
     const db = await getDb();
@@ -75,10 +69,8 @@ export default async function UserPage({ params, searchParams }: UserPageProps) 
       />
     );
   }
-  const user = await getUserById(id);
-  const viewerId = session.user.id;
-
-  if (!user || !canViewUser(user, viewerId)) notFound();
+  if (!resolved.ok) notFound();
+  const { user, viewerId } = resolved;
 
   const journalIsVisible = await canReadUserJournal(user.id, viewerId);
 

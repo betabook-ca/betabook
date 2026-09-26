@@ -1,6 +1,7 @@
 "use client";
 
 import { createJournalEntry, createUndatedSend, updateJournalEntry } from "@/actions";
+import { localToday } from "@/lib/format-date";
 
 import { JournalEntryFields, type JournalEntryFieldsProps } from "./journal-entry-fields";
 
@@ -13,7 +14,7 @@ export function JournalEntryForm(props: JournalEntryFormProps) {
   return (
     <JournalEntryFields
       {...props}
-      today={new Intl.DateTimeFormat("en-CA").format(new Date())}
+      today={localToday()}
       onSave={
         props.onSave ??
         ((formData, undated) =>

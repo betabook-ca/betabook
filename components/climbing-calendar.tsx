@@ -79,7 +79,7 @@ export function ClimbingCalendar({
       <ChartInspection key={year} label={`Daily ${unit}s in ${year}`} details={details}>
         <div className="flex min-w-0 flex-col gap-1.5 pb-1">
           <div
-            className="ml-9 grid gap-px text-[10px] whitespace-nowrap text-muted sm:gap-[3px]"
+            className="ml-9 grid gap-px text-2xs whitespace-nowrap text-muted sm:gap-[3px]"
             style={{ gridTemplateColumns: `repeat(${weeks}, minmax(0, 1fr))` }}
           >
             {monthLabels.map(({ label, column }, index) => (
@@ -94,7 +94,7 @@ export function ClimbingCalendar({
           </div>
           <div className="flex gap-1.5">
             <div
-              className="grid w-[30px] shrink-0 gap-px text-[10px] leading-none text-muted sm:gap-[3px]"
+              className="grid w-[30px] shrink-0 gap-px text-2xs leading-none text-muted sm:gap-[3px]"
               style={{ gridTemplateRows: "repeat(7, 1fr)" }}
             >
               <span className="self-center" style={{ gridRowStart: 1 }}>
@@ -131,7 +131,7 @@ export function ClimbingCalendar({
               ))}
             </div>
           </div>
-          <div className="mt-1 ml-9 flex items-center gap-1 text-[10px] text-muted">
+          <div className="mt-1 ml-9 flex items-center gap-1 text-2xs text-muted">
             Less
             {LEVEL_OPACITY.map((opacity) => (
               <span

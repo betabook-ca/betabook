@@ -31,6 +31,6 @@ export const Progress: Story = { args: { section: "Projects" } };
 export const Analytics: Story = { args: { section: "Analytics" } };
 export const Community: Story = { args: { section: "Friends" } };
 export const Feed: Story = { args: { section: "Feed" } };
-export const Search: Story = { args: { section: "Search" } };
+export const Search: Story = { name: "Find climbers", args: { section: "Find climbers" } };
 export const You: Story = { name: "Account settings", args: { section: "Account settings" } };
 export const Updates: Story = { args: { section: "Friends", mode: "updates" } };

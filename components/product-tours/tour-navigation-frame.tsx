@@ -100,7 +100,7 @@ export function TourNavigationFrame({
   return (
     <div
       ref={frame}
-      className="@container/navigation h-full min-h-0 overflow-hidden rounded-xl border border-separator bg-background"
+      className="@container/navigation h-full min-h-0 overflow-hidden rounded-panel border border-separator bg-background"
     >
       <SidebarFrame
         placement="contained"

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { ActionError } from "./action-result";
 import { fetchMountainProjectImport } from "./mountain-project-import";
 import { parseMountainProjectUserId } from "./mountain-project-profile";
 import { MAX_IMPORT_ROWS } from "./sends-import";
@@ -54,6 +55,12 @@ describe("parseMountainProjectUserId", () => {
     ]) {
       expect(() => parseMountainProjectUserId(input)).toThrow(/Mountain Project/);
     }
+  });
+
+  it("answers malformed percent-encoding with the link message, never the URIError", () => {
+    const parse = () => parseMountainProjectUserId("mountainproject.com/user/%E0%A4%A/name");
+    expect(parse).toThrow(ActionError);
+    expect(parse).toThrow(/Use your Mountain Project profile link/);
   });
 });
 

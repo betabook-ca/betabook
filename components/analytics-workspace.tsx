@@ -305,7 +305,7 @@ function FloatingLayoutSave({
     <div
       role="group"
       aria-label="Save layout reminder"
-      className="fixed right-4 bottom-[calc(1rem+var(--app-tab-bar-height,env(safe-area-inset-bottom)))] z-40 flex max-w-[calc(100vw-2rem)] flex-col items-end gap-2"
+      className="fixed right-4 floating-panel-bottom z-40 flex max-w-[calc(100vw-2rem)] flex-col items-end gap-2"
     >
       {error && <InlineAlert className={cardClass("sm", "floating")}>{error}</InlineAlert>}
       <Button
@@ -478,9 +478,9 @@ export function AnalyticsWorkspace({
             .filter((group) => group.items.length > 0)
             .map((group) => (
               <fieldset key={group.label} className="min-w-0">
-                <legend className="mb-2 text-xs font-medium tracking-widest text-foreground uppercase">
-                  {group.label}
-                </legend>
+                {/* Foreground rather than the token's muted: the legend names a
+                 * group of controls, not a value. */}
+                <legend className={`mb-2 ${EYEBROW_CLASS} text-foreground!`}>{group.label}</legend>
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-3">
                   {group.items.map((item) => (
                     <Button
@@ -527,7 +527,7 @@ export function AnalyticsWorkspace({
             </Button>
             <Button
               size="sm"
-              variant="outline"
+              variant="ghost"
               isDisabled={saving}
               onPress={() => {
                 setLayout(saved);

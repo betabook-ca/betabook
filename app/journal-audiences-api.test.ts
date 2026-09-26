@@ -25,16 +25,10 @@ vi.mock("next/navigation", () => ({
   },
 }));
 vi.mock("@/app/users/[id]/journal-view", () => ({ JournalView: () => null }));
-vi.mock("@/app/users/[id]/profile-shell", async () => {
-  const { getDb } = await import("@/db/client");
-  const { getUser, canReadJournal } = await import("@/db/queries");
-  return {
-    ProfileHeader: () => null,
-    getUserById: async (id: string) => getUser(await getDb(), id),
-    canReadUserJournal: async (id: string, viewerId: string | null) =>
-      canReadJournal(await getDb(), id, viewerId),
-  };
-});
+vi.mock("@/app/users/[id]/profile-shell", async (original) => ({
+  ...(await original<typeof import("@/app/users/[id]/profile-shell")>()),
+  ProfileHeader: () => null,
+}));
 vi.mock("@/lib/session", () => ({
   getSession: async () => (state.viewer ? { user: { id: state.viewer } } : null),
   getMemberSession: async () => (state.viewer ? { user: { id: state.viewer } } : null),
@@ -89,6 +83,18 @@ it("requires an accepted friendship for journal pagination and removes access wh
   expect((await journal(request("/api/users/author/journal"), owner)).status).toBe(404);
   state.viewer = "author";
   expect((await journal(request("/api/users/author/journal"), owner)).status).toBe(200);
+});
+
+it("accepts a journal cursor only with a canonical positive entry id", async () => {
+  await db.update(friendships).set({ status: "accepted" });
+  const page = (query: string) => journal(request(`/api/users/author/journal?${query}`), owner);
+  expect((await page("cursorDate=2026-09-01&cursorId=30")).status).toBe(200);
+  for (const query of [
+    "cursorDate=2026-09-01&cursorId=1e3",
+    "cursorDate=2026-09-01&cursorId=0",
+    "cursorId=30",
+  ])
+    expect((await page(query)).status).toBe(400);
 });
 
 it("protects journal metadata using the same friendship rules", async () => {

@@ -1,5 +1,14 @@
 import type { DatabaseSync } from "node:sqlite";
 
+// Bare Node.js does not resolve the app's @/ alias; read the current tour version directly.
+// oxlint-disable-next-line import/no-relative-parent-imports
+import { PRODUCT_TOURS } from "../lib/product-tour.ts";
+
+const journalTour = PRODUCT_TOURS.find((tour) => tour.id === "journal");
+if (!journalTour) throw new Error("The journal tour is not registered");
+/** Acknowledged at this version, climber15 gets no invitation and only Account replay. */
+export const JOURNAL_TOUR_VERSION = journalTour.version;
+
 /** The caller owns the transaction. Reset synthetic friendships while preserving
  * the development account's journal, send history and privacy settings. */
 export function seedSocialData(db: DatabaseSync, viewerId: string): number {
@@ -36,7 +45,8 @@ export function seedSocialData(db: DatabaseSync, viewerId: string): number {
     clearTour.run(person.id);
     if (person.email === "climber13@example.com") saveTour.run(person.id, 1, "completed");
     if (person.email === "climber14@example.com") saveTour.run(person.id, 1, "dismissed");
-    if (person.email === "climber15@example.com") saveTour.run(person.id, 2, "completed");
+    if (person.email === "climber15@example.com")
+      saveTour.run(person.id, JOURNAL_TOUR_VERSION, "completed");
   }
   // Climber 5 has no relationships in either direction, even in larger seeds.
   const network = users.filter(

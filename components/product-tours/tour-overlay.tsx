@@ -68,7 +68,7 @@ export function TourOverlay({
           }}
         >
           <div
-            className="absolute rounded-xl border-2 border-accent shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]"
+            className="absolute rounded-panel border-2 border-accent shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]"
             style={{
               left: highlight.rect.left - highlight.viewport.left,
               top: highlight.rect.top - highlight.viewport.top,

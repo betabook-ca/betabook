@@ -1,6 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { expect, mocked, userEvent, waitFor, within } from "storybook/test";
 
+import { uploadProfilePhoto } from "@/actions";
 import { SettingsSection } from "@/components/ui/settings";
+import { PROFILE_PHOTO_TOO_LARGE_MESSAGE } from "@/lib/profile-photo";
+import { drawDemoPhoto } from "@/stories/fixtures/crop-demo";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { ProfilePhotoSettings } from "./profile-photo-settings";
@@ -41,4 +45,30 @@ export const Uploaded: Story = {
 export const FromGoogle: Story = {
   args: { image: "https://lh3.googleusercontent.com/a/story-example=s96-c" },
   render: (args) => <Example {...args} />,
+};
+
+/** The upload was refused: the cropper stays open and says why, so the
+ * climber can re-crop or pick another photo. Reached the way a climber
+ * reaches it — choose a photo, frame it, Use photo. */
+export const UploadFails: Story = {
+  args: { image: null },
+  beforeEach: () => {
+    mocked(uploadProfilePhoto).mockResolvedValue({
+      ok: false,
+      error: PROFILE_PHOTO_TOO_LARGE_MESSAGE,
+    });
+    return () => mocked(uploadProfilePhoto).mockReset();
+  },
+  render: (args) => <Example {...args} />,
+  play: async ({ canvasElement }) => {
+    const input = canvasElement.querySelector<HTMLInputElement>('input[type="file"]');
+    if (!input) throw new Error("No file input rendered");
+    await userEvent.upload(input, await drawDemoPhoto(640, 480));
+    const page = within(canvasElement.ownerDocument.body);
+    const usePhoto = await page.findByRole("button", { name: "Use photo" });
+    // Enabled once the cropper has measured the photo.
+    await waitFor(() => expect(usePhoto).toBeEnabled(), { timeout: 5000 });
+    await userEvent.click(usePhoto);
+    await page.findByRole("alert", {}, { timeout: 5000 });
+  },
 };

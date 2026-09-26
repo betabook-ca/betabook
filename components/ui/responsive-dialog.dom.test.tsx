@@ -1,8 +1,8 @@
 import { useOverlayState } from "@heroui/react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 
 import { stubViewport } from "@/test/viewport";
 
@@ -33,6 +33,8 @@ function Example({
     </ResponsiveDialog>
   );
 }
+
+afterEach(() => vi.useRealTimers());
 
 it("names the dialog the same on either side of the breakpoint", async () => {
   stubViewport("mobile");
@@ -80,17 +82,22 @@ it("refuses to close while a submit is in flight", async () => {
 
 it("reports the close once the exit has finished, not while it runs", async () => {
   stubViewport("mobile");
-  const user = userEvent.setup();
   const onClose = vi.fn<() => void>();
   render(<Example onClose={onClose} />);
+  const dialog = await screen.findByRole("dialog");
 
-  await screen.findByRole("dialog");
-  await user.keyboard("{Escape}");
+  // The clock is faked only once the dialog is up: Testing Library drains
+  // every wait, user-event's included, through a real setTimeout that vitest's
+  // fake timers never advance, so Escape is dispatched directly.
+  vi.useFakeTimers();
+  fireEvent.keyDown(dialog, { key: "Escape" });
 
   // Resetting straight away would swap the body out while the dialog is
-  // still sliding off screen.
+  // still sliding off screen: EXIT_SETTLE_MS is 300.
+  await act(() => vi.advanceTimersByTimeAsync(299));
   expect(onClose).not.toHaveBeenCalled();
-  await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+  await act(() => vi.advanceTimersByTimeAsync(1));
+  expect(onClose).toHaveBeenCalledOnce();
 });
 
 it("mounts the body only while open, so a reopened form starts clean", async () => {

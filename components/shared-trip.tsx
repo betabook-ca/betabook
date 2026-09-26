@@ -1,7 +1,7 @@
-import { buttonVariants } from "@heroui/react";
-
 import { AscentStyle } from "@/components/ascent-style";
 import { SendGradeCell } from "@/components/send-grade-cell";
+import { signUpCard } from "@/components/sign-up-card";
+import { TripStats } from "@/components/trips/trip-stats";
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import { ClampedComment } from "@/components/ui/clamped-comment";
@@ -10,8 +10,6 @@ import { PageTitle, SectionHeading } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import type { SharedTrip, SharedTripEntry, SharedTripSend } from "@/db/queries";
 import { formatDate } from "@/lib/format-date";
-import { signUpUrl } from "@/lib/sign-in-redirect";
-import { SITE_NAME } from "@/lib/site";
 import { climbHref } from "@/lib/slug";
 import { formatTripDates } from "@/lib/trips";
 
@@ -28,14 +26,6 @@ function Truncated({ shown, total, noun }: { shown: number; total: number; noun:
     <p className="text-sm text-muted">
       Showing the {shown} most recent of {total} {noun}.
     </p>
-  );
-}
-
-function Stat({ value, label }: { value: number; label: string }) {
-  return (
-    <span className="text-sm text-muted">
-      <span className="font-medium text-foreground">{value}</span> {label}
-    </span>
   );
 }
 
@@ -155,15 +145,9 @@ export function SharedTrip({
 
         {trip.description && <p className="text-sm leading-relaxed">{trip.description}</p>}
 
-        {/* The same three counts the owner's own trip card carries, read
-         * through the same SQL fragments, so the two cannot disagree — down to
-         * "days logged" rather than "days out", which means something narrower
-         * on the Analytics tab. */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <Stat value={trip.dayCount} label={trip.dayCount === 1 ? "day logged" : "days logged"} />
-          <Stat value={trip.entryCount} label={trip.entryCount === 1 ? "entry" : "entries"} />
-          <Stat value={trip.sendCount} label={trip.sendCount === 1 ? "send" : "sends"} />
-        </div>
+        {/* The owner's own card, read through the same SQL fragments, so the
+         * two cannot disagree. */}
+        <TripStats trip={trip} />
       </section>
 
       <section aria-label="Sends" className="flex flex-col gap-3">
@@ -194,20 +178,12 @@ export function SharedTrip({
         )}
       </section>
 
-      {!signedIn && (
-        <section
-          aria-label={`Climb with ${trip.ownerName} on ${SITE_NAME}`}
-          className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${cardClass("md", "bordered")}`}
-        >
-          <p className="text-sm text-muted">
-            {SITE_NAME} is a climbing logbook and crag database. Keep your own trips and see the
-            sessions behind every send.
-          </p>
-          <AppLink href={signUpUrl(path)} className={`${buttonVariants()} shrink-0`}>
-            Sign up
-          </AppLink>
-        </section>
-      )}
+      {!signedIn &&
+        signUpCard({
+          ownerName: trip.ownerName,
+          path,
+          pitch: "Keep your own trips and see the sessions behind every send.",
+        })}
     </div>
   );
 }

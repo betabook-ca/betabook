@@ -62,7 +62,7 @@ export function GoalCompletionNotice({
       setDismissed(true);
       if (view) onView();
     } catch {
-      setError("Could not dismiss achievements. Try again.");
+      setError("Couldn't dismiss achievements. Try again.");
     } finally {
       setPending(false);
     }
@@ -77,7 +77,7 @@ export function GoalCompletionNotice({
           : "Yearly target met!";
   return (
     <div
-      className={`relative flex items-center gap-3 overflow-hidden p-3! ${cardClass("sm")} bg-accent! text-accent-foreground`}
+      className={`relative flex items-center gap-3 overflow-hidden ${cardClass("sm", "accent")}`}
       role="status"
     >
       <Button

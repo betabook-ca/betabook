@@ -9,6 +9,17 @@ export async function getUser(db: Database, id: string) {
   return db.select().from(user).where(eq(user.id, id)).get();
 }
 
+/** A climber as their profile pages read them — the header's fields and the
+ * flag canViewUser weighs, nothing more, since the viewer is usually not the
+ * owner and the rest of the row (email included) has no business on the page. */
+export async function getUserProfile(db: Database, id: string) {
+  return db
+    .select({ id: user.id, name: user.name, image: user.image, isPrivate: user.isPrivate })
+    .from(user)
+    .where(eq(user.id, id))
+    .get();
+}
+
 /** Who holds a display name, if anyone — case-insensitive to match
  * user_name_unique_idx (COLLATE NOCASE, migration 0034), so the friendly
  * checks built on this agree with what the index will actually reject. */

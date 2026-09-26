@@ -51,7 +51,6 @@ export function FeedList({
           } satisfies FeedCursor),
         );
       const response = await apiFetch(`/api/feed?${params}`, { cache: "no-store", signal });
-      if (response.status === 401) router.replace(signInUrl("/feed"));
       if (!response.ok) throw new Error("Couldn't load feed");
       const page = (await response.json()) as FeedPage;
       return { items: page.days, hasMore: page.hasMore, meta: null };

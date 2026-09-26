@@ -30,6 +30,7 @@ import {
 } from "@/lib/import-matching";
 
 import { ImportClimbSearchDrawer, type SearchTarget } from "./import-climb-search-drawer";
+import { TEXT_BUTTON_CLASS } from "./text-button";
 
 /** Where the climb-name lookup stands — the step renders its list only once
  * every name has been asked about. */
@@ -87,7 +88,8 @@ function stateLabel(resolved: ResolvedRow): string {
     case "skipped":
       return "Skipped";
     default:
-      return "";
+      // A new ResolvedState fails here at compile time.
+      return resolved.state satisfies never;
   }
 }
 
@@ -245,14 +247,18 @@ function MatchRow({
   return (
     <li className="flex flex-col gap-2 py-3">
       <div className="flex items-start justify-between gap-3">
+        {/* Wraps like the candidates below: the name and facts are what
+         * tell two same-named climbs apart, so they can't be cut off. */}
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-foreground">
-            {row.climbName}{" "}
-            <span className="text-xs font-normal text-muted tabular-nums">
+          <p className="flex flex-wrap items-baseline gap-x-1 text-sm font-medium text-foreground">
+            <span className="min-w-0 wrap-break-word">{row.climbName}</span>
+            <span className="shrink-0 text-xs font-normal text-muted tabular-nums">
               Row {row.rowIndex + 1}
             </span>
           </p>
-          {facts.length > 0 && <p className="truncate text-xs text-muted">{facts.join(" · ")}</p>}
+          {facts.length > 0 && (
+            <p className="min-w-0 text-xs wrap-break-word text-muted">{facts.join(" · ")}</p>
+          )}
         </div>
         <span className={clsx("shrink-0 text-xs font-medium", STATE_CLASS[state])}>
           {stateLabel(resolved)}
@@ -319,7 +325,7 @@ function MatchRow({
             <button
               type="button"
               onClick={() => setShowPool((v) => !v)}
-              className="self-start text-xs text-muted underline decoration-dotted underline-offset-4 hover:text-foreground"
+              className={`self-start text-xs text-muted ${TEXT_BUTTON_CLASS}`}
             >
               {showPool
                 ? "Show likely matches only"

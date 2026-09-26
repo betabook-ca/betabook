@@ -3,6 +3,7 @@
 import { Chip } from "@heroui/react";
 import type { ReactNode } from "react";
 
+import { TripStats } from "@/components/trips/trip-stats";
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import type { TripSummary } from "@/db/queries";
@@ -18,14 +19,6 @@ const STATUS_CHIP: Partial<Record<TripStatus, { label: string; color: "success" 
   upcoming: { label: "Upcoming", color: "default" },
   current: { label: "On now", color: "success" },
 };
-
-function Stat({ value, label }: { value: number; label: string }) {
-  return (
-    <span className="text-sm text-muted">
-      <span className="font-medium text-foreground">{value}</span> {label}
-    </span>
-  );
-}
 
 /** One trip in the list. The whole card is not a link: the actions menu lives
  * inside it, and nesting interactive controls inside an anchor is what makes a
@@ -67,17 +60,9 @@ export function TripCard({
         <p className="line-clamp-2 text-sm leading-relaxed">{trip.description}</p>
       )}
 
-      {/* Entries and sends come from the same SQL the trip's own tabs read, so
-       * the card cannot promise a number the page behind it contradicts.
-       * "Days logged" is deliberately not the Analytics tab's "Days out":
-       * that tile counts outdoor sessions in a single discipline, a narrower
-       * question, so it gets its own words rather than a shared label and two
-       * different numbers. */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-        <Stat value={trip.dayCount} label={trip.dayCount === 1 ? "day logged" : "days logged"} />
-        <Stat value={trip.entryCount} label={trip.entryCount === 1 ? "entry" : "entries"} />
-        <Stat value={trip.sendCount} label={trip.sendCount === 1 ? "send" : "sends"} />
-      </div>
+      {/* Read through the same SQL the trip's own tabs use, so the card cannot
+       * promise a number the page behind it contradicts. */}
+      <TripStats trip={trip} />
     </li>
   );
 }

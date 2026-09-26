@@ -13,6 +13,9 @@ export const PageHeading: Story = {};
 export const ClimberName: Story = {
   args: { children: "Alexandra Rivera", size: "lg" },
 };
+export const DialogTitle: Story = {
+  args: { children: "Cedar Arete", size: "sm" },
+};
 export const WithSection: Story = {
   render: (args) => (
     <div className="flex flex-col gap-6">

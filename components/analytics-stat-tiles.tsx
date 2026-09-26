@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { cardClass } from "@/components/ui/card";
 import { EYEBROW_CLASS } from "@/components/ui/eyebrow";
+import { StatValue } from "@/components/ui/stat-value";
 
 export type StatTile = {
   label: string;
@@ -30,9 +31,7 @@ export function StatTileContent({ tile }: { tile: StatTile }) {
   return (
     <>
       <span className={EYEBROW_CLASS}>{tile.label}</span>
-      <span className="font-display text-2xl font-semibold text-foreground tabular-nums">
-        {tile.value}
-      </span>
+      <StatValue>{tile.value}</StatValue>
       {tile.sub != null && <span className="text-xs text-muted">{tile.sub}</span>}
     </>
   );

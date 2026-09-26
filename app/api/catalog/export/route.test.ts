@@ -2,7 +2,7 @@ import { env } from "cloudflare:test";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { createDb } from "@/db/client";
-import { buildCatalogExport, CATALOG_EXPORT_KEY, writeCatalogExport } from "@/lib/catalog-export";
+import { CATALOG_EXPORT_KEY, writeCatalogExport } from "@/lib/catalog-export";
 import { seedFixtureTree, seedFixtureUser } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
 
@@ -50,7 +50,7 @@ it("is 404 until the first snapshot exists", async () => {
 });
 
 it("streams the snapshot as a dated JSON attachment", async () => {
-  await writeCatalogExport(env.CATALOG_EXPORTS, await buildCatalogExport(db, NOW));
+  await writeCatalogExport(env.CATALOG_EXPORTS, db, NOW);
   const response = await GET(request());
   expect(response.status).toBe(200);
   expect(response.headers.get("Content-Type")).toBe("application/json; charset=utf-8");

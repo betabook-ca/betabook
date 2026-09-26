@@ -115,6 +115,36 @@ it("shows only the status for a selected period with no activity", () => {
   expect(screen.queryByRole("button", { name: "Customize dashboard" })).not.toBeInTheDocument();
 });
 
+it("heads every chart panel with a level-3 heading under the activity heading", () => {
+  render(
+    <AnalyticsDashboard
+      analytics={buildUserAnalytics(sends, "boulder")}
+      sends={sends}
+      selectedYears={[]}
+      undatedCount={1}
+      scope="boulder"
+      journalVisible={false}
+      initialLayout={{
+        ...DEFAULT_ANALYTICS_LAYOUT,
+        charts: ["volume", "flashRate", "progression", "pyramid", "breakthroughs", "calendar"],
+      }}
+      periodPicker={null}
+    />,
+  );
+
+  expect(screen.getByRole("heading", { level: 2, name: "All-time activity" })).toBeInTheDocument();
+  expect(
+    screen.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent),
+  ).toEqual([
+    "Volume over time",
+    "Flash rate by grade",
+    "Progression",
+    "Grade pyramid",
+    "Breakthroughs",
+    "Sending calendar",
+  ]);
+});
+
 it("summarizes the climber under the activity heading", () => {
   const summary = "Climbing since 2024. 4 sends across 1 area. Last sent Mar 3, 2026.";
   render(

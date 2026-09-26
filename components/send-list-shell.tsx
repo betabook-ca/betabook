@@ -30,11 +30,11 @@ export function SendListShell<T extends { id: number }>({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col divide-y divide-separator">
+      <ul role="list" className="flex flex-col divide-y divide-separator">
         {sends.map((send) => (
-          <div key={send.id}>{renderRow(send)}</div>
+          <li key={send.id}>{renderRow(send)}</li>
         ))}
-      </div>
+      </ul>
       {hasMore && (
         <LoadMoreButton onPress={onLoadMore} loading={loadingMore} failed={loadMoreFailed} />
       )}

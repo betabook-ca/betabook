@@ -2,8 +2,13 @@ import { sql } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { friendshipPair, type FriendshipStatus } from "@/lib/friendships";
+import { FRIENDS_PAGE_SIZE } from "@/lib/page-sizes";
 
-import { literalPrefixCondition } from "./shared";
+import { acceptedFriendIdsSql, pendingFriendRequestsSql } from "./content-access";
+import { clampOffset, clampPageSize, literalPrefixCondition } from "./shared";
+
+export { FRIENDS_PAGE_SIZE };
+export const CLIMBERS_PAGE_SIZE = 20;
 
 export type ClimberRow = {
   id: string;
@@ -41,13 +46,13 @@ export async function getClimbersPage(
   {
     name = "",
     offset = 0,
-    pageSize = 20,
+    pageSize = CLIMBERS_PAGE_SIZE,
   }: { name?: string; offset?: number; pageSize?: number } = {},
 ): Promise<ClimbersPage> {
   const query = name.trim().slice(0, 100);
   if (!query) return { climbers: [], hasMore: false };
-  const limit = Number.isInteger(pageSize) ? Math.min(50, Math.max(1, pageSize)) : 20;
-  const start = Number.isInteger(offset) ? Math.min(10000, Math.max(0, offset)) : 0;
+  const limit = clampPageSize(pageSize, CLIMBERS_PAGE_SIZE);
+  const start = clampOffset(offset);
   const rows = await db.all<ClimberRow>(sql`
     SELECT u.id, u.name, u.image,
       CASE WHEN f.status = 'accepted' THEN 'friends' WHEN f.requested_by = ${viewerId} THEN 'outgoing'
@@ -67,18 +72,20 @@ export async function getFriendsPage(
   requestsOnly = false,
   offset = 0,
 ): Promise<FriendsPage> {
-  const start = Number.isInteger(offset) ? Math.min(10000, Math.max(0, offset)) : 0;
+  const start = clampOffset(offset);
   const rows = await db.all<Omit<FriendRow, "isPrivate"> & { isPrivate: number }>(sql`
+    WITH counterparts AS (${requestsOnly ? pendingFriendRequestsSql(viewerId) : acceptedFriendIdsSql(viewerId)})
     SELECT u.id, u.name, u.image, u.is_private AS isPrivate,
-      CASE WHEN f.status = 'accepted' THEN 'friends' WHEN f.requested_by = ${viewerId} THEN 'outgoing' ELSE 'incoming' END AS friendshipStatus
-    FROM friendships f JOIN user u ON u.id = CASE WHEN f.user_id = ${viewerId} THEN f.friend_id ELSE f.user_id END
-    WHERE (f.user_id = ${viewerId} OR f.friend_id = ${viewerId}) AND f.status = ${requestsOnly ? "pending" : "accepted"}
-    ORDER BY ${requestsOnly ? sql`f.created_at DESC, u.id DESC` : sql`u.name COLLATE NOCASE, u.id`}
-    LIMIT 11 OFFSET ${start}
+      ${requestsOnly ? sql`CASE WHEN c.requested_by = ${viewerId} THEN 'outgoing' ELSE 'incoming' END` : sql`'friends'`} AS friendshipStatus
+    FROM counterparts c CROSS JOIN user u ON u.id = c.id
+    ORDER BY ${requestsOnly ? sql`c.created_at DESC, u.id DESC` : sql`u.name COLLATE NOCASE, u.id`}
+    LIMIT ${FRIENDS_PAGE_SIZE + 1} OFFSET ${start}
   `);
   return {
-    friends: rows.slice(0, 10).map((row) => ({ ...row, isPrivate: row.isPrivate === 1 })),
-    hasMore: rows.length > 10,
+    friends: rows
+      .slice(0, FRIENDS_PAGE_SIZE)
+      .map((row) => ({ ...row, isPrivate: row.isPrivate === 1 })),
+    hasMore: rows.length > FRIENDS_PAGE_SIZE,
   };
 }
 
@@ -104,11 +111,7 @@ export async function getClimberSuggestions(
 ): Promise<SuggestedClimberRow[]> {
   const count = Number.isInteger(limit) ? Math.min(20, Math.max(1, limit)) : 6;
   return db.all<SuggestedClimberRow>(sql`
-    WITH friends AS (
-      SELECT friend_id AS id FROM friendships WHERE user_id = ${viewerId} AND status = 'accepted'
-      UNION ALL
-      SELECT user_id FROM friendships WHERE friend_id = ${viewerId} AND status = 'accepted'
-    ),
+    WITH friends AS (${acceptedFriendIdsSql(viewerId)}),
     via AS (SELECT friends.id FROM friends JOIN user u ON u.id = friends.id WHERE u.is_private = 0),
     reachable AS (
       SELECT f.friend_id AS id FROM via JOIN friendships f ON f.user_id = via.id AND f.status = 'accepted'

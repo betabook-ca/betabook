@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { daysBetween, describeDaysAgo, formatDate } from "./format-date";
+import { daysBetween, describeDaysAgo, formatDate, localToday } from "./format-date";
+
+describe("localToday", () => {
+  it("formats the civil date in the runtime's own timezone", () => {
+    expect(localToday(new Date(2026, 8, 25, 12))).toBe("2026-09-25");
+    expect(localToday(new Date(2026, 0, 1, 0, 0, 1))).toBe("2026-01-01");
+  });
+});
 
 describe("formatDate", () => {
   it("formats a stored civil date", () => {

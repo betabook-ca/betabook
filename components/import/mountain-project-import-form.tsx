@@ -1,8 +1,9 @@
 "use client";
 
 import { Button, Input, Label, TextField } from "@heroui/react";
-import { Download, Info } from "lucide-react";
+import { Download } from "lucide-react";
 
+import { HintCallout } from "@/components/ui/hint-callout";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { SupportText } from "@/components/ui/support-text";
 import { fetchMountainProjectImport } from "@/lib/mountain-project-import";
@@ -63,13 +64,10 @@ export function MountainProjectImportForm({
             spellCheck={false}
           />
         </TextField>
-        <div className="flex items-start gap-2 rounded-lg bg-surface-tertiary px-3 py-2.5 text-xs text-muted">
-          <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
-          <p>
-            Open your Mountain Project profile and copy the address from your browser. Your ID is
-            the number in it.
-          </p>
-        </div>
+        <HintCallout>
+          Open your Mountain Project profile and copy the address from your browser. Your ID is the
+          number in it.
+        </HintCallout>
         <div className="flex flex-wrap items-center gap-2">
           <Button
             type="submit"

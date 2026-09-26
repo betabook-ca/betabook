@@ -59,8 +59,11 @@ it("validates history/year paging and protects history after access changes", as
   await seedFixtureFriendship(db, "owner", "friend");
   for (const query of [
     "historyId=0",
+    "historyId=1e3",
     "historyId=1&offset=-1",
+    "goalId=0x1&periodStart=2026-09-01",
     "view=completed&year=oops",
+    "view=all",
     "year=10000",
   ])
     expect((await GET(request(query), params)).status).toBe(400);

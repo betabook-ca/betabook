@@ -45,7 +45,7 @@ export function ResetPasswordButton({
             setSent(true);
             setCooldown(true);
           },
-          onError: (ctx) => setError(ctx.error.message ?? "Could not send the reset email"),
+          onError: (ctx) => setError(ctx.error.message ?? "Couldn't send the reset email."),
           onResponse: () => {
             setPending(false);
             captcha.reset();

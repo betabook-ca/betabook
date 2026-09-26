@@ -193,7 +193,7 @@ it("says so when nothing matches, and restores the list when the search is clear
   await user.type(search, "kneebar");
 
   expect(headings()).toEqual([]);
-  expect(screen.getByText("No projects match this search.")).toBeInTheDocument();
+  expect(screen.getByText("No projects match this filter.")).toBeInTheDocument();
 
   await user.clear(search);
 

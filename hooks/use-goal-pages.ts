@@ -13,19 +13,15 @@ export function useGoalPages(
   const [state, setState] = useState(() => ({
     page: initial,
     year: initial.summary?.year ?? Number(today.slice(0, 4)),
+    /** The year a whole-list request is in flight for; the rows still belong to `year`. */
+    pendingYear: null as number | null,
     loading: false,
     moreFailed: false,
     error: "",
   }));
-  const latest = useRef(state);
-  const fetcher = useRef(fetchPage);
   const source = useRef(initial);
   const request = useRef<AbortController | null>(null);
   const retryYear = useRef<number | null>(null);
-  useEffect(() => {
-    latest.current = state;
-    fetcher.current = fetchPage;
-  });
   useEffect(() => () => request.current?.abort(), []);
 
   async function load(year: number, append: boolean, serverPage?: GoalPage) {
@@ -34,26 +30,32 @@ export function useGoalPages(
     const controller = new AbortController();
     request.current = controller;
     retryYear.current = null;
-    const previous = latest.current;
-    setState((value) => ({ ...value, loading: true, moreFailed: false, error: "" }));
+    const previous = state;
+    setState((value) => ({
+      ...value,
+      pendingYear: append ? value.pendingYear : year,
+      loading: true,
+      moreFailed: false,
+      error: "",
+    }));
     let authoritative: GoalPage | undefined;
     try {
       let page =
         serverPage?.summary?.year === year
           ? serverPage
-          : await fetcher.current(year, append ? previous.page.goals.length : 0, controller.signal);
+          : await fetchPage(year, append ? previous.page.goals.length : 0, controller.signal);
       if (controller.signal.aborted) return;
       authoritative = page;
       if (append) page = { ...page, goals: [...previous.page.goals, ...page.goals] };
       if (serverPage) {
         while (page.hasMore && page.goals.length < previous.page.goals.length) {
-          const tail = await fetcher.current(year, page.goals.length, controller.signal);
+          const tail = await fetchPage(year, page.goals.length, controller.signal);
           if (controller.signal.aborted) return;
           page = { ...tail, goals: [...page.goals, ...tail.goals] };
           if (tail.goals.length === 0) break;
         }
       }
-      setState({ page, year, loading: false, moreFailed: false, error: "" });
+      setState({ page, year, pendingYear: null, loading: false, moreFailed: false, error: "" });
     } catch {
       if (controller.signal.aborted) return;
       if (!append) retryYear.current = year;
@@ -62,17 +64,16 @@ export function useGoalPages(
         ...(serverPage
           ? { page: authoritative ?? { goals: [], hasMore: false, total: 0, years: initial.years } }
           : {}),
+        pendingYear: null,
         loading: false,
         moreFailed: append,
-        error: append ? "" : "Could not refresh goals. Try again.",
+        error: append ? "" : "Couldn't refresh goals. Try again.",
       }));
     } finally {
       if (request.current === controller) request.current = null;
     }
   }
-  const reload = useEffectEvent((serverPage: GoalPage) =>
-    load(latest.current.year, false, serverPage),
-  );
+  const reload = useEffectEvent((serverPage: GoalPage) => load(state.year, false, serverPage));
   useEffect(() => {
     if (source.current === initial) return;
     source.current = initial;

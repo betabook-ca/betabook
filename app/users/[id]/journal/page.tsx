@@ -2,10 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { JournalView } from "@/app/users/[id]/journal-view";
-import { ProfileHeader, getUserById, canReadUserJournal } from "@/app/users/[id]/profile-shell";
+import { ProfileHeader, memberMetadata, resolveProfilePage } from "@/app/users/[id]/profile-shell";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { parseJournalFilter } from "@/lib/filters/journal-filter";
-import { getMemberSession } from "@/lib/session";
 import type { UrlParamsRecord } from "@/lib/url-params";
 
 type UserJournalPageProps = {
@@ -15,22 +14,18 @@ type UserJournalPageProps = {
 
 export async function generateMetadata({ params }: UserJournalPageProps): Promise<Metadata> {
   const { id } = await params;
-  const session = await getMemberSession();
-  if (!session) return { title: "Member content", robots: { index: false } };
-  const user = await getUserById(id);
-  if (!user || !(await canReadUserJournal(user.id, session.user.id))) notFound();
-
-  return { title: `${user.name} · Journal`, robots: { index: false } };
+  return memberMetadata(
+    await resolveProfilePage(id, "journal"),
+    (user) => `${user.name} · Journal`,
+  );
 }
 
 export default async function UserJournalPage({ params, searchParams }: UserJournalPageProps) {
   const [{ id }, search] = await Promise.all([params, searchParams]);
-  const session = await getMemberSession();
-  if (!session) return <CurrentPageAuthCallout />;
-  const user = await getUserById(id);
-  const viewerId = session.user.id;
-
-  if (!user || !(await canReadUserJournal(user.id, viewerId))) notFound();
+  const resolved = await resolveProfilePage(id, "journal");
+  if (!resolved.signedIn) return <CurrentPageAuthCallout />;
+  if (!resolved.ok) notFound();
+  const { user, viewerId } = resolved;
 
   return (
     <ProfileHeader user={user} viewerId={viewerId}>

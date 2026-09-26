@@ -27,7 +27,7 @@ import { readCompanionSelection } from "@/lib/journal-companions";
 import { allowJournalWrite } from "@/lib/rate-limit";
 import { validateSendInput, type RawSendInput } from "@/lib/sends";
 import { requireSession } from "@/lib/session";
-import { pickFormFields } from "@/lib/validation";
+import { pickFormFields, requirePositiveId } from "@/lib/validation";
 
 import {
   buildCompanionInsert,
@@ -59,25 +59,30 @@ function readSendFormData(formData: FormData): RawSendInput {
   return pickFormFields(formData, SEND_FORM_FIELDS);
 }
 
+const SEND_NOT_FOUND = "Send not found";
+const ENTRY_UNLINKED_MESSAGE = "This entry is no longer linked to a send — refresh and try again";
+
 export async function getSendEditorData(
   target: { sendId: number } | { entryId: number },
 ): Promise<ActionResult<{ send: EditableSend; entry: JournalEntry | null; climb: SendableClimb }>> {
   return toActionResult(async () => {
     const session = await requireSession();
+    if ("sendId" in target) requirePositiveId(target.sendId, SEND_NOT_FOUND);
+    else requirePositiveId(target.entryId, ENTRY_UNLINKED_MESSAGE);
     const db = await getDb();
     const requestedEntry =
       "entryId" in target
         ? await getJournalEntryForEdit(db, target.entryId, session.user.id)
         : null;
     if ("entryId" in target && (!requestedEntry?.isAscent || requestedEntry.climbId === null))
-      throw new ActionError("This entry is no longer linked to a send — refresh and try again");
+      throw new ActionError(ENTRY_UNLINKED_MESSAGE);
     const send =
       "sendId" in target
         ? await db.select().from(sends).where(eq(sends.id, target.sendId)).get()
         : requestedEntry?.climbId != null
           ? await getUserSendForClimb(db, session.user.id, requestedEntry.climbId)
           : null;
-    if (!send || send.userId !== session.user.id) throw new ActionError("Send not found");
+    if (!send || send.userId !== session.user.id) throw new ActionError(SEND_NOT_FOUND);
     const [climb, entryId] = await Promise.all([
       getClimb(db, send.climbId),
       getAscentEntryId(db, session.user.id, send.climbId),
@@ -159,10 +164,11 @@ function readJournalDetails(
 export async function updateSend(sendId: number, formData: FormData): Promise<ActionResult> {
   return toActionResult(async () => {
     const session = await requireSession();
+    requirePositiveId(sendId, SEND_NOT_FOUND);
     const db = await getDb();
 
     const existing = await db.select().from(sends).where(eq(sends.id, sendId)).get();
-    if (!existing || existing.userId !== session.user.id) throw new ActionError("Send not found");
+    if (!existing || existing.userId !== session.user.id) throw new ActionError(SEND_NOT_FOUND);
 
     const climb = await getClimb(db, existing.climbId);
     if (!climb) throw new ActionError("Climb not found");
@@ -254,10 +260,11 @@ export async function updateSend(sendId: number, formData: FormData): Promise<Ac
 export async function deleteSend(sendId: number): Promise<ActionResult> {
   return toActionResult(async () => {
     const session = await requireSession();
+    requirePositiveId(sendId, SEND_NOT_FOUND);
     const db = await getDb();
 
     const existing = await db.select().from(sends).where(eq(sends.id, sendId)).get();
-    if (!existing || existing.userId !== session.user.id) throw new ActionError("Send not found");
+    if (!existing || existing.userId !== session.user.id) throw new ActionError(SEND_NOT_FOUND);
 
     await db.delete(sends).where(eq(sends.id, sendId));
 

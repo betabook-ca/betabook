@@ -4,21 +4,22 @@ import { sql } from "drizzle-orm";
 import { refresh } from "next/cache";
 
 import { getDb } from "@/db/client";
-import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
+import {
+  ActionError,
+  JOURNAL_RATE_LIMIT_MESSAGE,
+  toActionResult,
+  type ActionResult,
+} from "@/lib/action-result";
 import { allowJournalWrite } from "@/lib/rate-limit";
 import { requireSession } from "@/lib/session";
 import { MAX_TRIPS, tripInputSchema } from "@/lib/trips";
+import { requirePositiveId } from "@/lib/validation";
 
 import { afterCommit } from "./post-commit";
 import { revalidateTripSurfaces } from "./revalidation";
 
 const TRIP_NOT_FOUND = "Trip not found";
 const TRIP_LIMIT_MESSAGE = `You can keep ${MAX_TRIPS} trips. Delete one to add another.`;
-
-function parseTripId(tripId: number): number {
-  if (!Number.isSafeInteger(tripId) || tripId < 1) throw new ActionError(TRIP_NOT_FOUND);
-  return tripId;
-}
 
 /** Creates a trip, or edits one the climber already owns.
  *
@@ -35,8 +36,7 @@ function parseTripId(tripId: number): number {
 export async function saveTrip(tripId: number | null, raw: unknown): Promise<ActionResult<number>> {
   return toActionResult(async () => {
     const { user } = await requireSession();
-    if (!(await allowJournalWrite(user.id)))
-      throw new ActionError("Too many changes — try again in a minute");
+    if (!(await allowJournalWrite(user.id))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
 
     const parsed = tripInputSchema.safeParse(raw);
     if (!parsed.success) throw new ActionError(parsed.error.issues[0]?.message ?? "Check the form");
@@ -45,7 +45,7 @@ export async function saveTrip(tripId: number | null, raw: unknown): Promise<Act
     const db = await getDb();
 
     if (tripId != null) {
-      const id = parseTripId(tripId);
+      const id = requirePositiveId(tripId, TRIP_NOT_FOUND);
       const [updated] = await db.all<{ id: number }>(sql`
         UPDATE trips
         SET name = ${name}, description = ${description ?? null},
@@ -90,9 +90,8 @@ export async function saveTrip(tripId: number | null, raw: unknown): Promise<Act
 export async function deleteTrip(tripId: number): Promise<ActionResult> {
   return toActionResult(async () => {
     const { user } = await requireSession();
-    const id = parseTripId(tripId);
-    if (!(await allowJournalWrite(user.id)))
-      throw new ActionError("Too many changes — try again in a minute");
+    const id = requirePositiveId(tripId, TRIP_NOT_FOUND);
+    if (!(await allowJournalWrite(user.id))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
 
     const db = await getDb();
     await db.run(sql`DELETE FROM trips WHERE id = ${id} AND user_id = ${user.id}`);

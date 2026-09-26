@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { parseGradeIndex, pickFormFields, requireTrimmed, trimOrNull } from "./validation";
+import { ActionError } from "./action-result";
+import {
+  parseGradeIndex,
+  pickFormFields,
+  requirePositiveId,
+  requireTrimmed,
+  trimOrNull,
+} from "./validation";
 
 describe("trimOrNull", () => {
   it("returns null for non-string, empty, or whitespace-only values", () => {
@@ -40,6 +47,25 @@ describe("parseGradeIndex", () => {
 
   it("returns the parsed index when in bounds", () => {
     expect(parseGradeIndex("5", 10, "Grade")).toBe(5);
+  });
+});
+
+describe("requirePositiveId", () => {
+  it("returns a positive safe integer unchanged", () => {
+    expect(requirePositiveId(7, "Send not found")).toBe(7);
+    expect(requirePositiveId(Number.MAX_SAFE_INTEGER, "Send not found")).toBe(
+      Number.MAX_SAFE_INTEGER,
+    );
+  });
+
+  it("throws the caller's not-found message as an ActionError for anything else", () => {
+    expect(() => requirePositiveId(0, "Send not found")).toThrowError(ActionError);
+    for (const value of [0, -1, 1.5, Number.NaN, Number.MAX_SAFE_INTEGER + 1]) {
+      expect(() => requirePositiveId(value, "Send not found")).toThrow("Send not found");
+    }
+    for (const value of ["7", null, undefined, {}, [7]]) {
+      expect(() => requirePositiveId(value, "Entry not found")).toThrow("Entry not found");
+    }
   });
 });
 

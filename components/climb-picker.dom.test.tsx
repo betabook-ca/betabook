@@ -108,8 +108,7 @@ it("logging narrows to one discipline at a time without an expanded filter panel
 });
 
 it("offers no result ordering: picking a climb is a lookup, not a browse", async () => {
-  // A mode that shows the full filter row, which is where the order control
-  // used to sit — the logging picker renders discipline chips instead.
+  // A mode that shows the full filter row; the logging picker renders discipline chips instead.
   render(<IntegratedClimbPickerDemo mode="merge" />);
 
   await screen.findByRole("region", { name: "Climbs results" });

@@ -3,7 +3,7 @@ import { PageTitle, SectionHeading } from "@/components/ui/typography";
 
 export function Terms20260909() {
   return (
-    <article className="mx-auto flex w-full max-w-2xl flex-col gap-4 leading-relaxed">
+    <article className="flex flex-col gap-4 leading-relaxed">
       <PageTitle>Terms of Service</PageTitle>
       <p className="text-sm text-muted">
         Last updated: <time dateTime="2026-09-09">September 9, 2026</time>

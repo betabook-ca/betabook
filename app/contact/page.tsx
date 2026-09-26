@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { ContactForm } from "@/components/contact-form";
+import { READING_MAX_WIDTH_CLASS } from "@/components/ui/layout";
 import { PageTitle } from "@/components/ui/typography";
 import { pageMetadata } from "@/lib/seo";
 
@@ -13,10 +14,7 @@ export const metadata: Metadata = pageMetadata({
 
 export default function ContactPage() {
   return (
-    // Same measure as /about — the shell's <main> is max-w-7xl, which is
-    // right for climb lists and about twice a comfortable line length for
-    // running text or a form.
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
+    <div className={`mx-auto flex w-full ${READING_MAX_WIDTH_CLASS} flex-col gap-4`}>
       <PageTitle>Contact us</PageTitle>
 
       <p className="text-lg leading-relaxed text-pretty text-muted">

@@ -38,7 +38,7 @@ function ChosenStrip({
       </Button>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <PageTitle className="text-2xl! text-foreground">
+          <PageTitle size="sm" className="text-foreground">
             {climb ? climb.name : "Training"}
           </PageTitle>
           {climb && <p className="text-xs text-muted">{climb.areaName}</p>}

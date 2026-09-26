@@ -5,6 +5,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { cardClass } from "@/components/ui/card";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Grade } from "@/components/ui/grade";
+import { StatValue } from "@/components/ui/stat-value";
 import { SectionHeading } from "@/components/ui/typography";
 import { Example, StoryPage } from "@/stories/fixtures/story-layout";
 
@@ -27,7 +28,7 @@ const appTokens = [
   ),
 ];
 const colorTokens = appTokens.filter(
-  (name) => !/^--(font-|color-|radius-|field-border-width|search-icon)/.test(name),
+  (name) => !/^--(font-|color-|radius-|text-|field-border-width|search-icon)/.test(name),
 );
 const actionRoles = ["accent", "default", "success", "warning", "danger"];
 const inheritedActions = actionRoles.flatMap((role) =>
@@ -114,7 +115,7 @@ export const Typography: Story = {
   render: () => (
     <StoryPage
       title="Typography"
-      description="Barlow Condensed gives headings a guidebook voice. Geist handles reading, controls and grades. Shared primitives and text styles are measured in the browser. The page title above uses PageTitle."
+      description="Barlow Condensed gives headings a guidebook voice; StatValue’s large numerals under an eyebrow are its one use beyond titles and names. Geist handles reading, controls, grades and the text-2xs chart labels. Shared primitives and text styles are measured in the browser. The page title above uses PageTitle."
     >
       <LiveSample name="Display family · Barlow Condensed" property="font-family">
         <p className="font-display text-3xl font-semibold">A day in the mountains</p>
@@ -133,6 +134,15 @@ export const Typography: Story = {
       </LiveSample>
       <LiveSample name="Grade" property="font-family">
         <Grade size="md">5.11a · V4</Grade>
+      </LiveSample>
+      <LiveSample name="StatValue" property="font-family">
+        <div className="flex flex-col gap-1">
+          <Eyebrow>Sends</Eyebrow>
+          <StatValue>128</StatValue>
+        </div>
+      </LiveSample>
+      <LiveSample name="Chart micro-text · text-2xs" property="font-size">
+        <p className="text-2xs text-muted">Axis and legend labels</p>
       </LiveSample>
     </StoryPage>
   ),

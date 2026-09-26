@@ -16,7 +16,7 @@ and Sends; Progress groups Goals, Projects, and Analytics; the existing project 
 profile header is reserved for viewing another climber. Community groups Feed
 and Friends. Account settings contains identity, sharing, and account controls. Demo links
 stay within the tutorial. Lesson order and stable step IDs remain in the catalog.
-Discovery uses a separate Search surface, with the same All / Climbs / Areas / Climbers categories and result rows as the app. Search is
+Find climbers uses the app's search surface, with the same All / Climbs / Areas / Climbers categories and result rows as the app. Search is
 not a profile tab. The lesson starts in Climbers; category changes, search
 submission, sample results, and friend requests stay local. Its View your feed link
 opens the feed lesson while preserving full/update mode and the exit destination.
@@ -33,7 +33,7 @@ still opens the Climbers lesson.
 Tutorial content uses the app's sort dropdown and direction control, project card and session timeline presentation, journal grades/status, and settings panel framing. The project example loads additional local notes with the standard Load more control. Display-only project components contain no fetches or real links for sample data.
 
 The contained preview uses the same primary navigation links, sidebar interaction frame, mobile tab links, and search control as the app. It adapts to the preview's available width, with Logbook, Progress, and Community in the primary navigation. Account settings stays at the bottom of the desktop sidebar and is available from the example mobile hamburger menu, outside the three bottom tabs. While typing hides those tabs, the example menu also includes the primary destinations. All preview destinations point to tutorial routes; primary area changes open the corresponding full-tour lesson while preserving the exit context. Community exposes Feed/Friends subpage links and the example request count stays consistent across those lessons. The example search control opens the search lesson and does not advertise the real app's global keyboard shortcut. At desktop preview widths, header controls are 40px high and both the sidebar navigation and lesson content begin 8px below the 56px header; narrower previews retain 44px controls and 16px content padding. Goals lesson content remains outside this tour.
-Next, Back, and the lesson chooser connect Search with the workspace lessons.
+Next, Back, and the lesson chooser connect the search lessons with the workspace lessons.
 The Friends lesson uses the shared section navigation and request badge for its
 Friends / Requests controls. Demo selections use local callbacks, with no URLs
 or writes. Accepting or declining the sample request clears both sample badges;

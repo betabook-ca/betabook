@@ -13,6 +13,7 @@ import { AppLink } from "@/components/ui/app-link";
 import { JsonLd } from "@/components/ui/json-ld";
 import { PAGE_MAX_WIDTH_CLASS } from "@/components/ui/layout";
 import { COSTS_PAGE, LOGBOOK_PAGE } from "@/lib/landing-pages";
+import { PALETTE_INK, PALETTE_PAPER } from "@/lib/palette";
 import { websiteJsonLd } from "@/lib/seo";
 import { OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL } from "@/lib/site";
 
@@ -69,8 +70,8 @@ export const viewport: Viewport = {
   // dark), so the browser chrome follows the app instead of staying light
   // on the dark theme.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#eaf7ef" },
-    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+    { media: "(prefers-color-scheme: light)", color: PALETTE_PAPER },
+    { media: "(prefers-color-scheme: dark)", color: PALETTE_INK },
   ],
 };
 
@@ -82,7 +83,7 @@ export const viewport: Viewport = {
 // Mirrors @heroui/react useTheme()'s storage key and resolution exactly
 // (see use-theme.js). Also pins the browser-chrome theme-color for an
 // explicit theme choice — the static media-query metas only track the OS
-// preference (keep the colors and logic in sync with lib/theme-color.ts).
+// preference (keep the logic in sync with lib/theme-color.ts).
 const SET_THEME_SCRIPT = `
 (function () {
   try {
@@ -96,7 +97,7 @@ const SET_THEME_SCRIPT = `
     if (theme !== "system") {
       var m = document.createElement("meta");
       m.name = "theme-color";
-      m.content = resolved === "dark" ? "#000000" : "#eaf7ef";
+      m.content = resolved === "dark" ? "${PALETTE_INK}" : "${PALETTE_PAPER}";
       m.setAttribute("data-explicit-theme", "");
       document.head.insertBefore(m, document.head.firstChild);
     }
@@ -165,7 +166,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                     <AppLink href="/about">About</AppLink>
                     <AppLink href={LOGBOOK_PAGE.path}>Features</AppLink>
                     <AppLink href={COSTS_PAGE.path}>Costs</AppLink>
-                    <AppLink href="/contact">Contact Us</AppLink>
+                    <AppLink href="/contact">Contact us</AppLink>
                     <AppLink href="/terms">Terms of Service</AppLink>
                   </div>
                 </div>

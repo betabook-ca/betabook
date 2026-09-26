@@ -4,20 +4,20 @@ Betabook is a climbing logbook and crag database built with Next.js 16 App Route
 
 ## Code map
 
-| Location                                                      | Responsibility                                                                                                     |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `app/`                                                        | Server page loaders, metadata, layouts, and API route handlers                                                     |
-| `app/areas/[id]/[[...slug]]/`, `app/climbs/[id]/[[...slug]]/` | Entity pages with canonical name slugs                                                                             |
-| `app/users/[id]/`                                             | Climber profiles and owner Logbook / Progress views (Journal, Sends, Goals, Projects, Analytics)                   |
-| `app/account/`, `app/admin/requests/`, `app/tutorial/`        | Account/import, moderation queue, and guided tutorials                                                             |
-| `actions/`                                                    | Account, area, climb, send, journal, import, moderation, and tour mutations; shared write/revalidation helpers     |
-| `components/`                                                 | Feature UI; `ui/` holds primitives, with `journal/`, `import/`, `admin/`, and `product-tours/` for larger features |
-| `hooks/`                                                      | Reusable client hooks for navigation, filtering, pagination, and platform behavior                                 |
-| `db/client.ts`, `db/queries/`                                 | D1 client factory and read queries                                                                                 |
-| `drizzle/schema/`, `drizzle/migrations/`                      | Schema definitions and SQL migrations; `db/schema.ts` re-exports the schema                                        |
-| `lib/`                                                        | Domain validation/calculations and shared server services, including auth, email, and moderation                   |
-| `scripts/`                                                    | Local setup, seeding, database discovery, and admin promotion                                                      |
-| `test/`                                                       | Workers test entrypoint, migrations, fixtures, and reset helpers; tests live beside the code                       |
+| Location                                                      | Responsibility                                                                                                 |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `app/`                                                        | Server page loaders, metadata, layouts, and API route handlers                                                 |
+| `app/areas/[id]/[[...slug]]/`, `app/climbs/[id]/[[...slug]]/` | Entity pages with canonical name slugs                                                                         |
+| `app/users/[id]/`                                             | Climber profiles and owner Logbook / Progress views (Journal, Sends, Goals, Projects, Analytics)               |
+| `app/account/`, `app/admin/requests/`, `app/tutorial/`        | Account/import, moderation queue, and guided tutorials                                                         |
+| `actions/`                                                    | Account, area, climb, send, journal, import, moderation, and tour mutations; shared write/revalidation helpers |
+| `components/`                                                 | Feature UI; `ui/` holds primitives and each larger feature has its own subdirectory                            |
+| `hooks/`                                                      | Reusable client hooks for navigation, filtering, pagination, and platform behavior                             |
+| `db/client.ts`, `db/queries/`                                 | D1 client factory and read queries                                                                             |
+| `drizzle/schema/`, `drizzle/migrations/`                      | Schema definitions and SQL migrations; `db/schema.ts` re-exports the schema                                    |
+| `lib/`                                                        | Domain validation/calculations and shared server services, including auth, email, and moderation               |
+| `scripts/`                                                    | Local setup, seeding, database discovery, and admin promotion                                                  |
+| `test/`                                                       | Workers test entrypoint, migrations, fixtures, and reset helpers; tests live beside the code                   |
 
 ## Boundaries and conventions
 

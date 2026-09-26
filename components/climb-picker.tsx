@@ -80,7 +80,7 @@ export function ClimbPicker({
   return (
     <div className="flex flex-col gap-4">
       <SearchPicker
-        // oxlint-disable-next-line jsx-a11y/no-autofocus -- focus follows the drawer step into its climb search
+        // oxlint-disable-next-line jsx-a11y/no-autofocus -- focus follows the dialog step into its climb search
         autoFocus
         query={state.query}
         onQueryChange={(query) => setState({ ...state, query })}

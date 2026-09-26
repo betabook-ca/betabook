@@ -38,8 +38,9 @@ export function useReportNavigationPending(isPending: boolean): void {
   }, [isPending, setPending]);
 }
 
-/** Wraps a results list: dimmed and marked busy while a filter/search
- * navigation reported into the surrounding provider is in flight. */
+/** Wraps a results list: dimmed, marked busy and announced while a
+ * filter/search navigation reported into the surrounding provider is in
+ * flight. */
 export function NavigationPendingRegion({
   children,
   className,
@@ -49,11 +50,18 @@ export function NavigationPendingRegion({
 }) {
   const isPending = useContext(NavigationPendingContext)?.isPending ?? false;
   return (
-    <div
-      aria-busy={isPending}
-      className={clsx("transition-opacity", isPending && "opacity-60", className)}
-    >
-      {children}
-    </div>
+    <>
+      {/* aria-busy alone is silent in screen readers, and a live region inside
+       * a busy subtree can be held back until it is no longer busy. */}
+      <p role="status" className="sr-only">
+        {isPending ? "Updating results…" : ""}
+      </p>
+      <div
+        aria-busy={isPending}
+        className={clsx("transition-opacity", isPending && "opacity-60", className)}
+      >
+        {children}
+      </div>
+    </>
   );
 }
