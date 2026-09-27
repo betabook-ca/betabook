@@ -57,6 +57,11 @@ worker-configuration.d.ts
 # seed data
 climbs_data
 
+# Large, reviewable local catalog imports and database backups
+/artifacts/openbeta-*/
+/.pnpm-store/
+__pycache__/
+
 # Claude Code worktrees; the rest of .claude is shared config
 .claude/worktrees/
 # component gallery and browser reports

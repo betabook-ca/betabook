@@ -1,2 +1,6 @@
 drizzle/migrations/meta/** linguist-generated=true
 pnpm-lock.yaml linguist-generated=true
+
+# Reviewed OpenBeta decisions were hashed with CRLF line endings in the
+# production import manifest. Preserve their bytes for reproducibility.
+scripts/openbeta-*.csv -text whitespace=cr-at-eol

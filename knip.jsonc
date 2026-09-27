@@ -19,6 +19,9 @@
 
     // Referenced by Storybook's framework option, not a module import.
     ".storybook/next.config.ts",
+
+    // Invoked by scripts/openbeta-reconcile.py as a Node subprocess.
+    "lib/openbeta-decode-text.mts",
   ],
 
   // Overriding `project` drops the extensions knip adds per registered
