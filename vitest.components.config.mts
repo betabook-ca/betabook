@@ -12,7 +12,7 @@ export default defineProject({
     name: "components",
     environment: "jsdom",
     include: ["components/**/*.dom.test.{ts,tsx}", "hooks/**/*.dom.test.{ts,tsx}"],
-    setupFiles: ["./test/setup-dom.ts"],
+    setupFiles: ["./test/setup-dom.ts", "./test/setup-next-link.ts"],
     clearMocks: true,
     restoreMocks: true,
   },

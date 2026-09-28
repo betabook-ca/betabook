@@ -1,15 +1,8 @@
 import { render, screen } from "@testing-library/react";
-import { expect, it, vi } from "vitest";
+import { expect, it } from "vitest";
 
 import { AuthCallout } from "./auth-callout";
 
-vi.mock("next/link", () => ({
-  default: ({
-    prefetch: _prefetch,
-    ...props
-  }: React.ComponentProps<"a"> & { prefetch?: boolean }) => <a {...props}>{props.children}</a>,
-  useLinkStatus: () => ({ pending: false }),
-}));
 it("offers both authentication paths with the complete continuation", () => {
   render(<AuthCallout next="/areas/1/test-crag?name=Test&subarea=2" />);
   expect(screen.getByRole("region", { name: "Member content" })).toBeVisible();

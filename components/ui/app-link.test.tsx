@@ -7,12 +7,12 @@ import { AppLink } from "./app-link";
 const nextLink = vi.hoisted(() => vi.fn<(props: ComponentProps<typeof AppLink>) => void>());
 
 // Observe the Next.js boundary while rendering the real AppLink with React.
-vi.mock("next/link", () => ({
+vi.mock("next/link", async () => ({
+  ...(await import("@/test/next-link")),
   default: (props: ComponentProps<typeof AppLink>) => {
     nextLink(props);
     return <a href={typeof props.href === "string" ? props.href : undefined}>{props.children}</a>;
   },
-  useLinkStatus: () => ({ pending: false }),
 }));
 
 describe("AppLink prefetching", () => {

@@ -1,19 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ReactNode } from "react";
 import { expect, it, vi } from "vitest";
 
 import { SidebarLayout } from "./app-sidebar";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/feed", useRouter: () => ({}) }));
-vi.mock("next/link", () => ({
-  default: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
-  useLinkStatus: () => ({ pending: false }),
-}));
 
 it("reveals labels on hover, can pin the sidebar, and collapses explicitly", async () => {
   const user = userEvent.setup();

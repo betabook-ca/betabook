@@ -1,7 +1,9 @@
 import { render, screen, within } from "@testing-library/react";
-import type { ReactNode } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 
+import type { ActionResult } from "@/lib/action-result";
+
+import { TermsGate } from "./terms-gate";
 import { FeedLoading, FriendsLoading, ProfileLoading } from "./workspace-loading";
 
 type Session = { user: { id: string } } | null;
@@ -12,18 +14,12 @@ const state = vi.hoisted(() => ({
   sessionPending: false,
 }));
 vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: () => {}, replace: () => {} }),
   usePathname: () => state.pathname,
   useSearchParams: () => new URLSearchParams(state.search),
   useParams: () => ({ id: state.pathname.split("/")[2] }),
 }));
-vi.mock("next/link", () => ({
-  default: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
-  useLinkStatus: () => ({ pending: false }),
-}));
+vi.mock("@/actions/terms", () => ({ acceptTerms: vi.fn<() => Promise<ActionResult>>() }));
 vi.mock("@/lib/auth-client", () => ({
   authClient: {
     useSession: () => ({ data: state.session, isPending: state.sessionPending }),
@@ -123,3 +119,25 @@ it("gives a signed-out reader placeholders without member navigation", () => {
   expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
 });
+
+it.each([
+  ["Feed", "/feed", () => <FeedLoading />],
+  ["Sends", "/users/owner/sends", () => <ProfileLoading />],
+])(
+  "shows a member who must accept new terms the %s placeholder without member navigation",
+  (_, path, Loading) => {
+    state.pathname = path;
+    render(
+      <TermsGate viewerId="owner" initiallyRequired>
+        <Loading />
+      </TermsGate>,
+    );
+
+    // The page loaders treat them as signed out until they accept, so the
+    // tabs would only vanish again when the page arrives.
+    expect(screen.getByRole("dialog", { name: "Terms of Service" })).toBeVisible();
+    expect(
+      screen.queryByRole("navigation", { name: /sections$/, hidden: true }),
+    ).not.toBeInTheDocument();
+  },
+);

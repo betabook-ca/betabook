@@ -1,6 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ReactNode } from "react";
 import { expect, it, vi } from "vitest";
 
 import { PRODUCT_TOUR_STEPS, productTourPath } from "@/lib/product-tour-navigation";
@@ -11,23 +10,6 @@ const router = vi.hoisted(() => ({ push: vi.fn<(href: string) => void>() }));
 vi.mock("next/navigation", () => ({
   useRouter: () => router,
   usePathname: () => "/tutorial/journal/journal",
-}));
-vi.mock("next/link", () => ({
-  default: ({
-    href,
-    children,
-    prefetch: _prefetch,
-    ...props
-  }: {
-    href: string;
-    children: ReactNode;
-    prefetch?: boolean;
-  }) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
-  useLinkStatus: () => ({ pending: false }),
 }));
 
 function lesson(section = "Journal") {

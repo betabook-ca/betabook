@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it, vi } from "vitest";
 
@@ -6,10 +5,6 @@ import { NavLink } from "./nav-link";
 
 const state = vi.hoisted(() => ({ pathname: "/" }));
 vi.mock("next/navigation", () => ({ usePathname: () => state.pathname }));
-vi.mock("next/link", () => ({
-  default: ({ children, ...props }: { children: ReactNode }) => <a {...props}>{children}</a>,
-  useLinkStatus: () => ({ pending: false }),
-}));
 
 it.each([
   ["/users/alice", "page"],

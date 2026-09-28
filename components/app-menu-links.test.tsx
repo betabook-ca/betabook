@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, it, vi } from "vitest";
 
@@ -8,14 +7,6 @@ const state = vi.hoisted(() => ({ pathname: "/" }));
 vi.mock("next/navigation", () => ({
   usePathname: () => state.pathname,
   useRouter: () => ({ push: () => {}, refresh: () => {} }),
-}));
-vi.mock("next/link", () => ({
-  default: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
-  useLinkStatus: () => ({ pending: false }),
 }));
 vi.mock("next/image", () => ({ default: () => null }));
 vi.mock("@/lib/auth-client", () => ({ authClient: { signOut: () => {} } }));

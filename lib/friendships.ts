@@ -4,3 +4,10 @@ export type FriendshipStatus = "none" | "incoming" | "outgoing" | "friends";
 export function friendshipPair(a: string, b: string) {
   return a < b ? { userId: a, friendId: b } : { userId: b, friendId: a };
 }
+
+/** The two lists /friends shows, from its `view` search param. */
+export type FriendsView = "friends" | "requests";
+
+export function parseFriendsView(value: unknown): FriendsView {
+  return value === "requests" ? "requests" : "friends";
+}

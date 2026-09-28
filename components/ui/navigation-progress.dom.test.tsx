@@ -121,3 +121,22 @@ it("drops progress when a closing menu's link pointed at the page already open",
   view.rerender(<Page menuOpen={false} menuHref="/feed" />);
   expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
 });
+
+it("clears progress for a closed menu's navigation that never leaves the page", async () => {
+  const user = userEvent.setup();
+  const view = render(<Page />);
+  await user.click(screen.getByRole("link", { name: "Menu item" }));
+  vi.useFakeTimers();
+  try {
+    view.rerender(<Page menuOpen={false} />);
+    expect(screen.getByRole("progressbar", { name: "Loading page" })).toBeInTheDocument();
+
+    // A redirect back here, or a failed request, never changes the URL.
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+  } finally {
+    vi.useRealTimers();
+  }
+});

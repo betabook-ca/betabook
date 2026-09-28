@@ -3,13 +3,6 @@ import { expect, it, vi } from "vitest";
 
 import { ProfileInvite } from "./profile-invite";
 
-vi.mock("next/link", () => ({
-  default: ({
-    prefetch: _prefetch,
-    ...props
-  }: React.ComponentProps<"a"> & { prefetch?: boolean }) => <a {...props}>{props.children}</a>,
-  useLinkStatus: () => ({ pending: false }),
-}));
 vi.mock("next/image", () => ({
   default: ({ src }: { src: string }) => <span data-image-src={src} />,
 }));

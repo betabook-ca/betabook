@@ -1,12 +1,22 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 import { TermsAcceptanceForm } from "@/components/terms-acceptance-form";
 import type { ActionResult } from "@/lib/action-result";
 import { TERMS_REQUIRED_EVENT, TERMS_UPDATED_LABEL, TERMS_VERSION } from "@/lib/terms";
 import { isTermsExemptPath } from "@/lib/terms-navigation";
+
+const TermsPendingContext = createContext(false);
+
+/** Whether the viewer has terms to accept (the gate is open). Page loaders
+ * treat such a viewer as signed out until they do, so client-drawn member UI
+ * (a loading state's workspace tabs) should too. The gate stays shut on the
+ * exempt pages, which have no member navigation to hide. */
+export function useTermsPending(): boolean {
+  return useContext(TermsPendingContext);
+}
 
 type TermsPrompt = { version: string; versionLabel: string; previousVersion: string | null };
 
@@ -123,7 +133,7 @@ export function TermsGate({
         // showing its sign-in callout behind an authenticated user's modal.
         className={open && initiallyRequired ? "invisible" : undefined}
       >
-        {children}
+        <TermsPendingContext value={open}>{children}</TermsPendingContext>
       </div>
       {open && prompt && (
         <TermsAcceptanceForm

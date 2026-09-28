@@ -18,13 +18,6 @@ import { SITE_DESCRIPTION, SITE_URL } from "@/lib/site";
 import { seedFixtureTree } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
 
-vi.mock("next/link", () => ({
-  default: ({
-    prefetch: _prefetch,
-    ...props
-  }: React.ComponentProps<"a"> & { prefetch?: boolean }) => <a {...props}>{props.children}</a>,
-  useLinkStatus: () => ({ pending: false }),
-}));
 vi.mock("@/db/client", async (original) => {
   const actual = await original<typeof import("@/db/client")>();
   const { env } = await import("cloudflare:test");

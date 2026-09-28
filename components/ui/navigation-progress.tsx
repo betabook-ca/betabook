@@ -6,7 +6,17 @@ import { useEffect, useRef, useSyncExternalStore } from "react";
 
 /** The one link navigation in flight. The router hands pending status to
  * the newest click, so there is never more than one. */
-type InFlight = { token: object; from: string; target: string | null; orphaned: boolean };
+type InFlight = {
+  token: object;
+  from: string;
+  target: string | null;
+  /** Set once the clicked link unmounted; see orphan(). */
+  orphanTimer: ReturnType<typeof setTimeout> | null;
+};
+
+/** How long an orphaned navigation may keep the bar up without the URL
+ * changing: past this it was redirected back here or failed. */
+const ORPHAN_TIMEOUT_MS = 10_000;
 
 let inFlight: InFlight | null = null;
 const listeners = new Set<() => void>();
@@ -36,12 +46,18 @@ function resolveTarget(href: string) {
 
 function begin(token: object, href: string | null) {
   const target = href === null ? null : resolveTarget(href);
-  inFlight = { token, from: currentUrl(), target, orphaned: false };
+  clearOrphanTimer();
+  inFlight = { token, from: currentUrl(), target, orphanTimer: null };
   emit();
+}
+
+function clearOrphanTimer() {
+  if (inFlight?.orphanTimer) clearTimeout(inFlight.orphanTimer);
 }
 
 function end(token: object) {
   if (inFlight?.token !== token) return;
+  clearOrphanTimer();
   inFlight = null;
   emit();
 }
@@ -49,16 +65,16 @@ function end(token: object) {
 /** A link inside a menu or dialog that closes on click unmounts before its
  * navigation settles, taking its pending status with it. Keep the bar until
  * the page's URL changes — unless the link pointed at the current URL, which
- * never will. */
+ * never will, or the URL still hasn't moved after ORPHAN_TIMEOUT_MS. */
 function orphan(token: object) {
   if (inFlight?.token !== token) return;
   const url = currentUrl();
   if (url !== inFlight.from || inFlight.target === url) end(token);
-  else inFlight.orphaned = true;
+  else inFlight.orphanTimer = setTimeout(() => end(token), ORPHAN_TIMEOUT_MS);
 }
 
 function settleOrphan(url: string) {
-  if (inFlight?.orphaned && url !== inFlight.from) end(inFlight.token);
+  if (inFlight?.orphanTimer && url !== inFlight.from) end(inFlight.token);
 }
 
 /** Rendered inside every AppLink: reports its navigation from the click
