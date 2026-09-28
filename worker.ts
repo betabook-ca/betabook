@@ -1,25 +1,27 @@
 import handler from "vinext/server/app-router-entry";
+import { cloneRequestWithHeaders } from "vinext/server/request-pipeline";
 
 import { runScheduledCatalogExport } from "@/lib/catalog-export";
-import { REQUEST_TIMEZONE_HEADER } from "@/lib/request-timezone";
+import { withRequestTimezone } from "@/lib/request-timezone";
+import { withSecurityHeaders } from "@/lib/security-headers";
 
 /** Worker entrypoint (wrangler.jsonc#main). Vite bundles it with the app, so
  * it wraps vinext's App Router handler rather than replacing it: the cron
- * handler lives here, and so does the one request fact pages cannot reach
- * through `next/headers` on their own. */
+ * handler lives here, and so does what the framework can't do per request —
+ * handing pages an edge fact through `next/headers`, and keeping the
+ * security headers on responses built without next.config.ts. */
 export default {
-  fetch(request, env, ctx) {
-    // Always rewritten, never trusted from the client: a page reads this
-    // header as the edge's answer, and a missing zone should fall back to UTC
-    // rather than to whatever the request claimed.
-    const headers = new Headers(request.headers);
-    const timezone = request.cf?.timezone;
-    if (typeof timezone === "string" && timezone) headers.set(REQUEST_TIMEZONE_HEADER, timezone);
-    else headers.delete(REQUEST_TIMEZONE_HEADER);
+  async fetch(request, env, ctx) {
+    // `cloneRequestWithHeaders` rather than `new Request()`, which drops
+    // `request.cf` for everything downstream.
+    const forwarded = cloneRequestWithHeaders(
+      request,
+      withRequestTimezone(request.headers, request.cf?.timezone),
+    );
     // vinext declares `env` against the DOM `Request` type rather than
     // workers-types', so the ASSETS binding never matches it structurally.
     const vinextEnv = env as unknown as Parameters<typeof handler.fetch>[1];
-    return handler.fetch(new Request(request, { headers }), vinextEnv, ctx);
+    return withSecurityHeaders(await handler.fetch(forwarded, vinextEnv, ctx));
   },
   // `await`, not `ctx.waitUntil`: a thrown export error must surface as a
   // failed cron invocation in the dashboard, not a swallowed rejection.

@@ -104,12 +104,12 @@ real development app:
    `.dev.vars` or the local D1 database is missing. `pnpm setup` is idempotent but reruns the seed.
 2. Apply new local migrations and any needed seed changes **before** starting the server. The dev
    process holds its D1 handle open; after seeding from another process, restart the server.
-3. Run `pnpm dev` in a persistent terminal and read the URL from its output. Next.js 16 records a
-   running instance in `.next/dev/lock`; connect to the existing server for this worktree rather
-   than starting a duplicate. It compiles routes on first visit, so wait for the tested route to
-   finish compiling.
+3. Run `pnpm dev` in a persistent terminal and read the URL from its output. It writes no lock
+   file, so check for a server already listening on port 3000 and connect to it rather than
+   starting a duplicate. Vite serves modules unbundled, so let the tested page hydrate before
+   interacting with it.
 4. For signed-in flows, use the seeded account `dev@example.com` / `password`. Authentication
-   trusts local ports 3000 through 3003. If Next selects a higher port, restart it on a free trusted
+   trusts local ports 3000 through 3003. If Vite selects a higher port, restart it on a free trusted
    port with `pnpm dev -- --port <port>` before testing auth.
 5. Use the runtime's built-in browser connector to exercise the complete changed flow, including
    the meaningful success and failure or empty state. For writes, confirm persistence after reload.

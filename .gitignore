@@ -49,6 +49,8 @@ next-env.d.ts
 
 # wrangler / cloudflare
 .wrangler
+# Left by the OpenNext builds before vinext
+.open-next
 worker-configuration.d.ts
 .terraform/
 *.tfstate

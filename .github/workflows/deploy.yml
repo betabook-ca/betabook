@@ -197,8 +197,10 @@ jobs:
       # Ahead of the worker deploy so new code never meets an old schema. The
       # running worker does see the new schema for the seconds in between, so
       # each migration has to stay backward-compatible.
+      # `pnpm db:migrate:remote` names wrangler.jsonc: after `vite build`, a
+      # bare wrangler command reads the built dist/server/wrangler.json.
       - name: Apply D1 migrations
-        run: pnpm exec wrangler d1 migrations apply DB --remote
+        run: pnpm db:migrate:remote
 
       # Deploys dist/server/wrangler.json, which `vite build` writes and
       # points wrangler at through .wrangler/deploy/config.json.

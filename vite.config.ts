@@ -38,6 +38,9 @@ export default defineConfig({
     port: 3000,
     host: true,
   },
+  // `vite preview` never falls back to `server.port`, and auth trusts only
+  // localhost:3000–3003 (lib/auth.ts), matching .dev.vars' BETTER_AUTH_URL.
+  preview: { port: 3000 },
   build: {
     // What vinext already sets for production builds. Stated here because
     // Vite's dev server otherwise inlines small imported assets as data URIs

@@ -1,17 +1,6 @@
 import type { NextConfig } from "next";
 
-const securityHeaders = [
-  // Every subdomain holds email records only. `preload` stays off: that list
-  // is slow to leave.
-  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
-  { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "X-Frame-Options", value: "DENY" },
-  {
-    key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
-  },
-];
+import { SECURITY_HEADERS } from "./lib/security-headers";
 
 const nextConfig: NextConfig = {
   // The development badge overlaps the app's mobile tab bar and intercepts taps.
@@ -69,7 +58,7 @@ const nextConfig: NextConfig = {
       // Next matches `/:path*` against the bare root too; vinext compiles it
       // to a pattern needing at least one segment, which would leave the
       // homepage without these. The explicit "/" rule is a no-op under Next.
-      ...["/", "/:path*"].map((source) => ({ source, headers: securityHeaders })),
+      ...["/", "/:path*"].map((source) => ({ source, headers: SECURITY_HEADERS })),
       {
         // The /api routes back the app's own "load more" fetches (feed,
         // search) and return JSON — never a search result. robots.txt is

@@ -244,7 +244,7 @@ path/suffix rules, examples and validation commands.
 | `pnpm format` / `pnpm format:check` | Oxfmt formatting / verification                                               |
 | `pnpm deadcode`                     | Knip unused code and dependency checks                                        |
 | `pnpm deadcode:prod`                | Extra audit excluding test and development entrypoints; separate from `check` |
-| `pnpm typecheck`                    | Route type generation (`vinext typegen`) and TypeScript checking              |
+| `pnpm typecheck`                    | Next route type generation and TypeScript checking                            |
 | `pnpm test`                         | Full Vitest suite                                                             |
 | `pnpm test:components`              | React component and hook tests in jsdom                                       |
 | `pnpm db:generate`                  | Generate migrations from `drizzle/schema/`                                    |
@@ -266,7 +266,7 @@ pnpm db:migrate:remote
 pnpm exec wrangler deploy
 ```
 
-`vite build` writes the deployable config to `dist/server/wrangler.json` and points Wrangler at it, so `wrangler deploy` and `wrangler d1 migrations` both read it after a build. `pnpm deploy` is a build-and-deploy shortcut; it does **not** apply migrations. Migrations must stay compatible with the currently deployed worker because the schema changes before the new worker is live.
+`vite build` writes the deployable config to `dist/server/wrangler.json` and points Wrangler at it, so a bare `wrangler` command reads it after a build; the `pnpm db:*` and `cf-typegen` scripts name `wrangler.jsonc` to keep reading the source. `pnpm deploy` is a build-and-deploy shortcut; it does **not** apply migrations. Migrations must stay compatible with the currently deployed worker because the schema changes before the new worker is live.
 
 The Worker also runs a weekly cron (Mondays 06:00 UTC, `triggers.crons` in [`wrangler.jsonc`](wrangler.jsonc)) that snapshots the public catalog — areas and climbs, names, hierarchy, descriptions and grades only — into the `betabook-exports` R2 bucket, where members download it from `/account`. The snapshot is only ever written by the cron: there is no on-demand trigger, because each run walks every area and climb. Local servers never fire cron triggers on their own; to exercise the job, run `pnpm dev` (or `pnpm preview`) and request `/cdn-cgi/handler/scheduled?cron=0+6+*+*+1` on it.
 
