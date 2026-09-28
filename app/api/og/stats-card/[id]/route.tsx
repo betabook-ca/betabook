@@ -1,4 +1,3 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { ImageResponse } from "next/og";
 import { NextResponse } from "next/server";
 
@@ -7,6 +6,7 @@ import { getJournalSessionsForAnalytics, getUserSendsForAnalytics } from "@/db/q
 import { withApiSession } from "@/lib/api-session";
 import { ogFonts } from "@/lib/og-fonts";
 import { socialCardElement, type SocialCardOwner } from "@/lib/og-recap";
+import { getRequestTimezone } from "@/lib/request-timezone";
 import { buildSocialCardStats, isSocialCardPeriod, type SocialCardPeriod } from "@/lib/social-card";
 import { getUserInitials, resolveAvatarUrl } from "@/lib/user-initials";
 
@@ -22,12 +22,12 @@ export function todayInTimezone(timezone: string | undefined): string {
  * dynamic module. The route itself is also exercised against the real app. */
 export async function loadSocialCardStats(id: string, period: SocialCardPeriod) {
   const db = await getDb();
-  const [sends, sessions, { cf }] = await Promise.all([
+  const [sends, sessions, timezone] = await Promise.all([
     getUserSendsForAnalytics(db, id, id),
     getJournalSessionsForAnalytics(db, id, id),
-    getCloudflareContext({ async: true }),
+    getRequestTimezone(),
   ]);
-  return buildSocialCardStats(sends, sessions, period, todayInTimezone(cf?.timezone));
+  return buildSocialCardStats(sends, sessions, period, todayInTimezone(timezone));
 }
 
 /** Owner-only: this is an export of the signed-in climber's own stats. */

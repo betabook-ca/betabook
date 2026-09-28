@@ -10,8 +10,8 @@ const identity = vi.hoisted(() => ({ id: "owner" as string | null }));
 vi.mock("@/lib/session", () => ({
   getSession: async () => (identity.id ? { user: { id: identity.id } } : null),
 }));
-vi.mock("@opennextjs/cloudflare", () => ({
-  getCloudflareContext: async () => ({ cf: { timezone: "America/Vancouver" }, env: {} }),
+vi.mock("@/lib/request-timezone", () => ({
+  getRequestTimezone: async () => "America/Vancouver",
 }));
 vi.mock("@/db/client", async (original) => {
   const actual = await original<typeof import("@/db/client")>();
@@ -20,7 +20,7 @@ vi.mock("@/db/client", async (original) => {
 });
 
 // The vi.mock calls above are hoisted ahead of this import, same as any
-// other, so the route sees the mocked session, @opennextjs/cloudflare and
+// other, so the route sees the mocked session, @/lib/request-timezone and
 // @/db/client.
 import { GET, loadSocialCardStats, todayInTimezone } from "./route";
 

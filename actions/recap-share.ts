@@ -1,7 +1,5 @@
 "use server";
 
-import { getCloudflareContext } from "@opennextjs/cloudflare";
-
 import { getDb } from "@/db/client";
 import {
   createRecapShare,
@@ -12,7 +10,9 @@ import {
   getUserSendsForRecap,
 } from "@/db/queries";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
+import { goalToday } from "@/lib/goals";
 import { recapSharePath, type RecapSnapshot } from "@/lib/recap-share";
+import { getRequestTimezone } from "@/lib/request-timezone";
 import { requireSession } from "@/lib/session";
 import { buildSocialCardStats, isYearInReviewMonth } from "@/lib/social-card";
 import { getUserInitials } from "@/lib/user-initials";
@@ -22,9 +22,8 @@ import { getUserInitials } from "@/lib/user-initials";
 export async function prepareRecapShare(): Promise<ActionResult<{ token: string; path: string }>> {
   return toActionResult(async () => {
     const session = await requireSession();
-    const { cf } = await getCloudflareContext({ async: true });
     const now = new Date();
-    const today = new Intl.DateTimeFormat("en-CA", { timeZone: cf?.timezone ?? "UTC" }).format(now);
+    const today = goalToday(await getRequestTimezone(), now);
     if (!isYearInReviewMonth(today)) {
       throw new ActionError("Year in review is available in December.");
     }

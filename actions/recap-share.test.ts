@@ -25,9 +25,7 @@ vi.mock("@/db/client", async (importOriginal) => {
   const { env } = await import("cloudflare:test");
   return { ...actual, getDb: async () => actual.createDb(env.DB) };
 });
-vi.mock("@opennextjs/cloudflare", () => ({
-  getCloudflareContext: async () => ({ cf: { timezone: "UTC" } }),
-}));
+vi.mock("@/lib/request-timezone", () => ({ getRequestTimezone: async () => "UTC" }));
 
 const db = createDb(env.DB);
 

@@ -8,8 +8,8 @@ import { user } from "@/db/schema";
 import { seedFixtureSend, seedFixtureTree, seedFixtureUser } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
 
-vi.mock("@opennextjs/cloudflare", () => ({
-  getCloudflareContext: async () => ({ env: { BETTER_AUTH_URL: "https://betabook.test" } }),
+vi.mock("@/lib/cloudflare-env", () => ({
+  getCloudflareEnv: async () => ({ BETTER_AUTH_URL: "https://betabook.test" }),
 }));
 vi.mock("@/db/client", async (original) => {
   const actual = await original<typeof import("@/db/client")>();
@@ -18,7 +18,7 @@ vi.mock("@/db/client", async (original) => {
 });
 
 // Both vi.mock calls above are hoisted ahead of this import, same as any
-// other, so the route sees the mocked @/db/client and @opennextjs/cloudflare.
+// other, so the route sees the mocked @/db/client and @/lib/cloudflare-env.
 import { GET, loadProfileShareCard, profileShareCardElement } from "./route";
 
 const db = createDb(env.DB);
