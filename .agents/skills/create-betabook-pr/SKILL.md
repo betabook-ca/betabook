@@ -26,7 +26,7 @@ changes out of the PR; merging, deploying, and assigning human reviewers require
    ```
 
    Treat local modifications and untracked files as user work until the intended PR paths are clear.
-   Never stage `.dev.vars`, local D1 state, `.next`, `.open-next`, or screenshot-upload staging files.
+   Never stage `.dev.vars`, local D1 state, `.next`, `dist`, or screenshot-upload staging files.
 
 2. Resolve the head and upstream repositories before comparing changes or looking for a PR.
    Identify the intended push remote (`push_remote`, normally `origin`) from the branch's Git
@@ -104,12 +104,12 @@ real development app:
    `.dev.vars` or the local D1 database is missing. `pnpm setup` is idempotent but reruns the seed.
 2. Apply new local migrations and any needed seed changes **before** starting the server. The dev
    process holds its D1 handle open; after seeding from another process, restart the server.
-3. Run `pnpm dev` in a persistent terminal and read the URL from its output. Next.js 16 records a
-   running instance in `.next/dev/lock`; connect to the existing server for this worktree rather
-   than starting a duplicate. It compiles routes on first visit, so wait for the tested route to
-   finish compiling.
+3. Run `pnpm dev` in a persistent terminal and read the URL from its output. It writes no lock
+   file, so check for a server already listening on port 3000 and connect to it rather than
+   starting a duplicate. Vite serves modules unbundled, so let the tested page hydrate before
+   interacting with it.
 4. For signed-in flows, use the seeded account `dev@example.com` / `password`. Authentication
-   trusts local ports 3000 through 3003. If Next selects a higher port, restart it on a free trusted
+   trusts local ports 3000 through 3003. If Vite selects a higher port, restart it on a free trusted
    port with `pnpm dev -- --port <port>` before testing auth.
 5. Use the runtime's built-in browser connector to exercise the complete changed flow, including
    the meaningful success and failure or empty state. For writes, confirm persistence after reload.
@@ -151,11 +151,11 @@ pnpm check
 ```
 
 For changes affecting runtime code, dependencies, routes, or Cloudflare configuration, also run
-`pnpm exec opennextjs-cloudflare build`. Documentation-only changes do not need a production build.
+`pnpm build`. Documentation-only changes do not need a production build.
 
 `pnpm check` is the exact Husky pre-push check: lint, format check, dead-code analysis, Next route
 type generation plus TypeScript, and the Vitest suite. GitHub's PR job repeats those checks and adds
-the OpenNext Cloudflare build; its **UI reference** job runs the full Playwright suite, which is too
+the vinext Cloudflare build; its **UI reference** job runs the full Playwright suite, which is too
 slow to run locally. Fix in-scope failures and rerun the affected checks plus the failed gate.
 Never use `--no-verify`; the eventual push must run `pnpm check` again through the hook.
 

@@ -1,4 +1,3 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -40,6 +39,7 @@ import {
 import { normalizeHashtagFilters } from "@/lib/filters/hashtag-filter";
 import { goalToday } from "@/lib/goals";
 import type { ClimbType } from "@/lib/grades";
+import { getRequestTimezone } from "@/lib/request-timezone";
 import { toArray, type UrlParamsRecord } from "@/lib/url-params";
 import {
   buildUserAnalytics,
@@ -137,10 +137,10 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
     );
   }
 
-  const [initialLayout, highlightSessions, { cf }] = await Promise.all([
+  const [initialLayout, highlightSessions, timezone] = await Promise.all([
     getAnalyticsLayout(db, id, viewerId),
     journalVisible ? getAnalyticsHighlightSessions(db, id, viewerId, selectedTags) : [],
-    getCloudflareContext({ async: true }),
+    getRequestTimezone(),
   ]);
   const announcements = getAnnouncementCandidates(viewerAnnouncements, {
     page: ANALYTICS_CUSTOMIZE_ANNOUNCEMENT.page,
@@ -151,7 +151,7 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
   const { years, undatedCount } = getAnalyticsHistorySummary(rows, scope, journalSessions);
   const selectedYears = parseAnalyticsYears(search.years ?? search.period, years);
   const analytics = buildUserAnalytics(rows, scope, journalSessions, selectedYears);
-  const today = goalToday(cf?.timezone ?? "UTC");
+  const today = goalToday(timezone);
   const overview = await getClimberOverview(db, user.id, viewerId, today);
   const summary = [describeClimber(overview), describeRecency(overview)].filter(Boolean).join(" ");
 

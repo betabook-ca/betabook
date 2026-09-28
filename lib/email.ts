@@ -1,7 +1,7 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { Resend } from "resend";
 
 import { getBaseUrl } from "@/lib/app-url";
+import { getCloudflareEnv } from "@/lib/cloudflare-env";
 import { renderEmail, type EmailTemplateOptions } from "@/lib/email-template";
 
 const FROM = "Betabook <noreply@betabook.ca>";
@@ -11,7 +11,7 @@ const FROM = "Betabook <noreply@betabook.ca>";
 const CONTACT_TO = "hello@betabook.ca";
 
 async function getResend() {
-  const { env } = await getCloudflareContext({ async: true });
+  const env = await getCloudflareEnv();
   return env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
 }
 

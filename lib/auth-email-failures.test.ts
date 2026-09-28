@@ -18,14 +18,12 @@ vi.mock("resend", () => ({
     public emails = { send: mail.send };
   },
 }));
-vi.mock("@opennextjs/cloudflare", () => ({
-  getCloudflareContext: async () => ({
-    env: {
-      DB: env.DB,
-      BETTER_AUTH_URL: mail.baseUrl,
-      BETTER_AUTH_SECRET: "test-secret-for-auth-email-failures-only",
-      RESEND_API_KEY: mail.apiKey,
-    },
+vi.mock("@/lib/cloudflare-env", () => ({
+  getCloudflareEnv: async () => ({
+    DB: env.DB,
+    BETTER_AUTH_URL: mail.baseUrl,
+    BETTER_AUTH_SECRET: "test-secret-for-auth-email-failures-only",
+    RESEND_API_KEY: mail.apiKey,
   }),
 }));
 const db = createDb(env.DB);

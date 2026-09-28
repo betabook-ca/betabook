@@ -14,8 +14,7 @@ import { seedFixtureFriendship, seedFixtureUser } from "@/test/fixtures";
  * the same path), and welcome_email_sent_at is the only thing standing between
  * that and a duplicate. */
 
-// Reaching for getCloudflareContext outside a request. Stub the decision —
-// whether an email went out — not the Resend client.
+// Stub the decision — whether an email went out — not the Resend client.
 vi.mock("@/lib/email", () => ({
   sendWelcomeEmail: vi.fn<() => Promise<void>>(async () => {}),
   sendFriendRequestEmail: vi.fn<() => Promise<void>>(async () => {}),

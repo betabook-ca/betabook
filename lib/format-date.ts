@@ -38,7 +38,7 @@ const LOCAL_DATE_FORMAT = new Intl.DateTimeFormat("en-CA");
 
 /** Today as a civil "YYYY-MM-DD" in the runtime's own timezone — the viewer's
  * on the client, where forms default and cap their date pickers. The server
- * has no reader timezone; pages resolve today from `cf.timezone` instead. */
+ * has no reader timezone; pages resolve today from `getRequestTimezone()` instead. */
 export function localToday(now = new Date()): string {
   return LOCAL_DATE_FORMAT.format(now);
 }

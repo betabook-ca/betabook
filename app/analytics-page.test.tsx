@@ -20,9 +20,8 @@ import { seedFixtureSend, seedFixtureTree, seedFixtureUser } from "@/test/fixtur
 import { resetDb } from "@/test/reset-db";
 
 const session = vi.hoisted(() => ({ userId: "owner" as string | null }));
-vi.mock("@opennextjs/cloudflare", () => ({
-  getCloudflareContext: async () => ({ env, cf: { timezone: "UTC" } }),
-}));
+vi.mock("@/lib/cloudflare-env", () => ({ getCloudflareEnv: async () => env }));
+vi.mock("@/lib/request-timezone", () => ({ getRequestTimezone: async () => "UTC" }));
 vi.mock("@/db/client", async (original) => {
   const actual = await original<typeof import("@/db/client")>();
   const { env } = await import("cloudflare:test");

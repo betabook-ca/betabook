@@ -1,5 +1,4 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { betterAuth } from "better-auth";
 import { APIError, getOAuthState } from "better-auth/api";
 import { captcha } from "better-auth/plugins";
@@ -13,6 +12,7 @@ import {
   deleteAccountSends,
   uniqueDisplayName,
 } from "@/lib/account";
+import { getCloudflareEnv } from "@/lib/cloudflare-env";
 import { DISPLAY_NAME_TAKEN_MESSAGE, displayNameProblem } from "@/lib/display-name";
 import { sendResetPasswordEmail, sendVerificationEmail } from "@/lib/email";
 import { deleteProfilePhotosForUser } from "@/lib/profile-photo-store";
@@ -36,12 +36,12 @@ async function deliverAuthenticationEmail(deliver: () => Promise<void>) {
 
 async function authBuilder() {
   const db = await getDb();
-  const { env } = await getCloudflareContext({ async: true });
+  const env = await getCloudflareEnv();
   return betterAuth({
     database: drizzleAdapter(db, { provider: "sqlite", schema }),
     baseURL: env.BETTER_AUTH_URL,
     secret: env.BETTER_AUTH_SECRET,
-    // `next dev` falls back to a different port whenever 3000 (or the next
+    // `pnpm dev` may be started on another port when 3000 (or the next
     // few) are already taken locally (e.g. by Docker) — trust the common
     // local dev ports so sign-in/sign-up don't 403 on an origin mismatch
     // just because of which port happened to be free.
@@ -268,11 +268,11 @@ export async function initAuth() {
 }
 
 export async function isGoogleOAuthEnabled(): Promise<boolean> {
-  const { env } = await getCloudflareContext({ async: true });
+  const env = await getCloudflareEnv();
   return Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 }
 
 export async function getTurnstileSiteKey(): Promise<string | null> {
-  const { env } = await getCloudflareContext({ async: true });
+  const env = await getCloudflareEnv();
   return turnstileKeys(env)?.siteKey ?? null;
 }

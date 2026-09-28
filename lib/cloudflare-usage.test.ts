@@ -6,7 +6,7 @@ const env = vi.hoisted(() => ({
   CLOUDFLARE_USAGE_ACCOUNT_ID: "account-tag" as string | undefined,
   CLOUDFLARE_USAGE_API_TOKEN: "usage-token" as string | undefined,
 }));
-vi.mock("@opennextjs/cloudflare", () => ({ getCloudflareContext: async () => ({ env }) }));
+vi.mock("@/lib/cloudflare-env", () => ({ getCloudflareEnv: async () => env }));
 
 afterEach(() => {
   env.CLOUDFLARE_USAGE_ACCOUNT_ID = "account-tag";

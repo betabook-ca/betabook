@@ -23,11 +23,13 @@ const context = vi.hoisted(() => ({
   secret: "test-only-betabook-session-signing-secret-123456789",
 }));
 vi.mock("next/headers", () => ({ headers: async () => new Headers({ cookie: context.cookie }) }));
-vi.mock("@opennextjs/cloudflare", async () => {
+vi.mock("@/lib/cloudflare-env", async () => {
   const { env } = await import("cloudflare:test");
   return {
-    getCloudflareContext: async () => ({
-      env: { ...env, BETTER_AUTH_SECRET: context.secret, BETTER_AUTH_URL: "http://localhost:3000" },
+    getCloudflareEnv: async () => ({
+      ...env,
+      BETTER_AUTH_SECRET: context.secret,
+      BETTER_AUTH_URL: "http://localhost:3000",
     }),
   };
 });

@@ -18,8 +18,8 @@ vi.mock("next/headers", () => ({
   headers: async () => new Headers(requestState.ip ? { "cf-connecting-ip": requestState.ip } : {}),
 }));
 
-// Both of these reach for getCloudflareContext, which only exists inside a
-// Worker request. Stub the decisions, not the bindings.
+// Both of these reach for Worker bindings. Stub the decisions, not the
+// bindings.
 vi.mock("@/lib/rate-limit", () => ({
   allowContactSubmission: vi.fn<() => Promise<boolean>>(async () => true),
 }));

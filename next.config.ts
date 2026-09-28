@@ -1,4 +1,3 @@
-import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -18,9 +17,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // `next dev` serves /_next dev resources only to the host it started with,
-  // 403ing everything else — which breaks opening it from a phone on the LAN.
-  // No effect on a production build.
+  // The dev server rejects cross-origin requests for its dev resources from
+  // any host but the one it started with — which breaks opening it from a
+  // phone on the LAN. No effect on a production build.
   //
   // Exact hosts, never wildcards: Next matches `*` against any hostname
   // label, not an IPv4 octet, so `192.168.*.*` would also admit
@@ -54,21 +53,8 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
-      {
-        source: "/:path*",
-        headers: [
-          // Every subdomain holds email records only. `preload` stays off: that
-          // list is slow to leave.
-          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "X-Frame-Options", value: "DENY" },
-          {
-            key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
-          },
-        ],
-      },
+      // The security headers are added in worker.ts, which sees every
+      // response; vinext drops these rules on some (see lib/security-headers.ts).
       {
         // The /api routes back the app's own "load more" fetches (feed,
         // search) and return JSON — never a search result. robots.txt is
@@ -80,7 +66,5 @@ const nextConfig: NextConfig = {
     ];
   },
 };
-
-void initOpenNextCloudflareForDev();
 
 export default nextConfig;

@@ -16,19 +16,27 @@ type HomePageProps = {
   searchParams: Promise<UrlParamsRecord>;
 };
 
+const HOME_TITLE = "Betabook · Free climbing logbook and crag database";
+
 export async function generateMetadata({ searchParams }: HomePageProps): Promise<Metadata> {
   // Any param is a search state that redirects to /search; keep it out of the
   // index and canonicalized to the bare home.
   const isSearch = Object.keys(await searchParams).length > 0;
   return isSearch
     ? { title: "Search", robots: { index: false }, alternates: { canonical: "/" } }
-    : pageMetadata({
-        // The layout's title template skips its own segment, so the root page names the brand itself.
-        title: "Betabook · Free climbing logbook and crag database",
-        description:
-          "Search routes and boulder problems, and log your sends and sessions for bouldering, sport and trad.",
-        path: "/",
-      });
+    : {
+        ...pageMetadata({
+          title: HOME_TITLE,
+          description:
+            "Search routes and boulder problems, and log your sends and sessions for bouldering, sport and trad.",
+          path: "/",
+        }),
+        // The root page names the brand itself, so it must not take the
+        // layout's template. Next skips a template in its own segment but
+        // vinext applies the root layout's to this page; `absolute` opts out
+        // under both.
+        title: { absolute: HOME_TITLE },
+      };
 }
 
 /** `/?…` links land on /search permanently, with the query intact. */

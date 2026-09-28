@@ -1,4 +1,3 @@
-import { GeistSans } from "geist/font/sans";
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 
@@ -34,8 +33,19 @@ const barlowCondensed = localFont({
   variable: "--font-barlow-condensed",
   display: "swap",
   // Condensed faces shift layout hard on fallback; metric-adjusted Arial
-  // keeps the swap from reflowing the wordmark and titles.
-  adjustFontFallback: "Arial",
+  // (app/globals.css) keeps the swap from reflowing the wordmark and titles.
+  fallback: ["Barlow Condensed Fallback", "sans-serif"],
+});
+
+// Geist's own `geist/font/sans` loader passes a path relative to its package,
+// which Vite's dev server serves from the site root and 404s (production
+// builds resolve it; .storybook/fonts.css works around the same gap). Pointing
+// at the package's file from here resolves in every build.
+const geistSans = localFont({
+  src: "../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2",
+  variable: "--font-geist-sans",
+  weight: "100 900",
+  fallback: ["Geist Fallback", "sans-serif"],
 });
 
 export const metadata: Metadata = {
@@ -109,7 +119,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${GeistSans.variable} ${barlowCondensed.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${barlowCondensed.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col bg-background text-foreground">
