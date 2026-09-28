@@ -1,0 +1,21 @@
+diff --git a/dist/server/app-page-route-wiring.js b/dist/server/app-page-route-wiring.js
+index 0e127759d44f06bb9f68dce143209478fe9afe66..cc6ee9b586e8936131f5fc0d1b4c28c2746cb2e2 100644
+--- a/dist/server/app-page-route-wiring.js
++++ b/dist/server/app-page-route-wiring.js
+@@ -307,12 +307,15 @@ function createAppPageStreamingMetadataOutlet(elementId, suspended = true) {
+ }
+ function createAppPageStreamingMetadataBody(elementId) {
+ 	if (!elementId) return null;
++	// Keyed by the route's element id: without a key, sibling routes reuse one
++	// already-revealed boundary, so a navigation's transition holds the old
++	// page until the new route's generateMetadata resolves.
+ 	return /* @__PURE__ */ jsx("div", {
+ 		hidden: true,
+ 		children: /* @__PURE__ */ jsx(Suspense, {
+ 			fallback: null,
+ 			children: /* @__PURE__ */ jsx(Slot, { id: elementId })
+-		})
++		}, elementId)
+ 	});
+ }
+ function buildAppPageElements(options) {

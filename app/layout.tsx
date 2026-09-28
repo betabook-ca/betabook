@@ -13,6 +13,7 @@ import { AppLink } from "@/components/ui/app-link";
 import { JsonLd } from "@/components/ui/json-ld";
 import { PAGE_MAX_WIDTH_CLASS } from "@/components/ui/layout";
 import { NavigationProgress } from "@/components/ui/navigation-progress";
+import { WorkspaceLoadingModule } from "@/components/workspace-loading";
 import { COSTS_PAGE, LOGBOOK_PAGE } from "@/lib/landing-pages";
 import { PALETTE_INK, PALETTE_PAPER } from "@/lib/palette";
 import { websiteJsonLd } from "@/lib/seo";
@@ -140,6 +141,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Suspense>
           <NavigationProgress />
         </Suspense>
+        <WorkspaceLoadingModule />
         <Providers>
           {/* Wraps the page, whose own search entry opens the same palette
            * the ⌘K shortcut does. */}
