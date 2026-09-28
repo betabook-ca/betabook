@@ -1,7 +1,8 @@
-/** Sent on every page and route response: from next.config.ts `headers()`,
- * and filled in by worker.ts for any response the framework built without
- * them — vinext skips config headers on redirects and 404s thrown while
- * rendering. */
+/** Added by worker.ts to every page and route response. Deliberately not
+ * next.config.ts `headers()`: vinext applies those to neither `/` (it
+ * compiles `/:path*` to need a segment) nor redirects and 404s thrown while
+ * rendering, and the Worker sees every response. Static assets are served
+ * before the Worker runs, as under OpenNext. */
 export const SECURITY_HEADERS = [
   // Every subdomain holds email records only. `preload` stays off: that list
   // is slow to leave.

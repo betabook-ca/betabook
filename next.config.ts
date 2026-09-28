@@ -1,7 +1,5 @@
 import type { NextConfig } from "next";
 
-import { SECURITY_HEADERS } from "./lib/security-headers";
-
 const nextConfig: NextConfig = {
   // The development badge overlaps the app's mobile tab bar and intercepts taps.
   devIndicators: false,
@@ -55,10 +53,8 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
-      // Next matches `/:path*` against the bare root too; vinext compiles it
-      // to a pattern needing at least one segment, which would leave the
-      // homepage without these. The explicit "/" rule is a no-op under Next.
-      ...["/", "/:path*"].map((source) => ({ source, headers: SECURITY_HEADERS })),
+      // The security headers are added in worker.ts, which sees every
+      // response; vinext drops these rules on some (see lib/security-headers.ts).
       {
         // The /api routes back the app's own "load more" fetches (feed,
         // search) and return JSON — never a search result. robots.txt is

@@ -20,10 +20,11 @@ export default defineConfig({
   forbidOnly: true,
   retries: 0,
   grep: suite === "app" ? /@app\b/ : suite === "gallery" ? /^(?!.*@app\b)/ : undefined,
-  // Measured on four-vCPU runners. Sharing one with `next dev`, more than two
-  // workers starved it until the app tests missed their navigation timeouts;
-  // the built app they now run against is lighter, but not yet re-measured. The gallery alone runs 1.2x faster at four workers than at two,
-  // and at six a story load misses its timeout. Locally there are cores to
+  // Measured on four-vCPU runners. The app job's two workers date from the
+  // `next dev` server, which more workers starved until navigation timed out;
+  // the built app it now runs against hasn't been re-measured. The gallery
+  // alone runs 1.2x faster at four workers than at two, and at six a story
+  // load misses its timeout. Locally there are cores to
   // spare, so take half the machine.
   workers: !ci ? "50%" : suite === "gallery" ? 4 : 2,
   reporter: [["list"], ["html", { open: "never" }]],

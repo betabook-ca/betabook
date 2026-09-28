@@ -86,7 +86,7 @@ it("describes the bare home and keeps search states out of the index", async () 
   expect(home.robots).toBeUndefined();
   expect(home.openGraph).toMatchObject({ url: "/", description: home.description });
   expect(await generateMetadata({ searchParams: Promise.resolve({ name: "Test" }) })).toEqual({
-    title: { absolute: "Search" },
+    title: "Search",
     robots: { index: false },
     alternates: { canonical: "/" },
   });

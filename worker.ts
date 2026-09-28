@@ -2,7 +2,7 @@ import handler from "vinext/server/app-router-entry";
 import { cloneRequestWithHeaders } from "vinext/server/request-pipeline";
 
 import { runScheduledCatalogExport } from "@/lib/catalog-export";
-import { withRequestTimezone } from "@/lib/request-timezone";
+import { REQUEST_TIMEZONE_HEADER, withRequestTimezone } from "@/lib/request-timezone";
 import { withSecurityHeaders } from "@/lib/security-headers";
 
 /** Worker entrypoint (wrangler.jsonc#main). Vite bundles it with the app, so
@@ -12,12 +12,14 @@ import { withSecurityHeaders } from "@/lib/security-headers";
  * security headers on responses built without next.config.ts. */
 export default {
   async fetch(request, env, ctx) {
-    // `cloneRequestWithHeaders` rather than `new Request()`, which drops
-    // `request.cf` for everything downstream.
-    const forwarded = cloneRequestWithHeaders(
-      request,
-      withRequestTimezone(request.headers, request.cf?.timezone),
-    );
+    // Rebuilt only when the timezone header changes: vinext clones the request
+    // again itself. `cloneRequestWithHeaders` rather than `new Request()`,
+    // which drops `request.cf` for everything downstream.
+    const headers = withRequestTimezone(request.headers, request.cf?.timezone);
+    const forwarded =
+      headers.get(REQUEST_TIMEZONE_HEADER) === request.headers.get(REQUEST_TIMEZONE_HEADER)
+        ? request
+        : cloneRequestWithHeaders(request, headers);
     // vinext declares `env` against the DOM `Request` type rather than
     // workers-types', so the ASSETS binding never matches it structurally.
     const vinextEnv = env as unknown as Parameters<typeof handler.fetch>[1];

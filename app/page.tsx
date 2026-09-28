@@ -23,7 +23,7 @@ export async function generateMetadata({ searchParams }: HomePageProps): Promise
   // index and canonicalized to the bare home.
   const isSearch = Object.keys(await searchParams).length > 0;
   return isSearch
-    ? { title: { absolute: "Search" }, robots: { index: false }, alternates: { canonical: "/" } }
+    ? { title: "Search", robots: { index: false }, alternates: { canonical: "/" } }
     : {
         ...pageMetadata({
           title: HOME_TITLE,
