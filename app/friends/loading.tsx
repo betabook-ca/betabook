@@ -1,10 +1,12 @@
 import { Skeleton, SkeletonListRows } from "@/components/ui/skeleton";
+import { CommunityLoading } from "@/components/workspace-loading";
 
+/** Under the real Community tabs: the Friends/Requests pills, then rows. */
 export default function Loading() {
   return (
-    <div role="status" aria-label="Loading friends" className="flex w-full flex-col gap-5">
+    <CommunityLoading label="Loading friends">
       <Skeleton className="h-9 w-48" />
       <SkeletonListRows rows={6} />
-    </div>
+    </CommunityLoading>
   );
 }

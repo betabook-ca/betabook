@@ -1,4 +1,4 @@
-import { ProfileLoading } from "@/components/profile-loading";
+import { ProfileLoading } from "@/components/workspace-loading";
 
 export default function Loading() {
   return <ProfileLoading />;

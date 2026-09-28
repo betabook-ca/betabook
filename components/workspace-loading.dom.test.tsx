@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { ProfileLoading } from "./profile-loading";
+import { CommunityLoading, ProfileLoading } from "./workspace-loading";
 
 type Session = { user: { id: string } } | null;
 const state = vi.hoisted(() => ({
@@ -68,4 +68,38 @@ it.each([
 
   expect(sections("Logbook")).not.toBeInTheDocument();
   expect(screen.queryByRole("link")).not.toBeInTheDocument();
+});
+
+it("keeps a member's Community tabs in place while Feed or Friends loads", () => {
+  state.pathname = "/friends";
+  render(
+    <CommunityLoading label="Loading friends">
+      <p>Placeholder rows</p>
+    </CommunityLoading>,
+  );
+
+  const tabs = within(sections("Community")!).getAllByRole("link");
+  expect(tabs.map((tab) => tab.getAttribute("href"))).toEqual(["/feed", "/friends"]);
+  expect(within(sections("Community")!).getByRole("link", { name: "Friends" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  expect(screen.getByRole("status", { name: "Loading friends" })).toHaveTextContent(
+    "Placeholder rows",
+  );
+});
+
+it("gives a signed-out reader the placeholder without member tabs", () => {
+  state.pathname = "/feed";
+  state.session = null;
+  render(
+    <CommunityLoading label="Loading feed">
+      <p>Placeholder cards</p>
+    </CommunityLoading>,
+  );
+
+  expect(sections("Community")).not.toBeInTheDocument();
+  expect(screen.getByRole("status", { name: "Loading feed" })).toHaveTextContent(
+    "Placeholder cards",
+  );
 });

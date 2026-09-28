@@ -1,6 +1,7 @@
 "use client";
 
 import { useParams, usePathname } from "next/navigation";
+import type { ReactNode } from "react";
 
 import { Skeleton, SkeletonListRows } from "@/components/ui/skeleton";
 import { WorkspaceShell } from "@/components/workspace-shell";
@@ -30,5 +31,24 @@ export function ProfileLoading() {
       <Skeleton className="h-11 w-full" />
       {rows}
     </div>
+  );
+}
+
+/** Loading state for Feed and Friends. Their Community tabs are the same
+ * for every member, so a signed-in reader keeps them — already marking the
+ * one they picked — around the section's placeholder. A signed-out reader
+ * gets a sign-in callout instead of the workspace, so no tabs. */
+export function CommunityLoading({ label, children }: { label: string; children: ReactNode }) {
+  const session = useClientSession();
+  const placeholder = (
+    <div role="status" aria-label={label} className="flex w-full flex-col gap-4">
+      {children}
+    </div>
+  );
+  if (!session) return placeholder;
+  return (
+    <WorkspaceShell area="community" userId={session.user.id}>
+      {placeholder}
+    </WorkspaceShell>
   );
 }
