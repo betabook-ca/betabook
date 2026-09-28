@@ -4,6 +4,13 @@ allowBuilds:
   unrs-resolver: false
   workerd: true
 minimumReleaseAge: 2880 # 2 days (in minutes)
+minimumReleaseAgeExclude:
+  # vinext 1.0.0 shipped as one release train; these exact versions skip the
+  # cooldown. Drop the entries once they are older than two days.
+  - vinext@1.0.0
+  - "@vinext/cloudflare@1.0.0"
+  - "@vinext/types@1.0.0"
+  - "@cloudflare/workers-response-store@1.0.0"
 overrides:
   # Converge only compatible ranges on the security fixes.
   "qs@": 6.16.0
@@ -13,4 +20,4 @@ overrides:
   # This version loads TypeScript with bundled tsx; the unused legacy loader pulls esbuild 0.18.
   "drizzle-kit@0.31.10>@esbuild-kit/esm-loader": "-"
 patchedDependencies:
-  vinext@1.0.0-beta.12: patches/vinext@1.0.0-beta.12.patch
+  vinext@1.0.0: patches/vinext@1.0.0.patch
