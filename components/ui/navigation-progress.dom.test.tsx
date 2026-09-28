@@ -1,6 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ComponentProps, ReactNode } from "react";
+import { useState, type ComponentProps, type ReactNode } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { AppLink } from "./app-link";
@@ -19,18 +19,22 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(router.search),
 }));
 
-// The router boundary: like vinext's Link, a click marks the link pending
-// for descendants reading useLinkStatus until the navigation settles.
+// The router boundary, in vinext's Link's order: the caller's onClick,
+// then onNavigate for a client navigation, then pending for descendants
+// reading useLinkStatus until the navigation settles.
 vi.mock("next/link", async () => {
   const { createContext, useContext, useMemo, useState } = await import("react");
   const LinkStatus = createContext({ pending: false });
   function Link({
     href,
     children,
+    onClick,
+    onNavigate,
     prefetch: _prefetch,
     ...props
   }: Omit<ComponentProps<"a">, "href"> & {
     href: string;
+    onNavigate?: (event: { preventDefault: () => void }) => void;
     prefetch?: unknown;
     children: ReactNode;
   }) {
@@ -42,7 +46,11 @@ vi.mock("next/link", async () => {
           href={href}
           {...props}
           onClick={(event) => {
+            onClick?.(event);
             event.preventDefault();
+            let cancelled = false;
+            onNavigate?.({ preventDefault: () => (cancelled = true) });
+            if (cancelled) return;
             setPending(true);
             router.settle = () => setPending(false);
           }}
@@ -139,4 +147,33 @@ it("clears progress for a closed menu's navigation that never leaves the page", 
   } finally {
     vi.useRealTimers();
   }
+});
+
+/** A menu that closes itself on a link's click, in that same click. */
+function ClosingMenu() {
+  const [open, setOpen] = useState(true);
+  return (
+    <>
+      <NavigationProgress />
+      {open && (
+        <AppLink href="/friends" onClick={() => setOpen(false)}>
+          Menu item
+        </AppLink>
+      )}
+    </>
+  );
+}
+
+it("shows progress for a menu link that closes its menu in the same click", async () => {
+  const user = userEvent.setup();
+  const view = render(<ClosingMenu />);
+  await user.click(screen.getByRole("link", { name: "Menu item" }));
+
+  // The link unmounted in the same commit as its pending state.
+  expect(screen.queryByRole("link", { name: "Menu item" })).not.toBeInTheDocument();
+  expect(screen.getByRole("progressbar", { name: "Loading page" })).toBeInTheDocument();
+
+  arrive("/friends");
+  view.rerender(<ClosingMenu />);
+  expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
 });
