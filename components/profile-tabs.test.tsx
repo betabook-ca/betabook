@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it, vi } from "vitest";
 
@@ -6,13 +5,6 @@ import { ProfileTabs } from "@/components/profile-tabs";
 
 const state = vi.hoisted(() => ({ pathname: "/users/owner/journal" }));
 vi.mock("next/navigation", () => ({ usePathname: () => state.pathname }));
-vi.mock("next/link", () => ({
-  default: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
-}));
 
 const hrefs = (html: string) => [...html.matchAll(/href="([^"]+)"/g)].map((match) => match[1]);
 

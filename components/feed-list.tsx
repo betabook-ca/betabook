@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTransition, type ReactNode } from "react";
 
 import { FeedTimeline } from "@/components/feed-timeline";
+import { FeedToolbar } from "@/components/feed-toolbar";
 import { AppLink } from "@/components/ui/app-link";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
@@ -73,18 +74,9 @@ export function FeedList({
     );
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <FeedToolbar refreshing={refreshing} onRefresh={() => startRefresh(() => router.refresh())}>
         {toolbar}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="ml-auto"
-          isDisabled={refreshing}
-          onPress={() => startRefresh(() => router.refresh())}
-        >
-          {refreshing ? "Refreshing…" : "Refresh feed"}
-        </Button>
-      </div>
+      </FeedToolbar>
       {items.length === 0 ? (
         <EmptyState
           message={

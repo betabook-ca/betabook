@@ -35,6 +35,6 @@ export default defineProject({
       "lib/**/*.test.{ts,tsx}",
     ],
     exclude: [".claude/**", "node_modules/**", "**/*.dom.test.{ts,tsx}"],
-    setupFiles: ["./test/apply-migrations.ts"],
+    setupFiles: ["./test/apply-migrations.ts", "./test/setup-next-link.ts"],
   },
 });

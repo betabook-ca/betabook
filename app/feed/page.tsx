@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
+import { FeedActivityNav } from "@/components/feed-activity-nav";
 import { FeedList } from "@/components/feed-list";
-import { AppLink } from "@/components/ui/app-link";
-import { choicePillClass } from "@/components/ui/choice-pill";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { getDb } from "@/db/client";
 import { getFriendsPage, getFeedPage } from "@/db/queries";
@@ -34,20 +33,7 @@ export default async function FeedPage({
         initialPage={page}
         view={view}
         hasFriends={friends.friends.length > 0}
-        toolbar={
-          <nav key="feed-activity" aria-label="Feed activity" className="flex gap-2">
-            {(["all", "sends"] as const).map((value) => (
-              <AppLink
-                key={value}
-                href={`/feed?view=${value}`}
-                className={choicePillClass(value === view, "bg-foreground text-background")}
-                aria-current={value === view ? "page" : undefined}
-              >
-                {value === "all" ? "All activity" : "Sends"}
-              </AppLink>
-            ))}
-          </nav>
-        }
+        toolbar={<FeedActivityNav key="feed-activity" view={view} />}
       />
     </WorkspaceShell>
   );

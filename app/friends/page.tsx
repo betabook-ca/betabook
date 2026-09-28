@@ -5,6 +5,7 @@ import { FriendsContent } from "@/components/friends-content";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { getDb } from "@/db/client";
 import { getClimberSuggestions, getFriendsPage } from "@/db/queries";
+import { parseFriendsView } from "@/lib/friendships";
 import { getMemberSession } from "@/lib/session";
 import type { UrlParamsRecord } from "@/lib/url-params";
 
@@ -15,8 +16,7 @@ export default async function FriendsPage({
 }: {
   searchParams: Promise<UrlParamsRecord>;
 }) {
-  const requestedView = (await searchParams).view;
-  const view = requestedView === "requests" ? "requests" : "friends";
+  const view = parseFriendsView((await searchParams).view);
   const requestsOnly = view === "requests";
   const session = await getMemberSession();
   if (!session)

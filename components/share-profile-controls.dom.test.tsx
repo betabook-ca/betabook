@@ -8,12 +8,6 @@ import type { ActionResult } from "@/lib/action-result";
 import { ShareProfileControls } from "./share-profile-controls";
 
 vi.mock("@/actions", () => ({ resetProfileShareLink: vi.fn<() => Promise<ActionResult>>() }));
-vi.mock("next/link", () => ({
-  default: ({
-    prefetch: _prefetch,
-    ...props
-  }: React.ComponentProps<"a"> & { prefetch?: boolean }) => <a {...props}>{props.children}</a>,
-}));
 
 const FIRST = "https://betabook.ca/users/owner-1?share=0123456789abcdef0123456789abcdef";
 const SECOND = "https://betabook.ca/users/owner-1?share=fedcba9876543210fedcba9876543210";

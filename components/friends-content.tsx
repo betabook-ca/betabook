@@ -3,6 +3,7 @@ import { FriendSuggestions } from "@/components/friend-suggestions";
 import { FriendTabs } from "@/components/friend-tabs";
 import { FriendsSearch } from "@/components/friends-search";
 import type { FriendsPage, SuggestedClimberRow } from "@/db/queries";
+import type { FriendsView } from "@/lib/friendships";
 import type { SearchFetcher } from "@/lib/search";
 
 /** Shared page composition: stories replace only data and search transport. */
@@ -14,7 +15,7 @@ export function FriendsContent({
   fetcher,
 }: {
   userId: string;
-  view: "friends" | "requests";
+  view: FriendsView;
   page: FriendsPage;
   suggestions: SuggestedClimberRow[] | null;
   fetcher?: SearchFetcher;

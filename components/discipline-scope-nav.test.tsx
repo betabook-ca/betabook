@@ -1,12 +1,7 @@
-import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { expect, it, vi } from "vitest";
+import { expect, it } from "vitest";
 
 import { DisciplineScopeNav } from "./discipline-scope-nav";
-
-vi.mock("next/link", () => ({
-  default: ({ children, ...props }: { children: ReactNode }) => <a {...props}>{children}</a>,
-}));
 
 const href = (type: string) => `/analytics?discipline=${type}`;
 

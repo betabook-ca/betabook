@@ -10,12 +10,6 @@ vi.mock("@/lib/site", async (original) => ({
     return support.url;
   },
 }));
-vi.mock("next/link", () => ({
-  default: ({
-    prefetch: _prefetch,
-    ...props
-  }: React.ComponentProps<"a"> & { prefetch?: boolean }) => <a {...props}>{props.children}</a>,
-}));
 vi.mock("next/image", () => ({ default: () => null }));
 
 beforeEach(() => {
