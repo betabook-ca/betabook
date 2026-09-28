@@ -1,4 +1,4 @@
-import { Chip } from "@heroui/react";
+import { Chip } from "@heroui/react/chip";
 
 import type { AscentStyle } from "@/lib/sends";
 

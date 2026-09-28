@@ -204,6 +204,28 @@
   --text-2xs--line-height: calc(0.875 / 0.625);
 }
 
+/* Arial resized to each web font's metrics, so the swap once it loads
+   doesn't reflow text — the condensed display face most of all. These are the
+   values Next's `adjustFontFallback` computed; vinext's font loader doesn't
+   generate them, so app/layout.tsx names these faces as each font's fallback. */
+@font-face {
+  font-family: "Geist Fallback";
+  src: local("Arial");
+  ascent-override: 94.56%;
+  descent-override: 27.76%;
+  line-gap-override: 0%;
+  size-adjust: 106.28%;
+}
+
+@font-face {
+  font-family: "Barlow Condensed Fallback";
+  src: local("Arial");
+  ascent-override: 123.84%;
+  descent-override: 24.77%;
+  line-gap-override: 0%;
+  size-adjust: 80.75%;
+}
+
 @theme inline {
   --font-sans: var(--font-geist-sans);
   /* The guidebook display voice — Barlow Condensed (loaded in

@@ -85,10 +85,11 @@ jobs:
       - name: Test
         run: pnpm test
 
-      # Split from the deploy step below: `next build` typechecks, so a broken
-      # compile stops here instead of shipping.
+      # Split from the deploy step below, so a broken bundle stops here
+      # instead of shipping. `vite build` does not typecheck; the step above
+      # does.
       - name: Build
-        run: pnpm exec opennextjs-cloudflare build
+        run: pnpm build
 
   # Browser checks cover rendering and native interaction. Accessibility is a
   # bounded set of composed states; stories do not each create four more tests.
@@ -191,7 +192,7 @@ jobs:
           pnpm cf-typegen
 
       - name: Build
-        run: pnpm exec opennextjs-cloudflare build
+        run: pnpm build
 
       # Ahead of the worker deploy so new code never meets an old schema. The
       # running worker does see the new schema for the seconds in between, so
@@ -199,5 +200,7 @@ jobs:
       - name: Apply D1 migrations
         run: pnpm exec wrangler d1 migrations apply DB --remote
 
+      # Deploys dist/server/wrangler.json, which `vite build` writes and
+      # points wrangler at through .wrangler/deploy/config.json.
       - name: Deploy
-        run: pnpm exec opennextjs-cloudflare deploy
+        run: pnpm exec wrangler deploy

@@ -49,7 +49,7 @@ export default defineConfig({
     "next-env.d.ts",
     "worker-configuration.d.ts",
     "cloudflare-env.d.ts",
-    ".open-next/**",
+    "dist/**",
     ".wrangler/**",
     "climbs_data/**",
     ".claude/**",

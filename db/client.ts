@@ -1,5 +1,6 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { drizzle, type DrizzleD1Database } from "drizzle-orm/d1";
+
+import { getCloudflareEnv } from "@/lib/cloudflare-env";
 
 import * as schema from "./schema";
 
@@ -10,6 +11,6 @@ export function createDb(d1: D1Database): Database {
 }
 
 export async function getDb(): Promise<Database> {
-  const { env } = await getCloudflareContext({ async: true });
+  const env = await getCloudflareEnv();
   return createDb(env.DB);
 }

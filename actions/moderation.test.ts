@@ -47,8 +47,7 @@ vi.mock("next/cache", () => ({
 }));
 
 // Stub the decision email so it can be asserted on directly instead of a
-// real Resend call swallowed by notifyRequester's try/catch (which also
-// reaches for getCloudflareContext outside a request — see
+// real Resend call swallowed by notifyRequester's try/catch (see
 // lib/welcome-email.test.ts for the same rationale).
 vi.mock("@/lib/email", () => ({
   sendChangeRequestDecisionEmail: vi.fn<() => Promise<void>>(async () => {}),

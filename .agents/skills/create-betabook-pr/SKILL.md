@@ -26,7 +26,7 @@ changes out of the PR; merging, deploying, and assigning human reviewers require
    ```
 
    Treat local modifications and untracked files as user work until the intended PR paths are clear.
-   Never stage `.dev.vars`, local D1 state, `.next`, `.open-next`, or screenshot-upload staging files.
+   Never stage `.dev.vars`, local D1 state, `.next`, `dist`, or screenshot-upload staging files.
 
 2. Resolve the head and upstream repositories before comparing changes or looking for a PR.
    Identify the intended push remote (`push_remote`, normally `origin`) from the branch's Git
@@ -151,11 +151,11 @@ pnpm check
 ```
 
 For changes affecting runtime code, dependencies, routes, or Cloudflare configuration, also run
-`pnpm exec opennextjs-cloudflare build`. Documentation-only changes do not need a production build.
+`pnpm build`. Documentation-only changes do not need a production build.
 
 `pnpm check` is the exact Husky pre-push check: lint, format check, dead-code analysis, Next route
 type generation plus TypeScript, and the Vitest suite. GitHub's PR job repeats those checks and adds
-the OpenNext Cloudflare build; its **UI reference** job runs the full Playwright suite, which is too
+the vinext Cloudflare build; its **UI reference** job runs the full Playwright suite, which is too
 slow to run locally. Fix in-scope failures and rerun the affected checks plus the failed gate.
 Never use `--no-verify`; the eventual push must run `pnpm check` again through the hook.
 

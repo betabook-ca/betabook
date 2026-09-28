@@ -1,5 +1,5 @@
 // Share one port between the managed server and real-app tests. Match pnpm dev
-// by default so a running app can be reused without competing for .next/dev.
+// by default so a running app can be reused rather than started a second time.
 // oxlint-disable-next-line node/no-process-env
 export const appPort = Number(process.env.BETABOOK_UI_PORT ?? "3000");
 

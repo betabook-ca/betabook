@@ -9,7 +9,7 @@
 - Contribute areas, climbs, and descriptions; structural changes go through moderation by admins assigned to the affected areas.
 - Learn the logging workflow through an interactive Journal tutorial.
 
-Built with Next.js 16 App Router, React 19, TypeScript, HeroUI, and Tailwind CSS. OpenNext runs the app on Cloudflare Workers; Cloudflare D1 stores data through Drizzle ORM. Better Auth handles email/password and optional Google sign-in, and Resend delivers email.
+Built with Next.js 16 App Router, React 19, TypeScript, HeroUI, and Tailwind CSS. [vinext](https://vinext.dev) builds it with Vite and runs it on Cloudflare Workers; Cloudflare D1 stores data through Drizzle ORM. Better Auth handles email/password and optional Google sign-in, and Resend delivers email.
 
 ## Local development
 
@@ -35,7 +35,7 @@ Stop the dev server before running local database scripts and restart it afterwa
 
 ### Environment and authentication
 
-[`next.config.ts`](next.config.ts) initializes local Cloudflare bindings for `next dev`. [`.dev.vars.example`](.dev.vars.example) documents the local overrides for [`wrangler.jsonc`](wrangler.jsonc):
+`pnpm dev` runs the app in workerd through the Cloudflare Vite plugin ([`vite.config.ts`](vite.config.ts)), with the same bindings as production. [`.dev.vars.example`](.dev.vars.example) documents the local overrides for [`wrangler.jsonc`](wrangler.jsonc):
 
 - `BETTER_AUTH_URL` must match the local server URL, including its port. Without the override, auth links use the production URL.
 - `BETTER_AUTH_SECRET` signs sessions; the example value is for local development.
@@ -158,10 +158,11 @@ Run `pnpm storybook` for the internal component gallery. `pnpm test:ui` runs the
 gallery and real app branding checks in light/dark themes at desktop/mobile sizes;
 it is too slow to run locally, so CI runs it. Locally, run `pnpm storybook:build`,
 then only the spec files you changed with `pnpm exec playwright test <file>`.
-The UI suite starts a gallery preview on port 6007 and starts or reuses the app
-on port 3000, matching `pnpm dev`. If your app uses another port, set
-`BETABOOK_UI_PORT=3003` to that port. The suite waits for the
-homepage to compile before testing navigation. It applies local migrations before starting a new app server;
+The UI suite starts a gallery preview on port 6007 and builds and previews the
+app on port 3000 (`pnpm preview`), or reuses a server already there. Stop
+`pnpm dev` first: its unbundled modules hydrate too slowly for tests that type as
+soon as a field renders. To use another port, set `BETABOOK_UI_PORT=3003`. It
+applies local migrations before starting a new app server;
 no seed or signed-in account is needed for the branding checks. Install
 Chromium once with `pnpm exec playwright install chromium`. Storybook uses real
 components and local fonts without requiring a running app or seeded database.
@@ -176,8 +177,9 @@ Require **Test & Build** and **UI reference** for PRs; publishing is advisory an
 fork PRs need no Chromatic secret.
 Every workflow in the organization shares 20 concurrent jobs, so CI packs each
 runner instead of adding runners. One job runs the `@app` tests with two
-Playwright workers: on a four-core runner, more starve `next dev` until the app
-checks miss their navigation timeouts. Three gallery shards run the explicit rendering/native-browser tests and a small
+Playwright workers against the built app (`pnpm preview`): on a four-core runner,
+more starved the old `next dev` server until the app checks missed their
+navigation timeouts. Three gallery shards run the explicit rendering/native-browser tests and a small
 representative accessibility set with four workers per shard and no app server.
 There is no exhaustive story sweep. Only gallery shards build Storybook.
 **UI reference** requires all four jobs to
@@ -214,7 +216,7 @@ authenticates individually; the CI token is not an MCP login.
 ```bash
 pnpm check                                # lint, formatting, dead code, types, tests
 pnpm test -- lib/journal.test.ts           # focused test run
-pnpm exec opennextjs-cloudflare build      # production Workers build used by CI
+pnpm build                                 # production Workers build used by CI
 ```
 
 Tests are colocated with the code. `pnpm test` runs both Vitest projects, so
@@ -242,7 +244,7 @@ path/suffix rules, examples and validation commands.
 | `pnpm format` / `pnpm format:check` | Oxfmt formatting / verification                                               |
 | `pnpm deadcode`                     | Knip unused code and dependency checks                                        |
 | `pnpm deadcode:prod`                | Extra audit excluding test and development entrypoints; separate from `check` |
-| `pnpm typecheck`                    | Next route type generation and TypeScript checking                            |
+| `pnpm typecheck`                    | Route type generation (`vinext typegen`) and TypeScript checking              |
 | `pnpm test`                         | Full Vitest suite                                                             |
 | `pnpm test:components`              | React component and hook tests in jsdom                                       |
 | `pnpm db:generate`                  | Generate migrations from `drizzle/schema/`                                    |
@@ -259,14 +261,14 @@ For a manual deployment, mirror the build–migrate–deploy order:
 
 ```bash
 pnpm check
-pnpm exec opennextjs-cloudflare build
+pnpm build
 pnpm db:migrate:remote
-pnpm exec opennextjs-cloudflare deploy
+pnpm exec wrangler deploy
 ```
 
-`pnpm deploy` is a build-and-deploy shortcut; it does **not** apply migrations. Migrations must stay compatible with the currently deployed worker because the schema changes before the new worker is live.
+`vite build` writes the deployable config to `dist/server/wrangler.json` and points Wrangler at it, so `wrangler deploy` and `wrangler d1 migrations` both read it after a build. `pnpm deploy` is a build-and-deploy shortcut; it does **not** apply migrations. Migrations must stay compatible with the currently deployed worker because the schema changes before the new worker is live.
 
-The Worker also runs a weekly cron (Mondays 06:00 UTC, `triggers.crons` in [`wrangler.jsonc`](wrangler.jsonc)) that snapshots the public catalog — areas and climbs, names, hierarchy, descriptions and grades only — into the `betabook-exports` R2 bucket, where members download it from `/account`. The snapshot is only ever written by the cron: there is no on-demand trigger, because each run walks every area and climb. `next dev` never fires cron triggers; to exercise the job locally, build with `pnpm exec opennextjs-cloudflare build`, run `pnpm exec opennextjs-cloudflare preview --test-scheduled`, and request `http://localhost:8787/__scheduled?cron=0+6+*+*+1`.
+The Worker also runs a weekly cron (Mondays 06:00 UTC, `triggers.crons` in [`wrangler.jsonc`](wrangler.jsonc)) that snapshots the public catalog — areas and climbs, names, hierarchy, descriptions and grades only — into the `betabook-exports` R2 bucket, where members download it from `/account`. The snapshot is only ever written by the cron: there is no on-demand trigger, because each run walks every area and climb. Local servers never fire cron triggers on their own; to exercise the job, run `pnpm dev` (or `pnpm preview`) and request `/cdn-cgi/handler/scheduled?cron=0+6+*+*+1` on it.
 
 CI deployment uses the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Runtime credentials (`BETTER_AUTH_SECRET`, `RESEND_API_KEY`, `TURNSTILE_SECRET_KEY`, optional Google OAuth credentials, and the optional `CLOUDFLARE_USAGE_ACCOUNT_ID` and `CLOUDFLARE_USAGE_API_TOKEN` that show live usage on `/costs`) are Worker secrets configured with `pnpm exec wrangler secret put <NAME>`. The usage token needs only Account Analytics Read. The deploy token also needs **Workers R2 Storage: Edit** to write the R2 binding. Hosting, D1, R2, rate-limit bindings, the cron schedule, and the public auth URL are configured in [`wrangler.jsonc`](wrangler.jsonc); use your own Cloudflare resources when hosting a fork.
 

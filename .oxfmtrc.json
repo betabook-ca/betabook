@@ -19,7 +19,7 @@
     ".next/**",
     "out/**",
     "build/**",
-    ".open-next/**",
+    "dist/**",
     ".wrangler/**",
     "climbs_data/**",
     ".claude/**",

@@ -5,7 +5,7 @@ import { appBaseURL, appPort } from "@/tests/ui/app-server";
 // oxlint-disable-next-line node/no-process-env
 const ci = Boolean(process.env.CI);
 
-// `app` runs only the @app tests and starts only `next dev`; `gallery` runs the
+// `app` runs only the @app tests and starts only the built app; `gallery` runs the
 // rest against the built gallery alone. Unset runs everything.
 // oxlint-disable-next-line node/no-process-env
 const suite = process.env.BETABOOK_UI_SUITE || undefined;
@@ -21,8 +21,8 @@ export default defineConfig({
   retries: 0,
   grep: suite === "app" ? /@app\b/ : suite === "gallery" ? /^(?!.*@app\b)/ : undefined,
   // Measured on four-vCPU runners. Sharing one with `next dev`, more than two
-  // workers starve the dev server until the app tests miss their navigation
-  // timeouts. The gallery alone runs 1.2x faster at four workers than at two,
+  // workers starved it until the app tests missed their navigation timeouts;
+  // the built app they now run against is lighter, but not yet re-measured. The gallery alone runs 1.2x faster at four workers than at two,
   // and at six a story load misses its timeout. Locally there are cores to
   // spare, so take half the machine.
   workers: !ci ? "50%" : suite === "gallery" ? 4 : 2,
@@ -78,7 +78,7 @@ export default defineConfig({
       : [
           {
             command:
-              "pnpm exec vite preview --outDir storybook-static --host 127.0.0.1 --port 6007 --strictPort",
+              "pnpm exec vite preview --config .storybook/vite.config.ts --outDir storybook-static --host 127.0.0.1 --port 6007 --strictPort",
             url: "http://127.0.0.1:6007/index.json",
             reuseExistingServer: false,
           },
@@ -87,10 +87,13 @@ export default defineConfig({
       ? []
       : [
           {
-            command: `pnpm db:migrate:local && pnpm dev --port ${appPort}`,
-            // Warm the homepage's cold compilation before measuring home-link navigation.
+            // The built Worker, not `pnpm dev`: Vite's dev server serves
+            // modules unbundled, so pages hydrate too slowly for tests that
+            // type as soon as the server-rendered field appears.
+            command: `pnpm db:migrate:local && pnpm preview --port ${appPort} --strictPort`,
             url: appBaseURL,
             reuseExistingServer: true,
+            timeout: 180_000,
           },
         ]),
   ],

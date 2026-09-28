@@ -1,7 +1,13 @@
 import { defineProject } from "vitest/config";
 
 export default defineProject({
-  resolve: { alias: { "@": import.meta.dirname } },
+  resolve: {
+    alias: {
+      "@": import.meta.dirname,
+      // A workerd builtin; see test/cloudflare-workers-stub.ts.
+      "cloudflare:workers": `${import.meta.dirname}/test/cloudflare-workers-stub.ts`,
+    },
+  },
   test: {
     name: "components",
     environment: "jsdom",

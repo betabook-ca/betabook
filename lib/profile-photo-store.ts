@@ -1,6 +1,5 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
-
 import { ActionError } from "@/lib/action-result";
+import { getCloudflareEnv } from "@/lib/cloudflare-env";
 import {
   isProfilePhotoKey,
   PROFILE_PHOTO_CACHE_CONTROL,
@@ -28,7 +27,7 @@ export const PROFILE_PHOTO_FAILED_MESSAGE =
 /** Serving a photo needs the bucket alone, so it stays available even if the
  * Images binding is missing — photos already stored must keep rendering. */
 export async function getProfilePhotoBucket(): Promise<R2Bucket | null> {
-  const { env } = await getCloudflareContext({ async: true });
+  const env = await getCloudflareEnv();
   // Widened deliberately: a Worker deployed before this binding landed would
   // not have it, and a TypeError would reach the climber as "Something went
   // wrong" instead of a sentence they can act on.
@@ -39,7 +38,7 @@ export async function getProfilePhotoBucket(): Promise<R2Bucket | null> {
 
 export async function getProfilePhotoStore(): Promise<ProfilePhotoStore | null> {
   const bucket = await getProfilePhotoBucket();
-  const { env } = await getCloudflareContext({ async: true });
+  const env = await getCloudflareEnv();
   const images: ImagesBinding | undefined = env.IMAGES;
   if (!bucket || !images) {
     console.warn("IMAGES is not bound — profile photo uploads unavailable");

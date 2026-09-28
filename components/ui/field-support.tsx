@@ -1,4 +1,5 @@
-import { Description, FieldError } from "@heroui/react";
+import { Description } from "@heroui/react/description";
+import { FieldError } from "@heroui/react/field-error";
 import { clsx } from "clsx";
 import type { ReactNode } from "react";
 

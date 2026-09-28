@@ -19,6 +19,7 @@
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
@@ -48,7 +49,6 @@ next-env.d.ts
 
 # wrangler / cloudflare
 .wrangler
-.open-next
 worker-configuration.d.ts
 .terraform/
 *.tfstate

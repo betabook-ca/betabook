@@ -2,8 +2,8 @@
 # Rate-limit bindings (including FRIENDSHIP_RATE_LIMITER) are configured in
 # wrangler.jsonc and need no secret value here.
 #
-# @opennextjs/cloudflare layers this file over the `vars` block in
-# wrangler.jsonc. Without it BETTER_AUTH_URL falls back to the production
+# `pnpm dev`, `pnpm preview` and the Workers tests layer this file over the
+# `vars` block in wrangler.jsonc. Without it BETTER_AUTH_URL falls back to the production
 # value there, so local verification links point at the deployed site.
 
 BETTER_AUTH_URL=http://localhost:3000

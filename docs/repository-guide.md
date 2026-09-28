@@ -1,6 +1,6 @@
 # Working on Betabook
 
-Betabook is a climbing logbook and crag database built with Next.js 16 App Router, React 19, HeroUI, Tailwind CSS, Cloudflare Workers/OpenNext, D1/Drizzle, and Better Auth. Read [README.md](../README.md) for setup, local accounts, scripts, and deployment. `package.json` and the config files are the source of truth for tooling.
+Betabook is a climbing logbook and crag database built with Next.js 16 App Router, React 19, HeroUI, Tailwind CSS, Cloudflare Workers/vinext, D1/Drizzle, and Better Auth. Read [README.md](../README.md) for setup, local accounts, scripts, and deployment. `package.json` and the config files are the source of truth for tooling.
 
 ## Code map
 
@@ -19,6 +19,15 @@ Betabook is a climbing logbook and crag database built with Next.js 16 App Route
 | `scripts/`                                                    | Local setup, seeding, database discovery, and admin promotion                                                  |
 | `test/`                                                       | Workers test entrypoint, migrations, fixtures, and reset helpers; tests live beside the code                   |
 
+## Runtime
+
+[vinext](https://vinext.dev) builds and serves the app: a Vite plugin that reimplements the Next.js API, with the Cloudflare Vite plugin running every server environment in workerd, in `pnpm dev` as in production. The `next` package stays installed only for its types, `@storybook/nextjs-vite` and the Workers tests; what `next/*` imports do in the app comes from vinext's shims in `node_modules/vinext/dist/shims`, so check there when behavior disagrees with the Next.js docs.
+
+- Read bindings and vars through `getCloudflareEnv()` in `lib/cloudflare-env.ts`, never `cloudflare:workers` directly, so tests can substitute values. It works outside requests too, including the cron handler.
+- Pages can't reach the Worker's `Request`. `worker.ts` copies `request.cf.timezone` into a header that `getRequestTimezone()` reads, discarding any client-sent value; add other edge facts the same way.
+- Server components import HeroUI style helpers from `@heroui/styles` and components by subpath (`@heroui/react/chip`). The RSC build walks the whole `@heroui/react` barrel and rejects its client-only calendar code.
+- Known vinext divergences the code works around: a root layout's `title.template` applies to the root page, so `app/page.tsx` uses `title.absolute`; a `/:path*` header source doesn't match `/`, so `next.config.ts` lists `/` explicitly; `geist/font/sans` 404s in `pnpm dev`, so `app/layout.tsx` declares the font file itself. Redirects and `notFound()` during render send real 3xx/404 statuses where OpenNext streamed a 200, but thrown redirects carry none of the `next.config.ts` headers.
+
 ## Boundaries and conventions
 
 - Pages and route handlers load data through `db/queries`; components receive it as props or fetch the app's API routes. Components must not import database clients, queries, or schemas at runtime. Type-only imports are allowed.
@@ -27,7 +36,7 @@ Betabook is a climbing logbook and crag database built with Next.js 16 App Route
 - `actions/` must not depend on `app/` or `components/`. `db/` and `lib/` must not depend on `app/`, `components/`, or `actions/`. `lib/` is not entirely pure: auth, email, account cleanup, and moderation helpers perform server work. Keep pure calculations separate from those services.
 - `components/ui/` must not import feature components. Reuse its primitives and the existing HeroUI/Tailwind tokens in `app/globals.css`.
 - Import boundaries, cycles, duplicates, and relative-parent imports are checked by [`oxlint.config.ts`](../oxlint.config.ts). Use `@/` for cross-directory imports; sibling imports are allowed.
-- Public catalog reads expose area/subarea/route names and hierarchy, area and route descriptions, route grades and disciplines, and each climb's whole-catalog send aggregates (average rating and logged-ascent count). Climb lists may therefore filter and order on any of those, including rating and ascent count; area lists have none of the climb columns and reject them. Signed-out climb pages also list the latest 10 sends through `getPublicSendsForClimb`, anonymous with a month-only date and no commentary unless the climber shares send commentary with Everyone from a public profile. Every other send read and the average suggested grade require a session, except the owner's share-link preview and the project share page described under Privacy. All other data APIs use `withApiSession`, and pages and metadata authorize before reading protected data. Locked pages show Sign in/Sign up callouts. Any future middleware must use the edge runtime supported by OpenNext and must not replace real authorization.
+- Public catalog reads expose area/subarea/route names and hierarchy, area and route descriptions, route grades and disciplines, and each climb's whole-catalog send aggregates (average rating and logged-ascent count). Climb lists may therefore filter and order on any of those, including rating and ascent count; area lists have none of the climb columns and reject them. Signed-out climb pages also list the latest 10 sends through `getPublicSendsForClimb`, anonymous with a month-only date and no commentary unless the climber shares send commentary with Everyone from a public profile. Every other send read and the average suggested grade require a session, except the owner's share-link preview and the project share page described under Privacy. All other data APIs use `withApiSession`, and pages and metadata authorize before reading protected data. Locked pages show Sign in/Sign up callouts. Any future middleware (`proxy.ts`) must not replace real authorization.
 - Member page loaders and metadata use `getMemberSession`; actions use `requireSession`, and member APIs use `withApiSession`. These check current terms acceptance in D1, including for existing sessions. Raw `getSession` establishes identity only and is reserved for the template, authentication, and agreement flow; it does not authorize member data. Keep `/terms`, its version archives, `/accept-terms`, contact, and account recovery reachable before acceptance.
 - Respect the browser targets in `package.json` and the library baseline in `tsconfig.json`. New built-in JavaScript APIs are not automatically polyfilled.
 
@@ -101,4 +110,4 @@ The runner configs control collection; `.tsx` alone does not select jsdom. Check
 
 Before committing, run `pnpm check` (lint, format check, dead code, typecheck, and tests). `pnpm deadcode:prod` is a separate audit for exports retained only by development/test entrypoints. Use `pnpm format` to fix formatting. The pre-commit hook formats staged files and the pre-push hook runs `pnpm check`.
 
-For changes affecting runtime code, dependencies, routes, or Cloudflare configuration, also verify `pnpm exec opennextjs-cloudflare build`, which CI runs after its checks. Use `pnpm preview` when the behavior needs testing in the built Workers bundle. See [README.md](../README.md) for the complete command guide.
+For changes affecting runtime code, dependencies, routes, or Cloudflare configuration, also verify `pnpm build`, which CI runs after its checks. Use `pnpm preview` when the behavior needs testing in the built Workers bundle. See [README.md](../README.md) for the complete command guide.

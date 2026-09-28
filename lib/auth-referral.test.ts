@@ -13,15 +13,13 @@ import { TERMS_VERSION } from "@/lib/terms";
 import { seedFixtureUser } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
 
-vi.mock("@opennextjs/cloudflare", () => ({
-  getCloudflareContext: async () => ({
-    env: {
-      DB: env.DB,
-      BETTER_AUTH_URL: "http://localhost:3000",
-      BETTER_AUTH_SECRET: "test-secret-for-referral-registration-only",
-      GOOGLE_CLIENT_ID: "test-client",
-      GOOGLE_CLIENT_SECRET: "test-secret",
-    },
+vi.mock("@/lib/cloudflare-env", () => ({
+  getCloudflareEnv: async () => ({
+    DB: env.DB,
+    BETTER_AUTH_URL: "http://localhost:3000",
+    BETTER_AUTH_SECRET: "test-secret-for-referral-registration-only",
+    GOOGLE_CLIENT_ID: "test-client",
+    GOOGLE_CLIENT_SECRET: "test-secret",
   }),
 }));
 vi.mock("@/lib/email", () => ({

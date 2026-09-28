@@ -35,7 +35,7 @@ export async function submitContactMessage(formData: FormData): Promise<ActionRe
     const input = validateContactInput(raw);
 
     // A server action has no `request`, so the IP comes from the header
-    // Cloudflare sets on every inbound request. It's absent under `next dev`,
+    // Cloudflare sets on every inbound request. It's absent under `pnpm dev`,
     // where one shared "unknown" bucket is the right way to fail — throttling
     // everyone together beats a per-request key that throttles nobody. Never
     // key on the email: the sender picks that.

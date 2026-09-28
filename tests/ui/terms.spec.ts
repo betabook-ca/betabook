@@ -31,8 +31,8 @@ test(
   "terms open from signup without losing entries and remain reachable from the footer",
   { tag: "@app" },
   async ({ page, context, request }) => {
-    // This checks navigation, not Next dev's cold compilation time. Compile the
-    // destination before the click, as the app-server readiness does for home.
+    // This checks navigation, not a cold route. Request the destination before
+    // the click, as the app-server readiness does for home.
     await expect(await request.get("/contact")).toBeOK();
     await page.goto("/sign-up?next=%2Faccount");
     const email = page.getByRole("textbox", { name: "Email" });

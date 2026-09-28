@@ -8,13 +8,11 @@ import { initAuth } from "@/lib/auth";
 import { TERMS_VERSION } from "@/lib/terms";
 import { resetDb } from "@/test/reset-db";
 
-vi.mock("@opennextjs/cloudflare", () => ({
-  getCloudflareContext: async () => ({
-    env: {
-      DB: env.DB,
-      BETTER_AUTH_URL: "http://localhost:3000",
-      BETTER_AUTH_SECRET: "test-secret-for-profile-image-updates-only",
-    },
+vi.mock("@/lib/cloudflare-env", () => ({
+  getCloudflareEnv: async () => ({
+    DB: env.DB,
+    BETTER_AUTH_URL: "http://localhost:3000",
+    BETTER_AUTH_SECRET: "test-secret-for-profile-image-updates-only",
   }),
 }));
 vi.mock("@/lib/email", () => ({
