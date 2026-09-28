@@ -15,6 +15,7 @@ vi.mock("next/link", () => ({
       {children}
     </a>
   ),
+  useLinkStatus: () => ({ pending: false }),
 }));
 vi.mock("next/image", () => ({ default: () => null }));
 vi.mock("@/lib/auth-client", () => ({ authClient: { signOut: () => {} } }));

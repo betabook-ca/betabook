@@ -35,6 +35,7 @@ vi.mock("next/link", () => ({
       {children}
     </a>
   ),
+  useLinkStatus: () => ({ pending: false }),
 }));
 afterEach(() => vi.unstubAllGlobals());
 it("clears cached member results when another data request reports an expired session", async () => {

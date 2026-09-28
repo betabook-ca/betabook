@@ -53,8 +53,7 @@ it("opens an in-place dialog and makes the background inaccessible until accepta
   expect(navigation.refresh).toHaveBeenCalled();
 });
 
-it("shows the server's new version in an already-open session without losing a draft", async () => {
-  const now = vi.spyOn(Date, "now").mockReturnValue(0);
+it("shows the server's new version when the reader returns, without losing a draft", async () => {
   const transport = vi
     .fn<typeof fetch>()
     .mockResolvedValueOnce(
@@ -79,8 +78,9 @@ it("shows the server's new version in an already-open session without losing a d
   );
   await user.type(screen.getByRole("textbox", { name: "Draft" }), "My unsaved note");
   expect(transport).not.toHaveBeenCalled();
-  now.mockReturnValue(61_000);
-  await user.click(screen.getByRole("textbox", { name: "Draft" }));
+  // user-event can't move focus to the window itself, as returning from
+  // another tab or app does.
+  fireEvent.focus(window);
   const dialog = await screen.findByRole("dialog", { name: "Terms of Service" });
   expect(within(dialog).getByRole("link", { name: "Read the Terms of Service" })).toHaveAttribute(
     "href",
@@ -96,6 +96,25 @@ it("shows the server's new version in an already-open session without losing a d
   expect(screen.getByRole("textbox", { name: "Draft" })).toHaveValue("My unsaved note");
   expect(onAccept).toHaveBeenCalledWith("2027-01-01", true);
   expect(navigation.replace).not.toHaveBeenCalled();
+});
+
+it("leaves clicks and typing to the server's own checks, however long the page is open", async () => {
+  const now = vi.spyOn(Date, "now").mockReturnValue(0);
+  const transport = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ required: false }));
+  vi.stubGlobal("fetch", transport);
+  const user = userEvent.setup();
+  render(
+    <TermsGate viewerId="u" initiallyRequired={false}>
+      <input aria-label="Draft" />
+    </TermsGate>,
+  );
+  now.mockReturnValue(10 * 60_000);
+  // A click that navigates re-renders the template, which checks terms on the
+  // server; one more request would only compete with that navigation.
+  await user.click(screen.getByRole("textbox", { name: "Draft" }));
+  await user.keyboard("note");
+  expect(screen.getByRole("textbox", { name: "Draft" })).toHaveValue("note");
+  expect(transport).not.toHaveBeenCalled();
 });
 
 it("opens immediately after a denied data request without navigating away", async () => {

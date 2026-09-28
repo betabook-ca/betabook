@@ -57,25 +57,20 @@ export function TermsGate({
     if (!viewerId || exempt || initiallyRequired) return;
     let disposed = false;
     let pending = false;
-    // The template already checked terms for this render. Reuse that result
-    // for initial interactions instead of issuing a duplicate request on mount.
-    // Focus and denied-request events still force a fresh check below.
-    let lastChecked = Date.now();
     const controller = new AbortController();
-    const check = async (force = false) => {
+    // Only focus, a return to the tab and a denied request ask the server.
+    // Clicks and keys don't: a navigation re-renders the template, which
+    // checks terms on the server, and a second request on the same click
+    // would only compete with it for the Worker and D1.
+    const check = async () => {
       if (pending || document.visibilityState !== "visible") return;
-      if (!force && Date.now() - lastChecked < 60_000) return;
       pending = true;
-      lastChecked = Date.now();
       try {
         const response = await fetch("/api/terms/status", {
           cache: "no-store",
           signal: controller.signal,
         });
-        if (!response.ok) {
-          lastChecked = -Infinity;
-          return;
-        }
+        if (!response.ok) return;
         const status: {
           userId?: unknown;
           required?: unknown;
@@ -94,7 +89,6 @@ export function TermsGate({
         }
       } catch {
         // All protected requests still enforce acceptance if this check fails.
-        lastChecked = -Infinity;
       } finally {
         pending = false;
       }
@@ -102,29 +96,22 @@ export function TermsGate({
     const block = () => {
       if (disposed) return;
       setPrompt((current) => current ?? { version, versionLabel, previousVersion });
-      void check(true);
+      void check();
     };
     const focus = () => {
-      void check(true);
-    };
-    const interact = () => {
       void check();
     };
     window.addEventListener(TERMS_REQUIRED_EVENT, block);
     window.addEventListener("focus", focus);
     document.addEventListener("visibilitychange", focus);
-    document.addEventListener("pointerdown", interact, true);
-    document.addEventListener("keydown", interact, true);
     return () => {
       disposed = true;
       controller.abort();
       window.removeEventListener(TERMS_REQUIRED_EVENT, block);
       window.removeEventListener("focus", focus);
       document.removeEventListener("visibilitychange", focus);
-      document.removeEventListener("pointerdown", interact, true);
-      document.removeEventListener("keydown", interact, true);
     };
-  }, [viewerId, pathname, exempt, initiallyRequired, version, versionLabel, previousVersion]);
+  }, [viewerId, exempt, initiallyRequired, version, versionLabel, previousVersion]);
 
   const open = Boolean(viewerId && !exempt && prompt);
   return (

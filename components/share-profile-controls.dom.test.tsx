@@ -13,6 +13,7 @@ vi.mock("next/link", () => ({
     prefetch: _prefetch,
     ...props
   }: React.ComponentProps<"a"> & { prefetch?: boolean }) => <a {...props}>{props.children}</a>,
+  useLinkStatus: () => ({ pending: false }),
 }));
 
 const FIRST = "https://betabook.ca/users/owner-1?share=0123456789abcdef0123456789abcdef";

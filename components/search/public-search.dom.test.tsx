@@ -13,6 +13,7 @@ vi.mock("next/link", () => ({
     prefetch: _prefetch,
     ...props
   }: React.ComponentProps<"a"> & { prefetch?: boolean }) => <a {...props}>{children}</a>,
+  useLinkStatus: () => ({ pending: false }),
 }));
 afterEach(() => vi.unstubAllGlobals());
 function requestUrl(input: RequestInfo | URL): string {

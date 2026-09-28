@@ -8,6 +8,7 @@ vi.mock("next/link", () => ({
     prefetch: _prefetch,
     ...props
   }: React.ComponentProps<"a"> & { prefetch?: boolean }) => <a {...props}>{props.children}</a>,
+  useLinkStatus: () => ({ pending: false }),
 }));
 it("offers both authentication paths with the complete continuation", () => {
   render(<AuthCallout next="/areas/1/test-crag?name=Test&subarea=2" />);

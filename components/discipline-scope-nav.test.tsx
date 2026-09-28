@@ -6,6 +6,7 @@ import { DisciplineScopeNav } from "./discipline-scope-nav";
 
 vi.mock("next/link", () => ({
   default: ({ children, ...props }: { children: ReactNode }) => <a {...props}>{children}</a>,
+  useLinkStatus: () => ({ pending: false }),
 }));
 
 const href = (type: string) => `/analytics?discipline=${type}`;

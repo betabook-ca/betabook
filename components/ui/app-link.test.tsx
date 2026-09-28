@@ -12,6 +12,7 @@ vi.mock("next/link", () => ({
     nextLink(props);
     return <a href={typeof props.href === "string" ? props.href : undefined}>{props.children}</a>;
   },
+  useLinkStatus: () => ({ pending: false }),
 }));
 
 describe("AppLink prefetching", () => {

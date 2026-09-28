@@ -16,6 +16,7 @@ vi.mock("next/link", () => ({
     children,
     ...props
   }: import("react").ComponentProps<"a"> & { prefetch?: boolean }) => <a {...props}>{children}</a>,
+  useLinkStatus: () => ({ pending: false }),
 }));
 vi.mock("@/actions", () => ({
   requestFriendship: vi.fn<typeof requestFriendship>(),

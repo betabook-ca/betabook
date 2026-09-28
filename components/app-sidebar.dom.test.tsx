@@ -12,6 +12,7 @@ vi.mock("next/link", () => ({
       {children}
     </a>
   ),
+  useLinkStatus: () => ({ pending: false }),
 }));
 
 it("reveals labels on hover, can pin the sidebar, and collapses explicitly", async () => {

@@ -19,6 +19,7 @@ vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: ReactNode }) => (
     <a href={href}>{children}</a>
   ),
+  useLinkStatus: () => ({ pending: false }),
 }));
 vi.mock("@/actions", () => ({
   saveProductTourStatus: vi.fn<typeof import("@/actions").saveProductTourStatus>(),
