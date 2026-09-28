@@ -1,4 +1,3 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -10,6 +9,7 @@ import { getDb } from "@/db/client";
 import { getGoalOverview, getNextGoalGrades } from "@/db/queries/goals";
 import { getUserHashtags } from "@/db/queries/hashtag-filter";
 import { goalToday } from "@/lib/goals";
+import { getRequestTimezone } from "@/lib/request-timezone";
 
 type GoalsPageProps = { params: Promise<{ id: string }> };
 
@@ -25,14 +25,13 @@ export default async function GoalsPage({ params }: GoalsPageProps) {
   if (!resolved.ok) notFound();
   const { user, viewerId } = resolved;
   const db = await getDb();
-  const [{ cf }, overview, nextGrades, availableTags] = await Promise.all([
-    getCloudflareContext({ async: true }),
+  const [timezone, overview, nextGrades, availableTags] = await Promise.all([
+    getRequestTimezone(),
     getGoalOverview(db, user.id, user.id),
     getNextGoalGrades(db, user.id, user.id),
     getUserHashtags(db, user.id, user.id, false, true),
   ]);
   await scheduleGoalRefresh(db, user.id);
-  const timezone = cf?.timezone ?? "UTC";
   return (
     <ProfileHeader user={user} viewerId={viewerId} workspace="progress">
       <GoalPanel

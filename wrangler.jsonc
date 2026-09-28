@@ -1,18 +1,19 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "betabook",
-  // Checked-in entrypoint that re-exports the generated OpenNext `fetch` and
-  // adds the cron `scheduled()` handler; `.open-next/worker.js` is rebuilt
-  // from a template on every build, so it cannot hold app code.
+  // Wraps vinext's App Router handler and adds the cron `scheduled()`
+  // handler. `vite build` bundles it with the app and writes the deployable
+  // config to dist/server/wrangler.json, which `wrangler deploy` picks up.
   "main": "./worker.ts",
   "compatibility_date": "2026-08-17",
   "compatibility_flags": ["nodejs_compat"],
   "placement": {
     "mode": "smart",
   },
+  // The Cloudflare Vite plugin points the built config at dist/client.
   "assets": {
-    "directory": ".open-next/assets",
     "binding": "ASSETS",
+    "not_found_handling": "none",
   },
   "routes": [
     {

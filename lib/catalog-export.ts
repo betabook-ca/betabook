@@ -1,27 +1,23 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
-
 import { createDb, type Database } from "@/db/client";
 import {
   getCatalogAreasAfter,
   getCatalogClimbsAfter,
   getCatalogCounts,
 } from "@/db/queries/catalog-export";
+import { getCloudflareEnv } from "@/lib/cloudflare-env";
 import { formatGrade } from "@/lib/grades";
 
 /** Weekly public snapshot of the catalog (areas + climbs) written to R2 by
  * the cron handler in worker.ts and served from /account. Everything in this
- * module takes its bindings explicitly: `scheduled()` runs outside OpenNext's
- * request context, so `getDb()`/`getCloudflareContext()` are unavailable
- * there. Only `getCatalogExportBucket` is request-path code.
+ * module takes its bindings explicitly, so `scheduled()` passes its own `env`
+ * and tests drive the real Miniflare bindings without standing in for
+ * `getCloudflareEnv`. Only `getCatalogExportBucket` is request-path code.
  *
  * The snapshot is streamed: JSON text is produced one D1 page at a time and
  * uploaded as fixed-size multipart parts, so memory stays at one part plus
  * one page whatever the catalog's size. The Worker has 128 MB; a 300k-climb
  * document is tens of MB before the copies `JSON.stringify` and encoding
- * would add.
- *
- * Do not import the db/queries barrel here — it reaches next/headers and
- * Better Auth, and wrangler bundles worker.ts outside Next. */
+ * would add. */
 
 export const CATALOG_EXPORT_KEY = "catalog/latest.json";
 export const CATALOG_EXPORT_SCHEMA_VERSION = 1;
@@ -220,7 +216,7 @@ export async function getCatalogExportInfo(bucket: R2Bucket): Promise<CatalogExp
 
 /** Request-path accessor. */
 export async function getCatalogExportBucket(): Promise<R2Bucket> {
-  const { env } = await getCloudflareContext({ async: true });
+  const env = await getCloudflareEnv();
   return env.CATALOG_EXPORTS;
 }
 

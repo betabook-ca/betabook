@@ -12,8 +12,8 @@ import { TERMS_VERSIONS, termsHref } from "@/lib/terms";
 const SHARD_SIZE = 40_000;
 
 // The valid `[id]` range Next pre-authorizes for the dynamic route below.
-// `generateSitemaps` runs during `next build` (collecting page data) where
-// CI's D1 has no schema, so it CANNOT touch the database — it returns this
+// `generateSitemaps` may run while a production build collects page data,
+// where CI's D1 has no schema, so it CANNOT touch the database — it returns this
 // fixed range instead. 50 * 40k = 2M URLs of runway; `activeShardCount()`
 // trims to real data at request time, so shards past the data are never
 // linked and only return an empty urlset if hit directly.

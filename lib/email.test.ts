@@ -22,10 +22,8 @@ const mail = vi.hoisted(() => ({
     }) => Promise<{ error: { message: string } | null }>
   >(),
 }));
-vi.mock("@opennextjs/cloudflare", () => ({
-  getCloudflareContext: async () => ({
-    env: { RESEND_API_KEY: mail.apiKey, BETTER_AUTH_URL: mail.baseUrl },
-  }),
+vi.mock("@/lib/cloudflare-env", () => ({
+  getCloudflareEnv: async () => ({ RESEND_API_KEY: mail.apiKey, BETTER_AUTH_URL: mail.baseUrl }),
 }));
 vi.mock("resend", () => ({
   Resend: class {

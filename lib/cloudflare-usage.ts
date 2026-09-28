@@ -1,5 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
-
+import { getCloudflareEnv } from "@/lib/cloudflare-env";
 import type { CloudflareUsage } from "@/lib/running-costs";
 import { SITE_URL } from "@/lib/site";
 
@@ -38,7 +37,7 @@ function usageQuery(windows: number): string {
 /** Account-wide usage since the 1st (UTC), when Workers Paid allowances reset.
  * Null when the usage secrets are unset or Cloudflare doesn't answer. */
 export async function getCloudflareUsage(now = new Date()): Promise<CloudflareUsage | null> {
-  const { env } = await getCloudflareContext({ async: true });
+  const env = await getCloudflareEnv();
   const accountTag = env.CLOUDFLARE_USAGE_ACCOUNT_ID;
   const token = env.CLOUDFLARE_USAGE_API_TOKEN;
   if (!accountTag || !token) return null;
@@ -48,7 +47,8 @@ export async function getCloudflareUsage(now = new Date()): Promise<CloudflareUs
   const start = Date.UTC(year, month, 1);
   const end = Date.UTC(year, month + 1, 1);
   const cacheKey = `${SITE_URL}/__cloudflare-usage/${isoDate(start)}`;
-  // `next dev` runs in Node, which has no Cache API.
+  // Guarded for Node runtimes, which have no Cache API; workerd has one
+  // in development and production alike.
   const cache = typeof caches === "undefined" ? null : await caches.open("cloudflare-usage");
   const cached = await cache?.match(cacheKey);
   if (cached) return cached.json<CloudflareUsage | null>();

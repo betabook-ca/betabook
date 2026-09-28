@@ -1,4 +1,3 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -42,6 +41,7 @@ import { normalizeHashtagFilters } from "@/lib/filters/hashtag-filter";
 import { goalToday } from "@/lib/goals";
 import type { ClimbType } from "@/lib/grades";
 import { getOwnProfileShareToken } from "@/lib/profile-share-url";
+import { getRequestTimezone } from "@/lib/request-timezone";
 import { isYearInReviewMonth } from "@/lib/social-card";
 import { toArray, type UrlParamsRecord } from "@/lib/url-params";
 import {
@@ -85,8 +85,7 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
   if (!resolved.ok) notFound();
   const { user, viewerId, session } = resolved;
   const db = await getDb();
-  const { cf } = await getCloudflareContext({ async: true });
-  const today = goalToday(cf?.timezone ?? "UTC");
+  const today = goalToday(await getRequestTimezone());
 
   const selectedTags = normalizeHashtagFilters(toArray(search.tag));
   const journalVisible = await canReadUserJournal(user.id, viewerId);

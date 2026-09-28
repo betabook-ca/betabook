@@ -1,4 +1,4 @@
-import { buttonVariants } from "@heroui/react";
+import { buttonVariants } from "@heroui/styles";
 import type { ReactNode } from "react";
 
 import { AppLink } from "@/components/ui/app-link";

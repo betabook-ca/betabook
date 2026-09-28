@@ -1,4 +1,4 @@
-import { buttonVariants } from "@heroui/react";
+import { buttonVariants } from "@heroui/styles";
 import { Download } from "lucide-react";
 
 import { SettingsRow } from "@/components/ui/settings";

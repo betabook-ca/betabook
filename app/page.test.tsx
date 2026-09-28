@@ -82,7 +82,7 @@ it("shows the intro with the sign-up on the bare home", async () => {
 it("describes the bare home and keeps search states out of the index", async () => {
   const home = await generateMetadata({ searchParams: Promise.resolve({}) });
   expect(home.alternates).toEqual({ canonical: "/" });
-  expect(home.title).toContain("climbing logbook");
+  expect(home.title).toEqual({ absolute: "Betabook · Free climbing logbook and crag database" });
   expect(home.robots).toBeUndefined();
   expect(home.openGraph).toMatchObject({ url: "/", description: home.description });
   expect(await generateMetadata({ searchParams: Promise.resolve({ name: "Test" }) })).toEqual({

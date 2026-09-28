@@ -42,8 +42,7 @@ vi.mock("@/lib/session", async () => {
   };
 });
 
-// Point the actions' getDb at the test D1 binding instead of
-// the OpenNext Cloudflare context (which only exists in a deployed worker).
+// Point the actions' getDb at the test D1 binding explicitly.
 vi.mock("@/db/client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/db/client")>();
   const { env } = await import("cloudflare:test");

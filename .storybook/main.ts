@@ -47,9 +47,13 @@ const config: StorybookConfig = {
   ],
   framework: {
     name: "@storybook/nextjs-vite",
-    // The app config starts Cloudflare bindings. Isolated components don't
-    // need a Worker, database, environment file, or signed-in account.
-    options: { nextConfigPath: ".storybook/next.config.ts" },
+    // Isolated components don't need a Worker, database, environment file,
+    // or signed-in account, so the gallery keeps its own Next and Vite
+    // configs: the root vite.config.ts builds the app's Worker.
+    options: {
+      nextConfigPath: ".storybook/next.config.ts",
+      builder: { viteConfigPath: ".storybook/vite.config.ts" },
+    },
   },
   core: { disableTelemetry: true },
   viteFinal: (config) =>
@@ -80,6 +84,12 @@ const config: StorybookConfig = {
           {
             find: /^@\/lib\/auth-client$/,
             replacement: fileURLToPath(new URL("./mocks/auth-client.ts", import.meta.url)),
+          },
+          {
+            find: "cloudflare:workers",
+            replacement: fileURLToPath(
+              new URL("../test/cloudflare-workers-stub.ts", import.meta.url),
+            ),
           },
           { find: "@", replacement: fileURLToPath(new URL("../", import.meta.url)) },
         ],

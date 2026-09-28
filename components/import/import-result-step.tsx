@@ -1,4 +1,4 @@
-import { Button } from "@heroui/react";
+import { Button } from "@heroui/react/button";
 
 import { AppLink } from "@/components/ui/app-link";
 import { InlineAlert } from "@/components/ui/inline-alert";

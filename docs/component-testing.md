@@ -137,7 +137,7 @@ production behavior.
   stays untagged. Needing fewer runs is not itself a reason to apply either tag.
 - Tag a test `@app` when it loads the real app through `appBaseURL`. The tag
   chooses the server, not the matrix, so it combines with `@layout` or
-  `@behavior`. Gallery runs do not start `next dev`, so an untagged app test
+  `@behavior`. Gallery runs do not start the app, so an untagged app test
   fails there with a refused connection.
 - [Accessibility checks](../tests/ui/accessibility.spec.ts) audit five representative
   composed states for contrast and horizontal overflow. This is a bounded list,
@@ -250,5 +250,5 @@ checks in [the repository guide](repository-guide.md#testing-and-validation); `p
 projects but does not include Playwright or the Cloudflare build. UI changes also
 need their affected browser files; leave the full browser suite to CI. Runtime,
 dependency, route or Cloudflare configuration changes also need
-`pnpm exec opennextjs-cloudflare build`. Documentation-only changes need
+`pnpm build`. Documentation-only changes need
 formatting and reference checks, without artificial runtime tests.

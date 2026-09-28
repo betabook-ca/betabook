@@ -1,4 +1,3 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -8,6 +7,7 @@ import { TripList } from "@/components/trips/trip-list";
 import { getDb } from "@/db/client";
 import { getTripsForOwner } from "@/db/queries";
 import { goalToday } from "@/lib/goals";
+import { getRequestTimezone } from "@/lib/request-timezone";
 
 type UserTripsPageProps = {
   params: Promise<{ id: string }>;
@@ -34,8 +34,7 @@ export default async function UserTripsPage({ params }: UserTripsPageProps) {
   // `new Date()` inside a component runs once on the server and again on the
   // client, which is how "Upcoming" and "Now" end up disagreeing across a
   // hydration near midnight.
-  const { cf } = await getCloudflareContext({ async: true });
-  const today = goalToday(cf?.timezone ?? "UTC");
+  const today = goalToday(await getRequestTimezone());
 
   return (
     <ProfileHeader user={user} viewerId={viewerId} workspace="logbook">

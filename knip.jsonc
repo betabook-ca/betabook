@@ -7,9 +7,6 @@
   // Trailing "!" = production; unsuffixed = dev-only and dropped by
   // `pnpm deadcode:prod`, which is what surfaces test-only exports.
   "entry": [
-    // Read by `opennextjs-cloudflare build`; nothing imports it.
-    "open-next.config.ts!",
-
     // worker.ts needs no entry here: knip's wrangler plugin reads
     // wrangler.jsonc#main as a production entry.
 
@@ -17,8 +14,9 @@
     // in vitest.workers.config.mts — the Vitest plugin never evaluates that.
     "test/worker.ts",
 
-    // Referenced by Storybook's framework option, not a module import.
+    // Referenced by Storybook's framework options, not module imports.
     ".storybook/next.config.ts",
+    ".storybook/vite.config.ts",
   ],
 
   // Overriding `project` drops the extensions knip adds per registered
@@ -37,15 +35,13 @@
     "!playwright.config.ts!",
   ],
 
-  // The package.json `imports` alias for the OpenNext build output, which is
-  // not checked in (see worker/open-next-worker.d.ts). Knip cannot resolve it
-  // in a clean checkout such as CI. After a local build it resolves and knip
-  // hints that this entry is unnecessary; keep it anyway.
-  "ignoreUnresolved": ["#open-next/worker"],
+  // Imported by no module: app/layout.tsx and Storybook's staticDirs read its
+  // font files by path.
+  "ignoreDependencies": ["geist"],
 
-  // `cloudflare:test` is a virtual module from @cloudflare/vitest-pool-workers,
-  // and knip truncates specifiers at the colon, so the bare name is what needs
-  // resolving. Unlike ignoreDependencies, this breaks loudly rather than
+  // `cloudflare:test` is a virtual module from @cloudflare/vitest-pool-workers
+  // and `cloudflare:workers` a workerd builtin; knip truncates specifiers at
+  // the colon, so the bare name is what needs resolving. Unlike ignoreDependencies, this breaks loudly rather than
   // silently if the pool is ever swapped out.
   "paths": {
     "cloudflare": ["./node_modules/@cloudflare/vitest-pool-workers/types/cloudflare-test.d.ts"],

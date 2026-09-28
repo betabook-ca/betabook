@@ -1,4 +1,4 @@
-import { buttonVariants } from "@heroui/react";
+import { buttonVariants } from "@heroui/styles";
 import { ShieldCheck, Upload } from "lucide-react";
 
 import { CatalogExportDownload } from "@/components/catalog-export-download";

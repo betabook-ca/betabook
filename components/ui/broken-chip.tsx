@@ -1,4 +1,4 @@
-import { Chip } from "@heroui/react";
+import { Chip } from "@heroui/react/chip";
 
 /** Marks a climb that has been reported broken (climbs.broken_on is set).
  * Sits beside the discipline chip wherever a climb is named — the climb

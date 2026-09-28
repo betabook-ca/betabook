@@ -1,4 +1,4 @@
-import { buttonVariants } from "@heroui/react";
+import { buttonVariants } from "@heroui/styles";
 
 import { cardClass } from "@/components/ui/card";
 import { InlineAlert } from "@/components/ui/inline-alert";

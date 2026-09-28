@@ -11,14 +11,12 @@ const turnstileEnv = vi.hoisted(() => ({
   TURNSTILE_SITE_KEY: "1x00000000000000000000AA" as string | undefined,
   TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA" as string | undefined,
 }));
-vi.mock("@opennextjs/cloudflare", () => ({
-  getCloudflareContext: async () => ({
-    env: {
-      DB: env.DB,
-      BETTER_AUTH_URL: "http://localhost:3000",
-      BETTER_AUTH_SECRET: "test-secret-for-captcha-only",
-      ...turnstileEnv,
-    },
+vi.mock("@/lib/cloudflare-env", () => ({
+  getCloudflareEnv: async () => ({
+    DB: env.DB,
+    BETTER_AUTH_URL: "http://localhost:3000",
+    BETTER_AUTH_SECRET: "test-secret-for-captcha-only",
+    ...turnstileEnv,
   }),
 }));
 vi.mock("@/lib/email", () => ({

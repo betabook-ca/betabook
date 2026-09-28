@@ -16,7 +16,7 @@ export default defineProject({
 
       return {
         // Tests import query/mutation modules directly; they do not need the
-        // deployed OpenNext entrypoint to have been built first.
+        // deployed worker.ts, whose vinext handler exists only in a Vite build.
         main: "./test/worker.ts",
         wrangler: { configPath: "./wrangler.jsonc" },
         miniflare: {

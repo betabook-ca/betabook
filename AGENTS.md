@@ -5,6 +5,7 @@
 - [Cloudflare infrastructure (OpenTofu and Spacelift)](infra/cloudflare/README.md)
 - [Working on Betabook](docs/repository-guide.md)
   - [Code map](docs/repository-guide.md#code-map)
+  - [Runtime (vinext)](docs/repository-guide.md#runtime)
   - [Boundaries and conventions](docs/repository-guide.md#boundaries-and-conventions)
   - [Data invariants, migrations and bindings](docs/repository-guide.md#data-rules-to-preserve)
   - [Routes and metadata](docs/repository-guide.md#routes-and-metadata)
