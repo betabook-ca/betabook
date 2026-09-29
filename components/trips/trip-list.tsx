@@ -71,26 +71,14 @@ export function TripList({
   return (
     <div className="flex min-w-0 flex-col gap-4">
       <SectionHeading className="sr-only">Trips</SectionHeading>
+      {/* One "New trip" on screen at a time: the empty state carries it while
+       * there are no trips, and showing both put two identical buttons on the
+       * same empty screen. */}
       {canEdit && trips.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          {/* What the climber gets, not how it works. An earlier draft
-           * explained the mechanism — a window, nothing moved — which is a
-           * reassurance only someone worried about duplicated data needs, and
-           * raises a doubt the reader did not arrive with.
-           *
-           * Hidden while the list is empty, where the empty state makes the
-           * same promise with the instruction attached. Two sentences saying
-           * one thing is worse than either alone. */}
-          <p className="text-sm text-muted">Everything from one trip, in one place.</p>
-          {/* One "New trip" on screen at a time. While the list is empty the
-           * empty state carries it, where the climber is already reading; once
-           * there are trips it moves up here, clear of the cards. Showing both
-           * put two identical buttons on the same empty screen. */}
-          <Button onPress={() => openEditor()} className="shrink-0">
-            <Plus className="size-4" />
-            New trip
-          </Button>
-        </div>
+        <Button onPress={() => openEditor()} className="self-end">
+          <Plus className="size-4" />
+          New trip
+        </Button>
       )}
 
       {trips.length > 0 ? null : canEdit ? (
