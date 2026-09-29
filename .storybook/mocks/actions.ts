@@ -136,3 +136,7 @@ export const unshareTrip = fn<typeof Actions.unshareTrip>(async () => ({
   ok: true,
   value: undefined,
 }));
+export const saveProductTourStatus = fn<typeof Actions.saveProductTourStatus>(async () => ({
+  ok: true,
+  value: undefined,
+}));

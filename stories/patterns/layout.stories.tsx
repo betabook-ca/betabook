@@ -49,7 +49,7 @@ export const SurfaceTreatments: Story = {
   render: () => (
     <StoryPage
       title="Surface treatments"
-      description="Use quiet panels for grouping, bordered panels for bounded content, insets within panels, and elevation only for floating content. The accent fill is for a celebration banner alone."
+      description="Use quiet panels for grouping, bordered panels for bounded content, insets within panels, and elevation only for floating content. The accent fill is for a celebration banner or a release announcement alone."
     >
       <section aria-label="Quiet panel" className={cardClass("fluid")}>
         <p>Quiet · 16px on mobile, 24px on desktop</p>
@@ -64,7 +64,7 @@ export const SurfaceTreatments: Story = {
         Floating · overlay fill, one border and shadow
       </section>
       <section aria-label="Accent panel" className={cardClass("sm", "accent")}>
-        Accent · brand fill and ink text, for a celebration banner
+        Accent · brand fill and ink text, for a celebration banner or release announcement
       </section>
       <EmptyState message="Empty and upload areas keep dashed boundaries and extra vertical breathing room." />
     </StoryPage>

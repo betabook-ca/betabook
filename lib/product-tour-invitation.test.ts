@@ -13,6 +13,7 @@ describe("tour invitation copy", () => {
       eyebrow: "Welcome to Betabook",
       title: tour.title,
       description: tour.description,
+      highlights: [],
       action: "Show me how",
     });
   });
@@ -26,6 +27,7 @@ describe("tour invitation copy", () => {
       eyebrow: "What's new",
       title: tour.returningTitle,
       description: tour.returningDescription,
+      highlights: [],
       action: "Show me how",
     });
   });
@@ -40,7 +42,8 @@ describe("tour invitation copy", () => {
       ).toEqual({
         eyebrow: "What's new",
         title: "New since your last tour",
-        description: `${updated[0].whatsNew} · ${updated[1].whatsNew}`,
+        description: "Short lessons in the demo account show you how.",
+        highlights: [updated[0].whatsNew, updated[1].whatsNew],
         action: "See what's new",
       });
     }

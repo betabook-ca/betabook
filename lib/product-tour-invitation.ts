@@ -13,7 +13,8 @@ export function getProductTourInvitationCopy(
     return {
       eyebrow: "What's new",
       title: "New since your last tour",
-      description: steps.map((step) => step.whatsNew ?? step.title).join(" · "),
+      description: "Short lessons in the demo account show you how.",
+      highlights: steps.map((step) => step.whatsNew ?? step.title),
       action: "See what's new",
     };
   }
@@ -21,6 +22,7 @@ export function getProductTourInvitationCopy(
     eyebrow: returning ? "What's new" : "Welcome to Betabook",
     title: returning ? tour.returningTitle : tour.title,
     description: returning ? tour.returningDescription : tour.description,
+    highlights: [],
     action: "Show me how",
   };
 }
