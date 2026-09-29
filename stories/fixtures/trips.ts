@@ -49,3 +49,20 @@ export const currentTrip: TripSummary = {
   sendCount: 3,
   dayCount: 4,
 };
+
+export const TRIP_NOTES = `Ten days in the **Buttermilks** and the *Happies* with Sam and Priya. Two rest days for the storm, one for skin.
+
+# Highlights
+
+- Finally held the crux on Moon Slab
+- First day out on volcanic tuff
+- Sunrise session at the Peabodys
+
+# Logistics
+
+1. Camped at the Pit
+2. Water and showers in town
+
+> Bring more tape than you think you need.
+
+Photos: https://photos.app.goo.gl/abc123`;

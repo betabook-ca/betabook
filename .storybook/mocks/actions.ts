@@ -124,6 +124,10 @@ export const unshareProject = fn<typeof Actions.unshareProject>(async () => ({
 }));
 
 export const saveTrip = fn<typeof Actions.saveTrip>(async () => ({ ok: true, value: -1 }));
+export const saveTripNotes = fn<typeof Actions.saveTripNotes>(async () => ({
+  ok: true,
+  value: undefined,
+}));
 export const deleteTrip = fn<typeof Actions.deleteTrip>(async () => ({
   ok: true,
   value: undefined,

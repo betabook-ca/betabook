@@ -105,3 +105,18 @@ export async function getTripForOwner(
   `);
   return row ?? null;
 }
+
+/** Read apart from `tripColumnsSql`: the list and every tab's header select
+ * those columns, and none of them shows the notes. */
+export async function getTripNotesForOwner(
+  db: Database,
+  ownerId: string,
+  tripId: number,
+): Promise<string | null> {
+  const row = await db.get<{ notes: string | null }>(sql`
+    SELECT t.notes AS notes
+    FROM trips t
+    WHERE t.user_id = ${ownerId} AND t.id = ${tripId}
+  `);
+  return row?.notes ?? null;
+}

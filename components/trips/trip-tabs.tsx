@@ -5,7 +5,8 @@ import { tripHref, type TripTab } from "@/lib/trips";
 
 /** Journal, Sends and Analytics are three views of one window rather than
  * three sections, so they sit inside the Trips workspace tab as pills — the
- * same shape Projects uses for Open and Sent.
+ * same shape Projects uses for Open and Sent. Notes sits with them as the
+ * trip's own page of writing.
  *
  * `current` is passed in by each page rather than derived from the pathname,
  * so the trip's own page (Journal) does not light up as a prefix of the two
@@ -34,6 +35,11 @@ export function TripTabs({
           href: tripHref(userId, tripId, "analytics"),
           label: "Analytics",
           current: current === "analytics",
+        },
+        {
+          href: tripHref(userId, tripId, "notes"),
+          label: "Notes",
+          current: current === "notes",
         },
       ]}
     />

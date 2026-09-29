@@ -12,7 +12,7 @@ import {
 } from "@/lib/action-result";
 import { allowJournalWrite } from "@/lib/rate-limit";
 import { requireSession } from "@/lib/session";
-import { MAX_TRIPS, tripInputSchema } from "@/lib/trips";
+import { MAX_TRIPS, tripInputSchema, tripNotesSchema } from "@/lib/trips";
 import { requirePositiveId } from "@/lib/validation";
 
 import { afterCommit } from "./post-commit";
@@ -81,6 +81,32 @@ export async function saveTrip(tripId: number | null, raw: unknown): Promise<Act
       refresh();
     });
     return created.id;
+  });
+}
+
+/** Written apart from `saveTrip` so neither form has to carry the other's
+ * fields: the trip dialog never loads the notes, and so cannot overwrite them
+ * with a stale copy. */
+export async function saveTripNotes(tripId: number, raw: unknown): Promise<ActionResult> {
+  return toActionResult(async () => {
+    const { user } = await requireSession();
+    const id = requirePositiveId(tripId, TRIP_NOT_FOUND);
+    if (!(await allowJournalWrite(user.id))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
+
+    const parsed = tripNotesSchema.safeParse(raw);
+    if (!parsed.success) throw new ActionError(parsed.error.issues[0]?.message ?? "Check the form");
+
+    const db = await getDb();
+    const [updated] = await db.all<{ id: number }>(sql`
+      UPDATE trips
+      SET notes = ${parsed.data},
+          updated_at = cast(unixepoch('subsecond') * 1000 as integer)
+      WHERE id = ${id} AND user_id = ${user.id}
+      RETURNING id
+    `);
+    if (!updated) throw new ActionError(TRIP_NOT_FOUND);
+
+    afterCommit(() => refresh());
   });
 }
 

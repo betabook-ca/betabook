@@ -43,6 +43,7 @@ type Story = StoryObj<typeof meta>;
 export const Journal: Story = {};
 export const Sends: Story = { args: { current: "sends" } };
 export const Analytics: Story = { args: { current: "analytics" } };
+export const Notes: Story = { args: { current: "notes" } };
 
 /** A single day reads as one date, and no description drops the line. */
 export const SingleDay: Story = { args: { trip: tripSamples[2] } };

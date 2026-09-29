@@ -28,6 +28,8 @@ export const trips = sqliteTable(
       .references(() => user.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     description: text("description"),
+    /** Markdown source, rendered only through `components/ui/markdown.tsx`. */
+    notes: text("notes"),
     /** Civil ISO `YYYY-MM-DD`, inclusive. */
     startDate: text("start_date").notNull(),
     /** Civil ISO `YYYY-MM-DD`, inclusive — a one-day trip has both equal. */
@@ -52,5 +54,8 @@ export const trips = sqliteTable(
     // blank name would leave a trip nothing can refer to in a list or a link.
     check("trips_name", sql`length(trim(${t.name})) BETWEEN 1 AND 80`),
     check("trips_description", sql`${t.description} IS NULL OR length(${t.description}) <= 2000`),
+    // A ceiling above `MAX_TRIP_NOTES`: SQLite cannot alter a CHECK, so the
+    // limit that may change lives in lib/trips.ts.
+    check("trips_notes", sql`${t.notes} IS NULL OR length(${t.notes}) <= 50000`),
   ],
 );

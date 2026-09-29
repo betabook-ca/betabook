@@ -7,6 +7,9 @@ import { isoDateSchema } from "@/lib/sends";
  * without letting a name push the trip card's heading onto four lines. */
 export const MAX_TRIP_NAME = 80;
 export const MAX_TRIP_DESCRIPTION = 2000;
+/** Around 3,000 words. The column's own CHECK sits higher, so this can be
+ * raised without a migration. */
+export const MAX_TRIP_NOTES = 20_000;
 
 /** A ceiling rather than a product limit: trips are cheap rows and a climber
  * with twenty years of history may reasonably keep dozens. It exists so a
@@ -38,6 +41,11 @@ export const tripInputSchema = z
       });
   });
 
+export const tripNotesSchema = z
+  .string()
+  .max(MAX_TRIP_NOTES, "Those notes are too long.")
+  .transform((value) => value.trim() || null);
+
 export function tripsHref(userId: string): string {
   return `/users/${userId}/trips`;
 }
@@ -45,7 +53,7 @@ export function tripsHref(userId: string): string {
 /** Each tab is a path segment rather than a query parameter, so it is its own
  * route with its own metadata and its own entry in history — the same shape
  * Projects uses for Open and Sent. */
-export type TripTab = "journal" | "sends" | "analytics";
+export type TripTab = "journal" | "sends" | "analytics" | "notes";
 
 export function tripHref(userId: string, tripId: number, tab: TripTab = "journal"): string {
   const base = `/users/${userId}/trips/${tripId}`;

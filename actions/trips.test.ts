@@ -2,11 +2,11 @@ import { env } from "cloudflare:test";
 import { eq, sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { deleteTrip, saveTrip } from "@/actions";
+import { deleteTrip, saveTrip, saveTripNotes } from "@/actions";
 import { createDb } from "@/db/client";
-import { getTripsForOwner } from "@/db/queries";
+import { getTripNotesForOwner, getTripsForOwner } from "@/db/queries";
 import { trips } from "@/db/schema";
-import { MAX_TRIPS } from "@/lib/trips";
+import { MAX_TRIP_NOTES, MAX_TRIPS } from "@/lib/trips";
 import {
   insertInBatches,
   seedFixtureTrip,
@@ -238,5 +238,103 @@ describe("deleting a trip", () => {
     identity.id = null;
     expect((await deleteTrip(id)).ok).toBe(false);
     expect(await getTripsForOwner(db, "climber")).toHaveLength(1);
+  });
+});
+
+describe("writing trip notes", () => {
+  const NOTES = "# Day one\n\n**Sent** the project.";
+
+  async function bishop() {
+    const created = await saveTrip(null, BISHOP);
+    return created.ok ? created.value : 0;
+  }
+
+  it("stores the notes as written and leaves the trip's own fields alone", async () => {
+    const id = await bishop();
+
+    expect((await saveTripNotes(id, `  ${NOTES}\n`)).ok).toBe(true);
+
+    expect(await storedTripById(id)).toMatchObject({
+      notes: NOTES,
+      name: "Bishop",
+      description: "Buttermilks",
+      startDate: "2026-03-10",
+      endDate: "2026-03-20",
+    });
+    expect(await getTripNotesForOwner(db, "climber", id)).toBe(NOTES);
+  });
+
+  it("keeps the notes when the trip's own fields are edited", async () => {
+    const id = await bishop();
+    await saveTripNotes(id, NOTES);
+
+    await saveTrip(id, { ...BISHOP, name: "Bishop, take two", description: "" });
+
+    expect(await storedTripById(id)).toMatchObject({ name: "Bishop, take two", notes: NOTES });
+  });
+
+  it("clears notes that are emptied", async () => {
+    const id = await bishop();
+    await saveTripNotes(id, NOTES);
+
+    expect((await saveTripNotes(id, " \n ")).ok).toBe(true);
+    expect(await storedTripById(id)).toMatchObject({ notes: null });
+  });
+
+  it("refuses notes past the limit, and keeps what was stored", async () => {
+    const id = await bishop();
+    await saveTripNotes(id, NOTES);
+
+    const result = await saveTripNotes(id, "a".repeat(MAX_TRIP_NOTES + 1));
+    expect(result).toMatchObject({ ok: false, error: "Those notes are too long." });
+    expect(await storedTripById(id)).toMatchObject({ notes: NOTES });
+
+    expect((await saveTripNotes(id, "a".repeat(MAX_TRIP_NOTES))).ok).toBe(true);
+  });
+
+  it("refuses anything that is not text", async () => {
+    const id = await bishop();
+    expect((await saveTripNotes(id, { notes: NOTES })).ok).toBe(false);
+    expect(await storedTripById(id)).toMatchObject({ notes: null });
+  });
+
+  it("moves updated_at forward", async () => {
+    const id = await bishop();
+    await db.run(sql`UPDATE trips SET updated_at = 0 WHERE id = ${id}`);
+
+    await saveTripNotes(id, NOTES);
+
+    const [stored] = await storedTrips();
+    expect(stored.updatedAt.getTime()).toBeGreaterThan(0);
+  });
+
+  it("refuses to write on another climber's trip, and leaves it unchanged", async () => {
+    const theirs = await seedFixtureTrip(db, {
+      userId: "other",
+      name: "Squamish",
+      startDate: "2026-05-01",
+      endDate: "2026-05-10",
+      notes: "Theirs.",
+    });
+
+    expect(await saveTripNotes(theirs.id, NOTES)).toMatchObject({
+      ok: false,
+      error: "Trip not found",
+    });
+    expect(await storedTripById(theirs.id)).toMatchObject({ notes: "Theirs." });
+    expect(await getTripNotesForOwner(db, "climber", theirs.id)).toBeNull();
+    expect(await getTripNotesForOwner(db, "other", theirs.id)).toBe("Theirs.");
+  });
+
+  it("refuses for a signed-out caller and once the rate limiter says no", async () => {
+    const id = await bishop();
+
+    limits.allow = false;
+    expect((await saveTripNotes(id, NOTES)).ok).toBe(false);
+    limits.allow = true;
+    identity.id = null;
+    expect((await saveTripNotes(id, NOTES)).ok).toBe(false);
+
+    expect(await storedTripById(id)).toMatchObject({ notes: null });
   });
 });

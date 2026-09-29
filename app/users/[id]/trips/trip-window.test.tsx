@@ -2,6 +2,7 @@ import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import TripAnalyticsPage from "@/app/users/[id]/trips/[tripId]/analytics/page";
+import TripNotesPage from "@/app/users/[id]/trips/[tripId]/notes/page";
 import TripJournalPage from "@/app/users/[id]/trips/[tripId]/page";
 import TripSendsPage from "@/app/users/[id]/trips/[tripId]/sends/page";
 import { createDb } from "@/db/client";
@@ -237,6 +238,46 @@ describe("who can open a trip", () => {
     // Nothing about the climber or the trip is in the tree either way.
     expect(payload).not.toContain(INSIDE);
     expect(payload).not.toContain("Bishop");
+  });
+});
+
+describe("the trip's notes", () => {
+  const NOTES = "Camped at the Pit.";
+
+  async function renderNotes(tripId: number) {
+    const tree = await TripNotesPage({
+      params: Promise.resolve({ id: OWNER, tripId: String(tripId) }),
+      searchParams: Promise.resolve({}),
+    });
+    return JSON.stringify(tree);
+  }
+
+  it("hands the owner their notes, as source for the editor and as the page to read", async () => {
+    const trip = await seedFixtureTrip(db, {
+      userId: OWNER,
+      name: "Bishop",
+      notes: NOTES,
+      ...BISHOP,
+    });
+
+    const payload = await renderNotes(trip.id);
+    expect(payload).toContain(`"notes":"${NOTES}"`);
+    expect(payload).toContain(`"children":"${NOTES}"`);
+  });
+
+  it("refuses another climber and a signed-out reader, handing neither the notes", async () => {
+    const trip = await seedFixtureTrip(db, {
+      userId: OWNER,
+      name: "Bishop",
+      notes: NOTES,
+      ...BISHOP,
+    });
+
+    session.userId = STRANGER;
+    await expect(renderNotes(trip.id)).rejects.toThrow("NOT_FOUND");
+
+    session.userId = null;
+    expect(await renderNotes(trip.id)).not.toContain(NOTES);
   });
 });
 
