@@ -20,6 +20,13 @@ export const MAX_TRIP_NOTES = 20_000;
  * so concurrent requests cannot race past it. */
 export const MAX_TRIPS = 200;
 
+/** A description as the one line it is shown as. A line break is folded
+ * rather than refused: a pasted paragraph should not cost the climber the
+ * whole form, and a text input drops the break without leaving a space. */
+export function oneLine(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
 const INVALID_FRIENDS = "Invalid friend selection";
 const TOO_MANY_FRIENDS = `Choose at most ${MAX_JOURNAL_COMPANIONS} friends`;
 
@@ -31,9 +38,7 @@ export const tripInputSchema = z
       .pipe(z.string().min(1, "Name your trip.").max(MAX_TRIP_NAME, "That name is too long.")),
     description: z
       .string()
-      // A line break is folded rather than refused: the field is one line,
-      // and a pasted paragraph should not cost the climber the whole form.
-      .transform((value) => value.replace(/\s+/g, " ").trim())
+      .transform(oneLine)
       .pipe(z.string().max(MAX_TRIP_DESCRIPTION, "That description is too long."))
       .transform((value) => value || null)
       .nullable()

@@ -122,6 +122,15 @@ it("takes the description as one line and says who reads it", async () => {
   ).toBeInTheDocument();
 });
 
+it("opens a description written over several lines as the one line it reads as", () => {
+  render(<Example trip={{ ...BISHOP, description: "Buttermilks.\n\nTwo rest days.  " }} />);
+
+  // A text input drops line breaks without a space, joining the words.
+  expect(screen.getByRole("textbox", { name: /description/i })).toHaveValue(
+    "Buttermilks. Two rest days.",
+  );
+});
+
 it("sends the friends picked for a new trip", async () => {
   const user = userEvent.setup();
   render(<Example />);

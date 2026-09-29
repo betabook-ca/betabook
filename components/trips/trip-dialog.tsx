@@ -11,7 +11,7 @@ import type { Trip, TripSummary } from "@/db/queries";
 import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import { localToday } from "@/lib/format-date";
 import type { CompanionOption } from "@/lib/journal-companions";
-import { tripHref } from "@/lib/trips";
+import { oneLine, tripHref } from "@/lib/trips";
 
 const DATE_ORDER_MESSAGE = "End date must be on or after start date.";
 
@@ -26,7 +26,7 @@ function draftFor(trip: EditableTrip | undefined): TripDraft {
   }
   return {
     name: trip.name,
-    description: trip.description ?? "",
+    description: oneLine(trip.description ?? ""),
     startDate: trip.startDate,
     endDate: trip.endDate,
     companions: trip.companions.map(({ id, name, image }) => ({ id, name, image })),
