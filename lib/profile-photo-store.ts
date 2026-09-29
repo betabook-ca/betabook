@@ -1,7 +1,6 @@
 import { ActionError } from "@/lib/action-result";
 import { getCloudflareEnv } from "@/lib/cloudflare-env";
 import {
-  isProfilePhotoKey,
   PROFILE_PHOTO_CACHE_CONTROL,
   PROFILE_PHOTO_CONTENT_TYPE,
   PROFILE_PHOTO_PIXELS,
@@ -11,8 +10,8 @@ import {
   sniffImageType,
 } from "@/lib/profile-photo";
 
-/** The binding side of profile photos: re-encode an upload, put it, read it
- * back, delete what it replaced. Bindings are passed in rather than read
+/** The binding side of profile photos: re-encode an upload, put it, delete
+ * what it replaced. Bindings are passed in rather than read
  * here, like lib/catalog-export.ts — only `getProfilePhotoStore` is
  * request-path code, and tests then drive the real Miniflare bindings
  * without standing in for the request context. */
@@ -93,14 +92,6 @@ export async function storeProfilePhoto(
     },
   });
   return key;
-}
-
-export async function readProfilePhoto(
-  bucket: R2Bucket,
-  key: string,
-): Promise<R2ObjectBody | null> {
-  if (!isProfilePhotoKey(key)) return null;
-  return bucket.get(key);
 }
 
 /** Best effort: a photo nobody links to costs ~20 KB, and failing a climber's

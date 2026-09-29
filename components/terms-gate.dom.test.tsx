@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ComponentProps } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import type { ActionResult } from "@/lib/action-result";
@@ -54,33 +55,34 @@ it("opens an in-place dialog and makes the background inaccessible until accepta
 });
 
 it("shows the server's new version when the reader returns, without losing a draft", async () => {
-  const transport = vi
-    .fn<typeof fetch>()
-    .mockResolvedValueOnce(
-      Response.json({
-        userId: "u",
-        required: true,
-        version: "2027-01-01",
-        versionLabel: "January 1, 2027",
-        previousVersion: TERMS_VERSION,
-      }),
-    )
-    .mockResolvedValue(Response.json({ userId: "u", required: false }));
+  const transport = vi.fn<typeof fetch>();
   vi.stubGlobal("fetch", transport);
   const user = userEvent.setup();
   const onAccept = vi
     .fn<(version: unknown, agreed: unknown) => Promise<ActionResult>>()
     .mockResolvedValue({ ok: true, value: undefined });
-  render(
-    <TermsGate viewerId="u" initiallyRequired={false} onAccept={onAccept}>
+  const gate = (props: Partial<ComponentProps<typeof TermsGate>>) => (
+    <TermsGate viewerId="u" initiallyRequired={false} onAccept={onAccept} {...props}>
       <input aria-label="Draft" />
-    </TermsGate>,
+    </TermsGate>
   );
+  const view = render(gate({}));
   await user.type(screen.getByRole("textbox", { name: "Draft" }), "My unsaved note");
-  expect(transport).not.toHaveBeenCalled();
   // user-event can't move focus to the window itself, as returning from
-  // another tab or app does.
+  // another tab or app does. The gate asks nothing then: the viewer boundary
+  // refreshes the route, and the template re-renders the gate with the
+  // server's answer.
   fireEvent.focus(window);
+  fireEvent(document, new Event("visibilitychange"));
+  expect(transport).not.toHaveBeenCalled();
+  view.rerender(
+    gate({
+      initiallyRequired: true,
+      version: "2027-01-01",
+      versionLabel: "January 1, 2027",
+      previousVersion: TERMS_VERSION,
+    }),
+  );
   const dialog = await screen.findByRole("dialog", { name: "Terms of Service" });
   expect(within(dialog).getByRole("link", { name: "Read the Terms of Service" })).toHaveAttribute(
     "href",
@@ -136,15 +138,7 @@ it("opens immediately after a denied data request without navigating away", asyn
 it("keeps a newer revision open when an older acceptance request finishes", async () => {
   const transport = vi
     .fn<typeof fetch>()
-    .mockResolvedValueOnce(Response.json({ userId: "u", required: true }))
-    .mockResolvedValue(
-      Response.json({
-        userId: "u",
-        required: true,
-        version: "2027-01-01",
-        versionLabel: "January 1, 2027",
-      }),
-    );
+    .mockResolvedValue(Response.json({ userId: "u", required: true }));
   vi.stubGlobal("fetch", transport);
   let resolve!: (result: ActionResult) => void;
   const onAccept = vi
@@ -156,17 +150,21 @@ it("keeps a newer revision open when an older acceptance request finishes", asyn
         }),
     );
   const user = userEvent.setup();
-  render(
-    <TermsGate viewerId="u" initiallyRequired={false} onAccept={onAccept}>
+  const gate = (props: Partial<ComponentProps<typeof TermsGate>>) => (
+    <TermsGate viewerId="u" initiallyRequired={false} onAccept={onAccept} {...props}>
       <p>Member content</p>
-    </TermsGate>,
+    </TermsGate>
   );
+  const view = render(gate({}));
   expect(transport).not.toHaveBeenCalled();
   fireEvent(window, new Event(TERMS_REQUIRED_EVENT));
   await waitFor(() => expect(transport).toHaveBeenCalledTimes(1));
   await user.click(screen.getByRole("checkbox", { name: /I agree/ }));
   await user.click(screen.getByRole("button", { name: "Accept and continue" }));
-  fireEvent.focus(window);
+  // The template re-renders with a newer revision while acceptance is in flight.
+  view.rerender(
+    gate({ initiallyRequired: true, version: "2027-01-01", versionLabel: "January 1, 2027" }),
+  );
   await screen.findByText(/January 1, 2027/);
   await act(async () => resolve({ ok: true, value: undefined }));
   expect(screen.getByRole("dialog", { name: "Terms of Service" })).toBeVisible();
@@ -215,7 +213,7 @@ it("ignores an old viewer's response after switching accounts", async () => {
       <p>Old member</p>
     </TermsGate>,
   );
-  fireEvent.focus(window);
+  fireEvent(window, new Event(TERMS_REQUIRED_EVENT));
   view.rerender(
     <TermsGate viewerId="new" initiallyRequired={false}>
       <p>New member</p>

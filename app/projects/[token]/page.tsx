@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { cache } from "react";
 
 import { expiredLinkCard } from "@/components/expired-link-card";
 import { SharedProject } from "@/components/shared-project";
 import { getDb } from "@/db/client";
 import { getSharedProject, getSharedProjectSessions } from "@/db/queries";
 import { projectSharePath } from "@/lib/project-share";
+import { requestMemo } from "@/lib/request-memo";
 import { sharedProjectMetadata } from "@/lib/seo";
 import { getMemberSession } from "@/lib/session";
 import { parseShareToken } from "@/lib/share-token";
 
-const getSharedProjectByToken = cache(async (token: string) =>
+const getSharedProjectByToken = requestMemo(async (token: string) =>
   getSharedProject(await getDb(), token),
 );
 

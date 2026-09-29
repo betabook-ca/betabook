@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { cache } from "react";
 
 import {
   MEMBER_CONTENT_METADATA,
@@ -11,10 +10,11 @@ import { getDb } from "@/db/client";
 import { getTripForOwner, getTripShareForOwner, type TripSummary } from "@/db/queries";
 import { getBaseUrl } from "@/lib/app-url";
 import { parseId } from "@/lib/parse-id";
+import { requestMemo } from "@/lib/request-memo";
 
 /** Cached per request so a page and its `generateMetadata` resolve the same
  * trip with one read rather than two. */
-const getTripFor = cache(async (ownerId: string, tripId: number) =>
+const getTripFor = requestMemo(async (ownerId: string, tripId: number) =>
   getTripForOwner(await getDb(), ownerId, tripId),
 );
 

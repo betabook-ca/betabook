@@ -1,5 +1,4 @@
 import { and, eq, inArray } from "drizzle-orm";
-import { cache } from "react";
 
 import { getDb, type Database } from "@/db/client";
 import { featureAnnouncementDismissals } from "@/db/schema";
@@ -8,6 +7,7 @@ import {
   getAnnouncementCandidates,
   type FeatureAnnouncementDefinition,
 } from "@/lib/feature-announcements";
+import { requestMemo } from "@/lib/request-memo";
 
 /** One indexed read for this viewer and the eligible IDs, with no per-feature queries. */
 export async function getDismissedFeatureAnnouncementIds(
@@ -54,7 +54,8 @@ export async function loadViewerFeatureAnnouncements(
   return candidates.filter((feature) => !dismissed.has(feature.featureId));
 }
 
-// Primitive keys share a read across callers in one render, never across requests.
-export const getViewerFeatureAnnouncements = cache(async (userId: string, createdAt: number) =>
-  loadViewerFeatureAnnouncements(await getDb(), { id: userId, createdAt: new Date(createdAt) }),
+// Primitive keys share one read across a request's callers, never across requests.
+export const getViewerFeatureAnnouncements = requestMemo(
+  async (userId: string, createdAt: number) =>
+    loadViewerFeatureAnnouncements(await getDb(), { id: userId, createdAt: new Date(createdAt) }),
 );
