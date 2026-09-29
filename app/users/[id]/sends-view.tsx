@@ -13,12 +13,16 @@ export async function SendsView({
   filter,
   basePath,
   lockedDateRange = false,
+  emptyWindow,
 }: {
   userId: string;
   viewerId: string;
   filter: UserSendsFilter;
   basePath: string;
   lockedDateRange?: boolean;
+  /** Set when nothing is dated inside the locked dates: the line that says
+   * so, in place of filters with nothing to narrow. */
+  emptyWindow?: string;
 }) {
   const db = await getDb();
 
@@ -37,7 +41,7 @@ export async function SendsView({
     <NavigationPendingProvider>
       <div className="flex min-w-0 flex-col gap-4">
         <SectionHeading className="sr-only">Sends</SectionHeading>
-        {hasSends && (
+        {hasSends && !emptyWindow && (
           <UserSendsFilterToolbar
             filter={filter}
             basePath={basePath}
@@ -54,6 +58,7 @@ export async function SendsView({
           initialAreaBreadcrumbs={areaBreadcrumbs}
           hasAnySends={hasSends}
           currentUserId={viewerId}
+          emptyMessage={emptyWindow}
         />
       </div>
     </NavigationPendingProvider>

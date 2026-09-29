@@ -1,9 +1,10 @@
 import { UserSendLogRow } from "@/components/climb-log-row";
 import { ProfileInvite } from "@/components/profile-invite";
+import { signUpPrompt } from "@/components/sign-up-card";
+import { TripBackLink } from "@/components/trips/trip-back-link";
 import { TripCard } from "@/components/trips/trip-card";
 import { TripStats } from "@/components/trips/trip-stats";
-import { AppLink } from "@/components/ui/app-link";
-import { cardClass } from "@/components/ui/card";
+import { TripStatusChip } from "@/components/trips/trip-status-chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeading } from "@/components/ui/typography";
 import type { AreaBreadcrumbs, TripSummary, UserSendRow } from "@/db/queries";
@@ -31,9 +32,7 @@ export function SharedTrips({
         next={withProfileShare(tripsHref(owner.id), owner.token)}
       />
       <section aria-label="Trips" className="flex min-w-0 flex-col gap-3">
-        <AppLink href={profileSharePath(owner.id, owner.token)} className="text-sm text-muted">
-          ← {owner.name}
-        </AppLink>
+        <TripBackLink href={profileSharePath(owner.id, owner.token)}>{owner.name}</TripBackLink>
         <SectionHeading>Trips</SectionHeading>
         {trips.length === 0 ? (
           <EmptyState message="No trips yet." />
@@ -64,6 +63,7 @@ export function SharedTrip({
   sends,
   areaBreadcrumbs,
   path,
+  today,
 }: {
   owner: Owner;
   trip: TripSummary;
@@ -71,18 +71,19 @@ export function SharedTrip({
   areaBreadcrumbs: AreaBreadcrumbs;
   /** This page, link included, for sign-up to return to. */
   path: string;
+  today: string;
 }) {
   return (
     <div className="flex flex-col gap-6">
       <ProfileInvite name={owner.name} image={owner.image} next={path} />
-      <section aria-label="Trip" className={`flex min-w-0 flex-col gap-2 ${cardClass("md")}`}>
-        <AppLink
-          href={withProfileShare(tripsHref(owner.id), owner.token)}
-          className="text-sm text-muted"
-        >
-          ← All trips
-        </AppLink>
-        <SectionHeading>{trip.name}</SectionHeading>
+      <section aria-label="Trip" className="flex min-w-0 flex-col gap-1">
+        <TripBackLink href={withProfileShare(tripsHref(owner.id), owner.token)}>
+          All trips
+        </TripBackLink>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <SectionHeading className="min-w-0 break-words">{trip.name}</SectionHeading>
+          <TripStatusChip trip={trip} today={today} />
+        </div>
         <p className="text-sm text-muted">{formatTripDates(trip.startDate, trip.endDate)}</p>
         {trip.description && <p className="text-sm leading-relaxed">{trip.description}</p>}
         <TripStats trip={trip} />
@@ -95,7 +96,7 @@ export function SharedTrip({
           </p>
         )}
         {sends.length === 0 ? (
-          <EmptyState message={`${owner.name} didn't log a send on this trip.`} />
+          <EmptyState message={`${owner.name} hasn't logged a send on this trip yet.`} />
         ) : (
           <div className="flex flex-col divide-y divide-separator">
             {sends.map((send) => (
@@ -105,6 +106,12 @@ export function SharedTrip({
           </div>
         )}
       </section>
+      {signUpPrompt({
+        ownerName: owner.name,
+        sendCount: trip.sendCount,
+        shown: sends.length,
+        next: path,
+      })}
     </div>
   );
 }

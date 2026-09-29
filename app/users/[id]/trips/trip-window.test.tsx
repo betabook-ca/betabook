@@ -28,6 +28,7 @@ vi.mock("@/lib/session", () => ({
   getMemberSession: async () =>
     session.userId ? { user: { id: session.userId, name: "Viewer" } } : null,
 }));
+vi.mock("@/lib/request-timezone", () => ({ getRequestTimezone: async () => "UTC" }));
 vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NOT_FOUND");
@@ -167,6 +168,50 @@ describe("the window the page actually reads", () => {
     // undated one below is a real exclusion rather than an empty page.
     expect(payload).toContain("Sent it on the trip.");
     expect(payload).not.toContain("No date on this one.");
+  });
+});
+
+describe("a trip with nothing dated inside it", () => {
+  const EMPTY = { startDate: "2027-05-14", endDate: "2027-05-21" };
+
+  async function renderPage(
+    page: typeof TripJournalPage,
+    tripId: number,
+    search: Record<string, string> = {},
+  ) {
+    const tree = await page({
+      params: Promise.resolve({ id: OWNER, tripId: String(tripId) }),
+      searchParams: Promise.resolve(search),
+    });
+    return JSON.stringify(tree) + JSON.stringify(await resolveNestedView(tree));
+  }
+
+  it("says so on every tab instead of blaming filters nobody set", async () => {
+    await seedTrip();
+    await seedFixtureSend(db, { userId: OWNER, climbId: CLIMB, dateSent: "2026-03-15" });
+    const upcoming = await seedFixtureTrip(db, { userId: OWNER, name: "Squamish", ...EMPTY });
+
+    const journal = await renderPage(TripJournalPage, upcoming.id);
+    expect(journal).toContain("No entries on this trip yet.");
+
+    const sends = await renderPage(TripSendsPage, upcoming.id);
+    expect(sends).toContain("No sends on this trip yet.");
+
+    const analytics = await renderPage(TripAnalyticsPage, upcoming.id);
+    expect(analytics).toContain("Nothing logged on this trip yet.");
+    expect(analytics).not.toContain("Nothing logged between");
+  });
+
+  it("keeps the filters' own words for a reader who filtered inside a trip", async () => {
+    const trip = await seedTrip();
+    await seedFixtureSend(db, { userId: OWNER, climbId: CLIMB, dateSent: "2026-03-15" });
+
+    const journal = await renderPage(TripJournalPage, trip.id, { q: "no such words" });
+    expect(journal).not.toContain(INSIDE);
+    expect(journal).not.toContain("on this trip yet");
+
+    const sends = await renderPage(TripSendsPage, trip.id, { name: "no such climb" });
+    expect(sends).not.toContain("on this trip yet");
   });
 });
 

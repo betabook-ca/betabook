@@ -1,8 +1,8 @@
 import { UserSendLogRow } from "@/components/climb-log-row";
 import { ProfileInvite } from "@/components/profile-invite";
+import { signUpPrompt } from "@/components/sign-up-card";
 import { TripCard } from "@/components/trips/trip-card";
 import { AppLink } from "@/components/ui/app-link";
-import { cardClass } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SidebarLayout } from "@/components/ui/page-shell";
 import { SectionHeading } from "@/components/ui/typography";
@@ -10,8 +10,6 @@ import { UserSendSummary } from "@/components/user-send-summary";
 import type { AreaBreadcrumbs, TripSummary, UserSendRow, UserStatsSummary } from "@/db/queries";
 import { formatCount } from "@/lib/format";
 import { withProfileShare } from "@/lib/profile-share";
-import { signUpUrl } from "@/lib/sign-in-redirect";
-import { SITE_NAME } from "@/lib/site";
 import { tripsHref } from "@/lib/trips";
 
 /** The climber's latest trips, each opened by the same link as this page. */
@@ -40,10 +38,6 @@ export function SharedProfile({
   trips?: SharedProfileTrips;
   next: string;
 }) {
-  const signUpPrompt =
-    summary.sendCount > sends.length
-      ? `See all ${formatCount(summary.sendCount, "send")}`
-      : `Climb with ${owner.name} on ${SITE_NAME}`;
   return (
     <div className="flex flex-col gap-6">
       <ProfileInvite name={owner.name} image={owner.image} next={next} />
@@ -61,6 +55,12 @@ export function SharedProfile({
             </div>
           )}
         </section>
+        {signUpPrompt({
+          ownerName: owner.name,
+          sendCount: summary.sendCount,
+          shown: sends.length,
+          next,
+        })}
         {trips && trips.total > 0 && (
           <section aria-label="Trips" className="flex flex-col gap-3">
             <SectionHeading>Trips</SectionHeading>
@@ -85,11 +85,6 @@ export function SharedProfile({
             )}
           </section>
         )}
-        <section aria-label={signUpPrompt} className={cardClass("md", "bordered")}>
-          <SectionHeading>
-            <AppLink href={signUpUrl(next)}>{signUpPrompt}</AppLink>
-          </SectionHeading>
-        </section>
       </SidebarLayout>
     </div>
   );

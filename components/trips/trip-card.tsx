@@ -1,26 +1,15 @@
 "use client";
 
-import { Chip } from "@heroui/react";
 import type { ReactNode } from "react";
 
-import { CompanionList } from "@/components/journal/companion-list";
+import { TripCompanions } from "@/components/trips/trip-companions";
 import { TripStats } from "@/components/trips/trip-stats";
+import { TripStatusChip } from "@/components/trips/trip-status-chip";
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import type { TripSummary } from "@/db/queries";
 import { withProfileShare } from "@/lib/profile-share";
-import { formatTripDates, tripHref, tripStatus, type TripStatus } from "@/lib/trips";
-
-/** Only the two statuses worth saying out loud get a chip. "Past" is the
- * ordinary case — most trips are over — so labelling it would put a badge on
- * nearly every card and stop the two that matter from standing out.
- *
- * `success` for a trip happening now is free here: the colour is spoken for by
- * ascent styles elsewhere, and no trip status is an error. */
-const STATUS_CHIP: Partial<Record<TripStatus, { label: string; color: "success" | "default" }>> = {
-  upcoming: { label: "Upcoming", color: "default" },
-  current: { label: "On now", color: "success" },
-};
+import { formatTripDates, tripHref } from "@/lib/trips";
 
 /** One trip in the list. The whole card is not a link: the actions menu lives
  * inside it, and nesting interactive controls inside an anchor is what makes a
@@ -40,11 +29,10 @@ export function TripCard({
   /** The climber's profile link, which a signed-out reader's next page needs. */
   shareToken?: string;
 }) {
-  const chip = STATUS_CHIP[tripStatus(trip, today)];
   const href = tripHref(userId, trip.id);
 
   return (
-    <li className={`flex flex-col gap-3 ${cardClass("md", "bordered")}`}>
+    <li className={`flex flex-col gap-3 ${cardClass("sm", "bordered")}`}>
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -54,11 +42,7 @@ export function TripCard({
             >
               {trip.name}
             </AppLink>
-            {chip && (
-              <Chip variant="soft" color={chip.color} size="sm" className="font-sans">
-                {chip.label}
-              </Chip>
-            )}
+            <TripStatusChip trip={trip} today={today} />
           </div>
           <p className="text-sm text-muted">{formatTripDates(trip.startDate, trip.endDate)}</p>
         </div>
@@ -69,7 +53,7 @@ export function TripCard({
         <p className="line-clamp-2 text-sm leading-relaxed">{trip.description}</p>
       )}
 
-      <CompanionList companions={trip.companions} />
+      <TripCompanions tripId={trip.id} initialCompanions={trip.companions} />
 
       {/* Read through the same SQL the trip's own tabs use, so the card cannot
        * promise a number the page behind it contradicts. */}

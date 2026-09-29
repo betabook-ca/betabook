@@ -71,6 +71,7 @@ export const Trip: Story = {
       sends={SENDS}
       areaBreadcrumbs={{ 11: [{ id: 1, name: "Bishop" }] }}
       path="/users/alex/trips/2?share=4f9c2a7e1b8d6035c9e4a1f7b2d80e36"
+      today={TRIPS_TODAY}
     />
   ),
 };
@@ -83,6 +84,7 @@ export const LongTrip: Story = {
       sends={SENDS}
       areaBreadcrumbs={{ 11: [{ id: 1, name: "Bishop" }] }}
       path="/users/alex/trips/2?share=4f9c2a7e1b8d6035c9e4a1f7b2d80e36"
+      today={TRIPS_TODAY}
     />
   ),
 };

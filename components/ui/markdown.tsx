@@ -1,4 +1,5 @@
 import { clsx } from "clsx";
+import { Square, SquareCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import ReactMarkdown, { defaultUrlTransform, type Components } from "react-markdown";
 import remarkBreaks from "remark-breaks";
@@ -66,24 +67,39 @@ function componentsFor(top: HeadingLevel): Components {
         {children}
       </ol>
     ),
-    li: ({ children }) => <li className="[&>ol]:mt-1 [&>ul]:mt-1">{children}</li>,
-    // A glyph, not a checkbox: a disabled input with no label fails axe.
-    input: ({ checked }) => (
-      <span role="img" aria-label={checked ? "Done" : "Not done"} className="mr-1.5">
-        {checked ? "☑" : "☐"}
-      </span>
+    li: ({ className, children }) => (
+      <li
+        className={clsx(
+          "[&>ol]:mt-1 [&>ul]:mt-1",
+          // Room for the icon, so a list nested under a task indents past it.
+          className?.includes("task-list-item") && "relative pl-6",
+        )}
+      >
+        {children}
+      </li>
     ),
+    // An icon, not a checkbox: a disabled input with no label fails axe.
+    input: ({ checked }) => {
+      const Icon = checked ? SquareCheck : Square;
+      return (
+        <Icon
+          role="img"
+          aria-label={checked ? "Done" : "Not done"}
+          className="absolute top-[0.2em] left-0 size-4 text-muted"
+        />
+      );
+    },
     blockquote: ({ children }) => (
       <blockquote className="flex flex-col gap-3 border-l-2 border-border pl-3 text-muted">
         {children}
       </blockquote>
     ),
-    hr: () => <hr className="border-separator" />,
+    hr: () => <hr className="border-border" />,
     code: ({ children }) => (
-      <code className="rounded-md bg-default px-1 font-mono text-[0.9em]">{children}</code>
+      <code className="rounded-md bg-default px-1 font-sans text-[0.9em]">{children}</code>
     ),
     pre: ({ children }) => (
-      <pre className="overflow-x-auto rounded-md bg-default p-3 [&>code]:bg-transparent [&>code]:p-0">
+      <pre className="overflow-x-auto rounded-md bg-default p-3 font-sans [&>code]:bg-transparent [&>code]:p-0">
         {children}
       </pre>
     ),

@@ -17,7 +17,7 @@ import { getJournalSessionsForAnalytics, getUserSendsForAnalytics } from "@/db/q
 import { getAnalyticsHighlightSessions } from "@/db/queries/analytics-highlights";
 import { getAnalyticsLayout } from "@/db/queries/analytics-layout";
 import { buildAnalyticsHighlights } from "@/lib/analytics-highlights";
-import { formatTripDates, tripHref } from "@/lib/trips";
+import { tripHref } from "@/lib/trips";
 import {
   buildUserAnalytics,
   inDateWindow,
@@ -51,7 +51,7 @@ export default async function TripAnalyticsPage({ params, searchParams }: TripPa
   const resolved = await resolveTripPage(id, tripId);
   if (!resolved.signedIn) return <CurrentPageAuthCallout />;
   if (!resolved.ok) notFound();
-  const { trip, user, viewerId, journalVisible } = resolved;
+  const { trip, user, viewerId, today, journalVisible } = resolved;
 
   const db = await getDb();
   const [allSends, allSessions, highlights] = await Promise.all([
@@ -64,8 +64,6 @@ export default async function TripAnalyticsPage({ params, searchParams }: TripPa
   const rows = allSends.filter((row) => inTrip(row.dateSent));
   const sessions = allSessions?.filter((entry) => inTrip(entry.entryDate));
   const tripHighlights = highlights.filter((entry) => inTrip(entry.entryDate));
-
-  const dates = formatTripDates(trip.startDate, trip.endDate);
 
   const { present, scope } = resolveDisciplineScope({
     rows,
@@ -82,10 +80,11 @@ export default async function TripAnalyticsPage({ params, searchParams }: TripPa
           trip={trip}
           userId={user.id}
           viewerId={viewerId}
+          today={today}
           current="analytics"
           journalVisible={journalVisible}
         >
-          <EmptyState message={`Nothing logged between ${dates}.`} />
+          <EmptyState message="Nothing logged on this trip yet." />
         </TripHeader>
       </ProfileHeader>
     );
@@ -100,6 +99,7 @@ export default async function TripAnalyticsPage({ params, searchParams }: TripPa
         trip={trip}
         userId={user.id}
         viewerId={viewerId}
+        today={today}
         current="analytics"
         journalVisible={journalVisible}
       >

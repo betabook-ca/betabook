@@ -8,6 +8,7 @@ import {
   resolveSharedTrip,
   resolveTripPage,
   tripMetadata,
+  tripToday,
   withTripWindow,
   type TripPageParams,
 } from "@/app/users/[id]/trips/[tripId]/trip-shell";
@@ -67,11 +68,12 @@ export default async function TripJournalPage({ params, searchParams }: TripPage
         sends={sends}
         areaBreadcrumbs={areaBreadcrumbs}
         path={withProfileShare(tripHref(owner.id, trip.id), owner.token)}
+        today={await tripToday()}
       />
     );
   }
   if (!resolved.ok) notFound();
-  const { trip, user, viewerId, journalVisible } = resolved;
+  const { trip, user, viewerId, today, journalVisible } = resolved;
   const basePath = tripHref(user.id, trip.id);
 
   return (
@@ -80,6 +82,7 @@ export default async function TripJournalPage({ params, searchParams }: TripPage
         trip={trip}
         userId={user.id}
         viewerId={viewerId}
+        today={today}
         current={journalVisible ? "journal" : "sends"}
         journalVisible={journalVisible}
       >
@@ -90,6 +93,7 @@ export default async function TripJournalPage({ params, searchParams }: TripPage
             filter={withTripWindow(parseJournalFilter(search), trip)}
             basePath={basePath}
             lockedDateRange
+            emptyWindow={trip.entryCount === 0 ? "No entries on this trip yet." : undefined}
           />
         ) : (
           <SendsView
@@ -98,6 +102,7 @@ export default async function TripJournalPage({ params, searchParams }: TripPage
             filter={withTripWindow(parseUserSendsFilter(search), trip)}
             basePath={basePath}
             lockedDateRange
+            emptyWindow={trip.sendCount === 0 ? "No sends on this trip yet." : undefined}
           />
         )}
       </TripHeader>

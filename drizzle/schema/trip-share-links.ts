@@ -11,31 +11,12 @@ import {
 import { user } from "./auth";
 import { trips } from "./trips";
 
-/** One climber's decision to show one trip to someone outside the Trips tab,
- * which is otherwise owner-only.
- *
- * There is no audience column, deliberately — the same reasoning as
- * `project_share_links`. A link is a link: whoever holds it can open it,
- * signed in or not. Labelling one Friends or Members would borrow the journal
- * audience's words for a mechanism that does not mean the same thing, and
- * someone reading "Friends" on a URL would reasonably conclude it was safe to
- * forward. The two controls a link can honestly offer are how long it lasts
- * and deleting it.
- *
- * The token is the whole credential and the whole URL — no user or trip id in
- * it, nothing to enumerate, and nothing revealed until it resolves.
- *
- * A share grants MORE than the owner's blanket `journal_visibility` and
- * `send_comment_visibility` for the entries inside the window — that is the
- * feature, not an oversight. It grants nothing else: companion tags are left
- * out because they name third parties who never saw this dialog, and no entry
- * outside the trip's dates is reachable through it.
- *
- * The composite foreign key is the invariant that matters: a share cannot
- * outlive the trip it describes, and cannot be pointed at a trip belonging to
- * someone else. Deleting the trip and deleting the account both take the link
- * with them. The second key to `user` is redundant through that path and kept
- * anyway, so an orphan cannot survive a manual `trips` repair. */
+/** Retired: trips have no link of their own, and nothing reads or writes this
+ * table. It stays declared so drizzle-kit generates no DROP, because
+ * migrations run before the worker that stopped using it is live. A later
+ * migration drops it, and must drop `trip_share_revoke_on_private` with it:
+ * that trigger sits on `user`, so without the table every profile going
+ * private would fail. */
 export const tripShareLinks = sqliteTable(
   "trip_share_links",
   {

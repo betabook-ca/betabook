@@ -1,15 +1,12 @@
 "use client";
 
-import { Button, Menu, useOverlayState } from "@heroui/react";
-import { Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { Button, useOverlayState } from "@heroui/react";
+import { CirclePlus } from "lucide-react";
+import { useState } from "react";
 
-import { deleteTrip } from "@/actions";
+import { TripActions } from "@/components/trips/trip-actions";
 import { TripCard } from "@/components/trips/trip-card";
 import { TripDialog } from "@/components/trips/trip-dialog";
-import { ActionsMenu } from "@/components/ui/actions-menu";
-import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeading } from "@/components/ui/typography";
 import type { TripSummary } from "@/db/queries";
@@ -33,40 +30,22 @@ export function TripList({
   /** The climber reading their own list; anyone else only reads. */
   canEdit: boolean;
 }) {
-  const router = useRouter();
-  const editState = useOverlayState();
-  const deleteState = useOverlayState();
-  const [editing, setEditing] = useState<TripSummary | undefined>(undefined);
-  // Bumped every time the dialog is opened, and part of its key, so each
-  // session gets a fresh mount. Keying by trip id alone is not enough: the
-  // dialog resets its draft from the trip it was handed, on a timer after it
-  // closes, and a saved edit keeps the same id — so the next Edit on that trip
-  // would reopen showing the values the save replaced.
+  const createState = useOverlayState();
+  // A fresh mount per open, so a trip abandoned half-typed is not what the
+  // next New trip starts from.
   const [session, setSession] = useState(0);
-  const [deleting, setDeleting] = useState<TripSummary | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
 
-  function openEditor(trip?: TripSummary) {
-    setEditing(trip);
+  function openCreate() {
     setSession((count) => count + 1);
-    editState.open();
+    createState.open();
   }
 
-  function handleDelete() {
-    if (!deleting) return;
-    setDeleteError(null);
-    startTransition(async () => {
-      const result = await deleteTrip(deleting.id);
-      if (!result.ok) {
-        setDeleteError(result.error);
-        return;
-      }
-      deleteState.close();
-      setDeleting(null);
-      router.refresh();
-    });
-  }
+  const newTrip = (
+    <Button onPress={openCreate} className="self-end">
+      <CirclePlus className="size-4" />
+      New trip
+    </Button>
+  );
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
@@ -74,23 +53,10 @@ export function TripList({
       {/* One "New trip" on screen at a time: the empty state carries it while
        * there are no trips, and showing both put two identical buttons on the
        * same empty screen. */}
-      {canEdit && trips.length > 0 && (
-        <Button onPress={() => openEditor()} className="self-end">
-          <Plus className="size-4" />
-          New trip
-        </Button>
-      )}
+      {canEdit && trips.length > 0 && newTrip}
 
       {trips.length > 0 ? null : canEdit ? (
-        <EmptyState
-          message="No trips yet. Add the dates you were away and that trip's sessions, sends and stats come with it."
-          cta={
-            <Button onPress={() => openEditor()}>
-              <Plus className="size-4" />
-              New trip
-            </Button>
-          }
-        />
+        <EmptyState message="No trips yet." cta={newTrip} />
       ) : (
         <EmptyState message="No trips yet." />
       )}
@@ -103,53 +69,13 @@ export function TripList({
               trip={trip}
               userId={userId}
               today={today}
-              actions={
-                canEdit && (
-                  <ActionsMenu
-                    ariaLabel={`Actions for ${trip.name}`}
-                    onAction={(key) => {
-                      if (key === "edit") {
-                        openEditor(trip);
-                      } else {
-                        setDeleting(trip);
-                        setDeleteError(null);
-                        deleteState.open();
-                      }
-                    }}
-                  >
-                    <Menu.Item id="edit">Edit</Menu.Item>
-                    <Menu.Item id="delete">Delete</Menu.Item>
-                  </ActionsMenu>
-                )
-              }
+              actions={canEdit && <TripActions trip={trip} userId={userId} />}
             />
           ))}
         </ul>
       )}
 
-      {/* Keyed by the session as well as the trip, so every open starts from
-       * the trip as it stands now rather than from whatever the last session
-       * left behind. */}
-      {canEdit && (
-        <TripDialog
-          key={`${editing?.id ?? "new"}-${session}`}
-          state={editState}
-          userId={userId}
-          trip={editing}
-        />
-      )}
-
-      {canEdit && (
-        <ConfirmDeleteDialog
-          state={deleteState}
-          noun="trip"
-          title={deleting ? `Delete ${deleting.name}?` : "Delete this trip?"}
-          description="Deleting a trip won't delete any climbs — your sessions and sends stay in your logbook."
-          onConfirm={handleDelete}
-          isPending={pending}
-          error={deleteError}
-        />
-      )}
+      {canEdit && <TripDialog key={session} state={createState} userId={userId} />}
     </div>
   );
 }

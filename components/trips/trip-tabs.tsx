@@ -47,7 +47,7 @@ export function TripTabs({
           ? [
               {
                 href: tripHref(userId, tripId, "notes"),
-                label: "Notes",
+                label: "Trip notes",
                 current: current === "notes",
               },
             ]

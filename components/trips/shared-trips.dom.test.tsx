@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 
 import type { TripSummary, UserSendRow } from "@/db/queries";
+import { SITE_NAME } from "@/lib/site";
 
 import { SharedTrip, SharedTrips } from "./shared-trips";
 
@@ -43,6 +44,7 @@ function send(id: number, climbName: string): UserSendRow {
 }
 
 const signUp = (path: string) => `/sign-up?next=${encodeURIComponent(path)}`;
+const TODAY = "2026-09-10";
 
 it("lists the trips, each opened by the link that opened the list", () => {
   render(<SharedTrips owner={OWNER} trips={[BISHOP]} today="2026-09-10" />);
@@ -52,7 +54,7 @@ it("lists the trips, each opened by the link that opened the list", () => {
     "href",
     `/users/owner-1/trips/7?share=${TOKEN}`,
   );
-  expect(within(trips).getByRole("link", { name: /Alex Rivera/ })).toHaveAttribute(
+  expect(within(trips).getByRole("link", { name: "Alex Rivera" })).toHaveAttribute(
     "href",
     `/users/owner-1?share=${TOKEN}`,
   );
@@ -72,6 +74,7 @@ it("shows a trip as what it was and the sends inside it", () => {
       sends={[send(1, "Moon Slab"), send(2, "Warm-up Arete"), send(3, "Evilution")]}
       areaBreadcrumbs={{}}
       path={path}
+      today={TODAY}
     />,
   );
 
@@ -80,7 +83,8 @@ it("shows a trip as what it was and the sends inside it", () => {
   expect(trip).toHaveTextContent("Buttermilks and the Happies.");
   expect(trip).toHaveTextContent("3 sends");
   expect(trip).not.toHaveTextContent(/entr|days logged|With /);
-  expect(within(trip).getByRole("link", { name: /All trips/ })).toHaveAttribute(
+  expect(trip).not.toHaveTextContent(/Upcoming|On now/);
+  expect(within(trip).getByRole("link", { name: "All trips" })).toHaveAttribute(
     "href",
     `/users/owner-1/trips?share=${TOKEN}`,
   );
@@ -89,6 +93,9 @@ it("shows a trip as what it was and the sends inside it", () => {
   expect(within(sends).getByRole("link", { name: "Moon Slab" })).toBeVisible();
   expect(sends).not.toHaveTextContent("most recent of");
   expect(screen.getByRole("link", { name: "Sign up" })).toHaveAttribute("href", signUp(path));
+  expect(
+    screen.getByRole("link", { name: `Climb with Alex Rivera on ${SITE_NAME}` }),
+  ).toHaveAttribute("href", signUp(path));
   expect(screen.queryByRole("navigation", { name: "Trip views" })).not.toBeInTheDocument();
 });
 
@@ -100,13 +107,33 @@ it("says so when a long trip has more sends than the page shows", () => {
       sends={[send(1, "Moon Slab")]}
       areaBreadcrumbs={{}}
       path="/users/owner-1/trips/7"
+      today={TODAY}
     />,
   );
 
   expect(screen.getByText("Showing the 1 most recent of 120 sends.")).toBeVisible();
+  expect(screen.getByRole("link", { name: "See all 120 sends" })).toHaveAttribute(
+    "href",
+    signUp("/users/owner-1/trips/7"),
+  );
 });
 
-it("says a trip with nothing sent has nothing sent", () => {
+it("marks a trip that has not started, as its card does", () => {
+  render(
+    <SharedTrip
+      owner={OWNER}
+      trip={{ ...BISHOP, startDate: "2026-10-01", endDate: "2026-10-09", sendCount: 0 }}
+      sends={[]}
+      areaBreadcrumbs={{}}
+      path="/users/owner-1/trips/7"
+      today={TODAY}
+    />,
+  );
+
+  expect(screen.getByRole("region", { name: "Trip" })).toHaveTextContent("Upcoming");
+});
+
+it("says a trip with nothing sent has nothing sent, in the shared profile's words", () => {
   render(
     <SharedTrip
       owner={OWNER}
@@ -114,8 +141,9 @@ it("says a trip with nothing sent has nothing sent", () => {
       sends={[]}
       areaBreadcrumbs={{}}
       path="/users/owner-1/trips/7"
+      today={TODAY}
     />,
   );
 
-  expect(screen.getByText("Alex Rivera didn't log a send on this trip.")).toBeVisible();
+  expect(screen.getByText("Alex Rivera hasn't logged a send on this trip yet.")).toBeVisible();
 });

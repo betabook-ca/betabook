@@ -7,7 +7,9 @@ import { isoDateSchema } from "@/lib/sends";
 /** Enough for "Bishop, March 2026" or "Spring road trip — Utah and Nevada"
  * without letting a name push the trip card's heading onto four lines. */
 export const MAX_TRIP_NAME = 80;
-export const MAX_TRIP_DESCRIPTION = 2000;
+/** One line under the trip's name. The column's own CHECK still allows the
+ * 2,000 it was created with; anything longer than this belongs in the notes. */
+export const MAX_TRIP_DESCRIPTION = 160;
 /** Around 3,000 words. The column's own CHECK sits higher, so this can be
  * raised without a migration. */
 export const MAX_TRIP_NOTES = 20_000;
@@ -29,8 +31,11 @@ export const tripInputSchema = z
       .pipe(z.string().min(1, "Name your trip.").max(MAX_TRIP_NAME, "That name is too long.")),
     description: z
       .string()
-      .max(MAX_TRIP_DESCRIPTION, "That description is too long.")
-      .transform((value) => value.trim() || null)
+      // A line break is folded rather than refused: the field is one line,
+      // and a pasted paragraph should not cost the climber the whole form.
+      .transform((value) => value.replace(/\s+/g, " ").trim())
+      .pipe(z.string().max(MAX_TRIP_DESCRIPTION, "That description is too long."))
+      .transform((value) => value || null)
       .nullable()
       .optional(),
     startDate: isoDateSchema,

@@ -44,10 +44,9 @@ export const trips = sqliteTable(
   },
   (t) => [
     index("trips_user_start_idx").on(t.userId, t.startDate),
-    // The share link in a later migration carries a composite foreign key to
-    // (user_id, id) so a token cannot be pointed at another climber's trip.
+    // Parent of the composite foreign key in the retired `trip_share_links`.
     // SQLite requires the parent columns of such a key to be a unique index,
-    // and `id` alone being the primary key does not satisfy it for the pair.
+    // so this goes no sooner than that table does.
     uniqueIndex("trips_user_id_idx").on(t.userId, t.id),
     check("trips_dates", sql`${t.endDate} >= ${t.startDate}`),
     // Enforced here as well as in the schema the action validates against: a

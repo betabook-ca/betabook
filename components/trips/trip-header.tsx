@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
 
+import { TripActions } from "@/components/trips/trip-actions";
+import { TripBackLink } from "@/components/trips/trip-back-link";
 import { TripCompanions } from "@/components/trips/trip-companions";
+import { TripStatusChip } from "@/components/trips/trip-status-chip";
 import { TripTabs } from "@/components/trips/trip-tabs";
-import { AppLink } from "@/components/ui/app-link";
 import { SectionHeading } from "@/components/ui/typography";
 import type { TripSummary } from "@/db/queries";
 import { formatTripDates, tripsHref, type TripTab } from "@/lib/trips";
@@ -16,6 +18,7 @@ export function TripHeader({
   trip,
   userId,
   viewerId,
+  today,
   current,
   journalVisible,
   children,
@@ -23,6 +26,8 @@ export function TripHeader({
   trip: TripSummary;
   userId: string;
   viewerId: string;
+  /** The reader's own `YYYY-MM-DD`, resolved on the server. */
+  today: string;
   current: TripTab;
   /** Whether this reader may read the climber's journal, which is what the
    * Journal and Notes tabs show. */
@@ -32,14 +37,18 @@ export function TripHeader({
   return (
     <div className="flex min-w-0 flex-col gap-4">
       <div className="flex min-w-0 flex-col gap-1">
-        <AppLink href={tripsHref(userId)} className="text-sm text-muted">
-          ← All trips
-        </AppLink>
+        <TripBackLink href={tripsHref(userId)}>All trips</TripBackLink>
         {/* A SectionHeading, not a PageTitle: the page around it already emits
          * its only h1, and a second one here would give every trip detail page
          * two — which axe's default rules do not flag, so nothing else would
          * catch it. */}
-        <SectionHeading>{trip.name}</SectionHeading>
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <SectionHeading className="min-w-0 break-words">{trip.name}</SectionHeading>
+            <TripStatusChip trip={trip} today={today} />
+          </div>
+          {viewerId === userId && <TripActions trip={trip} userId={userId} leaveOnDelete />}
+        </div>
         {/* The dates and nothing else. A count here would describe the whole
          * window while the Analytics tab counts one discipline, so the two
          * would sit on the same screen disagreeing. Totals live on the list

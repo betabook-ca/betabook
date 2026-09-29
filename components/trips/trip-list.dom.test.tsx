@@ -73,9 +73,9 @@ it("offers exactly one way to start a trip, wherever the list stands", () => {
   expect(screen.getAllByRole("button", { name: /new trip/i })).toHaveLength(1);
 });
 
-it("explains trips only while there are none, and says nothing over a list", () => {
+it("says there are no trips only while there are none, and nothing over a list", () => {
   const { rerender } = render(<TripList trips={[]} userId="alex" today={TODAY} canEdit />);
-  expect(screen.getByText(/No trips yet/)).toBeInTheDocument();
+  expect(screen.getByText("No trips yet.")).toBeInTheDocument();
 
   rerender(<TripList trips={[past]} userId="alex" today={TODAY} canEdit />);
   expect(screen.queryByText(/No trips yet/)).not.toBeInTheDocument();
@@ -161,7 +161,7 @@ it("says plainly that deleting a trip keeps the climbs, then deletes it", async 
   await user.click(await screen.findByRole("menuitem", { name: "Delete" }));
 
   const dialog = await screen.findByRole("alertdialog");
-  expect(dialog).toHaveTextContent("Delete Bishop, March 2026?");
+  expect(dialog).toHaveTextContent("Delete this trip?");
   expect(dialog).toHaveTextContent(/won't delete any climbs/i);
 
   await user.click(within(dialog).getByRole("button", { name: "Delete" }));

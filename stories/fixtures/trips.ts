@@ -22,7 +22,7 @@ export const tripSamples: TripSummary[] = [
   {
     id: 2,
     name: "Bishop, March 2026",
-    description: "Buttermilks and the Happies. Went with Sam and Priya.",
+    description: "Buttermilks and the Happies.",
     startDate: "2026-03-10",
     endDate: "2026-03-20",
     entryCount: 14,

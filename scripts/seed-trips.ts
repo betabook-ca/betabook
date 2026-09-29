@@ -5,7 +5,7 @@ type Place = { id: number; name: string };
 type Climb = { id: number; name: string; type: "boulder" | "sport" | "trad" };
 type Friend = { id: string };
 type Plan = {
-  kind: "long" | "weekend" | "day" | "upcoming";
+  kind: "long" | "weekend" | "day" | "road" | "upcoming";
   start: string;
   days: number;
   sends: number;
@@ -14,13 +14,16 @@ type Plan = {
 
 /** Ordinary history is scattered over every crag and year, so a window laid
  * over it catches a handful of unrelated climbs. Each plan brings its own
- * days at one place instead. */
+ * days at one place instead, dated after that history ends on 2026-09-01 so
+ * nothing else falls inside. The road trip covers the three before it. */
 const PLANS: Plan[] = [
-  { kind: "long", start: "2026-04-10", days: 9, sends: 8, friends: 2 },
-  { kind: "weekend", start: "2026-07-17", days: 3, sends: 4, friends: 1 },
-  { kind: "day", start: "2026-08-22", days: 1, sends: 2, friends: 0 },
+  { kind: "long", start: "2026-09-03", days: 9, sends: 8, friends: 2 },
+  { kind: "weekend", start: "2026-09-17", days: 3, sends: 4, friends: 1 },
+  { kind: "day", start: "2026-09-25", days: 1, sends: 2, friends: 0 },
+  { kind: "road", start: "2026-09-01", days: 30, sends: 0, friends: 0 },
   { kind: "upcoming", start: "2027-05-14", days: 8, sends: 0, friends: 2 },
 ];
+const STOPS = PLANS.filter((plan) => plan.sends > 0);
 
 const ATTEMPTS = [
   "Did all the moves but not in a row. The move into the crux costs too much.",
@@ -69,6 +72,7 @@ function monthOf(date: string): string {
 }
 
 function tripName(plan: Plan, place: Place, start: string): string {
+  if (plan.kind === "road") return "Fall road trip";
   return plan.kind === "day" ? `A day at ${place.name}` : `${place.name}, ${monthOf(start)}`;
 }
 
@@ -76,6 +80,7 @@ function tripName(plan: Plan, place: Place, start: string): string {
  * it are for whoever can read the journal. */
 function describe(plan: Plan, place: Place): string | null {
   if (plan.kind === "day") return null;
+  if (plan.kind === "road") return "A month on the road.";
   if (plan.kind === "upcoming") return `Planning ${plan.days} days at ${place.name}.`;
   if (plan.kind === "weekend") return `A long weekend at ${place.name}.`;
   return `${plan.days} days at ${place.name}.`;
@@ -89,9 +94,16 @@ function writeNotes(
   sent: Sent[],
   open: Climb[],
   index: number,
+  stops: Place[],
 ): string | null {
   const slug = place.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
   if (plan.kind === "day") return null;
+
+  if (plan.kind === "road") {
+    return ["# Stops", stops.map((stop, order) => `${order + 1}. ${stop.name}`).join("\n")].join(
+      "\n\n",
+    );
+  }
 
   if (plan.kind === "upcoming") {
     return [
@@ -174,9 +186,14 @@ export function seedTrips(db: DatabaseSync, viewerId: string): number {
 
   let created = 0;
 
-  function addTrip(person: Person, index: number, plan: Plan, planIndex: number) {
-    const place = places[(index * PLANS.length + planIndex) % places.length];
-    const start = shiftDate(plan.start, (index % 4) * 14);
+  const placeFor = (index: number, plan: Plan) =>
+    places[(index * PLANS.length + PLANS.indexOf(plan)) % places.length];
+
+  function addTrip(person: Person, index: number, plan: Plan, plans: Plan[]) {
+    const place = placeFor(index, plan);
+    // A day or two apart per climber, and never so far that a past trip's
+    // sends would be dated after the day the seed was written.
+    const start = plan.kind === "road" ? plan.start : shiftDate(plan.start, index % 4);
     const name = tripName(plan, place, start);
     const friends = friendsOf.all(person.id, person.id, person.id, plan.friends) as Friend[];
 
@@ -234,7 +251,14 @@ export function seedTrips(db: DatabaseSync, viewerId: string): number {
         person.id,
         name,
         describe(plan, place),
-        writeNotes(plan, place, sent, open, index),
+        writeNotes(
+          plan,
+          place,
+          sent,
+          open,
+          index,
+          STOPS.filter((stop) => plans.includes(stop)).map((stop) => placeFor(index, stop)),
+        ),
         start,
         shiftDate(start, plan.days - 1),
       ) as { id: number };
@@ -247,15 +271,13 @@ export function seedTrips(db: DatabaseSync, viewerId: string): number {
     }
   }
 
-  for (const [planIndex, plan] of PLANS.entries()) {
-    addTrip({ id: viewerId, email: "" }, 0, plan, planIndex);
-  }
+  for (const plan of PLANS) addTrip({ id: viewerId, email: "" }, 0, plan, PLANS);
   for (const [index, person] of climbers.entries()) {
     // The first dozen carry the audience mix the social seed documents; past
     // them, one climber in four has been away.
-    const plans = index < 12 ? PLANS.slice(0, index % 3 === 0 ? 4 : 2) : PLANS.slice(1, 2);
+    const plans = index < 12 ? (index % 3 === 0 ? PLANS : PLANS.slice(0, 2)) : PLANS.slice(1, 2);
     if (index >= 12 && index % 4 !== 0) continue;
-    for (const plan of plans) addTrip(person, index + 1, plan, PLANS.indexOf(plan));
+    for (const plan of plans) addTrip(person, index + 1, plan, plans);
   }
 
   return created;

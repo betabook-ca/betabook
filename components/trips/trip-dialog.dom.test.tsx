@@ -108,6 +108,20 @@ it("sends what was typed, then opens the trip it just created", async () => {
   await waitFor(() => expect(push).toHaveBeenCalledWith("/users/alex/trips/7"));
 });
 
+it("takes the description as one line and says who reads it", async () => {
+  const user = userEvent.setup();
+  render(<Example />);
+
+  const description = screen.getByRole("textbox", { name: /description/i });
+  expect(description.tagName).toBe("INPUT");
+  expect(description).toHaveAttribute("maxlength", "160");
+
+  await user.click(screen.getByRole("button", { name: "About the description" }));
+  expect(
+    await screen.findByText(/Anyone who can see your sends reads this line/),
+  ).toBeInTheDocument();
+});
+
 it("sends the friends picked for a new trip", async () => {
   const user = userEvent.setup();
   render(<Example />);

@@ -106,7 +106,7 @@ export function TripDialog({
   return (
     <ResponsiveDialog
       state={state}
-      title={trip ? `Edit ${trip.name}` : "New trip"}
+      title={trip ? "Edit trip" : "New trip"}
       size="md"
       isPending={pending}
       onClose={() => {

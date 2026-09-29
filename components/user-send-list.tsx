@@ -21,6 +21,8 @@ type UserSendListProps = {
   /** Distinguishes an empty logbook from a filter with no matches. */
   hasAnySends: boolean;
   currentUserId: string;
+  /** Said when nothing falls inside dates the reader did not choose. */
+  emptyMessage?: string;
 };
 
 type UserSendsPageResponse = {
@@ -39,6 +41,7 @@ export function UserSendList({
   initialAreaBreadcrumbs,
   hasAnySends,
   currentUserId,
+  emptyMessage,
 }: UserSendListProps) {
   const {
     items: sends,
@@ -69,6 +72,8 @@ export function UserSendList({
       };
     },
   });
+
+  if (emptyMessage && sends.length === 0) return <EmptyState message={emptyMessage} />;
 
   if (!hasAnySends) {
     return (

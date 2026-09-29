@@ -27,15 +27,22 @@ export default async function TripNotesPage({ params }: TripPageParams) {
   if (!resolved.signedIn) return <CurrentPageAuthCallout />;
   // Refused like the journal itself is, for a reader it is not shared with.
   if (!resolved.ok || !resolved.journalVisible) notFound();
-  const { trip, user, viewerId } = resolved;
+  const { trip, user, viewerId, today } = resolved;
 
   const notes = await getTripNotes(await getDb(), user.id, trip.id, viewerId);
 
   return (
     <ProfileHeader user={user} viewerId={viewerId} workspace="logbook">
-      <TripHeader trip={trip} userId={user.id} viewerId={viewerId} current="notes" journalVisible>
+      <TripHeader
+        trip={trip}
+        userId={user.id}
+        viewerId={viewerId}
+        today={today}
+        current="notes"
+        journalVisible
+      >
         <TripNotes tripId={trip.id} notes={notes} canEdit={viewerId === user.id}>
-          {notes && <Markdown>{notes}</Markdown>}
+          {notes && <Markdown className="max-w-[65ch]">{notes}</Markdown>}
         </TripNotes>
       </TripHeader>
     </ProfileHeader>

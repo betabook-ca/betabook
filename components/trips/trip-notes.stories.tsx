@@ -35,18 +35,23 @@ export const Empty: Story = { args: { notes: null, children: null } };
 /** Someone who can read the climber's journal: the notes, and nothing to edit. */
 export const Visitor: Story = { args: { canEdit: false } };
 
+/** The editor is a dialog, which renders outside the canvas. */
+async function openEditor(canvasElement: HTMLElement) {
+  await userEvent.click(within(canvasElement).getByRole("button", { name: "Edit" }));
+  return within(await within(canvasElement.ownerDocument.body).findByRole("dialog"));
+}
+
 export const Editing: Story = {
   play: async ({ canvasElement }) => {
-    await userEvent.click(within(canvasElement).getByRole("button", { name: "Edit" }));
+    await openEditor(canvasElement);
   },
 };
 
 export const Previewing: Story = {
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole("button", { name: "Edit" }));
-    await userEvent.click(canvas.getByRole("button", { name: "Preview" }));
-    await canvas.findByRole("heading", { name: "Highlights" });
+    const editor = await openEditor(canvasElement);
+    await userEvent.click(editor.getByRole("button", { name: "Preview" }));
+    await editor.findByRole("heading", { name: "Highlights" });
   },
 };
 
@@ -60,9 +65,8 @@ export const SaveFails: Story = {
     return () => mocked(saveTripNotes).mockReset();
   },
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole("button", { name: "Edit" }));
-    await userEvent.click(canvas.getByRole("button", { name: "Save notes" }));
-    await canvas.findByRole("alert");
+    const editor = await openEditor(canvasElement);
+    await userEvent.click(editor.getByRole("button", { name: "Save notes" }));
+    await editor.findByRole("alert");
   },
 };

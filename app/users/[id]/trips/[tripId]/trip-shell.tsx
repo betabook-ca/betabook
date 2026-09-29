@@ -10,8 +10,10 @@ import {
 } from "@/app/users/[id]/profile-shell";
 import { getDb } from "@/db/client";
 import { getTripForUser, type TripSummary } from "@/db/queries";
+import { goalToday } from "@/lib/goals";
 import { parseId } from "@/lib/parse-id";
 import { requestMemo } from "@/lib/request-memo";
+import { getRequestTimezone } from "@/lib/request-timezone";
 import type { UrlParamsRecord } from "@/lib/url-params";
 
 /** Cached per request so a page and its `generateMetadata` resolve the same
@@ -19,6 +21,11 @@ import type { UrlParamsRecord } from "@/lib/url-params";
 const getTripFor = requestMemo(async (userId: string, tripId: number, viewerId: string | null) =>
   getTripForUser(await getDb(), userId, tripId, viewerId),
 );
+
+/** The reader's own day, which decides whether a trip is upcoming or on now. */
+export async function tripToday() {
+  return goalToday(await getRequestTimezone());
+}
 
 /** The trip a signed-out reader's profile link opens, read as nobody: its
  * sends, and none of what the journal's audiences decide. */
@@ -46,6 +53,7 @@ type Resolved =
       trip: TripSummary;
       user: ProfileUser;
       viewerId: string;
+      today: string;
       /** Whether this reader gets the trip's entries and notes. */
       journalVisible: boolean;
     };
@@ -68,12 +76,13 @@ export async function resolveTripPage(
   if (tripId === null) return { signedIn: true, ok: false };
 
   const { user, viewerId } = resolved;
-  const [trip, journalVisible] = await Promise.all([
+  const [trip, journalVisible, today] = await Promise.all([
     getTripFor(user.id, tripId, viewerId),
     canReadUserJournal(user.id, viewerId),
+    tripToday(),
   ]);
   return trip
-    ? { signedIn: true, ok: true, trip, user, viewerId, journalVisible }
+    ? { signedIn: true, ok: true, trip, user, viewerId, today, journalVisible }
     : { signedIn: true, ok: false };
 }
 
@@ -83,7 +92,10 @@ export async function tripMetadata(idParam: string, tripIdParam: string): Promis
   const resolved = await resolveTripPage(idParam, tripIdParam);
   if (!resolved.signedIn) return MEMBER_CONTENT_METADATA;
   if (!resolved.ok) notFound();
-  return { title: `${resolved.trip.name} · Trips`, robots: { index: false } };
+  return {
+    title: `${resolved.user.name} · ${resolved.trip.name}`,
+    robots: { index: false },
+  };
 }
 
 /** The trip's dates in place of whatever the URL asked for. A trip is a claim

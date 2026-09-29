@@ -69,6 +69,13 @@ it("keeps the invitation out of a filtered-empty journal", () => {
   expect(screen.queryByRole("button", { name: "Log" })).not.toBeInTheDocument();
 });
 
+it("says what the page mounting it says when nothing falls inside its dates", () => {
+  render(timeline({ hasAnyEntries: true, emptyMessage: "No entries on this trip yet." }));
+  expect(screen.getByText("No entries on this trip yet.")).toBeVisible();
+  expect(screen.queryByText(/match these filters/)).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Log" })).not.toBeInTheDocument();
+});
+
 it("renders the entries as a list of items under level-3 month headings", () => {
   render(
     timeline({

@@ -372,6 +372,13 @@
       "when": 1790664551223,
       "tag": "0052_trip_companions",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "6",
+      "when": 1790670871355,
+      "tag": "0053_trip_descriptions_to_notes",
+      "breakpoints": true
     }
   ]
 }

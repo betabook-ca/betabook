@@ -57,9 +57,18 @@ it("links an image instead of loading it", () => {
   expect(html).toMatch(/<a href="https:\/\/example\.com\/topo\.jpg"[^>]*>Topo<\/a>/);
 });
 
-it("draws a task list without form controls", () => {
+it("draws a task list with the app's icons and no form controls", () => {
   const html = render("- [x] Send the project\n- [ ] Rest day");
   expect(html).not.toContain("<input");
-  expect(html).toContain('aria-label="Done"');
-  expect(html).toContain('aria-label="Not done"');
+  expect(html).not.toMatch(/[☑☐]/);
+  expect(html).toMatch(/<svg[^>]*aria-label="Done"/);
+  expect(html).toMatch(/<svg[^>]*aria-label="Not done"/);
+});
+
+it("sets code in the app's one face", () => {
+  const html = render("Beta in `code`.\n\n```\nleft hand crimp\n```");
+  // Named, because a browser sets code in its own monospace face otherwise.
+  expect(html).toMatch(/<code class="[^"]*\bfont-sans\b/);
+  expect(html).toMatch(/<pre class="[^"]*\bfont-sans\b/);
+  expect(html).not.toContain("font-mono");
 });

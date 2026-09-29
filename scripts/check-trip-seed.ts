@@ -50,15 +50,24 @@ try {
   const seeded = trips();
 
   const mine = seeded.filter((trip) => trip.email === "dev@example.com");
-  assert.equal(mine.length, 4);
-  const [long, weekend, day, upcoming] = mine;
-  assert.match(long.name, /, April 2026$/);
-  assert.match(weekend.name, /, July 2026$/);
+  assert.equal(mine.length, 5);
+  const [road, long, weekend, day, upcoming] = mine;
+  assert.equal(road.name, "Fall road trip");
+  assert.match(long.name, /, September 2026$/);
+  assert.match(weekend.name, /, September 2026$/);
   assert.match(day.name, /^A day at /);
   assert.match(upcoming.name, /, May 2027$/);
   assert.equal(day.start_date, day.end_date);
   assert.equal(day.description, null);
   assert.equal(day.notes, null);
+
+  // Trips overlap freely: the road trip holds the three stops made on it.
+  const stops = [long, weekend, day];
+  for (const stop of stops) {
+    assert.ok(road.start_date <= stop.start_date && stop.end_date <= road.end_date);
+    const place = stop.name.replace(/^A day at /, "").replace(/, September 2026$/, "");
+    assert.ok(road.notes?.includes(place), `the road trip lists ${place}`);
+  }
 
   // The place is the crag above the climb's own sector. Names repeat across
   // crags, so a climb is matched as a send inside the trip, never by name alone.
@@ -90,17 +99,11 @@ try {
         `${trip.name} names ${name}, which was not sent on it`,
       );
     }
-    // Ordinary history scatters the odd send into the same dates, so the place
-    // is the one most of the trip's sends share, and every named climb is there.
-    const tally = new Map<number, number>();
-    for (const send of inside) tally.set(send.place, (tally.get(send.place) ?? 0) + 1);
-    const [place] = [...tally].sort((a, b) => b[1] - a[1])[0];
-    for (const name of named) {
-      assert.ok(
-        inside.some((send) => send.name === name && send.place === place),
-        `${trip.name} names ${name}, which is not at the place the trip was`,
-      );
-    }
+    // A stop is one place and nothing else was sent during it. The road trip
+    // is its stops together.
+    const places = new Set(inside.map((send) => send.place));
+    if (trip.name === "Fall road trip") assert.ok(places.size > 1);
+    else assert.equal(places.size, 1, `${trip.name} has sends from ${places.size} places`);
   }
 
   assert.ok(

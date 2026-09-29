@@ -1,10 +1,12 @@
 "use client";
 
-import { Input, Label, TextArea, TextField } from "@heroui/react";
+import { Input, Label, TextField } from "@heroui/react";
 
 import { CompanionPicker } from "@/components/journal/companion-picker";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
+import { FieldHeader } from "@/components/ui/field-support";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import type { CompanionOption } from "@/lib/journal-companions";
@@ -68,6 +70,28 @@ export function TripForm({
         <Input placeholder="Bishop, March 2026" />
       </TextField>
 
+      <TextField
+        className="w-full"
+        value={draft.description}
+        onChange={(description) => onChange({ ...draft, description })}
+        maxLength={MAX_TRIP_DESCRIPTION}
+      >
+        <FieldHeader
+          usage={{
+            used: draft.description.length,
+            limit: MAX_TRIP_DESCRIPTION,
+            unit: "characters",
+          }}
+        >
+          <Label>Description</Label>
+          <HelpTooltip label="About the description">
+            Anyone who can see your sends reads this line, including through your profile link. Trip
+            notes follow your Journal and goals audience.
+          </HelpTooltip>
+        </FieldHeader>
+        <Input placeholder="Ten days in the Buttermilks" />
+      </TextField>
+
       <div className="flex flex-wrap gap-4">
         <DatePickerField
           label="Start date"
@@ -90,16 +114,6 @@ export function TripForm({
         fetcher={companionFetcher}
         help="Anyone who can read your journal sees who you tagged. Tagging doesn’t add the trip to their logbook."
       />
-
-      <TextField
-        className="w-full"
-        value={draft.description}
-        onChange={(description) => onChange({ ...draft, description })}
-        maxLength={MAX_TRIP_DESCRIPTION}
-      >
-        <Label>Description</Label>
-        <TextArea placeholder="A line about the trip" rows={2} />
-      </TextField>
 
       {/* Said where the climber is looking, not at the top of a scrolled
        * dialog: this sits directly above the footer button they just pressed. */}

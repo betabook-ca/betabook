@@ -1,16 +1,18 @@
 "use client";
 
-import { Button, Label, TextArea, TextField } from "@heroui/react";
+import { Button, Label, TextArea, TextField, useOverlayState } from "@heroui/react";
 import { Pencil } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useId, useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 
 import { saveTripNotes } from "@/actions";
 import { cardClass } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FieldFeedback, FieldHeader } from "@/components/ui/field-support";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SectionHeading } from "@/components/ui/typography";
 import { MAX_TRIP_NOTES } from "@/lib/trips";
@@ -36,8 +38,7 @@ export function TripNotes({
   children: ReactNode;
 }) {
   const router = useRouter();
-  const previewId = useId();
-  const [editing, setEditing] = useState(false);
+  const editor = useOverlayState();
   const [draft, setDraft] = useState("");
   const [previewing, setPreviewing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +48,7 @@ export function TripNotes({
     setDraft(notes ?? "");
     setPreviewing(false);
     setError(null);
-    setEditing(true);
+    editor.open();
   }
 
   function handleSave() {
@@ -59,88 +60,103 @@ export function TripNotes({
         setError(result.error);
         return;
       }
-      setEditing(false);
+      editor.close();
       router.refresh();
     });
   }
 
-  if (!editing) {
-    return (
-      <section aria-label="Trip notes" className="flex min-w-0 flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <SectionHeading>Trip notes</SectionHeading>
-          {notes && canEdit && (
-            <Button variant="ghost" size="sm" onPress={startEditing}>
-              <Pencil className="size-4" />
-              Edit
-            </Button>
-          )}
-        </div>
-        {notes ? (
-          <div className={cardClass("fluid", "bordered")}>{children}</div>
-        ) : canEdit ? (
-          <EmptyState
-            message="No trip notes yet. Write up how it went: the highlights, the logistics, a link to your photos."
-            cta={
+  return (
+    <section aria-label="Trip notes" className="flex min-w-0 flex-col gap-3">
+      <SectionHeading className="sr-only">Trip notes</SectionHeading>
+      {notes && canEdit && (
+        <Button variant="ghost" size="sm" className="self-end" onPress={startEditing}>
+          <Pencil className="size-4" />
+          Edit
+        </Button>
+      )}
+      {notes ? (
+        <div className={cardClass("fluid", "bordered")}>{children}</div>
+      ) : (
+        <EmptyState
+          message="No trip notes yet."
+          cta={
+            canEdit ? (
               <Button onPress={startEditing}>
                 <Pencil className="size-4" />
                 Write trip notes
               </Button>
-            }
-          />
-        ) : (
-          <EmptyState message="No trip notes yet." />
-        )}
-      </section>
-    );
-  }
-
-  const hasDraft = draft.trim().length > 0;
-
-  return (
-    <section aria-label="Trip notes" className="flex min-w-0 flex-col gap-3">
-      <TextField className="w-full" value={draft} onChange={setDraft} maxLength={MAX_TRIP_NOTES}>
-        <FieldHeader usage={{ used: draft.length, limit: MAX_TRIP_NOTES, unit: "characters" }}>
-          <Label>Trip notes</Label>
-        </FieldHeader>
-        <TextArea rows={14} placeholder="Day one: warmed up at the Happies…" />
-        <FieldFeedback helper="Format with **bold**, *italic*, # headings and - lists. Links you paste become clickable." />
-      </TextField>
-
-      {previewing && (
-        <section
-          id={previewId}
-          aria-label="Trip notes preview"
-          className={cardClass("fluid", "bordered")}
-        >
-          {hasDraft ? (
-            <MarkdownPreview>{draft}</MarkdownPreview>
-          ) : (
-            <p className="text-sm text-muted">Nothing to preview yet.</p>
-          )}
-        </section>
+            ) : undefined
+          }
+        />
       )}
 
-      {error && <InlineAlert>{error}</InlineAlert>}
-
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <Button
-          variant="ghost"
-          aria-expanded={previewing}
-          aria-controls={previewing ? previewId : undefined}
-          onPress={() => setPreviewing((wasPreviewing) => !wasPreviewing)}
+      {canEdit && (
+        <ResponsiveDialog
+          state={editor}
+          title="Trip notes"
+          size="lg"
+          presentation="fullscreen"
+          isPending={pending}
+          footer={
+            <div className="flex w-full flex-wrap items-center justify-between gap-2">
+              <Button
+                variant="ghost"
+                isDisabled={pending}
+                onPress={() => setPreviewing((wasPreviewing) => !wasPreviewing)}
+              >
+                {previewing ? "Keep writing" : "Preview"}
+              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="ghost" isDisabled={pending} onPress={editor.close}>
+                  Cancel
+                </Button>
+                <Button isDisabled={pending} onPress={handleSave}>
+                  Save notes
+                </Button>
+              </div>
+            </div>
+          }
         >
-          {previewing ? "Hide preview" : "Preview"}
-        </Button>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="ghost" isDisabled={pending} onPress={() => setEditing(false)}>
-            Cancel
-          </Button>
-          <Button isDisabled={pending} onPress={handleSave}>
-            Save notes
-          </Button>
-        </div>
-      </div>
+          <div className="flex flex-col gap-3">
+            {previewing ? (
+              <section
+                aria-label="Trip notes preview"
+                // The dialog body mutes its text; the page the notes land on does not.
+                className={`text-foreground ${cardClass("fluid", "bordered")}`}
+              >
+                {draft.trim() ? (
+                  <MarkdownPreview>{draft}</MarkdownPreview>
+                ) : (
+                  <p className="text-sm text-muted">Nothing to preview yet.</p>
+                )}
+              </section>
+            ) : (
+              <TextField
+                className="w-full"
+                value={draft}
+                onChange={setDraft}
+                maxLength={MAX_TRIP_NOTES}
+                isDisabled={pending}
+              >
+                <FieldHeader
+                  usage={{ used: draft.length, limit: MAX_TRIP_NOTES, unit: "characters" }}
+                >
+                  <Label>Trip notes</Label>
+                  <HelpTooltip label="About trip notes">
+                    Uses your Journal and goals audience, like the entries inside the trip.
+                  </HelpTooltip>
+                </FieldHeader>
+                <TextArea
+                  rows={14}
+                  placeholder="Plans, conditions, what went, what to come back for…"
+                />
+                <FieldFeedback helper="Format with **bold**, *italic*, # headings and - lists. Links you paste become clickable." />
+              </TextField>
+            )}
+            {error && <InlineAlert>{error}</InlineAlert>}
+          </div>
+        </ResponsiveDialog>
+      )}
     </section>
   );
 }

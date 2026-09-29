@@ -2,10 +2,14 @@ import type { TripSummary } from "@/db/queries";
 
 function Stat({ value, label }: { value: number; label: string }) {
   return (
-    <span className="text-sm text-muted">
-      <span className="font-medium text-foreground">{value}</span> {label}
+    <span>
+      <span className="font-medium text-foreground tabular-nums">{value}</span> {label}
     </span>
   );
+}
+
+function Separator() {
+  return <span aria-hidden>·</span>;
 }
 
 /** "Days logged" is deliberately not the Analytics tab's "Days out": that
@@ -19,14 +23,20 @@ export function TripStats({
   trip: Pick<TripSummary, "dayCount" | "entryCount" | "sendCount">;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+    <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-muted">
       {trip.dayCount != null && (
-        <Stat value={trip.dayCount} label={trip.dayCount === 1 ? "day logged" : "days logged"} />
+        <>
+          <Stat value={trip.dayCount} label={trip.dayCount === 1 ? "day logged" : "days logged"} />
+          <Separator />
+        </>
       )}
       {trip.entryCount != null && (
-        <Stat value={trip.entryCount} label={trip.entryCount === 1 ? "entry" : "entries"} />
+        <>
+          <Stat value={trip.entryCount} label={trip.entryCount === 1 ? "entry" : "entries"} />
+          <Separator />
+        </>
       )}
       <Stat value={trip.sendCount} label={trip.sendCount === 1 ? "send" : "sends"} />
-    </div>
+    </p>
   );
 }

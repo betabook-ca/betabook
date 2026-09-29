@@ -139,6 +139,15 @@ it("lists the latest trips and opens each, and the rest, by the same link", () =
   );
 });
 
+it("keeps the prompt about sends beside the sends, ahead of the trips", () => {
+  render(withTrips([BISHOP], 1));
+
+  const order = screen.getAllByRole("region").map((region) => region.getAttribute("aria-label"));
+  const prompt = order.findIndex((label) => /^See all|^Climb with/.test(label ?? ""));
+  expect(prompt).toBe(order.indexOf("Recent sends") + 1);
+  expect(prompt).toBeLessThan(order.indexOf("Trips"));
+});
+
 it("points at no longer list when every trip is shown, and draws nothing for none", () => {
   const { rerender } = render(withTrips([BISHOP], 1));
   expect(screen.queryByRole("link", { name: /^All / })).not.toBeInTheDocument();

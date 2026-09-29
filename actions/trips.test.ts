@@ -7,7 +7,7 @@ import { createDb } from "@/db/client";
 import { getTripNotes, getTripsForUser } from "@/db/queries";
 import { tripCompanions, trips } from "@/db/schema";
 import { friendshipPair } from "@/lib/friendships";
-import { MAX_TRIP_NOTES, MAX_TRIPS } from "@/lib/trips";
+import { MAX_TRIP_DESCRIPTION, MAX_TRIP_NOTES, MAX_TRIPS } from "@/lib/trips";
 import {
   insertInBatches,
   seedFixtureFriendship,
@@ -168,6 +168,29 @@ describe("editing a trip", () => {
 
     await saveTrip(id, { ...BISHOP, description: "  " });
     expect(await storedTripById(id)).toMatchObject({ description: null });
+  });
+
+  it("keeps the description to one line of one summary's length", async () => {
+    const created = await saveTrip(null, {
+      ...BISHOP,
+      description: "  Buttermilks\nand \t the Happies.\n\n",
+    });
+    const id = created.ok ? created.value : 0;
+    expect(await storedTripById(id)).toMatchObject({
+      description: "Buttermilks and the Happies.",
+    });
+
+    expect(
+      await saveTrip(id, { ...BISHOP, description: "a".repeat(MAX_TRIP_DESCRIPTION + 1) }),
+    ).toMatchObject({ ok: false, error: "That description is too long." });
+    expect(await storedTripById(id)).toMatchObject({
+      description: "Buttermilks and the Happies.",
+    });
+
+    expect(MAX_TRIP_DESCRIPTION).toBeLessThanOrEqual(200);
+    const longest = "a".repeat(MAX_TRIP_DESCRIPTION);
+    expect((await saveTrip(id, { ...BISHOP, description: longest })).ok).toBe(true);
+    expect(await storedTripById(id)).toMatchObject({ description: longest });
   });
 
   it("moves updated_at forward, so the column does not quietly lie", async () => {

@@ -20,6 +20,7 @@ export async function JournalView({
   filter: requestedFilter,
   basePath,
   lockedDateRange = false,
+  emptyWindow,
 }: {
   ownerId: string;
   viewerId: string;
@@ -28,6 +29,9 @@ export async function JournalView({
    * this same timeline under its own route. */
   basePath?: string;
   lockedDateRange?: boolean;
+  /** Set when nothing is dated inside the locked dates: the line that says
+   * so, in place of filters with nothing to narrow. */
+  emptyWindow?: string;
 }) {
   const db = await getDb();
   const isOwner = viewerId === ownerId;
@@ -56,7 +60,7 @@ export async function JournalView({
       <div className="flex min-w-0 flex-col gap-4">
         {tourState && <ProductTour initialState={tourState} />}
         <SectionHeading className="sr-only">Journal</SectionHeading>
-        {hasEntries && (
+        {hasEntries && !emptyWindow && (
           <JournalFilterToolbar
             userId={ownerId}
             tags={tags}
@@ -77,6 +81,7 @@ export async function JournalView({
           initialAreaBreadcrumbs={areaBreadcrumbs}
           isOwner={isOwner}
           hasAnyEntries={hasEntries}
+          emptyMessage={emptyWindow}
         />
       </div>
     </NavigationPendingProvider>
