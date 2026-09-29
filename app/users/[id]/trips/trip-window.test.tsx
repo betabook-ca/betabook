@@ -8,6 +8,7 @@ import TripPage, {
 } from "@/app/users/[id]/trips/[tripId]/page";
 import { createDb } from "@/db/client";
 import { getProfileShareToken } from "@/db/queries";
+import { userAnalyticsLayouts } from "@/db/schema";
 import {
   seedFixtureFriendship,
   seedFixtureJournalEntry,
@@ -438,6 +439,33 @@ describe("the trip's analytics", () => {
     expect(JSON.stringify(await TripAnalyticsPage(props(upcoming.id)))).toContain(
       "Nothing logged on this trip yet.",
     );
+  });
+
+  it("uses the trip layout instead of the owner's saved layout", async () => {
+    const trip = await seedTrip();
+    await db.insert(userAnalyticsLayouts).values({
+      userId: OWNER,
+      layout: { cards: ["bestYear", "streak"], charts: ["calendar", "progression"] },
+    });
+
+    const tree = await TripAnalyticsPage(props(trip.id));
+    const dashboard = JSON.parse(JSON.stringify(tree)).props.children.props.children.props;
+
+    expect(dashboard.initialLayout).toEqual({
+      cards: ["sends", "hardest", "days", "firstTry"],
+      charts: ["pyramid"],
+    });
+    expect(dashboard.canCustomize).toBe(false);
+  });
+
+  it("passes no per-month average", async () => {
+    const trip = await seedTrip();
+
+    const tree = await TripAnalyticsPage(props(trip.id));
+    const { analytics } = JSON.parse(JSON.stringify(tree)).props.children.props.children.props;
+
+    expect(analytics.daysOut).toBeGreaterThan(0);
+    expect(analytics.daysPerMonth).toBeNull();
   });
 
   it("leaves a climber's hardest-ever send out of a trip that predates it", async () => {
