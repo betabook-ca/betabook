@@ -41,10 +41,10 @@ it("shows raw HTML as text instead of rendering it", () => {
 });
 
 it.each([
-  ["a script address", "[open](javascript:alert(1))"],
-  ["a data address", "[open](data:text/html;base64,PHNjcmlwdD4=)"],
-  ["a path on this site", "[open](/account)"],
-])("keeps the words but not the link for %s", (_label, source) => {
+  ["a javascript: URL", "[open](javascript:alert(1))"],
+  ["a data: URL", "[open](data:text/html;base64,PHNjcmlwdD4=)"],
+  ["a relative path", "[open](/account)"],
+])("renders %s as plain text, not a link", (_label, source) => {
   const html = render(source);
   expect(html).toContain("open");
   expect(html).not.toContain("<a");

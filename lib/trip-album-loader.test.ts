@@ -43,8 +43,8 @@ it.each([
   ["a sign-in page", "https://accounts.google.com/ServiceLogin?continue=x"],
   ["a consent page", "https://consent.google.com/m?continue=x"],
   ["another site", "https://example.com/album"],
-  ["an address inside a network", "http://169.254.169.254/latest/meta-data/"],
-])("stops rather than follow a redirect to %s", async (_label, elsewhere) => {
+  ["an internal address", "http://169.254.169.254/latest/meta-data/"],
+])("does not follow a redirect to %s", async (_label, elsewhere) => {
   const link = shortLink();
   request.mockResolvedValueOnce(redirect(elsewhere));
 
@@ -61,8 +61,8 @@ it("stops after too many redirects", async () => {
 });
 
 it.each([
-  ["Google answers with an error", async () => html("gone", 404)],
-  ["the page holds no album", async () => html("<html>Sign in</html>")],
+  ["Google returns an error", async () => html("gone", 404)],
+  ["the page has no album", async () => html("<html>Sign in</html>")],
   [
     "the response is not HTML",
     async () => new Response("{}", { headers: { "Content-Type": "application/json" } }),

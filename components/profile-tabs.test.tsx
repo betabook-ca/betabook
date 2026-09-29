@@ -17,7 +17,7 @@ it.each([
   ["/users/owner/trips/7", "/users/owner/trips", "Trips"],
   ["/users/owner/trips/7/sends", "/users/owner/trips", "Trips"],
   ["/users/owner/analytics", "/users/owner/analytics", "Analytics"],
-])("marks %s current among the visible profile sections", (pathname, href, label) => {
+])("marks the right tab as current for %s", (pathname, href, label) => {
   state.pathname = pathname;
   const html = renderToStaticMarkup(<ProfileTabs userId="owner" showJournal />);
 
@@ -57,7 +57,7 @@ it.each([
   ["/users/owner", `/users/owner?share=${TOKEN}`, "Sends"],
   ["/users/owner/trips", `/users/owner/trips?share=${TOKEN}`, "Trips"],
   ["/users/owner/trips/7", `/users/owner/trips?share=${TOKEN}`, "Trips"],
-])("offers a profile link's holder what the link opens, from %s", (pathname, href, label) => {
+])("shows only Sends and Trips with a share token, from %s", (pathname, href, label) => {
   state.pathname = pathname;
   const html = renderToStaticMarkup(
     <ProfileTabs userId="owner" showJournal={false} share={TOKEN} />,

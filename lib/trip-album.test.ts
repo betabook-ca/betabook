@@ -21,7 +21,7 @@ function page(entries: string[]) {
 
 describe("albumLink", () => {
   it.each([
-    ["the short link Google Photos copies", "https://photos.app.goo.gl/Example1Album2Link3"],
+    ["the short share URL", "https://photos.app.goo.gl/Example1Album2Link3"],
     [
       "the long share URL",
       "https://photos.google.com/share/AF1QipMUVJgB2WzAdzUroYx_rTs9?key=c0ZfN3Zk-WE",
@@ -40,19 +40,19 @@ describe("albumLink", () => {
   });
 
   it.each([
-    ["nothing", ""],
-    ["words", "our photos"],
+    ["an empty string", ""],
+    ["plain text", "our photos"],
     ["another site", "https://example.com/albums/bishop"],
-    ["an unencrypted link", "http://photos.app.goo.gl/Example1Album2Link3"],
+    ["an http URL", "http://photos.app.goo.gl/Example1Album2Link3"],
     ["a lookalike host", "https://photos.app.goo.gl.example.com/Example1Album2Link3"],
-    ["a host hidden behind a name", "https://photos.app.goo.gl@example.com/Example1Album2Link3"],
+    ["a URL with credentials", "https://photos.app.goo.gl@example.com/Example1Album2Link3"],
     ["another port", "https://photos.app.goo.gl:8443/Example1Album2Link3"],
-    ["Google Photos itself, with no album", "https://photos.google.com/"],
-    ["a single photo in someone's library", "https://photos.google.com/photo/AF1QipMUVJgB2WzAdz"],
-    ["a long link without its key", "https://photos.google.com/share/AF1QipMUVJgB2WzAdz"],
-    ["a path beyond the album", "https://photos.app.goo.gl/Example1Album2Link3/../../x"],
-    ["a script address", "javascript:alert(1)"],
-  ])("refuses %s", (_label, link) => {
+    ["the Google Photos home page", "https://photos.google.com/"],
+    ["a single photo URL", "https://photos.google.com/photo/AF1QipMUVJgB2WzAdz"],
+    ["a long share URL without a key", "https://photos.google.com/share/AF1QipMUVJgB2WzAdz"],
+    ["a path with extra segments", "https://photos.app.goo.gl/Example1Album2Link3/../../x"],
+    ["a javascript: URL", "javascript:alert(1)"],
+  ])("rejects %s", (_label, link) => {
     expect(albumLink(link)).toBeNull();
   });
 });
@@ -70,7 +70,7 @@ describe("isAlbumPage", () => {
     "http://photos.google.com/share/AF1Qip?key=abc",
     "http://169.254.169.254/latest/meta-data/",
     "not a url",
-  ])("and nowhere else: %s", (url) => {
+  ])("rejects %s", (url) => {
     expect(isAlbumPage(url)).toBe(false);
   });
 });

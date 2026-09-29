@@ -191,9 +191,9 @@ describe("editing a trip", () => {
   it.each([
     ["another site", "https://example.com/albums/bishop"],
     ["a single photo", "https://photos.google.com/photo/AF1QipMUVJgB2WzAdz"],
-    ["a lookalike", "https://photos.app.goo.gl.example.com/Example1Album2Link3"],
-    ["a script address", "javascript:alert(1)"],
-  ])("refuses %s as an album and keeps the one it had", async (_label, albumUrl) => {
+    ["a lookalike host", "https://photos.app.goo.gl.example.com/Example1Album2Link3"],
+    ["a javascript: URL", "javascript:alert(1)"],
+  ])("rejects %s as an album and keeps the existing one", async (_label, albumUrl) => {
     const kept = "https://photos.app.goo.gl/Example1Album2Link3";
     const created = await saveTrip(null, { ...BISHOP, albumUrl: kept });
     const id = created.ok ? created.value : 0;
