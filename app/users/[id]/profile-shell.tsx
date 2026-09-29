@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { cache, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { FriendshipButton } from "@/components/friendship-button";
 import { ProfileHeading } from "@/components/profile-heading";
@@ -10,16 +10,17 @@ import { WorkspaceShell } from "@/components/workspace-shell";
 import { getDb } from "@/db/client";
 import { getUserProfile, getFriendship, canReadJournal, getShareLinkOwner } from "@/db/queries";
 import { getClimberHardest } from "@/db/queries/climber-overview";
+import { requestMemo } from "@/lib/request-memo";
 import { getMemberSession } from "@/lib/session";
 import { canViewUser } from "@/lib/user-visibility";
 
-const getUserById = cache(async (id: string) => getUserProfile(await getDb(), id));
+const getUserById = requestMemo(async (id: string) => getUserProfile(await getDb(), id));
 
-export const canReadUserJournal = cache(async (id: string, viewerId: string) =>
+export const canReadUserJournal = requestMemo(async (id: string, viewerId: string) =>
   canReadJournal(await getDb(), id, viewerId),
 );
 
-export const getShareLinkOwnerByToken = cache(async (token: string) =>
+export const getShareLinkOwnerByToken = requestMemo(async (token: string) =>
   getShareLinkOwner(await getDb(), token),
 );
 

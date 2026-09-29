@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { cache } from "react";
 
 import { expiredLinkCard } from "@/components/expired-link-card";
 import { SharedTrip } from "@/components/shared-trip";
 import { getDb } from "@/db/client";
 import { getSharedTrip, getSharedTripEntries, getSharedTripSends } from "@/db/queries";
+import { requestMemo } from "@/lib/request-memo";
 import { sharedTripMetadata } from "@/lib/seo";
 import { getMemberSession } from "@/lib/session";
 import { parseShareToken } from "@/lib/share-token";
 import { tripSharePath } from "@/lib/trip-share";
 
-const getSharedTripByToken = cache(async (token: string) => getSharedTrip(await getDb(), token));
+const getSharedTripByToken = requestMemo(async (token: string) =>
+  getSharedTrip(await getDb(), token),
+);
 
 type SharedTripPageProps = {
   params: Promise<{ token: string }>;

@@ -68,10 +68,11 @@ export function TermsGate({
     let disposed = false;
     let pending = false;
     const controller = new AbortController();
-    // Only focus, a return to the tab and a denied request ask the server.
-    // Clicks and keys don't: a navigation re-renders the template, which
-    // checks terms on the server, and a second request on the same click
-    // would only compete with it for the Worker and D1.
+    // Only a denied request asks the server. Clicks and keys don't: a
+    // navigation re-renders the template, which checks terms on the server,
+    // and a second request on the same click would only compete with it for
+    // the Worker and D1. Nor does a return to the tab: the viewer boundary
+    // refreshes the route then, and this gate re-renders with the answer.
     const check = async () => {
       if (pending || document.visibilityState !== "visible") return;
       pending = true;
@@ -108,18 +109,11 @@ export function TermsGate({
       setPrompt((current) => current ?? { version, versionLabel, previousVersion });
       void check();
     };
-    const focus = () => {
-      void check();
-    };
     window.addEventListener(TERMS_REQUIRED_EVENT, block);
-    window.addEventListener("focus", focus);
-    document.addEventListener("visibilitychange", focus);
     return () => {
       disposed = true;
       controller.abort();
       window.removeEventListener(TERMS_REQUIRED_EVENT, block);
-      window.removeEventListener("focus", focus);
-      document.removeEventListener("visibilitychange", focus);
     };
   }, [viewerId, exempt, initiallyRequired, version, versionLabel, previousVersion]);
 
