@@ -12,7 +12,6 @@ import {
   deleteProfilePhoto,
   deleteProfilePhotosForUser,
   PROFILE_PHOTO_FAILED_MESSAGE,
-  readProfilePhoto,
   storeProfilePhoto,
 } from "@/lib/profile-photo-store";
 import { makePngFile, toStream } from "@/test/image-fixtures";
@@ -106,11 +105,10 @@ it("reports a transform failure as advice, not an internal error", async () => {
   logged.mockRestore();
 });
 
-it("serves a stored photo only through a well-formed key", async () => {
+it("stores a key that round-trips through the user.image path", async () => {
   const key = await storeProfilePhoto(store, "climber1", await makePngFile(300, 300));
 
-  expect(await readProfilePhoto(env.PROFILE_PHOTOS, key)).not.toBeNull();
-  expect(await readProfilePhoto(env.PROFILE_PHOTOS, "climber1/../../secret.webp")).toBeNull();
+  expect(await env.PROFILE_PHOTOS.get(key)).not.toBeNull();
   expect(profilePhotoKeyFromImage(profilePhotoPath(key))).toBe(key);
 });
 

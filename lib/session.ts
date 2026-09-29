@@ -8,8 +8,9 @@ import { initAuth } from "@/lib/auth";
 import { requestMemo } from "@/lib/request-memo";
 import { hasAcceptedCurrentTerms } from "@/lib/terms";
 
-// Shared across one request (metadata, template and page), never across
-// requests or viewers. Outside a request it is a plain call.
+// Shared across one request (metadata, template, page, and an action with
+// its rerender), never across requests or viewers. Outside a request it is a
+// plain call.
 export const getSession = requestMemo(async () => {
   const requestHeaders = await headers();
   // Only absence is decisive. A present token still needs signature, expiry,

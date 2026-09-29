@@ -1,3 +1,5 @@
+import { after } from "next/server";
+
 import {
   isProfilePhotoKey,
   PROFILE_PHOTO_CACHE_CONTROL,
@@ -6,7 +8,7 @@ import {
   profilePhotoEtag,
   profilePhotoUnchanged,
 } from "@/lib/profile-photo";
-import { getProfilePhotoBucket, readProfilePhoto } from "@/lib/profile-photo-store";
+import { getProfilePhotoBucket } from "@/lib/profile-photo-store";
 
 type RouteParams = { params: Promise<{ key: string[] }> };
 
@@ -14,6 +16,12 @@ const notFound = () =>
   new Response("Not found", {
     status: 404,
     headers: { "Cache-Control": "private, no-store" },
+  });
+
+const notModified = (etag: string) =>
+  new Response(null, {
+    status: 304,
+    headers: { "Cache-Control": PROFILE_PHOTO_CACHE_CONTROL, ETag: etag },
   });
 
 /** Serves one stored profile photo. Deliberately the app's only data route
@@ -27,28 +35,30 @@ const notFound = () =>
  *   nothing about the climber beyond their opaque id.
  *
  * The key's shape is checked before anything else — it arrives as URL
- * segments. A Worker's response is not edge-cached on its own, so each colo
- * keeps its copy in a Cache API store for the response's own max-age and only
- * a miss reads R2; a conditional request is answered from the key alone.
+ * segments, and this is the one guard between a crafted path and the bucket.
+ * A Worker's response is not edge-cached on its own, so each colo keeps its
+ * copy in a Cache API store for the response's own max-age and only a miss
+ * reads R2; the write happens after the response, so a colo that cannot
+ * store the copy still serves it. A conditional request gets no body, but
+ * only once the colo or the bucket confirms the object still exists: a
+ * removed photo's stale copies must not be renewed past that max-age.
  * `X-Robots-Tag: noindex` comes from the /api rule in next.config.ts. */
 export async function GET(request: Request, { params }: RouteParams): Promise<Response> {
   const key = (await params).key.join("/");
   if (!isProfilePhotoKey(key)) return notFound();
 
   const etag = profilePhotoEtag(key);
-  if (profilePhotoUnchanged(request.headers.get("If-None-Match"), key)) {
-    return new Response(null, {
-      status: 304,
-      headers: { "Cache-Control": PROFILE_PHOTO_CACHE_CONTROL, ETag: etag },
-    });
-  }
+  const unchanged = profilePhotoUnchanged(request.headers.get("If-None-Match"), key);
 
+  // The query string selects nothing here, so it must not split the cache.
+  const url = new URL(request.url);
+  url.search = "";
   const cache = await caches.open(PROFILE_PHOTO_CACHE_NAME);
-  const cached = await cache.match(request.url);
-  if (cached) return cached;
+  const cached = await cache.match(url.href);
+  if (cached) return unchanged ? notModified(etag) : cached;
 
   const bucket = await getProfilePhotoBucket();
-  const object = bucket ? await readProfilePhoto(bucket, key) : null;
+  const object = bucket ? await bucket.get(key) : null;
   if (!object) return notFound();
 
   const response = new Response(object.body, {
@@ -59,6 +69,8 @@ export async function GET(request: Request, { params }: RouteParams): Promise<Re
       ETag: etag,
     },
   });
-  await cache.put(request.url, response.clone());
-  return response;
+  // Tee now: by the time the deferred write runs, the client owns the body.
+  const copy = unchanged ? response : response.clone();
+  after(() => cache.put(url.href, copy));
+  return unchanged ? notModified(etag) : response;
 }

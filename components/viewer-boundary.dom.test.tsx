@@ -1,9 +1,11 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
+import type { ActionResult } from "@/lib/action-result";
 import { authClient } from "@/lib/auth-client";
 
+import { TermsGate } from "./terms-gate";
 import { ViewerBoundary } from "./viewer-boundary";
 
 const { refresh, transport, router } = vi.hoisted(() => {
@@ -30,10 +32,36 @@ function session(id: string) {
     session: { id: `session-${id}`, userId: id, expiresAt: "2099-01-01T00:00:00.000Z" },
   });
 }
+vi.mock("@/actions/terms", () => ({ acceptTerms: vi.fn<() => Promise<ActionResult>>() }));
 beforeEach(async () => {
   transport.mockImplementation(async () => session("alex"));
   await act(() => authClient.$store.atoms.session.get().refetch());
   transport.mockClear();
+});
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+it("owns the tab-return refresh that re-checks terms, so the gate asks nothing itself", () => {
+  const requests = vi.fn<typeof fetch>();
+  vi.stubGlobal("fetch", requests);
+  render(
+    <ViewerBoundary viewerId="alex">
+      <TermsGate viewerId="alex" initiallyRequired={false}>
+        <p>Member content</p>
+      </TermsGate>
+    </ViewerBoundary>,
+  );
+  refresh.mockClear();
+  act(() => {
+    window.dispatchEvent(new Event("focus"));
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  // The refreshed template re-renders the gate with the server's answer.
+  expect(refresh).toHaveBeenCalledOnce();
+  expect(requests).not.toHaveBeenCalled();
+  expect(screen.getByText("Member content")).toBeVisible();
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });
 
 it("coalesces focus/visibility checks without remounting content, and cleans up on unmount", async () => {

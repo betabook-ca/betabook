@@ -10,8 +10,14 @@ const tables = cacheForRequest(() => new WeakMap<object, Map<string, Promise<unk
 /** Shares one read between every caller in a request. React's `cache()`
  * covers only the page tree: under vinext, generateMetadata and route
  * handlers run outside the render's cache scope, so a metadata read and its
- * page counterpart each hit D1. Arguments are primitives and form the key;
- * a rejected load is dropped so the next caller retries. */
+ * page counterpart each hit D1. Arguments are primitives and form the key,
+ * typed so `1` and `"1"` stay apart; a rejected load is dropped so the next
+ * caller retries.
+ *
+ * Nothing invalidates an entry: a server action and the page rerender that
+ * follows it are one request, so an action must not read through a memoized
+ * loader whose answer its own write changes (`requireSession` reads terms
+ * straight from the database for that reason). */
 export function requestMemo<Args extends MemoKey[], Result>(
   load: Loader<Args, Result>,
 ): Loader<Args, Result> {
@@ -19,7 +25,7 @@ export function requestMemo<Args extends MemoKey[], Result>(
     const table = tables();
     let entries = table.get(load);
     if (!entries) table.set(load, (entries = new Map()));
-    const key = args.map((arg) => `${typeof arg}:${String(arg)}`).join("\u0000");
+    const key = JSON.stringify(args.map((arg) => [typeof arg, arg ?? null]));
     const pending = entries.get(key) as Promise<Result> | undefined;
     if (pending) return pending;
     const result = load(...args);

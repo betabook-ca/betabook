@@ -54,6 +54,29 @@ it("tells a number from its string, and one loader from another", async () => {
   expect(twin).toHaveBeenCalledTimes(1);
 });
 
+it("keeps argument boundaries apart, whatever the strings contain", async () => {
+  const load = vi.fn<(...parts: string[]) => Promise<string>>(async (...parts) => parts.join("|"));
+  const memo = requestMemo(load);
+  const nullish = vi.fn<(id: string | null | undefined) => Promise<string>>(async (id) =>
+    String(id),
+  );
+  const memoNullish = requestMemo(nullish);
+
+  const [joined, split] = await inRequest(() =>
+    Promise.all([
+      memo("a\u0000string:b"),
+      memo("a", "b"),
+      memoNullish(null),
+      memoNullish(undefined),
+      memoNullish("null"),
+    ]),
+  );
+
+  expect(load).toHaveBeenCalledTimes(2);
+  expect([joined, split]).toEqual(["a\u0000string:b", "a|b"]);
+  expect(nullish).toHaveBeenCalledTimes(3);
+});
+
 it("retries after a failed read instead of replaying the failure", async () => {
   const load = vi
     .fn<Load>()
