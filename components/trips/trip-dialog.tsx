@@ -8,19 +8,24 @@ import { saveTrip } from "@/actions";
 import { EMPTY_TRIP_DRAFT, TripForm, type TripDraft } from "@/components/trips/trip-form";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { Trip } from "@/db/queries";
+import { localToday } from "@/lib/format-date";
 import { tripHref } from "@/lib/trips";
 
 const DATE_ORDER_MESSAGE = "End date must be on or after start date.";
 
+/** A new trip starts on today's date, the same default every other date field
+ * in the app opens on; the climber moves either end from there. */
 function draftFor(trip: Trip | undefined): TripDraft {
-  return trip
-    ? {
-        name: trip.name,
-        description: trip.description ?? "",
-        startDate: trip.startDate,
-        endDate: trip.endDate,
-      }
-    : EMPTY_TRIP_DRAFT;
+  if (!trip) {
+    const today = localToday();
+    return { ...EMPTY_TRIP_DRAFT, startDate: today, endDate: today };
+  }
+  return {
+    name: trip.name,
+    description: trip.description ?? "",
+    startDate: trip.startDate,
+    endDate: trip.endDate,
+  };
 }
 
 /** Creates a trip or edits one, in the overlay form the rest of the app uses.
