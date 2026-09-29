@@ -5,7 +5,7 @@ import { expect, it, vi } from "vitest";
 
 import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
 
-import { PrivacyFields } from "./privacy-fields";
+import { PrivacyDetails, PrivacyFields } from "./privacy-fields";
 
 function Privacy({ pending = false }: { pending?: boolean }) {
   const [isPrivate, setPrivate] = useState(false);
@@ -92,4 +92,19 @@ it("prevents changes to all three privacy controls during a save", async () => {
   }
   expect(change).not.toHaveBeenCalled();
   expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+});
+
+it("says who reads a trip's notes, apart from who reads the journal", () => {
+  render(<PrivacyDetails defaultExpanded />);
+
+  const trips = screen
+    .getAllByRole("listitem")
+    .find((item) => /can see a trip/.test(item.textContent ?? ""));
+  expect(trips).toHaveTextContent(
+    "Trip notes are for your friends, whatever your Journal and goals audience is.",
+  );
+  expect(trips).toHaveTextContent(
+    "Anyone who can read your journal can also read its entries and the friends you tagged.",
+  );
+  expect(trips).not.toHaveTextContent("Trips follow the audiences above");
 });

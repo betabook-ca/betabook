@@ -11,7 +11,6 @@ import { saveTripNotes } from "@/actions";
 import { cardClass } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FieldFeedback, FieldHeader } from "@/components/ui/field-support";
-import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -148,9 +147,6 @@ export function TripNotes({
                     usage={{ used: draft.length, limit: MAX_TRIP_NOTES, unit: "characters" }}
                   >
                     <Label>Trip notes</Label>
-                    <HelpTooltip label="About trip notes">
-                      Your friends can read your trip notes.
-                    </HelpTooltip>
                   </FieldHeader>
                   <TextArea
                     rows={14}

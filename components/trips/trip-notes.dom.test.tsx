@@ -87,14 +87,15 @@ it("invites the first notes on a trip that has none, whether or not it has happe
   expect(field()).toHaveValue("");
 });
 
-it("says who reads the notes while they are being written", async () => {
+it("labels the field and says nothing more about it", async () => {
   const user = userEvent.setup();
   render(<Example />);
 
   await user.click(screen.getByRole("button", { name: "Edit trip notes" }));
-  await user.click(within(editor()).getByRole("button", { name: "About trip notes" }));
 
-  expect(await screen.findByText("Your friends can read your trip notes.")).toBeInTheDocument();
+  expect(field()).toBeInTheDocument();
+  expect(within(editor()).queryByRole("button", { name: /^About/ })).not.toBeInTheDocument();
+  expect(editor()).not.toHaveTextContent(/friends can read/i);
 });
 
 it("saves what was typed, then goes back to reading", async () => {

@@ -193,6 +193,20 @@ describe("editing a trip", () => {
     expect(await storedTripById(id)).toMatchObject({ description: longest });
   });
 
+  it("measures a description in characters, as the migration that kept it did", async () => {
+    const created = await saveTrip(null, BISHOP);
+    const id = created.ok ? created.value : 0;
+    // One character each, two code units each.
+    const climbers = "🧗".repeat(MAX_TRIP_DESCRIPTION);
+    expect(climbers.length).toBe(MAX_TRIP_DESCRIPTION * 2);
+
+    expect((await saveTrip(id, { ...BISHOP, description: climbers })).ok).toBe(true);
+    expect(await saveTrip(id, { ...BISHOP, description: `${climbers}🧗` })).toMatchObject({
+      ok: false,
+      error: "That description is too long.",
+    });
+  });
+
   it("moves updated_at forward, so the column does not quietly lie", async () => {
     const created = await saveTrip(null, BISHOP);
     const id = created.ok ? created.value : 0;

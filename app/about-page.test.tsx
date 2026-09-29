@@ -35,3 +35,13 @@ it("leaves the ask out of the About page until a support page is set", () => {
   expect(html).not.toContain("help cover");
   expect(html).not.toContain("funding model");
 });
+
+it("says who reads a trip's notes, apart from who reads the journal", () => {
+  const text = renderToStaticMarkup(<AboutPage />)
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&#x27;/g, "'")
+    .replace(/\s+/g, " ");
+
+  expect(text).toContain("Trip notes are for your friends");
+  expect(text).not.toMatch(/read your journal can also read[^.]*trip notes/);
+});

@@ -179,9 +179,9 @@ export function PrivacyDetails({ defaultExpanded = false }: { defaultExpanded?: 
                 when it expires, Stop sharing ends it, and going private ends every project link.
               </li>
               <li>
-                Trips follow the audiences above. Anyone who can see your sends can see a trip and
-                the sends inside it. Anyone who can read your journal can also read its entries,
-                your trip notes and the friends you tagged.
+                Anyone who can see your sends can see a trip and the sends inside it. Anyone who can
+                read your journal can also read its entries and the friends you tagged. Trip notes
+                are for your friends, whatever your Journal and goals audience is.
               </li>
               <li>
                 Unless your profile is private, friends of your friends may see you suggested.

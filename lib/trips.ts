@@ -27,6 +27,15 @@ export function oneLine(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
+/** Code points, which is what SQLite's length() counts in migration 0053. A
+ * string's own length counts an emoji twice, and would refuse a description
+ * the migration had left in place. */
+function characters(value: string): number {
+  let count = 0;
+  for (const _ of value) count += 1;
+  return count;
+}
+
 const INVALID_FRIENDS = "Invalid friend selection";
 const TOO_MANY_FRIENDS = `Choose at most ${MAX_JOURNAL_COMPANIONS} friends`;
 
@@ -39,7 +48,7 @@ export const tripInputSchema = z
     description: z
       .string()
       .transform(oneLine)
-      .pipe(z.string().max(MAX_TRIP_DESCRIPTION, "That description is too long."))
+      .refine((value) => characters(value) <= MAX_TRIP_DESCRIPTION, "That description is too long.")
       .transform((value) => value || null)
       .nullable()
       .optional(),

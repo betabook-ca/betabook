@@ -88,9 +88,9 @@ export default function AboutPage() {
             way you would a photo. You choose when it expires and can stop sharing at any time.
           </li>
           <li>
-            Trips follow the same settings. Anyone who can see your sends can see a trip and the
-            sends inside it, and anyone who can read your journal can also read its entries, your
-            trip notes and the friends you tagged.
+            Anyone who can see your sends can see a trip and the sends inside it, and anyone who can
+            read your journal can also read its entries and the friends you tagged. Trip notes are
+            for your friends, whatever your journal&apos;s audience is.
           </li>
           <li>Only you can export your sends.</li>
         </ul>

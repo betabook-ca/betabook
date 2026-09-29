@@ -118,8 +118,9 @@ it("takes the description as one line and says who reads it", async () => {
 
   await user.click(screen.getByRole("button", { name: "About the description" }));
   const hint = await screen.findByText(/Anyone who can see your sends reads this line/);
-  expect(hint).toHaveTextContent("Your friends can read your trip notes.");
-  expect(hint).not.toHaveTextContent(/audience/);
+  expect(hint).toHaveTextContent(
+    /^Anyone who can see your sends reads this line, including through your profile link\.$/,
+  );
 });
 
 it("opens a description written over several lines as the one line it reads as", () => {
