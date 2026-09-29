@@ -6,12 +6,13 @@ import { DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
 import { getDb } from "@/db/client";
 import { getShareLinkOwner, getUserSendsSummary, type UserStatsSummary } from "@/db/queries";
 import { getBaseUrl } from "@/lib/app-url";
+import { resolveAvatarUrl } from "@/lib/avatar-url";
 import { Avatar, CardFrame, Tile } from "@/lib/og-elements";
 import { ogFonts, OG_FONT } from "@/lib/og-fonts";
 import { OG_COLORS, OG_DISCIPLINE_COLOR } from "@/lib/og-theme";
 import { parseShareToken } from "@/lib/share-token";
 import { OG_IMAGE } from "@/lib/site";
-import { getUserInitials, resolveAvatarUrl } from "@/lib/user-initials";
+import { getUserInitials } from "@/lib/user-initials";
 
 export const IMAGE_SIZE = { width: 1200, height: 630 };
 

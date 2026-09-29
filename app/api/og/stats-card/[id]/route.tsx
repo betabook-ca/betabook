@@ -4,11 +4,12 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/db/client";
 import { getJournalSessionsForAnalytics, getUserSendsForAnalytics } from "@/db/queries";
 import { withApiSession } from "@/lib/api-session";
+import { resolveAvatarUrl } from "@/lib/avatar-url";
 import { ogFonts } from "@/lib/og-fonts";
 import { socialCardElement, type SocialCardOwner } from "@/lib/og-recap";
 import { getRequestTimezone } from "@/lib/request-timezone";
 import { buildSocialCardStats, isSocialCardPeriod, type SocialCardPeriod } from "@/lib/social-card";
-import { getUserInitials, resolveAvatarUrl } from "@/lib/user-initials";
+import { getUserInitials } from "@/lib/user-initials";
 
 export const IMAGE_SIZE = { width: 1080, height: 1350 };
 
