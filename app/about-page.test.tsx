@@ -42,7 +42,9 @@ it("says who reads a trip's notes, apart from who reads the journal", () => {
     .replace(/&#x27;/g, "'")
     .replace(/\s+/g, " ");
 
-  expect(text).toContain("Trip notes are for your friends");
+  expect(text).toContain(
+    "Trip notes are for your friends and anyone with your profile link, whatever your journal's audience is.",
+  );
   expect(text).not.toMatch(/read your journal can also read[^.]*trip notes/);
 });
 
@@ -52,7 +54,7 @@ it("says who sees a trip's photos, and where they come from", () => {
     .replace(/&#x27;/g, "'")
     .replace(/\s+/g, " ");
 
-  expect(text).toContain("trips with their photos and sends to anyone who has them");
+  expect(text).toContain("trips with their notes, photos and sends to anyone who has them");
   expect(text).toContain("can see a trip, its photos and the sends inside it");
   expect(text).toContain("Photos are loaded from Google Photos.");
   // Still true: the photos are Google's to store.

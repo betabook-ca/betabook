@@ -29,8 +29,8 @@ export type TripSummary = Trip & {
    * narrower question; the card says "days logged" rather than borrowing its
    * words for a different number. Null with `entryCount`. */
   dayCount: number | null;
-  /** 1 when there are notes this reader may read, as the climber or a friend
-   * of theirs, so a tab is not offered that would open onto nothing. */
+  /** 1 when there are notes this reader may read: the climber, a friend of
+   * theirs, or the holder of their profile link. */
   hasNotes: number;
   /** Friends tagged on the trip, empty for a reader the journal is not
    * shared with. */
@@ -60,7 +60,7 @@ const tripSendRowsSql = sql`
 /** Correlated scalar subqueries rather than joins: three independent
  * aggregates over two tables would otherwise multiply each other's rows, and a
  * derived table cannot see the enclosing query's `t`. */
-function tripCountsSql(viewerId: string | null): SQL {
+function tripCountsSql(viewerId: string | null, share: string | null): SQL {
   const journalVisible = journalVisibleSql(viewerId, sql`t.user_id`);
   return sql`
     CASE WHEN ${journalVisible}
@@ -69,7 +69,7 @@ function tripCountsSql(viewerId: string | null): SQL {
     CASE WHEN ${journalVisible}
       THEN (SELECT COUNT(DISTINCT j.entry_date) FROM journal_entries j WHERE ${tripEntryRowsSql})
       END AS dayCount,
-    (t.notes IS NOT NULL AND ${tripNotesVisibleSql(viewerId, sql`t.user_id`)}) AS hasNotes,
+    (t.notes IS NOT NULL AND ${tripNotesVisibleSql(viewerId, sql`t.user_id`, share)}) AS hasNotes,
     ${tripCompanionsJsonSql(viewerId, sql`t.id`)} AS companions
   `;
 }
@@ -87,7 +87,7 @@ const tripColumnsSql = sql`
  * `canViewUser` said in SQL so a profile closing takes effect on the next
  * read rather than the next page gate. A null viewer holds the climber's
  * profile link, which the page checks; the journal's audiences never admit
- * one, so they get the trip and its sends and nothing else. */
+ * one, so they get the trip, its sends and, by the link, its notes. */
 function tripRowsSql(userId: string, viewerId: string | null): SQL {
   return sql`
     FROM trips t
@@ -105,7 +105,7 @@ export async function getTripsForUser(
   viewerId: string | null,
 ): Promise<TripSummary[]> {
   const rows = await db.all<TripRow>(sql`
-    SELECT ${tripColumnsSql}, ${tripCountsSql(viewerId)}
+    SELECT ${tripColumnsSql}, ${tripCountsSql(viewerId, null)}
     ${tripRowsSql(userId, viewerId)}
     ORDER BY t.start_date DESC, t.id DESC
   `);
@@ -119,34 +119,42 @@ export async function getTripForUser(
   userId: string,
   tripId: number,
   viewerId: string | null,
+  /** The profile link the reader came by, which opens the notes. */
+  share: string | null = null,
 ): Promise<TripSummary | null> {
   const row = await db.get<TripRow>(sql`
-    SELECT ${tripColumnsSql}, ${tripCountsSql(viewerId)}
+    SELECT ${tripColumnsSql}, ${tripCountsSql(viewerId, share)}
     ${tripRowsSql(userId, viewerId)} AND t.id = ${tripId}
   `);
   return row ? toTripSummary(row) : null;
 }
 
 /** Uses the same current permission predicate as the notes' own read. */
-export async function canReadTripNotes(db: Database, ownerId: string, viewerId: string | null) {
+export async function canReadTripNotes(
+  db: Database,
+  ownerId: string,
+  viewerId: string | null,
+  share: string | null = null,
+) {
   const row = await db.get<{ visible: number }>(
-    sql`SELECT ${tripNotesVisibleSql(viewerId, sql`${ownerId}`)} AS visible`,
+    sql`SELECT ${tripNotesVisibleSql(viewerId, sql`${ownerId}`, share)} AS visible`,
   );
   return row?.visible === 1;
 }
 
-/** Read apart from `tripColumnsSql`: the list and every tab's header select
- * those columns, and none of them shows the notes. */
+/** Read apart from `tripColumnsSql`: the list and the trip's header select
+ * those columns, and neither shows the notes. */
 export async function getTripNotes(
   db: Database,
   userId: string,
   tripId: number,
   viewerId: string | null,
+  share: string | null = null,
 ): Promise<string | null> {
   const row = await db.get<{ notes: string | null }>(sql`
     SELECT t.notes AS notes
     ${tripRowsSql(userId, viewerId)} AND t.id = ${tripId}
-      AND ${tripNotesVisibleSql(viewerId, sql`t.user_id`)}
+      AND ${tripNotesVisibleSql(viewerId, sql`t.user_id`, share)}
   `);
   return row?.notes ?? null;
 }

@@ -15,6 +15,7 @@ import {
 } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
 
+import { getProfileShareToken } from "./profile-share";
 import { canReadTripNotes, getTripForUser, getTripNotes, getTripsForUser } from "./trips";
 
 const db = createDb(env.DB);
@@ -341,6 +342,44 @@ describe("who can read a trip", () => {
     expect(await canReadTripNotes(db, OWNER, FRIEND)).toBe(true);
     expect(await canReadTripNotes(db, OWNER, STRANGER)).toBe(false);
     expect(await canReadTripNotes(db, OWNER, null)).toBe(false);
+  });
+
+  it("hands the notes to whoever holds the climber's profile link, signed in or not", async () => {
+    const trip = await seedBishop();
+    await audience("private");
+    const link = (await getProfileShareToken(db, OWNER))!;
+
+    for (const reader of [null, STRANGER]) {
+      expect(await getTripNotes(db, OWNER, trip.id, reader, link)).toBe(NOTES);
+      expect((await getTripForUser(db, OWNER, trip.id, reader, link))?.hasNotes).toBe(1);
+      expect(await canReadTripNotes(db, OWNER, reader, link)).toBe(true);
+    }
+  });
+
+  it("keeps the notes from a link that is not the climber's current one", async () => {
+    const trip = await seedBishop();
+    const link = (await getProfileShareToken(db, OWNER))!;
+    const another = (await getProfileShareToken(db, STRANGER))!;
+
+    for (const dead of ["0".repeat(32), another, ""]) {
+      for (const reader of [null, STRANGER]) {
+        expect(await getTripNotes(db, OWNER, trip.id, reader, dead)).toBeNull();
+        expect((await getTripForUser(db, OWNER, trip.id, reader, dead))?.hasNotes).toBe(0);
+        expect(await canReadTripNotes(db, OWNER, reader, dead)).toBe(false);
+      }
+    }
+
+    // Going private resets the link, and the old one stays dead afterwards.
+    await db.run(sql`UPDATE user SET is_private = 1 WHERE id = ${OWNER}`);
+    const whilePrivate = (await getProfileShareToken(db, OWNER))!;
+    for (const closed of [link, whilePrivate]) {
+      expect(await getTripNotes(db, OWNER, trip.id, null, closed)).toBeNull();
+      expect(await canReadTripNotes(db, OWNER, STRANGER, closed)).toBe(false);
+    }
+    await db.run(sql`UPDATE user SET is_private = 0 WHERE id = ${OWNER}`);
+    expect(await getTripNotes(db, OWNER, trip.id, null, link)).toBeNull();
+    const reissued = (await getProfileShareToken(db, OWNER))!;
+    expect(await getTripNotes(db, OWNER, trip.id, null, reissued)).toBe(NOTES);
   });
 });
 

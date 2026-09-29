@@ -7,6 +7,7 @@ import TripPage, {
   generateMetadata as tripPageMetadata,
 } from "@/app/users/[id]/trips/[tripId]/page";
 import { createDb } from "@/db/client";
+import { getProfileShareToken } from "@/db/queries";
 import {
   seedFixtureFriendship,
   seedFixtureJournalEntry,
@@ -268,6 +269,23 @@ describe("who can open a trip", () => {
     expect(payload).not.toContain('"canEdit"');
     // Read as the member, not as the owner the route names.
     expect(payload).toContain(`"viewerId":"${STRANGER}"`);
+  });
+
+  it("shows a member who holds the climber's profile link the notes, and no other link does", async () => {
+    const trip = await seedTrip({ notes: NOTES });
+    const link = (await getProfileShareToken(db, OWNER))!;
+    session.userId = STRANGER;
+
+    const payload = await renderTrip(trip.id, { share: link });
+    expect(payload).toContain(`"notes":"${NOTES}"`);
+    expect(payload).toContain('"canEdit":false');
+    // Still read as the member they are.
+    expect(payload).toContain(`"viewerId":"${STRANGER}"`);
+
+    const own = (await getProfileShareToken(db, STRANGER))!;
+    for (const share of ["0".repeat(32), own, "not a link"]) {
+      expect(await renderTrip(trip.id, { share })).not.toContain(NOTES);
+    }
   });
 
   it("shows a friend the notes, whatever the journal's audience, and only the owner may edit them", async () => {

@@ -34,18 +34,18 @@ export async function generateMetadata({
   const shared = await resolveSharedTrip(id, tripId, search);
   // The climber alone, as on their profile: a link pasted into a channel
   // names no trip to the room.
-  if (shared && !(await resolveTripPage(id, tripId)).signedIn) {
+  if (shared && !(await resolveTripPage(id, tripId, search)).signedIn) {
     return sharedProfileMetadata(shared.owner.name);
   }
-  return tripMetadata(id, tripId);
+  return tripMetadata(id, tripId, search);
 }
 
-/** A trip, on one page: its album, its notes for the climber's friends, and
- * the sends dated inside it. The URL filters nothing here, so a trip means
+/** A trip, on one page: its album, its notes for the climber's friends and
+ * whoever holds their profile link, and the sends dated inside it. The URL filters nothing here, so a trip means
  * one thing; the entries are in the Journal, under the trip's dates. */
 export default async function TripPage({ params, searchParams }: TripPageParams) {
   const [{ id, tripId }, search] = await Promise.all([params, searchParams]);
-  const resolved = await resolveTripPage(id, tripId);
+  const resolved = await resolveTripPage(id, tripId, search);
   if (!resolved.signedIn) {
     const shared = await resolveSharedTrip(id, tripId, search);
     if (!shared) return <CurrentPageAuthCallout />;
@@ -65,6 +65,9 @@ export default async function TripPage({ params, searchParams }: TripPageParams)
       sends.map((send) => send.areaId),
     );
     const path = withProfileShare(tripHref(owner.id, trip.id), owner.token);
+    const notes = trip.hasNotes
+      ? await getTripNotes(db, owner.id, trip.id, null, owner.token)
+      : null;
     return (
       <SharedProfileHeader owner={owner} next={path}>
         <SharedTrip
@@ -75,17 +78,26 @@ export default async function TripPage({ params, searchParams }: TripPageParams)
           path={path}
           today={await tripToday()}
           photos={tripPhotos(trip)}
+          notes={
+            notes && (
+              <TripNotes tripId={trip.id} notes={notes} canEdit={false}>
+                <Markdown>{notes}</Markdown>
+              </TripNotes>
+            )
+          }
         />
       </SharedProfileHeader>
     );
   }
   if (!resolved.ok) notFound();
-  const { trip, user, viewerId, today, notesVisible } = resolved;
+  const { trip, user, viewerId, today, notesVisible, share } = resolved;
 
   const isOwner = viewerId === user.id;
   // The owner keeps an empty section, since that is where they write.
   const showNotes = notesVisible && (isOwner || Boolean(trip.hasNotes));
-  const notes = showNotes ? await getTripNotes(await getDb(), user.id, trip.id, viewerId) : null;
+  const notes = showNotes
+    ? await getTripNotes(await getDb(), user.id, trip.id, viewerId, share)
+    : null;
   // The chip already says a trip is still to come.
   const showSends = trip.sendCount > 0 || tripStatus(trip, today) !== "upcoming";
   const logged = trip.sendCount > 0 || Boolean(trip.entryCount);

@@ -101,7 +101,7 @@ it("says who reads a trip's notes, apart from who reads the journal", () => {
     .getAllByRole("listitem")
     .find((item) => /can see a trip/.test(item.textContent ?? ""));
   expect(trips).toHaveTextContent(
-    "Trip notes are for your friends, whatever your Journal and goals audience is.",
+    "Trip notes are for your friends and anyone with your profile link, whatever your Journal and goals audience is.",
   );
   expect(trips).toHaveTextContent(
     "Anyone who can read your journal can also read its entries and the friends you tagged.",
@@ -114,7 +114,7 @@ it("says who sees a trip's photos, and where they come from", () => {
 
   const items = screen.getAllByRole("listitem").map((item) => item.textContent ?? "");
   expect(items.find((item) => item.startsWith("Anyone with your profile link"))).toContain(
-    "your trips with their photos and sends",
+    "your trips with their notes, photos and sends",
   );
   const trips = items.find((item) => /can see a trip/.test(item));
   expect(trips).toContain("can see a trip, its photos and the sends inside it");

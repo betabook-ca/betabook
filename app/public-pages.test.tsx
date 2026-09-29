@@ -302,12 +302,7 @@ const tripProps = (id: string, tripId: number, share: string) => ({
   searchParams: Promise.resolve({ share }),
 });
 
-const JOURNAL_SIDE = [
-  "Journal sentinel",
-  "Inside journal sentinel",
-  "Notes sentinel",
-  "Tagged identity sentinel",
-];
+const JOURNAL_SIDE = ["Journal sentinel", "Inside journal sentinel", "Tagged identity sentinel"];
 
 it("opens the owner's trips, and the sends on each, through their profile link", async () => {
   const { token, trip } = await seedSharedTrip();
@@ -338,6 +333,12 @@ it("opens the owner's trips, and the sends on each, through their profile link",
   const shown = [...page.matchAll(/Preview climb (\d)/g)].map((match) => match[1]);
   expect([...new Set(shown)]).toEqual(["4", "3", "2"]);
   expect(page).not.toContain("Commentary sentinel");
+
+  // The notes are on the trip's own page, to read and not to edit.
+  expect(page).toContain('"notes":"Notes sentinel"');
+  expect(page).toContain('"canEdit":false');
+  expect(page).not.toContain('"canEdit":true');
+  for (const payload of [profile, list]) expect(payload).not.toContain("Notes sentinel");
 
   for (const hidden of JOURNAL_SIDE) {
     for (const payload of [profile, list, page]) expect(payload).not.toContain(hidden);

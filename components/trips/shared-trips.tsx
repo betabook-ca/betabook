@@ -12,9 +12,9 @@ import { formatCount } from "@/lib/format";
 type Owner = { id: string; name: string; token: string };
 
 /** A trip for the signed-out holder of the climber's profile link: the header
- * a member sees, and the sends dated inside it. The journal's side of a trip
- * follows the journal's audiences and the notes are for friends, neither of
- * which a signed-out reader meets. */
+ * a member sees, the notes and the sends dated inside it. The journal's side
+ * of a trip follows the journal's audiences, which a signed-out reader never
+ * meets. */
 export function SharedTrip({
   owner,
   trip,
@@ -23,6 +23,7 @@ export function SharedTrip({
   path,
   today,
   photos,
+  notes,
 }: {
   owner: Owner;
   trip: TripSummary;
@@ -33,10 +34,13 @@ export function SharedTrip({
   today: string;
   /** The trip's shared album, when it has one. */
   photos?: ReactNode;
+  /** The trip's notes, when it has some. */
+  notes?: ReactNode;
 }) {
   return (
     <TripHeader trip={trip} userId={owner.id} viewerId={null} today={today} share={owner.token}>
       {photos}
+      {notes}
       <section aria-label="Sends" className="flex min-w-0 flex-col gap-3">
         <SectionHeading>Sends</SectionHeading>
         {sends.length < trip.sendCount && (

@@ -70,7 +70,7 @@ export function ShareProfileControls({ name, url }: { name: string; url: string 
             label="Profile link"
             url={link}
             shareTitle={`${name} on ${SITE_NAME}`}
-            description="Anyone with the link sees your name, photo, send stats, latest sends, and your trips with their photos and sends."
+            description="Anyone with the link sees your name, photo, send stats, latest sends, and your trips with their notes, photos and sends."
             notice={status}
             error={error}
             actions={

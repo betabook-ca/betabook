@@ -115,6 +115,21 @@ it("puts the trip's photos under its header, above the sends inside it", () => {
   expect(photos.compareDocumentPosition(sends)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 });
 
+it("puts the trip's notes where a member reads them, between the photos and the sends", () => {
+  render(
+    trip({
+      photos: <section aria-label="Photos">The album</section>,
+      notes: <section aria-label="Trip notes">Camped at the Pit.</section>,
+    }),
+  );
+
+  const photos = screen.getByRole("region", { name: "Photos" });
+  const notes = screen.getByRole("region", { name: "Trip notes" });
+  const sends = screen.getByRole("list");
+  expect(photos.compareDocumentPosition(notes)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  expect(notes.compareDocumentPosition(sends)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+});
+
 it("says so when a long trip has more sends than the page shows", () => {
   render(trip({ trip: { ...BISHOP, sendCount: 120 }, sends: [send(1, "Moon Slab")] }));
 

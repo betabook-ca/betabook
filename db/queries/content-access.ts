@@ -27,10 +27,26 @@ export function journalVisibleSql(viewerId: string | null, authorId: SQL): SQL {
   return contentVisibleSql(viewerId, authorId, sql`content_owner.journal_visibility`);
 }
 
-/** Trip notes have one audience, the climber's friends, whatever the
- * journal's is set to. */
-export function tripNotesVisibleSql(viewerId: string | null, authorId: SQL): SQL {
-  return contentVisibleSql(viewerId, authorId, sql`'friends'`);
+/** Whether `token` is the climber's current profile link. Going private
+ * resets the link, and a private profile has none that opens anything. */
+function profileLinkSql(token: string | null, ownerId: SQL): SQL {
+  return sql`EXISTS (
+    SELECT 1 FROM profile_share_links link
+    JOIN user link_owner ON link_owner.id = link.user_id
+    WHERE link.token = ${token} AND link.user_id = ${ownerId} AND link_owner.is_private = 0
+  )`;
+}
+
+/** Trip notes are for the climber's friends, whatever the journal's audience
+ * is set to, and for whoever holds the climber's profile link, signed in or
+ * not. */
+export function tripNotesVisibleSql(
+  viewerId: string | null,
+  authorId: SQL,
+  share: string | null,
+): SQL {
+  return sql`(${contentVisibleSql(viewerId, authorId, sql`'friends'`)}
+    OR ${profileLinkSql(share, authorId)})`;
 }
 
 export function sendCommentVisibleSql(viewerId: string | null, authorId: SQL): SQL {

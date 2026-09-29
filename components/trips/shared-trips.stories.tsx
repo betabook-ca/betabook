@@ -2,9 +2,11 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { TripAlbumPhotos } from "@/components/trips/trip-album";
 import { TripList } from "@/components/trips/trip-list";
+import { TripNotes } from "@/components/trips/trip-notes";
+import { Markdown } from "@/components/ui/markdown";
 import type { UserSendRow } from "@/db/queries";
 import { SHARED_OWNER, SharedProfileFrame } from "@/stories/fixtures/shared-profile-frame";
-import { TRIPS_TODAY, tripSamples } from "@/stories/fixtures/trips";
+import { TRIPS_TODAY, TRIP_NOTES, tripSamples } from "@/stories/fixtures/trips";
 
 import { SharedTrip } from "./shared-trips";
 
@@ -75,6 +77,17 @@ type Story = StoryObj<typeof meta>;
 /** One trip for the signed-out holder of a profile link: the header a member
  * sees, and the sends inside it. */
 export const Trip: Story = {};
+
+/** The link opens the notes, to read and not to edit. */
+export const WithNotes: Story = {
+  args: {
+    notes: (
+      <TripNotes tripId={2} notes={TRIP_NOTES} canEdit={false}>
+        <Markdown>{TRIP_NOTES}</Markdown>
+      </TripNotes>
+    ),
+  },
+};
 
 export const LongTrip: Story = {
   args: { trip: { ...trips[1], name: "The 2026 season", sendCount: 260 } },

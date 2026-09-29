@@ -170,7 +170,7 @@ export function PrivacyDetails({ defaultExpanded = false }: { defaultExpanded?: 
               <li>Signed-out visitors see your recent sends on climb pages without your name.</li>
               <li>
                 Anyone with your profile link sees your name, photo, send stats, latest sends, and
-                your trips with their photos and sends. Going private resets the link.
+                your trips with their notes, photos and sends. Going private resets the link.
               </li>
               <li>
                 Sharing a project makes a link to that one climb. Anyone with the link sees your
@@ -181,8 +181,8 @@ export function PrivacyDetails({ defaultExpanded = false }: { defaultExpanded?: 
               <li>
                 Anyone who can see your sends can see a trip, its photos and the sends inside it.
                 Photos are loaded from Google Photos. Anyone who can read your journal can also read
-                its entries and the friends you tagged. Trip notes are for your friends, whatever
-                your Journal and goals audience is.
+                its entries and the friends you tagged. Trip notes are for your friends and anyone
+                with your profile link, whatever your Journal and goals audience is.
               </li>
               <li>
                 Unless your profile is private, friends of your friends may see you suggested.

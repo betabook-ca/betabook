@@ -32,7 +32,7 @@ export const Reading: Story = {};
 
 export const Empty: Story = { args: { notes: null, children: null } };
 
-/** Someone who can read the climber's journal: the notes, and nothing to edit. */
+/** A friend, or the holder of the profile link: the notes, and nothing to edit. */
 export const Visitor: Story = { args: { canEdit: false } };
 
 /** The editor is a dialog, which renders outside the canvas. */
