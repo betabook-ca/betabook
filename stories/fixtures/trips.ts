@@ -1,4 +1,5 @@
 import type { TripSummary } from "@/db/queries";
+import type { CompanionOption } from "@/lib/journal-companions";
 
 /** A fixed "today" so the status chips are the same in every render of these
  * stories — `new Date()` here would make "Upcoming" flip to "On now" on the
@@ -16,6 +17,7 @@ export const tripSamples: TripSummary[] = [
     sendCount: 0,
     dayCount: 0,
     hasNotes: 0,
+    companions: [],
   },
   {
     id: 2,
@@ -27,6 +29,7 @@ export const tripSamples: TripSummary[] = [
     sendCount: 9,
     dayCount: 7,
     hasNotes: 0,
+    companions: [],
   },
   {
     id: 1,
@@ -38,6 +41,7 @@ export const tripSamples: TripSummary[] = [
     sendCount: 1,
     dayCount: 1,
     hasNotes: 0,
+    companions: [],
   },
 ];
 
@@ -52,6 +56,32 @@ export const currentTrip: TripSummary = {
   sendCount: 3,
   dayCount: 4,
   hasNotes: 0,
+  companions: [],
+};
+
+export const tripFriends: CompanionOption[] = [
+  { id: "sam", name: "Sam Okafor", image: null },
+  { id: "priya", name: "Priya Nair", image: null },
+  { id: "jo", name: "Jordan Lee", image: null },
+];
+
+/** The picker looks friends up by the start of their name, as the API does. */
+export async function findTripFriends(query: string): Promise<CompanionOption[]> {
+  return tripFriends.filter((friend) => friend.name.toLowerCase().startsWith(query.toLowerCase()));
+}
+
+/** A trip with friends tagged, as its owner sees it. */
+export const tripWithFriends: TripSummary = {
+  id: 2,
+  name: "Bishop, March 2026",
+  description: "Buttermilks and the Happies.",
+  startDate: "2026-03-10",
+  endDate: "2026-03-20",
+  entryCount: 14,
+  sendCount: 9,
+  dayCount: 7,
+  hasNotes: 1,
+  companions: tripFriends.slice(0, 2).map((friend) => ({ ...friend, isSelf: false })),
 };
 
 export const TRIP_NOTES = `Ten days in the **Buttermilks** and the *Happies* with Sam and Priya. Two rest days for the storm, one for skin.

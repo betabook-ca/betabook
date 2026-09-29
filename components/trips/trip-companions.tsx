@@ -1,20 +1,20 @@
 "use client";
 
-import { removeMyJournalTag } from "@/actions";
+import { removeMyTripTag } from "@/actions";
 import { RemovableCompanions } from "@/components/journal/removable-companions";
 import type { JournalCompanion } from "@/lib/journal-companions";
 
-export function JournalCompanions({
-  entryId,
+export function TripCompanions({
+  tripId,
   initialCompanions,
 }: {
-  entryId: number;
-  initialCompanions?: JournalCompanion[];
+  tripId: number;
+  initialCompanions: JournalCompanion[];
 }) {
   return (
     <RemovableCompanions
       initialCompanions={initialCompanions}
-      remove={() => removeMyJournalTag(entryId)}
+      remove={() => removeMyTripTag(tripId)}
     />
   );
 }

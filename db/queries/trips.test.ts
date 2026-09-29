@@ -3,6 +3,8 @@ import { sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { createDb } from "@/db/client";
+import { tripCompanions } from "@/db/schema";
+import { friendshipPair } from "@/lib/friendships";
 import {
   seedFixtureFriendship,
   seedFixtureJournalEntry,
@@ -133,6 +135,72 @@ describe("what a trip contains", () => {
     const [summary] = await getTripsForUser(db, OWNER, OWNER);
     expect(summary).toMatchObject({ entryCount: 0, sendCount: 0 });
   });
+});
+
+describe("who was on a trip", () => {
+  const PARTNER = "partner";
+
+  async function seedTaggedTrip() {
+    const trip = await seedFixtureTrip(db, { userId: OWNER, name: "Bishop", ...BISHOP });
+    await seedFixtureUser(db, { id: PARTNER, name: "Climbing Partner" });
+    await seedFixtureFriendship(db, OWNER, PARTNER);
+    await db.insert(tripCompanions).values({
+      tripId: trip.id,
+      userId: PARTNER,
+      friendshipUserId: friendshipPair(OWNER, PARTNER).userId,
+      friendshipFriendId: friendshipPair(OWNER, PARTNER).friendId,
+    });
+    return trip;
+  }
+
+  it("names the tagged friends to whoever can read the journal, and marks the reader's own tag", async () => {
+    const trip = await seedTaggedTrip();
+
+    const [asOwner] = await getTripsForUser(db, OWNER, OWNER);
+    expect(asOwner.companions).toEqual([
+      { id: PARTNER, name: "Climbing Partner", image: null, isSelf: false },
+    ]);
+
+    const asPartner = await getTripForUser(db, OWNER, trip.id, PARTNER);
+    expect(asPartner?.companions).toEqual([
+      { id: PARTNER, name: "Climbing Partner", image: null, isSelf: true },
+    ]);
+  });
+
+  it("names nobody to a reader the journal is not shared with", async () => {
+    const trip = await seedTaggedTrip();
+
+    // A member outside the default Friends audience still opens the trip.
+    const asMember = await getTripForUser(db, OWNER, trip.id, STRANGER);
+    expect(asMember).toMatchObject({ name: "Bishop", companions: [] });
+  });
+
+  it("drops a tag its friend removed, and one whose friendship ended", async () => {
+    const trip = await seedTaggedTrip();
+    await db.update(tripCompanions).set({ suppressed: true });
+    expect((await getTripForUser(db, OWNER, trip.id, OWNER))?.companions).toEqual([]);
+
+    await db.run(sql`DELETE FROM trip_companions`);
+    const other = await seedTaggedTripFriend(trip.id);
+    expect((await getTripForUser(db, OWNER, trip.id, OWNER))?.companions).toHaveLength(1);
+    await db.run(
+      sql`UPDATE friendships SET status = 'pending' WHERE friend_id = ${other} OR user_id = ${other}`,
+    );
+    expect((await getTripForUser(db, OWNER, trip.id, OWNER))?.companions).toEqual([]);
+  });
+
+  async function seedTaggedTripFriend(tripId: number) {
+    const id = "second";
+    await seedFixtureUser(db, { id, name: "Second Partner" });
+    await seedFixtureFriendship(db, OWNER, id);
+    await db.insert(tripCompanions).values({
+      tripId,
+      userId: id,
+      friendshipUserId: friendshipPair(OWNER, id).userId,
+      friendshipFriendId: friendshipPair(OWNER, id).friendId,
+    });
+    return id;
+  }
 });
 
 describe("who can read a trip", () => {

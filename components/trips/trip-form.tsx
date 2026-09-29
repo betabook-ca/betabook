@@ -2,9 +2,12 @@
 
 import { Input, Label, TextArea, TextField } from "@heroui/react";
 
+import { CompanionPicker } from "@/components/journal/companion-picker";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import type { LookupFetcher } from "@/hooks/use-search-lookup";
+import type { CompanionOption } from "@/lib/journal-companions";
 import { MAX_TRIP_DESCRIPTION, MAX_TRIP_NAME } from "@/lib/trips";
 
 export type TripDraft = {
@@ -12,6 +15,7 @@ export type TripDraft = {
   description: string;
   startDate: string;
   endDate: string;
+  companions: CompanionOption[];
 };
 
 export const EMPTY_TRIP_DRAFT: TripDraft = {
@@ -19,6 +23,7 @@ export const EMPTY_TRIP_DRAFT: TripDraft = {
   description: "",
   startDate: "",
   endDate: "",
+  companions: [],
 };
 
 /** The fields of a trip, with no submit button of its own: the dialog around
@@ -33,6 +38,9 @@ export function TripForm({
   onChange,
   error,
   dateError,
+  editing = false,
+  disabled = false,
+  companionFetcher,
 }: {
   draft: TripDraft;
   onChange: (draft: TripDraft) => void;
@@ -41,6 +49,11 @@ export function TripForm({
   /** Shown under End date while the range is backwards, so the climber sees it
    * before submitting rather than after a round trip. */
   dateError?: string | null;
+  /** An existing trip, whose tags a changed selection replaces. */
+  editing?: boolean;
+  disabled?: boolean;
+  /** Seam for stories and tests; production looks friends up over the API. */
+  companionFetcher?: LookupFetcher<CompanionOption>;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -69,6 +82,15 @@ export function TripForm({
         />
       </div>
 
+      <CompanionPicker
+        value={draft.companions}
+        onChange={(companions) => onChange({ ...draft, companions })}
+        editing={editing}
+        disabled={disabled}
+        fetcher={companionFetcher}
+        help="Anyone who can read your journal sees who you tagged. Tagging doesn’t add the trip to their logbook."
+      />
+
       <TextField
         className="w-full"
         value={draft.description}
@@ -76,7 +98,7 @@ export function TripForm({
         maxLength={MAX_TRIP_DESCRIPTION}
       >
         <Label>Description</Label>
-        <TextArea placeholder="Who you went with, how it went…" rows={4} />
+        <TextArea placeholder="A line about the trip" rows={2} />
       </TextField>
 
       {/* Said where the climber is looking, not at the top of a scrolled

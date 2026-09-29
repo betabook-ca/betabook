@@ -23,3 +23,4 @@ export * from "./pinned-projects";
 
 export * from "./trips";
 export * from "./trip-share-links";
+export * from "./trip-companions";

@@ -1,9 +1,10 @@
 "use server";
 
-import { sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { refresh } from "next/cache";
 
 import { getDb } from "@/db/client";
+import { trips } from "@/db/schema";
 import {
   ActionError,
   JOURNAL_RATE_LIMIT_MESSAGE,
@@ -17,6 +18,12 @@ import { requirePositiveId } from "@/lib/validation";
 
 import { afterCommit } from "./post-commit";
 import { revalidateTripSurfaces } from "./revalidation";
+import {
+  NEW_TRIP,
+  buildTripCompanionInsert,
+  buildTripCompanionReplacement,
+  saveTripBatch,
+} from "./trip-companion-statements";
 
 const TRIP_NOT_FOUND = "Trip not found";
 const TRIP_LIMIT_MESSAGE = `You can keep ${MAX_TRIPS} trips. Delete one to add another.`;
@@ -40,23 +47,22 @@ export async function saveTrip(tripId: number | null, raw: unknown): Promise<Act
 
     const parsed = tripInputSchema.safeParse(raw);
     if (!parsed.success) throw new ActionError(parsed.error.issues[0]?.message ?? "Check the form");
-    const { name, description, startDate, endDate } = parsed.data;
+    const { name, description, startDate, endDate, companions } = parsed.data;
 
     const db = await getDb();
 
     if (tripId != null) {
       const id = requirePositiveId(tripId, TRIP_NOT_FOUND);
-      const [updated] = await db.all<{ id: number }>(sql`
-        UPDATE trips
-        SET name = ${name}, description = ${description ?? null},
-            start_date = ${startDate}, end_date = ${endDate},
-            -- Set here, not by the schema's \$onUpdate: that hook belongs to
-            -- the query builder, and this statement is raw SQL, so without
-            -- this line every edit would leave updated_at at creation time.
-            updated_at = cast(unixepoch('subsecond') * 1000 as integer)
-        WHERE id = ${id} AND user_id = ${user.id}
-        RETURNING id
-      `);
+      // Built rather than raw: D1's batch cannot bind a raw statement. The
+      // schema's $onUpdate moves updated_at.
+      const [[updated]] = await saveTripBatch(db, [
+        db
+          .update(trips)
+          .set({ name, description: description ?? null, startDate, endDate })
+          .where(and(eq(trips.id, id), eq(trips.userId, user.id)))
+          .returning({ id: trips.id }),
+        ...(companions ? buildTripCompanionReplacement(db, user.id, id, companions) : []),
+      ]);
       if (!updated) throw new ActionError(TRIP_NOT_FOUND);
 
       afterCommit(() => {
@@ -68,12 +74,29 @@ export async function saveTrip(tripId: number | null, raw: unknown): Promise<Act
 
     // The cap is a condition on the INSERT, not a prior COUNT, so two
     // concurrent creates cannot both observe room and both take it.
-    const [created] = await db.all<{ id: number }>(sql`
-      INSERT INTO trips (user_id, name, description, start_date, end_date)
-      SELECT ${user.id}, ${name}, ${description ?? null}, ${startDate}, ${endDate}
-      WHERE (SELECT COUNT(*) FROM trips WHERE user_id = ${user.id}) < ${MAX_TRIPS}
-      RETURNING id
-    `);
+    const now = sql`cast(unixepoch('subsecond') * 1000 as integer)`;
+    const [[created]] = await saveTripBatch(db, [
+      db
+        .insert(trips)
+        .select(
+          db
+            .select({
+              id: sql`NULL`.as("id"),
+              userId: sql`${user.id}`.as("user_id"),
+              name: sql`${name}`.as("name"),
+              description: sql`${description ?? null}`.as("description"),
+              notes: sql`NULL`.as("notes"),
+              startDate: sql`${startDate}`.as("start_date"),
+              endDate: sql`${endDate}`.as("end_date"),
+              createdAt: sql`${now}`.as("created_at"),
+              updatedAt: sql`${now}`.as("updated_at"),
+            })
+            .from(sql`(SELECT 1)`)
+            .where(sql`(SELECT COUNT(*) FROM trips WHERE user_id = ${user.id}) < ${MAX_TRIPS}`),
+        )
+        .returning({ id: trips.id }),
+      ...(companions?.length ? [buildTripCompanionInsert(db, user.id, companions, NEW_TRIP)] : []),
+    ]);
     if (!created) throw new ActionError(TRIP_LIMIT_MESSAGE);
 
     afterCommit(() => {

@@ -2,13 +2,15 @@ import { env } from "cloudflare:test";
 import { eq, sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { deleteTrip, saveTrip, saveTripNotes } from "@/actions";
+import { deleteTrip, removeMyTripTag, saveTrip, saveTripNotes } from "@/actions";
 import { createDb } from "@/db/client";
 import { getTripNotes, getTripsForUser } from "@/db/queries";
-import { trips } from "@/db/schema";
+import { tripCompanions, trips } from "@/db/schema";
+import { friendshipPair } from "@/lib/friendships";
 import { MAX_TRIP_NOTES, MAX_TRIPS } from "@/lib/trips";
 import {
   insertInBatches,
+  seedFixtureFriendship,
   seedFixtureTrip,
   seedFixtureTree,
   seedFixtureUser,
@@ -336,5 +338,182 @@ describe("writing trip notes", () => {
     expect((await saveTripNotes(id, NOTES)).ok).toBe(false);
 
     expect(await storedTripById(id)).toMatchObject({ notes: null });
+  });
+});
+
+describe("tagging friends on a trip", () => {
+  const UNAVAILABLE =
+    "A selected friend is no longer available for this trip. Refresh and update your tagged friends.";
+
+  function tagged(tripId: number) {
+    return db
+      .select({ userId: tripCompanions.userId, suppressed: tripCompanions.suppressed })
+      .from(tripCompanions)
+      .where(eq(tripCompanions.tripId, tripId))
+      .orderBy(tripCompanions.userId);
+  }
+
+  beforeEach(async () => {
+    for (const id of ["priya", "sam"]) {
+      await seedFixtureUser(db, { id, name: `Friend ${id}` });
+      await seedFixtureFriendship(db, "climber", id);
+    }
+    await seedFixtureUser(db, { id: "asked", name: "Not Yet A Friend" });
+    await seedFixtureFriendship(db, "climber", "asked", "pending");
+  });
+
+  it("tags the chosen friends on a new trip", async () => {
+    const result = await saveTrip(null, { ...BISHOP, companions: ["sam", "priya", "sam"] });
+    const id = result.ok ? result.value : 0;
+
+    expect(await tagged(id)).toEqual([
+      { userId: "priya", suppressed: false },
+      { userId: "sam", suppressed: false },
+    ]);
+    const [trip] = await getTripsForUser(db, "climber", "climber");
+    expect(trip.companions.map((friend) => friend.name)).toEqual(["Friend priya", "Friend sam"]);
+  });
+
+  it("replaces the tags it is sent, and leaves them alone when it is sent none", async () => {
+    const created = await saveTrip(null, { ...BISHOP, companions: ["sam"] });
+    const id = created.ok ? created.value : 0;
+
+    expect((await saveTrip(id, { ...BISHOP, companions: ["priya"] })).ok).toBe(true);
+    expect(await tagged(id)).toEqual([{ userId: "priya", suppressed: false }]);
+
+    // The trip dialog sends no selection unless the climber changed it.
+    expect((await saveTrip(id, { ...BISHOP, name: "Bishop, take two" })).ok).toBe(true);
+    expect(await tagged(id)).toEqual([{ userId: "priya", suppressed: false }]);
+
+    expect((await saveTrip(id, { ...BISHOP, companions: [] })).ok).toBe(true);
+    expect(await tagged(id)).toEqual([]);
+  });
+
+  it.each(["other", "asked", "climber", "nobody"])(
+    "refuses %s as a companion, and writes no trip",
+    async (friend) => {
+      const result = await saveTrip(null, { ...BISHOP, companions: ["sam", friend] });
+
+      expect(result).toMatchObject({ ok: false, error: UNAVAILABLE });
+      expect(await storedTrips()).toEqual([]);
+      expect(await db.select().from(tripCompanions)).toEqual([]);
+    },
+  );
+
+  it("refuses an edit that tags someone unavailable, and keeps the trip as it was", async () => {
+    const created = await saveTrip(null, { ...BISHOP, companions: ["sam"] });
+    const id = created.ok ? created.value : 0;
+
+    const result = await saveTrip(id, { ...BISHOP, name: "Renamed", companions: ["other"] });
+
+    expect(result).toMatchObject({ ok: false, error: UNAVAILABLE });
+    expect(await storedTripById(id)).toMatchObject({ name: "Bishop" });
+    expect(await tagged(id)).toEqual([{ userId: "sam", suppressed: false }]);
+  });
+
+  it("refuses more than ten friends and anything that is not a list of ids", async () => {
+    const eleven = Array.from({ length: 11 }, (_unused, index) => `friend-${index}`);
+
+    expect(await saveTrip(null, { ...BISHOP, companions: eleven })).toMatchObject({
+      ok: false,
+      error: "Choose at most 10 friends",
+    });
+    expect((await saveTrip(null, { ...BISHOP, companions: "sam" })).ok).toBe(false);
+    expect((await saveTrip(null, { ...BISHOP, companions: [""] })).ok).toBe(false);
+    expect(await storedTrips()).toEqual([]);
+  });
+
+  it("tags nothing when the trip limit refuses the trip", async () => {
+    await insertInBatches(
+      db,
+      Array.from({ length: MAX_TRIPS }, (_unused, index) => ({
+        userId: "climber",
+        name: `Trip ${index}`,
+        startDate: "2026-01-01",
+        endDate: "2026-01-02",
+      })),
+      20,
+      (chunk) => db.insert(trips).values(chunk),
+    );
+
+    const result = await saveTrip(null, { ...BISHOP, companions: ["sam"] });
+
+    expect(result.ok).toBe(false);
+    expect(await storedTrips()).toHaveLength(MAX_TRIPS);
+    // The last row this connection inserted is one of the climber's own trips,
+    // which is exactly where a stale insert id would have put the tag.
+    expect(await db.select().from(tripCompanions)).toEqual([]);
+  });
+
+  it("never touches the tags on another climber's trip", async () => {
+    await seedFixtureFriendship(db, "other", "sam");
+    const theirs = await seedFixtureTrip(db, {
+      userId: "other",
+      name: "Squamish",
+      startDate: "2026-05-01",
+      endDate: "2026-05-10",
+    });
+    const pair = friendshipPair("other", "sam");
+    await db.insert(tripCompanions).values({
+      tripId: theirs.id,
+      userId: "sam",
+      friendshipUserId: pair.userId,
+      friendshipFriendId: pair.friendId,
+    });
+
+    for (const companions of [[], ["priya"]]) {
+      expect(await saveTrip(theirs.id, { ...BISHOP, companions })).toMatchObject({ ok: false });
+      expect(await tagged(theirs.id)).toEqual([{ userId: "sam", suppressed: false }]);
+    }
+    expect(await storedTripById(theirs.id)).toMatchObject({ name: "Squamish" });
+  });
+
+  describe("removing your own tag", () => {
+    async function taggedTrip() {
+      const created = await saveTrip(null, { ...BISHOP, companions: ["sam", "priya"] });
+      return created.ok ? created.value : 0;
+    }
+
+    it("takes the friend off the trip and keeps them off", async () => {
+      const id = await taggedTrip();
+
+      identity.id = "sam";
+      expect((await removeMyTripTag(id)).ok).toBe(true);
+      expect(await tagged(id)).toEqual([
+        { userId: "priya", suppressed: false },
+        { userId: "sam", suppressed: true },
+      ]);
+
+      identity.id = "climber";
+      const [trip] = await getTripsForUser(db, "climber", "climber");
+      expect(trip.companions.map((friend) => friend.id)).toEqual(["priya"]);
+      expect(await saveTrip(id, { ...BISHOP, companions: ["sam", "priya"] })).toMatchObject({
+        ok: false,
+        error: UNAVAILABLE,
+      });
+      // Saving the rest of the selection still works.
+      expect((await saveTrip(id, { ...BISHOP, companions: ["priya"] })).ok).toBe(true);
+    });
+
+    it("refuses anyone who is not tagged, and a reader the journal is closed to", async () => {
+      const id = await taggedTrip();
+
+      identity.id = "other";
+      expect(await removeMyTripTag(id)).toMatchObject({
+        ok: false,
+        error: "This tag is no longer available",
+      });
+
+      await db.run(sql`UPDATE user SET journal_visibility = 'private' WHERE id = 'climber'`);
+      identity.id = "sam";
+      expect((await removeMyTripTag(id)).ok).toBe(false);
+
+      identity.id = null;
+      expect((await removeMyTripTag(id)).ok).toBe(false);
+      expect(await tagged(id)).toEqual([
+        { userId: "priya", suppressed: false },
+        { userId: "sam", suppressed: false },
+      ]);
+    });
   });
 });

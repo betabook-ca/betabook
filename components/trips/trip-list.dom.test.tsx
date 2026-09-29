@@ -30,6 +30,7 @@ const past: TripSummary = {
   sendCount: 9,
   dayCount: 7,
   hasNotes: 0,
+  companions: [],
 };
 const current: TripSummary = {
   id: 2,
@@ -41,6 +42,7 @@ const current: TripSummary = {
   sendCount: 3,
   dayCount: 4,
   hasNotes: 0,
+  companions: [],
 };
 const upcoming: TripSummary = {
   id: 3,
@@ -52,6 +54,7 @@ const upcoming: TripSummary = {
   sendCount: 0,
   dayCount: 0,
   hasNotes: 0,
+  companions: [],
 };
 
 beforeEach(() => {
@@ -120,6 +123,25 @@ it("leaves out the journal's counts for a reader the journal is not shared with"
   expect(card).toHaveTextContent("9 sends");
   expect(card).not.toHaveTextContent("entries");
   expect(card).not.toHaveTextContent("days logged");
+});
+
+it("names the friends tagged on a trip, each linked to their profile", () => {
+  const withFriends = {
+    ...past,
+    companions: [
+      { id: "sam", name: "Sam Okafor", image: null, isSelf: false },
+      { id: "priya", name: "Priya Nair", image: null, isSelf: false },
+    ],
+  };
+  render(<TripList trips={[withFriends, current]} userId="alex" today={TODAY} canEdit />);
+
+  const [tagged, untagged] = screen.getAllByRole("listitem");
+  expect(tagged).toHaveTextContent("With Sam Okafor, Priya Nair");
+  expect(within(tagged).getByRole("link", { name: "Sam Okafor" })).toHaveAttribute(
+    "href",
+    "/users/sam",
+  );
+  expect(untagged).not.toHaveTextContent("With");
 });
 
 it("badges only the trips whose status is worth saying, against the given day", () => {

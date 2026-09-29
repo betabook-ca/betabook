@@ -22,18 +22,24 @@ async function fetchFriends(query: string, signal: AbortSignal): Promise<Compani
   return data.friends;
 }
 
+const ENTRY_HELP =
+  "Anyone who can read this entry sees who you tagged. Tagging doesn’t log the climb for them or share the entry with them.";
+
 export function CompanionPicker({
   value,
   onChange,
   disabled = false,
   editing = false,
   fetcher = fetchFriends,
+  help = ENTRY_HELP,
 }: {
   value: CompanionOption[];
   onChange: (value: CompanionOption[]) => void;
   disabled?: boolean;
   editing?: boolean;
   fetcher?: LookupFetcher<CompanionOption>;
+  /** Who sees the tags and what tagging does not do, for what is tagged. */
+  help?: string;
 }) {
   const [query, setQuery] = useState("");
   const [cleared, setCleared] = useState(false);
@@ -59,8 +65,7 @@ export function CompanionPicker({
         label="Find a friend to tag"
         labelSuffix={
           <HelpTooltip label="About tagged friends">
-            Anyone who can read this entry sees who you tagged. Tagging doesn’t log the climb for
-            them or share the entry with them.
+            {help}
             {editing && " Changes replace all tags, including hidden ones."}
           </HelpTooltip>
         }

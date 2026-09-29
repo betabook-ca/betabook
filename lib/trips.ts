@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { formatDate } from "@/lib/format-date";
+import { MAX_JOURNAL_COMPANIONS } from "@/lib/journal-companions";
 import { isoDateSchema } from "@/lib/sends";
 
 /** Enough for "Bishop, March 2026" or "Spring road trip — Utah and Nevada"
@@ -17,6 +18,9 @@ export const MAX_TRIP_NOTES = 20_000;
  * so concurrent requests cannot race past it. */
 export const MAX_TRIPS = 200;
 
+const INVALID_FRIENDS = "Invalid friend selection";
+const TOO_MANY_FRIENDS = `Choose at most ${MAX_JOURNAL_COMPANIONS} friends`;
+
 export const tripInputSchema = z
   .object({
     name: z
@@ -31,6 +35,13 @@ export const tripInputSchema = z
       .optional(),
     startDate: isoDateSchema,
     endDate: isoDateSchema,
+    /** Friend ids. Left out, the trip keeps the tags it has. */
+    companions: z
+      .array(z.string().min(1, INVALID_FRIENDS).max(128, INVALID_FRIENDS), INVALID_FRIENDS)
+      .max(100, TOO_MANY_FRIENDS)
+      .transform((ids) => [...new Set(ids)])
+      .refine((ids) => ids.length <= MAX_JOURNAL_COMPANIONS, TOO_MANY_FRIENDS)
+      .optional(),
   })
   .superRefine((value, ctx) => {
     if (value.endDate < value.startDate)

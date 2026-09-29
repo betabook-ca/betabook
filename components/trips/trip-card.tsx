@@ -3,6 +3,7 @@
 import { Chip } from "@heroui/react";
 import type { ReactNode } from "react";
 
+import { CompanionList } from "@/components/journal/companion-list";
 import { TripStats } from "@/components/trips/trip-stats";
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
@@ -59,6 +60,8 @@ export function TripCard({
       {trip.description && (
         <p className="line-clamp-2 text-sm leading-relaxed">{trip.description}</p>
       )}
+
+      <CompanionList companions={trip.companions} />
 
       {/* Read through the same SQL the trip's own tabs use, so the card cannot
        * promise a number the page behind it contradicts. */}

@@ -4,8 +4,10 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { saveTrip } from "@/actions";
-import type { Trip } from "@/db/queries";
+import type { TripSummary } from "@/db/queries";
+import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import type { ActionResult } from "@/lib/action-result";
+import type { CompanionOption } from "@/lib/journal-companions";
 
 import { TripDialog } from "./trip-dialog";
 
@@ -15,17 +17,27 @@ const push = vi.fn<(href: string) => void>();
 const refresh = vi.fn<() => void>();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh }) }));
 
-const BISHOP: Trip = {
+const SAM = { id: "sam", name: "Sam Okafor", image: null };
+const PRIYA = { id: "priya", name: "Priya Nair", image: null };
+
+const BISHOP: TripSummary = {
   id: 7,
   name: "Bishop",
   description: "Buttermilks",
   startDate: "2026-03-10",
   endDate: "2026-03-20",
+  entryCount: 0,
+  sendCount: 0,
+  dayCount: 0,
+  hasNotes: 0,
+  companions: [],
 };
 
-function Example({ trip }: { trip?: Trip } = {}) {
+const friends = vi.fn<LookupFetcher<CompanionOption>>();
+
+function Example({ trip }: { trip?: TripSummary } = {}) {
   const state = useOverlayState({ defaultOpen: true });
-  return <TripDialog state={state} userId="alex" trip={trip} />;
+  return <TripDialog state={state} userId="alex" trip={trip} companionFetcher={friends} />;
 }
 
 /** The date pickers are segmented fields: each part is its own spinbutton,
@@ -40,6 +52,8 @@ async function typeDate(user: ReturnType<typeof userEvent.setup>, label: string,
 beforeEach(() => {
   vi.mocked(saveTrip).mockReset();
   vi.mocked(saveTrip).mockResolvedValue({ ok: true, value: 7 });
+  friends.mockReset();
+  friends.mockResolvedValue([SAM, PRIYA]);
   push.mockReset();
   refresh.mockReset();
 });
@@ -89,8 +103,49 @@ it("sends what was typed, then opens the trip it just created", async () => {
     description: "Buttermilks",
     startDate: "2026-03-10",
     endDate: "2026-03-20",
+    companions: [],
   });
   await waitFor(() => expect(push).toHaveBeenCalledWith("/users/alex/trips/7"));
+});
+
+it("sends the friends picked for a new trip", async () => {
+  const user = userEvent.setup();
+  render(<Example />);
+
+  await user.type(screen.getByRole("textbox", { name: /name/i }), "Bishop");
+  await user.type(screen.getByRole("combobox", { name: /friend/i }), "S");
+  await user.click(await screen.findByRole("option", { name: /Sam Okafor/ }));
+  await user.click(screen.getByRole("button", { name: "Create trip" }));
+
+  await waitFor(() => expect(saveTrip).toHaveBeenCalledTimes(1));
+  expect(saveTrip).toHaveBeenCalledWith(null, expect.objectContaining({ companions: ["sam"] }));
+});
+
+it("opens an edit on the friends already tagged, and sends them only once they change", async () => {
+  const user = userEvent.setup();
+  const tagged = { ...BISHOP, companions: [{ ...SAM, isSelf: false }] };
+  render(<Example trip={tagged} />);
+
+  expect(screen.getByRole("button", { name: "Remove friend Sam Okafor" })).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Save changes" }));
+  await waitFor(() => expect(saveTrip).toHaveBeenCalledTimes(1));
+  // No selection at all, so tags hidden from this list are not replaced.
+  expect(vi.mocked(saveTrip).mock.calls[0][1]).not.toHaveProperty("companions");
+});
+
+it("replaces the tags with the edited selection", async () => {
+  const user = userEvent.setup();
+  const tagged = { ...BISHOP, companions: [{ ...SAM, isSelf: false }] };
+  render(<Example trip={tagged} />);
+
+  await user.click(screen.getByRole("button", { name: "Remove friend Sam Okafor" }));
+  await user.type(screen.getByRole("combobox", { name: /friend/i }), "P");
+  await user.click(await screen.findByRole("option", { name: /Priya Nair/ }));
+  await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+  await waitFor(() => expect(saveTrip).toHaveBeenCalledTimes(1));
+  expect(saveTrip).toHaveBeenCalledWith(7, expect.objectContaining({ companions: ["priya"] }));
 });
 
 it("refuses a backwards range before asking the server, and says why", async () => {

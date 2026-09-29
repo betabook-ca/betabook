@@ -132,3 +132,7 @@ export const deleteTrip = fn<typeof Actions.deleteTrip>(async () => ({
   ok: true,
   value: undefined,
 }));
+export const removeMyTripTag = fn<typeof Actions.removeMyTripTag>(async () => ({
+  ok: true,
+  value: undefined,
+}));

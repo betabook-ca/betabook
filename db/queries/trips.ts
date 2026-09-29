@@ -1,8 +1,10 @@
 import { sql, type SQL } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
+import type { JournalCompanion } from "@/lib/journal-companions";
 
 import { journalVisibleSql } from "./content-access";
+import { tripCompanionsJsonSql } from "./trip-companions";
 
 export type Trip = {
   id: number;
@@ -28,7 +30,16 @@ export type TripSummary = Trip & {
   /** 1 when there are notes this reader may read, so a tab is not offered
    * that would open onto nothing. */
   hasNotes: number;
+  /** Friends tagged on the trip, empty for a reader the journal is not
+   * shared with. */
+  companions: JournalCompanion[];
 };
+
+type TripRow = Omit<TripSummary, "companions"> & { companions: string };
+
+function toTripSummary(row: TripRow): TripSummary {
+  return { ...row, companions: JSON.parse(row.companions) as JournalCompanion[] };
+}
 
 /** Which journal rows fall inside a trip, over an aliased `j` row and an
  * aliased `t` trip row. Every kind counts, `session` and `training` alike,
@@ -56,7 +67,8 @@ function tripCountsSql(viewerId: string): SQL {
     CASE WHEN ${journalVisible}
       THEN (SELECT COUNT(DISTINCT j.entry_date) FROM journal_entries j WHERE ${tripEntryRowsSql})
       END AS dayCount,
-    (t.notes IS NOT NULL AND ${journalVisible}) AS hasNotes
+    (t.notes IS NOT NULL AND ${journalVisible}) AS hasNotes,
+    ${tripCompanionsJsonSql(viewerId, sql`t.id`)} AS companions
   `;
 }
 
@@ -87,11 +99,12 @@ export async function getTripsForUser(
   userId: string,
   viewerId: string,
 ): Promise<TripSummary[]> {
-  return db.all<TripSummary>(sql`
+  const rows = await db.all<TripRow>(sql`
     SELECT ${tripColumnsSql}, ${tripCountsSql(viewerId)}
     ${tripRowsSql(userId, viewerId)}
     ORDER BY t.start_date DESC, t.id DESC
   `);
+  return rows.map(toTripSummary);
 }
 
 /** Scoped to `userId` in the WHERE rather than checked afterwards, so a
@@ -102,11 +115,11 @@ export async function getTripForUser(
   tripId: number,
   viewerId: string,
 ): Promise<TripSummary | null> {
-  const row = await db.get<TripSummary>(sql`
+  const row = await db.get<TripRow>(sql`
     SELECT ${tripColumnsSql}, ${tripCountsSql(viewerId)}
     ${tripRowsSql(userId, viewerId)} AND t.id = ${tripId}
   `);
-  return row ?? null;
+  return row ? toTripSummary(row) : null;
 }
 
 /** Read apart from `tripColumnsSql`: the list and every tab's header select

@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { cardClass } from "@/components/ui/card";
 import { StoryPage } from "@/stories/fixtures/story-layout";
-import { tripSamples } from "@/stories/fixtures/trips";
+import { tripSamples, tripWithFriends } from "@/stories/fixtures/trips";
 
 import { TripHeader } from "./trip-header";
 
@@ -41,6 +41,22 @@ export const Notes: Story = { args: { current: "notes" } };
 
 /** A single day reads as one date, and no description drops the line. */
 export const SingleDay: Story = { args: { trip: tripSamples[2] } };
+
+export const WithFriends: Story = { args: { trip: tripWithFriends } };
+
+/** One of the tagged friends reading the trip, who can take their own tag off. */
+export const TaggedFriend: Story = {
+  args: {
+    viewerId: "priya",
+    trip: {
+      ...tripWithFriends,
+      companions: tripWithFriends.companions.map((friend) => ({
+        ...friend,
+        isSelf: friend.id === "priya",
+      })),
+    },
+  },
+};
 
 /** Someone who can read the climber's journal. Notes appears because this
  * trip has some; without any, the tab would open onto nothing. */

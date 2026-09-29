@@ -3,7 +3,7 @@ import { mocked, userEvent, within } from "storybook/test";
 
 import { deleteTrip } from "@/actions";
 import { StoryPage } from "@/stories/fixtures/story-layout";
-import { TRIPS_TODAY, currentTrip, tripSamples } from "@/stories/fixtures/trips";
+import { TRIPS_TODAY, currentTrip, tripSamples, tripWithFriends } from "@/stories/fixtures/trips";
 
 import { TripList } from "./trip-list";
 
@@ -46,6 +46,15 @@ export const Empty: Story = {
       title="Trips"
       description="Before the first trip. The empty state carries the explanation, because nothing on the page demonstrates it yet — and the only New trip button, so there are never two on one screen."
     >
+      <TripList {...args} />
+    </StoryPage>
+  ),
+};
+
+export const WithFriends: Story = {
+  args: { trips: [tripSamples[0], tripWithFriends, tripSamples[2]] },
+  render: (args) => (
+    <StoryPage title="Trips">
       <TripList {...args} />
     </StoryPage>
   ),

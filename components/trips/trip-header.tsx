@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { TripCompanions } from "@/components/trips/trip-companions";
 import { TripTabs } from "@/components/trips/trip-tabs";
 import { AppLink } from "@/components/ui/app-link";
 import { SectionHeading } from "@/components/ui/typography";
@@ -45,6 +46,7 @@ export function TripHeader({
          * card, where no scoped figure competes with them. */}
         <p className="text-sm text-muted">{formatTripDates(trip.startDate, trip.endDate)}</p>
         {trip.description && <p className="text-sm leading-relaxed">{trip.description}</p>}
+        <TripCompanions tripId={trip.id} initialCompanions={trip.companions} />
       </div>
 
       <TripTabs
