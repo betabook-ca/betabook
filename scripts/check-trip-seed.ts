@@ -108,6 +108,8 @@ try {
         `${trip.name} names ${name}, which was not sent on it`,
       );
     }
+    // The page lists the sends under the notes, so the notes say the rest.
+    assert.ok(named.length < inside.length, `${trip.name}'s notes list its sends over again`);
     // A stop is one place and nothing else was sent during it. The road trip
     // is its stops together and nothing besides.
     const places = new Set(inside.map((send) => send.place));
@@ -126,14 +128,30 @@ try {
     } else assert.equal(places.size, 1, `${trip.name} has sends from ${places.size} places`);
   }
 
+  for (const subject of ["Getting there", "Where we stayed", "Food", "Next time", "Budget"]) {
+    assert.ok(
+      seeded.some((trip) => trip.notes?.split("\n").includes(`# ${subject}`)),
+      `some notes cover "${subject}"`,
+    );
+  }
   assert.ok(
-    seeded.some((trip) => /^# Sends$/m.test(trip.notes ?? "")),
-    "some notes use headings",
+    seeded.some((trip) => /^\| --- \|/m.test(trip.notes ?? "")),
+    "some notes carry a table",
   );
   assert.ok(
-    seeded.some((trip) => /https:\/\/example\.com\/albums\//.test(trip.notes ?? "")),
+    seeded.some((trip) => /^> /m.test(trip.notes ?? "")),
+    "some notes carry a quote",
+  );
+  assert.ok(
+    seeded.some((trip) => /^- \[x\] /m.test(trip.notes ?? "")),
+    "some notes carry a ticked task",
+  );
+  assert.ok(
+    seeded.some((trip) => /\]\(https:\/\/example\.com\/guides\//.test(trip.notes ?? "")),
     "some notes carry a link",
   );
+  // The album is the trip's own, so the notes do not link one as well.
+  assert.ok(!seeded.some((trip) => /^Photos: /m.test(trip.notes ?? "")));
 
   const tagged = tags();
   assert.ok(tagged.length > 0);

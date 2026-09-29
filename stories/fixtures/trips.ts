@@ -102,6 +102,11 @@ export const TRIP_NOTES = `Ten days in the **Buttermilks** and the *Happies* wit
 1. Camped at the Pit
 2. Water and showers in town
 
+# Next time
+
+- [ ] Go back for the sit start
+- [x] Book the same site
+
 > Bring more tape than you think you need.
 
-Photos: https://photos.app.goo.gl/abc123`;
+[Topo and approach notes](https://example.com/guides/bishop)`;

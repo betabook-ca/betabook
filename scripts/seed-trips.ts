@@ -7,6 +7,7 @@ type Climb = {
   name: string;
   type: "boulder" | "sport" | "trad";
   grade: number | null;
+  sector: string;
 };
 type Friend = { id: string };
 type Plan = {
@@ -52,6 +53,36 @@ const CONDITIONS = [
   "Hot by noon, so most of the climbing happened before ten and after five.",
 ];
 
+const STAYS = [
+  "Camped at the free site below the crag. No water there, so we filled up in town every second day.",
+  "Rented a cabin twenty minutes out. Worth it for the stove and somewhere to dry everything.",
+  "Slept in the van at the trailhead. Quiet after dark, busy by eight.",
+];
+
+const APPROACHES = [
+  "Twenty minutes uphill from the upper lot, which fills by nine on a weekend.",
+  "A flat walk along the river, then a scramble to the base that is awkward with pads.",
+  "Park at the gate and walk the forestry road. The left fork after the bridge is the quick way.",
+];
+
+const MEALS = [
+  "The bakery in town opens at six and has sold the good bread by eight.",
+  "Cooked at camp most nights. The one pub nearby stops serving food at eight.",
+  "Tacos from the truck by the gas station, twice.",
+];
+
+const BEST_TIMES = [
+  "Morning, before the sun comes round",
+  "Afternoon, once it has dried",
+  "Evening, in the shade",
+];
+
+const LESSONS = [
+  "Skin was the limit, not strength.",
+  "The rest day did more than any session.",
+  "Everything felt a grade easier before ten.",
+];
+
 const MONTHS = [
   "January",
   "February",
@@ -94,6 +125,19 @@ function describe(plan: Plan, place: Place): string | null {
 
 type Sent = { climb: Climb; day: number; style: "redpoint" | "flash" };
 
+/** The day off in the middle of a long trip, counted from nought. */
+function restDayOf(plan: Plan): number {
+  return plan.kind === "long" ? Math.floor(plan.days / 2) : -1;
+}
+
+function table(head: string[], rows: string[][]): string {
+  const line = (cells: string[]) => `| ${cells.join(" | ")} |`;
+  return [line(head), line(head.map(() => "---")), ...rows.map(line)].join("\n");
+}
+
+/** What the page cannot show. The sends are listed under the notes, so these
+ * name the few that mattered and say the rest: the way in, where to sleep,
+ * what it cost and what to do differently. */
 function writeNotes(
   plan: Plan,
   place: Place,
@@ -103,46 +147,102 @@ function writeNotes(
   stops: Place[],
 ): string | null {
   const slug = place.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  const pick = (pool: string[]) => pool[index % pool.length];
   if (plan.kind === "day") return null;
 
   if (plan.kind === "road") {
-    return ["# Stops", stops.map((stop, order) => `${order + 1}. ${stop.name}`).join("\n")].join(
-      "\n\n",
-    );
+    return [
+      `A month on the road and ${stops.length} stops.`,
+      "# Stops",
+      stops.map((stop, order) => `${order + 1}. ${stop.name}`).join("\n"),
+      "# Driving",
+      "About 1,400 km in all. The first day was the longest, and nothing after it was more than four hours.",
+      "# Budget",
+      table(
+        ["", "Planned", "Spent"],
+        [
+          ["Fuel", "$300", "$340"],
+          ["Camping", "$200", "$165"],
+          ["Food", "$450", "$520"],
+        ],
+      ),
+      "# Kit that earned its place",
+      "- The big water container\n- A second pad\n- Camp chairs",
+      "# Kit that stayed in the car",
+      "- The hangboard",
+    ].join("\n\n");
   }
 
   if (plan.kind === "upcoming") {
     return [
       "# Plan",
       "1. Drive up on the Friday night\n2. Easy climbing the first morning\n3. Save skin for the last two days",
+      "# To book",
+      "- [x] Campsite for the first four nights\n- [ ] Somewhere with a shower for the rest day\n- [ ] Time off work",
+      "# To pack",
+      "- [ ] New brushes\n- [ ] More tape than seems necessary\n- [ ] Stove fuel",
       "# Tick list",
       open.map((climb) => `- [ ] ${climb.name}`).join("\n"),
     ].join("\n\n");
   }
 
-  const sends = sent
+  // The last one sent and the first flash, and never the whole list.
+  const best = [...new Set([sent.at(-1), sent.find(({ style }) => style === "flash")])]
+    .filter((send) => send !== undefined)
+    .slice(0, Math.max(sent.length - 1, 0))
     .map(
       ({ climb, day, style }) =>
         `- **${climb.name}** on day ${day + 1}${style === "flash" ? ", flashed" : ""}`,
-    )
-    .join("\n");
+    );
+  const next = open[0];
 
   if (plan.kind === "weekend") {
-    return [`${sent.length} sends in ${plan.days} days at ${place.name}.`, sends].join("\n\n");
+    return [
+      `Drove up the night before and climbed ${plan.days} days at ${place.name}. ${pick(CONDITIONS)}`,
+      "# Logistics",
+      `- ${pick(STAYS)}\n- ${pick(APPROACHES)}`,
+      "# Best of it",
+      best.join("\n"),
+      "# Next time",
+      [
+        "- Leave earlier, to be asleep before midnight",
+        next && `- *${next.name}* looked good and had a queue`,
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    ].join("\n\n");
   }
 
-  const next = open[0];
+  const sectors = [...new Set(sent.map(({ climb }) => climb.sector))];
   return [
-    `Climbed ${plan.days - 1} of ${plan.days} days. ${CONDITIONS[index % CONDITIONS.length]}`,
-    "# Sends",
-    sends,
+    `Climbed ${plan.days - 1} of ${plan.days} days. ${pick(CONDITIONS)}`,
+    "# Getting there",
+    `Six hours' drive, split over two days. ${pick(APPROACHES)}`,
+    "# Where we stayed",
+    pick(STAYS),
+    "# When to climb where",
+    table(
+      ["Sector", "Best"],
+      sectors.map((sector, order) => [sector, BEST_TIMES[order % BEST_TIMES.length]]),
+    ),
+    "# Highlights",
+    [...best, "- The valley from the top of the crag on the last evening"].join("\n"),
+    "# Rest day",
+    `Day ${restDayOf(plan) + 1}. Walked the far sector to look at what to try next, then laundry in town.`,
+    "# Food",
+    pick(MEALS),
     "# What worked",
-    "- Short sessions early, before the wall came into the sun\n- A full rest day in the middle",
+    "- Short sessions early, before the wall came into the sun\n- A full rest day in the middle\n- Taping before the skin split",
     "# Next time",
-    next
-      ? `- *${next.name}* is still open\n- Bring more tape than seems necessary`
-      : "- Bring more tape than seems necessary",
-    `Photos: https://example.com/albums/${slug}`,
+    [
+      next && `- [ ] *${next.name}* is still open`,
+      "- [ ] Bring a second brush",
+      "- [x] Book the same place again",
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    `> ${pick(LESSONS)}`,
+    `[Topo and approach notes](https://example.com/guides/${slug})`,
   ].join("\n\n");
 }
 
@@ -171,7 +271,7 @@ export function seedTrips(db: DatabaseSync, viewerId: string): number {
   if (places.length === 0) return 0;
 
   const openClimbs = db.prepare(
-    "SELECT c.id, c.name, c.type, c.grade FROM climbs c WHERE (c.area_id = ? OR c.area_id IN (SELECT id FROM areas WHERE parent_id = ?)) AND c.broken_on IS NULL AND NOT EXISTS (SELECT 1 FROM sends s WHERE s.user_id = ? AND s.climb_id = c.id) AND NOT EXISTS (SELECT 1 FROM journal_entries j WHERE j.user_id = ? AND j.climb_id = c.id) ORDER BY c.id LIMIT ?",
+    "SELECT c.id, c.name, c.type, c.grade, a.name AS sector FROM climbs c JOIN areas a ON a.id = c.area_id WHERE (c.area_id = ? OR c.area_id IN (SELECT id FROM areas WHERE parent_id = ?)) AND c.broken_on IS NULL AND NOT EXISTS (SELECT 1 FROM sends s WHERE s.user_id = ? AND s.climb_id = c.id) AND NOT EXISTS (SELECT 1 FROM journal_entries j WHERE j.user_id = ? AND j.climb_id = c.id) ORDER BY c.id LIMIT ?",
   );
   const friendsOf = db.prepare(
     "SELECT u.id FROM friendships f JOIN user u ON u.id = CASE WHEN f.user_id = ? THEN f.friend_id ELSE f.user_id END WHERE (f.user_id = ? OR f.friend_id = ?) AND f.status = 'accepted' ORDER BY CAST(substr(u.email, 8) AS INTEGER), u.id LIMIT ?",
@@ -205,7 +305,7 @@ export function seedTrips(db: DatabaseSync, viewerId: string): number {
 
     let trip = findTrip.get(person.id, name) as { id: number } | undefined;
     if (!trip) {
-      // Three more than are sent, so the notes have something left to name.
+      // Three more than are sent, so the notes have something left to try.
       const climbs = openClimbs.all(
         place.id,
         place.id,
@@ -213,7 +313,7 @@ export function seedTrips(db: DatabaseSync, viewerId: string): number {
         person.id,
         plan.sends + 3,
       ) as Climb[];
-      const restDay = plan.kind === "long" ? Math.floor(plan.days / 2) : -1;
+      const restDay = restDayOf(plan);
       const climbingDays = Array.from({ length: plan.days }, (_, day) => day).filter(
         (day) => day !== restDay,
       );
