@@ -28,7 +28,7 @@ export function oneLine(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
-/** Code points, which is what SQLite's length() counts in migration 0053. A
+/** Code points, which is what SQLite's length() counts in migration 0051. A
  * string's own length counts an emoji twice, and would refuse a description
  * the migration had left in place. */
 function characters(value: string): number {

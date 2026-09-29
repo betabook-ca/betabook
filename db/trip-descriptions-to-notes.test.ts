@@ -4,7 +4,7 @@ import { beforeEach, expect, it } from "vitest";
 
 import { createDb } from "@/db/client";
 import { trips } from "@/db/schema";
-import migration from "@/drizzle/migrations/0053_trip_descriptions_to_notes.sql?raw";
+import migration from "@/drizzle/migrations/0051_trip_notes_friends_album.sql?raw";
 import { MAX_TRIP_DESCRIPTION } from "@/lib/trips";
 import { seedFixtureTrip, seedFixtureUser } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
@@ -13,7 +13,10 @@ const db = createDb(env.DB);
 const BISHOP = { userId: "owner", startDate: "2026-03-10", endDate: "2026-03-20" };
 const LONG = `Ten days in the Buttermilks.\n${"Camped at the Pit. ".repeat(10)}`;
 
+/** The migration's last statement, which is the one that moves descriptions. */
 const statement = migration
+  .split("--> statement-breakpoint")
+  .at(-1)!
   .split("\n")
   .filter((line) => !line.startsWith("--"))
   .join(" ")
@@ -82,5 +85,6 @@ it("overwrites no notes", async () => {
 });
 
 it("draws the line where the form does", () => {
+  expect(statement).toMatch(/^UPDATE trips SET notes = description/);
   expect(statement).toContain(`length(description) > ${MAX_TRIP_DESCRIPTION}`);
 });

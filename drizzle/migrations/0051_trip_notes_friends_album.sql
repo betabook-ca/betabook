@@ -1,3 +1,10 @@
+-- Both columns are added in place. Rebuilding `trips` to add a CHECK would
+-- drop the table, and that drop cascades into trip_share_links and deletes
+-- every link.
+ALTER TABLE `trips` ADD `notes` text CONSTRAINT "trips_notes" CHECK("notes" IS NULL OR length("notes") <= 50000);
+--> statement-breakpoint
+ALTER TABLE `trips` ADD `album_url` text CONSTRAINT "trips_album_url" CHECK("album_url" IS NULL OR length("album_url") <= 300);
+--> statement-breakpoint
 CREATE TABLE `trip_companions` (
 	`trip_id` integer NOT NULL,
 	`user_id` text NOT NULL,
@@ -53,3 +60,9 @@ WHEN NEW.user_id <> OLD.user_id
 BEGIN
   SELECT RAISE(ABORT, 'trip companion: trip owner cannot change');
 END;
+--> statement-breakpoint
+-- A description is one line of at most 160 characters (MAX_TRIP_DESCRIPTION).
+-- One written longer cannot be saved again from the trip form, so it becomes
+-- the trip's notes. `notes` is new above, so no trip has any to overwrite.
+UPDATE trips SET notes = description, description = NULL
+WHERE length(description) > 160 AND notes IS NULL;
