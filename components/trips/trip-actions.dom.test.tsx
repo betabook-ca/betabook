@@ -1,10 +1,12 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { deleteTrip, saveTrip } from "@/actions";
 import type { TripSummary } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
+import { watchOverlayKinds } from "@/test/overlay-kinds";
+import { stubViewport } from "@/test/viewport";
 
 import { TripActions } from "./trip-actions";
 
@@ -39,6 +41,8 @@ beforeEach(() => {
   refresh.mockReset();
 });
 
+afterEach(() => vi.unstubAllGlobals());
+
 async function choose(user: ReturnType<typeof userEvent.setup>, item: "Edit" | "Delete") {
   await user.click(screen.getByRole("button", { name: "Actions for Bishop, March 2026" }));
   await user.click(await screen.findByRole("menuitem", { name: item }));
@@ -66,6 +70,44 @@ it("opens the trip it belongs to for editing, and saves in place", async () => {
   );
   await waitFor(() => expect(refresh).toHaveBeenCalled());
   expect(push).not.toHaveBeenCalled();
+});
+
+it("opens as the desktop dialog at once and hands focus back to its menu", async () => {
+  stubViewport("desktop");
+  const user = userEvent.setup();
+  render(<TripActions trip={BISHOP} userId="alex" />);
+  const menu = screen.getByRole("button", { name: "Actions for Bishop, March 2026" });
+  const overlays = watchOverlayKinds();
+
+  await choose(user, "Edit");
+  const dialog = await screen.findByRole("dialog", { name: "Edit trip" });
+  expect(overlays.seen).toEqual(["modal"]);
+
+  await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  await waitFor(() => expect(menu).toHaveFocus());
+  overlays.stop();
+});
+
+it("opens on the trip as it now stands, however late the saved one arrives", async () => {
+  const user = userEvent.setup();
+  const { rerender } = render(<TripActions trip={BISHOP} userId="alex" />);
+
+  await choose(user, "Edit");
+  const name = await screen.findByRole("textbox", { name: /name/i });
+  await user.clear(name);
+  await user.type(name, "A draft nobody saved");
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+  // Longer than the dialog waits before it resets itself.
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  rerender(<TripActions trip={{ ...BISHOP, name: "Bishop", description: null }} userId="alex" />);
+
+  await user.click(screen.getByRole("button", { name: "Actions for Bishop" }));
+  await user.click(await screen.findByRole("menuitem", { name: "Edit" }));
+  expect(await screen.findByRole("textbox", { name: /name/i })).toHaveValue("Bishop");
+  expect(screen.getByRole("textbox", { name: /description/i })).toHaveValue("");
 });
 
 it("stays on the list after deleting a trip from it", async () => {

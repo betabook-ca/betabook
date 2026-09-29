@@ -62,6 +62,19 @@ export function TripDialog({
   const [companionsChanged, setCompanionsChanged] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [wasOpen, setWasOpen] = useState(state.isOpen);
+
+  // Every opening starts from the trip as it stands. Reset here, not by
+  // remounting: a dialog mounted already open renders before it knows the
+  // viewport, as the phone sheet, and has no focus to hand back on closing.
+  if (state.isOpen !== wasOpen) {
+    setWasOpen(state.isOpen);
+    if (state.isOpen) {
+      setDraft(draftFor(trip));
+      setCompanionsChanged(false);
+      setError(null);
+    }
+  }
 
   // Checked here as well as on the server so a backwards range is caught
   // before a round trip. The server still decides: this only shortens the
@@ -109,11 +122,6 @@ export function TripDialog({
       title={trip ? "Edit trip" : "New trip"}
       size="md"
       isPending={pending}
-      onClose={() => {
-        setDraft(draftFor(trip));
-        setCompanionsChanged(false);
-        setError(null);
-      }}
       footer={
         <div className="flex w-full flex-wrap justify-end gap-2">
           <Button variant="ghost" isDisabled={pending} onPress={state.close}>

@@ -42,7 +42,7 @@ export default async function TripNotesPage({ params }: TripPageParams) {
         journalVisible
       >
         <TripNotes tripId={trip.id} notes={notes} canEdit={viewerId === user.id}>
-          {notes && <Markdown className="max-w-[65ch]">{notes}</Markdown>}
+          {notes && <Markdown>{notes}</Markdown>}
         </TripNotes>
       </TripHeader>
     </ProfileHeader>

@@ -37,7 +37,7 @@ export const Visitor: Story = { args: { canEdit: false } };
 
 /** The editor is a dialog, which renders outside the canvas. */
 async function openEditor(canvasElement: HTMLElement) {
-  await userEvent.click(within(canvasElement).getByRole("button", { name: "Edit" }));
+  await userEvent.click(within(canvasElement).getByRole("button", { name: "Edit trip notes" }));
   return within(await within(canvasElement.ownerDocument.body).findByRole("dialog"));
 }
 

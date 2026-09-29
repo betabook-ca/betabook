@@ -30,10 +30,6 @@ export function TripActions({
   const router = useRouter();
   const editState = useOverlayState();
   const deleteState = useOverlayState();
-  // Bumped on every open and used as the dialog's key. The dialog resets its
-  // draft from the trip it was handed, on a timer after it closes, so without
-  // a fresh mount the next Edit would show what the last save replaced.
-  const [session, setSession] = useState(0);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -56,10 +52,8 @@ export function TripActions({
       <ActionsMenu
         ariaLabel={`Actions for ${trip.name}`}
         onAction={(key) => {
-          if (key === "edit") {
-            setSession((count) => count + 1);
-            editState.open();
-          } else {
+          if (key === "edit") editState.open();
+          else {
             setDeleteError(null);
             deleteState.open();
           }
@@ -70,7 +64,6 @@ export function TripActions({
       </ActionsMenu>
 
       <TripDialog
-        key={session}
         state={editState}
         userId={userId}
         trip={trip}

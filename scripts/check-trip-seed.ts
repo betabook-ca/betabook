@@ -100,10 +100,21 @@ try {
       );
     }
     // A stop is one place and nothing else was sent during it. The road trip
-    // is its stops together.
+    // is its stops together and nothing besides.
     const places = new Set(inside.map((send) => send.place));
-    if (trip.name === "Fall road trip") assert.ok(places.size > 1);
-    else assert.equal(places.size, 1, `${trip.name} has sends from ${places.size} places`);
+    if (trip.name === "Fall road trip") {
+      const stopPlaces = seeded
+        .filter((stop) => stop.email === trip.email && stop.id !== trip.id)
+        .filter((stop) => trip.start_date <= stop.start_date && stop.end_date <= trip.end_date)
+        .flatMap((stop) => sentInside.all(stop.id) as { place: number }[])
+        .map((send) => send.place);
+      assert.ok(places.size > 1);
+      assert.deepEqual(
+        [...places].toSorted((a, b) => a - b),
+        [...new Set(stopPlaces)].toSorted((a, b) => a - b),
+        `${trip.email}'s road trip has sends from outside its stops`,
+      );
+    } else assert.equal(places.size, 1, `${trip.name} has sends from ${places.size} places`);
   }
 
   assert.ok(

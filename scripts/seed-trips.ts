@@ -15,12 +15,13 @@ type Plan = {
 /** Ordinary history is scattered over every crag and year, so a window laid
  * over it catches a handful of unrelated climbs. Each plan brings its own
  * days at one place instead, dated after that history ends on 2026-09-01 so
- * nothing else falls inside. The road trip covers the three before it. */
+ * nothing else falls inside. The road trip covers the three before it, from
+ * the day after. */
 const PLANS: Plan[] = [
   { kind: "long", start: "2026-09-03", days: 9, sends: 8, friends: 2 },
   { kind: "weekend", start: "2026-09-17", days: 3, sends: 4, friends: 1 },
   { kind: "day", start: "2026-09-25", days: 1, sends: 2, friends: 0 },
-  { kind: "road", start: "2026-09-01", days: 30, sends: 0, friends: 0 },
+  { kind: "road", start: "2026-09-02", days: 29, sends: 0, friends: 0 },
   { kind: "upcoming", start: "2027-05-14", days: 8, sends: 0, friends: 2 },
 ];
 const STOPS = PLANS.filter((plan) => plan.sends > 0);

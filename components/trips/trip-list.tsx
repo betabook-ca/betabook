@@ -2,7 +2,6 @@
 
 import { Button, useOverlayState } from "@heroui/react";
 import { CirclePlus } from "lucide-react";
-import { useState } from "react";
 
 import { TripActions } from "@/components/trips/trip-actions";
 import { TripCard } from "@/components/trips/trip-card";
@@ -31,17 +30,9 @@ export function TripList({
   canEdit: boolean;
 }) {
   const createState = useOverlayState();
-  // A fresh mount per open, so a trip abandoned half-typed is not what the
-  // next New trip starts from.
-  const [session, setSession] = useState(0);
 
-  function openCreate() {
-    setSession((count) => count + 1);
-    createState.open();
-  }
-
-  const newTrip = (
-    <Button onPress={openCreate} className="self-end">
+  const newTrip = (className?: string) => (
+    <Button onPress={createState.open} className={className}>
       <CirclePlus className="size-4" />
       New trip
     </Button>
@@ -53,10 +44,10 @@ export function TripList({
       {/* One "New trip" on screen at a time: the empty state carries it while
        * there are no trips, and showing both put two identical buttons on the
        * same empty screen. */}
-      {canEdit && trips.length > 0 && newTrip}
+      {canEdit && trips.length > 0 && newTrip("self-end")}
 
       {trips.length > 0 ? null : canEdit ? (
-        <EmptyState message="No trips yet." cta={newTrip} />
+        <EmptyState message="No trips yet." cta={newTrip()} />
       ) : (
         <EmptyState message="No trips yet." />
       )}
@@ -75,7 +66,7 @@ export function TripList({
         </ul>
       )}
 
-      {canEdit && <TripDialog key={session} state={createState} userId={userId} />}
+      {canEdit && <TripDialog state={createState} userId={userId} />}
     </div>
   );
 }

@@ -42,20 +42,24 @@ export function TripHeader({
          * its only h1, and a second one here would give every trip detail page
          * two — which axe's default rules do not flag, so nothing else would
          * catch it. */}
+        {/* The menu sits beside the whole block, as on the card, so its height
+         * never sets the space under the name. */}
         <div className="flex min-w-0 items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <SectionHeading className="min-w-0 break-words">{trip.name}</SectionHeading>
-            <TripStatusChip trip={trip} today={today} />
+          <div className="flex min-w-0 flex-col gap-1">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <SectionHeading className="min-w-0 break-words">{trip.name}</SectionHeading>
+              <TripStatusChip trip={trip} today={today} />
+            </div>
+            {/* The dates and nothing else. A count here would describe the
+             * whole window while the Analytics tab counts one discipline, so
+             * the two would sit on the same screen disagreeing. Totals live on
+             * the list card, where no scoped figure competes with them. */}
+            <p className="text-sm text-muted">{formatTripDates(trip.startDate, trip.endDate)}</p>
+            {trip.description && <p className="text-sm leading-relaxed">{trip.description}</p>}
+            <TripCompanions tripId={trip.id} initialCompanions={trip.companions} />
           </div>
           {viewerId === userId && <TripActions trip={trip} userId={userId} leaveOnDelete />}
         </div>
-        {/* The dates and nothing else. A count here would describe the whole
-         * window while the Analytics tab counts one discipline, so the two
-         * would sit on the same screen disagreeing. Totals live on the list
-         * card, where no scoped figure competes with them. */}
-        <p className="text-sm text-muted">{formatTripDates(trip.startDate, trip.endDate)}</p>
-        {trip.description && <p className="text-sm leading-relaxed">{trip.description}</p>}
-        <TripCompanions tripId={trip.id} initialCompanions={trip.companions} />
       </div>
 
       <TripTabs

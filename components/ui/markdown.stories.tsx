@@ -9,7 +9,8 @@ import { Markdown } from "./markdown";
 const meta = {
   title: "Components/Data display/Markdown",
   component: Markdown,
-  args: { children: TRIP_NOTES },
+  // Straight under the story's own title, where the app nests it deeper.
+  args: { children: TRIP_NOTES, headingLevel: 2 },
   decorators: [
     (Story) => (
       <StoryPage title="Markdown">
@@ -51,7 +52,7 @@ export const UntrustedInput: Story = {
 export const EverythingElse: Story = {
   args: {
     children: [
-      "## Tick list",
+      "# Tick list",
       "- [x] Moon Slab\n- [ ] Evilution\n  - from the sit\n  - from the stand",
       "| Day | Area | Sends |\n| --- | --- | ---: |\n| 1 | Buttermilks | 3 |\n| 2 | Happies | 5 |",
       "Beta in `code`, ~~a plan we dropped~~, and a rule:",

@@ -5,6 +5,8 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { deleteTrip, saveTrip } from "@/actions";
 import type { TripSummary } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
+import { watchOverlayKinds } from "@/test/overlay-kinds";
+import { stubViewport } from "@/test/viewport";
 
 import { TripList } from "./trip-list";
 
@@ -63,7 +65,10 @@ beforeEach(() => {
   vi.mocked(saveTrip).mockReset();
   refresh.mockReset();
 });
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
 
 it("offers exactly one way to start a trip, wherever the list stands", () => {
   const { rerender } = render(<TripList trips={[]} userId="alex" today={TODAY} canEdit />);
@@ -71,6 +76,44 @@ it("offers exactly one way to start a trip, wherever the list stands", () => {
 
   rerender(<TripList trips={[past]} userId="alex" today={TODAY} canEdit />);
   expect(screen.getAllByRole("button", { name: /new trip/i })).toHaveLength(1);
+});
+
+it("leaves the empty list's button where an empty state centres it", () => {
+  const { rerender } = render(<TripList trips={[]} userId="alex" today={TODAY} canEdit />);
+  expect(screen.getByRole("button", { name: "New trip" })).not.toHaveClass("self-end");
+
+  rerender(<TripList trips={[past]} userId="alex" today={TODAY} canEdit />);
+  expect(screen.getByRole("button", { name: "New trip" })).toHaveClass("self-end");
+});
+
+it("opens a new trip as the desktop dialog at once and hands focus back", async () => {
+  stubViewport("desktop");
+  const user = userEvent.setup();
+  render(<TripList trips={[past]} userId="alex" today={TODAY} canEdit />);
+  const newTrip = screen.getByRole("button", { name: "New trip" });
+  const overlays = watchOverlayKinds();
+
+  await user.click(newTrip);
+  const dialog = await screen.findByRole("dialog", { name: "New trip" });
+  expect(overlays.seen).toEqual(["modal"]);
+
+  await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  await waitFor(() => expect(newTrip).toHaveFocus());
+  overlays.stop();
+});
+
+it("starts each new trip clean, not from one abandoned half-typed", async () => {
+  const user = userEvent.setup();
+  render(<TripList trips={[past]} userId="alex" today={TODAY} canEdit />);
+
+  await user.click(screen.getByRole("button", { name: "New trip" }));
+  await user.type(await screen.findByRole("textbox", { name: /name/i }), "Never mind");
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+  await user.click(screen.getByRole("button", { name: "New trip" }));
+  expect(await screen.findByRole("textbox", { name: /name/i })).toHaveValue("");
 });
 
 it("says there are no trips only while there are none, and nothing over a list", () => {

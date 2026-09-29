@@ -1,6 +1,7 @@
 "use client";
 
 import { Button, Label, TextArea, TextField, useOverlayState } from "@heroui/react";
+import { clsx } from "clsx";
 import { Pencil } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -23,6 +24,9 @@ const MarkdownPreview = dynamic(
   () => import("@/components/ui/markdown").then((module) => module.Markdown),
   { ssr: false, loading: () => <Skeleton className="h-24 w-full" /> },
 );
+
+/** The journal's reading measure, at the size the notes are set in. */
+const MEASURE_CLASS = "max-w-[65ch] text-sm";
 
 export function TripNotes({
   tripId,
@@ -69,13 +73,21 @@ export function TripNotes({
     <section aria-label="Trip notes" className="flex min-w-0 flex-col gap-3">
       <SectionHeading className="sr-only">Trip notes</SectionHeading>
       {notes && canEdit && (
-        <Button variant="ghost" size="sm" className="self-end" onPress={startEditing}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="self-end"
+          aria-label="Edit trip notes"
+          onPress={startEditing}
+        >
           <Pencil className="size-4" />
           Edit
         </Button>
       )}
       {notes ? (
-        <div className={cardClass("fluid", "bordered")}>{children}</div>
+        <div className={cardClass("fluid", "bordered")}>
+          <div className={MEASURE_CLASS}>{children}</div>
+        </div>
       ) : (
         <EmptyState
           message="No trip notes yet."
@@ -93,7 +105,7 @@ export function TripNotes({
       {canEdit && (
         <ResponsiveDialog
           state={editor}
-          title="Trip notes"
+          title="Edit trip notes"
           size="lg"
           presentation="fullscreen"
           isPending={pending}
@@ -118,41 +130,56 @@ export function TripNotes({
           }
         >
           <div className="flex flex-col gap-3">
-            {previewing ? (
-              <section
-                aria-label="Trip notes preview"
-                // The dialog body mutes its text; the page the notes land on does not.
-                className={`text-foreground ${cardClass("fluid", "bordered")}`}
+            {/* The preview lies over the field instead of replacing it, so the
+             * dialog keeps its height and the toggle stays under the pointer. */}
+            <div className="relative">
+              <div
+                aria-hidden={previewing || undefined}
+                className={clsx(previewing && "invisible")}
               >
-                {draft.trim() ? (
-                  <MarkdownPreview>{draft}</MarkdownPreview>
-                ) : (
-                  <p className="text-sm text-muted">Nothing to preview yet.</p>
-                )}
-              </section>
-            ) : (
-              <TextField
-                className="w-full"
-                value={draft}
-                onChange={setDraft}
-                maxLength={MAX_TRIP_NOTES}
-                isDisabled={pending}
-              >
-                <FieldHeader
-                  usage={{ used: draft.length, limit: MAX_TRIP_NOTES, unit: "characters" }}
+                <TextField
+                  className="w-full"
+                  value={draft}
+                  onChange={setDraft}
+                  maxLength={MAX_TRIP_NOTES}
+                  isDisabled={pending}
                 >
-                  <Label>Trip notes</Label>
-                  <HelpTooltip label="About trip notes">
-                    Uses your Journal and goals audience, like the entries inside the trip.
-                  </HelpTooltip>
-                </FieldHeader>
-                <TextArea
-                  rows={14}
-                  placeholder="Plans, conditions, what went, what to come back for…"
-                />
-                <FieldFeedback helper="Format with **bold**, *italic*, # headings and - lists. Links you paste become clickable." />
-              </TextField>
-            )}
+                  <FieldHeader
+                    usage={{ used: draft.length, limit: MAX_TRIP_NOTES, unit: "characters" }}
+                  >
+                    <Label>Trip notes</Label>
+                    <HelpTooltip label="About trip notes">
+                      Uses your Journal and goals audience, like the entries inside the trip.
+                    </HelpTooltip>
+                  </FieldHeader>
+                  <TextArea
+                    rows={14}
+                    placeholder="Plans, conditions, what went, what to come back for…"
+                  />
+                  <FieldFeedback helper="Format with **bold**, *italic*, # headings and - lists. Links you paste become clickable." />
+                </TextField>
+              </div>
+              {/* The scroll region needs a tab stop so keyboard users can scroll the preview. */}
+              {/* oxlint-disable jsx-a11y/no-noninteractive-tabindex */}
+              {previewing && (
+                <div
+                  role="region"
+                  aria-label="Trip notes preview"
+                  tabIndex={0}
+                  // The dialog body mutes its text; the page the notes land on does not.
+                  className={`absolute inset-0 overflow-y-auto text-foreground focus-visible:status-focused ${cardClass("fluid", "bordered")}`}
+                >
+                  <div className={MEASURE_CLASS}>
+                    {draft.trim() ? (
+                      <MarkdownPreview>{draft}</MarkdownPreview>
+                    ) : (
+                      <p className="text-muted">Nothing to preview yet.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+              {/* oxlint-enable jsx-a11y/no-noninteractive-tabindex */}
+            </div>
             {error && <InlineAlert>{error}</InlineAlert>}
           </div>
         </ResponsiveDialog>

@@ -4,7 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import TripAnalyticsPage from "@/app/users/[id]/trips/[tripId]/analytics/page";
 import TripNotesPage from "@/app/users/[id]/trips/[tripId]/notes/page";
-import TripJournalPage from "@/app/users/[id]/trips/[tripId]/page";
+import TripJournalPage, {
+  generateMetadata as tripPageMetadata,
+} from "@/app/users/[id]/trips/[tripId]/page";
 import TripSendsPage from "@/app/users/[id]/trips/[tripId]/sends/page";
 import { createDb } from "@/db/client";
 import {
@@ -168,6 +170,21 @@ describe("the window the page actually reads", () => {
     // undated one below is a real exclusion rather than an empty page.
     expect(payload).toContain("Sent it on the trip.");
     expect(payload).not.toContain("No date on this one.");
+  });
+});
+
+describe("what a trip's tab is called", () => {
+  it("names the climber before the trip, as their other pages do", async () => {
+    const trip = await seedTrip();
+    session.userId = STRANGER;
+
+    const metadata = await tripPageMetadata({
+      params: Promise.resolve({ id: OWNER, tripId: String(trip.id) }),
+      searchParams: Promise.resolve({}),
+    });
+
+    expect(metadata.title).toBe("Trip Owner · Bishop");
+    expect(metadata.robots).toEqual({ index: false });
   });
 });
 
