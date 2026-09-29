@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { expect, it, vi } from "vitest";
 
 import type { TripSummary } from "@/db/queries";
@@ -25,24 +26,16 @@ const BISHOP: TripSummary = {
   hasNotes: 0,
   companions: [],
 };
+const DATES = "dateFrom=2026-03-10&dateTo=2026-03-20";
 
 function header(
   trip: TripSummary,
   viewerId: string | null = "alex",
-  access: { journalVisible?: boolean; notesVisible?: boolean; share?: string } = {},
+  rest: Partial<ComponentProps<typeof TripHeader>> = {},
 ) {
   return (
-    <TripHeader
-      trip={trip}
-      userId="alex"
-      viewerId={viewerId}
-      today={TODAY}
-      current="sends"
-      journalVisible={access.journalVisible ?? true}
-      notesVisible={access.notesVisible ?? true}
-      share={access.share}
-    >
-      <p>The view.</p>
+    <TripHeader trip={trip} userId="alex" viewerId={viewerId} today={TODAY} {...rest}>
+      <p>The trip.</p>
     </TripHeader>
   );
 }
@@ -75,41 +68,69 @@ it("names the way back without reading out an arrow", () => {
   );
 });
 
-it("offers the notes to a friend the journal is closed to, and not the journal", () => {
-  render(header({ ...BISHOP, hasNotes: 1 }, "sam", { journalVisible: false, notesVisible: true }));
+it("offers no views to choose between: the trip is one page", () => {
+  render(header({ ...BISHOP, hasNotes: 1 }));
 
-  const views = screen.getByRole("navigation", { name: "Trip views" });
-  expect(views).toHaveTextContent("Trip notes");
-  expect(views).not.toHaveTextContent("Journal");
+  expect(screen.queryByRole("navigation", { name: "Trip views" })).not.toBeInTheDocument();
+  for (const pill of ["Journal", "Sends", "Trip notes"]) {
+    expect(screen.queryByRole("link", { name: pill })).not.toBeInTheDocument();
+  }
 });
 
-it("offers the journal without the notes to a member who is not a friend", () => {
-  render(header({ ...BISHOP, hasNotes: 0 }, "sam", { journalVisible: true, notesVisible: false }));
+it("counts what the trip holds, each count opening the Logbook under the trip's dates", () => {
+  render(header(BISHOP));
 
-  const views = screen.getByRole("navigation", { name: "Trip views" });
-  expect(views).toHaveTextContent("Journal");
-  expect(views).not.toHaveTextContent("Trip notes");
-});
-
-it("offers a friend no notes tab on a trip that has none, and the owner one to write in", () => {
-  const { rerender } = render(header(BISHOP, "sam"));
-  expect(screen.getByRole("navigation", { name: "Trip views" })).not.toHaveTextContent(
-    "Trip notes",
+  expect(screen.getByText("7", { exact: false })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "14 entries" })).toHaveAttribute(
+    "href",
+    `/users/alex/journal?${DATES}`,
   );
+  expect(screen.getByRole("link", { name: "9 sends" })).toHaveAttribute(
+    "href",
+    `/users/alex/sends?${DATES}`,
+  );
+  // The line holds counts alone, so it fits a phone without wrapping.
+  expect(screen.queryByRole("link", { name: "Analytics" })).not.toBeInTheDocument();
+});
 
-  rerender(header(BISHOP, "alex"));
-  expect(screen.getByRole("navigation", { name: "Trip views" })).toHaveTextContent("Trip notes");
+it("counts the sends alone for a reader the journal is not shared with", () => {
+  render(header({ ...BISHOP, entryCount: null, dayCount: null }, "sam"));
+
+  expect(screen.getByRole("link", { name: "9 sends" })).toBeVisible();
+  expect(document.body).not.toHaveTextContent(/entr|days logged/);
+});
+
+it("links no count that is nought, and counts nothing for a trip still to come", () => {
+  const { rerender } = render(header({ ...BISHOP, entryCount: 0, dayCount: 0, sendCount: 0 }));
+  expect(document.body).toHaveTextContent("0 entries");
+  expect(document.body).toHaveTextContent("0 sends");
+  expect(screen.queryByRole("link", { name: /entries|sends|Analytics/ })).not.toBeInTheDocument();
+
+  rerender(
+    header({
+      ...BISHOP,
+      startDate: "2026-10-01",
+      endDate: "2026-10-09",
+      entryCount: 0,
+      dayCount: 0,
+      sendCount: 0,
+    }),
+  );
+  expect(document.body).not.toHaveTextContent(/0 entries|0 sends|days logged/);
+});
+
+it("leads back to the trip from its analytics", () => {
+  render(header(BISHOP, "alex", { back: "trip" }));
+
+  expect(screen.getByRole("link", { name: "Back to trip" })).toHaveAttribute(
+    "href",
+    "/users/alex/trips/7",
+  );
 });
 
 it("is the same header for the signed-out holder of the profile link, less what they cannot open", () => {
   const token = "0123456789abcdef0123456789abcdef";
-  render(
-    header({ ...BISHOP, entryCount: null, dayCount: null }, null, {
-      journalVisible: false,
-      notesVisible: false,
-      share: token,
-    }),
-  );
+  render(header({ ...BISHOP, entryCount: null, dayCount: null }, null, { share: token }));
 
   expect(screen.getByRole("heading", { name: "Bishop, March 2026" })).toBeVisible();
   expect(screen.getByText("Buttermilks.")).toBeVisible();
@@ -117,7 +138,8 @@ it("is the same header for the signed-out holder of the profile link, less what 
     "href",
     `/users/alex/trips?share=${token}`,
   );
-  // The link opens one view of a trip, so there is nothing to choose between.
-  expect(screen.queryByRole("navigation", { name: "Trip views" })).not.toBeInTheDocument();
+  // The Logbook is behind sign-in, so the count is stated and not linked.
+  expect(document.body).toHaveTextContent("9 sends");
+  expect(screen.queryByRole("link", { name: /sends|Analytics/ })).not.toBeInTheDocument();
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
 });

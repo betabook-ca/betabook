@@ -12,16 +12,17 @@ export async function SendsView({
   viewerId,
   filter,
   basePath,
-  lockedDateRange = false,
+  bare = false,
   emptyWindow,
 }: {
   userId: string;
   viewerId: string;
   filter: UserSendsFilter;
   basePath: string;
-  lockedDateRange?: boolean;
-  /** Set when nothing is dated inside the locked dates: the line that says
-   * so, in place of filters with nothing to narrow. */
+  /** The list alone, under a heading of the page's own: no toolbar. A trip
+   * lists its sends this way and leaves filtering to the Sends tab. */
+  bare?: boolean;
+  /** Said when the list is empty, in place of the Sends tab's own words. */
   emptyWindow?: string;
 }) {
   const db = await getDb();
@@ -40,14 +41,9 @@ export async function SendsView({
   return (
     <NavigationPendingProvider>
       <div className="flex min-w-0 flex-col gap-4">
-        <SectionHeading className="sr-only">Sends</SectionHeading>
-        {hasSends && !emptyWindow && (
-          <UserSendsFilterToolbar
-            filter={filter}
-            basePath={basePath}
-            tags={tags}
-            lockedDateRange={lockedDateRange}
-          />
+        {!bare && <SectionHeading className="sr-only">Sends</SectionHeading>}
+        {!bare && hasSends && (
+          <UserSendsFilterToolbar filter={filter} basePath={basePath} tags={tags} />
         )}
         <UserSendList
           key={JSON.stringify(filter)}

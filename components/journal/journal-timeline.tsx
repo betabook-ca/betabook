@@ -20,8 +20,6 @@ type JournalTimelineProps = {
   initialAreaBreadcrumbs: AreaBreadcrumbs;
   isOwner: boolean;
   hasAnyEntries: boolean;
-  /** Said when nothing falls inside dates the reader did not choose. */
-  emptyMessage?: string;
 };
 
 const MONTH_FORMAT = new Intl.DateTimeFormat("en-US", {
@@ -42,7 +40,6 @@ export function JournalTimeline({
   initialAreaBreadcrumbs,
   isOwner,
   hasAnyEntries,
-  emptyMessage,
 }: JournalTimelineProps) {
   const { items, hasMore, meta, loadingMore, loadMoreFailed, loadMore } = usePagedList<
     JournalEntry,
@@ -60,7 +57,6 @@ export function JournalTimeline({
   });
 
   if (items.length === 0) {
-    if (emptyMessage) return <EmptyState message={emptyMessage} />;
     return (
       <EmptyState
         message={hasAnyEntries ? "No entries match these filters." : "No entries yet."}

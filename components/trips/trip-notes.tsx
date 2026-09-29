@@ -70,7 +70,7 @@ export function TripNotes({
 
   return (
     <section aria-label="Trip notes" className="flex min-w-0 flex-col gap-3">
-      <SectionHeading className="sr-only">Trip notes</SectionHeading>
+      <SectionHeading>Trip notes</SectionHeading>
       {notes ? (
         <div className={`flow-root ${cardClass("fluid", "bordered")}`}>
           {canEdit && (

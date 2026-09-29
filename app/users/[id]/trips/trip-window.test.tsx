@@ -3,11 +3,9 @@ import { sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import TripAnalyticsPage from "@/app/users/[id]/trips/[tripId]/analytics/page";
-import TripNotesPage from "@/app/users/[id]/trips/[tripId]/notes/page";
-import TripJournalPage, {
+import TripPage, {
   generateMetadata as tripPageMetadata,
 } from "@/app/users/[id]/trips/[tripId]/page";
-import TripSendsPage from "@/app/users/[id]/trips/[tripId]/sends/page";
 import { createDb } from "@/db/client";
 import {
   seedFixtureFriendship,
@@ -46,33 +44,51 @@ const OTHER_CLIMB = 2;
 
 const BISHOP = { startDate: "2026-03-10", endDate: "2026-03-20" };
 
-/** The entry bodies are the probe: an entry outside the window must not appear
- * in the rendered tree no matter what the URL asked for. */
-const INSIDE = "Inside the trip.";
-const BEFORE = "Long before the trip.";
-const AFTER = "Long after the trip.";
+/** The comments are the probe: a send outside the trip's dates must not
+ * appear in the rendered tree no matter what the URL asked for. */
+const INSIDE = "Sent inside the trip.";
+const BEFORE = "Sent long before the trip.";
+const AFTER = "Sent long after the trip.";
+const ENTRY = "A session inside the trip.";
+const NOTES = "Camped at the Pit.";
 
-async function seedTrip() {
-  const trip = await seedFixtureTrip(db, { userId: OWNER, name: "Bishop", ...BISHOP });
-  await seedFixtureJournalEntry(db, {
+async function seedTrip(extra: { notes?: string; albumUrl?: string } = {}) {
+  const trip = await seedFixtureTrip(db, { userId: OWNER, name: "Bishop", ...BISHOP, ...extra });
+  await seedFixtureSend(db, {
     userId: OWNER,
     climbId: CLIMB,
-    entryDate: "2026-03-15",
-    body: INSIDE,
+    dateSent: "2026-03-15",
+    comment: INSIDE,
+  });
+  // A climber sends a climb once, so each of these is a climb of its own.
+  await seedFixtureSend(db, {
+    userId: OWNER,
+    climbId: 3,
+    dateSent: "2020-01-01",
+    comment: BEFORE,
+  });
+  await seedFixtureSend(db, {
+    userId: OWNER,
+    climbId: 4,
+    dateSent: "2030-01-01",
+    comment: AFTER,
   });
   await seedFixtureJournalEntry(db, {
     userId: OWNER,
     climbId: CLIMB,
-    entryDate: "2020-01-01",
-    body: BEFORE,
-  });
-  await seedFixtureJournalEntry(db, {
-    userId: OWNER,
-    climbId: CLIMB,
-    entryDate: "2030-01-01",
-    body: AFTER,
+    entryDate: "2026-03-16",
+    body: ENTRY,
   });
   return trip;
+}
+
+async function seedFriend() {
+  await seedFixtureUser(db, { id: FRIEND, name: "Climbing Partner" });
+  await seedFixtureFriendship(db, OWNER, FRIEND);
+}
+
+function journalAudience(audience: "private" | "friends" | "public") {
+  return db.run(sql`UPDATE user SET journal_visibility = ${audience} WHERE id = ${OWNER}`);
 }
 
 type Element = { type?: unknown; props?: Record<string, unknown> };
@@ -81,7 +97,7 @@ type Element = { type?: unknown; props?: Record<string, unknown> };
  * so the assertions below run against the rows the view actually read rather
  * than against an unrendered element. Stops there: everything under it is a
  * client component whose hooks cannot run here, and its props already carry
- * the entries. */
+ * the rows. */
 async function resolveNestedView(node: unknown): Promise<unknown> {
   if (Array.isArray(node)) {
     for (const child of node) {
@@ -99,15 +115,16 @@ async function resolveNestedView(node: unknown): Promise<unknown> {
   return props && "children" in props ? resolveNestedView(props.children) : null;
 }
 
-async function renderJournal(tripId: number, search: Record<string, string | string[]> = {}) {
-  const tree = await TripJournalPage({
-    params: Promise.resolve({ id: OWNER, tripId: String(tripId) }),
-    searchParams: Promise.resolve(search),
-  });
-  const view = await resolveNestedView(tree);
-  // The page tree carries the trip and the filter; the resolved view carries
-  // the entries. Both matter, so both are in the string under assertion.
-  return JSON.stringify(tree) + JSON.stringify(view);
+const props = (tripId: number | string, search: Record<string, string | string[]> = {}) => ({
+  params: Promise.resolve({ id: OWNER, tripId: String(tripId) }),
+  searchParams: Promise.resolve(search),
+});
+
+async function renderTrip(tripId: number, search: Record<string, string | string[]> = {}) {
+  const tree = await TripPage(props(tripId, search));
+  // The page tree carries the trip, its notes and its album; the resolved
+  // view carries the sends. Both are in the string under assertion.
+  return JSON.stringify(tree) + JSON.stringify(await resolveNestedView(tree));
 }
 
 beforeEach(async () => {
@@ -118,48 +135,35 @@ beforeEach(async () => {
   await seedFixtureUser(db, { id: STRANGER, name: "Passing Climber" });
 });
 
-describe("the window the page actually reads", () => {
-  it("lists what falls inside the trip and nothing on either side", async () => {
+describe("the sends a trip lists", () => {
+  it("are those dated inside it and nothing on either side", async () => {
     const trip = await seedTrip();
 
-    const payload = await renderJournal(trip.id);
+    const payload = await renderTrip(trip.id);
     expect(payload).toContain(INSIDE);
     expect(payload).not.toContain(BEFORE);
     expect(payload).not.toContain(AFTER);
   });
 
-  it("cannot be widened by date parameters in the URL", async () => {
+  it("cannot be widened, narrowed or filtered by the URL, so the trip means one thing", async () => {
     const trip = await seedTrip();
 
-    // Every shape the date filter accepts, all of them asking for more than
-    // the trip covers. The trip's own dates have to win each time.
-    const payload = await renderJournal(trip.id, {
-      dateFrom: "1900-01-01",
-      dateTo: "2999-12-31",
-      datePreset: "this-year",
-      date: "2020-01-01",
-    });
-
-    expect(payload).toContain(INSIDE);
-    expect(payload).not.toContain(BEFORE);
-    expect(payload).not.toContain(AFTER);
+    const asked: Record<string, string>[] = [
+      { dateFrom: "1900-01-01", dateTo: "2999-12-31", datePreset: "this-year" },
+      { date: "2020-01-01" },
+      { dateFrom: "2026-03-18", dateTo: "2026-03-19" },
+      { name: "no such climb" },
+    ];
+    for (const search of asked) {
+      const payload = await renderTrip(trip.id, search);
+      expect(payload).toContain(INSIDE);
+      expect(payload).not.toContain(BEFORE);
+      expect(payload).not.toContain(AFTER);
+    }
   });
 
-  it("cannot be narrowed by date parameters either, so the trip means one thing", async () => {
+  it("leave out an undated send, which cannot be shown to fall inside", async () => {
     const trip = await seedTrip();
-
-    const payload = await renderJournal(trip.id, { dateFrom: "2026-03-18", dateTo: "2026-03-19" });
-    expect(payload).toContain(INSIDE);
-  });
-
-  it("lists the sends inside the window and leaves undated ones out", async () => {
-    const trip = await seedFixtureTrip(db, { userId: OWNER, name: "Bishop", ...BISHOP });
-    await seedFixtureSend(db, {
-      userId: OWNER,
-      climbId: CLIMB,
-      dateSent: "2026-03-15",
-      comment: "Sent it on the trip.",
-    });
     await seedFixtureSend(db, {
       userId: OWNER,
       climbId: OTHER_CLIMB,
@@ -167,69 +171,75 @@ describe("the window the page actually reads", () => {
       comment: "No date on this one.",
     });
 
-    const tree = await TripSendsPage({
-      params: Promise.resolve({ id: OWNER, tripId: String(trip.id) }),
-      searchParams: Promise.resolve({}),
-    });
-    const payload = JSON.stringify(tree) + JSON.stringify(await resolveNestedView(tree));
-
-    // The dated one proves the list rendered at all, so the absence of the
-    // undated one below is a real exclusion rather than an empty page.
-    expect(payload).toContain("Sent it on the trip.");
+    const payload = await renderTrip(trip.id);
+    expect(payload).toContain(INSIDE);
     expect(payload).not.toContain("No date on this one.");
+  });
+
+  it("come with no toolbar: the Sends tab is where a climber filters", async () => {
+    const trip = await seedTrip();
+
+    expect(await renderTrip(trip.id)).toContain('"bare":true');
   });
 });
 
-describe("a trip's shared album", () => {
-  const ALBUM = "https://photos.app.goo.gl/Example1Album2Link3";
-  const shown = `"link":"${ALBUM}"`;
+describe("what a trip's page holds", () => {
+  it("is one page: the album, the notes and the sends, with the journal a link away", async () => {
+    const album = "https://photos.app.goo.gl/Example1Album2Link3";
+    const trip = await seedTrip({ notes: NOTES, albumUrl: album });
 
-  async function seedTripWithAlbum() {
-    const trip = await seedFixtureTrip(db, {
-      userId: OWNER,
-      name: "Bishop",
-      albumUrl: ALBUM,
-      ...BISHOP,
-    });
-    await seedFixtureJournalEntry(db, {
-      userId: OWNER,
-      climbId: CLIMB,
-      entryDate: "2026-03-15",
-      body: INSIDE,
-    });
-    return trip;
-  }
-
-  it("is on the page a reader lands on, above the entries, for the owner and for any member", async () => {
-    const trip = await seedTripWithAlbum();
-
-    const asOwner = await renderJournal(trip.id);
-    expect(asOwner).toContain(shown);
-    expect(asOwner).toContain(INSIDE);
-    expect(asOwner.indexOf(shown)).toBeLessThan(asOwner.indexOf('"ownerId"'));
-
-    session.userId = STRANGER;
-    const asMember = await renderJournal(trip.id);
-    expect(asMember).toContain(shown);
-    expect(asMember).not.toContain(INSIDE);
+    const payload = await renderTrip(trip.id);
+    const at = (text: string) => payload.indexOf(text);
+    expect(at(`"link":"${album}"`)).toBeGreaterThan(-1);
+    expect(at(`"link":"${album}"`)).toBeLessThan(at(`"notes":"${NOTES}"`));
+    expect(at(`"notes":"${NOTES}"`)).toBeLessThan(at('"bare":true'));
+    // The entries are in the Journal, under the trip's dates.
+    expect(payload).not.toContain(ENTRY);
   });
 
-  it("is left off the trip's other tabs", async () => {
-    const trip = await seedTripWithAlbum();
+  it("links the trip's analytics beside its sends", async () => {
+    const trip = await seedTrip({ notes: NOTES });
 
-    for (const page of [TripSendsPage, TripAnalyticsPage, TripNotesPage]) {
-      const tree = await page({
-        params: Promise.resolve({ id: OWNER, tripId: String(trip.id) }),
-        searchParams: Promise.resolve({}),
-      });
-      expect(JSON.stringify(tree)).not.toContain(shown);
-    }
+    const payload = await renderTrip(trip.id);
+    const analytics = payload.indexOf(`"href":"/users/${OWNER}/trips/${trip.id}/analytics"`);
+    expect(analytics).toBeGreaterThan(payload.indexOf(`"notes":"${NOTES}"`));
+    expect(analytics).toBeLessThan(payload.indexOf('"bare":true'));
   });
 
-  it("is nowhere on a trip that has none", async () => {
+  it("has no album and no notes to show a trip that has neither, but its owner can write some", async () => {
     const trip = await seedTrip();
 
-    expect(await renderJournal(trip.id)).not.toContain('"link"');
+    const asOwner = await renderTrip(trip.id);
+    expect(asOwner).not.toContain('"link"');
+    expect(asOwner).toContain('"notes":null');
+    expect(asOwner).toContain('"canEdit":true');
+
+    await seedFriend();
+    session.userId = FRIEND;
+    expect(await renderTrip(trip.id)).not.toContain('"canEdit"');
+  });
+
+  it("says a trip with nothing sent has nothing sent, and lists nothing for one still to come", async () => {
+    const past = await seedFixtureTrip(db, {
+      userId: OWNER,
+      name: "Rained off",
+      startDate: "2026-02-01",
+      endDate: "2026-02-03",
+    });
+    const rainedOff = await renderTrip(past.id);
+    expect(rainedOff).toContain("No sends on this trip yet.");
+    // Nothing logged, so nothing to chart.
+    expect(rainedOff).not.toContain("/analytics");
+
+    const upcoming = await seedFixtureTrip(db, {
+      userId: OWNER,
+      name: "Squamish",
+      startDate: "2999-05-14",
+      endDate: "2999-05-21",
+    });
+    const payload = await renderTrip(upcoming.id);
+    expect(payload).not.toContain("No sends on this trip yet.");
+    expect(payload).not.toContain('"bare"');
   });
 });
 
@@ -238,131 +248,71 @@ describe("what a trip's tab is called", () => {
     const trip = await seedTrip();
     session.userId = STRANGER;
 
-    const metadata = await tripPageMetadata({
-      params: Promise.resolve({ id: OWNER, tripId: String(trip.id) }),
-      searchParams: Promise.resolve({}),
-    });
+    const metadata = await tripPageMetadata(props(trip.id));
 
     expect(metadata.title).toBe("Trip Owner · Bishop");
     expect(metadata.robots).toEqual({ index: false });
   });
 });
 
-describe("a trip with nothing dated inside it", () => {
-  const EMPTY = { startDate: "2027-05-14", endDate: "2027-05-21" };
-
-  async function renderPage(
-    page: typeof TripJournalPage,
-    tripId: number,
-    search: Record<string, string> = {},
-  ) {
-    const tree = await page({
-      params: Promise.resolve({ id: OWNER, tripId: String(tripId) }),
-      searchParams: Promise.resolve(search),
-    });
-    return JSON.stringify(tree) + JSON.stringify(await resolveNestedView(tree));
-  }
-
-  it("says so on every tab instead of blaming filters nobody set", async () => {
-    await seedTrip();
-    await seedFixtureSend(db, { userId: OWNER, climbId: CLIMB, dateSent: "2026-03-15" });
-    const upcoming = await seedFixtureTrip(db, { userId: OWNER, name: "Squamish", ...EMPTY });
-
-    const journal = await renderPage(TripJournalPage, upcoming.id);
-    expect(journal).toContain("No entries on this trip yet.");
-
-    const sends = await renderPage(TripSendsPage, upcoming.id);
-    expect(sends).toContain("No sends on this trip yet.");
-
-    const analytics = await renderPage(TripAnalyticsPage, upcoming.id);
-    expect(analytics).toContain("Nothing logged on this trip yet.");
-    expect(analytics).not.toContain("Nothing logged between");
-  });
-
-  it("keeps the filters' own words for a reader who filtered inside a trip", async () => {
-    const trip = await seedTrip();
-    await seedFixtureSend(db, { userId: OWNER, climbId: CLIMB, dateSent: "2026-03-15" });
-
-    const journal = await renderPage(TripJournalPage, trip.id, { q: "no such words" });
-    expect(journal).not.toContain(INSIDE);
-    expect(journal).not.toContain("on this trip yet");
-
-    const sends = await renderPage(TripSendsPage, trip.id, { name: "no such climb" });
-    expect(sends).not.toContain("on this trip yet");
-  });
-});
-
 describe("who can open a trip", () => {
-  const SENT = "Sent it on the trip.";
-
-  async function seedTripWithSend() {
-    const trip = await seedTrip();
-    await seedFixtureSend(db, {
-      userId: OWNER,
-      climbId: OTHER_CLIMB,
-      dateSent: "2026-03-16",
-      comment: SENT,
-    });
-    await seedFixtureUser(db, { id: FRIEND, name: "Climbing Partner" });
-    await seedFixtureFriendship(db, OWNER, FRIEND);
-    return trip;
-  }
-
-  it("shows a member the trip and its sends, and keeps the journal to its audience", async () => {
-    const trip = await seedTripWithSend();
+  it("shows a member the trip and its sends, and nothing of the notes", async () => {
+    const trip = await seedTrip({ notes: NOTES });
+    await journalAudience("public");
     session.userId = STRANGER;
 
-    const payload = await renderJournal(trip.id);
+    const payload = await renderTrip(trip.id);
     expect(payload).toContain("Bishop");
-    expect(payload).toContain(SENT);
-    expect(payload).not.toContain(INSIDE);
+    expect(payload).toContain(INSIDE);
+    expect(payload).not.toContain(NOTES);
+    expect(payload).not.toContain('"canEdit"');
     // Read as the member, not as the owner the route names.
     expect(payload).toContain(`"viewerId":"${STRANGER}"`);
   });
 
-  it("shows a friend the journal entries inside the trip and nothing outside it", async () => {
-    const trip = await seedTripWithSend();
-    session.userId = FRIEND;
+  it("shows a friend the notes, whatever the journal's audience, and only the owner may edit them", async () => {
+    const trip = await seedTrip({ notes: NOTES });
+    await seedFriend();
+    await journalAudience("private");
 
-    const payload = await renderJournal(trip.id);
+    expect(await renderTrip(trip.id)).toContain('"canEdit":true');
+
+    session.userId = FRIEND;
+    const payload = await renderTrip(trip.id);
+    expect(payload).toContain(`"notes":"${NOTES}"`);
+    expect(payload).toContain(`"children":"${NOTES}"`);
+    expect(payload).toContain('"canEdit":false');
     expect(payload).toContain(INSIDE);
-    expect(payload).not.toContain(BEFORE);
-    expect(payload).not.toContain(AFTER);
-    expect(payload).toContain(`"viewerId":"${FRIEND}"`);
   });
 
   it("refuses everyone else once the profile is private", async () => {
-    const trip = await seedTripWithSend();
+    const trip = await seedTrip();
+    await seedFriend();
     await db.run(sql`UPDATE user SET is_private = 1 WHERE id = ${OWNER}`);
 
     for (const viewer of [STRANGER, FRIEND]) {
       session.userId = viewer;
-      await expect(renderJournal(trip.id)).rejects.toThrow("NOT_FOUND");
+      await expect(renderTrip(trip.id)).rejects.toThrow("NOT_FOUND");
     }
     session.userId = OWNER;
-    expect(await renderJournal(trip.id)).toContain(INSIDE);
+    expect(await renderTrip(trip.id)).toContain(INSIDE);
   });
 
   it("refuses a trip id that is not this climber's", async () => {
     const theirs = await seedFixtureTrip(db, { userId: STRANGER, name: "Squamish", ...BISHOP });
 
-    await expect(renderJournal(theirs.id)).rejects.toThrow("NOT_FOUND");
+    await expect(renderTrip(theirs.id)).rejects.toThrow("NOT_FOUND");
   });
 
   it("refuses an id that was never a trip", async () => {
-    await expect(renderJournal(9999)).rejects.toThrow("NOT_FOUND");
+    await expect(renderTrip(9999)).rejects.toThrow("NOT_FOUND");
   });
 
   it("refuses a route parameter that is not an id at all", async () => {
     await seedTrip();
 
     for (const raw of ["abc", "-1", "0", "1.5", ""]) {
-      await expect(
-        TripJournalPage({
-          params: Promise.resolve({ id: OWNER, tripId: raw }),
-          searchParams: Promise.resolve({}),
-        }),
-      ).rejects.toThrow("NOT_FOUND");
+      await expect(TripPage(props(raw))).rejects.toThrow("NOT_FOUND");
     }
   });
 
@@ -383,138 +333,61 @@ describe("who can open a trip", () => {
     ];
     // The canonical spelling still resolves, so the loop below is not simply
     // refusing everything.
-    expect(await renderJournal(trip.id)).toContain(INSIDE);
+    expect(await renderTrip(trip.id)).toContain(INSIDE);
 
     for (const raw of aliases) {
-      await expect(
-        TripJournalPage({
-          params: Promise.resolve({ id: OWNER, tripId: raw }),
-          searchParams: Promise.resolve({}),
-        }),
-      ).rejects.toThrow("NOT_FOUND");
+      await expect(TripPage(props(raw))).rejects.toThrow("NOT_FOUND");
     }
   });
 
   it("shows a signed-out reader the sign-in callout rather than a 404", async () => {
-    const trip = await seedTrip();
+    const trip = await seedTrip({ notes: NOTES });
     session.userId = null;
 
-    const payload = await renderJournal(trip.id);
+    const payload = await renderTrip(trip.id);
     // Nothing about the climber or the trip is in the tree either way.
     expect(payload).not.toContain(INSIDE);
+    expect(payload).not.toContain(NOTES);
     expect(payload).not.toContain("Bishop");
-  });
-});
-
-describe("the trip's notes", () => {
-  const NOTES = "Camped at the Pit.";
-
-  async function renderNotes(tripId: number) {
-    const tree = await TripNotesPage({
-      params: Promise.resolve({ id: OWNER, tripId: String(tripId) }),
-      searchParams: Promise.resolve({}),
-    });
-    return JSON.stringify(tree);
-  }
-
-  it("hands the owner their notes, as source for the editor and as the page to read", async () => {
-    const trip = await seedFixtureTrip(db, {
-      userId: OWNER,
-      name: "Bishop",
-      notes: NOTES,
-      ...BISHOP,
-    });
-
-    const payload = await renderNotes(trip.id);
-    expect(payload).toContain(`"notes":"${NOTES}"`);
-    expect(payload).toContain(`"children":"${NOTES}"`);
-  });
-
-  function journalAudience(audience: "private" | "friends" | "public") {
-    return db.run(sql`UPDATE user SET journal_visibility = ${audience} WHERE id = ${OWNER}`);
-  }
-
-  it("lets a friend read the notes with the journal kept private, and only the owner edit them", async () => {
-    const trip = await seedFixtureTrip(db, {
-      userId: OWNER,
-      name: "Bishop",
-      notes: NOTES,
-      ...BISHOP,
-    });
-    await seedFixtureUser(db, { id: FRIEND, name: "Climbing Partner" });
-    await seedFixtureFriendship(db, OWNER, FRIEND);
-    await journalAudience("private");
-
-    expect(await renderNotes(trip.id)).toContain('"canEdit":true');
-
-    session.userId = FRIEND;
-    const payload = await renderNotes(trip.id);
-    expect(payload).toContain(`"children":"${NOTES}"`);
-    expect(payload).toContain('"canEdit":false');
-    // The journal's own tab stays with the journal's audience.
-    expect(payload).toContain('"journalVisible":false');
-    expect(payload).toContain('"notesVisible":true');
-  });
-
-  it("offers a friend the notes from the trip's other tabs too", async () => {
-    const trip = await seedFixtureTrip(db, {
-      userId: OWNER,
-      name: "Bishop",
-      notes: NOTES,
-      ...BISHOP,
-    });
-    await seedFixtureUser(db, { id: FRIEND, name: "Climbing Partner" });
-    await seedFixtureFriendship(db, OWNER, FRIEND);
-    await journalAudience("private");
-    session.userId = FRIEND;
-
-    for (const page of [TripJournalPage, TripSendsPage, TripAnalyticsPage]) {
-      const tree = await page({
-        params: Promise.resolve({ id: OWNER, tripId: String(trip.id) }),
-        searchParams: Promise.resolve({}),
-      });
-      expect(JSON.stringify(tree)).toContain('"notesVisible":true');
-    }
-  });
-
-  it("refuses a member who is not a friend, even one the journal is shared with", async () => {
-    const trip = await seedFixtureTrip(db, {
-      userId: OWNER,
-      name: "Bishop",
-      notes: NOTES,
-      ...BISHOP,
-    });
-    await journalAudience("public");
-
-    session.userId = STRANGER;
-    await expect(renderNotes(trip.id)).rejects.toThrow("NOT_FOUND");
-    const journal = await renderJournal(trip.id);
-    expect(journal).toContain('"journalVisible":true');
-    expect(journal).toContain('"notesVisible":false');
-    expect(journal).not.toContain(NOTES);
-
-    session.userId = null;
-    expect(await renderNotes(trip.id)).not.toContain(NOTES);
   });
 });
 
 describe("the trip's analytics", () => {
   it("never announces an eleven-day window as all-time", async () => {
     const trip = await seedTrip();
-    await seedFixtureSend(db, { userId: OWNER, climbId: CLIMB, dateSent: "2026-03-15" });
 
-    const tree = await TripAnalyticsPage({
-      params: Promise.resolve({ id: OWNER, tripId: String(trip.id) }),
-      searchParams: Promise.resolve({}),
-    });
-    const payload = JSON.stringify(tree);
+    const payload = JSON.stringify(await TripAnalyticsPage(props(trip.id)));
 
     expect(payload).toContain("Activity on this trip");
     expect(payload).not.toContain("All-time activity");
   });
 
+  it("leads back to the trip it is about, and carries none of its album or notes", async () => {
+    const album = "https://photos.app.goo.gl/Example1Album2Link3";
+    const trip = await seedTrip({ notes: NOTES, albumUrl: album });
+
+    const payload = JSON.stringify(await TripAnalyticsPage(props(trip.id)));
+
+    expect(payload).toContain('"back":"trip"');
+    expect(payload).not.toContain(`"link":"${album}"`);
+    expect(payload).not.toContain(NOTES);
+  });
+
+  it("says a trip with nothing logged has nothing logged", async () => {
+    const upcoming = await seedFixtureTrip(db, {
+      userId: OWNER,
+      name: "Squamish",
+      startDate: "2027-05-14",
+      endDate: "2027-05-21",
+    });
+
+    expect(JSON.stringify(await TripAnalyticsPage(props(upcoming.id)))).toContain(
+      "Nothing logged on this trip yet.",
+    );
+  });
+
   it("leaves a climber's hardest-ever send out of a trip that predates it", async () => {
-    const trip = await seedTrip();
+    const trip = await seedFixtureTrip(db, { userId: OWNER, name: "Bishop", ...BISHOP });
     // Far harder, and far outside the window.
     await seedFixtureSend(db, {
       userId: OWNER,
@@ -529,10 +402,7 @@ describe("the trip's analytics", () => {
       suggestedGrade: 2,
     });
 
-    const tree = await TripAnalyticsPage({
-      params: Promise.resolve({ id: OWNER, tripId: String(trip.id) }),
-      searchParams: Promise.resolve({}),
-    });
+    const tree = await TripAnalyticsPage(props(trip.id));
     const hardest = JSON.parse(JSON.stringify(tree)).props.children.props.children.props.analytics
       .hardest as { grade: number }[];
 

@@ -2,7 +2,12 @@ import type { DatabaseSync } from "node:sqlite";
 
 type Person = { id: string; email: string };
 type Place = { id: number; name: string };
-type Climb = { id: number; name: string; type: "boulder" | "sport" | "trad" };
+type Climb = {
+  id: number;
+  name: string;
+  type: "boulder" | "sport" | "trad";
+  grade: number | null;
+};
 type Friend = { id: string };
 type Plan = {
   kind: "long" | "weekend" | "day" | "road" | "upcoming";
@@ -166,7 +171,7 @@ export function seedTrips(db: DatabaseSync, viewerId: string): number {
   if (places.length === 0) return 0;
 
   const openClimbs = db.prepare(
-    "SELECT c.id, c.name, c.type FROM climbs c WHERE (c.area_id = ? OR c.area_id IN (SELECT id FROM areas WHERE parent_id = ?)) AND c.broken_on IS NULL AND NOT EXISTS (SELECT 1 FROM sends s WHERE s.user_id = ? AND s.climb_id = c.id) AND NOT EXISTS (SELECT 1 FROM journal_entries j WHERE j.user_id = ? AND j.climb_id = c.id) ORDER BY c.id LIMIT ?",
+    "SELECT c.id, c.name, c.type, c.grade FROM climbs c WHERE (c.area_id = ? OR c.area_id IN (SELECT id FROM areas WHERE parent_id = ?)) AND c.broken_on IS NULL AND NOT EXISTS (SELECT 1 FROM sends s WHERE s.user_id = ? AND s.climb_id = c.id) AND NOT EXISTS (SELECT 1 FROM journal_entries j WHERE j.user_id = ? AND j.climb_id = c.id) ORDER BY c.id LIMIT ?",
   );
   const friendsOf = db.prepare(
     "SELECT u.id FROM friendships f JOIN user u ON u.id = CASE WHEN f.user_id = ? THEN f.friend_id ELSE f.user_id END WHERE (f.user_id = ? OR f.friend_id = ?) AND f.status = 'accepted' ORDER BY CAST(substr(u.email, 8) AS INTEGER), u.id LIMIT ?",
@@ -176,7 +181,7 @@ export function seedTrips(db: DatabaseSync, viewerId: string): number {
     "INSERT INTO trips (user_id, name, description, notes, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?) RETURNING id",
   );
   const insertSend = db.prepare(
-    "INSERT INTO sends (user_id, climb_id, ascent_style, date_sent, rating, comment) VALUES (?, ?, ?, ?, ?, ?)",
+    "INSERT INTO sends (user_id, climb_id, ascent_style, date_sent, rating, suggested_grade, grade_feel, comment) VALUES (?, ?, ?, ?, ?, ?, 'solid', ?)",
   );
   const insertEntry = db.prepare(
     "INSERT INTO journal_entries (user_id, climb_id, kind, sent, is_ascent, entry_date, body) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -233,7 +238,16 @@ export function seedTrips(db: DatabaseSync, viewerId: string): number {
           );
         }
         const comment = SEND_COMMENTS[(index + order) % SEND_COMMENTS.length];
-        insertSend.run(person.id, climb.id, style, date, 3 + ((index + order) % 3), comment);
+        insertSend.run(
+          person.id,
+          climb.id,
+          style,
+          date,
+          3 + ((index + order) % 3),
+          // Analytics charts the grade a climber gave their send.
+          climb.grade,
+          comment,
+        );
         insertEntry.run(person.id, climb.id, "session", 1, 1, date, comment);
       }
       if (restDay >= 0) {

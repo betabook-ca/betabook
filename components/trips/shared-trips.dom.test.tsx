@@ -78,7 +78,9 @@ it("shows a trip under the header a member sees, with the sends inside it", () =
     `/users/owner-1/trips?share=${TOKEN}`,
   );
 
-  expect(screen.getByRole("heading", { name: "Sends" })).toHaveClass("sr-only");
+  // Named on the page, as the signed-in trip names them: no tab does.
+  expect(screen.getByRole("heading", { name: "Sends" })).not.toHaveClass("sr-only");
+  expect(document.body).toHaveTextContent("3 sends");
   const rows = within(screen.getByRole("list")).getAllByRole("listitem");
   // A row links its climb first, then where it is.
   expect(rows.map((row) => within(row).getAllByRole("link")[0].textContent)).toEqual([
@@ -92,9 +94,9 @@ it("shows a trip under the header a member sees, with the sends inside it", () =
 it("offers nothing a signed-out reader cannot open", () => {
   render(trip());
 
-  // One view, so no pills to choose between; no menu, no tags, no journal.
-  expect(screen.queryByRole("navigation", { name: "Trip views" })).not.toBeInTheDocument();
+  // No menu, no tags, no journal, and no count that opens the Logbook.
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: /sends$|Analytics/ })).not.toBeInTheDocument();
   expect(document.body).not.toHaveTextContent(/entr|days logged|With /);
   // The invitation is the frame's; the trip closes with the one prompt.
   expect(screen.queryByRole("link", { name: "Sign up" })).not.toBeInTheDocument();

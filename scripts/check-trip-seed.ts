@@ -74,6 +74,10 @@ try {
   const sentInside = db.prepare(
     "SELECT c.name, COALESCE(a.parent_id, a.id) AS place FROM sends s JOIN trips t ON t.id = ? JOIN climbs c ON c.id = s.climb_id JOIN areas a ON a.id = c.area_id WHERE s.user_id = t.user_id AND s.date_sent BETWEEN t.start_date AND t.end_date",
   );
+  // Analytics charts the grade a climber gave their send.
+  const uncharted = db.prepare(
+    "SELECT count(*) AS n FROM sends s JOIN trips t ON t.id = ? JOIN climbs c ON c.id = s.climb_id WHERE s.user_id = t.user_id AND s.date_sent BETWEEN t.start_date AND t.end_date AND c.grade IS NOT NULL AND s.suggested_grade IS NULL",
+  );
   const entriesInside = db.prepare(
     "SELECT count(*) AS n FROM journal_entries j JOIN trips t ON t.id = ? WHERE j.user_id = t.user_id AND j.entry_date BETWEEN t.start_date AND t.end_date",
   );
@@ -89,6 +93,11 @@ try {
     }
 
     assert.ok(inside.length >= 2, `${trip.name} has sends inside its dates`);
+    assert.equal(
+      (uncharted.get(trip.id) as { n: number }).n,
+      0,
+      `${trip.name} has sends its analytics cannot chart`,
+    );
     assert.ok(
       (entriesInside.get(trip.id) as { n: number }).n >= inside.length,
       `${trip.name} has the sessions behind its sends`,

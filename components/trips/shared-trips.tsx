@@ -35,19 +35,10 @@ export function SharedTrip({
   photos?: ReactNode;
 }) {
   return (
-    <TripHeader
-      trip={trip}
-      userId={owner.id}
-      viewerId={null}
-      today={today}
-      current="sends"
-      journalVisible={false}
-      notesVisible={false}
-      share={owner.token}
-    >
+    <TripHeader trip={trip} userId={owner.id} viewerId={null} today={today} share={owner.token}>
       {photos}
-      <div className="flex min-w-0 flex-col gap-4">
-        <SectionHeading className="sr-only">Sends</SectionHeading>
+      <section aria-label="Sends" className="flex min-w-0 flex-col gap-3">
+        <SectionHeading>Sends</SectionHeading>
         {sends.length < trip.sendCount && (
           <p className="text-sm text-muted">
             Showing the {sends.length} most recent of {formatCount(trip.sendCount, "send")}.
@@ -71,7 +62,7 @@ export function SharedTrip({
           shown: sends.length,
           next: path,
         })}
-      </div>
+      </section>
     </TripHeader>
   );
 }

@@ -13,9 +13,7 @@ import UserJournalPage from "@/app/users/[id]/journal/page";
 import UserPage, { generateMetadata as userMetadata } from "@/app/users/[id]/page";
 import UserSendsPage from "@/app/users/[id]/sends/page";
 import TripAnalyticsPage from "@/app/users/[id]/trips/[tripId]/analytics/page";
-import TripNotesPage from "@/app/users/[id]/trips/[tripId]/notes/page";
 import TripPage, { generateMetadata as tripMetadata } from "@/app/users/[id]/trips/[tripId]/page";
-import TripSendsPage from "@/app/users/[id]/trips/[tripId]/sends/page";
 import UserTripsPage, { generateMetadata as tripsMetadata } from "@/app/users/[id]/trips/page";
 import { createDb } from "@/db/client";
 import { getProfileShareToken } from "@/db/queries";
@@ -380,16 +378,14 @@ it("shows a trip's send commentary through the link only when it is set to Every
   expect(JSON.stringify(await TripPage(props()))).toContain("Commentary sentinel");
 });
 
-it("keeps a trip's other views locked with a current share link", async () => {
+it("keeps a trip's analytics locked with a current share link", async () => {
   const { token, trip } = await seedSharedTrip();
 
-  for (const SubPage of [TripSendsPage, TripAnalyticsPage, TripNotesPage]) {
-    const page = await SubPage(tripProps("hidden", trip.id, token));
-    expect(renderToStaticMarkup(page)).toContain("For Betabook members");
-    const payload = JSON.stringify(page);
-    expect(payload).not.toContain("Trip sentinel");
-    expect(payload).not.toContain("Preview climb");
-  }
+  const page = await TripAnalyticsPage(tripProps("hidden", trip.id, token));
+  expect(renderToStaticMarkup(page)).toContain("For Betabook members");
+  const payload = JSON.stringify(page);
+  expect(payload).not.toContain("Trip sentinel");
+  expect(payload).not.toContain("Preview climb");
 });
 
 it("shows no trip through unknown, mismatched, reset or private links", async () => {

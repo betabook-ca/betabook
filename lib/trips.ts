@@ -94,16 +94,24 @@ export function tripsHref(userId: string): string {
   return `/users/${userId}/trips`;
 }
 
-/** Each tab is a path segment rather than a query parameter, so it is its own
- * route with its own metadata and its own entry in history — the same shape
- * Projects uses for Open and Sent. */
-export type TripTab = "journal" | "sends" | "analytics" | "notes";
+export function tripHref(userId: string, tripId: number): string {
+  return `/users/${userId}/trips/${tripId}`;
+}
 
-export function tripHref(userId: string, tripId: number, tab: TripTab = "journal"): string {
-  const base = `/users/${userId}/trips/${tripId}`;
-  // Journal is the trip's own page rather than a child, so a trip link and
-  // its first tab are one URL instead of two that render the same thing.
-  return tab === "journal" ? base : `${base}/${tab}`;
+export function tripAnalyticsHref(userId: string, tripId: number): string {
+  return `${tripHref(userId, tripId)}/analytics`;
+}
+
+/** The Journal or Sends under the trip's dates, as the date filter each
+ * already has. A trip lists its sends and links the rest, so filtering stays
+ * where a climber already does it. */
+export function tripLogbookHref(
+  userId: string,
+  page: "journal" | "sends",
+  trip: { startDate: string; endDate: string },
+): string {
+  const dates = new URLSearchParams({ dateFrom: trip.startDate, dateTo: trip.endDate });
+  return `/users/${userId}/${page}?${dates}`;
 }
 
 export type TripStatus = "upcoming" | "current" | "past";

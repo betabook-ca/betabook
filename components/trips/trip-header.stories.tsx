@@ -14,12 +14,9 @@ const meta = {
     userId: "alex",
     viewerId: "alex",
     today: TRIPS_TODAY,
-    current: "journal",
-    journalVisible: true,
-    notesVisible: true,
     children: (
       <div className={cardClass("fluid")}>
-        <p className="text-sm text-muted">The current tab's view sits here.</p>
+        <p className="text-sm text-muted">The trip's album, notes and sends sit here.</p>
       </div>
     ),
   },
@@ -34,16 +31,14 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** The trip's own page: the way back, the dates every tab derives from, and
- * its views as pills. */
-export const Journal: Story = {};
-export const Sends: Story = { args: { current: "sends" } };
-export const Analytics: Story = { args: { current: "analytics" } };
-export const Notes: Story = { args: { current: "notes" } };
+/** The trip's own page, as its owner: the way back, what it holds, and each
+ * count opening the Journal or Sends under the trip's dates. */
+export const Owner: Story = {};
 
 /** A single day reads as one date, and no description drops the line. */
 export const SingleDay: Story = { args: { trip: tripSamples[2] } };
 
+/** Still to come, so there is nothing to count yet. */
 export const Upcoming: Story = { args: { trip: tripSamples[0] } };
 export const OnNow: Story = { args: { trip: currentTrip } };
 
@@ -63,37 +58,21 @@ export const TaggedFriend: Story = {
   },
 };
 
-/** A friend the journal is shared with. Notes appears because this trip has
- * some; without any, the tab would open onto nothing. */
-export const JournalReader: Story = {
-  args: { viewerId: "sam", trip: { ...tripSamples[1], hasNotes: 1 } },
-};
-
-/** A friend of a climber who keeps their journal to themselves: the notes,
- * and no Journal or journal counts. */
-export const FriendWithoutJournal: Story = {
-  args: {
-    viewerId: "sam",
-    current: "sends",
-    journalVisible: false,
-    trip: { ...tripSamples[1], entryCount: null, dayCount: null, hasNotes: 1 },
-  },
-};
-
-/** A member who is not a friend, reading a journal shared with Members: the
- * Journal, and no notes. */
-export const MemberWithJournal: Story = {
-  args: { viewerId: "sam", notesVisible: false },
-};
-
-/** Someone who can see the climber's sends and nothing else: the trip opens
- * on its sends, with no Journal or Notes and no journal counts. */
+/** Someone who can see the climber's sends but not their journal: no journal
+ * counts and no tagged friends. */
 export const SendsOnly: Story = {
+  args: { viewerId: "sam", trip: { ...tripSamples[1], entryCount: null, dayCount: null } },
+};
+
+/** Signed out, holding the climber's profile link: the counts are stated and
+ * not linked, since the Logbook is behind sign-in. */
+export const SignedOut: Story = {
   args: {
-    viewerId: "sam",
-    current: "sends",
-    journalVisible: false,
-    notesVisible: false,
+    viewerId: null,
+    share: "4f9c2a7e1b8d6035c9e4a1f7b2d80e36",
     trip: { ...tripSamples[1], entryCount: null, dayCount: null },
   },
 };
+
+/** Over the trip's analytics, which lead back to the trip. */
+export const OverAnalytics: Story = { args: { back: "trip" } };

@@ -17,7 +17,7 @@ import { getJournalSessionsForAnalytics, getUserSendsForAnalytics } from "@/db/q
 import { getAnalyticsHighlightSessions } from "@/db/queries/analytics-highlights";
 import { getAnalyticsLayout } from "@/db/queries/analytics-layout";
 import { buildAnalyticsHighlights } from "@/lib/analytics-highlights";
-import { tripHref } from "@/lib/trips";
+import { tripAnalyticsHref } from "@/lib/trips";
 import {
   buildUserAnalytics,
   inDateWindow,
@@ -51,7 +51,7 @@ export default async function TripAnalyticsPage({ params, searchParams }: TripPa
   const resolved = await resolveTripPage(id, tripId);
   if (!resolved.signedIn) return <CurrentPageAuthCallout />;
   if (!resolved.ok) notFound();
-  const { trip, user, viewerId, today, journalVisible, notesVisible } = resolved;
+  const { trip, user, viewerId, today, journalVisible } = resolved;
 
   const db = await getDb();
   const [allSends, allSessions, highlights] = await Promise.all([
@@ -76,15 +76,7 @@ export default async function TripAnalyticsPage({ params, searchParams }: TripPa
   if (scope == null) {
     return (
       <ProfileHeader user={user} viewerId={viewerId} workspace="logbook">
-        <TripHeader
-          trip={trip}
-          userId={user.id}
-          viewerId={viewerId}
-          today={today}
-          current="analytics"
-          journalVisible={journalVisible}
-          notesVisible={notesVisible}
-        >
+        <TripHeader trip={trip} userId={user.id} viewerId={viewerId} today={today} back="trip">
           <EmptyState message="Nothing logged on this trip yet." />
         </TripHeader>
       </ProfileHeader>
@@ -96,15 +88,7 @@ export default async function TripAnalyticsPage({ params, searchParams }: TripPa
 
   return (
     <ProfileHeader user={user} viewerId={viewerId} workspace="logbook">
-      <TripHeader
-        trip={trip}
-        userId={user.id}
-        viewerId={viewerId}
-        today={today}
-        current="analytics"
-        journalVisible={journalVisible}
-        notesVisible={notesVisible}
-      >
+      <TripHeader trip={trip} userId={user.id} viewerId={viewerId} today={today} back="trip">
         <AnalyticsDashboard
           activityHeading="Activity on this trip"
           // No summary line: the header above already states the trip's dates,
@@ -132,7 +116,7 @@ export default async function TripAnalyticsPage({ params, searchParams }: TripPa
             <DisciplineScopeNav
               present={present}
               scope={scope}
-              href={(type) => `${tripHref(user.id, trip.id, "analytics")}?discipline=${type}`}
+              href={(type) => `${tripAnalyticsHref(user.id, trip.id)}?discipline=${type}`}
             />
           }
         />

@@ -13,7 +13,6 @@ declare const STORYBOOK_COLOCATED_STORIES: Record<string, string>;
 const examples: Record<string, string> = {
   "area-picker.tsx": "components-search-area-lookup--selection",
   "auth-form-parts.tsx": "components-auth-sign-in--unverified-email",
-  "trips/trip-tabs.tsx": "components-trips-trip-header--journal",
   "filters/discipline-chips.tsx": "components-filters-toolbar--filters",
   "filters/discipline-grade-sliders.tsx": "components-filters-toolbar--filters",
   "climb-list-sort-control.tsx": "components-filters-climb-controls--filters",

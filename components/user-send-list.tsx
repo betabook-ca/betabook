@@ -21,7 +21,7 @@ type UserSendListProps = {
   /** Distinguishes an empty logbook from a filter with no matches. */
   hasAnySends: boolean;
   currentUserId: string;
-  /** Said when nothing falls inside dates the reader did not choose. */
+  /** Said when the list is empty, in place of the Sends tab's own words. */
   emptyMessage?: string;
 };
 

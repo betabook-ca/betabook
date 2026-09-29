@@ -50,6 +50,12 @@ it("keeps the notes on the page and opens their source in the app's dialog", asy
   expect(screen.getByText("Rendered on the server.")).toBeInTheDocument();
 });
 
+it("names itself, since no tab above it does", () => {
+  render(<Example />);
+
+  expect(screen.getByRole("heading", { name: "Trip notes" })).not.toHaveClass("sr-only");
+});
+
 it("puts the way to edit in the corner of the notes, not on a row above them", () => {
   render(<Example />);
 
