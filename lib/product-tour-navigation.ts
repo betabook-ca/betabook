@@ -8,6 +8,9 @@ export type ProductTourStepDefinition = {
   target: string;
   introducedInVersion: number;
   updatedInVersion?: number;
+  /** What the "What's new" invitation lists for this lesson. Required once a lesson is
+   * introduced or updated after version 1; rewrite it with each `updatedInVersion` bump. */
+  whatsNew?: string;
 };
 
 /** Stable targets belong to the view components, never to incidental CSS or text. */
@@ -44,6 +47,7 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
       id: "projects",
       introducedInVersion: 1,
       updatedInVersion: 5,
+      whatsNew: "Track projects and share one by link",
       section: "Projects",
       title: "Pick up where you left off",
       description:
@@ -62,6 +66,7 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
     {
       id: "find-projects",
       introducedInVersion: 3,
+      whatsNew: "Browse climbs by area, grade and rating",
       section: "Find climbs",
       title: "Find your next project",
       description:
@@ -71,6 +76,7 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
     {
       id: "find-climbers",
       introducedInVersion: 2,
+      whatsNew: "Find your climbing partners",
       section: "Find climbers",
       title: "Find your climbing partners",
       description:
@@ -80,6 +86,7 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
     {
       id: "friend-requests",
       introducedInVersion: 2,
+      whatsNew: "Accept friend requests",
       section: "Friends",
       title: "Friend requests",
       description:
@@ -89,6 +96,7 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
     {
       id: "feed",
       introducedInVersion: 2,
+      whatsNew: "Catch up with friends in Feed",
       section: "Feed",
       title: "Catch up with friends",
       description:
@@ -99,6 +107,7 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
       id: "account",
       introducedInVersion: 1,
       updatedInVersion: 2,
+      whatsNew: "Separate audiences for commentary and journal entries",
       section: "Account settings",
       title: "Choose what you share",
       description:

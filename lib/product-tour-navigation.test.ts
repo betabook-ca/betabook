@@ -112,6 +112,13 @@ describe("route-based tours", () => {
           expect(step.updatedInVersion).toBeGreaterThan(step.introducedInVersion);
           expect(step.updatedInVersion).toBeLessThanOrEqual(tour.version);
         }
+        // Update invitations list these, so a returning climber can tell the lesson is new.
+        if (step.introducedInVersion > 1 || step.updatedInVersion !== undefined) {
+          expect({
+            id: step.id,
+            whatsNew: Boolean(step.whatsNew?.trim()),
+          }).toEqual({ id: step.id, whatsNew: true });
+        }
         expect(step.target).toMatch(/^[a-z][a-z0-9-]+$/);
         expect(productTourPath(tour.id, { stepId: step.id })).toBe(
           `/tutorial/${tour.id}/${step.id}`,
@@ -150,24 +157,40 @@ describe("route-based tours", () => {
     expect(productTourPath("journal", { stepId: "sends", mode: "updates" })).toBe(
       "/tutorial/journal/sends?mode=updates",
     );
-    expect(productTourPath("journal", { stepId: "sends", from: "account", mode: "updates" })).toBe(
-      "/tutorial/journal/sends?from=account",
-    );
+    expect(
+      productTourPath("journal", {
+        stepId: "sends",
+        from: "account",
+        mode: "updates",
+      }),
+    ).toBe("/tutorial/journal/sends?from=account");
     expect(productTourPath("journal", { stepId: "sends" })).toBe("/tutorial/journal/sends");
   });
 });
 
 describe("lessons added after a user's acknowledged version", () => {
   const steps: ProductTourStepDefinition[] = [
-    { ...PRODUCT_TOUR_STEPS.journal[0], id: "original", introducedInVersion: 1 },
+    {
+      ...PRODUCT_TOUR_STEPS.journal[0],
+      id: "original",
+      introducedInVersion: 1,
+    },
     {
       ...PRODUCT_TOUR_STEPS.journal[1],
       id: "revised",
       introducedInVersion: 1,
       updatedInVersion: 3,
     },
-    { ...PRODUCT_TOUR_STEPS.journal[2], id: "addition-v2", introducedInVersion: 2 },
-    { ...PRODUCT_TOUR_STEPS.journal[3], id: "addition-v3", introducedInVersion: 3 },
+    {
+      ...PRODUCT_TOUR_STEPS.journal[2],
+      id: "addition-v2",
+      introducedInVersion: 2,
+    },
+    {
+      ...PRODUCT_TOUR_STEPS.journal[3],
+      id: "addition-v3",
+      introducedInVersion: 3,
+    },
   ];
   const resolve = (version: number, savedVersion = 0) =>
     resolveProductTour(steps, {
@@ -248,7 +271,11 @@ describe("shared tour selection policy", () => {
       { from: "journal", mode: "full" },
     ] as const) {
       expect(
-        resolveProductTour(steps, { version: 2, savedVersion: 1, navigation: requested }),
+        resolveProductTour(steps, {
+          version: 2,
+          savedVersion: 1,
+          navigation: requested,
+        }),
       ).toEqual({
         shouldInvite: true,
         steps,
@@ -274,7 +301,10 @@ describe("shared tour query parsing", () => {
       if (values.length) server[key] = values.length === 1 ? values[0] : values;
     }
     expect(
-      parseProductTourNavigation({ from: client.getAll("from"), mode: client.getAll("mode") }),
+      parseProductTourNavigation({
+        from: client.getAll("from"),
+        mode: client.getAll("mode"),
+      }),
     ).toEqual(expected);
     expect(parseProductTourNavigation(server)).toEqual(expected);
   });

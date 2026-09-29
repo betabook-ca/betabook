@@ -12,8 +12,8 @@ export function getProductTourInvitationCopy(
   if (mode === "updates") {
     return {
       eyebrow: "What's new",
-      title: tour.name,
-      description: steps.map((step) => step.title).join(" · "),
+      title: "New since your last tour",
+      description: steps.map((step) => step.whatsNew ?? step.title).join(" · "),
       action: "See what's new",
     };
   }

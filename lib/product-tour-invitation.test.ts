@@ -17,21 +17,30 @@ describe("tour invitation copy", () => {
     });
   });
   it("introduces journaling to an existing account without tour progress", () => {
-    expect(getProductTourInvitationCopy(tour, steps, { mode: "full", returning: true })).toEqual({
+    expect(
+      getProductTourInvitationCopy(tour, steps, {
+        mode: "full",
+        returning: true,
+      }),
+    ).toEqual({
       eyebrow: "What's new",
       title: tour.returningTitle,
       description: tour.returningDescription,
       action: "Show me how",
     });
   });
-  it("lists only the selected update lessons regardless of the account's age", () => {
+  it("lists what changed in only the selected update lessons regardless of the account's age", () => {
+    const updated = steps.filter((step) => step.whatsNew !== undefined).slice(0, 2);
     for (const returning of [true, false]) {
       expect(
-        getProductTourInvitationCopy(tour, [steps[2]], { mode: "updates", returning }),
+        getProductTourInvitationCopy(tour, updated, {
+          mode: "updates",
+          returning,
+        }),
       ).toEqual({
         eyebrow: "What's new",
-        title: tour.name,
-        description: steps[2].title,
+        title: "New since your last tour",
+        description: `${updated[0].whatsNew} · ${updated[1].whatsNew}`,
         action: "See what's new",
       });
     }

@@ -47,6 +47,9 @@ it.each(["completed", "dismissed"] as const)(
       />,
     );
     expect(html).toContain("See what&#x27;s new");
+    expect(html).toContain("New since your last tour");
+    expect(html).toContain("Track projects and share one by link");
+    expect(html).not.toContain("Show me how");
     expect(html).not.toContain("Log an entry");
   },
 );
