@@ -44,21 +44,33 @@ beforeEach(() => {
   refresh.mockReset();
 });
 
-it("keeps the primary action disabled until the trip has a name and both dates", async () => {
-  const user = userEvent.setup();
-  render(<Example />);
+it("starts a new trip on today and keeps the primary action disabled until it has a name", async () => {
+  vi.useFakeTimers({ toFake: ["Date"], now: new Date(2026, 8, 29, 12) });
+  try {
+    const user = userEvent.setup();
+    render(<Example />);
 
-  const create = screen.getByRole("button", { name: "Create trip" });
-  expect(create).toBeDisabled();
+    for (const label of ["Start date", "End date"]) {
+      expect(
+        screen.getByRole("spinbutton", { name: new RegExp(`month, ${label}`) }),
+      ).toHaveAttribute("aria-valuenow", "9");
+      expect(screen.getByRole("spinbutton", { name: new RegExp(`day, ${label}`) })).toHaveAttribute(
+        "aria-valuenow",
+        "29",
+      );
+      expect(
+        screen.getByRole("spinbutton", { name: new RegExp(`year, ${label}`) }),
+      ).toHaveAttribute("aria-valuenow", "2026");
+    }
 
-  await user.type(screen.getByRole("textbox", { name: /name/i }), "Bishop");
-  expect(create).toBeDisabled();
+    const create = screen.getByRole("button", { name: "Create trip" });
+    expect(create).toBeDisabled();
 
-  await typeDate(user, "Start date", "2026-03-10");
-  expect(create).toBeDisabled();
-
-  await typeDate(user, "End date", "2026-03-20");
-  expect(create).toBeEnabled();
+    await user.type(screen.getByRole("textbox", { name: /name/i }), "Bishop");
+    expect(create).toBeEnabled();
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 it("sends what was typed, then opens the trip it just created", async () => {
