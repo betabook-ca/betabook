@@ -25,7 +25,7 @@ const SMALL: AlbumPhoto = {
   height: 960,
 };
 
-it("shows each photo in the page, asked for at the size it is shown", () => {
+it("renders each photo at the displayed size", () => {
   render(<TripAlbumPhotos link={ALBUM} photos={[WIDE, SMALL]} />);
 
   const photos = within(screen.getByRole("region", { name: "Photos" })).getAllByRole("img");
@@ -37,23 +37,24 @@ it("shows each photo in the page, asked for at the size it is shown", () => {
     "Photo 1 of 2",
     "Photo 2 of 2",
   ]);
-  // The shape is known before the photo arrives, so nothing moves as it loads.
+  // Width and height are set up front, so the layout doesn't shift while photos
+  // load.
   expect(photos[0]).toHaveAttribute("width", "4000");
   expect(photos[0]).toHaveAttribute("height", "3000");
 });
 
-it("leaves the resizing to Google and tells it nothing about the reader's page", () => {
+it("skips image optimization and sends no referrer", () => {
   render(<TripAlbumPhotos link={ALBUM} photos={[WIDE, SMALL]} />);
 
   for (const photo of screen.getAllByRole("img")) {
     expect(photo).toHaveAttribute("data-unoptimized", "true");
     expect(photo).toHaveAttribute("referrerpolicy", "no-referrer");
   }
-  // The first is on screen as the page opens; the rest wait until scrolled to.
+  // The first photo loads eagerly. The rest load lazily.
   expect(screen.getAllByRole("img")[1]).toHaveAttribute("loading", "lazy");
 });
 
-it("opens a photo large, and the album itself, away from the app", () => {
+it("opens the full-size photo and the album in a new tab", () => {
   render(<TripAlbumPhotos link={ALBUM} photos={[WIDE]} />);
 
   const large = screen.getByRole("link", { name: "Photo 1 of 1" });
@@ -66,13 +67,13 @@ it("opens a photo large, and the album itself, away from the app", () => {
   }
 });
 
-it("can be scrolled from the keyboard", () => {
+it("can be scrolled with the keyboard", () => {
   render(<TripAlbumPhotos link={ALBUM} photos={[WIDE, SMALL]} />);
 
   expect(screen.getByRole("group", { name: "2 photos" })).toHaveAttribute("tabindex", "0");
 });
 
-it("still leads to an album it could not read", () => {
+it("still links to an album that couldn't be read", () => {
   render(<TripAlbumPhotos link={ALBUM} photos={[]} />);
 
   expect(screen.queryByRole("img")).not.toBeInTheDocument();

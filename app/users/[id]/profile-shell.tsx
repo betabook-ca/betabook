@@ -28,8 +28,8 @@ const getShareLinkOwnerByToken = requestMemo(async (token: string) =>
   getShareLinkOwner(await getDb(), token),
 );
 
-/** The climber a signed-out reader's link names, when the link is current and
- * is this profile's own. It opens the profile and its trips, and nothing else. */
+/** Resolves the owner for a share link. Returns null unless the token is current
+ * and belongs to this profile. */
 export async function resolveSharedProfile(id: string, search: UrlParamsRecord) {
   const token = parseShareToken(search[PROFILE_SHARE_PARAM]);
   if (!token) return null;
@@ -41,9 +41,9 @@ export type ProfileUser = NonNullable<Awaited<ReturnType<typeof getUserById>>>;
 
 type MemberSession = NonNullable<Awaited<ReturnType<typeof getMemberSession>>>;
 
-/** Who a profile page admits: its owner alone (Projects, Goals), anyone
- * canViewUser allows (Sends, Trips, Analytics, the profile itself), or
- * whoever canReadJournal currently allows (Journal). */
+/** Who can open a profile page: only the owner (Projects, Goals), anyone allowed
+ * by canViewUser (Sends, Trips, Analytics, the profile itself), or anyone
+ * allowed by canReadJournal (Journal). */
 type ProfileGate = "owner" | "viewer" | "journal";
 
 type ResolvedProfile =
@@ -91,16 +91,16 @@ export function memberMetadata(
   return { title: title(resolved.user), robots: { index: false } };
 }
 
-/** The visitor's frame for the signed-out holder of the climber's profile
- * link: the same heading and tabs, with the invitation where a member has the
- * friendship control and only what the link opens. */
+/** Profile header for a signed-out visitor with a share link. Same heading and
+ * tabs as the signed-in view, with a sign-up invite instead of the friend
+ * button, and only the tabs the link can open. */
 export async function SharedProfileHeader({
   owner,
   next,
   children,
 }: {
   owner: { id: string; name: string; image: string | null; token: string };
-  /** The page the link opened, for signing up or in to return to. */
+  /** Where to return after sign-up or sign-in. */
   next: string;
   children: ReactNode;
 }) {

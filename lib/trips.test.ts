@@ -83,7 +83,7 @@ describe("hrefs", () => {
     expect(tripAnalyticsHref("alex", 7)).toBe("/users/alex/trips/7/analytics");
   });
 
-  it("opens the Journal and Sends under the trip's dates, as the filter they already have", () => {
+  it("links to the Journal and Sends filtered to the trip's dates", () => {
     expect(tripLogbookHref("alex", "journal", BISHOP)).toBe(
       "/users/alex/journal?dateFrom=2026-03-10&dateTo=2026-03-20",
     );

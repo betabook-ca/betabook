@@ -38,7 +38,7 @@ export function CompanionPicker({
   disabled?: boolean;
   editing?: boolean;
   fetcher?: LookupFetcher<CompanionOption>;
-  /** Who sees the tags and what tagging does not do, for what is tagged. */
+  /** Help text: who can see the tags and what tagging does. */
   help?: string;
 }) {
   const [query, setQuery] = useState("");

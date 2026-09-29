@@ -234,7 +234,8 @@ function upsertAccount(
  * the first parent. Deleting deepest-first is what makes it terminate.
  */
 function clear(db: DatabaseSync) {
-  // A kept trip would name climbs and dates the rows below are about to lose.
+  // Delete trips too. The climbs and dates they refer to are about to be
+  // deleted.
   db.exec("delete from trips");
   db.exec("delete from journal_entries");
   db.exec("delete from sends");

@@ -55,7 +55,7 @@ export function TripDialog({
   userId: string;
   /** Absent when creating. */
   trip?: EditableTrip;
-  /** Seam for stories and tests; production looks friends up over the API. */
+  /** For stories and tests. Production looks friends up through the API. */
   companionFetcher?: LookupFetcher<CompanionOption>;
 }) {
   const router = useRouter();
@@ -65,9 +65,9 @@ export function TripDialog({
   const [pending, startTransition] = useTransition();
   const [wasOpen, setWasOpen] = useState(state.isOpen);
 
-  // Every opening starts from the trip as it stands. Reset here, not by
-  // remounting: a dialog mounted already open renders before it knows the
-  // viewport, as the phone sheet, and has no focus to hand back on closing.
+  // Reset the draft each time the dialog opens. Done here rather than by
+  // remounting, because a dialog mounted already open renders as the mobile
+  // sheet first and loses focus restoration on close.
   if (state.isOpen !== wasOpen) {
     setWasOpen(state.isOpen);
     if (state.isOpen) {
@@ -99,9 +99,9 @@ export function TripDialog({
         albumUrl: draft.albumUrl,
         startDate: draft.startDate,
         endDate: draft.endDate,
-        // An untouched selection is left out of an edit: what the dialog
-        // opened on is only the tags this climber can see, and sending it
-        // back would replace the rest.
+        // Only send companions if the user changed them. The dialog only loads
+        // the tags this user can see, so sending them back unchanged would
+        // remove the others.
         ...((!trip || companionsChanged) && {
           companions: draft.companions.map((friend) => friend.id),
         }),

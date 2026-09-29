@@ -29,7 +29,7 @@ async function open(user: ReturnType<typeof userEvent.setup>) {
   return screen.findByRole("dialog", { name: "Share trip" });
 }
 
-it("hands over the trip's link, and says it is the profile link", async () => {
+it("shows the trip link and explains it is the profile link", async () => {
   stubViewport("desktop");
   const user = userEvent.setup();
   render(<TripShare tripName="Bishop, March 2026" url={URL} />);
@@ -42,11 +42,11 @@ it("hands over the trip's link, and says it is the profile link", async () => {
   expect(within(dialog).getByRole("textbox", { name: "Trip link" })).toHaveValue(URL);
   expect(
     within(dialog).getByText(
-      "This is your profile link, opened on this trip. Anyone with it sees the trip's notes, photos and sends, and the rest of what your profile link shows.",
+      "Anyone with this link can see this trip and the rest of your profile. It uses your profile link, so resetting that link turns this one off.",
     ),
   ).toBeVisible();
   expect(
-    within(dialog).getByRole("link", { name: "Reset it in Account settings" }),
+    within(dialog).getByRole("link", { name: "Reset link in Account settings" }),
   ).toHaveAttribute("href", "/account#profile");
 
   await user.click(within(dialog).getByRole("button", { name: "Copy link" }));
@@ -55,7 +55,7 @@ it("hands over the trip's link, and says it is the profile link", async () => {
   expect(within(dialog).queryByRole("button", { name: "Share link" })).not.toBeInTheDocument();
 });
 
-it("opens the share sheet on a phone, under the trip's name", async () => {
+it("opens the share sheet on a phone with the trip's name", async () => {
   Object.defineProperty(navigator, "userAgent", { configurable: true, get: () => IPHONE });
   const user = userEvent.setup();
   render(<TripShare tripName="Bishop, March 2026" url={URL} />);
@@ -69,7 +69,7 @@ it("opens the share sheet on a phone, under the trip's name", async () => {
   });
 });
 
-it("says why there is no link while the profile is private", async () => {
+it("explains why there is no link when the profile is private", async () => {
   const user = userEvent.setup();
   render(<TripShare tripName="Bishop, March 2026" url={null} />);
 

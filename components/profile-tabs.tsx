@@ -8,17 +8,17 @@ import { withProfileShare } from "@/lib/profile-share";
 type ProfileTabsProps = {
   userId: string;
   showJournal: boolean;
-  /** The climber's profile link, for its signed-out holder: the tabs are
-   * what the link opens, and each carries it. */
+  /** Share token for a signed-out visitor. Limits the tabs to the ones the link
+   * can open and adds the token to each href. */
   share?: string;
 };
 
 type ProfileTab = {
   path: string;
   label: string;
-  /** Other paths that are this section's own page. */
+  /** Other paths that count as this tab's page. */
   roots?: string[];
-  /** A section whose pages nest under its path, as a trip's views do. */
+  /** True if the tab also covers paths nested under its href, like trip pages. */
   nested?: boolean;
 };
 

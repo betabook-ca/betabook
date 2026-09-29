@@ -170,7 +170,7 @@ describe("editing a trip", () => {
     expect(await storedTripById(id)).toMatchObject({ description: null });
   });
 
-  it("keeps the link to a shared album, without what was pasted around it", async () => {
+  it("normalizes a pasted album link", async () => {
     const created = await saveTrip(null, {
       ...BISHOP,
       albumUrl: "  https://photos.app.goo.gl/Example1Album2Link3?utm_source=share \n",
@@ -207,7 +207,7 @@ describe("editing a trip", () => {
     expect(await storedTrips()).toHaveLength(1);
   });
 
-  it("keeps the description to one line of one summary's length", async () => {
+  it("limits the description to one line of 160 characters", async () => {
     const created = await saveTrip(null, {
       ...BISHOP,
       description: "  Buttermilks\nand \t the Happies.\n\n",
@@ -230,10 +230,10 @@ describe("editing a trip", () => {
     expect(await storedTripById(id)).toMatchObject({ description: longest });
   });
 
-  it("measures a description in characters, as the migration that kept it did", async () => {
+  it("counts description length in characters, not UTF-16 units", async () => {
     const created = await saveTrip(null, BISHOP);
     const id = created.ok ? created.value : 0;
-    // One character each, two code units each.
+    // Each emoji is one character but two UTF-16 code units.
     const climbers = "🧗".repeat(MAX_TRIP_DESCRIPTION);
     expect(climbers.length).toBe(MAX_TRIP_DESCRIPTION * 2);
 
@@ -317,7 +317,7 @@ describe("deleting a trip", () => {
   });
 });
 
-describe("writing trip notes", () => {
+describe("saving trip notes", () => {
   const NOTES = "# Day one\n\n**Sent** the project.";
 
   async function bishop() {
@@ -325,7 +325,7 @@ describe("writing trip notes", () => {
     return created.ok ? created.value : 0;
   }
 
-  it("stores the notes as written and leaves the trip's own fields alone", async () => {
+  it("saves the notes without changing the trip's other fields", async () => {
     const id = await bishop();
 
     expect((await saveTripNotes(id, `  ${NOTES}\n`)).ok).toBe(true);
@@ -340,7 +340,7 @@ describe("writing trip notes", () => {
     expect(await getTripNotes(db, "climber", id, "climber")).toBe(NOTES);
   });
 
-  it("keeps the notes when the trip's own fields are edited", async () => {
+  it("keeps the notes when the trip is edited", async () => {
     const id = await bishop();
     await saveTripNotes(id, NOTES);
 
@@ -349,7 +349,7 @@ describe("writing trip notes", () => {
     expect(await storedTripById(id)).toMatchObject({ name: "Bishop, take two", notes: NOTES });
   });
 
-  it("clears notes that are emptied", async () => {
+  it("clears the notes when saved empty", async () => {
     const id = await bishop();
     await saveTripNotes(id, NOTES);
 
@@ -357,7 +357,7 @@ describe("writing trip notes", () => {
     expect(await storedTripById(id)).toMatchObject({ notes: null });
   });
 
-  it("refuses notes past the limit, and keeps what was stored", async () => {
+  it("rejects notes over the limit and keeps the stored notes", async () => {
     const id = await bishop();
     await saveTripNotes(id, NOTES);
 
@@ -368,13 +368,13 @@ describe("writing trip notes", () => {
     expect((await saveTripNotes(id, "a".repeat(MAX_TRIP_NOTES))).ok).toBe(true);
   });
 
-  it("refuses anything that is not text", async () => {
+  it("rejects notes that aren't a string", async () => {
     const id = await bishop();
     expect((await saveTripNotes(id, { notes: NOTES })).ok).toBe(false);
     expect(await storedTripById(id)).toMatchObject({ notes: null });
   });
 
-  it("moves updated_at forward", async () => {
+  it("updates updated_at", async () => {
     const id = await bishop();
     await db.run(sql`UPDATE trips SET updated_at = 0 WHERE id = ${id}`);
 
@@ -384,7 +384,7 @@ describe("writing trip notes", () => {
     expect(stored.updatedAt.getTime()).toBeGreaterThan(0);
   });
 
-  it("refuses to write on another climber's trip, and leaves it unchanged", async () => {
+  it("rejects saving notes on another user's trip", async () => {
     const theirs = await seedFixtureTrip(db, {
       userId: "other",
       name: "Squamish",
@@ -402,7 +402,7 @@ describe("writing trip notes", () => {
     expect(await getTripNotes(db, "other", theirs.id, "other")).toBe("Theirs.");
   });
 
-  it("refuses for a signed-out caller and once the rate limiter says no", async () => {
+  it("rejects signed-out and rate-limited callers", async () => {
     const id = await bishop();
 
     limits.allow = false;
@@ -436,7 +436,7 @@ describe("tagging friends on a trip", () => {
     await seedFixtureFriendship(db, "climber", "asked", "pending");
   });
 
-  it("tags the chosen friends on a new trip", async () => {
+  it("tags the selected friends on a new trip", async () => {
     const result = await saveTrip(null, { ...BISHOP, companions: ["sam", "priya", "sam"] });
     const id = result.ok ? result.value : 0;
 
@@ -448,14 +448,14 @@ describe("tagging friends on a trip", () => {
     expect(trip.companions.map((friend) => friend.name)).toEqual(["Friend priya", "Friend sam"]);
   });
 
-  it("replaces the tags it is sent, and leaves them alone when it is sent none", async () => {
+  it("replaces tags when companions are sent and keeps them when omitted", async () => {
     const created = await saveTrip(null, { ...BISHOP, companions: ["sam"] });
     const id = created.ok ? created.value : 0;
 
     expect((await saveTrip(id, { ...BISHOP, companions: ["priya"] })).ok).toBe(true);
     expect(await tagged(id)).toEqual([{ userId: "priya", suppressed: false }]);
 
-    // The trip dialog sends no selection unless the climber changed it.
+    // The dialog only sends companions when the user changed them.
     expect((await saveTrip(id, { ...BISHOP, name: "Bishop, take two" })).ok).toBe(true);
     expect(await tagged(id)).toEqual([{ userId: "priya", suppressed: false }]);
 
@@ -464,7 +464,7 @@ describe("tagging friends on a trip", () => {
   });
 
   it.each(["other", "asked", "climber", "nobody"])(
-    "refuses %s as a companion, and writes no trip",
+    "rejects %s as a companion and creates no trip",
     async (friend) => {
       const result = await saveTrip(null, { ...BISHOP, companions: ["sam", friend] });
 
@@ -474,7 +474,7 @@ describe("tagging friends on a trip", () => {
     },
   );
 
-  it("refuses an edit that tags someone unavailable, and keeps the trip as it was", async () => {
+  it("rejects an edit that tags an unavailable friend and leaves the trip unchanged", async () => {
     const created = await saveTrip(null, { ...BISHOP, companions: ["sam"] });
     const id = created.ok ? created.value : 0;
 
@@ -485,7 +485,7 @@ describe("tagging friends on a trip", () => {
     expect(await tagged(id)).toEqual([{ userId: "sam", suppressed: false }]);
   });
 
-  it("refuses more than ten friends and anything that is not a list of ids", async () => {
+  it("rejects more than ten friends and invalid companion lists", async () => {
     const eleven = Array.from({ length: 11 }, (_unused, index) => `friend-${index}`);
 
     expect(await saveTrip(null, { ...BISHOP, companions: eleven })).toMatchObject({
@@ -497,7 +497,7 @@ describe("tagging friends on a trip", () => {
     expect(await storedTrips()).toEqual([]);
   });
 
-  it("tags nothing when the trip limit refuses the trip", async () => {
+  it("adds no tags when the trip limit blocks the trip", async () => {
     await insertInBatches(
       db,
       Array.from({ length: MAX_TRIPS }, (_unused, index) => ({
@@ -514,12 +514,12 @@ describe("tagging friends on a trip", () => {
 
     expect(result.ok).toBe(false);
     expect(await storedTrips()).toHaveLength(MAX_TRIPS);
-    // The last row this connection inserted is one of the climber's own trips,
-    // which is exactly where a stale insert id would have put the tag.
+    // The last row inserted on this connection is another of the user's trips,
+    // which is where a stale insert id would put the tag.
     expect(await db.select().from(tripCompanions)).toEqual([]);
   });
 
-  it("never touches the tags on another climber's trip", async () => {
+  it("does not change tags on another user's trip", async () => {
     await seedFixtureFriendship(db, "other", "sam");
     const theirs = await seedFixtureTrip(db, {
       userId: "other",
@@ -548,7 +548,7 @@ describe("tagging friends on a trip", () => {
       return created.ok ? created.value : 0;
     }
 
-    it("takes the friend off the trip and keeps them off", async () => {
+    it("removes the friend's tag and blocks re-tagging", async () => {
       const id = await taggedTrip();
 
       identity.id = "sam";
@@ -565,11 +565,11 @@ describe("tagging friends on a trip", () => {
         ok: false,
         error: UNAVAILABLE,
       });
-      // Saving the rest of the selection still works.
+      // The other companions still save.
       expect((await saveTrip(id, { ...BISHOP, companions: ["priya"] })).ok).toBe(true);
     });
 
-    it("refuses anyone who is not tagged, and a reader the journal is closed to", async () => {
+    it("rejects users who aren't tagged or can't read the journal", async () => {
       const id = await taggedTrip();
 
       identity.id = "other";

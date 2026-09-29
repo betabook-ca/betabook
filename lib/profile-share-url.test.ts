@@ -19,19 +19,19 @@ beforeEach(async () => {
   await seedFixtureUser(db, { id: "owner", name: "Trip Owner" });
 });
 
-it("opens the owner's profile link on one of their trips", async () => {
+it("builds the trip share URL from the profile share token", async () => {
   const token = (await getProfileShareToken(db, "owner"))!;
 
   expect(await getOwnTripShareUrl(db, OWNER, 7)).toBe(
     `https://betabook.test/users/owner/trips/7?share=${token}`,
   );
-  // One link: the trip's is the profile's, pointed somewhere else.
+  // The trip URL uses the same token as the profile URL.
   expect(await getOwnProfileShareUrl(db, OWNER)).toBe(
     `https://betabook.test/users/owner?share=${token}`,
   );
 });
 
-it("has no link to give while the profile is private", async () => {
+it("returns null when the profile is private", async () => {
   await db.run(sql`UPDATE user SET is_private = 1 WHERE id = 'owner'`);
 
   expect(await getOwnTripShareUrl(db, { ...OWNER, isPrivate: true }, 7)).toBeNull();

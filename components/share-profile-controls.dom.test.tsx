@@ -47,7 +47,7 @@ it("shows the current link and its QR code and copies the link", async () => {
   expect(qr.querySelector("path")?.getAttribute("d")).not.toBe(firstCode);
 });
 
-it("says what the link shows before it is shared, the trips' notes included", () => {
+it("describes what the link shows, including trip notes", () => {
   render(<ShareProfileControls name="Alex Rivera" url={FIRST} />);
 
   expect(

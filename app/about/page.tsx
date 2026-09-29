@@ -88,10 +88,10 @@ export default function AboutPage() {
             way you would a photo. You choose when it expires and can stop sharing at any time.
           </li>
           <li>
-            Anyone who can see your sends can see a trip, its photos and the sends inside it. Photos
-            are loaded from Google Photos. Anyone who can read your journal can also read its
-            entries and the friends you tagged. Trip notes are for your friends and anyone with your
-            profile link, whatever your journal&apos;s audience is.
+            Anyone who can see your sends can see your trips, with their photos and sends. Photos
+            load from Google Photos. People who can read your journal can also see a trip&apos;s
+            journal entries and tagged friends. Your friends and anyone with your profile link can
+            read trip notes, regardless of your journal setting.
           </li>
           <li>Only you can export your sends.</li>
         </ul>

@@ -32,7 +32,7 @@ function send(id: number, climbName: string, comment: string | null = null): Use
 
 const SIGN_UP = `/sign-up?next=${encodeURIComponent(NEXT)}`;
 
-it("lists the latest sends as the Sends tab does, and links the rest to sign-up", () => {
+it("lists the latest sends and links the rest to sign-up", () => {
   render(
     <SharedProfile
       owner={OWNER}
@@ -43,7 +43,8 @@ it("lists the latest sends as the Sends tab does, and links the rest to sign-up"
     />,
   );
 
-  // The tab above names the section, as it does for a member.
+  // The Sends tab already labels the section, so the heading is visually
+  // hidden.
   expect(screen.getByRole("heading", { name: "Sends" })).toHaveClass("sr-only");
   const rows = within(screen.getByRole("list")).getAllByRole("listitem");
   expect(rows).toHaveLength(2);
@@ -58,7 +59,7 @@ it("lists the latest sends as the Sends tab does, and links the rest to sign-up"
   );
 });
 
-it("leaves the invitation, the trips and the figures to the frame around it", () => {
+it("does not render the invite, trips or stats itself", () => {
   render(
     <SharedProfile
       owner={OWNER}
@@ -75,7 +76,7 @@ it("leaves the invitation, the trips and the figures to the frame around it", ()
   expect(screen.queryByText(/Peak grade|Most logged/i)).not.toBeInTheDocument();
 });
 
-it("invites a visitor to climb with an owner who hasn't logged a send", () => {
+it("shows a sign-up prompt when the owner has no sends", () => {
   render(<SharedProfile owner={OWNER} sendCount={0} sends={[]} areaBreadcrumbs={{}} next={NEXT} />);
 
   expect(screen.getByText("Alex Rivera hasn't logged a send yet.")).toBeVisible();

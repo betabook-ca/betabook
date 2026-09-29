@@ -9,8 +9,8 @@ type HeadingLevel = 2 | 3 | 4;
 
 const HEADING_CLASS = ["text-base font-semibold", "text-sm font-semibold"];
 
-/** A relative path would resolve against whichever page shows the text, so
- * only absolute web and mail links survive. */
+/** Only absolute http(s) and mailto links are kept. A relative path would
+ * resolve against the page showing the text. */
 function linkUrl(url: string): string {
   const safe = defaultUrlTransform(url);
   return /^(?:https?:\/\/|mailto:)/i.test(safe) ? safe : "";
@@ -47,7 +47,8 @@ function componentsFor(top: HeadingLevel): Components {
     h5: heading(top, 2),
     h6: heading(top, 2),
     a: ({ href, children }) => <ExternalLink href={href}>{children}</ExternalLink>,
-    // Never fetched: a remote image would report every reader to its host.
+    // Images are rendered as links, not loaded. A remote image would expose
+    // each viewer's IP address to its host.
     img: ({ src, alt }) => {
       const href = typeof src === "string" ? src : undefined;
       return <ExternalLink href={href}>{alt || href}</ExternalLink>;
@@ -71,14 +72,15 @@ function componentsFor(top: HeadingLevel): Components {
       <li
         className={clsx(
           "[&>ol]:mt-1 [&>ul]:mt-1",
-          // Room for the icon, so a list nested under a task indents past it.
+          // Leave room for the icon, so nested lists indent past it.
           className?.includes("task-list-item") && "relative pl-6",
         )}
       >
         {children}
       </li>
     ),
-    // An icon, not a checkbox: a disabled input with no label fails axe.
+    // Uses an icon instead of a checkbox. A disabled input with no label fails
+    // axe.
     input: ({ checked }) => {
       const Icon = checked ? SquareCheck : Square;
       return (
@@ -129,22 +131,22 @@ const COMPONENTS: Record<HeadingLevel, Components> = {
 
 const REMARK_PLUGINS = [remarkGfm, remarkBreaks];
 
-/** The one renderer for text a climber wrote. Raw HTML stays escaped text and
- * images become links; nothing here may add `rehype-raw`. */
+/** The only renderer for user-written text. Raw HTML stays escaped and images
+ * become links. Never add `rehype-raw`. */
 export function Markdown({
   children,
   headingLevel = 3,
   className,
 }: {
   children: string;
-  /** The level a `#` heading renders at, so the text nests under the heading
-   * of the page showing it. */
+  /** Heading level to use for `#`, so headings nest under the page's own
+   * heading. */
   headingLevel?: HeadingLevel;
   className?: string;
 }) {
   return (
-    // Blocks in normal flow, not a flex column, so the text can run round
-    // something floated beside it.
+    // Uses block layout instead of a flex column, so text can wrap around a
+    // floated element.
     <div className={clsx("space-y-3 text-sm leading-relaxed break-words", className)}>
       <ReactMarkdown
         remarkPlugins={REMARK_PLUGINS}

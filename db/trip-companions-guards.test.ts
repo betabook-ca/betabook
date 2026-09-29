@@ -72,7 +72,7 @@ it.each(["pending", "wrong friendship", "the owner themself"])(
   },
 );
 
-it("tags a private friend and takes the re-send of an unchanged tag as a no-op", async () => {
+it("tags a private friend and treats re-sending an unchanged tag as a no-op", async () => {
   await db.update(user).set({ isPrivate: true }).where(eq(user.id, "partner"));
   await insertCompanion().run();
   const before = await db.select().from(tripCompanions);
@@ -99,7 +99,7 @@ it("rejects inserting an already suppressed companion", async () => {
   expect(await db.select().from(tripCompanions)).toEqual([]);
 });
 
-it("allows ten active companions and existing tags at the cap, with suppression freeing a place", async () => {
+it("allows ten active companions, and frees a slot when one is suppressed", async () => {
   const ids = Array.from({ length: 11 }, (_, i) => `friend-${String(i).padStart(2, "0")}`);
   for (const id of ids) {
     await seedFixtureUser(db, { id });
@@ -146,7 +146,7 @@ it.each([
   expect(await db.select().from(tripCompanions)).toEqual(before);
 });
 
-it("refuses to hand a tagged trip to another climber", async () => {
+it("rejects moving a tagged trip to another user", async () => {
   await insertCompanion().run();
 
   await expect(
@@ -154,7 +154,7 @@ it("refuses to hand a tagged trip to another climber", async () => {
   ).rejects.toThrow("trip companion: trip owner cannot change");
 });
 
-it("drops the tag with the friendship, and with the trip", async () => {
+it("deletes the tag with the friendship and with the trip", async () => {
   await insertCompanion().run();
   await insertCompanion("other").run();
   expect(await db.select().from(tripCompanions)).toHaveLength(2);

@@ -8,7 +8,7 @@ const PAGE = `<script>AF_initDataCallback({data:[null,[["AF1Qip",["${PHOTO}",192
 
 const request = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>();
 let album = 0;
-/** A link no other test has asked for, so the cache cannot answer for it. */
+/** Use a URL no other test uses, to avoid a cache hit. */
 function shortLink() {
   album += 1;
   return `https://photos.app.goo.gl/Album${String(album).padStart(8, "0")}${Date.now()}`.slice(
@@ -29,13 +29,13 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-it("follows a short link to the album and reads its photos", async () => {
+it("follows a short link and reads the album's photos", async () => {
   const link = shortLink();
   request.mockResolvedValueOnce(redirect(LONG)).mockResolvedValueOnce(html(PAGE));
 
   expect(await loadAlbumPhotos(link)).toEqual([{ url: PHOTO, width: 1920, height: 1080 }]);
   expect(request.mock.calls.map(([url]) => url)).toEqual([link, LONG]);
-  // Followed by hand, so each hop is checked before it is made.
+  // Redirects are followed manually so each one can be validated.
   expect(request.mock.calls[0][1]).toMatchObject({ redirect: "manual" });
 });
 
@@ -52,7 +52,7 @@ it.each([
   expect(request).toHaveBeenCalledOnce();
 });
 
-it("gives up on a link that keeps redirecting", async () => {
+it("stops after too many redirects", async () => {
   const link = shortLink();
   request.mockImplementation(async () => redirect(LONG));
 
@@ -64,21 +64,18 @@ it.each([
   ["Google answers with an error", async () => html("gone", 404)],
   ["the page holds no album", async () => html("<html>Sign in</html>")],
   [
-    "the page is not a page",
+    "the response is not HTML",
     async () => new Response("{}", { headers: { "Content-Type": "application/json" } }),
   ],
   ["the request fails", async () => Promise.reject(new Error("network"))],
-  [
-    "the page is larger than any album's",
-    async () => html(`${PAGE}${"x".repeat(5 * 1024 * 1024)}`),
-  ],
+  ["the page is over the size limit", async () => html(`${PAGE}${"x".repeat(5 * 1024 * 1024)}`)],
 ])("shows no photos when %s", async (_label, answer) => {
   request.mockImplementation(answer);
 
   expect(await loadAlbumPhotos(shortLink())).toEqual([]);
 });
 
-it("asks Google once for an album read many times", async () => {
+it("caches a successful read", async () => {
   const link = shortLink();
   request.mockImplementation(async (url) => (url === link ? redirect(LONG) : html(PAGE)));
 
@@ -90,7 +87,7 @@ it("asks Google once for an album read many times", async () => {
   expect(request).toHaveBeenCalledTimes(2);
 });
 
-it("does not ask again at once for an album it could not read", async () => {
+it("caches a failed read", async () => {
   const link = shortLink();
   request.mockImplementation(async () => html("gone", 404));
 
@@ -99,7 +96,7 @@ it("does not ask again at once for an album it could not read", async () => {
   expect(request).toHaveBeenCalledOnce();
 });
 
-it("asks nothing of a link that is not an album's", async () => {
+it("makes no request for a URL that isn't an album link", async () => {
   expect(await loadAlbumPhotos("https://example.com/albums/bishop")).toEqual([]);
   expect(request).not.toHaveBeenCalled();
 });

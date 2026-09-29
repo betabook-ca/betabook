@@ -11,12 +11,9 @@ import type { TripSummary } from "@/db/queries";
 import { withProfileShare } from "@/lib/profile-share";
 import { formatTripDates, tripHref, tripLogbookHref, tripStatus, tripsHref } from "@/lib/trips";
 
-/** The trip over its page: what it is, when it was, what it holds, and the
- * way back.
- *
- * A trip is one page with no views to choose between. It lists its sends,
- * and each count opens the Journal or Sends under the trip's dates, where a
- * climber already filters. */
+/** Header for a trip page: back link, name, dates, description, tagged friends
+ * and counts. The counts link to the Journal and Sends tabs filtered to the
+ * trip's dates. */
 export function TripHeader({
   trip,
   userId,
@@ -29,16 +26,16 @@ export function TripHeader({
 }: {
   trip: TripSummary;
   userId: string;
-  /** Null for the signed-out holder of the climber's profile link. */
+  /** Null for a signed-out visitor with a share link. */
   viewerId: string | null;
-  /** The reader's own `YYYY-MM-DD`, resolved on the server. */
+  /** Today as `YYYY-MM-DD` in the viewer's timezone, resolved on the server. */
   today: string;
-  /** The profile link a signed-out reader holds, which the way back needs. */
+  /** Share token for a signed-out visitor, added to the back link. */
   share?: string;
-  /** The owner's profile link opened on this trip, null while their profile
-   * is private. Left out for every other reader. */
+  /** Owner only: share URL for this trip, or null if the profile is private.
+   * Undefined for everyone else. */
   shareUrl?: string | null;
-  /** `trip` on the trip's analytics, which leads back to the trip. */
+  /** Use `trip` on the analytics page, so the back link goes to the trip. */
   back?: "trips" | "trip";
   children: ReactNode;
 }) {
@@ -54,13 +51,11 @@ export function TripHeader({
         ) : (
           <TripBackLink href={trips}>All trips</TripBackLink>
         )}
-        {/* A SectionHeading, not a PageTitle: the page around it already emits
-         * its only h1, and a second one here would give every trip detail page
-         * two — which axe's default rules do not flag, so nothing else would
-         * catch it. */}
-        {/* The buttons share a row with the name alone, so the lines under it
-         * keep the full width, and give up their height to that row, so they
-         * never set the space under the name. */}
+        {/* Uses SectionHeading, not PageTitle. The page already has an h1, and
+         * axe's default rules don't flag a second one. */}
+        {/* Only the name shares a row with the buttons, so the lines below use
+         * the full width. The negative margin keeps the buttons from adding
+         * height to that row. */}
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex min-w-0 items-start justify-between gap-3">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -77,11 +72,12 @@ export function TripHeader({
           <p className="text-sm text-muted">{formatTripDates(trip.startDate, trip.endDate)}</p>
           {trip.description && <p className="text-sm leading-relaxed">{trip.description}</p>}
           <TripCompanions tripId={trip.id} initialCompanions={trip.companions} />
-          {/* The chip already says a trip is still to come. */}
+          {/* Hide counts for an upcoming trip with nothing logged. */}
           {!nothingYet && (
             <TripStats
               trip={trip}
-              // The Logbook is behind sign-in.
+              // Signed-out visitors can't open the Logbook, so counts aren't
+              // links.
               links={
                 viewerId === null
                   ? undefined

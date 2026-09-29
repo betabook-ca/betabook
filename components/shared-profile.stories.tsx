@@ -102,7 +102,7 @@ const meta = {
     },
     next: NEXT,
   },
-  // The frame a member sees round a profile, which the page puts round this.
+  // Wraps the story in the profile header the page renders around it.
   decorators: [
     (Story) => (
       <SharedProfileFrame next={NEXT}>

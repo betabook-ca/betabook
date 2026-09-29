@@ -37,7 +37,7 @@ beforeEach(() => {
   refresh.mockReset();
 });
 
-it("keeps the notes on the page and opens their source in the app's dialog", async () => {
+it("renders the notes and opens the editor with the Markdown source", async () => {
   const user = userEvent.setup();
   render(<Example />);
 
@@ -50,28 +50,28 @@ it("keeps the notes on the page and opens their source in the app's dialog", asy
   expect(screen.getByText("Rendered on the server.")).toBeInTheDocument();
 });
 
-it("names itself, since no tab above it does", () => {
+it("has a visible heading", () => {
   render(<Example />);
 
   expect(screen.getByRole("heading", { name: "Trip notes" })).not.toHaveClass("sr-only");
 });
 
-it("puts the way to edit in the corner of the notes, not on a row above them", () => {
+it("puts the edit button inside the notes card", () => {
   render(<Example />);
 
   const notes = screen.getByText("Rendered on the server.");
   const edit = screen.getByRole("button", { name: "Edit trip notes" });
   const card = edit.parentElement;
 
-  // One card holds both, and the button comes first so the notes wrap round it.
+  // The button comes before the notes in the card, so the text wraps around it.
   expect(card).toContainElement(notes);
   expect(card).not.toBe(screen.getByRole("region", { name: "Trip notes" }));
   expect(card?.firstElementChild).toBe(edit);
-  // A pencil, as where a climb's or an area's description is edited.
+  // A pencil icon, like the edit button for climb and area descriptions.
   expect(edit.textContent).toBe("");
 });
 
-it("moves focus into the editor and hands it back to the button that opened it", async () => {
+it("moves focus into the editor and back to the button on close", async () => {
   const user = userEvent.setup();
   render(<Example />);
 
@@ -85,7 +85,7 @@ it("moves focus into the editor and hands it back to the button that opened it",
   );
 });
 
-it("gives a reader who is not the owner the notes and no way to change them", () => {
+it("shows notes read-only to non-owners", () => {
   const { rerender } = render(<Example canEdit={false} />);
 
   expect(screen.getByText("Rendered on the server.")).toBeInTheDocument();
@@ -96,11 +96,11 @@ it("gives a reader who is not the owner the notes and no way to change them", ()
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
 });
 
-it("invites the first notes on a trip that has none, whether or not it has happened", async () => {
+it("offers to write notes when a trip has none", async () => {
   const user = userEvent.setup();
   render(<Example notes={null} />);
 
-  // An upcoming trip has plans to write down and nothing yet to look back on.
+  // The empty state doesn't assume the trip is over.
   expect(screen.getByText("No trip notes yet.")).toBeInTheDocument();
   expect(screen.queryByText(/how it went/i)).not.toBeInTheDocument();
 
@@ -108,7 +108,7 @@ it("invites the first notes on a trip that has none, whether or not it has happe
   expect(field()).toHaveValue("");
 });
 
-it("labels the field and says nothing more about it", async () => {
+it("labels the field with no extra hint", async () => {
   const user = userEvent.setup();
   render(<Example />);
 
@@ -119,7 +119,7 @@ it("labels the field and says nothing more about it", async () => {
   expect(editor()).not.toHaveTextContent(/friends can read/i);
 });
 
-it("saves what was typed, then goes back to reading", async () => {
+it("saves the draft and closes the editor", async () => {
   const user = userEvent.setup();
   render(<Example notes={null} />);
 
@@ -134,7 +134,7 @@ it("saves what was typed, then goes back to reading", async () => {
   expect(refresh).toHaveBeenCalledOnce();
 });
 
-it("keeps the draft and says why when the save is refused", async () => {
+it("keeps the draft and shows the error when saving fails", async () => {
   vi.mocked(saveTripNotes).mockResolvedValue({ ok: false, error: "Those notes are too long." });
   const user = userEvent.setup();
   render(<Example />);
@@ -148,7 +148,7 @@ it("keeps the draft and says why when the save is refused", async () => {
   expect(refresh).not.toHaveBeenCalled();
 });
 
-it("does not send a second save while the first is in flight", async () => {
+it("does not save twice while a save is in progress", async () => {
   let finish: (result: ActionResult) => void = () => {};
   vi.mocked(saveTripNotes).mockReturnValue(
     new Promise<ActionResult>((resolve) => {
@@ -169,7 +169,7 @@ it("does not send a second save while the first is in flight", async () => {
   expect(saveTripNotes).toHaveBeenCalledOnce();
 });
 
-it("drops an abandoned draft", async () => {
+it("discards the draft on cancel", async () => {
   const user = userEvent.setup();
   render(<Example />);
 
@@ -183,7 +183,7 @@ it("drops an abandoned draft", async () => {
   expect(field()).toHaveValue(STORED);
 });
 
-it("previews the draft in place of the field, as the page will show it", async () => {
+it("previews the draft in place of the field", async () => {
   const user = userEvent.setup();
   render(<Example />);
 
@@ -195,12 +195,12 @@ it("previews the draft in place of the field, as the page will show it", async (
   expect(within(preview).getByText("Sent").tagName).toBe("STRONG");
   expect(within(editor()).queryByRole("textbox")).not.toBeInTheDocument();
 
-  await user.click(within(editor()).getByRole("button", { name: "Keep writing" }));
+  await user.click(within(editor()).getByRole("button", { name: "Edit" }));
   expect(screen.queryByRole("region", { name: "Trip notes preview" })).not.toBeInTheDocument();
   expect(field()).toHaveValue(STORED);
 });
 
-it("keeps what was typed through a look at the preview", async () => {
+it("keeps the draft after previewing", async () => {
   const user = userEvent.setup();
   render(<Example notes={null} />);
 
@@ -210,12 +210,12 @@ it("keeps what was typed through a look at the preview", async () => {
   const preview = within(editor()).getByRole("region", { name: "Trip notes preview" });
   expect(await within(preview).findByText("Camped at the Pit.")).toBeInTheDocument();
 
-  await user.click(within(editor()).getByRole("button", { name: "Keep writing" }));
+  await user.click(within(editor()).getByRole("button", { name: "Edit" }));
   await user.type(field(), " Showers in town.");
   expect(field()).toHaveValue("Camped at the Pit. Showers in town.");
 });
 
-it("opens as the desktop dialog at once", async () => {
+it("opens as a modal on desktop", async () => {
   stubViewport("desktop");
   const user = userEvent.setup();
   render(<Example />);

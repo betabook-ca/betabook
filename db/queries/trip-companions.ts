@@ -2,9 +2,9 @@ import { sql, type SQL } from "drizzle-orm";
 
 import { journalVisibleSql } from "./content-access";
 
-/** `companionsJsonSql` over a trip: a tag follows the trip owner's journal
- * audience, not the friend's own settings, and is gone once its friend removes
- * it or the friendship ends. */
+/** Same as `companionsJsonSql`, for trips. Tags are visible to anyone who can
+ * read the trip owner's journal. A tag is hidden after the friend removes it or
+ * the friendship ends. */
 export function tripCompanionsJsonSql(viewerId: string | null, tripId: SQL): SQL {
   return sql`(SELECT json_group_array(json_object('id', companion.id, 'name', companion.name,
     'image', companion.image,

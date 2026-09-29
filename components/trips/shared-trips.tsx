@@ -11,10 +11,8 @@ import { formatCount } from "@/lib/format";
 
 type Owner = { id: string; name: string; token: string };
 
-/** A trip for the signed-out holder of the climber's profile link: the header
- * a member sees, the notes and the sends dated inside it. The journal's side
- * of a trip follows the journal's audiences, which a signed-out reader never
- * meets. */
+/** Trip page for a signed-out visitor with a share link: the same header as the
+ * signed-in view, then notes and sends. Journal-gated data is never shown. */
 export function SharedTrip({
   owner,
   trip,
@@ -29,12 +27,13 @@ export function SharedTrip({
   trip: TripSummary;
   sends: UserSendRow[];
   areaBreadcrumbs: AreaBreadcrumbs;
-  /** This page, link included, for sign-up to return to. */
+  /** This page's path, including the share token. Used as the return path after
+   * sign-up. */
   path: string;
   today: string;
-  /** The trip's shared album, when it has one. */
+  /** Album section, if the trip has one. */
   photos?: ReactNode;
-  /** The trip's notes, when it has some. */
+  /** Notes section, if the trip has notes. */
   notes?: ReactNode;
 }) {
   return (
@@ -53,7 +52,8 @@ export function SharedTrip({
         ) : (
           <SendRows>
             {sends.map((send) => (
-              // Keys reach the RSC payload; sequential send ids stay out of it.
+              // Keyed by climb id. Keys end up in the RSC payload, and
+              // sequential send ids shouldn't.
               <li key={send.climbId}>
                 <UserSendLogRow send={send} areaBreadcrumbs={areaBreadcrumbs} />
               </li>

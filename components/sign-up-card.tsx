@@ -38,9 +38,9 @@ export function signUpCard({
   );
 }
 
-/** The line that closes a page opened by a profile link: the rest of the
- * sends when it shows only some of them, the climber otherwise. An element
- * for the same reason as above. */
+/** Sign-up prompt at the end of a shared page. Links to the rest of the sends if
+ * only some are shown, otherwise invites the visitor to join. Returns an
+ * element for the same reason as above. */
 export function signUpPrompt({
   ownerName,
   sendCount,
@@ -49,7 +49,7 @@ export function signUpPrompt({
 }: {
   ownerName: string;
   sendCount: number;
-  /** How many of those sends the page lists. */
+  /** Number of sends shown on the page. */
   shown: number;
   next: string;
 }) {

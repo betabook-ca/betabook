@@ -18,8 +18,8 @@ import { requirePositiveId } from "@/lib/validation";
 import { afterCommit } from "./post-commit";
 import { revalidateTripSurfaces } from "./revalidation";
 
-/** `removeMyJournalTag` for a trip: the friend leaves a tombstone, so the
- * owner's next save cannot tag them again. */
+/** Trip version of `removeMyJournalTag`. Leaves a tombstone so the owner can't
+ * tag this friend again. */
 export async function removeMyTripTag(tripId: number): Promise<ActionResult> {
   return toActionResult(async () => {
     const { user } = await requireSession();

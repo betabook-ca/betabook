@@ -36,27 +36,27 @@ it("leaves the ask out of the About page until a support page is set", () => {
   expect(html).not.toContain("funding model");
 });
 
-it("says who reads a trip's notes, apart from who reads the journal", () => {
+it("explains who can read trip notes", () => {
   const text = renderToStaticMarkup(<AboutPage />)
     .replace(/<[^>]+>/g, " ")
     .replace(/&#x27;/g, "'")
     .replace(/\s+/g, " ");
 
   expect(text).toContain(
-    "Trip notes are for your friends and anyone with your profile link, whatever your journal's audience is.",
+    "Your friends and anyone with your profile link can read trip notes, regardless of your journal setting.",
   );
-  expect(text).not.toMatch(/read your journal can also read[^.]*trip notes/);
+  expect(text).not.toMatch(/read your journal can also see[^.]*trip notes/);
 });
 
-it("says who sees a trip's photos, and where they come from", () => {
+it("explains who can see trip photos and where they load from", () => {
   const text = renderToStaticMarkup(<AboutPage />)
     .replace(/<[^>]+>/g, " ")
     .replace(/&#x27;/g, "'")
     .replace(/\s+/g, " ");
 
   expect(text).toContain("trips with their notes, photos and sends to anyone who has them");
-  expect(text).toContain("can see a trip, its photos and the sends inside it");
-  expect(text).toContain("Photos are loaded from Google Photos.");
-  // Still true: the photos are Google's to store.
+  expect(text).toContain("can see your trips, with their photos and sends");
+  expect(text).toContain("Photos load from Google Photos.");
+  // The app still stores no photos.
   expect(text).toContain("doesn’t support image or video uploads");
 });

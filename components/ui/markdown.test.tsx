@@ -14,7 +14,7 @@ it("formats emphasis and lists", () => {
   expect(html).toMatch(/<ul[^>]*>\s*<li[^>]*>Buttermilks<\/li>\s*<li[^>]*>Happies<\/li>\s*<\/ul>/);
 });
 
-it("nests headings under the page's own", () => {
+it("renders headings below the page's heading level", () => {
   expect(render("# Day one\n\n## Morning")).toMatch(
     /<h3[^>]*>Day one<\/h3>\s*<h4[^>]*>Morning<\/h4>/,
   );
@@ -22,11 +22,11 @@ it("nests headings under the page's own", () => {
   expect(render("###### Deep", 4)).toMatch(/<h6[^>]*>Deep<\/h6>/);
 });
 
-it("keeps a single line break as typed", () => {
+it("keeps single line breaks", () => {
   expect(render("Day one\nDay two")).toMatch(/Day one<br\/>\s*Day two/);
 });
 
-it("links a pasted address and opens it away from the app", () => {
+it("links a pasted URL and opens it in a new tab", () => {
   const html = render("Photos: https://photos.app.goo.gl/abc123");
   expect(html).toContain('href="https://photos.app.goo.gl/abc123"');
   expect(html).toContain('target="_blank"');
@@ -57,7 +57,7 @@ it("links an image instead of loading it", () => {
   expect(html).toMatch(/<a href="https:\/\/example\.com\/topo\.jpg"[^>]*>Topo<\/a>/);
 });
 
-it("draws a task list with the app's icons and no form controls", () => {
+it("renders task lists with icons instead of checkboxes", () => {
   const html = render("- [x] Send the project\n- [ ] Rest day");
   expect(html).not.toContain("<input");
   expect(html).not.toMatch(/[☑☐]/);
@@ -65,9 +65,9 @@ it("draws a task list with the app's icons and no form controls", () => {
   expect(html).toMatch(/<svg[^>]*aria-label="Not done"/);
 });
 
-it("sets code in the app's one face", () => {
+it("uses the app font for code", () => {
   const html = render("Beta in `code`.\n\n```\nleft hand crimp\n```");
-  // Named, because a browser sets code in its own monospace face otherwise.
+  // Set explicitly, because browsers default `code` to monospace.
   expect(html).toMatch(/<code class="[^"]*\bfont-sans\b/);
   expect(html).toMatch(/<pre class="[^"]*\bfont-sans\b/);
   expect(html).not.toContain("font-mono");

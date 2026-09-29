@@ -8,11 +8,11 @@ import { albumLink } from "@/lib/trip-album";
 /** Enough for "Bishop, March 2026" or "Spring road trip — Utah and Nevada"
  * without letting a name push the trip card's heading onto four lines. */
 export const MAX_TRIP_NAME = 80;
-/** One line under the trip's name. The column's own CHECK still allows the
- * 2,000 it was created with; anything longer than this belongs in the notes. */
+/** Max description length. The column's CHECK still allows 2,000, its original
+ * limit. Longer text belongs in notes. */
 export const MAX_TRIP_DESCRIPTION = 160;
-/** Around 3,000 words. The column's own CHECK sits higher, so this can be
- * raised without a migration. */
+/** Max notes length, about 3,000 words. The column's CHECK is higher, so this
+ * can be raised without a migration. */
 export const MAX_TRIP_NOTES = 20_000;
 
 /** A ceiling rather than a product limit: trips are cheap rows and a climber
@@ -21,16 +21,15 @@ export const MAX_TRIP_NOTES = 20_000;
  * so concurrent requests cannot race past it. */
 export const MAX_TRIPS = 200;
 
-/** A description as the one line it is shown as. A line break is folded
- * rather than refused: a pasted paragraph should not cost the climber the
- * whole form, and a text input drops the break without leaving a space. */
+/** Collapses line breaks and extra whitespace into single spaces, so a pasted
+ * paragraph is accepted as one line instead of being rejected. */
 export function oneLine(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
-/** Code points, which is what SQLite's length() counts in migration 0051. A
- * string's own length counts an emoji twice, and would refuse a description
- * the migration had left in place. */
+/** Counts code points, to match SQLite's length() in migration 0051.
+ * `String.length` counts an emoji as two and would reject descriptions the
+ * migration left in place. */
 function characters(value: string): number {
   let count = 0;
   for (const _ of value) count += 1;
@@ -54,7 +53,7 @@ export const tripInputSchema = z
       .transform((value) => value || null)
       .nullable()
       .optional(),
-    /** A shared Google Photos album. Emptied, the trip has none. */
+    /** Shared Google Photos album URL. Empty removes it. */
     albumUrl: z
       .string()
       .transform((value, ctx) => {
@@ -68,7 +67,7 @@ export const tripInputSchema = z
       .optional(),
     startDate: isoDateSchema,
     endDate: isoDateSchema,
-    /** Friend ids. Left out, the trip keeps the tags it has. */
+    /** Friend ids to tag. Omit to keep the existing tags. */
     companions: z
       .array(z.string().min(1, INVALID_FRIENDS).max(128, INVALID_FRIENDS), INVALID_FRIENDS)
       .max(100, TOO_MANY_FRIENDS)
@@ -102,9 +101,7 @@ export function tripAnalyticsHref(userId: string, tripId: number): string {
   return `${tripHref(userId, tripId)}/analytics`;
 }
 
-/** The Journal or Sends under the trip's dates, as the date filter each
- * already has. A trip lists its sends and links the rest, so filtering stays
- * where a climber already does it. */
+/** Link to the Journal or Sends tab, filtered to the trip's dates. */
 export function tripLogbookHref(
   userId: string,
   page: "journal" | "sends",

@@ -5,8 +5,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeading } from "@/components/ui/typography";
 import type { AreaBreadcrumbs, UserSendRow } from "@/db/queries";
 
-/** The Sends tab for the signed-out holder of a profile link: the latest
- * sends as a member's list draws them, closed by the way to the rest. */
+/** Sends tab for a signed-out visitor with a share link: the latest sends, then
+ * a sign-up prompt. */
 export function SharedProfile({
   owner,
   sendCount,
@@ -28,7 +28,8 @@ export function SharedProfile({
       ) : (
         <SendRows>
           {sends.map((send) => (
-            // Keys reach the RSC payload; sequential send ids stay out of it.
+            // Keyed by climb id. Keys end up in the RSC payload, and sequential
+            // send ids shouldn't.
             <li key={send.climbId}>
               <UserSendLogRow send={send} areaBreadcrumbs={areaBreadcrumbs} />
             </li>

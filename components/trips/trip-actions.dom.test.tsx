@@ -49,12 +49,12 @@ async function choose(user: ReturnType<typeof userEvent.setup>, item: "Edit" | "
   await user.click(await screen.findByRole("menuitem", { name: item }));
 }
 
-it("opens the trip it belongs to for editing, and saves in place", async () => {
+it("opens the edit dialog for its trip and refreshes after saving", async () => {
   const user = userEvent.setup();
   render(<TripActions trip={BISHOP} userId="alex" />);
 
   await choose(user, "Edit");
-  // Named for the kind of record, as every other edit dialog is.
+  // The dialog title names the record type, like other edit dialogs.
   expect(await screen.findByRole("dialog", { name: "Edit trip" })).toBeInTheDocument();
   const name = await screen.findByRole("textbox", { name: /name/i });
   expect(name).toHaveValue("Bishop, March 2026");
@@ -73,7 +73,7 @@ it("opens the trip it belongs to for editing, and saves in place", async () => {
   expect(push).not.toHaveBeenCalled();
 });
 
-it("opens as the desktop dialog at once and hands focus back to its menu", async () => {
+it("opens as a modal on desktop and returns focus to the menu", async () => {
   stubViewport("desktop");
   const user = userEvent.setup();
   render(<TripActions trip={BISHOP} userId="alex" />);
@@ -90,7 +90,7 @@ it("opens as the desktop dialog at once and hands focus back to its menu", async
   overlays.stop();
 });
 
-it("opens on the trip as it now stands, however late the saved one arrives", async () => {
+it("opens with the trip's current values after a late refresh", async () => {
   const user = userEvent.setup();
   const { rerender } = render(<TripActions trip={BISHOP} userId="alex" />);
 
@@ -101,7 +101,7 @@ it("opens on the trip as it now stands, however late the saved one arrives", asy
   await user.click(screen.getByRole("button", { name: "Cancel" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 
-  // Longer than the dialog waits before it resets itself.
+  // Longer than the dialog's reset delay.
   await new Promise((resolve) => setTimeout(resolve, 400));
   rerender(<TripActions trip={{ ...BISHOP, name: "Bishop", description: null }} userId="alex" />);
 
@@ -111,7 +111,7 @@ it("opens on the trip as it now stands, however late the saved one arrives", asy
   expect(screen.getByRole("textbox", { name: /description/i })).toHaveValue("");
 });
 
-it("stays on the list after deleting a trip from it", async () => {
+it("stays on the list after deleting from a card", async () => {
   const user = userEvent.setup();
   render(<TripActions trip={BISHOP} userId="alex" />);
 
@@ -124,7 +124,7 @@ it("stays on the list after deleting a trip from it", async () => {
   expect(push).not.toHaveBeenCalled();
 });
 
-it("leaves for the trips list after deleting the trip whose page this is", async () => {
+it("goes to the trips list after deleting from the trip page", async () => {
   const user = userEvent.setup();
   render(<TripActions trip={BISHOP} userId="alex" leaveOnDelete />);
 
@@ -138,7 +138,7 @@ it("leaves for the trips list after deleting the trip whose page this is", async
   expect(refresh).not.toHaveBeenCalled();
 });
 
-it("stays where it is and says why when the delete is refused", async () => {
+it("stays open and shows the error when delete fails", async () => {
   vi.mocked(deleteTrip).mockResolvedValue({ ok: false, error: "Trip not found" });
   const user = userEvent.setup();
   render(<TripActions trip={BISHOP} userId="alex" leaveOnDelete />);

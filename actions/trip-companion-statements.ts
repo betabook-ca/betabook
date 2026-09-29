@@ -5,14 +5,14 @@ import type { Database } from "@/db/client";
 import { tripCompanions } from "@/db/schema";
 import { ActionError, errorChainIncludes } from "@/lib/action-result";
 
-/** The trip the statement before this one inserted, over an aliased `t`. That
- * insert writes nothing once the climber is at their limit, which leaves
- * `last_insert_rowid()` on whatever this connection inserted before it, so
- * `changes()` is what says the id is the new trip's. */
+/** Selects the trip inserted by the previous statement in the batch. If that
+ * insert was skipped because the user is at their trip limit,
+ * `last_insert_rowid()` still holds an older id, so `changes() > 0` is required
+ * as well. */
 export const NEW_TRIP = sql`t.id = last_insert_rowid() AND changes() > 0`;
 
-/** Tags `ids` on the trips `trip` selects, of those `ownerId` owns.
- * MATERIALIZED captures the id once, before the inserts below move
+/** Tags `ids` on the trips matched by `trip`, limited to trips owned by
+ * `ownerId`. MATERIALIZED reads the id once, before the inserts below change
  * `last_insert_rowid()`. */
 export function buildTripCompanionInsert(db: Database, ownerId: string, ids: string[], trip: SQL) {
   return db
@@ -28,8 +28,8 @@ export function buildTripCompanionInsert(db: Database, ownerId: string, ids: str
     .onConflictDoNothing();
 }
 
-/** Tombstones of friends who removed themselves are never deleted, so the
- * insert guard can keep refusing to tag them again. */
+/** Keep tombstone rows (friends who removed themselves) so the insert guard
+ * keeps blocking re-tagging. */
 export function buildTripCompanionReplacement(
   db: Database,
   ownerId: string,

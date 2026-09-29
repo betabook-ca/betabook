@@ -17,14 +17,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SectionHeading } from "@/components/ui/typography";
 import { MAX_TRIP_NOTES } from "@/lib/trips";
 
-// Loaded when a preview is asked for: reading the notes renders them on the
-// server, so only a climber checking a draft downloads the parser.
+// Loaded on demand. Notes are rendered on the server, so the Markdown parser is
+// only downloaded when someone previews a draft.
 const MarkdownPreview = dynamic(
   () => import("@/components/ui/markdown").then((module) => module.Markdown),
   { ssr: false, loading: () => <Skeleton className="h-24 w-full" /> },
 );
 
-/** The journal's reading measure, at the size the notes are set in. */
+/** Same line length as the journal, at the notes' text size. */
 const MEASURE_CLASS = "max-w-[65ch] text-sm";
 
 export function TripNotes({
@@ -34,10 +34,10 @@ export function TripNotes({
   children,
 }: {
   tripId: number;
-  /** The source as stored, which is what the editor opens on. */
+  /** Markdown source, used to fill the editor. */
   notes: string | null;
   canEdit: boolean;
-  /** The same notes rendered on the server. */
+  /** The notes rendered on the server. */
   children: ReactNode;
 }) {
   const router = useRouter();
@@ -80,8 +80,8 @@ export function TripNotes({
               size="sm"
               aria-label="Edit trip notes"
               onPress={startEditing}
-              // Floated into the card's corner: the notes start on its first
-              // line, and only the lines beside the button run short.
+              // Floated to the card's top-right corner, so the notes wrap
+              // around it instead of starting below it.
               className="float-right -mt-2 -mr-2 mb-1 ml-2 sm:-mt-3 sm:-mr-3"
             >
               <Pencil className="size-4" />
@@ -117,7 +117,7 @@ export function TripNotes({
                 isDisabled={pending}
                 onPress={() => setPreviewing((wasPreviewing) => !wasPreviewing)}
               >
-                {previewing ? "Keep writing" : "Preview"}
+                {previewing ? "Edit" : "Preview"}
               </Button>
               <div className="flex flex-wrap gap-2">
                 <Button variant="ghost" isDisabled={pending} onPress={editor.close}>
@@ -131,8 +131,8 @@ export function TripNotes({
           }
         >
           <div className="flex flex-col gap-3">
-            {/* The preview lies over the field instead of replacing it, so the
-             * dialog keeps its height and the toggle stays under the pointer. */}
+            {/* The preview is layered over the field instead of replacing it, so
+             * the dialog keeps its height and the toggle button doesn't move. */}
             <div className="relative">
               <div
                 aria-hidden={previewing || undefined}
@@ -152,7 +152,7 @@ export function TripNotes({
                   </FieldHeader>
                   <TextArea
                     rows={14}
-                    placeholder="Plans, conditions, what went, what to come back for…"
+                    placeholder="Plans, conditions, highlights, what to come back for…"
                   />
                   <FieldFeedback helper="Format with **bold**, *italic*, # headings and - lists. Links you paste become clickable." />
                 </TextField>
@@ -164,7 +164,8 @@ export function TripNotes({
                   role="region"
                   aria-label="Trip notes preview"
                   tabIndex={0}
-                  // The dialog body mutes its text; the page the notes land on does not.
+                  // The dialog body uses muted text. Use the normal text color,
+                  // as on the page.
                   className={`absolute inset-0 overflow-y-auto text-foreground focus-visible:status-focused ${cardClass("fluid", "bordered")}`}
                 >
                   <div className={MEASURE_CLASS}>

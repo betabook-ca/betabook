@@ -60,7 +60,7 @@ export const WithFriends: Story = {
   ),
 };
 
-/** Another climber's trips, read by someone who can also read their journal. */
+/** Another user's trips, seen by someone who can read their journal. */
 export const Visitor: Story = {
   args: { trips: tripSamples, canEdit: false },
   render: (args) => (
@@ -70,8 +70,8 @@ export const Visitor: Story = {
   ),
 };
 
-/** Read by someone who can see the sends but not the journal, so the
- * journal's two counts are absent rather than zero. */
+/** Seen by someone who can see sends but not the journal, so journal counts are
+ * left out. */
 export const VisitorWithoutJournal: Story = {
   args: {
     trips: tripSamples.map((trip) => ({ ...trip, entryCount: null, dayCount: null })),

@@ -13,7 +13,7 @@ import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import type { CompanionOption } from "@/lib/journal-companions";
 import { tripsHref } from "@/lib/trips";
 
-/** What the owner can do to one trip, the same from its card and its page. */
+/** Owner actions for a trip. Used on the trip card and the trip page. */
 export function TripActions({
   trip,
   userId,
@@ -22,9 +22,9 @@ export function TripActions({
 }: {
   trip: TripSummary;
   userId: string;
-  /** On the trip's own page, where deleting it leaves nothing to show. */
+  /** Set on the trip page, to go back to the list after deleting. */
   leaveOnDelete?: boolean;
-  /** Seam for stories and tests; production looks friends up over the API. */
+  /** For stories and tests. Production looks friends up through the API. */
   companionFetcher?: LookupFetcher<CompanionOption>;
 }) {
   const router = useRouter();

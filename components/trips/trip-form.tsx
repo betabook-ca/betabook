@@ -54,10 +54,10 @@ export function TripForm({
   /** Shown under End date while the range is backwards, so the climber sees it
    * before submitting rather than after a round trip. */
   dateError?: string | null;
-  /** An existing trip, whose tags a changed selection replaces. */
+  /** The trip being edited. Changing the selection replaces its tags. */
   editing?: boolean;
   disabled?: boolean;
-  /** Seam for stories and tests; production looks friends up over the API. */
+  /** For stories and tests. Production looks friends up through the API. */
   companionFetcher?: LookupFetcher<CompanionOption>;
 }) {
   return (
@@ -88,7 +88,7 @@ export function TripForm({
         >
           <Label>Description</Label>
           <HelpTooltip label="About the description">
-            Anyone who can see your sends reads this line, including through your profile link.
+            Anyone who can see your sends can see this, including people with your profile link.
           </HelpTooltip>
         </FieldHeader>
         <Input placeholder="Ten days in the Buttermilks" />
@@ -104,7 +104,7 @@ export function TripForm({
           <Label>Google Photos album</Label>
           <HelpTooltip label="About the album">
             In Google Photos, open the album, choose Share, then Create link. Anyone who can see
-            your sends sees these photos, including through your profile link.
+            your sends can see these photos, including people with your profile link.
           </HelpTooltip>
         </FieldHeader>
         <Input inputMode="url" placeholder="https://photos.app.goo.gl/…" />

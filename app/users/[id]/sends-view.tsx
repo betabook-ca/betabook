@@ -19,10 +19,10 @@ export async function SendsView({
   viewerId: string;
   filter: UserSendsFilter;
   basePath: string;
-  /** The list alone, under a heading of the page's own: no toolbar. A trip
-   * lists its sends this way and leaves filtering to the Sends tab. */
+  /** Render only the list, with no filter toolbar or heading. Used by the trip
+   * page. */
   bare?: boolean;
-  /** Said when the list is empty, in place of the Sends tab's own words. */
+  /** Empty-state message to show instead of the default. */
   emptyWindow?: string;
 }) {
   const db = await getDb();

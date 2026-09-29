@@ -40,7 +40,7 @@ function header(
   );
 }
 
-it("gives the owner the trip's actions beside its name, and a visitor none", () => {
+it("shows the actions menu to the owner only", () => {
   const { rerender } = render(header(BISHOP));
   expect(screen.getByRole("heading", { name: "Bishop, March 2026" })).toBeVisible();
   expect(screen.getByRole("button", { name: "Actions for Bishop, March 2026" })).toBeVisible();
@@ -49,12 +49,13 @@ it("gives the owner the trip's actions beside its name, and a visitor none", () 
   expect(screen.queryByRole("button", { name: /Actions for/ })).not.toBeInTheDocument();
 });
 
-it("offers the owner a way to share the trip, and nobody else", () => {
+it("shows the Share button to the owner only", () => {
   const link = "https://betabook.ca/users/alex/trips/7?share=0123456789abcdef0123456789abcdef";
   const { rerender } = render(header(BISHOP, "alex", { shareUrl: link }));
   expect(screen.getByRole("button", { name: "Share" })).toBeVisible();
 
-  // Private: the button stays, to say why there is no link.
+  // With a private profile the button stays, and the dialog explains why there
+  // is no link.
   rerender(header(BISHOP, "alex", { shareUrl: null }));
   expect(screen.getByRole("button", { name: "Share" })).toBeVisible();
 
@@ -62,12 +63,12 @@ it("offers the owner a way to share the trip, and nobody else", () => {
     rerender(header(BISHOP, reader));
     expect(screen.queryByRole("button", { name: "Share" })).not.toBeInTheDocument();
   }
-  // Nor over the trip's analytics, which pass no link.
+  // Not shown on the analytics page, which passes no share URL.
   rerender(header(BISHOP, "alex", { back: "trip" }));
   expect(screen.queryByRole("button", { name: "Share" })).not.toBeInTheDocument();
 });
 
-it("marks a trip that is upcoming or on now, as its card does", () => {
+it("shows a chip for upcoming and in-progress trips", () => {
   const { rerender } = render(header(BISHOP));
   expect(screen.queryByText(/Upcoming|On now/)).not.toBeInTheDocument();
 
@@ -78,7 +79,7 @@ it("marks a trip that is upcoming or on now, as its card does", () => {
   expect(screen.getByText("On now")).toBeVisible();
 });
 
-it("names the way back without reading out an arrow", () => {
+it("labels the back link without the arrow", () => {
   render(header(BISHOP));
   expect(screen.getByRole("link", { name: "All trips" })).toHaveAttribute(
     "href",
@@ -86,7 +87,7 @@ it("names the way back without reading out an arrow", () => {
   );
 });
 
-it("offers no views to choose between: the trip is one page", () => {
+it("renders no tabs", () => {
   render(header({ ...BISHOP, hasNotes: 1 }));
 
   expect(screen.queryByRole("navigation", { name: "Trip views" })).not.toBeInTheDocument();
@@ -95,7 +96,7 @@ it("offers no views to choose between: the trip is one page", () => {
   }
 });
 
-it("counts what the trip holds, each count opening the Logbook under the trip's dates", () => {
+it("links the counts to the Journal and Sends filtered to the trip's dates", () => {
   render(header(BISHOP));
 
   expect(screen.getByText("7", { exact: false })).toBeInTheDocument();
@@ -107,18 +108,18 @@ it("counts what the trip holds, each count opening the Logbook under the trip's 
     "href",
     `/users/alex/sends?${DATES}`,
   );
-  // The line holds counts alone, so it fits a phone without wrapping.
+  // No Analytics link in the counts line.
   expect(screen.queryByRole("link", { name: "Analytics" })).not.toBeInTheDocument();
 });
 
-it("counts the sends alone for a reader the journal is not shared with", () => {
+it("shows only the send count when the viewer can't read the journal", () => {
   render(header({ ...BISHOP, entryCount: null, dayCount: null }, "sam"));
 
   expect(screen.getByRole("link", { name: "9 sends" })).toBeVisible();
   expect(document.body).not.toHaveTextContent(/entr|days logged/);
 });
 
-it("links no count that is nought, and counts nothing for a trip still to come", () => {
+it("does not link zero counts, and hides counts for an upcoming trip", () => {
   const { rerender } = render(header({ ...BISHOP, entryCount: 0, dayCount: 0, sendCount: 0 }));
   expect(document.body).toHaveTextContent("0 entries");
   expect(document.body).toHaveTextContent("0 sends");
@@ -137,7 +138,7 @@ it("links no count that is nought, and counts nothing for a trip still to come",
   expect(document.body).not.toHaveTextContent(/0 entries|0 sends|days logged/);
 });
 
-it("leads back to the trip from its analytics", () => {
+it("links back to the trip from the analytics page", () => {
   render(header(BISHOP, "alex", { back: "trip" }));
 
   expect(screen.getByRole("link", { name: "Back to trip" })).toHaveAttribute(
@@ -146,7 +147,7 @@ it("leads back to the trip from its analytics", () => {
   );
 });
 
-it("is the same header for the signed-out holder of the profile link, less what they cannot open", () => {
+it("renders the same header for a signed-out visitor, without controls or Logbook links", () => {
   const token = "0123456789abcdef0123456789abcdef";
   render(header({ ...BISHOP, entryCount: null, dayCount: null }, null, { share: token }));
 
@@ -156,7 +157,7 @@ it("is the same header for the signed-out holder of the profile link, less what 
     "href",
     `/users/alex/trips?share=${token}`,
   );
-  // The Logbook is behind sign-in, so the count is stated and not linked.
+  // Signed-out visitors can't open the Logbook, so the count is plain text.
   expect(document.body).toHaveTextContent("9 sends");
   expect(screen.queryByRole("link", { name: /sends|Analytics/ })).not.toBeInTheDocument();
   expect(screen.queryByRole("button")).not.toBeInTheDocument();

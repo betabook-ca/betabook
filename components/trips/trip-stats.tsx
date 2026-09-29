@@ -6,7 +6,7 @@ import type { TripSummary } from "@/db/queries";
 type Links = { entries: string; sends: string };
 
 function Stat({ value, label, href }: { value: number; label: string; href?: string }) {
-  // Nothing to open behind a count of nought.
+  // Only link counts above zero.
   if (href && value > 0) {
     return (
       <AppLink href={href} className="text-sm">
@@ -21,17 +21,15 @@ function Stat({ value, label, href }: { value: number; label: string; href?: str
   );
 }
 
-/** "Days logged" is deliberately not Analytics' "Days out": that tile counts
- * outdoor sessions in a single discipline, a narrower question, so it gets its
- * own words rather than a shared label over two different numbers. The
- * journal's two counts are absent, not zero, for a reader the journal is not
- * shared with. */
+/** "Days logged" is not the Analytics "Days out" tile, which counts outdoor
+ * sessions for one discipline, so it has its own label. Journal counts are left
+ * out, not shown as zero, when the viewer can't read the journal. */
 export function TripStats({
   trip,
   links,
 }: {
   trip: Pick<TripSummary, "dayCount" | "entryCount" | "sendCount">;
-  /** Where each count opens, for a reader who can open the Logbook. */
+  /** Links for the counts. Omit for signed-out visitors. */
   links?: Links;
 }) {
   const stats: { key: string; stat: ReactNode }[] = [];

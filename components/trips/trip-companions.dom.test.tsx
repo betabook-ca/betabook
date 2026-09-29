@@ -19,14 +19,14 @@ beforeEach(() => {
   vi.mocked(removeMyTripTag).mockResolvedValue({ ok: true, value: undefined });
 });
 
-it("names the friends on the trip and links each to their profile", () => {
+it("lists tagged friends with links to their profiles", () => {
   render(<TripCompanions tripId={TRIP} initialCompanions={[SAM]} />);
 
   expect(screen.getByRole("link", { name: "Sam Okafor" })).toHaveAttribute("href", "/users/sam");
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
 });
 
-it("lets the tagged friend take themself off, and nobody else", async () => {
+it("lets only the tagged friend remove their own tag", async () => {
   const user = userEvent.setup();
   render(<TripCompanions tripId={TRIP} initialCompanions={[SAM, ME]} />);
 
@@ -38,7 +38,7 @@ it("lets the tagged friend take themself off, and nobody else", async () => {
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
 });
 
-it("keeps the tag and says why when the removal is refused", async () => {
+it("keeps the tag and shows the error when removal fails", async () => {
   vi.mocked(removeMyTripTag).mockResolvedValue({
     ok: false,
     error: "This tag is no longer available",
@@ -52,7 +52,7 @@ it("keeps the tag and says why when the removal is refused", async () => {
   expect(screen.getByRole("link", { name: "Priya Nair" })).toBeInTheDocument();
 });
 
-it("draws nothing for a trip with nobody tagged", () => {
+it("renders nothing when nobody is tagged", () => {
   const { container } = render(<TripCompanions tripId={TRIP} initialCompanions={[]} />);
   expect(container).toBeEmptyDOMElement();
 });

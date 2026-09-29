@@ -10,7 +10,7 @@ import {
 
 const PHOTO = "https://lh3.googleusercontent.com/pw/AP1GczNUNuva0hpWf0Fu63ZGGHNv-XoCW_XsASv";
 
-/** One photo as the shared album's page carries it. */
+/** One photo entry, in the format the album page uses. */
 function entry(url: string, width = 1920, height = 1080) {
   return `["AF1QipNmpJAlhxumRlu6re4SEIlz4N49",["${url}",${width},${height},null,null,null,null,null,[null,null,1],[5723197]],1525436582000,"i7vW3_oTM6",7200000]`;
 }
@@ -19,18 +19,18 @@ function page(entries: string[]) {
   return `<html><head><meta property="og:image" content="${PHOTO}=w600-h315-p-k"></head><body><script class="ds:1" nonce="x">AF_initDataCallback({key: 'ds:1', hash: '2', data:[null,[${entries.join(",")}]], sideChannel: {}});</script></body></html>`;
 }
 
-describe("a link to a shared album", () => {
+describe("albumLink", () => {
   it.each([
     ["the short link Google Photos copies", "https://photos.app.goo.gl/Example1Album2Link3"],
     [
-      "the long link a short one leads to",
+      "the long share URL",
       "https://photos.google.com/share/AF1QipMUVJgB2WzAdzUroYx_rTs9?key=c0ZfN3Zk-WE",
     ],
   ])("accepts %s", (_label, link) => {
     expect(albumLink(link)).toBe(link);
   });
 
-  it("drops what was pasted around it", () => {
+  it("drops whitespace, extra query params and fragments", () => {
     expect(
       albumLink("  https://photos.app.goo.gl/Example1Album2Link3?utm_source=share#top \n"),
     ).toBe("https://photos.app.goo.gl/Example1Album2Link3");
@@ -57,8 +57,8 @@ describe("a link to a shared album", () => {
   });
 });
 
-describe("where a request for an album may go", () => {
-  it("stays on Google Photos", () => {
+describe("isAlbumPage", () => {
+  it("allows only Google Photos URLs", () => {
     expect(isAlbumPage("https://photos.app.goo.gl/Example1Album2Link3")).toBe(true);
     expect(isAlbumPage("https://photos.google.com/share/AF1Qip?key=abc")).toBe(true);
   });
@@ -75,8 +75,8 @@ describe("where a request for an album may go", () => {
   });
 });
 
-describe("the photos on an album's page", () => {
-  it("are read in the album's order, each once, with their size", () => {
+describe("readAlbumPage", () => {
+  it("reads photos in order, without duplicates, with their sizes", () => {
     const other = `${PHOTO}2`;
     const album = readAlbumPage(page([entry(PHOTO), entry(other, 1080, 1920), entry(PHOTO)]));
 
@@ -86,7 +86,7 @@ describe("the photos on an album's page", () => {
     ]);
   });
 
-  it("leaves out anything that is not a photo in an album", () => {
+  it("ignores URLs that aren't album photos", () => {
     const album = readAlbumPage(
       page([
         entry("https://lh3.googleusercontent.com/a/ACg8ocJprofilephoto"),
@@ -101,7 +101,7 @@ describe("the photos on an album's page", () => {
     expect(album).toEqual([{ url: `${PHOTO}3`, width: 4000, height: 3000 }]);
   });
 
-  it("stops at what a page can reasonably show", () => {
+  it("stops at the photo limit", () => {
     const many = Array.from({ length: MAX_ALBUM_PHOTOS + 25 }, (_unused, index) =>
       entry(`${PHOTO}${index}`),
     );
@@ -109,16 +109,16 @@ describe("the photos on an album's page", () => {
     expect(readAlbumPage(page(many))).toHaveLength(MAX_ALBUM_PHOTOS);
   });
 
-  it("is nothing when the page holds no album", () => {
+  it("returns nothing for a page without an album", () => {
     expect(readAlbumPage("<html><body>Sign in to continue</body></html>")).toEqual([]);
     expect(readAlbumPage("")).toEqual([]);
   });
 });
 
-describe("a photo's address at a given width", () => {
-  it("asks Google for that width and no more", () => {
+describe("albumPhotoSrc", () => {
+  it("requests the given width, capped at the photo's width", () => {
     expect(albumPhotoSrc({ url: PHOTO, width: 4000, height: 3000 }, 960)).toBe(`${PHOTO}=w960`);
-    // Never upscaled: a small photo is asked for at its own width.
+    // Never request a width larger than the photo.
     expect(albumPhotoSrc({ url: PHOTO, width: 640, height: 480 }, 960)).toBe(`${PHOTO}=w640`);
   });
 });

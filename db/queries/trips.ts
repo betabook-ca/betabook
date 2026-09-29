@@ -10,30 +10,27 @@ export type Trip = {
   id: number;
   name: string;
   description: string | null;
-  /** A shared Google Photos album, shown to whoever can open the trip. */
+  /** Shared Google Photos album URL. Visible to anyone who can open the trip. */
   albumUrl: string | null;
   startDate: string;
   endDate: string;
 };
 
 export type TripSummary = Trip & {
-  /** Journal entries dated inside the window, both sessions and training.
-   * Null for a reader who may not read this climber's journal. */
+  /** Journal entries (sessions and training) dated within the trip. Null if the
+   * viewer can't read this user's journal. */
   entryCount: number | null;
   /** Dated sends inside the window. Undated sends are never counted: a null
    * `date_sent` cannot be shown to fall in the trip. */
   sendCount: number;
-  /** Distinct dates with any entry, training included — not the calendar
-   * length of the trip, and deliberately not the Analytics tab's "Days out".
-   * That tile counts outdoor sessions in one discipline, so it answers a
-   * narrower question; the card says "days logged" rather than borrowing its
-   * words for a different number. Null with `entryCount`. */
+  /** Number of distinct dates with a journal entry, including training. This is
+   * not the Analytics "Days out" tile, which counts outdoor sessions for one
+   * discipline, so the UI calls it "days logged". Null when `entryCount` is
+   * null. */
   dayCount: number | null;
-  /** 1 when there are notes this reader may read: the climber, a friend of
-   * theirs, or the holder of their profile link. */
+  /** 1 if the trip has notes the viewer can read, otherwise 0. */
   hasNotes: number;
-  /** Friends tagged on the trip, empty for a reader the journal is not
-   * shared with. */
+  /** Tagged friends. Empty if the viewer can't read the owner's journal. */
   companions: JournalCompanion[];
 };
 
@@ -43,16 +40,14 @@ function toTripSummary(row: TripRow): TripSummary {
   return { ...row, companions: JSON.parse(row.companions) as JournalCompanion[] };
 }
 
-/** Which journal rows fall inside a trip, over an aliased `j` row and an
- * aliased `t` trip row. Every kind counts, `session` and `training` alike,
- * because the trip's Journal tab lists both. */
+/** Matches journal entries within a trip. Expects aliases `j` (entry) and `t`
+ * (trip). Includes both `session` and `training` entries. */
 const tripEntryRowsSql = sql`
   j.user_id = t.user_id AND j.entry_date BETWEEN t.start_date AND t.end_date
 `;
 
-/** Which sends fall inside a trip, over an aliased `s` send row and `t` trip
- * row. `date_sent` is nullable and `NULL BETWEEN …` is NULL rather than true,
- * so an undated send is excluded by the comparison itself. */
+/** Matches sends within a trip. Expects aliases `s` (send) and `t` (trip).
+ * Undated sends are excluded because `NULL BETWEEN ...` is NULL. */
 const tripSendRowsSql = sql`
   s.user_id = t.user_id AND s.date_sent BETWEEN t.start_date AND t.end_date
 `;
@@ -83,11 +78,9 @@ const tripColumnsSql = sql`
   t.end_date    AS endDate
 `;
 
-/** A trip is read by whoever may see the climber's sends, which is
- * `canViewUser` said in SQL so a profile closing takes effect on the next
- * read rather than the next page gate. A null viewer holds the climber's
- * profile link, which the page checks; the journal's audiences never admit
- * one, so they get the trip, its sends and, by the link, its notes. */
+/** Trips are visible to anyone who can see the owner's sends. This is
+ * `canViewUser` in SQL, so it is checked on every read. A null viewer is a
+ * signed-out visitor whose share link the page has already validated. */
 function tripRowsSql(userId: string, viewerId: string | null): SQL {
   return sql`
     FROM trips t
@@ -97,8 +90,8 @@ function tripRowsSql(userId: string, viewerId: string | null): SQL {
   `;
 }
 
-/** Newest window first, with `id` as the tiebreak so two trips starting the
- * same day keep a stable order across loads. */
+/** Newest first. `id` breaks ties so trips starting the same day keep a stable
+ * order. */
 export async function getTripsForUser(
   db: Database,
   userId: string,
@@ -112,14 +105,14 @@ export async function getTripsForUser(
   return rows.map(toTripSummary);
 }
 
-/** Scoped to `userId` in the WHERE rather than checked afterwards, so a
- * guessed id reads as "no such trip" instead of confirming one exists. */
+/** Filters by `userId` in the query, so a trip id that belongs to someone else
+ * returns nothing. */
 export async function getTripForUser(
   db: Database,
   userId: string,
   tripId: number,
   viewerId: string | null,
-  /** The profile link the reader came by, which opens the notes. */
+  /** Share token from the URL, if any. A valid token allows reading notes. */
   share: string | null = null,
 ): Promise<TripSummary | null> {
   const row = await db.get<TripRow>(sql`
@@ -129,7 +122,7 @@ export async function getTripForUser(
   return row ? toTripSummary(row) : null;
 }
 
-/** Uses the same current permission predicate as the notes' own read. */
+/** Uses the same predicate as `getTripNotes`. */
 export async function canReadTripNotes(
   db: Database,
   ownerId: string,
@@ -142,8 +135,7 @@ export async function canReadTripNotes(
   return row?.visible === 1;
 }
 
-/** Read apart from `tripColumnsSql`: the list and the trip's header select
- * those columns, and neither shows the notes. */
+/** Notes are loaded separately because the list and the header don't need them. */
 export async function getTripNotes(
   db: Database,
   userId: string,

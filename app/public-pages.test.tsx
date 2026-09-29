@@ -65,9 +65,8 @@ const climbProps = {
   params: Promise.resolve({ id: "1", slug: ["test-highball"] }),
   searchParams: Promise.resolve({}),
 };
-/** A shared page is the visitor's frame around what the link opens. The
- * frame reads the climber's hardest sends, so it is resolved before it can be
- * rendered. */
+/** Runs `SharedProfileHeader`, which is async because it loads the user's
+ * hardest sends, so tests can inspect what it renders. */
 async function framed(page: unknown) {
   const element = page as { type: unknown; props: unknown };
   return typeof element.type === "function" && element.type.name === "SharedProfileHeader"
@@ -247,8 +246,8 @@ it("previews recent climbing signed out through the owner's current share link",
   expect(serialized).not.toContain("Commentary sentinel");
   expect(serialized).not.toContain("Journal sentinel");
   const html = renderToStaticMarkup(await framed(preview));
-  // The heading a member sees, with the invitation where they have the
-  // friendship control.
+  // Same heading a signed-in user sees, with the sign-up invite in place of the
+  // friend button.
   expect(html).toContain("Restricted identity sentinel</h1>");
   expect(html).toContain("Sign up to send Restricted identity sentinel a friend request");
   expect(html).toContain('aria-label="Profile sections"');
@@ -269,7 +268,8 @@ it("keeps the profile's sub-pages locked with a current share link", async () =>
     expect(JSON.stringify(page)).not.toContain("Preview climb");
   }
 });
-/** March to May of the shared profile's sends: climbs 2, 3 and 4. */
+/** A trip from March to May, covering the shared profile's sends on climbs 2, 3
+ * and 4. */
 async function seedSharedTrip() {
   const token = await seedSharedProfile();
   const trip = await seedFixtureTrip(db, {
@@ -304,10 +304,10 @@ const tripProps = (id: string, tripId: number, share: string) => ({
 
 const JOURNAL_SIDE = ["Journal sentinel", "Inside journal sentinel", "Tagged identity sentinel"];
 
-it("opens the owner's trips, and the sends on each, through their profile link", async () => {
+it("opens the trips list and a trip through the share link", async () => {
   const { token, trip } = await seedSharedTrip();
 
-  // The profile opens on its sends; the trips are a tab away, as for a member.
+  // The profile shows sends by default. Trips are on their own tab.
   const profile = JSON.stringify(await UserPage(shareProps("hidden", token)));
   expect(profile).not.toContain("Trip sentinel");
 
@@ -320,7 +320,7 @@ it("opens the owner's trips, and the sends on each, through their profile link",
   expect(list).toContain("Description sentinel");
   expect(list).toContain('"sendCount":3');
   expect(list).toContain('"entryCount":null');
-  // The link travels with the list, since each trip opens by it.
+  // Trip links in the list include the share token.
   expect(list).toContain(`"shareToken":"${token}"`);
   expect(list).toContain('"canEdit":false');
 
@@ -334,7 +334,7 @@ it("opens the owner's trips, and the sends on each, through their profile link",
   expect([...new Set(shown)]).toEqual(["4", "3", "2"]);
   expect(page).not.toContain("Commentary sentinel");
 
-  // The notes are on the trip's own page, to read and not to edit.
+  // Notes appear on the trip page, read-only.
   expect(page).toContain('"notes":"Notes sentinel"');
   expect(page).toContain('"canEdit":false');
   expect(page).not.toContain('"canEdit":true');
@@ -345,7 +345,7 @@ it("opens the owner's trips, and the sends on each, through their profile link",
   }
 });
 
-it("shows a trip's shared album through the profile link", async () => {
+it("shows a trip's album through the share link", async () => {
   const { token } = await seedSharedTrip();
   const album = "https://photos.app.goo.gl/Example1Album2Link3";
   const withAlbum = await seedFixtureTrip(db, {
@@ -363,7 +363,7 @@ it("shows a trip's shared album through the profile link", async () => {
   expect(locked).not.toContain(album);
 });
 
-it("shows a trip's send commentary through the link only when it is set to Everyone", async () => {
+it("shows send comments through the share link only when shared with Everyone", async () => {
   const { token } = await seedSharedTrip();
   const season = await seedFixtureTrip(db, {
     userId: "hidden",
@@ -379,7 +379,7 @@ it("shows a trip's send commentary through the link only when it is set to Every
   expect(JSON.stringify(await TripPage(props()))).toContain("Commentary sentinel");
 });
 
-it("keeps a trip's analytics locked with a current share link", async () => {
+it("keeps trip analytics behind sign-in with a valid share link", async () => {
   const { token, trip } = await seedSharedTrip();
 
   const page = await TripAnalyticsPage(tripProps("hidden", trip.id, token));
@@ -389,7 +389,7 @@ it("keeps a trip's analytics locked with a current share link", async () => {
   expect(payload).not.toContain("Preview climb");
 });
 
-it("shows no trip through unknown, mismatched, reset or private links", async () => {
+it("shows no trip for unknown, mismatched, reset or private share links", async () => {
   await seedFixtureUser(db, { id: "other", name: "Other identity sentinel" });
   const { token, trip } = await seedSharedTrip();
   const otherToken = (await getProfileShareToken(db, "other"))!;
@@ -412,8 +412,7 @@ it("shows no trip through unknown, mismatched, reset or private links", async ()
 
   await expectTripsLocked("hidden", "0".repeat(32));
   await expectTripsLocked("hidden", otherToken);
-  // Another climber's own link opens their trips, and not this trip under
-  // their id.
+  // Another user's share link doesn't open this trip.
   await expectLockedPage(await TripPage(tripProps("other", trip.id, otherToken)));
 
   await db.update(user).set({ isPrivate: true }).where(eq(user.id, "hidden"));

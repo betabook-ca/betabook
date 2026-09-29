@@ -26,7 +26,7 @@ export function TripCard({
   /** The reader's own `YYYY-MM-DD`, resolved on the server. */
   today: string;
   actions?: ReactNode;
-  /** The climber's profile link, which a signed-out reader's next page needs. */
+  /** Share token for a signed-out visitor, added to the trip link. */
   shareToken?: string;
 }) {
   const href = tripHref(userId, trip.id);

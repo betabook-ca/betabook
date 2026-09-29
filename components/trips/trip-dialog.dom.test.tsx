@@ -110,7 +110,7 @@ it("sends what was typed, then opens the trip it just created", async () => {
   await waitFor(() => expect(push).toHaveBeenCalledWith("/users/alex/trips/7"));
 });
 
-it("takes the description as one line and says who reads it", async () => {
+it("takes a one-line description and explains who can see it", async () => {
   const user = userEvent.setup();
   render(<Example />);
 
@@ -119,22 +119,23 @@ it("takes the description as one line and says who reads it", async () => {
   expect(description).toHaveAttribute("maxlength", "160");
 
   await user.click(screen.getByRole("button", { name: "About the description" }));
-  const hint = await screen.findByText(/Anyone who can see your sends reads this line/);
+  const hint = await screen.findByText(/Anyone who can see your sends can see this/);
   expect(hint).toHaveTextContent(
-    /^Anyone who can see your sends reads this line, including through your profile link\.$/,
+    /^Anyone who can see your sends can see this, including people with your profile link\.$/,
   );
 });
 
-it("opens a description written over several lines as the one line it reads as", () => {
+it("shows a multi-line description as one line", () => {
   render(<Example trip={{ ...BISHOP, description: "Buttermilks.\n\nTwo rest days.  " }} />);
 
-  // A text input drops line breaks without a space, joining the words.
+  // A text input removes line breaks without adding a space, which joins the
+  // words.
   expect(screen.getByRole("textbox", { name: /description/i })).toHaveValue(
     "Buttermilks. Two rest days.",
   );
 });
 
-it("takes the link to a shared album and sends it with the trip", async () => {
+it("sends the album link with the trip", async () => {
   const user = userEvent.setup();
   render(<Example />);
 
@@ -151,7 +152,7 @@ it("takes the link to a shared album and sends it with the trip", async () => {
   });
 });
 
-it("opens an edit on the album the trip has, and says who sees its photos", async () => {
+it("opens an edit with the trip's album and explains who can see the photos", async () => {
   const user = userEvent.setup();
   const album = "https://photos.app.goo.gl/Example1Album2Link3";
   render(<Example trip={{ ...BISHOP, albumUrl: album }} />);
@@ -160,11 +161,11 @@ it("opens an edit on the album the trip has, and says who sees its photos", asyn
 
   await user.click(screen.getByRole("button", { name: "About the album" }));
   expect(
-    await screen.findByText(/Anyone who can see your sends sees these photos/),
+    await screen.findByText(/Anyone who can see your sends can see these photos/),
   ).toBeInTheDocument();
 });
 
-it("sends the friends picked for a new trip", async () => {
+it("sends the selected friends for a new trip", async () => {
   const user = userEvent.setup();
   render(<Example />);
 
@@ -177,7 +178,7 @@ it("sends the friends picked for a new trip", async () => {
   expect(saveTrip).toHaveBeenCalledWith(null, expect.objectContaining({ companions: ["sam"] }));
 });
 
-it("opens an edit on the friends already tagged, and sends them only once they change", async () => {
+it("opens an edit with the tagged friends and sends them only if changed", async () => {
   const user = userEvent.setup();
   const tagged = { ...BISHOP, companions: [{ ...SAM, isSelf: false }] };
   render(<Example trip={tagged} />);
@@ -186,11 +187,11 @@ it("opens an edit on the friends already tagged, and sends them only once they c
 
   await user.click(screen.getByRole("button", { name: "Save changes" }));
   await waitFor(() => expect(saveTrip).toHaveBeenCalledTimes(1));
-  // No selection at all, so tags hidden from this list are not replaced.
+  // No companions are sent, so tags this user can't see aren't replaced.
   expect(vi.mocked(saveTrip).mock.calls[0][1]).not.toHaveProperty("companions");
 });
 
-it("replaces the tags with the edited selection", async () => {
+it("sends the edited selection", async () => {
   const user = userEvent.setup();
   const tagged = { ...BISHOP, companions: [{ ...SAM, isSelf: false }] };
   render(<Example trip={tagged} />);

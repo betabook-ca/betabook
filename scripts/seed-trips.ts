@@ -18,11 +18,10 @@ type Plan = {
   friends: number;
 };
 
-/** Ordinary history is scattered over every crag and year, so a window laid
- * over it catches a handful of unrelated climbs. Each plan brings its own
- * days at one place instead, dated after that history ends on 2026-09-01 so
- * nothing else falls inside. The road trip covers the three before it, from
- * the day after. */
+/** Seeded history is spread across all crags and years, so a random date range
+ * would match unrelated climbs. Each plan adds its own days at one crag, dated
+ * after the history ends on 2026-09-01. The road trip spans the three shorter
+ * trips. */
 const PLANS: Plan[] = [
   { kind: "long", start: "2026-09-03", days: 9, sends: 8, friends: 2 },
   { kind: "weekend", start: "2026-09-17", days: 3, sends: 4, friends: 1 },
@@ -78,8 +77,8 @@ const BEST_TIMES = [
 ];
 
 const LESSONS = [
-  "Skin was the limit, not strength.",
-  "The rest day did more than any session.",
+  "Skin gave out before strength did.",
+  "The rest day helped more than any session.",
   "Everything felt a grade easier before ten.",
 ];
 
@@ -113,8 +112,8 @@ function tripName(plan: Plan, place: Place, start: string): string {
   return plan.kind === "day" ? `A day at ${place.name}` : `${place.name}, ${monthOf(start)}`;
 }
 
-/** Names nobody: whoever can see the trip reads this line, and the friends on
- * it are for whoever can read the journal. */
+/** Descriptions are visible to anyone who can see the trip, so they don't name
+ * tagged friends. */
 function describe(plan: Plan, place: Place): string | null {
   if (plan.kind === "day") return null;
   if (plan.kind === "road") return "A month on the road.";
@@ -125,7 +124,7 @@ function describe(plan: Plan, place: Place): string | null {
 
 type Sent = { climb: Climb; day: number; style: "redpoint" | "flash" };
 
-/** The day off in the middle of a long trip, counted from nought. */
+/** Zero-based index of the rest day in a long trip, or -1. */
 function restDayOf(plan: Plan): number {
   return plan.kind === "long" ? Math.floor(plan.days / 2) : -1;
 }
@@ -135,9 +134,8 @@ function table(head: string[], rows: string[][]): string {
   return [line(head), line(head.map(() => "---")), ...rows.map(line)].join("\n");
 }
 
-/** What the page cannot show. The sends are listed under the notes, so these
- * name the few that mattered and say the rest: the way in, where to sleep,
- * what it cost and what to do differently. */
+/** Sample notes. They cover logistics, conditions and plans, and name only a
+ * couple of sends, since the page lists all of them. */
 function writeNotes(
   plan: Plan,
   place: Place,
@@ -166,9 +164,9 @@ function writeNotes(
           ["Food", "$450", "$520"],
         ],
       ),
-      "# Kit that earned its place",
+      "# Gear worth bringing",
       "- The big water container\n- A second pad\n- Camp chairs",
-      "# Kit that stayed in the car",
+      "# Gear we never used",
       "- The hangboard",
     ].join("\n\n");
   }
@@ -186,7 +184,7 @@ function writeNotes(
     ].join("\n\n");
   }
 
-  // The last one sent and the first flash, and never the whole list.
+  // Highlight the last send and the first flash.
   const best = [...new Set([sent.at(-1), sent.find(({ style }) => style === "flash")])]
     .filter((send) => send !== undefined)
     .slice(0, Math.max(sent.length - 1, 0))
@@ -226,7 +224,7 @@ function writeNotes(
       sectors.map((sector, order) => [sector, BEST_TIMES[order % BEST_TIMES.length]]),
     ),
     "# Highlights",
-    [...best, "- The valley from the top of the crag on the last evening"].join("\n"),
+    [...best, "- Sunset from the top of the crag on the last evening"].join("\n"),
     "# Rest day",
     `Day ${restDayOf(plan) + 1}. Walked the far sector to look at what to try next, then laundry in town.`,
     "# Food",
@@ -246,8 +244,8 @@ function writeNotes(
   ].join("\n\n");
 }
 
-/** The caller owns the transaction, and runs this after the social seed: the
- * tags need its friendships, and every social refresh cascades them away. */
+/** Runs inside the caller's transaction, after the social seed. Tags need its
+ * friendships, and re-running the social seed deletes them. */
 export function seedTrips(db: DatabaseSync, viewerId: string): number {
   const climbers = db
     .prepare(
@@ -260,7 +258,7 @@ export function seedTrips(db: DatabaseSync, viewerId: string): number {
       "SELECT crag.id, crag.name FROM areas crag JOIN areas leaf ON leaf.parent_id = crag.id JOIN climbs c ON c.area_id = leaf.id GROUP BY crag.id HAVING count(c.id) >= 12 ORDER BY crag.id",
     )
     .all() as Place[];
-  // Tiny seeds have no third tier of areas, and hang their climbs off the second.
+  // Small seeds have only two levels of areas, with climbs on the second.
   if (places.length === 0) {
     places = db
       .prepare(
@@ -297,15 +295,15 @@ export function seedTrips(db: DatabaseSync, viewerId: string): number {
 
   function addTrip(person: Person, index: number, plan: Plan, plans: Plan[]) {
     const place = placeFor(index, plan);
-    // A day or two apart per climber, and never so far that a past trip's
-    // sends would be dated after the day the seed was written.
+    // Offset each climber's trips by up to three days, keeping past trips
+    // before the seed date.
     const start = plan.kind === "road" ? plan.start : shiftDate(plan.start, index % 4);
     const name = tripName(plan, place, start);
     const friends = friendsOf.all(person.id, person.id, person.id, plan.friends) as Friend[];
 
     let trip = findTrip.get(person.id, name) as { id: number } | undefined;
     if (!trip) {
-      // Three more than are sent, so the notes have something left to try.
+      // Fetch three extra climbs to mention as unsent in the notes.
       const climbs = openClimbs.all(
         place.id,
         place.id,
@@ -344,7 +342,7 @@ export function seedTrips(db: DatabaseSync, viewerId: string): number {
           style,
           date,
           3 + ((index + order) % 3),
-          // Analytics charts the grade a climber gave their send.
+          // Analytics uses the send's suggested grade.
           climb.grade,
           comment,
         );
@@ -388,8 +386,8 @@ export function seedTrips(db: DatabaseSync, viewerId: string): number {
 
   for (const plan of PLANS) addTrip({ id: viewerId, email: "" }, 0, plan, PLANS);
   for (const [index, person] of climbers.entries()) {
-    // The first dozen carry the audience mix the social seed documents; past
-    // them, one climber in four has been away.
+    // The first twelve climbers match the audiences described in the social
+    // seed. After that, one in four has a trip.
     const plans = index < 12 ? (index % 3 === 0 ? PLANS : PLANS.slice(0, 2)) : PLANS.slice(1, 2);
     if (index >= 12 && index % 4 !== 0) continue;
     for (const plan of plans) addTrip(person, index + 1, plan, plans);

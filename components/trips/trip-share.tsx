@@ -8,16 +8,15 @@ import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { ShareLinkField } from "@/components/ui/share-link-field";
 import { SITE_NAME } from "@/lib/site";
 
-/** Hands someone one trip. There is one link, the profile's, and this is that
- * link opened on the trip: whoever holds it can open the rest of what it
- * shows, and resetting it closes this as well. `url` is null while the
- * profile is private. */
+/** Share button and dialog for a trip. The link is the profile share link
+ * pointed at the trip, so it also opens the rest of the profile, and resetting
+ * the profile link disables it. `url` is null if the profile is private. */
 export function TripShare({ tripName, url }: { tripName: string; url: string | null }) {
   const state = useOverlayState();
 
   return (
     <>
-      {/* A phone has room beside the trip's name for the icon and not the word. */}
+      {/* Icon only on phones, to leave room for the trip name. */}
       <Button
         variant="ghost"
         size="sm"
@@ -35,10 +34,10 @@ export function TripShare({ tripName, url }: { tripName: string; url: string | n
             label="Trip link"
             url={url}
             shareTitle={`${tripName} on ${SITE_NAME}`}
-            description="This is your profile link, opened on this trip. Anyone with it sees the trip's notes, photos and sends, and the rest of what your profile link shows."
+            description="Anyone with this link can see this trip and the rest of your profile. It uses your profile link, so resetting that link turns this one off."
             actions={
               <AppLink href="/account#profile" className="self-center text-sm underline">
-                Reset it in Account settings
+                Reset link in Account settings
               </AppLink>
             }
           />

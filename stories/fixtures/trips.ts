@@ -69,12 +69,12 @@ export const tripFriends: CompanionOption[] = [
   { id: "jo", name: "Jordan Lee", image: null },
 ];
 
-/** The picker looks friends up by the start of their name, as the API does. */
+/** Matches friends by name prefix, like the API. */
 export async function findTripFriends(query: string): Promise<CompanionOption[]> {
   return tripFriends.filter((friend) => friend.name.toLowerCase().startsWith(query.toLowerCase()));
 }
 
-/** A trip with friends tagged, as its owner sees it. */
+/** A trip with tagged friends, as the owner sees it. */
 export const tripWithFriends: TripSummary = {
   id: 2,
   name: "Bishop, March 2026",

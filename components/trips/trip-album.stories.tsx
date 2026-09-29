@@ -5,8 +5,9 @@ import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { TripAlbumPhotos } from "./trip-album";
 
-/** Drawn here, so a story asks nothing of Google. The trailing `#` lets the
- * width the component appends land in the fragment, where it changes nothing. */
+/** Inline SVGs, so stories don't request anything from Google. The trailing `#`
+ * puts the width suffix the component appends into the URL fragment, where it
+ * has no effect. */
 function standIn(width: number, height: number, sky: string, rock: string): AlbumPhoto {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}"><rect width="${width}" height="${height}" fill="${sky}"/><path d="M0 ${height} L${width * 0.3} ${height * 0.35} L${width * 0.55} ${height * 0.6} L${width * 0.8} ${height * 0.25} L${width} ${height * 0.5} L${width} ${height} Z" fill="${rock}"/></svg>`;
   return { url: `data:image/svg+xml,${encodeURIComponent(svg)}#`, width, height };
@@ -36,12 +37,11 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Landscape, portrait, wide and square together: the strip's height is
- * fixed and each photo keeps its own shape. */
+/** Landscape, portrait, wide and square photos together. The strip has a fixed
+ * height and each photo keeps its aspect ratio. */
 export const Album: Story = {};
 
 export const OnePhoto: Story = { args: { photos: PHOTOS.slice(0, 1) } };
 
-/** An album that could not be read: unshared since, or a page Google has
- * changed. The link still leads to it. */
+/** An album that couldn't be read. The link is still shown. */
 export const Unread: Story = { args: { photos: [] } };

@@ -14,7 +14,7 @@ beforeEach(async () => {
   await seedFixtureUser(db, { id: "owner" });
 });
 
-it("holds a link as long as the app accepts and refuses one longer", async () => {
+it("accepts an album URL at the max length and rejects a longer one", async () => {
   const longest = "h".repeat(MAX_ALBUM_LINK);
   expect((await seedFixtureTrip(db, { ...BISHOP, albumUrl: longest })).albumUrl).toBe(longest);
 
@@ -23,6 +23,6 @@ it("holds a link as long as the app accepts and refuses one longer", async () =>
   );
 });
 
-it("needs no album", async () => {
+it("allows a trip without an album", async () => {
   expect((await seedFixtureTrip(db, BISHOP)).id).toBeGreaterThan(0);
 });

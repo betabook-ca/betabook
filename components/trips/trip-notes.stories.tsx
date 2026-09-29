@@ -32,7 +32,7 @@ export const Reading: Story = {};
 
 export const Empty: Story = { args: { notes: null, children: null } };
 
-/** A friend, or the holder of the profile link: the notes, and nothing to edit. */
+/** A friend or share link holder: read-only. */
 export const Visitor: Story = { args: { canEdit: false } };
 
 /** The editor is a dialog, which renders outside the canvas. */
@@ -55,7 +55,7 @@ export const Previewing: Story = {
   },
 };
 
-/** A refused save keeps the draft and shows the server's own sentence. */
+/** A failed save keeps the draft and shows the server's error. */
 export const SaveFails: Story = {
   beforeEach: () => {
     mocked(saveTripNotes).mockResolvedValue({

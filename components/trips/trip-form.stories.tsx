@@ -72,7 +72,7 @@ export const Filled: Story = {
   ),
 };
 
-/** Friends already tagged on a trip being edited. Type S, P or J to find more. */
+/** Editing a trip with friends already tagged. Type S, P or J to find more. */
 export const WithFriends: Story = {
   args: { draft: BISHOP, onChange: () => {} },
   render: () => (

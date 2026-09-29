@@ -13,7 +13,7 @@ it.each([
   ["/users/owner/journal", "/users/owner/journal", "Journal"],
   ["/users/owner/sends", "/users/owner/sends", "Sends"],
   ["/users/owner/trips", "/users/owner/trips", "Trips"],
-  // A trip's own pages sit under Trips, whichever of its views is open.
+  // Trip pages keep the Trips tab selected.
   ["/users/owner/trips/7", "/users/owner/trips", "Trips"],
   ["/users/owner/trips/7/sends", "/users/owner/trips", "Trips"],
   ["/users/owner/analytics", "/users/owner/analytics", "Analytics"],
@@ -31,7 +31,7 @@ it.each([
   expect(html.match(/aria-current="page"/g)).toHaveLength(1);
 });
 
-it("leaves out only the Journal when the journal is private", () => {
+it("hides only the Journal tab when the journal is private", () => {
   state.pathname = "/users/other/sends";
   const html = renderToStaticMarkup(<ProfileTabs userId="other" showJournal={false} />);
 
@@ -63,7 +63,7 @@ it.each([
     <ProfileTabs userId="owner" showJournal={false} share={TOKEN} />,
   );
 
-  // Each tab carries the link, since nothing opens without it.
+  // Each tab link includes the share token.
   expect(hrefs(html)).toEqual([`/users/owner?share=${TOKEN}`, `/users/owner/trips?share=${TOKEN}`]);
   expect(html).toMatch(
     new RegExp(`href="${href.replace("?", "\\?")}"[^>]*aria-current="page"[^>]*>.*?${label}`),

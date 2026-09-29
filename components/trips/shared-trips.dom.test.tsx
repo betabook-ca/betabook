@@ -67,7 +67,7 @@ function trip(props: Partial<Parameters<typeof SharedTrip>[0]> = {}) {
   );
 }
 
-it("shows a trip under the header a member sees, with the sends inside it", () => {
+it("renders the trip header and the trip's sends", () => {
   render(trip());
 
   expect(screen.getByRole("heading", { name: "Bishop, March 2026" })).toBeVisible();
@@ -78,11 +78,11 @@ it("shows a trip under the header a member sees, with the sends inside it", () =
     `/users/owner-1/trips?share=${TOKEN}`,
   );
 
-  // Named on the page, as the signed-in trip names them: no tab does.
+  // The heading is visible, as on the signed-in trip page.
   expect(screen.getByRole("heading", { name: "Sends" })).not.toHaveClass("sr-only");
   expect(document.body).toHaveTextContent("3 sends");
   const rows = within(screen.getByRole("list")).getAllByRole("listitem");
-  // A row links its climb first, then where it is.
+  // The first link in a row is the climb.
   expect(rows.map((row) => within(row).getAllByRole("link")[0].textContent)).toEqual([
     "Moon Slab",
     "Warm-up Arete",
@@ -91,21 +91,22 @@ it("shows a trip under the header a member sees, with the sends inside it", () =
   expect(screen.queryByText(/most recent of/)).not.toBeInTheDocument();
 });
 
-it("offers nothing a signed-out reader cannot open", () => {
+it("renders no controls or Logbook links for signed-out visitors", () => {
   render(trip());
 
-  // No menu, no tags, no journal, and no count that opens the Logbook.
+  // No menu, tags or journal counts, and no links into the Logbook.
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: /sends$|Analytics/ })).not.toBeInTheDocument();
   expect(document.body).not.toHaveTextContent(/entr|days logged|With /);
-  // The invitation is the frame's; the trip closes with the one prompt.
+  // The sign-up invite is in the profile header. The trip page ends with one
+  // prompt.
   expect(screen.queryByRole("link", { name: "Sign up" })).not.toBeInTheDocument();
   expect(
     screen.getByRole("link", { name: `Climb with Alex Rivera on ${SITE_NAME}` }),
   ).toHaveAttribute("href", signUp(PATH));
 });
 
-it("puts the trip's photos under its header, above the sends inside it", () => {
+it("renders photos between the header and the sends", () => {
   render(trip({ photos: <section aria-label="Photos">The album</section> }));
 
   const photos = screen.getByRole("region", { name: "Photos" });
@@ -115,7 +116,7 @@ it("puts the trip's photos under its header, above the sends inside it", () => {
   expect(photos.compareDocumentPosition(sends)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 });
 
-it("puts the trip's notes where a member reads them, between the photos and the sends", () => {
+it("renders notes between the photos and the sends", () => {
   render(
     trip({
       photos: <section aria-label="Photos">The album</section>,
@@ -130,7 +131,7 @@ it("puts the trip's notes where a member reads them, between the photos and the 
   expect(notes.compareDocumentPosition(sends)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 });
 
-it("says so when a long trip has more sends than the page shows", () => {
+it("says when only some of the trip's sends are shown", () => {
   render(trip({ trip: { ...BISHOP, sendCount: 120 }, sends: [send(1, "Moon Slab")] }));
 
   expect(screen.getByText("Showing the 1 most recent of 120 sends.")).toBeVisible();
@@ -140,7 +141,7 @@ it("says so when a long trip has more sends than the page shows", () => {
   );
 });
 
-it("marks a trip that has not started, as its card does", () => {
+it("shows the Upcoming chip for a trip that hasn't started", () => {
   render(
     trip({
       trip: { ...BISHOP, startDate: "2026-10-01", endDate: "2026-10-09", sendCount: 0 },
@@ -151,7 +152,7 @@ it("marks a trip that has not started, as its card does", () => {
   expect(screen.getByText("Upcoming")).toBeVisible();
 });
 
-it("says a trip with nothing sent has nothing sent, in the shared profile's words", () => {
+it("shows an empty message for a trip with no sends", () => {
   render(trip({ trip: { ...BISHOP, sendCount: 0 }, sends: [] }));
 
   expect(screen.getByText("Alex Rivera hasn't logged a send on this trip yet.")).toBeVisible();

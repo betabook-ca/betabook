@@ -10,7 +10,7 @@ import { TRIPS_TODAY, TRIP_NOTES, tripSamples } from "@/stories/fixtures/trips";
 
 import { SharedTrip } from "./shared-trips";
 
-/** What the journal's audiences decide never reaches a signed-out reader. */
+/** Signed-out visitors never get journal counts. */
 const trips = tripSamples.map((trip) => ({ ...trip, entryCount: null, dayCount: null }));
 const PATH = `/users/${SHARED_OWNER.id}/trips/2?share=${SHARED_OWNER.token}`;
 
@@ -62,7 +62,7 @@ const meta = {
     path: PATH,
     today: TRIPS_TODAY,
   },
-  // The frame a member sees round a profile, which the page puts round this.
+  // Wraps the story in the profile header the page renders around it.
   decorators: [
     (Story) => (
       <SharedProfileFrame next={PATH}>
@@ -74,11 +74,10 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** One trip for the signed-out holder of a profile link: the header a member
- * sees, and the sends inside it. */
+/** A trip for a signed-out visitor with a share link. */
 export const Trip: Story = {};
 
-/** The link opens the notes, to read and not to edit. */
+/** With notes, read-only. */
 export const WithNotes: Story = {
   args: {
     notes: (
@@ -110,7 +109,7 @@ export const WithPhotos: Story = {
   },
 };
 
-/** The Trips tab for the same reader: the list a member sees, read only. */
+/** The Trips tab for the same visitor, read-only. */
 export const List: Story = {
   parameters: { nextjs: { navigation: { pathname: `/users/${SHARED_OWNER.id}/trips` } } },
   render: () => (

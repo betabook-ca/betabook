@@ -5,7 +5,7 @@ import { ProfileInvite } from "./profile-invite";
 
 const NEXT = "/users/owner-1?share=0123456789abcdef0123456789abcdef";
 
-it("says what signing up adds and returns both paths to the page the link opened", () => {
+it("explains what signing up adds, and both links return to the shared page", () => {
   render(<ProfileInvite name="Alex Rivera" next={NEXT} />);
 
   expect(
@@ -20,7 +20,7 @@ it("says what signing up adds and returns both paths to the page the link opened
   ]);
 });
 
-it("leaves the climber's name and photo to the profile's own heading", () => {
+it("does not repeat the user's name and photo", () => {
   render(<ProfileInvite name="Alex Rivera" next={NEXT} />);
 
   expect(screen.queryByRole("heading")).not.toBeInTheDocument();

@@ -1,6 +1,6 @@
-/** Every kind of overlay added to the page, in the order it first appeared.
- * A dialog that mounts already open renders the phone sheet before it knows
- * the viewport, which a final-state assertion cannot see. */
+/** Records which overlay types (drawer, modal) were added to the page, in order.
+ * Catches a dialog that mounts already open: it renders the mobile drawer first
+ * and then switches to a modal, which checking only the final state would miss. */
 export function watchOverlayKinds() {
   const seen: string[] = [];
   const observer = new MutationObserver((records) => {

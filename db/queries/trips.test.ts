@@ -138,7 +138,7 @@ describe("what a trip contains", () => {
   });
 });
 
-describe("who was on a trip", () => {
+describe("tagged friends", () => {
   const PARTNER = "partner";
 
   async function seedTaggedTrip() {
@@ -154,7 +154,7 @@ describe("who was on a trip", () => {
     return trip;
   }
 
-  it("names the tagged friends to whoever can read the journal, and marks the reader's own tag", async () => {
+  it("lists tagged friends for viewers who can read the journal and marks the viewer's own tag", async () => {
     const trip = await seedTaggedTrip();
 
     const [asOwner] = await getTripsForUser(db, OWNER, OWNER);
@@ -168,15 +168,15 @@ describe("who was on a trip", () => {
     ]);
   });
 
-  it("names nobody to a reader the journal is not shared with", async () => {
+  it("lists no friends when the viewer can't read the journal", async () => {
     const trip = await seedTaggedTrip();
 
-    // A member outside the default Friends audience still opens the trip.
+    // A member who isn't a friend can still open the trip.
     const asMember = await getTripForUser(db, OWNER, trip.id, STRANGER);
     expect(asMember).toMatchObject({ name: "Bishop", companions: [] });
   });
 
-  it("drops a tag its friend removed, and one whose friendship ended", async () => {
+  it("leaves out removed tags and tags from ended friendships", async () => {
     const trip = await seedTaggedTrip();
     await db.update(tripCompanions).set({ suppressed: true });
     expect((await getTripForUser(db, OWNER, trip.id, OWNER))?.companions).toEqual([]);
@@ -228,7 +228,7 @@ describe("who can read a trip", () => {
     );
   }
 
-  it("lists each climber's own trips and nobody else's", async () => {
+  it("lists only the user's own trips", async () => {
     await seedFixtureTrip(db, { userId: OWNER, name: "Bishop", ...BISHOP });
     await seedFixtureTrip(db, { userId: STRANGER, name: "Squamish", ...BISHOP });
 
@@ -238,7 +238,7 @@ describe("who can read a trip", () => {
     ]);
   });
 
-  it("shows a member the trip and its sends, and the journal's counts only with the journal", async () => {
+  it("shows a member the trip and sends, with journal counts only if they can read the journal", async () => {
     const trip = await seedBishop();
     await audience("friends");
 
@@ -256,7 +256,7 @@ describe("who can read a trip", () => {
     expect(asFriend).toMatchObject({ sendCount: 1, entryCount: 1, dayCount: 1 });
   });
 
-  it("follows the journal audience as it stands now", async () => {
+  it("uses the current journal audience", async () => {
     const trip = await seedBishop();
 
     await audience("public");
@@ -267,7 +267,7 @@ describe("who can read a trip", () => {
     expect((await getTripForUser(db, OWNER, trip.id, OWNER))?.entryCount).toBe(1);
   });
 
-  it("hides a private climber's trips from everyone but them", async () => {
+  it("hides a private user's trips from everyone else", async () => {
     const trip = await seedBishop();
     await db.run(sql`UPDATE user SET is_private = 1 WHERE id = ${OWNER}`);
 
@@ -276,14 +276,14 @@ describe("who can read a trip", () => {
     expect(await getTripsForUser(db, OWNER, OWNER)).toHaveLength(1);
   });
 
-  it("does not resolve a trip through another climber's id", async () => {
+  it("does not return a trip under another user's id", async () => {
     const trip = await seedBishop();
 
     expect(await getTripForUser(db, STRANGER, trip.id, STRANGER)).toBeNull();
     expect(await getTripForUser(db, OWNER, trip.id, OWNER)).toMatchObject({ id: trip.id });
   });
 
-  it("hands the album's link to whoever can open the trip", async () => {
+  it("returns the album URL to anyone who can open the trip", async () => {
     const album = "https://photos.app.goo.gl/Example1Album2Link3";
     const trip = await seedFixtureTrip(db, {
       userId: OWNER,
@@ -303,7 +303,7 @@ describe("who can read a trip", () => {
     expect((await getTripForUser(db, OWNER, trip.id, OWNER))?.albumUrl).toBe(album);
   });
 
-  it("hands the notes to the climber's friends, whatever the journal's audience", async () => {
+  it("returns notes to friends regardless of journal audience", async () => {
     const trip = await seedBishop();
 
     for (const journal of ["private", "friends", "public"] as const) {
@@ -314,14 +314,14 @@ describe("who can read a trip", () => {
       expect(await getTripNotes(db, OWNER, trip.id, STRANGER)).toBeNull();
       expect(await getTripNotes(db, OWNER, trip.id, null)).toBeNull();
 
-      // The tab is offered on the same terms as the notes behind it.
+      // `hasNotes` matches whether the notes can be read.
       expect((await getTripForUser(db, OWNER, trip.id, FRIEND))?.hasNotes).toBe(1);
       expect((await getTripForUser(db, OWNER, trip.id, STRANGER))?.hasNotes).toBe(0);
       expect((await getTripForUser(db, OWNER, trip.id, null))?.hasNotes).toBe(0);
     }
   });
 
-  it("keeps the notes from a request that was never accepted, and from a friend once the profile is private", async () => {
+  it("hides notes from pending friends, and from friends when the profile is private", async () => {
     const trip = await seedBishop();
     await seedFixtureUser(db, { id: "asked", name: "Still Waiting" });
     await seedFixtureFriendship(db, "asked", OWNER, "pending");
@@ -334,7 +334,7 @@ describe("who can read a trip", () => {
     expect(await getTripNotes(db, OWNER, trip.id, OWNER)).toBe(NOTES);
   });
 
-  it("says whether a reader is among the friends the notes are for", async () => {
+  it("reports whether the viewer can read notes", async () => {
     await seedBishop();
     await audience("private");
 
@@ -344,7 +344,7 @@ describe("who can read a trip", () => {
     expect(await canReadTripNotes(db, OWNER, null)).toBe(false);
   });
 
-  it("hands the notes to whoever holds the climber's profile link, signed in or not", async () => {
+  it("returns notes to anyone with the current share link, signed in or not", async () => {
     const trip = await seedBishop();
     await audience("private");
     const link = (await getProfileShareToken(db, OWNER))!;
@@ -356,7 +356,7 @@ describe("who can read a trip", () => {
     }
   });
 
-  it("keeps the notes from a link that is not the climber's current one", async () => {
+  it("hides notes for invalid, mismatched and reset share links", async () => {
     const trip = await seedBishop();
     const link = (await getProfileShareToken(db, OWNER))!;
     const another = (await getProfileShareToken(db, STRANGER))!;
@@ -369,7 +369,7 @@ describe("who can read a trip", () => {
       }
     }
 
-    // Going private resets the link, and the old one stays dead afterwards.
+    // Going private rotates the token. The old one stays invalid.
     await db.run(sql`UPDATE user SET is_private = 1 WHERE id = ${OWNER}`);
     const whilePrivate = (await getProfileShareToken(db, OWNER))!;
     for (const closed of [link, whilePrivate]) {

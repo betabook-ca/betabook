@@ -13,7 +13,7 @@ const db = createDb(env.DB);
 const BISHOP = { userId: "owner", startDate: "2026-03-10", endDate: "2026-03-20" };
 const LONG = `Ten days in the Buttermilks.\n${"Camped at the Pit. ".repeat(10)}`;
 
-/** The migration's last statement, which is the one that moves descriptions. */
+/** The last statement in the migration moves long descriptions into notes. */
 const statement = migration
   .split("--> statement-breakpoint")
   .at(-1)!
@@ -35,7 +35,7 @@ async function stored(id: number) {
   return row;
 }
 
-it("leaves a description that fits on one line where the climber wrote it", async () => {
+it("leaves descriptions of 160 characters or fewer in place", async () => {
   const short = await seedFixtureTrip(db, {
     ...BISHOP,
     name: "Bishop",
@@ -61,7 +61,7 @@ it("leaves a description that fits on one line where the climber wrote it", asyn
   expect(await stored(bare.id)).toEqual({ description: null, notes: null });
 });
 
-it("moves a description too long for the line into the notes, as it was written", async () => {
+it("moves longer descriptions into notes unchanged", async () => {
   expect(LONG.length).toBeGreaterThan(MAX_TRIP_DESCRIPTION);
   const trip = await seedFixtureTrip(db, { ...BISHOP, name: "Bishop", description: LONG });
 
@@ -71,7 +71,7 @@ it("moves a description too long for the line into the notes, as it was written"
   expect(await stored(trip.id)).toEqual({ description: null, notes: LONG });
 });
 
-it("overwrites no notes", async () => {
+it("does not overwrite existing notes", async () => {
   const trip = await seedFixtureTrip(db, {
     ...BISHOP,
     name: "Bishop",
@@ -84,7 +84,7 @@ it("overwrites no notes", async () => {
   expect(await stored(trip.id)).toEqual({ description: LONG, notes: "# Day one" });
 });
 
-it("draws the line where the form does", () => {
+it("uses the same limit as the form", () => {
   expect(statement).toMatch(/^UPDATE trips SET notes = description/);
   expect(statement).toContain(`length(description) > ${MAX_TRIP_DESCRIPTION}`);
 });

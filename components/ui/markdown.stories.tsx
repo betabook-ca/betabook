@@ -9,7 +9,8 @@ import { Markdown } from "./markdown";
 const meta = {
   title: "Components/Data display/Markdown",
   component: Markdown,
-  // Straight under the story's own title, where the app nests it deeper.
+  // Headings start at h2, right under the story title. In the app they start
+  // one level deeper.
   args: { children: TRIP_NOTES, headingLevel: 2 },
   decorators: [
     (Story) => (
@@ -26,8 +27,8 @@ type Story = StoryObj<typeof meta>;
 
 export const TripNotes: Story = {};
 
-/** Text written before formatting existed: paragraphs and line breaks land
- * where they were typed. */
+/** Plain text written before Markdown was supported. Paragraphs and line breaks
+ * are kept. */
 export const PlainText: Story = {
   args: {
     children:
@@ -35,8 +36,8 @@ export const PlainText: Story = {
   },
 };
 
-/** Markup, script addresses and remote images all come out as text or a
- * link. Nothing is fetched and nothing runs. */
+/** HTML, script URLs and remote images are rendered as text or links. Nothing is
+ * fetched or executed. */
 export const UntrustedInput: Story = {
   args: {
     children: [

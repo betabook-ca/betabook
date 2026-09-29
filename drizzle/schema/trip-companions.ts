@@ -13,8 +13,7 @@ import { user } from "./auth";
 import { friendships } from "./friendships";
 import { trips } from "./trips";
 
-/** `journal_companions` for a trip: the same columns, guards and tombstone,
- * so a friend tagged on a trip follows the rules of one tagged on an entry. */
+/** Same columns, guards and tombstone as `journal_companions`, for trips. */
 export const tripCompanions = sqliteTable(
   "trip_companions",
   {

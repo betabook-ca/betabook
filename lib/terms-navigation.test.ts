@@ -46,7 +46,7 @@ it("keeps terms, public pages, recovery, and acceptance reachable but protects a
     // The owner's own Projects board is member content, unlike a share link.
     "/users/one/projects",
     "/projects",
-    // Trips are member content under their climber, with no link of their own.
+    // Trip pages are member content. There is no public trip route.
     "/users/one/trips/7",
     "/trips/4f9c2a7e1b8d6035c9e4a1f7b2d80e36",
   ])

@@ -32,13 +32,15 @@ const canReadNotes = requestMemo(async (userId: string, viewerId: string, share:
   canReadTripNotes(await getDb(), userId, viewerId, share),
 );
 
-/** The reader's own day, which decides whether a trip is upcoming or on now. */
+/** Today's date in the viewer's timezone. Decides whether a trip is upcoming or
+ * in progress. */
 export async function tripToday() {
   return goalToday(await getRequestTimezone());
 }
 
-/** The trip a signed-out reader's profile link opens, read as nobody: its
- * sends and its notes, and none of what the journal's audiences decide. */
+/** Resolves a trip for a signed-out visitor with a share link. Loaded with a
+ * null viewer, so journal-gated data is left out. The token allows reading
+ * notes. */
 export async function resolveSharedTrip(
   idParam: string,
   tripIdParam: string,
@@ -64,25 +66,21 @@ type Resolved =
       user: ProfileUser;
       viewerId: string;
       today: string;
-      /** Whether this reader gets the trip's entries, which follow the
-       * journal's audience. */
+      /** Whether the viewer can see journal-gated data: entry counts and tagged
+       * friends. */
       journalVisible: boolean;
-      /** Whether this reader gets the trip's notes, which are for friends
-       * and for whoever holds the climber's profile link. */
+      /** Whether the viewer can read trip notes: friends, or anyone with the
+       * share link. */
       notesVisible: boolean;
-      /** The profile link in the address, unchecked: every read that takes
-       * it checks it. */
+      /** Share token from the URL. Not validated here; the queries that use it
+       * validate it. */
       share: string | null;
     };
 
-/**
- * The authorization every trip page repeats, in one place. A trip opens to
- * whoever may see the climber's sends, shows its entries to whoever may read
- * their journal, and shows its notes to their friends and to whoever came by
- * their profile link. The
- * signed-out / refused split and the reason for returning `{ ok: false }`
- * rather than calling `notFound()` are resolveProfilePage's.
- */
+/** Shared authorization for trip pages. Anyone who can see the user's sends can
+ * open the trip. Journal access adds entry counts and tagged friends. Friends
+ * and share link holders can read notes. Signed-out and refused cases are
+ * handled as in resolveProfilePage. */
 export async function resolveTripPage(
   idParam: string,
   tripIdParam: string,
@@ -123,8 +121,8 @@ export async function tripMetadata(
   };
 }
 
-/** The trip's shared album, for the page a reader lands on. It waits on
- * Google behind its own boundary, so the trip never does. */
+/** Album section for the trip page. Wrapped in Suspense so a slow response from
+ * Google doesn't block the page. */
 export function tripPhotos(trip: Pick<TripSummary, "albumUrl">) {
   if (!trip.albumUrl) return null;
   return (
@@ -134,8 +132,8 @@ export function tripPhotos(trip: Pick<TripSummary, "albumUrl">) {
   );
 }
 
-/** The trip's dates in place of whatever the URL asked for. A trip is a claim
- * about two dates, so `?dateFrom=` can neither widen nor narrow it. */
+/** Replaces any date filter with the trip's dates, so URL params can't change
+ * the range. */
 export function withTripWindow<Filter extends object>(
   filter: Filter,
   trip: Pick<TripSummary, "startDate" | "endDate">,

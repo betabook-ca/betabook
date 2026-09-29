@@ -27,9 +27,9 @@ export function TripList({
   /** The reader's own `YYYY-MM-DD`, resolved on the server so the status chips
    * cannot disagree between the render and the hydration. */
   today: string;
-  /** The climber reading their own list; anyone else only reads. */
+  /** True when the owner is viewing their own list. */
   canEdit: boolean;
-  /** The climber's profile link, for its signed-out holder. */
+  /** Share token for a signed-out visitor. */
   shareToken?: string;
 }) {
   const createState = useOverlayState();
@@ -44,9 +44,8 @@ export function TripList({
   return (
     <div className="flex min-w-0 flex-col gap-4">
       <SectionHeading className="sr-only">Trips</SectionHeading>
-      {/* One "New trip" on screen at a time: the empty state carries it while
-       * there are no trips, and showing both put two identical buttons on the
-       * same empty screen. */}
+      {/* Show one "New trip" button at a time. With no trips, the empty state
+       * has it. */}
       {canEdit && trips.length > 0 && newTrip("self-end")}
 
       {trips.length > 0 ? null : canEdit ? (

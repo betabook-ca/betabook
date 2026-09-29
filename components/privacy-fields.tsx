@@ -179,10 +179,10 @@ export function PrivacyDetails({ defaultExpanded = false }: { defaultExpanded?: 
                 when it expires, Stop sharing ends it, and going private ends every project link.
               </li>
               <li>
-                Anyone who can see your sends can see a trip, its photos and the sends inside it.
-                Photos are loaded from Google Photos. Anyone who can read your journal can also read
-                its entries and the friends you tagged. Trip notes are for your friends and anyone
-                with your profile link, whatever your Journal and goals audience is.
+                Anyone who can see your sends can see your trips, with their photos and sends.
+                Photos load from Google Photos. People who can read your journal can also see a
+                trip&apos;s journal entries and tagged friends. Your friends and anyone with your
+                profile link can read trip notes, regardless of your Journal and goals setting.
               </li>
               <li>
                 Unless your profile is private, friends of your friends may see you suggested.

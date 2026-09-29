@@ -14,7 +14,7 @@ describe("profileShareFromPath", () => {
     expect(profileShareFromPath(`/users/user-1?tag=trip&share=${TOKEN}`)).toEqual(share);
   });
 
-  it("recovers them from the trips the link opens, which carry the invitation too", () => {
+  it("parses the share link from trips list and trip paths", () => {
     const share = { userId: "user-1", token: TOKEN };
     for (const path of ["/users/user-1/trips", "/users/user-1/trips/7"]) {
       expect(withProfileShare(path, TOKEN)).toBe(`${path}?share=${TOKEN}`);
@@ -22,7 +22,7 @@ describe("profileShareFromPath", () => {
     }
   });
 
-  it("ignores tokens outside the pages the link opens and malformed continuations", () => {
+  it("ignores tokens on other pages and malformed paths", () => {
     for (const path of [
       undefined,
       "/users/user-1",

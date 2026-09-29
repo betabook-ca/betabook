@@ -6,8 +6,9 @@ import { CompanionList } from "@/components/journal/companion-list";
 import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
 import type { JournalCompanion } from "@/lib/journal-companions";
 
-/** Tagged friends with the one thing a tagged reader can do about it. What
- * was tagged decides the action, so an entry and a trip each bring their own. */
+/** Tagged friends. A tagged viewer gets a button to remove their own tag. The
+ * caller supplies the remove action, since entries and trips use different
+ * ones. */
 export function RemovableCompanions({
   initialCompanions,
   remove,

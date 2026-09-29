@@ -1,13 +1,11 @@
-/** A trip's photos are a shared Google Photos album, read from the page
- * Google serves for its link. Google offers no embed and refuses to be framed
- * (`X-Frame-Options: SAMEORIGIN`), so the album's page is read for the
- * address of each photo, which is how Publicalbum embeds one. Nothing is
- * stored or proxied: the photos stay Google's, and a reader's browser fetches
- * them from Google. */
+/** Trip photos come from a shared Google Photos album. Google has no embed and
+ * blocks iframes (`X-Frame-Options: SAMEORIGIN`), so we read the album page for
+ * photo URLs, the same way Publicalbum does. We don't store or proxy photos;
+ * the browser loads them from Google. */
 
 export type AlbumPhoto = { url: string; width: number; height: number };
 
-/** A screenful or two. The album itself is one link away. */
+/** Max photos to show. The full album is linked. */
 export const MAX_ALBUM_PHOTOS = 40;
 export const MAX_ALBUM_LINK = 300;
 
@@ -27,8 +25,8 @@ function parse(value: string): URL | null {
   }
 }
 
-/** The link as stored: one of the two shapes a shared album's link takes,
- * rebuilt from its parts so nothing else pasted with it is kept. */
+/** Normalizes an album URL. Accepts the two URL formats Google Photos uses for
+ * shared albums and rebuilds the URL from its parts, dropping anything else. */
 export function albumLink(value: string): string | null {
   const url = parse(value);
   if (!url) return null;
@@ -42,16 +40,16 @@ export function albumLink(value: string): string | null {
   return null;
 }
 
-/** Whether a request for an album may be sent here. A short link redirects,
- * and a redirect is followed only while it stays on Google Photos. */
+/** Whether a URL is an allowed fetch target. Used to validate redirects, which
+ * must stay on Google Photos. */
 export function isAlbumPage(value: string): boolean {
   const url = parse(value);
   return url !== null && (url.hostname === SHORT_HOST || url.hostname === LONG_HOST);
 }
 
-/** Each photo sits in the page's data as `["<address>",<width>,<height>,`.
- * The address is matched whole, so nothing but a photo in an album on
- * Google's image host is ever given to an `img`. */
+/** Photos appear in the page data as `["<url>",<width>,<height>,`. The regex
+ * matches the full URL, so only photo URLs on Google's image host are used as
+ * `img` sources. */
 const PHOTO =
   /\["(https:\/\/lh3\.googleusercontent\.com\/pw\/[\w-]{20,400})",(\d{1,5}),(\d{1,5}),/g;
 
@@ -65,7 +63,7 @@ export function readAlbumPage(html: string): AlbumPhoto[] {
   return [...photos.values()];
 }
 
-/** Google resizes on request: `=w960` is the photo 960 pixels wide. */
+/** Google resizes by URL suffix: `=w960` returns the photo 960px wide. */
 export function albumPhotoSrc(photo: AlbumPhoto, width: number): string {
   return `${photo.url}=w${Math.min(width, photo.width)}`;
 }

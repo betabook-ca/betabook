@@ -46,8 +46,7 @@ const OTHER_CLIMB = 2;
 
 const BISHOP = { startDate: "2026-03-10", endDate: "2026-03-20" };
 
-/** The comments are the probe: a send outside the trip's dates must not
- * appear in the rendered tree no matter what the URL asked for. */
+/** Each send has a distinct comment so tests can tell which sends were rendered. */
 const INSIDE = "Sent inside the trip.";
 const BEFORE = "Sent long before the trip.";
 const AFTER = "Sent long after the trip.";
@@ -62,7 +61,7 @@ async function seedTrip(extra: { notes?: string; albumUrl?: string } = {}) {
     dateSent: "2026-03-15",
     comment: INSIDE,
   });
-  // A climber sends a climb once, so each of these is a climb of its own.
+  // A user can send a climb only once, so each send uses a different climb.
   await seedFixtureSend(db, {
     userId: OWNER,
     climbId: 3,
@@ -95,11 +94,9 @@ function journalAudience(audience: "private" | "friends" | "public") {
 
 type Element = { type?: unknown; props?: Record<string, unknown> };
 
-/** Resolves the one async server component the page nests inside its header,
- * so the assertions below run against the rows the view actually read rather
- * than against an unrendered element. Stops there: everything under it is a
- * client component whose hooks cannot run here, and its props already carry
- * the rows. */
+/** Runs the async server component nested in the page (the one with a `filter`
+ * prop) so assertions can see the rows it loaded. Client components below it
+ * can't run here, but their props already contain the rows. */
 async function resolveNestedView(node: unknown): Promise<unknown> {
   if (Array.isArray(node)) {
     for (const child of node) {
@@ -124,8 +121,8 @@ const props = (tripId: number | string, search: Record<string, string | string[]
 
 async function renderTrip(tripId: number, search: Record<string, string | string[]> = {}) {
   const tree = await TripPage(props(tripId, search));
-  // The page tree carries the trip, its notes and its album; the resolved
-  // view carries the sends. Both are in the string under assertion.
+  // The page tree has the trip, notes and album. The resolved view has the
+  // sends. Both are included in the returned string.
   return JSON.stringify(tree) + JSON.stringify(await resolveNestedView(tree));
 }
 
@@ -137,8 +134,8 @@ beforeEach(async () => {
   await seedFixtureUser(db, { id: STRANGER, name: "Passing Climber" });
 });
 
-describe("the sends a trip lists", () => {
-  it("are those dated inside it and nothing on either side", async () => {
+describe("trip sends", () => {
+  it("include only sends dated within the trip", async () => {
     const trip = await seedTrip();
 
     const payload = await renderTrip(trip.id);
@@ -147,7 +144,7 @@ describe("the sends a trip lists", () => {
     expect(payload).not.toContain(AFTER);
   });
 
-  it("cannot be widened, narrowed or filtered by the URL, so the trip means one thing", async () => {
+  it("ignore date and filter params in the URL", async () => {
     const trip = await seedTrip();
 
     const asked: Record<string, string>[] = [
@@ -164,7 +161,7 @@ describe("the sends a trip lists", () => {
     }
   });
 
-  it("leave out an undated send, which cannot be shown to fall inside", async () => {
+  it("exclude undated sends", async () => {
     const trip = await seedTrip();
     await seedFixtureSend(db, {
       userId: OWNER,
@@ -178,15 +175,15 @@ describe("the sends a trip lists", () => {
     expect(payload).not.toContain("No date on this one.");
   });
 
-  it("come with no toolbar: the Sends tab is where a climber filters", async () => {
+  it("render without the filter toolbar", async () => {
     const trip = await seedTrip();
 
     expect(await renderTrip(trip.id)).toContain('"bare":true');
   });
 });
 
-describe("what a trip's page holds", () => {
-  it("is one page: the album, the notes and the sends, with the journal a link away", async () => {
+describe("trip page", () => {
+  it("renders the album, notes and sends in order, without journal entries", async () => {
     const album = "https://photos.app.goo.gl/Example1Album2Link3";
     const trip = await seedTrip({ notes: NOTES, albumUrl: album });
 
@@ -195,11 +192,11 @@ describe("what a trip's page holds", () => {
     expect(at(`"link":"${album}"`)).toBeGreaterThan(-1);
     expect(at(`"link":"${album}"`)).toBeLessThan(at(`"notes":"${NOTES}"`));
     expect(at(`"notes":"${NOTES}"`)).toBeLessThan(at('"bare":true'));
-    // The entries are in the Journal, under the trip's dates.
+    // Journal entries aren't rendered on the trip page.
     expect(payload).not.toContain(ENTRY);
   });
 
-  it("links the trip's analytics beside its sends", async () => {
+  it("links to analytics next to the sends heading", async () => {
     const trip = await seedTrip({ notes: NOTES });
 
     const payload = await renderTrip(trip.id);
@@ -208,7 +205,7 @@ describe("what a trip's page holds", () => {
     expect(analytics).toBeLessThan(payload.indexOf('"bare":true'));
   });
 
-  it("has no album and no notes to show a trip that has neither, but its owner can write some", async () => {
+  it("renders no album, and an empty notes section only for the owner", async () => {
     const trip = await seedTrip();
 
     const asOwner = await renderTrip(trip.id);
@@ -221,7 +218,7 @@ describe("what a trip's page holds", () => {
     expect(await renderTrip(trip.id)).not.toContain('"canEdit"');
   });
 
-  it("says a trip with nothing sent has nothing sent, and lists nothing for one still to come", async () => {
+  it("shows an empty message for a past trip with no sends and hides the section for an upcoming one", async () => {
     const past = await seedFixtureTrip(db, {
       userId: OWNER,
       name: "Rained off",
@@ -230,7 +227,7 @@ describe("what a trip's page holds", () => {
     });
     const rainedOff = await renderTrip(past.id);
     expect(rainedOff).toContain("No sends on this trip yet.");
-    // Nothing logged, so nothing to chart.
+    // No analytics link when nothing is logged.
     expect(rainedOff).not.toContain("/analytics");
 
     const upcoming = await seedFixtureTrip(db, {
@@ -245,8 +242,8 @@ describe("what a trip's page holds", () => {
   });
 });
 
-describe("what a trip's tab is called", () => {
-  it("names the climber before the trip, as their other pages do", async () => {
+describe("trip page title", () => {
+  it("puts the user's name before the trip name", async () => {
     const trip = await seedTrip();
     session.userId = STRANGER;
 
@@ -258,7 +255,7 @@ describe("what a trip's tab is called", () => {
 });
 
 describe("sharing a trip", () => {
-  it("gives the owner their profile link opened on the trip, and gives it to nobody else", async () => {
+  it("gives the share URL to the owner only", async () => {
     const trip = await seedTrip({ notes: NOTES });
     await seedFriend();
     const token = (await getProfileShareToken(db, OWNER))!;
@@ -276,7 +273,7 @@ describe("sharing a trip", () => {
     }
   });
 
-  it("has no link to give while the owner's profile is private", async () => {
+  it("gives no share URL when the owner's profile is private", async () => {
     const trip = await seedTrip();
     const before = (await getProfileShareToken(db, OWNER))!;
     await db.run(sql`UPDATE user SET is_private = 1 WHERE id = ${OWNER}`);
@@ -288,15 +285,15 @@ describe("sharing a trip", () => {
     expect(payload).not.toContain(after);
   });
 
-  it("offers no link over the trip's analytics", async () => {
+  it("passes no share URL to the analytics page", async () => {
     const trip = await seedTrip();
 
     expect(JSON.stringify(await TripAnalyticsPage(props(trip.id)))).not.toContain("shareUrl");
   });
 });
 
-describe("who can open a trip", () => {
-  it("shows a member the trip and its sends, and nothing of the notes", async () => {
+describe("trip access", () => {
+  it("shows a member who isn't a friend the trip and sends but not the notes", async () => {
     const trip = await seedTrip({ notes: NOTES });
     await journalAudience("public");
     session.userId = STRANGER;
@@ -306,11 +303,11 @@ describe("who can open a trip", () => {
     expect(payload).toContain(INSIDE);
     expect(payload).not.toContain(NOTES);
     expect(payload).not.toContain('"canEdit"');
-    // Read as the member, not as the owner the route names.
+    // The viewer id is the member's, not the owner's.
     expect(payload).toContain(`"viewerId":"${STRANGER}"`);
   });
 
-  it("shows a member who holds the climber's profile link the notes, and no other link does", async () => {
+  it("shows notes to a member only with a valid share link", async () => {
     const trip = await seedTrip({ notes: NOTES });
     const link = (await getProfileShareToken(db, OWNER))!;
     session.userId = STRANGER;
@@ -318,7 +315,7 @@ describe("who can open a trip", () => {
     const payload = await renderTrip(trip.id, { share: link });
     expect(payload).toContain(`"notes":"${NOTES}"`);
     expect(payload).toContain('"canEdit":false');
-    // Still read as the member they are.
+    // Still rendered with the member as the viewer.
     expect(payload).toContain(`"viewerId":"${STRANGER}"`);
 
     const own = (await getProfileShareToken(db, STRANGER))!;
@@ -327,7 +324,7 @@ describe("who can open a trip", () => {
     }
   });
 
-  it("shows a friend the notes, whatever the journal's audience, and only the owner may edit them", async () => {
+  it("shows notes to a friend regardless of journal audience, editable only by the owner", async () => {
     const trip = await seedTrip({ notes: NOTES });
     await seedFriend();
     await journalAudience("private");
@@ -342,7 +339,7 @@ describe("who can open a trip", () => {
     expect(payload).toContain(INSIDE);
   });
 
-  it("refuses everyone else once the profile is private", async () => {
+  it("returns not found to everyone but the owner when the profile is private", async () => {
     const trip = await seedTrip();
     await seedFriend();
     await db.run(sql`UPDATE user SET is_private = 1 WHERE id = ${OWNER}`);
@@ -419,7 +416,7 @@ describe("the trip's analytics", () => {
     expect(payload).not.toContain("All-time activity");
   });
 
-  it("leads back to the trip it is about, and carries none of its album or notes", async () => {
+  it("links back to the trip and renders no album or notes", async () => {
     const album = "https://photos.app.goo.gl/Example1Album2Link3";
     const trip = await seedTrip({ notes: NOTES, albumUrl: album });
 
@@ -430,7 +427,7 @@ describe("the trip's analytics", () => {
     expect(payload).not.toContain(NOTES);
   });
 
-  it("says a trip with nothing logged has nothing logged", async () => {
+  it("shows an empty message when nothing is logged", async () => {
     const upcoming = await seedFixtureTrip(db, {
       userId: OWNER,
       name: "Squamish",

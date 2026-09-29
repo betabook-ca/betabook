@@ -33,17 +33,15 @@ export async function generateMetadata({
 }: TripPageParams): Promise<Metadata> {
   const [{ id, tripId }, search] = await Promise.all([params, searchParams]);
   const shared = await resolveSharedTrip(id, tripId, search);
-  // The climber alone, as on their profile: a link pasted into a channel
-  // names no trip to the room.
+  // Share link previews show only the user's name, not the trip's.
   if (shared && !(await resolveTripPage(id, tripId, search)).signedIn) {
     return sharedProfileMetadata(shared.owner.name);
   }
   return tripMetadata(id, tripId, search);
 }
 
-/** A trip, on one page: its album, its notes for the climber's friends and
- * whoever holds their profile link, and the sends dated inside it. The URL filters nothing here, so a trip means
- * one thing; the entries are in the Journal, under the trip's dates. */
+/** Trip page: album, notes, and the sends dated within the trip. Query params
+ * are ignored, so the page always shows the whole trip. */
 export default async function TripPage({ params, searchParams }: TripPageParams) {
   const [{ id, tripId }, search] = await Promise.all([params, searchParams]);
   const resolved = await resolveTripPage(id, tripId, search);
@@ -52,7 +50,7 @@ export default async function TripPage({ params, searchParams }: TripPageParams)
     if (!shared) return <CurrentPageAuthCallout />;
     const { owner, trip } = shared;
     const db = await getDb();
-    // A null viewer keeps Members and Friends commentary out of the page.
+    // A null viewer only gets comments shared with Everyone.
     const { sends } = await getSendsForUserPage(
       db,
       owner.id,
@@ -94,15 +92,15 @@ export default async function TripPage({ params, searchParams }: TripPageParams)
   const { trip, user, viewerId, today, notesVisible, share } = resolved;
 
   const isOwner = viewerId === user.id;
-  // The owner keeps an empty section, since that is where they write.
+  // Owners always get the notes section, so they can add notes.
   const showNotes = notesVisible && (isOwner || Boolean(trip.hasNotes));
   const notes = showNotes
     ? await getTripNotes(await getDb(), user.id, trip.id, viewerId, share)
     : null;
-  // The chip already says a trip is still to come.
+  // Hide the sends section for an upcoming trip with no sends.
   const showSends = trip.sendCount > 0 || tripStatus(trip, today) !== "upcoming";
   const logged = trip.sendCount > 0 || Boolean(trip.entryCount);
-  // The link is the owner's to give, so no other reader's page carries it.
+  // Only the owner gets the share URL.
   const shareUrl = isOwner ? await getOwnTripShareUrl(await getDb(), user, trip.id) : undefined;
 
   return (

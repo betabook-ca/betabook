@@ -24,7 +24,7 @@ try {
     id: string;
   };
   assert.ok(viewer);
-  // A default seed already holds the trips, so this run usually adds none.
+  // The default seed already includes trips, so this usually adds none.
   seedSocialData(db, viewer.id);
   seedTrips(db, viewer.id);
 
@@ -61,20 +61,20 @@ try {
   assert.equal(day.description, null);
   assert.equal(day.notes, null);
 
-  // Trips overlap freely: the road trip holds the three stops made on it.
+  // The road trip overlaps the three shorter trips.
   const stops = [long, weekend, day];
   for (const stop of stops) {
     assert.ok(road.start_date <= stop.start_date && stop.end_date <= road.end_date);
     const place = stop.name.replace(/^A day at /, "").replace(/, September 2026$/, "");
-    assert.ok(road.notes?.includes(place), `the road trip lists ${place}`);
+    assert.ok(road.notes?.includes(place), `road trip notes should mention ${place}`);
   }
 
-  // The place is the crag above the climb's own sector. Names repeat across
-  // crags, so a climb is matched as a send inside the trip, never by name alone.
+  // `place` is the crag, the parent of the climb's sector. Climb names repeat
+  // across crags, so sends are matched by the trip's dates, not by name.
   const sentInside = db.prepare(
     "SELECT c.name, COALESCE(a.parent_id, a.id) AS place FROM sends s JOIN trips t ON t.id = ? JOIN climbs c ON c.id = s.climb_id JOIN areas a ON a.id = c.area_id WHERE s.user_id = t.user_id AND s.date_sent BETWEEN t.start_date AND t.end_date",
   );
-  // Analytics charts the grade a climber gave their send.
+  // Analytics uses the send's suggested grade.
   const uncharted = db.prepare(
     "SELECT count(*) AS n FROM sends s JOIN trips t ON t.id = ? JOIN climbs c ON c.id = s.climb_id WHERE s.user_id = t.user_id AND s.date_sent BETWEEN t.start_date AND t.end_date AND c.grade IS NOT NULL AND s.suggested_grade IS NULL",
   );
@@ -87,31 +87,31 @@ try {
     const named = [...(trip.notes ?? "").matchAll(/^- \*\*(.+?)\*\*/gm)].map((match) => match[1]);
 
     if (trip.start_date > "2027-01-01") {
-      assert.equal(inside.length, 0, `${trip.name} has not happened yet`);
-      assert.match(trip.notes ?? "", /^- \[ \] /m, `${trip.name} carries a tick list`);
+      assert.equal(inside.length, 0, `${trip.name} is upcoming and should have no sends`);
+      assert.match(trip.notes ?? "", /^- \[ \] /m, `${trip.name} should have a tick list`);
       continue;
     }
 
-    assert.ok(inside.length >= 2, `${trip.name} has sends inside its dates`);
+    assert.ok(inside.length >= 2, `${trip.name} should have at least two sends`);
     assert.equal(
       (uncharted.get(trip.id) as { n: number }).n,
       0,
-      `${trip.name} has sends its analytics cannot chart`,
+      `${trip.name} has sends without a suggested grade`,
     );
     assert.ok(
       (entriesInside.get(trip.id) as { n: number }).n >= inside.length,
-      `${trip.name} has the sessions behind its sends`,
+      `${trip.name} should have a session for each send`,
     );
     for (const name of named) {
       assert.ok(
         inside.some((send) => send.name === name),
-        `${trip.name} names ${name}, which was not sent on it`,
+        `${trip.name} notes mention ${name}, which was not sent on the trip`,
       );
     }
-    // The page lists the sends under the notes, so the notes say the rest.
-    assert.ok(named.length < inside.length, `${trip.name}'s notes list its sends over again`);
-    // A stop is one place and nothing else was sent during it. The road trip
-    // is its stops together and nothing besides.
+    // Notes shouldn't list every send. The page already does.
+    assert.ok(named.length < inside.length, `${trip.name} notes should not list every send`);
+    // Each trip's sends are at one crag. The road trip's sends come only from
+    // its three stops.
     const places = new Set(inside.map((send) => send.place));
     if (trip.name === "Fall road trip") {
       const stopPlaces = seeded
@@ -123,7 +123,7 @@ try {
       assert.deepEqual(
         [...places].toSorted((a, b) => a - b),
         [...new Set(stopPlaces)].toSorted((a, b) => a - b),
-        `${trip.email}'s road trip has sends from outside its stops`,
+        `${trip.email}: road trip has sends from outside its stops`,
       );
     } else assert.equal(places.size, 1, `${trip.name} has sends from ${places.size} places`);
   }
@@ -131,26 +131,26 @@ try {
   for (const subject of ["Getting there", "Where we stayed", "Food", "Next time", "Budget"]) {
     assert.ok(
       seeded.some((trip) => trip.notes?.split("\n").includes(`# ${subject}`)),
-      `some notes cover "${subject}"`,
+      `no notes have a "${subject}" section`,
     );
   }
   assert.ok(
     seeded.some((trip) => /^\| --- \|/m.test(trip.notes ?? "")),
-    "some notes carry a table",
+    "no notes include a table",
   );
   assert.ok(
     seeded.some((trip) => /^> /m.test(trip.notes ?? "")),
-    "some notes carry a quote",
+    "no notes include a quote",
   );
   assert.ok(
     seeded.some((trip) => /^- \[x\] /m.test(trip.notes ?? "")),
-    "some notes carry a ticked task",
+    "no notes include a checked task",
   );
   assert.ok(
     seeded.some((trip) => /\]\(https:\/\/example\.com\/guides\//.test(trip.notes ?? "")),
-    "some notes carry a link",
+    "no notes include a link",
   );
-  // The album is the trip's own, so the notes do not link one as well.
+  // Notes shouldn't link an album. The trip has its own album field.
   assert.ok(!seeded.some((trip) => /^Photos: /m.test(trip.notes ?? "")));
 
   const tagged = tags();
@@ -158,15 +158,18 @@ try {
   for (const row of tagged) assert.equal(row.status, "accepted");
   const longTags = tagged.filter((row) => row.trip_id === long.id);
   assert.equal(longTags.length, 2);
-  // Whoever can see a trip reads its description, and only whoever can read
-  // the journal is told who was tagged.
+  // Descriptions are visible to anyone who can see the trip, so they must not
+  // name tagged friends.
   for (const row of tagged) {
     const trip = seeded.find((candidate) => candidate.id === row.trip_id);
     assert.ok(trip);
-    assert.ok(!trip.description?.includes(row.name), `${trip.name} names ${row.name}`);
+    assert.ok(
+      !trip.description?.includes(row.name),
+      `${trip.name} description mentions ${row.name}`,
+    );
   }
 
-  // Climber 5 has no relationships, so their trip has nobody to tag.
+  // Climber 5 has no friends, so their trip has no tags.
   const alone = seeded.filter((trip) => trip.email === "climber5@example.com");
   assert.ok(alone.length > 0);
   for (const trip of alone) {
@@ -182,7 +185,7 @@ try {
   assert.deepEqual(tags(), tagged, "restore tags after the friendship reset cascades them");
 
   console.log(
-    `Trip seed passed: ${seeded.length} trips at one place each, sends and sessions inside their dates, notes that name only what was sent there, descriptions that name nobody, tagged friends, a trip with nobody to tag, an upcoming tick list and idempotency.`,
+    `Trip seed passed: ${seeded.length} trips, each at one crag, with sends and sessions within their dates, notes that only mention climbs sent on the trip, descriptions without names, tagged friends, a trip without tags, an upcoming trip with a tick list, and idempotent reruns.`,
   );
 } finally {
   db.close();

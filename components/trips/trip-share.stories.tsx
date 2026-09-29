@@ -31,14 +31,14 @@ async function open(canvasElement: HTMLElement) {
 
 export const Button: Story = {};
 
-/** The profile link, opened on the trip. */
+/** With a share URL. */
 export const Link: Story = {
   play: async ({ canvasElement }) => {
     await open(canvasElement);
   },
 };
 
-/** A private profile has no link to give. */
+/** With a private profile. */
 export const PrivateProfile: Story = {
   args: { url: null },
   play: async ({ canvasElement }) => {

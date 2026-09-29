@@ -28,9 +28,9 @@ export const trips = sqliteTable(
       .references(() => user.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     description: text("description"),
-    /** Markdown source, rendered only through `components/ui/markdown.tsx`. */
+    /** Markdown. Render only with `components/ui/markdown.tsx`. */
     notes: text("notes"),
-    /** The link to a shared Google Photos album, as `albumLink` stores it. */
+    /** Shared Google Photos album URL, normalized by `albumLink`. */
     albumUrl: text("album_url"),
     /** Civil ISO `YYYY-MM-DD`, inclusive. */
     startDate: text("start_date").notNull(),
@@ -46,17 +46,17 @@ export const trips = sqliteTable(
   },
   (t) => [
     index("trips_user_start_idx").on(t.userId, t.startDate),
-    // Parent of the composite foreign key in the retired `trip_share_links`.
-    // SQLite requires the parent columns of such a key to be a unique index,
-    // so this goes no sooner than that table does.
+    // Referenced by the composite foreign key in the unused `trip_share_links`
+    // table. SQLite requires a unique index on the parent columns, so keep this
+    // until that table is dropped.
     uniqueIndex("trips_user_id_idx").on(t.userId, t.id),
     check("trips_dates", sql`${t.endDate} >= ${t.startDate}`),
     // Enforced here as well as in the schema the action validates against: a
     // blank name would leave a trip nothing can refer to in a list or a link.
     check("trips_name", sql`length(trim(${t.name})) BETWEEN 1 AND 80`),
     check("trips_description", sql`${t.description} IS NULL OR length(${t.description}) <= 2000`),
-    // A ceiling above `MAX_TRIP_NOTES`: SQLite cannot alter a CHECK, so the
-    // limit that may change lives in lib/trips.ts.
+    // Higher than `MAX_TRIP_NOTES` on purpose. SQLite can't alter a CHECK, so
+    // the real limit is in lib/trips.ts and can change without a migration.
     check("trips_notes", sql`${t.notes} IS NULL OR length(${t.notes}) <= 50000`),
     check("trips_album_url", sql`${t.albumUrl} IS NULL OR length(${t.albumUrl}) <= 300`),
   ],

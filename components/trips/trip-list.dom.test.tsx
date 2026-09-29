@@ -81,7 +81,7 @@ it("offers exactly one way to start a trip, wherever the list stands", () => {
   expect(screen.getAllByRole("button", { name: /new trip/i })).toHaveLength(1);
 });
 
-it("leaves the empty list's button where an empty state centres it", () => {
+it("centers the button in the empty state", () => {
   const { rerender } = render(<TripList trips={[]} userId="alex" today={TODAY} canEdit />);
   expect(screen.getByRole("button", { name: "New trip" })).not.toHaveClass("self-end");
 
@@ -89,7 +89,7 @@ it("leaves the empty list's button where an empty state centres it", () => {
   expect(screen.getByRole("button", { name: "New trip" })).toHaveClass("self-end");
 });
 
-it("opens a new trip as the desktop dialog at once and hands focus back", async () => {
+it("opens the new trip dialog as a modal on desktop and returns focus", async () => {
   stubViewport("desktop");
   const user = userEvent.setup();
   render(<TripList trips={[past]} userId="alex" today={TODAY} canEdit />);
@@ -106,7 +106,7 @@ it("opens a new trip as the desktop dialog at once and hands focus back", async 
   overlays.stop();
 });
 
-it("starts each new trip clean, not from one abandoned half-typed", async () => {
+it("starts each new trip with an empty form", async () => {
   const user = userEvent.setup();
   render(<TripList trips={[past]} userId="alex" today={TODAY} canEdit />);
 
@@ -119,7 +119,7 @@ it("starts each new trip clean, not from one abandoned half-typed", async () => 
   expect(await screen.findByRole("textbox", { name: /name/i })).toHaveValue("");
 });
 
-it("says there are no trips only while there are none, and nothing over a list", () => {
+it("shows the empty message only when there are no trips", () => {
   const { rerender } = render(<TripList trips={[]} userId="alex" today={TODAY} canEdit />);
   expect(screen.getByText("No trips yet.")).toBeInTheDocument();
 
@@ -141,7 +141,7 @@ it("shows each trip's counts and links its name to the trip", () => {
   expect(card).toHaveTextContent("9 sends");
 });
 
-it("shows another climber's trips with nothing to start, edit or delete", () => {
+it("shows another user's trips without create, edit or delete", () => {
   const { rerender } = render(
     <TripList trips={[past]} userId="alex" today={TODAY} canEdit={false} />,
   );
@@ -154,7 +154,7 @@ it("shows another climber's trips with nothing to start, edit or delete", () => 
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
 });
 
-it("leaves out the journal's counts for a reader the journal is not shared with", () => {
+it("leaves out journal counts when the viewer can't read the journal", () => {
   render(
     <TripList
       trips={[{ ...past, entryCount: null, dayCount: null }]}
@@ -170,7 +170,7 @@ it("leaves out the journal's counts for a reader the journal is not shared with"
   expect(card).not.toHaveTextContent("days logged");
 });
 
-it("names the friends tagged on a trip, each linked to their profile", () => {
+it("lists tagged friends with links to their profiles", () => {
   const withFriends = {
     ...past,
     companions: [
@@ -273,7 +273,7 @@ it("reopens an edited trip showing what was saved, not what it used to say", asy
   expect(await screen.findByRole("textbox", { name: /name/i })).toHaveValue("Bishop, take two");
 });
 
-it("opens each trip by the profile link for the link's signed-out holder", () => {
+it("adds the share token to trip links for signed-out visitors", () => {
   const token = "0123456789abcdef0123456789abcdef";
   render(
     <TripList

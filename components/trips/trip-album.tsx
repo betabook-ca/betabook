@@ -5,18 +5,17 @@ import { formatCount } from "@/lib/format";
 import { albumPhotoSrc, type AlbumPhoto } from "@/lib/trip-album";
 import { loadAlbumPhotos } from "@/lib/trip-album-loader";
 
-/** Twice the tallest the strip is drawn, for a dense screen. */
+/** Twice the strip's maximum height, for high-density screens. */
 const SHOWN_WIDTH = 960;
 const LARGE_WIDTH = 2048;
 
 const OUTSIDE = { target: "_blank", rel: "noopener noreferrer" } as const;
 
-/** A trip's shared album, in the page. Google refuses to be framed, so the
- * photos are drawn here from their own addresses.
+/** A trip's shared album. Google blocks iframes, so photos are rendered from
+ * their own URLs.
  *
- * Google does the resizing, which keeps the app's image budget for profile
- * photos, and no referrer is sent: the address of the page a reader is on can
- * carry the climber's profile link. */
+ * Google resizes the photos, so they don't use the app's image budget. No
+ * referrer is sent, because the page URL can contain the user's share token. */
 export function TripAlbumPhotos({ link, photos }: { link: string; photos: AlbumPhoto[] }) {
   return (
     <section aria-label="Photos" className="flex min-w-0 flex-col gap-2">
@@ -56,8 +55,8 @@ export function TripAlbumPhotos({ link, photos }: { link: string; photos: AlbumP
                     unoptimized
                     referrerPolicy="no-referrer"
                     loading={index === 0 ? "eager" : "lazy"}
-                    // The strip's height is fixed and a photo keeps its shape,
-                    // so the width follows from the two numbers above.
+                    // The height is fixed and the aspect ratio is kept, so the
+                    // width follows from the width and height attributes.
                     className="h-56 w-auto max-w-[85vw] rounded-panel bg-surface-secondary object-cover sm:h-72"
                   />
                 </a>
@@ -71,8 +70,8 @@ export function TripAlbumPhotos({ link, photos }: { link: string; photos: AlbumP
   );
 }
 
-/** Read as the page renders, behind a Suspense boundary: Google's answer
- * must not hold up the trip. */
+/** Loads photos during render. Callers wrap this in Suspense so Google can't
+ * block the page. */
 export async function TripAlbum({ link }: { link: string }) {
   return <TripAlbumPhotos link={link} photos={await loadAlbumPhotos(link)} />;
 }

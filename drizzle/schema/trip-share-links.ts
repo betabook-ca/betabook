@@ -11,12 +11,12 @@ import {
 import { user } from "./auth";
 import { trips } from "./trips";
 
-/** Retired: trips have no link of their own, and nothing reads or writes this
- * table. It stays declared so drizzle-kit generates no DROP, because
- * migrations run before the worker that stopped using it is live. A later
- * migration drops it, and must drop `trip_share_revoke_on_private` with it:
- * that trigger sits on `user`, so without the table every profile going
- * private would fail. */
+/** Unused: trips no longer have their own share links. The table stays in the
+ * schema so drizzle-kit doesn't generate a DROP. Migrations run before the new
+ * worker is live, so the old worker still needs the table during a deploy. A
+ * later migration should drop it together with the
+ * `trip_share_revoke_on_private` trigger. That trigger is on `user`, so
+ * dropping only the table would make every switch to private fail. */
 export const tripShareLinks = sqliteTable(
   "trip_share_links",
   {

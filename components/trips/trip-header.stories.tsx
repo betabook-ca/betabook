@@ -32,21 +32,19 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** The trip's own page, as its owner: the way back, what it holds, each
- * count opening the Journal or Sends under the trip's dates, and the way to
- * share it. */
+/** The owner's view. */
 export const Owner: Story = {};
 
 /** A single day reads as one date, and no description drops the line. */
 export const SingleDay: Story = { args: { trip: tripSamples[2] } };
 
-/** Still to come, so there is nothing to count yet. */
+/** An upcoming trip with nothing logged. */
 export const Upcoming: Story = { args: { trip: tripSamples[0] } };
 export const OnNow: Story = { args: { trip: currentTrip } };
 
 export const WithFriends: Story = { args: { trip: tripWithFriends } };
 
-/** One of the tagged friends reading the trip, who can take their own tag off. */
+/** A tagged friend viewing the trip. They can remove their own tag. */
 export const TaggedFriend: Story = {
   args: {
     viewerId: "priya",
@@ -61,8 +59,8 @@ export const TaggedFriend: Story = {
   },
 };
 
-/** Someone who can see the climber's sends but not their journal: no journal
- * counts and no tagged friends. */
+/** A viewer who can see sends but not the journal: no journal counts or tagged
+ * friends. */
 export const SendsOnly: Story = {
   args: {
     viewerId: "sam",
@@ -71,8 +69,7 @@ export const SendsOnly: Story = {
   },
 };
 
-/** Signed out, holding the climber's profile link: the counts are stated and
- * not linked, since the Logbook is behind sign-in. */
+/** Signed out with a share link. Counts are plain text. */
 export const SignedOut: Story = {
   args: {
     viewerId: null,
@@ -82,5 +79,5 @@ export const SignedOut: Story = {
   },
 };
 
-/** Over the trip's analytics, which lead back to the trip. */
+/** On the analytics page, with a link back to the trip. */
 export const OverAnalytics: Story = { args: { back: "trip", shareUrl: undefined } };

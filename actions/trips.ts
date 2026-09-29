@@ -53,8 +53,8 @@ export async function saveTrip(tripId: number | null, raw: unknown): Promise<Act
 
     if (tripId != null) {
       const id = requirePositiveId(tripId, TRIP_NOT_FOUND);
-      // Built rather than raw: D1's batch cannot bind a raw statement. The
-      // schema's $onUpdate moves updated_at.
+      // Uses the query builder because D1 batch can't bind raw statements.
+      // `$onUpdate` in the schema sets updated_at.
       const [[updated]] = await saveTripBatch(db, [
         db
           .update(trips)
@@ -114,9 +114,8 @@ export async function saveTrip(tripId: number | null, raw: unknown): Promise<Act
   });
 }
 
-/** Written apart from `saveTrip` so neither form has to carry the other's
- * fields: the trip dialog never loads the notes, and so cannot overwrite them
- * with a stale copy. */
+/** Separate from `saveTrip` so the trip dialog, which never loads notes, can't
+ * overwrite them with a stale value. */
 export async function saveTripNotes(tripId: number, raw: unknown): Promise<ActionResult> {
   return toActionResult(async () => {
     const { user } = await requireSession();

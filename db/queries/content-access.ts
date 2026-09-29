@@ -27,8 +27,8 @@ export function journalVisibleSql(viewerId: string | null, authorId: SQL): SQL {
   return contentVisibleSql(viewerId, authorId, sql`content_owner.journal_visibility`);
 }
 
-/** Whether `token` is the climber's current profile link. Going private
- * resets the link, and a private profile has none that opens anything. */
+/** True if `token` is the owner's current share token and their profile isn't
+ * private. */
 function profileLinkSql(token: string | null, ownerId: SQL): SQL {
   return sql`EXISTS (
     SELECT 1 FROM profile_share_links link
@@ -37,9 +37,8 @@ function profileLinkSql(token: string | null, ownerId: SQL): SQL {
   )`;
 }
 
-/** Trip notes are for the climber's friends, whatever the journal's audience
- * is set to, and for whoever holds the climber's profile link, signed in or
- * not. */
+/** Trip notes are visible to the owner, their friends, and anyone with the
+ * owner's share link, signed in or not. The journal audience doesn't apply. */
 export function tripNotesVisibleSql(
   viewerId: string | null,
   authorId: SQL,

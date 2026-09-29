@@ -13,7 +13,8 @@ export const SHARED_OWNER = {
   token: "4f9c2a7e1b8d6035c9e4a1f7b2d80e36",
 };
 
-/** What `SharedProfileHeader` draws, with the hardest sends it reads given. */
+/** Story version of `SharedProfileHeader`, with the hardest sends passed in
+ * instead of loaded. */
 export function SharedProfileFrame({ next, children }: { next: string; children: ReactNode }) {
   return (
     <ProfileLayout
