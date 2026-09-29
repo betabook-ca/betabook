@@ -28,8 +28,8 @@ export type ProfileUser = NonNullable<Awaited<ReturnType<typeof getUserById>>>;
 
 type MemberSession = NonNullable<Awaited<ReturnType<typeof getMemberSession>>>;
 
-/** Who a profile page admits: its owner alone (Projects, Trips, Goals),
- * anyone canViewUser allows (Sends, Analytics, the profile itself), or
+/** Who a profile page admits: its owner alone (Projects, Goals), anyone
+ * canViewUser allows (Sends, Trips, Analytics, the profile itself), or
  * whoever canReadJournal currently allows (Journal). */
 type ProfileGate = "owner" | "viewer" | "journal";
 

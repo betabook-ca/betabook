@@ -25,11 +25,13 @@ const MarkdownPreview = dynamic(
 export function TripNotes({
   tripId,
   notes,
+  canEdit,
   children,
 }: {
   tripId: number;
   /** The source as stored, which is what the editor opens on. */
   notes: string | null;
+  canEdit: boolean;
   /** The same notes rendered on the server. */
   children: ReactNode;
 }) {
@@ -67,7 +69,7 @@ export function TripNotes({
       <section aria-label="Trip notes" className="flex min-w-0 flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <SectionHeading>Trip notes</SectionHeading>
-          {notes && (
+          {notes && canEdit && (
             <Button variant="ghost" size="sm" onPress={startEditing}>
               <Pencil className="size-4" />
               Edit
@@ -76,7 +78,7 @@ export function TripNotes({
         </div>
         {notes ? (
           <div className={cardClass("fluid", "bordered")}>{children}</div>
-        ) : (
+        ) : canEdit ? (
           <EmptyState
             message="No trip notes yet. Write up how it went: the highlights, the logistics, a link to your photos."
             cta={
@@ -86,6 +88,8 @@ export function TripNotes({
               </Button>
             }
           />
+        ) : (
+          <EmptyState message="No trip notes yet." />
         )}
       </section>
     );

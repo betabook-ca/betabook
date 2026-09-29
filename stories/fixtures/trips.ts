@@ -15,6 +15,7 @@ export const tripSamples: TripSummary[] = [
     entryCount: 0,
     sendCount: 0,
     dayCount: 0,
+    hasNotes: 0,
   },
   {
     id: 2,
@@ -25,6 +26,7 @@ export const tripSamples: TripSummary[] = [
     entryCount: 14,
     sendCount: 9,
     dayCount: 7,
+    hasNotes: 0,
   },
   {
     id: 1,
@@ -35,6 +37,7 @@ export const tripSamples: TripSummary[] = [
     entryCount: 1,
     sendCount: 1,
     dayCount: 1,
+    hasNotes: 0,
   },
 ];
 
@@ -48,6 +51,7 @@ export const currentTrip: TripSummary = {
   entryCount: 6,
   sendCount: 3,
   dayCount: 4,
+  hasNotes: 0,
 };
 
 export const TRIP_NOTES = `Ten days in the **Buttermilks** and the *Happies* with Sam and Priya. Two rest days for the storm, one for skin.

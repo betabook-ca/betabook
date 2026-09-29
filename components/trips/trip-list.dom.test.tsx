@@ -29,6 +29,7 @@ const past: TripSummary = {
   entryCount: 14,
   sendCount: 9,
   dayCount: 7,
+  hasNotes: 0,
 };
 const current: TripSummary = {
   id: 2,
@@ -39,6 +40,7 @@ const current: TripSummary = {
   entryCount: 6,
   sendCount: 3,
   dayCount: 4,
+  hasNotes: 0,
 };
 const upcoming: TripSummary = {
   id: 3,
@@ -49,6 +51,7 @@ const upcoming: TripSummary = {
   entryCount: 0,
   sendCount: 0,
   dayCount: 0,
+  hasNotes: 0,
 };
 
 beforeEach(() => {
@@ -60,25 +63,25 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 it("offers exactly one way to start a trip, wherever the list stands", () => {
-  const { rerender } = render(<TripList trips={[]} userId="alex" today={TODAY} />);
+  const { rerender } = render(<TripList trips={[]} userId="alex" today={TODAY} canEdit />);
   expect(screen.getAllByRole("button", { name: /new trip/i })).toHaveLength(1);
 
-  rerender(<TripList trips={[past]} userId="alex" today={TODAY} />);
+  rerender(<TripList trips={[past]} userId="alex" today={TODAY} canEdit />);
   expect(screen.getAllByRole("button", { name: /new trip/i })).toHaveLength(1);
 });
 
 it("makes its promise once, not twice on the same empty screen", () => {
-  const { rerender } = render(<TripList trips={[]} userId="alex" today={TODAY} />);
+  const { rerender } = render(<TripList trips={[]} userId="alex" today={TODAY} canEdit />);
   // The empty state carries it, with the instruction attached.
   expect(screen.getByText(/No trips yet/)).toBeInTheDocument();
   expect(screen.queryByText("Everything from one trip, in one place.")).not.toBeInTheDocument();
 
-  rerender(<TripList trips={[past]} userId="alex" today={TODAY} />);
+  rerender(<TripList trips={[past]} userId="alex" today={TODAY} canEdit />);
   expect(screen.getByText("Everything from one trip, in one place.")).toBeInTheDocument();
 });
 
 it("shows each trip's counts and links its name to the trip", () => {
-  render(<TripList trips={[past]} userId="alex" today={TODAY} />);
+  render(<TripList trips={[past]} userId="alex" today={TODAY} canEdit />);
 
   const card = screen.getByRole("listitem");
   expect(within(card).getByRole("link", { name: "Bishop, March 2026" })).toHaveAttribute(
@@ -90,8 +93,37 @@ it("shows each trip's counts and links its name to the trip", () => {
   expect(card).toHaveTextContent("9 sends");
 });
 
+it("shows another climber's trips with nothing to start, edit or delete", () => {
+  const { rerender } = render(
+    <TripList trips={[past]} userId="alex" today={TODAY} canEdit={false} />,
+  );
+
+  expect(screen.getByRole("link", { name: "Bishop, March 2026" })).toBeInTheDocument();
+  expect(screen.queryByRole("button")).not.toBeInTheDocument();
+
+  rerender(<TripList trips={[]} userId="alex" today={TODAY} canEdit={false} />);
+  expect(screen.getByText("No trips yet.")).toBeInTheDocument();
+  expect(screen.queryByRole("button")).not.toBeInTheDocument();
+});
+
+it("leaves out the journal's counts for a reader the journal is not shared with", () => {
+  render(
+    <TripList
+      trips={[{ ...past, entryCount: null, dayCount: null }]}
+      userId="alex"
+      today={TODAY}
+      canEdit={false}
+    />,
+  );
+
+  const card = screen.getByRole("listitem");
+  expect(card).toHaveTextContent("9 sends");
+  expect(card).not.toHaveTextContent("entries");
+  expect(card).not.toHaveTextContent("days logged");
+});
+
 it("badges only the trips whose status is worth saying, against the given day", () => {
-  render(<TripList trips={[upcoming, current, past]} userId="alex" today={TODAY} />);
+  render(<TripList trips={[upcoming, current, past]} userId="alex" today={TODAY} canEdit />);
 
   const [upcomingCard, currentCard, pastCard] = screen.getAllByRole("listitem");
   expect(upcomingCard).toHaveTextContent("Upcoming");
@@ -102,7 +134,7 @@ it("badges only the trips whose status is worth saying, against the given day", 
 
 it("says plainly that deleting a trip keeps the climbs, then deletes it", async () => {
   const user = userEvent.setup();
-  render(<TripList trips={[past]} userId="alex" today={TODAY} />);
+  render(<TripList trips={[past]} userId="alex" today={TODAY} canEdit />);
 
   await user.click(screen.getByRole("button", { name: "Actions for Bishop, March 2026" }));
   await user.click(await screen.findByRole("menuitem", { name: "Delete" }));
@@ -120,7 +152,7 @@ it("says plainly that deleting a trip keeps the climbs, then deletes it", async 
 it("keeps the trip listed and shows the reason when the delete is refused", async () => {
   const user = userEvent.setup();
   vi.mocked(deleteTrip).mockResolvedValue({ ok: false, error: "Trip not found" });
-  render(<TripList trips={[past]} userId="alex" today={TODAY} />);
+  render(<TripList trips={[past]} userId="alex" today={TODAY} canEdit />);
 
   await user.click(screen.getByRole("button", { name: "Actions for Bishop, March 2026" }));
   await user.click(await screen.findByRole("menuitem", { name: "Delete" }));
@@ -145,7 +177,7 @@ it("reopens an edited trip showing what was saved, not what it used to say", asy
         finish = resolve;
       }),
   );
-  const { rerender } = render(<TripList trips={[past]} userId="alex" today={TODAY} />);
+  const { rerender } = render(<TripList trips={[past]} userId="alex" today={TODAY} canEdit />);
 
   await user.click(screen.getByRole("button", { name: `Actions for ${past.name}` }));
   await user.click(await screen.findByRole("menuitem", { name: "Edit" }));
@@ -164,7 +196,7 @@ it("reopens an edited trip showing what was saved, not what it used to say", asy
   vi.useFakeTimers();
   await act(async () => finish({ ok: true, value: past.id }));
   const saved = { ...past, name: "Bishop, take two" };
-  rerender(<TripList trips={[saved]} userId="alex" today={TODAY} />);
+  rerender(<TripList trips={[saved]} userId="alex" today={TODAY} canEdit />);
   await act(() => vi.advanceTimersByTimeAsync(300));
   vi.useRealTimers();
 

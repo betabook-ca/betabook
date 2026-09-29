@@ -23,12 +23,15 @@ export function TripList({
   trips,
   userId,
   today,
+  canEdit,
 }: {
   trips: TripSummary[];
   userId: string;
   /** The reader's own `YYYY-MM-DD`, resolved on the server so the status chips
    * cannot disagree between the render and the hydration. */
   today: string;
+  /** The climber reading their own list; anyone else only reads. */
+  canEdit: boolean;
 }) {
   const router = useRouter();
   const editState = useOverlayState();
@@ -67,32 +70,30 @@ export function TripList({
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <SectionHeading className="sr-only">Trips</SectionHeading>
-        {/* What the climber gets, not how it works. An earlier draft explained
-         * the mechanism — a window, nothing moved — which is a reassurance
-         * only someone worried about duplicated data needs, and raises a doubt
-         * the reader did not arrive with.
-         *
-         * Hidden while the list is empty, where the empty state makes the same
-         * promise with the instruction attached. Two sentences saying one
-         * thing is worse than either alone. */}
-        {trips.length > 0 && (
+      <SectionHeading className="sr-only">Trips</SectionHeading>
+      {canEdit && trips.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {/* What the climber gets, not how it works. An earlier draft
+           * explained the mechanism — a window, nothing moved — which is a
+           * reassurance only someone worried about duplicated data needs, and
+           * raises a doubt the reader did not arrive with.
+           *
+           * Hidden while the list is empty, where the empty state makes the
+           * same promise with the instruction attached. Two sentences saying
+           * one thing is worse than either alone. */}
           <p className="text-sm text-muted">Everything from one trip, in one place.</p>
-        )}
-        {/* One "New trip" on screen at a time. While the list is empty the
-         * empty state carries it, where the climber is already reading; once
-         * there are trips it moves up here, clear of the cards. Showing both
-         * put two identical buttons on the same empty screen. */}
-        {trips.length > 0 && (
+          {/* One "New trip" on screen at a time. While the list is empty the
+           * empty state carries it, where the climber is already reading; once
+           * there are trips it moves up here, clear of the cards. Showing both
+           * put two identical buttons on the same empty screen. */}
           <Button onPress={() => openEditor()} className="shrink-0">
             <Plus className="size-4" />
             New trip
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
-      {trips.length === 0 ? (
+      {trips.length > 0 ? null : canEdit ? (
         <EmptyState
           message="No trips yet. Add the dates you were away and that trip's sessions, sends and stats come with it."
           cta={
@@ -103,6 +104,10 @@ export function TripList({
           }
         />
       ) : (
+        <EmptyState message="No trips yet." />
+      )}
+
+      {trips.length > 0 && (
         <ul className="flex flex-col gap-3">
           {trips.map((trip) => (
             <TripCard
@@ -111,21 +116,23 @@ export function TripList({
               userId={userId}
               today={today}
               actions={
-                <ActionsMenu
-                  ariaLabel={`Actions for ${trip.name}`}
-                  onAction={(key) => {
-                    if (key === "edit") {
-                      openEditor(trip);
-                    } else {
-                      setDeleting(trip);
-                      setDeleteError(null);
-                      deleteState.open();
-                    }
-                  }}
-                >
-                  <Menu.Item id="edit">Edit</Menu.Item>
-                  <Menu.Item id="delete">Delete</Menu.Item>
-                </ActionsMenu>
+                canEdit && (
+                  <ActionsMenu
+                    ariaLabel={`Actions for ${trip.name}`}
+                    onAction={(key) => {
+                      if (key === "edit") {
+                        openEditor(trip);
+                      } else {
+                        setDeleting(trip);
+                        setDeleteError(null);
+                        deleteState.open();
+                      }
+                    }}
+                  >
+                    <Menu.Item id="edit">Edit</Menu.Item>
+                    <Menu.Item id="delete">Delete</Menu.Item>
+                  </ActionsMenu>
+                )
               }
             />
           ))}
@@ -135,22 +142,26 @@ export function TripList({
       {/* Keyed by the session as well as the trip, so every open starts from
        * the trip as it stands now rather than from whatever the last session
        * left behind. */}
-      <TripDialog
-        key={`${editing?.id ?? "new"}-${session}`}
-        state={editState}
-        userId={userId}
-        trip={editing}
-      />
+      {canEdit && (
+        <TripDialog
+          key={`${editing?.id ?? "new"}-${session}`}
+          state={editState}
+          userId={userId}
+          trip={editing}
+        />
+      )}
 
-      <ConfirmDeleteDialog
-        state={deleteState}
-        noun="trip"
-        title={deleting ? `Delete ${deleting.name}?` : "Delete this trip?"}
-        description="Deleting a trip won't delete any climbs — your sessions and sends stay in your logbook."
-        onConfirm={handleDelete}
-        isPending={pending}
-        error={deleteError}
-      />
+      {canEdit && (
+        <ConfirmDeleteDialog
+          state={deleteState}
+          noun="trip"
+          title={deleting ? `Delete ${deleting.name}?` : "Delete this trip?"}
+          description="Deleting a trip won't delete any climbs — your sessions and sends stay in your logbook."
+          onConfirm={handleDelete}
+          isPending={pending}
+          error={deleteError}
+        />
+      )}
     </div>
   );
 }

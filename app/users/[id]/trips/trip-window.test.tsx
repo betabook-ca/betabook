@@ -1,4 +1,5 @@
 import { env } from "cloudflare:test";
+import { sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import TripAnalyticsPage from "@/app/users/[id]/trips/[tripId]/analytics/page";
@@ -7,6 +8,7 @@ import TripJournalPage from "@/app/users/[id]/trips/[tripId]/page";
 import TripSendsPage from "@/app/users/[id]/trips/[tripId]/sends/page";
 import { createDb } from "@/db/client";
 import {
+  seedFixtureFriendship,
   seedFixtureJournalEntry,
   seedFixtureSend,
   seedFixtureTree,
@@ -31,13 +33,11 @@ vi.mock("next/navigation", () => ({
     throw new Error("NOT_FOUND");
   },
 }));
-// The deployment's own origin, which is a Cloudflare-context read rather than
-// anything these assertions are about.
-vi.mock("@/lib/app-url", () => ({ getBaseUrl: async () => "https://betabook.ca" }));
 
 const db = createDb(env.DB);
 const OWNER = "owner";
 const STRANGER = "stranger";
+const FRIEND = "friend";
 const CLIMB = 1;
 const OTHER_CLIMB = 2;
 
@@ -171,11 +171,54 @@ describe("the window the page actually reads", () => {
 });
 
 describe("who can open a trip", () => {
-  it("refuses another climber, without confirming the trip exists", async () => {
+  const SENT = "Sent it on the trip.";
+
+  async function seedTripWithSend() {
     const trip = await seedTrip();
+    await seedFixtureSend(db, {
+      userId: OWNER,
+      climbId: OTHER_CLIMB,
+      dateSent: "2026-03-16",
+      comment: SENT,
+    });
+    await seedFixtureUser(db, { id: FRIEND, name: "Climbing Partner" });
+    await seedFixtureFriendship(db, OWNER, FRIEND);
+    return trip;
+  }
+
+  it("shows a member the trip and its sends, and keeps the journal to its audience", async () => {
+    const trip = await seedTripWithSend();
     session.userId = STRANGER;
 
-    await expect(renderJournal(trip.id)).rejects.toThrow("NOT_FOUND");
+    const payload = await renderJournal(trip.id);
+    expect(payload).toContain("Bishop");
+    expect(payload).toContain(SENT);
+    expect(payload).not.toContain(INSIDE);
+    // Read as the member, not as the owner the route names.
+    expect(payload).toContain(`"viewerId":"${STRANGER}"`);
+  });
+
+  it("shows a friend the journal entries inside the trip and nothing outside it", async () => {
+    const trip = await seedTripWithSend();
+    session.userId = FRIEND;
+
+    const payload = await renderJournal(trip.id);
+    expect(payload).toContain(INSIDE);
+    expect(payload).not.toContain(BEFORE);
+    expect(payload).not.toContain(AFTER);
+    expect(payload).toContain(`"viewerId":"${FRIEND}"`);
+  });
+
+  it("refuses everyone else once the profile is private", async () => {
+    const trip = await seedTripWithSend();
+    await db.run(sql`UPDATE user SET is_private = 1 WHERE id = ${OWNER}`);
+
+    for (const viewer of [STRANGER, FRIEND]) {
+      session.userId = viewer;
+      await expect(renderJournal(trip.id)).rejects.toThrow("NOT_FOUND");
+    }
+    session.userId = OWNER;
+    expect(await renderJournal(trip.id)).toContain(INSIDE);
   });
 
   it("refuses a trip id that is not this climber's", async () => {
@@ -265,7 +308,25 @@ describe("the trip's notes", () => {
     expect(payload).toContain(`"children":"${NOTES}"`);
   });
 
-  it("refuses another climber and a signed-out reader, handing neither the notes", async () => {
+  it("lets whoever can read the journal read the notes, and only the owner edit them", async () => {
+    const trip = await seedFixtureTrip(db, {
+      userId: OWNER,
+      name: "Bishop",
+      notes: NOTES,
+      ...BISHOP,
+    });
+    await seedFixtureUser(db, { id: FRIEND, name: "Climbing Partner" });
+    await seedFixtureFriendship(db, OWNER, FRIEND);
+
+    expect(await renderNotes(trip.id)).toContain('"canEdit":true');
+
+    session.userId = FRIEND;
+    const payload = await renderNotes(trip.id);
+    expect(payload).toContain(`"children":"${NOTES}"`);
+    expect(payload).toContain('"canEdit":false');
+  });
+
+  it("refuses a member outside the journal's audience and a signed-out reader", async () => {
     const trip = await seedFixtureTrip(db, {
       userId: OWNER,
       name: "Bishop",

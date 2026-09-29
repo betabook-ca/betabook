@@ -4,9 +4,9 @@ import { notFound } from "next/navigation";
 import { ProfileHeader } from "@/app/users/[id]/profile-shell";
 import { SendsView } from "@/app/users/[id]/sends-view";
 import {
-  getTripShareContext,
   resolveTripPage,
   tripMetadata,
+  withTripWindow,
   type TripPageParams,
 } from "@/app/users/[id]/trips/[tripId]/trip-shell";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
@@ -27,32 +27,21 @@ export default async function TripSendsPage({ params, searchParams }: TripPagePa
   const resolved = await resolveTripPage(id, tripId);
   if (!resolved.signedIn) return <CurrentPageAuthCallout />;
   if (!resolved.ok) notFound();
-  const { trip, user } = resolved;
-  const { share, shareOrigin } = await getTripShareContext(user.id, trip.id);
-
-  // Same rule as the Journal tab: the trip's dates replace whatever the URL
-  // asked for, so the window cannot be widened by hand.
-  const filter = {
-    ...parseUserSendsFilter(search),
-    date: undefined,
-    dateFrom: trip.startDate,
-    dateTo: trip.endDate,
-    datePreset: undefined,
-  };
+  const { trip, user, viewerId, journalVisible } = resolved;
 
   return (
-    <ProfileHeader user={user} viewerId={user.id} workspace="logbook">
+    <ProfileHeader user={user} viewerId={viewerId} workspace="logbook">
       <TripHeader
         trip={trip}
         userId={user.id}
+        viewerId={viewerId}
         current="sends"
-        share={share}
-        shareOrigin={shareOrigin}
+        journalVisible={journalVisible}
       >
         <SendsView
           userId={user.id}
-          viewerId={user.id}
-          filter={filter}
+          viewerId={viewerId}
+          filter={withTripWindow(parseUserSendsFilter(search), trip)}
           basePath={tripHref(user.id, trip.id, "sends")}
           lockedDateRange
         />

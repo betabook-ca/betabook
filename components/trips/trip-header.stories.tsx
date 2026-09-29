@@ -4,13 +4,7 @@ import { cardClass } from "@/components/ui/card";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 import { tripSamples } from "@/stories/fixtures/trips";
 
-import type { TripShare } from "./share-trip-dialog";
 import { TripHeader } from "./trip-header";
-
-const SHARE: TripShare = {
-  token: "4f9c2a7e1b8d6035c9e4a1f7b2d80e36",
-  expiresAt: "2099-01-01 00:00:00",
-};
 
 const meta = {
   title: "Components/Trips/Trip header",
@@ -18,9 +12,9 @@ const meta = {
   args: {
     trip: tripSamples[1],
     userId: "alex",
+    viewerId: "alex",
     current: "journal",
-    share: null,
-    shareOrigin: "https://betabook.ca",
+    journalVisible: true,
     children: (
       <div className={cardClass("fluid")}>
         <p className="text-sm text-muted">The current tab's view sits here.</p>
@@ -39,7 +33,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /** The trip's own page: the way back, the dates every tab derives from, and
- * the three views as pills. Not shared, so the header offers Share. */
+ * its views as pills. */
 export const Journal: Story = {};
 export const Sends: Story = { args: { current: "sends" } };
 export const Analytics: Story = { args: { current: "analytics" } };
@@ -48,11 +42,19 @@ export const Notes: Story = { args: { current: "notes" } };
 /** A single day reads as one date, and no description drops the line. */
 export const SingleDay: Story = { args: { trip: tripSamples[2] } };
 
-/** A live link: the chip says when it dies and the button reads Shared. */
-export const SharedLive: Story = { args: { share: SHARE } };
+/** Someone who can read the climber's journal. Notes appears because this
+ * trip has some; without any, the tab would open onto nothing. */
+export const JournalReader: Story = {
+  args: { viewerId: "sam", trip: { ...tripSamples[1], hasNotes: 1 } },
+};
 
-/** An expired link reads as no link at all. Judged on the client clock after
- * mount, so the server render never claims an expiry it cannot judge. */
-export const SharedExpired: Story = {
-  args: { share: { ...SHARE, expiresAt: "2026-04-01 00:00:00" } },
+/** Someone who can see the climber's sends but not their journal: the trip
+ * opens on its sends, with no Journal or Notes and no journal counts. */
+export const SendsOnly: Story = {
+  args: {
+    viewerId: "sam",
+    current: "sends",
+    journalVisible: false,
+    trip: { ...tripSamples[1], entryCount: null, dayCount: null },
+  },
 };

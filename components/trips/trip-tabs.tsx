@@ -9,23 +9,30 @@ import { tripHref, type TripTab } from "@/lib/trips";
  * trip's own page of writing.
  *
  * `current` is passed in by each page rather than derived from the pathname,
- * so the trip's own page (Journal) does not light up as a prefix of the two
- * routes nested under it. */
+ * so the trip's own page does not light up as a prefix of the routes nested
+ * under it. For a reader the journal is not shared with, that page shows the
+ * sends, as the profile's own root does. */
 export function TripTabs({
   userId,
   tripId,
   current,
+  showJournal,
+  showNotes,
 }: {
   userId: string;
   tripId: number;
   current: TripTab;
+  showJournal: boolean;
+  showNotes: boolean;
 }) {
   return (
     <SectionNavigation
       appearance="pills"
       label="Trip views"
       tabs={[
-        { href: tripHref(userId, tripId), label: "Journal", current: current === "journal" },
+        ...(showJournal
+          ? [{ href: tripHref(userId, tripId), label: "Journal", current: current === "journal" }]
+          : []),
         {
           href: tripHref(userId, tripId, "sends"),
           label: "Sends",
@@ -36,11 +43,15 @@ export function TripTabs({
           label: "Analytics",
           current: current === "analytics",
         },
-        {
-          href: tripHref(userId, tripId, "notes"),
-          label: "Notes",
-          current: current === "notes",
-        },
+        ...(showNotes
+          ? [
+              {
+                href: tripHref(userId, tripId, "notes"),
+                label: "Notes",
+                current: current === "notes",
+              },
+            ]
+          : []),
       ]}
     />
   );

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { createDb } from "@/db/client";
 import {
+  seedFixtureFriendship,
   seedFixtureJournalEntry,
   seedFixtureSend,
   seedFixtureTree,
@@ -12,7 +13,7 @@ import {
 } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
 
-import { getTripsForOwner } from "./trips";
+import { getTripForUser, getTripNotes, getTripsForUser } from "./trips";
 
 const db = createDb(env.DB);
 
@@ -44,7 +45,7 @@ describe("what a trip contains", () => {
     await seedFixtureJournalEntry(db, { userId: OWNER, climbId: CLIMB, entryDate: "2026-03-21" });
     await seedFixtureSend(db, { userId: OWNER, climbId: OTHER_CLIMB, dateSent: "2026-03-21" });
 
-    const [summary] = await getTripsForOwner(db, OWNER);
+    const [summary] = await getTripsForUser(db, OWNER, OWNER);
     expect(summary).toMatchObject({
       id: trip.id,
       name: "Bishop",
@@ -59,7 +60,7 @@ describe("what a trip contains", () => {
     await seedFixtureTrip(db, { userId: OWNER, ...BISHOP });
     await seedFixtureSend(db, { userId: OWNER, climbId: CLIMB, dateSent: null });
 
-    const [summary] = await getTripsForOwner(db, OWNER);
+    const [summary] = await getTripsForUser(db, OWNER, OWNER);
     expect(summary.sendCount).toBe(0);
   });
 
@@ -73,7 +74,7 @@ describe("what a trip contains", () => {
       entryDate: "2026-03-13",
     });
 
-    const [summary] = await getTripsForOwner(db, OWNER);
+    const [summary] = await getTripsForUser(db, OWNER, OWNER);
     expect(summary.entryCount).toBe(2);
   });
 
@@ -87,7 +88,7 @@ describe("what a trip contains", () => {
     });
     await seedFixtureJournalEntry(db, { userId: OWNER, climbId: CLIMB, entryDate: "2026-03-14" });
 
-    const [summary] = await getTripsForOwner(db, OWNER);
+    const [summary] = await getTripsForUser(db, OWNER, OWNER);
     expect(summary).toMatchObject({ entryCount: 3, dayCount: 2 });
   });
 
@@ -99,7 +100,7 @@ describe("what a trip contains", () => {
     });
     await seedFixtureJournalEntry(db, { userId: OWNER, climbId: CLIMB, entryDate: "2026-03-10" });
 
-    const [summary] = await getTripsForOwner(db, OWNER);
+    const [summary] = await getTripsForUser(db, OWNER, OWNER);
     expect(summary).toMatchObject({ entryCount: 1, dayCount: 1 });
   });
 
@@ -113,7 +114,7 @@ describe("what a trip contains", () => {
     });
     await seedFixtureJournalEntry(db, { userId: OWNER, climbId: CLIMB, entryDate: "2026-03-15" });
 
-    const trips = await getTripsForOwner(db, OWNER);
+    const trips = await getTripsForUser(db, OWNER, OWNER);
     expect(trips.map((trip) => [trip.name, trip.entryCount])).toEqual([
       ["Bishop", 1],
       ["Spring road trip", 1],
@@ -129,24 +130,103 @@ describe("what a trip contains", () => {
     });
     await seedFixtureSend(db, { userId: STRANGER, climbId: CLIMB, dateSent: "2026-03-15" });
 
-    const [summary] = await getTripsForOwner(db, OWNER);
+    const [summary] = await getTripsForUser(db, OWNER, OWNER);
     expect(summary).toMatchObject({ entryCount: 0, sendCount: 0 });
   });
 });
 
 describe("who can read a trip", () => {
-  it("returns only the reader's own trips", async () => {
+  const FRIEND = "friend";
+  const NOTES = "Camped at the Pit.";
+
+  async function seedBishop() {
+    const trip = await seedFixtureTrip(db, {
+      userId: OWNER,
+      name: "Bishop",
+      notes: NOTES,
+      ...BISHOP,
+    });
+    await seedFixtureJournalEntry(db, { userId: OWNER, climbId: CLIMB, entryDate: "2026-03-15" });
+    await seedFixtureSend(db, { userId: OWNER, climbId: CLIMB, dateSent: "2026-03-15" });
+    await seedFixtureUser(db, { id: FRIEND, name: "Climbing Partner" });
+    await seedFixtureFriendship(db, OWNER, FRIEND);
+    return trip;
+  }
+
+  function audience(journalVisibility: "private" | "friends" | "public") {
+    return db.run(
+      sql`UPDATE user SET journal_visibility = ${journalVisibility} WHERE id = ${OWNER}`,
+    );
+  }
+
+  it("lists each climber's own trips and nobody else's", async () => {
     await seedFixtureTrip(db, { userId: OWNER, name: "Bishop", ...BISHOP });
     await seedFixtureTrip(db, { userId: STRANGER, name: "Squamish", ...BISHOP });
 
-    expect((await getTripsForOwner(db, OWNER)).map((trip) => trip.name)).toEqual(["Bishop"]);
-    expect((await getTripsForOwner(db, STRANGER)).map((trip) => trip.name)).toEqual(["Squamish"]);
+    expect((await getTripsForUser(db, OWNER, OWNER)).map((trip) => trip.name)).toEqual(["Bishop"]);
+    expect((await getTripsForUser(db, STRANGER, OWNER)).map((trip) => trip.name)).toEqual([
+      "Squamish",
+    ]);
   });
 
-  it("never leaks another climber's trip into this one's list", async () => {
-    await seedFixtureTrip(db, { userId: STRANGER, name: "Squamish", ...BISHOP });
+  it("shows a member the trip and its sends, and the journal's counts only with the journal", async () => {
+    const trip = await seedBishop();
+    await audience("friends");
 
-    expect(await getTripsForOwner(db, OWNER)).toEqual([]);
+    const [asMember] = await getTripsForUser(db, OWNER, STRANGER);
+    expect(asMember).toMatchObject({
+      id: trip.id,
+      name: "Bishop",
+      sendCount: 1,
+      entryCount: null,
+      dayCount: null,
+    });
+    expect(await getTripForUser(db, OWNER, trip.id, STRANGER)).toEqual(asMember);
+
+    const [asFriend] = await getTripsForUser(db, OWNER, FRIEND);
+    expect(asFriend).toMatchObject({ sendCount: 1, entryCount: 1, dayCount: 1 });
+  });
+
+  it("follows the journal audience as it stands now", async () => {
+    const trip = await seedBishop();
+
+    await audience("public");
+    expect((await getTripForUser(db, OWNER, trip.id, STRANGER))?.entryCount).toBe(1);
+
+    await audience("private");
+    expect((await getTripForUser(db, OWNER, trip.id, FRIEND))?.entryCount).toBeNull();
+    expect((await getTripForUser(db, OWNER, trip.id, OWNER))?.entryCount).toBe(1);
+  });
+
+  it("hides a private climber's trips from everyone but them", async () => {
+    const trip = await seedBishop();
+    await db.run(sql`UPDATE user SET is_private = 1 WHERE id = ${OWNER}`);
+
+    expect(await getTripsForUser(db, OWNER, FRIEND)).toEqual([]);
+    expect(await getTripForUser(db, OWNER, trip.id, FRIEND)).toBeNull();
+    expect(await getTripsForUser(db, OWNER, OWNER)).toHaveLength(1);
+  });
+
+  it("does not resolve a trip through another climber's id", async () => {
+    const trip = await seedBishop();
+
+    expect(await getTripForUser(db, STRANGER, trip.id, STRANGER)).toBeNull();
+    expect(await getTripForUser(db, OWNER, trip.id, OWNER)).toMatchObject({ id: trip.id });
+  });
+
+  it("hands the notes to whoever can read the journal", async () => {
+    const trip = await seedBishop();
+    await audience("friends");
+
+    expect(await getTripNotes(db, OWNER, trip.id, OWNER)).toBe(NOTES);
+    expect(await getTripNotes(db, OWNER, trip.id, FRIEND)).toBe(NOTES);
+    expect(await getTripNotes(db, OWNER, trip.id, STRANGER)).toBeNull();
+
+    await audience("public");
+    expect(await getTripNotes(db, OWNER, trip.id, STRANGER)).toBe(NOTES);
+
+    await db.run(sql`UPDATE user SET is_private = 1 WHERE id = ${OWNER}`);
+    expect(await getTripNotes(db, OWNER, trip.id, FRIEND)).toBeNull();
   });
 });
 
@@ -177,7 +257,7 @@ describe("ordering", () => {
       endDate: "2026-01-10",
     });
 
-    expect((await getTripsForOwner(db, OWNER)).map((trip) => trip.name)).toEqual([
+    expect((await getTripsForUser(db, OWNER, OWNER)).map((trip) => trip.name)).toEqual([
       "Later",
       "Same day B",
       "Same day A",
@@ -195,22 +275,22 @@ describe("what the database itself refuses", () => {
     await expect(
       seedFixtureTrip(db, { userId: OWNER, startDate: "2026-03-20", endDate: "2026-03-10" }),
     ).rejects.toThrow(/Failed query/);
-    expect(await getTripsForOwner(db, OWNER)).toHaveLength(0);
+    expect(await getTripsForUser(db, OWNER, OWNER)).toHaveLength(0);
   });
 
   it("rejects a blank name", async () => {
     await expect(seedFixtureTrip(db, { userId: OWNER, name: "   ", ...BISHOP })).rejects.toThrow(
       /Failed query/,
     );
-    expect(await getTripsForOwner(db, OWNER)).toHaveLength(0);
+    expect(await getTripsForUser(db, OWNER, OWNER)).toHaveLength(0);
   });
 
   it("takes the trip with the account, leaving no orphan window", async () => {
     await seedFixtureTrip(db, { userId: STRANGER, ...BISHOP });
-    expect(await getTripsForOwner(db, STRANGER)).toHaveLength(1);
+    expect(await getTripsForUser(db, STRANGER, STRANGER)).toHaveLength(1);
 
     // Deleting the user cascades; the trip must not survive it.
     await db.run(sql`DELETE FROM user WHERE id = ${STRANGER}`);
-    expect(await getTripsForOwner(db, STRANGER)).toHaveLength(0);
+    expect(await getTripsForUser(db, STRANGER, STRANGER)).toHaveLength(0);
   });
 });

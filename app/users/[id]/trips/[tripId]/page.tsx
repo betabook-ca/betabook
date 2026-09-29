@@ -3,15 +3,17 @@ import { notFound } from "next/navigation";
 
 import { JournalView } from "@/app/users/[id]/journal-view";
 import { ProfileHeader } from "@/app/users/[id]/profile-shell";
+import { SendsView } from "@/app/users/[id]/sends-view";
 import {
-  getTripShareContext,
   resolveTripPage,
   tripMetadata,
+  withTripWindow,
   type TripPageParams,
 } from "@/app/users/[id]/trips/[tripId]/trip-shell";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { TripHeader } from "@/components/trips/trip-header";
 import { parseJournalFilter } from "@/lib/filters/journal-filter";
+import { parseUserSendsFilter } from "@/lib/filters/user-sends-filter";
 import { tripHref } from "@/lib/trips";
 
 export async function generateMetadata({ params }: TripPageParams): Promise<Metadata> {
@@ -19,44 +21,43 @@ export async function generateMetadata({ params }: TripPageParams): Promise<Meta
   return tripMetadata(id, tripId);
 }
 
-/** The trip's Journal, which is the climber's own journal with the window
- * pinned — the same view, the same reads, a different date range. */
+/** The climber's journal with the trip's dates pinned, or their sends for a
+ * reader the journal is not shared with: the same fallback the profile's own
+ * root makes. */
 export default async function TripJournalPage({ params, searchParams }: TripPageParams) {
   const [{ id, tripId }, search] = await Promise.all([params, searchParams]);
   const resolved = await resolveTripPage(id, tripId);
   if (!resolved.signedIn) return <CurrentPageAuthCallout />;
   if (!resolved.ok) notFound();
-  const { trip, user } = resolved;
-  const { share, shareOrigin } = await getTripShareContext(user.id, trip.id);
-
-  // The window is applied here, after the rest of the filter is parsed, and
-  // the URL's own date parameters are discarded rather than merged. A trip is
-  // a claim about two dates; letting `?dateFrom=1900-01-01` through would let
-  // anyone widen a trip past what it says it covers just by editing the URL.
-  const filter = {
-    ...parseJournalFilter(search),
-    date: undefined,
-    dateFrom: trip.startDate,
-    dateTo: trip.endDate,
-    datePreset: undefined,
-  };
+  const { trip, user, viewerId, journalVisible } = resolved;
+  const basePath = tripHref(user.id, trip.id);
 
   return (
-    <ProfileHeader user={user} viewerId={user.id} workspace="logbook">
+    <ProfileHeader user={user} viewerId={viewerId} workspace="logbook">
       <TripHeader
         trip={trip}
         userId={user.id}
-        current="journal"
-        share={share}
-        shareOrigin={shareOrigin}
+        viewerId={viewerId}
+        current={journalVisible ? "journal" : "sends"}
+        journalVisible={journalVisible}
       >
-        <JournalView
-          ownerId={user.id}
-          viewerId={user.id}
-          filter={filter}
-          basePath={tripHref(user.id, trip.id)}
-          lockedDateRange
-        />
+        {journalVisible ? (
+          <JournalView
+            ownerId={user.id}
+            viewerId={viewerId}
+            filter={withTripWindow(parseJournalFilter(search), trip)}
+            basePath={basePath}
+            lockedDateRange
+          />
+        ) : (
+          <SendsView
+            userId={user.id}
+            viewerId={viewerId}
+            filter={withTripWindow(parseUserSendsFilter(search), trip)}
+            basePath={basePath}
+            lockedDateRange
+          />
+        )}
       </TripHeader>
     </ProfileHeader>
   );

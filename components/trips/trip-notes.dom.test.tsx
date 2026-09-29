@@ -15,9 +15,9 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 const TRIP = 7;
 const STORED = "# Day one\n\n**Sent** the project.";
 
-function Example({ notes = STORED }: { notes?: string | null }) {
+function Example({ notes = STORED, canEdit = true }: { notes?: string | null; canEdit?: boolean }) {
   return (
-    <TripNotes tripId={TRIP} notes={notes}>
+    <TripNotes tripId={TRIP} notes={notes} canEdit={canEdit}>
       {notes && <p>Rendered on the server.</p>}
     </TripNotes>
   );
@@ -38,6 +38,17 @@ it("shows the notes as rendered, with the source kept for the editor", async () 
 
   await user.click(screen.getByRole("button", { name: "Edit" }));
   expect(screen.getByRole("textbox", { name: /trip notes/i })).toHaveValue(STORED);
+});
+
+it("gives a reader who is not the owner the notes and no way to change them", () => {
+  const { rerender } = render(<Example canEdit={false} />);
+
+  expect(screen.getByText("Rendered on the server.")).toBeInTheDocument();
+  expect(screen.queryByRole("button")).not.toBeInTheDocument();
+
+  rerender(<Example notes={null} canEdit={false} />);
+  expect(screen.getByText("No trip notes yet.")).toBeInTheDocument();
+  expect(screen.queryByRole("button")).not.toBeInTheDocument();
 });
 
 it("invites the first notes on a trip that has none", async () => {

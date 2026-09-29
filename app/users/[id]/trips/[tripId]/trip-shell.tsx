@@ -3,59 +3,61 @@ import { notFound } from "next/navigation";
 
 import {
   MEMBER_CONTENT_METADATA,
+  canReadUserJournal,
   resolveProfilePage,
   type ProfileUser,
 } from "@/app/users/[id]/profile-shell";
 import { getDb } from "@/db/client";
-import { getTripForOwner, getTripShareForOwner, type TripSummary } from "@/db/queries";
-import { getBaseUrl } from "@/lib/app-url";
+import { getTripForUser, type TripSummary } from "@/db/queries";
 import { parseId } from "@/lib/parse-id";
 import { requestMemo } from "@/lib/request-memo";
 
 /** Cached per request so a page and its `generateMetadata` resolve the same
  * trip with one read rather than two. */
-const getTripFor = requestMemo(async (ownerId: string, tripId: number) =>
-  getTripForOwner(await getDb(), ownerId, tripId),
+const getTripFor = requestMemo(async (userId: string, tripId: number, viewerId: string) =>
+  getTripForUser(await getDb(), userId, tripId, viewerId),
 );
-
-/** The trip's link and the origin to build it against, resolved once here so
- * every tab's header shows the same thing. `getTripShareForOwner` is the only
- * read that hands out a token, and it is scoped to the owner. */
-export async function getTripShareContext(ownerId: string, tripId: number) {
-  const [share, shareOrigin] = await Promise.all([
-    getTripShareForOwner(await getDb(), ownerId, tripId),
-    getBaseUrl(),
-  ]);
-  return { share, shareOrigin };
-}
 
 export type TripPageParams = {
   params: Promise<{ id: string; tripId: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-type Resolved = { ok: false } | { ok: true; trip: TripSummary; user: ProfileUser };
+type Resolved =
+  | { ok: false }
+  | {
+      ok: true;
+      trip: TripSummary;
+      user: ProfileUser;
+      viewerId: string;
+      /** Whether this reader gets the trip's entries and notes. */
+      journalVisible: boolean;
+    };
 
 /**
- * The authorization every trip page repeats, in one place: the profile's
- * owner-only gate (there is no audience that opens a trip to anyone else),
- * then the trip itself. The signed-out / refused split and the reason for
- * returning `{ ok: false }` rather than calling `notFound()` are
- * resolveProfilePage's.
+ * The authorization every trip page repeats, in one place. A trip opens to
+ * whoever may see the climber's sends, and shows its entries and notes to
+ * whoever may read their journal: the two gates the profile already has. The
+ * signed-out / refused split and the reason for returning `{ ok: false }`
+ * rather than calling `notFound()` are resolveProfilePage's.
  */
 export async function resolveTripPage(
   idParam: string,
   tripIdParam: string,
 ): Promise<{ signedIn: false } | ({ signedIn: true } & Resolved)> {
-  const resolved = await resolveProfilePage(idParam, "owner");
+  const resolved = await resolveProfilePage(idParam, "viewer");
   if (!resolved.signedIn || !resolved.ok) return resolved;
 
   const tripId = parseId(tripIdParam);
   if (tripId === null) return { signedIn: true, ok: false };
 
-  const trip = await getTripFor(resolved.user.id, tripId);
+  const { user, viewerId } = resolved;
+  const [trip, journalVisible] = await Promise.all([
+    getTripFor(user.id, tripId, viewerId),
+    canReadUserJournal(user.id, viewerId),
+  ]);
   return trip
-    ? { signedIn: true, ok: true, trip, user: resolved.user }
+    ? { signedIn: true, ok: true, trip, user, viewerId, journalVisible }
     : { signedIn: true, ok: false };
 }
 
@@ -66,4 +68,19 @@ export async function tripMetadata(idParam: string, tripIdParam: string): Promis
   if (!resolved.signedIn) return MEMBER_CONTENT_METADATA;
   if (!resolved.ok) notFound();
   return { title: `${resolved.trip.name} · Trips`, robots: { index: false } };
+}
+
+/** The trip's dates in place of whatever the URL asked for. A trip is a claim
+ * about two dates, so `?dateFrom=` can neither widen nor narrow it. */
+export function withTripWindow<Filter extends object>(
+  filter: Filter,
+  trip: Pick<TripSummary, "startDate" | "endDate">,
+) {
+  return {
+    ...filter,
+    date: undefined,
+    dateFrom: trip.startDate,
+    dateTo: trip.endDate,
+    datePreset: undefined,
+  };
 }

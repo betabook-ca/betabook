@@ -11,7 +11,12 @@ import { TripNotes } from "./trip-notes";
 const meta = {
   title: "Components/Trips/Trip notes",
   component: TripNotes,
-  args: { tripId: 2, notes: TRIP_NOTES, children: <Markdown>{TRIP_NOTES}</Markdown> },
+  args: {
+    tripId: 2,
+    notes: TRIP_NOTES,
+    canEdit: true,
+    children: <Markdown>{TRIP_NOTES}</Markdown>,
+  },
   decorators: [
     (Story) => (
       <StoryPage title="Trips">
@@ -26,6 +31,9 @@ type Story = StoryObj<typeof meta>;
 export const Reading: Story = {};
 
 export const Empty: Story = { args: { notes: null, children: null } };
+
+/** Someone who can read the climber's journal: the notes, and nothing to edit. */
+export const Visitor: Story = { args: { canEdit: false } };
 
 export const Editing: Story = {
   play: async ({ canvasElement }) => {

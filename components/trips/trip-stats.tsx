@@ -8,11 +8,11 @@ function Stat({ value, label }: { value: number; label: string }) {
   );
 }
 
-/** The three counts a trip carries on the owner's card and on its shared
- * page, so the two cannot disagree about what a number means. "Days logged"
- * is deliberately not the Analytics tab's "Days out": that tile counts
- * outdoor sessions in a single discipline, a narrower question, so it gets
- * its own words rather than a shared label over two different numbers. */
+/** "Days logged" is deliberately not the Analytics tab's "Days out": that
+ * tile counts outdoor sessions in a single discipline, a narrower question,
+ * so it gets its own words rather than a shared label over two different
+ * numbers. The journal's two counts are absent, not zero, for a reader the
+ * journal is not shared with. */
 export function TripStats({
   trip,
 }: {
@@ -20,8 +20,12 @@ export function TripStats({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-      <Stat value={trip.dayCount} label={trip.dayCount === 1 ? "day logged" : "days logged"} />
-      <Stat value={trip.entryCount} label={trip.entryCount === 1 ? "entry" : "entries"} />
+      {trip.dayCount != null && (
+        <Stat value={trip.dayCount} label={trip.dayCount === 1 ? "day logged" : "days logged"} />
+      )}
+      {trip.entryCount != null && (
+        <Stat value={trip.entryCount} label={trip.entryCount === 1 ? "entry" : "entries"} />
+      )}
       <Stat value={trip.sendCount} label={trip.sendCount === 1 ? "send" : "sends"} />
     </div>
   );

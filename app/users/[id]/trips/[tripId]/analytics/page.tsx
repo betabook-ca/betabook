@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 
 import { ProfileHeader } from "@/app/users/[id]/profile-shell";
 import {
-  getTripShareContext,
   resolveTripPage,
   tripMetadata,
   type TripPageParams,
@@ -52,19 +51,18 @@ export default async function TripAnalyticsPage({ params, searchParams }: TripPa
   const resolved = await resolveTripPage(id, tripId);
   if (!resolved.signedIn) return <CurrentPageAuthCallout />;
   if (!resolved.ok) notFound();
-  const { trip, user } = resolved;
-  const { share, shareOrigin } = await getTripShareContext(user.id, trip.id);
+  const { trip, user, viewerId, journalVisible } = resolved;
 
   const db = await getDb();
   const [allSends, allSessions, highlights] = await Promise.all([
-    getUserSendsForAnalytics(db, user.id, user.id),
-    getJournalSessionsForAnalytics(db, user.id, user.id),
-    getAnalyticsHighlightSessions(db, user.id, user.id, []),
+    getUserSendsForAnalytics(db, user.id, viewerId),
+    journalVisible ? getJournalSessionsForAnalytics(db, user.id, viewerId) : undefined,
+    journalVisible ? getAnalyticsHighlightSessions(db, user.id, viewerId, []) : [],
   ]);
 
   const inTrip = (date: string | null) => inDateWindow(date, trip.startDate, trip.endDate);
   const rows = allSends.filter((row) => inTrip(row.dateSent));
-  const sessions = allSessions.filter((entry) => inTrip(entry.entryDate));
+  const sessions = allSessions?.filter((entry) => inTrip(entry.entryDate));
   const tripHighlights = highlights.filter((entry) => inTrip(entry.entryDate));
 
   const dates = formatTripDates(trip.startDate, trip.endDate);
@@ -79,13 +77,13 @@ export default async function TripAnalyticsPage({ params, searchParams }: TripPa
 
   if (scope == null) {
     return (
-      <ProfileHeader user={user} viewerId={user.id} workspace="logbook">
+      <ProfileHeader user={user} viewerId={viewerId} workspace="logbook">
         <TripHeader
           trip={trip}
           userId={user.id}
+          viewerId={viewerId}
           current="analytics"
-          share={share}
-          shareOrigin={shareOrigin}
+          journalVisible={journalVisible}
         >
           <EmptyState message={`Nothing logged between ${dates}.`} />
         </TripHeader>
@@ -94,16 +92,16 @@ export default async function TripAnalyticsPage({ params, searchParams }: TripPa
   }
 
   const analytics = buildUserAnalytics(rows, scope, sessions, NO_YEARS);
-  const initialLayout = await getAnalyticsLayout(db, user.id, user.id);
+  const initialLayout = await getAnalyticsLayout(db, user.id, viewerId);
 
   return (
-    <ProfileHeader user={user} viewerId={user.id} workspace="logbook">
+    <ProfileHeader user={user} viewerId={viewerId} workspace="logbook">
       <TripHeader
         trip={trip}
         userId={user.id}
+        viewerId={viewerId}
         current="analytics"
-        share={share}
-        shareOrigin={shareOrigin}
+        journalVisible={journalVisible}
       >
         <AnalyticsDashboard
           activityHeading="Activity on this trip"
@@ -126,7 +124,7 @@ export default async function TripAnalyticsPage({ params, searchParams }: TripPa
           // a remainder to report here the way the year view has to.
           undatedCount={0}
           scope={scope}
-          journalVisible
+          journalVisible={journalVisible}
           selectedYears={NO_YEARS}
           periodPicker={
             <DisciplineScopeNav

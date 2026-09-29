@@ -10,7 +10,7 @@ import { TripList } from "./trip-list";
 const meta = {
   title: "Components/Trips/Trip list",
   component: TripList,
-  args: { userId: "alex", today: TRIPS_TODAY },
+  args: { userId: "alex", today: TRIPS_TODAY, canEdit: true },
 } satisfies Meta<typeof TripList>;
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -46,6 +46,39 @@ export const Empty: Story = {
       title="Trips"
       description="Before the first trip. The empty state carries the explanation, because nothing on the page demonstrates it yet — and the only New trip button, so there are never two on one screen."
     >
+      <TripList {...args} />
+    </StoryPage>
+  ),
+};
+
+/** Another climber's trips, read by someone who can also read their journal. */
+export const Visitor: Story = {
+  args: { trips: tripSamples, canEdit: false },
+  render: (args) => (
+    <StoryPage title="Trips">
+      <TripList {...args} />
+    </StoryPage>
+  ),
+};
+
+/** Read by someone who can see the sends but not the journal, so the
+ * journal's two counts are absent rather than zero. */
+export const VisitorWithoutJournal: Story = {
+  args: {
+    trips: tripSamples.map((trip) => ({ ...trip, entryCount: null, dayCount: null })),
+    canEdit: false,
+  },
+  render: (args) => (
+    <StoryPage title="Trips">
+      <TripList {...args} />
+    </StoryPage>
+  ),
+};
+
+export const VisitorEmpty: Story = {
+  args: { trips: [], canEdit: false },
+  render: (args) => (
+    <StoryPage title="Trips">
       <TripList {...args} />
     </StoryPage>
   ),

@@ -1,6 +1,8 @@
-import { sql } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
+
+import { journalVisibleSql } from "./content-access";
 
 export type Trip = {
   id: number;
@@ -11,9 +13,9 @@ export type Trip = {
 };
 
 export type TripSummary = Trip & {
-  /** Journal entries dated inside the window, both sessions and training —
-   * the rows the trip's own Journal tab lists at its default `all` view. */
-  entryCount: number;
+  /** Journal entries dated inside the window, both sessions and training.
+   * Null for a reader who may not read this climber's journal. */
+  entryCount: number | null;
   /** Dated sends inside the window. Undated sends are never counted: a null
    * `date_sent` cannot be shown to fall in the trip. */
   sendCount: number;
@@ -21,45 +23,42 @@ export type TripSummary = Trip & {
    * length of the trip, and deliberately not the Analytics tab's "Days out".
    * That tile counts outdoor sessions in one discipline, so it answers a
    * narrower question; the card says "days logged" rather than borrowing its
-   * words for a different number. */
-  dayCount: number;
+   * words for a different number. Null with `entryCount`. */
+  dayCount: number | null;
+  /** 1 when there are notes this reader may read, so a tab is not offered
+   * that would open onto nothing. */
+  hasNotes: number;
 };
 
-/**
- * Which journal rows belong to a trip, as conditions over an aliased `j` row
- * and an aliased `t` trip row.
- *
- * Exported because the share link reads the same rows through a different
- * join, and both have to agree on what "in the trip" means. A second copy is
- * how a trip ends up reporting one count on the owner's card and another on
- * the page that card links to — a drift this repo has already had to repair
- * once, in the project share.
- *
- * Every kind counts, `session` and `training` alike, because the trip's
- * Journal tab lists both. Send commentary and ascent entries are included for
- * the same reason: they are rows the owner's own timeline shows, and a trip is
- * a window onto that timeline, not a filtered view of it.
- */
-export const tripEntryRowsSql = sql`
+/** Which journal rows fall inside a trip, over an aliased `j` row and an
+ * aliased `t` trip row. Every kind counts, `session` and `training` alike,
+ * because the trip's Journal tab lists both. */
+const tripEntryRowsSql = sql`
   j.user_id = t.user_id AND j.entry_date BETWEEN t.start_date AND t.end_date
 `;
 
-/** Which sends belong to a trip, over an aliased `s` send row and `t` trip row.
- * `date_sent` is nullable and `NULL BETWEEN …` is NULL rather than true, so an
- * undated send is excluded by the comparison itself. */
-export const tripSendRowsSql = sql`
+/** Which sends fall inside a trip, over an aliased `s` send row and `t` trip
+ * row. `date_sent` is nullable and `NULL BETWEEN …` is NULL rather than true,
+ * so an undated send is excluded by the comparison itself. */
+const tripSendRowsSql = sql`
   s.user_id = t.user_id AND s.date_sent BETWEEN t.start_date AND t.end_date
 `;
 
 /** Correlated scalar subqueries rather than joins: three independent
  * aggregates over two tables would otherwise multiply each other's rows, and a
  * derived table cannot see the enclosing query's `t`. */
-const tripCountsSql = sql`
-  (SELECT COUNT(*) FROM journal_entries j WHERE ${tripEntryRowsSql}) AS entryCount,
-  (SELECT COUNT(*) FROM sends s WHERE ${tripSendRowsSql}) AS sendCount,
-  (SELECT COUNT(DISTINCT j.entry_date) FROM journal_entries j WHERE ${tripEntryRowsSql})
-    AS dayCount
-`;
+function tripCountsSql(viewerId: string): SQL {
+  const journalVisible = journalVisibleSql(viewerId, sql`t.user_id`);
+  return sql`
+    CASE WHEN ${journalVisible}
+      THEN (SELECT COUNT(*) FROM journal_entries j WHERE ${tripEntryRowsSql}) END AS entryCount,
+    (SELECT COUNT(*) FROM sends s WHERE ${tripSendRowsSql}) AS sendCount,
+    CASE WHEN ${journalVisible}
+      THEN (SELECT COUNT(DISTINCT j.entry_date) FROM journal_entries j WHERE ${tripEntryRowsSql})
+      END AS dayCount,
+    (t.notes IS NOT NULL AND ${journalVisible}) AS hasNotes
+  `;
+}
 
 const tripColumnsSql = sql`
   t.id          AS id,
@@ -69,54 +68,59 @@ const tripColumnsSql = sql`
   t.end_date    AS endDate
 `;
 
-/** The climber's own trips, newest window first.
- *
- * Trips are owner-only by every read, so `ownerId` is always the session's own
- * user id and there is no viewer to check against it. Scoping on `user_id`
- * inside the statement is the whole of the authorization, which is why no
- * caller may pass an id taken from the route without having compared it to the
- * session first.
- *
- * Ordered by start date descending so the most recent trip leads, with `id` as
- * the tiebreak so two trips starting the same day keep a stable order across
- * loads rather than swapping places.
- */
-export async function getTripsForOwner(db: Database, ownerId: string): Promise<TripSummary[]> {
-  return db.all<TripSummary>(sql`
-    SELECT ${tripColumnsSql}, ${tripCountsSql}
+/** A trip is read by whoever may see the climber's sends, which is
+ * `canViewUser` said in SQL so a profile closing takes effect on the next
+ * read rather than the next page gate. */
+function tripRowsSql(userId: string, viewerId: string): SQL {
+  return sql`
     FROM trips t
-    WHERE t.user_id = ${ownerId}
+    JOIN user trip_owner ON trip_owner.id = t.user_id
+    WHERE t.user_id = ${userId}
+      AND (trip_owner.is_private = 0 OR trip_owner.id = ${viewerId})
+  `;
+}
+
+/** Newest window first, with `id` as the tiebreak so two trips starting the
+ * same day keep a stable order across loads. */
+export async function getTripsForUser(
+  db: Database,
+  userId: string,
+  viewerId: string,
+): Promise<TripSummary[]> {
+  return db.all<TripSummary>(sql`
+    SELECT ${tripColumnsSql}, ${tripCountsSql(viewerId)}
+    ${tripRowsSql(userId, viewerId)}
     ORDER BY t.start_date DESC, t.id DESC
   `);
 }
 
-/** One trip, or null when it is not this climber's. The owner scope is in the
- * WHERE rather than checked afterwards, so a guessed id reads as "no such
- * trip" instead of confirming that someone else's exists. */
-export async function getTripForOwner(
+/** Scoped to `userId` in the WHERE rather than checked afterwards, so a
+ * guessed id reads as "no such trip" instead of confirming one exists. */
+export async function getTripForUser(
   db: Database,
-  ownerId: string,
+  userId: string,
   tripId: number,
+  viewerId: string,
 ): Promise<TripSummary | null> {
   const row = await db.get<TripSummary>(sql`
-    SELECT ${tripColumnsSql}, ${tripCountsSql}
-    FROM trips t
-    WHERE t.user_id = ${ownerId} AND t.id = ${tripId}
+    SELECT ${tripColumnsSql}, ${tripCountsSql(viewerId)}
+    ${tripRowsSql(userId, viewerId)} AND t.id = ${tripId}
   `);
   return row ?? null;
 }
 
 /** Read apart from `tripColumnsSql`: the list and every tab's header select
  * those columns, and none of them shows the notes. */
-export async function getTripNotesForOwner(
+export async function getTripNotes(
   db: Database,
-  ownerId: string,
+  userId: string,
   tripId: number,
+  viewerId: string,
 ): Promise<string | null> {
   const row = await db.get<{ notes: string | null }>(sql`
     SELECT t.notes AS notes
-    FROM trips t
-    WHERE t.user_id = ${ownerId} AND t.id = ${tripId}
+    ${tripRowsSql(userId, viewerId)} AND t.id = ${tripId}
+      AND ${journalVisibleSql(viewerId, sql`t.user_id`)}
   `);
   return row?.notes ?? null;
 }

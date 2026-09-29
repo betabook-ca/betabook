@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { deleteTrip, saveTrip, saveTripNotes } from "@/actions";
 import { createDb } from "@/db/client";
-import { getTripNotesForOwner, getTripsForOwner } from "@/db/queries";
+import { getTripNotes, getTripsForUser } from "@/db/queries";
 import { trips } from "@/db/schema";
 import { MAX_TRIP_NOTES, MAX_TRIPS } from "@/lib/trips";
 import {
@@ -212,7 +212,7 @@ describe("deleting a trip", () => {
     const id = created.ok ? created.value : 0;
 
     expect((await deleteTrip(id)).ok).toBe(true);
-    expect(await getTripsForOwner(db, "climber")).toHaveLength(0);
+    expect(await getTripsForUser(db, "climber", "climber")).toHaveLength(0);
   });
 
   it("refuses to delete another climber's trip", async () => {
@@ -224,7 +224,7 @@ describe("deleting a trip", () => {
     });
 
     await deleteTrip(theirs.id);
-    expect(await getTripsForOwner(db, "other")).toHaveLength(1);
+    expect(await getTripsForUser(db, "other", "other")).toHaveLength(1);
   });
 
   it("treats deleting a trip that is already gone as the end state it asked for", async () => {
@@ -237,7 +237,7 @@ describe("deleting a trip", () => {
 
     identity.id = null;
     expect((await deleteTrip(id)).ok).toBe(false);
-    expect(await getTripsForOwner(db, "climber")).toHaveLength(1);
+    expect(await getTripsForUser(db, "climber", "climber")).toHaveLength(1);
   });
 });
 
@@ -261,7 +261,7 @@ describe("writing trip notes", () => {
       startDate: "2026-03-10",
       endDate: "2026-03-20",
     });
-    expect(await getTripNotesForOwner(db, "climber", id)).toBe(NOTES);
+    expect(await getTripNotes(db, "climber", id, "climber")).toBe(NOTES);
   });
 
   it("keeps the notes when the trip's own fields are edited", async () => {
@@ -322,8 +322,8 @@ describe("writing trip notes", () => {
       error: "Trip not found",
     });
     expect(await storedTripById(theirs.id)).toMatchObject({ notes: "Theirs." });
-    expect(await getTripNotesForOwner(db, "climber", theirs.id)).toBeNull();
-    expect(await getTripNotesForOwner(db, "other", theirs.id)).toBe("Theirs.");
+    expect(await getTripNotes(db, "climber", theirs.id, "climber")).toBeNull();
+    expect(await getTripNotes(db, "other", theirs.id, "other")).toBe("Theirs.");
   });
 
   it("refuses for a signed-out caller and once the rate limiter says no", async () => {
