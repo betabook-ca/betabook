@@ -49,6 +49,24 @@ it("gives the owner the trip's actions beside its name, and a visitor none", () 
   expect(screen.queryByRole("button", { name: /Actions for/ })).not.toBeInTheDocument();
 });
 
+it("offers the owner a way to share the trip, and nobody else", () => {
+  const link = "https://betabook.ca/users/alex/trips/7?share=0123456789abcdef0123456789abcdef";
+  const { rerender } = render(header(BISHOP, "alex", { shareUrl: link }));
+  expect(screen.getByRole("button", { name: "Share" })).toBeVisible();
+
+  // Private: the button stays, to say why there is no link.
+  rerender(header(BISHOP, "alex", { shareUrl: null }));
+  expect(screen.getByRole("button", { name: "Share" })).toBeVisible();
+
+  for (const reader of ["sam", null]) {
+    rerender(header(BISHOP, reader));
+    expect(screen.queryByRole("button", { name: "Share" })).not.toBeInTheDocument();
+  }
+  // Nor over the trip's analytics, which pass no link.
+  rerender(header(BISHOP, "alex", { back: "trip" }));
+  expect(screen.queryByRole("button", { name: "Share" })).not.toBeInTheDocument();
+});
+
 it("marks a trip that is upcoming or on now, as its card does", () => {
   const { rerender } = render(header(BISHOP));
   expect(screen.queryByText(/Upcoming|On now/)).not.toBeInTheDocument();

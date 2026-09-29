@@ -13,6 +13,7 @@ const meta = {
     trip: tripSamples[1],
     userId: "alex",
     viewerId: "alex",
+    shareUrl: "https://betabook.ca/users/alex/trips/2?share=4f9c2a7e1b8d6035c9e4a1f7b2d80e36",
     today: TRIPS_TODAY,
     children: (
       <div className={cardClass("fluid")}>
@@ -31,8 +32,9 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** The trip's own page, as its owner: the way back, what it holds, and each
- * count opening the Journal or Sends under the trip's dates. */
+/** The trip's own page, as its owner: the way back, what it holds, each
+ * count opening the Journal or Sends under the trip's dates, and the way to
+ * share it. */
 export const Owner: Story = {};
 
 /** A single day reads as one date, and no description drops the line. */
@@ -48,6 +50,7 @@ export const WithFriends: Story = { args: { trip: tripWithFriends } };
 export const TaggedFriend: Story = {
   args: {
     viewerId: "priya",
+    shareUrl: undefined,
     trip: {
       ...tripWithFriends,
       companions: tripWithFriends.companions.map((friend) => ({
@@ -61,7 +64,11 @@ export const TaggedFriend: Story = {
 /** Someone who can see the climber's sends but not their journal: no journal
  * counts and no tagged friends. */
 export const SendsOnly: Story = {
-  args: { viewerId: "sam", trip: { ...tripSamples[1], entryCount: null, dayCount: null } },
+  args: {
+    viewerId: "sam",
+    shareUrl: undefined,
+    trip: { ...tripSamples[1], entryCount: null, dayCount: null },
+  },
 };
 
 /** Signed out, holding the climber's profile link: the counts are stated and
@@ -69,10 +76,11 @@ export const SendsOnly: Story = {
 export const SignedOut: Story = {
   args: {
     viewerId: null,
+    shareUrl: undefined,
     share: "4f9c2a7e1b8d6035c9e4a1f7b2d80e36",
     trip: { ...tripSamples[1], entryCount: null, dayCount: null },
   },
 };
 
 /** Over the trip's analytics, which lead back to the trip. */
-export const OverAnalytics: Story = { args: { back: "trip" } };
+export const OverAnalytics: Story = { args: { back: "trip", shareUrl: undefined } };

@@ -30,6 +30,7 @@ vi.mock("@/lib/session", () => ({
     session.userId ? { user: { id: session.userId, name: "Viewer" } } : null,
 }));
 vi.mock("@/lib/request-timezone", () => ({ getRequestTimezone: async () => "UTC" }));
+vi.mock("@/lib/app-url", () => ({ getBaseUrl: async () => "https://betabook.test" }));
 vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NOT_FOUND");
@@ -253,6 +254,44 @@ describe("what a trip's tab is called", () => {
 
     expect(metadata.title).toBe("Trip Owner · Bishop");
     expect(metadata.robots).toEqual({ index: false });
+  });
+});
+
+describe("sharing a trip", () => {
+  it("gives the owner their profile link opened on the trip, and gives it to nobody else", async () => {
+    const trip = await seedTrip({ notes: NOTES });
+    await seedFriend();
+    const token = (await getProfileShareToken(db, OWNER))!;
+
+    expect(await renderTrip(trip.id)).toContain(
+      `"shareUrl":"https://betabook.test/users/${OWNER}/trips/${trip.id}?share=${token}"`,
+    );
+
+    for (const reader of [FRIEND, STRANGER]) {
+      session.userId = reader;
+      const payload = await renderTrip(trip.id);
+      expect(payload).toContain(INSIDE);
+      expect(payload).not.toContain(token);
+      expect(payload).not.toContain("shareUrl");
+    }
+  });
+
+  it("has no link to give while the owner's profile is private", async () => {
+    const trip = await seedTrip();
+    const before = (await getProfileShareToken(db, OWNER))!;
+    await db.run(sql`UPDATE user SET is_private = 1 WHERE id = ${OWNER}`);
+    const after = (await getProfileShareToken(db, OWNER))!;
+
+    const payload = await renderTrip(trip.id);
+    expect(payload).toContain('"shareUrl":null');
+    expect(payload).not.toContain(before);
+    expect(payload).not.toContain(after);
+  });
+
+  it("offers no link over the trip's analytics", async () => {
+    const trip = await seedTrip();
+
+    expect(JSON.stringify(await TripAnalyticsPage(props(trip.id)))).not.toContain("shareUrl");
   });
 });
 

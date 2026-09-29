@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { TripActions } from "@/components/trips/trip-actions";
 import { TripBackLink } from "@/components/trips/trip-back-link";
 import { TripCompanions } from "@/components/trips/trip-companions";
+import { TripShare } from "@/components/trips/trip-share";
 import { TripStats } from "@/components/trips/trip-stats";
 import { TripStatusChip } from "@/components/trips/trip-status-chip";
 import { SectionHeading } from "@/components/ui/typography";
@@ -22,6 +23,7 @@ export function TripHeader({
   viewerId,
   today,
   share,
+  shareUrl,
   back = "trips",
   children,
 }: {
@@ -33,6 +35,9 @@ export function TripHeader({
   today: string;
   /** The profile link a signed-out reader holds, which the way back needs. */
   share?: string;
+  /** The owner's profile link opened on this trip, null while their profile
+   * is private. Left out for every other reader. */
+  shareUrl?: string | null;
   /** `trip` on the trip's analytics, which leads back to the trip. */
   back?: "trips" | "trip";
   children: ReactNode;
@@ -53,34 +58,40 @@ export function TripHeader({
          * its only h1, and a second one here would give every trip detail page
          * two — which axe's default rules do not flag, so nothing else would
          * catch it. */}
-        {/* The menu sits beside the whole block, as on the card, so its height
-         * never sets the space under the name. */}
-        <div className="flex min-w-0 items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-col gap-1">
+        {/* The buttons share a row with the name alone, so the lines under it
+         * keep the full width, and give up their height to that row, so they
+         * never set the space under the name. */}
+        <div className="flex min-w-0 flex-col gap-1">
+          <div className="flex min-w-0 items-start justify-between gap-3">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <SectionHeading className="min-w-0 break-words">{trip.name}</SectionHeading>
               <TripStatusChip trip={trip} today={today} />
             </div>
-            <p className="text-sm text-muted">{formatTripDates(trip.startDate, trip.endDate)}</p>
-            {trip.description && <p className="text-sm leading-relaxed">{trip.description}</p>}
-            <TripCompanions tripId={trip.id} initialCompanions={trip.companions} />
-            {/* The chip already says a trip is still to come. */}
-            {!nothingYet && (
-              <TripStats
-                trip={trip}
-                // The Logbook is behind sign-in.
-                links={
-                  viewerId === null
-                    ? undefined
-                    : {
-                        entries: tripLogbookHref(userId, "journal", trip),
-                        sends: tripLogbookHref(userId, "sends", trip),
-                      }
-                }
-              />
+            {viewerId === userId && (
+              <div className="-my-1 flex shrink-0 items-center gap-1">
+                {shareUrl !== undefined && <TripShare tripName={trip.name} url={shareUrl} />}
+                <TripActions trip={trip} userId={userId} leaveOnDelete />
+              </div>
             )}
           </div>
-          {viewerId === userId && <TripActions trip={trip} userId={userId} leaveOnDelete />}
+          <p className="text-sm text-muted">{formatTripDates(trip.startDate, trip.endDate)}</p>
+          {trip.description && <p className="text-sm leading-relaxed">{trip.description}</p>}
+          <TripCompanions tripId={trip.id} initialCompanions={trip.companions} />
+          {/* The chip already says a trip is still to come. */}
+          {!nothingYet && (
+            <TripStats
+              trip={trip}
+              // The Logbook is behind sign-in.
+              links={
+                viewerId === null
+                  ? undefined
+                  : {
+                      entries: tripLogbookHref(userId, "journal", trip),
+                      sends: tripLogbookHref(userId, "sends", trip),
+                    }
+              }
+            />
+          )}
         </div>
       </div>
 

@@ -23,6 +23,7 @@ import { getDb } from "@/db/client";
 import { getAreaBreadcrumbs, getSendsForUserPage, getTripNotes } from "@/db/queries";
 import { DEFAULT_USER_SENDS_FILTER } from "@/lib/filters/user-sends-filter";
 import { SHARED_TRIP_SENDS, withProfileShare } from "@/lib/profile-share";
+import { getOwnTripShareUrl } from "@/lib/profile-share-url";
 import { sharedProfileMetadata } from "@/lib/seo";
 import { tripAnalyticsHref, tripHref, tripStatus } from "@/lib/trips";
 
@@ -101,10 +102,18 @@ export default async function TripPage({ params, searchParams }: TripPageParams)
   // The chip already says a trip is still to come.
   const showSends = trip.sendCount > 0 || tripStatus(trip, today) !== "upcoming";
   const logged = trip.sendCount > 0 || Boolean(trip.entryCount);
+  // The link is the owner's to give, so no other reader's page carries it.
+  const shareUrl = isOwner ? await getOwnTripShareUrl(await getDb(), user, trip.id) : undefined;
 
   return (
     <ProfileHeader user={user} viewerId={viewerId} workspace="logbook">
-      <TripHeader trip={trip} userId={user.id} viewerId={viewerId} today={today}>
+      <TripHeader
+        trip={trip}
+        userId={user.id}
+        viewerId={viewerId}
+        today={today}
+        shareUrl={shareUrl}
+      >
         {tripPhotos(trip)}
         {showNotes && (
           <TripNotes tripId={trip.id} notes={notes} canEdit={isOwner}>
