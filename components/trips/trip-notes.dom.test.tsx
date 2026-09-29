@@ -50,6 +50,21 @@ it("keeps the notes on the page and opens their source in the app's dialog", asy
   expect(screen.getByText("Rendered on the server.")).toBeInTheDocument();
 });
 
+it("puts the way to edit in the corner of the notes, not on a row above them", () => {
+  render(<Example />);
+
+  const notes = screen.getByText("Rendered on the server.");
+  const edit = screen.getByRole("button", { name: "Edit trip notes" });
+  const card = edit.parentElement;
+
+  // One card holds both, and the button comes first so the notes wrap round it.
+  expect(card).toContainElement(notes);
+  expect(card).not.toBe(screen.getByRole("region", { name: "Trip notes" }));
+  expect(card?.firstElementChild).toBe(edit);
+  // A pencil, as where a climb's or an area's description is edited.
+  expect(edit.textContent).toBe("");
+});
+
 it("moves focus into the editor and hands it back to the button that opened it", async () => {
   const user = userEvent.setup();
   render(<Example />);

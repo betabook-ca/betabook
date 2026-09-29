@@ -143,7 +143,9 @@ export function Markdown({
   className?: string;
 }) {
   return (
-    <div className={clsx("flex flex-col gap-3 text-sm leading-relaxed break-words", className)}>
+    // Blocks in normal flow, not a flex column, so the text can run round
+    // something floated beside it.
+    <div className={clsx("space-y-3 text-sm leading-relaxed break-words", className)}>
       <ReactMarkdown
         remarkPlugins={REMARK_PLUGINS}
         components={COMPONENTS[headingLevel]}

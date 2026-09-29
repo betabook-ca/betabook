@@ -71,20 +71,22 @@ export function TripNotes({
   return (
     <section aria-label="Trip notes" className="flex min-w-0 flex-col gap-3">
       <SectionHeading className="sr-only">Trip notes</SectionHeading>
-      {notes && canEdit && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="self-end"
-          aria-label="Edit trip notes"
-          onPress={startEditing}
-        >
-          <Pencil className="size-4" />
-          Edit
-        </Button>
-      )}
       {notes ? (
-        <div className={cardClass("fluid", "bordered")}>
+        <div className={`flow-root ${cardClass("fluid", "bordered")}`}>
+          {canEdit && (
+            <Button
+              isIconOnly
+              variant="ghost"
+              size="sm"
+              aria-label="Edit trip notes"
+              onPress={startEditing}
+              // Floated into the card's corner: the notes start on its first
+              // line, and only the lines beside the button run short.
+              className="float-right -mt-2 -mr-2 mb-1 ml-2 sm:-mt-3 sm:-mr-3"
+            >
+              <Pencil className="size-4" />
+            </Button>
+          )}
           <div className={MEASURE_CLASS}>{children}</div>
         </div>
       ) : (
