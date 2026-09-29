@@ -25,15 +25,20 @@ const BISHOP: TripSummary = {
   companions: [],
 };
 
-function header(trip: TripSummary, viewerId = "alex") {
+function header(
+  trip: TripSummary,
+  viewerId = "alex",
+  access: { journalVisible?: boolean; notesVisible?: boolean } = {},
+) {
   return (
     <TripHeader
       trip={trip}
       userId="alex"
       viewerId={viewerId}
       today={TODAY}
-      current="journal"
-      journalVisible
+      current="sends"
+      journalVisible={access.journalVisible ?? true}
+      notesVisible={access.notesVisible ?? true}
     >
       <p>The view.</p>
     </TripHeader>
@@ -66,4 +71,30 @@ it("names the way back without reading out an arrow", () => {
     "href",
     "/users/alex/trips",
   );
+});
+
+it("offers the notes to a friend the journal is closed to, and not the journal", () => {
+  render(header({ ...BISHOP, hasNotes: 1 }, "sam", { journalVisible: false, notesVisible: true }));
+
+  const views = screen.getByRole("navigation", { name: "Trip views" });
+  expect(views).toHaveTextContent("Trip notes");
+  expect(views).not.toHaveTextContent("Journal");
+});
+
+it("offers the journal without the notes to a member who is not a friend", () => {
+  render(header({ ...BISHOP, hasNotes: 0 }, "sam", { journalVisible: true, notesVisible: false }));
+
+  const views = screen.getByRole("navigation", { name: "Trip views" });
+  expect(views).toHaveTextContent("Journal");
+  expect(views).not.toHaveTextContent("Trip notes");
+});
+
+it("offers a friend no notes tab on a trip that has none, and the owner one to write in", () => {
+  const { rerender } = render(header(BISHOP, "sam"));
+  expect(screen.getByRole("navigation", { name: "Trip views" })).not.toHaveTextContent(
+    "Trip notes",
+  );
+
+  rerender(header(BISHOP, "alex"));
+  expect(screen.getByRole("navigation", { name: "Trip views" })).toHaveTextContent("Trip notes");
 });

@@ -27,7 +27,7 @@ export default async function TripSendsPage({ params, searchParams }: TripPagePa
   const resolved = await resolveTripPage(id, tripId);
   if (!resolved.signedIn) return <CurrentPageAuthCallout />;
   if (!resolved.ok) notFound();
-  const { trip, user, viewerId, today, journalVisible } = resolved;
+  const { trip, user, viewerId, today, journalVisible, notesVisible } = resolved;
 
   return (
     <ProfileHeader user={user} viewerId={viewerId} workspace="logbook">
@@ -38,6 +38,7 @@ export default async function TripSendsPage({ params, searchParams }: TripPagePa
         today={today}
         current="sends"
         journalVisible={journalVisible}
+        notesVisible={notesVisible}
       >
         <SendsView
           userId={user.id}

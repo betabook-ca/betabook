@@ -9,7 +9,7 @@ import {
   type ProfileUser,
 } from "@/app/users/[id]/profile-shell";
 import { getDb } from "@/db/client";
-import { getTripForUser, type TripSummary } from "@/db/queries";
+import { canReadTripNotes, getTripForUser, type TripSummary } from "@/db/queries";
 import { goalToday } from "@/lib/goals";
 import { parseId } from "@/lib/parse-id";
 import { requestMemo } from "@/lib/request-memo";
@@ -20,6 +20,10 @@ import type { UrlParamsRecord } from "@/lib/url-params";
  * trip with one read rather than two. */
 const getTripFor = requestMemo(async (userId: string, tripId: number, viewerId: string | null) =>
   getTripForUser(await getDb(), userId, tripId, viewerId),
+);
+
+const canReadNotes = requestMemo(async (userId: string, viewerId: string) =>
+  canReadTripNotes(await getDb(), userId, viewerId),
 );
 
 /** The reader's own day, which decides whether a trip is upcoming or on now. */
@@ -54,14 +58,17 @@ type Resolved =
       user: ProfileUser;
       viewerId: string;
       today: string;
-      /** Whether this reader gets the trip's entries and notes. */
+      /** Whether this reader gets the trip's entries, which follow the
+       * journal's audience. */
       journalVisible: boolean;
+      /** Whether this reader gets the trip's notes, which are for friends. */
+      notesVisible: boolean;
     };
 
 /**
  * The authorization every trip page repeats, in one place. A trip opens to
- * whoever may see the climber's sends, and shows its entries and notes to
- * whoever may read their journal: the two gates the profile already has. The
+ * whoever may see the climber's sends, shows its entries to whoever may read
+ * their journal, and shows its notes to their friends. The
  * signed-out / refused split and the reason for returning `{ ok: false }`
  * rather than calling `notFound()` are resolveProfilePage's.
  */
@@ -76,13 +83,14 @@ export async function resolveTripPage(
   if (tripId === null) return { signedIn: true, ok: false };
 
   const { user, viewerId } = resolved;
-  const [trip, journalVisible, today] = await Promise.all([
+  const [trip, journalVisible, notesVisible, today] = await Promise.all([
     getTripFor(user.id, tripId, viewerId),
     canReadUserJournal(user.id, viewerId),
+    canReadNotes(user.id, viewerId),
     tripToday(),
   ]);
   return trip
-    ? { signedIn: true, ok: true, trip, user, viewerId, today, journalVisible }
+    ? { signedIn: true, ok: true, trip, user, viewerId, today, journalVisible, notesVisible }
     : { signedIn: true, ok: false };
 }
 

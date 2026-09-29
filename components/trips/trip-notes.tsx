@@ -149,7 +149,7 @@ export function TripNotes({
                   >
                     <Label>Trip notes</Label>
                     <HelpTooltip label="About trip notes">
-                      Uses your Journal and goals audience, like the entries inside the trip.
+                      Your friends can read your trip notes.
                     </HelpTooltip>
                   </FieldHeader>
                   <TextArea

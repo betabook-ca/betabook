@@ -16,6 +16,7 @@ const meta = {
     today: TRIPS_TODAY,
     current: "journal",
     journalVisible: true,
+    notesVisible: true,
     children: (
       <div className={cardClass("fluid")}>
         <p className="text-sm text-muted">The current tab's view sits here.</p>
@@ -62,19 +63,37 @@ export const TaggedFriend: Story = {
   },
 };
 
-/** Someone who can read the climber's journal. Notes appears because this
- * trip has some; without any, the tab would open onto nothing. */
+/** A friend the journal is shared with. Notes appears because this trip has
+ * some; without any, the tab would open onto nothing. */
 export const JournalReader: Story = {
   args: { viewerId: "sam", trip: { ...tripSamples[1], hasNotes: 1 } },
 };
 
-/** Someone who can see the climber's sends but not their journal: the trip
- * opens on its sends, with no Journal or Notes and no journal counts. */
+/** A friend of a climber who keeps their journal to themselves: the notes,
+ * and no Journal or journal counts. */
+export const FriendWithoutJournal: Story = {
+  args: {
+    viewerId: "sam",
+    current: "sends",
+    journalVisible: false,
+    trip: { ...tripSamples[1], entryCount: null, dayCount: null, hasNotes: 1 },
+  },
+};
+
+/** A member who is not a friend, reading a journal shared with Members: the
+ * Journal, and no notes. */
+export const MemberWithJournal: Story = {
+  args: { viewerId: "sam", notesVisible: false },
+};
+
+/** Someone who can see the climber's sends and nothing else: the trip opens
+ * on its sends, with no Journal or Notes and no journal counts. */
 export const SendsOnly: Story = {
   args: {
     viewerId: "sam",
     current: "sends",
     journalVisible: false,
+    notesVisible: false,
     trip: { ...tripSamples[1], entryCount: null, dayCount: null },
   },
 };

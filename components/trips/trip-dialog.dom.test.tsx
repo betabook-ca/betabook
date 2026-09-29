@@ -117,9 +117,9 @@ it("takes the description as one line and says who reads it", async () => {
   expect(description).toHaveAttribute("maxlength", "160");
 
   await user.click(screen.getByRole("button", { name: "About the description" }));
-  expect(
-    await screen.findByText(/Anyone who can see your sends reads this line/),
-  ).toBeInTheDocument();
+  const hint = await screen.findByText(/Anyone who can see your sends reads this line/);
+  expect(hint).toHaveTextContent("Your friends can read your trip notes.");
+  expect(hint).not.toHaveTextContent(/audience/);
 });
 
 it("opens a description written over several lines as the one line it reads as", () => {

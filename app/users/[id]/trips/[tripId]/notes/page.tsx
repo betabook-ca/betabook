@@ -17,7 +17,7 @@ import { getTripNotes } from "@/db/queries";
 export async function generateMetadata({ params }: TripPageParams): Promise<Metadata> {
   const { id, tripId } = await params;
   const resolved = await resolveTripPage(id, tripId);
-  if (resolved.signedIn && resolved.ok && !resolved.journalVisible) notFound();
+  if (resolved.signedIn && resolved.ok && !resolved.notesVisible) notFound();
   return tripMetadata(id, tripId);
 }
 
@@ -26,8 +26,8 @@ export default async function TripNotesPage({ params }: TripPageParams) {
   const resolved = await resolveTripPage(id, tripId);
   if (!resolved.signedIn) return <CurrentPageAuthCallout />;
   // Refused like the journal itself is, for a reader it is not shared with.
-  if (!resolved.ok || !resolved.journalVisible) notFound();
-  const { trip, user, viewerId, today } = resolved;
+  if (!resolved.ok || !resolved.notesVisible) notFound();
+  const { trip, user, viewerId, today, journalVisible } = resolved;
 
   const notes = await getTripNotes(await getDb(), user.id, trip.id, viewerId);
 
@@ -39,7 +39,8 @@ export default async function TripNotesPage({ params }: TripPageParams) {
         viewerId={viewerId}
         today={today}
         current="notes"
-        journalVisible
+        journalVisible={journalVisible}
+        notesVisible
       >
         <TripNotes tripId={trip.id} notes={notes} canEdit={viewerId === user.id}>
           {notes && <Markdown>{notes}</Markdown>}

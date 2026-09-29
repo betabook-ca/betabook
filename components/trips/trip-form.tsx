@@ -85,8 +85,8 @@ export function TripForm({
         >
           <Label>Description</Label>
           <HelpTooltip label="About the description">
-            Anyone who can see your sends reads this line, including through your profile link. Trip
-            notes follow your Journal and goals audience.
+            Anyone who can see your sends reads this line, including through your profile link. Your
+            friends can read your trip notes.
           </HelpTooltip>
         </FieldHeader>
         <Input placeholder="Ten days in the Buttermilks" />

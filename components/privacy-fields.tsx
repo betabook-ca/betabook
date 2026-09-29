@@ -75,7 +75,7 @@ export function PrivacyFields({
       />
       <AudienceField
         label="Journal and goals"
-        description="Sessions, repeats, training, trip notes and finished goals"
+        description="Sessions, repeats, training and finished goals"
         options={SHARING_AUDIENCES}
         value={isPrivate ? "private" : journalVisibility}
         onChange={onJournalChange}

@@ -21,6 +21,7 @@ export function TripHeader({
   today,
   current,
   journalVisible,
+  notesVisible,
   children,
 }: {
   trip: TripSummary;
@@ -30,8 +31,11 @@ export function TripHeader({
   today: string;
   current: TripTab;
   /** Whether this reader may read the climber's journal, which is what the
-   * Journal and Notes tabs show. */
+   * Journal tab shows. */
   journalVisible: boolean;
+  /** Whether this reader is the climber or a friend of theirs, who the notes
+   * are for. */
+  notesVisible: boolean;
   children: ReactNode;
 }) {
   return (
@@ -68,7 +72,7 @@ export function TripHeader({
         current={current}
         showJournal={journalVisible}
         // The owner keeps an empty Notes tab, since that is where they write.
-        showNotes={journalVisible && (viewerId === userId || Boolean(trip.hasNotes))}
+        showNotes={notesVisible && (viewerId === userId || Boolean(trip.hasNotes))}
       />
 
       {children}

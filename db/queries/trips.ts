@@ -3,7 +3,7 @@ import { sql, type SQL } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import type { JournalCompanion } from "@/lib/journal-companions";
 
-import { journalVisibleSql } from "./content-access";
+import { journalVisibleSql, tripNotesVisibleSql } from "./content-access";
 import { tripCompanionsJsonSql } from "./trip-companions";
 
 export type Trip = {
@@ -27,8 +27,8 @@ export type TripSummary = Trip & {
    * narrower question; the card says "days logged" rather than borrowing its
    * words for a different number. Null with `entryCount`. */
   dayCount: number | null;
-  /** 1 when there are notes this reader may read, so a tab is not offered
-   * that would open onto nothing. */
+  /** 1 when there are notes this reader may read, as the climber or a friend
+   * of theirs, so a tab is not offered that would open onto nothing. */
   hasNotes: number;
   /** Friends tagged on the trip, empty for a reader the journal is not
    * shared with. */
@@ -67,7 +67,7 @@ function tripCountsSql(viewerId: string | null): SQL {
     CASE WHEN ${journalVisible}
       THEN (SELECT COUNT(DISTINCT j.entry_date) FROM journal_entries j WHERE ${tripEntryRowsSql})
       END AS dayCount,
-    (t.notes IS NOT NULL AND ${journalVisible}) AS hasNotes,
+    (t.notes IS NOT NULL AND ${tripNotesVisibleSql(viewerId, sql`t.user_id`)}) AS hasNotes,
     ${tripCompanionsJsonSql(viewerId, sql`t.id`)} AS companions
   `;
 }
@@ -124,6 +124,14 @@ export async function getTripForUser(
   return row ? toTripSummary(row) : null;
 }
 
+/** Uses the same current permission predicate as the notes' own read. */
+export async function canReadTripNotes(db: Database, ownerId: string, viewerId: string | null) {
+  const row = await db.get<{ visible: number }>(
+    sql`SELECT ${tripNotesVisibleSql(viewerId, sql`${ownerId}`)} AS visible`,
+  );
+  return row?.visible === 1;
+}
+
 /** Read apart from `tripColumnsSql`: the list and every tab's header select
  * those columns, and none of them shows the notes. */
 export async function getTripNotes(
@@ -135,7 +143,7 @@ export async function getTripNotes(
   const row = await db.get<{ notes: string | null }>(sql`
     SELECT t.notes AS notes
     ${tripRowsSql(userId, viewerId)} AND t.id = ${tripId}
-      AND ${journalVisibleSql(viewerId, sql`t.user_id`)}
+      AND ${tripNotesVisibleSql(viewerId, sql`t.user_id`)}
   `);
   return row?.notes ?? null;
 }

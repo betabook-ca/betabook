@@ -73,7 +73,7 @@ export default async function TripJournalPage({ params, searchParams }: TripPage
     );
   }
   if (!resolved.ok) notFound();
-  const { trip, user, viewerId, today, journalVisible } = resolved;
+  const { trip, user, viewerId, today, journalVisible, notesVisible } = resolved;
   const basePath = tripHref(user.id, trip.id);
 
   return (
@@ -85,6 +85,7 @@ export default async function TripJournalPage({ params, searchParams }: TripPage
         today={today}
         current={journalVisible ? "journal" : "sends"}
         journalVisible={journalVisible}
+        notesVisible={notesVisible}
       >
         {journalVisible ? (
           <JournalView

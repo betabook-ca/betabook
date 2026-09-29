@@ -15,7 +15,7 @@ import {
 } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
 
-import { getTripForUser, getTripNotes, getTripsForUser } from "./trips";
+import { canReadTripNotes, getTripForUser, getTripNotes, getTripsForUser } from "./trips";
 
 const db = createDb(env.DB);
 
@@ -282,19 +282,45 @@ describe("who can read a trip", () => {
     expect(await getTripForUser(db, OWNER, trip.id, OWNER)).toMatchObject({ id: trip.id });
   });
 
-  it("hands the notes to whoever can read the journal", async () => {
+  it("hands the notes to the climber's friends, whatever the journal's audience", async () => {
     const trip = await seedBishop();
-    await audience("friends");
 
-    expect(await getTripNotes(db, OWNER, trip.id, OWNER)).toBe(NOTES);
-    expect(await getTripNotes(db, OWNER, trip.id, FRIEND)).toBe(NOTES);
-    expect(await getTripNotes(db, OWNER, trip.id, STRANGER)).toBeNull();
+    for (const journal of ["private", "friends", "public"] as const) {
+      await audience(journal);
 
-    await audience("public");
-    expect(await getTripNotes(db, OWNER, trip.id, STRANGER)).toBe(NOTES);
+      expect(await getTripNotes(db, OWNER, trip.id, OWNER)).toBe(NOTES);
+      expect(await getTripNotes(db, OWNER, trip.id, FRIEND)).toBe(NOTES);
+      expect(await getTripNotes(db, OWNER, trip.id, STRANGER)).toBeNull();
+      expect(await getTripNotes(db, OWNER, trip.id, null)).toBeNull();
+
+      // The tab is offered on the same terms as the notes behind it.
+      expect((await getTripForUser(db, OWNER, trip.id, FRIEND))?.hasNotes).toBe(1);
+      expect((await getTripForUser(db, OWNER, trip.id, STRANGER))?.hasNotes).toBe(0);
+      expect((await getTripForUser(db, OWNER, trip.id, null))?.hasNotes).toBe(0);
+    }
+  });
+
+  it("keeps the notes from a request that was never accepted, and from a friend once the profile is private", async () => {
+    const trip = await seedBishop();
+    await seedFixtureUser(db, { id: "asked", name: "Still Waiting" });
+    await seedFixtureFriendship(db, "asked", OWNER, "pending");
+
+    expect(await getTripNotes(db, OWNER, trip.id, "asked")).toBeNull();
+    expect((await getTripForUser(db, OWNER, trip.id, "asked"))?.hasNotes).toBe(0);
 
     await db.run(sql`UPDATE user SET is_private = 1 WHERE id = ${OWNER}`);
     expect(await getTripNotes(db, OWNER, trip.id, FRIEND)).toBeNull();
+    expect(await getTripNotes(db, OWNER, trip.id, OWNER)).toBe(NOTES);
+  });
+
+  it("says whether a reader is among the friends the notes are for", async () => {
+    await seedBishop();
+    await audience("private");
+
+    expect(await canReadTripNotes(db, OWNER, OWNER)).toBe(true);
+    expect(await canReadTripNotes(db, OWNER, FRIEND)).toBe(true);
+    expect(await canReadTripNotes(db, OWNER, STRANGER)).toBe(false);
+    expect(await canReadTripNotes(db, OWNER, null)).toBe(false);
   });
 });
 

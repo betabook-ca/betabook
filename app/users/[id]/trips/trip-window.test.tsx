@@ -370,7 +370,11 @@ describe("the trip's notes", () => {
     expect(payload).toContain(`"children":"${NOTES}"`);
   });
 
-  it("lets whoever can read the journal read the notes, and only the owner edit them", async () => {
+  function journalAudience(audience: "private" | "friends" | "public") {
+    return db.run(sql`UPDATE user SET journal_visibility = ${audience} WHERE id = ${OWNER}`);
+  }
+
+  it("lets a friend read the notes with the journal kept private, and only the owner edit them", async () => {
     const trip = await seedFixtureTrip(db, {
       userId: OWNER,
       name: "Bishop",
@@ -379,6 +383,7 @@ describe("the trip's notes", () => {
     });
     await seedFixtureUser(db, { id: FRIEND, name: "Climbing Partner" });
     await seedFixtureFriendship(db, OWNER, FRIEND);
+    await journalAudience("private");
 
     expect(await renderNotes(trip.id)).toContain('"canEdit":true');
 
@@ -386,18 +391,47 @@ describe("the trip's notes", () => {
     const payload = await renderNotes(trip.id);
     expect(payload).toContain(`"children":"${NOTES}"`);
     expect(payload).toContain('"canEdit":false');
+    // The journal's own tab stays with the journal's audience.
+    expect(payload).toContain('"journalVisible":false');
+    expect(payload).toContain('"notesVisible":true');
   });
 
-  it("refuses a member outside the journal's audience and a signed-out reader", async () => {
+  it("offers a friend the notes from the trip's other tabs too", async () => {
     const trip = await seedFixtureTrip(db, {
       userId: OWNER,
       name: "Bishop",
       notes: NOTES,
       ...BISHOP,
     });
+    await seedFixtureUser(db, { id: FRIEND, name: "Climbing Partner" });
+    await seedFixtureFriendship(db, OWNER, FRIEND);
+    await journalAudience("private");
+    session.userId = FRIEND;
+
+    for (const page of [TripJournalPage, TripSendsPage, TripAnalyticsPage]) {
+      const tree = await page({
+        params: Promise.resolve({ id: OWNER, tripId: String(trip.id) }),
+        searchParams: Promise.resolve({}),
+      });
+      expect(JSON.stringify(tree)).toContain('"notesVisible":true');
+    }
+  });
+
+  it("refuses a member who is not a friend, even one the journal is shared with", async () => {
+    const trip = await seedFixtureTrip(db, {
+      userId: OWNER,
+      name: "Bishop",
+      notes: NOTES,
+      ...BISHOP,
+    });
+    await journalAudience("public");
 
     session.userId = STRANGER;
     await expect(renderNotes(trip.id)).rejects.toThrow("NOT_FOUND");
+    const journal = await renderJournal(trip.id);
+    expect(journal).toContain('"journalVisible":true');
+    expect(journal).toContain('"notesVisible":false');
+    expect(journal).not.toContain(NOTES);
 
     session.userId = null;
     expect(await renderNotes(trip.id)).not.toContain(NOTES);

@@ -27,6 +27,12 @@ export function journalVisibleSql(viewerId: string | null, authorId: SQL): SQL {
   return contentVisibleSql(viewerId, authorId, sql`content_owner.journal_visibility`);
 }
 
+/** Trip notes have one audience, the climber's friends, whatever the
+ * journal's is set to. */
+export function tripNotesVisibleSql(viewerId: string | null, authorId: SQL): SQL {
+  return contentVisibleSql(viewerId, authorId, sql`'friends'`);
+}
+
 export function sendCommentVisibleSql(viewerId: string | null, authorId: SQL): SQL {
   return contentVisibleSql(viewerId, authorId, sql`content_owner.send_comment_visibility`);
 }
