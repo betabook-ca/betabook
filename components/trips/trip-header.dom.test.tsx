@@ -16,6 +16,7 @@ const BISHOP: TripSummary = {
   id: 7,
   name: "Bishop, March 2026",
   description: "Buttermilks.",
+  albumUrl: null,
   startDate: "2026-03-10",
   endDate: "2026-03-20",
   entryCount: 14,

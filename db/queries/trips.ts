@@ -10,6 +10,8 @@ export type Trip = {
   id: number;
   name: string;
   description: string | null;
+  /** A shared Google Photos album, shown to whoever can open the trip. */
+  albumUrl: string | null;
   startDate: string;
   endDate: string;
 };
@@ -76,6 +78,7 @@ const tripColumnsSql = sql`
   t.id          AS id,
   t.name        AS name,
   t.description AS description,
+  t.album_url   AS albumUrl,
   t.start_date  AS startDate,
   t.end_date    AS endDate
 `;

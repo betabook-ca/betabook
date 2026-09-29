@@ -47,7 +47,7 @@ export async function saveTrip(tripId: number | null, raw: unknown): Promise<Act
 
     const parsed = tripInputSchema.safeParse(raw);
     if (!parsed.success) throw new ActionError(parsed.error.issues[0]?.message ?? "Check the form");
-    const { name, description, startDate, endDate, companions } = parsed.data;
+    const { name, description, albumUrl, startDate, endDate, companions } = parsed.data;
 
     const db = await getDb();
 
@@ -58,7 +58,13 @@ export async function saveTrip(tripId: number | null, raw: unknown): Promise<Act
       const [[updated]] = await saveTripBatch(db, [
         db
           .update(trips)
-          .set({ name, description: description ?? null, startDate, endDate })
+          .set({
+            name,
+            description: description ?? null,
+            albumUrl: albumUrl ?? null,
+            startDate,
+            endDate,
+          })
           .where(and(eq(trips.id, id), eq(trips.userId, user.id)))
           .returning({ id: trips.id }),
         ...(companions ? buildTripCompanionReplacement(db, user.id, id, companions) : []),
@@ -86,6 +92,7 @@ export async function saveTrip(tripId: number | null, raw: unknown): Promise<Act
               name: sql`${name}`.as("name"),
               description: sql`${description ?? null}`.as("description"),
               notes: sql`NULL`.as("notes"),
+              albumUrl: sql`${albumUrl ?? null}`.as("album_url"),
               startDate: sql`${startDate}`.as("start_date"),
               endDate: sql`${endDate}`.as("end_date"),
               createdAt: sql`${now}`.as("created_at"),

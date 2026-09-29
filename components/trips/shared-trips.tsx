@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { UserSendLogRow } from "@/components/climb-log-row";
 import { ProfileInvite } from "@/components/profile-invite";
 import { signUpPrompt } from "@/components/sign-up-card";
@@ -64,6 +66,7 @@ export function SharedTrip({
   areaBreadcrumbs,
   path,
   today,
+  photos,
 }: {
   owner: Owner;
   trip: TripSummary;
@@ -72,6 +75,8 @@ export function SharedTrip({
   /** This page, link included, for sign-up to return to. */
   path: string;
   today: string;
+  /** The trip's shared album, when it has one. */
+  photos?: ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-6">
@@ -88,6 +93,7 @@ export function SharedTrip({
         {trip.description && <p className="text-sm leading-relaxed">{trip.description}</p>}
         <TripStats trip={trip} />
       </section>
+      {photos}
       <section aria-label="Sends" className="flex flex-col gap-3">
         <SectionHeading>Sends</SectionHeading>
         {sends.length < trip.sendCount && (

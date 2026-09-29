@@ -27,6 +27,7 @@ function draftFor(trip: EditableTrip | undefined): TripDraft {
   return {
     name: trip.name,
     description: oneLine(trip.description ?? ""),
+    albumUrl: trip.albumUrl ?? "",
     startDate: trip.startDate,
     endDate: trip.endDate,
     companions: trip.companions.map(({ id, name, image }) => ({ id, name, image })),
@@ -95,6 +96,7 @@ export function TripDialog({
       const result = await saveTrip(trip?.id ?? null, {
         name: draft.name,
         description: draft.description,
+        albumUrl: draft.albumUrl,
         startDate: draft.startDate,
         endDate: draft.endDate,
         // An untouched selection is left out of an edit: what the dialog

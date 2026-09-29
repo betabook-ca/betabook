@@ -8,6 +8,7 @@ import {
   resolveSharedTrip,
   resolveTripPage,
   tripMetadata,
+  tripPhotos,
   tripToday,
   withTripWindow,
   type TripPageParams,
@@ -69,6 +70,7 @@ export default async function TripJournalPage({ params, searchParams }: TripPage
         areaBreadcrumbs={areaBreadcrumbs}
         path={withProfileShare(tripHref(owner.id, trip.id), owner.token)}
         today={await tripToday()}
+        photos={tripPhotos(trip)}
       />
     );
   }
@@ -87,6 +89,7 @@ export default async function TripJournalPage({ params, searchParams }: TripPage
         journalVisible={journalVisible}
         notesVisible={notesVisible}
       >
+        {tripPhotos(trip)}
         {journalVisible ? (
           <JournalView
             ownerId={user.id}

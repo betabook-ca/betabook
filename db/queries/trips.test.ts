@@ -282,6 +282,26 @@ describe("who can read a trip", () => {
     expect(await getTripForUser(db, OWNER, trip.id, OWNER)).toMatchObject({ id: trip.id });
   });
 
+  it("hands the album's link to whoever can open the trip", async () => {
+    const album = "https://photos.app.goo.gl/Example1Album2Link3";
+    const trip = await seedFixtureTrip(db, {
+      userId: OWNER,
+      name: "Bishop",
+      albumUrl: album,
+      ...BISHOP,
+    });
+    await audience("private");
+
+    for (const reader of [OWNER, STRANGER, null]) {
+      expect((await getTripForUser(db, OWNER, trip.id, reader))?.albumUrl).toBe(album);
+      expect((await getTripsForUser(db, OWNER, reader))[0].albumUrl).toBe(album);
+    }
+
+    await db.run(sql`UPDATE user SET is_private = 1 WHERE id = ${OWNER}`);
+    expect(await getTripForUser(db, OWNER, trip.id, STRANGER)).toBeNull();
+    expect((await getTripForUser(db, OWNER, trip.id, OWNER))?.albumUrl).toBe(album);
+  });
+
   it("hands the notes to the climber's friends, whatever the journal's audience", async () => {
     const trip = await seedBishop();
 

@@ -30,6 +30,8 @@ export const trips = sqliteTable(
     description: text("description"),
     /** Markdown source, rendered only through `components/ui/markdown.tsx`. */
     notes: text("notes"),
+    /** The link to a shared Google Photos album, as `albumLink` stores it. */
+    albumUrl: text("album_url"),
     /** Civil ISO `YYYY-MM-DD`, inclusive. */
     startDate: text("start_date").notNull(),
     /** Civil ISO `YYYY-MM-DD`, inclusive — a one-day trip has both equal. */
@@ -56,5 +58,6 @@ export const trips = sqliteTable(
     // A ceiling above `MAX_TRIP_NOTES`: SQLite cannot alter a CHECK, so the
     // limit that may change lives in lib/trips.ts.
     check("trips_notes", sql`${t.notes} IS NULL OR length(${t.notes}) <= 50000`),
+    check("trips_album_url", sql`${t.albumUrl} IS NULL OR length(${t.albumUrl}) <= 300`),
   ],
 );

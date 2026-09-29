@@ -3,6 +3,7 @@ import { z } from "zod";
 import { formatDate } from "@/lib/format-date";
 import { MAX_JOURNAL_COMPANIONS } from "@/lib/journal-companions";
 import { isoDateSchema } from "@/lib/sends";
+import { albumLink } from "@/lib/trip-album";
 
 /** Enough for "Bishop, March 2026" or "Spring road trip — Utah and Nevada"
  * without letting a name push the trip card's heading onto four lines. */
@@ -36,6 +37,7 @@ function characters(value: string): number {
   return count;
 }
 
+const INVALID_ALBUM = "Paste the link Google Photos gives you when you share an album.";
 const INVALID_FRIENDS = "Invalid friend selection";
 const TOO_MANY_FRIENDS = `Choose at most ${MAX_JOURNAL_COMPANIONS} friends`;
 
@@ -50,6 +52,18 @@ export const tripInputSchema = z
       .transform(oneLine)
       .refine((value) => characters(value) <= MAX_TRIP_DESCRIPTION, "That description is too long.")
       .transform((value) => value || null)
+      .nullable()
+      .optional(),
+    /** A shared Google Photos album. Emptied, the trip has none. */
+    albumUrl: z
+      .string()
+      .transform((value, ctx) => {
+        if (!value.trim()) return null;
+        const link = albumLink(value);
+        if (link) return link;
+        ctx.addIssue({ code: "custom", message: INVALID_ALBUM });
+        return z.NEVER;
+      })
       .nullable()
       .optional(),
     startDate: isoDateSchema,

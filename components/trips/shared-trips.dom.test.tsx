@@ -16,6 +16,7 @@ const BISHOP: TripSummary = {
   id: 7,
   name: "Bishop, March 2026",
   description: "Buttermilks and the Happies.",
+  albumUrl: null,
   startDate: "2026-03-10",
   endDate: "2026-03-20",
   entryCount: null,
@@ -97,6 +98,24 @@ it("shows a trip as what it was and the sends inside it", () => {
     screen.getByRole("link", { name: `Climb with Alex Rivera on ${SITE_NAME}` }),
   ).toHaveAttribute("href", signUp(path));
   expect(screen.queryByRole("navigation", { name: "Trip views" })).not.toBeInTheDocument();
+});
+
+it("puts the trip's photos between what it was and the sends inside it", () => {
+  render(
+    <SharedTrip
+      owner={OWNER}
+      trip={BISHOP}
+      sends={[send(1, "Moon Slab")]}
+      areaBreadcrumbs={{}}
+      path="/users/owner-1/trips/7"
+      today={TODAY}
+      photos={<section aria-label="Photos">The album</section>}
+    />,
+  );
+
+  const order = screen.getAllByRole("region").map((region) => region.getAttribute("aria-label"));
+  expect(order.indexOf("Photos")).toBe(order.indexOf("Trip") + 1);
+  expect(order.indexOf("Photos")).toBeLessThan(order.indexOf("Sends"));
 });
 
 it("says so when a long trip has more sends than the page shows", () => {

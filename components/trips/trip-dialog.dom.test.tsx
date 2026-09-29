@@ -24,6 +24,7 @@ const BISHOP: TripSummary = {
   id: 7,
   name: "Bishop",
   description: "Buttermilks",
+  albumUrl: null,
   startDate: "2026-03-10",
   endDate: "2026-03-20",
   entryCount: 0,
@@ -101,6 +102,7 @@ it("sends what was typed, then opens the trip it just created", async () => {
   expect(saveTrip).toHaveBeenCalledWith(null, {
     name: "Bishop",
     description: "Buttermilks",
+    albumUrl: "",
     startDate: "2026-03-10",
     endDate: "2026-03-20",
     companions: [],
@@ -130,6 +132,36 @@ it("opens a description written over several lines as the one line it reads as",
   expect(screen.getByRole("textbox", { name: /description/i })).toHaveValue(
     "Buttermilks. Two rest days.",
   );
+});
+
+it("takes the link to a shared album and sends it with the trip", async () => {
+  const user = userEvent.setup();
+  render(<Example />);
+
+  await user.type(screen.getByRole("textbox", { name: /name/i }), "Bishop");
+  await user.type(
+    screen.getByRole("textbox", { name: "Google Photos album" }),
+    "https://photos.app.goo.gl/Example1Album2Link3",
+  );
+  await user.click(screen.getByRole("button", { name: "Create trip" }));
+
+  await waitFor(() => expect(saveTrip).toHaveBeenCalledTimes(1));
+  expect(vi.mocked(saveTrip).mock.calls[0][1]).toMatchObject({
+    albumUrl: "https://photos.app.goo.gl/Example1Album2Link3",
+  });
+});
+
+it("opens an edit on the album the trip has, and says who sees its photos", async () => {
+  const user = userEvent.setup();
+  const album = "https://photos.app.goo.gl/Example1Album2Link3";
+  render(<Example trip={{ ...BISHOP, albumUrl: album }} />);
+
+  expect(screen.getByRole("textbox", { name: "Google Photos album" })).toHaveValue(album);
+
+  await user.click(screen.getByRole("button", { name: "About the album" }));
+  expect(
+    await screen.findByText(/Anyone who can see your sends sees these photos/),
+  ).toBeInTheDocument();
 });
 
 it("sends the friends picked for a new trip", async () => {
@@ -200,6 +232,7 @@ it("edits an existing trip in place rather than navigating away", async () => {
   expect(saveTrip).toHaveBeenCalledWith(7, {
     name: "Bishop, take two",
     description: "Buttermilks",
+    albumUrl: "",
     startDate: "2026-03-10",
     endDate: "2026-03-20",
   });

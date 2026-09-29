@@ -170,6 +170,43 @@ describe("editing a trip", () => {
     expect(await storedTripById(id)).toMatchObject({ description: null });
   });
 
+  it("keeps the link to a shared album, without what was pasted around it", async () => {
+    const created = await saveTrip(null, {
+      ...BISHOP,
+      albumUrl: "  https://photos.app.goo.gl/Example1Album2Link3?utm_source=share \n",
+    });
+    const id = created.ok ? created.value : 0;
+    expect(await storedTripById(id)).toMatchObject({
+      albumUrl: "https://photos.app.goo.gl/Example1Album2Link3",
+    });
+
+    const long = "https://photos.google.com/share/AF1QipMUVJgB2WzAdzUroYx?key=c0ZfN3Zk";
+    expect((await saveTrip(id, { ...BISHOP, albumUrl: long })).ok).toBe(true);
+    expect(await storedTripById(id)).toMatchObject({ albumUrl: long });
+
+    expect((await saveTrip(id, { ...BISHOP, albumUrl: "  " })).ok).toBe(true);
+    expect(await storedTripById(id)).toMatchObject({ albumUrl: null });
+  });
+
+  it.each([
+    ["another site", "https://example.com/albums/bishop"],
+    ["a single photo", "https://photos.google.com/photo/AF1QipMUVJgB2WzAdz"],
+    ["a lookalike", "https://photos.app.goo.gl.example.com/Example1Album2Link3"],
+    ["a script address", "javascript:alert(1)"],
+  ])("refuses %s as an album and keeps the one it had", async (_label, albumUrl) => {
+    const kept = "https://photos.app.goo.gl/Example1Album2Link3";
+    const created = await saveTrip(null, { ...BISHOP, albumUrl: kept });
+    const id = created.ok ? created.value : 0;
+
+    expect(await saveTrip(id, { ...BISHOP, albumUrl })).toMatchObject({
+      ok: false,
+      error: "Paste the link Google Photos gives you when you share an album.",
+    });
+    expect(await saveTrip(null, { ...BISHOP, albumUrl })).toMatchObject({ ok: false });
+    expect(await storedTripById(id)).toMatchObject({ albumUrl: kept });
+    expect(await storedTrips()).toHaveLength(1);
+  });
+
   it("keeps the description to one line of one summary's length", async () => {
     const created = await saveTrip(null, {
       ...BISHOP,

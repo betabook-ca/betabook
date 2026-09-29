@@ -57,6 +57,7 @@ export const Empty: Story = {
 const BISHOP: TripDraft = {
   name: "Bishop, March 2026",
   description: "Buttermilks and the Happies.",
+  albumUrl: "https://photos.app.goo.gl/Example1Album2Link3",
   startDate: "2026-03-10",
   endDate: "2026-03-20",
   companions: [],

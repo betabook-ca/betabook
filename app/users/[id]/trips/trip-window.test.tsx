@@ -83,6 +83,13 @@ type Element = { type?: unknown; props?: Record<string, unknown> };
  * client component whose hooks cannot run here, and its props already carry
  * the entries. */
 async function resolveNestedView(node: unknown): Promise<unknown> {
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      const view = await resolveNestedView(child);
+      if (view) return view;
+    }
+    return null;
+  }
   const element = node as Element | null;
   if (!element || typeof element !== "object") return null;
   const props = element.props;
@@ -170,6 +177,59 @@ describe("the window the page actually reads", () => {
     // undated one below is a real exclusion rather than an empty page.
     expect(payload).toContain("Sent it on the trip.");
     expect(payload).not.toContain("No date on this one.");
+  });
+});
+
+describe("a trip's shared album", () => {
+  const ALBUM = "https://photos.app.goo.gl/Example1Album2Link3";
+  const shown = `"link":"${ALBUM}"`;
+
+  async function seedTripWithAlbum() {
+    const trip = await seedFixtureTrip(db, {
+      userId: OWNER,
+      name: "Bishop",
+      albumUrl: ALBUM,
+      ...BISHOP,
+    });
+    await seedFixtureJournalEntry(db, {
+      userId: OWNER,
+      climbId: CLIMB,
+      entryDate: "2026-03-15",
+      body: INSIDE,
+    });
+    return trip;
+  }
+
+  it("is on the page a reader lands on, above the entries, for the owner and for any member", async () => {
+    const trip = await seedTripWithAlbum();
+
+    const asOwner = await renderJournal(trip.id);
+    expect(asOwner).toContain(shown);
+    expect(asOwner).toContain(INSIDE);
+    expect(asOwner.indexOf(shown)).toBeLessThan(asOwner.indexOf('"ownerId"'));
+
+    session.userId = STRANGER;
+    const asMember = await renderJournal(trip.id);
+    expect(asMember).toContain(shown);
+    expect(asMember).not.toContain(INSIDE);
+  });
+
+  it("is left off the trip's other tabs", async () => {
+    const trip = await seedTripWithAlbum();
+
+    for (const page of [TripSendsPage, TripAnalyticsPage, TripNotesPage]) {
+      const tree = await page({
+        params: Promise.resolve({ id: OWNER, tripId: String(trip.id) }),
+        searchParams: Promise.resolve({}),
+      });
+      expect(JSON.stringify(tree)).not.toContain(shown);
+    }
+  });
+
+  it("is nowhere on a trip that has none", async () => {
+    const trip = await seedTrip();
+
+    expect(await renderJournal(trip.id)).not.toContain('"link"');
   });
 });
 

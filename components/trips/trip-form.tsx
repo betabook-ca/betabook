@@ -10,11 +10,13 @@ import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import type { CompanionOption } from "@/lib/journal-companions";
+import { MAX_ALBUM_LINK } from "@/lib/trip-album";
 import { MAX_TRIP_DESCRIPTION, MAX_TRIP_NAME } from "@/lib/trips";
 
 export type TripDraft = {
   name: string;
   description: string;
+  albumUrl: string;
   startDate: string;
   endDate: string;
   companions: CompanionOption[];
@@ -23,6 +25,7 @@ export type TripDraft = {
 export const EMPTY_TRIP_DRAFT: TripDraft = {
   name: "",
   description: "",
+  albumUrl: "",
   startDate: "",
   endDate: "",
   companions: [],
@@ -89,6 +92,22 @@ export function TripForm({
           </HelpTooltip>
         </FieldHeader>
         <Input placeholder="Ten days in the Buttermilks" />
+      </TextField>
+
+      <TextField
+        className="w-full"
+        value={draft.albumUrl}
+        onChange={(albumUrl) => onChange({ ...draft, albumUrl })}
+        maxLength={MAX_ALBUM_LINK}
+      >
+        <FieldHeader>
+          <Label>Google Photos album</Label>
+          <HelpTooltip label="About the album">
+            In Google Photos, open the album, choose Share, then Create link. Anyone who can see
+            your sends sees these photos, including through your profile link.
+          </HelpTooltip>
+        </FieldHeader>
+        <Input inputMode="url" placeholder="https://photos.app.goo.gl/…" />
       </TextField>
 
       <div className="flex flex-wrap gap-4">

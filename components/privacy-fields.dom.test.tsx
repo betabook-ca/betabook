@@ -108,3 +108,15 @@ it("says who reads a trip's notes, apart from who reads the journal", () => {
   );
   expect(trips).not.toHaveTextContent("Trips follow the audiences above");
 });
+
+it("says who sees a trip's photos, and where they come from", () => {
+  render(<PrivacyDetails defaultExpanded />);
+
+  const items = screen.getAllByRole("listitem").map((item) => item.textContent ?? "");
+  expect(items.find((item) => item.startsWith("Anyone with your profile link"))).toContain(
+    "your trips with their photos and sends",
+  );
+  const trips = items.find((item) => /can see a trip/.test(item));
+  expect(trips).toContain("can see a trip, its photos and the sends inside it");
+  expect(trips).toContain("Photos are loaded from Google Photos.");
+});

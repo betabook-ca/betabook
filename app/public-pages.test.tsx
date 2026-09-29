@@ -328,6 +328,24 @@ it("opens the owner's trips, and the sends on each, through their profile link",
   }
 });
 
+it("shows a trip's shared album through the profile link", async () => {
+  const { token } = await seedSharedTrip();
+  const album = "https://photos.app.goo.gl/Example1Album2Link3";
+  const withAlbum = await seedFixtureTrip(db, {
+    userId: "hidden",
+    name: "Album trip",
+    albumUrl: album,
+    startDate: "2026-03-01",
+    endDate: "2026-05-31",
+  });
+
+  const page = JSON.stringify(await TripPage(tripProps("hidden", withAlbum.id, token)));
+  expect(page).toContain(`"link":"${album}"`);
+
+  const locked = JSON.stringify(await TripPage(tripProps("hidden", withAlbum.id, "0".repeat(32))));
+  expect(locked).not.toContain(album);
+});
+
 it("shows a trip's send commentary through the link only when it is set to Everyone", async () => {
   const { token } = await seedSharedTrip();
   const season = await seedFixtureTrip(db, {

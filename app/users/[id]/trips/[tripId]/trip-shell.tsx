@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import {
   MEMBER_CONTENT_METADATA,
@@ -8,6 +9,8 @@ import {
   resolveSharedProfile,
   type ProfileUser,
 } from "@/app/users/[id]/profile-shell";
+import { TripAlbum } from "@/components/trips/trip-album";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getDb } from "@/db/client";
 import { canReadTripNotes, getTripForUser, type TripSummary } from "@/db/queries";
 import { goalToday } from "@/lib/goals";
@@ -104,6 +107,17 @@ export async function tripMetadata(idParam: string, tripIdParam: string): Promis
     title: `${resolved.user.name} · ${resolved.trip.name}`,
     robots: { index: false },
   };
+}
+
+/** The trip's shared album, for the page a reader lands on. It waits on
+ * Google behind its own boundary, so the trip never does. */
+export function tripPhotos(trip: Pick<TripSummary, "albumUrl">) {
+  if (!trip.albumUrl) return null;
+  return (
+    <Suspense fallback={<Skeleton className="h-56 w-full sm:h-72" />}>
+      <TripAlbum link={trip.albumUrl} />
+    </Suspense>
+  );
 }
 
 /** The trip's dates in place of whatever the URL asked for. A trip is a claim
