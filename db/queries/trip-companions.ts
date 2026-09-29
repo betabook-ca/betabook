@@ -5,7 +5,7 @@ import { journalVisibleSql } from "./content-access";
 /** `companionsJsonSql` over a trip: a tag follows the trip owner's journal
  * audience, not the friend's own settings, and is gone once its friend removes
  * it or the friendship ends. */
-export function tripCompanionsJsonSql(viewerId: string, tripId: SQL): SQL {
+export function tripCompanionsJsonSql(viewerId: string | null, tripId: SQL): SQL {
   return sql`(SELECT json_group_array(json_object('id', companion.id, 'name', companion.name,
     'image', companion.image,
     'isSelf', json(CASE WHEN companion.id = ${viewerId} THEN 'true' ELSE 'false' END)))

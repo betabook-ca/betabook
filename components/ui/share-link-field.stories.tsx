@@ -14,7 +14,8 @@ const meta = {
     label: "Profile link",
     url: "https://betabook.ca/users/Qm7c2VdN4pX8rT1yK6hB9wLs3JfZ0aEu?share=4f9c2a7e1b8d6035c9e4a1f7b2d80e36",
     shareTitle: "Alex Rivera on Betabook",
-    description: "Anyone with the link sees your name, photo, send stats and latest sends.",
+    description:
+      "Anyone with the link sees your name, photo, send stats, latest sends, and your trips with their sends.",
   },
   decorators: [
     (Story) => (

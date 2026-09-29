@@ -10,8 +10,11 @@ import { WorkspaceShell } from "@/components/workspace-shell";
 import { getDb } from "@/db/client";
 import { getUserProfile, getFriendship, canReadJournal, getShareLinkOwner } from "@/db/queries";
 import { getClimberHardest } from "@/db/queries/climber-overview";
+import { PROFILE_SHARE_PARAM } from "@/lib/profile-share";
 import { requestMemo } from "@/lib/request-memo";
 import { getMemberSession } from "@/lib/session";
+import { parseShareToken } from "@/lib/share-token";
+import type { UrlParamsRecord } from "@/lib/url-params";
 import { canViewUser } from "@/lib/user-visibility";
 
 const getUserById = requestMemo(async (id: string) => getUserProfile(await getDb(), id));
@@ -20,9 +23,18 @@ export const canReadUserJournal = requestMemo(async (id: string, viewerId: strin
   canReadJournal(await getDb(), id, viewerId),
 );
 
-export const getShareLinkOwnerByToken = requestMemo(async (token: string) =>
+const getShareLinkOwnerByToken = requestMemo(async (token: string) =>
   getShareLinkOwner(await getDb(), token),
 );
+
+/** The climber a signed-out reader's link names, when the link is current and
+ * is this profile's own. It opens the profile and its trips, and nothing else. */
+export async function resolveSharedProfile(id: string, search: UrlParamsRecord) {
+  const token = parseShareToken(search[PROFILE_SHARE_PARAM]);
+  if (!token) return null;
+  const owner = await getShareLinkOwnerByToken(token);
+  return owner?.id === id ? { ...owner, token } : null;
+}
 
 export type ProfileUser = NonNullable<Awaited<ReturnType<typeof getUserById>>>;
 

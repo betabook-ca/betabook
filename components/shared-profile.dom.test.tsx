@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 
-import type { UserSendRow, UserStatsSummary } from "@/db/queries";
+import type { TripSummary, UserSendRow, UserStatsSummary } from "@/db/queries";
 
 import { SharedProfile } from "./shared-profile";
 
@@ -94,4 +94,55 @@ it("invites a visitor to climb with an owner who hasn't logged a send", () => {
     within(prompt).getByRole("link", { name: "Climb with Alex Rivera on Betabook" }),
   ).toHaveAttribute("href", SIGN_UP);
   expect(screen.getAllByRole("link", { name: "Sign up" })).toHaveLength(1);
+});
+
+const TOKEN = "0123456789abcdef0123456789abcdef";
+const BISHOP: TripSummary = {
+  id: 7,
+  name: "Bishop, March 2026",
+  description: "Buttermilks and the Happies.",
+  startDate: "2026-03-10",
+  endDate: "2026-03-20",
+  entryCount: null,
+  sendCount: 9,
+  dayCount: null,
+  hasNotes: 0,
+  companions: [],
+};
+
+function withTrips(latest: TripSummary[], total: number) {
+  return (
+    <SharedProfile
+      owner={OWNER}
+      summary={SUMMARY}
+      sends={[send(1, "Granite Staircase")]}
+      areaBreadcrumbs={{}}
+      trips={{ userId: "owner-1", token: TOKEN, latest, total, today: "2026-09-10" }}
+      next={NEXT}
+    />
+  );
+}
+
+it("lists the latest trips and opens each, and the rest, by the same link", () => {
+  render(withTrips([BISHOP], 4));
+
+  const trips = screen.getByRole("region", { name: "Trips" });
+  expect(within(trips).getByRole("link", { name: "Bishop, March 2026" })).toHaveAttribute(
+    "href",
+    `/users/owner-1/trips/7?share=${TOKEN}`,
+  );
+  expect(trips).toHaveTextContent("9 sends");
+  expect(trips).not.toHaveTextContent(/entr|days logged/);
+  expect(within(trips).getByRole("link", { name: "All 4 trips" })).toHaveAttribute(
+    "href",
+    `/users/owner-1/trips?share=${TOKEN}`,
+  );
+});
+
+it("points at no longer list when every trip is shown, and draws nothing for none", () => {
+  const { rerender } = render(withTrips([BISHOP], 1));
+  expect(screen.queryByRole("link", { name: /^All / })).not.toBeInTheDocument();
+
+  rerender(withTrips([], 0));
+  expect(screen.queryByRole("region", { name: "Trips" })).not.toBeInTheDocument();
 });

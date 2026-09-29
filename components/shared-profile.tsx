@@ -1,15 +1,28 @@
 import { UserSendLogRow } from "@/components/climb-log-row";
 import { ProfileInvite } from "@/components/profile-invite";
+import { TripCard } from "@/components/trips/trip-card";
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SidebarLayout } from "@/components/ui/page-shell";
 import { SectionHeading } from "@/components/ui/typography";
 import { UserSendSummary } from "@/components/user-send-summary";
-import type { AreaBreadcrumbs, UserSendRow, UserStatsSummary } from "@/db/queries";
+import type { AreaBreadcrumbs, TripSummary, UserSendRow, UserStatsSummary } from "@/db/queries";
 import { formatCount } from "@/lib/format";
+import { withProfileShare } from "@/lib/profile-share";
 import { signUpUrl } from "@/lib/sign-in-redirect";
 import { SITE_NAME } from "@/lib/site";
+import { tripsHref } from "@/lib/trips";
+
+/** The climber's latest trips, each opened by the same link as this page. */
+export type SharedProfileTrips = {
+  userId: string;
+  token: string;
+  latest: TripSummary[];
+  total: number;
+  /** The reader's own `YYYY-MM-DD`, resolved on the server. */
+  today: string;
+};
 
 /** Signed-out view of a valid share link. */
 export function SharedProfile({
@@ -17,12 +30,14 @@ export function SharedProfile({
   summary,
   sends,
   areaBreadcrumbs,
+  trips,
   next,
 }: {
   owner: { name: string; image: string | null };
   summary: UserStatsSummary;
   sends: UserSendRow[];
   areaBreadcrumbs: AreaBreadcrumbs;
+  trips?: SharedProfileTrips;
   next: string;
 }) {
   const signUpPrompt =
@@ -46,6 +61,30 @@ export function SharedProfile({
             </div>
           )}
         </section>
+        {trips && trips.total > 0 && (
+          <section aria-label="Trips" className="flex flex-col gap-3">
+            <SectionHeading>Trips</SectionHeading>
+            <ul className="flex flex-col gap-3">
+              {trips.latest.map((trip) => (
+                <TripCard
+                  key={trip.id}
+                  trip={trip}
+                  userId={trips.userId}
+                  today={trips.today}
+                  shareToken={trips.token}
+                />
+              ))}
+            </ul>
+            {trips.total > trips.latest.length && (
+              <AppLink
+                href={withProfileShare(tripsHref(trips.userId), trips.token)}
+                className="text-sm"
+              >
+                All {formatCount(trips.total, "trip")}
+              </AppLink>
+            )}
+          </section>
+        )}
         <section aria-label={signUpPrompt} className={cardClass("md", "bordered")}>
           <SectionHeading>
             <AppLink href={signUpUrl(next)}>{signUpPrompt}</AppLink>

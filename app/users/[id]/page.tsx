@@ -5,20 +5,26 @@ import { JournalView } from "@/app/users/[id]/journal-view";
 import {
   ProfileHeader,
   canReadUserJournal,
-  getShareLinkOwnerByToken,
   memberMetadata,
   resolveProfilePage,
+  resolveSharedProfile,
 } from "@/app/users/[id]/profile-shell";
 import { SendsView } from "@/app/users/[id]/sends-view";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { SharedProfile } from "@/components/shared-profile";
 import { getDb } from "@/db/client";
-import { getAreaBreadcrumbs, getSendsForUserPage, getUserSendsSummary } from "@/db/queries";
+import {
+  getAreaBreadcrumbs,
+  getSendsForUserPage,
+  getTripsForUser,
+  getUserSendsSummary,
+} from "@/db/queries";
 import { parseJournalFilter } from "@/lib/filters/journal-filter";
 import { DEFAULT_USER_SENDS_FILTER, parseUserSendsFilter } from "@/lib/filters/user-sends-filter";
-import { PROFILE_SHARE_PARAM, SHARED_PROFILE_SENDS, profileSharePath } from "@/lib/profile-share";
+import { goalToday } from "@/lib/goals";
+import { SHARED_PROFILE_SENDS, SHARED_PROFILE_TRIPS, profileSharePath } from "@/lib/profile-share";
+import { getRequestTimezone } from "@/lib/request-timezone";
 import { sharedProfileMetadata } from "@/lib/seo";
-import { parseShareToken } from "@/lib/share-token";
 import type { UrlParamsRecord } from "@/lib/url-params";
 
 type UserPageProps = {
@@ -26,18 +32,11 @@ type UserPageProps = {
   searchParams: Promise<UrlParamsRecord>;
 };
 
-async function getSharedProfile(id: string, search: UrlParamsRecord) {
-  const token = parseShareToken(search[PROFILE_SHARE_PARAM]);
-  if (!token) return null;
-  const owner = await getShareLinkOwnerByToken(token);
-  return owner?.id === id ? { ...owner, path: profileSharePath(id, token) } : null;
-}
-
 export async function generateMetadata({ params, searchParams }: UserPageProps): Promise<Metadata> {
   const [{ id }, search] = await Promise.all([params, searchParams]);
   const resolved = await resolveProfilePage(id, "viewer");
   if (!resolved.signedIn) {
-    const shared = await getSharedProfile(id, search);
+    const shared = await resolveSharedProfile(id, search);
     if (shared) return sharedProfileMetadata(shared.name);
   }
   return memberMetadata(resolved, (user) => user.name);
@@ -47,13 +46,15 @@ export default async function UserPage({ params, searchParams }: UserPageProps) 
   const [{ id }, search] = await Promise.all([params, searchParams]);
   const resolved = await resolveProfilePage(id, "viewer");
   if (!resolved.signedIn) {
-    const shared = await getSharedProfile(id, search);
+    const shared = await resolveSharedProfile(id, search);
     if (!shared) return <CurrentPageAuthCallout />;
     const db = await getDb();
     // A null viewer keeps Members and Friends commentary out of the preview.
-    const [summary, recent] = await Promise.all([
+    const [summary, recent, trips, timezone] = await Promise.all([
       getUserSendsSummary(db, shared.id),
       getSendsForUserPage(db, shared.id, DEFAULT_USER_SENDS_FILTER, 0, SHARED_PROFILE_SENDS, null),
+      getTripsForUser(db, shared.id, null),
+      getRequestTimezone(),
     ]);
     const areaBreadcrumbs = await getAreaBreadcrumbs(
       db,
@@ -65,7 +66,14 @@ export default async function UserPage({ params, searchParams }: UserPageProps) 
         summary={summary}
         sends={recent.sends}
         areaBreadcrumbs={areaBreadcrumbs}
-        next={shared.path}
+        trips={{
+          userId: shared.id,
+          token: shared.token,
+          latest: trips.slice(0, SHARED_PROFILE_TRIPS),
+          total: trips.length,
+          today: goalToday(timezone),
+        }}
+        next={profileSharePath(shared.id, shared.token)}
       />
     );
   }

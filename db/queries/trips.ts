@@ -58,7 +58,7 @@ const tripSendRowsSql = sql`
 /** Correlated scalar subqueries rather than joins: three independent
  * aggregates over two tables would otherwise multiply each other's rows, and a
  * derived table cannot see the enclosing query's `t`. */
-function tripCountsSql(viewerId: string): SQL {
+function tripCountsSql(viewerId: string | null): SQL {
   const journalVisible = journalVisibleSql(viewerId, sql`t.user_id`);
   return sql`
     CASE WHEN ${journalVisible}
@@ -82,8 +82,10 @@ const tripColumnsSql = sql`
 
 /** A trip is read by whoever may see the climber's sends, which is
  * `canViewUser` said in SQL so a profile closing takes effect on the next
- * read rather than the next page gate. */
-function tripRowsSql(userId: string, viewerId: string): SQL {
+ * read rather than the next page gate. A null viewer holds the climber's
+ * profile link, which the page checks; the journal's audiences never admit
+ * one, so they get the trip and its sends and nothing else. */
+function tripRowsSql(userId: string, viewerId: string | null): SQL {
   return sql`
     FROM trips t
     JOIN user trip_owner ON trip_owner.id = t.user_id
@@ -97,7 +99,7 @@ function tripRowsSql(userId: string, viewerId: string): SQL {
 export async function getTripsForUser(
   db: Database,
   userId: string,
-  viewerId: string,
+  viewerId: string | null,
 ): Promise<TripSummary[]> {
   const rows = await db.all<TripRow>(sql`
     SELECT ${tripColumnsSql}, ${tripCountsSql(viewerId)}
@@ -113,7 +115,7 @@ export async function getTripForUser(
   db: Database,
   userId: string,
   tripId: number,
-  viewerId: string,
+  viewerId: string | null,
 ): Promise<TripSummary | null> {
   const row = await db.get<TripRow>(sql`
     SELECT ${tripColumnsSql}, ${tripCountsSql(viewerId)}
@@ -128,7 +130,7 @@ export async function getTripNotes(
   db: Database,
   userId: string,
   tripId: number,
-  viewerId: string,
+  viewerId: string | null,
 ): Promise<string | null> {
   const row = await db.get<{ notes: string | null }>(sql`
     SELECT t.notes AS notes

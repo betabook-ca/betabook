@@ -8,6 +8,7 @@ import { TripStats } from "@/components/trips/trip-stats";
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import type { TripSummary } from "@/db/queries";
+import { withProfileShare } from "@/lib/profile-share";
 import { formatTripDates, tripHref, tripStatus, type TripStatus } from "@/lib/trips";
 
 /** Only the two statuses worth saying out loud get a chip. "Past" is the
@@ -29,21 +30,28 @@ export function TripCard({
   userId,
   today,
   actions,
+  shareToken,
 }: {
   trip: TripSummary;
   userId: string;
   /** The reader's own `YYYY-MM-DD`, resolved on the server. */
   today: string;
   actions?: ReactNode;
+  /** The climber's profile link, which a signed-out reader's next page needs. */
+  shareToken?: string;
 }) {
   const chip = STATUS_CHIP[tripStatus(trip, today)];
+  const href = tripHref(userId, trip.id);
 
   return (
     <li className={`flex flex-col gap-3 ${cardClass("md", "bordered")}`}>
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
-            <AppLink href={tripHref(userId, trip.id)} className="font-medium">
+            <AppLink
+              href={shareToken ? withProfileShare(href, shareToken) : href}
+              className="font-medium"
+            >
               {trip.name}
             </AppLink>
             {chip && (

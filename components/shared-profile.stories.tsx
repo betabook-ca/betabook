@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import type { UserSendRow } from "@/db/queries";
+import { TRIPS_TODAY, tripSamples } from "@/stories/fixtures/trips";
 
 import { SharedProfile } from "./shared-profile";
 
@@ -106,6 +107,20 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Preview: Story = {};
+
+/** The link opens the climber's trips too: the latest here, the rest a page on. */
+export const WithTrips: Story = {
+  args: {
+    trips: {
+      userId: "Qm7c2VdN4pX8rT1yK6hB9wLs3JfZ0aEu",
+      token: "4f9c2a7e1b8d6035c9e4a1f7b2d80e36",
+      latest: tripSamples.map((trip) => ({ ...trip, entryCount: null, dayCount: null })),
+      total: 7,
+      today: TRIPS_TODAY,
+    },
+  },
+};
+
 export const NoSendsYet: Story = {
   args: {
     summary: {

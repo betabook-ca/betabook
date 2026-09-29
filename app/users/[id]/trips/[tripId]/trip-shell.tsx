@@ -5,18 +5,34 @@ import {
   MEMBER_CONTENT_METADATA,
   canReadUserJournal,
   resolveProfilePage,
+  resolveSharedProfile,
   type ProfileUser,
 } from "@/app/users/[id]/profile-shell";
 import { getDb } from "@/db/client";
 import { getTripForUser, type TripSummary } from "@/db/queries";
 import { parseId } from "@/lib/parse-id";
 import { requestMemo } from "@/lib/request-memo";
+import type { UrlParamsRecord } from "@/lib/url-params";
 
 /** Cached per request so a page and its `generateMetadata` resolve the same
  * trip with one read rather than two. */
-const getTripFor = requestMemo(async (userId: string, tripId: number, viewerId: string) =>
+const getTripFor = requestMemo(async (userId: string, tripId: number, viewerId: string | null) =>
   getTripForUser(await getDb(), userId, tripId, viewerId),
 );
+
+/** The trip a signed-out reader's profile link opens, read as nobody: its
+ * sends, and none of what the journal's audiences decide. */
+export async function resolveSharedTrip(
+  idParam: string,
+  tripIdParam: string,
+  search: UrlParamsRecord,
+) {
+  const owner = await resolveSharedProfile(idParam, search);
+  const tripId = parseId(tripIdParam);
+  if (!owner || tripId === null) return null;
+  const trip = await getTripFor(owner.id, tripId, null);
+  return trip ? { owner, trip } : null;
+}
 
 export type TripPageParams = {
   params: Promise<{ id: string; tripId: string }>;
