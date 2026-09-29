@@ -1,42 +1,28 @@
-import { render, screen, within } from "@testing-library/react";
-import { expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { expect, it } from "vitest";
 
 import { ProfileInvite } from "./profile-invite";
 
-vi.mock("next/image", () => ({
-  default: ({ src }: { src: string }) => <span data-image-src={src} />,
-}));
-
 const NEXT = "/users/owner-1?share=0123456789abcdef0123456789abcdef";
 
-it("names the inviter and returns both authentication paths to the share link", () => {
-  render(<ProfileInvite name="Alex Rivera" image={null} next={NEXT} />);
+it("says what signing up adds and returns both paths to the page the link opened", () => {
+  render(<ProfileInvite name="Alex Rivera" next={NEXT} />);
 
-  const invitation = screen.getByRole("region", { name: "Invitation" });
   expect(
-    within(invitation).getByRole("heading", {
-      level: 1,
-      name: "Alex Rivera invited you to Betabook",
-    }),
+    screen.getByText(
+      "Sign up to send Alex Rivera a friend request, see more of their climbing, and log your own sends and sessions.",
+    ),
   ).toBeVisible();
-  const links = within(invitation).getAllByRole("link");
+  const links = screen.getAllByRole("link");
   expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
     ["Sign up", `/sign-up?next=${encodeURIComponent(NEXT)}`],
     ["Sign in", `/sign-in?next=${encodeURIComponent(NEXT)}`],
   ]);
 });
 
-it("shows the owner's photo, and their initials when they have none", () => {
-  const photo = "https://lh3.googleusercontent.com/a/alex";
-  const { container, rerender } = render(
-    <ProfileInvite name="Alex Rivera" image={null} next={NEXT} />,
-  );
-  // An inviter with no photo keeps the avatar slot rather than collapsing the
-  // card into a bare heading.
-  expect(container.querySelector("[data-image-src]")).toBeNull();
-  expect(screen.getByText("AR")).toBeVisible();
+it("leaves the climber's name and photo to the profile's own heading", () => {
+  render(<ProfileInvite name="Alex Rivera" next={NEXT} />);
 
-  rerender(<ProfileInvite name="Alex Rivera" image={photo} next={NEXT} />);
-  expect(container.querySelector("[data-image-src]")).toHaveAttribute("data-image-src", photo);
+  expect(screen.queryByRole("heading")).not.toBeInTheDocument();
   expect(screen.queryByText("AR")).not.toBeInTheDocument();
 });

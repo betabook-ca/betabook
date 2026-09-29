@@ -1,19 +1,16 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { TripAlbumPhotos } from "@/components/trips/trip-album";
+import { TripList } from "@/components/trips/trip-list";
 import type { UserSendRow } from "@/db/queries";
+import { SHARED_OWNER, SharedProfileFrame } from "@/stories/fixtures/shared-profile-frame";
 import { TRIPS_TODAY, tripSamples } from "@/stories/fixtures/trips";
 
-import { SharedTrip, SharedTrips } from "./shared-trips";
-
-const OWNER = {
-  id: "alex",
-  name: "Alex Rivera",
-  image: null,
-  token: "4f9c2a7e1b8d6035c9e4a1f7b2d80e36",
-};
+import { SharedTrip } from "./shared-trips";
 
 /** What the journal's audiences decide never reaches a signed-out reader. */
 const trips = tripSamples.map((trip) => ({ ...trip, entryCount: null, dayCount: null }));
+const PATH = `/users/${SHARED_OWNER.id}/trips/2?share=${SHARED_OWNER.token}`;
 
 const SENDS: UserSendRow[] = [
   {
@@ -50,41 +47,79 @@ const SENDS: UserSendRow[] = [
 
 const meta = {
   title: "Components/Trips/Shared trips",
-  component: SharedTrips,
-  parameters: { fullWidth: true },
-  args: { owner: OWNER, trips, today: TRIPS_TODAY },
-} satisfies Meta<typeof SharedTrips>;
+  component: SharedTrip,
+  parameters: {
+    fullWidth: true,
+    nextjs: { navigation: { pathname: `/users/${SHARED_OWNER.id}/trips/2` } },
+  },
+  args: {
+    owner: SHARED_OWNER,
+    trip: { ...trips[1], sendCount: SENDS.length },
+    sends: SENDS,
+    areaBreadcrumbs: { 11: [{ id: 1, name: "Bishop" }] },
+    path: PATH,
+    today: TRIPS_TODAY,
+  },
+  // The frame a member sees round a profile, which the page puts round this.
+  decorators: [
+    (Story) => (
+      <SharedProfileFrame next={PATH}>
+        <Story />
+      </SharedProfileFrame>
+    ),
+  ],
+} satisfies Meta<typeof SharedTrip>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** A climber's trips for the signed-out holder of their profile link. */
-export const List: Story = {};
+/** One trip for the signed-out holder of a profile link: the header a member
+ * sees, and the sends inside it. */
+export const Trip: Story = {};
 
-export const NoTrips: Story = { args: { trips: [] } };
+export const LongTrip: Story = {
+  args: { trip: { ...trips[1], name: "The 2026 season", sendCount: 260 } },
+};
 
-/** One trip for the same reader: what it was and the sends inside it. */
-export const Trip: Story = {
+export const WithPhotos: Story = {
+  args: {
+    photos: (
+      <TripAlbumPhotos
+        link="https://photos.app.goo.gl/Example1Album2Link3"
+        photos={[4000, 3000, 6000].map((width, index) => ({
+          url: `data:image/svg+xml,${encodeURIComponent(
+            `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} 3000"><rect width="${width}" height="3000" fill="${["#a9c7e8", "#f2c89b", "#cfe3d4"][index]}"/><path d="M0 3000 L${width * 0.4} 1100 L${width * 0.7} 1900 L${width} 1300 L${width} 3000 Z" fill="#7a6a5a"/></svg>`,
+          )}#`,
+          width,
+          height: 3000,
+        }))}
+      />
+    ),
+  },
+};
+
+/** The Trips tab for the same reader: the list a member sees, read only. */
+export const List: Story = {
+  parameters: { nextjs: { navigation: { pathname: `/users/${SHARED_OWNER.id}/trips` } } },
   render: () => (
-    <SharedTrip
-      owner={OWNER}
-      trip={{ ...trips[1], sendCount: SENDS.length }}
-      sends={SENDS}
-      areaBreadcrumbs={{ 11: [{ id: 1, name: "Bishop" }] }}
-      path="/users/alex/trips/2?share=4f9c2a7e1b8d6035c9e4a1f7b2d80e36"
+    <TripList
+      trips={trips}
+      userId={SHARED_OWNER.id}
       today={TRIPS_TODAY}
+      canEdit={false}
+      shareToken={SHARED_OWNER.token}
     />
   ),
 };
 
-export const LongTrip: Story = {
+export const NoTrips: Story = {
+  parameters: List.parameters,
   render: () => (
-    <SharedTrip
-      owner={OWNER}
-      trip={{ ...trips[1], name: "The 2026 season", sendCount: 260 }}
-      sends={SENDS}
-      areaBreadcrumbs={{ 11: [{ id: 1, name: "Bishop" }] }}
-      path="/users/alex/trips/2?share=4f9c2a7e1b8d6035c9e4a1f7b2d80e36"
+    <TripList
+      trips={[]}
+      userId={SHARED_OWNER.id}
       today={TRIPS_TODAY}
+      canEdit={false}
+      shareToken={SHARED_OWNER.token}
     />
   ),
 };

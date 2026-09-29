@@ -7,6 +7,7 @@ import { TripStatusChip } from "@/components/trips/trip-status-chip";
 import { TripTabs } from "@/components/trips/trip-tabs";
 import { SectionHeading } from "@/components/ui/typography";
 import type { TripSummary } from "@/db/queries";
+import { withProfileShare } from "@/lib/profile-share";
 import { formatTripDates, tripsHref, type TripTab } from "@/lib/trips";
 
 /** The trip above its views: what it is, when it was, and the way back.
@@ -22,11 +23,13 @@ export function TripHeader({
   current,
   journalVisible,
   notesVisible,
+  share,
   children,
 }: {
   trip: TripSummary;
   userId: string;
-  viewerId: string;
+  /** Null for the signed-out holder of the climber's profile link. */
+  viewerId: string | null;
   /** The reader's own `YYYY-MM-DD`, resolved on the server. */
   today: string;
   current: TripTab;
@@ -36,12 +39,16 @@ export function TripHeader({
   /** Whether this reader is the climber or a friend of theirs, who the notes
    * are for. */
   notesVisible: boolean;
+  /** The profile link a signed-out reader holds, which the way back needs. */
+  share?: string;
   children: ReactNode;
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-4">
       <div className="flex min-w-0 flex-col gap-1">
-        <TripBackLink href={tripsHref(userId)}>All trips</TripBackLink>
+        <TripBackLink href={share ? withProfileShare(tripsHref(userId), share) : tripsHref(userId)}>
+          All trips
+        </TripBackLink>
         {/* A SectionHeading, not a PageTitle: the page around it already emits
          * its only h1, and a second one here would give every trip detail page
          * two — which axe's default rules do not flag, so nothing else would
@@ -66,14 +73,17 @@ export function TripHeader({
         </div>
       </div>
 
-      <TripTabs
-        userId={userId}
-        tripId={trip.id}
-        current={current}
-        showJournal={journalVisible}
-        // The owner keeps an empty Notes tab, since that is where they write.
-        showNotes={notesVisible && (viewerId === userId || Boolean(trip.hasNotes))}
-      />
+      {/* The link opens one view of a trip, so there is nothing to choose between. */}
+      {viewerId !== null && (
+        <TripTabs
+          userId={userId}
+          tripId={trip.id}
+          current={current}
+          showJournal={journalVisible}
+          // The owner keeps an empty Notes tab, since that is where they write.
+          showNotes={notesVisible && (viewerId === userId || Boolean(trip.hasNotes))}
+        />
+      )}
 
       {children}
     </div>

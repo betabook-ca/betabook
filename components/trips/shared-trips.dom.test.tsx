@@ -4,8 +4,13 @@ import { expect, it, vi } from "vitest";
 import type { TripSummary, UserSendRow } from "@/db/queries";
 import { SITE_NAME } from "@/lib/site";
 
-import { SharedTrip, SharedTrips } from "./shared-trips";
+import { SharedTrip } from "./shared-trips";
 
+vi.mock("@/actions", () => ({}));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn<() => void>(), refresh: vi.fn<() => void>() }),
+  usePathname: () => "/users/owner-1/trips/7",
+}));
 vi.mock("next/image", () => ({
   default: ({ src }: { src: string }) => <span data-image-src={src} />,
 }));
@@ -46,123 +51,91 @@ function send(id: number, climbName: string): UserSendRow {
 
 const signUp = (path: string) => `/sign-up?next=${encodeURIComponent(path)}`;
 const TODAY = "2026-09-10";
+const PATH = `/users/owner-1/trips/7?share=${TOKEN}`;
 
-it("lists the trips, each opened by the link that opened the list", () => {
-  render(<SharedTrips owner={OWNER} trips={[BISHOP]} today="2026-09-10" />);
-
-  const trips = screen.getByRole("region", { name: "Trips" });
-  expect(within(trips).getByRole("link", { name: "Bishop, March 2026" })).toHaveAttribute(
-    "href",
-    `/users/owner-1/trips/7?share=${TOKEN}`,
-  );
-  expect(within(trips).getByRole("link", { name: "Alex Rivera" })).toHaveAttribute(
-    "href",
-    `/users/owner-1?share=${TOKEN}`,
-  );
-  expect(screen.getByRole("link", { name: "Sign up" })).toHaveAttribute(
-    "href",
-    signUp(`/users/owner-1/trips?share=${TOKEN}`),
-  );
-  expect(screen.queryByRole("button")).not.toBeInTheDocument();
-});
-
-it("shows a trip as what it was and the sends inside it", () => {
-  const path = `/users/owner-1/trips/7?share=${TOKEN}`;
-  render(
+function trip(props: Partial<Parameters<typeof SharedTrip>[0]> = {}) {
+  return (
     <SharedTrip
       owner={OWNER}
       trip={BISHOP}
       sends={[send(1, "Moon Slab"), send(2, "Warm-up Arete"), send(3, "Evilution")]}
       areaBreadcrumbs={{}}
-      path={path}
+      path={PATH}
       today={TODAY}
-    />,
+      {...props}
+    />
   );
+}
 
-  const trip = screen.getByRole("region", { name: "Trip" });
-  expect(within(trip).getByRole("heading", { name: "Bishop, March 2026" })).toBeVisible();
-  expect(trip).toHaveTextContent("Buttermilks and the Happies.");
-  expect(trip).toHaveTextContent("3 sends");
-  expect(trip).not.toHaveTextContent(/entr|days logged|With /);
-  expect(trip).not.toHaveTextContent(/Upcoming|On now/);
-  expect(within(trip).getByRole("link", { name: "All trips" })).toHaveAttribute(
+it("shows a trip under the header a member sees, with the sends inside it", () => {
+  render(trip());
+
+  expect(screen.getByRole("heading", { name: "Bishop, March 2026" })).toBeVisible();
+  expect(screen.getByText("Mar 10, 2026 – Mar 20, 2026")).toBeVisible();
+  expect(screen.getByText("Buttermilks and the Happies.")).toBeVisible();
+  expect(screen.getByRole("link", { name: "All trips" })).toHaveAttribute(
     "href",
     `/users/owner-1/trips?share=${TOKEN}`,
   );
 
-  const sends = screen.getByRole("region", { name: "Sends" });
-  expect(within(sends).getByRole("link", { name: "Moon Slab" })).toBeVisible();
-  expect(sends).not.toHaveTextContent("most recent of");
-  expect(screen.getByRole("link", { name: "Sign up" })).toHaveAttribute("href", signUp(path));
-  expect(
-    screen.getByRole("link", { name: `Climb with Alex Rivera on ${SITE_NAME}` }),
-  ).toHaveAttribute("href", signUp(path));
-  expect(screen.queryByRole("navigation", { name: "Trip views" })).not.toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Sends" })).toHaveClass("sr-only");
+  const rows = within(screen.getByRole("list")).getAllByRole("listitem");
+  // A row links its climb first, then where it is.
+  expect(rows.map((row) => within(row).getAllByRole("link")[0].textContent)).toEqual([
+    "Moon Slab",
+    "Warm-up Arete",
+    "Evilution",
+  ]);
+  expect(screen.queryByText(/most recent of/)).not.toBeInTheDocument();
 });
 
-it("puts the trip's photos between what it was and the sends inside it", () => {
-  render(
-    <SharedTrip
-      owner={OWNER}
-      trip={BISHOP}
-      sends={[send(1, "Moon Slab")]}
-      areaBreadcrumbs={{}}
-      path="/users/owner-1/trips/7"
-      today={TODAY}
-      photos={<section aria-label="Photos">The album</section>}
-    />,
-  );
+it("offers nothing a signed-out reader cannot open", () => {
+  render(trip());
 
-  const order = screen.getAllByRole("region").map((region) => region.getAttribute("aria-label"));
-  expect(order.indexOf("Photos")).toBe(order.indexOf("Trip") + 1);
-  expect(order.indexOf("Photos")).toBeLessThan(order.indexOf("Sends"));
+  // One view, so no pills to choose between; no menu, no tags, no journal.
+  expect(screen.queryByRole("navigation", { name: "Trip views" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  expect(document.body).not.toHaveTextContent(/entr|days logged|With /);
+  // The invitation is the frame's; the trip closes with the one prompt.
+  expect(screen.queryByRole("link", { name: "Sign up" })).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("link", { name: `Climb with Alex Rivera on ${SITE_NAME}` }),
+  ).toHaveAttribute("href", signUp(PATH));
+});
+
+it("puts the trip's photos under its header, above the sends inside it", () => {
+  render(trip({ photos: <section aria-label="Photos">The album</section> }));
+
+  const photos = screen.getByRole("region", { name: "Photos" });
+  const name = screen.getByRole("heading", { name: "Bishop, March 2026" });
+  const sends = screen.getByRole("list");
+  expect(name.compareDocumentPosition(photos)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  expect(photos.compareDocumentPosition(sends)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 });
 
 it("says so when a long trip has more sends than the page shows", () => {
-  render(
-    <SharedTrip
-      owner={OWNER}
-      trip={{ ...BISHOP, sendCount: 120 }}
-      sends={[send(1, "Moon Slab")]}
-      areaBreadcrumbs={{}}
-      path="/users/owner-1/trips/7"
-      today={TODAY}
-    />,
-  );
+  render(trip({ trip: { ...BISHOP, sendCount: 120 }, sends: [send(1, "Moon Slab")] }));
 
   expect(screen.getByText("Showing the 1 most recent of 120 sends.")).toBeVisible();
   expect(screen.getByRole("link", { name: "See all 120 sends" })).toHaveAttribute(
     "href",
-    signUp("/users/owner-1/trips/7"),
+    signUp(PATH),
   );
 });
 
 it("marks a trip that has not started, as its card does", () => {
   render(
-    <SharedTrip
-      owner={OWNER}
-      trip={{ ...BISHOP, startDate: "2026-10-01", endDate: "2026-10-09", sendCount: 0 }}
-      sends={[]}
-      areaBreadcrumbs={{}}
-      path="/users/owner-1/trips/7"
-      today={TODAY}
-    />,
+    trip({
+      trip: { ...BISHOP, startDate: "2026-10-01", endDate: "2026-10-09", sendCount: 0 },
+      sends: [],
+    }),
   );
 
-  expect(screen.getByRole("region", { name: "Trip" })).toHaveTextContent("Upcoming");
+  expect(screen.getByText("Upcoming")).toBeVisible();
 });
 
 it("says a trip with nothing sent has nothing sent, in the shared profile's words", () => {
-  render(
-    <SharedTrip
-      owner={OWNER}
-      trip={{ ...BISHOP, sendCount: 0 }}
-      sends={[]}
-      areaBreadcrumbs={{}}
-      path="/users/owner-1/trips/7"
-      today={TODAY}
-    />,
-  );
+  render(trip({ trip: { ...BISHOP, sendCount: 0 }, sends: [] }));
 
   expect(screen.getByText("Alex Rivera hasn't logged a send on this trip yet.")).toBeVisible();
 });

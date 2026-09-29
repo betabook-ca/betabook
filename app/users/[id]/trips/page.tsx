@@ -3,18 +3,20 @@ import { notFound } from "next/navigation";
 
 import {
   ProfileHeader,
+  SharedProfileHeader,
   memberMetadata,
   resolveProfilePage,
   resolveSharedProfile,
 } from "@/app/users/[id]/profile-shell";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
-import { SharedTrips } from "@/components/trips/shared-trips";
 import { TripList } from "@/components/trips/trip-list";
 import { getDb } from "@/db/client";
 import { getTripsForUser } from "@/db/queries";
 import { goalToday } from "@/lib/goals";
+import { withProfileShare } from "@/lib/profile-share";
 import { getRequestTimezone } from "@/lib/request-timezone";
 import { sharedProfileMetadata } from "@/lib/seo";
+import { tripsHref } from "@/lib/trips";
 import type { UrlParamsRecord } from "@/lib/url-params";
 
 type UserTripsPageProps = {
@@ -49,7 +51,20 @@ export default async function UserTripsPage({ params, searchParams }: UserTripsP
     const shared = await resolveSharedProfile(id, search);
     if (!shared) return <CurrentPageAuthCallout />;
     const trips = await getTripsForUser(await getDb(), shared.id, null);
-    return <SharedTrips owner={shared} trips={trips} today={await today()} />;
+    return (
+      <SharedProfileHeader
+        owner={shared}
+        next={withProfileShare(tripsHref(shared.id), shared.token)}
+      >
+        <TripList
+          trips={trips}
+          userId={shared.id}
+          today={await today()}
+          canEdit={false}
+          shareToken={shared.token}
+        />
+      </SharedProfileHeader>
+    );
   }
   if (!resolved.ok) notFound();
   const { user, viewerId } = resolved;

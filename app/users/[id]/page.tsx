@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { JournalView } from "@/app/users/[id]/journal-view";
 import {
   ProfileHeader,
+  SharedProfileHeader,
   canReadUserJournal,
   memberMetadata,
   resolveProfilePage,
@@ -13,17 +14,10 @@ import { SendsView } from "@/app/users/[id]/sends-view";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { SharedProfile } from "@/components/shared-profile";
 import { getDb } from "@/db/client";
-import {
-  getAreaBreadcrumbs,
-  getSendsForUserPage,
-  getTripsForUser,
-  getUserSendsSummary,
-} from "@/db/queries";
+import { getAreaBreadcrumbs, getSendsForUserPage, getUserSendsSummary } from "@/db/queries";
 import { parseJournalFilter } from "@/lib/filters/journal-filter";
 import { DEFAULT_USER_SENDS_FILTER, parseUserSendsFilter } from "@/lib/filters/user-sends-filter";
-import { goalToday } from "@/lib/goals";
-import { SHARED_PROFILE_SENDS, SHARED_PROFILE_TRIPS, profileSharePath } from "@/lib/profile-share";
-import { getRequestTimezone } from "@/lib/request-timezone";
+import { SHARED_PROFILE_SENDS, profileSharePath } from "@/lib/profile-share";
 import { sharedProfileMetadata } from "@/lib/seo";
 import type { UrlParamsRecord } from "@/lib/url-params";
 
@@ -50,31 +44,25 @@ export default async function UserPage({ params, searchParams }: UserPageProps) 
     if (!shared) return <CurrentPageAuthCallout />;
     const db = await getDb();
     // A null viewer keeps Members and Friends commentary out of the preview.
-    const [summary, recent, trips, timezone] = await Promise.all([
+    const [summary, recent] = await Promise.all([
       getUserSendsSummary(db, shared.id),
       getSendsForUserPage(db, shared.id, DEFAULT_USER_SENDS_FILTER, 0, SHARED_PROFILE_SENDS, null),
-      getTripsForUser(db, shared.id, null),
-      getRequestTimezone(),
     ]);
     const areaBreadcrumbs = await getAreaBreadcrumbs(
       db,
       recent.sends.map((send) => send.areaId),
     );
+    const next = profileSharePath(shared.id, shared.token);
     return (
-      <SharedProfile
-        owner={shared}
-        summary={summary}
-        sends={recent.sends}
-        areaBreadcrumbs={areaBreadcrumbs}
-        trips={{
-          userId: shared.id,
-          token: shared.token,
-          latest: trips.slice(0, SHARED_PROFILE_TRIPS),
-          total: trips.length,
-          today: goalToday(timezone),
-        }}
-        next={profileSharePath(shared.id, shared.token)}
-      />
+      <SharedProfileHeader owner={shared} next={next}>
+        <SharedProfile
+          owner={shared}
+          sendCount={summary.sendCount}
+          sends={recent.sends}
+          areaBreadcrumbs={areaBreadcrumbs}
+          next={next}
+        />
+      </SharedProfileHeader>
     );
   }
   if (!resolved.ok) notFound();

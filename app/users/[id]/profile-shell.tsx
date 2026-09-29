@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { FriendshipButton } from "@/components/friendship-button";
 import { ProfileHeading } from "@/components/profile-heading";
+import { ProfileInvite } from "@/components/profile-invite";
 import { ProfileLayout } from "@/components/profile-layout";
 import { ProfileTabs } from "@/components/profile-tabs";
 import { WorkspaceShell } from "@/components/workspace-shell";
@@ -88,6 +89,37 @@ export function memberMetadata(
   if (!resolved.signedIn) return MEMBER_CONTENT_METADATA;
   if (!resolved.ok) notFound();
   return { title: title(resolved.user), robots: { index: false } };
+}
+
+/** The visitor's frame for the signed-out holder of the climber's profile
+ * link: the same heading and tabs, with the invitation where a member has the
+ * friendship control and only what the link opens. */
+export async function SharedProfileHeader({
+  owner,
+  next,
+  children,
+}: {
+  owner: { id: string; name: string; image: string | null; token: string };
+  /** The page the link opened, for signing up or in to return to. */
+  next: string;
+  children: ReactNode;
+}) {
+  const hardest = await getClimberHardest(await getDb(), owner.id);
+  return (
+    <ProfileLayout
+      heading={
+        <ProfileHeading
+          name={owner.name}
+          image={owner.image}
+          hardest={hardest}
+          note={<ProfileInvite name={owner.name} next={next} />}
+        />
+      }
+      tabs={<ProfileTabs userId={owner.id} showJournal={false} share={owner.token} />}
+    >
+      {children}
+    </ProfileLayout>
+  );
 }
 
 /** Owner workspaces use task tabs; visitors retain the climber's profile heading. */

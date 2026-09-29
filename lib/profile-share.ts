@@ -4,8 +4,6 @@ export const PROFILE_SHARE_PARAM = "share";
 
 /** Sends a signed-out share link previews; the rest stays behind sign-up. */
 export const SHARED_PROFILE_SENDS = 5;
-/** Trips the profile itself lists before pointing at the rest. */
-export const SHARED_PROFILE_TRIPS = 3;
 /** A trip can span a season, and a signed-out page takes no cursor. */
 export const SHARED_TRIP_SENDS = 50;
 

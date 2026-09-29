@@ -28,8 +28,8 @@ const BISHOP: TripSummary = {
 
 function header(
   trip: TripSummary,
-  viewerId = "alex",
-  access: { journalVisible?: boolean; notesVisible?: boolean } = {},
+  viewerId: string | null = "alex",
+  access: { journalVisible?: boolean; notesVisible?: boolean; share?: string } = {},
 ) {
   return (
     <TripHeader
@@ -40,6 +40,7 @@ function header(
       current="sends"
       journalVisible={access.journalVisible ?? true}
       notesVisible={access.notesVisible ?? true}
+      share={access.share}
     >
       <p>The view.</p>
     </TripHeader>
@@ -98,4 +99,25 @@ it("offers a friend no notes tab on a trip that has none, and the owner one to w
 
   rerender(header(BISHOP, "alex"));
   expect(screen.getByRole("navigation", { name: "Trip views" })).toHaveTextContent("Trip notes");
+});
+
+it("is the same header for the signed-out holder of the profile link, less what they cannot open", () => {
+  const token = "0123456789abcdef0123456789abcdef";
+  render(
+    header({ ...BISHOP, entryCount: null, dayCount: null }, null, {
+      journalVisible: false,
+      notesVisible: false,
+      share: token,
+    }),
+  );
+
+  expect(screen.getByRole("heading", { name: "Bishop, March 2026" })).toBeVisible();
+  expect(screen.getByText("Buttermilks.")).toBeVisible();
+  expect(screen.getByRole("link", { name: "All trips" })).toHaveAttribute(
+    "href",
+    `/users/alex/trips?share=${token}`,
+  );
+  // The link opens one view of a trip, so there is nothing to choose between.
+  expect(screen.queryByRole("navigation", { name: "Trip views" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button")).not.toBeInTheDocument();
 });

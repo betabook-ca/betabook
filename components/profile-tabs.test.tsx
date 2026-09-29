@@ -50,3 +50,23 @@ it("marks Sends current at the profile root when the journal is hidden", () => {
   expect(html).toContain('href="/users/other/sends" aria-current="page"');
   expect(html.match(/aria-current="page"/g)).toHaveLength(1);
 });
+
+const TOKEN = "0123456789abcdef0123456789abcdef";
+
+it.each([
+  ["/users/owner", `/users/owner?share=${TOKEN}`, "Sends"],
+  ["/users/owner/trips", `/users/owner/trips?share=${TOKEN}`, "Trips"],
+  ["/users/owner/trips/7", `/users/owner/trips?share=${TOKEN}`, "Trips"],
+])("offers a profile link's holder what the link opens, from %s", (pathname, href, label) => {
+  state.pathname = pathname;
+  const html = renderToStaticMarkup(
+    <ProfileTabs userId="owner" showJournal={false} share={TOKEN} />,
+  );
+
+  // Each tab carries the link, since nothing opens without it.
+  expect(hrefs(html)).toEqual([`/users/owner?share=${TOKEN}`, `/users/owner/trips?share=${TOKEN}`]);
+  expect(html).toMatch(
+    new RegExp(`href="${href.replace("?", "\\?")}"[^>]*aria-current="page"[^>]*>.*?${label}`),
+  );
+  expect(html.match(/aria-current="page"/g)).toHaveLength(1);
+});

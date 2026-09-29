@@ -1,5 +1,6 @@
 import { env } from "cloudflare:test";
 import { eq } from "drizzle-orm";
+import type { ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, it, vi } from "vitest";
 
@@ -66,6 +67,16 @@ const climbProps = {
   params: Promise.resolve({ id: "1", slug: ["test-highball"] }),
   searchParams: Promise.resolve({}),
 };
+/** A shared page is the visitor's frame around what the link opens. The
+ * frame reads the climber's hardest sends, so it is resolved before it can be
+ * rendered. */
+async function framed(page: unknown) {
+  const element = page as { type: unknown; props: unknown };
+  return typeof element.type === "function" && element.type.name === "SharedProfileHeader"
+    ? (element.type as (props: unknown) => Promise<ReactElement>)(element.props)
+    : (page as ReactElement);
+}
+
 const shareProps = (id: string, share: string) => ({
   params: Promise.resolve({ id }),
   searchParams: Promise.resolve({ share }),
@@ -228,18 +239,23 @@ it("previews recent climbing signed out through the owner's current share link",
   });
   const preview = await UserPage(shareProps("hidden", token));
   expect(preview.props).toMatchObject({
-    owner: { name: "Restricted identity sentinel", image: null },
-    summary: { sendCount: 7 },
+    owner: { id: "hidden", name: "Restricted identity sentinel", image: null, token },
     next: `/users/hidden?share=${token}`,
+    children: { props: { sendCount: 7 } },
   });
   const serialized = JSON.stringify(preview);
   const shown = [...serialized.matchAll(/Preview climb (\d)/g)].map((match) => match[1]);
   expect(shown).toEqual(["5", "4", "3", "2", "1"]);
   expect(serialized).not.toContain("Commentary sentinel");
   expect(serialized).not.toContain("Journal sentinel");
-  const html = renderToStaticMarkup(preview);
-  expect(html).toContain("Restricted identity sentinel invited you to Betabook");
+  const html = renderToStaticMarkup(await framed(preview));
+  // The heading a member sees, with the invitation where they have the
+  // friendship control.
+  expect(html).toContain("Restricted identity sentinel</h1>");
+  expect(html).toContain("Sign up to send Restricted identity sentinel a friend request");
+  expect(html).toContain('aria-label="Profile sections"');
   expect(html).toContain("See all 7 sends");
+  expect(html).not.toContain("invited you to");
 
   await db.update(user).set({ sendCommentVisibility: "everyone" }).where(eq(user.id, "hidden"));
   expect(JSON.stringify(await UserPage(shareProps("hidden", token)))).toContain(
@@ -298,8 +314,9 @@ const JOURNAL_SIDE = [
 it("opens the owner's trips, and the sends on each, through their profile link", async () => {
   const { token, trip } = await seedSharedTrip();
 
+  // The profile opens on its sends; the trips are a tab away, as for a member.
   const profile = JSON.stringify(await UserPage(shareProps("hidden", token)));
-  expect(profile).toContain("Trip sentinel");
+  expect(profile).not.toContain("Trip sentinel");
 
   expect(await tripsMetadata(shareProps("hidden", token))).toMatchObject({
     title: { absolute: "Restricted identity sentinel on Betabook" },
@@ -311,7 +328,8 @@ it("opens the owner's trips, and the sends on each, through their profile link",
   expect(list).toContain('"sendCount":3');
   expect(list).toContain('"entryCount":null');
   // The link travels with the list, since each trip opens by it.
-  expect(list).toContain(`"token":"${token}"`);
+  expect(list).toContain(`"shareToken":"${token}"`);
+  expect(list).toContain('"canEdit":false');
 
   expect(await tripMetadata(tripProps("hidden", trip.id, token))).toMatchObject({
     title: { absolute: "Restricted identity sentinel on Betabook" },

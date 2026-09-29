@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { JournalView } from "@/app/users/[id]/journal-view";
-import { ProfileHeader } from "@/app/users/[id]/profile-shell";
+import { ProfileHeader, SharedProfileHeader } from "@/app/users/[id]/profile-shell";
 import { SendsView } from "@/app/users/[id]/sends-view";
 import {
   resolveSharedTrip,
@@ -62,16 +62,19 @@ export default async function TripJournalPage({ params, searchParams }: TripPage
       db,
       sends.map((send) => send.areaId),
     );
+    const path = withProfileShare(tripHref(owner.id, trip.id), owner.token);
     return (
-      <SharedTrip
-        owner={owner}
-        trip={trip}
-        sends={sends}
-        areaBreadcrumbs={areaBreadcrumbs}
-        path={withProfileShare(tripHref(owner.id, trip.id), owner.token)}
-        today={await tripToday()}
-        photos={tripPhotos(trip)}
-      />
+      <SharedProfileHeader owner={owner} next={path}>
+        <SharedTrip
+          owner={owner}
+          trip={trip}
+          sends={sends}
+          areaBreadcrumbs={areaBreadcrumbs}
+          path={path}
+          today={await tripToday()}
+          photos={tripPhotos(trip)}
+        />
+      </SharedProfileHeader>
     );
   }
   if (!resolved.ok) notFound();
