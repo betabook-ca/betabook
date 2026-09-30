@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { MAX_TRIP_NAME, formatTripDates, tripHref, tripInputSchema, tripStatus } from "./trips";
+import {
+  MAX_TRIP_NAME,
+  formatTripDates,
+  tripAnalyticsHref,
+  tripHref,
+  tripInputSchema,
+  tripLogbookHref,
+  tripStatus,
+} from "./trips";
 
 const BISHOP = { startDate: "2026-03-10", endDate: "2026-03-20" };
 
@@ -72,6 +80,16 @@ describe("tripStatus", () => {
 describe("hrefs", () => {
   it("builds the detail path under the owner's logbook", () => {
     expect(tripHref("alex", 7)).toBe("/users/alex/trips/7");
+    expect(tripAnalyticsHref("alex", 7)).toBe("/users/alex/trips/7/analytics");
+  });
+
+  it("links to the Journal and Sends filtered to the trip's dates", () => {
+    expect(tripLogbookHref("alex", "journal", BISHOP)).toBe(
+      "/users/alex/journal?dateFrom=2026-03-10&dateTo=2026-03-20",
+    );
+    expect(tripLogbookHref("alex", "sends", BISHOP)).toBe(
+      "/users/alex/sends?dateFrom=2026-03-10&dateTo=2026-03-20",
+    );
   });
 });
 

@@ -2,6 +2,8 @@ import { buttonVariants } from "@heroui/styles";
 
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
+import { SectionHeading } from "@/components/ui/typography";
+import { formatCount } from "@/lib/format";
 import { signUpUrl } from "@/lib/sign-in-redirect";
 import { SITE_NAME } from "@/lib/site";
 
@@ -32,6 +34,34 @@ export function signUpCard({
       <AppLink href={signUpUrl(path)} className={`${buttonVariants()} shrink-0`}>
         Sign up
       </AppLink>
+    </section>
+  );
+}
+
+/** Sign-up prompt at the end of a shared page. Links to the rest of the sends if
+ * only some are shown, otherwise invites the visitor to join. Returns an
+ * element for the same reason as above. */
+export function signUpPrompt({
+  ownerName,
+  sendCount,
+  shown,
+  next,
+}: {
+  ownerName: string;
+  sendCount: number;
+  /** Number of sends shown on the page. */
+  shown: number;
+  next: string;
+}) {
+  const prompt =
+    sendCount > shown
+      ? `See all ${formatCount(sendCount, "send")}`
+      : `Climb with ${ownerName} on ${SITE_NAME}`;
+  return (
+    <section aria-label={prompt} className={cardClass("md", "bordered")}>
+      <SectionHeading>
+        <AppLink href={signUpUrl(next)}>{prompt}</AppLink>
+      </SectionHeading>
     </section>
   );
 }

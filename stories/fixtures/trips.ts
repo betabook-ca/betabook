@@ -1,4 +1,5 @@
 import type { TripSummary } from "@/db/queries";
+import type { CompanionOption } from "@/lib/journal-companions";
 
 /** A fixed "today" so the status chips are the same in every render of these
  * stories — `new Date()` here would make "Upcoming" flip to "On now" on the
@@ -10,31 +11,40 @@ export const tripSamples: TripSummary[] = [
     id: 3,
     name: "Squamish, July 2026",
     description: "Two weeks in the Bakery and whatever the weather allows on the Chief.",
+    albumUrl: null,
     startDate: "2026-07-04",
     endDate: "2026-07-18",
     entryCount: 0,
     sendCount: 0,
     dayCount: 0,
+    hasNotes: 0,
+    companions: [],
   },
   {
     id: 2,
     name: "Bishop, March 2026",
-    description: "Buttermilks and the Happies. Went with Sam and Priya.",
+    description: "Buttermilks and the Happies.",
+    albumUrl: null,
     startDate: "2026-03-10",
     endDate: "2026-03-20",
     entryCount: 14,
     sendCount: 9,
     dayCount: 7,
+    hasNotes: 0,
+    companions: [],
   },
   {
     id: 1,
     name: "A day at the Gunks",
     description: null,
+    albumUrl: null,
     startDate: "2026-01-11",
     endDate: "2026-01-11",
     entryCount: 1,
     sendCount: 1,
     dayCount: 1,
+    hasNotes: 0,
+    companions: [],
   },
 ];
 
@@ -43,9 +53,60 @@ export const currentTrip: TripSummary = {
   id: 4,
   name: "Spring road trip",
   description: "Utah, then Nevada if the heat holds off.",
+  albumUrl: null,
   startDate: "2026-04-01",
   endDate: "2026-04-30",
   entryCount: 6,
   sendCount: 3,
   dayCount: 4,
+  hasNotes: 0,
+  companions: [],
 };
+
+export const tripFriends: CompanionOption[] = [
+  { id: "sam", name: "Sam Okafor", image: null },
+  { id: "priya", name: "Priya Nair", image: null },
+  { id: "jo", name: "Jordan Lee", image: null },
+];
+
+/** Matches friends by name prefix, like the API. */
+export async function findTripFriends(query: string): Promise<CompanionOption[]> {
+  return tripFriends.filter((friend) => friend.name.toLowerCase().startsWith(query.toLowerCase()));
+}
+
+/** A trip with tagged friends, as the owner sees it. */
+export const tripWithFriends: TripSummary = {
+  id: 2,
+  name: "Bishop, March 2026",
+  description: "Buttermilks and the Happies.",
+  albumUrl: null,
+  startDate: "2026-03-10",
+  endDate: "2026-03-20",
+  entryCount: 14,
+  sendCount: 9,
+  dayCount: 7,
+  hasNotes: 1,
+  companions: tripFriends.slice(0, 2).map((friend) => ({ ...friend, isSelf: false })),
+};
+
+export const TRIP_NOTES = `Ten days in the **Buttermilks** and the *Happies* with Sam and Priya. Two rest days for the storm, one for skin.
+
+# Highlights
+
+- Finally held the crux on Moon Slab
+- First day out on volcanic tuff
+- Sunrise session at the Peabodys
+
+# Logistics
+
+1. Camped at the Pit
+2. Water and showers in town
+
+# Next time
+
+- [ ] Go back for the sit start
+- [x] Book the same site
+
+> Bring more tape than you think you need.
+
+[Topo and approach notes](https://example.com/guides/bishop)`;

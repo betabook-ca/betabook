@@ -47,6 +47,16 @@ it("shows the current link and its QR code and copies the link", async () => {
   expect(qr.querySelector("path")?.getAttribute("d")).not.toBe(firstCode);
 });
 
+it("describes what the link shows, including trip notes", () => {
+  render(<ShareProfileControls name="Alex Rivera" url={FIRST} />);
+
+  expect(
+    screen.getByText(
+      "Anyone with the link sees your name, photo, send stats, latest sends, and your trips with their notes, photos and sends.",
+    ),
+  ).toBeVisible();
+});
+
 it("opens the share sheet on a phone", async () => {
   Object.defineProperty(navigator, "userAgent", { configurable: true, get: () => IPHONE });
   const user = userEvent.setup();

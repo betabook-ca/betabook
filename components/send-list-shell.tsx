@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 
+import { SendRows } from "@/components/send-rows";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
 
 type SendListShellProps<T extends { id: number }> = {
@@ -30,11 +31,11 @@ export function SendListShell<T extends { id: number }>({
 
   return (
     <div className="flex flex-col gap-4">
-      <ul role="list" className="flex flex-col divide-y divide-separator">
+      <SendRows>
         {sends.map((send) => (
           <li key={send.id}>{renderRow(send)}</li>
         ))}
-      </ul>
+      </SendRows>
       {hasMore && (
         <LoadMoreButton onPress={onLoadMore} loading={loadingMore} failed={loadMoreFailed} />
       )}

@@ -4,10 +4,11 @@ import { notFound } from "next/navigation";
 import { JournalView } from "@/app/users/[id]/journal-view";
 import {
   ProfileHeader,
+  SharedProfileHeader,
   canReadUserJournal,
-  getShareLinkOwnerByToken,
   memberMetadata,
   resolveProfilePage,
+  resolveSharedProfile,
 } from "@/app/users/[id]/profile-shell";
 import { SendsView } from "@/app/users/[id]/sends-view";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
@@ -16,9 +17,8 @@ import { getDb } from "@/db/client";
 import { getAreaBreadcrumbs, getSendsForUserPage, getUserSendsSummary } from "@/db/queries";
 import { parseJournalFilter } from "@/lib/filters/journal-filter";
 import { DEFAULT_USER_SENDS_FILTER, parseUserSendsFilter } from "@/lib/filters/user-sends-filter";
-import { PROFILE_SHARE_PARAM, SHARED_PROFILE_SENDS, profileSharePath } from "@/lib/profile-share";
+import { SHARED_PROFILE_SENDS, profileSharePath } from "@/lib/profile-share";
 import { sharedProfileMetadata } from "@/lib/seo";
-import { parseShareToken } from "@/lib/share-token";
 import type { UrlParamsRecord } from "@/lib/url-params";
 
 type UserPageProps = {
@@ -26,18 +26,11 @@ type UserPageProps = {
   searchParams: Promise<UrlParamsRecord>;
 };
 
-async function getSharedProfile(id: string, search: UrlParamsRecord) {
-  const token = parseShareToken(search[PROFILE_SHARE_PARAM]);
-  if (!token) return null;
-  const owner = await getShareLinkOwnerByToken(token);
-  return owner?.id === id ? { ...owner, path: profileSharePath(id, token) } : null;
-}
-
 export async function generateMetadata({ params, searchParams }: UserPageProps): Promise<Metadata> {
   const [{ id }, search] = await Promise.all([params, searchParams]);
   const resolved = await resolveProfilePage(id, "viewer");
   if (!resolved.signedIn) {
-    const shared = await getSharedProfile(id, search);
+    const shared = await resolveSharedProfile(id, search);
     if (shared) return sharedProfileMetadata(shared.name);
   }
   return memberMetadata(resolved, (user) => user.name);
@@ -47,7 +40,7 @@ export default async function UserPage({ params, searchParams }: UserPageProps) 
   const [{ id }, search] = await Promise.all([params, searchParams]);
   const resolved = await resolveProfilePage(id, "viewer");
   if (!resolved.signedIn) {
-    const shared = await getSharedProfile(id, search);
+    const shared = await resolveSharedProfile(id, search);
     if (!shared) return <CurrentPageAuthCallout />;
     const db = await getDb();
     // A null viewer keeps Members and Friends commentary out of the preview.
@@ -59,14 +52,17 @@ export default async function UserPage({ params, searchParams }: UserPageProps) 
       db,
       recent.sends.map((send) => send.areaId),
     );
+    const next = profileSharePath(shared.id, shared.token);
     return (
-      <SharedProfile
-        owner={shared}
-        summary={summary}
-        sends={recent.sends}
-        areaBreadcrumbs={areaBreadcrumbs}
-        next={shared.path}
-      />
+      <SharedProfileHeader owner={shared} next={next}>
+        <SharedProfile
+          owner={shared}
+          sendCount={summary.sendCount}
+          sends={recent.sends}
+          areaBreadcrumbs={areaBreadcrumbs}
+          next={next}
+        />
+      </SharedProfileHeader>
     );
   }
   if (!resolved.ok) notFound();

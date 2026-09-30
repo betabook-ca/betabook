@@ -43,6 +43,13 @@ export const DEFAULT_ANALYTICS_LAYOUT: AnalyticsLayout = {
   charts: ["progression", "pyramid", "breakthroughs", "calendar"],
 };
 
+/** Layout for trip analytics. Leaves out the tiles and charts that compare
+ * months or years, which say nothing about a few days. */
+export const TRIP_ANALYTICS_LAYOUT: AnalyticsLayout = {
+  cards: ["sends", "hardest", "days", "firstTry"],
+  charts: ["pyramid"],
+};
+
 /** Invalid local preferences start fresh; reads and writes share one schema. */
 export function parseAnalyticsLayout(value: unknown): AnalyticsLayout {
   const result = analyticsLayoutSchema.safeParse(value);

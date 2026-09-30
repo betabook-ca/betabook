@@ -28,6 +28,7 @@ import { hashPassword } from "better-auth/crypto";
 import { TERMS_VERSION } from "../lib/terms.ts";
 import { requireLocalDb } from "./d1-local.ts";
 import { seedSocialData } from "./seed-social.ts";
+import { seedTrips } from "./seed-trips.ts";
 
 // Ordinals into BOULDER_HUECO (VB–V17) and ROPE_YDS (5.0–5.15d) in lib/grades.
 // Duplicated rather than imported: lib/ is reached through the `@/` alias, which
@@ -145,6 +146,8 @@ async function main() {
       console.log(
         `Added ${socialCount} friendships and requests and refreshed synthetic social scenarios.`,
       );
+      const tripCount = seedTrips(db, viewer.id);
+      console.log(`Added ${tripCount} trips and retagged the friends on every seeded trip.`);
     }
 
     db.exec("commit");
@@ -231,6 +234,9 @@ function upsertAccount(
  * the first parent. Deleting deepest-first is what makes it terminate.
  */
 function clear(db: DatabaseSync) {
+  // Delete trips too. The climbs and dates they refer to are about to be
+  // deleted.
+  db.exec("delete from trips");
   db.exec("delete from journal_entries");
   db.exec("delete from sends");
   db.exec("delete from climbs");

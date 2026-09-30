@@ -27,6 +27,27 @@ export function journalVisibleSql(viewerId: string | null, authorId: SQL): SQL {
   return contentVisibleSql(viewerId, authorId, sql`content_owner.journal_visibility`);
 }
 
+/** True if `token` is the owner's current share token and their profile isn't
+ * private. */
+function profileLinkSql(token: string | null, ownerId: SQL): SQL {
+  return sql`EXISTS (
+    SELECT 1 FROM profile_share_links link
+    JOIN user link_owner ON link_owner.id = link.user_id
+    WHERE link.token = ${token} AND link.user_id = ${ownerId} AND link_owner.is_private = 0
+  )`;
+}
+
+/** Trip notes are visible to the owner, their friends, and anyone with the
+ * owner's share link, signed in or not. The journal audience doesn't apply. */
+export function tripNotesVisibleSql(
+  viewerId: string | null,
+  authorId: SQL,
+  share: string | null,
+): SQL {
+  return sql`(${contentVisibleSql(viewerId, authorId, sql`'friends'`)}
+    OR ${profileLinkSql(share, authorId)})`;
+}
+
 export function sendCommentVisibleSql(viewerId: string | null, authorId: SQL): SQL {
   return contentVisibleSql(viewerId, authorId, sql`content_owner.send_comment_visibility`);
 }

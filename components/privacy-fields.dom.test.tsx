@@ -5,7 +5,7 @@ import { expect, it, vi } from "vitest";
 
 import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
 
-import { PrivacyFields } from "./privacy-fields";
+import { PrivacyDetails, PrivacyFields } from "./privacy-fields";
 
 function Privacy({ pending = false }: { pending?: boolean }) {
   const [isPrivate, setPrivate] = useState(false);
@@ -92,4 +92,31 @@ it("prevents changes to all three privacy controls during a save", async () => {
   }
   expect(change).not.toHaveBeenCalled();
   expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+});
+
+it("explains who can read trip notes", () => {
+  render(<PrivacyDetails defaultExpanded />);
+
+  const trips = screen
+    .getAllByRole("listitem")
+    .find((item) => /can see your trips/.test(item.textContent ?? ""));
+  expect(trips).toHaveTextContent(
+    "Your friends and anyone with your profile link can read trip notes, regardless of your Journal and goals setting.",
+  );
+  expect(trips).toHaveTextContent(
+    "People who can read your journal can also see a trip's journal entries and tagged friends.",
+  );
+  expect(trips).not.toHaveTextContent("Trips follow the audiences above");
+});
+
+it("explains who can see trip photos and where they load from", () => {
+  render(<PrivacyDetails defaultExpanded />);
+
+  const items = screen.getAllByRole("listitem").map((item) => item.textContent ?? "");
+  expect(items.find((item) => item.startsWith("Anyone with your profile link"))).toContain(
+    "your trips with their notes, photos and sends",
+  );
+  const trips = items.find((item) => /can see your trips/.test(item));
+  expect(trips).toContain("can see your trips, with their photos and sends");
+  expect(trips).toContain("Photos load from Google Photos.");
 });

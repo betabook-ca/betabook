@@ -1,18 +1,44 @@
 import { z } from "zod";
 
 import { formatDate } from "@/lib/format-date";
+import { MAX_JOURNAL_COMPANIONS } from "@/lib/journal-companions";
 import { isoDateSchema } from "@/lib/sends";
+import { albumLink } from "@/lib/trip-album";
 
 /** Enough for "Bishop, March 2026" or "Spring road trip — Utah and Nevada"
  * without letting a name push the trip card's heading onto four lines. */
 export const MAX_TRIP_NAME = 80;
-export const MAX_TRIP_DESCRIPTION = 2000;
+/** Max description length. The column's CHECK still allows 2,000, its original
+ * limit. Longer text belongs in notes. */
+export const MAX_TRIP_DESCRIPTION = 160;
+/** Max notes length, about 3,000 words. The column's CHECK is higher, so this
+ * can be raised without a migration. */
+export const MAX_TRIP_NOTES = 20_000;
 
 /** A ceiling rather than a product limit: trips are cheap rows and a climber
  * with twenty years of history may reasonably keep dozens. It exists so a
  * scripted client cannot fill the table, and it is enforced inside the INSERT
  * so concurrent requests cannot race past it. */
 export const MAX_TRIPS = 200;
+
+/** Collapses line breaks and extra whitespace into single spaces, so a pasted
+ * paragraph is accepted as one line instead of being rejected. */
+export function oneLine(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+/** Counts code points, to match SQLite's length() in migration 0051.
+ * `String.length` counts an emoji as two and would reject descriptions the
+ * migration left in place. */
+function characters(value: string): number {
+  let count = 0;
+  for (const _ of value) count += 1;
+  return count;
+}
+
+const INVALID_ALBUM = "Paste the link Google Photos gives you when you share an album.";
+const INVALID_FRIENDS = "Invalid friend selection";
+const TOO_MANY_FRIENDS = `Choose at most ${MAX_JOURNAL_COMPANIONS} friends`;
 
 export const tripInputSchema = z
   .object({
@@ -22,12 +48,32 @@ export const tripInputSchema = z
       .pipe(z.string().min(1, "Name your trip.").max(MAX_TRIP_NAME, "That name is too long.")),
     description: z
       .string()
-      .max(MAX_TRIP_DESCRIPTION, "That description is too long.")
-      .transform((value) => value.trim() || null)
+      .transform(oneLine)
+      .refine((value) => characters(value) <= MAX_TRIP_DESCRIPTION, "That description is too long.")
+      .transform((value) => value || null)
+      .nullable()
+      .optional(),
+    /** Shared Google Photos album URL. Empty removes it. */
+    albumUrl: z
+      .string()
+      .transform((value, ctx) => {
+        if (!value.trim()) return null;
+        const link = albumLink(value);
+        if (link) return link;
+        ctx.addIssue({ code: "custom", message: INVALID_ALBUM });
+        return z.NEVER;
+      })
       .nullable()
       .optional(),
     startDate: isoDateSchema,
     endDate: isoDateSchema,
+    /** Friend ids to tag. Omit to keep the existing tags. */
+    companions: z
+      .array(z.string().min(1, INVALID_FRIENDS).max(128, INVALID_FRIENDS), INVALID_FRIENDS)
+      .max(100, TOO_MANY_FRIENDS)
+      .transform((ids) => [...new Set(ids)])
+      .refine((ids) => ids.length <= MAX_JOURNAL_COMPANIONS, TOO_MANY_FRIENDS)
+      .optional(),
   })
   .superRefine((value, ctx) => {
     if (value.endDate < value.startDate)
@@ -38,20 +84,31 @@ export const tripInputSchema = z
       });
   });
 
+export const tripNotesSchema = z
+  .string()
+  .max(MAX_TRIP_NOTES, "Those notes are too long.")
+  .transform((value) => value.trim() || null);
+
 export function tripsHref(userId: string): string {
   return `/users/${userId}/trips`;
 }
 
-/** Each tab is a path segment rather than a query parameter, so it is its own
- * route with its own metadata and its own entry in history — the same shape
- * Projects uses for Open and Sent. */
-export type TripTab = "journal" | "sends" | "analytics";
+export function tripHref(userId: string, tripId: number): string {
+  return `/users/${userId}/trips/${tripId}`;
+}
 
-export function tripHref(userId: string, tripId: number, tab: TripTab = "journal"): string {
-  const base = `/users/${userId}/trips/${tripId}`;
-  // Journal is the trip's own page rather than a child, so a trip link and
-  // its first tab are one URL instead of two that render the same thing.
-  return tab === "journal" ? base : `${base}/${tab}`;
+export function tripAnalyticsHref(userId: string, tripId: number): string {
+  return `${tripHref(userId, tripId)}/analytics`;
+}
+
+/** Link to the Journal or Sends tab, filtered to the trip's dates. */
+export function tripLogbookHref(
+  userId: string,
+  page: "journal" | "sends",
+  trip: { startDate: string; endDate: string },
+): string {
+  const dates = new URLSearchParams({ dateFrom: trip.startDate, dateTo: trip.endDate });
+  return `/users/${userId}/${page}?${dates}`;
 }
 
 export type TripStatus = "upcoming" | "current" | "past";

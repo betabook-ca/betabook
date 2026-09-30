@@ -43,6 +43,8 @@ const config: StorybookConfig = {
   staticDirs: [
     "../public",
     { from: "../assets/fonts", to: "/fonts/barlow" },
+    // Stand-ins that stories must load over the network, not from data URLs.
+    { from: "../stories/static", to: "/static" },
     { from: "../node_modules/geist/dist/fonts/geist-sans", to: "/fonts/geist" },
   ],
   framework: {

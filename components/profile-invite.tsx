@@ -1,47 +1,35 @@
 import { buttonVariants } from "@heroui/styles";
 
 import { AppLink } from "@/components/ui/app-link";
-import { cardClass } from "@/components/ui/card";
-import { PageTitle } from "@/components/ui/typography";
-import { UserAvatar } from "@/components/ui/user-avatar";
 import { signInUrl, signUpUrl } from "@/lib/sign-in-redirect";
-import { SITE_NAME } from "@/lib/site";
 
+/** Sign-up invite shown under the user's name to signed-out visitors with a
+ * share link, where signed-in users see the friend button. */
 export function ProfileInvite({
   name,
-  image,
   next,
 }: {
   name: string;
-  image: string | null;
+  /** Where to return after sign-up or sign-in. */
   next: string;
 }) {
   return (
-    <section
-      aria-label="Invitation"
-      className={`flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between ${cardClass("md")}`}
-    >
-      <div className="flex min-w-0 items-center gap-4">
-        {/* Initials fallback keeps every invite the same shape. */}
-        <UserAvatar name={name} image={image} size="lg" />
-        <div className="flex min-w-0 flex-col gap-1">
-          <PageTitle className="break-words">
-            {name} invited you to {SITE_NAME}
-          </PageTitle>
-          <p className="text-sm text-muted">
-            Sign up to send {name} a friend request, see more of their climbing, and log your own
-            sends and sessions.
-          </p>
-        </div>
-      </div>
-      <div className="flex shrink-0 flex-wrap gap-3">
-        <AppLink href={signUpUrl(next)} className={buttonVariants()}>
+    <div className="flex flex-col gap-2">
+      <p className="text-muted">
+        Sign up to send {name} a friend request, see more of their climbing, and log your own sends
+        and sessions.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <AppLink href={signUpUrl(next)} className={buttonVariants({ size: "sm" })}>
           Sign up
         </AppLink>
-        <AppLink href={signInUrl(next)} className={buttonVariants({ variant: "outline" })}>
+        <AppLink
+          href={signInUrl(next)}
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
           Sign in
         </AppLink>
       </div>
-    </section>
+    </div>
   );
 }

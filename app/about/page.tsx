@@ -78,9 +78,9 @@ export default function AboutPage() {
             your name to signed-out visitors.
           </li>
           <li>
-            Your profile link and QR code show your name, photo, send stats and latest sends to
-            anyone who has them. Resetting the link, or making your profile private, stops old links
-            working.
+            Your profile link and QR code show your name, photo, send stats, latest sends, and your
+            trips with their notes, photos and sends to anyone who has them. Resetting the link, or
+            making your profile private, stops old links working.
           </li>
           <li>
             Only you can see your projects, unless you share one: that makes a link to a single
@@ -88,10 +88,10 @@ export default function AboutPage() {
             way you would a photo. You choose when it expires and can stop sharing at any time.
           </li>
           <li>
-            Only you can see your trips, unless you share one: that makes a link to one stretch of
-            dates showing your name and every session, note and send inside it. Anyone with the link
-            can open it, so share it the way you would a photo. You choose when it expires and can
-            stop sharing at any time.
+            Anyone who can see your sends can see your trips, with their photos and sends. Photos
+            load from Google Photos. People who can read your journal can also see a trip&apos;s
+            journal entries and tagged friends. Your friends and anyone with your profile link can
+            read trip notes, regardless of your journal setting.
           </li>
           <li>Only you can export your sends.</li>
         </ul>

@@ -11,31 +11,12 @@ import {
 import { user } from "./auth";
 import { trips } from "./trips";
 
-/** One climber's decision to show one trip to someone outside the Trips tab,
- * which is otherwise owner-only.
- *
- * There is no audience column, deliberately — the same reasoning as
- * `project_share_links`. A link is a link: whoever holds it can open it,
- * signed in or not. Labelling one Friends or Members would borrow the journal
- * audience's words for a mechanism that does not mean the same thing, and
- * someone reading "Friends" on a URL would reasonably conclude it was safe to
- * forward. The two controls a link can honestly offer are how long it lasts
- * and deleting it.
- *
- * The token is the whole credential and the whole URL — no user or trip id in
- * it, nothing to enumerate, and nothing revealed until it resolves.
- *
- * A share grants MORE than the owner's blanket `journal_visibility` and
- * `send_comment_visibility` for the entries inside the window — that is the
- * feature, not an oversight. It grants nothing else: companion tags are left
- * out because they name third parties who never saw this dialog, and no entry
- * outside the trip's dates is reachable through it.
- *
- * The composite foreign key is the invariant that matters: a share cannot
- * outlive the trip it describes, and cannot be pointed at a trip belonging to
- * someone else. Deleting the trip and deleting the account both take the link
- * with them. The second key to `user` is redundant through that path and kept
- * anyway, so an orphan cannot survive a manual `trips` repair. */
+/** Unused: trips no longer have their own share links. The table stays in the
+ * schema so drizzle-kit doesn't generate a DROP. Migrations run before the new
+ * worker is live, so the old worker still needs the table during a deploy. A
+ * later migration should drop it together with the
+ * `trip_share_revoke_on_private` trigger. That trigger is on `user`, so
+ * dropping only the table would make every switch to private fail. */
 export const tripShareLinks = sqliteTable(
   "trip_share_links",
   {

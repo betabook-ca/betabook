@@ -2,13 +2,15 @@ import { env } from "cloudflare:test";
 import { eq, sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { deleteTrip, saveTrip } from "@/actions";
+import { deleteTrip, removeMyTripTag, saveTrip, saveTripNotes } from "@/actions";
 import { createDb } from "@/db/client";
-import { getTripsForOwner } from "@/db/queries";
-import { trips } from "@/db/schema";
-import { MAX_TRIPS } from "@/lib/trips";
+import { getTripNotes, getTripsForUser } from "@/db/queries";
+import { tripCompanions, trips } from "@/db/schema";
+import { friendshipPair } from "@/lib/friendships";
+import { MAX_TRIP_DESCRIPTION, MAX_TRIP_NOTES, MAX_TRIPS } from "@/lib/trips";
 import {
   insertInBatches,
+  seedFixtureFriendship,
   seedFixtureTrip,
   seedFixtureTree,
   seedFixtureUser,
@@ -168,6 +170,80 @@ describe("editing a trip", () => {
     expect(await storedTripById(id)).toMatchObject({ description: null });
   });
 
+  it("normalizes a pasted album link", async () => {
+    const created = await saveTrip(null, {
+      ...BISHOP,
+      albumUrl: "  https://photos.app.goo.gl/Example1Album2Link3?utm_source=share \n",
+    });
+    const id = created.ok ? created.value : 0;
+    expect(await storedTripById(id)).toMatchObject({
+      albumUrl: "https://photos.app.goo.gl/Example1Album2Link3",
+    });
+
+    const long = "https://photos.google.com/share/AF1QipMUVJgB2WzAdzUroYx?key=c0ZfN3Zk";
+    expect((await saveTrip(id, { ...BISHOP, albumUrl: long })).ok).toBe(true);
+    expect(await storedTripById(id)).toMatchObject({ albumUrl: long });
+
+    expect((await saveTrip(id, { ...BISHOP, albumUrl: "  " })).ok).toBe(true);
+    expect(await storedTripById(id)).toMatchObject({ albumUrl: null });
+  });
+
+  it.each([
+    ["another site", "https://example.com/albums/bishop"],
+    ["a single photo", "https://photos.google.com/photo/AF1QipMUVJgB2WzAdz"],
+    ["a lookalike host", "https://photos.app.goo.gl.example.com/Example1Album2Link3"],
+    ["a javascript: URL", "javascript:alert(1)"],
+  ])("rejects %s as an album and keeps the existing one", async (_label, albumUrl) => {
+    const kept = "https://photos.app.goo.gl/Example1Album2Link3";
+    const created = await saveTrip(null, { ...BISHOP, albumUrl: kept });
+    const id = created.ok ? created.value : 0;
+
+    expect(await saveTrip(id, { ...BISHOP, albumUrl })).toMatchObject({
+      ok: false,
+      error: "Paste the link Google Photos gives you when you share an album.",
+    });
+    expect(await saveTrip(null, { ...BISHOP, albumUrl })).toMatchObject({ ok: false });
+    expect(await storedTripById(id)).toMatchObject({ albumUrl: kept });
+    expect(await storedTrips()).toHaveLength(1);
+  });
+
+  it("limits the description to one line of 160 characters", async () => {
+    const created = await saveTrip(null, {
+      ...BISHOP,
+      description: "  Buttermilks\nand \t the Happies.\n\n",
+    });
+    const id = created.ok ? created.value : 0;
+    expect(await storedTripById(id)).toMatchObject({
+      description: "Buttermilks and the Happies.",
+    });
+
+    expect(
+      await saveTrip(id, { ...BISHOP, description: "a".repeat(MAX_TRIP_DESCRIPTION + 1) }),
+    ).toMatchObject({ ok: false, error: "That description is too long." });
+    expect(await storedTripById(id)).toMatchObject({
+      description: "Buttermilks and the Happies.",
+    });
+
+    expect(MAX_TRIP_DESCRIPTION).toBeLessThanOrEqual(200);
+    const longest = "a".repeat(MAX_TRIP_DESCRIPTION);
+    expect((await saveTrip(id, { ...BISHOP, description: longest })).ok).toBe(true);
+    expect(await storedTripById(id)).toMatchObject({ description: longest });
+  });
+
+  it("counts description length in characters, not UTF-16 units", async () => {
+    const created = await saveTrip(null, BISHOP);
+    const id = created.ok ? created.value : 0;
+    // Each emoji is one character but two UTF-16 code units.
+    const climbers = "🧗".repeat(MAX_TRIP_DESCRIPTION);
+    expect(climbers.length).toBe(MAX_TRIP_DESCRIPTION * 2);
+
+    expect((await saveTrip(id, { ...BISHOP, description: climbers })).ok).toBe(true);
+    expect(await saveTrip(id, { ...BISHOP, description: `${climbers}🧗` })).toMatchObject({
+      ok: false,
+      error: "That description is too long.",
+    });
+  });
+
   it("moves updated_at forward, so the column does not quietly lie", async () => {
     const created = await saveTrip(null, BISHOP);
     const id = created.ok ? created.value : 0;
@@ -212,7 +288,7 @@ describe("deleting a trip", () => {
     const id = created.ok ? created.value : 0;
 
     expect((await deleteTrip(id)).ok).toBe(true);
-    expect(await getTripsForOwner(db, "climber")).toHaveLength(0);
+    expect(await getTripsForUser(db, "climber", "climber")).toHaveLength(0);
   });
 
   it("refuses to delete another climber's trip", async () => {
@@ -224,7 +300,7 @@ describe("deleting a trip", () => {
     });
 
     await deleteTrip(theirs.id);
-    expect(await getTripsForOwner(db, "other")).toHaveLength(1);
+    expect(await getTripsForUser(db, "other", "other")).toHaveLength(1);
   });
 
   it("treats deleting a trip that is already gone as the end state it asked for", async () => {
@@ -237,6 +313,281 @@ describe("deleting a trip", () => {
 
     identity.id = null;
     expect((await deleteTrip(id)).ok).toBe(false);
-    expect(await getTripsForOwner(db, "climber")).toHaveLength(1);
+    expect(await getTripsForUser(db, "climber", "climber")).toHaveLength(1);
+  });
+});
+
+describe("saving trip notes", () => {
+  const NOTES = "# Day one\n\n**Sent** the project.";
+
+  async function bishop() {
+    const created = await saveTrip(null, BISHOP);
+    return created.ok ? created.value : 0;
+  }
+
+  it("saves the notes without changing the trip's other fields", async () => {
+    const id = await bishop();
+
+    expect((await saveTripNotes(id, `  ${NOTES}\n`)).ok).toBe(true);
+
+    expect(await storedTripById(id)).toMatchObject({
+      notes: NOTES,
+      name: "Bishop",
+      description: "Buttermilks",
+      startDate: "2026-03-10",
+      endDate: "2026-03-20",
+    });
+    expect(await getTripNotes(db, "climber", id, "climber")).toBe(NOTES);
+  });
+
+  it("keeps the notes when the trip is edited", async () => {
+    const id = await bishop();
+    await saveTripNotes(id, NOTES);
+
+    await saveTrip(id, { ...BISHOP, name: "Bishop, take two", description: "" });
+
+    expect(await storedTripById(id)).toMatchObject({ name: "Bishop, take two", notes: NOTES });
+  });
+
+  it("clears the notes when saved empty", async () => {
+    const id = await bishop();
+    await saveTripNotes(id, NOTES);
+
+    expect((await saveTripNotes(id, " \n ")).ok).toBe(true);
+    expect(await storedTripById(id)).toMatchObject({ notes: null });
+  });
+
+  it("rejects notes over the limit and keeps the stored notes", async () => {
+    const id = await bishop();
+    await saveTripNotes(id, NOTES);
+
+    const result = await saveTripNotes(id, "a".repeat(MAX_TRIP_NOTES + 1));
+    expect(result).toMatchObject({ ok: false, error: "Those notes are too long." });
+    expect(await storedTripById(id)).toMatchObject({ notes: NOTES });
+
+    expect((await saveTripNotes(id, "a".repeat(MAX_TRIP_NOTES))).ok).toBe(true);
+  });
+
+  it("rejects notes that aren't a string", async () => {
+    const id = await bishop();
+    expect((await saveTripNotes(id, { notes: NOTES })).ok).toBe(false);
+    expect(await storedTripById(id)).toMatchObject({ notes: null });
+  });
+
+  it("updates updated_at", async () => {
+    const id = await bishop();
+    await db.run(sql`UPDATE trips SET updated_at = 0 WHERE id = ${id}`);
+
+    await saveTripNotes(id, NOTES);
+
+    const [stored] = await storedTrips();
+    expect(stored.updatedAt.getTime()).toBeGreaterThan(0);
+  });
+
+  it("rejects saving notes on another user's trip", async () => {
+    const theirs = await seedFixtureTrip(db, {
+      userId: "other",
+      name: "Squamish",
+      startDate: "2026-05-01",
+      endDate: "2026-05-10",
+      notes: "Theirs.",
+    });
+
+    expect(await saveTripNotes(theirs.id, NOTES)).toMatchObject({
+      ok: false,
+      error: "Trip not found",
+    });
+    expect(await storedTripById(theirs.id)).toMatchObject({ notes: "Theirs." });
+    expect(await getTripNotes(db, "climber", theirs.id, "climber")).toBeNull();
+    expect(await getTripNotes(db, "other", theirs.id, "other")).toBe("Theirs.");
+  });
+
+  it("rejects signed-out and rate-limited callers", async () => {
+    const id = await bishop();
+
+    limits.allow = false;
+    expect((await saveTripNotes(id, NOTES)).ok).toBe(false);
+    limits.allow = true;
+    identity.id = null;
+    expect((await saveTripNotes(id, NOTES)).ok).toBe(false);
+
+    expect(await storedTripById(id)).toMatchObject({ notes: null });
+  });
+});
+
+describe("tagging friends on a trip", () => {
+  const UNAVAILABLE =
+    "A selected friend is no longer available for this trip. Refresh and update your tagged friends.";
+
+  function tagged(tripId: number) {
+    return db
+      .select({ userId: tripCompanions.userId, suppressed: tripCompanions.suppressed })
+      .from(tripCompanions)
+      .where(eq(tripCompanions.tripId, tripId))
+      .orderBy(tripCompanions.userId);
+  }
+
+  beforeEach(async () => {
+    for (const id of ["priya", "sam"]) {
+      await seedFixtureUser(db, { id, name: `Friend ${id}` });
+      await seedFixtureFriendship(db, "climber", id);
+    }
+    await seedFixtureUser(db, { id: "asked", name: "Not Yet A Friend" });
+    await seedFixtureFriendship(db, "climber", "asked", "pending");
+  });
+
+  it("tags the selected friends on a new trip", async () => {
+    const result = await saveTrip(null, { ...BISHOP, companions: ["sam", "priya", "sam"] });
+    const id = result.ok ? result.value : 0;
+
+    expect(await tagged(id)).toEqual([
+      { userId: "priya", suppressed: false },
+      { userId: "sam", suppressed: false },
+    ]);
+    const [trip] = await getTripsForUser(db, "climber", "climber");
+    expect(trip.companions.map((friend) => friend.name)).toEqual(["Friend priya", "Friend sam"]);
+  });
+
+  it("replaces tags when companions are sent and keeps them when omitted", async () => {
+    const created = await saveTrip(null, { ...BISHOP, companions: ["sam"] });
+    const id = created.ok ? created.value : 0;
+
+    expect((await saveTrip(id, { ...BISHOP, companions: ["priya"] })).ok).toBe(true);
+    expect(await tagged(id)).toEqual([{ userId: "priya", suppressed: false }]);
+
+    // The dialog only sends companions when the user changed them.
+    expect((await saveTrip(id, { ...BISHOP, name: "Bishop, take two" })).ok).toBe(true);
+    expect(await tagged(id)).toEqual([{ userId: "priya", suppressed: false }]);
+
+    expect((await saveTrip(id, { ...BISHOP, companions: [] })).ok).toBe(true);
+    expect(await tagged(id)).toEqual([]);
+  });
+
+  it.each(["other", "asked", "climber", "nobody"])(
+    "rejects %s as a companion and creates no trip",
+    async (friend) => {
+      const result = await saveTrip(null, { ...BISHOP, companions: ["sam", friend] });
+
+      expect(result).toMatchObject({ ok: false, error: UNAVAILABLE });
+      expect(await storedTrips()).toEqual([]);
+      expect(await db.select().from(tripCompanions)).toEqual([]);
+    },
+  );
+
+  it("rejects an edit that tags an unavailable friend and leaves the trip unchanged", async () => {
+    const created = await saveTrip(null, { ...BISHOP, companions: ["sam"] });
+    const id = created.ok ? created.value : 0;
+
+    const result = await saveTrip(id, { ...BISHOP, name: "Renamed", companions: ["other"] });
+
+    expect(result).toMatchObject({ ok: false, error: UNAVAILABLE });
+    expect(await storedTripById(id)).toMatchObject({ name: "Bishop" });
+    expect(await tagged(id)).toEqual([{ userId: "sam", suppressed: false }]);
+  });
+
+  it("rejects more than ten friends and invalid companion lists", async () => {
+    const eleven = Array.from({ length: 11 }, (_unused, index) => `friend-${index}`);
+
+    expect(await saveTrip(null, { ...BISHOP, companions: eleven })).toMatchObject({
+      ok: false,
+      error: "Choose at most 10 friends",
+    });
+    expect((await saveTrip(null, { ...BISHOP, companions: "sam" })).ok).toBe(false);
+    expect((await saveTrip(null, { ...BISHOP, companions: [""] })).ok).toBe(false);
+    expect(await storedTrips()).toEqual([]);
+  });
+
+  it("adds no tags when the trip limit blocks the trip", async () => {
+    await insertInBatches(
+      db,
+      Array.from({ length: MAX_TRIPS }, (_unused, index) => ({
+        userId: "climber",
+        name: `Trip ${index}`,
+        startDate: "2026-01-01",
+        endDate: "2026-01-02",
+      })),
+      20,
+      (chunk) => db.insert(trips).values(chunk),
+    );
+
+    const result = await saveTrip(null, { ...BISHOP, companions: ["sam"] });
+
+    expect(result.ok).toBe(false);
+    expect(await storedTrips()).toHaveLength(MAX_TRIPS);
+    // The last row inserted on this connection is another of the user's trips,
+    // which is where a stale insert id would put the tag.
+    expect(await db.select().from(tripCompanions)).toEqual([]);
+  });
+
+  it("does not change tags on another user's trip", async () => {
+    await seedFixtureFriendship(db, "other", "sam");
+    const theirs = await seedFixtureTrip(db, {
+      userId: "other",
+      name: "Squamish",
+      startDate: "2026-05-01",
+      endDate: "2026-05-10",
+    });
+    const pair = friendshipPair("other", "sam");
+    await db.insert(tripCompanions).values({
+      tripId: theirs.id,
+      userId: "sam",
+      friendshipUserId: pair.userId,
+      friendshipFriendId: pair.friendId,
+    });
+
+    for (const companions of [[], ["priya"]]) {
+      expect(await saveTrip(theirs.id, { ...BISHOP, companions })).toMatchObject({ ok: false });
+      expect(await tagged(theirs.id)).toEqual([{ userId: "sam", suppressed: false }]);
+    }
+    expect(await storedTripById(theirs.id)).toMatchObject({ name: "Squamish" });
+  });
+
+  describe("removing your own tag", () => {
+    async function taggedTrip() {
+      const created = await saveTrip(null, { ...BISHOP, companions: ["sam", "priya"] });
+      return created.ok ? created.value : 0;
+    }
+
+    it("removes the friend's tag and blocks re-tagging", async () => {
+      const id = await taggedTrip();
+
+      identity.id = "sam";
+      expect((await removeMyTripTag(id)).ok).toBe(true);
+      expect(await tagged(id)).toEqual([
+        { userId: "priya", suppressed: false },
+        { userId: "sam", suppressed: true },
+      ]);
+
+      identity.id = "climber";
+      const [trip] = await getTripsForUser(db, "climber", "climber");
+      expect(trip.companions.map((friend) => friend.id)).toEqual(["priya"]);
+      expect(await saveTrip(id, { ...BISHOP, companions: ["sam", "priya"] })).toMatchObject({
+        ok: false,
+        error: UNAVAILABLE,
+      });
+      // The other companions still save.
+      expect((await saveTrip(id, { ...BISHOP, companions: ["priya"] })).ok).toBe(true);
+    });
+
+    it("rejects users who aren't tagged or can't read the journal", async () => {
+      const id = await taggedTrip();
+
+      identity.id = "other";
+      expect(await removeMyTripTag(id)).toMatchObject({
+        ok: false,
+        error: "This tag is no longer available",
+      });
+
+      await db.run(sql`UPDATE user SET journal_visibility = 'private' WHERE id = 'climber'`);
+      identity.id = "sam";
+      expect((await removeMyTripTag(id)).ok).toBe(false);
+
+      identity.id = null;
+      expect((await removeMyTripTag(id)).ok).toBe(false);
+      expect(await tagged(id)).toEqual([
+        { userId: "priya", suppressed: false },
+        { userId: "sam", suppressed: false },
+      ]);
+    });
   });
 });
