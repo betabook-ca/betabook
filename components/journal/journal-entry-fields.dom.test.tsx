@@ -370,6 +370,8 @@ it("attaches videos to a new ascent, not to a session", async () => {
   ]);
 
   onSave.mockClear();
+  // The form is disabled until the save settles, and a click before then is dropped.
+  await waitFor(() => expect(screen.getByRole("radio", { name: "Session" })).toBeEnabled());
   await user.click(screen.getByRole("radio", { name: "Session" }));
   await user.click(screen.getByRole("button", { name: "Save entry" }));
   await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
