@@ -27,11 +27,15 @@ export function ProfileHeading({
     <div className="@container min-w-0">
       {/* Rows are spaced by margins so an absent note adds no height. */}
       <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 @2xl:gap-x-4">
+        {/* The avatar is centred on the name and badges, not on the note. */}
         <UserAvatar
           name={name}
           image={image}
           size="lg"
-          className="@max-2xl:size-12 @max-2xl:text-sm @xs:row-span-3"
+          className={clsx(
+            "@max-2xl:size-12 @max-2xl:text-sm",
+            hardest.length > 0 && "@xs:row-span-2",
+          )}
         />
         <div className="flex min-w-0 items-center gap-1">
           <PageTitle size="lg" className="min-w-0 break-words">
@@ -62,8 +66,12 @@ export function ProfileHeading({
             </ul>
           </section>
         )}
+        {/* A note can be a paragraph and buttons, so on a phone it takes the
+            full width below the avatar. */}
         {note && (
-          <div className="col-span-2 mt-1.5 text-sm @xs:col-span-1 @xs:col-start-2">{note}</div>
+          <div className="col-span-2 mt-1.5 text-sm @xs:mt-3 @2xl:col-span-1 @2xl:col-start-2 @2xl:mt-1.5">
+            {note}
+          </div>
         )}
       </div>
     </div>

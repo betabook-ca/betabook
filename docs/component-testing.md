@@ -71,7 +71,9 @@ files. These are Markdown instructions; runner configuration controls collection
   `user-event`, and explain the reason. Assert values, identities, callback
   arguments, errors and state changes that matter to a caller or user.
 - Mock external boundaries such as transport, Next.js navigation, an invoked
-  server action or a browser API. A mocked save callback proves what the form
+  server action or a browser API. `next/link` is already a plain anchor in
+  both projects ([test/setup-next-link.ts](../test/setup-next-link.ts)); mock
+  it again only to observe it, spreading `@/test/next-link`. A mocked save callback proves what the form
   submits; test authorization and persistence by calling the real action in the
   Workers suite.
 - Exercise pending, rejection, retry, reset and stale-response cases when relevant.

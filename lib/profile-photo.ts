@@ -22,6 +22,9 @@ export const PROFILE_PHOTO_CONTENT_TYPE = "image/webp";
  * still hold it, and that window should end on its own. */
 export const PROFILE_PHOTO_CACHE_CONTROL = "public, max-age=604800, immutable";
 
+/** The Cache API store each colo keeps served photos in, for that max-age. */
+export const PROFILE_PHOTO_CACHE_NAME = "profile-photos";
+
 /** What the upload action accepts. The picker resizes and crops before
  * uploading, so a real submission is ~80 KB; this cap is for anything that
  * skips the picker, and stays under the server action body limit configured
@@ -60,6 +63,23 @@ type AcceptedProfilePhotoType = (typeof ACCEPTED_PROFILE_PHOTO_TYPES)[number];
 
 export function isProfilePhotoKey(key: string): boolean {
   return KEY_PATTERN.test(key);
+}
+
+/** The key's digest is the bytes' digest, so it is the entity tag too, and a
+ * conditional request can be answered without reading the object. */
+export function profilePhotoEtag(key: string): string {
+  return `"${key.slice(key.indexOf("/") + 1, -".webp".length)}"`;
+}
+
+/** Whether an `If-None-Match` header names this photo (a weak tag counts:
+ * the bytes behind a key never change). */
+export function profilePhotoUnchanged(ifNoneMatch: string | null, key: string): boolean {
+  if (!ifNoneMatch) return false;
+  const etag = profilePhotoEtag(key);
+  return ifNoneMatch.split(",").some((tag) => {
+    const candidate = tag.trim();
+    return candidate === "*" || candidate === etag || candidate === `W/${etag}`;
+  });
 }
 
 export function profilePhotoPath(key: string): string {

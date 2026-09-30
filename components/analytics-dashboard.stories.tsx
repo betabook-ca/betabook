@@ -12,6 +12,7 @@ import { buildAnalyticsHighlights, type HighlightSession } from "@/lib/analytics
 import {
   ANALYTICS_CARD_IDS,
   DEFAULT_ANALYTICS_LAYOUT,
+  TRIP_ANALYTICS_LAYOUT,
   parseAnalyticsLayout,
 } from "@/lib/analytics-layout";
 import {
@@ -261,6 +262,33 @@ function DashboardExample({
 }
 
 export const AllTime: Story = { render: () => <DashboardExample /> };
+
+const tripSends = sends.slice(0, 4).map((send, index) => ({
+  ...send,
+  dateSent: `2026-03-1${index + 2}`,
+}));
+
+/** Trip analytics: a fixed layout with four tiles and the grade pyramid. */
+export const Trip: Story = {
+  render: () => (
+    <StoryPage title="Analytics">
+      <AnalyticsDashboard
+        activityHeading="Activity on this trip"
+        analytics={{
+          ...buildUserAnalytics(tripSends, "boulder", undefined, []),
+          daysPerMonth: null,
+        }}
+        sends={tripSends}
+        selectedYears={[]}
+        undatedCount={0}
+        scope="boulder"
+        journalVisible={false}
+        periodPicker={null}
+        initialLayout={TRIP_ANALYTICS_LAYOUT}
+      />
+    </StoryPage>
+  ),
+};
 export const SelectedYear: Story = { render: () => <DashboardExample initialPeriod={[2025]} /> };
 export const EmptyYear: Story = { render: () => <DashboardExample initialPeriod={[2023]} /> };
 export const UndatedOnly: Story = { render: () => <DashboardExample undatedOnly /> };

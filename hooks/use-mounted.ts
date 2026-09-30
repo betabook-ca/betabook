@@ -1,19 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
-/** True only after the first client render — gates on rendering
- * client-resolved state (session, theme, etc.) so the server and first
- * client render stay identical and hydration can't mismatch. */
+const subscribe = () => () => {};
+
+/** False on the server and during hydration, true otherwise — gates
+ * rendering client-resolved state (session, theme, etc.) so the server and
+ * first client render stay identical and hydration can't mismatch.
+ *
+ * React reads the server snapshot only while hydrating, so a component
+ * mounted later (a navigation's loading state, an opened dialog) renders as
+ * mounted from its first render instead of flashing its server-shaped
+ * fallback for a frame. */
 export function useMounted(): boolean {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    // One-time SSR/CSR reconciliation, not a derived-state sync: this fires
-    // exactly once per mount, so it can't cascade.
-    // oxlint-disable-next-line react/set-state-in-effect
-    setMounted(true);
-  }, []);
-
-  return mounted;
+  return useSyncExternalStore(
+    subscribe,
+    () => true,
+    () => false,
+  );
 }

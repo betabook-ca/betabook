@@ -1,6 +1,5 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { MouseEvent, ReactNode } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { HeaderNavigation } from "./app-menu";
@@ -21,29 +20,6 @@ beforeEach(() => {
 vi.mock("next/navigation", () => ({
   usePathname: () => navigation.pathname,
   useRouter: () => ({ push: () => {}, refresh: () => {} }),
-}));
-vi.mock("next/link", () => ({
-  default: ({
-    href,
-    children,
-    onClick,
-    ...props
-  }: {
-    href: string;
-    children: ReactNode;
-    onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
-  }) => (
-    <a
-      href={href}
-      {...props}
-      onClick={(event) => {
-        event.preventDefault();
-        onClick?.(event);
-      }}
-    >
-      {children}
-    </a>
-  ),
 }));
 vi.mock("@/lib/auth-client", () => ({
   authClient: {

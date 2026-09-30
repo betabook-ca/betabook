@@ -1,5 +1,6 @@
 import { env } from "cloudflare:test";
 import { eq } from "drizzle-orm";
+import { createRequestContext, runWithRequestContext } from "vinext/shims/unified-request-context";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type TestSession = { user: { id: string; role: string | null } } | null;
@@ -59,6 +60,17 @@ it.each(["better-auth.session_token", "__Secure-better-auth.session_token"])(
 it("does not grant access just because a token is present", async () => {
   await expect(getMemberSession()).resolves.toBeNull();
   expect(getSessionMock).toHaveBeenCalledWith({ headers: requestHeaders.value });
+});
+
+it("reads the session once for metadata, template and page in one request", async () => {
+  const session = { user: { id: "1", role: null } };
+  getSessionMock.mockResolvedValue(session);
+  const [metadata, page] = await runWithRequestContext(createRequestContext(), () =>
+    Promise.all([getMemberSession(), getMemberSession()]),
+  );
+  expect(metadata).toBe(session);
+  expect(page).toBe(session);
+  expect(getSessionMock).toHaveBeenCalledTimes(1);
 });
 
 describe("requireSession", () => {

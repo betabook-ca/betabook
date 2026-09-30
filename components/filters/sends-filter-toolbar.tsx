@@ -88,18 +88,11 @@ export function UserSendsFilterToolbar({
   basePath,
   tags = EMPTY_TAGS,
   areaFetcher,
-  lockedDateRange = false,
 }: {
   areaFetcher?: ComponentProps<typeof AreaLookup>["fetcher"];
   tags?: string[];
   filter: UserSendsFilter;
   basePath: string;
-  /** Hides the date control and its removable chip. The dates are not a filter
-   * the reader chose — they are the trip they are looking at — so offering a
-   * way to clear them would let the climber empty a trip from inside it. The
-   * page re-pins the window server-side regardless; this keeps the UI honest
-   * about what can be changed. */
-  lockedDateRange?: boolean;
 }) {
   const router = useRouter();
   const {
@@ -141,7 +134,7 @@ export function UserSendsFilterToolbar({
       onChange={setDisciplineFilter}
       onReset={reset}
       activeFilters={[
-        ...(lockedDateRange ? [] : dateActiveFilters(disciplineFilter, setDisciplineFilter)),
+        ...dateActiveFilters(disciplineFilter, setDisciplineFilter),
         ...hashtagActiveFilters(disciplineFilter.tags ?? EMPTY_TAGS, (tags) =>
           setDisciplineFilter({ ...disciplineFilter, tags }),
         ),
@@ -231,12 +224,10 @@ export function UserSendsFilterToolbar({
             tags={tags}
             onChange={(tags) => setDisciplineFilter({ ...disciplineFilter, tags })}
           />
-          {!lockedDateRange && (
-            <DateFilter
-              value={disciplineFilter}
-              onChange={(dates) => setDisciplineFilter({ ...disciplineFilter, ...dates })}
-            />
-          )}
+          <DateFilter
+            value={disciplineFilter}
+            onChange={(dates) => setDisciplineFilter({ ...disciplineFilter, ...dates })}
+          />
           <AscentStyleFields
             value={disciplineFilter.ascentStyles}
             onChange={(ascentStyles) => setDisciplineFilter({ ...disciplineFilter, ascentStyles })}

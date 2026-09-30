@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it, vi } from "vitest";
 
@@ -15,11 +14,6 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/tutorial/journal/journal",
 }));
 vi.mock("next/image", () => ({ default: () => null }));
-vi.mock("next/link", () => ({
-  default: ({ href, children }: { href: string; children: ReactNode }) => (
-    <a href={href}>{children}</a>
-  ),
-}));
 vi.mock("@/actions", () => ({
   saveProductTourStatus: vi.fn<typeof import("@/actions").saveProductTourStatus>(),
 }));

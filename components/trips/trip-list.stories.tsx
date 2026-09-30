@@ -3,14 +3,14 @@ import { mocked, userEvent, within } from "storybook/test";
 
 import { deleteTrip } from "@/actions";
 import { StoryPage } from "@/stories/fixtures/story-layout";
-import { TRIPS_TODAY, currentTrip, tripSamples } from "@/stories/fixtures/trips";
+import { TRIPS_TODAY, currentTrip, tripSamples, tripWithFriends } from "@/stories/fixtures/trips";
 
 import { TripList } from "./trip-list";
 
 const meta = {
   title: "Components/Trips/Trip list",
   component: TripList,
-  args: { userId: "alex", today: TRIPS_TODAY },
+  args: { userId: "alex", today: TRIPS_TODAY, canEdit: true },
 } satisfies Meta<typeof TripList>;
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -46,6 +46,48 @@ export const Empty: Story = {
       title="Trips"
       description="Before the first trip. The empty state carries the explanation, because nothing on the page demonstrates it yet — and the only New trip button, so there are never two on one screen."
     >
+      <TripList {...args} />
+    </StoryPage>
+  ),
+};
+
+export const WithFriends: Story = {
+  args: { trips: [tripSamples[0], tripWithFriends, tripSamples[2]] },
+  render: (args) => (
+    <StoryPage title="Trips">
+      <TripList {...args} />
+    </StoryPage>
+  ),
+};
+
+/** Another user's trips, seen by someone who can read their journal. */
+export const Visitor: Story = {
+  args: { trips: tripSamples, canEdit: false },
+  render: (args) => (
+    <StoryPage title="Trips">
+      <TripList {...args} />
+    </StoryPage>
+  ),
+};
+
+/** Seen by someone who can see sends but not the journal, so journal counts are
+ * left out. */
+export const VisitorWithoutJournal: Story = {
+  args: {
+    trips: tripSamples.map((trip) => ({ ...trip, entryCount: null, dayCount: null })),
+    canEdit: false,
+  },
+  render: (args) => (
+    <StoryPage title="Trips">
+      <TripList {...args} />
+    </StoryPage>
+  ),
+};
+
+export const VisitorEmpty: Story = {
+  args: { trips: [], canEdit: false },
+  render: (args) => (
+    <StoryPage title="Trips">
       <TripList {...args} />
     </StoryPage>
   ),

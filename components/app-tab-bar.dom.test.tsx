@@ -1,6 +1,5 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ReactNode } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { AppTabBar } from "./app-tab-bar";
@@ -8,13 +7,6 @@ import { AppTabBar } from "./app-tab-bar";
 type Session = { user: { id: string; name: string; image: null } } | null;
 const state = vi.hoisted(() => ({ pathname: "/feed", session: null as Session }));
 vi.mock("next/navigation", () => ({ usePathname: () => state.pathname }));
-vi.mock("next/link", () => ({
-  default: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
-}));
 vi.mock("@/lib/auth-client", () => ({
   authClient: { useSession: () => ({ data: state.session, isPending: false }) },
 }));

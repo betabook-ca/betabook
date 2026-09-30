@@ -16,4 +16,3 @@ export * from "./recap-share";
 export * from "./analytics-highlights";
 export * from "./project-shares";
 export * from "./trips";
-export * from "./trip-shares";

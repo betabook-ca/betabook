@@ -16,26 +16,6 @@ vi.mock("@/lib/auth-client", () => ({
     }),
   },
 }));
-vi.mock("next/link", () => ({
-  default: ({
-    children,
-    prefetch: _prefetch,
-    onClick,
-    href,
-    ...props
-  }: React.ComponentProps<"a"> & { prefetch?: boolean }) => (
-    <a
-      {...props}
-      href={href}
-      onClick={(event) => {
-        event.preventDefault();
-        onClick?.(event);
-      }}
-    >
-      {children}
-    </a>
-  ),
-}));
 afterEach(() => vi.unstubAllGlobals());
 it("clears cached member results when another data request reports an expired session", async () => {
   vi.stubGlobal(

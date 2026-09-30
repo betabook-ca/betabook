@@ -1,16 +1,7 @@
-import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { expect, it, vi } from "vitest";
+import { expect, it } from "vitest";
 
 import { AddKindNav } from "@/components/add-kind-nav";
-
-vi.mock("next/link", () => ({
-  default: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
-}));
 
 it.each([
   ["climb", "/climbs/new", "Climb"],

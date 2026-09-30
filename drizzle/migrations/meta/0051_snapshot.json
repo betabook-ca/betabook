@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "ca7ea8db-b0c5-486a-867d-17156cf46f3b",
+  "id": "6f5e2639-4b18-4154-970e-66ba02733124",
   "prevId": "b5ea07a4-d7ee-4969-9b5b-b8c6dc9c19b6",
   "tables": {
     "areas": {
@@ -1782,74 +1782,6 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "recap_shares": {
-      "name": "recap_shares",
-      "columns": {
-        "token": {
-          "name": "token",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "profile_token": {
-          "name": "profile_token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "snapshot": {
-          "name": "snapshot",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
-        }
-      },
-      "indexes": {
-        "recap_shares_user_idx": {
-          "name": "recap_shares_user_idx",
-          "columns": [
-            "user_id"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "recap_shares_user_id_user_id_fk": {
-          "name": "recap_shares_user_id_user_id_fk",
-          "tableFrom": "recap_shares",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
     "project_share_links": {
       "name": "project_share_links",
       "columns": {
@@ -2680,6 +2612,20 @@
           "notNull": false,
           "autoincrement": false
         },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "album_url": {
+          "name": "album_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "start_date": {
           "name": "start_date",
           "type": "text",
@@ -2758,6 +2704,14 @@
         "trips_description": {
           "name": "trips_description",
           "value": "\"trips\".\"description\" IS NULL OR length(\"trips\".\"description\") <= 2000"
+        },
+        "trips_notes": {
+          "name": "trips_notes",
+          "value": "\"trips\".\"notes\" IS NULL OR length(\"trips\".\"notes\") <= 50000"
+        },
+        "trips_album_url": {
+          "name": "trips_album_url",
+          "value": "\"trips\".\"album_url\" IS NULL OR length(\"trips\".\"album_url\") <= 300"
         }
       }
     },
@@ -2848,6 +2802,133 @@
         "trip_share_links_expires_at_format": {
           "name": "trip_share_links_expires_at_format",
           "value": "\"trip_share_links\".\"expires_at\" IS NULL OR \"trip_share_links\".\"expires_at\" = datetime(\"trip_share_links\".\"expires_at\")"
+        }
+      }
+    },
+    "trip_companions": {
+      "name": "trip_companions",
+      "columns": {
+        "trip_id": {
+          "name": "trip_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "friendship_user_id": {
+          "name": "friendship_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "friendship_friend_id": {
+          "name": "friendship_friend_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "suppressed": {
+          "name": "suppressed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        }
+      },
+      "indexes": {
+        "trip_companions_friendship_idx": {
+          "name": "trip_companions_friendship_idx",
+          "columns": [
+            "friendship_user_id",
+            "friendship_friend_id"
+          ],
+          "isUnique": false
+        },
+        "trip_companions_user_idx": {
+          "name": "trip_companions_user_idx",
+          "columns": [
+            "user_id",
+            "trip_id"
+          ],
+          "isUnique": false
+        },
+        "trip_companions_active_idx": {
+          "name": "trip_companions_active_idx",
+          "columns": [
+            "trip_id",
+            "user_id"
+          ],
+          "isUnique": false,
+          "where": "\"trip_companions\".\"suppressed\" = 0"
+        }
+      },
+      "foreignKeys": {
+        "trip_companions_trip_id_trips_id_fk": {
+          "name": "trip_companions_trip_id_trips_id_fk",
+          "tableFrom": "trip_companions",
+          "tableTo": "trips",
+          "columnsFrom": [
+            "trip_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "trip_companions_user_id_user_id_fk": {
+          "name": "trip_companions_user_id_user_id_fk",
+          "tableFrom": "trip_companions",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "trip_companions_friendship_user_id_friendship_friend_id_friendships_user_id_friend_id_fk": {
+          "name": "trip_companions_friendship_user_id_friendship_friend_id_friendships_user_id_friend_id_fk",
+          "tableFrom": "trip_companions",
+          "tableTo": "friendships",
+          "columnsFrom": [
+            "friendship_user_id",
+            "friendship_friend_id"
+          ],
+          "columnsTo": [
+            "user_id",
+            "friend_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "trip_companions_trip_id_user_id_pk": {
+          "columns": [
+            "trip_id",
+            "user_id"
+          ],
+          "name": "trip_companions_trip_id_user_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "trip_companions_suppressed_bool": {
+          "name": "trip_companions_suppressed_bool",
+          "value": "\"trip_companions\".\"suppressed\" IN (0, 1)"
         }
       }
     }

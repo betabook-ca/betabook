@@ -1,44 +1,84 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { ProfileHeader, memberMetadata, resolveProfilePage } from "@/app/users/[id]/profile-shell";
+import {
+  ProfileHeader,
+  SharedProfileHeader,
+  memberMetadata,
+  resolveProfilePage,
+  resolveSharedProfile,
+} from "@/app/users/[id]/profile-shell";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { TripList } from "@/components/trips/trip-list";
 import { getDb } from "@/db/client";
-import { getTripsForOwner } from "@/db/queries";
+import { getTripsForUser } from "@/db/queries";
 import { goalToday } from "@/lib/goals";
+import { withProfileShare } from "@/lib/profile-share";
 import { getRequestTimezone } from "@/lib/request-timezone";
+import { sharedProfileMetadata } from "@/lib/seo";
+import { tripsHref } from "@/lib/trips";
+import type { UrlParamsRecord } from "@/lib/url-params";
 
 type UserTripsPageProps = {
   params: Promise<{ id: string }>;
+  searchParams: Promise<UrlParamsRecord>;
 };
 
-/** Owner-only, like Projects: no audience opens this page to anyone else, so
- * a stranger gets the same 404 as a climber who does not exist. */
-export async function generateMetadata({ params }: UserTripsPageProps): Promise<Metadata> {
-  const { id } = await params;
-  return memberMetadata(await resolveProfilePage(id, "owner"), (user) => `${user.name} · Trips`);
+export async function generateMetadata({
+  params,
+  searchParams,
+}: UserTripsPageProps): Promise<Metadata> {
+  const [{ id }, search] = await Promise.all([params, searchParams]);
+  const resolved = await resolveProfilePage(id, "viewer");
+  if (!resolved.signedIn) {
+    const shared = await resolveSharedProfile(id, search);
+    if (shared) return sharedProfileMetadata(shared.name);
+  }
+  return memberMetadata(resolved, (user) => `${user.name} · Trips`);
 }
 
-export default async function UserTripsPage({ params }: UserTripsPageProps) {
-  const { id } = await params;
-  const resolved = await resolveProfilePage(id, "owner");
-  if (!resolved.signedIn) return <CurrentPageAuthCallout />;
-  if (!resolved.ok) notFound();
-  const { user, viewerId } = resolved;
-
-  const db = await getDb();
-  const trips = await getTripsForOwner(db, user.id);
+export default async function UserTripsPage({ params, searchParams }: UserTripsPageProps) {
+  const [{ id }, search] = await Promise.all([params, searchParams]);
+  const resolved = await resolveProfilePage(id, "viewer");
 
   // Resolved on the server from the request's own zone, not in the card: a
   // `new Date()` inside a component runs once on the server and again on the
   // client, which is how "Upcoming" and "Now" end up disagreeing across a
   // hydration near midnight.
-  const today = goalToday(await getRequestTimezone());
+  const today = async () => goalToday(await getRequestTimezone());
+
+  if (!resolved.signedIn) {
+    const shared = await resolveSharedProfile(id, search);
+    if (!shared) return <CurrentPageAuthCallout />;
+    const trips = await getTripsForUser(await getDb(), shared.id, null);
+    return (
+      <SharedProfileHeader
+        owner={shared}
+        next={withProfileShare(tripsHref(shared.id), shared.token)}
+      >
+        <TripList
+          trips={trips}
+          userId={shared.id}
+          today={await today()}
+          canEdit={false}
+          shareToken={shared.token}
+        />
+      </SharedProfileHeader>
+    );
+  }
+  if (!resolved.ok) notFound();
+  const { user, viewerId } = resolved;
+
+  const trips = await getTripsForUser(await getDb(), user.id, viewerId);
 
   return (
     <ProfileHeader user={user} viewerId={viewerId} workspace="logbook">
-      <TripList trips={trips} userId={user.id} today={today} />
+      <TripList
+        trips={trips}
+        userId={user.id}
+        today={await today()}
+        canEdit={viewerId === user.id}
+      />
     </ProfileHeader>
   );
 }

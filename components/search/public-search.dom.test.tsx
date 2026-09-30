@@ -7,13 +7,6 @@ import { SearchController } from "@/components/search/search-controller";
 import { DEFAULT_BOULDER_RANGE } from "@/lib/filters/discipline-filter";
 import { EMPTY_SEARCH, searchHref } from "@/lib/search";
 
-vi.mock("next/link", () => ({
-  default: ({
-    children,
-    prefetch: _prefetch,
-    ...props
-  }: React.ComponentProps<"a"> & { prefetch?: boolean }) => <a {...props}>{children}</a>,
-}));
 afterEach(() => vi.unstubAllGlobals());
 function requestUrl(input: RequestInfo | URL): string {
   return input instanceof Request ? input.url : input.toString();

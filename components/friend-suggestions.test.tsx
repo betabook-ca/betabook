@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it, vi } from "vitest";
 
@@ -6,13 +5,6 @@ import type { SuggestedClimberRow } from "@/db/queries";
 
 import { FriendSuggestions } from "./friend-suggestions";
 
-vi.mock("next/link", () => ({
-  default: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
-}));
 vi.mock("@/actions", () => ({
   requestFriendship: vi.fn<() => Promise<never>>(),
   acceptFriendRequest: vi.fn<() => Promise<never>>(),

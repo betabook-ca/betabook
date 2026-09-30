@@ -10,13 +10,6 @@ import { FriendsSearch } from "./friends-search";
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn<(href: string) => void>() }),
 }));
-vi.mock("next/link", () => ({
-  default: ({
-    prefetch: _prefetch,
-    children,
-    ...props
-  }: import("react").ComponentProps<"a"> & { prefetch?: boolean }) => <a {...props}>{children}</a>,
-}));
 vi.mock("@/actions", () => ({
   requestFriendship: vi.fn<typeof requestFriendship>(),
   acceptFriendRequest: vi.fn<() => Promise<unknown>>(),

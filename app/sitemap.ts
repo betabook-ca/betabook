@@ -1,9 +1,9 @@
 import type { MetadataRoute } from "next";
-import { cache } from "react";
 
 import { getDb } from "@/db/client";
 import { countAreas, countClimbs, getAreaSitemapRows, getClimbSitemapRows } from "@/db/queries";
 import { LANDING_PAGE_PATHS } from "@/lib/landing-pages";
+import { requestMemo } from "@/lib/request-memo";
 import { SITE_URL } from "@/lib/site";
 import { areaHref, climbHref } from "@/lib/slug";
 import { TERMS_VERSIONS, termsHref } from "@/lib/terms";
@@ -32,7 +32,7 @@ const STATIC_PATHS = [
   ...TERMS_VERSIONS.map(({ version }) => termsHref(version)),
 ];
 
-const counts = cache(async () => {
+const counts = requestMemo(async () => {
   const db = await getDb();
   const [areas, climbs] = await Promise.all([countAreas(db), countClimbs(db)]);
   return { areas, climbs };

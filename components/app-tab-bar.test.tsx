@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, it, vi } from "vitest";
 
@@ -6,13 +5,6 @@ import { AppTabs } from "@/components/app-tab-bar";
 
 const state = vi.hoisted(() => ({ pathname: "/" }));
 vi.mock("next/navigation", () => ({ usePathname: () => state.pathname }));
-vi.mock("next/link", () => ({
-  default: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
-}));
 vi.mock("next/image", () => ({ default: () => null }));
 
 const account = { id: "owner", name: "Alex Morgan", image: null };

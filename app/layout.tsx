@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { Suspense } from "react";
 
 import { HeaderNavigation } from "@/components/app-menu";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -11,6 +12,8 @@ import { MobileAppHelper } from "@/components/mobile-app-helper";
 import { AppLink } from "@/components/ui/app-link";
 import { JsonLd } from "@/components/ui/json-ld";
 import { PAGE_MAX_WIDTH_CLASS } from "@/components/ui/layout";
+import { NavigationProgress } from "@/components/ui/navigation-progress";
+import { WorkspaceLoadingModule } from "@/components/workspace-loading";
 import { COSTS_PAGE, LOGBOOK_PAGE } from "@/lib/landing-pages";
 import { PALETTE_INK, PALETTE_PAPER } from "@/lib/palette";
 import { websiteJsonLd } from "@/lib/seo";
@@ -133,6 +136,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to content
         </a>
+        {/* Reads the URL's search params, so it gets its own boundary rather
+         * than suspending the shell. */}
+        <Suspense>
+          <NavigationProgress />
+        </Suspense>
+        <WorkspaceLoadingModule />
         <Providers>
           {/* Wraps the page, whose own search entry opens the same palette
            * the ⌘K shortcut does. */}

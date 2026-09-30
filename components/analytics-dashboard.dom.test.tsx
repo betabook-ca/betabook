@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AnalyticsSendRow } from "@/db/queries";
-import { DEFAULT_ANALYTICS_LAYOUT } from "@/lib/analytics-layout";
+import { DEFAULT_ANALYTICS_LAYOUT, TRIP_ANALYTICS_LAYOUT } from "@/lib/analytics-layout";
 import { buildUserAnalytics } from "@/lib/user-analytics";
 
 import { AnalyticsDashboard } from "./analytics-dashboard";
@@ -38,6 +38,51 @@ const sends: AnalyticsSendRow[] = ["2024-01-01", "2025-02-02", "2026-03-03", nul
     dateSent,
   }),
 );
+
+describe("analytics dashboard with the trip layout", () => {
+  const tripSends = sends.map((send, index) => ({
+    ...send,
+    dateSent: `2026-03-1${index}`,
+    ascentStyle: index === 0 ? ("flash" as const) : send.ascentStyle,
+  }));
+
+  function renderTrip() {
+    render(
+      <AnalyticsDashboard
+        activityHeading="Activity on this trip"
+        analytics={{
+          ...buildUserAnalytics(tripSends, "boulder", undefined, []),
+          daysPerMonth: null,
+        }}
+        sends={tripSends}
+        selectedYears={[]}
+        undatedCount={0}
+        scope="boulder"
+        journalVisible={false}
+        periodPicker={null}
+        initialLayout={TRIP_ANALYTICS_LAYOUT}
+      />,
+    );
+  }
+
+  it("shows only the tiles and charts that describe a trip", () => {
+    renderTrip();
+
+    const titles = screen.getAllByRole("article").map((panel) => panel.getAttribute("aria-label"));
+    expect(titles).toEqual(["Sends", "Hardest", "Sending days", "Flash", "Grade pyramid"]);
+    expect(screen.queryByRole("button", { name: /Customize/ })).not.toBeInTheDocument();
+  });
+
+  it("shows one month and no monthly average", () => {
+    renderTrip();
+
+    expect(screen.getByRole("article", { name: "Sends" })).toHaveTextContent("Mar 2026");
+    expect(screen.getByRole("article", { name: "Sends" })).not.toHaveTextContent("–");
+    expect(screen.getByRole("article", { name: "Sending days" })).not.toHaveTextContent(
+      "per month",
+    );
+  });
+});
 
 describe("analytics dashboard climb previews", () => {
   it("uses only the selected years and excludes undated sends from that period", async () => {

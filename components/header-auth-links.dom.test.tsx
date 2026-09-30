@@ -1,18 +1,10 @@
 import { render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { HeaderAuthLinks } from "./header-auth-links";
 
 const state = vi.hoisted(() => ({ session: null as { user: { id: string } } | null }));
 vi.mock("next/navigation", () => ({ usePathname: () => "/about" }));
-vi.mock("next/link", () => ({
-  default: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
-}));
 vi.mock("@/lib/auth-client", () => ({
   authClient: { useSession: () => ({ data: state.session, isPending: false }) },
 }));

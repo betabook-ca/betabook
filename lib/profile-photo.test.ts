@@ -6,9 +6,11 @@ import {
   MAX_SOURCE_PHOTO_BYTES,
   SOURCE_PHOTO_TOO_LARGE_MESSAGE,
   sourcePhotoProblem,
+  profilePhotoEtag,
   profilePhotoKey,
   profilePhotoKeyFromImage,
   profilePhotoPath,
+  profilePhotoUnchanged,
   PROFILE_PHOTO_TOO_LARGE_MESSAGE,
   PROFILE_PHOTO_UNREADABLE_MESSAGE,
   PROFILE_PHOTO_WRONG_TYPE_MESSAGE,
@@ -73,6 +75,21 @@ it("identifies the formats the transform accepts from the bytes themselves", () 
   webp.set([0x52, 0x49, 0x46, 0x46]);
   webp.set([0x57, 0x45, 0x42, 0x50], 8);
   expect(sniffImageType(webp)).toBe("image/webp");
+});
+
+it("tags a photo by its key's digest and recognises that tag in any accepted form", () => {
+  const key = "climber1/0123456789abcdef0123456789abcdef.webp";
+  const etag = profilePhotoEtag(key);
+
+  expect(etag).toBe('"0123456789abcdef0123456789abcdef"');
+  expect(profilePhotoUnchanged(etag, key)).toBe(true);
+  expect(profilePhotoUnchanged(`W/${etag}`, key)).toBe(true);
+  expect(profilePhotoUnchanged(`"stale", ${etag}`, key)).toBe(true);
+  expect(profilePhotoUnchanged("*", key)).toBe(true);
+  expect(profilePhotoUnchanged('"0123456789abcdef0123456789abcdee"', key)).toBe(false);
+  expect(profilePhotoUnchanged("0123456789abcdef0123456789abcdef", key)).toBe(false);
+  expect(profilePhotoUnchanged(null, key)).toBe(false);
+  expect(profilePhotoUnchanged("", key)).toBe(false);
 });
 
 it("identifies no format for bytes that only claim to be an image", () => {

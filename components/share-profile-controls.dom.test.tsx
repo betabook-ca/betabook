@@ -8,12 +8,6 @@ import type { ActionResult } from "@/lib/action-result";
 import { ShareProfileControls } from "./share-profile-controls";
 
 vi.mock("@/actions", () => ({ resetProfileShareLink: vi.fn<() => Promise<ActionResult>>() }));
-vi.mock("next/link", () => ({
-  default: ({
-    prefetch: _prefetch,
-    ...props
-  }: React.ComponentProps<"a"> & { prefetch?: boolean }) => <a {...props}>{props.children}</a>,
-}));
 
 const FIRST = "https://betabook.ca/users/owner-1?share=0123456789abcdef0123456789abcdef";
 const SECOND = "https://betabook.ca/users/owner-1?share=fedcba9876543210fedcba9876543210";
@@ -51,6 +45,16 @@ it("shows the current link and its QR code and copies the link", async () => {
   expect(field).toHaveValue(SECOND);
   expect(qr.querySelector("path")?.getAttribute("d")).toMatch(/^M/);
   expect(qr.querySelector("path")?.getAttribute("d")).not.toBe(firstCode);
+});
+
+it("describes what the link shows, including trip notes", () => {
+  render(<ShareProfileControls name="Alex Rivera" url={FIRST} />);
+
+  expect(
+    screen.getByText(
+      "Anyone with the link sees your name, photo, send stats, latest sends, and your trips with their notes, photos and sends.",
+    ),
+  ).toBeVisible();
 });
 
 it("opens the share sheet on a phone", async () => {

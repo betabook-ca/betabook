@@ -1,12 +1,22 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 import { TermsAcceptanceForm } from "@/components/terms-acceptance-form";
 import type { ActionResult } from "@/lib/action-result";
 import { TERMS_REQUIRED_EVENT, TERMS_UPDATED_LABEL, TERMS_VERSION } from "@/lib/terms";
 import { isTermsExemptPath } from "@/lib/terms-navigation";
+
+const TermsPendingContext = createContext(false);
+
+/** Whether the viewer has terms to accept (the gate is open). Page loaders
+ * treat such a viewer as signed out until they do, so client-drawn member UI
+ * (a loading state's workspace tabs) should too. The gate stays shut on the
+ * exempt pages, which have no member navigation to hide. */
+export function useTermsPending(): boolean {
+  return useContext(TermsPendingContext);
+}
 
 type TermsPrompt = { version: string; versionLabel: string; previousVersion: string | null };
 
@@ -57,25 +67,21 @@ export function TermsGate({
     if (!viewerId || exempt || initiallyRequired) return;
     let disposed = false;
     let pending = false;
-    // The template already checked terms for this render. Reuse that result
-    // for initial interactions instead of issuing a duplicate request on mount.
-    // Focus and denied-request events still force a fresh check below.
-    let lastChecked = Date.now();
     const controller = new AbortController();
-    const check = async (force = false) => {
+    // Only a denied request asks the server. Clicks and keys don't: a
+    // navigation re-renders the template, which checks terms on the server,
+    // and a second request on the same click would only compete with it for
+    // the Worker and D1. Nor does a return to the tab: the viewer boundary
+    // refreshes the route then, and this gate re-renders with the answer.
+    const check = async () => {
       if (pending || document.visibilityState !== "visible") return;
-      if (!force && Date.now() - lastChecked < 60_000) return;
       pending = true;
-      lastChecked = Date.now();
       try {
         const response = await fetch("/api/terms/status", {
           cache: "no-store",
           signal: controller.signal,
         });
-        if (!response.ok) {
-          lastChecked = -Infinity;
-          return;
-        }
+        if (!response.ok) return;
         const status: {
           userId?: unknown;
           required?: unknown;
@@ -94,7 +100,6 @@ export function TermsGate({
         }
       } catch {
         // All protected requests still enforce acceptance if this check fails.
-        lastChecked = -Infinity;
       } finally {
         pending = false;
       }
@@ -102,29 +107,15 @@ export function TermsGate({
     const block = () => {
       if (disposed) return;
       setPrompt((current) => current ?? { version, versionLabel, previousVersion });
-      void check(true);
-    };
-    const focus = () => {
-      void check(true);
-    };
-    const interact = () => {
       void check();
     };
     window.addEventListener(TERMS_REQUIRED_EVENT, block);
-    window.addEventListener("focus", focus);
-    document.addEventListener("visibilitychange", focus);
-    document.addEventListener("pointerdown", interact, true);
-    document.addEventListener("keydown", interact, true);
     return () => {
       disposed = true;
       controller.abort();
       window.removeEventListener(TERMS_REQUIRED_EVENT, block);
-      window.removeEventListener("focus", focus);
-      document.removeEventListener("visibilitychange", focus);
-      document.removeEventListener("pointerdown", interact, true);
-      document.removeEventListener("keydown", interact, true);
     };
-  }, [viewerId, pathname, exempt, initiallyRequired, version, versionLabel, previousVersion]);
+  }, [viewerId, exempt, initiallyRequired, version, versionLabel, previousVersion]);
 
   const open = Boolean(viewerId && !exempt && prompt);
   return (
@@ -136,7 +127,7 @@ export function TermsGate({
         // showing its sign-in callout behind an authenticated user's modal.
         className={open && initiallyRequired ? "invisible" : undefined}
       >
-        {children}
+        <TermsPendingContext value={open}>{children}</TermsPendingContext>
       </div>
       {open && prompt && (
         <TermsAcceptanceForm

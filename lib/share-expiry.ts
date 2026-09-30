@@ -2,7 +2,7 @@ import { ActionError } from "@/lib/action-result";
 import { formatDate } from "@/lib/format-date";
 import { ISO_DATE_RE } from "@/lib/sends";
 
-/** How long a new share link lives, for every feature that has one.
+/** How long a new project share link lives.
  *
  * The value carries the SQLite modifier rather than a day count so the
  * deadline is `datetime('now', …)` computed by the database: a client clock
@@ -23,10 +23,9 @@ export const SHARE_EXPIRIES = [
 
 export type ShareExpiry = (typeof SHARE_EXPIRIES)[number]["value"];
 
-/** Long enough to be useful for a season's project or a trip written up after
- * the fact, short enough that a link pasted somewhere forgotten does not
- * outlive the thing it describes. Anyone holding a link can read it, so the
- * expiry is what limits one that got away. */
+/** Long enough to be useful for a season's project, short enough that a link
+ * pasted somewhere forgotten does not outlive the thing it describes. Anyone
+ * holding a link can read it, so the expiry is what limits one that got away. */
 export const DEFAULT_SHARE_EXPIRY: ShareExpiry = "30d";
 
 export function parseShareExpiry(value: unknown): ShareExpiry {

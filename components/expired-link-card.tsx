@@ -9,7 +9,7 @@ import { SITE_NAME } from "@/lib/site";
  * Returns the element rather than being a component, so the page's own tree
  * still carries the words: the share-exposure tests serialize that tree one
  * component level deep. */
-export function expiredLinkCard(noun: "projects" | "trips") {
+export function expiredLinkCard(noun: "projects") {
   return (
     <section aria-label="Expired link" className={`flex flex-col gap-2 ${cardClass("md")}`}>
       <PageTitle>This link has expired</PageTitle>

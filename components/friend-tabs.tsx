@@ -5,8 +5,9 @@ import { useEffect, useRef } from "react";
 import { FriendRequestBadge } from "@/components/friend-request-badge";
 import { useFriendRequests } from "@/components/friend-requests-provider";
 import { SectionNavigation } from "@/components/ui/section-navigation";
+import type { FriendsView } from "@/lib/friendships";
 
-export function FriendTabs({ view, userId }: { view: "friends" | "requests"; userId: string }) {
+export function FriendTabs({ view, userId }: { view: FriendsView; userId: string }) {
   const requests = useFriendRequests();
   const previousView = useRef(view);
   useEffect(() => {

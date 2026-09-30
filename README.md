@@ -64,6 +64,8 @@ Social seeding assigns a repeatable mix of profile, send commentary, and journal
 | `climber3@example.com` | Members | Members                  | Only me                  |
 | `climber4@example.com` | Private | Only me (saved: Members) | Only me (saved: Members) |
 
+The development account and the first twelve climbers also have trips: several days at one crag with sessions and sends, notes, and tagged friends. The development account has a long trip, a weekend, a single day, a road trip that overlaps all three, and an upcoming trip. Trips are dated after the rest of the seeded history, so no other sends fall inside them. They also exercise visibility: trips follow the sends and journal audiences, and notes are visible to friends and profile link holders.
+
 Each account has journal history to exercise visibility as its owner, another climber, or a signed-out visitor. No account starts with a shared project, so the Projects tabs are owner-only until you share one from a project card; seeding creates no share links. A project link has no audience — anyone holding it can open it — so it is not part of the sharing mix above. Seeding preserves the development account's privacy preferences.
 
 ```bash
@@ -135,9 +137,9 @@ Private profile overrides both audiences and turns the climber's sends into anon
 the disabled selectors show Only me while retaining the saved choices.
 
 To check social seeding against a disposable copy of a migrated, default-seeded
-SQLite database, run `pnpm test:seed-social /path/to/copy.sqlite`.
+SQLite database, run `pnpm test:seed-social /path/to/copy.sqlite`. `pnpm test:seed-trips /path/to/copy.sqlite` does the same for trips.
 
-The account is upserted on every run, preserving its ID. Sample data is generated only when there are no climbs or when `--force` is passed. **`--force` clears local areas, climbs, sends, journal entries, and synthetic climbers before reseeding**, including logs on the development account. A fixed seed and size reproduce the same sample history.
+The account is upserted on every run, preserving its ID. Sample data is generated only when there are no climbs or when `--force` is passed. **`--force` clears local areas, climbs, sends, journal entries, trips, and synthetic climbers before reseeding**, including logs and trips on the development account. A fixed seed and size reproduce the same sample history.
 
 To exercise moderation, grant the local admin role:
 
