@@ -106,9 +106,7 @@ it("opens a row's video in a dialog and unloads the player when it closes", asyn
   render(<SendVideoButton videoUrls={[REEL]} title="Sam on Moss Ladder" caption="Flash · Sep 1" />);
   expect(document.querySelector("iframe")).toBeNull();
 
-  await user.click(
-    screen.getByRole("button", { name: "Watch Instagram reel: Sam on Moss Ladder" }),
-  );
+  await user.click(screen.getByRole("button", { name: "Watch video: Sam on Moss Ladder" }));
 
   const dialog = await screen.findByRole("dialog", { name: "Sam on Moss Ladder" });
   expect(dialog).toHaveTextContent("Flash · Sep 1");

@@ -359,7 +359,7 @@ export function SendVideoButton({
   const videos = readSendVideos(videoUrls);
   const [first] = videos;
   if (!first) return null;
-  const label = videos.length === 1 ? sendVideoLabel(first) : `${videos.length} videos`;
+  const label = videos.length === 1 ? "video" : `${videos.length} videos`;
   return (
     <>
       <Button

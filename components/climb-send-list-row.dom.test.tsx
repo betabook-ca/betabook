@@ -98,7 +98,7 @@ it("offers a row's video behind a Watch button named for the climber and climb",
     />,
   );
   expect(
-    screen.getByRole("button", { name: "Watch YouTube Short: Sam Rivera on Test Highball" }),
+    screen.getByRole("button", { name: "Watch video: Sam Rivera on Test Highball" }),
   ).toBeVisible();
 });
 

@@ -37,7 +37,7 @@ test("a Short opens from its row in a portrait player that fits the screen @layo
 }, info) => {
   await openStory(page, info, "components-journal-climb-log-row--with-video");
 
-  await page.getByRole("button", { name: /^Watch YouTube Short/ }).click();
+  await page.getByRole("button", { name: /^Watch video/ }).click();
 
   const dialog = page.getByRole("dialog", { name: "Cedar Arete" });
   await expect(dialog).toBeVisible();
