@@ -12,5 +12,7 @@ export * from "./feed";
 export { canReadJournal } from "./content-access";
 export * from "./feature-announcements";
 export * from "./profile-share";
+export * from "./recap-share";
+export * from "./analytics-highlights";
 export * from "./project-shares";
 export * from "./trips";

@@ -67,6 +67,34 @@ test(
   },
 );
 
+test(
+  "calendar discipline selection fits the card and its menu stays on screen",
+  { tag: "@layout" },
+  async ({ page }, info) => {
+    await openStory(page, info, "components-charts-analytics-dashboard--calendar-disciplines");
+    const card = page.getByRole("article", { name: "Sending calendar" });
+    const filter = card.getByRole("button", { name: "Calendar disciplines: All disciplines" });
+    await expect(filter).toBeVisible();
+    const cardBounds = await card.boundingBox();
+    const filterBounds = await filter.boundingBox();
+    if (!cardBounds || !filterBounds) throw new Error("Calendar controls must be visible");
+    expect(filterBounds.x).toBeGreaterThanOrEqual(cardBounds.x);
+    expect(filterBounds.x + filterBounds.width).toBeLessThanOrEqual(
+      cardBounds.x + cardBounds.width,
+    );
+
+    await filter.click();
+    const menu = page.getByRole("menu", { name: "Calendar disciplines: All disciplines" });
+    await expect(menu.getByRole("menuitemcheckbox", { name: "Sport" })).toBeVisible();
+    const menuBounds = await menu.boundingBox();
+    if (!menuBounds) throw new Error("Calendar discipline menu must be visible");
+    const viewport = page.viewportSize();
+    if (!viewport) throw new Error("Viewport must be available");
+    expect(menuBounds.x).toBeGreaterThanOrEqual(0);
+    expect(menuBounds.x + menuBounds.width).toBeLessThanOrEqual(viewport.width);
+  },
+);
+
 test("customization supports accessible dragging within both sections", async ({ page }, info) => {
   await openStory(page, info, "components-charts-analytics-dashboard--multiple-years");
   const glance = page.getByRole("region", { name: "At a glance", exact: true });

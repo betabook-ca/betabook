@@ -31,7 +31,7 @@ export async function generateMetadata({ params, searchParams }: UserPageProps):
   const resolved = await resolveProfilePage(id, "viewer");
   if (!resolved.signedIn) {
     const shared = await resolveSharedProfile(id, search);
-    if (shared) return sharedProfileMetadata(shared.name);
+    if (shared) return sharedProfileMetadata(shared.name, shared.token);
   }
   return memberMetadata(resolved, (user) => user.name);
 }

@@ -24,6 +24,10 @@ export const resetProfileShareLink = fn<typeof Actions.resetProfileShareLink>(as
   ok: true,
   value: undefined,
 }));
+export const prepareRecapShare = fn<typeof Actions.prepareRecapShare>(async () => ({
+  ok: true,
+  value: { token: "ASNFZ4mrze8BI0VniavN7w", path: "/r/ASNFZ4mrze8BI0VniavN7w" },
+}));
 export const uploadProfilePhoto = fn<typeof Actions.uploadProfilePhoto>(async () => ({
   ok: true,
   value: undefined,

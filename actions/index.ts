@@ -11,6 +11,7 @@ export * from "./moderation";
 export * from "./friendships";
 export * from "./journal-companions";
 export * from "./analytics";
+export * from "./recap-share";
 export * from "./feature-announcements";
 
 export * from "./goals";

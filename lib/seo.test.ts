@@ -110,12 +110,18 @@ describe("sharedProfileMetadata", () => {
     const title = "Alex Rivera on Betabook";
     const description =
       "Alex Rivera invited you to Betabook, a climbing logbook and crag database.";
-    expect(sharedProfileMetadata("Alex Rivera")).toEqual({
+    const image = {
+      url: "/api/og/profile-share/abc123",
+      width: OG_IMAGE.width,
+      height: OG_IMAGE.height,
+      alt: title,
+    };
+    expect(sharedProfileMetadata("Alex Rivera", "abc123")).toEqual({
       title: { absolute: title },
       description,
       robots: { index: false },
-      openGraph: { type: "profile", siteName: "Betabook", title, description, images: [OG_IMAGE] },
-      twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE.url] },
+      openGraph: { type: "profile", siteName: "Betabook", title, description, images: [image] },
+      twitter: { card: "summary_large_image", title, description, images: [image.url] },
     });
   });
 });

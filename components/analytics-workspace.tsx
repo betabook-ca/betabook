@@ -328,6 +328,7 @@ export function AnalyticsWorkspace({
   initialLayout = DEFAULT_ANALYTICS_LAYOUT,
   children,
   heading,
+  actions,
   onSave,
 }: {
   cards: AnalyticsPanel[];
@@ -337,6 +338,8 @@ export function AnalyticsWorkspace({
   children?: ReactNode;
   /** Shares a row with Customize. */
   heading?: ReactNode;
+  /** Shares that row too, before Customize. */
+  actions?: ReactNode;
   onSave?: (layout: AnalyticsLayout) => Promise<ActionResult>;
 }) {
   const [layout, setLayout] = useState(initialLayout);
@@ -449,15 +452,18 @@ export function AnalyticsWorkspace({
       <SectionHeading className="sr-only">Analytics</SectionHeading>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">{heading}</div>
-        {canCustomize && (
-          <FeatureAnnouncement
-            featureId={ANALYTICS_CUSTOMIZE_ANNOUNCEMENT.featureId}
-            placement="bottom end"
-            isEnabled={!editing}
-          >
-            {customizeButton}
-          </FeatureAnnouncement>
-        )}
+        <div className="flex items-center gap-2">
+          {actions}
+          {canCustomize && (
+            <FeatureAnnouncement
+              featureId={ANALYTICS_CUSTOMIZE_ANNOUNCEMENT.featureId}
+              placement="bottom end"
+              isEnabled={!editing}
+            >
+              {customizeButton}
+            </FeatureAnnouncement>
+          )}
+        </div>
       </div>
       {isEditing && (
         <section

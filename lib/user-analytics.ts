@@ -8,7 +8,7 @@ import type { AscentStyle } from "@/lib/sends";
  * groupings for every grade-axis chart while the volume stats merge. */
 export type DisciplineScope = ClimbType | "all";
 
-const DISCIPLINE_ORDER: readonly ClimbType[] = ["boulder", "sport", "trad"];
+export const DISCIPLINE_ORDER: readonly ClimbType[] = ["boulder", "sport", "trad"];
 
 export function parseDisciplineScope(value: string | undefined): DisciplineScope {
   return value === "boulder" || value === "sport" || value === "trad" ? value : "all";

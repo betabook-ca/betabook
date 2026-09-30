@@ -6,9 +6,14 @@ import { tripHref } from "@/lib/trips";
 
 type Owner = { id: string; isPrivate: boolean };
 
-async function ownShareUrl(db: Database, owner: Owner, path: (token: string) => string) {
+/** Only for the owner's own pages; null while the profile is private. */
+export async function getOwnProfileShareToken(db: Database, owner: Owner) {
   if (owner.isPrivate) return null;
-  const token = await getProfileShareToken(db, owner.id);
+  return getProfileShareToken(db, owner.id);
+}
+
+async function ownShareUrl(db: Database, owner: Owner, path: (token: string) => string) {
+  const token = await getOwnProfileShareToken(db, owner);
   return token ? new URL(path(token), await getBaseUrl()).href : null;
 }
 

@@ -17,6 +17,8 @@ import {
   getSendsForUserPage,
   getSendsForUserExportPage,
   getUserSendForClimb,
+  getUserSendsForAnalytics,
+  getUserSendsForRecap,
   getUserSendsSummary,
   getUserSentClimbIds,
   hasUserSends,
@@ -64,6 +66,18 @@ beforeEach(async () => {
     dateSent: "2026-03-01",
     ascentStyle: "flash",
   });
+});
+
+it("keeps personal ratings out of general Analytics rows but includes them in owner recap rows", async () => {
+  const analytics = await getUserSendsForAnalytics(db, "test-user-1", "test-user-2");
+  expect(analytics.map((row) => row.climbId)).toEqual([1, 2]);
+  expect(analytics[0]).not.toHaveProperty("rating");
+
+  const recap = await getUserSendsForRecap(db, "test-user-1");
+  expect(recap.map((row) => ({ climbId: row.climbId, rating: row.rating }))).toEqual([
+    { climbId: 1, rating: 4 },
+    { climbId: 2, rating: null },
+  ]);
 });
 
 async function seedMultiDiscipline() {

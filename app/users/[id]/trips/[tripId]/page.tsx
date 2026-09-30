@@ -34,7 +34,7 @@ export async function generateMetadata({
   const shared = await resolveSharedTrip(id, tripId, search);
   // Share link previews show only the user's name, not the trip's.
   if (shared && !(await resolveTripPage(id, tripId, search)).signedIn) {
-    return sharedProfileMetadata(shared.owner.name);
+    return sharedProfileMetadata(shared.owner.name, shared.owner.token);
   }
   return tripMetadata(id, tripId, search);
 }

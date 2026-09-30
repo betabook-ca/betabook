@@ -25,6 +25,8 @@ import {
 } from "@/lib/terms";
 import { welcomeNewAccountOnce } from "@/lib/welcome-email";
 
+const LOCAL_DEV_PORTS = [3000, 3001, 3002, 3003] as const;
+
 // Public recovery responses must not reveal whether an email address exists.
 async function deliverAuthenticationEmail(deliver: () => Promise<void>) {
   try {
@@ -46,10 +48,13 @@ async function authBuilder() {
     // local dev ports so sign-in/sign-up don't 403 on an origin mismatch
     // just because of which port happened to be free.
     trustedOrigins: [
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "http://localhost:3002",
-      "http://localhost:3003",
+      ...LOCAL_DEV_PORTS.map((port) => `http://localhost:${port}`),
+      ...(new URL(env.BETTER_AUTH_URL).hostname === "localhost"
+        ? LOCAL_DEV_PORTS.flatMap((port) => [
+            `http://192.168.50.242:${port}`,
+            `https://192.168.50.242:${port}`,
+          ])
+        : []),
       "https://betabook.ca",
     ],
     advanced: {
