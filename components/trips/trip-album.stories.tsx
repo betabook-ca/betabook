@@ -43,5 +43,30 @@ export const Album: Story = {};
 
 export const OnePhoto: Story = { args: { photos: PHOTOS.slice(0, 1) } };
 
+/** Videos show their poster frame and length; a click plays. The stand-ins
+ * are served by the gallery, not data URLs, because the player reads a data
+ * URL at once and would fall back to the linked poster. Nothing loads until
+ * play, so they only fail when played. */
+export const WithVideos: Story = {
+  args: {
+    photos: [
+      PHOTOS[0],
+      {
+        url: "/static/album/clip-portrait.svg#",
+        width: 1080,
+        height: 1920,
+        video: { duration: 14 },
+      },
+      PHOTOS[2],
+      {
+        url: "/static/album/clip-landscape.svg#",
+        width: 1920,
+        height: 1080,
+        video: { duration: 71 },
+      },
+    ],
+  },
+};
+
 /** An album that couldn't be read. The link is still shown. */
 export const Unread: Story = { args: { photos: [] } };

@@ -5,14 +5,20 @@ import {
   albumLink,
   albumPhotoSrc,
   isAlbumPage,
+  albumVideoSrc,
   readAlbumPage,
 } from "./trip-album";
 
 const PHOTO = "https://lh3.googleusercontent.com/pw/AP1GczNUNuva0hpWf0Fu63ZGGHNv-XoCW_XsASv";
 
 /** One photo entry, in the format the album page uses. */
-function entry(url: string, width = 1920, height = 1080) {
-  return `["AF1QipNmpJAlhxumRlu6re4SEIlz4N49",["${url}",${width},${height},null,null,null,null,null,[null,null,1],[5723197]],1525436582000,"i7vW3_oTM6",7200000]`;
+function entry(url: string, width = 1920, height = 1080, fields = `{"15":1565}`) {
+  return `["AF1QipNmpJAlhxumRlu6re4SEIlz4N49",["${url}",${width},${height},null,null,null,null,null,[null,null,1],[5723197]],1525436582000,"i7vW3_oTM6",7200000,1531341502659,["AF1QipM1gaieQspmoBNPNBHAzr77SqBZ"],[[2],[8],[21],[19],[22]],2,${fields}]`;
+}
+
+/** A video entry: the same as a photo, plus a field with its length in ms. */
+function video(url: string, ms: number, width = 2160, height = 3840) {
+  return entry(url, width, height, `{"15":168759,"76647426":[${ms},null,1080,1920,null,4]}`);
 }
 
 function page(entries: string[]) {
@@ -101,6 +107,25 @@ describe("readAlbumPage", () => {
     expect(album).toEqual([{ url: `${PHOTO}3`, width: 4000, height: 3000 }]);
   });
 
+  it("marks videos with their length in seconds; the URL is the poster frame", () => {
+    const clip = `${PHOTO}2`;
+    const album = readAlbumPage(page([entry(PHOTO), video(clip, 14101)]));
+
+    expect(album).toEqual([
+      { url: PHOTO, width: 1920, height: 1080 },
+      { url: clip, width: 2160, height: 3840, video: { duration: 14 } },
+    ]);
+  });
+
+  it("reads the video field from whichever entry carries it", () => {
+    // The album cover repeats an item's URL without the item's fields, and can
+    // come first.
+    const cover = `["${PHOTO}",2160,3840,null,null,null,null,null,[null,null,1]]`;
+    const album = readAlbumPage(page([cover, video(PHOTO, 8768)]));
+
+    expect(album).toEqual([{ url: PHOTO, width: 2160, height: 3840, video: { duration: 9 } }]);
+  });
+
   it("stops at the photo limit", () => {
     const many = Array.from({ length: MAX_ALBUM_PHOTOS + 25 }, (_unused, index) =>
       entry(`${PHOTO}${index}`),
@@ -112,6 +137,14 @@ describe("readAlbumPage", () => {
   it("returns nothing for a page without an album", () => {
     expect(readAlbumPage("<html><body>Sign in to continue</body></html>")).toEqual([]);
     expect(readAlbumPage("")).toEqual([]);
+  });
+});
+
+describe("albumVideoSrc", () => {
+  it("requests the 720p stream", () => {
+    expect(albumVideoSrc({ url: PHOTO, width: 2160, height: 3840, video: { duration: 14 } })).toBe(
+      `${PHOTO}=m22`,
+    );
   });
 });
 

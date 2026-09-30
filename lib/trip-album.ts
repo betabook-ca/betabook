@@ -3,7 +3,13 @@
  * photo URLs, the same way Publicalbum does. We don't store or proxy photos;
  * the browser loads them from Google. */
 
-export type AlbumPhoto = { url: string; width: number; height: number };
+export type AlbumPhoto = {
+  url: string;
+  width: number;
+  height: number;
+  /** Set for a video. `url` is then its poster frame. */
+  video?: { duration: number };
+};
 
 /** Max photos to show. The full album is linked. */
 export const MAX_ALBUM_PHOTOS = 40;
@@ -52,18 +58,43 @@ export function isAlbumPage(value: string): boolean {
  * `img` sources. */
 const PHOTO =
   /\["(https:\/\/lh3\.googleusercontent\.com\/pw\/[\w-]{20,400})",(\d{1,5}),(\d{1,5}),/g;
+/** A video's item carries its length in ms in this field, a few hundred
+ * characters after the poster URL. Photos have no such field. */
+const VIDEO = /"76647426":\[(\d{1,9}),/;
+/** How far after its URL an item's fields can be. */
+const ITEM_SPAN = 2000;
 
 export function readAlbumPage(html: string): AlbumPhoto[] {
   const photos = new Map<string, AlbumPhoto>();
-  for (const [, url, width, height] of html.matchAll(PHOTO)) {
-    if (photos.size >= MAX_ALBUM_PHOTOS) break;
+  const matches = [...html.matchAll(PHOTO)];
+  for (const [index, match] of matches.entries()) {
+    const [, url, width, height] = match;
     const size = { width: Number(width), height: Number(height) };
-    if (size.width > 0 && size.height > 0 && !photos.has(url)) photos.set(url, { url, ...size });
+    if (size.width <= 0 || size.height <= 0) continue;
+    // An item's fields end where the next item starts.
+    const start = match.index + match[0].length;
+    const end = Math.min(matches[index + 1]?.index ?? html.length, start + ITEM_SPAN);
+    const length = VIDEO.exec(html.slice(start, end));
+    const video = length ? { duration: Math.round(Number(length[1]) / 1000) } : undefined;
+    const known = photos.get(url);
+    // The album cover repeats a URL without the item's fields.
+    if (known) {
+      if (video && !known.video) known.video = video;
+      continue;
+    }
+    if (photos.size >= MAX_ALBUM_PHOTOS) break;
+    photos.set(url, video ? { url, ...size, video } : { url, ...size });
   }
   return [...photos.values()];
 }
 
-/** Google resizes by URL suffix: `=w960` returns the photo 960px wide. */
+/** Google resizes by URL suffix: `=w960` returns the photo 960px wide. For a
+ * video this is the poster frame. */
 export function albumPhotoSrc(photo: AlbumPhoto, width: number): string {
   return `${photo.url}=w${Math.min(width, photo.width)}`;
+}
+
+/** `=m22` redirects to a 720p MP4 stream that needs no Google session. */
+export function albumVideoSrc(photo: AlbumPhoto): string {
+  return `${photo.url}=m22`;
 }

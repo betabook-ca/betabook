@@ -24,6 +24,12 @@ const SMALL: AlbumPhoto = {
   width: 640,
   height: 960,
 };
+const CLIP: AlbumPhoto = {
+  url: "https://lh3.googleusercontent.com/pw/AP1GczOQ6k4Yw3sLh0nX9M5aSB1dvJk1",
+  width: 2160,
+  height: 3840,
+  video: { duration: 14 },
+};
 
 it("renders each photo at the displayed size", () => {
   render(<TripAlbumPhotos link={ALBUM} photos={[WIDE, SMALL]} />);
@@ -65,6 +71,52 @@ it("opens the full-size photo and the album in a new tab", () => {
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
   }
+});
+
+it("plays a video in place, in a frame that sends no referrer", () => {
+  render(<TripAlbumPhotos link={ALBUM} photos={[WIDE, CLIP]} />);
+
+  const frame = screen.getByTitle("Video 2 of 2, 14 seconds");
+  expect(frame.tagName).toBe("IFRAME");
+  expect(frame).toHaveAttribute("referrerpolicy", "no-referrer");
+  expect(frame).toHaveAttribute(
+    "sandbox",
+    "allow-scripts allow-popups allow-popups-to-escape-sandbox",
+  );
+  expect(frame).toHaveStyle({ aspectRatio: "2160 / 3840" });
+  const player = frame.getAttribute("srcdoc") ?? "";
+  // Google refuses the stream when a referrer is sent.
+  expect(player).toContain('<meta name="referrer" content="no-referrer">');
+  // At rest: the poster and the length, no browser controls. A click anywhere
+  // plays and turns the controls on.
+  expect(player).toContain(
+    `<video src="${CLIP.url}=m22" poster="${CLIP.url}=w960" preload="none" playsinline></video>`,
+  );
+  expect(player).toContain(
+    '<button type="button" aria-label="Play, 14 seconds">&#9654; 0:14</button>',
+  );
+  expect(player).toContain('document.body.addEventListener("click",play)');
+  expect(player).toContain("v.controls=true;v.play()");
+  // If the stream errors, the poster links to the album instead.
+  expect(player).toContain(`<a hidden href="${ALBUM}" target="_blank" rel="noopener noreferrer"`);
+  expect(player).toContain('v.addEventListener("error"');
+  expect(screen.getByRole("group", { name: "1 photo and 1 video" })).toBeInTheDocument();
+  expect(screen.getByRole("img", { name: "Photo 1 of 2" })).toBeInTheDocument();
+});
+
+it("escapes the album link inside the player", () => {
+  render(
+    <TripAlbumPhotos
+      link={'https://photos.app.goo.gl/Example"><script>alert(1)</script>'}
+      photos={[CLIP]}
+    />,
+  );
+
+  const player = screen.getByTitle("Video 1 of 1, 14 seconds").getAttribute("srcdoc") ?? "";
+  expect(player).not.toContain("<script>alert");
+  expect(player).toContain(
+    'href="https://photos.app.goo.gl/Example&quot;>&lt;script>alert(1)&lt;/script>"',
+  );
 });
 
 it("can be scrolled with the keyboard", () => {
