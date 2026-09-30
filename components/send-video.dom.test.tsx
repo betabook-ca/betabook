@@ -44,23 +44,28 @@ it("asks again before playing a different video in the same poster", async () =>
   await user.click(screen.getByRole("button", { name: /^Play YouTube video/ }));
   expect(document.querySelector("iframe")).not.toBeNull();
 
-  rerender(<SendVideoPosters videoUrls={[REEL]} title="Alex on Quiet Arete" />);
+  rerender(<SendVideoPosters videoUrls={[SHORT]} title="Alex on Quiet Arete" />);
 
   expect(document.querySelector("iframe")).toBeNull();
-  expect(screen.getByRole("button", { name: /^Play Instagram reel/ })).toBeVisible();
+  expect(screen.getByRole("button", { name: /^Play YouTube Short/ })).toBeVisible();
 });
 
-it("names an Instagram video on its placeholder, since it has no poster", async () => {
-  const user = userEvent.setup();
-  const { container } = render(<SendVideoPosters videoUrls={[REEL]} title="Sam on Moss Ladder" />);
-
-  expect(container.querySelector("img")).toBeNull();
-  expect(screen.getByText("Instagram reel")).toBeVisible();
-  await user.click(screen.getByRole("button", { name: "Play Instagram reel: Sam on Moss Ladder" }));
-  expect(screen.getByTitle("Instagram reel: Sam on Moss Ladder")).toHaveAttribute(
-    "src",
-    "https://www.instagram.com/reel/C9Xq3uGxJ5R/embed/",
+it("loads a lone Instagram video's player with the page, since it has no poster", () => {
+  render(
+    <>
+      <button type="button">Before</button>
+      <SendVideoPosters videoUrls={[REEL]} title="Sam on Moss Ladder" />
+    </>,
   );
+
+  const player = screen.getByTitle("Instagram reel: Sam on Moss Ladder");
+  expect(player).toHaveAttribute("src", "https://www.instagram.com/reel/C9Xq3uGxJ5R/embed/");
+  // A page can hold several, so each waits until it is scrolled near.
+  expect(player).toHaveAttribute("loading", "lazy");
+  // Nobody pressed anything, so focus stays where it was.
+  expect(player).not.toHaveFocus();
+  expect(screen.queryByRole("button", { name: /^Play/ })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Open on Instagram" })).toHaveAttribute("href", REEL);
 });
 
 it("falls back to the label when the YouTube poster can't be loaded", () => {
@@ -78,7 +83,9 @@ it("shows several videos as a row of posters that open the dialog where it was p
   render(<SendVideoPosters videoUrls={[YOUTUBE, SHORT, REEL]} title="Alex on Quiet Arete" />);
 
   // No player in the row itself: several side by side would each be too narrow.
+  // That includes Instagram's, whose tile names the kind of post instead.
   expect(document.querySelector("iframe")).toBeNull();
+  expect(screen.getByText("Instagram reel")).toBeVisible();
   await user.click(
     screen.getByRole("button", { name: "Play YouTube Short: Alex on Quiet Arete (2 of 3)" }),
   );

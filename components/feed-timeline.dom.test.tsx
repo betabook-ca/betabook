@@ -286,13 +286,14 @@ it("shows a friend's send video in place, and none on a session", () => {
       days={[
         {
           ...day,
-          activities: [{ ...activity, videos: ["https://www.instagram.com/reel/C9Xq3uGxJ5R/"] }],
+          activities: [{ ...activity, videos: ["https://www.youtube.com/watch?v=dQw4w9WgXcQ"] }],
         },
-        // A session's row never carries a video, whatever the row holds.
+        // A session's row never carries a video, whatever the row holds. An
+        // Instagram link would show as a player right away if it did.
         {
           ...friend,
           activities: [
-            { ...friend.activities[0], videos: ["https://www.youtube.com/watch?v=dQw4w9WgXcQ"] },
+            { ...friend.activities[0], videos: ["https://www.instagram.com/reel/C9Xq3uGxJ5R/"] },
           ],
         },
       ]}
@@ -301,7 +302,26 @@ it("shows a friend's send video in place, and none on a session", () => {
   );
   expect(
     screen.getAllByRole("button", { name: /^Play / }).map((button) => button.ariaLabel),
-  ).toEqual(["Play Instagram reel: Alex Rivera on Quiet Arete"]);
+  ).toEqual(["Play YouTube video: Alex Rivera on Quiet Arete"]);
+  expect(document.querySelector("iframe")).toBeNull();
+});
+
+it("shows a friend's lone Instagram video as its player", () => {
+  render(
+    <FeedTimeline
+      days={[
+        {
+          ...day,
+          activities: [{ ...activity, videos: ["https://www.instagram.com/reel/C9Xq3uGxJ5R/"] }],
+        },
+      ]}
+      view="all"
+    />,
+  );
+  expect(screen.getByTitle("Instagram reel: Alex Rivera on Quiet Arete")).toHaveAttribute(
+    "src",
+    "https://www.instagram.com/reel/C9Xq3uGxJ5R/embed/",
+  );
 });
 
 it("stops a video in the extra rows when they collapse", async () => {

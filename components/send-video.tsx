@@ -16,10 +16,8 @@ import {
   type SendVideo,
 } from "@/lib/send-video";
 
-/** How each kind of video is framed. A poster shows only the clip's shape;
- * a playing Instagram embed also carries Instagram's own header and footer,
- * so its frame is taller than the media inside it and has to be at least
- * as wide as Instagram's 326px minimum to lay out. */
+/** How each kind of video is framed. A poster shows only the clip's shape.
+ * An Instagram player also carries Instagram's own header and footer. */
 function shape(video: SendVideo): "landscape" | "short" | "reel" | "post" {
   if (video.provider === "instagram") return video.format;
   return video.format === "short" ? "short" : "landscape";
@@ -32,16 +30,24 @@ const POSTER_CLASS = {
   post: "aspect-[4/5] w-[min(100%,15rem)]",
 } as const;
 
+/** Instagram's player needs 326px of width to lay out. Its content is as tall
+ * as the media plus 208px of header and footer, and the media is at most 4:5
+ * (a reel's cover is cropped to that), so at this width it needs 618px. The
+ * sizes are in px because Instagram's are. */
+const INSTAGRAM_FRAME_CLASS = "h-[624px] w-[min(100%,328px)]";
+
 const FRAME_CLASS = {
   landscape: "aspect-video w-full",
   short: "aspect-[9/16] w-[min(100%,20rem)]",
-  reel: "aspect-[9/20] w-[min(100%,25rem)]",
-  post: "aspect-[4/7] w-[min(100%,25rem)]",
+  reel: INSTAGRAM_FRAME_CLASS,
+  post: INSTAGRAM_FRAME_CLASS,
 } as const;
 
-/** The player itself. Only ever rendered after the viewer asks for it: until
- * then nothing is requested from YouTube or Instagram but a YouTube poster
- * image, which is fetched without a referrer. */
+/** The player itself. A YouTube player is only rendered after the viewer asks
+ * for it: until then nothing is requested from YouTube but a poster image,
+ * which is fetched without a referrer. An Instagram player is also rendered
+ * with the page where a send shows its one video in place (see
+ * `SendVideoPosters`). */
 function SendVideoFrame({
   video,
   title,
@@ -62,6 +68,9 @@ function SendVideoFrame({
       ref={ref}
       src={sendVideoEmbedUrl(video, { autoplay: true })}
       title={`${sendVideoLabel(video)}: ${title}`}
+      // A feed page can hold several Instagram players. Each loads when it
+      // is scrolled near. A player opened by a press is already in view.
+      loading="lazy"
       // YouTube refuses to play without a referring origin; the page's own
       // policy already sends the origin alone, never the path.
       referrerPolicy="strict-origin-when-cross-origin"
@@ -189,8 +198,11 @@ function PosterButton({
 }
 
 /** A send's videos shown in place, for surfaces where they are the point of
- * the row — a friend's send in the feed. One video is a poster that turns
- * into the player when pressed. Several are a row of smaller posters that
+ * the row — a friend's send in the feed. One YouTube video is a poster that
+ * turns into the player when pressed. One Instagram video is its player from
+ * the start: Instagram lets no other site show a reel's cover image, and an
+ * empty panel in its place looks like a failed load. Instagram's player does
+ * not start playing until pressed. Several are a row of smaller posters that
  * open the dialog, where the viewer can page through them; playing them in
  * place would leave several live players side by side, each too narrow for
  * Instagram's. Renders nothing when no link can be read, so callers can pass
@@ -215,10 +227,13 @@ export function SendVideoPosters({
 
   if (videos.length === 1) {
     const url = sendVideoUrl(first);
+    const pressed = playingUrl === url;
     return (
       <div className={clsx("flex w-full max-w-md flex-col items-start gap-1.5", className)}>
-        {playingUrl === url ? (
-          <SendVideoFrame video={first} title={title} focusOnMount />
+        {pressed || first.provider === "instagram" ? (
+          // Only a player that replaced a pressed button takes focus. One
+          // that loads with the page leaves focus where it was.
+          <SendVideoFrame video={first} title={title} focusOnMount={pressed} />
         ) : (
           <PosterButton
             video={first}

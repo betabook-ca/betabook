@@ -7,8 +7,10 @@ import { SendVideoButton, SendVideoPosters } from "./send-video";
 const VIDEOS = {
   youtube: "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=12s",
   short: "https://www.youtube.com/shorts/dQw4w9WgXcQ",
-  reel: "https://www.instagram.com/reel/C9Xq3uGxJ5R/",
-  post: "https://www.instagram.com/p/C9Xq3uGxJ5R/",
+  // Real public posts: a lone Instagram video loads Instagram's player, which
+  // shows a missing-post message for a made-up link.
+  reel: "https://www.instagram.com/reel/DHlf5W0p-g-/",
+  post: "https://www.instagram.com/p/C2P_M7rL6e6/",
 };
 
 const meta = {
@@ -19,7 +21,7 @@ const meta = {
     (Story) => (
       <StoryPage
         title="Send video"
-        description="A send's linked YouTube or Instagram videos. Nothing plays, and nothing but a YouTube poster loads, until the viewer presses play. A poster that can't load shows the video's kind instead."
+        description="A send's linked YouTube or Instagram videos. A YouTube video loads only its poster until the viewer presses play. A lone Instagram video loads Instagram's player with the page, because Instagram lets no other site show its cover image. A poster that can't load shows the video's kind instead."
       >
         <Story />
       </StoryPage>
@@ -32,7 +34,8 @@ type Story = StoryObj<typeof meta>;
 /** One YouTube video, as the feed shows it: it plays in place. */
 export const YouTubeVideo: Story = {};
 
-/** Portrait clips keep a narrow, tall frame. */
+/** A Short keeps a narrow, tall poster. Instagram's player is as narrow as
+ * Instagram allows. */
 export const Portrait: Story = {
   render: () => (
     <div className="flex flex-wrap gap-6">

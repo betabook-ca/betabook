@@ -30,8 +30,9 @@ export const SharedClimb: Story = {};
 export const SingleSend: Story = {
   args: { entries: [{ day: feedDays[2], activity: feedDays[2].activities[0] }] },
 };
-/** A send with a video: the poster plays in place when pressed. Instagram
- * has no lasting poster, so its placeholder names the kind of post. */
+/** A send with one Instagram video: Instagram's player loads with the card.
+ * The link is a real public reel, because the player shows a missing-post
+ * message for a made-up one. */
 export const SendWithVideo: Story = {
   args: {
     entries: [
@@ -40,7 +41,7 @@ export const SendWithVideo: Story = {
         activity: {
           ...feedDays[2].activities[0],
           kind: "send",
-          videos: ["https://www.instagram.com/reel/C9Xq3uGxJ5R/"],
+          videos: ["https://www.instagram.com/reel/DHlf5W0p-g-/"],
         },
       },
     ],
