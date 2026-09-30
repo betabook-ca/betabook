@@ -18,7 +18,7 @@ import type { ClimbType } from "@/lib/grades";
 import { validateJournalInput, type JournalEntryInput } from "@/lib/journal";
 import { readCompanionSelection } from "@/lib/journal-companions";
 import { allowJournalWrite } from "@/lib/rate-limit";
-import { validateSendInput, type RawSendInput } from "@/lib/sends";
+import { readVideoFields, validateSendInput, type RawSendInput } from "@/lib/sends";
 import { requireSession } from "@/lib/session";
 import { pickFormFields, requirePositiveId } from "@/lib/validation";
 
@@ -45,7 +45,7 @@ const ENTRY_CHANGED_MESSAGE = "The entry changed — refresh and try again";
 
 const JOURNAL_FORM_FIELDS = ["kind", "climbId", "sent", "entryDate", "body"] as const;
 
-const SEND_FORM_FIELDS = ["ascentStyle", "rating", "suggestedGrade", "gradeFeel", "video"] as const;
+const SEND_FORM_FIELDS = ["ascentStyle", "rating", "suggestedGrade", "gradeFeel"] as const;
 
 function readJournalFormData(formData: FormData) {
   return { ...pickFormFields(formData, JOURNAL_FORM_FIELDS), tags: formData.getAll("tag") };
@@ -56,11 +56,20 @@ function readSendFormData(
   entryDate: string,
   comment: string | null,
 ): RawSendInput {
-  return { ...pickFormFields(formData, SEND_FORM_FIELDS), dateSent: entryDate, comment };
+  return {
+    ...pickFormFields(formData, SEND_FORM_FIELDS),
+    dateSent: entryDate,
+    comment,
+    videos: readVideoFields(formData),
+  };
 }
 
+/** Whether the form carries anything only a new ascent can hold — its
+ * opinion fields or a video. */
 function carriesSendFields(formData: FormData): boolean {
-  return SEND_FORM_FIELDS.some((field) => formData.getAll(field).some((value) => value !== ""));
+  return [...SEND_FORM_FIELDS, "video"].some((field) =>
+    formData.getAll(field).some((value) => value !== ""),
+  );
 }
 
 async function requireJournalSession() {

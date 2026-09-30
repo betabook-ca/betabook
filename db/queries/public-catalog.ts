@@ -16,6 +16,7 @@ import {
 import { areaNameCondition, getAreaBreadcrumbs } from "./areas";
 import { searchClimbsConditions, searchClimbsPlan } from "./climbs";
 import { sendCommentVisibleSql } from "./content-access";
+import { withVideoList } from "./send-videos";
 import { toFtsPrefixQuery } from "./shared";
 
 const PUBLIC_CLIMB_SENDS_LIMIT = 10;
@@ -28,7 +29,7 @@ export async function getPublicSendsForClimb(
   climbId: number,
 ): Promise<PublicClimbSend[]> {
   const named = sendCommentVisibleSql(null, sql`sends.user_id`);
-  return db.all<PublicClimbSend>(sql`
+  const rows = await db.all<Omit<PublicClimbSend, "videos"> & { videos: string | null }>(sql`
     SELECT
       CASE WHEN ${named} THEN user.name END AS userName,
       CASE WHEN ${named} THEN user.image END AS userImage,
@@ -38,13 +39,14 @@ export async function getPublicSendsForClimb(
       sends.suggested_grade AS suggestedGrade,
       sends.grade_feel AS gradeFeel,
       CASE WHEN ${named} THEN sends.comment END AS comment,
-      CASE WHEN ${named} THEN sends.video_url END AS videoUrl
+      CASE WHEN ${named} THEN sends.videos END AS videos
     FROM sends
     JOIN user ON user.id = sends.user_id
     WHERE sends.climb_id = ${climbId}
     ORDER BY sends.date_sent DESC, sends.id ASC
     LIMIT ${PUBLIC_CLIMB_SENDS_LIMIT}
   `);
+  return rows.map(withVideoList);
 }
 
 const publicAreaColumns = { id: areas.id, name: areas.name, parentId: areas.parentId };

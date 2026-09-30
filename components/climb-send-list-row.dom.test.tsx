@@ -14,7 +14,7 @@ const send: PublicClimbSend = {
   suggestedGrade: 5,
   gradeFeel: "solid",
   comment: "Heel hook at the lip.",
-  videoUrl: null,
+  videos: null,
 };
 const anonymous = {
   ...send,
@@ -94,7 +94,7 @@ it("offers a row's video behind a Watch button named for the climber and climb",
     <ClimbSendListRow
       type="boulder"
       climbName="Test Highball"
-      send={{ ...send, userId: "sam", videoUrl: "https://www.youtube.com/shorts/dQw4w9WgXcQ" }}
+      send={{ ...send, userId: "sam", videos: ["https://www.youtube.com/shorts/dQw4w9WgXcQ"] }}
     />,
   );
   expect(

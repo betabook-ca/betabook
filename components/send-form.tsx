@@ -7,10 +7,11 @@ import { updateSend } from "@/actions";
 import { CompanionPicker } from "@/components/journal/companion-picker";
 import { TagInput } from "@/components/journal/tag-input";
 import {
+  appendVideoFields,
   AscentStylePicker,
   FormSection,
   GradeFeelField,
-  SendVideoField,
+  SendVideosField,
   SuggestedGradeField,
 } from "@/components/send-fields";
 import { SURFACE_CARD_CLASS } from "@/components/ui/card";
@@ -26,7 +27,7 @@ import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
 import { latestLoggableDate } from "@/lib/broken-climbs";
 import { localToday } from "@/lib/format-date";
 import type { CompanionOption } from "@/lib/journal-companions";
-import { sendVideoLinkError } from "@/lib/send-video";
+import { sendVideoLinksError } from "@/lib/send-video";
 import { MAX_COMMENT_LENGTH, type AscentStyle, type GradeFeel } from "@/lib/sends";
 
 type SendFormProps = {
@@ -56,7 +57,7 @@ export function SendForm({
     String(existingSend.suggestedGrade ?? climb.grade ?? ""),
   );
   const [gradeFeel, setGradeFeel] = useState<GradeFeel>(existingSend.gradeFeel);
-  const [video, setVideo] = useState(existingSend.videoUrl ?? "");
+  const [videos, setVideos] = useState<string[]>(existingSend.videos ?? []);
   const [videoChecked, setVideoChecked] = useState(false);
   const [tags, setTags] = useState(existingEntry?.tags ?? []);
   const [companions, setCompanions] = useState<CompanionOption[]>(existingEntry?.companions ?? []);
@@ -74,7 +75,7 @@ export function SendForm({
       return;
     }
     // The field shows the reason; the form's alert would only repeat it.
-    if (sendVideoLinkError(video)) {
+    if (sendVideoLinksError(videos)) {
       setVideoChecked(true);
       return;
     }
@@ -86,7 +87,7 @@ export function SendForm({
     formData.set("rating", rating == null ? "" : String(rating));
     formData.set("suggestedGrade", suggestedGrade);
     formData.set("gradeFeel", gradeFeel);
-    formData.set("video", video);
+    appendVideoFields(formData, videos);
 
     if (existingEntry !== undefined)
       formData.set("journalEntryId", String(existingEntry?.id ?? ""));
@@ -165,7 +166,11 @@ export function SendForm({
             </FieldHeader>
             <TextArea maxLength={MAX_COMMENT_LENGTH} placeholder="How'd it go?" />
           </TextField>
-          <SendVideoField value={video} onChange={setVideo} checked={videoChecked} />
+          <SendVideosField
+            initialLinks={existingSend.videos ?? []}
+            onChange={setVideos}
+            checked={videoChecked}
+          />
         </FormSection>
 
         {dateSent ? (

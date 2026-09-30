@@ -30,7 +30,7 @@ function row(overrides: Partial<UserSendRow> = {}): UserSendRow {
     suggestedGrade: null,
     gradeFeel: "solid",
     comment: null,
-    videoUrl: null,
+    videos: null,
     ...overrides,
   };
 }
@@ -51,17 +51,20 @@ describe("buildSendsExportCsv", () => {
         "Grade Feel",
         "Rating",
         "Comment",
-        "Video",
+        "Videos",
       ].join(","),
     );
   });
 
-  it("ends each row with the send's video link, blank when there is none", () => {
-    const video = "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=12s";
-    const [, withVideo, withoutVideo] = buildSendsExportCsv([row({ videoUrl: video }), row()])
+  it("ends each row with the send's video links, blank when there are none", () => {
+    const videos = [
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=12s",
+      "https://www.instagram.com/reel/C9Xq3uGxJ5R/",
+    ];
+    const [, withVideo, withoutVideo] = buildSendsExportCsv([row({ videos }), row()])
       .trim()
       .split("\r\n");
-    expect(withVideo.endsWith(`,${video}`)).toBe(true);
+    expect(withVideo.endsWith(`,${videos.join(" ")}`)).toBe(true);
     expect(withoutVideo.endsWith(",")).toBe(true);
   });
 
@@ -81,7 +84,7 @@ describe("buildSendsExportCsv", () => {
 
   it("renders a null suggested grade, rating, comment and video as blank", () => {
     const csvText = buildSendsExportCsv([
-      row({ suggestedGrade: null, rating: null, comment: null, videoUrl: null }),
+      row({ suggestedGrade: null, rating: null, comment: null, videos: null }),
     ]);
     const [, dataLine] = csvText.trim().split("\n");
     expect(dataLine.endsWith(",Solid,,,")).toBe(true);

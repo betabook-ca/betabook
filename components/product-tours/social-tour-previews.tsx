@@ -133,7 +133,7 @@ export function DemoFeed() {
       areaId: null,
       areaName: null,
       body: entry.note,
-      videoUrl: null,
+      videos: null,
     })),
   };
   return (

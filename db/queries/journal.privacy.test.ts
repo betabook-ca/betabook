@@ -62,7 +62,7 @@ const expectedEntry = {
   climbGrade: 5,
   climbBrokenOn: null,
   reportedGrade: null,
-  videoUrl: null,
+  videos: null,
   areaId: 4,
   areaName: "Test Highball Alcove",
 };

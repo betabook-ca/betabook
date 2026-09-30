@@ -21,7 +21,7 @@ const send: EditableSend = {
   rating: null,
   suggestedGrade: null,
   gradeFeel: "solid",
-  videoUrl: null,
+  videos: null,
 };
 
 function setup(overrides: Partial<EditableSend> = {}) {
@@ -154,14 +154,20 @@ it("preserves journal edits after a rejected save and retries", async () => {
   expect(save.mock.calls[1][1].getAll("tag")).toEqual(["footwork"]);
 });
 
-it("keeps the send's video, submits a new link and previews it", async () => {
-  const { user, save } = setup({ videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" });
-  const field = screen.getByRole("textbox", { name: "Video" });
-  expect(field).toHaveValue("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+const YOUTUBE = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+const REEL_TYPED = "instagram.com/some.climber/reel/C9Xq3uGxJ5R/?igsh=x";
+const INVALID = "Paste a link to a YouTube video or an Instagram reel or post.";
+
+it("keeps the send's videos, adds another and previews each", async () => {
+  const { user, save } = setup({ videos: [YOUTUBE] });
+  expect(screen.getByRole("group", { name: "Videos" })).toBeVisible();
+  expect(screen.getByRole("textbox", { name: "Video link 1" })).toHaveValue(YOUTUBE);
   expect(screen.getByText("YouTube video linked")).toBeVisible();
 
-  await user.clear(field);
-  await user.type(field, "instagram.com/some.climber/reel/C9Xq3uGxJ5R/?igsh=x");
+  await user.click(screen.getByRole("button", { name: "Add another video" }));
+  // The next link goes in the new empty field; no third until it's filled.
+  expect(screen.queryByRole("button", { name: "Add another video" })).not.toBeInTheDocument();
+  await user.type(screen.getByRole("textbox", { name: "Video link 2" }), REEL_TYPED);
   expect(screen.getByText("Instagram reel linked")).toBeVisible();
   expect(screen.getByRole("link", { name: "Open on Instagram" })).toHaveAttribute(
     "href",
@@ -170,32 +176,60 @@ it("keeps the send's video, submits a new link and previews it", async () => {
   await user.click(screen.getByRole("button", { name: "Save changes" }));
 
   await waitFor(() => expect(save).toHaveBeenCalledOnce());
-  // The server stores the canonical link; the form sends what was typed.
-  expect(save.mock.calls[0][1].get("video")).toBe(
-    "instagram.com/some.climber/reel/C9Xq3uGxJ5R/?igsh=x",
-  );
+  const form = save.mock.calls[0][1];
+  expect(form.get("videosChanged")).toBe("true");
+  // The server stores canonical links; the form sends what was typed.
+  expect(form.getAll("video")).toEqual([YOUTUBE, REEL_TYPED]);
 });
 
-it("sends an empty video field to remove the video", async () => {
-  const { user, save } = setup({ videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" });
-  await user.clear(screen.getByRole("textbox", { name: "Video" }));
+it("removes a video, keeping the others in order", async () => {
+  const { user, save } = setup({ videos: [YOUTUBE, "https://www.instagram.com/p/C9Xq3uGxJ5R/"] });
+  await user.click(screen.getByRole("button", { name: "Remove video link 1" }));
+  expect(screen.getByRole("textbox", { name: "Video link 1" })).toHaveValue(
+    "https://www.instagram.com/p/C9Xq3uGxJ5R/",
+  );
   await user.click(screen.getByRole("button", { name: "Save changes" }));
   await waitFor(() => expect(save).toHaveBeenCalledOnce());
-  expect(save.mock.calls[0][1].get("video")).toBe("");
+  expect(save.mock.calls[0][1].getAll("video")).toEqual([
+    "https://www.instagram.com/p/C9Xq3uGxJ5R/",
+  ]);
+});
+
+it("sends an empty list to remove every video", async () => {
+  const { user, save } = setup({ videos: [YOUTUBE] });
+  await user.click(screen.getByRole("button", { name: "Remove video link 1" }));
+  // The field stays, empty, ready for a new link.
+  expect(screen.getByRole("textbox", { name: "Video link 1" })).toHaveValue("");
+  await user.click(screen.getByRole("button", { name: "Save changes" }));
+  await waitFor(() => expect(save).toHaveBeenCalledOnce());
+  const form = save.mock.calls[0][1];
+  expect(form.get("videosChanged")).toBe("true");
+  expect(form.getAll("video")).toEqual([]);
+});
+
+it("stops offering another field at five videos", async () => {
+  const links = ["AAAAAAAAAAA", "BBBBBBBBBBB", "CCCCCCCCCCC", "DDDDDDDDDDD"].map(
+    (id) => `https://www.youtube.com/watch?v=${id}`,
+  );
+  const { user } = setup({ videos: links });
+  await user.click(screen.getByRole("button", { name: "Add another video" }));
+  await user.type(
+    screen.getByRole("textbox", { name: "Video link 5" }),
+    "https://youtu.be/EEEEEEEEEEE",
+  );
+  expect(screen.queryByRole("button", { name: "Add another video" })).not.toBeInTheDocument();
 });
 
 it("flags an unsupported link once the field is left, and won't save it", async () => {
   const { user, save, onDone } = setup();
-  const field = screen.getByRole("textbox", { name: "Video" });
+  const field = screen.getByRole("textbox", { name: "Video link 1" });
   await user.type(field, "https://vimeo.com/123");
   // Not while typing: a half-pasted link isn't a mistake yet.
   expect(field).not.toHaveAttribute("aria-invalid", "true");
 
   await user.tab();
   expect(field).toHaveAttribute("aria-invalid", "true");
-  expect(screen.getByRole("alert")).toHaveTextContent(
-    "Paste a link to a YouTube video or an Instagram reel or post.",
-  );
+  expect(screen.getByRole("alert")).toHaveTextContent(INVALID);
 
   await user.click(screen.getByRole("button", { name: "Save changes" }));
   expect(save).not.toHaveBeenCalled();
@@ -205,11 +239,10 @@ it("flags an unsupported link once the field is left, and won't save it", async 
 
 it("says once, at the field, why a link submitted with Enter can't be saved", async () => {
   const { user, save } = setup();
-  await user.type(screen.getByRole("textbox", { name: "Video" }), "https://vimeo.com/123{Enter}");
+  const field = screen.getByRole("textbox", { name: "Video link 1" });
+  await user.type(field, "https://vimeo.com/123{Enter}");
 
   expect(save).not.toHaveBeenCalled();
-  expect(screen.getByRole("textbox", { name: "Video" })).toHaveAttribute("aria-invalid", "true");
-  expect(
-    screen.getAllByText("Paste a link to a YouTube video or an Instagram reel or post."),
-  ).toHaveLength(1);
+  expect(field).toHaveAttribute("aria-invalid", "true");
+  expect(screen.getAllByText(INVALID)).toHaveLength(1);
 });

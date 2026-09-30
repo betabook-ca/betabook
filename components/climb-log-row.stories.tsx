@@ -48,7 +48,7 @@ const send: UserSendRow = {
   areaId: 3,
   areaName: "Granite Canyon",
   ascentStyle: "flash",
-  videoUrl: null,
+  videos: null,
   dateSent: "2026-09-04",
   rating: 3,
   suggestedGrade: 5,
@@ -79,7 +79,22 @@ export const NoComment: Story = { render: () => <SendExample send={{ ...send, co
  * in a dialog rather than putting a player in the list. */
 export const WithVideo: Story = {
   render: () => (
-    <SendExample send={{ ...send, videoUrl: "https://www.youtube.com/shorts/dQw4w9WgXcQ" }} />
+    <SendExample send={{ ...send, videos: ["https://www.youtube.com/shorts/dQw4w9WgXcQ"] }} />
+  ),
+};
+
+/** Several videos share one button, which counts them. */
+export const WithSeveralVideos: Story = {
+  render: () => (
+    <SendExample
+      send={{
+        ...send,
+        videos: [
+          "https://www.youtube.com/shorts/dQw4w9WgXcQ",
+          "https://www.instagram.com/reel/C9Xq3uGxJ5R/",
+        ],
+      }}
+    />
   ),
 };
 

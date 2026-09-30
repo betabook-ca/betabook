@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "9ebc4a8a-4e63-4420-acf7-e7849a1d8a67",
+  "id": "189e3f91-7345-4698-99ca-2fc1c21e0f79",
   "prevId": "6f5e2639-4b18-4154-970e-66ba02733124",
   "tables": {
     "areas": {
@@ -748,8 +748,8 @@
           "autoincrement": false,
           "default": "'solid'"
         },
-        "video_url": {
-          "name": "video_url",
+        "videos": {
+          "name": "videos",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

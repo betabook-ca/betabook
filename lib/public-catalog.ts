@@ -50,7 +50,7 @@ export type PublicClimbSend = {
   gradeFeel: GradeFeel;
   comment: string | null;
   /** Travels with `comment`: a video shows the climber a null name withholds. */
-  videoUrl: string | null;
+  videos: string[] | null;
 };
 export type PublicClimbsPage = {
   climbs: PublicClimb[];

@@ -15,7 +15,7 @@ function anonymous(dateSent: string | null, send: Partial<PublicClimbSend> = {})
     suggestedGrade: 5,
     gradeFeel: "solid",
     comment: null,
-    videoUrl: null,
+    videos: null,
     ...send,
   };
 }
@@ -27,7 +27,10 @@ const SENDS: PublicClimbSend[] = [
     // requests, and initials are the fallback most rows will show anyway.
     userImage: null,
     // Shared with Everyone, so the video travels with the named row.
-    videoUrl: "https://www.instagram.com/reel/C9Xq3uGxJ5R/",
+    videos: [
+      "https://www.instagram.com/reel/C9Xq3uGxJ5R/",
+      "https://www.instagram.com/p/C9Xq3uGxJ5R/",
+    ],
     dateSent: "2026-09-06",
     ascentStyle: "flash",
     rating: 5,
@@ -41,7 +44,7 @@ const SENDS: PublicClimbSend[] = [
   {
     userName: "Sam Okafor",
     userImage: null,
-    videoUrl: null,
+    videos: null,
     dateSent: "2026-08-17",
     ascentStyle: "redpoint",
     rating: 4,
@@ -55,7 +58,7 @@ const SENDS: PublicClimbSend[] = [
   {
     userName: "Jordan Lee",
     userImage: null,
-    videoUrl: null,
+    videos: null,
     dateSent: "2026-05-30",
     ascentStyle: "redpoint",
     rating: 3,

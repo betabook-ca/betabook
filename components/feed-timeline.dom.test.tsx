@@ -20,7 +20,7 @@ const activity: FeedDay["activities"][number] = {
   areaId: 3,
   areaName: "Pine Canyon",
   body: "Found the sequence.",
-  videoUrl: null,
+  videos: null,
   companions: [{ id: "sam", name: "Sam Rivera", image: null, isSelf: false }],
 };
 const day: FeedDay = {
@@ -286,13 +286,13 @@ it("shows a friend's send video in place, and none on a session", () => {
       days={[
         {
           ...day,
-          activities: [{ ...activity, videoUrl: "https://www.instagram.com/reel/C9Xq3uGxJ5R/" }],
+          activities: [{ ...activity, videos: ["https://www.instagram.com/reel/C9Xq3uGxJ5R/"] }],
         },
         // A session's row never carries a video, whatever the row holds.
         {
           ...friend,
           activities: [
-            { ...friend.activities[0], videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
+            { ...friend.activities[0], videos: ["https://www.youtube.com/watch?v=dQw4w9WgXcQ"] },
           ],
         },
       ]}
@@ -311,7 +311,7 @@ it("stops a video in the extra rows when they collapse", async () => {
     activity: {
       ...activity,
       id,
-      videoUrl: id === 3 ? "https://www.youtube.com/watch?v=dQw4w9WgXcQ" : null,
+      videos: id === 3 ? ["https://www.youtube.com/watch?v=dQw4w9WgXcQ"] : null,
     },
   }));
   render(<FeedActivityCard entries={entries} view="all" />);

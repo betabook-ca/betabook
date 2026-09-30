@@ -86,7 +86,7 @@ it("names only Everyone commentary and keeps every other send to its month", asy
       suggestedGrade: 6,
       gradeFeel: "high",
       comment: "Open beta",
-      videoUrl: null,
+      videos: null,
     },
     {
       userName: null,
@@ -97,7 +97,7 @@ it("names only Everyone commentary and keeps every other send to its month", asy
       suggestedGrade: 5,
       gradeFeel: "solid",
       comment: null,
-      videoUrl: null,
+      videos: null,
     },
     {
       userName: null,
@@ -108,7 +108,7 @@ it("names only Everyone commentary and keeps every other send to its month", asy
       suggestedGrade: null,
       gradeFeel: "low",
       comment: null,
-      videoUrl: null,
+      videos: null,
     },
     {
       userName: null,
@@ -119,7 +119,7 @@ it("names only Everyone commentary and keeps every other send to its month", asy
       suggestedGrade: null,
       gradeFeel: "solid",
       comment: null,
-      videoUrl: null,
+      videos: null,
     },
   ]);
 });

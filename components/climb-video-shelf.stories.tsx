@@ -22,6 +22,15 @@ const VIDEOS: ClimbVideo[] = [
     ascentStyle: "redpoint",
     dateSent: "2026-08-17",
   },
+  // A second video from the same send: one tile each.
+  {
+    videoUrl: "https://www.instagram.com/p/C9Xq3uGxJ5R/",
+    userId: "sam",
+    userName: "Sam Okafor",
+    userImage: null,
+    ascentStyle: "redpoint",
+    dateSent: "2026-08-17",
+  },
   {
     videoUrl: "https://www.youtube.com/shorts/dQw4w9WgXcQ",
     userId: "jordan",

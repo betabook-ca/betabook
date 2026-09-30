@@ -10,6 +10,7 @@ import type { JournalCompanion } from "@/lib/journal-companions";
 import { journalVisibleSql, sendCommentVisibleSql } from "./content-access";
 import { journalHashtagsCondition } from "./hashtag-filter";
 import { companionsJsonSql } from "./journal-companions";
+import { parseVideoList } from "./send-videos";
 
 export type JournalEntry = {
   id: number;
@@ -27,8 +28,8 @@ export type JournalEntry = {
   climbBrokenOn: string | null;
   /** Original send opinion, available only while this entry is completed. */
   reportedGrade?: number | null;
-  /** The send's video, on its ascent entry only, under the send commentary audience. */
-  videoUrl?: string | null;
+  /** The send's videos, on its ascent entry only, under the send commentary audience. */
+  videos?: string[] | null;
   areaId: number | null;
   areaName: string | null;
   isAscent: boolean;
@@ -59,7 +60,7 @@ type JournalEntryRow = {
   climbGrade: number | null;
   climbBrokenOn: string | null;
   reportedGrade: number | null;
-  videoUrl: string | null;
+  videos: string | null;
   areaId: number | null;
   areaName: string | null;
   isAscent: number;
@@ -70,6 +71,7 @@ function toJournalEntry(row: JournalEntryRow): JournalEntry {
   return {
     ...row,
     companions: JSON.parse(row.companions) as JournalCompanion[],
+    videos: parseVideoList(row.videos),
     sent: row.sent === 1,
     isAscent: row.isAscent === 1,
     isSendComment: row.isSendComment === 1,
@@ -149,7 +151,7 @@ function journalEntrySelect(viewerId: string | null): SQL {
       climbs.broken_on AS climbBrokenOn,
       reported.suggested_grade AS reportedGrade,
       CASE WHEN j.is_ascent = 1 AND ${sendCommentVisibleSql(viewerId, sql`j.user_id`)}
-        THEN reported.video_url ELSE NULL END AS videoUrl,
+        THEN reported.videos ELSE NULL END AS videos,
       climbs.area_id AS areaId,
       areas.name AS areaName,
       j.is_ascent AS isAscent, j.is_send_comment AS isSendComment

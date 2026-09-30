@@ -5,10 +5,23 @@ import type { AscentStyle } from "@/lib/sends";
 
 import { sendCommentVisibleSql } from "./content-access";
 
+/** `sends.videos` as raw SQL hands it back: JSON text, or null for none. */
+export function parseVideoList(value: string | null): string[] | null {
+  return value === null ? null : (JSON.parse(value) as string[]);
+}
+
+/** A raw row with its `videos` JSON parsed. */
+export function withVideoList<T extends { videos: string | null }>(
+  row: T,
+): Omit<T, "videos"> & { videos: string[] | null } {
+  return { ...row, videos: parseVideoList(row.videos) };
+}
+
 /** How many videos a climb page gathers above its send list. */
 const CLIMB_VIDEO_LIMIT = 8;
 
-/** A climb's send video with just enough to caption it. Carries no send id:
+/** One of a climb's send videos — a send with several gives several — with
+ * just enough to caption it. Carries no send id:
  * the signed-out page lists these too, and public send rows never expose one. */
 export type ClimbVideo = {
   videoUrl: string;
@@ -35,7 +48,7 @@ export async function getClimbVideos(
 ): Promise<ClimbVideos> {
   const rows = await db.all<ClimbVideo & { total: number }>(sql`
     SELECT
-      sends.video_url AS videoUrl,
+      link.value AS videoUrl,
       CASE WHEN ${viewerId} IS NOT NULL THEN sends.user_id END AS userId,
       user.name AS userName,
       user.image AS userImage,
@@ -44,10 +57,10 @@ export async function getClimbVideos(
       count(*) OVER () AS total
     FROM sends
     JOIN user ON user.id = sends.user_id
+    JOIN json_each(sends.videos) AS link
     WHERE sends.climb_id = ${climbId}
-      AND sends.video_url IS NOT NULL
       AND ${sendCommentVisibleSql(viewerId, sql`sends.user_id`)}
-    ORDER BY sends.date_sent DESC, sends.id ASC
+    ORDER BY sends.date_sent DESC, sends.id ASC, link.key ASC
     LIMIT ${limit}
   `);
   return {

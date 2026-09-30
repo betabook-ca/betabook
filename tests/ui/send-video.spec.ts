@@ -48,3 +48,23 @@ test("a Short opens from its row in a portrait player that fits the screen @layo
   expect(frame.x).toBeGreaterThanOrEqual(0);
   expect(frame.x + frame.width).toBeLessThanOrEqual(viewport.width);
 });
+
+test("a send's several posters scroll within their row and never widen the page @layout", async ({
+  page,
+}, info) => {
+  await openStory(page, info, "components-sends-send-video--several-videos");
+
+  const { scrollWidth, clientWidth, pageOverflow } = await page
+    .getByRole("list")
+    .evaluate((element) => ({
+      scrollWidth: element.scrollWidth,
+      clientWidth: element.clientWidth,
+      pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    }));
+
+  expect(pageOverflow).toBeLessThanOrEqual(0);
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error("Missing viewport");
+  // Four posters one row high don't fit a phone: the row takes the overflow.
+  if (viewport.width < 768) expect(scrollWidth).toBeGreaterThan(clientWidth);
+});

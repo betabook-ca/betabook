@@ -40,7 +40,27 @@ export const SendWithVideo: Story = {
         activity: {
           ...feedDays[2].activities[0],
           kind: "send",
-          videoUrl: "https://www.instagram.com/reel/C9Xq3uGxJ5R/",
+          videos: ["https://www.instagram.com/reel/C9Xq3uGxJ5R/"],
+        },
+      },
+    ],
+  },
+};
+/** Several videos on one send: a row of posters, each opening the dialog to
+ * page through them. */
+export const SendWithSeveralVideos: Story = {
+  args: {
+    entries: [
+      {
+        day: feedDays[2],
+        activity: {
+          ...feedDays[2].activities[0],
+          kind: "send",
+          videos: [
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "https://www.instagram.com/reel/C9Xq3uGxJ5R/",
+            "https://www.youtube.com/shorts/dQw4w9WgXcQ",
+          ],
         },
       },
     ],

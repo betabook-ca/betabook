@@ -29,10 +29,11 @@ export const sends = sqliteTable(
     gradeFeel: text("grade_feel", { enum: ["low", "solid", "high"] })
       .notNull()
       .default("solid"),
-    // Canonical YouTube or Instagram link to a video of the send, shown to the
-    // send commentary audience. Always the exact form `sendVideoUrl` writes in
-    // lib/send-video.ts; migration 0052's triggers reject any other shape.
-    videoUrl: text("video_url"),
+    // Up to MAX_SEND_VIDEOS canonical YouTube or Instagram links to videos of
+    // the send, in the climber's order, shown to the send commentary audience.
+    // Each is the exact form `sendVideoUrl` writes in lib/send-video.ts, and
+    // migration 0052's triggers reject any other shape. Null when none.
+    videos: text("videos", { mode: "json" }).$type<string[]>(),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .notNull(),

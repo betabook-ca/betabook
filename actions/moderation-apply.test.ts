@@ -974,46 +974,49 @@ describe("applyClimbMerge", () => {
     expect(target?.sendCount).toBe(1);
   });
 
-  it("keeps a colliding send's video on the surviving send unless it has its own", async () => {
-    const sourceVideo = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
-    const targetVideo = "https://www.instagram.com/reel/C9Xq3uGxJ5R/";
+  it("keeps a colliding send's videos on the surviving send unless it has its own", async () => {
+    const sourceVideos = [
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "https://www.instagram.com/p/C9Xq3uGxJ5R/",
+    ];
+    const targetVideos = ["https://www.instagram.com/reel/C9Xq3uGxJ5R/"];
     await seedFixtureUser(db, { id: "merge-video-a" });
     await seedFixtureUser(db, { id: "merge-video-b" });
     await db.insert(climbs).values([
       { id: 970, areaId: 3, name: "Merge Source V", type: "boulder", grade: 3 },
       { id: 971, areaId: 3, name: "Merge Target V", type: "boulder", grade: 3 },
     ]);
-    // A has a video only on the duplicate; B has one on both.
+    // A has videos only on the duplicate; B has some on both.
     await seedFixtureSend(db, {
       userId: "merge-video-a",
       climbId: 970,
       dateSent: null,
-      videoUrl: sourceVideo,
+      videos: sourceVideos,
     });
     await seedFixtureSend(db, { userId: "merge-video-a", climbId: 971, dateSent: null });
     await seedFixtureSend(db, {
       userId: "merge-video-b",
       climbId: 970,
       dateSent: null,
-      videoUrl: sourceVideo,
+      videos: sourceVideos,
     });
     await seedFixtureSend(db, {
       userId: "merge-video-b",
       climbId: 971,
       dateSent: null,
-      videoUrl: targetVideo,
+      videos: targetVideos,
     });
 
     await applyClimbMerge(db, 970, 971);
 
     const rows = await db
-      .select({ userId: sends.userId, climbId: sends.climbId, videoUrl: sends.videoUrl })
+      .select({ userId: sends.userId, climbId: sends.climbId, videos: sends.videos })
       .from(sends)
       .where(eq(sends.climbId, 971))
       .orderBy(sends.userId);
     expect(rows).toEqual([
-      { userId: "merge-video-a", climbId: 971, videoUrl: sourceVideo },
-      { userId: "merge-video-b", climbId: 971, videoUrl: targetVideo },
+      { userId: "merge-video-a", climbId: 971, videos: sourceVideos },
+      { userId: "merge-video-b", climbId: 971, videos: targetVideos },
     ]);
   });
 

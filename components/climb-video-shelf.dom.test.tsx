@@ -56,3 +56,32 @@ it("renders nothing for a climb without videos", () => {
   const { container } = render(<ClimbVideoShelf videos={[]} total={0} climbName="Quiet Arete" />);
   expect(container).toBeEmptyDOMElement();
 });
+
+it("pages from the pressed tile through every video on the climb, each with its own caption", async () => {
+  const user = userEvent.setup();
+  const second: ClimbVideo = {
+    ...video,
+    videoUrl: "https://www.instagram.com/reel/C9Xq3uGxJ5R/",
+    userId: "jo",
+    userName: "Jo Park",
+    ascentStyle: "redpoint",
+  };
+  render(<ClimbVideoShelf videos={[video, second]} total={2} climbName="Quiet Arete" />);
+
+  await user.click(
+    screen.getByRole("button", { name: "Play Instagram reel: Jo Park on Quiet Arete" }),
+  );
+  const dialog = await screen.findByRole("dialog", { name: "Jo Park on Quiet Arete" });
+  expect(within(dialog).getByRole("status")).toHaveTextContent("2 of 2");
+  expect(within(dialog).getByRole("link", { name: "Jo Park" })).toHaveAttribute(
+    "href",
+    "/users/jo",
+  );
+
+  await user.click(within(dialog).getByRole("button", { name: "Previous" }));
+  expect(within(dialog).getByRole("heading")).toHaveTextContent("Sam Rivera on Quiet Arete");
+  expect(within(dialog).getByRole("link", { name: "Sam Rivera" })).toHaveAttribute(
+    "href",
+    "/users/sam",
+  );
+});

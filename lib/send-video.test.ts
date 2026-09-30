@@ -8,8 +8,10 @@ import {
   sendVideoEmbedUrl,
   sendVideoLabel,
   sendVideoThumbnailUrl,
+  readSendVideos,
+  SEND_VIDEO_LIMIT_MESSAGE,
   sendVideoUrl,
-  validateSendVideoInput,
+  validateSendVideosInput,
   type SendVideo,
 } from "@/lib/send-video";
 
@@ -180,29 +182,70 @@ describe("player and poster URLs", () => {
   });
 });
 
-describe("validateSendVideoInput", () => {
-  it("leaves the stored video alone when the form carries no video field", () => {
-    expect(validateSendVideoInput(null)).toBeUndefined();
-    expect(validateSendVideoInput(undefined)).toBeUndefined();
+describe("validateSendVideosInput", () => {
+  const REEL = "https://www.instagram.com/reel/C9Xq3uGxJ5R/";
+
+  it("leaves the stored videos alone when the form carries no video list", () => {
+    expect(validateSendVideosInput(undefined)).toBeUndefined();
   });
 
-  it("clears the video when the field is sent empty", () => {
-    expect(validateSendVideoInput("   ")).toBeNull();
+  it("clears the videos when the list is sent empty or blank", () => {
+    expect(validateSendVideosInput([])).toBeNull();
+    expect(validateSendVideosInput(["", "   "])).toBeNull();
   });
 
-  it("stores the canonical link", () => {
-    expect(validateSendVideoInput(` https://youtu.be/${ID}?t=12 `)).toBe(
-      `https://www.youtube.com/watch?v=${ID}&t=12s`,
-    );
+  it("stores canonical links in order, skipping blanks and repeats of the same video", () => {
+    expect(
+      validateSendVideosInput([
+        ` https://youtu.be/${ID}?t=12 `,
+        "",
+        "instagram.com/some.climber/reel/C9Xq3uGxJ5R/?igsh=x",
+        `https://www.youtube.com/watch?v=${ID}&t=12s&si=y`,
+      ]),
+    ).toEqual([`https://www.youtube.com/watch?v=${ID}&t=12s`, REEL]);
   });
 
-  it("refuses an unsupported link, a file and an oversized value with a reason", () => {
-    expect(() => validateSendVideoInput("https://vimeo.com/1")).toThrow(SEND_VIDEO_INVALID_MESSAGE);
-    expect(() => validateSendVideoInput(new File(["x"], "clip.mp4"))).toThrow(
+  it("refuses an unsupported link, a file, an oversized value and too many videos", () => {
+    expect(() => validateSendVideosInput([REEL, "https://vimeo.com/1"])).toThrow(
       SEND_VIDEO_INVALID_MESSAGE,
     );
-    expect(() => validateSendVideoInput(`https://youtu.be/${ID}?pad=${"x".repeat(3000)}`)).toThrow(
+    expect(() => validateSendVideosInput([new File(["x"], "clip.mp4")])).toThrow(
       SEND_VIDEO_INVALID_MESSAGE,
     );
+    expect(() =>
+      validateSendVideosInput([`https://youtu.be/${ID}?pad=${"x".repeat(3000)}`]),
+    ).toThrow(SEND_VIDEO_INVALID_MESSAGE);
+    const six = [
+      "AAAAAAAAAAA",
+      "BBBBBBBBBBB",
+      "CCCCCCCCCCC",
+      "DDDDDDDDDDD",
+      "EEEEEEEEEEE",
+      "FFFFFFFFFFF",
+    ];
+    expect(() => validateSendVideosInput(six.map((id) => `https://youtu.be/${id}`))).toThrow(
+      SEND_VIDEO_LIMIT_MESSAGE,
+    );
+    // The limit counts distinct videos, so a repeat doesn't use a slot.
+    expect(
+      validateSendVideosInput([...six.slice(0, 5), six[0]].map((id) => `https://youtu.be/${id}`)),
+    ).toHaveLength(5);
+  });
+});
+
+describe("readSendVideos", () => {
+  it("reads each canonical link and drops anything else", () => {
+    expect(
+      readSendVideos([
+        `https://www.youtube.com/shorts/${ID}`,
+        `https://youtu.be/${ID}`,
+        "https://www.instagram.com/p/C9Xq3uGxJ5R/",
+      ]),
+    ).toEqual([
+      { provider: "youtube", id: ID, format: "short", start: null },
+      { provider: "instagram", shortcode: "C9Xq3uGxJ5R", format: "post" },
+    ]);
+    expect(readSendVideos(null)).toEqual([]);
+    expect(readSendVideos(undefined)).toEqual([]);
   });
 });

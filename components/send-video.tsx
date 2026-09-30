@@ -2,12 +2,12 @@
 
 import { Button, Modal, useOverlayState, type UseOverlayStateReturn } from "@heroui/react";
 import { clsx } from "clsx";
-import { ExternalLink, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, Play } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
-  readSendVideo,
+  readSendVideos,
   sendVideoEmbedUrl,
   sendVideoLabel,
   sendVideoProviderName,
@@ -152,120 +152,239 @@ export function WatchElsewhereLink({ video }: { video: SendVideo }) {
   );
 }
 
-/** A send's video shown in place, as a poster that turns into the player
- * when pressed. For surfaces where the video is the point of the row — a
- * friend's send in the feed. Renders nothing for a missing or unreadable
- * link, so callers can pass whatever the row carries. */
-export function SendVideoPoster({
-  videoUrl,
+/** One video in a dialog that can page through several. */
+export type SendVideoItem = {
+  video: SendVideo;
+  /** Whose send of what: the dialog's heading and the player's name. */
+  title: string;
+  /** Who sent it and how, under the player. */
+  caption?: ReactNode;
+};
+
+/** A poster button for one video. */
+function PosterButton({
+  video,
+  title,
+  onPress,
+  className,
+}: {
+  video: SendVideo;
+  title: string;
+  onPress: () => void;
+  className: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onPress}
+      aria-label={`Play ${sendVideoLabel(video)}: ${title}`}
+      className={clsx(
+        "group block shrink-0 cursor-pointer overflow-hidden rounded-panel border border-separator focus-visible:status-focused",
+        className,
+      )}
+    >
+      <SendVideoThumbnail video={video} />
+    </button>
+  );
+}
+
+/** A send's videos shown in place, for surfaces where they are the point of
+ * the row — a friend's send in the feed. One video is a poster that turns
+ * into the player when pressed. Several are a row of smaller posters that
+ * open the dialog, where the viewer can page through them; playing them in
+ * place would leave several live players side by side, each too narrow for
+ * Instagram's. Renders nothing when no link can be read, so callers can pass
+ * whatever the row carries. */
+export function SendVideoPosters({
+  videoUrls,
   title,
   className,
 }: {
-  videoUrl: string | null | undefined;
-  /** Whose send of what, for the play button's and player's names. */
+  videoUrls: readonly string[] | null | undefined;
   title: string;
   className?: string;
 }) {
   // Which link was pressed, not just "playing": a poster handed a different
   // video must show that video's poster, never start playing it unasked.
   const [playingUrl, setPlayingUrl] = useState<string | null>(null);
-  const video = readSendVideo(videoUrl);
-  if (!video) return null;
+  const [openAt, setOpenAt] = useState(0);
+  const state = useOverlayState();
+  const videos = readSendVideos(videoUrls);
+  const [first] = videos;
+  if (!first) return null;
+
+  if (videos.length === 1) {
+    const url = sendVideoUrl(first);
+    return (
+      <div className={clsx("flex w-full max-w-md flex-col items-start gap-1.5", className)}>
+        {playingUrl === url ? (
+          <SendVideoFrame video={first} title={title} focusOnMount />
+        ) : (
+          <PosterButton
+            video={first}
+            title={title}
+            onPress={() => setPlayingUrl(url)}
+            className={POSTER_CLASS[shape(first)]}
+          />
+        )}
+        <WatchElsewhereLink video={first} />
+      </div>
+    );
+  }
+
+  const items = videos.map((video, index) => ({
+    video,
+    title: `${title} (${index + 1} of ${videos.length})`,
+  }));
   return (
-    <div className={clsx("flex w-full max-w-md flex-col items-start gap-1.5", className)}>
-      {playingUrl === videoUrl ? (
-        <SendVideoFrame video={video} title={title} focusOnMount />
-      ) : (
-        <button
-          type="button"
-          onClick={() => setPlayingUrl(videoUrl ?? null)}
-          aria-label={`Play ${sendVideoLabel(video)}: ${title}`}
-          className={clsx(
-            "group block cursor-pointer overflow-hidden rounded-panel border border-separator focus-visible:status-focused",
-            POSTER_CLASS[shape(video)],
-          )}
-        >
-          <SendVideoThumbnail video={video} />
-        </button>
-      )}
-      <WatchElsewhereLink video={video} />
-    </div>
+    <>
+      <ul role="list" className={clsx("flex gap-2 overflow-x-auto pb-1", className)}>
+        {items.map((item, index) => (
+          <li key={sendVideoUrl(item.video)} className="shrink-0">
+            <PosterButton
+              video={item.video}
+              title={item.title}
+              onPress={() => {
+                setOpenAt(index);
+                state.open();
+              }}
+              // One shape for the row, like a photo grid: wide enough for a
+              // label, and never a sliver for a portrait clip.
+              className="aspect-[4/5] w-36"
+            />
+          </li>
+        ))}
+      </ul>
+      <SendVideoDialog items={items} startAt={openAt} state={state} />
+    </>
   );
 }
 
-/** The player in a centered dialog — a readout, not a task, so it stays
- * centered at every width rather than rising as a sheet. The dialog's body
- * unmounts once its exit finishes, taking the player with it, so a video
- * never keeps playing somewhere the viewer can't see it. */
+function SendVideoDialogContent({
+  items,
+  startAt,
+}: {
+  items: readonly SendVideoItem[];
+  startAt: number;
+}) {
+  // Mounted fresh each time the dialog opens, so it starts where it was asked to.
+  const [index, setIndex] = useState(startAt);
+  const { video, title, caption } = items[index] ?? items[0];
+  const landscape = shape(video) === "landscape";
+  return (
+    <Modal.Dialog
+      aria-label={title}
+      className={clsx("w-full", landscape ? "max-w-3xl" : "max-w-[min(28rem,calc(100vw-2rem))]")}
+    >
+      <Modal.Header>
+        <Modal.Heading className="break-words">{title}</Modal.Heading>
+        <Modal.CloseTrigger />
+      </Modal.Header>
+      <Modal.Body className="flex flex-col items-center gap-3">
+        {/* Keyed by position, so paging swaps the player rather than
+         * pointing the playing one somewhere else. */}
+        <SendVideoFrame key={index} video={video} title={title} />
+        <div className="flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-1">
+          {caption && <div className="min-w-0 text-sm text-muted">{caption}</div>}
+          <WatchElsewhereLink video={video} />
+        </div>
+        {items.length > 1 && (
+          <div className="flex w-full items-center justify-between gap-3 border-t border-separator pt-3">
+            <Button
+              size="sm"
+              variant="ghost"
+              isDisabled={index === 0}
+              onPress={() => setIndex(index - 1)}
+            >
+              <ChevronLeft aria-hidden className="size-4" />
+              Previous
+            </Button>
+            <span role="status" className="text-sm text-muted tabular-nums">
+              {index + 1} of {items.length}
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              isDisabled={index === items.length - 1}
+              onPress={() => setIndex(index + 1)}
+            >
+              Next
+              <ChevronRight aria-hidden className="size-4" />
+            </Button>
+          </div>
+        )}
+      </Modal.Body>
+    </Modal.Dialog>
+  );
+}
+
+/** Videos in a centered dialog, one at a time, paging through several — a
+ * readout, not a task, so it stays centered at every width rather than
+ * rising as a sheet. The dialog's body unmounts once its exit finishes,
+ * taking the player with it, so a video never keeps playing somewhere the
+ * viewer can't see it. */
 export function SendVideoDialog({
-  video,
-  title,
-  caption,
+  items,
+  startAt = 0,
   state,
 }: {
-  video: SendVideo;
-  title: string;
-  /** Who sent it and how, under the player. */
-  caption?: ReactNode;
+  items: readonly SendVideoItem[];
+  startAt?: number;
   state: UseOverlayStateReturn;
 }) {
-  const landscape = shape(video) === "landscape";
+  if (items.length === 0) return null;
   return (
     <Modal.Backdrop isOpen={state.isOpen} onOpenChange={state.setOpen}>
       <Modal.Container placement="center" scroll="inside">
-        <Modal.Dialog
-          aria-label={title}
-          className={clsx(
-            "w-full",
-            landscape ? "max-w-3xl" : "max-w-[min(28rem,calc(100vw-2rem))]",
-          )}
-        >
-          <Modal.Header>
-            <Modal.Heading className="break-words">{title}</Modal.Heading>
-            <Modal.CloseTrigger />
-          </Modal.Header>
-          <Modal.Body className="flex flex-col items-center gap-3">
-            <SendVideoFrame video={video} title={title} />
-            <div className="flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-1">
-              {caption && <div className="min-w-0 text-sm text-muted">{caption}</div>}
-              <WatchElsewhereLink video={video} />
-            </div>
-          </Modal.Body>
-        </Modal.Dialog>
+        <SendVideoDialogContent items={items} startAt={startAt} />
       </Modal.Container>
     </Modal.Backdrop>
   );
 }
 
-/** A compact "Watch" control for list rows, opening the video in a dialog.
- * Keeps dense lists — a climb's sends, a logbook, a journal — the height
- * they were, and never stacks live players in a scrolling list. Renders
- * nothing for a missing or unreadable link. */
+/** A compact "Watch" control for list rows, opening a send's videos in the
+ * dialog. Keeps dense lists — a climb's sends, a logbook, a journal — the
+ * height they were, and never stacks live players in a scrolling list.
+ * Renders nothing when no link can be read. */
 export function SendVideoButton({
-  videoUrl,
+  videoUrls,
   title,
   caption,
 }: {
-  videoUrl: string | null | undefined;
+  videoUrls: readonly string[] | null | undefined;
   title: string;
   caption?: ReactNode;
 }) {
   const state = useOverlayState();
-  const video = readSendVideo(videoUrl);
-  if (!video) return null;
+  const videos = readSendVideos(videoUrls);
+  const [first] = videos;
+  if (!first) return null;
+  const label = videos.length === 1 ? sendVideoLabel(first) : `${videos.length} videos`;
   return (
     <>
       <Button
         size="sm"
         variant="outline"
         onPress={state.open}
-        aria-label={`Watch ${sendVideoLabel(video)}: ${title}`}
+        aria-label={`Watch ${label}: ${title}`}
         className="gap-1.5"
       >
         <Play aria-hidden className="size-3.5 fill-current" />
-        Watch {sendVideoLabel(video)}
+        Watch {label}
       </Button>
-      <SendVideoDialog video={video} title={title} caption={caption} state={state} />
+      <SendVideoDialog items={videos.map((video) => ({ video, title, caption }))} state={state} />
     </>
   );
+}
+
+/** A list row's `media` slot: the Watch button, or nothing at all when the
+ * send has no video, so the row keeps no empty space for one. */
+export function sendVideoMedia(
+  videoUrls: readonly string[] | null | undefined,
+  title: string,
+  caption?: ReactNode,
+): ReactNode {
+  return videoUrls?.length ? (
+    <SendVideoButton videoUrls={videoUrls} title={title} caption={caption} />
+  ) : undefined;
 }

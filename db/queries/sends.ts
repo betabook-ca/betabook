@@ -16,6 +16,7 @@ import { areaIdCondition, areaNameCondition } from "./areas";
 import type { Climb } from "./climbs";
 import { sendCommentVisibleSql } from "./content-access";
 import { sendHashtagCondition } from "./hashtag-filter";
+import { parseVideoList, withVideoList } from "./send-videos";
 import { disciplineGradeCondition, toFtsPrefixQuery } from "./shared";
 
 export type Send = typeof sends.$inferSelect;
@@ -29,7 +30,7 @@ export type EditableSend = Pick<
   | "rating"
   | "suggestedGrade"
   | "gradeFeel"
-  | "videoUrl"
+  | "videos"
 >;
 
 export type SendableClimb = Pick<Climb, "id" | "areaId" | "type" | "grade" | "brokenOn">;
@@ -84,9 +85,11 @@ export async function getSendsForClimb(
       >`CASE WHEN ${sendCommentVisibleSql(viewerId, sql`sends.user_id`)} THEN ${sends.comment} ELSE NULL END`,
       // A video shows its climber, so it travels with the commentary audience
       // and never reaches an anonymous row.
-      videoUrl: sql<
+      videos: sql<
         string | null
-      >`CASE WHEN ${sendCommentVisibleSql(viewerId, sql`sends.user_id`)} THEN ${sends.videoUrl} ELSE NULL END`,
+      >`CASE WHEN ${sendCommentVisibleSql(viewerId, sql`sends.user_id`)} THEN ${sends.videos} ELSE NULL END`.mapWith(
+        parseVideoList,
+      ),
       rating: sends.rating,
       suggestedGrade: sends.suggestedGrade,
       gradeFeel: sends.gradeFeel,
@@ -196,8 +199,11 @@ export type UserSendRow = {
   gradeFeel: GradeFeel;
   comment: string | null;
   /** Shown to the send commentary audience, like `comment`. */
-  videoUrl: string | null;
+  videos: string[] | null;
 };
+
+/** A `UserSendRow` as SQL returns it, before its video list is parsed. */
+type UserSendRawRow = Omit<UserSendRow, "videos"> & { videos: string | null };
 
 export type UserSendsSort =
   | "date_desc"
@@ -315,7 +321,7 @@ function userSendColumns(viewerId: string | null) {
       sends.suggested_grade AS suggestedGrade,
       sends.grade_feel AS gradeFeel,
       CASE WHEN ${sendCommentVisibleSql(viewerId, sql`sends.user_id`)} THEN sends.comment ELSE NULL END AS comment,
-      CASE WHEN ${sendCommentVisibleSql(viewerId, sql`sends.user_id`)} THEN sends.video_url ELSE NULL END AS videoUrl
+      CASE WHEN ${sendCommentVisibleSql(viewerId, sql`sends.user_id`)} THEN sends.videos ELSE NULL END AS videos
 `;
 }
 
@@ -329,7 +335,7 @@ export async function getSendsForUserPage(
 ): Promise<UserSendsPage> {
   const where = userSendsWhere(userId, filter, viewerId);
 
-  const rows = await db.all<UserSendRow>(sql`
+  const raw = await db.all<UserSendRawRow>(sql`
     SELECT ${userSendColumns(viewerId)}
     FROM sends
     JOIN climbs ON climbs.id = sends.climb_id
@@ -339,6 +345,7 @@ export async function getSendsForUserPage(
     LIMIT ${pageSize + 1}
     OFFSET ${offset}
   `);
+  const rows = raw.map(withVideoList);
 
   const hasMore = rows.length > pageSize;
   return { sends: hasMore ? rows.slice(0, pageSize) : rows, hasMore };
@@ -394,13 +401,13 @@ export async function getSendsForUserExportPage(
   };
 }
 
-function getUserExportRows(
+async function getUserExportRows(
   db: Database,
   userId: string,
   range: SQL,
   limit: number,
 ): Promise<UserSendRow[]> {
-  return db.all<UserSendRow>(sql`
+  const rows = await db.all<UserSendRawRow>(sql`
     SELECT ${userSendColumns(userId)}
     FROM sends INDEXED BY sends_user_date_idx
     JOIN climbs ON climbs.id = sends.climb_id
@@ -409,6 +416,7 @@ function getUserExportRows(
     ORDER BY sends.date_sent DESC, sends.id DESC
     LIMIT ${limit}
   `);
+  return rows.map(withVideoList);
 }
 
 export async function hasUserSends(db: Database, userId: string): Promise<boolean> {

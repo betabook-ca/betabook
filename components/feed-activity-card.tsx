@@ -8,7 +8,7 @@ import { AreaBreadcrumb } from "@/components/area-breadcrumb";
 import { ASCENT_STYLE_LABELS } from "@/components/ascent-style";
 import { CompanionList } from "@/components/journal/companion-list";
 import { GradeFeelArrow } from "@/components/send-grade-cell";
-import { SendVideoPoster } from "@/components/send-video";
+import { SendVideoPosters } from "@/components/send-video";
 import { ActivityIcon } from "@/components/ui/activity-icon";
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
@@ -141,9 +141,9 @@ export function FeedActivityCard({
             </ClampedComment>
           </div>
         )}
-        {item.kind === "send" && item.videoUrl && (
-          <SendVideoPoster
-            videoUrl={item.videoUrl}
+        {item.kind === "send" && (
+          <SendVideoPosters
+            videoUrls={item.videos}
             title={`${day.name} on ${item.climbName ?? title}`}
             className="mt-2"
           />

@@ -1,11 +1,11 @@
-/** A send's video: a link to a clip the climber already posted on YouTube or
- * Instagram, played in place on Betabook. Nothing is uploaded here — the
+/** A send's videos: links to clips the climber already posted on YouTube or
+ * Instagram, played in place on Betabook. Nothing is uploaded here — each
  * video stays on its host, under the climber's own account and settings.
  *
- * `sends.video_url` holds one canonical link per send (see `sendVideoUrl`).
- * The link doubles as the "Open on YouTube" destination and the CSV export
- * value, and a single column needs no pairing rules. Rendering never trusts
- * it as-is: `readSendVideo` re-parses it and builds player URLs only from the
+ * `sends.videos` holds up to MAX_SEND_VIDEOS canonical links per send, in
+ * the climber's order (see `sendVideoUrl`). Each link doubles as the "Open on
+ * YouTube" destination and the CSV export value. Rendering never trusts one
+ * as-is: `readSendVideo` re-parses it and builds player URLs only from the
  * extracted id, so a value that somehow bypassed validation can't point an
  * embed anywhere else. Migration 0051's triggers back the shape up in SQL.
  *
@@ -171,25 +171,46 @@ export function sendVideoLabel(video: SendVideo): string {
   return video.format === "reel" ? "Instagram reel" : "Instagram post";
 }
 
-/** Why a typed link can't be saved, or null when it can — blank included,
- * since a blank field removes the video. For the forms to check before
- * submitting, with the rules `validateSendVideoInput` applies. */
-export function sendVideoLinkError(value: string): string | null {
-  if (!value.trim()) return null;
-  const parsed = parseSendVideoLink(value);
-  return parsed.ok ? null : parsed.error;
+/** How many videos one send can link. */
+export const MAX_SEND_VIDEOS = 5;
+export const SEND_VIDEO_LIMIT_MESSAGE = `Link up to ${MAX_SEND_VIDEOS} videos per send.`;
+
+/** Why a form's video links can't be saved, or null when they can — blanks
+ * included, since blank fields are skipped. For the forms to check before
+ * submitting, with the rules `validateSendVideosInput` applies. */
+export function sendVideoLinksError(values: readonly string[]): string | null {
+  const links = new Set<string>();
+  for (const value of values) {
+    if (!value.trim()) continue;
+    const parsed = parseSendVideoLink(value);
+    if (!parsed.ok) return parsed.error;
+    links.add(sendVideoUrl(parsed.video));
+  }
+  return links.size > MAX_SEND_VIDEOS ? SEND_VIDEO_LIMIT_MESSAGE : null;
 }
 
-/** Server-side reading of the form's `video` field: `undefined` when the form
- * doesn't carry the field (the stored video stays as it is), `null` to clear
- * it, otherwise the canonical link. */
-export function validateSendVideoInput(
-  value: FormDataEntryValue | null | undefined,
-): string | null | undefined {
-  if (value === null || value === undefined) return undefined;
-  if (typeof value !== "string") throw new ActionError(SEND_VIDEO_INVALID_MESSAGE);
-  if (!value.trim()) return null;
-  const parsed = parseSendVideoLink(value);
-  if (!parsed.ok) throw new ActionError(parsed.error);
-  return sendVideoUrl(parsed.video);
+/** A stored list as the videos it can play; anything that isn't exactly a
+ * canonical link drops out rather than reaching a player. */
+export function readSendVideos(stored: readonly string[] | null | undefined): SendVideo[] {
+  return (stored ?? []).flatMap((link) => readSendVideo(link) ?? []);
+}
+
+/** Server-side reading of the form's `video` fields: `undefined` when the
+ * form carried no video list (the stored videos stay as they are), `null`
+ * when every field was blank, otherwise the canonical links in the order
+ * given. The same video linked twice keeps one slot. */
+export function validateSendVideosInput(
+  values: readonly FormDataEntryValue[] | undefined,
+): string[] | null | undefined {
+  if (values === undefined) return undefined;
+  const links = new Set<string>();
+  for (const value of values) {
+    if (typeof value !== "string") throw new ActionError(SEND_VIDEO_INVALID_MESSAGE);
+    if (!value.trim()) continue;
+    const parsed = parseSendVideoLink(value);
+    if (!parsed.ok) throw new ActionError(parsed.error);
+    links.add(sendVideoUrl(parsed.video));
+  }
+  if (links.size > MAX_SEND_VIDEOS) throw new ActionError(SEND_VIDEO_LIMIT_MESSAGE);
+  return links.size ? [...links] : null;
 }

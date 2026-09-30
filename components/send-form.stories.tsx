@@ -27,7 +27,7 @@ const meta = {
       rating: 4,
       suggestedGrade: 5,
       gradeFeel: "solid",
-      videoUrl: null,
+      videos: null,
     },
     existingEntry: {
       id: -1,
@@ -41,6 +41,18 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const LinkedAscent: Story = {};
+/** A send with videos linked: each has its field, preview and remove button. */
+export const WithVideos: Story = {
+  args: {
+    existingSend: {
+      ...meta.args.existingSend,
+      videos: [
+        "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=42s",
+        "https://www.instagram.com/reel/C9Xq3uGxJ5R/",
+      ],
+    },
+  },
+};
 export const Undated: Story = {
   args: { existingSend: { ...meta.args.existingSend, dateSent: null }, existingEntry: null },
 };

@@ -23,7 +23,7 @@ const activity: FeedEntry["activity"] = {
   gradeFeel: null,
   ascentStyle: null,
   body: "Painfully close! Fun session watching Jordan send second go.",
-  videoUrl: null,
+  videos: null,
 };
 
 function entry(

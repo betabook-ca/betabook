@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { AscentStyle, ascentSummary } from "@/components/ascent-style";
 import { SendGradeCell } from "@/components/send-grade-cell";
-import { SendVideoButton } from "@/components/send-video";
+import { sendVideoMedia } from "@/components/send-video";
 import { ListRow } from "@/components/ui/list-row";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { formatDate, formatMonth } from "@/lib/format-date";
@@ -44,15 +44,11 @@ export function ClimbSendListRow({
       }
       actions={actions}
       comment={send.comment}
-      media={
-        send.videoUrl ? (
-          <SendVideoButton
-            videoUrl={send.videoUrl}
-            title={`${send.userName ?? "Betabook climber"} on ${climbName}`}
-            caption={ascentSummary(send.ascentStyle, send.dateSent)}
-          />
-        ) : undefined
-      }
+      media={sendVideoMedia(
+        send.videos,
+        `${send.userName ?? "Betabook climber"} on ${climbName}`,
+        ascentSummary(send.ascentStyle, send.dateSent),
+      )}
     />
   );
 }
