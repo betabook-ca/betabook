@@ -13,6 +13,7 @@ import { ClimbActionsMenu } from "@/components/climb-actions-menu";
 import { ClimbDescription } from "@/components/climb-description";
 import { GradeWithTrend } from "@/components/climb-list";
 import { ClimbSendList } from "@/components/climb-send-list";
+import { ClimbVideoShelf } from "@/components/climb-video-shelf";
 import { ClimbJournalCard, LogEntryButton } from "@/components/journal";
 import { LoggedGradeHistogram } from "@/components/logged-grade-histogram";
 import { cardClass } from "@/components/ui/card";
@@ -29,6 +30,7 @@ import {
   getArea,
   getClimb,
   getClimbSendSummary,
+  getClimbVideos,
   getJournalForClimb,
   getSendsForClimb,
   getUserSendForClimb,
@@ -99,12 +101,13 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
   // Stats come from whole-history aggregates and the list from a paginated
   // query — a popular climb's full send history never ships in the RSC
   // payload (ClimbSendList "load more"-fetches the rest on demand).
-  const [area, userSend, sendsPage, summary, journalEntries] = await Promise.all([
+  const [area, userSend, sendsPage, summary, journalEntries, videos] = await Promise.all([
     getArea(db, climb.areaId),
     getUserSendForClimb(db, session.user.id, climb.id),
     getSendsForClimb(db, climb.id, 0, undefined, session.user.id),
     getClimbSendSummary(db, climb.id),
     getJournalForClimb(db, session.user.id, session.user.id, climb.id),
+    getClimbVideos(db, climb.id, session.user.id),
   ]);
   if (!area) notFound();
 
@@ -205,6 +208,7 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
       >
         <div className="flex flex-col gap-6">
           <ClimbJournalCard userId={session.user.id} climbId={climb.id} entries={journalEntries} />
+          <ClimbVideoShelf videos={videos.videos} total={videos.total} climbName={climb.name} />
           <div className="flex flex-col gap-3">
             <SectionHeading>Sends</SectionHeading>
             <ClimbSendList

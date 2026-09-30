@@ -46,6 +46,7 @@ function send(id: number, climbName: string): UserSendRow {
     suggestedGrade: null,
     gradeFeel: "solid",
     comment: null,
+    videos: null,
   };
 }
 

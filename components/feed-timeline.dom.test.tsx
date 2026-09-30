@@ -4,6 +4,7 @@ import { expect, it } from "vitest";
 
 import type { FeedDay } from "@/db/queries/feed";
 
+import { FeedActivityCard } from "./feed-activity-card";
 import { FeedTimeline } from "./feed-timeline";
 
 const activity: FeedDay["activities"][number] = {
@@ -19,6 +20,7 @@ const activity: FeedDay["activities"][number] = {
   areaId: 3,
   areaName: "Pine Canyon",
   body: "Found the sequence.",
+  videos: null,
   companions: [{ id: "sam", name: "Sam Rivera", image: null, isSelf: false }],
 };
 const day: FeedDay = {
@@ -141,12 +143,12 @@ it("expands and collapses loaded group entries locally while preserving focus", 
       view="all"
     />,
   );
-  expect(screen.getByText("A repeat lap.")).not.toBeVisible();
+  expect(screen.queryByText("A repeat lap.")).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Show more: 1 repeat" }));
   expect(screen.getByText("A repeat lap.")).toBeVisible();
   await user.keyboard("{Enter}");
   expect(screen.getByRole("button", { name: "Show more: 1 repeat" })).toHaveFocus();
-  expect(screen.getByText("A repeat lap.")).not.toBeVisible();
+  expect(screen.queryByText("A repeat lap.")).not.toBeInTheDocument();
 });
 
 it("keeps sessions gradeless and describes matching-grade feel without implying a new grade", () => {
@@ -276,4 +278,71 @@ it("renders an accomplished goal with its author and date without a misleading j
   );
   expect(within(card).queryByRole("link", { name: /View activity/ })).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: /See .* more/ })).not.toBeInTheDocument();
+});
+
+it("shows a friend's send video in place, and none on a session", () => {
+  render(
+    <FeedTimeline
+      days={[
+        {
+          ...day,
+          activities: [{ ...activity, videos: ["https://www.youtube.com/watch?v=dQw4w9WgXcQ"] }],
+        },
+        // A session's row never carries a video, whatever the row holds. An
+        // Instagram link would show as a player right away if it did.
+        {
+          ...friend,
+          activities: [
+            { ...friend.activities[0], videos: ["https://www.instagram.com/reel/C9Xq3uGxJ5R/"] },
+          ],
+        },
+      ]}
+      view="all"
+    />,
+  );
+  expect(
+    screen.getAllByRole("button", { name: /^Play / }).map((button) => button.ariaLabel),
+  ).toEqual(["Play YouTube video: Alex Rivera on Quiet Arete"]);
+  expect(document.querySelector("iframe")).toBeNull();
+});
+
+it("shows a friend's lone Instagram video as its player", () => {
+  render(
+    <FeedTimeline
+      days={[
+        {
+          ...day,
+          activities: [{ ...activity, videos: ["https://www.instagram.com/reel/C9Xq3uGxJ5R/"] }],
+        },
+      ]}
+      view="all"
+    />,
+  );
+  expect(screen.getByTitle("Instagram reel: Alex Rivera on Quiet Arete")).toHaveAttribute(
+    "src",
+    "https://www.instagram.com/reel/C9Xq3uGxJ5R/embed/",
+  );
+});
+
+it("stops a video in the extra rows when they collapse", async () => {
+  const user = userEvent.setup();
+  const entries = [1, 2, 3].map((id) => ({
+    day: { ...day, userId: `friend-${id}`, name: `Friend ${id}` },
+    activity: {
+      ...activity,
+      id,
+      videos: id === 3 ? ["https://www.youtube.com/watch?v=dQw4w9WgXcQ"] : null,
+    },
+  }));
+  render(<FeedActivityCard entries={entries} view="all" />);
+
+  await user.click(screen.getByRole("button", { name: /^Show more/ }));
+  await user.click(
+    screen.getByRole("button", { name: "Play YouTube video: Friend 3 on Quiet Arete" }),
+  );
+  expect(document.querySelector("iframe")).not.toBeNull();
+
+  await user.click(screen.getByRole("button", { name: "Show less activity" }));
+  // Hidden content keeps playing; collapsed rows have to go entirely.
+  expect(document.querySelector("iframe")).toBeNull();
 });

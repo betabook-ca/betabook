@@ -3,6 +3,7 @@ export * from "./areas";
 export * from "./climbs";
 export * from "./users";
 export * from "./sends";
+export * from "./send-videos";
 export * from "./journal";
 export * from "./moderation";
 export * from "./imports";

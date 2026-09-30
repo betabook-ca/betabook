@@ -1,5 +1,6 @@
 import { Chip } from "@heroui/react/chip";
 
+import { formatDate } from "@/lib/format-date";
 import type { AscentStyle } from "@/lib/sends";
 
 /** One shared sentence-case label map — the same names everywhere an
@@ -25,6 +26,11 @@ export const ASCENT_STYLE_CHIP_CLASSNAME: Record<AscentStyle, string> = {
   flash: "bg-(--ascent-flash-bg) text-(--ascent-flash-fg)",
   redpoint: "bg-(--ascent-redpoint-bg) text-(--ascent-redpoint-fg)",
 };
+
+/** "Flash · Sep 6, 2026": a send in one line, as video captions give it. */
+export function ascentSummary(style: AscentStyle, dateSent: string | null): string {
+  return `${ASCENT_STYLE_LABELS[style]} · ${dateSent ? formatDate(dateSent) : "Date unknown"}`;
+}
 
 export function AscentStyle({ type }: { type: AscentStyle }) {
   return (

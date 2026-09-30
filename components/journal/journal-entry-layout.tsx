@@ -41,6 +41,7 @@ export function JournalEntryLayout({
   date,
   tags,
   comment,
+  media,
   actions,
 }: {
   title: string;
@@ -51,6 +52,8 @@ export function JournalEntryLayout({
   date: string | null;
   tags?: ReactNode;
   comment?: string | null;
+  /** Below the comment — a send's video control. */
+  media?: ReactNode;
   actions?: ReactNode;
 }) {
   return (
@@ -93,6 +96,7 @@ export function JournalEntryLayout({
               <ClampedComment>{comment}</ClampedComment>
             </div>
           )}
+          {media && <div className="relative z-10 mt-2 flex">{media}</div>}
         </div>
         <div className="relative z-10 flex shrink-0 flex-col items-end text-right text-sm tabular-nums">
           <div className="flex h-[26px] items-center justify-end">

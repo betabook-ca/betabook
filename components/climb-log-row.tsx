@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
-import { AscentStyle } from "@/components/ascent-style";
+import { AscentStyle, ascentSummary } from "@/components/ascent-style";
 import { JournalEntryLayout } from "@/components/journal/journal-entry-layout";
 import { SendGradeCell } from "@/components/send-grade-cell";
+import { sendVideoMedia } from "@/components/send-video";
 import type { AreaBreadcrumbs, UserSendRow } from "@/db/queries";
 import { climbHref } from "@/lib/slug";
 
@@ -15,6 +16,7 @@ export function ClimbLogRow({
   date,
   tags,
   comment,
+  media,
   actions,
 }: {
   climb: {
@@ -29,6 +31,7 @@ export function ClimbLogRow({
   date: string | null;
   tags?: ReactNode;
   comment?: string | null;
+  media?: ReactNode;
   actions?: ReactNode;
 }) {
   return (
@@ -48,6 +51,7 @@ export function ClimbLogRow({
       date={date}
       actions={actions}
       comment={comment}
+      media={media}
     />
   );
 }
@@ -84,6 +88,11 @@ export function UserSendLogRow({
       date={send.dateSent}
       actions={actions}
       comment={send.comment}
+      media={sendVideoMedia(
+        send.videos,
+        send.climbName,
+        ascentSummary(send.ascentStyle, send.dateSent),
+      )}
     />
   );
 }

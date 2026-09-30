@@ -25,7 +25,7 @@ import { assertLoggableOnClimb } from "@/lib/broken-climbs";
 import { normalizeTags } from "@/lib/journal";
 import { readCompanionSelection } from "@/lib/journal-companions";
 import { allowJournalWrite } from "@/lib/rate-limit";
-import { validateSendInput, type RawSendInput } from "@/lib/sends";
+import { readVideoFields, validateSendInput, type RawSendInput } from "@/lib/sends";
 import { requireSession } from "@/lib/session";
 import { pickFormFields, requirePositiveId } from "@/lib/validation";
 
@@ -56,7 +56,7 @@ const SEND_FORM_FIELDS = [
 ] as const;
 
 function readSendFormData(formData: FormData): RawSendInput {
-  return pickFormFields(formData, SEND_FORM_FIELDS);
+  return { ...pickFormFields(formData, SEND_FORM_FIELDS), videos: readVideoFields(formData) };
 }
 
 const SEND_NOT_FOUND = "Send not found";
@@ -102,6 +102,7 @@ export async function getSendEditorData(
         rating: send.rating,
         suggestedGrade: send.suggestedGrade,
         gradeFeel: send.gradeFeel,
+        videos: send.videos,
       },
       entry,
       climb: {

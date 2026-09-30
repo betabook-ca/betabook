@@ -29,6 +29,7 @@ const SENDS: UserSendRow[] = [
     suggestedGrade: 9,
     gradeFeel: "high",
     comment: "Held the crux on the last day.",
+    videos: null,
   },
   {
     id: 2,
@@ -44,6 +45,7 @@ const SENDS: UserSendRow[] = [
     suggestedGrade: null,
     gradeFeel: "solid",
     comment: null,
+    videos: null,
   },
 ];
 

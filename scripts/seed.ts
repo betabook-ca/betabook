@@ -29,6 +29,7 @@ import { TERMS_VERSION } from "../lib/terms.ts";
 import { requireLocalDb } from "./d1-local.ts";
 import { seedSocialData } from "./seed-social.ts";
 import { seedTrips } from "./seed-trips.ts";
+import { seedSendVideos } from "./seed-videos.ts";
 
 // Ordinals into BOULDER_HUECO (VB–V17) and ROPE_YDS (5.0–5.15d) in lib/grades.
 // Duplicated rather than imported: lib/ is reached through the `@/` alias, which
@@ -148,6 +149,8 @@ async function main() {
       );
       const tripCount = seedTrips(db, viewer.id);
       console.log(`Added ${tripCount} trips and retagged the friends on every seeded trip.`);
+      const videoCount = seedSendVideos(db, viewer.id);
+      console.log(`Linked sample videos to ${videoCount} sends.`);
     }
 
     db.exec("commit");

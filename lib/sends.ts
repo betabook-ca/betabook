@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ActionError } from "@/lib/action-result";
 import { nativeGradeArray, type ClimbType } from "@/lib/grades";
 import { MAX_LOG_NOTE_LENGTH } from "@/lib/log-note";
+import { validateSendVideosInput } from "@/lib/send-video";
 import { parseGradeIndex, trimOrNull } from "@/lib/validation";
 
 export { MAX_LOG_NOTE_LENGTH as MAX_COMMENT_LENGTH } from "@/lib/log-note";
@@ -43,6 +44,9 @@ export type SendInput = {
   rating: number | null;
   suggestedGrade: number;
   gradeFeel: GradeFeel;
+  /** Canonical video links, null to remove them all, or undefined when the
+   * form carried no video list and the stored ones stay as they are. */
+  videos?: string[] | null;
 };
 
 export type RawSendInput = {
@@ -52,7 +56,17 @@ export type RawSendInput = {
   rating: FormDataEntryValue | null;
   suggestedGrade: FormDataEntryValue | null;
   gradeFeel: FormDataEntryValue | null;
+  /** Every `video` field, or undefined when the form didn't mark its video
+   * list as sent (`videosChanged`) — see `readVideoFields`. */
+  videos?: FormDataEntryValue[];
 };
+
+/** A form's video list: every `video` field, but only when the form says it
+ * sent the list — an empty list otherwise can't be told from an older form
+ * that knows nothing of videos, which must leave them untouched. */
+export function readVideoFields(formData: FormData): FormDataEntryValue[] | undefined {
+  return formData.has("videosChanged") ? formData.getAll("video") : undefined;
+}
 
 /** The `YYYY-MM-DD` shape alone. Enough for a key that only has to match
  * stored dates; user-entered dates go through `isRealIsoDate`. */
@@ -156,6 +170,7 @@ export function validateSendInput(
     rating,
     suggestedGrade,
     gradeFeel: parseGradeFeel(raw.gradeFeel),
+    videos: validateSendVideosInput(raw.videos),
   };
 }
 
