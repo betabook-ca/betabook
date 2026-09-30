@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { AscentStyle, ascentSummary } from "@/components/ascent-style";
 import { SendGradeCell } from "@/components/send-grade-cell";
-import { sendVideoMedia } from "@/components/send-video";
+import { sendVideoMedia } from "@/components/send-video-media";
 import { ListRow } from "@/components/ui/list-row";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { formatDate, formatMonth } from "@/lib/format-date";

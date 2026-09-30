@@ -4,7 +4,7 @@ import { AreaBreadcrumb } from "@/components/area-breadcrumb";
 import { AscentStyle, ascentSummary } from "@/components/ascent-style";
 import { JournalEntryLayout } from "@/components/journal/journal-entry-layout";
 import { SendGradeCell } from "@/components/send-grade-cell";
-import { sendVideoMedia } from "@/components/send-video";
+import { sendVideoMedia } from "@/components/send-video-media";
 import type { AreaBreadcrumbs, UserSendRow } from "@/db/queries";
 import { climbHref } from "@/lib/slug";
 
