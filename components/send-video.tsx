@@ -16,24 +16,24 @@ import {
   type SendVideo,
 } from "@/lib/send-video";
 
-/** How each kind of video is framed. A poster shows only the clip's shape.
- * An Instagram player also carries Instagram's own header and footer. */
+/** How each kind of video's player is framed. */
 function shape(video: SendVideo): "landscape" | "short" | "reel" | "post" {
   if (video.provider === "instagram") return video.format;
   return video.format === "short" ? "short" : "landscape";
 }
 
+/** A lone YouTube video's poster, by format. A lone Instagram video has no
+ * poster: it shows its player. */
 const POSTER_CLASS = {
-  landscape: "aspect-video w-full",
+  video: "aspect-video w-full",
   short: "aspect-[9/16] w-[min(100%,15rem)]",
-  reel: "aspect-[9/16] w-[min(100%,15rem)]",
-  post: "aspect-[4/5] w-[min(100%,15rem)]",
 } as const;
 
-/** Instagram's player needs 326px of width to lay out. Its content is as tall
+/** Instagram's player needs at least 326px of width. Its content is as tall
  * as the media plus 208px of header and footer, and the media is at most 4:5
- * (a reel's cover is cropped to that), so at this width it needs 618px. The
- * sizes are in px because Instagram's are. */
+ * (a reel's cover is cropped to that). The frame is 328px wide, where that
+ * comes to 618px, plus 6px of slack. The sizes are in px because Instagram's
+ * are. */
 const INSTAGRAM_FRAME_CLASS = "h-[624px] w-[min(100%,328px)]";
 
 const FRAME_CLASS = {
@@ -51,10 +51,13 @@ const FRAME_CLASS = {
 function SendVideoFrame({
   video,
   title,
+  autoplay = true,
   focusOnMount = false,
 }: {
   video: SendVideo;
   title: string;
+  /** False for a player that loads with the page, which nobody asked to play. */
+  autoplay?: boolean;
   /** Hand focus to the player that just replaced the button a keyboard user
    * pressed, rather than dropping it on the page. */
   focusOnMount?: boolean;
@@ -66,7 +69,7 @@ function SendVideoFrame({
   return (
     <iframe
       ref={ref}
-      src={sendVideoEmbedUrl(video, { autoplay: true })}
+      src={sendVideoEmbedUrl(video, { autoplay })}
       title={`${sendVideoLabel(video)}: ${title}`}
       // A feed page can hold several Instagram players. Each loads when it
       // is scrolled near. A player opened by a press is already in view.
@@ -231,15 +234,15 @@ export function SendVideoPosters({
     return (
       <div className={clsx("flex w-full max-w-md flex-col items-start gap-1.5", className)}>
         {pressed || first.provider === "instagram" ? (
-          // Only a player that replaced a pressed button takes focus. One
-          // that loads with the page leaves focus where it was.
-          <SendVideoFrame video={first} title={title} focusOnMount={pressed} />
+          // Only a player that replaced a pressed button plays and takes
+          // focus. One that loads with the page does neither.
+          <SendVideoFrame video={first} title={title} autoplay={pressed} focusOnMount={pressed} />
         ) : (
           <PosterButton
             video={first}
             title={title}
             onPress={() => setPlayingUrl(url)}
-            className={POSTER_CLASS[shape(first)]}
+            className={POSTER_CLASS[first.format]}
           />
         )}
         <WatchElsewhereLink video={first} />
