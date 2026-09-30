@@ -96,7 +96,7 @@ it("renders no tabs", () => {
   }
 });
 
-it("links the counts to the Journal and Sends filtered to the trip's dates", () => {
+it("links the counts to the Journal and Sends filtered to the trip's dates, then to analytics", () => {
   render(header(BISHOP));
 
   expect(screen.getByText("7", { exact: false })).toBeInTheDocument();
@@ -108,14 +108,21 @@ it("links the counts to the Journal and Sends filtered to the trip's dates", () 
     "href",
     `/users/alex/sends?${DATES}`,
   );
-  // No Analytics link in the counts line.
-  expect(screen.queryByRole("link", { name: "Analytics" })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Analytics" })).toHaveAttribute(
+    "href",
+    "/users/alex/trips/7/analytics",
+  );
+  // Analytics is the last item on the counts line.
+  expect(screen.getByText("days logged", { exact: false }).closest("p")).toHaveTextContent(
+    /^7 days logged\s*·\s*14 entries\s*·\s*9 sends\s*·\s*Analytics$/,
+  );
 });
 
-it("shows only the send count when the viewer can't read the journal", () => {
+it("shows only the send count and analytics when the viewer can't read the journal", () => {
   render(header({ ...BISHOP, entryCount: null, dayCount: null }, "sam"));
 
   expect(screen.getByRole("link", { name: "9 sends" })).toBeVisible();
+  expect(screen.getByRole("link", { name: "Analytics" })).toBeVisible();
   expect(document.body).not.toHaveTextContent(/entr|days logged/);
 });
 
@@ -138,13 +145,15 @@ it("does not link zero counts, and hides counts for an upcoming trip", () => {
   expect(document.body).not.toHaveTextContent(/0 entries|0 sends|days logged/);
 });
 
-it("links back to the trip from the analytics page", () => {
+it("links back to the trip from the analytics page, and not to analytics", () => {
   render(header(BISHOP, "alex", { back: "trip" }));
 
   expect(screen.getByRole("link", { name: "Back to trip" })).toHaveAttribute(
     "href",
     "/users/alex/trips/7",
   );
+  expect(screen.getByRole("link", { name: "9 sends" })).toBeVisible();
+  expect(screen.queryByRole("link", { name: "Analytics" })).not.toBeInTheDocument();
 });
 
 it("renders the same header for a signed-out visitor, without controls or Logbook links", () => {

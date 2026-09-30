@@ -9,11 +9,18 @@ import { TripStatusChip } from "@/components/trips/trip-status-chip";
 import { SectionHeading } from "@/components/ui/typography";
 import type { TripSummary } from "@/db/queries";
 import { withProfileShare } from "@/lib/profile-share";
-import { formatTripDates, tripHref, tripLogbookHref, tripStatus, tripsHref } from "@/lib/trips";
+import {
+  formatTripDates,
+  tripAnalyticsHref,
+  tripHref,
+  tripLogbookHref,
+  tripStatus,
+  tripsHref,
+} from "@/lib/trips";
 
 /** Header for a trip page: back link, name, dates, description, tagged friends
  * and counts. The counts link to the Journal and Sends tabs filtered to the
- * trip's dates. */
+ * trip's dates, followed by a link to the trip's analytics. */
 export function TripHeader({
   trip,
   userId,
@@ -35,7 +42,8 @@ export function TripHeader({
   /** Owner only: share URL for this trip, or null if the profile is private.
    * Undefined for everyone else. */
   shareUrl?: string | null;
-  /** Use `trip` on the analytics page, so the back link goes to the trip. */
+  /** Use `trip` on the analytics page, so the back link goes to the trip and
+   * the counts don't link to analytics. */
   back?: "trips" | "trip";
   children: ReactNode;
 }) {
@@ -84,6 +92,7 @@ export function TripHeader({
                   : {
                       entries: tripLogbookHref(userId, "journal", trip),
                       sends: tripLogbookHref(userId, "sends", trip),
+                      analytics: back === "trip" ? undefined : tripAnalyticsHref(userId, trip.id),
                     }
               }
             />

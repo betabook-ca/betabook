@@ -197,13 +197,11 @@ describe("trip page", () => {
     expect(payload).not.toContain(ENTRY);
   });
 
-  it("links to analytics next to the sends heading", async () => {
+  it("leaves the analytics link to the header counts", async () => {
     const trip = await seedTrip({ notes: NOTES });
 
-    const payload = await renderTrip(trip.id);
-    const analytics = payload.indexOf(`"href":"/users/${OWNER}/trips/${trip.id}/analytics"`);
-    expect(analytics).toBeGreaterThan(payload.indexOf(`"notes":"${NOTES}"`));
-    expect(analytics).toBeLessThan(payload.indexOf('"bare":true'));
+    // The header renders the link from the trip (trip-header.dom.test.tsx).
+    expect(await renderTrip(trip.id)).not.toContain("/analytics");
   });
 
   it("renders no album, and an empty notes section only for the owner", async () => {
@@ -228,8 +226,6 @@ describe("trip page", () => {
     });
     const rainedOff = await renderTrip(past.id);
     expect(rainedOff).toContain("No sends on this trip yet.");
-    // No analytics link when nothing is logged.
-    expect(rainedOff).not.toContain("/analytics");
 
     const upcoming = await seedFixtureTrip(db, {
       userId: OWNER,

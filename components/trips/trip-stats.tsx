@@ -1,9 +1,9 @@
-import { Fragment, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { AppLink } from "@/components/ui/app-link";
 import type { TripSummary } from "@/db/queries";
 
-type Links = { entries: string; sends: string };
+type Links = { entries: string; sends: string; analytics?: string };
 
 function Stat({ value, label, href }: { value: number; label: string; href?: string }) {
   // Only link counts above zero.
@@ -29,7 +29,8 @@ export function TripStats({
   links,
 }: {
   trip: Pick<TripSummary, "dayCount" | "entryCount" | "sendCount">;
-  /** Links for the counts. Omit for signed-out visitors. */
+  /** Links for the counts, and to the trip's analytics. Omit for signed-out
+   * visitors. */
   links?: Links;
 }) {
   const stats: { key: string; stat: ReactNode }[] = [];
@@ -63,14 +64,31 @@ export function TripStats({
       />
     ),
   });
+  // Analytics has nothing to show until something is logged.
+  if (links?.analytics && (trip.sendCount > 0 || Boolean(trip.entryCount))) {
+    stats.push({
+      key: "analytics",
+      stat: (
+        <AppLink href={links.analytics} className="text-sm">
+          Analytics
+        </AppLink>
+      ),
+    });
+  }
 
   return (
     <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-muted">
       {stats.map(({ key, stat }, index) => (
-        <Fragment key={key}>
-          {index > 0 && <span aria-hidden>·</span>}
+        // Each separator wraps with the item after it, so a line never ends
+        // with "·".
+        <span key={key} className="whitespace-nowrap">
+          {index > 0 && (
+            <span aria-hidden className="mr-2">
+              ·
+            </span>
+          )}
           {stat}
-        </Fragment>
+        </span>
       ))}
     </p>
   );

@@ -16,7 +16,6 @@ import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { SharedTrip } from "@/components/trips/shared-trips";
 import { TripHeader } from "@/components/trips/trip-header";
 import { TripNotes } from "@/components/trips/trip-notes";
-import { AppLink } from "@/components/ui/app-link";
 import { Markdown } from "@/components/ui/markdown";
 import { SectionHeading } from "@/components/ui/typography";
 import { getDb } from "@/db/client";
@@ -25,7 +24,7 @@ import { DEFAULT_USER_SENDS_FILTER } from "@/lib/filters/user-sends-filter";
 import { SHARED_TRIP_SENDS, withProfileShare } from "@/lib/profile-share";
 import { getOwnTripShareUrl } from "@/lib/profile-share-url";
 import { sharedProfileMetadata } from "@/lib/seo";
-import { tripAnalyticsHref, tripHref, tripStatus } from "@/lib/trips";
+import { tripHref, tripStatus } from "@/lib/trips";
 
 export async function generateMetadata({
   params,
@@ -99,7 +98,6 @@ export default async function TripPage({ params, searchParams }: TripPageParams)
     : null;
   // Hide the sends section for an upcoming trip with no sends.
   const showSends = trip.sendCount > 0 || tripStatus(trip, today) !== "upcoming";
-  const logged = trip.sendCount > 0 || Boolean(trip.entryCount);
   // Only the owner gets the share URL.
   const shareUrl = isOwner ? await getOwnTripShareUrl(await getDb(), user, trip.id) : undefined;
 
@@ -120,14 +118,7 @@ export default async function TripPage({ params, searchParams }: TripPageParams)
         )}
         {showSends && (
           <section aria-label="Sends" className="flex min-w-0 flex-col gap-3">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-              <SectionHeading>Sends</SectionHeading>
-              {logged && (
-                <AppLink href={tripAnalyticsHref(user.id, trip.id)} className="text-sm">
-                  Analytics
-                </AppLink>
-              )}
-            </div>
+            <SectionHeading>Sends</SectionHeading>
             <SendsView
               userId={user.id}
               viewerId={viewerId}
