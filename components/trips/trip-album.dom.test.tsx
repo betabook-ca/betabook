@@ -92,10 +92,10 @@ it("plays a video in place, in a frame that sends no referrer", () => {
   expect(player).toContain(
     `<video src="${CLIP.url}=m22" poster="${CLIP.url}=w960" preload="none" playsinline></video>`,
   );
-  expect(player).toContain(
-    '<button type="button" aria-label="Play, 14 seconds">&#9654; 0:14</button>',
-  );
-  expect(player).toContain('document.body.addEventListener("click",play)');
+  expect(player).toContain('<button type="button" aria-label="Play, 14 seconds">');
+  expect(player).toContain('<span aria-hidden="true">0:14</span>');
+  expect(player).toContain("body:not(.on) video::-webkit-media-controls{display:none}");
+  expect(player).toContain('d.addEventListener("pointerup",play);d.addEventListener("click",play)');
   expect(player).toContain("v.controls=true;v.play()");
   // If the stream errors, the poster links to the album instead.
   expect(player).toContain(`<a hidden href="${ALBUM}" target="_blank" rel="noopener noreferrer"`);
