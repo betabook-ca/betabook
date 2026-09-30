@@ -1,0 +1,138 @@
+[
+  {
+    "id": "triple-threat",
+    "name": "Triple Threat",
+    "file": "triple-threat.webp",
+    "width": 256,
+    "height": 256,
+    "bytes": 48248
+  },
+  {
+    "id": "sandbagger",
+    "name": "Sandbagger",
+    "file": "sandbagger.webp",
+    "width": 256,
+    "height": 256,
+    "bytes": 30738
+  },
+  {
+    "id": "try-hard",
+    "name": "Try-hard",
+    "file": "try-hard.webp",
+    "width": 256,
+    "height": 256,
+    "bytes": 31522
+  },
+  {
+    "id": "local-legend",
+    "name": "Local Legend",
+    "file": "local-legend.webp",
+    "width": 256,
+    "height": 256,
+    "bytes": 38340
+  },
+  {
+    "id": "popular-friend",
+    "name": "Popular Friend",
+    "file": "popular-friend.webp",
+    "width": 256,
+    "height": 256,
+    "bytes": 43542
+  },
+  {
+    "id": "no-fluke",
+    "name": "No Fluke",
+    "file": "no-fluke.webp",
+    "width": 256,
+    "height": 256,
+    "bytes": 30346
+  },
+  {
+    "id": "never-gets-old",
+    "name": "Never Gets Old",
+    "file": "never-gets-old.webp",
+    "width": 256,
+    "height": 256,
+    "bytes": 36396
+  },
+  {
+    "id": "explorer",
+    "name": "Explorer",
+    "file": "explorer.webp",
+    "width": 256,
+    "height": 256,
+    "bytes": 35934
+  },
+  {
+    "id": "pioneer",
+    "name": "Pioneer",
+    "file": "pioneer.webp",
+    "width": 256,
+    "height": 256,
+    "bytes": 38586
+  },
+  {
+    "id": "guidebook-hero",
+    "name": "Guidebook Hero",
+    "file": "guidebook-hero.webp",
+    "width": 256,
+    "height": 256,
+    "bytes": 35154
+  },
+  {
+    "id": "breakthrough",
+    "name": "Breakthrough",
+    "file": "breakthrough.webp",
+    "width": 256,
+    "height": 256,
+    "bytes": 42212
+  },
+  {
+    "id": "worth-the-wait",
+    "name": "Worth the Wait",
+    "file": "worth-the-wait.webp",
+    "width": 256,
+    "height": 256,
+    "bytes": 24482
+  },
+  {
+    "id": "better-together",
+    "name": "Better Together",
+    "file": "better-together.webp",
+    "width": 256,
+    "height": 256,
+    "bytes": 29340
+  },
+  {
+    "id": "flash-mob",
+    "name": "Flash Mob",
+    "file": "flash-mob.webp",
+    "width": 256,
+    "height": 256,
+    "bytes": 25264
+  },
+  {
+    "id": "soft-touch",
+    "name": "Soft Touch",
+    "file": "soft-touch.webp",
+    "width": 256,
+    "height": 256,
+    "bytes": 28154
+  },
+  {
+    "id": "easily-impressed",
+    "name": "Easily Impressed",
+    "file": "easily-impressed.webp",
+    "width": 256,
+    "height": 256,
+    "bytes": 26510
+  },
+  {
+    "id": "deja-nope",
+    "name": "Déjà Nope",
+    "file": "deja-nope.webp",
+    "width": 256,
+    "height": 256,
+    "bytes": 33432
+  }
+]
