@@ -1,11 +1,10 @@
 "use client";
 
 import { Input, Label, TextField } from "@heroui/react";
-import { ExternalLink } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 
 import { ASCENT_STYLE_CHIP_CLASSNAME, ASCENT_STYLE_LABELS } from "@/components/ascent-style";
-import { SendVideoThumbnail } from "@/components/send-video";
+import { SendVideoThumbnail, WatchElsewhereLink } from "@/components/send-video";
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
@@ -14,13 +13,7 @@ import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { OptionSelect } from "@/components/ui/option-select";
 import { SegmentedButtons } from "@/components/ui/segmented-buttons";
 import { nativeGradeArray, type ClimbType } from "@/lib/grades";
-import {
-  parseSendVideoLink,
-  sendVideoLabel,
-  sendVideoProviderName,
-  sendVideoUrl,
-  type SendVideo,
-} from "@/lib/send-video";
+import { parseSendVideoLink, sendVideoLabel, type SendVideo } from "@/lib/send-video";
 import { ascentStylesFor, GRADE_FEEL_VALUES, type AscentStyle, type GradeFeel } from "@/lib/sends";
 
 export function FormSection({ label, children }: { label: string; children: ReactNode }) {
@@ -204,13 +197,6 @@ export function GradeFeelField({
   );
 }
 
-/** Why a video link can't be saved, or null when it can (blank included). */
-export function sendVideoFieldError(value: string): string | null {
-  if (!value.trim()) return null;
-  const parsed = parseSendVideoLink(value);
-  return parsed.ok ? null : parsed.error;
-}
-
 function LinkedVideoPreview({ video }: { video: SendVideo }) {
   return (
     <div className="flex items-center gap-3">
@@ -219,15 +205,7 @@ function LinkedVideoPreview({ video }: { video: SendVideo }) {
       </span>
       <div className="flex min-w-0 flex-col gap-0.5 text-sm">
         <span className="font-medium text-foreground">{sendVideoLabel(video)} linked</span>
-        <a
-          href={sendVideoUrl(video)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex w-fit items-center gap-1 text-xs text-muted underline-offset-4 hover:text-foreground hover:underline"
-        >
-          Check it on {sendVideoProviderName(video)}
-          <ExternalLink aria-hidden className="size-3" />
-        </a>
+        <WatchElsewhereLink video={video} />
       </div>
     </div>
   );
@@ -240,13 +218,17 @@ function LinkedVideoPreview({ video }: { video: SendVideo }) {
 export function SendVideoField({
   value,
   onChange,
+  checked = false,
 }: {
   value: string;
   onChange: (value: string) => void;
+  /** Set once a save was refused over the link, so the field says why even
+   * if it was never left (Enter submits straight from it). */
+  checked?: boolean;
 }) {
   const [touched, setTouched] = useState(false);
   const parsed = value.trim() ? parseSendVideoLink(value) : null;
-  const error = touched && parsed && !parsed.ok ? parsed.error : null;
+  const error = (touched || checked) && parsed && !parsed.ok ? parsed.error : null;
   return (
     <div className="flex flex-col gap-2">
       <TextField

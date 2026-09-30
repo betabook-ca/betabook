@@ -374,6 +374,6 @@ it("holds a new ascent with an unsupported video link and says why", async () =>
 
   expect(onSave).not.toHaveBeenCalled();
   expect(
-    screen.getAllByText("Paste a link to a YouTube video or an Instagram reel or post.")[0],
+    screen.getByText("Paste a link to a YouTube video or an Instagram reel or post."),
   ).toBeVisible();
 });

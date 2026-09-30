@@ -10,7 +10,6 @@ import {
   AscentStylePicker,
   FormSection,
   GradeFeelField,
-  sendVideoFieldError,
   SendVideoField,
   SuggestedGradeField,
 } from "@/components/send-fields";
@@ -27,6 +26,7 @@ import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
 import { latestLoggableDate } from "@/lib/broken-climbs";
 import { localToday } from "@/lib/format-date";
 import type { CompanionOption } from "@/lib/journal-companions";
+import { sendVideoLinkError } from "@/lib/send-video";
 import { MAX_COMMENT_LENGTH, type AscentStyle, type GradeFeel } from "@/lib/sends";
 
 type SendFormProps = {
@@ -57,6 +57,7 @@ export function SendForm({
   );
   const [gradeFeel, setGradeFeel] = useState<GradeFeel>(existingSend.gradeFeel);
   const [video, setVideo] = useState(existingSend.videoUrl ?? "");
+  const [videoChecked, setVideoChecked] = useState(false);
   const [tags, setTags] = useState(existingEntry?.tags ?? []);
   const [companions, setCompanions] = useState<CompanionOption[]>(existingEntry?.companions ?? []);
   const [companionsChanged, setCompanionsChanged] = useState(false);
@@ -72,9 +73,9 @@ export function SendForm({
       setError("Add a date to keep journal details.");
       return;
     }
-    const videoError = sendVideoFieldError(video);
-    if (videoError) {
-      setError(videoError);
+    // The field shows the reason; the form's alert would only repeat it.
+    if (sendVideoLinkError(video)) {
+      setVideoChecked(true);
       return;
     }
 
@@ -164,7 +165,7 @@ export function SendForm({
             </FieldHeader>
             <TextArea maxLength={MAX_COMMENT_LENGTH} placeholder="How'd it go?" />
           </TextField>
-          <SendVideoField value={video} onChange={setVideo} />
+          <SendVideoField value={video} onChange={setVideo} checked={videoChecked} />
         </FormSection>
 
         {dateSent ? (

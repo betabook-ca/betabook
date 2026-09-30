@@ -163,7 +163,7 @@ it("keeps the send's video, submits a new link and previews it", async () => {
   await user.clear(field);
   await user.type(field, "instagram.com/some.climber/reel/C9Xq3uGxJ5R/?igsh=x");
   expect(screen.getByText("Instagram reel linked")).toBeVisible();
-  expect(screen.getByRole("link", { name: "Check it on Instagram" })).toHaveAttribute(
+  expect(screen.getByRole("link", { name: "Open on Instagram" })).toHaveAttribute(
     "href",
     "https://www.instagram.com/reel/C9Xq3uGxJ5R/",
   );
@@ -201,4 +201,15 @@ it("flags an unsupported link once the field is left, and won't save it", async 
   expect(save).not.toHaveBeenCalled();
   expect(onDone).not.toHaveBeenCalled();
   expect(field).toHaveValue("https://vimeo.com/123");
+});
+
+it("says once, at the field, why a link submitted with Enter can't be saved", async () => {
+  const { user, save } = setup();
+  await user.type(screen.getByRole("textbox", { name: "Video" }), "https://vimeo.com/123{Enter}");
+
+  expect(save).not.toHaveBeenCalled();
+  expect(screen.getByRole("textbox", { name: "Video" })).toHaveAttribute("aria-invalid", "true");
+  expect(
+    screen.getAllByText("Paste a link to a YouTube video or an Instagram reel or post."),
+  ).toHaveLength(1);
 });

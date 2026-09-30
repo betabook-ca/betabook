@@ -3,18 +3,13 @@
 import { useOverlayState } from "@heroui/react";
 import { useId } from "react";
 
-import { ASCENT_STYLE_LABELS } from "@/components/ascent-style";
+import { ascentSummary } from "@/components/ascent-style";
 import { SendVideoDialog, SendVideoThumbnail } from "@/components/send-video";
 import { AppLink } from "@/components/ui/app-link";
 import { SectionHeading } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import type { ClimbVideo } from "@/db/queries";
-import { formatDate } from "@/lib/format-date";
 import { readSendVideo, sendVideoLabel } from "@/lib/send-video";
-
-function sendSummary({ ascentStyle, dateSent }: ClimbVideo): string {
-  return `${ASCENT_STYLE_LABELS[ascentStyle]} · ${dateSent ? formatDate(dateSent) : "Date unknown"}`;
-}
 
 function ClimbVideoTile({ row, climbName }: { row: ClimbVideo; climbName: string }) {
   const state = useOverlayState();
@@ -36,7 +31,7 @@ function ClimbVideoTile({ row, climbName }: { row: ClimbVideo; climbName: string
           <UserAvatar name={row.userName} image={row.userImage} size="xs" />
           <span className="truncate text-sm font-medium text-foreground">{row.userName}</span>
         </span>
-        <span className="text-xs text-muted">{sendSummary(row)}</span>
+        <span className="text-xs text-muted">{ascentSummary(row.ascentStyle, row.dateSent)}</span>
       </button>
       <SendVideoDialog
         video={video}
@@ -51,7 +46,7 @@ function ClimbVideoTile({ row, climbName }: { row: ClimbVideo; climbName: string
             ) : (
               <span className="font-medium text-foreground">{row.userName}</span>
             )}{" "}
-            · {sendSummary(row)}
+            · {ascentSummary(row.ascentStyle, row.dateSent)}
           </>
         }
       />

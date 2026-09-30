@@ -72,6 +72,10 @@ describe("parseSendVideoLink", () => {
       "https://www.instagram.com/p/C9Xq3uGxJ5R/",
     ],
     ["https://instagr.am/p/C9Xq3uGxJ5R", "https://www.instagram.com/p/C9Xq3uGxJ5R/"],
+    [
+      "https://www.instagram.com/constructor/reel/C9Xq3uGxJ5R/",
+      "https://www.instagram.com/reel/C9Xq3uGxJ5R/",
+    ],
   ])("reads the Instagram link %s", (input, expected) => {
     expect(stored(input)).toBe(expected);
   });
@@ -90,6 +94,9 @@ describe("parseSendVideoLink", () => {
     "https://www.instagram.com/some.climber/",
     "https://www.instagram.com/reels/",
     "https://www.instagram.com/p/bad!code/",
+    // Names every object inherits must not read as a kind of post.
+    "https://www.instagram.com/toString/C9Xq3uGxJ5R/",
+    "https://www.instagram.com/constructor/C9Xq3uGxJ5R/",
   ])("refuses %j", (input) => {
     expect(parseSendVideoLink(input)).toEqual({ ok: false, error: SEND_VIDEO_INVALID_MESSAGE });
   });

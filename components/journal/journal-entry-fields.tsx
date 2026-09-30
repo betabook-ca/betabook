@@ -9,7 +9,6 @@ import { TagInput } from "@/components/journal/tag-input";
 import {
   GradeFeelField,
   SendStylePicker,
-  sendVideoFieldError,
   SendVideoField,
   SuggestedGradeField,
   type SendStyleChoice,
@@ -26,6 +25,7 @@ import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
 import { MAX_JOURNAL_BODY_LENGTH, type JournalKind } from "@/lib/journal";
 import type { CompanionOption } from "@/lib/journal-companions";
+import { sendVideoLinkError } from "@/lib/send-video";
 import type { AscentStyle, GradeFeel } from "@/lib/sends";
 
 export type JournalEntryFieldsProps = {
@@ -63,6 +63,7 @@ export function JournalEntryFields({
   const [suggestedGrade, setSuggestedGrade] = useState(String(climb?.grade ?? ""));
   const [gradeFeel, setGradeFeel] = useState<GradeFeel>("solid");
   const [video, setVideo] = useState("");
+  const [videoChecked, setVideoChecked] = useState(false);
 
   // Open when the section already holds something to review; otherwise the
   // quick path stays date → sent → notes → save.
@@ -92,9 +93,9 @@ export function JournalEntryFields({
       setDetailsExpanded(true);
       return;
     }
-    const videoError = isAscent ? sendVideoFieldError(video) : null;
-    if (videoError) {
-      setError(videoError);
+    // The field, opened if need be, shows the reason; the alert would repeat it.
+    if (isAscent && sendVideoLinkError(video)) {
+      setVideoChecked(true);
       setDetailsExpanded(true);
       return;
     }
@@ -207,7 +208,7 @@ export function JournalEntryFields({
           isExpanded={detailsExpanded}
           onExpandedChange={setDetailsExpanded}
         >
-          {isAscent && <SendVideoField value={video} onChange={setVideo} />}
+          {isAscent && <SendVideoField value={video} onChange={setVideo} checked={videoChecked} />}
           <div className="flex flex-wrap items-start gap-4">
             <CompanionPicker
               value={companions}

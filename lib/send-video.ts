@@ -53,12 +53,14 @@ const INSTAGRAM_HOSTS = new Set([
   "m.instagram.com",
   "instagr.am",
 ]);
-const INSTAGRAM_KINDS: Record<string, "reel" | "post"> = {
-  p: "post",
-  reel: "reel",
-  reels: "reel",
-  tv: "reel",
-};
+/** A Map, not an object literal: a path segment such as "constructor" must
+ * not find an inherited property and read as a kind of post. */
+const INSTAGRAM_KINDS = new Map<string, "reel" | "post">([
+  ["p", "post"],
+  ["reel", "reel"],
+  ["reels", "reel"],
+  ["tv", "reel"],
+]);
 
 const INVALID: SendVideoParse = { ok: false, error: SEND_VIDEO_INVALID_MESSAGE };
 
@@ -98,8 +100,8 @@ function parseInstagram(url: URL): SendVideoParse {
   const segments = url.pathname.split("/").filter(Boolean);
   if (segments[0] === "share") return { ok: false, error: SEND_VIDEO_SHARE_LINK_MESSAGE };
   // Newer share links put the author first: /<username>/reel/<shortcode>/.
-  const kindIndex = segments[0] && segments[0] in INSTAGRAM_KINDS ? 0 : 1;
-  const format = INSTAGRAM_KINDS[segments[kindIndex] ?? ""];
+  const kindIndex = INSTAGRAM_KINDS.has(segments[0] ?? "") ? 0 : 1;
+  const format = INSTAGRAM_KINDS.get(segments[kindIndex] ?? "");
   const shortcode = segments[kindIndex + 1];
   if (!format || !shortcode || !INSTAGRAM_SHORTCODE.test(shortcode)) return INVALID;
   return { ok: true, video: { provider: "instagram", shortcode, format } };
@@ -167,6 +169,15 @@ export function sendVideoLabel(video: SendVideo): string {
     return video.format === "short" ? "YouTube Short" : "YouTube video";
   }
   return video.format === "reel" ? "Instagram reel" : "Instagram post";
+}
+
+/** Why a typed link can't be saved, or null when it can — blank included,
+ * since a blank field removes the video. For the forms to check before
+ * submitting, with the rules `validateSendVideoInput` applies. */
+export function sendVideoLinkError(value: string): string | null {
+  if (!value.trim()) return null;
+  const parsed = parseSendVideoLink(value);
+  return parsed.ok ? null : parsed.error;
 }
 
 /** Server-side reading of the form's `video` field: `undefined` when the form

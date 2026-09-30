@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { AscentStyle } from "@/components/ascent-style";
+import { AscentStyle, ascentSummary } from "@/components/ascent-style";
 import { SendGradeCell } from "@/components/send-grade-cell";
 import { SendVideoButton } from "@/components/send-video";
 import { ListRow } from "@/components/ui/list-row";
@@ -49,7 +49,7 @@ export function ClimbSendListRow({
           <SendVideoButton
             videoUrl={send.videoUrl}
             title={`${send.userName ?? "Betabook climber"} on ${climbName}`}
-            caption={sendDateLabel(send)}
+            caption={ascentSummary(send.ascentStyle, send.dateSent)}
           />
         ) : undefined
       }

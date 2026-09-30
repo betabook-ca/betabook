@@ -179,8 +179,10 @@ export function FeedActivityCard({
         {entries.slice(0, 2).map(row)}
         {entries.length > 2 && (
           <div>
+            {/* Rendered only while open: a hidden row would keep a started
+             * video playing out of sight. The container stays for aria-controls. */}
             <div id={moreId} hidden={!expanded} className="divide-y divide-separator">
-              {entries.slice(2).map(row)}
+              {expanded && entries.slice(2).map(row)}
             </div>
             <button
               type="button"

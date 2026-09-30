@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
-import { AscentStyle } from "@/components/ascent-style";
+import { AscentStyle, ascentSummary } from "@/components/ascent-style";
 import { JournalEntryLayout } from "@/components/journal/journal-entry-layout";
 import { SendGradeCell } from "@/components/send-grade-cell";
 import { SendVideoButton } from "@/components/send-video";
@@ -90,7 +90,11 @@ export function UserSendLogRow({
       comment={send.comment}
       media={
         send.videoUrl ? (
-          <SendVideoButton videoUrl={send.videoUrl} title={send.climbName} />
+          <SendVideoButton
+            videoUrl={send.videoUrl}
+            title={send.climbName}
+            caption={ascentSummary(send.ascentStyle, send.dateSent)}
+          />
         ) : undefined
       }
     />

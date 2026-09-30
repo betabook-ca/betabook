@@ -1,8 +1,8 @@
 "use client";
 
-import { Button, Modal, useOverlayState } from "@heroui/react";
+import { Button, Modal, useOverlayState, type UseOverlayStateReturn } from "@heroui/react";
 import { clsx } from "clsx";
-import { ExternalLink, Play, X } from "lucide-react";
+import { ExternalLink, Play } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
@@ -107,8 +107,8 @@ export function SendVideoThumbnail({
           referrerPolicy="no-referrer"
           // Unreachable from here (offline, blocked): fall back to the label.
           onError={() => setFailed(true)}
-          // A Short's poster is a letterboxed portrait frame; covering the
-          // portrait poster crops the bars away.
+          // YouTube pads every poster to 4:3 with black bars; covering the
+          // clip's own frame crops them away.
           className="size-full object-cover"
         />
       ) : (
@@ -136,8 +136,9 @@ export function SendVideoThumbnail({
 }
 
 /** "Open on YouTube": the way out when the owner has turned off embedding,
- * the post is private, or the viewer would rather watch there. */
-function WatchElsewhereLink({ video }: { video: SendVideo }) {
+ * the post is private, or the viewer would rather watch there — and, in the
+ * send form, the way to check which clip a link points at. */
+export function WatchElsewhereLink({ video }: { video: SendVideo }) {
   return (
     <a
       href={sendVideoUrl(video)}
@@ -165,17 +166,19 @@ export function SendVideoPoster({
   title: string;
   className?: string;
 }) {
-  const [playing, setPlaying] = useState(false);
+  // Which link was pressed, not just "playing": a poster handed a different
+  // video must show that video's poster, never start playing it unasked.
+  const [playingUrl, setPlayingUrl] = useState<string | null>(null);
   const video = readSendVideo(videoUrl);
   if (!video) return null;
   return (
     <div className={clsx("flex w-full max-w-md flex-col items-start gap-1.5", className)}>
-      {playing ? (
+      {playingUrl === videoUrl ? (
         <SendVideoFrame video={video} title={title} focusOnMount />
       ) : (
         <button
           type="button"
-          onClick={() => setPlaying(true)}
+          onClick={() => setPlayingUrl(videoUrl ?? null)}
           aria-label={`Play ${sendVideoLabel(video)}: ${title}`}
           className={clsx(
             "group block cursor-pointer overflow-hidden rounded-panel border border-separator focus-visible:status-focused",
@@ -190,8 +193,10 @@ export function SendVideoPoster({
   );
 }
 
-/** The player in a centered dialog. Closing it unloads the player, so a
- * video never keeps playing somewhere the viewer can't see it. */
+/** The player in a centered dialog — a readout, not a task, so it stays
+ * centered at every width rather than rising as a sheet. The dialog's body
+ * unmounts once its exit finishes, taking the player with it, so a video
+ * never keeps playing somewhere the viewer can't see it. */
 export function SendVideoDialog({
   video,
   title,
@@ -202,7 +207,7 @@ export function SendVideoDialog({
   title: string;
   /** Who sent it and how, under the player. */
   caption?: ReactNode;
-  state: ReturnType<typeof useOverlayState>;
+  state: UseOverlayStateReturn;
 }) {
   const landscape = shape(video) === "landscape";
   return (
@@ -215,21 +220,12 @@ export function SendVideoDialog({
             landscape ? "max-w-3xl" : "max-w-[min(28rem,calc(100vw-2rem))]",
           )}
         >
-          <Modal.Header className="flex-row items-start justify-between gap-3">
-            <Modal.Heading className="min-w-0 break-words">{title}</Modal.Heading>
-            <Button
-              isIconOnly
-              size="sm"
-              variant="ghost"
-              aria-label="Close video"
-              onPress={state.close}
-              className="-mt-1 -mr-1 shrink-0"
-            >
-              <X aria-hidden className="size-4" />
-            </Button>
+          <Modal.Header>
+            <Modal.Heading className="break-words">{title}</Modal.Heading>
+            <Modal.CloseTrigger />
           </Modal.Header>
           <Modal.Body className="flex flex-col items-center gap-3">
-            {state.isOpen && <SendVideoFrame video={video} title={title} />}
+            <SendVideoFrame video={video} title={title} />
             <div className="flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-1">
               {caption && <div className="min-w-0 text-sm text-muted">{caption}</div>}
               <WatchElsewhereLink video={video} />

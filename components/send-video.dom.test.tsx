@@ -33,6 +33,18 @@ it("loads nothing from YouTube but the poster until the viewer presses play", as
   expect(screen.queryByRole("button", { name: /^Play/ })).not.toBeInTheDocument();
 });
 
+it("asks again before playing a different video in the same poster", async () => {
+  const user = userEvent.setup();
+  const { rerender } = render(<SendVideoPoster videoUrl={YOUTUBE} title="Alex on Quiet Arete" />);
+  await user.click(screen.getByRole("button", { name: /^Play YouTube video/ }));
+  expect(document.querySelector("iframe")).not.toBeNull();
+
+  rerender(<SendVideoPoster videoUrl={REEL} title="Alex on Quiet Arete" />);
+
+  expect(document.querySelector("iframe")).toBeNull();
+  expect(screen.getByRole("button", { name: /^Play Instagram reel/ })).toBeVisible();
+});
+
 it("names an Instagram video on its placeholder, since it has no poster", async () => {
   const user = userEvent.setup();
   const { container } = render(<SendVideoPoster videoUrl={REEL} title="Sam on Moss Ladder" />);
@@ -81,6 +93,6 @@ it("opens a row's video in a dialog and unloads the player when it closes", asyn
   expect(screen.getByTitle("Instagram reel: Sam on Moss Ladder")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Open on Instagram" })).toHaveAttribute("href", REEL);
 
-  await user.click(screen.getByRole("button", { name: "Close video" }));
+  await user.click(screen.getByRole("button", { name: "Close" }));
   await waitFor(() => expect(document.querySelector("iframe")).toBeNull());
 });
