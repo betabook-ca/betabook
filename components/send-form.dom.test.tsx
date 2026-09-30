@@ -21,6 +21,7 @@ const send: EditableSend = {
   rating: null,
   suggestedGrade: null,
   gradeFeel: "solid",
+  videoUrl: null,
 };
 
 function setup(overrides: Partial<EditableSend> = {}) {
@@ -151,4 +152,53 @@ it("preserves journal edits after a rejected save and retries", async () => {
   await user.click(screen.getByRole("button", { name: "Save changes" }));
   await waitFor(() => expect(onDone).toHaveBeenCalledOnce());
   expect(save.mock.calls[1][1].getAll("tag")).toEqual(["footwork"]);
+});
+
+it("keeps the send's video, submits a new link and previews it", async () => {
+  const { user, save } = setup({ videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" });
+  const field = screen.getByRole("textbox", { name: "Video" });
+  expect(field).toHaveValue("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+  expect(screen.getByText("YouTube video linked")).toBeVisible();
+
+  await user.clear(field);
+  await user.type(field, "instagram.com/some.climber/reel/C9Xq3uGxJ5R/?igsh=x");
+  expect(screen.getByText("Instagram reel linked")).toBeVisible();
+  expect(screen.getByRole("link", { name: "Check it on Instagram" })).toHaveAttribute(
+    "href",
+    "https://www.instagram.com/reel/C9Xq3uGxJ5R/",
+  );
+  await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+  await waitFor(() => expect(save).toHaveBeenCalledOnce());
+  // The server stores the canonical link; the form sends what was typed.
+  expect(save.mock.calls[0][1].get("video")).toBe(
+    "instagram.com/some.climber/reel/C9Xq3uGxJ5R/?igsh=x",
+  );
+});
+
+it("sends an empty video field to remove the video", async () => {
+  const { user, save } = setup({ videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" });
+  await user.clear(screen.getByRole("textbox", { name: "Video" }));
+  await user.click(screen.getByRole("button", { name: "Save changes" }));
+  await waitFor(() => expect(save).toHaveBeenCalledOnce());
+  expect(save.mock.calls[0][1].get("video")).toBe("");
+});
+
+it("flags an unsupported link once the field is left, and won't save it", async () => {
+  const { user, save, onDone } = setup();
+  const field = screen.getByRole("textbox", { name: "Video" });
+  await user.type(field, "https://vimeo.com/123");
+  // Not while typing: a half-pasted link isn't a mistake yet.
+  expect(field).not.toHaveAttribute("aria-invalid", "true");
+
+  await user.tab();
+  expect(field).toHaveAttribute("aria-invalid", "true");
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "Paste a link to a YouTube video or an Instagram reel or post.",
+  );
+
+  await user.click(screen.getByRole("button", { name: "Save changes" }));
+  expect(save).not.toHaveBeenCalled();
+  expect(onDone).not.toHaveBeenCalled();
+  expect(field).toHaveValue("https://vimeo.com/123");
 });

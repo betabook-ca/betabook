@@ -15,6 +15,7 @@ function anonymous(dateSent: string | null, send: Partial<PublicClimbSend> = {})
     suggestedGrade: 5,
     gradeFeel: "solid",
     comment: null,
+    videoUrl: null,
     ...send,
   };
 }
@@ -25,6 +26,8 @@ const SENDS: PublicClimbSend[] = [
     // Initials rather than a photo: these examples make no external image
     // requests, and initials are the fallback most rows will show anyway.
     userImage: null,
+    // Shared with Everyone, so the video travels with the named row.
+    videoUrl: "https://www.instagram.com/reel/C9Xq3uGxJ5R/",
     dateSent: "2026-09-06",
     ascentStyle: "flash",
     rating: 5,
@@ -38,6 +41,7 @@ const SENDS: PublicClimbSend[] = [
   {
     userName: "Sam Okafor",
     userImage: null,
+    videoUrl: null,
     dateSent: "2026-08-17",
     ascentStyle: "redpoint",
     rating: 4,
@@ -51,6 +55,7 @@ const SENDS: PublicClimbSend[] = [
   {
     userName: "Jordan Lee",
     userImage: null,
+    videoUrl: null,
     dateSent: "2026-05-30",
     ascentStyle: "redpoint",
     rating: 3,
@@ -65,7 +70,12 @@ const SENDS: PublicClimbSend[] = [
 const meta = {
   title: "Components/Climbs/Public sends",
   component: PublicClimbSendList,
-  args: { type: "boulder", sends: SENDS, next: "/climbs/1/test-highball" },
+  args: {
+    type: "boulder",
+    climbName: "Test Highball",
+    sends: SENDS,
+    next: "/climbs/1/test-highball",
+  },
   decorators: [
     (Story) => (
       <StoryPage

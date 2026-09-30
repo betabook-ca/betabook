@@ -10,6 +10,8 @@ import {
   AscentStylePicker,
   FormSection,
   GradeFeelField,
+  sendVideoFieldError,
+  SendVideoField,
   SuggestedGradeField,
 } from "@/components/send-fields";
 import { SURFACE_CARD_CLASS } from "@/components/ui/card";
@@ -54,6 +56,7 @@ export function SendForm({
     String(existingSend.suggestedGrade ?? climb.grade ?? ""),
   );
   const [gradeFeel, setGradeFeel] = useState<GradeFeel>(existingSend.gradeFeel);
+  const [video, setVideo] = useState(existingSend.videoUrl ?? "");
   const [tags, setTags] = useState(existingEntry?.tags ?? []);
   const [companions, setCompanions] = useState<CompanionOption[]>(existingEntry?.companions ?? []);
   const [companionsChanged, setCompanionsChanged] = useState(false);
@@ -69,6 +72,11 @@ export function SendForm({
       setError("Add a date to keep journal details.");
       return;
     }
+    const videoError = sendVideoFieldError(video);
+    if (videoError) {
+      setError(videoError);
+      return;
+    }
 
     const formData = new FormData();
     formData.set("ascentStyle", ascentStyle);
@@ -77,6 +85,7 @@ export function SendForm({
     formData.set("rating", rating == null ? "" : String(rating));
     formData.set("suggestedGrade", suggestedGrade);
     formData.set("gradeFeel", gradeFeel);
+    formData.set("video", video);
 
     if (existingEntry !== undefined)
       formData.set("journalEntryId", String(existingEntry?.id ?? ""));
@@ -155,6 +164,7 @@ export function SendForm({
             </FieldHeader>
             <TextArea maxLength={MAX_COMMENT_LENGTH} placeholder="How'd it go?" />
           </TextField>
+          <SendVideoField value={video} onChange={setVideo} />
         </FormSection>
 
         {dateSent ? (

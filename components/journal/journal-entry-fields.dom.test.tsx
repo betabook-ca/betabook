@@ -110,6 +110,7 @@ it.each(["outdoor", "repeat", "training"])(
             ["rating", ""],
             ["suggestedGrade", "5"],
             ["gradeFeel", "solid"],
+            ["video", ""],
           ]
         : []),
     ]);
@@ -342,4 +343,37 @@ it("adds no summary to training, which the chosen-entry strip already names", ()
 it("keeps Add details collapsed when editing an entry without optional values", () => {
   setup({ existingEntry: savedEntry });
   expect(detailsTrigger()).toHaveAttribute("aria-expanded", "false");
+});
+
+it("attaches a video to a new ascent, not to a session", async () => {
+  const { user, onSave } = setup();
+  await openDetails(user);
+  // A session carries no send, so it has nowhere to keep a video.
+  expect(screen.queryByRole("textbox", { name: "Video" })).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole("radio", { name: "Flash" }));
+  await user.type(screen.getByRole("textbox", { name: "Video" }), "https://youtu.be/dQw4w9WgXcQ");
+  await user.click(screen.getByRole("button", { name: "Save entry" }));
+
+  await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+  expect(onSave.mock.calls[0][0].get("video")).toBe("https://youtu.be/dQw4w9WgXcQ");
+
+  onSave.mockClear();
+  await user.click(screen.getByRole("radio", { name: "Session" }));
+  await user.click(screen.getByRole("button", { name: "Save entry" }));
+  await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+  expect(onSave.mock.calls[0][0].has("video")).toBe(false);
+});
+
+it("holds a new ascent with an unsupported video link and says why", async () => {
+  const { user, onSave } = setup();
+  await user.click(screen.getByRole("radio", { name: "Flash" }));
+  await openDetails(user);
+  await user.type(screen.getByRole("textbox", { name: "Video" }), "https://vimeo.com/1");
+  await user.click(screen.getByRole("button", { name: "Save entry" }));
+
+  expect(onSave).not.toHaveBeenCalled();
+  expect(
+    screen.getAllByText("Paste a link to a YouTube video or an Instagram reel or post.")[0],
+  ).toBeVisible();
 });

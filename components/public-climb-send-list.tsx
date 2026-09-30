@@ -6,10 +6,12 @@ import type { PublicClimbSend } from "@/lib/public-catalog";
 
 export function PublicClimbSendList({
   type,
+  climbName,
   sends,
   next,
 }: {
   type: ClimbType;
+  climbName: string;
   sends: PublicClimbSend[];
   next: string;
 }) {
@@ -23,7 +25,7 @@ export function PublicClimbSendList({
             // Public rows carry no send IDs (see getPublicSendsForClimb).
             // oxlint-disable-next-line react/no-array-index-key
             <li key={index}>
-              <ClimbSendListRow type={type} send={send} />
+              <ClimbSendListRow type={type} climbName={climbName} send={send} />
             </li>
           ))}
         </ul>

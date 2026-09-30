@@ -61,6 +61,7 @@ export function ClimbSendList({
       renderRow={(send) => (
         <ClimbSendListRow
           type={climb.type}
+          climbName={climb.name}
           send={send}
           actions={send.userId === currentUserId && <SendActionsMenu send={send} />}
         />

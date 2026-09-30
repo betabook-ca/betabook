@@ -135,6 +135,11 @@ export function ClimbActionsMenu({ climb, send }: ClimbActionsMenuProps) {
       {send && (
         <ConfirmDeleteDialog
           noun="send"
+          description={
+            send.videoUrl
+              ? "Its video link goes with it; the video stays wherever it was posted. This can't be undone."
+              : undefined
+          }
           state={deleteSendState}
           onConfirm={handleDeleteSend}
           isPending={pending}

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { AscentStyle } from "@/components/ascent-style";
 import { SendGradeCell } from "@/components/send-grade-cell";
+import { SendVideoButton } from "@/components/send-video";
 import { ListRow } from "@/components/ui/list-row";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { formatDate, formatMonth } from "@/lib/format-date";
@@ -12,10 +13,13 @@ import type { PublicClimbSend } from "@/lib/public-catalog";
  * Only member rows carry a `userId`, so only they link to a profile. */
 export function ClimbSendListRow({
   type,
+  climbName,
   send,
   actions,
 }: {
   type: ClimbType;
+  /** Names the video dialog: "Alex on Midnight Lightning". */
+  climbName: string;
   send: PublicClimbSend & { userId?: string | null };
   actions?: ReactNode;
 }) {
@@ -40,6 +44,15 @@ export function ClimbSendListRow({
       }
       actions={actions}
       comment={send.comment}
+      media={
+        send.videoUrl ? (
+          <SendVideoButton
+            videoUrl={send.videoUrl}
+            title={`${send.userName ?? "Betabook climber"} on ${climbName}`}
+            caption={sendDateLabel(send)}
+          />
+        ) : undefined
+      }
     />
   );
 }

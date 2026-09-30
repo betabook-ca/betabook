@@ -24,6 +24,7 @@ export function buildSendInsert(db: Database, values: SendInsert | SendInsert[])
       rating: input.rating,
       suggestedGrade: input.suggestedGrade,
       gradeFeel: input.gradeFeel,
+      videoUrl: input.videoUrl ?? null,
     })),
   );
 }

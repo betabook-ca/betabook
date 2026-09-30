@@ -30,6 +30,7 @@ function row(overrides: Partial<UserSendRow> = {}): UserSendRow {
     suggestedGrade: null,
     gradeFeel: "solid",
     comment: null,
+    videoUrl: null,
     ...overrides,
   };
 }
@@ -50,8 +51,18 @@ describe("buildSendsExportCsv", () => {
         "Grade Feel",
         "Rating",
         "Comment",
+        "Video",
       ].join(","),
     );
+  });
+
+  it("ends each row with the send's video link, blank when there is none", () => {
+    const video = "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=12s";
+    const [, withVideo, withoutVideo] = buildSendsExportCsv([row({ videoUrl: video }), row()])
+      .trim()
+      .split("\r\n");
+    expect(withVideo.endsWith(`,${video}`)).toBe(true);
+    expect(withoutVideo.endsWith(",")).toBe(true);
   });
 
   it("capitalizes ascent style and climb type, and formats the grade", () => {
@@ -68,12 +79,12 @@ describe("buildSendsExportCsv", () => {
     expect(csvText).toContain("—");
   });
 
-  it("renders a null suggested grade, rating, and comment as blank", () => {
+  it("renders a null suggested grade, rating, comment and video as blank", () => {
     const csvText = buildSendsExportCsv([
-      row({ suggestedGrade: null, rating: null, comment: null }),
+      row({ suggestedGrade: null, rating: null, comment: null, videoUrl: null }),
     ]);
     const [, dataLine] = csvText.trim().split("\n");
-    expect(dataLine.endsWith(",Solid,,")).toBe(true);
+    expect(dataLine.endsWith(",Solid,,,")).toBe(true);
   });
 
   it("formats a non-null suggested grade through formatGrade", () => {

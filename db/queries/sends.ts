@@ -22,7 +22,14 @@ export type Send = typeof sends.$inferSelect;
 
 export type EditableSend = Pick<
   Send,
-  "id" | "ascentStyle" | "dateSent" | "comment" | "rating" | "suggestedGrade" | "gradeFeel"
+  | "id"
+  | "ascentStyle"
+  | "dateSent"
+  | "comment"
+  | "rating"
+  | "suggestedGrade"
+  | "gradeFeel"
+  | "videoUrl"
 >;
 
 export type SendableClimb = Pick<Climb, "id" | "areaId" | "type" | "grade" | "brokenOn">;
@@ -75,6 +82,11 @@ export async function getSendsForClimb(
       comment: sql<
         string | null
       >`CASE WHEN ${sendCommentVisibleSql(viewerId, sql`sends.user_id`)} THEN ${sends.comment} ELSE NULL END`,
+      // A video shows its climber, so it travels with the commentary audience
+      // and never reaches an anonymous row.
+      videoUrl: sql<
+        string | null
+      >`CASE WHEN ${sendCommentVisibleSql(viewerId, sql`sends.user_id`)} THEN ${sends.videoUrl} ELSE NULL END`,
       rating: sends.rating,
       suggestedGrade: sends.suggestedGrade,
       gradeFeel: sends.gradeFeel,
@@ -183,6 +195,8 @@ export type UserSendRow = {
   suggestedGrade: number | null;
   gradeFeel: GradeFeel;
   comment: string | null;
+  /** Shown to the send commentary audience, like `comment`. */
+  videoUrl: string | null;
 };
 
 export type UserSendsSort =
@@ -300,7 +314,8 @@ function userSendColumns(viewerId: string | null) {
       sends.rating AS rating,
       sends.suggested_grade AS suggestedGrade,
       sends.grade_feel AS gradeFeel,
-      CASE WHEN ${sendCommentVisibleSql(viewerId, sql`sends.user_id`)} THEN sends.comment ELSE NULL END AS comment
+      CASE WHEN ${sendCommentVisibleSql(viewerId, sql`sends.user_id`)} THEN sends.comment ELSE NULL END AS comment,
+      CASE WHEN ${sendCommentVisibleSql(viewerId, sql`sends.user_id`)} THEN sends.video_url ELSE NULL END AS videoUrl
 `;
 }
 

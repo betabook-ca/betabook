@@ -73,9 +73,11 @@ export default function AboutPage() {
             requests to still see your name, and climb pages list your sends without it.
           </li>
           <li>
-            You set one audience for your journal and finished goals and another for send notes,
-            from Only me to Members. Send notes can also be set to Everyone, which shows them with
-            your name to signed-out visitors.
+            You set one audience for your journal and finished goals and another for send notes and
+            videos, from Only me to Members. Send notes and videos can also be set to Everyone,
+            which shows them with your name to signed-out visitors. A video you link to a send stays
+            on YouTube or Instagram, as public as it is there; Betabook only plays it for your
+            audience.
           </li>
           <li>
             Your profile link and QR code show your name, photo, send stats, latest sends, and your
@@ -93,7 +95,7 @@ export default function AboutPage() {
             journal entries and tagged friends. Your friends and anyone with your profile link can
             read trip notes, regardless of your journal setting.
           </li>
-          <li>Only you can export your sends.</li>
+          <li>Only you can export your sends, with their notes and video links.</li>
         </ul>
       </section>
 

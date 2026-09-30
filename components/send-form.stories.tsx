@@ -27,6 +27,7 @@ const meta = {
       rating: 4,
       suggestedGrade: 5,
       gradeFeel: "solid",
+      videoUrl: null,
     },
     existingEntry: {
       id: -1,

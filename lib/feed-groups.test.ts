@@ -21,6 +21,7 @@ function entry(
     areaName: "Woods",
     ascentStyle: null,
     body: `Note ${id}`,
+    videoUrl: null,
     companions: [],
     ...extra,
   };

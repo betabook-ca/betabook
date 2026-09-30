@@ -29,6 +29,10 @@ export const sends = sqliteTable(
     gradeFeel: text("grade_feel", { enum: ["low", "solid", "high"] })
       .notNull()
       .default("solid"),
+    // Canonical YouTube or Instagram link to a video of the send, shown to the
+    // send commentary audience. Always the exact form `sendVideoUrl` writes in
+    // lib/send-video.ts; migration 0052's triggers reject any other shape.
+    videoUrl: text("video_url"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .notNull(),

@@ -66,7 +66,7 @@ export function PrivacyFields({
       </div>
       <AudienceField
         label="Send commentary"
-        description="Notes on your sends"
+        description="Notes and videos on your sends"
         options={SEND_COMMENT_AUDIENCES}
         value={isPrivate ? "private" : sendCommentVisibility}
         onChange={onSendCommentChange}
@@ -195,7 +195,10 @@ export function PrivacyDetails({ defaultExpanded = false }: { defaultExpanded?: 
                 Friends can see your finished goals in their feed when your Journal and goals
                 audience includes them.
               </li>
-              <li>Your note on a send follows Send commentary, including in your journal.</li>
+              <li>
+                Your note and video on a send follow Send commentary, including in your journal. A
+                linked video stays on YouTube or Instagram, as public as it is there.
+              </li>
               <li>
                 Changes apply to past and future entries and goal achievements. Your sends still
                 count toward community ratings.

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ActionError } from "@/lib/action-result";
 import { nativeGradeArray, type ClimbType } from "@/lib/grades";
 import { MAX_LOG_NOTE_LENGTH } from "@/lib/log-note";
+import { validateSendVideoInput } from "@/lib/send-video";
 import { parseGradeIndex, trimOrNull } from "@/lib/validation";
 
 export { MAX_LOG_NOTE_LENGTH as MAX_COMMENT_LENGTH } from "@/lib/log-note";
@@ -43,6 +44,9 @@ export type SendInput = {
   rating: number | null;
   suggestedGrade: number;
   gradeFeel: GradeFeel;
+  /** Canonical video link, null to remove it, or undefined when the form
+   * carried no video field and the stored one stays as it is. */
+  videoUrl?: string | null;
 };
 
 export type RawSendInput = {
@@ -52,6 +56,7 @@ export type RawSendInput = {
   rating: FormDataEntryValue | null;
   suggestedGrade: FormDataEntryValue | null;
   gradeFeel: FormDataEntryValue | null;
+  video?: FormDataEntryValue | null;
 };
 
 /** The `YYYY-MM-DD` shape alone. Enough for a key that only has to match
@@ -156,6 +161,7 @@ export function validateSendInput(
     rating,
     suggestedGrade,
     gradeFeel: parseGradeFeel(raw.gradeFeel),
+    videoUrl: validateSendVideoInput(raw.video),
   };
 }
 

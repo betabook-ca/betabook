@@ -37,7 +37,8 @@ export async function getPublicSendsForClimb(
       sends.rating AS rating,
       sends.suggested_grade AS suggestedGrade,
       sends.grade_feel AS gradeFeel,
-      CASE WHEN ${named} THEN sends.comment END AS comment
+      CASE WHEN ${named} THEN sends.comment END AS comment,
+      CASE WHEN ${named} THEN sends.video_url END AS videoUrl
     FROM sends
     JOIN user ON user.id = sends.user_id
     WHERE sends.climb_id = ${climbId}

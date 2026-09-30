@@ -27,6 +27,7 @@ function send(id: number, climbName: string, comment: string | null = null): Use
     suggestedGrade: null,
     gradeFeel: "solid",
     comment,
+    videoUrl: null,
   };
 }
 

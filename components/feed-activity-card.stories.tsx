@@ -30,6 +30,22 @@ export const SharedClimb: Story = {};
 export const SingleSend: Story = {
   args: { entries: [{ day: feedDays[2], activity: feedDays[2].activities[0] }] },
 };
+/** A send with a video: the poster plays in place when pressed. Instagram
+ * has no lasting poster, so its placeholder names the kind of post. */
+export const SendWithVideo: Story = {
+  args: {
+    entries: [
+      {
+        day: feedDays[2],
+        activity: {
+          ...feedDays[2].activities[0],
+          kind: "send",
+          videoUrl: "https://www.instagram.com/reel/C9Xq3uGxJ5R/",
+        },
+      },
+    ],
+  },
+};
 export const Training: Story = {
   args: {
     entries: [{ day: trainingDay, activity: trainingDay.activities[0] }],

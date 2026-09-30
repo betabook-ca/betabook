@@ -19,6 +19,7 @@ const SENDS: UserSendRow[] = [
     rating: 5,
     suggestedGrade: null,
     gradeFeel: "solid",
+    videoUrl: null,
     comment: "Finally stuck the heel hook on the last move.",
   },
   {
@@ -34,6 +35,7 @@ const SENDS: UserSendRow[] = [
     rating: 4,
     suggestedGrade: 11,
     gradeFeel: "low",
+    videoUrl: null,
     comment: null,
   },
   {
@@ -49,6 +51,7 @@ const SENDS: UserSendRow[] = [
     rating: 3,
     suggestedGrade: null,
     gradeFeel: "high",
+    videoUrl: null,
     comment: null,
   },
   {
@@ -64,6 +67,7 @@ const SENDS: UserSendRow[] = [
     rating: null,
     suggestedGrade: null,
     gradeFeel: "solid",
+    videoUrl: null,
     comment: null,
   },
   {
@@ -79,6 +83,7 @@ const SENDS: UserSendRow[] = [
     rating: 4,
     suggestedGrade: null,
     gradeFeel: "solid",
+    videoUrl: null,
     comment: null,
   },
 ];

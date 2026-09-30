@@ -14,6 +14,7 @@ const send: PublicClimbSend = {
   suggestedGrade: 5,
   gradeFeel: "solid",
   comment: "Heel hook at the lip.",
+  videoUrl: null,
 };
 const anonymous = {
   ...send,
@@ -26,7 +27,9 @@ const photos = (container: HTMLElement) =>
   [...container.querySelectorAll("img")].map((image) => new URL(image.src).pathname);
 
 it("links a member row to the climber with their exact date and commentary", () => {
-  render(<ClimbSendListRow type="boulder" send={{ ...send, userId: "sam" }} />);
+  render(
+    <ClimbSendListRow type="boulder" climbName="Test Highball" send={{ ...send, userId: "sam" }} />,
+  );
   expect(screen.getByRole("link", { name: "Sam Rivera" })).toHaveAttribute("href", "/users/sam");
   expect(screen.getByText("Aug 14, 2026")).toBeInTheDocument();
   expect(screen.getByText("Heel hook at the lip.")).toBeInTheDocument();
@@ -36,7 +39,9 @@ it.each([
   { list: "member", userId: null },
   { list: "public", userId: undefined },
 ])("renders an anonymous $list row as an unlinked climber with only its month", ({ userId }) => {
-  render(<ClimbSendListRow type="boulder" send={{ ...anonymous, userId }} />);
+  render(
+    <ClimbSendListRow type="boulder" climbName="Test Highball" send={{ ...anonymous, userId }} />,
+  );
   expect(screen.getByText("Betabook climber")).toBeInTheDocument();
   expect(screen.getByText("Aug 2026")).toBeInTheDocument();
   expect(screen.queryByRole("link")).not.toBeInTheDocument();
@@ -45,18 +50,28 @@ it.each([
 it("leads a named row with the climber's photo, or their initials", () => {
   const photo = "/api/avatars/sam/abababababababababababababababab.webp";
   const { container, rerender } = render(
-    <ClimbSendListRow type="boulder" send={{ ...send, userId: "sam", userImage: photo }} />,
+    <ClimbSendListRow
+      type="boulder"
+      climbName="Test Highball"
+      send={{ ...send, userId: "sam", userImage: photo }}
+    />,
   );
   expect(photos(container)).toEqual([photo]);
 
-  rerender(<ClimbSendListRow type="boulder" send={{ ...send, userId: "sam" }} />);
+  rerender(
+    <ClimbSendListRow type="boulder" climbName="Test Highball" send={{ ...send, userId: "sam" }} />,
+  );
   expect(photos(container)).toEqual([]);
   expect(screen.getByText("SR")).toBeVisible();
 });
 
 it("leads an anonymous row with a neutral mark that reveals no identity", () => {
   const { container } = render(
-    <ClimbSendListRow type="boulder" send={{ ...anonymous, userId: null }} />,
+    <ClimbSendListRow
+      type="boulder"
+      climbName="Test Highball"
+      send={{ ...anonymous, userId: null }}
+    />,
   );
 
   // The slot stays filled so a mixed list keeps one left edge, but nothing
@@ -68,8 +83,26 @@ it("leads an anonymous row with a neutral mark that reveals no identity", () => 
 });
 
 it("names an Everyone climber on a public row without linking the locked profile", () => {
-  render(<ClimbSendListRow type="boulder" send={send} />);
+  render(<ClimbSendListRow type="boulder" climbName="Test Highball" send={send} />);
   expect(screen.getByText("Sam Rivera")).toBeInTheDocument();
   expect(screen.getByText("Heel hook at the lip.")).toBeInTheDocument();
   expect(screen.queryByRole("link")).not.toBeInTheDocument();
+});
+
+it("offers a row's video behind a Watch button named for the climber and climb", () => {
+  render(
+    <ClimbSendListRow
+      type="boulder"
+      climbName="Test Highball"
+      send={{ ...send, userId: "sam", videoUrl: "https://www.youtube.com/shorts/dQw4w9WgXcQ" }}
+    />,
+  );
+  expect(
+    screen.getByRole("button", { name: "Watch YouTube Short: Sam Rivera on Test Highball" }),
+  ).toBeVisible();
+});
+
+it("has no video control on a row without a video", () => {
+  render(<ClimbSendListRow type="boulder" climbName="Test Highball" send={send} />);
+  expect(screen.queryByRole("button", { name: /^Watch/ })).not.toBeInTheDocument();
 });

@@ -39,6 +39,7 @@ const day: FeedDay = {
       kind: "session",
       climbId: 12,
       climbName: "Quiet Arete",
+      videoUrl: null,
       climbType: "boulder",
       climbGrade: 5,
       reportedGrade: null,

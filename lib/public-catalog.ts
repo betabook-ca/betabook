@@ -49,6 +49,8 @@ export type PublicClimbSend = {
   suggestedGrade: number | null;
   gradeFeel: GradeFeel;
   comment: string | null;
+  /** Travels with `comment`: a video shows the climber a null name withholds. */
+  videoUrl: string | null;
 };
 export type PublicClimbsPage = {
   climbs: PublicClimb[];

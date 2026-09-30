@@ -45,7 +45,7 @@ const ENTRY_CHANGED_MESSAGE = "The entry changed — refresh and try again";
 
 const JOURNAL_FORM_FIELDS = ["kind", "climbId", "sent", "entryDate", "body"] as const;
 
-const SEND_FORM_FIELDS = ["ascentStyle", "rating", "suggestedGrade", "gradeFeel"] as const;
+const SEND_FORM_FIELDS = ["ascentStyle", "rating", "suggestedGrade", "gradeFeel", "video"] as const;
 
 function readJournalFormData(formData: FormData) {
   return { ...pickFormFields(formData, JOURNAL_FORM_FIELDS), tags: formData.getAll("tag") };

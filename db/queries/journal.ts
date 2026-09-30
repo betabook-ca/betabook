@@ -27,6 +27,8 @@ export type JournalEntry = {
   climbBrokenOn: string | null;
   /** Original send opinion, available only while this entry is completed. */
   reportedGrade?: number | null;
+  /** The send's video, on its ascent entry only, under the send commentary audience. */
+  videoUrl?: string | null;
   areaId: number | null;
   areaName: string | null;
   isAscent: boolean;
@@ -57,6 +59,7 @@ type JournalEntryRow = {
   climbGrade: number | null;
   climbBrokenOn: string | null;
   reportedGrade: number | null;
+  videoUrl: string | null;
   areaId: number | null;
   areaName: string | null;
   isAscent: number;
@@ -145,6 +148,8 @@ function journalEntrySelect(viewerId: string | null): SQL {
       climbs.grade AS climbGrade,
       climbs.broken_on AS climbBrokenOn,
       reported.suggested_grade AS reportedGrade,
+      CASE WHEN j.is_ascent = 1 AND ${sendCommentVisibleSql(viewerId, sql`j.user_id`)}
+        THEN reported.video_url ELSE NULL END AS videoUrl,
       climbs.area_id AS areaId,
       areas.name AS areaName,
       j.is_ascent AS isAscent, j.is_send_comment AS isSendComment

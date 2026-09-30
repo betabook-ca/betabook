@@ -19,6 +19,7 @@ const activity: FeedDay["activities"][number] = {
   areaId: 3,
   areaName: "Pine Canyon",
   body: "Found the sequence.",
+  videoUrl: null,
   companions: [{ id: "sam", name: "Sam Rivera", image: null, isSelf: false }],
 };
 const day: FeedDay = {
@@ -276,4 +277,28 @@ it("renders an accomplished goal with its author and date without a misleading j
   );
   expect(within(card).queryByRole("link", { name: /View activity/ })).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: /See .* more/ })).not.toBeInTheDocument();
+});
+
+it("shows a friend's send video in place, and none on a session", () => {
+  render(
+    <FeedTimeline
+      days={[
+        {
+          ...day,
+          activities: [{ ...activity, videoUrl: "https://www.instagram.com/reel/C9Xq3uGxJ5R/" }],
+        },
+        // A session's row never carries a video, whatever the row holds.
+        {
+          ...friend,
+          activities: [
+            { ...friend.activities[0], videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
+          ],
+        },
+      ]}
+      view="all"
+    />,
+  );
+  expect(
+    screen.getAllByRole("button", { name: /^Play / }).map((button) => button.ariaLabel),
+  ).toEqual(["Play Instagram reel: Alex Rivera on Quiet Arete"]);
 });

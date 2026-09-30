@@ -9,6 +9,8 @@ import { TagInput } from "@/components/journal/tag-input";
 import {
   GradeFeelField,
   SendStylePicker,
+  sendVideoFieldError,
+  SendVideoField,
   SuggestedGradeField,
   type SendStyleChoice,
 } from "@/components/send-fields";
@@ -60,6 +62,7 @@ export function JournalEntryFields({
   const [rating, setRating] = useState<number | null>(null);
   const [suggestedGrade, setSuggestedGrade] = useState(String(climb?.grade ?? ""));
   const [gradeFeel, setGradeFeel] = useState<GradeFeel>("solid");
+  const [video, setVideo] = useState("");
 
   // Open when the section already holds something to review; otherwise the
   // quick path stays date → sent → notes → save.
@@ -89,6 +92,12 @@ export function JournalEntryFields({
       setDetailsExpanded(true);
       return;
     }
+    const videoError = isAscent ? sendVideoFieldError(video) : null;
+    if (videoError) {
+      setError(videoError);
+      setDetailsExpanded(true);
+      return;
+    }
 
     const formData = new FormData();
     formData.set("kind", kind);
@@ -110,6 +119,7 @@ export function JournalEntryFields({
       formData.set("rating", rating == null ? "" : String(rating));
       formData.set("suggestedGrade", suggestedGrade);
       formData.set("gradeFeel", gradeFeel);
+      formData.set("video", video);
     }
     if (isUndatedSend) {
       formData.set("dateSent", "");
@@ -197,6 +207,7 @@ export function JournalEntryFields({
           isExpanded={detailsExpanded}
           onExpandedChange={setDetailsExpanded}
         >
+          {isAscent && <SendVideoField value={video} onChange={setVideo} />}
           <div className="flex flex-wrap items-start gap-4">
             <CompanionPicker
               value={companions}

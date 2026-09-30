@@ -49,7 +49,7 @@ export function SendActionsMenu({ send }: SendActionsMenuProps) {
       <SendFormDrawer existingSend={send} state={editState} />
       <ConfirmDeleteDialog
         noun="send"
-        description="The send will be removed. Your journal entries will remain, and their commentary will keep its current audience."
+        description={`The send${send.videoUrl ? " and its video link" : ""} will be removed. Your journal entries will remain, and their commentary will keep its current audience.`}
         state={deleteState}
         onConfirm={handleDelete}
         isPending={pending}

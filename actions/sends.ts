@@ -53,6 +53,7 @@ const SEND_FORM_FIELDS = [
   "rating",
   "suggestedGrade",
   "gradeFeel",
+  "video",
 ] as const;
 
 function readSendFormData(formData: FormData): RawSendInput {
@@ -102,6 +103,7 @@ export async function getSendEditorData(
         rating: send.rating,
         suggestedGrade: send.suggestedGrade,
         gradeFeel: send.gradeFeel,
+        videoUrl: send.videoUrl,
       },
       entry,
       climb: {
