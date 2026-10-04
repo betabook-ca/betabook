@@ -90,7 +90,6 @@ knowledge_base:
     enabled: true
     filePatterns:
       - AGENTS.md
-      - CLAUDE.md
       - components/AGENTS.md
       - tests/ui/AGENTS.md
       - docs/repository-guide.md
