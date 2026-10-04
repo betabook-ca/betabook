@@ -42,26 +42,10 @@ export default async function UserPage({ params, searchParams }: UserPageProps) 
   if (!resolved.signedIn) {
     const shared = await resolveSharedProfile(id, search);
     if (!shared) return <CurrentPageAuthCallout />;
-    const db = await getDb();
-    // A null viewer keeps Members and Friends commentary out of the preview.
-    const [summary, recent] = await Promise.all([
-      getUserSendsSummary(db, shared.id),
-      getSendsForUserPage(db, shared.id, DEFAULT_USER_SENDS_FILTER, 0, SHARED_PROFILE_SENDS, null),
-    ]);
-    const areaBreadcrumbs = await getAreaBreadcrumbs(
-      db,
-      recent.sends.map((send) => send.areaId),
-    );
     const next = profileSharePath(shared.id, shared.token);
     return (
       <SharedProfileHeader owner={shared} next={next}>
-        <SharedProfile
-          owner={shared}
-          sendCount={summary.sendCount}
-          sends={recent.sends}
-          areaBreadcrumbs={areaBreadcrumbs}
-          next={next}
-        />
+        <SharedProfileView owner={shared} next={next} />
       </SharedProfileHeader>
     );
   }
@@ -83,5 +67,33 @@ export default async function UserPage({ params, searchParams }: UserPageProps) 
         />
       )}
     </ProfileHeader>
+  );
+}
+
+async function SharedProfileView({
+  owner,
+  next,
+}: {
+  owner: { id: string; name: string };
+  next: string;
+}) {
+  const db = await getDb();
+  // A null viewer keeps Members and Friends commentary out of the preview.
+  const [summary, recent] = await Promise.all([
+    getUserSendsSummary(db, owner.id),
+    getSendsForUserPage(db, owner.id, DEFAULT_USER_SENDS_FILTER, 0, SHARED_PROFILE_SENDS, null),
+  ]);
+  const areaBreadcrumbs = await getAreaBreadcrumbs(
+    db,
+    recent.sends.map((send) => send.areaId),
+  );
+  return (
+    <SharedProfile
+      owner={owner}
+      sendCount={summary.sendCount}
+      sends={recent.sends}
+      areaBreadcrumbs={areaBreadcrumbs}
+      next={next}
+    />
   );
 }

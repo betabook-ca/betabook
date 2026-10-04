@@ -12,31 +12,18 @@ import { formatCount } from "@/lib/format";
 import type { GradeHistogram } from "@/lib/grade-histogram";
 
 /** The guidebook crag header: entity eyebrow, display-face name,
- * description, a mono info strip (climb count, grade spans, disciplines),
- * and the grade-spread histogram — everything a climber skims before
- * deciding to scroll the route table. */
+ * description, then `children` — the page passes AreaGradeSpread there —
+ * everything a climber skims before deciding to scroll the route table. */
 export function AreaCragHeader({
   area,
-  areaPath,
-  histogram,
   actions,
-  filter,
+  children,
 }: {
   area: Area;
-  /** Canonical id + slug URL for this area — the histogram bars filter
-   * through it so a click doesn't bounce off a redirect. */
-  areaPath: string;
-  histogram: GradeHistogram;
   /** The area's editor actions, rendered beside the title. */
   actions: ReactNode;
-  /** The page's active climb filter — lets an applied histogram bucket
-   * render selected and toggle clear on click. */
-  filter?: AreaClimbsFilter;
+  children?: ReactNode;
 }) {
-  const spans: string[] = [];
-  if (histogram.boulderSpan) spans.push(`${histogram.boulderSpan[0]}–${histogram.boulderSpan[1]}`);
-  if (histogram.ropeSpan) spans.push(`${histogram.ropeSpan[0]}–${histogram.ropeSpan[1]}`);
-
   return (
     <div className="flex flex-col gap-4">
       {/* Stacked until sm: the actions can't share a phone's width with the
@@ -49,7 +36,32 @@ export function AreaCragHeader({
         </div>
         {actions}
       </div>
+      {children}
+    </div>
+  );
+}
 
+/** A mono info strip (climb count, grade spans, disciplines) and the
+ * grade-spread histogram. */
+export function AreaGradeSpread({
+  histogram,
+  areaPath,
+  filter,
+}: {
+  histogram: GradeHistogram;
+  /** Canonical id + slug URL for this area — the histogram bars filter
+   * through it so a click doesn't bounce off a redirect. */
+  areaPath: string;
+  /** The page's active climb filter — lets an applied histogram bucket
+   * render selected and toggle clear on click. */
+  filter?: AreaClimbsFilter;
+}) {
+  const spans: string[] = [];
+  if (histogram.boulderSpan) spans.push(`${histogram.boulderSpan[0]}–${histogram.boulderSpan[1]}`);
+  if (histogram.ropeSpan) spans.push(`${histogram.ropeSpan[0]}–${histogram.ropeSpan[1]}`);
+
+  return (
+    <>
       {histogram.totalClimbs > 0 && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
           <span className="text-foreground">{formatCount(histogram.totalClimbs, "climb")}</span>
@@ -75,6 +87,6 @@ export function AreaCragHeader({
           <GradeHistogramChart histogram={histogram} areaPath={areaPath} filter={filter} />
         </CollapsibleSection>
       )}
-    </div>
+    </>
   );
 }

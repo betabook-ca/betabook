@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { redirectToCanonicalSlug } from "@/app/canonical-slug";
 import { getPublicAncestorsById, getPublicAreaById } from "@/app/public-catalog-reads";
 import { AreaClimbsSection } from "@/components/area-climbs-section";
-import { AreaCragHeader } from "@/components/area-crag-header";
+import { AreaCragHeader, AreaGradeSpread } from "@/components/area-crag-header";
 import { AreaHeaderActions } from "@/components/area-header-actions";
 import { AreaBreadcrumbs } from "@/components/breadcrumbs";
 import { AreaClimbsToolbar } from "@/components/filters/area-climbs-toolbar";
@@ -13,10 +14,10 @@ import { SubareaRail } from "@/components/subarea-rail";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { JsonLd } from "@/components/ui/json-ld";
 import { SidebarLayout } from "@/components/ui/page-shell";
+import { Skeleton, SkeletonListRows } from "@/components/ui/skeleton";
 import { SectionHeading } from "@/components/ui/typography";
 import { getDb } from "@/db/client";
 import {
-  getAncestors,
   getAreaBreadcrumbs,
   getAreaWithSubtreeSize,
   getClimbSendStats,
@@ -24,9 +25,11 @@ import {
   getSubtreeClimbs,
   getSubtreeGradeHistogram,
   getUserSentClimbIds,
+  type SubtreeClimbsSort,
   resolveSubareaScope,
 } from "@/db/queries";
 import {
+  type AreaClimbsFilter,
   parseAreaClimbsFilter,
   parseAreaClimbsSort,
   toSubtreeQueryFilter,
@@ -83,32 +86,17 @@ export default async function AreaPage({ params, searchParams }: AreaPageProps) 
     redirectToCanonicalSlug(slug, area.name, areaHref(area.id, area.name), search);
     return <PublicAreaPage area={area} search={search} />;
   }
-  const area = await getAreaWithSubtreeSize(db, areaId);
+  // The ancestor trail is the read generateMetadata already started.
+  const [area, ancestors, subareas] = await Promise.all([
+    getAreaWithSubtreeSize(db, areaId),
+    getPublicAncestorsById(areaId),
+    getSubareas(db, areaId),
+  ]);
   if (!area) notFound();
   redirectToCanonicalSlug(slug, area.name, areaHref(area.id, area.name), search);
 
   const sort = parseAreaClimbsSort(search);
   const filter = parseAreaClimbsFilter(search);
-
-  // Only the first page is server-rendered — AreaClimbsSection fetches
-  // subsequent pages itself via "load more" (see app/api/areas/[id]/climbs).
-  // The histogram reads every climb row in the subtree, so it follows the
-  // same size gate as the list's index strategy — a continent-scale area
-  // renders its header without the strip/chart instead of scanning tens of
-  // thousands of rows per view.
-  const histogramEligible = !area.largeSubtree;
-
-  // The sub-area rail can scope the list to one sub-area's subtree; the
-  // header, histogram, and rail always describe the whole area.
-  const listScope = await resolveSubareaScope(db, area, filter.subareaId);
-
-  const [ancestors, subareas, subtreeClimbs, histogramRows] = await Promise.all([
-    getAncestors(db, area),
-    getSubareas(db, area.id),
-    getSubtreeClimbs(db, listScope, 1, sort, toSubtreeQueryFilter(filter)),
-    histogramEligible ? getSubtreeGradeHistogram(db, area) : [],
-  ]);
-  const histogram = buildGradeHistogram(histogramRows);
 
   const areaPath = areaHref(area.id, area.name);
   const ancestorNames = ancestors.map((a) => a.name);
@@ -118,44 +106,13 @@ export default async function AreaPage({ params, searchParams }: AreaPageProps) 
     { name: area.name, path: areaPath },
   ];
 
-  const [sendStats, areaBreadcrumbs, sentClimbIds] = await Promise.all([
-    getClimbSendStats(
-      db,
-      subtreeClimbs.climbs.map((c) => c.id),
-    ),
-    getAreaBreadcrumbs(
-      db,
-      subtreeClimbs.climbs.map((c) => c.areaId),
-    ),
-    getUserSentClimbIds(
-      db,
-      session.user.id,
-      subtreeClimbs.climbs.map((climb) => climb.id),
-    ),
-  ]);
-
   const climbsBlock = (
     <div className="flex flex-col gap-3">
       <SectionHeading>Climbs</SectionHeading>
       <AreaClimbsToolbar areaPath={areaPath} sort={sort} filter={filter} />
-      <AreaClimbsSection
-        // Remounts with fresh initial* state on a sort/filter change rather
-        // than syncing "load more" state to changed props via an effect.
-        key={JSON.stringify({ sort, filter })}
-        areaId={area.id}
-        sort={sort}
-        filter={filter}
-        initialClimbs={subtreeClimbs.climbs}
-        initialHasNextPage={subtreeClimbs.hasNextPage}
-        initialSendStats={sendStats}
-        initialAreaBreadcrumbs={areaBreadcrumbs}
-        sentClimbIds={sentClimbIds}
-        emptyMessage={
-          filter.subareaId != null
-            ? "No climbs match in this sub-area."
-            : "No climbs found in this area or its sub-areas."
-        }
-      />
+      <Suspense fallback={<SkeletonListRows rows={8} />}>
+        <AreaClimbs area={area} viewerId={session.user.id} sort={sort} filter={filter} />
+      </Suspense>
     </div>
   );
 
@@ -172,13 +129,17 @@ export default async function AreaPage({ params, searchParams }: AreaPageProps) 
       />
       <AreaBreadcrumbs ancestors={ancestors} current={area} />
 
-      <AreaCragHeader
-        area={area}
-        areaPath={areaPath}
-        histogram={histogram}
-        filter={filter}
-        actions={<AreaHeaderActions area={area} />}
-      />
+      <AreaCragHeader area={area} actions={<AreaHeaderActions area={area} />}>
+        {/* The histogram reads every climb row in the subtree, so it follows
+         * the same size gate as the list's index strategy — a
+         * continent-scale area renders its header without the strip/chart
+         * instead of scanning tens of thousands of rows per view. */}
+        {!area.largeSubtree && (
+          <Suspense fallback={<GradeSpreadLoading />}>
+            <AreaGradeSpreadSection area={area} areaPath={areaPath} filter={filter} />
+          </Suspense>
+        )}
+      </AreaCragHeader>
 
       {/* The provider links the toolbar's in-flight navigation to the climb
        * list it re-fetches, which dims while pending. */}
@@ -199,5 +160,97 @@ export default async function AreaPage({ params, searchParams }: AreaPageProps) 
         )}
       </NavigationPendingProvider>
     </div>
+  );
+}
+
+type AreaWithSubtreeSize = NonNullable<Awaited<ReturnType<typeof getAreaWithSubtreeSize>>>;
+
+async function AreaGradeSpreadSection({
+  area,
+  areaPath,
+  filter,
+}: {
+  area: AreaWithSubtreeSize;
+  areaPath: string;
+  filter: AreaClimbsFilter;
+}) {
+  const rows = await getSubtreeGradeHistogram(await getDb(), area);
+  return (
+    <AreaGradeSpread histogram={buildGradeHistogram(rows)} areaPath={areaPath} filter={filter} />
+  );
+}
+
+/** Mirrors AreaGradeSpread: the info strip, then the histogram, which
+ * collapses to a trigger row below md. */
+function GradeSpreadLoading() {
+  return (
+    <>
+      <div className="flex flex-wrap items-center gap-4">
+        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-4 w-16" />
+        <Skeleton className="h-5 w-16" rounded="rounded-full" />
+      </div>
+      <Skeleton className="h-6 w-28 md:hidden" />
+      <div className="hidden items-end gap-6 md:flex">
+        <Skeleton className="h-20 w-64 max-w-[45%]" />
+        <Skeleton className="h-20 w-64 max-w-[45%]" />
+      </div>
+    </>
+  );
+}
+
+/** The first page of climbs. AreaClimbsSection fetches later pages itself via
+ * "load more" (see app/api/areas/[id]/climbs). */
+async function AreaClimbs({
+  area,
+  viewerId,
+  sort,
+  filter,
+}: {
+  area: AreaWithSubtreeSize;
+  viewerId: string;
+  sort: SubtreeClimbsSort;
+  filter: AreaClimbsFilter;
+}) {
+  const db = await getDb();
+  // The sub-area rail can scope the list to one sub-area's subtree; the
+  // header, histogram, and rail always describe the whole area.
+  const listScope = await resolveSubareaScope(db, area, filter.subareaId);
+  const subtreeClimbs = await getSubtreeClimbs(
+    db,
+    listScope,
+    1,
+    sort,
+    toSubtreeQueryFilter(filter),
+  );
+  const climbIds = subtreeClimbs.climbs.map((c) => c.id);
+  const [sendStats, areaBreadcrumbs, sentClimbIds] = await Promise.all([
+    getClimbSendStats(db, climbIds),
+    getAreaBreadcrumbs(
+      db,
+      subtreeClimbs.climbs.map((c) => c.areaId),
+    ),
+    getUserSentClimbIds(db, viewerId, climbIds),
+  ]);
+
+  return (
+    <AreaClimbsSection
+      // Remounts with fresh initial* state on a sort/filter change rather
+      // than syncing "load more" state to changed props via an effect.
+      key={JSON.stringify({ sort, filter })}
+      areaId={area.id}
+      sort={sort}
+      filter={filter}
+      initialClimbs={subtreeClimbs.climbs}
+      initialHasNextPage={subtreeClimbs.hasNextPage}
+      initialSendStats={sendStats}
+      initialAreaBreadcrumbs={areaBreadcrumbs}
+      sentClimbIds={sentClimbIds}
+      emptyMessage={
+        filter.subareaId != null
+          ? "No climbs match in this sub-area."
+          : "No climbs found in this area or its sub-areas."
+      }
+    />
   );
 }

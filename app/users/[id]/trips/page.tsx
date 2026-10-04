@@ -41,44 +41,52 @@ export default async function UserTripsPage({ params, searchParams }: UserTripsP
   const [{ id }, search] = await Promise.all([params, searchParams]);
   const resolved = await resolveProfilePage(id, "viewer");
 
-  // Resolved on the server from the request's own zone, not in the card: a
-  // `new Date()` inside a component runs once on the server and again on the
-  // client, which is how "Upcoming" and "Now" end up disagreeing across a
-  // hydration near midnight.
-  const today = async () => goalToday(await getRequestTimezone());
-
   if (!resolved.signedIn) {
     const shared = await resolveSharedProfile(id, search);
     if (!shared) return <CurrentPageAuthCallout />;
-    const trips = await getTripsForUser(await getDb(), shared.id, null);
     return (
       <SharedProfileHeader
         owner={shared}
         next={withProfileShare(tripsHref(shared.id), shared.token)}
       >
-        <TripList
-          trips={trips}
-          userId={shared.id}
-          today={await today()}
-          canEdit={false}
-          shareToken={shared.token}
-        />
+        <TripsView userId={shared.id} viewerId={null} shareToken={shared.token} />
       </SharedProfileHeader>
     );
   }
   if (!resolved.ok) notFound();
   const { user, viewerId } = resolved;
 
-  const trips = await getTripsForUser(await getDb(), user.id, viewerId);
-
   return (
     <ProfileHeader user={user} viewerId={viewerId} workspace="logbook">
-      <TripList
-        trips={trips}
-        userId={user.id}
-        today={await today()}
-        canEdit={viewerId === user.id}
-      />
+      <TripsView userId={user.id} viewerId={viewerId} />
     </ProfileHeader>
+  );
+}
+
+async function TripsView({
+  userId,
+  viewerId,
+  shareToken,
+}: {
+  userId: string;
+  viewerId: string | null;
+  shareToken?: string;
+}) {
+  // Resolved on the server from the request's own zone, not in the card: a
+  // `new Date()` inside a component runs once on the server and again on the
+  // client, which is how "Upcoming" and "Now" end up disagreeing across a
+  // hydration near midnight.
+  const [trips, timezone] = await Promise.all([
+    getTripsForUser(await getDb(), userId, viewerId),
+    getRequestTimezone(),
+  ]);
+  return (
+    <TripList
+      trips={trips}
+      userId={userId}
+      today={goalToday(timezone)}
+      canEdit={viewerId === userId}
+      shareToken={shareToken}
+    />
   );
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { redirectToCanonicalSlug } from "@/app/canonical-slug";
 import {
@@ -22,12 +23,11 @@ import { Eyebrow } from "@/components/ui/eyebrow";
 import { JsonLd } from "@/components/ui/json-ld";
 import { SidebarLayout } from "@/components/ui/page-shell";
 import { RatingStars } from "@/components/ui/rating-stars";
+import { SkeletonListRows, SkeletonStatCard } from "@/components/ui/skeleton";
 import { StatStrip } from "@/components/ui/stat-strip";
 import { SectionHeading } from "@/components/ui/typography";
 import { getDb } from "@/db/client";
 import {
-  getAncestors,
-  getArea,
   getClimb,
   getClimbSendSummary,
   getClimbVideos,
@@ -35,6 +35,7 @@ import {
   getSendsForClimb,
   getUserSendForClimb,
 } from "@/db/queries";
+import type { Climb } from "@/db/queries/climbs";
 import { buildLoggedGradeRows } from "@/lib/grade-histogram";
 import type { AscentStyle as AscentStyleType } from "@/lib/sends";
 import { climbDescription, climbJsonLd, climbTitle, locationTrail, pageMetadata } from "@/lib/seo";
@@ -98,20 +99,14 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
   if (!climb) notFound();
   redirectToCanonicalSlug(slug, climb.name, climbHref(climb.id, climb.name), search);
 
-  // Stats come from whole-history aggregates and the list from a paginated
-  // query — a popular climb's full send history never ships in the RSC
-  // payload (ClimbSendList "load more"-fetches the rest on demand).
-  const [area, userSend, sendsPage, summary, journalEntries, videos] = await Promise.all([
-    getArea(db, climb.areaId),
+  // The area trail is the read generateMetadata already started.
+  const [area, ancestors, userSend, journalEntries] = await Promise.all([
+    getPublicAreaById(climb.areaId),
+    getPublicAncestorsById(climb.areaId),
     getUserSendForClimb(db, session.user.id, climb.id),
-    getSendsForClimb(db, climb.id, 0, undefined, session.user.id),
-    getClimbSendSummary(db, climb.id),
     getJournalForClimb(db, session.user.id, session.user.id, climb.id),
-    getClimbVideos(db, climb.id, session.user.id),
   ]);
   if (!area) notFound();
-
-  const ancestors = await getAncestors(db, area);
 
   const trail = locationTrail([...ancestors.map((a) => a.name), area.name]);
   const breadcrumbCrumbs = [
@@ -120,13 +115,6 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
     { name: area.name, path: areaHref(area.id, area.name) },
     { name: climb.name, path: climbHref(climb.id, climb.name) },
   ];
-
-  const loggedBreakdown = Object.entries(summary.styleBreakdown).filter(([, count]) => count > 0);
-  const loggedGradeRows = buildLoggedGradeRows(
-    climb.type,
-    summary.suggestedGradeCounts,
-    climb.grade,
-  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -154,75 +142,122 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
         side="left"
         sidebarWidthClass="lg:w-80"
         sidebar={
-          <>
-            <StatStrip
-              cards={[
-                {
-                  key: "summary",
-                  stats: [
-                    {
-                      label: "Community rating",
-                      value: <RatingStars rating={summary.avgRating} precision="decimal" />,
-                    },
-                    { label: "Logged ascents", value: summary.sendCount },
-                    ...(summary.avgSuggestedGrade != null
-                      ? [
-                          {
-                            label: "Suggested grade",
-                            value: (
-                              <GradeWithTrend
-                                type={climb.type}
-                                grade={climb.grade}
-                                avgSuggestedGrade={summary.avgSuggestedGrade}
-                              />
-                            ),
-                          },
-                        ]
-                      : []),
-                  ],
-                },
-                ...(loggedBreakdown.length > 0
-                  ? [
-                      {
-                        key: "breakdown",
-                        heading: <Eyebrow>Ascent breakdown</Eyebrow>,
-                        stats: loggedBreakdown.map(([type, count]) => ({
-                          label: ASCENT_STYLE_LABELS[type as AscentStyleType],
-                          value: count,
-                        })),
-                      },
-                    ]
-                  : []),
-              ]}
-            />
-            {loggedGradeRows.length > 0 && (
-              <div className={cardClass("sm")}>
-                <div className="mb-3">
-                  <Eyebrow>Logged grades</Eyebrow>
-                </div>
-                <LoggedGradeHistogram type={climb.type} rows={loggedGradeRows} />
-              </div>
-            )}
-          </>
+          <Suspense
+            fallback={
+              <>
+                <SkeletonStatCard stats={3} />
+                <SkeletonStatCard stats={2} />
+              </>
+            }
+          >
+            <ClimbStats climb={climb} />
+          </Suspense>
         }
       >
         <div className="flex flex-col gap-6">
           <ClimbJournalCard userId={session.user.id} climbId={climb.id} entries={journalEntries} />
-          <ClimbVideoShelf videos={videos.videos} total={videos.total} climbName={climb.name} />
-          <div className="flex flex-col gap-3">
-            <SectionHeading>Sends</SectionHeading>
-            <ClimbSendList
-              climb={climb}
-              initialSends={sendsPage.sends}
-              initialHasMore={sendsPage.hasMore}
-              currentUserId={session.user.id}
-              emptyState={
-                <EmptyState message="No sends yet — this line is waiting for its first ascent." />
-              }
-            />
-          </div>
+          <Suspense
+            fallback={
+              <div className="flex flex-col gap-3">
+                <SectionHeading>Sends</SectionHeading>
+                <SkeletonListRows rows={5} />
+              </div>
+            }
+          >
+            <ClimbSends climb={climb} viewerId={session.user.id} />
+          </Suspense>
         </div>
       </SidebarLayout>
     </div>
+  );
+}
+
+/** Whole-history aggregates for the sidebar. */
+async function ClimbStats({ climb }: { climb: Climb }) {
+  const summary = await getClimbSendSummary(await getDb(), climb.id);
+  const loggedBreakdown = Object.entries(summary.styleBreakdown).filter(([, count]) => count > 0);
+  const loggedGradeRows = buildLoggedGradeRows(
+    climb.type,
+    summary.suggestedGradeCounts,
+    climb.grade,
+  );
+  return (
+    <>
+      <StatStrip
+        cards={[
+          {
+            key: "summary",
+            stats: [
+              {
+                label: "Community rating",
+                value: <RatingStars rating={summary.avgRating} precision="decimal" />,
+              },
+              { label: "Logged ascents", value: summary.sendCount },
+              ...(summary.avgSuggestedGrade != null
+                ? [
+                    {
+                      label: "Suggested grade",
+                      value: (
+                        <GradeWithTrend
+                          type={climb.type}
+                          grade={climb.grade}
+                          avgSuggestedGrade={summary.avgSuggestedGrade}
+                        />
+                      ),
+                    },
+                  ]
+                : []),
+            ],
+          },
+          ...(loggedBreakdown.length > 0
+            ? [
+                {
+                  key: "breakdown",
+                  heading: <Eyebrow>Ascent breakdown</Eyebrow>,
+                  stats: loggedBreakdown.map(([type, count]) => ({
+                    label: ASCENT_STYLE_LABELS[type as AscentStyleType],
+                    value: count,
+                  })),
+                },
+              ]
+            : []),
+        ]}
+      />
+      {loggedGradeRows.length > 0 && (
+        <div className={cardClass("sm")}>
+          <div className="mb-3">
+            <Eyebrow>Logged grades</Eyebrow>
+          </div>
+          <LoggedGradeHistogram type={climb.type} rows={loggedGradeRows} />
+        </div>
+      )}
+    </>
+  );
+}
+
+/** The video shelf and the first page of sends; ClimbSendList fetches later
+ * pages on demand, so a popular climb's full history never ships here. */
+async function ClimbSends({ climb, viewerId }: { climb: Climb; viewerId: string }) {
+  const db = await getDb();
+  const [sendsPage, videos] = await Promise.all([
+    getSendsForClimb(db, climb.id, 0, undefined, viewerId),
+    getClimbVideos(db, climb.id, viewerId),
+  ]);
+  return (
+    <>
+      <ClimbVideoShelf videos={videos.videos} total={videos.total} climbName={climb.name} />
+      <div className="flex flex-col gap-3">
+        <SectionHeading>Sends</SectionHeading>
+        <ClimbSendList
+          climb={climb}
+          initialSends={sendsPage.sends}
+          initialHasMore={sendsPage.hasMore}
+          currentUserId={viewerId}
+          emptyState={
+            <EmptyState message="No sends yet — this line is waiting for its first ascent." />
+          }
+        />
+      </div>
+    </>
   );
 }

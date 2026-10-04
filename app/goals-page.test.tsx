@@ -3,13 +3,16 @@ import type { ComponentProps, ReactElement } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { scheduleGoalRefresh } from "@/actions/goal-refresh";
-import GoalsPage, { generateMetadata } from "@/app/users/[id]/goals/page";
+import GoalsPageImpl, { generateMetadata } from "@/app/users/[id]/goals/page";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { GoalPanel } from "@/components/goals/goal-panel";
 import { createDb } from "@/db/client";
 import { goals } from "@/db/schema";
 import { seedFixtureUser } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
+import { rendered } from "@/test/server-tree";
+
+const GoalsPage = rendered(GoalsPageImpl);
 
 vi.mock("@/actions/goal-refresh", () => ({
   scheduleGoalRefresh: vi.fn<typeof scheduleGoalRefresh>(async () => {}),

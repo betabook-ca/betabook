@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 
 import { FriendshipButton } from "@/components/friendship-button";
 import { ProfileHeading } from "@/components/profile-heading";
 import { ProfileInvite } from "@/components/profile-invite";
 import { ProfileLayout } from "@/components/profile-layout";
 import { ProfileTabs } from "@/components/profile-tabs";
+import { SkeletonListRows } from "@/components/ui/skeleton";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { getDb } from "@/db/client";
 import { getUserProfile, getFriendship, canReadJournal, getShareLinkOwner } from "@/db/queries";
@@ -91,10 +92,12 @@ export function memberMetadata(
   return { title: title(resolved.user), robots: { index: false } };
 }
 
+const DEFAULT_CONTENT_FALLBACK = <SkeletonListRows rows={8} />;
+
 /** Profile header for a signed-out visitor with a share link. Same heading and
  * tabs as the signed-in view, with a sign-up invite instead of the friend
  * button, and only the tabs the link can open. */
-export async function SharedProfileHeader({
+export function SharedProfileHeader({
   owner,
   next,
   children,
@@ -104,74 +107,101 @@ export async function SharedProfileHeader({
   next: string;
   children: ReactNode;
 }) {
-  const hardest = await getClimberHardest(await getDb(), owner.id);
   return (
     <ProfileLayout
-      heading={
-        <ProfileHeading
-          name={owner.name}
-          image={owner.image}
-          hardest={hardest}
-          note={<ProfileInvite name={owner.name} next={next} />}
-        />
-      }
+      heading={<SharedProfileHeading owner={owner} next={next} />}
       tabs={<ProfileTabs userId={owner.id} showJournal={false} share={owner.token} />}
     >
-      {children}
+      <Suspense fallback={DEFAULT_CONTENT_FALLBACK}>{children}</Suspense>
     </ProfileLayout>
   );
 }
 
-/** Owner workspaces use task tabs; visitors retain the climber's profile heading. */
-export async function ProfileHeader({
+async function SharedProfileHeading({
+  owner,
+  next,
+}: {
+  owner: { id: string; name: string; image: string | null };
+  next: string;
+}) {
+  const hardest = await getClimberHardest(await getDb(), owner.id);
+  return (
+    <ProfileHeading
+      name={owner.name}
+      image={owner.image}
+      hardest={hardest}
+      note={<ProfileInvite name={owner.name} next={next} />}
+    />
+  );
+}
+
+/** Owner workspaces use task tabs; visitors retain the climber's profile heading.
+ * The heading and tabs read their own data, so `children` render at the same
+ * time as those reads instead of after them, and stream in behind `fallback`. */
+export function ProfileHeader({
   user,
   viewerId,
   children,
   workspace = "logbook",
+  fallback = DEFAULT_CONTENT_FALLBACK,
 }: {
   user: Pick<ProfileUser, "id" | "name" | "image">;
   viewerId: string;
   children: ReactNode;
   workspace?: "logbook" | "progress";
+  fallback?: ReactNode;
 }) {
+  const content = <Suspense fallback={fallback}>{children}</Suspense>;
   if (viewerId === user.id)
     return (
       <WorkspaceShell area={workspace} userId={user.id}>
-        {children}
+        {content}
       </WorkspaceShell>
     );
+  return (
+    <ProfileLayout
+      heading={<VisitorProfileHeading user={user} viewerId={viewerId} />}
+      tabs={<VisitorProfileTabs userId={user.id} viewerId={viewerId} />}
+    >
+      {content}
+    </ProfileLayout>
+  );
+}
+
+async function VisitorProfileHeading({
+  user,
+  viewerId,
+}: {
+  user: Pick<ProfileUser, "id" | "name" | "image">;
+  viewerId: string;
+}) {
   const db = await getDb();
   const [relationship, journalVisible, hardest] = await Promise.all([
     getFriendship(db, viewerId, user.id),
     canReadUserJournal(user.id, viewerId),
     getClimberHardest(db, user.id),
   ]);
-
   return (
-    <ProfileLayout
-      heading={
-        <ProfileHeading
+    <ProfileHeading
+      name={user.name}
+      image={user.image}
+      hardest={hardest}
+      nameAction={
+        <FriendshipButton
+          userId={user.id}
           name={user.name}
-          image={user.image}
-          hardest={hardest}
-          nameAction={
-            <FriendshipButton
-              userId={user.id}
-              name={user.name}
-              initialStatus={relationship ?? "none"}
-              appearance="profile"
-            />
-          }
-          note={
-            !journalVisible && (
-              <p className="text-muted">Their journal isn&apos;t shared with you.</p>
-            )
-          }
+          initialStatus={relationship ?? "none"}
+          appearance="profile"
         />
       }
-      tabs={<ProfileTabs userId={user.id} showJournal={journalVisible} />}
-    >
-      {children}
-    </ProfileLayout>
+      note={
+        !journalVisible && <p className="text-muted">Their journal isn&apos;t shared with you.</p>
+      }
+    />
   );
+}
+
+async function VisitorProfileTabs({ userId, viewerId }: { userId: string; viewerId: string }) {
+  const journalVisible = await canReadUserJournal(userId, viewerId);
+  return <ProfileTabs userId={userId} showJournal={journalVisible} />;
 }

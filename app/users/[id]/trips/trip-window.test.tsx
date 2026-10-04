@@ -2,7 +2,7 @@ import { env } from "cloudflare:test";
 import { sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import TripAnalyticsPage from "@/app/users/[id]/trips/[tripId]/analytics/page";
+import TripAnalyticsPageImpl from "@/app/users/[id]/trips/[tripId]/analytics/page";
 import TripPage, {
   generateMetadata as tripPageMetadata,
 } from "@/app/users/[id]/trips/[tripId]/page";
@@ -18,6 +18,9 @@ import {
   seedFixtureUser,
 } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
+import { rendered } from "@/test/server-tree";
+
+const TripAnalyticsPage = rendered(TripAnalyticsPageImpl);
 
 const session = vi.hoisted(() => ({ userId: null as string | null }));
 
