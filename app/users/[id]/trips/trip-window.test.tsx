@@ -2,8 +2,8 @@ import { env } from "cloudflare:test";
 import { sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import TripAnalyticsPage from "@/app/users/[id]/trips/[tripId]/analytics/page";
-import TripPage, {
+import TripAnalyticsPageImpl from "@/app/users/[id]/trips/[tripId]/analytics/page";
+import TripPageImpl, {
   generateMetadata as tripPageMetadata,
 } from "@/app/users/[id]/trips/[tripId]/page";
 import { createDb } from "@/db/client";
@@ -18,6 +18,10 @@ import {
   seedFixtureUser,
 } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
+import { rendered } from "@/test/server-tree";
+
+const TripAnalyticsPage = rendered(TripAnalyticsPageImpl);
+const TripPage = rendered(TripPageImpl);
 
 const session = vi.hoisted(() => ({ userId: null as string | null }));
 
@@ -31,6 +35,8 @@ vi.mock("@/lib/session", () => ({
     session.userId ? { user: { id: session.userId, name: "Viewer" } } : null,
 }));
 vi.mock("@/lib/request-timezone", () => ({ getRequestTimezone: async () => "UTC" }));
+// Album pages come from Google; tests never fetch them.
+vi.mock("@/lib/trip-album-loader", () => ({ loadAlbumPhotos: async () => [] }));
 vi.mock("@/lib/app-url", () => ({ getBaseUrl: async () => "https://betabook.test" }));
 vi.mock("next/navigation", () => ({
   notFound: () => {
@@ -93,38 +99,13 @@ function journalAudience(audience: "private" | "friends" | "public") {
   return db.run(sql`UPDATE user SET journal_visibility = ${audience} WHERE id = ${OWNER}`);
 }
 
-type Element = { type?: unknown; props?: Record<string, unknown> };
-
-/** Runs the async server component nested in the page (the one with a `filter`
- * prop) so assertions can see the rows it loaded. Client components below it
- * can't run here, but their props already contain the rows. */
-async function resolveNestedView(node: unknown): Promise<unknown> {
-  if (Array.isArray(node)) {
-    for (const child of node) {
-      const view = await resolveNestedView(child);
-      if (view) return view;
-    }
-    return null;
-  }
-  const element = node as Element | null;
-  if (!element || typeof element !== "object") return null;
-  const props = element.props;
-  if (props && "filter" in props && typeof element.type === "function") {
-    return (element.type as (p: unknown) => Promise<unknown>)(props);
-  }
-  return props && "children" in props ? resolveNestedView(props.children) : null;
-}
-
 const props = (tripId: number | string, search: Record<string, string | string[]> = {}) => ({
   params: Promise.resolve({ id: OWNER, tripId: String(tripId) }),
   searchParams: Promise.resolve(search),
 });
 
 async function renderTrip(tripId: number, search: Record<string, string | string[]> = {}) {
-  const tree = await TripPage(props(tripId, search));
-  // The page tree has the trip, notes and album. The resolved view has the
-  // sends. Both are included in the returned string.
-  return JSON.stringify(tree) + JSON.stringify(await resolveNestedView(tree));
+  return JSON.stringify(await TripPage(props(tripId, search)));
 }
 
 beforeEach(async () => {
@@ -179,7 +160,8 @@ describe("trip sends", () => {
   it("render without the filter toolbar", async () => {
     const trip = await seedTrip();
 
-    expect(await renderTrip(trip.id)).toContain('"bare":true');
+    // The toolbar is the only part of the sends view that takes `basePath`.
+    expect(await renderTrip(trip.id)).not.toContain('"basePath"');
   });
 });
 
@@ -192,7 +174,7 @@ describe("trip page", () => {
     const at = (text: string) => payload.indexOf(text);
     expect(at(`"link":"${album}"`)).toBeGreaterThan(-1);
     expect(at(`"link":"${album}"`)).toBeLessThan(at(`"notes":"${NOTES}"`));
-    expect(at(`"notes":"${NOTES}"`)).toBeLessThan(at('"bare":true'));
+    expect(at(`"notes":"${NOTES}"`)).toBeLessThan(at(INSIDE));
     // Journal entries aren't rendered on the trip page.
     expect(payload).not.toContain(ENTRY);
   });

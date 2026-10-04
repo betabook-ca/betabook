@@ -8,13 +8,15 @@ import AreaPage, { generateMetadata as areaMetadata } from "@/app/areas/[id]/[[.
 import { PublicAreaPage } from "@/app/areas/[id]/[[...slug]]/public-area-page";
 import ClimbPage, { generateMetadata as climbMetadata } from "@/app/climbs/[id]/[[...slug]]/page";
 import { PublicClimbPage } from "@/app/climbs/[id]/[[...slug]]/public-climb-page";
-import UserAnalyticsPage from "@/app/users/[id]/analytics/page";
-import UserJournalPage from "@/app/users/[id]/journal/page";
-import UserPage, { generateMetadata as userMetadata } from "@/app/users/[id]/page";
-import UserSendsPage from "@/app/users/[id]/sends/page";
-import TripAnalyticsPage from "@/app/users/[id]/trips/[tripId]/analytics/page";
-import TripPage, { generateMetadata as tripMetadata } from "@/app/users/[id]/trips/[tripId]/page";
-import UserTripsPage, { generateMetadata as tripsMetadata } from "@/app/users/[id]/trips/page";
+import UserAnalyticsPageImpl from "@/app/users/[id]/analytics/page";
+import UserJournalPageImpl from "@/app/users/[id]/journal/page";
+import UserPageImpl, { generateMetadata as userMetadata } from "@/app/users/[id]/page";
+import UserSendsPageImpl from "@/app/users/[id]/sends/page";
+import TripAnalyticsPageImpl from "@/app/users/[id]/trips/[tripId]/analytics/page";
+import TripPageImpl, {
+  generateMetadata as tripMetadata,
+} from "@/app/users/[id]/trips/[tripId]/page";
+import UserTripsPageImpl, { generateMetadata as tripsMetadata } from "@/app/users/[id]/trips/page";
 import { createDb } from "@/db/client";
 import { getProfileShareToken } from "@/db/queries";
 import { getPublicArea, getPublicClimb } from "@/db/queries/public-catalog";
@@ -29,9 +31,20 @@ import {
   seedFixtureUser,
 } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
+import { rendered, resolveServerTree } from "@/test/server-tree";
+
+const UserAnalyticsPage = rendered(UserAnalyticsPageImpl);
+const UserJournalPage = rendered(UserJournalPageImpl);
+const UserPage = rendered(UserPageImpl);
+const UserSendsPage = rendered(UserSendsPageImpl);
+const TripAnalyticsPage = rendered(TripAnalyticsPageImpl);
+const TripPage = rendered(TripPageImpl);
+const UserTripsPage = rendered(UserTripsPageImpl);
 
 vi.mock("@/lib/session", () => ({ getMemberSession: async () => null }));
 vi.mock("@/lib/request-timezone", () => ({ getRequestTimezone: async () => "UTC" }));
+// Album pages come from Google; tests never fetch them.
+vi.mock("@/lib/trip-album-loader", () => ({ loadAlbumPhotos: async () => [] }));
 vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NOT_FOUND");
@@ -70,7 +83,9 @@ const climbProps = {
 async function framed(page: unknown) {
   const element = page as { type: unknown; props: unknown };
   return typeof element.type === "function" && element.type.name === "SharedProfileHeader"
-    ? (element.type as (props: unknown) => Promise<ReactElement>)(element.props)
+    ? ((await resolveServerTree(
+        (element.type as (props: unknown) => ReactElement)(element.props),
+      )) as ReactElement)
     : (page as ReactElement);
 }
 

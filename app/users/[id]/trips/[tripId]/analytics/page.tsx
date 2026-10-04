@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { ProfileHeader } from "@/app/users/[id]/profile-shell";
 import {
@@ -8,6 +9,7 @@ import {
   type TripPageParams,
 } from "@/app/users/[id]/trips/[tripId]/trip-shell";
 import { AnalyticsDashboard } from "@/components/analytics-dashboard";
+import { AnalyticsLoading } from "@/components/analytics-loading";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { DisciplineScopeNav } from "@/components/discipline-scope-nav";
 import { TripHeader } from "@/components/trips/trip-header";
@@ -45,10 +47,40 @@ export default async function TripAnalyticsPage({ params, searchParams }: TripPa
   if (!resolved.ok) notFound();
   const { trip, user, viewerId, today, journalVisible } = resolved;
 
+  return (
+    <ProfileHeader user={user} viewerId={viewerId} workspace="logbook">
+      <TripHeader trip={trip} userId={user.id} viewerId={viewerId} today={today} back="trip">
+        <Suspense fallback={<AnalyticsLoading />}>
+          <TripAnalyticsView
+            trip={trip}
+            userId={user.id}
+            viewerId={viewerId}
+            journalVisible={journalVisible}
+            discipline={typeof search.discipline === "string" ? search.discipline : undefined}
+          />
+        </Suspense>
+      </TripHeader>
+    </ProfileHeader>
+  );
+}
+
+async function TripAnalyticsView({
+  trip,
+  userId,
+  viewerId,
+  journalVisible,
+  discipline,
+}: {
+  trip: { id: number; startDate: string; endDate: string };
+  userId: string;
+  viewerId: string;
+  journalVisible: boolean;
+  discipline: string | undefined;
+}) {
   const db = await getDb();
   const [allSends, allSessions] = await Promise.all([
-    getUserSendsForAnalytics(db, user.id, viewerId),
-    journalVisible ? getJournalSessionsForAnalytics(db, user.id, viewerId) : undefined,
+    getUserSendsForAnalytics(db, userId, viewerId),
+    journalVisible ? getJournalSessionsForAnalytics(db, userId, viewerId) : undefined,
   ]);
 
   const inTrip = (date: string | null) => inDateWindow(date, trip.startDate, trip.endDate);
@@ -58,49 +90,35 @@ export default async function TripAnalyticsPage({ params, searchParams }: TripPa
   const { present, scope } = resolveDisciplineScope({
     rows,
     sessions,
-    requested: parseDisciplineScope(
-      typeof search.discipline === "string" ? search.discipline : undefined,
-    ),
+    requested: parseDisciplineScope(discipline),
   });
 
-  if (scope == null) {
-    return (
-      <ProfileHeader user={user} viewerId={viewerId} workspace="logbook">
-        <TripHeader trip={trip} userId={user.id} viewerId={viewerId} today={today} back="trip">
-          <EmptyState message="Nothing logged on this trip yet." />
-        </TripHeader>
-      </ProfileHeader>
-    );
-  }
+  if (scope == null) return <EmptyState message="Nothing logged on this trip yet." />;
 
   const analytics = buildUserAnalytics(rows, scope, sessions, NO_YEARS);
 
   return (
-    <ProfileHeader user={user} viewerId={viewerId} workspace="logbook">
-      <TripHeader trip={trip} userId={user.id} viewerId={viewerId} today={today} back="trip">
-        <AnalyticsDashboard
-          activityHeading="Activity on this trip"
-          key={`${user.id}-${trip.id}`}
-          // A fixed layout, not the user's saved one, and not editable here.
-          canCustomize={false}
-          initialLayout={TRIP_ANALYTICS_LAYOUT}
-          // A per-month average isn't meaningful for a trip.
-          analytics={{ ...analytics, daysPerMonth: null }}
-          sends={rows}
-          // The date filter already excludes undated sends.
-          undatedCount={0}
+    <AnalyticsDashboard
+      activityHeading="Activity on this trip"
+      key={`${userId}-${trip.id}`}
+      // A fixed layout, not the user's saved one, and not editable here.
+      canCustomize={false}
+      initialLayout={TRIP_ANALYTICS_LAYOUT}
+      // A per-month average isn't meaningful for a trip.
+      analytics={{ ...analytics, daysPerMonth: null }}
+      sends={rows}
+      // The date filter already excludes undated sends.
+      undatedCount={0}
+      scope={scope}
+      journalVisible={journalVisible}
+      selectedYears={NO_YEARS}
+      periodPicker={
+        <DisciplineScopeNav
+          present={present}
           scope={scope}
-          journalVisible={journalVisible}
-          selectedYears={NO_YEARS}
-          periodPicker={
-            <DisciplineScopeNav
-              present={present}
-              scope={scope}
-              href={(type) => `${tripAnalyticsHref(user.id, trip.id)}?discipline=${type}`}
-            />
-          }
+          href={(type) => `${tripAnalyticsHref(userId, trip.id)}?discipline=${type}`}
         />
-      </TripHeader>
-    </ProfileHeader>
+      }
+    />
   );
 }
