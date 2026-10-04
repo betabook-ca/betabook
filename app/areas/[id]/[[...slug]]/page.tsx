@@ -5,7 +5,11 @@ import { Suspense } from "react";
 import { redirectToCanonicalSlug } from "@/app/canonical-slug";
 import { getPublicAncestorsById, getPublicAreaById } from "@/app/public-catalog-reads";
 import { AreaClimbsSection } from "@/components/area-climbs-section";
-import { AreaCragHeader, AreaGradeSpread } from "@/components/area-crag-header";
+import {
+  AreaCragHeader,
+  AreaGradeSpread,
+  AreaGradeSpreadLoading,
+} from "@/components/area-crag-header";
 import { AreaHeaderActions } from "@/components/area-header-actions";
 import { AreaBreadcrumbs } from "@/components/breadcrumbs";
 import { AreaClimbsToolbar } from "@/components/filters/area-climbs-toolbar";
@@ -14,7 +18,7 @@ import { SubareaRail } from "@/components/subarea-rail";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { JsonLd } from "@/components/ui/json-ld";
 import { SidebarLayout } from "@/components/ui/page-shell";
-import { Skeleton, SkeletonListRows } from "@/components/ui/skeleton";
+import { SkeletonListRows } from "@/components/ui/skeleton";
 import { SectionHeading } from "@/components/ui/typography";
 import { getDb } from "@/db/client";
 import {
@@ -135,7 +139,7 @@ export default async function AreaPage({ params, searchParams }: AreaPageProps) 
          * continent-scale area renders its header without the strip/chart
          * instead of scanning tens of thousands of rows per view. */}
         {!area.largeSubtree && (
-          <Suspense fallback={<GradeSpreadLoading />}>
+          <Suspense fallback={<AreaGradeSpreadLoading />}>
             <AreaGradeSpreadSection area={area} areaPath={areaPath} filter={filter} />
           </Suspense>
         )}
@@ -177,25 +181,6 @@ async function AreaGradeSpreadSection({
   const rows = await getSubtreeGradeHistogram(await getDb(), area);
   return (
     <AreaGradeSpread histogram={buildGradeHistogram(rows)} areaPath={areaPath} filter={filter} />
-  );
-}
-
-/** Mirrors AreaGradeSpread: the info strip, then the histogram, which
- * collapses to a trigger row below md. */
-function GradeSpreadLoading() {
-  return (
-    <>
-      <div className="flex flex-wrap items-center gap-4">
-        <Skeleton className="h-4 w-20" />
-        <Skeleton className="h-4 w-16" />
-        <Skeleton className="h-5 w-16" rounded="rounded-full" />
-      </div>
-      <Skeleton className="h-6 w-28 md:hidden" />
-      <div className="hidden items-end gap-6 md:flex">
-        <Skeleton className="h-20 w-64 max-w-[45%]" />
-        <Skeleton className="h-20 w-64 max-w-[45%]" />
-      </div>
-    </>
   );
 }
 

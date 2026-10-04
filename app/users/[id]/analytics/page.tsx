@@ -116,16 +116,7 @@ async function AnalyticsView({
   const selectedTags = normalizeHashtagFilters(toArray(search.tag));
   const journalVisible = await canReadUserJournal(id, viewerId);
   const isOwner = viewerId === id;
-  const timezone = getRequestTimezone();
-  const [
-    rows,
-    journalSessions,
-    tags,
-    viewerAnnouncements,
-    initialLayout,
-    highlightSessions,
-    overview,
-  ] = await Promise.all([
+  const [rows, journalSessions, tags, viewerAnnouncements] = await Promise.all([
     getUserSendsForAnalytics(db, id, viewerId, selectedTags),
     journalVisible
       ? getJournalSessionsForAnalytics(db, id, viewerId, selectedTags)
@@ -134,9 +125,6 @@ async function AnalyticsView({
     isOwner
       ? getViewerFeatureAnnouncements(viewerId, viewerCreatedAt.getTime())
       : Promise.resolve([]),
-    getAnalyticsLayout(db, id, viewerId),
-    journalVisible ? getAnalyticsHighlightSessions(db, id, viewerId, selectedTags) : [],
-    timezone.then((zone) => getClimberOverview(db, id, viewerId, goalToday(zone))),
   ]);
 
   const { present, scope } = resolveDisciplineScope({
@@ -177,6 +165,11 @@ async function AnalyticsView({
     );
   }
 
+  const [initialLayout, highlightSessions, overview] = await Promise.all([
+    getAnalyticsLayout(db, id, viewerId),
+    journalVisible ? getAnalyticsHighlightSessions(db, id, viewerId, selectedTags) : [],
+    getRequestTimezone().then((zone) => getClimberOverview(db, id, viewerId, goalToday(zone))),
+  ]);
   const announcements = getAnnouncementCandidates(viewerAnnouncements, {
     page: ANALYTICS_CUSTOMIZE_ANNOUNCEMENT.page,
     availableFeatureIds: [ANALYTICS_CUSTOMIZE_ANNOUNCEMENT.featureId],

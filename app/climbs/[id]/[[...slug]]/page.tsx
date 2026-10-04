@@ -13,6 +13,7 @@ import { AreaBreadcrumbs } from "@/components/breadcrumbs";
 import { ClimbActionsMenu } from "@/components/climb-actions-menu";
 import { ClimbDescription } from "@/components/climb-description";
 import { GradeWithTrend } from "@/components/climb-list";
+import { ClimbActivityLoading, ClimbStatsLoading } from "@/components/climb-page-loading";
 import { ClimbSendList } from "@/components/climb-send-list";
 import { ClimbVideoShelf } from "@/components/climb-video-shelf";
 import { ClimbJournalCard, LogEntryButton } from "@/components/journal";
@@ -23,7 +24,6 @@ import { Eyebrow } from "@/components/ui/eyebrow";
 import { JsonLd } from "@/components/ui/json-ld";
 import { SidebarLayout } from "@/components/ui/page-shell";
 import { RatingStars } from "@/components/ui/rating-stars";
-import { SkeletonListRows, SkeletonStatCard } from "@/components/ui/skeleton";
 import { StatStrip } from "@/components/ui/stat-strip";
 import { SectionHeading } from "@/components/ui/typography";
 import { getDb } from "@/db/client";
@@ -100,11 +100,10 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
   redirectToCanonicalSlug(slug, climb.name, climbHref(climb.id, climb.name), search);
 
   // The area trail is the read generateMetadata already started.
-  const [area, ancestors, userSend, journalEntries] = await Promise.all([
+  const [area, ancestors, userSend] = await Promise.all([
     getPublicAreaById(climb.areaId),
     getPublicAncestorsById(climb.areaId),
     getUserSendForClimb(db, session.user.id, climb.id),
-    getJournalForClimb(db, session.user.id, session.user.id, climb.id),
   ]);
   if (!area) notFound();
 
@@ -142,31 +141,14 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
         side="left"
         sidebarWidthClass="lg:w-80"
         sidebar={
-          <Suspense
-            fallback={
-              <>
-                <SkeletonStatCard stats={3} />
-                <SkeletonStatCard stats={2} />
-              </>
-            }
-          >
+          <Suspense fallback={<ClimbStatsLoading />}>
             <ClimbStats climb={climb} />
           </Suspense>
         }
       >
-        <div className="flex flex-col gap-6">
-          <ClimbJournalCard userId={session.user.id} climbId={climb.id} entries={journalEntries} />
-          <Suspense
-            fallback={
-              <div className="flex flex-col gap-3">
-                <SectionHeading>Sends</SectionHeading>
-                <SkeletonListRows rows={5} />
-              </div>
-            }
-          >
-            <ClimbSends climb={climb} viewerId={session.user.id} />
-          </Suspense>
-        </div>
+        <Suspense fallback={<ClimbActivityLoading />}>
+          <ClimbActivity climb={climb} viewerId={session.user.id} />
+        </Suspense>
       </SidebarLayout>
     </div>
   );
@@ -235,16 +217,19 @@ async function ClimbStats({ climb }: { climb: Climb }) {
   );
 }
 
-/** The video shelf and the first page of sends; ClimbSendList fetches later
- * pages on demand, so a popular climb's full history never ships here. */
-async function ClimbSends({ climb, viewerId }: { climb: Climb; viewerId: string }) {
+/** The viewer's journal for this climb, the video shelf and the first page of
+ * sends. ClimbSendList fetches later pages on demand, so a popular climb's
+ * full history never ships here. */
+async function ClimbActivity({ climb, viewerId }: { climb: Climb; viewerId: string }) {
   const db = await getDb();
-  const [sendsPage, videos] = await Promise.all([
-    getSendsForClimb(db, climb.id, 0, undefined, viewerId),
+  const [journalEntries, videos, sendsPage] = await Promise.all([
+    getJournalForClimb(db, viewerId, viewerId, climb.id),
     getClimbVideos(db, climb.id, viewerId),
+    getSendsForClimb(db, climb.id, 0, undefined, viewerId),
   ]);
   return (
-    <>
+    <div className="flex flex-col gap-6">
+      <ClimbJournalCard userId={viewerId} climbId={climb.id} entries={journalEntries} />
       <ClimbVideoShelf videos={videos.videos} total={videos.total} climbName={climb.name} />
       <div className="flex flex-col gap-3">
         <SectionHeading>Sends</SectionHeading>
@@ -258,6 +243,6 @@ async function ClimbSends({ climb, viewerId }: { climb: Climb; viewerId: string 
           }
         />
       </div>
-    </>
+    </div>
   );
 }

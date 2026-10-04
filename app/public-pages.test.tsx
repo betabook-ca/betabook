@@ -43,6 +43,8 @@ const UserTripsPage = rendered(UserTripsPageImpl);
 
 vi.mock("@/lib/session", () => ({ getMemberSession: async () => null }));
 vi.mock("@/lib/request-timezone", () => ({ getRequestTimezone: async () => "UTC" }));
+// Album pages come from Google; tests never fetch them.
+vi.mock("@/lib/trip-album-loader", () => ({ loadAlbumPhotos: async () => [] }));
 vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NOT_FOUND");

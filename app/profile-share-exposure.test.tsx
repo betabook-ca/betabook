@@ -13,6 +13,7 @@ import { getProfileShareToken } from "@/db/queries";
 import { user } from "@/db/schema";
 import { seedFixtureUser } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
+import { resolveServerTree } from "@/test/server-tree";
 
 const session = vi.hoisted(() => ({ userId: "owner" }));
 
@@ -48,34 +49,23 @@ async function currentToken() {
   return (await getProfileShareToken(db, "owner"))!;
 }
 
-type Rendered = ReactElement<Record<string, unknown>>;
-
-/** Renders an async server component element one level. */
-async function renderElement(element: ReactElement<Record<string, unknown>>) {
-  const render = element.type as (props: Record<string, unknown>) => Promise<Rendered>;
-  return render(element.props);
-}
-
+/** The header with its heading and tabs resolved. */
 async function visitorHeader(viewerId: string) {
   const owner = (await db.select().from(user).where(eq(user.id, "owner")).get())!;
-  return ProfileHeader({ user: owner, viewerId, children: null }) as ReactElement<{
-    heading: Rendered;
-    tabs: Rendered;
-  }>;
+  return (await resolveServerTree(
+    <ProfileHeader user={owner} viewerId={viewerId}>
+      {null}
+    </ProfileHeader>,
+    { expand: [ProfileHeader] },
+  )) as ReactElement<{ heading: ReactElement<Record<string, unknown>> }>;
 }
 
 async function profileHeaderFor(viewerId: string) {
-  const header = await visitorHeader(viewerId);
-  if (viewerId === "owner") return JSON.stringify(header);
-  const [heading, tabs] = await Promise.all([
-    renderElement(header.props.heading),
-    renderElement(header.props.tabs),
-  ]);
-  return JSON.stringify([header, heading, tabs]);
+  return JSON.stringify(await visitorHeader(viewerId));
 }
 
 async function profileHeadingFor(viewerId: string) {
-  return renderElement((await visitorHeader(viewerId)).props.heading);
+  return (await visitorHeader(viewerId)).props.heading;
 }
 
 /** Renders AccountSettings one level so the assertions reach ShareProfileControls. */
