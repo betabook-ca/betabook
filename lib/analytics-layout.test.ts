@@ -2,9 +2,21 @@ import { describe, expect, it } from "vitest";
 
 import {
   DEFAULT_ANALYTICS_LAYOUT,
+  TRIP_ANALYTICS_LAYOUT,
+  analyticsLayoutSchema,
   moveAnalyticsItem,
   parseAnalyticsLayout,
 } from "./analytics-layout";
+
+describe("trip analytics layout", () => {
+  it("shows four tiles and the grade pyramid", () => {
+    expect(TRIP_ANALYTICS_LAYOUT).toEqual({
+      cards: ["sends", "hardest", "days", "firstTry"],
+      charts: ["pyramid"],
+    });
+    expect(analyticsLayoutSchema.safeParse(TRIP_ANALYTICS_LAYOUT).success).toBe(true);
+  });
+});
 
 describe("saved analytics layouts", () => {
   it("accepts only visible ordered lists and never appends optional items", () => {

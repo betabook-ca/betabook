@@ -18,6 +18,8 @@ type ListRowProps = {
   /** Separate from the trailing column's vertical stack. */
   actions?: ReactNode;
   comment?: string | null;
+  /** Below the comment, at the row's full width — a send's video control. */
+  media?: ReactNode;
   /** Keep author names readable in activity rows with a fixed outcome column. */
   wrapTitle?: boolean;
   /** `li` inside a `<ul role="list">` so assistive tech gets item count and
@@ -38,6 +40,7 @@ export function ListRow({
   trailing,
   actions,
   comment,
+  media,
   wrapTitle = false,
   as: Tag = "div",
   className,
@@ -117,6 +120,7 @@ export function ListRow({
           <ClampedComment>{comment}</ClampedComment>
         </div>
       )}
+      {media && <div className="relative z-10 flex">{media}</div>}
     </Tag>
   );
 }

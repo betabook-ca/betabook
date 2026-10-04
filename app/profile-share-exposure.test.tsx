@@ -1,6 +1,6 @@
 import { env } from "cloudflare:test";
 import { eq } from "drizzle-orm";
-import type { ComponentProps, ReactElement } from "react";
+import { Suspense, type ComponentProps, type ReactElement } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import AccountPage from "@/app/account/page";
@@ -13,6 +13,7 @@ import { getProfileShareToken } from "@/db/queries";
 import { user } from "@/db/schema";
 import { seedFixtureUser } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
+import { resolveServerTree } from "@/test/server-tree";
 
 const session = vi.hoisted(() => ({ userId: "owner" }));
 
@@ -48,17 +49,23 @@ async function currentToken() {
   return (await getProfileShareToken(db, "owner"))!;
 }
 
-async function profileHeaderFor(viewerId: string) {
+/** The header with its heading and tabs resolved. */
+async function visitorHeader(viewerId: string) {
   const owner = (await db.select().from(user).where(eq(user.id, "owner")).get())!;
-  return JSON.stringify(await ProfileHeader({ user: owner, viewerId, children: null }));
+  return (await resolveServerTree(
+    <ProfileHeader user={owner} viewerId={viewerId}>
+      {null}
+    </ProfileHeader>,
+    { expand: [ProfileHeader] },
+  )) as ReactElement<{ heading: ReactElement<Record<string, unknown>> }>;
+}
+
+async function profileHeaderFor(viewerId: string) {
+  return JSON.stringify(await visitorHeader(viewerId));
 }
 
 async function profileHeadingFor(viewerId: string) {
-  const owner = (await db.select().from(user).where(eq(user.id, "owner")).get())!;
-  const header = (await ProfileHeader({ user: owner, viewerId, children: null })) as ReactElement<{
-    heading: ReactElement<Record<string, unknown>>;
-  }>;
-  return header.props.heading;
+  return (await visitorHeader(viewerId)).props.heading;
 }
 
 /** Renders AccountSettings one level so the assertions reach ShareProfileControls. */
@@ -81,16 +88,18 @@ it.each(["logbook", "progress"] as const)(
   "renders the owner's %s workspace without a profile header",
   async (workspace) => {
     const owner = (await db.select().from(user).where(eq(user.id, "owner")).get())!;
-    const page = (await ProfileHeader({
+    const page = ProfileHeader({
       user: owner,
       viewerId: "owner",
       workspace,
       children: "Workspace content",
-    })) as ReactElement<ComponentProps<typeof WorkspaceShell>>;
+    }) as ReactElement<ComponentProps<typeof WorkspaceShell>>;
     expect(page.type).toBe(WorkspaceShell);
     expect(page.props.area).toBe(workspace);
     expect(page.props.userId).toBe("owner");
-    expect(page.props.children).toBe("Workspace content");
+    const content = page.props.children as ReactElement<{ children: unknown }>;
+    expect(content.type).toBe(Suspense);
+    expect(content.props.children).toBe("Workspace content");
   },
 );
 

@@ -1,4 +1,5 @@
-import { Skeleton, SkeletonListRows, SkeletonStatCard } from "@/components/ui/skeleton";
+import { ClimbActivityLoading, ClimbStatsLoading } from "@/components/climb-page-loading";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /** Mirrors the climb page: breadcrumbs, eyebrow + display name, the grade
  * box + discipline chip row, description, then the stat cards (summary,
@@ -20,12 +21,10 @@ export default function Loading() {
 
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
         <div className="flex flex-col gap-4 lg:w-72 lg:shrink-0">
-          <SkeletonStatCard stats={3} />
-          <SkeletonStatCard stats={2} />
+          <ClimbStatsLoading />
         </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
-          <Skeleton className="h-6 w-20" />
-          <SkeletonListRows rows={5} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <ClimbActivityLoading />
         </div>
       </div>
     </div>

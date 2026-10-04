@@ -28,6 +28,10 @@ export const trips = sqliteTable(
       .references(() => user.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     description: text("description"),
+    /** Markdown. Render only with `components/ui/markdown.tsx`. */
+    notes: text("notes"),
+    /** Shared Google Photos album URL, normalized by `albumLink`. */
+    albumUrl: text("album_url"),
     /** Civil ISO `YYYY-MM-DD`, inclusive. */
     startDate: text("start_date").notNull(),
     /** Civil ISO `YYYY-MM-DD`, inclusive — a one-day trip has both equal. */
@@ -42,15 +46,18 @@ export const trips = sqliteTable(
   },
   (t) => [
     index("trips_user_start_idx").on(t.userId, t.startDate),
-    // The share link in a later migration carries a composite foreign key to
-    // (user_id, id) so a token cannot be pointed at another climber's trip.
-    // SQLite requires the parent columns of such a key to be a unique index,
-    // and `id` alone being the primary key does not satisfy it for the pair.
+    // Referenced by the composite foreign key in the unused `trip_share_links`
+    // table. SQLite requires a unique index on the parent columns, so keep this
+    // until that table is dropped.
     uniqueIndex("trips_user_id_idx").on(t.userId, t.id),
     check("trips_dates", sql`${t.endDate} >= ${t.startDate}`),
     // Enforced here as well as in the schema the action validates against: a
     // blank name would leave a trip nothing can refer to in a list or a link.
     check("trips_name", sql`length(trim(${t.name})) BETWEEN 1 AND 80`),
     check("trips_description", sql`${t.description} IS NULL OR length(${t.description}) <= 2000`),
+    // Higher than `MAX_TRIP_NOTES` on purpose. SQLite can't alter a CHECK, so
+    // the real limit is in lib/trips.ts and can change without a migration.
+    check("trips_notes", sql`${t.notes} IS NULL OR length(${t.notes}) <= 50000`),
+    check("trips_album_url", sql`${t.albumUrl} IS NULL OR length(${t.albumUrl}) <= 300`),
   ],
 );

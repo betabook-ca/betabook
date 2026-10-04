@@ -4,6 +4,7 @@ import { AreaBreadcrumb } from "@/components/area-breadcrumb";
 import { EntryActionsMenu } from "@/components/journal/entry-actions-menu";
 import { JournalCompanions } from "@/components/journal/journal-companions";
 import { JournalEntryLayout, JournalEntryStatus } from "@/components/journal/journal-entry-layout";
+import { sendVideoMedia } from "@/components/send-video-media";
 import { AppLink } from "@/components/ui/app-link";
 import { Grade } from "@/components/ui/grade";
 import type { AreaBreadcrumbs, JournalEntry } from "@/db/queries";
@@ -111,6 +112,7 @@ export function JournalEntryRow({
         date={entry.entryDate}
         tags={tags}
         comment={entry.body}
+        media={sendVideoMedia(entry.videos, entry.climbName)}
         actions={actions}
       />
     );

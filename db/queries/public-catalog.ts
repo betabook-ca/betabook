@@ -16,6 +16,7 @@ import {
 import { areaNameCondition, getAreaBreadcrumbs } from "./areas";
 import { searchClimbsConditions, searchClimbsPlan } from "./climbs";
 import { sendCommentVisibleSql } from "./content-access";
+import { withVideoList } from "./send-videos";
 import { toFtsPrefixQuery } from "./shared";
 
 const PUBLIC_CLIMB_SENDS_LIMIT = 10;
@@ -28,7 +29,7 @@ export async function getPublicSendsForClimb(
   climbId: number,
 ): Promise<PublicClimbSend[]> {
   const named = sendCommentVisibleSql(null, sql`sends.user_id`);
-  return db.all<PublicClimbSend>(sql`
+  const rows = await db.all<Omit<PublicClimbSend, "videos"> & { videos: string | null }>(sql`
     SELECT
       CASE WHEN ${named} THEN user.name END AS userName,
       CASE WHEN ${named} THEN user.image END AS userImage,
@@ -37,13 +38,15 @@ export async function getPublicSendsForClimb(
       sends.rating AS rating,
       sends.suggested_grade AS suggestedGrade,
       sends.grade_feel AS gradeFeel,
-      CASE WHEN ${named} THEN sends.comment END AS comment
+      CASE WHEN ${named} THEN sends.comment END AS comment,
+      CASE WHEN ${named} THEN sends.videos END AS videos
     FROM sends
     JOIN user ON user.id = sends.user_id
     WHERE sends.climb_id = ${climbId}
     ORDER BY sends.date_sent DESC, sends.id ASC
     LIMIT ${PUBLIC_CLIMB_SENDS_LIMIT}
   `);
+  return rows.map(withVideoList);
 }
 
 const publicAreaColumns = { id: areas.id, name: areas.name, parentId: areas.parentId };
@@ -76,13 +79,15 @@ export async function getPublicClimb(db: Database, id: number): Promise<PublicCl
     .where(eq(climbs.id, id))
     .get();
 }
-export async function getPublicAncestors(db: Database, area: PublicArea): Promise<PublicArea[]> {
-  return db.all<PublicArea>(sql`
+/** An area and its ancestors, root first, in one read: the last row is the
+ * area itself, and an unknown id yields no rows. */
+export async function getPublicAreaTrail(db: Database, id: number): Promise<PublicAreaDetails[]> {
+  return db.all<PublicAreaDetails>(sql`
     WITH RECURSIVE chain(id, depth) AS (
-      SELECT parent_id, 0 FROM areas WHERE id = ${area.id} AND parent_id IS NOT NULL
+      SELECT ${id}, 0
       UNION ALL
       SELECT areas.parent_id, chain.depth + 1 FROM areas JOIN chain ON chain.id = areas.id WHERE areas.parent_id IS NOT NULL
-    ) SELECT areas.id, areas.name, areas.parent_id AS parentId FROM areas JOIN chain ON chain.id = areas.id ORDER BY chain.depth DESC
+    ) SELECT areas.id, areas.name, areas.parent_id AS parentId, areas.description FROM areas JOIN chain ON chain.id = areas.id ORDER BY chain.depth DESC
   `);
 }
 export async function getPublicSubareas(db: Database, id: number): Promise<PublicArea[]> {
@@ -95,11 +100,9 @@ export async function resolvePublicSubarea(
   candidate: number | null,
 ): Promise<PublicArea> {
   if (candidate === null || candidate === area.id) return area;
-  const subarea = await getPublicArea(db, candidate);
-  return subarea &&
-    (await getPublicAncestors(db, subarea)).some((ancestor) => ancestor.id === area.id)
-    ? subarea
-    : area;
+  const trail = await getPublicAreaTrail(db, candidate);
+  const subarea = trail.at(-1);
+  return subarea && trail.some((ancestor) => ancestor.id === area.id) ? subarea : area;
 }
 
 export async function searchPublicAreas(

@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { isValidElement, type ReactElement } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import UserAnalyticsPage, { generateMetadata } from "@/app/users/[id]/analytics/page";
+import UserAnalyticsPageImpl, { generateMetadata } from "@/app/users/[id]/analytics/page";
 import { ProfileHeader } from "@/app/users/[id]/profile-shell";
 import { AnalyticsDashboard } from "@/components/analytics-dashboard";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
@@ -18,6 +18,9 @@ import { createDb } from "@/db/client";
 import { user } from "@/db/schema";
 import { seedFixtureSend, seedFixtureTree, seedFixtureUser } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
+import { rendered } from "@/test/server-tree";
+
+const UserAnalyticsPage = rendered(UserAnalyticsPageImpl);
 
 const session = vi.hoisted(() => ({ userId: "owner" as string | null }));
 vi.mock("@/lib/cloudflare-env", () => ({ getCloudflareEnv: async () => env }));

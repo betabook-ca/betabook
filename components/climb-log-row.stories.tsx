@@ -48,6 +48,7 @@ const send: UserSendRow = {
   areaId: 3,
   areaName: "Granite Canyon",
   ascentStyle: "flash",
+  videos: null,
   dateSent: "2026-09-04",
   rating: 3,
   suggestedGrade: 5,
@@ -73,6 +74,29 @@ export const Dated: Story = { render: () => <SendExample /> };
 export const Undated: Story = { render: () => <SendExample send={{ ...send, dateSent: null }} /> };
 
 export const NoComment: Story = { render: () => <SendExample send={{ ...send, comment: null }} /> };
+
+/** A send with a video keeps its row height: a Watch button opens the player
+ * in a dialog rather than putting a player in the list. */
+export const WithVideo: Story = {
+  render: () => (
+    <SendExample send={{ ...send, videos: ["https://www.youtube.com/shorts/dQw4w9WgXcQ"] }} />
+  ),
+};
+
+/** Several videos share one button, which counts them. */
+export const WithSeveralVideos: Story = {
+  render: () => (
+    <SendExample
+      send={{
+        ...send,
+        videos: [
+          "https://www.youtube.com/shorts/dQw4w9WgXcQ",
+          "https://www.instagram.com/reel/C9Xq3uGxJ5R/",
+        ],
+      }}
+    />
+  ),
+};
 
 /** The climber's own grade sits beside the posted one, with the feel arrow. */
 export const SuggestedHarder: Story = {

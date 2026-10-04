@@ -9,6 +9,7 @@ import {
   resolveProfilePage,
 } from "@/app/users/[id]/profile-shell";
 import { AnalyticsDashboard } from "@/components/analytics-dashboard";
+import { AnalyticsLoading } from "@/components/analytics-loading";
 import { AnalyticsYearNavigation } from "@/components/analytics-year-filter";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { DisciplineScopeNav } from "@/components/discipline-scope-nav";
@@ -73,7 +74,6 @@ function analyticsHref(
   return `/users/${userId}/analytics?${query}`;
 }
 
-// oxlint-disable-next-line complexity -- assembles many independent page sections from search params
 export default async function UserAnalyticsPage({ params, searchParams }: UserAnalyticsPageProps) {
   const [{ id }, search] = await Promise.all([params, searchParams]);
 
@@ -81,19 +81,49 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
   if (!resolved.signedIn) return <CurrentPageAuthCallout />;
   if (!resolved.ok) notFound();
   const { user, viewerId, session } = resolved;
+
+  return (
+    <ProfileHeader
+      user={user}
+      viewerId={viewerId}
+      workspace="progress"
+      fallback={<AnalyticsLoading />}
+    >
+      <AnalyticsView
+        userId={user.id}
+        viewerId={viewerId}
+        viewerCreatedAt={session.user.createdAt}
+        search={search}
+      />
+    </ProfileHeader>
+  );
+}
+
+// oxlint-disable-next-line complexity -- assembles many independent page sections from search params
+async function AnalyticsView({
+  userId: id,
+  viewerId,
+  viewerCreatedAt,
+  search,
+}: {
+  userId: string;
+  viewerId: string;
+  viewerCreatedAt: Date;
+  search: UrlParamsRecord;
+}) {
   const db = await getDb();
 
   const selectedTags = normalizeHashtagFilters(toArray(search.tag));
-  const journalVisible = await canReadUserJournal(user.id, viewerId);
+  const journalVisible = await canReadUserJournal(id, viewerId);
   const isOwner = viewerId === id;
   const [rows, journalSessions, tags, viewerAnnouncements] = await Promise.all([
     getUserSendsForAnalytics(db, id, viewerId, selectedTags),
     journalVisible
-      ? getJournalSessionsForAnalytics(db, user.id, viewerId, selectedTags)
+      ? getJournalSessionsForAnalytics(db, id, viewerId, selectedTags)
       : Promise.resolve(undefined),
     getUserHashtags(db, id, viewerId),
     isOwner
-      ? getViewerFeatureAnnouncements(viewerId, session.user.createdAt.getTime())
+      ? getViewerFeatureAnnouncements(viewerId, viewerCreatedAt.getTime())
       : Promise.resolve([]),
   ]);
 
@@ -107,52 +137,48 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
 
   if (scope == null) {
     return (
-      <ProfileHeader user={user} viewerId={viewerId} workspace="progress">
-        <NavigationPendingProvider>
-          <div className="flex min-w-0 flex-col gap-6">
-            <SectionHeading className="sr-only">Analytics</SectionHeading>
-            <AnalyticsHashtagFilter selectedTags={selectedTags} tags={tags} />
-            <NavigationPendingRegion>
-              <EmptyState
-                message={
-                  selectedTags.length > 0
-                    ? "Nothing matches these tags."
-                    : "No sends or sessions yet."
-                }
-                cta={
-                  isOwner && selectedTags.length === 0 ? (
-                    <div className="flex flex-col items-center gap-3">
-                      <LogEntryButton />
-                      <AppLink href="/account/import" className="text-sm">
-                        Import your sends
-                      </AppLink>
-                    </div>
-                  ) : undefined
-                }
-              />
-            </NavigationPendingRegion>
-          </div>
-        </NavigationPendingProvider>
-      </ProfileHeader>
+      <NavigationPendingProvider>
+        <div className="flex min-w-0 flex-col gap-6">
+          <SectionHeading className="sr-only">Analytics</SectionHeading>
+          <AnalyticsHashtagFilter selectedTags={selectedTags} tags={tags} />
+          <NavigationPendingRegion>
+            <EmptyState
+              message={
+                selectedTags.length > 0
+                  ? "Nothing matches these tags."
+                  : "No sends or sessions yet."
+              }
+              cta={
+                isOwner && selectedTags.length === 0 ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <LogEntryButton />
+                    <AppLink href="/account/import" className="text-sm">
+                      Import your sends
+                    </AppLink>
+                  </div>
+                ) : undefined
+              }
+            />
+          </NavigationPendingRegion>
+        </div>
+      </NavigationPendingProvider>
     );
   }
 
-  const [initialLayout, highlightSessions, timezone] = await Promise.all([
+  const [initialLayout, highlightSessions, overview] = await Promise.all([
     getAnalyticsLayout(db, id, viewerId),
     journalVisible ? getAnalyticsHighlightSessions(db, id, viewerId, selectedTags) : [],
-    getRequestTimezone(),
+    getRequestTimezone().then((zone) => getClimberOverview(db, id, viewerId, goalToday(zone))),
   ]);
   const announcements = getAnnouncementCandidates(viewerAnnouncements, {
     page: ANALYTICS_CUSTOMIZE_ANNOUNCEMENT.page,
     availableFeatureIds: [ANALYTICS_CUSTOMIZE_ANNOUNCEMENT.featureId],
-    userCreatedAt: session.user.createdAt,
+    userCreatedAt: viewerCreatedAt,
     now: new Date(),
   });
   const { years, undatedCount } = getAnalyticsHistorySummary(rows, scope, journalSessions);
   const selectedYears = parseAnalyticsYears(search.years ?? search.period, years);
   const analytics = buildUserAnalytics(rows, scope, journalSessions, selectedYears);
-  const today = goalToday(timezone);
-  const overview = await getClimberOverview(db, user.id, viewerId, today);
   const summary = [describeClimber(overview), describeRecency(overview)].filter(Boolean).join(" ");
 
   return (
@@ -161,50 +187,48 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
       page={`/users/${id}/analytics`}
       announcements={announcements}
     >
-      <ProfileHeader user={user} viewerId={viewerId} workspace="progress">
-        {/* The provider links the tag filter's in-flight navigation to the
-         * dashboard it is about to replace, which dims while pending. */}
-        <NavigationPendingProvider>
-          <NavigationPendingRegion>
-            <AnalyticsDashboard
-              summary={summary}
-              key={id}
-              canCustomize={isOwner}
-              initialLayout={initialLayout}
-              onSave={isOwner ? saveAnalyticsLayout : undefined}
-              analytics={analytics}
-              sends={rows}
-              sessions={highlightSessions}
-              highlights={buildAnalyticsHighlights(highlightSessions, scope, selectedYears)}
-              undatedCount={undatedCount}
-              scope={scope}
-              journalVisible={journalVisible}
-              selectedYears={selectedYears}
-              periodPicker={
-                <>
-                  <DisciplineScopeNav
-                    present={present}
-                    scope={scope}
-                    href={(type) => analyticsHref(id, type, selectedYears, selectedTags)}
-                  />
-                  <AnalyticsHashtagFilter
-                    selectedTags={selectedTags}
-                    tags={tags}
-                    controls={
-                      <div className="min-w-0 flex-1">
-                        <AnalyticsYearNavigation
-                          years={years.toReversed()}
-                          selected={selectedYears}
-                        />
-                      </div>
-                    }
-                  />
-                </>
-              }
-            />
-          </NavigationPendingRegion>
-        </NavigationPendingProvider>
-      </ProfileHeader>
+      {/* The provider links the tag filter's in-flight navigation to the
+       * dashboard it is about to replace, which dims while pending. */}
+      <NavigationPendingProvider>
+        <NavigationPendingRegion>
+          <AnalyticsDashboard
+            summary={summary}
+            key={id}
+            canCustomize={isOwner}
+            initialLayout={initialLayout}
+            onSave={isOwner ? saveAnalyticsLayout : undefined}
+            analytics={analytics}
+            sends={rows}
+            sessions={highlightSessions}
+            highlights={buildAnalyticsHighlights(highlightSessions, scope, selectedYears)}
+            undatedCount={undatedCount}
+            scope={scope}
+            journalVisible={journalVisible}
+            selectedYears={selectedYears}
+            periodPicker={
+              <>
+                <DisciplineScopeNav
+                  present={present}
+                  scope={scope}
+                  href={(type) => analyticsHref(id, type, selectedYears, selectedTags)}
+                />
+                <AnalyticsHashtagFilter
+                  selectedTags={selectedTags}
+                  tags={tags}
+                  controls={
+                    <div className="min-w-0 flex-1">
+                      <AnalyticsYearNavigation
+                        years={years.toReversed()}
+                        selected={selectedYears}
+                      />
+                    </div>
+                  }
+                />
+              </>
+            }
+          />
+        </NavigationPendingRegion>
+      </NavigationPendingProvider>
     </FeatureAnnouncementScope>
   );
 }

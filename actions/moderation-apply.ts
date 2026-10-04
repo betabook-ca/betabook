@@ -590,6 +590,7 @@ export async function applyClimbBreak(
             rating: sql<number | null>`null`.as("rating"),
             suggestedGrade: sql<number | null>`null`.as("suggested_grade"),
             gradeFeel: sql<string>`'solid'`.as("grade_feel"),
+            videos: sql<string | null>`null`.as("videos"),
             createdAt: sql<number>`(cast(unixepoch('subsecond') * 1000 as integer))`.as(
               "created_at",
             ),
@@ -759,6 +760,23 @@ export async function applyClimbMerge(
           ),
         ),
     ),
+    // A colliding source send is deleted next, so its videos would go with
+    // it. Carry them to the climber's surviving send unless that has its own.
+    db
+      .update(sends)
+      .set({
+        videos: sql`(SELECT source_send.videos FROM sends source_send
+          WHERE source_send.climb_id = ${sourceClimbId} AND source_send.user_id = sends.user_id)`,
+      })
+      .where(
+        and(
+          eq(sends.climbId, targetClimbId),
+          isNull(sends.videos),
+          sql`EXISTS (SELECT 1 FROM sends source_send
+            WHERE source_send.climb_id = ${sourceClimbId} AND source_send.user_id = sends.user_id
+              AND source_send.videos IS NOT NULL)`,
+        ),
+      ),
     // Delete collisions first; the send trigger demotes their ascent entries.
     db.delete(sends).where(and(eq(sends.climbId, sourceClimbId), collidesWithTarget)),
     db.update(sends).set({ climbId: targetClimbId }).where(eq(sends.climbId, sourceClimbId)),

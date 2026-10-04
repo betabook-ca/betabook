@@ -115,6 +115,16 @@ production behavior.
   client behavior. Rendering HTML alone cannot prove hydration, effects or user
   interaction. Exercise server page loaders directly where practical; jsdom is
   not an environment for mounting an async Next.js Server Component tree.
+- A page that streams sections returns them as unrendered async components, so
+  its JSON holds none of their data. Wrap the page with `rendered` from
+  [`test/server-tree.ts`](../test/server-tree.ts), or pass a tree to
+  `resolveServerTree`, before asserting on it. This matters most for privacy
+  assertions: `not.toContain` on an unresolved tree passes without checking
+  anything. Client components are plain functions in these tests, so the
+  helper calls only async components and the synchronous server components
+  listed in `expand` (for example `ProfileHeader`, whose heading and tabs load
+  their own data). Mock anything that reaches the network, such as
+  `loadAlbumPhotos`.
 
 ## Browser rules
 

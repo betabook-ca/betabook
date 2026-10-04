@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import type { UserSendRow } from "@/db/queries";
+import { SHARED_OWNER, SharedProfileFrame } from "@/stories/fixtures/shared-profile-frame";
 
 import { SharedProfile } from "./shared-profile";
 
@@ -18,6 +19,7 @@ const SENDS: UserSendRow[] = [
     rating: 5,
     suggestedGrade: null,
     gradeFeel: "solid",
+    videos: null,
     comment: "Finally stuck the heel hook on the last move.",
   },
   {
@@ -33,6 +35,7 @@ const SENDS: UserSendRow[] = [
     rating: 4,
     suggestedGrade: 11,
     gradeFeel: "low",
+    videos: null,
     comment: null,
   },
   {
@@ -48,6 +51,7 @@ const SENDS: UserSendRow[] = [
     rating: 3,
     suggestedGrade: null,
     gradeFeel: "high",
+    videos: null,
     comment: null,
   },
   {
@@ -63,6 +67,7 @@ const SENDS: UserSendRow[] = [
     rating: null,
     suggestedGrade: null,
     gradeFeel: "solid",
+    videos: null,
     comment: null,
   },
   {
@@ -78,44 +83,43 @@ const SENDS: UserSendRow[] = [
     rating: 4,
     suggestedGrade: null,
     gradeFeel: "solid",
+    videos: null,
     comment: null,
   },
 ];
 
+const NEXT = `/users/${SHARED_OWNER.id}?share=${SHARED_OWNER.token}`;
+
 const meta = {
   title: "Components/Auth/Shared profile",
   component: SharedProfile,
-  parameters: { fullWidth: true },
+  parameters: {
+    fullWidth: true,
+    nextjs: { navigation: { pathname: `/users/${SHARED_OWNER.id}` } },
+  },
   args: {
-    owner: { name: "Alex Rivera", image: null },
-    summary: {
-      sendCount: 128,
-      areaCount: 14,
-      peakGrade: "V7",
-      mostLoggedDiscipline: { type: "boulder", count: 86 },
-      latestSendDate: "2026-08-30",
-    },
+    owner: SHARED_OWNER,
+    sendCount: 128,
     sends: SENDS,
     areaBreadcrumbs: {
       11: [{ id: 1, name: "Squamish" }],
       12: [{ id: 1, name: "Squamish" }],
     },
-    next: "/users/Qm7c2VdN4pX8rT1yK6hB9wLs3JfZ0aEu?share=4f9c2a7e1b8d6035c9e4a1f7b2d80e36",
+    next: NEXT,
   },
+  // Wraps the story in the profile header the page renders around it.
+  decorators: [
+    (Story) => (
+      <SharedProfileFrame next={NEXT}>
+        <Story />
+      </SharedProfileFrame>
+    ),
+  ],
 } satisfies Meta<typeof SharedProfile>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Preview: Story = {};
+
 export const NoSendsYet: Story = {
-  args: {
-    summary: {
-      sendCount: 0,
-      areaCount: 0,
-      peakGrade: null,
-      mostLoggedDiscipline: null,
-      latestSendDate: null,
-    },
-    sends: [],
-    areaBreadcrumbs: {},
-  },
+  args: { sendCount: 0, sends: [], areaBreadcrumbs: {} },
 };

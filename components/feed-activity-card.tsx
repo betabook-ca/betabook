@@ -8,6 +8,7 @@ import { AreaBreadcrumb } from "@/components/area-breadcrumb";
 import { ASCENT_STYLE_LABELS } from "@/components/ascent-style";
 import { CompanionList } from "@/components/journal/companion-list";
 import { GradeFeelArrow } from "@/components/send-grade-cell";
+import { SendVideoPosters } from "@/components/send-video";
 import { ActivityIcon } from "@/components/ui/activity-icon";
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
@@ -140,6 +141,13 @@ export function FeedActivityCard({
             </ClampedComment>
           </div>
         )}
+        {item.kind === "send" && (
+          <SendVideoPosters
+            videoUrls={item.videos}
+            title={`${day.name} on ${item.climbName ?? title}`}
+            className="mt-2"
+          />
+        )}
       </div>
     );
   };
@@ -171,8 +179,10 @@ export function FeedActivityCard({
         {entries.slice(0, 2).map(row)}
         {entries.length > 2 && (
           <div>
+            {/* Rendered only while open: a hidden row would keep a started
+             * video playing out of sight. The container stays for aria-controls. */}
             <div id={moreId} hidden={!expanded} className="divide-y divide-separator">
-              {entries.slice(2).map(row)}
+              {expanded && entries.slice(2).map(row)}
             </div>
             <button
               type="button"

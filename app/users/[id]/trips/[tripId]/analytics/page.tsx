@@ -1,24 +1,23 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { ProfileHeader } from "@/app/users/[id]/profile-shell";
 import {
-  getTripShareContext,
   resolveTripPage,
   tripMetadata,
   type TripPageParams,
 } from "@/app/users/[id]/trips/[tripId]/trip-shell";
 import { AnalyticsDashboard } from "@/components/analytics-dashboard";
+import { AnalyticsLoading } from "@/components/analytics-loading";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { DisciplineScopeNav } from "@/components/discipline-scope-nav";
 import { TripHeader } from "@/components/trips/trip-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getDb } from "@/db/client";
 import { getJournalSessionsForAnalytics, getUserSendsForAnalytics } from "@/db/queries";
-import { getAnalyticsHighlightSessions } from "@/db/queries/analytics-highlights";
-import { getAnalyticsLayout } from "@/db/queries/analytics-layout";
-import { buildAnalyticsHighlights } from "@/lib/analytics-highlights";
-import { formatTripDates, tripHref } from "@/lib/trips";
+import { TRIP_ANALYTICS_LAYOUT } from "@/lib/analytics-layout";
+import { tripAnalyticsHref } from "@/lib/trips";
 import {
   buildUserAnalytics,
   inDateWindow,
@@ -34,109 +33,92 @@ export async function generateMetadata({ params }: TripPageParams): Promise<Meta
 }
 
 /**
- * The trip's own numbers.
+ * Analytics for one trip: sends, hardest send, days out, flash rate and the
+ * grade pyramid.
  *
- * Every row is filtered to the window *before* aggregation, and no years are
- * selected, so each stat below describes the trip and nothing outside it. That
- * ordering is the whole design: `buildUserAnalytics` derives progression and
- * breakthroughs by comparing rows against each other, so handing it the full
- * history would quietly report lifetime facts on a page about eleven days.
- *
- * Filtering in JS rather than SQL matches what the main analytics page already
- * does for its year filter, and reuses those reads unchanged. `goalCountSql`
- * in `db/queries/goals.ts` is the `BETWEEN` precedent if this ever needs to
- * narrow in the database instead.
+ * Rows are filtered to the trip's dates before `buildUserAnalytics` runs, so
+ * every stat covers only the trip. Filtering happens in JS, like the year
+ * filter on the main analytics page, so the same queries are reused.
  */
 export default async function TripAnalyticsPage({ params, searchParams }: TripPageParams) {
   const [{ id, tripId }, search] = await Promise.all([params, searchParams]);
   const resolved = await resolveTripPage(id, tripId);
   if (!resolved.signedIn) return <CurrentPageAuthCallout />;
   if (!resolved.ok) notFound();
-  const { trip, user } = resolved;
-  const { share, shareOrigin } = await getTripShareContext(user.id, trip.id);
+  const { trip, user, viewerId, today, journalVisible } = resolved;
 
+  return (
+    <ProfileHeader user={user} viewerId={viewerId} workspace="logbook">
+      <TripHeader trip={trip} userId={user.id} viewerId={viewerId} today={today} back="trip">
+        <Suspense fallback={<AnalyticsLoading />}>
+          <TripAnalyticsView
+            trip={trip}
+            userId={user.id}
+            viewerId={viewerId}
+            journalVisible={journalVisible}
+            discipline={typeof search.discipline === "string" ? search.discipline : undefined}
+          />
+        </Suspense>
+      </TripHeader>
+    </ProfileHeader>
+  );
+}
+
+async function TripAnalyticsView({
+  trip,
+  userId,
+  viewerId,
+  journalVisible,
+  discipline,
+}: {
+  trip: { id: number; startDate: string; endDate: string };
+  userId: string;
+  viewerId: string;
+  journalVisible: boolean;
+  discipline: string | undefined;
+}) {
   const db = await getDb();
-  const [allSends, allSessions, highlights] = await Promise.all([
-    getUserSendsForAnalytics(db, user.id, user.id),
-    getJournalSessionsForAnalytics(db, user.id, user.id),
-    getAnalyticsHighlightSessions(db, user.id, user.id, []),
+  const [allSends, allSessions] = await Promise.all([
+    getUserSendsForAnalytics(db, userId, viewerId),
+    journalVisible ? getJournalSessionsForAnalytics(db, userId, viewerId) : undefined,
   ]);
 
   const inTrip = (date: string | null) => inDateWindow(date, trip.startDate, trip.endDate);
   const rows = allSends.filter((row) => inTrip(row.dateSent));
-  const sessions = allSessions.filter((entry) => inTrip(entry.entryDate));
-  const tripHighlights = highlights.filter((entry) => inTrip(entry.entryDate));
-
-  const dates = formatTripDates(trip.startDate, trip.endDate);
+  const sessions = allSessions?.filter((entry) => inTrip(entry.entryDate));
 
   const { present, scope } = resolveDisciplineScope({
     rows,
     sessions,
-    requested: parseDisciplineScope(
-      typeof search.discipline === "string" ? search.discipline : undefined,
-    ),
+    requested: parseDisciplineScope(discipline),
   });
 
-  if (scope == null) {
-    return (
-      <ProfileHeader user={user} viewerId={user.id} workspace="logbook">
-        <TripHeader
-          trip={trip}
-          userId={user.id}
-          current="analytics"
-          share={share}
-          shareOrigin={shareOrigin}
-        >
-          <EmptyState message={`Nothing logged between ${dates}.`} />
-        </TripHeader>
-      </ProfileHeader>
-    );
-  }
+  if (scope == null) return <EmptyState message="Nothing logged on this trip yet." />;
 
   const analytics = buildUserAnalytics(rows, scope, sessions, NO_YEARS);
-  const initialLayout = await getAnalyticsLayout(db, user.id, user.id);
 
   return (
-    <ProfileHeader user={user} viewerId={user.id} workspace="logbook">
-      <TripHeader
-        trip={trip}
-        userId={user.id}
-        current="analytics"
-        share={share}
-        shareOrigin={shareOrigin}
-      >
-        <AnalyticsDashboard
-          activityHeading="Activity on this trip"
-          // No summary line: the header above already states the trip's dates,
-          // and anything counted here is scoped to one discipline, so a second
-          // total beside it would contradict the tiles below.
-          key={`${user.id}-${trip.id}`}
-          // Read so the trip's dashboard matches the order the climber already
-          // chose under Progress, but not writable here: customising in two
-          // places would have both surfaces writing one saved layout, and the
-          // trip is a view of their numbers rather than a second home for the
-          // setting.
-          canCustomize={false}
-          initialLayout={initialLayout}
-          analytics={analytics}
-          sends={rows}
-          sessions={tripHighlights}
-          highlights={buildAnalyticsHighlights(tripHighlights, scope, NO_YEARS)}
-          // Undated sends are excluded by the window itself, so there is never
-          // a remainder to report here the way the year view has to.
-          undatedCount={0}
+    <AnalyticsDashboard
+      activityHeading="Activity on this trip"
+      key={`${userId}-${trip.id}`}
+      // A fixed layout, not the user's saved one, and not editable here.
+      canCustomize={false}
+      initialLayout={TRIP_ANALYTICS_LAYOUT}
+      // A per-month average isn't meaningful for a trip.
+      analytics={{ ...analytics, daysPerMonth: null }}
+      sends={rows}
+      // The date filter already excludes undated sends.
+      undatedCount={0}
+      scope={scope}
+      journalVisible={journalVisible}
+      selectedYears={NO_YEARS}
+      periodPicker={
+        <DisciplineScopeNav
+          present={present}
           scope={scope}
-          journalVisible
-          selectedYears={NO_YEARS}
-          periodPicker={
-            <DisciplineScopeNav
-              present={present}
-              scope={scope}
-              href={(type) => `${tripHref(user.id, trip.id, "analytics")}?discipline=${type}`}
-            />
-          }
+          href={(type) => `${tripAnalyticsHref(userId, trip.id)}?discipline=${type}`}
         />
-      </TripHeader>
-    </ProfileHeader>
+      }
+    />
   );
 }

@@ -1,24 +1,34 @@
 "use client";
 
-import { Input, Label, TextArea, TextField } from "@heroui/react";
+import { Input, Label, TextField } from "@heroui/react";
 
+import { CompanionPicker } from "@/components/journal/companion-picker";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
+import { FieldHeader } from "@/components/ui/field-support";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import type { LookupFetcher } from "@/hooks/use-search-lookup";
+import type { CompanionOption } from "@/lib/journal-companions";
+import { MAX_ALBUM_LINK } from "@/lib/trip-album";
 import { MAX_TRIP_DESCRIPTION, MAX_TRIP_NAME } from "@/lib/trips";
 
 export type TripDraft = {
   name: string;
   description: string;
+  albumUrl: string;
   startDate: string;
   endDate: string;
+  companions: CompanionOption[];
 };
 
 export const EMPTY_TRIP_DRAFT: TripDraft = {
   name: "",
   description: "",
+  albumUrl: "",
   startDate: "",
   endDate: "",
+  companions: [],
 };
 
 /** The fields of a trip, with no submit button of its own: the dialog around
@@ -33,6 +43,9 @@ export function TripForm({
   onChange,
   error,
   dateError,
+  editing = false,
+  disabled = false,
+  companionFetcher,
 }: {
   draft: TripDraft;
   onChange: (draft: TripDraft) => void;
@@ -41,6 +54,11 @@ export function TripForm({
   /** Shown under End date while the range is backwards, so the climber sees it
    * before submitting rather than after a round trip. */
   dateError?: string | null;
+  /** The trip being edited. Changing the selection replaces its tags. */
+  editing?: boolean;
+  disabled?: boolean;
+  /** For stories and tests. Production looks friends up through the API. */
+  companionFetcher?: LookupFetcher<CompanionOption>;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -53,6 +71,43 @@ export function TripForm({
       >
         <Label>Name</Label>
         <Input placeholder="Bishop, March 2026" />
+      </TextField>
+
+      <TextField
+        className="w-full"
+        value={draft.description}
+        onChange={(description) => onChange({ ...draft, description })}
+        maxLength={MAX_TRIP_DESCRIPTION}
+      >
+        <FieldHeader
+          usage={{
+            used: draft.description.length,
+            limit: MAX_TRIP_DESCRIPTION,
+            unit: "characters",
+          }}
+        >
+          <Label>Description</Label>
+          <HelpTooltip label="About the description">
+            Anyone who can see your sends can see this, including people with your profile link.
+          </HelpTooltip>
+        </FieldHeader>
+        <Input placeholder="Ten days in the Buttermilks" />
+      </TextField>
+
+      <TextField
+        className="w-full"
+        value={draft.albumUrl}
+        onChange={(albumUrl) => onChange({ ...draft, albumUrl })}
+        maxLength={MAX_ALBUM_LINK}
+      >
+        <FieldHeader>
+          <Label>Google Photos album</Label>
+          <HelpTooltip label="About the album">
+            In Google Photos, open the album, choose Share, then Create link. Anyone who can see
+            your sends can see these photos, including people with your profile link.
+          </HelpTooltip>
+        </FieldHeader>
+        <Input inputMode="url" placeholder="https://photos.app.goo.gl/…" />
       </TextField>
 
       <div className="flex flex-wrap gap-4">
@@ -69,15 +124,14 @@ export function TripForm({
         />
       </div>
 
-      <TextField
-        className="w-full"
-        value={draft.description}
-        onChange={(description) => onChange({ ...draft, description })}
-        maxLength={MAX_TRIP_DESCRIPTION}
-      >
-        <Label>Description</Label>
-        <TextArea placeholder="Who you went with, how it went…" rows={4} />
-      </TextField>
+      <CompanionPicker
+        value={draft.companions}
+        onChange={(companions) => onChange({ ...draft, companions })}
+        editing={editing}
+        disabled={disabled}
+        fetcher={companionFetcher}
+        help="Anyone who can read your journal sees who you tagged. Tagging doesn’t add the trip to their logbook."
+      />
 
       {/* Said where the climber is looking, not at the top of a scrolled
        * dialog: this sits directly above the footer button they just pressed. */}

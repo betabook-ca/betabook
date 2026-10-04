@@ -30,6 +30,43 @@ export const SharedClimb: Story = {};
 export const SingleSend: Story = {
   args: { entries: [{ day: feedDays[2], activity: feedDays[2].activities[0] }] },
 };
+/** A send with one Instagram video: Instagram's player loads with the card.
+ * The link is a real public reel, because the player shows a missing-post
+ * message for a made-up one. */
+export const SendWithVideo: Story = {
+  args: {
+    entries: [
+      {
+        day: feedDays[2],
+        activity: {
+          ...feedDays[2].activities[0],
+          kind: "send",
+          videos: ["https://www.instagram.com/reel/DHlf5W0p-g-/"],
+        },
+      },
+    ],
+  },
+};
+/** Several videos on one send: a row of posters, each opening the dialog to
+ * page through them. */
+export const SendWithSeveralVideos: Story = {
+  args: {
+    entries: [
+      {
+        day: feedDays[2],
+        activity: {
+          ...feedDays[2].activities[0],
+          kind: "send",
+          videos: [
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "https://www.instagram.com/reel/C9Xq3uGxJ5R/",
+            "https://www.youtube.com/shorts/dQw4w9WgXcQ",
+          ],
+        },
+      },
+    ],
+  },
+};
 export const Training: Story = {
   args: {
     entries: [{ day: trainingDay, activity: trainingDay.activities[0] }],

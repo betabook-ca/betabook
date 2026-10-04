@@ -60,9 +60,8 @@ export function AnalyticsDashboard({
   periodPicker: ReactNode;
   /** The climber's all-time record, under the activity heading. */
   summary?: ReactNode;
-  /** Replaces the computed "All-time activity" / "Activity in <year>" heading.
-   * A trip selects no years — its window is already narrower than one — so the
-   * computed heading would announce an eleven-day window as all-time. */
+  /** Replaces the default "All-time activity" or "Activity in <year>" heading.
+   * Trip analytics select no years, so the default would say "All-time". */
   activityHeading?: string;
   canCustomize?: boolean;
   initialLayout?: AnalyticsLayout;
@@ -84,6 +83,7 @@ export function AnalyticsDashboard({
   );
   const calendarTitle = journalVisible ? "Outdoor calendar" : "Sending calendar";
   const hardest = analytics.hardest[0] ?? null;
+  const [firstMonth, lastMonth] = (analytics.dateSpan ?? []).map((date) => date.slice(0, 7));
   const tiles: Record<AnalyticsCardId, StatTile> = {
     partner: {
       label: "Most tagged friend",
@@ -118,9 +118,11 @@ export function AnalyticsDashboard({
     sends: {
       label: "Sends",
       value: analytics.sendCount,
-      sub: analytics.dateSpan
-        ? `${formatMonth(analytics.dateSpan[0].slice(0, 7))} – ${formatMonth(analytics.dateSpan[1].slice(0, 7))}`
-        : "no dated sends",
+      sub: !firstMonth
+        ? "no dated sends"
+        : firstMonth === lastMonth
+          ? formatMonth(firstMonth)
+          : `${formatMonth(firstMonth)} – ${formatMonth(lastMonth)}`,
     },
     hardest: {
       label: "Hardest",

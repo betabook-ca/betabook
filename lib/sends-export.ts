@@ -14,6 +14,7 @@ const EXPORT_FIELDS = [
   "Grade Feel",
   "Rating",
   "Comment",
+  "Videos",
 ];
 
 /** Which cells a spreadsheet would read as a formula, so papaparse prefixes
@@ -45,6 +46,8 @@ export function buildSendsExportCsv(rows: UserSendRow[]): string {
     capitalize(row.gradeFeel),
     row.rating ?? "",
     row.comment ?? "",
+    // Space-separated: canonical links never contain one.
+    (row.videos ?? []).join(" "),
   ]);
   return Papa.unparse({ fields: EXPORT_FIELDS, data }, CSV_UNPARSE_CONFIG);
 }

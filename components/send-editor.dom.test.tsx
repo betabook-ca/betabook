@@ -20,6 +20,7 @@ const value = {
     rating: 4,
     suggestedGrade: 6,
     gradeFeel: "high" as const,
+    videos: null,
   },
   entry: {
     id: 42,

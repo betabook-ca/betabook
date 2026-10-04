@@ -24,26 +24,32 @@ export default async function GoalsPage({ params }: GoalsPageProps) {
   if (!resolved.signedIn) return <CurrentPageAuthCallout />;
   if (!resolved.ok) notFound();
   const { user, viewerId } = resolved;
+  return (
+    <ProfileHeader user={user} viewerId={viewerId} workspace="progress">
+      <GoalsView ownerId={user.id} />
+    </ProfileHeader>
+  );
+}
+
+async function GoalsView({ ownerId }: { ownerId: string }) {
   const db = await getDb();
   const [timezone, overview, nextGrades, availableTags] = await Promise.all([
     getRequestTimezone(),
-    getGoalOverview(db, user.id, user.id),
-    getNextGoalGrades(db, user.id, user.id),
-    getUserHashtags(db, user.id, user.id, false, true),
+    getGoalOverview(db, ownerId, ownerId),
+    getNextGoalGrades(db, ownerId, ownerId),
+    getUserHashtags(db, ownerId, ownerId, false, true),
   ]);
-  await scheduleGoalRefresh(db, user.id);
+  await scheduleGoalRefresh(db, ownerId);
   return (
-    <ProfileHeader user={user} viewerId={viewerId} workspace="progress">
-      <GoalPanel
-        key={user.id}
-        ownerId={user.id}
-        initialActive={overview.active}
-        initialCompleted={overview.completed}
-        timezone={timezone}
-        today={goalToday(timezone)}
-        nextGrades={nextGrades}
-        availableTags={availableTags}
-      />
-    </ProfileHeader>
+    <GoalPanel
+      key={ownerId}
+      ownerId={ownerId}
+      initialActive={overview.active}
+      initialCompleted={overview.completed}
+      timezone={timezone}
+      today={goalToday(timezone)}
+      nextGrades={nextGrades}
+      availableTags={availableTags}
+    />
   );
 }

@@ -1,57 +1,42 @@
 import { UserSendLogRow } from "@/components/climb-log-row";
-import { ProfileInvite } from "@/components/profile-invite";
-import { AppLink } from "@/components/ui/app-link";
-import { cardClass } from "@/components/ui/card";
+import { SendRows } from "@/components/send-rows";
+import { signUpPrompt } from "@/components/sign-up-card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { SidebarLayout } from "@/components/ui/page-shell";
 import { SectionHeading } from "@/components/ui/typography";
-import { UserSendSummary } from "@/components/user-send-summary";
-import type { AreaBreadcrumbs, UserSendRow, UserStatsSummary } from "@/db/queries";
-import { formatCount } from "@/lib/format";
-import { signUpUrl } from "@/lib/sign-in-redirect";
-import { SITE_NAME } from "@/lib/site";
+import type { AreaBreadcrumbs, UserSendRow } from "@/db/queries";
 
-/** Signed-out view of a valid share link. */
+/** Sends tab for a signed-out visitor with a share link: the latest sends, then
+ * a sign-up prompt. */
 export function SharedProfile({
   owner,
-  summary,
+  sendCount,
   sends,
   areaBreadcrumbs,
   next,
 }: {
-  owner: { name: string; image: string | null };
-  summary: UserStatsSummary;
+  owner: { name: string };
+  sendCount: number;
   sends: UserSendRow[];
   areaBreadcrumbs: AreaBreadcrumbs;
   next: string;
 }) {
-  const signUpPrompt =
-    summary.sendCount > sends.length
-      ? `See all ${formatCount(summary.sendCount, "send")}`
-      : `Climb with ${owner.name} on ${SITE_NAME}`;
   return (
-    <div className="flex flex-col gap-6">
-      <ProfileInvite name={owner.name} image={owner.image} next={next} />
-      <SidebarLayout sidebar={<UserSendSummary summary={summary} />}>
-        <section aria-label="Recent sends" className="flex flex-col gap-3">
-          <SectionHeading>Recent sends</SectionHeading>
-          {sends.length === 0 ? (
-            <EmptyState message={`${owner.name} hasn't logged a send yet.`} />
-          ) : (
-            <div className="flex flex-col divide-y divide-separator">
-              {sends.map((send) => (
-                // Keys reach the RSC payload; sequential send ids stay out of it.
-                <UserSendLogRow key={send.climbId} send={send} areaBreadcrumbs={areaBreadcrumbs} />
-              ))}
-            </div>
-          )}
-        </section>
-        <section aria-label={signUpPrompt} className={cardClass("md", "bordered")}>
-          <SectionHeading>
-            <AppLink href={signUpUrl(next)}>{signUpPrompt}</AppLink>
-          </SectionHeading>
-        </section>
-      </SidebarLayout>
+    <div className="flex min-w-0 flex-col gap-4">
+      <SectionHeading className="sr-only">Sends</SectionHeading>
+      {sends.length === 0 ? (
+        <EmptyState message={`${owner.name} hasn't logged a send yet.`} />
+      ) : (
+        <SendRows>
+          {sends.map((send) => (
+            // Keyed by climb id. Keys end up in the RSC payload, and sequential
+            // send ids shouldn't.
+            <li key={send.climbId}>
+              <UserSendLogRow send={send} areaBreadcrumbs={areaBreadcrumbs} />
+            </li>
+          ))}
+        </SendRows>
+      )}
+      {signUpPrompt({ ownerName: owner.name, sendCount, shown: sends.length, next })}
     </div>
   );
 }

@@ -110,6 +110,7 @@ it.each(["outdoor", "repeat", "training"])(
             ["rating", ""],
             ["suggestedGrade", "5"],
             ["gradeFeel", "solid"],
+            ["videosChanged", "true"],
           ]
         : []),
     ]);
@@ -342,4 +343,51 @@ it("adds no summary to training, which the chosen-entry strip already names", ()
 it("keeps Add details collapsed when editing an entry without optional values", () => {
   setup({ existingEntry: savedEntry });
   expect(detailsTrigger()).toHaveAttribute("aria-expanded", "false");
+});
+
+it("attaches videos to a new ascent, not to a session", async () => {
+  const { user, onSave } = setup();
+  await openDetails(user);
+  // A session carries no send, so it has nowhere to keep a video.
+  expect(screen.queryByRole("group", { name: "Videos" })).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole("radio", { name: "Flash" }));
+  await user.type(
+    screen.getByRole("textbox", { name: "Video link 1" }),
+    "https://youtu.be/dQw4w9WgXcQ",
+  );
+  await user.click(screen.getByRole("button", { name: "Add another video" }));
+  await user.type(
+    screen.getByRole("textbox", { name: "Video link 2" }),
+    "https://www.instagram.com/reel/C9Xq3uGxJ5R/",
+  );
+  await user.click(screen.getByRole("button", { name: "Save entry" }));
+
+  await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+  expect(onSave.mock.calls[0][0].getAll("video")).toEqual([
+    "https://youtu.be/dQw4w9WgXcQ",
+    "https://www.instagram.com/reel/C9Xq3uGxJ5R/",
+  ]);
+
+  onSave.mockClear();
+  // The form is disabled until the save settles, and a click before then is dropped.
+  await waitFor(() => expect(screen.getByRole("radio", { name: "Session" })).toBeEnabled());
+  await user.click(screen.getByRole("radio", { name: "Session" }));
+  await user.click(screen.getByRole("button", { name: "Save entry" }));
+  await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+  expect(onSave.mock.calls[0][0].has("video")).toBe(false);
+  expect(onSave.mock.calls[0][0].has("videosChanged")).toBe(false);
+});
+
+it("holds a new ascent with an unsupported video link and says why", async () => {
+  const { user, onSave } = setup();
+  await user.click(screen.getByRole("radio", { name: "Flash" }));
+  await openDetails(user);
+  await user.type(screen.getByRole("textbox", { name: "Video link 1" }), "https://vimeo.com/1");
+  await user.click(screen.getByRole("button", { name: "Save entry" }));
+
+  expect(onSave).not.toHaveBeenCalled();
+  expect(
+    screen.getByText("Paste a link to a YouTube video or an Instagram reel or post."),
+  ).toBeVisible();
 });
