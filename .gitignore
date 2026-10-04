@@ -49,6 +49,8 @@ next-env.d.ts
 
 # wrangler / cloudflare
 .wrangler
+# vinext's dev-server lock file (.vinext/dev/lock.json)
+.vinext/
 # Left by the OpenNext builds before vinext
 .open-next
 worker-configuration.d.ts
