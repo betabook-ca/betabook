@@ -26,7 +26,7 @@ jobs:
           # Preserve branch history for Chromatic's versioned Storybook hosting.
           fetch-depth: 0
 
-      - uses: pnpm/setup@v2.1.0
+      - uses: pnpm/setup@v3.0.0
         with:
           runtime: node@24
           cache: true
