@@ -6,14 +6,14 @@ import {
   type RopeScale,
 } from "@/lib/grades";
 
-/** The two boulder systems, in the order the account toggle reads them:
- * off is the catalog's native Hueco, on is Fontainebleau. */
+/** The two boulder systems, catalog-native Hueco first. Short labels: the
+ * account control prints each beside an example grade. */
 export const BOULDER_GRADE_SCALES = [
-  { value: "hueco", label: "Hueco (V-scale)" },
-  { value: "font", label: "Fontainebleau" },
+  { value: "hueco", label: "Hueco" },
+  { value: "font", label: "Font" },
 ] as const satisfies readonly { value: BoulderScale; label: string }[];
 
-/** The two route systems: off is the catalog's native YDS, on is French. */
+/** The two route systems, catalog-native YDS first. */
 export const ROPE_GRADE_SCALES = [
   { value: "yds", label: "YDS" },
   { value: "french", label: "French" },

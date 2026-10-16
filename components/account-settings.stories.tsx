@@ -31,8 +31,9 @@ export const Member: Story = {};
 export const PrivateProfile: Story = { args: { isPrivate: true, shareUrl: null } };
 export const Moderator: Story = { args: { isAdmin: true } };
 
-/** Both grading-system switches on: Preferences reads Fontainebleau and
- * French, with the example grades the descriptions show in those systems. */
+/** Both grading-system controls on their European segment: Font (6B) and
+ * French (7a) are pressed, with the catalog's Hueco (V4) and YDS (5.11d)
+ * still visible beside them. */
 export const EuropeanGrades: Story = {
   args: { gradePreferences: { boulder: "font", rope: "french" } },
 };

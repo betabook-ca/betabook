@@ -5,7 +5,7 @@ import { CatalogExportDownload } from "@/components/catalog-export-download";
 import { DeleteAccountButton } from "@/components/delete-account-button";
 import { DisplayNameForm } from "@/components/display-name-form";
 import { ExportSendsButton } from "@/components/export-sends-button";
-import { GradeScaleToggles } from "@/components/grade-scale-toggles";
+import { GradeScaleControls } from "@/components/grade-scale-controls";
 import { PrivacyControls } from "@/components/privacy-controls";
 import { PrivacyDetails } from "@/components/privacy-fields";
 import { ProductTour } from "@/components/product-tour";
@@ -93,7 +93,7 @@ export function AccountSettings({
       </SettingsSection>
 
       <SettingsSection id="preferences" title="Preferences">
-        <GradeScaleToggles initial={gradePreferences} />
+        <GradeScaleControls initial={gradePreferences} />
         <SettingsRow title="Theme" description="On this device." inline>
           <ThemeSelect />
         </SettingsRow>
