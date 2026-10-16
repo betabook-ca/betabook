@@ -9,9 +9,9 @@ import type { JournalEntryFieldsProps } from "@/components/journal/journal-entry
 import { JournalEntryForm } from "@/components/journal/journal-entry-form";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { Grade } from "@/components/ui/grade";
+import { GradeLabel } from "@/components/ui/grade-label";
 import { PageTitle } from "@/components/ui/typography";
 import type { ClimbWithAreaName } from "@/db/queries";
-import { formatGrade } from "@/lib/grades";
 
 function ChosenStrip({
   choice,
@@ -47,7 +47,9 @@ function ChosenStrip({
           {climb && (
             <>
               <DisciplineChip type={climb.type} />
-              <Grade>{formatGrade(climb.type, climb.grade)}</Grade>
+              <Grade>
+                <GradeLabel type={climb.type} grade={climb.grade} />
+              </Grade>
             </>
           )}
         </div>

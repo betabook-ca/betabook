@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
-import { GradePreferencesProvider } from "@/components/grade-preferences-provider";
 import { TermsGate } from "@/components/terms-gate";
+import { GradePreferencesProvider } from "@/components/ui/grade-preferences";
 import { ViewerBoundary } from "@/components/viewer-boundary";
 import { gradePreferencesFor } from "@/lib/grade-preferences";
 import { getSession, getSessionTermsAcceptance } from "@/lib/session";

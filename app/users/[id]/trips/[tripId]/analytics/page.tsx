@@ -17,6 +17,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { getDb } from "@/db/client";
 import { getJournalSessionsForAnalytics, getUserSendsForAnalytics } from "@/db/queries";
 import { TRIP_ANALYTICS_LAYOUT } from "@/lib/analytics-layout";
+import { getViewerGradePreferences } from "@/lib/session";
 import { tripAnalyticsHref } from "@/lib/trips";
 import {
   buildUserAnalytics,
@@ -95,7 +96,13 @@ async function TripAnalyticsView({
 
   if (scope == null) return <EmptyState message="Nothing logged on this trip yet." />;
 
-  const analytics = buildUserAnalytics(rows, scope, sessions, NO_YEARS);
+  const analytics = buildUserAnalytics(
+    rows,
+    scope,
+    sessions,
+    NO_YEARS,
+    await getViewerGradePreferences(),
+  );
 
   return (
     <AnalyticsDashboard

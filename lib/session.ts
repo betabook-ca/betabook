@@ -5,6 +5,8 @@ import { getDb } from "@/db/client";
 import { getTermsAcceptance } from "@/db/queries/terms";
 import { NotAdminError, NotSignedInError, TermsAcceptanceRequiredError } from "@/lib/action-result";
 import { initAuth } from "@/lib/auth";
+import { gradePreferencesFor } from "@/lib/grade-preferences";
+import type { GradePreferences } from "@/lib/grades";
 import { requestMemo } from "@/lib/request-memo";
 import { hasAcceptedCurrentTerms } from "@/lib/terms";
 
@@ -33,6 +35,14 @@ export const getMemberSession = requestMemo(async () => {
   const acceptance = await getSessionTermsAcceptance(session.user.id);
   return hasAcceptedCurrentTerms(acceptance) ? session : null;
 });
+
+/** The grading systems to label grades in for whoever is reading: the
+ * signed-in viewer's toggles, or Hueco/YDS when signed out. Identity only —
+ * it never authorizes anything, so a page still gates its data as before.
+ * Client components get the same answer from `useGradePreferences`. */
+export async function getViewerGradePreferences(): Promise<GradePreferences> {
+  return gradePreferencesFor((await getSession())?.user);
+}
 
 export async function requireSession() {
   const session = await getSession();

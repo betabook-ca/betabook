@@ -2,7 +2,12 @@ import { sql } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { journalVisibleSql } from "@/db/queries/content-access";
-import { formatGrade, type ClimbType } from "@/lib/grades";
+import {
+  DEFAULT_GRADE_PREFERENCES,
+  formatGrade,
+  type ClimbType,
+  type GradePreferences,
+} from "@/lib/grades";
 
 export type HardestSend = { type: ClimbType; grade: string };
 
@@ -27,8 +32,13 @@ type Totals = {
   firstEntry: string | null;
 };
 
-/** Graded disciplines only, most-sent first. The caller has already checked profile visibility. */
-export async function getClimberHardest(db: Database, userId: string): Promise<HardestSend[]> {
+/** Graded disciplines only, most-sent first, labelled in the reader's scales.
+ * The caller has already checked profile visibility. */
+export async function getClimberHardest(
+  db: Database,
+  userId: string,
+  prefs: GradePreferences = DEFAULT_GRADE_PREFERENCES,
+): Promise<HardestSend[]> {
   const rows = await db.all<{ type: ClimbType; maxGrade: number | null }>(sql`
     SELECT climbs.type AS type, MAX(climbs.grade) AS maxGrade
     FROM sends
@@ -38,7 +48,7 @@ export async function getClimberHardest(db: Database, userId: string): Promise<H
     ORDER BY COUNT(*) DESC, climbs.type
   `);
   return rows.flatMap(({ type, maxGrade }) =>
-    maxGrade == null ? [] : [{ type, grade: formatGrade(type, maxGrade) }],
+    maxGrade == null ? [] : [{ type, grade: formatGrade(type, maxGrade, prefs) }],
   );
 }
 

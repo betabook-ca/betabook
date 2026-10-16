@@ -6,8 +6,9 @@ import { FeedList } from "@/components/feed-list";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { getDb } from "@/db/client";
 import { getFriendsPage, getFeedPage } from "@/db/queries";
+import { FEED_PAGE_SIZE } from "@/db/queries/feed";
 import { parseFeedView } from "@/lib/feed";
-import { getMemberSession } from "@/lib/session";
+import { getMemberSession, getViewerGradePreferences } from "@/lib/session";
 import type { UrlParamsRecord } from "@/lib/url-params";
 
 export const metadata: Metadata = { title: "Feed", robots: { index: false } };
@@ -21,8 +22,9 @@ export default async function FeedPage({
   if (!session) return <CurrentPageAuthCallout />;
   const view = parseFeedView((await searchParams).view);
   const db = await getDb();
+  const prefs = await getViewerGradePreferences();
   const [page, friends] = await Promise.all([
-    getFeedPage(db, session.user.id, view),
+    getFeedPage(db, session.user.id, view, null, FEED_PAGE_SIZE, prefs),
     getFriendsPage(db, session.user.id),
   ]);
   return (

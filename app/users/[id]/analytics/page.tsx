@@ -41,6 +41,7 @@ import { normalizeHashtagFilters } from "@/lib/filters/hashtag-filter";
 import { goalToday } from "@/lib/goals";
 import type { ClimbType } from "@/lib/grades";
 import { getRequestTimezone } from "@/lib/request-timezone";
+import { getViewerGradePreferences } from "@/lib/session";
 import { toArray, type UrlParamsRecord } from "@/lib/url-params";
 import {
   buildUserAnalytics,
@@ -178,7 +179,13 @@ async function AnalyticsView({
   });
   const { years, undatedCount } = getAnalyticsHistorySummary(rows, scope, journalSessions);
   const selectedYears = parseAnalyticsYears(search.years ?? search.period, years);
-  const analytics = buildUserAnalytics(rows, scope, journalSessions, selectedYears);
+  const analytics = buildUserAnalytics(
+    rows,
+    scope,
+    journalSessions,
+    selectedYears,
+    await getViewerGradePreferences(),
+  );
   const summary = [describeClimber(overview), describeRecency(overview)].filter(Boolean).join(" ");
 
   return (

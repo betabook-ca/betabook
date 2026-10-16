@@ -14,7 +14,7 @@ import { getUserProfile, getFriendship, canReadJournal, getShareLinkOwner } from
 import { getClimberHardest } from "@/db/queries/climber-overview";
 import { PROFILE_SHARE_PARAM } from "@/lib/profile-share";
 import { requestMemo } from "@/lib/request-memo";
-import { getMemberSession } from "@/lib/session";
+import { getMemberSession, getViewerGradePreferences } from "@/lib/session";
 import { parseShareToken } from "@/lib/share-token";
 import type { UrlParamsRecord } from "@/lib/url-params";
 import { canViewUser } from "@/lib/user-visibility";
@@ -124,7 +124,11 @@ async function SharedProfileHeading({
   owner: { id: string; name: string; image: string | null };
   next: string;
 }) {
-  const hardest = await getClimberHardest(await getDb(), owner.id);
+  const hardest = await getClimberHardest(
+    await getDb(),
+    owner.id,
+    await getViewerGradePreferences(),
+  );
   return (
     <ProfileHeading
       name={owner.name}
@@ -179,7 +183,7 @@ async function VisitorProfileHeading({
   const [relationship, journalVisible, hardest] = await Promise.all([
     getFriendship(db, viewerId, user.id),
     canReadUserJournal(user.id, viewerId),
-    getClimberHardest(db, user.id),
+    getViewerGradePreferences().then((prefs) => getClimberHardest(db, user.id, prefs)),
   ]);
   return (
     <ProfileHeading

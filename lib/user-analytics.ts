@@ -1,6 +1,12 @@
 import type { AnalyticsSendRow } from "@/db/queries";
 import { daysBetween } from "@/lib/format-date";
-import { nativeGradeArray, type ClimbType } from "@/lib/grades";
+import {
+  DEFAULT_GRADE_PREFERENCES,
+  gradeArray,
+  nativeGradeArray,
+  type ClimbType,
+  type GradePreferences,
+} from "@/lib/grades";
 import type { AscentStyle } from "@/lib/sends";
 
 /** Which slice of a climber's log the analytics page is reading — grades
@@ -69,7 +75,10 @@ export type ProgressionPoint = {
 
 type DisciplineProgression = { type: ClimbType; points: ProgressionPoint[] };
 
-export type PyramidRow = { grade: number; label: string; count: number };
+/** One pyramid bar. `range` is the inclusive ordinal span the label covers —
+ * one ordinal except where the reader's scale prints two alike (French 2 for
+ * 5.1 and 5.2), which fold into one bar; `grade` is the span's top. */
+export type PyramidRow = { grade: number; label: string; count: number; range: [number, number] };
 /** Rows run hardest → easiest, zeros kept, so the shape reads as the
  * classic send pyramid: thin peak on top, base underneath. */
 type DisciplinePyramid = { type: ClimbType; rows: PyramidRow[] };
@@ -89,6 +98,8 @@ export type MonthlyVolume = { month: string; sends: number; days: number };
 export type FirstTryGradeRow = {
   grade: number;
   label: string;
+  /** Inclusive ordinal span the label covers, as on PyramidRow. */
+  range: [number, number];
   sends: number;
   /** Flashes plus onsights at this grade. */
   firstTries: number;
@@ -198,8 +209,12 @@ function gradedSends<T extends AnalyticsSendRow>(
 /** One discipline's send pyramid from any slice of a log (all time, or one
  * year's sends): counts per grade from the slice's hardest down to its
  * easiest, zeros kept so the shape is real. */
-export function buildPyramid(sends: AnalyticsSendRow[], type: ClimbType): PyramidRow[] {
-  const scale = nativeGradeArray(type);
+export function buildPyramid(
+  sends: AnalyticsSendRow[],
+  type: ClimbType,
+  prefs: GradePreferences = DEFAULT_GRADE_PREFERENCES,
+): PyramidRow[] {
+  const scale = gradeArray(type, prefs);
   const gradeCounts = new Map<number, number>();
   for (const s of gradedSends(sends, type)) {
     gradeCounts.set(s.grade, (gradeCounts.get(s.grade) ?? 0) + 1);
@@ -211,7 +226,15 @@ export function buildPyramid(sends: AnalyticsSendRow[], type: ClimbType): Pyrami
   const max = Math.max(...indices);
   const rows: PyramidRow[] = [];
   for (let grade = max; grade >= min; grade -= 1) {
-    rows.push({ grade, label: scale[grade], count: gradeCounts.get(grade) ?? 0 });
+    const label = scale[grade];
+    const count = gradeCounts.get(grade) ?? 0;
+    const last = rows[rows.length - 1];
+    if (last && last.label === label) {
+      last.count += count;
+      last.range[0] = grade;
+    } else {
+      rows.push({ grade, label, count, range: [grade, grade] });
+    }
   }
   return rows;
 }
@@ -237,13 +260,15 @@ export function inSelectedYears(date: string | null, selectedYears: readonly num
 }
 
 /** Aggregates one user's full send log into everything the analytics page
- * shows, filtered to `scope` and optionally selected years. Pure — see user-analytics.test.ts. */
+ * shows, filtered to `scope` and optionally selected years, with every grade
+ * label in the reader's chosen scales. Pure — see user-analytics.test.ts. */
 // oxlint-disable-next-line complexity -- one branch per independent stat computed in a single pass
 export function buildUserAnalytics(
   allSends: AnalyticsSendRow[],
   scope: DisciplineScope,
   journalSessions?: readonly AnalyticsJournalSession[],
   selectedYears: readonly number[] = [],
+  prefs: GradePreferences = DEFAULT_GRADE_PREFERENCES,
 ): UserAnalytics {
   const sends = allSends.filter(
     (s) => (scope === "all" || s.climbType === scope) && inSelectedYears(s.dateSent, selectedYears),
@@ -260,7 +285,7 @@ export function buildUserAnalytics(
   // Hardest send per discipline — first (earliest-dated) send at the top grade.
   const hardest: HardestSend[] = [];
   for (const type of disciplines) {
-    const scale = nativeGradeArray(type);
+    const scale = gradeArray(type, prefs);
     const graded = gradedSends(sends, type);
     if (graded.length === 0) continue;
     let top = graded[0];
@@ -287,7 +312,7 @@ export function buildUserAnalytics(
   const onsightCount = sends.filter((s) => s.ascentStyle === "onsight").length;
   let hardestFirstTry: HardestSend | null = null;
   if (scope !== "all") {
-    const scale = nativeGradeArray(scope);
+    const scale = gradeArray(scope, prefs);
     const firstTries = gradedSends(sends, scope).filter((s) => isFirstTry(s.ascentStyle));
     if (firstTries.length > 0) {
       let top = firstTries[0];
@@ -385,19 +410,25 @@ export function buildUserAnalytics(
     }
   }
   const firstTryByGrade = disciplines.map((type) => {
-    const grades = new Map<number, FirstTryGradeRow>();
+    const scale = gradeArray(type, prefs);
+    // Keyed by label: ordinals the scale prints alike share one row.
+    const grades = new Map<string, FirstTryGradeRow>();
     for (const send of gradedSends(sends, type)) {
-      const row = grades.get(send.grade) ?? {
+      const label = scale[send.grade];
+      const row = grades.get(label) ?? {
         grade: send.grade,
-        label: nativeGradeArray(type)[send.grade],
+        label,
+        range: [send.grade, send.grade],
         sends: 0,
         firstTries: 0,
         rate: 0,
       };
+      row.grade = Math.max(row.grade, send.grade);
+      row.range = [Math.min(row.range[0], send.grade), Math.max(row.range[1], send.grade)];
       row.sends += 1;
       if (isFirstTry(send.ascentStyle)) row.firstTries += 1;
       row.rate = (row.firstTries / row.sends) * 100;
-      grades.set(send.grade, row);
+      grades.set(label, row);
     }
     return { type, rows: [...grades.values()].sort((a, b) => a.grade - b.grade) };
   });
@@ -425,7 +456,7 @@ export function buildUserAnalytics(
   const pyramid: DisciplinePyramid[] = [];
   const breakthroughs: Breakthrough[] = [];
   for (const type of disciplines) {
-    const scale = nativeGradeArray(type);
+    const scale = gradeArray(type, prefs);
     // Easiest first inside a day: same-day sends carry no order of their own,
     // so insert order would otherwise pick which ceilings count.
     const graded = gradedSends(dated, type).sort((a, b) =>
@@ -446,13 +477,19 @@ export function buildUserAnalytics(
     }
     if (points.length > 0) progression.push({ type, points });
 
-    const rows = buildPyramid(sends, type);
+    const rows = buildPyramid(sends, type, prefs);
     if (rows.length > 0) pyramid.push({ type, rows });
 
     let ceiling = -1;
     let previousDate: string | null = null;
     for (const s of graded) {
       if (s.grade <= ceiling) continue;
+      // A ceiling raised within one printed label (5.1 to 5.2 under French
+      // 2) is not a breakthrough the reader can see; the ceiling still moves.
+      if (ceiling >= 0 && scale[s.grade] === scale[ceiling]) {
+        ceiling = s.grade;
+        continue;
+      }
       breakthroughs.push({
         type,
         grade: s.grade,

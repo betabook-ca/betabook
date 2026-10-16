@@ -7,11 +7,12 @@ import { useId, useState, useTransition } from "react";
 import { requestClimbEdit } from "@/actions";
 import { DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
 import { FIELD_CLASS } from "@/components/ui/field";
+import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { OptionSelect } from "@/components/ui/option-select";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { Climb } from "@/db/queries";
-import { nativeGradeArray, type ClimbType } from "@/lib/grades";
+import { gradeOptionValue, gradeOptions, type ClimbType } from "@/lib/grades";
 
 type ClimbEditRequestDrawerProps = {
   climb: Climb;
@@ -36,7 +37,7 @@ export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerP
   const [pendingNotice, setPendingNotice] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const gradeOptions = nativeGradeArray(type);
+  const prefs = useGradePreferences();
   const trimmedName = name.trim();
 
   function handleTypeChange(next: ClimbType) {
@@ -123,13 +124,13 @@ export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerP
             <Label>Grade</Label>
             <OptionSelect
               ariaLabel="Grade"
-              value={grade}
+              value={grade === UNKNOWN_GRADE ? grade : gradeOptionValue(type, Number(grade), prefs)}
               onChange={setGrade}
               options={[
                 ...(climb.grade === null && type === climb.type
                   ? [{ value: UNKNOWN_GRADE, label: "Unknown" }]
                   : []),
-                ...gradeOptions.map((label, i) => ({ value: String(i), label })),
+                ...gradeOptions(type, prefs),
               ]}
             />
           </div>

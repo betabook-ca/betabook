@@ -9,13 +9,13 @@ import { AppLink } from "@/components/ui/app-link";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Grade } from "@/components/ui/grade";
+import { GradeLabel } from "@/components/ui/grade-label";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { RatingStars } from "@/components/ui/rating-stars";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SectionHeading } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { formatCount } from "@/lib/format";
-import { formatGrade } from "@/lib/grades";
 
 import {
   SEARCH_LABELS,
@@ -47,7 +47,9 @@ export function SearchResultContent({
       {item.kind === "climb" && item.discipline !== undefined && !picking && item.stats ? (
         <span className="flex shrink-0 flex-col items-end gap-1 text-sm">
           <span className="flex items-center gap-2">
-            <Grade>{formatGrade(item.discipline, item.grade)}</Grade>
+            <Grade>
+              <GradeLabel type={item.discipline} grade={item.grade} />
+            </Grade>
             <span aria-hidden className="text-sm text-muted">
               ·
             </span>
@@ -65,7 +67,7 @@ export function SearchResultContent({
         item.discipline !== undefined && (
           <span className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2">
             <Grade className="justify-end sm:w-14">
-              {formatGrade(item.discipline, item.grade)}
+              <GradeLabel type={item.discipline} grade={item.grade} />
             </Grade>
             <span className="flex justify-end sm:w-16">
               <DisciplineChip type={item.discipline} />

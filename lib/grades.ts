@@ -329,7 +329,20 @@ export function describeGradeTrend(
 }
 
 /** Completed activity uses the climber's grade, falling back to the posted
- * catalog grade. Unsent sessions never inherit either, even after unsending. */
+ * catalog grade. Unsent sessions never inherit either, even after unsending.
+ * Returns the ordinal to print (see `GradeLabel`) rather than text, so a
+ * server component can hand it to the client to format in the viewer's scale. */
+export function activityGrade(
+  type: ClimbType | null,
+  postedGrade: number | null,
+  completed: boolean,
+  reportedGrade?: number | null,
+): { type: ClimbType; grade: number } | null {
+  const grade = reportedGrade ?? postedGrade;
+  return completed && type && grade != null ? { type, grade } : null;
+}
+
+/** `activityGrade` as text, for callers that already hold the preference. */
 export function formatActivityGrade(
   type: ClimbType | null,
   postedGrade: number | null,
@@ -337,6 +350,6 @@ export function formatActivityGrade(
   reportedGrade?: number | null,
   prefs: GradePreferences = DEFAULT_GRADE_PREFERENCES,
 ): string | null {
-  const grade = reportedGrade ?? postedGrade;
-  return completed && type && grade != null ? formatGrade(type, grade, prefs) : null;
+  const activity = activityGrade(type, postedGrade, completed, reportedGrade);
+  return activity ? formatGrade(activity.type, activity.grade, prefs) : null;
 }

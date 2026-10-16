@@ -10,10 +10,11 @@ import { choicePillClass } from "@/components/ui/choice-pill";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { FieldFeedback, FieldHeader } from "@/components/ui/field-support";
+import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { OptionSelect } from "@/components/ui/option-select";
 import { SegmentedButtons } from "@/components/ui/segmented-buttons";
-import { nativeGradeArray, type ClimbType } from "@/lib/grades";
+import { gradeOptionValue, gradeOptions, type ClimbType } from "@/lib/grades";
 import {
   MAX_SEND_VIDEOS,
   parseSendVideoLink,
@@ -172,7 +173,7 @@ export function SuggestedGradeField({
   value: string;
   onChange: (value: string) => void;
 }) {
-  const gradeOptions = nativeGradeArray(climbType);
+  const prefs = useGradePreferences();
 
   return (
     <TextField>
@@ -180,9 +181,9 @@ export function SuggestedGradeField({
       <OptionSelect
         ariaLabel="Suggested grade"
         className={FIELD_WIDTH_CLASS.short}
-        value={value}
+        value={gradeOptionValue(climbType, Number(value), prefs)}
         onChange={onChange}
-        options={gradeOptions.map((label, i) => ({ value: String(i), label }))}
+        options={gradeOptions(climbType, prefs)}
       />
     </TextField>
   );

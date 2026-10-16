@@ -33,6 +33,7 @@ vi.mock("@/lib/session", () => ({
     user: { id: session.userId, name: "Viewer", email: "viewer@example.com", image: null },
   }),
   isAdmin: () => false,
+  getViewerGradePreferences: async () => ({ boulder: "hueco", rope: "yds" }),
 }));
 vi.mock("@/lib/auth", () => ({ getTurnstileSiteKey: async () => null }));
 

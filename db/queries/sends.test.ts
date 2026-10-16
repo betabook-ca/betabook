@@ -538,6 +538,16 @@ describe("getUserSendsSummary", () => {
     });
   });
 
+  it("labels the peak grade in the reader's grading systems", async () => {
+    expect(
+      (await getUserSendsSummary(db, "test-user-1", { boulder: "font", rope: "yds" })).peakGrade,
+    ).toBe("6B");
+    expect(
+      (await getUserSendsSummary(db, "test-user-1", { boulder: "hueco", rope: "french" }))
+        .peakGrade,
+    ).toBe("V4");
+  });
+
   it("returns zeroed/null stats for a user with no sends", async () => {
     await seedFixtureUser(db, { id: "test-user-6", name: "Also No Sends" });
     expect(await getUserSendsSummary(db, "test-user-6")).toEqual({

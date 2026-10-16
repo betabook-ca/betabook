@@ -50,6 +50,34 @@ it("locks every field while the save is in flight", async () => {
   expect(screen.getByRole("textbox", { name: "Name" })).toBeEnabled();
 });
 
+it("offers French route grades and submits the larger ordinal for a shared label", async () => {
+  const { createClimb } = await import("@/actions");
+  const { GradePreferencesProvider } = await import("@/components/ui/grade-preferences");
+  vi.mocked(createClimb).mockResolvedValue({ ok: true, value: 9 });
+  const user = userEvent.setup();
+  render(
+    <GradePreferencesProvider value={{ boulder: "hueco", rope: "french" }}>
+      <ClimbForm areaId={1} />
+    </GradePreferencesProvider>,
+  );
+  // Boulders stay in Hueco while only routes are switched.
+  expect(screen.getByRole("button", { name: /Grade$/ })).toHaveTextContent("VB");
+  await user.click(screen.getByRole("radio", { name: "Sport" }));
+  expect(screen.getByRole("button", { name: /Grade$/ })).toHaveTextContent("1");
+  await user.click(screen.getByRole("button", { name: /Grade$/ }));
+  const labels = screen.getAllByRole("option").map((option) => option.textContent);
+  expect(labels.filter((label) => label === "2")).toHaveLength(1);
+  expect(labels.filter((label) => label === "3")).toHaveLength(1);
+  await user.click(screen.getByRole("option", { name: "3" }));
+  expect(screen.getByRole("button", { name: /Grade$/ })).toHaveTextContent("3");
+  await user.type(screen.getByRole("textbox", { name: "Name" }), "Petit Dièdre");
+  await user.click(screen.getByRole("button", { name: "Add climb" }));
+  await waitFor(() => expect(createClimb).toHaveBeenCalled());
+  const [, formData] = vi.mocked(createClimb).mock.calls[0];
+  expect(formData.get("type")).toBe("sport");
+  expect(formData.get("grade")).toBe("4");
+});
+
 it("announces a failed save as an alert and preserves the form for retry", async () => {
   const { createClimb } = await import("@/actions");
   vi.mocked(createClimb).mockResolvedValue({ ok: false, error: "Could not save this climb" });

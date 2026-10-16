@@ -1,6 +1,6 @@
 import { Grade, GradeArrow, GradeSuggestion } from "@/components/ui/grade";
+import { GradeLabel } from "@/components/ui/grade-label";
 import { RatingStars } from "@/components/ui/rating-stars";
-import { formatGrade } from "@/lib/grades";
 import type { ClimbType } from "@/lib/grades";
 import type { GradeFeel } from "@/lib/sends";
 
@@ -44,9 +44,11 @@ export function SendGradeCell({
   return (
     <div className="flex items-center gap-2">
       <Grade>
-        {formatGrade(type, grade)}
+        <GradeLabel type={type} grade={grade} />
         {showSuggestion ? (
-          <GradeSuggestion arrow={arrow}>{formatGrade(type, suggestedGrade)}</GradeSuggestion>
+          <GradeSuggestion arrow={arrow}>
+            <GradeLabel type={type} grade={suggestedGrade} />
+          </GradeSuggestion>
         ) : (
           arrow
         )}

@@ -5,6 +5,7 @@ import { CircleCheckBig, Sparkles, X } from "lucide-react";
 import { useState } from "react";
 
 import { cardClass } from "@/components/ui/card";
+import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { useMounted } from "@/hooks/use-mounted";
 import { goalTitle, type GoalProgress } from "@/lib/goals";
@@ -37,6 +38,7 @@ export function GoalCompletionNotice({
   rememberDismissal?: boolean;
 }) {
   const mounted = useMounted();
+  const prefs = useGradePreferences();
   const [dismissed, setDismissed] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -101,7 +103,7 @@ export function GoalCompletionNotice({
         <div className="min-w-0">
           <h2 className="font-display text-xl font-semibold">{headline}</h2>
           <p className="mt-1 text-sm font-medium">
-            {goalCount > 1 ? `${goalCount} goals achieved` : goalTitle(goal)}
+            {goalCount > 1 ? `${goalCount} goals achieved` : goalTitle(goal, prefs)}
           </p>
           {error && <InlineAlert>{error}</InlineAlert>}
         </div>

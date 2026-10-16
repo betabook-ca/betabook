@@ -4,10 +4,10 @@ import type { ReactNode } from "react";
 import { cardClass } from "@/components/ui/card";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { Grade } from "@/components/ui/grade";
+import { GradeLabel } from "@/components/ui/grade-label";
 import type { PinnedProject } from "@/db/queries";
 import { formatCount } from "@/lib/format";
 import { daysBetween, describeDaysAgo, formatDate } from "@/lib/format-date";
-import { formatGrade } from "@/lib/grades";
 
 type ProjectSummary = Pick<
   PinnedProject,
@@ -51,7 +51,9 @@ export function ProjectCardLayout({
           {area ?? <span className="text-sm text-muted">{project.areaName}</span>}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <Grade size="md">{formatGrade(project.climbType, project.climbGrade)}</Grade>
+          <Grade size="md">
+            <GradeLabel type={project.climbType} grade={project.climbGrade} />
+          </Grade>
           <DisciplineChip type={project.climbType} />
         </div>
       </div>

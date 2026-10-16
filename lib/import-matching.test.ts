@@ -178,6 +178,13 @@ describe("matchRow", () => {
       expect(match.climb.id).toBe(2);
       expect(match.alternatives.map((c) => c.id)).toEqual([1]);
     }
+    // The explanation names the grade the way the climber reads it.
+    expect(
+      matchRow(row({ gradeText: "V6" }), index, {
+        ...NO_PREFERENCE,
+        prefs: { boulder: "font", rope: "yds" },
+      }),
+    ).toMatchObject({ kind: "inferred", reason: "the only 7A" });
   });
 
   it("matches by the posted boulder grade while retaining the climber's grade", () => {

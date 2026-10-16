@@ -9,8 +9,9 @@ const GradePreferencesContext = createContext<GradePreferences>(DEFAULT_GRADE_PR
 /** The viewer's grading systems for every client component under it. Mounted
  * once per request in app/template.tsx from the session the template already
  * reads, so the first paint and hydration agree; server components take the
- * same value as an argument instead. Without a provider (stories, jsdom) the
- * hook answers Hueco/YDS. */
+ * same value as an argument instead (`getViewerGradePreferences` in
+ * lib/session.ts) or print through `GradeLabel`. Without a provider (stories,
+ * jsdom) the hook answers Hueco/YDS. */
 export function GradePreferencesProvider({
   value,
   children,
