@@ -495,10 +495,13 @@ function cleanGradeText(raw: string): string | null {
   return raw.replace(PROTECTION_SUFFIX_RE, "").trim() || null;
 }
 
-export type GradeScale = "native" | "converted";
+/** The import wizard's choice of how to read grade text: as the catalog's
+ * native Hueco/YDS or as Font/French. Distinct from a climber's display
+ * scales in `lib/grades.ts`, which never change how stored text is parsed. */
+export type ImportGradePreference = "native" | "converted";
 
 /** Choose the grade scale that parses more values; ties favor native. */
-export function detectGradeScale(values: string[]): GradeScale {
+export function detectGradeScale(values: string[]): ImportGradePreference {
   let native = 0;
   let converted = 0;
   for (const value of values) {
