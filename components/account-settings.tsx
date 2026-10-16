@@ -5,6 +5,7 @@ import { CatalogExportDownload } from "@/components/catalog-export-download";
 import { DeleteAccountButton } from "@/components/delete-account-button";
 import { DisplayNameForm } from "@/components/display-name-form";
 import { ExportSendsButton } from "@/components/export-sends-button";
+import { GradeScaleToggles } from "@/components/grade-scale-toggles";
 import { PrivacyControls } from "@/components/privacy-controls";
 import { PrivacyDetails } from "@/components/privacy-fields";
 import { ProductTour } from "@/components/product-tour";
@@ -17,6 +18,7 @@ import { AppLink } from "@/components/ui/app-link";
 import { SETTINGS_ROW_CLASS, SettingsRow, SettingsSection } from "@/components/ui/settings";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import type { CatalogExportInfo } from "@/lib/catalog-export";
+import type { GradePreferences } from "@/lib/grades";
 import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
 
 const OUTLINE_LINK_CLASS = `${buttonVariants({ variant: "outline" })} gap-2 text-foreground`;
@@ -26,6 +28,7 @@ export function AccountSettings({
   isPrivate,
   journalVisibility,
   sendCommentVisibility,
+  gradePreferences,
   shareUrl,
   turnstileSiteKey,
   catalogExport,
@@ -35,6 +38,7 @@ export function AccountSettings({
   isPrivate: boolean;
   journalVisibility: SharingAudience;
   sendCommentVisibility: SendCommentAudience;
+  gradePreferences: GradePreferences;
   /** Null while the profile is private. */
   shareUrl: string | null;
   turnstileSiteKey?: string | null;
@@ -89,6 +93,7 @@ export function AccountSettings({
       </SettingsSection>
 
       <SettingsSection id="preferences" title="Preferences">
+        <GradeScaleToggles initial={gradePreferences} />
         <SettingsRow title="Theme" description="On this device." inline>
           <ThemeSelect />
         </SettingsRow>

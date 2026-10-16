@@ -24,8 +24,8 @@
 
 export type ClimbType = "boulder" | "sport" | "trad";
 export type Discipline = ClimbType;
-type BoulderScale = "hueco" | "font";
-type RopeScale = "yds" | "french";
+export type BoulderScale = "hueco" | "font";
+export type RopeScale = "yds" | "french";
 
 /** A climber's chosen grading systems, one per discipline family. */
 export type GradePreferences = { boulder: BoulderScale; rope: RopeScale };

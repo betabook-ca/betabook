@@ -52,6 +52,18 @@ export const user = sqliteTable(
     productTourReturning: integer("product_tour_returning", { mode: "boolean" })
       .default(false)
       .notNull(),
+    // Which grading systems this climber reads and picks grades in. Display
+    // only: every stored grade stays a native Hueco/YDS ordinal (lib/grades.ts),
+    // and canonical surfaces (SEO, exports) ignore these. Values are defined
+    // in lib/grade-preferences.ts and surfaced into session.user through
+    // user.additionalFields (lib/auth.ts) with input: false, so only
+    // actions/account.ts writes them.
+    boulderGradeScale: text("boulder_grade_scale", { enum: ["hueco", "font"] })
+      .default("hueco")
+      .notNull(),
+    ropeGradeScale: text("rope_grade_scale", { enum: ["yds", "french"] })
+      .default("yds")
+      .notNull(),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .notNull(),

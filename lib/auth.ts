@@ -115,6 +115,12 @@ async function authBuilder() {
         termsVersion: { type: "string", required: false, input: false },
         termsAcceptedAt: { type: "date", required: false, input: false },
         referredBy: { type: "string", required: false, input: false, returned: false },
+        // Grading-system toggles (lib/grade-preferences.ts), read from
+        // session.user on every request so server and client render the same
+        // labels. input: false keeps /update-user from writing them; the
+        // only writer is setGradePreferences in actions/account.ts.
+        boulderGradeScale: { type: "string", required: false, input: false },
+        ropeGradeScale: { type: "string", required: false, input: false },
       },
       deleteUser: {
         enabled: true,
