@@ -118,7 +118,7 @@ const COLUMN_FIELDS: { key: FieldKey; label: string; hint: string }[] = [
   {
     key: "suggestedGrade",
     label: "Grade",
-    hint: "The grade you logged, imported as your suggested grade. Blank takes the climb’s listed grade.",
+    hint: "The grade you logged, imported as your suggested grade. Blank takes the climb’s listed grade, or keeps the grade of a send you overwrite.",
   },
   {
     key: "gradeFeel",

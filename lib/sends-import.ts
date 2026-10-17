@@ -609,7 +609,8 @@ export type CoercionWarning = {
 const WARNING_EXAMPLE_LIMIT = 3;
 
 const COERCION_MESSAGES: Record<CoercionWarning["field"], string> = {
-  suggestedGrade: "unrecognized grade, imported at the climb’s listed grade",
+  suggestedGrade:
+    "unrecognized grade, imported at the climb’s listed grade (an overwritten send keeps its grade)",
   rating: "imported without a rating",
   gradeFeel: 'unmapped grade feel, imported as "solid"',
   comment: `comment longer than ${MAX_COMMENT_LENGTH} characters, truncated`,

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 
 import type { Database } from "@/db/client";
@@ -197,16 +197,11 @@ type FixtureSendOverrides = Partial<typeof sends.$inferInsert> & {
 export async function seedFixtureSend(db: Database, overrides: FixtureSendOverrides) {
   // Every send has a suggested grade (0054_require_grades); default to the
   // climb's listed grade, as the send form does.
-  const climb = await db
-    .select({ grade: climbs.grade })
-    .from(climbs)
-    .where(eq(climbs.id, overrides.climbId))
-    .get();
   const row = {
     ascentStyle: "redpoint" as const,
     comment: null,
     rating: null,
-    suggestedGrade: climb?.grade ?? null,
+    suggestedGrade: sql<number>`(SELECT grade FROM climbs WHERE id = ${overrides.climbId})`,
     ...overrides,
   };
   await db.insert(sends).values(row);

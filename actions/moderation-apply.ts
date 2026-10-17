@@ -588,8 +588,11 @@ export async function applyClimbBreak(
             dateSent: sql<string | null>`null`.as("date_sent"),
             comment: sql<string | null>`null`.as("comment"),
             rating: sql<number | null>`null`.as("rating"),
-            // Every send has a suggested grade: the successor's listed one.
-            suggestedGrade: sql<number>`${existing.grade}`.as("suggested_grade"),
+            // Every send has a suggested grade: the successor's listed one,
+            // read from the row this batch inserted.
+            suggestedGrade: sql<number>`(SELECT grade FROM climbs WHERE id = ${successorId})`.as(
+              "suggested_grade",
+            ),
             gradeFeel: sql<string>`'solid'`.as("grade_feel"),
             videos: sql<string | null>`null`.as("videos"),
             createdAt: sql<number>`(cast(unixepoch('subsecond') * 1000 as integer))`.as(

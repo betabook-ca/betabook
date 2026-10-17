@@ -70,24 +70,29 @@ describe("climb grade guard", () => {
   });
 });
 
-describe("send suggested grade guard", () => {
-  it("rejects a send without a suggested grade", async () => {
-    await expectRejection(
-      db
-        .insert(sends)
-        .values({ userId: USER, climbId: BOULDER, ascentStyle: "redpoint", suggestedGrade: null }),
-      /suggested grade is required/,
-    );
+/** Sends are filled, not rejected: a worker deployed before 0054 still writes
+ * a null for a blank imported grade, and aborting would fail its whole batch. */
+describe("send suggested grade fill", () => {
+  async function storedGrade() {
+    const row = await db.select().from(sends).where(eq(sends.userId, USER)).get();
+    return row?.suggestedGrade;
+  }
+
+  it("stores the climb's listed grade for a send written without one", async () => {
+    await db
+      .insert(sends)
+      .values({ userId: USER, climbId: BOULDER, ascentStyle: "redpoint", suggestedGrade: null });
+    expect(await storedGrade()).toBe(5); // Test Highball's listed grade
   });
 
-  it("rejects clearing a send's suggested grade and leaves other updates alone", async () => {
+  it("refills a cleared grade and leaves other updates alone", async () => {
     await db
       .insert(sends)
       .values({ userId: USER, climbId: BOULDER, ascentStyle: "redpoint", suggestedGrade: 4 });
-    await expectRejection(
-      db.update(sends).set({ suggestedGrade: null }).where(eq(sends.userId, USER)),
-      /suggested grade is required/,
-    );
+    await db.update(sends).set({ suggestedGrade: null }).where(eq(sends.userId, USER));
+    expect(await storedGrade()).toBe(5);
+
+    await db.update(sends).set({ suggestedGrade: 4 }).where(eq(sends.userId, USER));
     await db.update(sends).set({ comment: "Still graded" }).where(eq(sends.userId, USER));
     const row = await db.select().from(sends).where(eq(sends.userId, USER)).get();
     expect(row).toMatchObject({ suggestedGrade: 4, comment: "Still graded" });

@@ -49,18 +49,25 @@ import { buildMirroredSendUpdate, buildSendInsert } from "./send-statements";
 
 export type { ImportResult, ImportOptions } from "@/lib/sends";
 
-type SendValues = Omit<SendInput, "suggestedGrade"> & { suggestedGrade: number | null };
+/** An overwrite leaves the send's suggested grade alone when the file has
+ * none to give, so it has no `suggestedGrade` to write. */
+type SendUpdateValues = Omit<SendInput, "suggestedGrade"> & { suggestedGrade?: number };
 
-/** An imported send always gets a suggested grade, as a logged one does: a
- * blank or unreadable grade takes the climb's listed grade. */
-function resolveSuggestedGrade(
+/** The file's own grade, when it reads on the climb's discipline. */
+function fileSuggestedGrade(
   row: ImportSendRow,
-  climb: { type: ClimbType; grade: number | null },
+  climb: { type: ClimbType },
   gradeScale: ImportOptions["gradeScale"],
 ): number | null {
   const gradeText = typeof row.gradeText === "string" ? row.gradeText : null;
-  const parsed = gradeText ? parseGrade(climb.type, gradeText, gradeScale) : null;
-  return parsed ?? climb.grade;
+  return gradeText ? parseGrade(climb.type, gradeText, gradeScale) : null;
+}
+
+/** A new send without a grade of its own takes the climb's listed grade, as a
+ * logged one does. Every climb has one (0054_require_grades). */
+function listedGrade(climb: { id: number; grade: number | null }): number {
+  if (climb.grade === null) throw new Error(`Climb ${climb.id} has no listed grade`);
+  return climb.grade;
 }
 
 /** A broken climb takes only ascents dated before the break. An overwrite
@@ -219,9 +226,9 @@ export async function importSends(
 
     // First row per climb wins, including in overwrite mode.
     const processed = new Set<number>();
-    const toInsert: Array<SendValues & { userId: string; climbId: number; climbType: ClimbType }> =
+    const toInsert: Array<SendInput & { userId: string; climbId: number; climbType: ClimbType }> =
       [];
-    const toUpdate: Array<{ climbId: number; climbType: ClimbType; values: SendValues }> = [];
+    const toUpdate: Array<{ climbId: number; climbType: ClimbType; values: SendUpdateValues }> = [];
     const affectedAreaIds = new Set<number>();
     const missing: number[] = [];
     const broken: number[] = [];
@@ -244,11 +251,10 @@ export async function importSends(
         continue;
       }
 
-      // Overwrites replace every imported field, including fields the CSV clears.
-      const values: SendValues = {
-        ...validateImportSendValues(row, climb.type),
-        suggestedGrade: resolveSuggestedGrade(row, climb, options.gradeScale),
-      };
+      // Overwrites replace every imported field, including fields the CSV
+      // clears, except a suggested grade the file doesn't give.
+      const values = validateImportSendValues(row, climb.type);
+      const fileGrade = fileSuggestedGrade(row, climb, options.gradeScale);
 
       // Refusing a post-break row here keeps the rest of the batch: the 0044
       // triggers would abort all of it.
@@ -261,13 +267,18 @@ export async function importSends(
       affectedAreaIds.add(climb.areaId);
 
       if (alreadySent.has(climb.id)) {
-        toUpdate.push({ climbId: climb.id, climbType: climb.type, values });
+        toUpdate.push({
+          climbId: climb.id,
+          climbType: climb.type,
+          values: fileGrade === null ? values : { ...values, suggestedGrade: fileGrade },
+        });
       } else {
         toInsert.push({
           userId: session.user.id,
           climbId: climb.id,
           climbType: climb.type,
           ...values,
+          suggestedGrade: fileGrade ?? listedGrade(climb),
         });
       }
     }

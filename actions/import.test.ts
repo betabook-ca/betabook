@@ -105,6 +105,7 @@ beforeAll(async () => {
     "coerce-user",
     "reject-user",
     "grade-user",
+    "keep-grade-user",
     "comment-user",
     "overwrite-user",
     "overwrite-null-user",
@@ -418,6 +419,33 @@ describe("importSends suggested grade", () => {
     expect(byClimb.get(133)).toBe(8);
     expect(byClimb.get(134)).toBe(15);
     expect(byClimb.get(136)).toBe(17);
+  });
+});
+
+describe("importSends overwrite with no usable grade", () => {
+  it("keeps the send's current suggested grade instead of the climb's listed one", async () => {
+    sessionState.userId = "keep-grade-user";
+    // Bulk Climbs 38 and 39 are listed at 0 and 1; the climber chose V7 (8).
+    const first = await importSends(
+      [importRow(138, { gradeText: "V7" }), importRow(139, { gradeText: "V7" })],
+      IMPORT_OPTIONS,
+    );
+    expect(first.ok).toBe(true);
+
+    const second = await importSends(
+      [
+        importRow(138, { gradeText: null, rating: 4 }),
+        importRow(139, { gradeText: "5.12a", rating: 4 }), // a route grade on a boulder
+      ],
+      { ...IMPORT_OPTIONS, onConflict: "overwrite" },
+    );
+    expect(second.ok).toBe(true);
+
+    const rows = await db.select().from(sends).where(eq(sends.userId, "keep-grade-user")).all();
+    expect(rows.map((row) => [row.climbId, row.suggestedGrade, row.rating])).toEqual([
+      [138, 8, 4],
+      [139, 8, 4],
+    ]);
   });
 });
 
