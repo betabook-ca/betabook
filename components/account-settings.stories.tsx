@@ -12,6 +12,7 @@ const meta = {
     isPrivate: false,
     journalVisibility: "friends",
     sendCommentVisibility: "public",
+    gradePreferences: { boulder: "hueco", rope: "yds" },
     shareUrl: `https://betabook.ca/users/${USER_ID}?share=4f9c2a7e1b8d6035c9e4a1f7b2d80e36`,
     turnstileSiteKey: null,
     catalogExport: {
@@ -29,6 +30,13 @@ type Story = StoryObj<typeof meta>;
 export const Member: Story = {};
 export const PrivateProfile: Story = { args: { isPrivate: true, shareUrl: null } };
 export const Moderator: Story = { args: { isAdmin: true } };
+
+/** Both grading-system controls on their European segment: Font (6B) and
+ * French (7a) are pressed, with the catalog's Hueco (V4) and YDS (5.11d)
+ * still visible beside them. */
+export const EuropeanGrades: Story = {
+  args: { gradePreferences: { boulder: "font", rope: "french" } },
+};
 
 /** A Google account: Profile gains a Remove photo row. The gallery makes no
  * successful request for the URL, so the avatars fall back to initials — this

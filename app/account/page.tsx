@@ -6,6 +6,7 @@ import { getDb } from "@/db/client";
 import { getUser } from "@/db/queries";
 import { getTurnstileSiteKey } from "@/lib/auth";
 import { getCatalogExportBucket, getCatalogExportInfo } from "@/lib/catalog-export";
+import { gradePreferencesFor } from "@/lib/grade-preferences";
 import { getOwnProfileShareUrl } from "@/lib/profile-share-url";
 import { getMemberSession, isAdmin } from "@/lib/session";
 
@@ -41,6 +42,7 @@ export default async function AccountPage() {
       isPrivate={isPrivate}
       journalVisibility={user?.journalVisibility ?? "friends"}
       sendCommentVisibility={user?.sendCommentVisibility ?? "public"}
+      gradePreferences={gradePreferencesFor(user)}
       shareUrl={shareUrl}
       turnstileSiteKey={turnstileSiteKey}
       catalogExport={catalogExport}
