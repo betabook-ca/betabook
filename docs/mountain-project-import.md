@@ -40,9 +40,9 @@ Mountain Project column presets do the mapping: `Rating` is the route's grade,
 is the full area path used as hints from the wall up, and the derived
 `Lead Style or Style` column supplies the ascent style. Protection suffixes such
 as PG13, R and X are stripped from grades. Mountain Project leaves `Your Rating`
-blank unless the climber gave their own grade, so a blank imports the climb's
-posted grade as the suggested grade, as logging a send does. Only a Betabook
-export's blank `Suggested Grade` means no suggestion. The direct import duplicates no
+blank unless the climber gave their own grade. Like any import, a blank or
+unreadable grade takes the climb's listed grade as the suggested grade, as
+logging a send does. The direct import duplicates no
 parsing; it reuses `parseCsvText` and `deriveSourceColumns`.
 
 Mountain Project's personal rating stops at 4 stars where Betabook's is 5, and

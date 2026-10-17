@@ -545,7 +545,6 @@ it("preserves ascent companions and suppression while imports overwrite the send
             comment: "Imported note",
             rating: null,
             gradeText: null,
-            blankGradeMeans: "no-suggestion",
             gradeFeel: "solid",
           },
         ],

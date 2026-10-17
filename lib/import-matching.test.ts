@@ -89,7 +89,6 @@ function row(overrides: Partial<NormalizedImportRow> = {}): NormalizedImportRow 
     rating: null,
     comment: null,
     gradeText: null,
-    blankGradeMeans: "posted-grade",
     postedGradeText: null,
     gradeFeel: "solid",
     raw: {},

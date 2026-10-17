@@ -81,7 +81,6 @@ function importRow(climbId: number, overrides: Partial<ImportSendRow> = {}): Imp
     rating: null,
     comment: null,
     gradeText: null,
-    blankGradeMeans: "posted-grade",
     gradeFeel: "solid",
     ...overrides,
   };
@@ -402,14 +401,13 @@ describe("importSends against a caller that skipped the wizard", () => {
 });
 
 describe("importSends suggested grade", () => {
-  it("parses grade text against the resolved climb's type, and falls back per blankGradeMeans", async () => {
+  it("parses grade text against the resolved climb's type, and otherwise takes the listed grade", async () => {
     sessionState.userId = "grade-user";
     const result = await importSends(
       [
         importRow(133, { gradeText: "V7" }), // boulder table: V7 -> 8
-        importRow(134, { gradeText: null, blankGradeMeans: "posted-grade" }), // Bulk Climb 34 is graded 34 % 19 = 15
-        importRow(135, { gradeText: null, blankGradeMeans: "no-suggestion" }),
-        importRow(136, { gradeText: "5.12a" }), // a route grade on a boulder: no suggestion
+        importRow(134, { gradeText: null }), // Bulk Climb 34 is graded 34 % 19 = 15
+        importRow(136, { gradeText: "5.12a" }), // a route grade on a boulder: Bulk Climb 36's 17
       ],
       IMPORT_OPTIONS,
     );
@@ -419,8 +417,7 @@ describe("importSends suggested grade", () => {
     const byClimb = new Map(rows.map((row) => [row.climbId, row.suggestedGrade]));
     expect(byClimb.get(133)).toBe(8);
     expect(byClimb.get(134)).toBe(15);
-    expect(byClimb.get(135)).toBeNull();
-    expect(byClimb.get(136)).toBeNull();
+    expect(byClimb.get(136)).toBe(17);
   });
 });
 

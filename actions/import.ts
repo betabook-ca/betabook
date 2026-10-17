@@ -51,16 +51,16 @@ export type { ImportResult, ImportOptions } from "@/lib/sends";
 
 type SendValues = Omit<SendInput, "suggestedGrade"> & { suggestedGrade: number | null };
 
-/** A blank Suggested Grade stays null; a Grade-only mapping falls back to
- * the posted grade. See NormalizedImportRow.blankGradeMeans. */
+/** An imported send always gets a suggested grade, as a logged one does: a
+ * blank or unreadable grade takes the climb's listed grade. */
 function resolveSuggestedGrade(
   row: ImportSendRow,
   climb: { type: ClimbType; grade: number | null },
   gradeScale: ImportOptions["gradeScale"],
 ): number | null {
   const gradeText = typeof row.gradeText === "string" ? row.gradeText : null;
-  if (gradeText) return parseGrade(climb.type, gradeText, gradeScale);
-  return row.blankGradeMeans === "no-suggestion" ? null : climb.grade;
+  const parsed = gradeText ? parseGrade(climb.type, gradeText, gradeScale) : null;
+  return parsed ?? climb.grade;
 }
 
 /** A broken climb takes only ascents dated before the break. An overwrite
