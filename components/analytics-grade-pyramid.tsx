@@ -35,7 +35,12 @@ export function AnalyticsGradePyramid({
               <>
                 <ChartClimbDetails
                   label={row.label}
-                  sends={sends.filter((send) => send.suggestedGrade === row.grade)}
+                  sends={sends.filter(
+                    (send) =>
+                      send.suggestedGrade != null &&
+                      send.suggestedGrade >= row.range[0] &&
+                      send.suggestedGrade <= row.range[1],
+                  )}
                   className="relative h-7 w-full min-w-0 justify-start rounded-xs p-0"
                 >
                   <div

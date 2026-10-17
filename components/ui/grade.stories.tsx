@@ -4,6 +4,8 @@ import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { Grade } from "./grade";
 import { GradeArrow, GradeSuggestion } from "./grade";
+import { GradeLabel } from "./grade-label";
+import { GradePreferencesProvider } from "./grade-preferences";
 const meta = {
   title: "Components/Data display/Grade",
   component: Grade,
@@ -38,6 +40,32 @@ export const Harder: Story = {
         <GradeArrow direction="up" label="Harder than posted" />
       </>
     ),
+  },
+};
+/** The same ordinals printed for a climber whose account reads Fontainebleau
+ * and French. `GradeLabel` formats through the provider the app mounts per
+ * request, so a server component passes an ordinal and never the label. */
+export const EuropeanSystems: Story = {
+  args: {
+    size: "md",
+    children: (
+      <GradePreferencesProvider value={{ boulder: "font", rope: "french" }}>
+        <GradeLabel type="boulder" grade={5} />
+        <span className="mx-2 text-muted">·</span>
+        <GradeLabel type="sport" grade={17} />
+        <GradeSuggestion arrow={<GradeArrow direction="up" label="Harder than posted" />}>
+          <GradeLabel type="sport" grade={18} />
+        </GradeSuggestion>
+      </GradePreferencesProvider>
+    ),
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "V4 reads 6B and 5.11d reads 7a with its 7a+ suggestion. Nothing stored changes; only the account's grading systems do.",
+      },
+    },
   },
 };
 export const SuggestedHarder: Story = {

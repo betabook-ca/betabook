@@ -1,6 +1,6 @@
 import type { ClimbCandidate } from "@/db/queries";
 import { isLoggableOnClimb } from "@/lib/broken-climbs";
-import { formatGrade, parseGrade, type ClimbType } from "@/lib/grades";
+import { formatGrade, parseGrade, type ClimbType, type GradePreferences } from "@/lib/grades";
 import type { NormalizedImportRow } from "@/lib/sends-import";
 
 /** Match SQLite LOWER(TRIM(name)): trim ASCII spaces and lowercase only ASCII
@@ -99,6 +99,8 @@ export type PreferredArea = { id: number; name: string };
 export type MatchOptions = {
   gradeScale: "native" | "converted";
   preferredAreas: readonly PreferredArea[];
+  /** The climber's grading systems, for the "the only V5" explanation. */
+  prefs?: GradePreferences;
   /** Candidates found under a different spelling, keyed by the row's own fold
    * key. Only consulted when the name itself finds nothing. */
   looseIndex?: CandidateIndex;
@@ -432,7 +434,7 @@ function matchCandidates(
   if (implied.boulder !== null || implied.rope !== null) {
     const done = narrow(
       (c) => c.grade !== null && c.grade === impliedGradeFor(c.type, implied),
-      (chosen) => `the only ${formatGrade(chosen.type, chosen.grade)}`,
+      (chosen) => `the only ${formatGrade(chosen.type, chosen.grade, options.prefs)}`,
       `the grade "${gradeText}"`,
     );
     if (done) return inferred();

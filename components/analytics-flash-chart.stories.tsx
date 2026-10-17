@@ -11,10 +11,10 @@ const meta = {
   args: {
     type: "boulder",
     rows: [
-      { grade: 3, label: "V2", sends: 20, firstTries: 15, rate: 75 },
-      { grade: 4, label: "V3", sends: 30, firstTries: 12, rate: 40 },
-      { grade: 5, label: "V4", sends: 16, firstTries: 4, rate: 25 },
-      { grade: 6, label: "V5", sends: 8, firstTries: 0, rate: 0 },
+      { grade: 3, range: [3, 3], label: "V2", sends: 20, firstTries: 15, rate: 75 },
+      { grade: 4, range: [4, 4], label: "V3", sends: 30, firstTries: 12, rate: 40 },
+      { grade: 5, range: [5, 5], label: "V4", sends: 16, firstTries: 4, rate: 25 },
+      { grade: 6, range: [6, 6], label: "V5", sends: 8, firstTries: 0, rate: 0 },
     ],
   },
   decorators: [
@@ -40,14 +40,14 @@ export const Grades: Story = {
 };
 export const Empty: Story = { args: { rows: [] } };
 export const SingleGrade: Story = {
-  args: { rows: [{ grade: 3, label: "V2", sends: 1, firstTries: 1, rate: 100 }] },
+  args: { rows: [{ grade: 3, range: [3, 3], label: "V2", sends: 1, firstTries: 1, rate: 100 }] },
 };
 
 export const NoFirstTries: Story = {
   args: {
     rows: [
-      { grade: 3, label: "V2", sends: 10, firstTries: 0, rate: 0 },
-      { grade: 4, label: "V3", sends: 4, firstTries: 0, rate: 0 },
+      { grade: 3, range: [3, 3], label: "V2", sends: 10, firstTries: 0, rate: 0 },
+      { grade: 4, range: [4, 4], label: "V3", sends: 4, firstTries: 0, rate: 0 },
     ],
   },
 };

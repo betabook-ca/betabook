@@ -1,16 +1,15 @@
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
 import { ClimbSentIndicator } from "@/components/climb-sent-indicator";
+import { GradeWithTrend } from "@/components/grade-with-trend";
 import { BrokenChip } from "@/components/ui/broken-chip";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Grade, GradeArrow, GradeSuggestion } from "@/components/ui/grade";
+import { Grade } from "@/components/ui/grade";
 import { ListRow } from "@/components/ui/list-row";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
 import { RatingStars } from "@/components/ui/rating-stars";
 import type { ClimbWithAreaName } from "@/db/queries";
 import { formatCount } from "@/lib/format";
-import { describeGradeTrend } from "@/lib/grades";
-import type { ClimbType } from "@/lib/grades";
 import { climbHref } from "@/lib/slug";
 
 type ClimbListProps = {
@@ -113,38 +112,5 @@ export function ClimbList({
       </ul>
       {loadMoreBlock}
     </div>
-  );
-}
-
-export function GradeWithTrend({
-  type,
-  grade,
-  avgSuggestedGrade,
-}: {
-  type: ClimbType;
-  grade: number | null;
-  avgSuggestedGrade: number | null;
-}) {
-  const { postedLabel, suggestedLabel, arrow } = describeGradeTrend(type, grade, avgSuggestedGrade);
-  // Same arrow as a send row's feel: up is "the community grades it harder
-  // than posted", down "softer" — one sign wherever a grade is compared.
-  const arrowIcon =
-    arrow === "up" ? (
-      <GradeArrow direction="up" label="Community grades it harder" />
-    ) : arrow === "down" ? (
-      <GradeArrow direction="down" label="Community grades it softer" />
-    ) : null;
-
-  // One inline-flex line whoever prints it: a stat card's plain span would
-  // otherwise let the block-level icon fall below the grade.
-  return (
-    <span className="inline-flex items-center gap-0.5">
-      {postedLabel}
-      {suggestedLabel == null ? (
-        arrowIcon
-      ) : (
-        <GradeSuggestion arrow={arrowIcon}>{suggestedLabel}</GradeSuggestion>
-      )}
-    </span>
   );
 }

@@ -3,7 +3,7 @@ import { expect, it } from "vitest";
 
 import { formatGrade } from "@/lib/grades";
 
-import { GradePreferencesProvider, useGradePreferences } from "./grade-preferences-provider";
+import { GradePreferencesProvider, useGradePreferences } from "./grade-preferences";
 
 function Labels() {
   const prefs = useGradePreferences();

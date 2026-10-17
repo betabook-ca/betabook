@@ -10,10 +10,11 @@ import { choicePillClass } from "@/components/ui/choice-pill";
 import { DISCIPLINE_CHIP_CLASSNAME, DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
 import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { FieldFeedback } from "@/components/ui/field-support";
+import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { OptionSelect } from "@/components/ui/option-select";
 import type { Climb } from "@/db/queries";
-import { nativeGradeArray, type ClimbType } from "@/lib/grades";
+import { gradeOptionValue, gradeOptions, type ClimbType } from "@/lib/grades";
 
 type ClimbFormProps = {
   /** The climb's area, when already known (editing, or creating from a
@@ -45,7 +46,7 @@ export function ClimbForm({ areaId: fixedAreaId, climb, initial, onDone }: Climb
   const [pending, startTransition] = useTransition();
 
   const areaId = fixedAreaId ?? pickedArea?.id ?? null;
-  const gradeOptions = nativeGradeArray(type);
+  const prefs = useGradePreferences();
   const trimmedName = name.trim();
   const nameInvalid = submitAttempted && !trimmedName;
   const areaInvalid = submitAttempted && !climb && areaId == null;
@@ -173,9 +174,9 @@ export function ClimbForm({ areaId: fixedAreaId, climb, initial, onDone }: Climb
             ariaLabel="Grade"
             isRequired
             className={FIELD_WIDTH_CLASS.short}
-            value={grade}
+            value={gradeOptionValue(type, Number(grade), prefs)}
             onChange={setGrade}
-            options={gradeOptions.map((label, i) => ({ value: String(i), label }))}
+            options={gradeOptions(type, prefs)}
           />
         </div>
 

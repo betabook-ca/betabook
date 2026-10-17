@@ -54,6 +54,19 @@ describe("getClimberHardest", () => {
     ]);
   });
 
+  it("labels each discipline in the reader's grading systems", async () => {
+    expect(await getClimberHardest(db, "owner", { boulder: "font", rope: "french" })).toEqual([
+      { type: "boulder", grade: "6B" },
+      { type: "sport", grade: "5c" },
+      { type: "trad", grade: "4b" },
+    ]);
+    expect(await getClimberHardest(db, "owner", { boulder: "hueco", rope: "french" })).toEqual([
+      { type: "boulder", grade: "V4" },
+      { type: "sport", grade: "5c" },
+      { type: "trad", grade: "4b" },
+    ]);
+  });
+
   it("is empty before anything is sent", async () => {
     expect(await getClimberHardest(db, "friend")).toEqual([]);
   });

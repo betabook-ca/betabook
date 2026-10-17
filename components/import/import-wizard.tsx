@@ -13,6 +13,7 @@ import { GRADE_FEEL_OPTIONS } from "@/components/send-fields";
 import { cardClass } from "@/components/ui/card";
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { Eyebrow } from "@/components/ui/eyebrow";
+import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { OptionSelect, type SelectOption } from "@/components/ui/option-select";
 import { ProgressBar } from "@/components/ui/progress-bar";
@@ -78,6 +79,7 @@ import {
   type InvalidImportRow,
   type NormalizedImportRow,
   type ParsedCsv,
+  preferredImportGradeScale,
   type RatingMapping,
 } from "@/lib/sends-import";
 
@@ -226,6 +228,9 @@ function CsvWarnings({ warnings, subject }: { warnings: readonly string[]; subje
 
 // oxlint-disable-next-line complexity -- multi-step wizard state machine; each step adds a branch
 export function ImportWizard({ profileHref }: { profileHref: string }) {
+  const prefs = useGradePreferences();
+  // A climber who reads Font or French most likely exported grades that way.
+  const defaultGradeScale = preferredImportGradeScale(prefs);
   const [directSource, setDirectSource] = useState<string | null>(null);
   const [step, setStep] = useState<Step>("upload");
   const [error, setError] = useState<string | null>(null);
@@ -241,7 +246,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
   const [ratingMapping, setRatingMapping] = useState<RatingMapping>({});
   const [dateFormat, setDateFormat] = useState<DateFormat>("iso");
   const [dropPlaceholderDates, setDropPlaceholderDates] = useState(false);
-  const [gradeScale, setGradeScale] = useState<ImportGradePreference>("native");
+  const [gradeScale, setGradeScale] = useState<ImportGradePreference>(defaultGradeScale);
   const [onConflict, setOnConflict] = useState<"skip" | "overwrite">("skip");
 
   const [baseNormalized, setNormalized] = useState<{
@@ -343,9 +348,14 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
   const matches = useMemo(
     () =>
       normalized && candidateIndex
-        ? matchRows(normalized.valid, candidateIndex, { gradeScale, preferredAreas, looseIndex })
+        ? matchRows(normalized.valid, candidateIndex, {
+            gradeScale,
+            preferredAreas,
+            looseIndex,
+            prefs,
+          })
         : null,
-    [normalized, candidateIndex, gradeScale, preferredAreas, looseIndex],
+    [normalized, candidateIndex, gradeScale, preferredAreas, looseIndex, prefs],
   );
   const resolved = useMemo(
     () => (normalized && matches ? resolveRows(normalized.valid, matches, manual) : null),
@@ -486,6 +496,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
       dateFormat: mapping.date ? detectDateFormat(dateSample) : ("iso" as DateFormat),
       gradeScale: detectGradeScale(
         distinctValues(parsed.rows, mapping.suggestedGrade ?? mapping.grade),
+        defaultGradeScale,
       ),
     };
   }
@@ -625,7 +636,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
     const summary = summarizeResolved(
       resolveRows(
         valid,
-        matchRows(valid, index, { gradeScale: scale, preferredAreas, looseIndex: loose }),
+        matchRows(valid, index, { gradeScale: scale, preferredAreas, looseIndex: loose, prefs }),
         new Map(),
       ),
     );
@@ -719,7 +730,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
     setRatingMapping({});
     setDateFormat("iso");
     setDropPlaceholderDates(false);
-    setGradeScale("native");
+    setGradeScale(defaultGradeScale);
     setOnConflict("skip");
     setNormalized(null);
     setUndatedDates(new Set());

@@ -124,8 +124,8 @@ describe("buildPyramid", () => {
       "boulder",
     );
     expect(rows).toEqual([
-      { grade: 4, label: "V3", count: 1 },
-      { grade: 3, label: "V2", count: 2 },
+      { grade: 4, range: [4, 4], label: "V3", count: 1 },
+      { grade: 3, range: [3, 3], label: "V2", count: 2 },
     ]);
   });
 
@@ -206,9 +206,9 @@ describe("buildUserAnalytics", () => {
       {
         type: "boulder",
         rows: [
-          { grade: 4, label: "V3", count: 1 },
-          { grade: 3, label: "V2", count: 0 },
-          { grade: 2, label: "V1", count: 2 },
+          { grade: 4, range: [4, 4], label: "V3", count: 1 },
+          { grade: 3, range: [3, 3], label: "V2", count: 0 },
+          { grade: 2, range: [2, 2], label: "V1", count: 2 },
         ],
       },
     ]);
@@ -257,7 +257,7 @@ describe("buildUserAnalytics", () => {
     );
     expect(a.sendCount).toBe(2);
     expect(a.hardest[0].label).toBe("V6");
-    expect(a.pyramid[0].rows).toEqual([{ grade: 7, label: "V6", count: 1 }]);
+    expect(a.pyramid[0].rows).toEqual([{ grade: 7, range: [7, 7], label: "V6", count: 1 }]);
     expect(a.progression[0].points).toEqual([{ month: "2024-01", hardest: 7, best: 7 }]);
     expect(a.breakthroughs.map((b) => [b.climbName, b.label])).toEqual([["Graded", "V6"]]);
   });
@@ -475,7 +475,14 @@ it("builds monthly volume and flash rates from the selected years and discipline
     { month: "2024-03", sends: 1, days: 1 },
   ]);
   expect(result.firstTryByGrade[0].rows).toEqual([
-    { grade: 10, label: "5.10a", sends: 3, firstTries: 2, rate: expect.closeTo(200 / 3) },
+    {
+      grade: 10,
+      range: [10, 10],
+      label: "5.10a",
+      sends: 3,
+      firstTries: 2,
+      rate: expect.closeTo(200 / 3),
+    },
   ]);
   expect(buildUserAnalytics(rows, "sport").firstTryByGrade[0].rows[0]).toMatchObject({
     sends: 5,
@@ -525,5 +532,87 @@ describe("analytics scoped to a window", () => {
     // as the hardest of a trip it falls outside.
     expect(analytics.hardest.map((entry) => entry.grade)).toEqual([4]);
     expect(analytics.volume.map((month) => month.month)).toEqual(["2026-03"]);
+  });
+});
+
+describe("the reader's grading systems", () => {
+  const FRENCH = { boulder: "hueco", rope: "french" } as const;
+  const EURO = { boulder: "font", rope: "french" } as const;
+
+  it("labels hardest sends, pyramid rows and breakthroughs in the chosen scales", () => {
+    const a = buildUserAnalytics(
+      [
+        send({ suggestedGrade: 5, dateSent: "2024-01-05" }), // V4 → 6B
+        send({ climbType: "sport", suggestedGrade: 17, dateSent: "2024-02-01" }), // 5.11d → 7a
+      ],
+      "all",
+      undefined,
+      [],
+      EURO,
+    );
+    expect(a.hardest.map((h) => [h.type, h.label])).toEqual([
+      ["boulder", "6B"],
+      ["sport", "7a"],
+    ]);
+    expect(a.pyramid.map((p) => p.rows[0].label)).toEqual(["6B", "7a"]);
+    expect(a.breakthroughs.map((b) => b.label)).toEqual(["7a", "6B"]);
+    expect(a.firstTryByGrade.map((f) => f.rows[0].label)).toEqual(["6B", "7a"]);
+  });
+
+  it("folds ordinals the scale prints alike into one pyramid row spanning both", () => {
+    const rows = buildPyramid(
+      [
+        send({ climbType: "sport", suggestedGrade: 1 }), // 5.1 → 2
+        send({ climbType: "sport", suggestedGrade: 2 }), // 5.2 → 2
+        send({ climbType: "sport", suggestedGrade: 2 }),
+        send({ climbType: "sport", suggestedGrade: 5 }), // 5.5 → 4a
+      ],
+      "sport",
+      FRENCH,
+    );
+    expect(rows).toEqual([
+      { grade: 5, range: [5, 5], label: "4a", count: 1 },
+      { grade: 4, range: [3, 4], label: "3", count: 0 },
+      { grade: 2, range: [1, 2], label: "2", count: 3 },
+    ]);
+    expect(buildPyramid([send({ climbType: "sport", suggestedGrade: 1 })], "sport")).toEqual([
+      { grade: 1, range: [1, 1], label: "5.1", count: 1 },
+    ]);
+  });
+
+  it("merges flash-rate rows that share a label and keeps the span for their sends", () => {
+    const a = buildUserAnalytics(
+      [
+        send({ climbType: "sport", suggestedGrade: 1, ascentStyle: "flash" }),
+        send({ climbType: "sport", suggestedGrade: 2, ascentStyle: "redpoint" }),
+      ],
+      "sport",
+      undefined,
+      [],
+      FRENCH,
+    );
+    expect(a.firstTryByGrade[0].rows).toEqual([
+      { grade: 2, label: "2", range: [1, 2], sends: 2, firstTries: 1, rate: 50 },
+    ]);
+  });
+
+  it("does not count a ceiling raised within one printed label as a breakthrough", () => {
+    const sends = [
+      send({ climbType: "sport", suggestedGrade: 1, dateSent: "2024-01-01" }),
+      send({ climbType: "sport", suggestedGrade: 2, dateSent: "2024-02-01" }),
+      send({ climbType: "sport", suggestedGrade: 5, dateSent: "2024-03-01" }),
+    ];
+    expect(buildUserAnalytics(sends, "sport").breakthroughs.map((b) => b.label)).toEqual([
+      "5.5",
+      "5.2",
+      "5.1",
+    ]);
+    const french = buildUserAnalytics(sends, "sport", undefined, [], FRENCH);
+    expect(french.breakthroughs.map((b) => [b.label, b.dateSent])).toEqual([
+      ["4a", "2024-03-01"],
+      ["2", "2024-01-01"],
+    ]);
+    // The wait still measures from the last printed breakthrough.
+    expect(french.breakthroughs[0].waitDays).toBe(60);
   });
 });

@@ -1,7 +1,7 @@
 import { format as formatDate, isValid, parse } from "date-fns";
 import Papa from "papaparse";
 
-import { parseGrade, type ClimbType } from "@/lib/grades";
+import { parseGrade, type ClimbType, type GradePreferences } from "@/lib/grades";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import {
   ASCENT_STYLES,
@@ -500,8 +500,17 @@ function cleanGradeText(raw: string): string | null {
  * scales in `lib/grades.ts`, which never change how stored text is parsed. */
 export type ImportGradePreference = "native" | "converted";
 
-/** Choose the grade scale that parses more values; ties favor native. */
-export function detectGradeScale(values: string[]): ImportGradePreference {
+/** How a climber who reads Font or French most likely wrote their grades. */
+export function preferredImportGradeScale(prefs: GradePreferences): ImportGradePreference {
+  return prefs.boulder === "font" || prefs.rope === "french" ? "converted" : "native";
+}
+
+/** Choose the grade scale that parses more values; ties favor `fallback`,
+ * the catalog's native scales unless the climber reads the European ones. */
+export function detectGradeScale(
+  values: string[],
+  fallback: ImportGradePreference = "native",
+): ImportGradePreference {
   let native = 0;
   let converted = 0;
   for (const value of values) {
@@ -515,6 +524,7 @@ export function detectGradeScale(values: string[]): ImportGradePreference {
       converted += 1;
     }
   }
+  if (converted === native) return fallback;
   return converted > native ? "converted" : "native";
 }
 

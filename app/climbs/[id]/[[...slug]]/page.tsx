@@ -12,10 +12,10 @@ import { ASCENT_STYLE_LABELS } from "@/components/ascent-style";
 import { AreaBreadcrumbs } from "@/components/breadcrumbs";
 import { ClimbActionsMenu } from "@/components/climb-actions-menu";
 import { ClimbDescription } from "@/components/climb-description";
-import { GradeWithTrend } from "@/components/climb-list";
 import { ClimbActivityLoading, ClimbStatsLoading } from "@/components/climb-page-loading";
 import { ClimbSendList } from "@/components/climb-send-list";
 import { ClimbVideoShelf } from "@/components/climb-video-shelf";
+import { GradeWithTrend } from "@/components/grade-with-trend";
 import { ClimbJournalCard, LogEntryButton } from "@/components/journal";
 import { LoggedGradeHistogram } from "@/components/logged-grade-histogram";
 import { cardClass } from "@/components/ui/card";
@@ -39,7 +39,7 @@ import type { Climb } from "@/db/queries/climbs";
 import { buildLoggedGradeRows } from "@/lib/grade-histogram";
 import type { AscentStyle as AscentStyleType } from "@/lib/sends";
 import { climbDescription, climbJsonLd, climbTitle, locationTrail, pageMetadata } from "@/lib/seo";
-import { getMemberSession } from "@/lib/session";
+import { getMemberSession, getViewerGradePreferences } from "@/lib/session";
 import { areaHref, climbHref } from "@/lib/slug";
 import type { UrlParamsRecord } from "@/lib/url-params";
 
@@ -162,6 +162,7 @@ async function ClimbStats({ climb }: { climb: Climb }) {
     climb.type,
     summary.suggestedGradeCounts,
     climb.grade,
+    await getViewerGradePreferences(),
   );
   return (
     <>

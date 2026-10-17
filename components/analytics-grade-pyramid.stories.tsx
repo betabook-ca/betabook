@@ -30,9 +30,9 @@ export const GradePyramid: Story = {
             type={type}
             sends={[...chartSends(2, 5, type), ...chartSends(12, 3, type)]}
             rows={[
-              { grade: 5, label: nativeGradeArray(type)[5], count: 2 },
-              { grade: 4, label: nativeGradeArray(type)[4], count: 0 },
-              { grade: 3, label: nativeGradeArray(type)[3], count: 12 },
+              { grade: 5, range: [5, 5], label: nativeGradeArray(type)[5], count: 2 },
+              { grade: 4, range: [4, 4], label: nativeGradeArray(type)[4], count: 0 },
+              { grade: 3, range: [3, 3], label: nativeGradeArray(type)[3], count: 12 },
             ]}
           />
         </Example>
@@ -50,9 +50,9 @@ export const PreviewBoundary: Story = {
       <AnalyticsGradePyramid
         type="boulder"
         rows={[
-          { grade: 5, label: "V4", count: 1 },
-          { grade: 4, label: "V3", count: 3 },
-          { grade: 3, label: "V2", count: 4 },
+          { grade: 5, range: [5, 5], label: "V4", count: 1 },
+          { grade: 4, range: [4, 4], label: "V3", count: 3 },
+          { grade: 3, range: [3, 3], label: "V2", count: 4 },
         ]}
         sends={[...chartSends(1, 5), ...chartSends(3, 4), ...chartSends(4, 3)]}
       />

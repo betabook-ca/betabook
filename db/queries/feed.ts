@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import type { FeedCursor, FeedView } from "@/lib/feed";
 import { goalTitle, type GoalTitleInput } from "@/lib/goals";
-import type { ClimbType } from "@/lib/grades";
+import { DEFAULT_GRADE_PREFERENCES, type ClimbType, type GradePreferences } from "@/lib/grades";
 import type { JournalCompanion } from "@/lib/journal-companions";
 import type { AscentStyle, GradeFeel } from "@/lib/sends";
 
@@ -12,7 +12,7 @@ import { companionsJsonSql } from "./journal-companions";
 import { parseVideoList } from "./send-videos";
 import { clampPageSize } from "./shared";
 
-const FEED_PAGE_SIZE = 20;
+export const FEED_PAGE_SIZE = 20;
 
 type FeedActivity = {
   id: number;
@@ -56,6 +56,8 @@ export async function getFeedPage(
   view: FeedView = "all",
   cursor: FeedCursor | null = null,
   pageSize = FEED_PAGE_SIZE,
+  /** The viewer's grading systems, for goal titles that name a grade. */
+  prefs: GradePreferences = DEFAULT_GRADE_PREFERENCES,
 ): Promise<FeedPage> {
   const limit = clampPageSize(pageSize, FEED_PAGE_SIZE);
   type Row = Omit<FeedDay, "activities" | "journalVisible"> &
@@ -176,7 +178,9 @@ export async function getFeedPage(
     }
     day.activities.push({
       ...activity,
-      goalTitle: goalDefinition ? goalTitle(JSON.parse(goalDefinition) as GoalTitleInput) : null,
+      goalTitle: goalDefinition
+        ? goalTitle(JSON.parse(goalDefinition) as GoalTitleInput, prefs)
+        : null,
       areaAncestors: [
         ...(grandparentAreaId != null && grandparentAreaName != null
           ? [{ id: grandparentAreaId, name: grandparentAreaName }]

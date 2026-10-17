@@ -2,10 +2,11 @@
 /* oxlint-disable jsx-a11y/no-noninteractive-tabindex, jsx-a11y/no-noninteractive-element-interactions -- Arrow keys move focus between the named chart's month points. */
 import { ChartClimbDetails } from "@/components/chart-climb-details";
 import { DISCIPLINE_HUE } from "@/components/ui/discipline-chip";
+import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { useChartWidth } from "@/hooks/use-chart-width";
 import { groupDatedRows, type ChartSend } from "@/lib/chart-details";
 import { formatMonth } from "@/lib/format-date";
-import { nativeGradeArray, type ClimbType } from "@/lib/grades";
+import { gradeArray, type ClimbType } from "@/lib/grades";
 import type { ProgressionPoint } from "@/lib/user-analytics";
 
 const H = 200;
@@ -28,11 +29,12 @@ export function ProgressionChart({
   sends: ChartSend[];
 }) {
   const { ref, width: W } = useChartWidth();
+  const prefs = useGradePreferences();
   if (points.length === 0) return null;
 
   const sendsByMonth = groupDatedRows(sends, (send) => send.dateSent, "month");
 
-  const scale = nativeGradeArray(type);
+  const scale = gradeArray(type, prefs);
   const hue = DISCIPLINE_HUE[type];
 
   const m0 = monthIndex(points[0].month);
@@ -64,10 +66,14 @@ export function ProgressionChart({
   };
 
   // Grade rules: one hairline per grade in the visible span, a label on
-  // every `labelStep`-th so wide spans don't collide.
+  // every `labelStep`-th so wide spans don't collide. A scale that prints
+  // two ordinals alike (French 2 for 5.1 and 5.2) labels only the first.
   const gradeCount = gradeMax - gradeMin + 1;
   const labelStep = Math.ceil(gradeCount / 7);
   const grades = Array.from({ length: gradeCount }, (_, i) => gradeMin + i);
+  const showLabel = (grade: number) =>
+    (gradeCount - 1 - (grade - gradeMin)) % labelStep === 0 &&
+    (grade === gradeMin || scale[grade] !== scale[grade - 1]);
 
   // Year ticks: every January inside the span; a span within one calendar
   // year gets its single year under the middle instead.
@@ -145,7 +151,7 @@ export function ProgressionChart({
                   strokeOpacity={0.15}
                   strokeWidth={0.5}
                 />
-                {(gradeCount - 1 - (grade - gradeMin)) % labelStep === 0 && (
+                {showLabel(grade) && (
                   <text
                     x={MARGIN.left - 6}
                     y={y(grade)}

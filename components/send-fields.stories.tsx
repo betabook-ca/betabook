@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useArgs } from "storybook/preview-api";
 
+import { GradePreferencesProvider } from "@/components/ui/grade-preferences";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { SuggestedGradeField } from "./send-fields";
@@ -28,3 +29,16 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 export const Boulder: Story = {};
 export const Rope: Story = { args: { climbType: "sport", value: "15" } };
+
+/** The route picker for an account that reads French: one option per label,
+ * so 5.1 and 5.2 share "2" and choosing it stores the harder of the two. */
+export const French: Story = {
+  args: { climbType: "sport", value: "15" },
+  decorators: [
+    (Story) => (
+      <GradePreferencesProvider value={{ boulder: "hueco", rope: "french" }}>
+        <Story />
+      </GradePreferencesProvider>
+    ),
+  ],
+};

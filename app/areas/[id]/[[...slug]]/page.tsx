@@ -40,7 +40,7 @@ import {
 } from "@/lib/filters/area-climbs-filter";
 import { buildGradeHistogram } from "@/lib/grade-histogram";
 import { areaDescription, areaJsonLd, areaTitle, locationTrail, pageMetadata } from "@/lib/seo";
-import { getMemberSession } from "@/lib/session";
+import { getMemberSession, getViewerGradePreferences } from "@/lib/session";
 import { areaHref } from "@/lib/slug";
 import type { UrlParamsRecord } from "@/lib/url-params";
 
@@ -178,9 +178,16 @@ async function AreaGradeSpreadSection({
   areaPath: string;
   filter: AreaClimbsFilter;
 }) {
-  const rows = await getSubtreeGradeHistogram(await getDb(), area);
+  const [rows, prefs] = await Promise.all([
+    getSubtreeGradeHistogram(await getDb(), area),
+    getViewerGradePreferences(),
+  ]);
   return (
-    <AreaGradeSpread histogram={buildGradeHistogram(rows)} areaPath={areaPath} filter={filter} />
+    <AreaGradeSpread
+      histogram={buildGradeHistogram(rows, prefs)}
+      areaPath={areaPath}
+      filter={filter}
+    />
   );
 }
 

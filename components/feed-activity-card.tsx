@@ -14,11 +14,12 @@ import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import { ClampedComment } from "@/components/ui/clamped-comment";
 import { Grade } from "@/components/ui/grade";
+import { GradeLabel } from "@/components/ui/grade-label";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { feedDayHref, type FeedView } from "@/lib/feed";
 import type { FeedEntry } from "@/lib/feed-groups";
 import { formatDate } from "@/lib/format-date";
-import { formatActivityGrade } from "@/lib/grades";
+import { activityGrade } from "@/lib/grades";
 import { climbHref } from "@/lib/slug";
 
 type Activity = FeedEntry["activity"];
@@ -63,7 +64,7 @@ export function FeedActivityCard({
     .join(" · ");
   const row = ({ day, activity: item }: FeedEntry) => {
     const { label, sent } = outcome(item);
-    const grade = formatActivityGrade(
+    const grade = activityGrade(
       item.climbType,
       item.climbGrade,
       item.kind === "send" || item.kind === "repeat",
@@ -107,7 +108,7 @@ export function FeedActivityCard({
                   {grade && (
                     <Grade className="whitespace-nowrap">
                       <span title={item.reportedGrade != null ? "Climber's grade" : "Posted grade"}>
-                        {grade}
+                        <GradeLabel type={grade.type} grade={grade.grade} />
                       </span>
                       {(item.kind === "send" || item.kind === "repeat") && item.gradeFeel && (
                         <GradeFeelArrow gradeFeel={item.gradeFeel} />

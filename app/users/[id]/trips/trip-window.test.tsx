@@ -33,6 +33,7 @@ vi.mock("@/db/client", async (original) => {
 vi.mock("@/lib/session", () => ({
   getMemberSession: async () =>
     session.userId ? { user: { id: session.userId, name: "Viewer" } } : null,
+  getViewerGradePreferences: async () => ({ boulder: "hueco", rope: "yds" }),
 }));
 vi.mock("@/lib/request-timezone", () => ({ getRequestTimezone: async () => "UTC" }));
 // Album pages come from Google; tests never fetch them.

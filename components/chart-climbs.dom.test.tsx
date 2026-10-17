@@ -24,7 +24,7 @@ describe("chart climb details", () => {
     render(
       <AnalyticsGradePyramid
         type="boulder"
-        rows={[{ grade: 3, label: "V2", count: 6 }]}
+        rows={[{ grade: 3, range: [3, 3], label: "V2", count: 6 }]}
         sends={sends}
       />,
     );
@@ -76,7 +76,7 @@ describe("chart climb details", () => {
     render(
       <AnalyticsGradePyramid
         type="boulder"
-        rows={[{ grade: 3, label: "V2", count: 3 }]}
+        rows={[{ grade: 3, range: [3, 3], label: "V2", count: 3 }]}
         sends={sends.slice(0, 3)}
       />,
     );

@@ -41,7 +41,10 @@ const TripAnalyticsPage = rendered(TripAnalyticsPageImpl);
 const TripPage = rendered(TripPageImpl);
 const UserTripsPage = rendered(UserTripsPageImpl);
 
-vi.mock("@/lib/session", () => ({ getMemberSession: async () => null }));
+vi.mock("@/lib/session", () => ({
+  getMemberSession: async () => null,
+  getViewerGradePreferences: async () => ({ boulder: "hueco", rope: "yds" }),
+}));
 vi.mock("@/lib/request-timezone", () => ({ getRequestTimezone: async () => "UTC" }));
 // Album pages come from Google; tests never fetch them.
 vi.mock("@/lib/trip-album-loader", () => ({ loadAlbumPhotos: async () => [] }));
