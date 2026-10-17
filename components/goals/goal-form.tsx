@@ -9,6 +9,7 @@ import { choicePillClass } from "@/components/ui/choice-pill";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { DISCIPLINE_CHIP_CLASSNAME, DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
 import { FIELD_HEIGHT_CLASS } from "@/components/ui/field";
+import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { OptionSelect } from "@/components/ui/option-select";
 import { PageTitle } from "@/components/ui/typography";
@@ -21,7 +22,7 @@ import {
   goalWindow,
   type GoalInput,
 } from "@/lib/goals";
-import { nativeGradeArray, type ClimbType } from "@/lib/grades";
+import { gradeOptionValue, gradeOptions, nativeGradeArray, type ClimbType } from "@/lib/grades";
 
 const SENTENCE_GROUP_CLASS = "inline-flex max-w-full items-center gap-1";
 const SENTENCE_SHORT_FIELD = "w-20 max-w-full min-w-0";
@@ -235,8 +236,10 @@ export function GoalForm({
   const backRef = useRef<HTMLButtonElement>(null);
   const categoryRef = useRef<HTMLButtonElement>(null);
   const id = useId();
-  const grades = nativeGradeArray(discipline);
-  const gradeOptions = grades.map((label, i) => ({ value: String(i), label }));
+  const prefs = useGradePreferences();
+  const gradeChoices = gradeOptions(discipline, prefs);
+  const selectedGrade =
+    grade === "any" ? grade : gradeOptionValue(discipline, Number(grade), prefs);
   const isClimbing = category === "climbing";
   const unit =
     goal === "training"
@@ -468,12 +471,12 @@ export function GoalForm({
                         </span>
                         <OptionSelect
                           ariaLabel="Grade"
-                          value={grade}
+                          value={selectedGrade}
                           onChange={setGrade}
                           options={
                             goal === "grade"
-                              ? gradeOptions
-                              : [{ value: "any", label: "Any" }, ...gradeOptions]
+                              ? gradeChoices
+                              : [{ value: "any", label: "Any" }, ...gradeChoices]
                           }
                           className={`${discipline === "boulder" ? "w-20" : "w-24"} min-w-0 shrink-0 ${SENTENCE_SELECT_TEXT_CLASS}`}
                         />

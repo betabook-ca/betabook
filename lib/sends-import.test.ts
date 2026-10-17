@@ -21,6 +21,7 @@ import {
   normalizeImportRows,
   parseCsvText,
   parseDateWithFormat,
+  preferredImportGradeScale,
   splitAreaHint,
   valueCounts,
   MP_ASCENT_COLUMN,
@@ -1179,6 +1180,15 @@ describe("detectGradeScale", () => {
     expect(detectGradeScale(["6A", "7B+", "6c", "V2"])).toBe("converted");
     expect(detectGradeScale(["banana", ""])).toBe("native");
     expect(detectGradeScale(["6A", "V4"])).toBe("native");
+  });
+
+  it("breaks a tie toward the climber's own grading systems", () => {
+    expect(detectGradeScale(["6A", "V4"], "converted")).toBe("converted");
+    expect(detectGradeScale(["banana", ""], "converted")).toBe("converted");
+    expect(detectGradeScale(["V4", "V6", "5.11a", "6A"], "converted")).toBe("native");
+    expect(preferredImportGradeScale({ boulder: "hueco", rope: "yds" })).toBe("native");
+    expect(preferredImportGradeScale({ boulder: "font", rope: "yds" })).toBe("converted");
+    expect(preferredImportGradeScale({ boulder: "hueco", rope: "french" })).toBe("converted");
   });
 });
 

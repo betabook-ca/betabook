@@ -4,8 +4,9 @@ import { BrokenChip } from "@/components/ui/broken-chip";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Grade } from "@/components/ui/grade";
+import { GradeLabel } from "@/components/ui/grade-label";
 import { PageTitle } from "@/components/ui/typography";
-import { formatGrade, type ClimbType } from "@/lib/grades";
+import type { ClimbType } from "@/lib/grades";
 
 type ClimbHeaderProps = {
   climb: { name: string; type: ClimbType; grade: number | null; brokenOn: string | null };
@@ -20,7 +21,9 @@ export function ClimbHeader({ climb, eyebrow, children }: ClimbHeaderProps) {
       {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
       <PageTitle>{climb.name}</PageTitle>
       <div className="mt-1 flex items-center gap-2">
-        <Grade size="md">{formatGrade(climb.type, climb.grade)}</Grade>
+        <Grade size="md">
+          <GradeLabel type={climb.type} grade={climb.grade} />
+        </Grade>
         <DisciplineChip type={climb.type} />
         {climb.brokenOn && <BrokenChip brokenOn={climb.brokenOn} />}
       </div>

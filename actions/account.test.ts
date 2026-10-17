@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   removeProfilePhoto,
   resetProfileShareLink,
+  setGradePreferences,
   setJournalVisibility,
   setSendCommentVisibility,
   setUserPrivate,
@@ -359,6 +360,77 @@ describe("independent send commentary audience", () => {
       error: SESSION_EXPIRED_MESSAGE,
     });
     expect(await privacy()).toEqual(before);
+  });
+});
+
+describe("setGradePreferences action boundary", () => {
+  async function scales() {
+    return db
+      .select({
+        id: user.id,
+        boulderGradeScale: user.boulderGradeScale,
+        ropeGradeScale: user.ropeGradeScale,
+      })
+      .from(user)
+      .orderBy(user.id);
+  }
+
+  it("defaults every account to the catalog's native systems", async () => {
+    expect(await scales()).toEqual([
+      { id: "other-user", boulderGradeScale: "hueco", ropeGradeScale: "yds" },
+      { id: "test-user", boulderGradeScale: "hueco", ropeGradeScale: "yds" },
+    ]);
+  });
+
+  it("saves both systems for the signed-in user only", async () => {
+    expect(await setGradePreferences({ boulder: "font", rope: "french" })).toEqual({
+      ok: true,
+      value: undefined,
+    });
+    expect(await scales()).toEqual([
+      { id: "other-user", boulderGradeScale: "hueco", ropeGradeScale: "yds" },
+      { id: "test-user", boulderGradeScale: "font", ropeGradeScale: "french" },
+    ]);
+
+    expect(await setGradePreferences({ boulder: "hueco", rope: "french" })).toEqual({
+      ok: true,
+      value: undefined,
+    });
+    expect((await scales())[1]).toEqual({
+      id: "test-user",
+      boulderGradeScale: "hueco",
+      ropeGradeScale: "french",
+    });
+  });
+
+  it("rejects a system from the wrong family and saves neither half", async () => {
+    const before = await scales();
+    expect(await setGradePreferences({ boulder: "french", rope: "french" })).toEqual({
+      ok: false,
+      error: "Invalid grading system",
+    });
+    expect(await setGradePreferences({ boulder: "font", rope: "Font" })).toEqual({
+      ok: false,
+      error: "Invalid grading system",
+    });
+    expect(await scales()).toEqual(before);
+  });
+
+  it("requires a signed-in user and leaves every account unchanged", async () => {
+    const before = await scales();
+    sessionState.userId = null;
+    expect(await setGradePreferences({ boulder: "font", rope: "french" })).toEqual({
+      ok: false,
+      error: SESSION_EXPIRED_MESSAGE,
+    });
+    expect(await scales()).toEqual(before);
+  });
+
+  it("leaves privacy and the rest of the row untouched", async () => {
+    const before = await db.select().from(user).where(eq(user.id, "test-user")).get();
+    await setGradePreferences({ boulder: "font", rope: "yds" });
+    const after = await db.select().from(user).where(eq(user.id, "test-user")).get();
+    expect(after).toEqual({ ...before, boulderGradeScale: "font", updatedAt: after?.updatedAt });
   });
 });
 

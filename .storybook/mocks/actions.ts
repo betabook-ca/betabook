@@ -32,6 +32,10 @@ export const removeProfilePhoto = fn<typeof Actions.removeProfilePhoto>(async ()
   ok: true,
   value: undefined,
 }));
+export const setGradePreferences = fn<typeof Actions.setGradePreferences>(async () => ({
+  ok: true,
+  value: undefined,
+}));
 export const requestFriendship = fn<typeof Actions.requestFriendship>(async () => ({
   ok: true,
   value: "outgoing",

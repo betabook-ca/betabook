@@ -26,7 +26,7 @@ export const sends = sqliteTable(
     comment: text("comment"),
     rating: integer("rating"), // 1-5, nullable = abstained
     // Same ordinal space as climbs.grade, scoped by climb.type. Never null since
-    // 0053_require_grades (triggers, not NOT NULL; see docs/repository-guide.md).
+    // 0054_require_grades (triggers, not NOT NULL; see docs/repository-guide.md).
     suggestedGrade: integer("suggested_grade"),
     gradeFeel: text("grade_feel", { enum: ["low", "solid", "high"] })
       .notNull()

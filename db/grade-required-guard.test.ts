@@ -8,7 +8,7 @@ import { seedFixtureTree, seedFixtureUser } from "@/test/fixtures";
 
 /**
  * Every climb has a listed grade and every send a suggested grade. The app
- * validates both; the triggers from 0053_require_grades are the backstop for
+ * validates both; the triggers from 0054_require_grades are the backstop for
  * every other write path, so these go straight at the tables.
  */
 

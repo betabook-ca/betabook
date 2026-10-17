@@ -11,6 +11,7 @@ import { DisciplineChips } from "@/components/filters/discipline-chips";
 import { DisciplineGradeSliders } from "@/components/filters/discipline-grade-sliders";
 import { cardClass } from "@/components/ui/card";
 import { FIELD_HEIGHT_CLASS } from "@/components/ui/field";
+import { useGradePreferences } from "@/components/ui/grade-preferences";
 import type { DisciplineFilter } from "@/lib/filters/discipline-filter";
 
 const EMPTY_ACTIVE_FILTERS: ActiveFilter[] = [];
@@ -36,9 +37,10 @@ export function FilterToolbar<T extends DisciplineFilter>({
   extraFilters?: ReactNode;
   activeFilters?: ActiveFilter[];
 }) {
+  const prefs = useGradePreferences();
   return (
     <FilterToolbarLayout
-      activeFilters={[...disciplineActiveFilters(value, onChange), ...activeFilters]}
+      activeFilters={[...disciplineActiveFilters(value, onChange, prefs), ...activeFilters]}
       search={textFilter}
       controls={
         <DisciplineChips

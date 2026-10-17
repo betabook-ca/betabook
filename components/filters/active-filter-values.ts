@@ -4,17 +4,23 @@ import { MAX_RATING } from "@/lib/filters/climb-stats-filter";
 import type { DateFilterValue, RelativeDatePreset } from "@/lib/filters/date-filter";
 import { DEFAULT_DISCIPLINE_FILTER, type DisciplineFilter } from "@/lib/filters/discipline-filter";
 import { formatDate } from "@/lib/format-date";
-import { nativeGradeArray } from "@/lib/grades";
+import { DEFAULT_GRADE_PREFERENCES, gradeArray, type GradePreferences } from "@/lib/grades";
 
 export function disciplineActiveFilters<T extends DisciplineFilter>(
   value: T,
   onChange: (value: T) => void,
+  prefs: GradePreferences = DEFAULT_GRADE_PREFERENCES,
 ): ActiveFilter[] {
   return value.disciplines.flatMap((discipline) => {
     const key = `${discipline}Range` as const;
     const range = value[key];
     const defaults = DEFAULT_DISCIPLINE_FILTER[key];
-    const grades = nativeGradeArray(discipline);
+    const grades = gradeArray(discipline, prefs);
+    // Both ends can print alike (French 2 covers 5.1 and 5.2): one label then.
+    const span =
+      grades[range[0]] === grades[range[1]]
+        ? grades[range[0]]
+        : `${grades[range[0]]}–${grades[range[1]]}`;
     const filters: ActiveFilter[] = [
       {
         id: discipline,
@@ -26,7 +32,7 @@ export function disciplineActiveFilters<T extends DisciplineFilter>(
     if (range[0] !== defaults[0] || range[1] !== defaults[1])
       filters.push({
         id: key,
-        label: `${DISCIPLINE_LABELS[discipline]} grades: ${grades[range[0]]}–${grades[range[1]]}`,
+        label: `${DISCIPLINE_LABELS[discipline]} grades: ${span}`,
         onRemove: () => onChange({ ...value, [key]: defaults }),
       });
     return filters;

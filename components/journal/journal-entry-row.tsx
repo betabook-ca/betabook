@@ -7,9 +7,10 @@ import { JournalEntryLayout, JournalEntryStatus } from "@/components/journal/jou
 import { sendVideoMedia } from "@/components/send-video-media";
 import { AppLink } from "@/components/ui/app-link";
 import { Grade } from "@/components/ui/grade";
+import { GradeLabel } from "@/components/ui/grade-label";
 import type { AreaBreadcrumbs, JournalEntry } from "@/db/queries";
 import { journalFilterToSearchParams, type JournalFilter } from "@/lib/filters/journal-filter";
-import { formatActivityGrade } from "@/lib/grades";
+import { activityGrade } from "@/lib/grades";
 import { climbHref } from "@/lib/slug";
 
 function tagHref(userId: string, filter: JournalFilter, tag: string): string {
@@ -37,12 +38,7 @@ export function JournalEntryRow({
   filter: JournalFilter;
   areaBreadcrumbs: AreaBreadcrumbs;
 }) {
-  const grade = formatActivityGrade(
-    entry.climbType,
-    entry.climbGrade,
-    entry.sent,
-    entry.reportedGrade,
-  );
+  const grade = activityGrade(entry.climbType, entry.climbGrade, entry.sent, entry.reportedGrade);
   const status = (
     <JournalEntryStatus
       kind={
@@ -103,7 +99,7 @@ export function JournalEntryRow({
           grade ? (
             <Grade>
               <span title={entry.reportedGrade != null ? "Climber's grade" : "Posted grade"}>
-                {grade}
+                <GradeLabel type={grade.type} grade={grade.grade} />
               </span>
             </Grade>
           ) : undefined

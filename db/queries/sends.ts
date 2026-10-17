@@ -9,7 +9,12 @@ import {
   DEFAULT_TRAD_RANGE,
   type DisciplineFilter,
 } from "@/lib/filters/discipline-filter";
-import { formatGrade, type ClimbType } from "@/lib/grades";
+import {
+  DEFAULT_GRADE_PREFERENCES,
+  formatGrade,
+  type ClimbType,
+  type GradePreferences,
+} from "@/lib/grades";
 import { ASCENT_STYLES, GRADE_FEEL_OFFSET, type AscentStyle, type GradeFeel } from "@/lib/sends";
 
 import { areaIdCondition, areaNameCondition } from "./areas";
@@ -437,8 +442,13 @@ export type UserStatsSummary = {
 type UserSendsTotals = { sendCount: number; areaCount: number; latestSendDate: string | null };
 type TopDiscipline = { type: ClimbType; count: number; maxGrade: number | null };
 
-/** Peak grade uses the most-logged discipline; ordinals are not comparable across disciplines. */
-export async function getUserSendsSummary(db: Database, userId: string): Promise<UserStatsSummary> {
+/** Peak grade uses the most-logged discipline; ordinals are not comparable
+ * across disciplines. It is labelled in the reader's scales. */
+export async function getUserSendsSummary(
+  db: Database,
+  userId: string,
+  prefs: GradePreferences = DEFAULT_GRADE_PREFERENCES,
+): Promise<UserStatsSummary> {
   const [totals] = await db.all<UserSendsTotals>(sql`
     SELECT
       COUNT(*) AS sendCount,
@@ -478,7 +488,7 @@ export async function getUserSendsSummary(db: Database, userId: string): Promise
       : null,
     peakGrade:
       topDiscipline?.maxGrade != null
-        ? formatGrade(topDiscipline.type, topDiscipline.maxGrade)
+        ? formatGrade(topDiscipline.type, topDiscipline.maxGrade, prefs)
         : null,
   };
 }

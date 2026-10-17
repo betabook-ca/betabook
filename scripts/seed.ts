@@ -297,7 +297,7 @@ function insertClimbs(db: DatabaseSync, count: number, areaIds: number[]): Climb
   const climbs: Climb[] = [];
   for (let i = 0; i < count; i += 1) {
     const type: ClimbType = faker.helpers.arrayElement(TYPES);
-    // Every climb has a listed grade (0053_require_grades).
+    // Every climb has a listed grade (0054_require_grades).
     const grade = bellGrade(MAX_GRADE[type]);
     const id = insert.run(
       faker.helpers.arrayElement(areaIds),
