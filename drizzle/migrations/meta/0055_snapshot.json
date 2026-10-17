@@ -505,7 +505,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'public'"
+          "default": "'friends'"
         },
         "product_tour_returning": {
           "name": "product_tour_returning",

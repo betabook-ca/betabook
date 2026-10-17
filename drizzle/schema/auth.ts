@@ -54,7 +54,7 @@ export const user = sqliteTable(
     tripVisibility: text("trip_visibility", {
       enum: ["private", "friends", "public"],
     })
-      .default("public")
+      .default("friends")
       .notNull(),
     productTourReturning: integer("product_tour_returning", { mode: "boolean" })
       .default(false)

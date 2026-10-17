@@ -290,6 +290,8 @@ it("keeps the profile's sub-pages locked with a current share link", async () =>
  * and 4. */
 async function seedSharedTrip() {
   const token = await seedSharedProfile();
+  // The link only opens trips shared with Members.
+  await db.update(user).set({ tripVisibility: "public" }).where(eq(user.id, "hidden"));
   const trip = await seedFixtureTrip(db, {
     userId: "hidden",
     name: "Trip sentinel",

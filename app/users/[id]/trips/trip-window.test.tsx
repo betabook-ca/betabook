@@ -113,7 +113,9 @@ beforeEach(async () => {
   session.userId = OWNER;
   await resetDb(db);
   await seedFixtureTree(db);
-  await seedFixtureUser(db, { id: OWNER, name: "Trip Owner" });
+  // Most tests here are about what members and link holders see inside a
+  // trip, so the owner shares trips with Members. The default is Friends.
+  await seedFixtureUser(db, { id: OWNER, name: "Trip Owner", tripVisibility: "public" });
   await seedFixtureUser(db, { id: STRANGER, name: "Passing Climber" });
 });
 

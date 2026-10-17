@@ -31,7 +31,9 @@ const BISHOP = { startDate: "2026-03-10", endDate: "2026-03-20" };
 beforeEach(async () => {
   await resetDb(db);
   await seedFixtureTree(db);
-  await seedFixtureUser(db, { id: OWNER, name: "Trip Owner" });
+  // Most tests here are about what members and link holders see inside a
+  // trip, so the owner shares trips with Members. The default is Friends.
+  await seedFixtureUser(db, { id: OWNER, name: "Trip Owner", tripVisibility: "public" });
   await seedFixtureUser(db, { id: STRANGER, name: "Passing Climber" });
 });
 
@@ -234,7 +236,7 @@ describe("who can read a trip", () => {
     await seedFixtureTrip(db, { userId: STRANGER, name: "Squamish", ...BISHOP });
 
     expect((await getTripsForUser(db, OWNER, OWNER)).map((trip) => trip.name)).toEqual(["Bishop"]);
-    expect((await getTripsForUser(db, STRANGER, OWNER)).map((trip) => trip.name)).toEqual([
+    expect((await getTripsForUser(db, STRANGER, STRANGER)).map((trip) => trip.name)).toEqual([
       "Squamish",
     ]);
   });
@@ -432,11 +434,12 @@ describe("trip audience", () => {
     expect(await readers(trip.id, link)).toEqual(expected);
   });
 
-  it("defaults to Members, which is what trips showed before the setting", async () => {
-    const trip = await seedTrip();
-    const link = (await getProfileShareToken(db, OWNER))!;
-
-    expect(await readers(trip.id, link)).toEqual(["owner", "friend", "member", "link"]);
+  it("starts every account at Friends", async () => {
+    await seedFixtureUser(db, { id: "newcomer", name: "New Climber" });
+    const row = await db.get<{ audience: string }>(
+      sql`SELECT trip_visibility AS audience FROM user WHERE id = 'newcomer'`,
+    );
+    expect(row?.audience).toBe("friends");
   });
 
   it("ignores the journal audience", async () => {

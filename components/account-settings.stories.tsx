@@ -12,7 +12,7 @@ const meta = {
     isPrivate: false,
     journalVisibility: "friends",
     sendCommentVisibility: "public",
-    tripVisibility: "public",
+    tripVisibility: "friends",
     gradePreferences: { boulder: "hueco", rope: "yds" },
     shareUrl: `https://betabook.ca/users/${USER_ID}?share=4f9c2a7e1b8d6035c9e4a1f7b2d80e36`,
     turnstileSiteKey: null,

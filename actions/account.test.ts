@@ -295,7 +295,7 @@ describe("setTripVisibility action boundary", () => {
       expect(await setTripVisibility(audience)).toEqual({ ok: true, value: undefined });
       expect(await tripVisibility("test-user")).toBe(audience);
     }
-    expect(await tripVisibility("other-user")).toBe("public");
+    expect(await tripVisibility("other-user")).toBe("friends");
     expect(
       (await db.select().from(user).where(eq(user.id, "test-user")).get())?.journalVisibility,
     ).toBe("private");

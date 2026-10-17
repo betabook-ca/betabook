@@ -333,7 +333,7 @@ export function DemoAccount() {
   const [isPrivate, setIsPrivate] = useState(false);
   const [journalVisibility, setJournalVisibility] = useState<SharingAudience>("friends");
   const [sendCommentVisibility, setSendCommentVisibility] = useState<SendCommentAudience>("public");
-  const [tripVisibility, setTripVisibility] = useState<SharingAudience>("public");
+  const [tripVisibility, setTripVisibility] = useState<SharingAudience>("friends");
   return (
     <div className="flex flex-col gap-4">
       <SettingsSection id="demo-privacy" title="Privacy" layout="stacked">
