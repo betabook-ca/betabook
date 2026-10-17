@@ -75,10 +75,7 @@ export function composeClimbBreakTexts(
   const appendedDescription = climb.description
     ? `${climb.description}\n\n${breakNotice}`
     : breakNotice;
-  const gradeSentence =
-    climb.grade === null
-      ? ""
-      : ` Its ${formatGrade(climb.type, climb.grade)} grade is carried over from the original as a placeholder until it sees more ascents.`;
+  const gradeSentence = ` Its ${formatGrade(climb.type, climb.grade)} grade is carried over from the original as a placeholder until it sees more ascents.`;
   const successorDescription = `Post-break version of ${climb.name}, which broke on ${input.brokenOn}.${gradeSentence}`;
   return { successorName, appendedDescription, successorDescription };
 }

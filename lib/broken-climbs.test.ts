@@ -55,9 +55,9 @@ describe("composeClimbBreakTexts", () => {
     );
   });
 
-  it("starts the description from the notice when none exists, keeps reason punctuation, and skips the grade sentence for an ungraded climb", () => {
+  it("starts the description from the notice when none exists and keeps reason punctuation", () => {
     const texts = composeClimbBreakTexts(
-      { name: "Unnamed Arete", type: "sport", grade: null, description: null },
+      { name: "Unnamed Arete", type: "sport", grade: 10, description: null },
       { brokenOn: "2025-11-30", reason: "Rockfall!" },
     );
     expect(texts.successorName).toBe("Unnamed Arete - post break (2025)");
@@ -66,7 +66,7 @@ describe("composeClimbBreakTexts", () => {
         "The post-break version is listed as Unnamed Arete - post break (2025).",
     );
     expect(texts.successorDescription).toBe(
-      "Post-break version of Unnamed Arete, which broke on 2025-11-30.",
+      "Post-break version of Unnamed Arete, which broke on 2025-11-30. Its 5.10a grade is carried over from the original as a placeholder until it sees more ascents.",
     );
   });
 

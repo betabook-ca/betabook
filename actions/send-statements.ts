@@ -9,7 +9,7 @@ type SendInsert = {
   userId: string;
   climbId: number;
   climbType: ClimbType;
-  input: Omit<SendInput, "suggestedGrade"> & { suggestedGrade: number | null };
+  input: SendInput;
 };
 
 export function buildSendInsert(db: Database, values: SendInsert | SendInsert[]) {
@@ -29,9 +29,12 @@ export function buildSendInsert(db: Database, values: SendInsert | SendInsert[])
   );
 }
 
-type SendUpdateValues = Partial<typeof sends.$inferInsert> & {
+/** Every send has a suggested grade (0054_require_grades): an update may leave
+ * it out, but can't clear it. */
+type SendUpdateValues = Omit<Partial<typeof sends.$inferInsert>, "suggestedGrade"> & {
   dateSent: string | null;
   comment: string | null;
+  suggestedGrade?: number;
 };
 
 export function buildMirroredSendUpdate(

@@ -98,8 +98,7 @@ it("returns route grades, disciplines, descriptions, aggregates and navigation",
     hasNextPage: false,
   });
 });
-it("returns rope and unknown grades with their disciplines", async () => {
-  await db.insert(climbs).values({ id: 20, areaId: 4, name: "Ungraded", type: "boulder" });
+it("returns boulder and rope grades with their disciplines", async () => {
   const page = (await (await climbSearch(request(""))).json()) as PublicClimbsPage;
   // A nameless list scans the ascents index, so equal counts tie by id.
   expect(page.climbs.map(({ name, grade, type }) => ({ name, grade, type }))).toEqual([
@@ -107,7 +106,6 @@ it("returns rope and unknown grades with their disciplines", async () => {
     { name: "Test Slab", grade: 2, type: "boulder" },
     { name: "Test Crimper", grade: 10, type: "sport" },
     { name: "Test Crack", grade: 6, type: "trad" },
-    { name: "Ungraded", grade: null, type: "boulder" },
   ]);
   expect(JSON.stringify(page)).not.toContain('"sendStats":');
 });
@@ -197,23 +195,21 @@ it("narrows public climbs by discipline, alone and combined", async () => {
   expect(await read("discipline=boulder&name=Slab")).toEqual(["Test Slab"]);
   expect(await read("discipline=sport&name=Slab")).toEqual([]);
 });
-it("narrows public climbs by grade within a discipline, excluding ungraded routes", async () => {
-  await db.insert(climbs).values({ id: 20, areaId: 4, name: "Test Unknown", type: "boulder" });
+it("narrows public climbs by grade within a discipline", async () => {
   const read = async (query: string) =>
     ((await (await climbSearch(request(query))).json()) as PublicClimbsPage).climbs.map(
       (row) => row.name,
     );
-  // V4 (grade 5) is inside 4–6; V1 (grade 2) and the ungraded route are not.
+  // V4 (grade 5) is inside 4–6; V1 (grade 2) is not.
   expect(await read("discipline=boulder&boulderRange=4&boulderRange=6")).toEqual(["Test Highball"]);
   expect(await read("discipline=boulder&boulderRange=0&boulderRange=3")).toEqual(["Test Slab"]);
-  // A full range keeps ungraded routes; a range without its discipline is inert.
-  expect(await read("discipline=boulder")).toEqual(["Test Highball", "Test Slab", "Test Unknown"]);
+  // A range without its discipline is inert.
+  expect(await read("discipline=boulder")).toEqual(["Test Highball", "Test Slab"]);
   expect(await read("boulderRange=4&boulderRange=6")).toEqual([
     "Test Highball",
     "Test Slab",
     "Test Crimper",
     "Test Crack",
-    "Test Unknown",
   ]);
 });
 it("applies discipline refinements to an area's own public climb list", async () => {
@@ -234,8 +230,7 @@ it.each(["discipline=boulder", "boulderRange=4&boulderRange=6"])(
     expect(response.headers.get("cache-control")).toBe("private, no-store");
   },
 );
-it("orders public climbs by grade, keeping ties and ungraded routes off member aggregates", async () => {
-  await db.insert(climbs).values({ id: 20, areaId: 4, name: "Test Unknown", type: "boulder" });
+it("orders public climbs by grade, keeping ties off member aggregates", async () => {
   // A high rating and ascent count on the easiest route: if either reached the
   // ordering, this row would not stay first ascending.
   await db
@@ -251,14 +246,12 @@ it("orders public climbs by grade, keeping ties and ungraded routes off member a
     "Test Highball",
     "Test Crack",
     "Test Crimper",
-    "Test Unknown",
   ]);
   expect(await read("sort=grade_desc")).toEqual([
     "Test Crimper",
     "Test Crack",
     "Test Highball",
     "Test Slab",
-    "Test Unknown",
   ]);
 });
 it.each(["sort=grade_asc", "sort=grade_desc"])(

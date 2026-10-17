@@ -151,7 +151,6 @@ function row(
     rating: null,
     comment: null,
     gradeText: null,
-    blankGradeMeans: "posted-grade",
     postedGradeText: null,
     gradeFeel: "solid",
     raw: {},

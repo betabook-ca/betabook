@@ -118,7 +118,7 @@ const COLUMN_FIELDS: { key: FieldKey; label: string; hint: string }[] = [
   {
     key: "suggestedGrade",
     label: "Grade",
-    hint: "The grade you logged, imported as your suggested grade. Blank means no suggestion.",
+    hint: "The grade you logged, imported as your suggested grade. Blank takes the climb’s listed grade, or keeps the grade of a send you overwrite.",
   },
   {
     key: "gradeFeel",
@@ -207,7 +207,6 @@ function toImportSendRow(resolved: ResolvedRow, climb: ClimbCandidate): ImportSe
     comment: row.comment,
     gradeFeel: row.gradeFeel,
     gradeText: row.gradeText,
-    blankGradeMeans: row.blankGradeMeans,
   };
 }
 

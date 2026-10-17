@@ -48,7 +48,6 @@ function row(climbId: number, overrides: Partial<ImportSendRow> = {}): ImportSen
     rating: null,
     comment: null,
     gradeText: null,
-    blankGradeMeans: "posted-grade",
     gradeFeel: "solid",
     ...overrides,
   };

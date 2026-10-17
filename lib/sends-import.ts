@@ -582,11 +582,9 @@ export type NormalizedImportRow = {
   dateSent: string | null; // ISO if present; blank in the CSV -> null, not a failure
   rating: number | null;
   comment: string | null; // truncated to MAX_COMMENT_LENGTH here, not rejected
-  /** Suggested-grade text; falls back to the Grade column only if no Suggested Grade is mapped. */
+  /** Suggested-grade text; falls back to the Grade column only if no Suggested Grade
+   * is mapped. A blank or unreadable grade imports at the climb's listed grade. */
   gradeText: string | null;
-  /** A blank mapped Suggested Grade means no suggestion. With only Grade mapped,
-   * a blank falls back to the climb's posted grade. Preserve this distinction on export/import. */
-  blankGradeMeans: "posted-grade" | "no-suggestion";
   /** Posted grade from the source, preferred over the climber's grade for matching. */
   postedGradeText: string | null;
   gradeFeel: GradeFeel; // optional CSV column; defaults to "solid" if absent/unrecognized
@@ -611,7 +609,8 @@ export type CoercionWarning = {
 const WARNING_EXAMPLE_LIMIT = 3;
 
 const COERCION_MESSAGES: Record<CoercionWarning["field"], string> = {
-  suggestedGrade: "unrecognized grade, imported without a suggested grade",
+  suggestedGrade:
+    "unrecognized grade, imported at the climb’s listed grade (an overwritten send keeps its grade)",
   rating: "imported without a rating",
   gradeFeel: 'unmapped grade feel, imported as "solid"',
   comment: `comment longer than ${MAX_COMMENT_LENGTH} characters, truncated`,
@@ -740,9 +739,6 @@ export function normalizeImportRows(
       : null;
 
     const gradeColumn = mapping.suggestedGrade ?? mapping.grade;
-    const blankGradeMeans = mapping.suggestedGrade
-      ? ("no-suggestion" as const)
-      : ("posted-grade" as const);
     const gradeText = cleanGradeText(cell(gradeColumn));
     if (gradeText && !gradeTextParses(gradeText, climbTypeHint, gradeScalePreference)) {
       warn("suggestedGrade", rowIndex, `"${gradeText}"`);
@@ -766,7 +762,6 @@ export function normalizeImportRows(
       rating,
       comment,
       gradeText,
-      blankGradeMeans,
       postedGradeText,
       gradeFeel,
       raw: row,

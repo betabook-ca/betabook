@@ -50,9 +50,14 @@ async function aggregates(climbId: number) {
 }
 
 function insertSend(userId: string, climbId: number, rating: number | null) {
-  return db
-    .insert(sends)
-    .values({ userId, climbId, ascentStyle: "redpoint", dateSent: null, rating });
+  return db.insert(sends).values({
+    userId,
+    climbId,
+    ascentStyle: "redpoint",
+    dateSent: null,
+    rating,
+    suggestedGrade: 2,
+  });
 }
 
 function sendFor(userId: string, climbId: number) {

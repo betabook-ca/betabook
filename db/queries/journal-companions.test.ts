@@ -51,6 +51,7 @@ async function datedSend() {
     dateSent: "2026-09-01",
     ascentStyle: "redpoint",
     comment: "Send note",
+    suggestedGrade: 5,
   });
   await db.insert(journalEntries).values({
     id: 5000,

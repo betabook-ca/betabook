@@ -379,6 +379,13 @@
       "when": 1792187851764,
       "tag": "0053_user_grade_scales",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "6",
+      "when": 1792214434229,
+      "tag": "0054_require_grades",
+      "breakpoints": true
     }
   ]
 }

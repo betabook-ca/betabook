@@ -687,7 +687,6 @@ describe("normalizeImportRows", () => {
         rating: 4,
         comment: "Very fun climbing",
         gradeText: "5.11c",
-        blankGradeMeans: "no-suggestion",
         postedGradeText: null,
         gradeFeel: "solid",
         raw: row(),
@@ -937,7 +936,6 @@ describe("normalizeImportRows", () => {
     });
     expect(warnings).toEqual([]);
     expect(valid[0].gradeText).toBeNull();
-    expect(valid[0].blankGradeMeans).toBe("no-suggestion");
     expect(valid[0].postedGradeText).toBe("5.10c");
     // A protection rating is stripped from either grade column.
     expect(valid[1].gradeText).toBe("5.10a");
@@ -989,24 +987,14 @@ describe("normalizeImportRows suggested-grade semantics", () => {
     );
     expect(invalid).toEqual([]);
     expect(valid[0].gradeText).toBe("5.12a");
-    expect(valid[0].blankGradeMeans).toBe("no-suggestion");
   });
 
-  it("treats a blank Suggested Grade cell as no suggestion, not as the Grade column's value", () => {
+  it("leaves a blank Suggested Grade cell blank rather than taking the Grade column's value", () => {
     const { valid } = normalizeRows(
       csvWithSuggested([row({ Grade: "5.11c", "Suggested Grade": "" })]),
       { mapping: MAPPING_WITH_SUGGESTED },
     );
     expect(valid[0].gradeText).toBeNull();
-    expect(valid[0].blankGradeMeans).toBe("no-suggestion");
-  });
-
-  it("keeps posted-grade fallback semantics when only a posted Grade column is mapped", () => {
-    const { valid } = normalizeRows(csv([row({ Grade: "" })]), {
-      mapping: { ...FULL_MAPPING, grade: "Grade", suggestedGrade: null },
-    });
-    expect(valid[0].gradeText).toBeNull();
-    expect(valid[0].blankGradeMeans).toBe("posted-grade");
   });
 });
 

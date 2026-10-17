@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 
 import type { Database } from "@/db/client";
@@ -195,11 +195,13 @@ type FixtureSendOverrides = Partial<typeof sends.$inferInsert> & {
  * every other migration — so seeding directly here stays consistent with a
  * real write, and getSubtreeClimbs sort/rating assertions hold. */
 export async function seedFixtureSend(db: Database, overrides: FixtureSendOverrides) {
+  // Every send has a suggested grade (0054_require_grades); default to the
+  // climb's listed grade, as the send form does.
   const row = {
     ascentStyle: "redpoint" as const,
     comment: null,
     rating: null,
-    suggestedGrade: null,
+    suggestedGrade: sql<number>`(SELECT grade FROM climbs WHERE id = ${overrides.climbId})`,
     ...overrides,
   };
   await db.insert(sends).values(row);

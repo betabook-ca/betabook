@@ -209,8 +209,8 @@ function addDay(db: DatabaseSync, userId: string) {
   const date = "2026-09-01";
   const note = "A good day out with friends. Finally found a steady sequence.";
   db.prepare(
-    "INSERT INTO sends (user_id, climb_id, ascent_style, date_sent, comment) VALUES (?, ?, 'redpoint', ?, ?)",
-  ).run(userId, climb.id, date, note);
+    "INSERT INTO sends (user_id, climb_id, ascent_style, date_sent, comment, suggested_grade) VALUES (?, ?, 'redpoint', ?, ?, (SELECT grade FROM climbs WHERE id = ?))",
+  ).run(userId, climb.id, date, note, climb.id);
   const entry = db.prepare(
     "INSERT INTO journal_entries (user_id, climb_id, kind, sent, is_ascent, entry_date, body, tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
   );

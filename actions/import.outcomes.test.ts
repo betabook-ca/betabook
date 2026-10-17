@@ -51,7 +51,6 @@ function importRow(climbId: number, comment: string) {
     dateSent: null,
     rating: 4,
     gradeText: null,
-    blankGradeMeans: "posted-grade" as const,
     gradeFeel: "solid" as const,
   };
 }

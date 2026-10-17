@@ -19,8 +19,6 @@ type ClimbEditRequestDrawerProps = {
   state: UseOverlayStateReturn;
 };
 
-const UNKNOWN_GRADE = "unknown";
-
 /** A full edit (name/discipline/grade) — gated behind admin approval (see
  * actions/moderation.ts's requestClimbEdit). The description isn't here:
  * updateClimb (the description pencil) already lets any signed-in user edit
@@ -28,7 +26,7 @@ const UNKNOWN_GRADE = "unknown";
 export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerProps) {
   const disciplineLocked = climb.sendCount > 0;
   const disciplineId = useId();
-  const originalGrade = climb.grade === null ? UNKNOWN_GRADE : String(climb.grade);
+  const originalGrade = String(climb.grade ?? 0);
 
   const [name, setName] = useState(climb.name);
   const [type, setType] = useState<ClimbType>(climb.type);
@@ -54,7 +52,7 @@ export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerP
     const formData = new FormData();
     formData.set("name", trimmedName);
     formData.set("type", type);
-    formData.set("grade", grade === UNKNOWN_GRADE ? "" : grade);
+    formData.set("grade", grade);
 
     startTransition(async () => {
       const result = await requestClimbEdit(climb.id, formData);
@@ -124,14 +122,9 @@ export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerP
             <Label>Grade</Label>
             <OptionSelect
               ariaLabel="Grade"
-              value={grade === UNKNOWN_GRADE ? grade : gradeOptionValue(type, Number(grade), prefs)}
+              value={gradeOptionValue(type, Number(grade), prefs)}
               onChange={setGrade}
-              options={[
-                ...(climb.grade === null && type === climb.type
-                  ? [{ value: UNKNOWN_GRADE, label: "Unknown" }]
-                  : []),
-                ...gradeOptions(type, prefs),
-              ]}
+              options={gradeOptions(type, prefs)}
             />
           </div>
 

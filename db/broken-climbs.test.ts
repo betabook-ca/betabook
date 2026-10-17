@@ -51,6 +51,7 @@ describe("sends on a broken climb", () => {
       userId: "break-a",
       climbId: BROKEN,
       ascentStyle: "redpoint",
+      suggestedGrade: 5,
       dateSent: "2026-03-04",
     });
     await expectBreakRejection(
@@ -58,6 +59,7 @@ describe("sends on a broken climb", () => {
         userId: "break-b",
         climbId: BROKEN,
         ascentStyle: "redpoint",
+        suggestedGrade: 5,
         dateSent: BROKEN_ON,
       }),
       "sends",
@@ -67,6 +69,7 @@ describe("sends on a broken climb", () => {
         userId: "break-b",
         climbId: BROKEN,
         ascentStyle: "redpoint",
+        suggestedGrade: 5,
         dateSent: null,
       }),
       "sends",
@@ -102,6 +105,7 @@ describe("sends on a broken climb", () => {
       userId: "break-c",
       climbId: INTACT,
       ascentStyle: "flash",
+      suggestedGrade: 5,
       dateSent: null,
     });
     await db.update(climbs).set({ brokenOn: "2026-01-01" }).where(eq(climbs.id, INTACT));
@@ -115,6 +119,7 @@ describe("sends on a broken climb", () => {
       userId: "break-d",
       climbId: INTACT,
       ascentStyle: "redpoint",
+      suggestedGrade: 5,
       dateSent: "2026-08-01",
     });
     await expectBreakRejection(
