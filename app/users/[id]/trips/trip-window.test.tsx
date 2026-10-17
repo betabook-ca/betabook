@@ -306,6 +306,21 @@ describe("trip access", () => {
     }
   });
 
+  it("opens a trip outside the member's audience only through the share link, keeping it on links", async () => {
+    const trip = await seedTrip();
+    await db.run(sql`UPDATE user SET trip_visibility = 'private' WHERE id = ${OWNER}`);
+    const link = (await getProfileShareToken(db, OWNER))!;
+    session.userId = STRANGER;
+
+    await expect(renderTrip(trip.id)).rejects.toThrow("NOT_FOUND");
+    await expect(renderTrip(trip.id, { share: "0".repeat(32) })).rejects.toThrow("NOT_FOUND");
+
+    const payload = await renderTrip(trip.id, { share: link });
+    expect(payload).toContain(INSIDE);
+    // The header's links back to the list and to analytics carry the token.
+    expect(payload).toContain(`"share":"${link}"`);
+  });
+
   it("shows notes to a friend regardless of journal audience, editable only by the owner", async () => {
     const trip = await seedTrip({ notes: NOTES });
     await seedFriend();

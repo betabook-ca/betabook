@@ -38,13 +38,12 @@ function profileLinkSql(token: string | null, ownerId: SQL): SQL {
 }
 
 /** Who can open the owner's trips: their trip audience, plus anyone with the
- * share link while that audience is Members. Gates every trip read. */
+ * owner's current share link, signed in or not, whatever that audience is. The
+ * link is the owner's explicit choice to share, so the audience only governs
+ * browsing without it. Gates every trip read. */
 export function tripsVisibleSql(viewerId: string | null, ownerId: SQL, share: string | null): SQL {
   return sql`(${contentVisibleSql(viewerId, ownerId, sql`content_owner.trip_visibility`)}
-    OR (${profileLinkSql(share, ownerId)} AND EXISTS (
-      SELECT 1 FROM user trips_owner WHERE trips_owner.id = ${ownerId}
-        AND trips_owner.trip_visibility = 'public'
-    )))`;
+    OR ${profileLinkSql(share, ownerId)})`;
 }
 
 /** Uses the same predicate as every trip read. */

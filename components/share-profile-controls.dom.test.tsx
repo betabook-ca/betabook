@@ -52,7 +52,7 @@ it("describes what the link shows, including trip notes", () => {
 
   expect(
     screen.getByText(
-      "Anyone with the link sees your name, photo, send stats and latest sends, and your trips with their notes, photos and sends if they're shared with Members.",
+      "Anyone with the link sees your name, photo, send stats, latest sends, and your trips with their notes, photos and sends.",
     ),
   ).toBeVisible();
 });

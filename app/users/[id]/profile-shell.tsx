@@ -31,8 +31,8 @@ export const canReadUserJournal = requestMemo(async (id: string, viewerId: strin
   canReadJournal(await getDb(), id, viewerId),
 );
 
-/** Whether the viewer, or a signed-out holder of `share`, can open the trips. */
-export const canReadUserTrips = requestMemo(
+/** Whether the viewer, or anyone holding `share`, can open the trips. */
+const canReadUserTrips = requestMemo(
   async (id: string, viewerId: string | null, share: string | null) =>
     canReadTrips(await getDb(), id, viewerId, share),
 );
@@ -71,10 +71,15 @@ export const MEMBER_CONTENT_METADATA: Metadata = {
   robots: { index: false },
 };
 
-async function admits(gate: ProfileGate, user: ProfileUser, viewerId: string): Promise<boolean> {
+async function admits(
+  gate: ProfileGate,
+  user: ProfileUser,
+  viewerId: string,
+  share: string | null,
+): Promise<boolean> {
   if (gate === "owner") return user.id === viewerId;
   if (gate === "viewer") return canViewUser(user, viewerId);
-  if (gate === "trips") return canReadUserTrips(user.id, viewerId, null);
+  if (gate === "trips") return canReadUserTrips(user.id, viewerId, share);
   return canReadUserJournal(user.id, viewerId);
 }
 
@@ -86,12 +91,17 @@ async function admits(gate: ProfileGate, user: ProfileUser, viewerId: string): P
  * rather than calling `notFound()` keeps the decision at the call site, where
  * metadata and the page need different outcomes for the same state.
  */
-export async function resolveProfilePage(id: string, gate: ProfileGate): Promise<ResolvedProfile> {
+export async function resolveProfilePage(
+  id: string,
+  gate: ProfileGate,
+  /** Share token from the URL. Only the trips gate reads it. */
+  share: string | null = null,
+): Promise<ResolvedProfile> {
   const session = await getMemberSession();
   if (!session) return { signedIn: false };
   const user = await getUserById(id);
   const viewerId = session.user.id;
-  if (!user || !(await admits(gate, user, viewerId))) return { signedIn: true, ok: false };
+  if (!user || !(await admits(gate, user, viewerId, share))) return { signedIn: true, ok: false };
   return { signedIn: true, ok: true, user, viewerId, session };
 }
 
@@ -123,22 +133,10 @@ export function SharedProfileHeader({
   return (
     <ProfileLayout
       heading={<SharedProfileHeading owner={owner} next={next} />}
-      tabs={<SharedProfileTabs owner={owner} />}
+      tabs={<ProfileTabs userId={owner.id} showJournal={false} showTrips share={owner.token} />}
     >
       <Suspense fallback={DEFAULT_CONTENT_FALLBACK}>{children}</Suspense>
     </ProfileLayout>
-  );
-}
-
-async function SharedProfileTabs({ owner }: { owner: { id: string; token: string } }) {
-  const tripsVisible = await canReadUserTrips(owner.id, null, owner.token);
-  return (
-    <ProfileTabs
-      userId={owner.id}
-      showJournal={false}
-      showTrips={tripsVisible}
-      share={owner.token}
-    />
   );
 }
 

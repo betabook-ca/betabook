@@ -28,9 +28,12 @@ import {
 
 const NO_YEARS: number[] = [];
 
-export async function generateMetadata({ params }: TripPageParams): Promise<Metadata> {
-  const { id, tripId } = await params;
-  return tripMetadata(id, tripId);
+export async function generateMetadata({
+  params,
+  searchParams,
+}: TripPageParams): Promise<Metadata> {
+  const [{ id, tripId }, search] = await Promise.all([params, searchParams]);
+  return tripMetadata(id, tripId, search);
 }
 
 /**
@@ -43,14 +46,21 @@ export async function generateMetadata({ params }: TripPageParams): Promise<Meta
  */
 export default async function TripAnalyticsPage({ params, searchParams }: TripPageParams) {
   const [{ id, tripId }, search] = await Promise.all([params, searchParams]);
-  const resolved = await resolveTripPage(id, tripId);
+  const resolved = await resolveTripPage(id, tripId, search);
   if (!resolved.signedIn) return <CurrentPageAuthCallout />;
   if (!resolved.ok) notFound();
   const { trip, user, viewerId, today, journalVisible } = resolved;
 
   return (
     <ProfileHeader user={user} viewerId={viewerId} workspace="logbook">
-      <TripHeader trip={trip} userId={user.id} viewerId={viewerId} today={today} back="trip">
+      <TripHeader
+        trip={trip}
+        userId={user.id}
+        viewerId={viewerId}
+        today={today}
+        share={resolved.share ?? undefined}
+        back="trip"
+      >
         <Suspense fallback={<AnalyticsLoading />}>
           <TripAnalyticsView
             trip={trip}

@@ -43,7 +43,7 @@ it("explains who can read trip notes", () => {
     .replace(/\s+/g, " ");
 
   expect(text).toContain(
-    "Your friends and anyone with your profile link who can open a trip can read its notes.",
+    "Your friends and anyone with your profile link can read trip notes, regardless of your journal setting.",
   );
   expect(text).not.toMatch(/read your journal can also see[^.]*trip notes/);
 });
@@ -55,9 +55,9 @@ it("explains who can see trip photos and where they load from", () => {
     .replace(/\s+/g, " ");
 
   expect(text).toContain(
-    "your trips with their notes, photos and sends when your trips are shared with Members",
+    "trips with their notes, photos and sends to anyone who has them, whatever your trip setting",
   );
-  expect(text).toContain("You choose who can see your trips, with their photos and sends");
+  expect(text).toContain("You choose who else can see your trips, with their photos and sends");
   expect(text).toContain("Photos load from Google Photos.");
   // The app still stores no photos.
   expect(text).toContain("doesn’t support image or video uploads");

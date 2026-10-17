@@ -56,15 +56,6 @@ it("hides only the Trips tab when the trips aren't shared with the viewer", () =
   ]);
 });
 
-it("shows only Sends to a share link holder when trips aren't shared with Members", () => {
-  state.pathname = "/users/owner";
-  const html = renderToStaticMarkup(
-    <ProfileTabs userId="owner" showJournal={false} showTrips={false} share={TOKEN} />,
-  );
-
-  expect(hrefs(html)).toEqual([`/users/owner?share=${TOKEN}`]);
-});
-
 it("marks Sends current at the profile root when the journal is hidden", () => {
   state.pathname = "/users/other";
   const html = renderToStaticMarkup(<ProfileTabs userId="other" showJournal={false} showTrips />);

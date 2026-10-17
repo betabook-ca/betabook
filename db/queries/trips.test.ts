@@ -409,6 +409,7 @@ describe("trip audience", () => {
       ["owner", OWNER, null],
       ["friend", FRIEND, null],
       ["member", STRANGER, null],
+      ["member with link", STRANGER, link],
       ["link", null, link],
       ["signed out", null, null],
     ] as const) {
@@ -423,9 +424,10 @@ describe("trip audience", () => {
   }
 
   it.each([
-    ["public", ["owner", "friend", "member", "link"]],
-    ["friends", ["owner", "friend"]],
-    ["private", ["owner"]],
+    // The share link opens trips whatever the audience.
+    ["public", ["owner", "friend", "member", "member with link", "link"]],
+    ["friends", ["owner", "friend", "member with link", "link"]],
+    ["private", ["owner", "member with link", "link"]],
   ] as const)("shows %s trips to %j", async (tripVisibility, expected) => {
     const trip = await seedTrip();
     const link = (await getProfileShareToken(db, OWNER))!;
@@ -448,7 +450,23 @@ describe("trip audience", () => {
     await db.run(sql`UPDATE user SET journal_visibility = 'private' WHERE id = ${OWNER}`);
     await tripAudience("public");
 
-    expect(await readers(trip.id, link)).toEqual(["owner", "friend", "member", "link"]);
+    expect(await readers(trip.id, link)).toEqual([
+      "owner",
+      "friend",
+      "member",
+      "member with link",
+      "link",
+    ]);
+  });
+
+  it("closes the link with the rest of a reset or private profile", async () => {
+    const trip = await seedTrip();
+    await tripAudience("private");
+    const another = (await getProfileShareToken(db, STRANGER))!;
+
+    for (const dead of ["0".repeat(32), another]) {
+      expect(await readers(trip.id, dead)).toEqual(["owner"]);
+    }
   });
 
   it("hides trips from pending friends", async () => {

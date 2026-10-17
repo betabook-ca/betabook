@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import {
   ProfileHeader,
   SharedProfileHeader,
-  canReadUserTrips,
   memberMetadata,
   resolveProfilePage,
   resolveSharedProfile,
@@ -14,11 +13,16 @@ import { TripList } from "@/components/trips/trip-list";
 import { getDb } from "@/db/client";
 import { getTripsForUser } from "@/db/queries";
 import { goalToday } from "@/lib/goals";
-import { withProfileShare } from "@/lib/profile-share";
+import { PROFILE_SHARE_PARAM, withProfileShare } from "@/lib/profile-share";
 import { getRequestTimezone } from "@/lib/request-timezone";
 import { sharedProfileMetadata } from "@/lib/seo";
+import { parseShareToken } from "@/lib/share-token";
 import { tripsHref } from "@/lib/trips";
 import type { UrlParamsRecord } from "@/lib/url-params";
+
+function shareParam(search: UrlParamsRecord) {
+  return parseShareToken(search[PROFILE_SHARE_PARAM]);
+}
 
 type UserTripsPageProps = {
   params: Promise<{ id: string }>;
@@ -30,24 +34,22 @@ export async function generateMetadata({
   searchParams,
 }: UserTripsPageProps): Promise<Metadata> {
   const [{ id }, search] = await Promise.all([params, searchParams]);
-  const resolved = await resolveProfilePage(id, "trips");
+  const resolved = await resolveProfilePage(id, "trips", shareParam(search));
   if (!resolved.signedIn) {
     const shared = await resolveSharedProfile(id, search);
-    if (shared && (await canReadUserTrips(shared.id, null, shared.token)))
-      return sharedProfileMetadata(shared.name);
+    if (shared) return sharedProfileMetadata(shared.name);
   }
   return memberMetadata(resolved, (user) => `${user.name} · Trips`);
 }
 
 export default async function UserTripsPage({ params, searchParams }: UserTripsPageProps) {
   const [{ id }, search] = await Promise.all([params, searchParams]);
-  const resolved = await resolveProfilePage(id, "trips");
+  const share = shareParam(search);
+  const resolved = await resolveProfilePage(id, "trips", share);
 
   if (!resolved.signedIn) {
     const shared = await resolveSharedProfile(id, search);
-    // A link only opens trips shared with Members; friends can still sign in.
-    if (!shared || !(await canReadUserTrips(shared.id, null, shared.token)))
-      return <CurrentPageAuthCallout />;
+    if (!shared) return <CurrentPageAuthCallout />;
     return (
       <SharedProfileHeader
         owner={shared}
@@ -62,7 +64,9 @@ export default async function UserTripsPage({ params, searchParams }: UserTripsP
 
   return (
     <ProfileHeader user={user} viewerId={viewerId} workspace="logbook">
-      <TripsView userId={user.id} viewerId={viewerId} />
+      {/* A member outside the trip audience got here with the link, so keep it
+       * on the trip links. */}
+      <TripsView userId={user.id} viewerId={viewerId} shareToken={share ?? undefined} />
     </ProfileHeader>
   );
 }

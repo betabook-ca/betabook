@@ -115,9 +115,9 @@ it("explains who can read trip notes", () => {
 
   const trips = screen
     .getAllByRole("listitem")
-    .find((item) => /who can open your trips/.test(item.textContent ?? ""));
+    .find((item) => /who else can open your trips/.test(item.textContent ?? ""));
   expect(trips).toHaveTextContent(
-    "Your friends and anyone with your profile link who can open a trip can read its notes.",
+    "Your friends and anyone with your profile link can read trip notes, regardless of your Journal and goals setting.",
   );
   expect(trips).toHaveTextContent(
     "People who can read your journal can also see a trip's journal entries and tagged friends.",
@@ -130,9 +130,9 @@ it("explains who can see trip photos and where they load from", () => {
 
   const items = screen.getAllByRole("listitem").map((item) => item.textContent ?? "");
   expect(items.find((item) => item.startsWith("Anyone with your profile link"))).toContain(
-    "your trips with their notes, photos and sends when Trips is set to Members",
+    "your trips with their notes, photos and sends, whatever your Trips setting",
   );
-  const trips = items.find((item) => /who can open your trips/.test(item));
-  expect(trips).toContain("who can open your trips, with their photos and sends");
+  const trips = items.find((item) => /who else can open your trips/.test(item));
+  expect(trips).toContain("who else can open your trips, with their photos and sends");
   expect(trips).toContain("Photos load from Google Photos.");
 });

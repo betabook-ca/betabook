@@ -184,9 +184,9 @@ export function PrivacyDetails({ defaultExpanded = false }: { defaultExpanded?: 
             <ul className="flex list-disc flex-col gap-1.5 ps-4">
               <li>Signed-out visitors see your recent sends on climb pages without your name.</li>
               <li>
-                Anyone with your profile link sees your name, photo, send stats and latest sends,
-                and your trips with their notes, photos and sends when Trips is set to Members.
-                Going private resets the link.
+                Anyone with your profile link sees your name, photo, send stats, latest sends, and
+                your trips with their notes, photos and sends, whatever your Trips setting. Going
+                private resets the link.
               </li>
               <li>
                 Sharing a project makes a link to that one climb. Anyone with the link sees your
@@ -195,10 +195,10 @@ export function PrivacyDetails({ defaultExpanded = false }: { defaultExpanded?: 
                 when it expires, Stop sharing ends it, and going private ends every project link.
               </li>
               <li>
-                Your Trips setting decides who can open your trips, with their photos and sends.
-                Photos load from Google Photos. People who can read your journal can also see a
-                trip&apos;s journal entries and tagged friends. Your friends and anyone with your
-                profile link who can open a trip can read its notes.
+                Your Trips setting decides who else can open your trips, with their photos and
+                sends. Photos load from Google Photos. People who can read your journal can also see
+                a trip&apos;s journal entries and tagged friends. Your friends and anyone with your
+                profile link can read trip notes, regardless of your Journal and goals setting.
               </li>
               <li>
                 Unless your profile is private, friends of your friends may see you suggested.

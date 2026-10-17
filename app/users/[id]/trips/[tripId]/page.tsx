@@ -24,7 +24,7 @@ import { getDb } from "@/db/client";
 import { getAreaBreadcrumbs, getSendsForUserPage, getTripNotes } from "@/db/queries";
 import { DEFAULT_USER_SENDS_FILTER } from "@/lib/filters/user-sends-filter";
 import { SHARED_TRIP_SENDS, withProfileShare } from "@/lib/profile-share";
-import { getOwnTripShareUrl, tripShareOff } from "@/lib/profile-share-url";
+import { getOwnTripShareUrl } from "@/lib/profile-share-url";
 import { sharedProfileMetadata } from "@/lib/seo";
 import { tripHref, tripStatus } from "@/lib/trips";
 
@@ -76,7 +76,7 @@ export default async function TripPage({ params, searchParams }: TripPageParams)
         viewerId={viewerId}
         today={today}
         shareUrl={shareUrl}
-        shareOff={isOwner ? tripShareOff(user) : undefined}
+        share={share ?? undefined}
       >
         {tripPhotos(trip)}
         {showNotes && (

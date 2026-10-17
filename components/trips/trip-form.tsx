@@ -88,7 +88,7 @@ export function TripForm({
         >
           <Label>Description</Label>
           <HelpTooltip label="About the description">
-            Anyone who can see your trips can see this. Choose who in Account settings.
+            Anyone who can see your trips can see this, including people with your profile link.
           </HelpTooltip>
         </FieldHeader>
         <Input placeholder="Ten days in the Buttermilks" />
@@ -104,7 +104,7 @@ export function TripForm({
           <Label>Google Photos album</Label>
           <HelpTooltip label="About the album">
             In Google Photos, open the album, choose Share, then Create link. Anyone who can see
-            your trips can see these photos.
+            your trips can see these photos, including people with your profile link.
           </HelpTooltip>
         </FieldHeader>
         <Input inputMode="url" placeholder="https://photos.app.goo.gl/…" />
