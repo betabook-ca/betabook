@@ -46,6 +46,20 @@ export function tripsVisibleSql(viewerId: string | null, ownerId: SQL, share: st
     OR ${profileLinkSql(share, ownerId)})`;
 }
 
+/** Journal and trip access in one read, for profile pages that need both. Uses
+ * the same predicates as the data queries. */
+export async function getProfileAccess(
+  db: Database,
+  ownerId: string,
+  viewerId: string,
+  share: string | null,
+) {
+  const row = await db.get<{ journal: number; trips: number }>(sql`SELECT
+    ${journalVisibleSql(viewerId, sql`${ownerId}`)} AS journal,
+    ${tripsVisibleSql(viewerId, sql`${ownerId}`, share)} AS trips`);
+  return { journal: row?.journal === 1, trips: row?.trips === 1 };
+}
+
 /** Uses the same predicate as every trip read. */
 export async function canReadTrips(
   db: Database,

@@ -3,6 +3,7 @@ import { expect, it, vi } from "vitest";
 
 import { ProductTour } from "@/components/product-tour";
 import { JournalTourPage } from "@/components/product-tours/journal-tour";
+import { PRODUCT_TOURS } from "@/lib/product-tour";
 import {
   PRODUCT_TOUR_STEPS,
   productTourPath,
@@ -21,7 +22,7 @@ vi.mock("@/components/journal/journal-entry-drawer", () => ({ JournalEntryDrawer
 
 function demo(stepId: string, mode: "full" | "updates") {
   const { steps, navigation } = resolveProductTour(PRODUCT_TOUR_STEPS.journal, {
-    version: 3,
+    version: PRODUCT_TOURS[0].version,
     savedVersion: 1,
     navigation: { from: "journal", mode },
   });

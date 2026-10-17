@@ -6,6 +6,7 @@ import {
   ProfileHeader,
   canReadUserJournal,
   memberMetadata,
+  profileShareParam,
   resolveProfilePage,
 } from "@/app/users/[id]/profile-shell";
 import { AnalyticsDashboard } from "@/components/analytics-dashboard";
@@ -87,6 +88,7 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
     <ProfileHeader
       user={user}
       viewerId={viewerId}
+      share={profileShareParam(search)}
       workspace="progress"
       fallback={<AnalyticsLoading />}
     >

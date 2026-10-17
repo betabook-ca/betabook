@@ -2,6 +2,8 @@ import { env } from "cloudflare:test";
 import { sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ProfileHeader } from "@/app/users/[id]/profile-shell";
+import UserSendsPageImpl from "@/app/users/[id]/sends/page";
 import TripAnalyticsPageImpl from "@/app/users/[id]/trips/[tripId]/analytics/page";
 import TripPageImpl, {
   generateMetadata as tripPageMetadata,
@@ -22,6 +24,9 @@ import { rendered } from "@/test/server-tree";
 
 const TripAnalyticsPage = rendered(TripAnalyticsPageImpl);
 const TripPage = rendered(TripPageImpl);
+// ProfileHeader is synchronous, so it has to be expanded for its tabs to render.
+const UserSendsPage = rendered(UserSendsPageImpl, { expand: [ProfileHeader] });
+const TripPageWithTabs = rendered(TripPageImpl, { expand: [ProfileHeader] });
 
 const session = vi.hoisted(() => ({ userId: null as string | null }));
 
@@ -104,6 +109,27 @@ const props = (tripId: number | string, search: Record<string, string | string[]
   params: Promise.resolve({ id: OWNER, tripId: String(tripId) }),
   searchParams: Promise.resolve(search),
 });
+
+/** The first element prop named `key` whose props satisfy `match`, found by
+ * walking the resolved tree. Function props don't survive JSON, so tests that
+ * need one read it here. */
+function findProp(
+  node: unknown,
+  key: string,
+  match: (props: Record<string, unknown>) => boolean,
+): unknown {
+  const stack = [node];
+  while (stack.length) {
+    const current = stack.pop();
+    if (Array.isArray(current)) stack.push(...current);
+    else if (current && typeof current === "object") {
+      const props = (current as { props?: Record<string, unknown> }).props;
+      if (props && key in props && match(props)) return props[key];
+      stack.push(...Object.values(props ?? current));
+    }
+  }
+  throw new Error(`No ${key} prop found`);
+}
 
 async function renderTrip(tripId: number, search: Record<string, string | string[]> = {}) {
   return JSON.stringify(await TripPage(props(tripId, search)));
@@ -321,6 +347,36 @@ describe("trip access", () => {
     expect(payload).toContain(`"share":"${link}"`);
   });
 
+  it("gives a link holder outside the audience a Trips tab that every tab keeps", async () => {
+    const trip = await seedTrip();
+    await db.run(sql`UPDATE user SET trip_visibility = 'private' WHERE id = ${OWNER}`);
+    const link = (await getProfileShareToken(db, OWNER))!;
+    session.userId = STRANGER;
+    const tabs = (tree: unknown) => ({
+      showTrips: findProp(tree, "showTrips", () => true),
+      carryShare: findProp(tree, "carryShare", () => true),
+    });
+
+    expect(tabs(await TripPageWithTabs(props(trip.id, { share: link })))).toEqual({
+      showTrips: true,
+      carryShare: link,
+    });
+    // Clicking over to Sends keeps the token, so the tab survives there too.
+    const sends = await UserSendsPage({
+      params: Promise.resolve({ id: OWNER }),
+      searchParams: Promise.resolve({ share: link }),
+    });
+    expect(tabs(sends)).toEqual({ showTrips: true, carryShare: link });
+
+    for (const search of [{}, { share: "0".repeat(32) }]) {
+      const page = await UserSendsPage({
+        params: Promise.resolve({ id: OWNER }),
+        searchParams: Promise.resolve(search),
+      });
+      expect(tabs(page)).toEqual({ showTrips: false, carryShare: undefined });
+    }
+  });
+
   it("shows notes to a friend regardless of journal audience, editable only by the owner", async () => {
     const trip = await seedTrip({ notes: NOTES });
     await seedFriend();
@@ -452,6 +508,20 @@ describe("the trip's analytics", () => {
       charts: ["pyramid"],
     });
     expect(dashboard.canCustomize).toBe(false);
+  });
+
+  it("keeps a link holder's token on the discipline links", async () => {
+    const trip = await seedTrip();
+    await db.run(sql`UPDATE user SET trip_visibility = 'private' WHERE id = ${OWNER}`);
+    const link = (await getProfileShareToken(db, OWNER))!;
+    session.userId = STRANGER;
+
+    const tree = await TripAnalyticsPage(props(trip.id, { share: link }));
+    const href = findProp(tree, "href", (node) => "present" in node) as (type: string) => string;
+
+    expect(href("boulder")).toBe(
+      `/users/${OWNER}/trips/${trip.id}/analytics?discipline=boulder&share=${link}`,
+    );
   });
 
   it("passes no per-month average", async () => {

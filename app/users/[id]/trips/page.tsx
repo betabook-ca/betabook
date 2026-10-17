@@ -5,6 +5,7 @@ import {
   ProfileHeader,
   SharedProfileHeader,
   memberMetadata,
+  profileShareParam,
   resolveProfilePage,
   resolveSharedProfile,
 } from "@/app/users/[id]/profile-shell";
@@ -13,16 +14,11 @@ import { TripList } from "@/components/trips/trip-list";
 import { getDb } from "@/db/client";
 import { getTripsForUser } from "@/db/queries";
 import { goalToday } from "@/lib/goals";
-import { PROFILE_SHARE_PARAM, withProfileShare } from "@/lib/profile-share";
+import { withProfileShare } from "@/lib/profile-share";
 import { getRequestTimezone } from "@/lib/request-timezone";
 import { sharedProfileMetadata } from "@/lib/seo";
-import { parseShareToken } from "@/lib/share-token";
 import { tripsHref } from "@/lib/trips";
 import type { UrlParamsRecord } from "@/lib/url-params";
-
-function shareParam(search: UrlParamsRecord) {
-  return parseShareToken(search[PROFILE_SHARE_PARAM]);
-}
 
 type UserTripsPageProps = {
   params: Promise<{ id: string }>;
@@ -34,7 +30,7 @@ export async function generateMetadata({
   searchParams,
 }: UserTripsPageProps): Promise<Metadata> {
   const [{ id }, search] = await Promise.all([params, searchParams]);
-  const resolved = await resolveProfilePage(id, "trips", shareParam(search));
+  const resolved = await resolveProfilePage(id, "trips", profileShareParam(search));
   if (!resolved.signedIn) {
     const shared = await resolveSharedProfile(id, search);
     if (shared) return sharedProfileMetadata(shared.name);
@@ -44,7 +40,7 @@ export async function generateMetadata({
 
 export default async function UserTripsPage({ params, searchParams }: UserTripsPageProps) {
   const [{ id }, search] = await Promise.all([params, searchParams]);
-  const share = shareParam(search);
+  const share = profileShareParam(search);
   const resolved = await resolveProfilePage(id, "trips", share);
 
   if (!resolved.signedIn) {
@@ -63,7 +59,7 @@ export default async function UserTripsPage({ params, searchParams }: UserTripsP
   const { user, viewerId } = resolved;
 
   return (
-    <ProfileHeader user={user} viewerId={viewerId} workspace="logbook">
+    <ProfileHeader user={user} viewerId={viewerId} share={share} workspace="logbook">
       {/* A member outside the trip audience got here with the link, so keep it
        * on the trip links. */}
       <TripsView userId={user.id} viewerId={viewerId} shareToken={share ?? undefined} />

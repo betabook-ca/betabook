@@ -13,6 +13,9 @@ type ProfileTabsProps = {
   /** Share token for a signed-out visitor. Limits the tabs to the ones the link
    * can open and adds the token to each href. */
   share?: string;
+  /** Share token a signed-in visitor arrived with, added to each href without
+   * changing which tabs show, so trips opened through the link stay reachable. */
+  carryShare?: string;
 };
 
 type ProfileTab = {
@@ -25,8 +28,15 @@ type ProfileTab = {
 };
 
 /** Sections of a climber profile. Owner workspaces use their own scoped navigation. */
-export function ProfileTabs({ userId, showJournal, showTrips, share }: ProfileTabsProps) {
+export function ProfileTabs({
+  userId,
+  showJournal,
+  showTrips,
+  share,
+  carryShare,
+}: ProfileTabsProps) {
   const pathname = usePathname();
+  const token = share ?? carryShare;
   const base = `/users/${userId}`;
 
   const trips: ProfileTab[] = showTrips
@@ -45,7 +55,7 @@ export function ProfileTabs({ userId, showJournal, showTrips, share }: ProfileTa
     <SectionNavigation
       label="Profile sections"
       tabs={tabs.map(({ path, label, roots = [], nested = false }) => ({
-        href: share ? withProfileShare(path, share) : path,
+        href: token ? withProfileShare(path, token) : path,
         label,
         current:
           pathname === path ||

@@ -48,10 +48,10 @@ describe("route-based tours", () => {
     });
     expect(result.shouldInvite).toBe(true);
     expect(result.navigation.mode).toBe("updates");
-    expect(result.steps.map((step) => step.id)).toEqual(["projects", "find-projects"]);
+    expect(result.steps.map((step) => step.id)).toEqual(["projects", "find-projects", "account"]);
   });
 
-  it("offers only the revised projects lesson after version 3 was acknowledged", () => {
+  it("offers the revised projects and account lessons after version 3 was acknowledged", () => {
     const tour = PRODUCT_TOURS[0];
     const updated = resolveProductTour(PRODUCT_TOUR_STEPS[tour.id], {
       version: tour.version,
@@ -59,7 +59,7 @@ describe("route-based tours", () => {
       navigation: { from: "journal", mode: "updates" },
     });
     expect(updated.shouldInvite).toBe(true);
-    expect(updated.steps.map((step) => step.id)).toEqual(["projects"]);
+    expect(updated.steps.map((step) => step.id)).toEqual(["projects", "account"]);
   });
 
   it("offers the revised projects lesson again after version 4 was acknowledged", () => {
@@ -72,14 +72,26 @@ describe("route-based tours", () => {
       navigation: { from: "journal", mode: "updates" },
     });
     expect(updated.shouldInvite).toBe(true);
-    expect(updated.steps.map((step) => step.id)).toEqual(["projects"]);
+    expect(updated.steps.map((step) => step.id)).toEqual(["projects", "account"]);
   });
 
-  it("includes every lesson in full replay and stops inviting after version 5", () => {
+  it("offers only the revised account lesson after version 5 was acknowledged", () => {
+    const tour = PRODUCT_TOURS[0];
+    // Version 6 revises `account` for the separate trip audience.
+    const updated = resolveProductTour(PRODUCT_TOUR_STEPS[tour.id], {
+      version: tour.version,
+      savedVersion: 5,
+      navigation: { from: "journal", mode: "updates" },
+    });
+    expect(updated.shouldInvite).toBe(true);
+    expect(updated.steps.map((step) => step.id)).toEqual(["account"]);
+  });
+
+  it("includes every lesson in full replay and stops inviting after version 6", () => {
     const tour = PRODUCT_TOURS[0];
     const result = resolveProductTour(PRODUCT_TOUR_STEPS[tour.id], {
       version: tour.version,
-      savedVersion: 5,
+      savedVersion: 6,
       navigation: { from: "account", mode: "updates" },
     });
     expect(result.shouldInvite).toBe(false);
