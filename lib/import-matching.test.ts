@@ -7,7 +7,6 @@ import {
   areaLookupsNeeded,
   brokenClimbImportReason,
   climbNameVariants,
-  climbsWithoutSuggestedGrade,
   distinctClimbNames,
   duplicateClimbRows,
   foldClimbName,
@@ -22,7 +21,6 @@ import {
   resolveRows,
   summarizeResolved,
   type MatchOptions,
-  type ResolvedRow,
 } from "./import-matching";
 
 const US = { id: 9, name: "United States" };
@@ -755,39 +753,5 @@ describe("matching a close spelling", () => {
     expect(withoutNames.kind).toBe("inferred");
     if (withoutNames.kind !== "inferred") throw new Error("expected an inferred match");
     expect(withoutNames.climb.id).toBe(99);
-  });
-});
-
-describe("climbsWithoutSuggestedGrade", () => {
-  const resolvedRow = (
-    climb: ClimbCandidate | null,
-    overrides: Partial<NormalizedImportRow>,
-  ): ResolvedRow => ({
-    row: row(overrides),
-    match: { kind: "none" },
-    climb,
-    state: climb ? "matched" : "attention",
-    brokenBy: null,
-  });
-
-  it("lists each importing climb whose blank grade means no suggestion, once", () => {
-    const blank = { gradeText: null, blankGradeMeans: "no-suggestion" } as const;
-    const resolved = [
-      resolvedRow(WAVES[0], { rowIndex: 0, ...blank }),
-      resolvedRow(WAVES[1], { rowIndex: 1, ...blank, gradeText: "V6" }),
-      resolvedRow(WAVES[2], { rowIndex: 2, gradeText: null, blankGradeMeans: "posted-grade" }),
-      resolvedRow(null, { rowIndex: 3, ...blank }),
-      // A later row for the same climb doesn't import, so it isn't listed again.
-      resolvedRow(WAVES[0], { rowIndex: 4, ...blank }),
-    ];
-    expect(climbsWithoutSuggestedGrade(resolved).map((c) => c.id)).toEqual([1]);
-  });
-
-  it("follows the row that imports when an earlier row for the climb has a grade", () => {
-    const resolved = [
-      resolvedRow(WAVES[0], { rowIndex: 0, gradeText: "V3", blankGradeMeans: "no-suggestion" }),
-      resolvedRow(WAVES[0], { rowIndex: 1, gradeText: null, blankGradeMeans: "no-suggestion" }),
-    ];
-    expect(climbsWithoutSuggestedGrade(resolved)).toEqual([]);
   });
 });
