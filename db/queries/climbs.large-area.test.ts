@@ -40,7 +40,7 @@ beforeAll(async () => {
     { id: START_ID, areaId: AREA_ID, name: "Aardvark Wall", type: "boulder", grade: 5 },
     { id: START_ID + 1, areaId: AREA_ID, name: "Bandit Crack", type: "trad", grade: 2 },
     { id: START_ID + 2, areaId: AREA_ID, name: "Crusher Face", type: "sport", grade: 10 },
-    { id: START_ID + 3, areaId: AREA_ID, name: "Driftwood Slab", type: "boulder", grade: null },
+    { id: START_ID + 3, areaId: AREA_ID, name: "Driftwood Slab", type: "boulder", grade: 12 },
   ]);
 
   for (let i = 1; i <= 4; i += 1) {
@@ -114,14 +114,14 @@ describe("getSubtreeClimbs on a large-area-shaped subtree", () => {
     ]);
   });
 
-  it("sorts by grade ascending, with ungraded climbs last", async () => {
+  it("sorts by grade ascending", async () => {
     const area = await getArea(db, AREA_ID);
     const { climbs } = await largeSubtreeClimbs(area!, "grade_asc");
     expect(climbs.map((c) => c.name)).toEqual([
       "Bandit Crack", // grade 2
       "Aardvark Wall", // grade 5
       "Crusher Face", // grade 10
-      "Driftwood Slab", // ungraded
+      "Driftwood Slab", // grade 12
     ]);
   });
 
@@ -129,10 +129,10 @@ describe("getSubtreeClimbs on a large-area-shaped subtree", () => {
     const area = await getArea(db, AREA_ID);
     const { climbs } = await largeSubtreeClimbs(area!, "grade_desc");
     expect(climbs.map((c) => c.name)).toEqual([
+      "Driftwood Slab",
       "Crusher Face",
       "Aardvark Wall",
       "Bandit Crack",
-      "Driftwood Slab",
     ]);
   });
 

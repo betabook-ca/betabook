@@ -39,7 +39,7 @@ const TYPES = ["boulder", "sport", "trad"] as const;
 const DEFAULT_PASSWORD = "password";
 
 type ClimbType = (typeof TYPES)[number];
-type Climb = { id: number; type: ClimbType; grade: number | null };
+type Climb = { id: number; type: ClimbType; grade: number };
 type DatedSend = { userId: string; climbId: number; dateSent: string; comment: string | null };
 
 const JOURNAL_END_DATE = "2026-09-01";
@@ -297,8 +297,8 @@ function insertClimbs(db: DatabaseSync, count: number, areaIds: number[]): Climb
   const climbs: Climb[] = [];
   for (let i = 0; i < count; i += 1) {
     const type: ClimbType = faker.helpers.arrayElement(TYPES);
-    // A real database has ungraded projects in it.
-    const grade = faker.datatype.boolean(0.95) ? bellGrade(MAX_GRADE[type]) : null;
+    // Every climb has a listed grade (0053_require_grades).
+    const grade = bellGrade(MAX_GRADE[type]);
     const id = insert.run(
       faker.helpers.arrayElement(areaIds),
       title(`${faker.word.adjective()} ${faker.word.noun()}`),
@@ -384,9 +384,10 @@ function insertSends(db: DatabaseSync, userIds: string[], climbs: Climb[]): numb
           ? faker.date.between({ from: "2021-01-01", to: "2026-09-01" }).toISOString().slice(0, 10)
           : null,
         faker.datatype.boolean(0.75) ? faker.number.int({ min: 2, max: 5 }) : null,
-        climb.grade !== null && faker.datatype.boolean(0.25)
+        // Every send has a suggested grade; most climbers take the listed one.
+        faker.datatype.boolean(0.25)
           ? clamp(climb.grade + faker.number.int({ min: -1, max: 1 }), MAX_GRADE[climb.type])
-          : null,
+          : climb.grade,
         faker.helpers.weightedArrayElement([
           { weight: 6, value: "solid" },
           { weight: 2, value: "high" },

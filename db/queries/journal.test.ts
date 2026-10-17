@@ -612,7 +612,7 @@ describe("journal date ranges", () => {
   });
 });
 
-it.each([7, 0, null])(
+it.each([7, 0])(
   "returns the climber's grade %s only on completed journal entries, clearing it after unsending",
   async (suggestedGrade) => {
     await db

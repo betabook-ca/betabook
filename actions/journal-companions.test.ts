@@ -470,6 +470,7 @@ it("attaches companions to the repeat when recovering a legacy send's missing as
     dateSent: "2026-09-01",
     ascentStyle: "flash",
     comment: "Original ascent",
+    suggestedGrade: 5,
   });
   expect(
     (await createJournalEntry(form(["partner"], { sent: "true", entryDate: "2026-09-02" }))).ok,

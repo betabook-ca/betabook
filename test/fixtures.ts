@@ -195,11 +195,18 @@ type FixtureSendOverrides = Partial<typeof sends.$inferInsert> & {
  * every other migration — so seeding directly here stays consistent with a
  * real write, and getSubtreeClimbs sort/rating assertions hold. */
 export async function seedFixtureSend(db: Database, overrides: FixtureSendOverrides) {
+  // Every send has a suggested grade (0053_require_grades); default to the
+  // climb's listed grade, as the send form does.
+  const climb = await db
+    .select({ grade: climbs.grade })
+    .from(climbs)
+    .where(eq(climbs.id, overrides.climbId))
+    .get();
   const row = {
     ascentStyle: "redpoint" as const,
     comment: null,
     rating: null,
-    suggestedGrade: null,
+    suggestedGrade: climb?.grade ?? null,
     ...overrides,
   };
   await db.insert(sends).values(row);

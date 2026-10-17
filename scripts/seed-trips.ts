@@ -6,7 +6,7 @@ type Climb = {
   id: number;
   name: string;
   type: "boulder" | "sport" | "trad";
-  grade: number | null;
+  grade: number;
   sector: string;
 };
 type Friend = { id: string };

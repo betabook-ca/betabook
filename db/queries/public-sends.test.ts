@@ -105,7 +105,7 @@ it("names only Everyone commentary and keeps every other send to its month", asy
       dateSent: "2026-07",
       ascentStyle: "flash",
       rating: null,
-      suggestedGrade: null,
+      suggestedGrade: 5, // the listed grade, as the send form defaults to
       gradeFeel: "low",
       comment: null,
       videos: null,
@@ -116,7 +116,7 @@ it("names only Everyone commentary and keeps every other send to its month", asy
       dateSent: null,
       ascentStyle: "redpoint",
       rating: 2,
-      suggestedGrade: null,
+      suggestedGrade: 5,
       gradeFeel: "solid",
       comment: null,
       videos: null,

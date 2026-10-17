@@ -95,7 +95,9 @@ async function seedSortSends() {
 describe("getClimb", () => {
   it("searches the selected subtree without matching an identically named area", async () => {
     await db.insert(areas).values({ id: 20, name: "Test Boulders" });
-    await db.insert(climbs).values({ id: 20, areaId: 20, name: "Test Duplicate", type: "boulder" });
+    await db
+      .insert(climbs)
+      .values({ id: 20, areaId: 20, name: "Test Duplicate", type: "boulder", grade: 3 });
     const params = { name: "Test", areaId: 2, disciplines: [] };
     const result = await searchClimbs(db, params);
     expect(result.climbs.map((climb) => climb.id).sort((a, b) => a - b)).toEqual([1, 2]);
