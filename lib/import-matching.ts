@@ -565,3 +565,17 @@ export function duplicateClimbRows(rows: readonly ResolvedRow[]): Map<number, No
   }
   return duplicates;
 }
+
+/** Climbs that would import with no suggested grade because the file left it
+ * blank where a blank means no suggestion. Only a climb's first row imports,
+ * so each climb is judged by that row and listed once. */
+export function climbsWithoutSuggestedGrade(rows: readonly ResolvedRow[]): ClimbCandidate[] {
+  const seen = new Set<number>();
+  const missing: ClimbCandidate[] = [];
+  for (const { row, climb } of rows) {
+    if (!climb || seen.has(climb.id)) continue;
+    seen.add(climb.id);
+    if (row.gradeText === null && row.blankGradeMeans === "no-suggestion") missing.push(climb);
+  }
+  return missing;
+}

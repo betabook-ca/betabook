@@ -26,6 +26,7 @@ import { findImportDateClusters } from "@/lib/import-date-review";
 import { runImportBatches, type ImportProgress } from "@/lib/import-execution";
 import {
   areaLookupsNeeded,
+  climbsWithoutSuggestedGrade,
   distinctClimbNames,
   matchRows,
   buildLooseIndex,
@@ -88,6 +89,7 @@ import {
   type Filter,
   type LookupStatus,
 } from "./import-match-step";
+import { ImportMissingGrades } from "./import-missing-grades";
 import { ImportResultStep } from "./import-result-step";
 import { ImportSourceStep, type DirectSource } from "./import-source-step";
 import { TEXT_BUTTON_CLASS } from "./text-button";
@@ -195,7 +197,11 @@ type WizardResult = Omit<ImportResult, "missing" | "broken"> & {
 
 const NOT_ATTEMPTED_MESSAGE = "the import stopped before reaching this row";
 
-function toImportSendRow(resolved: ResolvedRow, climb: ClimbCandidate): ImportSendRow {
+function toImportSendRow(
+  resolved: ResolvedRow,
+  climb: ClimbCandidate,
+  useListedGrade: boolean,
+): ImportSendRow {
   const { row } = resolved;
   return {
     climbId: climb.id,
@@ -205,7 +211,8 @@ function toImportSendRow(resolved: ResolvedRow, climb: ClimbCandidate): ImportSe
     comment: row.comment,
     gradeFeel: row.gradeFeel,
     gradeText: row.gradeText,
-    blankGradeMeans: row.blankGradeMeans,
+    blankGradeMeans:
+      useListedGrade && row.gradeText === null ? "posted-grade" : row.blankGradeMeans,
   };
 }
 
@@ -243,6 +250,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
   const [dropPlaceholderDates, setDropPlaceholderDates] = useState(false);
   const [gradeScale, setGradeScale] = useState<GradeScale>("native");
   const [onConflict, setOnConflict] = useState<"skip" | "overwrite">("skip");
+  const [useListedGrade, setUseListedGrade] = useState(true);
 
   const [baseNormalized, setNormalized] = useState<{
     valid: NormalizedImportRow[];
@@ -352,6 +360,10 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
     [normalized, matches, manual],
   );
   const summary = useMemo(() => (resolved ? summarizeResolved(resolved) : null), [resolved]);
+  const ungradedClimbs = useMemo(
+    () => (resolved ? climbsWithoutSuggestedGrade(resolved) : []),
+    [resolved],
+  );
 
   const failures = useMemo((): (FailedImportRow & { rowIndex: number; label: string | null })[] => {
     if (!importResult || !normalized || !resolved) return [];
@@ -666,7 +678,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
 
     startTransition(async () => {
       const result = await runImportBatches(
-        toImport.map((r) => toImportSendRow(r, r.climb)),
+        toImport.map((r) => toImportSendRow(r, r.climb, useListedGrade)),
         (batch, batchId) => importSends(batch, { gradeScale, onConflict, batchId }),
         { onProgress: setProgress, isCancelled: () => cancelRequestedRef.current },
       );
@@ -721,6 +733,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
     setDropPlaceholderDates(false);
     setGradeScale("native");
     setOnConflict("skip");
+    setUseListedGrade(true);
     setNormalized(null);
     setUndatedDates(new Set());
     setAutoMapped(false);
@@ -1168,6 +1181,13 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
               </InlineAlert>
             </div>
           )}
+
+          <ImportMissingGrades
+            climbs={ungradedClimbs}
+            useListedGrade={useListedGrade}
+            onChange={setUseListedGrade}
+            disabled={pending}
+          />
 
           {pending && progress ? (
             <div className="flex flex-col gap-2">
