@@ -81,3 +81,18 @@ it("explains why there is no link when the profile is private", async () => {
   );
   expect(within(dialog).queryByRole("textbox")).not.toBeInTheDocument();
 });
+
+it("explains why there is no link when trips aren't shared with Members", async () => {
+  const user = userEvent.setup();
+  render(<TripShare tripName="Bishop, March 2026" url={null} off="trips" />);
+
+  const dialog = await open(user);
+  expect(
+    within(dialog).getByText("Sharing is off because your trips aren’t shared with Members."),
+  ).toBeVisible();
+  expect(within(dialog).getByRole("link", { name: "Change privacy settings" })).toHaveAttribute(
+    "href",
+    "/account#privacy",
+  );
+  expect(within(dialog).queryByRole("textbox")).not.toBeInTheDocument();
+});

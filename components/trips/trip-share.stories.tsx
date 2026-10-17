@@ -45,3 +45,11 @@ export const PrivateProfile: Story = {
     await open(canvasElement);
   },
 };
+
+/** With trips shared with friends only, which a link can't open. */
+export const TripsNotShared: Story = {
+  args: { url: null, off: "trips" },
+  play: async ({ canvasElement }) => {
+    await open(canvasElement);
+  },
+};

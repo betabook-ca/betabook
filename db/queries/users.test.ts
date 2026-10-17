@@ -38,6 +38,7 @@ describe("getUserProfile", () => {
       name: "Alice Climber",
       image: null,
       isPrivate: false,
+      tripVisibility: "public",
     });
   });
 

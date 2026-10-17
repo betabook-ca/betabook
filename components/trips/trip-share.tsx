@@ -10,8 +10,17 @@ import { SITE_NAME } from "@/lib/site";
 
 /** Share button and dialog for a trip. The link is the profile share link
  * pointed at the trip, so it also opens the rest of the profile, and resetting
- * the profile link disables it. `url` is null if the profile is private. */
-export function TripShare({ tripName, url }: { tripName: string; url: string | null }) {
+ * the profile link disables it. `url` is null while sharing is off, for the
+ * reason in `off`. */
+export function TripShare({
+  tripName,
+  url,
+  off = "private",
+}: {
+  tripName: string;
+  url: string | null;
+  off?: "private" | "trips";
+}) {
   const state = useOverlayState();
 
   return (
@@ -43,7 +52,11 @@ export function TripShare({ tripName, url }: { tripName: string; url: string | n
           />
         ) : (
           <div className="flex flex-col gap-2">
-            <p className="text-sm">Sharing is off while your profile is private.</p>
+            <p className="text-sm">
+              {off === "private"
+                ? "Sharing is off while your profile is private."
+                : "Sharing is off because your trips aren’t shared with Members."}
+            </p>
             <AppLink href="/account#privacy" className="self-start text-sm underline">
               Change privacy settings
             </AppLink>

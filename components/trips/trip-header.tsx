@@ -28,6 +28,7 @@ export function TripHeader({
   today,
   share,
   shareUrl,
+  shareOff,
   back = "trips",
   children,
 }: {
@@ -39,9 +40,11 @@ export function TripHeader({
   today: string;
   /** Share token for a signed-out visitor, added to the back link. */
   share?: string;
-  /** Owner only: share URL for this trip, or null if the profile is private.
+  /** Owner only: share URL for this trip, or null while sharing is off.
    * Undefined for everyone else. */
   shareUrl?: string | null;
+  /** Why `shareUrl` is null. */
+  shareOff?: "private" | "trips" | null;
   /** Use `trip` on the analytics page, so the back link goes to the trip and
    * the counts don't link to analytics. */
   back?: "trips" | "trip";
@@ -72,7 +75,9 @@ export function TripHeader({
             </div>
             {viewerId === userId && (
               <div className="-my-1 flex shrink-0 items-center gap-1">
-                {shareUrl !== undefined && <TripShare tripName={trip.name} url={shareUrl} />}
+                {shareUrl !== undefined && (
+                  <TripShare tripName={trip.name} url={shareUrl} off={shareOff ?? undefined} />
+                )}
                 <TripActions trip={trip} userId={userId} leaveOnDelete />
               </div>
             )}

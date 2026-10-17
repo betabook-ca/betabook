@@ -49,6 +49,13 @@ export const user = sqliteTable(
     })
       .default("public")
       .notNull(),
+    // Who can open the Trips tab and every trip page. Independent of the other
+    // audiences: it doesn't widen or narrow what the journal audience shows.
+    tripVisibility: text("trip_visibility", {
+      enum: ["private", "friends", "public"],
+    })
+      .default("public")
+      .notNull(),
     productTourReturning: integer("product_tour_returning", { mode: "boolean" })
       .default(false)
       .notNull(),

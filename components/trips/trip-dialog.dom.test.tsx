@@ -119,9 +119,9 @@ it("takes a one-line description and explains who can see it", async () => {
   expect(description).toHaveAttribute("maxlength", "160");
 
   await user.click(screen.getByRole("button", { name: "About the description" }));
-  const hint = await screen.findByText(/Anyone who can see your sends can see this/);
+  const hint = await screen.findByText(/Anyone who can see your trips can see this/);
   expect(hint).toHaveTextContent(
-    /^Anyone who can see your sends can see this, including people with your profile link\.$/,
+    /^Anyone who can see your trips can see this\. Choose who in Account settings\.$/,
   );
 });
 
@@ -161,7 +161,7 @@ it("opens an edit with the trip's album and explains who can see the photos", as
 
   await user.click(screen.getByRole("button", { name: "About the album" }));
   expect(
-    await screen.findByText(/Anyone who can see your sends can see these photos/),
+    await screen.findByText(/Anyone who can see your trips can see these photos/),
   ).toBeInTheDocument();
 });
 

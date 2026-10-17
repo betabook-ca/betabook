@@ -10,7 +10,13 @@ import { ProfileTabs } from "@/components/profile-tabs";
 import { SkeletonListRows } from "@/components/ui/skeleton";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { getDb } from "@/db/client";
-import { getUserProfile, getFriendship, canReadJournal, getShareLinkOwner } from "@/db/queries";
+import {
+  getUserProfile,
+  getFriendship,
+  canReadJournal,
+  canReadTrips,
+  getShareLinkOwner,
+} from "@/db/queries";
 import { getClimberHardest } from "@/db/queries/climber-overview";
 import { PROFILE_SHARE_PARAM } from "@/lib/profile-share";
 import { requestMemo } from "@/lib/request-memo";
@@ -23,6 +29,12 @@ const getUserById = requestMemo(async (id: string) => getUserProfile(await getDb
 
 export const canReadUserJournal = requestMemo(async (id: string, viewerId: string) =>
   canReadJournal(await getDb(), id, viewerId),
+);
+
+/** Whether the viewer, or a signed-out holder of `share`, can open the trips. */
+export const canReadUserTrips = requestMemo(
+  async (id: string, viewerId: string | null, share: string | null) =>
+    canReadTrips(await getDb(), id, viewerId, share),
 );
 
 const getShareLinkOwnerByToken = requestMemo(async (token: string) =>
@@ -43,9 +55,9 @@ export type ProfileUser = NonNullable<Awaited<ReturnType<typeof getUserById>>>;
 type MemberSession = NonNullable<Awaited<ReturnType<typeof getMemberSession>>>;
 
 /** Who can open a profile page: only the owner (Projects, Goals), anyone allowed
- * by canViewUser (Sends, Trips, Analytics, the profile itself), or anyone
- * allowed by canReadJournal (Journal). */
-type ProfileGate = "owner" | "viewer" | "journal";
+ * by canViewUser (Sends, Analytics, the profile itself), anyone allowed by
+ * canReadJournal (Journal), or anyone allowed by canReadTrips (Trips). */
+type ProfileGate = "owner" | "viewer" | "journal" | "trips";
 
 type ResolvedProfile =
   | { signedIn: false }
@@ -62,6 +74,7 @@ export const MEMBER_CONTENT_METADATA: Metadata = {
 async function admits(gate: ProfileGate, user: ProfileUser, viewerId: string): Promise<boolean> {
   if (gate === "owner") return user.id === viewerId;
   if (gate === "viewer") return canViewUser(user, viewerId);
+  if (gate === "trips") return canReadUserTrips(user.id, viewerId, null);
   return canReadUserJournal(user.id, viewerId);
 }
 
@@ -110,10 +123,22 @@ export function SharedProfileHeader({
   return (
     <ProfileLayout
       heading={<SharedProfileHeading owner={owner} next={next} />}
-      tabs={<ProfileTabs userId={owner.id} showJournal={false} share={owner.token} />}
+      tabs={<SharedProfileTabs owner={owner} />}
     >
       <Suspense fallback={DEFAULT_CONTENT_FALLBACK}>{children}</Suspense>
     </ProfileLayout>
+  );
+}
+
+async function SharedProfileTabs({ owner }: { owner: { id: string; token: string } }) {
+  const tripsVisible = await canReadUserTrips(owner.id, null, owner.token);
+  return (
+    <ProfileTabs
+      userId={owner.id}
+      showJournal={false}
+      showTrips={tripsVisible}
+      share={owner.token}
+    />
   );
 }
 
@@ -206,6 +231,9 @@ async function VisitorProfileHeading({
 }
 
 async function VisitorProfileTabs({ userId, viewerId }: { userId: string; viewerId: string }) {
-  const journalVisible = await canReadUserJournal(userId, viewerId);
-  return <ProfileTabs userId={userId} showJournal={journalVisible} />;
+  const [journalVisible, tripsVisible] = await Promise.all([
+    canReadUserJournal(userId, viewerId),
+    canReadUserTrips(userId, viewerId, null),
+  ]);
+  return <ProfileTabs userId={userId} showJournal={journalVisible} showTrips={tripsVisible} />;
 }

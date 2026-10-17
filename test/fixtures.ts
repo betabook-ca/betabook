@@ -178,7 +178,9 @@ export async function seedFixtureUser(db: Database, overrides: FixtureUserOverri
 
 /** `seedFixtureUser` for many users at once. */
 export function seedManyUsers(db: Database, overrides: FixtureUserOverrides[]) {
-  return insertInBatches(db, overrides.map(fixtureUserRow), 8, (chunk) =>
+  // D1 binds at most 100 variables per statement, and Drizzle binds every
+  // column with a schema default, so this shrinks as `user` gains columns.
+  return insertInBatches(db, overrides.map(fixtureUserRow), 7, (chunk) =>
     db.insert(user).values(chunk),
   );
 }

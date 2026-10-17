@@ -3,7 +3,7 @@ import { sql, type SQL } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import type { JournalCompanion } from "@/lib/journal-companions";
 
-import { journalVisibleSql, tripNotesVisibleSql } from "./content-access";
+import { journalVisibleSql, tripNotesVisibleSql, tripsVisibleSql } from "./content-access";
 import { tripCompanionsJsonSql } from "./trip-companions";
 
 export type Trip = {
@@ -78,15 +78,14 @@ const tripColumnsSql = sql`
   t.end_date    AS endDate
 `;
 
-/** Trips are visible to anyone who can see the owner's sends. This is
- * `canViewUser` in SQL, so it is checked on every read. A null viewer is a
- * signed-out visitor whose share link the page has already validated. */
-function tripRowsSql(userId: string, viewerId: string | null): SQL {
+/** Trips are visible to the owner's trip audience (`tripsVisibleSql`), checked
+ * on every read. A null viewer is a signed-out visitor, who needs a current
+ * share link. */
+function tripRowsSql(userId: string, viewerId: string | null, share: string | null): SQL {
   return sql`
     FROM trips t
-    JOIN user trip_owner ON trip_owner.id = t.user_id
     WHERE t.user_id = ${userId}
-      AND (trip_owner.is_private = 0 OR trip_owner.id = ${viewerId})
+      AND ${tripsVisibleSql(viewerId, sql`t.user_id`, share)}
   `;
 }
 
@@ -96,10 +95,12 @@ export async function getTripsForUser(
   db: Database,
   userId: string,
   viewerId: string | null,
+  /** Share token from the URL, if any. */
+  share: string | null = null,
 ): Promise<TripSummary[]> {
   const rows = await db.all<TripRow>(sql`
-    SELECT ${tripColumnsSql}, ${tripCountsSql(viewerId, null)}
-    ${tripRowsSql(userId, viewerId)}
+    SELECT ${tripColumnsSql}, ${tripCountsSql(viewerId, share)}
+    ${tripRowsSql(userId, viewerId, share)}
     ORDER BY t.start_date DESC, t.id DESC
   `);
   return rows.map(toTripSummary);
@@ -117,7 +118,7 @@ export async function getTripForUser(
 ): Promise<TripSummary | null> {
   const row = await db.get<TripRow>(sql`
     SELECT ${tripColumnsSql}, ${tripCountsSql(viewerId, share)}
-    ${tripRowsSql(userId, viewerId)} AND t.id = ${tripId}
+    ${tripRowsSql(userId, viewerId, share)} AND t.id = ${tripId}
   `);
   return row ? toTripSummary(row) : null;
 }
@@ -145,7 +146,7 @@ export async function getTripNotes(
 ): Promise<string | null> {
   const row = await db.get<{ notes: string | null }>(sql`
     SELECT t.notes AS notes
-    ${tripRowsSql(userId, viewerId)} AND t.id = ${tripId}
+    ${tripRowsSql(userId, viewerId, share)} AND t.id = ${tripId}
       AND ${tripNotesVisibleSql(viewerId, sql`t.user_id`, share)}
   `);
   return row?.notes ?? null;

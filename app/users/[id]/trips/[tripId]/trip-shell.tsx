@@ -77,7 +77,7 @@ type Resolved =
       share: string | null;
     };
 
-/** Shared authorization for trip pages. Anyone who can see the user's sends can
+/** Shared authorization for trip pages. Anyone in the owner's trip audience can
  * open the trip. Journal access adds entry counts and tagged friends. Friends
  * and share link holders can read notes. Signed-out and refused cases are
  * handled as in resolveProfilePage. */
@@ -86,7 +86,7 @@ export async function resolveTripPage(
   tripIdParam: string,
   search: UrlParamsRecord = {},
 ): Promise<{ signedIn: false } | ({ signedIn: true } & Resolved)> {
-  const resolved = await resolveProfilePage(idParam, "viewer");
+  const resolved = await resolveProfilePage(idParam, "trips");
   if (!resolved.signedIn || !resolved.ok) return resolved;
 
   const tripId = parseId(tripIdParam);

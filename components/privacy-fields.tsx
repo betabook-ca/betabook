@@ -18,24 +18,30 @@ export function PrivacyFields({
   isPrivate,
   journalVisibility,
   sendCommentVisibility,
+  tripVisibility,
   onProfileChange,
   onJournalChange,
   onSendCommentChange,
+  onTripsChange,
   isPending = false,
   profileError,
   journalError,
   sendCommentError,
+  tripsError,
 }: {
   isPrivate: boolean;
   journalVisibility: SharingAudience;
   sendCommentVisibility: SendCommentAudience;
+  tripVisibility: SharingAudience;
   onProfileChange: (value: boolean) => void;
   onJournalChange: (value: SharingAudience) => void;
   onSendCommentChange: (value: SendCommentAudience) => void;
+  onTripsChange: (value: SharingAudience) => void;
   isPending?: boolean;
   profileError?: string | null;
   journalError?: string | null;
   sendCommentError?: string | null;
+  tripsError?: string | null;
 }) {
   const profileDescriptionId = useId();
   return (
@@ -81,6 +87,15 @@ export function PrivacyFields({
         onChange={onJournalChange}
         disabled={isPrivate || isPending}
         error={journalError}
+      />
+      <AudienceField
+        label="Trips"
+        description="Your Trips tab and every trip page"
+        options={SHARING_AUDIENCES}
+        value={isPrivate ? "private" : tripVisibility}
+        onChange={onTripsChange}
+        disabled={isPrivate || isPending}
+        error={tripsError}
       />
     </div>
   );
@@ -169,8 +184,9 @@ export function PrivacyDetails({ defaultExpanded = false }: { defaultExpanded?: 
             <ul className="flex list-disc flex-col gap-1.5 ps-4">
               <li>Signed-out visitors see your recent sends on climb pages without your name.</li>
               <li>
-                Anyone with your profile link sees your name, photo, send stats, latest sends, and
-                your trips with their notes, photos and sends. Going private resets the link.
+                Anyone with your profile link sees your name, photo, send stats and latest sends,
+                and your trips with their notes, photos and sends when Trips is set to Members.
+                Going private resets the link.
               </li>
               <li>
                 Sharing a project makes a link to that one climb. Anyone with the link sees your
@@ -179,10 +195,10 @@ export function PrivacyDetails({ defaultExpanded = false }: { defaultExpanded?: 
                 when it expires, Stop sharing ends it, and going private ends every project link.
               </li>
               <li>
-                Anyone who can see your sends can see your trips, with their photos and sends.
+                Your Trips setting decides who can open your trips, with their photos and sends.
                 Photos load from Google Photos. People who can read your journal can also see a
                 trip&apos;s journal entries and tagged friends. Your friends and anyone with your
-                profile link can read trip notes, regardless of your Journal and goals setting.
+                profile link who can open a trip can read its notes.
               </li>
               <li>
                 Unless your profile is private, friends of your friends may see you suggested.

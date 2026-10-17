@@ -26,7 +26,14 @@ export function SharedProfileFrame({ next, children }: { next: string; children:
           note={<ProfileInvite name={SHARED_OWNER.name} next={next} />}
         />
       }
-      tabs={<ProfileTabs userId={SHARED_OWNER.id} showJournal={false} share={SHARED_OWNER.token} />}
+      tabs={
+        <ProfileTabs
+          userId={SHARED_OWNER.id}
+          showJournal={false}
+          showTrips
+          share={SHARED_OWNER.token}
+        />
+      }
     >
       {children}
     </ProfileLayout>

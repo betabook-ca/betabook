@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import {
   ProfileHeader,
   SharedProfileHeader,
+  canReadUserTrips,
   memberMetadata,
   resolveProfilePage,
   resolveSharedProfile,
@@ -29,21 +30,24 @@ export async function generateMetadata({
   searchParams,
 }: UserTripsPageProps): Promise<Metadata> {
   const [{ id }, search] = await Promise.all([params, searchParams]);
-  const resolved = await resolveProfilePage(id, "viewer");
+  const resolved = await resolveProfilePage(id, "trips");
   if (!resolved.signedIn) {
     const shared = await resolveSharedProfile(id, search);
-    if (shared) return sharedProfileMetadata(shared.name);
+    if (shared && (await canReadUserTrips(shared.id, null, shared.token)))
+      return sharedProfileMetadata(shared.name);
   }
   return memberMetadata(resolved, (user) => `${user.name} · Trips`);
 }
 
 export default async function UserTripsPage({ params, searchParams }: UserTripsPageProps) {
   const [{ id }, search] = await Promise.all([params, searchParams]);
-  const resolved = await resolveProfilePage(id, "viewer");
+  const resolved = await resolveProfilePage(id, "trips");
 
   if (!resolved.signedIn) {
     const shared = await resolveSharedProfile(id, search);
-    if (!shared) return <CurrentPageAuthCallout />;
+    // A link only opens trips shared with Members; friends can still sign in.
+    if (!shared || !(await canReadUserTrips(shared.id, null, shared.token)))
+      return <CurrentPageAuthCallout />;
     return (
       <SharedProfileHeader
         owner={shared}
@@ -72,12 +76,13 @@ async function TripsView({
   viewerId: string | null;
   shareToken?: string;
 }) {
+  const share = shareToken ?? null;
   // Resolved on the server from the request's own zone, not in the card: a
   // `new Date()` inside a component runs once on the server and again on the
   // client, which is how "Upcoming" and "Now" end up disagreeing across a
   // hydration near midnight.
   const [trips, timezone] = await Promise.all([
-    getTripsForUser(await getDb(), userId, viewerId),
+    getTripsForUser(await getDb(), userId, viewerId, share),
     getRequestTimezone(),
   ]);
   return (

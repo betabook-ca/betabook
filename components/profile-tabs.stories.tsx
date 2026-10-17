@@ -8,7 +8,7 @@ import { ProfileTabs } from "./profile-tabs";
 const meta = {
   title: "Components/Profile/Sections",
   component: ProfileTabs,
-  args: { userId: "sample", showJournal: true },
+  args: { userId: "sample", showJournal: true, showTrips: true },
   decorators: [
     (Story) => (
       <div className="flex flex-col gap-4">
@@ -25,5 +25,9 @@ export const Journal: Story = {
 };
 export const OtherClimber: Story = {
   args: { showJournal: false },
+  parameters: { nextjs: { navigation: { pathname: "/users/sample/sends" } } },
+};
+export const TripsHidden: Story = {
+  args: { showJournal: false, showTrips: false },
   parameters: { nextjs: { navigation: { pathname: "/users/sample/sends" } } },
 };

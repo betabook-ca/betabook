@@ -94,6 +94,7 @@ it("hands the header only profile fields and scopes the dashboard through the sh
     name: "Analytics Owner",
     image: null,
     isPrivate: false,
+    tripVisibility: "public",
   });
   expect(header.props.workspace).toBe("progress");
 

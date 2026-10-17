@@ -2,26 +2,44 @@
 
 import { useState, useTransition } from "react";
 
-import { setJournalVisibility, setSendCommentVisibility, setUserPrivate } from "@/actions";
+import {
+  setJournalVisibility,
+  setSendCommentVisibility,
+  setTripVisibility,
+  setUserPrivate,
+} from "@/actions";
 import { PrivacyFields } from "@/components/privacy-fields";
 import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
 
-type Audiences = { journal: SharingAudience; sendComment: SendCommentAudience };
+type Audiences = {
+  journal: SharingAudience;
+  sendComment: SendCommentAudience;
+  trips: SharingAudience;
+};
 type ContentKind = keyof Audiences;
+
+const SAVE_AUDIENCE: Record<ContentKind, typeof setJournalVisibility> = {
+  journal: setJournalVisibility,
+  sendComment: setSendCommentVisibility,
+  trips: setTripVisibility,
+};
 
 export function PrivacyControls({
   initialIsPrivate,
   initialJournalVisibility,
   initialSendCommentVisibility,
+  initialTripVisibility,
 }: {
   initialIsPrivate: boolean;
   initialJournalVisibility: SharingAudience;
   initialSendCommentVisibility: SendCommentAudience;
+  initialTripVisibility: SharingAudience;
 }) {
   const [isPrivate, setIsPrivate] = useState(initialIsPrivate);
   const [audiences, setAudiences] = useState<Audiences>({
     journal: initialJournalVisibility,
     sendComment: initialSendCommentVisibility,
+    trips: initialTripVisibility,
   });
   const [profileError, setProfileError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Partial<Record<ContentKind, string>>>({});
@@ -50,9 +68,7 @@ export function PrivacyControls({
     setErrors((current) => ({ ...current, [kind]: undefined }));
     startTransition(async () => {
       try {
-        const result = await (kind === "journal" ? setJournalVisibility : setSendCommentVisibility)(
-          next,
-        );
+        const result = await SAVE_AUDIENCE[kind](next);
         if (!result.ok) {
           setAudiences((current) => ({ ...current, [kind]: previous }));
           setErrors((current) => ({ ...current, [kind]: result.error }));
@@ -69,13 +85,16 @@ export function PrivacyControls({
       isPrivate={isPrivate}
       journalVisibility={audiences.journal}
       sendCommentVisibility={audiences.sendComment}
+      tripVisibility={audiences.trips}
       onProfileChange={handleProfileChange}
       onJournalChange={(next) => handleAudienceChange("journal", next)}
       onSendCommentChange={(next) => handleAudienceChange("sendComment", next)}
+      onTripsChange={(next) => handleAudienceChange("trips", next)}
       isPending={isPending}
       profileError={profileError}
       journalError={errors.journal}
       sendCommentError={errors.sendComment}
+      tripsError={errors.trips}
     />
   );
 }

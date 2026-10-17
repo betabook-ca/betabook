@@ -37,6 +37,29 @@ function profileLinkSql(token: string | null, ownerId: SQL): SQL {
   )`;
 }
 
+/** Who can open the owner's trips: their trip audience, plus anyone with the
+ * share link while that audience is Members. Gates every trip read. */
+export function tripsVisibleSql(viewerId: string | null, ownerId: SQL, share: string | null): SQL {
+  return sql`(${contentVisibleSql(viewerId, ownerId, sql`content_owner.trip_visibility`)}
+    OR (${profileLinkSql(share, ownerId)} AND EXISTS (
+      SELECT 1 FROM user trips_owner WHERE trips_owner.id = ${ownerId}
+        AND trips_owner.trip_visibility = 'public'
+    )))`;
+}
+
+/** Uses the same predicate as every trip read. */
+export async function canReadTrips(
+  db: Database,
+  ownerId: string,
+  viewerId: string | null,
+  share: string | null = null,
+) {
+  const row = await db.get<{ visible: number }>(
+    sql`SELECT ${tripsVisibleSql(viewerId, sql`${ownerId}`, share)} AS visible`,
+  );
+  return row?.visible === 1;
+}
+
 /** Trip notes are visible to the owner, their friends, and anyone with the
  * owner's share link, signed in or not. The journal audience doesn't apply. */
 export function tripNotesVisibleSql(
