@@ -73,7 +73,7 @@ import {
   type FailedImportRow,
   type FieldKey,
   type GradeFeelMapping,
-  type GradeScale,
+  type ImportGradePreference,
   type ImportSource,
   type InvalidImportRow,
   type NormalizedImportRow,
@@ -156,7 +156,7 @@ const DATE_FORMAT_OPTIONS: readonly SelectOption<DateFormat>[] = [
   { value: "dmy", label: "Day first — 15/10/2019" },
 ];
 
-const GRADE_SCALE_OPTIONS: readonly SelectOption<GradeScale>[] = [
+const GRADE_SCALE_OPTIONS: readonly SelectOption<ImportGradePreference>[] = [
   { value: "native", label: "Native (V-scale / YDS)" },
   { value: "converted", label: "Converted (Font / French)" },
 ];
@@ -241,7 +241,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
   const [ratingMapping, setRatingMapping] = useState<RatingMapping>({});
   const [dateFormat, setDateFormat] = useState<DateFormat>("iso");
   const [dropPlaceholderDates, setDropPlaceholderDates] = useState(false);
-  const [gradeScale, setGradeScale] = useState<GradeScale>("native");
+  const [gradeScale, setGradeScale] = useState<ImportGradePreference>("native");
   const [onConflict, setOnConflict] = useState<"skip" | "overwrite">("skip");
 
   const [baseNormalized, setNormalized] = useState<{
@@ -556,7 +556,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
 
   /** Batch name lookups, then recover capped matches through name-and-area lookups.
    * Superseded runs cannot update state; scale is explicit for same-tick uploads. */
-  async function runLookup(valid: NormalizedImportRow[], scale: GradeScale) {
+  async function runLookup(valid: NormalizedImportRow[], scale: ImportGradePreference) {
     lookupRunRef.current += 1;
     const run = lookupRunRef.current;
     const chunk = <T,>(items: T[]): T[][] =>
