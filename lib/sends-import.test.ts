@@ -936,7 +936,9 @@ describe("normalizeImportRows", () => {
     });
     expect(warnings).toEqual([]);
     expect(valid[0].gradeText).toBeNull();
-    expect(valid[0].blankGradeMeans).toBe("no-suggestion");
+    // Mountain Project leaves Your Rating blank unless the climber disagrees,
+    // so a blank takes the posted grade, as logging a send does.
+    expect(valid[0].blankGradeMeans).toBe("posted-grade");
     expect(valid[0].postedGradeText).toBe("5.10c");
     // A protection rating is stripped from either grade column.
     expect(valid[1].gradeText).toBe("5.10a");

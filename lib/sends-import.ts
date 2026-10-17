@@ -571,8 +571,9 @@ export type NormalizedImportRow = {
   comment: string | null; // truncated to MAX_COMMENT_LENGTH here, not rejected
   /** Suggested-grade text; falls back to the Grade column only if no Suggested Grade is mapped. */
   gradeText: string | null;
-  /** A blank mapped Suggested Grade means no suggestion. With only Grade mapped,
-   * a blank falls back to the climb's posted grade. Preserve this distinction on export/import. */
+  /** A blank mapped Suggested Grade means no suggestion, except Mountain Project's
+   * Your Rating. With only Grade mapped, or a blank Your Rating, it falls back to
+   * the climb's posted grade. Preserve this distinction on export/import. */
   blankGradeMeans: "posted-grade" | "no-suggestion";
   /** Posted grade from the source, preferred over the climber's grade for matching. */
   postedGradeText: string | null;
@@ -650,6 +651,13 @@ export function normalizeImportRows(
   const valid: NormalizedImportRow[] = [];
   const invalid: InvalidImportRow[] = [];
   const latestDateSent = latestAcceptableSendDate(today);
+  // Only a Betabook export writes a blank to mean "no suggestion". Mountain
+  // Project leaves Your Rating blank when the climber agrees with the posted
+  // grade, so a blank there takes the posted grade, as logging a send does.
+  const blankGradeMeans =
+    mapping.suggestedGrade && detectImportSource(parsed.headers) !== "mountainproject"
+      ? ("no-suggestion" as const)
+      : ("posted-grade" as const);
 
   const warningBuckets = new Map<CoercionWarning["field"], { count: number; examples: string[] }>();
   const warn = (field: CoercionWarning["field"], rowIndex: number, example: string) => {
@@ -727,9 +735,6 @@ export function normalizeImportRows(
       : null;
 
     const gradeColumn = mapping.suggestedGrade ?? mapping.grade;
-    const blankGradeMeans = mapping.suggestedGrade
-      ? ("no-suggestion" as const)
-      : ("posted-grade" as const);
     const gradeText = cleanGradeText(cell(gradeColumn));
     if (gradeText && !gradeTextParses(gradeText, climbTypeHint, gradeScalePreference)) {
       warn("suggestedGrade", rowIndex, `"${gradeText}"`);
