@@ -18,7 +18,8 @@ export function getOwnProfileShareUrl(db: Database, owner: Owner) {
   return ownShareUrl(db, owner, (token) => profileSharePath(owner.id, token));
 }
 
-/** Share URL that opens one of the owner's trips. Uses the same token. */
+/** Share URL that opens one of the owner's trips, whatever their trip audience.
+ * Uses the same token. */
 export function getOwnTripShareUrl(db: Database, owner: Owner, tripId: number) {
   return ownShareUrl(db, owner, (token) => withProfileShare(tripHref(owner.id, tripId), token));
 }

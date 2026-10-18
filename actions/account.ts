@@ -157,6 +157,21 @@ export async function setGradePreferences(scales: {
   });
 }
 
+export async function setTripVisibility(visibility: string): Promise<ActionResult> {
+  return toActionResult(async () => {
+    const session = await requireSession();
+    const db = await getDb();
+    const tripVisibility = parseSharingAudience(visibility);
+
+    await db.update(user).set({ tripVisibility }).where(eq(user.id, session.user.id));
+
+    afterCommit(() => {
+      revalidateProfileSurfaces(session.user.id);
+      refresh();
+    });
+  });
+}
+
 export async function setSendCommentVisibility(visibility: string): Promise<ActionResult> {
   return toActionResult(async () => {
     const session = await requireSession();

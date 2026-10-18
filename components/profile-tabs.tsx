@@ -8,9 +8,14 @@ import { withProfileShare } from "@/lib/profile-share";
 type ProfileTabsProps = {
   userId: string;
   showJournal: boolean;
+  /** Whether the viewer can open the owner's trips. */
+  showTrips: boolean;
   /** Share token for a signed-out visitor. Limits the tabs to the ones the link
    * can open and adds the token to each href. */
   share?: string;
+  /** Share token a signed-in visitor arrived with, added to each href without
+   * changing which tabs show, so trips opened through the link stay reachable. */
+  carryShare?: string;
 };
 
 type ProfileTab = {
@@ -23,19 +28,26 @@ type ProfileTab = {
 };
 
 /** Sections of a climber profile. Owner workspaces use their own scoped navigation. */
-export function ProfileTabs({ userId, showJournal, share }: ProfileTabsProps) {
+export function ProfileTabs({
+  userId,
+  showJournal,
+  showTrips,
+  share,
+  carryShare,
+}: ProfileTabsProps) {
   const pathname = usePathname();
+  const token = share ?? carryShare;
   const base = `/users/${userId}`;
 
+  const trips: ProfileTab[] = showTrips
+    ? [{ path: `${base}/trips`, label: "Trips", nested: true }]
+    : [];
   const tabs: ProfileTab[] = share
-    ? [
-        { path: base, label: "Sends" },
-        { path: `${base}/trips`, label: "Trips", nested: true },
-      ]
+    ? [{ path: base, label: "Sends" }, ...trips]
     : [
         ...(showJournal ? [{ path: `${base}/journal`, label: "Journal", roots: [base] }] : []),
         { path: `${base}/sends`, label: "Sends", roots: showJournal ? [] : [base] },
-        { path: `${base}/trips`, label: "Trips", nested: true },
+        ...trips,
         { path: `${base}/analytics`, label: "Analytics" },
       ];
 
@@ -43,7 +55,7 @@ export function ProfileTabs({ userId, showJournal, share }: ProfileTabsProps) {
     <SectionNavigation
       label="Profile sections"
       tabs={tabs.map(({ path, label, roots = [], nested = false }) => ({
-        href: share ? withProfileShare(path, share) : path,
+        href: token ? withProfileShare(path, token) : path,
         label,
         current:
           pathname === path ||

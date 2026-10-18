@@ -8,6 +8,7 @@ import {
   setGradePreferences,
   setJournalVisibility,
   setSendCommentVisibility,
+  setTripVisibility,
   setUserPrivate,
 } from "@/actions";
 import { createDb } from "@/db/client";
@@ -271,6 +272,44 @@ describe("setJournalVisibility action boundary", () => {
       error: "Invalid sharing audience",
     });
     expect(await privacy()).toEqual(before);
+  });
+});
+
+describe("setTripVisibility action boundary", () => {
+  const tripVisibility = async (id: string) =>
+    (await db.select().from(user).where(eq(user.id, id)).get())?.tripVisibility;
+
+  it("requires a signed-in user", async () => {
+    sessionState.userId = null;
+    const before = await db.select().from(user).orderBy(user.id).all();
+
+    expect(await setTripVisibility("private")).toEqual({
+      ok: false,
+      error: SESSION_EXPIRED_MESSAGE,
+    });
+    expect(await db.select().from(user).orderBy(user.id).all()).toEqual(before);
+  });
+
+  it("saves each audience for the signed-in user only, leaving the journal alone", async () => {
+    for (const audience of ["private", "friends", "public"] as const) {
+      expect(await setTripVisibility(audience)).toEqual({ ok: true, value: undefined });
+      expect(await tripVisibility("test-user")).toBe(audience);
+    }
+    expect(await tripVisibility("other-user")).toBe("friends");
+    expect(
+      (await db.select().from(user).where(eq(user.id, "test-user")).get())?.journalVisibility,
+    ).toBe("private");
+  });
+
+  it("rejects an invalid visibility and Everyone", async () => {
+    await setTripVisibility("friends");
+    for (const invalid of ["invalid", "everyone"]) {
+      expect(await setTripVisibility(invalid)).toEqual({
+        ok: false,
+        error: "Invalid sharing audience",
+      });
+    }
+    expect(await tripVisibility("test-user")).toBe("friends");
   });
 });
 

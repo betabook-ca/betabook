@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { ProfileHeader, SharedProfileHeader } from "@/app/users/[id]/profile-shell";
+import {
+  ProfileHeader,
+  SharedProfileHeader,
+  profileShareParam,
+} from "@/app/users/[id]/profile-shell";
 import { SendsView } from "@/app/users/[id]/sends-view";
 import {
   resolveSharedTrip,
@@ -69,13 +73,19 @@ export default async function TripPage({ params, searchParams }: TripPageParams)
   const showSends = trip.sendCount > 0 || tripStatus(trip, today) !== "upcoming";
 
   return (
-    <ProfileHeader user={user} viewerId={viewerId} workspace="logbook">
+    <ProfileHeader
+      user={user}
+      viewerId={viewerId}
+      share={profileShareParam(search)}
+      workspace="logbook"
+    >
       <TripHeader
         trip={trip}
         userId={user.id}
         viewerId={viewerId}
         today={today}
         shareUrl={shareUrl}
+        share={share ?? undefined}
       >
         {tripPhotos(trip)}
         {showNotes && (

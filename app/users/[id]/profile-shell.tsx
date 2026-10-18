@@ -10,7 +10,7 @@ import { ProfileTabs } from "@/components/profile-tabs";
 import { SkeletonListRows } from "@/components/ui/skeleton";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { getDb } from "@/db/client";
-import { getUserProfile, getFriendship, canReadJournal, getShareLinkOwner } from "@/db/queries";
+import { getUserProfile, getFriendship, getProfileAccess, getShareLinkOwner } from "@/db/queries";
 import { getClimberHardest } from "@/db/queries/climber-overview";
 import { PROFILE_SHARE_PARAM } from "@/lib/profile-share";
 import { requestMemo } from "@/lib/request-memo";
@@ -21,9 +21,21 @@ import { canViewUser } from "@/lib/user-visibility";
 
 const getUserById = requestMemo(async (id: string) => getUserProfile(await getDb(), id));
 
-export const canReadUserJournal = requestMemo(async (id: string, viewerId: string) =>
-  canReadJournal(await getDb(), id, viewerId),
+/** The viewer's journal and trip access in one read, cached per request so
+ * the page gate, heading and tabs share it. `share` only affects `trips`. */
+const getAccess = requestMemo(async (id: string, viewerId: string, share: string | null) =>
+  getProfileAccess(await getDb(), id, viewerId, share),
 );
+
+export async function canReadUserJournal(id: string, viewerId: string) {
+  return (await getAccess(id, viewerId, null)).journal;
+}
+
+/** The share token from a profile page's URL, format-checked only; the trip
+ * queries validate it. */
+export function profileShareParam(search: UrlParamsRecord) {
+  return parseShareToken(search[PROFILE_SHARE_PARAM]);
+}
 
 const getShareLinkOwnerByToken = requestMemo(async (token: string) =>
   getShareLinkOwner(await getDb(), token),
@@ -43,9 +55,9 @@ export type ProfileUser = NonNullable<Awaited<ReturnType<typeof getUserById>>>;
 type MemberSession = NonNullable<Awaited<ReturnType<typeof getMemberSession>>>;
 
 /** Who can open a profile page: only the owner (Projects, Goals), anyone allowed
- * by canViewUser (Sends, Trips, Analytics, the profile itself), or anyone
- * allowed by canReadJournal (Journal). */
-type ProfileGate = "owner" | "viewer" | "journal";
+ * by canViewUser (Sends, Analytics, the profile itself), anyone allowed by
+ * canReadJournal (Journal), or anyone allowed by canReadTrips (Trips). */
+type ProfileGate = "owner" | "viewer" | "journal" | "trips";
 
 type ResolvedProfile =
   | { signedIn: false }
@@ -59,9 +71,15 @@ export const MEMBER_CONTENT_METADATA: Metadata = {
   robots: { index: false },
 };
 
-async function admits(gate: ProfileGate, user: ProfileUser, viewerId: string): Promise<boolean> {
+async function admits(
+  gate: ProfileGate,
+  user: ProfileUser,
+  viewerId: string,
+  share: string | null,
+): Promise<boolean> {
   if (gate === "owner") return user.id === viewerId;
   if (gate === "viewer") return canViewUser(user, viewerId);
+  if (gate === "trips") return (await getAccess(user.id, viewerId, share)).trips;
   return canReadUserJournal(user.id, viewerId);
 }
 
@@ -73,12 +91,17 @@ async function admits(gate: ProfileGate, user: ProfileUser, viewerId: string): P
  * rather than calling `notFound()` keeps the decision at the call site, where
  * metadata and the page need different outcomes for the same state.
  */
-export async function resolveProfilePage(id: string, gate: ProfileGate): Promise<ResolvedProfile> {
+export async function resolveProfilePage(
+  id: string,
+  gate: ProfileGate,
+  /** Share token from the URL. Only the trips gate reads it. */
+  share: string | null = null,
+): Promise<ResolvedProfile> {
   const session = await getMemberSession();
   if (!session) return { signedIn: false };
   const user = await getUserById(id);
   const viewerId = session.user.id;
-  if (!user || !(await admits(gate, user, viewerId))) return { signedIn: true, ok: false };
+  if (!user || !(await admits(gate, user, viewerId, share))) return { signedIn: true, ok: false };
   return { signedIn: true, ok: true, user, viewerId, session };
 }
 
@@ -110,7 +133,7 @@ export function SharedProfileHeader({
   return (
     <ProfileLayout
       heading={<SharedProfileHeading owner={owner} next={next} />}
-      tabs={<ProfileTabs userId={owner.id} showJournal={false} share={owner.token} />}
+      tabs={<ProfileTabs userId={owner.id} showJournal={false} showTrips share={owner.token} />}
     >
       <Suspense fallback={DEFAULT_CONTENT_FALLBACK}>{children}</Suspense>
     </ProfileLayout>
@@ -145,12 +168,17 @@ async function SharedProfileHeading({
 export function ProfileHeader({
   user,
   viewerId,
+  share = null,
   children,
   workspace = "logbook",
   fallback = DEFAULT_CONTENT_FALLBACK,
 }: {
   user: Pick<ProfileUser, "id" | "name" | "image">;
   viewerId: string;
+  /** Share token from the URL (`profileShareParam`). A visitor whose trips
+   * access comes only from the link gets the Trips tab, and every tab keeps
+   * the token so they can come back to it. */
+  share?: string | null;
   children: ReactNode;
   workspace?: "logbook" | "progress";
   fallback?: ReactNode;
@@ -165,7 +193,7 @@ export function ProfileHeader({
   return (
     <ProfileLayout
       heading={<VisitorProfileHeading user={user} viewerId={viewerId} />}
-      tabs={<VisitorProfileTabs userId={user.id} viewerId={viewerId} />}
+      tabs={<VisitorProfileTabs userId={user.id} viewerId={viewerId} share={share} />}
     >
       {content}
     </ProfileLayout>
@@ -205,7 +233,25 @@ async function VisitorProfileHeading({
   );
 }
 
-async function VisitorProfileTabs({ userId, viewerId }: { userId: string; viewerId: string }) {
-  const journalVisible = await canReadUserJournal(userId, viewerId);
-  return <ProfileTabs userId={userId} showJournal={journalVisible} />;
+async function VisitorProfileTabs({
+  userId,
+  viewerId,
+  share,
+}: {
+  userId: string;
+  viewerId: string;
+  share: string | null;
+}) {
+  const access = await getAccess(userId, viewerId, null);
+  // Only checked when the audience alone doesn't open the trips.
+  const viaLink =
+    !access.trips && share !== null && (await getAccess(userId, viewerId, share)).trips;
+  return (
+    <ProfileTabs
+      userId={userId}
+      showJournal={access.journal}
+      showTrips={access.trips || viaLink}
+      carryShare={viaLink ? share : undefined}
+    />
+  );
 }
