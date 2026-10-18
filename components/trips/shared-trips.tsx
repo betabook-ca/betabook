@@ -1,18 +1,18 @@
 import type { ReactNode } from "react";
 
-import { UserSendLogRow } from "@/components/climb-log-row";
-import { SendRows } from "@/components/send-rows";
 import { signUpPrompt } from "@/components/sign-up-card";
+import { TripDays } from "@/components/trips/trip-days";
 import { TripHeader } from "@/components/trips/trip-header";
-import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeading } from "@/components/ui/typography";
 import type { AreaBreadcrumbs, TripSummary, UserSendRow } from "@/db/queries";
 import { formatCount } from "@/lib/format";
+import { groupTripDays } from "@/lib/trip-days";
 
 type Owner = { id: string; name: string; token: string };
 
 /** Trip page for a signed-out visitor with a share link: the same header as the
- * signed-in view, then notes and sends. Journal-gated data is never shown. */
+ * signed-in view, then notes and sends grouped by day. Journal-gated data is
+ * never shown. */
 export function SharedTrip({
   owner,
   trip,
@@ -47,19 +47,13 @@ export function SharedTrip({
             Showing the {sends.length} most recent of {formatCount(trip.sendCount, "send")}.
           </p>
         )}
-        {sends.length === 0 ? (
-          <EmptyState message={`${owner.name} hasn't logged a send on this trip yet.`} />
-        ) : (
-          <SendRows>
-            {sends.map((send) => (
-              // Keyed by climb id. Keys end up in the RSC payload, and
-              // sequential send ids shouldn't.
-              <li key={send.climbId}>
-                <UserSendLogRow send={send} areaBreadcrumbs={areaBreadcrumbs} />
-              </li>
-            ))}
-          </SendRows>
-        )}
+        <TripDays
+          days={groupTripDays({ startDate: trip.startDate, sends, entries: [] }).days}
+          areaBreadcrumbs={areaBreadcrumbs}
+          userId={owner.id}
+          isOwner={false}
+          emptyMessage={`${owner.name} hasn't logged a send on this trip yet.`}
+        />
         {signUpPrompt({
           ownerName: owner.name,
           sendCount: trip.sendCount,

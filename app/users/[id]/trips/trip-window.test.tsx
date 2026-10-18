@@ -166,7 +166,7 @@ describe("trip sends", () => {
 });
 
 describe("trip page", () => {
-  it("renders the album, notes and sends in order, without journal entries", async () => {
+  it("renders the album, notes and then each day's sends and entries, oldest day first", async () => {
     const album = "https://photos.app.goo.gl/Example1Album2Link3";
     const trip = await seedTrip({ notes: NOTES, albumUrl: album });
 
@@ -175,8 +175,48 @@ describe("trip page", () => {
     expect(at(`"link":"${album}"`)).toBeGreaterThan(-1);
     expect(at(`"link":"${album}"`)).toBeLessThan(at(`"notes":"${NOTES}"`));
     expect(at(`"notes":"${NOTES}"`)).toBeLessThan(at(INSIDE));
-    // Journal entries aren't rendered on the trip page.
-    expect(payload).not.toContain(ENTRY);
+    // The send on Mar 15 (day 6) comes before the session on Mar 16 (day 7).
+    expect(at('"date":"2026-03-15","dayNumber":6')).toBeGreaterThan(-1);
+    expect(at(INSIDE)).toBeLessThan(at('"date":"2026-03-16","dayNumber":7'));
+    expect(at('"date":"2026-03-16","dayNumber":7')).toBeLessThan(at(ENTRY));
+  });
+
+  it("hides an entry for a climb sent that day, but keeps it on other days", async () => {
+    const trip = await seedTrip();
+    const sameDay = "Logged the same climb on the day it went.";
+    await seedFixtureJournalEntry(db, {
+      userId: OWNER,
+      climbId: CLIMB,
+      entryDate: "2026-03-15",
+      body: sameDay,
+    });
+
+    const payload = await renderTrip(trip.id);
+    expect(payload).toContain(INSIDE);
+    expect(payload).not.toContain(sameDay);
+    // The same climb's session the next day still shows.
+    expect(payload).toContain(ENTRY);
+  });
+
+  it("shows journal entries only to readers of the journal", async () => {
+    const trip = await seedTrip();
+    await seedFriend();
+
+    // The default journal audience is friends.
+    session.userId = FRIEND;
+    expect(await renderTrip(trip.id)).toContain(ENTRY);
+
+    session.userId = STRANGER;
+    const stranger = await renderTrip(trip.id);
+    expect(stranger).toContain(INSIDE);
+    expect(stranger).not.toContain(ENTRY);
+    expect(stranger).not.toContain('"date":"2026-03-16"');
+
+    await journalAudience("private");
+    session.userId = FRIEND;
+    const friend = await renderTrip(trip.id);
+    expect(friend).toContain(INSIDE);
+    expect(friend).not.toContain(ENTRY);
   });
 
   it("leaves the analytics link to the header counts", async () => {
@@ -199,15 +239,18 @@ describe("trip page", () => {
     expect(await renderTrip(trip.id)).not.toContain('"canEdit"');
   });
 
-  it("shows an empty message for a past trip with no sends and hides the section for an upcoming one", async () => {
+  it("shows an empty message for a past trip with nothing logged and hides the section for an upcoming one", async () => {
     const past = await seedFixtureTrip(db, {
       userId: OWNER,
       name: "Rained off",
       startDate: "2026-02-01",
       endDate: "2026-02-03",
     });
-    const rainedOff = await renderTrip(past.id);
-    expect(rainedOff).toContain("No sends on this trip yet.");
+    expect(await renderTrip(past.id)).toContain("Nothing logged on this trip yet.");
+    // A reader who can't see the journal is told only about sends.
+    session.userId = STRANGER;
+    expect(await renderTrip(past.id)).toContain("No sends on this trip yet.");
+    session.userId = OWNER;
 
     const upcoming = await seedFixtureTrip(db, {
       userId: OWNER,
@@ -216,8 +259,9 @@ describe("trip page", () => {
       endDate: "2999-05-21",
     });
     const payload = await renderTrip(upcoming.id);
-    expect(payload).not.toContain("No sends on this trip yet.");
-    expect(payload).not.toContain('"bare"');
+    expect(payload).toContain('"name":"Squamish"');
+    expect(payload).not.toContain("Nothing logged on this trip yet.");
+    expect(payload).not.toContain('"aria-label":"Days"');
   });
 });
 
