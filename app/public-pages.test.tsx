@@ -289,7 +289,7 @@ it("keeps the profile's sub-pages locked with a current share link", async () =>
 /** A trip from March to May, covering the shared profile's sends on climbs 2, 3
  * and 4. */
 async function seedSharedTrip() {
-  // The owner keeps the default Friends audience: the link opens trips anyway.
+  // The owner keeps the default Friends audience.
   const token = await seedSharedProfile();
   const trip = await seedFixtureTrip(db, {
     userId: "hidden",
@@ -323,49 +323,9 @@ const tripProps = (id: string, tripId: number, share: string) => ({
 
 const JOURNAL_SIDE = ["Journal sentinel", "Inside journal sentinel", "Tagged identity sentinel"];
 
-it("opens the trips list and a trip through the share link", async () => {
+it("keeps the trips list and every trip locked with a current profile share link", async () => {
   const { token, trip } = await seedSharedTrip();
-
-  // The profile shows sends by default. Trips are on their own tab.
-  const profile = JSON.stringify(await UserPage(shareProps("hidden", token)));
-  expect(profile).not.toContain("Trip sentinel");
-
-  expect(await tripsMetadata(shareProps("hidden", token))).toMatchObject({
-    title: { absolute: "Restricted identity sentinel on Betabook" },
-    robots: { index: false },
-  });
-  const list = JSON.stringify(await UserTripsPage(shareProps("hidden", token)));
-  expect(list).toContain("Trip sentinel");
-  expect(list).toContain("Description sentinel");
-  expect(list).toContain('"sendCount":3');
-  expect(list).toContain('"entryCount":null');
-  // Trip links in the list include the share token.
-  expect(list).toContain(`"shareToken":"${token}"`);
-  expect(list).toContain('"canEdit":false');
-
-  expect(await tripMetadata(tripProps("hidden", trip.id, token))).toMatchObject({
-    title: { absolute: "Restricted identity sentinel on Betabook" },
-    robots: { index: false },
-  });
-  const page = JSON.stringify(await TripPage(tripProps("hidden", trip.id, token)));
-  expect(page).toContain("Trip sentinel");
-  const shown = [...page.matchAll(/Preview climb (\d)/g)].map((match) => match[1]);
-  expect([...new Set(shown)]).toEqual(["4", "3", "2"]);
-  expect(page).not.toContain("Commentary sentinel");
-
-  // Notes appear on the trip page, read-only.
-  expect(page).toContain('"notes":"Notes sentinel"');
-  expect(page).toContain('"canEdit":false');
-  expect(page).not.toContain('"canEdit":true');
-  for (const payload of [profile, list]) expect(payload).not.toContain("Notes sentinel");
-
-  for (const hidden of JOURNAL_SIDE) {
-    for (const payload of [profile, list, page]) expect(payload).not.toContain(hidden);
-  }
-});
-
-it("shows a trip's album through the share link", async () => {
-  const { token } = await seedSharedTrip();
+  await db.update(user).set({ tripVisibility: "public" }).where(eq(user.id, "hidden"));
   const album = "https://photos.app.goo.gl/Example1Album2Link3";
   const withAlbum = await seedFixtureTrip(db, {
     userId: "hidden",
@@ -375,27 +335,32 @@ it("shows a trip's album through the share link", async () => {
     endDate: "2026-05-31",
   });
 
-  const page = JSON.stringify(await TripPage(tripProps("hidden", withAlbum.id, token)));
-  expect(page).toContain(`"link":"${album}"`);
+  // The profile shows sends and has no Trips tab: each trip has its own link.
+  const profile = await UserPage(shareProps("hidden", token));
+  const profileJson = JSON.stringify(profile);
+  expect(profileJson).not.toContain("Trip sentinel");
+  expect(renderToStaticMarkup(await framed(profile))).not.toContain("/trips");
 
-  const locked = JSON.stringify(await TripPage(tripProps("hidden", withAlbum.id, "0".repeat(32))));
-  expect(locked).not.toContain(album);
-});
-
-it("shows send comments through the share link only when shared with Everyone", async () => {
-  const { token } = await seedSharedTrip();
-  const season = await seedFixtureTrip(db, {
-    userId: "hidden",
-    name: "Season sentinel",
-    startDate: "2026-01-01",
-    endDate: "2026-12-31",
+  expect(await tripsMetadata(shareProps("hidden", token))).toEqual({
+    title: "Member content",
+    robots: { index: false },
   });
-
-  const props = () => tripProps("hidden", season.id, token);
-  expect(JSON.stringify(await TripPage(props()))).not.toContain("Commentary sentinel");
-
-  await db.update(user).set({ sendCommentVisibility: "everyone" }).where(eq(user.id, "hidden"));
-  expect(JSON.stringify(await TripPage(props()))).toContain("Commentary sentinel");
+  for (const page of [
+    await UserTripsPage(shareProps("hidden", token)),
+    await TripPage(tripProps("hidden", trip.id, token)),
+    await TripPage(tripProps("hidden", withAlbum.id, token)),
+  ]) {
+    expect(renderToStaticMarkup(page)).toContain("For Betabook members");
+    const payload = JSON.stringify(page);
+    for (const hidden of ["Trip sentinel", "Notes sentinel", "Preview climb", album]) {
+      expect(payload).not.toContain(hidden);
+    }
+    for (const hidden of JOURNAL_SIDE) expect(payload).not.toContain(hidden);
+  }
+  expect(await tripMetadata(tripProps("hidden", trip.id, token))).toEqual({
+    title: "Member content",
+    robots: { index: false },
+  });
 });
 
 it("keeps trip analytics behind sign-in with a valid share link", async () => {

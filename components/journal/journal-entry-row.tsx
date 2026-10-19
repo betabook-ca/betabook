@@ -31,12 +31,16 @@ export function JournalEntryRow({
   userId,
   filter,
   areaBreadcrumbs,
+  linkTags = true,
 }: {
   entry: JournalEntry;
   isOwner: boolean;
   userId: string;
   filter: JournalFilter;
   areaBreadcrumbs: AreaBreadcrumbs;
+  /** Hashtags link to the Journal filtered by them. Off for a trip link's
+   * readers, who can't open the Journal. */
+  linkTags?: boolean;
 }) {
   const grade = activityGrade(entry.climbType, entry.climbGrade, entry.sent, entry.reportedGrade);
   const status = (
@@ -57,6 +61,13 @@ export function JournalEntryRow({
       <>
         <JournalCompanions entryId={entry.id} initialCompanions={entry.companions} />
         {entry.tags.map((tag) => {
+          if (!linkTags) {
+            return (
+              <span key={tag} className="text-xs text-muted">
+                #{tag}
+              </span>
+            );
+          }
           const active = filter.tags.includes(tag);
           return (
             <AppLink

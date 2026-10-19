@@ -20,7 +20,6 @@ export function TripList({
   userId,
   today,
   canEdit,
-  shareToken,
 }: {
   trips: TripSummary[];
   userId: string;
@@ -29,8 +28,6 @@ export function TripList({
   today: string;
   /** True when the owner is viewing their own list. */
   canEdit: boolean;
-  /** Share token for a signed-out visitor. */
-  shareToken?: string;
 }) {
   const createState = useOverlayState();
 
@@ -62,7 +59,6 @@ export function TripList({
               trip={trip}
               userId={userId}
               today={today}
-              shareToken={shareToken}
               actions={canEdit && <TripActions trip={trip} userId={userId} />}
             />
           ))}

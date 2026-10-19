@@ -103,6 +103,7 @@ export function TripDays({
   areaBreadcrumbs,
   userId,
   isOwner,
+  linkTags = true,
   emptyMessage,
   notice,
 }: {
@@ -114,6 +115,8 @@ export function TripDays({
   userId: string;
   /** Adds the edit menus to each row. */
   isOwner: boolean;
+  /** Whether entry hashtags link to the Journal. Off on a trip link's page. */
+  linkTags?: boolean;
   emptyMessage: string;
   /** A note above the days, such as the one for a trip too long to show. */
   notice?: ReactNode;
@@ -136,6 +139,7 @@ export function TripDays({
             areaBreadcrumbs={areaBreadcrumbs}
             userId={userId}
             isOwner={isOwner}
+            linkTags={linkTags}
           />
         )}
       </div>
@@ -148,11 +152,13 @@ function TripDayCards({
   areaBreadcrumbs,
   userId,
   isOwner,
+  linkTags,
 }: {
   days: TripDay<UserSendRow, JournalEntry>[];
   areaBreadcrumbs: AreaBreadcrumbs;
   userId: string;
   isOwner: boolean;
+  linkTags: boolean;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -188,6 +194,7 @@ function TripDayCards({
                       userId={userId}
                       filter={DEFAULT_JOURNAL_FILTER}
                       areaBreadcrumbs={areaBreadcrumbs}
+                      linkTags={linkTags}
                     />
                   </li>
                 ),

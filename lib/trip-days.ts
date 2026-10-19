@@ -18,6 +18,10 @@ export type TripDayOrder = "oldest" | "newest";
  * order button then reverses the days in the browser and rewrites it. */
 export const TRIP_DAY_ORDER_PARAM = "order";
 
+/** Most sends, and most journal entries, a trip page reads. Trips have no
+ * length limit, so a longer one shows its latest days. */
+export const TRIP_DAYS_LIMIT = 300;
+
 export function parseTripDayOrder(value: string | string[] | undefined): TripDayOrder {
   return value === "newest" ? "newest" : "oldest";
 }

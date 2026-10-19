@@ -27,6 +27,7 @@ const BISHOP: TripSummary = {
   companions: [],
 };
 const DATES = "dateFrom=2026-03-10&dateTo=2026-03-20";
+const TOKEN = "0123456789abcdef0123456789abcdef";
 
 function header(
   trip: TripSummary,
@@ -50,14 +51,17 @@ it("shows the actions menu to the owner only", () => {
 });
 
 it("shows the Share button to the owner only", () => {
-  const link = "https://betabook.ca/users/alex/trips/7?share=0123456789abcdef0123456789abcdef";
-  const { rerender } = render(header(BISHOP, "alex", { shareUrl: link }));
+  const origin = "https://betabook.ca";
+  const { rerender } = render(header(BISHOP, "alex", { ownerShare: { share: null, origin } }));
   expect(screen.getByRole("button", { name: "Share" })).toBeVisible();
 
-  // With a private profile the button stays, and the dialog explains why there
-  // is no link.
-  rerender(header(BISHOP, "alex", { shareUrl: null }));
-  expect(screen.getByRole("button", { name: "Share" })).toBeVisible();
+  // A live link reads as Shared.
+  rerender(
+    header(BISHOP, "alex", {
+      ownerShare: { share: { token: TOKEN, expiresAt: null }, origin },
+    }),
+  );
+  expect(screen.getByRole("button", { name: "Shared" })).toBeVisible();
 
   for (const reader of ["sam", null]) {
     rerender(header(BISHOP, reader));
@@ -156,18 +160,30 @@ it("links back to the trip from the analytics page, and not to analytics", () =>
   expect(screen.queryByRole("link", { name: "Analytics" })).not.toBeInTheDocument();
 });
 
-it("renders the same header for a signed-out visitor, without controls or Logbook links", () => {
-  const token = "0123456789abcdef0123456789abcdef";
-  render(header({ ...BISHOP, entryCount: null, dayCount: null }, null, { share: token }));
+it("renders the owner's header for a trip link, linking only to the link's analytics", () => {
+  render(header(BISHOP, null, { link: TOKEN }));
 
   expect(screen.getByRole("heading", { name: "Bishop, March 2026" })).toBeVisible();
   expect(screen.getByText("Buttermilks.")).toBeVisible();
-  expect(screen.getByRole("link", { name: "All trips" })).toHaveAttribute(
-    "href",
-    `/users/alex/trips?share=${token}`,
+  // The link opens no trips list, Journal or Sends, so those aren't linked.
+  expect(screen.queryByRole("link", { name: "All trips" })).not.toBeInTheDocument();
+  expect(screen.getByText("days logged", { exact: false }).closest("p")).toHaveTextContent(
+    /^7 days logged\s*·\s*14 entries\s*·\s*9 sends\s*·\s*Analytics$/,
   );
-  // Signed-out visitors can't open the Logbook, so the count is plain text.
-  expect(document.body).toHaveTextContent("9 sends");
-  expect(screen.queryByRole("link", { name: /sends|Analytics/ })).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: /entries|sends/ })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Analytics" })).toHaveAttribute(
+    "href",
+    `/trips/${TOKEN}/analytics`,
+  );
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
+});
+
+it("links back to the trip link from its analytics page", () => {
+  render(header(BISHOP, null, { link: TOKEN, back: "trip" }));
+
+  expect(screen.getByRole("link", { name: "Back to trip" })).toHaveAttribute(
+    "href",
+    `/trips/${TOKEN}`,
+  );
+  expect(screen.queryByRole("link", { name: "Analytics" })).not.toBeInTheDocument();
 });

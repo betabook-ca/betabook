@@ -47,12 +47,12 @@ it("shows the current link and its QR code and copies the link", async () => {
   expect(qr.querySelector("path")?.getAttribute("d")).not.toBe(firstCode);
 });
 
-it("describes what the link shows, including trip notes", () => {
+it("describes what the link shows, and that trips have their own links", () => {
   render(<ShareProfileControls name="Alex Rivera" url={FIRST} />);
 
   expect(
     screen.getByText(
-      "Anyone with the link sees your name, photo, send stats, latest sends, and your trips with their notes, photos and sends.",
+      "Anyone with the link sees your name, photo, send stats and latest sends. Trips have their own links.",
     ),
   ).toBeVisible();
 });

@@ -23,6 +23,7 @@ import { sendCommentVisibleSql } from "./content-access";
 import { sendHashtagCondition } from "./hashtag-filter";
 import { parseVideoList, withVideoList } from "./send-videos";
 import { disciplineGradeCondition, toFtsPrefixQuery } from "./shared";
+import { tripLinkCoversSql } from "./trip-shares";
 
 export type Send = typeof sends.$inferSelect;
 
@@ -356,6 +357,32 @@ export async function getSendsForUserPage(
   return { sends: hasMore ? rows.slice(0, pageSize) : rows, hasMore };
 }
 
+/** A shared trip's sends, newest first, the rows the owner's own trip page
+ * reads. The link overrides the owner's commentary audience for this trip, so
+ * comments and videos are selected as for the owner (`userSendColumns(ownerId)`
+ * makes the owner the viewer). Whether the link is live, and the trip's dates,
+ * are checked in the WHERE (`tripLinkCoversSql`). */
+export async function getSharedTripSends(
+  db: Database,
+  token: string,
+  ownerId: string,
+  pageSize: number,
+): Promise<UserSendsPage> {
+  const raw = await db.all<UserSendRawRow>(sql`
+    SELECT ${userSendColumns(ownerId)}
+    FROM sends
+    JOIN climbs ON climbs.id = sends.climb_id
+    JOIN areas ON areas.id = climbs.area_id
+    WHERE sends.user_id = ${ownerId}
+      AND ${tripLinkCoversSql(token, sql`sends.user_id`, sql`sends.date_sent`)}
+    ORDER BY ${USER_SENDS_ORDER_BY.date_desc}, sends.id DESC
+    LIMIT ${pageSize + 1}
+  `);
+  const rows = raw.map(withVideoList);
+  const hasMore = rows.length > pageSize;
+  return { sends: hasMore ? rows.slice(0, pageSize) : rows, hasMore };
+}
+
 const EXPORT_SENDS_PAGE_SIZE = 200;
 export type UserSendsExportCursor = { dateSent: string | null; id: number };
 export type UserSendsExportPage = {
@@ -549,6 +576,32 @@ export type AnalyticsSendRow = {
   ascentStyle: AscentStyle;
   dateSent: string | null;
 };
+
+/** A shared trip's sends for analytics: `getUserSendsForAnalytics`'s rows,
+ * limited in SQL to the trip's dates while the link is live. */
+export async function getSharedTripAnalyticsSends(
+  db: Database,
+  token: string,
+  ownerId: string,
+): Promise<AnalyticsSendRow[]> {
+  return db.all<AnalyticsSendRow>(sql`
+    SELECT
+      sends.climb_id        AS climbId,
+      climbs.name           AS climbName,
+      climbs.type           AS climbType,
+      sends.suggested_grade AS suggestedGrade,
+      climbs.area_id        AS areaId,
+      areas.name            AS areaName,
+      sends.ascent_style    AS ascentStyle,
+      sends.date_sent       AS dateSent
+    FROM sends
+    JOIN climbs ON climbs.id = sends.climb_id
+    JOIN areas ON areas.id = climbs.area_id
+    WHERE sends.user_id = ${ownerId}
+      AND ${tripLinkCoversSql(token, sql`sends.user_id`, sql`sends.date_sent`)}
+    ORDER BY sends.date_sent, sends.id
+  `);
+}
 
 /** Full send history for analytics. Unlike list pages, this loads all of a user's sends. */
 export async function getUserSendsForAnalytics(
