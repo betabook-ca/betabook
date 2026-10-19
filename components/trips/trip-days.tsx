@@ -45,9 +45,9 @@ function daySummary({ items }: TripDay<UserSendRow, JournalEntry>): string {
     .join(" · ");
 }
 
-/** The days section's heading with the order button beside it. Wrap the
- * heading and `TripDays` in one `NavigationPendingProvider`, so the cards dim
- * while a new order loads. */
+/** The days section's heading, with the order button at the end of the line.
+ * Wrap the heading and `TripDays` in one `NavigationPendingProvider`, so the
+ * cards dim while a new order loads. */
 export function TripDaysHeading({
   children,
   order,
@@ -57,7 +57,7 @@ export function TripDaysHeading({
   order?: TripDayOrderLinks;
 }) {
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center justify-between gap-2">
       <SectionHeading>{children}</SectionHeading>
       {order && <TripDayOrderControl order={order} />}
     </div>
