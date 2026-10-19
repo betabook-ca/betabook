@@ -210,20 +210,17 @@ describe("trip page", () => {
     expect(at('"date":"2026-03-16","dayNumber":7')).toBeLessThan(at(ENTRY));
   });
 
-  it("starts newest first with ?order=newest, still within the trip", async () => {
+  it("sends the days oldest first whatever ?order says, and never widens the range", async () => {
     const trip = await seedTrip();
 
-    // The server always sends the days oldest first; the order provider
-    // reverses them in the browser, so the URL only sets where it starts.
+    // The order provider reads ?order in the browser and reverses the days
+    // there, so the server's payload is the same either way.
     const payload = await renderTrip(trip.id, { order: "newest" });
-    expect(payload).toContain('"initialOrder":"newest"');
-    // Ordering never widens the range.
+    const at = (text: string) => payload.indexOf(text);
+    expect(at('"date":"2026-03-15"')).toBeLessThan(at('"date":"2026-03-16"'));
     expect(payload).toContain(INSIDE);
     expect(payload).not.toContain(BEFORE);
     expect(payload).not.toContain(AFTER);
-
-    // Anything but "newest" is the default order.
-    expect(await renderTrip(trip.id, { order: "sideways" })).toContain('"initialOrder":"oldest"');
   });
 
   it("shows the send in place of its ascent entry, and keeps other entries for the climb", async () => {

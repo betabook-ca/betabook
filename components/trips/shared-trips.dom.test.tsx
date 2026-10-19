@@ -10,6 +10,7 @@ vi.mock("@/actions", () => ({}));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn<() => void>(), refresh: vi.fn<() => void>() }),
   usePathname: () => "/users/owner-1/trips/7",
+  useSearchParams: () => new URLSearchParams(),
 }));
 vi.mock("next/image", () => ({
   default: ({ src }: { src: string }) => <span data-image-src={src} />,
@@ -134,7 +135,9 @@ it("renders notes between the photos and the sends", () => {
 });
 
 it("says when only some of the trip's sends are shown", () => {
-  render(trip({ trip: { ...BISHOP, sendCount: 120 }, sends: [send(1, "Moon Slab")] }));
+  render(
+    trip({ trip: { ...BISHOP, sendCount: 120 }, sendsCapped: true, sends: [send(1, "Moon Slab")] }),
+  );
 
   expect(screen.getByText("Showing the 1 most recent of 120 sends.")).toBeVisible();
   expect(screen.getByRole("link", { name: "See all 120 sends" })).toHaveAttribute(
@@ -143,10 +146,28 @@ it("says when only some of the trip's sends are shown", () => {
   );
 });
 
+it("keeps every day when the read wasn't cut off, even if the count disagrees", () => {
+  // A send logged between the count and the read makes sendCount one higher;
+  // that alone must not drop a day.
+  render(
+    trip({
+      trip: { ...BISHOP, sendCount: 3 },
+      sendsCapped: false,
+      sends: [
+        { ...send(2, "Warm-up Arete"), dateSent: "2026-03-14" },
+        { ...send(1, "Moon Slab"), dateSent: "2026-03-12" },
+      ],
+    }),
+  );
+  expect(screen.getByRole("region", { name: "Day 3 · Thu, Mar 12" })).toBeVisible();
+  expect(screen.getByText("Moon Slab")).toBeVisible();
+});
+
 it("leaves out the oldest day of a capped list, which may be missing sends", () => {
   render(
     trip({
       trip: { ...BISHOP, sendCount: 10 },
+      sendsCapped: true,
       sends: [
         { ...send(3, "Evilution"), dateSent: "2026-03-14" },
         { ...send(2, "Warm-up Arete"), dateSent: "2026-03-14" },

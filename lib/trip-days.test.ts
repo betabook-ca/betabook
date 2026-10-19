@@ -92,6 +92,8 @@ describe("groupTripDays", () => {
     // 10's entry goes too: that day's sends weren't read.
     const capped = groupTripDays({ startDate: "2026-03-10", sends, entries, sendsCapped: true });
     expect(capped.truncated).toBe(true);
+    // The partial day was dropped, so every day shown is complete.
+    expect(capped.partialDate).toBeNull();
     expect(summary(capped)).toEqual([
       ["2026-03-12", 3, ["send:6"]],
       ["2026-03-13", 4, ["entry:41"]],
@@ -109,6 +111,7 @@ describe("groupTripDays", () => {
 
     const complete = groupTripDays({ startDate: "2026-03-10", sends, entries });
     expect(complete.truncated).toBe(false);
+    expect(complete.partialDate).toBeNull();
     expect(complete.days).toHaveLength(4);
   });
 
@@ -122,6 +125,8 @@ describe("groupTripDays", () => {
       sendsCapped: true,
     });
     expect(capped.truncated).toBe(true);
+    // Kept, but flagged, so the page can say it may be incomplete.
+    expect(capped.partialDate).toBe("2026-03-12");
     expect(summary(capped)).toEqual([["2026-03-12", 3, ["send:1", "send:2", "send:3"]]]);
 
     // The same when the entries' cutoff is the newest date either read has.

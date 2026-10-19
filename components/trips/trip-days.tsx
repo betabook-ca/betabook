@@ -14,7 +14,7 @@ import { SectionHeading } from "@/components/ui/typography";
 import type { AreaBreadcrumbs, JournalEntry, UserSendRow } from "@/db/queries";
 import { DEFAULT_JOURNAL_FILTER } from "@/lib/filters/journal-filter";
 import { formatCount } from "@/lib/format";
-import type { TripDay, TripDayOrder } from "@/lib/trip-days";
+import type { TripDay } from "@/lib/trip-days";
 
 const DAY_FORMAT = new Intl.DateTimeFormat("en-US", {
   weekday: "short",
@@ -71,6 +71,27 @@ function daySummary({ items }: TripDay<UserSendRow, JournalEntry>): string {
     .join(" · ");
 }
 
+/** A day card's sticky header: the day and date, the crags under them, and
+ * what the day holds on the right. */
+function TripDayHeader({ day }: { day: TripDay<UserSendRow, JournalEntry> }) {
+  const { number, date } = dayLabelParts(day);
+  const crags = dayCrags(day);
+  return (
+    <header className="sticky top-0 z-10 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-separator bg-surface-secondary px-4 py-2.5">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <h3 className="text-sm font-semibold text-foreground">
+          {number}{" "}
+          <time dateTime={day.date} className="font-normal text-muted">
+            · {date}
+          </time>
+        </h3>
+        {crags && <p className="text-xs text-muted">{crags}</p>}
+      </div>
+      <p className="text-xs text-muted">{daySummary(day)}</p>
+    </header>
+  );
+}
+
 /** A trip's sends and journal entries as one card per day with something
  * logged, under `heading` with the order button at the end of its line.
  * Entries are left out when the viewer can't read the journal; `groupTripDays`
@@ -78,7 +99,6 @@ function daySummary({ items }: TripDay<UserSendRow, JournalEntry>): string {
  * The button shows only when there are two days to order. */
 export function TripDays({
   heading,
-  initialOrder = "oldest",
   days,
   areaBreadcrumbs,
   userId,
@@ -89,8 +109,6 @@ export function TripDays({
   /** The section heading, such as "Days". The page's loading skeleton shows
    * the same text, so the heading doesn't move when the days arrive. */
   heading?: ReactNode;
-  /** The order from the URL, which the page starts in. */
-  initialOrder?: TripDayOrder;
   days: TripDay<UserSendRow, JournalEntry>[];
   areaBreadcrumbs: AreaBreadcrumbs;
   userId: string;
@@ -101,7 +119,7 @@ export function TripDays({
   notice?: ReactNode;
 }) {
   return (
-    <TripDayOrderProvider initialOrder={initialOrder}>
+    <TripDayOrderProvider>
       <div className="flex flex-col gap-3">
         {heading && (
           <div className="flex items-center justify-between gap-2">
@@ -147,18 +165,7 @@ function TripDayCards({
             aria-label={dayLabel(day)}
             className={`overflow-clip ${cardClass("none", "bordered")}`}
           >
-            <header className="sticky top-0 z-10 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-separator bg-surface-secondary px-4 py-2.5">
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <h3 className="text-sm font-semibold text-foreground">
-                  {dayLabelParts(day).number}{" "}
-                  <time dateTime={day.date} className="font-normal text-muted">
-                    · {dayLabelParts(day).date}
-                  </time>
-                </h3>
-                {dayCrags(day) && <p className="text-xs text-muted">{dayCrags(day)}</p>}
-              </div>
-              <p className="text-xs text-muted">{daySummary(day)}</p>
-            </header>
+            <TripDayHeader day={day} />
             {/* Rows raise their grade column to z-10; keeping them in their own
               stacking context lets the sticky header cover them. */}
             <ul role="list" className="relative z-0 flex flex-col divide-y divide-separator">

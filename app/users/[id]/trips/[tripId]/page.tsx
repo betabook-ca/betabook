@@ -35,15 +35,11 @@ import {
 } from "@/db/queries";
 import { DEFAULT_JOURNAL_FILTER } from "@/lib/filters/journal-filter";
 import { DEFAULT_USER_SENDS_FILTER } from "@/lib/filters/user-sends-filter";
+import { formatDate } from "@/lib/format-date";
 import { SHARED_TRIP_SENDS, withProfileShare } from "@/lib/profile-share";
 import { getOwnTripShareUrl } from "@/lib/profile-share-url";
 import { sharedProfileMetadata } from "@/lib/seo";
-import {
-  TRIP_DAY_ORDER_PARAM,
-  groupTripDays,
-  parseTripDayOrder,
-  type TripDayOrder,
-} from "@/lib/trip-days";
+import { groupTripDays } from "@/lib/trip-days";
 import { tripHref, tripLogbookHref, tripStatus } from "@/lib/trips";
 
 /** Most sends, and most journal entries, the trip page reads. Trips have no
@@ -70,7 +66,6 @@ export async function generateMetadata({
  * whole trip. */
 export default async function TripPage({ params, searchParams }: TripPageParams) {
   const [{ id, tripId }, search] = await Promise.all([params, searchParams]);
-  const order = parseTripDayOrder(search[TRIP_DAY_ORDER_PARAM]);
   const resolved = await resolveTripPage(id, tripId, search);
   if (!resolved.signedIn) {
     const shared = await resolveSharedTrip(id, tripId, search);
@@ -79,7 +74,7 @@ export default async function TripPage({ params, searchParams }: TripPageParams)
     const path = withProfileShare(tripHref(owner.id, trip.id), owner.token);
     return (
       <SharedProfileHeader owner={owner} next={path}>
-        <SharedTripView owner={owner} trip={trip} path={path} order={order} />
+        <SharedTripView owner={owner} trip={trip} path={path} />
       </SharedProfileHeader>
     );
   }
@@ -138,7 +133,6 @@ export default async function TripPage({ params, searchParams }: TripPageParams)
                 userId={user.id}
                 viewerId={viewerId}
                 journalVisible={journalVisible}
-                initialOrder={order}
               />
             </Suspense>
           </section>
@@ -174,7 +168,6 @@ async function TripDaysView({
   userId,
   viewerId,
   journalVisible,
-  initialOrder,
 }: {
   trip: TripSummary;
   userId: string;
@@ -182,7 +175,6 @@ async function TripDaysView({
   /** Entries are read only for viewers of the journal. The query checks
    * access again in SQL. */
   journalVisible: boolean;
-  initialOrder: TripDayOrder;
 }) {
   const db = await getDb();
   const [sendsPage, entriesPage] = await Promise.all([
@@ -207,7 +199,7 @@ async function TripDaysView({
   ]);
   const { sends } = sendsPage;
   const { entries } = entriesPage;
-  const { days, truncated } = groupTripDays({
+  const { days, truncated, partialDate } = groupTripDays({
     startDate: trip.startDate,
     sends,
     entries,
@@ -227,7 +219,6 @@ async function TripDaysView({
   return (
     <TripDays
       heading="Days"
-      initialOrder={initialOrder}
       days={days}
       areaBreadcrumbs={areaBreadcrumbs}
       userId={userId}
@@ -238,7 +229,9 @@ async function TripDaysView({
       notice={
         truncated && (
           <p>
-            Showing the latest days. Earlier days are in the{" "}
+            {partialDate
+              ? `${formatDate(partialDate)} has more logged than fits here, so it may be missing some. Everything is in the `
+              : "Showing the latest days. Earlier days are in the "}
             {journalVisible && (
               <>
                 <AppLink href={tripLogbookHref(userId, "journal", trip)}>Journal</AppLink> and{" "}
@@ -259,13 +252,11 @@ async function SharedTripView({
   owner,
   trip,
   path,
-  order,
 }: SharedTripResolved & {
   path: string;
-  order: TripDayOrder;
 }) {
   const db = await getDb();
-  const [{ sends, areaBreadcrumbs }, notes, today] = await Promise.all([
+  const [{ sends, hasMore, areaBreadcrumbs }, notes, today] = await Promise.all([
     // A null viewer only gets comments shared with Everyone.
     getSendsForUserPage(
       db,
@@ -274,8 +265,9 @@ async function SharedTripView({
       0,
       SHARED_TRIP_SENDS,
       null,
-    ).then(async ({ sends }) => ({
+    ).then(async ({ sends, hasMore }) => ({
       sends,
+      hasMore,
       areaBreadcrumbs: await getAreaBreadcrumbs(
         db,
         sends.map((send) => send.areaId),
@@ -289,10 +281,10 @@ async function SharedTripView({
       owner={owner}
       trip={trip}
       sends={sends}
+      sendsCapped={hasMore}
       areaBreadcrumbs={areaBreadcrumbs}
       path={path}
       today={today}
-      order={order}
       photos={tripPhotos(trip)}
       notes={
         notes && (

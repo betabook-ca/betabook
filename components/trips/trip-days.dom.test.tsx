@@ -10,6 +10,7 @@ vi.mock("@/actions", () => ({}));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn<() => void>(), refresh: vi.fn<() => void>() }),
   usePathname: () => "/users/owner-1/trips/7",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 const SEND: UserSendRow = {
@@ -162,7 +163,6 @@ it("offers the order button only when there are two days to order", () => {
   const { rerender } = render(
     <TripDays
       heading="Days"
-      initialOrder="oldest"
       days={sameDay}
       areaBreadcrumbs={{}}
       userId="owner-1"
@@ -182,7 +182,6 @@ it("offers the order button only when there are two days to order", () => {
   rerender(
     <TripDays
       heading="Days"
-      initialOrder="oldest"
       days={twoDays}
       areaBreadcrumbs={{}}
       userId="owner-1"

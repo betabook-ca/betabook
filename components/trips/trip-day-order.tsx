@@ -1,9 +1,10 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 
 import { SortDirectionButton } from "@/components/ui/sort-select";
-import { TRIP_DAY_ORDER_PARAM, type TripDayOrder } from "@/lib/trip-days";
+import { TRIP_DAY_ORDER_PARAM, parseTripDayOrder, type TripDayOrder } from "@/lib/trip-days";
 
 type TripDayOrderState = { order: TripDayOrder; toggle: () => void };
 
@@ -18,14 +19,17 @@ const TripDayOrderContext = createContext<TripDayOrderState>({
  * cards here: nothing is fetched and the page isn't re-rendered. The URL is
  * updated with `history.replaceState`, so a reload or a copied link keeps the
  * order, along with the rest of the query such as the share token. */
-export function TripDayOrderProvider({
-  initialOrder,
-  children,
-}: {
-  initialOrder: TripDayOrder;
-  children: ReactNode;
-}) {
-  const [order, setOrder] = useState(initialOrder);
+export function TripDayOrderProvider({ children }: { children: ReactNode }) {
+  const urlOrder = parseTripDayOrder(useSearchParams().get(TRIP_DAY_ORDER_PARAM) ?? undefined);
+  const [order, setOrder] = useState(urlOrder);
+  // A navigation can change ?order while this stays mounted, such as the trip
+  // header's link back to the trip. Follow the URL when it does, so the two
+  // never disagree.
+  const [seenUrlOrder, setSeenUrlOrder] = useState(urlOrder);
+  if (urlOrder !== seenUrlOrder) {
+    setSeenUrlOrder(urlOrder);
+    setOrder(urlOrder);
+  }
   const toggle = useCallback(() => {
     const next = order === "oldest" ? "newest" : "oldest";
     setOrder(next);

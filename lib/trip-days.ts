@@ -41,7 +41,8 @@ function earliest(dates: (string | null)[]): string | null {
  * limit. Mark a read that stopped with `sendsCapped` or `entriesCapped`. Its
  * oldest date may be incomplete, so that day and every earlier one are left
  * out, and `truncated` is true. If the read reached only one date, that day is
- * kept even though it may be partial, rather than leaving nothing. */
+ * kept even though it may be partial, rather than leaving nothing, and
+ * `partialDate` names it so the page can say so. */
 export function groupTripDays<
   Send extends { id: number; climbId: number; dateSent: string | null },
   Entry extends { id: number; climbId: number | null; entryDate: string; isAscent: boolean },
@@ -57,7 +58,7 @@ export function groupTripDays<
   entries: Entry[];
   sendsCapped?: boolean;
   entriesCapped?: boolean;
-}): { days: TripDay<Send, Entry>[]; truncated: boolean } {
+}): { days: TripDay<Send, Entry>[]; truncated: boolean; partialDate: string | null } {
   let after: string | null = null;
   for (const cutoff of [
     sendsCapped ? earliest(sends.map((send) => send.dateSent)) : null,
@@ -107,5 +108,5 @@ export function groupTripDays<
     for (const send of unplaced.values()) items.push({ kind: "send", send });
     return { date, dayNumber: (daysBetween(startDate, date) ?? 0) + 1, items };
   });
-  return { days, truncated: after !== null };
+  return { days, truncated: after !== null, partialDate: keepCutoffDay ? cutoff : null };
 }
