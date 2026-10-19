@@ -81,6 +81,11 @@ it("puts each day's sends and entries under a heading for that day", () => {
   // The send replaces its ascent entry, so Moon Slab appears once, before the
   // entry logged after it.
   const day3 = screen.getByRole("region", { name: "Day 3 · Thu, Mar 12" });
+  // Each day says what it holds, so a glance at the header tells days apart.
+  expect(within(day3).getByText("1 send · 1 session")).toBeVisible();
+  expect(
+    within(screen.getByRole("region", { name: "Day 1 · Tue, Mar 10" })).getByText("1 session"),
+  ).toBeVisible();
   const rows = within(day3).getAllByRole("listitem");
   expect(rows).toHaveLength(2);
   expect(within(rows[0]).getByRole("link", { name: "Moon Slab" })).toBeVisible();
