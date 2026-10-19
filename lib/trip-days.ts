@@ -13,29 +13,13 @@ export type TripDay<Send, Entry> = {
  * happened; newest first suits a trip still in progress. */
 export type TripDayOrder = "oldest" | "newest";
 
-/** The current order and a link to each order. */
-export type TripDayOrderLinks = { value: TripDayOrder; hrefs: Record<TripDayOrder, string> };
-
 /** URL parameter for the order. Absent means oldest first, so a plain trip
- * link keeps the default. */
+ * link keeps the default. The page reads it once to start in that order; the
+ * order button then reverses the days in the browser and rewrites it. */
 export const TRIP_DAY_ORDER_PARAM = "order";
 
 export function parseTripDayOrder(value: string | string[] | undefined): TripDayOrder {
   return value === "newest" ? "newest" : "oldest";
-}
-
-/** Links to `path` in each order. Keeps the rest of the query, such as the
- * share token, and leaves the default out of the URL. */
-export function tripDayOrderHrefs(path: string): Record<TripDayOrder, string> {
-  const [pathname, query = ""] = path.split("?");
-  const href = (order: TripDayOrder) => {
-    const params = new URLSearchParams(query);
-    params.delete(TRIP_DAY_ORDER_PARAM);
-    if (order === "newest") params.set(TRIP_DAY_ORDER_PARAM, order);
-    const search = params.toString();
-    return search ? `${pathname}?${search}` : pathname;
-  };
-  return { oldest: href("oldest"), newest: href("newest") };
 }
 
 function earliest(dates: (string | null)[]): string | null {
@@ -67,15 +51,12 @@ export function groupTripDays<
   entries,
   sendsCapped = false,
   entriesCapped = false,
-  order = "oldest",
 }: {
   startDate: string;
   sends: Send[];
   entries: Entry[];
   sendsCapped?: boolean;
   entriesCapped?: boolean;
-  /** Orders the days only. Rows within a day stay in the order logged. */
-  order?: TripDayOrder;
 }): { days: TripDay<Send, Entry>[]; truncated: boolean } {
   let after: string | null = null;
   for (const cutoff of [
@@ -122,6 +103,5 @@ export function groupTripDays<
     for (const send of unplaced.values()) items.push({ kind: "send", send });
     return { date, dayNumber: (daysBetween(startDate, date) ?? 0) + 1, items };
   });
-  if (order === "newest") days.reverse();
   return { days, truncated: after !== null };
 }

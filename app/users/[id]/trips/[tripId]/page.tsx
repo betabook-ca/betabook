@@ -17,8 +17,8 @@ import {
   type TripPageParams,
 } from "@/app/users/[id]/trips/[tripId]/trip-shell";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
-import { NavigationPendingProvider } from "@/components/navigation-pending";
 import { SharedTrip } from "@/components/trips/shared-trips";
+import { TripDayOrderProvider } from "@/components/trips/trip-day-order";
 import { TripDays, TripDaysHeading } from "@/components/trips/trip-days";
 import { TripHeader } from "@/components/trips/trip-header";
 import { TripNotes } from "@/components/trips/trip-notes";
@@ -42,9 +42,7 @@ import {
   TRIP_DAY_ORDER_PARAM,
   groupTripDays,
   parseTripDayOrder,
-  tripDayOrderHrefs,
   type TripDayOrder,
-  type TripDayOrderLinks,
 } from "@/lib/trip-days";
 import { tripHref, tripLogbookHref, tripStatus } from "@/lib/trips";
 
@@ -81,12 +79,7 @@ export default async function TripPage({ params, searchParams }: TripPageParams)
     const path = withProfileShare(tripHref(owner.id, trip.id), owner.token);
     return (
       <SharedProfileHeader owner={owner} next={path}>
-        <SharedTripView
-          owner={owner}
-          trip={trip}
-          path={path}
-          order={{ value: order, hrefs: tripDayOrderHrefs(path) }}
-        />
+        <SharedTripView owner={owner} trip={trip} path={path} order={order} />
       </SharedProfileHeader>
     );
   }
@@ -130,24 +123,10 @@ export default async function TripPage({ params, searchParams }: TripPageParams)
           </Suspense>
         )}
         {showDays && (
-          <NavigationPendingProvider>
+          <TripDayOrderProvider initialOrder={order}>
             <section aria-label="Days" className="flex min-w-0 flex-col gap-3">
-              <TripDaysHeading
-                order={
-                  // Nothing to order until two things are logged.
-                  trip.sendCount + (trip.entryCount ?? 0) > 1
-                    ? {
-                        value: order,
-                        // Signed-in pages keep the share token on their links.
-                        hrefs: tripDayOrderHrefs(
-                          share
-                            ? withProfileShare(tripHref(user.id, trip.id), share)
-                            : tripHref(user.id, trip.id),
-                        ),
-                      }
-                    : undefined
-                }
-              >
+              {/* Nothing to order until two things are logged. */}
+              <TripDaysHeading orderable={trip.sendCount + (trip.entryCount ?? 0) > 1}>
                 Days
               </TripDaysHeading>
               <Suspense fallback={<SkeletonListRows rows={5} />}>
@@ -156,11 +135,10 @@ export default async function TripPage({ params, searchParams }: TripPageParams)
                   userId={user.id}
                   viewerId={viewerId}
                   journalVisible={journalVisible}
-                  order={order}
                 />
               </Suspense>
             </section>
-          </NavigationPendingProvider>
+          </TripDayOrderProvider>
         )}
       </TripHeader>
     </ProfileHeader>
@@ -193,7 +171,6 @@ async function TripDaysView({
   userId,
   viewerId,
   journalVisible,
-  order,
 }: {
   trip: TripSummary;
   userId: string;
@@ -201,7 +178,6 @@ async function TripDaysView({
   /** Entries are read only for viewers of the journal. The query checks
    * access again in SQL. */
   journalVisible: boolean;
-  order: TripDayOrder;
 }) {
   const db = await getDb();
   const [sendsPage, entriesPage] = await Promise.all([
@@ -232,7 +208,6 @@ async function TripDaysView({
     entries,
     sendsCapped: sendsPage.hasMore,
     entriesCapped: entriesPage.hasMore,
-    order,
   });
   const areaBreadcrumbs = await getAreaBreadcrumbs(db, [
     ...sends.map((send) => send.areaId),
@@ -274,7 +249,7 @@ async function SharedTripView({
   order,
 }: SharedTripResolved & {
   path: string;
-  order: TripDayOrderLinks;
+  order: TripDayOrder;
 }) {
   const db = await getDb();
   const [{ sends, areaBreadcrumbs }, notes, today] = await Promise.all([

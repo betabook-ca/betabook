@@ -95,8 +95,11 @@ it("renders the trip header and the trip's sends", () => {
 it("renders no controls or Logbook links for signed-out visitors", () => {
   render(trip());
 
-  // No menu, tags or journal counts, and no links into the Logbook.
-  expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  // No menu, tags or journal counts, and no links into the Logbook. The one
+  // button orders the days, which changes nothing but the view.
+  expect(screen.getAllByRole("button").map((button) => button.getAttribute("aria-label"))).toEqual([
+    "Sort ascending",
+  ]);
   expect(screen.queryByRole("link", { name: /sends$|Analytics/ })).not.toBeInTheDocument();
   expect(document.body).not.toHaveTextContent(/entr|days logged|With /);
   // The sign-up invite is in the profile header. The trip page ends with one

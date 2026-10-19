@@ -2,16 +2,15 @@ import type { ReactNode } from "react";
 
 import { UserSendLogRow } from "@/components/climb-log-row";
 import { JournalEntryRow } from "@/components/journal/journal-entry-row";
-import { NavigationPendingRegion } from "@/components/navigation-pending";
 import { SendActionsMenu } from "@/components/send-actions-menu";
-import { TripDayOrderControl } from "@/components/trips/trip-day-order";
+import { TripDayOrderControl, TripDayOrderList } from "@/components/trips/trip-day-order";
 import { cardClass } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeading } from "@/components/ui/typography";
 import type { AreaBreadcrumbs, JournalEntry, UserSendRow } from "@/db/queries";
 import { DEFAULT_JOURNAL_FILTER } from "@/lib/filters/journal-filter";
 import { formatCount } from "@/lib/format";
-import type { TripDay, TripDayOrderLinks } from "@/lib/trip-days";
+import type { TripDay } from "@/lib/trip-days";
 
 const DAY_FORMAT = new Intl.DateTimeFormat("en-US", {
   weekday: "short",
@@ -46,27 +45,28 @@ function daySummary({ items }: TripDay<UserSendRow, JournalEntry>): string {
 }
 
 /** The days section's heading, with the order button at the end of the line.
- * Wrap the heading and `TripDays` in one `NavigationPendingProvider`, so the
- * cards dim while a new order loads. */
+ * Wrap the heading and `TripDays` in one `TripDayOrderProvider`. */
 export function TripDaysHeading({
   children,
-  order,
+  orderable,
 }: {
   children: ReactNode;
-  /** Omit when there is at most one thing to order. */
-  order?: TripDayOrderLinks;
+  /** Shows the order button. Leave off when there is at most one thing to
+   * order. */
+  orderable: boolean;
 }) {
   return (
     <div className="flex items-center justify-between gap-2">
       <SectionHeading>{children}</SectionHeading>
-      {order && <TripDayOrderControl order={order} />}
+      {orderable && <TripDayOrderControl />}
     </div>
   );
 }
 
 /** A trip's sends and journal entries as one card per day with something
  * logged. Entries are left out when the viewer can't read the journal;
- * `groupTripDays` builds the days, already in order. */
+ * `groupTripDays` builds the days oldest first, and the surrounding
+ * `TripDayOrderProvider` decides the order they're shown in. */
 export function TripDays({
   days,
   areaBreadcrumbs,
@@ -89,14 +89,12 @@ export function TripDays({
   return (
     <div className="flex flex-col gap-3">
       {notice && <div className="text-sm text-muted">{notice}</div>}
-      <NavigationPendingRegion>
-        <TripDayCards
-          days={days}
-          areaBreadcrumbs={areaBreadcrumbs}
-          userId={userId}
-          isOwner={isOwner}
-        />
-      </NavigationPendingRegion>
+      <TripDayCards
+        days={days}
+        areaBreadcrumbs={areaBreadcrumbs}
+        userId={userId}
+        isOwner={isOwner}
+      />
     </div>
   );
 }
@@ -114,52 +112,54 @@ function TripDayCards({
 }) {
   return (
     <div className="flex flex-col gap-4">
-      {days.map((day) => (
-        // overflow-clip rounds the header and rows to the card without making
-        // the card a scroll container, which would stop the header sticking.
-        <section
-          key={day.date}
-          aria-label={dayLabel(day)}
-          className={`overflow-clip ${cardClass("none", "bordered")}`}
-        >
-          <header className="sticky top-0 z-10 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-separator bg-surface-secondary px-4 py-2.5">
-            <h3 className="text-sm font-semibold text-foreground">
-              Day {day.dayNumber}{" "}
-              <time dateTime={day.date} className="font-normal text-muted">
-                · {DAY_FORMAT.format(new Date(day.date))}
-              </time>
-            </h3>
-            <p className="text-xs text-muted">{daySummary(day)}</p>
-          </header>
-          {/* Rows raise their grade column to z-10; keeping them in their own
+      <TripDayOrderList
+        days={days.map((day) => (
+          // overflow-clip rounds the header and rows to the card without making
+          // the card a scroll container, which would stop the header sticking.
+          <section
+            key={day.date}
+            aria-label={dayLabel(day)}
+            className={`overflow-clip ${cardClass("none", "bordered")}`}
+          >
+            <header className="sticky top-0 z-10 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-separator bg-surface-secondary px-4 py-2.5">
+              <h3 className="text-sm font-semibold text-foreground">
+                Day {day.dayNumber}{" "}
+                <time dateTime={day.date} className="font-normal text-muted">
+                  · {DAY_FORMAT.format(new Date(day.date))}
+                </time>
+              </h3>
+              <p className="text-xs text-muted">{daySummary(day)}</p>
+            </header>
+            {/* Rows raise their grade column to z-10; keeping them in their own
               stacking context lets the sticky header cover them. */}
-          <ul role="list" className="relative z-0 flex flex-col divide-y divide-separator">
-            {day.items.map((item) =>
-              item.kind === "send" ? (
-                // Keyed by climb id. Keys end up in the RSC payload, and
-                // sequential send ids shouldn't.
-                <li key={`send-${item.send.climbId}`}>
-                  <UserSendLogRow
-                    send={item.send}
-                    areaBreadcrumbs={areaBreadcrumbs}
-                    actions={isOwner && <SendActionsMenu send={item.send} />}
-                  />
-                </li>
-              ) : (
-                <li key={`entry-${item.entry.id}`}>
-                  <JournalEntryRow
-                    entry={item.entry}
-                    isOwner={isOwner}
-                    userId={userId}
-                    filter={DEFAULT_JOURNAL_FILTER}
-                    areaBreadcrumbs={areaBreadcrumbs}
-                  />
-                </li>
-              ),
-            )}
-          </ul>
-        </section>
-      ))}
+            <ul role="list" className="relative z-0 flex flex-col divide-y divide-separator">
+              {day.items.map((item) =>
+                item.kind === "send" ? (
+                  // Keyed by climb id. Keys end up in the RSC payload, and
+                  // sequential send ids shouldn't.
+                  <li key={`send-${item.send.climbId}`}>
+                    <UserSendLogRow
+                      send={item.send}
+                      areaBreadcrumbs={areaBreadcrumbs}
+                      actions={isOwner && <SendActionsMenu send={item.send} />}
+                    />
+                  </li>
+                ) : (
+                  <li key={`entry-${item.entry.id}`}>
+                    <JournalEntryRow
+                      entry={item.entry}
+                      isOwner={isOwner}
+                      userId={userId}
+                      filter={DEFAULT_JOURNAL_FILTER}
+                      areaBreadcrumbs={areaBreadcrumbs}
+                    />
+                  </li>
+                ),
+              )}
+            </ul>
+          </section>
+        ))}
+      />
     </div>
   );
 }

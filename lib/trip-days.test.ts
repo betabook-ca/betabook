@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { groupTripDays, parseTripDayOrder, tripDayOrderHrefs } from "./trip-days";
+import { groupTripDays, parseTripDayOrder } from "./trip-days";
 
 type Send = { id: number; climbId: number; dateSent: string | null };
 type Entry = { id: number; climbId: number | null; entryDate: string };
@@ -106,41 +106,6 @@ describe("groupTripDays", () => {
     const complete = groupTripDays({ startDate: "2026-03-10", sends, entries });
     expect(complete.truncated).toBe(false);
     expect(complete.days).toHaveLength(4);
-  });
-
-  it("lists the newest day first on request, keeping each day's rows in the order logged", () => {
-    const days = groupTripDays({
-      startDate: "2026-03-10",
-      sends: [send(5, 50, "2026-03-11")],
-      entries: [
-        entry(21, 70, "2026-03-11"),
-        entry(22, 50, "2026-03-11"),
-        entry(8, null, "2026-03-10"),
-      ],
-      order: "newest",
-    });
-    expect(summary(days)).toEqual([
-      ["2026-03-11", 2, ["entry:21", "send:5"]],
-      ["2026-03-10", 1, ["entry:8"]],
-    ]);
-  });
-});
-
-describe("tripDayOrderHrefs", () => {
-  it("adds the order to the path and keeps its share token", () => {
-    expect(tripDayOrderHrefs("/users/u1/trips/7")).toEqual({
-      oldest: "/users/u1/trips/7",
-      newest: "/users/u1/trips/7?order=newest",
-    });
-    expect(tripDayOrderHrefs("/users/u1/trips/7?share=abc")).toEqual({
-      oldest: "/users/u1/trips/7?share=abc",
-      newest: "/users/u1/trips/7?share=abc&order=newest",
-    });
-    // A stale order on the path is replaced, not repeated.
-    expect(tripDayOrderHrefs("/users/u1/trips/7?share=abc&order=newest")).toEqual({
-      oldest: "/users/u1/trips/7?share=abc",
-      newest: "/users/u1/trips/7?share=abc&order=newest",
-    });
   });
 });
 

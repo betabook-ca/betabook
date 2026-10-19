@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
 
-import { NavigationPendingProvider } from "@/components/navigation-pending";
 import { signUpPrompt } from "@/components/sign-up-card";
+import { TripDayOrderProvider } from "@/components/trips/trip-day-order";
 import { TripDays, TripDaysHeading } from "@/components/trips/trip-days";
 import { TripHeader } from "@/components/trips/trip-header";
 import type { AreaBreadcrumbs, TripSummary, UserSendRow } from "@/db/queries";
 import { formatCount } from "@/lib/format";
-import { groupTripDays, type TripDayOrderLinks } from "@/lib/trip-days";
+import { groupTripDays, type TripDayOrder } from "@/lib/trip-days";
 
 type Owner = { id: string; name: string; token: string };
 
@@ -32,8 +32,8 @@ export function SharedTrip({
    * sign-up. */
   path: string;
   today: string;
-  /** Order of the days, with links that keep the share token. */
-  order?: TripDayOrderLinks;
+  /** Order the days start in, from the URL. */
+  order?: TripDayOrder;
   /** Album section, if the trip has one. */
   photos?: ReactNode;
   /** Notes section, if the trip has notes. */
@@ -43,14 +43,11 @@ export function SharedTrip({
     <TripHeader trip={trip} userId={owner.id} viewerId={null} today={today} share={owner.token}>
       {photos}
       {notes}
-      <NavigationPendingProvider>
+      <TripDayOrderProvider initialOrder={order ?? "oldest"}>
         <section aria-label="Sends" className="flex min-w-0 flex-col gap-3">
-          <TripDaysHeading order={sends.length > 1 ? order : undefined}>Sends</TripDaysHeading>
+          <TripDaysHeading orderable={sends.length > 1}>Sends</TripDaysHeading>
           <TripDays
-            days={
-              groupTripDays({ startDate: trip.startDate, sends, entries: [], order: order?.value })
-                .days
-            }
+            days={groupTripDays({ startDate: trip.startDate, sends, entries: [] }).days}
             areaBreadcrumbs={areaBreadcrumbs}
             userId={owner.id}
             isOwner={false}
@@ -70,7 +67,7 @@ export function SharedTrip({
             next: path,
           })}
         </section>
-      </NavigationPendingProvider>
+      </TripDayOrderProvider>
     </TripHeader>
   );
 }

@@ -2,29 +2,59 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { TripDayOrderControl } from "./trip-day-order";
+import { TripDayOrderControl, TripDayOrderList, TripDayOrderProvider } from "./trip-day-order";
 
 const router = vi.hoisted(() => ({
-  replace: vi.fn<(href: string, options: { scroll: boolean }) => void>(),
+  replace: vi.fn<(href: string) => void>(),
+  push: vi.fn<(href: string) => void>(),
+  refresh: vi.fn<() => void>(),
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
-const HREFS = {
-  oldest: "/users/owner-1/trips/7?share=abc",
-  newest: "/users/owner-1/trips/7?share=abc&order=newest",
-};
+beforeEach(() => {
+  vi.clearAllMocks();
+  window.history.replaceState(null, "", "/users/owner-1/trips/7?share=abc");
+});
 
-beforeEach(() => router.replace.mockClear());
+function days(initialOrder: "oldest" | "newest") {
+  return (
+    <TripDayOrderProvider initialOrder={initialOrder}>
+      <TripDayOrderControl />
+      <TripDayOrderList
+        days={["Day 1", "Day 2", "Day 3"].map((day) => (
+          <section key={day} aria-label={day} />
+        ))}
+      />
+    </TripDayOrderProvider>
+  );
+}
 
-it("uses the sort arrow: ascending is oldest first, and a press switches order without scrolling", async () => {
+const order = () => screen.getAllByRole("region").map((day) => day.getAttribute("aria-label"));
+
+it("reverses the days in place and records the order in the URL without navigating", async () => {
   const user = userEvent.setup();
-  const { rerender } = render(<TripDayOrderControl order={{ value: "oldest", hrefs: HREFS }} />);
+  render(days("oldest"));
+  expect(order()).toEqual(["Day 1", "Day 2", "Day 3"]);
 
   await user.click(screen.getByRole("button", { name: "Sort ascending" }));
-  expect(router.replace).toHaveBeenLastCalledWith(HREFS.newest, { scroll: false });
+  expect(order()).toEqual(["Day 3", "Day 2", "Day 1"]);
+  expect(screen.getByRole("button", { name: "Sort descending" })).toBeVisible();
+  // The share token stays; nothing is fetched or navigated.
+  expect(window.location.pathname + window.location.search).toBe(
+    "/users/owner-1/trips/7?share=abc&order=newest",
+  );
+  expect(router.replace).not.toHaveBeenCalled();
+  expect(router.push).not.toHaveBeenCalled();
+  expect(router.refresh).not.toHaveBeenCalled();
 
-  rerender(<TripDayOrderControl order={{ value: "newest", hrefs: HREFS }} />);
   await user.click(screen.getByRole("button", { name: "Sort descending" }));
-  expect(router.replace).toHaveBeenLastCalledWith(HREFS.oldest, { scroll: false });
-  expect(router.replace).toHaveBeenCalledTimes(2);
+  expect(order()).toEqual(["Day 1", "Day 2", "Day 3"]);
+  // Oldest first is the default, so it leaves the URL.
+  expect(window.location.search).toBe("?share=abc");
+});
+
+it("starts in the order the page was opened with", () => {
+  render(days("newest"));
+  expect(order()).toEqual(["Day 3", "Day 2", "Day 1"]);
+  expect(screen.getByRole("button", { name: "Sort descending" })).toBeVisible();
 });
