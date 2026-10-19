@@ -17,14 +17,14 @@ import {
   type TripPageParams,
 } from "@/app/users/[id]/trips/[tripId]/trip-shell";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
+import { NavigationPendingProvider } from "@/components/navigation-pending";
 import { SharedTrip } from "@/components/trips/shared-trips";
-import { TripDays } from "@/components/trips/trip-days";
+import { TripDays, TripDaysHeading } from "@/components/trips/trip-days";
 import { TripHeader } from "@/components/trips/trip-header";
 import { TripNotes } from "@/components/trips/trip-notes";
 import { AppLink } from "@/components/ui/app-link";
 import { Markdown } from "@/components/ui/markdown";
 import { Skeleton, SkeletonListRows } from "@/components/ui/skeleton";
-import { SectionHeading } from "@/components/ui/typography";
 import { getDb } from "@/db/client";
 import {
   getAreaBreadcrumbs,
@@ -38,7 +38,14 @@ import { DEFAULT_USER_SENDS_FILTER } from "@/lib/filters/user-sends-filter";
 import { SHARED_TRIP_SENDS, withProfileShare } from "@/lib/profile-share";
 import { getOwnTripShareUrl } from "@/lib/profile-share-url";
 import { sharedProfileMetadata } from "@/lib/seo";
-import { groupTripDays } from "@/lib/trip-days";
+import {
+  TRIP_DAY_ORDER_PARAM,
+  groupTripDays,
+  parseTripDayOrder,
+  tripDayOrderHrefs,
+  type TripDayOrder,
+  type TripDayOrderLinks,
+} from "@/lib/trip-days";
 import { tripHref, tripLogbookHref, tripStatus } from "@/lib/trips";
 
 /** Most sends, and most journal entries, the trip page reads. Trips have no
@@ -59,11 +66,13 @@ export async function generateMetadata({
   return tripMetadata(id, tripId, search);
 }
 
-/** Trip page: album, notes, and a heading for each day of the trip with its
- * sends and, for readers of the journal, its journal entries. Query params are
- * ignored, so the page always shows the whole trip. */
+/** Trip page: album, notes, and a card for each day of the trip with its
+ * sends and, for readers of the journal, its journal entries. Only `order`
+ * and the share token are read from the URL, so the page always shows the
+ * whole trip. */
 export default async function TripPage({ params, searchParams }: TripPageParams) {
   const [{ id, tripId }, search] = await Promise.all([params, searchParams]);
+  const order = parseTripDayOrder(search[TRIP_DAY_ORDER_PARAM]);
   const resolved = await resolveTripPage(id, tripId, search);
   if (!resolved.signedIn) {
     const shared = await resolveSharedTrip(id, tripId, search);
@@ -72,7 +81,12 @@ export default async function TripPage({ params, searchParams }: TripPageParams)
     const path = withProfileShare(tripHref(owner.id, trip.id), owner.token);
     return (
       <SharedProfileHeader owner={owner} next={path}>
-        <SharedTripView owner={owner} trip={trip} path={path} />
+        <SharedTripView
+          owner={owner}
+          trip={trip}
+          path={path}
+          order={{ value: order, hrefs: tripDayOrderHrefs(path) }}
+        />
       </SharedProfileHeader>
     );
   }
@@ -116,17 +130,37 @@ export default async function TripPage({ params, searchParams }: TripPageParams)
           </Suspense>
         )}
         {showDays && (
-          <section aria-label="Days" className="flex min-w-0 flex-col gap-3">
-            <SectionHeading>Days</SectionHeading>
-            <Suspense fallback={<SkeletonListRows rows={5} />}>
-              <TripDaysView
-                trip={trip}
-                userId={user.id}
-                viewerId={viewerId}
-                journalVisible={journalVisible}
-              />
-            </Suspense>
-          </section>
+          <NavigationPendingProvider>
+            <section aria-label="Days" className="flex min-w-0 flex-col gap-3">
+              <TripDaysHeading
+                order={
+                  // Nothing to order until two things are logged.
+                  trip.sendCount + (trip.entryCount ?? 0) > 1
+                    ? {
+                        value: order,
+                        // Signed-in pages keep the share token on their links.
+                        hrefs: tripDayOrderHrefs(
+                          share
+                            ? withProfileShare(tripHref(user.id, trip.id), share)
+                            : tripHref(user.id, trip.id),
+                        ),
+                      }
+                    : undefined
+                }
+              >
+                Days
+              </TripDaysHeading>
+              <Suspense fallback={<SkeletonListRows rows={5} />}>
+                <TripDaysView
+                  trip={trip}
+                  userId={user.id}
+                  viewerId={viewerId}
+                  journalVisible={journalVisible}
+                  order={order}
+                />
+              </Suspense>
+            </section>
+          </NavigationPendingProvider>
         )}
       </TripHeader>
     </ProfileHeader>
@@ -159,6 +193,7 @@ async function TripDaysView({
   userId,
   viewerId,
   journalVisible,
+  order,
 }: {
   trip: TripSummary;
   userId: string;
@@ -166,6 +201,7 @@ async function TripDaysView({
   /** Entries are read only for viewers of the journal. The query checks
    * access again in SQL. */
   journalVisible: boolean;
+  order: TripDayOrder;
 }) {
   const db = await getDb();
   const [sendsPage, entriesPage] = await Promise.all([
@@ -196,35 +232,36 @@ async function TripDaysView({
     entries,
     sendsCapped: sendsPage.hasMore,
     entriesCapped: entriesPage.hasMore,
+    order,
   });
   const areaBreadcrumbs = await getAreaBreadcrumbs(db, [
     ...sends.map((send) => send.areaId),
     ...entries.flatMap((entry) => (entry.areaId == null ? [] : [entry.areaId])),
   ]);
   return (
-    <div className="flex flex-col gap-3">
-      {truncated && (
-        <p className="text-sm text-muted">
-          Showing the latest days. Earlier days are in the{" "}
-          {journalVisible && (
-            <>
-              <AppLink href={tripLogbookHref(userId, "journal", trip)}>Journal</AppLink> and{" "}
-            </>
-          )}
-          <AppLink href={tripLogbookHref(userId, "sends", trip)}>Sends</AppLink>{" "}
-          {journalVisible ? "tabs" : "tab"}.
-        </p>
-      )}
-      <TripDays
-        days={days}
-        areaBreadcrumbs={areaBreadcrumbs}
-        userId={userId}
-        isOwner={viewerId === userId}
-        emptyMessage={
-          journalVisible ? "Nothing logged on this trip yet." : "No sends on this trip yet."
-        }
-      />
-    </div>
+    <TripDays
+      days={days}
+      areaBreadcrumbs={areaBreadcrumbs}
+      userId={userId}
+      isOwner={viewerId === userId}
+      emptyMessage={
+        journalVisible ? "Nothing logged on this trip yet." : "No sends on this trip yet."
+      }
+      notice={
+        truncated && (
+          <p>
+            Showing the latest days. Earlier days are in the{" "}
+            {journalVisible && (
+              <>
+                <AppLink href={tripLogbookHref(userId, "journal", trip)}>Journal</AppLink> and{" "}
+              </>
+            )}
+            <AppLink href={tripLogbookHref(userId, "sends", trip)}>Sends</AppLink>{" "}
+            {journalVisible ? "tabs" : "tab"}.
+          </p>
+        )
+      }
+    />
   );
 }
 
@@ -234,8 +271,10 @@ async function SharedTripView({
   owner,
   trip,
   path,
+  order,
 }: SharedTripResolved & {
   path: string;
+  order: TripDayOrderLinks;
 }) {
   const db = await getDb();
   const [{ sends, areaBreadcrumbs }, notes, today] = await Promise.all([
@@ -265,6 +304,7 @@ async function SharedTripView({
       areaBreadcrumbs={areaBreadcrumbs}
       path={path}
       today={today}
+      order={order}
       photos={tripPhotos(trip)}
       notes={
         notes && (

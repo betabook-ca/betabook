@@ -1,12 +1,17 @@
+import type { ReactNode } from "react";
+
 import { UserSendLogRow } from "@/components/climb-log-row";
 import { JournalEntryRow } from "@/components/journal/journal-entry-row";
+import { NavigationPendingRegion } from "@/components/navigation-pending";
 import { SendActionsMenu } from "@/components/send-actions-menu";
+import { TripDayOrderControl } from "@/components/trips/trip-day-order";
 import { cardClass } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SectionHeading } from "@/components/ui/typography";
 import type { AreaBreadcrumbs, JournalEntry, UserSendRow } from "@/db/queries";
 import { DEFAULT_JOURNAL_FILTER } from "@/lib/filters/journal-filter";
 import { formatCount } from "@/lib/format";
-import type { TripDay } from "@/lib/trip-days";
+import type { TripDay, TripDayOrderLinks } from "@/lib/trip-days";
 
 const DAY_FORMAT = new Intl.DateTimeFormat("en-US", {
   weekday: "short",
@@ -40,15 +45,35 @@ function daySummary({ items }: TripDay<UserSendRow, JournalEntry>): string {
     .join(" · ");
 }
 
+/** The days section's heading with the order button beside it. Wrap the
+ * heading and `TripDays` in one `NavigationPendingProvider`, so the cards dim
+ * while a new order loads. */
+export function TripDaysHeading({
+  children,
+  order,
+}: {
+  children: ReactNode;
+  /** Omit when there is at most one thing to order. */
+  order?: TripDayOrderLinks;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      <SectionHeading>{children}</SectionHeading>
+      {order && <TripDayOrderControl order={order} />}
+    </div>
+  );
+}
+
 /** A trip's sends and journal entries as one card per day with something
  * logged. Entries are left out when the viewer can't read the journal;
- * `groupTripDays` builds the days. */
+ * `groupTripDays` builds the days, already in order. */
 export function TripDays({
   days,
   areaBreadcrumbs,
   userId,
   isOwner,
   emptyMessage,
+  notice,
 }: {
   days: TripDay<UserSendRow, JournalEntry>[];
   areaBreadcrumbs: AreaBreadcrumbs;
@@ -56,9 +81,37 @@ export function TripDays({
   /** Adds the edit menus to each row. */
   isOwner: boolean;
   emptyMessage: string;
+  /** A note above the days, such as the one for a trip too long to show. */
+  notice?: ReactNode;
 }) {
   if (days.length === 0) return <EmptyState message={emptyMessage} />;
 
+  return (
+    <div className="flex flex-col gap-3">
+      {notice && <div className="text-sm text-muted">{notice}</div>}
+      <NavigationPendingRegion>
+        <TripDayCards
+          days={days}
+          areaBreadcrumbs={areaBreadcrumbs}
+          userId={userId}
+          isOwner={isOwner}
+        />
+      </NavigationPendingRegion>
+    </div>
+  );
+}
+
+function TripDayCards({
+  days,
+  areaBreadcrumbs,
+  userId,
+  isOwner,
+}: {
+  days: TripDay<UserSendRow, JournalEntry>[];
+  areaBreadcrumbs: AreaBreadcrumbs;
+  userId: string;
+  isOwner: boolean;
+}) {
   return (
     <div className="flex flex-col gap-4">
       {days.map((day) => (

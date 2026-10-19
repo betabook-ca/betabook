@@ -210,6 +210,58 @@ describe("trip page", () => {
     expect(at('"date":"2026-03-16","dayNumber":7')).toBeLessThan(at(ENTRY));
   });
 
+  it("lists the newest day first with ?order=newest, still within the trip", async () => {
+    const trip = await seedTrip();
+
+    const payload = await renderTrip(trip.id, { order: "newest" });
+    const at = (text: string) => payload.indexOf(text);
+    expect(at('"date":"2026-03-16","dayNumber":7')).toBeGreaterThan(-1);
+    expect(at('"date":"2026-03-16","dayNumber":7')).toBeLessThan(
+      at('"date":"2026-03-15","dayNumber":6'),
+    );
+    expect(payload).toContain('"value":"newest"');
+    // Ordering never widens the range.
+    expect(payload).toContain(INSIDE);
+    expect(payload).not.toContain(BEFORE);
+    expect(payload).not.toContain(AFTER);
+
+    // Anything but "newest" is the default order.
+    expect(await renderTrip(trip.id, { order: "sideways" })).toContain('"value":"oldest"');
+  });
+
+  it("keeps the share token on the order links", async () => {
+    const trip = await seedTrip();
+    // The stranger can't read the journal, so give them two sends to order.
+    await seedFixtureSend(db, { userId: OWNER, climbId: OTHER_CLIMB, dateSent: "2026-03-17" });
+    const token = (await getProfileShareToken(db, OWNER))!;
+    session.userId = STRANGER;
+
+    const path = `/users/${OWNER}/trips/${trip.id}`;
+    const payload = await renderTrip(trip.id, { share: token });
+    expect(payload).toContain(
+      `"hrefs":{"oldest":"${path}?share=${token}","newest":"${path}?share=${token}&order=newest"}`,
+    );
+
+    session.userId = OWNER;
+    expect(await renderTrip(trip.id)).toContain(
+      `"hrefs":{"oldest":"${path}","newest":"${path}?order=newest"}`,
+    );
+  });
+
+  it("offers no order button until two things are logged", async () => {
+    const trip = await seedFixtureTrip(db, { userId: OWNER, name: "Day trip", ...BISHOP });
+    await seedFixtureSend(db, { userId: OWNER, climbId: CLIMB, dateSent: "2026-03-15" });
+
+    expect(await renderTrip(trip.id)).not.toContain('"hrefs"');
+
+    await seedFixtureJournalEntry(db, {
+      userId: OWNER,
+      climbId: OTHER_CLIMB,
+      entryDate: "2026-03-16",
+    });
+    expect(await renderTrip(trip.id)).toContain('"hrefs"');
+  });
+
   it("hides an entry for a climb sent that day, but keeps it on other days", async () => {
     const trip = await seedTrip();
     const sameDay = "Logged the same climb on the day it went.";
