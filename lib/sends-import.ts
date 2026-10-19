@@ -1,7 +1,7 @@
 import { format as formatDate, isValid, parse } from "date-fns";
 import Papa from "papaparse";
 
-import { parseGrade, type ClimbType } from "@/lib/grades";
+import { parseGrade, type ClimbType, type GradePreferences } from "@/lib/grades";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import {
   ASCENT_STYLES,
@@ -495,10 +495,22 @@ function cleanGradeText(raw: string): string | null {
   return raw.replace(PROTECTION_SUFFIX_RE, "").trim() || null;
 }
 
-export type GradeScale = "native" | "converted";
+/** The import wizard's choice of how to read grade text: as the catalog's
+ * native Hueco/YDS or as Font/French. Distinct from a climber's display
+ * scales in `lib/grades.ts`, which never change how stored text is parsed. */
+export type ImportGradePreference = "native" | "converted";
 
-/** Choose the grade scale that parses more values; ties favor native. */
-export function detectGradeScale(values: string[]): GradeScale {
+/** How a climber who reads Font or French most likely wrote their grades. */
+export function preferredImportGradeScale(prefs: GradePreferences): ImportGradePreference {
+  return prefs.boulder === "font" || prefs.rope === "french" ? "converted" : "native";
+}
+
+/** Choose the grade scale that parses more values; ties favor `fallback`,
+ * the catalog's native scales unless the climber reads the European ones. */
+export function detectGradeScale(
+  values: string[],
+  fallback: ImportGradePreference = "native",
+): ImportGradePreference {
   let native = 0;
   let converted = 0;
   for (const value of values) {
@@ -512,6 +524,7 @@ export function detectGradeScale(values: string[]): GradeScale {
       converted += 1;
     }
   }
+  if (converted === native) return fallback;
   return converted > native ? "converted" : "native";
 }
 
@@ -569,11 +582,9 @@ export type NormalizedImportRow = {
   dateSent: string | null; // ISO if present; blank in the CSV -> null, not a failure
   rating: number | null;
   comment: string | null; // truncated to MAX_COMMENT_LENGTH here, not rejected
-  /** Suggested-grade text; falls back to the Grade column only if no Suggested Grade is mapped. */
+  /** Suggested-grade text; falls back to the Grade column only if no Suggested Grade
+   * is mapped. A blank or unreadable grade imports at the climb's listed grade. */
   gradeText: string | null;
-  /** A blank mapped Suggested Grade means no suggestion. With only Grade mapped,
-   * a blank falls back to the climb's posted grade. Preserve this distinction on export/import. */
-  blankGradeMeans: "posted-grade" | "no-suggestion";
   /** Posted grade from the source, preferred over the climber's grade for matching. */
   postedGradeText: string | null;
   gradeFeel: GradeFeel; // optional CSV column; defaults to "solid" if absent/unrecognized
@@ -598,7 +609,8 @@ export type CoercionWarning = {
 const WARNING_EXAMPLE_LIMIT = 3;
 
 const COERCION_MESSAGES: Record<CoercionWarning["field"], string> = {
-  suggestedGrade: "unrecognized grade, imported without a suggested grade",
+  suggestedGrade:
+    "unrecognized grade, imported at the climb’s listed grade (an overwritten send keeps its grade)",
   rating: "imported without a rating",
   gradeFeel: 'unmapped grade feel, imported as "solid"',
   comment: `comment longer than ${MAX_COMMENT_LENGTH} characters, truncated`,
@@ -727,9 +739,6 @@ export function normalizeImportRows(
       : null;
 
     const gradeColumn = mapping.suggestedGrade ?? mapping.grade;
-    const blankGradeMeans = mapping.suggestedGrade
-      ? ("no-suggestion" as const)
-      : ("posted-grade" as const);
     const gradeText = cleanGradeText(cell(gradeColumn));
     if (gradeText && !gradeTextParses(gradeText, climbTypeHint, gradeScalePreference)) {
       warn("suggestedGrade", rowIndex, `"${gradeText}"`);
@@ -753,7 +762,6 @@ export function normalizeImportRows(
       rating,
       comment,
       gradeText,
-      blankGradeMeans,
       postedGradeText,
       gradeFeel,
       raw: row,

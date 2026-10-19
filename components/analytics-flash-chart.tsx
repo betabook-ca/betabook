@@ -34,7 +34,14 @@ export function AnalyticsFlashChart({
         {
           title: row.label,
           summary: `${formatCount(row.sends, "send")} · ${Math.round(row.rate)}% flash rate`,
-          rows: sendChartRows(sends.filter((send) => send.suggestedGrade === row.grade)),
+          rows: sendChartRows(
+            sends.filter(
+              (send) =>
+                send.suggestedGrade != null &&
+                send.suggestedGrade >= row.range[0] &&
+                send.suggestedGrade <= row.range[1],
+            ),
+          ),
         } satisfies ChartDetailGroup,
       ]),
     );

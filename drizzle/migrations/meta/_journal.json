@@ -372,6 +372,27 @@
       "when": 1790751544948,
       "tag": "0052_send_videos",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "6",
+      "when": 1792187851764,
+      "tag": "0053_user_grade_scales",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "6",
+      "when": 1792214434229,
+      "tag": "0054_require_grades",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "6",
+      "when": 1792217634468,
+      "tag": "0055_trip_visibility",
+      "breakpoints": true
     }
   ]
 }

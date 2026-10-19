@@ -1,6 +1,13 @@
 import { expect, it } from "vitest";
 
-import { goalInputSchema, goalToday, goalWindow, parseGoalView } from "./goals";
+import {
+  goalInputSchema,
+  goalTitle,
+  goalToday,
+  goalWindow,
+  parseGoalView,
+  type GoalTitleInput,
+} from "./goals";
 
 it("names a goals view only when it is one the page has", () => {
   expect(parseGoalView("active")).toBe("active");
@@ -142,4 +149,31 @@ it("keeps civil dates current across midnight when reusing a timezone formatter"
   expect(goalToday("Pacific/Kiritimati", new Date("2026-08-31T09:59:00Z"))).toBe("2026-08-31");
   expect(goalToday("Pacific/Kiritimati", new Date("2026-08-31T10:00:00Z"))).toBe("2026-09-01");
   expect(goalToday("America/Vancouver", new Date("2026-08-31T10:00:00Z"))).toBe("2026-08-31");
+});
+
+it("titles a goal with its grade in the reader's grading systems", () => {
+  const milestone: GoalTitleInput = {
+    kind: "grade",
+    target: 1,
+    discipline: "boulder",
+    grade: 5,
+    repeat: "none",
+    gradeMatch: "exact",
+    tags: [],
+  };
+  expect(goalTitle(milestone)).toBe("Send my first V4");
+  expect(goalTitle(milestone, { boulder: "font", rope: "yds" })).toBe("Send my first 6B");
+  const volume: GoalTitleInput = {
+    kind: "volume",
+    target: 5,
+    discipline: "sport",
+    grade: 4,
+    repeat: "month",
+    gradeMatch: "at-least",
+    tags: ["summer"],
+  };
+  expect(goalTitle(volume)).toBe("Send 5 climbs at 5.4 or harder every month · #summer");
+  expect(goalTitle(volume, { boulder: "hueco", rope: "french" })).toBe(
+    "Send 5 climbs at 3 or harder every month · #summer",
+  );
 });

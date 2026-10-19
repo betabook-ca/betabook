@@ -23,17 +23,17 @@ test(
   "rename drawers associate their labels and keep grade options inside the viewport",
   { tag: "@layout" },
   async ({ page }, info) => {
-    await openStory(page, info, "components-forms-climb-edit-request--ungraded");
+    await openStory(page, info, "components-forms-climb-edit-request--edit-climb");
     await page.getByRole("button", { name: "Request climb edit" }).click();
     const name = page.getByRole("textbox", { name: /^Name\*?$/ });
     await page.getByRole("dialog").getByText("Name", { exact: true }).click();
     await expect(name).toBeFocused();
     await expect(page.getByRole("combobox", { name: "Discipline" })).toHaveValue("boulder");
     const grade = page.getByRole("button", { name: /Grade$/ });
-    await expect(grade).toContainText("Unknown");
+    await expect(grade).toContainText("V4");
     await grade.click();
     const listbox = page.getByRole("listbox");
-    await expect(listbox.getByRole("option", { name: "Unknown", exact: true })).toBeVisible();
+    await expect(listbox.getByRole("option", { name: "V4", exact: true })).toBeVisible();
     const bounds = await listbox.boundingBox();
     const viewport = page.viewportSize();
     if (!bounds || !viewport) throw new Error("Missing grade menu or viewport");

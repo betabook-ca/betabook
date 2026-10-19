@@ -8,6 +8,7 @@ import { getUserIdByName } from "@/db/queries";
 import { profileShareLinks, user } from "@/db/schema";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
 import { DISPLAY_NAME_TAKEN_MESSAGE, displayNameProblem } from "@/lib/display-name";
+import { parseBoulderGradeScale, parseRopeGradeScale } from "@/lib/grade-preferences";
 import { parseSendCommentAudience, parseSharingAudience } from "@/lib/privacy";
 import { profilePhotoKeyOwnedBy } from "@/lib/profile-photo";
 import { deleteProfilePhoto, getProfilePhotoBucket } from "@/lib/profile-photo-store";
@@ -121,6 +122,48 @@ export async function setJournalVisibility(visibility: string): Promise<ActionRe
     const journalVisibility = parseSharingAudience(visibility);
 
     await db.update(user).set({ journalVisibility }).where(eq(user.id, session.user.id));
+
+    afterCommit(() => {
+      revalidateProfileSurfaces(session.user.id);
+      refresh();
+    });
+  });
+}
+
+/** Both toggles travel together so one save never leaves the pair half
+ * applied. Display only: no stored grade changes (see lib/grades.ts). The
+ * rerender after this action reuses the request's memoized session, so the
+ * account page's own toggles keep their optimistic state rather than reading
+ * the preference back; every later request sees the new columns. */
+export async function setGradePreferences(scales: {
+  boulder: string;
+  rope: string;
+}): Promise<ActionResult> {
+  return toActionResult(async () => {
+    const session = await requireSession();
+    const db = await getDb();
+    const boulderGradeScale = parseBoulderGradeScale(scales.boulder);
+    const ropeGradeScale = parseRopeGradeScale(scales.rope);
+
+    await db
+      .update(user)
+      .set({ boulderGradeScale, ropeGradeScale })
+      .where(eq(user.id, session.user.id));
+
+    afterCommit(() => {
+      revalidateProfileSurfaces(session.user.id);
+      refresh();
+    });
+  });
+}
+
+export async function setTripVisibility(visibility: string): Promise<ActionResult> {
+  return toActionResult(async () => {
+    const session = await requireSession();
+    const db = await getDb();
+    const tripVisibility = parseSharingAudience(visibility);
+
+    await db.update(user).set({ tripVisibility }).where(eq(user.id, session.user.id));
 
     afterCommit(() => {
       revalidateProfileSurfaces(session.user.id);

@@ -6,6 +6,7 @@ import {
   ProfileHeader,
   canReadUserJournal,
   memberMetadata,
+  profileShareParam,
   resolveProfilePage,
 } from "@/app/users/[id]/profile-shell";
 import { AnalyticsDashboard } from "@/components/analytics-dashboard";
@@ -41,6 +42,7 @@ import { normalizeHashtagFilters } from "@/lib/filters/hashtag-filter";
 import { goalToday } from "@/lib/goals";
 import type { ClimbType } from "@/lib/grades";
 import { getRequestTimezone } from "@/lib/request-timezone";
+import { getViewerGradePreferences } from "@/lib/session";
 import { toArray, type UrlParamsRecord } from "@/lib/url-params";
 import {
   buildUserAnalytics,
@@ -86,6 +88,7 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
     <ProfileHeader
       user={user}
       viewerId={viewerId}
+      share={profileShareParam(search)}
       workspace="progress"
       fallback={<AnalyticsLoading />}
     >
@@ -178,7 +181,13 @@ async function AnalyticsView({
   });
   const { years, undatedCount } = getAnalyticsHistorySummary(rows, scope, journalSessions);
   const selectedYears = parseAnalyticsYears(search.years ?? search.period, years);
-  const analytics = buildUserAnalytics(rows, scope, journalSessions, selectedYears);
+  const analytics = buildUserAnalytics(
+    rows,
+    scope,
+    journalSessions,
+    selectedYears,
+    await getViewerGradePreferences(),
+  );
   const summary = [describeClimber(overview), describeRecency(overview)].filter(Boolean).join(" ");
 
   return (

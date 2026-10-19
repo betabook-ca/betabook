@@ -5,9 +5,9 @@ import { Target } from "lucide-react";
 
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { Grade } from "@/components/ui/grade";
+import { GradeLabel } from "@/components/ui/grade-label";
 import type { OpenProject } from "@/db/queries";
 import { formatCount } from "@/lib/format";
-import { formatGrade } from "@/lib/grades";
 
 /** Climbs the climber has worked but never sent, offered before they type.
  * The session count is the whole reason a row is here — it is the evidence
@@ -43,7 +43,9 @@ export function ProjectSuggestionList({
                 </span>
               </span>
               <span className="flex shrink-0 items-center gap-2">
-                <Grade size="sm">{formatGrade(climb.climbType, climb.climbGrade)}</Grade>
+                <Grade size="sm">
+                  <GradeLabel type={climb.climbType} grade={climb.climbGrade} />
+                </Grade>
                 <DisciplineChip type={climb.climbType} />
                 <Target className="size-4" />
               </span>

@@ -30,7 +30,9 @@ beforeEach(async () => {
 });
 
 function insertSend(climbId: number, ascentStyle: "redpoint" | "flash" | "onsight") {
-  return db.insert(sends).values({ userId: USER, climbId, ascentStyle, dateSent: null });
+  return db
+    .insert(sends)
+    .values({ userId: USER, climbId, ascentStyle, dateSent: null, suggestedGrade: 5 });
 }
 
 /** Drizzle's own message is just the failing SQL; the trigger's message and

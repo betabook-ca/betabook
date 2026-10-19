@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 
 import type { Database } from "@/db/client";
@@ -178,7 +178,9 @@ export async function seedFixtureUser(db: Database, overrides: FixtureUserOverri
 
 /** `seedFixtureUser` for many users at once. */
 export function seedManyUsers(db: Database, overrides: FixtureUserOverrides[]) {
-  return insertInBatches(db, overrides.map(fixtureUserRow), 8, (chunk) =>
+  // D1 binds at most 100 variables per statement, and Drizzle binds every
+  // column with a schema default, so this shrinks as `user` gains columns.
+  return insertInBatches(db, overrides.map(fixtureUserRow), 7, (chunk) =>
     db.insert(user).values(chunk),
   );
 }
@@ -195,11 +197,13 @@ type FixtureSendOverrides = Partial<typeof sends.$inferInsert> & {
  * every other migration — so seeding directly here stays consistent with a
  * real write, and getSubtreeClimbs sort/rating assertions hold. */
 export async function seedFixtureSend(db: Database, overrides: FixtureSendOverrides) {
+  // Every send has a suggested grade (0054_require_grades); default to the
+  // climb's listed grade, as the send form does.
   const row = {
     ascentStyle: "redpoint" as const,
     comment: null,
     rating: null,
-    suggestedGrade: null,
+    suggestedGrade: sql<number>`(SELECT grade FROM climbs WHERE id = ${overrides.climbId})`,
     ...overrides,
   };
   await db.insert(sends).values(row);

@@ -41,7 +41,10 @@ const TripAnalyticsPage = rendered(TripAnalyticsPageImpl);
 const TripPage = rendered(TripPageImpl);
 const UserTripsPage = rendered(UserTripsPageImpl);
 
-vi.mock("@/lib/session", () => ({ getMemberSession: async () => null }));
+vi.mock("@/lib/session", () => ({
+  getMemberSession: async () => null,
+  getViewerGradePreferences: async () => ({ boulder: "hueco", rope: "yds" }),
+}));
 vi.mock("@/lib/request-timezone", () => ({ getRequestTimezone: async () => "UTC" }));
 // Album pages come from Google; tests never fetch them.
 vi.mock("@/lib/trip-album-loader", () => ({ loadAlbumPhotos: async () => [] }));
@@ -286,6 +289,7 @@ it("keeps the profile's sub-pages locked with a current share link", async () =>
 /** A trip from March to May, covering the shared profile's sends on climbs 2, 3
  * and 4. */
 async function seedSharedTrip() {
+  // The owner keeps the default Friends audience: the link opens trips anyway.
   const token = await seedSharedProfile();
   const trip = await seedFixtureTrip(db, {
     userId: "hidden",

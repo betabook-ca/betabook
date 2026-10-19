@@ -13,11 +13,11 @@ import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Grade } from "@/components/ui/grade";
+import { GradeLabel } from "@/components/ui/grade-label";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import type { ClimbCandidate } from "@/db/queries";
 import { formatCount } from "@/lib/format";
-import { formatGrade } from "@/lib/grades";
 import {
   brokenClimbImportReason,
   duplicateClimbRows,
@@ -163,7 +163,9 @@ function CandidateRow({
         </span>
         {climb.brokenOn && <BrokenChip brokenOn={climb.brokenOn} />}
         <DisciplineChip type={climb.type} />
-        <Grade>{formatGrade(climb.type, climb.grade)}</Grade>
+        <Grade>
+          <GradeLabel type={climb.type} grade={climb.grade} />
+        </Grade>
         {current && (
           <span className="text-xs font-medium text-success-soft-foreground">Current</span>
         )}
@@ -206,7 +208,9 @@ function ClimbLine({ climb, rowClimbName }: { climb: ClimbCandidate; rowClimbNam
       <span className="flex shrink-0 items-center gap-2">
         {climb.brokenOn && <BrokenChip brokenOn={climb.brokenOn} />}
         <DisciplineChip type={climb.type} />
-        <Grade>{formatGrade(climb.type, climb.grade)}</Grade>
+        <Grade>
+          <GradeLabel type={climb.type} grade={climb.grade} />
+        </Grade>
       </span>
     </div>
   );

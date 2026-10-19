@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { JournalView } from "@/app/users/[id]/journal-view";
-import { ProfileHeader, memberMetadata, resolveProfilePage } from "@/app/users/[id]/profile-shell";
+import {
+  ProfileHeader,
+  memberMetadata,
+  profileShareParam,
+  resolveProfilePage,
+} from "@/app/users/[id]/profile-shell";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { parseJournalFilter } from "@/lib/filters/journal-filter";
 import type { UrlParamsRecord } from "@/lib/url-params";
@@ -28,7 +33,7 @@ export default async function UserJournalPage({ params, searchParams }: UserJour
   const { user, viewerId } = resolved;
 
   return (
-    <ProfileHeader user={user} viewerId={viewerId}>
+    <ProfileHeader user={user} viewerId={viewerId} share={profileShareParam(search)}>
       <JournalView ownerId={user.id} viewerId={viewerId} filter={parseJournalFilter(search)} />
     </ProfileHeader>
   );

@@ -5,8 +5,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   removeProfilePhoto,
   resetProfileShareLink,
+  setGradePreferences,
   setJournalVisibility,
   setSendCommentVisibility,
+  setTripVisibility,
   setUserPrivate,
 } from "@/actions";
 import { createDb } from "@/db/client";
@@ -273,6 +275,44 @@ describe("setJournalVisibility action boundary", () => {
   });
 });
 
+describe("setTripVisibility action boundary", () => {
+  const tripVisibility = async (id: string) =>
+    (await db.select().from(user).where(eq(user.id, id)).get())?.tripVisibility;
+
+  it("requires a signed-in user", async () => {
+    sessionState.userId = null;
+    const before = await db.select().from(user).orderBy(user.id).all();
+
+    expect(await setTripVisibility("private")).toEqual({
+      ok: false,
+      error: SESSION_EXPIRED_MESSAGE,
+    });
+    expect(await db.select().from(user).orderBy(user.id).all()).toEqual(before);
+  });
+
+  it("saves each audience for the signed-in user only, leaving the journal alone", async () => {
+    for (const audience of ["private", "friends", "public"] as const) {
+      expect(await setTripVisibility(audience)).toEqual({ ok: true, value: undefined });
+      expect(await tripVisibility("test-user")).toBe(audience);
+    }
+    expect(await tripVisibility("other-user")).toBe("friends");
+    expect(
+      (await db.select().from(user).where(eq(user.id, "test-user")).get())?.journalVisibility,
+    ).toBe("private");
+  });
+
+  it("rejects an invalid visibility and Everyone", async () => {
+    await setTripVisibility("friends");
+    for (const invalid of ["invalid", "everyone"]) {
+      expect(await setTripVisibility(invalid)).toEqual({
+        ok: false,
+        error: "Invalid sharing audience",
+      });
+    }
+    expect(await tripVisibility("test-user")).toBe("friends");
+  });
+});
+
 it("saves Friends sharing without accepting a pending request or changing the other account", async () => {
   const { friendships } = await import("@/db/schema");
   await db
@@ -359,6 +399,77 @@ describe("independent send commentary audience", () => {
       error: SESSION_EXPIRED_MESSAGE,
     });
     expect(await privacy()).toEqual(before);
+  });
+});
+
+describe("setGradePreferences action boundary", () => {
+  async function scales() {
+    return db
+      .select({
+        id: user.id,
+        boulderGradeScale: user.boulderGradeScale,
+        ropeGradeScale: user.ropeGradeScale,
+      })
+      .from(user)
+      .orderBy(user.id);
+  }
+
+  it("defaults every account to the catalog's native systems", async () => {
+    expect(await scales()).toEqual([
+      { id: "other-user", boulderGradeScale: "hueco", ropeGradeScale: "yds" },
+      { id: "test-user", boulderGradeScale: "hueco", ropeGradeScale: "yds" },
+    ]);
+  });
+
+  it("saves both systems for the signed-in user only", async () => {
+    expect(await setGradePreferences({ boulder: "font", rope: "french" })).toEqual({
+      ok: true,
+      value: undefined,
+    });
+    expect(await scales()).toEqual([
+      { id: "other-user", boulderGradeScale: "hueco", ropeGradeScale: "yds" },
+      { id: "test-user", boulderGradeScale: "font", ropeGradeScale: "french" },
+    ]);
+
+    expect(await setGradePreferences({ boulder: "hueco", rope: "french" })).toEqual({
+      ok: true,
+      value: undefined,
+    });
+    expect((await scales())[1]).toEqual({
+      id: "test-user",
+      boulderGradeScale: "hueco",
+      ropeGradeScale: "french",
+    });
+  });
+
+  it("rejects a system from the wrong family and saves neither half", async () => {
+    const before = await scales();
+    expect(await setGradePreferences({ boulder: "french", rope: "french" })).toEqual({
+      ok: false,
+      error: "Invalid grading system",
+    });
+    expect(await setGradePreferences({ boulder: "font", rope: "Font" })).toEqual({
+      ok: false,
+      error: "Invalid grading system",
+    });
+    expect(await scales()).toEqual(before);
+  });
+
+  it("requires a signed-in user and leaves every account unchanged", async () => {
+    const before = await scales();
+    sessionState.userId = null;
+    expect(await setGradePreferences({ boulder: "font", rope: "french" })).toEqual({
+      ok: false,
+      error: SESSION_EXPIRED_MESSAGE,
+    });
+    expect(await scales()).toEqual(before);
+  });
+
+  it("leaves privacy and the rest of the row untouched", async () => {
+    const before = await db.select().from(user).where(eq(user.id, "test-user")).get();
+    await setGradePreferences({ boulder: "font", rope: "yds" });
+    const after = await db.select().from(user).where(eq(user.id, "test-user")).get();
+    expect(after).toEqual({ ...before, boulderGradeScale: "font", updatedAt: after?.updatedAt });
   });
 });
 

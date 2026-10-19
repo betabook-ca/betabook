@@ -186,8 +186,6 @@ export type ImportSendValues = {
 export type ImportSendRow = ImportSendValues & {
   climbId: number;
   gradeText: string | null;
-  /** What a null gradeText means — see NormalizedImportRow.blankGradeMeans. */
-  blankGradeMeans: "posted-grade" | "no-suggestion";
 };
 
 /** Apply the same coercions and validation as CSV normalization at the server boundary. */

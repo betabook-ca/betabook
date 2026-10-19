@@ -6,6 +6,8 @@ import { ProfileTabs } from "@/components/profile-tabs";
 const state = vi.hoisted(() => ({ pathname: "/users/owner/journal" }));
 vi.mock("next/navigation", () => ({ usePathname: () => state.pathname }));
 
+const TOKEN = "0123456789abcdef0123456789abcdef";
+
 const hrefs = (html: string) => [...html.matchAll(/href="([^"]+)"/g)].map((match) => match[1]);
 
 it.each([
@@ -19,7 +21,7 @@ it.each([
   ["/users/owner/analytics", "/users/owner/analytics", "Analytics"],
 ])("marks the right tab as current for %s", (pathname, href, label) => {
   state.pathname = pathname;
-  const html = renderToStaticMarkup(<ProfileTabs userId="owner" showJournal />);
+  const html = renderToStaticMarkup(<ProfileTabs userId="owner" showJournal showTrips />);
 
   expect(hrefs(html)).toEqual([
     "/users/owner/journal",
@@ -33,7 +35,7 @@ it.each([
 
 it("hides only the Journal tab when the journal is private", () => {
   state.pathname = "/users/other/sends";
-  const html = renderToStaticMarkup(<ProfileTabs userId="other" showJournal={false} />);
+  const html = renderToStaticMarkup(<ProfileTabs userId="other" showJournal={false} showTrips />);
 
   expect(html).toContain('href="/users/other/sends" aria-current="page"');
   expect(hrefs(html)).toEqual([
@@ -43,15 +45,24 @@ it("hides only the Journal tab when the journal is private", () => {
   ]);
 });
 
+it("hides only the Trips tab when the trips aren't shared with the viewer", () => {
+  state.pathname = "/users/other/sends";
+  const html = renderToStaticMarkup(<ProfileTabs userId="other" showJournal showTrips={false} />);
+
+  expect(hrefs(html)).toEqual([
+    "/users/other/journal",
+    "/users/other/sends",
+    "/users/other/analytics",
+  ]);
+});
+
 it("marks Sends current at the profile root when the journal is hidden", () => {
   state.pathname = "/users/other";
-  const html = renderToStaticMarkup(<ProfileTabs userId="other" showJournal={false} />);
+  const html = renderToStaticMarkup(<ProfileTabs userId="other" showJournal={false} showTrips />);
 
   expect(html).toContain('href="/users/other/sends" aria-current="page"');
   expect(html.match(/aria-current="page"/g)).toHaveLength(1);
 });
-
-const TOKEN = "0123456789abcdef0123456789abcdef";
 
 it.each([
   ["/users/owner", `/users/owner?share=${TOKEN}`, "Sends"],
@@ -60,7 +71,7 @@ it.each([
 ])("shows only Sends and Trips with a share token, from %s", (pathname, href, label) => {
   state.pathname = pathname;
   const html = renderToStaticMarkup(
-    <ProfileTabs userId="owner" showJournal={false} share={TOKEN} />,
+    <ProfileTabs userId="owner" showJournal={false} showTrips share={TOKEN} />,
   );
 
   // Each tab link includes the share token.

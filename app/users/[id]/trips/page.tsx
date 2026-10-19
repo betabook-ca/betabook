@@ -5,6 +5,7 @@ import {
   ProfileHeader,
   SharedProfileHeader,
   memberMetadata,
+  profileShareParam,
   resolveProfilePage,
   resolveSharedProfile,
 } from "@/app/users/[id]/profile-shell";
@@ -29,7 +30,7 @@ export async function generateMetadata({
   searchParams,
 }: UserTripsPageProps): Promise<Metadata> {
   const [{ id }, search] = await Promise.all([params, searchParams]);
-  const resolved = await resolveProfilePage(id, "viewer");
+  const resolved = await resolveProfilePage(id, "trips", profileShareParam(search));
   if (!resolved.signedIn) {
     const shared = await resolveSharedProfile(id, search);
     if (shared) return sharedProfileMetadata(shared.name);
@@ -39,7 +40,8 @@ export async function generateMetadata({
 
 export default async function UserTripsPage({ params, searchParams }: UserTripsPageProps) {
   const [{ id }, search] = await Promise.all([params, searchParams]);
-  const resolved = await resolveProfilePage(id, "viewer");
+  const share = profileShareParam(search);
+  const resolved = await resolveProfilePage(id, "trips", share);
 
   if (!resolved.signedIn) {
     const shared = await resolveSharedProfile(id, search);
@@ -57,8 +59,10 @@ export default async function UserTripsPage({ params, searchParams }: UserTripsP
   const { user, viewerId } = resolved;
 
   return (
-    <ProfileHeader user={user} viewerId={viewerId} workspace="logbook">
-      <TripsView userId={user.id} viewerId={viewerId} />
+    <ProfileHeader user={user} viewerId={viewerId} share={share} workspace="logbook">
+      {/* A member outside the trip audience got here with the link, so keep it
+       * on the trip links. */}
+      <TripsView userId={user.id} viewerId={viewerId} shareToken={share ?? undefined} />
     </ProfileHeader>
   );
 }
@@ -72,12 +76,13 @@ async function TripsView({
   viewerId: string | null;
   shareToken?: string;
 }) {
+  const share = shareToken ?? null;
   // Resolved on the server from the request's own zone, not in the card: a
   // `new Date()` inside a component runs once on the server and again on the
   // client, which is how "Upcoming" and "Now" end up disagreeing across a
   // hydration near midnight.
   const [trips, timezone] = await Promise.all([
-    getTripsForUser(await getDb(), userId, viewerId),
+    getTripsForUser(await getDb(), userId, viewerId, share),
     getRequestTimezone(),
   ]);
   return (

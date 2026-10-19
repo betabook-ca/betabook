@@ -21,24 +21,15 @@ const baseClimb: Climb = {
 describe("validateClimbEditInput", () => {
   const raw = { name: "Renamed", type: "sport", grade: "8" };
 
-  it("preserves an unknown grade during a same-discipline rename", () => {
-    expect(
-      validateClimbEditInput(
-        { ...baseClimb, grade: null },
-        {
-          name: "Renamed",
-          type: "boulder",
-          grade: "",
-        },
-      ),
-    ).toEqual({ name: "Renamed", type: "boulder", grade: null });
+  it("requires a grade on every edit", () => {
     expect(() =>
       validateClimbEditInput(baseClimb, { name: "Renamed", type: "boulder", grade: "" }),
     ).toThrow("Grade is required");
+    // A legacy ungraded row can't keep its blank grade through an edit either.
     expect(() =>
       validateClimbEditInput(
         { ...baseClimb, grade: null },
-        { name: "Renamed", type: "sport", grade: "" },
+        { name: "Renamed", type: "boulder", grade: "" },
       ),
     ).toThrow("Grade is required");
   });

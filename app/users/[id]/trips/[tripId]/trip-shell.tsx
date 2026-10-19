@@ -73,12 +73,12 @@ type Resolved =
        * share link. */
       notesVisible: boolean;
       /** Share token from the URL. Not validated here; the queries that use it
-       * validate it. */
+       * validate it. Pages keep it on their trip links. */
       share: string | null;
     };
 
-/** Shared authorization for trip pages. Anyone who can see the user's sends can
- * open the trip. Journal access adds entry counts and tagged friends. Friends
+/** Shared authorization for trip pages. Anyone in the owner's trip audience, or
+ * holding the owner's share link, can open the trip. Journal access adds entry counts and tagged friends. Friends
  * and share link holders can read notes. Signed-out and refused cases are
  * handled as in resolveProfilePage. */
 export async function resolveTripPage(
@@ -86,14 +86,14 @@ export async function resolveTripPage(
   tripIdParam: string,
   search: UrlParamsRecord = {},
 ): Promise<{ signedIn: false } | ({ signedIn: true } & Resolved)> {
-  const resolved = await resolveProfilePage(idParam, "viewer");
+  const share = parseShareToken(search[PROFILE_SHARE_PARAM]);
+  const resolved = await resolveProfilePage(idParam, "trips", share);
   if (!resolved.signedIn || !resolved.ok) return resolved;
 
   const tripId = parseId(tripIdParam);
   if (tripId === null) return { signedIn: true, ok: false };
 
   const { user, viewerId } = resolved;
-  const share = parseShareToken(search[PROFILE_SHARE_PARAM]);
   const [trip, journalVisible, notesVisible, today] = await Promise.all([
     getTripFor(user.id, tripId, viewerId, share),
     canReadUserJournal(user.id, viewerId),

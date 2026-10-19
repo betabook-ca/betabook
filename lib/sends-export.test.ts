@@ -168,15 +168,12 @@ describe("export → import round trip", () => {
     expect(withSuggestion.climbTypeHint).toBe("boulder");
     // The Suggested Grade column (not the posted Grade column) round-trips
     // to the same ordinal importSends will store.
-    expect(withSuggestion.blankGradeMeans).toBe("no-suggestion");
     expect(withSuggestion.gradeText).not.toBeNull();
     expect(parseGrade("boulder", withSuggestion.gradeText!, "native")).toBe(14);
 
-    // A send exported without a suggested grade stays that way: blank cell +
-    // "no-suggestion" makes importSends store null instead of falling back
-    // to the climb's posted grade.
+    // A send exported without a suggested grade has a blank cell, which
+    // importSends fills with the climb's listed grade.
     expect(withoutSuggestion.gradeText).toBeNull();
-    expect(withoutSuggestion.blankGradeMeans).toBe("no-suggestion");
     expect(withoutSuggestion.ascentStyle).toBe("onsight");
     expect(withoutSuggestion.dateSent).toBeNull();
     expect(withoutSuggestion.rating).toBeNull();

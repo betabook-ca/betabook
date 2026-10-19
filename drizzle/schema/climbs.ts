@@ -12,6 +12,7 @@ export const climbs = sqliteTable(
       .references(() => areas.id, { onDelete: "restrict" }),
     name: text("name").notNull(),
     type: text("type", { enum: ["boulder", "sport", "trad"] }).notNull(),
+    // Never null since 0054_require_grades (triggers, not NOT NULL; see docs/repository-guide.md#data-rules-to-preserve).
     grade: integer("grade"),
     description: text("description"),
     // ISO date (YYYY-MM-DD) on which the climb broke, or null while intact.

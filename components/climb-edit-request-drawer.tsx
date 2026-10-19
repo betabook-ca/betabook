@@ -7,18 +7,17 @@ import { useId, useState, useTransition } from "react";
 import { requestClimbEdit } from "@/actions";
 import { DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
 import { FIELD_CLASS } from "@/components/ui/field";
+import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { OptionSelect } from "@/components/ui/option-select";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { Climb } from "@/db/queries";
-import { nativeGradeArray, type ClimbType } from "@/lib/grades";
+import { gradeOptionValue, gradeOptions, type ClimbType } from "@/lib/grades";
 
 type ClimbEditRequestDrawerProps = {
   climb: Climb;
   state: UseOverlayStateReturn;
 };
-
-const UNKNOWN_GRADE = "unknown";
 
 /** A full edit (name/discipline/grade) — gated behind admin approval (see
  * actions/moderation.ts's requestClimbEdit). The description isn't here:
@@ -27,7 +26,7 @@ const UNKNOWN_GRADE = "unknown";
 export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerProps) {
   const disciplineLocked = climb.sendCount > 0;
   const disciplineId = useId();
-  const originalGrade = climb.grade === null ? UNKNOWN_GRADE : String(climb.grade);
+  const originalGrade = String(climb.grade ?? 0);
 
   const [name, setName] = useState(climb.name);
   const [type, setType] = useState<ClimbType>(climb.type);
@@ -36,7 +35,7 @@ export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerP
   const [pendingNotice, setPendingNotice] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const gradeOptions = nativeGradeArray(type);
+  const prefs = useGradePreferences();
   const trimmedName = name.trim();
 
   function handleTypeChange(next: ClimbType) {
@@ -53,7 +52,7 @@ export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerP
     const formData = new FormData();
     formData.set("name", trimmedName);
     formData.set("type", type);
-    formData.set("grade", grade === UNKNOWN_GRADE ? "" : grade);
+    formData.set("grade", grade);
 
     startTransition(async () => {
       const result = await requestClimbEdit(climb.id, formData);
@@ -123,14 +122,9 @@ export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerP
             <Label>Grade</Label>
             <OptionSelect
               ariaLabel="Grade"
-              value={grade}
+              value={gradeOptionValue(type, Number(grade), prefs)}
               onChange={setGrade}
-              options={[
-                ...(climb.grade === null && type === climb.type
-                  ? [{ value: UNKNOWN_GRADE, label: "Unknown" }]
-                  : []),
-                ...gradeOptions.map((label, i) => ({ value: String(i), label })),
-              ]}
+              options={gradeOptions(type, prefs)}
             />
           </div>
 

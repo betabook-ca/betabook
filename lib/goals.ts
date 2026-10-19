@@ -1,7 +1,13 @@
 import { z } from "zod";
 
 import { ActionError } from "@/lib/action-result";
-import { nativeGradeArray, type ClimbType } from "@/lib/grades";
+import {
+  DEFAULT_GRADE_PREFERENCES,
+  formatGrade,
+  nativeGradeArray,
+  type ClimbType,
+  type GradePreferences,
+} from "@/lib/grades";
 import { normalizeTags } from "@/lib/journal";
 import { isoDateSchema } from "@/lib/sends";
 
@@ -213,9 +219,10 @@ export function goalWindow(
 }
 function baseGoalTitle(
   goal: Pick<GoalDefinition, "kind" | "target" | "discipline" | "grade" | "repeat" | "gradeMatch">,
+  prefs: GradePreferences,
 ) {
   const grade =
-    goal.discipline && goal.grade !== null ? nativeGradeArray(goal.discipline)[goal.grade] : null;
+    goal.discipline && goal.grade !== null ? formatGrade(goal.discipline, goal.grade, prefs) : null;
   const suffix = goal.repeat === "none" ? "" : ` every ${goal.repeat}`;
   if (goal.kind === "grade") return `Send my first ${grade}`;
   if (goal.kind === "volume")
@@ -232,9 +239,15 @@ export type GoalTitleInput = Pick<
   "kind" | "target" | "discipline" | "grade" | "repeat" | "gradeMatch" | "tags"
 >;
 
-export function goalTitle(goal: GoalTitleInput) {
+/** The goal as a sentence, with its grade in the reader's chosen scale. The
+ * stored ordinal is what the goal counts against (docs/goals.md), so a
+ * French "3 or harder" goal saved from the picker holds 5.4 and reads "3". */
+export function goalTitle(
+  goal: GoalTitleInput,
+  prefs: GradePreferences = DEFAULT_GRADE_PREFERENCES,
+) {
   return (
-    baseGoalTitle(goal) +
+    baseGoalTitle(goal, prefs) +
     (goal.tags?.length ? ` · ${goal.tags.map((tag) => `#${tag}`).join(" ")}` : "")
   );
 }

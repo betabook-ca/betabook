@@ -13,6 +13,7 @@ import { GRADE_FEEL_OPTIONS } from "@/components/send-fields";
 import { cardClass } from "@/components/ui/card";
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { Eyebrow } from "@/components/ui/eyebrow";
+import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { OptionSelect, type SelectOption } from "@/components/ui/option-select";
 import { ProgressBar } from "@/components/ui/progress-bar";
@@ -73,11 +74,12 @@ import {
   type FailedImportRow,
   type FieldKey,
   type GradeFeelMapping,
-  type GradeScale,
+  type ImportGradePreference,
   type ImportSource,
   type InvalidImportRow,
   type NormalizedImportRow,
   type ParsedCsv,
+  preferredImportGradeScale,
   type RatingMapping,
 } from "@/lib/sends-import";
 
@@ -116,7 +118,7 @@ const COLUMN_FIELDS: { key: FieldKey; label: string; hint: string }[] = [
   {
     key: "suggestedGrade",
     label: "Grade",
-    hint: "The grade you logged, imported as your suggested grade. Blank means no suggestion.",
+    hint: "The grade you logged, imported as your suggested grade. Blank takes the climb’s listed grade, or keeps the grade of a send you overwrite.",
   },
   {
     key: "gradeFeel",
@@ -156,7 +158,7 @@ const DATE_FORMAT_OPTIONS: readonly SelectOption<DateFormat>[] = [
   { value: "dmy", label: "Day first — 15/10/2019" },
 ];
 
-const GRADE_SCALE_OPTIONS: readonly SelectOption<GradeScale>[] = [
+const GRADE_SCALE_OPTIONS: readonly SelectOption<ImportGradePreference>[] = [
   { value: "native", label: "Native (V-scale / YDS)" },
   { value: "converted", label: "Converted (Font / French)" },
 ];
@@ -205,7 +207,6 @@ function toImportSendRow(resolved: ResolvedRow, climb: ClimbCandidate): ImportSe
     comment: row.comment,
     gradeFeel: row.gradeFeel,
     gradeText: row.gradeText,
-    blankGradeMeans: row.blankGradeMeans,
   };
 }
 
@@ -226,6 +227,9 @@ function CsvWarnings({ warnings, subject }: { warnings: readonly string[]; subje
 
 // oxlint-disable-next-line complexity -- multi-step wizard state machine; each step adds a branch
 export function ImportWizard({ profileHref }: { profileHref: string }) {
+  const prefs = useGradePreferences();
+  // A climber who reads Font or French most likely exported grades that way.
+  const defaultGradeScale = preferredImportGradeScale(prefs);
   const [directSource, setDirectSource] = useState<string | null>(null);
   const [step, setStep] = useState<Step>("upload");
   const [error, setError] = useState<string | null>(null);
@@ -241,7 +245,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
   const [ratingMapping, setRatingMapping] = useState<RatingMapping>({});
   const [dateFormat, setDateFormat] = useState<DateFormat>("iso");
   const [dropPlaceholderDates, setDropPlaceholderDates] = useState(false);
-  const [gradeScale, setGradeScale] = useState<GradeScale>("native");
+  const [gradeScale, setGradeScale] = useState<ImportGradePreference>(defaultGradeScale);
   const [onConflict, setOnConflict] = useState<"skip" | "overwrite">("skip");
 
   const [baseNormalized, setNormalized] = useState<{
@@ -343,9 +347,14 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
   const matches = useMemo(
     () =>
       normalized && candidateIndex
-        ? matchRows(normalized.valid, candidateIndex, { gradeScale, preferredAreas, looseIndex })
+        ? matchRows(normalized.valid, candidateIndex, {
+            gradeScale,
+            preferredAreas,
+            looseIndex,
+            prefs,
+          })
         : null,
-    [normalized, candidateIndex, gradeScale, preferredAreas, looseIndex],
+    [normalized, candidateIndex, gradeScale, preferredAreas, looseIndex, prefs],
   );
   const resolved = useMemo(
     () => (normalized && matches ? resolveRows(normalized.valid, matches, manual) : null),
@@ -486,6 +495,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
       dateFormat: mapping.date ? detectDateFormat(dateSample) : ("iso" as DateFormat),
       gradeScale: detectGradeScale(
         distinctValues(parsed.rows, mapping.suggestedGrade ?? mapping.grade),
+        defaultGradeScale,
       ),
     };
   }
@@ -556,7 +566,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
 
   /** Batch name lookups, then recover capped matches through name-and-area lookups.
    * Superseded runs cannot update state; scale is explicit for same-tick uploads. */
-  async function runLookup(valid: NormalizedImportRow[], scale: GradeScale) {
+  async function runLookup(valid: NormalizedImportRow[], scale: ImportGradePreference) {
     lookupRunRef.current += 1;
     const run = lookupRunRef.current;
     const chunk = <T,>(items: T[]): T[][] =>
@@ -625,7 +635,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
     const summary = summarizeResolved(
       resolveRows(
         valid,
-        matchRows(valid, index, { gradeScale: scale, preferredAreas, looseIndex: loose }),
+        matchRows(valid, index, { gradeScale: scale, preferredAreas, looseIndex: loose, prefs }),
         new Map(),
       ),
     );
@@ -719,7 +729,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
     setRatingMapping({});
     setDateFormat("iso");
     setDropPlaceholderDates(false);
-    setGradeScale("native");
+    setGradeScale(defaultGradeScale);
     setOnConflict("skip");
     setNormalized(null);
     setUndatedDates(new Set());

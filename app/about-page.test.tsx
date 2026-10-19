@@ -54,8 +54,10 @@ it("explains who can see trip photos and where they load from", () => {
     .replace(/&#x27;/g, "'")
     .replace(/\s+/g, " ");
 
-  expect(text).toContain("trips with their notes, photos and sends to anyone who has them");
-  expect(text).toContain("can see your trips, with their photos and sends");
+  expect(text).toContain(
+    "trips with their notes, photos and sends to anyone who has them, whatever your trip setting",
+  );
+  expect(text).toContain("You choose who else can see your trips, with their photos and sends");
   expect(text).toContain("Photos load from Google Photos.");
   // The app still stores no photos.
   expect(text).toContain("doesn’t support image or video uploads");

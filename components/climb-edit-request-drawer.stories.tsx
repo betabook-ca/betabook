@@ -17,11 +17,11 @@ const meta = {
 } satisfies Meta<typeof ClimbEditRequestDrawer>;
 export default meta;
 
-export const Ungraded: StoryObj = {
+export const EditClimb: StoryObj = {
   render: function Example() {
     const state = useOverlayState();
     return (
-      <StoryPage title="Edit an ungraded climb">
+      <StoryPage title="Edit a climb">
         <Button onPress={state.open}>Request climb edit</Button>
         <ClimbEditRequestDrawer
           state={state}
@@ -30,7 +30,7 @@ export const Ungraded: StoryObj = {
             areaId: -1,
             name: "Unfinished Arete",
             type: "boulder",
-            grade: null,
+            grade: 5,
             description: null,
             brokenOn: null,
             sendCount: 0,

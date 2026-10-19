@@ -119,7 +119,7 @@ export function seedSendVideos(db: DatabaseSync, viewerId: string): number {
 
   const link = db.prepare("UPDATE sends SET videos = ? WHERE id = ?");
   const insertSend = db.prepare(
-    "INSERT INTO sends (user_id, climb_id, ascent_style, date_sent, rating, comment, videos) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO sends (user_id, climb_id, ascent_style, date_sent, rating, comment, videos, suggested_grade) VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT grade FROM climbs WHERE id = ?))",
   );
   const insertEntry = db.prepare(
     "INSERT INTO journal_entries (user_id, climb_id, kind, sent, is_ascent, entry_date, body, tags) VALUES (?, ?, 'session', ?, ?, ?, ?, ?) RETURNING id",
@@ -147,6 +147,7 @@ export function seedSendVideos(db: DatabaseSync, viewerId: string): number {
       send.rating,
       send.note,
       send.videos && JSON.stringify(send.videos),
+      climbId,
     );
     if (send.videos) linked += 1;
     const entry = insertEntry.get(userId, climbId, 1, 1, send.date, send.note, send.tags);

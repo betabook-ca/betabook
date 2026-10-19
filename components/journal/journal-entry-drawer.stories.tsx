@@ -2,6 +2,7 @@ import { Button, useOverlayState } from "@heroui/react";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { userEvent, within } from "storybook/test";
 
+import { GradePreferencesProvider } from "@/components/ui/grade-preferences";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { JournalEntryDrawer } from "./journal-entry-drawer";
@@ -68,3 +69,20 @@ export const Send: Story = {
   },
 };
 export const Repeat: Story = { render: () => <Example climb repeat /> };
+
+/** Logging a send on an account that reads Fontainebleau: the climb chip and
+ * the suggested grade picker both print V4 as 6B. */
+export const FontGrades: Story = {
+  render: () => (
+    <GradePreferencesProvider value={{ boulder: "font", rope: "french" }}>
+      <Example climb />
+    </GradePreferencesProvider>
+  ),
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement.ownerDocument.body).getByRole("radio", {
+        name: "Redpoint",
+      }),
+    );
+  },
+};

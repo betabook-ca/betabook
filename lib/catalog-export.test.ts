@@ -118,18 +118,14 @@ it("reads every row once across many keyset pages, as compact JSON", async () =>
   expect(ids).toEqual(ids.toSorted((a, b) => a - b));
 });
 
-it("labels grades in the discipline's native scale and keeps null grades null", async () => {
+it("labels grades in the discipline's native scale", async () => {
   await seedFixtureTree(db);
-  await db
-    .insert(climbs)
-    .values({ id: 9, areaId: 3, name: "Ungraded", type: "sport", grade: null });
   const snapshot = JSON.parse(await collectText(catalogExportJson(db, NOW)));
   const byId = new Map<number, Record<string, unknown>>(
     snapshot.climbs.map((climb: { id: number }) => [climb.id, climb]),
   );
   expect(byId.get(1)).toMatchObject({ type: "boulder", grade: 5, gradeLabel: "V4" });
   expect(byId.get(3)).toMatchObject({ type: "sport", grade: 10, gradeLabel: "5.10a" });
-  expect(byId.get(9)).toMatchObject({ grade: null, gradeLabel: null });
   expect(Object.keys(byId.get(1)!).sort()).toEqual(
     ["areaId", "description", "grade", "gradeLabel", "id", "name", "type"].sort(),
   );

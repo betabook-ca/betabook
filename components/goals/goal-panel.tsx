@@ -9,6 +9,7 @@ import { ActionsMenu } from "@/components/ui/actions-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
+import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ListRow } from "@/components/ui/list-row";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
@@ -146,6 +147,7 @@ function GoalRowTitle({
   today: string;
   isMissed: boolean;
 }) {
+  const prefs = useGradePreferences();
   const dateLabel = goalDateLabel(
     {
       ...goal,
@@ -164,7 +166,7 @@ function GoalRowTitle({
         className={`flex min-w-0 flex-col items-start gap-1 ${mobileLongClimb ? "max-[480px]:contents" : ""}`}
       >
         <div className={`min-w-0 ${mobileLongClimb ? "max-[480px]:col-span-2" : ""}`}>
-          <span data-goal-title>{goalTitle(goal)}</span>
+          <span data-goal-title>{goalTitle(goal, prefs)}</span>
           {goal.discipline && (
             <span className="ml-1 inline-flex align-middle">
               <DisciplineChip type={goal.discipline} />
@@ -180,7 +182,7 @@ function GoalRowTitle({
                 size="sm"
                 value={Math.min(goal.progress, goal.target)}
                 max={goal.target}
-                label={goalTitle(goal)}
+                label={goalTitle(goal, prefs)}
               />
             </div>
             <span className="text-xs tabular-nums">
@@ -229,6 +231,7 @@ export function GoalPanel({
   availableTags?: string[];
 }) {
   const mounted = useMounted();
+  const prefs = useGradePreferences();
   const [dismissedCompletions, setDismissedCompletions] = useState<Set<string>>(new Set());
   const [view, setView] = useState<"active" | "completed">(initialView);
   const active = initialActive;
@@ -347,7 +350,7 @@ export function GoalPanel({
   function goalActions(goal: GoalProgress) {
     return (
       <ActionsMenu
-        ariaLabel={`Actions for ${goalTitle(goal)}`}
+        ariaLabel={`Actions for ${goalTitle(goal, prefs)}`}
         onAction={(key) => {
           if (key === "edit") {
             const selected = active.goals.find((item) => item.id === goal.id) ?? goal;

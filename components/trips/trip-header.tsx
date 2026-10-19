@@ -37,7 +37,8 @@ export function TripHeader({
   viewerId: string | null;
   /** Today as `YYYY-MM-DD` in the viewer's timezone, resolved on the server. */
   today: string;
-  /** Share token for a signed-out visitor, added to the back link. */
+  /** Share token from the URL, kept on the back and analytics links so a link
+   * holder outside the trip audience can move between the pages. */
   share?: string;
   /** Owner only: share URL for this trip, or null if the profile is private.
    * Undefined for everyone else. */
@@ -47,7 +48,8 @@ export function TripHeader({
   back?: "trips" | "trip";
   children: ReactNode;
 }) {
-  const trips = share ? withProfileShare(tripsHref(userId), share) : tripsHref(userId);
+  const withShare = (href: string) => (share ? withProfileShare(href, share) : href);
+  const trips = withShare(tripsHref(userId));
   const nothingYet =
     tripStatus(trip, today) === "upcoming" && trip.sendCount === 0 && !trip.entryCount;
 
@@ -55,7 +57,7 @@ export function TripHeader({
     <div className="flex min-w-0 flex-col gap-4">
       <div className="flex min-w-0 flex-col gap-1">
         {back === "trip" ? (
-          <TripBackLink href={tripHref(userId, trip.id)}>Back to trip</TripBackLink>
+          <TripBackLink href={withShare(tripHref(userId, trip.id))}>Back to trip</TripBackLink>
         ) : (
           <TripBackLink href={trips}>All trips</TripBackLink>
         )}
@@ -92,7 +94,8 @@ export function TripHeader({
                   : {
                       entries: tripLogbookHref(userId, "journal", trip),
                       sends: tripLogbookHref(userId, "sends", trip),
-                      analytics: back === "trip" ? undefined : tripAnalyticsHref(userId, trip.id),
+                      analytics:
+                        back === "trip" ? undefined : withShare(tripAnalyticsHref(userId, trip.id)),
                     }
               }
             />

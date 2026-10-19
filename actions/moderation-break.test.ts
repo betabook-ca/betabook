@@ -189,18 +189,6 @@ describe("requestClimbBreak", () => {
     expect((await sendsOn(HIGHBALL)).map((row) => row.userId)).toEqual(["break-climber"]);
   });
 
-  it("omits the placeholder-grade sentence for an ungraded climb", async () => {
-    await db.update(climbs).set({ grade: null }).where(eq(climbs.id, CRACK));
-    expect((await requestClimbBreak(CRACK, breakForm({ brokenOn: "2025-12-31" }))).ok).toBe(true);
-    const [request] = await pendingBreaksFor(CRACK);
-    expect(JSON.parse(request.payload)).toMatchObject({
-      successorName: "Test Crack - post break (2025)",
-      successorDescription: "Post-break version of Test Crack, which broke on 2025-12-31.",
-      laterSends: 0,
-      laterEntries: 0,
-    });
-  });
-
   it.each([
     [{ brokenOn: "" }, "Date is required"],
     [{ brokenOn: "2026-02-30" }, "Invalid date"],
@@ -316,7 +304,7 @@ describe("moving later history to the successor", () => {
         ascentStyle: "redpoint",
         rating: null,
         comment: null,
-        suggestedGrade: null,
+        suggestedGrade: 5, // the successor's listed grade, carried over from Test Highball
         gradeFeel: "solid",
       }),
     ]);

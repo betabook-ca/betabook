@@ -51,7 +51,6 @@ it.each([
       rating: 4,
       comment: "Imported note",
       gradeText: id === climbId ? gradeText : "V3",
-      blankGradeMeans: "posted-grade" as const,
       gradeFeel: "solid" as const,
     }));
     race.beforeBatch = async () => {
@@ -73,7 +72,9 @@ it.each([
 
     expect(await importSends(rows, options)).toMatchObject({ ok: true, value: { imported: 2 } });
     expect(await db.select().from(sends).where(eq(sends.climbId, climbId)).get()).toMatchObject({
-      suggestedGrade: null,
+      // The stale grade text no longer parses on the new discipline, so the
+      // send takes the climb's new listed grade.
+      suggestedGrade: nextGrade,
       comment: "Imported note",
     });
     expect(await db.select().from(journalEntries)).toHaveLength(2);
@@ -105,7 +106,6 @@ it.each([null, "2026-09-01"])(
       rating: 4,
       comment: "Stale import",
       gradeText: "V5",
-      blankGradeMeans: "posted-grade" as const,
       gradeFeel: "solid" as const,
     }));
 
