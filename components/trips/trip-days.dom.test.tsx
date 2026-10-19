@@ -92,6 +92,42 @@ it("puts each day's sends and entries under a heading for that day", () => {
   expect(within(rows[1]).getByText("Second lap.")).toBeVisible();
 });
 
+it("lists the crags a day visited under its heading, once each, in the order logged", () => {
+  render(
+    <TripDays
+      days={
+        groupTripDays({
+          startDate: "2026-03-10",
+          sends: [SEND],
+          entries: [
+            entry(40, { entryDate: "2026-03-12", areaId: 2, areaName: "Dim Cave" }),
+            entry(41, { entryDate: "2026-03-12" }),
+            // A training entry has no crag.
+            entry(42, {
+              entryDate: "2026-03-12",
+              kind: "training",
+              climbId: null,
+              climbName: null,
+              climbType: null,
+              climbGrade: null,
+              areaId: null,
+              areaName: null,
+            }),
+          ],
+        }).days
+      }
+      areaBreadcrumbs={{ 1: [{ id: 9, name: "Test Crag" }] }}
+      userId="owner-1"
+      isOwner={false}
+      emptyMessage="Nothing logged on this trip yet."
+    />,
+  );
+  const day = screen.getByRole("region", { name: "Day 3 · Thu, Mar 12" });
+  // Names only, joined by a middle dot: no ancestors, no repeats.
+  expect(within(day).getByText("Dim Cave · Test Boulders")).toBeVisible();
+  expect(within(day).queryByText(/Test Crag ·|Test Crag \//)).toBeNull();
+});
+
 it("counts each row in the day header the way its chip labels it", () => {
   render(
     <TripDays

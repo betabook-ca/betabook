@@ -35,6 +35,18 @@ function dayLabel(day: Pick<TripDay<unknown, unknown>, "date" | "dayNumber">): s
   return `${number} · ${date}`;
 }
 
+/** "Dim Cave · Best Face": each crag the day's rows were at, once, in the
+ * order logged. Just the climb's own area, with no ancestors; training with no
+ * climb adds nothing. */
+function dayCrags({ items }: TripDay<UserSendRow, JournalEntry>): string {
+  const crags = new Map<number, string>();
+  for (const item of items) {
+    const { areaId, areaName } = item.kind === "send" ? item.send : item.entry;
+    if (areaId != null && areaName != null && !crags.has(areaId)) crags.set(areaId, areaName);
+  }
+  return [...crags.values()].join(" · ");
+}
+
 /** "2 sends · 1 repeat · 1 session · 1 training session". Counts only what is
  * listed, so a reader without journal access sees sends alone, and names each
  * row the way its status chip does in `JournalEntryRow`. */
@@ -136,12 +148,15 @@ function TripDayCards({
             className={`overflow-clip ${cardClass("none", "bordered")}`}
           >
             <header className="sticky top-0 z-10 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-separator bg-surface-secondary px-4 py-2.5">
-              <h3 className="text-sm font-semibold text-foreground">
-                {dayLabelParts(day).number}{" "}
-                <time dateTime={day.date} className="font-normal text-muted">
-                  · {dayLabelParts(day).date}
-                </time>
-              </h3>
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <h3 className="text-sm font-semibold text-foreground">
+                  {dayLabelParts(day).number}{" "}
+                  <time dateTime={day.date} className="font-normal text-muted">
+                    · {dayLabelParts(day).date}
+                  </time>
+                </h3>
+                {dayCrags(day) && <p className="text-xs text-muted">{dayCrags(day)}</p>}
+              </div>
               <p className="text-xs text-muted">{daySummary(day)}</p>
             </header>
             {/* Rows raise their grade column to z-10; keeping them in their own
