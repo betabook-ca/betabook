@@ -95,11 +95,9 @@ it("renders the trip header and the trip's sends", () => {
 it("renders no controls or Logbook links for signed-out visitors", () => {
   render(trip());
 
-  // No menu, tags or journal counts, and no links into the Logbook. The one
-  // button orders the days, which changes nothing but the view.
-  expect(screen.getAllByRole("button").map((button) => button.getAttribute("aria-label"))).toEqual([
-    "Sort ascending",
-  ]);
+  // No menu, tags or journal counts, and no links into the Logbook. The sends
+  // are all on one day, so there's no order button either.
+  expect(screen.queryByRole("button")).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: /sends$|Analytics/ })).not.toBeInTheDocument();
   expect(document.body).not.toHaveTextContent(/entr|days logged|With /);
   // The sign-up invite is in the profile header. The trip page ends with one
@@ -143,6 +141,39 @@ it("says when only some of the trip's sends are shown", () => {
     "href",
     signUp(PATH),
   );
+});
+
+it("leaves out the oldest day of a capped list, which may be missing sends", () => {
+  render(
+    trip({
+      trip: { ...BISHOP, sendCount: 10 },
+      sends: [
+        { ...send(3, "Evilution"), dateSent: "2026-03-14" },
+        { ...send(2, "Warm-up Arete"), dateSent: "2026-03-14" },
+        // The oldest send read: its day may hold more sends that weren't.
+        { ...send(1, "Moon Slab"), dateSent: "2026-03-12" },
+      ],
+    }),
+  );
+
+  expect(screen.getByRole("region", { name: "Day 5 · Sat, Mar 14" })).toBeVisible();
+  expect(screen.queryByRole("region", { name: /Mar 12/ })).toBeNull();
+  expect(screen.queryByText("Moon Slab")).toBeNull();
+  // The notice counts what is shown, not what was read.
+  expect(screen.getByText("Showing the 2 most recent of 10 sends.")).toBeVisible();
+});
+
+it("offers the order button when the sends span two days", () => {
+  render(
+    trip({
+      trip: { ...BISHOP, sendCount: 2 },
+      sends: [
+        { ...send(2, "Warm-up Arete"), dateSent: "2026-03-14" },
+        { ...send(1, "Moon Slab"), dateSent: "2026-03-12" },
+      ],
+    }),
+  );
+  expect(screen.getByRole("button", { name: "Sort ascending" })).toBeVisible();
 });
 
 it("shows the Upcoming chip for a trip that hasn't started", () => {

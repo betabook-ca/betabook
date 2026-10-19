@@ -18,13 +18,13 @@ import {
 } from "@/app/users/[id]/trips/[tripId]/trip-shell";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { SharedTrip } from "@/components/trips/shared-trips";
-import { TripDayOrderProvider } from "@/components/trips/trip-day-order";
-import { TripDays, TripDaysHeading } from "@/components/trips/trip-days";
+import { TripDays } from "@/components/trips/trip-days";
 import { TripHeader } from "@/components/trips/trip-header";
 import { TripNotes } from "@/components/trips/trip-notes";
 import { AppLink } from "@/components/ui/app-link";
 import { Markdown } from "@/components/ui/markdown";
 import { Skeleton, SkeletonListRows } from "@/components/ui/skeleton";
+import { SectionHeading } from "@/components/ui/typography";
 import { getDb } from "@/db/client";
 import {
   getAreaBreadcrumbs,
@@ -123,22 +123,25 @@ export default async function TripPage({ params, searchParams }: TripPageParams)
           </Suspense>
         )}
         {showDays && (
-          <TripDayOrderProvider initialOrder={order}>
-            <section aria-label="Days" className="flex min-w-0 flex-col gap-3">
-              {/* Nothing to order until two things are logged. */}
-              <TripDaysHeading orderable={trip.sendCount + (trip.entryCount ?? 0) > 1}>
-                Days
-              </TripDaysHeading>
-              <Suspense fallback={<SkeletonListRows rows={5} />}>
-                <TripDaysView
-                  trip={trip}
-                  userId={user.id}
-                  viewerId={viewerId}
-                  journalVisible={journalVisible}
-                />
-              </Suspense>
-            </section>
-          </TripDayOrderProvider>
+          <section aria-label="Days" className="flex min-w-0 flex-col">
+            <Suspense
+              fallback={
+                // Shaped like TripDays, so the heading stays put when the days arrive.
+                <div className="flex flex-col gap-3">
+                  <SectionHeading>Days</SectionHeading>
+                  <SkeletonListRows rows={5} />
+                </div>
+              }
+            >
+              <TripDaysView
+                trip={trip}
+                userId={user.id}
+                viewerId={viewerId}
+                journalVisible={journalVisible}
+                initialOrder={order}
+              />
+            </Suspense>
+          </section>
         )}
       </TripHeader>
     </ProfileHeader>
@@ -171,6 +174,7 @@ async function TripDaysView({
   userId,
   viewerId,
   journalVisible,
+  initialOrder,
 }: {
   trip: TripSummary;
   userId: string;
@@ -178,6 +182,7 @@ async function TripDaysView({
   /** Entries are read only for viewers of the journal. The query checks
    * access again in SQL. */
   journalVisible: boolean;
+  initialOrder: TripDayOrder;
 }) {
   const db = await getDb();
   const [sendsPage, entriesPage] = await Promise.all([
@@ -209,12 +214,20 @@ async function TripDaysView({
     sendsCapped: sendsPage.hasMore,
     entriesCapped: entriesPage.hasMore,
   });
-  const areaBreadcrumbs = await getAreaBreadcrumbs(db, [
-    ...sends.map((send) => send.areaId),
-    ...entries.flatMap((entry) => (entry.areaId == null ? [] : [entry.areaId])),
-  ]);
+  // Only the rows that survived the cut need their area paths.
+  const areaBreadcrumbs = await getAreaBreadcrumbs(
+    db,
+    days.flatMap((day) =>
+      day.items.flatMap((item) => {
+        const areaId = item.kind === "send" ? item.send.areaId : item.entry.areaId;
+        return areaId == null ? [] : [areaId];
+      }),
+    ),
+  );
   return (
     <TripDays
+      heading="Days"
+      initialOrder={initialOrder}
       days={days}
       areaBreadcrumbs={areaBreadcrumbs}
       userId={userId}

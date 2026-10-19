@@ -226,33 +226,33 @@ describe("trip page", () => {
     expect(await renderTrip(trip.id, { order: "sideways" })).toContain('"initialOrder":"oldest"');
   });
 
-  it("offers no order button until two things are logged", async () => {
-    const trip = await seedFixtureTrip(db, { userId: OWNER, name: "Day trip", ...BISHOP });
-    await seedFixtureSend(db, { userId: OWNER, climbId: CLIMB, dateSent: "2026-03-15" });
-
-    expect(await renderTrip(trip.id)).toContain('"orderable":false');
-
-    await seedFixtureJournalEntry(db, {
-      userId: OWNER,
-      climbId: OTHER_CLIMB,
-      entryDate: "2026-03-16",
-    });
-    expect(await renderTrip(trip.id)).toContain('"orderable":true');
-  });
-
-  it("hides an entry for a climb sent that day, but keeps it on other days", async () => {
+  it("shows the send in place of its ascent entry, and keeps other entries for the climb", async () => {
     const trip = await seedTrip();
-    const sameDay = "Logged the same climb on the day it went.";
+    const attempt = "Fell off the top twice before it went.";
     await seedFixtureJournalEntry(db, {
       userId: OWNER,
       climbId: CLIMB,
       entryDate: "2026-03-15",
-      body: sameDay,
+      body: attempt,
+    });
+    await seedFixtureJournalEntry(db, {
+      userId: OWNER,
+      climbId: CLIMB,
+      entryDate: "2026-03-15",
+      sent: true,
+      isAscent: true,
+      // An ascent entry mirrors its send's comment.
+      body: INSIDE,
     });
 
     const payload = await renderTrip(trip.id);
     expect(payload).toContain(INSIDE);
-    expect(payload).not.toContain(sameDay);
+    // The ascent entry itself isn't rendered; the send row stands in for it.
+    expect(payload).not.toContain('"isAscent":true');
+    // A failed session the same day isn't a duplicate, so it stays, before
+    // the send it led to.
+    expect(payload).toContain(attempt);
+    expect(payload.indexOf(attempt)).toBeLessThan(payload.indexOf(INSIDE));
     // The same climb's session the next day still shows.
     expect(payload).toContain(ENTRY);
   });

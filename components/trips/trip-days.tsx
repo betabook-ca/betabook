@@ -3,14 +3,18 @@ import type { ReactNode } from "react";
 import { UserSendLogRow } from "@/components/climb-log-row";
 import { JournalEntryRow } from "@/components/journal/journal-entry-row";
 import { SendActionsMenu } from "@/components/send-actions-menu";
-import { TripDayOrderControl, TripDayOrderList } from "@/components/trips/trip-day-order";
+import {
+  TripDayOrderControl,
+  TripDayOrderList,
+  TripDayOrderProvider,
+} from "@/components/trips/trip-day-order";
 import { cardClass } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeading } from "@/components/ui/typography";
 import type { AreaBreadcrumbs, JournalEntry, UserSendRow } from "@/db/queries";
 import { DEFAULT_JOURNAL_FILTER } from "@/lib/filters/journal-filter";
 import { formatCount } from "@/lib/format";
-import type { TripDay } from "@/lib/trip-days";
+import type { TripDay, TripDayOrder } from "@/lib/trip-days";
 
 const DAY_FORMAT = new Intl.DateTimeFormat("en-US", {
   weekday: "short",
@@ -19,24 +23,35 @@ const DAY_FORMAT = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
 });
 
-/** "Day 3 · Thu, Mar 12" */
-function dayLabel(day: Pick<TripDay<unknown, unknown>, "date" | "dayNumber">): string {
-  return `Day ${day.dayNumber} · ${DAY_FORMAT.format(new Date(day.date))}`;
+/** The two halves of a day's heading, "Day 3" and "Thu, Mar 12". The visible
+ * heading and its accessible name are both built from these. */
+function dayLabelParts(day: Pick<TripDay<unknown, unknown>, "date" | "dayNumber">) {
+  return { number: `Day ${day.dayNumber}`, date: DAY_FORMAT.format(new Date(day.date)) };
 }
 
-/** "2 sends · 1 session · 1 training session". Counts only what is listed, so
- * a reader without journal access sees sends alone. */
+/** "Day 3 · Thu, Mar 12" */
+function dayLabel(day: Pick<TripDay<unknown, unknown>, "date" | "dayNumber">): string {
+  const { number, date } = dayLabelParts(day);
+  return `${number} · ${date}`;
+}
+
+/** "2 sends · 1 repeat · 1 session · 1 training session". Counts only what is
+ * listed, so a reader without journal access sees sends alone, and names each
+ * row the way its status chip does in `JournalEntryRow`. */
 function daySummary({ items }: TripDay<UserSendRow, JournalEntry>): string {
   let sends = 0;
+  let repeats = 0;
   let sessions = 0;
   let training = 0;
   for (const item of items) {
-    if (item.kind === "send") sends += 1;
+    if (item.kind === "send" || item.entry.isAscent) sends += 1;
     else if (item.entry.kind === "training") training += 1;
+    else if (item.entry.sent) repeats += 1;
     else sessions += 1;
   }
   return [
     sends > 0 && formatCount(sends, "send"),
+    repeats > 0 && formatCount(repeats, "repeat"),
     sessions > 0 && formatCount(sessions, "session"),
     training > 0 && formatCount(training, "training session"),
   ]
@@ -44,30 +59,14 @@ function daySummary({ items }: TripDay<UserSendRow, JournalEntry>): string {
     .join(" · ");
 }
 
-/** The days section's heading, with the order button at the end of the line.
- * Wrap the heading and `TripDays` in one `TripDayOrderProvider`. */
-export function TripDaysHeading({
-  children,
-  orderable,
-}: {
-  children: ReactNode;
-  /** Shows the order button. Leave off when there is at most one thing to
-   * order. */
-  orderable: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-2">
-      <SectionHeading>{children}</SectionHeading>
-      {orderable && <TripDayOrderControl />}
-    </div>
-  );
-}
-
 /** A trip's sends and journal entries as one card per day with something
- * logged. Entries are left out when the viewer can't read the journal;
- * `groupTripDays` builds the days oldest first, and the surrounding
- * `TripDayOrderProvider` decides the order they're shown in. */
+ * logged, under `heading` with the order button at the end of its line.
+ * Entries are left out when the viewer can't read the journal; `groupTripDays`
+ * builds the days oldest first, and the button reverses them in the browser.
+ * The button shows only when there are two days to order. */
 export function TripDays({
+  heading,
+  initialOrder = "oldest",
   days,
   areaBreadcrumbs,
   userId,
@@ -75,6 +74,11 @@ export function TripDays({
   emptyMessage,
   notice,
 }: {
+  /** The section heading, such as "Days". The page's loading skeleton shows
+   * the same text, so the heading doesn't move when the days arrive. */
+  heading?: ReactNode;
+  /** The order from the URL, which the page starts in. */
+  initialOrder?: TripDayOrder;
   days: TripDay<UserSendRow, JournalEntry>[];
   areaBreadcrumbs: AreaBreadcrumbs;
   userId: string;
@@ -84,18 +88,28 @@ export function TripDays({
   /** A note above the days, such as the one for a trip too long to show. */
   notice?: ReactNode;
 }) {
-  if (days.length === 0) return <EmptyState message={emptyMessage} />;
-
   return (
-    <div className="flex flex-col gap-3">
-      {notice && <div className="text-sm text-muted">{notice}</div>}
-      <TripDayCards
-        days={days}
-        areaBreadcrumbs={areaBreadcrumbs}
-        userId={userId}
-        isOwner={isOwner}
-      />
-    </div>
+    <TripDayOrderProvider initialOrder={initialOrder}>
+      <div className="flex flex-col gap-3">
+        {heading && (
+          <div className="flex items-center justify-between gap-2">
+            <SectionHeading>{heading}</SectionHeading>
+            {days.length > 1 && <TripDayOrderControl />}
+          </div>
+        )}
+        {notice && <div className="text-sm text-muted">{notice}</div>}
+        {days.length === 0 ? (
+          <EmptyState message={emptyMessage} />
+        ) : (
+          <TripDayCards
+            days={days}
+            areaBreadcrumbs={areaBreadcrumbs}
+            userId={userId}
+            isOwner={isOwner}
+          />
+        )}
+      </div>
+    </TripDayOrderProvider>
   );
 }
 
@@ -123,9 +137,9 @@ function TripDayCards({
           >
             <header className="sticky top-0 z-10 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-separator bg-surface-secondary px-4 py-2.5">
               <h3 className="text-sm font-semibold text-foreground">
-                Day {day.dayNumber}{" "}
+                {dayLabelParts(day).number}{" "}
                 <time dateTime={day.date} className="font-normal text-muted">
-                  · {DAY_FORMAT.format(new Date(day.date))}
+                  · {dayLabelParts(day).date}
                 </time>
               </h3>
               <p className="text-xs text-muted">{daySummary(day)}</p>

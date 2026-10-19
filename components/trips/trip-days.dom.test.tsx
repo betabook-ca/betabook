@@ -92,6 +92,71 @@ it("puts each day's sends and entries under a heading for that day", () => {
   expect(within(rows[1]).getByText("Second lap.")).toBeVisible();
 });
 
+it("counts each row in the day header the way its chip labels it", () => {
+  render(
+    <TripDays
+      days={
+        groupTripDays({
+          startDate: "2026-03-10",
+          sends: [],
+          entries: [
+            entry(30, { entryDate: "2026-03-11", sent: true }),
+            entry(31, { entryDate: "2026-03-11", climbId: 303, sent: true, isAscent: true }),
+            entry(32, { entryDate: "2026-03-11" }),
+          ],
+        }).days
+      }
+      areaBreadcrumbs={{}}
+      userId="owner-1"
+      isOwner={false}
+      emptyMessage="Nothing logged on this trip yet."
+    />,
+  );
+  // A repeat is a repeat, and an ascent shown as an entry is still a send.
+  expect(screen.getByText("1 send · 1 repeat · 1 session")).toBeVisible();
+  expect(screen.getByText("Repeat")).toBeVisible();
+});
+
+it("offers the order button only when there are two days to order", () => {
+  const sameDay = groupTripDays({
+    startDate: "2026-03-10",
+    sends: [SEND],
+    entries: [entry(12, { entryDate: "2026-03-12" })],
+  }).days;
+  const { rerender } = render(
+    <TripDays
+      heading="Days"
+      initialOrder="oldest"
+      days={sameDay}
+      areaBreadcrumbs={{}}
+      userId="owner-1"
+      isOwner={false}
+      emptyMessage="Nothing logged on this trip yet."
+    />,
+  );
+  // Two things logged, but one day: nothing to reorder.
+  expect(screen.getByRole("heading", { level: 2, name: "Days" })).toBeVisible();
+  expect(screen.queryByRole("button", { name: /^Sort/ })).toBeNull();
+
+  const twoDays = groupTripDays({
+    startDate: "2026-03-10",
+    sends: [SEND],
+    entries: [entry(10, { entryDate: "2026-03-10" })],
+  }).days;
+  rerender(
+    <TripDays
+      heading="Days"
+      initialOrder="oldest"
+      days={twoDays}
+      areaBreadcrumbs={{}}
+      userId="owner-1"
+      isOwner={false}
+      emptyMessage="Nothing logged on this trip yet."
+    />,
+  );
+  expect(screen.getByRole("button", { name: "Sort ascending" })).toBeVisible();
+});
+
 it("shows the empty message when nothing is logged", () => {
   render(
     <TripDays

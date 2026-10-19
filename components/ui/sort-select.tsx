@@ -64,11 +64,9 @@ export function SortSelect<Field extends string, Sort extends string>({
 export function SortDirectionButton({
   direction,
   onPress,
-  isDisabled,
 }: {
   direction: "asc" | "desc";
   onPress: () => void;
-  isDisabled?: boolean;
 }) {
   return (
     <Button
@@ -76,7 +74,6 @@ export function SortDirectionButton({
       variant="ghost"
       className={`${FIELD_ACTION_CLASS} ${FIELD_SURFACE_CLASS}`}
       aria-label={direction === "asc" ? "Sort ascending" : "Sort descending"}
-      isDisabled={isDisabled}
       onPress={onPress}
     >
       {direction === "asc" ? <ArrowUp className="size-4" /> : <ArrowDown className="size-4" />}

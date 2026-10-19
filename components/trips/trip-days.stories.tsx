@@ -82,6 +82,7 @@ const meta = {
   title: "Components/Trips/Trip days",
   component: TripDays,
   args: {
+    heading: "Days",
     days: groupTripDays({ startDate: START, sends: SENDS, entries: ENTRIES }).days,
     areaBreadcrumbs: {},
     userId: "sample",
