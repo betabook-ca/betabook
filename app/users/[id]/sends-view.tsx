@@ -12,18 +12,11 @@ export async function SendsView({
   viewerId,
   filter,
   basePath,
-  bare = false,
-  emptyWindow,
 }: {
   userId: string;
   viewerId: string;
   filter: UserSendsFilter;
   basePath: string;
-  /** Render only the list, with no filter toolbar or heading. Used by the trip
-   * page. */
-  bare?: boolean;
-  /** Empty-state message to show instead of the default. */
-  emptyWindow?: string;
 }) {
   const db = await getDb();
 
@@ -41,10 +34,8 @@ export async function SendsView({
   return (
     <NavigationPendingProvider>
       <div className="flex min-w-0 flex-col gap-4">
-        {!bare && <SectionHeading className="sr-only">Sends</SectionHeading>}
-        {!bare && hasSends && (
-          <UserSendsFilterToolbar filter={filter} basePath={basePath} tags={tags} />
-        )}
+        <SectionHeading className="sr-only">Sends</SectionHeading>
+        {hasSends && <UserSendsFilterToolbar filter={filter} basePath={basePath} tags={tags} />}
         <UserSendList
           key={JSON.stringify(filter)}
           userId={userId}
@@ -54,7 +45,6 @@ export async function SendsView({
           initialAreaBreadcrumbs={areaBreadcrumbs}
           hasAnySends={hasSends}
           currentUserId={viewerId}
-          emptyMessage={emptyWindow}
         />
       </div>
     </NavigationPendingProvider>

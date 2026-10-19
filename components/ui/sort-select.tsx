@@ -54,15 +54,29 @@ export function SortSelect<Field extends string, Sort extends string>({
           </ListBox>
         </Select.Popover>
       </Select>
-      <Button
-        isIconOnly
-        variant="ghost"
-        className={`${FIELD_ACTION_CLASS} ${FIELD_SURFACE_CLASS}`}
-        aria-label={direction === "asc" ? "Sort ascending" : "Sort descending"}
-        onPress={toggleDirection}
-      >
-        {direction === "asc" ? <ArrowUp className="size-4" /> : <ArrowDown className="size-4" />}
-      </Button>
+      <SortDirectionButton direction={direction} onPress={toggleDirection} />
     </div>
+  );
+}
+
+/** The direction arrow on its own, for a list whose only sort is its order,
+ * such as a trip's days. */
+export function SortDirectionButton({
+  direction,
+  onPress,
+}: {
+  direction: "asc" | "desc";
+  onPress: () => void;
+}) {
+  return (
+    <Button
+      isIconOnly
+      variant="ghost"
+      className={`${FIELD_ACTION_CLASS} ${FIELD_SURFACE_CLASS}`}
+      aria-label={direction === "asc" ? "Sort ascending" : "Sort descending"}
+      onPress={onPress}
+    >
+      {direction === "asc" ? <ArrowUp className="size-4" /> : <ArrowDown className="size-4" />}
+    </Button>
   );
 }
