@@ -121,7 +121,8 @@ describe("who can read a link", () => {
     expect(await statusOf(live)).toBe("visible");
 
     await db.update(tripShareLinks).set({ expiresAt: "2001-01-01 00:00:00" });
-    expect(await getSharedTrip(db, live)).toEqual({ status: "expired" });
+    // Only the owner and trip ids, so the page can send the owner to renew it.
+    expect(await getSharedTrip(db, live)).toEqual({ status: "expired", ownerId: OWNER, tripId });
     expect((await getSharedTripSends(db, live, OWNER, LIMIT)).sends).toEqual([]);
     expect((await getSharedTripEntries(db, live, OWNER, LIMIT)).entries).toEqual([]);
     expect(await getSharedTripAnalyticsSends(db, live, OWNER)).toEqual([]);

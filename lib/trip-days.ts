@@ -1,6 +1,10 @@
 import { daysBetween } from "@/lib/format-date";
 
-type TripDayItem<Send, Entry> = { kind: "send"; send: Send } | { kind: "entry"; entry: Entry };
+type TripDayItem<Send, Entry> =
+  | { kind: "send"; send: Send }
+  /** `position` is the row's place in the day, from 1: a key that, unlike the
+   * entry id, a trip link's readers may see. */
+  | { kind: "entry"; entry: Entry; position: number };
 
 export type TripDay<Send, Entry> = {
   date: string;
@@ -106,7 +110,7 @@ export function groupTripDays<
         items.push({ kind: "send", send });
         unplaced.delete(send.climbId);
       } else {
-        items.push({ kind: "entry", entry });
+        items.push({ kind: "entry", entry, position: items.length + 1 });
       }
     }
     for (const send of unplaced.values()) items.push({ kind: "send", send });

@@ -20,10 +20,12 @@ export type SharedTrip = {
 };
 
 /** Why a link did not resolve. `hidden` covers "no such token", "the trip is
- * gone" and "the owner went private" alike: a reader is never told which. */
+ * gone" and "the owner went private" alike: a reader is never told which. An
+ * expired link names its owner and trip so the page can send the owner to
+ * their trip to renew it; the page never shows either to anyone else. */
 export type SharedTripAccess =
   | { status: "hidden"; shared?: undefined }
-  | { status: "expired"; shared?: undefined }
+  | { status: "expired"; shared?: undefined; ownerId: string; tripId: number }
   | { status: "visible"; shared: SharedTrip };
 
 /**
@@ -58,9 +60,13 @@ const shareFromSql = sql`
 /** True when `token` is a live link to a trip of `ownerId` whose dates include
  * `date`. Every read of a shared trip's rows puts this in its WHERE, so the
  * link, its trip's current dates and its expiry are checked by the statement
- * that selects the rows: a link revoked, expired or narrowed between two reads
- * of one page gets nothing from the second. An undated row never matches,
- * since `NULL BETWEEN …` is NULL. */
+ * that selects the rows: a link revoked or expired between two reads of one
+ * page gets nothing from the second. An undated row never matches, since
+ * `NULL BETWEEN …` is NULL.
+ *
+ * The dates are the trip's current ones on purpose. A link shares the trip,
+ * not a snapshot of it: climbers expect it to follow the trip as it changes,
+ * including when they move or extend its dates. */
 export function tripLinkCoversSql(token: string, ownerId: SQL, date: SQL): SQL {
   return sql`EXISTS (
     SELECT 1 ${shareFromSql}
@@ -84,9 +90,9 @@ type SharedTripRow = Omit<TripSummary, "companions"> & {
  * Deriving the owner and the trip from the token row — never from a route — is
  * what keeps a link reachable to only the one trip it was made for. The counts
  * use the same fragments as the owner's trip card, so the page reports the
- * owner's numbers. Notes are selected only when the link is readable; the
- * owner's name and the trip are read either way to tell an expiry from a closed
- * profile, and dropped. */
+ * owner's numbers. They and the notes are computed only when the link is
+ * readable; a dead link reads just enough to tell an expiry from a closed
+ * profile. */
 export async function getSharedTrip(db: Database, token: string): Promise<SharedTripAccess> {
   const row = await db.get<SharedTripRow>(sql`
     SELECT
@@ -103,10 +109,13 @@ export async function getSharedTrip(db: Database, token: string): Promise<Shared
       t.end_date             AS endDate,
       -- Correlated scalar subqueries, not a derived table: a derived table
       -- cannot see the enclosing query's aliased trip row.
-      (SELECT COUNT(*) FROM journal_entries j WHERE ${tripEntryRowsSql}) AS entryCount,
-      (SELECT COUNT(*) FROM sends s WHERE ${tripSendRowsSql}) AS sendCount,
-      (SELECT COUNT(DISTINCT j.entry_date) FROM journal_entries j WHERE ${tripEntryRowsSql})
-        AS dayCount,
+      CASE WHEN ${readableSql} THEN
+        (SELECT COUNT(*) FROM journal_entries j WHERE ${tripEntryRowsSql}) END AS entryCount,
+      CASE WHEN ${readableSql} THEN
+        (SELECT COUNT(*) FROM sends s WHERE ${tripSendRowsSql}) END AS sendCount,
+      CASE WHEN ${readableSql} THEN
+        (SELECT COUNT(DISTINCT j.entry_date) FROM journal_entries j WHERE ${tripEntryRowsSql})
+        END AS dayCount,
       (t.notes IS NOT NULL) AS hasNotes,
       CASE WHEN ${readableSql} THEN t.notes END AS notes
     ${shareFromSql}
@@ -117,7 +126,9 @@ export async function getSharedTrip(db: Database, token: string): Promise<Shared
   if (row.readable !== 1) {
     // A closed profile is not an expiry, and saying so would report on the
     // owner rather than on the link.
-    return { status: row.ownerIsPrivate === 1 ? "hidden" : "expired" };
+    return row.ownerIsPrivate === 1
+      ? { status: "hidden" }
+      : { status: "expired", ownerId: row.ownerId, tripId: row.id };
   }
 
   const {

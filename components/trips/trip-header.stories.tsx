@@ -13,7 +13,7 @@ const meta = {
     trip: tripSamples[1],
     userId: "alex",
     viewerId: "alex",
-    ownerShare: { share: null, origin: "https://betabook.ca" },
+    ownerShare: { share: null, origin: "https://betabook.ca", isPrivate: false },
     today: TRIPS_TODAY,
     children: (
       <div className={cardClass("fluid")}>
@@ -75,6 +75,7 @@ export const OwnerShared: Story = {
     ownerShare: {
       share: { token: "8c1d3e5f7a9b0c2d4e6f8a0b1c3d5e7f", expiresAt: "2026-11-18 00:00:00" },
       origin: "https://betabook.ca",
+      isPrivate: false,
     },
   },
 };

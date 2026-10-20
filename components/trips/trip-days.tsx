@@ -177,8 +177,9 @@ function TripDayCards({
             <ul role="list" className="relative z-0 flex flex-col divide-y divide-separator">
               {day.items.map((item) =>
                 item.kind === "send" ? (
-                  // Keyed by climb id. Keys end up in the RSC payload, and
-                  // sequential send ids shouldn't.
+                  // Keyed by climb id, and entries by their place in the day.
+                  // Keys end up in the RSC payload, which a trip link's
+                  // readers can see, and sequential ids shouldn't.
                   <li key={`send-${item.send.climbId}`}>
                     <UserSendLogRow
                       send={item.send}
@@ -187,7 +188,7 @@ function TripDayCards({
                     />
                   </li>
                 ) : (
-                  <li key={`entry-${item.entry.id}`}>
+                  <li key={`entry-${item.position}`}>
                     <JournalEntryRow
                       entry={item.entry}
                       isOwner={isOwner}

@@ -52,13 +52,15 @@ it("shows the actions menu to the owner only", () => {
 
 it("shows the Share button to the owner only", () => {
   const origin = "https://betabook.ca";
-  const { rerender } = render(header(BISHOP, "alex", { ownerShare: { share: null, origin } }));
+  const { rerender } = render(
+    header(BISHOP, "alex", { ownerShare: { share: null, origin, isPrivate: false } }),
+  );
   expect(screen.getByRole("button", { name: "Share" })).toBeVisible();
 
   // A live link reads as Shared.
   rerender(
     header(BISHOP, "alex", {
-      ownerShare: { share: { token: TOKEN, expiresAt: null }, origin },
+      ownerShare: { share: { token: TOKEN, expiresAt: null }, origin, isPrivate: false },
     }),
   );
   expect(screen.getByRole("button", { name: "Shared" })).toBeVisible();

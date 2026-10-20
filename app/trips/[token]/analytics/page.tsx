@@ -27,7 +27,7 @@ export function generateMetadata(props: SharedTripPageProps): Promise<Metadata> 
  * read through the link. */
 export default async function SharedTripAnalyticsPage(props: SharedTripPageProps) {
   const [resolved, search] = await Promise.all([
-    resolveSharedTripPage(props, ({ owner, trip }) => tripAnalyticsHref(owner.id, trip.id)),
+    resolveSharedTripPage(props, tripAnalyticsHref),
     props.searchParams,
   ]);
   if (!resolved.shared) return resolved.expired;

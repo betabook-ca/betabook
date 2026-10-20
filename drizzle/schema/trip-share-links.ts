@@ -15,8 +15,10 @@ import { trips } from "./trips";
  * has no audience: holding a live token is the permission, and it opens the
  * trip as its owner sees it. `trip_share_revoke_on_private` (migration 0050)
  * deletes every row when a profile goes private, and the composite foreign key
- * deletes a trip's link with the trip. Reads apply `tripLinkReadableSql` in
- * db/queries/trip-shares.ts. */
+ * deletes a trip's link with the trip. In db/queries/trip-shares.ts,
+ * `getSharedTrip` resolves a token under the private `readableSql` predicate
+ * (not expired, owner not private), and every read of the trip's rows applies
+ * `tripLinkCoversSql`, which adds the trip's dates. */
 export const tripShareLinks = sqliteTable(
   "trip_share_links",
   {

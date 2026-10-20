@@ -87,7 +87,6 @@ export default async function UserAnalyticsPage({ params, searchParams }: UserAn
     <ProfileHeader
       user={user}
       viewerId={viewerId}
-
       workspace="progress"
       fallback={<AnalyticsLoading />}
     >

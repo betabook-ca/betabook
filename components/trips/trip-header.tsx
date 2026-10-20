@@ -45,8 +45,9 @@ export function TripHeader({
    * remain. */
   link?: string;
   /** Owner only: the trip's link as the server last saw it, and the site's
-   * origin to build it on. Undefined for everyone else. */
-  ownerShare?: { share: ShareLink; origin: string };
+   * origin to build it on, and whether the profile is private, which turns
+   * sharing off. Undefined for everyone else. */
+  ownerShare?: { share: ShareLink; origin: string; isPrivate: boolean };
   /** Use `trip` on the analytics page, so the back link goes to the trip and
    * the counts don't link to analytics. */
   back?: "trips" | "trip";
@@ -74,7 +75,12 @@ export function TripHeader({
           <div className="flex min-w-0 items-start justify-between gap-3">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <SectionHeading className="min-w-0 break-words">{trip.name}</SectionHeading>
-              <TripStatusChip trip={trip} today={today} />
+              {/* Only the dates: a client component's props reach the page,
+               * and a trip link's readers aren't given the trip id. */}
+              <TripStatusChip
+                trip={{ startDate: trip.startDate, endDate: trip.endDate }}
+                today={today}
+              />
             </div>
             {viewerId === userId && (
               <div className="-my-1 flex shrink-0 items-center gap-1">
@@ -84,6 +90,8 @@ export function TripHeader({
                     tripName={trip.name}
                     share={ownerShare.share}
                     shareOrigin={ownerShare.origin}
+                    isPrivate={ownerShare.isPrivate}
+                    today={today}
                   />
                 )}
                 <TripActions trip={trip} userId={userId} leaveOnDelete />
@@ -92,7 +100,9 @@ export function TripHeader({
           </div>
           <p className="text-sm text-muted">{formatTripDates(trip.startDate, trip.endDate)}</p>
           {trip.description && <p className="text-sm leading-relaxed">{trip.description}</p>}
-          <TripCompanions tripId={trip.id} initialCompanions={trip.companions} />
+          {trip.companions.length > 0 && (
+            <TripCompanions tripId={trip.id} initialCompanions={trip.companions} />
+          )}
           {/* Hide counts for an upcoming trip with nothing logged. */}
           {!nothingYet && (
             <TripStats

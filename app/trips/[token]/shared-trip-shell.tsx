@@ -47,7 +47,8 @@ type ResolvedSharedTrip = SharedTrip & {
 /**
  * Resolves a trip link for its page, or answers for it: a dead link 404s, an
  * expired one says so, and the owner is sent to their own trip page, which has
- * the Share dialog and everything else this one leaves out.
+ * the Share dialog and everything else this one leaves out. The owner is sent
+ * there from an expired link too, where the dialog renews it.
  *
  * A trip link carries no audience, so the session decides only the owner
  * redirect and the sign-up prompt, never what may be read. Holding the token
@@ -55,7 +56,7 @@ type ResolvedSharedTrip = SharedTrip & {
  */
 export async function resolveSharedTripPage(
   props: SharedTripPageProps,
-  ownerPath: (shared: SharedTrip) => string,
+  ownerPath: (ownerId: string, tripId: number) => string,
 ): Promise<{ expired: ReactNode; shared?: undefined } | { shared: ResolvedSharedTrip }> {
   const token = parseShareToken((await props.params).token);
   if (!token) notFound();
@@ -64,9 +65,13 @@ export async function resolveSharedTripPage(
     getMemberSession(),
     tripToday(),
   ]);
-  if (access.status === "expired") return { expired: expiredLinkCard("trips") };
   if (access.status === "hidden") notFound();
-  if (session?.user.id === access.shared.owner.id) redirect(ownerPath(access.shared));
+  const [ownerId, tripId] =
+    access.status === "expired"
+      ? [access.ownerId, access.tripId]
+      : [access.shared.owner.id, access.shared.trip.id];
+  if (session?.user.id === ownerId) redirect(ownerPath(ownerId, tripId));
+  if (access.status === "expired") return { expired: expiredLinkCard("trips") };
   return { shared: { ...access.shared, token, signedIn: session !== null, today } };
 }
 

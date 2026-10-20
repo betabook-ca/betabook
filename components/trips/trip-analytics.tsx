@@ -63,7 +63,9 @@ export async function TripAnalytics({
   return (
     <AnalyticsDashboard
       activityHeading="Activity on this trip"
-      key={`${userId}-${trip.id}`}
+      // Not the trip id: the key reaches the page, and a trip link's readers
+      // aren't given it.
+      key={`${userId}-${trip.startDate}-${trip.endDate}`}
       // A fixed layout, not the user's saved one, and not editable here.
       canCustomize={false}
       initialLayout={TRIP_ANALYTICS_LAYOUT}

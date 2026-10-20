@@ -7,6 +7,10 @@ import SharedTripAnalyticsPageImpl, {
 } from "@/app/trips/[token]/analytics/page";
 import SharedTripPageImpl, { generateMetadata } from "@/app/trips/[token]/page";
 import { SharedTripLayout } from "@/app/trips/[token]/shared-trip-shell";
+import { JournalCompanions } from "@/components/journal/journal-companions";
+import { TripCompanions } from "@/components/trips/trip-companions";
+import { TripNotes } from "@/components/trips/trip-notes";
+import { TripStatusChip } from "@/components/trips/trip-status-chip";
 import { createDb } from "@/db/client";
 import { journalCompanions, journalEntries, tripCompanions, tripShareLinks } from "@/db/schema";
 import { friendshipPair } from "@/lib/friendships";
@@ -19,7 +23,7 @@ import {
   seedFixtureUser,
 } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
-import { rendered } from "@/test/server-tree";
+import { rendered, resolveServerTree } from "@/test/server-tree";
 
 const SharedTripPage = rendered(SharedTripPageImpl, { expand: [SharedTripLayout] });
 const SharedTripAnalyticsPage = rendered(SharedTripAnalyticsPageImpl, {
@@ -199,7 +203,63 @@ it("shows a signed-in reader the same trip, without the invitation", async () =>
   expect(payload).not.toContain("Climb with Trip Owner on Betabook");
 });
 
-it("sends the owner to their own trip page", async () => {
+/** Every element in a resolved tree, depth first. */
+function elements(
+  node: unknown,
+): { type: unknown; key: unknown; props: Record<string, unknown> }[] {
+  const found: { type: unknown; key: unknown; props: Record<string, unknown> }[] = [];
+  const stack = [node];
+  while (stack.length) {
+    const current = stack.pop();
+    if (Array.isArray(current)) stack.push(...current);
+    else if (current && typeof current === "object" && "props" in current) {
+      const element = current as { type: unknown; key: unknown; props: Record<string, unknown> };
+      found.push(element);
+      stack.push(...Object.values(element.props ?? {}));
+    }
+  }
+  return found;
+}
+
+/** The synchronous server components between the page and its client
+ * components, expanded by name since some aren't exported. */
+const SERVER_LAYERS = new Set(["TripHeader", "TripDays", "TripDayCards", "JournalEntryRow"]);
+
+async function expandServerLayers(tree: unknown): Promise<unknown> {
+  const types = elements(tree)
+    .map((element) => element.type)
+    .filter((type) => typeof type === "function" && SERVER_LAYERS.has(type.name));
+  return types.length === 0
+    ? tree
+    : expandServerLayers(await resolveServerTree(tree, { expand: types }));
+}
+
+it("gives the page's client components and keys no entry or trip ids", async () => {
+  const token = await share();
+  const all = elements(await expandServerLayers(await SharedTripPage(props(token))));
+  const entryIds = (await db.select({ id: journalEntries.id }).from(journalEntries)).map(
+    (row) => row.id,
+  );
+
+  // Client components' props reach the page; these are the ones that would
+  // carry an id.
+  for (const type of [JournalCompanions, TripCompanions]) {
+    expect(all.filter((element) => element.type === type)).toEqual([]);
+  }
+  const notes = all.filter((element) => element.type === TripNotes);
+  expect(notes).toHaveLength(1);
+  expect(notes[0].props).not.toHaveProperty("tripId");
+  const chip = all.find((element) => element.type === TripStatusChip);
+  expect(chip?.props.trip).toEqual({ startDate: "2026-03-10", endDate: "2026-03-14" });
+  // The day cards were reached, and their keys carry no ids: keys reach the
+  // page too.
+  const keys = all.map((element) => String(element.key));
+  expect(keys).toContain("entry-1");
+  for (const id of entryIds) expect(keys).not.toContain(`entry-${id}`);
+  expect(keys.some((key) => key.endsWith(`-${tripId}`))).toBe(false);
+});
+
+it("sends the owner to their own trip page, from a live link or an expired one", async () => {
   const token = await share();
   session.userId = OWNER;
 
@@ -209,6 +269,14 @@ it("sends the owner to their own trip page", async () => {
   await expect(SharedTripAnalyticsPage(props(token))).rejects.toThrow(
     `REDIRECT:/users/${OWNER}/trips/${tripId}/analytics`,
   );
+
+  // An expired link too: the owner's trip page is where it can be renewed.
+  await db.update(tripShareLinks).set({ expiresAt: "2001-01-01 00:00:00" });
+  await expect(SharedTripPage(props(token))).rejects.toThrow(
+    `REDIRECT:/users/${OWNER}/trips/${tripId}`,
+  );
+  session.userId = STRANGER;
+  expect(await pageJson(token)).toContain("This link has expired");
 });
 
 it("answers an expired link with the expired card, and a dead one with nothing", async () => {

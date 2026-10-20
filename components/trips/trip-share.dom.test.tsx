@@ -18,6 +18,7 @@ const TOKEN = "0123456789abcdef0123456789abcdef";
 const ORIGIN = "https://betabook.ca";
 const TRIP = 7;
 const EXPIRES = "2026-11-18 12:00:00";
+const TODAY = "2026-10-20";
 
 beforeEach(() => {
   vi.mocked(shareTrip)
@@ -32,7 +33,16 @@ beforeEach(() => {
 it("says what the link shows before one exists, then creates the trip's own link", async () => {
   stubViewport("desktop");
   const user = userEvent.setup();
-  render(<TripShare tripId={TRIP} tripName="Bishop" share={null} shareOrigin={ORIGIN} />);
+  render(
+    <TripShare
+      tripId={TRIP}
+      tripName="Bishop"
+      share={null}
+      shareOrigin={ORIGIN}
+      isPrivate={false}
+      today={TODAY}
+    />,
+  );
   const overlays = watchOverlayKinds();
 
   await user.click(screen.getByRole("button", { name: "Share" }));
@@ -63,6 +73,8 @@ it("stops sharing a live link after confirming", async () => {
       tripName="Bishop"
       share={{ token: TOKEN, expiresAt: EXPIRES }}
       shareOrigin={ORIGIN}
+      isPrivate={false}
+      today={TODAY}
     />,
   );
 
@@ -86,7 +98,16 @@ it("keeps the dialog open with the reason when sharing is refused", async () => 
     error: "Sharing is off while your profile is private.",
   });
   const user = userEvent.setup();
-  render(<TripShare tripId={TRIP} tripName="Bishop" share={null} shareOrigin={ORIGIN} />);
+  render(
+    <TripShare
+      tripId={TRIP}
+      tripName="Bishop"
+      share={null}
+      shareOrigin={ORIGIN}
+      isPrivate={false}
+      today={TODAY}
+    />,
+  );
 
   await user.click(screen.getByRole("button", { name: "Share" }));
   const dialog = await screen.findByRole("dialog", { name: "Share Bishop" });
@@ -96,4 +117,48 @@ it("keeps the dialog open with the reason when sharing is refused", async () => 
     await within(dialog).findByText("Sharing is off while your profile is private."),
   ).toBeVisible();
   expect(within(dialog).queryByRole("textbox", { name: "Trip link" })).not.toBeInTheDocument();
+});
+
+it("reads as not shared once the link has expired, and offers to renew it", async () => {
+  const user = userEvent.setup();
+  render(
+    <TripShare
+      tripId={TRIP}
+      tripName="Bishop"
+      share={{ token: TOKEN, expiresAt: "2026-10-01 12:00:00" }}
+      shareOrigin={ORIGIN}
+      isPrivate={false}
+      today={TODAY}
+    />,
+  );
+
+  expect(screen.queryByRole("button", { name: "Shared" })).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Share" }));
+  const dialog = await screen.findByRole("dialog", { name: "Share Bishop" });
+  await user.click(within(dialog).getByRole("button", { name: "Renew link" }));
+  expect(shareTrip).toHaveBeenCalledExactlyOnceWith(TRIP, "30d");
+});
+
+it("explains that sharing is off while the profile is private, instead of offering a link", async () => {
+  const user = userEvent.setup();
+  render(
+    <TripShare
+      tripId={TRIP}
+      tripName="Bishop"
+      share={null}
+      shareOrigin={ORIGIN}
+      isPrivate
+      today={TODAY}
+    />,
+  );
+
+  await user.click(screen.getByRole("button", { name: "Share" }));
+  const dialog = await screen.findByRole("dialog", { name: "Share Bishop" });
+  expect(within(dialog).getByText("Sharing is off while your profile is private.")).toBeVisible();
+  expect(within(dialog).getByRole("link", { name: "Change privacy settings" })).toHaveAttribute(
+    "href",
+    "/account#privacy",
+  );
+  expect(within(dialog).queryByRole("button", { name: "Create link" })).not.toBeInTheDocument();
+  expect(shareTrip).not.toHaveBeenCalled();
 });

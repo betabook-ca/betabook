@@ -339,7 +339,7 @@ describe("sharing a trip", () => {
     await seedFriend();
 
     expect(await renderTrip(trip.id)).toContain(
-      '"ownerShare":{"share":null,"origin":"https://betabook.test"}',
+      '"ownerShare":{"share":null,"origin":"https://betabook.test","isPrivate":false}',
     );
     const [{ token }] = await db.all<{ token: string }>(sql`
       INSERT INTO trip_share_links (user_id, trip_id) VALUES (${OWNER}, ${trip.id}) RETURNING token
@@ -355,6 +355,13 @@ describe("sharing a trip", () => {
       expect(payload).not.toContain(token);
       expect(payload).not.toContain("ownerShare");
     }
+  });
+
+  it("tells the share button when the profile is private", async () => {
+    const trip = await seedTrip();
+    await db.run(sql`UPDATE user SET is_private = 1 WHERE id = ${OWNER}`);
+
+    expect(await renderTrip(trip.id)).toContain('"isPrivate":true');
   });
 
   it("passes no link to the analytics page", async () => {

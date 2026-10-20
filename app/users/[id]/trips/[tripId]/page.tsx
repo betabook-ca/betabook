@@ -56,7 +56,7 @@ export default async function TripPage({ params }: TripPageParams) {
   // Only the owner gets the trip's link: the token is the credential.
   const ownerShare = isOwner
     ? await Promise.all([getTripShareForOwner(await getDb(), user.id, trip.id), getBaseUrl()]).then(
-        ([share, origin]) => ({ share, origin }),
+        ([share, origin]) => ({ share, origin, isPrivate: user.isPrivate }),
       )
     : undefined;
   // Hide the days section for an upcoming trip with nothing logged.

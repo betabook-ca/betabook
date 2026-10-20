@@ -35,9 +35,7 @@ export function generateMetadata(props: SharedTripPageProps): Promise<Metadata> 
  * controls and without links into the Journal and Sends tabs, which the link
  * doesn't open. The counts line still links to the trip's analytics. */
 export default async function SharedTripPage(props: SharedTripPageProps) {
-  const resolved = await resolveSharedTripPage(props, ({ owner, trip }) =>
-    tripHref(owner.id, trip.id),
-  );
+  const resolved = await resolveSharedTripPage(props, tripHref);
   if (!resolved.shared) return resolved.expired;
   const { owner, trip, notes, token, signedIn, today } = resolved.shared;
   const showDays =
@@ -48,7 +46,7 @@ export default async function SharedTripPage(props: SharedTripPageProps) {
       <TripHeader trip={trip} userId={owner.id} viewerId={null} today={today} link={token}>
         {tripPhotos(trip)}
         {notes && (
-          <TripNotes tripId={trip.id} notes={notes} canEdit={false}>
+          <TripNotes notes={notes} canEdit={false}>
             <Markdown>{notes}</Markdown>
           </TripNotes>
         )}
