@@ -33,7 +33,10 @@ export function TripNotes({
   canEdit,
   children,
 }: {
-  tripId: number;
+  /** Needed only to save, so only an editor is given it: a client
+   * component's props reach the page, and a trip link's readers aren't given
+   * the trip id. */
+  tripId?: number;
   /** Markdown source, used to fill the editor. */
   notes: string | null;
   canEdit: boolean;
@@ -55,7 +58,7 @@ export function TripNotes({
   }
 
   function handleSave() {
-    if (pending) return;
+    if (pending || tripId === undefined) return;
     setError(null);
     startTransition(async () => {
       const result = await saveTripNotes(tripId, draft);

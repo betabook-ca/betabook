@@ -127,6 +127,15 @@ export const unshareProject = fn<typeof Actions.unshareProject>(async () => ({
   value: undefined,
 }));
 
+export const shareTrip = fn<typeof Actions.shareTrip>(async () => ({
+  ok: true,
+  value: { token: "8c1d3e5f7a9b0c2d4e6f8a0b1c3d5e7f", expiresAt: "2099-01-01 00:00:00" },
+}));
+export const unshareTrip = fn<typeof Actions.unshareTrip>(async () => ({
+  ok: true,
+  value: undefined,
+}));
+
 export const saveTrip = fn<typeof Actions.saveTrip>(async () => ({ ok: true, value: -1 }));
 export const saveTripNotes = fn<typeof Actions.saveTripNotes>(async () => ({
   ok: true,

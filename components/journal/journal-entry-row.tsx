@@ -25,18 +25,71 @@ function tagHref(userId: string, filter: JournalFilter, tag: string): string {
   return query ? `${base}?${query}` : base;
 }
 
+/** The entry's tagged friends and hashtags, or nothing when it has neither. */
+function entryTags({
+  entry,
+  userId,
+  filter,
+  linkTags,
+}: {
+  entry: JournalEntry;
+  userId: string;
+  filter: JournalFilter;
+  linkTags: boolean;
+}) {
+  const hasCompanions = (entry.companions?.length ?? 0) > 0;
+  if (entry.tags.length === 0 && !hasCompanions) return undefined;
+  return (
+    <>
+      {/* Only with someone to name. It's a client component, so its entry id
+       * would otherwise reach a page, like a trip link's, that names no one. */}
+      {hasCompanions && (
+        <JournalCompanions entryId={entry.id} initialCompanions={entry.companions} />
+      )}
+      {entry.tags.map((tag) => {
+        if (!linkTags) {
+          return (
+            <span key={tag} className="text-xs text-muted">
+              #{tag}
+            </span>
+          );
+        }
+        const active = filter.tags.includes(tag);
+        return (
+          <AppLink
+            key={tag}
+            href={tagHref(userId, filter, tag)}
+            aria-current={active ? "page" : undefined}
+            aria-label={active ? `Clear ${tag} filter` : `Filter journal by ${tag}`}
+            className={clsx(
+              "text-xs no-underline transition-colors hover:text-foreground",
+              active ? "font-medium text-foreground underline underline-offset-4" : "text-muted",
+            )}
+          >
+            #{tag}
+          </AppLink>
+        );
+      })}
+    </>
+  );
+}
+
 export function JournalEntryRow({
   entry,
   isOwner,
   userId,
   filter,
   areaBreadcrumbs,
+  linkTags = true,
 }: {
   entry: JournalEntry;
   isOwner: boolean;
   userId: string;
   filter: JournalFilter;
   areaBreadcrumbs: AreaBreadcrumbs;
+  /** Hashtags link to the Journal filtered by them. Off for a trip link's
+   * readers, who can't open the Journal. */
+  linkTags?: boolean;
 }) {
   const grade = activityGrade(entry.climbType, entry.climbGrade, entry.sent, entry.reportedGrade);
   const status = (
@@ -52,29 +105,7 @@ export function JournalEntryRow({
       }
     />
   );
-  const tags =
-    entry.tags.length > 0 || (entry.companions?.length ?? 0) > 0 ? (
-      <>
-        <JournalCompanions entryId={entry.id} initialCompanions={entry.companions} />
-        {entry.tags.map((tag) => {
-          const active = filter.tags.includes(tag);
-          return (
-            <AppLink
-              key={tag}
-              href={tagHref(userId, filter, tag)}
-              aria-current={active ? "page" : undefined}
-              aria-label={active ? `Clear ${tag} filter` : `Filter journal by ${tag}`}
-              className={clsx(
-                "text-xs no-underline transition-colors hover:text-foreground",
-                active ? "font-medium text-foreground underline underline-offset-4" : "text-muted",
-              )}
-            >
-              #{tag}
-            </AppLink>
-          );
-        })}
-      </>
-    ) : undefined;
+  const tags = entryTags({ entry, userId, filter, linkTags });
   const actions = isOwner ? <EntryActionsMenu entry={entry} /> : undefined;
 
   if (

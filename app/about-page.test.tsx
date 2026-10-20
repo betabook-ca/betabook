@@ -42,9 +42,7 @@ it("explains who can read trip notes", () => {
     .replace(/&#x27;/g, "'")
     .replace(/\s+/g, " ");
 
-  expect(text).toContain(
-    "Your friends and anyone with your profile link can read trip notes, regardless of your journal setting.",
-  );
+  expect(text).toContain("Your friends can read trip notes, regardless of your journal setting.");
   expect(text).not.toMatch(/read your journal can also see[^.]*trip notes/);
 });
 
@@ -55,7 +53,10 @@ it("explains who can see trip photos and where they load from", () => {
     .replace(/\s+/g, " ");
 
   expect(text).toContain(
-    "trips with their notes, photos and sends to anyone who has them, whatever your trip setting",
+    "Your profile link and QR code show your name, photo, send stats and latest sends to anyone who has them.",
+  );
+  expect(text).toContain(
+    "Anyone with the link sees its notes, photos, journal entries, sends and analytics, but not the friends you tagged.",
   );
   expect(text).toContain("You choose who else can see your trips, with their photos and sends");
   expect(text).toContain("Photos load from Google Photos.");

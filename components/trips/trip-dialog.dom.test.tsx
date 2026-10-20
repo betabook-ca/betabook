@@ -121,7 +121,7 @@ it("takes a one-line description and explains who can see it", async () => {
   await user.click(screen.getByRole("button", { name: "About the description" }));
   const hint = await screen.findByText(/Anyone who can see your trips can see this/);
   expect(hint).toHaveTextContent(
-    /^Anyone who can see your trips can see this, including people with your profile link\.$/,
+    /^Anyone who can see your trips can see this, including people with this trip's link\.$/,
   );
 });
 

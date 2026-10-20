@@ -42,20 +42,20 @@ function toTripSummary(row: TripRow): TripSummary {
 
 /** Matches journal entries within a trip. Expects aliases `j` (entry) and `t`
  * (trip). Includes both `session` and `training` entries. */
-const tripEntryRowsSql = sql`
+export const tripEntryRowsSql = sql`
   j.user_id = t.user_id AND j.entry_date BETWEEN t.start_date AND t.end_date
 `;
 
 /** Matches sends within a trip. Expects aliases `s` (send) and `t` (trip).
  * Undated sends are excluded because `NULL BETWEEN ...` is NULL. */
-const tripSendRowsSql = sql`
+export const tripSendRowsSql = sql`
   s.user_id = t.user_id AND s.date_sent BETWEEN t.start_date AND t.end_date
 `;
 
 /** Correlated scalar subqueries rather than joins: three independent
  * aggregates over two tables would otherwise multiply each other's rows, and a
  * derived table cannot see the enclosing query's `t`. */
-function tripCountsSql(viewerId: string | null, share: string | null): SQL {
+function tripCountsSql(viewerId: string | null): SQL {
   const journalVisible = journalVisibleSql(viewerId, sql`t.user_id`);
   return sql`
     CASE WHEN ${journalVisible}
@@ -64,7 +64,7 @@ function tripCountsSql(viewerId: string | null, share: string | null): SQL {
     CASE WHEN ${journalVisible}
       THEN (SELECT COUNT(DISTINCT j.entry_date) FROM journal_entries j WHERE ${tripEntryRowsSql})
       END AS dayCount,
-    (t.notes IS NOT NULL AND ${tripNotesVisibleSql(viewerId, sql`t.user_id`, share)}) AS hasNotes,
+    (t.notes IS NOT NULL AND ${tripNotesVisibleSql(viewerId, sql`t.user_id`)}) AS hasNotes,
     ${tripCompanionsJsonSql(viewerId, sql`t.id`)} AS companions
   `;
 }
@@ -79,13 +79,13 @@ const tripColumnsSql = sql`
 `;
 
 /** Trips are visible to the owner's trip audience (`tripsVisibleSql`), checked
- * on every read. A null viewer is a signed-out visitor, who needs a current
- * share link. */
-function tripRowsSql(userId: string, viewerId: string | null, share: string | null): SQL {
+ * on every read. A null viewer is a signed-out visitor, who gets nothing here:
+ * a trip link reads through db/queries/trip-shares.ts instead. */
+function tripRowsSql(userId: string, viewerId: string | null): SQL {
   return sql`
     FROM trips t
     WHERE t.user_id = ${userId}
-      AND ${tripsVisibleSql(viewerId, sql`t.user_id`, share)}
+      AND ${tripsVisibleSql(viewerId, sql`t.user_id`)}
   `;
 }
 
@@ -95,12 +95,10 @@ export async function getTripsForUser(
   db: Database,
   userId: string,
   viewerId: string | null,
-  /** Share token from the URL, if any. */
-  share: string | null = null,
 ): Promise<TripSummary[]> {
   const rows = await db.all<TripRow>(sql`
-    SELECT ${tripColumnsSql}, ${tripCountsSql(viewerId, share)}
-    ${tripRowsSql(userId, viewerId, share)}
+    SELECT ${tripColumnsSql}, ${tripCountsSql(viewerId)}
+    ${tripRowsSql(userId, viewerId)}
     ORDER BY t.start_date DESC, t.id DESC
   `);
   return rows.map(toTripSummary);
@@ -113,25 +111,18 @@ export async function getTripForUser(
   userId: string,
   tripId: number,
   viewerId: string | null,
-  /** Share token from the URL, if any. A valid token allows reading notes. */
-  share: string | null = null,
 ): Promise<TripSummary | null> {
   const row = await db.get<TripRow>(sql`
-    SELECT ${tripColumnsSql}, ${tripCountsSql(viewerId, share)}
-    ${tripRowsSql(userId, viewerId, share)} AND t.id = ${tripId}
+    SELECT ${tripColumnsSql}, ${tripCountsSql(viewerId)}
+    ${tripRowsSql(userId, viewerId)} AND t.id = ${tripId}
   `);
   return row ? toTripSummary(row) : null;
 }
 
 /** Uses the same predicate as `getTripNotes`. */
-export async function canReadTripNotes(
-  db: Database,
-  ownerId: string,
-  viewerId: string | null,
-  share: string | null = null,
-) {
+export async function canReadTripNotes(db: Database, ownerId: string, viewerId: string | null) {
   const row = await db.get<{ visible: number }>(
-    sql`SELECT ${tripNotesVisibleSql(viewerId, sql`${ownerId}`, share)} AS visible`,
+    sql`SELECT ${tripNotesVisibleSql(viewerId, sql`${ownerId}`)} AS visible`,
   );
   return row?.visible === 1;
 }
@@ -142,12 +133,11 @@ export async function getTripNotes(
   userId: string,
   tripId: number,
   viewerId: string | null,
-  share: string | null = null,
 ): Promise<string | null> {
   const row = await db.get<{ notes: string | null }>(sql`
     SELECT t.notes AS notes
-    ${tripRowsSql(userId, viewerId, share)} AND t.id = ${tripId}
-      AND ${tripNotesVisibleSql(viewerId, sql`t.user_id`, share)}
+    ${tripRowsSql(userId, viewerId)} AND t.id = ${tripId}
+      AND ${tripNotesVisibleSql(viewerId, sql`t.user_id`)}
   `);
   return row?.notes ?? null;
 }

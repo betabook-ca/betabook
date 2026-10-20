@@ -1,6 +1,10 @@
 import { daysBetween } from "@/lib/format-date";
 
-type TripDayItem<Send, Entry> = { kind: "send"; send: Send } | { kind: "entry"; entry: Entry };
+type TripDayItem<Send, Entry> =
+  | { kind: "send"; send: Send }
+  /** `position` is the row's place in the day, from 1: the key on a trip
+   * link's page, whose readers aren't given entry ids. */
+  | { kind: "entry"; entry: Entry; position: number };
 
 export type TripDay<Send, Entry> = {
   date: string;
@@ -17,6 +21,10 @@ export type TripDayOrder = "oldest" | "newest";
  * link keeps the default. The page reads it once to start in that order; the
  * order button then reverses the days in the browser and rewrites it. */
 export const TRIP_DAY_ORDER_PARAM = "order";
+
+/** Most sends, and most journal entries, a trip page reads. Trips have no
+ * length limit, so a longer one shows its latest days. */
+export const TRIP_DAYS_LIMIT = 300;
 
 export function parseTripDayOrder(value: string | string[] | undefined): TripDayOrder {
   return value === "newest" ? "newest" : "oldest";
@@ -102,7 +110,7 @@ export function groupTripDays<
         items.push({ kind: "send", send });
         unplaced.delete(send.climbId);
       } else {
-        items.push({ kind: "entry", entry });
+        items.push({ kind: "entry", entry, position: items.length + 1 });
       }
     }
     for (const send of unplaced.values()) items.push({ kind: "send", send });

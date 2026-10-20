@@ -46,9 +46,8 @@ export const trips = sqliteTable(
   },
   (t) => [
     index("trips_user_start_idx").on(t.userId, t.startDate),
-    // Referenced by the composite foreign key in the unused `trip_share_links`
-    // table. SQLite requires a unique index on the parent columns, so keep this
-    // until that table is dropped.
+    // Referenced by the composite foreign key in `trip_share_links`. SQLite
+    // requires a unique index on the parent columns.
     uniqueIndex("trips_user_id_idx").on(t.userId, t.id),
     check("trips_dates", sql`${t.endDate} >= ${t.startDate}`),
     // Enforced here as well as in the schema the action validates against: a

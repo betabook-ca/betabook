@@ -72,6 +72,22 @@ export function sharedProjectMetadata(name: string, climbName: string, sent = fa
   };
 }
 
+/** Link preview for a valid trip share link. Callers run the share predicate
+ * first, as for a project link, so a dead link previews as nothing. Only the
+ * names: no dates, notes or photos, since a preview is not a place to publish
+ * them. */
+export function sharedTripMetadata(name: string, tripName: string): Metadata {
+  const title = `${name} · ${tripName}`;
+  const description = `See ${name}'s trip, day by day, on ${SITE_NAME}, a climbing logbook and crag database.`;
+  return {
+    title: { absolute: title },
+    description,
+    robots: { index: false },
+    openGraph: { type: "article", siteName: SITE_NAME, title, description, images: [OG_IMAGE] },
+    twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE.url] },
+  };
+}
+
 /** The `max` nearest names joined nearest-last into a short location trail
  * for a meta description, e.g. "Squamish, Grand Wall Boulders, Superfly".
  * Capped because a full root-to-crag chain ("North America, Canada, …")

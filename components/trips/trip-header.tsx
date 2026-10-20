@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import type { ShareLink } from "@/components/share-link-dialog";
 import { TripActions } from "@/components/trips/trip-actions";
 import { TripBackLink } from "@/components/trips/trip-back-link";
 import { TripCompanions } from "@/components/trips/trip-companions";
@@ -8,7 +9,7 @@ import { TripStats } from "@/components/trips/trip-stats";
 import { TripStatusChip } from "@/components/trips/trip-status-chip";
 import { SectionHeading } from "@/components/ui/typography";
 import type { TripSummary } from "@/db/queries";
-import { withProfileShare } from "@/lib/profile-share";
+import { tripShareAnalyticsPath, tripSharePath } from "@/lib/trip-share";
 import {
   formatTripDates,
   tripAnalyticsHref,
@@ -20,14 +21,15 @@ import {
 
 /** Header for a trip page: back link, name, dates, description, tagged friends
  * and counts. The counts link to the Journal and Sends tabs filtered to the
- * trip's dates, followed by a link to the trip's analytics. */
+ * trip's dates, followed by a link to the trip's analytics. On a trip link's
+ * pages (`link`) only the trip and its analytics link to each other. */
 export function TripHeader({
   trip,
   userId,
   viewerId,
   today,
-  share,
-  shareUrl,
+  link,
+  ownerShare,
   back = "trips",
   children,
 }: {
@@ -37,19 +39,20 @@ export function TripHeader({
   viewerId: string | null;
   /** Today as `YYYY-MM-DD` in the viewer's timezone, resolved on the server. */
   today: string;
-  /** Share token from the URL, kept on the back and analytics links so a link
-   * holder outside the trip audience can move between the pages. */
-  share?: string;
-  /** Owner only: share URL for this trip, or null if the profile is private.
-   * Undefined for everyone else. */
-  shareUrl?: string | null;
+  /** Token of the trip link this page was opened with. Its pages have no
+   * trips list to go back to, and the Journal and Sends tabs aren't open to
+   * its readers, so only the analytics link and the way back to the trip
+   * remain. */
+  link?: string;
+  /** Owner only: the trip's link as the server last saw it, and the site's
+   * origin to build it on, and whether the profile is private, which turns
+   * sharing off. Undefined for everyone else. */
+  ownerShare?: { share: ShareLink; origin: string; isPrivate: boolean };
   /** Use `trip` on the analytics page, so the back link goes to the trip and
    * the counts don't link to analytics. */
   back?: "trips" | "trip";
   children: ReactNode;
 }) {
-  const withShare = (href: string) => (share ? withProfileShare(href, share) : href);
-  const trips = withShare(tripsHref(userId));
   const nothingYet =
     tripStatus(trip, today) === "upcoming" && trip.sendCount === 0 && !trip.entryCount;
 
@@ -57,9 +60,11 @@ export function TripHeader({
     <div className="flex min-w-0 flex-col gap-4">
       <div className="flex min-w-0 flex-col gap-1">
         {back === "trip" ? (
-          <TripBackLink href={withShare(tripHref(userId, trip.id))}>Back to trip</TripBackLink>
+          <TripBackLink href={link ? tripSharePath(link) : tripHref(userId, trip.id)}>
+            Back to trip
+          </TripBackLink>
         ) : (
-          <TripBackLink href={trips}>All trips</TripBackLink>
+          !link && <TripBackLink href={tripsHref(userId)}>All trips</TripBackLink>
         )}
         {/* Uses SectionHeading, not PageTitle. The page already has an h1, and
          * axe's default rules don't flag a second one. */}
@@ -70,18 +75,33 @@ export function TripHeader({
           <div className="flex min-w-0 items-start justify-between gap-3">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <SectionHeading className="min-w-0 break-words">{trip.name}</SectionHeading>
-              <TripStatusChip trip={trip} today={today} />
+              {/* Only the dates: a client component's props reach the page,
+               * and a trip link's readers aren't given the trip id. */}
+              <TripStatusChip
+                trip={{ startDate: trip.startDate, endDate: trip.endDate }}
+                today={today}
+              />
             </div>
             {viewerId === userId && (
               <div className="-my-1 flex shrink-0 items-center gap-1">
-                {shareUrl !== undefined && <TripShare tripName={trip.name} url={shareUrl} />}
+                {ownerShare && (
+                  <TripShare
+                    tripId={trip.id}
+                    tripName={trip.name}
+                    share={ownerShare.share}
+                    shareOrigin={ownerShare.origin}
+                    isPrivate={ownerShare.isPrivate}
+                  />
+                )}
                 <TripActions trip={trip} userId={userId} leaveOnDelete />
               </div>
             )}
           </div>
           <p className="text-sm text-muted">{formatTripDates(trip.startDate, trip.endDate)}</p>
           {trip.description && <p className="text-sm leading-relaxed">{trip.description}</p>}
-          <TripCompanions tripId={trip.id} initialCompanions={trip.companions} />
+          {trip.companions.length > 0 && (
+            <TripCompanions tripId={trip.id} initialCompanions={trip.companions} />
+          )}
           {/* Hide counts for an upcoming trip with nothing logged. */}
           {!nothingYet && (
             <TripStats
@@ -89,14 +109,15 @@ export function TripHeader({
               // Signed-out visitors can't open the Logbook, so counts aren't
               // links.
               links={
-                viewerId === null
-                  ? undefined
-                  : {
-                      entries: tripLogbookHref(userId, "journal", trip),
-                      sends: tripLogbookHref(userId, "sends", trip),
-                      analytics:
-                        back === "trip" ? undefined : withShare(tripAnalyticsHref(userId, trip.id)),
-                    }
+                link
+                  ? { analytics: back === "trip" ? undefined : tripShareAnalyticsPath(link) }
+                  : viewerId === null
+                    ? undefined
+                    : {
+                        entries: tripLogbookHref(userId, "journal", trip),
+                        sends: tripLogbookHref(userId, "sends", trip),
+                        analytics: back === "trip" ? undefined : tripAnalyticsHref(userId, trip.id),
+                      }
               }
             />
           )}

@@ -7,7 +7,6 @@ import {
   SharedProfileHeader,
   canReadUserJournal,
   memberMetadata,
-  profileShareParam,
   resolveProfilePage,
   resolveSharedProfile,
 } from "@/app/users/[id]/profile-shell";
@@ -56,7 +55,7 @@ export default async function UserPage({ params, searchParams }: UserPageProps) 
   const journalIsVisible = await canReadUserJournal(user.id, viewerId);
 
   return (
-    <ProfileHeader user={user} viewerId={viewerId} share={profileShareParam(search)}>
+    <ProfileHeader user={user} viewerId={viewerId}>
       {journalIsVisible ? (
         <JournalView ownerId={user.id} viewerId={viewerId} filter={parseJournalFilter(search)} />
       ) : (

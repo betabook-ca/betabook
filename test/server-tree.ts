@@ -47,3 +47,37 @@ export function rendered<Props, Result>(
 ): (props: Props) => Promise<Result> {
   return async (props) => (await resolveServerTree(await page(props), options)) as Result;
 }
+
+type TreeElement = { type: unknown; key: unknown; props: Record<string, unknown> };
+
+/** Every element in a resolved tree, depth first, including elements passed as
+ * props. */
+export function treeElements(node: unknown): TreeElement[] {
+  const found: TreeElement[] = [];
+  const stack = [node];
+  while (stack.length) {
+    const current = stack.pop();
+    if (Array.isArray(current)) stack.push(...current);
+    else if (current && typeof current === "object" && "props" in current) {
+      const element = current as TreeElement;
+      found.push(element);
+      stack.push(...Object.values(element.props ?? {}));
+    }
+  }
+  return found;
+}
+
+/** The synchronous server components between a trip page and its client
+ * components. Matched by name, since some aren't exported. */
+const TRIP_LAYERS = new Set(["TripHeader", "TripDays", "TripDayCards", "JournalEntryRow"]);
+
+/** Expands a resolved trip page down to its client components and day rows, so
+ * a test can read their props and keys. */
+export async function expandTripLayers(tree: unknown): Promise<unknown> {
+  const types = treeElements(tree)
+    .map((element) => element.type)
+    .filter((type) => typeof type === "function" && TRIP_LAYERS.has(type.name));
+  return types.length === 0
+    ? tree
+    : expandTripLayers(await resolveServerTree(tree, { expand: types }));
+}

@@ -117,7 +117,7 @@ it("explains who can read trip notes", () => {
     .getAllByRole("listitem")
     .find((item) => /who else can open your trips/.test(item.textContent ?? ""));
   expect(trips).toHaveTextContent(
-    "Your friends and anyone with your profile link can read trip notes, regardless of your Journal and goals setting.",
+    "Your friends can read trip notes, regardless of your Journal and goals setting.",
   );
   expect(trips).toHaveTextContent(
     "People who can read your journal can also see a trip's journal entries and tagged friends.",
@@ -129,8 +129,11 @@ it("explains who can see trip photos and where they load from", () => {
   render(<PrivacyDetails defaultExpanded />);
 
   const items = screen.getAllByRole("listitem").map((item) => item.textContent ?? "");
-  expect(items.find((item) => item.startsWith("Anyone with your profile link"))).toContain(
-    "your trips with their notes, photos and sends, whatever your Trips setting",
+  const profileLink = items.find((item) => item.startsWith("Anyone with your profile link"));
+  expect(profileLink).toContain("name, photo, send stats and latest sends");
+  expect(profileLink).not.toMatch(/trip/i);
+  expect(items.find((item) => item.startsWith("Sharing a trip"))).toContain(
+    "Anyone with the link sees its notes, photos, journal entries, sends and analytics",
   );
   const trips = items.find((item) => /who else can open your trips/.test(item));
   expect(trips).toContain("who else can open your trips, with their photos and sends");

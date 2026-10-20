@@ -184,9 +184,8 @@ export function PrivacyDetails({ defaultExpanded = false }: { defaultExpanded?: 
             <ul className="flex list-disc flex-col gap-1.5 ps-4">
               <li>Signed-out visitors see your recent sends on climb pages without your name.</li>
               <li>
-                Anyone with your profile link sees your name, photo, send stats, latest sends, and
-                your trips with their notes, photos and sends, whatever your Trips setting. Going
-                private resets the link.
+                Anyone with your profile link sees your name, photo, send stats and latest sends.
+                Going private resets the link.
               </li>
               <li>
                 Sharing a project makes a link to that one climb. Anyone with the link sees your
@@ -197,8 +196,14 @@ export function PrivacyDetails({ defaultExpanded = false }: { defaultExpanded?: 
               <li>
                 Your Trips setting decides who else can open your trips, with their photos and
                 sends. Photos load from Google Photos. People who can read your journal can also see
-                a trip&apos;s journal entries and tagged friends. Your friends and anyone with your
-                profile link can read trip notes, regardless of your Journal and goals setting.
+                a trip&apos;s journal entries and tagged friends. Your friends can read trip notes,
+                regardless of your Journal and goals setting.
+              </li>
+              <li>
+                Sharing a trip makes a link to that one trip. Anyone with the link sees its notes,
+                photos, journal entries, sends and analytics, so it overrides the audiences above
+                for that trip. Climbers you tagged are not named. You choose when it expires, Stop
+                sharing ends it, and going private ends every trip link.
               </li>
               <li>
                 Unless your profile is private, friends of your friends may see you suggested.

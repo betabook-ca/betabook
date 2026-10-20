@@ -8,7 +8,6 @@ import { TripStatusChip } from "@/components/trips/trip-status-chip";
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import type { TripSummary } from "@/db/queries";
-import { withProfileShare } from "@/lib/profile-share";
 import { formatTripDates, tripHref } from "@/lib/trips";
 
 /** One trip in the list. The whole card is not a link: the actions menu lives
@@ -19,15 +18,12 @@ export function TripCard({
   userId,
   today,
   actions,
-  shareToken,
 }: {
   trip: TripSummary;
   userId: string;
   /** The reader's own `YYYY-MM-DD`, resolved on the server. */
   today: string;
   actions?: ReactNode;
-  /** Share token for a signed-out visitor, added to the trip link. */
-  shareToken?: string;
 }) {
   const href = tripHref(userId, trip.id);
 
@@ -36,10 +32,7 @@ export function TripCard({
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
-            <AppLink
-              href={shareToken ? withProfileShare(href, shareToken) : href}
-              className="font-medium"
-            >
+            <AppLink href={href} className="font-medium">
               {trip.name}
             </AppLink>
             <TripStatusChip trip={trip} today={today} />

@@ -3,7 +3,8 @@ import type { ReactNode } from "react";
 import { AppLink } from "@/components/ui/app-link";
 import type { TripSummary } from "@/db/queries";
 
-type Links = { entries: string; sends: string; analytics?: string };
+/** A trip link's readers get the analytics link alone. */
+type Links = { entries?: string; sends?: string; analytics?: string };
 
 function Stat({ value, label, href }: { value: number; label: string; href?: string }) {
   // Only link counts above zero.

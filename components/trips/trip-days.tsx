@@ -103,6 +103,7 @@ export function TripDays({
   areaBreadcrumbs,
   userId,
   isOwner,
+  forLink = false,
   emptyMessage,
   notice,
 }: {
@@ -114,6 +115,10 @@ export function TripDays({
   userId: string;
   /** Adds the edit menus to each row. */
   isOwner: boolean;
+  /** Rendered for a trip link's page: hashtags don't link to the Journal,
+   * which the link doesn't open, and rows aren't keyed by entry id, since keys
+   * reach the page. */
+  forLink?: boolean;
   emptyMessage: string;
   /** A note above the days, such as the one for a trip too long to show. */
   notice?: ReactNode;
@@ -136,6 +141,7 @@ export function TripDays({
             areaBreadcrumbs={areaBreadcrumbs}
             userId={userId}
             isOwner={isOwner}
+            forLink={forLink}
           />
         )}
       </div>
@@ -148,11 +154,13 @@ function TripDayCards({
   areaBreadcrumbs,
   userId,
   isOwner,
+  forLink,
 }: {
   days: TripDay<UserSendRow, JournalEntry>[];
   areaBreadcrumbs: AreaBreadcrumbs;
   userId: string;
   isOwner: boolean;
+  forLink: boolean;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -171,8 +179,9 @@ function TripDayCards({
             <ul role="list" className="relative z-0 flex flex-col divide-y divide-separator">
               {day.items.map((item) =>
                 item.kind === "send" ? (
-                  // Keyed by climb id. Keys end up in the RSC payload, and
-                  // sequential send ids shouldn't.
+                  // Keyed by climb id. Keys end up in the RSC payload, which a
+                  // trip link's readers can see, and sequential send ids
+                  // shouldn't.
                   <li key={`send-${item.send.climbId}`}>
                     <UserSendLogRow
                       send={item.send}
@@ -181,13 +190,17 @@ function TripDayCards({
                     />
                   </li>
                 ) : (
-                  <li key={`entry-${item.entry.id}`}>
+                  // On the owner's page the id: open dialogs and pending
+                  // state have to stay with their entry when an earlier one
+                  // is added or removed.
+                  <li key={forLink ? `entry-${item.position}` : `entry-${item.entry.id}`}>
                     <JournalEntryRow
                       entry={item.entry}
                       isOwner={isOwner}
                       userId={userId}
                       filter={DEFAULT_JOURNAL_FILTER}
                       areaBreadcrumbs={areaBreadcrumbs}
+                      linkTags={!forLink}
                     />
                   </li>
                 ),
