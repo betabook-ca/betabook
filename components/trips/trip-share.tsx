@@ -7,7 +7,6 @@ import { shareTrip, unshareTrip } from "@/actions";
 import { ShareLinkDialog, type ShareLink } from "@/components/share-link-dialog";
 import { AppLink } from "@/components/ui/app-link";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
-import { isShareExpired } from "@/lib/share-expiry";
 import { TRIP_SHARE_SENTENCE, tripSharePath } from "@/lib/trip-share";
 
 /** Share button and dialog for one trip. The link is the trip's own, at
@@ -20,23 +19,18 @@ export function TripShare({
   share,
   shareOrigin,
   isPrivate,
-  today,
 }: {
   tripId: number;
   tripName: string;
-  /** The link as the server last saw it, or null when the trip isn't shared. */
+  /** The live link as the server last saw it, or null when the trip isn't
+   * shared or its link has expired (`getTripShareForOwner`). */
   share: ShareLink;
   /** The site's own origin, resolved on the server. */
   shareOrigin: string;
   isPrivate: boolean;
-  /** Today as `YYYY-MM-DD`, resolved on the server, so the button can't read
-   * differently in the render and the hydration. */
-  today: string;
 }) {
   const state = useOverlayState();
-  // An expired link is still in the dialog, to renew, but the trip isn't shared.
-  const live = share !== null && !isShareExpired(share.expiresAt, today);
-  const label = live ? "Shared" : "Share";
+  const label = share ? "Shared" : "Share";
 
   return (
     <>

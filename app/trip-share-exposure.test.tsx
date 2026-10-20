@@ -23,7 +23,7 @@ import {
   seedFixtureUser,
 } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
-import { rendered, resolveServerTree } from "@/test/server-tree";
+import { expandTripLayers, rendered, treeElements } from "@/test/server-tree";
 
 const SharedTripPage = rendered(SharedTripPageImpl, { expand: [SharedTripLayout] });
 const SharedTripAnalyticsPage = rendered(SharedTripAnalyticsPageImpl, {
@@ -168,7 +168,7 @@ it("shows the trip as its owner sees it, to a reader without an account", async 
   // The day cards hold the entry and the send, and the counts are the owner's.
   expect(payload).toContain('"entryCount":1');
   expect(payload).toContain('"sendCount":1');
-  expect(payload).toContain('"linkTags":false');
+  expect(payload).toContain('"forLink":true');
   expect(payload).toContain('"isOwner":false');
   expect(payload).toContain(`"link":"${token}"`);
   // An invitation for a reader without an account.
@@ -203,40 +203,9 @@ it("shows a signed-in reader the same trip, without the invitation", async () =>
   expect(payload).not.toContain("Climb with Trip Owner on Betabook");
 });
 
-/** Every element in a resolved tree, depth first. */
-function elements(
-  node: unknown,
-): { type: unknown; key: unknown; props: Record<string, unknown> }[] {
-  const found: { type: unknown; key: unknown; props: Record<string, unknown> }[] = [];
-  const stack = [node];
-  while (stack.length) {
-    const current = stack.pop();
-    if (Array.isArray(current)) stack.push(...current);
-    else if (current && typeof current === "object" && "props" in current) {
-      const element = current as { type: unknown; key: unknown; props: Record<string, unknown> };
-      found.push(element);
-      stack.push(...Object.values(element.props ?? {}));
-    }
-  }
-  return found;
-}
-
-/** The synchronous server components between the page and its client
- * components, expanded by name since some aren't exported. */
-const SERVER_LAYERS = new Set(["TripHeader", "TripDays", "TripDayCards", "JournalEntryRow"]);
-
-async function expandServerLayers(tree: unknown): Promise<unknown> {
-  const types = elements(tree)
-    .map((element) => element.type)
-    .filter((type) => typeof type === "function" && SERVER_LAYERS.has(type.name));
-  return types.length === 0
-    ? tree
-    : expandServerLayers(await resolveServerTree(tree, { expand: types }));
-}
-
 it("gives the page's client components and keys no entry or trip ids", async () => {
   const token = await share();
-  const all = elements(await expandServerLayers(await SharedTripPage(props(token))));
+  const all = treeElements(await expandTripLayers(await SharedTripPage(props(token))));
   const entryIds = (await db.select({ id: journalEntries.id }).from(journalEntries)).map(
     (row) => row.id,
   );

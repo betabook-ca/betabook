@@ -2,8 +2,8 @@ import { daysBetween } from "@/lib/format-date";
 
 type TripDayItem<Send, Entry> =
   | { kind: "send"; send: Send }
-  /** `position` is the row's place in the day, from 1: a key that, unlike the
-   * entry id, a trip link's readers may see. */
+  /** `position` is the row's place in the day, from 1: the key on a trip
+   * link's page, whose readers aren't given entry ids. */
   | { kind: "entry"; entry: Entry; position: number };
 
 export type TripDay<Send, Entry> = {

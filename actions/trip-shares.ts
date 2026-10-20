@@ -25,9 +25,11 @@ const TRIP_NOT_FOUND_MESSAGE = "Trip not found";
 /** Publishes one trip behind a link, or resets the clock on a link that
  * already exists.
  *
- * The link has no audience: whoever holds the URL can open it. Re-sharing
- * keeps the token, so extending a link does not break the one already sent.
- * Stopping entirely is `unshareTrip`.
+ * The link has no audience: whoever holds the URL can open it. Renewing a live
+ * link keeps the token, so extending it does not break the one already sent.
+ * Sharing again once a link has expired makes a new token instead: an owner
+ * may have let a link that got away expire on purpose, and every copy of it
+ * has to stay dead. Stopping entirely is `unshareTrip`.
  *
  * The ownership check and the private-profile check are conditions on the
  * INSERT rather than reads before it, as in `shareProject`. A session carries
@@ -56,7 +58,16 @@ export async function shareTrip(
       FROM trips t
       JOIN user u ON u.id = t.user_id
       WHERE t.user_id = ${user.id} AND t.id = ${tripId} AND u.is_private = 0
-      ON CONFLICT (user_id, trip_id) DO UPDATE SET expires_at = excluded.expires_at
+      -- SET expressions read the row as it was, so this asks whether the
+      -- link had expired before this write.
+      ON CONFLICT (user_id, trip_id) DO UPDATE SET
+        token = CASE
+          WHEN trip_share_links.expires_at IS NOT NULL
+            AND trip_share_links.expires_at <= datetime('now')
+          THEN lower(hex(randomblob(16)))
+          ELSE trip_share_links.token
+        END,
+        expires_at = excluded.expires_at
       RETURNING token, expires_at AS expiresAt
     `);
 
@@ -80,12 +91,13 @@ export async function shareTrip(
 
 /** Withdraws the link. The trip and everything logged in it are untouched —
  * only the door closes. Unsharing something that is not shared is not an
- * error: the requested end state already holds. */
+ * error: the requested end state already holds. Not rate-limited: revoking
+ * only reduces what is exposed, and an owner who sent a link to the wrong
+ * place must be able to close it at once. */
 export async function unshareTrip(tripId: number): Promise<ActionResult> {
   return toActionResult(async () => {
     const { user } = await requireSession();
     requirePositiveId(tripId, TRIP_NOT_FOUND_MESSAGE);
-    if (!(await allowJournalWrite(user.id))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
 
     const db = await getDb();
     await db

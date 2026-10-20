@@ -108,7 +108,7 @@ async function SharedTripDays({
       areaBreadcrumbs={areaBreadcrumbs}
       userId={ownerId}
       isOwner={false}
-      linkTags={false}
+      forLink
       emptyMessage="Nothing logged on this trip yet."
       notice={
         truncated && (

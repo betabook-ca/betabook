@@ -20,7 +20,7 @@ import {
   seedFixtureUser,
 } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
-import { rendered } from "@/test/server-tree";
+import { expandTripLayers, rendered, treeElements } from "@/test/server-tree";
 
 const TripAnalyticsPage = rendered(TripAnalyticsPageImpl);
 const TripPage = rendered(TripPageImpl);
@@ -368,6 +368,21 @@ describe("sharing a trip", () => {
     const trip = await seedTrip();
 
     expect(JSON.stringify(await TripAnalyticsPage(props(trip.id)))).not.toContain("ownerShare");
+  });
+});
+
+describe("the owner's day rows", () => {
+  it("keys journal rows by entry id, so open dialogs stay with their entry", async () => {
+    const trip = await seedTrip();
+    const [{ id }] = await db.all<{ id: number }>(
+      sql`SELECT id FROM journal_entries WHERE user_id = ${OWNER} AND body = ${ENTRY}`,
+    );
+
+    const keys = treeElements(await expandTripLayers(await TripPage(props(trip.id)))).map(
+      (element) => String(element.key),
+    );
+    expect(keys).toContain(`entry-${id}`);
+    expect(keys).not.toContain("entry-1");
   });
 });
 

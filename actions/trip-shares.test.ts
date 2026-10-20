@@ -80,6 +80,22 @@ describe("sharing a trip", () => {
     );
   });
 
+  it("makes a new token when sharing again after a link expired, so old copies stay dead", async () => {
+    const first = await shareTrip(tripId, "7d");
+    const old = first.ok ? first.value.token : "";
+    await db.update(tripShareLinks).set({ expiresAt: "2001-01-01 00:00:00" });
+    expect(await getTripShareForOwner(db, "climber", tripId)).toBeNull();
+
+    const again = await shareTrip(tripId, "30d");
+    expect(again.ok).toBe(true);
+    const fresh = again.ok ? again.value.token : old;
+    expect(fresh).not.toBe(old);
+    expect(fresh).toMatch(/^[0-9a-f]{32}$/);
+    expect(await storedShares()).toHaveLength(1);
+    expect((await getSharedTrip(db, fresh)).status).toBe("visible");
+    expect(await getSharedTrip(db, old)).toEqual({ status: "hidden" });
+  });
+
   it("refuses an expiry that is not one of the offered options", async () => {
     expect(await shareTrip(tripId, "forever")).toMatchObject({ ok: false });
     expect(await shareTrip(tripId, "+1 day")).toMatchObject({ ok: false });
@@ -135,6 +151,14 @@ describe("stopping a share", () => {
     expect(await storedShares()).toHaveLength(0);
     expect(await getSharedTrip(db, stored.token)).toEqual({ status: "hidden" });
     expect(await getTripShareForOwner(db, "climber", tripId)).toBeNull();
+  });
+
+  it("stops sharing even when the owner is throttled", async () => {
+    await shareTrip(tripId, "30d");
+    limits.allow = false;
+
+    expect((await unshareTrip(tripId)).ok).toBe(true);
+    expect(await storedShares()).toHaveLength(0);
   });
 
   it("treats unsharing something already unshared as the end state it asked for", async () => {

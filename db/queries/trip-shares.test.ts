@@ -272,4 +272,16 @@ describe("the owner's link", () => {
     });
     expect(await getTripShareForOwner(db, MEMBER, tripId)).toBeNull();
   });
+
+  it("reads an expired link as none, on the database's clock", async () => {
+    await share("2001-01-01 00:00:00");
+    expect(await getTripShareForOwner(db, OWNER, tripId)).toBeNull();
+
+    // Later today in UTC is still live, whatever the viewer's date.
+    const later = await db.get<{ at: string }>(sql`SELECT datetime('now', '+1 minute') AS at`);
+    await db.update(tripShareLinks).set({ expiresAt: later?.at });
+    expect(await getTripShareForOwner(db, OWNER, tripId)).toMatchObject({ expiresAt: later?.at });
+    await db.update(tripShareLinks).set({ expiresAt: sql`datetime('now', '-1 minute')` });
+    expect(await getTripShareForOwner(db, OWNER, tripId)).toBeNull();
+  });
 });

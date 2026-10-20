@@ -14,7 +14,6 @@ const meta = {
     share: null,
     shareOrigin: "https://betabook.ca",
     isPrivate: false,
-    today: "2026-10-20",
   },
   decorators: [
     (Story) => (
@@ -37,16 +36,6 @@ export const Button: Story = {};
 
 /** Before a link exists: what the link will show, and the expiry chosen first. */
 export const NotShared: Story = {
-  play: async ({ canvasElement }) => {
-    await open(canvasElement, "Share");
-  },
-};
-
-/** An expired link reads as not shared, and the dialog offers to renew it. */
-export const Expired: Story = {
-  args: {
-    share: { token: "8c1d3e5f7a9b0c2d4e6f8a0b1c3d5e7f", expiresAt: "2026-09-01 00:00:00" },
-  },
   play: async ({ canvasElement }) => {
     await open(canvasElement, "Share");
   },

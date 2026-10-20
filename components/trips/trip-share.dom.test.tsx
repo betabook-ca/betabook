@@ -18,7 +18,6 @@ const TOKEN = "0123456789abcdef0123456789abcdef";
 const ORIGIN = "https://betabook.ca";
 const TRIP = 7;
 const EXPIRES = "2026-11-18 12:00:00";
-const TODAY = "2026-10-20";
 
 beforeEach(() => {
   vi.mocked(shareTrip)
@@ -40,7 +39,6 @@ it("says what the link shows before one exists, then creates the trip's own link
       share={null}
       shareOrigin={ORIGIN}
       isPrivate={false}
-      today={TODAY}
     />,
   );
   const overlays = watchOverlayKinds();
@@ -74,7 +72,6 @@ it("stops sharing a live link after confirming", async () => {
       share={{ token: TOKEN, expiresAt: EXPIRES }}
       shareOrigin={ORIGIN}
       isPrivate={false}
-      today={TODAY}
     />,
   );
 
@@ -105,7 +102,6 @@ it("keeps the dialog open with the reason when sharing is refused", async () => 
       share={null}
       shareOrigin={ORIGIN}
       isPrivate={false}
-      today={TODAY}
     />,
   );
 
@@ -119,38 +115,9 @@ it("keeps the dialog open with the reason when sharing is refused", async () => 
   expect(within(dialog).queryByRole("textbox", { name: "Trip link" })).not.toBeInTheDocument();
 });
 
-it("reads as not shared once the link has expired, and offers to renew it", async () => {
-  const user = userEvent.setup();
-  render(
-    <TripShare
-      tripId={TRIP}
-      tripName="Bishop"
-      share={{ token: TOKEN, expiresAt: "2026-10-01 12:00:00" }}
-      shareOrigin={ORIGIN}
-      isPrivate={false}
-      today={TODAY}
-    />,
-  );
-
-  expect(screen.queryByRole("button", { name: "Shared" })).not.toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "Share" }));
-  const dialog = await screen.findByRole("dialog", { name: "Share Bishop" });
-  await user.click(within(dialog).getByRole("button", { name: "Renew link" }));
-  expect(shareTrip).toHaveBeenCalledExactlyOnceWith(TRIP, "30d");
-});
-
 it("explains that sharing is off while the profile is private, instead of offering a link", async () => {
   const user = userEvent.setup();
-  render(
-    <TripShare
-      tripId={TRIP}
-      tripName="Bishop"
-      share={null}
-      shareOrigin={ORIGIN}
-      isPrivate
-      today={TODAY}
-    />,
-  );
+  render(<TripShare tripId={TRIP} tripName="Bishop" share={null} shareOrigin={ORIGIN} isPrivate />);
 
   await user.click(screen.getByRole("button", { name: "Share" }));
   const dialog = await screen.findByRole("dialog", { name: "Share Bishop" });

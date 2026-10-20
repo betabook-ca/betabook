@@ -150,9 +150,12 @@ export async function getSharedTrip(db: Database, token: string): Promise<Shared
   };
 }
 
-/** The owner's own view of a trip's link, for the trip page's Share dialog.
- * Scoped to the owner: this is the only read that hands out a token, and a
- * token is the credential. */
+/** The owner's own view of a trip's live link, for the trip page's Share
+ * dialog. Scoped to the owner: this is the only read that hands out a token,
+ * and a token is the credential. An expired link reads as none, decided by
+ * the same `datetime('now')` comparison as `readableSql`, so the button never
+ * says Shared for a link the page already calls expired; sharing again makes
+ * a new token (`shareTrip`). */
 export async function getTripShareForOwner(
   db: Database,
   ownerId: string,
@@ -161,6 +164,7 @@ export async function getTripShareForOwner(
   const row = await db.get<{ token: string; expiresAt: string | null }>(sql`
     SELECT token, expires_at AS expiresAt
     FROM trip_share_links WHERE user_id = ${ownerId} AND trip_id = ${tripId}
+      AND (expires_at IS NULL OR expires_at > datetime('now'))
   `);
   return row ?? null;
 }

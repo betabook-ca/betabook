@@ -91,7 +91,6 @@ export function TripHeader({
                     share={ownerShare.share}
                     shareOrigin={ownerShare.origin}
                     isPrivate={ownerShare.isPrivate}
-                    today={today}
                   />
                 )}
                 <TripActions trip={trip} userId={userId} leaveOnDelete />
