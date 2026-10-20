@@ -127,6 +127,18 @@ export function tripStatus(
   return today > trip.endDate ? "past" : "current";
 }
 
+/** Only upcoming and in-progress trips get a status label. Most trips are in
+ * the past, so a label for those would be on nearly every card.
+ *
+ * The in-progress label uses `success`, which is otherwise only used for
+ * ascent styles. */
+export const TRIP_STATUS_LABEL: Partial<
+  Record<TripStatus, { label: string; color: "success" | "default" }>
+> = {
+  upcoming: { label: "Upcoming", color: "default" },
+  current: { label: "On now", color: "success" },
+};
+
 /** The trip's dates as one phrase. A single-day trip reads as one date rather
  * than the same date twice. */
 export function formatTripDates(startDate: string, endDate: string): string {
