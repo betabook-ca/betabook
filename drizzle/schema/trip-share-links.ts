@@ -11,12 +11,14 @@ import {
 import { user } from "./auth";
 import { trips } from "./trips";
 
-/** Unused: trips no longer have their own share links. The table stays in the
- * schema so drizzle-kit doesn't generate a DROP. Migrations run before the new
- * worker is live, so the old worker still needs the table during a deploy. A
- * later migration should drop it together with the
- * `trip_share_revoke_on_private` trigger. That trigger is on `user`, so
- * dropping only the table would make every switch to private fail. */
+/** One link per trip, the whole of `/trips/{token}`. Like a project link it
+ * has no audience: holding a live token is the permission, and it opens the
+ * trip as its owner sees it. `trip_share_revoke_on_private` (migration 0050)
+ * deletes every row when a profile goes private, and the composite foreign key
+ * deletes a trip's link with the trip. In db/queries/trip-shares.ts,
+ * `getSharedTrip` resolves a token under the private `readableSql` predicate
+ * (not expired, owner not private), and every read of the trip's rows applies
+ * `tripLinkCoversSql`, which adds the trip's dates. */
 export const tripShareLinks = sqliteTable(
   "trip_share_links",
   {

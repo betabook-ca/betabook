@@ -35,6 +35,9 @@ it("keeps terms, public pages, recovery, and acceptance reachable but protects a
     "/reset-password",
     // Someone else's shared project, which the page authorizes itself.
     "/projects/4f9c2a7e1b8d6035c9e4a1f7b2d80e36",
+    // Someone else's shared trip, likewise.
+    "/trips/4f9c2a7e1b8d6035c9e4a1f7b2d80e36",
+    "/trips/4f9c2a7e1b8d6035c9e4a1f7b2d80e36/analytics",
   ])
     expect(isTermsExemptPath(path)).toBe(true);
   for (const path of [
@@ -46,9 +49,10 @@ it("keeps terms, public pages, recovery, and acceptance reachable but protects a
     // The owner's own Projects board is member content, unlike a share link.
     "/users/one/projects",
     "/projects",
-    // Trip pages are member content. There is no public trip route.
+    // Trip pages under a climber are member content; only /trips/{token} is a
+    // share link.
     "/users/one/trips/7",
-    "/trips/4f9c2a7e1b8d6035c9e4a1f7b2d80e36",
+    "/trips",
   ])
     expect(isTermsExemptPath(path)).toBe(false);
 });

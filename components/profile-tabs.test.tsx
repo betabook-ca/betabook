@@ -64,20 +64,15 @@ it("marks Sends current at the profile root when the journal is hidden", () => {
   expect(html.match(/aria-current="page"/g)).toHaveLength(1);
 });
 
-it.each([
-  ["/users/owner", `/users/owner?share=${TOKEN}`, "Sends"],
-  ["/users/owner/trips", `/users/owner/trips?share=${TOKEN}`, "Trips"],
-  ["/users/owner/trips/7", `/users/owner/trips?share=${TOKEN}`, "Trips"],
-])("shows only Sends and Trips with a share token, from %s", (pathname, href, label) => {
-  state.pathname = pathname;
+it("shows only Sends with a share token, since trips have their own links", () => {
+  state.pathname = "/users/owner";
   const html = renderToStaticMarkup(
-    <ProfileTabs userId="owner" showJournal={false} showTrips share={TOKEN} />,
+    <ProfileTabs userId="owner" showJournal={false} showTrips={false} share={TOKEN} />,
   );
 
-  // Each tab link includes the share token.
-  expect(hrefs(html)).toEqual([`/users/owner?share=${TOKEN}`, `/users/owner/trips?share=${TOKEN}`]);
+  // The tab link includes the share token.
+  expect(hrefs(html)).toEqual([`/users/owner?share=${TOKEN}`]);
   expect(html).toMatch(
-    new RegExp(`href="${href.replace("?", "\\?")}"[^>]*aria-current="page"[^>]*>.*?${label}`),
+    new RegExp(`href="/users/owner\\?share=${TOKEN}"[^>]*aria-current="page"[^>]*>.*?Sends`),
   );
-  expect(html.match(/aria-current="page"/g)).toHaveLength(1);
 });

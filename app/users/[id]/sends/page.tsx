@@ -1,12 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import {
-  ProfileHeader,
-  memberMetadata,
-  profileShareParam,
-  resolveProfilePage,
-} from "@/app/users/[id]/profile-shell";
+import { ProfileHeader, memberMetadata, resolveProfilePage } from "@/app/users/[id]/profile-shell";
 import { SendsView } from "@/app/users/[id]/sends-view";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { parseUserSendsFilter } from "@/lib/filters/user-sends-filter";
@@ -30,7 +25,7 @@ export default async function UserSendsPage({ params, searchParams }: UserSendsP
   const { user, viewerId } = resolved;
 
   return (
-    <ProfileHeader user={user} viewerId={viewerId} share={profileShareParam(search)}>
+    <ProfileHeader user={user} viewerId={viewerId}>
       <SendsView
         userId={id}
         viewerId={viewerId}

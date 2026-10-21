@@ -1,83 +1,131 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { beforeEach, expect, it, vi } from "vitest";
 
+import { shareTrip, unshareTrip } from "@/actions";
+import type { ActionResult } from "@/lib/action-result";
 import { watchOverlayKinds } from "@/test/overlay-kinds";
 import { stubViewport } from "@/test/viewport";
 
 import { TripShare } from "./trip-share";
 
-const URL = "https://betabook.ca/users/alex/trips/7?share=0123456789abcdef0123456789abcdef";
-const IPHONE =
-  "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
+vi.mock("@/actions", () => ({
+  shareTrip: vi.fn<() => Promise<ActionResult<{ token: string; expiresAt: string | null }>>>(),
+  unshareTrip: vi.fn<() => Promise<ActionResult>>(),
+}));
 
-const share = vi.fn<(data: ShareData) => Promise<void>>();
+const TOKEN = "0123456789abcdef0123456789abcdef";
+const ORIGIN = "https://betabook.ca";
+const TRIP = 7;
+const EXPIRES = "2026-11-18 12:00:00";
 
 beforeEach(() => {
-  share.mockReset().mockResolvedValue(undefined);
-  Object.defineProperty(navigator, "share", { configurable: true, value: share });
+  vi.mocked(shareTrip)
+    .mockReset()
+    .mockResolvedValue({
+      ok: true,
+      value: { token: TOKEN, expiresAt: EXPIRES },
+    });
+  vi.mocked(unshareTrip).mockReset().mockResolvedValue({ ok: true, value: undefined });
 });
 
-afterEach(() => {
-  vi.unstubAllGlobals();
-  Reflect.deleteProperty(navigator, "share");
-  Reflect.deleteProperty(navigator, "userAgent");
-});
-
-async function open(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole("button", { name: "Share" }));
-  return screen.findByRole("dialog", { name: "Share trip" });
-}
-
-it("shows the trip link and explains it is the profile link", async () => {
+it("says what the link shows before one exists, then creates the trip's own link", async () => {
   stubViewport("desktop");
   const user = userEvent.setup();
-  render(<TripShare tripName="Bishop, March 2026" url={URL} />);
-  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  render(
+    <TripShare
+      tripId={TRIP}
+      tripName="Bishop"
+      share={null}
+      shareOrigin={ORIGIN}
+      isPrivate={false}
+    />,
+  );
   const overlays = watchOverlayKinds();
 
-  const dialog = await open(user);
-  expect(overlays.seen).toEqual(["modal"]);
+  await user.click(screen.getByRole("button", { name: "Share" }));
+  const dialog = await screen.findByRole("dialog", { name: "Share Bishop" });
   overlays.stop();
-  expect(within(dialog).getByRole("textbox", { name: "Trip link" })).toHaveValue(URL);
+  expect(overlays.seen).toEqual(["modal"]);
   expect(
     within(dialog).getByText(
-      "Anyone with this link can see this trip and the rest of your profile. It uses your profile link, so resetting that link turns this one off.",
+      "Anyone with the link sees this trip: its notes, photos, journal entries, sends and analytics.",
     ),
   ).toBeVisible();
-  expect(
-    within(dialog).getByRole("link", { name: "Reset link in Account settings" }),
-  ).toHaveAttribute("href", "/account#profile");
+  expect(within(dialog).getByText("Climbers you tagged aren't named.")).toBeVisible();
+  expect(within(dialog).queryByRole("textbox", { name: "Trip link" })).not.toBeInTheDocument();
 
-  await user.click(within(dialog).getByRole("button", { name: "Copy link" }));
-  expect(await navigator.clipboard.readText()).toBe(URL);
-  expect(within(dialog).getByRole("status")).toHaveTextContent("Link copied");
-  expect(within(dialog).queryByRole("button", { name: "Share link" })).not.toBeInTheDocument();
+  await user.click(within(dialog).getByRole("button", { name: "Create link" }));
+
+  expect(shareTrip).toHaveBeenCalledExactlyOnceWith(TRIP, "30d");
+  expect(await within(dialog).findByRole("textbox", { name: "Trip link" })).toHaveValue(
+    `${ORIGIN}/trips/${TOKEN}`,
+  );
 });
 
-it("opens the share sheet on a phone with the trip's name", async () => {
-  Object.defineProperty(navigator, "userAgent", { configurable: true, get: () => IPHONE });
+it("stops sharing a live link after confirming", async () => {
   const user = userEvent.setup();
-  render(<TripShare tripName="Bishop, March 2026" url={URL} />);
+  render(
+    <TripShare
+      tripId={TRIP}
+      tripName="Bishop"
+      share={{ token: TOKEN, expiresAt: EXPIRES }}
+      shareOrigin={ORIGIN}
+      isPrivate={false}
+    />,
+  );
 
-  const dialog = await open(user);
-  await user.click(await within(dialog).findByRole("button", { name: "Share link" }));
+  await user.click(screen.getByRole("button", { name: "Shared" }));
+  const dialog = await screen.findByRole("dialog", { name: "Share Bishop" });
+  expect(within(dialog).getByRole("textbox", { name: "Trip link" })).toHaveValue(
+    `${ORIGIN}/trips/${TOKEN}`,
+  );
+  await user.click(within(dialog).getByRole("button", { name: "Stop sharing" }));
+  const confirm = await screen.findByRole("alertdialog", { name: "Stop sharing Bishop?" });
+  await user.click(within(confirm).getByRole("button", { name: "Stop sharing" }));
 
-  expect(share).toHaveBeenCalledExactlyOnceWith({
-    title: "Bishop, March 2026 on Betabook",
-    url: URL,
+  await waitFor(() => expect(unshareTrip).toHaveBeenCalledExactlyOnceWith(TRIP));
+  expect(await within(dialog).findByRole("status")).toHaveTextContent("Sharing stopped.");
+  expect(within(dialog).queryByRole("textbox", { name: "Trip link" })).not.toBeInTheDocument();
+});
+
+it("keeps the dialog open with the reason when sharing is refused", async () => {
+  vi.mocked(shareTrip).mockResolvedValue({
+    ok: false,
+    error: "Sharing is off while your profile is private.",
   });
+  const user = userEvent.setup();
+  render(
+    <TripShare
+      tripId={TRIP}
+      tripName="Bishop"
+      share={null}
+      shareOrigin={ORIGIN}
+      isPrivate={false}
+    />,
+  );
+
+  await user.click(screen.getByRole("button", { name: "Share" }));
+  const dialog = await screen.findByRole("dialog", { name: "Share Bishop" });
+  await user.click(within(dialog).getByRole("button", { name: "Create link" }));
+
+  expect(
+    await within(dialog).findByText("Sharing is off while your profile is private."),
+  ).toBeVisible();
+  expect(within(dialog).queryByRole("textbox", { name: "Trip link" })).not.toBeInTheDocument();
 });
 
-it("explains why there is no link when the profile is private", async () => {
+it("explains that sharing is off while the profile is private, instead of offering a link", async () => {
   const user = userEvent.setup();
-  render(<TripShare tripName="Bishop, March 2026" url={null} />);
+  render(<TripShare tripId={TRIP} tripName="Bishop" share={null} shareOrigin={ORIGIN} isPrivate />);
 
-  const dialog = await open(user);
+  await user.click(screen.getByRole("button", { name: "Share" }));
+  const dialog = await screen.findByRole("dialog", { name: "Share Bishop" });
   expect(within(dialog).getByText("Sharing is off while your profile is private.")).toBeVisible();
   expect(within(dialog).getByRole("link", { name: "Change privacy settings" })).toHaveAttribute(
     "href",
     "/account#privacy",
   );
-  expect(within(dialog).queryByRole("textbox")).not.toBeInTheDocument();
+  expect(within(dialog).queryByRole("button", { name: "Create link" })).not.toBeInTheDocument();
+  expect(shareTrip).not.toHaveBeenCalled();
 });

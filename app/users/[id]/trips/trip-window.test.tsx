@@ -20,7 +20,7 @@ import {
   seedFixtureUser,
 } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
-import { rendered } from "@/test/server-tree";
+import { expandTripLayers, rendered, treeElements } from "@/test/server-tree";
 
 const TripAnalyticsPage = rendered(TripAnalyticsPageImpl);
 const TripPage = rendered(TripPageImpl);
@@ -334,40 +334,55 @@ describe("trip page title", () => {
 });
 
 describe("sharing a trip", () => {
-  it("gives the share URL to the owner only", async () => {
+  it("gives the trip's own link to the owner only", async () => {
     const trip = await seedTrip({ notes: NOTES });
     await seedFriend();
-    const token = (await getProfileShareToken(db, OWNER))!;
 
     expect(await renderTrip(trip.id)).toContain(
-      `"shareUrl":"https://betabook.test/users/${OWNER}/trips/${trip.id}?share=${token}"`,
+      '"ownerShare":{"share":null,"origin":"https://betabook.test","isPrivate":false}',
     );
+    const [{ token }] = await db.all<{ token: string }>(sql`
+      INSERT INTO trip_share_links (user_id, trip_id) VALUES (${OWNER}, ${trip.id}) RETURNING token
+    `);
+    expect(await renderTrip(trip.id)).toContain(`"share":{"token":"${token}","expiresAt":null}`);
+    // The profile link is not the trip's link.
+    expect(await renderTrip(trip.id)).not.toContain((await getProfileShareToken(db, OWNER))!);
 
     for (const reader of [FRIEND, STRANGER]) {
       session.userId = reader;
       const payload = await renderTrip(trip.id);
       expect(payload).toContain(INSIDE);
       expect(payload).not.toContain(token);
-      expect(payload).not.toContain("shareUrl");
+      expect(payload).not.toContain("ownerShare");
     }
   });
 
-  it("gives no share URL when the owner's profile is private", async () => {
+  it("tells the share button when the profile is private", async () => {
     const trip = await seedTrip();
-    const before = (await getProfileShareToken(db, OWNER))!;
     await db.run(sql`UPDATE user SET is_private = 1 WHERE id = ${OWNER}`);
-    const after = (await getProfileShareToken(db, OWNER))!;
 
-    const payload = await renderTrip(trip.id);
-    expect(payload).toContain('"shareUrl":null');
-    expect(payload).not.toContain(before);
-    expect(payload).not.toContain(after);
+    expect(await renderTrip(trip.id)).toContain('"isPrivate":true');
   });
 
-  it("passes no share URL to the analytics page", async () => {
+  it("passes no link to the analytics page", async () => {
     const trip = await seedTrip();
 
-    expect(JSON.stringify(await TripAnalyticsPage(props(trip.id)))).not.toContain("shareUrl");
+    expect(JSON.stringify(await TripAnalyticsPage(props(trip.id)))).not.toContain("ownerShare");
+  });
+});
+
+describe("the owner's day rows", () => {
+  it("keys journal rows by entry id, so open dialogs stay with their entry", async () => {
+    const trip = await seedTrip();
+    const [{ id }] = await db.all<{ id: number }>(
+      sql`SELECT id FROM journal_entries WHERE user_id = ${OWNER} AND body = ${ENTRY}`,
+    );
+
+    const keys = treeElements(await expandTripLayers(await TripPage(props(trip.id)))).map(
+      (element) => String(element.key),
+    );
+    expect(keys).toContain(`entry-${id}`);
+    expect(keys).not.toContain("entry-1");
   });
 });
 
@@ -386,66 +401,39 @@ describe("trip access", () => {
     expect(payload).toContain(`"viewerId":"${STRANGER}"`);
   });
 
-  it("shows notes to a member only with a valid share link", async () => {
+  it("opens neither notes nor a closed trip for a member holding the profile link", async () => {
     const trip = await seedTrip({ notes: NOTES });
     const link = (await getProfileShareToken(db, OWNER))!;
     session.userId = STRANGER;
 
-    const payload = await renderTrip(trip.id, { share: link });
-    expect(payload).toContain(`"notes":"${NOTES}"`);
-    expect(payload).toContain('"canEdit":false');
-    // Still rendered with the member as the viewer.
-    expect(payload).toContain(`"viewerId":"${STRANGER}"`);
-
-    const own = (await getProfileShareToken(db, STRANGER))!;
-    for (const share of ["0".repeat(32), own, "not a link"]) {
-      expect(await renderTrip(trip.id, { share })).not.toContain(NOTES);
-    }
-  });
-
-  it("opens a trip outside the member's audience only through the share link, keeping it on links", async () => {
-    const trip = await seedTrip();
-    await db.run(sql`UPDATE user SET trip_visibility = 'private' WHERE id = ${OWNER}`);
-    const link = (await getProfileShareToken(db, OWNER))!;
-    session.userId = STRANGER;
-
-    await expect(renderTrip(trip.id)).rejects.toThrow("NOT_FOUND");
-    await expect(renderTrip(trip.id, { share: "0".repeat(32) })).rejects.toThrow("NOT_FOUND");
-
+    // Open to members, the trip shows, and the profile link adds no notes.
+    await db.run(sql`UPDATE user SET trip_visibility = 'public' WHERE id = ${OWNER}`);
     const payload = await renderTrip(trip.id, { share: link });
     expect(payload).toContain(INSIDE);
-    // The header's links back to the list and to analytics carry the token.
-    expect(payload).toContain(`"share":"${link}"`);
+    expect(payload).not.toContain(NOTES);
+    expect(payload).not.toContain(link);
+
+    await db.run(sql`UPDATE user SET trip_visibility = 'private' WHERE id = ${OWNER}`);
+    await expect(renderTrip(trip.id, { share: link })).rejects.toThrow("NOT_FOUND");
   });
 
-  it("gives a link holder outside the audience a Trips tab that every tab keeps", async () => {
+  it("gives a member outside the audience no Trips tab, with or without the profile link", async () => {
     const trip = await seedTrip();
     await db.run(sql`UPDATE user SET trip_visibility = 'private' WHERE id = ${OWNER}`);
     const link = (await getProfileShareToken(db, OWNER))!;
     session.userId = STRANGER;
-    const tabs = (tree: unknown) => ({
-      showTrips: findProp(tree, "showTrips", () => true),
-      carryShare: findProp(tree, "carryShare", () => true),
-    });
 
-    expect(tabs(await TripPageWithTabs(props(trip.id, { share: link })))).toEqual({
-      showTrips: true,
-      carryShare: link,
-    });
-    // Clicking over to Sends keeps the token, so the tab survives there too.
-    const sends = await UserSendsPage({
-      params: Promise.resolve({ id: OWNER }),
-      searchParams: Promise.resolve({ share: link }),
-    });
-    expect(tabs(sends)).toEqual({ showTrips: true, carryShare: link });
-
-    for (const search of [{}, { share: "0".repeat(32) }]) {
+    for (const search of [{}, { share: link }]) {
       const page = await UserSendsPage({
         params: Promise.resolve({ id: OWNER }),
         searchParams: Promise.resolve(search),
       });
-      expect(tabs(page)).toEqual({ showTrips: false, carryShare: undefined });
+      expect(findProp(page, "showTrips", () => true)).toBe(false);
+      expect(JSON.stringify(page)).not.toContain(link);
     }
+    // Inside the audience, the tab shows.
+    await db.run(sql`UPDATE user SET trip_visibility = 'public' WHERE id = ${OWNER}`);
+    expect(findProp(await TripPageWithTabs(props(trip.id)), "showTrips", () => true)).toBe(true);
   });
 
   it("shows notes to a friend regardless of journal audience, editable only by the owner", async () => {
@@ -581,18 +569,13 @@ describe("the trip's analytics", () => {
     expect(dashboard.canCustomize).toBe(false);
   });
 
-  it("keeps a link holder's token on the discipline links", async () => {
+  it("builds the discipline links from the trip's own path", async () => {
     const trip = await seedTrip();
-    await db.run(sql`UPDATE user SET trip_visibility = 'private' WHERE id = ${OWNER}`);
-    const link = (await getProfileShareToken(db, OWNER))!;
-    session.userId = STRANGER;
 
-    const tree = await TripAnalyticsPage(props(trip.id, { share: link }));
+    const tree = await TripAnalyticsPage(props(trip.id, { share: "0".repeat(32) }));
     const href = findProp(tree, "href", (node) => "present" in node) as (type: string) => string;
 
-    expect(href("boulder")).toBe(
-      `/users/${OWNER}/trips/${trip.id}/analytics?discipline=boulder&share=${link}`,
-    );
+    expect(href("boulder")).toBe(`/users/${OWNER}/trips/${trip.id}/analytics?discipline=boulder`);
   });
 
   it("passes no per-month average", async () => {

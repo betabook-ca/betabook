@@ -13,7 +13,7 @@ const meta = {
     trip: tripSamples[1],
     userId: "alex",
     viewerId: "alex",
-    shareUrl: "https://betabook.ca/users/alex/trips/2?share=4f9c2a7e1b8d6035c9e4a1f7b2d80e36",
+    ownerShare: { share: null, origin: "https://betabook.ca", isPrivate: false },
     today: TRIPS_TODAY,
     children: (
       <div className={cardClass("fluid")}>
@@ -48,7 +48,7 @@ export const WithFriends: Story = { args: { trip: tripWithFriends } };
 export const TaggedFriend: Story = {
   args: {
     viewerId: "priya",
-    shareUrl: undefined,
+    ownerShare: undefined,
     trip: {
       ...tripWithFriends,
       companions: tripWithFriends.companions.map((friend) => ({
@@ -64,20 +64,33 @@ export const TaggedFriend: Story = {
 export const SendsOnly: Story = {
   args: {
     viewerId: "sam",
-    shareUrl: undefined,
+    ownerShare: undefined,
     trip: { ...tripSamples[1], entryCount: null, dayCount: null },
   },
 };
 
-/** Signed out with a share link. Counts are plain text. */
-export const SignedOut: Story = {
+/** The owner with a live trip link: the button reads Shared. */
+export const OwnerShared: Story = {
+  args: {
+    ownerShare: {
+      share: { token: "8c1d3e5f7a9b0c2d4e6f8a0b1c3d5e7f", expiresAt: "2026-11-18 00:00:00" },
+      origin: "https://betabook.ca",
+      isPrivate: false,
+    },
+  },
+};
+
+/** Opened with the trip's own link, signed in or not: no controls, no back
+ * link, and the counts are plain text apart from the analytics link. Tagged
+ * friends never travel with the link. */
+export const TripLink: Story = {
   args: {
     viewerId: null,
-    shareUrl: undefined,
-    share: "4f9c2a7e1b8d6035c9e4a1f7b2d80e36",
-    trip: { ...tripSamples[1], entryCount: null, dayCount: null },
+    ownerShare: undefined,
+    link: "8c1d3e5f7a9b0c2d4e6f8a0b1c3d5e7f",
+    trip: { ...tripSamples[1], companions: [] },
   },
 };
 
 /** On the analytics page, with a link back to the trip. */
-export const OverAnalytics: Story = { args: { back: "trip", shareUrl: undefined } };
+export const OverAnalytics: Story = { args: { back: "trip", ownerShare: undefined } };

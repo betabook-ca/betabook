@@ -273,21 +273,19 @@ it("reopens an edited trip showing what was saved, not what it used to say", asy
   expect(await screen.findByRole("textbox", { name: /name/i })).toHaveValue("Bishop, take two");
 });
 
-it("adds the share token to trip links for signed-out visitors", () => {
-  const token = "0123456789abcdef0123456789abcdef";
+it("links each trip to its page, without controls, for a visitor", () => {
   render(
     <TripList
       trips={[{ ...past, entryCount: null, dayCount: null }]}
       userId="alex"
       today={TODAY}
       canEdit={false}
-      shareToken={token}
     />,
   );
 
   expect(screen.getByRole("link", { name: "Bishop, March 2026" })).toHaveAttribute(
     "href",
-    `/users/alex/trips/1?share=${token}`,
+    "/users/alex/trips/1",
   );
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
 });

@@ -27,61 +27,34 @@ export function journalVisibleSql(viewerId: string | null, authorId: SQL): SQL {
   return contentVisibleSql(viewerId, authorId, sql`content_owner.journal_visibility`);
 }
 
-/** True if `token` is the owner's current share token and their profile isn't
- * private. */
-function profileLinkSql(token: string | null, ownerId: SQL): SQL {
-  return sql`EXISTS (
-    SELECT 1 FROM profile_share_links link
-    JOIN user link_owner ON link_owner.id = link.user_id
-    WHERE link.token = ${token} AND link.user_id = ${ownerId} AND link_owner.is_private = 0
-  )`;
-}
-
-/** Who can open the owner's trips: their trip audience, plus anyone with the
- * owner's current share link, signed in or not, whatever that audience is. The
- * link is the owner's explicit choice to share, so the audience only governs
- * browsing without it. Gates every trip read. */
-export function tripsVisibleSql(viewerId: string | null, ownerId: SQL, share: string | null): SQL {
-  return sql`(${contentVisibleSql(viewerId, ownerId, sql`content_owner.trip_visibility`)}
-    OR ${profileLinkSql(share, ownerId)})`;
+/** Who can open the owner's trips without a trip link: their trip audience.
+ * Gates every trip read. A trip link is its own door (`tripLinkCoversSql` in
+ * trip-shares.ts) and never widens these reads. */
+export function tripsVisibleSql(viewerId: string | null, ownerId: SQL): SQL {
+  return contentVisibleSql(viewerId, ownerId, sql`content_owner.trip_visibility`);
 }
 
 /** Journal and trip access in one read, for profile pages that need both. Uses
  * the same predicates as the data queries. */
-export async function getProfileAccess(
-  db: Database,
-  ownerId: string,
-  viewerId: string,
-  share: string | null,
-) {
+export async function getProfileAccess(db: Database, ownerId: string, viewerId: string) {
   const row = await db.get<{ journal: number; trips: number }>(sql`SELECT
     ${journalVisibleSql(viewerId, sql`${ownerId}`)} AS journal,
-    ${tripsVisibleSql(viewerId, sql`${ownerId}`, share)} AS trips`);
+    ${tripsVisibleSql(viewerId, sql`${ownerId}`)} AS trips`);
   return { journal: row?.journal === 1, trips: row?.trips === 1 };
 }
 
 /** Uses the same predicate as every trip read. */
-export async function canReadTrips(
-  db: Database,
-  ownerId: string,
-  viewerId: string | null,
-  share: string | null = null,
-) {
+export async function canReadTrips(db: Database, ownerId: string, viewerId: string | null) {
   const row = await db.get<{ visible: number }>(
-    sql`SELECT ${tripsVisibleSql(viewerId, sql`${ownerId}`, share)} AS visible`,
+    sql`SELECT ${tripsVisibleSql(viewerId, sql`${ownerId}`)} AS visible`,
   );
   return row?.visible === 1;
 }
 
-/** Trip notes are visible to the owner, their friends, and anyone with the
- * owner's share link, signed in or not. The journal audience doesn't apply. */
-export function tripNotesVisibleSql(
-  viewerId: string | null,
-  authorId: SQL,
-  share: string | null,
-): SQL {
-  return sql`(${contentVisibleSql(viewerId, authorId, sql`'friends'`)}
-    OR ${profileLinkSql(share, authorId)})`;
+/** Trip notes are visible to the owner and their friends. The journal audience
+ * doesn't apply. A trip link shows its own trip's notes (`getSharedTrip`). */
+export function tripNotesVisibleSql(viewerId: string | null, authorId: SQL): SQL {
+  return contentVisibleSql(viewerId, authorId, sql`'friends'`);
 }
 
 export function sendCommentVisibleSql(viewerId: string | null, authorId: SQL): SQL {

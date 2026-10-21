@@ -11,6 +11,7 @@ import { journalVisibleSql, sendCommentVisibleSql } from "./content-access";
 import { journalHashtagsCondition } from "./hashtag-filter";
 import { companionsJsonSql } from "./journal-companions";
 import { parseVideoList } from "./send-videos";
+import { tripLinkCoversSql } from "./trip-shares";
 
 export type JournalEntry = {
   id: number;
@@ -134,7 +135,9 @@ function filterConditions(filter: JournalFilter, viewerId: string | null): SQL[]
   return conditions;
 }
 
-function journalEntrySelect(viewerId: string | null): SQL {
+/** `companions: false` selects none: for a shared trip, whose readers the
+ * tagged friends never agreed to be named to. */
+function journalEntrySelect(viewerId: string | null, { companions = true } = {}): SQL {
   return sql`
     SELECT
       j.id AS id,
@@ -144,7 +147,7 @@ function journalEntrySelect(viewerId: string | null): SQL {
       j.entry_date AS entryDate,
       ${visibleBody(viewerId)} AS body,
       j.tags AS tags,
-      ${companionsJsonSql(viewerId, sql`j.id`)} AS companions,
+      ${companions ? companionsJsonSql(viewerId, sql`j.id`) : sql`'[]'`} AS companions,
       climbs.name AS climbName,
       climbs.type AS climbType,
       climbs.grade AS climbGrade,
@@ -206,6 +209,28 @@ export async function getJournalPage(
     hasMore,
     nextCursor: hasMore && last ? { entryDate: last.entryDate, id: last.id } : null,
   };
+}
+
+/** A shared trip's journal entries, newest first: the owner's own rows, as
+ * the owner's trip page reads them, minus companion tags. The link overrides
+ * the journal and commentary audiences for this trip, so entries are selected
+ * with the owner as the viewer; whether the link is live, and the trip's
+ * dates, are checked in the WHERE (`tripLinkCoversSql`). */
+export async function getSharedTripEntries(
+  db: Database,
+  token: string,
+  ownerId: string,
+  pageSize: number,
+): Promise<{ entries: JournalEntry[]; hasMore: boolean }> {
+  const rows = await db.all<JournalEntryRow>(sql`
+    ${journalEntrySelect(ownerId, { companions: false })}
+    WHERE j.user_id = ${ownerId}
+      AND ${tripLinkCoversSql(token, sql`j.user_id`, sql`j.entry_date`)}
+    ORDER BY j.entry_date DESC, j.id DESC
+    LIMIT ${pageSize + 1}
+  `);
+  const hasMore = rows.length > pageSize;
+  return { entries: (hasMore ? rows.slice(0, pageSize) : rows).map(toJournalEntry), hasMore };
 }
 
 const CLIMB_JOURNAL_ENTRY_LIMIT = 4;
@@ -283,6 +308,27 @@ export async function getJournalSessionsForAnalytics(
     JOIN climbs ON climbs.id = j.climb_id
     WHERE j.user_id = ${ownerId} AND ${journalVisibleSql(viewerId, sql`j.user_id`)} AND j.kind = 'session'
       ${tags?.length ? sql`AND ${journalHashtagsCondition(tags, sql`j.tags`)}` : sql``}
+    GROUP BY j.entry_date, climbs.type
+    ORDER BY j.entry_date, climbs.type
+  `);
+}
+
+/** A shared trip's sessions for analytics: `getJournalSessionsForAnalytics`'s
+ * rows, limited in SQL to the trip's dates while the link is live. */
+export async function getSharedTripAnalyticsSessions(
+  db: Database,
+  token: string,
+  ownerId: string,
+): Promise<AnalyticsSessionRow[]> {
+  return db.all<AnalyticsSessionRow>(sql`
+    SELECT
+      j.entry_date AS entryDate,
+      climbs.type AS climbType,
+      COUNT(*) AS count
+    FROM journal_entries j
+    JOIN climbs ON climbs.id = j.climb_id
+    WHERE j.user_id = ${ownerId} AND j.kind = 'session'
+      AND ${tripLinkCoversSql(token, sql`j.user_id`, sql`j.entry_date`)}
     GROUP BY j.entry_date, climbs.type
     ORDER BY j.entry_date, climbs.type
   `);

@@ -64,7 +64,7 @@ Social seeding assigns a repeatable mix of profile, send commentary, and journal
 | `climber3@example.com` | Members | Members                  | Only me                  |
 | `climber4@example.com` | Private | Only me (saved: Members) | Only me (saved: Members) |
 
-The development account and the first twelve climbers also have trips: several days at one crag with sessions and sends, notes, and tagged friends. The development account has a long trip, a weekend, a single day, a road trip that overlaps all three, and an upcoming trip. Trips are dated after the rest of the seeded history, so no other sends fall inside them. They also exercise visibility: trips follow the sends and journal audiences, and notes are visible to friends and profile link holders.
+The development account and the first twelve climbers also have trips: several days at one crag with sessions and sends, notes, and tagged friends. The development account has a long trip, a weekend, a single day, a road trip that overlaps all three, and an upcoming trip. Trips are dated after the rest of the seeded history, so no other sends fall inside them. They also exercise visibility: trips follow the Trips audience, journal entries and tagged friends the journal audience, and notes are visible to friends. Seeded trips have no share links; create one from a trip's Share button.
 
 Some seeded sends link videos. They cover YouTube videos and Shorts, Instagram reels and posts, a start time, and a send with five videos. Videos follow the send commentary audience.
 
