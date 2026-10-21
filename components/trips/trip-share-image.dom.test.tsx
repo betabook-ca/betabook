@@ -162,11 +162,38 @@ it("shows only the latest preview when draws finish out of order", async () => {
   // The sticker draw stalls; switching back to story draws again and wins.
   await user.click(within(dialog).getByRole("button", { name: "Sticker" }));
   await user.click(within(dialog).getByRole("button", { name: /^Story/ }));
-  const latest = await within(dialog).findByRole("img", { name: /^Preview/ });
-  const src = latest.getAttribute("src");
+  await waitFor(() => expect(screen.getByRole("button", { name: "Download" })).toBeEnabled());
+  const preview = within(dialog).getByRole("img", { name: /^Preview/ });
+  // The first draw made preview-1; the third, which won, made preview-2.
+  expect(preview).toHaveAttribute("src", "blob:preview-2");
+
   resolveSlow(new Blob(["stale"]));
-  await waitFor(() => expect(renderImage).toHaveBeenCalledTimes(3));
-  expect(within(dialog).getByRole("img", { name: /^Preview/ })).toHaveAttribute("src", src);
+  await Promise.resolve();
+  expect(preview).toHaveAttribute("src", "blob:preview-2");
+  expect(screen.getByRole("button", { name: "Download" })).toBeEnabled();
+});
+
+it("keeps the last preview up while the next one draws", async () => {
+  const user = userEvent.setup();
+  let finish: (blob: Blob) => void = () => {};
+  render(<TripShareImage content={CONTENT} stats={STATS} render={renderImage} />);
+  const dialog = await open(user);
+  const preview = within(dialog).getByRole("img", { name: /^Preview/ });
+  renderImage.mockImplementationOnce(() => new Promise<Blob>((resolve) => (finish = resolve)));
+
+  await user.click(within(dialog).getByRole("checkbox", { name: "Sends" }));
+  // Same image, still on screen; the actions wait for the new one.
+  expect(preview).toBeInTheDocument();
+  expect(preview).toHaveAttribute("src", "blob:preview-1");
+  expect(preview.closest("[aria-busy]")).toHaveAttribute("aria-busy", "true");
+  expect(screen.getByRole("button", { name: "Download" })).toBeDisabled();
+
+  finish(new Blob(["next"]));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Download" })).toBeEnabled());
+  expect(within(dialog).getByRole("img", { name: /^Preview/ })).toHaveAttribute(
+    "src",
+    "blob:preview-2",
+  );
 });
 
 it("copies the image where the browser supports it", async () => {

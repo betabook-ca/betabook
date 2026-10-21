@@ -1,5 +1,6 @@
 import type { AnalyticsCardId } from "@/lib/analytics-layout";
 import { SITE_URL } from "@/lib/site";
+import { slugify } from "@/lib/slug";
 
 /** `story` fills a 9:16 phone story with clear space in the middle for the
  * photo underneath. `sticker` is only as tall as its content. */
@@ -78,26 +79,35 @@ const WATERMARK = new URL(SITE_URL).host;
 
 const font = (weight: number, size: number, family: string) => `${weight} ${size}px ${family}`;
 
+let segmenter: Intl.Segmenter | undefined;
+
+/** The characters a reader sees, so a cut never splits an emoji such as
+ * "🧗‍♀️" into broken pieces. Firefox before 125 has no `Intl.Segmenter`; code
+ * points there still keep two-part emoji whole. */
+export function graphemes(text: string): string[] {
+  if (typeof Intl.Segmenter !== "function") return Array.from(text);
+  segmenter ??= new Intl.Segmenter(undefined, { granularity: "grapheme" });
+  return Array.from(segmenter.segment(text), (part) => part.segment);
+}
+
 /** Cuts `text` to `maxWidth`, ending it with an ellipsis if anything was cut. */
 export function fitText(text: string, maxWidth: number, font: string, measure: MeasureText) {
   if (measure(text, font) <= maxWidth) return text;
-  let end = text.length;
-  while (end > 0 && measure(`${text.slice(0, end).trimEnd()}…`, font) > maxWidth) end -= 1;
-  return `${text.slice(0, end).trimEnd()}…`;
+  const parts = graphemes(text);
+  const cut = (end: number) => `${parts.slice(0, end).join("").trimEnd()}…`;
+  let end = parts.length;
+  while (end > 0 && measure(cut(end), font) > maxWidth) end -= 1;
+  return cut(end);
 }
 
 /** Width of text drawn one character at a time with `tracking` between
  * characters, the way `drawShareImage` draws tracked text. */
 export function trackedMeasure(tracking: number, measure: MeasureText): MeasureText {
   return (text, spec) => {
-    // Iterates like the draw loop, so both split the text the same way.
-    let width = 0;
-    let count = 0;
-    for (const char of text) {
-      width += measure(char, spec);
-      count += 1;
-    }
-    return width + tracking * Math.max(0, count - 1);
+    // Splits like the draw loop, so both see the same characters.
+    const parts = graphemes(text);
+    const width = parts.reduce((total, part) => total + measure(part, spec), 0);
+    return width + tracking * Math.max(0, parts.length - 1);
   };
 }
 
@@ -313,9 +323,30 @@ export function layoutShareImage(
   };
 }
 
+/** "Été à Fontainebleau" saves as "ete-a-fontainebleau-story.png". */
+export function shareImageFileName(title: string, format: ShareImageFormat) {
+  return `${slugify(title) || "trip"}-${format}.png`;
+}
+
+/** The image's size without measuring any text, for a placeholder of the
+ * right shape. A description counts as one line. */
+export function estimateShareImageSize(content: ShareImageContent, format: ShareImageFormat) {
+  const { width, height } = layoutShareImage(content, format, { sans: "", display: "" }, () => 0);
+  return { width, height };
+}
+
+let fontsReady: Promise<ShareImageFonts> | undefined;
+
+/** Loaded once per page; every redraw after the first reuses the result. */
+function loadShareFonts(): Promise<ShareImageFonts> {
+  fontsReady ??= resolveShareFonts();
+  return fontsReady;
+}
+
 /** Next/font gives each family a hashed name, so read the real names from
- * the variables it sets on `<html>`. */
-async function loadShareFonts(): Promise<ShareImageFonts> {
+ * the variables it sets on `<html>`. A font that fails to load falls back to
+ * the next family in the stack rather than failing the draw. */
+async function resolveShareFonts(): Promise<ShareImageFonts> {
   const style = getComputedStyle(document.documentElement);
   const sans = style.getPropertyValue("--font-geist-sans").trim() || "system-ui, sans-serif";
   const display = style.getPropertyValue("--font-barlow-condensed").trim() || sans;
@@ -351,7 +382,7 @@ function drawShareImage(context: CanvasRenderingContext2D, layout: ShareImageLay
       continue;
     }
     let x = op.x;
-    for (const char of op.text) {
+    for (const char of graphemes(op.text)) {
       context.fillText(char, x, op.y);
       x += context.measureText(char).width + op.tracking;
     }

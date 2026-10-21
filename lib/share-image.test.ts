@@ -4,8 +4,11 @@ import {
   MAX_SHARE_STATS,
   SHARE_IMAGE_WIDTH,
   STORY_HEIGHT,
+  estimateShareImageSize,
   fitText,
+  graphemes,
   layoutShareImage,
+  shareImageFileName,
   readShareStats,
   statCardRects,
   toggleShareStat,
@@ -206,6 +209,50 @@ describe("text fitting", () => {
     );
     const label = ops.find((op) => op.kind === "text" && op.tracking);
     expect(label?.kind === "text" && label.text.endsWith("…")).toBe(true);
+  });
+});
+
+describe("emoji", () => {
+  const CLIMBER = "🧗‍♀️"; // five UTF-16 units joined into one character
+
+  it("splits text into the characters a reader sees", () => {
+    expect(graphemes(`${CLIMBER}🔥a`)).toEqual([CLIMBER, "🔥", "a"]);
+  });
+
+  it("never cuts through an emoji", () => {
+    // 7 units of room: the climber and the ellipsis fit, half a flame doesn't.
+    expect(fitText(`${CLIMBER}🔥🔥`, 35, "10px Sans", measure)).toBe(`${CLIMBER}…`);
+  });
+
+  it("spaces tracked text by whole characters", () => {
+    const width = trackedMeasure(4, measure)(`${CLIMBER}A`, "10px Sans");
+    // 6 units of glyphs plus one 4px gap between the two characters.
+    expect(width).toBe(6 * 5 + 4);
+  });
+});
+
+describe("shareImageFileName", () => {
+  it.each([
+    ["Été à Fontainebleau", "story", "ete-a-fontainebleau-story.png"],
+    ["Arco 2026", "sticker", "arco-2026-sticker.png"],
+    ["🧗‍♀️", "story", "trip-story.png"],
+  ] as const)("names %j as %s", (title, format, expected) => {
+    expect(shareImageFileName(title, format)).toBe(expected);
+  });
+});
+
+describe("estimateShareImageSize", () => {
+  it("matches the drawn size, so the placeholder has the image's shape", () => {
+    expect(estimateShareImageSize(CONTENT, "story")).toEqual({ width: 1080, height: STORY_HEIGHT });
+    const four = estimateShareImageSize(CONTENT, "sticker");
+    expect(four).toEqual({
+      width: 1080,
+      height: layoutShareImage(CONTENT, "sticker", FONTS, measure).height,
+    });
+    // A sticker is close to square, not 4:3, and shorter with fewer stats.
+    expect(four.height / four.width).toBeGreaterThan(0.9);
+    const two = estimateShareImageSize({ ...CONTENT, stats: STATS.slice(0, 2) }, "sticker");
+    expect(two.height).toBeLessThan(four.height);
   });
 });
 

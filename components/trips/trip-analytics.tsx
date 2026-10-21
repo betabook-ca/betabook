@@ -1,5 +1,3 @@
-import type { ReactNode } from "react";
-
 import { AnalyticsDashboard, buildStatTiles } from "@/components/analytics-dashboard";
 import { DisciplineScopeNav } from "@/components/discipline-scope-nav";
 import { TripShareImage } from "@/components/trips/trip-share-image";
@@ -15,7 +13,6 @@ import {
   inDateWindow,
   parseDisciplineScope,
   resolveDisciplineScope,
-  type UserAnalytics,
 } from "@/lib/user-analytics";
 
 const NO_YEARS: number[] = [];
@@ -68,6 +65,8 @@ export async function TripAnalytics({
     // A per-month average isn't meaningful for a trip.
     daysPerMonth: null,
   };
+  // Shared with the share image, so its tiles always match the page's.
+  const highlights = buildAnalyticsHighlights([], scope, NO_YEARS);
   const disciplineNav = (
     <DisciplineScopeNav present={present} scope={scope} href={disciplineHref} />
   );
@@ -82,6 +81,7 @@ export async function TripAnalytics({
       canCustomize={false}
       initialLayout={TRIP_ANALYTICS_LAYOUT}
       analytics={analytics}
+      highlights={highlights}
       sends={rows}
       // The date filter already excludes undated sends.
       undatedCount={0}
@@ -95,7 +95,7 @@ export async function TripAnalytics({
             <div className="ml-auto">
               <TripShareImage
                 content={shareImage}
-                stats={shareImageStats(analytics, scope, journalVisible)}
+                stats={shareImageStats({ analytics, highlights, scope, journalVisible })}
               />
             </div>
           </div>
@@ -107,29 +107,13 @@ export async function TripAnalytics({
   );
 }
 
-/** The page's stat cards as plain strings, so they can cross to the client.
- * Built from the same tiles as the page, with the dashboard's default
- * highlights. */
-function shareImageStats(
-  analytics: UserAnalytics,
-  scope: ClimbType,
-  journalVisible: boolean,
-): ShareStat[] {
-  const tiles = buildStatTiles({
-    analytics,
-    highlights: buildAnalyticsHighlights([], scope, NO_YEARS),
-    scope,
-    journalVisible,
-  });
+/** The page's stat cards, built from the same inputs as the dashboard's. */
+function shareImageStats(input: Parameters<typeof buildStatTiles>[0]): ShareStat[] {
+  const tiles = buildStatTiles(input);
   return TRIP_ANALYTICS_LAYOUT.cards.map((id) => ({
     id,
     label: tiles[id].label,
-    value: plainText(tiles[id].value) ?? "—",
-    sub: plainText(tiles[id].sub),
+    value: String(tiles[id].value),
+    sub: tiles[id].sub ?? null,
   }));
-}
-
-/** Tile values are typed as nodes, but every trip tile uses text or a number. */
-function plainText(node: ReactNode): string | null {
-  return typeof node === "string" || typeof node === "number" ? String(node) : null;
 }

@@ -14,9 +14,11 @@ import { openShareSheet, useNativeShare } from "@/hooks/use-native-share";
 import type { AnalyticsCardId } from "@/lib/analytics-layout";
 import { downloadBlob } from "@/lib/download";
 import {
+  estimateShareImageSize,
   MAX_SHARE_STATS,
   readShareStats,
   renderShareImage,
+  shareImageFileName,
   toggleShareStat,
   type ShareImageContent,
   type ShareImageFormat,
@@ -41,14 +43,6 @@ const CHECKERBOARD_STYLE = {
 };
 
 type Preview = { blob: Blob; url: string };
-
-function fileName(title: string, format: ShareImageFormat) {
-  const slug = title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-  return `${slug || "trip"}-${format}.png`;
-}
 
 function canCopyImage() {
   return typeof ClipboardItem !== "undefined" && typeof navigator.clipboard?.write === "function";
@@ -118,6 +112,7 @@ export function TripShareImage({
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [drawFailed, setDrawFailed] = useState(false);
+  const [pending, setPending] = useState(false);
   const statsLabelId = useId();
 
   // Only the latest draw may set the preview; an earlier one can finish
@@ -135,7 +130,13 @@ export function TripShareImage({
     };
   }, []);
 
-  const chosen = stats.filter((stat) => selected.includes(stat.id));
+  function imageContent(options: DrawOptions): ShareImageContent {
+    return {
+      ...content,
+      description: options.description ? content.description : null,
+      stats: stats.filter((stat) => options.ids.includes(stat.id)),
+    };
+  }
 
   function replacePreview(next: Preview | null) {
     if (urlRef.current) URL.revokeObjectURL(urlRef.current);
@@ -151,27 +152,34 @@ export function TripShareImage({
     if (state.isOpen) return;
     drawRef.current += 1;
     replacePreview(null);
+    setPending(false);
   }
 
+  /** The last preview stays up, dimmed, until the next one is ready, so the
+   * dialog doesn't flash a placeholder on every toggle. The actions wait for
+   * the new image, so what gets shared always matches the controls. */
   async function draw(options: DrawOptions) {
     const id = (drawRef.current += 1);
-    replacePreview(null);
     setNotice(null);
     setError(null);
     setDrawFailed(false);
-    if (options.ids.length === 0) return;
+    if (options.ids.length === 0) {
+      replacePreview(null);
+      setPending(false);
+      return;
+    }
+    setPending(true);
     try {
-      const blob = await render(
-        {
-          ...content,
-          description: options.description ? content.description : null,
-          stats: stats.filter((stat) => options.ids.includes(stat.id)),
-        },
-        options.format,
-      );
-      if (id === drawRef.current) replacePreview({ blob, url: URL.createObjectURL(blob) });
+      const blob = await render(imageContent(options), options.format);
+      if (id !== drawRef.current) return;
+      replacePreview({ blob, url: URL.createObjectURL(blob) });
+      setPending(false);
     } catch {
-      if (id === drawRef.current) setDrawFailed(true);
+      if (id !== drawRef.current) return;
+      // An older image would pass for the current choice.
+      replacePreview(null);
+      setDrawFailed(true);
+      setPending(false);
     }
   }
 
@@ -213,7 +221,7 @@ export function TripShareImage({
     setError(null);
     try {
       await openShareSheet({
-        files: [new File([blob], fileName(content.title, format), { type: "image/png" })],
+        files: [new File([blob], shareImageFileName(content.title, format), { type: "image/png" })],
         title: content.title,
       });
     } catch {
@@ -233,8 +241,9 @@ export function TripShareImage({
     }
   }
 
-  const blob = chosen.length ? preview?.blob : undefined;
+  const blob = pending ? undefined : preview?.blob;
   const atLimit = selected.length >= MAX_SHARE_STATS;
+  const placeholder = estimateShareImageSize(imageContent(current), format);
 
   return (
     <>
@@ -269,7 +278,7 @@ export function TripShareImage({
             <Button
               variant="outline"
               isDisabled={!blob}
-              onPress={() => blob && downloadBlob(blob, fileName(content.title, format))}
+              onPress={() => blob && downloadBlob(blob, shareImageFileName(content.title, format))}
             >
               <Download aria-hidden="true" className="size-4" />
               Download
@@ -287,8 +296,11 @@ export function TripShareImage({
 
           {/* The checkerboard is on the image, so it shows the PNG's edges.
            * A fixed story height keeps the stat list from jumping on redraw. */}
-          <div className="flex justify-center rounded-xl bg-surface-secondary p-3">
-            {chosen.length === 0 ? (
+          <div
+            className="flex justify-center rounded-xl bg-surface-secondary p-3"
+            aria-busy={pending}
+          >
+            {selected.length === 0 ? (
               <p className="py-16 text-sm text-muted">Choose at least one stat.</p>
             ) : preview ? (
               // An object URL, which next/image can't optimize.
@@ -297,8 +309,9 @@ export function TripShareImage({
                 src={preview.url}
                 alt="Preview: trip header and selected stats"
                 className={clsx(
-                  "rounded-md",
+                  "rounded-md transition-opacity",
                   format === "story" ? "h-[36vh] w-auto" : "h-auto w-full",
+                  pending && "opacity-60",
                 )}
                 style={CHECKERBOARD_STYLE}
               />
@@ -310,10 +323,14 @@ export function TripShareImage({
                 </Button>
               </div>
             ) : (
-              <Skeleton
-                className={format === "story" ? "aspect-[9/16] h-[36vh]" : "aspect-[4/3] w-full"}
-                tone="raised"
-              />
+              // Shaped like the image it stands in for, so the stat list
+              // below doesn't move when the preview arrives.
+              <div
+                className={format === "story" ? "h-[36vh]" : "w-full"}
+                style={{ aspectRatio: `${placeholder.width} / ${placeholder.height}` }}
+              >
+                <Skeleton className="size-full" tone="raised" />
+              </div>
             )}
           </div>
 
