@@ -9,6 +9,7 @@ import {
   readShareStats,
   statCardRects,
   toggleShareStat,
+  trackedMeasure,
   wrapText,
   type ShareImageContent,
   type ShareImageOp,
@@ -168,6 +169,43 @@ describe("text fitting", () => {
       2,
     );
     expect(lines).toEqual(["one two", "three four…"]);
+  });
+
+  it("cuts a word too wide for its line, not only the last line", () => {
+    const lines = wrapText(
+      "https://example.com/a/very/long/path then more",
+      60,
+      "10px Sans",
+      measure,
+      2,
+    );
+    expect(lines).toEqual(["https://exa…", "then more"]);
+  });
+
+  it("counts letter spacing when cutting a label", () => {
+    // 20 characters at 15px fit in 374px untracked, but 19 gaps of 4px don't.
+    const label = "PERSISTENCE PAID OFF";
+    expect(fitText(label, 374, "30px Sans", measure)).toBe(label);
+    const cut = fitText(label, 374, "30px Sans", trackedMeasure(4, measure));
+    expect(cut.endsWith("…")).toBe(true);
+    expect(trackedMeasure(4, measure)(cut, "30px Sans")).toBeLessThanOrEqual(374);
+  });
+
+  it("cuts a long label to fit inside a half-width card", () => {
+    const { ops } = layoutShareImage(
+      {
+        ...CONTENT,
+        stats: [
+          { id: "persistence", label: "Persistence paid off", value: "3", sub: null },
+          STATS[1],
+        ],
+      },
+      "sticker",
+      FONTS,
+      measure,
+    );
+    const label = ops.find((op) => op.kind === "text" && op.tracking);
+    expect(label?.kind === "text" && label.text.endsWith("…")).toBe(true);
   });
 });
 

@@ -65,6 +65,7 @@ const CARD_GAP = 28;
 const CARD_HEIGHT = 270;
 const CARD_PAD = 40;
 const SECTION_GAP = 56;
+const LABEL_TRACKING = 4;
 
 const WHITE = "#ffffff";
 const MUTED = "rgba(255, 255, 255, 0.78)";
@@ -85,8 +86,23 @@ export function fitText(text: string, maxWidth: number, font: string, measure: M
   return `${text.slice(0, end).trimEnd()}…`;
 }
 
+/** Width of text drawn one character at a time with `tracking` between
+ * characters, the way `drawShareImage` draws tracked text. */
+export function trackedMeasure(tracking: number, measure: MeasureText): MeasureText {
+  return (text, spec) => {
+    // Iterates like the draw loop, so both split the text the same way.
+    let width = 0;
+    let count = 0;
+    for (const char of text) {
+      width += measure(char, spec);
+      count += 1;
+    }
+    return width + tracking * Math.max(0, count - 1);
+  };
+}
+
 /** Greedy word wrap. The last allowed line takes the rest, cut with an
- * ellipsis. */
+ * ellipsis, and any line holding a word too wide to fit is cut too. */
 export function wrapText(
   text: string,
   maxWidth: number,
@@ -107,7 +123,7 @@ export function wrapText(
       const rest = [line, ...words.slice(index)].join(" ");
       return [...lines, fitText(rest, maxWidth, font, measure)];
     }
-    lines.push(line);
+    lines.push(fitText(line, maxWidth, font, measure));
     line = word;
   }
   if (line) lines.push(fitText(line, maxWidth, font, measure));
@@ -227,12 +243,17 @@ function statOps(
       { kind: "rect", ...rect, radius: 32, fill: CARD_FILL },
       {
         kind: "text",
-        text: fitText(stat.label.toUpperCase(), inner, labelFont, measure),
+        text: fitText(
+          stat.label.toUpperCase(),
+          inner,
+          labelFont,
+          trackedMeasure(LABEL_TRACKING, measure),
+        ),
         x,
         y: rect.y + CARD_PAD,
         font: labelFont,
         color: MUTED,
-        tracking: 4,
+        tracking: LABEL_TRACKING,
       },
       {
         kind: "text",

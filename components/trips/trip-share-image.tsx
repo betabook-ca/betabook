@@ -3,7 +3,7 @@
 import { Button, Checkbox, useOverlayState } from "@heroui/react";
 import { clsx } from "clsx";
 import { Copy, Download, ImageDown, Share2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { EYEBROW_CLASS } from "@/components/ui/eyebrow";
 import { InlineAlert } from "@/components/ui/inline-alert";
@@ -117,11 +117,23 @@ export function TripShareImage({
   const [abilities, setAbilities] = useState({ copy: false, share: false });
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [drawFailed, setDrawFailed] = useState(false);
+  const statsLabelId = useId();
 
   // Only the latest draw may set the preview; an earlier one can finish
   // after it.
   const drawRef = useRef(0);
   const urlRef = useRef<string | null>(null);
+
+  // A full-size PNG stays in memory until its URL is revoked.
+  useEffect(() => {
+    const draws = drawRef;
+    const urls = urlRef;
+    return () => {
+      draws.current += 1;
+      if (urls.current) URL.revokeObjectURL(urls.current);
+    };
+  }, []);
 
   const chosen = stats.filter((stat) => selected.includes(stat.id));
 
@@ -131,11 +143,22 @@ export function TripShareImage({
     setPreview(next);
   }
 
+  /** Drops the preview once the dialog has slid away, and ignores any draw
+   * still running. */
+  function release() {
+    // A quick reopen runs the last close's reset after the new draw starts;
+    // that draw must survive.
+    if (state.isOpen) return;
+    drawRef.current += 1;
+    replacePreview(null);
+  }
+
   async function draw(options: DrawOptions) {
     const id = (drawRef.current += 1);
     replacePreview(null);
     setNotice(null);
     setError(null);
+    setDrawFailed(false);
     if (options.ids.length === 0) return;
     try {
       const blob = await render(
@@ -148,7 +171,7 @@ export function TripShareImage({
       );
       if (id === drawRef.current) replacePreview({ blob, url: URL.createObjectURL(blob) });
     } catch {
-      if (id === drawRef.current) setError("Couldn't draw the image. Try again.");
+      if (id === drawRef.current) setDrawFailed(true);
     }
   }
 
@@ -175,6 +198,10 @@ export function TripShareImage({
     setWithDescription(description);
     savePreference(SHARE_DESCRIPTION_STORAGE_KEY, String(description));
     void draw({ ...current, description });
+  }
+
+  function retry() {
+    void draw(current);
   }
 
   function changeFormat(next: ShareImageFormat) {
@@ -220,6 +247,7 @@ export function TripShareImage({
         state={state}
         title="Share as image"
         size="md"
+        onClose={release}
         footer={
           <div className="flex w-full flex-wrap justify-end gap-2">
             {abilities.share && (
@@ -274,6 +302,13 @@ export function TripShareImage({
                 )}
                 style={CHECKERBOARD_STYLE}
               />
+            ) : drawFailed ? (
+              <div role="alert" className="flex flex-col items-center gap-3 py-16">
+                <p className="text-sm text-danger">Couldn't draw the image.</p>
+                <Button size="sm" variant="outline" onPress={retry}>
+                  Try again
+                </Button>
+              </div>
             ) : (
               <Skeleton
                 className={format === "story" ? "aspect-[9/16] h-[36vh]" : "aspect-[4/3] w-full"}
@@ -282,9 +317,13 @@ export function TripShareImage({
             )}
           </div>
 
-          <fieldset className="flex flex-col gap-2">
+          {/* A labelled group, not a fieldset: a legend must be the
+           * fieldset's first child, which would put the count on its own row. */}
+          <div role="group" aria-labelledby={statsLabelId} className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between gap-3">
-              <legend className={EYEBROW_CLASS}>Stats</legend>
+              <span id={statsLabelId} className={EYEBROW_CLASS}>
+                Stats
+              </span>
               <span className="text-xs text-muted" aria-live="polite">
                 {selected.length} of {MAX_SHARE_STATS} selected
               </span>
@@ -309,7 +348,7 @@ export function TripShareImage({
                 );
               })}
             </div>
-          </fieldset>
+          </div>
 
           {content.description && (
             <Checkbox isSelected={withDescription} onChange={toggleDescription}>

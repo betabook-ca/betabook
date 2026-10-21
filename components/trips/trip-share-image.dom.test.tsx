@@ -191,13 +191,57 @@ it("copies the image where the browser supports it", async () => {
   expect(within(dialog).getByRole("status")).toHaveTextContent("Copied.");
 });
 
-it("reports a failed draw", async () => {
+it("replaces the loading state with a retry when a draw fails", async () => {
   const user = userEvent.setup();
-  renderImage.mockRejectedValue(new Error("no canvas"));
+  renderImage.mockRejectedValueOnce(new Error("no canvas"));
   render(<TripShareImage content={CONTENT} stats={STATS} render={renderImage} />);
   await user.click(screen.getByRole("button", { name: "Share image" }));
   const dialog = await screen.findByRole("dialog", { name: "Share as image" });
-  expect(await within(dialog).findByText("Couldn't draw the image. Try again.")).toBeVisible();
+
+  expect(await within(dialog).findByRole("alert")).toHaveTextContent("Couldn't draw the image.");
   expect(screen.getByRole("button", { name: "Download" })).toBeDisabled();
-  expect(screen.queryByRole("button", { name: "Copy" })).not.toBeInTheDocument();
+
+  await user.click(within(dialog).getByRole("button", { name: "Try again" }));
+  await within(dialog).findByRole("img", { name: /^Preview/ });
+  expect(within(dialog).queryByRole("alert")).not.toBeInTheDocument();
+  expect(renderImage).toHaveBeenCalledTimes(2);
+  expect(screen.getByRole("button", { name: "Download" })).toBeEnabled();
+});
+
+it("releases the preview when the dialog closes", async () => {
+  const user = userEvent.setup();
+  const revoke = vi.fn<(url: string) => void>();
+  Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: revoke });
+  render(<TripShareImage content={CONTENT} stats={STATS} render={renderImage} />);
+  const dialog = await open(user);
+  const src = within(dialog)
+    .getByRole("img", { name: /^Preview/ })
+    .getAttribute("src");
+
+  await user.keyboard("{Escape}");
+  await waitFor(() => expect(revoke).toHaveBeenCalledWith(src));
+});
+
+it("releases the preview when it unmounts", async () => {
+  const user = userEvent.setup();
+  const revoke = vi.fn<(url: string) => void>();
+  Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: revoke });
+  const { unmount } = render(
+    <TripShareImage content={CONTENT} stats={STATS} render={renderImage} />,
+  );
+  const dialog = await open(user);
+  const src = within(dialog)
+    .getByRole("img", { name: /^Preview/ })
+    .getAttribute("src");
+
+  unmount();
+  expect(revoke).toHaveBeenCalledWith(src);
+});
+
+it("names the stat group", async () => {
+  const user = userEvent.setup();
+  render(<TripShareImage content={CONTENT} stats={STATS} render={renderImage} />);
+  const dialog = await open(user);
+  const group = within(dialog).getByRole("group", { name: "Stats" });
+  expect(within(group).getAllByRole("checkbox")).toHaveLength(STATS.length);
 });
