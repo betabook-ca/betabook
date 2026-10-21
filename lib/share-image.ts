@@ -61,7 +61,7 @@ export const STORY_HEIGHT = 1920;
 const PAD = 72;
 /** Story apps put their own controls in the top and bottom bands. */
 const STORY_TOP = 200;
-const STORY_BOTTOM = 120;
+const STORY_BOTTOM = 200;
 const CARD_GAP = 28;
 const CARD_HEIGHT = 270;
 const CARD_PAD = 40;

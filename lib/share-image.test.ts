@@ -50,9 +50,9 @@ describe("layoutShareImage", () => {
     const layout = layoutShareImage(CONTENT, "story", FONTS, measure);
     expect(layout).toMatchObject({ width: SHARE_IMAGE_WIDTH, height: STORY_HEIGHT });
     const lastCard = cards(layout.ops).at(-1);
-    // Below the middle of the frame; the watermark ends 120px above the bottom.
+    // Below the middle of the frame; the watermark ends 200px above the bottom, clear of a story reply bar.
     expect(lastCard?.y).toBeGreaterThan(STORY_HEIGHT / 2);
-    expect((lastCard?.y ?? 0) + 270 + 32 + 28).toBe(STORY_HEIGHT - 120);
+    expect((lastCard?.y ?? 0) + 270 + 32 + 28).toBe(STORY_HEIGHT - 200);
   });
 
   it("makes a sticker only as tall as its content", () => {
