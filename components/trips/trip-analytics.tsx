@@ -1,10 +1,13 @@
-import { AnalyticsDashboard } from "@/components/analytics-dashboard";
+import { AnalyticsDashboard, buildStatTiles } from "@/components/analytics-dashboard";
 import { DisciplineScopeNav } from "@/components/discipline-scope-nav";
+import { TripShareImage } from "@/components/trips/trip-share-image";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { AnalyticsSendRow, AnalyticsSessionRow } from "@/db/queries";
+import { buildAnalyticsHighlights } from "@/lib/analytics-highlights";
 import { TRIP_ANALYTICS_LAYOUT } from "@/lib/analytics-layout";
 import type { ClimbType } from "@/lib/grades";
 import { getViewerGradePreferences } from "@/lib/session";
+import type { ShareImageContent, ShareStat } from "@/lib/share-image";
 import {
   buildUserAnalytics,
   inDateWindow,
@@ -30,6 +33,7 @@ export async function TripAnalytics({
   sessions: allSessions,
   discipline,
   disciplineHref,
+  shareImage,
 }: {
   trip: { id: number; startDate: string; endDate: string };
   userId: string;
@@ -39,6 +43,9 @@ export async function TripAnalytics({
   discipline: string | undefined;
   /** Link to the same page scoped to one discipline. */
   disciplineHref: (type: ClimbType) => string;
+  /** Owner only: the trip header for the share image. Leave it out and there
+   * is no Share image button. */
+  shareImage?: Omit<ShareImageContent, "stats">;
 }) {
   const inTrip = (date: string | null) => inDateWindow(date, trip.startDate, trip.endDate);
   const rows = allSends.filter((row) => inTrip(row.dateSent));
@@ -52,12 +59,16 @@ export async function TripAnalytics({
 
   if (scope == null) return <EmptyState message="Nothing logged on this trip yet." />;
 
-  const analytics = buildUserAnalytics(
-    rows,
-    scope,
-    sessions,
-    NO_YEARS,
-    await getViewerGradePreferences(),
+  const journalVisible = sessions !== undefined;
+  const analytics = {
+    ...buildUserAnalytics(rows, scope, sessions, NO_YEARS, await getViewerGradePreferences()),
+    // A per-month average isn't meaningful for a trip.
+    daysPerMonth: null,
+  };
+  // Shared with the share image, so its tiles always match the page's.
+  const highlights = buildAnalyticsHighlights([], scope, NO_YEARS);
+  const disciplineNav = (
+    <DisciplineScopeNav present={present} scope={scope} href={disciplineHref} />
   );
 
   return (
@@ -69,15 +80,40 @@ export async function TripAnalytics({
       // A fixed layout, not the user's saved one, and not editable here.
       canCustomize={false}
       initialLayout={TRIP_ANALYTICS_LAYOUT}
-      // A per-month average isn't meaningful for a trip.
-      analytics={{ ...analytics, daysPerMonth: null }}
+      analytics={analytics}
+      highlights={highlights}
       sends={rows}
       // The date filter already excludes undated sends.
       undatedCount={0}
       scope={scope}
-      journalVisible={sessions !== undefined}
+      journalVisible={journalVisible}
       selectedYears={NO_YEARS}
-      periodPicker={<DisciplineScopeNav present={present} scope={scope} href={disciplineHref} />}
+      periodPicker={
+        shareImage ? (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {disciplineNav}
+            <div className="ml-auto">
+              <TripShareImage
+                content={shareImage}
+                stats={shareImageStats({ analytics, highlights, scope, journalVisible })}
+              />
+            </div>
+          </div>
+        ) : (
+          disciplineNav
+        )
+      }
     />
   );
+}
+
+/** The page's stat cards, built from the same inputs as the dashboard's. */
+function shareImageStats(input: Parameters<typeof buildStatTiles>[0]): ShareStat[] {
+  const tiles = buildStatTiles(input);
+  return TRIP_ANALYTICS_LAYOUT.cards.map((id) => ({
+    id,
+    label: tiles[id].label,
+    value: String(tiles[id].value),
+    sub: tiles[id].sub ?? null,
+  }));
 }

@@ -82,112 +82,7 @@ export function AnalyticsDashboard({
     (a, b) => a - b,
   );
   const calendarTitle = journalVisible ? "Outdoor calendar" : "Sending calendar";
-  const hardest = analytics.hardest[0] ?? null;
-  const [firstMonth, lastMonth] = (analytics.dateSpan ?? []).map((date) => date.slice(0, 7));
-  const tiles: Record<AnalyticsCardId, StatTile> = {
-    partner: {
-      label: "Most tagged friend",
-      value: highlights.partner?.name ?? "—",
-      sub: highlights.partner
-        ? formatCount(highlights.partner.days, "shared day")
-        : "no tagged friends",
-    },
-    biggestProject: {
-      label: "Biggest project",
-      value: highlights.biggestProject
-        ? formatCount(highlights.biggestProject.sessions, "session")
-        : "—",
-      sub: highlights.biggestProject
-        ? `${highlights.biggestProject.name} · ${highlights.biggestProject.firstSend ? "sent" : highlights.biggestProject.repeats ? "repeated" : "no first send in this period"}`
-        : "no logged sessions",
-    },
-    persistence: {
-      label: "Persistence paid off",
-      value: highlights.persistence ? formatCount(highlights.persistence.attempts, "session") : "—",
-      sub: highlights.persistence
-        ? `${highlights.persistence.name} · sessions through the send`
-        : "no sends after multiple logged sessions",
-    },
-    favoriteRepeat: {
-      label: "Favorite repeat",
-      value: highlights.favoriteRepeat
-        ? formatCount(highlights.favoriteRepeat.repeats, "repeat")
-        : "—",
-      sub: highlights.favoriteRepeat?.name ?? "no repeat ascents logged",
-    },
-    sends: {
-      label: "Sends",
-      value: analytics.sendCount,
-      sub: !firstMonth
-        ? "no dated sends"
-        : firstMonth === lastMonth
-          ? formatMonth(firstMonth)
-          : `${formatMonth(firstMonth)} – ${formatMonth(lastMonth)}`,
-    },
-    hardest: {
-      label: "Hardest",
-      value: hardest?.label ?? "—",
-      sub: hardest ? hardest.climbName : "no graded sends",
-    },
-    days: {
-      label: journalVisible ? "Days out" : "Sending days",
-      value: analytics.daysOut,
-      sub: analytics.daysPerMonth != null ? `${analytics.daysPerMonth.toFixed(1)} per month` : null,
-    },
-    firstTry: {
-      label: "Flash",
-      value: analytics.sendCount
-        ? `${Math.round((analytics.firstTryCount / analytics.sendCount) * 100)}%`
-        : "—",
-      sub:
-        analytics.sendCount === 0
-          ? "no sends"
-          : analytics.hardestFirstTry
-            ? `Hardest: ${analytics.hardestFirstTry.label}`
-            : // Boulders are never onsights, so the split would only ever read "0 onsight".
-              scope === "boulder"
-              ? `${analytics.flashCount} flash`
-              : `${analytics.flashCount} flash · ${analytics.onsightCount} onsight`,
-    },
-    streak: {
-      label: journalVisible ? "Longest streak" : "Longest send streak",
-      value: analytics.longestStreak ? formatCount(analytics.longestStreak.days, "day") : "—",
-      sub: analytics.longestStreak
-        ? formatMonth(analytics.longestStreak.end.slice(0, 7))
-        : "no dated activity",
-    },
-    bestYear: {
-      label: "Best year",
-      value: analytics.bestYear?.year ?? "—",
-      sub: analytics.bestYear ? formatCount(analytics.bestYear.count, "send") : "no dated sends",
-    },
-    busiestMonth: {
-      label: "Busiest month",
-      value: analytics.busiestMonth ? formatMonth(analytics.busiestMonth.month) : "—",
-      sub: analytics.busiestMonth
-        ? formatCount(analytics.busiestMonth.count, "send")
-        : "no dated sends",
-    },
-    areas: {
-      label: "Areas",
-      value: analytics.areaCount,
-      sub: analytics.topArea ? `Most sends: ${analytics.topArea.name}` : null,
-    },
-    favoriteDay: {
-      label: "Favorite day",
-      value: analytics.favoriteWeekday?.weekday ?? "—",
-      sub: analytics.favoriteWeekday
-        ? formatCount(analytics.favoriteWeekday.count, "send")
-        : "no dated sends",
-    },
-    layoff: {
-      label: journalVisible ? "Longest layoff" : "Longest send gap",
-      value: analytics.longestLayoff ? formatDaySpan(analytics.longestLayoff.days) : "—",
-      sub: analytics.longestLayoff
-        ? `${formatMonth(analytics.longestLayoff.from.slice(0, 7))} – ${formatMonth(analytics.longestLayoff.to.slice(0, 7))}`
-        : "no gaps between dated activity",
-    },
-  };
+  const tiles = buildStatTiles({ analytics, highlights, scope, journalVisible });
   const descriptions: Record<AnalyticsCardId, string> = {
     partner: "The friend you tagged on the most days.",
     biggestProject: "The climb with the most logged sessions, sent or unsent.",
@@ -360,4 +255,126 @@ export function AnalyticsDashboard({
       </div>
     </AnalyticsWorkspace>
   );
+}
+
+/** Every stat card's label, value and note. The share image reads these too,
+ * so it matches the page. */
+// oxlint-disable-next-line complexity -- one branch per card's empty state
+export function buildStatTiles({
+  analytics,
+  highlights,
+  scope,
+  journalVisible,
+}: {
+  analytics: UserAnalytics;
+  highlights: ReturnType<typeof buildAnalyticsHighlights>;
+  scope: ClimbType;
+  journalVisible: boolean;
+}): Record<AnalyticsCardId, StatTile> {
+  const hardest = analytics.hardest[0] ?? null;
+  const [firstMonth, lastMonth] = (analytics.dateSpan ?? []).map((date) => date.slice(0, 7));
+  return {
+    partner: {
+      label: "Most tagged friend",
+      value: highlights.partner?.name ?? "—",
+      sub: highlights.partner
+        ? formatCount(highlights.partner.days, "shared day")
+        : "no tagged friends",
+    },
+    biggestProject: {
+      label: "Biggest project",
+      value: highlights.biggestProject
+        ? formatCount(highlights.biggestProject.sessions, "session")
+        : "—",
+      sub: highlights.biggestProject
+        ? `${highlights.biggestProject.name} · ${highlights.biggestProject.firstSend ? "sent" : highlights.biggestProject.repeats ? "repeated" : "no first send in this period"}`
+        : "no logged sessions",
+    },
+    persistence: {
+      label: "Persistence paid off",
+      value: highlights.persistence ? formatCount(highlights.persistence.attempts, "session") : "—",
+      sub: highlights.persistence
+        ? `${highlights.persistence.name} · sessions through the send`
+        : "no sends after multiple logged sessions",
+    },
+    favoriteRepeat: {
+      label: "Favorite repeat",
+      value: highlights.favoriteRepeat
+        ? formatCount(highlights.favoriteRepeat.repeats, "repeat")
+        : "—",
+      sub: highlights.favoriteRepeat?.name ?? "no repeat ascents logged",
+    },
+    sends: {
+      label: "Sends",
+      value: analytics.sendCount,
+      sub: !firstMonth
+        ? "no dated sends"
+        : firstMonth === lastMonth
+          ? formatMonth(firstMonth)
+          : `${formatMonth(firstMonth)} – ${formatMonth(lastMonth)}`,
+    },
+    hardest: {
+      label: "Hardest",
+      value: hardest?.label ?? "—",
+      sub: hardest ? hardest.climbName : "no graded sends",
+    },
+    days: {
+      label: journalVisible ? "Days out" : "Sending days",
+      value: analytics.daysOut,
+      sub: analytics.daysPerMonth != null ? `${analytics.daysPerMonth.toFixed(1)} per month` : null,
+    },
+    firstTry: {
+      label: "Flash",
+      value: analytics.sendCount
+        ? `${Math.round((analytics.firstTryCount / analytics.sendCount) * 100)}%`
+        : "—",
+      sub:
+        analytics.sendCount === 0
+          ? "no sends"
+          : analytics.hardestFirstTry
+            ? `Hardest: ${analytics.hardestFirstTry.label}`
+            : // Boulders are never onsights, so the split would only ever read "0 onsight".
+              scope === "boulder"
+              ? `${analytics.flashCount} flash`
+              : `${analytics.flashCount} flash · ${analytics.onsightCount} onsight`,
+    },
+    streak: {
+      label: journalVisible ? "Longest streak" : "Longest send streak",
+      value: analytics.longestStreak ? formatCount(analytics.longestStreak.days, "day") : "—",
+      sub: analytics.longestStreak
+        ? formatMonth(analytics.longestStreak.end.slice(0, 7))
+        : "no dated activity",
+    },
+    bestYear: {
+      label: "Best year",
+      value: analytics.bestYear?.year ?? "—",
+      sub: analytics.bestYear ? formatCount(analytics.bestYear.count, "send") : "no dated sends",
+    },
+    busiestMonth: {
+      label: "Busiest month",
+      value: analytics.busiestMonth ? formatMonth(analytics.busiestMonth.month) : "—",
+      sub: analytics.busiestMonth
+        ? formatCount(analytics.busiestMonth.count, "send")
+        : "no dated sends",
+    },
+    areas: {
+      label: "Areas",
+      value: analytics.areaCount,
+      sub: analytics.topArea ? `Most sends: ${analytics.topArea.name}` : null,
+    },
+    favoriteDay: {
+      label: "Favorite day",
+      value: analytics.favoriteWeekday?.weekday ?? "—",
+      sub: analytics.favoriteWeekday
+        ? formatCount(analytics.favoriteWeekday.count, "send")
+        : "no dated sends",
+    },
+    layoff: {
+      label: journalVisible ? "Longest layoff" : "Longest send gap",
+      value: analytics.longestLayoff ? formatDaySpan(analytics.longestLayoff.days) : "—",
+      sub: analytics.longestLayoff
+        ? `${formatMonth(analytics.longestLayoff.from.slice(0, 7))} – ${formatMonth(analytics.longestLayoff.to.slice(0, 7))}`
+        : "no gaps between dated activity",
+    },
+  };
 }

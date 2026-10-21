@@ -13,8 +13,13 @@ import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { TripAnalytics } from "@/components/trips/trip-analytics";
 import { TripHeader } from "@/components/trips/trip-header";
 import { getDb } from "@/db/client";
-import { getJournalSessionsForAnalytics, getUserSendsForAnalytics } from "@/db/queries";
-import { tripAnalyticsHref } from "@/lib/trips";
+import {
+  getJournalSessionsForAnalytics,
+  getUserSendsForAnalytics,
+  type TripSummary,
+} from "@/db/queries";
+import type { ShareImageContent } from "@/lib/share-image";
+import { formatTripDates, TRIP_STATUS_LABEL, tripAnalyticsHref, tripStatus } from "@/lib/trips";
 
 export async function generateMetadata({ params }: TripPageParams): Promise<Metadata> {
   const { id, tripId } = await params;
@@ -41,6 +46,7 @@ export default async function TripAnalyticsPage({ params, searchParams }: TripPa
             userId={user.id}
             viewerId={viewerId}
             journalVisible={journalVisible}
+            shareImage={viewerId === user.id ? shareImageContent(trip, today) : undefined}
             discipline={typeof search.discipline === "string" ? search.discipline : undefined}
           />
         </Suspense>
@@ -55,12 +61,15 @@ async function TripAnalyticsView({
   viewerId,
   journalVisible,
   discipline,
+  shareImage,
 }: {
   trip: { id: number; startDate: string; endDate: string };
   userId: string;
   viewerId: string;
   journalVisible: boolean;
   discipline: string | undefined;
+  /** Owner only: the trip header for the share image. */
+  shareImage: Omit<ShareImageContent, "stats"> | undefined;
 }) {
   const db = await getDb();
   const [sends, sessions] = await Promise.all([
@@ -75,6 +84,20 @@ async function TripAnalyticsView({
       sessions={sessions}
       discipline={discipline}
       disciplineHref={(type) => `${tripAnalyticsHref(userId, trip.id)}?discipline=${type}`}
+      shareImage={shareImage}
     />
   );
+}
+
+function shareImageContent(
+  trip: Pick<TripSummary, "name" | "description" | "startDate" | "endDate">,
+  today: string,
+): Omit<ShareImageContent, "stats"> {
+  const status = TRIP_STATUS_LABEL[tripStatus(trip, today)];
+  return {
+    title: trip.name,
+    status: status ? { label: status.label, tone: status.color } : null,
+    dates: formatTripDates(trip.startDate, trip.endDate),
+    description: trip.description,
+  };
 }

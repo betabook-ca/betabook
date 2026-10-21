@@ -1,14 +1,15 @@
 import { clsx } from "clsx";
-import type { ReactNode } from "react";
 
 import { cardClass } from "@/components/ui/card";
 import { EYEBROW_CLASS } from "@/components/ui/eyebrow";
 import { StatValue } from "@/components/ui/stat-value";
 
+/** Plain text rather than nodes, so a tile also reads outside React: the trip
+ * share image draws these values on a canvas. */
 export type StatTile = {
   label: string;
-  value: ReactNode;
-  sub?: ReactNode;
+  value: string | number;
+  sub?: string | null;
 };
 
 /** Callers pick the column classes, since tile rows differ in width. */
