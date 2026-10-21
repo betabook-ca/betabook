@@ -4,7 +4,11 @@ import { userEvent, within } from "storybook/test";
 import type { AnalyticsCardId } from "@/lib/analytics-layout";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
-import { SHARE_STATS_STORAGE_KEY, TripShareImage } from "./trip-share-image";
+import {
+  SHARE_DESCRIPTION_STORAGE_KEY,
+  SHARE_STATS_STORAGE_KEY,
+  TripShareImage,
+} from "./trip-share-image";
 
 const meta = {
   title: "Components/Trips/Trip share image",
@@ -56,6 +60,17 @@ export const Button: Story = {};
 /** The default: the first four stats in a 9:16 story, on the checkerboard. */
 export const FourStats: Story = {
   beforeEach: withSaved([]),
+  play: async ({ canvasElement }) => {
+    await open(canvasElement);
+  },
+};
+
+/** The description is off unless chosen, since some run long. */
+export const WithDescription: Story = {
+  beforeEach: () => {
+    localStorage.setItem(SHARE_DESCRIPTION_STORAGE_KEY, "true");
+    return () => localStorage.removeItem(SHARE_DESCRIPTION_STORAGE_KEY);
+  },
   play: async ({ canvasElement }) => {
     await open(canvasElement);
   },

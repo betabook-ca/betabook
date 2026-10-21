@@ -56,10 +56,49 @@ it("starts with the first four stats and blocks a fifth", async () => {
   const dialog = await open(user);
 
   expect(drawnIds()).toEqual(["sends", "hardest", "days", "firstTry"]);
-  expect(renderImage).toHaveBeenLastCalledWith(expect.objectContaining(CONTENT), "story");
+  expect(renderImage).toHaveBeenLastCalledWith(
+    expect.objectContaining({ ...CONTENT, description: null }),
+    "story",
+  );
   expect(within(dialog).getByText("4 of 4 selected")).toBeVisible();
   expect(within(dialog).getByRole("checkbox", { name: "Longest streak" })).toBeDisabled();
   expect(within(dialog).getByRole("checkbox", { name: "Sends" })).toBeChecked();
+  expect(within(dialog).getByRole("checkbox", { name: "Include description" })).not.toBeChecked();
+});
+
+it("adds the description when chosen and remembers it", async () => {
+  const user = userEvent.setup();
+  const { unmount } = render(
+    <TripShareImage content={CONTENT} stats={STATS} render={renderImage} />,
+  );
+  let dialog = await open(user);
+
+  await user.click(within(dialog).getByRole("checkbox", { name: "Include description" }));
+  await within(dialog).findByRole("img", { name: /^Preview/ });
+  expect(renderImage.mock.calls.at(-1)?.[0].description).toBe("Fall arco trip with Ally");
+  // The stats stay as they were.
+  expect(drawnIds()).toEqual(["sends", "hardest", "days", "firstTry"]);
+
+  unmount();
+  render(<TripShareImage content={CONTENT} stats={STATS} render={renderImage} />);
+  dialog = await open(user);
+  expect(within(dialog).getByRole("checkbox", { name: "Include description" })).toBeChecked();
+  expect(renderImage.mock.calls.at(-1)?.[0].description).toBe("Fall arco trip with Ally");
+});
+
+it("offers no description option for a trip without one", async () => {
+  const user = userEvent.setup();
+  render(
+    <TripShareImage
+      content={{ ...CONTENT, description: null }}
+      stats={STATS}
+      render={renderImage}
+    />,
+  );
+  const dialog = await open(user);
+  expect(
+    within(dialog).queryByRole("checkbox", { name: "Include description" }),
+  ).not.toBeInTheDocument();
 });
 
 it("keeps page order, redraws and remembers the choice", async () => {

@@ -26,6 +26,7 @@ import {
 /** Shared across trips, so a climber who always shares the same stats picks
  * them once. */
 export const SHARE_STATS_STORAGE_KEY = "betabook:share-image-stats";
+export const SHARE_DESCRIPTION_STORAGE_KEY = "betabook:share-image-description";
 
 const FORMAT_OPTIONS = [
   { value: "story", label: "Story", hint: "9:16" },
@@ -67,6 +68,29 @@ function readSaved(order: readonly AnalyticsCardId[]) {
   }
 }
 
+/** Off unless chosen: some descriptions run long enough to crowd the image. */
+function readWithDescription() {
+  try {
+    return localStorage.getItem(SHARE_DESCRIPTION_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function savePreference(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* Optional preference. */
+  }
+}
+
+type DrawOptions = {
+  format: ShareImageFormat;
+  ids: readonly AnalyticsCardId[];
+  description: boolean;
+};
+
 /** Button and dialog that turn the trip's header and up to four stats into a
  * transparent PNG to lay over a photo. Drawn in the browser, so nothing is
  * uploaded. */
@@ -88,6 +112,7 @@ export function TripShareImage({
   const [selected, setSelected] = useState<AnalyticsCardId[]>(() =>
     order.slice(0, MAX_SHARE_STATS),
   );
+  const [withDescription, setWithDescription] = useState(false);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [abilities, setAbilities] = useState({ copy: false, share: false });
   const [notice, setNotice] = useState<string | null>(null);
@@ -106,16 +131,20 @@ export function TripShareImage({
     setPreview(next);
   }
 
-  async function draw(nextFormat: ShareImageFormat, ids: readonly AnalyticsCardId[]) {
+  async function draw(options: DrawOptions) {
     const id = (drawRef.current += 1);
     replacePreview(null);
     setNotice(null);
     setError(null);
-    if (ids.length === 0) return;
+    if (options.ids.length === 0) return;
     try {
       const blob = await render(
-        { ...content, stats: stats.filter((stat) => ids.includes(stat.id)) },
-        nextFormat,
+        {
+          ...content,
+          description: options.description ? content.description : null,
+          stats: stats.filter((stat) => options.ids.includes(stat.id)),
+        },
+        options.format,
       );
       if (id === drawRef.current) replacePreview({ blob, url: URL.createObjectURL(blob) });
     } catch {
@@ -123,28 +152,34 @@ export function TripShareImage({
     }
   }
 
+  const current: DrawOptions = { format, ids: selected, description: withDescription };
+
   function open() {
-    const saved = readSaved(order);
-    setSelected(saved);
+    const ids = readSaved(order);
+    const description = readWithDescription();
+    setSelected(ids);
+    setWithDescription(description);
     setAbilities({ copy: canCopyImage(), share: nativeShare && canShareFiles() });
     state.open();
-    void draw(format, saved);
+    void draw({ format, ids, description });
   }
 
   function toggle(id: AnalyticsCardId) {
-    const next = toggleShareStat(selected, id, order);
-    setSelected(next);
-    try {
-      localStorage.setItem(SHARE_STATS_STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      /* Optional preference. */
-    }
-    void draw(format, next);
+    const ids = toggleShareStat(selected, id, order);
+    setSelected(ids);
+    savePreference(SHARE_STATS_STORAGE_KEY, JSON.stringify(ids));
+    void draw({ ...current, ids });
+  }
+
+  function toggleDescription(description: boolean) {
+    setWithDescription(description);
+    savePreference(SHARE_DESCRIPTION_STORAGE_KEY, String(description));
+    void draw({ ...current, description });
   }
 
   function changeFormat(next: ShareImageFormat) {
     setFormat(next);
-    void draw(next, selected);
+    void draw({ ...current, format: next });
   }
 
   async function share(blob: Blob) {
@@ -275,6 +310,17 @@ export function TripShareImage({
               })}
             </div>
           </fieldset>
+
+          {content.description && (
+            <Checkbox isSelected={withDescription} onChange={toggleDescription}>
+              <Checkbox.Content className="flex items-center gap-2">
+                <Checkbox.Control>
+                  <Checkbox.Indicator />
+                </Checkbox.Control>
+                <span className="text-sm">Include description</span>
+              </Checkbox.Content>
+            </Checkbox>
+          )}
 
           {notice && (
             <p role="status" className="text-sm text-muted">
