@@ -17,7 +17,7 @@ const STATS: ShareStat[] = [
   { id: "sends", label: "Sends", value: "19", sub: null },
   { id: "hardest", label: "Hardest", value: "5.12c", sub: null },
   { id: "days", label: "Days out", value: "9", sub: null },
-  { id: "firstTry", label: "Flash", value: "79%", sub: null },
+  { id: "flash", label: "Flash", value: "79%", sub: null },
   { id: "streak", label: "Longest streak", value: "4 days", sub: null },
 ];
 
@@ -55,7 +55,7 @@ it("starts with the first four stats and blocks a fifth", async () => {
   render(<TripShareImage content={CONTENT} stats={STATS} render={renderImage} />);
   const dialog = await open(user);
 
-  expect(drawnIds()).toEqual(["sends", "hardest", "days", "firstTry"]);
+  expect(drawnIds()).toEqual(["sends", "hardest", "days", "flash"]);
   expect(renderImage).toHaveBeenLastCalledWith(
     expect.objectContaining({ ...CONTENT, description: null }),
     "story",
@@ -77,7 +77,7 @@ it("adds the description when chosen and remembers it", async () => {
   await within(dialog).findByRole("img", { name: /^Preview/ });
   expect(renderImage.mock.calls.at(-1)?.[0].description).toBe("Fall arco trip with Ally");
   // The stats stay as they were.
-  expect(drawnIds()).toEqual(["sends", "hardest", "days", "firstTry"]);
+  expect(drawnIds()).toEqual(["sends", "hardest", "days", "flash"]);
 
   unmount();
   render(<TripShareImage content={CONTENT} stats={STATS} render={renderImage} />);
@@ -112,11 +112,11 @@ it("keeps page order, redraws and remembers the choice", async () => {
   await user.click(within(dialog).getByRole("checkbox", { name: "Longest streak" }));
   await within(dialog).findByRole("img", { name: /^Preview/ });
 
-  expect(drawnIds()).toEqual(["hardest", "days", "firstTry", "streak"]);
+  expect(drawnIds()).toEqual(["hardest", "days", "flash", "streak"]);
   expect(JSON.parse(localStorage.getItem(SHARE_STATS_STORAGE_KEY) ?? "null")).toEqual([
     "hardest",
     "days",
-    "firstTry",
+    "flash",
     "streak",
   ]);
 

@@ -95,25 +95,20 @@ export type Breakthrough = {
 };
 
 export type MonthlyVolume = { month: string; sends: number; days: number };
-export type FirstTryGradeRow = {
+export type FlashGradeRow = {
   grade: number;
   label: string;
   /** Inclusive ordinal span the label covers, as on PyramidRow. */
   range: [number, number];
   sends: number;
-  /** Flashes plus onsights at this grade. */
-  firstTries: number;
+  /** Flashes at this grade; onsights don't count. */
+  flashes: number;
   rate: number;
 };
 
-/** Anything but a redpoint counts toward the flash rate: a flash, or an onsight on ropes. */
-function isFirstTry(style: AscentStyle): boolean {
-  return style !== "redpoint";
-}
-
 export type UserAnalytics = {
   volume: MonthlyVolume[];
-  firstTryByGrade: { type: ClimbType; rows: FirstTryGradeRow[] }[];
+  flashByGrade: { type: ClimbType; rows: FlashGradeRow[] }[];
   scope: DisciplineScope;
   sendCount: number;
   datelessCount: number;
@@ -407,10 +402,10 @@ export function buildUserAnalytics(
       volume.push({ month, sends: byMonth.get(month) ?? 0, days: daysByMonth.get(month) ?? 0 });
     }
   }
-  const firstTryByGrade = disciplines.map((type) => {
+  const flashByGrade = disciplines.map((type) => {
     const scale = gradeArray(type, prefs);
     // Keyed by label: ordinals the scale prints alike share one row.
-    const grades = new Map<string, FirstTryGradeRow>();
+    const grades = new Map<string, FlashGradeRow>();
     for (const send of gradedSends(sends, type)) {
       const label = scale[send.grade];
       const row = grades.get(label) ?? {
@@ -418,14 +413,14 @@ export function buildUserAnalytics(
         label,
         range: [send.grade, send.grade],
         sends: 0,
-        firstTries: 0,
+        flashes: 0,
         rate: 0,
       };
       row.grade = Math.max(row.grade, send.grade);
       row.range = [Math.min(row.range[0], send.grade), Math.max(row.range[1], send.grade)];
       row.sends += 1;
-      if (isFirstTry(send.ascentStyle)) row.firstTries += 1;
-      row.rate = (row.firstTries / row.sends) * 100;
+      if (send.ascentStyle === "flash") row.flashes += 1;
+      row.rate = (row.flashes / row.sends) * 100;
       grades.set(label, row);
     }
     return { type, rows: [...grades.values()].sort((a, b) => a.grade - b.grade) };
@@ -509,7 +504,7 @@ export function buildUserAnalytics(
 
   return {
     volume,
-    firstTryByGrade,
+    flashByGrade,
     scope,
     sendCount: sends.length,
     datelessCount: sends.length - dated.length,

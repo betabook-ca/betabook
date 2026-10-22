@@ -91,7 +91,7 @@ export function AnalyticsDashboard({
     sends: "How many climbs you’ve sent.",
     hardest: "Your highest graded send.",
     days: "Days with climbing activity.",
-    firstTry: "The share of sends you flashed.",
+    flash: "The share of sends you flashed.",
     onsight: "The share of sends you onsighted.",
     bestYear: "The year with the most sends.",
     streak: "Your longest run of consecutive climbing days.",
@@ -131,7 +131,7 @@ export function AnalyticsDashboard({
       content: (
         <AnalyticsFlashChart
           sends={chartSends}
-          rows={analytics.firstTryByGrade.find((group) => group.type === scope)?.rows ?? []}
+          rows={analytics.flashByGrade.find((group) => group.type === scope)?.rows ?? []}
           type={scope}
         />
       ),
@@ -323,7 +323,7 @@ export function buildStatTiles({
       value: analytics.daysOut,
       sub: analytics.daysPerMonth != null ? `${analytics.daysPerMonth.toFixed(1)} per month` : null,
     },
-    firstTry: {
+    flash: {
       label: "Flash",
       value: sendShare(analytics.flashCount),
       sub:

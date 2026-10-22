@@ -11,7 +11,7 @@ import {
 describe("trip analytics layout", () => {
   it("shows five tiles and the grade pyramid", () => {
     expect(TRIP_ANALYTICS_LAYOUT).toEqual({
-      cards: ["sends", "hardest", "days", "firstTry", "onsight"],
+      cards: ["sends", "hardest", "days", "flash", "onsight"],
       charts: ["pyramid"],
     });
     expect(analyticsLayoutSchema.safeParse(TRIP_ANALYTICS_LAYOUT).success).toBe(true);
@@ -19,6 +19,15 @@ describe("trip analytics layout", () => {
 });
 
 describe("saved analytics layouts", () => {
+  it("reads the Flash card's old firstTry id as flash", () => {
+    expect(parseAnalyticsLayout({ cards: ["sends", "firstTry"], charts: [] })).toEqual({
+      cards: ["sends", "flash"],
+      charts: [],
+    });
+    expect(analyticsLayoutSchema.safeParse({ cards: ["firstTry"], charts: [] }).success).toBe(
+      false,
+    );
+  });
   it("accepts only visible ordered lists and never appends optional items", () => {
     const layout = { cards: ["partner", "sends"], charts: ["volume"] };
     expect(parseAnalyticsLayout(layout)).toEqual(layout);

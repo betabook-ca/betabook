@@ -45,7 +45,7 @@ export const Explore: Story = {
       <Example title="Flashes by grade">
         <AnalyticsFlashChart
           type="boulder"
-          rows={activityAnalytics.firstTryByGrade[0].rows}
+          rows={activityAnalytics.flashByGrade[0].rows}
           sends={activitySends}
         />
       </Example>

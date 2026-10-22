@@ -8,15 +8,15 @@ import { useChartWidth } from "@/hooks/use-chart-width";
 import { sendChartRows, type ChartSend, type ChartDetailGroup } from "@/lib/chart-details";
 import { formatCount } from "@/lib/format";
 import type { ClimbType } from "@/lib/grades";
-import type { FirstTryGradeRow } from "@/lib/user-analytics";
+import type { FlashGradeRow } from "@/lib/user-analytics";
 
-/** A rope onsight counts as a flash here, as in the Flash stat. */
+/** Only flashes count, as in the Flash stat; onsights have their own stat. */
 export function AnalyticsFlashChart({
   rows,
   type,
   sends,
 }: {
-  rows: FirstTryGradeRow[];
+  rows: FlashGradeRow[];
   type: ClimbType;
   /** Already scoped to `type`. */
   sends?: ChartSend[];
@@ -24,7 +24,7 @@ export function AnalyticsFlashChart({
   const { ref, width } = useChartWidth();
   const labels = rows.map(
     (row) =>
-      `${row.label}: ${formatCount(row.sends, "send")} · ${formatCount(row.firstTries, "flash", "flashes")} · ${Math.round(row.rate)}% flash rate`,
+      `${row.label}: ${formatCount(row.sends, "send")} · ${formatCount(row.flashes, "flash", "flashes")} · ${Math.round(row.rate)}% flash rate`,
   );
   const details =
     sends &&

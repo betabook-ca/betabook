@@ -30,7 +30,7 @@ const STATS: ShareStat[] = [
   { id: "sends", label: "Sends", value: "19", sub: "Sep 2026 – Oct 2026" },
   { id: "hardest", label: "Hardest", value: "5.12c", sub: "L'Utimo Dei Suini" },
   { id: "days", label: "Days out", value: "9", sub: null },
-  { id: "firstTry", label: "Flash", value: "79%", sub: "Hardest: 5.12c" },
+  { id: "flash", label: "Flash", value: "79%", sub: "Hardest: 5.12c" },
   { id: "streak", label: "Longest streak", value: "4 days", sub: "Oct 2026" },
 ];
 
@@ -263,7 +263,7 @@ describe("stat selection", () => {
     expect(toggleShareStat(["days"], "sends", order)).toEqual(["sends", "days"]);
     const full = order.slice(0, 4);
     expect(toggleShareStat(full, "streak", order)).toEqual(full);
-    expect(toggleShareStat(full, "hardest", order)).toEqual(["sends", "days", "firstTry"]);
+    expect(toggleShareStat(full, "hardest", order)).toEqual(["sends", "days", "flash"]);
   });
 
   it("restores a saved choice limited to this page's stats", () => {

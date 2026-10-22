@@ -94,17 +94,17 @@ it("retains failed layout edits for retry and Cancel restores the saved layout",
     .mockResolvedValue({ ok: false, error: "Could not save this layout." });
   render(<AnalyticsWorkspace cards={cards} charts={[]} canCustomize onSave={onSave} />);
   await user.click(screen.getByRole("button", { name: "Customize dashboard" }));
-  await user.click(screen.getByRole("button", { name: "Hide firstTry" }));
+  await user.click(screen.getByRole("button", { name: "Hide flash" }));
   await user.click(screen.getByRole("button", { name: "Save layout" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("Could not save this layout.");
   expect(screen.getByRole("button", { name: "Save layout" })).toBeEnabled();
-  expect(screen.queryByRole("article", { name: "firstTry" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("article", { name: "flash" })).not.toBeInTheDocument();
   expect(onSave).toHaveBeenCalledExactlyOnceWith({
     ...DEFAULT_ANALYTICS_LAYOUT,
-    cards: DEFAULT_ANALYTICS_LAYOUT.cards.filter((id) => id !== "firstTry"),
+    cards: DEFAULT_ANALYTICS_LAYOUT.cards.filter((id) => id !== "flash"),
   });
   await user.click(screen.getByRole("button", { name: "Cancel" }));
-  expect(screen.getByRole("article", { name: "firstTry" })).toBeVisible();
+  expect(screen.getByRole("article", { name: "flash" })).toBeVisible();
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
 

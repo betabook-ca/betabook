@@ -3,12 +3,13 @@ import { z } from "zod";
 import type { ClimbType } from "@/lib/grades";
 
 /** The catalog lists everything available; a layout lists only visible items.
- * Saved layouts store these ids, so rename titles rather than ids. */
+ * Saved layouts store these ids, so rename titles rather than ids; a renamed
+ * id needs a mapping in `renameLegacyCardIds`. */
 export const ANALYTICS_CARD_IDS = [
   "sends",
   "hardest",
   "days",
-  "firstTry",
+  "flash",
   "onsight",
   "bestYear",
   "streak",
@@ -42,14 +43,14 @@ export type AnalyticsLayout = z.infer<typeof analyticsLayoutSchema>;
 export type AnalyticsCardId = z.infer<typeof cardId>;
 export type AnalyticsItemId = AnalyticsCardId | z.infer<typeof chartId>;
 export const DEFAULT_ANALYTICS_LAYOUT: AnalyticsLayout = {
-  cards: ["sends", "hardest", "days", "firstTry", "onsight", "bestYear"],
+  cards: ["sends", "hardest", "days", "flash", "onsight", "bestYear"],
   charts: ["progression", "pyramid", "breakthroughs", "calendar"],
 };
 
 /** Layout for trip analytics. Leaves out the tiles and charts that compare
  * months or years, which say nothing about a few days. */
 export const TRIP_ANALYTICS_LAYOUT: AnalyticsLayout = {
-  cards: ["sends", "hardest", "days", "firstTry", "onsight"],
+  cards: ["sends", "hardest", "days", "flash", "onsight"],
   charts: ["pyramid"],
 };
 
@@ -58,9 +59,17 @@ export function cardAppliesTo(id: AnalyticsCardId, scope: ClimbType): boolean {
   return !(id === "onsight" && scope === "boulder");
 }
 
+/** Layouts saved before the Flash card's id was renamed store it as `firstTry`. */
+function renameLegacyCardIds(value: unknown): unknown {
+  if (typeof value !== "object" || value === null || !("cards" in value)) return value;
+  const { cards } = value;
+  if (!Array.isArray(cards)) return value;
+  return { ...value, cards: cards.map((id) => (id === "firstTry" ? "flash" : id)) };
+}
+
 /** Invalid local preferences start fresh; reads and writes share one schema. */
 export function parseAnalyticsLayout(value: unknown): AnalyticsLayout {
-  const result = analyticsLayoutSchema.safeParse(value);
+  const result = analyticsLayoutSchema.safeParse(renameLegacyCardIds(value));
   return result.success ? result.data : analyticsLayoutSchema.parse(DEFAULT_ANALYTICS_LAYOUT);
 }
 

@@ -7,10 +7,10 @@ import { buildUserAnalytics } from "@/lib/user-analytics";
 
 import { AnalyticsFlashChart } from "./analytics-flash-chart";
 
-it("counts rope onsights toward the flash rate and shows all sends at the selected grade", async () => {
+it("leaves rope onsights out of the flash rate and shows all sends at the selected grade", async () => {
   const user = userEvent.setup();
-  // Rope climbs: only they can carry an onsight, and the numerator must
-  // count it alongside the flash.
+  // Rope climbs: only they can carry an onsight, which the numerator must
+  // not count as a flash.
   const sends: AnalyticsSendRow[] = Array.from({ length: 7 }, (_, i) => ({
     climbId: i + 1,
     climbName: `Climb ${i + 1}`,
@@ -24,7 +24,7 @@ it("counts rope onsights toward the flash rate and shows all sends at the select
   render(
     <AnalyticsFlashChart
       type="sport"
-      rows={buildUserAnalytics(sends, "sport").firstTryByGrade[0].rows}
+      rows={buildUserAnalytics(sends, "sport").flashByGrade[0].rows}
       sends={sends}
     />,
   );
@@ -32,7 +32,7 @@ it("counts rope onsights toward the flash rate and shows all sends at the select
   await user.keyboard("{Home}");
   const tooltip = screen.getByRole("tooltip");
   expect(tooltip).toHaveTextContent("3 sends");
-  expect(tooltip).toHaveTextContent("67% flash rate");
+  expect(tooltip).toHaveTextContent("33% flash rate");
   expect(within(tooltip).getByText("Climb 1", { exact: true })).toBeInTheDocument();
   expect(within(tooltip).getByText("Climb 2", { exact: true })).toBeInTheDocument();
   await user.keyboard("{Enter}");

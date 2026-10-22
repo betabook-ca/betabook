@@ -446,7 +446,7 @@ describe("multiple analytics years", () => {
 
 it("builds monthly volume and flash rates from the selected years and discipline", () => {
   // Rope rows carry the onsight: boulders are never onsights, and the
-  // flash-rate numerator has to count both styles.
+  // flash-rate numerator has to leave it out.
   const rows = [
     send({ dateSent: "2024-01-02", climbType: "sport", suggestedGrade: 10, ascentStyle: "flash" }),
     send({ dateSent: "2024-01-02", climbType: "sport", suggestedGrade: 10 }),
@@ -476,19 +476,19 @@ it("builds monthly volume and flash rates from the selected years and discipline
     { month: "2024-02", sends: 0, days: 0 },
     { month: "2024-03", sends: 1, days: 1 },
   ]);
-  expect(result.firstTryByGrade[0].rows).toEqual([
+  expect(result.flashByGrade[0].rows).toEqual([
     {
       grade: 10,
       range: [10, 10],
       label: "5.10a",
       sends: 3,
-      firstTries: 2,
-      rate: expect.closeTo(200 / 3),
+      flashes: 1,
+      rate: expect.closeTo(100 / 3),
     },
   ]);
-  expect(buildUserAnalytics(rows, "sport").firstTryByGrade[0].rows[0]).toMatchObject({
+  expect(buildUserAnalytics(rows, "sport").flashByGrade[0].rows[0]).toMatchObject({
     sends: 5,
-    firstTries: 4,
+    flashes: 3,
   });
   expect(buildUserAnalytics(rows, "boulder", undefined, [2024]).volume[0]).toMatchObject({
     days: 1,
@@ -558,7 +558,7 @@ describe("the reader's grading systems", () => {
     ]);
     expect(a.pyramid.map((p) => p.rows[0].label)).toEqual(["6B", "7a"]);
     expect(a.breakthroughs.map((b) => b.label)).toEqual(["7a", "6B"]);
-    expect(a.firstTryByGrade.map((f) => f.rows[0].label)).toEqual(["6B", "7a"]);
+    expect(a.flashByGrade.map((f) => f.rows[0].label)).toEqual(["6B", "7a"]);
   });
 
   it("folds ordinals the scale prints alike into one pyramid row spanning both", () => {
@@ -593,8 +593,8 @@ describe("the reader's grading systems", () => {
       [],
       FRENCH,
     );
-    expect(a.firstTryByGrade[0].rows).toEqual([
-      { grade: 2, label: "2", range: [1, 2], sends: 2, firstTries: 1, rate: 50 },
+    expect(a.flashByGrade[0].rows).toEqual([
+      { grade: 2, label: "2", range: [1, 2], sends: 2, flashes: 1, rate: 50 },
     ]);
   });
 
