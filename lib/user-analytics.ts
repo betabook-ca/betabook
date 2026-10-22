@@ -124,10 +124,10 @@ export type UserAnalytics = {
   hardest: HardestSend[];
   flashCount: number;
   onsightCount: number;
-  /** flashCount + onsightCount. */
-  firstTryCount: number;
-  /** Hardest flash-or-onsight — only when the scope is one discipline. */
-  hardestFirstTry: HardestSend | null;
+  /** Hardest flash — only when the scope is one discipline. */
+  hardestFlash: HardestSend | null;
+  /** Hardest onsight — only when the scope is one discipline. Boulders have none. */
+  hardestOnsight: HardestSend | null;
   daysOut: number;
   daysPerMonth: number | null;
   bestYear: { year: number; count: number } | null;
@@ -310,27 +310,25 @@ export function buildUserAnalytics(
 
   const flashCount = sends.filter((s) => s.ascentStyle === "flash").length;
   const onsightCount = sends.filter((s) => s.ascentStyle === "onsight").length;
-  let hardestFirstTry: HardestSend | null = null;
-  if (scope !== "all") {
-    const scale = gradeArray(scope, prefs);
-    const firstTries = gradedSends(sends, scope).filter((s) => isFirstTry(s.ascentStyle));
-    if (firstTries.length > 0) {
-      let top = firstTries[0];
-      for (const s of firstTries.slice(1)) {
-        if (s.grade > top.grade) {
-          top = s;
-        }
+  const hardestInStyle = (style: AscentStyle): HardestSend | null => {
+    if (scope === "all") return null;
+    const matching = gradedSends(sends, scope).filter((s) => s.ascentStyle === style);
+    if (matching.length === 0) return null;
+    let top = matching[0];
+    for (const s of matching.slice(1)) {
+      if (s.grade > top.grade) {
+        top = s;
       }
-      hardestFirstTry = {
-        type: scope,
-        grade: top.grade,
-        label: scale[top.grade],
-        climbId: top.climbId,
-        climbName: top.climbName,
-        dateSent: top.dateSent,
-      };
     }
-  }
+    return {
+      type: scope,
+      grade: top.grade,
+      label: gradeArray(scope, prefs)[top.grade],
+      climbId: top.climbId,
+      climbName: top.climbName,
+      dateSent: top.dateSent,
+    };
+  };
 
   const sendsByDay: Record<string, number> = {};
   for (const s of dated) sendsByDay[s.dateSent] = (sendsByDay[s.dateSent] ?? 0) + 1;
@@ -520,8 +518,8 @@ export function buildUserAnalytics(
     hardest,
     flashCount,
     onsightCount,
-    firstTryCount: flashCount + onsightCount,
-    hardestFirstTry,
+    hardestFlash: hardestInStyle("flash"),
+    hardestOnsight: hardestInStyle("onsight"),
     daysOut: days.length,
     daysPerMonth,
     bestYear,

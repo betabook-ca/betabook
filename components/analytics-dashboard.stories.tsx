@@ -33,7 +33,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "New dashboards start with Sends, Hardest, Days out, Flash, and Best year. Customize placeholders appear when a section has hidden items and open the same layout editor; Save layout persists the selection. Existing saved layouts remain unchanged. All cards and charts follow the selected years. The laptop grid fits six stat slots. Grade pyramid, Breakthroughs, and Flash rate use half-width slots, while time charts span the row. Volume and Flash rate are optional smooth Recharts charts with floating tooltips; all calendars fit without horizontal scrolling. Customization changes only the owner’s view.",
+          "New dashboards start with Sends, Hardest, Days out, Flash, Onsight, and Best year. The boulder view has no Onsight card, because boulders are never onsighted. Customize placeholders appear when a section has hidden items and open the same layout editor; Save layout persists the selection. Existing saved layouts remain unchanged. All cards and charts follow the selected years. The laptop grid fits six stat slots. Grade pyramid, Breakthroughs, and Flash rate use half-width slots, while time charts span the row. Volume and Flash rate are optional smooth Recharts charts with floating tooltips; all calendars fit without horizontal scrolling. Customization changes only the owner’s view.",
       },
     },
   },
@@ -256,7 +256,7 @@ const tripSends = sends.slice(0, 4).map((send, index) => ({
   dateSent: `2026-03-1${index + 2}`,
 }));
 
-/** Trip analytics: a fixed layout with four tiles and the grade pyramid. */
+/** Trip analytics: a fixed layout with five tiles (four for boulders, which have no Onsight) and the grade pyramid. */
 export const Trip: Story = {
   render: () => (
     <StoryPage title="Analytics">

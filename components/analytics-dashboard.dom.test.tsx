@@ -84,6 +84,37 @@ describe("analytics dashboard with the trip layout", () => {
   });
 });
 
+describe("analytics dashboard flash and onsight cards", () => {
+  it("shows flashes and onsights as separate cards for rope climbs", () => {
+    const ropeSends = sends.map((send, index) => ({
+      ...send,
+      climbType: "sport" as const,
+      suggestedGrade: 10 + index,
+      ascentStyle:
+        index === 0 ? ("flash" as const) : index === 1 ? ("onsight" as const) : send.ascentStyle,
+    }));
+    render(
+      <AnalyticsDashboard
+        analytics={buildUserAnalytics(ropeSends, "sport", undefined, [])}
+        sends={ropeSends}
+        selectedYears={[]}
+        undatedCount={0}
+        scope="sport"
+        journalVisible={false}
+        periodPicker={null}
+        initialLayout={TRIP_ANALYTICS_LAYOUT}
+      />,
+    );
+
+    const flash = screen.getByRole("article", { name: "Flash" });
+    const onsight = screen.getByRole("article", { name: "Onsight" });
+    expect(flash).toHaveTextContent("25%");
+    expect(flash).not.toHaveTextContent(/onsight/i);
+    expect(onsight).toHaveTextContent("25%");
+    expect(onsight).toHaveTextContent("Hardest:");
+  });
+});
+
 describe("analytics dashboard climb previews", () => {
   it("uses only the selected years and excludes undated sends from that period", async () => {
     const user = userEvent.setup();

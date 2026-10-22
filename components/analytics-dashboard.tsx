@@ -15,7 +15,7 @@ import type { AnalyticsSendRow } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
 import { buildAnalyticsHighlights } from "@/lib/analytics-highlights";
 import type { AnalyticsLayout } from "@/lib/analytics-layout";
-import { ANALYTICS_CARD_IDS, type AnalyticsCardId } from "@/lib/analytics-layout";
+import { ANALYTICS_CARD_IDS, cardAppliesTo, type AnalyticsCardId } from "@/lib/analytics-layout";
 import { formatAnalyticsYears } from "@/lib/analytics-years";
 import {
   selectChartSends,
@@ -82,7 +82,7 @@ export function AnalyticsDashboard({
     (a, b) => a - b,
   );
   const calendarTitle = journalVisible ? "Outdoor calendar" : "Sending calendar";
-  const tiles = buildStatTiles({ analytics, highlights, scope, journalVisible });
+  const tiles = buildStatTiles({ analytics, highlights, journalVisible });
   const descriptions: Record<AnalyticsCardId, string> = {
     partner: "The friend you tagged on the most days.",
     biggestProject: "The climb with the most logged sessions, sent or unsent.",
@@ -91,10 +91,8 @@ export function AnalyticsDashboard({
     sends: "How many climbs you’ve sent.",
     hardest: "Your highest graded send.",
     days: "Days with climbing activity.",
-    firstTry:
-      scope === "boulder"
-        ? "The share of sends you flashed."
-        : "The share of sends you flashed or onsighted.",
+    firstTry: "The share of sends you flashed.",
+    onsight: "The share of sends you onsighted.",
     bestYear: "The year with the most sends.",
     streak: "Your longest run of consecutive climbing days.",
     busiestMonth: "The month with the most sends.",
@@ -102,12 +100,14 @@ export function AnalyticsDashboard({
     favoriteDay: "The day of the week you send most often.",
     layoff: "The longest gap between climbing days.",
   };
-  const cards: AnalyticsPanel[] = ANALYTICS_CARD_IDS.map((id) => ({
-    id,
-    title: tiles[id].label,
-    description: descriptions[id],
-    content: <StatTileContent tile={tiles[id]} />,
-  }));
+  const cards: AnalyticsPanel[] = ANALYTICS_CARD_IDS.filter((id) => cardAppliesTo(id, scope)).map(
+    (id) => ({
+      id,
+      title: tiles[id].label,
+      description: descriptions[id],
+      content: <StatTileContent tile={tiles[id]} />,
+    }),
+  );
   const pyramidRows = analytics.pyramid[0]?.rows ?? [];
   const charts: AnalyticsPanel[] = [
     {
@@ -263,16 +263,16 @@ export function AnalyticsDashboard({
 export function buildStatTiles({
   analytics,
   highlights,
-  scope,
   journalVisible,
 }: {
   analytics: UserAnalytics;
   highlights: ReturnType<typeof buildAnalyticsHighlights>;
-  scope: ClimbType;
   journalVisible: boolean;
 }): Record<AnalyticsCardId, StatTile> {
   const hardest = analytics.hardest[0] ?? null;
   const [firstMonth, lastMonth] = (analytics.dateSpan ?? []).map((date) => date.slice(0, 7));
+  const sendShare = (count: number) =>
+    analytics.sendCount ? `${Math.round((count / analytics.sendCount) * 100)}%` : "—";
   return {
     partner: {
       label: "Most tagged friend",
@@ -325,18 +325,23 @@ export function buildStatTiles({
     },
     firstTry: {
       label: "Flash",
-      value: analytics.sendCount
-        ? `${Math.round((analytics.firstTryCount / analytics.sendCount) * 100)}%`
-        : "—",
+      value: sendShare(analytics.flashCount),
       sub:
         analytics.sendCount === 0
           ? "no sends"
-          : analytics.hardestFirstTry
-            ? `Hardest: ${analytics.hardestFirstTry.label}`
-            : // Boulders are never onsights, so the split would only ever read "0 onsight".
-              scope === "boulder"
-              ? `${analytics.flashCount} flash`
-              : `${analytics.flashCount} flash · ${analytics.onsightCount} onsight`,
+          : analytics.hardestFlash
+            ? `Hardest: ${analytics.hardestFlash.label}`
+            : "no flashes",
+    },
+    onsight: {
+      label: "Onsight",
+      value: sendShare(analytics.onsightCount),
+      sub:
+        analytics.sendCount === 0
+          ? "no sends"
+          : analytics.hardestOnsight
+            ? `Hardest: ${analytics.hardestOnsight.label}`
+            : "no onsights",
     },
     streak: {
       label: journalVisible ? "Longest streak" : "Longest send streak",

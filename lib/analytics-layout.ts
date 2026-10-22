@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { ClimbType } from "@/lib/grades";
+
 /** The catalog lists everything available; a layout lists only visible items.
  * Saved layouts store these ids, so rename titles rather than ids. */
 export const ANALYTICS_CARD_IDS = [
@@ -7,6 +9,7 @@ export const ANALYTICS_CARD_IDS = [
   "hardest",
   "days",
   "firstTry",
+  "onsight",
   "bestYear",
   "streak",
   "busiestMonth",
@@ -39,16 +42,21 @@ export type AnalyticsLayout = z.infer<typeof analyticsLayoutSchema>;
 export type AnalyticsCardId = z.infer<typeof cardId>;
 export type AnalyticsItemId = AnalyticsCardId | z.infer<typeof chartId>;
 export const DEFAULT_ANALYTICS_LAYOUT: AnalyticsLayout = {
-  cards: ["sends", "hardest", "days", "firstTry", "bestYear"],
+  cards: ["sends", "hardest", "days", "firstTry", "onsight", "bestYear"],
   charts: ["progression", "pyramid", "breakthroughs", "calendar"],
 };
 
 /** Layout for trip analytics. Leaves out the tiles and charts that compare
  * months or years, which say nothing about a few days. */
 export const TRIP_ANALYTICS_LAYOUT: AnalyticsLayout = {
-  cards: ["sends", "hardest", "days", "firstTry"],
+  cards: ["sends", "hardest", "days", "firstTry", "onsight"],
   charts: ["pyramid"],
 };
+
+/** Boulders are never onsighted, so the boulder view has no Onsight card. */
+export function cardAppliesTo(id: AnalyticsCardId, scope: ClimbType): boolean {
+  return !(id === "onsight" && scope === "boulder");
+}
 
 /** Invalid local preferences start fresh; reads and writes share one schema. */
 export function parseAnalyticsLayout(value: unknown): AnalyticsLayout {

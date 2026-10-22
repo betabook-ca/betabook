@@ -9,9 +9,9 @@ import {
 } from "./analytics-layout";
 
 describe("trip analytics layout", () => {
-  it("shows four tiles and the grade pyramid", () => {
+  it("shows five tiles and the grade pyramid", () => {
     expect(TRIP_ANALYTICS_LAYOUT).toEqual({
-      cards: ["sends", "hardest", "days", "firstTry"],
+      cards: ["sends", "hardest", "days", "firstTry", "onsight"],
       charts: ["pyramid"],
     });
     expect(analyticsLayoutSchema.safeParse(TRIP_ANALYTICS_LAYOUT).success).toBe(true);
