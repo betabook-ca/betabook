@@ -4,7 +4,7 @@ import { TripShareImage } from "@/components/trips/trip-share-image";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { AnalyticsSendRow, AnalyticsSessionRow } from "@/db/queries";
 import { buildAnalyticsHighlights } from "@/lib/analytics-highlights";
-import { TRIP_ANALYTICS_LAYOUT } from "@/lib/analytics-layout";
+import { cardAppliesTo, TRIP_ANALYTICS_LAYOUT } from "@/lib/analytics-layout";
 import type { ClimbType } from "@/lib/grades";
 import { getViewerGradePreferences } from "@/lib/session";
 import type { ShareImageContent, ShareStat } from "@/lib/share-image";
@@ -110,10 +110,12 @@ export async function TripAnalytics({
 /** The page's stat cards, built from the same inputs as the dashboard's. */
 function shareImageStats(input: Parameters<typeof buildStatTiles>[0]): ShareStat[] {
   const tiles = buildStatTiles(input);
-  return TRIP_ANALYTICS_LAYOUT.cards.map((id) => ({
-    id,
-    label: tiles[id].label,
-    value: String(tiles[id].value),
-    sub: tiles[id].sub ?? null,
-  }));
+  return TRIP_ANALYTICS_LAYOUT.cards
+    .filter((id) => cardAppliesTo(id, input.scope))
+    .map((id) => ({
+      id,
+      label: tiles[id].label,
+      value: String(tiles[id].value),
+      sub: tiles[id].sub ?? null,
+    }));
 }

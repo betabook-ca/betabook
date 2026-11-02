@@ -39,6 +39,48 @@ const sends: AnalyticsSendRow[] = ["2024-01-01", "2025-02-02", "2026-03-03", nul
   }),
 );
 
+describe("flash and onsight cards", () => {
+  const ropeSends: AnalyticsSendRow[] = [
+    { ...sends[0], climbType: "sport", suggestedGrade: 10, ascentStyle: "redpoint" },
+    { ...sends[1], climbType: "sport", suggestedGrade: 11, ascentStyle: "flash" },
+    { ...sends[2], climbType: "sport", suggestedGrade: 12, ascentStyle: "onsight" },
+    { ...sends[3], climbType: "sport", suggestedGrade: 9, ascentStyle: "onsight" },
+  ];
+
+  function renderScope(scope: "boulder" | "sport", rows: AnalyticsSendRow[]) {
+    render(
+      <AnalyticsDashboard
+        analytics={buildUserAnalytics(rows, scope)}
+        sends={rows}
+        selectedYears={[]}
+        undatedCount={0}
+        scope={scope}
+        journalVisible={false}
+        periodPicker={null}
+        initialLayout={DEFAULT_ANALYTICS_LAYOUT}
+      />,
+    );
+  }
+
+  it("shows flash and onsight as separate cards on ropes", () => {
+    renderScope("sport", ropeSends);
+
+    const flash = screen.getByRole("article", { name: "Flash" });
+    expect(flash).toHaveTextContent("25%");
+    expect(flash).toHaveTextContent("Hardest: 5.10b");
+    const onsight = screen.getByRole("article", { name: "Onsight" });
+    expect(onsight).toHaveTextContent("50%");
+    expect(onsight).toHaveTextContent("Hardest: 5.10c");
+  });
+
+  it("has no onsight card for bouldering", () => {
+    renderScope("boulder", sends);
+
+    expect(screen.getByRole("article", { name: "Flash" })).toBeVisible();
+    expect(screen.queryByRole("article", { name: "Onsight" })).not.toBeInTheDocument();
+  });
+});
+
 describe("analytics dashboard with the trip layout", () => {
   const tripSends = sends.map((send, index) => ({
     ...send,

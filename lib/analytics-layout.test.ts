@@ -4,17 +4,27 @@ import {
   DEFAULT_ANALYTICS_LAYOUT,
   TRIP_ANALYTICS_LAYOUT,
   analyticsLayoutSchema,
+  cardAppliesTo,
   moveAnalyticsItem,
   parseAnalyticsLayout,
 } from "./analytics-layout";
 
 describe("trip analytics layout", () => {
-  it("shows four tiles and the grade pyramid", () => {
+  it("shows the summary tiles and the grade pyramid", () => {
     expect(TRIP_ANALYTICS_LAYOUT).toEqual({
-      cards: ["sends", "hardest", "days", "firstTry"],
+      cards: ["sends", "hardest", "days", "firstTry", "onsight"],
       charts: ["pyramid"],
     });
     expect(analyticsLayoutSchema.safeParse(TRIP_ANALYTICS_LAYOUT).success).toBe(true);
+  });
+});
+
+describe("cards per discipline", () => {
+  it("drops the onsight card for bouldering only", () => {
+    expect(cardAppliesTo("onsight", "boulder")).toBe(false);
+    expect(cardAppliesTo("onsight", "sport")).toBe(true);
+    expect(cardAppliesTo("onsight", "trad")).toBe(true);
+    expect(cardAppliesTo("firstTry", "boulder")).toBe(true);
   });
 });
 

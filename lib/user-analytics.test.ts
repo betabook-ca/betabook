@@ -170,7 +170,8 @@ describe("buildUserAnalytics", () => {
       ["boulder", "V3"],
       ["sport", "5.10a"],
     ]);
-    expect(a.hardestFirstTry).toBeNull();
+    expect(a.hardestFlash).toBeNull();
+    expect(a.hardestOnsight).toBeNull();
   });
 
   it("tracks personal best as a running max over month-hardest points", () => {
@@ -337,11 +338,11 @@ describe("buildUserAnalytics", () => {
     expect(a.areaCount).toBe(2);
     expect(a.topArea).toEqual({ id: 1, name: "Forestland", count: 2 });
     expect(a.flashCount).toBe(1);
-    expect(a.firstTryCount).toBe(1);
-    expect(a.hardestFirstTry?.label).toBe("V4");
+    expect(a.hardestFlash?.label).toBe("V4");
+    expect(a.hardestOnsight).toBeNull();
   });
 
-  it("counts rope onsights alongside flashes toward the flash rate", () => {
+  it("tracks rope flashes and onsights separately", () => {
     const a = buildUserAnalytics(
       [
         send({ climbType: "sport", suggestedGrade: 10 }),
@@ -352,8 +353,8 @@ describe("buildUserAnalytics", () => {
     );
     expect(a.flashCount).toBe(1);
     expect(a.onsightCount).toBe(1);
-    expect(a.firstTryCount).toBe(2);
-    expect(a.hardestFirstTry?.grade).toBe(12);
+    expect(a.hardestFlash?.grade).toBe(11);
+    expect(a.hardestOnsight?.grade).toBe(12);
   });
 });
 

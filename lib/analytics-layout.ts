@@ -1,12 +1,16 @@
 import { z } from "zod";
 
+import type { ClimbType } from "@/lib/grades";
+
 /** The catalog lists everything available; a layout lists only visible items.
  * Saved layouts store these ids, so rename titles rather than ids. */
 export const ANALYTICS_CARD_IDS = [
   "sends",
   "hardest",
   "days",
+  /** The flash card; the id predates the separate onsight card. */
   "firstTry",
+  "onsight",
   "bestYear",
   "streak",
   "busiestMonth",
@@ -39,16 +43,23 @@ export type AnalyticsLayout = z.infer<typeof analyticsLayoutSchema>;
 export type AnalyticsCardId = z.infer<typeof cardId>;
 export type AnalyticsItemId = AnalyticsCardId | z.infer<typeof chartId>;
 export const DEFAULT_ANALYTICS_LAYOUT: AnalyticsLayout = {
-  cards: ["sends", "hardest", "days", "firstTry", "bestYear"],
+  cards: ["sends", "hardest", "days", "firstTry", "onsight", "bestYear"],
   charts: ["progression", "pyramid", "breakthroughs", "calendar"],
 };
 
 /** Layout for trip analytics. Leaves out the tiles and charts that compare
  * months or years, which say nothing about a few days. */
 export const TRIP_ANALYTICS_LAYOUT: AnalyticsLayout = {
-  cards: ["sends", "hardest", "days", "firstTry"],
+  cards: ["sends", "hardest", "days", "firstTry", "onsight"],
   charts: ["pyramid"],
 };
+
+/** Cards that don't apply to a discipline. A boulder can't be onsighted, so a
+ * boulder sent first try is always a flash. Layouts keep these ids so the card
+ * stays placed for rope disciplines. */
+export function cardAppliesTo(id: AnalyticsCardId, type: ClimbType): boolean {
+  return !(id === "onsight" && type === "boulder");
+}
 
 /** Invalid local preferences start fresh; reads and writes share one schema. */
 export function parseAnalyticsLayout(value: unknown): AnalyticsLayout {

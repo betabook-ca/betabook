@@ -15,7 +15,7 @@ import type { AnalyticsSendRow } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
 import { buildAnalyticsHighlights } from "@/lib/analytics-highlights";
 import type { AnalyticsLayout } from "@/lib/analytics-layout";
-import { ANALYTICS_CARD_IDS, type AnalyticsCardId } from "@/lib/analytics-layout";
+import { ANALYTICS_CARD_IDS, cardAppliesTo, type AnalyticsCardId } from "@/lib/analytics-layout";
 import { formatAnalyticsYears } from "@/lib/analytics-years";
 import {
   selectChartSends,
@@ -91,10 +91,8 @@ export function AnalyticsDashboard({
     sends: "How many climbs you’ve sent.",
     hardest: "Your highest graded send.",
     days: "Days with climbing activity.",
-    firstTry:
-      scope === "boulder"
-        ? "The share of sends you flashed."
-        : "The share of sends you flashed or onsighted.",
+    firstTry: "The share of sends you flashed.",
+    onsight: "The share of sends you onsighted.",
     bestYear: "The year with the most sends.",
     streak: "Your longest run of consecutive climbing days.",
     busiestMonth: "The month with the most sends.",
@@ -102,12 +100,14 @@ export function AnalyticsDashboard({
     favoriteDay: "The day of the week you send most often.",
     layoff: "The longest gap between climbing days.",
   };
-  const cards: AnalyticsPanel[] = ANALYTICS_CARD_IDS.map((id) => ({
-    id,
-    title: tiles[id].label,
-    description: descriptions[id],
-    content: <StatTileContent tile={tiles[id]} />,
-  }));
+  const cards: AnalyticsPanel[] = ANALYTICS_CARD_IDS.filter((id) => cardAppliesTo(id, scope)).map(
+    (id) => ({
+      id,
+      title: tiles[id].label,
+      description: descriptions[id],
+      content: <StatTileContent tile={tiles[id]} />,
+    }),
+  );
   const pyramidRows = analytics.pyramid[0]?.rows ?? [];
   const charts: AnalyticsPanel[] = [
     {
@@ -263,11 +263,11 @@ export function AnalyticsDashboard({
 export function buildStatTiles({
   analytics,
   highlights,
-  scope,
   journalVisible,
 }: {
   analytics: UserAnalytics;
   highlights: ReturnType<typeof buildAnalyticsHighlights>;
+  /** Not read here: callers drop the cards that don't apply with cardAppliesTo. */
   scope: ClimbType;
   journalVisible: boolean;
 }): Record<AnalyticsCardId, StatTile> {
@@ -323,21 +323,13 @@ export function buildStatTiles({
       value: analytics.daysOut,
       sub: analytics.daysPerMonth != null ? `${analytics.daysPerMonth.toFixed(1)} per month` : null,
     },
-    firstTry: {
-      label: "Flash",
-      value: analytics.sendCount
-        ? `${Math.round((analytics.firstTryCount / analytics.sendCount) * 100)}%`
-        : "—",
-      sub:
-        analytics.sendCount === 0
-          ? "no sends"
-          : analytics.hardestFirstTry
-            ? `Hardest: ${analytics.hardestFirstTry.label}`
-            : // Boulders are never onsights, so the split would only ever read "0 onsight".
-              scope === "boulder"
-              ? `${analytics.flashCount} flash`
-              : `${analytics.flashCount} flash · ${analytics.onsightCount} onsight`,
-    },
+    firstTry: styleTile("Flash", analytics.flashCount, analytics.hardestFlash, analytics.sendCount),
+    onsight: styleTile(
+      "Onsight",
+      analytics.onsightCount,
+      analytics.hardestOnsight,
+      analytics.sendCount,
+    ),
     streak: {
       label: journalVisible ? "Longest streak" : "Longest send streak",
       value: analytics.longestStreak ? formatCount(analytics.longestStreak.days, "day") : "—",
@@ -376,5 +368,24 @@ export function buildStatTiles({
         ? `${formatMonth(analytics.longestLayoff.from.slice(0, 7))} – ${formatMonth(analytics.longestLayoff.to.slice(0, 7))}`
         : "no gaps between dated activity",
     },
+  };
+}
+
+/** A flash or onsight card: the share of sends in that style, and the hardest one. */
+function styleTile(
+  label: string,
+  count: number,
+  hardest: UserAnalytics["hardestFlash"],
+  sendCount: number,
+): StatTile {
+  return {
+    label,
+    value: sendCount ? `${Math.round((count / sendCount) * 100)}%` : "—",
+    sub:
+      sendCount === 0
+        ? "no sends"
+        : hardest
+          ? `Hardest: ${hardest.label}`
+          : `0 ${label.toLowerCase()}`,
   };
 }
