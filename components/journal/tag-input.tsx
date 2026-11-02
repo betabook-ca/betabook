@@ -13,6 +13,7 @@ export function TagInput({
   availableTags,
   showExamples = true,
   onTagSelected,
+  label,
 }: {
   value: string[];
   onChange: (value: string[]) => void;
@@ -23,6 +24,7 @@ export function TagInput({
   availableTags?: string[];
   showExamples?: boolean;
   onTagSelected?: () => void;
+  label?: string;
 }) {
   return (
     <TagsField
@@ -37,6 +39,7 @@ export function TagInput({
       tags={availableTags}
       showExamples={showExamples}
       onTagSelected={onTagSelected}
+      label={label}
       validateTag={(tag) =>
         !isValidJournalTag(tag)
           ? "Tags can only contain letters, numbers and hyphens."

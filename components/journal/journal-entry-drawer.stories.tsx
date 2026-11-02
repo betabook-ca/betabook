@@ -57,6 +57,15 @@ export const Training: Story = {
     );
   },
 };
+/** A day out: opens fullscreen on phones, since its list of climbs outgrows a sheet. */
+export const Day: Story = {
+  render: () => <Example />,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement.ownerDocument.body).getByRole("button", { name: /^Climbing day/ }),
+    );
+  },
+};
 export const Climb: Story = { render: () => <Example climb /> };
 export const Send: Story = {
   render: () => <Example climb />,

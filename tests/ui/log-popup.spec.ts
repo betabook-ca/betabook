@@ -39,6 +39,37 @@ for (const story of ["training", "climb", "send", "repeat"]) {
 }
 
 test(
+  "Log day fills a phone screen and keeps its save button on the right, within reach",
+  { tag: "@layout" },
+  async ({ page }, info) => {
+    await openStory(page, info, "components-journal-log-popup--day");
+    const dialog = page.getByRole("dialog", { name: "Log entry" });
+    await expect(dialog.getByRole("heading", { name: "Log a day" })).toBeVisible();
+    const save = dialog.getByRole("button", { name: "Save day" });
+    const box = await dialog.boundingBox();
+    const form = await dialog.locator("form").boundingBox();
+    const viewport = page.viewportSize();
+    if (!box || !form || !viewport) throw new Error("Expected day popup geometry");
+
+    // A day's list of climbs outgrows a sheet, so below md it takes the
+    // whole screen; from md up it's the same centered column.
+    if (viewport.width < 768) {
+      expect(box.width).toBe(viewport.width);
+      expect(Math.abs(box.height - viewport.height)).toBeLessThanOrEqual(1);
+    } else {
+      expect(box.width).toBeLessThanOrEqual(512);
+      expect(Math.abs(box.x + box.width / 2 - viewport.width / 2)).toBeLessThanOrEqual(2);
+    }
+    await save.scrollIntoViewIfNeeded();
+    const action = await save.boundingBox();
+    if (!action) throw new Error("Expected reachable save action");
+    expect(Math.abs(action.x + action.width - form.x - form.width)).toBeLessThanOrEqual(2);
+    expect(action.y + action.height).toBeLessThanOrEqual(viewport.height);
+    await expect(save).toBeVisible();
+  },
+);
+
+test(
   "Log launcher keeps standard spacing after closing the popup",
   { tag: "@layout" },
   async ({ page }, info) => {
@@ -93,4 +124,10 @@ test("entry type cards have equal dimensions", async ({ page }, info) => {
   expect(Math.abs(left.width - right.width)).toBeLessThanOrEqual(1);
   expect(Math.abs(left.height - right.height)).toBeLessThanOrEqual(1);
   expect(Math.abs(left.y - right.y)).toBeLessThanOrEqual(1);
+  // The day card spans both columns above them.
+  const day = await page.getByRole("button", { name: /^Climbing day Several/ }).boundingBox();
+  if (!day) throw new Error("Expected the day card");
+  expect(Math.abs(day.x - left.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(day.x + day.width - right.x - right.width)).toBeLessThanOrEqual(1);
+  expect(day.y + day.height).toBeLessThan(left.y);
 });

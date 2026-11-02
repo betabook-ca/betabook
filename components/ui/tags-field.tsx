@@ -13,8 +13,8 @@ function fieldLayout(inlineLabel: boolean, sentenceLayout: boolean) {
   if (sentenceLayout) return "contents";
   return inlineLabel ? FILTER_ROW_CLASS : `${FIELD_WIDTH_CLASS.medium} flex flex-col gap-2`;
 }
-function fieldAriaLabel(inlineLabel: boolean, showLabel: boolean) {
-  return inlineLabel || !showLabel ? "Tags" : undefined;
+function fieldAriaLabel(inlineLabel: boolean, showLabel: boolean, label: string) {
+  return inlineLabel || !showLabel ? label : undefined;
 }
 function fieldHelper(showHelper: boolean, full: boolean, maxTags: number | undefined) {
   if (!showHelper) return undefined;
@@ -43,6 +43,7 @@ export function TagsField({
   sentenceLayout = false,
   showExamples = true,
   onTagSelected,
+  label = "Tags",
 }: {
   value: string[];
   onChange: (value: string[]) => void;
@@ -57,6 +58,8 @@ export function TagsField({
   showExamples?: boolean;
   onTagSelected?: () => void;
   inlineLabel?: boolean;
+  /** The field's name, shown or announced. */
+  label?: string;
 }) {
   const [draft, setDraft] = useState("#");
   const [error, setError] = useState<string | null>(null);
@@ -92,10 +95,10 @@ export function TagsField({
 
   return (
     <div className={fieldLayout(inlineLabel, sentenceLayout)}>
-      {inlineLabel && <span className={FILTER_LABEL_CLASS}>Tags</span>}
+      {inlineLabel && <span className={FILTER_LABEL_CLASS}>{label}</span>}
       <div className={`${FIELD_WIDTH_CLASS.medium} flex flex-col gap-2`}>
         <ComboBox
-          aria-label={fieldAriaLabel(inlineLabel, showLabel)}
+          aria-label={fieldAriaLabel(inlineLabel, showLabel, label)}
           isDisabled={full}
           isInvalid={Boolean(error)}
           allowsCustomValue
@@ -125,7 +128,7 @@ export function TagsField({
                   : { used: value.length, limit: maxTags, unit: "tags" }
               }
             >
-              <Label>Tags</Label>
+              <Label>{label}</Label>
             </FieldHeader>
           )}
           <ComboBox.InputGroup className="relative">

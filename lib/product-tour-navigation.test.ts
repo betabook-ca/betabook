@@ -27,6 +27,8 @@ describe("route-based tours", () => {
       expect(result.shouldInvite).toBe(true);
       expect(result.navigation.mode).toBe("updates");
       expect(result.steps.map((step) => step.id)).toEqual([
+        // `journal` was revised in version 7 for logging a day.
+        "journal",
         // `projects` was introduced in version 1 but substantially revised in
         // version 5 for sharing, so it re-enters the update subset.
         "projects",
@@ -48,7 +50,12 @@ describe("route-based tours", () => {
     });
     expect(result.shouldInvite).toBe(true);
     expect(result.navigation.mode).toBe("updates");
-    expect(result.steps.map((step) => step.id)).toEqual(["projects", "find-projects", "account"]);
+    expect(result.steps.map((step) => step.id)).toEqual([
+      "journal",
+      "projects",
+      "find-projects",
+      "account",
+    ]);
   });
 
   it("offers the revised projects and account lessons after version 3 was acknowledged", () => {
@@ -59,7 +66,7 @@ describe("route-based tours", () => {
       navigation: { from: "journal", mode: "updates" },
     });
     expect(updated.shouldInvite).toBe(true);
-    expect(updated.steps.map((step) => step.id)).toEqual(["projects", "account"]);
+    expect(updated.steps.map((step) => step.id)).toEqual(["journal", "projects", "account"]);
   });
 
   it("offers the revised projects lesson again after version 4 was acknowledged", () => {
@@ -72,10 +79,10 @@ describe("route-based tours", () => {
       navigation: { from: "journal", mode: "updates" },
     });
     expect(updated.shouldInvite).toBe(true);
-    expect(updated.steps.map((step) => step.id)).toEqual(["projects", "account"]);
+    expect(updated.steps.map((step) => step.id)).toEqual(["journal", "projects", "account"]);
   });
 
-  it("offers only the revised account lesson after version 5 was acknowledged", () => {
+  it("offers the revised journal and account lessons after version 5 was acknowledged", () => {
     const tour = PRODUCT_TOURS[0];
     // Version 6 revises `account` for the separate trip audience.
     const updated = resolveProductTour(PRODUCT_TOUR_STEPS[tour.id], {
@@ -84,14 +91,26 @@ describe("route-based tours", () => {
       navigation: { from: "journal", mode: "updates" },
     });
     expect(updated.shouldInvite).toBe(true);
-    expect(updated.steps.map((step) => step.id)).toEqual(["account"]);
+    expect(updated.steps.map((step) => step.id)).toEqual(["journal", "account"]);
   });
 
-  it("includes every lesson in full replay and stops inviting after version 6", () => {
+  it("offers only the revised journal lesson after version 6 was acknowledged", () => {
+    const tour = PRODUCT_TOURS[0];
+    // Version 7 revises `journal` for logging a day of climbs at once.
+    const updated = resolveProductTour(PRODUCT_TOUR_STEPS[tour.id], {
+      version: tour.version,
+      savedVersion: 6,
+      navigation: { from: "journal", mode: "updates" },
+    });
+    expect(updated.shouldInvite).toBe(true);
+    expect(updated.steps.map((step) => step.id)).toEqual(["journal"]);
+  });
+
+  it("includes every lesson in full replay and stops inviting after version 7", () => {
     const tour = PRODUCT_TOURS[0];
     const result = resolveProductTour(PRODUCT_TOUR_STEPS[tour.id], {
       version: tour.version,
-      savedVersion: 6,
+      savedVersion: 7,
       navigation: { from: "account", mode: "updates" },
     });
     expect(result.shouldInvite).toBe(false);
