@@ -11,29 +11,31 @@ export type HighlightSession = {
   companions: { id: string; name: string }[];
 };
 
+/** A logged send. Many have no journal entry: undated sends, sends from
+ * before the journal, and imports without a date. */
+export type HighlightSend = { climbId: number; dateSent: string | null };
+
 export function buildAnalyticsHighlights(
   rows: readonly HighlightSession[],
   scope: ClimbType,
   years: readonly number[],
+  sends: readonly HighlightSend[],
 ) {
-  // Find post-send sessions across all years before the year filter, so a
-  // climb sent in an earlier year does not count as a project later.
-  const firstAscents = new Map<number, string>();
+  const lastYear = years.length ? Math.max(...years) : Infinity;
+  const yearOf = (date: string) => Number(date.slice(0, 4));
+  // A project is a climb not yet sent by the end of the selected years. An
+  // undated send has no year, so its climb counts as sent in every period.
+  const sentByPeriodEnd = new Set(
+    sends
+      .filter((send) => send.dateSent == null || yearOf(send.dateSent) <= lastYear)
+      .map((send) => send.climbId),
+  );
+  // Sorted across all years so each climb's first ascent is known before the
+  // year filter: a climb sent in an earlier year has only post-send sessions.
   const sessions = rows
     .filter((row) => row.climbType === scope)
-    .toSorted((a, b) => a.entryDate.localeCompare(b.entryDate) || a.id - b.id)
-    .map((row) => {
-      const afterSend = firstAscents.has(row.climbId);
-      if (row.isAscent && !afterSend) firstAscents.set(row.climbId, row.entryDate);
-      return { ...row, afterSend };
-    })
-    .filter((row) => !years.length || years.includes(Number(row.entryDate.slice(0, 4))));
-  // A project is a climb not yet sent by the end of the selected years.
-  const lastYear = years.length ? Math.max(...years) : Infinity;
-  const unsentByPeriodEnd = (climbId: number) => {
-    const ascent = firstAscents.get(climbId);
-    return !ascent || Number(ascent.slice(0, 4)) > lastYear;
-  };
+    .toSorted((a, b) => a.entryDate.localeCompare(b.entryDate) || a.id - b.id);
+  const ascended = new Set<number>();
   const climbs = new Map<
     number,
     {
@@ -47,6 +49,12 @@ export function buildAnalyticsHighlights(
   >();
   const partners = new Map<string, { id: string; name: string; days: Set<string> }>();
   for (const row of sessions) {
+    const afterSend = ascended.has(row.climbId);
+    if (row.isAscent) {
+      ascended.add(row.climbId);
+      if (yearOf(row.entryDate) <= lastYear) sentByPeriodEnd.add(row.climbId);
+    }
+    if (years.length && !years.includes(yearOf(row.entryDate))) continue;
     const climb = climbs.get(row.climbId) ?? {
       id: row.climbId,
       name: row.climbName,
@@ -54,7 +62,7 @@ export function buildAnalyticsHighlights(
       repeats: 0,
       firstSend: null,
     };
-    if (!row.afterSend) climb.sessions += 1;
+    if (!afterSend) climb.sessions += 1;
     if (row.isAscent) climb.firstSend = row.entryDate;
     if (row.sent && !row.isAscent) climb.repeats += 1;
     climbs.set(row.climbId, climb);
@@ -67,7 +75,7 @@ export function buildAnalyticsHighlights(
   const byClimb = [...climbs.values()];
   const biggestProject =
     byClimb
-      .filter((c) => unsentByPeriodEnd(c.id))
+      .filter((c) => !sentByPeriodEnd.has(c.id))
       .toSorted((a, b) => b.sessions - a.sessions || a.id - b.id)[0] ?? null;
   const persistence =
     byClimb

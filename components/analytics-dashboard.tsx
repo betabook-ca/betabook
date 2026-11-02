@@ -48,7 +48,7 @@ export function AnalyticsDashboard({
   canCustomize = false,
   initialLayout,
   onSave,
-  highlights = buildAnalyticsHighlights([], scope, selectedYears),
+  highlights = buildAnalyticsHighlights([], scope, selectedYears, []),
 }: {
   analytics: UserAnalytics;
   sends: AnalyticsSendRow[];
