@@ -16,22 +16,27 @@ export function buildAnalyticsHighlights(
   scope: ClimbType,
   years: readonly number[],
 ) {
+  // Find post-send sessions across all years before the year filter, so a
+  // climb sent in an earlier year does not count as a project later.
+  const sentClimbs = new Set<number>();
   const sessions = rows
-    .filter(
-      (row) =>
-        row.climbType === scope &&
-        (!years.length || years.includes(Number(row.entryDate.slice(0, 4)))),
-    )
-    .toSorted((a, b) => a.entryDate.localeCompare(b.entryDate) || a.id - b.id);
+    .filter((row) => row.climbType === scope)
+    .toSorted((a, b) => a.entryDate.localeCompare(b.entryDate) || a.id - b.id)
+    .map((row) => {
+      const afterSend = sentClimbs.has(row.climbId);
+      if (row.isAscent) sentClimbs.add(row.climbId);
+      return { ...row, afterSend };
+    })
+    .filter((row) => !years.length || years.includes(Number(row.entryDate.slice(0, 4))));
   const climbs = new Map<
     number,
     {
       id: number;
       name: string;
+      /** Sessions up to and including the first send. */
       sessions: number;
       repeats: number;
       firstSend: string | null;
-      attempts: number;
     }
   >();
   const partners = new Map<string, { id: string; name: string; days: Set<string> }>();
@@ -42,10 +47,8 @@ export function buildAnalyticsHighlights(
       sessions: 0,
       repeats: 0,
       firstSend: null,
-      attempts: 0,
     };
-    climb.sessions += 1;
-    if (!climb.firstSend) climb.attempts += 1;
+    if (!row.afterSend) climb.sessions += 1;
     if (row.isAscent) climb.firstSend = row.entryDate;
     if (row.sent && !row.isAscent) climb.repeats += 1;
     climbs.set(row.climbId, climb);
@@ -57,11 +60,13 @@ export function buildAnalyticsHighlights(
   }
   const byClimb = [...climbs.values()];
   const biggestProject =
-    byClimb.toSorted((a, b) => b.sessions - a.sessions || a.id - b.id)[0] ?? null;
+    byClimb
+      .filter((c) => c.sessions > 0)
+      .toSorted((a, b) => b.sessions - a.sessions || a.id - b.id)[0] ?? null;
   const persistence =
     byClimb
-      .filter((c) => c.firstSend && c.attempts > 1)
-      .toSorted((a, b) => b.attempts - a.attempts || a.id - b.id)[0] ?? null;
+      .filter((c) => c.firstSend && c.sessions > 1)
+      .toSorted((a, b) => b.sessions - a.sessions || a.id - b.id)[0] ?? null;
   const favoriteRepeat =
     byClimb
       .filter((c) => c.repeats > 0)

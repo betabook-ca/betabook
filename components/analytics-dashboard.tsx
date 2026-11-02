@@ -86,7 +86,7 @@ export function AnalyticsDashboard({
   const tiles = buildStatTiles({ analytics, highlights, scope, journalVisible });
   const descriptions: Record<AnalyticsCardId, string> = {
     partner: "The friend you tagged on the most days.",
-    biggestProject: "The climb with the most logged sessions, sent or unsent.",
+    biggestProject: "The climb with the most sessions before its send, sent or unsent.",
     persistence: "The most sessions leading up to a first send in this period.",
     favoriteRepeat: "The climb you repeated most after its original ascent.",
     sends: "How many climbs you’ve sent.",
@@ -295,12 +295,12 @@ function allStatTiles({
         ? formatCount(highlights.biggestProject.sessions, "session")
         : "—",
       sub: highlights.biggestProject
-        ? `${highlights.biggestProject.name} · ${highlights.biggestProject.firstSend ? "sent" : highlights.biggestProject.repeats ? "repeated" : "no first send in this period"}`
+        ? `${highlights.biggestProject.name} · ${highlights.biggestProject.firstSend ? "sent" : "no first send in this period"}`
         : "no logged sessions",
     },
     persistence: {
       label: "Persistence paid off",
-      value: highlights.persistence ? formatCount(highlights.persistence.attempts, "session") : "—",
+      value: highlights.persistence ? formatCount(highlights.persistence.sessions, "session") : "—",
       sub: highlights.persistence
         ? `${highlights.persistence.name} · sessions through the send`
         : "no sends after multiple logged sessions",
