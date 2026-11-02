@@ -21,21 +21,22 @@ const sends: AnalyticsSendRow[] = Array.from({ length: 7 }, (_, i) => ({
 }));
 const rows = buildUserAnalytics(sends, "sport").styleRatesByGrade[0].rows;
 
-it("counts only flashes toward the flash rate and shows all sends at the selected grade", async () => {
+it("overlays the flash and onsight rates and shows all sends at the selected grade", async () => {
   const user = userEvent.setup();
   render(<AnalyticsFlashChart type="sport" rows={rows} sends={sends} />);
-  expect(screen.getByRole("heading", { name: "Flash rate by grade" })).toBeVisible();
+  expect(screen.getByRole("heading", { name: "Flash and onsight rate by grade" })).toBeVisible();
+  expect(screen.getByText("Flash rate")).toBeVisible();
+  expect(screen.getByText("Onsight rate")).toBeVisible();
   await user.tab();
   await user.keyboard("{Home}");
   const tooltip = screen.getByRole("tooltip");
-  expect(tooltip).toHaveTextContent("3 sends");
-  expect(tooltip).toHaveTextContent("33% flash rate");
+  expect(tooltip).toHaveTextContent("3 sends · 33% flash · 33% onsight");
   expect(within(tooltip).getByText("Climb 1", { exact: true })).toBeInTheDocument();
   expect(within(tooltip).getByText("Climb 2", { exact: true })).toBeInTheDocument();
   await user.keyboard("{Enter}");
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   await user.keyboard("{ArrowRight}");
-  expect(screen.getByRole("tooltip")).toHaveTextContent("25% flash rate");
+  expect(screen.getByRole("tooltip")).toHaveTextContent("4 sends · 25% flash · 0% onsight");
   await user.keyboard("{Enter}");
   const table = await screen.findByRole("list", { name: "Climbs" });
   expect(
@@ -46,13 +47,20 @@ it("counts only flashes toward the flash rate and shows all sends at the selecte
   expect(within(table).queryByText(/Undated/)).not.toBeInTheDocument();
 });
 
-it("counts only onsights toward the onsight rate", async () => {
+it("draws only the flash rate for bouldering", async () => {
   const user = userEvent.setup();
-  render(<AnalyticsFlashChart type="sport" rows={rows} sends={sends} ascentStyle="onsight" />);
-  expect(screen.getByRole("heading", { name: "Onsight rate by grade" })).toBeVisible();
+  const boulders = sends.map((send) => ({
+    ...send,
+    climbType: "boulder" as const,
+    suggestedGrade: send.suggestedGrade! - 6,
+    ascentStyle: send.ascentStyle === "onsight" ? ("flash" as const) : send.ascentStyle,
+  }));
+  const boulderRows = buildUserAnalytics(boulders, "boulder").styleRatesByGrade[0].rows;
+  render(<AnalyticsFlashChart type="boulder" rows={boulderRows} sends={boulders} />);
+  expect(screen.getByRole("heading", { name: "Flash rate by grade" })).toBeVisible();
+  expect(screen.queryByText("Onsight rate")).not.toBeInTheDocument();
   await user.tab();
   await user.keyboard("{Home}");
-  expect(screen.getByRole("tooltip")).toHaveTextContent("33% onsight rate");
-  await user.keyboard("{ArrowRight}");
-  expect(screen.getByRole("tooltip")).toHaveTextContent("0% onsight rate");
+  expect(screen.getByRole("tooltip")).toHaveTextContent("3 sends · 67% flash");
+  expect(screen.getByRole("tooltip")).not.toHaveTextContent("onsight");
 });

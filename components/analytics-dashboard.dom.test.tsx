@@ -59,23 +59,21 @@ describe("flash and onsight cards", () => {
         periodPicker={null}
         initialLayout={{
           cards: DEFAULT_ANALYTICS_LAYOUT.cards,
-          charts: ["flashRate", "onsightRate"],
+          charts: ["flashRate"],
         }}
       />,
     );
   }
 
-  it("shows flash and onsight rate charts on ropes, and only the flash chart on boulders", () => {
+  it("overlays flash and onsight rates on ropes, and shows only flash on boulders", () => {
     renderScope("sport", ropeSends);
-    expect(screen.getByRole("heading", { name: "Flash rate by grade" })).toBeVisible();
-    expect(screen.getByRole("heading", { name: "Onsight rate by grade" })).toBeVisible();
+    expect(screen.getByRole("article", { name: "Flash and onsight rate by grade" })).toBeVisible();
+    expect(screen.getByText("Onsight rate")).toBeVisible();
     cleanup();
 
     renderScope("boulder", sends);
-    expect(screen.getByRole("heading", { name: "Flash rate by grade" })).toBeVisible();
-    expect(
-      screen.queryByRole("heading", { name: "Onsight rate by grade" }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole("article", { name: "Flash rate by grade" })).toBeVisible();
+    expect(screen.queryByText("Onsight rate")).not.toBeInTheDocument();
   });
 
   it("shows flash and onsight as separate cards on ropes", () => {

@@ -28,9 +28,8 @@ const ANALYTICS_CHART_IDS = [
   "breakthroughs",
   "calendar",
   "volume",
-  /** The flash chart; the id predates the separate onsight chart. */
+  /** Flash and onsight rates; the id predates the onsight line. */
   "flashRate",
-  "onsightRate",
 ] as const;
 const cardId = z.enum(ANALYTICS_CARD_IDS);
 const chartId = z.enum(ANALYTICS_CHART_IDS);
@@ -57,11 +56,11 @@ export const TRIP_ANALYTICS_LAYOUT: AnalyticsLayout = {
   charts: ["pyramid"],
 };
 
-/** Whether a card or chart applies to a discipline. A boulder can't be
- * onsighted, so a boulder sent first try is always a flash. Layouts keep these
- * ids so the item stays placed for rope disciplines. */
-export function itemAppliesTo(id: AnalyticsItemId, type: ClimbType): boolean {
-  return type !== "boulder" || (id !== "onsight" && id !== "onsightRate");
+/** Whether a card applies to a discipline. A boulder can't be onsighted, so a
+ * boulder sent first try is always a flash. Layouts keep the onsight id so the
+ * card stays placed for rope disciplines. */
+export function cardAppliesTo(id: AnalyticsCardId, type: ClimbType): boolean {
+  return type !== "boulder" || id !== "onsight";
 }
 
 /** Ids saved under an earlier name. Migration 0057 rewrites stored layouts;

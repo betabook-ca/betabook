@@ -15,7 +15,7 @@ import type { AnalyticsSendRow } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
 import { buildAnalyticsHighlights } from "@/lib/analytics-highlights";
 import type { AnalyticsLayout } from "@/lib/analytics-layout";
-import { ANALYTICS_CARD_IDS, itemAppliesTo, type AnalyticsCardId } from "@/lib/analytics-layout";
+import { ANALYTICS_CARD_IDS, cardAppliesTo, type AnalyticsCardId } from "@/lib/analytics-layout";
 import { formatAnalyticsYears } from "@/lib/analytics-years";
 import {
   selectChartSends,
@@ -109,7 +109,7 @@ export function AnalyticsDashboard({
   const pyramidRows = analytics.pyramid[0]?.rows ?? [];
   const styleRateRows =
     analytics.styleRatesByGrade.find((group) => group.type === scope)?.rows ?? [];
-  const allCharts: AnalyticsPanel[] = [
+  const charts: AnalyticsPanel[] = [
     {
       id: "volume",
       title: "Volume over time",
@@ -126,22 +126,12 @@ export function AnalyticsDashboard({
     },
     {
       id: "flashRate",
-      title: "Flash rate by grade",
-      description: "Total sends and the flash rate at each grade.",
+      title: scope === "boulder" ? "Flash rate by grade" : "Flash and onsight rate by grade",
+      description:
+        scope === "boulder"
+          ? "Total sends and the flash rate at each grade."
+          : "Total sends and the flash and onsight rates at each grade.",
       content: <AnalyticsFlashChart sends={chartSends} rows={styleRateRows} type={scope} />,
-    },
-    {
-      id: "onsightRate",
-      title: "Onsight rate by grade",
-      description: "Total sends and the onsight rate at each grade.",
-      content: (
-        <AnalyticsFlashChart
-          sends={chartSends}
-          rows={styleRateRows}
-          type={scope}
-          ascentStyle="onsight"
-        />
-      ),
     },
     {
       id: "progression",
@@ -229,7 +219,6 @@ export function AnalyticsDashboard({
       ),
     },
   ];
-  const charts = allCharts.filter((chart) => itemAppliesTo(chart.id, scope));
   return (
     <AnalyticsWorkspace
       cards={noActivity ? NO_PANELS : cards}
@@ -278,7 +267,7 @@ export function buildStatTiles({
 }): Map<AnalyticsCardId, StatTile> {
   const tiles = allStatTiles(input);
   return new Map(
-    ANALYTICS_CARD_IDS.filter((id) => itemAppliesTo(id, scope)).map((id) => [id, tiles[id]]),
+    ANALYTICS_CARD_IDS.filter((id) => cardAppliesTo(id, scope)).map((id) => [id, tiles[id]]),
   );
 }
 

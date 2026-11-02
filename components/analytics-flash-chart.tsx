@@ -2,7 +2,6 @@
 import { ReferenceLine, Bar, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from "recharts";
 
 import { ChartInspection, ChartHitRegions } from "@/components/chart-inspection";
-import { DISCIPLINE_HUE } from "@/components/ui/discipline-chip";
 import { EYEBROW_CLASS } from "@/components/ui/eyebrow";
 import { useChartWidth } from "@/hooks/use-chart-width";
 import { sendChartRows, type ChartSend, type ChartDetailGroup } from "@/lib/chart-details";
@@ -10,31 +9,34 @@ import { formatCount } from "@/lib/format";
 import type { ClimbType } from "@/lib/grades";
 import type { StyleRateGradeRow } from "@/lib/user-analytics";
 
-const STYLES = {
-  flash: { name: "Flash", count: "flashes", rate: "flashRate", plural: "flashes" },
-  onsight: { name: "Onsight", count: "onsights", rate: "onsightRate", plural: "onsights" },
-} as const;
+/** Each line wears its ascent chip's hue (flash blue, onsight green), so the
+ * bars stay neutral rather than a discipline hue that would hide one line. */
+const SERIES = [
+  { key: "flashRate", name: "Flash", color: "var(--chart-flash)" },
+  { key: "onsightRate", name: "Onsight", color: "var(--chart-onsight)" },
+] as const;
+const BAR_COLOR = "var(--muted)";
 
-/** Sends per grade with the share flashed or onsighted, matching the Flash
- * and Onsight stat cards. */
+/** Sends per grade with the flash and onsight rates overlaid, matching the
+ * Flash and Onsight stat cards. Boulders can't be onsighted, so bouldering
+ * draws the flash line alone. */
 export function AnalyticsFlashChart({
   rows,
   type,
   sends,
-  ascentStyle = "flash",
 }: {
   rows: StyleRateGradeRow[];
   type: ClimbType;
   /** Already scoped to `type`. */
   sends?: ChartSend[];
-  ascentStyle?: keyof typeof STYLES;
 }) {
   const { ref, width } = useChartWidth();
-  const { name, count, rate, plural } = STYLES[ascentStyle];
-  const lower = name.toLowerCase();
+  const series = type === "boulder" ? SERIES.slice(0, 1) : SERIES;
+  const title = series.map((s, i) => (i ? s.name.toLowerCase() : s.name)).join(" and ");
+  const rates = (row: StyleRateGradeRow) =>
+    series.map((s) => `${Math.round(row[s.key])}% ${s.name.toLowerCase()}`).join(" · ");
   const labels = rows.map(
-    (row) =>
-      `${row.label}: ${formatCount(row.sends, "send")} · ${formatCount(row[count], lower, plural)} · ${Math.round(row[rate])}% ${lower} rate`,
+    (row) => `${row.label}: ${formatCount(row.sends, "send")} · ${rates(row)}`,
   );
   const details =
     sends &&
@@ -43,7 +45,7 @@ export function AnalyticsFlashChart({
         labels[i],
         {
           title: row.label,
-          summary: `${formatCount(row.sends, "send")} · ${Math.round(row[rate])}% ${lower} rate`,
+          summary: `${formatCount(row.sends, "send")} · ${rates(row)}`,
           rows: sendChartRows(
             sends.filter(
               (send) =>
@@ -57,23 +59,28 @@ export function AnalyticsFlashChart({
     );
   return (
     <div className="min-w-0" ref={ref}>
-      <h3 className={`mb-4 ${EYEBROW_CLASS}`}>{name} rate by grade</h3>
+      <h3 className={`mb-4 ${EYEBROW_CLASS}`}>{title} rate by grade</h3>
       {rows.length ? (
         <>
           <div className="mb-2 flex flex-wrap gap-4 text-xs text-muted">
             <span className="flex items-center gap-2">
               <span
                 className="h-3 w-3 rounded-xs"
-                style={{ backgroundColor: DISCIPLINE_HUE[type], opacity: 0.7 }}
+                style={{ backgroundColor: BAR_COLOR, opacity: 0.35 }}
               />
               Total sends
             </span>
-            <span className="flex items-center gap-2">
-              <span className="w-4 border-t-2 border-foreground" />
-              {name} rate
-            </span>
+            {series.map((s) => (
+              <span key={s.key} className="flex items-center gap-2">
+                <span className="w-4 border-t-2" style={{ borderColor: s.color }} />
+                {s.name} rate
+              </span>
+            ))}
           </div>
-          <ChartInspection label={`Sends and ${lower} percentage by grade`} details={details}>
+          <ChartInspection
+            label={`Sends and ${title.toLowerCase()} percentage by grade`}
+            details={details}
+          >
             <div className="relative">
               <ComposedChart
                 width={width}
@@ -93,7 +100,7 @@ export function AnalyticsFlashChart({
                   yAxisId="sends"
                   allowDecimals={false}
                   width={32}
-                  tick={{ fontSize: 11, fill: DISCIPLINE_HUE[type] }}
+                  tick={{ fontSize: 11, fill: "var(--muted)" }}
                   axisLine={false}
                   tickLine={false}
                 />
@@ -110,28 +117,33 @@ export function AnalyticsFlashChart({
                 <Bar
                   yAxisId="sends"
                   dataKey="sends"
-                  fill={DISCIPLINE_HUE[type]}
-                  fillOpacity={0.65}
+                  fill={BAR_COLOR}
+                  fillOpacity={0.35}
                   radius={[2, 2, 0, 0]}
                   isAnimationActive={false}
                 />
-                <Line
-                  yAxisId="rate"
-                  type="monotone"
-                  dataKey={rate}
-                  stroke="var(--foreground)"
-                  strokeWidth={2.5}
-                  dot={false}
-                  activeDot={false}
-                  isAnimationActive={false}
-                />
-                {rows.length === 1 && (
-                  <ReferenceLine
-                    yAxisId="rate"
-                    y={rows[0][rate]}
-                    stroke="var(--foreground)"
-                    strokeWidth={2.5}
-                  />
+                {series.map((s) =>
+                  rows.length === 1 ? (
+                    <ReferenceLine
+                      key={s.key}
+                      yAxisId="rate"
+                      y={rows[0][s.key]}
+                      stroke={s.color}
+                      strokeWidth={2.5}
+                    />
+                  ) : (
+                    <Line
+                      key={s.key}
+                      yAxisId="rate"
+                      type="monotone"
+                      dataKey={s.key}
+                      stroke={s.color}
+                      strokeWidth={2.5}
+                      dot={false}
+                      activeDot={false}
+                      isAnimationActive={false}
+                    />
+                  ),
                 )}
               </ComposedChart>
               <ChartHitRegions labels={labels} right={40} />

@@ -4,7 +4,7 @@ import {
   DEFAULT_ANALYTICS_LAYOUT,
   TRIP_ANALYTICS_LAYOUT,
   analyticsLayoutSchema,
-  itemAppliesTo,
+  cardAppliesTo,
   moveAnalyticsItem,
   parseAnalyticsLayout,
 } from "./analytics-layout";
@@ -19,15 +19,12 @@ describe("trip analytics layout", () => {
   });
 });
 
-describe("items per discipline", () => {
-  it("drops the onsight card and chart for bouldering only", () => {
-    for (const id of ["onsight", "onsightRate"] as const) {
-      expect(itemAppliesTo(id, "boulder")).toBe(false);
-      expect(itemAppliesTo(id, "sport")).toBe(true);
-      expect(itemAppliesTo(id, "trad")).toBe(true);
-    }
-    expect(itemAppliesTo("flash", "boulder")).toBe(true);
-    expect(itemAppliesTo("flashRate", "boulder")).toBe(true);
+describe("cards per discipline", () => {
+  it("drops the onsight card for bouldering only", () => {
+    expect(cardAppliesTo("onsight", "boulder")).toBe(false);
+    expect(cardAppliesTo("onsight", "sport")).toBe(true);
+    expect(cardAppliesTo("onsight", "trad")).toBe(true);
+    expect(cardAppliesTo("flash", "boulder")).toBe(true);
   });
 });
 

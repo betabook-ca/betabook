@@ -93,6 +93,13 @@
     --ascent-flash-bg: color-mix(in oklab, var(--palette-support) 22%, var(--white));
     --ascent-flash-fg: color-mix(in oklab, var(--palette-support) 60%, var(--palette-ink));
 
+    /* Flash and onsight rate lines on the same chart: the chip hues (flash
+       blue, onsight green), darkened only as far as a 2.5px line needs to
+       clear 3:1 on the card. The chip text tokens sit far closer to ink, where
+       the two lines read as one dark color where they cross. */
+    --chart-flash: color-mix(in oklab, var(--palette-support) 90%, var(--palette-ink));
+    --chart-onsight: color-mix(in oklab, var(--palette-primary) 62%, var(--palette-ink));
+
     /* Redpoint ascent chip: the neutral baseline, so it stays gray rather
        than taking a palette hue. The fill is what HeroUI's soft `default`
        chip already rendered; the dark theme overrides it (see below)
@@ -176,6 +183,9 @@
 
     --ascent-flash-bg: color-mix(in oklab, var(--palette-support) 25%, transparent);
     --ascent-flash-fg: color-mix(in oklab, var(--palette-support) 60%, var(--palette-paper));
+
+    --chart-flash: color-mix(in oklab, var(--palette-support) 60%, var(--palette-paper));
+    --chart-onsight: color-mix(in oklab, var(--palette-primary) 70%, var(--palette-paper));
 
     /* Redpoint has no hue to lean on, so in dark it can only separate from
        its backdrop by lightness — and HeroUI's soft `default` (--default at

@@ -189,7 +189,7 @@ function DashboardGroup({
       ? `grid grid-cols-2 gap-3 sm:grid-cols-3 ${XL_CARD_COLUMNS[items.length] ?? "xl:grid-cols-6"}`
       : "grid grid-cols-1 gap-6 lg:grid-cols-2";
   const chartSpan = (id: string) =>
-    group === "charts" && !["pyramid", "breakthroughs", "flashRate", "onsightRate"].includes(id)
+    group === "charts" && !["pyramid", "breakthroughs", "flashRate"].includes(id)
       ? "lg:col-span-2"
       : "";
   const panel = (item: AnalyticsPanel, position: number) => (

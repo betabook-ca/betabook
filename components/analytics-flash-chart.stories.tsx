@@ -43,7 +43,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "An optional half-width Recharts chart, drawn once for flashes and once for onsights. The rate line is smooth and has no dots. Legend labels use series names, with matching axis colors. Colored bars and a smooth contrasting line match the count and percentage axis colors. Each chart counts only its own style, like the Flash and Onsight stat cards. Boulders can't be onsighted, so bouldering shows only the flash chart. Hover, tap, or use arrow keys to inspect exact counts and rates.",
+          "An optional half-width Recharts chart. Neutral bars count sends per grade, and smooth dotless lines overlay the flash rate (flash-chip blue) and, on ropes, the onsight rate (onsight-chip green); each counts only its own style, like the Flash and Onsight stat cards. Boulders can't be onsighted, so bouldering draws the flash line alone. Legend labels name each series in its color. Hover, tap, or use arrow keys to inspect exact counts and rates.",
       },
     },
   },
@@ -53,10 +53,9 @@ type Story = StoryObj<typeof meta>;
 export const Grades: Story = {
   args: { rows: activityAnalytics.styleRatesByGrade[0].rows, sends: activitySends },
 };
-export const Onsight: Story = {
+export const FlashAndOnsight: Story = {
   args: {
     type: "sport",
-    ascentStyle: "onsight",
     rows: [
       row(10, "5.10a", 12, 3, 6),
       row(11, "5.10b", 9, 2, 3),
