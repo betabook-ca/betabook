@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import type { ShareImageContent, ShareImageFormat, ShareStat } from "@/lib/share-image";
 
-import { SHARE_STATS_STORAGE_KEY, TripShareImage } from "./trip-share-image";
+import { SHARE_STATS_STORAGE_KEY, statsKey, TripShareImage } from "./trip-share-image";
 
 const CONTENT = {
   title: "Arco 2026",
@@ -113,7 +113,8 @@ it("keeps page order, redraws and remembers the choice", async () => {
   await within(dialog).findByRole("img", { name: /^Preview/ });
 
   expect(drawnIds()).toEqual(["hardest", "days", "flash", "streak"]);
-  expect(JSON.parse(localStorage.getItem(SHARE_STATS_STORAGE_KEY) ?? "null")).toEqual([
+  const key = statsKey(STATS.map((stat) => stat.id));
+  expect(JSON.parse(localStorage.getItem(key) ?? "null")).toEqual([
     "hardest",
     "days",
     "flash",
@@ -125,6 +126,33 @@ it("keeps page order, redraws and remembers the choice", async () => {
   dialog = await open(user);
   expect(within(dialog).getByRole("checkbox", { name: "Longest streak" })).toBeChecked();
   expect(within(dialog).getByRole("checkbox", { name: "Sends" })).not.toBeChecked();
+});
+
+it("keeps onsight chosen for rope trips after a change on a boulder trip", async () => {
+  const user = userEvent.setup();
+  localStorage.setItem(
+    SHARE_STATS_STORAGE_KEY,
+    JSON.stringify(["sends", "hardest", "flash", "onsight"]),
+  );
+  // STATS has no onsight card, like a boulder trip; days takes onsight's slot.
+  const { unmount } = render(
+    <TripShareImage content={CONTENT} stats={STATS} render={renderImage} />,
+  );
+  let dialog = await open(user);
+  expect(within(dialog).getByRole("checkbox", { name: "Days out" })).toBeChecked();
+  await user.click(within(dialog).getByRole("checkbox", { name: "Hardest" }));
+  await within(dialog).findByRole("img", { name: /^Preview/ });
+  unmount();
+
+  const rope: ShareStat[] = [
+    ...STATS.slice(0, 4),
+    { id: "onsight", label: "Onsight", value: "12%", sub: "Hardest: 5.12a" },
+    ...STATS.slice(4),
+  ];
+  render(<TripShareImage content={CONTENT} stats={rope} render={renderImage} />);
+  dialog = await open(user);
+  expect(within(dialog).getByRole("checkbox", { name: "Onsight" })).toBeChecked();
+  expect(within(dialog).getByRole("checkbox", { name: "Hardest" })).toBeChecked();
 });
 
 it("disables the actions with no stats chosen", async () => {

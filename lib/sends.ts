@@ -11,6 +11,15 @@ export { MAX_LOG_NOTE_LENGTH as MAX_COMMENT_LENGTH } from "@/lib/log-note";
 export const ASCENT_STYLES = ["redpoint", "flash", "onsight"] as const;
 export type AscentStyle = (typeof ASCENT_STYLES)[number];
 
+/** One shared sentence-case label map — the same names everywhere an
+ * ascent style is written out (chips, the climb page's breakdown, the import
+ * wizard's value mapping, analytics). */
+export const ASCENT_STYLE_LABELS: Record<AscentStyle, string> = {
+  onsight: "Onsight",
+  flash: "Flash",
+  redpoint: "Redpoint",
+};
+
 const BOULDER_ASCENT_STYLES = ["redpoint", "flash"] as const;
 
 /** Bouldering has no onsight/flash distinction, so a boulder sent first try is

@@ -9,7 +9,7 @@ export const ANALYTICS_CARD_IDS = [
   "sends",
   "hardest",
   "days",
-  /** Was "firstTry" when it counted onsights too (see renameLegacyIds). */
+  /** Was "firstTry" when it counted onsights too (see RENAMED_CARD_IDS). */
   "flash",
   "bestYear",
   "streak",
@@ -32,7 +32,18 @@ const ANALYTICS_CHART_IDS = [
   /** Flash and onsight rates; the id predates the onsight line. */
   "flashRate",
 ] as const;
-const cardId = z.enum(ANALYTICS_CARD_IDS);
+/** Card ids saved under an earlier name. Stored layouts are not rewritten: a
+ * migration would run before the deploy, and the previous worker's strict
+ * schema would reset any layout holding a new id. The schema maps them
+ * instead, so every read and save does, a tab opened before a rename can
+ * still save, and so does the share image's choice kept in the browser. */
+const RENAMED_CARD_IDS: Record<string, (typeof ANALYTICS_CARD_IDS)[number]> = {
+  firstTry: "flash",
+};
+const cardId = z.preprocess(
+  (id) => (typeof id === "string" ? (RENAMED_CARD_IDS[id] ?? id) : id),
+  z.enum(ANALYTICS_CARD_IDS),
+);
 const chartId = z.enum(ANALYTICS_CHART_IDS);
 const unique = (items: readonly string[]) => new Set(items).size === items.length;
 
@@ -42,7 +53,7 @@ export const analyticsLayoutSchema = z.strictObject({
   charts: z.array(chartId).refine(unique, "Duplicate charts"),
 });
 export type AnalyticsLayout = z.infer<typeof analyticsLayoutSchema>;
-export type AnalyticsCardId = z.infer<typeof cardId>;
+export type AnalyticsCardId = z.output<typeof cardId>;
 export type AnalyticsItemId = AnalyticsCardId | z.infer<typeof chartId>;
 export const DEFAULT_ANALYTICS_LAYOUT: AnalyticsLayout = {
   cards: ["sends", "hardest", "days", "flash", "onsight", "bestYear"],
@@ -64,33 +75,15 @@ export function cardAppliesTo(id: AnalyticsCardId, type: ClimbType): boolean {
   return id !== "onsight" || ascentStylesFor(type).includes("onsight");
 }
 
-/** Ids saved under an earlier name. Stored layouts are not rewritten: a
- * migration would run before the deploy, and the previous worker's strict
- * schema would reset any layout holding a new id. Every read and save maps
- * them instead, as does the share image's choice kept in the browser. */
-const RENAMED_IDS: Record<string, string> = { firstTry: "flash" };
-
-/** An id list with earlier names replaced by current ones. Anything that
- * isn't an array of strings passes through for the caller to reject. */
-export function renameLegacyIds(value: unknown): unknown {
-  return Array.isArray(value)
-    ? value.map((id: unknown) => (typeof id === "string" ? (RENAMED_IDS[id] ?? id) : id))
-    : value;
-}
-
-/** Validates a stored or submitted layout, accepting ids saved under an
- * earlier name, so a tab opened before a rename can still save. */
-export function safeParseAnalyticsLayout(value: unknown) {
-  return analyticsLayoutSchema.safeParse(
-    value != null && typeof value === "object" && "cards" in value
-      ? { ...value, cards: renameLegacyIds(value.cards) }
-      : value,
-  );
+/** A card id under its current name, or null for anything that isn't one. */
+export function parseCardId(value: unknown): AnalyticsCardId | null {
+  const result = cardId.safeParse(value);
+  return result.success ? result.data : null;
 }
 
 /** Invalid local preferences start fresh; reads and writes share one schema. */
 export function parseAnalyticsLayout(value: unknown): AnalyticsLayout {
-  const result = safeParseAnalyticsLayout(value);
+  const result = analyticsLayoutSchema.safeParse(value);
   return result.success ? result.data : analyticsLayoutSchema.parse(DEFAULT_ANALYTICS_LAYOUT);
 }
 

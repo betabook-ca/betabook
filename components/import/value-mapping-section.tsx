@@ -1,10 +1,9 @@
-import { ASCENT_STYLE_LABELS } from "@/components/ascent-style";
 import { DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
 import { Eyebrow, EYEBROW_CLASS } from "@/components/ui/eyebrow";
 import { OptionSelect, type SelectOption } from "@/components/ui/option-select";
 import { StatValue } from "@/components/ui/stat-value";
 import { formatCount } from "@/lib/format";
-import { ASCENT_STYLES } from "@/lib/sends";
+import { ASCENT_STYLE_LABELS, ASCENT_STYLES } from "@/lib/sends";
 import { CLIMB_TYPES, RATING_VALUES } from "@/lib/sends-import";
 
 /** A stat the review and result steps lead with — the number, then what it

@@ -1,4 +1,4 @@
-import { renameLegacyIds, type AnalyticsCardId } from "@/lib/analytics-layout";
+import { parseCardId, type AnalyticsCardId } from "@/lib/analytics-layout";
 import { SITE_URL } from "@/lib/site";
 import { slugify } from "@/lib/slug";
 
@@ -438,9 +438,9 @@ export function readShareStats(
   const fallback = order.slice(0, MAX_SHARE_STATS);
   if (!saved) return fallback;
   try {
-    const parsed = renameLegacyIds(JSON.parse(saved));
+    const parsed: unknown = JSON.parse(saved);
     if (!Array.isArray(parsed)) return fallback;
-    const ids = new Set(parsed.filter((item): item is string => typeof item === "string"));
+    const ids = new Set(parsed.flatMap((item) => parseCardId(item) ?? []));
     const chosen = new Set(order.filter((item) => ids.has(item)).slice(0, MAX_SHARE_STATS));
     if (!chosen.size) return fallback;
     const size = Math.min(ids.size, MAX_SHARE_STATS);

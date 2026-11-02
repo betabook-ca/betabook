@@ -26,8 +26,16 @@ import {
 } from "@/lib/share-image";
 
 /** Shared across trips, so a climber who always shares the same stats picks
- * them once. */
+ * them once. Trips offering different stats (a boulder trip has no onsight
+ * card) each keep their own choice under `statsKey`, so a change on a boulder
+ * trip can't drop onsight from rope trips. A trip without its own choice yet
+ * starts from this one, kept from before the split, and readShareStats fills
+ * any slot a stat it lacks would take. */
 export const SHARE_STATS_STORAGE_KEY = "betabook:share-image-stats";
+
+export function statsKey(order: readonly AnalyticsCardId[]) {
+  return `${SHARE_STATS_STORAGE_KEY}:${order.toSorted((a, b) => a.localeCompare(b)).join(",")}`;
+}
 export const SHARE_DESCRIPTION_STORAGE_KEY = "betabook:share-image-description";
 
 const FORMAT_OPTIONS = [
@@ -56,7 +64,9 @@ function canShareFiles() {
 
 function readSaved(order: readonly AnalyticsCardId[]) {
   try {
-    return readShareStats(localStorage.getItem(SHARE_STATS_STORAGE_KEY), order);
+    const saved =
+      localStorage.getItem(statsKey(order)) ?? localStorage.getItem(SHARE_STATS_STORAGE_KEY);
+    return readShareStats(saved, order);
   } catch {
     return readShareStats(null, order);
   }
@@ -198,7 +208,7 @@ export function TripShareImage({
   function toggle(id: AnalyticsCardId) {
     const ids = toggleShareStat(selected, id, order);
     setSelected(ids);
-    savePreference(SHARE_STATS_STORAGE_KEY, JSON.stringify(ids));
+    savePreference(statsKey(order), JSON.stringify(ids));
     void draw({ ...current, ids });
   }
 

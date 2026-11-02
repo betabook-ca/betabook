@@ -8,7 +8,6 @@ import {
   getPublicAreaById,
   getPublicClimbById,
 } from "@/app/public-catalog-reads";
-import { ASCENT_STYLE_LABELS } from "@/components/ascent-style";
 import { AreaBreadcrumbs } from "@/components/breadcrumbs";
 import { ClimbActionsMenu } from "@/components/climb-actions-menu";
 import { ClimbDescription } from "@/components/climb-description";
@@ -37,7 +36,7 @@ import {
 } from "@/db/queries";
 import type { Climb } from "@/db/queries/climbs";
 import { buildLoggedGradeRows } from "@/lib/grade-histogram";
-import type { AscentStyle as AscentStyleType } from "@/lib/sends";
+import { ASCENT_STYLE_LABELS, type AscentStyle as AscentStyleType } from "@/lib/sends";
 import { climbDescription, climbJsonLd, climbTitle, locationTrail, pageMetadata } from "@/lib/seo";
 import { getMemberSession, getViewerGradePreferences } from "@/lib/session";
 import { areaHref, climbHref } from "@/lib/slug";

@@ -7,18 +7,16 @@ import { useChartWidth } from "@/hooks/use-chart-width";
 import { sendChartRows, type ChartSend, type ChartDetailGroup } from "@/lib/chart-details";
 import { formatCount } from "@/lib/format";
 import type { ClimbType } from "@/lib/grades";
+import { ASCENT_STYLE_LABELS } from "@/lib/sends";
 import { firstTryStyles, styleRateTitle, type FirstTryStyle } from "@/lib/style-rates";
 import type { StyleRateGradeRow } from "@/lib/user-analytics";
 
 /** Each line wears its ascent chip's hue (flash blue, onsight green), so the
  * bars stay neutral rather than a discipline hue that would hide one line. */
 const SERIES = {
-  flash: { key: "flashRate", name: "Flash", color: "var(--chart-flash)" },
-  onsight: { key: "onsightRate", name: "Onsight", color: "var(--chart-onsight)" },
-} as const satisfies Record<
-  FirstTryStyle,
-  { key: keyof StyleRateGradeRow; name: string; color: string }
->;
+  flash: { key: "flashRate", color: "var(--chart-flash)" },
+  onsight: { key: "onsightRate", color: "var(--chart-onsight)" },
+} as const satisfies Record<FirstTryStyle, { key: keyof StyleRateGradeRow; color: string }>;
 const BAR_COLOR = "var(--muted)";
 
 /** Sends per grade with the flash and onsight rates overlaid, matching the
@@ -36,7 +34,7 @@ export function AnalyticsFlashChart({
 }) {
   const { ref, width } = useChartWidth();
   const styles = firstTryStyles(type);
-  const series = styles.map((style) => SERIES[style]);
+  const series = styles.map((style) => ({ ...SERIES[style], name: ASCENT_STYLE_LABELS[style] }));
   const rates = (row: StyleRateGradeRow) =>
     series.map((s) => `${Math.round(row[s.key])}% ${s.name.toLowerCase()}`).join(" · ");
   const labels = rows.map(
