@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { scheduleGoalRefresh } from "@/actions/goal-refresh";
 import { GET } from "@/app/api/users/[id]/goals/route";
@@ -24,7 +24,14 @@ vi.mock("@/db/client", async (original) => {
 const db = createDb(env.DB);
 const params = { params: Promise.resolve({ id: "owner" }) };
 const request = (query = "") => new Request(`https://betabook.ca/api/users/owner/goals?${query}`);
+afterEach(() => {
+  vi.useRealTimers();
+});
 beforeEach(async () => {
+  // The fixture goal is September 2026 only; pin "today" inside it so the
+  // goal stays current after that month passes.
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-09-15T12:00:00Z"));
   vi.mocked(scheduleGoalRefresh).mockClear();
   state.viewer = "friend";
   await resetDb(db);
