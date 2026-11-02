@@ -295,7 +295,7 @@ function allStatTiles({
       value: highlights.biggestProject
         ? formatCount(highlights.biggestProject.sessions, "session")
         : "—",
-      sub: highlights.biggestProject?.name ?? "no unsent climbs logged",
+      sub: highlights.biggestProject?.name ?? "no projects in progress",
     },
     persistence: {
       label: "Persistence paid off",
