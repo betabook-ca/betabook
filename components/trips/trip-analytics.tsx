@@ -110,10 +110,10 @@ export async function TripAnalytics({
 /** The page's stat cards, built from the same inputs as the dashboard's. */
 function shareImageStats(input: Parameters<typeof buildStatTiles>[0]): ShareStat[] {
   const tiles = buildStatTiles(input);
-  return TRIP_ANALYTICS_LAYOUT.cards.map((id) => ({
-    id,
-    label: tiles[id].label,
-    value: String(tiles[id].value),
-    sub: tiles[id].sub ?? null,
-  }));
+  return TRIP_ANALYTICS_LAYOUT.cards.flatMap((id) => {
+    const tile = tiles.get(id);
+    return tile
+      ? [{ id, label: tile.label, value: String(tile.value), sub: tile.sub ?? null }]
+      : [];
+  });
 }

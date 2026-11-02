@@ -563,7 +563,7 @@ describe("the trip's analytics", () => {
     const dashboard = JSON.parse(JSON.stringify(tree)).props.children.props.children.props;
 
     expect(dashboard.initialLayout).toEqual({
-      cards: ["sends", "hardest", "days", "firstTry"],
+      cards: ["sends", "hardest", "flash", "onsight", "days"],
       charts: ["pyramid"],
     });
     expect(dashboard.canCustomize).toBe(false);

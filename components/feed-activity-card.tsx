@@ -5,7 +5,6 @@ import { ChevronRight, Trophy } from "lucide-react";
 import { useId, useState } from "react";
 
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
-import { ASCENT_STYLE_LABELS } from "@/components/ascent-style";
 import { CompanionList } from "@/components/journal/companion-list";
 import { GradeFeelArrow } from "@/components/send-grade-cell";
 import { SendVideoPosters } from "@/components/send-video";
@@ -20,6 +19,7 @@ import { feedDayHref, type FeedView } from "@/lib/feed";
 import type { FeedEntry } from "@/lib/feed-groups";
 import { formatDate } from "@/lib/format-date";
 import { activityGrade } from "@/lib/grades";
+import { ASCENT_STYLE_LABELS } from "@/lib/sends";
 import { climbHref } from "@/lib/slug";
 
 type Activity = FeedEntry["activity"];

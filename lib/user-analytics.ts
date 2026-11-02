@@ -7,7 +7,7 @@ import {
   type ClimbType,
   type GradePreferences,
 } from "@/lib/grades";
-import type { AscentStyle } from "@/lib/sends";
+import { ascentStyleOn } from "@/lib/sends";
 
 /** Which slice of a climber's log the analytics page is reading — grades
  * only compare within one discipline, so "all" keeps per-discipline
@@ -95,25 +95,24 @@ export type Breakthrough = {
 };
 
 export type MonthlyVolume = { month: string; sends: number; days: number };
-export type FirstTryGradeRow = {
+export type StyleRateGradeRow = {
   grade: number;
   label: string;
   /** Inclusive ordinal span the label covers, as on PyramidRow. */
   range: [number, number];
   sends: number;
-  /** Flashes plus onsights at this grade. */
-  firstTries: number;
-  rate: number;
+  flashes: number;
+  onsights: number;
+  /** Percent of this grade's sends that were flashes. */
+  flashRate: number;
+  /** Percent of this grade's sends that were onsights. */
+  onsightRate: number;
 };
-
-/** Anything but a redpoint counts toward the flash rate: a flash, or an onsight on ropes. */
-function isFirstTry(style: AscentStyle): boolean {
-  return style !== "redpoint";
-}
 
 export type UserAnalytics = {
   volume: MonthlyVolume[];
-  firstTryByGrade: { type: ClimbType; rows: FirstTryGradeRow[] }[];
+  /** Per-grade flash and onsight rates for the rate-by-grade charts. */
+  styleRatesByGrade: { type: ClimbType; rows: StyleRateGradeRow[] }[];
   scope: DisciplineScope;
   sendCount: number;
   datelessCount: number;
@@ -124,10 +123,10 @@ export type UserAnalytics = {
   hardest: HardestSend[];
   flashCount: number;
   onsightCount: number;
-  /** flashCount + onsightCount. */
-  firstTryCount: number;
-  /** Hardest flash-or-onsight — only when the scope is one discipline. */
-  hardestFirstTry: HardestSend | null;
+  /** Hardest flash — only when the scope is one discipline. */
+  hardestFlash: HardestSend | null;
+  /** Hardest onsight — only when the scope is one discipline. */
+  hardestOnsight: HardestSend | null;
   daysOut: number;
   daysPerMonth: number | null;
   bestYear: { year: number; count: number } | null;
@@ -196,14 +195,18 @@ function gradedSends<T extends AnalyticsSendRow>(
   sends: T[],
   type: ClimbType,
 ): (T & { grade: number })[] {
-  const scale = nativeGradeArray(type);
   const graded: (T & { grade: number })[] = [];
   for (const s of sends) {
-    const grade = s.suggestedGrade;
-    if (s.climbType !== type || grade == null || grade < 0 || grade >= scale.length) continue;
-    graded.push({ ...s, grade });
+    const grade = s.climbType === type ? onNativeScale(s.suggestedGrade, type) : null;
+    if (grade != null) graded.push({ ...s, grade });
   }
   return graded;
+}
+
+/** `grade` when it is an ordinal on `type`'s native scale, else null. The
+ * range rule gradedSends keeps by. */
+function onNativeScale(grade: number | null, type: ClimbType): number | null {
+  return grade != null && grade >= 0 && grade < nativeGradeArray(type).length ? grade : null;
 }
 
 /** One discipline's send pyramid from any slice of a log (all time, or one
@@ -270,9 +273,15 @@ export function buildUserAnalytics(
   selectedYears: readonly number[] = [],
   prefs: GradePreferences = DEFAULT_GRADE_PREFERENCES,
 ): UserAnalytics {
-  const sends = allSends.filter(
-    (s) => (scope === "all" || s.climbType === scope) && inSelectedYears(s.dateSent, selectedYears),
-  );
+  // A climb moved from ropes to bouldering keeps its sends' stored onsights;
+  // they count as the flashes a boulder records them as.
+  const sends: AnalyticsSendRow[] = [];
+  for (const s of allSends) {
+    if ((scope !== "all" && s.climbType !== scope) || !inSelectedYears(s.dateSent, selectedYears))
+      continue;
+    const ascentStyle = ascentStyleOn(s.ascentStyle, s.climbType);
+    sends.push(ascentStyle === s.ascentStyle ? s : { ...s, ascentStyle });
+  }
   const periodSessions = journalSessions?.filter((session) =>
     inSelectedYears(session.entryDate, selectedYears),
   );
@@ -308,29 +317,32 @@ export function buildUserAnalytics(
     });
   }
 
-  const flashCount = sends.filter((s) => s.ascentStyle === "flash").length;
-  const onsightCount = sends.filter((s) => s.ascentStyle === "onsight").length;
-  let hardestFirstTry: HardestSend | null = null;
-  if (scope !== "all") {
-    const scale = gradeArray(scope, prefs);
-    const firstTries = gradedSends(sends, scope).filter((s) => isFirstTry(s.ascentStyle));
-    if (firstTries.length > 0) {
-      let top = firstTries[0];
-      for (const s of firstTries.slice(1)) {
-        if (s.grade > top.grade) {
-          top = s;
-        }
-      }
-      hardestFirstTry = {
-        type: scope,
-        grade: top.grade,
-        label: scale[top.grade],
-        climbId: top.climbId,
-        climbName: top.climbName,
-        dateSent: top.dateSent,
-      };
-    }
+  // One pass for both styles: the counts take every send, the hardest only
+  // sends on the scope's native scale. `sends` is already the scope's, so
+  // only the grade needs checking; under "all" there is no hardest.
+  const type = scope === "all" ? null : scope;
+  type Top = { send: AnalyticsSendRow; grade: number } | null;
+  const counts = { flash: 0, onsight: 0 };
+  const tops: Record<"flash" | "onsight", Top> = { flash: null, onsight: null };
+  for (const s of sends) {
+    const style = s.ascentStyle;
+    if (style === "redpoint") continue;
+    counts[style] += 1;
+    const grade = type && onNativeScale(s.suggestedGrade, type);
+    const top = tops[style];
+    if (grade != null && (top == null || grade > top.grade)) tops[style] = { send: s, grade };
   }
+  const hardestOf = (top: Top): HardestSend | null =>
+    top && type
+      ? {
+          type,
+          grade: top.grade,
+          label: gradeArray(type, prefs)[top.grade],
+          climbId: top.send.climbId,
+          climbName: top.send.climbName,
+          dateSent: top.send.dateSent,
+        }
+      : null;
 
   const sendsByDay: Record<string, number> = {};
   for (const s of dated) sendsByDay[s.dateSent] = (sendsByDay[s.dateSent] ?? 0) + 1;
@@ -409,10 +421,10 @@ export function buildUserAnalytics(
       volume.push({ month, sends: byMonth.get(month) ?? 0, days: daysByMonth.get(month) ?? 0 });
     }
   }
-  const firstTryByGrade = disciplines.map((type) => {
+  const styleRatesByGrade = disciplines.map((type) => {
     const scale = gradeArray(type, prefs);
     // Keyed by label: ordinals the scale prints alike share one row.
-    const grades = new Map<string, FirstTryGradeRow>();
+    const grades = new Map<string, StyleRateGradeRow>();
     for (const send of gradedSends(sends, type)) {
       const label = scale[send.grade];
       const row = grades.get(label) ?? {
@@ -420,14 +432,18 @@ export function buildUserAnalytics(
         label,
         range: [send.grade, send.grade],
         sends: 0,
-        firstTries: 0,
-        rate: 0,
+        flashes: 0,
+        onsights: 0,
+        flashRate: 0,
+        onsightRate: 0,
       };
       row.grade = Math.max(row.grade, send.grade);
       row.range = [Math.min(row.range[0], send.grade), Math.max(row.range[1], send.grade)];
       row.sends += 1;
-      if (isFirstTry(send.ascentStyle)) row.firstTries += 1;
-      row.rate = (row.firstTries / row.sends) * 100;
+      if (send.ascentStyle === "flash") row.flashes += 1;
+      if (send.ascentStyle === "onsight") row.onsights += 1;
+      row.flashRate = (row.flashes / row.sends) * 100;
+      row.onsightRate = (row.onsights / row.sends) * 100;
       grades.set(label, row);
     }
     return { type, rows: [...grades.values()].sort((a, b) => a.grade - b.grade) };
@@ -511,17 +527,17 @@ export function buildUserAnalytics(
 
   return {
     volume,
-    firstTryByGrade,
+    styleRatesByGrade,
     scope,
     sendCount: sends.length,
     datelessCount: sends.length - dated.length,
     dateSpan,
     disciplines,
     hardest,
-    flashCount,
-    onsightCount,
-    firstTryCount: flashCount + onsightCount,
-    hardestFirstTry,
+    flashCount: counts.flash,
+    onsightCount: counts.onsight,
+    hardestFlash: hardestOf(tops.flash),
+    hardestOnsight: hardestOf(tops.onsight),
     daysOut: days.length,
     daysPerMonth,
     bestYear,

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import type { ComponentProps } from "react";
 
-import { ASCENT_STYLE_CHIP_CLASSNAME, ASCENT_STYLE_LABELS } from "@/components/ascent-style";
+import { ASCENT_STYLE_CHIP_CLASSNAME } from "@/components/ascent-style";
 import {
   dateActiveFilters,
   hashtagActiveFilters,
@@ -30,7 +30,11 @@ import {
   DEFAULT_USER_SENDS_SORT,
   userSendsFilterToSearchParams,
 } from "@/lib/filters/user-sends-filter";
-import { ASCENT_STYLES, type AscentStyle as AscentStyleType } from "@/lib/sends";
+import {
+  ASCENT_STYLE_LABELS,
+  ASCENT_STYLES,
+  type AscentStyle as AscentStyleType,
+} from "@/lib/sends";
 
 const EMPTY_TAGS: string[] = [];
 

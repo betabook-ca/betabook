@@ -1,16 +1,7 @@
 import { Chip } from "@heroui/react/chip";
 
 import { formatDate } from "@/lib/format-date";
-import type { AscentStyle } from "@/lib/sends";
-
-/** One shared sentence-case label map — the same names everywhere an
- * ascent style is written out (chips here, the climb page's breakdown,
- * the import wizard's value mapping). */
-export const ASCENT_STYLE_LABELS: Record<AscentStyle, string> = {
-  onsight: "Onsight",
-  flash: "Flash",
-  redpoint: "Redpoint",
-};
+import { ASCENT_STYLE_LABELS, type AscentStyle } from "@/lib/sends";
 
 // Ordered best-to-baseline: onsight (first try, no info) > flash (first
 // try, with info) > redpoint (after prior attempts). Redpoint is the

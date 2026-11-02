@@ -4,7 +4,7 @@ import { Button, Input, Label, TextField } from "@heroui/react";
 import { Plus, X } from "lucide-react";
 import { useId, useRef, useState, type ReactNode } from "react";
 
-import { ASCENT_STYLE_CHIP_CLASSNAME, ASCENT_STYLE_LABELS } from "@/components/ascent-style";
+import { ASCENT_STYLE_CHIP_CLASSNAME } from "@/components/ascent-style";
 import { SendVideoThumbnail, WatchElsewhereLink } from "@/components/send-video";
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { Eyebrow } from "@/components/ui/eyebrow";
@@ -21,7 +21,13 @@ import {
   sendVideoLabel,
   type SendVideo,
 } from "@/lib/send-video";
-import { ascentStylesFor, GRADE_FEEL_VALUES, type AscentStyle, type GradeFeel } from "@/lib/sends";
+import {
+  ASCENT_STYLE_LABELS,
+  ascentStylesFor,
+  GRADE_FEEL_VALUES,
+  type AscentStyle,
+  type GradeFeel,
+} from "@/lib/sends";
 
 export function FormSection({ label, children }: { label: string; children: ReactNode }) {
   return (

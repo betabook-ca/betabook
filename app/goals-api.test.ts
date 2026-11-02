@@ -24,6 +24,13 @@ vi.mock("@/db/client", async (original) => {
 const db = createDb(env.DB);
 const params = { params: Promise.resolve({ id: "owner" }) };
 const request = (query = "") => new Request(`https://betabook.ca/api/users/owner/goals?${query}`);
+// The fixture goal runs through the current UTC month, so it is current
+// whenever the test runs.
+const now = new Date();
+const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+const monthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
+const PERIOD_START = monthStart.toISOString().slice(0, 10);
+const PERIOD_END = monthEnd.toISOString().slice(0, 10);
 beforeEach(async () => {
   vi.mocked(scheduleGoalRefresh).mockClear();
   state.viewer = "friend";
@@ -36,8 +43,8 @@ beforeEach(async () => {
     target: 2,
     timeframe: "month",
     repeat: "none",
-    startDate: "2026-09-01",
-    endDate: "2026-09-30",
+    startDate: PERIOD_START,
+    endDate: PERIOD_END,
     timezone: "UTC",
   });
 });
@@ -50,7 +57,7 @@ it("requires a member and current journal access on every page", async () => {
   expect(await response.json()).toMatchObject({ goals: [{ userId: "owner", target: 2 }] });
   await db.delete(friendships);
   expect((await GET(request("view=completed&offset=5"), params)).status).toBe(404);
-  expect((await GET(request("goalId=1&periodStart=2026-09-01"), params)).status).toBe(404);
+  expect((await GET(request(`goalId=1&periodStart=${PERIOD_START}`), params)).status).toBe(404);
   state.viewer = null;
   expect((await GET(request(), params)).status).toBe(401);
 });

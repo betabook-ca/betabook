@@ -170,7 +170,8 @@ describe("buildUserAnalytics", () => {
       ["boulder", "V3"],
       ["sport", "5.10a"],
     ]);
-    expect(a.hardestFirstTry).toBeNull();
+    expect(a.hardestFlash).toBeNull();
+    expect(a.hardestOnsight).toBeNull();
   });
 
   it("tracks personal best as a running max over month-hardest points", () => {
@@ -337,11 +338,26 @@ describe("buildUserAnalytics", () => {
     expect(a.areaCount).toBe(2);
     expect(a.topArea).toEqual({ id: 1, name: "Forestland", count: 2 });
     expect(a.flashCount).toBe(1);
-    expect(a.firstTryCount).toBe(1);
-    expect(a.hardestFirstTry?.label).toBe("V4");
+    expect(a.hardestFlash?.label).toBe("V4");
+    expect(a.hardestOnsight).toBeNull();
   });
 
-  it("counts rope onsights alongside flashes toward the flash rate", () => {
+  it("counts a stored boulder onsight as a flash", () => {
+    // A climb moved from ropes to bouldering keeps its sends' onsights.
+    const a = buildUserAnalytics(
+      [
+        send({ climbType: "boulder", suggestedGrade: 6, ascentStyle: "onsight" }),
+        send({ climbType: "boulder", suggestedGrade: 3 }),
+      ],
+      "boulder",
+    );
+    expect(a.flashCount).toBe(1);
+    expect(a.onsightCount).toBe(0);
+    expect(a.hardestFlash?.grade).toBe(6);
+    expect(a.styleRatesByGrade[0].rows.at(-1)).toMatchObject({ flashes: 1, onsights: 0 });
+  });
+
+  it("tracks rope flashes and onsights separately", () => {
     const a = buildUserAnalytics(
       [
         send({ climbType: "sport", suggestedGrade: 10 }),
@@ -352,8 +368,8 @@ describe("buildUserAnalytics", () => {
     );
     expect(a.flashCount).toBe(1);
     expect(a.onsightCount).toBe(1);
-    expect(a.firstTryCount).toBe(2);
-    expect(a.hardestFirstTry?.grade).toBe(12);
+    expect(a.hardestFlash?.grade).toBe(11);
+    expect(a.hardestOnsight?.grade).toBe(12);
   });
 });
 
@@ -442,9 +458,9 @@ describe("multiple analytics years", () => {
   });
 });
 
-it("builds monthly volume and flash rates from the selected years and discipline", () => {
-  // Rope rows carry the onsight: boulders are never onsights, and the
-  // flash-rate numerator has to count both styles.
+it("builds monthly volume and flash and onsight rates from the selected years and discipline", () => {
+  // Rope rows carry the onsight: boulders are never onsights. Each rate
+  // counts only its own style.
   const rows = [
     send({ dateSent: "2024-01-02", climbType: "sport", suggestedGrade: 10, ascentStyle: "flash" }),
     send({ dateSent: "2024-01-02", climbType: "sport", suggestedGrade: 10 }),
@@ -474,19 +490,22 @@ it("builds monthly volume and flash rates from the selected years and discipline
     { month: "2024-02", sends: 0, days: 0 },
     { month: "2024-03", sends: 1, days: 1 },
   ]);
-  expect(result.firstTryByGrade[0].rows).toEqual([
+  expect(result.styleRatesByGrade[0].rows).toEqual([
     {
       grade: 10,
       range: [10, 10],
       label: "5.10a",
       sends: 3,
-      firstTries: 2,
-      rate: expect.closeTo(200 / 3),
+      flashes: 1,
+      onsights: 1,
+      flashRate: expect.closeTo(100 / 3),
+      onsightRate: expect.closeTo(100 / 3),
     },
   ]);
-  expect(buildUserAnalytics(rows, "sport").firstTryByGrade[0].rows[0]).toMatchObject({
+  expect(buildUserAnalytics(rows, "sport").styleRatesByGrade[0].rows[0]).toMatchObject({
     sends: 5,
-    firstTries: 4,
+    flashes: 3,
+    onsights: 1,
   });
   expect(buildUserAnalytics(rows, "boulder", undefined, [2024]).volume[0]).toMatchObject({
     days: 1,
@@ -556,7 +575,7 @@ describe("the reader's grading systems", () => {
     ]);
     expect(a.pyramid.map((p) => p.rows[0].label)).toEqual(["6B", "7a"]);
     expect(a.breakthroughs.map((b) => b.label)).toEqual(["7a", "6B"]);
-    expect(a.firstTryByGrade.map((f) => f.rows[0].label)).toEqual(["6B", "7a"]);
+    expect(a.styleRatesByGrade.map((f) => f.rows[0].label)).toEqual(["6B", "7a"]);
   });
 
   it("folds ordinals the scale prints alike into one pyramid row spanning both", () => {
@@ -591,8 +610,17 @@ describe("the reader's grading systems", () => {
       [],
       FRENCH,
     );
-    expect(a.firstTryByGrade[0].rows).toEqual([
-      { grade: 2, label: "2", range: [1, 2], sends: 2, firstTries: 1, rate: 50 },
+    expect(a.styleRatesByGrade[0].rows).toEqual([
+      {
+        grade: 2,
+        label: "2",
+        range: [1, 2],
+        sends: 2,
+        flashes: 1,
+        onsights: 0,
+        flashRate: 50,
+        onsightRate: 0,
+      },
     ]);
   });
 

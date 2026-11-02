@@ -11,6 +11,15 @@ export { MAX_LOG_NOTE_LENGTH as MAX_COMMENT_LENGTH } from "@/lib/log-note";
 export const ASCENT_STYLES = ["redpoint", "flash", "onsight"] as const;
 export type AscentStyle = (typeof ASCENT_STYLES)[number];
 
+/** One shared sentence-case label map — the same names everywhere an
+ * ascent style is written out (chips, the climb page's breakdown, the import
+ * wizard's value mapping, analytics). */
+export const ASCENT_STYLE_LABELS: Record<AscentStyle, string> = {
+  onsight: "Onsight",
+  flash: "Flash",
+  redpoint: "Redpoint",
+};
+
 const BOULDER_ASCENT_STYLES = ["redpoint", "flash"] as const;
 
 /** Bouldering has no onsight/flash distinction, so a boulder sent first try is
@@ -88,14 +97,20 @@ function parseAscentStyle(value: unknown, climbType: ClimbType): AscentStyle {
   return value as AscentStyle;
 }
 
+/** The style a discipline records `style` as: a boulder "onsight" is a
+ * flash. Imports coerce with it, and analytics reads with it, since a climb
+ * moved from ropes to bouldering keeps its sends' stored onsights. */
+export function ascentStyleOn(style: AscentStyle, climbType: ClimbType): AscentStyle {
+  return ascentStylesFor(climbType).includes(style) ? style : "flash";
+}
+
 /** Imports keep the row rather than failing it: a boulder "onsight" from
  * another app is what Betabook records as a flash. */
 function coerceImportAscentStyle(value: unknown, climbType: ClimbType): AscentStyle {
   if (typeof value !== "string" || !(ASCENT_STYLES as readonly string[]).includes(value)) {
     throw new ActionError("Invalid ascent style");
   }
-  const style = value as AscentStyle;
-  return ascentStylesFor(climbType).includes(style) ? style : "flash";
+  return ascentStyleOn(value as AscentStyle, climbType);
 }
 
 /** Validate the calendar date as well as its ISO shape, rejecting values such as 2026-02-30. */

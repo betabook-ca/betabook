@@ -15,7 +15,7 @@ import type { AnalyticsSendRow } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
 import { buildAnalyticsHighlights } from "@/lib/analytics-highlights";
 import type { AnalyticsLayout } from "@/lib/analytics-layout";
-import { ANALYTICS_CARD_IDS, type AnalyticsCardId } from "@/lib/analytics-layout";
+import { ANALYTICS_CARD_IDS, cardAppliesTo, type AnalyticsCardId } from "@/lib/analytics-layout";
 import { formatAnalyticsYears } from "@/lib/analytics-years";
 import {
   selectChartSends,
@@ -26,6 +26,7 @@ import {
 import { formatCount } from "@/lib/format";
 import { formatMonth } from "@/lib/format-date";
 import type { ClimbType } from "@/lib/grades";
+import { firstTryStyles, styleRateTitle } from "@/lib/style-rates";
 import { formatDaySpan, inSelectedYears, type UserAnalytics } from "@/lib/user-analytics";
 
 const EMPTY_SESSIONS: ChartSession[] = [];
@@ -91,10 +92,8 @@ export function AnalyticsDashboard({
     sends: "How many climbs you’ve sent.",
     hardest: "Your highest graded send.",
     days: "Days with climbing activity.",
-    firstTry:
-      scope === "boulder"
-        ? "The share of sends you flashed."
-        : "The share of sends you flashed or onsighted.",
+    flash: "The share of sends you flashed.",
+    onsight: "The share of sends you onsighted.",
     bestYear: "The year with the most sends.",
     streak: "Your longest run of consecutive climbing days.",
     busiestMonth: "The month with the most sends.",
@@ -102,13 +101,15 @@ export function AnalyticsDashboard({
     favoriteDay: "The day of the week you send most often.",
     layoff: "The longest gap between climbing days.",
   };
-  const cards: AnalyticsPanel[] = ANALYTICS_CARD_IDS.map((id) => ({
+  const cards: AnalyticsPanel[] = [...tiles].map(([id, tile]) => ({
     id,
-    title: tiles[id].label,
+    title: tile.label,
     description: descriptions[id],
-    content: <StatTileContent tile={tiles[id]} />,
+    content: <StatTileContent tile={tile} />,
   }));
   const pyramidRows = analytics.pyramid[0]?.rows ?? [];
+  const styleRateRows =
+    analytics.styleRatesByGrade.find((group) => group.type === scope)?.rows ?? [];
   const charts: AnalyticsPanel[] = [
     {
       id: "volume",
@@ -126,15 +127,9 @@ export function AnalyticsDashboard({
     },
     {
       id: "flashRate",
-      title: "Flash rate by grade",
-      description: "Total sends and the flash rate at each grade.",
-      content: (
-        <AnalyticsFlashChart
-          sends={chartSends}
-          rows={analytics.firstTryByGrade.find((group) => group.type === scope)?.rows ?? []}
-          type={scope}
-        />
-      ),
+      title: styleRateTitle(scope),
+      description: `Total sends and the ${firstTryStyles(scope).join(" and ")} rate at each grade.`,
+      content: <AnalyticsFlashChart sends={chartSends} rows={styleRateRows} type={scope} />,
     },
     {
       id: "progression",
@@ -257,18 +252,31 @@ export function AnalyticsDashboard({
   );
 }
 
-/** Every stat card's label, value and note. The share image reads these too,
- * so it matches the page. */
-// oxlint-disable-next-line complexity -- one branch per card's empty state
+/** The label, value and note of every stat card that applies to `scope`, in
+ * catalog order. The share image reads these too, so it matches the page. */
 export function buildStatTiles({
-  analytics,
-  highlights,
   scope,
-  journalVisible,
+  ...input
 }: {
   analytics: UserAnalytics;
   highlights: ReturnType<typeof buildAnalyticsHighlights>;
   scope: ClimbType;
+  journalVisible: boolean;
+}): Map<AnalyticsCardId, StatTile> {
+  const tiles = allStatTiles(input);
+  return new Map(
+    ANALYTICS_CARD_IDS.filter((id) => cardAppliesTo(id, scope)).map((id) => [id, tiles[id]]),
+  );
+}
+
+// oxlint-disable-next-line complexity -- one branch per card's empty state
+function allStatTiles({
+  analytics,
+  highlights,
+  journalVisible,
+}: {
+  analytics: UserAnalytics;
+  highlights: ReturnType<typeof buildAnalyticsHighlights>;
   journalVisible: boolean;
 }): Record<AnalyticsCardId, StatTile> {
   const hardest = analytics.hardest[0] ?? null;
@@ -323,21 +331,13 @@ export function buildStatTiles({
       value: analytics.daysOut,
       sub: analytics.daysPerMonth != null ? `${analytics.daysPerMonth.toFixed(1)} per month` : null,
     },
-    firstTry: {
-      label: "Flash",
-      value: analytics.sendCount
-        ? `${Math.round((analytics.firstTryCount / analytics.sendCount) * 100)}%`
-        : "—",
-      sub:
-        analytics.sendCount === 0
-          ? "no sends"
-          : analytics.hardestFirstTry
-            ? `Hardest: ${analytics.hardestFirstTry.label}`
-            : // Boulders are never onsights, so the split would only ever read "0 onsight".
-              scope === "boulder"
-              ? `${analytics.flashCount} flash`
-              : `${analytics.flashCount} flash · ${analytics.onsightCount} onsight`,
-    },
+    flash: styleTile("Flash", analytics.flashCount, analytics.hardestFlash, analytics.sendCount),
+    onsight: styleTile(
+      "Onsight",
+      analytics.onsightCount,
+      analytics.hardestOnsight,
+      analytics.sendCount,
+    ),
     streak: {
       label: journalVisible ? "Longest streak" : "Longest send streak",
       value: analytics.longestStreak ? formatCount(analytics.longestStreak.days, "day") : "—",
@@ -376,5 +376,24 @@ export function buildStatTiles({
         ? `${formatMonth(analytics.longestLayoff.from.slice(0, 7))} – ${formatMonth(analytics.longestLayoff.to.slice(0, 7))}`
         : "no gaps between dated activity",
     },
+  };
+}
+
+/** A flash or onsight card: the share of sends in that style, and the hardest one. */
+function styleTile(
+  label: string,
+  count: number,
+  hardest: UserAnalytics["hardestFlash"],
+  sendCount: number,
+): StatTile {
+  return {
+    label,
+    value: sendCount ? `${Math.round((count / sendCount) * 100)}%` : "—",
+    sub:
+      sendCount === 0
+        ? "no sends"
+        : hardest
+          ? `Hardest: ${hardest.label}`
+          : `0 ${label.toLowerCase()}`,
   };
 }

@@ -53,6 +53,28 @@ it("persists and replaces only the signed-in user's layout, including across a f
     ],
   );
 });
+it("saves a layout from a tab opened before the flash card was renamed", async () => {
+  // Such a tab still holds firstTry, which the AnalyticsLayout type no longer admits.
+  const stale = {
+    cards: ["sends", "firstTry"],
+    charts: ["flashRate"],
+  } as unknown as AnalyticsLayout;
+  expect(await saveAnalyticsLayout(stale)).toEqual({ ok: true, value: undefined });
+  expect(await getAnalyticsLayout(db, "owner", "owner")).toEqual({
+    cards: ["sends", "flash", "onsight"],
+    charts: ["flashRate"],
+  });
+});
+it("reads a stored layout that still holds the flash card's earlier id", async () => {
+  // Raw SQL: stored layouts are never rewritten, and the column's type only admits current ids.
+  await env.DB.prepare("INSERT INTO user_analytics_layouts (user_id, layout) VALUES (?, ?)")
+    .bind("owner", JSON.stringify({ cards: ["firstTry", "days"], charts: ["pyramid"] }))
+    .run();
+  expect(await getAnalyticsLayout(db, "owner", "owner")).toEqual({
+    cards: ["flash", "onsight", "days"],
+    charts: ["pyramid"],
+  });
+});
 it("rejects signed-out saves without changing saved preferences", async () => {
   await db.insert(userAnalyticsLayouts).values({ userId: "owner", layout: custom });
   sessionState.userId = null;

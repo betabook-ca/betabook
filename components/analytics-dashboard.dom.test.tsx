@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -39,6 +39,62 @@ const sends: AnalyticsSendRow[] = ["2024-01-01", "2025-02-02", "2026-03-03", nul
   }),
 );
 
+describe("flash and onsight cards", () => {
+  const ropeSends: AnalyticsSendRow[] = [
+    { ...sends[0], climbType: "sport", suggestedGrade: 10, ascentStyle: "redpoint" },
+    { ...sends[1], climbType: "sport", suggestedGrade: 11, ascentStyle: "flash" },
+    { ...sends[2], climbType: "sport", suggestedGrade: 12, ascentStyle: "onsight" },
+    { ...sends[3], climbType: "sport", suggestedGrade: 9, ascentStyle: "onsight" },
+  ];
+
+  function renderScope(scope: "boulder" | "sport", rows: AnalyticsSendRow[]) {
+    render(
+      <AnalyticsDashboard
+        analytics={buildUserAnalytics(rows, scope)}
+        sends={rows}
+        selectedYears={[]}
+        undatedCount={0}
+        scope={scope}
+        journalVisible={false}
+        periodPicker={null}
+        initialLayout={{
+          cards: DEFAULT_ANALYTICS_LAYOUT.cards,
+          charts: ["flashRate"],
+        }}
+      />,
+    );
+  }
+
+  it("overlays flash and onsight rates on ropes, and shows only flash on boulders", () => {
+    renderScope("sport", ropeSends);
+    expect(screen.getByRole("article", { name: "Flash and onsight rate by grade" })).toBeVisible();
+    expect(screen.getByText("Onsight rate")).toBeVisible();
+    cleanup();
+
+    renderScope("boulder", sends);
+    expect(screen.getByRole("article", { name: "Flash rate by grade" })).toBeVisible();
+    expect(screen.queryByText("Onsight rate")).not.toBeInTheDocument();
+  });
+
+  it("shows flash and onsight as separate cards on ropes", () => {
+    renderScope("sport", ropeSends);
+
+    const flash = screen.getByRole("article", { name: "Flash" });
+    expect(flash).toHaveTextContent("25%");
+    expect(flash).toHaveTextContent("Hardest: 5.10b");
+    const onsight = screen.getByRole("article", { name: "Onsight" });
+    expect(onsight).toHaveTextContent("50%");
+    expect(onsight).toHaveTextContent("Hardest: 5.10c");
+  });
+
+  it("has no onsight card for bouldering", () => {
+    renderScope("boulder", sends);
+
+    expect(screen.getByRole("article", { name: "Flash" })).toBeVisible();
+    expect(screen.queryByRole("article", { name: "Onsight" })).not.toBeInTheDocument();
+  });
+});
+
 describe("analytics dashboard with the trip layout", () => {
   const tripSends = sends.map((send, index) => ({
     ...send,
@@ -69,7 +125,7 @@ describe("analytics dashboard with the trip layout", () => {
     renderTrip();
 
     const titles = screen.getAllByRole("article").map((panel) => panel.getAttribute("aria-label"));
-    expect(titles).toEqual(["Sends", "Hardest", "Sending days", "Flash", "Grade pyramid"]);
+    expect(titles).toEqual(["Sends", "Hardest", "Flash", "Sending days", "Grade pyramid"]);
     expect(screen.queryByRole("button", { name: /Customize/ })).not.toBeInTheDocument();
   });
 
