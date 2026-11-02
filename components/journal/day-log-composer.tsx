@@ -160,6 +160,9 @@ export function DayLogComposer({
           disabledClimbIds={new Map(rows.map((row) => [row.climb.id, QUEUED]))}
           onPick={(climb, context) => {
             setRows((current) => [...current, newDayLogRow(climb, context.sent, dayTags)]);
+            // An error from the last save attempt may have been about this
+            // list; a new climb changes it, so the next save re-checks.
+            setError(null);
             browse(false);
           }}
         />

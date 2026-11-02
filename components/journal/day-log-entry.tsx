@@ -115,9 +115,10 @@ export function DayLogEntry({
   return (
     // A border rather than a filled card: the fields inside, tag chips most of
     // all, are drawn for the dialog's own surface and vanish on a filled one.
+    // `border` rather than `separator`, which all but disappears in dark mode.
     <li
       aria-label={climb.name}
-      className="flex flex-col gap-3 rounded-panel border border-separator p-4"
+      className="flex flex-col gap-3 rounded-panel border border-border p-4"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">

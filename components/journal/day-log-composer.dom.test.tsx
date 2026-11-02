@@ -197,6 +197,10 @@ it("asks for a climb before saving an empty day", async () => {
 
   expect(screen.getByText("Add a climb to log this day.")).toBeInTheDocument();
   expect(save).not.toHaveBeenCalled();
+
+  // Adding the climb answers the error, so it doesn't linger above the save.
+  await addClimb(user, CRACK);
+  expect(screen.queryByText("Add a climb to log this day.")).not.toBeInTheDocument();
 });
 
 it("keeps the day after a refused save and saves once while pending", async () => {
