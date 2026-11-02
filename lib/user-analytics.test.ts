@@ -342,6 +342,21 @@ describe("buildUserAnalytics", () => {
     expect(a.hardestOnsight).toBeNull();
   });
 
+  it("counts a stored boulder onsight as a flash", () => {
+    // A climb moved from ropes to bouldering keeps its sends' onsights.
+    const a = buildUserAnalytics(
+      [
+        send({ climbType: "boulder", suggestedGrade: 6, ascentStyle: "onsight" }),
+        send({ climbType: "boulder", suggestedGrade: 3 }),
+      ],
+      "boulder",
+    );
+    expect(a.flashCount).toBe(1);
+    expect(a.onsightCount).toBe(0);
+    expect(a.hardestFlash?.grade).toBe(6);
+    expect(a.styleRatesByGrade[0].rows.at(-1)).toMatchObject({ flashes: 1, onsights: 0 });
+  });
+
   it("tracks rope flashes and onsights separately", () => {
     const a = buildUserAnalytics(
       [

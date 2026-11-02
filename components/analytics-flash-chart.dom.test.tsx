@@ -30,13 +30,15 @@ it("overlays the flash and onsight rates and shows all sends at the selected gra
   await user.tab();
   await user.keyboard("{Home}");
   const tooltip = screen.getByRole("tooltip");
-  expect(tooltip).toHaveTextContent("3 sends · 33% flash · 33% onsight");
+  expect(tooltip).toHaveTextContent("3 sends · 1 flash (33%) · 1 onsight (33%)");
   expect(within(tooltip).getByText("Climb 1", { exact: true })).toBeInTheDocument();
   expect(within(tooltip).getByText("Climb 2", { exact: true })).toBeInTheDocument();
   await user.keyboard("{Enter}");
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   await user.keyboard("{ArrowRight}");
-  expect(screen.getByRole("tooltip")).toHaveTextContent("4 sends · 25% flash · 0% onsight");
+  expect(screen.getByRole("tooltip")).toHaveTextContent(
+    "4 sends · 1 flash (25%) · 0 onsights (0%)",
+  );
   await user.keyboard("{Enter}");
   const table = await screen.findByRole("list", { name: "Climbs" });
   expect(
@@ -61,6 +63,6 @@ it("draws only the flash rate for bouldering", async () => {
   expect(screen.queryByText("Onsight rate")).not.toBeInTheDocument();
   await user.tab();
   await user.keyboard("{Home}");
-  expect(screen.getByRole("tooltip")).toHaveTextContent("3 sends · 67% flash");
+  expect(screen.getByRole("tooltip")).toHaveTextContent("3 sends · 2 flashes (67%)");
   expect(screen.getByRole("tooltip")).not.toHaveTextContent("onsight");
 });

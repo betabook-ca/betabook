@@ -14,9 +14,22 @@ import type { StyleRateGradeRow } from "@/lib/user-analytics";
 /** Each line wears its ascent chip's hue (flash blue, onsight green), so the
  * bars stay neutral rather than a discipline hue that would hide one line. */
 const SERIES = {
-  flash: { key: "flashRate", color: "var(--chart-flash)" },
-  onsight: { key: "onsightRate", color: "var(--chart-onsight)" },
-} as const satisfies Record<FirstTryStyle, { key: keyof StyleRateGradeRow; color: string }>;
+  flash: { key: "flashRate", count: "flashes", plural: "flashes", color: "var(--chart-flash)" },
+  onsight: {
+    key: "onsightRate",
+    count: "onsights",
+    plural: "onsights",
+    color: "var(--chart-onsight)",
+  },
+} as const satisfies Record<
+  FirstTryStyle,
+  {
+    key: keyof StyleRateGradeRow;
+    count: keyof StyleRateGradeRow;
+    plural: string;
+    color: string;
+  }
+>;
 const BAR_COLOR = "var(--muted)";
 
 /** Sends per grade with the flash and onsight rates overlaid, matching the
@@ -35,8 +48,15 @@ export function AnalyticsFlashChart({
   const { ref, width } = useChartWidth();
   const styles = firstTryStyles(type);
   const series = styles.map((style) => ({ ...SERIES[style], name: ASCENT_STYLE_LABELS[style] }));
+  // Counts as well as rates, so the labels carry what the chart shows to a
+  // reader who can't see it.
   const rates = (row: StyleRateGradeRow) =>
-    series.map((s) => `${Math.round(row[s.key])}% ${s.name.toLowerCase()}`).join(" · ");
+    series
+      .map(
+        (s) =>
+          `${formatCount(row[s.count], s.name.toLowerCase(), s.plural)} (${Math.round(row[s.key])}%)`,
+      )
+      .join(" · ");
   const labels = rows.map(
     (row) => `${row.label}: ${formatCount(row.sends, "send")} · ${rates(row)}`,
   );

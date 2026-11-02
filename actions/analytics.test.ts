@@ -61,7 +61,7 @@ it("saves a layout from a tab opened before the flash card was renamed", async (
   } as unknown as AnalyticsLayout;
   expect(await saveAnalyticsLayout(stale)).toEqual({ ok: true, value: undefined });
   expect(await getAnalyticsLayout(db, "owner", "owner")).toEqual({
-    cards: ["sends", "flash"],
+    cards: ["sends", "flash", "onsight"],
     charts: ["flashRate"],
   });
 });
@@ -71,7 +71,7 @@ it("reads a stored layout that still holds the flash card's earlier id", async (
     .bind("owner", JSON.stringify({ cards: ["firstTry", "days"], charts: ["pyramid"] }))
     .run();
   expect(await getAnalyticsLayout(db, "owner", "owner")).toEqual({
-    cards: ["flash", "days"],
+    cards: ["flash", "onsight", "days"],
     charts: ["pyramid"],
   });
 });

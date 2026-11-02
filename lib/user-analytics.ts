@@ -7,6 +7,7 @@ import {
   type ClimbType,
   type GradePreferences,
 } from "@/lib/grades";
+import { ascentStyleOn } from "@/lib/sends";
 
 /** Which slice of a climber's log the analytics page is reading — grades
  * only compare within one discipline, so "all" keeps per-discipline
@@ -272,9 +273,15 @@ export function buildUserAnalytics(
   selectedYears: readonly number[] = [],
   prefs: GradePreferences = DEFAULT_GRADE_PREFERENCES,
 ): UserAnalytics {
-  const sends = allSends.filter(
-    (s) => (scope === "all" || s.climbType === scope) && inSelectedYears(s.dateSent, selectedYears),
-  );
+  // A climb moved from ropes to bouldering keeps its sends' stored onsights;
+  // they count as the flashes a boulder records them as.
+  const sends: AnalyticsSendRow[] = [];
+  for (const s of allSends) {
+    if ((scope !== "all" && s.climbType !== scope) || !inSelectedYears(s.dateSent, selectedYears))
+      continue;
+    const ascentStyle = ascentStyleOn(s.ascentStyle, s.climbType);
+    sends.push(ascentStyle === s.ascentStyle ? s : { ...s, ascentStyle });
+  }
   const periodSessions = journalSessions?.filter((session) =>
     inSelectedYears(session.entryDate, selectedYears),
   );

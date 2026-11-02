@@ -97,14 +97,20 @@ function parseAscentStyle(value: unknown, climbType: ClimbType): AscentStyle {
   return value as AscentStyle;
 }
 
+/** The style a discipline records `style` as: a boulder "onsight" is a
+ * flash. Imports coerce with it, and analytics reads with it, since a climb
+ * moved from ropes to bouldering keeps its sends' stored onsights. */
+export function ascentStyleOn(style: AscentStyle, climbType: ClimbType): AscentStyle {
+  return ascentStylesFor(climbType).includes(style) ? style : "flash";
+}
+
 /** Imports keep the row rather than failing it: a boulder "onsight" from
  * another app is what Betabook records as a flash. */
 function coerceImportAscentStyle(value: unknown, climbType: ClimbType): AscentStyle {
   if (typeof value !== "string" || !(ASCENT_STYLES as readonly string[]).includes(value)) {
     throw new ActionError("Invalid ascent style");
   }
-  const style = value as AscentStyle;
-  return ascentStylesFor(climbType).includes(style) ? style : "flash";
+  return ascentStyleOn(value as AscentStyle, climbType);
 }
 
 /** Validate the calendar date as well as its ISO shape, rejecting values such as 2026-02-30. */

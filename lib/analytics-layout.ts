@@ -4,7 +4,9 @@ import type { ClimbType } from "@/lib/grades";
 import { ascentStylesFor } from "@/lib/sends";
 
 /** The catalog lists everything available; a layout lists only visible items.
- * Saved layouts store these ids, so rename titles rather than ids. */
+ * Saved layouts store these ids, so rename titles rather than ids. The one
+ * exception, firstTry → flash, marks layouts saved while flash counted
+ * onsights too, so reading one can add the onsight card (`cardList`). */
 export const ANALYTICS_CARD_IDS = [
   "sends",
   "hardest",
@@ -47,9 +49,22 @@ const cardId = z.preprocess(
 const chartId = z.enum(ANALYTICS_CHART_IDS);
 const unique = (items: readonly string[]) => new Set(items).size === items.length;
 
+/** A layout saved before the split showed one card, firstTry, counting
+ * flashes and onsights. It reads as flash followed by onsight, so a rope
+ * climber still sees their onsights (bouldering leaves the onsight card out). */
+const cardList = z.preprocess(
+  (cards) =>
+    Array.isArray(cards) && cards.includes("firstTry")
+      ? cards.flatMap((id: unknown) =>
+          id !== "firstTry" ? [id] : cards.includes("onsight") ? ["flash"] : ["flash", "onsight"],
+        )
+      : cards,
+  z.array(cardId).refine(unique, "Duplicate cards"),
+);
+
 /** Writes are strict: invalid IDs, duplicates, and extra fields are rejected. */
 export const analyticsLayoutSchema = z.strictObject({
-  cards: z.array(cardId).refine(unique, "Duplicate cards"),
+  cards: cardList,
   charts: z.array(chartId).refine(unique, "Duplicate charts"),
 });
 export type AnalyticsLayout = z.infer<typeof analyticsLayoutSchema>;

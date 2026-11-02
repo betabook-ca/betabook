@@ -29,10 +29,14 @@ describe("cards per discipline", () => {
 });
 
 describe("saved analytics layouts", () => {
-  it("reads the flash card's earlier firstTry id as flash", () => {
-    expect(parseAnalyticsLayout({ cards: ["sends", "firstTry"], charts: ["flashRate"] })).toEqual({
-      cards: ["sends", "flash"],
-      charts: ["flashRate"],
+  it("reads the combined firstTry card as flash followed by onsight", () => {
+    expect(
+      parseAnalyticsLayout({ cards: ["sends", "firstTry", "days"], charts: ["flashRate"] }),
+    ).toEqual({ cards: ["sends", "flash", "onsight", "days"], charts: ["flashRate"] });
+    // A layout that already places onsight keeps it where it is.
+    expect(parseAnalyticsLayout({ cards: ["onsight", "firstTry"], charts: [] })).toEqual({
+      cards: ["onsight", "flash"],
+      charts: [],
     });
   });
   it("accepts only visible ordered lists and never appends optional items", () => {
