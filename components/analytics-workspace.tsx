@@ -93,6 +93,14 @@ function InsertionMarker({
   );
 }
 
+/** A short row fills the width at xl rather than leaving empty slots, e.g. a
+ * boulder dashboard that drops the onsight card from a six-card layout. */
+const XL_CARD_COLUMNS: Partial<Record<number, string>> = {
+  3: "xl:grid-cols-3",
+  4: "xl:grid-cols-4",
+  5: "xl:grid-cols-5",
+};
+
 function DashboardGroup({
   group,
   items,
@@ -178,10 +186,10 @@ function DashboardGroup({
   });
   const grid =
     group === "cards"
-      ? "grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6"
+      ? `grid grid-cols-2 gap-3 sm:grid-cols-3 ${XL_CARD_COLUMNS[items.length] ?? "xl:grid-cols-6"}`
       : "grid grid-cols-1 gap-6 lg:grid-cols-2";
   const chartSpan = (id: string) =>
-    group === "charts" && !["pyramid", "breakthroughs", "flashRate"].includes(id)
+    group === "charts" && !["pyramid", "breakthroughs", "flashRate", "onsightRate"].includes(id)
       ? "lg:col-span-2"
       : "";
   const panel = (item: AnalyticsPanel, position: number) => (

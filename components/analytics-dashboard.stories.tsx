@@ -33,7 +33,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "New dashboards start with Sends, Hardest, Days out, Flash, and Best year. Customize placeholders appear when a section has hidden items and open the same layout editor; Save layout persists the selection. Existing saved layouts remain unchanged. All cards and charts follow the selected years. The laptop grid fits six stat slots. Grade pyramid, Breakthroughs, and Flash rate use half-width slots, while time charts span the row. Volume and Flash rate are optional smooth Recharts charts with floating tooltips; all calendars fit without horizontal scrolling. Customization changes only the owner’s view.",
+          "New dashboards start with Sends, Hardest, Days out, Flash, Onsight, and Best year; bouldering leaves out Onsight, and a row of fewer than six cards fills the laptop width. Customize placeholders appear when a section has hidden items and open the same layout editor; Save layout persists the selection. Existing saved layouts remain unchanged. All cards and charts follow the selected years. The laptop grid fits six stat slots. Grade pyramid, Breakthroughs, Flash rate, and Onsight rate use half-width slots, while time charts span the row. Volume, Flash rate, and Onsight rate are optional smooth Recharts charts with floating tooltips; all calendars fit without horizontal scrolling. Customization changes only the owner’s view.",
       },
     },
   },
@@ -166,7 +166,7 @@ function DashboardExample({
                   "persistence",
                   "favoriteRepeat",
                 ],
-                charts: [...DEFAULT_ANALYTICS_LAYOUT.charts, "volume", "flashRate"],
+                charts: [...DEFAULT_ANALYTICS_LAYOUT.charts, "volume", "flashRate", "onsightRate"],
               }
             : hiddenCharts
               ? {

@@ -8,23 +8,33 @@ import { useChartWidth } from "@/hooks/use-chart-width";
 import { sendChartRows, type ChartSend, type ChartDetailGroup } from "@/lib/chart-details";
 import { formatCount } from "@/lib/format";
 import type { ClimbType } from "@/lib/grades";
-import type { FirstTryGradeRow } from "@/lib/user-analytics";
+import type { StyleRateGradeRow } from "@/lib/user-analytics";
 
-/** A rope onsight counts as a flash here, as in the Flash stat. */
+const STYLES = {
+  flash: { name: "Flash", count: "flashes", rate: "flashRate", plural: "flashes" },
+  onsight: { name: "Onsight", count: "onsights", rate: "onsightRate", plural: "onsights" },
+} as const;
+
+/** Sends per grade with the share flashed or onsighted, matching the Flash
+ * and Onsight stat cards. */
 export function AnalyticsFlashChart({
   rows,
   type,
   sends,
+  ascentStyle = "flash",
 }: {
-  rows: FirstTryGradeRow[];
+  rows: StyleRateGradeRow[];
   type: ClimbType;
   /** Already scoped to `type`. */
   sends?: ChartSend[];
+  ascentStyle?: keyof typeof STYLES;
 }) {
   const { ref, width } = useChartWidth();
+  const { name, count, rate, plural } = STYLES[ascentStyle];
+  const lower = name.toLowerCase();
   const labels = rows.map(
     (row) =>
-      `${row.label}: ${formatCount(row.sends, "send")} · ${formatCount(row.firstTries, "flash", "flashes")} · ${Math.round(row.rate)}% flash rate`,
+      `${row.label}: ${formatCount(row.sends, "send")} · ${formatCount(row[count], lower, plural)} · ${Math.round(row[rate])}% ${lower} rate`,
   );
   const details =
     sends &&
@@ -33,7 +43,7 @@ export function AnalyticsFlashChart({
         labels[i],
         {
           title: row.label,
-          summary: `${formatCount(row.sends, "send")} · ${Math.round(row.rate)}% flash rate`,
+          summary: `${formatCount(row.sends, "send")} · ${Math.round(row[rate])}% ${lower} rate`,
           rows: sendChartRows(
             sends.filter(
               (send) =>
@@ -47,7 +57,7 @@ export function AnalyticsFlashChart({
     );
   return (
     <div className="min-w-0" ref={ref}>
-      <h3 className={`mb-4 ${EYEBROW_CLASS}`}>Flash rate by grade</h3>
+      <h3 className={`mb-4 ${EYEBROW_CLASS}`}>{name} rate by grade</h3>
       {rows.length ? (
         <>
           <div className="mb-2 flex flex-wrap gap-4 text-xs text-muted">
@@ -60,10 +70,10 @@ export function AnalyticsFlashChart({
             </span>
             <span className="flex items-center gap-2">
               <span className="w-4 border-t-2 border-foreground" />
-              Flash rate
+              {name} rate
             </span>
           </div>
-          <ChartInspection label="Sends and flash percentage by grade" details={details}>
+          <ChartInspection label={`Sends and ${lower} percentage by grade`} details={details}>
             <div className="relative">
               <ComposedChart
                 width={width}
@@ -92,7 +102,7 @@ export function AnalyticsFlashChart({
                   orientation="right"
                   domain={[0, 100]}
                   width={40}
-                  tickFormatter={(rate) => `${rate}%`}
+                  tickFormatter={(value) => `${value}%`}
                   tick={{ fontSize: 11, fill: "var(--foreground)" }}
                   axisLine={false}
                   tickLine={false}
@@ -108,7 +118,7 @@ export function AnalyticsFlashChart({
                 <Line
                   yAxisId="rate"
                   type="monotone"
-                  dataKey="rate"
+                  dataKey={rate}
                   stroke="var(--foreground)"
                   strokeWidth={2.5}
                   dot={false}
@@ -118,7 +128,7 @@ export function AnalyticsFlashChart({
                 {rows.length === 1 && (
                   <ReferenceLine
                     yAxisId="rate"
-                    y={rows[0].rate}
+                    y={rows[0][rate]}
                     stroke="var(--foreground)"
                     strokeWidth={2.5}
                   />

@@ -4,7 +4,7 @@ import {
   DEFAULT_ANALYTICS_LAYOUT,
   TRIP_ANALYTICS_LAYOUT,
   analyticsLayoutSchema,
-  cardAppliesTo,
+  itemAppliesTo,
   moveAnalyticsItem,
   parseAnalyticsLayout,
 } from "./analytics-layout";
@@ -12,23 +12,32 @@ import {
 describe("trip analytics layout", () => {
   it("shows the summary tiles and the grade pyramid", () => {
     expect(TRIP_ANALYTICS_LAYOUT).toEqual({
-      cards: ["sends", "hardest", "days", "firstTry", "onsight"],
+      cards: ["sends", "hardest", "flash", "onsight", "days"],
       charts: ["pyramid"],
     });
     expect(analyticsLayoutSchema.safeParse(TRIP_ANALYTICS_LAYOUT).success).toBe(true);
   });
 });
 
-describe("cards per discipline", () => {
-  it("drops the onsight card for bouldering only", () => {
-    expect(cardAppliesTo("onsight", "boulder")).toBe(false);
-    expect(cardAppliesTo("onsight", "sport")).toBe(true);
-    expect(cardAppliesTo("onsight", "trad")).toBe(true);
-    expect(cardAppliesTo("firstTry", "boulder")).toBe(true);
+describe("items per discipline", () => {
+  it("drops the onsight card and chart for bouldering only", () => {
+    for (const id of ["onsight", "onsightRate"] as const) {
+      expect(itemAppliesTo(id, "boulder")).toBe(false);
+      expect(itemAppliesTo(id, "sport")).toBe(true);
+      expect(itemAppliesTo(id, "trad")).toBe(true);
+    }
+    expect(itemAppliesTo("flash", "boulder")).toBe(true);
+    expect(itemAppliesTo("flashRate", "boulder")).toBe(true);
   });
 });
 
 describe("saved analytics layouts", () => {
+  it("reads the flash card's earlier firstTry id as flash", () => {
+    expect(parseAnalyticsLayout({ cards: ["sends", "firstTry"], charts: ["flashRate"] })).toEqual({
+      cards: ["sends", "flash"],
+      charts: ["flashRate"],
+    });
+  });
   it("accepts only visible ordered lists and never appends optional items", () => {
     const layout = { cards: ["partner", "sends"], charts: ["volume"] };
     expect(parseAnalyticsLayout(layout)).toEqual(layout);

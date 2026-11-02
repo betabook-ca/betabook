@@ -41,7 +41,7 @@ export const Customize: Story = {
         content: <StatTileContent tile={{ label: "Days out", value: 12 }} />,
       },
       {
-        id: "firstTry",
+        id: "flash",
         title: "Flash",
         content: <StatTileContent tile={{ label: "Flash", value: "25%" }} />,
       },
@@ -96,7 +96,7 @@ export const HiddenItems: Story = {
     ...Customize.args,
     initialLayout: {
       ...DEFAULT_ANALYTICS_LAYOUT,
-      cards: ["hardest", "days", "firstTry", "bestYear", "streak"],
+      cards: ["hardest", "days", "flash", "bestYear", "streak"],
       charts: ["progression"],
     },
   },

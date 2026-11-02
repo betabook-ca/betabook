@@ -15,7 +15,7 @@ import type { AnalyticsSendRow } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
 import { buildAnalyticsHighlights } from "@/lib/analytics-highlights";
 import type { AnalyticsLayout } from "@/lib/analytics-layout";
-import { ANALYTICS_CARD_IDS, cardAppliesTo, type AnalyticsCardId } from "@/lib/analytics-layout";
+import { ANALYTICS_CARD_IDS, itemAppliesTo, type AnalyticsCardId } from "@/lib/analytics-layout";
 import { formatAnalyticsYears } from "@/lib/analytics-years";
 import {
   selectChartSends,
@@ -91,7 +91,7 @@ export function AnalyticsDashboard({
     sends: "How many climbs you’ve sent.",
     hardest: "Your highest graded send.",
     days: "Days with climbing activity.",
-    firstTry: "The share of sends you flashed.",
+    flash: "The share of sends you flashed.",
     onsight: "The share of sends you onsighted.",
     bestYear: "The year with the most sends.",
     streak: "Your longest run of consecutive climbing days.",
@@ -100,16 +100,16 @@ export function AnalyticsDashboard({
     favoriteDay: "The day of the week you send most often.",
     layoff: "The longest gap between climbing days.",
   };
-  const cards: AnalyticsPanel[] = ANALYTICS_CARD_IDS.filter((id) => cardAppliesTo(id, scope)).map(
-    (id) => ({
-      id,
-      title: tiles[id].label,
-      description: descriptions[id],
-      content: <StatTileContent tile={tiles[id]} />,
-    }),
-  );
+  const cards: AnalyticsPanel[] = [...tiles].map(([id, tile]) => ({
+    id,
+    title: tile.label,
+    description: descriptions[id],
+    content: <StatTileContent tile={tile} />,
+  }));
   const pyramidRows = analytics.pyramid[0]?.rows ?? [];
-  const charts: AnalyticsPanel[] = [
+  const styleRateRows =
+    analytics.styleRatesByGrade.find((group) => group.type === scope)?.rows ?? [];
+  const allCharts: AnalyticsPanel[] = [
     {
       id: "volume",
       title: "Volume over time",
@@ -128,11 +128,18 @@ export function AnalyticsDashboard({
       id: "flashRate",
       title: "Flash rate by grade",
       description: "Total sends and the flash rate at each grade.",
+      content: <AnalyticsFlashChart sends={chartSends} rows={styleRateRows} type={scope} />,
+    },
+    {
+      id: "onsightRate",
+      title: "Onsight rate by grade",
+      description: "Total sends and the onsight rate at each grade.",
       content: (
         <AnalyticsFlashChart
           sends={chartSends}
-          rows={analytics.firstTryByGrade.find((group) => group.type === scope)?.rows ?? []}
+          rows={styleRateRows}
           type={scope}
+          ascentStyle="onsight"
         />
       ),
     },
@@ -222,6 +229,7 @@ export function AnalyticsDashboard({
       ),
     },
   ];
+  const charts = allCharts.filter((chart) => itemAppliesTo(chart.id, scope));
   return (
     <AnalyticsWorkspace
       cards={noActivity ? NO_PANELS : cards}
@@ -257,18 +265,31 @@ export function AnalyticsDashboard({
   );
 }
 
-/** Every stat card's label, value and note. The share image reads these too,
- * so it matches the page. */
-// oxlint-disable-next-line complexity -- one branch per card's empty state
+/** The label, value and note of every stat card that applies to `scope`, in
+ * catalog order. The share image reads these too, so it matches the page. */
 export function buildStatTiles({
+  scope,
+  ...input
+}: {
+  analytics: UserAnalytics;
+  highlights: ReturnType<typeof buildAnalyticsHighlights>;
+  scope: ClimbType;
+  journalVisible: boolean;
+}): Map<AnalyticsCardId, StatTile> {
+  const tiles = allStatTiles(input);
+  return new Map(
+    ANALYTICS_CARD_IDS.filter((id) => itemAppliesTo(id, scope)).map((id) => [id, tiles[id]]),
+  );
+}
+
+// oxlint-disable-next-line complexity -- one branch per card's empty state
+function allStatTiles({
   analytics,
   highlights,
   journalVisible,
 }: {
   analytics: UserAnalytics;
   highlights: ReturnType<typeof buildAnalyticsHighlights>;
-  /** Not read here: callers drop the cards that don't apply with cardAppliesTo. */
-  scope: ClimbType;
   journalVisible: boolean;
 }): Record<AnalyticsCardId, StatTile> {
   const hardest = analytics.hardest[0] ?? null;
@@ -323,7 +344,7 @@ export function buildStatTiles({
       value: analytics.daysOut,
       sub: analytics.daysPerMonth != null ? `${analytics.daysPerMonth.toFixed(1)} per month` : null,
     },
-    firstTry: styleTile("Flash", analytics.flashCount, analytics.hardestFlash, analytics.sendCount),
+    flash: styleTile("Flash", analytics.flashCount, analytics.hardestFlash, analytics.sendCount),
     onsight: styleTile(
       "Onsight",
       analytics.onsightCount,

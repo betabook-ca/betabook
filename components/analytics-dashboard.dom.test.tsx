@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -57,10 +57,26 @@ describe("flash and onsight cards", () => {
         scope={scope}
         journalVisible={false}
         periodPicker={null}
-        initialLayout={DEFAULT_ANALYTICS_LAYOUT}
+        initialLayout={{
+          cards: DEFAULT_ANALYTICS_LAYOUT.cards,
+          charts: ["flashRate", "onsightRate"],
+        }}
       />,
     );
   }
+
+  it("shows flash and onsight rate charts on ropes, and only the flash chart on boulders", () => {
+    renderScope("sport", ropeSends);
+    expect(screen.getByRole("heading", { name: "Flash rate by grade" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Onsight rate by grade" })).toBeVisible();
+    cleanup();
+
+    renderScope("boulder", sends);
+    expect(screen.getByRole("heading", { name: "Flash rate by grade" })).toBeVisible();
+    expect(
+      screen.queryByRole("heading", { name: "Onsight rate by grade" }),
+    ).not.toBeInTheDocument();
+  });
 
   it("shows flash and onsight as separate cards on ropes", () => {
     renderScope("sport", ropeSends);
@@ -111,7 +127,7 @@ describe("analytics dashboard with the trip layout", () => {
     renderTrip();
 
     const titles = screen.getAllByRole("article").map((panel) => panel.getAttribute("aria-label"));
-    expect(titles).toEqual(["Sends", "Hardest", "Sending days", "Flash", "Grade pyramid"]);
+    expect(titles).toEqual(["Sends", "Hardest", "Flash", "Sending days", "Grade pyramid"]);
     expect(screen.queryByRole("button", { name: /Customize/ })).not.toBeInTheDocument();
   });
 
