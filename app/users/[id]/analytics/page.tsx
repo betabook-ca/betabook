@@ -207,7 +207,7 @@ async function AnalyticsView({
             analytics={analytics}
             sends={rows}
             sessions={highlightSessions}
-            highlights={buildAnalyticsHighlights(highlightSessions, scope, selectedYears)}
+            highlights={buildAnalyticsHighlights(highlightSessions, scope, selectedYears, rows)}
             undatedCount={undatedCount}
             scope={scope}
             journalVisible={journalVisible}

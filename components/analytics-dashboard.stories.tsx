@@ -99,6 +99,17 @@ const sessions: HighlightSession[] = [
     isAscent: false,
     companions: [{ id: "sample-partner", name: "Alex" }],
   },
+  // An open project: no send row, so Work in progress shows it.
+  ...["2025-03-05", "2025-03-12"].map((entryDate, index) => ({
+    id: 5 + index,
+    entryDate,
+    climbId: 9,
+    climbName: "Roof project",
+    climbType: "boulder" as const,
+    sent: false,
+    isAscent: false,
+    companions: [],
+  })),
 ];
 
 const ALL_YEARS: number[] = [];
@@ -190,7 +201,7 @@ function DashboardExample({
             ? { ok: false, error: "Your layout couldn’t be saved. Please try again." }
             : { ok: true, value: undefined }
         }
-        highlights={buildAnalyticsHighlights(undatedOnly ? [] : sessions, scope, period)}
+        highlights={buildAnalyticsHighlights(undatedOnly ? [] : sessions, scope, period, rows)}
         analytics={analytics}
         undatedCount={lifetime.datelessCount}
         scope={scope}

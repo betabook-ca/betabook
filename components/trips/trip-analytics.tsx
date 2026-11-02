@@ -66,7 +66,7 @@ export async function TripAnalytics({
     daysPerMonth: null,
   };
   // Shared with the share image, so its tiles always match the page's.
-  const highlights = buildAnalyticsHighlights([], scope, NO_YEARS);
+  const highlights = buildAnalyticsHighlights([], scope, NO_YEARS, []);
   const disciplineNav = (
     <DisciplineScopeNav present={present} scope={scope} href={disciplineHref} />
   );
