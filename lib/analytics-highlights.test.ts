@@ -28,7 +28,7 @@ it("counts shared days, sessions, first-send effort, and repeats within selected
   ];
   const result = buildAnalyticsHighlights(rows, "boulder", [2025]);
   expect(result.partner).toEqual({ id: "pat", name: "Pat", days: 4 });
-  expect(result.biggestProject).toMatchObject({ id: 1, sessions: 3 });
+  expect(result.biggestProject).toMatchObject({ id: 2, sessions: 1, firstSend: null });
   expect(result.persistence).toMatchObject({ id: 1, sessions: 3 });
   expect(result.favoriteRepeat).toMatchObject({ id: 1, repeats: 1 });
   expect(buildAnalyticsHighlights(rows, "boulder", [2024]).persistence).toBeNull();
@@ -40,35 +40,32 @@ it("counts shared days, sessions, first-send effort, and repeats within selected
   });
 });
 
-it("leaves sessions after the first send out of the biggest project", () => {
+it("only counts climbs without a send as the biggest project", () => {
   const rows = [
-    session(1, "2025-01-06", { sent: true, isAscent: true }),
-    session(2, "2025-01-13", { sent: true }),
-    session(3, "2025-01-20"),
+    session(1, "2025-01-06"),
+    session(2, "2025-01-13"),
+    session(3, "2025-01-20", { sent: true, isAscent: true }),
     session(4, "2025-01-27", { sent: true }),
     session(5, "2025-01-06", { climbId: 2, climbName: "Open project" }),
     session(6, "2025-01-13", { climbId: 2, climbName: "Open project" }),
   ];
-  expect(buildAnalyticsHighlights(rows, "boulder", []).biggestProject).toMatchObject({
-    id: 2,
-    sessions: 2,
-    firstSend: null,
-  });
+  const result = buildAnalyticsHighlights(rows, "boulder", []);
+  expect(result.biggestProject).toMatchObject({ id: 2, sessions: 2, firstSend: null });
+  expect(result.persistence).toMatchObject({ id: 1, sessions: 3 });
+  expect(buildAnalyticsHighlights(rows.slice(0, 4), "boulder", []).biggestProject).toBeNull();
 });
 
-it("ignores a climb sent before the selected years", () => {
+it("treats a climb as a project until the end of the selected years", () => {
   const rows = [
     session(1, "2024-06-01"),
-    session(2, "2024-06-08", { sent: true, isAscent: true }),
-    session(3, "2025-01-06", { sent: true }),
-    session(4, "2025-01-13"),
+    session(2, "2024-06-08"),
+    session(3, "2025-03-01", { sent: true, isAscent: true }),
+    session(4, "2026-01-06", { sent: true }),
   ];
-  const result = buildAnalyticsHighlights(rows, "boulder", [2025]);
-  expect(result.biggestProject).toBeNull();
-  expect(result.favoriteRepeat).toMatchObject({ id: 1, repeats: 1 });
   expect(buildAnalyticsHighlights(rows, "boulder", [2024]).biggestProject).toMatchObject({
     id: 1,
     sessions: 2,
-    firstSend: "2024-06-08",
   });
+  expect(buildAnalyticsHighlights(rows, "boulder", [2024, 2025]).biggestProject).toBeNull();
+  expect(buildAnalyticsHighlights(rows, "boulder", [2026]).biggestProject).toBeNull();
 });
