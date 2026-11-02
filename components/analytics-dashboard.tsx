@@ -291,7 +291,7 @@ function allStatTiles({
         : "no tagged friends",
     },
     biggestProject: {
-      label: "Biggest project",
+      label: "Work in progress",
       value: highlights.biggestProject
         ? formatCount(highlights.biggestProject.sessions, "session")
         : "—",
