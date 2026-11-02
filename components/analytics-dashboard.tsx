@@ -26,6 +26,7 @@ import {
 import { formatCount } from "@/lib/format";
 import { formatMonth } from "@/lib/format-date";
 import type { ClimbType } from "@/lib/grades";
+import { firstTryStyles, styleRateTitle } from "@/lib/style-rates";
 import { formatDaySpan, inSelectedYears, type UserAnalytics } from "@/lib/user-analytics";
 
 const EMPTY_SESSIONS: ChartSession[] = [];
@@ -126,11 +127,8 @@ export function AnalyticsDashboard({
     },
     {
       id: "flashRate",
-      title: scope === "boulder" ? "Flash rate by grade" : "Flash and onsight rate by grade",
-      description:
-        scope === "boulder"
-          ? "Total sends and the flash rate at each grade."
-          : "Total sends and the flash and onsight rates at each grade.",
+      title: styleRateTitle(scope),
+      description: `Total sends and the ${firstTryStyles(scope).join(" and ")} rate at each grade.`,
       content: <AnalyticsFlashChart sends={chartSends} rows={styleRateRows} type={scope} />,
     },
     {

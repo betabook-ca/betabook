@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getDb } from "@/db/client";
 import { userAnalyticsLayouts } from "@/db/schema";
 import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
-import { analyticsLayoutSchema, type AnalyticsLayout } from "@/lib/analytics-layout";
+import { safeParseAnalyticsLayout, type AnalyticsLayout } from "@/lib/analytics-layout";
 import { requireSession } from "@/lib/session";
 
 import { afterCommit } from "./post-commit";
@@ -13,7 +13,7 @@ import { afterCommit } from "./post-commit";
 export async function saveAnalyticsLayout(layout: AnalyticsLayout): Promise<ActionResult> {
   return toActionResult(async () => {
     const session = await requireSession();
-    const parsed = analyticsLayoutSchema.safeParse(layout);
+    const parsed = safeParseAnalyticsLayout(layout);
     if (!parsed.success) {
       throw new ActionError("This layout could not be saved. Restore defaults and try again.");
     }

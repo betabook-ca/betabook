@@ -267,11 +267,20 @@ describe("stat selection", () => {
   });
 
   it("restores a saved choice limited to this page's stats", () => {
+    expect(readShareStats(JSON.stringify(["streak", "sends"]), order)).toEqual(["sends", "streak"]);
+    expect(readShareStats(JSON.stringify(order), order)).toHaveLength(MAX_SHARE_STATS);
+  });
+
+  it("gives a saved stat this page lacks to the next stat in page order", () => {
+    // A rope trip's choice opened on a boulder trip, which has no onsight card.
+    expect(readShareStats(JSON.stringify(["sends", "hardest", "flash", "onsight"]), order)).toEqual(
+      ["sends", "hardest", "days", "flash"],
+    );
     expect(readShareStats(JSON.stringify(["streak", "sends", "bestYear"]), order)).toEqual([
       "sends",
+      "hardest",
       "streak",
     ]);
-    expect(readShareStats(JSON.stringify(order), order)).toHaveLength(MAX_SHARE_STATS);
   });
 
   it("restores a choice saved under the flash card's earlier firstTry id", () => {

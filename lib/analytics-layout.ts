@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { ClimbType } from "@/lib/grades";
+import { ascentStylesFor } from "@/lib/sends";
 
 /** The catalog lists everything available; a layout lists only visible items.
  * Saved layouts store these ids, so rename titles rather than ids. */
@@ -56,15 +57,17 @@ export const TRIP_ANALYTICS_LAYOUT: AnalyticsLayout = {
   charts: ["pyramid"],
 };
 
-/** Whether a card applies to a discipline. A boulder can't be onsighted, so a
- * boulder sent first try is always a flash. Layouts keep the onsight id so the
- * card stays placed for rope disciplines. */
+/** Whether a card applies to a discipline: the onsight card only where the
+ * discipline has onsights (`ascentStylesFor`), so not bouldering. Layouts keep
+ * the onsight id so the card stays placed for rope disciplines. */
 export function cardAppliesTo(id: AnalyticsCardId, type: ClimbType): boolean {
-  return type !== "boulder" || id !== "onsight";
+  return id !== "onsight" || ascentStylesFor(type).includes("onsight");
 }
 
-/** Ids saved under an earlier name. Migration 0057 rewrites stored layouts;
- * this covers a layout read before it runs and choices kept in the browser. */
+/** Ids saved under an earlier name. Stored layouts are not rewritten: a
+ * migration would run before the deploy, and the previous worker's strict
+ * schema would reset any layout holding a new id. Every read and save maps
+ * them instead, as does the share image's choice kept in the browser. */
 const RENAMED_IDS: Record<string, string> = { firstTry: "flash" };
 
 /** An id list with earlier names replaced by current ones. Anything that
@@ -75,13 +78,19 @@ export function renameLegacyIds(value: unknown): unknown {
     : value;
 }
 
-/** Invalid local preferences start fresh; reads and writes share one schema. */
-export function parseAnalyticsLayout(value: unknown): AnalyticsLayout {
-  const result = analyticsLayoutSchema.safeParse(
+/** Validates a stored or submitted layout, accepting ids saved under an
+ * earlier name, so a tab opened before a rename can still save. */
+export function safeParseAnalyticsLayout(value: unknown) {
+  return analyticsLayoutSchema.safeParse(
     value != null && typeof value === "object" && "cards" in value
       ? { ...value, cards: renameLegacyIds(value.cards) }
       : value,
   );
+}
+
+/** Invalid local preferences start fresh; reads and writes share one schema. */
+export function parseAnalyticsLayout(value: unknown): AnalyticsLayout {
+  const result = safeParseAnalyticsLayout(value);
   return result.success ? result.data : analyticsLayoutSchema.parse(DEFAULT_ANALYTICS_LAYOUT);
 }
 

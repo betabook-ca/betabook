@@ -426,8 +426,11 @@ export function toggleShareStat(
   return order.filter((item) => next.has(item));
 }
 
-/** The saved choice, limited to stats on this page. Anything unreadable, or
- * a choice with none of this page's stats, falls back to the first four. */
+/** The saved choice, limited to stats on this page. A saved stat this page
+ * lacks (onsight on a boulder trip) gives its slot to the next unchosen stat
+ * in page order, so the image keeps as many stats as were chosen. Anything
+ * unreadable, or a choice with none of this page's stats, falls back to the
+ * first four. */
 export function readShareStats(
   saved: string | null,
   order: readonly AnalyticsCardId[],
@@ -438,8 +441,14 @@ export function readShareStats(
     const parsed = renameLegacyIds(JSON.parse(saved));
     if (!Array.isArray(parsed)) return fallback;
     const ids = new Set(parsed.filter((item): item is string => typeof item === "string"));
-    const chosen = order.filter((item) => ids.has(item)).slice(0, MAX_SHARE_STATS);
-    return chosen.length ? chosen : fallback;
+    const chosen = new Set(order.filter((item) => ids.has(item)).slice(0, MAX_SHARE_STATS));
+    if (!chosen.size) return fallback;
+    const size = Math.min(ids.size, MAX_SHARE_STATS);
+    for (const item of order) {
+      if (chosen.size >= size) break;
+      chosen.add(item);
+    }
+    return order.filter((item) => chosen.has(item));
   } catch {
     return fallback;
   }

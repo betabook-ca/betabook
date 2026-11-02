@@ -194,14 +194,24 @@ function gradedSends<T extends AnalyticsSendRow>(
   sends: T[],
   type: ClimbType,
 ): (T & { grade: number })[] {
-  const scale = nativeGradeArray(type);
   const graded: (T & { grade: number })[] = [];
   for (const s of sends) {
-    const grade = s.suggestedGrade;
-    if (s.climbType !== type || grade == null || grade < 0 || grade >= scale.length) continue;
-    graded.push({ ...s, grade });
+    const grade = gradeOn(s, type);
+    if (grade != null) graded.push({ ...s, grade });
   }
   return graded;
+}
+
+/** A send's grade on `type`'s native scale, or null when it isn't a `type`
+ * send or its grade is off that scale. The rule gradedSends keeps by. */
+function gradeOn(s: AnalyticsSendRow, type: ClimbType): number | null {
+  const grade = s.suggestedGrade;
+  return s.climbType === type &&
+    grade != null &&
+    grade >= 0 &&
+    grade < nativeGradeArray(type).length
+    ? grade
+    : null;
 }
 
 /** One discipline's send pyramid from any slice of a log (all time, or one
@@ -307,36 +317,34 @@ export function buildUserAnalytics(
   }
 
   // One pass for both styles: the counts take every send, the hardest only
-  // sends graded on the scope's scale (as gradedSends would keep them).
+  // sends graded on the scope's scale (gradeOn, as gradedSends keeps them).
   let flashCount = 0;
   let onsightCount = 0;
-  let topFlash: AnalyticsSendRow | null = null;
-  let topOnsight: AnalyticsSendRow | null = null;
-  const scaleLength = scope === "all" ? 0 : nativeGradeArray(scope).length;
-  const harder = (s: AnalyticsSendRow, top: AnalyticsSendRow | null) =>
-    s.climbType === scope &&
-    s.suggestedGrade != null &&
-    s.suggestedGrade >= 0 &&
-    s.suggestedGrade < scaleLength &&
-    (top == null || s.suggestedGrade > (top.suggestedGrade ?? -1));
+  type Top = { send: AnalyticsSendRow; grade: number } | null;
+  let topFlash: Top = null;
+  let topOnsight: Top = null;
+  const harder = (s: AnalyticsSendRow, top: Top): Top => {
+    const grade = scope === "all" ? null : gradeOn(s, scope);
+    return grade != null && (top == null || grade > top.grade) ? { send: s, grade } : top;
+  };
   for (const s of sends) {
     if (s.ascentStyle === "flash") {
       flashCount += 1;
-      if (harder(s, topFlash)) topFlash = s;
+      topFlash = harder(s, topFlash);
     } else if (s.ascentStyle === "onsight") {
       onsightCount += 1;
-      if (harder(s, topOnsight)) topOnsight = s;
+      topOnsight = harder(s, topOnsight);
     }
   }
-  const hardestOf = (top: AnalyticsSendRow | null): HardestSend | null =>
-    top && scope !== "all" && top.suggestedGrade != null
+  const hardestOf = (top: Top): HardestSend | null =>
+    top && scope !== "all"
       ? {
           type: scope,
-          grade: top.suggestedGrade,
-          label: gradeArray(scope, prefs)[top.suggestedGrade],
-          climbId: top.climbId,
-          climbName: top.climbName,
-          dateSent: top.dateSent,
+          grade: top.grade,
+          label: gradeArray(scope, prefs)[top.grade],
+          climbId: top.send.climbId,
+          climbName: top.send.climbName,
+          dateSent: top.send.dateSent,
         }
       : null;
 

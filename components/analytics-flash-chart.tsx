@@ -7,14 +7,18 @@ import { useChartWidth } from "@/hooks/use-chart-width";
 import { sendChartRows, type ChartSend, type ChartDetailGroup } from "@/lib/chart-details";
 import { formatCount } from "@/lib/format";
 import type { ClimbType } from "@/lib/grades";
+import { firstTryStyles, styleRateTitle, type FirstTryStyle } from "@/lib/style-rates";
 import type { StyleRateGradeRow } from "@/lib/user-analytics";
 
 /** Each line wears its ascent chip's hue (flash blue, onsight green), so the
  * bars stay neutral rather than a discipline hue that would hide one line. */
-const SERIES = [
-  { key: "flashRate", name: "Flash", color: "var(--chart-flash)" },
-  { key: "onsightRate", name: "Onsight", color: "var(--chart-onsight)" },
-] as const;
+const SERIES = {
+  flash: { key: "flashRate", name: "Flash", color: "var(--chart-flash)" },
+  onsight: { key: "onsightRate", name: "Onsight", color: "var(--chart-onsight)" },
+} as const satisfies Record<
+  FirstTryStyle,
+  { key: keyof StyleRateGradeRow; name: string; color: string }
+>;
 const BAR_COLOR = "var(--muted)";
 
 /** Sends per grade with the flash and onsight rates overlaid, matching the
@@ -31,8 +35,8 @@ export function AnalyticsFlashChart({
   sends?: ChartSend[];
 }) {
   const { ref, width } = useChartWidth();
-  const series = type === "boulder" ? SERIES.slice(0, 1) : SERIES;
-  const title = series.map((s, i) => (i ? s.name.toLowerCase() : s.name)).join(" and ");
+  const styles = firstTryStyles(type);
+  const series = styles.map((style) => SERIES[style]);
   const rates = (row: StyleRateGradeRow) =>
     series.map((s) => `${Math.round(row[s.key])}% ${s.name.toLowerCase()}`).join(" · ");
   const labels = rows.map(
@@ -59,7 +63,7 @@ export function AnalyticsFlashChart({
     );
   return (
     <div className="min-w-0" ref={ref}>
-      <h3 className={`mb-4 ${EYEBROW_CLASS}`}>{title} rate by grade</h3>
+      <h3 className={`mb-4 ${EYEBROW_CLASS}`}>{styleRateTitle(type)}</h3>
       {rows.length ? (
         <>
           <div className="mb-2 flex flex-wrap gap-4 text-xs text-muted">
@@ -78,7 +82,7 @@ export function AnalyticsFlashChart({
             ))}
           </div>
           <ChartInspection
-            label={`Sends and ${title.toLowerCase()} percentage by grade`}
+            label={`Sends and ${styles.join(" and ")} percentage by grade`}
             details={details}
           >
             <div className="relative">
