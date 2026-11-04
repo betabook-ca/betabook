@@ -250,7 +250,7 @@ export function JournalEntryFields({
           onExpandedChange={setDetailsExpanded}
         >
           {isAscent && <SendVideosField onChange={setVideos} checked={videoChecked} />}
-          <div className="flex flex-wrap items-start gap-4">
+          <div className="flex flex-col gap-4">
             <CompanionPicker
               value={companions}
               onChange={(value) => {
@@ -261,8 +261,9 @@ export function JournalEntryFields({
               disabled={pending}
               editing={!!existingEntry}
               fetcher={companionFetcher}
+              width="full"
             />
-            {!isUndatedSend && <TagInput value={tags} onChange={setTags} />}
+            {!isUndatedSend && <TagInput value={tags} onChange={setTags} width="full" />}
           </div>
 
           <p className="text-xs text-muted">

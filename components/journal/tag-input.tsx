@@ -1,5 +1,7 @@
 "use client";
 
+import type { ComponentProps } from "react";
+
 import { TagsField } from "@/components/ui/tags-field";
 import { isValidJournalTag, MAX_JOURNAL_TAGS, MAX_JOURNAL_TAG_LENGTH } from "@/lib/journal";
 
@@ -14,6 +16,7 @@ export function TagInput({
   showExamples = true,
   onTagSelected,
   label,
+  width,
 }: {
   value: string[];
   onChange: (value: string[]) => void;
@@ -25,6 +28,7 @@ export function TagInput({
   showExamples?: boolean;
   onTagSelected?: () => void;
   label?: string;
+  width?: ComponentProps<typeof TagsField>["width"];
 }) {
   return (
     <TagsField
@@ -40,6 +44,7 @@ export function TagInput({
       showExamples={showExamples}
       onTagSelected={onTagSelected}
       label={label}
+      width={width}
       validateTag={(tag) =>
         !isValidJournalTag(tag)
           ? "Tags can only contain letters, numbers and hyphens."

@@ -5,7 +5,7 @@ import { X } from "lucide-react";
 import { useState } from "react";
 
 import { SearchSelectionField } from "@/components/search/search-selection-field";
-import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
+import { FIELD_WIDTH_CLASS, type FieldWidth } from "@/components/ui/field";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useSearchLookup, type LookupFetcher } from "@/hooks/use-search-lookup";
@@ -32,6 +32,7 @@ export function CompanionPicker({
   editing = false,
   fetcher = fetchFriends,
   help = ENTRY_HELP,
+  width = "long",
 }: {
   value: CompanionOption[];
   onChange: (value: CompanionOption[]) => void;
@@ -40,6 +41,7 @@ export function CompanionPicker({
   fetcher?: LookupFetcher<CompanionOption>;
   /** Help text: who can see the tags and what tagging does. */
   help?: string;
+  width?: FieldWidth;
 }) {
   const [query, setQuery] = useState("");
   const [cleared, setCleared] = useState(false);
@@ -57,7 +59,7 @@ export function CompanionPicker({
     <fieldset
       disabled={disabled}
       aria-label="Tagged friends"
-      className={`${FIELD_WIDTH_CLASS.long} flex flex-col gap-2`}
+      className={`${FIELD_WIDTH_CLASS[width]} flex flex-col gap-2`}
     >
       <SearchSelectionField
         emptyMessage="No friends match."

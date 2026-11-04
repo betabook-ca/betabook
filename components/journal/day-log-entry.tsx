@@ -353,10 +353,12 @@ export function DayLogEntryDialog({
             value={draft.companions}
             onChange={(companions) => change({ companions })}
             fetcher={companionFetcher}
+            width="full"
             help="Starts with the day's friends when the climb is added. Anyone who can read this entry sees who you tagged."
           />
 
           <TagInput
+            width="full"
             value={draft.tags}
             onChange={(tags) => {
               setTagError(false);

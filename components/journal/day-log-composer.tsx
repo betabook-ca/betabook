@@ -205,10 +205,16 @@ export function DayLogComposer({
               onChange={changeDayCompanions}
               disabled={pending}
               fetcher={companionFetcher}
+              width="full"
               help="Tagged on each climb you add from here on. Climbs already in the day keep their own; edit one to change its friends. Anyone who can read an entry sees who you tagged."
             />
             <div role="group" aria-label="Day tags" className="flex flex-col gap-1">
-              <TagInput label="Tags for climbs you add" value={dayTags} onChange={setDayTags} />
+              <TagInput
+                label="Tags for climbs you add"
+                width="full"
+                value={dayTags}
+                onChange={setDayTags}
+              />
               <p className="text-xs text-muted">Climbs already in the day keep their own tags.</p>
             </div>
           </FormSection>
