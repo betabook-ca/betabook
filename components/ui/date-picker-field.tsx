@@ -5,6 +5,10 @@ import { parseDate, type CalendarDate } from "@internationalized/date";
 
 import { FIELD_HEIGHT_CLASS, FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { FieldFeedback } from "@/components/ui/field-support";
+import { formatWeekday } from "@/lib/format-date";
+
+/** Room for "11/04/2026 (Wed)" and the calendar button. */
+const WEEKDAY_FIELD_WIDTH_CLASS = "w-52 max-w-full min-w-0";
 
 function toCalendarDate(value: string | undefined): CalendarDate | null {
   if (!value) return null;
@@ -30,6 +34,8 @@ type DatePickerFieldProps = {
    * the user can't recall. Checked mirrors an empty value, so the caller
    * empties or restores the date here and typing a date unchecks it. */
   onUnknownChange?: (unknown: boolean) => void;
+  /** Shows the chosen date's day of the week after it, as "(Wed)". */
+  showWeekday?: boolean;
 };
 
 /** The app's date field: a segmented input plus a calendar popover, themed from
@@ -45,12 +51,16 @@ export function DatePickerField({
   description,
   error,
   onUnknownChange,
+  showWeekday = false,
 }: DatePickerFieldProps) {
   const maxDate = toCalendarDate(max);
+  const weekday = showWeekday ? formatWeekday(value) : null;
 
   const picker = (
     <DatePicker
-      className={FIELD_WIDTH_CLASS.medium}
+      // The day of the week needs room beside the date, or the field's
+      // width jumps as it appears.
+      className={showWeekday ? WEEKDAY_FIELD_WIDTH_CLASS : FIELD_WIDTH_CLASS.medium}
       value={toCalendarDate(value)}
       maxValue={maxDate}
       isReadOnly={isReadOnly}
@@ -63,11 +73,20 @@ export function DatePickerField({
       <Label>{label}</Label>
       <DateField.Group fullWidth className={FIELD_HEIGHT_CLASS}>
         <DateField.InputContainer>
-          <DateField.Input>
+          {/* HeroUI grows the input to fill the field; with the weekday shown
+           * it keeps to its segments, so the weekday follows the date. */}
+          <DateField.Input className={weekday ? "flex-none" : undefined}>
             {(segment: DateField["SegmentProps"]["segment"]) => (
               <DateField.Segment segment={segment} className="text-sm!" />
             )}
           </DateField.Input>
+          {/* Read from the date itself, so screen readers already have it;
+           * it isn't one of the editable segments. */}
+          {weekday && (
+            <span aria-hidden className="ml-1 text-sm text-muted">
+              ({weekday})
+            </span>
+          )}
         </DateField.InputContainer>
         <DateField.Suffix>
           <DatePicker.Trigger>
