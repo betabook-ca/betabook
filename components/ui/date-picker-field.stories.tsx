@@ -39,7 +39,6 @@ function DateExamples() {
         value={withWeekday}
         onChange={setWithWeekday}
         max="2026-11-30"
-        onUnknownChange={(unknown) => setWithWeekday(unknown ? "" : "2026-11-04")}
         description="As a journal entry's date: the day of the week follows the chosen date."
         showWeekday
       />
