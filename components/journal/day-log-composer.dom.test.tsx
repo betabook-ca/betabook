@@ -111,7 +111,7 @@ it("starts from a handed-over session: its date, friends, tags and climb, then t
     companions: [alex],
     tags: ["cold"],
     row: {
-      ...newDayLogRow({ ...arete, areaName: "Cedar Block" }, false, ["cold"]),
+      ...newDayLogRow({ ...arete, areaName: "Cedar Block" }, false, ["cold"], [alex]),
       choice: "flash",
     },
   };
@@ -123,22 +123,28 @@ it("starts from a handed-over session: its date, friends, tags and climb, then t
   const first = screen.getByRole("listitem", { name: "Cedar Arete" });
   expect(within(first).getByText("Flash · #cold")).toBeInTheDocument();
 
+  expect(within(first).getByText("With Alex Rivera")).toBeInTheDocument();
+
   const crack = await pickClimb(user, CRACK);
   expect(within(crack).getByRole("button", { name: "Remove tag cold" })).toBeInTheDocument();
+  expect(
+    within(crack).getByRole("button", { name: "Remove friend Alex Rivera" }),
+  ).toBeInTheDocument();
   await closeDialog(user, crack, "Add to day");
   await user.click(screen.getByRole("button", { name: "Save 2 entries" }));
 
   const { shared, entries } = posted(save);
-  expect(shared.get("entryDate")).toBe("2026-09-08");
-  expect(shared.getAll("companion")).toEqual(["alex"]);
-  expect(entries.map((entry) => [entry.get("climbId"), entry.getAll("tag")])).toEqual([
-    ["17", ["cold"]],
-    ["102", ["cold"]],
+  expect([...shared.entries()]).toEqual([["entryDate", "2026-09-08"]]);
+  expect(
+    entries.map((entry) => [entry.get("climbId"), entry.getAll("tag"), entry.getAll("companion")]),
+  ).toEqual([
+    ["17", ["cold"], ["alex"]],
+    ["102", ["cold"], ["alex"]],
   ]);
   expect(entries[0].get("ascentStyle")).toBe("flash");
 });
 
-it("posts the day's date and friends once, outside every climb's fields", async () => {
+it("pre-fills each climb with the day's friends and saves each climb with only its own", async () => {
   const user = userEvent.setup();
   const save = vi.fn<Save>().mockResolvedValue({ ok: true, value: undefined });
   const onDone = vi.fn<() => void>();
@@ -147,14 +153,28 @@ it("posts the day's date and friends once, outside every climb's fields", async 
   const friends = screen.getByRole("group", { name: "Tagged friends" });
   await user.type(within(friends).getByRole("combobox"), "Alex");
   await user.click(await screen.findByRole("option", { name: "Alex Rivera" }));
-  await addClimb(user, CRACK);
+  const crackLine = await addClimb(user, CRACK);
+  expect(within(crackLine).getByText("With Alex Rivera")).toBeInTheDocument();
 
-  await user.click(screen.getByRole("button", { name: "Save 1 entry" }));
+  // A climb's own dialog starts with the day's friend and can drop them.
+  const corner = await pickClimb(user, CORNER);
+  await user.click(within(corner).getByRole("button", { name: "Remove friend Alex Rivera" }));
+  await closeDialog(user, corner, "Add to day");
+  const cornerLine = screen.getByRole("listitem", { name: "Cedar Corner" });
+  expect(within(cornerLine).queryByText(/^With /)).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Save 2 entries" }));
 
   const { shared, entries } = posted(save);
-  expect(shared.get("entryDate")).toBe("2026-09-12");
-  expect(shared.getAll("companion")).toEqual(["alex"]);
-  expect(Object.fromEntries(entries[0].entries())).toEqual({ climbId: "102", body: "" });
+  expect([...shared.entries()]).toEqual([["entryDate", "2026-09-12"]]);
+  expect(Object.fromEntries(entries[0].entries())).toEqual({
+    climbId: "102",
+    body: "",
+    companionsChanged: "true",
+    companion: "alex",
+  });
+  expect(entries[1].get("companionsChanged")).toBe("true");
+  expect(entries[1].getAll("companion")).toEqual([]);
   await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
 });
 
@@ -189,6 +209,7 @@ it("sets each climb's style, note and videos in its own dialog and posts them", 
   });
   expect(Object.fromEntries(entries[1].entries())).toEqual({
     climbId: "101",
+    companionsChanged: "true",
     sent: "true",
     body: "",
   });
@@ -281,7 +302,11 @@ it("leaves a climb's rating and videos out once it's switched back to a session"
 
   await user.click(screen.getByRole("button", { name: "Save 1 entry" }));
   const { entries } = posted(save);
-  expect(Object.fromEntries(entries[0].entries())).toEqual({ climbId: "102", body: "" });
+  expect(Object.fromEntries(entries[0].entries())).toEqual({
+    climbId: "102",
+    body: "",
+    companionsChanged: "true",
+  });
 });
 
 it("won't queue a climb twice, and removes one from the day", async () => {

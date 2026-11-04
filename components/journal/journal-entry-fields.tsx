@@ -113,6 +113,8 @@ export function JournalEntryFields({
         body,
         tags,
         declinedDayTags: [],
+        companions,
+        declinedDayCompanions: [],
         rating,
         suggestedGrade,
         gradeFeel,

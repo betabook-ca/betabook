@@ -26,7 +26,12 @@ import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
 import { localToday } from "@/lib/format-date";
 import type { CompanionOption } from "@/lib/journal-companions";
-import { appendDayEntry, applyDayTags, MAX_DAY_ENTRIES } from "@/lib/journal-day";
+import {
+  appendDayEntry,
+  applyDayCompanions,
+  applyDayTags,
+  MAX_DAY_ENTRIES,
+} from "@/lib/journal-day";
 import type { SearchFetcher } from "@/lib/search";
 
 const QUEUED = "Already in this day";
@@ -126,6 +131,14 @@ export function DayLogComposer({
     setDayTags(next);
   }
 
+  /** The day's friends only pre-fill its climbs, the same way as its tags:
+   * each climb saves with its own, edited in its dialog. */
+  function changeDayCompanions(next: CompanionOption[]) {
+    if (pending) return;
+    setRows((current) => applyDayCompanions(current, companions, next));
+    setCompanions(next);
+  }
+
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (pending) return;
@@ -135,8 +148,6 @@ export function DayLogComposer({
 
     const formData = new FormData();
     formData.set("entryDate", entryDate);
-    formData.set("companionsChanged", "true");
-    for (const friend of companions) formData.append("companion", friend.id);
     for (const [index, row] of rows.entries()) {
       appendDayEntry(formData, index, dayLogRowForm(row));
     }
@@ -193,12 +204,10 @@ export function DayLogComposer({
             />
             <CompanionPicker
               value={companions}
-              onChange={(value) => {
-                if (!pending) setCompanions(value);
-              }}
+              onChange={changeDayCompanions}
               disabled={pending}
               fetcher={companionFetcher}
-              help="Every climb in this day is tagged with these friends. Anyone who can read an entry sees who you tagged."
+              help="Added to every climb below. Edit a climb to leave a friend off just that climb. Anyone who can read an entry sees who you tagged."
             />
             <div role="group" aria-label="Day tags" className="flex flex-col gap-1">
               <TagInput label="Tags for every climb" value={dayTags} onChange={changeDayTags} />
@@ -255,7 +264,9 @@ export function DayLogComposer({
         sentClimbIds={sentClimbIds}
         disabledClimbIds={new Map(rows.map((row) => [row.climb.id, QUEUED]))}
         fetcher={climbFetcher}
-        onPick={(climb, context) => openClimb(null, newDayLogRow(climb, context.sent, dayTags))}
+        onPick={(climb, context) =>
+          openClimb(null, newDayLogRow(climb, context.sent, dayTags, companions))
+        }
         onClose={settleFocus}
       />
       <DayLogEntryDialog
@@ -264,6 +275,8 @@ export function DayLogComposer({
         initial={editing?.row ?? null}
         adding={editing?.index === null}
         dayTags={dayTags}
+        dayCompanions={companions}
+        companionFetcher={companionFetcher}
         entryDate={entryDate}
         onSave={(row) => {
           const index = editing?.index ?? null;

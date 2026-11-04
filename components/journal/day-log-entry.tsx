@@ -4,6 +4,7 @@ import { Button, Label, TextArea, TextField, type UseOverlayStateReturn } from "
 import { X } from "lucide-react";
 import { useState } from "react";
 
+import { CompanionPicker } from "@/components/journal/companion-picker";
 import { TagInput } from "@/components/journal/tag-input";
 import {
   appendVideoFields,
@@ -22,9 +23,15 @@ import { InlineAlert } from "@/components/ui/inline-alert";
 import { RatingField } from "@/components/ui/rating-field";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { ClimbWithAreaName, SendableClimb } from "@/db/queries";
+import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import { MAX_JOURNAL_BODY_LENGTH, MAX_JOURNAL_TAGS } from "@/lib/journal";
 import type { CompanionOption } from "@/lib/journal-companions";
-import { retagDayEntry, type DayEntryTags } from "@/lib/journal-day";
+import {
+  retagDayCompanions,
+  retagDayEntry,
+  type DayEntryFriends,
+  type DayEntryTags,
+} from "@/lib/journal-day";
 import { sendVideoLinksError } from "@/lib/send-video";
 import { ASCENT_STYLE_LABELS, type GradeFeel } from "@/lib/sends";
 
@@ -34,16 +41,17 @@ type DayLogClimb = SendableClimb & { name: string; areaName?: string };
 
 /** One climb queued in a day: everything its single-entry form would hold
  * except the date and tagged friends, which belong to the day. */
-export type DayLogRow = DayEntryTags & {
-  climb: DayLogClimb;
-  hasPriorSend: boolean;
-  choice: SendStyleChoice;
-  body: string;
-  rating: number | null;
-  suggestedGrade: string;
-  gradeFeel: GradeFeel;
-  videos: string[];
-};
+export type DayLogRow = DayEntryTags &
+  DayEntryFriends<CompanionOption> & {
+    climb: DayLogClimb;
+    hasPriorSend: boolean;
+    choice: SendStyleChoice;
+    body: string;
+    rating: number | null;
+    suggestedGrade: string;
+    gradeFeel: GradeFeel;
+    videos: string[];
+  };
 
 /** An outdoor session's form handed over by Log additional climbs: its date,
  * friends and tags become the day's, and its climb the day's first. */
@@ -58,6 +66,7 @@ export function newDayLogRow(
   climb: ClimbWithAreaName,
   hasPriorSend: boolean,
   dayTags: readonly string[],
+  dayCompanions: readonly CompanionOption[] = [],
 ): DayLogRow {
   return {
     climb,
@@ -66,6 +75,8 @@ export function newDayLogRow(
     body: "",
     tags: [...dayTags],
     declinedDayTags: [],
+    companions: [...dayCompanions],
+    declinedDayCompanions: [],
     rating: null,
     suggestedGrade: String(climb.grade ?? ""),
     gradeFeel: "solid",
@@ -99,6 +110,8 @@ export function dayLogRowForm(row: DayLogRow): FormData {
   form.set("body", row.body);
   if (row.choice !== "session") form.set("sent", "true");
   for (const tag of row.tags) form.append("tag", tag);
+  form.set("companionsChanged", "true");
+  for (const friend of row.companions) form.append("companion", friend.id);
   if (isDayLogAscent(row)) {
     form.set("ascentStyle", row.choice);
     form.set("rating", row.rating == null ? "" : String(row.rating));
@@ -185,6 +198,11 @@ export function DayLogEntrySummary({
         </div>
       </div>
       <p className="text-sm text-foreground">{details.join(" · ")}</p>
+      {row.companions.length > 0 && (
+        <p className="text-sm text-muted">
+          {`With ${row.companions.map((friend) => friend.name).join(", ")}`}
+        </p>
+      )}
       {row.body && <p className="line-clamp-2 text-sm text-muted">{row.body}</p>}
       {brokeBy(row, entryDate) && (
         <InlineAlert>
@@ -199,7 +217,9 @@ export function DayLogEntrySummary({
 }
 
 /** One climb's own fields for the day — style, rating and grade for a first
- * ascent, notes, videos and tags — in a dialog over the day form. Works on a
+ * ascent, notes, videos, tagged friends and tags — in a dialog over the day
+ * form. Friends and tags start from the day's, and the climb saves with
+ * whatever this dialog leaves them as. Works on a
  * copy: `onSave` receives it, and closing without saving leaves the day as it
  * was.
  *
@@ -212,6 +232,8 @@ export function DayLogEntryDialog({
   initial,
   adding,
   dayTags,
+  dayCompanions,
+  companionFetcher,
   entryDate,
   onSave,
   onClose,
@@ -223,6 +245,8 @@ export function DayLogEntryDialog({
   /** A climb just picked, not yet in the day. */
   adding: boolean;
   dayTags: readonly string[];
+  dayCompanions: readonly CompanionOption[];
+  companionFetcher?: LookupFetcher<CompanionOption>;
   entryDate: string;
   onSave: (row: DayLogRow) => void;
   /** Runs once it has closed, saved or not. */
@@ -337,6 +361,17 @@ export function DayLogEntryDialog({
               checked={videoChecked}
             />
           )}
+
+          <CompanionPicker
+            value={draft.companions}
+            onChange={(companions) =>
+              setDraft((current) =>
+                current ? retagDayCompanions(current, dayCompanions, companions) : current,
+              )
+            }
+            fetcher={companionFetcher}
+            help="Starts with the day's friends. Anyone who can read this entry sees who you tagged."
+          />
 
           <TagInput
             value={draft.tags}

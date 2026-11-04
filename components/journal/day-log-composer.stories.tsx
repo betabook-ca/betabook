@@ -47,6 +47,7 @@ const FROM_SESSION: DaySeed = {
       },
       false,
       ["cold"],
+      [FRIENDS[0]],
     ),
     choice: "flash",
     body: "Flashed it in the shade.",

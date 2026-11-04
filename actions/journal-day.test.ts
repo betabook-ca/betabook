@@ -72,12 +72,18 @@ function ascent(climbId: number, fields: Row = {}): FormData {
   });
 }
 
+/** A day's form. `companions` go on every climb that doesn't name its own, as
+ * the day's friends pre-fill each climb in the form. */
 function day(entries: FormData[], { date = DAY, companions = ["partner"] } = {}): FormData {
   const form = new FormData();
   form.set("entryDate", date);
-  form.set("companionsChanged", "true");
-  for (const id of companions) form.append("companion", id);
-  for (const [index, row] of entries.entries()) appendDayEntry(form, index, row);
+  for (const [index, row] of entries.entries()) {
+    if (!row.has("companionsChanged")) {
+      row.set("companionsChanged", "true");
+      for (const id of companions) row.append("companion", id);
+    }
+    appendDayEntry(form, index, row);
+  }
   return form;
 }
 
@@ -338,8 +344,12 @@ describe("createDayEntries", () => {
       "Invalid day entry",
     ],
     [
-      "a row with its own friends",
-      () => day([entry(HIGHBALL, { companion: "stranger" })]),
+      "friends at day level, which only the climbs carry",
+      () => {
+        const form = day([entry(HIGHBALL)]);
+        form.append("companion", "partner");
+        return form;
+      },
       "Invalid day entry",
     ],
     ["a climb that doesn't exist", () => day([entry(999)]), "Climb not found"],
@@ -348,6 +358,24 @@ describe("createDayEntries", () => {
 
     expect(result).toEqual({ ok: false, error: expect.stringContaining(message) });
     expect(await db.select().from(journalEntries)).toEqual([]);
+  });
+
+  it("tags each climb with only its own friends", async () => {
+    const result = await createDayEntries(
+      day([
+        entry(HIGHBALL, { companionsChanged: "true", companion: ["partner", "other-partner"] }),
+        entry(SLAB, { companionsChanged: "true", companion: "other-partner" }),
+        entry(CRIMPER, { companionsChanged: "true" }),
+      ]),
+    );
+
+    expect(result.ok).toBe(true);
+    const rows = await entriesOn(DAY);
+    expect(await Promise.all(rows.map((row) => companionsOf(row.id)))).toEqual([
+      ["other-partner", "partner"],
+      ["other-partner"],
+      [],
+    ]);
   });
 
   it("logs a day without tagged friends", async () => {

@@ -29,8 +29,9 @@ function readClimbId(entry: FormData): number {
 }
 
 /** Logs a day out: several climbs on one date, each with its own style, note,
- * tags and (for a first ascent) videos, and every one tagged with the same
- * friends. The day is one D1 batch, so it saves whole or not at all. */
+ * tags, tagged friends and (for a first ascent) videos. The form's day-level
+ * friends and tags only pre-filled each climb, so only the climbs' own are
+ * read. The day is one D1 batch, so it saves whole or not at all. */
 export async function createDayEntries(formData: FormData): Promise<ActionResult> {
   return toActionResult(async () => {
     const session = await requireJournalSession();
@@ -39,7 +40,6 @@ export async function createDayEntries(formData: FormData): Promise<ActionResult
 
     const { shared, entries } = readDayEntries(formData);
     const entryDate = parseEntryDate(shared.get("entryDate"));
-    const companions = readCompanionSelection(shared);
 
     const climbIds = entries.map(readClimbId);
     const climbs = await Promise.all(climbIds.map((climbId) => requireClimb(db, climbId)));
@@ -59,6 +59,7 @@ export async function createDayEntries(formData: FormData): Promise<ActionResult
           if (!input.sent && carriesSendFields(entry)) {
             throw new ActionError(SESSION_SEND_FIELDS_MESSAGE);
           }
+          const companions = readCompanionSelection(entry);
           return await planClimbEntry(db, userId, input, climb, entry, companions);
         } catch (error) {
           // Name the climb: the day lists several, and the error alone can't say which.
