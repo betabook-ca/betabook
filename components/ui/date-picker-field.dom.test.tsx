@@ -99,6 +99,13 @@ it("shows the chosen date's day of the week after it, and follows a new pick", a
   expect(group).not.toHaveTextContent("(Wed)");
 });
 
+it("exposes the day of the week to assistive tech, which the date segments don't announce", () => {
+  render(<DayOfWeek initial="2026-11-04" />);
+  const weekday = screen.getByText("(Wed)");
+  expect(weekday.closest("[aria-hidden='true']")).toBeNull();
+  expect(screen.getByRole("group", { name: "Date" })).toContainElement(weekday);
+});
+
 it("shows no day of the week without a date, or unless asked", () => {
   const view = render(<DayOfWeek initial="" />);
   expect(screen.getByRole("group", { name: "Date" })).not.toHaveTextContent(/\(\w{3}\)/);

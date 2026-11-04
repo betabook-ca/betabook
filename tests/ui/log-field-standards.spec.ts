@@ -15,8 +15,13 @@ test(
     // Wider than the shared 176px field: it shows the day of the week after
     // the date ("11/04/2026 (Wed)"), which needs the room.
     expect(date.width).toBe(208);
-    const dateGroup = page.getByRole("group", { name: "Date", exact: true });
-    expect(await dateGroup.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+    // The date and weekday sit in HeroUI's inner input container, which
+    // scrolls on its own; the outer group clips, so it can't show overflow.
+    const dateText = page
+      .getByRole("group", { name: "Date", exact: true })
+      .locator(".date-input-group__input-container");
+    await expect(dateText).toContainText(/\(\w{3}\)/);
+    expect(await dateText.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
     const style = await page.getByRole("radiogroup", { name: "Session or send" }).boundingBox();
     if (!style) throw new Error("Missing session-or-send picker");
     expect(style.y + style.height).toBeLessThan(date.y);

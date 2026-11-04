@@ -80,13 +80,9 @@ export function DatePickerField({
               <DateField.Segment segment={segment} className="text-sm!" />
             )}
           </DateField.Input>
-          {/* Read from the date itself, so screen readers already have it;
-           * it isn't one of the editable segments. */}
-          {weekday && (
-            <span aria-hidden className="ml-1 text-sm text-muted">
-              ({weekday})
-            </span>
-          )}
+          {/* Not one of the editable segments, but left readable: the
+           * segments announce month, day and year, never the weekday. */}
+          {weekday && <span className="ml-1 text-sm text-muted">({weekday})</span>}
         </DateField.InputContainer>
         <DateField.Suffix>
           <DatePicker.Trigger>
