@@ -1,7 +1,6 @@
 "use client";
 
-import type { ComponentProps } from "react";
-
+import type { FieldWidth } from "@/components/ui/field";
 import { TagsField } from "@/components/ui/tags-field";
 import { isValidJournalTag, MAX_JOURNAL_TAGS, MAX_JOURNAL_TAG_LENGTH } from "@/lib/journal";
 
@@ -15,7 +14,6 @@ export function TagInput({
   availableTags,
   showExamples = true,
   onTagSelected,
-  label,
   width,
 }: {
   value: string[];
@@ -27,8 +25,7 @@ export function TagInput({
   availableTags?: string[];
   showExamples?: boolean;
   onTagSelected?: () => void;
-  label?: string;
-  width?: ComponentProps<typeof TagsField>["width"];
+  width?: FieldWidth;
 }) {
   return (
     <TagsField
@@ -43,7 +40,6 @@ export function TagInput({
       tags={availableTags}
       showExamples={showExamples}
       onTagSelected={onTagSelected}
-      label={label}
       width={width}
       validateTag={(tag) =>
         !isValidJournalTag(tag)

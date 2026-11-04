@@ -77,10 +77,7 @@ function parseClimbId(value: unknown): number | null {
   return climbId;
 }
 
-export function parseEntryDate(
-  value: unknown,
-  today: string = new Date().toISOString().slice(0, 10),
-): string {
+function parseEntryDate(value: unknown, today: string): string {
   const entryDate = typeof value === "string" ? value.trim() : "";
   if (!entryDate) throw new ActionError("Entry date is required");
   if (!isRealIsoDate(entryDate)) throw new ActionError("Invalid entry date");

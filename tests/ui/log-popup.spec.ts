@@ -35,53 +35,21 @@ for (const story of ["training", "climb", "send", "repeat"]) {
       expect(visibleAction.y + visibleAction.height).toBeLessThanOrEqual(viewport.height);
       await expect(save).toBeVisible();
 
-      // An outdoor session also offers Log additional climbs: on the same row,
+      // An outdoor session also offers Save and add another: on the same row,
       // just left of Save, even at phone width.
-      const more = dialog.getByRole("button", { name: "Log additional climbs" });
+      const more = dialog.getByRole("button", { name: "Save and add another" });
       if (story === "training") {
         await expect(more).toHaveCount(0);
         return;
       }
       const secondary = await more.boundingBox();
-      if (!secondary) throw new Error("Expected Log additional climbs");
+      if (!secondary) throw new Error("Expected Save and add another");
       expect(Math.abs(secondary.y - visibleAction.y)).toBeLessThanOrEqual(1);
       expect(secondary.x + secondary.width).toBeLessThanOrEqual(visibleAction.x);
       expect(secondary.x).toBeGreaterThanOrEqual(form.x);
     },
   );
 }
-
-test(
-  "Log day fills a phone screen and keeps its save button on the right, within reach",
-  { tag: "@layout" },
-  async ({ page }, info) => {
-    await openStory(page, info, "components-journal-log-popup--day");
-    const dialog = page.getByRole("dialog", { name: "Log entry" });
-    await expect(dialog.getByRole("heading", { name: "Log a day" })).toBeVisible();
-    // The day starts with the session's climb.
-    const save = dialog.getByRole("button", { name: "Save 1 entry" });
-    const box = await dialog.boundingBox();
-    const form = await dialog.locator("form").boundingBox();
-    const viewport = page.viewportSize();
-    if (!box || !form || !viewport) throw new Error("Expected day popup geometry");
-
-    // A day's list of climbs outgrows a sheet, so below md it takes the
-    // whole screen; from md up it's the same centered column.
-    if (viewport.width < 768) {
-      expect(box.width).toBe(viewport.width);
-      expect(Math.abs(box.height - viewport.height)).toBeLessThanOrEqual(1);
-    } else {
-      expect(box.width).toBeLessThanOrEqual(512);
-      expect(Math.abs(box.x + box.width / 2 - viewport.width / 2)).toBeLessThanOrEqual(2);
-    }
-    await save.scrollIntoViewIfNeeded();
-    const action = await save.boundingBox();
-    if (!action) throw new Error("Expected reachable save action");
-    expect(Math.abs(action.x + action.width - form.x - form.width)).toBeLessThanOrEqual(2);
-    expect(action.y + action.height).toBeLessThanOrEqual(viewport.height);
-    await expect(save).toBeVisible();
-  },
-);
 
 test(
   "Log launcher keeps standard spacing after closing the popup",

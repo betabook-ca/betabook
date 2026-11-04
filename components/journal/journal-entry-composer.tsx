@@ -5,13 +5,17 @@ import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 
 import { EntryKindStep, type EntryKindChoice } from "@/components/journal/entry-kind-step";
-import type { JournalEntryFieldsProps } from "@/components/journal/journal-entry-fields";
+import type {
+  CarriedEntry,
+  JournalEntryFieldsProps,
+} from "@/components/journal/journal-entry-fields";
 import { JournalEntryForm } from "@/components/journal/journal-entry-form";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { Grade } from "@/components/ui/grade";
 import { GradeLabel } from "@/components/ui/grade-label";
 import { PageTitle } from "@/components/ui/typography";
 import type { ClimbWithAreaName } from "@/db/queries";
+import type { SearchFetcher } from "@/lib/search";
 
 function ChosenStrip({
   choice,
@@ -58,31 +62,49 @@ function ChosenStrip({
   );
 }
 
+/** Logging an entry from scratch: what it is, then (for an outdoor session)
+ * which climb, then its form.
+ *
+ * An outdoor session's Save and add another saves it and comes back to
+ * Choose a climb, and the next climb's form starts on the same date with the
+ * same friends and tags. Opened from a climb page's Save and add another, it
+ * starts there, with `carried`. */
 export function JournalEntryComposer({
   sentClimbIds,
   onDone,
   onPendingChange,
   onSave,
-  onLogMore,
   onBrowseChange,
+  carried: initialCarried,
+  climbFetcher,
 }: {
   sentClimbIds?: Set<number>;
   onDone: () => void;
   onPendingChange?: (pending: boolean) => void;
   onSave?: JournalEntryFieldsProps["onSave"];
-  onLogMore?: JournalEntryFieldsProps["onLogMore"];
   /** True while the climb search is open. The dialog takes the whole screen
    * for it — a search and its results need more than a sheet's 85vh once a
    * keyboard is up. */
   onBrowseChange?: (browsing: boolean) => void;
+  /** What a climb saved with Save and add another passed on; the composer
+   * then opens at Choose a climb. */
+  carried?: CarriedEntry;
+  climbFetcher?: SearchFetcher;
 }) {
   const [pending, setPending] = useState(false);
   const [choice, setChoice] = useState<EntryKindChoice | null>(null);
-  const [choosingClimb, setChoosingClimb] = useState(false);
+  const [choosingClimb, setChoosingClimb] = useState(initialCarried !== undefined);
+  const [carried, setCarried] = useState(initialCarried);
 
   function chooseClimb(choosing: boolean) {
     setChoosingClimb(choosing);
     onBrowseChange?.(choosing);
+  }
+
+  function addAnother(next: CarriedEntry) {
+    setCarried(next);
+    setChoice(null);
+    chooseClimb(true);
   }
 
   if (!choice) {
@@ -95,6 +117,7 @@ export function JournalEntryComposer({
         }}
         choosingClimb={choosingClimb}
         onChoosingClimbChange={chooseClimb}
+        climbFetcher={climbFetcher}
       />
     );
   }
@@ -110,11 +133,12 @@ export function JournalEntryComposer({
         climb={climb}
         hasPriorSend={choice.kind === "session" ? choice.hasPriorSend : false}
         onDone={onDone}
-        onLogMore={onLogMore}
         onPendingChange={(value) => {
           setPending(value);
           onPendingChange?.(value);
         }}
+        carried={climb ? carried : undefined}
+        onSaveAndAddAnother={addAnother}
       />
     </div>
   );

@@ -4,14 +4,23 @@ import { and, eq, sql } from "drizzle-orm";
 import { refresh } from "next/cache";
 
 import { scheduleGoalRefresh } from "@/actions/goal-refresh";
-import { getDb } from "@/db/client";
-import { getClimb, getJournalEntry } from "@/db/queries";
+import { getDb, type Database } from "@/db/client";
+import { getClimb, getJournalEntry, getUserSendForClimb } from "@/db/queries";
 import { journalEntries, sends } from "@/db/schema";
-import { ActionError, toActionResult, type ActionResult } from "@/lib/action-result";
+import {
+  ActionError,
+  JOURNAL_RATE_LIMIT_MESSAGE,
+  toActionResult,
+  type ActionResult,
+} from "@/lib/action-result";
 import { assertLoggableOnClimb } from "@/lib/broken-climbs";
-import { validateJournalInput } from "@/lib/journal";
+import type { ClimbType } from "@/lib/grades";
+import { validateJournalInput, type JournalEntryInput } from "@/lib/journal";
 import { readCompanionSelection } from "@/lib/journal-companions";
-import { requirePositiveId } from "@/lib/validation";
+import { allowJournalWrite } from "@/lib/rate-limit";
+import { readVideoFields, validateSendInput, type RawSendInput } from "@/lib/sends";
+import { requireSession } from "@/lib/session";
+import { pickFormFields, requirePositiveId } from "@/lib/validation";
 
 import {
   buildCompanionInsert,
@@ -19,61 +28,197 @@ import {
   saveJournalBatch,
 } from "./journal-companion-statements";
 import {
-  carriesSendFields,
-  entryValues,
-  planClimbEntry,
-  readJournalFormData,
-  requireClimb,
-  requireJournalSession,
-  SEND_CHANGED_MESSAGE,
-  SESSION_SEND_FIELDS_MESSAGE,
-  type ClimbEntryPlan,
-} from "./journal-entry-plan";
-import { buildJournalEntryGuard, rethrowJournalSendInvariant } from "./journal-sync";
+  assertRepeatDate,
+  buildJournalEntryGuard,
+  buildSentJournalInsert,
+  getSentJournalEntries,
+  journalEntryFromSend,
+  REPEAT_BEFORE_ASCENT_MESSAGE,
+  rethrowJournalSendInvariant,
+} from "./journal-sync";
 import { afterCommit } from "./post-commit";
 import { revalidateJournalSurfaces, revalidateSendSurfaces } from "./revalidation";
+import { buildMirroredSendUpdate, buildSendInsert } from "./send-statements";
 
 const ENTRY_NOT_FOUND = "Entry not found";
 const ENTRY_CHANGED_MESSAGE = "The entry changed — refresh and try again";
 
+const JOURNAL_FORM_FIELDS = ["kind", "climbId", "sent", "entryDate", "body"] as const;
+
+const SEND_FORM_FIELDS = ["ascentStyle", "rating", "suggestedGrade", "gradeFeel"] as const;
+
+function readJournalFormData(formData: FormData) {
+  return { ...pickFormFields(formData, JOURNAL_FORM_FIELDS), tags: formData.getAll("tag") };
+}
+
+function readSendFormData(
+  formData: FormData,
+  entryDate: string,
+  comment: string | null,
+): RawSendInput {
+  return {
+    ...pickFormFields(formData, SEND_FORM_FIELDS),
+    dateSent: entryDate,
+    comment,
+    videos: readVideoFields(formData),
+  };
+}
+
+/** Whether the form carries anything only a new ascent can hold — its
+ * opinion fields or a video. */
+function carriesSendFields(formData: FormData): boolean {
+  return [...SEND_FORM_FIELDS, "video"].some((field) =>
+    formData.getAll(field).some((value) => value !== ""),
+  );
+}
+
+async function requireJournalSession() {
+  const session = await requireSession();
+  if (!(await allowJournalWrite(session.user.id))) {
+    throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
+  }
+  return session;
+}
+
+async function requireClimb(db: Database, climbId: number) {
+  const climb = await getClimb(db, climbId);
+  if (!climb) throw new ActionError("Climb not found");
+  return climb;
+}
+
+function entryValues(userId: string, input: JournalEntryInput) {
+  return {
+    userId,
+    kind: input.kind,
+    climbId: input.climbId,
+    sent: input.sent,
+    entryDate: input.entryDate,
+    body: input.body,
+    tags: input.tags,
+  };
+}
+
+async function writeAscent(
+  db: Database,
+  userId: string,
+  input: JournalEntryInput,
+  climb: { id: number; areaId: number; type: ClimbType },
+  formData: FormData,
+  companions: string[] | undefined,
+) {
+  const sendInput = validateSendInput(
+    climb.type,
+    readSendFormData(formData, input.entryDate, input.body),
+  );
+
+  await saveJournalBatch(db, [
+    buildSendInsert(db, { userId, climbId: climb.id, climbType: climb.type, input: sendInput }),
+    buildSentJournalInsert(db, {
+      ...entryValues(userId, input),
+      climbId: climb.id,
+      isAscent: true,
+    }),
+    ...(companions?.length ? [buildCompanionInsert(db, userId, companions)] : []),
+  ]);
+
+  await scheduleGoalRefresh(db, userId);
+  afterCommit(() => {
+    revalidateJournalSurfaces({ userId, climbIds: [climb.id] });
+    revalidateSendSurfaces({ userIds: [userId], climbIds: [climb.id], areaIds: [climb.areaId] });
+  });
+}
+
 export async function createJournalEntry(formData: FormData): Promise<ActionResult> {
   return toActionResult(async () => {
     const session = await requireJournalSession();
-    const userId = session.user.id;
     const db = await getDb();
 
     const input = validateJournalInput(readJournalFormData(formData));
     if (!input.sent && carriesSendFields(formData)) {
-      throw new ActionError(SESSION_SEND_FIELDS_MESSAGE);
+      throw new ActionError("A session doesn't carry a rating or a grade");
     }
     const companions = readCompanionSelection(formData);
     const climb = input.climbId === null ? null : await requireClimb(db, input.climbId);
+    // Sessions and ascents alike must predate a break (triggers in 0044 back this up).
+    if (climb) assertLoggableOnClimb(climb, input.entryDate);
 
-    const plan: ClimbEntryPlan = climb
-      ? await planClimbEntry(db, userId, input, climb, formData, companions)
-      : {
-          statements: [
-            db.insert(journalEntries).values(entryValues(userId, input)),
-            ...(companions?.length ? [buildCompanionInsert(db, userId, companions)] : []),
-          ],
-          writesSend: false,
-        };
+    if (input.sent && climb) {
+      const existingSend = await getUserSendForClimb(db, session.user.id, climb.id);
+      if (!existingSend) {
+        await writeAscent(db, session.user.id, input, climb, formData, companions);
+        afterCommit(refresh);
+        return;
+      }
+      if (carriesSendFields(formData)) {
+        throw new ActionError("A repeat doesn't carry a rating or a grade");
+      }
+
+      const sentEntries = await getSentJournalEntries(db, session.user.id, [climb.id]);
+      if (!sentEntries.some((entry) => entry.isAscent) && existingSend.dateSent !== null) {
+        const dateSent = existingSend.dateSent;
+        const comment = existingSend.comment;
+        if (input.entryDate < dateSent) {
+          throw new ActionError(REPEAT_BEFORE_ASCENT_MESSAGE);
+        }
+        const entry = { ...entryValues(session.user.id, input), climbId: climb.id };
+        // A dated send can predate the journal rollout. Recover its ascent
+        // before the repeat so the original date and note remain authoritative.
+        const entries = [journalEntryFromSend(session.user.id, climb.id, dateSent, comment), entry];
+        try {
+          await saveJournalBatch(db, [
+            buildMirroredSendUpdate(db, {
+              userId: session.user.id,
+              climbId: climb.id,
+              sendId: existingSend.id,
+              values: { dateSent, comment },
+              ascentEntryId: null,
+            }),
+            buildSentJournalInsert(db, entries),
+            ...(companions?.length ? [buildCompanionInsert(db, session.user.id, companions)] : []),
+          ]);
+        } catch (error) {
+          rethrowJournalSendInvariant(
+            error,
+            "The send changed while this entry was being saved — try again",
+          );
+        }
+        await scheduleGoalRefresh(db, session.user.id);
+        afterCommit(() => {
+          revalidateJournalSurfaces({ userId: session.user.id, climbIds: [climb.id] });
+          revalidateSendSurfaces({
+            userIds: [session.user.id],
+            climbIds: [climb.id],
+            areaIds: [climb.areaId],
+          });
+          refresh();
+        });
+        return;
+      }
+      assertRepeatDate(sentEntries, input.entryDate);
+    }
 
     try {
-      await saveJournalBatch(db, plan.statements);
+      await saveJournalBatch(db, [
+        input.sent && climb
+          ? buildSentJournalInsert(db, {
+              ...entryValues(session.user.id, input),
+              climbId: climb.id,
+            })
+          : db.insert(journalEntries).values(entryValues(session.user.id, input)),
+        ...(companions?.length ? [buildCompanionInsert(db, session.user.id, companions)] : []),
+      ]);
     } catch (error) {
-      rethrowJournalSendInvariant(error, SEND_CHANGED_MESSAGE);
+      rethrowJournalSendInvariant(
+        error,
+        "The send changed while this entry was being saved — try again",
+      );
     }
-    await scheduleGoalRefresh(db, userId);
+    await scheduleGoalRefresh(db, session.user.id);
     afterCommit(() => {
-      revalidateJournalSurfaces({ userId, climbIds: climb ? [climb.id] : [] });
-      if (climb && plan.writesSend) {
-        revalidateSendSurfaces({
-          userIds: [userId],
-          climbIds: [climb.id],
-          areaIds: [climb.areaId],
-        });
-      }
+      revalidateJournalSurfaces({
+        userId: session.user.id,
+        climbIds: climb ? [climb.id] : [],
+      });
       refresh();
     });
   });
@@ -93,7 +238,7 @@ export async function updateJournalEntry(
 
     const input = validateJournalInput(readJournalFormData(formData));
     if (!input.sent && carriesSendFields(formData)) {
-      throw new ActionError(SESSION_SEND_FIELDS_MESSAGE);
+      throw new ActionError("A session doesn't carry a rating or a grade");
     }
     const companions = readCompanionSelection(formData);
 

@@ -392,68 +392,96 @@ it("holds a new ascent with an unsupported video link and says why", async () =>
   ).toBeVisible();
 });
 
-type LogMore = NonNullable<JournalEntryFieldsProps["onLogMore"]>;
+type AddAnother = NonNullable<JournalEntryFieldsProps["onSaveAndAddAnother"]>;
+const sam = { id: "sam", name: "Sam Rivera", image: null };
 
-it("hands a new outdoor session to a day with its date, friends, tags and climb, saving nothing", async () => {
-  const onLogMore = vi.fn<LogMore>();
-  const { user, onSave } = setup({ onLogMore });
+it("Save and add another saves the entry as Save does, then hands on its date, friends and tags", async () => {
+  const onSaveAndAddAnother = vi.fn<AddAnother>();
+  const { user, onSave, onDone } = setup({ onSaveAndAddAnother });
   await user.click(screen.getByRole("radio", { name: "Redpoint" }));
   await openDetails(user);
   await addFriend(user);
   await fillNotes(user);
-  await user.click(screen.getByRole("textbox", { name: "Video link 1" }));
-  await user.paste("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
 
-  await user.click(screen.getByRole("button", { name: "Log additional climbs" }));
+  await user.click(screen.getByRole("button", { name: "Save and add another" }));
 
-  expect(onSave).not.toHaveBeenCalled();
-  expect(onLogMore).toHaveBeenCalledOnce();
-  expect(onLogMore.mock.calls[0][0]).toEqual({
+  await waitFor(() => expect(onSaveAndAddAnother).toHaveBeenCalledOnce());
+  expect(onSave).toHaveBeenCalledOnce();
+  const [formData, undated] = onSave.mock.calls[0];
+  expect(undated).toBe(false);
+  expect(formData.get("climbId")).toBe(String(climb.id));
+  expect(formData.get("ascentStyle")).toBe("redpoint");
+  expect(formData.get("body")).toBe("Kept the high foot.");
+  expect(formData.getAll("companion")).toEqual(["sam"]);
+  expect(formData.getAll("tag")).toEqual(["technique"]);
+  expect(onSaveAndAddAnother.mock.calls[0][0]).toEqual({
     entryDate: "2026-09-06",
-    companions: [{ id: "sam", name: "Sam Rivera", image: null }],
+    companions: [sam],
     tags: ["technique"],
-    row: {
-      climb,
-      hasPriorSend: false,
-      choice: "redpoint",
-      body: "Kept the high foot.",
-      tags: ["technique"],
-      companions: [{ id: "sam", name: "Sam Rivera", image: null }],
-      rating: null,
-      suggestedGrade: "5",
-      gradeFeel: "solid",
-      videos: ["https://www.youtube.com/watch?v=dQw4w9WgXcQ"],
-    },
   });
+  expect(onDone).not.toHaveBeenCalled();
 });
 
-it("holds the hand-over for what the day couldn't save: no date, or a bad video link", async () => {
-  const onLogMore = vi.fn<LogMore>();
-  const { user } = setup({ onLogMore });
+it("hands nothing on when the save is refused, and keeps the form", async () => {
+  const onSaveAndAddAnother = vi.fn<AddAnother>();
+  const { user, onSave } = setup({ onSaveAndAddAnother });
+  onSave.mockResolvedValue({
+    ok: false,
+    error: "A repeat can't be earlier than the recorded ascent",
+  });
+  await user.type(screen.getByRole("textbox", { name: "Notes" }), "Kept.");
+
+  await user.click(screen.getByRole("button", { name: "Save and add another" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "A repeat can't be earlier than the recorded ascent",
+  );
+  expect(onSaveAndAddAnother).not.toHaveBeenCalled();
+  expect(screen.getByRole("textbox", { name: "Notes" })).toHaveValue("Kept.");
+});
+
+it("hands on today after an undated send, which has no date to pass on", async () => {
+  const onSaveAndAddAnother = vi.fn<AddAnother>();
+  const { user, onSave } = setup({ onSaveAndAddAnother, today: "2026-09-06" });
   await user.click(screen.getByRole("radio", { name: "Flash" }));
   await user.click(screen.getByRole("checkbox", { name: "I don't know" }));
-  await user.click(screen.getByRole("button", { name: "Log additional climbs" }));
-  expect(screen.getByRole("alert")).toHaveTextContent("Add a date to log additional climbs.");
 
-  await user.click(screen.getByRole("checkbox", { name: "I don't know" }));
-  await openDetails(user);
-  await user.click(screen.getByRole("textbox", { name: "Video link 1" }));
-  await user.paste("https://vimeo.com/1");
-  await user.click(screen.getByRole("button", { name: "Log additional climbs" }));
-  expect(
-    screen.getByText("Paste a link to a YouTube video or an Instagram reel or post."),
-  ).toBeVisible();
-  expect(onLogMore).not.toHaveBeenCalled();
+  await user.click(screen.getByRole("button", { name: "Save and add another" }));
+
+  await waitFor(() => expect(onSaveAndAddAnother).toHaveBeenCalledOnce());
+  expect(onSave.mock.calls[0][1]).toBe(true);
+  expect(onSaveAndAddAnother.mock.calls[0][0].entryDate).toBe("2026-09-06");
 });
 
-it("offers Log additional climbs only on a new outdoor session", () => {
-  const onLogMore = vi.fn<LogMore>();
-  setup({ onLogMore, existingEntry: savedEntry });
-  expect(screen.queryByRole("button", { name: "Log additional climbs" })).not.toBeInTheDocument();
+it("starts from what the previous climb carried, with Add details open", async () => {
+  const { user, onSave } = setup({
+    carried: { entryDate: "2026-09-01", companions: [sam], tags: ["cold"] },
+  });
+
+  expect(detailsTrigger()).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByRole("button", { name: "Remove friend Sam Rivera" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Remove tag cold" })).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Save entry" }));
+
+  const formData = onSave.mock.calls[0][0];
+  expect(formData.get("entryDate")).toBe("2026-09-01");
+  expect(formData.getAll("companion")).toEqual(["sam"]);
+  expect(formData.getAll("tag")).toEqual(["cold"]);
+});
+
+it("keeps Add details closed when only the date was carried", () => {
+  setup({ carried: { entryDate: "2026-09-01", companions: [], tags: [] } });
+  expect(detailsTrigger()).toHaveAttribute("aria-expanded", "false");
+});
+
+it("offers Save and add another only on a new outdoor session", () => {
+  const onSaveAndAddAnother = vi.fn<AddAnother>();
+  setup({ onSaveAndAddAnother, existingEntry: savedEntry });
+  expect(screen.queryByRole("button", { name: "Save and add another" })).not.toBeInTheDocument();
   cleanup();
-  setup({ onLogMore, kind: "training", climb: null });
-  expect(screen.queryByRole("button", { name: "Log additional climbs" })).not.toBeInTheDocument();
+  setup({ onSaveAndAddAnother, kind: "training", climb: null });
+  expect(screen.queryByRole("button", { name: "Save and add another" })).not.toBeInTheDocument();
   cleanup();
   setup();
-  expect(screen.queryByRole("button", { name: "Log additional climbs" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Save and add another" })).not.toBeInTheDocument();
 });

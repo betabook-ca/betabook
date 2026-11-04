@@ -21,8 +21,8 @@ function fieldLayout(inlineLabel: boolean, sentenceLayout: boolean, width: strin
   if (sentenceLayout) return "contents";
   return inlineLabel ? FILTER_ROW_CLASS : `${width} flex flex-col gap-2`;
 }
-function fieldAriaLabel(inlineLabel: boolean, showLabel: boolean, label: string) {
-  return inlineLabel || !showLabel ? label : undefined;
+function fieldAriaLabel(inlineLabel: boolean, showLabel: boolean) {
+  return inlineLabel || !showLabel ? "Tags" : undefined;
 }
 function fieldHelper(showHelper: boolean, full: boolean, maxTags: number | undefined) {
   if (!showHelper) return undefined;
@@ -51,7 +51,6 @@ export function TagsField({
   sentenceLayout = false,
   showExamples = true,
   onTagSelected,
-  label = "Tags",
   width,
 }: {
   value: string[];
@@ -67,10 +66,7 @@ export function TagsField({
   showExamples?: boolean;
   onTagSelected?: () => void;
   inlineLabel?: boolean;
-  /** The field's name, shown or announced. */
-  label?: string;
-  /** `medium` unless given. A longer label needs `long` or `full` to keep the tag count
-   * on its line. */
+  /** `medium` unless given; `full` fills the form it sits in. */
   width?: FieldWidth;
 }) {
   const [draft, setDraft] = useState("#");
@@ -107,10 +103,10 @@ export function TagsField({
 
   return (
     <div className={fieldLayout(inlineLabel, sentenceLayout, widthClass(width))}>
-      {inlineLabel && <span className={FILTER_LABEL_CLASS}>{label}</span>}
+      {inlineLabel && <span className={FILTER_LABEL_CLASS}>Tags</span>}
       <div className={`${widthClass(width)} flex flex-col gap-2`}>
         <ComboBox
-          aria-label={fieldAriaLabel(inlineLabel, showLabel, label)}
+          aria-label={fieldAriaLabel(inlineLabel, showLabel)}
           isDisabled={full}
           isInvalid={Boolean(error)}
           allowsCustomValue
@@ -140,7 +136,7 @@ export function TagsField({
                   : { used: value.length, limit: maxTags, unit: "tags" }
               }
             >
-              <Label>{label}</Label>
+              <Label>Tags</Label>
             </FieldHeader>
           )}
           <ComboBox.InputGroup className="relative">

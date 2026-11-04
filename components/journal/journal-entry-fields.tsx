@@ -4,7 +4,6 @@ import { Button, Label, TextArea, TextField } from "@heroui/react";
 import { useState, useTransition } from "react";
 
 import { CompanionPicker } from "@/components/journal/companion-picker";
-import type { DaySeed } from "@/components/journal/day-log-entry";
 import { JournalEntryDateFields } from "@/components/journal/journal-entry-date-fields";
 import { TagInput } from "@/components/journal/tag-input";
 import {
@@ -40,10 +39,21 @@ export type JournalEntryFieldsProps = {
   existingEntry?: JournalEntry;
   onDone?: () => void;
   onPendingChange?: (pending: boolean) => void;
-  /** Log additional climbs: instead of saving this new outdoor session, hand
-   * it over to become the first climb of a day, with its date, friends and
-   * tags as the day's. Offered only when given. */
-  onLogMore?: (day: DaySeed) => void;
+  /** What the previous climb's Save and add another carried over: a new entry
+   * starts on its date, with its friends and tags, and Add details open when
+   * there are any. */
+  carried?: CarriedEntry;
+  /** Save and add another: saves this new outdoor session as Save does, then
+   * hands over what the next climb starts with instead of finishing. Offered
+   * only when given. */
+  onSaveAndAddAnother?: (carried: CarriedEntry) => void;
+};
+
+/** What one climb passes to the next through Save and add another. */
+export type CarriedEntry = {
+  entryDate: string;
+  companions: CompanionOption[];
+  tags: string[];
 };
 
 // oxlint-disable-next-line complexity
@@ -57,14 +67,19 @@ export function JournalEntryFields({
   existingEntry,
   onDone,
   onPendingChange,
-  onLogMore,
+  carried,
+  onSaveAndAddAnother,
 }: JournalEntryFieldsProps) {
-  const [entryDate, setEntryDate] = useState(existingEntry?.entryDate ?? today);
+  const [entryDate, setEntryDate] = useState(
+    existingEntry?.entryDate ?? carried?.entryDate ?? today,
+  );
   const [choice, setChoice] = useState<SendStyleChoice>("session");
   const [body, setBody] = useState(existingEntry?.body ?? "");
-  const [companions, setCompanions] = useState<CompanionOption[]>(existingEntry?.companions ?? []);
+  const [companions, setCompanions] = useState<CompanionOption[]>(
+    existingEntry?.companions ?? carried?.companions ?? [],
+  );
   const [companionsChanged, setCompanionsChanged] = useState(false);
-  const [tags, setTags] = useState<string[]>(existingEntry?.tags ?? []);
+  const [tags, setTags] = useState<string[]>(existingEntry?.tags ?? carried?.tags ?? []);
 
   const [rating, setRating] = useState<number | null>(null);
   const [suggestedGrade, setSuggestedGrade] = useState(String(climb?.grade ?? ""));
@@ -72,11 +87,10 @@ export function JournalEntryFields({
   const [videos, setVideos] = useState<string[]>([]);
   const [videoChecked, setVideoChecked] = useState(false);
 
-  // Open when the section already holds something to review; otherwise the
+  // Open when the section already holds something to review, whether an
+  // edited entry's or what the previous climb carried over; otherwise the
   // quick path stays date → sent → notes → save.
-  const [detailsExpanded, setDetailsExpanded] = useState(
-    (existingEntry?.companions?.length ?? 0) > 0 || (existingEntry?.tags.length ?? 0) > 0,
-  );
+  const [detailsExpanded, setDetailsExpanded] = useState(companions.length > 0 || tags.length > 0);
 
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -86,43 +100,17 @@ export function JournalEntryFields({
     choice === "session" || choice === "repeat" ? "redpoint" : choice;
   const isAscent = !existingEntry && sent && climb != null && !hasPriorSend;
   const isUndatedSend = isAscent && entryDate === "";
-  const canLogMore = onLogMore !== undefined && climb != null && !existingEntry;
-
-  /** Hands the session to a day. It checks what Save would, since the day
-   * saves this climb as it stands. */
-  function handleLogMore() {
-    if (pending || !onLogMore || !climb) return;
-    setError(null);
-    if (entryDate === "") {
-      setError("Add a date to log additional climbs.");
-      return;
-    }
-    if (isAscent && sendVideoLinksError(videos)) {
-      setVideoChecked(true);
-      setDetailsExpanded(true);
-      return;
-    }
-    onLogMore({
-      entryDate,
-      companions,
-      tags,
-      row: {
-        climb,
-        hasPriorSend,
-        choice,
-        body,
-        tags,
-        companions,
-        rating,
-        suggestedGrade,
-        gradeFeel,
-        videos: videos.filter((link) => link.trim()),
-      },
-    });
-  }
+  const canAddAnother = onSaveAndAddAnother !== undefined && climb != null && !existingEntry;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    save(false);
+  }
+
+  /** Saves the entry; with `addAnother`, hands what the next climb starts
+   * with to Save and add another instead of finishing. An undated send has no
+   * date to pass on, so the next climb starts today. */
+  function save(addAnother: boolean) {
     if (pending) return;
     setError(null);
     if (entryDate === "" && !isUndatedSend) {
@@ -174,6 +162,10 @@ export function JournalEntryFields({
         const result = await onSave(formData, isUndatedSend);
         if (!result.ok) {
           setError(result.error);
+          return;
+        }
+        if (addAnother && onSaveAndAddAnother) {
+          onSaveAndAddAnother({ entryDate: entryDate || today, companions, tags });
           return;
         }
         onDone?.();
@@ -282,9 +274,9 @@ export function JournalEntryFields({
         {error && <InlineAlert>{error}</InlineAlert>}
 
         <div className="flex flex-wrap justify-end gap-2 border-t border-separator pt-4">
-          {canLogMore && (
-            <Button variant="outline" isDisabled={pending} onPress={handleLogMore}>
-              Log additional climbs
+          {canAddAnother && (
+            <Button variant="outline" isDisabled={pending} onPress={() => save(true)}>
+              Save and add another
             </Button>
           )}
           <Button type="submit" isDisabled={pending}>

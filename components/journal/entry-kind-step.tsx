@@ -7,6 +7,7 @@ import { ClimbPicker } from "@/components/climb-picker";
 import { ActivityIcon } from "@/components/ui/activity-icon";
 import { PageTitle } from "@/components/ui/typography";
 import type { ClimbWithAreaName } from "@/db/queries";
+import type { SearchFetcher } from "@/lib/search";
 
 export type EntryKindChoice =
   | { kind: "session"; climb: ClimbWithAreaName; hasPriorSend: boolean }
@@ -24,6 +25,7 @@ export function EntryKindStep({
   onChoose,
   choosingClimb,
   onChoosingClimbChange,
+  climbFetcher,
 }: {
   sentClimbIds?: Set<number>;
   onChoose: (choice: EntryKindChoice) => void;
@@ -31,6 +33,8 @@ export function EntryKindStep({
    * search needs the whole screen on a phone, the kind picker doesn't. */
   choosingClimb: boolean;
   onChoosingClimbChange: (choosing: boolean) => void;
+  /** Replaces the climb search's network, for stories and tests. */
+  climbFetcher?: SearchFetcher;
 }) {
   if (choosingClimb) {
     return (
@@ -59,6 +63,7 @@ export function EntryKindStep({
             onChoose({ kind: "session", climb, hasPriorSend: context.sent })
           }
           sentClimbIds={sentClimbIds}
+          fetcher={climbFetcher}
         />
       </div>
     );
