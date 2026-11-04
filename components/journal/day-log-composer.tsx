@@ -2,7 +2,7 @@
 
 import { Button, useOverlayState } from "@heroui/react";
 import { ArrowLeft, Plus } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 
 import { createDayEntries } from "@/actions";
 import { ClimbPickerDialog } from "@/components/journal/climb-picker-dialog";
@@ -31,6 +31,29 @@ import type { SearchFetcher } from "@/lib/search";
 
 const QUEUED = "Already in this day";
 
+/** Why the day can't be saved as it stands, or null. A climb's own dialog
+ * refuses bad links and too many tags, but tags added to the whole day
+ * afterwards can still push one over. */
+function dayError(rows: readonly DayLogRow[], entryDate: string): string | null {
+  if (rows.length === 0) return "Add a climb to log this day.";
+  if (entryDate === "") return "Add a date to save this day.";
+  if (rows.some((row) => brokeBy(row, entryDate))) {
+    return "A climb broke before this date. Pick an earlier date or remove it.";
+  }
+  const overTagged = rows.find(hasTooManyTags);
+  return overTagged ? `${overTagged.climb.name} has too many tags. Edit it to remove some.` : null;
+}
+
+/** The day as it opens: empty and dated today, or the handed-over session's. */
+function startingDay(seed: DaySeed | undefined, today: string) {
+  return {
+    entryDate: seed?.entryDate ?? today,
+    companions: seed?.companions ?? [],
+    tags: seed?.tags ?? [],
+    rows: seed ? [seed.row] : ([] as DayLogRow[]),
+  };
+}
+
 function entriesLabel(count: number) {
   return count === 0 ? "Save day" : `Save ${count} ${count === 1 ? "entry" : "entries"}`;
 }
@@ -40,9 +63,12 @@ function entriesLabel(count: number) {
  * keeps its own style, note, tags and, for a first ascent, videos.
  *
  * Opened from an outdoor session's Log additional climbs, it starts from that
- * session (`seed`): its date, friends and tags, and its climb as the first. */
+ * session (`seed`): its date, friends and tags, and its climb as the first.
+ * There the climber came for the next climb, so the picker opens at once
+ * (`pickOnOpen`). */
 export function DayLogComposer({
   seed,
+  pickOnOpen = false,
   sentClimbIds,
   onBack,
   onDone,
@@ -53,6 +79,8 @@ export function DayLogComposer({
   today = localToday(),
 }: {
   seed?: DaySeed;
+  /** Opens the climb picker over the day as soon as it appears. */
+  pickOnOpen?: boolean;
   sentClimbIds?: Set<number>;
   /** Shown as Back above the title when there's somewhere to go back to. */
   onBack?: () => void;
@@ -63,14 +91,23 @@ export function DayLogComposer({
   companionFetcher?: LookupFetcher<CompanionOption>;
   today?: string;
 }) {
-  const [entryDate, setEntryDate] = useState(seed?.entryDate ?? today);
-  const [companions, setCompanions] = useState<CompanionOption[]>(seed?.companions ?? []);
-  const [dayTags, setDayTags] = useState<string[]>(seed?.tags ?? []);
-  const [rows, setRows] = useState<DayLogRow[]>(seed ? [seed.row] : []);
+  const [start] = useState(() => startingDay(seed, today));
+  const [entryDate, setEntryDate] = useState(start.entryDate);
+  const [companions, setCompanions] = useState(start.companions);
+  const [dayTags, setDayTags] = useState(start.tags);
+  const [rows, setRows] = useState(start.rows);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const picker = useOverlayState();
+  const picker = useOverlayState({ defaultOpen: pickOnOpen });
   const details = useOverlayState();
+  const addClimbRef = useRef<HTMLButtonElement>(null);
+
+  /** Returns focus to the day once its dialogs are done with it. A dialog
+   * hands focus back to whatever opened it, but a picked result, or the
+   * session's button that opened the day, is gone by then. */
+  function settleFocus() {
+    if (!picker.isOpen && !details.isOpen) addClimbRef.current?.focus();
+  }
   // The climb open in its dialog: a new pick (index null) or a queued climb.
   // `key` restarts the dialog's copy from `row` each time it opens.
   const [editing, setEditing] = useState<{
@@ -92,26 +129,9 @@ export function DayLogComposer({
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (pending) return;
-    setError(null);
-    if (rows.length === 0) {
-      setError("Add a climb to log this day.");
-      return;
-    }
-    if (entryDate === "") {
-      setError("Add a date to save this day.");
-      return;
-    }
-    if (rows.some((row) => brokeBy(row, entryDate))) {
-      setError("A climb broke before this date. Pick an earlier date or remove it.");
-      return;
-    }
-    // A climb's own dialog refuses bad links and too many tags, but tags
-    // added to the whole day afterwards can still push one over.
-    const overTagged = rows.find(hasTooManyTags);
-    if (overTagged) {
-      setError(`${overTagged.climb.name} has too many tags. Edit it to remove some.`);
-      return;
-    }
+    const refused = dayError(rows, entryDate);
+    setError(refused);
+    if (refused) return;
 
     const formData = new FormData();
     formData.set("entryDate", entryDate);
@@ -204,6 +224,7 @@ export function DayLogComposer({
               </ul>
             )}
             <Button
+              ref={addClimbRef}
               variant="outline"
               className="self-start"
               isDisabled={pending || full}
@@ -235,6 +256,7 @@ export function DayLogComposer({
         disabledClimbIds={new Map(rows.map((row) => [row.climb.id, QUEUED]))}
         fetcher={climbFetcher}
         onPick={(climb, context) => openClimb(null, newDayLogRow(climb, context.sent, dayTags))}
+        onClose={settleFocus}
       />
       <DayLogEntryDialog
         openKey={editing?.key ?? 0}
@@ -251,6 +273,11 @@ export function DayLogComposer({
           // An error from the last save attempt may have been about this
           // list; the climb changed it, so the next save re-checks.
           setError(null);
+        }}
+        // A new pick's dialog was opened from a result that's gone now; an
+        // edit's goes back to its Edit button.
+        onClose={() => {
+          if (editing?.index === null) settleFocus();
         }}
       />
     </>

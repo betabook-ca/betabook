@@ -49,7 +49,15 @@ it("turns an outdoor session into a day with Log additional climbs, saved as one
   await user.type(screen.getByRole("textbox", { name: "Notes" }), "Sent it.");
   await user.click(screen.getByRole("button", { name: "Log additional climbs" }));
 
-  expect(await screen.findByRole("heading", { name: "Log a day" })).toBeInTheDocument();
+  // The climber came for the next climb, so the picker is already open over the day.
+  const picker = await screen.findByRole("dialog", { name: "Add a climb" });
+  expect(within(picker).getByRole("searchbox", { name: "Choose a climb" })).toBeInTheDocument();
+  await user.click(within(picker).getByRole("button", { name: "Close" }));
+  await waitFor(() => expect(picker).not.toBeInTheDocument());
+  // The button that opened the day is gone, so focus lands on Add climb.
+  await waitFor(() => expect(screen.getByRole("button", { name: "Add climb" })).toHaveFocus());
+
+  expect(screen.getByRole("heading", { name: "Log a day" })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
   const line = screen.getByRole("listitem", { name: "Cedar Arete" });
   expect(within(line).getByText("Redpoint")).toBeInTheDocument();

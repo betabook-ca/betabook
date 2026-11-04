@@ -214,6 +214,7 @@ export function DayLogEntryDialog({
   dayTags,
   entryDate,
   onSave,
+  onClose,
 }: {
   state: UseOverlayStateReturn;
   /** Changes each time a climb is opened, so the copy starts again from `initial`. */
@@ -224,6 +225,8 @@ export function DayLogEntryDialog({
   dayTags: readonly string[];
   entryDate: string;
   onSave: (row: DayLogRow) => void;
+  /** Runs once it has closed, saved or not. */
+  onClose?: () => void;
 }) {
   const [openedKey, setOpenedKey] = useState(openKey);
   const [draft, setDraft] = useState(initial);
@@ -259,6 +262,7 @@ export function DayLogEntryDialog({
       state={state}
       title={climb?.name ?? "Climb"}
       presentation="fullscreen"
+      onClose={onClose}
       footer={
         <div className="flex justify-end">
           <Button onPress={save}>{adding ? "Add to day" : "Save climb"}</Button>

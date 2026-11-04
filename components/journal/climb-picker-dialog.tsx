@@ -19,6 +19,7 @@ export function ClimbPickerDialog({
   disabledClimbIds,
   fetcher,
   onPick,
+  onClose,
 }: {
   state: UseOverlayStateReturn;
   title: string;
@@ -27,9 +28,17 @@ export function ClimbPickerDialog({
   disabledClimbIds?: ReadonlyMap<number, string>;
   fetcher?: SearchFetcher;
   onPick: (climb: ClimbWithAreaName, context: ClimbSelectionContext) => void;
+  /** Runs once it has closed, picked or not. */
+  onClose?: () => void;
 }) {
   return (
-    <ResponsiveDialog state={state} title={title} size="lg" presentation="fullscreen">
+    <ResponsiveDialog
+      state={state}
+      title={title}
+      size="lg"
+      presentation="fullscreen"
+      onClose={onClose}
+    >
       <ClimbPicker
         showFilters={false}
         allowSentClimbs

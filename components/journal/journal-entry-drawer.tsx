@@ -57,6 +57,7 @@ export function JournalEntryDrawer({
       {day ? (
         <DayLogComposer
           seed={day}
+          pickOnOpen
           sentClimbIds={sentClimbIds}
           onDone={state.close}
           onPendingChange={setPending}
