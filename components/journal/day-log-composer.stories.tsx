@@ -15,7 +15,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Logs several climbs from one day. It opens from an outdoor session's Log additional climbs, starting with that session's climb, date, friends and tags. The date and tagged friends are set once for the day; tags can be set for the whole day or per climb. The day lists one line per climb; each climb's style, notes, tags and, for a first ascent, rating, grade and videos are set in its own dialog, opened on pick and from Edit. Opens fullscreen from the Log popup.",
+          "Logs several climbs from one day. It opens from an outdoor session's Log additional climbs, starting with that session's climb, date, friends and tags. The day's date applies to every climb. Its friends and tags are what each climb starts with when it's added; climbs already in the day keep their own. The day lists one line per climb; each climb's style, notes, friends, tags and, for a first ascent, rating, grade and videos are set in its own dialog, opened on pick and from Edit. Opens fullscreen from the Log popup.",
       },
     },
   },
@@ -143,24 +143,20 @@ export const ClimbDialog: Story = {
   },
 };
 
-/** A day tag on every climb, taken off one climb, next to a climb's own tag. */
+/** A day tag set after the first climb: it reaches only the climb added after
+ * it, next to that climb's own tag. */
 export const DayAndClimbTags: Story = {
   render: () => <Example />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await addClimb(canvas, "Cedar Crack, North Woods / Upper Wall");
     await userEvent.type(
-      canvas.getByRole("combobox", { name: "Tags for every climb" }),
+      canvas.getByRole("combobox", { name: "Tags for climbs you add" }),
       "cold{Enter}",
     );
     await addClimb(canvas, "Cedar Corner, North Woods / Cedar Grove", async (dialog) => {
       await userEvent.type(dialog.getByRole("combobox", { name: "Tags" }), "crimpy{Enter}");
     });
-    await userEvent.click(canvas.getByRole("button", { name: "Edit Cedar Crack" }));
-    const crack = within(await body().findByRole("dialog", { name: "Cedar Crack" }));
-    await userEvent.click(crack.getByRole("button", { name: "Remove tag cold" }));
-    await userEvent.click(crack.getByRole("button", { name: "Save climb" }));
-    await gone("Cedar Crack");
   },
 };
 

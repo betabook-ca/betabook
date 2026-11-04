@@ -12,7 +12,6 @@ import {
   dayLogRowForm,
   DayLogEntryDialog,
   DayLogEntrySummary,
-  hasTooManyTags,
   newDayLogRow,
   type DayLogRow,
   type DaySeed,
@@ -26,27 +25,20 @@ import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
 import { localToday } from "@/lib/format-date";
 import type { CompanionOption } from "@/lib/journal-companions";
-import {
-  appendDayEntry,
-  applyDayCompanions,
-  applyDayTags,
-  MAX_DAY_ENTRIES,
-} from "@/lib/journal-day";
+import { appendDayEntry, MAX_DAY_ENTRIES } from "@/lib/journal-day";
 import type { SearchFetcher } from "@/lib/search";
 
 const QUEUED = "Already in this day";
 
 /** Why the day can't be saved as it stands, or null. A climb's own dialog
- * refuses bad links and too many tags, but tags added to the whole day
- * afterwards can still push one over. */
+ * already refuses bad links and too many tags. */
 function dayError(rows: readonly DayLogRow[], entryDate: string): string | null {
   if (rows.length === 0) return "Add a climb to log this day.";
   if (entryDate === "") return "Add a date to save this day.";
   if (rows.some((row) => brokeBy(row, entryDate))) {
     return "A climb broke before this date. Pick an earlier date or remove it.";
   }
-  const overTagged = rows.find(hasTooManyTags);
-  return overTagged ? `${overTagged.climb.name} has too many tags. Edit it to remove some.` : null;
+  return null;
 }
 
 /** The day as it opens: empty and dated today, or the handed-over session's. */
@@ -115,9 +107,14 @@ export function DayLogComposer({
 
   /** Returns focus to the day once its dialogs are done with it. A dialog
    * hands focus back to whatever opened it, but a picked result is gone by
-   * then. */
+   * then. This runs after the exit animation, so it only steps in when focus
+   * was actually lost: a climber who has already moved on keeps their place. */
   function settleFocus() {
-    if (!picker.isOpen && !details.isOpen) addClimbRef.current?.focus();
+    if (picker.isOpen || details.isOpen) return;
+    const active = document.activeElement;
+    if (active === null || active === document.body || !active.isConnected) {
+      addClimbRef.current?.focus();
+    }
   }
   // The climb open in its dialog: a new pick (index null) or a queued climb.
   // `key` restarts the dialog's copy from `row` each time it opens.
@@ -132,17 +129,11 @@ export function DayLogComposer({
     details.open();
   }
 
-  function changeDayTags(next: string[]) {
-    setRows((current) => applyDayTags(current, dayTags, next));
-    setDayTags(next);
-  }
-
-  /** The day's friends only pre-fill its climbs, the same way as its tags:
-   * each climb saves with its own, edited in its dialog. */
+  /** The day's friends, like its tags, are only what the next climb added
+   * starts with. Climbs already in the day keep their own, edited in their
+   * dialogs. */
   function changeDayCompanions(next: CompanionOption[]) {
-    if (pending) return;
-    setRows((current) => applyDayCompanions(current, companions, next));
-    setCompanions(next);
+    if (!pending) setCompanions(next);
   }
 
   function handleSubmit(event: React.FormEvent) {
@@ -213,13 +204,11 @@ export function DayLogComposer({
               onChange={changeDayCompanions}
               disabled={pending}
               fetcher={companionFetcher}
-              help="Added to every climb below. Edit a climb to leave a friend off just that climb. Anyone who can read an entry sees who you tagged."
+              help="Tagged on each climb you add from here on. Climbs already in the day keep their own; edit one to change its friends. Anyone who can read an entry sees who you tagged."
             />
             <div role="group" aria-label="Day tags" className="flex flex-col gap-1">
-              <TagInput label="Tags for every climb" value={dayTags} onChange={changeDayTags} />
-              <p className="text-xs text-muted">
-                Edit a climb below to leave one off just that climb.
-              </p>
+              <TagInput label="Tags for climbs you add" value={dayTags} onChange={setDayTags} />
+              <p className="text-xs text-muted">Climbs already in the day keep their own tags.</p>
             </div>
           </FormSection>
 
@@ -280,8 +269,6 @@ export function DayLogComposer({
         state={details}
         initial={editing?.row ?? null}
         adding={editing?.index === null}
-        dayTags={dayTags}
-        dayCompanions={companions}
         companionFetcher={companionFetcher}
         entryDate={entryDate}
         onSave={(row) => {

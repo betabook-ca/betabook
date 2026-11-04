@@ -26,12 +26,6 @@ import type { ClimbWithAreaName, SendableClimb } from "@/db/queries";
 import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import { MAX_JOURNAL_BODY_LENGTH, MAX_JOURNAL_TAGS } from "@/lib/journal";
 import type { CompanionOption } from "@/lib/journal-companions";
-import {
-  retagDayCompanions,
-  retagDayEntry,
-  type DayEntryFriends,
-  type DayEntryTags,
-} from "@/lib/journal-day";
 import { sendVideoLinksError } from "@/lib/send-video";
 import { ASCENT_STYLE_LABELS, type GradeFeel } from "@/lib/sends";
 
@@ -40,18 +34,20 @@ import { ASCENT_STYLE_LABELS, type GradeFeel } from "@/lib/sends";
 type DayLogClimb = SendableClimb & { name: string; areaName?: string };
 
 /** One climb queued in a day: everything its single-entry form would hold
- * except the date and tagged friends, which belong to the day. */
-export type DayLogRow = DayEntryTags &
-  DayEntryFriends<CompanionOption> & {
-    climb: DayLogClimb;
-    hasPriorSend: boolean;
-    choice: SendStyleChoice;
-    body: string;
-    rating: number | null;
-    suggestedGrade: string;
-    gradeFeel: GradeFeel;
-    videos: string[];
-  };
+ * except the date, which belongs to the day. Its tags and friends are its own:
+ * copied from the day's when it was added, and changed only in its dialog. */
+export type DayLogRow = {
+  climb: DayLogClimb;
+  hasPriorSend: boolean;
+  choice: SendStyleChoice;
+  body: string;
+  tags: string[];
+  companions: CompanionOption[];
+  rating: number | null;
+  suggestedGrade: string;
+  gradeFeel: GradeFeel;
+  videos: string[];
+};
 
 /** An outdoor session's form handed over by Log additional climbs: its date,
  * friends and tags become the day's, and its climb the day's first. */
@@ -74,9 +70,7 @@ export function newDayLogRow(
     choice: "session",
     body: "",
     tags: [...dayTags],
-    declinedDayTags: [],
     companions: [...dayCompanions],
-    declinedDayCompanions: [],
     rating: null,
     suggestedGrade: String(climb.grade ?? ""),
     gradeFeel: "solid",
@@ -94,7 +88,7 @@ export function brokeBy(row: DayLogRow, entryDate: string): boolean {
   return row.climb.brokenOn !== null && entryDate !== "" && entryDate >= row.climb.brokenOn;
 }
 
-export function hasTooManyTags(row: DayLogRow): boolean {
+function hasTooManyTags(row: DayLogRow): boolean {
   return row.tags.length > MAX_JOURNAL_TAGS;
 }
 
@@ -209,17 +203,14 @@ export function DayLogEntrySummary({
           {`This climb broke on ${climb.brokenOn}. Pick an earlier date or remove it.`}
         </InlineAlert>
       )}
-      {hasTooManyTags(row) && (
-        <InlineAlert>{`${tooManyTagsMessage(row)} Edit this climb to remove some.`}</InlineAlert>
-      )}
     </li>
   );
 }
 
 /** One climb's own fields for the day — style, rating and grade for a first
  * ascent, notes, videos, tagged friends and tags — in a dialog over the day
- * form. Friends and tags start from the day's, and the climb saves with
- * whatever this dialog leaves them as. Works on a
+ * form. A new climb's friends and tags were copied from the day's when it was
+ * picked; after that they're the climb's own, changed only here. Works on a
  * copy: `onSave` receives it, and closing without saving leaves the day as it
  * was.
  *
@@ -231,8 +222,6 @@ export function DayLogEntryDialog({
   openKey,
   initial,
   adding,
-  dayTags,
-  dayCompanions,
   companionFetcher,
   entryDate,
   onSave,
@@ -244,8 +233,6 @@ export function DayLogEntryDialog({
   initial: DayLogRow | null;
   /** A climb just picked, not yet in the day. */
   adding: boolean;
-  dayTags: readonly string[];
-  dayCompanions: readonly CompanionOption[];
   companionFetcher?: LookupFetcher<CompanionOption>;
   entryDate: string;
   onSave: (row: DayLogRow) => void;
@@ -364,20 +351,16 @@ export function DayLogEntryDialog({
 
           <CompanionPicker
             value={draft.companions}
-            onChange={(companions) =>
-              setDraft((current) =>
-                current ? retagDayCompanions(current, dayCompanions, companions) : current,
-              )
-            }
+            onChange={(companions) => change({ companions })}
             fetcher={companionFetcher}
-            help="Starts with the day's friends. Anyone who can read this entry sees who you tagged."
+            help="Starts with the day's friends when the climb is added. Anyone who can read this entry sees who you tagged."
           />
 
           <TagInput
             value={draft.tags}
             onChange={(tags) => {
               setTagError(false);
-              setDraft((current) => (current ? retagDayEntry(current, dayTags, tags) : current));
+              change({ tags });
             }}
           />
           {tagError && hasTooManyTags(draft) && (

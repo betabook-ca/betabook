@@ -237,37 +237,44 @@ it("leaves a picked climb out of the day when its dialog is closed, and keeps an
   expect(within(line).getByText("Kept.")).toBeInTheDocument();
 });
 
-it("copies day tags onto every climb, lets one climb decline them and keeps its own tags", async () => {
+it("applies a change to the day's friends and tags only to climbs added after it", async () => {
   const user = userEvent.setup();
   const save = vi.fn<Save>().mockResolvedValue({ ok: true, value: undefined });
   render(<Example save={save} />);
-  const dayTags = () => screen.getByRole("combobox", { name: "Tags for every climb" });
+  const dayTags = () => screen.getByRole("combobox", { name: "Tags for climbs you add" });
+  const dayField = () => screen.getByRole("group", { name: "Day tags" });
 
+  // Already in the day: a change to the day's friends and tags leaves it as it is.
   const crackLine = await addClimb(user, CRACK);
+  const friends = screen.getByRole("group", { name: "Tagged friends" });
+  await user.type(within(friends).getByRole("combobox"), "Alex");
+  await user.click(await screen.findByRole("option", { name: "Alex Rivera" }));
   await addTag(user, dayTags(), "cold");
-  expect(within(crackLine).getByText("Session · #cold")).toBeInTheDocument();
+  expect(within(crackLine).getByText("Session")).toBeInTheDocument();
+  expect(within(crackLine).queryByText(/^With /)).not.toBeInTheDocument();
 
-  // A climb picked after the day tag starts with it too.
+  // Added after: it starts with them, and adds its own.
   const corner = await pickClimb(user, CORNER);
   expect(within(corner).getByRole("button", { name: "Remove tag cold" })).toBeInTheDocument();
+  expect(
+    within(corner).getByRole("button", { name: "Remove friend Alex Rivera" }),
+  ).toBeInTheDocument();
   await addTag(user, within(corner).getByRole("combobox", { name: "Tags" }), "crimpy");
   await closeDialog(user, corner, "Add to day");
 
-  const crack = await editClimb(user, "Cedar Crack");
-  await user.click(within(crack).getByRole("button", { name: "Remove tag cold" }));
-  await closeDialog(user, crack, "Save climb");
-
-  // Taking the day tag off clears it everywhere; putting it back skips the
-  // climb that declined it.
-  const dayField = screen.getByRole("group", { name: "Day tags" });
-  await user.click(within(dayField).getByRole("button", { name: "Remove tag cold" }));
+  // Taking them off the day afterwards leaves that climb's copy alone.
+  await user.click(within(dayField()).getByRole("button", { name: "Remove tag cold" }));
+  await user.click(screen.getByRole("button", { name: "Remove friend Alex Rivera" }));
   const cornerLine = screen.getByRole("listitem", { name: "Cedar Corner" });
-  expect(within(cornerLine).getByText("Session · #crimpy")).toBeInTheDocument();
-  await addTag(user, dayTags(), "cold");
+  expect(within(cornerLine).getByText("Session · #cold · #crimpy")).toBeInTheDocument();
+  expect(within(cornerLine).getByText("With Alex Rivera")).toBeInTheDocument();
 
   await user.click(screen.getByRole("button", { name: "Save 2 entries" }));
   const { entries } = posted(save);
-  expect(entries.map((entry) => entry.getAll("tag"))).toEqual([[], ["crimpy", "cold"]]);
+  expect(entries.map((entry) => [entry.getAll("tag"), entry.getAll("companion")])).toEqual([
+    [[], []],
+    [["cold", "crimpy"], ["alex"]],
+  ]);
 });
 
 it("keeps a climb's dialog open over a bad video link and adds nothing", async () => {
