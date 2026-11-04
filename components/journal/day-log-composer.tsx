@@ -2,7 +2,7 @@
 
 import { Button, useOverlayState } from "@heroui/react";
 import { ArrowLeft, Plus } from "lucide-react";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import { createDayEntries } from "@/actions";
 import { ClimbPickerDialog } from "@/components/journal/climb-picker-dialog";
@@ -69,11 +69,11 @@ function entriesLabel(count: number) {
  *
  * Opened from an outdoor session's Log additional climbs, it starts from that
  * session (`seed`): its date, friends and tags, and its climb as the first.
- * There the climber came for the next climb, so the picker opens at once
- * (`pickOnOpen`). */
+ * The climber sees that setup, and can adjust its friends and tags, before
+ * choosing Add climb. */
 export function DayLogComposer({
   seed,
-  pickOnOpen = false,
+  focusOnOpen = false,
   sentClimbIds,
   onBack,
   onDone,
@@ -84,8 +84,9 @@ export function DayLogComposer({
   today = localToday(),
 }: {
   seed?: DaySeed;
-  /** Opens the climb picker over the day as soon as it appears. */
-  pickOnOpen?: boolean;
+  /** Moves focus to the title as the day appears, without scrolling past the
+   * setup: the control that opened it has gone with the form it replaced. */
+  focusOnOpen?: boolean;
   sentClimbIds?: Set<number>;
   /** Shown as Back above the title when there's somewhere to go back to. */
   onBack?: () => void;
@@ -103,13 +104,18 @@ export function DayLogComposer({
   const [rows, setRows] = useState(start.rows);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const picker = useOverlayState({ defaultOpen: pickOnOpen });
+  const picker = useOverlayState();
   const details = useOverlayState();
   const addClimbRef = useRef<HTMLButtonElement>(null);
+  const titleRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (focusOnOpen) titleRef.current?.focus({ preventScroll: true });
+  }, [focusOnOpen]);
 
   /** Returns focus to the day once its dialogs are done with it. A dialog
-   * hands focus back to whatever opened it, but a picked result, or the
-   * session's button that opened the day, is gone by then. */
+   * hands focus back to whatever opened it, but a picked result is gone by
+   * then. */
   function settleFocus() {
     if (!picker.isOpen && !details.isOpen) addClimbRef.current?.focus();
   }
@@ -174,7 +180,7 @@ export function DayLogComposer({
     <>
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <fieldset disabled={pending} className="contents">
-          <div className="flex flex-col gap-3">
+          <div ref={titleRef} tabIndex={-1} className="flex flex-col gap-3 outline-none">
             {onBack && (
               <Button
                 size="sm"

@@ -59,16 +59,13 @@ export const Training: Story = {
 };
 /** An outdoor session turned into a day with Log additional climbs: the day
  * starts from that session and opens fullscreen on phones, since its list of
- * climbs outgrows a sheet. The climb picker opens over it at once; this
- * story closes it to show the day. */
+ * climbs outgrows a sheet. Its setup shows first; Add climb opens the picker. */
 export const Day: Story = {
   render: () => <Example climb />,
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body);
     await userEvent.click(body.getByRole("radio", { name: "Redpoint" }));
     await userEvent.click(body.getByRole("button", { name: "Log additional climbs" }));
-    const picker = within(await body.findByRole("dialog", { name: "Add a climb" }));
-    await userEvent.click(picker.getByRole("button", { name: "Close" }));
     await body.findByRole("heading", { name: "Log a day" });
   },
 };
