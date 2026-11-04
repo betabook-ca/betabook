@@ -197,10 +197,18 @@ it("won't queue a climb twice, and removes one from the day", async () => {
   const user = userEvent.setup();
   render(<Example save={vi.fn<Save>()} />);
 
-  await addClimb(user, CRACK);
+  const crack = await addClimb(user, CRACK);
+  await user.type(within(crack).getByRole("textbox", { name: "Notes" }), "Kept.");
   await openPicker(user);
   expect(await screen.findByRole("button", { name: `Choose ${CRACK}` })).toBeDisabled();
-  await user.click(screen.getByRole("button", { name: "Back to the day" }));
+  await user.click(screen.getByRole("button", { name: "Close" }));
+  await waitFor(() =>
+    expect(screen.queryByRole("dialog", { name: "Add a climb" })).not.toBeInTheDocument(),
+  );
+
+  // The day stays mounted under the picker, so the same row comes back as left.
+  expect(crack).toBeInTheDocument();
+  expect(within(crack).getByRole("textbox", { name: "Notes" })).toHaveValue("Kept.");
 
   await user.click(screen.getByRole("button", { name: "Remove Cedar Crack" }));
   expect(screen.queryByRole("listitem", { name: "Cedar Crack" })).not.toBeInTheDocument();

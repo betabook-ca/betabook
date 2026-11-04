@@ -1,11 +1,11 @@
 "use client";
 
-import { Button } from "@heroui/react";
+import { Button, useOverlayState } from "@heroui/react";
 import { ArrowLeft, Plus } from "lucide-react";
 import { useState, useTransition } from "react";
 
 import { createDayEntries } from "@/actions";
-import { ClimbPicker } from "@/components/climb-picker";
+import { ClimbPickerDialog } from "@/components/journal/climb-picker-dialog";
 import { CompanionPicker } from "@/components/journal/companion-picker";
 import {
   brokeBy,
@@ -43,7 +43,6 @@ export function DayLogComposer({
   onBack,
   onDone,
   onPendingChange,
-  onBrowseChange,
   onSave = createDayEntries,
   climbFetcher,
   companionFetcher,
@@ -53,7 +52,6 @@ export function DayLogComposer({
   onBack: () => void;
   onDone: () => void;
   onPendingChange?: (pending: boolean) => void;
-  onBrowseChange?: (browsing: boolean) => void;
   onSave?: (formData: FormData) => Promise<ActionResult>;
   climbFetcher?: SearchFetcher;
   companionFetcher?: LookupFetcher<CompanionOption>;
@@ -63,14 +61,9 @@ export function DayLogComposer({
   const [companions, setCompanions] = useState<CompanionOption[]>([]);
   const [dayTags, setDayTags] = useState<string[]>([]);
   const [rows, setRows] = useState<DayLogRow[]>([]);
-  const [browsing, setBrowsing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-
-  function browse(value: boolean) {
-    setBrowsing(value);
-    onBrowseChange?.(value);
-  }
+  const picker = useOverlayState();
 
   function updateRow(index: number, update: (row: DayLogRow) => DayLogRow) {
     setRows((current) => current.map((row, at) => (at === index ? update(row) : row)));
@@ -135,128 +128,110 @@ export function DayLogComposer({
     });
   }
 
-  if (browsing) {
-    return (
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="ghost"
-            isIconOnly
-            aria-label="Back to the day"
-            onPress={() => browse(false)}
-          >
-            <ArrowLeft aria-hidden className="size-4" />
-          </Button>
-          <PageTitle size="sm" className="text-foreground">
-            Add a climb
-          </PageTitle>
-        </div>
-        <ClimbPicker
-          showFilters={false}
-          allowSentClimbs
-          sentClimbIds={sentClimbIds}
-          fetcher={climbFetcher}
-          disabledClimbIds={new Map(rows.map((row) => [row.climb.id, QUEUED]))}
-          onPick={(climb, context) => {
-            setRows((current) => [...current, newDayLogRow(climb, context.sent, dayTags)]);
-            // An error from the last save attempt may have been about this
-            // list; a new climb changes it, so the next save re-checks.
-            setError(null);
-            browse(false);
-          }}
-        />
-      </div>
-    );
-  }
-
   const full = rows.length >= MAX_DAY_ENTRIES;
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-      <fieldset disabled={pending} className="contents">
-        <div className="flex flex-col gap-3">
-          <Button
-            size="sm"
-            variant="ghost"
-            className="self-start"
-            onPress={onBack}
-            isDisabled={pending}
-          >
-            <ArrowLeft aria-hidden className="size-4" />
-            Back
-          </Button>
-          <PageTitle size="sm" className="text-foreground">
-            Log a day
-          </PageTitle>
-        </div>
-
-        <FormSection label="The day">
-          <JournalEntryDateFields
-            hasClimb={false}
-            hasPriorSend={false}
-            today={today}
-            entryDate={entryDate}
-            sent={false}
-            disabled={pending}
-            onDateChange={setEntryDate}
-          />
-          <CompanionPicker
-            value={companions}
-            onChange={(value) => {
-              if (!pending) setCompanions(value);
-            }}
-            disabled={pending}
-            fetcher={companionFetcher}
-            help="Every climb in this day is tagged with these friends. Anyone who can read an entry sees who you tagged."
-          />
-          <div role="group" aria-label="Day tags" className="flex flex-col gap-1">
-            <TagInput label="Tags for every climb" value={dayTags} onChange={changeDayTags} />
-            <p className="text-xs text-muted">
-              Take one off a climb below to leave it off just that climb.
-            </p>
+    <>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <fieldset disabled={pending} className="contents">
+          <div className="flex flex-col gap-3">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="self-start"
+              onPress={onBack}
+              isDisabled={pending}
+            >
+              <ArrowLeft aria-hidden className="size-4" />
+              Back
+            </Button>
+            <PageTitle size="sm" className="text-foreground">
+              Log a day
+            </PageTitle>
           </div>
-        </FormSection>
 
-        <FormSection label={`Climbs (${rows.length})`}>
-          {rows.length > 0 && (
-            <ul role="list" className="flex flex-col gap-3">
-              {rows.map((row, index) => (
-                <DayLogEntry
-                  key={row.climb.id}
-                  row={row}
-                  entryDate={entryDate}
-                  disabled={pending}
-                  onChange={(patch) => updateRow(index, (current) => ({ ...current, ...patch }))}
-                  onTagsChange={(tags) =>
-                    updateRow(index, (current) => retagDayEntry(current, dayTags, tags))
-                  }
-                  onRemove={() => setRows((current) => current.filter((_, at) => at !== index))}
-                />
-              ))}
-            </ul>
-          )}
-          <Button
-            variant="outline"
-            className="self-start"
-            isDisabled={pending || full}
-            onPress={() => browse(true)}
-          >
-            <Plus aria-hidden className="size-4" />
-            Add climb
-          </Button>
-          {full && (
-            <p className="text-xs text-muted">{`A day holds up to ${MAX_DAY_ENTRIES} climbs.`}</p>
-          )}
-        </FormSection>
+          <FormSection label="The day">
+            <JournalEntryDateFields
+              hasClimb={false}
+              hasPriorSend={false}
+              today={today}
+              entryDate={entryDate}
+              sent={false}
+              disabled={pending}
+              onDateChange={setEntryDate}
+            />
+            <CompanionPicker
+              value={companions}
+              onChange={(value) => {
+                if (!pending) setCompanions(value);
+              }}
+              disabled={pending}
+              fetcher={companionFetcher}
+              help="Every climb in this day is tagged with these friends. Anyone who can read an entry sees who you tagged."
+            />
+            <div role="group" aria-label="Day tags" className="flex flex-col gap-1">
+              <TagInput label="Tags for every climb" value={dayTags} onChange={changeDayTags} />
+              <p className="text-xs text-muted">
+                Take one off a climb below to leave it off just that climb.
+              </p>
+            </div>
+          </FormSection>
 
-        {error && <InlineAlert>{error}</InlineAlert>}
+          <FormSection label={`Climbs (${rows.length})`}>
+            {rows.length > 0 && (
+              <ul role="list" className="flex flex-col gap-3">
+                {rows.map((row, index) => (
+                  <DayLogEntry
+                    key={row.climb.id}
+                    row={row}
+                    entryDate={entryDate}
+                    disabled={pending}
+                    onChange={(patch) => updateRow(index, (current) => ({ ...current, ...patch }))}
+                    onTagsChange={(tags) =>
+                      updateRow(index, (current) => retagDayEntry(current, dayTags, tags))
+                    }
+                    onRemove={() => setRows((current) => current.filter((_, at) => at !== index))}
+                  />
+                ))}
+              </ul>
+            )}
+            <Button
+              variant="outline"
+              className="self-start"
+              isDisabled={pending || full}
+              onPress={picker.open}
+            >
+              <Plus aria-hidden className="size-4" />
+              Add climb
+            </Button>
+            {full && (
+              <p className="text-xs text-muted">{`A day holds up to ${MAX_DAY_ENTRIES} climbs.`}</p>
+            )}
+          </FormSection>
 
-        <div className="flex justify-end border-t border-separator pt-4">
-          <Button type="submit" isDisabled={pending}>
-            {entriesLabel(rows.length)}
-          </Button>
-        </div>
-      </fieldset>
-    </form>
+          {error && <InlineAlert>{error}</InlineAlert>}
+
+          <div className="flex justify-end border-t border-separator pt-4">
+            <Button type="submit" isDisabled={pending}>
+              {entriesLabel(rows.length)}
+            </Button>
+          </div>
+        </fieldset>
+      </form>
+      {/* Outside the form: the picker has its own search field, and a dialog
+       * portals out of the DOM tree anyway. */}
+      <ClimbPickerDialog
+        state={picker}
+        title="Add a climb"
+        sentClimbIds={sentClimbIds}
+        disabledClimbIds={new Map(rows.map((row) => [row.climb.id, QUEUED]))}
+        fetcher={climbFetcher}
+        onPick={(climb, context) => {
+          setRows((current) => [...current, newDayLogRow(climb, context.sent, dayTags)]);
+          // An error from the last save attempt may have been about this
+          // list; a new climb changes it, so the next save re-checks.
+          setError(null);
+        }}
+      />
+    </>
   );
 }

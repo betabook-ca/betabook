@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
-import { userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 
 import { createSearchFixtureFetcher } from "@/stories/fixtures/app-search-demo";
 import { StoryPage } from "@/stories/fixtures/story-layout";
@@ -51,8 +51,13 @@ type Canvas = ReturnType<typeof within>;
 
 async function addClimb(canvas: Canvas, name: string) {
   await userEvent.click(canvas.getByRole("button", { name: "Add climb" }));
-  await userEvent.type(canvas.getByRole("searchbox", { name: "Choose a climb" }), "cedar");
-  await userEvent.click(await canvas.findByRole("button", { name: `Choose ${name}` }));
+  // The picker is a dialog, rendered into the document body rather than the canvas.
+  const picker = within(await within(document.body).findByRole("dialog", { name: "Add a climb" }));
+  await userEvent.type(picker.getByRole("searchbox", { name: "Choose a climb" }), "cedar");
+  await userEvent.click(await picker.findByRole("button", { name: `Choose ${name}` }));
+  await waitFor(() =>
+    expect(within(document.body).queryByRole("dialog", { name: "Add a climb" })).toBeNull(),
+  );
 }
 
 export const Empty: Story = { render: () => <Example /> };
