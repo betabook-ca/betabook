@@ -60,7 +60,12 @@ it("turns an outdoor session into a day with Log additional climbs, saved as one
   const picker = await screen.findByRole("dialog", { name: "Add a climb" });
   await user.click(within(picker).getByRole("button", { name: "Close" }));
   await waitFor(() => expect(picker).not.toBeInTheDocument());
-  await waitFor(() => expect(screen.getByRole("button", { name: "Add climb" })).toHaveFocus());
+  // Focus returns once the picker's exit has settled (ResponsiveDialog waits
+  // 300ms for it), which under the full suite's load can outlast the default
+  // one-second wait.
+  await waitFor(() => expect(screen.getByRole("button", { name: "Add climb" })).toHaveFocus(), {
+    timeout: 3000,
+  });
   expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
   const line = screen.getByRole("listitem", { name: "Cedar Arete" });
   expect(within(line).getByText("Redpoint")).toBeInTheDocument();
