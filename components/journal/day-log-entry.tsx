@@ -21,16 +21,21 @@ import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { RatingField } from "@/components/ui/rating-field";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
-import type { ClimbWithAreaName } from "@/db/queries";
+import type { ClimbWithAreaName, SendableClimb } from "@/db/queries";
 import { MAX_JOURNAL_BODY_LENGTH, MAX_JOURNAL_TAGS } from "@/lib/journal";
+import type { CompanionOption } from "@/lib/journal-companions";
 import { retagDayEntry, type DayEntryTags } from "@/lib/journal-day";
 import { sendVideoLinksError } from "@/lib/send-video";
 import { ASCENT_STYLE_LABELS, type GradeFeel } from "@/lib/sends";
 
+/** A climb in a day. One carried over from a climb page's form has no area
+ * name to show. */
+type DayLogClimb = SendableClimb & { name: string; areaName?: string };
+
 /** One climb queued in a day: everything its single-entry form would hold
  * except the date and tagged friends, which belong to the day. */
 export type DayLogRow = DayEntryTags & {
-  climb: ClimbWithAreaName;
+  climb: DayLogClimb;
   hasPriorSend: boolean;
   choice: SendStyleChoice;
   body: string;
@@ -38,6 +43,15 @@ export type DayLogRow = DayEntryTags & {
   suggestedGrade: string;
   gradeFeel: GradeFeel;
   videos: string[];
+};
+
+/** An outdoor session's form handed over by Log additional climbs: its date,
+ * friends and tags become the day's, and its climb the day's first. */
+export type DaySeed = {
+  entryDate: string;
+  companions: CompanionOption[];
+  tags: string[];
+  row: DayLogRow;
 };
 
 export function newDayLogRow(
@@ -101,10 +115,10 @@ const STYLE_LABELS: Record<SendStyleChoice, string> = {
   ...ASCENT_STYLE_LABELS,
 };
 
-function ClimbHeading({ climb }: { climb: ClimbWithAreaName }) {
+function ClimbHeading({ climb }: { climb: DayLogClimb }) {
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-2">
-      <span className="text-xs text-muted">{climb.areaName}</span>
+      {climb.areaName && <span className="text-xs text-muted">{climb.areaName}</span>}
       <DisciplineChip type={climb.type} />
       <Grade>
         <GradeLabel type={climb.type} grade={climb.grade} />

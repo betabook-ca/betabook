@@ -6,6 +6,7 @@ import { createSearchFixtureFetcher } from "@/stories/fixtures/app-search-demo";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { DayLogComposer } from "./day-log-composer";
+import { newDayLogRow, type DaySeed } from "./day-log-entry";
 
 const meta = {
   title: "Components/Journal/Log a day",
@@ -14,7 +15,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Logs several climbs from one day. The date and tagged friends are set once for the day; tags can be set for the whole day or per climb. The day lists one line per climb; each climb's style, notes, tags and, for a first ascent, rating, grade and videos are set in its own dialog, opened on pick and from Edit. Opens fullscreen from the Log popup.",
+          "Logs several climbs from one day. It opens from an outdoor session's Log additional climbs, starting with that session's climb, date, friends and tags. The date and tagged friends are set once for the day; tags can be set for the whole day or per climb. The day lists one line per climb; each climb's style, notes, tags and, for a first ascent, rating, grade and videos are set in its own dialog, opened on pick and from Edit. Opens fullscreen from the Log popup.",
       },
     },
   },
@@ -27,12 +28,38 @@ const FRIENDS = [
   { id: "sam", name: "Sam Okafor", image: null },
 ];
 
-function Example() {
+/** What an outdoor session hands over: a flash on Cedar Arete with a note,
+ * tagged with Alex and #cold. */
+const FROM_SESSION: DaySeed = {
+  entryDate: "2026-09-12",
+  companions: [FRIENDS[0]],
+  tags: ["cold"],
+  row: {
+    ...newDayLogRow(
+      {
+        id: -1,
+        areaId: -1,
+        name: "Cedar Arete",
+        type: "boulder",
+        grade: 5,
+        brokenOn: null,
+        areaName: "Cedar Grove",
+      },
+      false,
+      ["cold"],
+    ),
+    choice: "flash",
+    body: "Flashed it in the shade.",
+  },
+};
+
+function Example({ seed }: { seed?: DaySeed }) {
   const [climbFetcher] = useState(() => createSearchFixtureFetcher());
   return (
     <StoryPage>
       <div className="max-w-xl">
         <DayLogComposer
+          seed={seed}
           today="2026-09-12"
           onBack={() => {}}
           onDone={() => {}}
@@ -75,6 +102,10 @@ async function addClimb(
 }
 
 export const Empty: Story = { render: () => <Example /> };
+
+/** Opened from an outdoor session's Log additional climbs: its climb, date,
+ * friend and tag are already in the day. */
+export const FromSession: Story = { render: () => <Example seed={FROM_SESSION} /> };
 
 /** A first ascent with a video, a repeat and a plain session with a note. */
 export const MixedDay: Story = {

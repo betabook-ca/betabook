@@ -1,17 +1,75 @@
 import { useOverlayState } from "@heroui/react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
 import type { ActionResult } from "@/lib/action-result";
+import { localToday } from "@/lib/format-date";
+import { readDayEntries } from "@/lib/journal-day";
 
 import { JournalEntryDrawer } from "./journal-entry-drawer";
 
 vi.mock("@/actions", () => ({
+  createDayEntries: vi.fn<() => Promise<ActionResult>>(),
   createJournalEntry: vi.fn<() => Promise<ActionResult>>(),
   createUndatedSend: vi.fn<() => Promise<ActionResult>>(),
   updateJournalEntry: vi.fn<() => Promise<ActionResult>>(),
 }));
+
+const climb = { id: 17, areaId: 3, name: "Cedar Arete", type: "boulder" as const, grade: 5 };
+
+it("offers only Outdoor session and Training", async () => {
+  render(<Example save={vi.fn<(data: FormData, undated: boolean) => Promise<ActionResult>>()} />);
+  expect(await screen.findByRole("button", { name: /^Outdoor session/ })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /^Training/ })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /^Climbing day/ })).not.toBeInTheDocument();
+});
+
+it("turns an outdoor session into a day with Log additional climbs, saved as one day", async () => {
+  const user = userEvent.setup();
+  const save = vi.fn<(data: FormData, undated: boolean) => Promise<ActionResult>>();
+  const saveDay = vi.fn<(data: FormData) => Promise<ActionResult>>().mockResolvedValue({
+    ok: true,
+    value: undefined,
+  });
+  function ClimbExample() {
+    const state = useOverlayState({ defaultOpen: true });
+    return (
+      <JournalEntryDrawer
+        state={state}
+        climb={{ ...climb, brokenOn: null }}
+        onSave={save}
+        onSaveDay={saveDay}
+      />
+    );
+  }
+  render(<ClimbExample />);
+
+  await user.click(await screen.findByRole("radio", { name: "Redpoint" }));
+  await user.type(screen.getByRole("textbox", { name: "Notes" }), "Sent it.");
+  await user.click(screen.getByRole("button", { name: "Log additional climbs" }));
+
+  expect(await screen.findByRole("heading", { name: "Log a day" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
+  const line = screen.getByRole("listitem", { name: "Cedar Arete" });
+  expect(within(line).getByText("Redpoint")).toBeInTheDocument();
+  expect(within(line).getByText("Sent it.")).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Save 1 entry" }));
+  expect(save).not.toHaveBeenCalled();
+  expect(saveDay).toHaveBeenCalledOnce();
+  const { shared, entries } = readDayEntries(saveDay.mock.calls[0][0]);
+  expect(shared.get("entryDate")).toBe(localToday());
+  expect(Object.fromEntries(entries[0].entries())).toMatchObject({
+    climbId: "17",
+    sent: "true",
+    body: "Sent it.",
+    ascentStyle: "redpoint",
+  });
+  await waitFor(() =>
+    expect(screen.queryByRole("dialog", { name: "Log entry" })).not.toBeInTheDocument(),
+  );
+});
 function Example({ save }: { save: (data: FormData, undated: boolean) => Promise<ActionResult> }) {
   const state = useOverlayState({ defaultOpen: true });
   return <JournalEntryDrawer state={state} onSave={save} />;

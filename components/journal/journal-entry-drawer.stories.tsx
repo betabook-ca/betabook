@@ -57,13 +57,16 @@ export const Training: Story = {
     );
   },
 };
-/** A day out: opens fullscreen on phones, since its list of climbs outgrows a sheet. */
+/** An outdoor session turned into a day with Log additional climbs: the day
+ * starts from that session and opens fullscreen on phones, since its list of
+ * climbs outgrows a sheet. */
 export const Day: Story = {
-  render: () => <Example />,
+  render: () => <Example climb />,
   play: async ({ canvasElement }) => {
-    await userEvent.click(
-      within(canvasElement.ownerDocument.body).getByRole("button", { name: /^Climbing day/ }),
-    );
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.click(body.getByRole("radio", { name: "Redpoint" }));
+    await userEvent.click(body.getByRole("button", { name: "Log additional climbs" }));
+    await body.findByRole("heading", { name: "Log a day" });
   },
 };
 export const Climb: Story = { render: () => <Example climb /> };

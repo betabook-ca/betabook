@@ -10,25 +10,13 @@ import type { ClimbWithAreaName } from "@/db/queries";
 
 export type EntryKindChoice =
   | { kind: "session"; climb: ClimbWithAreaName; hasPriorSend: boolean }
-  | { kind: "training" }
-  | { kind: "day" };
+  | { kind: "training" };
 
 const TRAINING_DESCRIPTION = "Indoor climbing, strength, or conditioning.";
 
 const ENTRY_TYPES = [
-  {
-    id: "day",
-    label: "Climbing day",
-    description: "Several climbs with one date and the same friends.",
-    className: "col-span-2",
-  },
-  {
-    id: "session",
-    label: "Outdoor session",
-    description: "One climb, sent or not.",
-    className: "",
-  },
-  { id: "training", label: "Training", description: TRAINING_DESCRIPTION, className: "" },
+  { id: "session", label: "Outdoor session", description: "One climb, sent or not." },
+  { id: "training", label: "Training", description: TRAINING_DESCRIPTION },
 ] as const;
 
 export function EntryKindStep({
@@ -87,11 +75,11 @@ export function EntryKindStep({
             key={choice.id}
             type="button"
             onPress={() =>
-              choice.id === "session" ? onChoosingClimbChange(true) : onChoose({ kind: choice.id })
+              choice.id === "session" ? onChoosingClimbChange(true) : onChoose({ kind: "training" })
             }
             fullWidth
             variant="outline"
-            className={`h-auto min-h-16 min-w-0 flex-col items-start justify-start rounded-panel! px-3 py-3 text-left whitespace-normal ${choice.className}`}
+            className="h-auto min-h-16 min-w-0 flex-col items-start justify-start rounded-panel! px-3 py-3 text-left whitespace-normal"
           >
             <span className="flex items-center gap-1 font-medium text-foreground">
               <ActivityIcon kind={choice.id} />

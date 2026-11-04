@@ -34,6 +34,19 @@ for (const story of ["training", "climb", "send", "repeat"]) {
       expect(visibleAction.y).toBeGreaterThanOrEqual(0);
       expect(visibleAction.y + visibleAction.height).toBeLessThanOrEqual(viewport.height);
       await expect(save).toBeVisible();
+
+      // An outdoor session also offers Log additional climbs: on the same row,
+      // just left of Save, even at phone width.
+      const more = dialog.getByRole("button", { name: "Log additional climbs" });
+      if (story === "training") {
+        await expect(more).toHaveCount(0);
+        return;
+      }
+      const secondary = await more.boundingBox();
+      if (!secondary) throw new Error("Expected Log additional climbs");
+      expect(Math.abs(secondary.y - visibleAction.y)).toBeLessThanOrEqual(1);
+      expect(secondary.x + secondary.width).toBeLessThanOrEqual(visibleAction.x);
+      expect(secondary.x).toBeGreaterThanOrEqual(form.x);
     },
   );
 }
@@ -45,7 +58,8 @@ test(
     await openStory(page, info, "components-journal-log-popup--day");
     const dialog = page.getByRole("dialog", { name: "Log entry" });
     await expect(dialog.getByRole("heading", { name: "Log a day" })).toBeVisible();
-    const save = dialog.getByRole("button", { name: "Save day" });
+    // The day starts with the session's climb.
+    const save = dialog.getByRole("button", { name: "Save 1 entry" });
     const box = await dialog.boundingBox();
     const form = await dialog.locator("form").boundingBox();
     const viewport = page.viewportSize();
@@ -124,10 +138,4 @@ test("entry type cards have equal dimensions", async ({ page }, info) => {
   expect(Math.abs(left.width - right.width)).toBeLessThanOrEqual(1);
   expect(Math.abs(left.height - right.height)).toBeLessThanOrEqual(1);
   expect(Math.abs(left.y - right.y)).toBeLessThanOrEqual(1);
-  // The day card spans both columns above them.
-  const day = await page.getByRole("button", { name: /^Climbing day Several/ }).boundingBox();
-  if (!day) throw new Error("Expected the day card");
-  expect(Math.abs(day.x - left.x)).toBeLessThanOrEqual(1);
-  expect(Math.abs(day.x + day.width - right.x - right.width)).toBeLessThanOrEqual(1);
-  expect(day.y + day.height).toBeLessThan(left.y);
 });

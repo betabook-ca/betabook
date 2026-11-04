@@ -4,7 +4,6 @@ import { Button } from "@heroui/react";
 import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 
-import { DayLogComposer } from "@/components/journal/day-log-composer";
 import { EntryKindStep, type EntryKindChoice } from "@/components/journal/entry-kind-step";
 import type { JournalEntryFieldsProps } from "@/components/journal/journal-entry-fields";
 import { JournalEntryForm } from "@/components/journal/journal-entry-form";
@@ -13,7 +12,6 @@ import { Grade } from "@/components/ui/grade";
 import { GradeLabel } from "@/components/ui/grade-label";
 import { PageTitle } from "@/components/ui/typography";
 import type { ClimbWithAreaName } from "@/db/queries";
-import type { ActionResult } from "@/lib/action-result";
 
 function ChosenStrip({
   choice,
@@ -65,18 +63,18 @@ export function JournalEntryComposer({
   onDone,
   onPendingChange,
   onSave,
-  onSaveDay,
-  onFullscreenChange,
+  onLogMore,
+  onBrowseChange,
 }: {
   sentClimbIds?: Set<number>;
   onDone: () => void;
   onPendingChange?: (pending: boolean) => void;
   onSave?: JournalEntryFieldsProps["onSave"];
-  onSaveDay?: (formData: FormData) => Promise<ActionResult>;
-  /** True while the climb search or a day's form is open. The dialog takes
-   * the whole screen for them — a search and its results, or a list of
-   * climbs, need more than a sheet's 85vh once a keyboard is up. */
-  onFullscreenChange?: (fullscreen: boolean) => void;
+  onLogMore?: JournalEntryFieldsProps["onLogMore"];
+  /** True while the climb search is open. The dialog takes the whole screen
+   * for it — a search and its results need more than a sheet's 85vh once a
+   * keyboard is up. */
+  onBrowseChange?: (browsing: boolean) => void;
 }) {
   const [pending, setPending] = useState(false);
   const [choice, setChoice] = useState<EntryKindChoice | null>(null);
@@ -84,39 +82,19 @@ export function JournalEntryComposer({
 
   function chooseClimb(choosing: boolean) {
     setChoosingClimb(choosing);
-    onFullscreenChange?.(choosing);
-  }
-
-  function choose(next: EntryKindChoice | null) {
-    setChoice(next);
-    setChoosingClimb(false);
-    onFullscreenChange?.(next?.kind === "day");
-  }
-
-  function changePending(value: boolean) {
-    setPending(value);
-    onPendingChange?.(value);
+    onBrowseChange?.(choosing);
   }
 
   if (!choice) {
     return (
       <EntryKindStep
         sentClimbIds={sentClimbIds}
-        onChoose={choose}
+        onChoose={(next) => {
+          setChoice(next);
+          chooseClimb(false);
+        }}
         choosingClimb={choosingClimb}
         onChoosingClimbChange={chooseClimb}
-      />
-    );
-  }
-
-  if (choice.kind === "day") {
-    return (
-      <DayLogComposer
-        sentClimbIds={sentClimbIds}
-        onBack={() => choose(null)}
-        onDone={onDone}
-        onPendingChange={changePending}
-        onSave={onSaveDay}
       />
     );
   }
@@ -125,14 +103,18 @@ export function JournalEntryComposer({
 
   return (
     <div className="flex flex-col gap-4">
-      <ChosenStrip choice={choice} onChange={() => choose(null)} pending={pending} />
+      <ChosenStrip choice={choice} onChange={() => setChoice(null)} pending={pending} />
       <JournalEntryForm
         onSave={onSave}
         kind={choice.kind}
         climb={climb}
         hasPriorSend={choice.kind === "session" ? choice.hasPriorSend : false}
         onDone={onDone}
-        onPendingChange={changePending}
+        onLogMore={onLogMore}
+        onPendingChange={(value) => {
+          setPending(value);
+          onPendingChange?.(value);
+        }}
       />
     </div>
   );

@@ -391,3 +391,69 @@ it("holds a new ascent with an unsupported video link and says why", async () =>
     screen.getByText("Paste a link to a YouTube video or an Instagram reel or post."),
   ).toBeVisible();
 });
+
+type LogMore = NonNullable<JournalEntryFieldsProps["onLogMore"]>;
+
+it("hands a new outdoor session to a day with its date, friends, tags and climb, saving nothing", async () => {
+  const onLogMore = vi.fn<LogMore>();
+  const { user, onSave } = setup({ onLogMore });
+  await user.click(screen.getByRole("radio", { name: "Redpoint" }));
+  await openDetails(user);
+  await addFriend(user);
+  await fillNotes(user);
+  await user.click(screen.getByRole("textbox", { name: "Video link 1" }));
+  await user.paste("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+
+  await user.click(screen.getByRole("button", { name: "Log additional climbs" }));
+
+  expect(onSave).not.toHaveBeenCalled();
+  expect(onLogMore).toHaveBeenCalledOnce();
+  expect(onLogMore.mock.calls[0][0]).toEqual({
+    entryDate: "2026-09-06",
+    companions: [{ id: "sam", name: "Sam Rivera", image: null }],
+    tags: ["technique"],
+    row: {
+      climb,
+      hasPriorSend: false,
+      choice: "redpoint",
+      body: "Kept the high foot.",
+      tags: ["technique"],
+      declinedDayTags: [],
+      rating: null,
+      suggestedGrade: "5",
+      gradeFeel: "solid",
+      videos: ["https://www.youtube.com/watch?v=dQw4w9WgXcQ"],
+    },
+  });
+});
+
+it("holds the hand-over for what the day couldn't save: no date, or a bad video link", async () => {
+  const onLogMore = vi.fn<LogMore>();
+  const { user } = setup({ onLogMore });
+  await user.click(screen.getByRole("radio", { name: "Flash" }));
+  await user.click(screen.getByRole("checkbox", { name: "I don't know" }));
+  await user.click(screen.getByRole("button", { name: "Log additional climbs" }));
+  expect(screen.getByRole("alert")).toHaveTextContent("Add a date to log additional climbs.");
+
+  await user.click(screen.getByRole("checkbox", { name: "I don't know" }));
+  await openDetails(user);
+  await user.click(screen.getByRole("textbox", { name: "Video link 1" }));
+  await user.paste("https://vimeo.com/1");
+  await user.click(screen.getByRole("button", { name: "Log additional climbs" }));
+  expect(
+    screen.getByText("Paste a link to a YouTube video or an Instagram reel or post."),
+  ).toBeVisible();
+  expect(onLogMore).not.toHaveBeenCalled();
+});
+
+it("offers Log additional climbs only on a new outdoor session", () => {
+  const onLogMore = vi.fn<LogMore>();
+  setup({ onLogMore, existingEntry: savedEntry });
+  expect(screen.queryByRole("button", { name: "Log additional climbs" })).not.toBeInTheDocument();
+  cleanup();
+  setup({ onLogMore, kind: "training", climb: null });
+  expect(screen.queryByRole("button", { name: "Log additional climbs" })).not.toBeInTheDocument();
+  cleanup();
+  setup();
+  expect(screen.queryByRole("button", { name: "Log additional climbs" })).not.toBeInTheDocument();
+});

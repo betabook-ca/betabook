@@ -4,6 +4,7 @@ import { Button, Label, TextArea, TextField } from "@heroui/react";
 import { useState, useTransition } from "react";
 
 import { CompanionPicker } from "@/components/journal/companion-picker";
+import type { DaySeed } from "@/components/journal/day-log-entry";
 import { JournalEntryDateFields } from "@/components/journal/journal-entry-date-fields";
 import { TagInput } from "@/components/journal/tag-input";
 import {
@@ -39,6 +40,10 @@ export type JournalEntryFieldsProps = {
   existingEntry?: JournalEntry;
   onDone?: () => void;
   onPendingChange?: (pending: boolean) => void;
+  /** Log additional climbs: instead of saving this new outdoor session, hand
+   * it over to become the first climb of a day, with its date, friends and
+   * tags as the day's. Offered only when given. */
+  onLogMore?: (day: DaySeed) => void;
 };
 
 // oxlint-disable-next-line complexity
@@ -52,6 +57,7 @@ export function JournalEntryFields({
   existingEntry,
   onDone,
   onPendingChange,
+  onLogMore,
 }: JournalEntryFieldsProps) {
   const [entryDate, setEntryDate] = useState(existingEntry?.entryDate ?? today);
   const [choice, setChoice] = useState<SendStyleChoice>("session");
@@ -80,6 +86,40 @@ export function JournalEntryFields({
     choice === "session" || choice === "repeat" ? "redpoint" : choice;
   const isAscent = !existingEntry && sent && climb != null && !hasPriorSend;
   const isUndatedSend = isAscent && entryDate === "";
+  const canLogMore = onLogMore !== undefined && climb != null && !existingEntry;
+
+  /** Hands the session to a day. It checks what Save would, since the day
+   * saves this climb as it stands. */
+  function handleLogMore() {
+    if (pending || !onLogMore || !climb) return;
+    setError(null);
+    if (entryDate === "") {
+      setError("Add a date to log additional climbs.");
+      return;
+    }
+    if (isAscent && sendVideoLinksError(videos)) {
+      setVideoChecked(true);
+      setDetailsExpanded(true);
+      return;
+    }
+    onLogMore({
+      entryDate,
+      companions,
+      tags,
+      row: {
+        climb,
+        hasPriorSend,
+        choice,
+        body,
+        tags,
+        declinedDayTags: [],
+        rating,
+        suggestedGrade,
+        gradeFeel,
+        videos: videos.filter((link) => link.trim()),
+      },
+    });
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -240,7 +280,12 @@ export function JournalEntryFields({
 
         {error && <InlineAlert>{error}</InlineAlert>}
 
-        <div className="flex justify-end border-t border-separator pt-4">
+        <div className="flex flex-wrap justify-end gap-2 border-t border-separator pt-4">
+          {canLogMore && (
+            <Button variant="outline" isDisabled={pending} onPress={handleLogMore}>
+              Log additional climbs
+            </Button>
+          )}
           <Button type="submit" isDisabled={pending}>
             {existingEntry ? "Save changes" : isUndatedSend ? "Save send" : "Save entry"}
           </Button>

@@ -11,6 +11,7 @@ import { SEND_VIDEO_INVALID_MESSAGE } from "@/lib/send-video";
 import { createSearchFixtureFetcher } from "@/stories/fixtures/app-search-demo";
 
 import { DayLogComposer } from "./day-log-composer";
+import { newDayLogRow, type DaySeed } from "./day-log-entry";
 
 vi.mock("@/actions", () => ({ createDayEntries: vi.fn<() => Promise<ActionResult>>() }));
 
@@ -22,10 +23,19 @@ type Save = (formData: FormData) => Promise<ActionResult>;
 const noop = () => {};
 const companionFetcher: LookupFetcher<CompanionOption> = async () => [alex];
 
-function Example({ save, onDone = noop }: { save: Save; onDone?: () => void }) {
+function Example({
+  save,
+  onDone = noop,
+  seed,
+}: {
+  save: Save;
+  onDone?: () => void;
+  seed?: DaySeed;
+}) {
   const [climbFetcher] = useState(() => createSearchFixtureFetcher());
   return (
     <DayLogComposer
+      seed={seed}
       today="2026-09-12"
       onBack={noop}
       onDone={onDone}
@@ -84,6 +94,49 @@ function posted(save: ReturnType<typeof vi.fn<Save>>) {
   expect(save).toHaveBeenCalledTimes(1);
   return readDayEntries(save.mock.calls[0][0]);
 }
+
+it("starts from a handed-over session: its date, friends, tags and climb, then takes more climbs", async () => {
+  const user = userEvent.setup();
+  const save = vi.fn<Save>().mockResolvedValue({ ok: true, value: undefined });
+  const arete = {
+    id: 17,
+    areaId: 3,
+    name: "Cedar Arete",
+    type: "boulder" as const,
+    grade: 5,
+    brokenOn: null,
+  };
+  const seed: DaySeed = {
+    entryDate: "2026-09-08",
+    companions: [alex],
+    tags: ["cold"],
+    row: {
+      ...newDayLogRow({ ...arete, areaName: "Cedar Block" }, false, ["cold"]),
+      choice: "flash",
+    },
+  };
+  render(<Example save={save} seed={seed} />);
+
+  expect(screen.getByRole("button", { name: "Remove friend Alex Rivera" })).toBeInTheDocument();
+  const dayField = screen.getByRole("group", { name: "Day tags" });
+  expect(within(dayField).getByRole("button", { name: "Remove tag cold" })).toBeInTheDocument();
+  const first = screen.getByRole("listitem", { name: "Cedar Arete" });
+  expect(within(first).getByText("Flash · #cold")).toBeInTheDocument();
+
+  const crack = await pickClimb(user, CRACK);
+  expect(within(crack).getByRole("button", { name: "Remove tag cold" })).toBeInTheDocument();
+  await closeDialog(user, crack, "Add to day");
+  await user.click(screen.getByRole("button", { name: "Save 2 entries" }));
+
+  const { shared, entries } = posted(save);
+  expect(shared.get("entryDate")).toBe("2026-09-08");
+  expect(shared.getAll("companion")).toEqual(["alex"]);
+  expect(entries.map((entry) => [entry.get("climbId"), entry.getAll("tag")])).toEqual([
+    ["17", ["cold"]],
+    ["102", ["cold"]],
+  ]);
+  expect(entries[0].get("ascentStyle")).toBe("flash");
+});
 
 it("posts the day's date and friends once, outside every climb's fields", async () => {
   const user = userEvent.setup();

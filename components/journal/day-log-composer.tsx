@@ -15,6 +15,7 @@ import {
   hasTooManyTags,
   newDayLogRow,
   type DayLogRow,
+  type DaySeed,
 } from "@/components/journal/day-log-entry";
 import { JournalEntryDateFields } from "@/components/journal/journal-entry-date-fields";
 import { TagInput } from "@/components/journal/tag-input";
@@ -36,8 +37,12 @@ function entriesLabel(count: number) {
 
 /** Logging a day out: the date and tagged friends are set once and every
  * queued climb gets them. Tags can be set for the whole day, and each climb
- * keeps its own style, note, tags and, for a first ascent, videos. */
+ * keeps its own style, note, tags and, for a first ascent, videos.
+ *
+ * Opened from an outdoor session's Log additional climbs, it starts from that
+ * session (`seed`): its date, friends and tags, and its climb as the first. */
 export function DayLogComposer({
+  seed,
   sentClimbIds,
   onBack,
   onDone,
@@ -47,8 +52,10 @@ export function DayLogComposer({
   companionFetcher,
   today = localToday(),
 }: {
+  seed?: DaySeed;
   sentClimbIds?: Set<number>;
-  onBack: () => void;
+  /** Shown as Back above the title when there's somewhere to go back to. */
+  onBack?: () => void;
   onDone: () => void;
   onPendingChange?: (pending: boolean) => void;
   onSave?: (formData: FormData) => Promise<ActionResult>;
@@ -56,10 +63,10 @@ export function DayLogComposer({
   companionFetcher?: LookupFetcher<CompanionOption>;
   today?: string;
 }) {
-  const [entryDate, setEntryDate] = useState(today);
-  const [companions, setCompanions] = useState<CompanionOption[]>([]);
-  const [dayTags, setDayTags] = useState<string[]>([]);
-  const [rows, setRows] = useState<DayLogRow[]>([]);
+  const [entryDate, setEntryDate] = useState(seed?.entryDate ?? today);
+  const [companions, setCompanions] = useState<CompanionOption[]>(seed?.companions ?? []);
+  const [dayTags, setDayTags] = useState<string[]>(seed?.tags ?? []);
+  const [rows, setRows] = useState<DayLogRow[]>(seed ? [seed.row] : []);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const picker = useOverlayState();
@@ -137,16 +144,18 @@ export function DayLogComposer({
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <fieldset disabled={pending} className="contents">
           <div className="flex flex-col gap-3">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="self-start"
-              onPress={onBack}
-              isDisabled={pending}
-            >
-              <ArrowLeft aria-hidden className="size-4" />
-              Back
-            </Button>
+            {onBack && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="self-start"
+                onPress={onBack}
+                isDisabled={pending}
+              >
+                <ArrowLeft aria-hidden className="size-4" />
+                Back
+              </Button>
+            )}
             <PageTitle size="sm" className="text-foreground">
               Log a day
             </PageTitle>
