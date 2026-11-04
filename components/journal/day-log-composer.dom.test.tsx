@@ -55,6 +55,13 @@ async function addTag(user: UserEvent, field: HTMLElement, tag: string) {
   await user.type(field, `${tag}{Enter}`);
 }
 
+/** Links are pasted, as a climber would; typing one a key at a time costs
+ * about a second a link under CI's slower jsdom. */
+async function pasteInto(user: UserEvent, field: HTMLElement, text: string) {
+  await user.click(field);
+  await user.paste(text);
+}
+
 function posted(save: ReturnType<typeof vi.fn<Save>>) {
   expect(save).toHaveBeenCalledTimes(1);
   return readDayEntries(save.mock.calls[0][0]);
@@ -64,7 +71,7 @@ const CRACK = "Cedar Crack, North Woods / Upper Wall";
 const CORNER = "Cedar Corner, North Woods / Cedar Grove";
 const ARETE = "Cedar Arete, North Woods / Cedar Grove";
 
-it("posts the date and friends once and each climb's own style, note and videos", async () => {
+it("posts the day's date and friends once, outside every climb's fields", async () => {
   const user = userEvent.setup();
   const save = vi.fn<Save>().mockResolvedValue({ ok: true, value: undefined });
   const onDone = vi.fn<() => void>();
@@ -73,22 +80,34 @@ it("posts the date and friends once and each climb's own style, note and videos"
   const friends = screen.getByRole("group", { name: "Tagged friends" });
   await user.type(within(friends).getByRole("combobox"), "Alex");
   await user.click(await screen.findByRole("option", { name: "Alex Rivera" }));
+  await addClimb(user, CRACK);
+
+  await user.click(screen.getByRole("button", { name: "Save 1 entry" }));
+
+  const { shared, entries } = posted(save);
+  expect(shared.get("entryDate")).toBe("2026-09-12");
+  expect(shared.getAll("companion")).toEqual(["alex"]);
+  expect(Object.fromEntries(entries[0].entries())).toEqual({ climbId: "102", body: "" });
+  await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+});
+
+it("posts each climb's own style, note and videos", async () => {
+  const user = userEvent.setup();
+  const save = vi.fn<Save>().mockResolvedValue({ ok: true, value: undefined });
+  render(<Example save={save} />);
 
   const crack = await addClimb(user, CRACK);
   await user.click(within(crack).getByRole("radio", { name: "Redpoint" }));
   await user.type(within(crack).getByRole("textbox", { name: "Notes" }), "Finally.");
   await openDetails(user, crack);
-  await user.type(within(crack).getByRole("textbox", { name: /Video link/ }), VIDEO);
+  await pasteInto(user, within(crack).getByRole("textbox", { name: /Video link/ }), VIDEO);
 
   const arete = await addClimb(user, ARETE);
-  expect(within(arete).getByRole("radio", { name: "Repeat" })).toBeInTheDocument();
   await user.click(within(arete).getByRole("radio", { name: "Repeat" }));
 
   await user.click(screen.getByRole("button", { name: "Save 2 entries" }));
 
-  const { shared, entries } = posted(save);
-  expect(shared.get("entryDate")).toBe("2026-09-12");
-  expect(shared.getAll("companion")).toEqual(["alex"]);
+  const { entries } = posted(save);
   expect(Object.fromEntries(entries[0].entries())).toMatchObject({
     climbId: "102",
     sent: "true",
@@ -102,7 +121,6 @@ it("posts the date and friends once and each climb's own style, note and videos"
     sent: "true",
     body: "",
   });
-  await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
 });
 
 it("copies day tags onto every climb, lets one climb decline them and keeps its own tags", async () => {
@@ -145,7 +163,8 @@ it("flags a bad video link on its own climb and saves nothing", async () => {
   const crack = await addClimb(user, CRACK);
   await user.click(within(crack).getByRole("radio", { name: "Redpoint" }));
   await openDetails(user, crack);
-  await user.type(
+  await pasteInto(
+    user,
     within(crack).getByRole("textbox", { name: /Video link/ }),
     "https://example.com/x",
   );
@@ -165,7 +184,7 @@ it("leaves a climb's rating and videos out once it's switched back to a session"
   const crack = await addClimb(user, CRACK);
   await user.click(within(crack).getByRole("radio", { name: "Redpoint" }));
   await openDetails(user, crack);
-  await user.type(within(crack).getByRole("textbox", { name: /Video link/ }), VIDEO);
+  await pasteInto(user, within(crack).getByRole("textbox", { name: /Video link/ }), VIDEO);
   await user.click(within(crack).getByRole("radio", { name: "Session" }));
   expect(within(crack).queryByRole("textbox", { name: /Video link/ })).not.toBeInTheDocument();
 
