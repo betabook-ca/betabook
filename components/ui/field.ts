@@ -24,7 +24,11 @@ export const FIELD_WIDTH_CLASS = {
   short: "w-28 max-w-full min-w-0",
   medium: "w-44 max-w-full min-w-0",
   long: "w-96 max-w-full min-w-0",
+  /** The width of the form it sits in, as in the Log popup. */
+  full: "w-full min-w-0",
 } as const;
+
+export type FieldWidth = keyof typeof FIELD_WIDTH_CLASS;
 
 /** Shared label column; stack on phones so long controls retain usable space. */
 export const FILTER_ROW_CLASS =

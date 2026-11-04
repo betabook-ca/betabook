@@ -39,6 +39,21 @@ export type JournalEntryFieldsProps = {
   existingEntry?: JournalEntry;
   onDone?: () => void;
   onPendingChange?: (pending: boolean) => void;
+  /** What the previous climb's Save and add another carried over: a new entry
+   * starts on its date, with its friends and tags, and Add details open when
+   * there are any. */
+  carried?: CarriedEntry;
+  /** Save and add another: saves this new outdoor session as Save does, then
+   * hands over what the next climb starts with instead of finishing. Offered
+   * only when given. */
+  onSaveAndAddAnother?: (carried: CarriedEntry) => void;
+};
+
+/** What one climb passes to the next through Save and add another. */
+export type CarriedEntry = {
+  entryDate: string;
+  companions: CompanionOption[];
+  tags: string[];
 };
 
 // oxlint-disable-next-line complexity
@@ -52,13 +67,19 @@ export function JournalEntryFields({
   existingEntry,
   onDone,
   onPendingChange,
+  carried,
+  onSaveAndAddAnother,
 }: JournalEntryFieldsProps) {
-  const [entryDate, setEntryDate] = useState(existingEntry?.entryDate ?? today);
+  const [entryDate, setEntryDate] = useState(
+    existingEntry?.entryDate ?? carried?.entryDate ?? today,
+  );
   const [choice, setChoice] = useState<SendStyleChoice>("session");
   const [body, setBody] = useState(existingEntry?.body ?? "");
-  const [companions, setCompanions] = useState<CompanionOption[]>(existingEntry?.companions ?? []);
+  const [companions, setCompanions] = useState<CompanionOption[]>(
+    existingEntry?.companions ?? carried?.companions ?? [],
+  );
   const [companionsChanged, setCompanionsChanged] = useState(false);
-  const [tags, setTags] = useState<string[]>(existingEntry?.tags ?? []);
+  const [tags, setTags] = useState<string[]>(existingEntry?.tags ?? carried?.tags ?? []);
 
   const [rating, setRating] = useState<number | null>(null);
   const [suggestedGrade, setSuggestedGrade] = useState(String(climb?.grade ?? ""));
@@ -66,11 +87,10 @@ export function JournalEntryFields({
   const [videos, setVideos] = useState<string[]>([]);
   const [videoChecked, setVideoChecked] = useState(false);
 
-  // Open when the section already holds something to review; otherwise the
+  // Open when the section already holds something to review, whether an
+  // edited entry's or what the previous climb carried over; otherwise the
   // quick path stays date → sent → notes → save.
-  const [detailsExpanded, setDetailsExpanded] = useState(
-    (existingEntry?.companions?.length ?? 0) > 0 || (existingEntry?.tags.length ?? 0) > 0,
-  );
+  const [detailsExpanded, setDetailsExpanded] = useState(companions.length > 0 || tags.length > 0);
 
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -80,9 +100,17 @@ export function JournalEntryFields({
     choice === "session" || choice === "repeat" ? "redpoint" : choice;
   const isAscent = !existingEntry && sent && climb != null && !hasPriorSend;
   const isUndatedSend = isAscent && entryDate === "";
+  const canAddAnother = onSaveAndAddAnother !== undefined && climb != null && !existingEntry;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    save(false);
+  }
+
+  /** Saves the entry; with `addAnother`, hands what the next climb starts
+   * with to Save and add another instead of finishing. An undated send has no
+   * date to pass on, so the next climb starts today. */
+  function save(addAnother: boolean) {
     if (pending) return;
     setError(null);
     if (entryDate === "" && !isUndatedSend) {
@@ -134,6 +162,10 @@ export function JournalEntryFields({
         const result = await onSave(formData, isUndatedSend);
         if (!result.ok) {
           setError(result.error);
+          return;
+        }
+        if (addAnother && onSaveAndAddAnother) {
+          onSaveAndAddAnother({ entryDate: entryDate || today, companions, tags });
           return;
         }
         onDone?.();
@@ -210,7 +242,7 @@ export function JournalEntryFields({
           onExpandedChange={setDetailsExpanded}
         >
           {isAscent && <SendVideosField onChange={setVideos} checked={videoChecked} />}
-          <div className="flex flex-wrap items-start gap-4">
+          <div className="flex flex-col gap-4">
             <CompanionPicker
               value={companions}
               onChange={(value) => {
@@ -221,8 +253,9 @@ export function JournalEntryFields({
               disabled={pending}
               editing={!!existingEntry}
               fetcher={companionFetcher}
+              width="full"
             />
-            {!isUndatedSend && <TagInput value={tags} onChange={setTags} />}
+            {!isUndatedSend && <TagInput value={tags} onChange={setTags} width="full" />}
           </div>
 
           <p className="text-xs text-muted">
@@ -240,7 +273,12 @@ export function JournalEntryFields({
 
         {error && <InlineAlert>{error}</InlineAlert>}
 
-        <div className="flex justify-end border-t border-separator pt-4">
+        <div className="flex flex-wrap justify-end gap-2 border-t border-separator pt-4">
+          {canAddAnother && (
+            <Button variant="outline" isDisabled={pending} onPress={() => save(true)}>
+              Save and add another
+            </Button>
+          )}
           <Button type="submit" isDisabled={pending}>
             {existingEntry ? "Save changes" : isUndatedSend ? "Save send" : "Save entry"}
           </Button>

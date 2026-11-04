@@ -15,6 +15,7 @@ type Story = StoryObj;
 function DateExamples() {
   const [date, setDate] = useState("");
   const [clearable, setClearable] = useState("2026-09-01");
+  const [withWeekday, setWithWeekday] = useState("2026-11-04");
   return (
     <StoryPage title="Date field states">
       <DatePickerField
@@ -33,6 +34,14 @@ function DateExamples() {
         description="I don't know mirrors an empty value; typing a date unchecks it."
       />
       <DatePickerField label="Read-only date" value="2026-09-01" onChange={() => {}} isReadOnly />
+      <DatePickerField
+        label="Date with weekday"
+        value={withWeekday}
+        onChange={setWithWeekday}
+        max="2026-11-30"
+        description="As a journal entry's date: the day of the week follows the chosen date."
+        showWeekday
+      />
     </StoryPage>
   );
 }

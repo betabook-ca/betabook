@@ -4,7 +4,10 @@ import type { UseOverlayStateReturn } from "@heroui/react";
 import { useState } from "react";
 
 import { JournalEntryComposer } from "@/components/journal/journal-entry-composer";
-import type { JournalEntryFieldsProps } from "@/components/journal/journal-entry-fields";
+import type {
+  CarriedEntry,
+  JournalEntryFieldsProps,
+} from "@/components/journal/journal-entry-fields";
 import { JournalEntryForm } from "@/components/journal/journal-entry-form";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { PageTitle } from "@/components/ui/typography";
@@ -19,7 +22,10 @@ type JournalEntryDrawerProps = {
 
 /** Logging an entry. This is the overlay opened most often, usually from a
  * phone, so it's a sheet there — the form stays near the thumb and resizes
- * against the keyboard. On desktop it centers like every other dialog. */
+ * against the keyboard. On desktop it centers like every other dialog.
+ *
+ * Opened on a climb, its Save and add another saves that climb and moves on
+ * to Choose a climb for the next one, as the Log button's composer does. */
 export function JournalEntryDrawer({
   climb,
   sentClimbIds,
@@ -32,6 +38,8 @@ export function JournalEntryDrawer({
   // sheet caps after about two results. Only the presentation changes, so
   // the picker keeps its query and results across the switch.
   const [browsing, setBrowsing] = useState(false);
+  // Set once the climb page's own climb is saved with Save and add another.
+  const [carried, setCarried] = useState<CarriedEntry | null>(null);
   return (
     <ResponsiveDialog
       state={state}
@@ -39,9 +47,12 @@ export function JournalEntryDrawer({
       hideTitle
       isPending={pending}
       presentation={browsing ? "fullscreen" : "sheet"}
-      onClose={() => setBrowsing(false)}
+      onClose={() => {
+        setBrowsing(false);
+        setCarried(null);
+      }}
     >
-      {climb ? (
+      {climb && !carried ? (
         <>
           <PageTitle size="sm" className="mb-3 text-foreground">
             {climb.name}
@@ -53,6 +64,10 @@ export function JournalEntryDrawer({
             climb={climb}
             hasPriorSend={sentClimbIds?.has(climb.id) ?? false}
             onDone={state.close}
+            onSaveAndAddAnother={(next) => {
+              setCarried(next);
+              setBrowsing(true);
+            }}
           />
         </>
       ) : (
@@ -62,6 +77,7 @@ export function JournalEntryDrawer({
           onDone={state.close}
           onPendingChange={setPending}
           onBrowseChange={setBrowsing}
+          carried={carried ?? undefined}
         />
       )}
     </ResponsiveDialog>

@@ -27,7 +27,7 @@ export const searchAreaFetcher = async (query: string) =>
   );
 
 /** Replaces only the network. Debounce, stale protection, retry, and pagination run in the production hook. */
-function createSearchFixtureFetcher({
+export function createSearchFixtureFetcher({
   failKind,
   failPage = false,
   publicOnly = false,

@@ -34,6 +34,19 @@ for (const story of ["training", "climb", "send", "repeat"]) {
       expect(visibleAction.y).toBeGreaterThanOrEqual(0);
       expect(visibleAction.y + visibleAction.height).toBeLessThanOrEqual(viewport.height);
       await expect(save).toBeVisible();
+
+      // An outdoor session also offers Save and add another: on the same row,
+      // just left of Save, even at phone width.
+      const more = dialog.getByRole("button", { name: "Save and add another" });
+      if (story === "training") {
+        await expect(more).toHaveCount(0);
+        return;
+      }
+      const secondary = await more.boundingBox();
+      if (!secondary) throw new Error("Expected Save and add another");
+      expect(Math.abs(secondary.y - visibleAction.y)).toBeLessThanOrEqual(1);
+      expect(secondary.x + secondary.width).toBeLessThanOrEqual(visibleAction.x);
+      expect(secondary.x).toBeGreaterThanOrEqual(form.x);
     },
   );
 }

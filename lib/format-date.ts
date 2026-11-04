@@ -21,6 +21,16 @@ export function formatDate(isoDate: string | null | undefined): string {
   return DATE_FORMAT.format(parsed);
 }
 
+const WEEKDAY_FORMAT = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "UTC" });
+
+/** "2026-11-04" → "Wed", through UTC like `formatDate` so the day never
+ * shifts with the viewer's timezone. Null for an empty or impossible date. */
+export function formatWeekday(isoDate: string): string | null {
+  const parsed = new Date(isoDate);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== isoDate) return null;
+  return WEEKDAY_FORMAT.format(parsed);
+}
+
 const MONTH_FORMAT = new Intl.DateTimeFormat("en-US", {
   month: "short",
   year: "numeric",

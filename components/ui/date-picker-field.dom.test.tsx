@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { expect, it, vi } from "vitest";
 
 import { DatePickerField } from "./date-picker-field";
@@ -78,4 +79,36 @@ it("disables both date entry and the unknown-date control while saving", async (
   expect(day).toHaveTextContent("02");
   expect(change).not.toHaveBeenCalled();
   expect(unknown).not.toHaveBeenCalled();
+});
+
+function DayOfWeek({ initial }: { initial: string }) {
+  const [value, setValue] = useState(initial);
+  return <DatePickerField label="Date" value={value} onChange={setValue} showWeekday />;
+}
+
+it("shows the chosen date's day of the week after it, and follows a new pick", async () => {
+  const user = userEvent.setup();
+  render(<DayOfWeek initial="2026-11-04" />);
+  const group = screen.getByRole("group", { name: "Date" });
+  expect(group).toHaveTextContent("(Wed)");
+
+  await user.click(screen.getByRole("button", { name: "Calendar Date" }));
+  await user.click(screen.getByRole("button", { name: /Sunday, November 1, 2026/ }));
+
+  expect(group).toHaveTextContent("(Sun)");
+  expect(group).not.toHaveTextContent("(Wed)");
+});
+
+it("exposes the day of the week to assistive tech, which the date segments don't announce", () => {
+  render(<DayOfWeek initial="2026-11-04" />);
+  const weekday = screen.getByText("(Wed)");
+  expect(weekday.closest("[aria-hidden='true']")).toBeNull();
+  expect(screen.getByRole("group", { name: "Date" })).toContainElement(weekday);
+});
+
+it("shows no day of the week without a date, or unless asked", () => {
+  const view = render(<DayOfWeek initial="" />);
+  expect(screen.getByRole("group", { name: "Date" })).not.toHaveTextContent(/\(\w{3}\)/);
+  view.rerender(<DatePickerField label="Date" value="2026-11-04" onChange={() => {}} />);
+  expect(screen.getByRole("group", { name: "Date" })).not.toHaveTextContent("(Wed)");
 });

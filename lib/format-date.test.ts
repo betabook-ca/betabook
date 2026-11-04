@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import { daysBetween, describeDaysAgo, formatDate, localToday } from "./format-date";
+import { daysBetween, describeDaysAgo, formatDate, formatWeekday, localToday } from "./format-date";
+
+describe("formatWeekday", () => {
+  it("names the civil date's day of the week, whatever the viewer's timezone", () => {
+    expect(formatWeekday("2026-11-04")).toBe("Wed");
+    expect(formatWeekday("2026-11-01")).toBe("Sun");
+    expect(formatWeekday("2024-02-29")).toBe("Thu");
+  });
+
+  it("has nothing to say about a missing or unreadable date", () => {
+    expect(formatWeekday("")).toBeNull();
+    expect(formatWeekday("2026-13-40")).toBeNull();
+  });
+});
 
 describe("localToday", () => {
   it("formats the civil date in the runtime's own timezone", () => {

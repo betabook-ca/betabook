@@ -42,6 +42,7 @@ export function JournalEntryDateFields({
         label="Date"
         value={entryDate}
         max={max}
+        showWeekday
         description={
           brokenOn
             ? `This climb broke on ${brokenOn}; only earlier dates can be logged.`

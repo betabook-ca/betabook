@@ -16,10 +16,11 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
     {
       id: "journal",
       introducedInVersion: 1,
+      updatedInVersion: 7,
       section: "Journal",
       title: "Start in Journal",
       description:
-        "Open Logbook from the sidebar or bottom tabs for Journal and Sends. Use Log for outdoor sessions, sends, repeats, and training. Tag friends under Add details to record who joined you. Each friend logs their own activity.",
+        "Open Logbook from the sidebar or bottom tabs for Journal and Sends. Use Log for outdoor sessions, sends, repeats, and training. Tag friends under Add details to record who joined you. Each friend logs their own activity. Back from a day out? Save and add another saves the climb and takes you to the next, starting on the same date with the same friends and tags.",
       target: "journal-log",
     },
     {

@@ -1,5 +1,6 @@
 "use client";
 
+import type { FieldWidth } from "@/components/ui/field";
 import { TagsField } from "@/components/ui/tags-field";
 import { isValidJournalTag, MAX_JOURNAL_TAGS, MAX_JOURNAL_TAG_LENGTH } from "@/lib/journal";
 
@@ -13,6 +14,7 @@ export function TagInput({
   availableTags,
   showExamples = true,
   onTagSelected,
+  width,
 }: {
   value: string[];
   onChange: (value: string[]) => void;
@@ -23,6 +25,7 @@ export function TagInput({
   availableTags?: string[];
   showExamples?: boolean;
   onTagSelected?: () => void;
+  width?: FieldWidth;
 }) {
   return (
     <TagsField
@@ -37,6 +40,7 @@ export function TagInput({
       tags={availableTags}
       showExamples={showExamples}
       onTagSelected={onTagSelected}
+      width={width}
       validateTag={(tag) =>
         !isValidJournalTag(tag)
           ? "Tags can only contain letters, numbers and hyphens."
