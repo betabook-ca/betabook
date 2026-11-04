@@ -65,6 +65,7 @@ export function CompanionPicker({
         emptyMessage="No friends match."
         errorMessage="Couldn’t load friends. Your selections are kept."
         label="Find a friend to tag"
+        width={width}
         labelSuffix={
           <HelpTooltip label="About tagged friends">
             {help}

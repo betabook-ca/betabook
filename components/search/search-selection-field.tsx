@@ -4,7 +4,7 @@ import { Button, ComboBox, Input, Label, ListBox } from "@heroui/react";
 import type { ReactNode } from "react";
 import { ButtonContext } from "react-aria-components";
 
-import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
+import { FIELD_WIDTH_CLASS, type FieldWidth } from "@/components/ui/field";
 import { FieldHeader, FieldFeedback, type FieldUsage } from "@/components/ui/field-support";
 
 import { SearchResultContent } from "./search-results";
@@ -31,7 +31,10 @@ export function SearchSelectionField({
   emptyMessage = "No matches.",
   errorMessage,
   validationError,
+  width = "long",
 }: {
+  /** `long` unless given; `full` fills the form it sits in. */
+  width?: FieldWidth;
   usage?: FieldUsage;
   helper?: string;
   emptyMessage?: string;
@@ -53,7 +56,7 @@ export function SearchSelectionField({
   onRetry: () => void;
 }) {
   return (
-    <div className={`${FIELD_WIDTH_CLASS.long} flex flex-col gap-2`}>
+    <div className={`${FIELD_WIDTH_CLASS[width]} flex flex-col gap-2`}>
       <ComboBox
         aria-label={hideLabel ? label : undefined}
         isInvalid={isInvalid || status === "error"}
