@@ -100,6 +100,7 @@ export function DayLogComposer({
   const details = useOverlayState();
   const addClimbRef = useRef<HTMLButtonElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (focusOnOpen) titleRef.current?.focus({ preventScroll: true });
@@ -107,14 +108,14 @@ export function DayLogComposer({
 
   /** Returns focus to the day once its dialogs are done with it. A dialog
    * hands focus back to whatever opened it, but a picked result is gone by
-   * then. This runs after the exit animation, so it only steps in when focus
-   * was actually lost: a climber who has already moved on keeps their place. */
+   * then, and focus falls to the page or to the Log dialog's own container.
+   * This runs after the exit animation, so it only steps in when focus isn't
+   * on anything in the day: a climber who has already moved to one of its
+   * fields keeps their place. */
   function settleFocus() {
     if (picker.isOpen || details.isOpen) return;
     const active = document.activeElement;
-    if (active === null || active === document.body || !active.isConnected) {
-      addClimbRef.current?.focus();
-    }
+    if (!active || !formRef.current?.contains(active)) addClimbRef.current?.focus();
   }
   // The climb open in its dialog: a new pick (index null) or a queued climb.
   // `key` restarts the dialog's copy from `row` each time it opens.
@@ -169,7 +170,7 @@ export function DayLogComposer({
   const full = rows.length >= MAX_DAY_ENTRIES;
   return (
     <>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-5">
         <fieldset disabled={pending} className="contents">
           <div ref={titleRef} tabIndex={-1} className="flex flex-col gap-3 outline-none">
             {onBack && (

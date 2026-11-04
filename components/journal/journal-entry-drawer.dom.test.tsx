@@ -59,6 +59,10 @@ it("turns an outdoor session into a day with Log additional climbs, saved as one
   await user.click(screen.getByRole("button", { name: "Add climb" }));
   const picker = await screen.findByRole("dialog", { name: "Add a climb" });
   await user.click(within(picker).getByRole("button", { name: "Close" }));
+  // On a slow device the Log dialog catches the focus the picker gave up and
+  // holds it on its own container. Put it there directly (no user action
+  // reaches that state) so the test doesn't depend on timing.
+  screen.getByRole("dialog", { name: "Log entry", hidden: true }).focus();
   await waitFor(() => expect(picker).not.toBeInTheDocument());
   // Focus returns once the picker's exit has settled (ResponsiveDialog waits
   // 300ms for it), which under the full suite's load can outlast the default
