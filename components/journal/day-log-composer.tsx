@@ -10,9 +10,9 @@ import { CompanionPicker } from "@/components/journal/companion-picker";
 import {
   brokeBy,
   dayLogRowForm,
-  DayLogEntry,
+  DayLogEntryDialog,
+  DayLogEntrySummary,
   hasTooManyTags,
-  isDayLogAscent,
   newDayLogRow,
   type DayLogRow,
 } from "@/components/journal/day-log-entry";
@@ -25,9 +25,8 @@ import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
 import { localToday } from "@/lib/format-date";
 import type { CompanionOption } from "@/lib/journal-companions";
-import { appendDayEntry, applyDayTags, MAX_DAY_ENTRIES, retagDayEntry } from "@/lib/journal-day";
+import { appendDayEntry, applyDayTags, MAX_DAY_ENTRIES } from "@/lib/journal-day";
 import type { SearchFetcher } from "@/lib/search";
-import { sendVideoLinksError } from "@/lib/send-video";
 
 const QUEUED = "Already in this day";
 
@@ -64,9 +63,18 @@ export function DayLogComposer({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const picker = useOverlayState();
+  const details = useOverlayState();
+  // The climb open in its dialog: a new pick (index null) or a queued climb.
+  // `key` restarts the dialog's copy from `row` each time it opens.
+  const [editing, setEditing] = useState<{
+    index: number | null;
+    row: DayLogRow;
+    key: number;
+  } | null>(null);
 
-  function updateRow(index: number, update: (row: DayLogRow) => DayLogRow) {
-    setRows((current) => current.map((row, at) => (at === index ? update(row) : row)));
+  function openClimb(index: number | null, row: DayLogRow) {
+    setEditing((current) => ({ index, row, key: (current?.key ?? 0) + 1 }));
+    details.open();
   }
 
   function changeDayTags(next: string[]) {
@@ -90,16 +98,11 @@ export function DayLogComposer({
       setError("A climb broke before this date. Pick an earlier date or remove it.");
       return;
     }
-    // Each climb's fields, opened if need be, show the reason.
-    const blocked = rows.map(
-      (row) => hasTooManyTags(row) || (isDayLogAscent(row) && !!sendVideoLinksError(row.videos)),
-    );
-    if (blocked.some(Boolean)) {
-      setRows((current) =>
-        current.map((row, index) =>
-          blocked[index] ? { ...row, videoChecked: true, detailsExpanded: true } : row,
-        ),
-      );
+    // A climb's own dialog refuses bad links and too many tags, but tags
+    // added to the whole day afterwards can still push one over.
+    const overTagged = rows.find(hasTooManyTags);
+    if (overTagged) {
+      setError(`${overTagged.climb.name} has too many tags. Edit it to remove some.`);
       return;
     }
 
@@ -171,24 +174,21 @@ export function DayLogComposer({
             <div role="group" aria-label="Day tags" className="flex flex-col gap-1">
               <TagInput label="Tags for every climb" value={dayTags} onChange={changeDayTags} />
               <p className="text-xs text-muted">
-                Take one off a climb below to leave it off just that climb.
+                Edit a climb below to leave one off just that climb.
               </p>
             </div>
           </FormSection>
 
           <FormSection label={`Climbs (${rows.length})`}>
             {rows.length > 0 && (
-              <ul role="list" className="flex flex-col gap-3">
+              <ul role="list" className="flex flex-col gap-2">
                 {rows.map((row, index) => (
-                  <DayLogEntry
+                  <DayLogEntrySummary
                     key={row.climb.id}
                     row={row}
                     entryDate={entryDate}
                     disabled={pending}
-                    onChange={(patch) => updateRow(index, (current) => ({ ...current, ...patch }))}
-                    onTagsChange={(tags) =>
-                      updateRow(index, (current) => retagDayEntry(current, dayTags, tags))
-                    }
+                    onEdit={() => openClimb(index, row)}
                     onRemove={() => setRows((current) => current.filter((_, at) => at !== index))}
                   />
                 ))}
@@ -225,10 +225,22 @@ export function DayLogComposer({
         sentClimbIds={sentClimbIds}
         disabledClimbIds={new Map(rows.map((row) => [row.climb.id, QUEUED]))}
         fetcher={climbFetcher}
-        onPick={(climb, context) => {
-          setRows((current) => [...current, newDayLogRow(climb, context.sent, dayTags)]);
+        onPick={(climb, context) => openClimb(null, newDayLogRow(climb, context.sent, dayTags))}
+      />
+      <DayLogEntryDialog
+        openKey={editing?.key ?? 0}
+        state={details}
+        initial={editing?.row ?? null}
+        adding={editing?.index === null}
+        dayTags={dayTags}
+        entryDate={entryDate}
+        onSave={(row) => {
+          const index = editing?.index ?? null;
+          setRows((current) =>
+            index === null ? [...current, row] : current.map((at, i) => (i === index ? row : at)),
+          );
           // An error from the last save attempt may have been about this
-          // list; a new climb changes it, so the next save re-checks.
+          // list; the climb changed it, so the next save re-checks.
           setError(null);
         }}
       />

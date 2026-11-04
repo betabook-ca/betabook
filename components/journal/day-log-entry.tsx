@@ -1,7 +1,8 @@
 "use client";
 
-import { Button, Label, TextArea, TextField } from "@heroui/react";
+import { Button, Label, TextArea, TextField, type UseOverlayStateReturn } from "@heroui/react";
 import { X } from "lucide-react";
+import { useState } from "react";
 
 import { TagInput } from "@/components/journal/tag-input";
 import {
@@ -12,7 +13,6 @@ import {
   SuggestedGradeField,
   type SendStyleChoice,
 } from "@/components/send-fields";
-import { DetailsDisclosure } from "@/components/ui/details-disclosure";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { FieldHeader } from "@/components/ui/field-support";
 import { Grade } from "@/components/ui/grade";
@@ -20,10 +20,12 @@ import { GradeLabel } from "@/components/ui/grade-label";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { RatingField } from "@/components/ui/rating-field";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { ClimbWithAreaName } from "@/db/queries";
 import { MAX_JOURNAL_BODY_LENGTH, MAX_JOURNAL_TAGS } from "@/lib/journal";
-import type { DayEntryTags } from "@/lib/journal-day";
-import type { GradeFeel } from "@/lib/sends";
+import { retagDayEntry, type DayEntryTags } from "@/lib/journal-day";
+import { sendVideoLinksError } from "@/lib/send-video";
+import { ASCENT_STYLE_LABELS, type GradeFeel } from "@/lib/sends";
 
 /** One climb queued in a day: everything its single-entry form would hold
  * except the date and tagged friends, which belong to the day. */
@@ -36,9 +38,6 @@ export type DayLogRow = DayEntryTags & {
   suggestedGrade: string;
   gradeFeel: GradeFeel;
   videos: string[];
-  /** Set once a save was refused over one of this climb's video links. */
-  videoChecked: boolean;
-  detailsExpanded: boolean;
 };
 
 export function newDayLogRow(
@@ -57,13 +56,11 @@ export function newDayLogRow(
     suggestedGrade: String(climb.grade ?? ""),
     gradeFeel: "solid",
     videos: [],
-    videoChecked: false,
-    detailsExpanded: false,
   };
 }
 
 /** A first ascent: only it carries a style, rating, grade and videos. */
-export function isDayLogAscent(row: DayLogRow): boolean {
+function isDayLogAscent(row: DayLogRow): boolean {
   return row.choice !== "session" && row.choice !== "repeat" && !row.hasPriorSend;
 }
 
@@ -74,6 +71,10 @@ export function brokeBy(row: DayLogRow, entryDate: string): boolean {
 
 export function hasTooManyTags(row: DayLogRow): boolean {
   return row.tags.length > MAX_JOURNAL_TAGS;
+}
+
+function tooManyTagsMessage(row: DayLogRow) {
+  return `${row.tags.length} tags — the limit is ${MAX_JOURNAL_TAGS}.`;
 }
 
 /** The fields the single-climb form would post for this climb, less the date
@@ -94,42 +95,69 @@ export function dayLogRowForm(row: DayLogRow): FormData {
   return form;
 }
 
-export function DayLogEntry({
+const STYLE_LABELS: Record<SendStyleChoice, string> = {
+  session: "Session",
+  repeat: "Repeat",
+  ...ASCENT_STYLE_LABELS,
+};
+
+function ClimbHeading({ climb }: { climb: ClimbWithAreaName }) {
+  return (
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <span className="text-xs text-muted">{climb.areaName}</span>
+      <DisciplineChip type={climb.type} />
+      <Grade>
+        <GradeLabel type={climb.type} grade={climb.grade} />
+      </Grade>
+    </div>
+  );
+}
+
+/** A queued climb as one line of the day, with what it will save. Its fields
+ * are edited in DayLogEntryDialog. */
+export function DayLogEntrySummary({
   row,
   entryDate,
   disabled,
-  onChange,
-  onTagsChange,
+  onEdit,
   onRemove,
 }: {
   row: DayLogRow;
   entryDate: string;
   disabled: boolean;
-  onChange: (patch: Partial<DayLogRow>) => void;
-  onTagsChange: (tags: string[]) => void;
+  onEdit: () => void;
   onRemove: () => void;
 }) {
   const { climb } = row;
-  const ascent = isDayLogAscent(row);
+  const videos = isDayLogAscent(row) ? row.videos.filter((link) => link.trim()).length : 0;
+  const details = [
+    STYLE_LABELS[row.choice],
+    ...row.tags.map((tag) => `#${tag}`),
+    ...(videos ? [`${videos} ${videos === 1 ? "video" : "videos"}`] : []),
+  ];
 
   return (
-    // A border rather than a filled card: the fields inside, tag chips most of
-    // all, are drawn for the dialog's own surface and vanish on a filled one.
-    // `border` rather than `separator`, which all but disappears in dark mode.
+    // A border rather than a filled card, which `border-separator` all but
+    // loses in dark mode.
     <li
       aria-label={climb.name}
-      className="flex flex-col gap-3 rounded-panel border border-border p-4"
+      className="flex flex-col gap-2 rounded-panel border border-border p-3"
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
+        <div className="flex min-w-0 flex-col gap-1">
           <p className="font-medium text-foreground">{climb.name}</p>
-          <p className="text-xs text-muted">{climb.areaName}</p>
+          <ClimbHeading climb={climb} />
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <DisciplineChip type={climb.type} />
-          <Grade>
-            <GradeLabel type={climb.type} grade={climb.grade} />
-          </Grade>
+        <div className="flex shrink-0 items-center gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            aria-label={`Edit ${climb.name}`}
+            isDisabled={disabled}
+            onPress={onEdit}
+          >
+            Edit
+          </Button>
           <Button
             size="sm"
             variant="ghost"
@@ -142,74 +170,168 @@ export function DayLogEntry({
           </Button>
         </div>
       </div>
-
-      <SendStylePicker
-        climbType={climb.type}
-        value={row.choice}
-        onChange={(choice) => onChange({ choice })}
-        hasPriorSend={row.hasPriorSend}
-      />
-
+      <p className="text-sm text-foreground">{details.join(" · ")}</p>
+      {row.body && <p className="line-clamp-2 text-sm text-muted">{row.body}</p>}
       {brokeBy(row, entryDate) && (
         <InlineAlert>
           {`This climb broke on ${climb.brokenOn}. Pick an earlier date or remove it.`}
         </InlineAlert>
       )}
+      {hasTooManyTags(row) && (
+        <InlineAlert>{`${tooManyTagsMessage(row)} Edit this climb to remove some.`}</InlineAlert>
+      )}
+    </li>
+  );
+}
 
-      {ascent && (
-        <div className="flex flex-col gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <RatingField value={row.rating} onValueChange={(rating) => onChange({ rating })} />
-            <SuggestedGradeField
-              climbType={climb.type}
-              value={row.suggestedGrade}
-              onChange={(suggestedGrade) => onChange({ suggestedGrade })}
+/** One climb's own fields for the day — style, rating and grade for a first
+ * ascent, notes, videos and tags — in a dialog over the day form. Works on a
+ * copy: `onSave` receives it, and closing without saving leaves the day as it
+ * was.
+ *
+ * The dialog itself stays mounted and only its contents restart per opening
+ * (`openKey`): remounting the whole modal for each climb left focus on the
+ * page body once it closed, rather than on the Edit button that opened it. */
+export function DayLogEntryDialog({
+  state,
+  openKey,
+  initial,
+  adding,
+  dayTags,
+  entryDate,
+  onSave,
+}: {
+  state: UseOverlayStateReturn;
+  /** Changes each time a climb is opened, so the copy starts again from `initial`. */
+  openKey: number;
+  initial: DayLogRow | null;
+  /** A climb just picked, not yet in the day. */
+  adding: boolean;
+  dayTags: readonly string[];
+  entryDate: string;
+  onSave: (row: DayLogRow) => void;
+}) {
+  const [openedKey, setOpenedKey] = useState(openKey);
+  const [draft, setDraft] = useState(initial);
+  const [videoChecked, setVideoChecked] = useState(false);
+  const [tagError, setTagError] = useState(false);
+  if (openKey !== openedKey) {
+    setOpenedKey(openKey);
+    setDraft(initial);
+    setVideoChecked(false);
+    setTagError(false);
+  }
+
+  function change(patch: Partial<DayLogRow>) {
+    setDraft((current) => (current ? { ...current, ...patch } : current));
+  }
+
+  function save() {
+    if (!draft) return;
+    const ascent = isDayLogAscent(draft);
+    // Each field shows why; nothing else needs saying.
+    const badVideos = ascent && sendVideoLinksError(draft.videos) !== null;
+    setVideoChecked(badVideos);
+    setTagError(hasTooManyTags(draft));
+    if (badVideos || hasTooManyTags(draft)) return;
+    onSave(draft);
+    state.close();
+  }
+
+  const climb = draft?.climb;
+  const ascent = draft ? isDayLogAscent(draft) : false;
+  return (
+    <ResponsiveDialog
+      state={state}
+      title={climb?.name ?? "Climb"}
+      presentation="fullscreen"
+      footer={
+        <div className="flex justify-end">
+          <Button onPress={save}>{adding ? "Add to day" : "Save climb"}</Button>
+        </div>
+      }
+    >
+      {draft && climb && (
+        // Keyed so fields holding their own state (video rows, a half-typed
+        // tag) start again for each climb.
+        <div key={openKey} className="flex flex-col gap-4">
+          <ClimbHeading climb={climb} />
+
+          <SendStylePicker
+            climbType={climb.type}
+            value={draft.choice}
+            onChange={(choice) => change({ choice })}
+            hasPriorSend={draft.hasPriorSend}
+          />
+
+          {brokeBy(draft, entryDate) && (
+            <InlineAlert>
+              {`This climb broke on ${climb.brokenOn}. Pick an earlier date for the day or leave it out.`}
+            </InlineAlert>
+          )}
+
+          {ascent && (
+            <div className="flex flex-col gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <RatingField value={draft.rating} onValueChange={(rating) => change({ rating })} />
+                <SuggestedGradeField
+                  climbType={climb.type}
+                  value={draft.suggestedGrade}
+                  onChange={(suggestedGrade) => change({ suggestedGrade })}
+                />
+              </div>
+              <GradeFeelField
+                value={draft.gradeFeel}
+                onChange={(gradeFeel) => change({ gradeFeel })}
+              />
+            </div>
+          )}
+
+          <TextField
+            className="w-full min-w-0"
+            value={draft.body}
+            onChange={(body) => change({ body })}
+          >
+            <FieldHeader
+              usage={{
+                used: draft.body.length,
+                limit: MAX_JOURNAL_BODY_LENGTH,
+                unit: "characters",
+              }}
+            >
+              <Label>Notes</Label>
+              {ascent && (
+                <HelpTooltip label="About Send commentary">
+                  Uses your Send commentary audience wherever this note appears.
+                </HelpTooltip>
+              )}
+            </FieldHeader>
+            <TextArea
+              maxLength={MAX_JOURNAL_BODY_LENGTH}
+              placeholder="Conditions, beta, how it felt…"
             />
-          </div>
-          <GradeFeelField value={row.gradeFeel} onChange={(gradeFeel) => onChange({ gradeFeel })} />
+          </TextField>
+
+          {ascent && (
+            <SendVideosField
+              initialLinks={draft.videos}
+              onChange={(videos) => change({ videos })}
+              checked={videoChecked}
+            />
+          )}
+
+          <TagInput
+            value={draft.tags}
+            onChange={(tags) => {
+              setTagError(false);
+              setDraft((current) => (current ? retagDayEntry(current, dayTags, tags) : current));
+            }}
+          />
+          {tagError && hasTooManyTags(draft) && (
+            <InlineAlert>{`${tooManyTagsMessage(draft)} Remove some to save.`}</InlineAlert>
+          )}
         </div>
       )}
-
-      <TextField
-        className="w-full min-w-0"
-        value={row.body}
-        onChange={(body) => onChange({ body })}
-      >
-        <FieldHeader
-          usage={{ used: row.body.length, limit: MAX_JOURNAL_BODY_LENGTH, unit: "characters" }}
-        >
-          <Label>Notes</Label>
-          {ascent && (
-            <HelpTooltip label="About Send commentary">
-              Uses your Send commentary audience wherever this note appears.
-            </HelpTooltip>
-          )}
-        </FieldHeader>
-        <TextArea
-          maxLength={MAX_JOURNAL_BODY_LENGTH}
-          placeholder="Conditions, beta, how it felt…"
-        />
-      </TextField>
-
-      <DetailsDisclosure
-        title="Add details"
-        isExpanded={row.detailsExpanded}
-        onExpandedChange={(detailsExpanded) => onChange({ detailsExpanded })}
-      >
-        {ascent && (
-          <SendVideosField
-            initialLinks={row.videos}
-            onChange={(videos) => onChange({ videos })}
-            checked={row.videoChecked}
-          />
-        )}
-        <TagInput value={row.tags} onChange={onTagsChange} />
-        {hasTooManyTags(row) && (
-          <InlineAlert>
-            {`${row.tags.length} tags — the limit is ${MAX_JOURNAL_TAGS}. Remove some from this climb.`}
-          </InlineAlert>
-        )}
-      </DetailsDisclosure>
-    </li>
+    </ResponsiveDialog>
   );
 }

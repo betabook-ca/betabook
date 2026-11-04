@@ -36,19 +36,37 @@ function Example({ save, onDone = noop }: { save: Save; onDone?: () => void }) {
   );
 }
 
-async function addClimb(user: UserEvent, name: string) {
-  await openPicker(user);
-  await user.click(await screen.findByRole("button", { name: `Choose ${name}` }));
-  return screen.getByRole("listitem", { name: name.split(",")[0] });
-}
+const CRACK = "Cedar Crack, North Woods / Upper Wall";
+const CORNER = "Cedar Corner, North Woods / Cedar Grove";
+const ARETE = "Cedar Arete, North Woods / Cedar Grove";
+const short = (result: string) => result.split(",")[0];
 
 async function openPicker(user: UserEvent) {
   await user.click(screen.getByRole("button", { name: "Add climb" }));
   await user.type(screen.getByRole("searchbox", { name: "Choose a climb" }), "cedar");
 }
 
-async function openDetails(user: UserEvent, row: HTMLElement) {
-  await user.click(within(row).getByRole("button", { name: "Add details" }));
+/** Picks a climb and returns its dialog, not yet added to the day. */
+async function pickClimb(user: UserEvent, result: string) {
+  await openPicker(user);
+  await user.click(await screen.findByRole("button", { name: `Choose ${result}` }));
+  return screen.findByRole("dialog", { name: short(result) });
+}
+
+async function closeDialog(user: UserEvent, dialog: HTMLElement, button: string) {
+  await user.click(within(dialog).getByRole("button", { name: button }));
+  await waitFor(() => expect(dialog).not.toBeInTheDocument());
+}
+
+/** Picks a climb and adds it as it comes, returning its line in the day. */
+async function addClimb(user: UserEvent, result: string) {
+  await closeDialog(user, await pickClimb(user, result), "Add to day");
+  return screen.getByRole("listitem", { name: short(result) });
+}
+
+async function editClimb(user: UserEvent, name: string) {
+  await user.click(screen.getByRole("button", { name: `Edit ${name}` }));
+  return screen.findByRole("dialog", { name });
 }
 
 async function addTag(user: UserEvent, field: HTMLElement, tag: string) {
@@ -66,10 +84,6 @@ function posted(save: ReturnType<typeof vi.fn<Save>>) {
   expect(save).toHaveBeenCalledTimes(1);
   return readDayEntries(save.mock.calls[0][0]);
 }
-
-const CRACK = "Cedar Crack, North Woods / Upper Wall";
-const CORNER = "Cedar Corner, North Woods / Cedar Grove";
-const ARETE = "Cedar Arete, North Woods / Cedar Grove";
 
 it("posts the day's date and friends once, outside every climb's fields", async () => {
   const user = userEvent.setup();
@@ -91,19 +105,23 @@ it("posts the day's date and friends once, outside every climb's fields", async 
   await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
 });
 
-it("posts each climb's own style, note and videos", async () => {
+it("sets each climb's style, note and videos in its own dialog and posts them", async () => {
   const user = userEvent.setup();
   const save = vi.fn<Save>().mockResolvedValue({ ok: true, value: undefined });
   render(<Example save={save} />);
 
-  const crack = await addClimb(user, CRACK);
+  const crack = await pickClimb(user, CRACK);
   await user.click(within(crack).getByRole("radio", { name: "Redpoint" }));
   await user.type(within(crack).getByRole("textbox", { name: "Notes" }), "Finally.");
-  await openDetails(user, crack);
   await pasteInto(user, within(crack).getByRole("textbox", { name: /Video link/ }), VIDEO);
+  await closeDialog(user, crack, "Add to day");
+  const line = screen.getByRole("listitem", { name: "Cedar Crack" });
+  expect(within(line).getByText("Redpoint · 1 video")).toBeInTheDocument();
+  expect(within(line).getByText("Finally.")).toBeInTheDocument();
 
-  const arete = await addClimb(user, ARETE);
+  const arete = await pickClimb(user, ARETE);
   await user.click(within(arete).getByRole("radio", { name: "Repeat" }));
+  await closeDialog(user, arete, "Add to day");
 
   await user.click(screen.getByRole("button", { name: "Save 2 entries" }));
 
@@ -123,57 +141,77 @@ it("posts each climb's own style, note and videos", async () => {
   });
 });
 
+it("leaves a picked climb out of the day when its dialog is closed, and keeps an edit only when saved", async () => {
+  const user = userEvent.setup();
+  render(<Example save={vi.fn<Save>()} />);
+
+  await closeDialog(user, await pickClimb(user, CORNER), "Close");
+  expect(screen.queryByRole("listitem", { name: "Cedar Corner" })).not.toBeInTheDocument();
+  expect(screen.getByText("Climbs (0)")).toBeInTheDocument();
+
+  await addClimb(user, CRACK);
+  let crack = await editClimb(user, "Cedar Crack");
+  await user.type(within(crack).getByRole("textbox", { name: "Notes" }), "Discarded.");
+  await closeDialog(user, crack, "Close");
+  const line = screen.getByRole("listitem", { name: "Cedar Crack" });
+  expect(within(line).queryByText("Discarded.")).not.toBeInTheDocument();
+
+  crack = await editClimb(user, "Cedar Crack");
+  expect(within(crack).getByRole("textbox", { name: "Notes" })).toHaveValue("");
+  await user.type(within(crack).getByRole("textbox", { name: "Notes" }), "Kept.");
+  await closeDialog(user, crack, "Save climb");
+  expect(within(line).getByText("Kept.")).toBeInTheDocument();
+});
+
 it("copies day tags onto every climb, lets one climb decline them and keeps its own tags", async () => {
   const user = userEvent.setup();
   const save = vi.fn<Save>().mockResolvedValue({ ok: true, value: undefined });
   render(<Example save={save} />);
+  const dayTags = () => screen.getByRole("combobox", { name: "Tags for every climb" });
 
-  await addClimb(user, CRACK);
-  await addTag(user, screen.getByRole("combobox", { name: "Tags for every climb" }), "cold");
-  // A climb queued after the day tag starts with it too.
-  const corner = await addClimb(user, CORNER);
-  const crack = screen.getByRole("listitem", { name: "Cedar Crack" });
+  const crackLine = await addClimb(user, CRACK);
+  await addTag(user, dayTags(), "cold");
+  expect(within(crackLine).getByText("Session · #cold")).toBeInTheDocument();
 
-  await openDetails(user, crack);
-  await user.click(within(crack).getByRole("button", { name: "Remove tag cold" }));
-  await openDetails(user, corner);
-  const cornerTags = within(corner).getByRole("combobox", { name: "Tags" });
+  // A climb picked after the day tag starts with it too.
+  const corner = await pickClimb(user, CORNER);
   expect(within(corner).getByRole("button", { name: "Remove tag cold" })).toBeInTheDocument();
-  await addTag(user, cornerTags, "crimpy");
+  await addTag(user, within(corner).getByRole("combobox", { name: "Tags" }), "crimpy");
+  await closeDialog(user, corner, "Add to day");
+
+  const crack = await editClimb(user, "Cedar Crack");
+  await user.click(within(crack).getByRole("button", { name: "Remove tag cold" }));
+  await closeDialog(user, crack, "Save climb");
 
   // Taking the day tag off clears it everywhere; putting it back skips the
   // climb that declined it.
-  const dayTags = screen.getByRole("combobox", { name: "Tags for every climb" });
   const dayField = screen.getByRole("group", { name: "Day tags" });
   await user.click(within(dayField).getByRole("button", { name: "Remove tag cold" }));
-  expect(within(corner).queryByRole("button", { name: "Remove tag cold" })).not.toBeInTheDocument();
-  await addTag(user, dayTags, "cold");
+  const cornerLine = screen.getByRole("listitem", { name: "Cedar Corner" });
+  expect(within(cornerLine).getByText("Session · #crimpy")).toBeInTheDocument();
+  await addTag(user, dayTags(), "cold");
 
   await user.click(screen.getByRole("button", { name: "Save 2 entries" }));
   const { entries } = posted(save);
   expect(entries.map((entry) => entry.getAll("tag"))).toEqual([[], ["crimpy", "cold"]]);
 });
 
-it("flags a bad video link on its own climb and saves nothing", async () => {
+it("keeps a climb's dialog open over a bad video link and adds nothing", async () => {
   const user = userEvent.setup();
-  const save = vi.fn<Save>();
-  render(<Example save={save} />);
+  render(<Example save={vi.fn<Save>()} />);
 
-  await addClimb(user, CORNER);
-  const crack = await addClimb(user, CRACK);
+  const crack = await pickClimb(user, CRACK);
   await user.click(within(crack).getByRole("radio", { name: "Redpoint" }));
-  await openDetails(user, crack);
   await pasteInto(
     user,
     within(crack).getByRole("textbox", { name: /Video link/ }),
     "https://example.com/x",
   );
-  await user.click(screen.getByRole("button", { name: "Save 2 entries" }));
+  await user.click(within(crack).getByRole("button", { name: "Add to day" }));
 
-  expect(save).not.toHaveBeenCalled();
+  expect(crack).toBeInTheDocument();
   expect(within(crack).getByText(SEND_VIDEO_INVALID_MESSAGE)).toBeInTheDocument();
-  const corner = screen.getByRole("listitem", { name: "Cedar Corner" });
-  expect(within(corner).queryByText(SEND_VIDEO_INVALID_MESSAGE)).not.toBeInTheDocument();
+  expect(screen.getByText("Climbs (0)")).toBeInTheDocument();
 });
 
 it("leaves a climb's rating and videos out once it's switched back to a session", async () => {
@@ -181,12 +219,12 @@ it("leaves a climb's rating and videos out once it's switched back to a session"
   const save = vi.fn<Save>().mockResolvedValue({ ok: true, value: undefined });
   render(<Example save={save} />);
 
-  const crack = await addClimb(user, CRACK);
+  const crack = await pickClimb(user, CRACK);
   await user.click(within(crack).getByRole("radio", { name: "Redpoint" }));
-  await openDetails(user, crack);
   await pasteInto(user, within(crack).getByRole("textbox", { name: /Video link/ }), VIDEO);
   await user.click(within(crack).getByRole("radio", { name: "Session" }));
   expect(within(crack).queryByRole("textbox", { name: /Video link/ })).not.toBeInTheDocument();
+  await closeDialog(user, crack, "Add to day");
 
   await user.click(screen.getByRole("button", { name: "Save 1 entry" }));
   const { entries } = posted(save);
@@ -197,18 +235,10 @@ it("won't queue a climb twice, and removes one from the day", async () => {
   const user = userEvent.setup();
   render(<Example save={vi.fn<Save>()} />);
 
-  const crack = await addClimb(user, CRACK);
-  await user.type(within(crack).getByRole("textbox", { name: "Notes" }), "Kept.");
+  await addClimb(user, CRACK);
   await openPicker(user);
   expect(await screen.findByRole("button", { name: `Choose ${CRACK}` })).toBeDisabled();
-  await user.click(screen.getByRole("button", { name: "Close" }));
-  await waitFor(() =>
-    expect(screen.queryByRole("dialog", { name: "Add a climb" })).not.toBeInTheDocument(),
-  );
-
-  // The day stays mounted under the picker, so the same row comes back as left.
-  expect(crack).toBeInTheDocument();
-  expect(within(crack).getByRole("textbox", { name: "Notes" })).toHaveValue("Kept.");
+  await closeDialog(user, screen.getByRole("dialog", { name: "Add a climb" }), "Close");
 
   await user.click(screen.getByRole("button", { name: "Remove Cedar Crack" }));
   expect(screen.queryByRole("listitem", { name: "Cedar Crack" })).not.toBeInTheDocument();
@@ -241,8 +271,9 @@ it("keeps the day after a refused save and saves once while pending", async () =
   );
   render(<Example save={save} />);
 
-  const crack = await addClimb(user, CRACK);
+  const crack = await pickClimb(user, CRACK);
   await user.type(within(crack).getByRole("textbox", { name: "Notes" }), "Kept.");
+  await closeDialog(user, crack, "Add to day");
   await user.click(screen.getByRole("button", { name: "Save 1 entry" }));
   expect(screen.getByRole("button", { name: "Save 1 entry" })).toBeDisabled();
   await user.click(screen.getByRole("button", { name: "Save 1 entry" }));
@@ -253,8 +284,6 @@ it("keeps the day after a refused save and saves once while pending", async () =
     await screen.findByText("Cedar Crack: A repeat can't be earlier than the recorded ascent"),
   ).toBeInTheDocument();
   expect(
-    within(screen.getByRole("listitem", { name: "Cedar Crack" })).getByRole("textbox", {
-      name: "Notes",
-    }),
-  ).toHaveValue("Kept.");
+    within(screen.getByRole("listitem", { name: "Cedar Crack" })).getByText("Kept."),
+  ).toBeInTheDocument();
 });

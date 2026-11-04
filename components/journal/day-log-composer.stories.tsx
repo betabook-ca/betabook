@@ -14,7 +14,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Logs several climbs from one day. The date and tagged friends are set once for the day; tags can be set for the whole day or per climb; each climb keeps its own style, notes and, for a first ascent, rating, grade and videos. Opens fullscreen from the Log popup.",
+          "Logs several climbs from one day. The date and tagged friends are set once for the day; tags can be set for the whole day or per climb. The day lists one line per climb; each climb's style, notes, tags and, for a first ascent, rating, grade and videos are set in its own dialog, opened on pick and from Edit. Opens fullscreen from the Log popup.",
       },
     },
   },
@@ -49,36 +49,65 @@ function Example() {
 
 type Canvas = ReturnType<typeof within>;
 
-async function addClimb(canvas: Canvas, name: string) {
+// The picker and each climb's dialog render into the document body, not the canvas.
+const body = () => within(document.body);
+
+async function gone(name: string) {
+  await waitFor(() => expect(body().queryByRole("dialog", { name })).toBeNull());
+}
+
+/** Picks a climb, lets `fill` set its fields in the climb's dialog, and adds it. */
+async function addClimb(
+  canvas: Canvas,
+  result: string,
+  fill: (dialog: Canvas) => Promise<void> = async () => {},
+) {
+  const name = result.split(",")[0];
   await userEvent.click(canvas.getByRole("button", { name: "Add climb" }));
-  // The picker is a dialog, rendered into the document body rather than the canvas.
-  const picker = within(await within(document.body).findByRole("dialog", { name: "Add a climb" }));
+  const picker = within(await body().findByRole("dialog", { name: "Add a climb" }));
   await userEvent.type(picker.getByRole("searchbox", { name: "Choose a climb" }), "cedar");
-  await userEvent.click(await picker.findByRole("button", { name: `Choose ${name}` }));
-  await waitFor(() =>
-    expect(within(document.body).queryByRole("dialog", { name: "Add a climb" })).toBeNull(),
-  );
+  await userEvent.click(await picker.findByRole("button", { name: `Choose ${result}` }));
+  await gone("Add a climb");
+  const dialog = within(await body().findByRole("dialog", { name }));
+  await fill(dialog);
+  await userEvent.click(dialog.getByRole("button", { name: "Add to day" }));
+  await gone(name);
 }
 
 export const Empty: Story = { render: () => <Example /> };
 
-/** A first ascent with a video, a repeat and a plain session. */
+/** A first ascent with a video, a repeat and a plain session with a note. */
 export const MixedDay: Story = {
   render: () => <Example />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await addClimb(canvas, "Cedar Crack, North Woods / Upper Wall");
-    await addClimb(canvas, "Cedar Arete, North Woods / Cedar Grove");
-    await addClimb(canvas, "Cedar Corner, North Woods / Cedar Grove");
-    const crack = canvas.getByRole("listitem", { name: "Cedar Crack" });
-    await userEvent.click(within(crack).getByRole("radio", { name: "Redpoint" }));
-    await userEvent.click(within(crack).getByRole("button", { name: "Add details" }));
-    await userEvent.type(
-      within(crack).getByRole("textbox", { name: /Video link/ }),
-      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    );
-    const arete = canvas.getByRole("listitem", { name: "Cedar Arete" });
-    await userEvent.click(within(arete).getByRole("radio", { name: "Repeat" }));
+    await addClimb(canvas, "Cedar Crack, North Woods / Upper Wall", async (dialog) => {
+      await userEvent.click(dialog.getByRole("radio", { name: "Redpoint" }));
+      await userEvent.type(dialog.getByRole("textbox", { name: "Notes" }), "Finally clipped it.");
+      await userEvent.type(
+        dialog.getByRole("textbox", { name: /Video link/ }),
+        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      );
+    });
+    await addClimb(canvas, "Cedar Arete, North Woods / Cedar Grove", async (dialog) => {
+      await userEvent.click(dialog.getByRole("radio", { name: "Repeat" }));
+    });
+    await addClimb(canvas, "Cedar Corner, North Woods / Cedar Grove", async (dialog) => {
+      await userEvent.type(dialog.getByRole("textbox", { name: "Notes" }), "Worked the roof.");
+    });
+  },
+};
+
+/** One climb's own dialog, open over the day: a first ascent with its fields. */
+export const ClimbDialog: Story = {
+  render: () => <Example />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await addClimb(canvas, "Cedar Crack, North Woods / Upper Wall", async (dialog) => {
+      await userEvent.click(dialog.getByRole("radio", { name: "Redpoint" }));
+    });
+    await userEvent.click(canvas.getByRole("button", { name: "Edit Cedar Crack" }));
+    await body().findByRole("dialog", { name: "Cedar Crack" });
   },
 };
 
@@ -88,17 +117,18 @@ export const DayAndClimbTags: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await addClimb(canvas, "Cedar Crack, North Woods / Upper Wall");
-    await addClimb(canvas, "Cedar Corner, North Woods / Cedar Grove");
     await userEvent.type(
       canvas.getByRole("combobox", { name: "Tags for every climb" }),
       "cold{Enter}",
     );
-    const crack = canvas.getByRole("listitem", { name: "Cedar Crack" });
-    await userEvent.click(within(crack).getByRole("button", { name: "Add details" }));
-    await userEvent.click(within(crack).getByRole("button", { name: "Remove tag cold" }));
-    const corner = canvas.getByRole("listitem", { name: "Cedar Corner" });
-    await userEvent.click(within(corner).getByRole("button", { name: "Add details" }));
-    await userEvent.type(within(corner).getByRole("combobox", { name: "Tags" }), "crimpy{Enter}");
+    await addClimb(canvas, "Cedar Corner, North Woods / Cedar Grove", async (dialog) => {
+      await userEvent.type(dialog.getByRole("combobox", { name: "Tags" }), "crimpy{Enter}");
+    });
+    await userEvent.click(canvas.getByRole("button", { name: "Edit Cedar Crack" }));
+    const crack = within(await body().findByRole("dialog", { name: "Cedar Crack" }));
+    await userEvent.click(crack.getByRole("button", { name: "Remove tag cold" }));
+    await userEvent.click(crack.getByRole("button", { name: "Save climb" }));
+    await gone("Cedar Crack");
   },
 };
 
