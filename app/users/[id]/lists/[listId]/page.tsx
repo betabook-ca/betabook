@@ -143,19 +143,21 @@ async function ListItems({
     db,
     items.map((item) => item.areaId),
   );
-  const addClimbs = (variant?: "outline") =>
-    isOwner && (
-      <AddClimbsButton
-        listId={list.id}
-        listTitle={list.title}
-        climbIds={allClimbIds}
-        variant={variant}
-      />
-    );
-
   return (
     <div className="flex flex-col gap-3">
-      {isOwner && list.climbCount > 0 && <div className="self-end">{addClimbs("outline")}</div>}
+      {/* One button in one place whatever the count. The dialog lives inside
+       * it, so a button that moved when the first climb arrived would unmount
+       * the dialog and close it mid-add. */}
+      {isOwner && (
+        <div className="self-end">
+          <AddClimbsButton
+            listId={list.id}
+            listTitle={list.title}
+            climbIds={allClimbIds}
+            variant={list.climbCount > 0 ? "outline" : undefined}
+          />
+        </div>
+      )}
       <ClimbListItems
         items={items}
         totalCount={list.climbCount}
@@ -164,7 +166,6 @@ async function ListItems({
         signedIn
         listId={list.id}
         canEdit={isOwner}
-        emptyAction={addClimbs()}
       />
     </div>
   );
