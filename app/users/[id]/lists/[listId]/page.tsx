@@ -7,6 +7,7 @@ import { AddClimbsButton } from "@/components/climb-lists/add-climbs-button";
 import { ClimbListActions } from "@/components/climb-lists/climb-list-actions";
 import { ClimbListHeader } from "@/components/climb-lists/climb-list-header";
 import { ClimbListItems } from "@/components/climb-lists/climb-list-items";
+import { ClimbListShare } from "@/components/climb-lists/climb-list-share";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { SkeletonListRows } from "@/components/ui/skeleton";
 import { getDb } from "@/db/client";
@@ -15,8 +16,10 @@ import {
   getClimbListForUser,
   getClimbListClimbIds,
   getClimbListItems,
+  getClimbListShareForOwner,
   type ClimbListSummary,
 } from "@/db/queries";
+import { getBaseUrl } from "@/lib/app-url";
 import { climbListsHref, parseClimbListView, type ClimbListView } from "@/lib/climb-lists";
 import { parseId } from "@/lib/parse-id";
 import { requestMemo } from "@/lib/request-memo";
@@ -57,6 +60,10 @@ export default async function ListPage({ params, searchParams }: ListPageProps) 
   const { user, viewerId } = resolved;
   const isOwner = viewerId === user.id;
   const view = parseClimbListView(search);
+  // Only the owner gets the list's link: the token is the credential.
+  const ownerShare = isOwner
+    ? await Promise.all([getClimbListShareForOwner(await getDb(), user.id, list.id), getBaseUrl()])
+    : null;
 
   return (
     <ProfileHeader user={user} viewerId={viewerId} workspace="progress">
@@ -65,7 +72,20 @@ export default async function ListPage({ params, searchParams }: ListPageProps) 
           list={list}
           back={climbListsHref(user.id)}
           byline={isOwner ? undefined : `By ${user.name}`}
-          actions={isOwner && <ClimbListActions list={list} userId={user.id} leaveOnDelete />}
+          actions={
+            ownerShare && (
+              <>
+                <ClimbListShare
+                  listId={list.id}
+                  listTitle={list.title}
+                  share={ownerShare[0]}
+                  shareOrigin={ownerShare[1]}
+                  isPrivate={user.isPrivate}
+                />
+                <ClimbListActions list={list} userId={user.id} leaveOnDelete />
+              </>
+            )
+          }
         />
         <Suspense fallback={<SkeletonListRows rows={6} />}>
           <ListItems

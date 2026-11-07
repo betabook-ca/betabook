@@ -38,6 +38,8 @@ it("keeps terms, public pages, recovery, and acceptance reachable but protects a
     // Someone else's shared trip, likewise.
     "/trips/4f9c2a7e1b8d6035c9e4a1f7b2d80e36",
     "/trips/4f9c2a7e1b8d6035c9e4a1f7b2d80e36/analytics",
+    // Someone else's shared list, likewise.
+    "/lists/4f9c2a7e1b8d6035c9e4a1f7b2d80e36",
   ])
     expect(isTermsExemptPath(path)).toBe(true);
   for (const path of [
@@ -53,6 +55,9 @@ it("keeps terms, public pages, recovery, and acceptance reachable but protects a
     // share link.
     "/users/one/trips/7",
     "/trips",
+    // A climber's own lists are member content; only /lists/{token} is a link.
+    "/users/one/lists/3",
+    "/lists",
   ])
     expect(isTermsExemptPath(path)).toBe(false);
 });
