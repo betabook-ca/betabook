@@ -8,7 +8,7 @@ import { getClimbListItemsWhere, type ClimbListItem, type ClimbListSummary } fro
 /** What a live link resolves to. The share dialog promises "the list's name,
  * description, climbs and grades, and your name", and that sentence is the
  * consent this page rests on, so nothing beyond it may be added here. */
-export type SharedClimbList = {
+type SharedClimbList = {
   owner: { id: string; name: string; image: string | null };
   list: ClimbListSummary;
 };
