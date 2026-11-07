@@ -63,6 +63,12 @@ function rowNumbers() {
   return rows().map((row) => within(row).getByText(/Number/).parentElement?.textContent);
 }
 
+/** Reorder lives in the owner's ⋯ menu beside the sort. */
+async function chooseReorder(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("button", { name: "List actions" }));
+  await user.click(await screen.findByRole("menuitem", { name: "Reorder" }));
+}
+
 beforeEach(() => {
   replace.mockReset();
   vi.mocked(removeClimbFromList)
@@ -71,19 +77,26 @@ beforeEach(() => {
   vi.mocked(reorderClimbList).mockReset().mockResolvedValue({ ok: true, value: undefined });
 });
 
-it("numbers rows in the owner's order and offers Reorder only in list order", async () => {
-  const user = userEvent.setup();
+it("numbers rows in the owner's order, and keeps each number when sorted", () => {
   const { unmount } = renderItems();
   expect(rowNumbers()).toEqual(["Number 1", "Number 2", "Number 3", "Number 4", "Number 5"]);
-  expect(screen.getByRole("button", { name: "Reorder" })).toBeInTheDocument();
   unmount();
 
   const sorted = climbListItemSamples.toReversed();
   renderItems({ items: sorted, view: { sort: "name_desc", filter: DEFAULT_CLIMB_FILTER } });
   // Sorted rows keep their place in the owner's order as a muted "#n".
   expect(rowNumbers()).toEqual(["Number #5", "Number #4", "Number #3", "Number #2", "Number #1"]);
-  expect(screen.queryByRole("button", { name: "Reorder" })).not.toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "Switch to list order to reorder" }));
+});
+
+it("switches a sorted view back to list order when the owner chooses Reorder", async () => {
+  const user = userEvent.setup();
+  renderItems({
+    items: climbListItemSamples.toReversed(),
+    view: { sort: "name_desc", filter: DEFAULT_CLIMB_FILTER },
+  });
+  // No standalone button: Reorder is only in the menu.
+  expect(screen.queryByRole("button", { name: /reorder/i })).not.toBeInTheDocument();
+  await chooseReorder(user);
   expect(replace).toHaveBeenCalledWith("/users/alex/lists/1", { scroll: false });
 });
 
@@ -140,23 +153,23 @@ it("removes a climb for the owner, and offers no Remove to anyone else", async (
   expect(screen.queryByRole("button", { name: /^Remove Rat/ })).not.toBeInTheDocument();
 });
 
-it("offers Reorder only on the whole, unfiltered list", async () => {
+it("clears the filters before reordering, and offers no menu to anyone but the owner", async () => {
   const user = userEvent.setup();
   const { unmount } = renderItems({ view: EXCLUDING_SENT });
-  expect(screen.queryByRole("button", { name: "Reorder" })).not.toBeInTheDocument();
-  // A reorder saves every climb, so the filters have to go first.
-  await user.click(screen.getByRole("button", { name: "Clear filters to reorder" }));
+  // A reorder saves every climb, so choosing it clears the filters first.
+  await chooseReorder(user);
   expect(replace).toHaveBeenCalledWith("/users/alex/lists/1", { scroll: false });
+  expect(screen.queryByRole("button", { name: "Save order" })).not.toBeInTheDocument();
   unmount();
 
   renderItems({ canEdit: false });
-  expect(screen.queryByRole("button", { name: "Reorder" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "List actions" })).not.toBeInTheDocument();
 });
 
 it("moves climbs with the arrows and saves the whole order once", async () => {
   const user = userEvent.setup();
   renderItems();
-  await user.click(screen.getByRole("button", { name: "Reorder" }));
+  await chooseReorder(user);
 
   const save = screen.getByRole("button", { name: "Save order" });
   expect(save).toBeDisabled();
@@ -169,7 +182,7 @@ it("moves climbs with the arrows and saves the whole order once", async () => {
 
   await user.click(save);
   await waitFor(() => expect(reorderClimbList).toHaveBeenCalledWith(1, [102, 101, 103, 105, 104]));
-  expect(await screen.findByRole("button", { name: "Reorder" })).toBeInTheDocument();
+  expect(await screen.findByRole("button", { name: "List actions" })).toBeInTheDocument();
 });
 
 it("keeps the editor open with the message when the list changed elsewhere", async () => {
@@ -179,7 +192,7 @@ it("keeps the editor open with the message when the list changed elsewhere", asy
   });
   const user = userEvent.setup();
   renderItems();
-  await user.click(screen.getByRole("button", { name: "Reorder" }));
+  await chooseReorder(user);
   await user.click(screen.getByRole("button", { name: "Move Rat Stew earlier" }));
   await user.click(screen.getByRole("button", { name: "Save order" }));
 

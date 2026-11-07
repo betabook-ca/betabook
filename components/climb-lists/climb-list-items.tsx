@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@heroui/react";
+import { Button, Menu } from "@heroui/react";
 import { clsx } from "clsx";
 import { X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
@@ -11,6 +11,7 @@ import { AreaBreadcrumb } from "@/components/area-breadcrumb";
 import { ClimbListReorder } from "@/components/climb-lists/climb-list-reorder";
 import { ClimbListToolbar } from "@/components/climb-lists/climb-list-toolbar";
 import { ClimbSentIndicator } from "@/components/climb-sent-indicator";
+import { ActionsMenu } from "@/components/ui/actions-menu";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Grade } from "@/components/ui/grade";
@@ -71,9 +72,8 @@ export function ClimbListItems({
   const [, startTransition] = useTransition();
   const [reordering, setReordering] = useState(false);
   const listOrder = isListOrder(view.sort);
-  const filtered = isFilteredClimbList(view.filter);
   // Reordering saves the whole order, so it needs every climb, in list order.
-  const wholeList = listOrder && !filtered;
+  const wholeList = listOrder && !isFilteredClimbList(view.filter);
 
   function navigate(next: ClimbListView) {
     router.replace(`${pathname}${climbListViewSearch(next)}`, { scroll: false });
@@ -100,21 +100,27 @@ export function ClimbListItems({
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
-      <ClimbListToolbar view={view} signedIn={signedIn} />
-
-      {editable && totalCount > 1 && (
-        <div className="flex justify-end">
-          {wholeList ? (
-            <Button variant="outline" onPress={() => setReordering(true)}>
-              Reorder
-            </Button>
-          ) : (
-            <Button variant="ghost" onPress={() => navigate(DEFAULT_CLIMB_LIST_VIEW)}>
-              {filtered ? "Clear filters to reorder" : "Switch to list order to reorder"}
-            </Button>
-          )}
-        </div>
-      )}
+      <ClimbListToolbar
+        view={view}
+        signedIn={signedIn}
+        menu={
+          editable &&
+          totalCount > 1 && (
+            <ActionsMenu
+              ariaLabel="List actions"
+              onAction={(key) => {
+                if (key !== "reorder") return;
+                // The editor saves every climb in order, so it opens on the
+                // plain list: a sorted or filtered view switches back first.
+                if (!wholeList) navigate(DEFAULT_CLIMB_LIST_VIEW);
+                setReordering(true);
+              }}
+            >
+              <Menu.Item id="reorder">Reorder</Menu.Item>
+            </ActionsMenu>
+          )
+        }
+      />
 
       {removeError && <InlineAlert>{removeError}</InlineAlert>}
 
