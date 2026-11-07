@@ -11,6 +11,7 @@ import {
 import { AreaBreadcrumbs } from "@/components/breadcrumbs";
 import { ClimbActionsMenu } from "@/components/climb-actions-menu";
 import { ClimbDescription } from "@/components/climb-description";
+import { AddToListButton } from "@/components/climb-lists/add-to-list-button";
 import { ClimbActivityLoading, ClimbStatsLoading } from "@/components/climb-page-loading";
 import { ClimbSendList } from "@/components/climb-send-list";
 import { ClimbVideoShelf } from "@/components/climb-video-shelf";
@@ -132,7 +133,8 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
         </ClimbHeader>
         <div className="flex shrink-0 items-center gap-2">
           <LogEntryButton climb={climb} sentClimbIds={userSend ? new Set([climb.id]) : undefined} />
-          <ClimbActionsMenu climb={climb} send={userSend} viewerId={session.user.id} />
+          <AddToListButton climb={climb} viewerId={session.user.id} />
+          <ClimbActionsMenu climb={climb} send={userSend} />
         </div>
       </div>
 
