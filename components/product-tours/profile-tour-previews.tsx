@@ -334,6 +334,7 @@ export function DemoAccount() {
   const [journalVisibility, setJournalVisibility] = useState<SharingAudience>("friends");
   const [sendCommentVisibility, setSendCommentVisibility] = useState<SendCommentAudience>("public");
   const [tripVisibility, setTripVisibility] = useState<SharingAudience>("friends");
+  const [listVisibility, setListVisibility] = useState<SharingAudience>("friends");
   return (
     <div className="flex flex-col gap-4">
       <SettingsSection id="demo-privacy" title="Privacy" layout="stacked">
@@ -343,10 +344,12 @@ export function DemoAccount() {
             journalVisibility={journalVisibility}
             sendCommentVisibility={sendCommentVisibility}
             tripVisibility={tripVisibility}
+            climbListVisibility={listVisibility}
             onProfileChange={setIsPrivate}
             onJournalChange={setJournalVisibility}
             onSendCommentChange={setSendCommentVisibility}
             onTripsChange={setTripVisibility}
+            onListsChange={setListVisibility}
           />
         </div>
       </SettingsSection>
@@ -363,6 +366,7 @@ export function DemoAccount() {
             <li>Send commentary: {DEMO_AUDIENCE_READERS[sendCommentVisibility]}.</li>
             <li>Journal entries: {DEMO_AUDIENCE_READERS[journalVisibility]}.</li>
             <li>Trips: {DEMO_AUDIENCE_READERS[tripVisibility]}.</li>
+            <li>Lists: {DEMO_AUDIENCE_READERS[listVisibility]}.</li>
           </ul>
         )}
       </div>

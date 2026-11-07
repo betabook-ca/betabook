@@ -103,7 +103,7 @@ export const PRODUCT_TOUR_STEPS: Record<ProductTourId, readonly ProductTourStepD
       section: "Account settings",
       title: "Choose what you share",
       description:
-        "Open Account settings from the sidebar or mobile menu to manage your account and sharing. Send commentary, journal entries and trips each have their own audience. Try Members commentary with a Friends-only journal. Turn on Private profile to hide your climbing history from everyone else. The audience controls are disabled, and your choices are kept. Audience changes apply to past entries too.",
+        "Open Account settings from the sidebar or mobile menu to manage your account and sharing. Send commentary, journal entries, trips and lists each have their own audience. Try Members commentary with a Friends-only journal. Turn on Private profile to hide your climbing history from everyone else. The audience controls are disabled, and your choices are kept. Audience changes apply to past entries too.",
       target: "privacy-controls",
     },
   ],
