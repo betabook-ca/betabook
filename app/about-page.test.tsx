@@ -36,6 +36,17 @@ it("leaves the ask out of the About page until a support page is set", () => {
   expect(html).not.toContain("funding model");
 });
 
+it("explains who can see, share and copy lists", () => {
+  const text = renderToStaticMarkup(<AboutPage />)
+    .replace(/<[^>]+>/g, "")
+    .replace(/&#x27;/g, "'");
+  expect(text).toContain(
+    "You choose who else can see your lists of climbs, from Only me to Members.",
+  );
+  expect(text).toContain("even if your lists are set to Only me");
+  expect(text).toContain("can copy it into their own lists");
+});
+
 it("explains who can read trip notes", () => {
   const text = renderToStaticMarkup(<AboutPage />)
     .replace(/<[^>]+>/g, " ")

@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
-import { DemoProjects, DemoSends } from "./profile-tour-previews";
+import { DemoAccount, DemoProjects, DemoSends } from "./profile-tour-previews";
 
 it("sorts the sample sends with the app's sort dropdown and direction control", async () => {
   const user = userEvent.setup();
@@ -31,4 +31,14 @@ it("loads sample project notes locally with the app's timeline and load-more con
   expect(screen.queryByRole("button", { name: "Load more" })).not.toBeInTheDocument();
   expect(screen.queryByRole("link")).not.toBeInTheDocument();
   expect(fetch).not.toHaveBeenCalled();
+});
+
+it("shows the Lists audience beside Trips and says who can see lists", async () => {
+  const user = userEvent.setup();
+  render(<DemoAccount />);
+  expect(screen.getByText("Lists: Alex and friends.")).toBeVisible();
+
+  await user.click(screen.getByRole("button", { name: /Lists audience/ }));
+  await user.click(screen.getByRole("option", { name: "Members" }));
+  expect(screen.getByText("Lists: signed-in members.")).toBeVisible();
 });

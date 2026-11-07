@@ -98,6 +98,13 @@ export default function AboutPage() {
             photos, journal entries, sends and analytics, but not the friends you tagged. You choose
             when it expires and can stop sharing at any time.
           </li>
+          <li>
+            You choose who else can see your lists of climbs, from Only me to Members. Sharing a
+            list makes a link to that one list: anyone with it sees the list&apos;s name,
+            description, climbs and grades, and your name, even if your lists are set to Only me.
+            Anyone who can see a list while signed in can copy it into their own lists. Which climbs
+            they&apos;ve sent is theirs, never yours.
+          </li>
           <li>Only you can export your sends.</li>
         </ul>
       </section>
