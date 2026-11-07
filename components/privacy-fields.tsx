@@ -19,29 +19,36 @@ export function PrivacyFields({
   journalVisibility,
   sendCommentVisibility,
   tripVisibility,
+  climbListVisibility,
   onProfileChange,
   onJournalChange,
   onSendCommentChange,
   onTripsChange,
+  onListsChange,
   isPending = false,
   profileError,
   journalError,
   sendCommentError,
   tripsError,
+  listsError,
 }: {
   isPrivate: boolean;
   journalVisibility: SharingAudience;
   sendCommentVisibility: SendCommentAudience;
   tripVisibility: SharingAudience;
+  /** Omit, with `onListsChange`, to leave the Lists row out. */
+  climbListVisibility?: SharingAudience;
   onProfileChange: (value: boolean) => void;
   onJournalChange: (value: SharingAudience) => void;
   onSendCommentChange: (value: SendCommentAudience) => void;
   onTripsChange: (value: SharingAudience) => void;
+  onListsChange?: (value: SharingAudience) => void;
   isPending?: boolean;
   profileError?: string | null;
   journalError?: string | null;
   sendCommentError?: string | null;
   tripsError?: string | null;
+  listsError?: string | null;
 }) {
   const profileDescriptionId = useId();
   return (
@@ -97,6 +104,17 @@ export function PrivacyFields({
         disabled={isPrivate || isPending}
         error={tripsError}
       />
+      {climbListVisibility && onListsChange && (
+        <AudienceField
+          label="Lists"
+          description="Your Lists tab and every list page"
+          options={SHARING_AUDIENCES}
+          value={isPrivate ? "private" : climbListVisibility}
+          onChange={onListsChange}
+          disabled={isPrivate || isPending}
+          error={listsError}
+        />
+      )}
     </div>
   );
 }
@@ -204,6 +222,12 @@ export function PrivacyDetails({ defaultExpanded = false }: { defaultExpanded?: 
                 photos, journal entries, sends and analytics, so it overrides the audiences above
                 for that trip. Climbers you tagged are not named. You choose when it expires, Stop
                 sharing ends it, and going private ends every trip link.
+              </li>
+              <li>
+                Your Lists setting decides who else can open your lists. Sharing a list makes a link
+                to that one list. Anyone with the link sees its name, description, climbs and
+                grades, and your name, even when your lists are set to Only me. Stop sharing ends
+                it, and going private ends every list link.
               </li>
               <li>
                 Unless your profile is private, friends of your friends may see you suggested.

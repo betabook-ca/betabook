@@ -29,6 +29,7 @@ export function AccountSettings({
   journalVisibility,
   sendCommentVisibility,
   tripVisibility,
+  climbListVisibility,
   gradePreferences,
   shareUrl,
   turnstileSiteKey,
@@ -40,6 +41,7 @@ export function AccountSettings({
   journalVisibility: SharingAudience;
   sendCommentVisibility: SendCommentAudience;
   tripVisibility: SharingAudience;
+  climbListVisibility: SharingAudience;
   gradePreferences: GradePreferences;
   /** Null while the profile is private. */
   shareUrl: string | null;
@@ -72,6 +74,7 @@ export function AccountSettings({
           initialJournalVisibility={journalVisibility}
           initialSendCommentVisibility={sendCommentVisibility}
           initialTripVisibility={tripVisibility}
+          initialClimbListVisibility={climbListVisibility}
         />
         <PrivacyDetails />
       </SettingsSection>

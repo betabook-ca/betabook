@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 
 import {
+  setClimbListVisibility,
   setJournalVisibility,
   setSendCommentVisibility,
   setTripVisibility,
@@ -15,6 +16,7 @@ type Audiences = {
   journal: SharingAudience;
   sendComment: SendCommentAudience;
   trips: SharingAudience;
+  lists: SharingAudience;
 };
 type ContentKind = keyof Audiences;
 
@@ -22,6 +24,7 @@ const SAVE_AUDIENCE: Record<ContentKind, typeof setJournalVisibility> = {
   journal: setJournalVisibility,
   sendComment: setSendCommentVisibility,
   trips: setTripVisibility,
+  lists: setClimbListVisibility,
 };
 
 export function PrivacyControls({
@@ -29,17 +32,20 @@ export function PrivacyControls({
   initialJournalVisibility,
   initialSendCommentVisibility,
   initialTripVisibility,
+  initialClimbListVisibility,
 }: {
   initialIsPrivate: boolean;
   initialJournalVisibility: SharingAudience;
   initialSendCommentVisibility: SendCommentAudience;
   initialTripVisibility: SharingAudience;
+  initialClimbListVisibility: SharingAudience;
 }) {
   const [isPrivate, setIsPrivate] = useState(initialIsPrivate);
   const [audiences, setAudiences] = useState<Audiences>({
     journal: initialJournalVisibility,
     sendComment: initialSendCommentVisibility,
     trips: initialTripVisibility,
+    lists: initialClimbListVisibility,
   });
   const [profileError, setProfileError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Partial<Record<ContentKind, string>>>({});
@@ -86,15 +92,18 @@ export function PrivacyControls({
       journalVisibility={audiences.journal}
       sendCommentVisibility={audiences.sendComment}
       tripVisibility={audiences.trips}
+      climbListVisibility={audiences.lists}
       onProfileChange={handleProfileChange}
       onJournalChange={(next) => handleAudienceChange("journal", next)}
       onSendCommentChange={(next) => handleAudienceChange("sendComment", next)}
       onTripsChange={(next) => handleAudienceChange("trips", next)}
+      onListsChange={(next) => handleAudienceChange("lists", next)}
       isPending={isPending}
       profileError={profileError}
       journalError={errors.journal}
       sendCommentError={errors.sendComment}
       tripsError={errors.trips}
+      listsError={errors.lists}
     />
   );
 }

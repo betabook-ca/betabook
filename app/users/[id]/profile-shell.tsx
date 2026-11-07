@@ -50,8 +50,9 @@ type MemberSession = NonNullable<Awaited<ReturnType<typeof getMemberSession>>>;
 
 /** Who can open a profile page: only the owner (Projects, Goals), anyone allowed
  * by canViewUser (Sends, Analytics, the profile itself), anyone allowed by
- * canReadJournal (Journal), or anyone allowed by canReadTrips (Trips). */
-type ProfileGate = "owner" | "viewer" | "journal" | "trips";
+ * canReadJournal (Journal), by canReadTrips (Trips), or by the owner's lists
+ * audience (Lists). */
+type ProfileGate = "owner" | "viewer" | "journal" | "trips" | "lists";
 
 type ResolvedProfile =
   | { signedIn: false }
@@ -69,6 +70,7 @@ async function admits(gate: ProfileGate, user: ProfileUser, viewerId: string): P
   if (gate === "owner") return user.id === viewerId;
   if (gate === "viewer") return canViewUser(user, viewerId);
   if (gate === "trips") return (await getAccess(user.id, viewerId)).trips;
+  if (gate === "lists") return (await getAccess(user.id, viewerId)).lists;
   return canReadUserJournal(user.id, viewerId);
 }
 
