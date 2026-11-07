@@ -19,7 +19,9 @@ import {
   parseClimbListView,
   type ClimbListView,
 } from "@/lib/climb-lists";
+import { toClimbQueryParams } from "@/lib/filters/climb-filter";
 import { requestMemo } from "@/lib/request-memo";
+import { loadAreaSelection } from "@/lib/search-loader";
 import { sharedClimbListMetadata } from "@/lib/seo";
 import { getMemberSession } from "@/lib/session";
 import { parseShareToken } from "@/lib/share-token";
@@ -123,7 +125,14 @@ async function SharedListItems({
   view: ClimbListView;
 }) {
   const db = await getDb();
-  const items = await getSharedClimbListItems(db, token, viewerId, view);
+  // Signed out, Exclude sent does nothing: there are no sends to exclude.
+  const [items, area] = await Promise.all([
+    getSharedClimbListItems(db, token, viewerId, {
+      sort: view.sort,
+      filter: toClimbQueryParams(view.filter, undefined, viewerId),
+    }),
+    loadAreaSelection(view.filter.areaId),
+  ]);
   const areaBreadcrumbs = await getAreaBreadcrumbs(
     db,
     items.map((item) => item.areaId),
@@ -134,6 +143,7 @@ async function SharedListItems({
       totalCount={totalCount}
       areaBreadcrumbs={areaBreadcrumbs}
       view={view}
+      area={area}
       signedIn={viewerId !== null}
     />
   );

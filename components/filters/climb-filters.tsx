@@ -13,6 +13,7 @@ export function ClimbFilters({
   onChange,
   areaControl,
   sortControl,
+  textFilter,
   ratingControl,
   onReset,
   activeFilters,
@@ -22,6 +23,8 @@ export function ClimbFilters({
   areaControl?: ReactNode;
   /** Absent in a picker, where the order of a short result list is not the question. */
   sortControl?: ReactNode;
+  /** A text box beside the discipline chips, for lists without a search box. */
+  textFilter?: ReactNode;
   ratingControl: ReactNode;
   onReset: () => void;
   activeFilters: ActiveFilter[];
@@ -57,6 +60,7 @@ export function ClimbFilters({
             : []),
         ]}
         sortControl={sortControl}
+        textFilter={textFilter}
         extraFilters={ratingControl}
         onReset={onReset}
       />

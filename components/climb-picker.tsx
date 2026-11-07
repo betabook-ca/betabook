@@ -98,6 +98,8 @@ export function ClimbPicker({
               // matches is the search page's job, not this dialog's.
               showSort={false}
               showMinAscents={false}
+              // The picker searches through the member API, so a reader is signed in.
+              showExcludeSent
               showAreaLookup={showAreaLookup}
               areaFetcher={areaFetcher}
               value={state}

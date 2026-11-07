@@ -8,6 +8,7 @@ import {
   DEFAULT_AREA_CLIMBS_SORT,
   parseAreaClimbsFilter,
   parseAreaClimbsSort,
+  toSubtreeQueryFilter,
   type AreaClimbsFilter,
 } from "./area-climbs-filter";
 
@@ -55,5 +56,17 @@ describe("area climbs filter serialization", () => {
     expect(parseAreaClimbsSort(record)).toBe("name_asc");
     expect(parseAreaClimbsFilter(record)).toEqual(filter);
     expect(reserialize(params)).toBe(params.toString());
+  });
+});
+
+describe("Exclude sent on an area's climbs", () => {
+  it("round trips and names the viewer's sends only when signed in", () => {
+    const on = parseAreaClimbsFilter({ excludeSent: "1" });
+    const params = areaClimbsFilterToSearchParams(DEFAULT_AREA_CLIMBS_SORT, on);
+    expect(params.get("excludeSent")).toBe("1");
+    expect(reserialize(params)).toBe(params.toString());
+    expect(toSubtreeQueryFilter(on, "alex").excludeSentBy).toBe("alex");
+    expect(toSubtreeQueryFilter(on).excludeSentBy).toBeUndefined();
+    expect(toSubtreeQueryFilter(DEFAULT_AREA_CLIMBS_FILTER, "alex").excludeSentBy).toBeUndefined();
   });
 });

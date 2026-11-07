@@ -157,6 +157,10 @@ function sortIndexName(sort: SubtreeClimbsSort): string {
 export type ClimbStatsFilter = {
   ratingRange?: [number, number];
   minAscents?: number;
+  /** Leaves out climbs this user has a send on. Set only from a signed-in
+   * session (`excludeSent` in the URL plus the viewer's id), never from a
+   * request parameter, so it can't be pointed at someone else's sends. */
+  excludeSentBy?: string;
 };
 
 /** Unrated averages are SQL NULL, not zero. The displayed 1–5 range is
@@ -171,6 +175,14 @@ function climbStatsConditions(filter: ClimbStatsFilter): SQL[] {
   }
   if (filter.minAscents) {
     clauses.push(sql`climbs.send_count >= ${filter.minAscents}`);
+  }
+  if (filter.excludeSentBy) {
+    // sends has one row per user and climb, so this is one index probe.
+    clauses.push(sql`NOT EXISTS (
+      SELECT 1 FROM sends excluded_send
+      WHERE excluded_send.user_id = ${filter.excludeSentBy}
+        AND excluded_send.climb_id = climbs.id
+    )`);
   }
   return clauses;
 }

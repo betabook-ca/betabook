@@ -31,7 +31,12 @@ export const GET = withApiSession(async (session, request: Request) => {
   }
 
   const db = await getDb();
-  const results = await searchClimbs(db, toClimbQueryParams(filter, sort), page, SEARCH_PAGE_SIZE);
+  const results = await searchClimbs(
+    db,
+    toClimbQueryParams(filter, sort, session.user.id),
+    page,
+    SEARCH_PAGE_SIZE,
+  );
   const climbIds = results.climbs.map((c) => c.id);
   const [sendStats, areaBreadcrumbs, sentClimbIds] = await Promise.all([
     getClimbSendStats(db, climbIds),

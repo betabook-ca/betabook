@@ -30,10 +30,13 @@ export function AreaClimbsToolbar({
   areaPath,
   sort,
   filter,
+  showExcludeSent = false,
 }: {
   areaPath: string;
   sort: SubtreeClimbsSort;
   filter: AreaClimbsFilter;
+  /** Offer Exclude sent; only for a signed-in reader. */
+  showExcludeSent?: boolean;
 }) {
   const router = useRouter();
   const {
@@ -51,6 +54,7 @@ export function AreaClimbsToolbar({
       ratingRange: filter.ratingRange,
       minAscents: filter.minAscents,
       subareaId: filter.subareaId,
+      excludeSent: filter.excludeSent,
     },
     initialName: filter.name ?? "",
     defaultFilter: DEFAULT_AREA_CLIMBS_FILTER,
@@ -104,6 +108,10 @@ export function AreaClimbsToolbar({
           onRatingRangeChange={(ratingRange) => setValue({ ...value, ratingRange })}
           minAscents={value.minAscents}
           onMinAscentsChange={(minAscents) => setValue({ ...value, minAscents })}
+          excludeSent={value.excludeSent}
+          onExcludeSentChange={
+            showExcludeSent ? (excludeSent) => setValue({ ...value, excludeSent }) : undefined
+          }
         />
       }
     />

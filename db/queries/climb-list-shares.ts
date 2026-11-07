@@ -1,9 +1,13 @@
 import { sql, type SQL } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
-import type { ClimbListView } from "@/lib/climb-lists";
 
-import { getClimbListItemsWhere, type ClimbListItem, type ClimbListSummary } from "./climb-lists";
+import {
+  getClimbListItemsWhere,
+  type ClimbListItem,
+  type ClimbListQuery,
+  type ClimbListSummary,
+} from "./climb-lists";
 
 /** What a live link resolves to. The share dialog promises "the list's name,
  * description, climbs and grades, and your name", and that sentence is the
@@ -108,9 +112,9 @@ export function getSharedClimbListItems(
   db: Database,
   token: string,
   viewerId: string | null,
-  view: ClimbListView,
+  query: ClimbListQuery,
 ): Promise<ClimbListItem[]> {
-  return getClimbListItemsWhere(db, climbListLinkCoversSql(token), viewerId, view);
+  return getClimbListItemsWhere(db, climbListLinkCoversSql(token), viewerId, query);
 }
 
 /** The owner's own view of a list's live link, for the Share dialog. Scoped

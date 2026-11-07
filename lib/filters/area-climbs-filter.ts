@@ -3,6 +3,8 @@ import { DEFAULT_CLIMB_LIST_SORT, parseClimbListSort } from "@/lib/climb-list-so
 import {
   DEFAULT_MIN_ASCENTS,
   DEFAULT_RATING_RANGE,
+  excludeSentBy,
+  parseExcludeSent,
   parseRatingRange,
 } from "@/lib/filters/climb-stats-filter";
 import {
@@ -28,6 +30,8 @@ export type AreaClimbsFilter = DisciplineFilter & {
    * `null` = the whole area. Validated server-side against the page's area
    * before it targets a query. */
   subareaId: number | null;
+  /** Hide climbs the signed-in reader has sent. */
+  excludeSent: boolean;
 };
 
 export const DEFAULT_AREA_CLIMBS_FILTER: AreaClimbsFilter = {
@@ -35,6 +39,7 @@ export const DEFAULT_AREA_CLIMBS_FILTER: AreaClimbsFilter = {
   ratingRange: DEFAULT_RATING_RANGE,
   minAscents: DEFAULT_MIN_ASCENTS,
   subareaId: null,
+  excludeSent: false,
 };
 
 export const parseAreaClimbsSort = parseClimbListSort;
@@ -49,6 +54,7 @@ export function parseAreaClimbsFilter(params: UrlParamsRecord): AreaClimbsFilter
     ratingRange: parseRatingRange(params.ratingRange),
     minAscents: Number.isFinite(minAscents) && minAscents >= 0 ? minAscents : DEFAULT_MIN_ASCENTS,
     subareaId: Number.isInteger(subarea) && subarea > 0 ? subarea : null,
+    excludeSent: parseExcludeSent(params.excludeSent),
   };
 }
 
@@ -59,12 +65,14 @@ export function parseAreaClimbsFilter(params: UrlParamsRecord): AreaClimbsFilter
  * they're not discipline-scoped, so "no filter" is just their own default. */
 export function toSubtreeQueryFilter(
   filter: AreaClimbsFilter,
+  viewerId?: string | null,
 ): DisciplineGradeFilter & ClimbStatsFilter & { name?: string } {
   return {
     ...toDisciplineGradeFilter(filter),
     name: filter.name || undefined,
     ratingRange: filter.ratingRange,
     minAscents: filter.minAscents,
+    excludeSentBy: excludeSentBy(filter.excludeSent, viewerId),
   };
 }
 
@@ -84,5 +92,6 @@ export function areaClimbsFilterToSearchParams(
   params.append("ratingRange", String(filter.ratingRange[0]));
   params.append("ratingRange", String(filter.ratingRange[1]));
   if (filter.minAscents) params.set("minAscents", String(filter.minAscents));
+  if (filter.excludeSent) params.set("excludeSent", "1");
   return params;
 }

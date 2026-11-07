@@ -133,6 +133,7 @@ export function SearchController({
             value={state}
             onChange={(next) => onChange({ ...state, ...next })}
             showAreaLookup
+            showExcludeSent={!publicOnly}
             areaFetcher={areaFetcher}
             activeFilters={
               state.query
