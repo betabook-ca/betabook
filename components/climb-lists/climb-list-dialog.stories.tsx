@@ -12,32 +12,49 @@ const meta = {
 } satisfies Meta<typeof ClimbListDialog>;
 export default meta;
 
-function story(title: string, mode: ClimbListDialogMode, description?: string): StoryObj {
-  return {
-    render: function Example() {
-      const state = useOverlayState({ defaultOpen: true });
-      return (
-        <StoryPage title={title} description={description}>
-          <Button onPress={state.open}>Open</Button>
-          <ClimbListDialog state={state} userId="alex" mode={mode} />
-        </StoryPage>
-      );
-    },
-  };
+/** Opens on load; the button reopens it after closing. */
+function OpenDialog({
+  title,
+  mode,
+  description,
+}: {
+  title: string;
+  mode: ClimbListDialogMode;
+  description?: string;
+}) {
+  const state = useOverlayState({ defaultOpen: true });
+  return (
+    <StoryPage title={title} description={description}>
+      <Button onPress={state.open}>Open</Button>
+      <ClimbListDialog state={state} userId="alex" mode={mode} />
+    </StoryPage>
+  );
 }
 
-export const Create = story("New list", { kind: "create" });
+export const Create: StoryObj = {
+  render: () => <OpenDialog title="New list" mode={{ kind: "create" }} />,
+};
 
-export const Edit = story("Edit list", { kind: "edit", list: climbListSamples[0] });
+export const Edit: StoryObj = {
+  render: () => <OpenDialog title="Edit list" mode={{ kind: "edit", list: climbListSamples[0] }} />,
+};
 
-export const CopyOwn = story(
-  "Copy your own list",
-  { kind: "copy", list: climbListSamples[0], own: true },
-  "Copying your own list adds “(copy)” so the two can be told apart.",
-);
+export const CopyOwn: StoryObj = {
+  render: () => (
+    <OpenDialog
+      title="Copy your own list"
+      mode={{ kind: "copy", list: climbListSamples[0], own: true }}
+      description="Copying your own list adds “(copy)” so the two can be told apart."
+    />
+  ),
+};
 
-export const CopyOthers = story(
-  "Copy someone else's list",
-  { kind: "copy", list: climbListSamples[0], own: false },
-  "Copying someone else's list keeps their name as it is.",
-);
+export const CopyOthers: StoryObj = {
+  render: () => (
+    <OpenDialog
+      title="Copy someone else's list"
+      mode={{ kind: "copy", list: climbListSamples[0], own: false }}
+      description="Copying someone else's list keeps their name as it is."
+    />
+  ),
+};

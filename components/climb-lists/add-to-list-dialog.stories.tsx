@@ -13,30 +13,43 @@ const meta = {
 } satisfies Meta<typeof AddToListDialog>;
 export default meta;
 
-function story(fetcher: () => Promise<ClimbListChoice[]>, description?: string): StoryObj {
-  return {
-    render: function Example() {
-      const state = useOverlayState({ defaultOpen: true });
-      return (
-        <StoryPage title="Add to list" description={description}>
-          <Button onPress={state.open}>Open</Button>
-          <AddToListDialog
-            state={state}
-            userId="alex"
-            climb={{ id: 101, name: "Amarillo Sunset" }}
-            fetcher={fetcher}
-          />
-        </StoryPage>
-      );
-    },
-  };
+/** Opens on load; the button reopens it after closing. */
+function OpenDialog({
+  fetcher,
+  description,
+}: {
+  fetcher: () => Promise<ClimbListChoice[]>;
+  description?: string;
+}) {
+  const state = useOverlayState({ defaultOpen: true });
+  return (
+    <StoryPage title="Add to list" description={description}>
+      <Button onPress={state.open}>Open</Button>
+      <AddToListDialog
+        state={state}
+        userId="alex"
+        climb={{ id: 101, name: "Amarillo Sunset" }}
+        fetcher={fetcher}
+      />
+    </StoryPage>
+  );
 }
 
-export const Default = story(
-  async () => climbListChoiceSamples,
-  "One checkbox per list, each saving on its own. The climb is already on the first.",
-);
+export const Default: StoryObj = {
+  render: () => (
+    <OpenDialog
+      fetcher={async () => climbListChoiceSamples}
+      description="One checkbox per list, each saving on its own. The climb is already on the first."
+    />
+  ),
+};
 
-export const NoLists = story(async () => []);
+export const NoLists: StoryObj = {
+  render: () => <OpenDialog fetcher={async () => []} />,
+};
 
-export const Loading = story(() => new Promise(() => {}), "While the lists load.");
+export const Loading: StoryObj = {
+  render: () => (
+    <OpenDialog fetcher={() => new Promise(() => {})} description="While the lists load." />
+  ),
+};
