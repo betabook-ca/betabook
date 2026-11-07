@@ -88,6 +88,18 @@ export function sharedTripMetadata(name: string, tripName: string): Metadata {
   };
 }
 
+export function sharedClimbListMetadata(name: string, listTitle: string): Metadata {
+  const title = `${name} · ${listTitle}`;
+  const description = `See ${name}'s list of climbs on ${SITE_NAME}, a climbing logbook and crag database.`;
+  return {
+    title: { absolute: title },
+    description,
+    robots: { index: false },
+    openGraph: { type: "article", siteName: SITE_NAME, title, description, images: [OG_IMAGE] },
+    twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE.url] },
+  };
+}
+
 /** The `max` nearest names joined nearest-last into a short location trail
  * for a meta description, e.g. "Squamish, Grand Wall Boulders, Superfly".
  * Capped because a full root-to-crag chain ("North America, Canada, …")

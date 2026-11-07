@@ -12,6 +12,7 @@ import {
   climbTitle,
   locationTrail,
   sharedProfileMetadata,
+  sharedClimbListMetadata,
   sharedProjectMetadata,
   websiteJsonLd,
 } from "./seo";
@@ -115,6 +116,21 @@ describe("sharedProfileMetadata", () => {
       description,
       robots: { index: false },
       openGraph: { type: "profile", siteName: "Betabook", title, description, images: [OG_IMAGE] },
+      twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE.url] },
+    });
+  });
+});
+
+describe("sharedClimbListMetadata", () => {
+  it("names the climber and the list without indexing", () => {
+    const title = "Alex Rivera · Red River classics";
+    const description =
+      "See Alex Rivera's list of climbs on Betabook, a climbing logbook and crag database.";
+    expect(sharedClimbListMetadata("Alex Rivera", "Red River classics")).toEqual({
+      title: { absolute: title },
+      description,
+      robots: { index: false },
+      openGraph: { type: "article", siteName: "Betabook", title, description, images: [OG_IMAGE] },
       twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE.url] },
     });
   });
