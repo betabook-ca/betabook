@@ -71,6 +71,9 @@ export function AddClimbsDialog({
         <ClimbPicker
           allowSentClimbs
           showFilters={!compact}
+          // Choose an area to list its climbs and add several in a row.
+          showAreaLookup
+          browseArea
           disabledClimbIds={onList}
           onPick={(climb) => handleAdd(climb)}
         />

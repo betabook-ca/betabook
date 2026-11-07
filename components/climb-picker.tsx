@@ -30,7 +30,11 @@ export function ClimbPicker({
   onCreateClimb,
   emptyQuerySlot,
   disabledClimbIds,
+  browseArea = false,
 }: {
+  /** List a chosen area's climbs without a name, for picking many from one
+   * crag. Off by default: elsewhere picking a climb is a lookup by name. */
+  browseArea?: boolean;
   onCreateClimb?: (href: string) => void;
   areaFetcher?: ComponentProps<typeof ClimbFilterControls>["areaFetcher"];
   showAreaLookup?: boolean;
@@ -55,7 +59,7 @@ export function ClimbPicker({
     category: "climb",
     query: initialName,
   });
-  const search = useSearch({ state, fetcher });
+  const search = useSearch({ state, fetcher, browse: browseArea && state.area !== null });
   const source = search.sections[0];
   const section = {
     ...source,
