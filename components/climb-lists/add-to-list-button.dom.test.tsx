@@ -43,10 +43,13 @@ function renderButton() {
   );
 }
 
-async function openMenu(user: ReturnType<typeof userEvent.setup>) {
+/** Opens the dialog and its dropdown, returning the dropdown's options. */
+async function openDropdown(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Add to list" }));
-  // The menu trigger names the menu after its button.
-  return screen.findByRole("menu", { name: "Add to list" });
+  const dialog = await screen.findByRole("dialog", { name: "Add Amarillo Sunset to a list" });
+  const input = await within(dialog).findByRole("combobox", { name: "Your lists" });
+  await user.click(input);
+  return { dialog, input, listbox: await screen.findByRole("listbox") };
 }
 
 beforeEach(() => {
@@ -55,64 +58,76 @@ beforeEach(() => {
   vi.mocked(removeClimbFromList).mockReset().mockResolvedValue({ ok: true, value: undefined });
 });
 
-it("loads the climber's lists when opened, with the ones holding the climb checked", async () => {
+it("opens a dialog with the climber's lists in a dropdown, marking the ones holding the climb", async () => {
   const user = userEvent.setup();
   renderButton();
   expect(fetcher).not.toHaveBeenCalled();
 
-  const menu = await openMenu(user);
+  const { dialog, listbox } = await openDropdown(user);
   expect(fetcher).toHaveBeenCalledWith(101);
-  expect(within(menu).getByRole("menuitemcheckbox", { name: /Red River classics/ })).toBeChecked();
-  expect(within(menu).getByRole("menuitemcheckbox", { name: /Bishop wishlist/ })).not.toBeChecked();
+  expect(within(listbox).getAllByRole("option")).toHaveLength(MANY.length);
+  expect(
+    within(listbox).getByRole("option", { name: /^Red River classics, on this list/ }),
+  ).toBeInTheDocument();
+  // The lists it's already on also show as chips, once the dropdown closes.
+  await user.keyboard("{Escape}");
+  expect(
+    await within(dialog).findByRole("button", { name: "Remove from Red River classics" }),
+  ).toBeInTheDocument();
+  expect(within(dialog).getByText("On 1 list")).toBeInTheDocument();
 });
 
 it("narrows a long set of lists as the climber types", async () => {
   const user = userEvent.setup();
   renderButton();
-  const menu = await openMenu(user);
-  expect(within(menu).getAllByRole("menuitemcheckbox")).toHaveLength(MANY.length);
+  const { input } = await openDropdown(user);
 
-  await user.type(screen.getByRole("searchbox", { name: "Search your lists" }), "bish");
+  await user.type(input, "bish");
   await waitFor(() =>
-    expect(
-      within(menu)
-        .getAllByRole("menuitemcheckbox")
-        .map((item) => item.textContent),
-    ).toEqual([expect.stringContaining("Bishop wishlist")]),
+    expect(within(screen.getByRole("listbox")).getAllByRole("option")).toHaveLength(1),
   );
+  expect(screen.getByRole("option", { name: /^Bishop wishlist/ })).toBeInTheDocument();
 
-  await user.clear(screen.getByRole("searchbox", { name: "Search your lists" }));
-  await user.type(screen.getByRole("searchbox", { name: "Search your lists" }), "nothing like it");
-  expect(await within(menu).findByText("No lists match.")).toBeInTheDocument();
+  await user.clear(input);
+  await user.type(input, "nothing like it");
+  expect(await screen.findByText("No lists match.")).toBeInTheDocument();
 });
 
-it("adds on pick and removes on a second pick, staying open between them", async () => {
+it("adds from the dropdown and removes from a chip", async () => {
   const user = userEvent.setup();
   renderButton();
-  const menu = await openMenu(user);
+  const { dialog, listbox } = await openDropdown(user);
 
-  await user.click(within(menu).getByRole("menuitemcheckbox", { name: /Bishop wishlist/ }));
+  await user.click(within(listbox).getByRole("option", { name: /^Bishop wishlist/ }));
   await waitFor(() => expect(addClimbToList).toHaveBeenCalledWith(2, 101));
+  // The dropdown stays open for another pick; close it to reach the chips.
+  expect(screen.getByRole("listbox")).toBeInTheDocument();
+  await user.keyboard("{Escape}");
   expect(
-    await within(menu).findByRole("menuitemcheckbox", { name: /Bishop wishlist.*13 climbs/ }),
-  ).toBeChecked();
+    await within(dialog).findByRole("button", { name: "Remove from Bishop wishlist" }),
+  ).toBeInTheDocument();
+  expect(within(dialog).getByText("On 2 lists")).toBeInTheDocument();
 
-  await user.click(within(menu).getByRole("menuitemcheckbox", { name: /Red River classics/ }));
+  await user.click(within(dialog).getByRole("button", { name: "Remove from Red River classics" }));
   await waitFor(() => expect(removeClimbFromList).toHaveBeenCalledWith(1, 101));
-  expect(
-    within(menu).getByRole("menuitemcheckbox", { name: /Red River classics/ }),
-  ).not.toBeChecked();
+  await waitFor(() =>
+    expect(
+      within(dialog).queryByRole("button", { name: "Remove from Red River classics" }),
+    ).not.toBeInTheDocument(),
+  );
 });
 
-it("leaves the list as it was and says why when the save fails", async () => {
+it("leaves the lists as they were and says why when the save fails", async () => {
   vi.mocked(addClimbToList).mockResolvedValue({ ok: false, error: "A list can hold 500 climbs." });
   const user = userEvent.setup();
   renderButton();
-  const menu = await openMenu(user);
+  const { dialog, listbox } = await openDropdown(user);
 
-  await user.click(within(menu).getByRole("menuitemcheckbox", { name: /Bishop wishlist/ }));
-  expect(await screen.findByText("A list can hold 500 climbs.")).toBeInTheDocument();
-  expect(within(menu).getByRole("menuitemcheckbox", { name: /Bishop wishlist/ })).not.toBeChecked();
+  await user.click(within(listbox).getByRole("option", { name: /^Bishop wishlist/ }));
+  expect(await within(dialog).findByText("A list can hold 500 climbs.")).toBeInTheDocument();
+  expect(
+    within(dialog).queryByRole("button", { name: "Remove from Bishop wishlist" }),
+  ).not.toBeInTheDocument();
 });
 
 it("offers to make a list when there are none", async () => {

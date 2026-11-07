@@ -41,7 +41,7 @@ export const BesideLog: Story = {
   ),
 };
 
-/** A climber with dozens of lists: the dropdown searches them and scrolls,
+/** A climber with dozens of lists: the dialog's dropdown searches them and scrolls,
  * so it doesn't grow with the count. Opens on load. */
 export const ManyLists: Story = {
   args: {
