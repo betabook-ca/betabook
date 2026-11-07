@@ -334,7 +334,7 @@ describe("viewing a list", () => {
     expect(unsent.map((item) => [item.climbId, item.number])).toEqual([[3, 2]]);
   });
 
-  it("applies Find climbs' filters: discipline and grade, area, text, rating and ascents", async () => {
+  it("applies the list's filters: discipline and grade, rating and ascents", async () => {
     // Highball V4 (1, area 4), Slab V1 (2, area 5), Crimper 5.10a (3), Crack 5.6 (4).
     const id = await seedList("owner", "Mixed", [3, 2, 4, 1]);
 
@@ -342,9 +342,6 @@ describe("viewing a list", () => {
     expect(
       await view(id, "owner", { filter: { disciplines: ["boulder"], boulderRange: [4, 10] } }),
     ).toEqual([1]);
-    // Area 2 is Test Boulders; its subtree holds both boulders.
-    expect(await view(id, "owner", { filter: { areaId: 2 } })).toEqual([2, 1]);
-    expect(await view(id, "owner", { filter: { name: "cr" } })).toEqual([3, 4]);
     await seedFixtureSend(db, { userId: "member", climbId: 4, dateSent: "2026-01-01", rating: 4 });
     expect(await view(id, "owner", { filter: { minAscents: 1 } })).toEqual([4]);
     expect(await view(id, "owner", { filter: { ratingRange: [4, 5] } })).toEqual([4]);

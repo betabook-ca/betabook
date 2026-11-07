@@ -95,8 +95,9 @@ export const CLIMB_LIST_SORT_OPTIONS: { id: ClimbListSortField; label: string }[
   { id: "added", label: "Date added" },
 ];
 
-/** The list's own sort, and the same filters Find climbs offers: text, area,
- * disciplines and grades, rating, ascents, and Exclude sent. */
+/** The list's own sort, and Find climbs' discipline chips and Filters panel:
+ * disciplines and grades, rating, ascents, and Exclude sent. Find climbs' text
+ * and area fields are left out. */
 export type ClimbListView = { sort: ClimbListSort; filter: ClimbFilter };
 
 export const DEFAULT_CLIMB_LIST_VIEW: ClimbListView = {
@@ -114,7 +115,10 @@ export function parseClimbListView(params: UrlParamsRecord): ClimbListView {
   )
     ? (rawSort as ClimbListSort)
     : DEFAULT_CLIMB_LIST_SORT;
-  return { sort, filter: parseClimbFilter(params) };
+  // Text and area aren't offered on a list, so a URL can't apply them either:
+  // a filter the toolbar can't show is one the reader can't clear.
+  const { name: _name, areaName: _areaName, areaId: _areaId, ...filter } = parseClimbFilter(params);
+  return { sort, filter };
 }
 
 /** The filter part of a view's query string. Defaults are left out, so an

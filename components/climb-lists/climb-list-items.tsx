@@ -18,7 +18,6 @@ import { GradeLabel } from "@/components/ui/grade-label";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ListRow } from "@/components/ui/list-row";
 import type { AreaBreadcrumbs, ClimbListItem } from "@/db/queries";
-import type { AreaSelection } from "@/lib/area-selection";
 import {
   DEFAULT_CLIMB_LIST_VIEW,
   climbListViewSearch,
@@ -32,7 +31,8 @@ import { climbHref } from "@/lib/slug";
 /**
  * A list's climbs as one reader sees them.
  *
- * The sort and Find climbs' filters are the reader's view, kept in the URL,
+ * The sort and filters (disciplines, grades, rating, ascents, Exclude sent)
+ * are the reader's view, kept in the URL,
  * and never change the list. Every row keeps its number in the owner's order:
  * the main number in list order, a muted "#n" when sorted, so the order is
  * still readable. Sent state, and Exclude sent, are the reader's own sends; a
@@ -43,7 +43,6 @@ export function ClimbListItems({
   totalCount,
   areaBreadcrumbs,
   view,
-  area = null,
   signedIn,
   listId,
   canEdit = false,
@@ -55,8 +54,6 @@ export function ClimbListItems({
   totalCount: number;
   areaBreadcrumbs: AreaBreadcrumbs;
   view: ClimbListView;
-  /** The area filter's name and trail, resolved on the server. */
-  area?: AreaSelection | null;
   signedIn: boolean;
   listId: number;
   /** The owner viewing their own list: rows get a Remove button. */
@@ -97,7 +94,7 @@ export function ClimbListItems({
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
-      <ClimbListToolbar view={view} area={area} signedIn={signedIn} />
+      <ClimbListToolbar view={view} signedIn={signedIn} />
 
       {canEdit && totalCount > 1 && (
         <div className="flex justify-end">
