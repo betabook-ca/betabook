@@ -95,6 +95,9 @@ it("shows the list to a reader without an account, even when lists are Only me",
   expect(payload).toContain('"signedIn":false');
   expect(payload).toContain('"sent":null');
   expect(payload).toContain("Climb with List Owner on Betabook");
+  // Copying needs an account to copy into.
+  expect(payload).not.toContain("CopyClimbListButton");
+  expect(payload).not.toContain(`"viewerId"`);
 });
 
 it("shows nothing beyond the list: not the owner's sends, other lists or email", async () => {
@@ -121,6 +124,8 @@ it("shows a signed-in reader their own sent state, never the owner's", async () 
   // The owner sent the Crimper; the reader didn't, so the filter drops it.
   expect(payload).not.toContain("Test Crimper");
   expect(payload).not.toContain("Climb with List Owner on Betabook");
+  // A signed-in reader can copy, through the link they hold.
+  expect(payload).toContain(`"viewerId":"${READER}","token":"${token}"`);
 });
 
 it("sends the owner to their own list page", async () => {
