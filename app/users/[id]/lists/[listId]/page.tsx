@@ -30,7 +30,6 @@ import {
 import { toClimbQueryParams } from "@/lib/filters/climb-filter";
 import { parseId } from "@/lib/parse-id";
 import { requestMemo } from "@/lib/request-memo";
-import { loadAreaSelection } from "@/lib/search-loader";
 import type { UrlParamsRecord } from "@/lib/url-params";
 
 type ListPageProps = {
@@ -126,13 +125,10 @@ async function ListItems({
 }) {
   const db = await getDb();
   const filtered = isFilteredClimbList(view.filter);
-  const [items, area] = await Promise.all([
-    getClimbListItems(db, ownerId, list.id, viewerId, {
-      sort: view.sort,
-      filter: toClimbQueryParams(view.filter, undefined, viewerId),
-    }),
-    loadAreaSelection(view.filter.areaId),
-  ]);
+  const items = await getClimbListItems(db, ownerId, list.id, viewerId, {
+    sort: view.sort,
+    filter: toClimbQueryParams(view.filter, undefined, viewerId),
+  });
   // The owner's picker needs every climb on the list, not just the filtered
   // ones, to mark what is already there.
   const allClimbIds =
@@ -161,7 +157,6 @@ async function ListItems({
         totalCount={list.climbCount}
         areaBreadcrumbs={areaBreadcrumbs}
         view={view}
-        area={area}
         signedIn
         listId={list.id}
         canEdit={isOwner}

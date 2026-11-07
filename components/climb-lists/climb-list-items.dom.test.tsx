@@ -87,13 +87,16 @@ it("numbers rows in the owner's order and offers Reorder only in list order", as
   expect(replace).toHaveBeenCalledWith("/users/alex/lists/1", { scroll: false });
 });
 
-it("offers Find climbs' filters with Exclude sent, written to the URL with the sort", async () => {
+it("offers the discipline chips and Filters panel with Exclude sent, kept in the URL", async () => {
   const user = userEvent.setup();
   renderItems({ view: { sort: "grade_desc", filter: DEFAULT_CLIMB_FILTER } });
 
-  expect(screen.getByRole("searchbox", { name: "Filter climbs on this list" })).toBeVisible();
+  for (const discipline of ["Boulder", "Sport", "Trad"])
+    expect(screen.getByRole("button", { name: discipline })).toBeVisible();
+  // Find climbs' text box and area lookup aren't on a list.
+  expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Expand filters" }));
-  expect(screen.getByRole("combobox", { name: /area/i })).toBeInTheDocument();
+  expect(screen.queryByRole("combobox", { name: /area/i })).not.toBeInTheDocument();
   await user.click(screen.getByRole("checkbox", { name: "Exclude sent" }));
 
   await waitFor(() =>
