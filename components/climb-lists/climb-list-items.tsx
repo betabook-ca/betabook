@@ -4,7 +4,7 @@ import { Button, Menu } from "@heroui/react";
 import { clsx } from "clsx";
 import { X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition } from "react";
 
 import { removeClimbFromList } from "@/actions";
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
@@ -47,7 +47,6 @@ export function ClimbListItems({
   signedIn,
   listId,
   canEdit = false,
-  emptyAction,
 }: {
   items: ClimbListItem[];
   /** Climbs on the list before the filters, to tell an empty list from an
@@ -62,8 +61,6 @@ export function ClimbListItems({
   /** The owner viewing their own list: rows get a Remove button. Needs
    * `listId`. */
   canEdit?: boolean;
-  /** Shown in the empty list, such as Add climbs. */
-  emptyAction?: ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -92,8 +89,7 @@ export function ClimbListItems({
     });
   }
 
-  if (totalCount === 0)
-    return <EmptyState message="No climbs on this list yet." cta={emptyAction} />;
+  if (totalCount === 0) return <EmptyState message="No climbs on this list yet." />;
 
   if (reordering && wholeList && listId !== undefined)
     return <ClimbListReorder items={items} listId={listId} onClose={() => setReordering(false)} />;
