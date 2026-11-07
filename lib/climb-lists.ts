@@ -8,7 +8,7 @@ import { toArray, type UrlParamsRecord } from "@/lib/url-params";
 
 export const MAX_CLIMB_LIST_TITLE = 80;
 /** The column's CHECK allows 5,000, so this can rise without a migration. */
-const MAX_CLIMB_LIST_DESCRIPTION = 2000;
+export const MAX_CLIMB_LIST_DESCRIPTION = 2000;
 /** Ceilings that stop a scripted client filling the tables. Both are
  * conditions on the INSERT, so concurrent requests cannot race past them. */
 export const MAX_CLIMB_LISTS = 100;
@@ -71,9 +71,26 @@ type ClimbListSortField = (typeof CLIMB_LIST_SORT_FIELDS)[number];
 export type ClimbListSort = `${ClimbListSortField}_${"asc" | "desc"}`;
 
 const CLIMB_LIST_SENT_FILTERS = ["all", "unsent", "sent"] as const;
-type ClimbListSentFilter = (typeof CLIMB_LIST_SENT_FILTERS)[number];
+export type ClimbListSentFilter = (typeof CLIMB_LIST_SENT_FILTERS)[number];
 
 export const DEFAULT_CLIMB_LIST_SORT: ClimbListSort = "position_asc";
+
+/** Direction a freshly picked field starts at. */
+export const CLIMB_LIST_SORT_DIRECTION: Record<ClimbListSortField, "asc" | "desc"> = {
+  position: "asc",
+  grade: "desc",
+  area: "asc",
+  name: "asc",
+  added: "desc",
+};
+
+export const CLIMB_LIST_SORT_OPTIONS: { id: ClimbListSortField; label: string }[] = [
+  { id: "position", label: "List order" },
+  { id: "grade", label: "Grade" },
+  { id: "area", label: "Area" },
+  { id: "name", label: "Name" },
+  { id: "added", label: "Date added" },
+];
 
 export type ClimbListView = { sort: ClimbListSort; sent: ClimbListSentFilter };
 
@@ -90,4 +107,31 @@ export function parseClimbListView(params: UrlParamsRecord): ClimbListView {
   const rawSent = toArray(params.sent)[0];
   const sent = CLIMB_LIST_SENT_FILTERS.find((value) => value === rawSent) ?? "all";
   return { sort, sent };
+}
+
+/** True in the owner's own order, the only view the list can be reordered in. */
+export function isListOrder(sort: ClimbListSort): boolean {
+  return sort === DEFAULT_CLIMB_LIST_SORT;
+}
+
+/** The view's query string, leaving defaults out so the plain list URL stays
+ * plain. */
+export function climbListViewSearch(view: ClimbListView): string {
+  const params = new URLSearchParams();
+  if (view.sort !== DEFAULT_CLIMB_LIST_SORT) params.set("sort", view.sort);
+  if (view.sent !== "all") params.set("sent", view.sent);
+  const search = params.toString();
+  return search ? `?${search}` : "";
+}
+
+export function climbCountLabel(count: number): string {
+  return `${count} ${count === 1 ? "climb" : "climbs"}`;
+}
+
+export function climbListsHref(userId: string): string {
+  return `/users/${userId}/lists`;
+}
+
+export function climbListHref(userId: string, listId: number): string {
+  return `/users/${userId}/lists/${listId}`;
 }

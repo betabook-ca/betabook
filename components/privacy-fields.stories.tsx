@@ -31,6 +31,7 @@ function PrivacyExample({
   const [journal, setJournal] = useState<SharingAudience>("friends");
   const [comment, setComment] = useState(commentary);
   const [trips, setTrips] = useState<SharingAudience>("public");
+  const [lists, setLists] = useState<SharingAudience>("friends");
   return (
     <StoryPage
       title="Privacy controls"
@@ -42,15 +43,18 @@ function PrivacyExample({
           journalVisibility={journal}
           sendCommentVisibility={comment}
           tripVisibility={trips}
+          climbListVisibility={lists}
           onProfileChange={setPrivate}
           onJournalChange={setJournal}
           onSendCommentChange={setComment}
           onTripsChange={setTrips}
+          onListsChange={setLists}
           isPending={pending}
           profileError={error ? "Could not save your changes. Try again." : null}
           sendCommentError={error ? "Could not save commentary. Try again." : null}
           journalError={error ? "Could not save Journal and goals audience. Try again." : null}
           tripsError={error ? "Could not save Trips audience. Try again." : null}
+          listsError={error ? "Could not save Lists audience. Try again." : null}
         />
         <PrivacyDetails defaultExpanded={details} />
       </SettingsSection>

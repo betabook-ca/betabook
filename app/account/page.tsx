@@ -43,6 +43,7 @@ export default async function AccountPage() {
       journalVisibility={user?.journalVisibility ?? "friends"}
       sendCommentVisibility={user?.sendCommentVisibility ?? "public"}
       tripVisibility={user?.tripVisibility ?? "friends"}
+      climbListVisibility={user?.climbListVisibility ?? "friends"}
       gradePreferences={gradePreferencesFor(user)}
       shareUrl={shareUrl}
       turnstileSiteKey={turnstileSiteKey}
