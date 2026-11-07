@@ -1,17 +1,19 @@
 "use client";
 
-import { Button, ComboBox, Input, Label, ListBox, useOverlayState } from "@heroui/react";
-import { Check, CirclePlus, ListPlus, X } from "lucide-react";
+import { Button, ComboBox, Input, Label, ListBox, toast, useOverlayState } from "@heroui/react";
+import { CirclePlus, ListPlus } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
+import type { Key } from "react-aria-components";
 
-import { addClimbToList, removeClimbFromList } from "@/actions";
+import { addClimbToList } from "@/actions";
 import { ClimbListDialog } from "@/components/climb-lists/climb-list-dialog";
+import { AppLink } from "@/components/ui/app-link";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { SkeletonListRows } from "@/components/ui/skeleton";
 import type { ClimbListChoice } from "@/db/queries";
 import { apiFetch } from "@/lib/api-client";
-import { climbCountLabel } from "@/lib/climb-lists";
+import { climbCountLabel, climbListHref } from "@/lib/climb-lists";
 
 /** Reads the climber's lists for this climb. Swappable for stories and tests. */
 export type ClimbListChoicesFetcher = (climbId: number) => Promise<ClimbListChoice[]>;
@@ -22,12 +24,24 @@ const fetchChoices: ClimbListChoicesFetcher = async (climbId) => {
   return ((await response.json()) as { lists: ClimbListChoice[] }).lists;
 };
 
+/** Says where the climb went, with the list as a link to it. */
+function announceAdded(climbName: string, userId: string, list: { id: number; title: string }) {
+  toast.success(
+    <span>
+      Added {climbName} to{" "}
+      <AppLink href={climbListHref(userId, list.id)} className="font-medium underline">
+        {list.title}
+      </AppLink>
+    </span>,
+  );
+}
+
 /**
- * The climb page's secondary action beside Log. It opens a dialog whose
- * searchable dropdown scales to any number of lists: type to narrow them and
- * pick one to add the climb to the end of it, or pick a checked one to take
- * it off. The lists already holding the climb sit below as chips that remove
- * it. Every change saves on its own; lists load when the dialog opens.
+ * The climb page's secondary action beside Log. It opens a dialog with a
+ * searchable dropdown of the climber's lists, which scales to any number of
+ * them: type to narrow, choose one list, then Add. Lists already holding the
+ * climb are shown but can't be chosen. New list… makes a list with the climb
+ * already on it. Either way the dialog closes and a toast links to the list.
  */
 export function AddToListButton({
   climb,
@@ -42,12 +56,10 @@ export function AddToListButton({
 }) {
   const state = useOverlayState();
   const createState = useOverlayState();
-  const [query, setQuery] = useState("");
   const [choices, setChoices] = useState<ClimbListChoice[] | null>(null);
+  const [selected, setSelected] = useState<Key | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [reload, setReload] = useState(0);
-  const [, startTransition] = useTransition();
+  const [pending, startTransition] = useTransition();
 
   useEffect(() => {
     if (!state.isOpen) return;
@@ -64,43 +76,29 @@ export function AddToListButton({
     return () => {
       cancelled = true;
     };
-  }, [state.isOpen, climb.id, fetcher, reload]);
+  }, [state.isOpen, climb.id, fetcher]);
 
-  function toggle(choice: ClimbListChoice) {
-    const adding = !choice.hasClimb;
+  const list = choices?.find((choice) => String(choice.id) === selected) ?? null;
+
+  function add() {
+    if (!list || pending) return;
     setError(null);
-    setSaving(true);
     startTransition(async () => {
-      const result = adding
-        ? await addClimbToList(choice.id, climb.id)
-        : await removeClimbFromList(choice.id, climb.id);
-      setSaving(false);
+      const result = await addClimbToList(list.id, climb.id);
       if (!result.ok) {
         setError(result.error);
         return;
       }
-      setChoices(
-        (current) =>
-          current?.map((item) =>
-            item.id === choice.id
-              ? { ...item, hasClimb: adding, climbCount: item.climbCount + (adding ? 1 : -1) }
-              : item,
-          ) ?? current,
-      );
+      state.close();
+      announceAdded(climb.name, viewerId, list);
     });
   }
 
   function reset() {
-    setQuery("");
     setChoices(null);
+    setSelected(null);
     setError(null);
   }
-
-  const needle = query.trim().toLocaleLowerCase();
-  const matches = (choices ?? []).filter((choice) =>
-    choice.title.toLocaleLowerCase().includes(needle),
-  );
-  const onLists = (choices ?? []).filter((choice) => choice.hasClimb);
 
   return (
     <>
@@ -113,11 +111,13 @@ export function AddToListButton({
         state={state}
         title={`Add ${climb.name} to a list`}
         size="sm"
+        isPending={pending}
         onClose={reset}
         footer={
           <div className="flex w-full flex-wrap justify-between gap-2">
             <Button
               variant="ghost"
+              isDisabled={pending}
               onPress={() => {
                 state.close();
                 createState.open();
@@ -126,97 +126,62 @@ export function AddToListButton({
               <CirclePlus className="size-4" />
               New list…
             </Button>
-            <Button onPress={state.close}>Done</Button>
+            <div className="flex gap-2">
+              <Button variant="ghost" isDisabled={pending} onPress={state.close}>
+                Cancel
+              </Button>
+              <Button isDisabled={!list || pending} onPress={add}>
+                Add
+              </Button>
+            </div>
           </div>
         }
       >
         <div className="flex flex-col gap-3">
           {choices === null && !error && <SkeletonListRows rows={2} />}
           {choices?.length === 0 && (
-            <p className="text-sm text-muted">You have no lists yet. Make one to add this climb.</p>
+            <p className="text-sm text-muted">
+              You have no lists yet. Make one with New list… and this climb goes on it.
+            </p>
           )}
           {choices && choices.length > 0 && (
-            <>
-              {onLists.length > 0 ? (
-                <div className="flex flex-col gap-2">
-                  <p className="text-sm text-muted">
-                    On {onLists.length === 1 ? "1 list" : `${onLists.length} lists`}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {onLists.map((choice) => (
-                      <Button
-                        key={choice.id}
-                        size="sm"
-                        variant="secondary"
-                        className="max-w-full"
-                        isDisabled={saving}
-                        aria-label={`Remove from ${choice.title}`}
-                        onPress={() => toggle(choice)}
-                      >
-                        <span className="truncate">{choice.title}</span>
-                        <X aria-hidden className="size-3.5 shrink-0" />
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-muted">Not on any of your lists yet.</p>
-              )}
-              <ComboBox
-                fullWidth
-                allowsEmptyCollection
-                menuTrigger="focus"
-                inputValue={query}
-                onInputChange={setQuery}
-                selectedKey={null}
-                items={matches}
-                onSelectionChange={(key) => {
-                  // One save at a time. The dropdown stays open after a pick,
-                  // for adding to several lists; the chips above confirm it.
-                  if (saving) return;
-                  const choice = matches.find((item) => String(item.id) === key);
-                  if (choice) {
-                    toggle(choice);
-                    setQuery("");
-                  }
-                }}
-              >
-                <Label>Your lists</Label>
-                <ComboBox.InputGroup>
-                  <Input placeholder="Search your lists…" />
-                  <ComboBox.Trigger />
-                </ComboBox.InputGroup>
-                <ComboBox.Popover>
-                  <ListBox
-                    className="max-h-72 overflow-y-auto"
-                    renderEmptyState={() => (
-                      <p className="px-3 py-2 text-sm text-muted">No lists match.</p>
-                    )}
-                  >
-                    {(choice: ClimbListChoice) => (
-                      <ListBox.Item
-                        id={String(choice.id)}
-                        textValue={choice.hasClimb ? `${choice.title}, on this list` : choice.title}
-                      >
-                        <span className="flex w-full min-w-0 items-center gap-2">
-                          <Check
-                            aria-hidden
-                            className={`size-4 shrink-0 ${choice.hasClimb ? "" : "invisible"}`}
-                          />
-                          <span className="min-w-0 flex-1 truncate">
-                            {choice.title}
-                            {choice.hasClimb && <span className="sr-only">, on this list,</span>}
-                          </span>
-                          <span className="text-xs text-muted">
-                            {climbCountLabel(choice.climbCount)}
-                          </span>
+            <ComboBox
+              fullWidth
+              allowsEmptyCollection
+              menuTrigger="focus"
+              defaultItems={choices}
+              selectedKey={selected}
+              onSelectionChange={setSelected}
+              disabledKeys={choices.filter((c) => c.hasClimb).map((c) => String(c.id))}
+              isDisabled={pending}
+            >
+              <Label>List</Label>
+              <ComboBox.InputGroup>
+                <Input placeholder="Search your lists…" />
+                <ComboBox.Trigger />
+              </ComboBox.InputGroup>
+              <ComboBox.Popover>
+                <ListBox
+                  className="max-h-72 overflow-y-auto"
+                  renderEmptyState={() => (
+                    <p className="px-3 py-2 text-sm text-muted">No lists match.</p>
+                  )}
+                >
+                  {(choice: ClimbListChoice) => (
+                    <ListBox.Item id={String(choice.id)} textValue={choice.title}>
+                      <span className="flex w-full min-w-0 items-center gap-2">
+                        <span className="min-w-0 flex-1 truncate">{choice.title}</span>
+                        <span className="text-xs text-muted">
+                          {choice.hasClimb
+                            ? "Already on this list"
+                            : climbCountLabel(choice.climbCount)}
                         </span>
-                      </ListBox.Item>
-                    )}
-                  </ListBox>
-                </ComboBox.Popover>
-              </ComboBox>
-            </>
+                      </span>
+                    </ListBox.Item>
+                  )}
+                </ListBox>
+              </ComboBox.Popover>
+            </ComboBox>
           )}
           {error && <InlineAlert>{error}</InlineAlert>}
         </div>
@@ -226,10 +191,7 @@ export function AddToListButton({
         state={createState}
         userId={viewerId}
         mode={{ kind: "create", climbId: climb.id }}
-        onCreated={() => {
-          setReload((count) => count + 1);
-          state.open();
-        }}
+        onCreated={(id, title) => announceAdded(climb.name, viewerId, { id, title })}
       />
     </>
   );

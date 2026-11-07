@@ -1,23 +1,25 @@
+import { Toast, toast } from "@heroui/react";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
-import { addClimbToList, removeClimbFromList } from "@/actions";
+import { addClimbToList, createClimbList } from "@/actions";
 import type { ClimbListChoice } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
 import { climbListChoiceSamples } from "@/stories/fixtures/climb-lists";
+import { stubViewport } from "@/test/viewport";
 
 import { AddToListButton, type ClimbListChoicesFetcher } from "./add-to-list-button";
 
 vi.mock("@/actions", () => ({
   addClimbToList: vi.fn<() => Promise<ActionResult>>(),
-  removeClimbFromList: vi.fn<() => Promise<ActionResult>>(),
   createClimbList: vi.fn<() => Promise<ActionResult<number>>>(),
   updateClimbList: vi.fn<() => Promise<ActionResult>>(),
   copyClimbList: vi.fn<() => Promise<ActionResult<number>>>(),
 }));
+const push = vi.fn<(href: string) => void>();
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn<() => void>(), refresh: vi.fn<() => void>() }),
+  useRouter: () => ({ push, refresh: vi.fn<() => void>() }),
 }));
 
 const fetcher = vi.fn<ClimbListChoicesFetcher>();
@@ -35,108 +37,110 @@ const MANY: ClimbListChoice[] = [
 
 function renderButton() {
   render(
-    <AddToListButton
-      climb={{ id: 101, name: "Amarillo Sunset" }}
-      viewerId="alex"
-      fetcher={fetcher}
-    />,
+    <>
+      <AddToListButton
+        climb={{ id: 101, name: "Amarillo Sunset" }}
+        viewerId="alex"
+        fetcher={fetcher}
+      />
+      <Toast.Provider />
+    </>,
   );
 }
 
-/** Opens the dialog and its dropdown, returning the dropdown's options. */
-async function openDropdown(user: ReturnType<typeof userEvent.setup>) {
+async function openDialog(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Add to list" }));
   const dialog = await screen.findByRole("dialog", { name: "Add Amarillo Sunset to a list" });
-  const input = await within(dialog).findByRole("combobox", { name: "Your lists" });
-  await user.click(input);
-  return { dialog, input, listbox: await screen.findByRole("listbox") };
+  const input = await within(dialog).findByRole("combobox", { name: "List" });
+  return { dialog, input };
 }
 
 beforeEach(() => {
+  // The toast region reads media queries, which jsdom lacks.
+  stubViewport("desktop");
   fetcher.mockReset().mockResolvedValue(MANY.map((choice) => ({ ...choice })));
   vi.mocked(addClimbToList).mockReset().mockResolvedValue({ ok: true, value: undefined });
-  vi.mocked(removeClimbFromList).mockReset().mockResolvedValue({ ok: true, value: undefined });
+  vi.mocked(createClimbList).mockReset().mockResolvedValue({ ok: true, value: 77 });
+  push.mockReset();
 });
+afterEach(() => toast.clear());
 
-it("opens a dialog with the climber's lists in a dropdown, marking the ones holding the climb", async () => {
+it("adds the climb to the one list chosen, then toasts a link to that list", async () => {
   const user = userEvent.setup();
   renderButton();
-  expect(fetcher).not.toHaveBeenCalled();
+  const { dialog, input } = await openDialog(user);
+  const add = within(dialog).getByRole("button", { name: "Add" });
+  expect(add).toBeDisabled();
 
-  const { dialog, listbox } = await openDropdown(user);
-  expect(fetcher).toHaveBeenCalledWith(101);
+  await user.click(input);
+  await user.click(await screen.findByRole("option", { name: /^Bishop wishlist/ }));
+  expect(input).toHaveValue("Bishop wishlist");
+  await user.click(add);
+
+  await waitFor(() => expect(addClimbToList).toHaveBeenCalledExactlyOnceWith(2, 101));
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("dialog", { name: "Add Amarillo Sunset to a list" }),
+    ).not.toBeInTheDocument(),
+  );
+  expect(await screen.findByText(/Added Amarillo Sunset to/)).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Bishop wishlist" })).toHaveAttribute(
+    "href",
+    "/users/alex/lists/2",
+  );
+});
+
+it("narrows a long set of lists and won't offer one that already has the climb", async () => {
+  const user = userEvent.setup();
+  renderButton();
+  const { input } = await openDialog(user);
+
+  await user.click(input);
+  const listbox = await screen.findByRole("listbox");
   expect(within(listbox).getAllByRole("option")).toHaveLength(MANY.length);
   expect(
-    within(listbox).getByRole("option", { name: /^Red River classics, on this list/ }),
-  ).toBeInTheDocument();
-  // The lists it's already on also show as chips, once the dropdown closes.
-  await user.keyboard("{Escape}");
-  expect(
-    await within(dialog).findByRole("button", { name: "Remove from Red River classics" }),
-  ).toBeInTheDocument();
-  expect(within(dialog).getByText("On 1 list")).toBeInTheDocument();
-});
-
-it("narrows a long set of lists as the climber types", async () => {
-  const user = userEvent.setup();
-  renderButton();
-  const { input } = await openDropdown(user);
+    within(listbox).getByRole("option", { name: /^Red River classics.*Already on this list/ }),
+  ).toHaveAttribute("aria-disabled", "true");
 
   await user.type(input, "bish");
   await waitFor(() =>
     expect(within(screen.getByRole("listbox")).getAllByRole("option")).toHaveLength(1),
   );
-  expect(screen.getByRole("option", { name: /^Bishop wishlist/ })).toBeInTheDocument();
-
-  await user.clear(input);
-  await user.type(input, "nothing like it");
-  expect(await screen.findByText("No lists match.")).toBeInTheDocument();
 });
 
-it("adds from the dropdown and removes from a chip", async () => {
-  const user = userEvent.setup();
-  renderButton();
-  const { dialog, listbox } = await openDropdown(user);
-
-  await user.click(within(listbox).getByRole("option", { name: /^Bishop wishlist/ }));
-  await waitFor(() => expect(addClimbToList).toHaveBeenCalledWith(2, 101));
-  // The dropdown stays open for another pick; close it to reach the chips.
-  expect(screen.getByRole("listbox")).toBeInTheDocument();
-  await user.keyboard("{Escape}");
-  expect(
-    await within(dialog).findByRole("button", { name: "Remove from Bishop wishlist" }),
-  ).toBeInTheDocument();
-  expect(within(dialog).getByText("On 2 lists")).toBeInTheDocument();
-
-  await user.click(within(dialog).getByRole("button", { name: "Remove from Red River classics" }));
-  await waitFor(() => expect(removeClimbFromList).toHaveBeenCalledWith(1, 101));
-  await waitFor(() =>
-    expect(
-      within(dialog).queryByRole("button", { name: "Remove from Red River classics" }),
-    ).not.toBeInTheDocument(),
-  );
-});
-
-it("leaves the lists as they were and says why when the save fails", async () => {
+it("stays open with the reason when the add fails", async () => {
   vi.mocked(addClimbToList).mockResolvedValue({ ok: false, error: "A list can hold 500 climbs." });
   const user = userEvent.setup();
   renderButton();
-  const { dialog, listbox } = await openDropdown(user);
+  const { dialog, input } = await openDialog(user);
 
-  await user.click(within(listbox).getByRole("option", { name: /^Bishop wishlist/ }));
+  await user.click(input);
+  await user.click(await screen.findByRole("option", { name: /^Bishop wishlist/ }));
+  await user.click(within(dialog).getByRole("button", { name: "Add" }));
+
   expect(await within(dialog).findByText("A list can hold 500 climbs.")).toBeInTheDocument();
-  expect(
-    within(dialog).queryByRole("button", { name: "Remove from Bishop wishlist" }),
-  ).not.toBeInTheDocument();
+  expect(screen.queryByText(/Added Amarillo Sunset to/)).not.toBeInTheDocument();
 });
 
-it("offers to make a list when there are none", async () => {
-  fetcher.mockResolvedValue([]);
+it("creates a new list with the climb on it and toasts a link, staying on the climb", async () => {
   const user = userEvent.setup();
   renderButton();
-  await user.click(screen.getByRole("button", { name: "Add to list" }));
-  expect(
-    await screen.findByText("You have no lists yet. Make one to add this climb."),
-  ).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: /New list/ })).toBeInTheDocument();
+  const { dialog } = await openDialog(user);
+
+  await user.click(within(dialog).getByRole("button", { name: /New list/ }));
+  const create = await screen.findByRole("dialog", { name: "New list" });
+  await user.type(within(create).getByRole("textbox", { name: /Name/ }), "Fall circuit");
+  await user.click(within(create).getByRole("button", { name: "Create list" }));
+
+  await waitFor(() =>
+    expect(createClimbList).toHaveBeenCalledWith(
+      { title: "Fall circuit", description: "" },
+      { climbId: 101 },
+    ),
+  );
+  expect(await screen.findByRole("link", { name: "Fall circuit" })).toHaveAttribute(
+    "href",
+    "/users/alex/lists/77",
+  );
+  expect(push).not.toHaveBeenCalled();
 });

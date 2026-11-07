@@ -1,6 +1,6 @@
 "use client";
 
-import { useTheme } from "@heroui/react";
+import { Toast, useTheme } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { RouterProvider } from "react-aria-components";
 
@@ -16,6 +16,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <RouterProvider navigate={router.push}>
       <FriendRequestsProvider>{children}</FriendRequestsProvider>
+      {/* Where `toast()` from @heroui/react shows, such as "Added to list".
+       * Clears the phone tab bar like the other floating panels. */}
+      <Toast.Provider className="floating-panel-bottom" />
     </RouterProvider>
   );
 }
