@@ -48,7 +48,12 @@ it.each([
   expect(tabs.map((tab) => tab.getAttribute("href"))).toEqual(
     area === "Logbook"
       ? ["/users/owner/journal", "/users/owner/sends", "/users/owner/trips"]
-      : ["/users/owner/goals", "/users/owner/projects", "/users/owner/analytics"],
+      : [
+          "/users/owner/goals",
+          "/users/owner/projects",
+          "/users/owner/lists",
+          "/users/owner/analytics",
+        ],
   );
   expect(within(sections(area)!).getByRole("link", { name: current })).toHaveAttribute(
     "aria-current",
