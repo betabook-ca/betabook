@@ -4,6 +4,7 @@ import {
   MAX_CLIMB_LIST_TITLE,
   climbListInputSchema,
   copyClimbListTitle,
+  moveClimb,
   parseClimbListView,
 } from "@/lib/climb-lists";
 
@@ -45,5 +46,17 @@ describe("parseClimbListView", () => {
       sent: "all",
     });
     expect(parseClimbListView({})).toEqual({ sort: "position_asc", sent: "all" });
+  });
+});
+
+describe("moveClimb", () => {
+  it("moves a climb before or after another", () => {
+    expect(moveClimb([1, 2, 3, 4], 4, 2)).toEqual([1, 4, 2, 3]);
+    expect(moveClimb([1, 2, 3, 4], 1, 3, "after")).toEqual([2, 3, 1, 4]);
+  });
+
+  it("leaves the order alone for unknown or identical ids", () => {
+    expect(moveClimb([1, 2], 1, 1)).toEqual([1, 2]);
+    expect(moveClimb([1, 2], 9, 1)).toEqual([1, 2]);
   });
 });
