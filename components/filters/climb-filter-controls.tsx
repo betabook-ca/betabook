@@ -1,7 +1,7 @@
 "use client";
 import { Button } from "@heroui/react";
 import { X } from "lucide-react";
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 import { ClimbListSortControl } from "@/components/climb-list-sort-control";
 import type { ActiveFilter } from "@/components/filters/active-filter-summary";
@@ -25,9 +25,17 @@ export function ClimbFilterControls({
   showAreaLookup = false,
   showMinAscents = true,
   showSort = true,
+  showExcludeSent = false,
+  sortControl,
+  textFilter,
   onReset,
   activeFilters = EMPTY_ACTIVE_FILTERS,
 }: {
+  /** Offer Exclude sent. Only for a signed-in reader: it hides their sends. */
+  showExcludeSent?: boolean;
+  /** Replaces the catalog sort, for a list with its own order. */
+  sortControl?: ReactNode;
+  textFilter?: ReactNode;
   onReset?: () => void;
   activeFilters?: ActiveFilter[];
   showAreaLookup?: boolean;
@@ -112,13 +120,15 @@ export function ClimbFilterControls({
           </>
         ) : undefined
       }
+      textFilter={textFilter}
       sortControl={
-        showSort ? (
+        sortControl ??
+        (showSort ? (
           <ClimbListSortControl
             sort={value.sort}
             onNavigate={(sort) => onChange({ ...value, sort })}
           />
-        ) : undefined
+        ) : undefined)
       }
       ratingControl={
         <ClimbStatsFields
@@ -130,6 +140,12 @@ export function ClimbFilterControls({
           }
           onMinAscentsChange={(minAscents) =>
             onChange({ ...value, filter: { ...value.filter, minAscents } })
+          }
+          excludeSent={value.filter.excludeSent}
+          onExcludeSentChange={
+            showExcludeSent
+              ? (excludeSent) => onChange({ ...value, filter: { ...value.filter, excludeSent } })
+              : undefined
           }
         />
       }

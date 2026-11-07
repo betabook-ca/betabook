@@ -9,6 +9,7 @@ import { useState, useTransition, type ReactNode } from "react";
 import { removeClimbFromList } from "@/actions";
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
 import { ClimbListReorder } from "@/components/climb-lists/climb-list-reorder";
+import { ClimbListToolbar } from "@/components/climb-lists/climb-list-toolbar";
 import { ClimbSentIndicator } from "@/components/climb-sent-indicator";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -16,57 +17,46 @@ import { Grade } from "@/components/ui/grade";
 import { GradeLabel } from "@/components/ui/grade-label";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ListRow } from "@/components/ui/list-row";
-import { SegmentedButtons } from "@/components/ui/segmented-buttons";
-import { SortSelect } from "@/components/ui/sort-select";
 import type { AreaBreadcrumbs, ClimbListItem } from "@/db/queries";
+import type { AreaSelection } from "@/lib/area-selection";
 import {
-  CLIMB_LIST_SORT_DIRECTION,
-  CLIMB_LIST_SORT_OPTIONS,
+  DEFAULT_CLIMB_LIST_VIEW,
   climbListViewSearch,
+  isFilteredClimbList,
   isListOrder,
-  type ClimbListSentFilter,
-  type ClimbListSort,
   type ClimbListView,
 } from "@/lib/climb-lists";
+import { DEFAULT_CLIMB_FILTER } from "@/lib/filters/climb-filter";
 import { climbHref } from "@/lib/slug";
-
-const SENT_OPTIONS: { value: ClimbListSentFilter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "unsent", label: "Unsent" },
-  { value: "sent", label: "Sent" },
-];
-
-/** What a filter that matches nothing says. Sent state is the reader's own. */
-const FILTER_EMPTY: Record<Exclude<ClimbListSentFilter, "all">, string> = {
-  unsent: "You've sent every climb on this list.",
-  sent: "You haven't sent any climbs on this list yet.",
-};
 
 /**
  * A list's climbs as one reader sees them.
  *
- * Sorting and the sent filter are the reader's view, kept in the URL, and
- * never change the list. Every row keeps its number in the owner's order:
+ * The sort and Find climbs' filters are the reader's view, kept in the URL,
+ * and never change the list. Every row keeps its number in the owner's order:
  * the main number in list order, a muted "#n" when sorted, so the order is
- * still readable. Sent state, and the filter, are the reader's own sends;
- * a signed-out reader has none and sees neither.
+ * still readable. Sent state, and Exclude sent, are the reader's own sends; a
+ * signed-out reader has none and sees neither.
  */
 export function ClimbListItems({
   items,
   totalCount,
   areaBreadcrumbs,
   view,
+  area = null,
   signedIn,
   listId,
   canEdit = false,
   emptyAction,
 }: {
   items: ClimbListItem[];
-  /** Climbs on the list before the filter, to tell an empty list from an
-   * empty filter. */
+  /** Climbs on the list before the filters, to tell an empty list from an
+   * empty result. */
   totalCount: number;
   areaBreadcrumbs: AreaBreadcrumbs;
   view: ClimbListView;
+  /** The area filter's name and trail, resolved on the server. */
+  area?: AreaSelection | null;
   signedIn: boolean;
   listId: number;
   /** The owner viewing their own list: rows get a Remove button. */
@@ -81,8 +71,9 @@ export function ClimbListItems({
   const [, startTransition] = useTransition();
   const [reordering, setReordering] = useState(false);
   const listOrder = isListOrder(view.sort);
+  const filtered = isFilteredClimbList(view.filter);
   // Reordering saves the whole order, so it needs every climb, in list order.
-  const wholeList = listOrder && view.sent === "all";
+  const wholeList = listOrder && !filtered;
 
   function navigate(next: ClimbListView) {
     router.replace(`${pathname}${climbListViewSearch(next)}`, { scroll: false });
@@ -106,49 +97,33 @@ export function ClimbListItems({
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <SortSelect
-          sort={view.sort}
-          fields={CLIMB_LIST_SORT_OPTIONS}
-          defaultField="position"
-          defaultDirection={CLIMB_LIST_SORT_DIRECTION}
-          onNavigate={(sort: ClimbListSort) => navigate({ ...view, sort })}
-        />
-        <div className="flex flex-wrap items-center gap-3">
-          {signedIn && (
-            <SegmentedButtons
-              ariaLabel="Show climbs you've sent"
-              className="w-auto"
-              value={view.sent}
-              options={SENT_OPTIONS}
-              onChange={(sent) => navigate({ ...view, sent })}
-            />
+      <ClimbListToolbar view={view} area={area} signedIn={signedIn} />
+
+      {canEdit && totalCount > 1 && (
+        <div className="flex justify-end">
+          {wholeList ? (
+            <Button variant="outline" onPress={() => setReordering(true)}>
+              Reorder
+            </Button>
+          ) : (
+            <Button variant="ghost" onPress={() => navigate(DEFAULT_CLIMB_LIST_VIEW)}>
+              {filtered ? "Clear filters to reorder" : "Switch to list order to reorder"}
+            </Button>
           )}
-          {canEdit &&
-            totalCount > 1 &&
-            (wholeList ? (
-              <Button variant="outline" onPress={() => setReordering(true)}>
-                Reorder
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                onPress={() => navigate({ sort: "position_asc", sent: "all" })}
-              >
-                Switch to list order to reorder
-              </Button>
-            ))}
         </div>
-      </div>
+      )}
 
       {removeError && <InlineAlert>{removeError}</InlineAlert>}
 
-      {items.length === 0 && view.sent !== "all" ? (
+      {items.length === 0 ? (
         <EmptyState
-          message={FILTER_EMPTY[view.sent]}
+          message="No climbs on this list match these filters."
           cta={
-            <Button variant="outline" onPress={() => navigate({ ...view, sent: "all" })}>
-              Clear filter
+            <Button
+              variant="outline"
+              onPress={() => navigate({ sort: view.sort, filter: DEFAULT_CLIMB_FILTER })}
+            >
+              Clear filters
             </Button>
           }
         />

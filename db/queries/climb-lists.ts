@@ -1,9 +1,10 @@
 import { sql, type SQL } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
-import type { ClimbListSort, ClimbListView } from "@/lib/climb-lists";
+import type { ClimbListSort } from "@/lib/climb-lists";
 import type { ClimbType } from "@/lib/grades";
 
+import { searchClimbsConditions, type SearchClimbsParams } from "./climbs";
 import { climbListsVisibleSql } from "./content-access";
 
 export type ClimbListSummary = {
@@ -82,9 +83,9 @@ export async function getClimbListForUser(
   return row ?? null;
 }
 
-/** Each sort's ORDER BY, over aliases `c` (climb), `i` (item) and
- * `area_path`. Every one ends on the owner's position, so ties keep the list's
- * order and a sorted view is stable.
+/** Each sort's ORDER BY, over aliases `climbs`, `i` (item) and `area_path`.
+ * Every one ends on the owner's position, so ties keep the list's order and a
+ * sorted view is stable.
  *
  * Grades are per-discipline ordinals (Hueco for boulders, YDS for routes), so
  * comparing them across disciplines would put V10 next to 5.10a. Boulders
@@ -92,12 +93,12 @@ export async function getClimbListForUser(
 const ORDER_BY: Record<ClimbListSort, SQL> = {
   position_asc: sql`i.position ASC`,
   position_desc: sql`i.position DESC`,
-  grade_asc: sql`(c.type <> 'boulder'), (c.grade IS NULL), c.grade ASC, i.position ASC`,
-  grade_desc: sql`(c.type <> 'boulder'), c.grade DESC, i.position ASC`,
+  grade_asc: sql`(climbs.type <> 'boulder'), (climbs.grade IS NULL), climbs.grade ASC, i.position ASC`,
+  grade_desc: sql`(climbs.type <> 'boulder'), climbs.grade DESC, i.position ASC`,
   area_asc: sql`area_path.path COLLATE NOCASE ASC, i.position ASC`,
   area_desc: sql`area_path.path COLLATE NOCASE DESC, i.position ASC`,
-  name_asc: sql`c.name COLLATE NOCASE ASC, i.position ASC`,
-  name_desc: sql`c.name COLLATE NOCASE DESC, i.position ASC`,
+  name_asc: sql`climbs.name COLLATE NOCASE ASC, i.position ASC`,
+  name_desc: sql`climbs.name COLLATE NOCASE DESC, i.position ASC`,
   added_asc: sql`i.added_at ASC, i.position ASC`,
   added_desc: sql`i.added_at DESC, i.position ASC`,
 };
@@ -105,10 +106,15 @@ const ORDER_BY: Record<ClimbListSort, SQL> = {
 function sentByViewerSql(viewerId: string | null): SQL {
   return viewerId === null
     ? sql`NULL`
-    : sql`EXISTS (SELECT 1 FROM sends s WHERE s.user_id = ${viewerId} AND s.climb_id = c.id)`;
+    : sql`EXISTS (SELECT 1 FROM sends s WHERE s.user_id = ${viewerId} AND s.climb_id = climbs.id)`;
 }
 
 type ItemRow = Omit<ClimbListItem, "sent"> & { sent: number | null };
+
+/** How one reader is viewing a list: its sort, and the Find climbs filters as
+ * `searchClimbs` takes them (`toClimbQueryParams`, which turns Exclude sent
+ * into the reader's id). */
+export type ClimbListQuery = { sort: ClimbListSort; filter: SearchClimbsParams };
 
 /**
  * The climbs on the one list that `listAccess` admits, sorted and filtered
@@ -117,22 +123,21 @@ type ItemRow = Omit<ClimbListItem, "sent"> & { sent: number | null };
  * `listAccess` is a condition over the aliased list row `l` — the owner's
  * audience, or a live link — and sits in this statement's WHERE, so a list
  * hidden or unshared between two reads of a page returns nothing on the
- * second. The area sort walks each climb's area up to its root once per
- * distinct area; a list holds at most a few hundred climbs.
+ * second. The filters are Find climbs' own conditions over `climbs`, so they
+ * mean the same thing on a list as in search. The area sort walks each
+ * climb's area up to its root once per distinct area; a list holds at most a
+ * few hundred climbs.
  */
 export async function getClimbListItemsWhere(
   db: Database,
   listAccess: SQL,
   viewerId: string | null,
-  view: ClimbListView,
+  query: ClimbListQuery,
 ): Promise<ClimbListItem[]> {
+  const filters = searchClimbsConditions(query.filter);
+  // Text with nothing searchable in it matches no climb, as in search.
+  if (filters === null) return [];
   const sent = sentByViewerSql(viewerId);
-  const sentFilter =
-    viewerId === null || view.sent === "all"
-      ? sql``
-      : view.sent === "sent"
-        ? sql`AND ${sent}`
-        : sql`AND NOT ${sent}`;
   const rows = await db.all<ItemRow>(sql`
     WITH RECURSIVE list_areas(id) AS (
       SELECT DISTINCT c.area_id
@@ -148,7 +153,7 @@ export async function getClimbListItemsWhere(
     ), area_path(area_id, path) AS (
       SELECT area_id, path FROM walk WHERE parent_id IS NULL
     ), ranked(list_id, climb_id, number) AS (
-      -- Numbered before the sent filter, so a filtered row keeps its place.
+      -- Numbered before any filter, so a filtered row keeps its place.
       SELECT i.list_id, i.climb_id,
              ROW_NUMBER() OVER (
                PARTITION BY i.list_id ORDER BY i.position, i.added_at, i.climb_id
@@ -157,25 +162,26 @@ export async function getClimbListItemsWhere(
       WHERE ${listAccess}
     )
     SELECT
-      c.id         AS climbId,
-      c.name       AS name,
-      c.type       AS type,
-      c.grade      AS grade,
-      c.area_id    AS areaId,
-      a.name       AS areaName,
-      c.broken_on  AS brokenOn,
-      i.position   AS position,
-      ranked.number AS number,
-      i.added_at   AS addedAt,
-      ${sent}      AS sent
+      climbs.id         AS climbId,
+      climbs.name       AS name,
+      climbs.type       AS type,
+      climbs.grade      AS grade,
+      climbs.area_id    AS areaId,
+      a.name            AS areaName,
+      climbs.broken_on  AS brokenOn,
+      i.position        AS position,
+      ranked.number     AS number,
+      i.added_at        AS addedAt,
+      ${sent}           AS sent
     FROM climb_lists l
     JOIN climb_list_items i ON i.list_id = l.id
-    JOIN climbs c ON c.id = i.climb_id
-    JOIN areas a ON a.id = c.area_id
-    LEFT JOIN area_path ON area_path.area_id = c.area_id
+    JOIN climbs ON climbs.id = i.climb_id
+    JOIN areas a ON a.id = climbs.area_id
+    LEFT JOIN area_path ON area_path.area_id = climbs.area_id
     JOIN ranked ON ranked.list_id = i.list_id AND ranked.climb_id = i.climb_id
-    WHERE ${listAccess} ${sentFilter}
-    ORDER BY ${ORDER_BY[view.sort]}, i.added_at ASC, c.id ASC
+    WHERE ${listAccess}
+      ${filters.length > 0 ? sql`AND ${sql.join(filters, sql` AND `)}` : sql``}
+    ORDER BY ${ORDER_BY[query.sort]}, i.added_at ASC, climbs.id ASC
   `);
   return rows.map((row) => ({ ...row, sent: row.sent === null ? null : row.sent === 1 }));
 }
@@ -185,13 +191,13 @@ export function getClimbListItems(
   ownerId: string,
   listId: number,
   viewerId: string | null,
-  view: ClimbListView,
+  query: ClimbListQuery,
 ): Promise<ClimbListItem[]> {
   return getClimbListItemsWhere(
     db,
     sql`${visibleListsSql(ownerId, viewerId)} AND l.id = ${listId}`,
     viewerId,
-    view,
+    query,
   );
 }
 

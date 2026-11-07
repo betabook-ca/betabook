@@ -31,9 +31,16 @@ const meta = {
           {...args}
           onRatingRangeChange={(ratingRange) => updateArgs({ ratingRange })}
           onMinAscentsChange={(minAscents) => updateArgs({ minAscents })}
+          onExcludeSentChange={
+            args.onExcludeSentChange ? (excludeSent) => updateArgs({ excludeSent }) : undefined
+          }
         />
         <output aria-label="Selected statistics">
-          {JSON.stringify({ ratingRange: args.ratingRange, minAscents: args.minAscents })}
+          {JSON.stringify({
+            ratingRange: args.ratingRange,
+            minAscents: args.minAscents,
+            excludeSent: args.excludeSent ?? false,
+          })}
         </output>
       </>
     );
@@ -43,3 +50,8 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 export const Default: Story = {};
 export const UpperBound: Story = { args: { ratingRange: [0, 2] } };
+/** Signed in: Exclude sent hides the reader's own sent climbs. Signed out it
+ * isn't offered at all. */
+export const SignedIn: Story = {
+  args: { excludeSent: true, onExcludeSentChange: () => {} },
+};

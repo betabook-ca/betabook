@@ -11,6 +11,21 @@ export const DEFAULT_RATING_RANGE: [number, number] = [0, 0];
 
 export const DEFAULT_MIN_ASCENTS = 0;
 
+/** `?excludeSent=1` hides the reader's sent climbs. Anything else is off. The
+ * parameter only says "my sends"; whose sends is always the session's. */
+export function parseExcludeSent(value: string | string[] | undefined): boolean {
+  return toArray(value)[0] === "1";
+}
+
+/** The query field for `excludeSent`: the viewer's id, or nothing when the
+ * filter is off or no one is signed in. */
+export function excludeSentBy(
+  excludeSent: boolean | undefined,
+  viewerId: string | null | undefined,
+): string | undefined {
+  return excludeSent && viewerId ? viewerId : undefined;
+}
+
 /** Parses a `?ratingRange=min&ratingRange=max` pair, clamping each bound
  * onto the 0..MAX_RATING scale (0 = "Any") so a hand-edited URL can't put
  * the rating bounds in an unrepresentable state. Shared by climb search

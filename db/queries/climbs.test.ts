@@ -119,6 +119,27 @@ describe("getClimb", () => {
   });
 });
 
+describe("Exclude sent", () => {
+  it("leaves out only the named climber's sends, in search and in an area", async () => {
+    await seedFixtureUser(db, { id: "excluder" });
+    await seedFixtureUser(db, { id: "someone-else" });
+    await seedFixtureSend(db, { userId: "excluder", climbId: 1, dateSent: "2026-01-01" });
+    await seedFixtureSend(db, { userId: "someone-else", climbId: 2, dateSent: "2026-01-01" });
+    const ids = (rows: { id: number }[]) => rows.map((row) => row.id).sort((a, b) => a - b);
+
+    const search = await searchClimbs(db, { disciplines: [], excludeSentBy: "excluder" });
+    expect(ids(search.climbs)).toEqual([2, 3, 4]);
+    expect(ids((await searchClimbs(db, { disciplines: [] })).climbs)).toEqual([1, 2, 3, 4]);
+
+    const root = await getArea(db, 1);
+    const subtree = await getSubtreeClimbs(db, root!, 1, "name_asc", {
+      disciplines: [],
+      excludeSentBy: "excluder",
+    });
+    expect(ids(subtree.climbs)).toEqual([2, 3, 4]);
+  });
+});
+
 describe("hasClimbsInArea", () => {
   it("returns true for an area with climbs directly in it", async () => {
     expect(await hasClimbsInArea(db, 3)).toBe(true); // Test Sport Wall

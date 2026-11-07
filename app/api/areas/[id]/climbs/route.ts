@@ -56,7 +56,7 @@ export const GET = withApiSession(async (session, request: Request, { params }: 
     listScope,
     1,
     sort,
-    toSubtreeQueryFilter(filter),
+    toSubtreeQueryFilter(filter, session.user.id),
     PAGE_SIZE,
     offset,
   );

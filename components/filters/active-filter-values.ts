@@ -104,11 +104,19 @@ export function ratingActiveFilters(
   ];
 }
 
-export function statsActiveFilters<T extends { ratingRange: [number, number]; minAscents: number }>(
-  value: T,
-  onChange: (value: T) => void,
-): ActiveFilter[] {
+export function statsActiveFilters<
+  T extends { ratingRange: [number, number]; minAscents: number; excludeSent?: boolean },
+>(value: T, onChange: (value: T) => void): ActiveFilter[] {
   return [
+    ...(value.excludeSent
+      ? [
+          {
+            id: "exclude-sent",
+            label: "Excluding sent",
+            onRemove: () => onChange({ ...value, excludeSent: false }),
+          },
+        ]
+      : []),
     ...ratingActiveFilters(value.ratingRange, (ratingRange) => onChange({ ...value, ratingRange })),
     ...(value.minAscents > 0
       ? [

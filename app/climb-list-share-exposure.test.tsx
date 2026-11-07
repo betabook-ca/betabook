@@ -119,13 +119,21 @@ it("shows a signed-in reader their own sent state, never the owner's", async () 
   session.userId = READER;
   await seedFixtureSend(db, { userId: READER, climbId: 1, dateSent: "2026-04-01" });
 
-  const payload = await pageJson(token, { sent: "sent" });
-  expect(payload).toContain("Test Highball");
-  // The owner sent the Crimper; the reader didn't, so the filter drops it.
-  expect(payload).not.toContain("Test Crimper");
+  const payload = await pageJson(token, { excludeSent: "1" });
+  // The reader sent the Highball, so Exclude sent drops it. The owner sent
+  // the Crimper, which stays: the filter is the reader's sends, not theirs.
+  expect(payload).not.toContain('"name":"Test Highball"');
+  expect(payload).toContain('"name":"Test Crimper"');
   expect(payload).not.toContain("Climb with List Owner on Betabook");
   // A signed-in reader can copy, through the link they hold.
   expect(payload).toContain(`"viewerId":"${READER}","token":"${token}"`);
+});
+
+it("ignores Exclude sent for a reader without an account, who has no sends", async () => {
+  const token = await share();
+  const payload = await pageJson(token, { excludeSent: "1" });
+  expect(payload).toContain('"name":"Test Highball"');
+  expect(payload).toContain('"name":"Test Crimper"');
 });
 
 it("sends the owner to their own list page", async () => {
