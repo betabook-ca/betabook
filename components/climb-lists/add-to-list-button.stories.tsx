@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { userEvent, within } from "storybook/test";
 
 import { LogEntryButton } from "@/components/journal";
 import { climbListChoiceSamples } from "@/stories/fixtures/climb-lists";
@@ -38,4 +39,30 @@ export const BesideLog: Story = {
       </div>
     </StoryPage>
   ),
+};
+
+/** A climber with dozens of lists: the dropdown searches them and scrolls,
+ * so it doesn't grow with the count. Opens on load. */
+export const ManyLists: Story = {
+  args: {
+    fetcher: async () => [
+      ...climbListChoiceSamples,
+      ...Array.from({ length: 40 }, (_, n) => ({
+        id: 100 + n,
+        title: `Project pile ${n + 1}`,
+        climbCount: n,
+        hasClimb: n % 7 === 0,
+      })),
+    ],
+  },
+  render: (args) => (
+    <StoryPage title="Add to list with many lists">
+      <div className="flex justify-end">
+        <AddToListButton {...args} />
+      </div>
+    </StoryPage>
+  ),
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "Add to list" }));
+  },
 };
