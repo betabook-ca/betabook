@@ -34,13 +34,22 @@ export function tripsVisibleSql(viewerId: string | null, ownerId: SQL): SQL {
   return contentVisibleSql(viewerId, ownerId, sql`content_owner.trip_visibility`);
 }
 
-/** Journal and trip access in one read, for profile pages that need both. Uses
- * the same predicates as the data queries. */
+/** Who can open the owner's climb lists without a list link: their lists
+ * audience, one setting for every list they keep. Gates every list read. A
+ * list link is its own door (db/queries/climb-list-shares.ts) and never
+ * widens these reads. */
+export function climbListsVisibleSql(viewerId: string | null, ownerId: SQL): SQL {
+  return contentVisibleSql(viewerId, ownerId, sql`content_owner.climb_list_visibility`);
+}
+
+/** Journal, trip and list access in one read, for profile pages that need
+ * them. Uses the same predicates as the data queries. */
 export async function getProfileAccess(db: Database, ownerId: string, viewerId: string) {
-  const row = await db.get<{ journal: number; trips: number }>(sql`SELECT
+  const row = await db.get<{ journal: number; trips: number; lists: number }>(sql`SELECT
     ${journalVisibleSql(viewerId, sql`${ownerId}`)} AS journal,
-    ${tripsVisibleSql(viewerId, sql`${ownerId}`)} AS trips`);
-  return { journal: row?.journal === 1, trips: row?.trips === 1 };
+    ${tripsVisibleSql(viewerId, sql`${ownerId}`)} AS trips,
+    ${climbListsVisibleSql(viewerId, sql`${ownerId}`)} AS lists`);
+  return { journal: row?.journal === 1, trips: row?.trips === 1, lists: row?.lists === 1 };
 }
 
 /** Uses the same predicate as every trip read. */

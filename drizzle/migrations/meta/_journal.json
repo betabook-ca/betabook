@@ -400,6 +400,13 @@
       "when": 1792433752881,
       "tag": "0056_reset_trip_share_links",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "6",
+      "when": 1794026099784,
+      "tag": "0057_climb_lists",
+      "breakpoints": true
     }
   ]
 }

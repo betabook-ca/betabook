@@ -19,3 +19,5 @@ export * from "./trips";
 export * from "./trip-companions";
 export * from "./project-shares";
 export * from "./trip-shares";
+export * from "./climb-lists";
+export * from "./climb-list-shares";
