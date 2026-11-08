@@ -63,6 +63,15 @@ export function ClimbListItems({
   const [editing, setEditing] = useState(false);
   // Editing saves the whole order, so it needs every climb, in circuit order.
   const wholeList = isCircuitSort(view.sort) && !isFilteredClimbList(view.filter);
+  // Choosing Edit on a sorted or filtered view navigates to the plain list
+  // first. If the view then lands anywhere else, the request lapses, so the
+  // editor never opens later on its own.
+  const viewKey = climbListViewSearch(view);
+  const [seenViewKey, setSeenViewKey] = useState(viewKey);
+  if (viewKey !== seenViewKey) {
+    setSeenViewKey(viewKey);
+    if (!wholeList) setEditing(false);
+  }
 
   function navigate(next: ClimbListView) {
     router.replace(`${pathname}${climbListViewSearch(next)}`, { scroll: false });

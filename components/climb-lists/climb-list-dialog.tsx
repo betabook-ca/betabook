@@ -16,7 +16,7 @@ type ListFields = { id: number; title: string; description: string | null };
  * that way. A link copy carries no list id, so a shared page never sends one. */
 export type ClimbListCopySource = { listId: number } | { token: string };
 
-/** What the dialog does. Copying takes the source's climbs in list order; the
+/** What the dialog does. Copying takes the source's climbs in circuit order; the
  * name and description start as the source's and are the copier's to change. */
 export type ClimbListDialogMode =
   | { kind: "create"; climbId?: number }
@@ -119,7 +119,7 @@ export function ClimbListDialog({
       <div className="flex flex-col gap-4">
         {mode.kind === "copy" && (
           <p className="text-sm text-muted">
-            {`Copies ${mode.list.climbCount} ${mode.list.climbCount === 1 ? "climb" : "climbs"} in list order into your lists.`}
+            {`Copies ${mode.list.climbCount} ${mode.list.climbCount === 1 ? "climb" : "climbs"} in circuit order into your lists.`}
           </p>
         )}
         <ClimbListForm draft={draft} onChange={setDraft} error={error} disabled={pending} />

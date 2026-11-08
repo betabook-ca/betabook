@@ -2,6 +2,7 @@
 
 import { Button } from "@heroui/react";
 import { ArrowDown, ArrowUp, GripVertical, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { DropIndicator, GridList, GridListItem, useDragAndDrop } from "react-aria-components";
 
@@ -9,7 +10,7 @@ import { saveClimbListEdits } from "@/actions";
 import { cardClass } from "@/components/ui/card";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import type { ClimbListItem } from "@/db/queries";
-import { moveClimb } from "@/lib/climb-lists";
+import { CLIMB_LIST_CHANGED_MESSAGE, moveClimb } from "@/lib/climb-lists";
 
 /**
  * The owner's list editor: drag a row by its handle, or use the arrow
@@ -17,6 +18,11 @@ import { moveClimb } from "@/lib/climb-lists";
  * with Remove. Nothing is written until Save, which sends the order and the
  * removed climbs once; the server refuses it if the list changed in the
  * meantime, rather than half-applying it. Cancel puts removed climbs back.
+ *
+ * When the server refuses a save because the list changed, the editor reloads
+ * the list and carries the staged edits over to it: climbs still on the list
+ * keep their staged order or removal, climbs gone elsewhere drop out, and
+ * climbs added elsewhere join at the end. The owner checks it and saves again.
  *
  * `items` must be the whole list in circuit order. The list page opens this
  * only in circuit order with no filter, so the order it saves has every climb in it.
@@ -30,17 +36,31 @@ export function ClimbListEditor({
   listId: number;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const [order, setOrder] = useState(() => items.map((item) => item.climbId));
   const [removed, setRemoved] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // The list the staged edits were made against. A refresh brings a new one.
+  const [base, setBase] = useState(items);
+  if (items !== base) {
+    setBase(items);
+    const current = items.map((item) => item.climbId);
+    const onList = new Set(current);
+    const keptOrder = order.filter((id) => onList.has(id));
+    const keptRemoved = removed.filter((id) => onList.has(id));
+    const staged = new Set([...keptOrder, ...keptRemoved]);
+    setOrder([...keptOrder, ...current.filter((id) => !staged.has(id))]);
+    setRemoved(keptRemoved);
+  }
   const byId = new Map(items.map((item) => [item.climbId, item]));
   const rows = order.flatMap((id) => byId.get(id) ?? []);
   const changed = removed.length > 0 || order.some((id, index) => id !== items[index]?.climbId);
 
   function remove(climbId: number) {
     setOrder((current) => current.filter((id) => id !== climbId));
-    setRemoved((current) => [...current, climbId]);
+    // A double tap presses twice before the row goes: stage it once.
+    setRemoved((current) => (current.includes(climbId) ? current : [...current, climbId]));
   }
 
   const { dragAndDropHooks } = useDragAndDrop<ClimbListItem>({
@@ -76,11 +96,18 @@ export function ClimbListEditor({
     setError(null);
     startTransition(async () => {
       const result = await saveClimbListEdits(listId, order, removed);
-      if (!result.ok) {
+      if (result.ok) {
+        onClose();
+        return;
+      }
+      if (result.error !== CLIMB_LIST_CHANGED_MESSAGE) {
         setError(result.error);
         return;
       }
-      onClose();
+      setError(
+        "This list changed in another tab. It now shows the latest climbs with your edits kept. Check it, then save again.",
+      );
+      startTransition(() => router.refresh());
     });
   }
 

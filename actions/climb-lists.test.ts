@@ -335,6 +335,27 @@ describe("removing in the editor", () => {
     expect(await order(id)).toEqual([1, 2, 3]);
   });
 
+  it("refuses an empty save once the list has climbs again", async () => {
+    const id = await seedList("owner", "Circuit");
+    value(await addClimbToList(id, 1));
+    expect(errorOf(await saveClimbListEdits(id, [], []))).toBe(CLIMB_LIST_CHANGED_MESSAGE);
+    expect(await order(id)).toEqual([1]);
+  });
+
+  it("moves the list up in the same batch, and only when the save applied", async () => {
+    const id = await seedList("owner", "Circuit", [1, 2]);
+    const updatedAt = async () =>
+      (await db.select().from(climbLists).where(eq(climbLists.id, id)))[0].updatedAt.getTime();
+    await db.run(sql`UPDATE climb_lists SET updated_at = 1 WHERE id = ${id}`);
+
+    expect(errorOf(await saveClimbListEdits(id, [2], []))).toBe(CLIMB_LIST_CHANGED_MESSAGE);
+    expect(await updatedAt()).toBe(1);
+
+    value(await saveClimbListEdits(id, [2], [1]));
+    expect(await updatedAt()).toBeGreaterThan(1);
+    expect(await order(id)).toEqual([2]);
+  });
+
   it("refuses another climber's list and leaves it whole", async () => {
     const id = await seedList("owner", "Mine", [1, 2]);
     as("member");

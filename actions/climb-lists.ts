@@ -25,6 +25,7 @@ import {
   MAX_CLIMB_LIST_ITEMS,
   climbListInputSchema,
 } from "@/lib/climb-lists";
+import { parseId } from "@/lib/parse-id";
 import { allowClimbListWrite } from "@/lib/rate-limit";
 import { requireSession } from "@/lib/session";
 import { parseShareToken } from "@/lib/share-token";
@@ -56,15 +57,6 @@ function afterListChange(userId: string, listId?: number) {
     revalidateClimbListSurfaces(userId, listId);
     refresh();
   });
-}
-
-/** Marks the list as changed, so the Lists tab puts it first. Run after an
- * item write; the owner condition makes it a no-op on anyone else's list. */
-async function touchList(db: Database, userId: string, listId: number) {
-  await db.run(sql`
-    UPDATE climb_lists SET updated_at = ${nowMs}
-    WHERE id = ${listId} AND user_id = ${userId}
-  `);
 }
 
 async function ownsList(db: Database, userId: string, listId: number): Promise<boolean> {
@@ -266,18 +258,23 @@ export async function addClimbToList(
 }
 
 function isClimbIdArray(value: unknown): value is number[] {
-  return Array.isArray(value) && value.every((id) => Number.isSafeInteger(id) && id > 0);
+  return (
+    Array.isArray(value) && value.every((id) => typeof id === "number" && parseId(id) !== null)
+  );
 }
 
 /**
  * Saves the owner's edits from the list editor: `climbIds` is every climb
  * kept on the list, first to last, and `removedIds` the climbs taken off it.
  *
- * One batch rewrites every position and deletes the removed climbs, and both
- * statements apply only when the kept and removed climbs together are exactly
- * the list's climbs. A list changed in another tab since the editor loaded is
- * refused rather than half-applied, so two edits cannot silently overwrite
- * each other.
+ * One batch rewrites every position, moves the list up the Lists tab, and
+ * deletes the removed climbs. Only the first statement checks that the kept
+ * and removed climbs together are exactly the list's climbs; each later one
+ * runs only if the one before it changed a row (`changes()`), so the batch
+ * applies whole or not at all. A list changed in another tab since the editor
+ * loaded is refused rather than half-applied, so two edits cannot silently
+ * overwrite each other. Nothing is written after the batch, so a saved edit
+ * can't come back as an error.
  *
  * The editor sends this once, on Save, so it spends one write from the list
  * budget like any other list change.
@@ -295,29 +292,24 @@ export async function saveClimbListEdits(
     const every = [...climbIds, ...removedIds];
     if (every.length > MAX_CLIMB_LIST_ITEMS || new Set(every).size !== every.length)
       throw new ActionError(CLIMB_LIST_CHANGED_MESSAGE);
-    // Removed climbs take positions after the kept ones, then go: the batch
-    // never leaves a kept climb without its new position.
-    const positions = JSON.stringify(every);
-    const removed = JSON.stringify(removedIds);
     await requireWriteBudget(user.id);
 
     const db = await getDb();
-    // An empty list updates no rows whoever owns it, so it can't prove
-    // ownership the way a matched row count does. Check it directly.
-    if (every.length === 0 && !(await ownsList(db, user.id, list)))
-      throw new ActionError(CLIMB_LIST_NOT_FOUND_MESSAGE);
-    // The list holds exactly the editor's climbs, and belongs to the caller.
-    // Both statements check the same thing on the same rows (the UPDATE moves
-    // no climb on or off), so they apply together or not at all.
-    const unchanged = sql`
-      EXISTS (SELECT 1 FROM climb_lists WHERE id = ${list} AND user_id = ${user.id})
-      AND (SELECT COUNT(*) FROM climb_list_items WHERE list_id = ${list})
-          = json_array_length(${positions})
-      AND NOT EXISTS (
-        SELECT 1 FROM climb_list_items current
-        WHERE current.list_id = ${list}
-          AND current.climb_id NOT IN (SELECT value FROM json_each(${positions}))
-      )`;
+    if (every.length === 0) {
+      // Nothing to write, and no row for a guard to match: confirm directly
+      // that the list is the caller's and still empty.
+      const row = await db.get<{ climbCount: number }>(sql`
+        SELECT (SELECT COUNT(*) FROM climb_list_items WHERE list_id = l.id) AS climbCount
+        FROM climb_lists l WHERE l.id = ${list} AND l.user_id = ${user.id}
+      `);
+      if (!row) throw new ActionError(CLIMB_LIST_NOT_FOUND_MESSAGE);
+      if (row.climbCount > 0) throw new ActionError(CLIMB_LIST_CHANGED_MESSAGE);
+      afterListChange(user.id, list);
+      return;
+    }
+
+    // Removed climbs take positions after the kept ones, then go.
+    const positions = JSON.stringify(every);
     const [updated] = await db.batch([
       db
         .update(climbListItems)
@@ -325,15 +317,33 @@ export async function saveClimbListEdits(
           position: sql`(SELECT CAST(o.key AS INTEGER) + 1 FROM json_each(${positions}) o
                          WHERE o.value = ${climbListItems.climbId})`,
         })
-        .where(and(eq(climbListItems.listId, list), unchanged))
+        .where(
+          and(
+            eq(climbListItems.listId, list),
+            sql`EXISTS (SELECT 1 FROM climb_lists WHERE id = ${list} AND user_id = ${user.id})
+              AND (SELECT COUNT(*) FROM climb_list_items WHERE list_id = ${list})
+                  = json_array_length(${positions})
+              AND NOT EXISTS (
+                SELECT 1 FROM climb_list_items current
+                WHERE current.list_id = ${list}
+                  AND current.climb_id NOT IN (SELECT value FROM json_each(${positions}))
+              )`,
+          ),
+        )
         .returning({ climbId: climbListItems.climbId }),
+      // The list is non-empty, so the UPDATE changed rows exactly when its
+      // guard held.
+      db
+        .update(climbLists)
+        .set({ updatedAt: sql`${nowMs}` })
+        .where(and(eq(climbLists.id, list), eq(climbLists.userId, user.id), sql`changes() > 0`)),
       db
         .delete(climbListItems)
         .where(
           and(
             eq(climbListItems.listId, list),
-            sql`${climbListItems.climbId} IN (SELECT value FROM json_each(${removed}))`,
-            unchanged,
+            sql`${climbListItems.climbId} IN (SELECT value FROM json_each(${JSON.stringify(removedIds)}))`,
+            sql`changes() > 0`,
           ),
         ),
     ]);
@@ -341,7 +351,6 @@ export async function saveClimbListEdits(
       if (!(await ownsList(db, user.id, list))) throw new ActionError(CLIMB_LIST_NOT_FOUND_MESSAGE);
       throw new ActionError(CLIMB_LIST_CHANGED_MESSAGE);
     }
-    await touchList(db, user.id, list);
 
     afterListChange(user.id, list);
   });
