@@ -21,7 +21,7 @@ import type { ClimbFilterState } from "@/lib/filters/climb-filter-state";
  * The discipline chips and Filters panel from Find climbs, over one list:
  * disciplines and grades, rating, ascents and, for a signed-in reader,
  * Exclude sent. No text box or area lookup: a list is short enough to scan.
- * The list keeps its own sort (list order, grade, area, name, date added).
+ * The list keeps its own sort (default order, grade, area, name, date added).
  * Everything lives in the URL and none of it changes the list.
  */
 export function ClimbListToolbar({

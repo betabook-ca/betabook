@@ -1,7 +1,6 @@
 "use client";
 
 import { Button, Menu } from "@heroui/react";
-import { clsx } from "clsx";
 import { X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -34,10 +33,10 @@ import { climbHref } from "@/lib/slug";
  *
  * The sort and filters (disciplines, grades, rating, ascents, Exclude sent)
  * are the reader's view, kept in the URL,
- * and never change the list. Every row keeps its number in the owner's order:
- * the main number in list order, a muted "#n" when sorted, so the order is
- * still readable. Sent state, and Exclude sent, are the reader's own sends; a
- * signed-out reader has none and sees neither.
+ * and never change the list. Rows carry no number, so the climb name gets the
+ * width on a phone; the numbers show only in the Reorder editor. Sent state,
+ * and Exclude sent, are the reader's own sends; a signed-out reader has none
+ * and sees neither.
  */
 export function ClimbListItems({
   items,
@@ -139,30 +138,19 @@ export function ClimbListItems({
               key={item.climbId}
               as="li"
               leading={
-                <div className="flex items-center gap-1">
-                  <span
-                    className={clsx(
-                      "w-8 shrink-0 text-right text-sm tabular-nums",
-                      listOrder ? "font-medium text-foreground" : "text-muted",
-                    )}
-                  >
-                    <span className="sr-only">Number </span>
-                    {listOrder ? item.number : `#${item.number}`}
-                  </span>
-                  {item.sent !== null && (
-                    <ClimbSentIndicator
-                      climb={{
-                        id: item.climbId,
-                        name: item.name,
-                        areaId: item.areaId,
-                        type: item.type,
-                        grade: item.grade,
-                        brokenOn: item.brokenOn,
-                      }}
-                      sent={item.sent}
-                    />
-                  )}
-                </div>
+                item.sent !== null && (
+                  <ClimbSentIndicator
+                    climb={{
+                      id: item.climbId,
+                      name: item.name,
+                      areaId: item.areaId,
+                      type: item.type,
+                      grade: item.grade,
+                      brokenOn: item.brokenOn,
+                    }}
+                    sent={item.sent}
+                  />
+                )
               }
               title={item.name}
               href={climbHref(item.climbId, item.name)}

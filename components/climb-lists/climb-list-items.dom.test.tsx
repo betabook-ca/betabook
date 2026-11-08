@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
@@ -59,10 +59,6 @@ function rows() {
   return [...document.querySelectorAll<HTMLElement>("ol > li")];
 }
 
-function rowNumbers() {
-  return rows().map((row) => within(row).getByText(/Number/).parentElement?.textContent);
-}
-
 /** Reorder lives in the owner's ⋯ menu beside the sort. */
 async function chooseReorder(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "List actions" }));
@@ -77,15 +73,13 @@ beforeEach(() => {
   vi.mocked(reorderClimbList).mockReset().mockResolvedValue({ ok: true, value: undefined });
 });
 
-it("numbers rows in the owner's order, and keeps each number when sorted", () => {
-  const { unmount } = renderItems();
-  expect(rowNumbers()).toEqual(["Number 1", "Number 2", "Number 3", "Number 4", "Number 5"]);
-  unmount();
-
-  const sorted = climbListItemSamples.toReversed();
-  renderItems({ items: sorted, view: { sort: "name_desc", filter: DEFAULT_CLIMB_FILTER } });
-  // Sorted rows keep their place in the owner's order as a muted "#n".
-  expect(rowNumbers()).toEqual(["Number #5", "Number #4", "Number #3", "Number #2", "Number #1"]);
+it("leaves rows unnumbered so the climb name keeps the width", () => {
+  renderItems();
+  // Nothing before the sent mark and the name: no number column.
+  const rowTexts = rows().map((row) => row.textContent?.replace(/^(not sent|sent)/, "") ?? "");
+  expect(rowTexts).toHaveLength(climbListItemSamples.length);
+  for (const [index, text] of rowTexts.entries())
+    expect(text.startsWith(climbListItemSamples[index].name)).toBe(true);
 });
 
 it("switches a sorted view back to list order when the owner chooses Reorder", async () => {
