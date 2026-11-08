@@ -10,7 +10,7 @@ import { AddClimbsDialog } from "@/components/climb-lists/add-climbs-dialog";
 import { cardClass } from "@/components/ui/card";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import type { ClimbListItem, ClimbWithAreaName } from "@/db/queries";
-import { moveClimb } from "@/lib/climb-lists";
+import { CLIMB_LIST_FULL_MESSAGE, MAX_CLIMB_LIST_ITEMS, moveClimb } from "@/lib/climb-lists";
 
 /** A climb picked in the editor, shaped like a list row until Save adds it. */
 function stagedItem(climb: ClimbWithAreaName): ClimbListItem {
@@ -32,12 +32,12 @@ function stagedItem(climb: ClimbWithAreaName): ClimbListItem {
  * The owner's list editor: drag a row by its handle to reorder it
  * (react-aria's drag and drop also works from the keyboard: Enter on the
  * handle picks a climb up, the arrow keys move it, Enter drops it); take
- * climbs off with Remove, and add them with Add climbs at the bottom. Nothing is written until
- * Save, which sends the order, the removed climbs and the added ones once.
- * Save writes exactly what the owner sees, whatever another tab did in the
- * meantime (see `saveClimbListEdits`). Cancel drops every staged change. Every control is
- * disabled while a save is in flight, so nothing staged then is lost when the
- * editor closes.
+ * climbs off with Remove, and add them with Add climbs at the bottom, up to
+ * `MAX_CLIMB_LIST_ITEMS`. Nothing is written until Save, which sends the
+ * resulting order once and writes exactly what the owner sees, whatever
+ * another tab did in the meantime (see `saveClimbListEdits`). Cancel drops
+ * every staged change. Every control is disabled while a save is in flight,
+ * so nothing staged then is lost when the editor closes.
  *
  * `items` must be the whole list in circuit order. The list page opens this
  * only in circuit order with no filter, so the order it saves has every climb
@@ -63,6 +63,8 @@ export function ClimbListEditor({
 
   const byId = new Map([...items, ...added].map((item) => [item.climbId, item]));
   const rows = order.flatMap((id) => byId.get(id) ?? []);
+  // Each row's number, looked up once per render rather than by indexOf.
+  const indexById = new Map(order.map((id, index) => [id, index]));
   const changed =
     removed.length > 0 ||
     added.length > 0 ||
@@ -79,18 +81,25 @@ export function ClimbListEditor({
     setRemoved((current) => (current.includes(climbId) ? current : [...current, climbId]));
   }
 
-  function stage(climb: ClimbWithAreaName) {
-    if (order.includes(climb.id)) return;
-    setOrder((current) => (current.includes(climb.id) ? current : [...current, climb.id]));
+  /** Stages a picked climb, or returns why it can't be. */
+  function stage(climb: ClimbWithAreaName): string | null {
+    if (indexById.has(climb.id)) return null;
+    if (order.length >= MAX_CLIMB_LIST_ITEMS) return CLIMB_LIST_FULL_MESSAGE;
+    setOrder((current) =>
+      current.includes(climb.id) || current.length >= MAX_CLIMB_LIST_ITEMS
+        ? current
+        : [...current, climb.id],
+    );
     // Re-adding a climb staged for removal just keeps it.
     if (removed.includes(climb.id)) {
       setRemoved((current) => current.filter((id) => id !== climb.id));
-      return;
+      return null;
     }
     // Two quick picks both land before a re-render: stage the climb once.
     setAdded((current) =>
       current.some((item) => item.climbId === climb.id) ? current : [...current, stagedItem(climb)],
     );
+    return null;
   }
 
   const { dragAndDropHooks } = useDragAndDrop<ClimbListItem>({
@@ -126,12 +135,7 @@ export function ClimbListEditor({
   function save() {
     setError(null);
     startTransition(async () => {
-      const result = await saveClimbListEdits(
-        listId,
-        order,
-        removed,
-        added.map((item) => item.climbId),
-      );
+      const result = await saveClimbListEdits(listId, order);
       if (result.ok) onClose();
       else setError(result.error);
     });
@@ -168,7 +172,7 @@ export function ClimbListEditor({
         className="flex flex-col divide-y divide-separator"
       >
         {(item) => {
-          const index = order.indexOf(item.climbId);
+          const index = indexById.get(item.climbId) ?? 0;
           return (
             <GridListItem
               id={item.climbId}

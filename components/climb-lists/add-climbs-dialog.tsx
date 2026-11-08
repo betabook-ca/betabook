@@ -29,7 +29,8 @@ export function AddClimbsDialog({
   listTitle: string;
   /** Already on the list, so the picker says so instead of adding twice. */
   climbIds: readonly number[];
-  onStage?: (climb: ClimbWithAreaName) => void;
+  /** Returns why the climb can't be staged, such as a full list, or null. */
+  onStage?: (climb: ClimbWithAreaName) => string | null;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState<{ id: number; name: string }[]>([]);
@@ -48,8 +49,9 @@ export function AddClimbsDialog({
     if (pending) return;
     setError(null);
     if (onStage) {
-      onStage(climb);
-      setAdded((current) => [...current, climb]);
+      const refused = onStage(climb);
+      if (refused) setError(refused);
+      else setAdded((current) => [...current, climb]);
       return;
     }
     startTransition(async () => {

@@ -265,8 +265,8 @@ function isClimbIdArray(value: unknown): value is number[] {
 
 /**
  * Saves the owner's edits from the list editor: `climbIds` is the list as the
- * editor shows it, first to last, including `addedIds`, the climbs added in
- * the editor; `removedIds` are the climbs the owner took off.
+ * editor shows it, first to last, climbs added there included and climbs
+ * removed there left out.
  *
  * Save writes exactly what the editor shows, whatever happened in other tabs
  * since it opened: afterwards the list is the editor's climbs, in its order,
@@ -280,39 +280,24 @@ function isClimbIdArray(value: unknown): value is number[] {
  *
  * Positions come out 1…n with no gaps, and rows already on the list keep
  * their `added_at`. One batch does it all, the list's `updated_at` included,
- * so it applies whole or not at all. The editor sends this once, on Save, so
+ * so it applies whole or not at all. Every statement carries the owner
+ * condition, so on anyone else's list nothing is written, and the
+ * `updated_at` update returning no row is how that shows up as not found. The editor sends this once, on Save, so
  * it spends one write from the list budget like any other list change.
  */
-export async function saveClimbListEdits(
-  listId: number,
-  climbIds: unknown,
-  removedIds: unknown = [],
-  addedIds: unknown = [],
-): Promise<ActionResult> {
+export async function saveClimbListEdits(listId: number, climbIds: unknown): Promise<ActionResult> {
   return toActionResult(async () => {
     const { user } = await requireSession();
     const list = requirePositiveId(listId, CLIMB_LIST_NOT_FOUND_MESSAGE);
-    if (!isClimbIdArray(climbIds) || !isClimbIdArray(removedIds) || !isClimbIdArray(addedIds))
+    if (!isClimbIdArray(climbIds) || new Set(climbIds).size !== climbIds.length)
       throw new ActionError(CLIMB_LIST_EDIT_INVALID_MESSAGE);
-    const every = [...climbIds, ...removedIds];
-    const kept = new Set(climbIds);
-    if (
-      climbIds.length > MAX_CLIMB_LIST_ITEMS ||
-      new Set(every).size !== every.length ||
-      new Set(addedIds).size !== addedIds.length ||
-      !addedIds.every((id) => kept.has(id))
-    )
-      throw new ActionError(CLIMB_LIST_EDIT_INVALID_MESSAGE);
+    if (climbIds.length > MAX_CLIMB_LIST_ITEMS) throw new ActionError(CLIMB_LIST_FULL_MESSAGE);
     await requireWriteBudget(user.id);
 
     const db = await getDb();
-    if (!(await ownsList(db, user.id, list))) throw new ActionError(CLIMB_LIST_NOT_FOUND_MESSAGE);
-
     const order = JSON.stringify(climbIds);
-    // Every statement repeats the owner condition, so a list deleted between
-    // the check above and the batch is left alone.
     const owned = sql`EXISTS (SELECT 1 FROM climb_lists WHERE id = ${list} AND user_id = ${user.id})`;
-    await db.batch([
+    const [, , , touched] = await db.batch([
       // Put on every climb the editor shows that isn't on the list: the ones
       // added here, and any another tab took off. The join skips climbs that
       // no longer exist; the renumber below fixes positions.
@@ -365,8 +350,10 @@ export async function saveClimbListEdits(
       db
         .update(climbLists)
         .set({ updatedAt: sql`${nowMs}` })
-        .where(and(eq(climbLists.id, list), eq(climbLists.userId, user.id))),
+        .where(and(eq(climbLists.id, list), eq(climbLists.userId, user.id)))
+        .returning({ id: climbLists.id }),
     ]);
+    if (touched.length === 0) throw new ActionError(CLIMB_LIST_NOT_FOUND_MESSAGE);
 
     afterListChange(user.id, list);
   });

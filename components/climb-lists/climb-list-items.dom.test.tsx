@@ -5,7 +5,11 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { saveClimbListEdits } from "@/actions";
 import type { ClimbListItem } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
-import type { ClimbListView } from "@/lib/climb-lists";
+import {
+  CLIMB_LIST_FULL_MESSAGE,
+  MAX_CLIMB_LIST_ITEMS,
+  type ClimbListView,
+} from "@/lib/climb-lists";
 import { DEFAULT_CLIMB_FILTER } from "@/lib/filters/climb-filter";
 import { climbListBreadcrumbs, climbListItemSamples } from "@/stories/fixtures/climb-lists";
 
@@ -24,20 +28,29 @@ const PICKED = {
   areaName: "Muir Valley",
   brokenOn: null,
 };
-vi.mock("@/components/climb-lists/add-climbs-dialog", () => ({
-  AddClimbsDialog: ({
+vi.mock("@/components/climb-lists/add-climbs-dialog", async () => {
+  const { useState } = await import("react");
+  function AddClimbsDialog({
     state,
     onStage,
   }: {
     state: { isOpen: boolean };
-    onStage?: (climb: typeof PICKED) => void;
-  }) =>
-    state.isOpen && onStage ? (
-      <button type="button" onClick={() => onStage(PICKED)}>
-        Pick New Problem
-      </button>
-    ) : null,
-}));
+    onStage?: (climb: typeof PICKED) => string | null;
+  }) {
+    // Like the real dialog, show why a pick wasn't staged.
+    const [refused, setRefused] = useState<string | null>(null);
+    if (!state.isOpen || !onStage) return null;
+    return (
+      <>
+        <button type="button" onClick={() => setRefused(onStage(PICKED))}>
+          Pick New Problem
+        </button>
+        {refused && <p>{refused}</p>}
+      </>
+    );
+  }
+  return { AddClimbsDialog };
+});
 vi.mock("@/components/climb-sent-indicator", () => ({
   ClimbSentIndicator: ({ sent }: { sent: boolean }) => <span>{sent ? "sent" : "not sent"}</span>,
 }));
@@ -179,9 +192,7 @@ it("offers Remove only in the editor, and saves removals with the order", async 
   expect(saveClimbListEdits).not.toHaveBeenCalled();
 
   await user.click(screen.getByRole("button", { name: "Save" }));
-  await waitFor(() =>
-    expect(saveClimbListEdits).toHaveBeenCalledWith(1, [101, 102, 103, 104], [105], []),
-  );
+  await waitFor(() => expect(saveClimbListEdits).toHaveBeenCalledWith(1, [101, 102, 103, 104]));
 });
 
 it("puts removed climbs back on Cancel", async () => {
@@ -219,9 +230,7 @@ it("stages a double-tapped Remove once", async () => {
     fireEvent.click(remove);
   });
   await user.click(screen.getByRole("button", { name: "Save" }));
-  await waitFor(() =>
-    expect(saveClimbListEdits).toHaveBeenCalledWith(1, [101, 102, 103, 104], [105], []),
-  );
+  await waitFor(() => expect(saveClimbListEdits).toHaveBeenCalledWith(1, [101, 102, 103, 104]));
 });
 
 it("drops an Edit request when the view lands somewhere other than the plain list", async () => {
@@ -257,9 +266,7 @@ it("keeps the edits and shows the error when a save fails", async () => {
 
   expect(await screen.findByText("Too many changes — try again in a minute")).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Save" }));
-  await waitFor(() =>
-    expect(saveClimbListEdits).toHaveBeenLastCalledWith(1, [101, 102, 103, 104], [105], []),
-  );
+  await waitFor(() => expect(saveClimbListEdits).toHaveBeenLastCalledWith(1, [101, 102, 103, 104]));
 });
 
 it("disables every editor control while a save is in flight", async () => {
@@ -301,7 +308,7 @@ it("stages a climb added in the editor and saves it with the rest", async () => 
 
   await user.click(screen.getByRole("button", { name: "Save" }));
   await waitFor(() =>
-    expect(saveClimbListEdits).toHaveBeenCalledWith(1, [101, 102, 103, 104, 105, 106], [], [106]),
+    expect(saveClimbListEdits).toHaveBeenCalledWith(1, [101, 102, 103, 104, 105, 106]),
   );
 });
 
@@ -346,6 +353,23 @@ it("stages a climb picked twice in quick succession once", async () => {
   expect(screen.getAllByText("New Problem")).toHaveLength(1);
   await user.click(screen.getByRole("button", { name: "Save" }));
   await waitFor(() =>
-    expect(saveClimbListEdits).toHaveBeenCalledWith(1, [101, 102, 103, 104, 105, 106], [], [106]),
+    expect(saveClimbListEdits).toHaveBeenCalledWith(1, [101, 102, 103, 104, 105, 106]),
   );
+});
+
+it("refuses to stage past a full list, and says why", async () => {
+  const user = userEvent.setup();
+  const full = Array.from({ length: MAX_CLIMB_LIST_ITEMS }, (_, index) => ({
+    ...climbListItemSamples[0],
+    climbId: 1000 + index,
+    name: `Climb ${index + 1}`,
+    position: index + 1,
+  }));
+  renderItems({ items: full, totalCount: full.length });
+  await chooseEdit(user);
+  await user.click(screen.getByRole("button", { name: "Add climbs" }));
+  await user.click(screen.getByRole("button", { name: "Pick New Problem" }));
+  expect(screen.getByText(CLIMB_LIST_FULL_MESSAGE)).toBeInTheDocument();
+  expect(screen.queryByText("New Problem")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
 });
