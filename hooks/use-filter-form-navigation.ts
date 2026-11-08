@@ -66,5 +66,25 @@ export function useFilterFormNavigation<T, Sort extends string = string>({
     if (defaultSort !== undefined) setSortOverride(defaultSort);
   }
 
-  return { name, setName, areaName, setAreaName, filter, setFilter, reset, isPending };
+  /** Call when the reader picks a sort, alongside the caller's own
+   * navigation to it. Until the URL's sort changes, this hook's debounced
+   * navigation builds on the chosen sort, so text still being typed follows
+   * it instead of writing the old sort back. */
+  function holdSort(next: Sort) {
+    setSortOverride(next);
+  }
+
+  return {
+    name,
+    setName,
+    areaName,
+    setAreaName,
+    filter,
+    setFilter,
+    reset,
+    holdSort,
+    isPending,
+    /** The sort to show: one just chosen, else the URL's. */
+    sort: sortOverride ?? sort,
+  };
 }

@@ -44,6 +44,8 @@ export function AreaClimbsToolbar({
     filter: value,
     setFilter: setValue,
     reset,
+    sort: shownSort,
+    holdSort,
   } = useFilterFormNavigation({
     initialFilter: {
       disciplines: filter.disciplines,
@@ -91,10 +93,12 @@ export function AreaClimbsToolbar({
       }
       sortControl={
         <ClimbListSortControl
-          sort={sort}
-          onNavigate={(nextSort) =>
-            router.replace(buildClimbsHref(areaPath, nextSort, filter), { scroll: false })
-          }
+          sort={shownSort ?? sort}
+          onNavigate={(nextSort) => {
+            // Typed text still in the debounce follows with this sort.
+            holdSort(nextSort);
+            router.replace(buildClimbsHref(areaPath, nextSort, filter), { scroll: false });
+          }}
         />
       }
       extraFilters={

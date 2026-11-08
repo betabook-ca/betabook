@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  MAX_CLIMB_LIST_NAME_FILTER,
   MAX_CLIMB_LIST_TITLE,
+  climbNameMatches,
   climbListInputSchema,
   DEFAULT_CLIMB_LIST_VIEW,
   climbListViewSearch,
@@ -61,6 +63,27 @@ describe("parseClimbListView", () => {
     expect(parseClimbListView({ name: "  crimp " }).filter.name).toBe("crimp");
     expect(parseClimbListView({ name: "   " })).toEqual(DEFAULT_CLIMB_LIST_VIEW);
     expect(parseClimbListView({ name: "   " }).filter).not.toHaveProperty("name");
+  });
+
+  it("caps a hand-built name at the text box's limit", () => {
+    const long = "x".repeat(MAX_CLIMB_LIST_NAME_FILTER + 50);
+    expect(parseClimbListView({ name: long }).filter.name).toHaveLength(MAX_CLIMB_LIST_NAME_FILTER);
+  });
+});
+
+describe("climbNameMatches", () => {
+  it("matches a substring of the name, ignoring case and accents as search does", () => {
+    expect(climbNameMatches("Clémence", "clemence")).toBe(true);
+    expect(climbNameMatches("Clemence", "CLÉM")).toBe(true);
+    expect(climbNameMatches("ÉCHO BEACH", "écho")).toBe(true);
+    expect(climbNameMatches("Crimper", "imp")).toBe(true);
+    expect(climbNameMatches("Crimper", "slab")).toBe(false);
+  });
+
+  it("treats every character as itself", () => {
+    expect(climbNameMatches("Highball", "a_l")).toBe(false);
+    expect(climbNameMatches("Highball", "%")).toBe(false);
+    expect(climbNameMatches("100% Pure", "0% p")).toBe(true);
   });
 
   it("falls back to list order and no filters for anything else", () => {

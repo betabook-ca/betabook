@@ -108,6 +108,8 @@ export function UserSendsFilterToolbar({
     filter: disciplineFilter,
     setFilter: setDisciplineFilter,
     reset,
+    sort: shownSort,
+    holdSort,
   } = useFilterFormNavigation({
     initialFilter: {
       tags: filter.tags,
@@ -181,11 +183,13 @@ export function UserSendsFilterToolbar({
       }
       sortControl={
         <SortSelect
-          sort={filter.sort ?? DEFAULT_USER_SENDS_SORT}
+          sort={shownSort ?? filter.sort ?? DEFAULT_USER_SENDS_SORT}
           fields={SORT_FIELDS}
           defaultField="date"
           defaultDirection={DEFAULT_DIRECTION}
           onNavigate={(nextSort) => {
+            // Typed text still in the debounce follows with this sort.
+            holdSort(nextSort);
             const params = userSendsFilterToSearchParams({ ...filter, sort: nextSort });
             router.replace(`${basePath}?${params.toString()}`, { scroll: false });
           }}

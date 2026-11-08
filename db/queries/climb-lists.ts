@@ -1,7 +1,7 @@
 import { sql, type SQL } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
-import type { ClimbListSort } from "@/lib/climb-lists";
+import { climbListNameFilter, climbNameMatches, type ClimbListSort } from "@/lib/climb-lists";
 import type { ClimbType } from "@/lib/grades";
 
 import { searchClimbsConditions, type SearchClimbsParams } from "./climbs";
@@ -140,29 +140,22 @@ export type ClimbListQuery = { sort: ClimbListSort; filter: SearchClimbsParams }
  * `listAccess` is a condition over the aliased list row `l` — the owner's
  * audience, or a live link — and sits in this statement's WHERE, so a list
  * hidden or unshared between two reads of a page returns nothing on the
- * second. The filters are Find climbs' own conditions over `climbs`, so they
- * mean the same thing on a list as in search. Only the area sort walks each
- * climb's area up to its root.
+ * second. The other filters are Find climbs' own conditions over `climbs`, so
+ * they mean the same thing on a list as in search. The text filter is a
+ * substring of the climb name, ignoring case and accents as search does,
+ * matched over the list's own rows (at most MAX_CLIMB_LIST_ITEMS) rather than
+ * by searching the whole catalog, and with no SQL pattern to outgrow D1's
+ * LIKE limit. Only the area sort walks each climb's area up to its root.
  */
-/** The climb's name contains `text`, ignoring ASCII case. `%`, `_` and `\`
- * in the text match themselves rather than acting as wildcards. */
-function nameContainsSql(text: string): SQL {
-  const pattern = `%${text.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
-  return sql`climbs.name LIKE ${pattern} ESCAPE '\\'`;
-}
-
 export async function getClimbListItemsWhere(
   db: Database,
   listAccess: SQL,
   viewerId: string | null,
   query: ClimbListQuery,
 ): Promise<ClimbListItem[]> {
-  // A list is short, so its text filter is a plain substring match on its own
-  // rows rather than Find climbs' full-text search over the whole catalog.
   // Without a name, search's conditions are never null.
   const filters = searchClimbsConditions({ ...query.filter, name: undefined }) ?? [];
-  const name = query.filter.name?.trim();
-  if (name) filters.push(nameContainsSql(name));
+  const filterName = climbListNameFilter(query.filter.name ?? "");
   const sent = sentByViewerSql(viewerId);
   const rows = await db.all<ItemRow>(sql`
     ${query.sort.startsWith("area_") ? sql`WITH RECURSIVE ${areaPathCtes(listAccess)}` : sql``}
@@ -186,7 +179,9 @@ export async function getClimbListItemsWhere(
       ${filters.length > 0 ? sql`AND ${sql.join(filters, sql` AND `)}` : sql``}
     ORDER BY ${ORDER_BY[query.sort]}, i.added_at ASC, climbs.id ASC
   `);
-  return rows.map((row) => ({ ...row, sent: row.sent === null ? null : row.sent === 1 }));
+  return rows
+    .filter((row) => !filterName || climbNameMatches(row.name, filterName))
+    .map((row) => ({ ...row, sent: row.sent === null ? null : row.sent === 1 }));
 }
 
 export function getClimbListItems(

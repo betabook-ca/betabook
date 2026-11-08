@@ -532,6 +532,13 @@ describe("viewing a list", () => {
     expect(await view(id, "owner", { filter: { name: "a_l" } })).toEqual([]);
   });
 
+  it("takes a long name filter without building a SQL pattern from it", async () => {
+    // Production D1 rejects LIKE patterns over 50 bytes; local D1 doesn't, so
+    // this pins that the name never reaches SQL rather than the limit itself.
+    const id = await seedList("owner", "Mixed", [3, 2, 4, 1]);
+    expect(await view(id, "owner", { filter: { name: "Crimper".padEnd(80, "x") } })).toEqual([]);
+  });
+
   it("applies the list's filters: discipline and grade, rating and ascents", async () => {
     // Highball V4 (1, area 4), Slab V1 (2, area 5), Crimper 5.10a (3), Crack 5.6 (4).
     const id = await seedList("owner", "Mixed", [3, 2, 4, 1]);
