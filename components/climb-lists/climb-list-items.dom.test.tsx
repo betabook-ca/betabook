@@ -121,7 +121,7 @@ function rows() {
 
 /** Edit is a button in the list header. */
 async function chooseEdit(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(await screen.findByRole("button", { name: "Edit" }));
+  await user.click(await screen.findByRole("button", { name: "Edit climbs" }));
 }
 
 beforeEach(() => {
@@ -278,7 +278,7 @@ it("clears the filters before editing, and lets no one but the owner edit", asyn
   unmount();
 
   renderItems({ canEdit: false });
-  expect(screen.getByRole("button", { name: "Edit" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Edit climbs" })).toBeDisabled();
 });
 
 it("stages a double-tapped Remove once", async () => {
@@ -354,17 +354,17 @@ it("adds climbs only in the editor, and disables Edit while it is open", async (
   // Outside the editor there is no Add climbs at all.
   expect(screen.queryByRole("button", { name: "Add climbs" })).not.toBeInTheDocument();
   await chooseEdit(user);
-  expect(screen.getByRole("button", { name: "Edit" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Edit climbs" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Add climbs" })).toBeEnabled();
   await user.click(screen.getByRole("button", { name: "Cancel" }));
-  expect(screen.getByRole("button", { name: "Edit" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Edit climbs" })).toBeEnabled();
 });
 
 it("opens the editor on an empty list, where climbs are added", async () => {
   const user = userEvent.setup();
   renderItems({ items: [], totalCount: 0 });
   expect(
-    screen.getByText("No climbs on this list yet. Choose Edit to add some."),
+    screen.getByText("No climbs on this list yet. Choose Edit climbs to add some."),
   ).toBeInTheDocument();
   await chooseEdit(user);
   expect(screen.getByRole("button", { name: "Add climbs" })).toBeEnabled();

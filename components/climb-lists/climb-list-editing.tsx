@@ -22,7 +22,7 @@ type EditingState = { editing: boolean; startEdit: (() => void) | null };
 const ActionsContext = createContext<EditingActions | null>(null);
 const StateContext = createContext<EditingState>({ editing: false, startEdit: null });
 
-/** Joins the list header's Edit button to the list below it. The list owns
+/** Joins the list header's Edit climbs button to the list below it. The list owns
  * its editor (and what opening it means for a sorted or filtered view); the
  * header only asks it to open, and greys out while it is open. */
 export function ClimbListEditingProvider({ children }: { children: ReactNode }) {
@@ -42,7 +42,7 @@ export function ClimbListEditingProvider({ children }: { children: ReactNode }) 
 }
 
 /** Called by the list: registers its Edit action (null when the reader can't
- * edit, which leaves the header's Edit disabled) and reports whether its
+ * edit, which leaves the header's Edit climbs disabled) and reports whether its
  * editor is open. Without a provider (a shared-link page) it does nothing. */
 export function useClimbListEditControl(editing: boolean, startEdit: (() => void) | null) {
   const actions = useContext(ActionsContext);
@@ -64,14 +64,14 @@ export function useClimbListEditControl(editing: boolean, startEdit: (() => void
   }, [actions, editing]);
 }
 
-/** The owner's Edit, in the list header. Adding, removing and reordering
+/** The owner's Edit climbs, in the list header. Adding, removing and reordering
  * climbs all happen in the editor, so this is the one way in. */
 export function ClimbListEditButton({ variant }: { variant?: "outline" }) {
   const { editing, startEdit } = useContext(StateContext);
   return (
     <Button variant={variant} isDisabled={editing || !startEdit} onPress={() => startEdit?.()}>
       <Pencil className="size-4" aria-hidden />
-      Edit
+      Edit climbs
     </Button>
   );
 }

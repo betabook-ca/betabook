@@ -52,7 +52,12 @@ export function ActionsMenu({
       ) : (
         trigger
       )}
-      <Popover className="popover" placement="bottom end">
+      {/* Sized to its content, not to the room left of wherever it first
+       * lands: an absolutely positioned box shrinks to fit the space to its
+       * right, so near the screen's right edge a long item wrapped, the
+       * positioner moved the menu left, it widened, and the cycle repeated
+       * (a ResizeObserver loop). Capped so a very long item still wraps. */}
+      <Popover className="popover w-max max-w-[calc(100vw-2rem)]" placement="bottom end">
         <Menu.Root onAction={onAction}>{children}</Menu.Root>
       </Popover>
     </MenuTrigger>

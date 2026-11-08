@@ -55,7 +55,7 @@ export function ClimbListItems({
   /** Needed only to edit. A shared-link page leaves it out, so the page
    * sends the reader nothing but the link's token. */
   listId?: number;
-  /** The owner viewing their own list: the header's Edit opens the editor,
+  /** The owner viewing their own list: the header's Edit climbs opens the editor,
    * where climbs are added, reordered and removed. Needs `listId` and a
    * `ClimbListEditingProvider` around the header and the list. */
   canEdit?: boolean;
@@ -83,7 +83,7 @@ export function ClimbListItems({
 
   const editable = canEdit && listId !== undefined;
 
-  // The header's Edit opens the editor here. The editor saves every climb in
+  // The header's Edit climbs opens the editor here. The editor saves every climb in
   // order, so it opens on the plain list: a sorted or filtered view switches
   // back first. The editor's own Add climbs is the one way to add climbs.
   useClimbListEditControl(
@@ -113,7 +113,7 @@ export function ClimbListItems({
       <EmptyState
         message={
           editable
-            ? "No climbs on this list yet. Choose Edit to add some."
+            ? "No climbs on this list yet. Choose Edit climbs to add some."
             : "No climbs on this list yet."
         }
       />

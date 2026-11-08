@@ -42,7 +42,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** The owner's circuit order, unnumbered. The header's Edit opens the editor,
+/** The owner's circuit order, unnumbered. The header's Edit climbs opens the editor,
  * the one place to add, reorder and remove climbs. */
 export const Circuit: Story = {};
 
