@@ -61,50 +61,38 @@ export function ClimbListEditor({
 }) {
   const addState = useOverlayState();
   const [opened] = useState(items);
+  // The one piece of editing state: the list as it will be saved. Removals,
+  // adds and whether anything changed are all read off it against `opened`.
   const [order, setOrder] = useState(() => opened.map((item) => item.climbId));
-  const [removed, setRemoved] = useState<number[]>([]);
-  const [added, setAdded] = useState<ClimbListItem[]>([]);
+  // Row data for climbs picked in the editor, which `opened` doesn't have.
+  // A cache only: whether a climb is on the list is `order`'s business.
+  const [picked, setPicked] = useState<ReadonlyMap<number, ClimbListItem>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const byId = new Map([...opened, ...added].map((item) => [item.climbId, item]));
+  const byId = new Map([...opened, ...picked.values()].map((item) => [item.climbId, item]));
   const rows = order.flatMap((id) => byId.get(id) ?? []);
   // Each row's number, looked up once per render rather than by indexOf.
   const indexById = new Map(order.map((id, index) => [id, index]));
   const changed =
-    removed.length > 0 ||
-    added.length > 0 ||
-    order.length !== opened.length ||
-    order.some((id, index) => id !== opened[index]?.climbId);
+    order.length !== opened.length || order.some((id, index) => id !== opened[index]?.climbId);
+  const removedAny = opened.some((item) => !indexById.has(item.climbId));
 
+  // Both edits only filter or append `order`, so a double tap or a double
+  // pick lands on the same result.
   function remove(climbId: number) {
     setOrder((current) => current.filter((id) => id !== climbId));
-    // A climb added here just goes back; one already on the list is staged
-    // for removal, once, even when a double tap presses twice.
-    if (added.some((item) => item.climbId === climbId)) {
-      setAdded((current) => current.filter((item) => item.climbId !== climbId));
-      return;
-    }
-    setRemoved((current) => (current.includes(climbId) ? current : [...current, climbId]));
   }
 
   /** Stages a picked climb, or returns why it can't be. */
   function stage(climb: ClimbWithAreaName): string | null {
     if (indexById.has(climb.id)) return null;
     if (order.length >= MAX_CLIMB_LIST_ITEMS) return CLIMB_LIST_FULL_MESSAGE;
+    setPicked((current) => new Map(current).set(climb.id, stagedItem(climb)));
     setOrder((current) =>
       current.includes(climb.id) || current.length >= MAX_CLIMB_LIST_ITEMS
         ? current
         : [...current, climb.id],
-    );
-    // Re-adding a climb staged for removal just keeps it.
-    if (removed.includes(climb.id)) {
-      setRemoved((current) => current.filter((id) => id !== climb.id));
-      return null;
-    }
-    // Two quick picks both land before a re-render: stage the climb once.
-    setAdded((current) =>
-      current.some((item) => item.climbId === climb.id) ? current : [...current, stagedItem(climb)],
     );
     return null;
   }
@@ -173,7 +161,7 @@ export function ClimbListEditor({
         dragAndDropHooks={dragAndDropHooks}
         renderEmptyState={() => (
           <p className="px-2 py-4 text-sm text-muted">
-            {removed.length > 0 ? "Every climb will be removed." : "No climbs on this list yet."}
+            {removedAny ? "Every climb will be removed." : "No climbs on this list yet."}
           </p>
         )}
         className="flex flex-col divide-y divide-separator"
