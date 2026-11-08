@@ -57,7 +57,9 @@ function rowNumbers() {
 
 beforeEach(() => {
   replace.mockReset();
-  vi.mocked(removeClimbFromList).mockReset().mockResolvedValue({ ok: true, value: undefined });
+  vi.mocked(removeClimbFromList)
+    .mockReset()
+    .mockResolvedValue({ ok: true, value: { changed: true, climbCount: 2 } });
 });
 
 it("numbers rows in the owner's order and offers Reorder only in list order", async () => {
