@@ -14,6 +14,30 @@ import { ClimbListItems } from "./climb-list-items";
 vi.mock("@/actions", () => ({
   saveClimbListEdits: vi.fn<() => Promise<ActionResult>>(),
 }));
+// The picker searches the catalog; here a staging pick is one button.
+const PICKED = {
+  id: 106,
+  name: "New Problem",
+  type: "boulder" as const,
+  grade: 3,
+  areaId: 21,
+  areaName: "Muir Valley",
+  brokenOn: null,
+};
+vi.mock("@/components/climb-lists/add-climbs-dialog", () => ({
+  AddClimbsDialog: ({
+    state,
+    onStage,
+  }: {
+    state: { isOpen: boolean };
+    onStage?: (climb: typeof PICKED) => void;
+  }) =>
+    state.isOpen && onStage ? (
+      <button type="button" onClick={() => onStage(PICKED)}>
+        Pick New Problem
+      </button>
+    ) : null,
+}));
 vi.mock("@/components/climb-sent-indicator", () => ({
   ClimbSentIndicator: ({ sent }: { sent: boolean }) => <span>{sent ? "sent" : "not sent"}</span>,
 }));
@@ -37,6 +61,7 @@ type ItemsProps = Partial<{
   canEdit: boolean;
   signedIn: boolean;
   totalCount: number;
+  withAddClimbs: boolean;
 }>;
 
 function itemsElement(props: ItemsProps = {}) {
@@ -50,6 +75,11 @@ function itemsElement(props: ItemsProps = {}) {
       signedIn={props.signedIn ?? true}
       listId={1}
       canEdit={props.canEdit ?? true}
+      addClimbs={
+        props.withAddClimbs
+          ? { listTitle: "Projects", climbIds: items.map((item) => item.climbId) }
+          : undefined
+      }
     />
   );
 }
@@ -150,7 +180,7 @@ it("offers Remove only in the editor, and saves removals with the order", async 
 
   await user.click(screen.getByRole("button", { name: "Save" }));
   await waitFor(() =>
-    expect(saveClimbListEdits).toHaveBeenCalledWith(1, [101, 102, 103, 104], [105]),
+    expect(saveClimbListEdits).toHaveBeenCalledWith(1, [101, 102, 103, 104], [105], []),
   );
 });
 
@@ -194,7 +224,7 @@ it("moves climbs with the arrows and saves the whole order once", async () => {
 
   await user.click(save);
   await waitFor(() =>
-    expect(saveClimbListEdits).toHaveBeenCalledWith(1, [102, 101, 103, 105, 104], []),
+    expect(saveClimbListEdits).toHaveBeenCalledWith(1, [102, 101, 103, 105, 104], [], []),
   );
   expect(await screen.findByRole("button", { name: "List actions" })).toBeInTheDocument();
 });
@@ -223,7 +253,7 @@ it("carries staged edits over to the latest list when the save was stale", async
   expect(screen.queryByText("Amarillo Sunset")).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Save" }));
   await waitFor(() =>
-    expect(saveClimbListEdits).toHaveBeenLastCalledWith(1, [103, 105, 104, 106], [102]),
+    expect(saveClimbListEdits).toHaveBeenLastCalledWith(1, [103, 105, 104, 106], [102], []),
   );
 });
 
@@ -239,7 +269,7 @@ it("stages a double-tapped Remove once", async () => {
   });
   await user.click(screen.getByRole("button", { name: "Save" }));
   await waitFor(() =>
-    expect(saveClimbListEdits).toHaveBeenCalledWith(1, [101, 102, 103, 104], [105]),
+    expect(saveClimbListEdits).toHaveBeenCalledWith(1, [101, 102, 103, 104], [105], []),
   );
 });
 
@@ -278,6 +308,78 @@ it("keeps the edits and shows other save errors as they are", async () => {
   expect(refresh).not.toHaveBeenCalled();
   await user.click(screen.getByRole("button", { name: "Save" }));
   await waitFor(() =>
-    expect(saveClimbListEdits).toHaveBeenLastCalledWith(1, [101, 102, 103, 105, 104], []),
+    expect(saveClimbListEdits).toHaveBeenLastCalledWith(1, [101, 102, 103, 105, 104], [], []),
   );
+});
+
+it("disables every editor control while a save is in flight", async () => {
+  vi.mocked(saveClimbListEdits).mockReturnValue(new Promise(() => {}));
+  const user = userEvent.setup();
+  renderItems();
+  await chooseEdit(user);
+  await user.click(screen.getByRole("button", { name: "Move Rat Stew earlier" }));
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  for (const name of [
+    "Remove Amarillo Sunset from this list",
+    "Move Gift of the Magi earlier",
+    "Move Gift of the Magi later",
+    "Drag Gift of the Magi",
+    "Add climbs",
+    "Cancel",
+  ])
+    expect(screen.getByRole("button", { name })).toBeDisabled();
+});
+
+it("disables the list's Add climbs while editing", async () => {
+  const user = userEvent.setup();
+  renderItems({ withAddClimbs: true });
+  const [header] = screen.getAllByRole("button", { name: "Add climbs" });
+  expect(header).toBeEnabled();
+  await chooseEdit(user);
+  const [headerWhileEditing, editorAdd] = screen.getAllByRole("button", { name: "Add climbs" });
+  expect(headerWhileEditing).toBeDisabled();
+  expect(editorAdd).toBeEnabled();
+});
+
+it("stages a climb added in the editor and saves it with the rest", async () => {
+  const user = userEvent.setup();
+  renderItems();
+  await chooseEdit(user);
+  await user.click(screen.getByRole("button", { name: "Add climbs" }));
+  await user.click(screen.getByRole("button", { name: "Pick New Problem" }));
+  expect(screen.getByText("New Problem")).toBeInTheDocument();
+  expect(saveClimbListEdits).not.toHaveBeenCalled();
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() =>
+    expect(saveClimbListEdits).toHaveBeenCalledWith(1, [101, 102, 103, 104, 105, 106], [], [106]),
+  );
+});
+
+it("takes a climb added in the editor back off without staging a removal", async () => {
+  const user = userEvent.setup();
+  renderItems();
+  await chooseEdit(user);
+  await user.click(screen.getByRole("button", { name: "Add climbs" }));
+  await user.click(screen.getByRole("button", { name: "Pick New Problem" }));
+  await user.click(screen.getByRole("button", { name: "Remove New Problem from this list" }));
+  expect(screen.queryByText("New Problem")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+});
+
+it("keeps the editor open when the list empties, so it never reopens on its own", async () => {
+  const user = userEvent.setup();
+  const { rerender } = renderItems();
+  await chooseEdit(user);
+  // Another tab took every climb off, and the page refreshed.
+  rerender(itemsElement({ items: [], totalCount: 0 }));
+  expect(screen.getByRole("grid", { name: "Edit climbs" })).toBeInTheDocument();
+  expect(screen.getByText("No climbs on this list yet.")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Add climbs" })).toBeEnabled();
+
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(screen.queryByRole("grid", { name: "Edit climbs" })).not.toBeInTheDocument();
+  rerender(itemsElement({ items: climbListItemSamples.slice(0, 1), totalCount: 1 }));
+  expect(screen.queryByRole("grid", { name: "Edit climbs" })).not.toBeInTheDocument();
 });

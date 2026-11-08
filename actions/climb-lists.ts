@@ -263,18 +263,34 @@ function isClimbIdArray(value: unknown): value is number[] {
   );
 }
 
+/** The list is the caller's and holds exactly the climbs in `set`, a JSON
+ * array of ids. */
+function listHoldsExactly(userId: string, listId: number, set: string) {
+  return sql`EXISTS (SELECT 1 FROM climb_lists WHERE id = ${listId} AND user_id = ${userId})
+    AND (SELECT COUNT(*) FROM climb_list_items WHERE list_id = ${listId}) = json_array_length(${set})
+    AND NOT EXISTS (
+      SELECT 1 FROM climb_list_items current
+      WHERE current.list_id = ${listId}
+        AND current.climb_id NOT IN (SELECT value FROM json_each(${set}))
+    )`;
+}
+
 /**
- * Saves the owner's edits from the list editor: `climbIds` is every climb
- * kept on the list, first to last, and `removedIds` the climbs taken off it.
+ * Saves the owner's edits from the list editor. `climbIds` is the list as it
+ * will be, first to last, including `addedIds`, the climbs added in the
+ * editor; `removedIds` are the climbs taken off.
  *
- * One batch rewrites every position, moves the list up the Lists tab, and
- * deletes the removed climbs. Only the first statement checks that the kept
- * and removed climbs together are exactly the list's climbs; each later one
- * runs only if the one before it changed a row (`changes()`), so the batch
- * applies whole or not at all. A list changed in another tab since the editor
- * loaded is refused rather than half-applied, so two edits cannot silently
- * overwrite each other. Nothing is written after the batch, so a saved edit
- * can't come back as an error.
+ * One batch inserts the added climbs, rewrites every position, deletes the
+ * removed climbs and moves the list up the Lists tab. Each statement checks
+ * that the list holds exactly what it should at that step: the editor's
+ * starting climbs before the insert, those plus the added ones for the
+ * positions and the delete, and the final climbs for the touch. So either
+ * every statement applies, or none does and the list is left as it was (or
+ * it already was what the editor asked for, and the rest finishes the job).
+ * A list changed in another tab since the editor loaded is refused rather
+ * than half-applied, so two edits cannot silently overwrite each other.
+ * Nothing is written after the batch, so a saved edit can't come back as an
+ * error.
  *
  * The editor sends this once, on Save, so it spends one write from the list
  * budget like any other list change.
@@ -283,14 +299,21 @@ export async function saveClimbListEdits(
   listId: number,
   climbIds: unknown,
   removedIds: unknown = [],
+  addedIds: unknown = [],
 ): Promise<ActionResult> {
   return toActionResult(async () => {
     const { user } = await requireSession();
     const list = requirePositiveId(listId, CLIMB_LIST_NOT_FOUND_MESSAGE);
-    if (!isClimbIdArray(climbIds) || !isClimbIdArray(removedIds))
+    if (!isClimbIdArray(climbIds) || !isClimbIdArray(removedIds) || !isClimbIdArray(addedIds))
       throw new ActionError(CLIMB_LIST_CHANGED_MESSAGE);
     const every = [...climbIds, ...removedIds];
-    if (every.length > MAX_CLIMB_LIST_ITEMS || new Set(every).size !== every.length)
+    const kept = new Set(climbIds);
+    if (
+      climbIds.length > MAX_CLIMB_LIST_ITEMS ||
+      new Set(every).size !== every.length ||
+      new Set(addedIds).size !== addedIds.length ||
+      !addedIds.every((id) => kept.has(id))
+    )
       throw new ActionError(CLIMB_LIST_CHANGED_MESSAGE);
     await requireWriteBudget(user.id);
 
@@ -308,42 +331,54 @@ export async function saveClimbListEdits(
       return;
     }
 
+    const added = new Set(addedIds);
+    const starting = JSON.stringify(every.filter((id) => !added.has(id)));
     // Removed climbs take positions after the kept ones, then go.
     const positions = JSON.stringify(every);
-    const [updated] = await db.batch([
+    const addedJson = JSON.stringify(addedIds);
+    const [, updated] = await db.batch([
+      db.insert(climbListItems).select(
+        db
+          .select({
+            listId: sql`${list}`.as("list_id"),
+            climbId: sql`a.value`.as("climb_id"),
+            position: sql`(SELECT CAST(o.key AS INTEGER) + 1 FROM json_each(${positions}) o
+                             WHERE o.value = a.value)`.as("position"),
+            addedAt: sql`${nowMs}`.as("added_at"),
+          })
+          .from(sql`json_each(${addedJson}) a`)
+          .where(
+            // Every added climb must still exist, or none is inserted.
+            sql`${listHoldsExactly(user.id, list, starting)}
+                AND (SELECT COUNT(*) FROM climbs WHERE id IN (SELECT value FROM json_each(${addedJson})))
+                    = json_array_length(${addedJson})`,
+          ),
+      ),
       db
         .update(climbListItems)
         .set({
           position: sql`(SELECT CAST(o.key AS INTEGER) + 1 FROM json_each(${positions}) o
                          WHERE o.value = ${climbListItems.climbId})`,
         })
-        .where(
-          and(
-            eq(climbListItems.listId, list),
-            sql`EXISTS (SELECT 1 FROM climb_lists WHERE id = ${list} AND user_id = ${user.id})
-              AND (SELECT COUNT(*) FROM climb_list_items WHERE list_id = ${list})
-                  = json_array_length(${positions})
-              AND NOT EXISTS (
-                SELECT 1 FROM climb_list_items current
-                WHERE current.list_id = ${list}
-                  AND current.climb_id NOT IN (SELECT value FROM json_each(${positions}))
-              )`,
-          ),
-        )
+        .where(and(eq(climbListItems.listId, list), listHoldsExactly(user.id, list, positions)))
         .returning({ climbId: climbListItems.climbId }),
-      // The list is non-empty, so the UPDATE changed rows exactly when its
-      // guard held.
-      db
-        .update(climbLists)
-        .set({ updatedAt: sql`${nowMs}` })
-        .where(and(eq(climbLists.id, list), eq(climbLists.userId, user.id), sql`changes() > 0`)),
       db
         .delete(climbListItems)
         .where(
           and(
             eq(climbListItems.listId, list),
             sql`${climbListItems.climbId} IN (SELECT value FROM json_each(${JSON.stringify(removedIds)}))`,
-            sql`changes() > 0`,
+            listHoldsExactly(user.id, list, positions),
+          ),
+        ),
+      db
+        .update(climbLists)
+        .set({ updatedAt: sql`${nowMs}` })
+        .where(
+          and(
+            eq(climbLists.id, list),
+            eq(climbLists.userId, user.id),
+            listHoldsExactly(user.id, list, JSON.stringify(climbIds)),
           ),
         ),
     ]);

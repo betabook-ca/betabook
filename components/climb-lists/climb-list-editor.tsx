@@ -1,44 +1,70 @@
 "use client";
 
-import { Button } from "@heroui/react";
-import { ArrowDown, ArrowUp, GripVertical, X } from "lucide-react";
+import { Button, useOverlayState } from "@heroui/react";
+import { ArrowDown, ArrowUp, CirclePlus, GripVertical, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { DropIndicator, GridList, GridListItem, useDragAndDrop } from "react-aria-components";
 
 import { saveClimbListEdits } from "@/actions";
+import { AddClimbsDialog } from "@/components/climb-lists/add-climbs-dialog";
 import { cardClass } from "@/components/ui/card";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import type { ClimbListItem } from "@/db/queries";
+import type { ClimbListItem, ClimbWithAreaName } from "@/db/queries";
 import { CLIMB_LIST_CHANGED_MESSAGE, moveClimb } from "@/lib/climb-lists";
+
+/** A climb picked in the editor, shaped like a list row until Save adds it. */
+function stagedItem(climb: ClimbWithAreaName): ClimbListItem {
+  return {
+    climbId: climb.id,
+    name: climb.name,
+    type: climb.type,
+    grade: climb.grade,
+    areaId: climb.areaId,
+    areaName: climb.areaName,
+    brokenOn: climb.brokenOn,
+    position: 0,
+    addedAt: 0,
+    sent: null,
+  };
+}
 
 /**
  * The owner's list editor: drag a row by its handle, or use the arrow
- * buttons, which are also the keyboard and touch path, and take climbs off
- * with Remove. Nothing is written until Save, which sends the order and the
- * removed climbs once; the server refuses it if the list changed in the
- * meantime, rather than half-applying it. Cancel puts removed climbs back.
+ * buttons, which are also the keyboard and touch path; take climbs off with
+ * Remove, and add them with Add climbs at the bottom. Nothing is written until
+ * Save, which sends the order, the removed climbs and the added ones once; the
+ * server refuses it if the list changed in the meantime, rather than
+ * half-applying it. Cancel drops every staged change. Every control is
+ * disabled while a save is in flight, so nothing staged then is lost when the
+ * editor closes.
  *
  * When the server refuses a save because the list changed, the editor reloads
  * the list and carries the staged edits over to it: climbs still on the list
- * keep their staged order or removal, climbs gone elsewhere drop out, and
- * climbs added elsewhere join at the end. The owner checks it and saves again.
+ * keep their staged order or removal, climbs gone elsewhere drop out, climbs
+ * added here stay added, and climbs added elsewhere join at the end. The owner
+ * checks it and saves again.
  *
  * `items` must be the whole list in circuit order. The list page opens this
- * only in circuit order with no filter, so the order it saves has every climb in it.
+ * only in circuit order with no filter, so the order it saves has every climb
+ * in it.
  */
 export function ClimbListEditor({
   items,
   listId,
+  listTitle,
   onClose,
 }: {
   items: ClimbListItem[];
   listId: number;
+  listTitle: string;
   onClose: () => void;
 }) {
   const router = useRouter();
+  const addState = useOverlayState();
   const [order, setOrder] = useState(() => items.map((item) => item.climbId));
   const [removed, setRemoved] = useState<number[]>([]);
+  const [added, setAdded] = useState<ClimbListItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   // The list the staged edits were made against. A refresh brings a new one.
@@ -47,20 +73,43 @@ export function ClimbListEditor({
     setBase(items);
     const current = items.map((item) => item.climbId);
     const onList = new Set(current);
-    const keptOrder = order.filter((id) => onList.has(id));
+    const stillAdded = added.filter((item) => !onList.has(item.climbId));
+    const addedIds = new Set(stillAdded.map((item) => item.climbId));
+    const keptOrder = order.filter((id) => onList.has(id) || addedIds.has(id));
     const keptRemoved = removed.filter((id) => onList.has(id));
     const staged = new Set([...keptOrder, ...keptRemoved]);
     setOrder([...keptOrder, ...current.filter((id) => !staged.has(id))]);
     setRemoved(keptRemoved);
+    setAdded(stillAdded);
   }
-  const byId = new Map(items.map((item) => [item.climbId, item]));
+
+  const byId = new Map([...items, ...added].map((item) => [item.climbId, item]));
   const rows = order.flatMap((id) => byId.get(id) ?? []);
-  const changed = removed.length > 0 || order.some((id, index) => id !== items[index]?.climbId);
+  const changed =
+    removed.length > 0 ||
+    added.length > 0 ||
+    order.some((id, index) => id !== items[index]?.climbId);
 
   function remove(climbId: number) {
     setOrder((current) => current.filter((id) => id !== climbId));
-    // A double tap presses twice before the row goes: stage it once.
+    // A climb added here just goes back; one already on the list is staged
+    // for removal, once, even when a double tap presses twice.
+    if (added.some((item) => item.climbId === climbId)) {
+      setAdded((current) => current.filter((item) => item.climbId !== climbId));
+      return;
+    }
     setRemoved((current) => (current.includes(climbId) ? current : [...current, climbId]));
+  }
+
+  function stage(climb: ClimbWithAreaName) {
+    if (order.includes(climb.id)) return;
+    setOrder((current) => (current.includes(climb.id) ? current : [...current, climb.id]));
+    // Re-adding a climb staged for removal just keeps it.
+    if (removed.includes(climb.id)) {
+      setRemoved((current) => current.filter((id) => id !== climb.id));
+      return;
+    }
+    setAdded((current) => [...current, stagedItem(climb)]);
   }
 
   const { dragAndDropHooks } = useDragAndDrop<ClimbListItem>({
@@ -79,6 +128,7 @@ export function ClimbListEditor({
       <DropIndicator target={target} className="h-0.5 rounded-full data-[drop-target]:bg-accent" />
     ),
     onReorder: (event) => {
+      if (pending) return;
       const source = Number([...event.keys][0]);
       const target = Number(event.target.key);
       setOrder((current) =>
@@ -95,7 +145,12 @@ export function ClimbListEditor({
   function save() {
     setError(null);
     startTransition(async () => {
-      const result = await saveClimbListEdits(listId, order, removed);
+      const result = await saveClimbListEdits(
+        listId,
+        order,
+        removed,
+        added.map((item) => item.climbId),
+      );
       if (result.ok) {
         onClose();
         return;
@@ -130,11 +185,14 @@ export function ClimbListEditor({
       <GridList
         aria-label="Edit climbs"
         items={rows}
-        dependencies={[order]}
+        // Rows re-render when a save starts, so their controls disable.
+        dependencies={[order, pending]}
         selectionMode="none"
         dragAndDropHooks={dragAndDropHooks}
         renderEmptyState={() => (
-          <p className="px-2 py-4 text-sm text-muted">Every climb will be removed.</p>
+          <p className="px-2 py-4 text-sm text-muted">
+            {removed.length > 0 ? "Every climb will be removed." : "No climbs on this list yet."}
+          </p>
         )}
         className="flex flex-col divide-y divide-separator"
       >
@@ -153,6 +211,7 @@ export function ClimbListEditor({
                 isIconOnly
                 className="cursor-grab active:cursor-grabbing"
                 aria-label={`Drag ${item.name}`}
+                isDisabled={pending}
               >
                 <GripVertical size={16} />
               </Button>
@@ -203,6 +262,17 @@ export function ClimbListEditor({
           );
         }}
       </GridList>
+      <Button variant="outline" className="self-start" isDisabled={pending} onPress={addState.open}>
+        <CirclePlus className="size-4" />
+        Add climbs
+      </Button>
+      <AddClimbsDialog
+        state={addState}
+        listId={listId}
+        listTitle={listTitle}
+        climbIds={order}
+        onStage={stage}
+      />
     </div>
   );
 }

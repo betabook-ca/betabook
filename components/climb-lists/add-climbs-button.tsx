@@ -10,16 +10,19 @@ export function AddClimbsButton({
   listTitle,
   climbIds,
   variant,
+  isDisabled = false,
 }: {
   listId: number;
   listTitle: string;
   climbIds: readonly number[];
   variant?: "outline";
+  /** While the list editor is open: its own Add climbs stages climbs there. */
+  isDisabled?: boolean;
 }) {
   const state = useOverlayState();
   return (
     <>
-      <Button variant={variant} onPress={state.open}>
+      <Button variant={variant} isDisabled={isDisabled} onPress={state.open}>
         <CirclePlus className="size-4" />
         Add climbs
       </Button>

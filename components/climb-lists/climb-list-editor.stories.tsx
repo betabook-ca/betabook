@@ -8,7 +8,7 @@ import { ClimbListEditor } from "./climb-list-editor";
 const meta = {
   title: "Components/Climb lists/Editor",
   component: ClimbListEditor,
-  args: { items: climbListItemSamples, listId: 1, onClose: () => {} },
+  args: { items: climbListItemSamples, listId: 1, listTitle: "Projects", onClose: () => {} },
   render: (args) => (
     <StoryPage
       title="Edit"
