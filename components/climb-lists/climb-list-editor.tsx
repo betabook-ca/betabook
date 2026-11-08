@@ -2,7 +2,7 @@
 
 import { Button, useOverlayState } from "@heroui/react";
 import { CirclePlus, GripVertical, X } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { DropIndicator, GridList, GridListItem, useDragAndDrop } from "react-aria-components";
 
 import { saveClimbListEdits } from "@/actions";
@@ -63,7 +63,15 @@ export function ClimbListEditor({
   const [opened] = useState(items);
   // The one piece of editing state: the list as it will be saved. Removals,
   // adds and whether anything changed are all read off it against `opened`.
-  const [order, setOrder] = useState(() => opened.map((item) => item.climbId));
+  const [order, setOrderState] = useState(() => opened.map((item) => item.climbId));
+  // The same list, current between renders: two taps that land before React
+  // re-renders both see the first tap's result here. Every change goes
+  // through `changeOrder`, so this and the state never disagree.
+  const latestOrder = useRef(order);
+  function changeOrder(next: (current: readonly number[]) => number[]) {
+    latestOrder.current = next(latestOrder.current);
+    setOrderState(latestOrder.current);
+  }
   // Row data for climbs picked in the editor, which `opened` doesn't have.
   // A cache only: whether a climb is on the list is `order`'s business.
   const [picked, setPicked] = useState<ReadonlyMap<number, ClimbListItem>>(new Map());
@@ -78,22 +86,19 @@ export function ClimbListEditor({
     order.length !== opened.length || order.some((id, index) => id !== opened[index]?.climbId);
   const removedAny = opened.some((item) => !indexById.has(item.climbId));
 
-  // Both edits only filter or append `order`, so a double tap or a double
-  // pick lands on the same result.
   function remove(climbId: number) {
-    setOrder((current) => current.filter((id) => id !== climbId));
+    changeOrder((current) => current.filter((id) => id !== climbId));
   }
 
-  /** Stages a picked climb, or returns why it can't be. */
+  /** Stages a picked climb, or returns why it can't be. One check, on the
+   * latest list, so a quick second pick is told the truth: already on it,
+   * or the list is full. */
   function stage(climb: ClimbWithAreaName): string | null {
-    if (indexById.has(climb.id)) return null;
-    if (order.length >= MAX_CLIMB_LIST_ITEMS) return CLIMB_LIST_FULL_MESSAGE;
-    setPicked((current) => new Map(current).set(climb.id, stagedItem(climb)));
-    setOrder((current) =>
-      current.includes(climb.id) || current.length >= MAX_CLIMB_LIST_ITEMS
-        ? current
-        : [...current, climb.id],
-    );
+    const current = latestOrder.current;
+    if (current.includes(climb.id)) return null;
+    if (current.length >= MAX_CLIMB_LIST_ITEMS) return CLIMB_LIST_FULL_MESSAGE;
+    setPicked((cache) => new Map(cache).set(climb.id, stagedItem(climb)));
+    changeOrder((latest) => [...latest, climb.id]);
     return null;
   }
 
@@ -116,7 +121,7 @@ export function ClimbListEditor({
       if (pending) return;
       const source = Number([...event.keys][0]);
       const target = Number(event.target.key);
-      setOrder((current) =>
+      changeOrder((current) =>
         moveClimb(
           current,
           source,

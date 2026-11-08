@@ -18,7 +18,18 @@ import { ClimbListItems } from "./climb-list-items";
 vi.mock("@/actions", () => ({
   saveClimbListEdits: vi.fn<() => Promise<ActionResult>>(),
 }));
-// The picker searches the catalog; here a staging pick is one button.
+// A full list here is six climbs, not 500: rendering 500 editor rows in
+// jsdom is slow enough to time out on a busy machine. The five samples plus
+// one pick still fit.
+vi.mock("@/lib/climb-lists", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/climb-lists")>();
+  return {
+    ...actual,
+    MAX_CLIMB_LIST_ITEMS: 6,
+    CLIMB_LIST_FULL_MESSAGE: "A list can hold 6 climbs.",
+  };
+});
+// The picker searches the catalog; here a staging pick is one button per climb.
 const PICKED = {
   id: 106,
   name: "New Problem",
@@ -28,6 +39,7 @@ const PICKED = {
   areaName: "Muir Valley",
   brokenOn: null,
 };
+const PICKED_TOO = { ...PICKED, id: 107, name: "Other Problem" };
 vi.mock("@/components/climb-lists/add-climbs-dialog", async () => {
   const { useState } = await import("react");
   function AddClimbsDialog({
@@ -42,9 +54,11 @@ vi.mock("@/components/climb-lists/add-climbs-dialog", async () => {
     if (!state.isOpen || !onStage) return null;
     return (
       <>
-        <button type="button" onClick={() => setRefused(onStage(PICKED))}>
-          Pick New Problem
-        </button>
+        {[PICKED, PICKED_TOO].map((climb) => (
+          <button key={climb.id} type="button" onClick={() => setRefused(onStage(climb))}>
+            Pick {climb.name}
+          </button>
+        ))}
         {refused && <p>{refused}</p>}
       </>
     );
@@ -396,4 +410,23 @@ it("refuses to stage past a full list, and says why", async () => {
   expect(screen.getByText(CLIMB_LIST_FULL_MESSAGE)).toBeInTheDocument();
   expect(screen.queryByText("New Problem")).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+});
+
+it("tells a quick second pick the list is full instead of claiming it was added", async () => {
+  const user = userEvent.setup();
+  // Five climbs, room for one more.
+  renderItems();
+  await chooseEdit(user);
+  await user.click(screen.getByRole("button", { name: "Add climbs" }));
+  // Both picks land before React re-renders.
+  act(() => {
+    fireEvent.click(screen.getByRole("button", { name: "Pick New Problem" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pick Other Problem" }));
+  });
+  expect(screen.getByText(CLIMB_LIST_FULL_MESSAGE)).toBeInTheDocument();
+  expect(screen.queryByText("Other Problem")).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() =>
+    expect(saveClimbListEdits).toHaveBeenCalledWith(1, [101, 102, 103, 104, 105, 106]),
+  );
 });
