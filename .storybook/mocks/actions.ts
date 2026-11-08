@@ -149,3 +149,36 @@ export const removeMyTripTag = fn<typeof Actions.removeMyTripTag>(async () => ({
   ok: true,
   value: undefined,
 }));
+
+export const createClimbList = fn<typeof Actions.createClimbList>(async () => ({
+  ok: true,
+  value: -1,
+}));
+export const updateClimbList = fn<typeof Actions.updateClimbList>(async () => ({
+  ok: true,
+  value: undefined,
+}));
+export const deleteClimbList = fn<typeof Actions.deleteClimbList>(async () => ({
+  ok: true,
+  value: undefined,
+}));
+export const addClimbToList = fn<typeof Actions.addClimbToList>(async () => ({
+  ok: true,
+  value: { changed: true, climbCount: 1 },
+}));
+export const saveClimbListEdits = fn<typeof Actions.saveClimbListEdits>(async () => ({
+  ok: true,
+  value: undefined,
+}));
+export const copyClimbList = fn<typeof Actions.copyClimbList>(async () => ({
+  ok: true,
+  value: -1,
+}));
+export const shareClimbList = fn<typeof Actions.shareClimbList>(async () => ({
+  ok: true,
+  value: { token: "story-list-token", expiresAt: null },
+}));
+export const unshareClimbList = fn<typeof Actions.unshareClimbList>(async () => ({
+  ok: true,
+  value: undefined,
+}));
