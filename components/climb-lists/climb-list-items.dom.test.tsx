@@ -156,8 +156,8 @@ it("offers the discipline chips and Filters panel with Exclude sent, kept in the
 
   for (const discipline of ["Boulder", "Sport", "Trad"])
     expect(screen.getByRole("button", { name: discipline })).toBeVisible();
-  // Find climbs' text box and area lookup aren't on a list.
-  expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
+  // A text box on the climb name, but no area lookup: a list's climbs are chosen.
+  expect(screen.getByRole("searchbox", { name: "Filter climbs on this list" })).toBeVisible();
   await user.click(screen.getByRole("button", { name: "Expand filters" }));
   expect(screen.queryByRole("combobox", { name: /area/i })).not.toBeInTheDocument();
   await user.click(screen.getByRole("checkbox", { name: "Exclude sent" }));
@@ -168,6 +168,20 @@ it("offers the discipline chips and Filters panel with Exclude sent, kept in the
     }),
   );
   expect(screen.getByRole("button", { name: "Remove Excluding sent" })).toBeInTheDocument();
+});
+
+it("filters by climb name in the URL, keeping the sort, and lists it as a removable filter", async () => {
+  const user = userEvent.setup();
+  renderItems({ view: { sort: "grade_desc", filter: DEFAULT_CLIMB_FILTER } });
+  await user.type(screen.getByRole("searchbox", { name: "Filter climbs on this list" }), "rat");
+
+  await waitFor(() =>
+    expect(replace).toHaveBeenCalledWith("/users/alex/lists/1?name=rat&sort=grade_desc", {
+      scroll: false,
+    }),
+  );
+  await user.click(screen.getByRole("button", { name: "Remove Text: rat" }));
+  expect(screen.getByRole("searchbox", { name: "Filter climbs on this list" })).toHaveValue("");
 });
 
 it("says so when the filters match nothing, and clears them", async () => {

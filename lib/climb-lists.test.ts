@@ -38,18 +38,23 @@ describe("copyClimbListTitle", () => {
 });
 
 describe("parseClimbListView", () => {
-  it("reads the list's sort, disciplines and Filters panel, but not text or area", () => {
+  it("reads the list's sort, text, disciplines and Filters panel, but not area", () => {
     const view = parseClimbListView({
       sort: "grade_desc",
       excludeSent: "1",
       discipline: "boulder",
       name: "crimp",
       areaId: "2",
+      areaName: "Cave",
     });
     expect(view.sort).toBe("grade_desc");
-    expect(view.filter).toMatchObject({ excludeSent: true, disciplines: ["boulder"] });
-    expect(view.filter).not.toHaveProperty("name");
+    expect(view.filter).toMatchObject({
+      excludeSent: true,
+      disciplines: ["boulder"],
+      name: "crimp",
+    });
     expect(view.filter).not.toHaveProperty("areaId");
+    expect(view.filter).not.toHaveProperty("areaName");
   });
 
   it("falls back to list order and no filters for anything else", () => {
@@ -68,10 +73,11 @@ describe("climbListViewSearch", () => {
   it("round trips a sorted, filtered view", () => {
     const view = {
       sort: "name_asc" as const,
-      filter: { ...DEFAULT_CLIMB_FILTER, excludeSent: true, minAscents: 2 },
+      filter: { ...DEFAULT_CLIMB_FILTER, excludeSent: true, minAscents: 2, name: "crimp" },
     };
     const search = climbListViewSearch(view);
     expect(search).toContain("excludeSent=1");
+    expect(search).toContain("name=crimp");
     expect(isFilteredClimbList(view.filter)).toBe(true);
     const parsed = parseClimbListView(searchParamsToRecord(new URLSearchParams(search)));
     expect(parsed).toEqual(view);
