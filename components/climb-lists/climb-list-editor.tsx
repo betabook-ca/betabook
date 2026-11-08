@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, useOverlayState } from "@heroui/react";
-import { ArrowDown, ArrowUp, CirclePlus, GripVertical, X } from "lucide-react";
+import { CirclePlus, GripVertical, X } from "lucide-react";
 import { useState, useTransition } from "react";
 import { DropIndicator, GridList, GridListItem, useDragAndDrop } from "react-aria-components";
 
@@ -29,9 +29,10 @@ function stagedItem(climb: ClimbWithAreaName): ClimbListItem {
 }
 
 /**
- * The owner's list editor: drag a row by its handle, or use the arrow
- * buttons, which are also the keyboard and touch path; take climbs off with
- * Remove, and add them with Add climbs at the bottom. Nothing is written until
+ * The owner's list editor: drag a row by its handle to reorder it
+ * (react-aria's drag and drop also works from the keyboard: Enter on the
+ * handle picks a climb up, the arrow keys move it, Enter drops it); take
+ * climbs off with Remove, and add them with Add climbs at the bottom. Nothing is written until
  * Save, which sends the order, the removed climbs and the added ones once.
  * Save writes what the owner sees, even if another tab changed the list in
  * the meantime: see `saveClimbListEdits` for how climbs this editor never
@@ -138,7 +139,7 @@ export function ClimbListEditor({
     <div className="flex min-w-0 flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted">
-          Drag climbs by the handle, or use the arrows. Nothing changes until you save.
+          Drag climbs by the handle to reorder them. Nothing changes until you save.
         </p>
         <div className="flex gap-2">
           <Button variant="ghost" isDisabled={pending} onPress={onClose}>
@@ -190,32 +191,6 @@ export function ClimbListEditor({
                 <span className="block truncate font-medium">{item.name}</span>
                 <span className="block truncate text-sm text-muted">{item.areaName}</span>
               </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                isIconOnly
-                aria-label={`Move ${item.name} earlier`}
-                isDisabled={pending || index === 0}
-                onPress={() =>
-                  setOrder((current) => moveClimb(current, item.climbId, current[index - 1]))
-                }
-              >
-                <ArrowUp size={14} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                isIconOnly
-                aria-label={`Move ${item.name} later`}
-                isDisabled={pending || index === order.length - 1}
-                onPress={() =>
-                  setOrder((current) =>
-                    moveClimb(current, item.climbId, current[index + 1], "after"),
-                  )
-                }
-              >
-                <ArrowDown size={14} />
-              </Button>
               <Button
                 variant="ghost"
                 size="sm"

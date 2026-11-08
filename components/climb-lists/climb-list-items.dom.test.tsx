@@ -172,6 +172,8 @@ it("offers Remove only in the editor, and saves removals with the order", async 
   expect(screen.queryByRole("button", { name: /^Remove / })).not.toBeInTheDocument();
 
   await chooseEdit(user);
+  // Nothing to save until something changes.
+  expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
   await user.click(screen.getByRole("button", { name: "Remove Rat Stew from this list" }));
   expect(screen.queryByText("Rat Stew")).not.toBeInTheDocument();
   expect(saveClimbListEdits).not.toHaveBeenCalled();
@@ -204,27 +206,6 @@ it("clears the filters before editing, and offers no menu to anyone but the owne
 
   renderItems({ canEdit: false });
   expect(screen.queryByRole("button", { name: "List actions" })).not.toBeInTheDocument();
-});
-
-it("moves climbs with the arrows and saves the whole order once", async () => {
-  const user = userEvent.setup();
-  renderItems();
-  await chooseEdit(user);
-
-  const save = screen.getByRole("button", { name: "Save" });
-  expect(save).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Move Amarillo Sunset earlier" })).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Move Rat Stew later" })).toBeDisabled();
-
-  await user.click(screen.getByRole("button", { name: "Move Rat Stew earlier" }));
-  await user.click(screen.getByRole("button", { name: "Move Amarillo Sunset later" }));
-  expect(saveClimbListEdits).not.toHaveBeenCalled();
-
-  await user.click(save);
-  await waitFor(() =>
-    expect(saveClimbListEdits).toHaveBeenCalledWith(1, [102, 101, 103, 105, 104], [], []),
-  );
-  expect(await screen.findByRole("button", { name: "List actions" })).toBeInTheDocument();
 });
 
 it("stages a double-tapped Remove once", async () => {
@@ -271,13 +252,13 @@ it("keeps the edits and shows the error when a save fails", async () => {
   const user = userEvent.setup();
   renderItems();
   await chooseEdit(user);
-  await user.click(screen.getByRole("button", { name: "Move Rat Stew earlier" }));
+  await user.click(screen.getByRole("button", { name: "Remove Rat Stew from this list" }));
   await user.click(screen.getByRole("button", { name: "Save" }));
 
   expect(await screen.findByText("Too many changes — try again in a minute")).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Save" }));
   await waitFor(() =>
-    expect(saveClimbListEdits).toHaveBeenLastCalledWith(1, [101, 102, 103, 105, 104], [], []),
+    expect(saveClimbListEdits).toHaveBeenLastCalledWith(1, [101, 102, 103, 104], [105], []),
   );
 });
 
@@ -286,13 +267,11 @@ it("disables every editor control while a save is in flight", async () => {
   const user = userEvent.setup();
   renderItems();
   await chooseEdit(user);
-  await user.click(screen.getByRole("button", { name: "Move Rat Stew earlier" }));
+  await user.click(screen.getByRole("button", { name: "Remove Rat Stew from this list" }));
   await user.click(screen.getByRole("button", { name: "Save" }));
 
   for (const name of [
     "Remove Amarillo Sunset from this list",
-    "Move Gift of the Magi earlier",
-    "Move Gift of the Magi later",
     "Drag Gift of the Magi",
     "Add climbs",
     "Cancel",

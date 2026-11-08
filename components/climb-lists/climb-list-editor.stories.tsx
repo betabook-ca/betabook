@@ -12,7 +12,7 @@ const meta = {
   render: (args) => (
     <StoryPage
       title="Edit"
-      description="Drag a climb by its handle or use the arrows, and remove climbs. Nothing saves until Save, which sends the order and removals once."
+      description="Drag a climb by its handle to reorder, remove climbs, or add them. Nothing saves until Save, which sends every change once."
     >
       <ClimbListEditor {...args} />
     </StoryPage>
