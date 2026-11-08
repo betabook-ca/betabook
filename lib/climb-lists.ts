@@ -27,8 +27,8 @@ export const CLIMB_LIST_NOT_FOUND_MESSAGE = "List not found";
 export const CLIMB_LIST_UNAVAILABLE_MESSAGE = "This list isn't available.";
 export const CLIMB_LIST_LIMIT_MESSAGE = `You can keep ${MAX_CLIMB_LISTS} lists. Delete one to add another.`;
 export const CLIMB_LIST_FULL_MESSAGE = `A list can hold ${MAX_CLIMB_LIST_ITEMS} climbs.`;
-export const CLIMB_LIST_CHANGED_MESSAGE =
-  "This list changed since you opened it. Reload to try again.";
+export const CLIMB_LIST_EDIT_INVALID_MESSAGE =
+  "These list changes aren't valid. Reload the list and try again.";
 export const CLIMB_NOT_FOUND_MESSAGE = "Climb not found";
 
 /** Counts code points, to match SQLite's length(). */
@@ -88,7 +88,7 @@ export const CLIMB_LIST_SORT_DIRECTION: Record<ClimbListSortField, "asc" | "desc
 };
 
 export const CLIMB_LIST_SORT_OPTIONS: { id: ClimbListSortField; label: string }[] = [
-  { id: "position", label: "List order" },
+  { id: "position", label: "Circuit" },
   { id: "grade", label: "Grade" },
   { id: "area", label: "Area" },
   { id: "name", label: "Name" },
@@ -140,8 +140,9 @@ export function isFilteredClimbList(filter: ClimbFilter): boolean {
   return filterParams(filter).size > 0;
 }
 
-/** True in the owner's own order, the only view the list can be reordered in. */
-export function isListOrder(sort: ClimbListSort): boolean {
+/** True in the owner's own order (Circuit), the only view the list can be
+ * edited in. */
+export function isCircuitSort(sort: ClimbListSort): boolean {
   return sort === DEFAULT_CLIMB_LIST_SORT;
 }
 

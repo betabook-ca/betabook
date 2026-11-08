@@ -9,7 +9,7 @@ import {
 } from "@/components/climb-lists/climb-list-dialog";
 
 /** Copies someone else's list into the reader's own lists, under a name and
- * description they choose. The copy takes the list's climbs in list order
+ * description they choose. The copy takes the list's climbs in circuit order
  * when it is saved, and nothing links it back to the original. */
 export function CopyClimbListButton({
   list,

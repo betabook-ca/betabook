@@ -7,8 +7,8 @@ test(
   "dragging a climb by its handle moves it in the list",
   { tag: "@behavior" },
   async ({ page }, info) => {
-    await openStory(page, info, "components-climb-lists-reorder--default");
-    const grid = page.getByRole("grid", { name: "Reorder climbs", exact: true });
+    await openStory(page, info, "components-climb-lists-editor--default");
+    const grid = page.getByRole("grid", { name: "Edit climbs", exact: true });
     const rows = grid.getByRole("row");
     await expect(rows.first()).toContainText("Amarillo Sunset");
 
@@ -30,6 +30,6 @@ test(
     await expect(page.locator("[data-dragging]")).toHaveCount(0);
     await expect(rows.nth(0)).toContainText("Gift of the Magi");
     await expect(rows.nth(1)).toContainText("Amarillo Sunset");
-    await expect(page.getByRole("button", { name: "Save order", exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Save", exact: true })).toBeEnabled();
   },
 );

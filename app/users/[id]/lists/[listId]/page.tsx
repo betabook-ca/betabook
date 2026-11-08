@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { ProfileHeader, memberMetadata, resolveProfilePage } from "@/app/users/[id]/profile-shell";
-import { AddClimbsButton } from "@/components/climb-lists/add-climbs-button";
 import { ClimbListActions } from "@/components/climb-lists/climb-list-actions";
 import { ClimbListHeader } from "@/components/climb-lists/climb-list-header";
 import { ClimbListItems } from "@/components/climb-lists/climb-list-items";
@@ -140,29 +139,23 @@ async function ListItems({
     items.map((item) => item.areaId),
   );
   return (
-    <div className="flex flex-col gap-3">
-      {/* One button in one place whatever the count. The dialog lives inside
-       * it, so a button that moved when the first climb arrived would unmount
-       * the dialog and close it mid-add. */}
-      {isOwner && (
-        <div className="self-end">
-          <AddClimbsButton
-            listId={list.id}
-            listTitle={list.title}
-            climbIds={allClimbIds}
-            variant={list.climbCount > 0 ? "outline" : undefined}
-          />
-        </div>
-      )}
-      <ClimbListItems
-        items={items}
-        totalCount={list.climbCount}
-        areaBreadcrumbs={areaBreadcrumbs}
-        view={view}
-        signedIn
-        listId={list.id}
-        canEdit={isOwner}
-      />
-    </div>
+    <ClimbListItems
+      items={items}
+      totalCount={list.climbCount}
+      areaBreadcrumbs={areaBreadcrumbs}
+      view={view}
+      signedIn
+      listId={list.id}
+      canEdit={isOwner}
+      addClimbs={
+        isOwner
+          ? {
+              listTitle: list.title,
+              climbIds: allClimbIds,
+              variant: list.climbCount > 0 ? "outline" : undefined,
+            }
+          : undefined
+      }
+    />
   );
 }

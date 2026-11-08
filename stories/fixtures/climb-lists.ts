@@ -26,16 +26,15 @@ export const climbListSamples: ClimbListSummary[] = [
 ];
 
 function item(
-  number: number,
+  position: number,
   climb: Pick<ClimbListItem, "climbId" | "name" | "type" | "grade" | "areaId" | "areaName">,
   sent: boolean | null,
 ): ClimbListItem {
   return {
     ...climb,
     brokenOn: null,
-    position: number,
-    number,
-    addedAt: UPDATED - number * 3_600_000,
+    position,
+    addedAt: UPDATED - position * 3_600_000,
     sent,
   };
 }

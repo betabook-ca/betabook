@@ -1,20 +1,70 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { removeClimbFromList, reorderClimbList } from "@/actions";
+import { saveClimbListEdits } from "@/actions";
 import type { ClimbListItem } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
-import type { ClimbListView } from "@/lib/climb-lists";
+import {
+  CLIMB_LIST_FULL_MESSAGE,
+  MAX_CLIMB_LIST_ITEMS,
+  type ClimbListView,
+} from "@/lib/climb-lists";
 import { DEFAULT_CLIMB_FILTER } from "@/lib/filters/climb-filter";
 import { climbListBreadcrumbs, climbListItemSamples } from "@/stories/fixtures/climb-lists";
 
 import { ClimbListItems } from "./climb-list-items";
 
 vi.mock("@/actions", () => ({
-  removeClimbFromList: vi.fn<() => Promise<ActionResult>>(),
-  reorderClimbList: vi.fn<() => Promise<ActionResult>>(),
+  saveClimbListEdits: vi.fn<() => Promise<ActionResult>>(),
 }));
+// A full list here is six climbs, not 500: rendering 500 editor rows in
+// jsdom is slow enough to time out on a busy machine. The five samples plus
+// one pick still fit.
+vi.mock("@/lib/climb-lists", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/climb-lists")>();
+  return {
+    ...actual,
+    MAX_CLIMB_LIST_ITEMS: 6,
+    CLIMB_LIST_FULL_MESSAGE: "A list can hold 6 climbs.",
+  };
+});
+// The picker searches the catalog; here a staging pick is one button per climb.
+const PICKED = {
+  id: 106,
+  name: "New Problem",
+  type: "boulder" as const,
+  grade: 3,
+  areaId: 21,
+  areaName: "Muir Valley",
+  brokenOn: null,
+};
+const PICKED_TOO = { ...PICKED, id: 107, name: "Other Problem" };
+vi.mock("@/components/climb-lists/add-climbs-dialog", async () => {
+  const { useState } = await import("react");
+  function AddClimbsDialog({
+    state,
+    onStage,
+  }: {
+    state: { isOpen: boolean };
+    onStage?: (climb: typeof PICKED) => string | null;
+  }) {
+    // Like the real dialog, show why a pick wasn't staged.
+    const [refused, setRefused] = useState<string | null>(null);
+    if (!state.isOpen || !onStage) return null;
+    return (
+      <>
+        {[PICKED, PICKED_TOO].map((climb) => (
+          <button key={climb.id} type="button" onClick={() => setRefused(onStage(climb))}>
+            Pick {climb.name}
+          </button>
+        ))}
+        {refused && <p>{refused}</p>}
+      </>
+    );
+  }
+  return { AddClimbsDialog };
+});
 vi.mock("@/components/climb-sent-indicator", () => ({
   ClimbSentIndicator: ({ sent }: { sent: boolean }) => <span>{sent ? "sent" : "not sent"}</span>,
 }));
@@ -25,33 +75,43 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/users/alex/lists/1",
 }));
 
-const LIST_ORDER: ClimbListView = { sort: "position_asc", filter: DEFAULT_CLIMB_FILTER };
+const CIRCUIT: ClimbListView = { sort: "position_asc", filter: DEFAULT_CLIMB_FILTER };
 const EXCLUDING_SENT: ClimbListView = {
   sort: "position_asc",
   filter: { ...DEFAULT_CLIMB_FILTER, excludeSent: true },
 };
 
-function renderItems(
-  props: Partial<{
-    items: ClimbListItem[];
-    view: ClimbListView;
-    canEdit: boolean;
-    signedIn: boolean;
-    totalCount: number;
-  }> = {},
-) {
+type ItemsProps = Partial<{
+  items: ClimbListItem[];
+  view: ClimbListView;
+  canEdit: boolean;
+  signedIn: boolean;
+  totalCount: number;
+  withAddClimbs: boolean;
+}>;
+
+function itemsElement(props: ItemsProps = {}) {
   const items = props.items ?? climbListItemSamples;
-  return render(
+  return (
     <ClimbListItems
       items={items}
       totalCount={props.totalCount ?? climbListItemSamples.length}
       areaBreadcrumbs={climbListBreadcrumbs}
-      view={props.view ?? LIST_ORDER}
+      view={props.view ?? CIRCUIT}
       signedIn={props.signedIn ?? true}
       listId={1}
       canEdit={props.canEdit ?? true}
-    />,
+      addClimbs={
+        props.withAddClimbs
+          ? { listTitle: "Projects", climbIds: items.map((item) => item.climbId) }
+          : undefined
+      }
+    />
   );
+}
+
+function renderItems(props: ItemsProps = {}) {
+  return render(itemsElement(props));
 }
 
 /** The climbs, not the filter toolbar's own lists. */
@@ -59,44 +119,35 @@ function rows() {
   return [...document.querySelectorAll<HTMLElement>("ol > li")];
 }
 
-function rowNumbers() {
-  return rows().map((row) => within(row).getByText(/Number/).parentElement?.textContent);
-}
-
-/** Reorder lives in the owner's ⋯ menu beside the sort. */
-async function chooseReorder(user: ReturnType<typeof userEvent.setup>) {
+/** Edit lives in the owner's ⋯ menu beside the sort. */
+async function chooseEdit(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "List actions" }));
-  await user.click(await screen.findByRole("menuitem", { name: "Reorder" }));
+  await user.click(await screen.findByRole("menuitem", { name: "Edit" }));
 }
 
 beforeEach(() => {
   replace.mockReset();
-  vi.mocked(removeClimbFromList)
-    .mockReset()
-    .mockResolvedValue({ ok: true, value: { changed: true, climbCount: 2 } });
-  vi.mocked(reorderClimbList).mockReset().mockResolvedValue({ ok: true, value: undefined });
+  vi.mocked(saveClimbListEdits).mockReset().mockResolvedValue({ ok: true, value: undefined });
 });
 
-it("numbers rows in the owner's order, and keeps each number when sorted", () => {
-  const { unmount } = renderItems();
-  expect(rowNumbers()).toEqual(["Number 1", "Number 2", "Number 3", "Number 4", "Number 5"]);
-  unmount();
-
-  const sorted = climbListItemSamples.toReversed();
-  renderItems({ items: sorted, view: { sort: "name_desc", filter: DEFAULT_CLIMB_FILTER } });
-  // Sorted rows keep their place in the owner's order as a muted "#n".
-  expect(rowNumbers()).toEqual(["Number #5", "Number #4", "Number #3", "Number #2", "Number #1"]);
+it("leaves rows unnumbered so the climb name keeps the width", () => {
+  renderItems();
+  // Nothing before the sent mark and the name: no number column.
+  const rowTexts = rows().map((row) => row.textContent?.replace(/^(not sent|sent)/, "") ?? "");
+  expect(rowTexts).toHaveLength(climbListItemSamples.length);
+  for (const [index, text] of rowTexts.entries())
+    expect(text.startsWith(climbListItemSamples[index].name)).toBe(true);
 });
 
-it("switches a sorted view back to list order when the owner chooses Reorder", async () => {
+it("switches a sorted view back to circuit order when the owner chooses Edit", async () => {
   const user = userEvent.setup();
   renderItems({
     items: climbListItemSamples.toReversed(),
     view: { sort: "name_desc", filter: DEFAULT_CLIMB_FILTER },
   });
-  // No standalone button: Reorder is only in the menu.
-  expect(screen.queryByRole("button", { name: /reorder/i })).not.toBeInTheDocument();
-  await chooseReorder(user);
+  // No standalone button: Edit is only in the menu.
+  expect(screen.queryByRole("button", { name: /^edit$/i })).not.toBeInTheDocument();
+  await chooseEdit(user);
   expect(replace).toHaveBeenCalledWith("/users/alex/lists/1", { scroll: false });
 });
 
@@ -142,62 +193,240 @@ it("offers a signed-out reader the filters but not Exclude sent or sent state", 
   expect(screen.queryByText("not sent")).not.toBeInTheDocument();
 });
 
-it("removes a climb for the owner, and offers no Remove to anyone else", async () => {
+it("offers Remove only in the editor, and saves removals with the order", async () => {
   const user = userEvent.setup();
-  const { unmount } = renderItems();
-  await user.click(screen.getByRole("button", { name: "Remove Rat Stew from this list" }));
-  await waitFor(() => expect(removeClimbFromList).toHaveBeenCalledWith(1, 105));
-  unmount();
+  renderItems();
+  expect(screen.queryByRole("button", { name: /^Remove / })).not.toBeInTheDocument();
 
-  renderItems({ canEdit: false });
-  expect(screen.queryByRole("button", { name: /^Remove Rat/ })).not.toBeInTheDocument();
+  await chooseEdit(user);
+  // Nothing to save until something changes.
+  expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+  await user.click(screen.getByRole("button", { name: "Remove Rat Stew from this list" }));
+  expect(screen.queryByText("Rat Stew")).not.toBeInTheDocument();
+  expect(saveClimbListEdits).not.toHaveBeenCalled();
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(saveClimbListEdits).toHaveBeenCalledWith(1, [101, 102, 103, 104]));
 });
 
-it("clears the filters before reordering, and offers no menu to anyone but the owner", async () => {
+it("puts removed climbs back on Cancel", async () => {
+  const user = userEvent.setup();
+  renderItems();
+  await chooseEdit(user);
+  await user.click(screen.getByRole("button", { name: "Remove Rat Stew from this list" }));
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+  expect(screen.getByRole("link", { name: "Rat Stew" })).toBeInTheDocument();
+  expect(saveClimbListEdits).not.toHaveBeenCalled();
+});
+
+it("clears the filters before editing, and offers no menu to anyone but the owner", async () => {
   const user = userEvent.setup();
   const { unmount } = renderItems({ view: EXCLUDING_SENT });
-  // A reorder saves every climb, so choosing it clears the filters first.
-  await chooseReorder(user);
+  // Editing saves every climb, so choosing it clears the filters first.
+  await chooseEdit(user);
   expect(replace).toHaveBeenCalledWith("/users/alex/lists/1", { scroll: false });
-  expect(screen.queryByRole("button", { name: "Save order" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Save" })).not.toBeInTheDocument();
   unmount();
 
   renderItems({ canEdit: false });
   expect(screen.queryByRole("button", { name: "List actions" })).not.toBeInTheDocument();
 });
 
-it("moves climbs with the arrows and saves the whole order once", async () => {
+it("stages a double-tapped Remove once", async () => {
   const user = userEvent.setup();
   renderItems();
-  await chooseReorder(user);
-
-  const save = screen.getByRole("button", { name: "Save order" });
-  expect(save).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Move Amarillo Sunset earlier" })).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Move Rat Stew later" })).toBeDisabled();
-
-  await user.click(screen.getByRole("button", { name: "Move Rat Stew earlier" }));
-  await user.click(screen.getByRole("button", { name: "Move Amarillo Sunset later" }));
-  expect(reorderClimbList).not.toHaveBeenCalled();
-
-  await user.click(save);
-  await waitFor(() => expect(reorderClimbList).toHaveBeenCalledWith(1, [102, 101, 103, 105, 104]));
-  expect(await screen.findByRole("button", { name: "List actions" })).toBeInTheDocument();
+  await chooseEdit(user);
+  const remove = screen.getByRole("button", { name: "Remove Rat Stew from this list" });
+  // Both taps land before React re-renders the row away.
+  act(() => {
+    fireEvent.click(remove);
+    fireEvent.click(remove);
+  });
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(saveClimbListEdits).toHaveBeenCalledWith(1, [101, 102, 103, 104]));
 });
 
-it("keeps the editor open with the message when the list changed elsewhere", async () => {
-  vi.mocked(reorderClimbList).mockResolvedValue({
+it("drops an Edit request when the view lands somewhere other than the plain list", async () => {
+  const user = userEvent.setup();
+  const { rerender } = renderItems({ view: EXCLUDING_SENT });
+  await chooseEdit(user);
+  expect(replace).toHaveBeenCalledWith("/users/alex/lists/1", { scroll: false });
+
+  // The reader picks another sort before the plain list arrives.
+  rerender(itemsElement({ view: { sort: "grade_desc", filter: DEFAULT_CLIMB_FILTER } }));
+  rerender(itemsElement({ view: CIRCUIT }));
+  expect(screen.queryByRole("grid", { name: "Edit climbs" })).not.toBeInTheDocument();
+});
+
+it("opens the editor once the plain list arrives after choosing Edit", async () => {
+  const user = userEvent.setup();
+  const { rerender } = renderItems({ view: EXCLUDING_SENT });
+  await chooseEdit(user);
+  rerender(itemsElement({ view: CIRCUIT }));
+  expect(screen.getByRole("grid", { name: "Edit climbs" })).toBeInTheDocument();
+});
+
+it("keeps the edits and shows the error when a save fails", async () => {
+  vi.mocked(saveClimbListEdits).mockResolvedValueOnce({
     ok: false,
-    error: "This list changed since you opened it. Reload to try again.",
+    error: "Too many changes — try again in a minute",
   });
   const user = userEvent.setup();
   renderItems();
-  await chooseReorder(user);
-  await user.click(screen.getByRole("button", { name: "Move Rat Stew earlier" }));
-  await user.click(screen.getByRole("button", { name: "Save order" }));
+  await chooseEdit(user);
+  await user.click(screen.getByRole("button", { name: "Remove Rat Stew from this list" }));
+  await user.click(screen.getByRole("button", { name: "Save" }));
 
-  expect(
-    await screen.findByText("This list changed since you opened it. Reload to try again."),
-  ).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Save order" })).toBeInTheDocument();
+  expect(await screen.findByText("Too many changes — try again in a minute")).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(saveClimbListEdits).toHaveBeenLastCalledWith(1, [101, 102, 103, 104]));
+});
+
+it("disables every editor control while a save is in flight", async () => {
+  vi.mocked(saveClimbListEdits).mockReturnValue(new Promise(() => {}));
+  const user = userEvent.setup();
+  renderItems();
+  await chooseEdit(user);
+  await user.click(screen.getByRole("button", { name: "Remove Rat Stew from this list" }));
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  for (const name of [
+    "Remove Amarillo Sunset from this list",
+    "Drag Gift of the Magi",
+    "Add climbs",
+    "Cancel",
+  ])
+    expect(screen.getByRole("button", { name })).toBeDisabled();
+});
+
+it("disables the list's Add climbs while editing", async () => {
+  const user = userEvent.setup();
+  renderItems({ withAddClimbs: true });
+  const [header] = screen.getAllByRole("button", { name: "Add climbs" });
+  expect(header).toBeEnabled();
+  await chooseEdit(user);
+  const [headerWhileEditing, editorAdd] = screen.getAllByRole("button", { name: "Add climbs" });
+  expect(headerWhileEditing).toBeDisabled();
+  expect(editorAdd).toBeEnabled();
+});
+
+it("stages a climb added in the editor and saves it with the rest", async () => {
+  const user = userEvent.setup();
+  renderItems();
+  await chooseEdit(user);
+  await user.click(screen.getByRole("button", { name: "Add climbs" }));
+  await user.click(screen.getByRole("button", { name: "Pick New Problem" }));
+  expect(screen.getByText("New Problem")).toBeInTheDocument();
+  expect(saveClimbListEdits).not.toHaveBeenCalled();
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() =>
+    expect(saveClimbListEdits).toHaveBeenCalledWith(1, [101, 102, 103, 104, 105, 106]),
+  );
+});
+
+it("takes a climb added in the editor back off without staging a removal", async () => {
+  const user = userEvent.setup();
+  renderItems();
+  await chooseEdit(user);
+  await user.click(screen.getByRole("button", { name: "Add climbs" }));
+  await user.click(screen.getByRole("button", { name: "Pick New Problem" }));
+  await user.click(screen.getByRole("button", { name: "Remove New Problem from this list" }));
+  expect(screen.queryByText("New Problem")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+});
+
+it("keeps the editor open when the list empties, so it never reopens on its own", async () => {
+  const user = userEvent.setup();
+  const { rerender } = renderItems();
+  await chooseEdit(user);
+  // Another tab took every climb off, and the page refreshed. The editor
+  // stays open, still showing what it opened with (that is what Save writes).
+  rerender(itemsElement({ items: [], totalCount: 0 }));
+  const grid = screen.getByRole("grid", { name: "Edit climbs" });
+  expect(within(grid).getByText("Amarillo Sunset")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Add climbs" })).toBeEnabled();
+
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(screen.queryByRole("grid", { name: "Edit climbs" })).not.toBeInTheDocument();
+  expect(screen.getByText("No climbs on this list yet.")).toBeInTheDocument();
+  rerender(itemsElement({ items: climbListItemSamples.slice(0, 1), totalCount: 1 }));
+  expect(screen.queryByRole("grid", { name: "Edit climbs" })).not.toBeInTheDocument();
+});
+
+it("keeps showing what it opened with when the page refreshes mid-edit", async () => {
+  const user = userEvent.setup();
+  const { rerender } = renderItems();
+  await chooseEdit(user);
+  // Another tab took Gift of the Magi off, and something (a rename, say)
+  // refreshed this page while the editor is open.
+  rerender(
+    itemsElement({
+      items: climbListItemSamples.filter((item) => item.climbId !== 102),
+      totalCount: climbListItemSamples.length - 1,
+    }),
+  );
+  const grid = screen.getByRole("grid", { name: "Edit climbs" });
+  expect(within(grid).getByText("Gift of the Magi")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+
+  // Save sends exactly the rows on screen.
+  await user.click(screen.getByRole("button", { name: "Remove Rat Stew from this list" }));
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(saveClimbListEdits).toHaveBeenCalledWith(1, [101, 102, 103, 104]));
+});
+
+it("stages a climb picked twice in quick succession once", async () => {
+  const user = userEvent.setup();
+  renderItems();
+  await chooseEdit(user);
+  await user.click(screen.getByRole("button", { name: "Add climbs" }));
+  const pick = screen.getByRole("button", { name: "Pick New Problem" });
+  // Both picks land before React re-renders.
+  act(() => {
+    fireEvent.click(pick);
+    fireEvent.click(pick);
+  });
+  expect(screen.getAllByText("New Problem")).toHaveLength(1);
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() =>
+    expect(saveClimbListEdits).toHaveBeenCalledWith(1, [101, 102, 103, 104, 105, 106]),
+  );
+});
+
+it("refuses to stage past a full list, and says why", async () => {
+  const user = userEvent.setup();
+  const full = Array.from({ length: MAX_CLIMB_LIST_ITEMS }, (_, index) => ({
+    ...climbListItemSamples[0],
+    climbId: 1000 + index,
+    name: `Climb ${index + 1}`,
+    position: index + 1,
+  }));
+  renderItems({ items: full, totalCount: full.length });
+  await chooseEdit(user);
+  await user.click(screen.getByRole("button", { name: "Add climbs" }));
+  await user.click(screen.getByRole("button", { name: "Pick New Problem" }));
+  expect(screen.getByText(CLIMB_LIST_FULL_MESSAGE)).toBeInTheDocument();
+  expect(screen.queryByText("New Problem")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+});
+
+it("tells a quick second pick the list is full instead of claiming it was added", async () => {
+  const user = userEvent.setup();
+  // Five climbs, room for one more.
+  renderItems();
+  await chooseEdit(user);
+  await user.click(screen.getByRole("button", { name: "Add climbs" }));
+  // Both picks land before React re-renders.
+  act(() => {
+    fireEvent.click(screen.getByRole("button", { name: "Pick New Problem" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pick Other Problem" }));
+  });
+  expect(screen.getByText(CLIMB_LIST_FULL_MESSAGE)).toBeInTheDocument();
+  expect(screen.queryByText("Other Problem")).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() =>
+    expect(saveClimbListEdits).toHaveBeenCalledWith(1, [101, 102, 103, 104, 105, 106]),
+  );
 });

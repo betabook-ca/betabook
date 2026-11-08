@@ -15,7 +15,7 @@ import {
   type ActionResult,
 } from "@/lib/action-result";
 import {
-  CLIMB_LIST_CHANGED_MESSAGE,
+  CLIMB_LIST_EDIT_INVALID_MESSAGE,
   CLIMB_LIST_FULL_MESSAGE,
   CLIMB_LIST_LIMIT_MESSAGE,
   CLIMB_LIST_NOT_FOUND_MESSAGE,
@@ -25,6 +25,7 @@ import {
   MAX_CLIMB_LIST_ITEMS,
   climbListInputSchema,
 } from "@/lib/climb-lists";
+import { parseId } from "@/lib/parse-id";
 import { allowClimbListWrite } from "@/lib/rate-limit";
 import { requireSession } from "@/lib/session";
 import { parseShareToken } from "@/lib/share-token";
@@ -48,7 +49,7 @@ async function requireWriteBudget(userId: string) {
 }
 
 /** Revalidates the list's pages and refreshes the caller's. Run after every
- * successful write, a no-op add or remove included: the client waits on this
+ * successful write, a no-op add included: the client waits on this
  * refresh to show the list as it now is, which may have changed in another
  * tab. */
 function afterListChange(userId: string, listId?: number) {
@@ -56,15 +57,6 @@ function afterListChange(userId: string, listId?: number) {
     revalidateClimbListSurfaces(userId, listId);
     refresh();
   });
-}
-
-/** Marks the list as changed, so the Lists tab puts it first. Run after an
- * item write; the owner condition makes it a no-op on anyone else's list. */
-async function touchList(db: Database, userId: string, listId: number) {
-  await db.run(sql`
-    UPDATE climb_lists SET updated_at = ${nowMs}
-    WHERE id = ${listId} AND user_id = ${userId}
-  `);
 }
 
 async function ownsList(db: Database, userId: string, listId: number): Promise<boolean> {
@@ -91,9 +83,8 @@ function afterItemWrite(db: Database, userId: string, listId: number) {
   ] as const;
 }
 
-/** What an add or remove did: whether the list changed, and its climb count
- * afterwards. Adding a climb already on the list, or removing one that isn't,
- * changes nothing. */
+/** What an add did: whether the list changed, and its climb count afterwards.
+ * Adding a climb already on the list changes nothing. */
 export type ClimbListItemChange = { changed: boolean; climbCount: number };
 
 /** An add wrote nothing. Returns when the climb is already on the list, the
@@ -266,95 +257,103 @@ export async function addClimbToList(
   });
 }
 
-/** Removing a climb that is not on the list is not an error. Positions keep
- * their gap, which reads order by and never shows. Someone else's list reads
- * as not found, so a guessed id learns nothing about it. */
-export async function removeClimbFromList(
-  listId: number,
-  climbId: number,
-): Promise<ActionResult<ClimbListItemChange>> {
+function isClimbIdArray(value: unknown): value is number[] {
+  return (
+    Array.isArray(value) && value.every((id) => typeof id === "number" && parseId(id) !== null)
+  );
+}
+
+/**
+ * Saves the owner's edits from the list editor: `climbIds` is the list as the
+ * editor shows it, first to last, climbs added there included and climbs
+ * removed there left out.
+ *
+ * Save writes exactly what the editor shows, whatever happened in other tabs
+ * since it opened: afterwards the list is the editor's climbs, in its order,
+ * and nothing else. A climb another tab removed is put back; one another tab
+ * added is dropped. So the list can never grow past what the owner saw, and
+ * `MAX_CLIMB_LIST_ITEMS` on `climbIds` caps it. A climb deleted since (a
+ * moderator can delete one that is on lists) is skipped, as lists already
+ * lose deleted climbs. A climb a moderator merged away is skipped the same
+ * way, and its merge target, which the editor never showed, is dropped
+ * (#391).
+ *
+ * Positions come out 1…n with no gaps, and rows already on the list keep
+ * their `added_at`. One batch does it all, the list's `updated_at` included,
+ * so it applies whole or not at all. Every statement carries the owner
+ * condition, so on anyone else's list nothing is written, and the
+ * `updated_at` update returning no row is how that shows up as not found. The editor sends this once, on Save, so
+ * it spends one write from the list budget like any other list change.
+ */
+export async function saveClimbListEdits(listId: number, climbIds: unknown): Promise<ActionResult> {
   return toActionResult(async () => {
     const { user } = await requireSession();
     const list = requirePositiveId(listId, CLIMB_LIST_NOT_FOUND_MESSAGE);
-    const climb = requirePositiveId(climbId, CLIMB_NOT_FOUND_MESSAGE);
+    if (!isClimbIdArray(climbIds) || new Set(climbIds).size !== climbIds.length)
+      throw new ActionError(CLIMB_LIST_EDIT_INVALID_MESSAGE);
+    if (climbIds.length > MAX_CLIMB_LIST_ITEMS) throw new ActionError(CLIMB_LIST_FULL_MESSAGE);
     await requireWriteBudget(user.id);
 
     const db = await getDb();
-    const [removed, , counted] = await db.batch([
+    const order = JSON.stringify(climbIds);
+    const owned = sql`EXISTS (SELECT 1 FROM climb_lists WHERE id = ${list} AND user_id = ${user.id})`;
+    const [, , , touched] = await db.batch([
+      // Put on every climb the editor shows that isn't on the list: the ones
+      // added here, and any another tab took off. The join skips climbs that
+      // no longer exist; the renumber below fixes positions.
+      db
+        .insert(climbListItems)
+        .select(
+          db
+            .select({
+              listId: sql`${list}`.as("list_id"),
+              climbId: sql`c.id`.as("climb_id"),
+              position: sql`CAST(o.key AS INTEGER) + 1`.as("position"),
+              addedAt: sql`${nowMs}`.as("added_at"),
+            })
+            .from(sql`json_each(${order}) o JOIN climbs c ON c.id = o.value`)
+            .where(owned),
+        )
+        .onConflictDoNothing(),
+      // Take off everything the editor doesn't show: the owner's removals,
+      // and anything another tab added.
       db
         .delete(climbListItems)
         .where(
           and(
-            eq(climbListItems.climbId, climb),
-            sql`${climbListItems.listId} IN (
-              SELECT id FROM climb_lists WHERE id = ${list} AND user_id = ${user.id})`,
+            eq(climbListItems.listId, list),
+            sql`${climbListItems.climbId} NOT IN (SELECT value FROM json_each(${order}))`,
+            owned,
           ),
+        ),
+      // 1…n in the editor's order over what survived, so a skipped climb
+      // leaves no gap. The ranks come from the FROM subquery, computed once
+      // before any row changes.
+      db
+        .update(climbListItems)
+        .set({ position: sql`ranked.pos` })
+        .from(
+          sql`(
+            SELECT o.value AS climb_id,
+                   ROW_NUMBER() OVER (ORDER BY CAST(o.key AS INTEGER)) AS pos
+            FROM json_each(${order}) o
+            JOIN climb_list_items i ON i.list_id = ${list} AND i.climb_id = o.value
+          ) AS ranked`,
         )
-        .returning({ climbId: climbListItems.climbId }),
-      ...afterItemWrite(db, user.id, list),
+        .where(
+          and(
+            eq(climbListItems.listId, list),
+            sql`ranked.climb_id = ${climbListItems.climbId}`,
+            owned,
+          ),
+        ),
+      db
+        .update(climbLists)
+        .set({ updatedAt: sql`${nowMs}` })
+        .where(and(eq(climbLists.id, list), eq(climbLists.userId, user.id)))
+        .returning({ id: climbLists.id }),
     ]);
-    const changed = removed.length > 0;
-    // The DELETE's owner condition is the check. Only a no-op needs to tell
-    // a climb that wasn't there from a list that isn't theirs.
-    if (!changed && !(await ownsList(db, user.id, list)))
-      throw new ActionError(CLIMB_LIST_NOT_FOUND_MESSAGE);
-
-    afterListChange(user.id, list);
-    return { changed, climbCount: counted[0]?.count ?? 0 };
-  });
-}
-
-/**
- * Saves the owner's order: `climbIds` is every climb on the list, first to
- * last.
- *
- * One UPDATE rewrites every position, and only when the submitted climbs are
- * exactly the list's climbs. A list changed in another tab since the editor
- * loaded is refused rather than half-applied, so two edits cannot silently
- * overwrite each other.
- *
- * The editor sends this once, on Save order, so it spends one write from the
- * list budget like any other list change.
- */
-export async function reorderClimbList(listId: number, climbIds: unknown): Promise<ActionResult> {
-  return toActionResult(async () => {
-    const { user } = await requireSession();
-    const list = requirePositiveId(listId, CLIMB_LIST_NOT_FOUND_MESSAGE);
-    if (
-      !Array.isArray(climbIds) ||
-      climbIds.length > MAX_CLIMB_LIST_ITEMS ||
-      !climbIds.every((id) => Number.isSafeInteger(id) && id > 0) ||
-      new Set(climbIds).size !== climbIds.length
-    )
-      throw new ActionError(CLIMB_LIST_CHANGED_MESSAGE);
-    const order = JSON.stringify(climbIds);
-    await requireWriteBudget(user.id);
-
-    const db = await getDb();
-    // An empty order updates no rows whoever owns the list, so it can't prove
-    // ownership the way a matched row count does. Check it directly.
-    if (climbIds.length === 0 && !(await ownsList(db, user.id, list)))
-      throw new ActionError(CLIMB_LIST_NOT_FOUND_MESSAGE);
-    const updated = await db.all<{ climbId: number }>(sql`
-      UPDATE climb_list_items
-      SET position = (SELECT CAST(o.key AS INTEGER) + 1 FROM json_each(${order}) o
-                      WHERE o.value = climb_list_items.climb_id)
-      WHERE list_id = ${list}
-        AND EXISTS (SELECT 1 FROM climb_lists WHERE id = ${list} AND user_id = ${user.id})
-        AND (SELECT COUNT(*) FROM climb_list_items WHERE list_id = ${list})
-            = json_array_length(${order})
-        AND NOT EXISTS (
-          SELECT 1 FROM climb_list_items current
-          WHERE current.list_id = ${list}
-            AND current.climb_id NOT IN (SELECT value FROM json_each(${order}))
-        )
-      RETURNING climb_id AS climbId
-    `);
-    if (updated.length !== climbIds.length) {
-      if (!(await ownsList(db, user.id, list))) throw new ActionError(CLIMB_LIST_NOT_FOUND_MESSAGE);
-      throw new ActionError(CLIMB_LIST_CHANGED_MESSAGE);
-    }
-    await touchList(db, user.id, list);
+    if (touched.length === 0) throw new ActionError(CLIMB_LIST_NOT_FOUND_MESSAGE);
 
     afterListChange(user.id, list);
   });

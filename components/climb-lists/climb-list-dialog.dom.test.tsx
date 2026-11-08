@@ -63,7 +63,7 @@ it("pre-fills a copy of your own list with the name marked (copy) and the descri
   expect(screen.getByRole("textbox", { name: /Description/ })).toHaveValue(
     "Moderates worth the drive",
   );
-  expect(screen.getByText("Copies 3 climbs in list order into your lists.")).toBeInTheDocument();
+  expect(screen.getByText("Copies 3 climbs in circuit order into your lists.")).toBeInTheDocument();
 });
 
 it("pre-fills a copy of someone else's list with their exact name", () => {

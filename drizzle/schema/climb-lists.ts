@@ -53,7 +53,7 @@ export const climbLists = sqliteTable(
 
 /** One climb on one list, at the owner's position. Viewers may sort a list
  * by grade, area, name or date added, but that is a view: only
- * `reorderClimbList` writes `position`.
+ * `saveClimbListEdits` writes `position`.
  *
  * Like a project pin, an item is a bookmark that carries nothing worth keeping
  * once its climb is gone, so deleting the climb deletes it. A moderator merge

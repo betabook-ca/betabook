@@ -35,11 +35,10 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** The owner's order: numbered, with Remove on every row. */
-export const ListOrder: Story = {};
+/** The owner's circuit order, unnumbered. Remove is in the ⋯ menu's editor. */
+export const Circuit: Story = {};
 
-/** Sorted by grade, hardest first. Each row keeps a muted "#n" for its place
- * in the owner's order, and reordering waits for list order. */
+/** Sorted by grade, hardest first. */
 export const SortedByGrade: Story = {
   args: {
     view: { sort: "grade_desc", filter: DEFAULT_CLIMB_FILTER },
@@ -47,7 +46,7 @@ export const SortedByGrade: Story = {
   },
 };
 
-/** Exclude sent: the reader's sent climbs drop out, and the numbers skip them. */
+/** Exclude sent: the reader's sent climbs drop out. */
 export const ExcludeSent: Story = {
   args: {
     view: { sort: "position_asc", filter: { ...DEFAULT_CLIMB_FILTER, excludeSent: true } },
