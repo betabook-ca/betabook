@@ -56,8 +56,9 @@ vi.mock("@/components/climb-sent-indicator", () => ({
 }));
 
 const replace = vi.fn<(href: string, options?: unknown) => void>();
+const push = vi.fn<(href: string) => void>();
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace, push: vi.fn<(href: string) => void>() }),
+  useRouter: () => ({ replace, push }),
   usePathname: () => "/users/alex/lists/1",
 }));
 
@@ -113,6 +114,7 @@ async function chooseEdit(user: ReturnType<typeof userEvent.setup>) {
 
 beforeEach(() => {
   replace.mockReset();
+  push.mockReset();
   vi.mocked(saveClimbListEdits).mockReset().mockResolvedValue({ ok: true, value: undefined });
 });
 
@@ -396,4 +398,74 @@ it("refuses to stage past a full list, and says why", async () => {
   expect(screen.getByText(CLIMB_LIST_FULL_MESSAGE)).toBeInTheDocument();
   expect(screen.queryByText("New Problem")).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+});
+
+/** The list with a link elsewhere on the page, like the header's All lists. */
+function renderWithLink(onFollow: () => void) {
+  return render(
+    <>
+      {/* oxlint-disable-next-line next/no-html-link-for-pages -- a plain link stands in for any link on the page; the guard sees every <a href>. */}
+      <a
+        href="/users/alex/lists"
+        onClick={(event) => {
+          event.preventDefault();
+          onFollow();
+        }}
+      >
+        All lists
+      </a>
+      {itemsElement()}
+    </>,
+  );
+}
+
+it("asks before a link leaves the editor with unsaved edits", async () => {
+  const followed = vi.fn<() => void>();
+  const user = userEvent.setup();
+  renderWithLink(followed);
+  await chooseEdit(user);
+
+  // No edits yet: nothing to lose, so the link just works.
+  await user.click(screen.getByRole("link", { name: "All lists" }));
+  expect(followed).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Remove Rat Stew from this list" }));
+  await user.click(screen.getByRole("link", { name: "All lists" }));
+  const dialog = await screen.findByRole("alertdialog", { name: "Leave without saving?" });
+  expect(followed).toHaveBeenCalledTimes(1);
+
+  // Stay keeps the edits and the page.
+  await user.click(within(dialog).getByRole("button", { name: "Stay" }));
+  expect(screen.getByRole("grid", { name: "Edit climbs" })).toBeInTheDocument();
+  expect(push).not.toHaveBeenCalled();
+
+  // Leave goes where the link pointed.
+  await user.click(screen.getByRole("link", { name: "All lists" }));
+  await user.click(
+    within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Leave" }),
+  );
+  expect(push).toHaveBeenCalledWith("/users/alex/lists");
+});
+
+it("leaves new-tab clicks alone, and holds a reload only while there are edits", async () => {
+  const followed = vi.fn<() => void>();
+  const user = userEvent.setup();
+  renderWithLink(followed);
+  await chooseEdit(user);
+  const unload = () => {
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+    return event.defaultPrevented;
+  };
+  expect(unload()).toBe(false);
+
+  await user.click(screen.getByRole("button", { name: "Remove Rat Stew from this list" }));
+  expect(unload()).toBe(true);
+  fireEvent.click(screen.getByRole("link", { name: "All lists" }), { metaKey: true });
+  expect(followed).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(unload()).toBe(false);
 });

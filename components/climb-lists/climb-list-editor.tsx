@@ -2,15 +2,53 @@
 
 import { Button, useOverlayState } from "@heroui/react";
 import { CirclePlus, GripVertical, X } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { DropIndicator, GridList, GridListItem, useDragAndDrop } from "react-aria-components";
 
 import { saveClimbListEdits } from "@/actions";
 import { AddClimbsDialog } from "@/components/climb-lists/add-climbs-dialog";
 import { cardClass } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import type { ClimbListItem, ClimbWithAreaName } from "@/db/queries";
 import { CLIMB_LIST_FULL_MESSAGE, MAX_CLIMB_LIST_ITEMS, moveClimb } from "@/lib/climb-lists";
+
+/** While there are unsaved edits, holds the page from going away. Reloading,
+ * closing the tab or leaving the site gets the browser's own prompt
+ * (`beforeunload`). A plain click on a link, which in the app is a client
+ * navigation that would drop the editor without unloading anything, is
+ * cancelled in the capture phase, before Next's own link handler, and handed
+ * to `onLeave` so the editor can ask. Clicks that open a new tab or window are
+ * left alone. The browser's Back button can't be held this way. */
+function useLeaveGuard(
+  active: boolean,
+  onLeave: (href: string) => void,
+  leaving: { current: boolean },
+) {
+  useEffect(() => {
+    if (!active) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!leaving.current) event.preventDefault();
+    };
+    const onClick = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
+      if (!(link instanceof HTMLAnchorElement)) return;
+      if ((link.getAttribute("target") ?? "_self") !== "_self") return;
+      event.preventDefault();
+      event.stopPropagation();
+      onLeave(link.href);
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    document.addEventListener("click", onClick, true);
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      document.removeEventListener("click", onClick, true);
+    };
+  }, [active, onLeave, leaving]);
+}
 
 /** A climb picked in the editor, shaped like a list row until Save adds it. */
 function stagedItem(climb: ClimbWithAreaName): ClimbListItem {
@@ -37,7 +75,8 @@ function stagedItem(climb: ClimbWithAreaName): ClimbListItem {
  * resulting order once and writes exactly what the owner sees, whatever
  * another tab did in the meantime (see `saveClimbListEdits`). Cancel drops
  * every staged change. Every control is disabled while a save is in flight,
- * so nothing staged then is lost when the editor closes.
+ * so nothing staged then is lost when the editor closes. Leaving the page
+ * with unsaved edits asks first (see `useLeaveGuard`).
  *
  * The editor works from `items` as they were when it opened. A refresh while
  * it is open (say, after renaming the list) brings new `items`, but the rows,
@@ -59,7 +98,11 @@ export function ClimbListEditor({
   listTitle: string;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const addState = useOverlayState();
+  const leaveState = useOverlayState();
+  const [leaveTo, setLeaveTo] = useState<string | null>(null);
+  const leaving = useRef(false);
   const [opened] = useState(items);
   const [order, setOrder] = useState(() => opened.map((item) => item.climbId));
   const [removed, setRemoved] = useState<number[]>([]);
@@ -76,6 +119,25 @@ export function ClimbListEditor({
     added.length > 0 ||
     order.length !== opened.length ||
     order.some((id, index) => id !== opened[index]?.climbId);
+  // Staged edits live only here until Save, so leaving would drop them.
+  const askToLeave = useCallback(
+    (href: string) => {
+      setLeaveTo(href);
+      leaveState.open();
+    },
+    [leaveState],
+  );
+  useLeaveGuard(changed && !pending, askToLeave, leaving);
+
+  function leave() {
+    if (leaveTo === null) return;
+    const url = new URL(leaveTo, window.location.href);
+    leaving.current = true;
+    leaveState.close();
+    if (url.origin === window.location.origin)
+      router.push(`${url.pathname}${url.search}${url.hash}`);
+    else window.location.assign(url);
+  }
 
   function remove(climbId: number) {
     setOrder((current) => current.filter((id) => id !== climbId));
@@ -222,6 +284,16 @@ export function ClimbListEditor({
         <CirclePlus className="size-4" />
         Add climbs
       </Button>
+      <ConfirmDialog
+        state={leaveState}
+        title="Leave without saving?"
+        description="Your changes to this list will be lost."
+        confirmLabel="Leave"
+        cancelLabel="Stay"
+        isPending={false}
+        onConfirm={leave}
+        onClose={() => setLeaveTo(null)}
+      />
       <AddClimbsDialog
         state={addState}
         listId={listId}
