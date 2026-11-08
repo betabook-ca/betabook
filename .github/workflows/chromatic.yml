@@ -36,6 +36,8 @@ jobs:
         run: pnpm storybook:build
 
       - name: Publish Storybook
+        # Dependabot runs get Dependabot secrets only, so the token is absent there.
+        if: github.actor != 'dependabot[bot]'
         env:
           CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
         run: |
