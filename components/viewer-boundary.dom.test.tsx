@@ -89,6 +89,31 @@ it("coalesces focus/visibility checks without remounting content, and cleans up 
   expect(refresh).toHaveBeenCalledOnce();
 });
 
+it("skips the tab-return refresh while a dialog is open, so a newer deploy can't reload it away", () => {
+  const { rerender } = render(
+    <ViewerBoundary viewerId="alex">
+      <div role="dialog" aria-label="Add climb">
+        <input aria-label="Name" defaultValue="Half-typed" />
+      </div>
+    </ViewerBoundary>,
+  );
+  refresh.mockClear();
+  act(() => {
+    window.dispatchEvent(new Event("focus"));
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  expect(refresh).not.toHaveBeenCalled();
+  rerender(
+    <ViewerBoundary viewerId="alex">
+      <p>Area page</p>
+    </ViewerBoundary>,
+  );
+  act(() => {
+    window.dispatchEvent(new Event("focus"));
+  });
+  expect(refresh).toHaveBeenCalledOnce();
+});
+
 it("discards local state when the server viewer changes, and hides data on sign-out", async () => {
   const user = userEvent.setup();
   const content = <input aria-label="Notes" />;

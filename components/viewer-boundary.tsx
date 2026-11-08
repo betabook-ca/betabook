@@ -8,8 +8,11 @@ import { useMounted } from "@/hooks/use-mounted";
 import { AUTH_REQUIRED_EVENT } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
 
+const OPEN_DIALOG_SELECTOR = '[role="dialog"], [role="alertdialog"]';
+
 /** Discard displayed data when accounts change and refresh current permissions
- * when returning to a profile or Friends list. No promise of live revocation. */
+ * when returning to a profile or Friends list, unless a dialog is open. No
+ * promise of live revocation. */
 export function ViewerBoundary({
   viewerId,
   children,
@@ -31,6 +34,10 @@ export function ViewerBoundary({
       // Browsers can emit both events for a single tab return. Also avoid
       // starting a second route refresh while the first one is in flight.
       if (document.visibilityState !== "visible" || refreshing) return;
+      // A refresh that lands on a newer deploy reloads the whole document,
+      // which would throw away a half-filled dialog. Leave the check to the
+      // next return or navigation instead.
+      if (document.querySelector(OPEN_DIALOG_SELECTOR)) return;
       const now = Date.now();
       if (now - lastRefreshAt.current < 1_000) return;
       lastRefreshAt.current = now;
