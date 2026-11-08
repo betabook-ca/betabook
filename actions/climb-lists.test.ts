@@ -1,5 +1,6 @@
 import { env } from "cloudflare:test";
 import { eq, sql } from "drizzle-orm";
+import { refresh } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -246,6 +247,30 @@ describe("review fixes", () => {
 
     as("member");
     expect(errorOf(await removeClimbFromList(id, 1))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
+  });
+
+  it("refreshes the page after a no-op add or remove, so a stale tab catches up", async () => {
+    const id = await seedList("owner", "Two tabs", [1]);
+    vi.mocked(refresh).mockClear();
+    // Another tab already removed climb 2, and already added climb 1.
+    value(await removeClimbFromList(id, 2));
+    value(await addClimbToList(id, 1));
+    expect(refresh).toHaveBeenCalledTimes(2);
+  });
+
+  it("leaves no list behind when a create with a first climb hits the cap", async () => {
+    await fillLists("owner");
+    as("owner");
+    expect(errorOf(await createClimbList({ title: "One more" }, { climbId: 1 }))).toBe(
+      CLIMB_LIST_LIMIT_MESSAGE,
+    );
+    expect(await listCount("owner")).toBe(MAX_CLIMB_LISTS);
+  });
+
+  it("creates a list with its first climb", async () => {
+    as("owner");
+    const id = value(await createClimbList({ title: "Starter" }, { climbId: 2 }));
+    expect(await order(id)).toEqual([2]);
   });
 });
 

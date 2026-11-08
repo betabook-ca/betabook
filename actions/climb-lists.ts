@@ -9,7 +9,7 @@ import { climbListsVisibleSql } from "@/db/queries/content-access";
 import { climbListItems, climbLists } from "@/db/schema";
 import {
   ActionError,
-  JOURNAL_RATE_LIMIT_MESSAGE,
+  WRITE_RATE_LIMIT_MESSAGE,
   errorChainIncludes,
   toActionResult,
   type ActionResult,
@@ -44,9 +44,13 @@ function parseInput(raw: unknown) {
 /** Lists have their own budget, apart from the journal's: building a list
  * means many quick adds in a row from a dialog that stays open. */
 async function requireWriteBudget(userId: string) {
-  if (!(await allowClimbListWrite(userId))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
+  if (!(await allowClimbListWrite(userId))) throw new ActionError(WRITE_RATE_LIMIT_MESSAGE);
 }
 
+/** Revalidates the list's pages and refreshes the caller's. Run after every
+ * successful write, a no-op add or remove included: the client waits on this
+ * refresh to show the list as it now is, which may have changed in another
+ * tab. */
 function afterListChange(userId: string, listId?: number) {
   afterCommit(() => {
     revalidateClimbListSurfaces(userId, listId);
@@ -70,13 +74,21 @@ async function ownsList(db: Database, userId: string, listId: number): Promise<b
   return row != null;
 }
 
-/** The list's climb count after a change, so a caller shows the real
- * number rather than guessing at +1 or -1. */
-async function climbCount(db: Database, listId: number): Promise<number> {
-  const row = await db.get<{ count: number }>(sql`
-    SELECT COUNT(*) AS count FROM climb_list_items WHERE list_id = ${listId}
-  `);
-  return row?.count ?? 0;
+/** The two statements that follow an item write in its batch: move the list
+ * to the top of the Lists tab only when the write changed a row (`changes()`
+ * is the write's, the statement before), then count the list's climbs so the
+ * caller shows the real number rather than guessing at +1 or -1. */
+function afterItemWrite(db: Database, userId: string, listId: number) {
+  return [
+    db
+      .update(climbLists)
+      .set({ updatedAt: sql`${nowMs}` })
+      .where(and(eq(climbLists.id, listId), eq(climbLists.userId, userId), sql`changes() > 0`)),
+    db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(climbListItems)
+      .where(eq(climbListItems.listId, listId)),
+  ] as const;
 }
 
 /** What an add or remove did: whether the list changed, and its climb count
@@ -84,30 +96,15 @@ async function climbCount(db: Database, listId: number): Promise<number> {
  * changes nothing. */
 export type ClimbListItemChange = { changed: boolean; climbCount: number };
 
-/** Appends a climb to the end of the owner's list, returning whether it was
- * added. Adding a climb that is already on it succeeds without moving it.
- * Ownership and the size cap are conditions on the INSERT, so a guessed id
- * writes nothing and concurrent adds cannot pass the cap. */
-async function insertClimb(
+/** An add wrote nothing. Returns when the climb is already on the list, the
+ * one case that isn't an error; otherwise throws the reason, and only after
+ * proving the list is theirs. */
+async function explainSkippedAdd(
   db: Database,
   userId: string,
   listId: number,
   climbId: number,
-): Promise<boolean> {
-  const [added] = await db.all<{ climbId: number }>(sql`
-    INSERT INTO climb_list_items (list_id, climb_id, position)
-    SELECT l.id, c.id,
-           COALESCE((SELECT MAX(position) FROM climb_list_items WHERE list_id = l.id), 0) + 1
-    FROM climb_lists l
-    JOIN climbs c ON c.id = ${climbId}
-    WHERE l.id = ${listId} AND l.user_id = ${userId}
-      AND (SELECT COUNT(*) FROM climb_list_items WHERE list_id = l.id) < ${MAX_CLIMB_LIST_ITEMS}
-    ON CONFLICT (list_id, climb_id) DO NOTHING
-    RETURNING climb_id AS climbId
-  `);
-  if (added) return true;
-
-  // Nothing was written. Say why only after proving the list is theirs.
+): Promise<void> {
   if (!(await ownsList(db, userId, listId))) throw new ActionError(CLIMB_LIST_NOT_FOUND_MESSAGE);
   const state = await db.get<{ present: number; climbExists: number }>(sql`
     SELECT
@@ -115,13 +112,18 @@ async function insertClimb(
         AS present,
       EXISTS (SELECT 1 FROM climbs WHERE id = ${climbId}) AS climbExists
   `);
-  if (state?.present === 1) return false;
+  if (state?.present === 1) return;
   if (state?.climbExists !== 1) throw new ActionError(CLIMB_NOT_FOUND_MESSAGE);
   throw new ActionError(CLIMB_LIST_FULL_MESSAGE);
 }
 
 /** Creates a list, optionally with a first climb — the Add to list drawer's
- * "New list…". The cap is a condition on the INSERT, not a prior COUNT. */
+ * "New list…". The cap is a condition on the INSERT, not a prior COUNT.
+ *
+ * With a first climb, the list and the climb are one D1 batch. When the cap
+ * is reached or the climb doesn't exist, the list INSERT writes a NULL title,
+ * which breaks the NOT NULL constraint and rolls the batch back, so a refused
+ * create leaves no empty list behind (the guard `copyClimbList` uses). */
 export async function createClimbList(
   raw: unknown,
   options: { climbId?: number } = {},
@@ -136,34 +138,52 @@ export async function createClimbList(
         : requirePositiveId(options.climbId, CLIMB_NOT_FOUND_MESSAGE);
 
     const db = await getDb();
-    // Refuse a missing climb before making the list, so a bad id leaves no
-    // empty list behind to count against the cap.
-    if (climbId !== null) {
-      const climb = await db.get<{ id: number }>(sql`SELECT id FROM climbs WHERE id = ${climbId}`);
-      if (!climb) throw new ActionError(CLIMB_NOT_FOUND_MESSAGE);
-    }
-    const [created] = await db.all<{ id: number }>(sql`
-      INSERT INTO climb_lists (user_id, title, description)
-      SELECT ${user.id}, ${title}, ${description}
-      WHERE (SELECT COUNT(*) FROM climb_lists WHERE user_id = ${user.id}) < ${MAX_CLIMB_LISTS}
-      RETURNING id
-    `);
-    if (!created) throw new ActionError(CLIMB_LIST_LIMIT_MESSAGE);
-    if (climbId !== null) {
-      try {
-        await insertClimb(db, user.id, created.id, climbId);
-      } catch (error) {
-        // The climb went away between the check and the insert (deleted or
-        // merged). Take the new list back with it rather than leave it empty.
-        await db.run(
-          sql`DELETE FROM climb_lists WHERE id = ${created.id} AND user_id = ${user.id}`,
-        );
-        throw error;
-      }
+    const roomSql = sql`(SELECT COUNT(*) FROM climb_lists WHERE user_id = ${user.id}) < ${MAX_CLIMB_LISTS}`;
+
+    if (climbId === null) {
+      const [created] = await db.all<{ id: number }>(sql`
+        INSERT INTO climb_lists (user_id, title, description)
+        SELECT ${user.id}, ${title}, ${description}
+        WHERE ${roomSql}
+        RETURNING id
+      `);
+      if (!created) throw new ActionError(CLIMB_LIST_LIMIT_MESSAGE);
+      afterListChange(user.id, created.id);
+      return created.id;
     }
 
-    afterListChange(user.id, created.id);
-    return created.id;
+    const climbExistsSql = sql`EXISTS (SELECT 1 FROM climbs WHERE id = ${climbId})`;
+    try {
+      const [[created]] = await db.batch([
+        db
+          .insert(climbLists)
+          .select(
+            db
+              .select({
+                id: sql`NULL`.as("id"),
+                userId: sql`${user.id}`.as("user_id"),
+                title: sql`CASE WHEN ${roomSql} AND ${climbExistsSql} THEN ${title} END`.as(
+                  "title",
+                ),
+                description: sql`${description}`.as("description"),
+                createdAt: sql`${nowMs}`.as("created_at"),
+                updatedAt: sql`${nowMs}`.as("updated_at"),
+              })
+              .from(sql`(SELECT 1)`),
+          )
+          .returning({ id: climbLists.id }),
+        db
+          .insert(climbListItems)
+          .values({ listId: sql`last_insert_rowid()`, climbId, position: 1 }),
+      ]);
+      afterListChange(user.id, created.id);
+      return created.id;
+    } catch (error) {
+      if (!errorChainIncludes(error, "NOT NULL constraint failed: climb_lists.title")) throw error;
+      // Rolled back. Name the reason, which was true when the batch ran.
+      const state = await db.get<{ room: number }>(sql`SELECT ${roomSql} AS room`);
+      throw new ActionError(state?.room === 1 ? CLIMB_NOT_FOUND_MESSAGE : CLIMB_LIST_LIMIT_MESSAGE);
+    }
   });
 }
 
@@ -212,13 +232,37 @@ export async function addClimbToList(
     await requireWriteBudget(user.id);
 
     const db = await getDb();
-    const changed = await insertClimb(db, user.id, list, climb);
-    // Only a real change moves the list to the top of the Lists tab.
-    if (changed) {
-      await touchList(db, user.id, list);
-      afterListChange(user.id, list);
-    }
-    return { changed, climbCount: await climbCount(db, list) };
+    // Appends to the end of the owner's list. Ownership and the size cap are
+    // conditions on the INSERT, so a guessed id writes nothing and concurrent
+    // adds cannot pass the cap. A climb already on the list keeps its place.
+    const [added, , counted] = await db.batch([
+      db
+        .insert(climbListItems)
+        .select(
+          db
+            .select({
+              listId: sql`l.id`.as("list_id"),
+              climbId: sql`c.id`.as("climb_id"),
+              position: sql`COALESCE(
+                (SELECT MAX(position) FROM climb_list_items WHERE list_id = l.id), 0) + 1`.as(
+                "position",
+              ),
+              addedAt: sql`${nowMs}`.as("added_at"),
+            })
+            .from(sql`climb_lists l JOIN climbs c ON c.id = ${climb}`)
+            .where(sql`l.id = ${list} AND l.user_id = ${user.id}
+              AND (SELECT COUNT(*) FROM climb_list_items WHERE list_id = l.id)
+                < ${MAX_CLIMB_LIST_ITEMS}`),
+        )
+        .onConflictDoNothing()
+        .returning({ climbId: climbListItems.climbId }),
+      ...afterItemWrite(db, user.id, list),
+    ]);
+    const changed = added.length > 0;
+    if (!changed) await explainSkippedAdd(db, user.id, list, climb);
+
+    afterListChange(user.id, list);
+    return { changed, climbCount: counted[0]?.count ?? 0 };
   });
 }
 
@@ -236,19 +280,27 @@ export async function removeClimbFromList(
     await requireWriteBudget(user.id);
 
     const db = await getDb();
-    if (!(await ownsList(db, user.id, list))) throw new ActionError(CLIMB_LIST_NOT_FOUND_MESSAGE);
-    const removed = await db.all<{ climbId: number }>(sql`
-      DELETE FROM climb_list_items
-      WHERE climb_id = ${climb}
-        AND list_id IN (SELECT id FROM climb_lists WHERE id = ${list} AND user_id = ${user.id})
-      RETURNING climb_id AS climbId
-    `);
+    const [removed, , counted] = await db.batch([
+      db
+        .delete(climbListItems)
+        .where(
+          and(
+            eq(climbListItems.climbId, climb),
+            sql`${climbListItems.listId} IN (
+              SELECT id FROM climb_lists WHERE id = ${list} AND user_id = ${user.id})`,
+          ),
+        )
+        .returning({ climbId: climbListItems.climbId }),
+      ...afterItemWrite(db, user.id, list),
+    ]);
     const changed = removed.length > 0;
-    if (changed) {
-      await touchList(db, user.id, list);
-      afterListChange(user.id, list);
-    }
-    return { changed, climbCount: await climbCount(db, list) };
+    // The DELETE's owner condition is the check. Only a no-op needs to tell
+    // a climb that wasn't there from a list that isn't theirs.
+    if (!changed && !(await ownsList(db, user.id, list)))
+      throw new ActionError(CLIMB_LIST_NOT_FOUND_MESSAGE);
+
+    afterListChange(user.id, list);
+    return { changed, climbCount: counted[0]?.count ?? 0 };
   });
 }
 

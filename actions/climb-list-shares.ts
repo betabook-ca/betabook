@@ -7,7 +7,7 @@ import { getDb } from "@/db/client";
 import { climbListShareLinks } from "@/db/schema";
 import {
   ActionError,
-  JOURNAL_RATE_LIMIT_MESSAGE,
+  WRITE_RATE_LIMIT_MESSAGE,
   PRIVATE_PROFILE_MESSAGE,
   toActionResult,
   type ActionResult,
@@ -36,7 +36,7 @@ export async function shareClimbList(
     const { user } = await requireSession();
     const id = requirePositiveId(listId, CLIMB_LIST_NOT_FOUND_MESSAGE);
     const modifier = shareExpiryModifier(parseShareExpiry(expiry));
-    if (!(await allowClimbListWrite(user.id))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
+    if (!(await allowClimbListWrite(user.id))) throw new ActionError(WRITE_RATE_LIMIT_MESSAGE);
 
     const db = await getDb();
     const [shared] = await db.all<{ token: string; expiresAt: string | null }>(sql`
