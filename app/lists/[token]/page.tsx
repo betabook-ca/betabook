@@ -80,7 +80,6 @@ export default async function SharedListPage({ params, searchParams }: SharedLis
       <Suspense fallback={<SkeletonListRows rows={6} />}>
         <SharedListItems
           token={token}
-          listId={list.id}
           totalCount={list.climbCount}
           viewerId={viewerId}
           view={view}
@@ -98,13 +97,11 @@ export default async function SharedListPage({ params, searchParams }: SharedLis
 
 async function SharedListItems({
   token,
-  listId,
   totalCount,
   viewerId,
   view,
 }: {
   token: string;
-  listId: number;
   totalCount: number;
   viewerId: string | null;
   view: ClimbListView;
@@ -122,7 +119,6 @@ async function SharedListItems({
       areaBreadcrumbs={areaBreadcrumbs}
       view={view}
       signedIn={viewerId !== null}
-      listId={listId}
     />
   );
 }

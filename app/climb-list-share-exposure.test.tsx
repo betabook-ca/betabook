@@ -3,11 +3,12 @@ import { sql } from "drizzle-orm";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import SharedListPageImpl, { generateMetadata } from "@/app/lists/[token]/page";
+import { ClimbListItems } from "@/components/climb-lists/climb-list-items";
 import { createDb } from "@/db/client";
 import { climbListItems, climbListShareLinks, climbLists } from "@/db/schema";
 import { seedFixtureSend, seedFixtureTree, seedFixtureUser } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
-import { rendered } from "@/test/server-tree";
+import { rendered, treeElements } from "@/test/server-tree";
 
 const SharedListPage = rendered(SharedListPageImpl);
 
@@ -109,6 +110,21 @@ it("shows nothing beyond the list: not the owner's sends, other lists or email",
     `/users/${OWNER}/lists`,
   ])
     expect(payload).not.toContain(hidden);
+});
+
+/** Client components on the page. Their props are what the reader's browser
+ * receives; the server-only header may read the list id, but these must not. */
+const CLIENT_COMPONENTS: unknown[] = [ClimbListItems];
+
+it("sends the reader's browser the token, never the list id", async () => {
+  const token = await share();
+  const tree = await SharedListPage(props(token));
+  const clients = treeElements(tree).filter((element) => CLIENT_COMPONENTS.includes(element.type));
+  expect(clients.length).toBe(CLIENT_COMPONENTS.length);
+  for (const element of clients) {
+    expect(element.props).not.toHaveProperty("listId");
+    expect(JSON.stringify(element.props)).not.toContain(`"id":${listId}`);
+  }
 });
 
 it("shows a signed-in reader their own sent state, never the owner's", async () => {
