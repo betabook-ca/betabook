@@ -23,6 +23,14 @@ export async function allowJournalWrite(key: string): Promise<boolean> {
   return (await env.JOURNAL_RATE_LIMITER.limit({ key })).success;
 }
 
+/** Saved climb lists, apart from the journal: building a list is many quick
+ * adds in a row from a dialog that stays open, which would drain the
+ * journal's 20 a minute and then block journal writes too. */
+export async function allowClimbListWrite(key: string): Promise<boolean> {
+  const env = await getCloudflareEnv();
+  return (await env.CLIMB_LIST_RATE_LIMITER.limit({ key })).success;
+}
+
 /** The one limit here that guards a budget rather than the database: each
  * upload spends an Images transformation from a monthly free allowance and
  * two R2 operations. */

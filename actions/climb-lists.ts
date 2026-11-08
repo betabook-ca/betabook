@@ -25,7 +25,7 @@ import {
   MAX_CLIMB_LIST_ITEMS,
   climbListInputSchema,
 } from "@/lib/climb-lists";
-import { allowJournalWrite } from "@/lib/rate-limit";
+import { allowClimbListWrite } from "@/lib/rate-limit";
 import { requireSession } from "@/lib/session";
 import { parseShareToken } from "@/lib/share-token";
 import { requirePositiveId } from "@/lib/validation";
@@ -41,8 +41,10 @@ function parseInput(raw: unknown) {
   return { title: parsed.data.title, description: parsed.data.description ?? null };
 }
 
+/** Lists have their own budget, apart from the journal's: building a list
+ * means many quick adds in a row from a dialog that stays open. */
 async function requireWriteBudget(userId: string) {
-  if (!(await allowJournalWrite(userId))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
+  if (!(await allowClimbListWrite(userId))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
 }
 
 function afterListChange(userId: string, listId?: number) {
@@ -68,11 +70,30 @@ async function ownsList(db: Database, userId: string, listId: number): Promise<b
   return row != null;
 }
 
-/** Appends a climb to the end of the owner's list. Adding a climb that is
- * already on it succeeds without moving it. Ownership and the size cap are
- * conditions on the INSERT, so a guessed id writes nothing and concurrent
- * adds cannot pass the cap. */
-async function insertClimb(db: Database, userId: string, listId: number, climbId: number) {
+/** The list's climb count after a change, so a caller shows the real
+ * number rather than guessing at +1 or -1. */
+async function climbCount(db: Database, listId: number): Promise<number> {
+  const row = await db.get<{ count: number }>(sql`
+    SELECT COUNT(*) AS count FROM climb_list_items WHERE list_id = ${listId}
+  `);
+  return row?.count ?? 0;
+}
+
+/** What an add or remove did: whether the list changed, and its climb count
+ * afterwards. Adding a climb already on the list, or removing one that isn't,
+ * changes nothing. */
+export type ClimbListItemChange = { changed: boolean; climbCount: number };
+
+/** Appends a climb to the end of the owner's list, returning whether it was
+ * added. Adding a climb that is already on it succeeds without moving it.
+ * Ownership and the size cap are conditions on the INSERT, so a guessed id
+ * writes nothing and concurrent adds cannot pass the cap. */
+async function insertClimb(
+  db: Database,
+  userId: string,
+  listId: number,
+  climbId: number,
+): Promise<boolean> {
   const [added] = await db.all<{ climbId: number }>(sql`
     INSERT INTO climb_list_items (list_id, climb_id, position)
     SELECT l.id, c.id,
@@ -84,7 +105,7 @@ async function insertClimb(db: Database, userId: string, listId: number, climbId
     ON CONFLICT (list_id, climb_id) DO NOTHING
     RETURNING climb_id AS climbId
   `);
-  if (added) return;
+  if (added) return true;
 
   // Nothing was written. Say why only after proving the list is theirs.
   if (!(await ownsList(db, userId, listId))) throw new ActionError(CLIMB_LIST_NOT_FOUND_MESSAGE);
@@ -94,7 +115,7 @@ async function insertClimb(db: Database, userId: string, listId: number, climbId
         AS present,
       EXISTS (SELECT 1 FROM climbs WHERE id = ${climbId}) AS climbExists
   `);
-  if (state?.present === 1) return;
+  if (state?.present === 1) return false;
   if (state?.climbExists !== 1) throw new ActionError(CLIMB_NOT_FOUND_MESSAGE);
   throw new ActionError(CLIMB_LIST_FULL_MESSAGE);
 }
@@ -115,6 +136,12 @@ export async function createClimbList(
         : requirePositiveId(options.climbId, CLIMB_NOT_FOUND_MESSAGE);
 
     const db = await getDb();
+    // Refuse a missing climb before making the list, so a bad id leaves no
+    // empty list behind to count against the cap.
+    if (climbId !== null) {
+      const climb = await db.get<{ id: number }>(sql`SELECT id FROM climbs WHERE id = ${climbId}`);
+      if (!climb) throw new ActionError(CLIMB_NOT_FOUND_MESSAGE);
+    }
     const [created] = await db.all<{ id: number }>(sql`
       INSERT INTO climb_lists (user_id, title, description)
       SELECT ${user.id}, ${title}, ${description}
@@ -122,7 +149,18 @@ export async function createClimbList(
       RETURNING id
     `);
     if (!created) throw new ActionError(CLIMB_LIST_LIMIT_MESSAGE);
-    if (climbId !== null) await insertClimb(db, user.id, created.id, climbId);
+    if (climbId !== null) {
+      try {
+        await insertClimb(db, user.id, created.id, climbId);
+      } catch (error) {
+        // The climb went away between the check and the insert (deleted or
+        // merged). Take the new list back with it rather than leave it empty.
+        await db.run(
+          sql`DELETE FROM climb_lists WHERE id = ${created.id} AND user_id = ${user.id}`,
+        );
+        throw error;
+      }
+    }
 
     afterListChange(user.id, created.id);
     return created.id;
@@ -163,7 +201,10 @@ export async function deleteClimbList(listId: number): Promise<ActionResult> {
   });
 }
 
-export async function addClimbToList(listId: number, climbId: number): Promise<ActionResult> {
+export async function addClimbToList(
+  listId: number,
+  climbId: number,
+): Promise<ActionResult<ClimbListItemChange>> {
   return toActionResult(async () => {
     const { user } = await requireSession();
     const list = requirePositiveId(listId, CLIMB_LIST_NOT_FOUND_MESSAGE);
@@ -171,16 +212,23 @@ export async function addClimbToList(listId: number, climbId: number): Promise<A
     await requireWriteBudget(user.id);
 
     const db = await getDb();
-    await insertClimb(db, user.id, list, climb);
-    await touchList(db, user.id, list);
-
-    afterListChange(user.id, list);
+    const changed = await insertClimb(db, user.id, list, climb);
+    // Only a real change moves the list to the top of the Lists tab.
+    if (changed) {
+      await touchList(db, user.id, list);
+      afterListChange(user.id, list);
+    }
+    return { changed, climbCount: await climbCount(db, list) };
   });
 }
 
 /** Removing a climb that is not on the list is not an error. Positions keep
- * their gap, which reads order by and never shows. */
-export async function removeClimbFromList(listId: number, climbId: number): Promise<ActionResult> {
+ * their gap, which reads order by and never shows. Someone else's list reads
+ * as not found, so a guessed id learns nothing about it. */
+export async function removeClimbFromList(
+  listId: number,
+  climbId: number,
+): Promise<ActionResult<ClimbListItemChange>> {
   return toActionResult(async () => {
     const { user } = await requireSession();
     const list = requirePositiveId(listId, CLIMB_LIST_NOT_FOUND_MESSAGE);
@@ -188,14 +236,19 @@ export async function removeClimbFromList(listId: number, climbId: number): Prom
     await requireWriteBudget(user.id);
 
     const db = await getDb();
-    await db.run(sql`
+    if (!(await ownsList(db, user.id, list))) throw new ActionError(CLIMB_LIST_NOT_FOUND_MESSAGE);
+    const removed = await db.all<{ climbId: number }>(sql`
       DELETE FROM climb_list_items
       WHERE climb_id = ${climb}
         AND list_id IN (SELECT id FROM climb_lists WHERE id = ${list} AND user_id = ${user.id})
+      RETURNING climb_id AS climbId
     `);
-    await touchList(db, user.id, list);
-
-    afterListChange(user.id, list);
+    const changed = removed.length > 0;
+    if (changed) {
+      await touchList(db, user.id, list);
+      afterListChange(user.id, list);
+    }
+    return { changed, climbCount: await climbCount(db, list) };
   });
 }
 
@@ -208,8 +261,8 @@ export async function removeClimbFromList(listId: number, climbId: number): Prom
  * loaded is refused rather than half-applied, so two edits cannot silently
  * overwrite each other.
  *
- * Not rate-limited, like the analytics layout: each move in the editor saves,
- * and the write only rearranges the owner's own rows.
+ * The editor sends this once, on Save order, so it spends one write from the
+ * list budget like any other list change.
  */
 export async function reorderClimbList(listId: number, climbIds: unknown): Promise<ActionResult> {
   return toActionResult(async () => {
@@ -223,8 +276,13 @@ export async function reorderClimbList(listId: number, climbIds: unknown): Promi
     )
       throw new ActionError(CLIMB_LIST_CHANGED_MESSAGE);
     const order = JSON.stringify(climbIds);
+    await requireWriteBudget(user.id);
 
     const db = await getDb();
+    // An empty order updates no rows whoever owns the list, so it can't prove
+    // ownership the way a matched row count does. Check it directly.
+    if (climbIds.length === 0 && !(await ownsList(db, user.id, list)))
+      throw new ActionError(CLIMB_LIST_NOT_FOUND_MESSAGE);
     const updated = await db.all<{ climbId: number }>(sql`
       UPDATE climb_list_items
       SET position = (SELECT CAST(o.key AS INTEGER) + 1 FROM json_each(${order}) o

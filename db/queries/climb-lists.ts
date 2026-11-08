@@ -103,6 +103,26 @@ function sentByViewerSql(viewerId: string | null): SQL {
     : sql`EXISTS (SELECT 1 FROM sends s WHERE s.user_id = ${viewerId} AND s.climb_id = c.id)`;
 }
 
+/** Each list climb's full area trail, root first, for the area sort only:
+ * `area_path(area_id, path)`. It walks every distinct area up to its root, so
+ * other sorts skip it. */
+function areaPathCtes(listAccess: SQL): SQL {
+  return sql`list_areas(id) AS (
+      SELECT DISTINCT c.area_id
+      FROM climb_lists l
+      JOIN climb_list_items i ON i.list_id = l.id
+      JOIN climbs c ON c.id = i.climb_id
+      WHERE ${listAccess}
+    ), walk(area_id, parent_id, path) AS (
+      SELECT a.id, a.parent_id, a.name FROM list_areas la JOIN areas a ON a.id = la.id
+      UNION ALL
+      SELECT walk.area_id, p.parent_id, p.name || char(31) || walk.path
+      FROM walk JOIN areas p ON p.id = walk.parent_id
+    ), area_path(area_id, path) AS (
+      SELECT area_id, path FROM walk WHERE parent_id IS NULL
+    )`;
+}
+
 type ItemRow = Omit<ClimbListItem, "sent"> & { sent: number | null };
 
 /**
@@ -112,8 +132,7 @@ type ItemRow = Omit<ClimbListItem, "sent"> & { sent: number | null };
  * `listAccess` is a condition over the aliased list row `l` — the owner's
  * audience, or a live link — and sits in this statement's WHERE, so a list
  * hidden or unshared between two reads of a page returns nothing on the
- * second. The area sort walks each climb's area up to its root once per
- * distinct area; a list holds at most a few hundred climbs.
+ * second. Only the area sort walks each climb's area up to its root.
  */
 export async function getClimbListItemsWhere(
   db: Database,
@@ -129,20 +148,7 @@ export async function getClimbListItemsWhere(
         ? sql`AND ${sent}`
         : sql`AND NOT ${sent}`;
   const rows = await db.all<ItemRow>(sql`
-    WITH RECURSIVE list_areas(id) AS (
-      SELECT DISTINCT c.area_id
-      FROM climb_lists l
-      JOIN climb_list_items i ON i.list_id = l.id
-      JOIN climbs c ON c.id = i.climb_id
-      WHERE ${listAccess}
-    ), walk(area_id, parent_id, path) AS (
-      SELECT a.id, a.parent_id, a.name FROM list_areas la JOIN areas a ON a.id = la.id
-      UNION ALL
-      SELECT walk.area_id, p.parent_id, p.name || char(31) || walk.path
-      FROM walk JOIN areas p ON p.id = walk.parent_id
-    ), area_path(area_id, path) AS (
-      SELECT area_id, path FROM walk WHERE parent_id IS NULL
-    )
+    ${view.sort.startsWith("area_") ? sql`WITH RECURSIVE ${areaPathCtes(listAccess)}` : sql``}
     SELECT
       c.id         AS climbId,
       c.name       AS name,
@@ -157,7 +163,7 @@ export async function getClimbListItemsWhere(
     JOIN climb_list_items i ON i.list_id = l.id
     JOIN climbs c ON c.id = i.climb_id
     JOIN areas a ON a.id = c.area_id
-    LEFT JOIN area_path ON area_path.area_id = c.area_id
+    ${view.sort.startsWith("area_") ? sql`LEFT JOIN area_path ON area_path.area_id = c.area_id` : sql``}
     WHERE ${listAccess} ${sentFilter}
     ORDER BY ${ORDER_BY[view.sort]}, i.added_at ASC, c.id ASC
   `);

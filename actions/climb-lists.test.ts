@@ -58,7 +58,17 @@ vi.mock("@/lib/session", async () => {
     },
   };
 });
-vi.mock("@/lib/rate-limit", () => ({ allowJournalWrite: async () => limits.allow }));
+const budgets = vi.hoisted(() => ({ list: 0, journal: 0 }));
+vi.mock("@/lib/rate-limit", () => ({
+  allowJournalWrite: async () => {
+    budgets.journal += 1;
+    return limits.allow;
+  },
+  allowClimbListWrite: async () => {
+    budgets.list += 1;
+    return limits.allow;
+  },
+}));
 vi.mock("@/db/client", async (original) => {
   const actual = await original<typeof import("@/db/client")>();
   const { env } = await import("cloudflare:test");
@@ -114,6 +124,8 @@ async function listCount(owner: string) {
 beforeEach(async () => {
   as("owner");
   limits.allow = true;
+  budgets.list = 0;
+  budgets.journal = 0;
   await resetDb(db);
   await seedFixtureTree(db);
   await seedFixtureUser(db, { id: "owner", name: "List Owner" });
@@ -167,7 +179,7 @@ describe("creating and editing lists", () => {
     expect(errorOf(await addClimbToList(id, 3))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
     expect(errorOf(await reorderClimbList(id, [2, 1]))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
     expect(errorOf(await shareClimbList(id, "30d"))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
-    value(await removeClimbFromList(id, 1));
+    expect(errorOf(await removeClimbFromList(id, 1))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
     value(await deleteClimbList(id));
 
     const [stored] = await db.select().from(climbLists).where(eq(climbLists.id, id));
@@ -184,6 +196,56 @@ describe("creating and editing lists", () => {
     expect(await db.select().from(climbListItems)).toHaveLength(0);
     expect(await db.select().from(climbListShareLinks)).toHaveLength(0);
     expect(await db.select().from(climbs).where(eq(climbs.id, 1))).toHaveLength(1);
+  });
+});
+
+describe("review fixes", () => {
+  it("leaves no empty list behind when the first climb doesn't exist", async () => {
+    as("owner");
+    expect(errorOf(await createClimbList({ title: "Ghost" }, { climbId: 999_999 }))).toBe(
+      "Climb not found",
+    );
+    expect(await listCount("owner")).toBe(0);
+  });
+
+  it("spends the list budget, not the journal's, on list writes", async () => {
+    const id = await seedList("owner", "Budget", [1]);
+    value(await addClimbToList(id, 2));
+    value(await removeClimbFromList(id, 2));
+    value(await reorderClimbList(id, [1]));
+    value(await shareClimbList(id, "never"));
+    expect(budgets.journal).toBe(0);
+    expect(budgets.list).toBeGreaterThanOrEqual(6);
+
+    limits.allow = false;
+    expect(errorOf(await addClimbToList(id, 3))).toBe("Too many changes — try again in a minute");
+    expect(await order(id)).toEqual([1]);
+  });
+
+  it("refuses an empty reorder of someone else's empty list", async () => {
+    const id = await seedList("owner", "Empty");
+    as("member");
+    expect(errorOf(await reorderClimbList(id, []))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
+    as("owner");
+    value(await reorderClimbList(id, []));
+  });
+
+  it("reports the real count, and moves the list up only when something changed", async () => {
+    const id = await seedList("owner", "Counts", [1]);
+    await db.run(sql`UPDATE climb_lists SET updated_at = 1 WHERE id = ${id}`);
+    const updatedAt = async () =>
+      (await db.select().from(climbLists).where(eq(climbLists.id, id)))[0].updatedAt.getTime();
+
+    expect(value(await addClimbToList(id, 1))).toEqual({ changed: false, climbCount: 1 });
+    expect(value(await removeClimbFromList(id, 3))).toEqual({ changed: false, climbCount: 1 });
+    expect(await updatedAt()).toBe(1);
+
+    expect(value(await addClimbToList(id, 2))).toEqual({ changed: true, climbCount: 2 });
+    expect(await updatedAt()).toBeGreaterThan(1);
+    expect(value(await removeClimbFromList(id, 2))).toEqual({ changed: true, climbCount: 1 });
+
+    as("member");
+    expect(errorOf(await removeClimbFromList(id, 1))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
   });
 });
 

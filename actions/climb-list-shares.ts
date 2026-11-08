@@ -13,7 +13,7 @@ import {
   type ActionResult,
 } from "@/lib/action-result";
 import { CLIMB_LIST_NOT_FOUND_MESSAGE } from "@/lib/climb-lists";
-import { allowJournalWrite } from "@/lib/rate-limit";
+import { allowClimbListWrite } from "@/lib/rate-limit";
 import { requireSession } from "@/lib/session";
 import { parseShareExpiry, shareExpiryModifier } from "@/lib/share-expiry";
 import { requirePositiveId } from "@/lib/validation";
@@ -36,7 +36,7 @@ export async function shareClimbList(
     const { user } = await requireSession();
     const id = requirePositiveId(listId, CLIMB_LIST_NOT_FOUND_MESSAGE);
     const modifier = shareExpiryModifier(parseShareExpiry(expiry));
-    if (!(await allowJournalWrite(user.id))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
+    if (!(await allowClimbListWrite(user.id))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
 
     const db = await getDb();
     const [shared] = await db.all<{ token: string; expiresAt: string | null }>(sql`
