@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
-import { ClimbListReorder } from "@/components/climb-lists/climb-list-reorder";
+import { ClimbListEditor } from "@/components/climb-lists/climb-list-editor";
 import { ClimbListToolbar } from "@/components/climb-lists/climb-list-toolbar";
 import { ClimbSentIndicator } from "@/components/climb-sent-indicator";
 import { ActionsMenu } from "@/components/ui/actions-menu";
@@ -19,7 +19,7 @@ import {
   DEFAULT_CLIMB_LIST_VIEW,
   climbListViewSearch,
   isFilteredClimbList,
-  isListOrder,
+  isCircuitSort,
   type ClimbListView,
 } from "@/lib/climb-lists";
 import { DEFAULT_CLIMB_FILTER } from "@/lib/filters/climb-filter";
@@ -61,9 +61,8 @@ export function ClimbListItems({
   const router = useRouter();
   const pathname = usePathname();
   const [editing, setEditing] = useState(false);
-  const listOrder = isListOrder(view.sort);
-  // Editing saves the whole order, so it needs every climb, in list order.
-  const wholeList = listOrder && !isFilteredClimbList(view.filter);
+  // Editing saves the whole order, so it needs every climb, in circuit order.
+  const wholeList = isCircuitSort(view.sort) && !isFilteredClimbList(view.filter);
 
   function navigate(next: ClimbListView) {
     router.replace(`${pathname}${climbListViewSearch(next)}`, { scroll: false });
@@ -74,7 +73,7 @@ export function ClimbListItems({
   if (totalCount === 0) return <EmptyState message="No climbs on this list yet." />;
 
   if (editing && wholeList && listId !== undefined)
-    return <ClimbListReorder items={items} listId={listId} onClose={() => setEditing(false)} />;
+    return <ClimbListEditor items={items} listId={listId} onClose={() => setEditing(false)} />;
 
   return (
     <div className="flex min-w-0 flex-col gap-3">

@@ -7,8 +7,8 @@ test(
   "dragging a climb by its handle moves it in the list",
   { tag: "@behavior" },
   async ({ page }, info) => {
-    await openStory(page, info, "components-climb-lists-reorder--default");
-    const grid = page.getByRole("grid", { name: "Reorder climbs", exact: true });
+    await openStory(page, info, "components-climb-lists-editor--default");
+    const grid = page.getByRole("grid", { name: "Edit climbs", exact: true });
     const rows = grid.getByRole("row");
     await expect(rows.first()).toContainText("Amarillo Sunset");
 

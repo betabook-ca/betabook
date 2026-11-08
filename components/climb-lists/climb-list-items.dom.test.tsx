@@ -24,7 +24,7 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/users/alex/lists/1",
 }));
 
-const LIST_ORDER: ClimbListView = { sort: "position_asc", filter: DEFAULT_CLIMB_FILTER };
+const CIRCUIT: ClimbListView = { sort: "position_asc", filter: DEFAULT_CLIMB_FILTER };
 const EXCLUDING_SENT: ClimbListView = {
   sort: "position_asc",
   filter: { ...DEFAULT_CLIMB_FILTER, excludeSent: true },
@@ -45,7 +45,7 @@ function renderItems(
       items={items}
       totalCount={props.totalCount ?? climbListItemSamples.length}
       areaBreadcrumbs={climbListBreadcrumbs}
-      view={props.view ?? LIST_ORDER}
+      view={props.view ?? CIRCUIT}
       signedIn={props.signedIn ?? true}
       listId={1}
       canEdit={props.canEdit ?? true}
@@ -78,7 +78,7 @@ it("leaves rows unnumbered so the climb name keeps the width", () => {
     expect(text.startsWith(climbListItemSamples[index].name)).toBe(true);
 });
 
-it("switches a sorted view back to list order when the owner chooses Edit", async () => {
+it("switches a sorted view back to circuit order when the owner chooses Edit", async () => {
   const user = userEvent.setup();
   renderItems({
     items: climbListItemSamples.toReversed(),

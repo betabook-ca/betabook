@@ -26,11 +26,8 @@ export type ClimbListItem = {
   areaName: string;
   /** `YYYY-MM-DD` when the climb was reported broken, else null. */
   brokenOn: string | null;
-  /** Stored order key. Gaps are allowed; show `number` instead. */
+  /** Stored order key. Gaps are allowed, so never show it as a number. */
   position: number;
-  /** 1-based place in the owner's order over the whole list, whatever the
-   * reader sorted or filtered by. */
-  number: number;
   /** Milliseconds since the epoch. */
   addedAt: number;
   /** Whether the READER has sent it: the viewer's own `sends` row, never the
@@ -158,16 +155,7 @@ export async function getClimbListItemsWhere(
   if (filters === null) return [];
   const sent = sentByViewerSql(viewerId);
   const rows = await db.all<ItemRow>(sql`
-    WITH RECURSIVE ${query.sort.startsWith("area_") ? sql`${areaPathCtes(listAccess)},` : sql``}
-    ranked(list_id, climb_id, number) AS (
-      -- Numbered before any filter, so a filtered row keeps its place.
-      SELECT i.list_id, i.climb_id,
-             ROW_NUMBER() OVER (
-               PARTITION BY i.list_id ORDER BY i.position, i.added_at, i.climb_id
-             )
-      FROM climb_lists l JOIN climb_list_items i ON i.list_id = l.id
-      WHERE ${listAccess}
-    )
+    ${query.sort.startsWith("area_") ? sql`WITH RECURSIVE ${areaPathCtes(listAccess)}` : sql``}
     SELECT
       climbs.id         AS climbId,
       climbs.name       AS name,
@@ -177,7 +165,6 @@ export async function getClimbListItemsWhere(
       a.name            AS areaName,
       climbs.broken_on  AS brokenOn,
       i.position        AS position,
-      ranked.number     AS number,
       i.added_at        AS addedAt,
       ${sent}           AS sent
     FROM climb_lists l
@@ -185,7 +172,6 @@ export async function getClimbListItemsWhere(
     JOIN climbs ON climbs.id = i.climb_id
     JOIN areas a ON a.id = climbs.area_id
     ${query.sort.startsWith("area_") ? sql`LEFT JOIN area_path ON area_path.area_id = climbs.area_id` : sql``}
-    JOIN ranked ON ranked.list_id = i.list_id AND ranked.climb_id = i.climb_id
     WHERE ${listAccess}
       ${filters.length > 0 ? sql`AND ${sql.join(filters, sql` AND `)}` : sql``}
     ORDER BY ${ORDER_BY[query.sort]}, i.added_at ASC, climbs.id ASC

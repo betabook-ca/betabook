@@ -8,7 +8,6 @@ import {
   copyClimbList,
   createClimbList,
   deleteClimbList,
-  removeClimbFromList,
   saveClimbListEdits,
   setClimbListVisibility,
   shareClimbList,
@@ -84,7 +83,7 @@ vi.mock("@/db/client", async (original) => {
 });
 
 const db = createDb(env.DB);
-const LIST_ORDER: ClimbListQuery = {
+const CIRCUIT: ClimbListQuery = {
   sort: DEFAULT_CLIMB_LIST_SORT,
   filter: toClimbQueryParams(DEFAULT_CLIMB_FILTER, undefined),
 };
@@ -201,7 +200,6 @@ describe("creating and editing lists", () => {
     expect(errorOf(await addClimbToList(id, 3))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
     expect(errorOf(await saveClimbListEdits(id, [2, 1]))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
     expect(errorOf(await shareClimbList(id, "30d"))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
-    expect(errorOf(await removeClimbFromList(id, 1))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
     value(await deleteClimbList(id));
 
     const [stored] = await db.select().from(climbLists).where(eq(climbLists.id, id));
@@ -233,11 +231,10 @@ describe("review fixes", () => {
   it("spends the list budget, not the journal's, on list writes", async () => {
     const id = await seedList("owner", "Budget", [1]);
     value(await addClimbToList(id, 2));
-    value(await removeClimbFromList(id, 2));
-    value(await saveClimbListEdits(id, [1]));
+    value(await saveClimbListEdits(id, [1], [2]));
     value(await shareClimbList(id, "never"));
     expect(budgets.journal).toBe(0);
-    expect(budgets.list).toBeGreaterThanOrEqual(6);
+    expect(budgets.list).toBeGreaterThanOrEqual(5);
 
     limits.allow = false;
     expect(errorOf(await addClimbToList(id, 3))).toBe("Too many changes — try again in a minute");
@@ -259,24 +256,18 @@ describe("review fixes", () => {
       (await db.select().from(climbLists).where(eq(climbLists.id, id)))[0].updatedAt.getTime();
 
     expect(value(await addClimbToList(id, 1))).toEqual({ changed: false, climbCount: 1 });
-    expect(value(await removeClimbFromList(id, 3))).toEqual({ changed: false, climbCount: 1 });
     expect(await updatedAt()).toBe(1);
 
     expect(value(await addClimbToList(id, 2))).toEqual({ changed: true, climbCount: 2 });
     expect(await updatedAt()).toBeGreaterThan(1);
-    expect(value(await removeClimbFromList(id, 2))).toEqual({ changed: true, climbCount: 1 });
-
-    as("member");
-    expect(errorOf(await removeClimbFromList(id, 1))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
   });
 
-  it("refreshes the page after a no-op add or remove, so a stale tab catches up", async () => {
+  it("refreshes the page after a no-op add, so a stale tab catches up", async () => {
     const id = await seedList("owner", "Two tabs", [1]);
     vi.mocked(refresh).mockClear();
-    // Another tab already removed climb 2, and already added climb 1.
-    value(await removeClimbFromList(id, 2));
+    // Another tab already added climb 1.
     value(await addClimbToList(id, 1));
-    expect(refresh).toHaveBeenCalledTimes(2);
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 
   it("leaves no list behind when a create with a first climb hits the cap", async () => {
@@ -377,7 +368,7 @@ describe("who can see lists", () => {
       expect((await getClimbListForUser(db, "owner", id, viewer))?.id ?? null).toBe(
         visible ? id : null,
       );
-      expect((await getClimbListItems(db, "owner", id, viewer, LIST_ORDER)).length).toBe(
+      expect((await getClimbListItems(db, "owner", id, viewer, CIRCUIT)).length).toBe(
         visible ? 1 : 0,
       );
     }
@@ -411,7 +402,7 @@ describe("viewing a list", () => {
     return items.map((item) => item.climbId);
   }
 
-  it("sorts without changing the owner's order and keeps each climb's position", async () => {
+  it("sorts without changing the owner's order", async () => {
     // Highball V4 (1), Slab V1 (2), Crimper 5.10a (3), Crack 5.6 (4).
     const id = await seedList("owner", "Mixed", [3, 2, 4, 1]);
 
@@ -423,20 +414,6 @@ describe("viewing a list", () => {
     // Test Crag > Test Boulders > Test Highball Alcove / Test Slab Area, then
     // Test Crag > Test Sport Wall, where the two routes keep list order.
     expect(await view(id, "owner", { sort: "area_asc" })).toEqual([1, 2, 3, 4]);
-
-    const sorted = await getClimbListItems(
-      db,
-      "owner",
-      id,
-      "owner",
-      query("owner", { sort: "name_asc" }),
-    );
-    expect(sorted.map((item) => [item.climbId, item.number])).toEqual([
-      [4, 3],
-      [3, 1],
-      [1, 4],
-      [2, 2],
-    ]);
     expect(await order(id)).toEqual([3, 2, 4, 1]);
   });
 
@@ -448,18 +425,8 @@ describe("viewing a list", () => {
 
     expect(await view(id, "owner", { filter: { excludeSent: true } })).toEqual([2, 3]);
     expect(await view(id, "member", { filter: { excludeSent: true } })).toEqual([1, 3]);
-    const items = await getClimbListItems(db, "owner", id, "member", LIST_ORDER);
+    const items = await getClimbListItems(db, "owner", id, "member", CIRCUIT);
     expect(items.map((item) => item.sent)).toEqual([false, true, false]);
-    // A filtered row keeps its number in the whole list, gaps included.
-    value(await removeClimbFromList(id, 1));
-    const unsent = await getClimbListItems(
-      db,
-      "owner",
-      id,
-      "member",
-      query("member", { filter: { excludeSent: true } }),
-    );
-    expect(unsent.map((item) => [item.climbId, item.number])).toEqual([[3, 2]]);
   });
 
   it("applies the list's filters: discipline and grade, rating and ascents", async () => {
@@ -473,18 +440,10 @@ describe("viewing a list", () => {
     await seedFixtureSend(db, { userId: "member", climbId: 4, dateSent: "2026-01-01", rating: 4 });
     expect(await view(id, "owner", { filter: { minAscents: 1 } })).toEqual([4]);
     expect(await view(id, "owner", { filter: { ratingRange: [4, 5] } })).toEqual([4]);
-    // Filters combine with the sort, and the owner's numbers don't move.
-    const sorted = await getClimbListItems(
-      db,
-      "owner",
-      id,
-      "owner",
-      query("owner", { sort: "grade_desc", filter: { disciplines: ["boulder"] } }),
-    );
-    expect(sorted.map((item) => [item.climbId, item.number])).toEqual([
-      [1, 4],
-      [2, 2],
-    ]);
+    // Filters combine with the sort.
+    expect(
+      await view(id, "owner", { sort: "grade_desc", filter: { disciplines: ["boulder"] } }),
+    ).toEqual([1, 2]);
   });
 });
 
@@ -497,7 +456,7 @@ describe("share links", () => {
 
     const access = await getSharedClimbList(db, token);
     expect(access.status === "visible" && access.shared.list.title).toBe("Shared");
-    const items = await getSharedClimbListItems(db, token, null, LIST_ORDER);
+    const items = await getSharedClimbListItems(db, token, null, CIRCUIT);
     expect(items.map((item) => [item.climbId, item.sent])).toEqual([
       [1, null],
       [2, null],
@@ -510,7 +469,7 @@ describe("share links", () => {
 
     await db.run(sql`UPDATE climb_list_share_links SET expires_at = datetime('now', '-1 minute')`);
     expect((await getSharedClimbList(db, token)).status).toBe("expired");
-    expect(await getSharedClimbListItems(db, token, null, LIST_ORDER)).toEqual([]);
+    expect(await getSharedClimbListItems(db, token, null, CIRCUIT)).toEqual([]);
 
     const renewed = value(await shareClimbList(id, "30d"));
     expect(renewed.token).not.toBe(token);

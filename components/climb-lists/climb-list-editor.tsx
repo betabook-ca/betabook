@@ -18,10 +18,10 @@ import { moveClimb } from "@/lib/climb-lists";
  * removed climbs once; the server refuses it if the list changed in the
  * meantime, rather than half-applying it. Cancel puts removed climbs back.
  *
- * `items` must be the whole list in list order. The list page opens this only
- * in list order with no filter, so the order it saves has every climb in it.
+ * `items` must be the whole list in circuit order. The list page opens this
+ * only in circuit order with no filter, so the order it saves has every climb in it.
  */
-export function ClimbListReorder({
+export function ClimbListEditor({
   items,
   listId,
   onClose,
@@ -101,7 +101,7 @@ export function ClimbListReorder({
       </div>
       {error && <InlineAlert>{error}</InlineAlert>}
       <GridList
-        aria-label="Reorder climbs"
+        aria-label="Edit climbs"
         items={rows}
         dependencies={[order]}
         selectionMode="none"

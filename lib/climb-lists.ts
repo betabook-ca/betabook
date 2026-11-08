@@ -140,8 +140,9 @@ export function isFilteredClimbList(filter: ClimbFilter): boolean {
   return filterParams(filter).size > 0;
 }
 
-/** True in the owner's own order, the only view the list can be reordered in. */
-export function isListOrder(sort: ClimbListSort): boolean {
+/** True in the owner's own order (Circuit), the only view the list can be
+ * edited in. */
+export function isCircuitSort(sort: ClimbListSort): boolean {
   return sort === DEFAULT_CLIMB_LIST_SORT;
 }
 

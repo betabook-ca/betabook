@@ -48,7 +48,7 @@ async function requireWriteBudget(userId: string) {
 }
 
 /** Revalidates the list's pages and refreshes the caller's. Run after every
- * successful write, a no-op add or remove included: the client waits on this
+ * successful write, a no-op add included: the client waits on this
  * refresh to show the list as it now is, which may have changed in another
  * tab. */
 function afterListChange(userId: string, listId?: number) {
@@ -91,9 +91,8 @@ function afterItemWrite(db: Database, userId: string, listId: number) {
   ] as const;
 }
 
-/** What an add or remove did: whether the list changed, and its climb count
- * afterwards. Adding a climb already on the list, or removing one that isn't,
- * changes nothing. */
+/** What an add did: whether the list changed, and its climb count afterwards.
+ * Adding a climb already on the list changes nothing. */
 export type ClimbListItemChange = { changed: boolean; climbCount: number };
 
 /** An add wrote nothing. Returns when the climb is already on the list, the
@@ -260,44 +259,6 @@ export async function addClimbToList(
     ]);
     const changed = added.length > 0;
     if (!changed) await explainSkippedAdd(db, user.id, list, climb);
-
-    afterListChange(user.id, list);
-    return { changed, climbCount: counted[0]?.count ?? 0 };
-  });
-}
-
-/** Removing a climb that is not on the list is not an error. Positions keep
- * their gap, which reads order by and never shows. Someone else's list reads
- * as not found, so a guessed id learns nothing about it. */
-export async function removeClimbFromList(
-  listId: number,
-  climbId: number,
-): Promise<ActionResult<ClimbListItemChange>> {
-  return toActionResult(async () => {
-    const { user } = await requireSession();
-    const list = requirePositiveId(listId, CLIMB_LIST_NOT_FOUND_MESSAGE);
-    const climb = requirePositiveId(climbId, CLIMB_NOT_FOUND_MESSAGE);
-    await requireWriteBudget(user.id);
-
-    const db = await getDb();
-    const [removed, , counted] = await db.batch([
-      db
-        .delete(climbListItems)
-        .where(
-          and(
-            eq(climbListItems.climbId, climb),
-            sql`${climbListItems.listId} IN (
-              SELECT id FROM climb_lists WHERE id = ${list} AND user_id = ${user.id})`,
-          ),
-        )
-        .returning({ climbId: climbListItems.climbId }),
-      ...afterItemWrite(db, user.id, list),
-    ]);
-    const changed = removed.length > 0;
-    // The DELETE's owner condition is the check. Only a no-op needs to tell
-    // a climb that wasn't there from a list that isn't theirs.
-    if (!changed && !(await ownsList(db, user.id, list)))
-      throw new ActionError(CLIMB_LIST_NOT_FOUND_MESSAGE);
 
     afterListChange(user.id, list);
     return { changed, climbCount: counted[0]?.count ?? 0 };
