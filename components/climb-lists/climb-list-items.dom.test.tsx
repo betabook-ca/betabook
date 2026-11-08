@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
@@ -327,16 +327,40 @@ it("keeps the editor open when the list empties, so it never reopens on its own"
   const user = userEvent.setup();
   const { rerender } = renderItems();
   await chooseEdit(user);
-  // Another tab took every climb off, and the page refreshed.
+  // Another tab took every climb off, and the page refreshed. The editor
+  // stays open, still showing what it opened with (that is what Save writes).
   rerender(itemsElement({ items: [], totalCount: 0 }));
-  expect(screen.getByRole("grid", { name: "Edit climbs" })).toBeInTheDocument();
-  expect(screen.getByText("No climbs on this list yet.")).toBeInTheDocument();
+  const grid = screen.getByRole("grid", { name: "Edit climbs" });
+  expect(within(grid).getByText("Amarillo Sunset")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Add climbs" })).toBeEnabled();
 
   await user.click(screen.getByRole("button", { name: "Cancel" }));
   expect(screen.queryByRole("grid", { name: "Edit climbs" })).not.toBeInTheDocument();
+  expect(screen.getByText("No climbs on this list yet.")).toBeInTheDocument();
   rerender(itemsElement({ items: climbListItemSamples.slice(0, 1), totalCount: 1 }));
   expect(screen.queryByRole("grid", { name: "Edit climbs" })).not.toBeInTheDocument();
+});
+
+it("keeps showing what it opened with when the page refreshes mid-edit", async () => {
+  const user = userEvent.setup();
+  const { rerender } = renderItems();
+  await chooseEdit(user);
+  // Another tab took Gift of the Magi off, and something (a rename, say)
+  // refreshed this page while the editor is open.
+  rerender(
+    itemsElement({
+      items: climbListItemSamples.filter((item) => item.climbId !== 102),
+      totalCount: climbListItemSamples.length - 1,
+    }),
+  );
+  const grid = screen.getByRole("grid", { name: "Edit climbs" });
+  expect(within(grid).getByText("Gift of the Magi")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+
+  // Save sends exactly the rows on screen.
+  await user.click(screen.getByRole("button", { name: "Remove Rat Stew from this list" }));
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(saveClimbListEdits).toHaveBeenCalledWith(1, [101, 102, 103, 104]));
 });
 
 it("stages a climb picked twice in quick succession once", async () => {

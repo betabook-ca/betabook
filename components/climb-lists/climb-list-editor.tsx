@@ -39,6 +39,11 @@ function stagedItem(climb: ClimbWithAreaName): ClimbListItem {
  * every staged change. Every control is disabled while a save is in flight,
  * so nothing staged then is lost when the editor closes.
  *
+ * The editor works from `items` as they were when it opened. A refresh while
+ * it is open (say, after renaming the list) brings new `items`, but the rows,
+ * the order Save sends and whether anything changed all keep using that first
+ * copy, so the editor always shows exactly what Save will write.
+ *
  * `items` must be the whole list in circuit order. The list page opens this
  * only in circuit order with no filter, so the order it saves has every climb
  * in it.
@@ -55,20 +60,22 @@ export function ClimbListEditor({
   onClose: () => void;
 }) {
   const addState = useOverlayState();
-  const [order, setOrder] = useState(() => items.map((item) => item.climbId));
+  const [opened] = useState(items);
+  const [order, setOrder] = useState(() => opened.map((item) => item.climbId));
   const [removed, setRemoved] = useState<number[]>([]);
   const [added, setAdded] = useState<ClimbListItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const byId = new Map([...items, ...added].map((item) => [item.climbId, item]));
+  const byId = new Map([...opened, ...added].map((item) => [item.climbId, item]));
   const rows = order.flatMap((id) => byId.get(id) ?? []);
   // Each row's number, looked up once per render rather than by indexOf.
   const indexById = new Map(order.map((id, index) => [id, index]));
   const changed =
     removed.length > 0 ||
     added.length > 0 ||
-    order.some((id, index) => id !== items[index]?.climbId);
+    order.length !== opened.length ||
+    order.some((id, index) => id !== opened[index]?.climbId);
 
   function remove(climbId: number) {
     setOrder((current) => current.filter((id) => id !== climbId));
