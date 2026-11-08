@@ -68,8 +68,11 @@ export function ClimbListItems({
   areaBreadcrumbs: AreaBreadcrumbs;
   view: ClimbListView;
   signedIn: boolean;
-  listId: number;
-  /** The owner viewing their own list: rows get a Remove button. */
+  /** Needed only to edit. A shared-link page leaves it out, so the page
+   * sends the reader nothing but the link's token. */
+  listId?: number;
+  /** The owner viewing their own list: rows get a Remove button. Needs
+   * `listId`. */
   canEdit?: boolean;
   /** Shown in the empty list, such as Add climbs. */
   emptyAction?: ReactNode;
@@ -88,7 +91,10 @@ export function ClimbListItems({
     router.replace(`${pathname}${climbListViewSearch(next)}`, { scroll: false });
   }
 
+  const editable = canEdit && listId !== undefined;
+
   function remove(climbId: number) {
+    if (listId === undefined) return;
     setRemoveError(null);
     setRemoving(climbId);
     startTransition(async () => {
@@ -101,7 +107,7 @@ export function ClimbListItems({
   if (totalCount === 0)
     return <EmptyState message="No climbs on this list yet." cta={emptyAction} />;
 
-  if (reordering && wholeList)
+  if (reordering && wholeList && listId !== undefined)
     return <ClimbListReorder items={items} listId={listId} onClose={() => setReordering(false)} />;
 
   return (
@@ -124,7 +130,7 @@ export function ClimbListItems({
               onChange={(sent) => navigate({ ...view, sent })}
             />
           )}
-          {canEdit &&
+          {editable &&
             totalCount > 1 &&
             (wholeList ? (
               <Button variant="outline" onPress={() => setReordering(true)}>
@@ -202,7 +208,7 @@ export function ClimbListItems({
                 </div>
               }
               actions={
-                canEdit && (
+                editable && (
                   <Button
                     isIconOnly
                     variant="ghost"

@@ -40,6 +40,9 @@ type ShareLinkDialogProps = {
   /** What survives stopping: the confirmation exists to say it is not a
    * delete. */
   stopDescription: string;
+  /** Whether to say that tagged climbers aren't named. Off for things that
+   * can't tag anyone, such as a list. */
+  showTaggedNote?: boolean;
 };
 
 /** Publishes one thing behind a link, and says plainly what that link is
@@ -59,6 +62,7 @@ export function ShareLinkDialog({
   onShare,
   onUnshare,
   stopDescription,
+  showTaggedNote = true,
 }: ShareLinkDialogProps) {
   const [expiry, setExpiry] = useState<ShareExpiry>(DEFAULT_SHARE_EXPIRY);
   // The deadline the server computed, shown without waiting for a refresh.
@@ -129,7 +133,9 @@ export function ShareLinkDialog({
       >
         <div className="flex flex-col gap-4">
           <p className="text-sm">{sentence}</p>
-          <p className="text-sm text-muted">Climbers you tagged aren&apos;t named.</p>
+          {showTaggedNote && (
+            <p className="text-sm text-muted">Climbers you tagged aren&apos;t named.</p>
+          )}
 
           <div className="flex items-center justify-between gap-3">
             {/* The control sets a duration; the line under the link reports

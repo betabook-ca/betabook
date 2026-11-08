@@ -124,6 +124,18 @@ export function climbListViewSearch(view: ClimbListView): string {
   return search ? `?${search}` : "";
 }
 
+/** What a list link shows, said in the Share dialog before a link exists. The
+ * shared page shows the list even when the owner's lists are Only me, so this
+ * sentence has to keep covering everything on it; anything added to
+ * `SharedClimbList` needs it changed first. */
+export const CLIMB_LIST_SHARE_SENTENCE =
+  "Anyone with the link sees this list: its name, description, climbs and grades, and your name. It works even when your lists are set to Only me.";
+
+/** The token is the whole URL: no user id, no list id, nothing to enumerate. */
+export function climbListSharePath(token: string): string {
+  return `/lists/${token}`;
+}
+
 export function climbCountLabel(count: number): string {
   return `${count} ${count === 1 ? "climb" : "climbs"}`;
 }
