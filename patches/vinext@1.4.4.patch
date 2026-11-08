@@ -1,8 +1,8 @@
 diff --git a/dist/server/app-page-route-wiring.js b/dist/server/app-page-route-wiring.js
-index a1317ac..058f6d7 100644
+index a42aef2..9aa0176 100644
 --- a/dist/server/app-page-route-wiring.js
 +++ b/dist/server/app-page-route-wiring.js
-@@ -303,12 +303,15 @@ function createAppPageStreamingMetadataOutlet(elementId, suspended = true) {
+@@ -334,12 +334,15 @@ function createAppPageStreamingMetadataOutlet(elementId, suspended = true) {
  }
  function createAppPageStreamingMetadataBody(elementId) {
  	if (!elementId) return null;
