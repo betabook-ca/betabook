@@ -35,7 +35,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** The owner's circuit order, unnumbered, with Remove on every row. */
+/** The owner's circuit order, unnumbered. Remove is in the ⋯ menu's editor. */
 export const ListOrder: Story = {};
 
 /** Sorted by grade, hardest first. */

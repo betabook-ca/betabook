@@ -12,7 +12,7 @@ const meta = {
   render: (args) => (
     <StoryPage
       title="Reorder"
-      description="Drag a climb by its handle or use the arrows. Nothing saves until Save order, which sends the whole order once."
+      description="Drag a climb by its handle or use the arrows, and remove climbs. Nothing saves until Save, which sends the order and removals once."
     >
       <ClimbListReorder {...args} />
     </StoryPage>

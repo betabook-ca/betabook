@@ -1,11 +1,9 @@
 "use client";
 
 import { Button, Menu } from "@heroui/react";
-import { X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 
-import { removeClimbFromList } from "@/actions";
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
 import { ClimbListReorder } from "@/components/climb-lists/climb-list-reorder";
 import { ClimbListToolbar } from "@/components/climb-lists/climb-list-toolbar";
@@ -15,7 +13,6 @@ import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Grade } from "@/components/ui/grade";
 import { GradeLabel } from "@/components/ui/grade-label";
-import { InlineAlert } from "@/components/ui/inline-alert";
 import { ListRow } from "@/components/ui/list-row";
 import type { AreaBreadcrumbs, ClimbListItem } from "@/db/queries";
 import {
@@ -34,7 +31,7 @@ import { climbHref } from "@/lib/slug";
  * The sort and filters (disciplines, grades, rating, ascents, Exclude sent)
  * are the reader's view, kept in the URL,
  * and never change the list. Rows carry no number, so the climb name gets the
- * width on a phone; the numbers show only in the Reorder editor. Sent state,
+ * width on a phone; the numbers show only in the Edit view. Sent state,
  * and Exclude sent, are the reader's own sends; a signed-out reader has none
  * and sees neither.
  */
@@ -57,18 +54,15 @@ export function ClimbListItems({
   /** Needed only to edit. A shared-link page leaves it out, so the page
    * sends the reader nothing but the link's token. */
   listId?: number;
-  /** The owner viewing their own list: rows get a Remove button. Needs
-   * `listId`. */
+  /** The owner viewing their own list: the ⋯ menu offers Edit, where
+   * climbs are reordered and removed. Needs `listId`. */
   canEdit?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [removeError, setRemoveError] = useState<string | null>(null);
-  const [removing, setRemoving] = useState<number | null>(null);
-  const [, startTransition] = useTransition();
-  const [reordering, setReordering] = useState(false);
+  const [editing, setEditing] = useState(false);
   const listOrder = isListOrder(view.sort);
-  // Reordering saves the whole order, so it needs every climb, in list order.
+  // Editing saves the whole order, so it needs every climb, in list order.
   const wholeList = listOrder && !isFilteredClimbList(view.filter);
 
   function navigate(next: ClimbListView) {
@@ -77,21 +71,10 @@ export function ClimbListItems({
 
   const editable = canEdit && listId !== undefined;
 
-  function remove(climbId: number) {
-    if (listId === undefined) return;
-    setRemoveError(null);
-    setRemoving(climbId);
-    startTransition(async () => {
-      const result = await removeClimbFromList(listId, climbId);
-      setRemoving(null);
-      if (!result.ok) setRemoveError(result.error);
-    });
-  }
-
   if (totalCount === 0) return <EmptyState message="No climbs on this list yet." />;
 
-  if (reordering && wholeList && listId !== undefined)
-    return <ClimbListReorder items={items} listId={listId} onClose={() => setReordering(false)} />;
+  if (editing && wholeList && listId !== undefined)
+    return <ClimbListReorder items={items} listId={listId} onClose={() => setEditing(false)} />;
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
@@ -99,25 +82,22 @@ export function ClimbListItems({
         view={view}
         signedIn={signedIn}
         menu={
-          editable &&
-          totalCount > 1 && (
+          editable && (
             <ActionsMenu
               ariaLabel="List actions"
               onAction={(key) => {
-                if (key !== "reorder") return;
+                if (key !== "edit") return;
                 // The editor saves every climb in order, so it opens on the
                 // plain list: a sorted or filtered view switches back first.
                 if (!wholeList) navigate(DEFAULT_CLIMB_LIST_VIEW);
-                setReordering(true);
+                setEditing(true);
               }}
             >
-              <Menu.Item id="reorder">Reorder</Menu.Item>
+              <Menu.Item id="edit">Edit</Menu.Item>
             </ActionsMenu>
           )
         }
       />
-
-      {removeError && <InlineAlert>{removeError}</InlineAlert>}
 
       {items.length === 0 ? (
         <EmptyState
@@ -168,20 +148,6 @@ export function ClimbListItems({
                   </Grade>
                   <DisciplineChip type={item.type} />
                 </div>
-              }
-              actions={
-                editable && (
-                  <Button
-                    isIconOnly
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`Remove ${item.name} from this list`}
-                    isDisabled={removing === item.climbId}
-                    onPress={() => remove(item.climbId)}
-                  >
-                    <X className="size-4" />
-                  </Button>
-                )
               }
             />
           ))}

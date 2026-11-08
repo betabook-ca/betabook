@@ -9,7 +9,7 @@ import {
   createClimbList,
   deleteClimbList,
   removeClimbFromList,
-  reorderClimbList,
+  saveClimbListEdits,
   setClimbListVisibility,
   shareClimbList,
   unshareClimbList,
@@ -199,7 +199,7 @@ describe("creating and editing lists", () => {
       CLIMB_LIST_NOT_FOUND_MESSAGE,
     );
     expect(errorOf(await addClimbToList(id, 3))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
-    expect(errorOf(await reorderClimbList(id, [2, 1]))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
+    expect(errorOf(await saveClimbListEdits(id, [2, 1]))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
     expect(errorOf(await shareClimbList(id, "30d"))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
     expect(errorOf(await removeClimbFromList(id, 1))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
     value(await deleteClimbList(id));
@@ -234,7 +234,7 @@ describe("review fixes", () => {
     const id = await seedList("owner", "Budget", [1]);
     value(await addClimbToList(id, 2));
     value(await removeClimbFromList(id, 2));
-    value(await reorderClimbList(id, [1]));
+    value(await saveClimbListEdits(id, [1]));
     value(await shareClimbList(id, "never"));
     expect(budgets.journal).toBe(0);
     expect(budgets.list).toBeGreaterThanOrEqual(6);
@@ -247,9 +247,9 @@ describe("review fixes", () => {
   it("refuses an empty reorder of someone else's empty list", async () => {
     const id = await seedList("owner", "Empty");
     as("member");
-    expect(errorOf(await reorderClimbList(id, []))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
+    expect(errorOf(await saveClimbListEdits(id, []))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
     as("owner");
-    value(await reorderClimbList(id, []));
+    value(await saveClimbListEdits(id, []));
   });
 
   it("reports the real count, and moves the list up only when something changed", async () => {
@@ -306,7 +306,7 @@ describe("picker ids", () => {
 describe("reordering", () => {
   it("saves the submitted order", async () => {
     const id = await seedList("owner", "Circuit", [1, 2, 3]);
-    value(await reorderClimbList(id, [3, 1, 2]));
+    value(await saveClimbListEdits(id, [3, 1, 2]));
     expect(await order(id)).toEqual([3, 1, 2]);
   });
 
@@ -314,10 +314,42 @@ describe("reordering", () => {
     const id = await seedList("owner", "Circuit", [1, 2]);
     value(await addClimbToList(id, 3));
 
-    expect(errorOf(await reorderClimbList(id, [2, 1]))).toBe(CLIMB_LIST_CHANGED_MESSAGE);
-    expect(errorOf(await reorderClimbList(id, [2, 1, 4]))).toBe(CLIMB_LIST_CHANGED_MESSAGE);
-    expect(errorOf(await reorderClimbList(id, [2, 2, 1]))).toBe(CLIMB_LIST_CHANGED_MESSAGE);
+    expect(errorOf(await saveClimbListEdits(id, [2, 1]))).toBe(CLIMB_LIST_CHANGED_MESSAGE);
+    expect(errorOf(await saveClimbListEdits(id, [2, 1, 4]))).toBe(CLIMB_LIST_CHANGED_MESSAGE);
+    expect(errorOf(await saveClimbListEdits(id, [2, 2, 1]))).toBe(CLIMB_LIST_CHANGED_MESSAGE);
     expect(await order(id)).toEqual([1, 2, 3]);
+  });
+});
+
+describe("removing in the editor", () => {
+  it("removes the climbs taken off and saves the new order in one write", async () => {
+    const id = await seedList("owner", "Circuit", [1, 2, 3]);
+    value(await saveClimbListEdits(id, [3, 1], [2]));
+    expect(await order(id)).toEqual([3, 1]);
+  });
+
+  it("can take every climb off", async () => {
+    const id = await seedList("owner", "Circuit", [1, 2]);
+    value(await saveClimbListEdits(id, [], [2, 1]));
+    expect(await order(id)).toEqual([]);
+  });
+
+  it("writes nothing when the list changed since the editor opened", async () => {
+    const id = await seedList("owner", "Circuit", [1, 2]);
+    value(await addClimbToList(id, 3));
+
+    expect(errorOf(await saveClimbListEdits(id, [2], [1]))).toBe(CLIMB_LIST_CHANGED_MESSAGE);
+    // A climb both kept and removed is not a real edit.
+    expect(errorOf(await saveClimbListEdits(id, [3, 2, 1], [1]))).toBe(CLIMB_LIST_CHANGED_MESSAGE);
+    expect(await order(id)).toEqual([1, 2, 3]);
+  });
+
+  it("refuses another climber's list and leaves it whole", async () => {
+    const id = await seedList("owner", "Mine", [1, 2]);
+    as("member");
+    expect(errorOf(await saveClimbListEdits(id, [1], [2]))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
+    expect(errorOf(await saveClimbListEdits(id, [], [1, 2]))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
+    expect(await order(id)).toEqual([1, 2]);
   });
 });
 

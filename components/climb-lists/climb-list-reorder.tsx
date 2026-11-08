@@ -1,21 +1,22 @@
 "use client";
 
 import { Button } from "@heroui/react";
-import { ArrowDown, ArrowUp, GripVertical } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, X } from "lucide-react";
 import { useState, useTransition } from "react";
 import { DropIndicator, GridList, GridListItem, useDragAndDrop } from "react-aria-components";
 
-import { reorderClimbList } from "@/actions";
+import { saveClimbListEdits } from "@/actions";
 import { cardClass } from "@/components/ui/card";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import type { ClimbListItem } from "@/db/queries";
 import { moveClimb } from "@/lib/climb-lists";
 
 /**
- * The owner's order editor: drag a row by its handle, or use the arrow
- * buttons, which are also the keyboard and touch path. Nothing is written
- * until Save order, which sends the whole order once; the server refuses it
- * if the list changed in the meantime, rather than half-applying it.
+ * The owner's list editor: drag a row by its handle, or use the arrow
+ * buttons, which are also the keyboard and touch path, and take climbs off
+ * with Remove. Nothing is written until Save, which sends the order and the
+ * removed climbs once; the server refuses it if the list changed in the
+ * meantime, rather than half-applying it. Cancel puts removed climbs back.
  *
  * `items` must be the whole list in list order. The list page opens this only
  * in list order with no filter, so the order it saves has every climb in it.
@@ -30,11 +31,17 @@ export function ClimbListReorder({
   onClose: () => void;
 }) {
   const [order, setOrder] = useState(() => items.map((item) => item.climbId));
+  const [removed, setRemoved] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const byId = new Map(items.map((item) => [item.climbId, item]));
   const rows = order.flatMap((id) => byId.get(id) ?? []);
-  const changed = order.some((id, index) => id !== items[index]?.climbId);
+  const changed = removed.length > 0 || order.some((id, index) => id !== items[index]?.climbId);
+
+  function remove(climbId: number) {
+    setOrder((current) => current.filter((id) => id !== climbId));
+    setRemoved((current) => [...current, climbId]);
+  }
 
   const { dragAndDropHooks } = useDragAndDrop<ClimbListItem>({
     getItems: (keys) => [...keys].map((key) => ({ "text/plain": String(key) })),
@@ -68,7 +75,7 @@ export function ClimbListReorder({
   function save() {
     setError(null);
     startTransition(async () => {
-      const result = await reorderClimbList(listId, order);
+      const result = await saveClimbListEdits(listId, order, removed);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -80,13 +87,15 @@ export function ClimbListReorder({
   return (
     <div className="flex min-w-0 flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted">Drag climbs by the handle, or use the arrows.</p>
+        <p className="text-sm text-muted">
+          Drag climbs by the handle, or use the arrows. Nothing changes until you save.
+        </p>
         <div className="flex gap-2">
           <Button variant="ghost" isDisabled={pending} onPress={onClose}>
             Cancel
           </Button>
           <Button isDisabled={pending || !changed} onPress={save}>
-            Save order
+            Save
           </Button>
         </div>
       </div>
@@ -97,6 +106,9 @@ export function ClimbListReorder({
         dependencies={[order]}
         selectionMode="none"
         dragAndDropHooks={dragAndDropHooks}
+        renderEmptyState={() => (
+          <p className="px-2 py-4 text-sm text-muted">Every climb will be removed.</p>
+        )}
         className="flex flex-col divide-y divide-separator"
       >
         {(item) => {
@@ -149,6 +161,16 @@ export function ClimbListReorder({
                 }
               >
                 <ArrowDown size={14} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                isIconOnly
+                aria-label={`Remove ${item.name} from this list`}
+                isDisabled={pending}
+                onPress={() => remove(item.climbId)}
+              >
+                <X size={14} />
               </Button>
             </GridListItem>
           );

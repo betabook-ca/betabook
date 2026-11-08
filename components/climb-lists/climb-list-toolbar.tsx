@@ -31,7 +31,7 @@ export function ClimbListToolbar({
 }: {
   view: ClimbListView;
   signedIn: boolean;
-  /** Beside the sort, such as the owner's ⋯ menu with Reorder. */
+  /** Beside the sort, such as the owner's ⋯ menu with Edit. */
   menu?: ReactNode;
 }) {
   const router = useRouter();
