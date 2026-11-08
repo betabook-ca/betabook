@@ -11,6 +11,11 @@ import { climbListHref, copyClimbListTitle } from "@/lib/climb-lists";
 
 type ListFields = { id: number; title: string; description: string | null };
 
+/** Where a copy reads its climbs from: the list by id, for a reader who can
+ * see it on the owner's profile, or the share link, for one who reached it
+ * that way. A link copy carries no list id, so a shared page never sends one. */
+export type ClimbListCopySource = { listId: number } | { token: string };
+
 /** What the dialog does. Copying takes the source's climbs in list order; the
  * name and description start as the source's and are the copier's to change. */
 export type ClimbListDialogMode =
@@ -18,11 +23,10 @@ export type ClimbListDialogMode =
   | { kind: "edit"; list: ListFields }
   | {
       kind: "copy";
-      list: ListFields & { climbCount: number };
+      list: Omit<ListFields, "id"> & { climbCount: number };
       /** True when copying your own list, which adds " (copy)" to the name. */
       own: boolean;
-      /** Copy through this link rather than by id. */
-      token?: string;
+      source: ClimbListCopySource;
     };
 
 function draftFor(mode: ClimbListDialogMode): ClimbListDraft {
@@ -76,8 +80,7 @@ export function ClimbListDialog({
       return updateClimbList(mode.list.id, input).then((result) =>
         result.ok ? { ok: true as const, value: mode.list.id } : result,
       );
-    const source = mode.token ? { token: mode.token } : { listId: mode.list.id };
-    return copyClimbList(source, input);
+    return copyClimbList(mode.source, input);
   }
 
   function handleSave() {

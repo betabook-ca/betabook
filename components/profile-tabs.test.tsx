@@ -56,6 +56,28 @@ it("hides only the Trips tab when the trips aren't shared with the viewer", () =
   ]);
 });
 
+it("shows Lists when the viewer can open them, and keeps it current on a list page", () => {
+  state.pathname = "/users/other/lists/3";
+  const html = renderToStaticMarkup(
+    <ProfileTabs userId="other" showJournal={false} showTrips={false} showLists />,
+  );
+
+  expect(hrefs(html)).toEqual([
+    "/users/other/sends",
+    "/users/other/lists",
+    "/users/other/analytics",
+  ]);
+  expect(html).toContain('href="/users/other/lists" aria-current="page"');
+});
+
+it("leaves Lists off a share link's tabs", () => {
+  state.pathname = "/users/other";
+  const html = renderToStaticMarkup(
+    <ProfileTabs userId="other" showJournal={false} showTrips={false} showLists share={TOKEN} />,
+  );
+  expect(html).not.toContain("/lists");
+});
+
 it("marks Sends current at the profile root when the journal is hidden", () => {
   state.pathname = "/users/other";
   const html = renderToStaticMarkup(<ProfileTabs userId="other" showJournal={false} showTrips />);

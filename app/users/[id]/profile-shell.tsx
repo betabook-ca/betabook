@@ -219,5 +219,12 @@ async function VisitorProfileHeading({
 
 async function VisitorProfileTabs({ userId, viewerId }: { userId: string; viewerId: string }) {
   const access = await getAccess(userId, viewerId);
-  return <ProfileTabs userId={userId} showJournal={access.journal} showTrips={access.trips} />;
+  return (
+    <ProfileTabs
+      userId={userId}
+      showJournal={access.journal}
+      showTrips={access.trips}
+      showLists={access.lists}
+    />
+  );
 }

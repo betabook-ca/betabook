@@ -62,7 +62,11 @@ export function ClimbListActions({
       </ActionsMenu>
 
       <ClimbListDialog state={editState} userId={userId} mode={{ kind: "edit", list }} />
-      <ClimbListDialog state={copyState} userId={userId} mode={{ kind: "copy", list, own: true }} />
+      <ClimbListDialog
+        state={copyState}
+        userId={userId}
+        mode={{ kind: "copy", list, own: true, source: { listId: list.id } }}
+      />
       <ConfirmDeleteDialog
         state={deleteState}
         noun="list"

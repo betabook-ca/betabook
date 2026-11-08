@@ -4,6 +4,7 @@ import { Suspense } from "react";
 
 import { ClimbListHeader } from "@/components/climb-lists/climb-list-header";
 import { ClimbListItems } from "@/components/climb-lists/climb-list-items";
+import { CopyClimbListButton } from "@/components/climb-lists/copy-climb-list-button";
 import { expiredLinkCard } from "@/components/expired-link-card";
 import { signUpCard } from "@/components/sign-up-card";
 import { AppLink } from "@/components/ui/app-link";
@@ -76,7 +77,22 @@ export default async function SharedListPage({ params, searchParams }: SharedLis
           <AppLink href={`/users/${owner.id}`}>{owner.name}</AppLink>&apos;s list
         </PageTitle>
       </div>
-      <ClimbListHeader list={list} />
+      <ClimbListHeader
+        list={list}
+        actions={
+          viewerId && (
+            <CopyClimbListButton
+              list={{
+                title: list.title,
+                description: list.description,
+                climbCount: list.climbCount,
+              }}
+              viewerId={viewerId}
+              source={{ token }}
+            />
+          )
+        }
+      />
       <Suspense fallback={<SkeletonListRows rows={6} />}>
         <SharedListItems
           token={token}

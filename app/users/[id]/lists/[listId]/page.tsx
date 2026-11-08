@@ -8,6 +8,7 @@ import { ClimbListActions } from "@/components/climb-lists/climb-list-actions";
 import { ClimbListHeader } from "@/components/climb-lists/climb-list-header";
 import { ClimbListItems } from "@/components/climb-lists/climb-list-items";
 import { ClimbListShare } from "@/components/climb-lists/climb-list-share";
+import { CopyClimbListButton } from "@/components/climb-lists/copy-climb-list-button";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { SkeletonListRows } from "@/components/ui/skeleton";
 import { getDb } from "@/db/client";
@@ -73,7 +74,7 @@ export default async function ListPage({ params, searchParams }: ListPageProps) 
           back={climbListsHref(user.id)}
           byline={isOwner ? undefined : `By ${user.name}`}
           actions={
-            ownerShare && (
+            ownerShare ? (
               <>
                 <ClimbListShare
                   listId={list.id}
@@ -84,6 +85,8 @@ export default async function ListPage({ params, searchParams }: ListPageProps) 
                 />
                 <ClimbListActions list={list} userId={user.id} leaveOnDelete />
               </>
+            ) : (
+              <CopyClimbListButton list={list} viewerId={viewerId} source={{ listId: list.id }} />
             )
           }
         />

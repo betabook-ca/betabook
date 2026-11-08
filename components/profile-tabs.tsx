@@ -10,6 +10,8 @@ type ProfileTabsProps = {
   showJournal: boolean;
   /** Whether the viewer can open the owner's trips. */
   showTrips: boolean;
+  /** Whether the viewer can open the owner's lists. */
+  showLists?: boolean;
   /** Share token for a signed-out visitor. Limits the tabs to the one the link
    * can open, Sends, and adds the token to its href. */
   share?: string;
@@ -25,12 +27,21 @@ type ProfileTab = {
 };
 
 /** Sections of a climber profile. Owner workspaces use their own scoped navigation. */
-export function ProfileTabs({ userId, showJournal, showTrips, share }: ProfileTabsProps) {
+export function ProfileTabs({
+  userId,
+  showJournal,
+  showTrips,
+  showLists = false,
+  share,
+}: ProfileTabsProps) {
   const pathname = usePathname();
   const base = `/users/${userId}`;
 
   const trips: ProfileTab[] = showTrips
     ? [{ path: `${base}/trips`, label: "Trips", nested: true }]
+    : [];
+  const lists: ProfileTab[] = showLists
+    ? [{ path: `${base}/lists`, label: "Lists", nested: true }]
     : [];
   const tabs: ProfileTab[] = share
     ? [{ path: base, label: "Sends" }]
@@ -38,6 +49,7 @@ export function ProfileTabs({ userId, showJournal, showTrips, share }: ProfileTa
         ...(showJournal ? [{ path: `${base}/journal`, label: "Journal", roots: [base] }] : []),
         { path: `${base}/sends`, label: "Sends", roots: showJournal ? [] : [base] },
         ...trips,
+        ...lists,
         { path: `${base}/analytics`, label: "Analytics" },
       ];
 
