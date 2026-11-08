@@ -84,24 +84,24 @@ export function seedManyFriendships(
  */
 export async function seedFixtureTree(db: Database) {
   // parentId is the whole tree — no positions to keep consistent with it.
-  await db.insert(areas).values([
-    { id: 1, parentId: null, name: "Test Crag", description: "A test crag." },
-    { id: 2, parentId: 1, name: "Test Boulders" },
-    { id: 3, parentId: 1, name: "Test Sport Wall" },
-    { id: 4, parentId: 2, name: "Test Highball Alcove" },
-    { id: 5, parentId: 2, name: "Test Slab Area" },
-  ]);
-
-  await db.insert(climbs).values([
-    { id: 1, areaId: 4, name: "Test Highball", type: "boulder", grade: 5 }, // V4
-    { id: 2, areaId: 5, name: "Test Slab", type: "boulder", grade: 2 }, // V1
-    { id: 3, areaId: 3, name: "Test Crimper", type: "sport", grade: 10 }, // 5.10a
-    { id: 4, areaId: 3, name: "Test Crack", type: "trad", grade: 6 }, // 5.6
-  ]);
-
   // areas_fts/climbs_fts are populated by the sync triggers
   // (drizzle/migrations/0015_fts_sync_triggers.sql) — seeding them by hand
   // here would double-index every row.
+  await db.batch([
+    db.insert(areas).values([
+      { id: 1, parentId: null, name: "Test Crag", description: "A test crag." },
+      { id: 2, parentId: 1, name: "Test Boulders" },
+      { id: 3, parentId: 1, name: "Test Sport Wall" },
+      { id: 4, parentId: 2, name: "Test Highball Alcove" },
+      { id: 5, parentId: 2, name: "Test Slab Area" },
+    ]),
+    db.insert(climbs).values([
+      { id: 1, areaId: 4, name: "Test Highball", type: "boulder", grade: 5 }, // V4
+      { id: 2, areaId: 5, name: "Test Slab", type: "boulder", grade: 2 }, // V1
+      { id: 3, areaId: 3, name: "Test Crimper", type: "sport", grade: 10 }, // 5.10a
+      { id: 4, areaId: 3, name: "Test Crack", type: "trad", grade: 6 }, // 5.6
+    ]),
+  ]);
 }
 
 /** Inserts `count` boulder climbs into `areaId`, for pagination tests. */
@@ -120,10 +120,7 @@ export async function seedManyClimbs(db: Database, areaId: number, count: number
   // bound columns per row (id/areaId/name/type/grade/sendCount/ratingSum/
   // ratingCount — drizzle binds every column with a default explicitly
   // rather than omitting it), so 12 rows/chunk stays safely under the limit.
-  const CHUNK_SIZE = 12;
-  for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
-    await db.insert(climbs).values(rows.slice(i, i + CHUNK_SIZE));
-  }
+  await insertInBatches(db, rows, 12, (chunk) => db.insert(climbs).values(chunk));
 }
 
 /** Inserts `count` leaf areas sharing a common name prefix, root-level by
@@ -145,10 +142,7 @@ export async function seedManyAreas(
     parentId,
     name: `${namePrefix} ${i}`,
   }));
-  const CHUNK_SIZE = 20;
-  for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
-    await db.insert(areas).values(rows.slice(i, i + CHUNK_SIZE));
-  }
+  await insertInBatches(db, rows, 20, (chunk) => db.insert(areas).values(chunk));
 }
 
 type FixtureUserOverrides = Partial<typeof user.$inferInsert> & { id: string };

@@ -19,3 +19,56 @@ index a42aef2..9aa0176 100644
  	});
  }
  function buildAppPageElements(options) {
+diff --git a/dist/server/app-streamed-client-references.js b/dist/server/app-streamed-client-references.js
+index 8491b42..b9840bc 100644
+--- a/dist/server/app-streamed-client-references.js
++++ b/dist/server/app-streamed-client-references.js
+@@ -1,5 +1,6 @@
+ import { getOrCreateAls } from "../shims/internal/als-registry.js";
+ import { escapeHtmlAttr } from "./html.js";
++import { getPagesClientAssets } from "./pages-client-assets.js";
+ import * as ReactDOM from "react-dom";
+ import { setOnClientReference } from "@vitejs/plugin-rsc/ssr";
+ //#region src/server/app-streamed-client-references.ts
+@@ -49,6 +50,25 @@ function linkScripts(deps, render) {
+ 	};
+ 	for (const href of deps.js) ReactDOM.preloadModule(href, options);
+ }
++// cloudflare/vinext#4194 set `ssrServerConsumerManifest.moduleLoading = null`
++// so React wouldn't emit classic `<script async>` tags for ESM chunks, leaving
++// rendered client references with only `<link rel="modulepreload">` hints from
++// plugin-rsc. Preinitialize each rendered reference's registering module chunk
++// (`<script type="module" async fetchPriority="low">`, matching #4183) so the
++// browser evaluates it in parallel with bootstrap and delays `window.onload`
++// until its static import graph has loaded.
++function preinitReferenceModule(id, render) {
++	const referenceChunks = getPagesClientAssets().appClientReferenceChunks;
++	if (!referenceChunks || !Object.hasOwn(referenceChunks.references, id)) return;
++	const module = referenceChunks.modules[referenceChunks.references[id]];
++	if (!module) return;
++	ReactDOM.preinitModule(module.file, {
++		as: "script",
++		crossOrigin: render.crossOrigin,
++		fetchPriority: "low",
++		nonce: render.nonce
++	});
++}
+ function linkStylesheets(hrefs, render) {
+ 	const options = {
+ 		as: "style",
+@@ -90,6 +110,7 @@ function wrapClientReferenceRequire(asyncIds, getLoader) {
+ 		if (render?.streamed.has(id)) {
+ 			const deps = referenceDeps.get(id);
+ 			if (deps) linkScripts(deps, render);
++			preinitReferenceModule(id, render);
+ 		}
+ 		let loading = loads.get(id);
+ 		if (!loading) {
+@@ -103,6 +124,7 @@ function wrapClientReferenceRequire(asyncIds, getLoader) {
+ 					if (deps && key in target) {
+ 						linkStylesheets(deps.css, render);
+ 						if (hintsScripts(render)) linkScripts(deps, render);
++						preinitReferenceModule(id, render);
+ 					}
+ 				}
+ 				return Reflect.get(target, key, receiver);
