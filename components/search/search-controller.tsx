@@ -126,38 +126,44 @@ export function SearchController({
         onNavigate={quick ? () => onOpenChange(false) : undefined}
       />
     ) : undefined,
-    filters:
-      quick || state.category !== "climb" ? undefined : (
-        <div data-tour-target={filtersTourTarget}>
-          <ClimbFilterControls
-            value={state}
-            onChange={(next) => onChange({ ...state, ...next })}
-            showAreaLookup
-            showExcludeSent={!publicOnly}
-            areaFetcher={areaFetcher}
-            activeFilters={
-              state.query
-                ? [
-                    {
-                      id: "query",
-                      label: `Search: ${state.query}`,
-                      onRemove: () => onChange({ ...state, query: "" }),
-                    },
-                  ]
-                : []
-            }
-            onReset={() =>
-              onChange({
-                ...state,
-                query: "",
-                filter: DEFAULT_CLIMB_FILTER,
-                area: null,
-                sort: DEFAULT_CLIMB_LIST_SORT,
-              })
-            }
-          />
-        </div>
-      ),
+    // The climb name field moves into the toolbar's search slot, beside the
+    // sort, so Find climbs stacks like every other climb list; the area
+    // lookup stays above the toolbar.
+    renderFilters:
+      quick || state.category !== "climb"
+        ? undefined
+        : (queryField: ReactNode) => (
+            <div data-tour-target={filtersTourTarget}>
+              <ClimbFilterControls
+                textFilter={queryField}
+                value={state}
+                onChange={(next) => onChange({ ...state, ...next })}
+                showAreaLookup
+                showExcludeSent={!publicOnly}
+                areaFetcher={areaFetcher}
+                activeFilters={
+                  state.query
+                    ? [
+                        {
+                          id: "query",
+                          label: `Search: ${state.query}`,
+                          onRemove: () => onChange({ ...state, query: "" }),
+                        },
+                      ]
+                    : []
+                }
+                onReset={() =>
+                  onChange({
+                    ...state,
+                    query: "",
+                    filter: DEFAULT_CLIMB_FILTER,
+                    area: null,
+                    sort: DEFAULT_CLIMB_LIST_SORT,
+                  })
+                }
+              />
+            </div>
+          ),
   };
   return quick ? (
     <QuickSearchDialog {...props} isOpen={isOpen} onOpenChange={onOpenChange} />

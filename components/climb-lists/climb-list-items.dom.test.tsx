@@ -13,6 +13,7 @@ import {
 import { DEFAULT_CLIMB_FILTER } from "@/lib/filters/climb-filter";
 import { climbListBreadcrumbs, climbListItemSamples } from "@/stories/fixtures/climb-lists";
 
+import { ClimbListEditButton, ClimbListEditingProvider } from "./climb-list-editing";
 import { ClimbListItems } from "./climb-list-items";
 
 vi.mock("@/actions", () => ({
@@ -87,26 +88,25 @@ type ItemsProps = Partial<{
   canEdit: boolean;
   signedIn: boolean;
   totalCount: number;
-  withAddClimbs: boolean;
 }>;
 
+/** The list with the header's Edit button above it, as the list page joins them. */
 function itemsElement(props: ItemsProps = {}) {
   const items = props.items ?? climbListItemSamples;
   return (
-    <ClimbListItems
-      items={items}
-      totalCount={props.totalCount ?? climbListItemSamples.length}
-      areaBreadcrumbs={climbListBreadcrumbs}
-      view={props.view ?? CIRCUIT}
-      signedIn={props.signedIn ?? true}
-      listId={1}
-      canEdit={props.canEdit ?? true}
-      addClimbs={
-        props.withAddClimbs
-          ? { listTitle: "Projects", climbIds: items.map((item) => item.climbId) }
-          : undefined
-      }
-    />
+    <ClimbListEditingProvider>
+      <ClimbListEditButton />
+      <ClimbListItems
+        items={items}
+        totalCount={props.totalCount ?? climbListItemSamples.length}
+        areaBreadcrumbs={climbListBreadcrumbs}
+        view={props.view ?? CIRCUIT}
+        signedIn={props.signedIn ?? true}
+        listId={1}
+        canEdit={props.canEdit ?? true}
+        listTitle="Projects"
+      />
+    </ClimbListEditingProvider>
   );
 }
 
@@ -119,10 +119,9 @@ function rows() {
   return [...document.querySelectorAll<HTMLElement>("ol > li")];
 }
 
-/** Edit lives in the owner's ⋯ menu beside the sort. */
+/** Edit is a button in the list header. */
 async function chooseEdit(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole("button", { name: "List actions" }));
-  await user.click(await screen.findByRole("menuitem", { name: "Edit" }));
+  await user.click(await screen.findByRole("button", { name: "Edit climbs" }));
 }
 
 beforeEach(() => {
@@ -145,8 +144,8 @@ it("switches a sorted view back to circuit order when the owner chooses Edit", a
     items: climbListItemSamples.toReversed(),
     view: { sort: "name_desc", filter: DEFAULT_CLIMB_FILTER },
   });
-  // No standalone button: Edit is only in the menu.
-  expect(screen.queryByRole("button", { name: /^edit$/i })).not.toBeInTheDocument();
+  // Edit is the header's button; nothing beside the sort.
+  expect(screen.queryByRole("button", { name: "List actions" })).not.toBeInTheDocument();
   await chooseEdit(user);
   expect(replace).toHaveBeenCalledWith("/users/alex/lists/1", { scroll: false });
 });
@@ -157,8 +156,8 @@ it("offers the discipline chips and Filters panel with Exclude sent, kept in the
 
   for (const discipline of ["Boulder", "Sport", "Trad"])
     expect(screen.getByRole("button", { name: discipline })).toBeVisible();
-  // Find climbs' text box and area lookup aren't on a list.
-  expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
+  // A text box on the climb name, but no area lookup: a list's climbs are chosen.
+  expect(screen.getByRole("searchbox", { name: "Filter climbs on this list" })).toBeVisible();
   await user.click(screen.getByRole("button", { name: "Expand filters" }));
   expect(screen.queryByRole("combobox", { name: /area/i })).not.toBeInTheDocument();
   await user.click(screen.getByRole("checkbox", { name: "Exclude sent" }));
@@ -169,6 +168,55 @@ it("offers the discipline chips and Filters panel with Exclude sent, kept in the
     }),
   );
   expect(screen.getByRole("button", { name: "Remove Excluding sent" })).toBeInTheDocument();
+});
+
+it("filters by climb name in the URL, keeping the sort, and lists it as a removable filter", async () => {
+  const user = userEvent.setup();
+  renderItems({ view: { sort: "grade_desc", filter: DEFAULT_CLIMB_FILTER } });
+  await user.type(screen.getByRole("searchbox", { name: "Filter climbs on this list" }), "rat");
+
+  await waitFor(() =>
+    expect(replace).toHaveBeenCalledWith("/users/alex/lists/1?name=rat&sort=grade_desc", {
+      scroll: false,
+    }),
+  );
+  await user.click(screen.getByRole("button", { name: "Remove Text: rat" }));
+  expect(screen.getByRole("searchbox", { name: "Filter climbs on this list" })).toHaveValue("");
+});
+
+it("sets aside no area block above the toolbar, since a list has no area lookup", () => {
+  renderItems();
+  expect(document.querySelector('[data-slot="climb-filters-area"]')).toBeNull();
+});
+
+it("keeps typed text when the sort changes before the text is sent", async () => {
+  const user = userEvent.setup();
+  const { rerender } = renderItems();
+  const box = screen.getByRole("searchbox", { name: "Filter climbs on this list" });
+  await user.type(box, "cri");
+  // The reader's new sort reaches the URL inside the text box's debounce.
+  rerender(itemsElement({ view: { sort: "grade_desc", filter: DEFAULT_CLIMB_FILTER } }));
+  expect(box).toHaveValue("cri");
+  await waitFor(() =>
+    expect(replace).toHaveBeenLastCalledWith("/users/alex/lists/1?name=cri&sort=grade_desc", {
+      scroll: false,
+    }),
+  );
+});
+
+it("never sends typed text with the old sort while a new sort is on its way", async () => {
+  const user = userEvent.setup();
+  renderItems();
+  await user.type(screen.getByRole("searchbox", { name: "Filter climbs on this list" }), "cri");
+  await user.click(screen.getByRole("button", { name: "Sort ascending" }));
+  expect(replace).toHaveBeenCalledWith("/users/alex/lists/1?sort=position_desc", { scroll: false });
+  // The URL hasn't caught up; the text follows with the sort just chosen.
+  await waitFor(() =>
+    expect(replace).toHaveBeenLastCalledWith("/users/alex/lists/1?name=cri&sort=position_desc", {
+      scroll: false,
+    }),
+  );
+  expect(replace).not.toHaveBeenCalledWith("/users/alex/lists/1?name=cri", { scroll: false });
 });
 
 it("says so when the filters match nothing, and clears them", async () => {
@@ -220,7 +268,7 @@ it("puts removed climbs back on Cancel", async () => {
   expect(saveClimbListEdits).not.toHaveBeenCalled();
 });
 
-it("clears the filters before editing, and offers no menu to anyone but the owner", async () => {
+it("clears the filters before editing, and lets no one but the owner edit", async () => {
   const user = userEvent.setup();
   const { unmount } = renderItems({ view: EXCLUDING_SENT });
   // Editing saves every climb, so choosing it clears the filters first.
@@ -230,7 +278,7 @@ it("clears the filters before editing, and offers no menu to anyone but the owne
   unmount();
 
   renderItems({ canEdit: false });
-  expect(screen.queryByRole("button", { name: "List actions" })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Edit climbs" })).toBeDisabled();
 });
 
 it("stages a double-tapped Remove once", async () => {
@@ -300,15 +348,26 @@ it("disables every editor control while a save is in flight", async () => {
     expect(screen.getByRole("button", { name })).toBeDisabled();
 });
 
-it("disables the list's Add climbs while editing", async () => {
+it("adds climbs only in the editor, and disables Edit while it is open", async () => {
   const user = userEvent.setup();
-  renderItems({ withAddClimbs: true });
-  const [header] = screen.getAllByRole("button", { name: "Add climbs" });
-  expect(header).toBeEnabled();
+  renderItems();
+  // Outside the editor there is no Add climbs at all.
+  expect(screen.queryByRole("button", { name: "Add climbs" })).not.toBeInTheDocument();
   await chooseEdit(user);
-  const [headerWhileEditing, editorAdd] = screen.getAllByRole("button", { name: "Add climbs" });
-  expect(headerWhileEditing).toBeDisabled();
-  expect(editorAdd).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Edit climbs" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Add climbs" })).toBeEnabled();
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(screen.getByRole("button", { name: "Edit climbs" })).toBeEnabled();
+});
+
+it("opens the editor on an empty list, where climbs are added", async () => {
+  const user = userEvent.setup();
+  renderItems({ items: [], totalCount: 0 });
+  expect(
+    screen.getByText("No climbs on this list yet. Choose Edit climbs to add some."),
+  ).toBeInTheDocument();
+  await chooseEdit(user);
+  expect(screen.getByRole("button", { name: "Add climbs" })).toBeEnabled();
 });
 
 it("stages a climb added in the editor and saves it with the rest", async () => {
@@ -350,7 +409,7 @@ it("keeps the editor open when the list empties, so it never reopens on its own"
 
   await user.click(screen.getByRole("button", { name: "Cancel" }));
   expect(screen.queryByRole("grid", { name: "Edit climbs" })).not.toBeInTheDocument();
-  expect(screen.getByText("No climbs on this list yet.")).toBeInTheDocument();
+  expect(screen.getByText(/^No climbs on this list yet\./)).toBeInTheDocument();
   rerender(itemsElement({ items: climbListItemSamples.slice(0, 1), totalCount: 1 }));
   expect(screen.queryByRole("grid", { name: "Edit climbs" })).not.toBeInTheDocument();
 });

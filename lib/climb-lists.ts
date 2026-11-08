@@ -95,9 +95,9 @@ export const CLIMB_LIST_SORT_OPTIONS: { id: ClimbListSortField; label: string }[
   { id: "added", label: "Date added" },
 ];
 
-/** The list's own sort, and Find climbs' discipline chips and Filters panel:
- * disciplines and grades, rating, ascents, and Exclude sent. Find climbs' text
- * and area fields are left out. */
+/** The list's own sort, a text filter on the climb name, and Find climbs'
+ * discipline chips and Filters panel: disciplines and grades, rating, ascents,
+ * and Exclude sent. Find climbs' area fields are left out. */
 export type ClimbListView = { sort: ClimbListSort; filter: ClimbFilter };
 
 export const DEFAULT_CLIMB_LIST_VIEW: ClimbListView = {
@@ -115,10 +115,36 @@ export function parseClimbListView(params: UrlParamsRecord): ClimbListView {
   )
     ? (rawSort as ClimbListSort)
     : DEFAULT_CLIMB_LIST_SORT;
-  // Text and area aren't offered on a list, so a URL can't apply them either:
-  // a filter the toolbar can't show is one the reader can't clear.
-  const { name: _name, areaName: _areaName, areaId: _areaId, ...filter } = parseClimbFilter(params);
-  return { sort, filter };
+  // Area isn't offered on a list, so a URL can't apply it either: a filter
+  // the toolbar can't show is one the reader can't clear.
+  const { name, areaName: _areaName, areaId: _areaId, ...filter } = parseClimbFilter(params);
+  const filterName = climbListNameFilter(name ?? "");
+  return { sort, filter: filterName ? { ...filter, name: filterName } : filter };
+}
+
+/** The list's text box limit, as the journal's. A list name filter never
+ * needs more, and a hand-built URL is held to the same. */
+export const MAX_CLIMB_LIST_NAME_FILTER = 100;
+
+/** The name filter as the list applies it: trimmed and capped. A name of only
+ * spaces is none, so it can't empty the list behind a "Text:" filter too
+ * blank to show or clear. Used both to read the URL and to write it, so the
+ * URL the text box writes is the one the page reads back. */
+export function climbListNameFilter(raw: string): string {
+  return raw.trim().slice(0, MAX_CLIMB_LIST_NAME_FILTER).trim();
+}
+
+/** Lowercase, with accents dropped: "Clémence" and "CLEMENCE" both fold to
+ * "clemence", as the Area page's search treats them. */
+function foldForMatch(text: string): string {
+  return text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+}
+
+/** Whether a climb name contains the list's name filter, ignoring case and
+ * accents. A list holds at most MAX_CLIMB_LIST_ITEMS climbs, so this runs
+ * over the list's own rows rather than as a catalog search. */
+export function climbNameMatches(name: string, filterName: string): boolean {
+  return foldForMatch(name).includes(foldForMatch(filterName));
 }
 
 /** The filter part of a view's query string. Defaults are left out, so an

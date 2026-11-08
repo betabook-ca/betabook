@@ -1,6 +1,6 @@
 import { Button, useOverlayState } from "@heroui/react";
 import { Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { ratingActiveFilters } from "@/components/filters/active-filter-values";
 import { ClimbFilters } from "@/components/filters/climb-filters";
@@ -75,13 +75,16 @@ export function DemoClimbFilters({
   value,
   onChange,
   showSort = true,
+  textFilter,
 }: {
   value: ClimbRefinements;
   onChange: (value: ClimbRefinements) => void;
   showSort?: boolean;
+  textFilter?: ReactNode;
 }) {
   return (
     <ClimbFilters
+      textFilter={textFilter}
       value={value}
       onChange={onChange}
       areaControl={
@@ -162,10 +165,16 @@ export function SearchDemo({
       {full ? (
         <SearchSurface
           {...props}
-          filters={
-            demo.category === "climb" ? (
-              <DemoClimbFilters value={demo.filters} onChange={demo.setFilters} />
-            ) : undefined
+          renderFilters={
+            demo.category === "climb"
+              ? (queryField) => (
+                  <DemoClimbFilters
+                    textFilter={queryField}
+                    value={demo.filters}
+                    onChange={demo.setFilters}
+                  />
+                )
+              : undefined
           }
         />
       ) : (

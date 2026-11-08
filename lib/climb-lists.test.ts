@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  MAX_CLIMB_LIST_NAME_FILTER,
   MAX_CLIMB_LIST_TITLE,
+  climbNameMatches,
   climbListInputSchema,
   DEFAULT_CLIMB_LIST_VIEW,
   climbListViewSearch,
@@ -38,18 +40,50 @@ describe("copyClimbListTitle", () => {
 });
 
 describe("parseClimbListView", () => {
-  it("reads the list's sort, disciplines and Filters panel, but not text or area", () => {
+  it("reads the list's sort, text, disciplines and Filters panel, but not area", () => {
     const view = parseClimbListView({
       sort: "grade_desc",
       excludeSent: "1",
       discipline: "boulder",
       name: "crimp",
       areaId: "2",
+      areaName: "Cave",
     });
     expect(view.sort).toBe("grade_desc");
-    expect(view.filter).toMatchObject({ excludeSent: true, disciplines: ["boulder"] });
-    expect(view.filter).not.toHaveProperty("name");
+    expect(view.filter).toMatchObject({
+      excludeSent: true,
+      disciplines: ["boulder"],
+      name: "crimp",
+    });
     expect(view.filter).not.toHaveProperty("areaId");
+    expect(view.filter).not.toHaveProperty("areaName");
+  });
+
+  it("trims the name, and treats a name of only spaces as none", () => {
+    expect(parseClimbListView({ name: "  crimp " }).filter.name).toBe("crimp");
+    expect(parseClimbListView({ name: "   " })).toEqual(DEFAULT_CLIMB_LIST_VIEW);
+    expect(parseClimbListView({ name: "   " }).filter).not.toHaveProperty("name");
+  });
+
+  it("caps a hand-built name at the text box's limit", () => {
+    const long = "x".repeat(MAX_CLIMB_LIST_NAME_FILTER + 50);
+    expect(parseClimbListView({ name: long }).filter.name).toHaveLength(MAX_CLIMB_LIST_NAME_FILTER);
+  });
+});
+
+describe("climbNameMatches", () => {
+  it("matches a substring of the name, ignoring case and accents as search does", () => {
+    expect(climbNameMatches("Clémence", "clemence")).toBe(true);
+    expect(climbNameMatches("Clemence", "CLÉM")).toBe(true);
+    expect(climbNameMatches("ÉCHO BEACH", "écho")).toBe(true);
+    expect(climbNameMatches("Crimper", "imp")).toBe(true);
+    expect(climbNameMatches("Crimper", "slab")).toBe(false);
+  });
+
+  it("treats every character as itself", () => {
+    expect(climbNameMatches("Highball", "a_l")).toBe(false);
+    expect(climbNameMatches("Highball", "%")).toBe(false);
+    expect(climbNameMatches("100% Pure", "0% p")).toBe(true);
   });
 
   it("falls back to list order and no filters for anything else", () => {
@@ -68,10 +102,11 @@ describe("climbListViewSearch", () => {
   it("round trips a sorted, filtered view", () => {
     const view = {
       sort: "name_asc" as const,
-      filter: { ...DEFAULT_CLIMB_FILTER, excludeSent: true, minAscents: 2 },
+      filter: { ...DEFAULT_CLIMB_FILTER, excludeSent: true, minAscents: 2, name: "crimp" },
     };
     const search = climbListViewSearch(view);
     expect(search).toContain("excludeSent=1");
+    expect(search).toContain("name=crimp");
     expect(isFilteredClimbList(view.filter)).toBe(true);
     const parsed = parseClimbListView(searchParamsToRecord(new URLSearchParams(search)));
     expect(parsed).toEqual(view);

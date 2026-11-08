@@ -29,7 +29,10 @@ type SearchSurfaceProps = {
   loadingMore?: boolean;
   loadMoreFailed?: boolean;
   area?: AreaSelection | null;
-  filters?: ReactNode;
+  /** Filters for the results. They receive the query field and place it
+   * themselves — the full climb search puts it in the filter toolbar's
+   * search slot, beside the sort — so the field is never drawn twice. */
+  renderFilters?: (queryField: ReactNode) => ReactNode;
   memberNotice?: ReactNode;
   /** The full page leads with the notice; the palette and landing keep it by the results. */
   memberNoticePlacement?: "results" | "top";
@@ -59,7 +62,7 @@ export function SearchSurface({
   loadingMore = false,
   loadMoreFailed = false,
   area,
-  filters,
+  renderFilters,
   memberNotice,
   memberNoticePlacement = "results",
   canCreate,
@@ -98,6 +101,19 @@ export function SearchSurface({
     (section) =>
       section.items.length > 0 || section.status === "loading" || section.status === "error",
   );
+  const queryRow = (
+    <SearchQueryRow
+      query={query}
+      onQueryChange={onQueryChange}
+      category={category}
+      quick={quick}
+      headerAction={headerAction}
+      onKeyDown={onKeyDown}
+      listId={listId}
+      activeId={activeId}
+      expanded={!idle && hasResults}
+    />
+  );
   return (
     <div
       ref={rootRef}
@@ -116,24 +132,14 @@ export function SearchSurface({
       {/* The page picks what to search before typing; the palette types first
        * so an early ⌘K lands in a focused field. */}
       {!quick && <SearchCategories value={category} onChange={onCategoryChange} />}
-      <SearchQueryRow
-        query={query}
-        onQueryChange={onQueryChange}
-        category={category}
-        quick={quick}
-        headerAction={headerAction}
-        onKeyDown={onKeyDown}
-        listId={listId}
-        activeId={activeId}
-        expanded={!idle && hasResults}
-      />
+      {/* Filters place the query field themselves; without them it stands alone. */}
+      {renderFilters ? renderFilters(queryRow) : queryRow}
       <SearchFilterRow
         category={category}
         quick={quick}
         compact={compact}
         onCategoryChange={onCategoryChange}
       />
-      {filters}
       <div
         className="min-h-0 overflow-y-auto focus-visible:status-focused"
         tabIndex={quick ? 0 : undefined}

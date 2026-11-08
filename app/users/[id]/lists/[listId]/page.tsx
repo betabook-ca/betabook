@@ -4,6 +4,10 @@ import { Suspense } from "react";
 
 import { ProfileHeader, memberMetadata, resolveProfilePage } from "@/app/users/[id]/profile-shell";
 import { ClimbListActions } from "@/components/climb-lists/climb-list-actions";
+import {
+  ClimbListEditButton,
+  ClimbListEditingProvider,
+} from "@/components/climb-lists/climb-list-editing";
 import { ClimbListHeader } from "@/components/climb-lists/climb-list-header";
 import { ClimbListItems } from "@/components/climb-lists/climb-list-items";
 import { ClimbListShare } from "@/components/climb-lists/climb-list-share";
@@ -14,18 +18,12 @@ import { getDb } from "@/db/client";
 import {
   getAreaBreadcrumbs,
   getClimbListForUser,
-  getClimbListClimbIds,
   getClimbListItems,
   getClimbListShareForOwner,
   type ClimbListSummary,
 } from "@/db/queries";
 import { getBaseUrl } from "@/lib/app-url";
-import {
-  climbListsHref,
-  isFilteredClimbList,
-  parseClimbListView,
-  type ClimbListView,
-} from "@/lib/climb-lists";
+import { climbListsHref, parseClimbListView, type ClimbListView } from "@/lib/climb-lists";
 import { toClimbQueryParams } from "@/lib/filters/climb-filter";
 import { parseId } from "@/lib/parse-id";
 import { requestMemo } from "@/lib/request-memo";
@@ -73,38 +71,42 @@ export default async function ListPage({ params, searchParams }: ListPageProps) 
 
   return (
     <ProfileHeader user={user} viewerId={viewerId} workspace="progress">
-      <div className="flex min-w-0 flex-col gap-5">
-        <ClimbListHeader
-          list={list}
-          back={climbListsHref(user.id)}
-          byline={isOwner ? undefined : `By ${user.name}`}
-          actions={
-            ownerShare ? (
-              <>
-                <ClimbListShare
-                  listId={list.id}
-                  listTitle={list.title}
-                  share={ownerShare[0]}
-                  shareOrigin={ownerShare[1]}
-                  isPrivate={user.isPrivate}
-                />
-                <ClimbListActions list={list} userId={user.id} leaveOnDelete />
-              </>
-            ) : (
-              <CopyClimbListButton list={list} viewerId={viewerId} source={{ listId: list.id }} />
-            )
-          }
-        />
-        <Suspense fallback={<SkeletonListRows rows={6} />}>
-          <ListItems
-            ownerId={user.id}
-            viewerId={viewerId}
+      <ClimbListEditingProvider>
+        <div className="flex min-w-0 flex-col gap-5">
+          <ClimbListHeader
             list={list}
-            view={view}
-            isOwner={isOwner}
+            back={climbListsHref(user.id)}
+            byline={isOwner ? undefined : `By ${user.name}`}
+            actions={
+              ownerShare ? (
+                <>
+                  {/* The one way in to add, reorder and remove climbs. */}
+                  <ClimbListEditButton variant={list.climbCount > 0 ? "outline" : undefined} />
+                  <ClimbListShare
+                    listId={list.id}
+                    listTitle={list.title}
+                    share={ownerShare[0]}
+                    shareOrigin={ownerShare[1]}
+                    isPrivate={user.isPrivate}
+                  />
+                  <ClimbListActions list={list} userId={user.id} leaveOnDelete />
+                </>
+              ) : (
+                <CopyClimbListButton list={list} viewerId={viewerId} source={{ listId: list.id }} />
+              )
+            }
           />
-        </Suspense>
-      </div>
+          <Suspense fallback={<SkeletonListRows rows={6} />}>
+            <ListItems
+              ownerId={user.id}
+              viewerId={viewerId}
+              list={list}
+              view={view}
+              isOwner={isOwner}
+            />
+          </Suspense>
+        </div>
+      </ClimbListEditingProvider>
     </ProfileHeader>
   );
 }
@@ -123,17 +125,10 @@ async function ListItems({
   isOwner: boolean;
 }) {
   const db = await getDb();
-  const filtered = isFilteredClimbList(view.filter);
   const items = await getClimbListItems(db, ownerId, list.id, viewerId, {
     sort: view.sort,
     filter: toClimbQueryParams(view.filter, undefined, viewerId),
   });
-  // The owner's picker needs every climb on the list, not just the filtered
-  // ones, to mark what is already there.
-  const allClimbIds =
-    isOwner && filtered
-      ? await getClimbListClimbIds(db, ownerId, list.id)
-      : items.map((item) => item.climbId);
   const areaBreadcrumbs = await getAreaBreadcrumbs(
     db,
     items.map((item) => item.areaId),
@@ -147,15 +142,7 @@ async function ListItems({
       signedIn
       listId={list.id}
       canEdit={isOwner}
-      addClimbs={
-        isOwner
-          ? {
-              listTitle: list.title,
-              climbIds: allClimbIds,
-              variant: list.climbCount > 0 ? "outline" : undefined,
-            }
-          : undefined
-      }
+      listTitle={list.title}
     />
   );
 }

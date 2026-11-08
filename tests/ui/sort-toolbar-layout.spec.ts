@@ -54,3 +54,29 @@ for (const width of [320, 375, 768, 1024, 1440]) {
     );
   });
 }
+
+for (const width of [320, 375]) {
+  test(`without a search, sort holds the first row alone at ${width}px @layout`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await openStory(page, info, "components-filters-climb-filters--filters");
+    const toolbar = page.getByRole("group", { name: "Filter controls", exact: true });
+    const sort = page.getByRole("group", { name: "Result order", exact: true });
+    const chip = page.getByRole("button", { name: "Boulder", exact: true });
+    const trigger = page.getByRole("button", { name: "Expand filters", exact: true });
+    const [bounds, sortBox, chipBox, triggerBox] = await Promise.all([
+      toolbar.boundingBox(),
+      sort.boundingBox(),
+      chip.boundingBox(),
+      trigger.boundingBox(),
+    ]);
+    if (!bounds || !sortBox || !chipBox || !triggerBox) throw new Error("Missing toolbar geometry");
+    expect(sortBox.y).toBeCloseTo(bounds.y);
+    expect(sortBox.x + sortBox.width).toBeCloseTo(bounds.x + bounds.width);
+    expect(chipBox.y).toBeGreaterThanOrEqual(sortBox.y + sortBox.height);
+    expect(triggerBox.x + triggerBox.width).toBeCloseTo(bounds.x + bounds.width);
+    // At 320 the three chips and Filters no longer fit one line, so Filters wraps.
+    if (width >= 375) expect(middle(triggerBox)).toBeCloseTo(middle(chipBox), 0);
+  });
+}

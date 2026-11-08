@@ -61,8 +61,10 @@ export function FilterToolbar<T extends DisciplineFilter>({
 }
 
 /** Shared disclosure, panel, and reset action for list filters. Below a 48rem
- * toolbar, search and sort share the first row above the choices and toggle;
- * wider, everything sits on one row. Sort never moves when the panel opens. */
+ * toolbar, search and sort share the first row above the choices and toggle —
+ * without a search, sort holds that row alone, right-aligned, so every list
+ * stacks the same way. Wider, everything sits on one row. Sort never moves
+ * when the panel opens. */
 export function FilterToolbarLayout({
   search,
   controls,
@@ -85,8 +87,8 @@ export function FilterToolbarLayout({
       role="group"
       aria-label="Result order"
       className={clsx(
-        "flex min-w-0",
-        search ? "col-start-2 row-start-1 @3xl/filters:ml-auto" : "ml-auto",
+        "row-start-1 flex min-w-0 @3xl/filters:ml-auto",
+        search ? "col-start-2" : "justify-self-end",
       )}
     >
       {sortControl}
@@ -119,7 +121,7 @@ export function FilterToolbarLayout({
                       size: "sm",
                       className: clsx(
                         FIELD_HEIGHT_CLASS,
-                        (search || !sortControl) && "ml-auto @3xl/filters:ml-0",
+                        "ml-auto @3xl/filters:ml-0",
                         triggerClassName,
                       ),
                     })}
@@ -132,9 +134,8 @@ export function FilterToolbarLayout({
                     Filters
                   </Disclosure.Trigger>
                 </Disclosure.Heading>
-                {!search && sort}
               </div>
-              {search && sort}
+              {sort}
             </div>
 
             <ActiveFilterSummary filters={activeFilters} onClear={onReset} />

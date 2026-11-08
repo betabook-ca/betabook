@@ -8,6 +8,7 @@ import {
 } from "@/stories/fixtures/climb-lists";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
+import { ClimbListEditButton, ClimbListEditingProvider } from "./climb-list-editing";
 import { ClimbListHeader } from "./climb-list-header";
 import { ClimbListItems } from "./climb-list-items";
 
@@ -25,17 +26,24 @@ const meta = {
   },
   render: (args) => (
     <StoryPage title="List">
-      <div className="flex flex-col gap-5">
-        <ClimbListHeader list={climbListSamples[0]} back="/users/alex/lists" />
-        <ClimbListItems {...args} />
-      </div>
+      <ClimbListEditingProvider>
+        <div className="flex flex-col gap-5">
+          <ClimbListHeader
+            list={climbListSamples[0]}
+            back="/users/alex/lists"
+            actions={args.canEdit ? <ClimbListEditButton variant="outline" /> : undefined}
+          />
+          <ClimbListItems {...args} />
+        </div>
+      </ClimbListEditingProvider>
     </StoryPage>
   ),
 } satisfies Meta<typeof ClimbListItems>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** The owner's circuit order, unnumbered. Remove is in the ⋯ menu's editor. */
+/** The owner's circuit order, unnumbered. The header's Edit climbs opens the editor,
+ * the one place to add, reorder and remove climbs. */
 export const Circuit: Story = {};
 
 /** Sorted by grade, hardest first. */

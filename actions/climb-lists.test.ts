@@ -17,7 +17,6 @@ import {
 import { createDb } from "@/db/client";
 import {
   getClimbListChoices,
-  getClimbListClimbIds,
   getClimbListForUser,
   getClimbListItems,
   getClimbListShareForOwner,
@@ -298,14 +297,6 @@ describe("review fixes", () => {
   });
 });
 
-describe("picker ids", () => {
-  it("reads every climb id on the owner's own list and nothing for anyone else", async () => {
-    const id = await seedList("owner", "Ids", [3, 1]);
-    expect((await getClimbListClimbIds(db, "owner", id)).toSorted((a, b) => a - b)).toEqual([1, 3]);
-    expect(await getClimbListClimbIds(db, "member", id)).toEqual([]);
-  });
-});
-
 describe("saving the editor", () => {
   it("saves the submitted order, numbered 1…n", async () => {
     const id = await seedList("owner", "Circuit", [1, 2, 3]);
@@ -527,6 +518,25 @@ describe("viewing a list", () => {
     expect(await view(id, "member", { filter: { excludeSent: true } })).toEqual([1, 3]);
     const items = await getClimbListItems(db, "owner", id, "member", CIRCUIT);
     expect(items.map((item) => item.sent)).toEqual([false, true, false]);
+  });
+
+  it("filters by a substring of the climb name, ignoring case, with no wildcards", async () => {
+    // Highball (1), Slab (2), Crimper (3), Crack (4).
+    const id = await seedList("owner", "Mixed", [3, 2, 4, 1]);
+
+    expect(await view(id, "owner", { filter: { name: "cr" } })).toEqual([3, 4]);
+    expect(await view(id, "owner", { filter: { name: "IMP" } })).toEqual([3]);
+    expect(await view(id, "owner", { filter: { name: "ball" } })).toEqual([1]);
+    // `%` and `_` are characters, not LIKE wildcards: "a_l" would match "all".
+    expect(await view(id, "owner", { filter: { name: "%" } })).toEqual([]);
+    expect(await view(id, "owner", { filter: { name: "a_l" } })).toEqual([]);
+  });
+
+  it("takes a long name filter without building a SQL pattern from it", async () => {
+    // Production D1 rejects LIKE patterns over 50 bytes; local D1 doesn't, so
+    // this pins that the name never reaches SQL rather than the limit itself.
+    const id = await seedList("owner", "Mixed", [3, 2, 4, 1]);
+    expect(await view(id, "owner", { filter: { name: "Crimper".padEnd(80, "x") } })).toEqual([]);
   });
 
   it("applies the list's filters: discipline and grade, rating and ascents", async () => {

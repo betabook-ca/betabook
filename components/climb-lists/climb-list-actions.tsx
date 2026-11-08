@@ -56,7 +56,7 @@ export function ClimbListActions({
           }
         }}
       >
-        <Menu.Item id="edit">Edit</Menu.Item>
+        <Menu.Item id="edit">Edit details</Menu.Item>
         <Menu.Item id="copy">Copy list</Menu.Item>
         <Menu.Item id="delete">Delete</Menu.Item>
       </ActionsMenu>

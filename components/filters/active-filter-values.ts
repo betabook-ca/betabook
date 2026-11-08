@@ -6,6 +6,16 @@ import { DEFAULT_DISCIPLINE_FILTER, type DisciplineFilter } from "@/lib/filters/
 import { formatDate } from "@/lib/format-date";
 import { DEFAULT_GRADE_PREFERENCES, gradeArray, type GradePreferences } from "@/lib/grades";
 
+/** The "Text:" chip for a toolbar's text box. Blank text (spaces too) is no
+ * filter, so there is no chip for it. */
+export function textActiveFilters(
+  text: string | null | undefined,
+  clear: () => void,
+): ActiveFilter[] {
+  const trimmed = text?.trim();
+  return trimmed ? [{ id: "query", label: `Text: ${trimmed}`, onRemove: clear }] : [];
+}
+
 export function disciplineActiveFilters<T extends DisciplineFilter>(
   value: T,
   onChange: (value: T) => void,

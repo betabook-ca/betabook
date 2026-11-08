@@ -3,11 +3,10 @@
 import { useRouter } from "next/navigation";
 
 import { ClimbListSortControl } from "@/components/climb-list-sort-control";
-import { statsActiveFilters } from "@/components/filters/active-filter-values";
+import { statsActiveFilters, textActiveFilters } from "@/components/filters/active-filter-values";
 import { ClimbStatsFields } from "@/components/filters/climb-stats-filter-fields";
-import { FilterInput } from "@/components/filters/filter-input";
+import { TextFilterField } from "@/components/filters/filter-input";
 import { FilterToolbar } from "@/components/filters/filter-toolbar";
-import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import type { SubtreeClimbsSort } from "@/db/queries";
 import { useFilterFormNavigation } from "@/hooks/use-filter-form-navigation";
 import {
@@ -45,6 +44,8 @@ export function AreaClimbsToolbar({
     filter: value,
     setFilter: setValue,
     reset,
+    sort: shownSort,
+    holdSort,
   } = useFilterFormNavigation({
     initialFilter: {
       disciplines: filter.disciplines,
@@ -71,9 +72,7 @@ export function AreaClimbsToolbar({
       onReset={reset}
       activeFilters={[
         ...statsActiveFilters(value, setValue),
-        ...(name.trim()
-          ? [{ id: "query", label: `Text: ${name}`, onRemove: () => setName("") }]
-          : []),
+        ...textActiveFilters(name, () => setName("")),
         ...(value.subareaId != null
           ? [
               {
@@ -85,21 +84,21 @@ export function AreaClimbsToolbar({
           : []),
       ]}
       textFilter={
-        <div className={FIELD_WIDTH_CLASS.long}>
-          <FilterInput
-            value={name}
-            onChange={setName}
-            label="Filter climbs in this area"
-            placeholder="Filter climbs…"
-          />
-        </div>
+        <TextFilterField
+          value={name}
+          onChange={setName}
+          label="Filter climbs in this area"
+          placeholder="Filter climbs…"
+        />
       }
       sortControl={
         <ClimbListSortControl
-          sort={sort}
-          onNavigate={(nextSort) =>
-            router.replace(buildClimbsHref(areaPath, nextSort, filter), { scroll: false })
-          }
+          sort={shownSort ?? sort}
+          onNavigate={(nextSort) => {
+            // Typed text still in the debounce follows with this sort.
+            holdSort(nextSort);
+            router.replace(buildClimbsHref(areaPath, nextSort, filter), { scroll: false });
+          }}
         />
       }
       extraFilters={
