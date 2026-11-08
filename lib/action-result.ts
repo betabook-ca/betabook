@@ -26,7 +26,7 @@ export const NOT_ADMIN_MESSAGE = "Admins only.";
 /** Shown when a write budget runs out, whichever limiter refused it. */
 export const WRITE_RATE_LIMIT_MESSAGE = "Too many changes — try again in a minute";
 
-export const JOURNAL_RATE_LIMIT_MESSAGE = WRITE_RATE_LIMIT_MESSAGE;
+export const JOURNAL_RATE_LIMIT_MESSAGE = "Too many changes — try again in a minute";
 
 export const PRIVATE_PROFILE_MESSAGE =
   "Sharing is off while your profile is private — change it in Account settings.";
