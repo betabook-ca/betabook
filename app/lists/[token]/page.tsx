@@ -79,7 +79,19 @@ export default async function SharedListPage({ params, searchParams }: SharedLis
       </div>
       <ClimbListHeader
         list={list}
-        actions={viewerId && <CopyClimbListButton list={list} viewerId={viewerId} token={token} />}
+        actions={
+          viewerId && (
+            <CopyClimbListButton
+              list={{
+                title: list.title,
+                description: list.description,
+                climbCount: list.climbCount,
+              }}
+              viewerId={viewerId}
+              source={{ token }}
+            />
+          )
+        }
       />
       <Suspense fallback={<SkeletonListRows rows={6} />}>
         <SharedListItems

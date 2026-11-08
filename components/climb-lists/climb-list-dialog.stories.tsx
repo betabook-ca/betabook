@@ -43,7 +43,12 @@ export const CopyOwn: StoryObj = {
   render: () => (
     <OpenDialog
       title="Copy your own list"
-      mode={{ kind: "copy", list: climbListSamples[0], own: true }}
+      mode={{
+        kind: "copy",
+        list: climbListSamples[0],
+        own: true,
+        source: { listId: climbListSamples[0].id },
+      }}
       description="Copying your own list adds “(copy)” so the two can be told apart."
     />
   ),
@@ -53,7 +58,12 @@ export const CopyOthers: StoryObj = {
   render: () => (
     <OpenDialog
       title="Copy someone else's list"
-      mode={{ kind: "copy", list: climbListSamples[0], own: false }}
+      mode={{
+        kind: "copy",
+        list: climbListSamples[0],
+        own: false,
+        source: { listId: climbListSamples[0].id },
+      }}
       description="Copying someone else's list keeps their name as it is."
     />
   ),

@@ -57,7 +57,7 @@ it("keeps Create list disabled until the list has a name, then opens the new lis
 });
 
 it("pre-fills a copy of your own list with the name marked (copy) and the description", () => {
-  render(<Example mode={{ kind: "copy", list: CLASSICS, own: true }} />);
+  render(<Example mode={{ kind: "copy", list: CLASSICS, own: true, source: { listId: 4 } }} />);
 
   expect(screen.getByRole("textbox", { name: /Name/ })).toHaveValue("Red River classics (copy)");
   expect(screen.getByRole("textbox", { name: /Description/ })).toHaveValue(
@@ -67,13 +67,17 @@ it("pre-fills a copy of your own list with the name marked (copy) and the descri
 });
 
 it("pre-fills a copy of someone else's list with their exact name", () => {
-  render(<Example mode={{ kind: "copy", list: CLASSICS, own: false }} />);
+  render(<Example mode={{ kind: "copy", list: CLASSICS, own: false, source: { listId: 4 } }} />);
   expect(screen.getByRole("textbox", { name: /Name/ })).toHaveValue("Red River classics");
 });
 
 it("submits the edited name and description, through the link when there is one", async () => {
   const user = userEvent.setup();
-  render(<Example mode={{ kind: "copy", list: CLASSICS, own: false, token: "a".repeat(32) }} />);
+  render(
+    <Example
+      mode={{ kind: "copy", list: CLASSICS, own: false, source: { token: "a".repeat(32) } }}
+    />,
+  );
 
   const name = screen.getByRole("textbox", { name: /Name/ });
   await user.clear(name);
@@ -92,9 +96,21 @@ it("submits the edited name and description, through the link when there is one"
   expect(push).toHaveBeenCalledWith("/users/alex/lists/12");
 });
 
+it("copies by id when there is no link", async () => {
+  const user = userEvent.setup();
+  render(<Example mode={{ kind: "copy", list: CLASSICS, own: true, source: { listId: 4 } }} />);
+  await user.click(screen.getByRole("button", { name: "Copy list" }));
+  await waitFor(() =>
+    expect(copyClimbList).toHaveBeenCalledWith(
+      { listId: 4 },
+      { title: "Red River classics (copy)", description: "Moderates worth the drive" },
+    ),
+  );
+});
+
 it("disables Copy list when the name is cleared", async () => {
   const user = userEvent.setup();
-  render(<Example mode={{ kind: "copy", list: CLASSICS, own: false }} />);
+  render(<Example mode={{ kind: "copy", list: CLASSICS, own: false, source: { listId: 4 } }} />);
   await user.clear(screen.getByRole("textbox", { name: /Name/ }));
   expect(screen.getByRole("button", { name: "Copy list" })).toBeDisabled();
   expect(copyClimbList).not.toHaveBeenCalled();
@@ -103,7 +119,7 @@ it("disables Copy list when the name is cleared", async () => {
 it("stays open with the server's message when a copy is refused", async () => {
   vi.mocked(copyClimbList).mockResolvedValue({ ok: false, error: "This list isn't available." });
   const user = userEvent.setup();
-  render(<Example mode={{ kind: "copy", list: CLASSICS, own: false }} />);
+  render(<Example mode={{ kind: "copy", list: CLASSICS, own: false, source: { listId: 4 } }} />);
 
   await user.click(screen.getByRole("button", { name: "Copy list" }));
 

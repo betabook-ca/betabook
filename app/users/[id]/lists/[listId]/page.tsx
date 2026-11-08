@@ -86,7 +86,7 @@ export default async function ListPage({ params, searchParams }: ListPageProps) 
                 <ClimbListActions list={list} userId={user.id} leaveOnDelete />
               </>
             ) : (
-              <CopyClimbListButton list={list} viewerId={viewerId} />
+              <CopyClimbListButton list={list} viewerId={viewerId} source={{ listId: list.id }} />
             )
           }
         />

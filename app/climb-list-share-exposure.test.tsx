@@ -4,6 +4,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 
 import SharedListPageImpl, { generateMetadata } from "@/app/lists/[token]/page";
 import { ClimbListItems } from "@/components/climb-lists/climb-list-items";
+import { CopyClimbListButton } from "@/components/climb-lists/copy-climb-list-button";
 import { createDb } from "@/db/client";
 import { climbListItems, climbListShareLinks, climbLists } from "@/db/schema";
 import { seedFixtureSend, seedFixtureTree, seedFixtureUser } from "@/test/fixtures";
@@ -117,16 +118,18 @@ it("shows nothing beyond the list: not the owner's sends, other lists or email",
 
 /** Client components on the page. Their props are what the reader's browser
  * receives; the server-only header may read the list id, but these must not. */
-const CLIENT_COMPONENTS: unknown[] = [ClimbListItems];
+const CLIENT_COMPONENTS: unknown[] = [ClimbListItems, CopyClimbListButton];
 
 it("sends the reader's browser the token, never the list id", async () => {
   const token = await share();
+  // Signed in, so the page offers Copy to my lists too.
+  session.userId = READER;
   const tree = await SharedListPage(props(token));
   const clients = treeElements(tree).filter((element) => CLIENT_COMPONENTS.includes(element.type));
   expect(clients.length).toBe(CLIENT_COMPONENTS.length);
   for (const element of clients) {
     expect(element.props).not.toHaveProperty("listId");
-    expect(JSON.stringify(element.props)).not.toContain(`"id":${listId}`);
+    expect(element.props.list ?? {}).not.toHaveProperty("id");
   }
 });
 
@@ -141,7 +144,7 @@ it("shows a signed-in reader their own sent state, never the owner's", async () 
   expect(payload).not.toContain("Test Crimper");
   expect(payload).not.toContain("Climb with List Owner on Betabook");
   // A signed-in reader can copy, through the link they hold.
-  expect(payload).toContain(`"viewerId":"${READER}","token":"${token}"`);
+  expect(payload).toContain(`"viewerId":"${READER}","source":{"token":"${token}"}`);
 });
 
 it("sends the owner to their own list page", async () => {
