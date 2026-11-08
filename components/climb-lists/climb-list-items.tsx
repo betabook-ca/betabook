@@ -8,6 +8,7 @@ import { useState, useTransition, type ReactNode } from "react";
 
 import { removeClimbFromList } from "@/actions";
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
+import { ClimbListReorder } from "@/components/climb-lists/climb-list-reorder";
 import { ClimbSentIndicator } from "@/components/climb-sent-indicator";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -59,7 +60,6 @@ export function ClimbListItems({
   listId,
   canEdit = false,
   emptyAction,
-  orderAction,
 }: {
   items: ClimbListItem[];
   /** Climbs on the list before the filter, to tell an empty list from an
@@ -73,15 +73,16 @@ export function ClimbListItems({
   canEdit?: boolean;
   /** Shown in the empty list, such as Add climbs. */
   emptyAction?: ReactNode;
-  /** Shown beside the toolbar in list order, such as Reorder. */
-  orderAction?: ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const [removeError, setRemoveError] = useState<string | null>(null);
   const [removing, setRemoving] = useState<number | null>(null);
   const [, startTransition] = useTransition();
+  const [reordering, setReordering] = useState(false);
   const listOrder = isListOrder(view.sort);
+  // Reordering saves the whole order, so it needs every climb, in list order.
+  const wholeList = listOrder && view.sent === "all";
 
   function navigate(next: ClimbListView) {
     router.replace(`${pathname}${climbListViewSearch(next)}`, { scroll: false });
@@ -99,6 +100,9 @@ export function ClimbListItems({
 
   if (totalCount === 0)
     return <EmptyState message="No climbs on this list yet." cta={emptyAction} />;
+
+  if (reordering && wholeList)
+    return <ClimbListReorder items={items} listId={listId} onClose={() => setReordering(false)} />;
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
@@ -121,11 +125,16 @@ export function ClimbListItems({
             />
           )}
           {canEdit &&
-            orderAction &&
-            (listOrder ? (
-              orderAction
+            totalCount > 1 &&
+            (wholeList ? (
+              <Button variant="outline" onPress={() => setReordering(true)}>
+                Reorder
+              </Button>
             ) : (
-              <Button variant="ghost" onPress={() => navigate({ ...view, sort: "position_asc" })}>
+              <Button
+                variant="ghost"
+                onPress={() => navigate({ sort: "position_asc", sent: "all" })}
+              >
                 Switch to list order to reorder
               </Button>
             ))}

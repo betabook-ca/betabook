@@ -135,3 +135,17 @@ export function climbListsHref(userId: string): string {
 export function climbListHref(userId: string, listId: number): string {
   return `/users/${userId}/lists/${listId}`;
 }
+
+/** `order` with `source` moved to just before or after `target`. Unknown ids
+ * leave it unchanged. */
+export function moveClimb(
+  order: readonly number[],
+  source: number,
+  target: number,
+  position: "before" | "after" = "before",
+): number[] {
+  if (source === target || !order.includes(source) || !order.includes(target)) return [...order];
+  const next = order.filter((id) => id !== source);
+  next.splice(next.indexOf(target) + (position === "after" ? 1 : 0), 0, source);
+  return next;
+}

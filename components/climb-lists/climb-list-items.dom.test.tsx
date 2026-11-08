@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { removeClimbFromList } from "@/actions";
+import { removeClimbFromList, reorderClimbList } from "@/actions";
 import type { ClimbListItem } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
 import type { ClimbListView } from "@/lib/climb-lists";
@@ -12,6 +12,7 @@ import { ClimbListItems } from "./climb-list-items";
 
 vi.mock("@/actions", () => ({
   removeClimbFromList: vi.fn<() => Promise<ActionResult>>(),
+  reorderClimbList: vi.fn<() => Promise<ActionResult>>(),
 }));
 vi.mock("@/components/climb-sent-indicator", () => ({
   ClimbSentIndicator: ({ sent }: { sent: boolean }) => <span>{sent ? "sent" : "not sent"}</span>,
@@ -44,7 +45,6 @@ function renderItems(
       signedIn={props.signedIn ?? true}
       listId={1}
       canEdit={props.canEdit ?? true}
-      orderAction={<button type="button">Reorder</button>}
     />,
   );
 }
@@ -60,6 +60,7 @@ beforeEach(() => {
   vi.mocked(removeClimbFromList)
     .mockReset()
     .mockResolvedValue({ ok: true, value: { changed: true, climbCount: 2 } });
+  vi.mocked(reorderClimbList).mockReset().mockResolvedValue({ ok: true, value: undefined });
 });
 
 it("numbers rows in the owner's order and offers Reorder only in list order", async () => {
@@ -118,4 +119,53 @@ it("removes a climb for the owner, and offers no Remove to anyone else", async (
 
   renderItems({ canEdit: false });
   expect(screen.queryByRole("button", { name: /^Remove / })).not.toBeInTheDocument();
+});
+
+it("offers Reorder only on the whole list in list order", async () => {
+  const user = userEvent.setup();
+  const { unmount } = renderItems({ view: { sort: "position_asc", sent: "unsent" } });
+  expect(screen.queryByRole("button", { name: "Reorder" })).not.toBeInTheDocument();
+  // Switching back also clears the filter, because a reorder saves every climb.
+  await user.click(screen.getByRole("button", { name: "Switch to list order to reorder" }));
+  expect(replace).toHaveBeenCalledWith("/users/alex/lists/1", { scroll: false });
+  unmount();
+
+  renderItems({ canEdit: false });
+  expect(screen.queryByRole("button", { name: "Reorder" })).not.toBeInTheDocument();
+});
+
+it("moves climbs with the arrows and saves the whole order once", async () => {
+  const user = userEvent.setup();
+  renderItems();
+  await user.click(screen.getByRole("button", { name: "Reorder" }));
+
+  const save = screen.getByRole("button", { name: "Save order" });
+  expect(save).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Move Amarillo Sunset earlier" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Move Rat Stew later" })).toBeDisabled();
+
+  await user.click(screen.getByRole("button", { name: "Move Rat Stew earlier" }));
+  await user.click(screen.getByRole("button", { name: "Move Amarillo Sunset later" }));
+  expect(reorderClimbList).not.toHaveBeenCalled();
+
+  await user.click(save);
+  await waitFor(() => expect(reorderClimbList).toHaveBeenCalledWith(1, [102, 101, 103, 105, 104]));
+  expect(await screen.findByRole("button", { name: "Reorder" })).toBeInTheDocument();
+});
+
+it("keeps the editor open with the message when the list changed elsewhere", async () => {
+  vi.mocked(reorderClimbList).mockResolvedValue({
+    ok: false,
+    error: "This list changed since you opened it. Reload to try again.",
+  });
+  const user = userEvent.setup();
+  renderItems();
+  await user.click(screen.getByRole("button", { name: "Reorder" }));
+  await user.click(screen.getByRole("button", { name: "Move Rat Stew earlier" }));
+  await user.click(screen.getByRole("button", { name: "Save order" }));
+
+  expect(
+    await screen.findByText("This list changed since you opened it. Reload to try again."),
+  ).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Save order" })).toBeInTheDocument();
 });
