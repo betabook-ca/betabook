@@ -17,7 +17,6 @@ import {
 import { createDb } from "@/db/client";
 import {
   getClimbListChoices,
-  getClimbListClimbIds,
   getClimbListForUser,
   getClimbListItems,
   getClimbListShareForOwner,
@@ -295,14 +294,6 @@ describe("review fixes", () => {
     as("owner");
     const id = value(await createClimbList({ title: "Starter" }, { climbId: 2 }));
     expect(await order(id)).toEqual([2]);
-  });
-});
-
-describe("picker ids", () => {
-  it("reads every climb id on the owner's own list and nothing for anyone else", async () => {
-    const id = await seedList("owner", "Ids", [3, 1]);
-    expect((await getClimbListClimbIds(db, "owner", id)).toSorted((a, b) => a - b)).toEqual([1, 3]);
-    expect(await getClimbListClimbIds(db, "member", id)).toEqual([]);
   });
 });
 

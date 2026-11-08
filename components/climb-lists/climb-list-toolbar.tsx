@@ -1,7 +1,6 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import type { ReactNode } from "react";
 
 import { ClimbFilterControls } from "@/components/filters/climb-filter-controls";
 import { SortSelect } from "@/components/ui/sort-select";
@@ -24,16 +23,7 @@ import type { ClimbFilterState } from "@/lib/filters/climb-filter-state";
  * The list keeps its own sort (circuit, grade, area, name, date added).
  * Everything lives in the URL and none of it changes the list.
  */
-export function ClimbListToolbar({
-  view,
-  signedIn,
-  menu,
-}: {
-  view: ClimbListView;
-  signedIn: boolean;
-  /** Beside the sort, such as the owner's ⋯ menu with Edit. */
-  menu?: ReactNode;
-}) {
+export function ClimbListToolbar({ view, signedIn }: { view: ClimbListView; signedIn: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const hrefFor = (sort: ClimbListSort, state: ClimbFilterState) =>
@@ -57,18 +47,15 @@ export function ClimbListToolbar({
       onReset={reset}
       showExcludeSent={signedIn}
       sortControl={
-        <div className="flex items-center gap-1">
-          <SortSelect
-            sort={view.sort}
-            fields={CLIMB_LIST_SORT_OPTIONS}
-            defaultField="position"
-            defaultDirection={CLIMB_LIST_SORT_DIRECTION}
-            onNavigate={(sort: ClimbListSort) =>
-              router.replace(hrefFor(sort, initial), { scroll: false })
-            }
-          />
-          {menu}
-        </div>
+        <SortSelect
+          sort={view.sort}
+          fields={CLIMB_LIST_SORT_OPTIONS}
+          defaultField="position"
+          defaultDirection={CLIMB_LIST_SORT_DIRECTION}
+          onNavigate={(sort: ClimbListSort) =>
+            router.replace(hrefFor(sort, initial), { scroll: false })
+          }
+        />
       }
     />
   );

@@ -1,15 +1,14 @@
 "use client";
 
-import { Button, Menu } from "@heroui/react";
+import { Button } from "@heroui/react";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
-import { AddClimbsButton } from "@/components/climb-lists/add-climbs-button";
+import { useClimbListEditControl } from "@/components/climb-lists/climb-list-editing";
 import { ClimbListEditor } from "@/components/climb-lists/climb-list-editor";
 import { ClimbListToolbar } from "@/components/climb-lists/climb-list-toolbar";
 import { ClimbSentIndicator } from "@/components/climb-sent-indicator";
-import { ActionsMenu } from "@/components/ui/actions-menu";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Grade } from "@/components/ui/grade";
@@ -44,7 +43,7 @@ export function ClimbListItems({
   signedIn,
   listId,
   canEdit = false,
-  addClimbs,
+  listTitle = "",
 }: {
   items: ClimbListItem[];
   /** Climbs on the list before the filters, to tell an empty list from an
@@ -56,12 +55,12 @@ export function ClimbListItems({
   /** Needed only to edit. A shared-link page leaves it out, so the page
    * sends the reader nothing but the link's token. */
   listId?: number;
-  /** The owner viewing their own list: the ⋯ menu offers Edit, where
-   * climbs are reordered, removed and added. Needs `listId`. */
+  /** The owner viewing their own list: the header's Edit opens the editor,
+   * where climbs are added, reordered and removed. Needs `listId` and a
+   * `ClimbListEditingProvider` around the header and the list. */
   canEdit?: boolean;
-  /** The owner's Add climbs button, above the list. Its picker needs every
-   * climb on the list, filtered or not, to mark what is already there. */
-  addClimbs?: { listTitle: string; climbIds: readonly number[]; variant?: "outline" };
+  /** Names the list in the editor's Add climbs dialog. */
+  listTitle?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -84,66 +83,45 @@ export function ClimbListItems({
 
   const editable = canEdit && listId !== undefined;
 
-  // One Add climbs button in one place, whatever the list shows below it:
-  // its dialog lives inside it, so a button that moved when the first climb
-  // arrived would unmount the dialog and close it mid-add. Disabled while
-  // editing, where the editor's own Add climbs stages climbs until Save.
-  function frame(content: ReactNode) {
-    return (
-      <div className="flex min-w-0 flex-col gap-3">
-        {addClimbs && listId !== undefined && (
-          <div className="self-end">
-            <AddClimbsButton
-              listId={listId}
-              listTitle={addClimbs.listTitle}
-              climbIds={addClimbs.climbIds}
-              variant={addClimbs.variant}
-              isDisabled={editing}
-            />
-          </div>
-        )}
-        {content}
-      </div>
-    );
-  }
+  // The header's Edit opens the editor here. The editor saves every climb in
+  // order, so it opens on the plain list: a sorted or filtered view switches
+  // back first. The editor's own Add climbs is the one way to add climbs.
+  useClimbListEditControl(
+    editing,
+    editable
+      ? () => {
+          if (!wholeList) navigate(DEFAULT_CLIMB_LIST_VIEW);
+          setEditing(true);
+        }
+      : null,
+  );
 
   // The editor stays open even if the list empties, so it never closes
   // behind the owner's back and reopens on its own when a climb arrives.
   if (editing && wholeList && listId !== undefined)
-    return frame(
+    return (
       <ClimbListEditor
         items={items}
         listId={listId}
-        listTitle={addClimbs?.listTitle ?? ""}
+        listTitle={listTitle}
         onClose={() => setEditing(false)}
-      />,
+      />
     );
 
-  if (totalCount === 0) return frame(<EmptyState message="No climbs on this list yet." />);
-
-  return frame(
-    <div className="flex min-w-0 flex-col gap-3">
-      <ClimbListToolbar
-        view={view}
-        signedIn={signedIn}
-        menu={
-          editable && (
-            <ActionsMenu
-              ariaLabel="List actions"
-              onAction={(key) => {
-                if (key !== "edit") return;
-                // The editor saves every climb in order, so it opens on the
-                // plain list: a sorted or filtered view switches back first.
-                if (!wholeList) navigate(DEFAULT_CLIMB_LIST_VIEW);
-                setEditing(true);
-              }}
-            >
-              <Menu.Item id="edit">Edit</Menu.Item>
-            </ActionsMenu>
-          )
+  if (totalCount === 0)
+    return (
+      <EmptyState
+        message={
+          editable
+            ? "No climbs on this list yet. Choose Edit to add some."
+            : "No climbs on this list yet."
         }
       />
+    );
 
+  return (
+    <div className="flex min-w-0 flex-col gap-3">
+      <ClimbListToolbar view={view} signedIn={signedIn} />
       {items.length === 0 ? (
         <EmptyState
           message="No climbs on this list match these filters."
@@ -198,6 +176,6 @@ export function ClimbListItems({
           ))}
         </ol>
       )}
-    </div>,
+    </div>
   );
 }

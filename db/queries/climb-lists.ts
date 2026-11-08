@@ -194,23 +194,6 @@ export function getClimbListItems(
   );
 }
 
-/** Every climb on the owner's own list, for the Add climbs picker to mark
- * what's already there. Just the ids: the page's filtered read can't supply
- * them, and re-running that read unfiltered would be wasted work. */
-export async function getClimbListClimbIds(
-  db: Database,
-  ownerId: string,
-  listId: number,
-): Promise<number[]> {
-  const rows = await db.all<{ climbId: number }>(sql`
-    SELECT i.climb_id AS climbId
-    FROM climb_list_items i
-    JOIN climb_lists l ON l.id = i.list_id
-    WHERE l.id = ${listId} AND l.user_id = ${ownerId}
-  `);
-  return rows.map((row) => row.climbId);
-}
-
 export type ClimbListChoice = {
   id: number;
   title: string;
