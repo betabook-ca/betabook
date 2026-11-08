@@ -88,7 +88,7 @@ export const CLIMB_LIST_SORT_DIRECTION: Record<ClimbListSortField, "asc" | "desc
 };
 
 export const CLIMB_LIST_SORT_OPTIONS: { id: ClimbListSortField; label: string }[] = [
-  { id: "position", label: "Default" },
+  { id: "position", label: "Circuit" },
   { id: "grade", label: "Grade" },
   { id: "area", label: "Area" },
   { id: "name", label: "Name" },
