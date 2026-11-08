@@ -1,14 +1,18 @@
 "use client";
 
-import { dateActiveFilters, hashtagActiveFilters } from "@/components/filters/active-filter-values";
+import {
+  dateActiveFilters,
+  hashtagActiveFilters,
+  textActiveFilters,
+} from "@/components/filters/active-filter-values";
 import { DateFilter } from "@/components/filters/date-filter";
-import { FilterInput } from "@/components/filters/filter-input";
+import { TextFilterField } from "@/components/filters/filter-input";
 import { FilterToolbarLayout } from "@/components/filters/filter-toolbar";
 import { FriendFilter } from "@/components/filters/friend-filter";
 import { HashtagFilter } from "@/components/filters/hashtag-filter";
 import { AppLink } from "@/components/ui/app-link";
 import { choicePillClass } from "@/components/ui/choice-pill";
-import { FIELD_WIDTH_CLASS, FILTER_PILL_CLASS } from "@/components/ui/field";
+import { FILTER_PILL_CLASS } from "@/components/ui/field";
 import { useFilterFormNavigation } from "@/hooks/use-filter-form-navigation";
 import {
   DEFAULT_JOURNAL_FILTER,
@@ -78,15 +82,7 @@ export function JournalFilterToolbar({
           : []),
         ...dateActiveFilters(localFilter, setFilter),
         ...hashtagActiveFilters(localFilter.tags, (tags) => setFilter({ ...localFilter, tags })),
-        ...(localFilter.query
-          ? [
-              {
-                id: "query",
-                label: `Text: ${localFilter.query}`,
-                onRemove: () => setFilter({ ...localFilter, query: null }),
-              },
-            ]
-          : []),
+        ...textActiveFilters(localFilter.query, () => setFilter({ ...localFilter, query: null })),
         ...(localFilter.view !== "all"
           ? [
               {
@@ -136,15 +132,13 @@ export function JournalFilterToolbar({
         </>
       }
       search={
-        <div className={FIELD_WIDTH_CLASS.long}>
-          <FilterInput
-            label="Filter journal"
-            value={localFilter.query ?? ""}
-            onChange={(query) => setFilter({ ...localFilter, query: query.trim() ? query : null })}
-            placeholder="Filter journal…"
-            inputProps={{ maxLength: MAX_JOURNAL_QUERY_LENGTH }}
-          />
-        </div>
+        <TextFilterField
+          label="Filter journal"
+          value={localFilter.query ?? ""}
+          onChange={(query) => setFilter({ ...localFilter, query: query.trim() ? query : null })}
+          placeholder="Filter journal…"
+          inputProps={{ maxLength: MAX_JOURNAL_QUERY_LENGTH }}
+        />
       }
       controls={
         <div className="flex gap-1.5">

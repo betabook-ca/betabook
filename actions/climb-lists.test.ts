@@ -520,6 +520,18 @@ describe("viewing a list", () => {
     expect(items.map((item) => item.sent)).toEqual([false, true, false]);
   });
 
+  it("filters by a substring of the climb name, ignoring case, with no wildcards", async () => {
+    // Highball (1), Slab (2), Crimper (3), Crack (4).
+    const id = await seedList("owner", "Mixed", [3, 2, 4, 1]);
+
+    expect(await view(id, "owner", { filter: { name: "cr" } })).toEqual([3, 4]);
+    expect(await view(id, "owner", { filter: { name: "IMP" } })).toEqual([3]);
+    expect(await view(id, "owner", { filter: { name: "ball" } })).toEqual([1]);
+    // `%` and `_` are characters, not LIKE wildcards: "a_l" would match "all".
+    expect(await view(id, "owner", { filter: { name: "%" } })).toEqual([]);
+    expect(await view(id, "owner", { filter: { name: "a_l" } })).toEqual([]);
+  });
+
   it("applies the list's filters: discipline and grade, rating and ascents", async () => {
     // Highball V4 (1, area 4), Slab V1 (2, area 5), Crimper 5.10a (3), Crack 5.6 (4).
     const id = await seedList("owner", "Mixed", [3, 2, 4, 1]);

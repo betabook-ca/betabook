@@ -8,9 +8,10 @@ import {
   dateActiveFilters,
   hashtagActiveFilters,
   ratingActiveFilters,
+  textActiveFilters,
 } from "@/components/filters/active-filter-values";
 import { DateFilter } from "@/components/filters/date-filter";
-import { FilterInput } from "@/components/filters/filter-input";
+import { TextFilterField } from "@/components/filters/filter-input";
 import { FilterToolbar } from "@/components/filters/filter-toolbar";
 import { HashtagFilter } from "@/components/filters/hashtag-filter";
 import { RatingRangeFilter } from "@/components/filters/min-rating-filter";
@@ -156,9 +157,7 @@ export function UserSendsFilterToolbar({
               ascentStyles: disciplineFilter.ascentStyles.filter((s) => s !== style),
             }),
         })),
-        ...(name.trim()
-          ? [{ id: "query", label: `Text: ${name}`, onRemove: () => setName("") }]
-          : []),
+        ...textActiveFilters(name, () => setName("")),
         ...(areaName || disciplineFilter.areaId !== undefined
           ? [
               {
@@ -173,14 +172,12 @@ export function UserSendsFilterToolbar({
           : []),
       ]}
       textFilter={
-        <div className={FIELD_WIDTH_CLASS.long}>
-          <FilterInput
-            value={name}
-            onChange={setName}
-            label="Filter sends"
-            placeholder="Filter sends…"
-          />
-        </div>
+        <TextFilterField
+          value={name}
+          onChange={setName}
+          label="Filter sends"
+          placeholder="Filter sends…"
+        />
       }
       sortControl={
         <SortSelect

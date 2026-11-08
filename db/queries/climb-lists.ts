@@ -144,15 +144,25 @@ export type ClimbListQuery = { sort: ClimbListSort; filter: SearchClimbsParams }
  * mean the same thing on a list as in search. Only the area sort walks each
  * climb's area up to its root.
  */
+/** The climb's name contains `text`, ignoring ASCII case. `%`, `_` and `\`
+ * in the text match themselves rather than acting as wildcards. */
+function nameContainsSql(text: string): SQL {
+  const pattern = `%${text.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+  return sql`climbs.name LIKE ${pattern} ESCAPE '\\'`;
+}
+
 export async function getClimbListItemsWhere(
   db: Database,
   listAccess: SQL,
   viewerId: string | null,
   query: ClimbListQuery,
 ): Promise<ClimbListItem[]> {
-  const filters = searchClimbsConditions(query.filter);
-  // Text with nothing searchable in it matches no climb, as in search.
-  if (filters === null) return [];
+  // A list is short, so its text filter is a plain substring match on its own
+  // rows rather than Find climbs' full-text search over the whole catalog.
+  // Without a name, search's conditions are never null.
+  const filters = searchClimbsConditions({ ...query.filter, name: undefined }) ?? [];
+  const name = query.filter.name?.trim();
+  if (name) filters.push(nameContainsSql(name));
   const sent = sentByViewerSql(viewerId);
   const rows = await db.all<ItemRow>(sql`
     ${query.sort.startsWith("area_") ? sql`WITH RECURSIVE ${areaPathCtes(listAccess)}` : sql``}

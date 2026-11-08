@@ -184,6 +184,41 @@ it("filters by climb name in the URL, keeping the sort, and lists it as a remova
   expect(screen.getByRole("searchbox", { name: "Filter climbs on this list" })).toHaveValue("");
 });
 
+it("sets aside no area block above the toolbar, since a list has no area lookup", () => {
+  renderItems();
+  expect(document.querySelector('[data-slot="climb-filters-area"]')).toBeNull();
+});
+
+it("keeps typed text when the sort changes before the text is sent", async () => {
+  const user = userEvent.setup();
+  const { rerender } = renderItems();
+  const box = screen.getByRole("searchbox", { name: "Filter climbs on this list" });
+  await user.type(box, "cri");
+  // The reader's new sort reaches the URL inside the text box's debounce.
+  rerender(itemsElement({ view: { sort: "grade_desc", filter: DEFAULT_CLIMB_FILTER } }));
+  expect(box).toHaveValue("cri");
+  await waitFor(() =>
+    expect(replace).toHaveBeenLastCalledWith("/users/alex/lists/1?name=cri&sort=grade_desc", {
+      scroll: false,
+    }),
+  );
+});
+
+it("never sends typed text with the old sort while a new sort is on its way", async () => {
+  const user = userEvent.setup();
+  renderItems();
+  await user.type(screen.getByRole("searchbox", { name: "Filter climbs on this list" }), "cri");
+  await user.click(screen.getByRole("button", { name: "Sort ascending" }));
+  expect(replace).toHaveBeenCalledWith("/users/alex/lists/1?sort=position_desc", { scroll: false });
+  // The URL hasn't caught up; the text follows with the sort just chosen.
+  await waitFor(() =>
+    expect(replace).toHaveBeenLastCalledWith("/users/alex/lists/1?name=cri&sort=position_desc", {
+      scroll: false,
+    }),
+  );
+  expect(replace).not.toHaveBeenCalledWith("/users/alex/lists/1?name=cri", { scroll: false });
+});
+
 it("says so when the filters match nothing, and clears them", async () => {
   const user = userEvent.setup();
   renderItems({ items: [], view: EXCLUDING_SENT });

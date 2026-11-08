@@ -34,7 +34,7 @@ export function ClimbFilters({
     // the toolbar rather than reading as one more of its rows.
     <div className="flex flex-col gap-5">
       {(areaControl || value.area) && (
-        <div className="flex flex-col gap-3">
+        <div data-slot="climb-filters-area" className="flex flex-col gap-3">
           {areaControl}
           {value.area && (
             <Button

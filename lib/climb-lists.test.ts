@@ -57,6 +57,12 @@ describe("parseClimbListView", () => {
     expect(view.filter).not.toHaveProperty("areaName");
   });
 
+  it("trims the name, and treats a name of only spaces as none", () => {
+    expect(parseClimbListView({ name: "  crimp " }).filter.name).toBe("crimp");
+    expect(parseClimbListView({ name: "   " })).toEqual(DEFAULT_CLIMB_LIST_VIEW);
+    expect(parseClimbListView({ name: "   " }).filter).not.toHaveProperty("name");
+  });
+
   it("falls back to list order and no filters for anything else", () => {
     expect(parseClimbListView({ sort: "rating_desc", sent: "unsent" })).toEqual(
       DEFAULT_CLIMB_LIST_VIEW,

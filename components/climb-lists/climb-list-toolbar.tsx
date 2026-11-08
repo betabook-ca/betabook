@@ -1,16 +1,18 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 
+import { textActiveFilters } from "@/components/filters/active-filter-values";
 import { ClimbFilterControls } from "@/components/filters/climb-filter-controls";
-import { FilterInput } from "@/components/filters/filter-input";
-import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
+import { TextFilterField } from "@/components/filters/filter-input";
 import { SortSelect } from "@/components/ui/sort-select";
 import { useFilterFormNavigation } from "@/hooks/use-filter-form-navigation";
 import { DEFAULT_CLIMB_LIST_SORT as DEFAULT_CATALOG_SORT } from "@/lib/climb-list-sort";
 import {
   CLIMB_LIST_SORT_DIRECTION,
   CLIMB_LIST_SORT_OPTIONS,
+  DEFAULT_CLIMB_LIST_SORT,
   climbListViewSearch,
   type ClimbListSort,
   type ClimbListView,
@@ -32,6 +34,18 @@ export function ClimbListToolbar({ view, signedIn }: { view: ClimbListView; sign
   const hrefFor = (sort: ClimbListSort, filter: ClimbFilter) =>
     `${pathname}${climbListViewSearch({ sort, filter })}`;
 
+  // A sort the reader just chose, until the URL catches up. The text box's
+  // debounced navigation builds on it, so it can't land after the sort's own
+  // navigation and write the old sort back. Any change to the URL's sort
+  // (this one landing, or Back) drops it.
+  const [pendingSort, setPendingSort] = useState<ClimbListSort | null>(null);
+  const [seenSort, setSeenSort] = useState(view.sort);
+  if (seenSort !== view.sort) {
+    setSeenSort(view.sort);
+    setPendingSort(null);
+  }
+  const sort = pendingSort ?? view.sort;
+
   // The text box keeps its own state, so typing stays responsive while the
   // URL catches up; the rest of the filter rides in `filter`.
   const { name: committedName = "", ...rest } = view.filter;
@@ -46,8 +60,17 @@ export function ClimbListToolbar({ view, signedIn }: { view: ClimbListView; sign
     initialFilter: initial,
     initialName: committedName,
     defaultFilter: { filter: DEFAULT_CLIMB_FILTER, area: null, sort: DEFAULT_CATALOG_SORT },
-    buildHref: (next, nextName) =>
-      hrefFor(view.sort, nextName ? { ...next.filter, name: nextName } : next.filter),
+    // Given the sort, the hook keeps typed text across a sort change and never
+    // writes a stale sort back. No defaultSort: Clear all keeps the list's
+    // sort. Without one the hook compares filters at a fixed sort (the
+    // fallback below), so a sort change alone isn't an outside filter change.
+    sort,
+    buildHref: (next, nextName, _areaName, effectiveSort = DEFAULT_CLIMB_LIST_SORT) => {
+      // Matches how the page parses it, so the URL the box writes is the one
+      // it reads back; a name of only spaces is no name.
+      const trimmed = nextName.trim();
+      return hrefFor(effectiveSort, trimmed ? { ...next.filter, name: trimmed } : next.filter);
+    },
   });
 
   return (
@@ -56,28 +79,27 @@ export function ClimbListToolbar({ view, signedIn }: { view: ClimbListView; sign
       onChange={setState}
       onReset={reset}
       showExcludeSent={signedIn}
-      activeFilters={
-        name.trim() ? [{ id: "query", label: `Text: ${name}`, onRemove: () => setName("") }] : []
-      }
+      activeFilters={textActiveFilters(name, () => setName(""))}
       textFilter={
-        <div className={FIELD_WIDTH_CLASS.long}>
-          <FilterInput
-            value={name}
-            onChange={setName}
-            label="Filter climbs on this list"
-            placeholder="Filter climbs…"
-          />
-        </div>
+        <TextFilterField
+          value={name}
+          onChange={setName}
+          label="Filter climbs on this list"
+          placeholder="Filter climbs…"
+        />
       }
       sortControl={
         <SortSelect
-          sort={view.sort}
+          sort={sort}
           fields={CLIMB_LIST_SORT_OPTIONS}
           defaultField="position"
           defaultDirection={CLIMB_LIST_SORT_DIRECTION}
-          onNavigate={(sort: ClimbListSort) =>
-            router.replace(hrefFor(sort, view.filter), { scroll: false })
-          }
+          onNavigate={(next: ClimbListSort) => {
+            setPendingSort(next);
+            // Only what the URL already holds: text still being typed follows
+            // in the box's own navigation, so arriving here can't reseed it.
+            router.replace(hrefFor(next, view.filter), { scroll: false });
+          }}
         />
       }
     />

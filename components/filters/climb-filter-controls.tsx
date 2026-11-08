@@ -94,8 +94,10 @@ export function ClimbFilterControls({
             area: null,
           }))
       }
+      // Undefined when there is nothing to show, so ClimbFilters doesn't set
+      // aside an empty area block (and its gap) above the toolbar.
       areaControl={
-        !value.area ? (
+        !value.area && (value.filter.areaName || showAreaLookup) ? (
           <>
             {value.filter.areaName && (
               <Button

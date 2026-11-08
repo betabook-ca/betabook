@@ -118,7 +118,10 @@ export function parseClimbListView(params: UrlParamsRecord): ClimbListView {
   // Area isn't offered on a list, so a URL can't apply it either: a filter
   // the toolbar can't show is one the reader can't clear.
   const { name, areaName: _areaName, areaId: _areaId, ...filter } = parseClimbFilter(params);
-  return { sort, filter: name ? { ...filter, name } : filter };
+  // Trimmed: a name of only spaces searches for nothing and would empty the
+  // list behind a "Text:" filter too blank to show or clear.
+  const trimmed = name?.trim();
+  return { sort, filter: trimmed ? { ...filter, name: trimmed } : filter };
 }
 
 /** The filter part of a view's query string. Defaults are left out, so an
