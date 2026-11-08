@@ -30,6 +30,7 @@ import {
   catalogRouteSources,
   changeRequestApprovals,
   changeRequests,
+  climbListItems,
   climbs,
   journalEntries,
   pinnedProjects,
@@ -43,7 +44,7 @@ import { validateClimbMergeOverrides, validateClimbEditInput } from "@/lib/climb
 import type { ChangeRequestPayload, ChangeRequestType } from "@/lib/moderation";
 
 import { afterCommit } from "./post-commit";
-import { revalidateProjectSurfaces } from "./revalidation";
+import { revalidateClimbListSurfaces, revalidateProjectSurfaces } from "./revalidation";
 
 const ORPHANED_REVIEW_NOTE = "The area or climb this request affected no longer exists.";
 
@@ -731,7 +732,15 @@ export async function applyClimbMerge(
         .where(and(eq(target.climbId, targetClimbId), eq(target.userId, outerUserId))),
     );
 
+  // Read before the batch for the same reason: lists that held the source.
+  const affectedLists = await db.all<{ userId: string; listId: number }>(sql`
+    SELECT DISTINCT l.user_id AS userId, l.id AS listId
+    FROM climb_list_items i JOIN climb_lists l ON l.id = i.list_id
+    WHERE i.climb_id = ${sourceClimbId}
+  `);
+
   const targetPin = alias(pinnedProjects, "tp");
+  const targetListItem = alias(climbListItems, "tli");
   const targetShare = alias(projectShareLinks, "ts");
   const lacksTargetPin = lacksTargetRow(targetPin, pinnedProjects.userId);
 
@@ -816,6 +825,28 @@ export async function applyClimbMerge(
           lacksTargetRow(targetShare, projectShareLinks.userId),
         ),
       ),
+    // A list item follows the climb that survives and keeps its position. A
+    // list that already holds the target keeps that row; its source row
+    // cascades off with the source climb, so the climb stays on the list once.
+    db
+      .update(climbListItems)
+      .set({ climbId: targetClimbId })
+      .where(
+        and(
+          eq(climbListItems.climbId, sourceClimbId),
+          notExists(
+            db
+              .select({ one: sql`1` })
+              .from(targetListItem)
+              .where(
+                and(
+                  eq(targetListItem.listId, climbListItems.listId),
+                  eq(targetListItem.climbId, targetClimbId),
+                ),
+              ),
+          ),
+        ),
+      ),
     ...(Object.keys(overrides).length > 0
       ? [db.update(climbs).set(overrides).where(eq(climbs.id, targetClimbId))]
       : []),
@@ -843,6 +874,7 @@ export async function applyClimbMerge(
     // A pin either moved to the target or was folded into an existing one, and
     // the sends and sessions behind its card moved with it.
     for (const { userId } of affectedPinners) revalidateProjectSurfaces(userId);
+    for (const { userId, listId } of affectedLists) revalidateClimbListSurfaces(userId, listId);
     revalidatePath("/");
     refresh();
   });

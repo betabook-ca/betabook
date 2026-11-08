@@ -16,7 +16,7 @@ import { requireSession } from "@/lib/session";
 import { requireTrimmed } from "@/lib/validation";
 
 import { afterCommit } from "./post-commit";
-import { revalidateProfileSurfaces } from "./revalidation";
+import { revalidateClimbListSurfaces, revalidateProfileSurfaces } from "./revalidation";
 
 export async function setUserPrivate(isPrivate: boolean): Promise<ActionResult> {
   return toActionResult(async () => {
@@ -167,6 +167,24 @@ export async function setTripVisibility(visibility: string): Promise<ActionResul
 
     afterCommit(() => {
       revalidateProfileSurfaces(session.user.id);
+      refresh();
+    });
+  });
+}
+
+/** Who can open every one of this user's lists. A list's own share link is
+ * unaffected: it opens that list whatever this says. */
+export async function setClimbListVisibility(visibility: string): Promise<ActionResult> {
+  return toActionResult(async () => {
+    const session = await requireSession();
+    const db = await getDb();
+    const climbListVisibility = parseSharingAudience(visibility);
+
+    await db.update(user).set({ climbListVisibility }).where(eq(user.id, session.user.id));
+
+    afterCommit(() => {
+      revalidateProfileSurfaces(session.user.id);
+      revalidateClimbListSurfaces(session.user.id);
       refresh();
     });
   });

@@ -56,6 +56,14 @@ export const user = sqliteTable(
     })
       .default("friends")
       .notNull(),
+    // Who can open the Lists tab and every list page, for all of this user's
+    // lists at once. A list's share link opens that one list whatever this
+    // says (db/queries/climb-list-shares.ts).
+    climbListVisibility: text("climb_list_visibility", {
+      enum: ["private", "friends", "public"],
+    })
+      .default("friends")
+      .notNull(),
     productTourReturning: integer("product_tour_returning", { mode: "boolean" })
       .default(false)
       .notNull(),

@@ -16,3 +16,5 @@ export * from "./profile-share";
 export * from "./project-shares";
 export * from "./trips";
 export * from "./trip-shares";
+export * from "./climb-lists";
+export * from "./climb-list-shares";

@@ -26,6 +26,8 @@ import {
   catalogAreaSources,
   catalogRouteSources,
   changeRequests,
+  climbListItems,
+  climbLists,
   climbs,
   journalEntries,
   pinnedProjects,
@@ -883,6 +885,50 @@ describe("applyClimbMerge", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].climbId).toBe(941);
     expect(rows[0].pinnedAt).toBe("2026-02-02");
+  });
+
+  it("moves list items onto the surviving climb, keeping each list's order", async () => {
+    cache.revalidatePath.mockClear();
+    await seedFixtureUser(db, { id: "merge-lister" });
+    await db.insert(climbs).values([
+      { id: 960, areaId: 3, name: "Merge Source L", type: "boulder", grade: 3 },
+      { id: 961, areaId: 3, name: "Merge Target L", type: "boulder", grade: 3 },
+    ]);
+    const [single, both] = await db
+      .insert(climbLists)
+      .values([
+        { userId: "merge-lister", title: "Holds the source" },
+        { userId: "merge-lister", title: "Holds both" },
+      ])
+      .returning({ id: climbLists.id });
+    await db.insert(climbListItems).values([
+      { listId: single.id, climbId: 1, position: 1 },
+      { listId: single.id, climbId: 960, position: 2 },
+      { listId: single.id, climbId: 2, position: 3 },
+      { listId: both.id, climbId: 961, position: 1 },
+      { listId: both.id, climbId: 960, position: 2 },
+    ]);
+
+    await applyClimbMerge(db, 960, 961);
+
+    const items = await db
+      .select({
+        listId: climbListItems.listId,
+        climbId: climbListItems.climbId,
+        position: climbListItems.position,
+      })
+      .from(climbListItems)
+      .orderBy(climbListItems.listId, climbListItems.position);
+    expect(items).toEqual([
+      { listId: single.id, climbId: 1, position: 1 },
+      { listId: single.id, climbId: 961, position: 2 },
+      { listId: single.id, climbId: 2, position: 3 },
+      // The list that already held the target keeps that row and loses the
+      // duplicate, so the climb appears once.
+      { listId: both.id, climbId: 961, position: 1 },
+    ]);
+    const paths = cache.revalidatePath.mock.calls.map(([path]) => path);
+    expect(paths).toContain(`/users/merge-lister/lists/${single.id}`);
   });
 
   it("carries a share link onto the surviving climb with its token intact", async () => {

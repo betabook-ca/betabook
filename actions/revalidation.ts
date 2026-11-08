@@ -21,6 +21,14 @@ export function revalidateTripSurfaces(userId: string) {
   revalidatePath(`/users/${userId}/trips`);
 }
 
+/** The owner's Lists tab and, when given, the one list a write changed.
+ * Sent state on a list is the reader's own and is read per request, so send
+ * writes don't need to call this. */
+export function revalidateClimbListSurfaces(userId: string, listId?: number) {
+  revalidatePath(`/users/${userId}/lists`);
+  if (listId !== undefined) revalidatePath(`/users/${userId}/lists/${listId}`);
+}
+
 /** Every cached surface whose rendered aggregates or rows can change after a
  * send write. Keeping this set centralized prevents a new mutation path from
  * quietly omitting the feed, profile, climb, or area list. */

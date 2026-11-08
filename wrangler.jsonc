@@ -97,6 +97,16 @@
         "period": 60,
       },
     },
+    // Saved climb lists, apart from the journal: adding climbs one after
+    // another from the Add climbs dialog is a burst of quick writes.
+    {
+      "name": "CLIMB_LIST_RATE_LIMITER",
+      "namespace_id": "1005",
+      "simple": {
+        "limit": 60,
+        "period": 60,
+      },
+    },
     // A photo upload spends an Images transformation out of a monthly free
     // allowance and two R2 operations, so this is the one write where the
     // limit protects a budget rather than the database. Five a minute is
