@@ -5,7 +5,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { saveClimbListEdits } from "@/actions";
 import type { ClimbListItem } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
-import { CLIMB_LIST_CHANGED_MESSAGE, type ClimbListView } from "@/lib/climb-lists";
+import type { ClimbListView } from "@/lib/climb-lists";
 import { DEFAULT_CLIMB_FILTER } from "@/lib/filters/climb-filter";
 import { climbListBreadcrumbs, climbListItemSamples } from "@/stories/fixtures/climb-lists";
 
@@ -43,9 +43,8 @@ vi.mock("@/components/climb-sent-indicator", () => ({
 }));
 
 const replace = vi.fn<(href: string, options?: unknown) => void>();
-const refresh = vi.fn<() => void>();
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace, refresh, push: vi.fn<(href: string) => void>() }),
+  useRouter: () => ({ replace, push: vi.fn<(href: string) => void>() }),
   usePathname: () => "/users/alex/lists/1",
 }));
 
@@ -101,7 +100,6 @@ async function chooseEdit(user: ReturnType<typeof userEvent.setup>) {
 
 beforeEach(() => {
   replace.mockReset();
-  refresh.mockReset();
   vi.mocked(saveClimbListEdits).mockReset().mockResolvedValue({ ok: true, value: undefined });
 });
 
@@ -229,34 +227,6 @@ it("moves climbs with the arrows and saves the whole order once", async () => {
   expect(await screen.findByRole("button", { name: "List actions" })).toBeInTheDocument();
 });
 
-it("carries staged edits over to the latest list when the save was stale", async () => {
-  vi.mocked(saveClimbListEdits).mockResolvedValueOnce({
-    ok: false,
-    error: CLIMB_LIST_CHANGED_MESSAGE,
-  });
-  const user = userEvent.setup();
-  const { rerender } = renderItems();
-  await chooseEdit(user);
-  await user.click(screen.getByRole("button", { name: "Move Rat Stew earlier" }));
-  await user.click(screen.getByRole("button", { name: "Remove Gift of the Magi from this list" }));
-  await user.click(screen.getByRole("button", { name: "Save" }));
-
-  expect(await screen.findByText(/This list changed in another tab/)).toBeInTheDocument();
-  expect(refresh).toHaveBeenCalledTimes(1);
-
-  // The refresh brings the list as another tab left it: Amarillo Sunset
-  // removed there, and a sixth climb added at the end.
-  const [amarillo, ...rest] = climbListItemSamples;
-  const added = { ...amarillo, climbId: 106, name: "New Problem", position: 6 };
-  rerender(itemsElement({ items: [...rest, added] }));
-
-  expect(screen.queryByText("Amarillo Sunset")).not.toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "Save" }));
-  await waitFor(() =>
-    expect(saveClimbListEdits).toHaveBeenLastCalledWith(1, [103, 105, 104, 106], [102], []),
-  );
-});
-
 it("stages a double-tapped Remove once", async () => {
   const user = userEvent.setup();
   renderItems();
@@ -293,7 +263,7 @@ it("opens the editor once the plain list arrives after choosing Edit", async () 
   expect(screen.getByRole("grid", { name: "Edit climbs" })).toBeInTheDocument();
 });
 
-it("keeps the edits and shows other save errors as they are", async () => {
+it("keeps the edits and shows the error when a save fails", async () => {
   vi.mocked(saveClimbListEdits).mockResolvedValueOnce({
     ok: false,
     error: "Too many changes — try again in a minute",
@@ -305,7 +275,6 @@ it("keeps the edits and shows other save errors as they are", async () => {
   await user.click(screen.getByRole("button", { name: "Save" }));
 
   expect(await screen.findByText("Too many changes — try again in a minute")).toBeInTheDocument();
-  expect(refresh).not.toHaveBeenCalled();
   await user.click(screen.getByRole("button", { name: "Save" }));
   await waitFor(() =>
     expect(saveClimbListEdits).toHaveBeenLastCalledWith(1, [101, 102, 103, 105, 104], [], []),

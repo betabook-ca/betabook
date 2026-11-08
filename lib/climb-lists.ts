@@ -27,8 +27,8 @@ export const CLIMB_LIST_NOT_FOUND_MESSAGE = "List not found";
 export const CLIMB_LIST_UNAVAILABLE_MESSAGE = "This list isn't available.";
 export const CLIMB_LIST_LIMIT_MESSAGE = `You can keep ${MAX_CLIMB_LISTS} lists. Delete one to add another.`;
 export const CLIMB_LIST_FULL_MESSAGE = `A list can hold ${MAX_CLIMB_LIST_ITEMS} climbs.`;
-export const CLIMB_LIST_CHANGED_MESSAGE =
-  "This list changed since you opened it. Reload to try again.";
+export const CLIMB_LIST_EDIT_INVALID_MESSAGE =
+  "These list changes aren't valid. Reload the list and try again.";
 export const CLIMB_NOT_FOUND_MESSAGE = "Climb not found";
 
 /** Counts code points, to match SQLite's length(). */

@@ -2,7 +2,6 @@
 
 import { Button, useOverlayState } from "@heroui/react";
 import { ArrowDown, ArrowUp, CirclePlus, GripVertical, X } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { DropIndicator, GridList, GridListItem, useDragAndDrop } from "react-aria-components";
 
@@ -11,7 +10,7 @@ import { AddClimbsDialog } from "@/components/climb-lists/add-climbs-dialog";
 import { cardClass } from "@/components/ui/card";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import type { ClimbListItem, ClimbWithAreaName } from "@/db/queries";
-import { CLIMB_LIST_CHANGED_MESSAGE, moveClimb } from "@/lib/climb-lists";
+import { moveClimb } from "@/lib/climb-lists";
 
 /** A climb picked in the editor, shaped like a list row until Save adds it. */
 function stagedItem(climb: ClimbWithAreaName): ClimbListItem {
@@ -33,17 +32,12 @@ function stagedItem(climb: ClimbWithAreaName): ClimbListItem {
  * The owner's list editor: drag a row by its handle, or use the arrow
  * buttons, which are also the keyboard and touch path; take climbs off with
  * Remove, and add them with Add climbs at the bottom. Nothing is written until
- * Save, which sends the order, the removed climbs and the added ones once; the
- * server refuses it if the list changed in the meantime, rather than
- * half-applying it. Cancel drops every staged change. Every control is
+ * Save, which sends the order, the removed climbs and the added ones once.
+ * Save writes what the owner sees, even if another tab changed the list in
+ * the meantime: see `saveClimbListEdits` for how climbs this editor never
+ * showed are kept. Cancel drops every staged change. Every control is
  * disabled while a save is in flight, so nothing staged then is lost when the
  * editor closes.
- *
- * When the server refuses a save because the list changed, the editor reloads
- * the list and carries the staged edits over to it: climbs still on the list
- * keep their staged order or removal, climbs gone elsewhere drop out, climbs
- * added here stay added, and climbs added elsewhere join at the end. The owner
- * checks it and saves again.
  *
  * `items` must be the whole list in circuit order. The list page opens this
  * only in circuit order with no filter, so the order it saves has every climb
@@ -60,28 +54,12 @@ export function ClimbListEditor({
   listTitle: string;
   onClose: () => void;
 }) {
-  const router = useRouter();
   const addState = useOverlayState();
   const [order, setOrder] = useState(() => items.map((item) => item.climbId));
   const [removed, setRemoved] = useState<number[]>([]);
   const [added, setAdded] = useState<ClimbListItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  // The list the staged edits were made against. A refresh brings a new one.
-  const [base, setBase] = useState(items);
-  if (items !== base) {
-    setBase(items);
-    const current = items.map((item) => item.climbId);
-    const onList = new Set(current);
-    const stillAdded = added.filter((item) => !onList.has(item.climbId));
-    const addedIds = new Set(stillAdded.map((item) => item.climbId));
-    const keptOrder = order.filter((id) => onList.has(id) || addedIds.has(id));
-    const keptRemoved = removed.filter((id) => onList.has(id));
-    const staged = new Set([...keptOrder, ...keptRemoved]);
-    setOrder([...keptOrder, ...current.filter((id) => !staged.has(id))]);
-    setRemoved(keptRemoved);
-    setAdded(stillAdded);
-  }
 
   const byId = new Map([...items, ...added].map((item) => [item.climbId, item]));
   const rows = order.flatMap((id) => byId.get(id) ?? []);
@@ -151,18 +129,8 @@ export function ClimbListEditor({
         removed,
         added.map((item) => item.climbId),
       );
-      if (result.ok) {
-        onClose();
-        return;
-      }
-      if (result.error !== CLIMB_LIST_CHANGED_MESSAGE) {
-        setError(result.error);
-        return;
-      }
-      setError(
-        "This list changed in another tab. It now shows the latest climbs with your edits kept. Check it, then save again.",
-      );
-      startTransition(() => router.refresh());
+      if (result.ok) onClose();
+      else setError(result.error);
     });
   }
 

@@ -29,7 +29,7 @@ import {
 } from "@/db/queries";
 import { climbListItems, climbListShareLinks, climbLists, climbs, user } from "@/db/schema";
 import {
-  CLIMB_LIST_CHANGED_MESSAGE,
+  CLIMB_LIST_EDIT_INVALID_MESSAGE,
   CLIMB_LIST_LIMIT_MESSAGE,
   CLIMB_LIST_NOT_FOUND_MESSAGE,
   CLIMB_LIST_UNAVAILABLE_MESSAGE,
@@ -118,6 +118,16 @@ async function seedList(owner: string, title: string, climbIds: number[] = []) {
   const id = value(await createClimbList({ title, description: `About ${title}` }));
   for (const climbId of climbIds) value(await addClimbToList(id, climbId));
   return id;
+}
+
+/** Each climb with its stored position, in position order. */
+async function positions(listId: number) {
+  const rows = await db
+    .select({ climbId: climbListItems.climbId, position: climbListItems.position })
+    .from(climbListItems)
+    .where(eq(climbListItems.listId, listId))
+    .orderBy(climbListItems.position, climbListItems.climbId);
+  return rows.map((row) => [row.climbId, row.position]);
 }
 
 async function order(listId: number) {
@@ -294,45 +304,15 @@ describe("picker ids", () => {
   });
 });
 
-describe("reordering", () => {
-  it("saves the submitted order", async () => {
+describe("saving the editor", () => {
+  it("saves the submitted order, numbered 1…n", async () => {
     const id = await seedList("owner", "Circuit", [1, 2, 3]);
     value(await saveClimbListEdits(id, [3, 1, 2]));
-    expect(await order(id)).toEqual([3, 1, 2]);
-  });
-
-  it("refuses an order made before another tab changed the list", async () => {
-    const id = await seedList("owner", "Circuit", [1, 2]);
-    value(await addClimbToList(id, 3));
-
-    expect(errorOf(await saveClimbListEdits(id, [2, 1]))).toBe(CLIMB_LIST_CHANGED_MESSAGE);
-    expect(errorOf(await saveClimbListEdits(id, [2, 1, 4]))).toBe(CLIMB_LIST_CHANGED_MESSAGE);
-    expect(errorOf(await saveClimbListEdits(id, [2, 2, 1]))).toBe(CLIMB_LIST_CHANGED_MESSAGE);
-    expect(await order(id)).toEqual([1, 2, 3]);
-  });
-});
-
-describe("removing in the editor", () => {
-  it("removes the climbs taken off and saves the new order in one write", async () => {
-    const id = await seedList("owner", "Circuit", [1, 2, 3]);
-    value(await saveClimbListEdits(id, [3, 1], [2]));
-    expect(await order(id)).toEqual([3, 1]);
-  });
-
-  it("can take every climb off", async () => {
-    const id = await seedList("owner", "Circuit", [1, 2]);
-    value(await saveClimbListEdits(id, [], [2, 1]));
-    expect(await order(id)).toEqual([]);
-  });
-
-  it("writes nothing when the list changed since the editor opened", async () => {
-    const id = await seedList("owner", "Circuit", [1, 2]);
-    value(await addClimbToList(id, 3));
-
-    expect(errorOf(await saveClimbListEdits(id, [2], [1]))).toBe(CLIMB_LIST_CHANGED_MESSAGE);
-    // A climb both kept and removed is not a real edit.
-    expect(errorOf(await saveClimbListEdits(id, [3, 2, 1], [1]))).toBe(CLIMB_LIST_CHANGED_MESSAGE);
-    expect(await order(id)).toEqual([1, 2, 3]);
+    expect(await positions(id)).toEqual([
+      [3, 1],
+      [1, 2],
+      [2, 3],
+    ]);
   });
 
   it("adds, removes and reorders in one save", async () => {
@@ -341,85 +321,134 @@ describe("removing in the editor", () => {
     expect(await order(id)).toEqual([4, 3, 1]);
   });
 
-  it("adds to an empty list", async () => {
+  it("adds to an empty list, and can take every climb off", async () => {
     const id = await seedList("owner", "Circuit");
     value(await saveClimbListEdits(id, [2, 1], [], [2, 1]));
     expect(await order(id)).toEqual([2, 1]);
+    value(await saveClimbListEdits(id, [], [2, 1]));
+    expect(await order(id)).toEqual([]);
   });
 
-  it("writes nothing when an added climb no longer exists", async () => {
+  it("keeps climbs the editor never showed, after its order and in their own order", async () => {
     const id = await seedList("owner", "Circuit", [1, 2]);
-    expect(errorOf(await saveClimbListEdits(id, [2, 999_999, 1], [], [999_999]))).toBe(
-      CLIMB_LIST_CHANGED_MESSAGE,
-    );
-    expect(errorOf(await saveClimbListEdits(id, [3, 999_999], [1, 2], [3, 999_999]))).toBe(
-      CLIMB_LIST_CHANGED_MESSAGE,
-    );
+    // Another tab adds two climbs while the editor shows [1, 2].
+    value(await addClimbToList(id, 4));
+    value(await addClimbToList(id, 3));
+    value(await saveClimbListEdits(id, [2, 1]));
+    expect(await positions(id)).toEqual([
+      [2, 1],
+      [1, 2],
+      [4, 3],
+      [3, 4],
+    ]);
+  });
+
+  it("orders unseen climbs by their old positions even when row order disagrees", async () => {
+    const id = await seedList("owner", "Circuit", [1, 2, 3]);
+    // Rows 1 and 2 are stored in the opposite order to their positions, so a
+    // renumber that read half-updated positions would tie or swap them.
+    await db.run(sql`UPDATE climb_list_items SET position = CASE climb_id
+      WHEN 1 THEN 20 WHEN 2 THEN 10 ELSE 30 END WHERE list_id = ${id}`);
+    value(await saveClimbListEdits(id, [3]));
+    expect(await positions(id)).toEqual([
+      [3, 1],
+      [2, 2],
+      [1, 3],
+    ]);
+  });
+
+  it("puts back a climb another tab removed but the editor still shows", async () => {
+    const id = await seedList("owner", "Circuit", [1, 2, 3]);
+    const addedAt = async () =>
+      new Map(
+        (await db.select().from(climbListItems).where(eq(climbListItems.listId, id))).map((row) => [
+          row.climbId,
+          row.addedAt.getTime(),
+        ]),
+      );
+    const before = await addedAt();
+    // Another tab takes 2 off.
+    value(await saveClimbListEdits(id, [1, 3], [2]));
+
+    value(await saveClimbListEdits(id, [3, 2, 1]));
+    expect(await positions(id)).toEqual([
+      [3, 1],
+      [2, 2],
+      [1, 3],
+    ]);
+    const after = await addedAt();
+    // Rows that stayed keep when they were added; the put-back one is new.
+    expect(after.get(1)).toBe(before.get(1));
+    expect(after.get(3)).toBe(before.get(3));
+  });
+
+  it("deletes only the climbs the owner removed", async () => {
+    const id = await seedList("owner", "Circuit", [1, 2, 3]);
+    // The editor shows only 1, and removes nothing.
+    value(await saveClimbListEdits(id, [1]));
+    expect(await order(id)).toEqual([1, 2, 3]);
+    value(await saveClimbListEdits(id, [1], [3]));
     expect(await order(id)).toEqual([1, 2]);
   });
 
-  it("finishes the edit when another tab already made its add, without a duplicate", async () => {
+  it("skips climbs that no longer exist, wherever they appear, and still saves", async () => {
+    const id = await seedList("owner", "Circuit", [1, 2]);
+    value(await saveClimbListEdits(id, [2, 999_999, 1, 3], [999_998], [999_999, 3]));
+    expect(await positions(id)).toEqual([
+      [2, 1],
+      [1, 2],
+      [3, 3],
+    ]);
+  });
+
+  it("saves over an add another tab already made, without a duplicate", async () => {
     const id = await seedList("owner", "Circuit", [1, 2]);
     value(await addClimbToList(id, 3));
-    // The list already holds what the insert would have produced, so the
-    // insert is skipped and the order and removal still apply.
     value(await saveClimbListEdits(id, [2, 3], [1], [3]));
     expect(await order(id)).toEqual([2, 3]);
   });
 
-  it("refuses an add when another tab changed something else", async () => {
-    const id = await seedList("owner", "Circuit", [1, 2]);
-    value(await addClimbToList(id, 4));
-    expect(errorOf(await saveClimbListEdits(id, [2, 3], [1], [3]))).toBe(
-      CLIMB_LIST_CHANGED_MESSAGE,
-    );
-    expect(await order(id)).toEqual([1, 2, 4]);
-  });
-
-  it("refuses added climbs missing from the new order, or added twice", async () => {
-    const id = await seedList("owner", "Circuit", [1]);
-    expect(errorOf(await saveClimbListEdits(id, [1], [], [2]))).toBe(CLIMB_LIST_CHANGED_MESSAGE);
-    expect(errorOf(await saveClimbListEdits(id, [1, 2], [], [2, 2]))).toBe(
-      CLIMB_LIST_CHANGED_MESSAGE,
-    );
-    expect(await order(id)).toEqual([1]);
-  });
-
-  it("refuses another climber's list for an add", async () => {
-    const id = await seedList("owner", "Mine", [1]);
-    as("member");
-    expect(errorOf(await saveClimbListEdits(id, [1, 2], [], [2]))).toBe(
-      CLIMB_LIST_NOT_FOUND_MESSAGE,
-    );
-    expect(await order(id)).toEqual([1]);
-  });
-
-  it("refuses an empty save once the list has climbs again", async () => {
+  it("treats an empty save as no change, leaving climbs it never showed", async () => {
     const id = await seedList("owner", "Circuit");
     value(await addClimbToList(id, 1));
-    expect(errorOf(await saveClimbListEdits(id, [], []))).toBe(CLIMB_LIST_CHANGED_MESSAGE);
+    value(await saveClimbListEdits(id, [], []));
     expect(await order(id)).toEqual([1]);
   });
 
-  it("moves the list up in the same batch, and only when the save applied", async () => {
+  it("moves the list up in the same batch", async () => {
     const id = await seedList("owner", "Circuit", [1, 2]);
-    const updatedAt = async () =>
-      (await db.select().from(climbLists).where(eq(climbLists.id, id)))[0].updatedAt.getTime();
     await db.run(sql`UPDATE climb_lists SET updated_at = 1 WHERE id = ${id}`);
-
-    expect(errorOf(await saveClimbListEdits(id, [2], []))).toBe(CLIMB_LIST_CHANGED_MESSAGE);
-    expect(await updatedAt()).toBe(1);
-
     value(await saveClimbListEdits(id, [2], [1]));
-    expect(await updatedAt()).toBeGreaterThan(1);
+    const [row] = await db.select().from(climbLists).where(eq(climbLists.id, id));
+    expect(row.updatedAt.getTime()).toBeGreaterThan(1);
     expect(await order(id)).toEqual([2]);
+  });
+
+  it("refuses malformed edits with a validation error and writes nothing", async () => {
+    const id = await seedList("owner", "Circuit", [1, 2]);
+    for (const [kept, removed, added] of [
+      [[2, 2, 1], [], []],
+      [[2, 1], [1], []],
+      [[1], [], [2]],
+      [[1, 2], [], [2, 2]],
+      [[1, 0], [], []],
+      [[1, 1.5], [], []],
+      ["1,2", [], []],
+    ] as const)
+      expect(errorOf(await saveClimbListEdits(id, kept, removed, added))).toBe(
+        CLIMB_LIST_EDIT_INVALID_MESSAGE,
+      );
+    expect(await order(id)).toEqual([1, 2]);
   });
 
   it("refuses another climber's list and leaves it whole", async () => {
     const id = await seedList("owner", "Mine", [1, 2]);
     as("member");
     expect(errorOf(await saveClimbListEdits(id, [1], [2]))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
-    expect(errorOf(await saveClimbListEdits(id, [], [1, 2]))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
+    expect(errorOf(await saveClimbListEdits(id, [1, 2, 3], [], [3]))).toBe(
+      CLIMB_LIST_NOT_FOUND_MESSAGE,
+    );
+    expect(errorOf(await saveClimbListEdits(id, [], []))).toBe(CLIMB_LIST_NOT_FOUND_MESSAGE);
     expect(await order(id)).toEqual([1, 2]);
   });
 });

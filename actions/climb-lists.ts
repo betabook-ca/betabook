@@ -15,7 +15,7 @@ import {
   type ActionResult,
 } from "@/lib/action-result";
 import {
-  CLIMB_LIST_CHANGED_MESSAGE,
+  CLIMB_LIST_EDIT_INVALID_MESSAGE,
   CLIMB_LIST_FULL_MESSAGE,
   CLIMB_LIST_LIMIT_MESSAGE,
   CLIMB_LIST_NOT_FOUND_MESSAGE,
@@ -263,37 +263,25 @@ function isClimbIdArray(value: unknown): value is number[] {
   );
 }
 
-/** The list is the caller's and holds exactly the climbs in `set`, a JSON
- * array of ids. */
-function listHoldsExactly(userId: string, listId: number, set: string) {
-  return sql`EXISTS (SELECT 1 FROM climb_lists WHERE id = ${listId} AND user_id = ${userId})
-    AND (SELECT COUNT(*) FROM climb_list_items WHERE list_id = ${listId}) = json_array_length(${set})
-    AND NOT EXISTS (
-      SELECT 1 FROM climb_list_items current
-      WHERE current.list_id = ${listId}
-        AND current.climb_id NOT IN (SELECT value FROM json_each(${set}))
-    )`;
-}
-
 /**
- * Saves the owner's edits from the list editor. `climbIds` is the list as it
- * will be, first to last, including `addedIds`, the climbs added in the
- * editor; `removedIds` are the climbs taken off.
+ * Saves the owner's edits from the list editor: `climbIds` is the list as the
+ * editor shows it, first to last, including `addedIds`, the climbs added in
+ * the editor; `removedIds` are the climbs the owner took off.
  *
- * One batch inserts the added climbs, rewrites every position, deletes the
- * removed climbs and moves the list up the Lists tab. Each statement checks
- * that the list holds exactly what it should at that step: the editor's
- * starting climbs before the insert, those plus the added ones for the
- * positions and the delete, and the final climbs for the touch. So either
- * every statement applies, or none does and the list is left as it was (or
- * it already was what the editor asked for, and the rest finishes the job).
- * A list changed in another tab since the editor loaded is refused rather
- * than half-applied, so two edits cannot silently overwrite each other.
- * Nothing is written after the batch, so a saved edit can't come back as an
- * error.
+ * The owner's Save writes what they see, even if another tab changed the list
+ * since the editor opened:
+ * - every climb in the editor's order is on the list afterwards, in that
+ *   order, put back if another tab took it off;
+ * - only the climbs the owner removed are deleted;
+ * - climbs the editor never showed (added in another tab, or from a climb's
+ *   page) stay, after the editor's order, in their existing order;
+ * - a climb deleted since (a moderator can delete one that is on lists) is
+ *   skipped wherever it appears, as lists already lose deleted climbs.
  *
- * The editor sends this once, on Save, so it spends one write from the list
- * budget like any other list change.
+ * Positions come out 1…n with no gaps, and rows already on the list keep
+ * their `added_at`. One batch does it all, the list's `updated_at` included,
+ * so it applies whole or not at all. The editor sends this once, on Save, so
+ * it spends one write from the list budget like any other list change.
  */
 export async function saveClimbListEdits(
   listId: number,
@@ -305,7 +293,7 @@ export async function saveClimbListEdits(
     const { user } = await requireSession();
     const list = requirePositiveId(listId, CLIMB_LIST_NOT_FOUND_MESSAGE);
     if (!isClimbIdArray(climbIds) || !isClimbIdArray(removedIds) || !isClimbIdArray(addedIds))
-      throw new ActionError(CLIMB_LIST_CHANGED_MESSAGE);
+      throw new ActionError(CLIMB_LIST_EDIT_INVALID_MESSAGE);
     const every = [...climbIds, ...removedIds];
     const kept = new Set(climbIds);
     if (
@@ -314,78 +302,74 @@ export async function saveClimbListEdits(
       new Set(addedIds).size !== addedIds.length ||
       !addedIds.every((id) => kept.has(id))
     )
-      throw new ActionError(CLIMB_LIST_CHANGED_MESSAGE);
+      throw new ActionError(CLIMB_LIST_EDIT_INVALID_MESSAGE);
     await requireWriteBudget(user.id);
 
     const db = await getDb();
-    if (every.length === 0) {
-      // Nothing to write, and no row for a guard to match: confirm directly
-      // that the list is the caller's and still empty.
-      const row = await db.get<{ climbCount: number }>(sql`
-        SELECT (SELECT COUNT(*) FROM climb_list_items WHERE list_id = l.id) AS climbCount
-        FROM climb_lists l WHERE l.id = ${list} AND l.user_id = ${user.id}
-      `);
-      if (!row) throw new ActionError(CLIMB_LIST_NOT_FOUND_MESSAGE);
-      if (row.climbCount > 0) throw new ActionError(CLIMB_LIST_CHANGED_MESSAGE);
-      afterListChange(user.id, list);
-      return;
-    }
+    if (!(await ownsList(db, user.id, list))) throw new ActionError(CLIMB_LIST_NOT_FOUND_MESSAGE);
 
-    const added = new Set(addedIds);
-    const starting = JSON.stringify(every.filter((id) => !added.has(id)));
-    // Removed climbs take positions after the kept ones, then go.
-    const positions = JSON.stringify(every);
-    const addedJson = JSON.stringify(addedIds);
-    const [, updated] = await db.batch([
-      db.insert(climbListItems).select(
-        db
-          .select({
-            listId: sql`${list}`.as("list_id"),
-            climbId: sql`a.value`.as("climb_id"),
-            position: sql`(SELECT CAST(o.key AS INTEGER) + 1 FROM json_each(${positions}) o
-                             WHERE o.value = a.value)`.as("position"),
-            addedAt: sql`${nowMs}`.as("added_at"),
-          })
-          .from(sql`json_each(${addedJson}) a`)
-          .where(
-            // Every added climb must still exist, or none is inserted.
-            sql`${listHoldsExactly(user.id, list, starting)}
-                AND (SELECT COUNT(*) FROM climbs WHERE id IN (SELECT value FROM json_each(${addedJson})))
-                    = json_array_length(${addedJson})`,
-          ),
-      ),
+    const order = JSON.stringify(climbIds);
+    // Every statement repeats the owner condition, so a list deleted between
+    // the check above and the batch is left alone.
+    const owned = sql`EXISTS (SELECT 1 FROM climb_lists WHERE id = ${list} AND user_id = ${user.id})`;
+    await db.batch([
+      // Put back every climb in the editor's order that isn't on the list:
+      // the ones added here, and any another tab took off. The join skips
+      // climbs that no longer exist; the renumber below fixes positions.
       db
-        .update(climbListItems)
-        .set({
-          position: sql`(SELECT CAST(o.key AS INTEGER) + 1 FROM json_each(${positions}) o
-                         WHERE o.value = ${climbListItems.climbId})`,
-        })
-        .where(and(eq(climbListItems.listId, list), listHoldsExactly(user.id, list, positions)))
-        .returning({ climbId: climbListItems.climbId }),
+        .insert(climbListItems)
+        .select(
+          db
+            .select({
+              listId: sql`${list}`.as("list_id"),
+              climbId: sql`c.id`.as("climb_id"),
+              position: sql`CAST(o.key AS INTEGER) + 1`.as("position"),
+              addedAt: sql`${nowMs}`.as("added_at"),
+            })
+            .from(sql`json_each(${order}) o JOIN climbs c ON c.id = o.value`)
+            .where(owned),
+        )
+        .onConflictDoNothing(),
       db
         .delete(climbListItems)
         .where(
           and(
             eq(climbListItems.listId, list),
             sql`${climbListItems.climbId} IN (SELECT value FROM json_each(${JSON.stringify(removedIds)}))`,
-            listHoldsExactly(user.id, list, positions),
+            owned,
+          ),
+        ),
+      // 1…n over what is now on the list: the editor's order first, then the
+      // climbs it never showed in their existing order. The ranks are
+      // computed once in the FROM subquery, before any row changes, so
+      // reading `position` there sees only the old values.
+      db
+        .update(climbListItems)
+        .set({ position: sql`ranked.pos` })
+        .from(
+          sql`(
+            SELECT i.climb_id AS climb_id,
+                   ROW_NUMBER() OVER (
+                     ORDER BY o.key IS NULL, CAST(o.key AS INTEGER),
+                              i.position, i.added_at, i.climb_id
+                   ) AS pos
+            FROM climb_list_items i
+            LEFT JOIN json_each(${order}) o ON o.value = i.climb_id
+            WHERE i.list_id = ${list}
+          ) AS ranked`,
+        )
+        .where(
+          and(
+            eq(climbListItems.listId, list),
+            sql`ranked.climb_id = ${climbListItems.climbId}`,
+            owned,
           ),
         ),
       db
         .update(climbLists)
         .set({ updatedAt: sql`${nowMs}` })
-        .where(
-          and(
-            eq(climbLists.id, list),
-            eq(climbLists.userId, user.id),
-            listHoldsExactly(user.id, list, JSON.stringify(climbIds)),
-          ),
-        ),
+        .where(and(eq(climbLists.id, list), eq(climbLists.userId, user.id))),
     ]);
-    if (updated.length !== every.length) {
-      if (!(await ownsList(db, user.id, list))) throw new ActionError(CLIMB_LIST_NOT_FOUND_MESSAGE);
-      throw new ActionError(CLIMB_LIST_CHANGED_MESSAGE);
-    }
 
     afterListChange(user.id, list);
   });
