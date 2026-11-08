@@ -268,15 +268,15 @@ function isClimbIdArray(value: unknown): value is number[] {
  * editor shows it, first to last, including `addedIds`, the climbs added in
  * the editor; `removedIds` are the climbs the owner took off.
  *
- * The owner's Save writes what they see, even if another tab changed the list
- * since the editor opened:
- * - every climb in the editor's order is on the list afterwards, in that
- *   order, put back if another tab took it off;
- * - only the climbs the owner removed are deleted;
- * - climbs the editor never showed (added in another tab, or from a climb's
- *   page) stay, after the editor's order, in their existing order;
- * - a climb deleted since (a moderator can delete one that is on lists) is
- *   skipped wherever it appears, as lists already lose deleted climbs.
+ * Save writes exactly what the editor shows, whatever happened in other tabs
+ * since it opened: afterwards the list is the editor's climbs, in its order,
+ * and nothing else. A climb another tab removed is put back; one another tab
+ * added is dropped. So the list can never grow past what the owner saw, and
+ * `MAX_CLIMB_LIST_ITEMS` on `climbIds` caps it. A climb deleted since (a
+ * moderator can delete one that is on lists) is skipped, as lists already
+ * lose deleted climbs. A climb a moderator merged away is skipped the same
+ * way, and its merge target, which the editor never showed, is dropped
+ * (#391).
  *
  * Positions come out 1…n with no gaps, and rows already on the list keep
  * their `added_at`. One batch does it all, the list's `updated_at` included,
@@ -313,9 +313,9 @@ export async function saveClimbListEdits(
     // the check above and the batch is left alone.
     const owned = sql`EXISTS (SELECT 1 FROM climb_lists WHERE id = ${list} AND user_id = ${user.id})`;
     await db.batch([
-      // Put back every climb in the editor's order that isn't on the list:
-      // the ones added here, and any another tab took off. The join skips
-      // climbs that no longer exist; the renumber below fixes positions.
+      // Put on every climb the editor shows that isn't on the list: the ones
+      // added here, and any another tab took off. The join skips climbs that
+      // no longer exist; the renumber below fixes positions.
       db
         .insert(climbListItems)
         .select(
@@ -330,32 +330,29 @@ export async function saveClimbListEdits(
             .where(owned),
         )
         .onConflictDoNothing(),
+      // Take off everything the editor doesn't show: the owner's removals,
+      // and anything another tab added.
       db
         .delete(climbListItems)
         .where(
           and(
             eq(climbListItems.listId, list),
-            sql`${climbListItems.climbId} IN (SELECT value FROM json_each(${JSON.stringify(removedIds)}))`,
+            sql`${climbListItems.climbId} NOT IN (SELECT value FROM json_each(${order}))`,
             owned,
           ),
         ),
-      // 1…n over what is now on the list: the editor's order first, then the
-      // climbs it never showed in their existing order. The ranks are
-      // computed once in the FROM subquery, before any row changes, so
-      // reading `position` there sees only the old values.
+      // 1…n in the editor's order over what survived, so a skipped climb
+      // leaves no gap. The ranks come from the FROM subquery, computed once
+      // before any row changes.
       db
         .update(climbListItems)
         .set({ position: sql`ranked.pos` })
         .from(
           sql`(
-            SELECT i.climb_id AS climb_id,
-                   ROW_NUMBER() OVER (
-                     ORDER BY o.key IS NULL, CAST(o.key AS INTEGER),
-                              i.position, i.added_at, i.climb_id
-                   ) AS pos
-            FROM climb_list_items i
-            LEFT JOIN json_each(${order}) o ON o.value = i.climb_id
-            WHERE i.list_id = ${list}
+            SELECT o.value AS climb_id,
+                   ROW_NUMBER() OVER (ORDER BY CAST(o.key AS INTEGER)) AS pos
+            FROM json_each(${order}) o
+            JOIN climb_list_items i ON i.list_id = ${list} AND i.climb_id = o.value
           ) AS ranked`,
         )
         .where(

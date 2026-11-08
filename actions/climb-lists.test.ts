@@ -329,7 +329,7 @@ describe("saving the editor", () => {
     expect(await order(id)).toEqual([]);
   });
 
-  it("keeps climbs the editor never showed, after its order and in their own order", async () => {
+  it("drops climbs the editor never showed, so other tabs can't change the save", async () => {
     const id = await seedList("owner", "Circuit", [1, 2]);
     // Another tab adds two climbs while the editor shows [1, 2].
     value(await addClimbToList(id, 4));
@@ -338,23 +338,19 @@ describe("saving the editor", () => {
     expect(await positions(id)).toEqual([
       [2, 1],
       [1, 2],
-      [4, 3],
-      [3, 4],
     ]);
   });
 
-  it("orders unseen climbs by their old positions even when row order disagrees", async () => {
-    const id = await seedList("owner", "Circuit", [1, 2, 3]);
-    // Rows 1 and 2 are stored in the opposite order to their positions, so a
-    // renumber that read half-updated positions would tie or swap them.
-    await db.run(sql`UPDATE climb_list_items SET position = CASE climb_id
-      WHEN 1 THEN 20 WHEN 2 THEN 10 ELSE 30 END WHERE list_id = ${id}`);
-    value(await saveClimbListEdits(id, [3]));
-    expect(await positions(id)).toEqual([
-      [3, 1],
-      [2, 2],
-      [1, 3],
-    ]);
+  it("never ends with more climbs than the editor sent", async () => {
+    const id = await seedList("owner", "Circuit", [1, 2]);
+    // Another tab adds one, then the editor stages one of its own: the saved
+    // list is the editor's three, not four.
+    value(await addClimbToList(id, 3));
+    value(await saveClimbListEdits(id, [1, 2, 4], [], [4]));
+    expect(await order(id)).toEqual([1, 2, 4]);
+    value(await addClimbToList(id, 3));
+    value(await saveClimbListEdits(id, [1, 2, 4]));
+    expect(await order(id)).toEqual([1, 2, 4]);
   });
 
   it("puts back a climb another tab removed but the editor still shows", async () => {
@@ -382,13 +378,10 @@ describe("saving the editor", () => {
     expect(after.get(3)).toBe(before.get(3));
   });
 
-  it("deletes only the climbs the owner removed", async () => {
+  it("leaves exactly the climbs the editor shows", async () => {
     const id = await seedList("owner", "Circuit", [1, 2, 3]);
-    // The editor shows only 1, and removes nothing.
-    value(await saveClimbListEdits(id, [1]));
-    expect(await order(id)).toEqual([1, 2, 3]);
     value(await saveClimbListEdits(id, [1], [3]));
-    expect(await order(id)).toEqual([1, 2]);
+    expect(await order(id)).toEqual([1]);
   });
 
   it("skips climbs that no longer exist, wherever they appear, and still saves", async () => {
@@ -408,11 +401,12 @@ describe("saving the editor", () => {
     expect(await order(id)).toEqual([2, 3]);
   });
 
-  it("treats an empty save as no change, leaving climbs it never showed", async () => {
+  it("empties the list when the editor shows nothing", async () => {
     const id = await seedList("owner", "Circuit");
+    // Another tab adds a climb the editor never showed.
     value(await addClimbToList(id, 1));
     value(await saveClimbListEdits(id, [], []));
-    expect(await order(id)).toEqual([1]);
+    expect(await order(id)).toEqual([]);
   });
 
   it("moves the list up in the same batch", async () => {

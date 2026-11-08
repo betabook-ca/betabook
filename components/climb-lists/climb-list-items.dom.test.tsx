@@ -331,3 +331,21 @@ it("keeps the editor open when the list empties, so it never reopens on its own"
   rerender(itemsElement({ items: climbListItemSamples.slice(0, 1), totalCount: 1 }));
   expect(screen.queryByRole("grid", { name: "Edit climbs" })).not.toBeInTheDocument();
 });
+
+it("stages a climb picked twice in quick succession once", async () => {
+  const user = userEvent.setup();
+  renderItems();
+  await chooseEdit(user);
+  await user.click(screen.getByRole("button", { name: "Add climbs" }));
+  const pick = screen.getByRole("button", { name: "Pick New Problem" });
+  // Both picks land before React re-renders.
+  act(() => {
+    fireEvent.click(pick);
+    fireEvent.click(pick);
+  });
+  expect(screen.getAllByText("New Problem")).toHaveLength(1);
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() =>
+    expect(saveClimbListEdits).toHaveBeenCalledWith(1, [101, 102, 103, 104, 105, 106], [], [106]),
+  );
+});

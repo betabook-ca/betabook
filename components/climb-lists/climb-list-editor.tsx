@@ -34,9 +34,8 @@ function stagedItem(climb: ClimbWithAreaName): ClimbListItem {
  * handle picks a climb up, the arrow keys move it, Enter drops it); take
  * climbs off with Remove, and add them with Add climbs at the bottom. Nothing is written until
  * Save, which sends the order, the removed climbs and the added ones once.
- * Save writes what the owner sees, even if another tab changed the list in
- * the meantime: see `saveClimbListEdits` for how climbs this editor never
- * showed are kept. Cancel drops every staged change. Every control is
+ * Save writes exactly what the owner sees, whatever another tab did in the
+ * meantime (see `saveClimbListEdits`). Cancel drops every staged change. Every control is
  * disabled while a save is in flight, so nothing staged then is lost when the
  * editor closes.
  *
@@ -88,7 +87,10 @@ export function ClimbListEditor({
       setRemoved((current) => current.filter((id) => id !== climb.id));
       return;
     }
-    setAdded((current) => [...current, stagedItem(climb)]);
+    // Two quick picks both land before a re-render: stage the climb once.
+    setAdded((current) =>
+      current.some((item) => item.climbId === climb.id) ? current : [...current, stagedItem(climb)],
+    );
   }
 
   const { dragAndDropHooks } = useDragAndDrop<ClimbListItem>({
