@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { addClimbToList, removeClimbFromList } from "@/actions";
+import type { ClimbListItemChange } from "@/actions/climb-lists";
 import type { ClimbListChoice } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
 import { climbListChoiceSamples } from "@/stories/fixtures/climb-lists";
@@ -11,8 +12,8 @@ import { climbListChoiceSamples } from "@/stories/fixtures/climb-lists";
 import { AddToListDialog, type ClimbListChoicesFetcher } from "./add-to-list-dialog";
 
 vi.mock("@/actions", () => ({
-  addClimbToList: vi.fn<() => Promise<ActionResult>>(),
-  removeClimbFromList: vi.fn<() => Promise<ActionResult>>(),
+  addClimbToList: vi.fn<() => Promise<ActionResult<ClimbListItemChange>>>(),
+  removeClimbFromList: vi.fn<() => Promise<ActionResult<ClimbListItemChange>>>(),
   createClimbList: vi.fn<() => Promise<ActionResult<number>>>(),
   updateClimbList: vi.fn<() => Promise<ActionResult>>(),
   copyClimbList: vi.fn<() => Promise<ActionResult<number>>>(),
@@ -37,8 +38,12 @@ function Example() {
 
 beforeEach(() => {
   fetcher.mockReset().mockResolvedValue(climbListChoiceSamples.map((choice) => ({ ...choice })));
-  vi.mocked(addClimbToList).mockReset().mockResolvedValue({ ok: true, value: undefined });
-  vi.mocked(removeClimbFromList).mockReset().mockResolvedValue({ ok: true, value: undefined });
+  vi.mocked(addClimbToList)
+    .mockReset()
+    .mockResolvedValue({ ok: true, value: { changed: true, climbCount: 13 } });
+  vi.mocked(removeClimbFromList)
+    .mockReset()
+    .mockResolvedValue({ ok: true, value: { changed: true, climbCount: 4 } });
 });
 
 it("loads the climber's lists for this climb and checks the ones that hold it", async () => {
@@ -78,4 +83,17 @@ it("offers to make a list when there are none", async () => {
     await screen.findByText("You have no lists yet. Make one to add this climb."),
   ).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /New list/ })).toBeInTheDocument();
+});
+
+it("shows the count the server reports, so a change made elsewhere doesn't drift it", async () => {
+  // Already added from another tab: the server changes nothing and says 12.
+  vi.mocked(addClimbToList).mockResolvedValue({
+    ok: true,
+    value: { changed: false, climbCount: 12 },
+  });
+  const user = userEvent.setup();
+  render(<Example />);
+
+  await user.click(await screen.findByRole("checkbox", { name: /Bishop wishlist/ }));
+  expect(await screen.findByRole("checkbox", { name: /Bishop wishlist.*12 climbs/ })).toBeChecked();
 });

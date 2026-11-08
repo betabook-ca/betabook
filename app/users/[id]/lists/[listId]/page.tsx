@@ -13,6 +13,7 @@ import { getDb } from "@/db/client";
 import {
   getAreaBreadcrumbs,
   getClimbListForUser,
+  getClimbListClimbIds,
   getClimbListItems,
   type ClimbListSummary,
 } from "@/db/queries";
@@ -99,9 +100,7 @@ async function ListItems({
   // ones, to mark what is already there.
   const allClimbIds =
     isOwner && view.sent !== "all"
-      ? (await getClimbListItems(db, ownerId, list.id, viewerId, { ...view, sent: "all" })).map(
-          (item) => item.climbId,
-        )
+      ? await getClimbListClimbIds(db, ownerId, list.id)
       : items.map((item) => item.climbId);
   const areaBreadcrumbs = await getAreaBreadcrumbs(
     db,

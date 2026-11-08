@@ -72,21 +72,17 @@ export function AddToListDialog({
         setError(result.error);
         return;
       }
-      markSaved(choice.id, selected);
+      markSaved(choice.id, selected, result.value.climbCount);
     });
   }
 
-  function markSaved(listId: number, selected: boolean) {
+  /** The count comes from the server, so a change already made in another
+   * tab doesn't push it off by one. */
+  function markSaved(listId: number, selected: boolean, climbCount: number) {
     setChoices(
       (current) =>
         current?.map((item) =>
-          item.id === listId
-            ? {
-                ...item,
-                hasClimb: selected,
-                climbCount: item.climbCount + (selected ? 1 : -1),
-              }
-            : item,
+          item.id === listId ? { ...item, hasClimb: selected, climbCount } : item,
         ) ?? current,
     );
   }
