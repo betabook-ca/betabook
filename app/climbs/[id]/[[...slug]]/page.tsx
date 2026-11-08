@@ -132,7 +132,7 @@ export default async function ClimbPage({ params, searchParams }: ClimbPageProps
         </ClimbHeader>
         <div className="flex shrink-0 items-center gap-2">
           <LogEntryButton climb={climb} sentClimbIds={userSend ? new Set([climb.id]) : undefined} />
-          <ClimbActionsMenu climb={climb} send={userSend} />
+          <ClimbActionsMenu climb={climb} send={userSend} viewerId={session.user.id} />
         </div>
       </div>
 

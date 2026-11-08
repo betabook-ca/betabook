@@ -33,6 +33,7 @@ export function primaryAreaForPath(pathname: string, userId: string): PrimaryAre
   if (
     within(pathname, `${owner}/goals`) ||
     within(pathname, `${owner}/projects`) ||
+    within(pathname, `${owner}/lists`) ||
     within(pathname, `${owner}/analytics`)
   )
     return "progress";
@@ -65,6 +66,8 @@ export function workspaceTabs(
         // under it and WorkspaceShell's prefix match is what keeps Projects
         // lit while the climber is on either.
         { label: "Projects", href: `${owner}/projects`, roots: [] },
+        // Climbs to do, like projects. List pages nest under this href.
+        { label: "Lists", href: `${owner}/lists`, roots: [] },
         { label: "Analytics", href: `${owner}/analytics`, roots: [] },
       ];
     default:

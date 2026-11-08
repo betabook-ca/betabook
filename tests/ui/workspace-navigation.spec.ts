@@ -6,10 +6,10 @@ for (const [story, title, labels] of [
   // A trip's own page nests under /trips, so the same row renders and the
   // `toHaveCount(1)` check below proves Trips is the one tab reading current.
   ["trip-detail", "Logbook", ["Journal", "Sends", "Trips"]],
-  ["progress", "Progress", ["Goals", "Projects", "Analytics"]],
+  ["progress", "Progress", ["Goals", "Projects", "Lists", "Analytics"]],
   // The sent sub-page nests under /projects, so the same row renders and the
   // `toHaveCount(1)` check below proves exactly one tab reads as current.
-  ["sent-projects", "Progress", ["Goals", "Projects", "Analytics"]],
+  ["sent-projects", "Progress", ["Goals", "Projects", "Lists", "Analytics"]],
   ["community", "Community", ["Feed", "Friends"]],
   ["friends", "Community", ["Feed", "Friends"]],
 ] as const) {

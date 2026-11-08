@@ -18,6 +18,7 @@ import {
 import { createDb } from "@/db/client";
 import {
   getClimbListChoices,
+  getClimbListClimbIds,
   getClimbListForUser,
   getClimbListItems,
   getClimbListShareForOwner,
@@ -274,6 +275,14 @@ describe("review fixes", () => {
   });
 });
 
+describe("picker ids", () => {
+  it("reads every climb id on the owner's own list and nothing for anyone else", async () => {
+    const id = await seedList("owner", "Ids", [3, 1]);
+    expect((await getClimbListClimbIds(db, "owner", id)).toSorted((a, b) => a - b)).toEqual([1, 3]);
+    expect(await getClimbListClimbIds(db, "member", id)).toEqual([]);
+  });
+});
+
 describe("reordering", () => {
   it("saves the submitted order", async () => {
     const id = await seedList("owner", "Circuit", [1, 2, 3]);
@@ -366,7 +375,7 @@ describe("viewing a list", () => {
       ...LIST_ORDER,
       sort: "name_asc",
     });
-    expect(sorted.map((item) => [item.climbId, item.position])).toEqual([
+    expect(sorted.map((item) => [item.climbId, item.number])).toEqual([
       [4, 3],
       [3, 1],
       [1, 4],
@@ -386,6 +395,13 @@ describe("viewing a list", () => {
     expect(await view(id, "member", { sent: "unsent" })).toEqual([1, 3]);
     const items = await getClimbListItems(db, "owner", id, "member", LIST_ORDER);
     expect(items.map((item) => item.sent)).toEqual([false, true, false]);
+    // A filtered row keeps its number in the whole list, gaps included.
+    value(await removeClimbFromList(id, 1));
+    const unsent = await getClimbListItems(db, "owner", id, "member", {
+      ...LIST_ORDER,
+      sent: "unsent",
+    });
+    expect(unsent.map((item) => [item.climbId, item.number])).toEqual([[3, 2]]);
   });
 });
 

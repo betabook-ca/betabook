@@ -31,6 +31,7 @@ function markup(image: string | null) {
       journalVisibility="friends"
       sendCommentVisibility="public"
       tripVisibility="public"
+      climbListVisibility="friends"
       gradePreferences={{ boulder: "hueco", rope: "yds" }}
       shareUrl="https://betabook.ca/users/alex?share=0123456789abcdef0123456789abcdef"
       turnstileSiteKey={null}

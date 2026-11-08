@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { deleteSend, requestClimbDelete } from "@/actions";
 import { ClimbBreakDrawer } from "@/components/climb-break-drawer";
 import { ClimbEditRequestDrawer } from "@/components/climb-edit-request-drawer";
+import { AddToListDialog } from "@/components/climb-lists/add-to-list-dialog";
 import { ClimbMergeDrawer } from "@/components/climb-merge-drawer";
 import { ClimbMoveDialog } from "@/components/climb-move-dialog";
 import { SendFormDrawer } from "@/components/send-form-drawer";
@@ -18,12 +19,15 @@ type ClimbActionsMenuProps = {
   climb: Climb;
   /** The viewer's own send, folded in so the header has one "…" button. */
   send?: EditableSend;
+  /** The signed-in climber, whose lists Add to list offers. */
+  viewerId: string;
 };
 
 /** The "..." menu next to a climb's title. Structural changes are
  * moderation-gated: applied immediately for an admin, otherwise queued. */
-export function ClimbActionsMenu({ climb, send }: ClimbActionsMenuProps) {
+export function ClimbActionsMenu({ climb, send, viewerId }: ClimbActionsMenuProps) {
   const router = useRouter();
+  const listState = useOverlayState();
   const editState = useOverlayState();
   const moveState = useOverlayState();
   const mergeState = useOverlayState();
@@ -103,6 +107,7 @@ export function ClimbActionsMenu({ climb, send }: ClimbActionsMenuProps) {
       <ActionsMenu
         ariaLabel={send ? "Send and climb actions" : "Climb actions"}
         onAction={(key) => {
+          if (key === "add-to-list") listState.open();
           if (key === "edit-send") editSendState.open();
           if (key === "delete-send") {
             setDeleteSendError(null);
@@ -119,18 +124,18 @@ export function ClimbActionsMenu({ climb, send }: ClimbActionsMenuProps) {
           }
         }}
       >
+        <Menu.Section>
+          <Menu.Item id="add-to-list">Add to list…</Menu.Item>
+        </Menu.Section>
         {send ? (
-          <>
-            <Menu.Section>
-              <Menu.Item id="edit-send">Edit your send…</Menu.Item>
-              <Menu.Item id="delete-send">Delete your send</Menu.Item>
-            </Menu.Section>
-            <Menu.Section>{climbItems}</Menu.Section>
-          </>
-        ) : (
-          climbItems
-        )}
+          <Menu.Section>
+            <Menu.Item id="edit-send">Edit your send…</Menu.Item>
+            <Menu.Item id="delete-send">Delete your send</Menu.Item>
+          </Menu.Section>
+        ) : null}
+        <Menu.Section>{climbItems}</Menu.Section>
       </ActionsMenu>
+      <AddToListDialog state={listState} userId={viewerId} climb={climb} />
       {send && <SendFormDrawer existingSend={send} state={editSendState} />}
       {send && (
         <ConfirmDeleteDialog

@@ -23,6 +23,8 @@ it.each([
   ["/users/alex/projects", "progress"],
   ["/users/alex/projects/sent", "progress"],
   ["/users/alex/goals", "progress"],
+  ["/users/alex/lists", "progress"],
+  ["/users/alex/lists/3", "progress"],
   ["/users/alex/analytics", "progress"],
   ["/feed", "community"],
   ["/friends", "community"],
@@ -44,6 +46,7 @@ it("keeps workspace sections small and preserves existing routes", () => {
   expect(workspaceTabs("progress", "alex").map(({ label }) => label)).toEqual([
     "Goals",
     "Projects",
+    "Lists",
     "Analytics",
   ]);
   expect(workspaceTabs("community", "alex").map(({ href }) => href)).toEqual(["/feed", "/friends"]);

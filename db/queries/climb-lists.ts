@@ -23,8 +23,13 @@ export type ClimbListItem = {
   grade: number | null;
   areaId: number;
   areaName: string;
-  /** The owner's order, whatever the reader sorted by. */
+  /** `YYYY-MM-DD` when the climb was reported broken, else null. */
+  brokenOn: string | null;
+  /** Stored order key. Gaps are allowed; show `number` instead. */
   position: number;
+  /** 1-based place in the owner's order over the whole list, whatever the
+   * reader sorted or filtered by. */
+  number: number;
   /** Milliseconds since the epoch. */
   addedAt: number;
   /** Whether the READER has sent it: the viewer's own `sends` row, never the
@@ -148,7 +153,16 @@ export async function getClimbListItemsWhere(
         ? sql`AND ${sent}`
         : sql`AND NOT ${sent}`;
   const rows = await db.all<ItemRow>(sql`
-    ${view.sort.startsWith("area_") ? sql`WITH RECURSIVE ${areaPathCtes(listAccess)}` : sql``}
+    WITH RECURSIVE ${view.sort.startsWith("area_") ? sql`${areaPathCtes(listAccess)},` : sql``}
+    ranked(list_id, climb_id, number) AS (
+      -- Numbered before the sent filter, so a filtered row keeps its place.
+      SELECT i.list_id, i.climb_id,
+             ROW_NUMBER() OVER (
+               PARTITION BY i.list_id ORDER BY i.position, i.added_at, i.climb_id
+             )
+      FROM climb_lists l JOIN climb_list_items i ON i.list_id = l.id
+      WHERE ${listAccess}
+    )
     SELECT
       c.id         AS climbId,
       c.name       AS name,
@@ -156,7 +170,9 @@ export async function getClimbListItemsWhere(
       c.grade      AS grade,
       c.area_id    AS areaId,
       a.name       AS areaName,
+      c.broken_on  AS brokenOn,
       i.position   AS position,
+      ranked.number AS number,
       i.added_at   AS addedAt,
       ${sent}      AS sent
     FROM climb_lists l
@@ -164,6 +180,7 @@ export async function getClimbListItemsWhere(
     JOIN climbs c ON c.id = i.climb_id
     JOIN areas a ON a.id = c.area_id
     ${view.sort.startsWith("area_") ? sql`LEFT JOIN area_path ON area_path.area_id = c.area_id` : sql``}
+    JOIN ranked ON ranked.list_id = i.list_id AND ranked.climb_id = i.climb_id
     WHERE ${listAccess} ${sentFilter}
     ORDER BY ${ORDER_BY[view.sort]}, i.added_at ASC, c.id ASC
   `);
@@ -185,7 +202,24 @@ export function getClimbListItems(
   );
 }
 
-type ClimbListChoice = {
+/** Every climb on the owner's own list, for the Add climbs picker to mark
+ * what's already there. Just the ids: the page's filtered read can't supply
+ * them, and re-running that read unfiltered would be wasted work. */
+export async function getClimbListClimbIds(
+  db: Database,
+  ownerId: string,
+  listId: number,
+): Promise<number[]> {
+  const rows = await db.all<{ climbId: number }>(sql`
+    SELECT i.climb_id AS climbId
+    FROM climb_list_items i
+    JOIN climb_lists l ON l.id = i.list_id
+    WHERE l.id = ${listId} AND l.user_id = ${ownerId}
+  `);
+  return rows.map((row) => row.climbId);
+}
+
+export type ClimbListChoice = {
   id: number;
   title: string;
   climbCount: number;
@@ -211,4 +245,17 @@ export async function getClimbListChoices(
     ORDER BY l.updated_at DESC, l.id DESC
   `);
   return rows.map((row) => ({ ...row, hasClimb: row.hasClimb === 1 }));
+}
+
+/** The owner's lists audience, for the note on their own Lists tab. A private
+ * profile reads as Only me, which is what it means for everyone else. */
+export async function getClimbListAudience(
+  db: Database,
+  ownerId: string,
+): Promise<"private" | "friends" | "public"> {
+  const row = await db.get<{ audience: "private" | "friends" | "public" }>(sql`
+    SELECT CASE WHEN is_private THEN 'private' ELSE climb_list_visibility END AS audience
+    FROM user WHERE id = ${ownerId}
+  `);
+  return row?.audience ?? "private";
 }
