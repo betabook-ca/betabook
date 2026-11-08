@@ -120,7 +120,7 @@ export async function loadSearch(
         }
         const page = await searchClimbs(
           db,
-          toClimbQueryParams({ ...state.filter, name: state.query }, state.sort),
+          toClimbQueryParams({ ...state.filter, name: state.query }, state.sort, viewerId),
         );
         const ids = page.climbs.map((climb) => climb.id);
         const [sendStats, areaBreadcrumbs, sent] = await Promise.all([

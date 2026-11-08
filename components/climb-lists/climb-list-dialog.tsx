@@ -54,7 +54,7 @@ export function ClimbListDialog({
   mode: ClimbListDialogMode;
   /** Replaces the default navigation to the new list, as the Add to list
    * drawer does to stay on the climb page. */
-  onCreated?: (listId: number) => void;
+  onCreated?: (listId: number, title: string) => void;
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState<ClimbListDraft>(() => draftFor(mode));
@@ -94,7 +94,7 @@ export function ClimbListDialog({
       }
       state.close();
       if (mode.kind === "edit") router.refresh();
-      else if (onCreated) onCreated(result.value);
+      else if (onCreated) onCreated(result.value, draft.title.replace(/\s+/g, " ").trim());
       else router.push(climbListHref(userId, result.value));
     });
   }

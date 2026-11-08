@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { DEFAULT_CLIMB_FILTER } from "@/lib/filters/climb-filter";
 import {
   climbListBreadcrumbs,
   climbListItemSamples,
@@ -17,7 +18,7 @@ const meta = {
     items: climbListItemSamples,
     totalCount: climbListItemSamples.length,
     areaBreadcrumbs: climbListBreadcrumbs,
-    view: { sort: "position_asc", sent: "all" },
+    view: { sort: "position_asc", filter: DEFAULT_CLIMB_FILTER },
     signedIn: true,
     listId: 1,
     canEdit: true,
@@ -41,27 +42,31 @@ export const ListOrder: Story = {};
  * in the owner's order, and reordering waits for list order. */
 export const SortedByGrade: Story = {
   args: {
-    view: { sort: "grade_desc", sent: "all" },
+    view: { sort: "grade_desc", filter: DEFAULT_CLIMB_FILTER },
     items: [...climbListItemSamples].sort((a, b) => (b.grade ?? 0) - (a.grade ?? 0)),
   },
 };
 
-/** The reader's unsent climbs. Numbers skip the ones they've sent. */
-export const Unsent: Story = {
+/** Exclude sent: the reader's sent climbs drop out, and the numbers skip them. */
+export const ExcludeSent: Story = {
   args: {
-    view: { sort: "position_asc", sent: "unsent" },
+    view: { sort: "position_asc", filter: { ...DEFAULT_CLIMB_FILTER, excludeSent: true } },
     items: climbListItemSamples.filter((item) => !item.sent),
   },
 };
 
 export const FilterMatchesNothing: Story = {
-  args: { view: { sort: "position_asc", sent: "unsent" }, items: [] },
+  args: {
+    view: { sort: "position_asc", filter: { ...DEFAULT_CLIMB_FILTER, excludeSent: true } },
+    items: [],
+  },
 };
 
 /** Someone else's list: no Remove buttons. */
 export const Visitor: Story = { args: { canEdit: false } };
 
-/** Through a share link while signed out: no sent state and no filter. */
+/** Through a share link while signed out: the filters, but no sent state and
+ * no Exclude sent. */
 export const SignedOut: Story = {
   args: {
     canEdit: false,

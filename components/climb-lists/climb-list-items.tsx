@@ -1,55 +1,43 @@
 "use client";
 
-import { Button } from "@heroui/react";
+import { Button, Menu } from "@heroui/react";
 import { clsx } from "clsx";
 import { X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition } from "react";
 
 import { removeClimbFromList } from "@/actions";
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
 import { ClimbListReorder } from "@/components/climb-lists/climb-list-reorder";
+import { ClimbListToolbar } from "@/components/climb-lists/climb-list-toolbar";
 import { ClimbSentIndicator } from "@/components/climb-sent-indicator";
+import { ActionsMenu } from "@/components/ui/actions-menu";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Grade } from "@/components/ui/grade";
 import { GradeLabel } from "@/components/ui/grade-label";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ListRow } from "@/components/ui/list-row";
-import { SegmentedButtons } from "@/components/ui/segmented-buttons";
-import { SortSelect } from "@/components/ui/sort-select";
 import type { AreaBreadcrumbs, ClimbListItem } from "@/db/queries";
 import {
-  CLIMB_LIST_SORT_DIRECTION,
-  CLIMB_LIST_SORT_OPTIONS,
+  DEFAULT_CLIMB_LIST_VIEW,
   climbListViewSearch,
+  isFilteredClimbList,
   isListOrder,
-  type ClimbListSentFilter,
-  type ClimbListSort,
   type ClimbListView,
 } from "@/lib/climb-lists";
+import { DEFAULT_CLIMB_FILTER } from "@/lib/filters/climb-filter";
 import { climbHref } from "@/lib/slug";
-
-const SENT_OPTIONS: { value: ClimbListSentFilter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "unsent", label: "Unsent" },
-  { value: "sent", label: "Sent" },
-];
-
-/** What a filter that matches nothing says. Sent state is the reader's own. */
-const FILTER_EMPTY: Record<Exclude<ClimbListSentFilter, "all">, string> = {
-  unsent: "You've sent every climb on this list.",
-  sent: "You haven't sent any climbs on this list yet.",
-};
 
 /**
  * A list's climbs as one reader sees them.
  *
- * Sorting and the sent filter are the reader's view, kept in the URL, and
- * never change the list. Every row keeps its number in the owner's order:
+ * The sort and filters (disciplines, grades, rating, ascents, Exclude sent)
+ * are the reader's view, kept in the URL,
+ * and never change the list. Every row keeps its number in the owner's order:
  * the main number in list order, a muted "#n" when sorted, so the order is
- * still readable. Sent state, and the filter, are the reader's own sends;
- * a signed-out reader has none and sees neither.
+ * still readable. Sent state, and Exclude sent, are the reader's own sends; a
+ * signed-out reader has none and sees neither.
  */
 export function ClimbListItems({
   items,
@@ -59,11 +47,10 @@ export function ClimbListItems({
   signedIn,
   listId,
   canEdit = false,
-  emptyAction,
 }: {
   items: ClimbListItem[];
-  /** Climbs on the list before the filter, to tell an empty list from an
-   * empty filter. */
+  /** Climbs on the list before the filters, to tell an empty list from an
+   * empty result. */
   totalCount: number;
   areaBreadcrumbs: AreaBreadcrumbs;
   view: ClimbListView;
@@ -74,8 +61,6 @@ export function ClimbListItems({
   /** The owner viewing their own list: rows get a Remove button. Needs
    * `listId`. */
   canEdit?: boolean;
-  /** Shown in the empty list, such as Add climbs. */
-  emptyAction?: ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -85,7 +70,7 @@ export function ClimbListItems({
   const [reordering, setReordering] = useState(false);
   const listOrder = isListOrder(view.sort);
   // Reordering saves the whole order, so it needs every climb, in list order.
-  const wholeList = listOrder && view.sent === "all";
+  const wholeList = listOrder && !isFilteredClimbList(view.filter);
 
   function navigate(next: ClimbListView) {
     router.replace(`${pathname}${climbListViewSearch(next)}`, { scroll: false });
@@ -104,57 +89,46 @@ export function ClimbListItems({
     });
   }
 
-  if (totalCount === 0)
-    return <EmptyState message="No climbs on this list yet." cta={emptyAction} />;
+  if (totalCount === 0) return <EmptyState message="No climbs on this list yet." />;
 
   if (reordering && wholeList && listId !== undefined)
     return <ClimbListReorder items={items} listId={listId} onClose={() => setReordering(false)} />;
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <SortSelect
-          sort={view.sort}
-          fields={CLIMB_LIST_SORT_OPTIONS}
-          defaultField="position"
-          defaultDirection={CLIMB_LIST_SORT_DIRECTION}
-          onNavigate={(sort: ClimbListSort) => navigate({ ...view, sort })}
-        />
-        <div className="flex flex-wrap items-center gap-3">
-          {signedIn && (
-            <SegmentedButtons
-              ariaLabel="Show climbs you've sent"
-              className="w-auto"
-              value={view.sent}
-              options={SENT_OPTIONS}
-              onChange={(sent) => navigate({ ...view, sent })}
-            />
-          )}
-          {editable &&
-            totalCount > 1 &&
-            (wholeList ? (
-              <Button variant="outline" onPress={() => setReordering(true)}>
-                Reorder
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                onPress={() => navigate({ sort: "position_asc", sent: "all" })}
-              >
-                Switch to list order to reorder
-              </Button>
-            ))}
-        </div>
-      </div>
+      <ClimbListToolbar
+        view={view}
+        signedIn={signedIn}
+        menu={
+          editable &&
+          totalCount > 1 && (
+            <ActionsMenu
+              ariaLabel="List actions"
+              onAction={(key) => {
+                if (key !== "reorder") return;
+                // The editor saves every climb in order, so it opens on the
+                // plain list: a sorted or filtered view switches back first.
+                if (!wholeList) navigate(DEFAULT_CLIMB_LIST_VIEW);
+                setReordering(true);
+              }}
+            >
+              <Menu.Item id="reorder">Reorder</Menu.Item>
+            </ActionsMenu>
+          )
+        }
+      />
 
       {removeError && <InlineAlert>{removeError}</InlineAlert>}
 
-      {items.length === 0 && view.sent !== "all" ? (
+      {items.length === 0 ? (
         <EmptyState
-          message={FILTER_EMPTY[view.sent]}
+          message="No climbs on this list match these filters."
           cta={
-            <Button variant="outline" onPress={() => navigate({ ...view, sent: "all" })}>
-              Clear filter
+            <Button
+              variant="outline"
+              onPress={() => navigate({ sort: view.sort, filter: DEFAULT_CLIMB_FILTER })}
+            >
+              Clear filters
             </Button>
           }
         />

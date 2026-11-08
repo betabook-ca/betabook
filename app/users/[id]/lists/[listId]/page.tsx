@@ -21,7 +21,13 @@ import {
   type ClimbListSummary,
 } from "@/db/queries";
 import { getBaseUrl } from "@/lib/app-url";
-import { climbListsHref, parseClimbListView, type ClimbListView } from "@/lib/climb-lists";
+import {
+  climbListsHref,
+  isFilteredClimbList,
+  parseClimbListView,
+  type ClimbListView,
+} from "@/lib/climb-lists";
+import { toClimbQueryParams } from "@/lib/filters/climb-filter";
 import { parseId } from "@/lib/parse-id";
 import { requestMemo } from "@/lib/request-memo";
 import type { UrlParamsRecord } from "@/lib/url-params";
@@ -118,30 +124,36 @@ async function ListItems({
   isOwner: boolean;
 }) {
   const db = await getDb();
-  const items = await getClimbListItems(db, ownerId, list.id, viewerId, view);
+  const filtered = isFilteredClimbList(view.filter);
+  const items = await getClimbListItems(db, ownerId, list.id, viewerId, {
+    sort: view.sort,
+    filter: toClimbQueryParams(view.filter, undefined, viewerId),
+  });
   // The owner's picker needs every climb on the list, not just the filtered
   // ones, to mark what is already there.
   const allClimbIds =
-    isOwner && view.sent !== "all"
+    isOwner && filtered
       ? await getClimbListClimbIds(db, ownerId, list.id)
       : items.map((item) => item.climbId);
   const areaBreadcrumbs = await getAreaBreadcrumbs(
     db,
     items.map((item) => item.areaId),
   );
-  const addClimbs = (variant?: "outline") =>
-    isOwner && (
-      <AddClimbsButton
-        listId={list.id}
-        listTitle={list.title}
-        climbIds={allClimbIds}
-        variant={variant}
-      />
-    );
-
   return (
     <div className="flex flex-col gap-3">
-      {isOwner && list.climbCount > 0 && <div className="self-end">{addClimbs("outline")}</div>}
+      {/* One button in one place whatever the count. The dialog lives inside
+       * it, so a button that moved when the first climb arrived would unmount
+       * the dialog and close it mid-add. */}
+      {isOwner && (
+        <div className="self-end">
+          <AddClimbsButton
+            listId={list.id}
+            listTitle={list.title}
+            climbIds={allClimbIds}
+            variant={list.climbCount > 0 ? "outline" : undefined}
+          />
+        </div>
+      )}
       <ClimbListItems
         items={items}
         totalCount={list.climbCount}
@@ -150,7 +162,6 @@ async function ListItems({
         signedIn
         listId={list.id}
         canEdit={isOwner}
-        emptyAction={addClimbs()}
       />
     </div>
   );

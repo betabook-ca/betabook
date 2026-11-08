@@ -19,6 +19,7 @@ import {
   parseClimbListView,
   type ClimbListView,
 } from "@/lib/climb-lists";
+import { toClimbQueryParams } from "@/lib/filters/climb-filter";
 import { requestMemo } from "@/lib/request-memo";
 import { sharedClimbListMetadata } from "@/lib/seo";
 import { getMemberSession } from "@/lib/session";
@@ -123,7 +124,11 @@ async function SharedListItems({
   view: ClimbListView;
 }) {
   const db = await getDb();
-  const items = await getSharedClimbListItems(db, token, viewerId, view);
+  // Signed out, Exclude sent does nothing: there are no sends to exclude.
+  const items = await getSharedClimbListItems(db, token, viewerId, {
+    sort: view.sort,
+    filter: toClimbQueryParams(view.filter, undefined, viewerId),
+  });
   const areaBreadcrumbs = await getAreaBreadcrumbs(
     db,
     items.map((item) => item.areaId),

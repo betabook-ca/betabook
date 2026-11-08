@@ -7,6 +7,7 @@ import {
   climbFilterToSearchParams,
   DEFAULT_CLIMB_FILTER,
   parseClimbFilter,
+  toClimbQueryParams,
   type ClimbFilter,
 } from "./climb-filter";
 
@@ -66,5 +67,28 @@ describe("climb filter serialization", () => {
     expect(parseClimbListSort(record)).toBe("grade_desc");
     expect(parseClimbFilter(record)).toEqual(filter);
     expect(reserialize(params)).toBe(params.toString());
+  });
+});
+
+describe("Exclude sent", () => {
+  it("round trips as excludeSent=1 and is off otherwise", () => {
+    const on = parseClimbFilter({ excludeSent: "1" });
+    expect(on.excludeSent).toBe(true);
+    const params = climbFilterToSearchParams(DEFAULT_CLIMB_LIST_SORT, on);
+    expect(params.get("excludeSent")).toBe("1");
+    expect(reserialize(params)).toBe(params.toString());
+    expect(parseClimbFilter({ excludeSent: "true" }).excludeSent).toBe(false);
+    expect(
+      climbFilterToSearchParams(DEFAULT_CLIMB_LIST_SORT, DEFAULT_CLIMB_FILTER).has("excludeSent"),
+    ).toBe(false);
+  });
+
+  it("names the viewer's sends only when someone is signed in", () => {
+    const on: ClimbFilter = { ...DEFAULT_CLIMB_FILTER, excludeSent: true };
+    expect(toClimbQueryParams(on, DEFAULT_CLIMB_LIST_SORT, "alex").excludeSentBy).toBe("alex");
+    expect(toClimbQueryParams(on, DEFAULT_CLIMB_LIST_SORT, null).excludeSentBy).toBeUndefined();
+    expect(
+      toClimbQueryParams(DEFAULT_CLIMB_FILTER, DEFAULT_CLIMB_LIST_SORT, "alex").excludeSentBy,
+    ).toBeUndefined();
   });
 });

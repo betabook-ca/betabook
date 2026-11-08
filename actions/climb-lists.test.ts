@@ -26,6 +26,7 @@ import {
   getProfileAccess,
   getSharedClimbList,
   getSharedClimbListItems,
+  type ClimbListQuery,
 } from "@/db/queries";
 import { climbListItems, climbListShareLinks, climbLists, climbs, user } from "@/db/schema";
 import {
@@ -35,8 +36,13 @@ import {
   CLIMB_LIST_UNAVAILABLE_MESSAGE,
   DEFAULT_CLIMB_LIST_SORT,
   MAX_CLIMB_LISTS,
-  type ClimbListView,
+  type ClimbListSort,
 } from "@/lib/climb-lists";
+import {
+  DEFAULT_CLIMB_FILTER,
+  toClimbQueryParams,
+  type ClimbFilter,
+} from "@/lib/filters/climb-filter";
 import {
   seedFixtureFriendship,
   seedFixtureSend,
@@ -78,7 +84,21 @@ vi.mock("@/db/client", async (original) => {
 });
 
 const db = createDb(env.DB);
-const LIST_ORDER: ClimbListView = { sort: DEFAULT_CLIMB_LIST_SORT, sent: "all" };
+const LIST_ORDER: ClimbListQuery = {
+  sort: DEFAULT_CLIMB_LIST_SORT,
+  filter: toClimbQueryParams(DEFAULT_CLIMB_FILTER, undefined),
+};
+
+/** A view of a list as a reader's URL would describe it. */
+function query(
+  viewer: string | null,
+  next: { sort?: ClimbListSort; filter?: Partial<ClimbFilter> } = {},
+): ClimbListQuery {
+  return {
+    sort: next.sort ?? DEFAULT_CLIMB_LIST_SORT,
+    filter: toClimbQueryParams({ ...DEFAULT_CLIMB_FILTER, ...next.filter }, undefined, viewer),
+  };
+}
 
 function as(id: string | null) {
   identity.id = id;
@@ -350,11 +370,12 @@ describe("who can see lists", () => {
 });
 
 describe("viewing a list", () => {
-  async function view(listId: number, viewer: string | null, next: Partial<ClimbListView>) {
-    const items = await getClimbListItems(db, "owner", listId, viewer, {
-      ...LIST_ORDER,
-      ...next,
-    });
+  async function view(
+    listId: number,
+    viewer: string | null,
+    next: { sort?: ClimbListSort; filter?: Partial<ClimbFilter> },
+  ) {
+    const items = await getClimbListItems(db, "owner", listId, viewer, query(viewer, next));
     return items.map((item) => item.climbId);
   }
 
@@ -371,10 +392,13 @@ describe("viewing a list", () => {
     // Test Crag > Test Sport Wall, where the two routes keep list order.
     expect(await view(id, "owner", { sort: "area_asc" })).toEqual([1, 2, 3, 4]);
 
-    const sorted = await getClimbListItems(db, "owner", id, "owner", {
-      ...LIST_ORDER,
-      sort: "name_asc",
-    });
+    const sorted = await getClimbListItems(
+      db,
+      "owner",
+      id,
+      "owner",
+      query("owner", { sort: "name_asc" }),
+    );
     expect(sorted.map((item) => [item.climbId, item.number])).toEqual([
       [4, 3],
       [3, 1],
@@ -384,24 +408,51 @@ describe("viewing a list", () => {
     expect(await order(id)).toEqual([3, 2, 4, 1]);
   });
 
-  it("filters by the reader's own sends, never the owner's", async () => {
+  it("excludes the reader's own sends, never the owner's", async () => {
     const id = await seedList("owner", "Ticks", [1, 2, 3]);
     value(await setClimbListVisibility("public"));
     await seedFixtureSend(db, { userId: "owner", climbId: 1, dateSent: "2026-01-01" });
     await seedFixtureSend(db, { userId: "member", climbId: 2, dateSent: "2026-01-01" });
 
-    expect(await view(id, "owner", { sent: "sent" })).toEqual([1]);
-    expect(await view(id, "member", { sent: "sent" })).toEqual([2]);
-    expect(await view(id, "member", { sent: "unsent" })).toEqual([1, 3]);
+    expect(await view(id, "owner", { filter: { excludeSent: true } })).toEqual([2, 3]);
+    expect(await view(id, "member", { filter: { excludeSent: true } })).toEqual([1, 3]);
     const items = await getClimbListItems(db, "owner", id, "member", LIST_ORDER);
     expect(items.map((item) => item.sent)).toEqual([false, true, false]);
     // A filtered row keeps its number in the whole list, gaps included.
     value(await removeClimbFromList(id, 1));
-    const unsent = await getClimbListItems(db, "owner", id, "member", {
-      ...LIST_ORDER,
-      sent: "unsent",
-    });
+    const unsent = await getClimbListItems(
+      db,
+      "owner",
+      id,
+      "member",
+      query("member", { filter: { excludeSent: true } }),
+    );
     expect(unsent.map((item) => [item.climbId, item.number])).toEqual([[3, 2]]);
+  });
+
+  it("applies the list's filters: discipline and grade, rating and ascents", async () => {
+    // Highball V4 (1, area 4), Slab V1 (2, area 5), Crimper 5.10a (3), Crack 5.6 (4).
+    const id = await seedList("owner", "Mixed", [3, 2, 4, 1]);
+
+    expect(await view(id, "owner", { filter: { disciplines: ["boulder"] } })).toEqual([2, 1]);
+    expect(
+      await view(id, "owner", { filter: { disciplines: ["boulder"], boulderRange: [4, 10] } }),
+    ).toEqual([1]);
+    await seedFixtureSend(db, { userId: "member", climbId: 4, dateSent: "2026-01-01", rating: 4 });
+    expect(await view(id, "owner", { filter: { minAscents: 1 } })).toEqual([4]);
+    expect(await view(id, "owner", { filter: { ratingRange: [4, 5] } })).toEqual([4]);
+    // Filters combine with the sort, and the owner's numbers don't move.
+    const sorted = await getClimbListItems(
+      db,
+      "owner",
+      id,
+      "owner",
+      query("owner", { sort: "grade_desc", filter: { disciplines: ["boulder"] } }),
+    );
+    expect(sorted.map((item) => [item.climbId, item.number])).toEqual([
+      [1, 4],
+      [2, 2],
+    ]);
   });
 });
 

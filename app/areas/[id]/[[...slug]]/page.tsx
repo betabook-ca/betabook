@@ -113,7 +113,7 @@ export default async function AreaPage({ params, searchParams }: AreaPageProps) 
   const climbsBlock = (
     <div className="flex flex-col gap-3">
       <SectionHeading>Climbs</SectionHeading>
-      <AreaClimbsToolbar areaPath={areaPath} sort={sort} filter={filter} />
+      <AreaClimbsToolbar areaPath={areaPath} sort={sort} filter={filter} showExcludeSent />
       <Suspense fallback={<SkeletonListRows rows={8} />}>
         <AreaClimbs area={area} viewerId={session.user.id} sort={sort} filter={filter} />
       </Suspense>
@@ -213,7 +213,7 @@ async function AreaClimbs({
     listScope,
     1,
     sort,
-    toSubtreeQueryFilter(filter),
+    toSubtreeQueryFilter(filter, viewerId),
   );
   const climbIds = subtreeClimbs.climbs.map((c) => c.id);
   const [sendStats, areaBreadcrumbs, sentClimbIds] = await Promise.all([

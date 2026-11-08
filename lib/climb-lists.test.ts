@@ -3,10 +3,15 @@ import { describe, expect, it } from "vitest";
 import {
   MAX_CLIMB_LIST_TITLE,
   climbListInputSchema,
+  DEFAULT_CLIMB_LIST_VIEW,
+  climbListViewSearch,
   copyClimbListTitle,
+  isFilteredClimbList,
   moveClimb,
   parseClimbListView,
 } from "@/lib/climb-lists";
+import { DEFAULT_CLIMB_FILTER } from "@/lib/filters/climb-filter";
+import { searchParamsToRecord } from "@/lib/url-params";
 
 describe("copyClimbListTitle", () => {
   it("keeps someone else's name as it is", () => {
@@ -33,19 +38,43 @@ describe("copyClimbListTitle", () => {
 });
 
 describe("parseClimbListView", () => {
-  it("reads a sort and a sent filter", () => {
-    expect(parseClimbListView({ sort: "grade_desc", sent: "unsent" })).toEqual({
+  it("reads the list's sort, disciplines and Filters panel, but not text or area", () => {
+    const view = parseClimbListView({
       sort: "grade_desc",
-      sent: "unsent",
+      excludeSent: "1",
+      discipline: "boulder",
+      name: "crimp",
+      areaId: "2",
     });
+    expect(view.sort).toBe("grade_desc");
+    expect(view.filter).toMatchObject({ excludeSent: true, disciplines: ["boulder"] });
+    expect(view.filter).not.toHaveProperty("name");
+    expect(view.filter).not.toHaveProperty("areaId");
   });
 
-  it("falls back to list order and all climbs for anything else", () => {
-    expect(parseClimbListView({ sort: "rating_desc", sent: "maybe" })).toEqual({
-      sort: "position_asc",
-      sent: "all",
-    });
-    expect(parseClimbListView({})).toEqual({ sort: "position_asc", sent: "all" });
+  it("falls back to list order and no filters for anything else", () => {
+    expect(parseClimbListView({ sort: "rating_desc", sent: "unsent" })).toEqual(
+      DEFAULT_CLIMB_LIST_VIEW,
+    );
+  });
+});
+
+describe("climbListViewSearch", () => {
+  it("keeps the plain list URL plain", () => {
+    expect(climbListViewSearch(DEFAULT_CLIMB_LIST_VIEW)).toBe("");
+    expect(isFilteredClimbList(DEFAULT_CLIMB_FILTER)).toBe(false);
+  });
+
+  it("round trips a sorted, filtered view", () => {
+    const view = {
+      sort: "name_asc" as const,
+      filter: { ...DEFAULT_CLIMB_FILTER, excludeSent: true, minAscents: 2 },
+    };
+    const search = climbListViewSearch(view);
+    expect(search).toContain("excludeSent=1");
+    expect(isFilteredClimbList(view.filter)).toBe(true);
+    const parsed = parseClimbListView(searchParamsToRecord(new URLSearchParams(search)));
+    expect(parsed).toEqual(view);
   });
 });
 

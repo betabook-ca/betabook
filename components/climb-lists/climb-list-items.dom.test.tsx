@@ -6,6 +6,7 @@ import { removeClimbFromList, reorderClimbList } from "@/actions";
 import type { ClimbListItem } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
 import type { ClimbListView } from "@/lib/climb-lists";
+import { DEFAULT_CLIMB_FILTER } from "@/lib/filters/climb-filter";
 import { climbListBreadcrumbs, climbListItemSamples } from "@/stories/fixtures/climb-lists";
 
 import { ClimbListItems } from "./climb-list-items";
@@ -20,11 +21,15 @@ vi.mock("@/components/climb-sent-indicator", () => ({
 
 const replace = vi.fn<(href: string, options?: unknown) => void>();
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace }),
+  useRouter: () => ({ replace, push: vi.fn<(href: string) => void>() }),
   usePathname: () => "/users/alex/lists/1",
 }));
 
-const LIST_ORDER: ClimbListView = { sort: "position_asc", sent: "all" };
+const LIST_ORDER: ClimbListView = { sort: "position_asc", filter: DEFAULT_CLIMB_FILTER };
+const EXCLUDING_SENT: ClimbListView = {
+  sort: "position_asc",
+  filter: { ...DEFAULT_CLIMB_FILTER, excludeSent: true },
+};
 
 function renderItems(
   props: Partial<{
@@ -49,10 +54,19 @@ function renderItems(
   );
 }
 
+/** The climbs, not the filter toolbar's own lists. */
+function rows() {
+  return [...document.querySelectorAll<HTMLElement>("ol > li")];
+}
+
 function rowNumbers() {
-  return screen
-    .getAllByRole("listitem")
-    .map((row) => within(row).getByText(/Number/).parentElement?.textContent);
+  return rows().map((row) => within(row).getByText(/Number/).parentElement?.textContent);
+}
+
+/** Reorder lives in the owner's ⋯ menu beside the sort. */
+async function chooseReorder(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("button", { name: "List actions" }));
+  await user.click(await screen.findByRole("menuitem", { name: "Reorder" }));
 }
 
 beforeEach(() => {
@@ -63,49 +77,67 @@ beforeEach(() => {
   vi.mocked(reorderClimbList).mockReset().mockResolvedValue({ ok: true, value: undefined });
 });
 
-it("numbers rows in the owner's order and offers Reorder only in list order", async () => {
-  const user = userEvent.setup();
+it("numbers rows in the owner's order, and keeps each number when sorted", () => {
   const { unmount } = renderItems();
   expect(rowNumbers()).toEqual(["Number 1", "Number 2", "Number 3", "Number 4", "Number 5"]);
-  expect(screen.getByRole("button", { name: "Reorder" })).toBeInTheDocument();
   unmount();
 
   const sorted = climbListItemSamples.toReversed();
-  renderItems({ items: sorted, view: { sort: "name_desc", sent: "all" } });
+  renderItems({ items: sorted, view: { sort: "name_desc", filter: DEFAULT_CLIMB_FILTER } });
   // Sorted rows keep their place in the owner's order as a muted "#n".
   expect(rowNumbers()).toEqual(["Number #5", "Number #4", "Number #3", "Number #2", "Number #1"]);
-  expect(screen.queryByRole("button", { name: "Reorder" })).not.toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "Switch to list order to reorder" }));
-  expect(replace).toHaveBeenCalledWith("/users/alex/lists/1", { scroll: false });
 });
 
-it("writes the sent filter to the URL and keeps the sort", async () => {
+it("switches a sorted view back to list order when the owner chooses Reorder", async () => {
   const user = userEvent.setup();
-  renderItems({ view: { sort: "grade_desc", sent: "all" } });
-
-  await user.click(screen.getByRole("button", { name: "Unsent" }));
-
-  expect(replace).toHaveBeenCalledWith("/users/alex/lists/1?sort=grade_desc&sent=unsent", {
-    scroll: false,
+  renderItems({
+    items: climbListItemSamples.toReversed(),
+    view: { sort: "name_desc", filter: DEFAULT_CLIMB_FILTER },
   });
-});
-
-it("says so when the filter matches nothing, and clears it", async () => {
-  const user = userEvent.setup();
-  renderItems({ items: [], view: { sort: "position_asc", sent: "unsent" } });
-
-  expect(screen.getByText("You've sent every climb on this list.")).toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "Clear filter" }));
+  // No standalone button: Reorder is only in the menu.
+  expect(screen.queryByRole("button", { name: /reorder/i })).not.toBeInTheDocument();
+  await chooseReorder(user);
   expect(replace).toHaveBeenCalledWith("/users/alex/lists/1", { scroll: false });
 });
 
-it("hides the filter and sent state from a signed-out reader", () => {
+it("offers the discipline chips and Filters panel with Exclude sent, kept in the URL", async () => {
+  const user = userEvent.setup();
+  renderItems({ view: { sort: "grade_desc", filter: DEFAULT_CLIMB_FILTER } });
+
+  for (const discipline of ["Boulder", "Sport", "Trad"])
+    expect(screen.getByRole("button", { name: discipline })).toBeVisible();
+  // Find climbs' text box and area lookup aren't on a list.
+  expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Expand filters" }));
+  expect(screen.queryByRole("combobox", { name: /area/i })).not.toBeInTheDocument();
+  await user.click(screen.getByRole("checkbox", { name: "Exclude sent" }));
+
+  await waitFor(() =>
+    expect(replace).toHaveBeenCalledWith("/users/alex/lists/1?excludeSent=1&sort=grade_desc", {
+      scroll: false,
+    }),
+  );
+  expect(screen.getByRole("button", { name: "Remove Excluding sent" })).toBeInTheDocument();
+});
+
+it("says so when the filters match nothing, and clears them", async () => {
+  const user = userEvent.setup();
+  renderItems({ items: [], view: EXCLUDING_SENT });
+
+  expect(screen.getByText("No climbs on this list match these filters.")).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Clear filters" }));
+  expect(replace).toHaveBeenCalledWith("/users/alex/lists/1", { scroll: false });
+});
+
+it("offers a signed-out reader the filters but not Exclude sent or sent state", async () => {
+  const user = userEvent.setup();
   renderItems({
     signedIn: false,
     canEdit: false,
     items: climbListItemSamples.map((item) => ({ ...item, sent: null })),
   });
-  expect(screen.queryByRole("button", { name: "Unsent" })).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Expand filters" }));
+  expect(screen.queryByRole("checkbox", { name: "Exclude sent" })).not.toBeInTheDocument();
   expect(screen.queryByText("sent")).not.toBeInTheDocument();
   expect(screen.queryByText("not sent")).not.toBeInTheDocument();
 });
@@ -118,26 +150,26 @@ it("removes a climb for the owner, and offers no Remove to anyone else", async (
   unmount();
 
   renderItems({ canEdit: false });
-  expect(screen.queryByRole("button", { name: /^Remove / })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /^Remove Rat/ })).not.toBeInTheDocument();
 });
 
-it("offers Reorder only on the whole list in list order", async () => {
+it("clears the filters before reordering, and offers no menu to anyone but the owner", async () => {
   const user = userEvent.setup();
-  const { unmount } = renderItems({ view: { sort: "position_asc", sent: "unsent" } });
-  expect(screen.queryByRole("button", { name: "Reorder" })).not.toBeInTheDocument();
-  // Switching back also clears the filter, because a reorder saves every climb.
-  await user.click(screen.getByRole("button", { name: "Switch to list order to reorder" }));
+  const { unmount } = renderItems({ view: EXCLUDING_SENT });
+  // A reorder saves every climb, so choosing it clears the filters first.
+  await chooseReorder(user);
   expect(replace).toHaveBeenCalledWith("/users/alex/lists/1", { scroll: false });
+  expect(screen.queryByRole("button", { name: "Save order" })).not.toBeInTheDocument();
   unmount();
 
   renderItems({ canEdit: false });
-  expect(screen.queryByRole("button", { name: "Reorder" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "List actions" })).not.toBeInTheDocument();
 });
 
 it("moves climbs with the arrows and saves the whole order once", async () => {
   const user = userEvent.setup();
   renderItems();
-  await user.click(screen.getByRole("button", { name: "Reorder" }));
+  await chooseReorder(user);
 
   const save = screen.getByRole("button", { name: "Save order" });
   expect(save).toBeDisabled();
@@ -150,7 +182,7 @@ it("moves climbs with the arrows and saves the whole order once", async () => {
 
   await user.click(save);
   await waitFor(() => expect(reorderClimbList).toHaveBeenCalledWith(1, [102, 101, 103, 105, 104]));
-  expect(await screen.findByRole("button", { name: "Reorder" })).toBeInTheDocument();
+  expect(await screen.findByRole("button", { name: "List actions" })).toBeInTheDocument();
 });
 
 it("keeps the editor open with the message when the list changed elsewhere", async () => {
@@ -160,7 +192,7 @@ it("keeps the editor open with the message when the list changed elsewhere", asy
   });
   const user = userEvent.setup();
   renderItems();
-  await user.click(screen.getByRole("button", { name: "Reorder" }));
+  await chooseReorder(user);
   await user.click(screen.getByRole("button", { name: "Move Rat Stew earlier" }));
   await user.click(screen.getByRole("button", { name: "Save order" }));
 

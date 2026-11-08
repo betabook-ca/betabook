@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+import {
+  DEFAULT_CLIMB_FILTER,
+  appendClimbFilterParams,
+  parseClimbFilter,
+  type ClimbFilter,
+} from "@/lib/filters/climb-filter";
 import { toArray, type UrlParamsRecord } from "@/lib/url-params";
 
 /** Saved climb lists: "Red River classics", "Bishop wishlist". Not the area
@@ -70,9 +76,6 @@ const CLIMB_LIST_SORT_FIELDS = ["position", "grade", "area", "name", "added"] as
 type ClimbListSortField = (typeof CLIMB_LIST_SORT_FIELDS)[number];
 export type ClimbListSort = `${ClimbListSortField}_${"asc" | "desc"}`;
 
-const CLIMB_LIST_SENT_FILTERS = ["all", "unsent", "sent"] as const;
-export type ClimbListSentFilter = (typeof CLIMB_LIST_SENT_FILTERS)[number];
-
 export const DEFAULT_CLIMB_LIST_SORT: ClimbListSort = "position_asc";
 
 /** Direction a freshly picked field starts at. */
@@ -92,7 +95,15 @@ export const CLIMB_LIST_SORT_OPTIONS: { id: ClimbListSortField; label: string }[
   { id: "added", label: "Date added" },
 ];
 
-export type ClimbListView = { sort: ClimbListSort; sent: ClimbListSentFilter };
+/** The list's own sort, and Find climbs' discipline chips and Filters panel:
+ * disciplines and grades, rating, ascents, and Exclude sent. Find climbs' text
+ * and area fields are left out. */
+export type ClimbListView = { sort: ClimbListSort; filter: ClimbFilter };
+
+export const DEFAULT_CLIMB_LIST_VIEW: ClimbListView = {
+  sort: DEFAULT_CLIMB_LIST_SORT,
+  filter: DEFAULT_CLIMB_FILTER,
+};
 
 /** How a reader is viewing a list. Never changes the list. Unknown values fall
  * back to the defaults, as other list pages do, rather than 404ing a link
@@ -104,9 +115,29 @@ export function parseClimbListView(params: UrlParamsRecord): ClimbListView {
   )
     ? (rawSort as ClimbListSort)
     : DEFAULT_CLIMB_LIST_SORT;
-  const rawSent = toArray(params.sent)[0];
-  const sent = CLIMB_LIST_SENT_FILTERS.find((value) => value === rawSent) ?? "all";
-  return { sort, sent };
+  // Text and area aren't offered on a list, so a URL can't apply them either:
+  // a filter the toolbar can't show is one the reader can't clear.
+  const { name: _name, areaName: _areaName, areaId: _areaId, ...filter } = parseClimbFilter(params);
+  return { sort, filter };
+}
+
+/** The filter part of a view's query string. Defaults are left out, so an
+ * unfiltered list has none. */
+function filterParams(filter: ClimbFilter): URLSearchParams {
+  const params = new URLSearchParams();
+  appendClimbFilterParams(params, filter);
+  if (filter.ratingRange[0] === 0 && filter.ratingRange[1] === 0) params.delete("ratingRange");
+  const defaults = new URLSearchParams();
+  appendClimbFilterParams(defaults, DEFAULT_CLIMB_FILTER);
+  for (const key of new Set(defaults.keys())) {
+    if (params.getAll(key).join() === defaults.getAll(key).join()) params.delete(key);
+  }
+  return params;
+}
+
+/** True when any filter narrows the list, which hides some of its climbs. */
+export function isFilteredClimbList(filter: ClimbFilter): boolean {
+  return filterParams(filter).size > 0;
 }
 
 /** True in the owner's own order, the only view the list can be reordered in. */
@@ -117,9 +148,8 @@ export function isListOrder(sort: ClimbListSort): boolean {
 /** The view's query string, leaving defaults out so the plain list URL stays
  * plain. */
 export function climbListViewSearch(view: ClimbListView): string {
-  const params = new URLSearchParams();
+  const params = filterParams(view.filter);
   if (view.sort !== DEFAULT_CLIMB_LIST_SORT) params.set("sort", view.sort);
-  if (view.sent !== "all") params.set("sent", view.sent);
   const search = params.toString();
   return search ? `?${search}` : "";
 }

@@ -117,7 +117,7 @@ export function ClimbListReorder({
               >
                 <GripVertical size={16} />
               </Button>
-              <span className="w-8 shrink-0 text-right text-sm font-medium tabular-nums">
+              <span className="w-8 shrink-0 text-left text-sm font-medium tabular-nums">
                 {index + 1}
               </span>
               <span className="min-w-0 flex-1">
