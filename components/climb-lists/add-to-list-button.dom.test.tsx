@@ -59,7 +59,9 @@ beforeEach(() => {
   // The toast region reads media queries, which jsdom lacks.
   stubViewport("desktop");
   fetcher.mockReset().mockResolvedValue(MANY.map((choice) => ({ ...choice })));
-  vi.mocked(addClimbToList).mockReset().mockResolvedValue({ ok: true, value: undefined });
+  vi.mocked(addClimbToList)
+    .mockReset()
+    .mockResolvedValue({ ok: true, value: { changed: true, climbCount: 4 } });
   vi.mocked(createClimbList).mockReset().mockResolvedValue({ ok: true, value: 77 });
   push.mockReset();
 });
