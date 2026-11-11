@@ -147,12 +147,5 @@
       "persist": true,
       "head_sampling_rate": 1,
     },
-    // Groups exceptions and console.error lines, including the request_error
-    // and client_error events from lib/error-reporting.ts, into Issues in the
-    // dashboard. A deploy without this key turns Issues off. The email alert
-    // is lib/error-alert.ts, since Issues cannot send email.
-    "issues": {
-      "enabled": true,
-    },
   },
 }
