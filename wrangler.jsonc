@@ -26,8 +26,10 @@
   },
   // Weekly public catalog snapshot (areas + climbs) → R2, served from
   // /account. Mondays 06:00 UTC; see lib/catalog-export.ts.
+  // Every ten minutes, the production error alert; see lib/error-alert.ts.
+  // worker.ts dispatches on the cron string, so keep both in step with it.
   "triggers": {
-    "crons": ["0 6 * * 1"],
+    "crons": ["0 6 * * 1", "*/10 * * * *"],
   },
   // Both buckets are created by OpenTofu (infra/cloudflare/r2.tf) and bound
   // here by name; `wrangler deploy` validates the binding, so the Spacelift
@@ -119,6 +121,17 @@
         "period": 60,
       },
     },
+    // /api/client-errors takes a report from any browser that shows an error
+    // page, signed in or not. Ten a minute per address is more error pages
+    // than one person sees, and it keeps a script from flooding the logs.
+    {
+      "name": "CLIENT_ERROR_RATE_LIMITER",
+      "namespace_id": "1006",
+      "simple": {
+        "limit": 10,
+        "period": 60,
+      },
+    },
   ],
   "observability": {
     "enabled": true,
@@ -133,6 +146,13 @@
       "enabled": true,
       "persist": true,
       "head_sampling_rate": 1,
+    },
+    // Groups exceptions and console.error lines, including the request_error
+    // and client_error events from lib/error-reporting.ts, into Issues in the
+    // dashboard. A deploy without this key turns Issues off. The email alert
+    // is lib/error-alert.ts, since Issues cannot send email.
+    "issues": {
+      "enabled": true,
     },
   },
 }

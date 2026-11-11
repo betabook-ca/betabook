@@ -11,6 +11,7 @@ interface CloudflareEnv {
   FRIENDSHIP_RATE_LIMITER: RateLimit;
   PROFILE_PHOTO_RATE_LIMITER: RateLimit;
   CLIMB_LIST_RATE_LIMITER: RateLimit;
+  CLIENT_ERROR_RATE_LIMITER: RateLimit;
   BETTER_AUTH_URL: string;
   BETTER_AUTH_SECRET: string;
   RESEND_API_KEY: string;
@@ -20,6 +21,8 @@ interface CloudflareEnv {
   TURNSTILE_SECRET_KEY?: string;
   CLOUDFLARE_USAGE_ACCOUNT_ID?: string;
   CLOUDFLARE_USAGE_API_TOKEN?: string;
+  ERROR_ALERT_ACCOUNT_ID?: string;
+  ERROR_ALERT_API_TOKEN?: string;
 }
 
 declare namespace Cloudflare {
@@ -33,6 +36,7 @@ declare namespace Cloudflare {
     FRIENDSHIP_RATE_LIMITER: CloudflareEnv["FRIENDSHIP_RATE_LIMITER"];
     PROFILE_PHOTO_RATE_LIMITER: CloudflareEnv["PROFILE_PHOTO_RATE_LIMITER"];
     CLIMB_LIST_RATE_LIMITER: CloudflareEnv["CLIMB_LIST_RATE_LIMITER"];
+    CLIENT_ERROR_RATE_LIMITER: CloudflareEnv["CLIENT_ERROR_RATE_LIMITER"];
     BETTER_AUTH_URL: CloudflareEnv["BETTER_AUTH_URL"];
     BETTER_AUTH_SECRET: CloudflareEnv["BETTER_AUTH_SECRET"];
     RESEND_API_KEY: CloudflareEnv["RESEND_API_KEY"];
@@ -42,5 +46,7 @@ declare namespace Cloudflare {
     TURNSTILE_SECRET_KEY?: CloudflareEnv["TURNSTILE_SECRET_KEY"];
     CLOUDFLARE_USAGE_ACCOUNT_ID?: CloudflareEnv["CLOUDFLARE_USAGE_ACCOUNT_ID"];
     CLOUDFLARE_USAGE_API_TOKEN?: CloudflareEnv["CLOUDFLARE_USAGE_API_TOKEN"];
+    ERROR_ALERT_ACCOUNT_ID?: CloudflareEnv["ERROR_ALERT_ACCOUNT_ID"];
+    ERROR_ALERT_API_TOKEN?: CloudflareEnv["ERROR_ALERT_API_TOKEN"];
   }
 }

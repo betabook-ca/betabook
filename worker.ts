@@ -2,6 +2,7 @@ import handler from "vinext/server/app-router-entry";
 import { cloneRequestWithHeaders } from "vinext/server/request-pipeline";
 
 import { runScheduledCatalogExport } from "@/lib/catalog-export";
+import { ERROR_ALERT_CRON, runErrorAlert } from "@/lib/error-alert";
 import { REQUEST_TIMEZONE_HEADER, withRequestTimezone } from "@/lib/request-timezone";
 import { withSecurityHeaders } from "@/lib/security-headers";
 
@@ -25,9 +26,13 @@ export default {
     const vinextEnv = env as unknown as Parameters<typeof handler.fetch>[1];
     return withSecurityHeaders(await handler.fetch(forwarded, vinextEnv, ctx));
   },
-  // `await`, not `ctx.waitUntil`: a thrown export error must surface as a
-  // failed cron invocation in the dashboard, not a swallowed rejection.
-  async scheduled(_controller, env) {
+  // `await`, not `ctx.waitUntil`: a thrown error must surface as a failed
+  // cron invocation in the dashboard, not a swallowed rejection.
+  async scheduled(controller, env) {
+    if (controller.cron === ERROR_ALERT_CRON) {
+      await runErrorAlert(controller.scheduledTime);
+      return;
+    }
     await runScheduledCatalogExport(env);
   },
 } satisfies ExportedHandler<CloudflareEnv>;

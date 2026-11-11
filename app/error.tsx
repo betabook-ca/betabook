@@ -6,10 +6,13 @@ import { useEffect } from "react";
 import { AppLink } from "@/components/ui/app-link";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { PageTitle } from "@/components/ui/typography";
+import { reportClientError } from "@/lib/client-error-report";
 
 /** Root error boundary — renders inside the root layout (header/footer stay),
  * catching render errors from every page. `retry()` re-fetches and re-renders
- * the failed segment, which is often enough for transient failures. */
+ * the failed segment, which is often enough for transient failures. Every
+ * render reports the error, so the server logs it even when production hid
+ * the message behind a digest. */
 export default function ErrorPage({
   error,
   retry,
@@ -19,6 +22,7 @@ export default function ErrorPage({
 }) {
   useEffect(() => {
     console.error(error);
+    reportClientError("page", error);
   }, [error]);
 
   return (

@@ -32,3 +32,10 @@ TURNSTILE_SECRET_KEY=
 # fixed bills. The token needs Account Analytics Read on this account.
 CLOUDFLARE_USAGE_ACCOUNT_ID=
 CLOUDFLARE_USAGE_API_TOKEN=
+
+# The production error alert (lib/error-alert.ts) is off unless both are set.
+# The token needs Workers Observability Write on this account: the Telemetry
+# query endpoint requires it even though the alert only reads. Leave these
+# empty locally; the cron queries production logs.
+ERROR_ALERT_ACCOUNT_ID=
+ERROR_ALERT_API_TOKEN=
