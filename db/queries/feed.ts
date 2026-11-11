@@ -74,6 +74,14 @@ export async function getFeedPage(
   // One statement keeps eligibility, counts and previews on the same database
   // snapshot. Only connected authors are scanned; full notes never cross JSON.
   // Resolve a send's distinct journal identity only after preview pagination.
+  //
+  // `activity` is read exactly once, and the final SELECT never names
+  // `authors`. SQLite copies a CTE body into every place that names it, and
+  // D1 (since 2026-11-08, cloudflare/workers-sdk#16786) counts every copied
+  // table against SQLITE_LIMIT_EXPR_DEPTH (100) and fails the statement with
+  // "VIEWs and/or subqueries nested too deep". The old days/previews pair named
+  // `activity` three times and failed. Window functions give the same day
+  // counts, page cut and preview positions in one pass.
   const companionEntryId = sql`CASE WHEN p.kind = 'send' THEN (
     SELECT ascent.id FROM journal_entries ascent
     WHERE ascent.user_id = p.userId AND ascent.climb_id = p.climbId AND ascent.is_ascent = 1
@@ -88,55 +96,58 @@ export async function getFeedPage(
     ), activity AS (
       SELECT s.user_id AS userId, s.date_sent AS date, s.id, 'send' AS kind,
         s.climb_id AS climbId, s.ascent_style AS ascentStyle, CASE WHEN u.sendCommentVisible THEN s.comment ELSE NULL END AS body, NULL AS goalDefinition,
-        CASE WHEN u.sendCommentVisible THEN s.videos ELSE NULL END AS videos
+        CASE WHEN u.sendCommentVisible THEN s.videos ELSE NULL END AS videos,
+        u.name, u.image, u.journalVisible
       FROM authors u JOIN sends s ON s.user_id = u.id
       WHERE s.date_sent IS NOT NULL
         ${cursor ? sql`AND (s.date_sent, s.user_id) < (${cursor.date}, ${cursor.userId})` : sql``}
       UNION ALL
       SELECT j.user_id, j.entry_date, j.id,
         CASE WHEN j.kind = 'training' THEN 'training' WHEN j.sent = 1 THEN 'repeat' ELSE 'session' END,
-        j.climb_id, NULL, CASE WHEN j.is_send_comment = 0 OR u.sendCommentVisible THEN j.body ELSE NULL END, NULL, NULL
+        j.climb_id, NULL, CASE WHEN j.is_send_comment = 0 OR u.sendCommentVisible THEN j.body ELSE NULL END, NULL, NULL,
+        u.name, u.image, u.journalVisible
       FROM authors u JOIN journal_entries j ON j.user_id = u.id
       WHERE ${view === "all"} AND u.journalVisible AND j.is_ascent = 0
         ${cursor ? sql`AND (j.entry_date, j.user_id) < (${cursor.date}, ${cursor.userId})` : sql``}
       UNION ALL
-      SELECT g.user_id, completion.completed_date, completion.id, 'goal', NULL, NULL, NULL, completion.definition, NULL
+      SELECT g.user_id, completion.completed_date, completion.id, 'goal', NULL, NULL, NULL, completion.definition, NULL,
+        u.name, u.image, u.journalVisible
       FROM authors u JOIN goals g ON g.user_id=u.id JOIN goal_completions completion ON completion.goal_id=g.id
       WHERE ${view === "all"} AND u.journalVisible AND completion.completed_date IS NOT NULL
         ${cursor ? sql`AND (completion.completed_date, g.user_id) < (${cursor.date}, ${cursor.userId})` : sql``}
-    ), days AS (
-      SELECT userId, date,
-        count(*) FILTER (WHERE kind = 'send') AS sends,
-        count(*) FILTER (WHERE kind = 'repeat') AS repeats,
-        count(*) FILTER (WHERE kind = 'session') AS sessions,
-        count(*) FILTER (WHERE kind = 'training') AS training,
-        count(*) FILTER (WHERE kind = 'goal') AS goals
-      FROM activity GROUP BY date, userId
-      ORDER BY date DESC, userId DESC LIMIT ${limit + 1}
-    ), previews AS (
-      SELECT a.*, row_number() OVER (
-        PARTITION BY a.date, a.userId, (a.kind = 'goal') ORDER BY
-          CASE a.kind WHEN 'goal' THEN -1 WHEN 'send' THEN 0 WHEN 'repeat' THEN 1 WHEN 'session' THEN 2 ELSE 3 END, a.id
-      ) AS position
-      FROM activity a JOIN days d ON d.date = a.date AND d.userId = a.userId
+    ), ranked AS (
+      SELECT a.*,
+        dense_rank() OVER (ORDER BY a.date DESC, a.userId DESC) AS dayRank,
+        count(*) FILTER (WHERE a.kind = 'send') OVER day AS sends,
+        count(*) FILTER (WHERE a.kind = 'repeat') OVER day AS repeats,
+        count(*) FILTER (WHERE a.kind = 'session') OVER day AS sessions,
+        count(*) FILTER (WHERE a.kind = 'training') OVER day AS training,
+        count(*) FILTER (WHERE a.kind = 'goal') OVER day AS goals,
+        row_number() OVER (
+          PARTITION BY a.date, a.userId, (a.kind = 'goal') ORDER BY
+            CASE a.kind WHEN 'goal' THEN -1 WHEN 'send' THEN 0 WHEN 'repeat' THEN 1 WHEN 'session' THEN 2 ELSE 3 END, a.id
+        ) AS position
+      FROM activity a
+      WINDOW day AS (PARTITION BY a.date, a.userId)
     )
-    SELECT d.*, u.name, u.image, u.journalVisible AS journalVisible,
+    SELECT p.userId, p.date, p.sends, p.repeats, p.sessions, p.training, p.goals,
+      p.name, p.image, p.journalVisible,
       p.id, p.kind, p.climbId, p.ascentStyle, p.goalDefinition, p.videos,
-      ${view === "all" ? sql`CASE WHEN u.journalVisible AND p.kind <> 'goal' THEN ${companionsJsonSql(viewerId, companionEntryId)} ELSE '[]' END` : sql`'[]'`} AS companions,
+      ${view === "all" ? sql`CASE WHEN p.journalVisible AND p.kind <> 'goal' THEN ${companionsJsonSql(viewerId, companionEntryId)} ELSE '[]' END` : sql`'[]'`} AS companions,
       CASE WHEN length(p.body) > 240 THEN substr(p.body, 1, 240) || '…' ELSE p.body END AS body,
       c.name AS climbName, c.type AS climbType, c.grade AS climbGrade,
       reported.suggested_grade AS reportedGrade, reported.grade_feel AS gradeFeel,
       a.id AS areaId, a.name AS areaName,
       area_parent.id AS parentAreaId, area_parent.name AS parentAreaName,
       area_grandparent.id AS grandparentAreaId, area_grandparent.name AS grandparentAreaName
-    FROM days d JOIN authors u ON u.id = d.userId
-    JOIN previews p ON p.date = d.date AND p.userId = d.userId AND (p.position <= 3 OR p.kind = 'goal')
+    FROM ranked p
     LEFT JOIN climbs c ON c.id = p.climbId LEFT JOIN areas a ON a.id = c.area_id
     LEFT JOIN sends reported ON reported.user_id = p.userId AND reported.climb_id = p.climbId
       AND p.kind IN ('send', 'repeat')
     LEFT JOIN areas area_parent ON area_parent.id = a.parent_id
     LEFT JOIN areas area_grandparent ON area_grandparent.id = area_parent.parent_id
-    ORDER BY d.date DESC, d.userId DESC, (p.kind = 'goal') DESC, p.position
+    WHERE p.dayRank <= ${limit + 1} AND (p.position <= 3 OR p.kind = 'goal')
+    ORDER BY p.date DESC, p.userId DESC, (p.kind = 'goal') DESC, p.position
   `);
   const groups = new Map<string, FeedDay>();
   for (const row of rows) {
