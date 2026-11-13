@@ -1,10 +1,25 @@
 "use client"; // Error boundaries must be Client Components
 
+import { useEffect } from "react";
+
+import { reportClientError } from "@/lib/client-error-report";
+
 /** Last-resort boundary for errors thrown by the root layout itself — it
  * replaces the entire document, so it must render its own <html>/<body>
  * and can't rely on the app shell, fonts, or theme tokens. Deliberately
- * dependency-free inline styles for the same reason. */
-export default function GlobalError({ retry }: { error: Error; retry: () => void }) {
+ * dependency-free inline styles for the same reason. The report is a plain
+ * beacon, so it needs nothing from the shell either. */
+export default function GlobalError({
+  error,
+  retry,
+}: {
+  error: Error & { digest?: string };
+  retry: () => void;
+}) {
+  useEffect(() => {
+    reportClientError("global", error);
+  }, [error]);
+
   return (
     <html lang="en">
       <body
