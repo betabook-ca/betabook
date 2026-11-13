@@ -26,10 +26,8 @@
   },
   // Weekly public catalog snapshot (areas + climbs) → R2, served from
   // /account. Mondays 06:00 UTC; see lib/catalog-export.ts.
-  // Every ten minutes, the production error alert; see lib/error-alert.ts.
-  // worker.ts dispatches on the cron string, so keep both in step with it.
   "triggers": {
-    "crons": ["0 6 * * 1", "*/10 * * * *"],
+    "crons": ["0 6 * * 1"],
   },
   // Both buckets are created by OpenTofu (infra/cloudflare/r2.tf) and bound
   // here by name; `wrangler deploy` validates the binding, so the Spacelift

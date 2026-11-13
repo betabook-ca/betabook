@@ -138,17 +138,6 @@ export async function sendContactEmail(opts: { replyTo: string; subject: string;
   });
 }
 
-/** The production error alert (`lib/error-alert.ts`). It goes to the same
- * maintainer inbox as contact messages. */
-export async function sendErrorAlertEmail(opts: { subject: string; text: string }) {
-  return deliverEmail({
-    to: CONTACT_TO,
-    subject: opts.subject,
-    title: "Production errors",
-    text: opts.text,
-  });
-}
-
 /** Sent when an admin approves or rejects a change request — the requester's
  * only way to learn what happened, since the queue itself is admin-only.
  * Fired only on the final decision: intermediate coverage approvals on a

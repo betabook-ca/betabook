@@ -21,8 +21,6 @@ interface CloudflareEnv {
   TURNSTILE_SECRET_KEY?: string;
   CLOUDFLARE_USAGE_ACCOUNT_ID?: string;
   CLOUDFLARE_USAGE_API_TOKEN?: string;
-  ERROR_ALERT_ACCOUNT_ID?: string;
-  ERROR_ALERT_API_TOKEN?: string;
 }
 
 declare namespace Cloudflare {
@@ -46,7 +44,5 @@ declare namespace Cloudflare {
     TURNSTILE_SECRET_KEY?: CloudflareEnv["TURNSTILE_SECRET_KEY"];
     CLOUDFLARE_USAGE_ACCOUNT_ID?: CloudflareEnv["CLOUDFLARE_USAGE_ACCOUNT_ID"];
     CLOUDFLARE_USAGE_API_TOKEN?: CloudflareEnv["CLOUDFLARE_USAGE_API_TOKEN"];
-    ERROR_ALERT_ACCOUNT_ID?: CloudflareEnv["ERROR_ALERT_ACCOUNT_ID"];
-    ERROR_ALERT_API_TOKEN?: CloudflareEnv["ERROR_ALERT_API_TOKEN"];
   }
 }

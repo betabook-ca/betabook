@@ -7,8 +7,7 @@ import type { Instrumentation } from "next";
  * digest. `instrumentation.ts` passes every server error to `logRequestError`,
  * and `/api/client-errors` passes every error page a browser shows to
  * `logClientError`, so both appear in the Worker's logs as error-level events
- * with a fixed `event` field. The error alert (`lib/error-alert.ts`) counts
- * these events.
+ * with a fixed `event` field, for a log search or an alert to match on.
  *
  * Logs keep the route pattern and a path with its query string removed and
  * every share token replaced, because list, trip and project links are
