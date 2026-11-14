@@ -22,5 +22,8 @@ beforeEach(() => {
 // Vitest globals are disabled, so register React cleanup explicitly.
 afterEach(() => {
   cleanup();
+  for (const log of document.querySelectorAll('[data-live-announcer] [role="log"]')) {
+    log.replaceChildren();
+  }
   vi.unstubAllGlobals();
 });

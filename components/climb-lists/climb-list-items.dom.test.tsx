@@ -332,7 +332,12 @@ it("keeps the edits and shows the error when a save fails", async () => {
 });
 
 it("disables every editor control while a save is in flight", async () => {
-  vi.mocked(saveClimbListEdits).mockReturnValue(new Promise(() => {}));
+  let finish!: (result: ActionResult) => void;
+  vi.mocked(saveClimbListEdits).mockReturnValue(
+    new Promise((resolve) => {
+      finish = resolve;
+    }),
+  );
   const user = userEvent.setup();
   renderItems();
   await chooseEdit(user);
@@ -346,6 +351,11 @@ it("disables every editor control while a save is in flight", async () => {
     "Cancel",
   ])
     expect(screen.getByRole("button", { name })).toBeDisabled();
+
+  finish({ ok: true, value: undefined });
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "List actions" })).toBeInTheDocument(),
+  );
 });
 
 it("adds climbs only in the editor, and disables Edit while it is open", async () => {

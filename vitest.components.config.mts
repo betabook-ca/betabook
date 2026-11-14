@@ -11,6 +11,7 @@ export default defineProject({
   test: {
     name: "components",
     environment: "jsdom",
+    isolate: false,
     include: ["components/**/*.dom.test.{ts,tsx}", "hooks/**/*.dom.test.{ts,tsx}"],
     setupFiles: ["./test/setup-dom.ts", "./test/setup-next-link.ts"],
     clearMocks: true,
