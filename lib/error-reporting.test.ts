@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CLIENT_ERROR_EVENT,
   errorDigest,
+  logActionError,
   logClientError,
   logRequestError,
   parseClientErrorReport,
@@ -19,7 +20,7 @@ const TOKEN = "0123456789abcdef0123456789abcdef";
 function d1Failure() {
   const cause = new Error("D1_ERROR: VIEWs and/or subqueries nested too deep: SQLITE_ERROR");
   const error = new Error("Failed query: WITH friends AS (…)", { cause });
-  error.stack = "Error: Failed query\n    at getFeedPage (feed.ts:82:20)";
+  error.stack = "Error: Failed query: WITH friends AS (…)\n    at getFeedPage (feed.ts:82:20)";
   return error;
 }
 
@@ -95,6 +96,60 @@ describe("logRequestError", () => {
     ]);
   });
 
+  it("drops a failed query's bound values and every share token from message, stack and causes", () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const message = `Failed query: SELECT * FROM climb_list_share_links WHERE token = ?\nparams: ${TOKEN},climber@example.com,my private journal\nsecond line`;
+    const error = new Error(message, {
+      cause: new Error(`D1_ERROR: no such link /lists/${TOKEN}`),
+    });
+    error.stack = `Error: ${message}\n    at getSharedList (climb-list-shares.ts:40:9)\n    at /lists/${TOKEN}`;
+
+    logRequestError(
+      error,
+      { path: "/lists/[token]", method: "GET", headers: {} },
+      {
+        routerKind: "App Router",
+        routePath: "/lists/[token]",
+        routeType: "render",
+        revalidateReason: undefined,
+      },
+    );
+
+    const [entry] = log.mock.calls[0] as [{ digest: string; error: Record<string, unknown> }];
+    expect(entry.error).toEqual({
+      name: "Error",
+      message:
+        "Failed query: SELECT * FROM climb_list_share_links WHERE token = ?\nparams: [redacted]",
+      stack:
+        "Error: Failed query: SELECT * FROM climb_list_share_links WHERE token = ?\nparams: [redacted]\n    at getSharedList (climb-list-shares.ts:40:9)\n    at /lists/[token]",
+      causes: [{ name: "Error", message: "D1_ERROR: no such link /lists/[token]" }],
+    });
+    expect(JSON.stringify(entry)).not.toMatch(/climber@example\.com|private journal|[0-9a-f]{32}/);
+    // The digest still hashes the raw error, so it matches the browser's.
+    expect(entry.digest).toBe(errorDigest(error));
+  });
+
+  it("keeps only the frames of a stack that does not contain the message", () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const error = new Error("Failed query: SELECT 1\nparams: secret@example.com");
+    error.stack =
+      "DrizzleQueryError: rewritten header with secret@example.com\n    at run (db.ts:1:1)";
+
+    logRequestError(
+      error,
+      { path: "/feed", method: "GET", headers: {} },
+      {
+        routerKind: "App Router",
+        routePath: "/feed",
+        routeType: "render",
+        revalidateReason: undefined,
+      },
+    );
+
+    const [entry] = log.mock.calls[0] as [{ error: { stack: string } }];
+    expect(entry.error.stack).toBe("    at run (db.ts:1:1)");
+  });
+
   it("logs a thrown non-error and caps long messages", () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -113,6 +168,32 @@ describe("logRequestError", () => {
     expect(entry.error.name).toBe("string");
     expect(entry.error.message).toHaveLength(1001);
     expect(entry).not.toHaveProperty("renderSource");
+  });
+});
+
+describe("logActionError", () => {
+  it("logs a caught action error as a request_error with the action route type", () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const error = d1Failure();
+
+    logActionError(error);
+
+    expect(log).toHaveBeenCalledWith({
+      event: REQUEST_ERROR_EVENT,
+      digest: errorDigest(error),
+      routeType: "action",
+      error: {
+        name: "Error",
+        message: "Failed query: WITH friends AS (…)",
+        stack: error.stack,
+        causes: [
+          {
+            name: "Error",
+            message: "D1_ERROR: VIEWs and/or subqueries nested too deep: SQLITE_ERROR",
+          },
+        ],
+      },
+    });
   });
 });
 
@@ -149,6 +230,16 @@ describe("parseClientErrorReport", () => {
     ["a long digest", { boundary: "page", message: "m", path: "/", digest: "d".repeat(65) }],
   ])("refuses %s", (_label, body) => {
     expect(parseClientErrorReport(body)).toBeNull();
+  });
+
+  it("replaces a share token in a reported message", () => {
+    expect(
+      parseClientErrorReport({
+        boundary: "page",
+        message: `Could not load /trips/${TOKEN}`,
+        path: "/",
+      })?.message,
+    ).toBe("Could not load /trips/[token]");
   });
 
   it("logs a client report as its own event", () => {

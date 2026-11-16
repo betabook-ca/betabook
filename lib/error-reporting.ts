@@ -4,14 +4,19 @@ import type { Instrumentation } from "next";
  *
  * vinext logs no production server error: a page that fails in a server
  * component streams the error page with a 200, and the browser gets only a
- * digest. `instrumentation.ts` passes every server error to `logRequestError`,
- * and `/api/client-errors` passes every error page a browser shows to
- * `logClientError`, so both appear in the Worker's logs as error-level events
- * with a fixed `event` field, for a log search or an alert to match on.
+ * digest. `instrumentation.ts` passes server errors to `logRequestError`, and
+ * `toActionResult` passes the action errors it catches (which never reach
+ * instrumentation) to `logActionError`. Both log a `request_error` event.
+ * `/api/client-errors` passes the error pages browsers report to
+ * `logClientError`, a `client_error` event. That report is best-effort: a
+ * rate-limited or failed beacon is not logged. A log search or an alert can
+ * match on the fixed `event` field.
  *
- * Logs keep the route pattern and a path with its query string removed and
- * every share token replaced, because list, trip and project links are
- * capabilities: a token in a log line is a working link. */
+ * Nothing logged may carry a working link or user data. Paths lose their
+ * query string; every share token in a path or error text becomes "[token]",
+ * because list, trip and project links are capabilities; and Drizzle's
+ * "params:" list, the bound values of a failed query (emails, journal text,
+ * tokens), is dropped from messages and stacks. */
 
 export const REQUEST_ERROR_EVENT = "request_error";
 export const CLIENT_ERROR_EVENT = "client_error";
@@ -21,6 +26,10 @@ const MAX_STACK_LENGTH = 4000;
 const MAX_CAUSES = 4;
 /** `lower(hex(randomblob(16)))`, the shape of every share-link token. */
 const TOKEN_SEGMENT = /^[0-9a-f]{32}$/i;
+const TOKEN_IN_TEXT = /\b[0-9a-f]{32}\b/gi;
+/** The tail of a DrizzleQueryError message: `Failed query: <sql>\nparams: <values>`. */
+const QUERY_PARAMS = /\nparams: [\s\S]*$/;
+const STACK_FRAME = /^\s+at /;
 
 type ErrorSummary = {
   name: string;
@@ -40,20 +49,41 @@ function describe(error: unknown) {
   return { name: typeof error, message: String(error) };
 }
 
+/** Error text safe to log: no bound query values and no share token. Runs
+ * before truncation, so a cut cannot leave half a token behind. */
+function scrubErrorText(text: string) {
+  return text.replace(QUERY_PARAMS, "\nparams: [redacted]").replace(TOKEN_IN_TEXT, "[token]");
+}
+
+/** A stack opens with "Name: message", so it repeats whatever the message
+ * holds. That header is scrubbed like the message. When the message cannot be
+ * found in the stack, only the frames are kept. */
+function scrubStack(stack: string, message: string) {
+  const at = message ? stack.indexOf(message) : -1;
+  const scrubbed =
+    at >= 0
+      ? stack.slice(0, at) + scrubErrorText(message) + stack.slice(at + message.length)
+      : stack
+          .split("\n")
+          .filter((line) => STACK_FRAME.test(line))
+          .join("\n");
+  return scrubbed.replace(TOKEN_IN_TEXT, "[token]");
+}
+
 function summarizeError(error: unknown): ErrorSummary {
   const causes: ErrorSummary["causes"] = [];
   let cause = error instanceof Error ? error.cause : undefined;
   while (cause !== undefined && causes.length < MAX_CAUSES) {
     const { name, message } = describe(cause);
-    causes.push({ name, message: truncate(message, MAX_MESSAGE_LENGTH) });
+    causes.push({ name, message: truncate(scrubErrorText(message), MAX_MESSAGE_LENGTH) });
     cause = cause instanceof Error ? cause.cause : undefined;
   }
   const { name, message } = describe(error);
   return {
     name,
-    message: truncate(message, MAX_MESSAGE_LENGTH),
+    message: truncate(scrubErrorText(message), MAX_MESSAGE_LENGTH),
     ...(error instanceof Error && error.stack
-      ? { stack: truncate(error.stack, MAX_STACK_LENGTH) }
+      ? { stack: truncate(scrubStack(error.stack, message), MAX_STACK_LENGTH) }
       : {}),
     causes,
   };
@@ -107,6 +137,18 @@ export function logRequestError(...args: RequestErrorArgs) {
   console.error(requestErrorLog(...args));
 }
 
+/** For the unexpected errors `toActionResult` catches: the action returns a
+ * generic message, so the error never reaches `onRequestError`. Same event
+ * as a server error, without the route, which the wrapper does not know. */
+export function logActionError(error: unknown) {
+  console.error({
+    event: REQUEST_ERROR_EVENT,
+    digest: errorDigest(error),
+    routeType: "action",
+    error: summarizeError(error),
+  });
+}
+
 export type ClientErrorReport = {
   /** Which boundary rendered: the root `app/error.tsx` or `app/global-error.tsx`. */
   boundary: "page" | "global";
@@ -133,7 +175,7 @@ export function parseClientErrorReport(body: unknown): ClientErrorReport | null 
   return {
     boundary,
     ...(digest ? { digest } : {}),
-    message: truncate(message, MAX_MESSAGE_LENGTH),
+    message: truncate(scrubErrorText(message), MAX_MESSAGE_LENGTH),
     path: redactPath(path),
   };
 }

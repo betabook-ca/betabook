@@ -1,4 +1,5 @@
-// Explicit sibling specifier: scripts/ reach this through lib/product-tour.ts under plain node.
+// Explicit sibling specifiers: scripts/ reach this through lib/product-tour.ts under plain node.
+import { logActionError } from "./error-reporting.ts";
 import { TERMS_ACCESS_MESSAGE } from "./terms.ts";
 
 /** Return intentional action failures as data because Next.js redacts uncaught server errors. */
@@ -72,7 +73,7 @@ export async function toActionResult<T>(fn: () => Promise<T>): Promise<ActionRes
     if (err instanceof ActionError) {
       return { ok: false, error: err.message };
     }
-    console.error(err);
+    logActionError(err);
     return { ok: false, error: GENERIC_ERROR_MESSAGE };
   }
 }

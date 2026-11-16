@@ -81,3 +81,60 @@ it.each([
   expect((await report(body)).status).toBe(status);
   expect(log).not.toHaveBeenCalled();
 });
+
+it("counts bytes, not characters", async () => {
+  // 2,100 "é" stay under 4,096 characters but take 4,200 bytes.
+  const body = JSON.stringify({ boundary: "page", message: "é".repeat(2100), path: "/" });
+  expect(body.length).toBeLessThan(4096);
+
+  expect((await report(body)).status).toBe(413);
+  expect(log).not.toHaveBeenCalled();
+});
+
+it("refuses a declared length over the cap without reading the body", async () => {
+  let pulled = 0;
+  // highWaterMark 0: the stream is pulled only when someone reads it.
+  const body = new ReadableStream<Uint8Array>(
+    {
+      pull(controller) {
+        pulled += 1;
+        controller.enqueue(new TextEncoder().encode(valid));
+        controller.close();
+      },
+    },
+    { highWaterMark: 0 },
+  );
+  const response = await POST(
+    new Request(`${ORIGIN}/api/client-errors`, {
+      method: "POST",
+      body,
+      headers: { origin: ORIGIN, "content-length": "1000000" },
+    }),
+  );
+
+  expect(response.status).toBe(413);
+  expect(pulled).toBe(0);
+});
+
+it("stops reading an undeclared body once it passes the cap", async () => {
+  const chunk = new Uint8Array(1024).fill(0x20);
+  let pulled = 0;
+  const body = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      pulled += 1;
+      controller.enqueue(chunk);
+    },
+  });
+
+  const response = await POST(
+    new Request(`${ORIGIN}/api/client-errors`, {
+      method: "POST",
+      body,
+      headers: { origin: ORIGIN },
+    }),
+  );
+
+  expect(response.status).toBe(413);
+  // Five 1 KB chunks pass the 4 KB cap; the endless stream is cancelled there.
+  expect(pulled).toBeLessThanOrEqual(6);
+});
