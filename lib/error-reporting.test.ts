@@ -35,6 +35,14 @@ describe("errorDigest", () => {
     expect(errorDigest("plain string")).toBe("477965546");
   });
 
+  it("computes a digest when the field is there but not a string", () => {
+    const error = new Error("boom");
+    const computed = errorDigest(error);
+    Object.assign(error, { digest: undefined });
+    expect(errorDigest(error)).toBe(computed);
+    expect(computed).not.toBe("undefined");
+  });
+
   it("keeps a digest the error already carries", () => {
     expect(errorDigest(Object.assign(new Error("boom"), { digest: "NEXT_NOT_FOUND" }))).toBe(
       "NEXT_NOT_FOUND",
@@ -49,8 +57,58 @@ describe("redactPath", () => {
     expect(redactPath(`/users/u-1?share=${TOKEN}`)).toBe("/users/u-1");
   });
 
-  it("keeps ordinary ids", () => {
+  it("keeps ordinary ids and slugs", () => {
     expect(redactPath("/climbs/252551/sunset-arete")).toBe("/climbs/252551/sunset-arete");
+    expect(redactPath("/areas/365/the-long-approach-boulders")).toBe(
+      "/areas/365/the-long-approach-boulders",
+    );
+  });
+
+  it("replaces reset tokens, avatar keys and other credential-like segments", () => {
+    expect(redactPath("/api/auth/reset-password/aB3dE5fG7hJ9kL1mN3pQ5rS7")).toBe(
+      "/api/auth/reset-password/[token]",
+    );
+    expect(redactPath("/api/avatars/u1/" + "ab12".repeat(16))).toBe("/api/avatars/u1/[token]");
+    // Mixed case with no digit, the 1-in-60 better-auth token.
+    expect(redactPath("/api/auth/reset-password/aBcDeFgHiJkLmNoPqRsTuVwX")).toBe(
+      "/api/auth/reset-password/[token]",
+    );
+    expect(redactPath("/users/C21eDLSbyoYF7XwXl9vB3qZbleIogj0O")).toBe("/users/[token]");
+  });
+});
+
+describe("error text", () => {
+  function loggedMessage(error: unknown) {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    logActionError(error);
+    const [entry] = log.mock.calls.at(-1) as [{ error: { message: string } }];
+    return entry.error.message;
+  }
+
+  it("drops the input a JSON parse error quotes", () => {
+    let parseError: unknown;
+    try {
+      JSON.parse("my private journal entry");
+    } catch (error) {
+      parseError = error;
+    }
+    const message = loggedMessage(parseError);
+    expect(message).not.toContain("private journal");
+    expect(message).toContain('"[redacted]" is not valid JSON');
+  });
+
+  it("drops email addresses and session tokens", () => {
+    expect(
+      loggedMessage(
+        new Error("No session for climber@example.com with token Xk29fJq8LmPz3RtVw7Yb0cDe"),
+      ),
+    ).toBe("No session for [email] with token [token]");
+  });
+
+  it("keeps SQL identifiers, camelCase names and D1 codes readable", () => {
+    const message =
+      "D1_ERROR: no such column: journal_companions_active_idx.sendCommentVisible: SQLITE_ERROR";
+    expect(loggedMessage(new Error(message))).toBe(message);
   });
 });
 
@@ -150,6 +208,39 @@ describe("logRequestError", () => {
     expect(entry.error.stack).toBe("    at run (db.ts:1:1)");
   });
 
+  it("drops HTML rendering's copy of an error the RSC render already logged", () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const ssr = {
+      routerKind: "App Router",
+      routePath: "/feed",
+      routeType: "render",
+      renderSource: "server-rendering",
+      revalidateReason: undefined,
+    } as const;
+    const productionCopy = Object.assign(
+      new Error("An error occurred in the Server Components render."),
+      { digest: "3404251440" },
+    );
+
+    logRequestError(productionCopy, { path: "/feed", method: "GET", headers: {} }, ssr);
+    expect(log).not.toHaveBeenCalled();
+
+    // An error raised in HTML rendering itself carries no digest and is logged.
+    logRequestError(
+      new Error("client component threw"),
+      { path: "/feed", method: "GET", headers: {} },
+      ssr,
+    );
+    expect(log).toHaveBeenCalledTimes(1);
+  });
+
+  it("logs no cause for a null cause", () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    logActionError(new Error("boom", { cause: null }));
+    const [entry] = log.mock.calls[0] as [{ error: { causes: unknown[] } }];
+    expect(entry.error.causes).toEqual([]);
+  });
+
   it("logs a thrown non-error and caps long messages", () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -180,7 +271,6 @@ describe("logActionError", () => {
 
     expect(log).toHaveBeenCalledWith({
       event: REQUEST_ERROR_EVENT,
-      digest: errorDigest(error),
       routeType: "action",
       error: {
         name: "Error",

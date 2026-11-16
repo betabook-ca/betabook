@@ -9,7 +9,7 @@ import {
   SESSION_EXPIRED_MESSAGE,
   toActionResult,
 } from "./action-result";
-import { errorDigest, REQUEST_ERROR_EVENT } from "./error-reporting";
+import { REQUEST_ERROR_EVENT } from "./error-reporting";
 
 describe("toActionResult", () => {
   it("wraps a successful body's return value in ok:true", async () => {
@@ -55,7 +55,6 @@ describe("toActionResult", () => {
       ).toEqual({ ok: false, error: GENERIC_ERROR_MESSAGE });
       expect(consoleError).toHaveBeenCalledWith({
         event: REQUEST_ERROR_EVENT,
-        digest: errorDigest(internal),
         routeType: "action",
         error: expect.objectContaining({
           name: "Error",

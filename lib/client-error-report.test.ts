@@ -25,3 +25,15 @@ it("caps the message so a long one still fits the endpoint's 4 KB limit", async 
     path: "/feed",
   });
 });
+
+it("cuts a long path to what the endpoint accepts instead of losing the report", async () => {
+  const sendBeacon = vi.fn<(url: string, data: Blob) => boolean>(() => true);
+  vi.stubGlobal("navigator", { sendBeacon });
+  vi.stubGlobal("window", { location: { pathname: `/search/${"%20".repeat(400)}` } });
+
+  reportClientError("page", new Error("boom"));
+
+  const report = JSON.parse(await sendBeacon.mock.calls[0][1].text()) as { path: string };
+  expect(report.path).toHaveLength(512);
+  expect(report.path.startsWith("/search/%20")).toBe(true);
+});
