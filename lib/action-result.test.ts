@@ -9,6 +9,7 @@ import {
   SESSION_EXPIRED_MESSAGE,
   toActionResult,
 } from "./action-result";
+import { REQUEST_ERROR_EVENT } from "./error-reporting";
 
 describe("toActionResult", () => {
   it("wraps a successful body's return value in ok:true", async () => {
@@ -52,7 +53,14 @@ describe("toActionResult", () => {
           throw internal;
         }),
       ).toEqual({ ok: false, error: GENERIC_ERROR_MESSAGE });
-      expect(consoleError).toHaveBeenCalledWith(internal);
+      expect(consoleError).toHaveBeenCalledWith({
+        event: REQUEST_ERROR_EVENT,
+        routeType: "action",
+        error: expect.objectContaining({
+          name: "Error",
+          message: "D1_ERROR: something leaked from the driver",
+        }),
+      });
     } finally {
       consoleError.mockRestore();
     }

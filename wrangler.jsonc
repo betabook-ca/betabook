@@ -119,6 +119,17 @@
         "period": 60,
       },
     },
+    // /api/client-errors takes a report from any browser that shows an error
+    // page, signed in or not. Ten a minute per address is more error pages
+    // than one person sees, and it keeps a script from flooding the logs.
+    {
+      "name": "CLIENT_ERROR_RATE_LIMITER",
+      "namespace_id": "1006",
+      "simple": {
+        "limit": 10,
+        "period": 60,
+      },
+    },
   ],
   "observability": {
     "enabled": true,

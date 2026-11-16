@@ -31,6 +31,13 @@ export async function allowClimbListWrite(key: string): Promise<boolean> {
   return (await env.CLIMB_LIST_RATE_LIMITER.limit({ key })).success;
 }
 
+/** Error-page reports from browsers, keyed by address: the endpoint takes
+ * signed-out reports too, so there is no user to key on. */
+export async function allowClientErrorReport(key: string): Promise<boolean> {
+  const env = await getCloudflareEnv();
+  return (await env.CLIENT_ERROR_RATE_LIMITER.limit({ key })).success;
+}
+
 /** The one limit here that guards a budget rather than the database: each
  * upload spends an Images transformation from a monthly free allowance and
  * two R2 operations. */
