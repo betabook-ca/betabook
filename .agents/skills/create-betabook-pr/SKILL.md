@@ -17,7 +17,7 @@ changes out of the PR; merging, deploying, and assigning human reviewers require
 ## Establish the PR scope
 
 1. Read the repository `AGENTS.md` and its applicable guides, especially
-   `docs/repository-guide.md` for validation and `README.md` for local setup. Inspect the checkout:
+   `docs/repository-guide.md` for validation and the `betabook-dev` skill for local setup. Inspect the checkout:
 
    ```bash
    git status --short --branch

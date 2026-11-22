@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # Agent guide contents
 
-- [Setup, local accounts, scripts and deployment](README.md)
+- [Setup, local accounts, scripts and deployment](.agents/skills/betabook-dev/SKILL.md)
 - [Cloudflare infrastructure (OpenTofu and Spacelift)](infra/cloudflare/README.md)
 - [Working on Betabook](docs/repository-guide.md)
   - [Code map](docs/repository-guide.md#code-map)

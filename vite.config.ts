@@ -33,7 +33,7 @@ export default defineConfig({
     ]),
   ),
   server: {
-    // `next dev`'s defaults, which the README, .dev.vars.example and the UI
+    // `next dev`'s defaults, which the betabook-dev skill, .dev.vars.example and the UI
     // suite assume: port 3000, reachable from a phone on the LAN.
     port: 3000,
     host: true,
