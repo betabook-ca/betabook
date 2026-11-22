@@ -8,6 +8,7 @@ import { requestAreaEdit } from "@/actions";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { Area } from "@/db/queries";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 
 type AreaEditRequestDrawerProps = {
   area: Area;
@@ -36,18 +37,22 @@ export function AreaEditRequestDrawer({ area, state }: AreaEditRequestDrawerProp
     formData.set("name", trimmedName);
 
     startTransition(async () => {
-      const result = await requestAreaEdit(area.id, formData);
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      try {
+        const result = await requestAreaEdit(area.id, formData);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        if (result.value.status === "pending") {
+          setPendingNotice(
+            "Submitted for admin review — this won't take effect until it's approved.",
+          );
+          return;
+        }
+        state.close();
+      } catch {
+        setError(GENERIC_ERROR_MESSAGE);
       }
-      if (result.value.status === "pending") {
-        setPendingNotice(
-          "Submitted for admin review — this won't take effect until it's approved.",
-        );
-        return;
-      }
-      state.close();
     });
   }
 

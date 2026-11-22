@@ -2,11 +2,11 @@ import type { ReactNode } from "react";
 
 import type { ShareLink } from "@/components/share-link-dialog";
 import { TripActions } from "@/components/trips/trip-actions";
-import { TripBackLink } from "@/components/trips/trip-back-link";
 import { TripCompanions } from "@/components/trips/trip-companions";
 import { TripShare } from "@/components/trips/trip-share";
 import { TripStats } from "@/components/trips/trip-stats";
 import { TripStatusChip } from "@/components/trips/trip-status-chip";
+import { BackLink } from "@/components/ui/back-link";
 import { SectionHeading } from "@/components/ui/typography";
 import type { TripSummary } from "@/db/queries";
 import { tripShareAnalyticsPath, tripSharePath } from "@/lib/trip-share";
@@ -60,20 +60,20 @@ export function TripHeader({
     <div className="flex min-w-0 flex-col gap-4">
       <div className="flex min-w-0 flex-col gap-1">
         {back === "trip" ? (
-          <TripBackLink href={link ? tripSharePath(link) : tripHref(userId, trip.id)}>
+          <BackLink href={link ? tripSharePath(link) : tripHref(userId, trip.id)}>
             Back to trip
-          </TripBackLink>
+          </BackLink>
         ) : (
-          !link && <TripBackLink href={tripsHref(userId)}>All trips</TripBackLink>
+          !link && <BackLink href={tripsHref(userId)}>All trips</BackLink>
         )}
-        {/* Uses SectionHeading, not PageTitle. The page already has an h1, and
-         * axe's default rules don't flag a second one. */}
         {/* Only the name shares a row with the buttons, so the lines below use
-         * the full width. The negative margin keeps the buttons from adding
-         * height to that row. */}
+         * the full width. */}
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex min-w-0 items-start justify-between gap-3">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
+              {/* An h2: the page around this header supplies the h1. Keep it
+               * that way by hand, since axe's default rules don't flag a
+               * second h1. */}
               <SectionHeading className="min-w-0 break-words">{trip.name}</SectionHeading>
               {/* Only the dates: a client component's props reach the page,
                * and a trip link's readers aren't given the trip id. */}
@@ -83,6 +83,8 @@ export function TripHeader({
               />
             </div>
             {viewerId === userId && (
+              // The negative margin keeps the buttons from adding height to
+              // the name's row.
               <div className="-my-1 flex shrink-0 items-center gap-1">
                 {ownerShare && (
                   <TripShare

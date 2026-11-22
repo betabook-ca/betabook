@@ -28,8 +28,10 @@ export async function getUserHashtags(
   db: Database,
   ownerId: string,
   viewerId: string | null,
-  ascentsOnly = false,
-  includeTraining = false,
+  {
+    ascentsOnly = false,
+    includeTraining = false,
+  }: { ascentsOnly?: boolean; includeTraining?: boolean } = {},
 ): Promise<string[]> {
   const rows = await db.all<{ tag: string }>(sql`
     SELECT DISTINCT tag.value AS tag

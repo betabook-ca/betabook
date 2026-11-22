@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
-import { addClimbToList, createClimbList } from "@/actions";
+import { addClimbToList, createClimbList, type SavedClimbList } from "@/actions";
 import type { ClimbListChoice } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
 import { climbListChoiceSamples } from "@/stories/fixtures/climb-lists";
@@ -13,9 +13,9 @@ import { AddToListButton, type ClimbListChoicesFetcher } from "./add-to-list-but
 
 vi.mock("@/actions", () => ({
   addClimbToList: vi.fn<() => Promise<ActionResult>>(),
-  createClimbList: vi.fn<() => Promise<ActionResult<number>>>(),
+  createClimbList: vi.fn<() => Promise<ActionResult<SavedClimbList>>>(),
   updateClimbList: vi.fn<() => Promise<ActionResult>>(),
-  copyClimbList: vi.fn<() => Promise<ActionResult<number>>>(),
+  copyClimbList: vi.fn<() => Promise<ActionResult<SavedClimbList>>>(),
 }));
 const push = vi.fn<(href: string) => void>();
 vi.mock("next/navigation", () => ({
@@ -62,7 +62,9 @@ beforeEach(() => {
   vi.mocked(addClimbToList)
     .mockReset()
     .mockResolvedValue({ ok: true, value: { changed: true, climbCount: 4 } });
-  vi.mocked(createClimbList).mockReset().mockResolvedValue({ ok: true, value: 77 });
+  vi.mocked(createClimbList)
+    .mockReset()
+    .mockResolvedValue({ ok: true, value: { id: 77, title: "Fall circuit" } });
   push.mockReset();
 });
 afterEach(async () => {
@@ -150,4 +152,25 @@ it("creates a new list with the climb on it and toasts a link, staying on the cl
     "/users/alex/lists/77",
   );
   expect(push).not.toHaveBeenCalled();
+});
+
+it("names the new list in the toast as the server saved it, not as typed", async () => {
+  vi.mocked(createClimbList).mockResolvedValue({
+    ok: true,
+    value: { id: 78, title: "Saved name" },
+  });
+  const user = userEvent.setup();
+  renderButton();
+  const { dialog } = await openDialog(user);
+
+  await user.click(within(dialog).getByRole("button", { name: /New list/ }));
+  const create = await screen.findByRole("dialog", { name: "New list" });
+  await user.type(within(create).getByRole("textbox", { name: /Name/ }), "  Typed   name ");
+  await user.click(within(create).getByRole("button", { name: "Create list" }));
+
+  expect(await screen.findByRole("link", { name: "Saved name" })).toHaveAttribute(
+    "href",
+    "/users/alex/lists/78",
+  );
+  expect(screen.queryByRole("link", { name: "Typed name" })).not.toBeInTheDocument();
 });

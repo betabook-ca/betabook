@@ -48,17 +48,10 @@ export function ClimbFilterControls({
 }) {
   return (
     <ClimbFilters
-      value={{
-        ...value.filter,
-        area: value.area,
-        sort: value.sort,
-        minRating: value.filter.ratingRange[0],
-        maxRating: value.filter.ratingRange[1],
-      }}
+      value={{ ...value.filter, area: value.area }}
       onChange={(refinements) => {
         const next = {
           ...value,
-          sort: refinements.sort,
           filter: {
             ...value.filter,
             disciplines: refinements.disciplines,

@@ -89,11 +89,11 @@ export async function getScopedPendingRequests(
       SELECT a.id FROM areas a JOIN managed ON a.parent_id = managed.id
     ), scoped AS (
       SELECT r.*,
-        CASE WHEN r.type LIKE 'area_%' THEN a.id ELSE c.area_id END AS source_area_id,
+        CASE WHEN substr(r.type, 1, 5) = 'area_' THEN a.id ELSE c.area_id END AS source_area_id,
         CASE WHEN r.type = 'climb_merge' THEN target.area_id ELSE destination.id END AS destination_area_id
       FROM change_requests r
-      LEFT JOIN areas a ON r.type LIKE 'area_%' AND a.id = r.entity_id
-      LEFT JOIN climbs c ON r.type LIKE 'climb_%' AND c.id = r.entity_id
+      LEFT JOIN areas a ON substr(r.type, 1, 5) = 'area_' AND a.id = r.entity_id
+      LEFT JOIN climbs c ON substr(r.type, 1, 6) = 'climb_' AND c.id = r.entity_id
       LEFT JOIN areas destination ON destination.id = CASE r.type
         WHEN 'area_reparent' THEN json_extract(r.payload, '$.newParentId')
         WHEN 'climb_move' THEN json_extract(r.payload, '$.newAreaId') END

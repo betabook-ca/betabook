@@ -4,6 +4,9 @@ import type { Database } from "@/db/client";
 import type { ClimbType } from "@/lib/grades";
 import type { AscentStyle, GradeFeel } from "@/lib/sends";
 
+import { shareLinkReadableSql } from "./share-links";
+import { clampPageSize } from "./shared";
+
 /** One session on a shared project. Narrower than `JournalEntry` in exactly
  * one respect: no companions. A companion tag names a friend who agreed to
  * appear on the owner's journal, not to be named to whoever holds a link —
@@ -73,11 +76,7 @@ export type SharedProjectAccess =
  * here. It covers the one case the trigger cannot — a share written in the
  * same moment the profile was closing.
  */
-const readableSql = sql`
-  share_owner.is_private = 0
-  -- NULL > datetime('now') is NULL, not true, so the null branch is explicit.
-  AND (link.expires_at IS NULL OR link.expires_at > datetime('now'))
-`;
+const readableSql = shareLinkReadableSql;
 
 /** The pin join is what ties a link to a project that still exists. The
  * composite foreign key already guarantees it, and the join is here anyway so
@@ -171,9 +170,7 @@ export async function getSharedProjectSessions(
   token: string,
   limit: number = SHARED_PROJECT_SESSIONS,
 ): Promise<SharedProjectSession[]> {
-  const bounded = Number.isInteger(limit)
-    ? Math.min(Math.max(limit, 1), SHARED_PROJECT_SESSIONS)
-    : SHARED_PROJECT_SESSIONS;
+  const bounded = clampPageSize(limit, SHARED_PROJECT_SESSIONS, SHARED_PROJECT_SESSIONS);
 
   const rows = await db.all<{
     id: number;

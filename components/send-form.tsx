@@ -27,8 +27,9 @@ import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
 import { latestLoggableDate } from "@/lib/broken-climbs";
 import { localToday } from "@/lib/format-date";
 import type { CompanionOption } from "@/lib/journal-companions";
+import { MAX_LOG_NOTE_LENGTH } from "@/lib/log-note";
 import { sendVideoLinksError } from "@/lib/send-video";
-import { MAX_COMMENT_LENGTH, type AscentStyle, type GradeFeel } from "@/lib/sends";
+import type { AscentStyle, GradeFeel } from "@/lib/sends";
 
 type SendFormProps = {
   climb: SendableClimb;
@@ -157,14 +158,14 @@ export function SendForm({
         <FormSection label="Send commentary">
           <TextField value={comment} onChange={setComment}>
             <FieldHeader
-              usage={{ used: comment.length, limit: MAX_COMMENT_LENGTH, unit: "characters" }}
+              usage={{ used: comment.length, limit: MAX_LOG_NOTE_LENGTH, unit: "characters" }}
             >
               <Label>Notes</Label>
               <HelpTooltip label="About Send commentary">
                 Uses your Send commentary audience wherever this note appears.
               </HelpTooltip>
             </FieldHeader>
-            <TextArea maxLength={MAX_COMMENT_LENGTH} placeholder="How'd it go?" />
+            <TextArea maxLength={MAX_LOG_NOTE_LENGTH} placeholder="How'd it go?" />
           </TextField>
           <SendVideosField
             initialLinks={existingSend.videos ?? []}

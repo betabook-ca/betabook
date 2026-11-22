@@ -50,6 +50,11 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 async function loadKaya() {
+  render(<ImportWizard profileHref="/users/local" />);
+  await enterKaya();
+}
+
+async function enterKaya() {
   const items = Array.from({ length: 60 }, (_, i) => ({
     id: String(i + 1),
     date: `${i < 49 ? "2025-09-03" : i < 58 ? "2026-03-18" : "2026-03-14"}T12:00:00.000Z`,
@@ -75,7 +80,6 @@ async function loadKaya() {
       .mockResolvedValueOnce(kayaStreamResponse(items, 60, "Chichiaventurero"))
       .mockResolvedValueOnce(kayaStreamResponse([], 0, "Chichiaventurero")),
   );
-  render(<ImportWizard profileHref="/users/local" />);
   await userEvent.click(screen.getByRole("button", { name: "KAYA" }));
   await userEvent.type(
     screen.getByRole("textbox", { name: "KAYA username or profile link" }),
@@ -227,4 +231,29 @@ it("groups CSV timestamps by the imported calendar date and resets choices for a
   expect(
     await screen.findByRole("checkbox", { name: /Import sends dated Sep 3, 2025 without dates/ }),
   ).not.toBeChecked();
+});
+
+it("starts the next import from a clean wizard", async () => {
+  await loadKaya();
+  await userEvent.click(
+    screen.getByRole("checkbox", { name: /Import sends dated Sep 3, 2025 without dates/ }),
+  );
+  await userEvent.click(screen.getByRole("button", { name: "Next: Review" }));
+  await userEvent.click(screen.getByRole("button", { name: "Overwrite" }));
+  await userEvent.click(screen.getByRole("button", { name: "Import 60 sends" }));
+  await userEvent.click(await screen.findByRole("button", { name: "Import another file" }));
+  expect(importSends).toHaveBeenLastCalledWith(
+    expect.any(Array),
+    expect.objectContaining({ onConflict: "overwrite" }),
+  );
+
+  expect(screen.getByText("1 Upload", { exact: true })).toHaveAttribute("aria-current", "step");
+  expect(screen.getByRole("button", { name: "Sendage" })).toHaveAttribute("aria-pressed", "true");
+  await enterKaya();
+  expect(
+    screen.getByRole("checkbox", { name: /Import sends dated Sep 3, 2025 without dates/ }),
+  ).not.toBeChecked();
+  await userEvent.click(screen.getByRole("button", { name: "Next: Review" }));
+  expect(screen.getByRole("button", { name: "Skip" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.queryByText(/replace your existing send data/)).not.toBeInTheDocument();
 });

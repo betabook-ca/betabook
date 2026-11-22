@@ -1,4 +1,4 @@
-import type { Discipline } from "@/lib/grades";
+import { isClimbType, type Discipline } from "@/lib/grades";
 import { parseId } from "@/lib/parse-id";
 import { ASCENT_STYLES, type AscentStyle } from "@/lib/sends";
 
@@ -19,9 +19,7 @@ export function toRange(
 }
 
 export function parseDisciplines(params: UrlParamsRecord): Discipline[] {
-  return toArray(params.discipline).filter(
-    (d): d is Discipline => d === "boulder" || d === "sport" || d === "trad",
-  );
+  return toArray(params.discipline).filter(isClimbType);
 }
 
 export function parseAscentStyles(params: UrlParamsRecord): AscentStyle[] {

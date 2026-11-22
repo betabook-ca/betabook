@@ -13,6 +13,7 @@ import { ClimbFormDrawer } from "@/components/climb-form-drawer";
 import { ActionsMenu } from "@/components/ui/actions-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import type { Area } from "@/db/queries";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 
 type AreaHeaderActionsProps = {
   area: Area;
@@ -34,19 +35,23 @@ export function AreaHeaderActions({ area }: AreaHeaderActionsProps) {
   function handleDelete() {
     setDeleteError(null);
     startTransition(async () => {
-      const result = await requestAreaDelete(area.id);
-      if (!result.ok) {
-        setDeleteError(result.error);
-        return;
+      try {
+        const result = await requestAreaDelete(area.id);
+        if (!result.ok) {
+          setDeleteError(result.error);
+          return;
+        }
+        if (result.value.status === "pending") {
+          setDeletePendingNotice(
+            "An admin needs to approve this before the area is actually removed.",
+          );
+          return;
+        }
+        deleteState.close();
+        router.push(area.parentId != null ? `/areas/${area.parentId}` : "/");
+      } catch {
+        setDeleteError(GENERIC_ERROR_MESSAGE);
       }
-      if (result.value.status === "pending") {
-        setDeletePendingNotice(
-          "An admin needs to approve this before the area is actually removed.",
-        );
-        return;
-      }
-      deleteState.close();
-      router.push(area.parentId != null ? `/areas/${area.parentId}` : "/");
     });
   }
 

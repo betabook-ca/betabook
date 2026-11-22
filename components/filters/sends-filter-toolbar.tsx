@@ -11,7 +11,6 @@ import {
   textActiveFilters,
 } from "@/components/filters/active-filter-values";
 import { DateFilter } from "@/components/filters/date-filter";
-import { TextFilterField } from "@/components/filters/filter-input";
 import { FilterToolbar } from "@/components/filters/filter-toolbar";
 import { HashtagFilter } from "@/components/filters/hashtag-filter";
 import { RatingRangeFilter } from "@/components/filters/min-rating-filter";
@@ -23,6 +22,7 @@ import {
   FILTER_LABEL_CLASS,
   FILTER_CONTROL_CLASS,
 } from "@/components/ui/field";
+import { QueryInput } from "@/components/ui/query-input";
 import { SortSelect } from "@/components/ui/sort-select";
 import type { UserSendsFilter } from "@/db/queries";
 import { useFilterFormNavigation } from "@/hooks/use-filter-form-navigation";
@@ -174,7 +174,7 @@ export function UserSendsFilterToolbar({
           : []),
       ]}
       textFilter={
-        <TextFilterField
+        <QueryInput
           value={name}
           onChange={setName}
           label="Filter sends"

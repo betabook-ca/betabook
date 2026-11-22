@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { ClimbPicker } from "@/components/climb-picker";
 import { ActivityIcon } from "@/components/ui/activity-icon";
+import { ChoiceCard } from "@/components/ui/choice-card";
 import { PageTitle } from "@/components/ui/typography";
 import type { ClimbWithAreaName } from "@/db/queries";
 import type { SearchFetcher } from "@/lib/search";
@@ -76,22 +77,20 @@ export function EntryKindStep({
       </div>
       <div className="grid grid-cols-2 gap-3">
         {ENTRY_TYPES.map((choice) => (
-          <Button
+          <ChoiceCard
             key={choice.id}
             type="button"
             onPress={() =>
               choice.id === "session" ? onChoosingClimbChange(true) : onChoose({ kind: "training" })
             }
-            fullWidth
-            variant="outline"
-            className="h-auto min-h-16 min-w-0 flex-col items-start justify-start rounded-panel! px-3 py-3 text-left whitespace-normal"
+            className="flex-col items-start"
           >
             <span className="flex items-center gap-1 font-medium text-foreground">
               <ActivityIcon kind={choice.id} />
               {choice.label}
             </span>
             <span className="mt-1 block text-sm font-normal text-muted">{choice.description}</span>
-          </Button>
+          </ChoiceCard>
         ))}
       </div>
     </div>

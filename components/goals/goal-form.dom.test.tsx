@@ -70,6 +70,7 @@ it("keeps an existing tagged training goal's section available for editing", () 
   render(
     <GoalForm
       today="2026-09-11"
+      mode="edit"
       initialDraft={{
         category: "training",
         goal: "training",
@@ -92,6 +93,7 @@ it("keeps a saved tag filter on an older goal whose editor no longer offers tags
     <GoalForm
       today="2026-09-11"
       onSave={save}
+      mode="edit"
       initialDraft={{
         category: "explore",
         goal: "days",
@@ -164,6 +166,7 @@ it("submits the minimum-grade rule and resets it for a grade milestone", async (
   const user = userEvent.setup();
   render(
     <GoalForm
+      mode="edit"
       initialDraft={{
         category: "climbing",
         goal: "volume",
@@ -345,6 +348,7 @@ it("loads an existing recurring end date and lets the owner remove it", async ()
     <GoalForm
       today="2026-09-11"
       onSave={save}
+      mode="edit"
       initialDraft={{
         category: "training",
         goal: "training",
@@ -374,6 +378,7 @@ it("shows a server end-date rejection on the date field, not the form alert", as
     <GoalForm
       today="2026-09-11"
       onSave={save}
+      mode="edit"
       initialDraft={{
         category: "training",
         goal: "training",
@@ -514,7 +519,7 @@ it("rejects a recurring end date before the goal's current date", async () => {
     <GoalForm
       today="2026-09-11"
       onSave={save}
-      initialValues={{
+      initialDraft={{
         category: "training",
         goal: "training",
         discipline: "boulder",
@@ -530,4 +535,14 @@ it("rejects a recurring end date before the goal's current date", async () => {
   await userEvent.setup().click(screen.getByRole("button", { name: "Create goal" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("End date must be today or later.");
   expect(save).not.toHaveBeenCalled();
+});
+
+it("starts an explore goal at the same target whether preselected or picked", async () => {
+  const user = userEvent.setup();
+  const { unmount } = render(<GoalForm initialCategory="explore" today="2026-09-11" />);
+  expect(screen.getByRole("spinbutton", { name: "Climbing days" })).toHaveValue(8);
+  unmount();
+  render(<GoalForm today="2026-09-11" />);
+  await user.click(screen.getByRole("button", { name: /Get out & explore/ }));
+  expect(screen.getByRole("spinbutton", { name: "Climbing days" })).toHaveValue(8);
 });

@@ -3,12 +3,7 @@ import { and, asc, desc, eq, sql, type SQL } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import { areas, climbs, sends, user } from "@/db/schema";
 import type { DateFilterValue } from "@/lib/filters/date-filter";
-import {
-  DEFAULT_BOULDER_RANGE,
-  DEFAULT_SPORT_RANGE,
-  DEFAULT_TRAD_RANGE,
-  type DisciplineFilter,
-} from "@/lib/filters/discipline-filter";
+import type { DisciplineFilter } from "@/lib/filters/discipline-filter";
 import {
   DEFAULT_GRADE_PREFERENCES,
   formatGrade,
@@ -22,7 +17,7 @@ import type { Climb } from "./climbs";
 import { sendCommentVisibleSql } from "./content-access";
 import { sendHashtagCondition } from "./hashtag-filter";
 import { parseVideoList, withVideoList } from "./send-videos";
-import { disciplineGradeCondition, toFtsPrefixQuery } from "./shared";
+import { disciplineGradeConditions, toFtsPrefixQuery } from "./shared";
 import { tripLinkCoversSql } from "./trip-shares";
 
 export type Send = typeof sends.$inferSelect;
@@ -150,28 +145,18 @@ export async function getClimbSendSummary(
   return { ...stats[climbId], styleBreakdown, suggestedGradeCounts };
 }
 
-/** Which of `climbIds` the user has sent. A single JSON binding avoids D1's
- * parameter limit. */
+/** Which of `climbIds` the user has sent. */
 export async function getUserSentClimbIds(
   db: Database,
   userId: string,
   climbIds: readonly number[],
 ): Promise<Set<number>> {
-  const distinctIds = [...new Set(climbIds)];
-  if (distinctIds.length === 0) return new Set();
-  const rows = await db.all<{ climbId: number }>(sql`
-    SELECT sends.climb_id AS climbId
-    FROM sends
-    WHERE sends.user_id = ${userId}
-      AND sends.climb_id IN (
-        SELECT CAST(value AS INTEGER) FROM json_each(${JSON.stringify(distinctIds)})
-      )
-  `);
-  return new Set(rows.map((r) => r.climbId));
+  return new Set((await getUserSendDatesForClimbs(db, userId, climbIds)).keys());
 }
 
-/** `getUserSentClimbIds` plus each send's date, for callers that must judge
- * a date change against the climb (imports overwriting sends on a broken climb). */
+/** Each of `climbIds` the user has sent, with the send's date, for callers
+ * that must judge a date change against the climb (imports overwriting sends
+ * on a broken climb). A single JSON binding avoids D1's parameter limit. */
 export async function getUserSendDatesForClimbs(
   db: Database,
   userId: string,
@@ -249,20 +234,7 @@ export type UserSendsPage = {
 };
 
 function userSendsWhere(userId: string, filter: UserSendsFilter, viewerId: string | null): SQL {
-  const disciplineClauses: SQL[] = [];
-  if (filter.disciplines.includes("boulder")) {
-    disciplineClauses.push(
-      disciplineGradeCondition("boulder", filter.boulderRange, DEFAULT_BOULDER_RANGE),
-    );
-  }
-  if (filter.disciplines.includes("sport")) {
-    disciplineClauses.push(
-      disciplineGradeCondition("sport", filter.sportRange, DEFAULT_SPORT_RANGE),
-    );
-  }
-  if (filter.disciplines.includes("trad")) {
-    disciplineClauses.push(disciplineGradeCondition("trad", filter.tradRange, DEFAULT_TRAD_RANGE));
-  }
+  const disciplineClauses = disciplineGradeConditions(filter);
   // No selected disciplines means no discipline filter.
   const disciplineWhere =
     disciplineClauses.length > 0 ? sql`(${sql.join(disciplineClauses, sql` OR `)})` : sql`1`;
@@ -335,9 +307,11 @@ export async function getSendsForUserPage(
   db: Database,
   userId: string,
   filter: UserSendsFilter,
-  offset: number,
-  pageSize: number = USER_SENDS_PAGE_SIZE,
-  viewerId: string | null = null,
+  {
+    offset = 0,
+    pageSize = USER_SENDS_PAGE_SIZE,
+    viewerId = null,
+  }: { offset?: number; pageSize?: number; viewerId?: string | null } = {},
 ): Promise<UserSendsPage> {
   const where = userSendsWhere(userId, filter, viewerId);
 

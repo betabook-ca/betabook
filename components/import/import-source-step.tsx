@@ -2,7 +2,8 @@
 
 import { clsx } from "clsx";
 import { Upload } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
+import { Button, DropZone, FileTrigger, isFileDropItem } from "react-aria-components";
 
 import { OptionSelect } from "@/components/ui/option-select";
 import { SegmentedButtons } from "@/components/ui/segmented-buttons";
@@ -37,8 +38,6 @@ export function ImportSourceStep({
 }) {
   const [source, setSource] = useState<Source>(initialSource);
   const [busy, setBusy] = useState(false);
-  const [dragging, setDragging] = useState(false);
-  const fileInput = useRef<HTMLInputElement>(null);
   const locked = busy || reading;
   const fileDisabled = locked || disabled;
 
@@ -91,57 +90,45 @@ export function ImportSourceStep({
           <p className="text-sm text-muted">
             Upload an export from Mountain Project, KAYA, Sendage, or Betabook.
           </p>
-          <input
-            ref={fileInput}
-            type="file"
-            accept=".csv,text/csv"
-            disabled={fileDisabled}
-            className="hidden"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              event.target.value = "";
-              if (file && !fileDisabled) onFile(file);
-            }}
-          />
-          <div
-            role="button"
-            tabIndex={fileDisabled ? -1 : 0}
-            aria-disabled={fileDisabled}
-            aria-label="Choose a CSV file"
-            onClick={() => {
-              if (!fileDisabled) fileInput.current?.click();
-            }}
-            onKeyDown={(event) => {
-              if (!fileDisabled && (event.key === "Enter" || event.key === " ")) {
-                event.preventDefault();
-                fileInput.current?.click();
-              }
-            }}
-            onDragOver={(event) => {
-              event.preventDefault();
-              if (!fileDisabled) setDragging(true);
-            }}
-            onDragLeave={() => setDragging(false)}
+          {/* The whole card is the file chooser. DropZone adds its own hidden
+           * drop target, so a file can also be pasted from the keyboard. */}
+          <DropZone
+            isDisabled={fileDisabled}
+            aria-label="Drop a CSV file"
             onDrop={(event) => {
-              event.preventDefault();
-              setDragging(false);
-              const file = event.dataTransfer.files[0];
-              if (file && !fileDisabled) onFile(file);
+              const item = event.items.find(isFileDropItem);
+              if (item) void item.getFile().then(onFile);
             }}
-            className={clsx(
-              "flex cursor-pointer flex-col items-center gap-3 rounded-panel border border-dashed px-5 py-8 text-center transition-colors focus-visible:status-focused",
-              dragging ? "border-accent bg-surface" : "border-border hover:bg-surface/60",
-            )}
+            className={({ isDropTarget }) =>
+              clsx(
+                "rounded-panel border border-dashed transition-colors has-focus-visible:status-focused",
+                isDropTarget ? "border-accent bg-surface" : "border-border hover:bg-surface/60",
+              )
+            }
           >
-            <Upload className="size-5 text-muted" aria-hidden />
-            <p className="text-sm font-medium">
-              {reading ? "Reading file…" : "Drop your CSV here or choose a file"}
-            </p>
-            <p className="text-xs text-muted">
-              Up to {MAX_IMPORT_FILE_BYTES / 1024 / 1024} MB ·{" "}
-              {MAX_IMPORT_ROWS.toLocaleString("en-US")} rows
-            </p>
-          </div>
+            <FileTrigger
+              acceptedFileTypes={[".csv", "text/csv"]}
+              onSelect={(files) => {
+                const file = files?.[0];
+                if (file) onFile(file);
+              }}
+            >
+              <Button
+                isDisabled={fileDisabled}
+                aria-label="Choose a CSV file"
+                className="flex w-full cursor-pointer flex-col items-center gap-3 px-5 py-8 text-center outline-none"
+              >
+                <Upload className="size-5 text-muted" aria-hidden />
+                <span className="text-sm font-medium">
+                  {reading ? "Reading file…" : "Drop your CSV here or choose a file"}
+                </span>
+                <span className="text-xs text-muted">
+                  Up to {MAX_IMPORT_FILE_BYTES / 1024 / 1024} MB ·{" "}
+                  {MAX_IMPORT_ROWS.toLocaleString("en-US")} rows
+                </span>
+              </Button>
+            </FileTrigger>
+          </DropZone>
           <p className="text-xs text-muted">
             Columns are mapped automatically. You’ll review climb matches before saving.
           </p>

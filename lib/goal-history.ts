@@ -26,6 +26,9 @@ function newestAchievement(a: GoalProgress, b: GoalProgress) {
   );
 }
 
+/** Completed goals per "load more" page. */
+export const GOAL_PAGE_SIZE = 5;
+
 export function summarizeGoalPeriods(
   periods: GoalProgress[],
   view: "active" | "completed",
@@ -122,11 +125,11 @@ export function summarizeGoalPeriods(
   const goals = [...groups.values()].sort(newestAchievement);
   return {
     goals: goals
-      .slice(offset, offset + 5)
+      .slice(offset, offset + GOAL_PAGE_SIZE)
       .map(withHistory)
       .map(withStatus),
     total: goals.length,
-    hasMore: goals.length > offset + 5,
+    hasMore: goals.length > offset + GOAL_PAGE_SIZE,
     summary,
     years,
   };

@@ -6,7 +6,7 @@ import { expect, it, vi } from "vitest";
 import { GradePreferencesProvider } from "@/components/ui/grade-preferences";
 import { nativeGradeArray, ROPE_YDS } from "@/lib/grades";
 
-import { SuggestedGradeField } from "./send-fields";
+import { SendStylePicker, SuggestedGradeField, type SendStyleChoice } from "./send-fields";
 
 function Field({ initial }: { initial: string }) {
   const [value, setValue] = useState(initial);
@@ -56,4 +56,31 @@ it("keeps the boulder picker in Font when only boulders are switched", async () 
   await user.click(screen.getByRole("button", { name: /Suggested grade/ }));
   await user.click(await screen.findByRole("option", { name: "7A+" }));
   expect(screen.getByRole("button", { name: /Suggested grade/ })).toHaveTextContent("7A+");
+});
+
+function Picker() {
+  const [value, setValue] = useState<SendStyleChoice>("redpoint");
+  return (
+    <>
+      <SendStylePicker climbType="boulder" value={value} onChange={setValue} />
+      <button type="button">Next field</button>
+    </>
+  );
+}
+
+it("tabs to the selected style pill and uses arrow keys to select and wrap within the group", async () => {
+  const user = userEvent.setup();
+  render(<Picker />);
+  await user.tab();
+  expect(screen.getByRole("radio", { name: "Redpoint" })).toHaveFocus();
+  await user.keyboard("{ArrowRight}");
+  expect(screen.getByRole("radio", { name: "Flash" })).toHaveFocus();
+  expect(screen.getByRole("radio", { name: "Flash" })).toBeChecked();
+  await user.keyboard("{ArrowDown}");
+  expect(screen.getByRole("radio", { name: "Session" })).toHaveFocus();
+  expect(screen.getByRole("radio", { name: "Session" })).toBeChecked();
+  await user.keyboard("{ArrowUp}");
+  expect(screen.getByRole("radio", { name: "Flash" })).toBeChecked();
+  await user.tab();
+  expect(screen.getByRole("button", { name: "Next field" })).toHaveFocus();
 });

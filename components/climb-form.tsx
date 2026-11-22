@@ -14,6 +14,7 @@ import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { OptionSelect } from "@/components/ui/option-select";
 import type { Climb } from "@/db/queries";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { gradeOptionValue, gradeOptions, type ClimbType } from "@/lib/grades";
 
 type ClimbFormProps = {
@@ -65,12 +66,16 @@ export function ClimbForm({ areaId: fixedAreaId, climb, initial, onDone }: Climb
       const formData = new FormData();
       formData.set("description", description);
       startTransition(async () => {
-        const result = await updateClimb(climb.id, formData);
-        if (!result.ok) {
-          setError(result.error);
-          return;
+        try {
+          const result = await updateClimb(climb.id, formData);
+          if (!result.ok) {
+            setError(result.error);
+            return;
+          }
+          onDone?.(climb.id, climb.name);
+        } catch {
+          setError(GENERIC_ERROR_MESSAGE);
         }
-        onDone?.(climb.id, climb.name);
       });
       return;
     }
@@ -85,12 +90,16 @@ export function ClimbForm({ areaId: fixedAreaId, climb, initial, onDone }: Climb
     formData.set("description", description);
 
     startTransition(async () => {
-      const result = await createClimb(targetAreaId, formData);
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      try {
+        const result = await createClimb(targetAreaId, formData);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        onDone?.(result.value, trimmedName);
+      } catch {
+        setError(GENERIC_ERROR_MESSAGE);
       }
-      onDone?.(result.value, trimmedName);
     });
   }
 

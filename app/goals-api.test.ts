@@ -67,7 +67,6 @@ it("validates history/year paging and protects history after access changes", as
   for (const query of [
     "historyId=0",
     "historyId=1e3",
-    "historyId=1&offset=-1",
     "goalId=0x1&periodStart=2026-09-01",
     "view=completed&year=oops",
     "view=all",
@@ -77,6 +76,27 @@ it("validates history/year paging and protects history after access changes", as
   expect((await GET(request("historyId=999"), params)).status).toBe(200);
   await db.delete(friendships);
   expect((await GET(request("historyId=1&year=2026"), params)).status).toBe(404);
+});
+
+it("pages by offset under the shared pagination budget", async () => {
+  await seedFixtureFriendship(db, "owner", "friend");
+  const json = async (query: string) => {
+    const response = await GET(request(query), params);
+    expect(response.status).toBe(200);
+    return response.json();
+  };
+  // Junk reads as the first page, as on every other offset-paged list.
+  expect(await json("view=completed&offset=-1")).toEqual(await json("view=completed"));
+  expect(await json("historyId=1&offset=junk")).toEqual(await json("historyId=1"));
+  // Past the budget is terminal, not a 400 or a replay of an earlier page.
+  expect(await json("view=completed&offset=10001")).toEqual({ goals: [], hasMore: false });
+  expect(await json("historyId=1&offset=10001")).toEqual({ periods: [], hasMore: false });
+  // The last offset inside the budget is still a real page.
+  expect(await json("view=completed&offset=10000")).toMatchObject({
+    goals: [],
+    hasMore: false,
+    years: expect.any(Array),
+  });
 });
 
 it("schedules reconciliation only for an owner's Goals read", async () => {

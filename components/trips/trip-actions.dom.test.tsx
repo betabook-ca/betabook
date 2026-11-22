@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
@@ -98,11 +98,20 @@ it("opens with the trip's current values after a late refresh", async () => {
   const name = await screen.findByRole("textbox", { name: /name/i });
   await user.clear(name);
   await user.type(name, "A draft nobody saved");
-  await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+  // Faked only for the close: Testing Library's waits, user-event's included,
+  // drain through a real setTimeout that fake timers never advance, so Cancel
+  // is clicked directly. Running out the dialog's reset delay (EXIT_SETTLE_MS,
+  // 300ms) means the reopen below can't be what resets the draft.
+  vi.useFakeTimers();
+  try {
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await act(() => vi.advanceTimersByTimeAsync(300));
+  } finally {
+    vi.useRealTimers();
+  }
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 
-  // Longer than the dialog's reset delay.
-  await new Promise((resolve) => setTimeout(resolve, 400));
   rerender(<TripActions trip={{ ...BISHOP, name: "Bishop", description: null }} userId="alex" />);
 
   await user.click(screen.getByRole("button", { name: "Actions for Bishop" }));

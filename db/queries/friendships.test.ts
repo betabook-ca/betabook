@@ -64,7 +64,7 @@ it("shows an accepted connection from either direction and scopes private reques
   expect(await getFriendship(db, null, "alice")).toBe("none");
   expect((await getFriendsPage(db, "viewer")).friends.map((row) => row.id)).toEqual(["alice"]);
   expect((await getFriendsPage(db, "alice")).friends.map((row) => row.id)).toEqual(["viewer"]);
-  const requests = await getFriendsPage(db, "viewer", true);
+  const requests = await getFriendsPage(db, "viewer", { requestsOnly: true });
   expect(
     requests.friends
       .map((row) => [row.id, row.friendshipStatus, row.isPrivate])
@@ -77,7 +77,10 @@ it("shows an accepted connection from either direction and scopes private reques
   expect(await getPendingFriendRequestCount(db, "viewer")).toBe(1);
   expect(await getPendingFriendRequestCount(db, "alex")).toBe(1);
   expect(await getPendingFriendRequestCount(db, "hidden")).toBe(0);
-  expect(await getFriendsPage(db, "outsider", true)).toEqual({ friends: [], hasMore: false });
+  expect(await getFriendsPage(db, "outsider", { requestsOnly: true })).toEqual({
+    friends: [],
+    hasMore: false,
+  });
   await db.update(user).set({ isPrivate: true }).where(eq(user.id, "alice"));
   expect(
     (await getClimbersPage(db, "viewer", { name: "Alice" })).climbers.map((row) => row.id),
@@ -95,8 +98,8 @@ it("paginates accepted friends in both directions without including pending or u
   }
   await seedFixtureFriendship(db, "outsider", "hidden");
   const first = await getFriendsPage(db, "viewer");
-  const next = await getFriendsPage(db, "viewer", false, 10);
-  const last = await getFriendsPage(db, "viewer", false, 20);
+  const next = await getFriendsPage(db, "viewer", { offset: 10 });
+  const last = await getFriendsPage(db, "viewer", { offset: 20 });
   expect(first.friends).toHaveLength(10);
   expect(first.hasMore).toBe(true);
   expect(next.friends).toHaveLength(10);

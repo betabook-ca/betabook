@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { SURFACE_CARD_CLASS } from "@/components/ui/card";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { useClientSession } from "@/hooks/use-client-session";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import {
   HONEYPOT_FIELD,
   MAX_EMAIL_LENGTH,
@@ -57,12 +58,16 @@ export function ContactForm() {
     );
 
     startTransition(async () => {
-      const result = await submitContactMessage(formData);
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      try {
+        const result = await submitContactMessage(formData);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        setSent(email.trim());
+      } catch {
+        setError(GENERIC_ERROR_MESSAGE);
       }
-      setSent(email.trim());
     });
   }
 

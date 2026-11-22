@@ -90,14 +90,10 @@ describe.each(Object.keys(readers) as (keyof typeof readers)[])(
     it.each(viewers)("reaches viewer %s only if they may read the commentary", async (viewer) => {
       const expected = readers[audience].includes(viewer) ? OWNER_VIDEOS : null;
 
-      const userSends = await getSendsForUserPage(
-        db,
-        "owner",
-        DEFAULT_USER_SENDS_FILTER,
-        0,
-        20,
-        viewer,
-      );
+      const userSends = await getSendsForUserPage(db, "owner", DEFAULT_USER_SENDS_FILTER, {
+        pageSize: 20,
+        viewerId: viewer,
+      });
       expect(userSends.sends.map((row) => [row.id, row.videos])).toEqual([[10, expected]]);
 
       const climbSends = await getSendsForClimb(db, 1, 0, 10, viewer);

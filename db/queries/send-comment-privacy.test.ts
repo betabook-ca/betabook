@@ -105,7 +105,10 @@ it.each(["Drizzle", "SQL"])(
       body: "Training with friends",
     });
     for (const viewer of [author, "a-friend", "pending-out", "stranger", null]) {
-      const sends = await getSendsForUserPage(db, author, DEFAULT_USER_SENDS_FILTER, 0, 20, viewer);
+      const sends = await getSendsForUserPage(db, author, DEFAULT_USER_SENDS_FILTER, {
+        pageSize: 20,
+        viewerId: viewer,
+      });
       expect
         .soft(sends.sends.map((row) => [row.id, row.comment]))
         .toEqual([[12, viewer === null ? null : "Public beta"]]);
@@ -132,14 +135,10 @@ it.each(
       const journalReadable = readers[journalVisibility].includes(viewer);
       const commentReadable = readers[sendCommentVisibility].includes(viewer);
       const comment = commentReadable ? "secret-beta" : null;
-      const sends = await getSendsForUserPage(
-        db,
-        "owner",
-        DEFAULT_USER_SENDS_FILTER,
-        0,
-        20,
-        viewer,
-      );
+      const sends = await getSendsForUserPage(db, "owner", DEFAULT_USER_SENDS_FILTER, {
+        pageSize: 20,
+        viewerId: viewer,
+      });
       expect(sends.sends.map((row) => [row.id, row.comment])).toEqual([
         [10, comment],
         [11, commentReadable ? "undated-beta" : null],

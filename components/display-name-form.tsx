@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { updateDisplayName } from "@/actions";
 import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { MAX_DISPLAY_NAME_LENGTH } from "@/lib/display-name";
 
 export function DisplayNameForm({ initialName }: { initialName: string }) {
@@ -28,12 +29,16 @@ export function DisplayNameForm({ initialName }: { initialName: string }) {
     formData.set("name", name.trim());
 
     startTransition(async () => {
-      const result = await updateDisplayName(formData);
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      try {
+        const result = await updateDisplayName(formData);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        setSaved(true);
+      } catch {
+        setError(GENERIC_ERROR_MESSAGE);
       }
-      setSaved(true);
     });
   }
 

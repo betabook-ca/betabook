@@ -9,6 +9,7 @@ import { SURFACE_CARD_CLASS } from "@/components/ui/card";
 import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import type { Area } from "@/db/queries";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 
 type AreaFormProps = {
   /** The new area's parent, when already fixed (creating a subarea from an
@@ -44,12 +45,16 @@ export function AreaForm({ parentId: fixedParentId, area, onDone }: AreaFormProp
       const formData = new FormData();
       formData.set("description", description);
       startTransition(async () => {
-        const result = await updateArea(area.id, formData);
-        if (!result.ok) {
-          setError(result.error);
-          return;
+        try {
+          const result = await updateArea(area.id, formData);
+          if (!result.ok) {
+            setError(result.error);
+            return;
+          }
+          onDone?.(area.id, area.name);
+        } catch {
+          setError(GENERIC_ERROR_MESSAGE);
         }
-        onDone?.(area.id, area.name);
       });
       return;
     }
@@ -63,12 +68,16 @@ export function AreaForm({ parentId: fixedParentId, area, onDone }: AreaFormProp
     formData.set("description", description);
 
     startTransition(async () => {
-      const result = await createArea(parentId, formData);
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      try {
+        const result = await createArea(parentId, formData);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        onDone?.(result.value, trimmedName);
+      } catch {
+        setError(GENERIC_ERROR_MESSAGE);
       }
-      onDone?.(result.value, trimmedName);
     });
   }
 

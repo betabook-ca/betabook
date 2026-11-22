@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { ActionError } from "@/lib/action-result";
 import {
+  CLIMB_TYPES,
   DEFAULT_GRADE_PREFERENCES,
   formatGrade,
   nativeGradeArray,
@@ -60,7 +61,7 @@ export const goalInputSchema = z
         }
       })
       .optional(),
-    discipline: z.enum(["boulder", "sport", "trad"]).nullable(),
+    discipline: z.enum(CLIMB_TYPES).nullable(),
     grade: z.number().int().min(0).nullable(),
     gradeMatch: z.enum(["exact", "at-least"]).default("exact"),
     timeframe: z.enum(["week", "month", "year", "custom"]),

@@ -292,3 +292,15 @@ it("keeps empty quick climber search compact", () => {
   expect(screen.queryByText("Search climbers by name.", { exact: true })).not.toBeInTheDocument();
   expect(screen.queryByRole("region", { name: "You may know" })).not.toBeInTheDocument();
 });
+
+it("names the climb query chip like every other text filter, without stray spaces", async () => {
+  const user = userEvent.setup();
+  render(<IntegratedSearchDemo initialQuery="" initialCategory="climb" />);
+  const input = screen.getByRole("searchbox", { name: "Search Betabook" });
+  await user.type(input, "   ");
+  await user.click(button("Expand filters"));
+  expect(screen.queryByRole("button", { name: /^Remove (Search|Text):/ })).not.toBeInTheDocument();
+  await user.type(input, "cedar ");
+  await user.click(button("Remove Text: cedar"));
+  expect(input).toHaveValue("");
+});

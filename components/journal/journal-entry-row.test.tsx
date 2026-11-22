@@ -95,6 +95,10 @@ describe("JournalEntryRow", () => {
     expect(isValidElement<{ href: string }>(tag) && tag.props.href).toBe(
       "/users/owner/journal?tag=slab",
     );
+    // Starts with the visible "#slab", so voice control can name it.
+    expect(isValidElement<{ "aria-label": string }>(tag) && tag.props["aria-label"]).toBe(
+      "#slab, filter journal",
+    );
   });
 
   it("keeps the training title plain and labels its right-side status", () => {
@@ -145,5 +149,8 @@ describe("JournalEntryRow", () => {
     );
 
     expect(isValidElement<{ href: string }>(tag) && tag.props.href).toBe("/users/owner/journal");
+    expect(isValidElement<{ "aria-label": string }>(tag) && tag.props["aria-label"]).toBe(
+      "#slab, clear filter",
+    );
   });
 });

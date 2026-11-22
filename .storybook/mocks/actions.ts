@@ -150,9 +150,15 @@ export const removeMyTripTag = fn<typeof Actions.removeMyTripTag>(async () => ({
   value: undefined,
 }));
 
-export const createClimbList = fn<typeof Actions.createClimbList>(async () => ({
+/** The name a list action would save: what the story typed, collapsed. */
+function storyListTitle(raw: unknown): string {
+  const title = (raw as { title?: unknown } | null)?.title;
+  return typeof title === "string" ? title.replace(/\s+/g, " ").trim() : "New list";
+}
+
+export const createClimbList = fn<typeof Actions.createClimbList>(async (raw) => ({
   ok: true,
-  value: -1,
+  value: { id: -1, title: storyListTitle(raw) },
 }));
 export const updateClimbList = fn<typeof Actions.updateClimbList>(async () => ({
   ok: true,
@@ -170,9 +176,9 @@ export const saveClimbListEdits = fn<typeof Actions.saveClimbListEdits>(async ()
   ok: true,
   value: undefined,
 }));
-export const copyClimbList = fn<typeof Actions.copyClimbList>(async () => ({
+export const copyClimbList = fn<typeof Actions.copyClimbList>(async (_source, raw) => ({
   ok: true,
-  value: -1,
+  value: { id: -1, title: storyListTitle(raw) },
 }));
 export const shareClimbList = fn<typeof Actions.shareClimbList>(async () => ({
   ok: true,

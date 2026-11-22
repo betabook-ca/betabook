@@ -9,32 +9,28 @@ import { AppLink } from "@/components/ui/app-link";
 import { TOUR_DEMO_SEARCH_RESULTS } from "@/lib/product-tour-demo";
 import {
   EMPTY_SEARCH,
+  type AppSearchResult,
   type SearchFetcher,
+  type SearchKind,
   type SearchState,
   type SearchPage,
   type SearchSnapshot,
 } from "@/lib/search";
 
-const demoPage = (
-  state: SearchState,
-  kind: SearchState["category"] & ("climb" | "area" | "climber"),
-): SearchPage => {
+const demoItem = (kind: SearchKind): AppSearchResult => {
+  const result = TOUR_DEMO_SEARCH_RESULTS[kind];
+  const base = { id: `demo-${kind}`, name: result.name, href: "" };
+  return kind === "climb"
+    ? { ...base, kind, detail: result.detail, discipline: "boulder", grade: 5 }
+    : { ...base, kind, detail: kind === "climber" ? "Climber" : result.detail };
+};
+
+const demoPage = (state: SearchState, kind: SearchKind): SearchPage => {
   const result = TOUR_DEMO_SEARCH_RESULTS[kind];
   const matches =
     !!state.query.trim() && result.name.toLowerCase().startsWith(state.query.trim().toLowerCase());
   return {
-    items: matches
-      ? [
-          {
-            id: `demo-${kind}`,
-            kind,
-            name: result.name,
-            detail: kind === "climber" ? "Climber" : result.detail,
-            ...(kind === "climb" ? { discipline: "boulder" as const, grade: 5 } : {}),
-            href: "",
-          } as import("@/lib/search").AppSearchResult,
-        ]
-      : [],
+    items: matches ? [demoItem(kind)] : [],
     hasMore: false,
     nextPage: 2,
   };

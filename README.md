@@ -148,6 +148,7 @@ the disabled selectors show Only me while retaining the saved choices.
 
 To check social seeding against a disposable copy of a migrated, default-seeded
 SQLite database, run `pnpm test:seed-social /path/to/copy.sqlite`. `pnpm test:seed-trips /path/to/copy.sqlite` does the same for trips.
+CI's **Test & Build** job runs both against a freshly migrated and seeded database.
 
 The account is upserted on every run, preserving its ID. Sample data is generated only when there are no climbs or when `--force` is passed. **`--force` clears local areas, climbs, sends, journal entries, trips, and synthetic climbers before reseeding**, including logs and trips on the development account. A fixed seed and size reproduce the same sample history.
 

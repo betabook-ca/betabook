@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { textActiveFilters } from "@/components/filters/active-filter-values";
 import { ClimbFilterControls } from "@/components/filters/climb-filter-controls";
-import { TextFilterField } from "@/components/filters/filter-input";
+import { QueryInput } from "@/components/ui/query-input";
 import { SortSelect } from "@/components/ui/sort-select";
 import { useFilterFormNavigation } from "@/hooks/use-filter-form-navigation";
 import { DEFAULT_CLIMB_LIST_SORT as DEFAULT_CATALOG_SORT } from "@/lib/climb-list-sort";
@@ -75,7 +75,7 @@ export function ClimbListToolbar({ view, signedIn }: { view: ClimbListView; sign
       showExcludeSent={signedIn}
       activeFilters={textActiveFilters(name, () => setName(""))}
       textFilter={
-        <TextFilterField
+        <QueryInput
           value={name}
           onChange={setName}
           label="Filter climbs on this list"

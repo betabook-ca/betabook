@@ -67,6 +67,7 @@ export function TripForm({
         value={draft.name}
         onChange={(name) => onChange({ ...draft, name })}
         maxLength={MAX_TRIP_NAME}
+        isDisabled={disabled}
         isRequired
       >
         <Label>Name</Label>
@@ -78,6 +79,7 @@ export function TripForm({
         value={draft.description}
         onChange={(description) => onChange({ ...draft, description })}
         maxLength={MAX_TRIP_DESCRIPTION}
+        isDisabled={disabled}
       >
         <FieldHeader
           usage={{
@@ -99,6 +101,7 @@ export function TripForm({
         value={draft.albumUrl}
         onChange={(albumUrl) => onChange({ ...draft, albumUrl })}
         maxLength={MAX_ALBUM_LINK}
+        isDisabled={disabled}
       >
         <FieldHeader>
           <Label>Google Photos album</Label>
@@ -115,11 +118,13 @@ export function TripForm({
           label="Start date"
           value={draft.startDate}
           onChange={(startDate) => onChange({ ...draft, startDate })}
+          isDisabled={disabled}
         />
         <DatePickerField
           label="End date"
           value={draft.endDate}
           onChange={(endDate) => onChange({ ...draft, endDate })}
+          isDisabled={disabled}
           error={dateError}
         />
       </div>

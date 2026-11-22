@@ -26,6 +26,9 @@ type ListRowProps = {
    * position. The role is explicit because preflight's list-style:none makes
    * Safari drop list semantics. */
   as?: "div" | "li";
+  /** `flush` drops the side padding and tightens the rows, for a list that
+   * already sits inside a padded section, such as the goals list. */
+  density?: "default" | "flush";
   className?: string;
 };
 
@@ -43,12 +46,14 @@ export function ListRow({
   media,
   wrapTitle = false,
   as: Tag = "div",
+  density = "default",
   className,
 }: ListRowProps) {
   return (
     <Tag
       className={clsx(
-        "relative flex flex-col gap-2 px-4 py-3",
+        "relative flex flex-col gap-2",
+        density === "flush" ? "px-0 py-2.5" : "px-4 py-3",
         href != null &&
           "transition-colors focus-within:bg-surface-secondary/60 hover:bg-surface-secondary/60",
         className,
@@ -60,7 +65,7 @@ export function ListRow({
        * comment, and the comment starts at the row's own left edge instead of
        * indenting past the avatar. Same shape as JournalEntryLayout. */}
       {/* `w-full` because `className` lands on the row above and callers use
-       * it to set alignment — GOAL_ROW_CLASS passes `items-start`, which on a
+       * it to set alignment — the goals list passes `items-start`, which on a
        * column would otherwise shrink this header to its content and collapse
        * a `fullWidthTags` slot. */}
       <div className="flex w-full items-center gap-4">

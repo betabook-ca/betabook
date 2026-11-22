@@ -2,6 +2,7 @@ import { sql, type SQL } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 
+import { shareLinkLiveSql, shareLinkReadableSql } from "./share-links";
 import { tripEntryRowsSql, tripSendRowsSql, type TripSummary } from "./trips";
 
 /** What a valid link resolves to: the trip as its owner's own page shows it.
@@ -42,11 +43,7 @@ export type SharedTripAccess =
  * every row when a profile closes. It covers the one case the trigger cannot —
  * a share written in the same moment the profile was closing.
  */
-const readableSql = sql`
-  share_owner.is_private = 0
-  -- NULL > datetime('now') is NULL, not true, so the null branch is explicit.
-  AND (link.expires_at IS NULL OR link.expires_at > datetime('now'))
-`;
+const readableSql = shareLinkReadableSql;
 
 /** The trip join is what ties a link to a trip that still exists. The
  * composite foreign key already guarantees it, and the join is here anyway so
@@ -164,7 +161,7 @@ export async function getTripShareForOwner(
   const row = await db.get<{ token: string; expiresAt: string | null }>(sql`
     SELECT token, expires_at AS expiresAt
     FROM trip_share_links WHERE user_id = ${ownerId} AND trip_id = ${tripId}
-      AND (expires_at IS NULL OR expires_at > datetime('now'))
+      AND ${shareLinkLiveSql(sql`expires_at`)}
   `);
   return row ?? null;
 }

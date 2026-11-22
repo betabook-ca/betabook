@@ -1,9 +1,7 @@
 import type { Climb } from "@/db/queries";
 import { ActionError } from "@/lib/action-result";
-import { nativeGradeArray, type ClimbType } from "@/lib/grades";
+import { isClimbType, nativeGradeArray, type ClimbType } from "@/lib/grades";
 import { parseGradeIndex, requireTrimmed, trimOrNull } from "@/lib/validation";
-
-const CLIMB_TYPES = ["boulder", "sport", "trad"] as const;
 
 export type ClimbInput = {
   name: string;
@@ -22,10 +20,6 @@ export type RawClimbInput = {
 export type RawClimbDescriptionInput = {
   description: FormDataEntryValue | null;
 };
-
-export function isClimbType(value: unknown): value is ClimbType {
-  return typeof value === "string" && (CLIMB_TYPES as readonly string[]).includes(value);
-}
 
 export function validateNewClimbInput(raw: RawClimbInput): ClimbInput {
   const name = requireTrimmed(raw.name, "Name");

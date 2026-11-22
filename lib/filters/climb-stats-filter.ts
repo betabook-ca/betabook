@@ -5,9 +5,19 @@ import { toArray } from "@/lib/url-params";
 export const MAX_RATING = 5;
 
 /** [min, max] avg-rating bounds. 0 on either side is the "Any" sentinel
- * (that side is unbounded); a max of MAX_RATING is
- * also unbounded, since no average rating can exceed it. Legacy zero bounds display as the full 1–5 range in the shared rating control. */
+ * (that side is unbounded); a max of MAX_RATING is also unbounded, since no
+ * average rating can exceed it. The default, [0, 0], is unbounded on both
+ * sides, and the shared rating control shows it as the full 1–5 range. */
 export const DEFAULT_RATING_RANGE: [number, number] = [0, 0];
+
+/** A picked [min, max] as a filter value: the full 1–MAX_RATING range is no
+ * filter, so it is written as DEFAULT_RATING_RANGE and leaves the URL as it
+ * would be unfiltered. */
+export function ratingRangeValue([min, max]: [number, number]): [number, number] {
+  return (min || 1) === 1 && (max || MAX_RATING) === MAX_RATING
+    ? [...DEFAULT_RATING_RANGE]
+    : [min, max];
+}
 
 export const DEFAULT_MIN_ASCENTS = 0;
 

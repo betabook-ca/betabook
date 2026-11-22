@@ -1,11 +1,14 @@
 import { ActionError } from "@/lib/action-result";
+import { jsonGuards } from "@/lib/json-guards";
 import {
+  KAYA_CLIMB_TYPE_IDS,
   KAYA_MAX_RETRIES,
   KAYA_PAGE_SIZE,
   type KayaRetry,
   type KayaStreamEvent,
 } from "@/lib/kaya-import-stream";
 import { parseKayaUsername } from "@/lib/kaya-profile";
+import { readTextCapped } from "@/lib/read-text-capped";
 import { MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS } from "@/lib/sends-import";
 import { importCsvFallback, importTooLargeMessage, SUPPORT_EMAIL } from "@/lib/support";
 
@@ -28,11 +31,7 @@ const ASCENTS_QUERY = `query webAscentsForUser($userId: ID!, $climbTypeId: ID!, 
     filter_by: OUTDOOR) @include(if: $includeTotal) { data { ascent_count } }
 }`;
 
-function record(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value))
-    throw new ActionError(FORMAT_ERROR);
-  return value as Record<string, unknown>;
-}
+const { record } = jsonGuards(() => new ActionError(FORMAT_ERROR));
 
 class RetryableKayaError extends ActionError {
   public reason: KayaRetry["reason"];
@@ -64,22 +63,10 @@ async function readResponse(response: Response) {
     throw new ActionError(`KAYA could not share this public profile. ${CSV_FALLBACK}`);
   if (!response.body || Number(response.headers.get("content-length")) > MAX_RESPONSE_BYTES)
     throw new ActionError(FORMAT_ERROR);
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let body = "";
-  let bytes = 0;
-  try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      bytes += value.byteLength;
-      if (bytes > MAX_RESPONSE_BYTES) throw new ActionError(FORMAT_ERROR);
-      body += decoder.decode(value, { stream: true });
-    }
-    body += decoder.decode();
-  } finally {
-    await reader.cancel();
-  }
+  const body = await readTextCapped(response.body.getReader(), {
+    maxBytes: MAX_RESPONSE_BYTES,
+    tooLarge: () => new ActionError(FORMAT_ERROR),
+  });
   const result = record(JSON.parse(body));
   if (result.errors != null && (!Array.isArray(result.errors) || result.errors.length)) {
     if (!Array.isArray(result.errors)) throw new ActionError(FORMAT_ERROR);
@@ -241,7 +228,8 @@ export async function fetchKayaAscents(
     if (error instanceof ActionError) throw error;
     throw new ActionError("Enter your KAYA username.");
   }
-  if (!["1", "2"].includes(input.climbTypeId)) throw new ActionError("Invalid KAYA discipline.");
+  if (!KAYA_CLIMB_TYPE_IDS.includes(input.climbTypeId))
+    throw new ActionError("Invalid KAYA discipline.");
   const data = await queryKaya(PROFILE_QUERY, { username }, signal, emit);
   const profile = readProfile(data.webUser, username);
   emit({ type: "profile", username: profile.username });

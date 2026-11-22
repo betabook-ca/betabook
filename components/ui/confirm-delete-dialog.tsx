@@ -1,54 +1,31 @@
 "use client";
 
-import type { UseOverlayStateReturn } from "@heroui/react";
+import type { ComponentProps } from "react";
 
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
-type ConfirmDeleteDialogProps = {
-  state: UseOverlayStateReturn;
+type ConfirmDeleteDialogProps = Omit<ComponentProps<typeof ConfirmDialog>, "title"> & {
   /** What is being deleted, as the noun the heading names ("area", "climb",
    * "send"). */
   noun: string;
   title?: string;
-  description?: string;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  onConfirm: () => void;
-  isPending: boolean;
-  /** Failure message from the last delete attempt, if any — shown inline so
-   * the viewer can retry or cancel. */
-  error?: string | null;
-  /** Set instead of closing the dialog when a non-admin's delete was queued
-   * for admin review rather than applied — swaps the confirm/cancel footer
-   * for a single acknowledgement, since nothing was actually deleted yet. */
-  pendingNotice?: string | null;
 };
 
 /** ConfirmDialog with the standard delete wording filled in, so callers
  * don't retype "Delete this X?" and "This can't be undone." each time. */
 export function ConfirmDeleteDialog({
-  state,
   noun,
   title,
   description = "This can't be undone.",
   confirmLabel = "Delete",
-  cancelLabel = "Cancel",
-  onConfirm,
-  isPending,
-  error,
-  pendingNotice,
+  ...props
 }: ConfirmDeleteDialogProps) {
   return (
     <ConfirmDialog
-      state={state}
+      {...props}
       title={title ?? `Delete this ${noun}?`}
       description={description}
       confirmLabel={confirmLabel}
-      cancelLabel={cancelLabel}
-      onConfirm={onConfirm}
-      isPending={isPending}
-      error={error}
-      pendingNotice={pendingNotice}
     />
   );
 }

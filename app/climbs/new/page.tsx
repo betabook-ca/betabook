@@ -6,7 +6,7 @@ import { NewClimbForm } from "@/components/new-climb-form";
 import { PageTitle } from "@/components/ui/typography";
 import { getDb } from "@/db/client";
 import { getArea, getAreaBreadcrumbs } from "@/db/queries";
-import { isClimbType } from "@/lib/climbs";
+import { isClimbType } from "@/lib/grades";
 import { getMemberSession } from "@/lib/session";
 import { parseAreaId, toArray, type UrlParamsRecord } from "@/lib/url-params";
 

@@ -7,7 +7,6 @@ import { getDb } from "@/db/client";
 import { getProductTourState } from "@/db/queries";
 import { getMemberSession } from "@/lib/session";
 
-vi.mock("next/link", () => ({ default: () => null }));
 vi.mock("@/lib/session", () => ({ getMemberSession: vi.fn<typeof getMemberSession>() }));
 vi.mock("@/db/client", () => ({ getDb: vi.fn<typeof getDb>() }));
 vi.mock("@/db/queries", () => ({ getProductTourState: vi.fn<typeof getProductTourState>() }));

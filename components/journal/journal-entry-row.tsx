@@ -60,7 +60,8 @@ function entryTags({
             key={tag}
             href={tagHref(userId, filter, tag)}
             aria-current={active ? "page" : undefined}
-            aria-label={active ? `Clear ${tag} filter` : `Filter journal by ${tag}`}
+            // Starts with the visible "#tag", so voice control can say it.
+            aria-label={active ? `#${tag}, clear filter` : `#${tag}, filter journal`}
             className={clsx(
               "text-xs no-underline transition-colors hover:text-foreground",
               active ? "font-medium text-foreground underline underline-offset-4" : "text-muted",

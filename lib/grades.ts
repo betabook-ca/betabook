@@ -22,13 +22,24 @@
  * the rule: formatting an ordinal is always exact.
  */
 
-export type ClimbType = "boulder" | "sport" | "trad";
+export const CLIMB_TYPES = ["boulder", "sport", "trad"] as const;
+export type ClimbType = (typeof CLIMB_TYPES)[number];
 export type Discipline = ClimbType;
+
+export function isClimbType(value: unknown): value is ClimbType {
+  return typeof value === "string" && (CLIMB_TYPES as readonly string[]).includes(value);
+}
+
 export type BoulderScale = "hueco" | "font";
 export type RopeScale = "yds" | "french";
 
 /** A climber's chosen grading systems, one per discipline family. */
 export type GradePreferences = { boulder: BoulderScale; rope: RopeScale };
+
+/** How an import reads grade text: as the catalog's native Hueco/YDS or as
+ * Font/French. Distinct from a climber's display scales above, which never
+ * change how stored text is parsed. */
+export type ImportGradePreference = "native" | "converted";
 
 export const DEFAULT_GRADE_PREFERENCES: GradePreferences = { boulder: "hueco", rope: "yds" };
 
@@ -252,7 +263,7 @@ export function gradeOptionValue(
 export function parseGrade(
   type: ClimbType,
   text: string,
-  preference: "native" | "converted" = "native",
+  preference: ImportGradePreference = "native",
 ): number | null {
   const trimmed = text.trim().toLowerCase();
   if (!trimmed) return null;

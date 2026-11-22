@@ -10,6 +10,7 @@ import { DatePickerField } from "@/components/ui/date-picker-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { Climb } from "@/db/queries";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { composeClimbBreakTexts, MAX_BREAK_REASON_LENGTH } from "@/lib/broken-climbs";
 import { localToday } from "@/lib/format-date";
 
@@ -50,19 +51,23 @@ export function ClimbBreakDrawer({ climb, state }: ClimbBreakDrawerProps) {
     formData.set("reason", trimmedReason);
 
     startTransition(async () => {
-      const result = await requestClimbBreak(climb.id, formData);
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      try {
+        const result = await requestClimbBreak(climb.id, formData);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        if (result.value.status === "pending") {
+          setPendingNotice(
+            "Submitted for admin review — the climb stays as it is until an admin approves the report.",
+          );
+          return;
+        }
+        state.close();
+        router.refresh();
+      } catch {
+        setError(GENERIC_ERROR_MESSAGE);
       }
-      if (result.value.status === "pending") {
-        setPendingNotice(
-          "Submitted for admin review — the climb stays as it is until an admin approves the report.",
-        );
-        return;
-      }
-      state.close();
-      router.refresh();
     });
   }
 

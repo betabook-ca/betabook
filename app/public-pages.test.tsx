@@ -59,7 +59,6 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/users/hidden",
   useSearchParams: () => new URLSearchParams(),
 }));
-vi.mock("next/link", () => ({ default: () => null }));
 vi.mock("next/image", () => ({ default: () => null }));
 vi.mock("@/db/client", async (original) => {
   const actual = await original<typeof import("@/db/client")>();

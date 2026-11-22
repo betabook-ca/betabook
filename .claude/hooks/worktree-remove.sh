@@ -75,8 +75,8 @@ fi
 
 git -C "$repo_real" worktree prune >/dev/null 2>&1 || true
 
-# The create hook writes these next to the worktree; they are the same litter.
-rm -f "${parent}/${name}.create.log" "${parent}/${name}.input.json"
+# The create hook writes this next to the worktree; it is the same litter.
+rm -f "${parent}/${name}.create.log"
 
 # Only the branch the create hook generated, and only when git agrees it is
 # merged — -d refuses to drop unmerged commits, which is the point.

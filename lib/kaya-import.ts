@@ -1,5 +1,8 @@
 import { parseGrade } from "@/lib/grades";
+import { jsonGuards } from "@/lib/json-guards";
 import {
+  KAYA_BOULDER_TYPE_ID,
+  KAYA_CLIMB_TYPE_IDS,
   KAYA_MAX_RETRIES,
   KAYA_PAGE_SIZE,
   type KayaImportProgress,
@@ -27,17 +30,7 @@ const HEADERS = [
   "Comments",
 ];
 
-function record(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(FORMAT_ERROR);
-  return value as Record<string, unknown>;
-}
-function string(value: unknown): string {
-  if (typeof value !== "string") throw new Error(FORMAT_ERROR);
-  return value;
-}
-function optionalString(value: unknown): string {
-  return value == null ? "" : string(value);
-}
+const { record, string, optionalString } = jsonGuards(() => new Error(FORMAT_ERROR));
 function locationName(value: unknown): string {
   return value == null ? "" : string(record(value).name);
 }
@@ -48,7 +41,7 @@ function gradeLabel(value: unknown, type: string): string {
   // flag instead of inventing a grade. Known grades arrive in V/YDS notation.
   if (["v?", "vIntro", "?"].includes(name)) return name;
   const label = name.replace(/^v/i, "V");
-  if (parseGrade(type === "1" ? "boulder" : "sport", label) === null)
+  if (parseGrade(type === KAYA_BOULDER_TYPE_ID ? "boulder" : "sport", label) === null)
     throw new Error(`KAYA returned an unknown grade. Import stopped. ${CSV_FALLBACK}`);
   return label;
 }
@@ -93,7 +86,8 @@ function importRow(item: Record<string, unknown>, expectedType: string) {
   // An outdoor filter alone is insufficient: reject indoor/board records and
   // require an explicit outdoor location, even if KAYA's response changes.
   if (climb.gym === undefined || climb.board === undefined) throw new Error(FORMAT_ERROR);
-  if (climb.gym !== null || climb.board !== null || !["1", "2"].includes(type)) return null;
+  if (climb.gym !== null || climb.board !== null || !KAYA_CLIMB_TYPE_IDS.includes(type))
+    return null;
   const area = locationName(climb.area);
   const destination = locationName(climb.destination);
   if (!area && !destination) return null;
@@ -107,7 +101,7 @@ function importRow(item: Record<string, unknown>, expectedType: string) {
     Date: date,
     "Ascent Type": "redpoint",
     "Climb Name": name,
-    "Climb Type": type === "1" ? "boulder" : "route",
+    "Climb Type": type === KAYA_BOULDER_TYPE_ID ? "boulder" : "route",
     Location: area,
     Region: destination,
     Grade: gradeLabel(item.grade, type),
@@ -164,7 +158,7 @@ export async function fetchKayaImport(
   const seen = new Set<string>();
   let excluded = 0;
   let size = 0;
-  for (const type of ["1", "2"]) {
+  for (const type of KAYA_CLIMB_TYPE_IDS) {
     const previousCount = seen.size;
     let received = 0;
     let total: number | null = null;
@@ -172,7 +166,7 @@ export async function fetchKayaImport(
     let complete = false;
     const progress = (retry: KayaRetry | null = null) =>
       onProgress?.({
-        discipline: type === "1" ? "boulder" : "route",
+        discipline: type === KAYA_BOULDER_TYPE_ID ? "boulder" : "route",
         loaded: received,
         total,
         retry,

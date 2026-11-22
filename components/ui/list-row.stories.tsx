@@ -43,3 +43,8 @@ export const AuthoredUpdate: Story = {
     comment: "Found a comfortable high foot after working the opening moves.",
   },
 };
+/** No side padding and tighter rows, for a list inside an already padded
+ * section such as the goals list. */
+export const Flush: Story = {
+  args: { density: "flush", comment: undefined },
+};

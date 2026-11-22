@@ -3,6 +3,12 @@ export const KAYA_PAGE_SIZE = 100;
 
 export const KAYA_MAX_RETRIES = 3;
 
+/** KAYA's `climb_type` IDs for the outdoor disciplines imported. KAYA groups
+ * sport and trad together as routes. */
+export const KAYA_BOULDER_TYPE_ID = "1";
+const KAYA_ROUTE_TYPE_ID = "2";
+export const KAYA_CLIMB_TYPE_IDS: readonly string[] = [KAYA_BOULDER_TYPE_ID, KAYA_ROUTE_TYPE_ID];
+
 export type KayaRetry = {
   attempt: number;
   retryAt: number;

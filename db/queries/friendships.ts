@@ -69,8 +69,7 @@ export async function getClimbersPage(
 export async function getFriendsPage(
   db: Database,
   viewerId: string,
-  requestsOnly = false,
-  offset = 0,
+  { requestsOnly = false, offset = 0 }: { requestsOnly?: boolean; offset?: number } = {},
 ): Promise<FriendsPage> {
   const start = clampOffset(offset);
   const rows = await db.all<Omit<FriendRow, "isPrivate"> & { isPrivate: number }>(sql`
@@ -94,8 +93,8 @@ export async function getPendingFriendRequestCount(
   viewerId: string,
 ): Promise<number> {
   const row = await db.get<{ count: number }>(sql`
-    SELECT count(*) AS count FROM friendships
-    WHERE (user_id = ${viewerId} OR friend_id = ${viewerId}) AND requested_by <> ${viewerId} AND status = 'pending'
+    SELECT count(*) AS count FROM (${pendingFriendRequestsSql(viewerId)})
+    WHERE requested_by <> ${viewerId}
   `);
   return row?.count ?? 0;
 }
@@ -109,7 +108,7 @@ export async function getClimberSuggestions(
   viewerId: string,
   limit = 6,
 ): Promise<SuggestedClimberRow[]> {
-  const count = Number.isInteger(limit) ? Math.min(20, Math.max(1, limit)) : 6;
+  const count = clampPageSize(limit, 6, 20);
   return db.all<SuggestedClimberRow>(sql`
     WITH friends AS (${acceptedFriendIdsSql(viewerId)}),
     via AS (SELECT friends.id FROM friends JOIN user u ON u.id = friends.id WHERE u.is_private = 0),

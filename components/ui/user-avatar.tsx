@@ -30,8 +30,8 @@ type UserAvatarProps = {
  * and for an image that fails to load. Decorative: its surrounding account
  * UI already provides the label.
  *
- * An uploaded photo is served at the size avatars need, so it renders as a
- * plain <img>; only the Google URL goes through next/image. */
+ * Both go through next/image, but an uploaded photo is already served at the
+ * size avatars need, so it is `unoptimized`; only the Google URL is resized. */
 export function UserAvatar({ name, image, size = "md", className }: UserAvatarProps) {
   const { pixels, className: sizeClassName } = AVATAR_SIZE[size];
   const [failedImage, setFailedImage] = useState<string | null>(null);

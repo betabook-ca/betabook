@@ -1,23 +1,25 @@
 import { ActionError } from "@/lib/action-result";
 import { withApiSession } from "@/lib/api-session";
 import { fetchKayaAscents } from "@/lib/kaya-api";
-import type { KayaStreamEvent } from "@/lib/kaya-import-stream";
+import { KAYA_CLIMB_TYPE_IDS, type KayaStreamEvent } from "@/lib/kaya-import-stream";
 import { parseKayaUsername } from "@/lib/kaya-profile";
 import { importCsvFallback } from "@/lib/support";
 
 const headers = { "Cache-Control": "private, no-store, no-transform" };
 const handleImport = withApiSession(async (_session, request: Request) => {
   const params = new URL(request.url).searchParams;
-  let username: string;
-  const climbTypeId = params.get("climbTypeId") ?? "";
-  try {
-    username = parseKayaUsername(params.get("username"));
-    if (!["1", "2"].includes(climbTypeId)) throw new Error("Invalid KAYA discipline.");
-  } catch {
-    return Response.json(
+  const invalid = () =>
+    Response.json(
       { error: "Enter a valid KAYA profile and outdoor discipline." },
       { status: 400, headers },
     );
+  const climbTypeId = params.get("climbTypeId") ?? "";
+  if (!KAYA_CLIMB_TYPE_IDS.includes(climbTypeId)) return invalid();
+  let username: string;
+  try {
+    username = parseKayaUsername(params.get("username"));
+  } catch {
+    return invalid();
   }
   const controller = new AbortController();
   const cancelRequest = () => controller.abort();

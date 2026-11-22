@@ -11,7 +11,7 @@ test("journal details stay together beside the right-aligned grade, status, and 
   const date = row.locator("time");
   const menu = row.getByRole("button", { name: "Entry actions" });
   const area = row.getByText("Granite Canyon", { exact: true });
-  const tag = row.getByRole("link", { name: "Filter journal by footwork" });
+  const tag = row.getByRole("link", { name: "#footwork, filter journal" });
   const note = row.getByText(/^Found a comfortable high foot/);
   const titleBox = await title.boundingBox();
   const gradeBox = await grade.boundingBox();

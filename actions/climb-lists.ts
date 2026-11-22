@@ -108,6 +108,10 @@ async function explainSkippedAdd(
   throw new ActionError(CLIMB_LIST_FULL_MESSAGE);
 }
 
+/** A list a create or copy just wrote, with its name as saved (trimmed and
+ * collapsed), so the caller can name it without normalizing it again. */
+export type SavedClimbList = { id: number; title: string };
+
 /** Creates a list, optionally with a first climb — the Add to list drawer's
  * "New list…". The cap is a condition on the INSERT, not a prior COUNT.
  *
@@ -118,7 +122,7 @@ async function explainSkippedAdd(
 export async function createClimbList(
   raw: unknown,
   options: { climbId?: number } = {},
-): Promise<ActionResult<number>> {
+): Promise<ActionResult<SavedClimbList>> {
   return toActionResult(async () => {
     const { user } = await requireSession();
     await requireWriteBudget(user.id);
@@ -132,15 +136,15 @@ export async function createClimbList(
     const roomSql = sql`(SELECT COUNT(*) FROM climb_lists WHERE user_id = ${user.id}) < ${MAX_CLIMB_LISTS}`;
 
     if (climbId === null) {
-      const [created] = await db.all<{ id: number }>(sql`
+      const [created] = await db.all<SavedClimbList>(sql`
         INSERT INTO climb_lists (user_id, title, description)
         SELECT ${user.id}, ${title}, ${description}
         WHERE ${roomSql}
-        RETURNING id
+        RETURNING id, title
       `);
       if (!created) throw new ActionError(CLIMB_LIST_LIMIT_MESSAGE);
       afterListChange(user.id, created.id);
-      return created.id;
+      return created;
     }
 
     const climbExistsSql = sql`EXISTS (SELECT 1 FROM climbs WHERE id = ${climbId})`;
@@ -162,13 +166,13 @@ export async function createClimbList(
               })
               .from(sql`(SELECT 1)`),
           )
-          .returning({ id: climbLists.id }),
+          .returning({ id: climbLists.id, title: climbLists.title }),
         db
           .insert(climbListItems)
           .values({ listId: sql`last_insert_rowid()`, climbId, position: 1 }),
       ]);
       afterListChange(user.id, created.id);
-      return created.id;
+      return created;
     } catch (error) {
       if (!errorChainIncludes(error, "NOT NULL constraint failed: climb_lists.title")) throw error;
       // Rolled back. Name the reason, which was true when the batch ran.
@@ -380,7 +384,7 @@ type CopySource = { listId: number } | { token: string };
 export async function copyClimbList(
   source: CopySource,
   raw: unknown,
-): Promise<ActionResult<number>> {
+): Promise<ActionResult<SavedClimbList>> {
   return toActionResult(async () => {
     const { user } = await requireSession();
     await requireWriteBudget(user.id);
@@ -426,7 +430,7 @@ export async function copyClimbList(
               })
               .from(sql`(SELECT 1)`),
           )
-          .returning({ id: climbLists.id }),
+          .returning({ id: climbLists.id, title: climbLists.title }),
         db.insert(climbListItems).select(
           db
             .select({
@@ -442,7 +446,7 @@ export async function copyClimbList(
       if (!created) throw new ActionError(CLIMB_LIST_UNAVAILABLE_MESSAGE);
 
       afterListChange(user.id, created.id);
-      return created.id;
+      return created;
     } catch (error) {
       if (errorChainIncludes(error, "NOT NULL constraint failed: climb_lists.title"))
         throw new ActionError(CLIMB_LIST_UNAVAILABLE_MESSAGE);

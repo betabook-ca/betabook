@@ -8,7 +8,7 @@ import { InlineAlert } from "@/components/ui/inline-alert";
 import { OptionSelect } from "@/components/ui/option-select";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { ShareLinkField } from "@/components/ui/share-link-field";
-import type { ActionResult } from "@/lib/action-result";
+import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
 import {
   DEFAULT_SHARE_EXPIRY,
   SHARE_EXPIRIES,
@@ -77,28 +77,36 @@ export function ShareLinkDialog({
     if (pending) return;
     setError(null);
     startTransition(async () => {
-      const result = await onShare(expiry);
-      if (!result.ok) {
-        // Stay open: the climber can fix the reason, or copy the old link.
-        setError(result.error);
-        return;
+      try {
+        const result = await onShare(expiry);
+        if (!result.ok) {
+          // Stay open: the climber can fix the reason, or copy the old link.
+          setError(result.error);
+          return;
+        }
+        setNotice(link ? "Link renewed." : "Link created.");
+        setLink(result.value);
+      } catch {
+        setError(GENERIC_ERROR_MESSAGE);
       }
-      setNotice(link ? "Link renewed." : "Link created.");
-      setLink(result.value);
     });
   }
 
   function handleStop() {
     setStopError(null);
     startTransition(async () => {
-      const result = await onUnshare();
-      if (!result.ok) {
-        setStopError(result.error);
-        return;
+      try {
+        const result = await onUnshare();
+        if (!result.ok) {
+          setStopError(result.error);
+          return;
+        }
+        stopState.close();
+        setLink(null);
+        setNotice("Sharing stopped.");
+      } catch {
+        setStopError(GENERIC_ERROR_MESSAGE);
       }
-      stopState.close();
-      setLink(null);
-      setNotice("Sharing stopped.");
     });
   }
 

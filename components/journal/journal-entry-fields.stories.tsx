@@ -46,8 +46,6 @@ function Example({
             ? undefined
             : {
                 id: -1,
-                areaId: -1,
-                name: "Cedar Arete",
                 type: rope ? "sport" : "boulder",
                 grade: 5,
                 brokenOn: null,

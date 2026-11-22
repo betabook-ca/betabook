@@ -151,7 +151,7 @@ production behavior.
   chooses the server, not the matrix, so it combines with `@layout` or
   `@behavior`. Gallery runs do not start the app, so an untagged app test
   fails there with a refused connection.
-- [Accessibility checks](../tests/ui/accessibility.spec.ts) audit five representative
+- [Accessibility checks](../tests/ui/accessibility.spec.ts) audit six representative
   composed states for contrast and horizontal overflow. This is a bounded list,
   not an exhaustive story sweep. Add a browser audit only for a distinct rendered
   risk or an interaction state those checks do not reach. Use existing jsx-a11y
@@ -173,13 +173,14 @@ There is no exhaustive sweep, scheduled or otherwise.
 Locally, build the gallery and run the affected browser files. CI's **UI reference**
 job runs all explicit browser tests; do not run that full suite locally.
 
-Playwright starts the gallery preview and the app, applying local D1 migrations
-before starting a new app server. The app defaults to port 3000, matching
+Playwright starts the gallery preview and the app. A new app server applies
+local D1 migrations, then `pnpm preview` builds the Worker and serves the build,
+not the dev server, so its first start includes a full build. The app defaults to port 3000, matching
 `pnpm dev`. Set `BETABOOK_UI_PORT` when using another port, for example
 `BETABOOK_UI_PORT=3003`; the server and tests use that same port.
-Readiness warms the homepage compilation, then app setup requests the anonymous
-session endpoint before navigation checks. This keeps the auth route's cold dev
-compilation outside UI assertion timing while retaining real session requests.
+Readiness waits for the homepage, then app setup confirms the anonymous session
+endpoint answers signed out before navigation checks, which still make real
+session requests.
 An existing app can be reused, but stop and migrate it first if its database is out of date.
 Use the normal local `.dev.vars` setup; CI copies `.dev.vars.example` and needs
 no seed or account for these app checks.

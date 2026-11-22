@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { TripBackLink } from "@/components/trips/trip-back-link";
+import { BackLink } from "@/components/ui/back-link";
 import { SectionHeading } from "@/components/ui/typography";
 import type { ClimbListSummary } from "@/db/queries";
 import { climbCountLabel } from "@/lib/climb-lists";
@@ -22,7 +22,7 @@ export function ClimbListHeader({
 }) {
   return (
     <header className="flex flex-col gap-3">
-      {back && <TripBackLink href={back}>All lists</TripBackLink>}
+      {back && <BackLink href={back}>All lists</BackLink>}
       <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           <SectionHeading className="min-w-0 break-words">{list.title}</SectionHeading>

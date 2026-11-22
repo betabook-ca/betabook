@@ -135,7 +135,7 @@ export function ClimbListEditor({
   function save() {
     setError(null);
     startTransition(async () => {
-      const result = await saveClimbListEdits(listId, order);
+      const result = await saveClimbListEdits(listId, latestOrder.current);
       if (result.ok) onClose();
       else setError(result.error);
     });

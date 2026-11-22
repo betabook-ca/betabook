@@ -13,6 +13,7 @@ import { SendFormDrawer } from "@/components/send-form-drawer";
 import { ActionsMenu } from "@/components/ui/actions-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import type { Climb, EditableSend } from "@/db/queries";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 
 type ClimbActionsMenuProps = {
   climb: Climb;
@@ -40,19 +41,23 @@ export function ClimbActionsMenu({ climb, send }: ClimbActionsMenuProps) {
   function handleDelete() {
     setDeleteError(null);
     startTransition(async () => {
-      const result = await requestClimbDelete(climb.id);
-      if (!result.ok) {
-        setDeleteError(result.error);
-        return;
+      try {
+        const result = await requestClimbDelete(climb.id);
+        if (!result.ok) {
+          setDeleteError(result.error);
+          return;
+        }
+        if (result.value.status === "pending") {
+          setDeletePendingNotice(
+            "An admin needs to approve this before the climb is actually removed.",
+          );
+          return;
+        }
+        deleteState.close();
+        router.push(`/areas/${climb.areaId}`);
+      } catch {
+        setDeleteError(GENERIC_ERROR_MESSAGE);
       }
-      if (result.value.status === "pending") {
-        setDeletePendingNotice(
-          "An admin needs to approve this before the climb is actually removed.",
-        );
-        return;
-      }
-      deleteState.close();
-      router.push(`/areas/${climb.areaId}`);
     });
   }
 
@@ -60,12 +65,16 @@ export function ClimbActionsMenu({ climb, send }: ClimbActionsMenuProps) {
     if (!send) return;
     setDeleteSendError(null);
     startTransition(async () => {
-      const result = await deleteSend(send.id);
-      if (!result.ok) {
-        setDeleteSendError(result.error);
-        return;
+      try {
+        const result = await deleteSend(send.id);
+        if (!result.ok) {
+          setDeleteSendError(result.error);
+          return;
+        }
+        deleteSendState.close();
+      } catch {
+        setDeleteSendError(GENERIC_ERROR_MESSAGE);
       }
-      deleteSendState.close();
     });
   }
 

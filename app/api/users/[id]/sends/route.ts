@@ -39,14 +39,10 @@ export const GET = withApiSession(async (session, request: Request, { params }: 
     return NextResponse.json({ sends: [], hasMore: false, areaBreadcrumbs: {} });
   }
 
-  const page = await getSendsForUserPage(
-    db,
-    userId,
-    filter,
-    safeOffset,
-    undefined,
-    session.user.id,
-  );
+  const page = await getSendsForUserPage(db, userId, filter, {
+    offset: safeOffset,
+    viewerId: session.user.id,
+  });
   const areaBreadcrumbs = await getAreaBreadcrumbs(
     db,
     page.sends.map((send) => send.areaId),

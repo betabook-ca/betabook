@@ -1,7 +1,7 @@
 import Papa from "papaparse";
 import { describe, expect, it } from "vitest";
 
-import { MAX_COMMENT_LENGTH } from "./sends";
+import { MAX_LOG_NOTE_LENGTH } from "./log-note";
 import {
   buildFailedRowsCsv,
   deriveSourceColumns,
@@ -99,7 +99,7 @@ const GRADE_FEEL_MAPPING: GradeFeelMapping = {
 
 const TODAY = "2026-08-19";
 
-type NormalizeFixtureOptions = NonNullable<Parameters<typeof normalizeImportRows>[7]> & {
+type NormalizeFixtureOptions = NonNullable<Parameters<typeof normalizeImportRows>[4]> & {
   mapping?: ColumnMapping;
   ascentStyles?: AscentStyleMapping;
   climbTypes?: ClimbTypeMapping;
@@ -119,10 +119,12 @@ function normalizeRows(parsed: ParsedCsv, overrides: NormalizeFixtureOptions = {
   return normalizeImportRows(
     parsed,
     mapping,
-    ascentStyles,
-    climbTypes,
-    gradeFeels,
-    ratings,
+    {
+      ascentStyleMapping: ascentStyles,
+      climbTypeMapping: climbTypes,
+      gradeFeelMapping: gradeFeels,
+      ratingMapping: ratings,
+    },
     "iso",
     { today: TODAY, ...options },
   );
@@ -747,10 +749,10 @@ describe("normalizeImportRows", () => {
   });
 
   it("truncates an over-length comment instead of rejecting the row", () => {
-    const longComment = "a".repeat(MAX_COMMENT_LENGTH + 20);
+    const longComment = "a".repeat(MAX_LOG_NOTE_LENGTH + 20);
     const { valid, invalid } = normalizeRows(csv([row({ Comments: longComment })]));
     expect(invalid).toEqual([]);
-    expect(valid[0].comment).toHaveLength(MAX_COMMENT_LENGTH);
+    expect(valid[0].comment).toHaveLength(MAX_LOG_NOTE_LENGTH);
   });
 
   it("treats blank optional fields as null", () => {
@@ -877,9 +879,9 @@ describe("normalizeImportRows", () => {
 
   it("measures a comment against the length cap after decoding", () => {
     const { valid, warnings } = normalizeRows(
-      csv([row({ Comments: "&amp;".repeat(MAX_COMMENT_LENGTH) })]),
+      csv([row({ Comments: "&amp;".repeat(MAX_LOG_NOTE_LENGTH) })]),
     );
-    expect(valid[0].comment).toBe("&".repeat(MAX_COMMENT_LENGTH));
+    expect(valid[0].comment).toBe("&".repeat(MAX_LOG_NOTE_LENGTH));
     expect(warnings).toEqual([]);
   });
 
@@ -1062,11 +1064,11 @@ describe("normalizeImportRows coercion warnings", () => {
 
   it("counts truncated comments with the original length as the example", () => {
     const { warnings } = normalizeRows(
-      csv([row({ Comments: "a".repeat(MAX_COMMENT_LENGTH + 20) })]),
+      csv([row({ Comments: "a".repeat(MAX_LOG_NOTE_LENGTH + 20) })]),
     );
     const warning = warnings.find((w) => w.field === "comment");
     expect(warning?.count).toBe(1);
-    expect(warning?.examples).toEqual([`Row 1: ${MAX_COMMENT_LENGTH + 20} characters`]);
+    expect(warning?.examples).toEqual([`Row 1: ${MAX_LOG_NOTE_LENGTH + 20} characters`]);
   });
 
   it("caps examples at 3 while still counting every affected row", () => {

@@ -89,6 +89,7 @@ export const WeeklyClimbs: Story = { args: { initialCategory: "climbing", initia
 export const YearlyClimbs: Story = { args: { initialCategory: "climbing", initialRepeat: "year" } };
 export const MinimumGrade: Story = {
   args: {
+    mode: "edit",
     initialDraft: {
       category: "climbing",
       goal: "volume",
@@ -106,7 +107,7 @@ export const MinimumGrade: Story = {
 
 export const HashtagGoal: Story = {
   args: {
-    initialValues: {
+    initialDraft: {
       category: "training",
       goal: "training",
       discipline: "boulder",
@@ -122,7 +123,7 @@ export const HashtagGoal: Story = {
 
 export const RecurringWithEndDate: Story = {
   args: {
-    initialValues: {
+    initialDraft: {
       category: "training",
       goal: "training",
       discipline: "boulder",

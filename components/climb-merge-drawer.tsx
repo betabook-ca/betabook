@@ -10,6 +10,7 @@ import { InlineAlert } from "@/components/ui/inline-alert";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { ClimbWithAreaName } from "@/db/queries";
 import { useCompactViewport } from "@/hooks/use-compact-viewport";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { climbHref } from "@/lib/slug";
 
 type ClimbMergeDrawerProps = {
@@ -32,17 +33,21 @@ export function ClimbMergeDrawer({ climbId, state }: ClimbMergeDrawerProps) {
     if (pending) return;
     setError(null);
     startTransition(async () => {
-      const result = await requestClimbMerge(climbId, target.id);
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      try {
+        const result = await requestClimbMerge(climbId, target.id);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        if (result.value.status === "pending") {
+          setPendingNotice("An admin needs to approve this before the duplicate is folded in.");
+          return;
+        }
+        state.close();
+        router.push(climbHref(target.id, target.name));
+      } catch {
+        setError(GENERIC_ERROR_MESSAGE);
       }
-      if (result.value.status === "pending") {
-        setPendingNotice("An admin needs to approve this before the duplicate is folded in.");
-        return;
-      }
-      state.close();
-      router.push(climbHref(target.id, target.name));
     });
   }
 

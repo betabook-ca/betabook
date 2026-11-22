@@ -70,7 +70,7 @@ it("rejects a user ID it cannot parse without contacting Mountain Project", asyn
   const result = await GET(request("userId=../../admin"));
   expect(result.status).toBe(400);
   expect(await result.json()).toEqual({
-    error: "Enter a valid Mountain Project user ID or profile link.",
+    error: "Enter your Mountain Project user ID or profile link.",
   });
   expect(fetcher).not.toHaveBeenCalled();
 });
@@ -86,6 +86,23 @@ it("returns the upstream failure as a message the wizard can show", async () => 
   expect(await result.json()).toEqual({
     error: "That Mountain Project profile could not be found. Check the user ID or profile link.",
   });
+});
+
+it("does not report a client that disconnects mid-import as a failure", async () => {
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    const client = new AbortController();
+    const fetcher = vi.fn<typeof fetch>().mockImplementation(async (_url, init) => {
+      client.abort();
+      throw init?.signal?.reason;
+    });
+    vi.stubGlobal("fetch", fetcher);
+    await GET(new Request(request().url, { signal: client.signal }));
+    expect(fetcher).toHaveBeenCalledOnce();
+    expect(log).not.toHaveBeenCalled();
+  } finally {
+    log.mockRestore();
+  }
 });
 
 it("reports a failed connection without leaking internals", async () => {

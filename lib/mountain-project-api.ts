@@ -1,5 +1,6 @@
 import { ActionError } from "@/lib/action-result";
 import { parseMountainProjectUserId } from "@/lib/mountain-project-profile";
+import { readTextCapped } from "@/lib/read-text-capped";
 import { MAX_IMPORT_FILE_BYTES } from "@/lib/sends-import";
 import { importTooLargeMessage, SUPPORT_EMAIL } from "@/lib/support";
 
@@ -107,23 +108,11 @@ async function readCsv(response: Response, signal: AbortSignal): Promise<string>
   if (!response.body) throw new MountainProjectError(FORMAT_ERROR);
   if (Number(response.headers.get("Content-Length")) > MAX_IMPORT_FILE_BYTES)
     throw new MountainProjectError(SIZE_ERROR, 413);
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let csv = "";
-  let bytes = 0;
-  try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      signal.throwIfAborted();
-      if (done) break;
-      bytes += value.byteLength;
-      if (bytes > MAX_IMPORT_FILE_BYTES) throw new MountainProjectError(SIZE_ERROR, 413);
-      csv += decoder.decode(value, { stream: true });
-    }
-    csv += decoder.decode();
-  } finally {
-    await reader.cancel().catch(() => {});
-  }
+  const csv = await readTextCapped(response.body.getReader(), {
+    maxBytes: MAX_IMPORT_FILE_BYTES,
+    tooLarge: () => new MountainProjectError(SIZE_ERROR, 413),
+    signal,
+  });
   if (!csv.trim()) throw new MountainProjectError(FORMAT_ERROR);
   return csv;
 }

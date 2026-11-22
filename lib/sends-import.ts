@@ -1,13 +1,20 @@
 import { format as formatDate, isValid, parse } from "date-fns";
 import Papa from "papaparse";
 
-import { parseGrade, type ClimbType, type GradePreferences } from "@/lib/grades";
+import {
+  CLIMB_TYPES,
+  parseGrade,
+  type ClimbType,
+  type GradePreferences,
+  type ImportGradePreference,
+} from "@/lib/grades";
 import { decodeHtmlEntities } from "@/lib/html-entities";
+import { MAX_LOG_NOTE_LENGTH } from "@/lib/log-note";
 import {
   ASCENT_STYLES,
   GRADE_FEEL_VALUES,
-  MAX_COMMENT_LENGTH,
   latestAcceptableSendDate,
+  todayUtc,
   type AscentStyle,
   type GradeFeel,
 } from "@/lib/sends";
@@ -23,7 +30,6 @@ export type ParsedCsv = {
   derived: string[];
 };
 
-export const CLIMB_TYPES = ["boulder", "sport", "trad"] as const;
 /** Check bytes before reading/parsing to bound memory. The row cap is checked
  * after parsing and only limits what reaches the wizard. */
 export const MAX_IMPORT_FILE_BYTES = 10 * 1024 * 1024;
@@ -495,11 +501,6 @@ function cleanGradeText(raw: string): string | null {
   return raw.replace(PROTECTION_SUFFIX_RE, "").trim() || null;
 }
 
-/** The import wizard's choice of how to read grade text: as the catalog's
- * native Hueco/YDS or as Font/French. Distinct from a climber's display
- * scales in `lib/grades.ts`, which never change how stored text is parsed. */
-export type ImportGradePreference = "native" | "converted";
-
 /** How a climber who reads Font or French most likely wrote their grades. */
 export function preferredImportGradeScale(prefs: GradePreferences): ImportGradePreference {
   return prefs.boulder === "font" || prefs.rope === "french" ? "converted" : "native";
@@ -581,7 +582,7 @@ export type NormalizedImportRow = {
   ascentStyle: AscentStyle;
   dateSent: string | null; // ISO if present; blank in the CSV -> null, not a failure
   rating: number | null;
-  comment: string | null; // truncated to MAX_COMMENT_LENGTH here, not rejected
+  comment: string | null; // truncated to MAX_LOG_NOTE_LENGTH here, not rejected
   /** Suggested-grade text; falls back to the Grade column only if no Suggested Grade
    * is mapped. A blank or unreadable grade imports at the climb's listed grade. */
   gradeText: string | null;
@@ -613,7 +614,7 @@ const COERCION_MESSAGES: Record<CoercionWarning["field"], string> = {
     "unrecognized grade, imported at the climb’s listed grade (an overwritten send keeps its grade)",
   rating: "imported without a rating",
   gradeFeel: 'unmapped grade feel, imported as "solid"',
-  comment: `comment longer than ${MAX_COMMENT_LENGTH} characters, truncated`,
+  comment: `comment longer than ${MAX_LOG_NOTE_LENGTH} characters, truncated`,
 };
 
 /** Without a resolved discipline, parsing only establishes that a grade could match.
@@ -621,7 +622,7 @@ const COERCION_MESSAGES: Record<CoercionWarning["field"], string> = {
 function gradeTextParses(
   text: string,
   climbTypeHint: ImportClimbType | null,
-  preference: "native" | "converted",
+  preference: ImportGradePreference,
 ): boolean {
   if (climbTypeHint)
     return (
@@ -633,9 +634,17 @@ function gradeTextParses(
   );
 }
 
+/** How each mapped column's distinct raw values translate to Betabook values. */
+export type ValueMappings = {
+  ascentStyleMapping: AscentStyleMapping;
+  climbTypeMapping: ClimbTypeMapping;
+  gradeFeelMapping: GradeFeelMapping;
+  ratingMapping: RatingMapping;
+};
+
 export type NormalizeOptions = {
   today?: string;
-  gradeScalePreference?: "native" | "converted";
+  gradeScalePreference?: ImportGradePreference;
   /** Raw date values to read as "no date" — see findPlaceholderTimestamps. */
   undatedValues?: Iterable<string>;
 };
@@ -646,18 +655,11 @@ export type NormalizeOptions = {
 export function normalizeImportRows(
   parsed: ParsedCsv,
   mapping: ColumnMapping,
-  ascentStyleMapping: AscentStyleMapping,
-  climbTypeMapping: ClimbTypeMapping,
-  gradeFeelMapping: GradeFeelMapping,
-  ratingMapping: RatingMapping,
+  { ascentStyleMapping, climbTypeMapping, gradeFeelMapping, ratingMapping }: ValueMappings,
   dateFormat: DateFormat,
   options: NormalizeOptions = {},
 ): { valid: NormalizedImportRow[]; invalid: InvalidImportRow[]; warnings: CoercionWarning[] } {
-  const {
-    today = new Date().toISOString().slice(0, 10),
-    gradeScalePreference = "native",
-    undatedValues = [],
-  } = options;
+  const { today = todayUtc(), gradeScalePreference = "native", undatedValues = [] } = options;
   const undated = new Set(undatedValues);
   const valid: NormalizedImportRow[] = [];
   const invalid: InvalidImportRow[] = [];
@@ -729,14 +731,10 @@ export function normalizeImportRows(
       warn("rating", rowIndex, `"${rawRating}"`);
 
     const rawComment = textCell(mapping.comment);
-    if (rawComment.length > MAX_COMMENT_LENGTH) {
+    if (rawComment.length > MAX_LOG_NOTE_LENGTH) {
       warn("comment", rowIndex, `${rawComment.length} characters`);
     }
-    const comment = rawComment
-      ? rawComment.length > MAX_COMMENT_LENGTH
-        ? rawComment.slice(0, MAX_COMMENT_LENGTH)
-        : rawComment
-      : null;
+    const comment = rawComment.slice(0, MAX_LOG_NOTE_LENGTH) || null;
 
     const gradeColumn = mapping.suggestedGrade ?? mapping.grade;
     const gradeText = cleanGradeText(cell(gradeColumn));
