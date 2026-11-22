@@ -83,7 +83,7 @@ jobs:
       # install step. Caches the store and pnpm's minimumReleaseAge verdict.
       # Not @v2 -- that tag still resolves to v2.0.2, which has neither the
       # verdict cache nor require-lockfile, and only warns on the latter.
-      - uses: pnpm/setup@v3.0.0
+      - uses: pnpm/setup@v3.2.0
         with:
           runtime: node@26
           cache: true
@@ -153,7 +153,7 @@ jobs:
       BETABOOK_UI_SUITE: ${{ matrix.suite }}
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/setup@v3.0.0
+      - uses: pnpm/setup@v3.2.0
         with:
           runtime: node@26
           cache: true
@@ -221,7 +221,7 @@ jobs:
       # install step. Caches the store and pnpm's minimumReleaseAge verdict.
       # Not @v2 -- that tag still resolves to v2.0.2, which has neither the
       # verdict cache nor require-lockfile, and only warns on the latter.
-      - uses: pnpm/setup@v3.0.0
+      - uses: pnpm/setup@v3.2.0
         with:
           runtime: node@26
           cache: true
