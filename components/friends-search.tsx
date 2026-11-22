@@ -3,9 +3,9 @@
 import { useState, type ReactNode } from "react";
 
 import { ClimberListItem } from "@/components/climber-list-item";
-import { SearchInput } from "@/components/search/search-input";
 import { SearchResults } from "@/components/search/search-results";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
+import { QueryInput } from "@/components/ui/query-input";
 import { SectionHeading } from "@/components/ui/typography";
 import { useSearch } from "@/hooks/use-search";
 import { EMPTY_SEARCH, type SearchFetcher } from "@/lib/search";
@@ -23,7 +23,7 @@ export function FriendsSearch({
   const searching = query.trim().length > 0;
   return (
     <section aria-label="People" className="flex min-w-0 flex-col gap-4">
-      <SearchInput
+      <QueryInput
         label="Find climbers"
         placeholder="Find climbers…"
         value={query}

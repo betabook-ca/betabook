@@ -2,8 +2,7 @@
 
 import { Button, ComboBox, Input, Label, ListBox } from "@heroui/react";
 import { X } from "lucide-react";
-import { useContext, useEffect, useRef, useState } from "react";
-import { ComboBoxStateContext } from "react-aria-components";
+import { useState } from "react";
 
 import {
   FIELD_WIDTH_CLASS,
@@ -12,6 +11,8 @@ import {
   type FieldWidth,
 } from "@/components/ui/field";
 import { FieldHeader, FieldFeedback } from "@/components/ui/field-support";
+import { useCloseComboBoxOnChange } from "@/hooks/use-close-combo-box-on-change";
+import { normalizeTag } from "@/lib/journal";
 
 const EMPTY_TAGS: string[] = [];
 function widthClass(width: FieldWidth | undefined) {
@@ -73,7 +74,6 @@ export function TagsField({
   const [error, setError] = useState<string | null>(null);
   const examplesVisible = showTagExamples(allowCreate, showExamples, draft);
   const full = maxTags !== undefined && value.length >= maxTags;
-  const normalize = (text: string) => text.trim().replace(/^#+/, "").toLowerCase();
   const fingerprint = JSON.stringify(value);
   const [previousValue, setPreviousValue] = useState(fingerprint);
   if (previousValue !== fingerprint) {
@@ -83,11 +83,11 @@ export function TagsField({
   }
 
   const availableItems = tags
-    .filter((tag) => !value.includes(tag) && tag.startsWith(normalize(draft)))
+    .filter((tag) => !value.includes(tag) && tag.startsWith(normalizeTag(draft)))
     .map((tag) => ({ tag }));
 
   function commit(text: string) {
-    const tag = normalize(text);
+    const tag = normalizeTag(text);
     if (!tag || full) return false;
     if (!allowCreate && !tags.includes(tag)) return false;
     const validation = validateTag?.(tag);
@@ -144,7 +144,7 @@ export function TagsField({
               showHint={examplesVisible}
               browse={shouldBrowse(allowCreate, tags)}
               onBlurCommit={allowCreate ? () => commit(draft) : undefined}
-              scope={JSON.stringify([tags, value])}
+              scope={[tags, value]}
               onCommit={() => {
                 const saved = commit(draft);
                 if (saved) onTagSelected?.();
@@ -185,10 +185,8 @@ export function TagsField({
               size="sm"
               variant="secondary"
               type="button"
-              onPress={() => {
-                onChange(value.filter((selected) => selected !== tag));
-                setDraft("#");
-              }}
+              // The draft clears with the value change (see `fingerprint`).
+              onPress={() => onChange(value.filter((selected) => selected !== tag))}
               aria-label={`Remove tag ${tag}`}
               className="max-w-full"
             >
@@ -211,19 +209,12 @@ function TagFieldInput({
   onBlurCommit,
 }: {
   showHint: boolean;
-  scope: string;
+  scope: unknown;
   onCommit: () => boolean;
   browse: boolean;
   onBlurCommit?: () => void;
 }) {
-  const state = useContext(ComboBoxStateContext);
-  const previousScope = useRef(scope);
-  useEffect(() => {
-    if (previousScope.current !== scope) {
-      previousScope.current = scope;
-      state?.close();
-    }
-  }, [scope, state]);
+  const state = useCloseComboBoxOnChange(scope);
   function protectPrefix(input: HTMLInputElement) {
     if (input.selectionStart == null || input.selectionEnd == null) return;
     if (input.selectionStart < 1)

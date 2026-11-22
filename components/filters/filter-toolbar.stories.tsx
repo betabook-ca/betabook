@@ -2,8 +2,8 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
 
 import { hashtagActiveFilters } from "@/components/filters/active-filter-values";
-import { FilterInput } from "@/components/filters/filter-input";
 import { HashtagFilter } from "@/components/filters/hashtag-filter";
+import { QueryInput } from "@/components/ui/query-input";
 import { DEFAULT_DISCIPLINE_FILTER } from "@/lib/filters/discipline-filter";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
@@ -36,7 +36,7 @@ function FiltersExample() {
           setFilter(DEFAULT_DISCIPLINE_FILTER);
           setQuery("");
         }}
-        textFilter={<FilterInput label="Filter climbs" value={query} onChange={setQuery} />}
+        textFilter={<QueryInput label="Filter climbs" value={query} onChange={setQuery} />}
       />
     </StoryPage>
   );
@@ -60,7 +60,7 @@ function HashtagFiltersExample() {
           setTags([]);
           setQuery("");
         }}
-        textFilter={<FilterInput label="Filter climbs" value={query} onChange={setQuery} />}
+        textFilter={<QueryInput label="Filter climbs" value={query} onChange={setQuery} />}
         activeFilters={hashtagActiveFilters(tags, setTags)}
         extraFilters={
           <HashtagFilter value={tags} onChange={setTags} tags={["power", "strength", "trip"]} />

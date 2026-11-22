@@ -1,6 +1,6 @@
 import type { ActiveFilter } from "@/components/filters/active-filter-summary";
 import { DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
-import { MAX_RATING } from "@/lib/filters/climb-stats-filter";
+import { DEFAULT_RATING_RANGE, MAX_RATING } from "@/lib/filters/climb-stats-filter";
 import type { DateFilterValue, RelativeDatePreset } from "@/lib/filters/date-filter";
 import { DEFAULT_DISCIPLINE_FILTER, type DisciplineFilter } from "@/lib/filters/discipline-filter";
 import { formatDate } from "@/lib/format-date";
@@ -109,7 +109,7 @@ export function ratingActiveFilters(
       id: "rating",
       label: `Rating: ${min === max ? min : `${min}–${max}`} ${min === max && min === 1 ? "star" : "stars"}`,
       ratingRange: [min, max],
-      onRemove: () => onChange([1, MAX_RATING]),
+      onRemove: () => onChange([...DEFAULT_RATING_RANGE]),
     },
   ];
 }

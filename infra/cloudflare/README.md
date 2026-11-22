@@ -26,6 +26,8 @@ The Worker's `TURNSTILE_SITE_KEY` var is the `turnstile_sitekey` output, and its
 
 ## Local checks
 
+CI's **Validate infrastructure** job runs the same checks, with `fmt -check -recursive`, whenever `infra/` changes.
+
 ```bash
 tofu -chdir=infra/cloudflare init -backend=false
 tofu -chdir=infra/cloudflare validate

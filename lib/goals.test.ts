@@ -136,9 +136,11 @@ it("normalizes goal hashtag filters and rejects invalid or excessive hashtags", 
   expect(
     goalInputSchema.parse({ ...input, tags: [" Strength ", "HANGBOARD", "strength"] }).tags,
   ).toEqual(["hangboard", "strength"]);
+  expect(goalInputSchema.parse({ ...input, tags: ["#strength", "##Strength"] }).tags).toEqual([
+    "strength",
+  ]);
   for (const tags of [
     ["bad tag"],
-    ["#strength"],
     ["x".repeat(25)],
     Array.from({ length: 9 }, (_, i) => `tag-${i}`),
   ])

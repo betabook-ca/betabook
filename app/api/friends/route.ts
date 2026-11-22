@@ -13,12 +13,10 @@ export const GET = withApiSession(async (session, request: Request) => {
   const page =
     offset === null
       ? { friends: [], hasMore: false }
-      : await getFriendsPage(
-          await getDb(),
-          session.user.id,
-          params.get("view") === "requests",
+      : await getFriendsPage(await getDb(), session.user.id, {
+          requestsOnly: params.get("view") === "requests",
           offset,
-        );
+        });
   return Response.json({
     ...page,
     hasMore: page.hasMore && !offsetReachesPaginationLimit(offset ?? 0, FRIENDS_PAGE_SIZE),

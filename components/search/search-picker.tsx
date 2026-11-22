@@ -3,8 +3,8 @@
 import type { ReactNode } from "react";
 
 import { LoadMoreButton } from "@/components/ui/load-more-button";
+import { QueryInput } from "@/components/ui/query-input";
 
-import { SearchInput } from "./search-input";
 import { SearchResults } from "./search-results";
 import type { SearchResult, SearchSection } from "./search-types";
 
@@ -39,7 +39,7 @@ export function SearchPicker({
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <SearchInput
+      <QueryInput
         label="Choose a climb"
         placeholder="Search climbs…"
         value={query}

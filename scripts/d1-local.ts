@@ -13,7 +13,7 @@ export function findLocalDb(): string | undefined {
   );
 }
 
-/** Absolute-ish path to the local database, or a message saying how to make one. */
+/** The local database, relative to the repo root pnpm runs scripts from; throws how to make one if missing. */
 export function requireLocalDb(): string {
   const file = findLocalDb();
   if (!file) {

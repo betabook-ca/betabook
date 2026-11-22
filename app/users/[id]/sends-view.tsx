@@ -22,8 +22,8 @@ export async function SendsView({
 
   const [hasSends, firstPage, tags] = await Promise.all([
     hasUserSends(db, userId),
-    getSendsForUserPage(db, userId, filter, 0, undefined, viewerId),
-    getUserHashtags(db, userId, viewerId, true),
+    getSendsForUserPage(db, userId, filter, { viewerId }),
+    getUserHashtags(db, userId, viewerId, { ascentsOnly: true }),
   ]);
 
   const areaBreadcrumbs = await getAreaBreadcrumbs(

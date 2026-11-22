@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 
 import type { SearchCategory, SearchKind, SearchSection } from "@/components/search/search-types";
-import type { ClimbRefinements } from "@/lib/filters/climb-refinements";
-import { DEFAULT_CLIMB_REFINEMENTS } from "@/stories/fixtures/climb-refinements";
+import {
+  DEFAULT_CLIMB_REFINEMENTS,
+  type DemoClimbRefinements,
+} from "@/stories/fixtures/climb-refinements";
 
 import { SAMPLE_AREAS, CATALOG_FIXTURES } from "./catalog-data";
 
@@ -18,14 +20,14 @@ export type SearchScenario =
 type Criteria = {
   query: string;
   category: SearchCategory;
-  filters: ClimbRefinements;
+  filters: DemoClimbRefinements;
   limit: number;
   onlySent: boolean;
   inherentAreaId?: string;
   pickerMode?: "logging" | "import" | "merge";
 };
 
-function matchesRating(rating: number | null | undefined, filters: ClimbRefinements) {
+function matchesRating(rating: number | null | undefined, filters: DemoClimbRefinements) {
   if (filters.minRating > 1 && (rating ?? 0) < filters.minRating) return false;
   return (
     filters.maxRating === 0 ||

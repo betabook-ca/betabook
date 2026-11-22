@@ -24,8 +24,9 @@ import { RatingField } from "@/components/ui/rating-field";
 import type { JournalEntry, SendableClimb } from "@/db/queries";
 import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
-import { MAX_JOURNAL_BODY_LENGTH, type JournalKind } from "@/lib/journal";
+import type { JournalKind } from "@/lib/journal";
 import type { CompanionOption } from "@/lib/journal-companions";
+import { MAX_LOG_NOTE_LENGTH } from "@/lib/log-note";
 import { sendVideoLinksError } from "@/lib/send-video";
 import type { AscentStyle, GradeFeel } from "@/lib/sends";
 
@@ -34,7 +35,9 @@ export type JournalEntryFieldsProps = {
   onSave: (formData: FormData, undated: boolean) => Promise<ActionResult>;
   companionFetcher?: LookupFetcher<CompanionOption>;
   kind: JournalKind;
-  climb?: (SendableClimb & { name: string }) | null;
+  /** The climb a session is about: what the send style, date and grade
+   * fields need of it, and nothing the form doesn't read. */
+  climb?: Pick<SendableClimb, "id" | "type" | "grade" | "brokenOn"> | null;
   hasPriorSend?: boolean;
   existingEntry?: JournalEntry;
   onDone?: () => void;
@@ -217,7 +220,7 @@ export function JournalEntryFields({
 
         <TextField className="w-full min-w-0" value={body} onChange={setBody}>
           <FieldHeader
-            usage={{ used: body.length, limit: MAX_JOURNAL_BODY_LENGTH, unit: "characters" }}
+            usage={{ used: body.length, limit: MAX_LOG_NOTE_LENGTH, unit: "characters" }}
           >
             <Label>Notes</Label>
             {(isAscent || existingEntry?.isSendComment) && (
@@ -227,7 +230,7 @@ export function JournalEntryFields({
             )}
           </FieldHeader>
           <TextArea
-            maxLength={MAX_JOURNAL_BODY_LENGTH}
+            maxLength={MAX_LOG_NOTE_LENGTH}
             placeholder={
               kind === "training"
                 ? "Climbs, drills, sets, weights, how it felt…"

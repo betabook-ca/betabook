@@ -4,7 +4,7 @@ import { getDb } from "@/db/client";
 import { getSendsForUserExportPage, type UserSendsExportCursor } from "@/db/queries";
 import { withApiSession } from "@/lib/api-session";
 import { parseId } from "@/lib/parse-id";
-import { ISO_DATE_RE } from "@/lib/sends";
+import { isRealIsoDate } from "@/lib/sends";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -19,17 +19,19 @@ export const GET = withApiSession(async (session, request: Request, { params }: 
 
   const searchParams = new URL(request.url).searchParams;
   const rawAfterId = searchParams.get("afterId");
-  const afterId = rawAfterId === null ? null : parseId(rawAfterId);
   const rawAfterDate = searchParams.get("afterDate");
-  const validAfterDate =
-    rawAfterDate === "null" || (rawAfterDate !== null && ISO_DATE_RE.test(rawAfterDate));
-  const cursor: UserSendsExportCursor | null =
-    afterId === null
-      ? null
-      : { id: afterId, dateSent: rawAfterDate === "null" ? null : rawAfterDate };
-
-  if (rawAfterId !== null && (afterId === null || !validAfterDate)) {
-    return NextResponse.json({ error: "Invalid export cursor" }, { status: 400 });
+  let cursor: UserSendsExportCursor | null = null;
+  if (rawAfterId !== null || rawAfterDate !== null) {
+    const afterId = rawAfterId === null ? null : parseId(rawAfterId);
+    // "null" is the cursor for an undated send.
+    const dateSent = rawAfterDate === "null" ? null : rawAfterDate;
+    if (
+      afterId === null ||
+      rawAfterDate === null ||
+      (dateSent !== null && !isRealIsoDate(dateSent))
+    )
+      return NextResponse.json({ error: "Invalid export cursor" }, { status: 400 });
+    cursor = { id: afterId, dateSent };
   }
 
   const db = await getDb();

@@ -307,12 +307,10 @@ it("filters journal and sends detail views to the selected day", async () => {
   });
   expect(journal.entries.map((e) => e.body)).toEqual(["Next day"]);
   await seedFixtureSend(db, { userId: "public", climbId: 3, dateSent: "2026-09-02" });
-  const page = await getSendsForUserPage(
-    db,
-    "public",
-    { ...DEFAULT_USER_SENDS_FILTER, date: "2026-09-02" },
-    0,
-  );
+  const page = await getSendsForUserPage(db, "public", {
+    ...DEFAULT_USER_SENDS_FILTER,
+    date: "2026-09-02",
+  });
   expect(page.sends.map((s) => s.climbId)).toEqual([3]);
 });
 

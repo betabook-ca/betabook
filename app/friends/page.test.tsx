@@ -9,7 +9,6 @@ vi.mock("next/navigation", () => ({
   },
 }));
 vi.mock("@/lib/session", () => ({ getMemberSession: async () => null }));
-vi.mock("next/link", () => ({ default: () => null }));
 vi.mock("next/image", () => ({ default: () => null }));
 
 it.each([

@@ -2,6 +2,7 @@
 import type { ComponentProps, ReactNode } from "react";
 
 import { AuthCallout } from "@/components/auth-callout";
+import { textActiveFilters } from "@/components/filters/active-filter-values";
 import { ClimbFilterControls } from "@/components/filters/climb-filter-controls";
 import { useSearch } from "@/hooks/use-search";
 import { DEFAULT_CLIMB_LIST_SORT } from "@/lib/climb-list-sort";
@@ -141,17 +142,9 @@ export function SearchController({
                 showAreaLookup
                 showExcludeSent={!publicOnly}
                 areaFetcher={areaFetcher}
-                activeFilters={
-                  state.query
-                    ? [
-                        {
-                          id: "query",
-                          label: `Search: ${state.query}`,
-                          onRemove: () => onChange({ ...state, query: "" }),
-                        },
-                      ]
-                    : []
-                }
+                activeFilters={textActiveFilters(state.query, () =>
+                  onChange({ ...state, query: "" }),
+                )}
                 onReset={() =>
                   onChange({
                     ...state,

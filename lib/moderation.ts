@@ -54,10 +54,12 @@ export function changedFields<T extends Record<string, unknown>>(
   return delta;
 }
 
+type ModeratorSession = { user: { id: string; role?: string | null } };
+
 /** An admin grant covers its area and descendants. The role alone grants no scope. */
 export async function isAdminForArea(
   db: Database,
-  session: { user: { id: string; role?: string | null } },
+  session: ModeratorSession,
   areaId: number,
 ): Promise<boolean> {
   if (!isAdmin(session)) return false;
@@ -112,29 +114,45 @@ export async function changeRequestScopeAreaIds(
   return climb ? [climb.areaId] : [];
 }
 
+/** Which of `areaIds` the admin's grants cover (see isAdminForArea), in one query. */
+async function coveredAreaIds(
+  db: Database,
+  session: ModeratorSession,
+  areaIds: number[],
+): Promise<Set<number>> {
+  if (!isAdmin(session) || areaIds.length === 0) return new Set();
+  const rows = await db.all<{ areaId: number }>(sql`
+    WITH RECURSIVE chain(area_id, id) AS (
+      SELECT value, value FROM json_each(${JSON.stringify(areaIds)})
+      UNION
+      SELECT chain.area_id, areas.parent_id FROM chain JOIN areas ON areas.id = chain.id
+      WHERE areas.parent_id IS NOT NULL
+    )
+    SELECT DISTINCT chain.area_id AS areaId FROM chain
+    JOIN admin_area_scopes scope ON scope.area_id = chain.id
+    WHERE scope.user_id = ${session.user.id}
+  `);
+  return new Set(rows.map((row) => row.areaId));
+}
+
 /** Any covered area permits viewing and voting; applying requires full coverage. */
 export async function isAdminForAnyArea(
   db: Database,
-  session: { user: { id: string; role?: string | null } },
+  session: ModeratorSession,
   areaIds: number[],
 ): Promise<boolean> {
-  for (const areaId of areaIds) {
-    if (await isAdminForArea(db, session, areaId)) return true;
-  }
-  return false;
+  return (await coveredAreaIds(db, session, areaIds)).size > 0;
 }
 
 /** Immediate application requires authority over every affected area. */
 export async function isAdminForAllAreas(
   db: Database,
-  session: { user: { id: string; role?: string | null } },
+  session: ModeratorSession,
   areaIds: number[],
 ): Promise<boolean> {
   if (areaIds.length === 0) return false;
-  for (const areaId of areaIds) {
-    if (!(await isAdminForArea(db, session, areaId))) return false;
-  }
-  return true;
+  const covered = await coveredAreaIds(db, session, areaIds);
+  return areaIds.every((areaId) => covered.has(areaId));
 }
 
 export type ChangeRequestCoverage = {
@@ -152,15 +170,8 @@ export async function changeRequestCoverage(
   request: ChangeRequest,
   scopeAreaIds: number[],
 ): Promise<ChangeRequestCoverage> {
-  const coverage = await batchCoverage(db, [{ request, scopeAreaIds }]);
-  return (
-    coverage.get(request.id) ?? {
-      scopeAreaIds,
-      approvers: [],
-      missingAreaIds: scopeAreaIds,
-      complete: false,
-    }
-  );
+  const [coverage] = await batchCoverage(db, [{ request, scopeAreaIds }]);
+  return coverage;
 }
 
 export type ChangeRequestDescription = {
@@ -339,29 +350,31 @@ function describeFromFacts(
   return { requesterSummary: described.summary, ...described };
 }
 
-async function batchCoverage(db: Database, requests: RequestScope[]) {
+/** Coverage for each request, in input order. */
+async function batchCoverage(
+  db: Database,
+  requests: RequestScope[],
+): Promise<ChangeRequestCoverage[]> {
   const rows = await getApprovalCoverageRows(db, requests);
-  const coverage = new Map<number, ChangeRequestCoverage>();
-  for (const { request, scopeAreaIds } of requests) {
+  return requests.map(({ request, scopeAreaIds }) => {
     const approvals = rows.filter((row) => row.requestId === request.id);
     const approvers = new Map(
       approvals.map((row) => [row.userId, { id: row.userId, name: row.name, image: row.image }]),
     );
     const covered = new Set(approvals.filter((row) => row.covered === 1).map((row) => row.areaId));
     const missingAreaIds = scopeAreaIds.filter((id) => !covered.has(id));
-    coverage.set(request.id, {
+    return {
       scopeAreaIds,
       approvers: [...approvers.values()],
       missingAreaIds,
       complete: scopeAreaIds.length > 0 && missingAreaIds.length === 0,
-    });
-  }
-  return coverage;
+    };
+  });
 }
 
 export async function getReviewQueueDetails(
   db: Database,
-  session: { user: { id: string; role?: string | null } },
+  session: ModeratorSession,
   options: ReviewQueueOptions = {},
 ) {
   if (!isAdmin(session)) return [];
@@ -373,14 +386,9 @@ export async function getReviewQueueDetails(
     ),
     batchCoverage(db, queue),
   ]);
-  return queue.map(({ request, scopeAreaIds }) => ({
+  return queue.map(({ request }, index) => ({
     request,
     description: describeFromFacts(facts, request),
-    coverage: coverage.get(request.id) ?? {
-      scopeAreaIds,
-      approvers: [],
-      missingAreaIds: scopeAreaIds,
-      complete: false,
-    },
+    coverage: coverage[index],
   }));
 }

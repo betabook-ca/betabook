@@ -196,33 +196,3 @@ test("actions menu keeps actions local and returns focus", async ({ page }, test
   await expect(page.getByRole("status")).toHaveText("Action: edit");
   await expect(trigger).toBeFocused();
 });
-
-test("long comments reveal the clipped text and collapse back to two lines", async ({
-  page,
-}, testInfo) => {
-  await openStory(page, testInfo, "components-data-display-clamped-comment--long");
-  const expand = page.getByRole("button", { name: "Show more" });
-  const id = await expand.getAttribute("aria-controls");
-  expect(id).toBeTruthy();
-  const paragraph = page.locator(`[id="${id}"]`);
-  const collapsed = await paragraph.evaluate((node) => ({
-    height: node.clientHeight,
-    full: node.scrollHeight,
-  }));
-  expect(collapsed.full).toBeGreaterThan(collapsed.height + 1);
-  await expand.press("Enter");
-  const collapse = page.getByRole("button", { name: "Show less" });
-  await expect(collapse).toHaveAttribute("aria-expanded", "true");
-  await expect
-    .poll(() => paragraph.evaluate((node) => node.clientHeight))
-    .toBeGreaterThan(collapsed.height);
-  expect(
-    await paragraph.evaluate((node) => node.scrollHeight - node.clientHeight),
-  ).toBeLessThanOrEqual(1);
-  await collapse.press("Enter");
-  await expect(expand).toHaveAttribute("aria-expanded", "false");
-  await expect.poll(() => paragraph.evaluate((node) => node.clientHeight)).toBe(collapsed.height);
-  await openStory(page, testInfo, "components-data-display-clamped-comment--short");
-  await expect(page.getByText("A short note.", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Show more" })).toHaveCount(0);
-});

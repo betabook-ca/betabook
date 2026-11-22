@@ -6,7 +6,7 @@ import { expect, it } from "vitest";
 import { ClimbFilterControls } from "@/components/filters/climb-filter-controls";
 import { RatingRangeFilter } from "@/components/filters/min-rating-filter";
 import { RatingField } from "@/components/ui/rating-field";
-import { DEFAULT_CLIMB_FILTER } from "@/lib/filters/climb-filter";
+import { climbFilterToSearchParams, DEFAULT_CLIMB_FILTER } from "@/lib/filters/climb-filter";
 import type { ClimbFilterState } from "@/lib/filters/climb-filter-state";
 
 function Controls() {
@@ -79,4 +79,34 @@ it("clears all active disciplines and rating bounds globally", async () => {
   await user.click(screen.getByRole("button", { name: "Clear all" }));
   expect(screen.queryByRole("region", { name: "Active filters" })).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Boulder" })).toHaveAttribute("aria-pressed", "false");
+});
+it("stores a restored full range and a removed rating chip as the default rating range", async () => {
+  const user = userEvent.setup();
+  let latest: ClimbFilterState = { sort: "name_asc", area: null, filter: DEFAULT_CLIMB_FILTER };
+  function Tracked() {
+    const [value, setValue] = useState(latest);
+    return (
+      <ClimbFilterControls
+        value={value}
+        onChange={(next) => {
+          latest = { ...value, ...next };
+          setValue(latest);
+        }}
+      />
+    );
+  }
+  const url = (state: ClimbFilterState) =>
+    climbFilterToSearchParams(state.sort, state.filter).toString();
+  const unfiltered = url(latest);
+  render(<Tracked />);
+  await user.click(screen.getByRole("button", { name: "Expand filters" }));
+  await user.click(bound("Min rating").getByRole("radio", { name: "3 stars" }));
+  expect(latest.filter.ratingRange).toEqual([3, 5]);
+  await user.click(bound("Min rating").getByRole("radio", { name: "1 star" }));
+  expect(url(latest)).toBe(unfiltered);
+  await user.click(bound("Max rating").getByRole("radio", { name: "3 stars" }));
+  expect(latest.filter.ratingRange).toEqual([1, 3]);
+  await user.click(screen.getByRole("button", { name: "Hide filters" }));
+  await user.click(screen.getByRole("button", { name: "Remove Rating: 1–3 stars" }));
+  expect(url(latest)).toBe(unfiltered);
 });

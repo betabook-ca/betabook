@@ -142,14 +142,10 @@ async function TripDaysView({
 }) {
   const db = await getDb();
   const [sendsPage, entriesPage] = await Promise.all([
-    getSendsForUserPage(
-      db,
-      userId,
-      withTripWindow(DEFAULT_USER_SENDS_FILTER, trip),
-      0,
-      TRIP_DAYS_LIMIT,
+    getSendsForUserPage(db, userId, withTripWindow(DEFAULT_USER_SENDS_FILTER, trip), {
+      pageSize: TRIP_DAYS_LIMIT,
       viewerId,
-    ),
+    }),
     journalVisible
       ? getJournalPage(
           db,

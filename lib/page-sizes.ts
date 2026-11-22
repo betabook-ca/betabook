@@ -5,3 +5,8 @@ export const AREA_SEARCH_PAGE_SIZE = 25;
 
 /** Friends list page size, here for the same reason: the list names it in copy. */
 export const FRIENDS_PAGE_SIZE = 10;
+
+/** Journal entries a climb page reads for its journal card. The card shows
+ * one fewer and reads a full set as "N+ sessions", so it knows there are more
+ * without counting them. */
+export const CLIMB_JOURNAL_ENTRY_LIMIT = 4;

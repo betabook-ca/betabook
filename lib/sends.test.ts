@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  MAX_COMMENT_LENGTH,
-  validateImportSendValues,
-  validateSendInput,
-  type RawSendInput,
-} from "./sends";
+import { MAX_LOG_NOTE_LENGTH } from "./log-note";
+import { validateImportSendValues, validateSendInput, type RawSendInput } from "./sends";
 
 const TODAY = "2026-08-19";
 
@@ -236,9 +232,9 @@ describe("validateImportSendValues", () => {
   });
 
   it("truncates an over-long comment rather than storing it", () => {
-    const comment = "x".repeat(MAX_COMMENT_LENGTH + 5000);
+    const comment = "x".repeat(MAX_LOG_NOTE_LENGTH + 5000);
     expect(validateImportSendValues(importRow({ comment }), "sport", TODAY).comment).toHaveLength(
-      MAX_COMMENT_LENGTH,
+      MAX_LOG_NOTE_LENGTH,
     );
   });
 

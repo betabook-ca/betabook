@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { UserSendsFilter } from "@/db/queries";
+import { parseJournalFilter } from "@/lib/filters/journal-filter";
 import { searchParamsToRecord } from "@/lib/url-params";
 
 import {
@@ -52,6 +53,21 @@ describe("user sends filter serialization", () => {
 
     expect(parseUserSendsFilter(record)).toEqual(filter);
     expect(reserialize(params)).toBe(params.toString());
+  });
+
+  it("drops fractional ratings so the rating picker can still reach the value", () => {
+    expect(parseUserSendsFilter({ minRating: "2.5", maxRating: "3.5" })).toMatchObject({
+      minRating: 0,
+      maxRating: 0,
+    });
+  });
+});
+
+describe("send hashtag filters", () => {
+  it("normalizes hashtags exactly as the journal filter does", () => {
+    const tag = ["##Foo", "#foo", " bar ", "not a tag"];
+    expect(parseUserSendsFilter({ tag }).tags).toEqual(["foo", "bar"]);
+    expect(parseJournalFilter({ tag }).tags).toEqual(["foo", "bar"]);
   });
 });
 

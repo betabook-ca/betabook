@@ -1,5 +1,8 @@
+import { isClimbType } from "@/lib/grades";
+import { jsonGuards } from "@/lib/json-guards";
+import { readTextCapped } from "@/lib/read-text-capped";
 import { parseSendageUsername } from "@/lib/sendage-profile";
-import { ISO_DATE_RE } from "@/lib/sends";
+import { ASCENT_STYLES, ISO_DATE_RE } from "@/lib/sends";
 import { MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS, type ParsedCsv } from "@/lib/sends-import";
 import { importCsvFallback, importTooLargeMessage, SUPPORT_EMAIL } from "@/lib/support";
 
@@ -8,7 +11,7 @@ const FORMAT_ERROR = `Sendage returned an unfamiliar data format. ${CSV_FALLBACK
 const INCOMPLETE_ERROR = `Sendage did not return your complete send history. Please try again. ${CSV_FALLBACK}`;
 const SIZE_ERROR = importTooLargeMessage("Sendage history", CSV_FALLBACK);
 const MAX_PAGE_BYTES = 2 * 1024 * 1024;
-const COMPLETED_STYLES = new Set(["redpoint", "flash", "onsight"]);
+const COMPLETED_STYLES = new Set<string>(ASCENT_STYLES);
 const SKIPPED_STYLES = new Set(["project", "repeat"]);
 const HEADERS = [
   "Date",
@@ -54,21 +57,11 @@ function gradeLabel(value: unknown, type: string) {
   return `5.${10 + Math.floor((index - 9) / 4)}${"abcd"[(index - 9) % 4]}`;
 }
 
-function record(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(FORMAT_ERROR);
-  return value as Record<string, unknown>;
-}
+const { record, string, optionalString } = jsonGuards(() => new Error(FORMAT_ERROR));
 function positiveInteger(value: unknown): number {
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value <= 0)
     throw new Error(FORMAT_ERROR);
   return value;
-}
-function string(value: unknown): string {
-  if (typeof value !== "string") throw new Error(FORMAT_ERROR);
-  return value;
-}
-function optionalString(value: unknown): string {
-  return value == null ? "" : string(value);
 }
 
 async function request(
@@ -109,21 +102,16 @@ async function request(
     const advertisedBytes = Number(response.headers.get("content-length"));
     if (advertisedBytes > MAX_PAGE_BYTES || budget.bytes + advertisedBytes > MAX_IMPORT_FILE_BYTES)
       throw new Error(SIZE_ERROR);
-    const decoder = new TextDecoder();
-    let body = "";
-    let pageBytes = 0;
     controller.signal.throwIfAborted();
-    for (;;) {
-      const { done, value } = await reader.read();
-      controller.signal.throwIfAborted();
-      if (done) break;
-      pageBytes += value.byteLength;
-      budget.bytes += value.byteLength;
-      if (pageBytes > MAX_PAGE_BYTES || budget.bytes > MAX_IMPORT_FILE_BYTES)
-        throw new Error(SIZE_ERROR);
-      body += decoder.decode(value, { stream: true });
-    }
-    body += decoder.decode();
+    const startBytes = budget.bytes;
+    const body = await readTextCapped(reader, {
+      maxBytes: Math.min(MAX_PAGE_BYTES, MAX_IMPORT_FILE_BYTES - startBytes),
+      tooLarge: () => new Error(SIZE_ERROR),
+      signal: controller.signal,
+      onProgress: (bytes) => {
+        budget.bytes = startBytes + bytes;
+      },
+    });
     const data: unknown = JSON.parse(body);
     return record(record(record(data).result).data).json;
   } catch (error) {
@@ -194,7 +182,7 @@ function importRow(value: unknown) {
   const id = positiveInteger(send.id);
   positiveInteger(climb.id);
   const type = string(climb.type);
-  if (!["boulder", "sport", "trad"].includes(type)) throw new Error(FORMAT_ERROR);
+  if (!isClimbType(type)) throw new Error(FORMAT_ERROR);
   const area = record(climb.area);
   if (
     typeof send.rating !== "number" ||
@@ -203,7 +191,7 @@ function importRow(value: unknown) {
     send.rating > 5
   )
     throw new Error(FORMAT_ERROR);
-  if (![-1, 0, 1].includes(Number(send.difficulty)) || typeof send.difficulty !== "number")
+  if (typeof send.difficulty !== "number" || ![-1, 0, 1].includes(send.difficulty))
     throw new Error(FORMAT_ERROR);
   const date = optionalString(send.day);
   if (date && !ISO_DATE_RE.test(date)) throw new Error(FORMAT_ERROR);

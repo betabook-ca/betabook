@@ -7,11 +7,11 @@ import type { KeyboardEvent, ReactNode } from "react";
 
 import { AppLink } from "@/components/ui/app-link";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
+import { QueryInput } from "@/components/ui/query-input";
 import { useCompactViewport } from "@/hooks/use-compact-viewport";
 import type { AreaSelection } from "@/lib/area-selection";
 
 import { SearchCategories } from "./search-categories";
-import { SearchInput } from "./search-input";
 import { SearchResults } from "./search-results";
 import type { SearchCategory, SearchKind, SearchResult, SearchSection } from "./search-types";
 
@@ -134,9 +134,9 @@ export function SearchSurface({
       {!quick && <SearchCategories value={category} onChange={onCategoryChange} />}
       {/* Filters place the query field themselves; without them it stands alone. */}
       {renderFilters ? renderFilters(queryRow) : queryRow}
-      <SearchFilterRow
-        category={category}
+      <QuickCategoryRow
         quick={quick}
+        category={category}
         compact={compact}
         onCategoryChange={onCategoryChange}
       />
@@ -220,7 +220,7 @@ function SearchQueryRow({
 }) {
   return (
     <div className="flex shrink-0 items-center gap-2">
-      <SearchInput
+      <QueryInput
         label="Search Betabook"
         // Sharing the row means the field takes what Cancel leaves rather
         // than its standard width.
@@ -247,12 +247,12 @@ function SearchQueryRow({
   );
 }
 
-/** The quick dialog's category pills. The full page renders its own set
- * above the input, so this is only for the dialog.
+/** The quick dialog's category pills, below the query field. The full page
+ * renders its own set above the input.
  *
  * Compact keeps them on one non-wrapping line that scrolls sideways — with
  * a keyboard up, wrapping would cost the result list a row it needs. */
-function SearchFilterRow({
+function QuickCategoryRow({
   quick,
   compact,
   category,
@@ -266,9 +266,7 @@ function SearchFilterRow({
     <div
       className={clsx(
         "flex min-w-0 shrink-0",
-        compact
-          ? "-mx-1 [scrollbar-width:none] items-center gap-2 overflow-x-auto px-1"
-          : "flex-col items-start gap-4",
+        compact && "-mx-1 [scrollbar-width:none] overflow-x-auto px-1",
       )}
     >
       <SearchCategories value={category} onChange={onCategoryChange} compact={compact} />

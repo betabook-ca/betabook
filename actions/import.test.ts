@@ -6,12 +6,8 @@ import { importSends, resolveImportClimbs, resolveImportClimbsInAreas } from "@/
 import { createDb } from "@/db/client";
 import { climbs, journalEntries, sends } from "@/db/schema";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
-import {
-  IMPORT_BATCH_SIZE,
-  MAX_COMMENT_LENGTH,
-  RESOLVE_BATCH_SIZE,
-  type ImportSendRow,
-} from "@/lib/sends";
+import { MAX_LOG_NOTE_LENGTH } from "@/lib/log-note";
+import { IMPORT_BATCH_SIZE, RESOLVE_BATCH_SIZE, type ImportSendRow } from "@/lib/sends";
 import {
   seedFixtureJournalEntry,
   seedFixtureSend,
@@ -360,7 +356,7 @@ describe("importSends against a caller that skipped the wizard", () => {
     const result = await importSends(
       [
         importRow(131, {
-          comment: "x".repeat(MAX_COMMENT_LENGTH + 5000),
+          comment: "x".repeat(MAX_LOG_NOTE_LENGTH + 5000),
           gradeFeel: "pwned" as ImportSendRow["gradeFeel"],
         }),
       ],
@@ -369,7 +365,7 @@ describe("importSends against a caller that skipped the wizard", () => {
 
     expect(result.ok).toBe(true);
     const send = await db.select().from(sends).where(eq(sends.userId, "coerce-user")).get();
-    expect(send?.comment).toHaveLength(MAX_COMMENT_LENGTH);
+    expect(send?.comment).toHaveLength(MAX_LOG_NOTE_LENGTH);
     expect(send?.gradeFeel).toBe("solid");
   });
 

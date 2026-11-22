@@ -1,8 +1,10 @@
 import type { AnalyticsSendRow } from "@/db/queries";
 import { daysBetween } from "@/lib/format-date";
 import {
+  CLIMB_TYPES,
   DEFAULT_GRADE_PREFERENCES,
   gradeArray,
+  isClimbType,
   nativeGradeArray,
   type ClimbType,
   type GradePreferences,
@@ -14,10 +16,8 @@ import { ascentStyleOn } from "@/lib/sends";
  * groupings for every grade-axis chart while the volume stats merge. */
 export type DisciplineScope = ClimbType | "all";
 
-const DISCIPLINE_ORDER: readonly ClimbType[] = ["boulder", "sport", "trad"];
-
 export function parseDisciplineScope(value: string | undefined): DisciplineScope {
-  return value === "boulder" || value === "sport" || value === "trad" ? value : "all";
+  return isClimbType(value) ? value : "all";
 }
 
 /** Which discipline an analytics page shows: the requested one when the
@@ -39,7 +39,7 @@ export function resolveDisciplineScope({
   sessions?: readonly AnalyticsJournalSession[];
   requested: DisciplineScope;
 }): { present: ClimbType[]; scope: ClimbType | null } {
-  const present = DISCIPLINE_ORDER.filter(
+  const present = CLIMB_TYPES.filter(
     (type) =>
       rows.some((row) => row.climbType === type) ||
       sessions?.some((entry) => entry.climbType === type),
@@ -289,7 +289,7 @@ export function buildUserAnalytics(
     .filter((s): s is AnalyticsSendRow & { dateSent: string } => s.dateSent != null)
     .sort((a, b) => (a.dateSent < b.dateSent ? -1 : a.dateSent > b.dateSent ? 1 : 0));
 
-  const disciplines = DISCIPLINE_ORDER.filter((d) => sends.some((s) => s.climbType === d));
+  const disciplines = CLIMB_TYPES.filter((d) => sends.some((s) => s.climbType === d));
 
   // Hardest send per discipline — first (earliest-dated) send at the top grade.
   const hardest: HardestSend[] = [];

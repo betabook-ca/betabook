@@ -77,7 +77,8 @@ export function ProjectCard({
             size="sm"
             variant="ghost"
             className="gap-1.5"
-            aria-label={`Log a session on ${project.climbName}`}
+            // Each name starts with the visible text, so voice control can say it.
+            aria-label={`Log session on ${project.climbName}`}
             onPress={onLogSession}
           >
             <CirclePlus className="size-4" />
@@ -88,7 +89,9 @@ export function ProjectCard({
             variant={liveShare ? "outline" : "ghost"}
             className="gap-1.5"
             aria-label={
-              liveShare ? `Manage the link for ${project.climbName}` : `Share ${project.climbName}`
+              liveShare
+                ? `Shared: manage the link for ${project.climbName}`
+                : `Share ${project.climbName}`
             }
             onPress={shareDialog.open}
           >

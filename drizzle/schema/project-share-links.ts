@@ -26,11 +26,12 @@ import { pinnedProjects } from "./pinned-projects";
  * The token is the whole credential and the whole URL — no user or climb id in
  * it, nothing to enumerate, and nothing revealed until it resolves.
  *
- * A share grants MORE than the owner's blanket `journal_visibility` for this
- * one climb's session notes — that is the feature, not an oversight. It grants
- * nothing else: send commentary keeps its own audience, companion tags are
- * left out because they name third parties who never agreed to this link, and
- * no other climb is reachable through it.
+ * A share overrides the owner's `journal_visibility` and
+ * `send_comment_visibility` for this one climb — its session notes and its
+ * send, comment included — and that is the feature, not an oversight. It
+ * grants nothing else: companion tags are left out because they name third
+ * parties who never agreed to this link, and no other climb is reachable
+ * through it.
  *
  * The composite foreign key is the invariant that matters: a share cannot
  * outlive the pin it describes. Untracking the project, deleting the climb and

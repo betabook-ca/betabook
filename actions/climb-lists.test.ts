@@ -116,7 +116,7 @@ function errorOf(result: { ok: boolean; error?: string }) {
 /** Creates a list for `owner` holding `climbIds` in that order. */
 async function seedList(owner: string, title: string, climbIds: number[] = []) {
   as(owner);
-  const id = value(await createClimbList({ title, description: `About ${title}` }));
+  const { id } = value(await createClimbList({ title, description: `About ${title}` }));
   for (const climbId of climbIds) value(await addClimbToList(id, climbId));
   return id;
 }
@@ -169,20 +169,23 @@ beforeEach(async () => {
 describe("creating and editing lists", () => {
   it("creates a list with a trimmed name and appends climbs in the order added", async () => {
     as("owner");
-    const id = value(await createClimbList({ title: "  Red   River  ", description: "" }));
+    const created = value(await createClimbList({ title: "  Red   River  ", description: "" }));
+    const { id } = created;
     value(await addClimbToList(id, 3));
     value(await addClimbToList(id, 1));
     value(await addClimbToList(id, 3));
 
     const [stored] = await db.select().from(climbLists).where(eq(climbLists.id, id));
     expect(stored.title).toBe("Red River");
+    // The caller shows the name as saved, without normalizing it again.
+    expect(created).toEqual({ id, title: "Red River" });
     expect(stored.description).toBeNull();
     expect(await order(id)).toEqual([3, 1]);
   });
 
   it("creates a list with its first climb from the Add to list drawer", async () => {
     as("owner");
-    const id = value(await createClimbList({ title: "Projects" }, { climbId: 2 }));
+    const { id } = value(await createClimbList({ title: "Projects" }, { climbId: 2 }));
     expect(await order(id)).toEqual([2]);
     expect(await getClimbListChoices(db, "owner", 2)).toEqual([
       { id, title: "Projects", climbCount: 1, hasClimb: true },
@@ -292,7 +295,7 @@ describe("review fixes", () => {
 
   it("creates a list with its first climb", async () => {
     as("owner");
-    const id = value(await createClimbList({ title: "Starter" }, { climbId: 2 }));
+    const { id } = value(await createClimbList({ title: "Starter" }, { climbId: 2 }));
     expect(await order(id)).toEqual([2]);
   });
 });
@@ -614,9 +617,11 @@ describe("copying", () => {
   it("copies another climber's visible list under the name and description given", async () => {
     const source = await seedList("owner", "Classics", [3, 1, 2]);
     as("friend");
-    const copy = value(
-      await copyClimbList({ listId: source }, { title: "My classics", description: "Mine now" }),
+    const created = value(
+      await copyClimbList({ listId: source }, { title: " My  classics ", description: "Mine now" }),
     );
+    const copy = created.id;
+    expect(created).toEqual({ id: copy, title: "My classics" });
 
     const [stored] = await db.select().from(climbLists).where(eq(climbLists.id, copy));
     expect(stored).toMatchObject({
@@ -631,7 +636,7 @@ describe("copying", () => {
   it("is a snapshot: later edits to the original don't reach the copy", async () => {
     const source = await seedList("owner", "Classics", [1]);
     as("friend");
-    const copy = value(await copyClimbList({ listId: source }, { title: "Classics" }));
+    const { id: copy } = value(await copyClimbList({ listId: source }, { title: "Classics" }));
     as("owner");
     value(await addClimbToList(source, 2));
     expect(await order(copy)).toEqual([1]);
@@ -643,7 +648,7 @@ describe("copying", () => {
     value(await shareClimbList(source, "never"));
     await db.update(user).set({ isPrivate: true }).where(eq(user.id, "owner"));
 
-    const copy = value(await copyClimbList({ listId: source }, { title: "Mine (copy)" }));
+    const { id: copy } = value(await copyClimbList({ listId: source }, { title: "Mine (copy)" }));
     expect(await order(copy)).toEqual([2, 1]);
     expect(
       await db.select().from(climbListShareLinks).where(eq(climbListShareLinks.listId, copy)),
@@ -656,7 +661,7 @@ describe("copying", () => {
     const { token } = value(await shareClimbList(source, "30d"));
 
     as("member");
-    const copy = value(await copyClimbList({ token }, { title: "From the link" }));
+    const { id: copy } = value(await copyClimbList({ token }, { title: "From the link" }));
     expect(await order(copy)).toEqual([1, 2]);
   });
 

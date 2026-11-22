@@ -7,6 +7,7 @@ import { Eyebrow } from "@/components/ui/eyebrow";
 import type { JournalEntry } from "@/db/queries";
 import { formatCount } from "@/lib/format";
 import { formatDate } from "@/lib/format-date";
+import { CLIMB_JOURNAL_ENTRY_LIMIT } from "@/lib/page-sizes";
 
 export function ClimbJournalCard({
   userId,
@@ -17,8 +18,14 @@ export function ClimbJournalCard({
   climbId: number;
   entries: JournalEntry[];
 }) {
-  const recentEntries = entries.slice(0, 3);
-  const sessionCount = entries.length > 3 ? "4+ sessions" : formatCount(entries.length, "session");
+  // The page reads CLIMB_JOURNAL_ENTRY_LIMIT entries and shows one fewer, so a
+  // full read means there may be more than it fetched.
+  const shown = CLIMB_JOURNAL_ENTRY_LIMIT - 1;
+  const recentEntries = entries.slice(0, shown);
+  const sessionCount =
+    entries.length > shown
+      ? `${CLIMB_JOURNAL_ENTRY_LIMIT}+ sessions`
+      : formatCount(entries.length, "session");
 
   return (
     <div className={cardClass("sm")}>

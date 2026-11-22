@@ -7,6 +7,8 @@ import type { ParsedCsv } from "@/lib/sends-import";
 
 import { SendageImportForm } from "./sendage-import-form";
 
+// Retry, cancel, late responses, unmount and the support link are shared with
+// the other profile imports and covered in import-profile-form.dom.test.tsx.
 vi.mock("@/lib/sendage-import", () => ({ fetchSendageImport: vi.fn<typeof fetchSendageImport>() }));
 const payload = {
   username: "climber",
@@ -38,60 +40,15 @@ it("imports the entered username and starts blank when opened again", async () =
   expect(screen.queryByRole("button", { name: "Forget saved profile" })).not.toBeInTheDocument();
 });
 
-it("keeps input and offers retry after a failed download", async () => {
-  vi.mocked(fetchSendageImport).mockRejectedValueOnce(new Error("Sendage unavailable"));
-  const { onLoaded } = setup();
-  await userEvent.type(screen.getByRole("textbox"), "https://sendage.com/user/climber");
-  await userEvent.click(screen.getByRole("button", { name: "Load sends" }));
-  expect(await screen.findByRole("alert")).toHaveTextContent("Sendage unavailable");
-  expect(screen.getByRole("textbox")).toHaveValue("https://sendage.com/user/climber");
-  expect(onLoaded).not.toHaveBeenCalled();
-  await userEvent.click(screen.getByRole("button", { name: "Load sends" }));
-  await waitFor(() => expect(onLoaded).toHaveBeenCalledOnce());
-});
-
-it("links the support address in a failed download to a prefilled email", async () => {
-  vi.mocked(fetchSendageImport).mockRejectedValueOnce(
-    new Error(
-      "Sendage returned an unfamiliar data format. Export your sends from Sendage as a CSV and upload that file instead, or email support@betabook.ca.",
-    ),
-  );
+it("counts loaded sends with the right plural", async () => {
+  vi.mocked(fetchSendageImport).mockReturnValue(new Promise(() => {}));
   setup();
   await userEvent.type(screen.getByRole("textbox"), "climber");
   await userEvent.click(screen.getByRole("button", { name: "Load sends" }));
-  const link = await screen.findByRole("link", { name: "support@betabook.ca" });
-  expect(screen.getByRole("alert")).toContainElement(link);
-  expect(link).toHaveAttribute(
-    "href",
-    "mailto:support@betabook.ca?subject=Sendage%20import&body=Sendage%20returned%20an%20unfamiliar%20data%20format.%20Export%20your%20sends%20from%20Sendage%20as%20a%20CSV%20and%20upload%20that%20file%20instead%2C%20or%20email%20support%40betabook.ca.",
-  );
-});
-
-it("cancels a pending download and ignores its late response", async () => {
-  let resolve!: (value: typeof payload) => void;
-  vi.mocked(fetchSendageImport).mockReturnValue(
-    new Promise((done) => {
-      resolve = done;
-    }),
-  );
-  const { onLoaded, onBusyChange } = setup();
-  await userEvent.type(screen.getByRole("textbox"), "climber");
-  await userEvent.click(screen.getByRole("button", { name: "Load sends" }));
-  expect(screen.getByRole("button", { name: "Loading sends…" })).toBeDisabled();
-  const signal = vi.mocked(fetchSendageImport).mock.calls[0][1].signal;
-  await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
-  expect(signal.aborted).toBe(true);
-  await act(async () => resolve({ ...payload, username: "late_response" }));
-  expect(onLoaded).not.toHaveBeenCalled();
-  expect(onBusyChange).toHaveBeenLastCalledWith(false);
-});
-
-it("stops a download when unmounted", async () => {
-  const { unmount } = setup();
-  vi.mocked(fetchSendageImport).mockReturnValue(new Promise(() => {}));
-  await userEvent.type(screen.getByRole("textbox"), "climber");
-  await userEvent.click(screen.getByRole("button", { name: "Load sends" }));
-  const signal = vi.mocked(fetchSendageImport).mock.calls[0][1].signal;
-  unmount();
-  expect(signal.aborted).toBe(true);
+  expect(screen.getByRole("status")).toHaveTextContent("Connecting to Sendage…");
+  const progress = vi.mocked(fetchSendageImport).mock.calls[0][1].onProgress!;
+  act(() => progress(1));
+  expect(screen.getByRole("status")).toHaveTextContent(/^1 send loaded…$/);
+  act(() => progress(1200));
+  expect(screen.getByRole("status")).toHaveTextContent(/^1,200 sends loaded…$/);
 });

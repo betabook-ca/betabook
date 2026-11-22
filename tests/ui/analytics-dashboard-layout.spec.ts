@@ -1,46 +1,6 @@
 import { AxeBuilder } from "@axe-core/playwright";
-import type { Page, TestInfo } from "@playwright/test";
 
 import { expect, openStory, test } from "./story";
-
-async function moveEarlier(
-  page: Page,
-  info: TestInfo,
-  name: string,
-  section: "cards" | "charts",
-  before: string,
-) {
-  if (info.project.name.startsWith("mobile")) {
-    await page.getByRole("button", { name: `Move ${name} earlier`, exact: true }).click();
-    return;
-  }
-  const grid = page.getByRole("grid", { name: `Reorder ${section}`, exact: true });
-  const row = grid.getByRole("row", { name, exact: true });
-  const handle = page.getByRole("button", { name: `Drag ${name}`, exact: true });
-
-  // Getting onto the row's drag handle is retried as a unit. The grid owns
-  // focus inside itself and a previous drop's session tears down
-  // asynchronously, so a single focus-then-Tab can land on another row's
-  // handle — and did, for roughly two runs in three before this. Retrying
-  // keeps the assertion honest (the handle really is Tab-reachable from the
-  // row) without depending on when react-aria finishes.
-  await expect(async () => {
-    await grid.focus();
-    await row.focus();
-    await page.keyboard.press("Tab");
-    await expect(handle).toBeFocused({ timeout: 1000 });
-  }).toPass({ timeout: 15000 });
-
-  await page.keyboard.press("Enter");
-  await expect(page.locator("[data-dragging]")).toHaveCount(1);
-  await expect(page.locator('[data-drop-target] [role="button"]')).toBeFocused();
-  await page.keyboard.press("Home");
-  await expect(page.locator("[data-drop-target]")).toContainText(`Insert before ${before}`);
-  await page.keyboard.press("Enter");
-  // The drop has to finish before the next call starts, or its indicators are
-  // still in the DOM and still taking focus.
-  await expect(page.locator("[data-dragging]")).toHaveCount(0);
-}
 
 test(
   "calendar years fit the card with bounded previous and next controls",
@@ -67,7 +27,11 @@ test(
   },
 );
 
-test("customization supports accessible dragging within both sections", async ({ page }, info) => {
+// Keyboard dragging is covered once by the @behavior test below; here every
+// project audits the editor, and phones also reorder with the move arrows.
+test("customization is accessible and reorders with move arrows on phones", async ({
+  page,
+}, info) => {
   await openStory(page, info, "components-charts-analytics-dashboard--multiple-years");
   const glance = page.getByRole("region", { name: "At a glance", exact: true });
   const charts = page.getByRole("region", { name: "Charts", exact: true });
@@ -76,10 +40,11 @@ test("customization supports accessible dragging within both sections", async ({
     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
     .analyze();
   expect(accessibility.violations).toEqual([]);
+  if (!info.project.name.startsWith("mobile")) return;
   await expect(glance.getByRole("article").first()).toHaveAccessibleName("Sends");
-  await moveEarlier(page, info, "Hardest", "cards", "Sends");
+  await page.getByRole("button", { name: "Move Hardest earlier", exact: true }).click();
   await expect(glance.getByRole("article").first()).toHaveAccessibleName("Hardest");
-  await moveEarlier(page, info, "Grade pyramid", "charts", "Progression");
+  await page.getByRole("button", { name: "Move Grade pyramid earlier", exact: true }).click();
   await expect(charts.getByRole("article").first()).toHaveAccessibleName("Grade pyramid");
 });
 

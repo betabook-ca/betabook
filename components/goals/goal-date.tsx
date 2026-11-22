@@ -1,8 +1,6 @@
 import { CircleCheckBig } from "lucide-react";
 import type { ReactNode } from "react";
 
-export const GOAL_ROW_CLASS = "items-start gap-2! px-0! py-2.5!";
-
 /** Absolute icon placement preserves the date baseline and reserves the same space in every state. */
 export function GoalDate({
   completed = false,

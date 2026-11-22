@@ -11,10 +11,11 @@ import { MAX_PAGINATION_OFFSET } from "@/lib/url-params";
 
 export const PAGE_SIZE = 50;
 
-/** A caller-supplied page size, held between 1 and the largest page any
- * list query serves; anything that is not an integer reads as `fallback`. */
-export function clampPageSize(pageSize: number, fallback: number): number {
-  return Number.isInteger(pageSize) ? Math.min(50, Math.max(1, pageSize)) : fallback;
+/** A caller-supplied page size, held between 1 and `max` (by default the
+ * largest page any list query serves); anything that is not an integer reads
+ * as `fallback`. */
+export function clampPageSize(pageSize: number, fallback: number, max = PAGE_SIZE): number {
+  return Number.isInteger(pageSize) ? Math.min(max, Math.max(1, pageSize)) : fallback;
 }
 
 /** Offsets saturate at the scan budget rather than reject: the routes have
@@ -58,8 +59,9 @@ export function toFtsPrefixQuery(raw: string): string {
     .join(" ");
 }
 
-/** A full range includes ungraded climbs; a narrowed range excludes them. */
-export function disciplineGradeCondition(
+/** A full range matches every climb of the discipline without a grade
+ * predicate; a narrowed range adds one. */
+function disciplineGradeCondition(
   type: Discipline,
   range: [number, number],
   fullRange: [number, number],

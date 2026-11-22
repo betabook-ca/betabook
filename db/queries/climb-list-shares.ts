@@ -8,6 +8,7 @@ import {
   type ClimbListQuery,
   type ClimbListSummary,
 } from "./climb-lists";
+import { shareLinkLiveSql, shareLinkReadableSql } from "./share-links";
 
 /** What a live link resolves to. The share dialog promises "the list's name,
  * description, climbs and grades, and your name", and that sentence is the
@@ -30,10 +31,7 @@ type SharedClimbListAccess =
  * The owner's lists audience is deliberately absent too — a link opens its
  * list even when that is Only me. The private check backs up the trigger in
  * migration 0057 for a link written while the profile was closing. */
-const readableSql = sql`
-  share_owner.is_private = 0
-  AND (link.expires_at IS NULL OR link.expires_at > datetime('now'))
-`;
+const readableSql = shareLinkReadableSql;
 
 /** The list join ties a link to a list that still exists, so correctness
  * never rests on foreign keys being enforced. */
@@ -128,7 +126,7 @@ export async function getClimbListShareForOwner(
   const row = await db.get<{ token: string; expiresAt: string | null }>(sql`
     SELECT token, expires_at AS expiresAt
     FROM climb_list_share_links WHERE user_id = ${ownerId} AND list_id = ${listId}
-      AND (expires_at IS NULL OR expires_at > datetime('now'))
+      AND ${shareLinkLiveSql(sql`expires_at`)}
   `);
   return row ?? null;
 }

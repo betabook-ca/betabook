@@ -103,3 +103,23 @@ it("invalidates loaded names when the goal receives a refreshed server snapshot"
   await userEvent.click(screen.getByRole("button", { name: "1 climb" }));
   expect(await screen.findByText("Corrected climb")).toBeVisible();
 });
+
+it("shrinks only the disclosure trigger, so Try again keeps a full tap target", async () => {
+  const goal = goalPanelStoryArgs.initialCompleted.goals.find((g) => g.kind === "volume");
+  if (!goal) throw new Error("Missing volume fixture");
+  const load = vi
+    .fn<() => Promise<GoalContribution[]>>()
+    .mockRejectedValue(new Error("Couldn't load items."));
+  render(<GoalItems ownerId="story-goals" goal={goal} loadItems={load} />);
+  const trigger = screen.getByRole("button", { name: "5 climbs" });
+  await userEvent.setup().click(trigger);
+  const retry = within(await screen.findByRole("alert")).getByRole("button", { name: "Try again" });
+  // jsdom applies no Tailwind, so check where the compact sizing is declared:
+  // on the trigger itself, and on no ancestor as a rule for every button
+  // inside it (which shrank Try again to 24px).
+  const descendantButtonRules: string[] = [];
+  for (let node = retry.parentElement; node; node = node.parentElement)
+    descendantButtonRules.push(...[...node.classList].filter((name) => name.includes("_button]")));
+  expect(descendantButtonRules).toEqual([]);
+  expect(trigger).toHaveClass("min-h-6");
+});

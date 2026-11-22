@@ -5,7 +5,7 @@ import { useState } from "react";
 import { FeedTimeline } from "@/components/feed-timeline";
 import { FriendRequestBadge } from "@/components/friend-request-badge";
 import { FriendshipActionButton } from "@/components/friendship-action-button";
-import { choicePillClass } from "@/components/ui/choice-pill";
+import { TourChoices } from "@/components/product-tours/tour-choices";
 import { SectionNavigation } from "@/components/ui/section-navigation";
 import { SectionHeading } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -140,19 +140,13 @@ export function DemoFeed() {
     <section aria-label="Friends' activity" className="flex w-full flex-col gap-4">
       <SectionHeading className="sr-only">Feed</SectionHeading>
       <div data-tour-target="friend-feed" className="flex flex-col gap-4">
-        <div role="group" aria-label="Feed activity" className="flex gap-2">
-          {(["All", "Sends"] as const).map((option) => (
-            <button
-              key={option}
-              type="button"
-              aria-pressed={view === option}
-              className={choicePillClass(view === option, "bg-foreground text-background")}
-              onClick={() => setView(option)}
-            >
-              {option === "All" ? "All activity" : option}
-            </button>
-          ))}
-        </div>
+        <TourChoices
+          label="Feed activity"
+          options={["All", "Sends"]}
+          labels={{ All: "All activity" }}
+          value={view}
+          onChange={setView}
+        />
         <FeedTimeline days={[sample]} view={view === "All" ? "all" : "sends"} links={false} />
       </div>
     </section>

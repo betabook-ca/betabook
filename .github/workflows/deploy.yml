@@ -16,15 +16,17 @@ permissions:
   contents: read
 
 jobs:
-  # Infra-only changes skip jobs by condition, not `paths`: a skipped job passes
-  # a required check, but a skipped workflow leaves it pending. Dependents run
-  # unless this reports exactly `false`, so a failed detection still tests.
+  # Infra-only changes skip the app jobs by condition, not `paths`: a skipped
+  # job passes a required check, but a skipped workflow leaves it pending.
+  # Dependents run unless an output is exactly `false`, so a failed detection
+  # still tests everything.
   changes:
-    name: Detect app changes
+    name: Detect changes
     runs-on: ubuntu-latest
     timeout-minutes: 2
     outputs:
       app: ${{ steps.diff.outputs.app }}
+      infra: ${{ steps.diff.outputs.infra }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -36,12 +38,37 @@ jobs:
         run: |
           if [ -n "$BASE_SHA" ] &&
             files=$(git diff --name-only "$BASE_SHA...$HEAD_SHA") &&
-            [ -n "$files" ] &&
-            ! grep -qv '^infra/' <<< "$files"; then
-            echo app=false >> "$GITHUB_OUTPUT"
+            [ -n "$files" ]; then
+            grep -qv '^infra/' <<< "$files" && app=true || app=false
+            grep -q '^infra/' <<< "$files" && infra=true || infra=false
           else
-            echo app=true >> "$GITHUB_OUTPUT"
+            app=true
+            infra=true
           fi
+          echo "app=$app" >> "$GITHUB_OUTPUT"
+          echo "infra=$infra" >> "$GITHUB_OUTPUT"
+
+  # Spacelift plans infra/cloudflare, but it is not a required check, so this
+  # catches formatting and configuration errors on the PR itself. No backend and
+  # no credentials: validate needs only the providers from the lock file.
+  infra:
+    name: Validate infrastructure
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.infra != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: opentofu/setup-opentofu@v2.0.2
+        with:
+          tofu_version: 1.13.9
+          tofu_wrapper: false
+      - name: Format check
+        run: tofu -chdir=infra/cloudflare fmt -check -recursive
+      - name: Validate
+        run: |
+          tofu -chdir=infra/cloudflare init -backend=false -input=false
+          tofu -chdir=infra/cloudflare validate
 
   test:
     name: Test & Build
@@ -62,11 +89,14 @@ jobs:
           cache: true
           require-lockfile: true
 
-      # Validate platform bindings; cloudflare-env.d.ts is the application contract.
-      - name: Generate Cloudflare env types
+      # cloudflare-env.d.ts is the checked-in contract for wrangler.jsonc's
+      # bindings and .dev.vars.example's vars; regenerating it must not change
+      # it. The Workers tests below also read this .dev.vars.
+      - name: Check Cloudflare env types
         run: |
           cp .dev.vars.example .dev.vars
           pnpm cf-typegen
+          git diff --exit-code cloudflare-env.d.ts
 
       - name: Lint
         run: pnpm lint
@@ -84,6 +114,18 @@ jobs:
       # this catches migration and query regressions before production changes.
       - name: Test
         run: pnpm test
+
+      # The seed checks run against a migrated, default-seeded database, built
+      # the way `pnpm setup` builds one, and each mutates its own copy.
+      - name: Seed checks
+        run: |
+          pnpm db:migrate:local
+          pnpm seed
+          db=$(find .wrangler/state/v3/d1/miniflare-D1DatabaseObject -name '*.sqlite' ! -name 'metadata*')
+          cp "$db" "$RUNNER_TEMP/social.sqlite"
+          cp "$db" "$RUNNER_TEMP/trips.sqlite"
+          pnpm test:seed-social "$RUNNER_TEMP/social.sqlite"
+          pnpm test:seed-trips "$RUNNER_TEMP/trips.sqlite"
 
       # Split from the deploy step below, so a broken bundle stops here
       # instead of shipping. `vite build` does not typecheck; the step above
@@ -185,12 +227,8 @@ jobs:
           cache: true
           require-lockfile: true
 
-      # Validate platform bindings; cloudflare-env.d.ts is the application contract.
-      - name: Generate Cloudflare env types
-        run: |
-          cp .dev.vars.example .dev.vars
-          pnpm cf-typegen
-
+      # No .dev.vars here: the build only copies it into dist/server for
+      # `pnpm preview`, and wrangler deploy never uploads it.
       - name: Build
         run: pnpm build
 

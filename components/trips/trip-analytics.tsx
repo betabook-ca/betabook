@@ -35,7 +35,7 @@ export async function TripAnalytics({
   disciplineHref,
   shareImage,
 }: {
-  trip: { id: number; startDate: string; endDate: string };
+  trip: { startDate: string; endDate: string };
   userId: string;
   sends: AnalyticsSendRow[];
   /** Undefined when the reader can't see the journal. */

@@ -2,7 +2,7 @@ import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createDb, type Database } from "@/db/client";
-import { changeRequests } from "@/db/schema";
+import { adminAreaScopes, changeRequestApprovals, changeRequests } from "@/db/schema";
 import { seedFixtureTree, seedFixtureUser } from "@/test/fixtures";
 
 import {
@@ -19,7 +19,6 @@ beforeAll(async () => {
   await seedFixtureTree(db);
   await seedFixtureUser(db, { id: "queries-requester" });
   await seedFixtureUser(db, { id: "queue-reviewer", role: "admin" });
-  const { adminAreaScopes } = await import("@/db/schema");
   await db.insert(adminAreaScopes).values({ userId: "queue-reviewer", areaId: 1 });
 
   await db.insert(changeRequests).values([
@@ -72,7 +71,6 @@ describe("getScopedPendingRequests", () => {
 
 describe("getApprovalCoverageRows", () => {
   it("returns approvals for the request, oldest first", async () => {
-    const { changeRequestApprovals } = await import("@/db/schema");
     await seedFixtureUser(db, { id: "queries-approver-a" });
     await seedFixtureUser(db, { id: "queries-approver-b" });
     await db.insert(changeRequestApprovals).values([
@@ -97,7 +95,6 @@ describe("getApprovalCoverageRows", () => {
 
 describe("getManagedAreas", () => {
   it("returns the granted areas by name, not the expanded subtree", async () => {
-    const { adminAreaScopes } = await import("@/db/schema");
     await seedFixtureUser(db, { id: "queries-scoped-admin" });
     // Areas 2 (Test Boulders) and 3 (Test Sport Wall) — area 2's children
     // (4, 5) are covered by the grant but must not appear here.

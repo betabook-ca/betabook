@@ -57,7 +57,7 @@ function PeriodCircle({
           variant="ghost"
           aria-label={label}
           onPress={() => setOpen((value) => !value)}
-          className={`relative size-7 min-w-7 overflow-visible rounded-full border p-0 text-xs font-medium tabular-nums ${met ? "border-accent bg-accent/10 text-foreground" : inProgress ? "border-2 border-accent bg-transparent text-foreground" : status === "Upcoming" ? "border-dashed border-foreground/15 bg-transparent text-muted" : "border-foreground/40 bg-transparent text-muted"}`}
+          className={`relative size-7 min-w-7 overflow-visible rounded-full border p-0 text-xs font-medium tabular-nums ${met ? "border-accent bg-accent/10 text-foreground" : inProgress ? "border-2 border-accent bg-transparent text-foreground" : status === "Upcoming" ? "border-dashed border-border bg-transparent text-muted" : "border-muted bg-transparent text-muted"}`}
         >
           {number}
           {met && (
@@ -307,8 +307,9 @@ function HistoryDisclosure({
   children: ReactNode;
 }) {
   return (
-    <div className="text-xs [&_button]:min-h-6 [&_button]:tracking-normal [&_button]:normal-case [&>*]:gap-0">
+    <div className="text-xs">
       <DetailsDisclosure
+        density="compact"
         title="See history"
         isExpanded={expanded}
         onExpandedChange={onExpandedChange}

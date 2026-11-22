@@ -1,6 +1,6 @@
 import { ActionError } from "@/lib/action-result";
 import { formatGrade, type ClimbType } from "@/lib/grades";
-import { isRealIsoDate, latestAcceptableSendDate } from "@/lib/sends";
+import { isRealIsoDate, latestAcceptableSendDate, todayUtc } from "@/lib/sends";
 import { requireTrimmed } from "@/lib/validation";
 
 /** Reporter's explanation of the break; kept short because it is appended
@@ -16,7 +16,7 @@ export type RawClimbBreakInput = {
 
 export function validateClimbBreakInput(
   raw: RawClimbBreakInput,
-  today: string = new Date().toISOString().slice(0, 10),
+  today: string = todayUtc(),
 ): ClimbBreakInput {
   const brokenOn = requireTrimmed(raw.brokenOn, "Date");
   if (!isRealIsoDate(brokenOn)) throw new ActionError("Invalid date");

@@ -31,7 +31,7 @@ export async function JournalView({
     getJournalPage(db, ownerId, viewerId, filter),
     filter.climbId === null ? Promise.resolve(null) : getClimb(db, filter.climbId),
     isOwner ? getProductTourState(db, ownerId) : Promise.resolve(null),
-    getUserHashtags(db, ownerId, viewerId, false, true),
+    getUserHashtags(db, ownerId, viewerId, { includeTraining: true }),
     isOwner ? getJournalFilterFriends(db, ownerId) : Promise.resolve([]),
   ]);
   const areaBreadcrumbs = await getAreaBreadcrumbs(

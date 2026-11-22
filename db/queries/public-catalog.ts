@@ -13,6 +13,13 @@ import {
   type PublicCatalogOptions,
 } from "@/lib/public-catalog";
 
+import {
+  ancestorChainCte,
+  ancestorPathSql,
+  areaTrailSql,
+  inAreaSubtreeSql,
+  trailTargetWithin,
+} from "./area-tree";
 import { areaNameCondition, getAreaBreadcrumbs } from "./areas";
 import { searchClimbsConditions, searchClimbsPlan } from "./climbs";
 import { sendCommentVisibleSql } from "./content-access";
@@ -82,13 +89,7 @@ export async function getPublicClimb(db: Database, id: number): Promise<PublicCl
 /** An area and its ancestors, root first, in one read: the last row is the
  * area itself, and an unknown id yields no rows. */
 export async function getPublicAreaTrail(db: Database, id: number): Promise<PublicAreaDetails[]> {
-  return db.all<PublicAreaDetails>(sql`
-    WITH RECURSIVE chain(id, depth) AS (
-      SELECT ${id}, 0
-      UNION ALL
-      SELECT areas.parent_id, chain.depth + 1 FROM areas JOIN chain ON chain.id = areas.id WHERE areas.parent_id IS NOT NULL
-    ) SELECT areas.id, areas.name, areas.parent_id AS parentId, areas.description FROM areas JOIN chain ON chain.id = areas.id ORDER BY chain.depth DESC
-  `);
+  return db.all<PublicAreaDetails>(areaTrailSql(id));
 }
 export async function getPublicSubareas(db: Database, id: number): Promise<PublicArea[]> {
   const rows = await db.select(publicAreaColumns).from(areas).where(eq(areas.parentId, id));
@@ -100,9 +101,7 @@ export async function resolvePublicSubarea(
   candidate: number | null,
 ): Promise<PublicArea> {
   if (candidate === null || candidate === area.id) return area;
-  const trail = await getPublicAreaTrail(db, candidate);
-  const subarea = trail.at(-1);
-  return subarea && trail.some((ancestor) => ancestor.id === area.id) ? subarea : area;
+  return trailTargetWithin(await getPublicAreaTrail(db, candidate), area.id) ?? area;
 }
 
 export async function searchPublicAreas(
@@ -113,32 +112,25 @@ export async function searchPublicAreas(
   if (!query || options.offset === null) return { areas: [], hasNextPage: false };
   const scope =
     options.areaId !== undefined
-      ? sql`areas.id IN (
-          WITH RECURSIVE subtree(id) AS (
-            SELECT id FROM areas WHERE id = ${options.areaId}
-            UNION ALL
-            SELECT child.id FROM areas child JOIN subtree ON child.parent_id = subtree.id
-          ) SELECT id FROM subtree
-        )`
+      ? inAreaSubtreeSql(sql`areas.id`, options.areaId)
       : areaNameCondition(options.areaName);
-  const rows = await db.all<PublicAreaDetails>(sql`
-    SELECT areas.id, areas.name, areas.parent_id AS parentId, areas.description FROM areas
-    WHERE areas.id IN (SELECT rowid FROM areas_fts WHERE areas_fts MATCH ${query})
-    ${scope ? sql`AND ${scope}` : sql``}
-    ORDER BY areas.name ${options.sort === "name_desc" ? sql`DESC` : sql`ASC`}, areas.id
-    LIMIT ${options.pageSize + 1} OFFSET ${options.offset}
+  const orderBy = sql`areas.name ${options.sort === "name_desc" ? sql`DESC` : sql`ASC`}, areas.id`;
+  // Each row's ancestor path comes from the same statement, as in `searchAreas`.
+  const rows = await db.all<PublicAreaResult>(sql`
+    WITH RECURSIVE page_areas(area_id) AS (
+      SELECT areas.id FROM areas
+      WHERE areas.id IN (SELECT rowid FROM areas_fts WHERE areas_fts MATCH ${query})
+      ${scope ? sql`AND ${scope}` : sql``}
+      ORDER BY ${orderBy}
+      LIMIT ${options.pageSize + 1} OFFSET ${options.offset}
+    ), ${ancestorChainCte(sql`page_areas`)}
+    SELECT areas.id, areas.name, areas.parent_id AS parentId, areas.description,
+      ${ancestorPathSql(sql`areas.id`)} AS ancestorPath
+    FROM page_areas JOIN areas ON areas.id = page_areas.area_id
+    ORDER BY ${orderBy}
   `);
-  const visible = rows.slice(0, options.pageSize);
-  const breadcrumbs = await getAreaBreadcrumbs(
-    db,
-    visible.map((area) => area.id),
-    1000,
-  );
   return {
-    areas: visible.map((area) => ({
-      ...area,
-      ancestorPath: (breadcrumbs[area.id] ?? []).map((a) => a.name).join(" > ") || null,
-    })),
+    areas: rows.slice(0, options.pageSize),
     hasNextPage: publicHasNextPage(rows.length, options),
   };
 }

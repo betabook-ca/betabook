@@ -6,6 +6,7 @@ import { MAX_RATING } from "@/lib/filters/climb-stats-filter";
 import type { DisciplineGradeFilter } from "@/lib/filters/discipline-filter";
 import type { Discipline } from "@/lib/grades";
 
+import { subtreeCte } from "./area-tree";
 import { areaIdCondition, areaNameCondition, type Area } from "./areas";
 import { PAGE_SIZE, disciplineGradeConditions, toFtsPrefixQuery } from "./shared";
 
@@ -58,7 +59,7 @@ export type SubtreeClimbsSort =
   | "ascents_desc";
 
 // Keep NULL-ordering expressions aligned with the expression indexes in
-// 0012_climb_sort_indexes.sql so ascending scans can use those indexes.
+// 0010_climb_sort_indexes.sql so ascending scans can use those indexes.
 const SUBTREE_CLIMBS_ORDER_BY: Record<SubtreeClimbsSort, SQL> = {
   name_asc: sql`climbs.name ASC`,
   name_desc: sql`climbs.name DESC`,
@@ -87,16 +88,6 @@ function sortTieBreak(sort: SubtreeClimbsSort): SQL {
 export type { Discipline } from "@/lib/grades";
 export type { DisciplineGradeFilter } from "@/lib/filters/discipline-filter";
 
-/** UNION ALL is safe from a single root: cycle guards keep the hierarchy a tree. */
-function subtreeAreaIds(areaId: number): SQL {
-  return sql`
-    WITH RECURSIVE subtree(id) AS (
-      SELECT ${areaId}
-      UNION ALL
-      SELECT a.id FROM areas a JOIN subtree s ON a.parent_id = s.id
-    )`;
-}
-
 // Small subtrees use the area index and sort their candidates; large ones
 // scan the chosen sort index and stop at LIMIT. Area count is a heuristic
 // for climb count; see climbs.large-area.test.ts for query-plan coverage.
@@ -109,7 +100,7 @@ const MIN_LARGE_AREA_FTS_DRIVER_TERM_LENGTH = 3;
  * must agree; recursive queue work still depends on the tree's fan-out. */
 function reachesLargeSubtree(areaId: number): SQL<number> {
   return sql<number>`(SELECT count(*) FROM (
-    ${subtreeAreaIds(areaId)}
+    ${subtreeCte(areaId)}
     SELECT id FROM subtree LIMIT ${LARGE_AREA_SUBTREE_AREAS}
   )) >= ${LARGE_AREA_SUBTREE_AREAS}`;
 }
@@ -251,7 +242,7 @@ export async function getSubtreeClimbs(
     : sql`climbs INDEXED BY ${sql.raw(indexName)}`;
 
   const rows = await db.all<ClimbWithAreaName>(sql`
-    ${subtreeAreaIds(area.id)}
+    ${subtreeCte(area.id)}
     SELECT climbs.id AS id, climbs.area_id AS areaId, climbs.name AS name,
            climbs.type AS type, climbs.grade AS grade, climbs.broken_on AS brokenOn,
            areas.name AS areaName
@@ -280,7 +271,7 @@ export async function getSubtreeGradeHistogram(
   area: Area,
 ): Promise<GradeHistogramRow[]> {
   return db.all<GradeHistogramRow>(sql`
-    ${subtreeAreaIds(area.id)}
+    ${subtreeCte(area.id)}
     SELECT climbs.type AS type, climbs.grade AS grade, COUNT(*) AS count
     FROM climbs
     WHERE climbs.area_id IN (SELECT id FROM subtree)

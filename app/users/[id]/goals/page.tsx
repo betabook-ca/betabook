@@ -37,7 +37,7 @@ async function GoalsView({ ownerId }: { ownerId: string }) {
     getRequestTimezone(),
     getGoalOverview(db, ownerId, ownerId),
     getNextGoalGrades(db, ownerId, ownerId),
-    getUserHashtags(db, ownerId, ownerId, false, true),
+    getUserHashtags(db, ownerId, ownerId, { includeTraining: true }),
   ]);
   await scheduleGoalRefresh(db, ownerId);
   return (

@@ -1,6 +1,6 @@
 import { Button, useOverlayState } from "@heroui/react";
 import { Search } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import { ratingActiveFilters } from "@/components/filters/active-filter-values";
 import { ClimbFilters } from "@/components/filters/climb-filters";
@@ -14,12 +14,12 @@ import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { OptionSelect } from "@/components/ui/option-select";
 import { SectionHeading } from "@/components/ui/typography";
 import type { AreaSelection } from "@/lib/area-selection";
-import type { ClimbRefinements } from "@/lib/filters/climb-refinements";
 
 import { SAMPLE_AREAS, CATALOG_FIXTURES } from "./catalog-data";
-import { DEFAULT_CLIMB_REFINEMENTS } from "./climb-refinements";
+import { DEFAULT_CLIMB_REFINEMENTS, type DemoClimbRefinements } from "./climb-refinements";
 import { StoryPage } from "./story-layout";
 import { useSearchDemo, type SearchScenario } from "./use-search-demo";
+import { useSettledValue } from "./use-settled-value";
 
 function SelectedResult({ item, onClear }: { item: SearchResult | null; onClear: () => void }) {
   if (!item) return null;
@@ -44,11 +44,7 @@ function DemoAreaControl({
   onChange: (area: AreaSelection | null) => void;
 }) {
   const [query, setQuery] = useState("");
-  const [settled, setSettled] = useState("");
-  useEffect(() => {
-    const timer = setTimeout(() => setSettled(query), 300);
-    return () => clearTimeout(timer);
-  }, [query]);
+  const [settled, settleNow] = useSettledValue(query, 300);
   const items = CATALOG_FIXTURES.filter(
     (item) => item.kind === "area" && item.name.toLowerCase().includes(settled.toLowerCase()),
   );
@@ -60,7 +56,7 @@ function DemoAreaControl({
       items={items}
       status={query === settled ? "ready" : "loading"}
       selectedId={selected?.id}
-      onRetry={() => setSettled(query)}
+      onRetry={settleNow}
       onSelect={(item) => {
         onChange(SAMPLE_AREAS.find((area) => area.id === item.id) ?? null);
         setQuery("");
@@ -77,8 +73,8 @@ export function DemoClimbFilters({
   showSort = true,
   textFilter,
 }: {
-  value: ClimbRefinements;
-  onChange: (value: ClimbRefinements) => void;
+  value: DemoClimbRefinements;
+  onChange: (value: DemoClimbRefinements) => void;
   showSort?: boolean;
   textFilter?: ReactNode;
 }) {
@@ -289,12 +285,8 @@ export function ClimbPickerDemo({
 
 export function SelectionDemo({ kind = "area" }: { kind?: "area" | "climber" }) {
   const [query, setQuery] = useState("");
-  const [settled, setSettled] = useState("");
+  const [settled, settleNow] = useSettledValue(query, 300);
   const [selected, setSelected] = useState<SearchResult[]>([]);
-  useEffect(() => {
-    const timer = setTimeout(() => setSettled(query), 300);
-    return () => clearTimeout(timer);
-  }, [query]);
   const items = CATALOG_FIXTURES.filter(
     (item) =>
       item.kind === kind &&
@@ -322,7 +314,7 @@ export function SelectionDemo({ kind = "area" }: { kind?: "area" | "climber" }) 
         items={items}
         status={status}
         selectedId={kind === "area" ? selected[0]?.id : null}
-        onRetry={() => setSettled(query)}
+        onRetry={settleNow}
         onSelect={(item) => {
           setSelected(kind === "area" ? [item] : [...selected, item]);
           setQuery("");

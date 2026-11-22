@@ -2,7 +2,7 @@
 
 import { Button, Input, Label, TextField } from "@heroui/react";
 import { Plus, X } from "lucide-react";
-import { useId, useRef, useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 
 import { ASCENT_STYLE_CHIP_CLASSNAME } from "@/components/ascent-style";
 import { SendVideoThumbnail, WatchElsewhereLink } from "@/components/send-video";
@@ -14,6 +14,7 @@ import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { OptionSelect } from "@/components/ui/option-select";
 import { SegmentedButtons } from "@/components/ui/segmented-buttons";
+import { useRovingRadioGroup } from "@/hooks/use-roving-radio-group";
 import { gradeOptionValue, gradeOptions, type ClimbType } from "@/lib/grades";
 import {
   MAX_SEND_VIDEOS,
@@ -63,9 +64,12 @@ function PillRadioGroup<T extends string>({
   value: T;
   onChange: (value: T) => void;
 }) {
-  const buttons = useRef<(HTMLButtonElement | null)[]>([]);
   const selectedIndex = choices.findIndex((choice) => choice.value === value);
-  const tabbable = selectedIndex === -1 ? 0 : selectedIndex;
+  const radioProps = useRovingRadioGroup({
+    count: choices.length,
+    selectedIndex,
+    onSelect: (index) => onChange(choices[index].value),
+  });
 
   return (
     <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-1.5">
@@ -77,23 +81,7 @@ function PillRadioGroup<T extends string>({
             type="button"
             role="radio"
             aria-checked={selected}
-            tabIndex={index === tabbable ? 0 : -1}
-            ref={(button) => {
-              buttons.current[index] = button;
-            }}
-            onKeyDown={(event) => {
-              const step =
-                event.key === "ArrowRight" || event.key === "ArrowDown"
-                  ? 1
-                  : event.key === "ArrowLeft" || event.key === "ArrowUp"
-                    ? -1
-                    : 0;
-              if (!step) return;
-              event.preventDefault();
-              const next = (index + step + choices.length) % choices.length;
-              onChange(choices[next].value);
-              buttons.current[next]?.focus();
-            }}
+            {...radioProps(index)}
             onClick={() => onChange(choice.value)}
             className={choicePillClass(selected, choice.className)}
           >

@@ -1,5 +1,6 @@
 import { apiFetch } from "@/lib/api-client";
 import { parseMountainProjectUserId } from "@/lib/mountain-project-profile";
+import { readTextCapped } from "@/lib/read-text-capped";
 import {
   MAX_IMPORT_FILE_BYTES,
   MAX_IMPORT_ROWS,
@@ -38,25 +39,12 @@ async function readCsv(
 ): Promise<string> {
   if (!response.body || !response.headers.get("Content-Type")?.toLowerCase().startsWith("text/csv"))
     throw new Error(FORMAT_ERROR);
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let csv = "";
-  let bytes = 0;
-  try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      signal.throwIfAborted();
-      if (done) break;
-      bytes += value.byteLength;
-      if (bytes > MAX_IMPORT_FILE_BYTES) throw new Error(SIZE_ERROR);
-      csv += decoder.decode(value, { stream: true });
-      onProgress?.(bytes);
-    }
-    csv += decoder.decode();
-  } finally {
-    await reader.cancel().catch(() => {});
-  }
-  return csv;
+  return readTextCapped(response.body.getReader(), {
+    maxBytes: MAX_IMPORT_FILE_BYTES,
+    tooLarge: () => new Error(SIZE_ERROR),
+    signal,
+    onProgress,
+  });
 }
 
 const STYLE_EXAMPLE_LIMIT = 4;

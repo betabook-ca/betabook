@@ -38,7 +38,10 @@ export function goalCountSql() {
   return sql`(SELECT count(DISTINCT ${contributionKey()}) FROM journal_entries j LEFT JOIN climbs c ON c.id = j.climb_id WHERE ${matches(sql`g.start_date`, sql`g.end_date`)})`;
 }
 const goalStorageColumns = sql`g.id,g.user_id,g.kind,g.target,g.discipline,g.grade,g.timeframe,g.repeat,g.start_date,g.end_date,g.timezone,g.grade_match,g.tags,g.recurring_end_date`;
-const goalColumns = sql`g.id, g.user_id AS userId, g.kind, g.target, g.discipline, g.grade, g.timeframe, g.repeat, g.start_date AS startDate, g.end_date AS endDate, g.timezone, g.grade_match AS gradeMatch, g.tags, (SELECT archived.archive_token IS NOT NULL FROM goals archived WHERE archived.id=g.id) AS archived, (SELECT recurring_end_date FROM goals current WHERE current.id=g.id) AS recurringEndDate`;
+/** `live` is the goal's own `goals` row, for the state a period snapshot does not carry. */
+function goalColumns(live: SQL) {
+  return sql`g.id, g.user_id AS userId, g.kind, g.target, g.discipline, g.grade, g.timeframe, g.repeat, g.start_date AS startDate, g.end_date AS endDate, g.timezone, g.grade_match AS gradeMatch, g.tags, (${live}.archive_token IS NOT NULL) AS archived, ${live}.recurring_end_date AS recurringEndDate`;
+}
 
 async function goalPeriodsQuery(
   db: Database,
@@ -49,7 +52,7 @@ async function goalPeriodsQuery(
 ) {
   const goalFilter = options.goalId === undefined ? sql`1` : sql`g.id = ${options.goalId}`;
   const zones = await db.all<{ timezone: string }>(
-    sql`SELECT DISTINCT g.timezone FROM goals g WHERE g.user_id=${ownerId} AND ${goalFilter} AND ${journalVisibleSql(viewerId, sql`g.user_id`)} UNION SELECT h.timezone FROM goal_periods h JOIN goals g ON g.id=h.goal_id WHERE g.user_id=${ownerId} AND ${goalFilter} AND ${journalVisibleSql(viewerId, sql`g.user_id`)}`,
+    sql`SELECT g.timezone FROM goals g WHERE g.user_id=${ownerId} AND ${goalFilter} AND ${journalVisibleSql(viewerId, sql`g.user_id`)} UNION SELECT h.timezone FROM goal_periods h JOIN goals g ON g.id=h.goal_id WHERE g.user_id=${ownerId} AND ${goalFilter} AND ${journalVisibleSql(viewerId, sql`g.user_id`)}`,
   );
   if (zones.length === 0) return null;
   const dates = JSON.stringify(
@@ -98,11 +101,10 @@ async function goalPeriodsQuery(
     ), ranked AS (
       SELECT *,row_number() OVER (PARTITION BY id,ps,repeat ORDER BY entryDate,item) AS ordinal FROM contributions
     )
-    SELECT ${goalColumns},json_extract(${dates}, '$."' || live.timezone || '"') AS today, g.ps AS periodStart,g.pe AS periodEnd,
+    SELECT ${goalColumns(sql`live`)},json_extract(${dates}, '$."' || live.timezone || '"') AS today, g.ps AS periodStart,g.pe AS periodEnd,
       count(r.item) AS progress,max(CASE WHEN r.ordinal = g.target THEN r.entryDate END) AS completedDate
     FROM scoped_periods g JOIN goals live ON live.id=g.id
     LEFT JOIN ranked r ON r.id=g.id AND r.ps=g.ps AND r.repeat=g.repeat
-    WHERE ${journalVisibleSql(viewerId, sql`g.user_id`)}
     GROUP BY g.id,g.ps,g.repeat
     ORDER BY g.pe DESC,g.id DESC
   `;
@@ -171,7 +173,7 @@ export async function getRecurringGoalHistory(
   anchorMonth?: string,
 ) {
   const definitions = await db.all<GoalProgress & { priority: number }>(sql`
-    SELECT ${goalColumns},g.start_date AS periodStart,min(g.end_date,COALESCE(g.recurring_end_date,g.end_date)) AS periodEnd,0 AS progress,NULL AS completedDate,0 AS priority FROM goals g
+    SELECT ${goalColumns(sql`g`)},g.start_date AS periodStart,min(g.end_date,COALESCE(g.recurring_end_date,g.end_date)) AS periodEnd,0 AS progress,NULL AS completedDate,0 AS priority FROM goals g
     WHERE g.id=${goalId} AND g.user_id=${ownerId} AND ${journalVisibleSql(viewerId, sql`g.user_id`)}
     UNION ALL
     SELECT g.id,g.user_id,h.kind,h.target,h.discipline,h.grade,h.repeat,h.repeat,h.start_date,h.end_date,h.timezone,h.grade_match,h.tags,(g.archive_token IS NOT NULL),g.recurring_end_date,h.start_date,h.end_date,0,NULL,1

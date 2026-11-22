@@ -23,7 +23,7 @@ export default async function FriendsPage({
     return <AuthCallout next={view === "friends" ? "/friends" : `/friends?view=${view}`} />;
   const db = await getDb();
   const [page, suggestions] = await Promise.all([
-    getFriendsPage(db, session.user.id, requestsOnly),
+    getFriendsPage(db, session.user.id, { requestsOnly }),
     requestsOnly ? null : getClimberSuggestions(db, session.user.id).catch(() => null),
   ]);
   return (

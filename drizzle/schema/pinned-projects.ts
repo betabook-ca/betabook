@@ -5,11 +5,10 @@ import { user } from "./auth";
 import { climbs } from "./climbs";
 
 /** A climb the climber deliberately marked as a project. This is the sole
- * source of the Projects and Sent tabs: before it existed, a
- * project was inferred from "logged a session, never sent it", which swept up
- * every warm-up and one-off attempt. Sessions and sends still supply a card's
- * contents, but never its membership — a pin with no sessions at all is a
- * valid, intentional row.
+ * source of the Projects and Sent tabs: a project is never inferred from
+ * "logged a session, never sent it", which would sweep up every warm-up and
+ * one-off attempt. Sessions and sends supply a card's contents, but never its
+ * membership — a pin with no sessions at all is a valid, intentional row.
  *
  * Unlike `sends`, which restricts climb deletion because a send is historical
  * data, a pin is a bookmark: it carries nothing that outlives its climb, so

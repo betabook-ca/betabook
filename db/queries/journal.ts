@@ -6,11 +6,13 @@ import type { JournalFilter, JournalView } from "@/lib/filters/journal-filter";
 import type { ClimbType } from "@/lib/grades";
 import type { JournalKind } from "@/lib/journal";
 import type { JournalCompanion } from "@/lib/journal-companions";
+import { CLIMB_JOURNAL_ENTRY_LIMIT } from "@/lib/page-sizes";
 
 import { journalVisibleSql, sendCommentVisibleSql } from "./content-access";
 import { journalHashtagsCondition } from "./hashtag-filter";
 import { companionsJsonSql } from "./journal-companions";
 import { parseVideoList } from "./send-videos";
+import { clampPageSize } from "./shared";
 import { tripLinkCoversSql } from "./trip-shares";
 
 export type JournalEntry = {
@@ -182,11 +184,15 @@ export async function getJournalPage(
     ...filterConditions(filter, viewerId),
   ];
   if (filter.friendIds.length > 0) {
+    // The tags `companionsJsonSql` would show: not removed, friendship still
+    // accepted. Its audience check is moot here, since only the owner filters.
     conditions.push(sql`EXISTS (
-      SELECT 1 FROM json_each(${companionsJsonSql(viewerId, sql`j.id`)}) companion_filter
-      WHERE json_extract(companion_filter.value, '$.id') IN (
-        SELECT value FROM json_each(${JSON.stringify(filter.friendIds)})
-      )
+      SELECT 1 FROM journal_companions jc INDEXED BY journal_companions_active_idx
+      JOIN friendships tagged_friendship ON tagged_friendship.user_id = jc.friendship_user_id
+        AND tagged_friendship.friend_id = jc.friendship_friend_id
+      WHERE jc.entry_id = j.id AND jc.suppressed = 0
+        AND tagged_friendship.status = 'accepted'
+        AND jc.user_id IN (SELECT value FROM json_each(${JSON.stringify(filter.friendIds)}))
     )`);
   }
   if (cursor) {
@@ -233,8 +239,6 @@ export async function getSharedTripEntries(
   return { entries: (hasMore ? rows.slice(0, pageSize) : rows).map(toJournalEntry), hasMore };
 }
 
-const CLIMB_JOURNAL_ENTRY_LIMIT = 4;
-
 export async function getJournalForClimb(
   db: Database,
   ownerId: string,
@@ -256,13 +260,13 @@ export async function getAscentEntryId(
   ownerId: string,
   climbId: number,
 ): Promise<number | undefined> {
-  const row = await db.get<{ id: number | null }>(sql`
+  const row = await db.get<{ id: number }>(sql`
     SELECT j.id AS id
     FROM journal_entries j
     WHERE j.user_id = ${ownerId} AND j.climb_id = ${climbId} AND j.is_ascent = 1
     LIMIT 1
   `);
-  return row?.id ?? undefined;
+  return row?.id;
 }
 
 export async function getJournalEntry(db: Database, entryId: number, ownerId: string) {
@@ -377,7 +381,7 @@ const OPEN_PROJECT_SUGGESTION_LIMIT = 8;
 /** `ownerId` is bound inside the session aggregate rather than correlated to
  * `p.user_id`: SQLite derived tables cannot see the enclosing query's columns,
  * and the read is already scoped to one climber anyway. */
-function projectSelect(ownerId: string, sent: boolean): SQL {
+function projectSelect(ownerId: string): SQL {
   return sql`
     SELECT
       p.climb_id        AS climbId,
@@ -393,8 +397,7 @@ function projectSelect(ownerId: string, sent: boolean): SQL {
       agg.firstSession  AS firstSession,
       agg.lastSession   AS lastSession,
       s.date_sent       AS sentOn,
-      ${sent ? sql`1` : sql`0`} AS sent,
-      share.token       AS shareToken,
+      share.token      AS shareToken,
       share.expires_at  AS shareExpiresAt
     FROM pinned_projects p
     JOIN climbs ON climbs.id = p.climb_id
@@ -427,36 +430,29 @@ export async function getPinnedProjects(
   { sent }: { sent: boolean },
   limit: number = OPEN_PROJECT_PAGE_SIZE,
 ): Promise<PinnedProject[]> {
+  // Owner-only, so no audience check follows: the owner always reads their own.
   if (ownerId !== viewerId) return [];
-  const boundedLimit = Number.isInteger(limit)
-    ? Math.min(Math.max(limit, 1), OPEN_PROJECT_PAGE_SIZE + 1)
-    : OPEN_PROJECT_PAGE_SIZE;
+  const boundedLimit = clampPageSize(limit, OPEN_PROJECT_PAGE_SIZE, OPEN_PROJECT_PAGE_SIZE + 1);
 
   const rows = await db.all<
     Omit<PinnedProject, "sent" | "share"> & {
-      sent: number;
       shareToken: string | null;
       shareExpiresAt: string | null;
     }
   >(sql`
-    ${projectSelect(ownerId, sent)}
+    ${projectSelect(ownerId)}
     WHERE p.user_id = ${ownerId}
-      AND ${journalVisibleSql(viewerId, sql`p.user_id`)}
       AND s.id IS ${sent ? sql`NOT NULL` : sql`NULL`}
-    ORDER BY ${
-      sent
-        ? sql`s.date_sent IS NULL, s.date_sent DESC`
-        : // SQLite sorts NULL first under DESC, which would float a pin that
-          // has never been climbed above every active project; the IS NULL key
-          // pushes those to the end, ordered by when they were pinned.
-          sql`agg.lastSession IS NULL, agg.lastSession DESC`
-    },
+    -- SQLite sorts NULL last under DESC, so a pin that has never been climbed
+    -- falls below every active project, ordered by when it was pinned.
+    ORDER BY ${sent ? sql`s.date_sent DESC` : sql`agg.lastSession DESC`},
       p.pinned_at DESC, p.climb_id ASC
     LIMIT ${boundedLimit}
   `);
   return rows.map(({ shareToken, shareExpiresAt, ...row }) => ({
     ...row,
-    sent: row.sent === 1,
+    // The WHERE above partitions on the send, so every row has this value.
+    sent,
     share: shareToken ? { token: shareToken, expiresAt: shareExpiresAt } : null,
   }));
 }
@@ -474,10 +470,13 @@ export async function getPinnedProjectSessions(
   climbIds: number[],
   perProject: number = OPEN_PROJECT_SESSION_PRELOAD,
 ): Promise<JournalEntry[]> {
+  // Owner-only, so no audience check follows: the owner always reads their own.
   if (ownerId !== viewerId || climbIds.length === 0) return [];
-  const bounded = Number.isInteger(perProject)
-    ? Math.min(Math.max(perProject, 1), OPEN_PROJECT_SESSION_PRELOAD)
-    : OPEN_PROJECT_SESSION_PRELOAD;
+  const bounded = clampPageSize(
+    perProject,
+    OPEN_PROJECT_SESSION_PRELOAD,
+    OPEN_PROJECT_SESSION_PRELOAD,
+  );
 
   const rows = await db.all<JournalEntryRow>(sql`
     WITH ranked AS (
@@ -486,7 +485,6 @@ export async function getPinnedProjectSessions(
         ) AS seq
       FROM journal_entries j
       WHERE j.user_id = ${ownerId}
-        AND ${journalVisibleSql(viewerId, sql`j.user_id`)}
         AND j.kind = 'session' AND j.climb_id IS NOT NULL
         AND j.climb_id IN (SELECT value FROM json_each(${JSON.stringify(climbIds)}))
     )
@@ -522,10 +520,13 @@ export async function getOpenProjectSuggestions(
   viewerId: string | null,
   limit: number = OPEN_PROJECT_SUGGESTION_LIMIT,
 ): Promise<OpenProject[]> {
+  // Owner-only, so no audience check follows: the owner always reads their own.
   if (ownerId !== viewerId) return [];
-  const boundedLimit = Number.isInteger(limit)
-    ? Math.min(Math.max(limit, 1), OPEN_PROJECT_SUGGESTION_LIMIT)
-    : OPEN_PROJECT_SUGGESTION_LIMIT;
+  const boundedLimit = clampPageSize(
+    limit,
+    OPEN_PROJECT_SUGGESTION_LIMIT,
+    OPEN_PROJECT_SUGGESTION_LIMIT,
+  );
 
   return db.all<OpenProject>(sql`
     SELECT
@@ -544,7 +545,7 @@ export async function getOpenProjectSuggestions(
     FROM journal_entries j
     JOIN climbs ON climbs.id = j.climb_id
     JOIN areas ON areas.id = climbs.area_id
-    WHERE j.user_id = ${ownerId} AND ${journalVisibleSql(viewerId, sql`j.user_id`)} AND ${IS_OPEN_PROJECT}
+    WHERE j.user_id = ${ownerId} AND ${IS_OPEN_PROJECT}
       AND NOT EXISTS (
         SELECT 1 FROM pinned_projects pp
         WHERE pp.user_id = j.user_id AND pp.climb_id = j.climb_id

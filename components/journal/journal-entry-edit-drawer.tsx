@@ -48,11 +48,9 @@ export function JournalEntryEditDrawer({
               entry.climbId != null && entry.climbType != null
                 ? {
                     id: entry.climbId,
-                    name: entry.climbName ?? "",
                     type: entry.climbType,
                     grade: entry.climbGrade,
                     brokenOn: entry.climbBrokenOn,
-                    areaId: entry.areaId ?? 0,
                   }
                 : null
             }

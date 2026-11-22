@@ -65,43 +65,42 @@ export function GoalItems({
     }
   }
   return (
-    <div className="[&_button]:min-h-6 [&_button]:tracking-normal [&_button]:normal-case [&>*]:gap-0">
-      <DetailsDisclosure
-        title={`${goal.progress} ${goal.kind === "new-areas" ? "area" : "climb"}${goal.progress === 1 ? "" : "s"}`}
-        isExpanded={expanded}
-        onExpandedChange={toggle}
-      >
-        {error ? (
-          <InlineAlert
-            action={
-              <Button
-                size="sm"
-                onPress={() => {
-                  void toggle(true);
-                }}
-              >
-                Try again
-              </Button>
-            }
-          >
-            {error}
-          </InlineAlert>
-        ) : items === null ? (
-          <p className="text-xs text-muted">Loading…</p>
-        ) : (
-          <ul className="flex flex-col gap-1">
-            {items.map((item) => (
-              <li key={`${item.type}-${item.id}`} className="text-xs">
-                {item.type === "area" ? (
-                  <AppLink href={areaHref(item.id, item.name)}>{item.name}</AppLink>
-                ) : (
-                  <span>{item.name}</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </DetailsDisclosure>
-    </div>
+    <DetailsDisclosure
+      density="compact"
+      title={`${goal.progress} ${goal.kind === "new-areas" ? "area" : "climb"}${goal.progress === 1 ? "" : "s"}`}
+      isExpanded={expanded}
+      onExpandedChange={toggle}
+    >
+      {error ? (
+        <InlineAlert
+          action={
+            <Button
+              size="sm"
+              onPress={() => {
+                void toggle(true);
+              }}
+            >
+              Try again
+            </Button>
+          }
+        >
+          {error}
+        </InlineAlert>
+      ) : items === null ? (
+        <p className="text-xs text-muted">Loading…</p>
+      ) : (
+        <ul className="flex flex-col gap-1">
+          {items.map((item) => (
+            <li key={`${item.type}-${item.id}`} className="text-xs">
+              {item.type === "area" ? (
+                <AppLink href={areaHref(item.id, item.name)}>{item.name}</AppLink>
+              ) : (
+                <span>{item.name}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </DetailsDisclosure>
   );
 }

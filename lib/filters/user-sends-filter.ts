@@ -51,7 +51,7 @@ export function parseUserSendsFilter(params: UrlParamsRecord): UserSendsFilter {
     maxRating:
       Number.isInteger(maxRating) && maxRating >= 0 && maxRating <= MAX_RATING ? maxRating : 0,
     minRating:
-      Number.isFinite(minRating) && minRating >= 0 && minRating <= MAX_RATING
+      Number.isInteger(minRating) && minRating >= 0 && minRating <= MAX_RATING
         ? minRating
         : DEFAULT_USER_SENDS_FILTER.minRating,
   };

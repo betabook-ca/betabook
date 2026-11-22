@@ -46,13 +46,22 @@ beforeEach(async () => {
 });
 it("filters sends by the exact ascent tag, excluding repeats and preserving pagination", async () => {
   const filter = { ...DEFAULT_USER_SENDS_FILTER, tags: ["trip"] };
-  const page = await getSendsForUserPage(db, "owner", filter, 0, 1, "owner");
+  const page = await getSendsForUserPage(db, "owner", filter, { pageSize: 1, viewerId: "owner" });
   expect(page.sends.map((row) => row.climbId)).toEqual([1]);
   expect(page.hasMore).toBe(false);
-  expect((await getSendsForUserPage(db, "owner", filter, 1, 1, "owner")).sends).toEqual([]);
   expect(
-    (await getSendsForUserPage(db, "owner", { ...filter, tags: ["missing"] }, 0, 10, "owner"))
+    (await getSendsForUserPage(db, "owner", filter, { offset: 1, pageSize: 1, viewerId: "owner" }))
       .sends,
+  ).toEqual([]);
+  expect(
+    (
+      await getSendsForUserPage(
+        db,
+        "owner",
+        { ...filter, tags: ["missing"] },
+        { pageSize: 10, viewerId: "owner" },
+      )
+    ).sends,
   ).toEqual([]);
 });
 it("filters analytic sends and session counts consistently", async () => {
@@ -67,7 +76,7 @@ it("filters analytic sends and session counts consistently", async () => {
 it("does not reveal private journal tags through send filtering", async () => {
   await db.run(sql`UPDATE user SET journal_visibility = 'private' WHERE id = 'owner'`);
   expect(
-    (await getSendsForUserPage(db, "owner", { ...DEFAULT_USER_SENDS_FILTER, tags: ["trip"] }, 0))
+    (await getSendsForUserPage(db, "owner", { ...DEFAULT_USER_SENDS_FILTER, tags: ["trip"] }))
       .sends,
   ).toEqual([]);
   expect(await getUserSendsForAnalytics(db, "owner", null, ["trip"])).toEqual([]);
@@ -93,7 +102,10 @@ it("suggests only this user's visible tags and distinguishes ascents from sessio
     entryDate: "2025-02-01",
     tags: ["someone-else"],
   });
-  expect(await getUserHashtags(db, "owner", "owner", true)).toEqual(["trip", "trip-long"]);
+  expect(await getUserHashtags(db, "owner", "owner", { ascentsOnly: true })).toEqual([
+    "trip",
+    "trip-long",
+  ]);
   expect(await getUserHashtags(db, "owner", "owner")).toEqual([
     "session-only",
     "trip",
@@ -105,14 +117,17 @@ it("suggests only this user's visible tags and distinguishes ascents from sessio
     entryDate: "2025-02-02",
     tags: ["hangboard"],
   });
-  expect(await getUserHashtags(db, "owner", "owner", false, true)).toEqual([
+  expect(await getUserHashtags(db, "owner", "owner", { includeTraining: true })).toEqual([
     "hangboard",
     "session-only",
     "trip",
     "trip-long",
   ]);
   await db.run(sql`UPDATE user SET journal_visibility = 'public' WHERE id = 'owner'`);
-  expect(await getUserHashtags(db, "owner", "reader", true)).toEqual(["trip", "trip-long"]);
+  expect(await getUserHashtags(db, "owner", "reader", { ascentsOnly: true })).toEqual([
+    "trip",
+    "trip-long",
+  ]);
   await db.run(sql`UPDATE user SET journal_visibility = 'private' WHERE id = 'owner'`);
   expect(await getUserHashtags(db, "owner", null)).toEqual([]);
   expect(await getJournalSessionsForAnalytics(db, "owner", null, ["trip"])).toEqual([]);
@@ -124,7 +139,7 @@ it("matches every selected tag on the same ascent and round trips repeated URL p
   );
   const filter = { ...DEFAULT_USER_SENDS_FILTER, tags: ["trip", "project"] };
   expect(
-    (await getSendsForUserPage(db, "owner", filter, 0, 10, "owner")).sends.map(
+    (await getSendsForUserPage(db, "owner", filter, { pageSize: 10, viewerId: "owner" })).sends.map(
       (row) => row.climbId,
     ),
   ).toEqual([1]);

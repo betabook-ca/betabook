@@ -32,19 +32,22 @@ const STATIC_PATHS = [
   ...TERMS_VERSIONS.map(({ version }) => termsHref(version)),
 ];
 
-const counts = requestMemo(async () => {
+/** Shard counts from live row counts — area shards first (static paths ride
+ * in shard 0, so there is always one), then climb shards. Request-time only:
+ * it hits D1. */
+const shardCounts = requestMemo(async () => {
   const db = await getDb();
   const [areas, climbs] = await Promise.all([countAreas(db), countClimbs(db)]);
-  return { areas, climbs };
+  return {
+    areaShards: Math.max(1, Math.ceil(areas / SHARD_SIZE)),
+    climbShards: Math.ceil(climbs / SHARD_SIZE),
+  };
 });
 
-/** Real (non-empty) shard count from live row counts — area shards first
- * (static paths ride in shard 0), then climb shards. Request-time only: it
- * hits D1. The sitemap index links exactly this many shards. */
+/** Real (non-empty) shard count. The sitemap index links exactly this many
+ * shards. */
 export async function activeShardCount(): Promise<number> {
-  const { areas, climbs } = await counts();
-  const areaShards = Math.max(1, Math.ceil(areas / SHARD_SIZE));
-  const climbShards = Math.ceil(climbs / SHARD_SIZE);
+  const { areaShards, climbShards } = await shardCounts();
   return areaShards + climbShards;
 }
 
@@ -58,11 +61,10 @@ export default async function sitemap({
   id: Promise<string>;
 }): Promise<MetadataRoute.Sitemap> {
   const shard = Number(await id);
-  if (!Number.isInteger(shard) || shard < 0 || shard >= (await activeShardCount())) return [];
+  const { areaShards, climbShards } = await shardCounts();
+  if (!Number.isInteger(shard) || shard < 0 || shard >= areaShards + climbShards) return [];
 
   const db = await getDb();
-  const { areas } = await counts();
-  const areaShards = Math.max(1, Math.ceil(areas / SHARD_SIZE));
 
   if (shard < areaShards) {
     const rows = await getAreaSitemapRows(db, SHARD_SIZE, shard * SHARD_SIZE);

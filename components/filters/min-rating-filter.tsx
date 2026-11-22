@@ -5,9 +5,10 @@ import { useId } from "react";
 import { ratingBounds } from "@/components/filters/active-filter-values";
 import { FILTER_ROW_CLASS, FILTER_LABEL_CLASS, FILTER_CONTROL_CLASS } from "@/components/ui/field";
 import { RatingField } from "@/components/ui/rating-field";
-import { MAX_RATING } from "@/lib/filters/climb-stats-filter";
+import { MAX_RATING, ratingRangeValue } from "@/lib/filters/climb-stats-filter";
 
-/** A full 1–5 range is unfiltered; narrowing either side keeps the bounds ordered. */
+/** A full 1–5 range is unfiltered and is written as the default range;
+ * narrowing either side keeps the bounds ordered. */
 export function RatingRangeFilter({
   value,
   onChange,
@@ -37,7 +38,7 @@ export function RatingRangeFilter({
             allowClear={false}
             onValueChange={(rating) => {
               const next = rating ?? 1;
-              onChange([next, Math.max(next, max)]);
+              onChange(ratingRangeValue([next, Math.max(next, max)]));
             }}
           />
           <span aria-hidden className="text-muted">
@@ -51,7 +52,7 @@ export function RatingRangeFilter({
             allowClear={false}
             onValueChange={(rating) => {
               const next = rating ?? MAX_RATING;
-              onChange([Math.min(min, next), next]);
+              onChange(ratingRangeValue([Math.min(min, next), next]));
             }}
           />
         </div>

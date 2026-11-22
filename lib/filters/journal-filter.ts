@@ -3,7 +3,7 @@ import {
   parseDateFilter,
   type DateFilterValue,
 } from "@/lib/filters/date-filter";
-import { isValidJournalTag, normalizeTag } from "@/lib/journal";
+import { normalizeHashtagFilters } from "@/lib/filters/hashtag-filter";
 import { toArray, type UrlParamsRecord } from "@/lib/url-params";
 
 export const JOURNAL_VIEWS = ["all", "sessions", "training"] as const;
@@ -42,7 +42,7 @@ export function parseJournalFilter(params: UrlParamsRecord): JournalFilter {
     : DEFAULT_JOURNAL_FILTER.view;
 
   const query = normalizeQuery(toArray(params.q)[0] ?? "");
-  const tags = [...new Set(toArray(params.tag).map(normalizeTag).filter(isValidJournalTag))];
+  const tags = normalizeHashtagFilters(toArray(params.tag));
 
   const climbId = Number(toArray(params.climbId)[0]);
   const year = Number(toArray(params.year)[0]);

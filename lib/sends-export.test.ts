@@ -147,10 +147,12 @@ describe("export → import round trip", () => {
     const { valid, invalid, warnings } = normalizeImportRows(
       parsed,
       mapping,
-      ascentStyleMapping,
-      climbTypeMapping,
-      gradeFeelMapping,
-      guessRatingMapping(distinctValues(parsed.rows, mapping.rating), "betabook"),
+      {
+        ascentStyleMapping,
+        climbTypeMapping,
+        gradeFeelMapping,
+        ratingMapping: guessRatingMapping(distinctValues(parsed.rows, mapping.rating), "betabook"),
+      },
       "iso",
       { today: "2026-08-19" },
     );

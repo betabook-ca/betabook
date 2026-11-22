@@ -1,12 +1,10 @@
 import { z } from "zod";
 
 import { ActionError } from "@/lib/action-result";
-import { nativeGradeArray, type ClimbType } from "@/lib/grades";
+import { nativeGradeArray, type ClimbType, type ImportGradePreference } from "@/lib/grades";
 import { MAX_LOG_NOTE_LENGTH } from "@/lib/log-note";
 import { validateSendVideosInput } from "@/lib/send-video";
 import { parseGradeIndex, trimOrNull } from "@/lib/validation";
-
-export { MAX_LOG_NOTE_LENGTH as MAX_COMMENT_LENGTH } from "@/lib/log-note";
 
 export const ASCENT_STYLES = ["redpoint", "flash", "onsight"] as const;
 export type AscentStyle = (typeof ASCENT_STYLES)[number];
@@ -81,9 +79,14 @@ export function readVideoFields(formData: FormData): FormDataEntryValue[] | unde
  * stored dates; user-entered dates go through `isRealIsoDate`. */
 export const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** Today's UTC calendar date as `YYYY-MM-DD`. */
+export function todayUtc(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 /** Allow one day past UTC today because the client's calendar date may be ahead. */
-export function latestAcceptableSendDate(todayUtc: string): string {
-  const [year, month, day] = todayUtc.split("-").map(Number);
+export function latestAcceptableSendDate(today: string): string {
+  const [year, month, day] = today.split("-").map(Number);
   return new Date(Date.UTC(year, month - 1, day + 1)).toISOString().slice(0, 10);
 }
 
@@ -157,7 +160,7 @@ function parseGradeFeel(value: unknown): GradeFeel {
 export function validateSendInput(
   climbType: ClimbType,
   raw: RawSendInput,
-  today: string = new Date().toISOString().slice(0, 10),
+  today: string = todayUtc(),
 ): SendInput {
   const ascentStyle = parseAscentStyle(raw.ascentStyle, climbType);
   const dateSent = parseDateSent(raw.dateSent, today);
@@ -213,7 +216,7 @@ export function validateImportSendValues(
     gradeFeel: unknown;
   },
   climbType: ClimbType,
-  today: string = new Date().toISOString().slice(0, 10),
+  today: string = todayUtc(),
 ): ImportSendValues {
   const comment = typeof row.comment === "string" ? row.comment.trim() : "";
   return {
@@ -239,6 +242,6 @@ export type ImportResult = {
 
 export type ImportOptions = {
   batchId?: string;
-  gradeScale: "native" | "converted";
+  gradeScale: ImportGradePreference;
   onConflict: "skip" | "overwrite";
 };

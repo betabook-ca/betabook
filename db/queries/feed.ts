@@ -22,8 +22,8 @@ type FeedActivity = {
   climbName: string | null;
   climbType: ClimbType | null;
   climbGrade: number | null;
-  /** The climber's send grade, reused for completed repeats. Sessions and
-   * training never inherit it; ungraded sends also have no reported grade. */
+  /** The climber's send grade, reused for completed repeats. Null for
+   * sessions, training and goals, which never inherit it. */
   reportedGrade: number | null;
   gradeFeel: GradeFeel | null;
   areaId: number | null;
@@ -77,11 +77,11 @@ export async function getFeedPage(
   //
   // `activity` is read exactly once, and the final SELECT never names
   // `authors`. SQLite copies a CTE body into every place that names it, and
-  // D1 (since 2026-11-08, cloudflare/workers-sdk#16786) counts every copied
-  // table against SQLITE_LIMIT_EXPR_DEPTH (100) and fails the statement with
-  // "VIEWs and/or subqueries nested too deep". The old days/previews pair named
-  // `activity` three times and failed. Window functions give the same day
-  // counts, page cut and preview positions in one pass.
+  // D1 (cloudflare/workers-sdk#16786) counts every copied table against
+  // SQLITE_LIMIT_EXPR_DEPTH (100) and fails the statement with "VIEWs and/or
+  // subqueries nested too deep", so separate CTEs that each name `activity`
+  // exceed it. Window functions compute the day counts, page cut and preview
+  // positions in one pass instead.
   const companionEntryId = sql`CASE WHEN p.kind = 'send' THEN (
     SELECT ascent.id FROM journal_entries ascent
     WHERE ascent.user_id = p.userId AND ascent.climb_id = p.climbId AND ascent.is_ascent = 1

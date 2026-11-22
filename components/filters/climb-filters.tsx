@@ -8,7 +8,7 @@ import type { ActiveFilter } from "@/components/filters/active-filter-summary";
 import { FilterToolbar } from "@/components/filters/filter-toolbar";
 import type { ClimbRefinements } from "@/lib/filters/climb-refinements";
 
-export function ClimbFilters({
+export function ClimbFilters<T extends ClimbRefinements>({
   value,
   onChange,
   areaControl,
@@ -18,8 +18,8 @@ export function ClimbFilters({
   onReset,
   activeFilters,
 }: {
-  value: ClimbRefinements;
-  onChange: (value: ClimbRefinements) => void;
+  value: T;
+  onChange: (value: T) => void;
   areaControl?: ReactNode;
   /** Absent in a picker, where the order of a short result list is not the question. */
   sortControl?: ReactNode;

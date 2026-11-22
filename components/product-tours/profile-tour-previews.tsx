@@ -1,23 +1,22 @@
 "use client";
 
 import { Button } from "@heroui/react";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { StatTiles } from "@/components/analytics-stat-tiles";
 import { AscentStyle } from "@/components/ascent-style";
-import { FilterInput } from "@/components/filters/filter-input";
 import { JournalEntryLayout, JournalEntryStatus } from "@/components/journal/journal-entry-layout";
 import { ProjectCardLayout } from "@/components/journal/project-card-layout";
 import { ProjectSessionList } from "@/components/journal/project-session-list";
 import { PrivacyFields } from "@/components/privacy-fields";
+import { TourChoices } from "@/components/product-tours/tour-choices";
 import { ProgressionChart } from "@/components/progression-chart";
 import { SendGradeCell } from "@/components/send-grade-cell";
 import { cardClass } from "@/components/ui/card";
-import { choicePillClass } from "@/components/ui/choice-pill";
-import { FILTER_PILL_CLASS } from "@/components/ui/field";
 import { Grade } from "@/components/ui/grade";
 import { ListRow } from "@/components/ui/list-row";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
+import { QueryInput } from "@/components/ui/query-input";
 import { SettingsSection } from "@/components/ui/settings";
 import { SortSelect } from "@/components/ui/sort-select";
 import { formatDate } from "@/lib/format-date";
@@ -31,34 +30,6 @@ import {
   TOUR_DEMO_SENDS,
   TOUR_DEMO_SEARCH_RESULTS,
 } from "@/lib/product-tour-demo";
-
-function Choices<T extends string>({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: readonly T[];
-  value: T;
-  onChange: (value: T) => void;
-}) {
-  return (
-    <div role="group" aria-label={label} className="flex flex-wrap gap-1.5">
-      {options.map((option) => (
-        <button
-          key={option}
-          type="button"
-          aria-pressed={value === option}
-          className={`${choicePillClass(value === option, "bg-foreground text-background")} ${FILTER_PILL_CLASS}`}
-          onClick={() => onChange(option)}
-        >
-          {option}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 export function DemoJournal() {
   const [view, setView] = useState<"All" | "Sessions" | "Training">("All");
@@ -78,7 +49,7 @@ export function DemoJournal() {
   return (
     <div className="flex flex-col gap-4">
       <div data-tour-target="journal-filters" className="flex flex-col gap-2">
-        <FilterInput
+        <QueryInput
           label="Filter Alex's journal"
           placeholder="Filter journal…"
           value={query}
@@ -87,7 +58,7 @@ export function DemoJournal() {
             setShowAll(false);
           }}
         />
-        <Choices
+        <TourChoices
           label="Journal entry type"
           options={["All", "Sessions", "Training"]}
           value={view}
@@ -281,6 +252,7 @@ export function DemoProjects() {
 
 export function DemoAnalytics() {
   const [showDay, setShowDay] = useState(false);
+  const dayId = useId();
   const analytics = TOUR_DEMO_ANALYTICS;
   return (
     <div className="flex min-w-0 flex-col gap-4">
@@ -303,12 +275,12 @@ export function DemoAnalytics() {
       <Button
         variant="secondary"
         aria-expanded={showDay}
-        aria-controls="demo-analytics-day"
+        aria-controls={dayId}
         onPress={() => setShowDay(!showDay)}
       >
         {showDay ? "Hide March 12" : "Why is March 12 only one day out?"}
       </Button>
-      <div id="demo-analytics-day" hidden={!showDay}>
+      <div id={dayId} hidden={!showDay}>
         <ul className="list-disc space-y-1 pl-5 text-sm">
           {TOUR_DEMO_ENTRIES.filter((entry) => entry.date === "2026-03-12").map((entry) => (
             <li key={entry.id}>

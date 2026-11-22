@@ -255,7 +255,7 @@ it("renders a tracked climb with no sessions as a bare card, with no dates to re
   // a climb before touching it.
   expect(within(bare).queryByRole("button", { name: "Load more" })).not.toBeInTheDocument();
   expect(
-    within(bare).getByRole("button", { name: "Log a session on Sleeping Giant" }),
+    within(bare).getByRole("button", { name: "Log session on Sleeping Giant" }),
   ).toBeInTheDocument();
 });
 
@@ -265,7 +265,7 @@ it("logs a session against the project whose button was pressed", async () => {
     <ProjectBoard shareOrigin={ORIGIN} userId="climber" projects={projects} hasMore={false} />,
   );
 
-  await user.click(screen.getByRole("button", { name: "Log a session on Ash Crack" }));
+  await user.click(screen.getByRole("button", { name: "Log session on Ash Crack" }));
 
   const drawer = await screen.findByRole("dialog");
   expect(within(drawer).getByText("Ash Crack")).toBeInTheDocument();
@@ -380,6 +380,21 @@ it("says nothing is sent yet without inviting a track that belongs on the other 
   expect(screen.getByText(/No sent projects yet/)).toBeInTheDocument();
   expect(screen.getByRole("searchbox", { name: "Filter projects" })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Track project" })).not.toBeInTheDocument();
+});
+
+it("names a live link's button by the word it shows, for voice control", async () => {
+  const live = { token: "4f9c2a7e1b8d6035c9e4a1f7b2d80e36", expiresAt: "2999-01-01 00:00:00" };
+  render(
+    <ProjectBoard
+      shareOrigin={ORIGIN}
+      userId="climber"
+      projects={[{ ...slab, share: live }]}
+      hasMore={false}
+    />,
+  );
+  expect(
+    await screen.findByRole("button", { name: "Shared: manage the link for Moon Slab" }),
+  ).toHaveTextContent("Shared");
 });
 
 it("does not offer an expired link as a live one, on the card or in its dialog", async () => {

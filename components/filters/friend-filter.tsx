@@ -2,11 +2,11 @@
 
 import { Button, ComboBox, Input, ListBox } from "@heroui/react";
 import { X } from "lucide-react";
-import { useContext, useEffect, useRef, useState } from "react";
-import { ComboBoxStateContext } from "react-aria-components";
+import { useState } from "react";
 
 import { FIELD_WIDTH_CLASS, FILTER_ROW_CLASS, FILTER_LABEL_CLASS } from "@/components/ui/field";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { useCloseComboBoxOnChange } from "@/hooks/use-close-combo-box-on-change";
 import type { CompanionOption } from "@/lib/journal-companions";
 
 export function FriendFilter({
@@ -46,7 +46,7 @@ export function FriendFilter({
           }}
         >
           <ComboBox.InputGroup>
-            <FriendFilterInput scope={JSON.stringify(value)} />
+            <FriendFilterInput scope={value} />
             <ComboBox.Trigger className="hidden" />
           </ComboBox.InputGroup>
           <ComboBox.Popover>
@@ -98,15 +98,8 @@ export function FriendFilter({
   );
 }
 
-function FriendFilterInput({ scope }: { scope: string }) {
-  const state = useContext(ComboBoxStateContext);
-  const previousScope = useRef(scope);
-  useEffect(() => {
-    if (previousScope.current !== scope) {
-      previousScope.current = scope;
-      state?.close();
-    }
-  }, [scope, state]);
+function FriendFilterInput({ scope }: { scope: string[] }) {
+  const state = useCloseComboBoxOnChange(scope);
   return (
     <Input
       placeholder="Select friends…"

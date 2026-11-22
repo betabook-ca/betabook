@@ -6,13 +6,13 @@ import {
   textActiveFilters,
 } from "@/components/filters/active-filter-values";
 import { DateFilter } from "@/components/filters/date-filter";
-import { TextFilterField } from "@/components/filters/filter-input";
 import { FilterToolbarLayout } from "@/components/filters/filter-toolbar";
 import { FriendFilter } from "@/components/filters/friend-filter";
 import { HashtagFilter } from "@/components/filters/hashtag-filter";
 import { AppLink } from "@/components/ui/app-link";
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { FILTER_PILL_CLASS } from "@/components/ui/field";
+import { QueryInput } from "@/components/ui/query-input";
 import { useFilterFormNavigation } from "@/hooks/use-filter-form-navigation";
 import {
   DEFAULT_JOURNAL_FILTER,
@@ -132,7 +132,7 @@ export function JournalFilterToolbar({
         </>
       }
       search={
-        <TextFilterField
+        <QueryInput
           label="Filter journal"
           value={localFilter.query ?? ""}
           onChange={(query) => setFilter({ ...localFilter, query: query.trim() ? query : null })}

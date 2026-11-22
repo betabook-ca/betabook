@@ -5,6 +5,7 @@ import { useState } from "react";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { DetailsDisclosure } from "./details-disclosure";
+import { LoadMoreButton } from "./load-more-button";
 
 const meta = {
   title: "Components/Layout/Details disclosure",
@@ -33,3 +34,28 @@ function Example({ initiallyExpanded = false }: { initiallyExpanded?: boolean })
 
 export const Collapsed: Story = { render: () => <Example /> };
 export const Expanded: Story = { render: () => <Example initiallyExpanded /> };
+
+function CompactExample() {
+  const [expanded, setExpanded] = useState(true);
+  return (
+    <StoryPage
+      title="Compact details disclosure"
+      description="The inline variant for a summary inside a list row, such as a goal's climbs or its history. Only the trigger is small and sentence case; the Load more button in the body keeps its full tap target."
+    >
+      <DetailsDisclosure
+        density="compact"
+        title="5 climbs"
+        isExpanded={expanded}
+        onExpandedChange={setExpanded}
+      >
+        <ul className="flex flex-col gap-1 text-xs">
+          <li>Cedar Arete</li>
+          <li>Moonlight Arete</li>
+        </ul>
+        <LoadMoreButton loading={false} onPress={() => {}} />
+      </DetailsDisclosure>
+    </StoryPage>
+  );
+}
+
+export const Compact: Story = { render: () => <CompactExample /> };

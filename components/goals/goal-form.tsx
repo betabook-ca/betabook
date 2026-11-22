@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, ChevronDown, Dumbbell, MapPin, Mountain } from "
 import { useId, useRef, useState } from "react";
 
 import { TagInput } from "@/components/journal/tag-input";
+import { ChoiceCard } from "@/components/ui/choice-card";
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { DISCIPLINE_CHIP_CLASSNAME, DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
@@ -45,7 +46,6 @@ function timeframeOptions(
 
 const NO_GRADE_HISTORY: Partial<Record<ClimbType, number>> = {};
 const NO_AVAILABLE_TAGS: string[] = [];
-const GOAL_CHOICE_CLASS = "h-auto w-full justify-start gap-3 px-4 py-4 text-left whitespace-normal";
 
 const categories = [
   {
@@ -80,6 +80,10 @@ const goalOptions = {
     { value: "new-areas", label: "Visit new areas" },
   ],
 } satisfies Record<Category, { value: Goal; label: string }[]>;
+/** Starting target: a few climbs, or about twice a week for sessions and days out. */
+function defaultAmount(category: Category) {
+  return category === "climbing" ? "3" : "8";
+}
 export type GoalDraft = {
   category: Category;
   goal: Goal;
@@ -158,8 +162,8 @@ export function GoalForm({
   initialCustomDate = false,
   initialStartDate,
   initialEndDate,
-  initialDraft,
-  initialValues,
+  initialDraft: draft,
+  mode = "create",
   onSave,
   onCancel,
   initialRepeat = "none",
@@ -174,8 +178,12 @@ export function GoalForm({
   initialCustomDate?: boolean;
   initialStartDate?: string;
   initialEndDate?: string;
+  /** The fields to start from: the goal being edited, or a draft to
+   * create again, such as a missed goal's Try again. */
   initialDraft?: GoalDraft;
-  initialValues?: GoalDraft;
+  /** `edit` saves changes to an existing goal, and Back closes the form
+   * rather than returning to the category step. */
+  mode?: "create" | "edit";
   onSave?: (draft: GoalDraft) => void | Promise<void>;
   today?: string;
   onPendingChange?: (pending: boolean) => void;
@@ -185,7 +193,6 @@ export function GoalForm({
   onCancel?: () => void;
   initialRepeat?: GoalInput["repeat"];
 }) {
-  const draft = initialDraft ?? initialValues;
   const nextGradeFor = (value: ClimbType) =>
     String(Math.min(nextGrades[value] ?? 0, nativeGradeArray(value).length - 1));
   const [category, setCategory] = useState<Category>(
@@ -204,7 +211,7 @@ export function GoalForm({
   const [gradeMatch, setGradeMatch] = useState<"exact" | "at-least">(draft?.gradeMatch ?? "exact");
   const [tags, setTags] = useState<string[]>(draft?.tags ?? []);
   const [tagsExpanded, setTagsExpanded] = useState(Boolean(draft?.tags?.length));
-  const [amount, setAmount] = useState(draft?.amount ?? (category === "training" ? "8" : "3"));
+  const [amount, setAmount] = useState(draft?.amount ?? defaultAmount(category));
   const requestedPeriod = draft?.period ?? (initialCustomDate ? "custom" : "month");
   const [period, setPeriod] = useState<GoalInput["timeframe"]>(
     category === "training" && requestedPeriod === "year" ? "custom" : requestedPeriod,
@@ -229,7 +236,7 @@ export function GoalForm({
     if (selected && period !== "custom") setCadence(period);
     setRecurring(selected);
   }
-  const isEditing = Boolean(initialDraft);
+  const isEditing = mode === "edit";
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<{ message: string; field?: "endDate" } | null>(null);
   const endDateError = error?.field === "endDate" ? error.message : null;
@@ -279,11 +286,10 @@ export function GoalForm({
             </div>
             <div className="flex flex-col gap-3">
               {categories.map(({ value, label, description, icon: Icon }, index) => (
-                <Button
+                <ChoiceCard
                   key={value}
                   ref={index === 0 ? categoryRef : undefined}
-                  variant="outline"
-                  className={GOAL_CHOICE_CLASS}
+                  size="lg"
                   onPress={() => {
                     if (value !== category) {
                       setRecurring(false);
@@ -292,7 +298,7 @@ export function GoalForm({
                       setCadence("month");
                       setPeriod("month");
                       setGoal(goalOptions[value][0].value);
-                      setAmount(value === "climbing" ? "3" : "8");
+                      setAmount(defaultAmount(value));
                     }
                     setCategory(value);
                     setError(null);
@@ -305,7 +311,7 @@ export function GoalForm({
                     <span className="text-sm font-normal text-muted">{description}</span>
                   </span>
                   <ArrowRight aria-hidden className="size-4 shrink-0" />
-                </Button>
+                </ChoiceCard>
               ))}
             </div>
           </>
@@ -372,12 +378,10 @@ export function GoalForm({
                       aria-label="Goal"
                     >
                       {goalOptions[category].map((option) => (
-                        <Button
+                        <ChoiceCard
                           key={option.value}
                           type="button"
                           aria-pressed={goal === option.value}
-                          variant="outline"
-                          className="h-auto min-h-16 w-full justify-start rounded-panel! px-3 py-3 text-left text-sm whitespace-normal aria-pressed:bg-(--button-bg-hover)"
                           onPress={() => {
                             setGoal(option.value);
                             if (option.value === "grade" && grade === "any")
@@ -385,7 +389,7 @@ export function GoalForm({
                           }}
                         >
                           {option.label}
-                        </Button>
+                        </ChoiceCard>
                       ))}
                     </div>
                   </div>

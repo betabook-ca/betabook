@@ -1,5 +1,6 @@
 import type { GradeHistogramRow, SuggestedGradeCount } from "@/db/queries";
 import {
+  CLIMB_TYPES,
   DEFAULT_GRADE_PREFERENCES,
   gradeArray,
   nativeGradeArray,
@@ -176,7 +177,7 @@ export function buildGradeHistogram(
   }
 
   const groups: DisciplineHistogram[] = [];
-  for (const type of ["boulder", "sport", "trad"] as const) {
+  for (const type of CLIMB_TYPES) {
     const counts = countsByType.get(type);
     if (counts && counts.size > 0) {
       groups.push({ type, buckets: bucketize(type, counts, prefs) });
@@ -200,7 +201,7 @@ export function buildGradeHistogram(
       ? [ropeScale[Math.min(...ropeIndices)], ropeScale[Math.max(...ropeIndices)]]
       : null;
 
-  const disciplines = (["boulder", "sport", "trad"] as const).filter((d) => present.has(d));
+  const disciplines = CLIMB_TYPES.filter((d) => present.has(d));
 
   return { totalClimbs, ungradedCount, disciplines, groups, boulderSpan, ropeSpan };
 }

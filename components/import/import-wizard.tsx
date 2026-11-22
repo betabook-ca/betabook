@@ -1,7 +1,7 @@
 "use client";
 
-import { Button, Checkbox, Label } from "@heroui/react";
-import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
+import { Button } from "@heroui/react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import {
   importSends,
@@ -9,20 +9,13 @@ import {
   resolveImportClimbsInAreas,
   type ImportResult,
 } from "@/actions";
-import { GRADE_FEEL_OPTIONS } from "@/components/send-fields";
 import { cardClass } from "@/components/ui/card";
-import { choicePillClass } from "@/components/ui/choice-pill";
-import { Eyebrow } from "@/components/ui/eyebrow";
 import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { OptionSelect, type SelectOption } from "@/components/ui/option-select";
-import { ProgressBar } from "@/components/ui/progress-bar";
-import { SegmentedButtons } from "@/components/ui/segmented-buttons";
-import { SupportText } from "@/components/ui/support-text";
 import { PageTitle } from "@/components/ui/typography";
 import type { ClimbCandidate } from "@/db/queries";
 import { downloadCsv } from "@/lib/download";
-import { formatCount } from "@/lib/format";
+import type { ImportGradePreference } from "@/lib/grades";
 import { findImportDateClusters } from "@/lib/import-date-review";
 import { runImportBatches, type ImportProgress } from "@/lib/import-execution";
 import {
@@ -56,33 +49,24 @@ import {
   guessGradeFeelMapping,
   guessRatingMapping,
   missingRequiredColumns,
-  needsDateFormatChoice,
   normalizeImportRows,
   parseCsvText,
-  parseDateWithFormat,
-  valueCounts,
   DATE_SAMPLE_SIZE,
   IMPORT_SOURCE_LABELS,
   MAX_IMPORT_FILE_BYTES,
   MAX_IMPORT_ROWS,
-  REQUIRED_COLUMN_KEYS,
-  type AscentStyleMapping,
-  type ClimbTypeMapping,
   type CoercionWarning,
   type ColumnMapping,
-  type DateFormat,
   type FailedImportRow,
-  type FieldKey,
-  type GradeFeelMapping,
-  type ImportGradePreference,
   type ImportSource,
   type InvalidImportRow,
   type NormalizedImportRow,
   type ParsedCsv,
   preferredImportGradeScale,
-  type RatingMapping,
 } from "@/lib/sends-import";
 
+import { CsvWarnings } from "./csv-warnings";
+import { ImportColumnsStep, columnLabel } from "./import-columns-step";
 import { ImportDateWarning } from "./import-date-warning";
 import {
   ImportMatchStep,
@@ -91,96 +75,17 @@ import {
   type LookupStatus,
 } from "./import-match-step";
 import { ImportResultStep } from "./import-result-step";
+import { ImportReviewStep, type ConflictMode } from "./import-review-step";
 import { ImportSourceStep, type DirectSource } from "./import-source-step";
+import { ImportValuesStep, type ValueSettings } from "./import-values-step";
 import { TEXT_BUTTON_CLASS } from "./text-button";
-import {
-  ASCENT_STYLE_OPTIONS,
-  CLIMB_TYPE_OPTIONS,
-  RATING_OPTIONS,
-  Stat,
-  ValueMappingSection,
-} from "./value-mapping-section";
 import { WizardSteps, type Step } from "./wizard-steps";
-
-const COLUMN_FIELDS: { key: FieldKey; label: string; hint: string }[] = [
-  { key: "climbName", label: "Climb name", hint: "Matched against betabook's climbs by name." },
-  {
-    key: "ascentStyle",
-    label: "Ascent style",
-    hint: "Redpoint, flash, or onsight. Values are mapped on the next step; boulder onsights are saved as flashes.",
-  },
-  { key: "date", label: "Date sent", hint: "Any common date format." },
-  {
-    key: "areaName",
-    label: "Area",
-    hint: "The exact area or any parent. Leave blank to match on name alone.",
-  },
-  {
-    key: "suggestedGrade",
-    label: "Grade",
-    hint: "The grade you logged, imported as your suggested grade. Blank takes the climb’s listed grade, or keeps the grade of a send you overwrite.",
-  },
-  {
-    key: "gradeFeel",
-    label: "Grade feel",
-    hint: "Low end, solid, or high end. Values are mapped on the next step.",
-  },
-  { key: "rating", label: "Rating", hint: "1 to 5 stars." },
-  { key: "comment", label: "Comment", hint: "Notes on the send." },
-  { key: "climbType", label: "Climb type", hint: "Only used to tell same-named climbs apart." },
-  {
-    key: "grade",
-    label: "Posted grade",
-    hint: "The climb's guidebook grade, if the file has it as a separate column. Only used when no Grade column is mapped.",
-  },
-];
-
-function previewText(values: string[]): string {
-  return values
-    .slice(0, 3)
-    .map((value) => (value.length > 32 ? `${value.slice(0, 31)}…` : value))
-    .join(" · ");
-}
-
-function columnLabel(key: FieldKey): string {
-  return COLUMN_FIELDS.find((f) => f.key === key)?.label ?? key;
-}
-
-// Column pickers key their options by prefixed header, so no header text can
-// collide with the "None" choice.
-const NO_COLUMN = "none";
-const columnKey = (header: string) => `h:${header}`;
-const headerOf = (key: string): string | null => (key === NO_COLUMN ? null : key.slice(2));
-
-const DATE_FORMAT_OPTIONS: readonly SelectOption<DateFormat>[] = [
-  { value: "iso", label: "Year first — 2019-10-15" },
-  { value: "mdy", label: "Month first — 10/15/2019" },
-  { value: "dmy", label: "Day first — 15/10/2019" },
-];
-
-const GRADE_SCALE_OPTIONS: readonly SelectOption<ImportGradePreference>[] = [
-  { value: "native", label: "Native (V-scale / YDS)" },
-  { value: "converted", label: "Converted (Font / French)" },
-];
-
-const SOURCE_NOTES: Record<Exclude<ImportSource, "unknown">, string> = {
-  betabook: "Every column maps back to the field it was exported from.",
-  kaya: "KAYA location, region, and country columns are used as hints when a climb name matches in more than one place. Routes can match sport or trad climbs.",
-  sendage: "“Country” is used as a hint when a climb name matches in more than one place.",
-  mountainproject:
-    "“Rating” is the route's grade and “Your Rating” yours. “Location” is the full area path, used as hints from the wall up. Ascent style comes from “Lead Style”, or from “Style” where that is blank.",
-};
 
 const DIRECT_SOURCE_LABELS: Record<DirectSource, string> = {
   kaya: "KAYA",
   sendage: "Sendage",
   mountainproject: "Mountain Project",
 };
-
-const CONFLICT_MODES = [
-  { value: "skip", label: "Skip" },
-  { value: "overwrite", label: "Overwrite" },
-] as const;
 
 type BatchError = { rows: ResolvedRow[]; message: string; uncertain: boolean };
 type WizardResult = Omit<ImportResult, "missing" | "broken"> & {
@@ -210,23 +115,23 @@ function toImportSendRow(resolved: ResolvedRow, climb: ClimbCandidate): ImportSe
   };
 }
 
-function CsvWarnings({ warnings, subject }: { warnings: readonly string[]; subject: string }) {
-  if (warnings.length === 0) return null;
+/** The sends import. "Import another file" starts a fresh run, so every step's
+ * state begins from its defaults again. */
+export function ImportWizard({ profileHref }: { profileHref: string }) {
+  const [run, setRun] = useState(0);
   return (
-    <InlineAlert status="warning">
-      <ul className="flex flex-col gap-1">
-        {warnings.map((warning) => (
-          <li key={warning}>
-            <SupportText subject={subject}>{warning}</SupportText>
-          </li>
-        ))}
-      </ul>
-    </InlineAlert>
+    <ImportWizardRun key={run} profileHref={profileHref} onRestart={() => setRun((n) => n + 1)} />
   );
 }
 
 // oxlint-disable-next-line complexity -- multi-step wizard state machine; each step adds a branch
-export function ImportWizard({ profileHref }: { profileHref: string }) {
+function ImportWizardRun({
+  profileHref,
+  onRestart,
+}: {
+  profileHref: string;
+  onRestart: () => void;
+}) {
   const prefs = useGradePreferences();
   // A climber who reads Font or French most likely exported grades that way.
   const defaultGradeScale = preferredImportGradeScale(prefs);
@@ -239,14 +144,17 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
   const [parsedCsv, setParsedCsv] = useState<ParsedCsv | null>(null);
   const [source, setSource] = useState<ImportSource>("unknown");
   const [columnMapping, setColumnMapping] = useState<ColumnMapping | null>(null);
-  const [ascentStyleMapping, setAscentStyleMapping] = useState<AscentStyleMapping>({});
-  const [climbTypeMapping, setClimbTypeMapping] = useState<ClimbTypeMapping>({});
-  const [gradeFeelMapping, setGradeFeelMapping] = useState<GradeFeelMapping>({});
-  const [ratingMapping, setRatingMapping] = useState<RatingMapping>({});
-  const [dateFormat, setDateFormat] = useState<DateFormat>("iso");
+  const [valueSettings, setValueSettings] = useState<ValueSettings>({
+    ascentStyleMapping: {},
+    climbTypeMapping: {},
+    gradeFeelMapping: {},
+    ratingMapping: {},
+    dateFormat: "iso",
+    gradeScale: defaultGradeScale,
+  });
+  const { gradeScale } = valueSettings;
   const [dropPlaceholderDates, setDropPlaceholderDates] = useState(false);
-  const [gradeScale, setGradeScale] = useState<ImportGradePreference>(defaultGradeScale);
-  const [onConflict, setOnConflict] = useState<"skip" | "overwrite">("skip");
+  const [onConflict, setOnConflict] = useState<ConflictMode>("skip");
 
   const [baseNormalized, setNormalized] = useState<{
     valid: NormalizedImportRow[];
@@ -298,50 +206,6 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [pending]);
-
-  const rows = useMemo(() => parsedCsv?.rows ?? [], [parsedCsv]);
-  const ascentStyleValues = useMemo(
-    () => valueCounts(rows, columnMapping?.ascentStyle ?? null),
-    [rows, columnMapping?.ascentStyle],
-  );
-  const climbTypeValues = useMemo(
-    () => valueCounts(rows, columnMapping?.climbType ?? null),
-    [rows, columnMapping?.climbType],
-  );
-  const gradeFeelValues = useMemo(
-    () => valueCounts(rows, columnMapping?.gradeFeel ?? null),
-    [rows, columnMapping?.gradeFeel],
-  );
-  const ratingValues = useMemo(
-    () => valueCounts(rows, columnMapping?.rating ?? null),
-    [rows, columnMapping?.rating],
-  );
-  const dateValues = useMemo(
-    () => distinctValues(rows, columnMapping?.date ?? null).slice(0, DATE_SAMPLE_SIZE),
-    [rows, columnMapping?.date],
-  );
-  const placeholderDates = useMemo(
-    () => findPlaceholderTimestamps(rows, columnMapping?.date ?? null),
-    [rows, columnMapping?.date],
-  );
-  const placeholderRowCount = placeholderDates.reduce((sum, p) => sum + p.count, 0);
-
-  const needsDateFormat = useMemo(() => needsDateFormatChoice(dateValues), [dateValues]);
-  // Prefer an unparseable date sample so the preview exposes a problem with the chosen format.
-  const dateSample = useMemo(
-    () =>
-      dateValues.find((v) => parseDateWithFormat(v, dateFormat) === null) ?? dateValues[0] ?? null,
-    [dateValues, dateFormat],
-  );
-  const dateSamplePreview = dateSample ? parseDateWithFormat(dateSample, dateFormat) : null;
-
-  const columnPreviews = useMemo(() => {
-    const previews = new Map<string, string>();
-    for (const column of [...(parsedCsv?.headers ?? []), ...(parsedCsv?.derived ?? [])]) {
-      previews.set(column, previewText(distinctValues(rows, column)));
-    }
-    return previews;
-  }, [parsedCsv?.headers, parsedCsv?.derived, rows]);
 
   // Manual choices do not affect automatic matching, so cache these separately.
   const matches = useMemo(
@@ -465,24 +329,15 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
     const skipAhead = detected !== "unknown" && missingRequiredColumns(mapping).length === 0;
     setAutoMapped(skipAhead);
     if (skipAhead) {
-      const values = guessValueMappings(withDerived, mapping);
-      applyValueMappings(values);
+      const values = guessValueSettings(withDerived, mapping);
+      setValueSettings(values);
       beginMatching(withDerived, mapping, values, dropPlaceholders);
     } else {
       setStep("columns");
     }
   }
 
-  function applyValueMappings(values: ReturnType<typeof guessValueMappings>) {
-    setAscentStyleMapping(values.ascentStyleMapping);
-    setClimbTypeMapping(values.climbTypeMapping);
-    setGradeFeelMapping(values.gradeFeelMapping);
-    setRatingMapping(values.ratingMapping);
-    setDateFormat(values.dateFormat);
-    setGradeScale(values.gradeScale);
-  }
-
-  function guessValueMappings(parsed: ParsedCsv, mapping: ColumnMapping) {
+  function guessValueSettings(parsed: ParsedCsv, mapping: ColumnMapping): ValueSettings {
     const dateSample = distinctValues(parsed.rows, mapping.date).slice(0, DATE_SAMPLE_SIZE);
     return {
       ascentStyleMapping: guessAscentStyleMapping(distinctValues(parsed.rows, mapping.ascentStyle)),
@@ -492,7 +347,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
         distinctValues(parsed.rows, mapping.rating),
         detectImportSource([...parsed.headers, ...parsed.derived]),
       ),
-      dateFormat: mapping.date ? detectDateFormat(dateSample) : ("iso" as DateFormat),
+      dateFormat: mapping.date ? detectDateFormat(dateSample) : "iso",
       gradeScale: detectGradeScale(
         distinctValues(parsed.rows, mapping.suggestedGrade ?? mapping.grade),
         defaultGradeScale,
@@ -512,7 +367,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
       return;
     }
     setError(null);
-    applyValueMappings(guessValueMappings(parsedCsv, columnMapping));
+    setValueSettings(guessValueSettings(parsedCsv, columnMapping));
     setStep("values");
   }
 
@@ -520,24 +375,15 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
   function beginMatching(
     parsed: ParsedCsv,
     mapping: ColumnMapping,
-    values: ReturnType<typeof guessValueMappings>,
+    values: ValueSettings,
     dropPlaceholders: boolean,
   ) {
-    const result = normalizeImportRows(
-      parsed,
-      mapping,
-      values.ascentStyleMapping,
-      values.climbTypeMapping,
-      values.gradeFeelMapping,
-      values.ratingMapping,
-      values.dateFormat,
-      {
-        gradeScalePreference: values.gradeScale,
-        undatedValues: dropPlaceholders
-          ? findPlaceholderTimestamps(parsed.rows, mapping.date).map((p) => p.value)
-          : [],
-      },
-    );
+    const result = normalizeImportRows(parsed, mapping, values, values.dateFormat, {
+      gradeScalePreference: values.gradeScale,
+      undatedValues: dropPlaceholders
+        ? findPlaceholderTimestamps(parsed.rows, mapping.date).map((p) => p.value)
+        : [],
+    });
     setUndatedDates(new Set());
     setNormalized(result);
     // A remapped file invalidates choices tied to the old normalized rows.
@@ -549,19 +395,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
   function handleValuesNext() {
     if (!parsedCsv || !columnMapping) return;
     setError(null);
-    beginMatching(
-      parsedCsv,
-      columnMapping,
-      {
-        ascentStyleMapping,
-        climbTypeMapping,
-        gradeFeelMapping,
-        ratingMapping,
-        dateFormat,
-        gradeScale,
-      },
-      dropPlaceholderDates,
-    );
+    beginMatching(parsedCsv, columnMapping, valueSettings, dropPlaceholderDates);
   }
 
   /** Batch name lookups, then recover capped matches through name-and-area lookups.
@@ -716,69 +550,6 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
     downloadCsv(buildFailedRowsCsv(parsedCsv.headers, failures), "failed-sends-import.csv");
   }
 
-  function reset() {
-    lookupRunRef.current += 1;
-    setStep("upload");
-    setParsedCsv(null);
-    setSource("unknown");
-    setDirectSource(null);
-    setColumnMapping(null);
-    setAscentStyleMapping({});
-    setClimbTypeMapping({});
-    setGradeFeelMapping({});
-    setRatingMapping({});
-    setDateFormat("iso");
-    setDropPlaceholderDates(false);
-    setGradeScale(defaultGradeScale);
-    setOnConflict("skip");
-    setNormalized(null);
-    setUndatedDates(new Set());
-    setAutoMapped(false);
-    setCandidateIndex(null);
-    setLooseIndex(new Map());
-    setLookup({ phase: "done" });
-    setPreferredAreas([]);
-    setManual(new Map());
-    setMatchFilter(null);
-    setProgress(null);
-    setImportResult(null);
-    setError(null);
-    cancelRequestedRef.current = false;
-    setCancelRequested(false);
-  }
-
-  const headers = parsedCsv?.headers ?? [];
-  const columns = [...headers, ...(parsedCsv?.derived ?? [])];
-  const mappedHeaders = new Set(
-    columnMapping
-      ? COLUMN_FIELDS.map(({ key }) => columnMapping[key]).filter((h): h is string => h !== null)
-      : [],
-  );
-
-  const renderColumnField = ({ key, label, hint }: (typeof COLUMN_FIELDS)[number]): ReactNode => {
-    if (!columnMapping) return null;
-    const value = columnMapping[key];
-    const preview = value ? columnPreviews.get(value) : null;
-    return (
-      // Allow the grid cell to shrink below a long preview's intrinsic width.
-      <div key={key} className="flex min-w-0 flex-col gap-2">
-        <Label>{label}</Label>
-        <OptionSelect
-          ariaLabel={label}
-          value={value ? columnKey(value) : NO_COLUMN}
-          onChange={(chosen) => setColumnMapping({ ...columnMapping, [key]: headerOf(chosen) })}
-          options={[
-            { value: NO_COLUMN, label: "None" },
-            ...columns.map((column) => ({ value: columnKey(column), label: column })),
-          ]}
-        />
-        <p className="mt-1.5 text-xs wrap-break-word text-muted">
-          {preview ? `From the file: ${preview}` : hint}
-        </p>
-      </div>
-    );
-  };
-
   return (
     <div className={`flex flex-col gap-6 ${cardClass("md")}`}>
       <div className="flex flex-col gap-3">
@@ -804,215 +575,29 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
       )}
 
       {step === "columns" && columnMapping && parsedCsv && (
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <p className="text-sm text-muted">
-              Which column holds each field? {formatCount(parsedCsv.rows.length, "row")} found.
-            </p>
-            {source !== "unknown" && (
-              <div className={cardClass("sm", "inset")}>
-                <p className="text-sm font-medium">
-                  {directSource ?? `Looks like a ${IMPORT_SOURCE_LABELS[source]}`}
-                </p>
-                <p className="mt-1 text-xs text-muted">
-                  Columns were mapped automatically. Check them below. {SOURCE_NOTES[source]}
-                </p>
-              </div>
-            )}
-            <CsvWarnings warnings={parsedCsv.warnings} subject={directSource ?? "Import"} />
-          </div>
-
-          <section className="flex flex-col gap-4 border-t border-separator pt-4">
-            <Eyebrow>Required</Eyebrow>
-            <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
-              {COLUMN_FIELDS.filter((f) => REQUIRED_COLUMN_KEYS.includes(f.key)).map(
-                renderColumnField,
-              )}
-            </div>
-          </section>
-
-          <section className="flex flex-col gap-4 border-t border-separator pt-4">
-            <Eyebrow>Optional</Eyebrow>
-            <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
-              {COLUMN_FIELDS.filter((f) => !REQUIRED_COLUMN_KEYS.includes(f.key)).map(
-                renderColumnField,
-              )}
-            </div>
-          </section>
-
-          <section className="flex flex-col gap-4 border-t border-separator pt-4">
-            <div>
-              <Eyebrow>Location hints</Eyebrow>
-              <p className="mt-1 text-xs text-muted">
-                Columns that roughly place a climb, such as a country, state, or boulder. They only
-                break ties between climbs that share a name.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {headers
-                .filter((header) => !mappedHeaders.has(header))
-                .map((header) => {
-                  const selected = columnMapping.areaHints.includes(header);
-                  return (
-                    <button
-                      key={header}
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() =>
-                        setColumnMapping({
-                          ...columnMapping,
-                          areaHints: selected
-                            ? columnMapping.areaHints.filter((h) => h !== header)
-                            : [...columnMapping.areaHints, header],
-                        })
-                      }
-                      className={choicePillClass(selected, "bg-surface text-foreground")}
-                    >
-                      {header}
-                    </button>
-                  );
-                })}
-              {headers.every((header) => mappedHeaders.has(header)) && (
-                <p className="text-xs text-muted">Every column is already mapped to a field.</p>
-              )}
-            </div>
-          </section>
-
-          <div className="flex gap-4">
-            <Button variant="ghost" onPress={() => goBack("upload")}>
-              Back
-            </Button>
-            <Button onPress={handleColumnsNext}>Next: Values</Button>
-          </div>
-        </div>
+        <ImportColumnsStep
+          parsedCsv={parsedCsv}
+          source={source}
+          directSource={directSource}
+          columnMapping={columnMapping}
+          onChange={setColumnMapping}
+          onBack={() => goBack("upload")}
+          onNext={handleColumnsNext}
+        />
       )}
 
       {step === "values" && (
-        <div className="flex flex-col gap-6">
-          <ValueMappingSection
-            title="Ascent style"
-            values={ascentStyleValues}
-            mapping={ascentStyleMapping}
-            onChange={setAscentStyleMapping}
-            options={ASCENT_STYLE_OPTIONS}
-            skipLabel="Skip these rows"
-          />
-
-          <ValueMappingSection
-            title="Climb type"
-            description="Only used to tell same-named climbs apart."
-            values={climbTypeValues}
-            mapping={climbTypeMapping}
-            onChange={setClimbTypeMapping}
-            options={CLIMB_TYPE_OPTIONS}
-            skipLabel="Ignore"
-          />
-
-          <ValueMappingSection
-            title="Rating"
-            description={
-              source === "mountainproject"
-                ? "Mountain Project's four stars are spread across Betabook's five. Change any row that should land elsewhere."
-                : "How each star value in the file imports."
-            }
-            values={ratingValues}
-            mapping={ratingMapping}
-            onChange={setRatingMapping}
-            options={RATING_OPTIONS}
-            skipLabel="Unrated"
-          />
-
-          <ValueMappingSection
-            title="Grade feel"
-            values={gradeFeelValues}
-            mapping={gradeFeelMapping}
-            onChange={setGradeFeelMapping}
-            options={GRADE_FEEL_OPTIONS}
-            skipLabel="Ignore (use solid)"
-          />
-
-          {columnMapping?.date && (
-            <section className="flex flex-col gap-3">
-              <Eyebrow>Dates</Eyebrow>
-              {/* Only asked when the file is genuinely ambiguous. A column of
-                  "2019-10-15" or "Sun Sep 22 2019" reads the same way under
-                  every option, and offering a choice that changes nothing
-                  reads as "your dates aren't supported". */}
-              {needsDateFormat ? (
-                <>
-                  <div className="flex flex-col gap-2">
-                    <Label>Date format</Label>
-                    <OptionSelect
-                      ariaLabel="Date format"
-                      value={dateFormat}
-                      onChange={setDateFormat}
-                      options={DATE_FORMAT_OPTIONS}
-                    />
-                  </div>
-                  <p className="text-xs text-muted">
-                    This file has all-numeric dates, so 05/06/2019 could be May 6th or June 5th.
-                    Pick the order the file uses.
-                  </p>
-                </>
-              ) : (
-                <p className="text-xs text-muted">
-                  Dates in this column are unambiguous and are read automatically.
-                </p>
-              )}
-              {/* A worked example from the file itself: the setting is easy to
-                  get backwards, and this shows the mistake before the import
-                  rather than after. */}
-              {dateSample && (
-                <p className="text-xs text-muted">
-                  {dateSamplePreview
-                    ? `“${dateSample}” will import as ${dateSamplePreview}.`
-                    : `“${dateSample}” can’t be read as a date${needsDateFormat ? " this way" : ""}.`}
-                </p>
-              )}
-              {placeholderDates.length > 0 && (
-                <Checkbox isSelected={dropPlaceholderDates} onChange={setDropPlaceholderDates}>
-                  <Checkbox.Content>
-                    <Checkbox.Control>
-                      <Checkbox.Indicator />
-                    </Checkbox.Control>
-                    <span className="text-sm">
-                      Import the {formatCount(placeholderRowCount, "row")} dated “
-                      {placeholderDates[0].value}” without a date.
-                      <span className="block text-xs text-muted">
-                        These rows share one exact timestamp
-                        {source === "kaya"
-                          ? ". KAYA fills in the export time for sends logged without a date."
-                          : ", which is usually the export time standing in for a missing date."}
-                      </span>
-                    </span>
-                  </Checkbox.Content>
-                </Checkbox>
-              )}
-            </section>
-          )}
-
-          {(columnMapping?.grade || columnMapping?.suggestedGrade) && (
-            <section className="flex flex-col gap-3">
-              <Eyebrow>Grades</Eyebrow>
-              <div className="flex flex-col gap-2">
-                <Label>Grade notation</Label>
-                <OptionSelect
-                  ariaLabel="Grade notation"
-                  value={gradeScale}
-                  onChange={setGradeScale}
-                  options={GRADE_SCALE_OPTIONS}
-                />
-              </div>
-            </section>
-          )}
-
-          <div className="flex gap-4">
-            <Button variant="ghost" onPress={() => goBack("columns")}>
-              Back
-            </Button>
-            <Button onPress={handleValuesNext}>Next: Climbs</Button>
-          </div>
-        </div>
+        <ImportValuesStep
+          rows={parsedCsv?.rows ?? []}
+          source={source}
+          columnMapping={columnMapping}
+          values={valueSettings}
+          onChange={setValueSettings}
+          dropPlaceholderDates={dropPlaceholderDates}
+          onDropPlaceholderDatesChange={setDropPlaceholderDates}
+          onBack={() => goBack("columns")}
+          onNext={handleValuesNext}
+        />
       )}
 
       {(step === "match" || step === "review") && (
@@ -1071,175 +656,24 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
         </div>
       )}
 
-      {step === "review" && normalized && resolved && summary && (
-        <div className="flex flex-col gap-6">
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-            <Stat label="Will import" value={summary.ready} />
-            <Stat
-              label="Unmatched"
-              value={summary.attention}
-              tone={summary.attention > 0 ? "warning" : undefined}
-            />
-            <Stat label="Skipped" value={summary.skipped} />
-            {/* Rows rejected outright, whether by normalization or by a climb
-             * that broke before the ascent's date. Neither can be resolved by
-             * picking a different climb. */}
-            <Stat
-              label="Can't import"
-              value={normalized.invalid.length + summary.broken}
-              tone={normalized.invalid.length + summary.broken > 0 ? "danger" : undefined}
-            />
-          </div>
-
-          {summary.broken > 0 && (
-            <p className="text-sm text-muted">
-              {formatCount(summary.broken, "row")}{" "}
-              {summary.broken === 1 ? "names a climb" : "name climbs"} that broke before the
-              ascent&rsquo;s date, so {summary.broken === 1 ? "it" : "they"} can&rsquo;t be
-              imported.{" "}
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => {
-                  setMatchFilter("broken");
-                  goBack("match");
-                }}
-                className={TEXT_BUTTON_CLASS}
-              >
-                Back to matching
-              </button>
-            </p>
-          )}
-
-          {summary.attention > 0 && (
-            <p className="text-sm text-muted">
-              {formatCount(summary.attention, "row")} {summary.attention === 1 ? "has" : "have"} no
-              matching climb and will be skipped.{" "}
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => {
-                  setMatchFilter("attention");
-                  goBack("match");
-                }}
-                className={TEXT_BUTTON_CLASS}
-              >
-                Back to matching
-              </button>
-            </p>
-          )}
-
-          {summary.review > 0 && (
-            <p className="text-sm text-muted">
-              {formatCount(summary.review, "row")} {summary.review === 1 ? "was" : "were"} matched
-              by inference from the file&apos;s hints and grades, not by name alone.{" "}
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => {
-                  setMatchFilter("review");
-                  goBack("match");
-                }}
-                className={TEXT_BUTTON_CLASS}
-              >
-                Check them
-              </button>
-            </p>
-          )}
-
-          {normalized.invalid.length > 0 && (
-            <details>
-              <summary className={`${TEXT_BUTTON_CLASS} text-sm text-muted`}>
-                View rows that can&apos;t be imported
-              </summary>
-              <ul className="mt-2 flex flex-col gap-1 text-xs text-muted">
-                {normalized.invalid.map((row) => (
-                  <li key={row.rowIndex}>
-                    Row {row.rowIndex + 1}: {row.reason}
-                  </li>
-                ))}
-              </ul>
-            </details>
-          )}
-
-          {normalized.warnings.length > 0 && (
-            <div className="flex flex-col gap-1">
-              <p className="text-sm">Some values will be adjusted during import:</p>
-              <InlineAlert status="warning">
-                <ul className="flex flex-col gap-1">
-                  {normalized.warnings.map((warning) => (
-                    <li key={warning.field}>
-                      {warning.count} {warning.count === 1 ? "row" : "rows"}: {warning.message} (
-                      {warning.examples.join("; ")}
-                      {warning.count > warning.examples.length ? "; …" : ""})
-                    </li>
-                  ))}
-                </ul>
-              </InlineAlert>
-            </div>
-          )}
-
-          {pending && progress ? (
-            <div className="flex flex-col gap-2">
-              <p className="text-sm">
-                Importing… {progress.completed} / {progress.total} rows processed
-              </p>
-              <ProgressBar
-                value={progress.completed}
-                max={progress.total}
-                label="Importing sends"
-              />
-              <p className="text-xs text-muted">
-                {progress.imported} imported &middot;{" "}
-                {onConflict === "overwrite" && <>{progress.overwritten} overwritten &middot; </>}
-                {progress.alreadyLogged} already logged &middot; {progress.failed} failed
-              </p>
-              {progress.lastError && (
-                <InlineAlert>
-                  {progress.failed} {progress.failed === 1 ? "row has" : "rows have"} failed so far.
-                  Latest error: {progress.lastError}
-                </InlineAlert>
-              )}
-              <div>
-                <Button variant="ghost" onPress={handleCancel} isDisabled={cancelRequested}>
-                  {cancelRequested ? "Stopping after the current batch…" : "Cancel import"}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <fieldset className="flex min-w-0 flex-col gap-2">
-                <legend className="mb-2 text-sm font-medium">Already-logged climbs</legend>
-                <SegmentedButtons
-                  value={onConflict}
-                  onChange={setOnConflict}
-                  options={CONFLICT_MODES}
-                  className="lg:w-auto lg:self-start"
-                />
-              </fieldset>
-              {onConflict === "overwrite" ? (
-                <InlineAlert status="warning">
-                  Imported values will replace your existing send data for any already-logged
-                  climbs. This cannot be undone.
-                </InlineAlert>
-              ) : (
-                <p className="text-sm text-muted">
-                  Climbs you&apos;ve already logged are left untouched and counted as already
-                  logged.
-                </p>
-              )}
-
-              <div className="flex gap-4">
-                <Button variant="ghost" onPress={() => goBack("match")}>
-                  Back
-                </Button>
-                <Button onPress={handleFinalize} isDisabled={summary.ready === 0}>
-                  Import {formatCount(summary.ready, "send")}
-                </Button>
-              </div>
-            </>
-          )}
-        </div>
+      {step === "review" && normalized && summary && (
+        <ImportReviewStep
+          summary={summary}
+          invalid={normalized.invalid}
+          warnings={normalized.warnings}
+          pending={pending}
+          progress={progress}
+          onConflict={onConflict}
+          onConflictChange={setOnConflict}
+          cancelRequested={cancelRequested}
+          onCancel={handleCancel}
+          onShowMatches={(filter) => {
+            setMatchFilter(filter);
+            goBack("match");
+          }}
+          onBack={() => goBack("match")}
+          onImport={handleFinalize}
+        />
       )}
 
       {step === "result" && importResult && (
@@ -1248,7 +682,7 @@ export function ImportWizard({ profileHref }: { profileHref: string }) {
           failures={failures}
           profileHref={profileHref}
           onDownload={handleDownloadFailedRows}
-          onRestart={reset}
+          onRestart={onRestart}
         />
       )}
     </div>

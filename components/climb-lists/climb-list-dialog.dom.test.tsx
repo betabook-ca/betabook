@@ -3,15 +3,15 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { copyClimbList, createClimbList, updateClimbList } from "@/actions";
+import { copyClimbList, createClimbList, updateClimbList, type SavedClimbList } from "@/actions";
 import type { ActionResult } from "@/lib/action-result";
 
 import { ClimbListDialog, type ClimbListDialogMode } from "./climb-list-dialog";
 
 vi.mock("@/actions", () => ({
-  createClimbList: vi.fn<() => Promise<ActionResult<number>>>(),
+  createClimbList: vi.fn<() => Promise<ActionResult<SavedClimbList>>>(),
   updateClimbList: vi.fn<() => Promise<ActionResult>>(),
-  copyClimbList: vi.fn<() => Promise<ActionResult<number>>>(),
+  copyClimbList: vi.fn<() => Promise<ActionResult<SavedClimbList>>>(),
 }));
 
 const push = vi.fn<(href: string) => void>();
@@ -31,9 +31,13 @@ function Example({ mode }: { mode: ClimbListDialogMode }) {
 }
 
 beforeEach(() => {
-  vi.mocked(createClimbList).mockReset().mockResolvedValue({ ok: true, value: 9 });
+  vi.mocked(createClimbList)
+    .mockReset()
+    .mockResolvedValue({ ok: true, value: { id: 9, title: "Winter circuit" } });
   vi.mocked(updateClimbList).mockReset().mockResolvedValue({ ok: true, value: undefined });
-  vi.mocked(copyClimbList).mockReset().mockResolvedValue({ ok: true, value: 12 });
+  vi.mocked(copyClimbList)
+    .mockReset()
+    .mockResolvedValue({ ok: true, value: { id: 12, title: "Red River classics" } });
   push.mockReset();
   refresh.mockReset();
 });

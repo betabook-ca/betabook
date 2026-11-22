@@ -1,6 +1,12 @@
 import type { ClimbCandidate } from "@/db/queries";
 import { isLoggableOnClimb } from "@/lib/broken-climbs";
-import { formatGrade, parseGrade, type ClimbType, type GradePreferences } from "@/lib/grades";
+import {
+  formatGrade,
+  parseGrade,
+  type ClimbType,
+  type GradePreferences,
+  type ImportGradePreference,
+} from "@/lib/grades";
 import type { NormalizedImportRow } from "@/lib/sends-import";
 
 /** Match SQLite LOWER(TRIM(name)): trim ASCII spaces and lowercase only ASCII
@@ -97,7 +103,7 @@ export function areaLookupsNeeded(
 export type PreferredArea = { id: number; name: string };
 
 export type MatchOptions = {
-  gradeScale: "native" | "converted";
+  gradeScale: ImportGradePreference;
   preferredAreas: readonly PreferredArea[];
   /** The climber's grading systems, for the "the only V5" explanation. */
   prefs?: GradePreferences;
@@ -246,8 +252,6 @@ function underAreas(climb: ClimbCandidate, areaIds: ReadonlySet<number>): boolea
   return pathAreas(climb).some((area) => areaIds.has(area.id));
 }
 
-const TYPE_LABEL: Record<ClimbType, string> = { boulder: "boulder", sport: "sport", trad: "trad" };
-
 /** "a", "a and b", "a, b, and c". */
 function listWords(words: string[]): string {
   if (words.length <= 1) return words.join("");
@@ -303,13 +307,7 @@ function matchCandidates(
       row.climbTypeHint === "route" ? c.type !== "boulder" : c.type === row.climbTypeHint,
     );
     if (kept.length === 0) {
-      return ambiguous(
-        candidates,
-        all,
-        conflict(
-          `a ${row.climbTypeHint === "route" ? "route" : TYPE_LABEL[row.climbTypeHint]} climb`,
-        ),
-      );
+      return ambiguous(candidates, all, conflict(`a ${row.climbTypeHint} climb`));
     }
     candidates = kept;
   }

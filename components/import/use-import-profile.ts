@@ -4,16 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { ParsedCsv } from "@/lib/sends-import";
 
-export function useImportProfile<Progress>({
-  initialUsername,
-  initialProgress,
-  disabled,
-  service,
-  emptyMessage,
-  fetchProfile,
-  onLoaded,
-  onBusyChange,
-}: {
+export type ImportProfileOptions<Progress> = {
   initialUsername: string;
   initialProgress: Progress;
   disabled: boolean;
@@ -26,7 +17,18 @@ export function useImportProfile<Progress>({
   /** The handle, unless the service reports its own display name. */
   onLoaded: (parsed: ParsedCsv, label: string) => void;
   onBusyChange: (busy: boolean) => void;
-}) {
+};
+
+export function useImportProfile<Progress>({
+  initialUsername,
+  initialProgress,
+  disabled,
+  service,
+  emptyMessage,
+  fetchProfile,
+  onLoaded,
+  onBusyChange,
+}: ImportProfileOptions<Progress>) {
   const [input, setInput] = useState(initialUsername);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(initialProgress);

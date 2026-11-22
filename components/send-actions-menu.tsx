@@ -8,6 +8,7 @@ import { SendFormDrawer } from "@/components/send-form-drawer";
 import { ActionsMenu } from "@/components/ui/actions-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import type { EditableSend } from "@/db/queries";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 
 type SendActionsMenuProps = {
   send: EditableSend;
@@ -22,12 +23,16 @@ export function SendActionsMenu({ send }: SendActionsMenuProps) {
   function handleDelete() {
     setDeleteError(null);
     startTransition(async () => {
-      const result = await deleteSend(send.id);
-      if (!result.ok) {
-        setDeleteError(result.error);
-        return;
+      try {
+        const result = await deleteSend(send.id);
+        if (!result.ok) {
+          setDeleteError(result.error);
+          return;
+        }
+        deleteState.close();
+      } catch {
+        setDeleteError(GENERIC_ERROR_MESSAGE);
       }
-      deleteState.close();
     });
   }
 

@@ -44,7 +44,7 @@ import {
   goalCompletionKey,
   hasSeenGoalCompletion,
 } from "./goal-completion-notice";
-import { GoalDate, GOAL_ROW_CLASS } from "./goal-date";
+import { GoalDate } from "./goal-date";
 import { GoalForm, type GoalDraft } from "./goal-form";
 import { GoalItems } from "./goal-items";
 import { GoalRecurringHistory } from "./goal-recurring-history";
@@ -234,15 +234,12 @@ export function GoalPanel({
   const prefs = useGradePreferences();
   const [dismissedCompletions, setDismissedCompletions] = useState<Set<string>>(new Set());
   const [view, setView] = useState<"active" | "completed">(initialView);
-  const active = initialActive;
-  const activeCount = active.goals.filter(
-    (goal) =>
-      !(goal.missed ?? isMissedGoal(goal, today)) &&
-      (goal.repeat !== "none" || !goal.completedDate),
+  const missed = (goal: GoalProgress) => goal.missed ?? isMissedGoal(goal, today);
+  const activeCount = initialActive.goals.filter(
+    (goal) => !missed(goal) && (goal.repeat !== "none" || !goal.completedDate),
   ).length;
   const needsDecision = (goal: GoalProgress) =>
     goal.needsAction ?? missedGoalNeedsAction(goal, today);
-  const missed = (goal: GoalProgress) => goal.missed ?? isMissedGoal(goal, today);
   const showMissedActions = (goal: GoalProgress) => view === "active" && needsDecision(goal);
 
   const canEditGoal = (goal: GoalProgress) =>
@@ -306,14 +303,13 @@ export function GoalPanel({
     editState.close();
     if (!editing) setView("active");
     setEditor({ kind: "create" });
-    setDeleteError("");
   }
   function tryAgain(goal: GoalProgress) {
     const draft = draftFor(goal);
     const end = new Date(`${today}T12:00:00Z`);
     end.setUTCDate(end.getUTCDate() + (daysBetween(goal.startDate, goal.endDate) ?? 0));
-    const window = goalWindow(draft.period, today, end.toISOString().slice(0, 10), today);
-    setEditor({ kind: "retry", goalId: goal.id, draft: { ...draft, ...window, repeat: "none" } });
+    const dates = goalWindow(draft.period, today, end.toISOString().slice(0, 10), today);
+    setEditor({ kind: "retry", goalId: goal.id, draft: { ...draft, ...dates, repeat: "none" } });
     editState.open();
   }
   async function archive(goal: GoalProgress) {
@@ -353,7 +349,7 @@ export function GoalPanel({
         ariaLabel={`Actions for ${goalTitle(goal, prefs)}`}
         onAction={(key) => {
           if (key === "edit") {
-            const selected = active.goals.find((item) => item.id === goal.id) ?? goal;
+            const selected = initialActive.goals.find((item) => item.id === goal.id) ?? goal;
             setEditor({ kind: "edit", goal: selected });
             editState.open();
           } else {
@@ -369,11 +365,11 @@ export function GoalPanel({
     );
   }
   const anyGoals =
-    active.goals.length > 0 ||
+    initialActive.goals.length > 0 ||
     initialCompleted.goals.length > 0 ||
     completed.goals.length > 0 ||
     (completed.years?.length ?? 0) > 1;
-  const rows = view === "active" ? active.goals : completed.goals;
+  const rows = view === "active" ? initialActive.goals : completed.goals;
   const chosenYear = pendingYear ?? year;
   const historyPending = view === "completed" && pendingYear !== null;
   const historyYears = [...new Set([...(completed.years ?? []), year, chosenYear])].sort(
@@ -480,7 +476,7 @@ export function GoalPanel({
           </div>
         )}
         <div
-          className={`divide-y divide-foreground/20 transition-opacity ${historyPending ? "opacity-60" : ""}`}
+          className={`divide-y divide-separator transition-opacity ${historyPending ? "opacity-60" : ""}`}
           aria-busy={historyPending}
         >
           {rows.map((goal) => (
@@ -488,7 +484,8 @@ export function GoalPanel({
               key={`${goal.id}-${goal.periodStart}`}
               wrapTitle
               fullWidthTags
-              className={GOAL_ROW_CLASS}
+              density="flush"
+              className="items-start"
               title={<GoalRowTitle goal={goal} view={view} today={today} isMissed={missed(goal)} />}
               tags={
                 view === "completed" || showMissedActions(goal) ? (
@@ -529,7 +526,7 @@ export function GoalPanel({
                         ownerId={ownerId}
                         goal={goal}
                         today={today}
-                        currentPeriod={active.goals.find(
+                        currentPeriod={initialActive.goals.find(
                           (item) => item.id === goal.id && item.repeat !== "none",
                         )}
                         loadHistory={
@@ -562,17 +559,20 @@ export function GoalPanel({
       </GoalSection>
       {archiveError && <InlineAlert>{archiveError}</InlineAlert>}
       {error && (
-        <div>
-          <InlineAlert>{error}</InlineAlert>
-          <Button
-            variant="ghost"
-            onPress={() => {
-              void retry();
-            }}
-          >
-            Retry
-          </Button>
-        </div>
+        <InlineAlert
+          action={
+            <Button
+              size="sm"
+              onPress={() => {
+                void retry();
+              }}
+            >
+              Retry
+            </Button>
+          }
+        >
+          {error}
+        </InlineAlert>
       )}
       <ResponsiveDialog
         state={editState}
@@ -583,6 +583,7 @@ export function GoalPanel({
         onClose={() => setDetailsStep(false)}
       >
         <GoalForm
+          mode={editing ? "edit" : "create"}
           initialDraft={
             editing
               ? {
@@ -591,9 +592,10 @@ export function GoalPanel({
                     ? { period: "custom" as const }
                     : {}),
                 }
-              : undefined
+              : editor.kind === "retry"
+                ? editor.draft
+                : undefined
           }
-          initialValues={editor.kind === "retry" ? editor.draft : undefined}
           today={editing?.today ?? today}
           nextGrades={nextGrades}
           availableTags={availableTags}

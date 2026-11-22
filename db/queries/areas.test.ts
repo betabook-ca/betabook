@@ -6,7 +6,14 @@ import { createDb, type Database } from "@/db/client";
 import { areas } from "@/db/schema";
 import { seedFixtureTree, seedManyAreas } from "@/test/fixtures";
 
-import { getAncestors, getArea, getAreaBreadcrumbs, getSubareas, searchAreas } from "./areas";
+import {
+  getAncestors,
+  getArea,
+  getAreaBreadcrumbs,
+  getSubareas,
+  resolveSubareaScope,
+  searchAreas,
+} from "./areas";
 
 let db: Database;
 
@@ -76,6 +83,22 @@ describe("getAncestors", () => {
     const sportWall = await getArea(db, 3);
     const ancestors = await getAncestors(db, sportWall!);
     expect(ancestors.map((a) => a.name)).toEqual(["Test Crag"]);
+  });
+});
+
+describe("resolveSubareaScope", () => {
+  it("scopes to a subarea only when it descends from the area", async () => {
+    const crag = (await getArea(db, 1))!;
+    const boulders = (await getArea(db, 2))!;
+
+    expect(await resolveSubareaScope(db, crag, 4)).toEqual(await getArea(db, 4));
+    expect(await resolveSubareaScope(db, boulders, 4)).toEqual(await getArea(db, 4));
+    // The sport wall is the boulders' sibling, and the crag their parent.
+    expect(await resolveSubareaScope(db, boulders, 3)).toBe(boulders);
+    expect(await resolveSubareaScope(db, boulders, 1)).toBe(boulders);
+    expect(await resolveSubareaScope(db, boulders, 999999)).toBe(boulders);
+    expect(await resolveSubareaScope(db, boulders, 2)).toBe(boulders);
+    expect(await resolveSubareaScope(db, boulders, null)).toBe(boulders);
   });
 });
 

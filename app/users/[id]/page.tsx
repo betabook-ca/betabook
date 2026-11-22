@@ -81,7 +81,10 @@ async function SharedProfileView({
   // A null viewer keeps Members and Friends commentary out of the preview.
   const [summary, recent] = await Promise.all([
     getUserSendsSummary(db, owner.id),
-    getSendsForUserPage(db, owner.id, DEFAULT_USER_SENDS_FILTER, 0, SHARED_PROFILE_SENDS, null),
+    getSendsForUserPage(db, owner.id, DEFAULT_USER_SENDS_FILTER, {
+      pageSize: SHARED_PROFILE_SENDS,
+      viewerId: null,
+    }),
   ]);
   const areaBreadcrumbs = await getAreaBreadcrumbs(
     db,

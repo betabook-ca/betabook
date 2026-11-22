@@ -1,24 +1,45 @@
 import { NextResponse } from "next/server";
 
 import { scheduleGoalRefresh } from "@/actions/goal-refresh";
-import { getDb } from "@/db/client";
+import { getDb, type Database } from "@/db/client";
 import { canReadJournal } from "@/db/queries/content-access";
 import { getGoalPage, getGoalContributions, getRecurringGoalHistory } from "@/db/queries/goals";
 import { withApiSession } from "@/lib/api-session";
+import { GOAL_PAGE_SIZE } from "@/lib/goal-history";
 import { parseGoalView } from "@/lib/goals";
 import { parseId } from "@/lib/parse-id";
 import { isRealIsoDate } from "@/lib/sends";
+import { MAX_PAGINATION_OFFSET, offsetReachesPaginationLimit, parseOffset } from "@/lib/url-params";
 
-function validPage(offset: number, year: number | undefined) {
-  return (
-    Number.isSafeInteger(offset) &&
-    offset >= 0 &&
-    offset <= 100000 &&
-    (year === undefined || (Number.isInteger(year) && year >= 1 && year <= 9999))
-  );
+function validYear(year: number | undefined) {
+  return year === undefined || (Number.isInteger(year) && year >= 1 && year <= 9999);
 }
 function validGoalPeriod(start: string, end?: string) {
   return isRealIsoDate(start) && (end === undefined || (isRealIsoDate(end) && end >= start));
+}
+async function historyPage(
+  db: Database,
+  ownerId: string,
+  viewerId: string,
+  goalId: number,
+  offset: number | null,
+  anchor: string | undefined,
+) {
+  if (offset === null) return { periods: [], hasMore: false };
+  const history = await getRecurringGoalHistory(
+    db,
+    ownerId,
+    viewerId,
+    goalId,
+    offset,
+    new Date(),
+    anchor,
+  );
+  // History pages by months, so the next request's offset is what must fit the budget.
+  return {
+    ...history,
+    hasMore: history.hasMore && history.nextOffset <= MAX_PAGINATION_OFFSET,
+  };
 }
 export const GET = withApiSession(
   async (session, request: Request, { params }: { params: Promise<{ id: string }> }) => {
@@ -27,10 +48,9 @@ export const GET = withApiSession(
     if (!(await canReadJournal(db, id, session.user.id)))
       return NextResponse.json({ error: "Journal not found" }, { status: 404 });
     const query = new URL(request.url).searchParams;
-    const offset = Number(query.get("offset") ?? 0);
+    const offset = parseOffset(query);
     const year = query.has("year") ? Number(query.get("year")) : undefined;
-    if (!validPage(offset, year))
-      return NextResponse.json({ error: "Invalid page" }, { status: 400 });
+    if (!validYear(year)) return NextResponse.json({ error: "Invalid page" }, { status: 400 });
     const rawHistoryId = query.get("historyId");
     const anchor = query.get("anchor") ?? undefined;
     if (anchor !== undefined && !isRealIsoDate(`${anchor}-01`))
@@ -39,15 +59,7 @@ export const GET = withApiSession(
       const historyId = parseId(rawHistoryId);
       if (historyId === null) return NextResponse.json({ error: "Invalid goal" }, { status: 400 });
       return NextResponse.json(
-        await getRecurringGoalHistory(
-          db,
-          id,
-          session.user.id,
-          historyId,
-          offset,
-          new Date(),
-          anchor,
-        ),
+        await historyPage(db, id, session.user.id, historyId, offset, anchor),
       );
     }
     const rawGoalId = query.get("goalId");
@@ -63,8 +75,12 @@ export const GET = withApiSession(
     }
     const view = parseGoalView(query.get("view") ?? "active");
     if (view === null) return NextResponse.json({ error: "Invalid page" }, { status: 400 });
+    if (offset === null) return NextResponse.json({ goals: [], hasMore: false });
     const page = await getGoalPage(db, id, session.user.id, view, offset, new Date(), year);
     if (id === session.user.id) await scheduleGoalRefresh(db, id);
-    return NextResponse.json(page);
+    return NextResponse.json({
+      ...page,
+      hasMore: page.hasMore && !offsetReachesPaginationLimit(offset, GOAL_PAGE_SIZE),
+    });
   },
 );

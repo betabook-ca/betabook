@@ -191,7 +191,7 @@ export function AddToListButton({
         state={createState}
         userId={viewerId}
         mode={{ kind: "create", climbId: climb.id }}
-        onCreated={(id, title) => announceAdded(climb.name, viewerId, { id, title })}
+        onCreated={(list) => announceAdded(climb.name, viewerId, list)}
       />
     </>
   );

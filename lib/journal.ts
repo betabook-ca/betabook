@@ -1,9 +1,7 @@
 import { ActionError } from "@/lib/action-result";
 import { MAX_LOG_NOTE_LENGTH } from "@/lib/log-note";
-import { isRealIsoDate, latestAcceptableSendDate } from "@/lib/sends";
+import { isRealIsoDate, latestAcceptableSendDate, todayUtc } from "@/lib/sends";
 import { trimOrNull } from "@/lib/validation";
-
-export { MAX_LOG_NOTE_LENGTH as MAX_JOURNAL_BODY_LENGTH } from "@/lib/log-note";
 
 const JOURNAL_KINDS = ["session", "training"] as const;
 export type JournalKind = (typeof JOURNAL_KINDS)[number];
@@ -29,8 +27,11 @@ export type RawJournalEntryInput = {
   tags: unknown;
 };
 
+/** The one hashtag normalizer: trims, drops any leading `#`s and lowercases, so
+ * `##Foo`, `#foo` and ` foo ` all name the stored tag `foo`. Saving, the tag
+ * field and every hashtag filter go through it. */
 export function normalizeTag(value: string): string {
-  return value.toLowerCase().trim();
+  return value.trim().replace(/^#+/, "").toLowerCase();
 }
 
 export function isValidJournalTag(value: string): boolean {
@@ -89,7 +90,7 @@ function parseEntryDate(value: unknown, today: string): string {
 
 export function validateJournalInput(
   raw: RawJournalEntryInput,
-  today: string = new Date().toISOString().slice(0, 10),
+  today: string = todayUtc(),
 ): JournalEntryInput {
   const kind = parseKind(raw.kind);
   const climbId = parseClimbId(raw.climbId);

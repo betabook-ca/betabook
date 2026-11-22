@@ -2,14 +2,14 @@ import { TextField, TextArea, Label } from "@heroui/react";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
 
-import { FilterInput } from "@/components/filters/filter-input";
 import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { IndexRangeSelect } from "@/components/ui/index-select";
 import { OptionSelect } from "@/components/ui/option-select";
+import { QueryInput } from "@/components/ui/query-input";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
-const meta = { title: "Patterns/Fields/Standard widths", component: FilterInput } satisfies Meta<
-  typeof FilterInput
+const meta = { title: "Patterns/Fields/Standard widths", component: QueryInput } satisfies Meta<
+  typeof QueryInput
 >;
 export default meta;
 type Story = StoryObj;
@@ -50,7 +50,7 @@ function Widths({ size }: { size?: keyof typeof FIELD_WIDTH_CLASS }) {
       )}
       {(!size || size === "long") && (
         <section aria-label="Long field">
-          <FilterInput
+          <QueryInput
             label="Filter sends"
             placeholder="Filter sends…"
             value={query}

@@ -50,7 +50,7 @@ test(
     // height risk, and it is a real overlay at two very different sizes that
     // decides it: a sheet on the phone, a centered column on the desktop.
     await openStory(page, testInfo, "components-journal-project-board--shared-project");
-    await page.getByRole("button", { name: "Manage the link for Moonlight Arete" }).click();
+    await page.getByRole("button", { name: "Shared: manage the link for Moonlight Arete" }).click();
 
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();

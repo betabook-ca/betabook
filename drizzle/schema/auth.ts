@@ -36,7 +36,7 @@ export const user = sqliteTable(
     // Deliberately NOT read by drizzle/migrations/0014_sends_aggregate_triggers.sql or
     // getClimbSendStats/getClimbSendSummary (db/queries/sends.ts): those touch
     // `sends` only, with no join to `user`, so a private user's ascents keep
-    // counting toward a climb's rating and suggested grade exactly as before.
+    // counting toward a climb's rating and suggested grade whatever this flag says.
     isPrivate: integer("is_private", { mode: "boolean" }).default(false).notNull(),
     // Audience values are defined in lib/privacy.ts; "public" means Members.
     journalVisibility: text("journal_visibility", {

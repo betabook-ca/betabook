@@ -4,10 +4,11 @@ import { Button, type UseOverlayStateReturn } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { copyClimbList, createClimbList, updateClimbList } from "@/actions";
+import { copyClimbList, createClimbList, updateClimbList, type SavedClimbList } from "@/actions";
 import { ClimbListForm, type ClimbListDraft } from "@/components/climb-lists/climb-list-form";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
-import { climbListHref, copyClimbListTitle } from "@/lib/climb-lists";
+import type { ActionResult } from "@/lib/action-result";
+import { climbCountLabel, climbListHref, copyClimbListTitle } from "@/lib/climb-lists";
 
 type ListFields = { id: number; title: string; description: string | null };
 
@@ -54,7 +55,7 @@ export function ClimbListDialog({
   mode: ClimbListDialogMode;
   /** Replaces the default navigation to the new list, as the Add to list
    * drawer does to stay on the climb page. */
-  onCreated?: (listId: number, title: string) => void;
+  onCreated?: (list: SavedClimbList) => void;
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState<ClimbListDraft>(() => draftFor(mode));
@@ -73,12 +74,14 @@ export function ClimbListDialog({
 
   const incomplete = !draft.title.trim();
 
-  function save() {
+  /** Resolves to the list a create or copy wrote, with its name as the
+   * server saved it, or to null for an edit, which stays put. */
+  function save(): Promise<ActionResult<SavedClimbList | null>> {
     const input = { title: draft.title, description: draft.description };
     if (mode.kind === "create") return createClimbList(input, { climbId: mode.climbId });
     if (mode.kind === "edit")
       return updateClimbList(mode.list.id, input).then((result) =>
-        result.ok ? { ok: true as const, value: mode.list.id } : result,
+        result.ok ? { ok: true as const, value: null } : result,
       );
     return copyClimbList(mode.source, input);
   }
@@ -93,9 +96,10 @@ export function ClimbListDialog({
         return;
       }
       state.close();
-      if (mode.kind === "edit") router.refresh();
-      else if (onCreated) onCreated(result.value, draft.title.replace(/\s+/g, " ").trim());
-      else router.push(climbListHref(userId, result.value));
+      const saved = result.value;
+      if (!saved) router.refresh();
+      else if (onCreated) onCreated(saved);
+      else router.push(climbListHref(userId, saved.id));
     });
   }
 
@@ -119,7 +123,7 @@ export function ClimbListDialog({
       <div className="flex flex-col gap-4">
         {mode.kind === "copy" && (
           <p className="text-sm text-muted">
-            {`Copies ${mode.list.climbCount} ${mode.list.climbCount === 1 ? "climb" : "climbs"} in circuit order into your lists.`}
+            {`Copies ${climbCountLabel(mode.list.climbCount)} in circuit order into your lists.`}
           </p>
         )}
         <ClimbListForm draft={draft} onChange={setDraft} error={error} disabled={pending} />

@@ -28,7 +28,6 @@ vi.mock("@/db/client", async (original) => {
   const { env } = await import("cloudflare:test");
   return { ...actual, getDb: async () => actual.createDb(env.DB) };
 });
-vi.mock("next/link", () => ({ default: () => null }));
 vi.mock("next/image", () => ({ default: () => null }));
 
 function findElements(node: ReactNode, type: unknown): ReactElement<Record<string, unknown>>[] {
