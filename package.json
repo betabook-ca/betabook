@@ -97,7 +97,6 @@
     "storybook": "10.6.7",
     "tailwindcss": "^4.3.5",
     "tsrs": "^7.1.0-beta.tsrs4",
-    "typescript": "^7.0.2",
     "vite": "^8.3.8",
     "vitest": "^5.1.1",
     "wrangler": "^4.165.0"

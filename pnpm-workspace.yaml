@@ -19,8 +19,13 @@ overrides:
   # Converge only compatible ranges on the security fixes.
   "qs@": 6.16.0
   "sharp@": 0.35.4
+  # Run dev, deploy and the workers tests on one workerd that matches production D1.
+  # Wrangler and the Vitest plugin share a Miniflare, but the Vite plugin pins its own.
+  # Newer engines (1.20261118.1) accept statements that production D1 rejects once
+  # CTE expansion passes about 100 ("nested too deep"); see #396.
+  workerd: 1.20261110.1
   # This version loads TypeScript with bundled tsx; the unused legacy loader pulls esbuild 0.18.
-  "drizzle-kit@0.31.10>@esbuild-kit/esm-loader": "-"
+  "drizzle-kit@0.31.11>@esbuild-kit/esm-loader": "-"
 patchedDependencies:
   "@cloudflare/vitest-plugin@1.8.5": patches/@cloudflare__vitest-plugin@1.8.5.patch
   vinext@1.4.6: patches/vinext@1.4.6.patch
