@@ -53,7 +53,7 @@ export function FeedList({
         );
       const response = await apiFetch(`/api/feed?${params}`, { cache: "no-store", signal });
       if (!response.ok) throw new Error("Couldn't load feed");
-      const page = (await response.json()) as FeedPage;
+      const page = await response.json<FeedPage>();
       return { items: page.days, hasMore: page.hasMore, meta: null };
     },
   });

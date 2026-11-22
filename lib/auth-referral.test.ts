@@ -105,7 +105,7 @@ async function googleSignUp(additionalData: Record<string, unknown>) {
       }),
     }),
   );
-  const { url } = (await initiation.json()) as { url: string };
+  const { url } = await initiation.json<{ url: string }>();
   const cookies = initiation.headers
     .getSetCookie()
     .map((cookie) => cookie.split(";")[0])

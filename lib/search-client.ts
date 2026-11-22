@@ -26,14 +26,14 @@ export const fetchSearchPage: SearchFetcher = async (state, kind, page, signal) 
   );
   if (!response.ok) throw new Error("Search unavailable");
   if (kind === "climb") {
-    const data = (await response.json()) as ClimbListPage;
+    const data = await response.json<ClimbListPage>();
     return { items: climbSearchItems(data), hasMore: data.hasNextPage, nextPage: page + 1 };
   }
   if (kind === "area") {
-    const data = (await response.json()) as { areas: AreaWithAncestorPath[]; hasNextPage: boolean };
+    const data = await response.json<{ areas: AreaWithAncestorPath[]; hasNextPage: boolean }>();
     return { items: areaSearchItems(data.areas), hasMore: data.hasNextPage, nextPage: page + 1 };
   }
-  const data = (await response.json()) as ClimbersPage;
+  const data = await response.json<ClimbersPage>();
   return { items: climberSearchItems(data.climbers), hasMore: data.hasMore, nextPage: page + 1 };
 };
 

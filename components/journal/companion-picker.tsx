@@ -18,7 +18,7 @@ async function fetchFriends(query: string, signal: AbortSignal): Promise<Compani
     cache: "no-store",
   });
   if (!response.ok) throw new Error("Friend lookup failed");
-  const data = (await response.json()) as { friends: CompanionOption[] };
+  const data = await response.json<{ friends: CompanionOption[] }>();
   return data.friends;
 }
 
