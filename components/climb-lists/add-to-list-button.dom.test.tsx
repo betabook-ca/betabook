@@ -65,7 +65,12 @@ beforeEach(() => {
   vi.mocked(createClimbList).mockReset().mockResolvedValue({ ok: true, value: 77 });
   push.mockReset();
 });
-afterEach(() => toast.clear());
+afterEach(async () => {
+  // clear() animates each exit and drops the toast from the shared queue only
+  // afterwards; wait so the next test's provider doesn't render it.
+  toast.clear();
+  await vi.waitUntil(() => toast.getQueue().visibleToasts.length === 0);
+});
 
 it("adds the climb to the one list chosen, then toasts a link to that list", async () => {
   const user = userEvent.setup();
