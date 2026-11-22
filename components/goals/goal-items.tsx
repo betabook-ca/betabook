@@ -57,7 +57,7 @@ export function GoalItems({
       });
       const res = await apiFetch(`/api/users/${ownerId}/goals?${params}`);
       if (!res.ok) throw new Error("Couldn't load this goal's items.");
-      const data = (await res.json()) as { items: GoalContribution[] };
+      const data = await res.json<{ items: GoalContribution[] }>();
       if (request === requestId.current) setItems(data.items);
     } catch (cause) {
       if (request === requestId.current)

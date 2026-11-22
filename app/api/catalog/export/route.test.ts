@@ -58,7 +58,7 @@ it("streams the snapshot as a dated JSON attachment", async () => {
     'attachment; filename="betabook-catalog-2026-09-14.json"',
   );
   expect(response.headers.get("Cache-Control")).toBe("private, no-store");
-  const body = (await response.json()) as { areas: unknown[]; climbs: Record<string, unknown>[] };
+  const body = await response.json<{ areas: unknown[]; climbs: Record<string, unknown>[] }>();
   expect(response.headers.get("Content-Length")).toBe(String(JSON.stringify(body).length));
   expect(body.areas).toHaveLength(5);
   expect(body.climbs).toHaveLength(4);

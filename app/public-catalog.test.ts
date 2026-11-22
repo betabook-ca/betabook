@@ -99,7 +99,7 @@ it("returns route grades, disciplines, descriptions, aggregates and navigation",
   });
 });
 it("returns boulder and rope grades with their disciplines", async () => {
-  const page = (await (await climbSearch(request(""))).json()) as PublicClimbsPage;
+  const page = await (await climbSearch(request(""))).json<PublicClimbsPage>();
   // A nameless list scans the ascents index, so equal counts tie by id.
   expect(page.climbs.map(({ name, grade, type }) => ({ name, grade, type }))).toEqual([
     { name: "Test Highball", grade: 5, type: "boulder" },
@@ -124,7 +124,7 @@ it("paginates duplicate names stably on the shared climb ordering", async () => 
     { id: 21, areaId: 4, name: "Same", type: "trad", grade: 20, sendCount: 9 },
   ]);
   const read = async (query: string) =>
-    (await (await climbSearch(request(query))).json()) as PublicClimbsPage;
+    await (await climbSearch(request(query))).json<PublicClimbsPage>();
   const first = await read("name=Same&limit=1");
   const next = await read("name=Same&limit=1&offset=1");
   expect(first.climbs.map((row) => row.id)).toEqual([21]);
@@ -144,7 +144,7 @@ it("orders public climbs on the aggregates it now returns", async () => {
     .set({ sendCount: 2, ratingSum: 8, ratingCount: 2 })
     .where(eq(climbs.id, 1));
   const read = async (query: string) =>
-    ((await (await climbSearch(request(query))).json()) as PublicClimbsPage).climbs.map(
+    (await (await climbSearch(request(query))).json<PublicClimbsPage>()).climbs.map(
       (row) => row.name,
     );
   expect((await read("sort=ascents_desc")).slice(0, 2)).toEqual(["Test Crimper", "Test Highball"]);
@@ -156,7 +156,7 @@ it("keeps area lists inside the requested subtree, including invalid subarea sel
   await db.insert(areas).values({ id: 10, name: "Elsewhere" });
   await db.insert(climbs).values({ id: 30, areaId: 10, name: "Outside", type: "sport", grade: 10 });
   const read = async (query: string, id = "2") =>
-    (await (await areaClimbs(request(query), context(id))).json()) as PublicClimbsPage;
+    await (await areaClimbs(request(query), context(id))).json<PublicClimbsPage>();
   expect((await read("")).climbs.map((row) => row.id)).toEqual([1, 2]);
   expect((await read("subarea=4", "1")).climbs.map((row) => row.id)).toEqual([1]);
   expect((await read("subarea=10&areaId=10")).climbs.map((row) => row.id)).toEqual([1, 2]);
@@ -187,7 +187,7 @@ it("looks a subarea up only when one is requested", async () => {
 });
 it("narrows public climbs by discipline, alone and combined", async () => {
   const read = async (query: string) =>
-    ((await (await climbSearch(request(query))).json()) as PublicClimbsPage).climbs.map(
+    (await (await climbSearch(request(query))).json<PublicClimbsPage>()).climbs.map(
       (row) => row.name,
     );
   expect(await read("discipline=boulder")).toEqual(["Test Highball", "Test Slab"]);
@@ -197,7 +197,7 @@ it("narrows public climbs by discipline, alone and combined", async () => {
 });
 it("narrows public climbs by grade within a discipline", async () => {
   const read = async (query: string) =>
-    ((await (await climbSearch(request(query))).json()) as PublicClimbsPage).climbs.map(
+    (await (await climbSearch(request(query))).json<PublicClimbsPage>()).climbs.map(
       (row) => row.name,
     );
   // V4 (grade 5) is inside 4–6; V1 (grade 2) is not.
@@ -214,7 +214,7 @@ it("narrows public climbs by grade within a discipline", async () => {
 });
 it("applies discipline refinements to an area's own public climb list", async () => {
   const read = async (query: string, id: string) =>
-    ((await (await areaClimbs(request(query), context(id))).json()) as PublicClimbsPage).climbs.map(
+    (await (await areaClimbs(request(query), context(id))).json<PublicClimbsPage>()).climbs.map(
       (row) => row.name,
     );
   expect(await read("discipline=boulder", "1")).toEqual(["Test Highball", "Test Slab"]);
@@ -238,7 +238,7 @@ it("orders public climbs by grade, keeping ties off member aggregates", async ()
     .set({ sendCount: 99, ratingSum: 50, ratingCount: 10 })
     .where(eq(climbs.id, 2));
   const read = async (query: string) =>
-    ((await (await climbSearch(request(query))).json()) as PublicClimbsPage).climbs.map(
+    (await (await climbSearch(request(query))).json<PublicClimbsPage>()).climbs.map(
       (row) => row.name,
     );
   expect(await read("sort=grade_asc")).toEqual([

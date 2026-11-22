@@ -23,7 +23,7 @@ export default defineConfig({
     restriction: "error",
   },
   options: {
-    // Run high-performance type-aware linting via oxlint-tsgolint
+    // Run high-performance type-aware linting via tsrs
     typeAware: true,
     // Zero-warning policy: any warning fails the lint check
     denyWarnings: true,

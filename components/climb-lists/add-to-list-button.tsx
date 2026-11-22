@@ -21,7 +21,7 @@ export type ClimbListChoicesFetcher = (climbId: number) => Promise<ClimbListChoi
 const fetchChoices: ClimbListChoicesFetcher = async (climbId) => {
   const response = await apiFetch(`/api/climbs/${climbId}/lists`);
   if (!response.ok) throw new Error("Couldn't load your lists.");
-  return ((await response.json()) as { lists: ClimbListChoice[] }).lists;
+  return (await response.json<{ lists: ClimbListChoice[] }>()).lists;
 };
 
 /** Says where the climb went, with the list as a link to it. */

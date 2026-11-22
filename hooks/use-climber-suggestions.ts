@@ -23,7 +23,7 @@ export function useClimberSuggestions(
     async function load() {
       const response = await apiFetch("/api/friends/suggestions", { signal: controller.signal });
       if (!response.ok) return;
-      const page = (await response.json()) as { climbers: SuggestedClimberRow[] };
+      const page = await response.json<{ climbers: SuggestedClimberRow[] }>();
       if (!controller.signal.aborted) setClimbers(page.climbers);
     }
     load().catch(() => {});

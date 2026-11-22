@@ -25,5 +25,5 @@ export async function fetchJournalPage(
     signal,
   });
   if (!res.ok) throw new Error("Failed to load more entries");
-  return (await res.json()) as JournalPage;
+  return res.json<JournalPage>();
 }

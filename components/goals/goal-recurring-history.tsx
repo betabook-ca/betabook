@@ -378,7 +378,7 @@ function RecurringHistoryPages({
     if (anchorMonth) params.set("anchor", anchorMonth);
     const res = await apiFetch(`/api/users/${ownerId}/goals?${params}`, { signal });
     if (!res.ok) throw new Error(res.statusText);
-    return (await res.json()) as GoalHistoryPage;
+    return res.json<GoalHistoryPage>();
   }
   return (
     <HistoryDisclosure expanded={expanded} onExpandedChange={setExpanded}>

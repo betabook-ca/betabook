@@ -34,7 +34,7 @@ export function FriendList({
         { cache: "no-store", signal },
       );
       if (!response.ok) throw new Error("Couldn't load friends");
-      const page = (await response.json()) as FriendsPage;
+      const page = await response.json<FriendsPage>();
       return { items: page.friends, hasMore: page.hasMore, meta: null };
     },
   });

@@ -111,7 +111,7 @@ async function googleCallback(version?: string) {
     }),
   );
   expect(initiation.status).toBe(200);
-  const { url } = (await initiation.json()) as { url: string };
+  const { url } = await initiation.json<{ url: string }>();
   const state = new URL(url).searchParams.get("state")!;
   const cookies = initiation.headers
     .getSetCookie()
