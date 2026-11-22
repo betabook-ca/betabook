@@ -26,6 +26,11 @@ export const test = base.extend<{ runtimeErrors: undefined }>({
           await route.abort();
         } else await route.continue();
       });
+      // Playwright parks the initial pointer at (0, 0), over the fixed desktop
+      // sidebar. A hydration/layout hit-test there can trigger `onMouseEnter`
+      // and open the sidebar overlay before any interaction.
+      const viewport = page.viewportSize();
+      if (viewport) await page.mouse.move(viewport.width - 1, Math.floor(viewport.height / 2));
       await use(undefined);
       page.off("pageerror", capture);
       page.off("console", captureConsole);

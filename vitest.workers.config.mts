@@ -3,6 +3,8 @@ import path from "node:path";
 import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-plugin";
 import { defineProject } from "vitest/config";
 
+const migrationsPromise = readD1Migrations(path.join(import.meta.dirname, "drizzle/migrations"));
+
 export default defineProject({
   resolve: {
     alias: {
@@ -11,8 +13,7 @@ export default defineProject({
   },
   plugins: [
     cloudflareTest(async () => {
-      const migrationsPath = path.join(import.meta.dirname, "drizzle/migrations");
-      const migrations = await readD1Migrations(migrationsPath);
+      const migrations = await migrationsPromise;
 
       return {
         // Tests import query/mutation modules directly; they do not need the

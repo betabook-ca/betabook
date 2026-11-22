@@ -22,4 +22,5 @@ overrides:
   # This version loads TypeScript with bundled tsx; the unused legacy loader pulls esbuild 0.18.
   "drizzle-kit@0.31.10>@esbuild-kit/esm-loader": "-"
 patchedDependencies:
+  "@cloudflare/vitest-plugin@1.8.5": patches/@cloudflare__vitest-plugin@1.8.5.patch
   vinext@1.4.6: patches/vinext@1.4.6.patch
