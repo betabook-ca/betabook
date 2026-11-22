@@ -85,9 +85,8 @@ async function googleSignUp(additionalData: Record<string, unknown>) {
     .fn<typeof provider.validateAuthorizationCode>()
     .mockResolvedValue({ accessToken: "test-token" });
   provider.getUserInfo = vi.fn<typeof provider.getUserInfo>().mockResolvedValue({
-    data: {},
+    data: { sub: "google-invited" },
     user: {
-      id: "google-invited",
       name: "Google Climber",
       email: "google@example.com",
       emailVerified: true,

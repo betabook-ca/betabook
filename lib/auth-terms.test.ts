@@ -6,7 +6,7 @@ import { createDb } from "@/db/client";
 import { user, userTermsAcceptances } from "@/db/schema";
 import { initAuth } from "@/lib/auth";
 import { formatAuthErrorMessage } from "@/lib/sign-in-redirect";
-import { TERMS_REQUIRED_MESSAGE, TERMS_VERSION } from "@/lib/terms";
+import { TERMS_VERSION } from "@/lib/terms";
 import { resetDb } from "@/test/reset-db";
 
 vi.mock("@/lib/cloudflare-env", () => ({
@@ -90,9 +90,8 @@ async function googleCallback(version?: string) {
     .fn<typeof provider.validateAuthorizationCode>()
     .mockResolvedValue({ accessToken: "test-token" });
   provider.getUserInfo = vi.fn<typeof provider.getUserInfo>().mockResolvedValue({
-    data: {},
+    data: { sub: "google-terms" },
     user: {
-      id: "google-terms",
       name: "Google Climber",
       email: "google@example.com",
       emailVerified: true,
@@ -132,7 +131,7 @@ it.each([undefined, "old-version"])(
     expect(response.status).toBe(302);
     const destination = new URL(response.headers.get("location")!, "http://localhost:3000");
     expect(destination.pathname).toBe("/sign-in");
-    expect(destination.searchParams.get("error")).toBe(TERMS_REQUIRED_MESSAGE.replaceAll(" ", "_"));
+    expect(destination.searchParams.get("error")).toBe("TERMS_ACCEPTANCE_REQUIRED");
     expect(formatAuthErrorMessage(destination.searchParams.get("error") ?? undefined)).toBe(
       "Please review the Terms of Service and try again to create your account.",
     );

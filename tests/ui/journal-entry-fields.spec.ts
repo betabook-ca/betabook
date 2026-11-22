@@ -10,7 +10,18 @@ async function submissions(page: Page) {
 }
 async function addFriend(page: Page) {
   const input = page.getByRole("combobox", { name: "Find a friend to tag" });
+  // React Aria closes the popover whenever the page scrolls, so nothing may
+  // scroll once it opens. click() waits for the details panel to finish
+  // expanding and scrolls the picker into view before any popover exists.
+  await input.click();
   await input.fill("Sam");
+  // On touch, React Aria keeps a new popover clipped until the on-screen
+  // keyboard settles, up to 600 ms when none opens (as in emulation).
+  // Playwright counts the clipped option as visible and scrolls toward it.
+  await expect(page.locator("[data-slot=combo-box-popover]")).not.toHaveAttribute(
+    "style",
+    /clip-path/,
+  );
   await page.getByRole("option", { name: "Sam Rivera", exact: true }).click();
   await input.press("Tab");
 }

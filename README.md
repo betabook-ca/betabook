@@ -13,7 +13,7 @@ Built with Next.js 16 App Router, React 19, TypeScript, HeroUI, and Tailwind CSS
 
 ## Local development
 
-Use **Node.js 24** (also used in CI) and the pnpm version pinned in [`package.json`](package.json). The local scripts use Node's TypeScript support and `node:sqlite`.
+Use **Node.js 26** (also used in CI) and the pnpm version pinned in [`package.json`](package.json). The local scripts use Node's TypeScript support and `node:sqlite`.
 
 ```bash
 pnpm install --frozen-lockfile

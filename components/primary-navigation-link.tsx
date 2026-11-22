@@ -68,8 +68,14 @@ export function PrimaryNavigationLink({
           ) : null)}
       </span>
       <span className={clsx("min-w-0 truncate", collapsed && "opacity-0")}>{item.label}</span>
+      {/* Flex layout drops this space visually, but it keeps the visible text
+          reading "Community 3" rather than "Community3", so the aria-label's
+          "Community, 3 pending friend requests" still contains it (WCAG 2.5.3). */}
       {community && !tab && !collapsed && (
-        <FriendRequestBadge decorative count={requestCount} className="ms-auto" />
+        <>
+          {" "}
+          <FriendRequestBadge decorative count={requestCount} className="ms-auto" />
+        </>
       )}
     </NavLink>
   );

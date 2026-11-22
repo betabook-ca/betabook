@@ -1,5 +1,3 @@
-import { TERMS_REQUIRED_MESSAGE } from "@/lib/terms";
-
 /**
  * Helpers for the `?next=` continuation param on /sign-in and /sign-up.
  *
@@ -45,10 +43,8 @@ export function formatAuthErrorMessage(error?: string | string[]): string | unde
   switch (error.toLowerCase()) {
     case "access_denied":
       return "Google sign-in was cancelled.";
+    // Better Auth redirects OAuth creation-hook failures with the APIError code.
     case "terms_acceptance_required":
-    // Better Auth's OAuth account helper turns creation-hook errors into
-    // their message with spaces replaced by underscores.
-    case TERMS_REQUIRED_MESSAGE.replaceAll(" ", "_").toLowerCase():
       return "Please review the Terms of Service and try again to create your account.";
     case "unable_to_link_account":
     case "account_not_linked":
