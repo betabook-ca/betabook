@@ -23,3 +23,7 @@ Reconciliation recomputes all of the owner’s periods from current database row
 Achievement detection is independent of the contributing log date. New goals start detection immediately; pre-feature history is baselined silently on the first reconciliation scheduled by owner activity. Unseen achievements remain pending across days and devices, including backdated logs. View or dismiss acknowledges the displayed goal/period keys together. Corrected/deleted logs remove invalid pending results, while acknowledgement remains durable so deleting and relogging does not celebrate the same period again.
 
 Form styling and interaction examples live in Components / Goals / Goal form. Patterns / Goals shows the real components on the Goals page.
+
+## Completion refresh
+
+Goal progress is calculated live. Owner writes that affect progress and owner Goals visits schedule stored completion events to refresh after the response with Next.js `after()`. The feed displays the last reconciled events: moderator climb edits or merges, failed callbacks, and future-dated completions wait until the owner’s next relevant write or Goals visit. Current privacy and friendship checks still apply on every feed read, and deleting a goal cascades to its events. There is no goal cache, invalidation trigger, or scheduled recovery worker. Local `pnpm dev` exercises the after-response callbacks.

@@ -1,6 +1,6 @@
 # Working on Betabook
 
-Betabook is a climbing logbook and crag database built with Next.js 16 App Router, React 19, HeroUI, Tailwind CSS, Cloudflare Workers/vinext, D1/Drizzle, and Better Auth. Read [README.md](../README.md) for setup, local accounts, scripts, and deployment. `package.json` and the config files are the source of truth for tooling.
+Betabook is a climbing logbook and crag database built with Next.js 16 App Router, React 19, HeroUI, Tailwind CSS, Cloudflare Workers/vinext, D1/Drizzle, and Better Auth. Use the [`betabook-dev` skill](../.agents/skills/betabook-dev/SKILL.md) for setup, local accounts, scripts, and deployment. `package.json` and the config files are the source of truth for tooling.
 
 ## Code map
 
@@ -115,4 +115,4 @@ The runner configs control collection; `.tsx` alone does not select jsdom. Check
 
 Before committing, run `pnpm check` (lint, format check, dead code, typecheck, and tests). `pnpm deadcode:prod` is a separate audit for exports retained only by development/test entrypoints. Use `pnpm format` to fix formatting. The pre-commit hook formats staged files and the pre-push hook runs `pnpm check`.
 
-For changes affecting runtime code, dependencies, routes, or Cloudflare configuration, also verify `pnpm build`, which CI runs after its checks. Use `pnpm preview` when the behavior needs testing in the built Workers bundle. See [README.md](../README.md) for the complete command guide.
+For changes affecting runtime code, dependencies, routes, or Cloudflare configuration, also verify `pnpm build`, which CI runs after its checks. Use `pnpm preview` when the behavior needs testing in the built Workers bundle. See the [`betabook-dev` skill](../.agents/skills/betabook-dev/SKILL.md) for the complete command guide.

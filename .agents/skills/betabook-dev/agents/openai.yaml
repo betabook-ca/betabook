@@ -1,0 +1,4 @@
+interface:
+  display_name: "Betabook development"
+  short_description: "Set up, seed, test, and deploy Betabook locally"
+  default_prompt: "Use $betabook-dev to set up the local environment, seed test accounts, run the checks, or deploy Betabook."
