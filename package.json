@@ -107,5 +107,5 @@
     "firefox 115",
     "safari 16.4"
   ],
-  "packageManager": "pnpm@11.25.0"
+  "packageManager": "pnpm@12.21.0"
 }
