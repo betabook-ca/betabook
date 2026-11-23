@@ -1,7 +1,6 @@
 import handler from "vinext/server/app-router-entry";
 import { cloneRequestWithHeaders } from "vinext/server/request-pipeline";
 
-import { runScheduledCatalogExport } from "@/lib/catalog-export";
 import { REQUEST_TIMEZONE_HEADER, withRequestTimezone } from "@/lib/request-timezone";
 import { withSecurityHeaders } from "@/lib/security-headers";
 
@@ -28,6 +27,7 @@ export default {
   // `await`, not `ctx.waitUntil`: a thrown export error must surface as a
   // failed cron invocation in the dashboard, not a swallowed rejection.
   async scheduled(_controller, env) {
+    const { runScheduledCatalogExport } = await import("@/lib/catalog-export");
     await runScheduledCatalogExport(env);
   },
 } satisfies ExportedHandler<CloudflareEnv>;

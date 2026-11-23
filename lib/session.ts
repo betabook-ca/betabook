@@ -1,10 +1,6 @@
-import { getSessionCookie } from "better-auth/cookies";
 import { headers } from "next/headers";
 
-import { getDb } from "@/db/client";
-import { getTermsAcceptance } from "@/db/queries/terms";
 import { NotAdminError, NotSignedInError, TermsAcceptanceRequiredError } from "@/lib/action-result";
-import { initAuth } from "@/lib/auth";
 import { gradePreferencesFor } from "@/lib/grade-preferences";
 import type { GradePreferences } from "@/lib/grades";
 import { requestMemo } from "@/lib/request-memo";
@@ -15,17 +11,26 @@ import { hasAcceptedCurrentTerms } from "@/lib/terms";
 // plain call.
 export const getSession = requestMemo(async () => {
   const requestHeaders = await headers();
+  if (!requestHeaders.get("cookie")) return null;
+  const { getSessionCookie } = await import("better-auth/cookies");
   // Only absence is decisive. A present token still needs signature, expiry,
   // and revocation validation by Better Auth. Keep cookie naming aligned with
   // lib/auth.ts, which uses Better Auth's default secure/local cookie names.
   if (!getSessionCookie(requestHeaders)) return null;
+  const { initAuth } = await import("@/lib/auth");
   const auth = await initAuth();
   return auth.api.getSession({ headers: requestHeaders });
 });
 
-export const getSessionTermsAcceptance = requestMemo(async (userId: string) =>
-  getTermsAcceptance(await getDb(), userId),
-);
+async function readTermsAcceptance(userId: string) {
+  const [{ getDb }, { getTermsAcceptance }] = await Promise.all([
+    import("@/db/client"),
+    import("@/db/queries/terms"),
+  ]);
+  return getTermsAcceptance(await getDb(), userId);
+}
+
+export const getSessionTermsAcceptance = requestMemo(readTermsAcceptance);
 
 /** Page loaders treat an unaccepted account as anonymous. The template prompts
  * for agreement and refreshes the current page after acceptance. */
@@ -47,7 +52,7 @@ export async function getViewerGradePreferences(): Promise<GradePreferences> {
 export async function requireSession() {
   const session = await getSession();
   if (!session) throw new NotSignedInError();
-  const acceptance = await getTermsAcceptance(await getDb(), session.user.id);
+  const acceptance = await readTermsAcceptance(session.user.id);
   if (!acceptance) throw new NotSignedInError();
   if (!hasAcceptedCurrentTerms(acceptance)) throw new TermsAcceptanceRequiredError();
   return session;

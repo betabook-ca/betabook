@@ -1,7 +1,5 @@
 import type { MetadataRoute } from "next";
 
-import { getDb } from "@/db/client";
-import { countAreas, countClimbs, getAreaSitemapRows, getClimbSitemapRows } from "@/db/queries";
 import { LANDING_PAGE_PATHS } from "@/lib/landing-pages";
 import { requestMemo } from "@/lib/request-memo";
 import { SITE_URL } from "@/lib/site";
@@ -35,19 +33,32 @@ const STATIC_PATHS = [
 /** Shard counts from live row counts — area shards first (static paths ride
  * in shard 0, so there is always one), then climb shards. Request-time only:
  * it hits D1. */
-const shardCounts = requestMemo(async () => {
+const sitemapData = requestMemo(async () => {
+  // Vinext loads this metadata module at Worker startup. Load its database
+  // dependencies when a sitemap or the index is requested.
+  const [{ getDb }, areaQueries, climbQueries] = await Promise.all([
+    import("@/db/client"),
+    import("@/db/queries/areas"),
+    import("@/db/queries/climbs"),
+  ]);
   const db = await getDb();
-  const [areas, climbs] = await Promise.all([countAreas(db), countClimbs(db)]);
+  const [areas, climbs] = await Promise.all([
+    areaQueries.countAreas(db),
+    climbQueries.countClimbs(db),
+  ]);
   return {
     areaShards: Math.max(1, Math.ceil(areas / SHARD_SIZE)),
     climbShards: Math.ceil(climbs / SHARD_SIZE),
+    db,
+    getAreaSitemapRows: areaQueries.getAreaSitemapRows,
+    getClimbSitemapRows: climbQueries.getClimbSitemapRows,
   };
 });
 
 /** Real (non-empty) shard count. The sitemap index links exactly this many
  * shards. */
 export async function activeShardCount(): Promise<number> {
-  const { areaShards, climbShards } = await shardCounts();
+  const { areaShards, climbShards } = await sitemapData();
   return areaShards + climbShards;
 }
 
@@ -61,10 +72,9 @@ export default async function sitemap({
   id: Promise<string>;
 }): Promise<MetadataRoute.Sitemap> {
   const shard = Number(await id);
-  const { areaShards, climbShards } = await shardCounts();
+  const { areaShards, climbShards, db, getAreaSitemapRows, getClimbSitemapRows } =
+    await sitemapData();
   if (!Number.isInteger(shard) || shard < 0 || shard >= areaShards + climbShards) return [];
-
-  const db = await getDb();
 
   if (shard < areaShards) {
     const rows = await getAreaSitemapRows(db, SHARD_SIZE, shard * SHARD_SIZE);
