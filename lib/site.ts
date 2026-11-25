@@ -31,3 +31,13 @@ export const OG_IMAGE = {
   height: 630,
   alt: `${SITE_LOCKUP_ALT}. Climbing logbook and crag database.`,
 } as const;
+
+/** The one link-preview card every year-in-review link uses. It names no
+ * climber, year or stat, so the same file serves every link and never needs
+ * redrawing; the name and year are in the preview's title text. */
+export const YEAR_REVIEW_OG_IMAGE = {
+  url: "/og/year-in-review.png",
+  width: 1200,
+  height: 630,
+  alt: `My climbing year in review, on ${SITE_NAME}.`,
+} as const;

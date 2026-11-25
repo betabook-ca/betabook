@@ -28,6 +28,8 @@ export function isTermsExemptPath(path: string) {
     path.startsWith("/trips/") ||
     // A shared list link, for the same reason.
     path.startsWith("/lists/") ||
+    // A shared year-in-review link, for the same reason.
+    path.startsWith("/year/") ||
     ["/contact", "/about", "/forgot-password", "/reset-password", ...LANDING_PAGE_PATHS].includes(
       path,
     )

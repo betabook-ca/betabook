@@ -14,6 +14,7 @@ import { JsonLd } from "@/components/ui/json-ld";
 import { PAGE_MAX_WIDTH_CLASS } from "@/components/ui/layout";
 import { NavigationProgress } from "@/components/ui/navigation-progress";
 import { WorkspaceLoadingModule } from "@/components/workspace-loading";
+import { YearReviewBannerSlot } from "@/components/year-in-review/year-review-banner-slot";
 import { COSTS_PAGE, LOGBOOK_PAGE } from "@/lib/landing-pages";
 import { PALETTE_INK, PALETTE_PAPER } from "@/lib/palette";
 import { websiteJsonLd } from "@/lib/seo";
@@ -165,6 +166,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                   </div>
                 </div>
               </header>
+              {/* Renders nothing outside the recap window or before the
+               * session is known, so it never shifts the page. */}
+              <Suspense>
+                <YearReviewBannerSlot />
+              </Suspense>
               {/* tabIndex lets the skip link move focus here, not just scroll. */}
               <main id="main" tabIndex={-1} className="flex-1 p-4 outline-none md:pt-2">
                 <div className={`mx-auto w-full ${PAGE_MAX_WIDTH_CLASS}`}>{children}</div>

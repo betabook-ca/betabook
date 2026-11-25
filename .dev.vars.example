@@ -32,3 +32,7 @@ TURNSTILE_SECRET_KEY=
 # fixed bills. The token needs Account Analytics Read on this account.
 CLOUDFLARE_USAGE_ACCOUNT_ID=
 CLOUDFLARE_USAGE_API_TOKEN=
+
+# The year-in-review banner and journal card show only Dec 1 – Jan 14. Set to
+# true to show them every day while testing. Leave unset in production.
+YEAR_REVIEW_ALWAYS_OPEN=

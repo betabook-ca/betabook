@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { formatGrade, type ClimbType } from "@/lib/grades";
-import { OG_IMAGE, SITE_NAME, SITE_URL } from "@/lib/site";
+import { OG_IMAGE, SITE_NAME, SITE_URL, YEAR_REVIEW_OG_IMAGE } from "@/lib/site";
 
 /** Full per-page metadata fragment for an indexable content page.
  *
@@ -85,6 +85,33 @@ export function sharedTripMetadata(name: string, tripName: string): Metadata {
     robots: { index: false },
     openGraph: { type: "article", siteName: SITE_NAME, title, description, images: [OG_IMAGE] },
     twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE.url] },
+  };
+}
+
+/** Link preview for a live year-in-review link: the climber's name and the
+ * year in the title, a generic description with no stats, and the generic
+ * year-in-review card. Callers run the share predicate first, so a dead link
+ * previews as nothing. */
+export function sharedYearReviewMetadata(name: string, year: number): Metadata {
+  const title = `${name}'s ${year} climbing year in review`;
+  const description = `A year of climbing on ${SITE_NAME}, a climbing logbook and crag database.`;
+  return {
+    title: { absolute: title },
+    description,
+    robots: { index: false },
+    openGraph: {
+      type: "article",
+      siteName: SITE_NAME,
+      title,
+      description,
+      images: [YEAR_REVIEW_OG_IMAGE],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [YEAR_REVIEW_OG_IMAGE.url],
+    },
   };
 }
 

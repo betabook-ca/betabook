@@ -13,13 +13,24 @@ export type ShareStat = {
   sub: string | null;
 };
 
-export type ShareImageContent = {
+/** What the image draws for one stat. Trip images pick these from page
+ * stats; a year-in-review card writes its own. */
+export type ShareImageStat = Pick<ShareStat, "label" | "value" | "sub">;
+
+export type ShareImageContent<Stat extends ShareImageStat = ShareStat> = {
   title: string;
   status: { label: string; tone: "success" | "default" } | null;
   dates: string;
   description: string | null;
-  /** One to four, in page order. */
-  stats: ShareStat[];
+  /** Up to four, in page order. */
+  stats: Stat[];
+  /** Above the stat cards; "At a glance" when left out. */
+  statsHeading?: string;
+};
+
+export type ShareImageOptions = {
+  /** A solid fill behind everything, for a card that isn't laid over a photo. */
+  background?: string;
 };
 
 export type ShareImageFonts = { sans: string; display: string };
@@ -159,7 +170,7 @@ export function statCardRects(count: number, x: number, y: number, width: number
 }
 
 function headerOps(
-  content: ShareImageContent,
+  content: ShareImageContent<ShareImageStat>,
   top: number,
   fonts: ShareImageFonts,
   measure: MeasureText,
@@ -218,28 +229,32 @@ function headerOps(
 }
 
 function statsHeight(count: number) {
+  if (count === 0) return 32 + 28;
   const rows = Math.ceil(count / 2);
   // Heading, grid, then the watermark.
   return 64 + rows * CARD_HEIGHT + Math.max(0, rows - 1) * CARD_GAP + 32 + 28;
 }
 
 function statOps(
-  stats: ShareStat[],
+  stats: ShareImageStat[],
+  heading: string,
   top: number,
   fonts: ShareImageFonts,
   measure: MeasureText,
 ): ShareImageOp[] {
   const width = SHARE_IMAGE_WIDTH - PAD * 2;
-  const ops: ShareImageOp[] = [
-    {
-      kind: "text",
-      text: "At a glance",
-      x: PAD,
-      y: top,
-      font: font(600, 44, fonts.sans),
-      color: WHITE,
-    },
-  ];
+  const ops: ShareImageOp[] = stats.length
+    ? [
+        {
+          kind: "text",
+          text: fitText(heading, width, font(600, 44, fonts.sans), measure),
+          x: PAD,
+          y: top,
+          font: font(600, 44, fonts.sans),
+          color: WHITE,
+        },
+      ]
+    : [];
   const labelFont = font(500, 30, fonts.sans);
   const valueFont = font(600, 88, fonts.display);
   const subFont = font(400, 30, fonts.sans);
@@ -285,7 +300,7 @@ function statOps(
       });
   }
 
-  const gridBottom = rects.length ? rects[rects.length - 1].y + CARD_HEIGHT : top + 64;
+  const gridBottom = rects.length ? rects[rects.length - 1].y + CARD_HEIGHT : top;
   ops.push({
     kind: "text",
     text: WATERMARK,
@@ -298,9 +313,14 @@ function statOps(
   return ops;
 }
 
-/** Everything to draw, in order. Kept free of the DOM so it can be tested. */
-export function layoutShareImage(
-  content: ShareImageContent,
+/** Content with stats of any shape the image can draw. */
+type DrawableContent = ShareImageContent<ShareImageStat>;
+
+/** Everything to draw, in order. Kept free of the DOM so it can be tested.
+ * Generic over the stat shape, so callers may pass stats carrying more than
+ * the image draws (a trip's card ids). */
+export function layoutShareImage<Stat extends ShareImageStat>(
+  content: ShareImageContent<Stat>,
   format: ShareImageFormat,
   fonts: ShareImageFonts,
   measure: MeasureText,
@@ -319,7 +339,10 @@ export function layoutShareImage(
   return {
     width: SHARE_IMAGE_WIDTH,
     height,
-    ops: [...header.ops, ...statOps(stats, statsTop, fonts, measure)],
+    ops: [
+      ...header.ops,
+      ...statOps(stats, content.statsHeading ?? "At a glance", statsTop, fonts, measure),
+    ],
   };
 }
 
@@ -330,7 +353,7 @@ export function shareImageFileName(title: string, format: ShareImageFormat) {
 
 /** The image's size without measuring any text, for a placeholder of the
  * right shape. A description counts as one line. */
-export function estimateShareImageSize(content: ShareImageContent, format: ShareImageFormat) {
+export function estimateShareImageSize(content: DrawableContent, format: ShareImageFormat) {
   const { width, height } = layoutShareImage(content, format, { sans: "", display: "" }, () => 0);
   return { width, height };
 }
@@ -391,8 +414,9 @@ function drawShareImage(context: CanvasRenderingContext2D, layout: ShareImageLay
 
 /** Draws the image on a transparent canvas and encodes it as a PNG. */
 export async function renderShareImage(
-  content: ShareImageContent,
+  content: DrawableContent,
   format: ShareImageFormat,
+  options: ShareImageOptions = {},
 ): Promise<Blob> {
   const fonts = await loadShareFonts();
   const canvas = document.createElement("canvas");
@@ -406,6 +430,13 @@ export async function renderShareImage(
   canvas.width = layout.width;
   canvas.height = layout.height;
   drawShareImage(context, layout);
+  if (options.background) {
+    // Painted underneath what was drawn, so the layout stays the same.
+    context.globalCompositeOperation = "destination-over";
+    context.fillStyle = options.background;
+    context.fillRect(0, 0, layout.width, layout.height);
+    context.globalCompositeOperation = "source-over";
+  }
   return new Promise((resolve, reject) =>
     canvas.toBlob(
       (blob) => (blob ? resolve(blob) : reject(new Error("PNG encoding failed"))),
