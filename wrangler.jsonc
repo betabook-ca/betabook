@@ -119,6 +119,17 @@
         "period": 60,
       },
     },
+    // /api/client-errors takes a report from any browser that shows an error
+    // page, signed in or not. Ten a minute per address is more error pages
+    // than one person sees, and it keeps a script from flooding the logs.
+    {
+      "name": "CLIENT_ERROR_RATE_LIMITER",
+      "namespace_id": "1006",
+      "simple": {
+        "limit": 10,
+        "period": 60,
+      },
+    },
   ],
   "observability": {
     "enabled": true,
@@ -129,10 +140,17 @@
       "persist": true,
       "invocation_logs": true,
     },
+    // From Dec 1, 2026, Workers observability is billed per uncompressed GB:
+    // 50 GB ingested and 10 GB-month stored are included, then $0.25/GB and
+    // $0.10/GB-month. Trace spans are ~90% of Betabook's volume (~12 spans,
+    // ~24 KB a request; ~52 GB a month at 100%). At 10% the total is ~10 GB a
+    // month, so traffic can grow ~4x before any charge. Logs, including the
+    // request_error and client_error events, stay at 100%: an error is never
+    // sampled away. To debug a slow route, set this to 1 for a few days.
     "traces": {
       "enabled": true,
       "persist": true,
-      "head_sampling_rate": 1,
+      "head_sampling_rate": 0.1,
     },
   },
 }

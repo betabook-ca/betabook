@@ -9,6 +9,7 @@ import {
   SESSION_EXPIRED_MESSAGE,
   toActionResult,
 } from "./action-result";
+import { REQUEST_ERROR_EVENT } from "./error-reporting";
 
 describe("toActionResult", () => {
   it("wraps a successful body's return value in ok:true", async () => {
@@ -52,7 +53,14 @@ describe("toActionResult", () => {
           throw internal;
         }),
       ).toEqual({ ok: false, error: GENERIC_ERROR_MESSAGE });
-      expect(consoleError).toHaveBeenCalledWith(internal);
+      expect(consoleError).toHaveBeenCalledWith({
+        event: REQUEST_ERROR_EVENT,
+        routeType: "action",
+        error: expect.objectContaining({
+          name: "Error",
+          message: "D1_ERROR: something leaked from the driver",
+        }),
+      });
     } finally {
       consoleError.mockRestore();
     }
@@ -66,6 +74,26 @@ describe("toActionResult", () => {
           throw "nope";
         }),
       ).toEqual({ ok: false, error: GENERIC_ERROR_MESSAGE });
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it.each([
+    ["a null-prototype object", () => Object.create(null) as unknown],
+    [
+      "an Error with a null-prototype cause",
+      () => new Error("boom", { cause: Object.create(null) }),
+    ],
+  ])("returns the generic message when %s is thrown", async (_label, make) => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      expect(
+        await toActionResult(async () => {
+          throw make();
+        }),
+      ).toEqual({ ok: false, error: GENERIC_ERROR_MESSAGE });
+      expect(consoleError).toHaveBeenCalledTimes(1);
     } finally {
       consoleError.mockRestore();
     }
