@@ -1,0 +1,377 @@
+duplicate_area_id,survivor_area_id,duplicate_name,survivor_name,survivor_display_name,survivor_new_parent_area_id,evidence,source_url
+5987,5975,Powerline Boulders,The Powerline Boulders,Powerline Boulders,,"One Powerline Boulders area contains Forest, Talus, Emerging Dream and other sectors; seven duplicate original climbs; preserve the higher-use area ID.",https://quickdrawpublications.com/wp-content/uploads/page%20samples/SB4_Bouldering_Areas4.pdf
+4554,4527,Newhalem,Newhalem,,,All three duplicate-area Newhalem climbs match named sport routes at the main Newhalem area; Ryan's Wall was originally Newhalem.,https://www.mountainproject.com/area/106116502/ryans-wall
+9008,9010,Guides Rock,Guide's Rock,,,Guide(s) Rock siblings at Mount Cory share at least ten named routes; survivor has detailed child crags.,
+7521,7519,Sasquatch Boulders,Sasquatch Boulders,,,Same-name Index Sasquatch Boulders siblings share route and geographic evidence.,https://www.mountainproject.com/area/108123669/bouldering-at-index
+8197,8201,The Gym,The Gym,,,Same-name Cheakamus Canyon Gym siblings describe one topo and overlapping routes.,https://quickdrawpublications.com/wp-content/uploads/topos/Cheakamus_Gym.pdf
+7255,7252,Simian Complex,Simian Complex,,,Simian Complex siblings share Natural Selection and close name/grade route aliases.,
+4149,4090,The Bar,The Bar,,,The Bar siblings share Handlebar and identical parent region.,
+8637,8634,Ladybird,Ladybird Boulders,,,Ladybird and Ladybird Boulders share both original routes under Norns.,
+8609,8608,Grove Boulders,The Grove,,,The Grove and Grove Boulders have the same Arrow Lakes parent and overlapping route inventory.,https://westkootenaybouldering.ca/page/2/
+3934,3915,Fort Amherst,Fort Amherst Boulders,,,Fort Amherst and Fort Amherst Boulders share Green Eggs and Ham at the same grade.,
+5793,5787,The Curved Wall,The Curved Wall,,,Exact same-name Mt Nemo Curved Wall siblings; single physical wall.,
+5936,5935,Whirlpool boulders,Whirlpool,,,Whirlpool and Whirlpool boulders are the same bouldering sector beneath Rapids Boulders.,
+3802,3786,Sainte-Adèle,Sainte-Adèle,,,Exact same-name Sainte-Adèle siblings share La Gloire de mon père and retain Mont Sauvage child under survivor.,
+7148,7145,Lookout Mtn,Lookout Mtn,,,Exact same-name Chattanooga Lookout Mtn siblings.,
+9502,9501,Cotton Top Boulders,Cotton Top,,,Cotton Top and Cotton Top Boulders share Halfmoon Tilt and Where's Waldo boulders.,
+6752,3823,Le Bloc À Julien,Le Bloc À Julien,,,Le Bloc À Julien child repeats parent name; parent has no direct climbs and retains separate Les Ptits Blocs Roses child.,
+1958,1957,Pha Tang - Na Pha Daeng,Pha Tang - Na Pha Daeng,,,Exact same-name Pha Tang - Na Pha Daeng siblings under Laos.,
+3201,3193,Hotton,Hotton,,,Exact same-name Hotton siblings under Belgium with route overlap.,
+3194,3183,Mozet,Mozet,,,Exact same-name Mozet siblings under Belgium with route overlap.,
+2404,2353,Vesterøya,Vesterøya,,,Exact same-name Vesterøya siblings under Norway.,
+5146,5142,Festvåg,Festvåg,,,Exact same-name Festvåg siblings under Lofoten.,
+2097,2107,Dolina Bedkowska,Dolina Będkowska,,,Dolina Bedkowska and Dolina Będkowska are the same Polish place with five exact route overlaps; retain local spelling.,
+2178,2145,Przadki,Prządki,,,Przadki and Prządki differ only by Polish diacritic in same parent.,
+2127,2113,Smolen,Smoleń,,,Smolen and Smoleń siblings share two named routes; retain local spelling.,
+2988,2991,Colnisce,Čolnišče,,,Colnisce and Čolnišče are diacritic variants beneath Slovenia.,
+5456,5453,Laboratori,Laboratori,,,Exact same-name Laboratori siblings under Margalef share a route.,
+1900,477,Ostrężnik,Ostrężnik,,,Exact same-name Ostrężnik siblings under Unknown share four original routes.,
+1763,219,Prze?om Bia?ki,Przełom Białki,,,Przełom Białki orthographic variants under Unknown share three original routes.,
+4256,4263,LCC,Little Cottonwood,,,"LCC is Little Cottonwood Canyon; 13 shared named routes, survivor has specific Wasatch hierarchy.",https://www.mountainproject.com/area/105739277/little-cottonwood-canyon
+4037,4026,Castle Rock State Park,Castle Rock,,,Castle Rock State Park and San Francisco Bay Castle Rock share ten named routes; survivor has detailed subareas.,https://www.mountainproject.com/area/105733890/castle-rock-and-sanborn-area
+4044,4036,Tuolumne,Tuolumne Meadows,,,Tuolumne and Tuolumne Meadows share five named routes; move root area beneath Yosemite National Park branch.,
+6883,4035,Rock Creek,Rock Creek,,,Two Rock Creek areas share named climbs; retain Mammoth Lakes placement supported by Mountain Project.,https://www.mountainproject.com/area/105817185/rock-creek
+9593,7735,Chocolate Factory,Chocolate Factory,,,"Chocolate Factory is adjacent to Motherlode, with duplicate routes; retain sibling placement under BRRP.",https://www.mountainproject.com/area/106229629/chocolate-factory
+5993,8207,Area 44,Area 44,,,Area 44 belongs beneath Brohm Lake; six exact duplicate routes and guidebook hierarchy corroborate.,https://quickdrawpublications.com/wp-content/uploads/page%20samples/SS4_Contents.pdf
+4679,4680,Dixon School Road,Dixon School Road Boulders,,,Dixon School Road Boulders belong to Crowders Mountain; Venom and Atlas route duplicates corroborate.,https://carolinaclimbers.org/climbing-areas/dixonschool.html
+6856,3946,kingston crag,Kingston crag,,,Kingston crag child repeats parent name; collapse container without changing route identity.,
+9678,7995,Cave of Wonders,Cave of Wonders,,,Cave of Wonders child exactly repeats parent name; retain sibling sectors.,
+7168,4250,Moe's Valley,Moe's Valley,,,Moe's Valley child repeats its parent; one same named/graded climb overlaps and the published area is singular.,https://www.mountainproject.com/area/106028834/moes-valley
+8254,5982,The longhouse,The Longhouse,,,The Longhouse child repeats parent; Hunter-Gatherer route overlaps.,
+7562,4564,Lucid Boulders,Lucid Boulders,,,Lucid Boulders child repeats parent label with shared route evidence.,
+9997,8610,Ponderosa Boulders,Ponderosa boulders,,,Ponderosa Boulders child repeats parent label; retain parent container.,
+10045,9007,Rockbound Lake,Rockbound Lake,,,Rockbound Lake child exactly repeats parent label.,
+10033,8928,The Cottage,The cottage,,,The Cottage child exactly repeats parent label.,
+9425,7309,Kiss of the Lepers Buttress,Kiss of the Lepers Buttress,,,Kiss of the Lepers Buttress child exactly repeats parent label.,
+9415,7239,Kolob Canyon,Kolob Canyon,,,Kolob Canyon child exactly repeats parent label.,
+8733,6425,Bearspaw Bluffs,Bearspaw Bluffs,,,Bearspaw Bluffs child repeats parent; preserve other sector children under parent.,https://sendage.com/area/bearspaw-bluffs-calgary-area-ab-canada
+9741,8205,The Pillary,The Pillary,,8207,"The Pillary child under Area 44 duplicates the better-used Brohm Lake Pillary. Merge its Boondocks child, then place survivor beneath canonical Area 44.",https://www.mountainproject.com/area/108504059/the-pillary
+8264,6086,Behemoth,Behemoth,,,"One Skaha Behemoth crag has six exact route overlaps; Foreplay placement differs between sources, so retain direct Skaha parent.",https://quickdrawpublications.com/wp-content/uploads/updates/Skaha_Update_032025.pdf
+8378,9775,Superman,Superman,,,"Superman crag is the same High Road/Kelowna site, with three exact route overlaps.",https://sendage.com/climb/battling-bulge-main-wall-high-road-boulderfields-klo-creek-kelowna-bc-canada
+8198,9728,Foundation Wall,Foundation Wall,,,Foundation Wall is the Chek crag with two route overlaps.,
+6277,8663,Weirdstone Wall,Weirdstone Wall,,,Weirdstone Wall is the Soo River Bluffs crag with two route overlaps.,
+4449,7425,Bolam Pass,Bolam Pass,,,Bolam Pass belongs beneath Telluride and shares two exact routes.,https://www.mountainproject.com/area/122868796/telluride-bouldering
+2915,2952,Villanueva de cauche,Villanueva del Cauche,,,Villanueva de cauche and Villanueva del Cauche are orthographic variants of one Andalusian crag.,
+5341,5343,Jupiter-Petzina,Jupiter,Jupiter-Petzina,,Four exact route overlaps show Jupiter and Jupiter-Petzina are the same Leonidio crag; retain combined local name.,https://www.thecrag.com/en/climbing/leonidio/area/1522558296
+7903,5358,Agios Andreas,Agios Andreas,,,Agios Andreas child repeats the parent name.,
+7827,5137,Foten,Foten,,,Foten child repeats the parent name.,
+5199,2472,Veaveggen,Veaveggen,,,Veaveggen child repeats the parent name.,
+9666,7888,Strandväggen,Strandväggen,,,Strandväggen child repeats the parent name.,
+4945,4944,Anatoli,Anatolia,,,Anatoli and Anatolia are one Turkish climbing sector with Session of Happiness route overlap.,https://www.8a.nu/crags/sportclimbing/turkey/anatolia/routes
+277,207,Fern Point W.V.,Fern Point W.V,Fern Point,,Fern Point W.V. siblings differ only by punctuation and identify the same West Virginia crag.,
+612,558,Livezey Ln,Livezey Ln.,,,Livezey Ln siblings differ only by punctuation and contain boulders.,
+645,532,McConnells Mill,McConnell's Mill,,,McConnells Mill is the same named bouldering place as McConnell's Mill.,
+1788,1078,Moormans,Moorman's,,,Moormans and Moorman's are the same named bouldering place.,
+1883,1234,Mt. Woodson,Mt Woodson,,,Mt Woodson and Mt. Woodson are the same named San Diego climbing place.,
+11388,6774,Névroses,Nevrose,,,Névroses is the source plural spelling of original Nevrose under Lac du Cap.,
+17889,9634,"Hal Garner Memorial Crag, The",The Hal Garner Memorial Crag,,,"Hal Garner Memorial Crag, The repeats the original Hal Garner Memorial Crag beneath MFRP.",
+26789,7664,Aspen Glade,Aspen Glades,Aspen Glade,,Aspen Glade and Aspen Glades share all 18 OpenBeta source route paths; original 7664 has 14 matched routes.,
+13466,7013,Great Stone Face Rock Park,Great Stoneface Park,Great Stoneface Park,,Great Stone Face Rock Park and Great Stoneface Park are the same Berkeley park.,https://berkeleyca.gov/community-recreation/parks-recreation/parks/great-stoneface-park
+13469,7014,Remillard Park,Remilard Park,Remillard Park,,Remilard Park and Remillard Park are the same Berkeley park; retain official spelling.,https://berkeleyca.gov/community-recreation/parks-recreation/parks/remillard-park
+13574,6981,OK Corral,OK Coral,OK Corral,,OK Coral and OK Corral are the same Black Mountain area; seven original climbs were routed to the source spelling.,
+19859,7083,Mud Spring Canyon,Mud Springs Canyon,,,Mud Spring Canyon and Mud Springs Canyon are the same Nevada crag.,
+22170,7284,The Fourth Horseman,Fourth Horsemen,The Fourth Horseman,,Fourth Horseman and Fourth Horsemen are the same Smith Rock feature.,
+24807,7230,Fringe Walls,Fringe Wall,,,Fringe Wall and Fringe Walls name the same nearby site.,
+24814,7237,North Six Shooter Peak,North Six Shooter,North Six Shooter Peak,,North Six Shooter and North Six Shooter Peak name the same Utah summit.,
+24818,7236,Petrified Hornet Wall,Petrified Hornet,Petrified Hornet Wall,,Petrified Hornet and Petrified Hornet Wall name the same site.,
+25102,7191,Prophesy Wall,Prophecy Wall,Prophesy Wall,,Prophecy/Prophesy Wall are spelling variants at the same Utah parent.,
+18225,4789,Annapolis Rock,Annapolis Rocks,,,Annapolis Rock and Annapolis Rocks are the same Maryland site; preserve seven detailed wall children.,
+18069,7720,Canada Cliff,Canada Cliffs,,,Canada Cliff and Canada Cliffs name the same Acadia area; preserve Boulder and Rock subareas.,
+11970,11969,43 mile crag,43 Mile,43 Mile,,43 Mile and 43 mile crag are the same Valdez roped site with nearby source GPS.,
+15203,15202,Brink's Rock Area,Brink's Rock,,,Brink's Rock Area repeats Brink's Rock; source GPS separation is about two metres.,
+21716,21715,Wash Rock Boulders,Wash Rock,,,Wash Rock Boulders and Wash Rock share the same NC boulder cluster within 14 metres.,
+20247,20248,Main Cliff Boulders,"Main Cliff, The",,,Main Cliff Boulders and The Main Cliff are the same NH bouldering site within 20 metres.,
+11130,11129,The Gnar Wall,Gnar Wall,,,The Gnar Wall child repeats parent name; move four climbs to parent.,
+16850,16849,Beam Me Up Scotty Area,Beam Me Up Scotty Area,,,Beam Me Up Scotty Area child repeats parent name.,
+16855,16852,Easy Crack Area,Easy Crack Area,,,Easy Crack Area child repeats parent name.,
+16866,16864,Half Pipe Area,Half Pipe Area,,,Half Pipe Area child repeats parent name.,
+17609,17608,House Boulders,House Boulders,,,House Boulders child repeats parent name.,
+22590,22589,Ewing,Ewing,,,Ewing child repeats parent name.,
+23872,23870,North Clear Creek,North Clear Creek,,,North Clear Creek child repeats parent name while sibling sectors remain.,
+22468,22467,Druid Boulders [unsorted],Druid Boulders [sorted],Druid Boulders,,"Druid Boulders unsorted/sorted is source editorial organization, not two climbing areas.",
+21479,21475,Golden Wall Area,The Golden Wall,,,Golden Wall Area bouldering facet and The Golden Wall roped facet are the same Peterskill wall by source GPS and guide hierarchy.,https://www.mountainproject.com/area/105896719/peterskill
+18967,18973,Mini Fortress,Mini Fortress Area,Mini Fortress,,Mini Fortress and Mini Fortress Area represent one Minnesota site; the wall children remain.,
+18110,18109,Roped,Jockey Cap,,,"Roped is a Jockey Cap activity heading, not a geographic child area.",
+26060,4556,Granite Point Roped,Granite Point,,,Granite Point Roped is an activity heading beneath original Granite Point.,
+26082,26068,Southwest Cascades,Southwest Cascades,,,"Southwest Cascades child repeats parent name; preserve Chimney Rocks, Rainier, Pinto Rock, Shark Rock and Tatoosh Range as children.",
+1132,355,Chwa?ków,Chwałków,,,Chwałków/Chwa?ków encoding variants describe the same Polish place.,
+291,230,Ciężkowice,Ciezkowice,,,Ciężkowice/Ciezkowice differ only by Polish spelling.,
+780,426,The Darran's,Darrans,,,Darrans and The Darrans are the same named New Zealand climbing range.,
+652,495,Dovedale,Dove Dale,,,Dove Dale and Dovedale are spacing variants of one named place.,
+878,442,Draper's Bluff,Drapers Bluff,,,Drapers Bluff and Draper's Bluff are the same place; Kittens and its second pitch corroborate.,
+675,661,Génat,Genat,,,Genat and Génat differ only by accent.,
+1683,600,"Holtejn, Mor.kras","Holtejn, Mor. kras",,,Holštejn Mor. kras differs only by spacing/encoding.,
+352,243,Kamien Leski,Kamień Leski,,,Kamień Leski differs only by Polish accent; a route-name variant corroborates.,
+1456,856,The Mud Skulls,Mud Skulls,,,The Mud Skulls and Mud Skulls are the same named crag.,
+276,272,Nö,NÖ,,,NÖ and Nö are case variants of one named place.,
+1116,1084,Pe?cznica,Pełcznica,,,Pełcznica and Pe?cznica are encoding variants.,
+846,811,Riugréixer,Riugreixer,,,Riugreixer and Riugréixer differ only by accent.,
+1863,851,Saint-Pons,Saint Pons,,,Saint Pons and Saint-Pons share a route and name.,
+1579,1150,San Nicolo,San Nicolò,,,San Nicolò and San Nicolo differ only by accent.,
+1670,875,St Saturnin,St-Saturnin,,,St-Saturnin and St Saturnin differ only by punctuation.,
+1800,1397,swedes forest,Swede's Forest,,,Swede's Forest and swedes forest are orthographic variants.,
+982,719,T:Khao Yoi,T: Khao Yoi,,,T: Khao Yoi differs only by punctuation/spacing.,
+1830,546,Pup Tent of Solitude,The Pup Tent of Solitude,,,Pup Tent of Solitude differs only by leading article.,
+1781,653,Vanousovy díry,Vaňousovy díry,,,Vaňousovy díry and Vanousovy díry differ only by accent and share a route.,
+929,211,Vila propicio,Vila Propício,,,Vila Propício differs only by case.,
+1927,1636,Višnove,Visnove,,,Visnove and Višnove differ only by accent.,
+1745,1686,Vyhlidkova skala,Vyhlídková skála,,,Vyhlídková skála differs only by accent.,
+1330,1270,Wawoz Ostryszni,Wawóz Ostryszni,,,Wawóz Ostryszni differs only by accent.,
+1345,606,südl. Frankenjura,südl Frankenjura,,,südl Frankenjura differs only by punctuation.,
+1342,221,åland,Åland,,,Åland differs only by case; geographic island name.,
+1301,1159,"Alkoholvegg, Lofoten","Alkohlvegg, Loften",,,Alkoholvegg is the same named Lofoten crag; Rom o cola route overlap.,
+1482,1141,Curahee Mt.,Curahee Mtn.,,,Curahee Mtn/Mt are abbreviations; Mickey's Mantle route variant corroborates.,
+1310,914,Burnage North,Burnage Nth,,,Burnage Nth/North are abbreviations of one named place.,
+1294,1173,Cape Spencer,"Cape Spencer, NB",,,Cape Spencer NB and Cape Spencer describe the same named New Brunswick place.,
+1126,1056,Coal Mounatin,Coal Mountain,,,Coal Mounatin is a typo for Coal Mountain.,
+1860,1003,Coup de Rore,Coup di Rore,,,Coup di Rore is a spelling variant of Coup de Rore.,
+1848,1774,Cove Holow,Cove Hollow,,,Cove Holow is a typo for Cove Hollow.,
+1789,1696,Dardanelle Rock,"Dardanelle Rock, AR",,,Dardanelle Rock AR and Dardanelle Rock are one Arkansas site.,
+1086,883,Etterzhausener Wände,Ettertzhausener Wände,,,Ettertzhausener Wände is an orthographic spelling variant.,
+841,825,Fallbrook,"Fallbrook, CA",,,Fallbrook CA and Fallbrook describe the same place in California.,
+1765,805,Holledaren,Hollendaren,,,Hollendaren and Holledaren are typo variants.,
+1786,1752,Lassen Devastated A,Lassen Devastated Area,,,Lassen Devastated Area is a repeated name variant of the same California site.,
+646,512,Metaline,"Metaline, WA",,,Metaline WA and Metaline describe the same Washington place.,
+1401,351,Rifugio Barbarra,Rifugio Barbara,,,Rifugio Barbarra is a typo for Rifugio Barbara.,
+1951,1813,"Riverside Dr, Richmond","Riverside Dr, Richmond Va",,,Riverside Dr Richmond VA and Riverside Drive Richmond are the same named city site.,
+839,570,Roche de St Julien,Roche De Saint Julien,,,Roche De Saint Julien and Roche de St Julien are abbreviation variants.,
+1790,476,Sokole Góy,Sokole Góry,,,Sokole Góry and Sokole Góy are typo variants.,
+1134,517,Trois Rivieres,Trois Rivere,,,Trois Rivere and Trois Rivieres are spelling variants.,
+1764,1006,Val Massino,Val Masino,,,Val Masino and Val Massino are spelling variants of one Italian valley.,
+1544,1175,Wielka Skala,Wielka Skała,,,Wielka Skała differs only by Polish accent.,
+901,484,Gorges du Houx,gorge du houx,,,gorge du houx and Gorges du Houx are singular/plural variants.,
+15523,15528,McInnis Canyon,McInnis Canyons,,,McInnis Canyon Bouldering and McInnis Canyons are an activity split within one official conservation area.,https://www.blm.gov/programs/national-conservation-lands/colorado/mcinnis-canyons
+17275,17274,Castle Rocks,Castle Rocks,,,Castle Rocks child repeats the same Idaho place after source Bouldering heading was removed; merge 111 roped routes into geographic parent.,
+18926,7756,550,550 Bouldering,550,18925,Generated 550 bouldering routes belong with original 550 Bouldering and its Wetmore Landing child; use neutral geographic name.,https://www.mountainproject.com/area/120752474/marquette-and-central-up-bouldering
+18933,7756,550 Roped,550,,,550 Roped is the same highway 550 geography; combine discipline facets while retaining every climb.,https://www.mountainproject.com/area/118171033/upper-peninsula
+18941,18929,Presque Isle,Presque Isle,,,Presque Isle roped and bouldering source facets are one Marquette island area; retain all routes.,https://www.mountainproject.com/area/118171033/upper-peninsula
+18932,18925,Marquette (and Central UP) Roped,Marquette (and Central UP),,,Marquette Roped and Marquette Bouldering are one geographic region after child 550/Presque Isle branches are reconciled.,https://www.mountainproject.com/area/118171033/upper-peninsula
+6483,6474,Hidden Valley,Hidden Valley,,,Hidden Valley siblings in Jasper have the same name and sport route overlap; survivor has full route inventory.,
+6493,6462,Tonquin,Tonquin,,,Tonquin siblings in Jasper have the same name and boulder route overlap.,
+6296,6292,Jackpot Boulders,Jackpot Boulders,,,Jackpot Boulders siblings in Pemberton are one named boulder sector with the same parent.,
+6293,6290,Lost Boulders,Lost Boulders,,,Lost Boulders siblings in Pemberton are one named boulder sector with the same parent.,
+6262,6256,Pass Creek,Pass Creek,,,Pass Creek siblings in West Kootenay are one geographic area; retain the original detailed child tree.,
+4924,4916,Cocosolo,Cocosolo,,,Cocosolo siblings in Viñales are one named sport crag.,
+4917,4909,Cueva Cabeza De La Vaca,Cueva Cabeza De La Vaca,,,Cueva Cabeza De La Vaca siblings in Viñales are one named sport cave.,
+8650,8634,Ladybird,Ladybird Boulders,,,Three exact boulders show Ladybird under Pass Creek and Ladybird Boulders under Norns are one sector; retain larger ID and place it beneath Pass Creek.,https://justanotheroutdoorpage.blogspot.com/2016/07/ladybird-creek-boulders-pass-creek-bc.html
+460,546,The Pup Tent,The Pup Tent of Solitude,,,The Pup Tent routes Girls With Guns and Subprime appear in Mountain Project Pup Tent of Solitude; same Colorado crag.,https://www.mountainproject.com/area/106947989/pup-tent-of-solitude
+592,546,Pup Tent,The Pup Tent of Solitude,Pup Tent of Solitude,,Pup Tent route Magical Handhold appears in Mountain Project Pup Tent of Solitude; same Colorado crag.,https://www.mountainproject.com/area/106947989/pup-tent-of-solitude
+6312,3632,Furry Creek,Furry Creek,,,Furry Creek child repeats the geographic parent name and has no more specific label; preserve the five other named sibling sectors.,
+18748,18745,Greater Boston Boulders,Greater Boston,,,Greater Boston Boulders is an activity heading under Greater Boston; Hard Knox Rocks and Lawrence Road Cut remain specific child areas.,
+9382,7074,Calico Basin Boulders,Calico Basin,,,"Calico Basin Boulders is an activity heading under Calico Basin, which already has both boulder and roped climbs.",
+5959,3609,Boulders,Trillium Park,,,Generic Boulders activity heading adds no geographic specificity; retain its routes and named children directly under the parent area.,
+7200,4253,Boulders,Welcome Springs,,,Generic Boulders activity heading adds no geographic specificity; retain its routes and named children directly under the parent area.,
+8483,6180,Boulders,Horne Lake,,,Generic Boulders activity heading adds no geographic specificity; retain its routes and named children directly under the parent area.,
+9692,8102,Boulders,Neat and Cool,,,Generic Boulders activity heading adds no geographic specificity; retain its routes and named children directly under the parent area.,
+16883,16882,Boulders,Buford Dam Boulders,,,Generic Boulders activity heading adds no geographic specificity; retain its routes and named children directly under the parent area.,
+16892,16891,Boulders,Currahee Mountain,,,Generic Boulders activity heading adds no geographic specificity; retain its routes and named children directly under the parent area.,
+19067,19066,Boulders,Vermillion Gorge,,,Generic Boulders activity heading adds no geographic specificity; retain its routes and named children directly under the parent area.,
+4641,7621,Upper Meadow,Upper Meadow,,,Upper Meadow duplicates the more specific Meadow River Gorge area and shares Cross-Eyed and Blind.,https://www.mountainproject.com/area/106490004/meadow-river-gorge
+7976,5811,Latvian Ledge,Latvian Ledge Area,,,Latvian Ledge under Scalphunter duplicates Latvian Ledge Area; Mountain Project makes Latvian Ledge and Scalphunter sibling areas.,https://www.mountainproject.com/area/109084447/lions-head
+3895,6746,Le Dôme,Le Dôme,,,Le Dôme route Granuleuse matches the Grands Jardins Le Dôme route; keep more specific parent.,https://www.escaladequebec.com/pour-une-premiere-visite-dans-les-grands-jardins/
+23676,23693,Asteroid,Asteroid,,,Two Asteroid boulder nodes at Old Wauhatchie Pike have near-identical GPS; keep Upper Boulders placement.,https://www.lookoutmountainconservancy.org/bouldering
+24067,24070,Emerald Pools Sector,Emerald Pools Sector,,,Emerald Pools Sector shares Hi-Ho Cherry-O and belongs beneath Shumla Bend Area.,
+24068,24071,Painted Canyon Sector,Painted Canyon Sector,,,Painted Canyon Sector belongs beneath Shumla Bend Area; Mountain Project places Picnic there.,https://www.mountainproject.com/climbing-near-me/ciudad-acuna-mx-coa
+16663,16781,Right Knee,Right Knee,,,Right Knee bouldering and roped facets are one Sleeping Giant State Park sector.,https://www.thecrag.com/en/climbing/united-states/sleeping-giant-state-park
+16658,16779,Sleeping Giant,Sleeping Giant State Park,,,Sleeping Giant bouldering and roped source branches represent one State Park; preserve detailed children.,https://www.thecrag.com/en/climbing/united-states/sleeping-giant-state-park
+16675,16785,Blue Trail Section,Blue Trail Section,,,Blue Trail Section bouldering and roped facets are one Webb Mountain Park crag.,https://www.mountainproject.com/area/109256371/webb-mountain-park
+16674,16784,Webb Mountain Park,Webb Mountain Park,,,Direct-Connecticut Webb Mountain Park duplicates the detailed Western Coastal Slope branch.,https://www.mountainproject.com/area/109256371/webb-mountain-park
+10021,8848,The Flintstones Wall,The Flintstones Wall,,,Two Cougar Canyon Flintstones Wall nodes have identical source GPS; OpenBeta makes it a sibling of House of Cards.,https://openbeta.io/area/1caf95b0-2c0d-52d7-b886-203bf425a391/cougar-canyon-creek-construction-in-progress
+8682,6288,Cosmic Boulders,Cosmic Boulders,,,Cosmic Boulders under Slug Boulders duplicates Pemberton Cosmic Boulders; publisher lists Slug and Cosmic as siblings.,https://quickdrawpublications.com/wp-content/uploads/2014/02/SB-Table-of-Contents.pdf
+12299,12307,West Clear Creek,West Clear Creek,,,West Clear Creek bouldering facet duplicates the more specific Central Mogollon Rim West Clear Creek.,
+13629,13642,Buck Rock,Buck Rock,,,Buck Rock source branches are one rock with boulder and roped routes; keep more specific direct branch.,https://www.mountainproject.com/area/108155814/buck-rock
+14553,14720,Pike's Peak,Pike's Peak,,,Pike’s Peak under CO Ice & Mixed is an activity branch of the same peak under Colorado Springs.,https://www.mountainproject.com/area/106201866/pikes-peak
+5999,9687,The Sanitarium,The Sanitarium,,,Sanitarium source nodes have identical GPS; retain more specific Sanctuary > Sanitarium placement.,https://www.mountainproject.com/route/114523567/six-fingers
+17602,17597,Devils Standtable,Devils Standtable Area,,,Park > Devils Standtable boulders belong in broader Devils Standtable Area; retain physical standtable child separately.,https://www.mountainproject.com/area/106612569/giant-city-state-park
+9479,7512,The Samurai,The Samurai,The Samurai Area,,"The Samurai/Midnight Lichen boulder cluster appears in both Gold Bar branches; route-level guide evidence places Lichen It beside Midnight Lichen, so Clearcut is a misleading catalog parent.",https://www.mountainproject.com/route/118981082/lichen-it
+9397,9389,Moderate Mecca,Moderate Mecca,,7075,Moderate Mecca at Calico Basin and Moderate Mecca under Red Springs are one crag; move the canonical 24-route ID under Red Springs after merging one-route duplicate.,https://www.mountainproject.com/area/105732021/moderate-mecca
+10085,9712,Capone Wall,Capone Wall,,,The nested Halfway House Capone Wall duplicates Rogue’s Gallery Capone Wall. Sanctuary climb 40 first moves to Halfway House; Chromatic Suspension and Fawlty Towers remain at Capone.,https://www.mountainproject.com/area/106059545/rogues-gallery
+817,3379,FlockHill,Flock Hill,,,Flock Hill spelling under Unknown has a named boulder; consolidate into the existing New Zealand Flock Hill area.,https://www.thecrag.com/en/climbing/new-zealand/castle-hill-basin/area/11871517
+847,3379,"Flock, Hill, CH",Flock Hill,,,Flock Hill CH abbreviation under Unknown refers to Castle Hill New Zealand bouldering area.,https://www.thecrag.com/en/climbing/new-zealand/castle-hill-basin/area/11871517
+852,3379,"Flock Ill, C.H.",Flock Hill,,,Foops at Flock Ill C.H. appears at New Zealand Flock Hill; consolidate into existing geographic area.,https://www.thecrag.com/en/climbing/new-zealand/castle-hill-basin/area/11871517
+1531,3379,CH - Flock Hill,Flock Hill,,,Camp America at CH - Flock Hill is explicitly listed at New Zealand Flock Hill.,https://tota.nz/castlehill/flockhill.html
+215,15921,Millennium,"Millenium Boulder, The",,,Ghost Dance sit and Goat Dyno at Unknown Millennium belong to Matthews-Winters Millenium Boulder; preserve start variants.,https://www.mountainproject.com/area/105746206/the-millenium-boulder
+222,15921,Millenium,"Millenium Boulder, The",,,Ghost Dance and Purity Control at Unknown Millenium belong to Matthews-Winters Millenium Boulder; preserve climb IDs.,https://www.mountainproject.com/area/105746206/the-millenium-boulder
+1306,299,Bar Harbour,Bar Harbor,,,Bar Harbour and Bar Harbor are the same named Maine town; both original boulder areas contain a Tug Boat climb though grade differs and route identity stays for review.,
+4411,15921,Millennium Boulder,"Millenium Boulder, The",Millennium Boulder,,Original state-root Millennium Boulder contains only Matthews-Winters boulders after five wrong-branch Eldorado trad routes are redirected to Millennium Crag. Ghost Dance/Purity Control corroborate identity.,https://www.mountainproject.com/area/105746206/the-millenium-boulder
+795,2181,Krzyworzeka,Krzyworzeka,,,Five same named/graded routes locate Unknown Krzyworzeka at geographic Polish Krzyworzeka.,
+794,3456,Fruehauf,Freuhaf,Fruehauf,,Four same routes show Unknown Fruehauf is the Australian Freuhaf crag.,
+306,2962,Sant Llorenç de Montgai,Sant Llorenç de Montgai,,,Four route overlaps locate Sant Llorenç de Montgai at its Spanish geographic area.,
+259,3406,Whakapapa,Whakapapa,,,Four route overlaps locate Unknown Whakapapa at New Zealand Whakapapa.,
+1088,2293,Cap Dramont,Cap du Dramont,,,Three route overlaps identify Cap Dramont with French Cap du Dramont.,
+459,3392,Brittle Crag,Britten Crags,,,Brittle Crag is a typo for New Zealand Britten Crags with matching rare routes.,
+1488,3392,Britten Crag,Britten Crags,,,"Britten Crag is the same New Zealand Britten Crags area, with route overlap.",
+1256,2918,Sadenres,Sadernes,,,Sadenres is a typo for Catalonian Sadernes with two route overlaps.,
+1370,3465,Sisters Beach,Sisters Beach,,,Sisters Beach original matches the Australian geographic Sisters Beach routes.,
+395,5645,"Spittle Hill, CH",Spittle Hill,,,Spittle Hill CH routes match the specific Spittle Hill child of Castle Hill.,https://www.mountainproject.com/area/106093453/castle-hill
+1356,5645,Spitle Hill,Spittle Hill,,,Spitle Hill is a typo for New Zealand Spittle Hill; one distinctive route corroborates.,https://www.mountainproject.com/area/106093453/castle-hill
+333,2989,Mi?ja pe?,Misja Pec,,,"Mi?ja pe? is an encoding corruption of Slovenia Misja Pec, with route overlap.",https://www.mountainproject.com/area/116711128/misja-pec
+1812,5435,Cova Soleida,Cova Soleiada,,,Cova Soleida matches Margalef Cova Soleiada; two sport routes overlap.,
+837,5445,Raco de les tenebres,El Racó de Les Tenebres,,,Raco de les tenebres matches Margalef El Racó de Les Tenebres; two routes overlap.,
+312,2160,Borzęta,Borzeta,,,Borzęta/Borzeta spelling variants share an original route.,
+922,3473,Cataract Gorge,Cataract Gorge,,,Cataract Gorge is the same Tasmanian geographic climbing area.,
+857,2945,Extauri,Etxauri,,,Extauri is a typo for Spanish Etxauri with matching route.,
+1582,2582,Finale ligure,Finale,,,Finale ligure is the same Italian Finale climbing region with matching route.,
+539,2212,Gorges du Blavet,Blavet,,,Gorges du Blavet matches known French Blavet with a rare route.,
+273,2571,Nordland,Norland,Nordland,,Nordland/Norland are spelling variants of one Norwegian region; matching route.,
+1910,3047,Radegund,St. Radegund,,,Radegund and St. Radegund are one Austrian place with route overlap.,
+1624,3184,Rocher de la Nausée,Nausée,,,Rocher de la Nausée and Nausée are the same Belgian crag with route overlap.,
+827,2237,Sallières,Salières,,,Sallières/Salières spelling variants share a French route.,
+482,3170,Sněník,Sněžník,,,Sněžník encoding variant matches the Czech geographic area and route.,
+398,5471,Tijuana,Tijuana,,,Tijuana original matches Mallorca Tijuana with rare route overlap.,
+1418,3381,Why Creek,Wye Creek,,,Why Creek is a spelling variant of New Zealand Wye Creek with route overlap.,
+1487,4396,Lone Pine Creek Canyon,Lorimer Park,,,All three Lone Pine Creek Canyon routes are Lorimer Park PA routes; name is misleading.,https://epaclimbers.org/wp-content/uploads/Lorimer-Park-Bouldering.pdf
+401,4474,devils head,Devil's Head,,,Unknown devils head routes match Devil’s Head Colorado source descendants.,
+531,7406,Crystal Wall,Crystal Wall,,,Three original Crystal Wall routes match imported climbs at Poudre Canyon Crystal Wall.,
+915,4528,Minnehaha,Minnehaha,,,Minnehaha original routes match the geographic Minnehaha area.,
+376,4119,Mission Gorge,Mission Gorge,,,Mission Gorge original routes match imported geographic Mission Gorge routes.,
+422,7436,lumpy ridge,Lumpy Ridge,,,"lumpy ridge is the existing Estes Park Lumpy Ridge region, retaining 34 child crags.",
+556,4786,Rocks State Park,Rocks State Park,,,Rocks State Park is the same Maryland geographic park.,
+1945,6813,herring cove boulders,Herring Cove,,,Herring Cove Boulders is an activity facet of original Herring Cove; preserve all route IDs.,
+499,4473,The Fortress,Fortress of Solitude,,,"Lois Lame and Daily Planet identify Colorado Main Elk Fortress of Solitude, not Rocklands Fortress.",https://www.coloradomountaineering.com/2011/09/area-profile-main-elk-canyon-flat-tops.html
+1013,4252,St-George,St. George,,,Emergency Exit identifies Utah St. George/Chuckawalla; Swiss St George is distinct.,https://www.8a.nu/crags/sportclimbing/united-states/st-george-utah/routes?page=4
+938,4282,BCC,Big Cottonwood,,,BCC abbreviates Utah Big Cottonwood Canyon; five rare original routes overlap.,
+1372,4043,Malibu Canyon,Malibu Creek,,,All Malibu Canyon routes match Malibu Creek California.,
+1336,4221,real,Rasta Farm,,,Unknown real is Rasta Farm based on three rare sport route overlaps.,
+1627,6639,"La Bleue, Mt. Condor",La Bleue,,,La Bleue Mt Condor matches geographic Val-David La Bleue with two exact routes.,
+218,4389,Mt Gretna,Gretna,,,Mt Gretna matches geographic Gretna with multiple boulder route overlaps.,
+1931,26550,The HideOut,"Hideout Wall, The",,,The HideOut matches Wyoming Hideout Wall with all three original routes.,
+894,4131,Devil's Punchbowl,Devils Punchbowl,,,Devil’s Punchbowl Unknown matches California Devils Punchbowl with five route overlaps.,
+367,6255,Hall siding,Hall Siding,,,Hall siding matches West Kootenay Hall Siding; both routes overlap.,
+390,4301,The Scar,The Scar,,,The Scar Unknown matches Potash Road The Scar with route overlap.,
+1369,4054,Riveside Quarry,Riverside Quarry,,,Riveside Quarry is a typo for Riverside Quarry with matching routes.,
+413,3986,Lincoln Lake,Lake Lincoln,,,Lincoln Lake is the geographic Lake Lincoln area; specific North Side remains a child.,
+449,16098,South Platte,South Platte,,,South Platte Unknown is the broad Colorado South Platte region; Thunder Ridge remains a distinct child.,
+538,4454,Matthew Winters,Matthews Winters Park,,,Matthew Winters Unknown is Matthews Winters Park; its Hill Side and Millennium boulder routes remain for specific climb placement.,https://www.mountainproject.com/area/105746206/the-millenium-boulder
+216,24366,Nolan River,Nolan River,,,Nolan River Unknown is the broad geographic Nolan River; specific walls remain children.,
+332,20748,Upper East Fork,Upper East Fork (UEF),,,Upper East Fork Unknown is the broad geographic Upper East Fork; Monster Wall remains a child.,
+1219,4264,"Ibex, UT",Ibex,,,Ibex UT is the geographic Ibex climbing area with three route overlaps.,
+1181,25065,Bunker Creek,Bunker Creek,,,Bunker Creek Unknown routes identify geographic Bunker Creek; other original climbs remain for route placement review.,
+432,13105,Williamson,Williamson Rock,,,Williamson Unknown is the geographic Williamson Rock area with route overlap.,
+1524,26620,Fremont Canyon,Fremont Canyon,,,Fremont Canyon Unknown is the broad geographic Fremont Canyon; overlaps span multiple specific child walls.,
+286,7223,Broken Tooth,Broken Tooth,,,Broken Tooth original matches Indian Creek Broken Tooth with Rock Lobster grade/name evidence.,
+433,7403,Deer creek Canyon,Deer Creek Canyon,,,Deer Creek Canyon original matches Morrison Deer Creek Canyon with rare route overlap.,
+1611,4258,Black&Tan,Black and Tan,,,Black&Tan original matches Utah Black and Tan; Shades of Grey/Gray spelling variant corroborates.,
+1720,358,Cula Del Gato,Culo Del Gato,,,Cula Del Gato is an alias of Culo Del Gato; Carlito’s Way is documented at the same crag.,https://www.thecrag.com/en/climbing/mexico/culo-del-gato/area/785555790
+15294,546,Pup Tent of Solitude,Pup Tent of Solitude,,15292,Nine rare route overlaps identify imported Main Elk Pup Tent of Solitude with original area; retain original ID under source geographic parent.,https://www.mountainproject.com/area/106947989/pup-tent-of-solitude
+12655,256,Owl Tor,Owl Tor,,12648,Six route overlaps identify imported Owl Tor with original Unknown Owl Tor; retain original area ID under Silly Rock.,
+11745,1139,Griffin Falls,Griffin Falls,,94,Five routes identify imported Griffin Falls with original Unknown Griffin Falls; retain original ID under Alabama.,
+13779,943,Looking Wall,Looking wall,,13766,Four Looking Wall routes identify the imported Mammoth crag with original Unknown Looking wall.,
+17770,1726,Wild Iowa Wall,Wild Iowa,Wild Iowa Wall,17753,Four Wild Iowa routes identify imported Pictured Rocks Wild Iowa Wall with original Unknown Wild Iowa.,
+15809,954,Haus Rock,haus rock,Haus Rock,15806,All four haus rock routes match imported Colorado Haus Rock.,
+12666,983,Wheeler Gorge,wheeler gorge,Wheeler Gorge,12657,Four wheeler gorge routes match imported California Wheeler Gorge.,
+24958,1756,Mars,Mars,,24952,Three Mars routes match imported Utah Potash Road Mars.,
+12646,1193,Mystery Science Theater,mystery science theatre,Mystery Science Theater,12643,Three mystery science theatre routes match imported California Mystery Science Theater.,
+13432,4137,Mount Woodson,Mt. Woodson,,13417,Original Mt. Woodson and imported Mount Woodson are the same San Diego area; retain original ID and source parent.,
+13552,4126,Mount St. Helena,Mt. St. Helena,,13550,Original Mt. St. Helena and imported Wine Country Mount St. Helena are one area; retain original ID and detailed child.,
+11863,1821,Smith Mountain,Smith Mountain,,94,Imported Alabama Smith Mountain and original Unknown Smith Mountain are one site; retain original ID and eight source child areas.,https://www.mountainproject.com/area/109964570/big-boss-man-wall
+1234,4137,Mt Woodson,Mt. Woodson,Mount Woodson,,Unknown Mt Woodson route records join the geographic San Diego Mount Woodson after generated branch is folded.,
+1363,4126,Mt St Helena,Mt. St. Helena,Mount St. Helena,,Unknown Mt St Helena routes join original Wine Country Mount St Helena after generated branch is folded.,
+206,5742,dihedral boulders,Dihedral Boulders,,,"Like a Squirrel identifies Rocklands Dihedral Boulders, not generic Dihedrals elsewhere.",https://www.8a.nu/crags/bouldering/south-africa/dihedral-boulders/routes
+1061,3286,Baslow Edge,Baslow Edge,,,Baslow Edge route Poppers locates original at UK Baslow Edge.,
+1719,3455,Ben Lomond,Ben Lomond,,,Ben Lomond Land of the Midnight Sun is a Tasmanian crag route.,https://thesarvo.com.au/confluence/plugins/viewsource/viewpagesrc.action?pageId=391839778
+1307,3092,Dschungelbuch,Dschungelbuch,,,Dschungelbuch original route is listed at Innsbruck Dschungelbuch.,https://www.climbers-paradise.com/kletterregionen/region-innsbruck/sportklettern/location/martinswand-dschungelbuch/
+872,5680,Cedar Creek,Cedar Creek,,,Cedar Creek Queensland local guide places Graffiti Cave/Crack at this site.,https://www.thecrag.com/it/arrampicata/australia/queensland/cedar-creek
+249,3400,White Falls,White Falls,,,White Falls original and geographic NZ White Falls are the same multilevel crag.,https://climbnz.org.nz/nz/ni/tongariro/white-falls/upper-tier
+271,3413,Queenstown,Queenstown,,,Queenstown original Haggis Burger is documented at geographic Queenstown.,https://www.thecrag.com/en/climbing/new-zealand/queenstown/arawata-terrace/area/12441025
+1934,2691,BohuslÃ¤n,Bohuslän,,,BohuslÃ¤n is an encoding variant of Swedish Bohuslän.,
+402,2922,Collegats,Collegats,,,Collegats original is the known Spanish Collegats climbing area.,
+230,2185,Ciezkowice,Ciężkowice,,,Ciezkowice/Ciężkowice are the same Polish area; Nad drogą retains more specific child climbs.,
+838,2312,Gorges du Destel,Gorges Du Destel,,,Gorges du Destel original is the known French Gorges du Destel.,
+1136,3417,Jane Fonda Workout Wall,Jane Fonda Workout Wall,,,Jane Fonda Workout Wall is the same named New Zealand crag with source route corroboration.,https://climbnz.org.nz/nz/si/port-hills/jane-fonda-workout-wall/wacking-wendy
+720,5621,Kräkiniemi,Kräkiniemi,,,Kräkiniemi original has local route names matching known Finland area.,https://kustaviderby.fi/wp-content/uploads/2019/03/Kisaesite.pdf
+1094,5271,Lysingsbadet,Lysingsbadet,,,Lysingsbadet original route titles match the Swedish local topo.,https://thetopo.com/crags/lysingsbadet/routelist/mainbloc
+1392,5091,Maunoury,Maunoury,,,Maunoury is the same Fontainebleau area.,
+1491,3265,Nesscliffe,Nesscliffe,,,Nesscliffe is the same UK climbing area.,
+1084,2143,Pełcznica,Pełcznica,,,Pełcznica original routes belong to known Polish Pełcznica.,https://27crags.com/crags/pelcznica/routelist/pelcznica
+767,2306,lans en vercors,Lans-en-Vercors,,,lans en vercors is the known French Lans-en-Vercors.,
+1270,2151,Wawóz Ostryszni,Wąwóz Ostryszni,,,Wawóz Ostryszni is the same named Polish gorge.,
+347,2112,Wąwóz Półrzeczki,Wąwóz Półrzeczki,,,Wąwóz Półrzeczki is the same named Polish gorge.,
+1619,5627,El Chaltén,El Chalten,,,El Chaltén is the geographic Patagonia El Chaltén climbing area.,
+279,1973,Koh Yao Noi,Koh Yao Noi,,,Koh Yao Noi is the same Thailand island climbing area; The Mitt stays a specific child.,
+1016,3380,Payne's Ford,Paynes Ford,,,Payne’s Ford is the New Zealand Paynes Ford crag; distinct sit starts stay distinct.,
+1691,5463,Cala Magraner,Cala Magraner,,,Cala Magraner original is the same Mallorca coastal crag.,
+1744,5690,Magnetic Island,Magnetic Island,,,Magnetic Island original belongs to known Queensland Magnetic Island.,
+836,2000,Mizugaki,Mizugaki,,,Mizugaki original belongs to known Japanese Mizugaki.,
+1027,2327,Saint-Jeannet,Saint Jeannet,,,Saint-Jeannet original is the known French Saint-Jeannet area.,
+364,2109,Stokowka,Stokówka,,,Stokowka is an orthographic variant of Polish Stokówka.,
+615,2662,oltrefinale,Oltre Finale,,,oltrefinale is Oltre Finale in Italy.,
+334,4105,tick rock,Tick Rock,,,Perro DeLaGuerro locates original tick rock at California Tick Rock.,https://www.nps.gov/samo/planyourvisit/climbingsites.htm?fullweb=1
+226,4581,Seward Highway,Seward Highway,,,Seward Highway original routes match two separate child walls of broad Alaska Seward Highway.,
+253,219,Prze³om Bia³ki,Przełom Białki,,,Prze³om Bia³ki is an encoding variant of the same gorge; Kramnica remains its separate child.,https://www.ugnowytarg.pl/strefa-turysty/turystyka/przyroda/przelom-bialki-rezerwat-przyrody
+220,3345,Bocaina,Serra da Bocaina,,,Bocaina routes belong to Serra da Bocaina near Araxá; preserve specific mountain area.,https://minasgerais.com.br/pt/atracoes/araxa/serra-da-bocaina
+754,2183,Zielona Góra,Zielona Góra,,2131,Zielona Góra boulder and sport facets are one Polish reserve; reparent known sector beneath Kusięta.,https://wspinanie.pl/2017/07/zielona-pierzchniak-zielona-gora-topo/
+4930,13386,Visions Wall,Visions Wall,,,Visions Wall beneath unanchored Trinity Aretes duplicates known Trinity Arêtes Visions Wall.,
+361,13379,Trinity Aretes,Trinity Arêtes,,,Trinity Aretes and geographic Trinity Arêtes are one California region after overlapping child Visions Wall is consolidated.,https://www.mountainproject.com/climbing-near-me/big-lagoon-ca
+363,1194,Cedar Slide,Cedar Slide Area,Cedar Slide,,Cedar Slide and Cedar Slide Area are one bouldering sector; retain larger original ID and source-supported specific place.,https://www.mountainproject.com/area/105974172/cedar-canyon
+871,2703,Prästuttervik,Bistaberget,,,Präst Uttervik access-road locality and Bistaberget are one Swedish crag with Valium and Anarkisten overlaps.,https://linkopingsklatterklubb.se/tl_files/forare/bistaberget-v1.0.0-2011-09-05.pdf
+765,7709,Practice Rock,Practice Rock,,,Strawberry Crack and Rosebush Crack place Unknown Practice Rock in Montana Hyalite Canyon Practice Rock.,https://www.mountainproject.com/route/106370711/strawberry-crack
+16924,1318,Lost Wall,Lost Wall,,95,"Five original Lost Wall route names identify Georgia Lost Wall; imported branch is same area, not Montana Lost Wall.",https://www.mountainproject.com/area/105900335/lost-wall
+649,287,Carcass,Carcass Crag,,,Who’s Your Daddy at Unknown Carcass matches Bolton Carcass Crag by name/type/near grade.,https://www.mountainproject.com/area/106083744/bolton-area
+25316,287,Carcass Crag,Carcass Crag,,4406,"Progress, Two Pitch Route and Who’s Your Daddy identify Unknown Carcass Crag with imported Bolton Carcass Crag; Big Boss boulder remains a climb-placement review.",https://www.mountainproject.com/area/106083744/bolton-area
+634,20962,Pilar Boulders,Pilar Area,,,Pilar Boulders is an activity grouping under Pilar Area; C3PO and Surf Report stay named physical children.,https://www.mountainproject.com/area/106803637/surf-report-boulder
+236,11337,Pinnacle,Mont Pinacle,,,Unknown Pinnacle is an alias of Mont Pinacle; Camay moves to the specific Le grand dièdre wall after source UUID review.,https://fqme.qc.ca/wp-content/uploads/2018/09/Pinacle-rocher-TOPO-1.pdf
+635,3391,The Lab,Little Babylon,,,The Lab routes are Little Babylon routes; NZAC guide has no separate Lab sector.,https://alpineclub.org.nz/sites/default/files/2022-01/Darrans_Cleddau_Valley_24.01.22.pdf
+12615,411,Mt. Magazine Proper,Mt Magazine,Mt. Magazine Proper,12612,All four original Mt Magazine routes match the specific State Park Proper crag.,https://www.mountainproject.com/area/105922036/mount-magazine-state-park
+19100,1397,Swede's Forest Boulders,Swede's Forest,Swede's Forest,127,Swede’s Forest is the broad bouldering place spanning Dead Leaves and Skink sectors.,https://www.mountainproject.com/climbing-near-me/clara-city-mn
+25182,1817,Causey Reservoir,Causey,Causey Reservoir,25179,All three Causey original routes match source Causey Reservoir; preserve original ID.,
+13107,338,Corona Del Mar,Corona del mar,Corona del Mar,13106,Original Corona del mar and source Corona Del Mar are one beach area; preserve distinct sit/roof routes.,https://www.mountainproject.com/area/114521983/corona-del-mar
+19013,1384,Ely's Peak,Ely's Peak,Ely's Peak,19009,Original Ely’s Peak boulders and source Ely’s Peak roped sector are one Duluth place.,https://www.outdooractive.com/mobile/en/climbingspot/sector/ely-s-peak-bouldering/225942686/
+19696,455,Mill Creek,Mill Creek - Absaroka,Mill Creek,4751,Mill Creek - Absaroka and source Paradise Valley Mill Creek are one Montana district.,https://www.mountainproject.com/user/7043682/austin-mallet
+23428,845,Mount Rushmore National Memorial,Mount Rushmore,Mount Rushmore National Memorial,23394,"Mount Rushmore original routes span Emancipation and Mount Baldy, two children of the Memorial.",
+14627,963,"Narrows, The",Narrows,The Narrows,14616,"Narrows original is the broad Carbondale multiwall site, not only Front Porch.",https://www.mountainproject.com/area/105744427/the-narrows
+26331,244,Necedah (Petenwell Rock),Necedah,Necedah (Petenwell Rock),26277,Necedah original routes span Y-Crack Wall and Air Spire; retain broad geographic parent.,https://www.mountainproject.com/climbing-near-me/melrose-wi
+24533,247,Price Canyon,Price,Price Canyon,24498,"Original Price routes span several Price Canyon boulders, not one child boulder.",https://utahclimbers.com/A_Bouldering_Guide_To_Utah_Index.pdf
+258,2112,Półrzeczki,Wąwóz Półrzeczki,,,Półrzeczki original routes belong within known Wąwóz Półrzeczki gorge.,https://topo.wspinka.org/wawoz-polrzeczki/kanapa
+18471,264,Rocky Gorge Reservoir  (T. Howard Duckett Reservoir),Rocky Gorge,Rocky Gorge Reservoir,123,Rocky Gorge originals span Summer and Wishing boulders at the reservoir.,https://www.mountainproject.com/climbing-near-me/viola-de
+17026,889,Shaking Rock,Shaking Rock,Shaking Rock,95,"Shaking Rock originals span Front Line, Shaking Rock Block and Brain Area.",https://www.seclimbers.org/project/shaking-rock/
+14135,496,Swissco,Swissco,Swissco,14113,Original Swissco routes match the Indian Peaks Swissco source area.,https://www.mountainproject.com/area/105802014/indian-peaks
+23320,1163,Sylvan Lake,Sylvan Lake,Sylvan Lake,23228,Sylvan Lake original routes match source Sylvan Lake; preserve original area ID.,
+12689,1155,Fire Crags,fire crags,Fire Crags,4034,Both original fire crags routes appear in independent Fire Crags topo.,https://www.dawnalguard.com/tradgirl/california/firecrags.htm
+1772,4092,Auburn Cliffs,Auburn Quarry,,13048,"Auburn Cliffs originals Triathlon, Confusion Tactics and Human Oddity belong to Auburn Quarry; keep older seven-route quarry ID under Auburn and Grass Valley.",https://californiaclimbermagazine.com/wp-content/uploads/2014/05/cc8_sprng_master_web.pdf
+19010,19009,Duluth Rock Climbs,Duluth Area (Rock and Ice),Duluth Area,,"Duluth Rock Climbs is an activity heading repeating its Duluth geographic parent; preserve Point O’ Rocks, Whopee Wall and Ely’s Peak as sibling physical sectors.",https://www.mountainproject.com/route/119187176/slip-n-slide
+8258,8706,Higgyland,Higgyland,,,Both Higgyland branches are Powell River; the source path and GPS map to Sunshine Coast Higgyland while two linked routes in the misplaced branch carry that same source path. Preserve the source-anchored Higgyland ID and move its sibling children.,
+6006,6353,Powell River,Powell River,,,Powell River under Squamish has no direct climbs and only the parallel Higgyland subtree; its Bumcrack overlaps the geographically anchored Sunshine Coast Powell River subtree. Preserve the source-anchored Powell River area.,https://www.mountainproject.com/route/106192527/bum-crack
+19858,7066,First Pullout (Calico I),First Pullout,First Pullout (Calico I),,"Mountain Project lists Panty Wall, The Hamlet, Civilization Crag, and Classic Rock Wall under First Pullout (Calico I); these are existing children of original First Pullout. Preserve original area ID and move the imported sibling routes.",https://www.mountainproject.com/area/105731953/first-pullout-calico-i
+19861,7067,Second Pullout (Calico II),Second Pullout,Second Pullout (Calico II),,"Mountain Project lists Black Corridor, The Gallery, and Sweet Pain Wall under Second Pullout (Calico II); these are existing children of original Second Pullout. Preserve original area ID and move imported sibling routes.",https://www.mountainproject.com/area/105731980/second-pullout-calico-ii
+3892,3805,Lac Castor,Lac Castor,,,"State-level Lac Castor has only original Frankenstein, same sport grade as Frankenstein at the source-anchored Lac Castor under Lanaudière and Les Contreforts. Preserve the more specific geographic parent; both original climb IDs require history-aware review.",
+21717,4675,Moore's Wall (Routes),Moore's Wall,,,Moore’s Wall (Routes) is an activity heading beneath the same geographic Moore’s Wall. Preserve the original parent ID and transfer imported routes and source path.,https://www.mountainproject.com/area/118318664/moores-wall-routes
+21650,4683,"Dump (Boulders), The",The Dump,,,Activity-only boulder slice of The Dump; all climbs remain in the geographic parent.,https://www.mountainproject.com/area/112001458/the-dump
+21651,4683,"Dump (Routes), The",The Dump,,,Activity-only roped slice of The Dump; all climbs remain in the geographic parent.,https://www.mountainproject.com/area/112001458/the-dump
+26321,4824,Hillbilly Routes,Hillbilly Hollow,,,Activity-only roped child of Hillbilly Hollow; geographic parent already holds boulders.,
+15937,4413,Morrison Routes,Morrison,,,Activity-only imported sibling of the original Morrison geographic area; preserve the original area ID and child crags.,
+22067,22066,Forty Foot Hole Routes,Forty Foot Hole,,,Activity-only routes child of Forty Foot Hole; merge into the geographic parent.,
+25020,25014,Sunshine Wall Routes,Sunshine Wall,,,Activity-only routes child of Sunshine Wall; preserve specific geographic wall parent and its other children.,
+22156,4319,Cline Falls Routes,Cline Falls,,,Activity-only routes child of Cline Falls; preserve geographic parent with its original climbs.,
+8589,3663,Gotham city,Gotham City,,6249,All source-linked routes in both Gotham City subtrees carry the same Nelson source path and GPS; preserve original Gotham City ID and place it under Nelson.,
+10818,8305,Comic Rocks,Comic Rocks,,3611,Original Comic Rocks routes carry Squamish Comic Rocks source paths; imported parallel Comic Rocks has the Roadside Slab child. Preserve original ID and place both under Squamish.,
+10940,5969,Porteau Cove,Porteau Cove,,3613,"Both Porteau Cove subtrees have source routes under Vancouver > Porteau Cove; preserve original ID and six child sectors, move it from Squamish to Vancouver.",
+11142,6799,Main Face,Main Face,,,Both Main Face subtrees carry identical Nova Scotia source prefix and GPS within 31m; preserve more specific Musquodoboit Watershed placement and transfer imported child sections.,
+19121,19117,Carlton Peak,Carlton Peak,,,The two Carlton Peak branches under Temperance River State Park share the same place and source GPS; preserve existing South Face/South Buttress parent and transfer imported routes.,
+19120,19116,Temperance River State Park (North Shore),Temperance River SP (North Shore),Temperance River State Park (North Shore),,"The only child of this redundant nested park heading is Carlton Peak, consolidated into the parent Carlton Peak; preserve one geographic park area.",
+11403,3851,Rivière Ouareau,Rivière Ouareau,,3867,Both Rivière Ouareau subtrees carry the same source path under Lanaudière and GPS within 150m; preserve original ID and move it under Lanaudière.,
+27269,4497,Coal Creek Boulders,Coal creek,Coal Creek Boulders,14616,Source paths for the original Coal Creek child sectors and imported Sanctuary share Carbondale Area > Coal Creek Boulders; preserve original ID with its sectors and move it under Carbondale Area.,https://www.mountainproject.com/area/106215312/coal-creek-boulders
+10329,3752,Yamnuska,Yamnuska,,3750,"Source routes place Yamnuska beneath Bow Valley; preserve original mountain and sectors, transfer parallel imported West Col Crag.",https://www.mountainproject.com/area/105893659/bow-valley
+10277,6594,Big Choss,Big Choss,,3750,"Big Choss source paths are a sibling of Yamnuska under Bow Valley; preserve original Big Choss and all boulder sectors, transfer Misty Steamer child.",https://www.mountainproject.com/area/105893659/bow-valley
+20219,7060,Summit Cliff (The Highlands),summit cliff,Summit Cliff,,The imported Summit Cliff is the same Rumney cliff as the original; retain original ID and combine direct routes.,https://www.mountainproject.com/area/106548478/summit-cliff-the-highlands
+10924,9765,Supratidal Zawn (Copper Cove wall),Supratidal Zawn,,,"Same named Copper Cove zawn with original routes on both area IDs; parenthetical identifies context, not a separate feature.",https://www.mountainproject.com/route/111046179/guttersnipe
+20553,20552,Northwest NJ,NorthWest,Northwest NJ,,Nested Northwest and Northwest NJ headings denote the same geographic New Jersey region; source child came from an activity-only bouldering branch.,
+20575,20574,North Central NJ,North Central,North Central NJ,,Nested North Central and North Central NJ headings denote the same geographic New Jersey region; source child came from an activity-only bouldering branch.,
+20585,20584,Northeast NJ,NorthEast,Northeast NJ,,Nested Northeast and Northeast NJ headings denote the same geographic New Jersey region; source child came from an activity-only bouldering branch.,
+19350,19349,WM: Blue River Bend,Blue River Bend,,,WM: is a regional prefix repeated immediately beneath Blue River Bend; move its five routes to the geographic parent.,
+17183,17191,Ross Park,Ross Park,,17179,"City of Pocatello describes one Ross Park climbing area with Sunny Side and Shady Side; preserve the larger Ross Park branch and place it under Pocatello Area, combining boulder and roped routes.",https://pocatello.gov/ArchiveCenter/ViewFile/Item/4104
+9455,7484,Castle Rock,Castle Rock,,7467,"Canary, Angel, and Midway all occur at the same Castle Rock formation in Tumwater Canyon; preserve original Castle Rock ID and all distinct route IDs under the more specific canyon.",https://www.mountainproject.com/area/105790784/castle-rock
+10305,8877,Meathooks Area,Meathooks Wall,Meathooks Area,,Mountain Project lists Meathooks Area as a child of Grassi Lakes; existing Meathooks Wall has the same named route and B60 OFO. Preserve original sector ID and source display name.,https://www.mountainproject.com/area/105893722/grassi-lakes
+10304,6528,Grassi Lakes (Closed 2022),Grassi Lakes,,,"Closure-tagged Grassi Lakes branch only held Meathooks Area, now consolidated into the original Grassi Lakes child. Preserve one geographic Grassi Lakes area; closure label is stale metadata.",https://www.mountainproject.com/area/105893722/grassi-lakes
+19854,7098,The Arêtes (a.k.a. the Road Area),The Aretes,The Arêtes,,The Arêtes (Road Area) is a parenthetical alias for the same Rainbow Canyon crag as original The Aretes; preserve original ID and transfer Leela.,
+25777,7471,Icicle Creek,Icicle Canyon,Icicle Creek,,"Mountain Project Icicle Creek contains original Icicle Canyon child crags Lonely Fish, Icicle Buttress, Fireworks Wall, Trundle Dome, and Muscle Beach. Original direct routes span the broad corridor; preserve original ID, not a redundant child.",https://www.mountainproject.com/area/105790237/icicle-creek
+11989,11988,Weiner Lake Routes,Wookie Wall/Weiner Lake,,,The source route heading is an activity slice of the same Wookie Wall/Weiner Lake crag; preserve the geographic parent and all 54 routes.,https://coraxuas.com/mile-88-glenn-highway/
+9004,6563,Multipitch Routes,Stanley Headwall,,,Route length is not a physical subarea; first-hand Stanley Headwall topo locates the actual Adventure and Gery sectors under the headwall.,https://www.alpinejournals.com/2023/08/01/stanley-headwall-climbing-sport-multipitch-topo/
+9003,6563,Stanley Sport,Stanley Headwall,,,"Empty sport activity heading only contains Gery and Adventure physical sectors, which move directly under Stanley Headwall.",https://www.alpinejournals.com/2023/08/01/stanley-headwall-climbing-sport-multipitch-topo/
+19680,19679,Bear Trap Road Routes,Bear Trap Road Boulders,Bear Trap Road,,Boulders and Routes are sibling modality slices of the same Bear Trap Road corridor; source GPS footprints overlap. Preserve one geographic road area and both source paths.,
+17391,4205,Reynolds Creek Route Climbing,Reynold's Creek,Reynolds Creek,,Roped activity heading repeats the parent Reynolds Creek geographic area; preserve original ID and direct boulder/rope routes together.,
+9671,7953,The Sanctuary,The Sanctuary,,,The Sanctuary and Flinders Cave are separate Flinders Peak crags; Lock Stock and the other nested Sanctuary routes belong in the direct Sanctuary area. Preserve all original route IDs.,https://www.pinnaclesports.com.au/summer-crags
+26990,9564,Downpour Wall,Downpour,Downpour Wall,,Broken Promises and Crown Prince Abdullah from original Downpour appear in the source Downpour Wall route list; preserve the original area ID and combine imported routes/crosswalk. Slavery route placement is handled separately.,https://www.mountainproject.com/area/classics/105819641/ten-sleep-canyon
+17969,9597,Chica Bonita Wall,Chica Bonita,Chica Bonita Wall,,"The Mountain Project Chica Bonita Wall inventory lists the fourteen original Chica Bonita routes and two original routes placed in the generated Wall sibling, including Raindancer; preserve original area ID and combine routes.",https://www.mountainproject.com/area/106064908/chica-bonita-wall
+10541,10090,Lower Right Stacks,Lower Right,,,OpenBeta Lower Right Stacks is the same specific Stacks sector as original Lower Stacks > Lower Right; preserve original child ID and source crosswalk. Twelve source-linked originals still at Lower Stacks move in a guarded final pass.,https://www.mountainproject.com/route/120804373/crimps-and-grits
+10238,8045,The Lost World,The Lost World,,,Fresh production added a same-name The Lost World sibling under the same North Walls parent. Preserve established area8045 and original climb141201 with all history.,

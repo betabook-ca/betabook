@@ -1,0 +1,82 @@
+area_id,area_name,expected_old_parent_id,new_parent_id,new_parent_name,evidence,source_url
+10919,Buntzen Lake Boulders,3613,10918,Buntzen Lake,Buntzen Lake Boulders are physical clusters around Buntzen Lake; keep the boulder sectors under the lake.,
+24497,Wimberley Boulders,111,24495,Wimberley,"Wimberley Boulders are a specific cluster within the Wimberley area, beside White Trash Wall.",
+24628,Moon Lake boulders,24623,24627,Moon Lake,Moon Lake boulders belong within Moon Lake geographic area; preserve discipline-specific cluster.,
+24648,Big Water Boulders,24646,24647,Big Water Area,Big Water Boulders are spread around Big Water; retain as physical subarea beneath broader area.,
+21369,Swath Boulders,4703,21375,The Swath,Swath Boulders belong beneath The Swath; preserve adjacent Stockade Wall as another child.,
+18927,Little Presque Isle,18925,7756,550,"Little Presque Isle is on highway 550, as source Mountain Project hierarchy shows.",https://www.mountainproject.com/area/120752474/marquette-and-central-up-bouldering
+18935,Cliff's Ridge (aka Marquette Mtn),18925,18928,Marquette Mountain,"Cliff's Ridge, also called Marquette Mountain, is a specific wall within Marquette Mountain.",
+5223,Cala Luna,2580,5219,Cala Gonone,"Cala Luna is a beach/crag within the Cala Gonone area, not an equivalent area.",https://www.mountainproject.com/area/106448079/cala-gonone
+8634,Ladybird Boulders,6257,6256,Pass Creek,Ladybird Creek boulders lie off Pass Creek Road; move canonical sector to the more specific Pass Creek area.,https://justanotheroutdoorpage.blogspot.com/2016/07/ladybird-creek-boulders-pass-creek-bc.html
+391,Słoneczne skały,18,2095,Dolina Szklarki,Słoneczne Skały is a specific crag in Dolina Szklarki.,https://topo.portalgorski.pl/S%C5%82oneczne-Ska%C5%82y%2CDolina-Szklarki%2CJura-Krakowsko-Cz%C4%99stochowska%2Csektor%2C191
+219,Przełom Białki,18,39,Poland,"Przełom Białki is a Polish gorge, not an Unknown area.",https://www.ugnowytarg.pl/strefa-turysty/turystyka/przyroda/przelom-bialki-rezerwat-przyrody
+2149,Kramnica,39,219,Przełom Białki,Kramnica is a specific rock within Przełom Białki.,https://www.ugnowytarg.pl/strefa-turysty/turystyka/przyroda/przelom-bialki-rezerwat-przyrody
+426,Darrans,18,76,New Zealand,The Darrans is a New Zealand mountain/climbing region.,https://alpineclub.org.nz/sites/default/files/2022-01/Darrans_Cleddau_Valley_24.01.22.pdf
+3390,Babylon,76,426,Darrans,"Babylon is a crag in the Darran Mountains, distinct from Little Babylon.",https://alpineclub.org.nz/sites/default/files/2022-01/Darrans_Cleddau_Valley_24.01.22.pdf
+3391,Little Babylon,76,426,Darrans,Little Babylon is a separate crag above Babylon in the Darrans.,https://alpineclub.org.nz/sites/default/files/2022-01/Darrans_Cleddau_Valley_24.01.22.pdf
+2989,Misja Pec,46,2982,Osp,Mišja Peč is within Osp in the Slovenian hierarchy.,https://www.mountainproject.com/area/116711128/misja-pec
+308,Trzebniów,18,2142,Góry Gorzkowskie,Trzebniów climbing rock Kacza Skała is in Góry Gorzkowskie.,https://wspinanie.pl/topo/polska/polnoc/gory-gorzkowskie/kacza-skala-wzgorze.htm
+762,Kalmit,18,3107,Pfalz,Kalmit lies in the Pfalz region.,https://www.pfalz.de/de/sehenswuerdigkeit/kalmit
+1257,Beigua,18,2587,Varazze,Beigua is a Varazze bouldering zone.,https://www.infoboulder.com/?ID=110&mod=news
+694,lei pi shan,18,1988,Yangshuo,Lei Pi Shan is a Yangshuo climbing site.,https://rakkup.com/guidebook/yangshuo-rock-climbing/lower-walls-%E4%B8%80%E6%A5%BC/s20914
+989,Suloszowa,18,39,Poland,Sułoszowa is a Polish village containing Skała nad Potokiem.,https://topo.wspinka.org/skala-nad-potokiem
+2148,Skała nad Potokiem,39,989,Suloszowa,Skała nad Potokiem is a specific Sułoszowa crag.,https://topo.wspinka.org/skala-nad-potokiem
+565,bergamo,18,42,Italy,bergamo is a broad Italian geographic label for Valle dei Mulini.,
+2661,Valle dei Mulini,42,565,bergamo,Valle dei Mulini is a specific Bergamo valley/crag.,
+1747,wechsel,18,48,Austria,Wechsel is an Austrian mountain region containing Mariensee.,https://niederoesterreich.naturfreunde.at/service/themen/wandertipps/hochwechsel/
+3058,Mariensee,48,1747,wechsel,Mariensee is a specific climbing locality in Wechsel.,https://thetopo.com/crags/mariensee
+1006,Val Masino,18,42,Italy,Val Masino is an Italian valley containing Val di Mello and Piana del Remenno as siblings.,https://www.italia.it/it/lombardia/val-di-mello
+2595,Val di Mello,42,1006,Val Masino,Val di Mello is a side valley of Val Masino.,https://www.italia.it/it/lombardia/val-di-mello
+511,Piana del Remenno,18,1006,Val Masino,Piana del Remenno is a separate Val Masino bouldering region from Val di Mello.,https://www.versantesud.it/en/shop/catalogue/german_1546/
+1165,Bagni di Masino,18,1006,Val Masino,"Bagni di Masino is a locality in Val Masino, preserving its Belvedere child.",
+970,Laurel Snow,18,102,Tennessee,"Laurel Snow State Natural Area is a direct Tennessee locality near Dayton, not a Chattanooga city site.",https://www.tn.gov/environment/natural-areas/what-we-do/sna/cu/laurel-snow.html
+7141,Dayton Pocket,4214,970,Laurel Snow,Dayton Pocket is the specific bouldering site reached through Laurel-Snow.,https://sendage.com/area/dayton-pocket-chattanooga-tn-usa
+1074,Bellavista,18,2918,Sadernes,"Bellavista is a Sadernes Catalonia sector, not Alberta/Greek Bella Vista.",https://www.thecrag.com/es/escalar/spain/bellavista/area/156516099
+1118,Cala Fuili,18,5219,Cala Gonone,Cala Fuili is a specific Cala Gonone crag.,https://www.mountainproject.com/area/107445188/cala-fuili
+1186,Escher World,18,1966,Railay,Escher World is a Railay Thailand climbing sector.,https://www.thecrag.com/pt/escalando/thailand/krabi/area/15687697
+1108,Grotta di Tanarello,18,2676,Tanarello,Grotta di Tanarello is a specific cave within Tanarello.,
+1939,Obere Arena,18,3072,Arena,Obere Arena is a specific sector of Austrian Arena.,https://fm4v3.orf.at/stories/1771845/index.html
+886,Porche de Roiseux,18,3191,Modave,Porche de Roiseux is a Modave Belgian sector.,https://en.terres-de-meuse.be/discover/naturally-idyllic/rocks-to-surpass-yourself/
+942,Pupuce Surplomb,18,2203,Gorges du Loup,Pupuce Surplomb is a Gorges du Loup French sector.,https://www.philippegatta.com/fr/escalade-sur-la-cote-dazur-france/
+1653,Baba,18,2100,Dolina Wiercicy,Baba is a crag within Dolina Wiercicy.,https://wspinanie.pl/topo/polska/polnoc/dolina-wiercicy/baba.htm
+1502,"Campground, Gramps",18,3419,Grampians,Campground Boulders belongs inside the Grampians.,https://www.grampiansbouldering.com/the-guide
+630,Row Tor,18,3211,Peak District,Row Tor is a distinct Peak District crag.,
+1154,The Roaches,18,3211,Peak District,The Roaches is a distinct Peak District climbing site.,https://www.peakdistrict.gov.uk/visiting/things-to-do/getactive-climbing
+484,gorge du houx,18,2196,Fontainebleau,Gorge du Houx is a Fontainebleau bouldering subarea.,
+250,Langdale boulders,18,5616,Langdale,"Langdale boulders belong in Lake District Langdale, not Peak District.",https://services.thebmc.co.uk/modules/rad/view.aspx?id=883
+207,Fern Point,18,7619,Endless Wall,Fern Point is a specific site within New River Gorge Endless Wall; Fern Point Slabs remains separate.,https://www.mountainproject.com/area/105943886/endless-wall
+301,Sehome Hill,18,25897,Bellingham Area,Sehome Hill belongs in Bellingham Washington; Colorado route names are independent.,https://washingtonclimbers.org/index.php/2015/10/12/sehome-hill-bellingham/
+771,Kupljenik,18,46,Slovenia,Kupljenik is a Slovenian crag; Canadian Samba/Rumba routes are independent.,https://www.8a.nu/crags/sportclimbing/slovenia/kupljenik/routes
+358,Culo Del Gato,18,10,Mexico,Culo Del Gato is a distinct Nuevo León Mexico crag outside Potrero Chico.,https://www.thecrag.com/en/climbing/mexico/culo-del-gato/area/785555790
+707,East Crag,18,6149,Shaketown,East Crag is a specific Revelstoke Shaketown sector.,https://revelstokemountaineer.com/hook-in-to-revelstokes-climbing-scene/
+1530,Sortie 69,18,3786,Sainte-Adèle,Sortie 69 is a specific Sainte-Adèle bouldering locale.,
+1296,Glorias,18,4014,Flagstaff,Glorias is a specific Flagstaff bouldering locality.,
+808,Kelly Canyon,18,4014,Flagstaff,Kelly Canyon is a specific Flagstaff bouldering locality.,https://www.mountainproject.com/area/110135690/flagstaff-bouldering
+638,Purple Stones,18,13131,Santa Monica Mountains,Purple Stones is a specific Santa Monica Mountains area.,https://www.mountainproject.com/climbing-near-me/topanga-ca
+1773,Monstrum,18,3169,Bor,"Monstrum boulder is at Bor Czech Republic, not Polish Kamienna Góra.",https://www.singingrock.cz/zlaty-drak-8b
+679,White Rock,18,3426,Whiterock/ Redbank Plains Boulders,White Rock original is a specific Whiterock/Redbank Plains boulder area.,
+1194,Cedar Slide,18,25068,Cedar Canyon,Cedar Slide is a specific Cedar Canyon bouldering site.,https://www.mountainproject.com/area/105974172/cedar-canyon
+1566,The Cetacean Wall,18,25068,Cedar Canyon,Cetacean Wall is a distinct Cedar Canyon sport wall.,https://www.mountainproject.com/area/105974172/cedar-canyon
+1677,The 10 mile wall,18,25068,Cedar Canyon,10 Mile Wall is a distinct Cedar Canyon sport wall.,https://www.mountainproject.com/area/105974172/cedar-canyon
+4927,Upper Shooting Gallery,13379,13384,Shooting Gallery,Upper Shooting Gallery belongs within Trinity Arêtes Shooting Gallery.,
+4928,Boardwalk,13379,13384,Shooting Gallery,"The Boardwalk belongs within Trinity Arêtes Shooting Gallery, not Australian Boardwalk.",https://www.mountainproject.com/climbing-near-me/big-lagoon-ca
+4929,Lower Shooting Gallery,13379,13384,Shooting Gallery,Lower Shooting Gallery belongs within Trinity Arêtes Shooting Gallery.,
+3345,Serra da Bocaina,68,3347,Araxá,Serra da Bocaina is the specific climbing region near Araxá.,https://minasgerais.com.br/pt/atracoes/araxa/serra-da-bocaina
+4389,Gretna,106,22605,South Central PA,Mount Gretna belongs in South Central Pennsylvania; keep original broad region above Governor Dick Park.,https://www.thecrag.com/en/climbing/united-states/mt-gretna
+22631,Governor Dick Park (aka Mount Gretna),22605,4389,Gretna,Governor Dick Park is a specific Mount Gretna bouldering site with named child sectors.,https://www.thecrag.com/en/climbing/united-states/mt-gretna
+15909,Deer Creek Crag,15878,7403,Deer Creek Canyon,Deer Creek Crag is a specific wall within Deer Creek Canyon.,https://www.mountainproject.com/area/105746614/deer-creek-crag
+23723,Dayton Pocket/Laurel Falls,102,970,Laurel Snow,Dayton Pocket/Laurel Falls source region is within Laurel Snow State Natural Area.,https://www.tn.gov/environment/natural-areas/what-we-do/sna/cu/laurel-snow.html
+870,Aerolith 5 Boulders,18,26557,Dome Rock/Pedro Mountains,Aerolith 5 Boulders is a specific field beneath Dome Rock/Pedro Mountains.,https://openbeta.io/area/28a26fcf-8d03-5cf2-ac94-750b1dd35eb9/dome-rockpedro-mountains
+299,Bar Harbor,18,122,Maine,Bar Harbor is a Maine/Acadia locality; Nevada Kraft same-title routes are independent.,https://boulderacadia.weebly.com/great-head.html
+255,Dinosaur Mountain,18,7419,Central,Dinosaur Mountain is a specific formation within the Central Flatirons.,https://www.mountainproject.com/area/107849873/the-north-ridge-of-dinosaur-mountain
+1067,Medicine Bow National Forest,18,114,Wyoming,"Medicine Bow National Forest is a broad Wyoming forest, not only one Little Medicine Bow wall.",https://www.fs.usda.gov/media/67344
+251,Middle Bliss,18,6936,Bliss,Middle Bliss is a specific sector of Tahoe West Shore Bliss.,https://www.mountainproject.com/area/106565355/bliss
+1091,Sport Utility Wall,18,25174,Mount Olympus,Sport Utility Wall is a specific Mount Olympus wall.,https://www.mountainproject.com/area/105739560/sport-utility-wall
+481,The Cube,18,19638,West Side,The Cube is a specific wall on Gallatin Canyon West Side.,https://www.mountainproject.com/area/107241857/the-cube
+1516,The Meadows,18,25065,Bunker Creek,The Meadows is a specific Bunker Creek bouldering sector.,https://www.mountainproject.com/area/115178215/bunker-creek
+1590,grasshopper wall,18,6877,Grasshopper Point,Grasshopper Wall belongs beneath Sedona Grasshopper Point; exact Bikini Wall placement remains review.,https://coopertravels.blogspot.com/2012/03/
+407,Mr. Lee's,18,12648,Hwy 166/Silly Rock,Mr. Lee’s route set spans neighboring Hwy 166/Silly Rock walls; retain named area pending route-level split.,
+7637,Whipporwill,4640,26152,Summersville (Gauley River) Area,Whippoorwill sits within Summersville (Gauley River) Area in the source hierarchy; preserve original area and North/South sector children.,https://www.mountainproject.com/area/105989762/summersville-gauley-river-area
+9561,Downtown,7650,4645,Tensleep Canyon,"Mountain Project and OpenBeta both place Downtown directly under Ten Sleep Canyon, as a neighboring crag separate from Mondo Beyondo. Preserve original Downtown ID and its specific Coolsville/Cigar child areas.",https://www.mountainproject.com/area/107059743/downtown
+8206,The Distillery,5968,8207,Area 44,OpenBeta source path Area 44 > The Distillery and first-hand ascents place the distillery beneath Area 44; preserve the original Distillery area and routes.,https://www.8a.nu/crags/sportclimbing/canada/the-distillery/ascents
+9712,Capone Wall,8175,9711,Halfway House,Fawlty Towers route documentation places Capone Wall inside Halfway House at Rogue’s Gallery; preserve Capone Wall ID and its routes.,https://sendage.com/climb/fawlty-towers-halfway-house-rogues-gallery-cheakamus-canyon-squamish-bc-canada

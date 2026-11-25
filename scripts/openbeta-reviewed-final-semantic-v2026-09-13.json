@@ -1,0 +1,366 @@
+{
+  "sql": "scripts/openbeta-reviewed-final-semantic-v2026-09-13.sql",
+  "new_areas": [
+    {
+      "id": 27323,
+      "parent_id": 25900,
+      "name": "Morning Star Peak"
+    },
+    {
+      "id": 27324,
+      "parent_id": 4026,
+      "name": "Goat Rock"
+    }
+  ],
+  "area_parent_moves": [
+    {
+      "id": 7564,
+      "parent_id": 25900,
+      "name": "Vesper Peak"
+    }
+  ],
+  "area_renames": [
+    {
+      "id": 7970,
+      "parent_id": 5764,
+      "expected_name": "Elephant Rock Bouldering",
+      "name": "Elephant Rock"
+    },
+    {
+      "id": 6873,
+      "parent_id": 4003,
+      "expected_name": "Molino Basin Bouldering",
+      "name": "Molino Basin"
+    },
+    {
+      "id": 15576,
+      "parent_id": 4453,
+      "expected_name": "North Rim Routes",
+      "name": "North Rim"
+    },
+    {
+      "id": 15577,
+      "parent_id": 4453,
+      "expected_name": "South Rim Routes",
+      "name": "South Rim"
+    },
+    {
+      "id": 13897,
+      "parent_id": 4120,
+      "expected_name": "West Face Bulge Routes",
+      "name": "West Face Bulge"
+    },
+    {
+      "id": 18038,
+      "parent_id": 18017,
+      "expected_name": "Hot Spot , Rock Climbing",
+      "name": "Hot Spot"
+    },
+    {
+      "id": 18216,
+      "parent_id": 18215,
+      "expected_name": "Chimney Pond (\"South\") Basin - Summer Rock Routes",
+      "name": "Chimney Pond (South) Basin"
+    },
+    {
+      "id": 20790,
+      "parent_id": 20789,
+      "expected_name": "North End routes",
+      "name": "North End"
+    },
+    {
+      "id": 23645,
+      "parent_id": 23640,
+      "expected_name": "Upstream Routes",
+      "name": "Upstream Area"
+    },
+    {
+      "id": 7068,
+      "parent_id": 4177,
+      "expected_name": "Willow Springs",
+      "name": "Willow Spring"
+    },
+    {
+      "id": 7081,
+      "parent_id": 4177,
+      "expected_name": "White Rock Springs",
+      "name": "White Rock Spring"
+    },
+    {
+      "id": 7637,
+      "parent_id": 26152,
+      "expected_name": "Whipporwill",
+      "name": "Whippoorwill"
+    }
+  ],
+  "climb_moves": [
+    {
+      "id": 81780,
+      "area_id": 27323,
+      "name": "Mile High Club"
+    },
+    {
+      "id": 177859,
+      "area_id": 27323,
+      "name": "Marvin's Ear"
+    },
+    {
+      "id": 196393,
+      "area_id": 7564,
+      "name": "True Grit"
+    },
+    {
+      "id": 59016,
+      "area_id": 9564,
+      "name": "Momma's Mental Medication"
+    },
+    {
+      "id": 78510,
+      "area_id": 9564,
+      "name": "Bisquick Thunderdome"
+    },
+    {
+      "id": 14676,
+      "area_id": 9564,
+      "name": "School's Out"
+    },
+    {
+      "id": 27194,
+      "area_id": 9564,
+      "name": "Happiness "
+    },
+    {
+      "id": 130986,
+      "area_id": 9564,
+      "name": "Jackabite"
+    },
+    {
+      "id": 11401,
+      "area_id": 9564,
+      "name": "Emancipation"
+    },
+    {
+      "id": 91169,
+      "area_id": 9564,
+      "name": "EKV"
+    },
+    {
+      "id": 90990,
+      "area_id": 9564,
+      "name": "Emancipated Mommy"
+    },
+    {
+      "id": 46558,
+      "area_id": 9564,
+      "name": "The Burden of Immorality"
+    },
+    {
+      "id": 19848,
+      "area_id": 26991,
+      "name": "Beer Bong"
+    },
+    {
+      "id": 18478,
+      "area_id": 26991,
+      "name": "Douggie and Jimmy's Excellent Adventure"
+    },
+    {
+      "id": 108165,
+      "area_id": 26950,
+      "name": "Robot Steam Roller"
+    },
+    {
+      "id": 140261,
+      "area_id": 26949,
+      "name": "Floyd Direct"
+    },
+    {
+      "id": 116096,
+      "area_id": 27324,
+      "name": "Bowling Bawl"
+    },
+    {
+      "id": 4863,
+      "area_id": 10090,
+      "name": "Quarter Pint"
+    },
+    {
+      "id": 6261,
+      "area_id": 10090,
+      "name": "Butt Surfer"
+    },
+    {
+      "id": 9271,
+      "area_id": 10090,
+      "name": "Cirrostratus"
+    },
+    {
+      "id": 10429,
+      "area_id": 10090,
+      "name": "Funky Seaweed"
+    },
+    {
+      "id": 15941,
+      "area_id": 10090,
+      "name": "Drive Through French Fries"
+    },
+    {
+      "id": 76127,
+      "area_id": 10090,
+      "name": "Marco’s Slab"
+    },
+    {
+      "id": 90430,
+      "area_id": 10090,
+      "name": "Caffeine Bomb"
+    },
+    {
+      "id": 107376,
+      "area_id": 10090,
+      "name": "Powder Keg"
+    },
+    {
+      "id": 124665,
+      "area_id": 10090,
+      "name": "As Easy As It Looks"
+    },
+    {
+      "id": 124687,
+      "area_id": 10090,
+      "name": "Ku's Arete"
+    },
+    {
+      "id": 134301,
+      "area_id": 10090,
+      "name": "Westorium"
+    },
+    {
+      "id": 140313,
+      "area_id": 10090,
+      "name": "Totally Worth It"
+    },
+    {
+      "id": 8349,
+      "area_id": 10852,
+      "name": "Exasperator"
+    },
+    {
+      "id": 10026,
+      "area_id": 10852,
+      "name": "Rutabaga"
+    },
+    {
+      "id": 18365,
+      "area_id": 10852,
+      "name": "Peasant's Route"
+    },
+    {
+      "id": 29752,
+      "area_id": 10852,
+      "name": "Knacker Cracker"
+    },
+    {
+      "id": 86674,
+      "area_id": 10852,
+      "name": "Apron Strings"
+    },
+    {
+      "id": 116668,
+      "area_id": 10852,
+      "name": "Arrowroot"
+    },
+    {
+      "id": 86679,
+      "area_id": 6287,
+      "name": "Moon Moves"
+    },
+    {
+      "id": 74529,
+      "area_id": 8206,
+      "name": "Still the Spirits"
+    }
+  ],
+  "held_source_links": [
+    {
+      "source_id": "d64431f3-5cf1-5385-aac5-764460ad5500",
+      "climb_id": 131857
+    },
+    {
+      "source_id": "0a87ae70-9f1f-54dc-ae34-cf6b16856620",
+      "climb_id": 81780
+    },
+    {
+      "source_id": "c014ae07-2500-532a-ab93-a9e479714af9",
+      "climb_id": 59016
+    },
+    {
+      "source_id": "c2a6cca2-90a7-5b67-a791-04e030bc7575",
+      "climb_id": 78510
+    },
+    {
+      "source_id": "5e31bdc4-f668-53bb-9216-eb15bfc2c252",
+      "climb_id": 14676
+    },
+    {
+      "source_id": "4773dee1-f6fa-57a1-b3e2-695c9eac915b",
+      "climb_id": 27194
+    },
+    {
+      "source_id": "0ef24aeb-51fd-54c1-81f7-1dac60276397",
+      "climb_id": 130986
+    },
+    {
+      "source_id": "1edc7391-4e06-5699-aed7-3ff658d53a4a",
+      "climb_id": 11401
+    },
+    {
+      "source_id": "861a3644-9994-59af-a455-dd25e15e8b89",
+      "climb_id": 19848
+    },
+    {
+      "source_id": "cf926dc7-3db9-5447-af33-451c9a44cd85",
+      "climb_id": 18478
+    },
+    {
+      "source_id": "88116390-77d9-5bde-8c9a-74430a5949fb",
+      "climb_id": 108165
+    },
+    {
+      "source_id": "a1ec32de-8b64-5a43-a633-9ab8a78ca619",
+      "climb_id": 140261
+    },
+    {
+      "source_id": "e6dce746-b9f2-507a-aeae-adb894af1453",
+      "climb_id": 46558
+    },
+    {
+      "source_id": "61b1ee62-3081-56b5-83d4-429c06b42cc9",
+      "climb_id": 91169
+    },
+    {
+      "source_id": "840ca3ce-e506-5cfb-99d7-abd635727af1",
+      "climb_id": 19108
+    },
+    {
+      "source_id": "47169283-589f-5bda-a015-b4c30258b2c5",
+      "climb_id": 76334
+    }
+  ],
+  "deleted_areas": [
+    {
+      "id": 7659,
+      "name": "Slavery"
+    },
+    {
+      "id": 10080,
+      "name": "Slavery"
+    }
+  ],
+  "source_area_alignments": [
+    {
+      "source_path": "United States > California > San Francisco Bay Area > Castle Rock Area > Goat Rock",
+      "area_id": 27324,
+      "quality": "reviewed_area_identity"
+    }
+  ]
+}
