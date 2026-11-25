@@ -45,6 +45,7 @@ const YEAR_THRESHOLDS = {
   stylesSends: 5,
   partnerDays: 3,
   gotAwaySessions: 2,
+  gotAwayLimit: 3,
   pumpMaxRating: 2,
   pumpRatedForPraise: 5,
   personaDays: 6,
@@ -126,16 +127,6 @@ function rankings(
     );
     return rows.length ? [{ type, rows }] : [];
   });
-}
-
-function longestStreak(dates: readonly string[]) {
-  let best: { days: number; end: string } | null = null;
-  let run = 0;
-  for (const [index, date] of dates.entries()) {
-    run = index > 0 && shiftDate(dates[index - 1], 1) === date ? run + 1 : 1;
-    if (!best || run > best.days) best = { days: run, end: date };
-  }
-  return best;
 }
 
 /** Each send's grade as a 0–100 percentile among that discipline's sends in
@@ -585,19 +576,25 @@ function buildGotAway(
       .map((session) => session.entryDate)
       .toSorted(byDate)
       .at(-1) ?? "";
-  const best = [...byClimb.values()]
+  // Most sessions first; a tie goes to the climb tried most recently.
+  const climbs = [...byClimb.values()]
     .filter((list) => list.length >= YEAR_THRESHOLDS.gotAwaySessions)
-    .toSorted((a, b) => b.length - a.length || byDate(lastDate(b), lastDate(a)))[0];
-  if (!best) return null;
-  const dates = best.map((session) => session.entryDate).toSorted(byDate);
-  return {
-    climbId: best[0].climbId,
-    climbName: best[0].climbName,
-    label: label(best[0].climbType, best[0].climbGrade),
-    sessions: best.length,
-    first: dates[0],
-    last: lastDate(best),
-  };
+    .toSorted(
+      (a, b) =>
+        b.length - a.length ||
+        byDate(lastDate(b), lastDate(a)) ||
+        a[0].climbName.localeCompare(b[0].climbName),
+    )
+    .slice(0, YEAR_THRESHOLDS.gotAwayLimit)
+    .map((list) => ({
+      climbId: list[0].climbId,
+      climbName: list[0].climbName,
+      label: label(list[0].climbType, list[0].climbGrade),
+      sessions: list.length,
+      first: list.map((session) => session.entryDate).toSorted(byDate)[0],
+      last: lastDate(list),
+    }));
+  return climbs.length ? { climbs } : null;
 }
 
 function buildNotWorthThePump(
@@ -779,7 +776,8 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
           (session) => session.climbId === send.climbId && session.entryDate <= send.dateSent,
         ).length,
       }));
-    if (gotAway) sieges.push({ climbName: gotAway.climbName, sessions: gotAway.sessions });
+    for (const climb of gotAway?.climbs ?? [])
+      sieges.push({ climbName: climb.climbName, sessions: climb.sessions });
     const siege = sieges.toSorted((a, b) => b.sessions - a.sessions)[0] ?? null;
     const pyramidPick = pyramids
       .filter((entry) => entry.rows.length >= 4)
@@ -838,7 +836,7 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
       areasVisited: new Set(dayList.flatMap((entry) => [...entry.areas])).size,
       disciplines: types,
     },
-    days: { daysOut, longestStreak: longestStreak([...yearDays.keys()]), byMonth },
+    days: { daysOut, byMonth },
     hardest: { disciplines: hardest, undated },
     pyramids: { disciplines: pyramids, undated },
     calendar,

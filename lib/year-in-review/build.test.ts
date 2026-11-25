@@ -160,9 +160,29 @@ describe("chapters that need data", () => {
         session("2026-04-01", { companions: [pat] }),
       ],
     });
-    expect(review.chapters.gotAway).toMatchObject({ climbName: "The Project", sessions: 2 });
+    expect(review.chapters.gotAway?.climbs).toMatchObject([
+      { climbName: "The Project", sessions: 2 },
+    ]);
     expect(review.chapters.partner).toBeNull();
     expect(review.missed.map((item) => item.id)).toContain("partner");
+  });
+
+  it("lists up to three unsent climbs, most sessions first, sent ones excluded", () => {
+    const tries = (climbId: number, dates: string[]) =>
+      dates.map((date) => session(date, { climbId, climbName: `Project ${climbId}` }));
+    const review = build({
+      sends: [send("2026-09-01", 9, { climbId: 5 })],
+      sessions: [
+        ...tries(1, ["2026-02-01", "2026-03-01"]),
+        ...tries(2, ["2026-02-01", "2026-03-01", "2026-04-01", "2026-05-01"]),
+        ...tries(3, ["2026-02-01", "2026-03-01", "2026-06-01"]),
+        ...tries(4, ["2026-01-01", "2026-01-08"]),
+        ...tries(5, ["2026-02-01", "2026-03-01", "2026-04-01"]),
+        ...tries(6, ["2026-07-01"]),
+      ],
+    });
+    // 5 was sent and 6 was tried once; 1 and 4 tie on sessions, 1 more recently.
+    expect(review.chapters.gotAway?.climbs.map((climb) => climb.climbId)).toEqual([2, 3, 1]);
   });
 
   it("puts at most three low-rated sends in not worth the pump, unrated excluded", () => {

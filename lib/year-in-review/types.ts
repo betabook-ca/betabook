@@ -98,7 +98,6 @@ type IntroChapter = {
 
 type DaysChapter = {
   daysOut: number;
-  longestStreak: { days: number; end: string } | null;
   /** Days out per month, January first. */
   byMonth: number[];
 };
@@ -218,7 +217,7 @@ type PyramidsChapter = {
 
 export type PartnerChapter = { partner: YearCompanion; days: number };
 
-export type GotAwayChapter = {
+type GotAwayClimb = {
   climbId: number;
   climbName: string;
   label: string;
@@ -226,6 +225,10 @@ export type GotAwayChapter = {
   first: string;
   last: string;
 };
+
+/** Up to three climbs tried twice or more in the year and never sent, most
+ * sessions first. */
+export type GotAwayChapter = { climbs: GotAwayClimb[] };
 
 export type NotWorthThePumpChapter = {
   climbs: {

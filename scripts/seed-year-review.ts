@@ -285,9 +285,9 @@ function main() {
       [Math.max(0, boulderTop - 2), 7],
       [Math.max(0, boulderTop - 3), 9],
     ];
-    // The project that never goes: the hardest boulder left, held back
+    // The projects that never go: the hardest boulders left, held back
     // before the pyramid takes the hard grades.
-    const project = take(homePool, "boulder", 99);
+    const projects = [99, 99, 99].map((grade) => take(homePool, "boulder", grade));
     // The low-rated sends, held back too, so each keeps its comment.
     const pumpClimbs = PUMP_COMMENTS.map(() =>
       take(homePool, "boulder", Math.max(0, boulderTop - 2)),
@@ -330,9 +330,9 @@ function main() {
       if (climb) session(climb, bigDay, "Ran out of skin.");
     }
 
-    // The one that got away: seven sessions, no send.
-    if (project) {
-      for (const date of [
+    // The ones that got away: three projects, never sent.
+    const projectDates = [
+      [
         "2026-03-14",
         "2026-04-04",
         "2026-06-20",
@@ -340,7 +340,13 @@ function main() {
         "2026-10-03",
         "2026-10-24",
         "2026-11-14",
-      ].filter(atHome)) {
+      ],
+      ["2026-02-21", "2026-05-23", "2026-08-15", "2026-10-31"],
+      ["2026-03-28", "2026-07-04", "2026-11-07"],
+    ];
+    for (const [index, project] of projects.entries()) {
+      if (!project) continue;
+      for (const date of projectDates[index].filter(atHome)) {
         session(project, date, "Closer every time. Not today.");
       }
     }

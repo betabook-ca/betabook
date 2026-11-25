@@ -220,12 +220,6 @@ export function YearReviewStory({
       "Days outside",
       <>
         <Hero value={c.days.daysOut}>{c.days.daysOut === 1 ? "day out" : "days out"}</Hero>
-        {c.days.daysOut >= 3 && c.days.longestStreak && c.days.longestStreak.days > 1 && (
-          <p className="text-sm">
-            Longest streak: {plural(c.days.longestStreak.days, "day")} in a row, ending{" "}
-            {formatDate(c.days.longestStreak.end)}.
-          </p>
-        )}
         <BarStrip
           values={c.days.byMonth}
           labels={MONTH_LABELS}
@@ -235,7 +229,7 @@ export function YearReviewStory({
         />
         {c.days.daysOut < 3 && (
           <>
-            <Nudge>Log your sessions to see your streaks.</Nudge>
+            <Nudge>Log your sessions to see your year take shape.</Nudge>
             {logLink("Log a session")}
           </>
         )}
@@ -644,26 +638,36 @@ export function YearReviewStory({
   }
 
   if (c.gotAway) {
-    const away = c.gotAway;
+    const { climbs } = c.gotAway;
     sections.push(
       chapter(
         "got-away",
-        "The one that got away",
-        <p className="flex flex-col gap-1">
-          <span>
-            <AppLink
-              href={climbHref(away.climbId, away.climbName)}
-              className="font-display text-4xl font-semibold"
-            >
-              {away.climbName}
-            </AppLink>{" "}
-            <span className="font-display text-2xl text-muted">{away.label}</span>
-          </span>
-          <span className="text-muted">
-            {plural(away.sessions, "session")}, from {formatDate(away.first)} to{" "}
-            {formatDate(away.last)}. Next year.
-          </span>
-        </p>,
+        climbs.length === 1 ? "The one that got away" : "The ones that got away",
+        <>
+          <ol className="flex flex-col gap-3">
+            {climbs.map((climb) => (
+              <li
+                key={climb.climbId}
+                className={clsx("flex flex-col gap-1", cardClass("sm", "bordered"))}
+              >
+                <span className="flex flex-wrap items-baseline gap-x-2">
+                  <AppLink
+                    href={climbHref(climb.climbId, climb.climbName)}
+                    className="font-display text-2xl font-semibold"
+                  >
+                    {climb.climbName}
+                  </AppLink>
+                  <span className="font-display text-xl text-muted">{climb.label}</span>
+                </span>
+                <span className="text-sm text-muted">
+                  {plural(climb.sessions, "session")}, from {formatDate(climb.first)} to{" "}
+                  {formatDate(climb.last)}
+                </span>
+              </li>
+            ))}
+          </ol>
+          <p className="text-muted">Next year.</p>
+        </>,
       ),
     );
   }

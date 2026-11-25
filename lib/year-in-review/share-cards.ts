@@ -59,9 +59,6 @@ export function yearShareCards(
     const busiest = c.days.byMonth.indexOf(Math.max(...c.days.byMonth)) + 1;
     cards.days = card(review, ownerName, "Days outside", [
       { label: "Days out", value: String(c.days.daysOut), sub: null },
-      ...(c.days.longestStreak && c.days.longestStreak.days > 1
-        ? [{ label: "Longest streak", value: `${c.days.longestStreak.days} days`, sub: null }]
-        : []),
       {
         label: "Busiest month",
         value: monthName(busiest),
@@ -226,13 +223,17 @@ export function yearShareCards(
     ]);
   }
   if (c.gotAway) {
-    cards["got-away"] = card(review, ownerName, "The one that got away", [
-      {
-        label: c.gotAway.label,
-        value: plural(c.gotAway.sessions, "session"),
-        sub: c.gotAway.climbName,
-      },
-    ]);
+    const { climbs } = c.gotAway;
+    cards["got-away"] = card(
+      review,
+      ownerName,
+      climbs.length === 1 ? "The one that got away" : "The ones that got away",
+      climbs.map((climb) => ({
+        label: climb.label,
+        value: plural(climb.sessions, "session"),
+        sub: climb.climbName,
+      })),
+    );
   }
   if (c.notWorthThePump) {
     cards["not-worth-the-pump"] = card(
