@@ -304,7 +304,9 @@ export function YearReviewStory({
       chapter(
         "biggest-day",
         sameDay ? "Your biggest day was also your biggest rampage" : "Biggest days",
-        <div className="grid gap-4 md:grid-cols-2">
+        // Two cards share the row; one card (the same day, or only one of
+        // the two earned) takes the whole width.
+        <div className={clsx("grid gap-4", biggestDay && rampage && !sameDay && "md:grid-cols-2")}>
           {biggestDay && (
             <DayCard day={biggestDay} title={sameDay ? "Biggest day and rampage" : "Biggest day"} />
           )}
