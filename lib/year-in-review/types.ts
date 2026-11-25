@@ -176,7 +176,6 @@ export type TripCard = {
 export type TripsChapter = {
   trips: TripCard[];
   totalDays: number;
-  shareOfDays: number;
   biggest: TripCard | null;
   returnTrip: { trip: TripCard; visit: number; firstYear: number } | null;
   /** Places visited on 2+ trips this year, each with those trips in date order. */

@@ -456,7 +456,6 @@ function buildTrips(
   return {
     trips: thisYear,
     totalDays: tripDates.size,
-    shareOfDays: yearDays.size ? tripDates.size / yearDays.size : 0,
     biggest,
     returnTrip,
     repeatedPlaces: groups

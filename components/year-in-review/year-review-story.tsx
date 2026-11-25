@@ -444,8 +444,7 @@ export function YearReviewStory({
         `Trips of ${year}`,
         <>
           <p className="text-lg">
-            {plural(trips.trips.length, "trip")} · {plural(trips.totalDays, "day")} on the road ·{" "}
-            {Math.round(trips.shareOfDays * 100)}% of your days out
+            {plural(trips.trips.length, "trip")} · {plural(trips.totalDays, "day")} on the road
           </p>
           {[
             trips.biggest && {
