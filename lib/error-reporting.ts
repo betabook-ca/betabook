@@ -2,7 +2,7 @@ import type { Instrumentation } from "next";
 
 /** Structured error lines for Workers Observability.
  *
- * vinext logs no production server error: a page that fails in a server
+ * vinext logs no production render error: a page that fails in a server
  * component streams the error page with a 200, and the browser gets only a
  * digest. `instrumentation.ts` passes server errors to `logRequestError`, and
  * `toActionResult` passes the action errors it catches (which never reach
@@ -17,8 +17,13 @@ import type { Instrumentation } from "next";
  * becomes "[token]": share tokens, password-reset tokens, session tokens and
  * avatar keys are all working capabilities. Error text also loses Drizzle's
  * "params:" list (the bound values of a failed query), the input a JSON parse
- * error quotes, and email addresses. Redaction is pattern-based, so a new log
- * field needs the same care. */
+ * error quotes, and email addresses, and a path segment that holds an email
+ * becomes "[email]". A client-reported digest must have a shape vinext
+ * produces. vinext and libraries also log raw errors themselves (route
+ * handler, server action and middleware failures among them), so in
+ * production `installConsoleScrub` passes every Error and string given to
+ * `console` through the same redaction. Redaction is pattern-based, so a new
+ * log field needs the same care. */
 
 export const REQUEST_ERROR_EVENT = "request_error";
 export const CLIENT_ERROR_EVENT = "client_error";
@@ -33,8 +38,10 @@ const SHARE_TOKEN = /\b[0-9a-f]{32}\b/gi;
 const LONG_RUN = /[A-Za-z0-9_-]{16,}/g;
 /** The tail of a DrizzleQueryError message: `Failed query: <sql>\nparams: <values>`. */
 const QUERY_PARAMS = /\nparams: [\s\S]*$/;
-/** V8 quotes the input it failed to parse: `Unexpected token 'm', "my journal…" is not valid JSON`. */
-const JSON_INPUT = /(?:\.\.\.)?"(?:[^"\\]|\\.)*"(?:\.\.\.)? is not valid JSON/g;
+/** V8 quotes the input it failed to parse: `Unexpected token 'm', "my journal…" is not valid JSON`.
+ * The input is raw text, so it can hold quotes of its own: everything from the
+ * first quote to the last " is not valid JSON" goes. */
+const JSON_INPUT = /(?:\.\.\.)?"[\s\S]*"(?:\.\.\.)? is not valid JSON/g;
 const EMAIL = /[^\s@"'<>(),;:]+@[^\s@"'<>(),;:]+\.[A-Za-z]{2,}/g;
 const STACK_FRAME = /^\s+at /;
 
@@ -149,10 +156,21 @@ export function errorDigest(error: unknown) {
  * like a credential (share tokens, password-reset tokens, avatar keys). */
 export function redactPath(path: string) {
   const pathname = path.split(/[?#]/, 1)[0] ?? "";
-  return pathname
-    .split("/")
-    .map((segment) => (isCredentialLike(segment) ? "[token]" : segment))
-    .join("/");
+  return pathname.split("/").map(redactPathSegment).join("/");
+}
+
+function decodeSegment(segment: string) {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}
+
+/** A segment is checked decoded too, so `climber%40example.com` is caught. */
+function redactPathSegment(segment: string) {
+  if (new RegExp(EMAIL.source).test(decodeSegment(segment))) return "[email]";
+  return isCredentialLike(segment) ? "[token]" : segment;
 }
 
 type RequestErrorArgs = Parameters<Instrumentation.onRequestError>;
@@ -209,8 +227,12 @@ export type ClientErrorReport = {
   path: string;
 };
 
-const MAX_DIGEST_LENGTH = 64;
 const MAX_PATH_LENGTH = 512;
+/** The digests vinext gives a browser: the djb2 hash (an unsigned 32-bit
+ * decimal) or a Next control digest such as `NEXT_HTTP_ERROR_FALLBACK;404`.
+ * Anything else did not come from the error boundary, and could carry text
+ * the redaction would not catch. */
+const CLIENT_DIGEST = /^(?:\d{1,10}|[A-Z][A-Z_]{0,47}(?:;\d{3})?)$/;
 
 /** Validates a beacon body from `reportClientError`. Anything the boundary
  * would not send is refused rather than repaired, so a hand-made request
@@ -221,7 +243,7 @@ export function parseClientErrorReport(body: unknown): ClientErrorReport | null 
   if (boundary !== "page" && boundary !== "global") return null;
   if (typeof message !== "string" || typeof path !== "string" || !path.startsWith("/")) return null;
   if (path.length > MAX_PATH_LENGTH) return null;
-  if (digest !== undefined && (typeof digest !== "string" || digest.length > MAX_DIGEST_LENGTH))
+  if (digest !== undefined && (typeof digest !== "string" || !CLIENT_DIGEST.test(digest)))
     return null;
   return {
     boundary,
@@ -233,4 +255,31 @@ export function parseClientErrorReport(body: unknown): ClientErrorReport | null 
 
 export function logClientError(report: ClientErrorReport) {
   console.error({ event: CLIENT_ERROR_EVENT, ...report });
+}
+
+const CONSOLE_METHODS = ["error", "warn", "log", "info", "debug"] as const;
+const SCRUBBED = Symbol.for("betabook.consoleScrubbed");
+
+/** One `console` argument made safe to log: an Error becomes the same scrubbed
+ * summary `request_error` carries, a string loses what error text loses, and
+ * anything else (our own structured events, already scrubbed) passes through. */
+function scrubConsoleArg(arg: unknown): unknown {
+  if (arg instanceof Error) return summarizeError(arg);
+  if (typeof arg === "string") return scrubErrorText(arg);
+  return arg;
+}
+
+/** Wraps `console` so nothing vinext or a library logs carries user data.
+ * vinext logs the raw error beside `onRequestError` for route handlers
+ * ("[vinext] Route handler error:"), server actions, middleware and its own
+ * top-level catch, and a Drizzle error's message ends in the query's bound
+ * values. Idempotent, so a second `register()` does not wrap twice. */
+export function installConsoleScrub(target: Console = console) {
+  const marked = target as Console & { [SCRUBBED]?: true };
+  if (marked[SCRUBBED]) return;
+  marked[SCRUBBED] = true;
+  for (const method of CONSOLE_METHODS) {
+    const original = target[method].bind(target);
+    target[method] = (...args: unknown[]) => original(...args.map(scrubConsoleArg));
+  }
 }

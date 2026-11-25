@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CLIENT_ERROR_EVENT,
   errorDigest,
+  installConsoleScrub,
   logActionError,
   logClientError,
   logRequestError,
@@ -75,6 +76,12 @@ describe("redactPath", () => {
     );
     expect(redactPath("/users/C21eDLSbyoYF7XwXl9vB3qZbleIogj0O")).toBe("/users/[token]");
   });
+
+  it("replaces a segment that holds an email address, encoded or not", () => {
+    expect(redactPath("/users/climber%40example.com/trips")).toBe("/users/[email]/trips");
+    expect(redactPath("/users/climber@example.com")).toBe("/users/[email]");
+    expect(redactPath("/users/%E0%A4%A")).toBe("/users/%E0%A4%A");
+  });
 });
 
 describe("error text", () => {
@@ -95,6 +102,18 @@ describe("error text", () => {
     const message = loggedMessage(parseError);
     expect(message).not.toContain("private journal");
     expect(message).toContain('"[redacted]" is not valid JSON');
+  });
+
+  it("drops parse input that holds quotes of its own", () => {
+    let parseError: unknown;
+    try {
+      JSON.parse('my "note": "a private journal"');
+    } catch (error) {
+      parseError = error;
+    }
+    const message = loggedMessage(parseError);
+    expect(message).not.toMatch(/private journal|note/);
+    expect(message).toBe(`Unexpected token 'm', "[redacted]" is not valid JSON`);
   });
 
   it("drops email addresses and session tokens", () => {
@@ -317,9 +336,22 @@ describe("parseClientErrorReport", () => {
     ["an absolute URL", { boundary: "page", message: "m", path: "https://evil.example/" }],
     ["a long path", { boundary: "page", message: "m", path: `/${"a".repeat(600)}` }],
     ["a non-string digest", { boundary: "page", message: "m", path: "/", digest: 7 }],
-    ["a long digest", { boundary: "page", message: "m", path: "/", digest: "d".repeat(65) }],
+    ["a long digest", { boundary: "page", message: "m", path: "/", digest: "1".repeat(11) }],
+    ["a token as digest", { boundary: "page", message: "m", path: "/", digest: TOKEN }],
+    ["free text as digest", { boundary: "page", message: "m", path: "/", digest: "a@b.co" }],
   ])("refuses %s", (_label, body) => {
     expect(parseClientErrorReport(body)).toBeNull();
+  });
+
+  it("accepts a Next control digest", () => {
+    expect(
+      parseClientErrorReport({
+        boundary: "page",
+        message: "m",
+        path: "/",
+        digest: "NEXT_HTTP_ERROR_FALLBACK;404",
+      })?.digest,
+    ).toBe("NEXT_HTTP_ERROR_FALLBACK;404");
   });
 
   it("replaces a share token in a reported message", () => {
@@ -341,5 +373,64 @@ describe("parseClientErrorReport", () => {
       message: "boom",
       path: "/feed",
     });
+  });
+});
+
+describe("installConsoleScrub", () => {
+  function fakeConsole() {
+    const calls: unknown[][] = [];
+    const record = (...args: unknown[]) => {
+      calls.push(args);
+    };
+    const target = {
+      error: record,
+      warn: record,
+      log: record,
+      info: record,
+      debug: record,
+    } as unknown as Console;
+    return { target, calls };
+  }
+
+  it("scrubs the raw error vinext logs beside onRequestError", () => {
+    const { target, calls } = fakeConsole();
+    installConsoleScrub(target);
+    const error = new Error(
+      `Failed query: select * from user where email = ?\nparams: climber@example.com,${TOKEN}`,
+    );
+    error.stack = `Error: ${error.message}\n    at handler (route.ts:1:1)`;
+
+    target.error("[vinext] Route handler error:", error);
+
+    expect(calls).toHaveLength(1);
+    const [prefix, logged] = calls[0] as [string, { message: string }];
+    expect(prefix).toBe("[vinext] Route handler error:");
+    expect(logged.message).toBe(
+      "Failed query: select * from user where email = ?\nparams: [redacted]",
+    );
+    expect(JSON.stringify(calls)).not.toMatch(/climber@example\.com|[0-9a-f]{32}/);
+  });
+
+  it("scrubs strings on every method and passes structured events through", () => {
+    const { target, calls } = fakeConsole();
+    installConsoleScrub(target);
+    const event = { event: REQUEST_ERROR_EVENT, path: "/feed" };
+
+    target.warn("no session for climber@example.com");
+    target.log(event, 3);
+
+    expect(calls[0]).toEqual(["no session for [email]"]);
+    expect(calls[1]?.[0]).toBe(event);
+    expect(calls[1]?.[1]).toBe(3);
+  });
+
+  it("wraps only once", () => {
+    const { target, calls } = fakeConsole();
+    installConsoleScrub(target);
+    const wrapped = target.error;
+    installConsoleScrub(target);
+    expect(target.error).toBe(wrapped);
+    target.error("x");
+    expect(calls).toHaveLength(1);
   });
 });

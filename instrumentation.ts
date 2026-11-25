@@ -1,6 +1,14 @@
 import type { Instrumentation } from "next";
 
-import { logRequestError } from "@/lib/error-reporting";
+import { installConsoleScrub, logRequestError } from "@/lib/error-reporting";
+
+/** vinext runs this once, before the first request. In production every
+ * `console` call is scrubbed: vinext logs some raw errors itself (route
+ * handlers, server actions, middleware), and those can carry user data. Dev
+ * keeps raw errors for debugging. */
+export function register() {
+  if (process.env.NODE_ENV === "production") installConsoleScrub();
+}
 
 /** vinext calls this for every server error: page renders (including errors
  * the RSC stream hides behind a digest), server actions, route handlers and
