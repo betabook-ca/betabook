@@ -5,7 +5,6 @@ import { BOULDER_HUECO, DEFAULT_GRADE_PREFERENCES } from "@/lib/grades";
 import { buildYearInReview } from "./build";
 import { rankPersonas, type PersonaMetrics } from "./personas";
 import { commonAncestor, homeArea } from "./places";
-import { yearShareCards } from "./share-cards";
 import type { YearAreaMap, YearReviewInput, YearSendRow, YearSessionRow } from "./types";
 import { yearReviewWindow } from "./window";
 
@@ -315,13 +314,7 @@ describe("personas", () => {
   });
 });
 
-describe("share cards and window", () => {
-  it("gives a zero-state core chapter no card", () => {
-    const cards = yearShareCards(build({}), "Alex");
-    expect(cards.intro).toBeUndefined();
-    expect(cards.hardest).toBeUndefined();
-  });
-
+describe("window", () => {
   it("opens Dec 1 – Jan 14, January meaning last year", () => {
     expect(yearReviewWindow("2026-11-30")).toBeNull();
     expect(yearReviewWindow("2026-12-01")).toBe(2026);

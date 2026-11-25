@@ -8,11 +8,9 @@ import { cardClass } from "@/components/ui/card";
 import { DISCIPLINE_LABELS, DisciplineChip } from "@/components/ui/discipline-chip";
 import { EYEBROW_CLASS } from "@/components/ui/eyebrow";
 import { BarStrip } from "@/components/year-in-review/bar-strip";
-import { ChapterShareImage } from "@/components/year-in-review/chapter-share-image";
 import { CountUp } from "@/components/year-in-review/count-up";
 import { VerticalPyramid } from "@/components/year-in-review/vertical-pyramid";
 import { formatDate } from "@/lib/format-date";
-import type { ShareImageContent, ShareImageStat } from "@/lib/share-image";
 import { climbHref } from "@/lib/slug";
 import { tripHref } from "@/lib/trips";
 import {
@@ -31,8 +29,6 @@ const plural = (count: number, word: string) => `${count} ${word}${count === 1 ?
 const MONTH_LABELS = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-const NO_CARDS: Partial<Record<YearChapterId, ShareImageContent<ShareImageStat>>> = {};
-
 type YearReviewStoryMode =
   /** The owner's page: share images, logging links and the footnote. */
   | "owner"
@@ -44,23 +40,16 @@ type StoryProps = {
   ownerId: string;
   ownerName: string;
   mode: YearReviewStoryMode;
-  shareCards?: Partial<Record<YearChapterId, ShareImageContent<ShareImageStat>>>;
 };
 
 function Chapter({
   id,
   title,
   children,
-  share,
-  ownerName,
-  year,
 }: {
   id: YearChapterId;
   title: string;
   children: ReactNode;
-  share?: ShareImageContent<ShareImageStat>;
-  ownerName: string;
-  year: number;
 }) {
   const headingId = `year-chapter-${id}`;
   return (
@@ -71,12 +60,9 @@ function Chapter({
         cardClass("fluid"),
       )}
     >
-      <header className="flex items-start justify-between gap-3">
-        <h2 id={headingId} className="font-display text-3xl font-semibold tracking-tight">
-          {title}
-        </h2>
-        {share && <ChapterShareImage content={share} fileName={`${ownerName} ${year} ${title}`} />}
-      </header>
+      <h2 id={headingId} className="font-display text-3xl font-semibold tracking-tight">
+        {title}
+      </h2>
       {children}
     </section>
   );
@@ -212,23 +198,14 @@ function TripCards({
 /** Every chapter, top to bottom: the four core chapters always, the rest
  * when earned. */
 // oxlint-disable-next-line max-lines-per-function, complexity -- one long page of independent chapters
-export function YearReviewStory({
-  review,
-  ownerId,
-  ownerName,
-  mode,
-  shareCards = NO_CARDS,
-}: StoryProps) {
+export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps) {
   const { year, chapters: c } = review;
   const owner = mode === "owner";
-  const cards = owner ? shareCards : {};
-  const chapter = (id: YearChapterId, title: string, body: ReactNode) => {
-    return (
-      <Chapter key={id} id={id} title={title} share={cards[id]} ownerName={ownerName} year={year}>
-        {body}
-      </Chapter>
-    );
-  };
+  const chapter = (id: YearChapterId, title: string, body: ReactNode) => (
+    <Chapter key={id} id={id} title={title}>
+      {body}
+    </Chapter>
+  );
   const logLink = (text: string) =>
     owner ? (
       <AppLink href={`/users/${ownerId}/journal`} className="text-sm underline">

@@ -7,13 +7,6 @@ export const DISCIPLINE_NAMES: Record<ClimbType, string> = {
   trad: "trad",
 };
 
-/** Short discipline titles for labels ("Boulder flash", "Sport #1"). */
-export const DISCIPLINE_TITLES: Record<ClimbType, string> = {
-  boulder: "Boulder",
-  sport: "Sport",
-  trad: "Trad",
-};
-
 const MONTH_NAMES = [
   "January",
   "February",

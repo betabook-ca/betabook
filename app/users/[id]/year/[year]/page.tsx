@@ -17,7 +17,6 @@ import { goalToday } from "@/lib/goals";
 import { getRequestTimezone } from "@/lib/request-timezone";
 import { getViewerGradePreferences } from "@/lib/session";
 import { buildYearInReview, parseRecapYear } from "@/lib/year-in-review";
-import { yearShareCards } from "@/lib/year-in-review/share-cards";
 import { yearReviewPath } from "@/lib/year-review-share";
 
 type Props = { params: Promise<{ id: string; year: string }> };
@@ -119,13 +118,7 @@ async function YearReviewContent({
           </nav>
         )}
       </header>
-      <YearReviewStory
-        review={review}
-        ownerId={ownerId}
-        ownerName={ownerName}
-        mode="owner"
-        shareCards={yearShareCards(review, ownerName)}
-      />
+      <YearReviewStory review={review} ownerId={ownerId} ownerName={ownerName} mode="owner" />
       <YearReviewFootnote review={review} ownerId={ownerId} />
     </>
   );
