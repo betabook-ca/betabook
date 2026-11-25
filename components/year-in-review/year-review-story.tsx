@@ -21,6 +21,7 @@ import {
   WEEKDAY_NAMES,
   type DayHighlight,
   type DisciplineRanking,
+  type TripCard,
   type YearChapterId,
   type YearPlace,
   type YearReview,
@@ -160,6 +161,51 @@ function Rankings({ disciplines }: { disciplines: DisciplineRanking[] }) {
         </div>
       ))}
     </div>
+  );
+}
+
+/** The trip cards under one trips highlight. A lone card takes the full
+ * width; two or more share rows. The owner's cards link to the trip. */
+function TripCards({
+  cards,
+  ownerId,
+  owner,
+}: {
+  cards: TripCard[];
+  ownerId: string;
+  owner: boolean;
+}) {
+  return (
+    <ul className={clsx("grid gap-3", cards.length > 1 && "md:grid-cols-2")}>
+      {cards.map((trip) => (
+        <li key={trip.id} className={clsx("flex flex-col gap-1", cardClass("sm", "bordered"))}>
+          {owner ? (
+            <AppLink href={tripHref(ownerId, trip.id)} className="font-semibold">
+              {trip.name}
+            </AppLink>
+          ) : (
+            <span className="font-semibold">{trip.name}</span>
+          )}
+          <span className="text-xs text-muted">
+            {formatDate(trip.startDate)} – {formatDate(trip.endDate)}
+            {trip.location
+              ? ` · ${trip.location.trail.join(" › ")}`
+              : trip.roots.length
+                ? ` · ${trip.roots.join(" + ")}`
+                : ""}
+          </span>
+          <span className="text-sm">
+            {plural(trip.climbingDays, "day")} · {plural(trip.sends, "send")}
+            {trip.hardest.length
+              ? ` · hardest ${trip.hardest
+                  .map((entry) => `${DISCIPLINE_LABELS[entry.type]} ${entry.label}`)
+                  .join(", ")}`
+              : ""}
+            {trip.newGrades ? ` · ${plural(trip.newGrades, "new grade")}` : ""}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -401,57 +447,30 @@ export function YearReviewStory({
             {plural(trips.trips.length, "trip")} · {plural(trips.totalDays, "day")} on the road ·{" "}
             {Math.round(trips.shareOfDays * 100)}% of your days out
           </p>
-          <div className="flex flex-wrap gap-2 text-sm">
-            {trips.biggest && (
-              <span className="rounded-full bg-accent/20 px-3 py-1">
-                Biggest trip: {trips.biggest.name} ({plural(trips.biggest.climbingDays, "day")})
-              </span>
-            )}
-            {trips.returnTrip && (
-              <span className="rounded-full bg-surface-tertiary px-3 py-1">
-                Back to {trips.returnTrip.trip.location?.name}: trip #{trips.returnTrip.visit} there
-                (first in {trips.returnTrip.firstYear})
-              </span>
-            )}
-            {trips.repeatedPlaces.map((group) => (
-              <span key={group.name} className="rounded-full bg-surface-tertiary px-3 py-1">
-                {group.count} trips to {group.name} this year
-              </span>
+          {[
+            trips.biggest && {
+              key: "biggest",
+              title: `Biggest trip · ${plural(trips.biggest.climbingDays, "day")}`,
+              cards: [trips.biggest],
+            },
+            trips.returnTrip && {
+              key: "return",
+              title: `Back to ${trips.returnTrip.trip.location?.name ?? "a favourite"} · trip #${trips.returnTrip.visit} there, first in ${trips.returnTrip.firstYear}`,
+              cards: [trips.returnTrip.trip],
+            },
+            ...trips.repeatedPlaces.map((group) => ({
+              key: `repeat-${group.name}`,
+              title: `${group.trips.length} trips to ${group.name} this year`,
+              cards: group.trips,
+            })),
+          ]
+            .filter((highlight) => !!highlight)
+            .map((highlight) => (
+              <div key={highlight.key} className="flex flex-col gap-2">
+                <span className={EYEBROW_CLASS}>{highlight.title}</span>
+                <TripCards cards={highlight.cards} ownerId={ownerId} owner={owner} />
+              </div>
             ))}
-          </div>
-          <ul className="grid gap-3 md:grid-cols-2">
-            {trips.trips.map((trip) => (
-              <li
-                key={trip.id}
-                className={clsx("flex flex-col gap-1", cardClass("sm", "bordered"))}
-              >
-                {owner ? (
-                  <AppLink href={tripHref(ownerId, trip.id)} className="font-semibold">
-                    {trip.name}
-                  </AppLink>
-                ) : (
-                  <span className="font-semibold">{trip.name}</span>
-                )}
-                <span className="text-xs text-muted">
-                  {formatDate(trip.startDate)} – {formatDate(trip.endDate)}
-                  {trip.location
-                    ? ` · ${trip.location.trail.join(" › ")}`
-                    : trip.roots.length
-                      ? ` · ${trip.roots.join(" + ")}`
-                      : ""}
-                </span>
-                <span className="text-sm">
-                  {plural(trip.climbingDays, "day")} · {plural(trip.sends, "send")}
-                  {trip.hardest.length
-                    ? ` · hardest ${trip.hardest
-                        .map((entry) => `${DISCIPLINE_LABELS[entry.type]} ${entry.label}`)
-                        .join(", ")}`
-                    : ""}
-                  {trip.newGrades ? ` · ${plural(trip.newGrades, "new grade")}` : ""}
-                </span>
-              </li>
-            ))}
-          </ul>
         </>,
       ),
     );

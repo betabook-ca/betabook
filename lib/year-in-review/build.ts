@@ -442,15 +442,15 @@ function buildTrips(
 
   // Group this year's trips whose locations are the same place or one inside
   // the other, named by the broadest of them.
-  const groups: { anchor: number; count: number }[] = [];
+  const groups: { anchor: number; trips: TripCard[] }[] = [];
   const depth = (id: number) => areas.get(id)?.path.length ?? 0;
   const located = thisYear
-    .flatMap((card) => (card.location ? [card.location.id] : []))
-    .toSorted((a, b) => depth(a) - depth(b));
-  for (const id of located) {
+    .flatMap((card) => (card.location ? [{ card, id: card.location.id }] : []))
+    .toSorted((a, b) => depth(a.id) - depth(b.id));
+  for (const { card, id } of located) {
     const group = groups.find((existing) => relatedPlaces(areas, existing.anchor, id));
-    if (group) group.count += 1;
-    else groups.push({ anchor: id, count: 1 });
+    if (group) group.trips.push(card);
+    else groups.push({ anchor: id, trips: [card] });
   }
 
   return {
@@ -460,8 +460,11 @@ function buildTrips(
     biggest,
     returnTrip,
     repeatedPlaces: groups
-      .filter((group) => group.count >= 2)
-      .map((group) => ({ name: areas.get(group.anchor)?.name ?? "", count: group.count })),
+      .filter((group) => group.trips.length >= 2)
+      .map((group) => ({
+        name: areas.get(group.anchor)?.name ?? "",
+        trips: group.trips.toSorted((a, b) => byDate(a.startDate, b.startDate)),
+      })),
   };
 }
 

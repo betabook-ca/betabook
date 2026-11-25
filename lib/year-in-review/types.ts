@@ -179,7 +179,8 @@ export type TripsChapter = {
   shareOfDays: number;
   biggest: TripCard | null;
   returnTrip: { trip: TripCard; visit: number; firstYear: number } | null;
-  repeatedPlaces: { name: string; count: number }[];
+  /** Places visited on 2+ trips this year, each with those trips in date order. */
+  repeatedPlaces: { name: string; trips: TripCard[] }[];
 };
 
 export type GradeStep = {

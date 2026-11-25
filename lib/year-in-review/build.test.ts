@@ -184,6 +184,42 @@ describe("new ground", () => {
   });
 });
 
+describe("trips", () => {
+  it("groups this year's trips into highlights, each with its own trips", () => {
+    const trip = (id: number, startDate: string, endDate: string) => ({
+      id,
+      name: `Trip ${id}`,
+      startDate,
+      endDate,
+    });
+    const review = build({
+      trips: [
+        trip(1, "2024-08-01", "2024-08-03"),
+        trip(2, "2026-03-01", "2026-03-05"),
+        trip(3, "2026-06-01", "2026-06-02"),
+        trip(4, "2026-09-01", "2026-09-01"),
+      ],
+      sends: [
+        send("2024-08-01", 3, { areaId: 9 }),
+        // Two Squamish trips this year, the first the bigger one.
+        ...["2026-03-01", "2026-03-02", "2026-03-03"].map((date) => send(date, 3, { areaId: 4 })),
+        // Both walls, so this trip's location is Squamish, which contains
+        // the first trip's Grand Wall. Sibling walls alone wouldn't group.
+        send("2026-06-01", 3, { areaId: 4 }),
+        send("2026-06-02", 3, { areaId: 5 }),
+        // Back to Arco, first visited on the 2024 trip.
+        send("2026-09-01", 3, { areaId: 9 }),
+      ],
+    });
+    const trips = review.chapters.trips;
+    expect(trips?.biggest?.id).toBe(2);
+    expect(trips?.returnTrip).toMatchObject({ trip: { id: 4 }, visit: 2, firstYear: 2024 });
+    expect(
+      trips?.repeatedPlaces.map((group) => [group.name, group.trips.map((card) => card.id)]),
+    ).toEqual([["Squamish", [2, 3]]]);
+  });
+});
+
 describe("new grades", () => {
   it("counts only steps above every earlier send, including undated ones", () => {
     const sends = [
