@@ -19,10 +19,21 @@ export function reportClientError(
   error: Error & { digest?: string },
 ) {
   try {
+    // React passes the boundary whatever was thrown, which need not be an
+    // Error: a thrown string or `{}` must still produce a report.
+    const thrown: unknown = error;
+    const digest =
+      thrown &&
+      typeof thrown === "object" &&
+      "digest" in thrown &&
+      typeof thrown.digest === "string"
+        ? thrown.digest
+        : undefined;
+    const message = thrown instanceof Error ? thrown.message : String(thrown);
     const report: ClientErrorReport = {
       boundary,
-      ...(error.digest ? { digest: error.digest } : {}),
-      message: error.message.slice(0, MAX_MESSAGE_LENGTH),
+      ...(digest ? { digest } : {}),
+      message: message.slice(0, MAX_MESSAGE_LENGTH),
       path: window.location.pathname.slice(0, MAX_PATH_LENGTH),
     };
     const body = JSON.stringify(report);

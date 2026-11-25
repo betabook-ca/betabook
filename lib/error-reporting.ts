@@ -130,18 +130,21 @@ function summarizeError(error: unknown): ErrorSummary {
   };
 }
 
+/** vinext's `hasDigest`: any `digest` field counts, whatever its value, and
+ * the browser is shown `String(error.digest)`. */
 function stampedDigest(error: unknown) {
   if (!error || typeof error !== "object" || !("digest" in error)) return undefined;
-  return typeof error.digest === "string" && error.digest ? error.digest : undefined;
+  return String(error.digest);
 }
 
 /** The digest the browser's error page receives for this error. vinext calls
  * `onRequestError` before it stamps the digest, so this repeats its formula:
  * Next's string-hash (djb2, read right to left) over message and stack. An
- * error that already carries a digest keeps it. */
+ * error that already has a `digest` field keeps it, stringified as vinext
+ * does. */
 export function errorDigest(error: unknown) {
   const stamped = stampedDigest(error);
-  if (stamped) return stamped;
+  if (stamped !== undefined) return stamped;
   const input = error instanceof Error ? error.message + (error.stack || "") : String(error);
   let hash = 5381;
   for (let i = input.length - 1; i >= 0; i -= 1) {
@@ -202,7 +205,7 @@ function requestErrorLog(
  * digest and is logged. */
 export function logRequestError(...args: RequestErrorArgs) {
   const [error, , context] = args;
-  if (context.renderSource === "server-rendering" && stampedDigest(error)) return;
+  if (context.renderSource === "server-rendering" && stampedDigest(error) !== undefined) return;
   console.error(requestErrorLog(...args));
 }
 
@@ -230,11 +233,13 @@ export type ClientErrorReport = {
 const MAX_PATH_LENGTH = 512;
 /** The digests vinext gives a browser: the djb2 hash (an unsigned 32-bit
  * decimal) or a Next control digest such as `NEXT_HTTP_ERROR_FALLBACK;404`.
- * Anything else did not come from the error boundary, and could carry text
- * the redaction would not catch. */
+ * Any other digest is dropped from the report, since it could carry text the
+ * redaction would not catch. It is dropped rather than refused because vinext
+ * also passes on whatever odd `digest` field a thrown value had (`String`ed,
+ * so `undefined` or `7`), and the report is still worth logging. */
 const CLIENT_DIGEST = /^(?:\d{1,10}|[A-Z][A-Z_]{0,47}(?:;\d{3})?)$/;
 
-/** Validates a beacon body from `reportClientError`. Anything the boundary
+/** Validates a beacon body from `reportClientError`. A body the boundary
  * would not send is refused rather than repaired, so a hand-made request
  * cannot write arbitrary fields into the logs. */
 export function parseClientErrorReport(body: unknown): ClientErrorReport | null {
@@ -243,11 +248,10 @@ export function parseClientErrorReport(body: unknown): ClientErrorReport | null 
   if (boundary !== "page" && boundary !== "global") return null;
   if (typeof message !== "string" || typeof path !== "string" || !path.startsWith("/")) return null;
   if (path.length > MAX_PATH_LENGTH) return null;
-  if (digest !== undefined && (typeof digest !== "string" || !CLIENT_DIGEST.test(digest)))
-    return null;
+  if (digest !== undefined && typeof digest !== "string") return null;
   return {
     boundary,
-    ...(digest ? { digest } : {}),
+    ...(digest && CLIENT_DIGEST.test(digest) ? { digest } : {}),
     message: truncate(scrubErrorText(message), MAX_MESSAGE_LENGTH),
     path: redactPath(path),
   };

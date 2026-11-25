@@ -26,6 +26,25 @@ it("caps the message so a long one still fits the endpoint's 4 KB limit", async 
   });
 });
 
+it.each([
+  ["a string", "boom", "boom"],
+  ["an object", {}, "[object Object]"],
+  ["null", null, "null"],
+])("still reports when %s is thrown", async (_label, thrown, message) => {
+  const sendBeacon = vi.fn<(url: string, data: Blob) => boolean>(() => true);
+  vi.stubGlobal("navigator", { sendBeacon });
+  vi.stubGlobal("window", { location: { pathname: "/feed" } });
+
+  reportClientError("page", thrown as Error);
+
+  expect(sendBeacon).toHaveBeenCalledTimes(1);
+  expect(JSON.parse(await sendBeacon.mock.calls[0][1].text())).toEqual({
+    boundary: "page",
+    message,
+    path: "/feed",
+  });
+});
+
 it("cuts a long path to what the endpoint accepts instead of losing the report", async () => {
   const sendBeacon = vi.fn<(url: string, data: Blob) => boolean>(() => true);
   vi.stubGlobal("navigator", { sendBeacon });

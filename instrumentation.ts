@@ -7,6 +7,7 @@ import { installConsoleScrub, logRequestError } from "@/lib/error-reporting";
  * handlers, server actions, middleware), and those can carry user data. Dev
  * keeps raw errors for debugging. */
 export function register() {
+  // oxlint-disable-next-line node/no-process-env -- vinext defines NODE_ENV at build time; the production worker inlines this to `true`
   if (process.env.NODE_ENV === "production") installConsoleScrub();
 }
 

@@ -36,12 +36,11 @@ describe("errorDigest", () => {
     expect(errorDigest("plain string")).toBe("477965546");
   });
 
-  it("computes a digest when the field is there but not a string", () => {
-    const error = new Error("boom");
-    const computed = errorDigest(error);
-    Object.assign(error, { digest: undefined });
-    expect(errorDigest(error)).toBe(computed);
-    expect(computed).not.toBe("undefined");
+  it("stringifies a digest field that is not a string, as vinext does", () => {
+    // vinext's `hasDigest` counts any `digest` field and shows the browser
+    // `String(error.digest)`, so the log must say the same.
+    expect(errorDigest(Object.assign(new Error("boom"), { digest: undefined }))).toBe("undefined");
+    expect(errorDigest(Object.assign(new Error("boom"), { digest: 7 }))).toBe("7");
   });
 
   it("keeps a digest the error already carries", () => {
@@ -336,11 +335,21 @@ describe("parseClientErrorReport", () => {
     ["an absolute URL", { boundary: "page", message: "m", path: "https://evil.example/" }],
     ["a long path", { boundary: "page", message: "m", path: `/${"a".repeat(600)}` }],
     ["a non-string digest", { boundary: "page", message: "m", path: "/", digest: 7 }],
-    ["a long digest", { boundary: "page", message: "m", path: "/", digest: "1".repeat(11) }],
-    ["a token as digest", { boundary: "page", message: "m", path: "/", digest: TOKEN }],
-    ["free text as digest", { boundary: "page", message: "m", path: "/", digest: "a@b.co" }],
   ])("refuses %s", (_label, body) => {
     expect(parseClientErrorReport(body)).toBeNull();
+  });
+
+  it.each([
+    ["a long number", "1".repeat(11)],
+    ["a token", TOKEN],
+    ["free text", "a@b.co"],
+    ["a stringified undefined", "undefined"],
+  ])("drops %s as digest but keeps the report", (_label, digest) => {
+    expect(parseClientErrorReport({ boundary: "page", message: "m", path: "/", digest })).toEqual({
+      boundary: "page",
+      message: "m",
+      path: "/",
+    });
   });
 
   it("accepts a Next control digest", () => {
