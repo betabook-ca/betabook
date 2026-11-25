@@ -91,6 +91,8 @@ export type YearChapterId =
 type IntroChapter = {
   daysOut: number;
   sends: number;
+  /** Distinct areas holding a climb logged this year (each climb's own area). */
+  areasVisited: number;
   disciplines: ClimbType[];
 };
 

@@ -843,7 +843,12 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
   }
 
   const chapters: YearChapters = {
-    intro: { daysOut, sends: yearSends.length, disciplines: types },
+    intro: {
+      daysOut,
+      sends: yearSends.length,
+      areasVisited: new Set(dayList.flatMap((entry) => [...entry.areas])).size,
+      disciplines: types,
+    },
     days: { daysOut, longestStreak: longestStreak([...yearDays.keys()]), byMonth },
     hardest: { disciplines: hardest, undated },
     pyramids: { disciplines: pyramids, undated },
@@ -913,7 +918,7 @@ function missedChapters(
       "biggest-day",
       "Log 5+ climbs in one session, or send 3+ in a day, to unlock your biggest day.",
     );
-  if (!chapters.homeTurf) add("home-turf", "Log 3+ sessions to find your home turf.");
+  if (!chapters.homeTurf) add("home-turf", "Log 3+ sessions to find your home crag.");
   if (!chapters.newClimbs)
     add("new-climbs", `Every climb in ${year} was one you'd tried before. Branch out next year.`);
   if (!chapters.trips)

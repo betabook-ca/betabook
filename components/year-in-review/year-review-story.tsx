@@ -217,11 +217,7 @@ export function YearReviewStory({
           tiles={[
             { label: "Days out", value: c.intro.daysOut },
             { label: "Sends", value: c.intro.sends },
-            {
-              label: "Disciplines",
-              value: c.intro.disciplines.length,
-              sub: c.intro.disciplines.map((type) => DISCIPLINE_LABELS[type]).join(" · ") || null,
-            },
+            { label: "Areas visited", value: c.intro.areasVisited },
           ]}
         />
       ) : (
@@ -344,7 +340,7 @@ export function YearReviewStory({
     sections.push(
       chapter(
         "home-turf",
-        turf.spread ? "You got around" : "Your home turf",
+        turf.spread ? "You got around" : "Your home crag",
         <>
           {turf.spread ? (
             <p className="text-lg">No single place held most of your days.</p>
@@ -607,7 +603,7 @@ export function YearReviewStory({
       "pyramids",
       "Grade pyramids",
       c.pyramids.disciplines.some((entry) => entry.rows.length) ? (
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="flex flex-col gap-6">
           {c.pyramids.disciplines.map((entry) => {
             const total = entry.rows.reduce((sum, row) => sum + row.count, 0);
             return (

@@ -288,6 +288,10 @@ function main() {
     // The project that never goes: the hardest boulder left, held back
     // before the pyramid takes the hard grades.
     const project = take(homePool, "boulder", 99);
+    // The low-rated sends, held back too, so each keeps its comment.
+    const pumpClimbs = PUMP_COMMENTS.map(() =>
+      take(homePool, "boulder", Math.max(0, boulderTop - 2)),
+    );
     let weekendIndex = 0;
     let tuesdayIndex = 0;
     for (const [grade, count] of pyramid) {
@@ -343,7 +347,7 @@ function main() {
 
     // Not worth the pump.
     for (const [index, comment] of PUMP_COMMENTS.entries()) {
-      const climb = take(homePool, "boulder", Math.max(0, boulderTop - 2));
+      const climb = pumpClimbs[index];
       if (climb)
         send(
           climb,

@@ -52,15 +52,7 @@ export function yearShareCards(
     cards.intro = card(review, ownerName, `${review.year} in review`, [
       { label: "Days out", value: String(c.intro.daysOut), sub: null },
       { label: "Sends", value: String(c.intro.sends), sub: null },
-      ...(c.intro.disciplines.length
-        ? [
-            {
-              label: "Disciplines",
-              value: String(c.intro.disciplines.length),
-              sub: c.intro.disciplines.map((type) => DISCIPLINE_NAMES[type]).join(", "),
-            },
-          ]
-        : []),
+      { label: "Areas visited", value: String(c.intro.areasVisited), sub: null },
     ]);
   }
   if (c.days.daysOut > 0) {
@@ -136,7 +128,7 @@ export function yearShareCards(
       ],
       homeTurf.spread
         ? `Across ${homeTurf.breakdown.map((entry) => entry.name).join(", ")}`
-        : "Your home turf",
+        : "Your home crag",
     );
   }
   if (c.newClimbs) {

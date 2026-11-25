@@ -126,6 +126,8 @@ describe("places", () => {
       ],
     });
     expect(review.chapters.biggestDay?.rampage?.place?.name).toBe("Squamish");
+    // Grand Wall and Chief: each climb's own area counts once.
+    expect(review.chapters.intro.areasVisited).toBe(2);
   });
 });
 
