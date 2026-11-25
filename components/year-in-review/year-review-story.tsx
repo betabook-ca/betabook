@@ -27,7 +27,6 @@ import {
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
 const MONTH_LABELS = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
-const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 type YearReviewStoryMode =
   /** The owner's page: share images, logging links and the footnote. */
@@ -268,7 +267,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
         "Your climbing calendar",
         <div className="grid gap-4 md:grid-cols-3">
           <div className={clsx("flex flex-col gap-2", cardClass("sm", "bordered"))}>
-            <span className={EYEBROW_CLASS}>Peak month</span>
+            <span className={EYEBROW_CLASS}>Busiest month</span>
             <p className="font-display text-3xl font-semibold">{monthName(peakMonth.month)}</p>
             <p className="text-sm text-muted">
               {plural(peakMonth.days, "day")} out · {plural(peakMonth.sends, "send")}
@@ -281,7 +280,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
             />
           </div>
           <div className={clsx("flex flex-col gap-2", cardClass("sm", "bordered"))}>
-            <span className={EYEBROW_CLASS}>Hardest-send month</span>
+            <span className={EYEBROW_CLASS}>Highlight month</span>
             {hardestMonths.map((entry) => (
               <p key={entry.type}>
                 <span className="font-display text-2xl font-semibold">
@@ -294,23 +293,47 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
             ))}
           </div>
           <div className={clsx("flex flex-col gap-2", cardClass("sm", "bordered"))}>
-            <span className={EYEBROW_CLASS}>Peak-performance weekday</span>
+            <span className={EYEBROW_CLASS}>Weekday Peak</span>
             {weekday ? (
               <>
                 <p className="font-display text-3xl font-semibold">
                   {weekday.best.map((day) => `${WEEKDAY_NAMES[day]}s`).join(" & ")}
                 </p>
-                <p className="text-sm text-muted">
-                  Your best {WEEKDAY_NAMES[weekday.best[0]]} send is typically in the top{" "}
-                  {weekday.topPercent}% of your year.
+                <p className="text-sm">
+                  You send your hardest on{" "}
+                  {weekday.best.map((day) => `${WEEKDAY_NAMES[day]}s`).join(" and ")}. On a typical{" "}
+                  {WEEKDAY_NAMES[weekday.best[0]]}, your best send is in the top{" "}
+                  {weekday.topPercent}% of your year
+                  {weekday.grades?.[weekday.best[0]]
+                    ? `, around ${weekday.grades[weekday.best[0]]}`
+                    : ""}
+                  .
                 </p>
-                <BarStrip
-                  values={weekday.scores.map((score) => (score == null ? null : Math.round(score)))}
-                  labels={WEEKDAY_LABELS}
-                  highlight={weekday.best}
-                  summary="Average best-of-day relative grade by weekday"
-                  valueLabels={weekday.grades ?? undefined}
-                />
+                {weekday.ranked.filter((entry) => !weekday.best.includes(entry.weekday)).length >
+                  0 && (
+                  <ol className="flex flex-col gap-1 text-sm">
+                    {weekday.ranked
+                      .filter((entry) => !weekday.best.includes(entry.weekday))
+                      .slice(0, 2)
+                      .map((entry, index) => (
+                        <li
+                          key={entry.weekday}
+                          className="flex justify-between gap-3 border-t border-separator pt-1"
+                        >
+                          <span>
+                            <span className="text-muted">{index + 2}. </span>
+                            {WEEKDAY_NAMES[entry.weekday]}s
+                          </span>
+                          <span className="text-muted">
+                            top {entry.topPercent}%
+                            {weekday.grades?.[entry.weekday]
+                              ? ` · ${weekday.grades[entry.weekday]}`
+                              : ""}
+                          </span>
+                        </li>
+                      ))}
+                  </ol>
+                )}
               </>
             ) : (
               <Nudge>Log sends on more weekdays to see when you climb your best.</Nudge>

@@ -183,6 +183,22 @@ describe("new ground", () => {
   });
 });
 
+describe("weekday peak", () => {
+  it("ranks weekdays by their average best send of the day", () => {
+    // Three Tuesdays at V8, three Saturdays at V5, three Sundays at V2:
+    // 2026-03-03, -10 and -17 are Tuesdays.
+    const days = (start: number, weekdayOffset: number, grade: number) =>
+      [0, 7, 14].map((week) =>
+        send(`2026-03-${String(start + week + weekdayOffset).padStart(2, "0")}`, grade),
+      );
+    const sends = [...days(3, 0, 9), ...days(3, 4, 6), ...days(3, 5, 3)];
+    const weekday = build({ sends }).chapters.calendar?.weekday;
+    expect(weekday?.best).toEqual([2]);
+    expect(weekday?.ranked.map((entry) => entry.weekday)).toEqual([2, 6, 0]);
+    expect(weekday?.ranked.map((entry) => entry.topPercent)).toEqual([17, 50, 83]);
+  });
+});
+
 describe("trips", () => {
   it("groups this year's trips into highlights, each with its own trips", () => {
     const trip = (id: number, startDate: string, endDate: string) => ({

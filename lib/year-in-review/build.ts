@@ -209,6 +209,13 @@ function buildCalendar(
       scores,
       sendDays,
       topPercent: Math.max(1, Math.round(100 - topScore)),
+      ranked: qualifying
+        .toSorted((a, b) => (scores[b] ?? 0) - (scores[a] ?? 0) || sendDays[b] - sendDays[a])
+        .map((day) => ({
+          weekday: day,
+          topPercent: Math.max(1, Math.round(100 - (scores[day] ?? 0))),
+          sendDays: sendDays[day],
+        })),
       grades: single
         ? byWeekday.map((list, day) => {
             if (scores[day] == null) return null;

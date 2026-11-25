@@ -121,6 +121,8 @@ export type CalendarChapter = {
     topPercent: number;
     /** Average best-of-day grade per weekday, for a single-discipline year. */
     grades: (string | null)[] | null;
+    /** Every qualifying weekday, best first (ties: more send days first). */
+    ranked: { weekday: number; topPercent: number; sendDays: number }[];
   } | null;
 };
 
