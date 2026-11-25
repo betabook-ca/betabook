@@ -9,6 +9,9 @@ const MAX_MESSAGE_LENGTH = 500;
  * cut rather than losing the whole report. `pathname` is percent-encoded
  * ASCII, so characters are bytes. */
 const MAX_PATH_LENGTH = 512;
+/** The endpoint keeps only short, vinext-shaped digests. A longer one is left
+ * out here, so it cannot push the body past the 4 KB cap and lose the report. */
+const MAX_DIGEST_LENGTH = 64;
 
 /** Tells the server that this browser is showing an error page. Fire and
  * forget, and best-effort: reporting must never throw inside an error
@@ -26,7 +29,8 @@ export function reportClientError(
       thrown &&
       typeof thrown === "object" &&
       "digest" in thrown &&
-      typeof thrown.digest === "string"
+      typeof thrown.digest === "string" &&
+      thrown.digest.length <= MAX_DIGEST_LENGTH
         ? thrown.digest
         : undefined;
     const message = thrown instanceof Error ? thrown.message : String(thrown);

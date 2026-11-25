@@ -77,9 +77,24 @@ function truncate(text: string, max: number) {
   return text.length > max ? `${text.slice(0, max)}…` : text;
 }
 
+/** `String(value)` that cannot throw. A null-prototype object (or one whose
+ * `toString` throws) makes `String` throw, and logging must never turn one
+ * error into a second. */
+function safeString(value: unknown) {
+  try {
+    return String(value);
+  } catch {
+    try {
+      return Object.prototype.toString.call(value);
+    } catch {
+      return "[unprintable]";
+    }
+  }
+}
+
 function describe(error: unknown) {
   if (error instanceof Error) return { name: error.name, message: error.message };
-  return { name: typeof error, message: String(error) };
+  return { name: typeof error, message: safeString(error) };
 }
 
 /** Error text safe to log: no bound query values, no quoted parse input, no
@@ -134,7 +149,7 @@ function summarizeError(error: unknown): ErrorSummary {
  * the browser is shown `String(error.digest)`. */
 function stampedDigest(error: unknown) {
   if (!error || typeof error !== "object" || !("digest" in error)) return undefined;
-  return String(error.digest);
+  return safeString(error.digest);
 }
 
 /** The digest the browser's error page receives for this error. vinext calls
@@ -145,7 +160,7 @@ function stampedDigest(error: unknown) {
 export function errorDigest(error: unknown) {
   const stamped = stampedDigest(error);
   if (stamped !== undefined) return stamped;
-  const input = error instanceof Error ? error.message + (error.stack || "") : String(error);
+  const input = error instanceof Error ? error.message + (error.stack || "") : safeString(error);
   let hash = 5381;
   for (let i = input.length - 1; i >= 0; i -= 1) {
     // oxlint-disable-next-line eslint/no-bitwise -- djb2 is defined by this XOR; it must match vinext's digest bit for bit
@@ -170,10 +185,14 @@ function decodeSegment(segment: string) {
   }
 }
 
-/** A segment is checked decoded too, so `climber%40example.com` is caught. */
+/** A segment is checked decoded too, so a percent-encoded token (only digits
+ * and `%` as sent) is caught. */
 function redactPathSegment(segment: string) {
-  if (new RegExp(EMAIL.source).test(decodeSegment(segment))) return "[email]";
-  return isCredentialLike(segment) ? "[token]" : segment;
+  const decoded = decodeSegment(segment);
+  if (new RegExp(EMAIL.source).test(decoded)) return "[email]";
+  if (isCredentialLike(segment) || (decoded.match(LONG_RUN) ?? []).some(isCredentialLike))
+    return "[token]";
+  return segment;
 }
 
 type RequestErrorArgs = Parameters<Instrumentation.onRequestError>;
@@ -284,6 +303,15 @@ export function installConsoleScrub(target: Console = console) {
   marked[SCRUBBED] = true;
   for (const method of CONSOLE_METHODS) {
     const original = target[method].bind(target);
-    target[method] = (...args: unknown[]) => original(...args.map(scrubConsoleArg));
+    target[method] = (...args: unknown[]) =>
+      original(
+        ...args.map((arg) => {
+          try {
+            return scrubConsoleArg(arg);
+          } catch {
+            return "[unloggable]";
+          }
+        }),
+      );
   }
 }

@@ -45,6 +45,18 @@ it.each([
   });
 });
 
+it("leaves out an oversized digest so the report still fits", async () => {
+  const sendBeacon = vi.fn<(url: string, data: Blob) => boolean>(() => true);
+  vi.stubGlobal("navigator", { sendBeacon });
+  vi.stubGlobal("window", { location: { pathname: "/feed" } });
+
+  reportClientError("page", Object.assign(new Error("boom"), { digest: "9".repeat(5000) }));
+
+  const text = await sendBeacon.mock.calls[0][1].text();
+  expect(new TextEncoder().encode(text).byteLength).toBeLessThanOrEqual(4096);
+  expect(JSON.parse(text)).toEqual({ boundary: "page", message: "boom", path: "/feed" });
+});
+
 it("cuts a long path to what the endpoint accepts instead of losing the report", async () => {
   const sendBeacon = vi.fn<(url: string, data: Blob) => boolean>(() => true);
   vi.stubGlobal("navigator", { sendBeacon });

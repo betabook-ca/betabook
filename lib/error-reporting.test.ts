@@ -81,6 +81,12 @@ describe("redactPath", () => {
     expect(redactPath("/users/climber@example.com")).toBe("/users/[email]");
     expect(redactPath("/users/%E0%A4%A")).toBe("/users/%E0%A4%A");
   });
+
+  it("replaces a percent-encoded token", () => {
+    const encoded = TOKEN.replace(/./g, (c) => `%${c.charCodeAt(0).toString(16)}`);
+    expect(redactPath(`/lists/${encoded}`)).toBe("/lists/[token]");
+    expect(redactPath("/search/sunset%20arete")).toBe("/search/sunset%20arete");
+  });
 });
 
 describe("error text", () => {
@@ -431,6 +437,20 @@ describe("installConsoleScrub", () => {
     expect(calls[0]).toEqual(["no session for [email]"]);
     expect(calls[1]?.[0]).toBe(event);
     expect(calls[1]?.[1]).toBe(3);
+  });
+
+  it("logs a placeholder instead of throwing for an argument it cannot scrub", () => {
+    const { target, calls } = fakeConsole();
+    installConsoleScrub(target);
+    const hostile = new Error("boom");
+    Object.defineProperty(hostile, "stack", {
+      get() {
+        throw new Error("no stack for you");
+      },
+    });
+
+    expect(() => target.error("[vinext] Server action error:", hostile)).not.toThrow();
+    expect(calls[0]).toEqual(["[vinext] Server action error:", "[unloggable]"]);
   });
 
   it("wraps only once", () => {

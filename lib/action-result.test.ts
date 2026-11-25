@@ -78,4 +78,24 @@ describe("toActionResult", () => {
       consoleError.mockRestore();
     }
   });
+
+  it.each([
+    ["a null-prototype object", () => Object.create(null) as unknown],
+    [
+      "an Error with a null-prototype cause",
+      () => new Error("boom", { cause: Object.create(null) }),
+    ],
+  ])("returns the generic message when %s is thrown", async (_label, make) => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      expect(
+        await toActionResult(async () => {
+          throw make();
+        }),
+      ).toEqual({ ok: false, error: GENERIC_ERROR_MESSAGE });
+      expect(consoleError).toHaveBeenCalledTimes(1);
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
 });

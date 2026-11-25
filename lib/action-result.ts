@@ -73,7 +73,11 @@ export async function toActionResult<T>(fn: () => Promise<T>): Promise<ActionRes
     if (err instanceof ActionError) {
       return { ok: false, error: err.message };
     }
-    logActionError(err);
+    try {
+      logActionError(err);
+    } catch {
+      // Logging must not turn a handled failure into a rejected action.
+    }
     return { ok: false, error: GENERIC_ERROR_MESSAGE };
   }
 }
