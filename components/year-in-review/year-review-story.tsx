@@ -526,14 +526,33 @@ export function YearReviewStory({
       ),
     ),
   );
-  if (c.flashes)
-    sections.push(
-      chapter("flashes", "Hardest flashes", <Rankings disciplines={c.flashes.disciplines} />),
+  // Flashes and onsights share one card: both are first-try ascents.
+  if (c.flashes || c.onsights) {
+    const groups = [
+      { title: "Flashes", ranking: c.flashes },
+      { title: "Onsights", ranking: c.onsights },
+    ].flatMap(({ title, ranking }) =>
+      ranking ? [{ title, disciplines: ranking.disciplines }] : [],
     );
-  if (c.onsights)
     sections.push(
-      chapter("onsights", "Hardest onsights", <Rankings disciplines={c.onsights.disciplines} />),
+      chapter(
+        "flashes",
+        c.flashes && c.onsights
+          ? "Hardest flashes and onsights"
+          : c.flashes
+            ? "Hardest flashes"
+            : "Hardest onsights",
+        <div className="flex flex-col gap-6">
+          {groups.map(({ title, disciplines }) => (
+            <div key={title} className="flex flex-col gap-3">
+              {groups.length > 1 && <span className={EYEBROW_CLASS}>{title}</span>}
+              <Rankings disciplines={disciplines} />
+            </div>
+          ))}
+        </div>,
+      ),
     );
+  }
 
   if (c.styles) {
     sections.push(

@@ -1,11 +1,10 @@
 import { formatDate } from "@/lib/format-date";
 import type { ShareImageContent, ShareImageStat } from "@/lib/share-image";
 
-import { DISCIPLINE_NAMES, monthName, WEEKDAY_NAMES } from "./labels";
+import { DISCIPLINE_NAMES, DISCIPLINE_TITLES, monthName, WEEKDAY_NAMES } from "./labels";
 import type { DisciplineRanking, YearChapterId, YearReview } from "./types";
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
-const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 function card(
   review: YearReview,
@@ -28,7 +27,7 @@ function card(
 function rankingStats(disciplines: DisciplineRanking[]): ShareImageStat[] {
   return disciplines.flatMap(({ type, rows }) =>
     rows.slice(0, disciplines.length > 1 ? 2 : 4).map((row) => ({
-      label: `${capitalize(DISCIPLINE_NAMES[type])} #${row.rank}`,
+      label: `${DISCIPLINE_TITLES[type]} #${row.rank}`,
       value: row.label,
       sub: row.climbName,
     })),
@@ -174,22 +173,32 @@ export function yearShareCards(
   }
   if (c.hardest.disciplines.length)
     cards.hardest = card(review, ownerName, "Hardest sends", rankingStats(c.hardest.disciplines));
-  if (c.flashes)
-    cards.flashes = card(review, ownerName, "Hardest flashes", rankingStats(c.flashes.disciplines));
-  if (c.onsights)
-    cards.onsights = card(
+  if (c.flashes || c.onsights) {
+    // The best first-try send per discipline, flashes before onsights.
+    const best = (ranking: { disciplines: DisciplineRanking[] } | null, style: string) =>
+      (ranking?.disciplines ?? []).map(({ type, rows }) => ({
+        label: `${DISCIPLINE_TITLES[type]} ${style}`,
+        value: rows[0].label,
+        sub: rows[0].climbName,
+      }));
+    cards.flashes = card(
       review,
       ownerName,
-      "Hardest onsights",
-      rankingStats(c.onsights.disciplines),
+      c.flashes && c.onsights
+        ? "Hardest flashes and onsights"
+        : c.flashes
+          ? "Hardest flashes"
+          : "Hardest onsights",
+      [...best(c.flashes, "flash"), ...best(c.onsights, "onsight")],
     );
+  }
   if (c.styles) {
     cards.styles = card(
       review,
       ownerName,
       "How you sent it",
       c.styles.disciplines.map((entry) => ({
-        label: `${capitalize(DISCIPLINE_NAMES[entry.type])} first try`,
+        label: `${DISCIPLINE_TITLES[entry.type]} first try`,
         value: `${Math.round(entry.firstTryRate * 100)}%`,
         sub: `${entry.flash + entry.onsight} of ${entry.flash + entry.onsight + entry.redpoint} sends`,
       })),
@@ -202,7 +211,7 @@ export function yearShareCards(
       ownerName,
       "Grade pyramids",
       pyramids.map((entry) => ({
-        label: capitalize(DISCIPLINE_NAMES[entry.type]),
+        label: DISCIPLINE_TITLES[entry.type],
         value: `${entry.rows.at(-1)?.label}–${entry.rows[0].label}`,
         sub: plural(
           entry.rows.reduce((total, row) => total + row.count, 0),
