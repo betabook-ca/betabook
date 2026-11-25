@@ -131,6 +131,55 @@ describe("places", () => {
   });
 });
 
+describe("new ground", () => {
+  it("lists first-visit areas by days there, collapsed, abroad included", () => {
+    const review = build({
+      sends: [
+        // Ontario was climbed before, so Canada isn't new; BC is.
+        send("2025-06-01", 3, { areaId: 7 }),
+        send("2026-03-01", 3, { areaId: 4 }),
+        send("2026-03-02", 3, { areaId: 4 }),
+        send("2026-03-03", 3, { areaId: 5 }),
+        send("2026-04-01", 3, { areaId: 5 }),
+        // Italy is a new root: its crag, Arco, counts instead.
+        send("2026-08-01", 3, { areaId: 9 }),
+        send("2026-08-02", 3, { areaId: 9 }),
+        // A day back at a known area adds no new ground.
+        send("2026-09-01", 3, { areaId: 7 }),
+      ],
+    });
+    const ground = review.chapters.newGround;
+    expect(ground?.firstVisits.map(({ place, days }) => [place.name, days])).toEqual([
+      ["BC", 4],
+      ["Arco", 2],
+    ]);
+    expect(ground).toMatchObject({ areas: 2, days: 6 });
+  });
+
+  it("keeps the five areas with the most days", () => {
+    const many = new Map<number, { name: string; path: number[] }>([
+      [1, { name: "Root", path: [1] }],
+    ]);
+    for (let index = 0; index < 7; index += 1) {
+      many.set(index + 10, { name: `Crag ${index}`, path: [1, index + 10] });
+    }
+    const sends = Array.from({ length: 7 }, (_, index) =>
+      Array.from({ length: index + 1 }, (_, day) =>
+        send(`2026-0${index + 1}-${String(day + 1).padStart(2, "0")}`, 3, { areaId: index + 10 }),
+      ),
+    ).flat();
+    const ground = build({ sends, areas: many }).chapters.newGround;
+    expect(ground?.areas).toBe(7);
+    expect(ground?.firstVisits.map(({ place }) => place.name)).toEqual([
+      "Crag 6",
+      "Crag 5",
+      "Crag 4",
+      "Crag 3",
+      "Crag 2",
+    ]);
+  });
+});
+
 describe("new grades", () => {
   it("counts only steps above every earlier send, including undated ones", () => {
     const sends = [

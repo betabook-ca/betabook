@@ -15,7 +15,7 @@ import type {
   GradeStep,
   HomeTurfChapter,
   MissedChapter,
-  NewClimbsChapter,
+  NewGroundChapter,
   NewGradesChapter,
   NotWorthThePumpChapter,
   PartnerChapter,
@@ -46,6 +46,7 @@ const YEAR_THRESHOLDS = {
   partnerDays: 3,
   gotAwaySessions: 2,
   gotAwayLimit: 3,
+  firstVisitsLimit: 5,
   pumpMaxRating: 2,
   pumpRatedForPraise: 5,
   personaDays: 6,
@@ -466,10 +467,12 @@ function buildTrips(
   };
 }
 
-function buildNewClimbs(
+/** First visits, and the count of climbs tried for the first time (which
+ * the Wanderer persona reads but the page doesn't show). */
+function buildNewGround(
   input: YearReviewInput,
   yearDays: ReadonlyMap<string, DayActivity>,
-): NewClimbsChapter | null {
+): { chapter: NewGroundChapter | null; newClimbs: number } {
   const { year, areas, sends, sessions } = input;
   const yearStart = `${year}-01-01`;
   // "" sorts before every date: an undated send means "tried before".
@@ -488,25 +491,40 @@ function buildNewClimbs(
 
   const tried = new Set<number>();
   for (const day of yearDays.values()) for (const id of day.climbs) tried.add(id);
-  if (!tried.size) return null;
   const isNew = (date: string | undefined) =>
     date != null && date >= yearStart && date.startsWith(`${year}-`);
   const newClimbs = [...tried].filter((id) => isNew(firstByClimb.get(id))).length;
-  if (!newClimbs) return null;
 
-  const firstVisits = [...firstByArea.entries()]
-    .filter(([id, date]) => {
-      const path = areas.get(id)?.path ?? [];
-      if (path.length <= 1 || !isNew(date)) return false;
-      return !isNew(firstByArea.get(path[path.length - 2]));
-    })
-    .toSorted((a, b) => byDate(a[1], b[1]))
-    .slice(0, 10)
-    .flatMap(([id, date]) => {
+  // Highest new ancestors only, so a new crag with many new sectors counts
+  // once. Roots (countries, regions) never count themselves; a new root's
+  // children do, so a first trip abroad still lists its crag.
+  const newAreas = [...firstByArea.entries()].filter(([id, date]) => {
+    const path = areas.get(id)?.path ?? [];
+    if (path.length <= 1 || !isNew(date)) return false;
+    const parent = path[path.length - 2];
+    return path.length === 2 || !isNew(firstByArea.get(parent));
+  });
+  if (!newAreas.length) return { chapter: null, newClimbs };
+
+  // A day counts for a new area when any of its climbs sits inside it.
+  const daysIn = new Map<number, number>();
+  let days = 0;
+  for (const day of yearDays.values()) {
+    const inside = newAreas.filter(([id]) =>
+      [...day.areas].some((areaId) => areas.get(areaId)?.path.includes(id)),
+    );
+    for (const [id] of inside) daysIn.set(id, (daysIn.get(id) ?? 0) + 1);
+    if (inside.length) days += 1;
+  }
+  const firstVisits = newAreas
+    .map(([id, date]) => ({ id, date, days: daysIn.get(id) ?? 0 }))
+    .toSorted((a, b) => b.days - a.days || byDate(a.date, b.date))
+    .slice(0, YEAR_THRESHOLDS.firstVisitsLimit)
+    .flatMap(({ id, date, days: count }) => {
       const place = placeOf(areas, id);
-      return place ? [{ place, date }] : [];
+      return place ? [{ place, date, days: count }] : [];
     });
-  return { newClimbs, tried: tried.size, firstVisits };
+  return { chapter: { areas: newAreas.length, days, firstVisits }, newClimbs };
 }
 
 function buildStyles(
@@ -741,7 +759,7 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
         }
       : null;
 
-  const newClimbs = buildNewClimbs(input, yearDays);
+  const newGround = buildNewGround(input, yearDays);
   const trips = buildTrips(input, yearDays, allDays, datedSends, allSteps, label);
   const flashRankings = rankings(
     yearSends.filter((send) => send.ascentStyle === "flash"),
@@ -804,7 +822,7 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
       tripLocations: new Set(
         trips?.trips.flatMap((card) => (card.location ? [card.location.id] : [])) ?? [],
       ).size,
-      newClimbs: newClimbs?.newClimbs ?? 0,
+      newClimbs: newGround.newClimbs,
       pyramid: pyramidPick
         ? {
             tiers: pyramidRows.length,
@@ -842,7 +860,7 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
     calendar,
     biggestDay,
     homeTurf,
-    newClimbs,
+    newGround: newGround.chapter,
     trips,
     newGrades,
     flashes: flashRankings.length ? { disciplines: flashRankings } : null,
@@ -906,8 +924,11 @@ function missedChapters(
       "Log 5+ climbs in one session, or send 3+ in a day, to unlock your biggest day.",
     );
   if (!chapters.homeTurf) add("home-turf", "Log 3+ sessions to find your home crag.");
-  if (!chapters.newClimbs)
-    add("new-climbs", `Every climb in ${year} was one you'd tried before. Branch out next year.`);
+  if (!chapters.newGround)
+    add(
+      "new-ground",
+      `Every place you climbed in ${year} was one you'd been before. Try somewhere new next year.`,
+    );
   if (!chapters.trips)
     add(
       "trips",

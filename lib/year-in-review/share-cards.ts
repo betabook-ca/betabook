@@ -128,22 +128,16 @@ export function yearShareCards(
         : "Your home crag",
     );
   }
-  if (c.newClimbs) {
-    cards["new-climbs"] = card(review, ownerName, "New ground", [
-      {
-        label: "New climbs",
-        value: String(c.newClimbs.newClimbs),
-        sub: `of ${c.newClimbs.tried} tried`,
-      },
-      ...(c.newClimbs.firstVisits.length
-        ? [
-            {
-              label: "First visits",
-              value: String(c.newClimbs.firstVisits.length),
-              sub: c.newClimbs.firstVisits[0].place.name,
-            },
-          ]
-        : []),
+  if (c.newGround) {
+    const { areas, days, firstVisits } = c.newGround;
+    cards["new-ground"] = card(review, ownerName, "New ground", [
+      { label: "First visits", value: String(areas), sub: null },
+      { label: "Days at new areas", value: String(days), sub: null },
+      ...firstVisits.slice(0, 2).map((visit) => ({
+        label: visit.place.name,
+        value: plural(visit.days, "day"),
+        sub: null,
+      })),
     ]);
   }
   if (c.trips) {

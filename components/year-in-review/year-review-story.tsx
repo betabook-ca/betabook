@@ -354,33 +354,37 @@ export function YearReviewStory({
     );
   }
 
-  if (c.newClimbs) {
-    const fresh = c.newClimbs;
+  if (c.newGround) {
+    const fresh = c.newGround;
     sections.push(
       chapter(
-        "new-climbs",
+        "new-ground",
         "New ground",
         <>
-          <Hero value={fresh.newClimbs}>
-            climbs you&apos;d never touched, {Math.round((fresh.newClimbs / fresh.tried) * 100)}% of
-            everything you tried
+          <Hero value={fresh.days}>
+            {fresh.days === 1 ? "day" : "days"} at {plural(fresh.areas, "area")} you&apos;d never
+            climbed before
           </Hero>
-          {fresh.firstVisits.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <span className={EYEBROW_CLASS}>First visits</span>
-              <ul className="flex flex-col gap-1 text-sm">
-                {fresh.firstVisits.map(({ place, date }) => (
-                  <li
-                    key={place.id}
-                    className="flex justify-between gap-3 border-b border-separator py-1"
-                  >
-                    <span>{place.trail.join(" › ")}</span>
-                    <span className="shrink-0 text-muted">{formatDate(date)}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <div className="flex flex-col gap-2">
+            <span className={EYEBROW_CLASS}>First visits</span>
+            <ol className="flex flex-col gap-1 text-sm">
+              {fresh.firstVisits.map(({ place, date, days }) => (
+                <li
+                  key={place.id}
+                  className="flex items-baseline justify-between gap-3 border-b border-separator py-1"
+                >
+                  <span className="flex min-w-0 flex-col">
+                    <span className="font-medium">{place.name}</span>
+                    <span className="truncate text-xs text-muted">
+                      {place.trail.slice(0, -1).join(" › ")}
+                      {place.trail.length > 1 ? " · " : ""}first visit {formatDate(date)}
+                    </span>
+                  </span>
+                  <span className="shrink-0 tabular-nums">{plural(days, "day")}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
         </>,
       ),
     );

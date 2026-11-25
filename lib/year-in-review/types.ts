@@ -75,7 +75,7 @@ export type YearChapterId =
   | "calendar"
   | "biggest-day"
   | "home-turf"
-  | "new-climbs"
+  | "new-ground"
   | "trips"
   | "new-grades"
   | "hardest"
@@ -150,10 +150,14 @@ export type HomeTurfChapter = {
   breakdown: { name: string; days: number }[];
 };
 
-export type NewClimbsChapter = {
-  newClimbs: number;
-  tried: number;
-  firstVisits: { place: YearPlace; date: string }[];
+/** Areas visited for the first time this year, each collapsed into its
+ * highest new ancestor, ranked by days there. */
+export type NewGroundChapter = {
+  /** How many first-visit areas there were, before the list was cut to 5. */
+  areas: number;
+  /** Distinct days with a climb in any of them. */
+  days: number;
+  firstVisits: { place: YearPlace; date: string; days: number }[];
 };
 
 export type TripCard = {
@@ -264,7 +268,7 @@ export type YearChapters = {
   calendar: CalendarChapter | null;
   biggestDay: BiggestDayChapter | null;
   homeTurf: HomeTurfChapter | null;
-  newClimbs: NewClimbsChapter | null;
+  newGround: NewGroundChapter | null;
   trips: TripsChapter | null;
   newGrades: NewGradesChapter | null;
   flashes: { disciplines: DisciplineRanking[] } | null;
