@@ -85,7 +85,7 @@ function PlaceTrail({ place }: { place: YearPlace | null }) {
   return <span className="text-sm text-muted">{place.trail.join(" › ")}</span>;
 }
 
-function DayCard({ day }: { day: DayHighlight }) {
+function DayCard({ day, lead = "climbs" }: { day: DayHighlight; lead?: "climbs" | "sends" }) {
   const where = day.place ? day.place.name : day.roots.join(" + ");
   return (
     <div className={clsx("flex flex-col gap-3", cardClass("sm", "bordered"))}>
@@ -94,7 +94,9 @@ function DayCard({ day }: { day: DayHighlight }) {
         {where ? ` · ${day.roots.length ? `across ${where}` : where}` : ""}
       </p>
       <p className="text-sm">
-        {plural(day.climbs, "climb")} tried · {plural(day.sends, "send")}
+        {lead === "sends"
+          ? `${plural(day.sends, "send")} · ${plural(day.climbs, "climb")} tried`
+          : `${plural(day.climbs, "climb")} tried · ${plural(day.sends, "send")}`}
         {day.hardest ? ` · hardest ${day.hardest.label} (${day.hardest.climbName})` : ""}
       </p>
       {day.vPoints && (
@@ -362,13 +364,14 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
       chapter("biggest-boulder-day", "Biggest boulder day", <DayCard day={c.biggestBoulderDay} />),
     );
   }
-  if (c.biggestRouteDay) {
+  if (c.sportRampage) {
     sections.push(
-      chapter(
-        "biggest-route-day",
-        "Biggest sport and trad day",
-        <DayCard day={c.biggestRouteDay} />,
-      ),
+      chapter("sport-rampage", "Sport rampage", <DayCard day={c.sportRampage} lead="sends" />),
+    );
+  }
+  if (c.tradRampage) {
+    sections.push(
+      chapter("trad-rampage", "Trad rampage", <DayCard day={c.tradRampage} lead="sends" />),
     );
   }
 

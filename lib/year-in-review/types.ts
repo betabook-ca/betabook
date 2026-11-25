@@ -74,7 +74,8 @@ export type YearChapterId =
   | "days"
   | "calendar"
   | "biggest-boulder-day"
-  | "biggest-route-day"
+  | "sport-rampage"
+  | "trad-rampage"
   | "home-turf"
   | "new-ground"
   | "trips"
@@ -266,7 +267,8 @@ export type YearChapters = {
   pyramids: PyramidsChapter & { undated: number };
   calendar: CalendarChapter | null;
   biggestBoulderDay: DayHighlight | null;
-  biggestRouteDay: DayHighlight | null;
+  sportRampage: DayHighlight | null;
+  tradRampage: DayHighlight | null;
   homeTurf: HomeTurfChapter | null;
   newGround: NewGroundChapter | null;
   trips: TripsChapter | null;

@@ -332,6 +332,22 @@ function main() {
       if (climb) session(climb, bigDay, "Ran out of skin.");
     }
 
+    // Rampages: a sport day of four sends and a lap, a trad day of four.
+    for (const [type, date, laps] of [
+      ["sport", "2026-10-10", 1],
+      ["trad", "2026-10-17", 0],
+    ] as const) {
+      if (!atHome(date)) continue;
+      const sent: Climb[] = [];
+      for (let n = 0; n < 4; n += 1) {
+        const climb = take(homePool, type, type === "sport" ? sportTop - 3 : sportTop - 5);
+        if (!climb) continue;
+        send(climb, date, climb.grade, n === 0 ? FLASH : REDPOINT);
+        sent.push(climb);
+      }
+      for (const climb of sent.slice(0, laps)) session(climb, date, "One more lap.", 1, 0);
+    }
+
     // The ones that got away: three projects, never sent.
     const projectDates = [
       [
