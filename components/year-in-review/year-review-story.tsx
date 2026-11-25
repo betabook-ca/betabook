@@ -1,7 +1,6 @@
 import { clsx } from "clsx";
 import type { ReactNode } from "react";
 
-import { AnalyticsGradePyramid } from "@/components/analytics-grade-pyramid";
 import { StatTiles } from "@/components/analytics-stat-tiles";
 import { AscentStyle } from "@/components/ascent-style";
 import { AppLink } from "@/components/ui/app-link";
@@ -11,6 +10,7 @@ import { EYEBROW_CLASS } from "@/components/ui/eyebrow";
 import { BarStrip } from "@/components/year-in-review/bar-strip";
 import { ChapterShareImage } from "@/components/year-in-review/chapter-share-image";
 import { CountUp } from "@/components/year-in-review/count-up";
+import { VerticalPyramid } from "@/components/year-in-review/vertical-pyramid";
 import { formatDate } from "@/lib/format-date";
 import type { ShareImageContent, ShareImageStat } from "@/lib/share-image";
 import { climbHref } from "@/lib/slug";
@@ -48,7 +48,6 @@ type StoryProps = {
 
 function Chapter({
   id,
-  number,
   title,
   children,
   share,
@@ -56,7 +55,6 @@ function Chapter({
   year,
 }: {
   id: YearChapterId;
-  number: number;
   title: string;
   children: ReactNode;
   share?: ShareImageContent<ShareImageStat>;
@@ -73,12 +71,9 @@ function Chapter({
       )}
     >
       <header className="flex items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <span className={EYEBROW_CLASS}>Chapter {number}</span>
-          <h2 id={headingId} className="font-display text-3xl font-semibold tracking-tight">
-            {title}
-          </h2>
-        </div>
+        <h2 id={headingId} className="font-display text-3xl font-semibold tracking-tight">
+          {title}
+        </h2>
         {share && <ChapterShareImage content={share} fileName={`${ownerName} ${year} ${title}`} />}
       </header>
       {children}
@@ -181,19 +176,9 @@ export function YearReviewStory({
   const { year, chapters: c } = review;
   const owner = mode === "owner";
   const cards = owner ? shareCards : {};
-  let number = 0;
   const chapter = (id: YearChapterId, title: string, body: ReactNode) => {
-    number += 1;
     return (
-      <Chapter
-        key={id}
-        id={id}
-        number={number}
-        title={title}
-        share={cards[id]}
-        ownerName={ownerName}
-        year={year}
-      >
+      <Chapter key={id} id={id} title={title} share={cards[id]} ownerName={ownerName} year={year}>
         {body}
       </Chapter>
     );
@@ -612,7 +597,7 @@ export function YearReviewStory({
                   <DisciplineChip type={entry.type} />
                   <span className="text-xs text-muted">{plural(total, "send")}</span>
                 </div>
-                <AnalyticsGradePyramid type={entry.type} rows={entry.rows} sends={entry.sends} />
+                <VerticalPyramid type={entry.type} rows={entry.rows} marked={entry.marked} />
                 {entry.marked.length > 0 && (
                   <span className="text-xs text-muted">Top sends at {entry.marked.join(", ")}</span>
                 )}

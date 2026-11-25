@@ -703,18 +703,7 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
     const rows = buildPyramid(ofType.map(toAnalyticsRow), type, prefs);
     const marked =
       hardest.find((ranking) => ranking.type === type)?.rows.map((row) => row.label) ?? [];
-    return {
-      type,
-      rows,
-      marked: [...new Set(marked)],
-      sends: ofType.map((send) => ({
-        climbId: send.climbId,
-        climbName: send.climbName,
-        climbType: send.climbType,
-        suggestedGrade: send.grade,
-        dateSent: send.dateSent,
-      })),
-    };
+    return { type, rows, marked: [...new Set(marked)] };
   });
 
   const stepsByType = new Map(

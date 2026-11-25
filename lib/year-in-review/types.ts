@@ -213,14 +213,6 @@ type PyramidsChapter = {
     rows: PyramidRow[];
     /** Grade labels holding a top-3 send. */
     marked: string[];
-    /** The year's sends in this discipline, for the bars' climb lists. */
-    sends: {
-      climbId: number;
-      climbName: string;
-      climbType: ClimbType;
-      suggestedGrade: number;
-      dateSent: string;
-    }[];
   }[];
 };
 
