@@ -598,9 +598,6 @@ export function YearReviewStory({
                   <span className="text-xs text-muted">{plural(total, "send")}</span>
                 </div>
                 <VerticalPyramid type={entry.type} rows={entry.rows} marked={entry.marked} />
-                {entry.marked.length > 0 && (
-                  <span className="text-xs text-muted">Top sends at {entry.marked.join(", ")}</span>
-                )}
                 {(total < 5 || entry.rows.length < 2) && (
                   <Nudge>Log more sends to fill out your pyramid.</Nudge>
                 )}
