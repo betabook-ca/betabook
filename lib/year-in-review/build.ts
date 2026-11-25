@@ -86,8 +86,9 @@ function disciplineOrder(sends: readonly YearSendRow[]): ClimbType[] {
 }
 
 /**
- * Standard competition ranking: the top `limit` by grade, plus every climb
- * tied at the cutoff grade. Earliest send first within a grade, then name.
+ * The top `limit` sends by grade, at most `limit` rows. Ranks follow
+ * competition ranking, so ties share a rank (1, 1, 3); within a grade the
+ * earliest send comes first, then name.
  */
 function rankSends(
   sends: readonly Dated<YearSendRow>[],
@@ -99,19 +100,16 @@ function rankSends(
     (a, b) =>
       b.grade - a.grade || byDate(a.dateSent, b.dateSent) || a.climbName.localeCompare(b.climbName),
   );
-  const cutoff = sorted.length >= limit ? sorted[limit - 1].grade : -Infinity;
-  return sorted
-    .filter((send) => send.grade >= cutoff)
-    .map((send) => ({
-      rank: 1 + sorted.filter((other) => other.grade > send.grade).length,
-      grade: send.grade,
-      label: label(send.climbType, send.grade),
-      climbId: send.climbId,
-      climbName: send.climbName,
-      place: placeOf(areas, send.areaId),
-      dateSent: send.dateSent,
-      ascentStyle: send.ascentStyle,
-    }));
+  return sorted.slice(0, limit).map((send) => ({
+    rank: 1 + sorted.filter((other) => other.grade > send.grade).length,
+    grade: send.grade,
+    label: label(send.climbType, send.grade),
+    climbId: send.climbId,
+    climbName: send.climbName,
+    place: placeOf(areas, send.areaId),
+    dateSent: send.dateSent,
+    ascentStyle: send.ascentStyle,
+  }));
 }
 
 function rankings(

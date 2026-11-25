@@ -70,16 +70,20 @@ function build(input: Partial<YearReviewInput>) {
 }
 
 describe("hardest sends", () => {
-  it("keeps the top three and every climb tied at the cutoff grade", () => {
+  it("caps each list at three, ties sharing a rank and the earliest send first", () => {
     const sends = [7, 7, 6, 6, 6, 5].map((grade, index) => send(`2026-03-0${index + 1}`, grade));
-    const [boulder] = build({ sends }).chapters.hardest.disciplines;
-    expect(boulder.rows.map((row) => [row.rank, row.label])).toEqual([
-      [1, V(7)],
-      [1, V(7)],
-      [3, V(6)],
-      [3, V(6)],
-      [3, V(6)],
+    const review = build({ sends });
+    const [boulder] = review.chapters.hardest.disciplines;
+    expect(boulder.rows.map((row) => [row.rank, row.label, row.dateSent])).toEqual([
+      [1, V(7), "2026-03-01"],
+      [1, V(7), "2026-03-02"],
+      [3, V(6), "2026-03-03"],
     ]);
+    const flashes = [8, 8, 8, 8].map((grade, index) =>
+      send(`2026-04-0${index + 1}`, grade, { ascentStyle: "flash" }),
+    );
+    const [flashed] = build({ sends: flashes }).chapters.flashes?.disciplines ?? [];
+    expect(flashed.rows.map((row) => row.rank)).toEqual([1, 1, 1]);
   });
 
   it("is always present, with an undated-sends note when nothing in the year has a date", () => {
