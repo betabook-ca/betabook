@@ -289,6 +289,9 @@ function main() {
     // before the pyramid takes the hard grades.
     const projects = [99, 99, 99].map((grade) => take(homePool, "boulder", grade));
     // The low-rated sends, held back too, so each keeps its comment.
+    // The big day's unsent tries, held back so the day has attempts as well
+    // as sends.
+    const bigDayTries = [0, 1, 2, 3, 4].map(() => take(homePool, "boulder", boulderTop));
     const pumpClimbs = PUMP_COMMENTS.map(() =>
       take(homePool, "boulder", Math.max(0, boulderTop - 2)),
     );
@@ -325,8 +328,7 @@ function main() {
       const climb = take(homePool, "boulder", Math.max(0, boulderTop - 3 + (n % 3)));
       if (climb) send(climb, bigDay, climb.grade, n % 2 ? "flash" : "redpoint");
     }
-    for (let n = 0; n < 5; n += 1) {
-      const climb = take(homePool, "boulder", boulderTop);
+    for (const climb of bigDayTries) {
       if (climb) session(climb, bigDay, "Ran out of skin.");
     }
 

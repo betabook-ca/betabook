@@ -85,11 +85,10 @@ function PlaceTrail({ place }: { place: YearPlace | null }) {
   return <span className="text-sm text-muted">{place.trail.join(" › ")}</span>;
 }
 
-function DayCard({ day, title }: { day: DayHighlight; title: string }) {
+function DayCard({ day }: { day: DayHighlight }) {
   const where = day.place ? day.place.name : day.roots.join(" + ");
   return (
-    <div className={clsx("flex flex-col gap-2", cardClass("sm", "bordered"))}>
-      <span className={EYEBROW_CLASS}>{title}</span>
+    <div className={clsx("flex flex-col gap-3", cardClass("sm", "bordered"))}>
       <p className="font-semibold">
         {formatDate(day.date)}
         {where ? ` · ${day.roots.length ? `across ${where}` : where}` : ""}
@@ -98,6 +97,20 @@ function DayCard({ day, title }: { day: DayHighlight; title: string }) {
         {plural(day.climbs, "climb")} tried · {plural(day.sends, "send")}
         {day.hardest ? ` · hardest ${day.hardest.label} (${day.hardest.climbName})` : ""}
       </p>
+      {day.vPoints && (
+        <dl className="grid grid-cols-2 gap-3 sm:max-w-sm">
+          <div className="flex flex-col">
+            <dt className="text-xs font-medium tracking-wide text-muted">vPoints tried</dt>
+            <dd className="font-display text-4xl font-semibold tabular-nums">
+              {day.vPoints.attempted}
+            </dd>
+          </div>
+          <div className="flex flex-col">
+            <dt className="text-xs font-medium tracking-wide text-muted">vPoints sent</dt>
+            <dd className="font-display text-4xl font-semibold tabular-nums">{day.vPoints.sent}</dd>
+          </div>
+        </dl>
+      )}
       <ul className="flex flex-wrap gap-1.5 text-xs">
         {day.list.slice(0, 12).map((climb) => (
           <li
@@ -344,20 +357,17 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
     );
   }
 
-  if (c.biggestDay) {
-    const { biggestDay, rampage, sameDay } = c.biggestDay;
+  if (c.biggestBoulderDay) {
+    sections.push(
+      chapter("biggest-boulder-day", "Biggest boulder day", <DayCard day={c.biggestBoulderDay} />),
+    );
+  }
+  if (c.biggestRouteDay) {
     sections.push(
       chapter(
-        "biggest-day",
-        sameDay ? "Your biggest day was also your biggest rampage" : "Biggest days",
-        // Two cards share the row; one card (the same day, or only one of
-        // the two earned) takes the whole width.
-        <div className={clsx("grid gap-4", biggestDay && rampage && !sameDay && "md:grid-cols-2")}>
-          {biggestDay && (
-            <DayCard day={biggestDay} title={sameDay ? "Biggest day and rampage" : "Biggest day"} />
-          )}
-          {rampage && !sameDay && <DayCard day={rampage} title="Biggest rampage" />}
-        </div>,
+        "biggest-route-day",
+        "Biggest sport and trad day",
+        <DayCard day={c.biggestRouteDay} />,
       ),
     );
   }

@@ -122,13 +122,9 @@ describe("places", () => {
 
   it("names the day's location from all its climbs", () => {
     const review = build({
-      sends: [
-        send("2026-05-16", 3, { areaId: 4 }),
-        send("2026-05-16", 4, { areaId: 5 }),
-        send("2026-05-16", 2, { areaId: 5 }),
-      ],
+      sends: [4, 5, 5, 5, 4].map((areaId, index) => send("2026-05-16", index + 1, { areaId })),
     });
-    expect(review.chapters.biggestDay?.rampage?.place?.name).toBe("Squamish");
+    expect(review.chapters.biggestBoulderDay?.place?.name).toBe("Squamish");
     // Grand Wall and Chief: each climb's own area counts once.
     expect(review.chapters.intro.areasVisited).toBe(2);
   });
@@ -180,6 +176,43 @@ describe("new ground", () => {
       "Crag 3",
       "Crag 2",
     ]);
+  });
+});
+
+describe("biggest days", () => {
+  it("splits boulder and route days and tallies vPoints tried and sent", () => {
+    // Ordinal 6 is V5 and 4 is V3: two sends (V5 + V3) and three tries.
+    const boulders = [
+      send("2026-05-16", 6),
+      send("2026-05-16", 4),
+      ...[7, 8, 9].map((grade, index) =>
+        session("2026-05-16", { climbId: 500 + index, climbGrade: grade }),
+      ),
+    ];
+    const routes = [12, 14, 16].map((grade) =>
+      send("2026-06-01", grade, { climbType: "sport", areaId: 7 }),
+    );
+    const review = build({
+      sends: [boulders[0], boulders[1], ...routes] as YearSendRow[],
+      sessions: boulders.slice(2) as YearSessionRow[],
+    });
+    const boulder = review.chapters.biggestBoulderDay;
+    expect(boulder).toMatchObject({ date: "2026-05-16", climbs: 5, sends: 2 });
+    // Tried: V5 + V3 + V6 + V7 + V8 = 29. Sent: V5 + V3 = 8.
+    expect(boulder?.vPoints).toEqual({ attempted: 29, sent: 8 });
+    const route = review.chapters.biggestRouteDay;
+    expect(route).toMatchObject({ date: "2026-06-01", climbs: 3, vPoints: null });
+  });
+
+  it("needs five problems or three routes in a day", () => {
+    const review = build({
+      sends: [
+        ...[1, 2, 3, 4].map((grade) => send("2026-05-16", grade)),
+        ...[10, 11].map((grade) => send("2026-06-01", grade, { climbType: "trad" })),
+      ],
+    });
+    expect(review.chapters.biggestBoulderDay).toBeNull();
+    expect(review.chapters.biggestRouteDay).toBeNull();
   });
 });
 

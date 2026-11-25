@@ -73,7 +73,8 @@ export type YearChapterId =
   | "intro"
   | "days"
   | "calendar"
-  | "biggest-day"
+  | "biggest-boulder-day"
+  | "biggest-route-day"
   | "home-turf"
   | "new-ground"
   | "trips"
@@ -134,13 +135,9 @@ export type DayHighlight = {
   /** Several roots: the day's climbs share no area. */
   roots: string[];
   hardest: { climbName: string; label: string } | null;
+  /** Boulder days only: summed V-grades of every problem tried, and sent. */
+  vPoints: { attempted: number; sent: number } | null;
   list: { climbId: number; climbName: string; label: string; sent: boolean }[];
-};
-
-export type BiggestDayChapter = {
-  biggestDay: DayHighlight | null;
-  rampage: DayHighlight | null;
-  sameDay: boolean;
 };
 
 export type HomeTurfChapter = {
@@ -268,7 +265,8 @@ export type YearChapters = {
   hardest: { disciplines: DisciplineRanking[]; undated: number };
   pyramids: PyramidsChapter & { undated: number };
   calendar: CalendarChapter | null;
-  biggestDay: BiggestDayChapter | null;
+  biggestBoulderDay: DayHighlight | null;
+  biggestRouteDay: DayHighlight | null;
   homeTurf: HomeTurfChapter | null;
   newGround: NewGroundChapter | null;
   trips: TripsChapter | null;
