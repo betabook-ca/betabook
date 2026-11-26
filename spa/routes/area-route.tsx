@@ -119,7 +119,7 @@ function PublicAreaView({
           fetchApi("/api/public/areas/{id}", { path: { id: String(areaId) } }),
           fetchApi("/api/public/areas/{id}/climbs", {
             path: { id: String(areaId) },
-            query: new URLSearchParams(canonicalQuery + subareaSuffix),
+            query: new URLSearchParams(canonicalQuery),
           }),
         ]);
         if (!cancelled) {

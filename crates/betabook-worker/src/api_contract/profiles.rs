@@ -44,7 +44,7 @@ pub(super) fn register(api: &mut ApiSpec) {
         "/api/users/{id}/journal",
         "/api/users/{id}/sends",
     ] {
-        for key in ["q", "date", "dateFrom", "dateTo"] {
+        for key in ["date", "dateFrom", "dateTo"] {
             api.query(path, "get", key, json!({"type":"string"}), false);
         }
         api.query(
@@ -54,6 +54,49 @@ pub(super) fn register(api: &mut ApiSpec) {
             json!({"type":"array","items":{"type":"string"}}),
             false,
         );
+    }
+    for path in [
+        "/api/pages/users/{id}",
+        "/api/pages/users/{id}/journal",
+        "/api/users/{id}/journal",
+    ] {
+        for key in ["q", "view"] {
+            api.query(path, "get", key, json!({"type":"string"}), false);
+        }
+        for key in ["climbId", "year"] {
+            api.query(path, "get", key, json!({"type":"integer"}), false);
+        }
+        api.query(path,"get","friendId",json!({"type":"array","items":{"type":"string"},"description":"Companion filters on the owner's own journal"}),false);
+    }
+    for path in [
+        "/api/pages/users/{id}",
+        "/api/pages/users/{id}/sends",
+        "/api/users/{id}/sends",
+    ] {
+        for key in ["sort", "name", "areaName"] {
+            api.query(path, "get", key, json!({"type":"string"}), false);
+        }
+        for key in ["areaId", "minRating", "maxRating"] {
+            api.query(path, "get", key, json!({"type":"integer"}), false);
+        }
+        for key in ["discipline", "ascentStyle"] {
+            api.query(
+                path,
+                "get",
+                key,
+                json!({"type":"array","items":{"type":"string"}}),
+                false,
+            );
+        }
+        for key in ["boulderRange", "sportRange", "tradRange"] {
+            api.query(
+                path,
+                "get",
+                key,
+                json!({"type":"array","items":{"type":"integer"}}),
+                false,
+            );
+        }
     }
     for key in ["cursorDate", "cursorId"] {
         api.query(

@@ -34,6 +34,35 @@ impl ApiSpec {
     }
 
     pub fn operation(&mut self, path: &str, method: &str, mut op: Value) {
+        if op.get("security").is_none() {
+            let optional = path == "/api/auth/get-session"
+                || path == "/api/terms/status"
+                || path == "/api/pages/users/{id}"
+                || [
+                    "/api/pages/lists/",
+                    "/api/pages/trips/",
+                    "/api/pages/projects/",
+                ]
+                .iter()
+                .any(|prefix| path.starts_with(prefix));
+            let public = path.starts_with("/api/public/")
+                || path.starts_with("/api/avatars/")
+                || (path.starts_with("/api/auth/") && path != "/api/auth/delete-user")
+                || matches!(
+                    path,
+                    "/api/health"
+                        | "/api/config/auth"
+                        | "/api/client-errors"
+                        | "/api/actions/submitContactMessage"
+                );
+            op["security"] = if optional {
+                json!([{},{"session":[]}])
+            } else if public {
+                json!([])
+            } else {
+                json!([{"session":[]}])
+            };
+        }
         let parameters = op
             .as_object_mut()
             .expect("operation object")
@@ -143,6 +172,17 @@ pub fn document(require_complete: bool) -> Result<Value, String> {
     profiles::register(&mut api);
     progress::register(&mut api);
     let paths = api.paths.as_object().ok_or("missing paths")?;
+    let mut ids = BTreeSet::new();
+    for (path, methods) in paths {
+        for (method, op) in methods.as_object().ok_or("path item must be an object")? {
+            let id = op["operationId"]
+                .as_str()
+                .ok_or_else(|| format!("missing operationId on {method} {path}"))?;
+            if !ids.insert(id) {
+                return Err(format!("duplicate operationId {id}"));
+            }
+        }
+    }
     let mut expected = BTreeSet::new();
     for &(method, raw) in ROUTES
         .iter()
@@ -173,7 +213,7 @@ pub fn document(require_complete: bool) -> Result<Value, String> {
     }
     let mut doc = json!({"openapi":"3.1.0","info":{"title":"Betabook HTTP API","version":env!("CARGO_PKG_VERSION")},"paths":api.paths,"components":{"schemas":definitions,
         "responses":{"Error":{"description":"The request could not be completed","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"},"message":{"type":"string"},"code":{"type":"string"}}}}}}},
-        "securitySchemes":{"session":{"type":"apiKey","in":"cookie","name":"__Secure-better-auth.session_token"}}}});
+        "securitySchemes":{"session":{"type":"apiKey","in":"cookie","name":"__Secure-better-auth.session_token","description":"Signed session cookie; local HTTP uses the unprefixed better-auth.session_token."}}}});
     normalize_refs(&mut doc);
     Ok(doc)
 }
