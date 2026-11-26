@@ -400,9 +400,8 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
         "new-ground",
         "New ground",
         <>
-          <Hero value={fresh.days}>
-            {fresh.days === 1 ? "day" : "days"} at {plural(fresh.areas, "area")} you&apos;d never
-            climbed before
+          <Hero value={fresh.areas}>
+            new {fresh.areas === 1 ? "area" : "areas"} · {plural(fresh.days, "day")} climbing there
           </Hero>
           <div className="flex flex-col gap-2">
             <span className={EYEBROW_CLASS}>First visits</span>
