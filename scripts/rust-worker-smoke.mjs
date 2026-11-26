@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { hashPassword } from "better-auth/crypto";
 import { createTestHarness } from "wrangler";
 
 import { testProfileAnalytics } from "./rust-smoke/analytics.mjs";
@@ -13,16 +12,20 @@ import { testModeration } from "./rust-smoke/moderation.mjs";
 import { testPlatform } from "./rust-smoke/platform.mjs";
 import { testProjects } from "./rust-smoke/projects.mjs";
 import { testTrips } from "./rust-smoke/trips.mjs";
+import { hashSeedPassword } from "./seed-password.ts";
 
 void test("Rust Worker HTTP flows", async (t) => {
   const server = createTestHarness({
     workers: [
       {
-        configPath: "./crates/betabook-worker/wrangler.rust.jsonc",
+        configPath: "./wrangler.jsonc",
         vars: { BETTER_AUTH_URL: "http://localhost" },
         secrets: {
           BETTER_AUTH_SECRET: "isolated-rust-worker-smoke-test-secret",
           TURNSTILE_SECRET_KEY: "",
+          CLOUDFLARE_USAGE_ACCOUNT_ID: "",
+          CLOUDFLARE_USAGE_API_TOKEN: "",
+          RESEND_API_KEY: "",
         },
       },
     ],
@@ -36,7 +39,7 @@ void test("Rust Worker HTTP flows", async (t) => {
   assert.equal(status.status, 200);
   const { version } = await status.json();
   const password = "smoke-test-password";
-  const passwordHash = await hashPassword(password);
+  const passwordHash = await hashSeedPassword(password);
   async function signIn(id) {
     const email = id + "@example.test";
     await DB.prepare(

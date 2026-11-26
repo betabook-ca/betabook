@@ -119,18 +119,12 @@ jobs:
           pnpm test:seed-social "$RUNNER_TEMP/social.sqlite"
           pnpm test:seed-trips "$RUNNER_TEMP/trips.sqlite"
 
-      # Split from the deploy step below, so a broken bundle stops here
-      # instead of shipping. `vite build` does not typecheck; the step above
-      # does.
-      - name: Build
-        run: pnpm build
-
   # Browser checks cover rendering and native interaction. Accessibility is a
   # bounded set of composed states; stories do not each create four more tests.
   ui-tests:
     name: UI (${{ matrix.suite }} ${{ matrix.shard }}/${{ matrix.shards }})
-    needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.app != 'false' }}
+    needs: [changes, rust]
+    if: ${{ !cancelled() && needs.changes.outputs.app != 'false' && needs.rust.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -142,10 +136,17 @@ jobs:
           - { suite: gallery, shard: 2, shards: 3 }
           - { suite: gallery, shard: 3, shards: 3 }
     env:
+      BETABOOK_PREBUILT: "1"
       BETABOOK_UI_SUITE: ${{ matrix.suite }}
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-app
+      - name: Restore tested application
+        if: matrix.suite == 'app'
+        uses: actions/download-artifact@v7
+        with:
+          name: betabook-release
+          path: .
       # Playwright pins the browser build to its own version, so the lockfile is
       # the cache key. Without this every job re-downloads Chromium.
       - name: Cache Playwright browser
@@ -206,11 +207,20 @@ jobs:
           tools: node pnpm rust cargo:worker-build
       - uses: Swatinem/rust-cache@v2
       - run: mise run rust-check
-      - run: pnpm build:spa
-      - name: Build release Worker
-        working-directory: crates/betabook-worker
-        run: worker-build --release --locked
+      - run: pnpm build
       - run: pnpm test:rust-worker
+        env:
+          BETABOOK_PREBUILT: "1"
+      - name: Package tested application
+        uses: actions/upload-artifact@v7
+        with:
+          name: betabook-release
+          path: |
+            dist-spa/
+            crates/betabook-worker/build/index.js
+            crates/betabook-worker/build/index_bg.wasm
+          if-no-files-found: error
+          retention-days: 7
 
   advisories:
     uses: ./.github/workflows/rust-advisories.yml
@@ -251,20 +261,14 @@ jobs:
 
       - uses: ./.github/actions/setup-app
 
-      # No .dev.vars here: the build only copies it into dist/server for
-      # `pnpm preview`, and wrangler deploy never uploads it.
-      - name: Build
-        run: pnpm build
-
-      # Ahead of the worker deploy so new code never meets an old schema. The
-      # running worker does see the new schema for the seconds in between, so
-      # each migration has to stay backward-compatible.
-      # `pnpm db:migrate:remote` names wrangler.jsonc: after `vite build`, a
-      # bare wrangler command reads the built dist/server/wrangler.json.
+      - name: Restore tested application
+        uses: actions/download-artifact@v7
+        with:
+          name: betabook-release
+          path: .
       - name: Apply D1 migrations
         run: pnpm db:migrate:remote
-
-      # Deploys dist/server/wrangler.json, which `vite build` writes and
-      # points wrangler at through .wrangler/deploy/config.json.
-      - name: Deploy
-        run: pnpm exec wrangler deploy
+      - name: Deploy Rust Worker and SPA
+        run: pnpm deploy
+        env:
+          BETABOOK_PREBUILT: "1"

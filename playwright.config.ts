@@ -86,10 +86,8 @@ export default defineConfig({
       ? []
       : [
           {
-            // The built Worker, not `pnpm dev`: Vite's dev server serves
-            // modules unbundled, so pages hydrate too slowly for tests that
-            // type as soon as the server-rendered field appears.
-            command: `pnpm db:migrate:local && pnpm preview --port ${appPort} --strictPort`,
+            // Start the Rust Worker and SPA against the same local D1 state used by the seed.
+            command: `pnpm db:migrate:local && pnpm preview --port ${appPort}`,
             url: appBaseURL,
             reuseExistingServer: true,
             timeout: 180_000,

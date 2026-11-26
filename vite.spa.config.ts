@@ -24,10 +24,10 @@ export default defineConfig({
     port: 3001,
     strictPort: true,
     proxy: {
-      "/api": "http://127.0.0.1:8787",
-      "/robots.txt": "http://127.0.0.1:8787",
-      "/sitemap-index.xml": "http://127.0.0.1:8787",
-      "/sitemap": "http://127.0.0.1:8787",
+      "/api": "http://127.0.0.1:3000",
+      "/robots.txt": "http://127.0.0.1:3000",
+      "/sitemap-index.xml": "http://127.0.0.1:3000",
+      "/sitemap": "http://127.0.0.1:3000",
     },
   },
   build: {

@@ -21,12 +21,12 @@ import { DatabaseSync } from "node:sqlite";
  * hold the same rows and a bug reproduces off the same ids.
  */
 import { faker } from "@faker-js/faker";
-import { hashPassword } from "better-auth/crypto";
 
 // Bare Node.js does not resolve the app's @/ alias; share the current terms version directly.
 // oxlint-disable-next-line import/no-relative-parent-imports
 import { TERMS_VERSION } from "../lib/terms.ts";
 import { requireLocalDb } from "./d1-local.ts";
+import { hashSeedPassword } from "./seed-password.ts";
 import { seedSocialData } from "./seed-social.ts";
 import { seedTrips } from "./seed-trips.ts";
 import { seedSendVideos } from "./seed-videos.ts";
@@ -108,7 +108,7 @@ async function main() {
   }
 
   // scrypt is deliberately slow, so hash once and share it across every account.
-  const passwordHash = await hashPassword(password);
+  const passwordHash = await hashSeedPassword(password);
 
   const db = new DatabaseSync(requireLocalDb());
   let open = false;

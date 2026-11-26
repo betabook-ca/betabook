@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -27,7 +28,18 @@ async function buildSpa() {
   for (const [name, html] of Object.entries(staticDocuments() as Record<string, string>))
     await writeFile(path.resolve(directory, name + ".txt"), html);
 }
-void buildSpa().catch((err: unknown) => {
+async function buildApp() {
+  // CI downloads the same release artifacts that passed the workerd smoke suite.
+  // oxlint-disable-next-line node/no-process-env -- set by CI after restoring the tested release
+  if (process.argv.includes("--wrangler") && process.env.BETABOOK_PREBUILT === "1") return;
+  await buildSpa();
+  if (!process.argv.includes("--spa-only")) {
+    execFileSync("worker-build", ["--release", "crates/betabook-worker", "--locked"], {
+      stdio: "inherit",
+    });
+  }
+}
+void buildApp().catch((err: unknown) => {
   console.error(err);
   process.exitCode = 1;
 });
