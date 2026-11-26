@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import { BOULDER_HUECO, DEFAULT_GRADE_PREFERENCES } from "@/lib/grades";
 
 import { buildYearInReview } from "./build";
-import { rankPersonas, type PersonaMetrics } from "./personas";
 import { commonAncestor, homeArea } from "./places";
 import type { YearAreaMap, YearReviewInput, YearSendRow, YearSessionRow } from "./types";
 import { recapYear, yearReviewWindow } from "./window";
@@ -373,21 +372,6 @@ describe("chapters that need data", () => {
     expect(review.chapters.gotAway?.climbs.map((climb) => climb.climbId)).toEqual([2, 3, 1]);
   });
 
-  it("gives the Wanderer the largest share of days at any one place", () => {
-    // Four days at Grand Wall, two at Lion's Head and one in Arco: Canada
-    // and Italy are roots, so the busiest place is BC with 4 of 7 days.
-    const sends = [
-      ...["2026-03-01", "2026-03-02", "2026-03-03", "2026-03-04"].map((date) =>
-        send(date, 3, { areaId: 4 }),
-      ),
-      ...["2026-04-01", "2026-04-02"].map((date) => send(date, 3, { areaId: 7 })),
-      send("2026-05-01", 3, { areaId: 9 }),
-    ];
-    const personas = build({ sends }).chapters.personas?.personas ?? [];
-    const wanderer = personas.find((persona) => persona.id === "wanderer");
-    expect(wanderer?.why).toContain("57% of the days");
-  });
-
   it("offers a rampage quest for a discipline with only repeats", () => {
     const review = build({
       sends: [send("2025-03-01", 12, { climbId: 800, climbType: "sport" })],
@@ -406,99 +390,6 @@ describe("chapters that need data", () => {
     );
     const climbs = build({ sends }).chapters.notWorthThePump?.climbs ?? [];
     expect(climbs.map((climb) => climb.rating)).toEqual([1, 1, 2]);
-  });
-});
-
-describe("personas", () => {
-  const base: PersonaMetrics = {
-    sends: 60,
-    typicalDay: { boulders: 3, routes: 0, days: 30 },
-    firstTryRate: 0.8,
-    siege: null,
-    locatedDays: 30,
-    homeShare: 0.9,
-    homeName: "Squamish",
-    tripLocations: 0,
-    newClimbs: 10,
-    repeats: 0,
-    disciplineShares: [{ type: "boulder", share: 1 }],
-  };
-
-  it("always gives at least one persona and never more than three", () => {
-    expect(
-      rankPersonas({ ...base, sends: 2, firstTryRate: 0, locatedDays: 2 }).map((p) => p.id),
-    ).toEqual(["volume-fiend"]);
-    expect(rankPersonas({ ...base, repeats: 40 }).length).toBeLessThanOrEqual(3);
-  });
-
-  it("doesn't let volume win a persona about something else", () => {
-    // Every eligible persona, so neither result can drop Flash Machine.
-    const heavy = rankPersonas({ ...base, sends: 400, firstTryRate: 0.5 }, 8);
-    const light = rankPersonas({ ...base, sends: 60, firstTryRate: 0.8 }, 8);
-    const flash = (list: typeof heavy) => list.find((p) => p.id === "flash-machine");
-    expect(flash(heavy)).toBeDefined();
-    expect(flash(light)).toBeDefined();
-    expect(flash(light)?.score).toBeGreaterThan(flash(heavy)?.score ?? Infinity);
-  });
-
-  it("takes the median day out, repeats included and sendless days empty", () => {
-    // Seven days out: one huge day, three busy route days (one with a repeat)
-    // and three days with no send at all.
-    const sends = [
-      ...Array.from({ length: 20 }, () => send("2026-05-01", 3)),
-      ...[2, 3, 4].flatMap((day) =>
-        [1, 2, 3].map(() => send(`2026-05-0${day}`, 12, { climbType: "sport" })),
-      ),
-    ];
-    const repeat = session("2026-05-02", {
-      climbId: 555,
-      climbType: "sport",
-      sent: true,
-      isAscent: false,
-    });
-    const rest = [5, 6, 7].map((day) => session(`2026-05-0${day}`));
-    const personas =
-      build({ sends, sessions: [repeat, ...rest] }).chapters.personas?.personas ?? [];
-    expect(personas.find((p) => p.id === "volume-fiend")?.why).toBe(
-      "A typical day out meant 3 routes sent, over 7 days out",
-    );
-  });
-
-  it("makes the Volume Fiend about typical days, not one big day or a big season", () => {
-    const fiend = (metrics: Partial<PersonaMetrics>) =>
-      rankPersonas({ ...base, firstTryRate: 0, ...metrics }, 8).find(
-        (p) => p.id === "volume-fiend",
-      );
-    const season = fiend({ sends: 900, typicalDay: { boulders: 2, routes: 0, days: 120 } });
-    const steady = fiend({ sends: 40, typicalDay: { boulders: 6, routes: 1, days: 8 } });
-    expect(steady?.score).toBeGreaterThan(season?.score ?? Infinity);
-    expect(steady?.why).toBe(
-      "A typical day out meant 6 problems and 1 route sent, over 8 days out",
-    );
-    // Six routes count as much as eight problems.
-    expect(fiend({ typicalDay: { boulders: 0, routes: 6, days: 8 } })?.score).toBe(
-      fiend({ typicalDay: { boulders: 8, routes: 0, days: 8 } })?.score,
-    );
-  });
-
-  it("gives the All-Rounder to a near-even split of all three disciplines", () => {
-    const rounder = (shares: [number, number, number]) =>
-      rankPersonas(
-        {
-          ...base,
-          disciplineShares: (["boulder", "sport", "trad"] as const).map((type, index) => ({
-            type,
-            share: shares[index],
-          })),
-        },
-        8,
-      ).find((p) => p.id === "all-rounder");
-    expect(rounder([0.5, 0.5, 0])).toBeUndefined();
-    expect(rounder([0.7, 0.15, 0.15])?.score ?? 0).toBe(0);
-    const even = rounder([0.34, 0.33, 0.33])?.score ?? 0;
-    const close = rounder([0.4, 0.3, 0.3])?.score ?? 0;
-    expect(even).toBeGreaterThan(close);
-    expect(close).toBeGreaterThan(rounder([0.5, 0.25, 0.25])?.score ?? Infinity);
   });
 });
 

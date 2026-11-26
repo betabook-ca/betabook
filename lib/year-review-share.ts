@@ -3,7 +3,7 @@
  * has to keep covering everything on it. Tagged partners are the one thing
  * that doesn't travel: they never saw this dialog. */
 export const YEAR_REVIEW_SHARE_SENTENCE =
-  "Anyone with the link sees this year in review: your stats, climbs, trips, send comments and personas. Tagged partners aren't shown.";
+  "Anyone with the link sees this year in review: your stats, climbs, trips and send comments. Tagged partners aren't shown.";
 
 /** The token is the whole URL: no user id and no year to enumerate. */
 export function yearReviewSharePath(token: string): string {

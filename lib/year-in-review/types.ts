@@ -87,8 +87,7 @@ export type YearChapterId =
   | "pyramids"
   | "partner"
   | "got-away"
-  | "not-worth-the-pump"
-  | "personas";
+  | "not-worth-the-pump";
 
 type IntroChapter = {
   daysOut: number;
@@ -248,18 +247,6 @@ export type NotWorthThePumpChapter = {
   }[];
 };
 
-export type PersonaId =
-  | "volume-fiend"
-  | "flash-machine"
-  | "siege-mentality"
-  | "wanderer"
-  | "circuit-repeater"
-  | "all-rounder";
-
-export type PersonaResult = { id: PersonaId; name: string; why: string; score: number };
-
-type PersonasChapter = { personas: PersonaResult[] };
-
 export type YearChapters = {
   intro: IntroChapter;
   days: DaysChapter;
@@ -279,7 +266,6 @@ export type YearChapters = {
   partner: PartnerChapter | null;
   gotAway: GotAwayChapter | null;
   notWorthThePump: NotWorthThePumpChapter | null;
-  personas: PersonasChapter | null;
 };
 
 /** A hidden chapter and how to earn it next year. `positive` marks a line

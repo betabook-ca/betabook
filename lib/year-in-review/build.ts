@@ -4,7 +4,6 @@ import { CLIMB_TYPES, gradeArray, type ClimbType, type GradePreferences } from "
 import { buildPyramid } from "@/lib/user-analytics";
 
 import { DISCIPLINE_NAMES } from "./labels";
-import { dayScore, rankPersonas, type PersonaMetrics } from "./personas";
 import { commonAncestor, homeArea, locate, placeOf, relatedPlaces } from "./places";
 import type {
   CalendarChapter,
@@ -47,7 +46,6 @@ const YEAR_THRESHOLDS = {
   firstVisitsLimit: 5,
   pumpMaxRating: 2,
   pumpRatedForPraise: 5,
-  personaDays: 6,
   firstYearBaselineDays: 30,
   rankedLimit: 3,
   /** A discipline's pyramid needs more bars than this; fewer reads as a list. */
@@ -492,33 +490,26 @@ function buildTrips(
   };
 }
 
-/** First visits, and the count of climbs tried for the first time (which
- * the Wanderer persona reads but the page doesn't show). */
+/** First visits: areas climbed in for the first time this year. */
 function buildNewGround(
   input: YearReviewInput,
   yearDays: ReadonlyMap<string, DayActivity>,
-): { chapter: NewGroundChapter | null; newClimbs: number } {
+): NewGroundChapter | null {
   const { year, areas, sends, sessions } = input;
   const yearStart = `${year}-01-01`;
-  // "" sorts before every date: an undated send means "tried before".
-  const firstByClimb = new Map<number, string>();
+  // "" sorts before every date: an undated send means "climbed there before".
   const firstByArea = new Map<number, string>();
-  const note = (climbId: number, areaId: number, date: string) => {
-    const current = firstByClimb.get(climbId);
-    if (current == null || date < current) firstByClimb.set(climbId, date);
+  const note = (areaId: number, date: string) => {
     for (const id of areas.get(areaId)?.path ?? []) {
       const area = firstByArea.get(id);
       if (area == null || date < area) firstByArea.set(id, date);
     }
   };
-  for (const send of sends) note(send.climbId, send.areaId, send.dateSent ?? "");
-  for (const session of sessions) note(session.climbId, session.areaId, session.entryDate);
+  for (const send of sends) note(send.areaId, send.dateSent ?? "");
+  for (const session of sessions) note(session.areaId, session.entryDate);
 
-  const tried = new Set<number>();
-  for (const day of yearDays.values()) for (const id of day.climbs) tried.add(id);
   const isNew = (date: string | undefined) =>
     date != null && date >= yearStart && date.startsWith(`${year}-`);
-  const newClimbs = [...tried].filter((id) => isNew(firstByClimb.get(id))).length;
 
   // Highest new ancestors only, so a new crag with many new sectors counts
   // once. Roots (countries, regions) never count themselves; a new root's
@@ -529,7 +520,7 @@ function buildNewGround(
     const parent = path[path.length - 2];
     return path.length === 2 || !isNew(firstByArea.get(parent));
   });
-  if (!newAreas.length) return { chapter: null, newClimbs };
+  if (!newAreas.length) return null;
 
   // A day counts for a new area when any of its climbs sits inside it.
   const daysIn = new Map<number, number>();
@@ -562,7 +553,7 @@ function buildNewGround(
       const place = placeOf(areas, nameFor(id));
       return place ? [{ place, date, days: count }] : [];
     });
-  return { chapter: { areas: newAreas.length, firstVisits }, newClimbs };
+  return { areas: newAreas.length, firstVisits };
 }
 
 function buildStyles(
@@ -689,33 +680,6 @@ function buildNotWorthThePump(
   return climbs.length ? { climbs } : null;
 }
 
-/** The median day out, counting new sends and repeats of earlier sends once
- * per climb; a day out with no send counts as empty. The lower of the two
- * middle days when there is an even number. */
-function typicalDay(
-  daysOut: readonly string[],
-  yearSends: readonly Dated<YearSendRow>[],
-  yearSessions: readonly YearSessionRow[],
-): PersonaMetrics["typicalDay"] {
-  if (!daysOut.length) return null;
-  const days = new Map<string, Map<number, ClimbType>>(
-    daysOut.map((date) => [date, new Map<number, ClimbType>()]),
-  );
-  const add = (date: string, climbId: number, type: ClimbType) =>
-    days.get(date)?.set(climbId, type);
-  for (const send of yearSends) add(send.dateSent, send.climbId, send.climbType);
-  for (const session of yearSessions)
-    if (session.sent && !session.isAscent)
-      add(session.entryDate, session.climbId, session.climbType);
-  const ranked = [...days.values()]
-    .map((climbs) => {
-      const boulders = [...climbs.values()].filter((type) => type === "boulder").length;
-      return { boulders, routes: climbs.size - boulders };
-    })
-    .toSorted((a, b) => dayScore(a.boulders, a.routes) - dayScore(b.boulders, b.routes));
-  return { ...ranked[Math.floor((ranked.length - 1) / 2)], days: ranked.length };
-}
-
 /**
  * The climber's year, chapter by chapter, from their whole history. Pure: the
  * page, the shared link and the story images all render from this.
@@ -837,52 +801,6 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
   const sportRampage = rampage("sport");
   const tradRampage = rampage("trad");
 
-  // Personas.
-  let personas: YearChapters["personas"] = null;
-  if (daysOut >= YEAR_THRESHOLDS.personaDays) {
-    const limitCutoff = new Map(
-      hardest.map((ranking) => [ranking.type, Math.min(...ranking.rows.map((row) => row.grade))]),
-    );
-    const sieges = yearSends
-      .filter((send) => send.grade >= (limitCutoff.get(send.climbType) ?? Infinity))
-      .map((send) => ({
-        climbName: send.climbName,
-        sessions: sessions.filter(
-          (session) => session.climbId === send.climbId && session.entryDate <= send.dateSent,
-        ).length,
-      }));
-    for (const climb of gotAway?.climbs ?? [])
-      sieges.push({ climbName: climb.climbName, sessions: climb.sessions });
-    const siege = sieges.toSorted((a, b) => b.sessions - a.sessions)[0] ?? null;
-    const metrics: PersonaMetrics = {
-      sends: yearSends.length,
-      typicalDay: typicalDay(
-        dayList.map((entry) => entry.date),
-        yearSends,
-        yearSessions,
-      ),
-      firstTryRate: yearSends.length
-        ? yearSends.filter((send) => send.ascentStyle !== "redpoint").length / yearSends.length
-        : 0,
-      siege,
-      locatedDays: located.length,
-      homeShare: busiestPlaceShare(areas, located),
-      homeName: homePlace?.name ?? null,
-      tripLocations: new Set(
-        trips?.trips.flatMap((card) => (card.location ? [card.location.id] : [])) ?? [],
-      ).size,
-      newClimbs: newGround.newClimbs,
-      repeats: yearSessions.filter((session) => session.sent && !session.isAscent).length,
-      disciplineShares: types.map((type) => ({
-        type,
-        share:
-          yearSends.filter((send) => send.climbType === type).length /
-          Math.max(yearSends.length, 1),
-      })),
-    };
-    personas = { personas: rankPersonas(metrics) };
-  }
-
   const chapters: YearChapters = {
     intro: {
       daysOut,
@@ -898,7 +816,7 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
     sportRampage,
     tradRampage,
     homeTurf,
-    newGround: newGround.chapter,
+    newGround,
     trips,
     newGrades,
     flashes: flashRankings.length ? { disciplines: flashRankings } : null,
@@ -907,7 +825,6 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
     partner,
     gotAway,
     notWorthThePump,
-    personas,
   };
 
   return {
@@ -924,20 +841,6 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
       ]),
     }),
   };
-}
-
-/** The largest share of located days at any one place below a root (a root
- * is a country or region, not a place). The Wanderer's "no place had more
- * than N% of the days" reads this, so it must be the true maximum. */
-function busiestPlaceShare(areas: YearAreaMap, located: readonly number[]): number {
-  if (!located.length) return 1;
-  const days = new Map<number, number>();
-  for (const location of located) {
-    for (const id of (areas.get(location)?.path ?? []).slice(1)) {
-      days.set(id, (days.get(id) ?? 0) + 1);
-    }
-  }
-  return Math.max(0, ...days.values()) / located.length;
 }
 
 function toAnalyticsRow(send: Dated<YearSendRow>): AnalyticsSendRow {
@@ -1013,6 +916,5 @@ function missedChapters(
       add("not-worth-the-pump", "Nothing rated below 3★. Every send was a keeper.", true);
     else add("not-worth-the-pump", "Rate your sends to find the ones that weren't worth the pump.");
   }
-  if (!chapters.personas) add("personas", `Log 6 days out to earn your ${year} personas.`);
   return missed;
 }

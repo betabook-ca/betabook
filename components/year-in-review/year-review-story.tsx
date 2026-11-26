@@ -762,37 +762,6 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
     );
   }
 
-  if (c.personas?.personas.length) {
-    const [top, ...rest] = c.personas.personas;
-    sections.push(
-      chapter(
-        "personas",
-        owner ? "Your climbing personas" : `${ownerName}'s climbing personas`,
-        <div className="flex flex-col gap-4">
-          <div className={clsx("flex flex-col gap-2", cardClass("md", "accent"))}>
-            <span className="text-xs font-medium tracking-widest uppercase opacity-80">#1</span>
-            <p className="font-display text-5xl font-semibold">{top.name}</p>
-            <p>{top.why}</p>
-          </div>
-          {rest.length > 0 && (
-            <div className="grid gap-3 md:grid-cols-2">
-              {rest.map((persona, index) => (
-                <div
-                  key={persona.id}
-                  className={clsx("flex flex-col gap-1", cardClass("sm", "bordered"))}
-                >
-                  <span className={EYEBROW_CLASS}>#{index + 2} · with a bit of</span>
-                  <p className="font-display text-2xl font-semibold">{persona.name}</p>
-                  <p className="text-sm text-muted">{persona.why}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>,
-      ),
-    );
-  }
-
   return <div className="flex flex-col gap-6">{sections}</div>;
 }
 
