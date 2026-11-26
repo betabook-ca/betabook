@@ -686,6 +686,7 @@ pub async fn end_friendship_relationship<D: DbExecutor>(
     Ok(get_friendship_status(db, viewer_id, target_id).await? == "none")
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct UserProfileRow {
@@ -966,6 +967,7 @@ pub async fn update_user_grade_preferences<D: DbExecutor>(
     Ok(())
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct HardestSend {

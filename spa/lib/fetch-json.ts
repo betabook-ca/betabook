@@ -24,8 +24,12 @@ export type AuthConfig = {
   turnstileSiteKey: string | null;
 };
 
-export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
+export async function fetchJson<T>(
+  url: string,
+  init?: RequestInit,
+  transport: typeof fetch = fetch,
+): Promise<T> {
+  const response = await transport(url, {
     credentials: "same-origin",
     ...init,
   });

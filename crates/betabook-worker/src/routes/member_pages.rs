@@ -66,12 +66,17 @@ fn grade_prefs_from_strings(boulder: &str, rope: &str) -> GradePreferences {
     }
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(super) struct ProfileHeaderData {
+pub(crate) struct ProfileHeaderData {
     pub user: betabook_db::social::UserProfileRow,
     pub is_owner: bool,
     pub access: betabook_db::content_access::ProfileAccess,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "betabook_domain::wire::FriendshipStatus")
+    )]
     pub relationship: String,
     pub hardest: Vec<betabook_db::social::HardestSend>,
 }

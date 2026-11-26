@@ -20,11 +20,16 @@ const ROUTES: &[(&str, &str)] = worker_routes!(inventory);
 pub(super) struct ApiSpec {
     paths: Value,
     schemas: SchemaGenerator,
+    inputs: SchemaGenerator,
 }
 
 impl ApiSpec {
     pub fn schema<T: JsonSchema>(&mut self) -> Value {
         self.schemas.subschema_for::<T>().to_value()
+    }
+
+    pub fn input_schema<T: JsonSchema>(&mut self) -> Value {
+        input_refs(self.inputs.subschema_for::<T>().to_value())
     }
 
     pub fn operation(&mut self, path: &str, method: &str, mut op: Value) {
@@ -69,10 +74,40 @@ impl ApiSpec {
     }
 }
 
+fn input_refs(mut schema: Value) -> Value {
+    fn visit(node: &mut Value) {
+        match node {
+            Value::Object(object) => {
+                if let Some(reference) = object.get_mut("$ref")
+                    && let Some(name) = reference
+                        .as_str()
+                        .and_then(|r| r.strip_prefix("#/components/schemas/"))
+                {
+                    *reference = Value::String(format!("#/components/schemas/Input_{name}"));
+                }
+                for child in object.values_mut() {
+                    visit(child);
+                }
+            }
+            Value::Array(items) => {
+                for item in items {
+                    visit(item);
+                }
+            }
+            _ => {}
+        }
+    }
+    visit(&mut schema);
+    schema
+}
+
 pub fn document(require_complete: bool) -> Result<Value, String> {
     let mut settings = SchemaSettings::draft2020_12();
     settings.definitions_path = "/components/schemas".into();
+    let inputs = settings.clone().into_generator();
+    settings.contract = schemars::generate::Contract::Serialize;
     let mut api = ApiSpec {
+        inputs,
         paths: json!({}),
         schemas: settings.into_generator(),
     };
@@ -104,7 +139,10 @@ pub fn document(require_complete: bool) -> Result<Value, String> {
             actual.difference(&expected).collect::<Vec<_>>()
         ));
     }
-    let definitions: Map<_, _> = api.schemas.take_definitions(false).into_iter().collect();
+    let mut definitions: Map<_, _> = api.schemas.take_definitions(false).into_iter().collect();
+    for (name, schema) in api.inputs.take_definitions(false) {
+        definitions.insert(format!("Input_{name}"), input_refs(schema));
+    }
     Ok(
         json!({"openapi":"3.1.0","info":{"title":"Betabook HTTP API","version":env!("CARGO_PKG_VERSION")},"paths":api.paths,"components":{"schemas":definitions,
         "responses":{"Error":{"description":"The request could not be completed","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"},"message":{"type":"string"},"code":{"type":"string"}}}}}}},
