@@ -10,6 +10,7 @@ pub mod d1;
 pub mod executor;
 pub mod feed;
 pub mod fts;
+pub mod goal_history;
 pub mod goals;
 pub mod journal;
 pub mod member_catalog;
