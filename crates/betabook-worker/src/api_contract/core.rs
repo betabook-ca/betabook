@@ -521,7 +521,7 @@ mod tests {
     use super::super::document;
     #[test]
     fn describes_conditionally_required_auth_headers_and_sparse_upstream_rows() {
-        let spec = document(false).expect("document");
+        let spec = document().expect("document");
         let login = &spec["paths"]["/api/auth/sign-in/email"]["post"];
         assert!(
             login["parameters"]
