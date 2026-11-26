@@ -81,6 +81,7 @@ export async function testGoals({ server, db, signIn }) {
   assert.equal((await get(api + "?historyId=1&anchor=invalid", owner)).status, 400);
   assert.equal((await get(api + "?view=other", owner)).status, 400);
   assert.equal((await get(api + "?year=0", owner)).status, 400);
+  assert.equal((await get(api + "?historyId=9007199254740992", owner)).status, 400);
   const items = `?goalId=${goalId}&periodStart=${visible.goals[0].periodStart}`;
   assert.deepEqual(await (await get(api + items, friend)).json(), { items: [] });
   await db

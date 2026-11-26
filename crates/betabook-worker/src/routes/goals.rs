@@ -23,6 +23,13 @@ use crate::{
     state::{ApiError, AppState},
 };
 
+// The client stores IDs as JavaScript numbers.
+const MAX_SAFE_ID: i64 = (1 << 53) - 1;
+
+fn goal_id(raw: &str) -> Option<i64> {
+    parse_id(raw).filter(|id| *id <= MAX_SAFE_ID)
+}
+
 fn bad_request(message: &str) -> ApiError {
     ApiError::new(StatusCode::BAD_REQUEST, message).no_store()
 }
@@ -83,7 +90,7 @@ pub async fn read(
     let now = state.now_ms();
     let today = |zone: &str| goal_refresh::today(zone, now);
     let response = if let Some(id) = param("historyId") {
-        let id = parse_id(id).ok_or_else(|| bad_request("Invalid goal"))?;
+        let id = goal_id(id).ok_or_else(|| bad_request("Invalid goal"))?;
         if let Some(offset) = offset {
             let mut history =
                 goals::history(db, &owner, viewer, id, offset, anchor, &today).await?;
@@ -98,7 +105,7 @@ pub async fn read(
             json!({"periods":[],"hasMore":false})
         }
     } else if let Some(raw_id) = param("goalId") {
-        let id = parse_id(raw_id).ok_or_else(|| bad_request("Invalid goal period"))?;
+        let id = goal_id(raw_id).ok_or_else(|| bad_request("Invalid goal period"))?;
         let start = param("periodStart").unwrap_or("");
         let end = param("periodEnd");
         if !is_real_iso_date(start) || end.is_some_and(|e| !is_real_iso_date(e) || e < start) {
@@ -140,7 +147,12 @@ pub(super) async fn action(
     if name != "deleteGoal" && !allow_rate_limit(state, "JOURNAL_RATE_LIMITER", owner).await {
         return Ok(action_err(JOURNAL_RATE_LIMIT_MESSAGE));
     }
-    let positive = |value: &Value| value.as_i64().filter(|n| *n > 0);
+    let positive = |value: &Value| {
+        value
+            .as_f64()
+            .filter(|n| n.fract() == 0.0 && (1.0..=MAX_SAFE_ID as f64).contains(n))
+            .map(|n| n as i64)
+    };
     let id = match args.first() {
         Some(Value::Null) if name == "saveGoal" => None,
         Some(v) if positive(v).is_some() => positive(v),

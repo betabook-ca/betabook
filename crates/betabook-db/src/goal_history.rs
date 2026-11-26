@@ -95,8 +95,8 @@ fn month_name(index: i64) -> String {
     )
 }
 
-pub fn window(
-    periods: &[Value],
+pub fn window<'a>(
+    periods: impl IntoIterator<Item = &'a Value>,
     repeat: &str,
     offset: usize,
     anchor: Option<&str>,
@@ -116,7 +116,10 @@ pub fn window(
             candidates.push(d);
         }
     }
-    let Some(last) = candidates.iter().max_by_key(|d| d.period_start) else {
+    let Some(last) = candidates
+        .iter()
+        .min_by_key(|d| std::cmp::Reverse(d.period_start))
+    else {
         let month = match anchor {
             Some(month) => month.to_owned(),
             None => month_name(month_index(&today("UTC")?)?),
@@ -169,6 +172,47 @@ fn year(date: &str) -> Result<i64, DbError> {
     date.get(..4)
         .and_then(|s| s.parse().ok())
         .ok_or(DbError::Column("year"))
+}
+
+fn recurring_history(
+    periods: &[Period<'_>],
+    id: i64,
+    today: &impl Fn(&str) -> Result<String, DbError>,
+) -> Result<Option<Value>, DbError> {
+    let mut routine: Vec<_> = periods
+        .iter()
+        .filter(|p| p.counts.id == id && p.dates.repeat != "none")
+        .collect();
+    let recorded: Vec<_> = routine.iter().copied().filter(|p| p.recorded()).collect();
+    if let Some(last) = recorded
+        .iter()
+        .min_by_key(|p| std::cmp::Reverse(p.dates.period_end))
+    {
+        let cadence = routine
+            .iter()
+            .find(|p| p.current())
+            .map_or(last.dates.repeat, |p| p.dates.repeat);
+        let w = window(routine.iter().map(|p| p.source), cadence, 0, None, today)?;
+        routine.sort_by_key(|p| std::cmp::Reverse(p.dates.period_start));
+        let recent: Vec<_> = routine
+            .iter()
+            .filter(|p| {
+                p.dates.period_start >= w.from.as_str()
+                    && p.dates.period_start < w.until.as_str()
+                    && p.dates.period_start <= p.today
+            })
+            .map(|p| p.source)
+            .collect();
+        return Ok(Some(json!({
+            "met": recorded.iter().filter(|p| p.met()).count(),
+            "total": recorded.len(),
+            "recent": recent,
+            "hasMore": w.has_more,
+            "anchorMonth": w.anchor_month,
+            "nextOffset": w.next_offset,
+        })));
+    }
+    Ok(None)
 }
 
 pub fn summarize(
@@ -268,29 +312,8 @@ pub fn summarize(
     let mut goals = Vec::new();
     for g in ordered.iter().skip(offset).take(PAGE_SIZE) {
         let mut output = g.with_status();
-        let mut routine: Vec<_> = periods
-            .iter()
-            .filter(|p| p.counts.id == g.counts.id && p.dates.repeat != "none")
-            .collect();
-        let recorded: Vec<_> = routine.iter().copied().filter(|p| p.recorded()).collect();
-        if let Some(last) = recorded.iter().max_by_key(|p| p.dates.period_end) {
-            let cadence = routine
-                .iter()
-                .find(|p| p.current())
-                .map_or(last.dates.repeat, |p| p.dates.repeat);
-            let values = routine.iter().map(|p| p.source.clone()).collect::<Vec<_>>();
-            let w = window(&values, cadence, 0, None, today)?;
-            routine.sort_by_key(|p| std::cmp::Reverse(p.dates.period_start));
-            let recent: Vec<_> = routine
-                .iter()
-                .filter(|p| {
-                    p.dates.period_start >= w.from.as_str()
-                        && p.dates.period_start < w.until.as_str()
-                        && p.dates.period_start <= p.today
-                })
-                .map(|p| p.source)
-                .collect();
-            output["recurring"] = json!({"met":recorded.iter().filter(|p| p.met()).count(),"total":recorded.len(),"recent":recent,"hasMore":w.has_more,"anchorMonth":w.anchor_month,"nextOffset":w.next_offset});
+        if let Some(history) = recurring_history(&periods, g.counts.id, today)? {
+            output["recurring"] = history;
         }
         goals.push(output);
     }
