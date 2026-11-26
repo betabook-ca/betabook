@@ -265,16 +265,40 @@ pub async fn client_errors(
     if origin != Some(state.request_origin.as_str()) {
         return StatusCode::FORBIDDEN.into_response();
     }
+    let ip = headers
+        .get("cf-connecting-ip")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("unknown");
+    if !allow_rate_limit(&state, "CLIENT_ERROR_RATE_LIMITER", ip).await {
+        return StatusCode::TOO_MANY_REQUESTS.into_response();
+    }
     let Ok(bytes) = axum::body::to_bytes(body, MAX_ERROR_BODY_BYTES).await else {
         return StatusCode::PAYLOAD_TOO_LARGE.into_response();
     };
     let Ok(report) = serde_json::from_slice::<Value>(&bytes) else {
         return StatusCode::BAD_REQUEST.into_response();
     };
-    if !report.is_object() {
+    let boundary = report["boundary"].as_str();
+    let path = report["path"].as_str().unwrap_or("");
+    if !matches!(boundary, Some("page" | "global"))
+        || !path.starts_with('/')
+        || path.len() > 512
+        || !report["message"].is_string()
+    {
         return StatusCode::BAD_REQUEST.into_response();
     }
-    worker::console_error!("client-error: {report}");
+    // Browser-provided paths, messages and query strings can carry private
+    // notes or working share links. Record only the known route family.
+    let section = path.split(['/', '?', '#']).nth(1).unwrap_or("");
+    let section = match section {
+        "climbs" | "areas" | "users" | "trips" | "projects" | "lists" | "account" | "admin"
+        | "feed" | "search" | "friends" | "tutorial" => section,
+        _ => "other",
+    };
+    worker::console_error!(
+        "{}",
+        json!({"event":"client_error","boundary":boundary,"section":section})
+    );
     StatusCode::NO_CONTENT.into_response()
 }
 

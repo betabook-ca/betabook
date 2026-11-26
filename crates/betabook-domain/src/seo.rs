@@ -92,6 +92,7 @@ impl PageMetadata {
             format!("<meta property=\"og:site_name\" content=\"{SITE_NAME}\">"),
             format!("<meta property=\"og:title\" content=\"{og_title}\">"),
             format!("<meta property=\"og:description\" content=\"{desc}\">"),
+            r#"<link rel="icon" href="/favicon.ico" sizes="32x32"><link rel="icon" href="/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-icon.png"><link rel="manifest" href="/manifest.webmanifest">"#.to_owned(),
             format!("<meta property=\"og:image\" content=\"{og_image}\">"),
             format!("<meta property=\"og:image:width\" content=\"{OG_IMAGE_WIDTH}\">"),
             format!("<meta property=\"og:image:height\" content=\"{OG_IMAGE_HEIGHT}\">"),

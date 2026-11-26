@@ -10,7 +10,7 @@ use axum::{
 };
 use serde::Serialize;
 use tower_service::Service;
-use worker::{Context, Env, HttpRequest, Result, ScheduleContext, ScheduledEvent, event};
+use worker::{Context, Env, HttpRequest, Result, event, wasm_bindgen};
 
 use crate::middleware::apply_security_headers;
 use crate::state::AppState;
@@ -31,6 +31,7 @@ async fn health(State(state): State<AppState>) -> Json<HealthResponse> {
 fn router(state: AppState) -> Router {
     Router::new()
         .route("/api/health", get(health))
+        .route("/api/public/usage", get(routes::usage::usage))
         // Auth & Terms
         .route("/api/auth/get-session", get(auth::routes::get_session))
         .route("/api/auth/sign-up/email", post(auth::routes::sign_up_email))
@@ -215,6 +216,14 @@ fn router(state: AppState) -> Router {
         .route("/api/users/{id}/goals", get(routes::goals::read))
         .route("/api/pages/users/{id}/goals", get(routes::goals::overview))
         .route("/users/{id}/goals", get(routes::seo::owner_progress_page))
+        .route("/tutorial/{tour}", get(routes::entry_pages::tutorial))
+        .route(
+            "/tutorial/{tour}/{step}",
+            get(routes::entry_pages::tutorial),
+        )
+        .route("/users/{id}", get(routes::entry_pages::profile))
+        .route("/users/{id}/journal", get(routes::entry_pages::profile))
+        .route("/users/{id}/sends", get(routes::entry_pages::profile))
         // Page loaders for member SPA views
         .route(
             "/api/pages/feed",
@@ -278,13 +287,35 @@ async fn fetch(
 ) -> Result<http::Response<axum::body::Body>> {
     let path = req.uri().path().to_string();
     let state = AppState::from_request(&req, env, ctx)?;
+    if req.method() == http::Method::POST
+        && !middleware::trusted_write(req.headers(), &state.request_origin)
+    {
+        use axum::response::IntoResponse;
+        return Ok(apply_security_headers(
+            &path,
+            (
+                http::StatusCode::FORBIDDEN,
+                Json(serde_json::json!({"error":"Invalid origin"})),
+            )
+                .into_response(),
+        ));
+    }
     let response = router(state).call(req).await?;
     Ok(apply_security_headers(&path, response))
 }
 
-#[event(scheduled)]
-async fn scheduled(_event: ScheduledEvent, env: Env, _ctx: ScheduleContext) {
-    if let Err(err) = routes::catalog_export::run_scheduled_catalog_export(&env).await {
-        worker::console_error!("Scheduled catalog export failed: {err}");
-    }
+// workers-rs' #[event(scheduled)] discards the handler result. Return the
+// promise directly so Cloudflare records an export failure as a failed run.
+#[wasm_bindgen::prelude::wasm_bindgen]
+pub fn scheduled(
+    _event: worker::worker_sys::ScheduledEvent,
+    env: Env,
+    _ctx: worker::worker_sys::ScheduleContext,
+) -> worker::js_sys::Promise {
+    worker::wasm_bindgen_futures::future_to_promise(async move {
+        routes::catalog_export::run_scheduled_catalog_export(&env)
+            .await
+            .map_err(|_| worker::js_sys::Error::new("Catalog export failed"))?;
+        Ok(wasm_bindgen::JsValue::UNDEFINED)
+    })
 }
