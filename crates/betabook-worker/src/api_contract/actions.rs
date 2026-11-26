@@ -513,7 +513,7 @@ mod tests {
 
     #[test]
     fn action_spec_matches_dispatch_and_transport() -> Result<(), String> {
-        let doc = super::super::document(false)?;
+        let doc = super::super::document()?;
         let paths = doc["paths"].as_object().ok_or("expected paths")?;
         assert_eq!(
             paths

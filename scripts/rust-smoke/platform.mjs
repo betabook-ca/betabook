@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 
 export async function testPlatform({ server, signIn }) {
+  const specification = await server.fetch("/openapi.json");
+  assert.equal(specification.status, 200);
+  const api = await specification.json();
+  assert.equal(api.openapi, "3.1.0");
+  assert.ok(api.paths["/api/actions/saveGoal"].post.requestBody);
   // Unknown URLs must produce an actual HTTP 404 for crawlers and shared links.
   const missing = await server.fetch("/missing-page-for-smoke");
   assert.equal(missing.status, 404);

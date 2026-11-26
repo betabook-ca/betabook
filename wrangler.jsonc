@@ -38,6 +38,7 @@
       "!/icon.svg",
       "!/opengraph-image.png",
       "!/manifest.webmanifest",
+      "!/openapi.json",
       "!/license.txt",
     ],
     "not_found_handling": "none",

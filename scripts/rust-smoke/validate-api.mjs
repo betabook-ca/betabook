@@ -60,6 +60,27 @@ export async function checkedTransport(transport) {
       validate(payload),
       method + " " + route.template + " HTTP " + status + ": " + ajv.errorsText(validate.errors),
     );
+    // Negative tests deliberately submit invalid input. Only accepted JSON
+    // writes must conform to the documented request schema.
+    if (
+      method === "post" &&
+      response.ok &&
+      payload?.ok !== false &&
+      typeof init?.body === "string" &&
+      op.requestBody?.content?.["application/json"]
+    ) {
+      const requestSchema = ajv.getSchema(
+        specId +
+          "#/paths/" +
+          pointer(route.template) +
+          "/post/requestBody/content/application~1json/schema",
+      );
+      assert.ok(requestSchema);
+      assert.ok(
+        requestSchema(JSON.parse(init.body)),
+        route.template + " request: " + ajv.errorsText(requestSchema.errors),
+      );
+    }
     return response;
   };
 }

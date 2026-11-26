@@ -16,6 +16,9 @@
                   "type": "string"
                 }
               },
+              "required": [
+                "error"
+              ],
               "type": "object"
             }
           }
@@ -2624,15 +2627,6 @@
             ]
           }
         },
-        "required": [
-          "id",
-          "date",
-          "comment",
-          "rating",
-          "stiffness",
-          "grade",
-          "climb"
-        ],
         "type": "object"
       },
       "KayaClimb": {
@@ -2710,31 +2704,23 @@
             ]
           }
         },
-        "required": [
-          "id",
-          "name",
-          "climb_type",
-          "grade",
-          "gym",
-          "board",
-          "destination",
-          "area"
-        ],
         "type": "object"
       },
       "KayaDiscipline": {
         "properties": {
           "id": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "name": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
-        "required": [
-          "id",
-          "name"
-        ],
         "type": "object"
       },
       "KayaLabel": {
@@ -2746,9 +2732,6 @@
             ]
           }
         },
-        "required": [
-          "name"
-        ],
         "type": "object"
       },
       "KayaRetryReason": {
@@ -12556,6 +12539,38 @@
               }
             }
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Production authentication rate limit reached",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "X-Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/Error"
           }
@@ -12566,7 +12581,27 @@
     "/api/auth/delete-user": {
       "post": {
         "operationId": "deleteUser",
-        "parameters": [],
+        "parameters": [
+          {
+            "description": "Browser writes with cookies or Fetch Metadata must supply a trusted Origin or Referer.",
+            "in": "header",
+            "name": "Origin",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Used for the origin check when Origin is absent.",
+            "in": "header",
+            "name": "Referer",
+            "required": false,
+            "schema": {
+              "format": "uri",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -12576,7 +12611,47 @@
                 }
               }
             },
-            "description": "Success"
+            "description": "Success",
+            "headers": {
+              "Set-Cookie": {
+                "description": "Creates, refreshes or clears an HTTP-only session or OAuth state cookie, as applicable.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Production authentication rate limit reached",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "X-Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              }
+            }
           },
           "default": {
             "$ref": "#/components/responses/Error"
@@ -12609,7 +12684,47 @@
                 }
               }
             },
-            "description": "Success"
+            "description": "Success",
+            "headers": {
+              "Set-Cookie": {
+                "description": "Creates, refreshes or clears an HTTP-only session or OAuth state cookie, as applicable.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Production authentication rate limit reached",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "X-Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              }
+            }
           },
           "default": {
             "$ref": "#/components/responses/Error"
@@ -12626,7 +12741,36 @@
     "/api/auth/request-password-reset": {
       "post": {
         "operationId": "requestPasswordReset",
-        "parameters": [],
+        "parameters": [
+          {
+            "description": "Browser writes with cookies or Fetch Metadata must supply a trusted Origin or Referer.",
+            "in": "header",
+            "name": "Origin",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Used for the origin check when Origin is absent.",
+            "in": "header",
+            "name": "Referer",
+            "required": false,
+            "schema": {
+              "format": "uri",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Turnstile token when the deployment enables CAPTCHA; captchaToken in the JSON body is also supported.",
+            "in": "header",
+            "name": "X-Captcha-Response",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -12648,6 +12792,38 @@
             },
             "description": "Success"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Production authentication rate limit reached",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "X-Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/Error"
           }
@@ -12658,7 +12834,27 @@
     "/api/auth/reset-password": {
       "post": {
         "operationId": "resetPassword",
-        "parameters": [],
+        "parameters": [
+          {
+            "description": "Browser writes with cookies or Fetch Metadata must supply a trusted Origin or Referer.",
+            "in": "header",
+            "name": "Origin",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Used for the origin check when Origin is absent.",
+            "in": "header",
+            "name": "Referer",
+            "required": false,
+            "schema": {
+              "format": "uri",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -12679,6 +12875,38 @@
               }
             },
             "description": "Success"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Production authentication rate limit reached",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "X-Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              }
+            }
           },
           "default": {
             "$ref": "#/components/responses/Error"
@@ -12724,6 +12952,38 @@
               }
             }
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Production authentication rate limit reached",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "X-Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/Error"
           }
@@ -12734,7 +12994,27 @@
     "/api/auth/send-verification-email": {
       "post": {
         "operationId": "sendVerificationEmail",
-        "parameters": [],
+        "parameters": [
+          {
+            "description": "Browser writes with cookies or Fetch Metadata must supply a trusted Origin or Referer.",
+            "in": "header",
+            "name": "Origin",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Used for the origin check when Origin is absent.",
+            "in": "header",
+            "name": "Referer",
+            "required": false,
+            "schema": {
+              "format": "uri",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -12756,6 +13036,38 @@
             },
             "description": "Success"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Production authentication rate limit reached",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "X-Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/Error"
           }
@@ -12766,7 +13078,36 @@
     "/api/auth/sign-in/email": {
       "post": {
         "operationId": "signInEmail",
-        "parameters": [],
+        "parameters": [
+          {
+            "description": "Browser writes with cookies or Fetch Metadata must supply a trusted Origin or Referer.",
+            "in": "header",
+            "name": "Origin",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Used for the origin check when Origin is absent.",
+            "in": "header",
+            "name": "Referer",
+            "required": false,
+            "schema": {
+              "format": "uri",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Turnstile token when the deployment enables CAPTCHA; captchaToken in the JSON body is also supported.",
+            "in": "header",
+            "name": "X-Captcha-Response",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -12786,7 +13127,47 @@
                 }
               }
             },
-            "description": "Success"
+            "description": "Success",
+            "headers": {
+              "Set-Cookie": {
+                "description": "Creates, refreshes or clears an HTTP-only session or OAuth state cookie, as applicable.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Production authentication rate limit reached",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "X-Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              }
+            }
           },
           "default": {
             "$ref": "#/components/responses/Error"
@@ -12798,7 +13179,27 @@
     "/api/auth/sign-in/social": {
       "post": {
         "operationId": "socialSignIn",
-        "parameters": [],
+        "parameters": [
+          {
+            "description": "Browser writes with cookies or Fetch Metadata must supply a trusted Origin or Referer.",
+            "in": "header",
+            "name": "Origin",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Used for the origin check when Origin is absent.",
+            "in": "header",
+            "name": "Referer",
+            "required": false,
+            "schema": {
+              "format": "uri",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -12818,7 +13219,47 @@
                 }
               }
             },
-            "description": "Success"
+            "description": "Success",
+            "headers": {
+              "Set-Cookie": {
+                "description": "Creates, refreshes or clears an HTTP-only session or OAuth state cookie, as applicable.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Production authentication rate limit reached",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "X-Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              }
+            }
           },
           "default": {
             "$ref": "#/components/responses/Error"
@@ -12830,7 +13271,27 @@
     "/api/auth/sign-out": {
       "post": {
         "operationId": "signOut",
-        "parameters": [],
+        "parameters": [
+          {
+            "description": "Browser writes with cookies or Fetch Metadata must supply a trusted Origin or Referer.",
+            "in": "header",
+            "name": "Origin",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Used for the origin check when Origin is absent.",
+            "in": "header",
+            "name": "Referer",
+            "required": false,
+            "schema": {
+              "format": "uri",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -12840,7 +13301,47 @@
                 }
               }
             },
-            "description": "Success"
+            "description": "Success",
+            "headers": {
+              "Set-Cookie": {
+                "description": "Creates, refreshes or clears an HTTP-only session or OAuth state cookie, as applicable.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Production authentication rate limit reached",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "X-Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              }
+            }
           },
           "default": {
             "$ref": "#/components/responses/Error"
@@ -12852,7 +13353,36 @@
     "/api/auth/sign-up/email": {
       "post": {
         "operationId": "signUpEmail",
-        "parameters": [],
+        "parameters": [
+          {
+            "description": "Browser writes with cookies or Fetch Metadata must supply a trusted Origin or Referer.",
+            "in": "header",
+            "name": "Origin",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Used for the origin check when Origin is absent.",
+            "in": "header",
+            "name": "Referer",
+            "required": false,
+            "schema": {
+              "format": "uri",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Turnstile token when the deployment enables CAPTCHA; captchaToken in the JSON body is also supported.",
+            "in": "header",
+            "name": "X-Captcha-Response",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -12873,6 +13403,38 @@
               }
             },
             "description": "Success"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Production authentication rate limit reached",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "X-Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              }
+            }
           },
           "default": {
             "$ref": "#/components/responses/Error"
@@ -12914,6 +13476,38 @@
               "Set-Cookie": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Production authentication rate limit reached",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "X-Retry-After": {
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
                 }
               }
             }

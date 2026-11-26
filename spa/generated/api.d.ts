@@ -2734,32 +2734,32 @@ export interface components {
             user: components["schemas"]["UserProfileRow"];
         };
         KayaAscent: {
-            climb: components["schemas"]["KayaClimb"] | null;
-            comment: string | null;
-            date: string | null;
-            grade: components["schemas"]["KayaLabel"] | null;
-            id: string | null;
+            climb?: components["schemas"]["KayaClimb"] | null;
+            comment?: string | null;
+            date?: string | null;
+            grade?: components["schemas"]["KayaLabel"] | null;
+            id?: string | null;
             /** Format: double */
-            rating: number | null;
+            rating?: number | null;
             /** Format: double */
-            stiffness: number | null;
+            stiffness?: number | null;
         };
         KayaClimb: {
-            area: components["schemas"]["KayaLabel"] | null;
-            board: components["schemas"]["KayaLabel"] | null;
-            climb_type: components["schemas"]["KayaDiscipline"] | null;
-            destination: components["schemas"]["KayaLabel"] | null;
-            grade: components["schemas"]["KayaLabel"] | null;
-            gym: components["schemas"]["KayaLabel"] | null;
-            id: string | null;
-            name: string | null;
+            area?: components["schemas"]["KayaLabel"] | null;
+            board?: components["schemas"]["KayaLabel"] | null;
+            climb_type?: components["schemas"]["KayaDiscipline"] | null;
+            destination?: components["schemas"]["KayaLabel"] | null;
+            grade?: components["schemas"]["KayaLabel"] | null;
+            gym?: components["schemas"]["KayaLabel"] | null;
+            id?: string | null;
+            name?: string | null;
         };
         KayaDiscipline: {
-            id: string;
-            name: string;
+            id?: string | null;
+            name?: string | null;
         };
         KayaLabel: {
-            name: string | null;
+            name?: string | null;
         };
         /** @enum {string} */
         KayaRetryReason: "rate-limit" | "unavailable";
@@ -3373,7 +3373,7 @@ export interface components {
             content: {
                 "application/json": {
                     code?: string;
-                    error?: string;
+                    error: string;
                     message?: string;
                 };
             };
@@ -6108,13 +6108,31 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Production authentication rate limit reached */
+            429: {
+                headers: {
+                    "Retry-After"?: number;
+                    "X-Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
             default: components["responses"]["Error"];
         };
     };
     deleteUser: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Browser writes with cookies or Fetch Metadata must supply a trusted Origin or Referer. */
+                Origin?: string;
+                /** @description Used for the origin check when Origin is absent. */
+                Referer?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -6123,10 +6141,25 @@ export interface operations {
             /** @description Success */
             200: {
                 headers: {
+                    /** @description Creates, refreshes or clears an HTTP-only session or OAuth state cookie, as applicable. */
+                    "Set-Cookie"?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["AuthSuccess"];
+                };
+            };
+            /** @description Production authentication rate limit reached */
+            429: {
+                headers: {
+                    "Retry-After"?: number;
+                    "X-Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
                 };
             };
             default: components["responses"]["Error"];
@@ -6144,10 +6177,25 @@ export interface operations {
             /** @description Success */
             200: {
                 headers: {
+                    /** @description Creates, refreshes or clears an HTTP-only session or OAuth state cookie, as applicable. */
+                    "Set-Cookie"?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["AuthSession"] | null;
+                };
+            };
+            /** @description Production authentication rate limit reached */
+            429: {
+                headers: {
+                    "Retry-After"?: number;
+                    "X-Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
                 };
             };
             default: components["responses"]["Error"];
@@ -6156,7 +6204,14 @@ export interface operations {
     requestPasswordReset: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Browser writes with cookies or Fetch Metadata must supply a trusted Origin or Referer. */
+                Origin?: string;
+                /** @description Used for the origin check when Origin is absent. */
+                Referer?: string;
+                /** @description Turnstile token when the deployment enables CAPTCHA; captchaToken in the JSON body is also supported. */
+                "X-Captcha-Response"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -6175,13 +6230,31 @@ export interface operations {
                     "application/json": components["schemas"]["AuthStatus"];
                 };
             };
+            /** @description Production authentication rate limit reached */
+            429: {
+                headers: {
+                    "Retry-After"?: number;
+                    "X-Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
             default: components["responses"]["Error"];
         };
     };
     resetPassword: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Browser writes with cookies or Fetch Metadata must supply a trusted Origin or Referer. */
+                Origin?: string;
+                /** @description Used for the origin check when Origin is absent. */
+                Referer?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -6198,6 +6271,19 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuthStatus"];
+                };
+            };
+            /** @description Production authentication rate limit reached */
+            429: {
+                headers: {
+                    "Retry-After"?: number;
+                    "X-Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
                 };
             };
             default: components["responses"]["Error"];
@@ -6225,13 +6311,31 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Production authentication rate limit reached */
+            429: {
+                headers: {
+                    "Retry-After"?: number;
+                    "X-Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
             default: components["responses"]["Error"];
         };
     };
     sendVerificationEmail: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Browser writes with cookies or Fetch Metadata must supply a trusted Origin or Referer. */
+                Origin?: string;
+                /** @description Used for the origin check when Origin is absent. */
+                Referer?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -6250,13 +6354,33 @@ export interface operations {
                     "application/json": components["schemas"]["AuthStatus"];
                 };
             };
+            /** @description Production authentication rate limit reached */
+            429: {
+                headers: {
+                    "Retry-After"?: number;
+                    "X-Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
             default: components["responses"]["Error"];
         };
     };
     signInEmail: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Browser writes with cookies or Fetch Metadata must supply a trusted Origin or Referer. */
+                Origin?: string;
+                /** @description Used for the origin check when Origin is absent. */
+                Referer?: string;
+                /** @description Turnstile token when the deployment enables CAPTCHA; captchaToken in the JSON body is also supported. */
+                "X-Captcha-Response"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -6269,10 +6393,25 @@ export interface operations {
             /** @description Success */
             200: {
                 headers: {
+                    /** @description Creates, refreshes or clears an HTTP-only session or OAuth state cookie, as applicable. */
+                    "Set-Cookie"?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["SignInResult"];
+                };
+            };
+            /** @description Production authentication rate limit reached */
+            429: {
+                headers: {
+                    "Retry-After"?: number;
+                    "X-Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
                 };
             };
             default: components["responses"]["Error"];
@@ -6281,7 +6420,12 @@ export interface operations {
     socialSignIn: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Browser writes with cookies or Fetch Metadata must supply a trusted Origin or Referer. */
+                Origin?: string;
+                /** @description Used for the origin check when Origin is absent. */
+                Referer?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -6294,10 +6438,25 @@ export interface operations {
             /** @description Success */
             200: {
                 headers: {
+                    /** @description Creates, refreshes or clears an HTTP-only session or OAuth state cookie, as applicable. */
+                    "Set-Cookie"?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["SocialRedirect"];
+                };
+            };
+            /** @description Production authentication rate limit reached */
+            429: {
+                headers: {
+                    "Retry-After"?: number;
+                    "X-Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
                 };
             };
             default: components["responses"]["Error"];
@@ -6306,7 +6465,12 @@ export interface operations {
     signOut: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Browser writes with cookies or Fetch Metadata must supply a trusted Origin or Referer. */
+                Origin?: string;
+                /** @description Used for the origin check when Origin is absent. */
+                Referer?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -6315,10 +6479,25 @@ export interface operations {
             /** @description Success */
             200: {
                 headers: {
+                    /** @description Creates, refreshes or clears an HTTP-only session or OAuth state cookie, as applicable. */
+                    "Set-Cookie"?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["AuthSuccess"];
+                };
+            };
+            /** @description Production authentication rate limit reached */
+            429: {
+                headers: {
+                    "Retry-After"?: number;
+                    "X-Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
                 };
             };
             default: components["responses"]["Error"];
@@ -6327,7 +6506,14 @@ export interface operations {
     signUpEmail: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Browser writes with cookies or Fetch Metadata must supply a trusted Origin or Referer. */
+                Origin?: string;
+                /** @description Used for the origin check when Origin is absent. */
+                Referer?: string;
+                /** @description Turnstile token when the deployment enables CAPTCHA; captchaToken in the JSON body is also supported. */
+                "X-Captcha-Response"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -6344,6 +6530,19 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SignUpResult"];
+                };
+            };
+            /** @description Production authentication rate limit reached */
+            429: {
+                headers: {
+                    "Retry-After"?: number;
+                    "X-Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
                 };
             };
             default: components["responses"]["Error"];
@@ -6369,6 +6568,19 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Production authentication rate limit reached */
+            429: {
+                headers: {
+                    "Retry-After"?: number;
+                    "X-Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
             };
             default: components["responses"]["Error"];
         };

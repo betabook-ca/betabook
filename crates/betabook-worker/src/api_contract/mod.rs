@@ -157,7 +157,7 @@ fn normalize_refs(value: &mut Value) {
     }
 }
 
-pub fn document(require_complete: bool) -> Result<Value, String> {
+pub fn document() -> Result<Value, String> {
     let mut settings = SchemaSettings::draft2020_12();
     settings.definitions_path = "/components/schemas".into();
     let inputs = settings.clone().into_generator();
@@ -200,7 +200,7 @@ pub fn document(require_complete: bool) -> Result<Value, String> {
                 .map(|m| (p.clone(), m))
         })
         .collect();
-    if !actual.is_subset(&expected) || (require_complete && actual != expected) {
+    if actual != expected {
         return Err(format!(
             "HTTP router and specification differ. Missing: {:?}; stale: {:?}",
             expected.difference(&actual).collect::<Vec<_>>(),
@@ -212,7 +212,7 @@ pub fn document(require_complete: bool) -> Result<Value, String> {
         definitions.insert(format!("Input_{name}"), input_refs(schema));
     }
     let mut doc = json!({"openapi":"3.1.0","info":{"title":"Betabook HTTP API","version":env!("CARGO_PKG_VERSION")},"paths":api.paths,"components":{"schemas":definitions,
-        "responses":{"Error":{"description":"The request could not be completed","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"},"message":{"type":"string"},"code":{"type":"string"}}}}}}},
+        "responses":{"Error":{"description":"The request could not be completed","content":{"application/json":{"schema":{"type":"object","required":["error"],"properties":{"error":{"type":"string"},"message":{"type":"string"},"code":{"type":"string"}}}}}}},
         "securitySchemes":{"session":{"type":"apiKey","in":"cookie","name":"__Secure-better-auth.session_token","description":"Signed session cookie; local HTTP uses the unprefixed better-auth.session_token."}}}});
     normalize_refs(&mut doc);
     Ok(doc)
