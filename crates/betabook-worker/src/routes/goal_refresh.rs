@@ -63,7 +63,7 @@ pub(super) fn schedule(state: &AppState, owner: &str) {
             })
             .await;
         if let Err(error) = result {
-            worker::console_error!("Goal achievement refresh failed: {error}");
+            crate::observability::background_error("goal_refresh", error);
         }
     });
 }
@@ -75,7 +75,7 @@ pub(super) async fn acknowledge(
 ) -> Result<Response, ApiError> {
     let session = match require_member_session(state, headers).await {
         Ok(session) => session,
-        Err(error) => return Ok(action_err(error.message)),
+        Err(error) => return crate::routes::actions::session_error(error),
     };
     let Some(keys) = goal_achievements::AchievementKey::parse_many(keys) else {
         return Ok(action_err("Invalid achievements."));

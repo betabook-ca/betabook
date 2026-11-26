@@ -353,7 +353,7 @@ fn exercises_auth_queries_and_account_cleanup() {
             .expect("record terms");
 
         let new_hash = hash_password("new-pass").expect("new hash");
-        reset_credential_password_and_revoke_sessions(
+        let consumed = reset_credential_password_and_revoke_sessions(
             &db,
             "user-1",
             "acct-1",
@@ -363,6 +363,25 @@ fn exercises_auth_queries_and_account_cleanup() {
         )
         .await
         .expect("reset password");
+        assert!(consumed);
+        assert!(
+            !reset_credential_password_and_revoke_sessions(
+                &db,
+                "user-1",
+                "other-account",
+                "stale-reset",
+                "ver-1",
+                now + 6001
+            )
+            .await
+            .expect("concurrent retry")
+        );
+        assert_eq!(
+            find_credential_password_by_user_id(&db, "user-1")
+                .await
+                .expect("password"),
+            Some(new_hash)
+        );
         assert!(
             get_session_by_token(&db, "tok-1")
                 .await

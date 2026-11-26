@@ -4,6 +4,7 @@ import { test } from "node:test";
 import { createTestHarness } from "wrangler";
 
 import { testProfileAnalytics } from "./rust-smoke/analytics.mjs";
+import { testAuthLifecycle, testCatalogCron } from "./rust-smoke/auth-lifecycle.mjs";
 import { testGoalRefresh } from "./rust-smoke/goal-refresh.mjs";
 import { testGoals } from "./rust-smoke/goals.mjs";
 import { testImports } from "./rust-smoke/imports.mjs";
@@ -31,8 +32,14 @@ void test("Rust Worker HTTP flows", async (t) => {
     ],
   });
   t.after(() => server.close());
-  await server.listen();
+  const { url } = await server.listen();
   const worker = server.getWorker();
+  // workerd must see a failed scheduled invocation when D1 is unavailable.
+  const failedCron = await worker.scheduled({ cron: "0 6 * * 1" }).then(
+    (r) => r.outcome,
+    () => "exception",
+  );
+  assert.notEqual(failedCron, "ok");
   await worker.applyD1Migrations("DB");
   const { DB, CATALOG_EXPORTS } = await worker.getEnv();
   const status = await server.fetch("/api/terms/status");
@@ -54,7 +61,7 @@ void test("Rust Worker HTTP flows", async (t) => {
       .run();
     const response = await server.fetch("/api/auth/sign-in/email", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", origin: url.origin },
       body: JSON.stringify({ email, password }),
     });
     assert.equal(response.status, 200, await response.text());
@@ -62,6 +69,18 @@ void test("Rust Worker HTTP flows", async (t) => {
     assert.ok(cookie);
     return cookie.split(";")[0];
   }
+  await t.test("auth lifecycle across cutover", () =>
+    testAuthLifecycle({
+      server,
+      db: DB,
+      signIn,
+      origin: url.origin,
+      secret: "isolated-rust-worker-smoke-test-secret",
+    }),
+  );
+  await t.test("successful catalog cron", () =>
+    testCatalogCron({ worker, bucket: CATALOG_EXPORTS }),
+  );
   await t.test("sign-in, private journal writes and R2 exports", async () => {
     const owner = await signIn("owner");
     const stranger = await signIn("stranger");

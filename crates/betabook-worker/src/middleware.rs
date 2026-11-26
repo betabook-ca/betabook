@@ -30,3 +30,58 @@ pub fn trusted_write(headers: &http::HeaderMap, origin: &str) -> bool {
         .get(http::header::ORIGIN)
         .is_none_or(|value| value.to_str().is_ok_and(|v| v == origin))
 }
+
+pub fn local_auth_base(base: &str) -> bool {
+    url::Url::parse(base)
+        .ok()
+        .is_some_and(|u| matches!(u.host_str(), Some("localhost" | "127.0.0.1" | "[::1]")))
+}
+
+/// Credentialed auth requests must carry a trusted Origin or Referer. First-login
+/// requests from a non-browser client may omit both, as Better Auth permits.
+pub fn trusted_auth_write(headers: &http::HeaderMap, request_origin: &str, base: &str) -> bool {
+    if headers
+        .get("sec-fetch-site")
+        .is_some_and(|s| s == "cross-site")
+        && headers
+            .get("sec-fetch-mode")
+            .is_some_and(|s| s == "navigate")
+    {
+        return false;
+    }
+    let candidate = headers
+        .get(http::header::ORIGIN)
+        .or_else(|| headers.get(http::header::REFERER));
+    let Some(raw) = candidate.and_then(|v| v.to_str().ok()) else {
+        return !headers.contains_key(http::header::COOKIE)
+            && !headers.contains_key("sec-fetch-site")
+            && !headers.contains_key("sec-fetch-mode")
+            && !headers.contains_key("sec-fetch-dest");
+    };
+    let raw = if raw == "null"
+        && headers
+            .get("sec-fetch-site")
+            .is_some_and(|s| s == "same-origin")
+    {
+        request_origin
+    } else {
+        raw
+    };
+    let Ok(url) = url::Url::parse(raw) else {
+        return false;
+    };
+    let origin = url.origin().ascii_serialization();
+    origin
+        == url::Url::parse(base)
+            .map(|u| u.origin().ascii_serialization())
+            .unwrap_or_default()
+        || (local_auth_base(base)
+            && (origin == request_origin
+                || matches!(
+                    origin.as_str(),
+                    "http://localhost:3000"
+                        | "http://localhost:3001"
+                        | "http://localhost:3002"
+                        | "http://localhost:3003"
+                )))
+}

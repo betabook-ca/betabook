@@ -25,6 +25,11 @@ pub async fn resolve_optional_session(
     if auth_session.session.expires_at - now < SESSION_EXPIRES_MS - SESSION_UPDATE_AGE_MS {
         let next_expires = now + SESSION_EXPIRES_MS;
         touch_session_expiry(state.db(), &auth_session.session.id, next_expires, now).await?;
+        state.renew_cookie(super::cookies::build_session_cookie_header(
+            &token,
+            &secret,
+            state.is_secure_cookies(),
+        ));
         auth_session.session.expires_at = next_expires;
         auth_session.session.updated_at = now;
     }

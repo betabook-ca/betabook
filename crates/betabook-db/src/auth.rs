@@ -517,44 +517,24 @@ pub async fn reset_credential_password_and_revoke_sessions<D: DbExecutor>(
     password_hash: &str,
     verification_id: &str,
     now_ms: i64,
-) -> Result<(), DbError> {
-    let existing = find_credential_password_by_user_id(db, user_id).await?;
-    let password_stmt = if existing.is_some() {
-        (
-            "UPDATE account SET password = ?, updated_at = ? WHERE user_id = ? AND provider_id = 'credential'".to_string(),
-            vec![
-                DbParam::Text(password_hash.to_string()),
-                DbParam::Int(now_ms),
-                DbParam::Text(user_id.to_string()),
-            ],
-        )
-    } else {
-        (
-            "INSERT INTO account (id, account_id, provider_id, user_id, password, created_at, updated_at)
-             VALUES (?, ?, 'credential', ?, ?, ?, ?)".to_string(),
-            vec![
-                DbParam::Text(new_account_id.to_string()),
-                DbParam::Text(user_id.to_string()),
-                DbParam::Text(user_id.to_string()),
-                DbParam::Text(password_hash.to_string()),
-                DbParam::Int(now_ms),
-                DbParam::Int(now_ms),
-            ],
-        )
-    };
-
-    db.batch(vec![
-        (
-            "DELETE FROM verification WHERE id = ?".to_string(),
-            vec![DbParam::Text(verification_id.to_string())],
-        ),
-        (
-            "DELETE FROM session WHERE user_id = ?".to_string(),
-            vec![DbParam::Text(user_id.to_string())],
-        ),
-        password_stmt,
-    ])
-    .await
+) -> Result<bool, DbError> {
+    // Every mutation in this transaction is conditional on the same unconsumed
+    // reset. A concurrent reset may have finished after the handler's first read.
+    let valid = "EXISTS(SELECT 1 FROM verification WHERE id=?1 AND value=?2 AND expires_at>?3)";
+    let params = vec![verification_id.into(), user_id.into(), now_ms.into()];
+    let mut password_params = params.clone();
+    password_params.push(password_hash.into());
+    let mut insert_params = password_params.clone();
+    insert_params.push(new_account_id.into());
+    let mut rows = db.batch_rows(vec![
+        (format!("UPDATE account SET password=?4,updated_at=?3 WHERE user_id=?2 AND provider_id='credential' AND {valid}"),password_params),
+        (format!("INSERT INTO account (id,account_id,provider_id,user_id,password,created_at,updated_at)
+          SELECT ?5,?2,'credential',?2,?4,?3,?3 WHERE {valid} AND NOT EXISTS
+          (SELECT 1 FROM account WHERE user_id=?2 AND provider_id='credential')"),insert_params),
+        (format!("DELETE FROM session WHERE user_id=?2 AND {valid}"),params.clone()),
+        ("DELETE FROM verification WHERE id=?1 AND value=?2 AND expires_at>?3 RETURNING id".into(),params),
+    ]).await?;
+    Ok(rows.pop().is_some_and(|consumed| !consumed.is_empty()))
 }
 
 pub async fn create_verification<D: DbExecutor>(

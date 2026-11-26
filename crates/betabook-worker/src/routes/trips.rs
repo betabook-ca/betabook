@@ -162,7 +162,7 @@ pub(super) async fn action(
 ) -> Result<Response, ApiError> {
     let session = match require_member_session(state, headers).await {
         Ok(s) => s,
-        Err(e) => return Ok(action_err(e.message)),
+        Err(e) => return crate::routes::actions::session_error(e),
     };
     let owner = &session.user.id;
     if name != "unshareTrip" && !allow_rate_limit(state, "JOURNAL_RATE_LIMITER", owner).await {

@@ -120,6 +120,7 @@ dependencies = [
  "hex",
  "http",
  "percent-encoding",
+ "regex-lite",
  "serde",
  "serde_json",
  "sha2",
