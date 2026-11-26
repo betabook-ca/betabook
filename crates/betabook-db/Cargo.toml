@@ -7,7 +7,14 @@ publish.workspace = true
 
 [features]
 default = ["sqlite"]
-sqlite = []
-d1 = []
+sqlite = ["dep:rusqlite"]
+d1 = ["dep:worker"]
 
 [dependencies]
+async-trait.workspace = true
+betabook-domain = { path = "../betabook-domain" }
+rusqlite = { workspace = true, optional = true }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+worker = { workspace = true, optional = true }
