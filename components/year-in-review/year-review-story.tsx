@@ -54,10 +54,7 @@ function Chapter({
   return (
     <section
       aria-labelledby={headingId}
-      className={clsx(
-        "flex min-h-[70svh] flex-col justify-center gap-5 md:min-h-0",
-        cardClass("fluid"),
-      )}
+      className={clsx("flex flex-col gap-5", cardClass("fluid"))}
     >
       <h2 id={headingId} className="font-display text-3xl font-semibold tracking-tight">
         {title}
@@ -228,7 +225,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
       "The year at a glance",
       review.active ? (
         <StatTiles
-          className="grid-cols-2 sm:grid-cols-3"
+          className="grid-cols-3"
           tiles={[
             { label: "Days out", value: c.intro.daysOut },
             { label: "Sends", value: c.intro.sends },
