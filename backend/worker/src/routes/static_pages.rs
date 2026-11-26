@@ -80,6 +80,17 @@ pub async fn about_page(State(state): State<AppState>) -> Result<Response, ApiEr
     published_document(&state, &meta, "about").await
 }
 
+#[worker::send]
+pub async fn climbing_logbook(State(state): State<AppState>) -> Result<Response, ApiError> {
+    let meta = PageMetadata::indexable(
+        "Free climbing logbook",
+        "A free climbing logbook for bouldering, sport and trad. Log sends and sessions, see your progression, and import from KAYA, Sendage or Mountain Project.",
+        "/climbing-logbook",
+        "website",
+    );
+    published_document(&state, &meta, "climbing-logbook").await
+}
+
 async fn published_document(
     state: &AppState,
     meta: &PageMetadata,

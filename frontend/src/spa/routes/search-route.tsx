@@ -1,19 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useSearchParams } from "react-router";
 
-import { LandingHero } from "@/components/landing-page";
+import { HomeIntroduction } from "@/components/home-introduction";
 import { AppSearch } from "@/components/search/app-search";
 import { CARD_PADDING } from "@/components/ui/card";
-import { PageTitle, SectionHeading } from "@/components/ui/typography";
+import { PageTitle } from "@/components/ui/typography";
 import type { AreaSelection } from "@/lib/area-selection";
-import { LOGBOOK_PAGE } from "@/lib/landing-pages";
 import {
   parseSearchState,
   publicClimbSearchItems,
   SEARCH_PATH,
   type SearchSnapshot,
 } from "@/lib/search";
-import { signUpUrl } from "@/lib/sign-in-redirect";
 import { searchParamsToRecord } from "@/lib/url-params";
 import { peekBootstrapData } from "@/spa/bootstrap";
 import { fetchApi } from "@/spa/lib/api";
@@ -100,17 +98,7 @@ export default function SearchRoute({
   return (
     <div className={home ? `flex flex-col gap-6 ${CARD_PADDING.fluid}` : "flex flex-col gap-6"}>
       {home ? (
-        <div className="flex flex-col gap-6">
-          <LandingHero
-            title="A free climbing logbook and crag database"
-            lead="Log bouldering, sport and trad sends and sessions, and search routes and problems below."
-            actions={[
-              { href: signUpUrl(), label: "Create a free account" },
-              { href: LOGBOOK_PAGE.path, label: "How Betabook works" },
-            ]}
-          />
-          <SectionHeading className="mt-2">Search climbs and areas</SectionHeading>
-        </div>
+        <HomeIntroduction />
       ) : (
         <div className="flex flex-col gap-1">
           <PageTitle>Find climbs</PageTitle>
