@@ -133,7 +133,7 @@ it("saves the draft and closes the editor", async () => {
     expect(saveTripNotes).toHaveBeenCalledExactlyOnceWith(TRIP, "Camped at the Pit."),
   );
   await closed();
-  expect(refresh).toHaveBeenCalledOnce();
+  expect(refresh).not.toHaveBeenCalled();
 });
 
 it("keeps the draft and shows the error when saving fails", async () => {

@@ -213,7 +213,7 @@ it("says plainly that deleting a trip keeps the climbs, then deletes it", async 
   await user.click(within(dialog).getByRole("button", { name: "Delete" }));
 
   await waitFor(() => expect(deleteTrip).toHaveBeenCalledWith(1));
-  await waitFor(() => expect(refresh).toHaveBeenCalled());
+  expect(refresh).not.toHaveBeenCalled();
 });
 
 it("keeps the trip listed and shows the reason when the delete is refused", async () => {

@@ -1,6 +1,7 @@
 import { ApproveRejectControls } from "@/components/admin/approve-reject-controls";
 import { AppLink } from "@/components/ui/app-link";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SkeletonListRows } from "@/components/ui/skeleton";
 import { PageTitle } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { areaHref } from "@/lib/slug";
@@ -27,7 +28,13 @@ const REQUESTED_AT_FORMAT = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
 });
 
-export function ReviewQueue({ managedAreas, rows, nextHref, hasPrevious }: ReviewQueueData) {
+export function ReviewQueue({
+  managedAreas,
+  rows,
+  nextHref,
+  hasPrevious,
+  pending = false,
+}: ReviewQueueData & { pending?: boolean }) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
@@ -54,7 +61,11 @@ export function ReviewQueue({ managedAreas, rows, nextHref, hasPrevious }: Revie
         )}
       </div>
 
-      {rows.length === 0 ? (
+      {pending ? (
+        <div aria-busy="true" aria-label="Loading review requests">
+          <SkeletonListRows rows={4} />
+        </div>
+      ) : rows.length === 0 ? (
         <EmptyState message="No pending requests in your managed areas." />
       ) : (
         <div className="flex flex-col divide-y divide-separator">

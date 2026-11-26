@@ -239,7 +239,7 @@ it("edits an existing trip in place rather than navigating away", async () => {
     startDate: "2026-03-10",
     endDate: "2026-03-20",
   });
-  await waitFor(() => expect(refresh).toHaveBeenCalled());
+  expect(refresh).not.toHaveBeenCalled();
   expect(push).not.toHaveBeenCalled();
 });
 

@@ -102,8 +102,8 @@ export function ClimbListDialog({
       }
       state.close();
       const saved = result.value;
-      if (!saved) router.refresh();
-      else if (onCreated) onCreated(saved);
+      if (!saved) return;
+      if (onCreated) onCreated(saved);
       else router.push(climbListHref(userId, saved.id));
     });
   }

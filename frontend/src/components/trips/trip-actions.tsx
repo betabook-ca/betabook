@@ -43,7 +43,6 @@ export function TripActions({
       }
       deleteState.close();
       if (leaveOnDelete) router.push(tripsHref(userId));
-      else router.refresh();
     });
   }
 

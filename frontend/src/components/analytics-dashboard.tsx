@@ -45,6 +45,7 @@ export function AnalyticsDashboard({
   periodPicker,
   summary,
   activityHeading,
+  emptyState,
   canCustomize = false,
   initialLayout,
   onSave,
@@ -64,6 +65,7 @@ export function AnalyticsDashboard({
   /** Replaces the default "All-time activity" or "Activity in <year>" heading.
    * Trip analytics select no years, so the default would say "All-time". */
   activityHeading?: string;
+  emptyState?: ReactNode;
   canCustomize?: boolean;
   initialLayout?: AnalyticsLayout;
   onSave?: (layout: AnalyticsLayout) => Promise<ActionResult>;
@@ -78,7 +80,8 @@ export function AnalyticsDashboard({
       )
     : sendChartRows(chartSends);
   const period = selectedYears.length ? formatAnalyticsYears(selectedYears) : null;
-  const noActivity = period != null && analytics.sendCount === 0 && analytics.daysOut === 0;
+  const noActivity =
+    Boolean(emptyState) || (period != null && analytics.sendCount === 0 && analytics.daysOut === 0);
   const calendarYears = (selectedYears.length ? selectedYears : analytics.calendarYears).toSorted(
     (a, b) => a - b,
   );
@@ -226,12 +229,14 @@ export function AnalyticsDashboard({
       initialLayout={initialLayout}
       onSave={onSave}
       heading={
-        <div className="flex flex-col gap-1">
-          <SectionHeading>
-            {activityHeading ?? (period == null ? "All-time activity" : `Activity in ${period}`)}
-          </SectionHeading>
-          {summary && <p className="text-sm text-muted">{summary}</p>}
-        </div>
+        !emptyState && (
+          <div className="flex flex-col gap-1">
+            <SectionHeading>
+              {activityHeading ?? (period == null ? "All-time activity" : `Activity in ${period}`)}
+            </SectionHeading>
+            {summary && <p className="text-sm text-muted">{summary}</p>}
+          </div>
+        )
       }
     >
       <div className="flex flex-col gap-4">
@@ -243,11 +248,12 @@ export function AnalyticsDashboard({
               : "Sends without dates aren’t included in the selected years. Choose All years to include them in your totals and grade pyramid."}
           </p>
         )}
-        {noActivity && (
-          <p role="status" className="text-sm text-muted">
-            No activity in {period} for this discipline. Try another year or All years.
-          </p>
-        )}
+        {emptyState ??
+          (noActivity && (
+            <p role="status" className="text-sm text-muted">
+              No activity in {period} for this discipline. Try another year or All years.
+            </p>
+          ))}
       </div>
     </AnalyticsWorkspace>
   );

@@ -1,4 +1,4 @@
-import { lazy, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Navigate, useLocation, useParams, useSearchParams } from "react-router";
 
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
@@ -22,7 +22,7 @@ import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
 import { isNotFoundError } from "@/spa/lib/fetch-json";
 import { SpaProfileHeader } from "@/spa/lib/profile-shell";
-import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
+import { useRetainedPage } from "@/spa/lib/use-retained-page";
 
 const Analytics = lazy(() =>
   import("@/components/trips/trip-analytics-view").then((module) => ({
@@ -139,6 +139,11 @@ function hasDays(trip: TripSummary, status: ReturnType<typeof tripStatus>) {
   return trip.sendCount > 0 || (trip.entryCount ?? 0) > 0 || status !== "upcoming";
 }
 
+function ownerTripShare(data: Detail, showControls: boolean, isPrivate: boolean) {
+  if (!showControls || !("share" in data) || !("rows" in data.view)) return undefined;
+  return { share: data.share, origin: window.location.origin, isPrivate };
+}
+
 function TripBody({
   data,
   userId,
@@ -146,6 +151,9 @@ function TripBody({
   token,
   journalVisible,
   isPrivate,
+  analytics,
+  loading,
+  errorMessage,
 }: {
   data: Detail;
   userId: string;
@@ -153,6 +161,9 @@ function TripBody({
   token?: string;
   journalVisible: boolean;
   isPrivate: boolean;
+  analytics: boolean;
+  loading: boolean;
+  errorMessage: string | null;
 }) {
   const { view, notes } = data;
   const [search] = useSearchParams();
@@ -164,7 +175,7 @@ function TripBody({
   const owner = !token && viewerId === userId;
   const status = tripStatus(trip, today);
   const badge = TRIP_STATUS_LABEL[status];
-  const analytics = "analytics" in view;
+
   return (
     <TripHeader
       trip={trip}
@@ -173,32 +184,37 @@ function TripBody({
       today={today}
       link={token}
       back={analytics ? "trip" : "trips"}
-      ownerShare={
-        owner && !analytics && "share" in data
-          ? { share: data.share ?? null, origin: window.location.origin, isPrivate }
-          : undefined
-      }
+      ownerShare={ownerTripShare(data, owner && !analytics, isPrivate)}
     >
-      {"analytics" in view ? (
-        <Analytics
-          trip={trip}
-          userId={userId}
-          sends={view.analytics.sends}
-          sessions={view.analytics.sessions}
-          gradePreferences={gradePreferences}
-          discipline={search.get("discipline") ?? undefined}
-          disciplineHref={(scope) => pathname + "?discipline=" + scope}
-          shareImage={
-            owner
-              ? {
-                  title: trip.name,
-                  description: trip.description,
-                  dates: formatTripDates(trip.startDate, trip.endDate),
-                  status: badge ? { label: badge.label, tone: badge.color } : null,
-                }
-              : undefined
-          }
-        />
+      {errorMessage && <p role="alert">{errorMessage}</p>}
+      {loading ? (
+        !errorMessage && (
+          <div aria-busy="true" aria-label="Loading trip view">
+            <SkeletonListRows rows={5} />
+          </div>
+        )
+      ) : "analytics" in view ? (
+        <Suspense fallback={<SkeletonListRows rows={5} />}>
+          <Analytics
+            trip={trip}
+            userId={userId}
+            sends={view.analytics.sends}
+            sessions={view.analytics.sessions}
+            gradePreferences={gradePreferences}
+            discipline={search.get("discipline") ?? undefined}
+            disciplineHref={(scope) => pathname + "?discipline=" + scope}
+            shareImage={
+              owner
+                ? {
+                    title: trip.name,
+                    description: trip.description,
+                    dates: formatTripDates(trip.startDate, trip.endDate),
+                    status: badge ? { label: badge.label, tone: badge.color } : null,
+                  }
+                : undefined
+            }
+          />
+        </Suspense>
       ) : (
         <>
           {trip.albumUrl && (
@@ -234,69 +250,67 @@ function TripBody({
   );
 }
 
+async function loadTrip(
+  id: string | undefined,
+  tripId: string | undefined,
+  token: string | undefined,
+  analytics: boolean,
+  signal: AbortSignal,
+): Promise<Payload> {
+  if (token) {
+    return analytics
+      ? fetchApi("/api/pages/trips/{token}/analytics", { path: { token }, signal })
+      : fetchApi("/api/pages/trips/{token}", { path: { token }, signal });
+  }
+  const owner = id ?? "";
+  if (tripId) {
+    const path = { id: owner, trip: tripId };
+    return analytics
+      ? fetchApi("/api/pages/users/{id}/trips/{trip}/analytics", { path, signal })
+      : fetchApi("/api/pages/users/{id}/trips/{trip}", { path, signal });
+  }
+  return fetchApi("/api/pages/users/{id}/trips", { path: { id: owner }, signal });
+}
+
+function tripTitle(data: Payload | undefined) {
+  return data && "header" in data
+    ? data.header.user.name + " · " + ("trip" in data ? data.trip.name : "Trips")
+    : data && "owner" in data
+      ? data.owner.name + " · " + data.trip.name
+      : null;
+}
+
+function tripError(error: unknown) {
+  if (!error) return null;
+  if (isNotFoundError(error)) return "Trip not found";
+  return error instanceof Error ? error.message : "Failed to load trips";
+}
+
 export default function TripsRoute({ viewerId }: { viewerId: string | null }) {
   const { token, id, tripId } = useParams();
   const { pathname } = useLocation();
-  const refresh = useRouterRefreshKey();
-  const key = JSON.stringify([pathname, viewerId, refresh]);
-  const [result, setResult] = useState<
-    { key: string; data: Payload } | { key: string; message: string } | null
-  >(null);
-  useEffect(() => {
-    if (!token && !viewerId) return;
-    const controller = new AbortController();
-    async function load() {
-      try {
-        const signal = controller.signal;
-        const analytics = pathname.endsWith("/analytics");
-        let data: Payload;
-        if (token) {
-          data = analytics
-            ? await fetchApi("/api/pages/trips/{token}/analytics", { path: { token }, signal })
-            : await fetchApi("/api/pages/trips/{token}", { path: { token }, signal });
-        } else if (id && tripId) {
-          const path = { id, trip: tripId };
-          data = analytics
-            ? await fetchApi("/api/pages/users/{id}/trips/{trip}/analytics", { path, signal })
-            : await fetchApi("/api/pages/users/{id}/trips/{trip}", { path, signal });
-        } else if (id) {
-          data = await fetchApi("/api/pages/users/{id}/trips", { path: { id }, signal });
-        } else {
-          return;
-        }
-        if (!controller.signal.aborted) setResult({ key, data });
-      } catch (error) {
-        if (!controller.signal.aborted)
-          setResult({
-            key,
-            message: isNotFoundError(error)
-              ? "Trip not found"
-              : error instanceof Error
-                ? error.message
-                : "Failed to load trips",
-          });
-      }
-    }
-    void load();
-    return () => controller.abort();
-  }, [id, tripId, key, pathname, token, viewerId]);
-  const resolved = result?.key === key && "data" in result ? result.data : null;
-  usePageTitle(
-    resolved && "header" in resolved
-      ? resolved.header.user.name + " · " + ("trip" in resolved ? resolved.trip.name : "Trips")
-      : resolved && "owner" in resolved
-        ? resolved.owner.name + " · " + resolved.trip.name
-        : null,
-  );
+  const analytics = pathname.endsWith("/analytics");
+  const scope = token || (viewerId && id) ? JSON.stringify([viewerId, token, id, tripId]) : null;
+  const {
+    data,
+    error,
+    query: loadedView,
+  } = useRetainedPage<Payload>({
+    scope,
+    query: analytics ? "analytics" : "detail",
+    load: (signal) => loadTrip(id, tripId, token, analytics, signal),
+  });
+  usePageTitle(tripTitle(data));
   if (!token && !viewerId) return <CurrentPageAuthCallout />;
-  if (result?.key !== key) return <SkeletonListRows rows={5} />;
-  if ("message" in result) return <div role="alert">{result.message}</div>;
-  const { data } = result;
+  const message = tripError(error);
+  if (!data) return message ? <p role="alert">{message}</p> : <SkeletonListRows rows={5} />;
+  const loading = loadedView !== (analytics ? "analytics" : "detail");
   if ("expired" in data) return expiredLinkCard("trips");
   if ("redirectTo" in data) return <Navigate to={data.redirectTo} replace />;
   if ("header" in data)
     return (
       <SpaProfileHeader {...data.header}>
+        {"trips" in data && message && <p role="alert">{message}</p>}
         {"trips" in data ? (
           <TripList
             trips={data.trips}
@@ -307,6 +321,9 @@ export default function TripsRoute({ viewerId }: { viewerId: string | null }) {
         ) : (
           <TripBody
             data={data}
+            analytics={analytics}
+            loading={loading}
+            errorMessage={message}
             userId={data.header.user.id}
             viewerId={viewerId}
             journalVisible={data.header.access.journal}
@@ -325,6 +342,9 @@ export default function TripsRoute({ viewerId }: { viewerId: string | null }) {
       </div>
       <TripBody
         data={data}
+        analytics={analytics}
+        loading={loading}
+        errorMessage={message}
         userId={data.owner.id}
         viewerId={viewerId}
         token={token}

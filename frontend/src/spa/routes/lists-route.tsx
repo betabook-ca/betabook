@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Navigate, useParams, useSearchParams } from "react-router";
 
 import { ClimbListActions } from "@/components/climb-lists/climb-list-actions";
@@ -32,7 +31,7 @@ import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
 import { isNotFoundError } from "@/spa/lib/fetch-json";
 import { SpaProfileHeader } from "@/spa/lib/profile-shell";
-import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
+import { useRetainedPage } from "@/spa/lib/use-retained-page";
 
 type Index = ApiResponse<"/api/pages/users/{id}/lists">;
 type Detail = ApiResponse<"/api/pages/users/{id}/lists/{list_id}">;
@@ -44,10 +43,12 @@ function MemberList({
   data,
   viewerId,
   view,
+  pending,
 }: {
   data: Index | Detail;
   viewerId: string;
   view: ClimbListView;
+  pending: boolean;
 }) {
   const { user, isOwner } = data.header;
   if (data.mode === "index") {
@@ -100,6 +101,7 @@ function MemberList({
         />
         <ClimbListItems
           {...page}
+          pending={pending}
           totalCount={list.climbCount}
           view={view}
           signedIn
@@ -117,11 +119,13 @@ function SharedList({
   viewerId,
   token,
   view,
+  pending,
 }: {
   data: Shared;
   viewerId: string | null;
   token: string;
   view: ClimbListView;
+  pending: boolean;
 }) {
   const { owner, list, page } = data;
   return (
@@ -138,7 +142,13 @@ function SharedList({
           viewerId && <CopyClimbListButton list={list} viewerId={viewerId} source={{ token }} />
         }
       />
-      <ClimbListItems {...page} totalCount={list.climbCount} view={view} signedIn={!!viewerId} />
+      <ClimbListItems
+        {...page}
+        pending={pending}
+        totalCount={list.climbCount}
+        view={view}
+        signedIn={!!viewerId}
+      />
       {!viewerId &&
         signUpCard({
           ownerName: owner.name,
@@ -154,11 +164,13 @@ function LoadedList({
   viewerId,
   token,
   view,
+  pending,
 }: {
   data: Payload;
   viewerId: string | null;
   token: string | undefined;
   view: ClimbListView;
+  pending: boolean;
 }) {
   switch (data.mode) {
     case "owner":
@@ -167,11 +179,17 @@ function LoadedList({
       return expiredLinkCard("lists");
     case "shared":
       return token ? (
-        <SharedList data={data} viewerId={data.viewerId} token={token} view={view} />
+        <SharedList
+          data={data}
+          viewerId={data.viewerId}
+          token={token}
+          view={view}
+          pending={pending}
+        />
       ) : null;
     default:
       return viewerId ? (
-        <MemberList data={data} viewerId={viewerId} view={view} />
+        <MemberList data={data} viewerId={viewerId} view={view} pending={pending} />
       ) : (
         <CurrentPageAuthCallout />
       );
@@ -193,69 +211,44 @@ function useListTitle(data: Payload | undefined) {
 export default function ListsRoute({ viewerId }: { viewerId: string | null }) {
   const { id, listId, token } = useParams();
   const [search] = useSearchParams();
-  const refresh = useRouterRefreshKey();
-  const query = climbListViewSearch(parseClimbListView(searchParamsToRecord(search)));
-  const path = token
-    ? `/api/pages/lists/${encodeURIComponent(token)}`
-    : id && viewerId
-      ? `/api/pages/users/${encodeURIComponent(id)}/lists${listId ? `/${encodeURIComponent(listId)}` : ""}`
-      : "";
-  const url = path && path + query;
-  const key = JSON.stringify([viewerId, path]);
-  const [loaded, setLoaded] = useState<{
-    key: string;
-    query: string;
-    data?: Payload;
-    error?: string;
-  }>();
-  useEffect(() => {
-    if (!url) return;
-    const controller = new AbortController();
-    async function load() {
-      try {
-        const options = { query: new URLSearchParams(query), signal: controller.signal };
-        const data = token
-          ? await fetchApi("/api/pages/lists/{token}", { ...options, path: { token } })
-          : listId
-            ? await fetchApi("/api/pages/users/{id}/lists/{list_id}", {
-                ...options,
-                path: { id: id ?? "", list_id: listId },
-              })
-            : await fetchApi("/api/pages/users/{id}/lists", {
-                path: { id: id ?? "" },
-                signal: controller.signal,
-              });
-        if (!controller.signal.aborted) setLoaded({ key, query, data });
-      } catch (err) {
-        if (!controller.signal.aborted)
-          setLoaded({
-            key,
-            query,
-            error: isNotFoundError(err)
-              ? "List not found"
-              : "Could not load the list. Please try again.",
-          });
-      }
-    }
-    void load();
-    return () => controller.abort();
-  }, [key, query, url, refresh, id, listId, token]);
-  const current = key === loaded?.key ? loaded : undefined;
-  // Keep this list mounted while refinements load. Its editor opens only when
-  // the rows and the view from the same request both describe the whole list.
-  const view = parseClimbListView(searchParamsToRecord(new URLSearchParams(current?.query)));
-  const data = current?.data;
+  const query =
+    token || listId ? climbListViewSearch(parseClimbListView(searchParamsToRecord(search))) : "";
+  const scope = token || (id && viewerId) ? JSON.stringify([viewerId, id, listId, token]) : null;
+  const {
+    data,
+    query: loadedQuery,
+    error,
+    pending,
+  } = useRetainedPage<Payload>({
+    scope,
+    query,
+    load: (signal) => {
+      const options = { query: new URLSearchParams(query), signal };
+      if (token) return fetchApi("/api/pages/lists/{token}", { ...options, path: { token } });
+      if (listId)
+        return fetchApi("/api/pages/users/{id}/lists/{list_id}", {
+          ...options,
+          path: { id: id ?? "", list_id: listId },
+        });
+      return fetchApi("/api/pages/users/{id}/lists", { path: { id: id ?? "" }, signal });
+    },
+  });
+  // Pair rows with the query that loaded them: editing always needs the complete circuit.
+  const view = parseClimbListView(searchParamsToRecord(new URLSearchParams(loadedQuery)));
   useListTitle(data);
   if (!token && !viewerId) return <CurrentPageAuthCallout />;
 
   return (
-    <ClimbListEditingProvider key={JSON.stringify([viewerId, path])}>
-      {current?.error ? (
-        <p role="alert">{current.error}</p>
-      ) : !data ? (
-        <SkeletonListRows rows={6} />
+    <ClimbListEditingProvider key={scope}>
+      {Boolean(error) && (
+        <p role="alert">
+          {isNotFoundError(error) ? "List not found" : "Could not load the list. Please try again."}
+        </p>
+      )}
+      {data ? (
+        <LoadedList data={data} viewerId={viewerId} token={token} view={view} pending={pending} />
       ) : (
-        <LoadedList data={data} viewerId={viewerId} token={token} view={view} />
+        !error && <SkeletonListRows rows={6} />
       )}
     </ClimbListEditingProvider>
   );
