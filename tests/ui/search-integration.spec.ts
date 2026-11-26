@@ -108,38 +108,52 @@ test(
   "full search navigation results support opening another tab",
   { tag: ["@behavior", "@app"] },
   async ({ page, context }) => {
-    await page.route("**/api/public/search/climbs?**", (route) =>
-      route.fulfill({
-        json: {
-          climbs: [
-            {
-              id: 17,
-              areaId: 1,
-              areaName: "Review area",
-              name: "Review climb",
-              type: "boulder",
-              grade: 5,
-              avgRating: null,
-              sendCount: 0,
+    // A real destination matters here: the Worker canonicalizes a stale slug,
+    // including when some other locally seeded climb happens to have the same ID.
+    const { createTestHarness, experimental_readRawConfig } = await import("wrangler");
+    const { rawConfig } = experimental_readRawConfig({ config: "./wrangler.jsonc" });
+    const harness = createTestHarness({
+      workers: [
+        {
+          config: {
+            // Use exactly the already-built Worker/assets. Running a second custom
+            // build while the suite's primary server is serving them replaces its files.
+            ...rawConfig,
+            build: {},
+            vars: {
+              BETTER_AUTH_URL: "http://localhost",
+              BETTER_AUTH_SECRET: "local-browser-search-fixture-secret",
             },
-          ],
-          hasNextPage: false,
-          areaBreadcrumbs: {},
-          sendStats: {},
+          },
         },
-      }),
-    );
-    await page.goto(`${appBaseURL}/search?mode=climb`);
-    await page.getByRole("searchbox", { name: "Search Betabook" }).fill("review");
-    const result = page.getByLabel("Open Review climb, Review area", { exact: true });
-    await expect(result).toBeVisible();
-    await expect(result).toHaveAttribute("href", "/climbs/17/review-climb");
-    const opened = context.waitForEvent("page");
-    await result.click({ modifiers: ["ControlOrMeta"] });
-    const other = await opened;
-    await other.waitForURL(/\/climbs\/17\/review-climb/);
-    await expect(page).toHaveURL(/mode=climb/);
-    await other.close();
+      ],
+    });
+    try {
+      const { url } = await harness.listen();
+      const worker = harness.getWorker<Pick<CloudflareEnv, "DB">>();
+      await worker.applyD1Migrations("DB");
+      const { DB } = await worker.getEnv();
+      await DB.batch([
+        DB.prepare("INSERT INTO areas (id,name) VALUES (1,'Review area')"),
+        DB.prepare(
+          "INSERT INTO climbs (id,area_id,name,type,grade) VALUES (17,1,'Review climb','boulder',5)",
+        ),
+      ]);
+      await page.goto(new URL("/search?mode=climb", url).href);
+      await page.getByRole("searchbox", { name: "Search Betabook" }).fill("review");
+      const result = page.getByLabel("Open Review climb, Review area", { exact: true });
+      await expect(result).toBeVisible();
+      await expect(result).toHaveAttribute("href", "/climbs/17/review-climb");
+      const opened = context.waitForEvent("page");
+      await result.click({ modifiers: ["ControlOrMeta"] });
+      const other = await opened;
+      await expect(other).toHaveURL(new URL("/climbs/17/review-climb", url).href);
+      await expect(other.getByRole("heading", { name: "Review climb", exact: true })).toBeVisible();
+      await expect(page).toHaveURL(/mode=climb/);
+      await other.close();
+    } finally {
+      await harness.close();
+    }
   },
 );
 
