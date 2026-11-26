@@ -1,18 +1,18 @@
-# Rust Cloudflare Workers Migration Roadmap
+# Rust Worker migration
 
-Betabook is migrating incrementally from Next.js / `vinext` to a unified Rust Cloudflare Worker (`workers-rs` + `axum` compiled to `wasm32-unknown-unknown`) paired with a plain Vite + React Router SPA served via Cloudflare Workers Static Assets.
+Betabook runs on a unified Rust Cloudflare Worker (`workers-rs` + `axum` compiled to `wasm32-unknown-unknown`) paired with a plain Vite + React Router SPA served via Cloudflare Workers Static Assets.
 
-## Target Architecture
+## Architecture
 
 - **`crates/betabook-domain`**: Pure Rust domain logic with zero runtime/FFI dependencies — climbing grades (`BOULDER_HUECO`, `ROPE_YDS`, Font/French scales), URL slugification, safe Markdown-to-HTML rendering (`markdown::render_safe_markdown` via `pulldown-cmark` so readers avoid client Markdown JS), profile photo key validation/sniffing, terms constants, security headers, Better Auth-compatible scrypt password verification/hashing, and SEO/sitemap/JSON-LD builders.
 - **`crates/betabook-db`**: Async `DbExecutor` trait (`#[async_trait(?Send)]`) with two backends:
   - `sqlite` (`rusqlite` bundled, native tests) — runs all `drizzle/migrations/*.sql` in-memory for millisecond invariant testing.
   - `d1` (`worker::D1Database`, `wasm32`) — production/Wrangler D1 backend preserving Betabook's single-CTE-reference SQL discipline (`SQLITE_LIMIT_EXPR_DEPTH <= 100`).
-- **`crates/betabook-worker`**: Single `axum` router inside Cloudflare Workers (`#[event(fetch)]` and `#[event(scheduled)]`), handling:
+- **`crates/betabook-worker`**: Single `axum` router inside Cloudflare Workers (fetch and scheduled handlers), handling:
   - Full Rust authentication (`/api/auth/*`, `/api/terms/*`) compatible with existing D1 `user`/`session`/`account`/`verification` tables, scrypt password hashes, and signed session cookies.
   - Public catalog & search APIs, avatar R2/Cache-API serving, and weekly streaming multipart R2 catalog exports.
   - SEO routes (`/robots.txt`, `/sitemap-index.xml`, `/sitemap/:shard`), canonical slug 308 redirects, `ASSETS` HTML `<meta>` / JSON-LD / Vite `modulepreload` / inline `__BETABOOK_DATA__` cold-load bootstrap injection, and zero-JS static HTML routes (`/about`, `/terms`, `/terms/:version`).
-- **`spa/`**: Plain Vite + React 19 + HeroUI v3 + Tailwind v4 SPA using route-split React Router chunks, `spa/bootstrap.ts` (`__BETABOOK_DATA__` single-load consumer), and thin `next/*` compatibility shims so `components/` and `hooks/` port without a UI rewrite.
+- **`spa/`**: Plain Vite + React 19 + HeroUI v3 + Tailwind v4 SPA using route-split React Router chunks, `spa/bootstrap.ts` (`__BETABOOK_DATA__` single-load consumer), and typed HTTP requests to the Worker.
 
 ## Local Verification Commands
 
@@ -23,22 +23,16 @@ pnpm install --frozen-lockfile
 mise run rust-check
 cargo deny --locked check advisories
 
-# Build and exercise the Rust Worker with disposable local D1 and R2
-pnpm build:spa
-(cd crates/betabook-worker && worker-build --release --locked)
+# Exercise the deployable Rust Worker and SPA locally
+pnpm build
 pnpm test:rust-worker
+pnpm check
+pnpm preview
 
-# Run locally against Wrangler + local D1/R2 state
-pnpm exec wrangler dev -c crates/betabook-worker/wrangler.rust.jsonc --port 8787 --persist-to .wrangler/state --test-scheduled
-
-# Keep existing vinext checks green during migration
-pnpm check && pnpm build
+# Verify packaging without publishing
+pnpm exec wrangler deploy --dry-run --config wrangler.jsonc
 ```
 
-## Migration Stacks
+## Stack
 
-1. **Foundation Stack** (`rust-migration/*`): Workspace + CI, domain & DB core, full Rust auth & core public/R2 APIs, and React Router SPA foundation.
-2. **Sends, journal, feed and friends** have Rust read/write APIs and member SPA views.
-3. **Projects, trips and climb lists** have member and public share pages, mutations, and workerd smoke tests. Trip detail includes day grouping, Google Photos albums, and trip analytics. The next layer, `rust-migration/goals-and-profile-analytics`, adds the owner Goals workspace, journal-visible progress and history, achievement reconciliation after owner activity, and profile analytics with saved dashboard layouts.
-4. **Moderation, imports and admin** are pending, including area-scoped moderation and KAYA / Sendage / Mountain Project / CSV imports. Profile photo upload and removal are already on the Rust Worker.
-5. **Cutover**: Point root `wrangler.jsonc` at the Rust Worker + SPA `dist-spa`, remove `next`, `vinext`, `drizzle-orm`, `better-auth`, and Next-specific shims.
+The migration layers preserve existing D1 migrations, R2 keys, public URLs, session cookies and credential hashes. The feature layers cover the public catalog, member pages, goals and analytics, moderation and imports. The cutover layer connects the root build, preview, deployment and browser CI to Rust. The former server and its dependencies are isolated in the private test reference workspace.

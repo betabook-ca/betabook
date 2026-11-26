@@ -51,8 +51,7 @@ new worktree. It skips ordinary branch switches and environments with `CI` or
 
 ### Environment and authentication
 
-`pnpm dev` runs the app in workerd through the Cloudflare Vite plugin (`vite.config.ts`), with the
-same bindings as production. `.dev.vars.example` documents the local overrides for `wrangler.jsonc`:
+`pnpm dev` builds the Vite SPA and Rust WASM bundle, then serves both with local Wrangler bindings. `.dev.vars.example` documents the local overrides for `wrangler.jsonc`:
 
 - `BETTER_AUTH_URL` must match the local server URL, including its port. Without the override, auth
   links use the production URL.
@@ -111,7 +110,7 @@ pnpm build                                 # production Workers build used by CI
 | `pnpm format` / `pnpm format:check` | Oxfmt formatting / verification                                               |
 | `pnpm deadcode`                     | Knip unused code and dependency checks                                        |
 | `pnpm deadcode:prod`                | Extra audit excluding test and development entrypoints; separate from `check` |
-| `pnpm typecheck`                    | Next route type generation and TypeScript checking                            |
+| `pnpm typecheck`                    | TypeScript checks for the SPA, tools and reference suite                      |
 | `pnpm test`                         | Full Vitest suite (components + workers projects)                             |
 | `pnpm test:components`              | React component and hook tests in jsdom                                       |
 | `pnpm db:generate`                  | Generate migrations from `drizzle/schema/`                                    |
@@ -155,8 +154,7 @@ database.
 sizes. **It is too slow to run locally — CI runs it.** Locally:
 
 1. Install Chromium once: `pnpm exec playwright install chromium`.
-2. **Stop `pnpm dev`** — its unbundled modules hydrate too slowly for tests that type as soon as a
-   field renders.
+2. Use a dedicated preview port for browser checks so the suite exercises the current release build.
 3. `pnpm storybook:build`, then only the spec files you changed:
    `pnpm exec playwright test <file>`. Add `--project=mobile-dark` to run one project.
 
@@ -207,12 +205,9 @@ pnpm db:migrate:remote
 pnpm exec wrangler deploy
 ```
 
-- `vite build` writes the deployable config to `dist/server/wrangler.json` and points Wrangler at
-  it, so a bare `wrangler` command reads it after a build; the `pnpm db:*` and `cf-typegen` scripts
-  name `wrangler.jsonc` to keep reading the source.
-- `pnpm deploy` builds and deploys but does **not** apply migrations.
-- Migrations must stay compatible with the currently deployed worker, because the schema changes
-  before the new worker is live.
+- The release consists of `dist-spa/`, `crates/betabook-worker/build/index.js`, and its WASM module. The root `wrangler.jsonc` configures the production Worker, assets and bindings.
+- CI downloads the release that passed workerd tests. `BETABOOK_PREBUILT=1` skips rebuilding when Wrangler consumes those artifacts. Local `pnpm deploy` builds from source. Apply remote migrations before a live deployment.
+- Use `pnpm exec wrangler deploy --dry-run --config wrangler.jsonc` for packaging verification.
 
 ### Weekly catalog export
 
