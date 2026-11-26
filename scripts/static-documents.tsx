@@ -1,4 +1,5 @@
 /* oxlint-disable nextjs/no-html-link-for-pages -- These documents support navigation without client JavaScript. */
+import { buttonVariants } from "@heroui/styles";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { StaticRouter } from "react-router";
@@ -114,7 +115,7 @@ function HomeEntry() {
           placeholder="Search climbs, areas, and climbers…"
           className={`${FIELD_CLASS} ${FIELD_HEIGHT_CLASS} ${FIELD_WIDTH_CLASS.long}`}
         />
-        <button type="submit" className="button button--outline">
+        <button type="submit" className={buttonVariants({ variant: "outline" })}>
           Search
         </button>
       </form>

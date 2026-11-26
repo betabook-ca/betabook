@@ -34,6 +34,7 @@ import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
 import { isNotFoundError, parsePositiveId } from "@/spa/lib/fetch-json";
 import { usePathname } from "@/spa/lib/navigation";
+import { usePublicEntryReady } from "@/spa/lib/public-entry";
 import { useRetainedPage } from "@/spa/lib/use-retained-page";
 
 type AreaBootstrap = {
@@ -120,6 +121,7 @@ function PublicAreaView({
   const notFound = isNotFoundError(page.error);
   const error =
     page.error instanceof Error ? page.error.message : page.error ? "Failed to load area" : null;
+  usePublicEntryReady(Boolean(data || error));
   usePageTitle(
     notFound
       ? "Area not found"
@@ -215,6 +217,7 @@ function MemberAreaView({
   const notFound = isNotFoundError(page.error);
   const error =
     page.error instanceof Error ? page.error.message : page.error ? "Failed to load area" : null;
+  usePublicEntryReady(Boolean(data || error));
   usePageTitle(
     notFound
       ? "Area not found"

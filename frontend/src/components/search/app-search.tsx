@@ -69,7 +69,7 @@ export function AppSearch({
       memberNoticePlacement={memberNoticePlacement}
       state={state}
       onChange={change}
-      initial={initial}
+      initial={state === initialState ? initial : undefined}
       onNavigate={(item) => router.push(item.href)}
       resultHref={(item) => item.href}
       suggestions={climberSuggestionItems(suggested)}

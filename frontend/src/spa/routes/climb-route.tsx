@@ -31,6 +31,7 @@ import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
 import { isNotFoundError, parsePositiveId, type ClimbPageData } from "@/spa/lib/fetch-json";
 import { usePathname } from "@/spa/lib/navigation";
+import { usePublicEntryReady } from "@/spa/lib/public-entry";
 import { useRetainedPage } from "@/spa/lib/use-retained-page";
 
 type MemberClimbPayload = ApiResponse<"/api/pages/climbs/{id}"> & { climbId: number };
@@ -86,6 +87,7 @@ function PublicClimbView({ climbId }: { climbId: number }) {
     page.error instanceof Error ? page.error.message : page.error ? "Failed to load climb" : null;
   const loaded = data?.climbId === climbId ? data : null;
   const grade = loaded && formatGrade(loaded.climb.type, loaded.climb.grade);
+  usePublicEntryReady(Boolean(data || error));
   usePageTitle(
     notFound
       ? "Climb not found"
@@ -161,6 +163,7 @@ function MemberClimbView({ climbId, viewerId }: { climbId: number; viewerId: str
     page.error instanceof Error ? page.error.message : page.error ? "Failed to load climb" : null;
   const loaded = data?.climbId === climbId ? data : null;
   const grade = loaded && formatGrade(loaded.climb.type, loaded.climb.grade);
+  usePublicEntryReady(Boolean(data || error));
   usePageTitle(
     notFound
       ? "Climb not found"

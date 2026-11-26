@@ -1,8 +1,10 @@
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { NavigationType, useLocation, useNavigationType } from "react-router";
 
 import { SITE_NAME } from "@/lib/site";
 import { syncBootstrapPath } from "@/spa/bootstrap";
+
+import { usePublicEntryReady } from "./public-entry";
 
 const PAGE_LABELS: Record<string, string> = {
   "/": SITE_NAME,
@@ -100,6 +102,10 @@ export function DocumentNavigation({ viewer }: { viewer?: { id: string; name: st
     () => syncBootstrapPath(location.pathname, location.search),
     [location.pathname, location.search],
   );
+  // A redirect or a client navigation may supersede the document before
+  // the initial route finished. Its frame belongs only to the original path.
+  const [entryPath] = useState(location.pathname);
+  usePublicEntryReady(location.pathname !== entryPath);
   const previous = useRef(location);
   const positions = useRef(new Map<string, Position>());
   useLayoutEffect(() => {

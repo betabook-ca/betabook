@@ -1,4 +1,5 @@
 "use client";
+
 import { Button, Kbd, Modal } from "@heroui/react";
 import { clsx } from "clsx";
 import { ArrowRight } from "lucide-react";
@@ -10,7 +11,9 @@ import { LoadMoreButton } from "@/components/ui/load-more-button";
 import { QueryInput } from "@/components/ui/query-input";
 import { useCompactViewport } from "@/hooks/use-compact-viewport";
 import type { AreaSelection } from "@/lib/area-selection";
+import { usePublicEntryReady } from "@/spa/lib/public-entry";
 
+import { EntryQueryInput } from "./entry-query-input";
 import { SearchCategories } from "./search-categories";
 import { SearchResults } from "./search-results";
 import type { SearchCategory, SearchKind, SearchResult, SearchSection } from "./search-types";
@@ -111,6 +114,9 @@ export function SearchSurface({
       onKeyDown={onKeyDown}
       listId={listId}
       activeId={activeId}
+      ready={
+        !sections.some((section) => section.status === "loading" && section.items.length === 0)
+      }
       expanded={!idle && hasResults}
     />
   );
@@ -210,6 +216,7 @@ function SearchQueryRow({
   listId,
   activeId,
   expanded,
+  ready,
 }: Pick<SearchSurfaceProps, "query" | "onQueryChange" | "category"> & {
   quick: boolean;
   headerAction?: ReactNode;
@@ -217,31 +224,47 @@ function SearchQueryRow({
   listId: string;
   activeId: string | null;
   expanded: boolean;
+  ready: boolean;
 }) {
+  const [entryInput] = useState(() =>
+    quick || typeof document === "undefined"
+      ? null
+      : document.querySelector<HTMLInputElement>('#public-entry input[type="search"][name="name"]'),
+  );
+  usePublicEntryReady(!quick && ready && !entryInput);
   return (
     <div className="flex shrink-0 items-center gap-2">
-      <QueryInput
-        label="Search Betabook"
-        // Sharing the row means the field takes what Cancel leaves rather
-        // than its standard width.
-        className={headerAction ? "min-w-0 flex-1" : undefined}
-        placeholder={SEARCH_PLACEHOLDERS[category]}
-        value={query}
-        onChange={onQueryChange}
-        inputProps={{
-          autoFocus: quick,
-          onKeyDownCapture: onKeyDown,
-          ...(quick
-            ? {
-                role: "combobox",
-                "aria-autocomplete": "list",
-                "aria-expanded": expanded,
-                "aria-controls": expanded ? listId : undefined,
-                "aria-activedescendant": activeId ? `${listId}-${activeId}` : undefined,
-              }
-            : {}),
-        }}
-      />
+      {entryInput ? (
+        <EntryQueryInput
+          value={query}
+          placeholder={SEARCH_PLACEHOLDERS[category]}
+          onChange={onQueryChange}
+          ready={ready}
+        />
+      ) : (
+        <QueryInput
+          label="Search Betabook"
+          // Sharing the row means the field takes what Cancel leaves rather
+          // than its standard width.
+          className={headerAction ? "min-w-0 flex-1" : undefined}
+          placeholder={SEARCH_PLACEHOLDERS[category]}
+          value={query}
+          onChange={onQueryChange}
+          inputProps={{
+            autoFocus: quick,
+            onKeyDownCapture: onKeyDown,
+            ...(quick
+              ? {
+                  role: "combobox",
+                  "aria-autocomplete": "list",
+                  "aria-expanded": expanded,
+                  "aria-controls": expanded ? listId : undefined,
+                  "aria-activedescendant": activeId ? `${listId}-${activeId}` : undefined,
+                }
+              : {}),
+          }}
+        />
+      )}
       {headerAction}
     </div>
   );

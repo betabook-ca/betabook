@@ -29,7 +29,10 @@ export function publicEntryTemplate(index: string, frame: string) {
     requestAnimationFrame(()=>requestAnimationFrame(start));
   </script>`;
   return html
-    .replace("</head>", "<style>#public-entry ~ #root {display:none}</style></head>")
+    .replace(
+      "</head>",
+      "<style>#public-entry:not([data-handoff]) ~ #root {display:none}</style></head>",
+    )
     .replace('<div id="root"', frame + '<div id="root"')
     .replace("</body>", launch + "</body>");
 }
