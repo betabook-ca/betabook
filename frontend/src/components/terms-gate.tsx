@@ -130,7 +130,9 @@ export function TermsGate({
           onAccepted={() => {
             // A response for an older form must not dismiss a newer revision.
             setPrompt((current) => (current?.version === prompt.version ? null : current));
-            router.refresh();
+            // The production action already invalidates page data. An injected
+            // save function still needs the gate to do that on its behalf.
+            if (onAccept) router.refresh();
           }}
         />
       )}
