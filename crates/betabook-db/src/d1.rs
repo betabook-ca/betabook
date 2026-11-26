@@ -92,18 +92,30 @@ impl DbExecutor for D1Db {
         Ok(changes as u64)
     }
 
-    async fn batch(&self, statements: Vec<(String, Vec<DbParam>)>) -> Result<(), DbError> {
+    async fn batch_rows(
+        &self,
+        statements: Vec<(String, Vec<DbParam>)>,
+    ) -> Result<Vec<Vec<DbRow>>, DbError> {
         if statements.is_empty() {
-            return Ok(());
+            return Ok(Vec::new());
         }
         let mut prepared = Vec::with_capacity(statements.len());
         for (sql, params) in &statements {
             prepared.push(self.prepare_bound(sql, params)?);
         }
-        self.inner
+        let results = self
+            .inner
             .batch(prepared)
             .await
             .map_err(|e| DbError::Query(e.to_string()))?;
-        Ok(())
+        results
+            .into_iter()
+            .map(|result| {
+                let maps = result
+                    .results::<Map<String, Value>>()
+                    .map_err(|e| DbError::Query(e.to_string()))?;
+                Ok(maps.into_iter().map(map_to_row).collect())
+            })
+            .collect()
     }
 }

@@ -76,6 +76,30 @@ fn from_sql_value(val: ValueRef<'_>) -> DbValue {
     }
 }
 
+fn query_rows(conn: &Connection, sql: &str, params: &[DbParam]) -> Result<Vec<DbRow>, DbError> {
+    let mut stmt = conn
+        .prepare(sql)
+        .map_err(|e| DbError::Query(format!("{e}: {sql}")))?;
+    let names: Vec<String> = stmt.column_names().map(ToString::to_string).collect();
+    let bound: Vec<ToSqlOutput<'_>> = params.iter().map(to_sql_value).collect();
+    let rows = stmt
+        .query_map(rusqlite::params_from_iter(bound), |row| {
+            let mut cols = Vec::with_capacity(names.len());
+            for (idx, name) in names.iter().enumerate() {
+                let val = from_sql_value(row.get_ref(idx)?);
+                cols.push((name.clone(), val));
+            }
+            Ok(DbRow::from_columns(cols))
+        })
+        .map_err(|e| DbError::Query(e.to_string()))?;
+
+    let mut out = Vec::new();
+    for row in rows {
+        out.push(row.map_err(|e| DbError::Query(e.to_string()))?);
+    }
+    Ok(out)
+}
+
 #[async_trait(?Send)]
 impl DbExecutor for SqliteDb {
     async fn query_all(&self, sql: &str, params: &[DbParam]) -> Result<Vec<DbRow>, DbError> {
@@ -83,27 +107,7 @@ impl DbExecutor for SqliteDb {
             .conn
             .lock()
             .map_err(|_| DbError::Query("sqlite mutex poisoned".to_string()))?;
-        let mut stmt = conn
-            .prepare(sql)
-            .map_err(|e| DbError::Query(format!("{e}: {sql}")))?;
-        let names: Vec<String> = stmt.column_names().map(ToString::to_string).collect();
-        let bound: Vec<ToSqlOutput<'_>> = params.iter().map(to_sql_value).collect();
-        let rows = stmt
-            .query_map(rusqlite::params_from_iter(bound), |row| {
-                let mut cols = Vec::with_capacity(names.len());
-                for (idx, name) in names.iter().enumerate() {
-                    let val = from_sql_value(row.get_ref(idx)?);
-                    cols.push((name.clone(), val));
-                }
-                Ok(DbRow::from_columns(cols))
-            })
-            .map_err(|e| DbError::Query(e.to_string()))?;
-
-        let mut out = Vec::new();
-        for row in rows {
-            out.push(row.map_err(|e| DbError::Query(e.to_string()))?);
-        }
-        Ok(out)
+        query_rows(&conn, sql, params)
     }
 
     async fn execute(&self, sql: &str, params: &[DbParam]) -> Result<u64, DbError> {
@@ -118,7 +122,10 @@ impl DbExecutor for SqliteDb {
         Ok(changes as u64)
     }
 
-    async fn batch(&self, statements: Vec<(String, Vec<DbParam>)>) -> Result<(), DbError> {
+    async fn batch_rows(
+        &self,
+        statements: Vec<(String, Vec<DbParam>)>,
+    ) -> Result<Vec<Vec<DbRow>>, DbError> {
         let mut conn = self
             .conn
             .lock()
@@ -126,12 +133,11 @@ impl DbExecutor for SqliteDb {
         let tx = conn
             .transaction()
             .map_err(|e| DbError::Query(e.to_string()))?;
-        for (sql, params) in &statements {
-            let bound: Vec<ToSqlOutput<'_>> = params.iter().map(to_sql_value).collect();
-            tx.execute(sql, rusqlite::params_from_iter(bound))
-                .map_err(|e| DbError::Query(format!("{e}: {sql}")))?;
-        }
+        let results = statements
+            .iter()
+            .map(|(sql, params)| query_rows(&tx, sql, params))
+            .collect::<Result<_, _>>()?;
         tx.commit().map_err(|e| DbError::Query(e.to_string()))?;
-        Ok(())
+        Ok(results)
     }
 }

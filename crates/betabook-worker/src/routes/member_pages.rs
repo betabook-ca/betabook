@@ -40,7 +40,7 @@ use betabook_domain::sends::{
     ASCENT_STYLES, is_real_iso_date, is_valid_journal_tag, normalize_tag,
 };
 use betabook_domain::terms::{TERMS_ACCESS_MESSAGE, has_accepted_current_terms};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use url::form_urlencoded;
 
@@ -50,7 +50,7 @@ use crate::state::{ApiError, AppState};
 const SHARED_PROFILE_SENDS: usize = 5;
 const CATALOG_EXPORT_KEY: &str = "catalog/latest.json";
 
-fn no_store_json(status: StatusCode, body: Value) -> Response {
+pub(super) fn no_store_json(status: StatusCode, body: Value) -> Response {
     let mut resp = (status, Json(body)).into_response();
     resp.headers_mut().insert(
         header::CACHE_CONTROL,
@@ -64,6 +64,49 @@ fn grade_prefs_from_strings(boulder: &str, rope: &str) -> GradePreferences {
         boulder: BoulderScale::parse(boulder).unwrap_or_default(),
         rope: RopeScale::parse(rope).unwrap_or_default(),
     }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct ProfileHeaderData {
+    pub user: betabook_db::social::UserProfileRow,
+    pub is_owner: bool,
+    pub access: betabook_db::content_access::ProfileAccess,
+    pub relationship: String,
+    pub hardest: Vec<betabook_db::social::HardestSend>,
+}
+
+pub(super) async fn profile_header_data(
+    state: &AppState,
+    user_id: &str,
+    session: &betabook_db::auth::AuthSession,
+) -> Result<Option<ProfileHeaderData>, ApiError> {
+    let viewer_id = &session.user.id;
+    let Some(user) = get_user_profile(state.db(), user_id).await? else {
+        return Ok(None);
+    };
+    let is_owner = *viewer_id == user.id;
+    if user.is_private && !is_owner {
+        return Ok(None);
+    }
+    let access = get_profile_access(state.db(), user_id, viewer_id).await?;
+    let relationship = if is_owner {
+        "none".to_owned()
+    } else {
+        get_friendship_status(state.db(), viewer_id, user_id).await?
+    };
+    let prefs = grade_prefs_from_strings(
+        &session.user.boulder_grade_scale,
+        &session.user.rope_grade_scale,
+    );
+    let hardest = get_climber_hardest(state.db(), user_id, prefs).await?;
+    Ok(Some(ProfileHeaderData {
+        user,
+        is_owner,
+        access,
+        relationship,
+        hardest,
+    }))
 }
 
 fn parse_query_map(raw_query: &str) -> Vec<(String, String)> {
@@ -252,7 +295,7 @@ fn parse_feed_cursor(raw: Option<&str>, view: &str) -> Result<Option<FeedCursor>
     Ok(Some(FeedCursor { date, user_id }))
 }
 
-async fn resolve_optional_member_session(
+pub(super) async fn resolve_optional_member_session(
     state: &AppState,
     headers: &HeaderMap,
 ) -> Result<Option<betabook_db::auth::AuthSession>, ApiError> {
@@ -926,42 +969,23 @@ pub async fn user_sends_page_loader(
 ) -> Result<Response, ApiError> {
     let session = require_member_session(&state, &headers).await?;
     let viewer_id = &session.user.id;
-    let Some(profile) = get_user_profile(state.db(), &user_id).await? else {
+    let Some(header) = profile_header_data(&state, &user_id, &session).await? else {
         return Ok(no_store_json(
             StatusCode::NOT_FOUND,
             json!({ "error": "User not found" }),
         ));
     };
-    if profile.is_private && profile.id != *viewer_id {
-        return Ok(no_store_json(
-            StatusCode::NOT_FOUND,
-            json!({ "error": "User not found" }),
-        ));
-    }
-
-    let is_owner = *viewer_id == profile.id;
-    let access = get_profile_access(state.db(), &profile.id, viewer_id).await?;
-    let relationship = if is_owner {
-        "none".to_string()
-    } else {
-        get_friendship_status(state.db(), viewer_id, &profile.id).await?
-    };
-    let prefs = grade_prefs_from_strings(
-        &session.user.boulder_grade_scale,
-        &session.user.rope_grade_scale,
-    );
-    let hardest = get_climber_hardest(state.db(), &profile.id, prefs).await?;
     let sends =
-        load_sends_view_data(&state, &profile.id, viewer_id, uri.query().unwrap_or("")).await?;
+        load_sends_view_data(&state, &user_id, viewer_id, uri.query().unwrap_or("")).await?;
 
     Ok(no_store_json(
         StatusCode::OK,
         json!({
-            "user": profile,
-            "isOwner": is_owner,
-            "relationship": relationship,
-            "access": access,
-            "hardest": hardest,
+            "user": header.user,
+            "isOwner": header.is_owner,
+            "relationship": header.relationship,
+            "access": header.access,
+            "hardest": header.hardest,
             "sends": sends,
         }),
     ))
