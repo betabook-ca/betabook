@@ -914,3 +914,6 @@ fn exercises_layer6_feed_journal_sends_friendships_and_catalog() {
 
 #[path = "features/projects.rs"]
 mod projects;
+
+#[path = "features/climb_lists.rs"]
+mod climb_lists;

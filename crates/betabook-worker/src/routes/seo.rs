@@ -612,6 +612,59 @@ async fn render_project_shell(
     Ok(response)
 }
 
+#[worker::send]
+pub async fn shared_list_html(
+    State(state): State<AppState>,
+    headers: http::HeaderMap,
+    Path(raw): Path<String>,
+) -> Result<Response, ApiError> {
+    let Some(token) = betabook_domain::profile_share::parse_share_token(&raw) else {
+        return render_not_found(&state).await;
+    };
+    let Some(link) = betabook_db::climb_lists::shared_list(state.db(), token).await? else {
+        return render_not_found(&state).await;
+    };
+    if super::climb_lists::shared_viewer(&state, &headers)
+        .await?
+        .as_deref()
+        == Some(link.owner_id.as_str())
+    {
+        let mut url = url::Url::parse(&state.request_origin).map_err(ApiError::internal)?;
+        url.path_segments_mut()
+            .map_err(|_| ApiError::internal("Invalid origin"))?
+            .clear()
+            .extend(["users", &link.owner_id, "lists", &link.list.id.to_string()]);
+        return Response::builder()
+            .status(StatusCode::TEMPORARY_REDIRECT)
+            .header(header::LOCATION, url.path())
+            .header(header::CACHE_CONTROL, "private, no-store")
+            .body(Body::empty())
+            .map_err(ApiError::internal);
+    }
+    let meta = if link.live {
+        let mut meta = PageMetadata::noindex(
+            format!("{} · {}", link.owner_name, link.list.title),
+            format!(
+                "See {}'s list of climbs on {SITE_NAME}, a climbing logbook and crag database.",
+                link.owner_name
+            ),
+        );
+        meta.og_type = "article";
+        meta
+    } else {
+        PageMetadata::noindex("Shared list", SITE_DESCRIPTION)
+    };
+    let manifest = load_spa_manifest(&state).await?;
+    let preload = render_modulepreload_tags(&manifest, "routes/lists-route.tsx");
+    let html = inject_seo_into_html(&load_index_html(&state).await?, &meta, &[], &preload, None);
+    let mut response = html_response(StatusCode::OK, html);
+    response.headers_mut().insert(
+        header::CACHE_CONTROL,
+        http::HeaderValue::from_static("private, no-store"),
+    );
+    Ok(response)
+}
+
 fn route_metadata(path: &str, has_query: bool) -> (PageMetadata, Vec<Value>, &'static str) {
     match path {
         "/" => (

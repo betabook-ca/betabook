@@ -1,6 +1,7 @@
 //! Pure domain logic, validation, grade tables, password hashing, and SEO
 //! helpers shared across native tests and the Cloudflare Worker.
 
+pub mod climb_lists;
 pub mod display_name;
 pub mod email_template;
 pub mod grades;

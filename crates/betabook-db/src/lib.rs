@@ -3,6 +3,7 @@
 
 pub mod auth;
 pub mod catalog_export;
+pub mod climb_lists;
 pub mod content_access;
 #[cfg(feature = "d1")]
 pub mod d1;

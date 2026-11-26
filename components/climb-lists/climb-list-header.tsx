@@ -13,7 +13,7 @@ export function ClimbListHeader({
   byline,
   actions,
 }: {
-  list: ClimbListSummary;
+  list: Pick<ClimbListSummary, "title" | "description" | "climbCount">;
   /** Where "All lists" goes. Omitted on a shared page. */
   back?: string;
   /** Who made it, for readers other than the owner. */

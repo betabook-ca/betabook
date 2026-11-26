@@ -36,6 +36,7 @@ const FriendsRoute = lazy(() => import("@/spa/routes/friends-route"));
 const AccountRoute = lazy(() => import("@/spa/routes/account-route"));
 const UserProfileRoute = lazy(() => import("@/spa/routes/user-profile-route"));
 const UserSendsRoute = lazy(() => import("@/spa/routes/user-sends-route"));
+const ListsRoute = lazy(() => import("@/spa/routes/lists-route"));
 const UserJournalRoute = lazy(() => import("@/spa/routes/user-journal-route"));
 const AuthRouteView = lazy(() => import("@/spa/routes/auth-routes"));
 const InfoRouteView = lazy(() => import("@/spa/routes/info-routes"));
@@ -224,6 +225,14 @@ export function App() {
                           <Route
                             path="/projects/:token"
                             element={<ProjectsRoute viewerId={viewerId} />}
+                          />
+                          <Route
+                            path="/users/:id/lists/:listId?"
+                            element={<ListsRoute viewerId={viewerId} />}
+                          />
+                          <Route
+                            path="/lists/:token"
+                            element={<ListsRoute viewerId={viewerId} />}
                           />
                           <Route path="/areas/new" element={<NewAreaRoute viewerId={viewerId} />} />
                           <Route path="/areas/:id" element={<AreaRoute viewerId={viewerId} />} />
