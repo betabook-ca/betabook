@@ -724,7 +724,13 @@ pub async fn dispatch_action(
         return Ok(action_err("Invalid request"));
     }
 
-    let Ok(bytes) = axum::body::to_bytes(body, MAX_JSON_ACTION_BYTES).await else {
+    // A legal 50-row import can exceed 512 KiB when notes contain non-ASCII text.
+    let max_json_bytes = if name == "importSends" {
+        1024 * 1024
+    } else {
+        MAX_JSON_ACTION_BYTES
+    };
+    let Ok(bytes) = axum::body::to_bytes(body, max_json_bytes).await else {
         return Ok(action_err("Request payload too large"));
     };
     let Ok(call) = serde_json::from_slice::<ActionCallBody>(&bytes) else {
