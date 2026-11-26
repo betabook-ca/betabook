@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 import { NavigationType, useLocation, useNavigationType } from "react-router";
 
 import { SITE_NAME } from "@/lib/site";
+import { syncBootstrapPath } from "@/spa/bootstrap";
 
 const PAGE_LABELS: Record<string, string> = {
   "/": SITE_NAME,
@@ -95,6 +96,7 @@ function restore(position: Position) {
 export function DocumentNavigation({ viewer }: { viewer?: { id: string; name: string } | null }) {
   const location = useLocation();
   const navigation = useNavigationType();
+  useEffect(() => syncBootstrapPath(location.pathname), [location.pathname]);
   const previous = useRef(location);
   const positions = useRef(new Map<string, Position>());
   useLayoutEffect(() => {

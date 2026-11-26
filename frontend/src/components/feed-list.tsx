@@ -5,9 +5,11 @@ import { useTransition, type ReactNode } from "react";
 
 import { FeedTimeline } from "@/components/feed-timeline";
 import { FeedToolbar } from "@/components/feed-toolbar";
+import { NavigationPendingRegion } from "@/components/navigation-pending";
 import { AppLink } from "@/components/ui/app-link";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
+import { SkeletonListRows } from "@/components/ui/skeleton";
 import type { FeedDay, FeedPage } from "@/db/queries";
 import { useClientSession } from "@/hooks/use-client-session";
 import { usePagedList } from "@/hooks/use-paged-list";
@@ -16,23 +18,71 @@ import { signInUrl } from "@/lib/sign-in-redirect";
 import { fetchApi } from "@/spa/lib/api";
 import { useRouter } from "@/spa/lib/navigation";
 
+type FeedResultProps = { initialPage: FeedPage; view: FeedView; hasFriends: boolean };
+
 export function FeedList({
   initialPage,
   view,
   hasFriends,
   viewerId,
   toolbar,
-}: {
-  initialPage: FeedPage;
-  view: FeedView;
-  hasFriends: boolean;
+  pending = false,
+  error,
+  onRetry,
+}: Omit<FeedResultProps, "initialPage"> & {
+  initialPage?: FeedPage;
   viewerId: string;
-  /** Shares a row with Refresh feed. */
   toolbar?: ReactNode;
+  pending?: boolean;
+  error?: boolean;
+  onRetry?: () => void;
 }) {
   const router = useRouter();
   const [refreshing, startRefresh] = useTransition();
   const session = useClientSession();
+  if (session !== undefined && session?.user.id !== viewerId)
+    return (
+      <EmptyState
+        message={
+          session ? "Your account changed. Refresh to see your feed." : "Sign in to see your feed."
+        }
+        cta={
+          session ? (
+            <Button onPress={() => router.refresh()}>Refresh feed</Button>
+          ) : (
+            <AppLink href={signInUrl("/feed")}>Sign in</AppLink>
+          )
+        }
+      />
+    );
+  return (
+    <div className="flex flex-col gap-4">
+      <FeedToolbar
+        refreshing={refreshing || pending}
+        onRefresh={() => startRefresh(() => router.refresh())}
+      >
+        {toolbar}
+      </FeedToolbar>
+      <NavigationPendingRegion pending={pending} className="flex flex-col gap-4">
+        {error && (
+          <div role="alert">
+            Couldn’t load feed activity.{" "}
+            <Button size="sm" onPress={onRetry}>
+              Retry
+            </Button>
+          </div>
+        )}
+        {initialPage ? (
+          <FeedResults key={view} initialPage={initialPage} view={view} hasFriends={hasFriends} />
+        ) : error ? null : (
+          <SkeletonListRows rows={8} />
+        )}
+      </NavigationPendingRegion>
+    </div>
+  );
+}
+
+function FeedResults({ initialPage, view, hasFriends }: FeedResultProps) {
   const { items, hasMore, loadingMore, loadMoreFailed, loadMore } = usePagedList<FeedDay, null>({
     initialItems: initialPage.days,
     initialHasMore: initialPage.hasMore,
@@ -55,26 +105,9 @@ export function FeedList({
       return { items: page.days, hasMore: page.hasMore, meta: null };
     },
   });
-  if (session !== undefined && session?.user.id !== viewerId)
-    return (
-      <EmptyState
-        message={
-          session ? "Your account changed. Refresh to see your feed." : "Sign in to see your feed."
-        }
-        cta={
-          session ? (
-            <Button onPress={() => router.refresh()}>Refresh feed</Button>
-          ) : (
-            <AppLink href={signInUrl("/feed")}>Sign in</AppLink>
-          )
-        }
-      />
-    );
   return (
-    <div className="flex flex-col gap-4">
-      <FeedToolbar refreshing={refreshing} onRefresh={() => startRefresh(() => router.refresh())}>
-        {toolbar}
-      </FeedToolbar>
+    <>
+      {" "}
       {items.length === 0 ? (
         <EmptyState
           message={
@@ -96,6 +129,6 @@ export function FeedList({
           )}
         </>
       )}
-    </div>
+    </>
   );
 }

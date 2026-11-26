@@ -3,6 +3,12 @@ export const TERMS_VERSIONS = [{ version: "2026-09-09", label: "September 9, 202
 export type TermsVersion = (typeof TERMS_VERSIONS)[number]["version"];
 export const TERMS_VERSION = TERMS_VERSIONS[0].version;
 export const TERMS_UPDATED_LABEL = TERMS_VERSIONS[0].label;
+export const CURRENT_TERMS_PROMPT = {
+  version: TERMS_VERSION,
+  versionLabel: TERMS_UPDATED_LABEL,
+  previousVersion: null,
+};
+
 export const TERMS_REQUIRED_MESSAGE =
   "Please agree to the current Terms of Service to create an account.";
 export const TERMS_ACCESS_MESSAGE =

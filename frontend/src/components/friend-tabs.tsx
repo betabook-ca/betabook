@@ -13,7 +13,7 @@ export function FriendTabs({ view, userId }: { view: FriendsView; userId: string
   useEffect(() => {
     if (previousView.current !== view) {
       previousView.current = view;
-      void requests.refresh();
+      void requests.refresh({ ifStale: true });
     }
   }, [view, requests]);
 
