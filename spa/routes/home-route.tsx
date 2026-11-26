@@ -1,173 +1,89 @@
-import { Button, Input, Label, TextField } from "@heroui/react";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
+import { Navigate, useSearchParams } from "react-router";
 
-import { formatGrade } from "@/lib/grades";
-import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
-import { areaHref, climbHref } from "@/lib/slug";
-import { peekBootstrapData } from "@/spa/bootstrap";
-import { fetchJson, type PublicAreaResult, type PublicClimb } from "@/spa/lib/fetch-json";
-import Link from "@/spa/shims/next-link";
-import { usePathname } from "@/spa/shims/next-navigation";
+import { LandingHero } from "@/components/landing-page";
+import { AppSearch } from "@/components/search/app-search";
+import { CARD_PADDING } from "@/components/ui/card";
+import { SectionHeading } from "@/components/ui/typography";
+import type { AreaSelection } from "@/lib/area-selection";
+import { LOGBOOK_PAGE } from "@/lib/landing-pages";
+import { parseSearchState, SEARCH_KINDS, SEARCH_PATH, type SearchSnapshot } from "@/lib/search";
+import { signUpUrl } from "@/lib/sign-in-redirect";
+import { searchParamsToRecord } from "@/lib/url-params";
+import { fetchJson } from "@/spa/lib/fetch-json";
 
-type HomeBootstrapPayload = {
-  climbs: PublicClimb[];
-  areas: PublicAreaResult[];
-};
+const EMPTY_HOME_SNAPSHOT: SearchSnapshot = SEARCH_KINDS.map((kind) => ({
+  kind,
+  page: { items: [], hasMore: false, nextPage: 1 },
+  status: "idle" as const,
+}));
 
-export default function HomeRoute() {
-  const pathname = usePathname();
-  const initial = peekBootstrapData("home", pathname) as HomeBootstrapPayload | null;
-  const [searchQuery, setSearchQuery] = useState("");
-  const [climbs, setClimbs] = useState<PublicClimb[]>(() => initial?.climbs ?? []);
-  const [areas, setAreas] = useState<PublicAreaResult[]>(() => initial?.areas ?? []);
-  const [loading, setLoading] = useState(() => initial === null);
-  const [error, setError] = useState<string | null>(null);
-  const [hasInitialData] = useState(() => initial !== null);
+export default function HomeRoute({ viewerId }: { viewerId: string | null }) {
+  const [searchParams] = useSearchParams();
+  const [resolvedArea, setResolvedArea] = useState<AreaSelection | null>(null);
+  const rawQuery = searchParams.toString();
 
-  const runSearch = useCallback(async (queryText: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const qs = new URLSearchParams();
-      if (queryText.trim()) {
-        qs.set("name", queryText.trim());
-      }
-      const prefix = qs.toString();
-      const climbUrl = `/api/public/search/climbs?${prefix}${prefix ? "&" : ""}limit=10`;
-      const areaUrl = `/api/public/search/areas?${prefix}${prefix ? "&" : ""}limit=8`;
-      const [climbRes, areaRes] = await Promise.all([
-        fetchJson<{ climbs: PublicClimb[] }>(climbUrl),
-        fetchJson<{ areas: PublicAreaResult[] }>(areaUrl),
-      ]);
-      setClimbs(climbRes.climbs);
-      setAreas(areaRes.areas);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load catalog");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const initialState = parseSearchState(searchParamsToRecord(searchParams), resolvedArea, "all");
+  const areaId = initialState.filter.areaId;
 
   useEffect(() => {
-    if (hasInitialData) {
+    if (areaId === undefined) {
       return;
     }
     let cancelled = false;
-    async function loadInitial() {
+    async function loadArea() {
       try {
-        const [climbRes, areaRes] = await Promise.all([
-          fetchJson<{ climbs: PublicClimb[] }>("/api/public/search/climbs?limit=10"),
-          fetchJson<{ areas: PublicAreaResult[] }>("/api/public/search/areas?limit=8"),
-        ]);
+        const res = await fetchJson<{
+          area: { id: number; name: string };
+          ancestors: { id: number; name: string }[];
+        }>(`/api/public/areas/${areaId}`);
         if (!cancelled) {
-          setClimbs(climbRes.climbs);
-          setAreas(areaRes.areas);
-          setError(null);
-          setLoading(false);
+          setResolvedArea({
+            id: String(res.area.id),
+            name: res.area.name,
+            path: res.ancestors.map((a) => a.name).join(" / "),
+          });
         }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load catalog");
-          setLoading(false);
-        }
+      } catch {
+        // Ignore unavailable area selection.
       }
     }
-    void loadInitial();
+    void loadArea();
     return () => {
       cancelled = true;
     };
-  }, [hasInitialData]);
+  }, [areaId]);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    void runSearch(searchQuery);
-  };
+  if (rawQuery) {
+    return <Navigate to={`${SEARCH_PATH}?${rawQuery}`} replace />;
+  }
 
   return (
-    <div className="flex flex-col gap-6">
-      <section className="rounded-xl border border-border bg-surface p-6">
-        <p className="text-xs font-medium tracking-wider text-muted uppercase">
-          Cloudflare Workers · Rust API + Vite SPA
-        </p>
-        <h1 className="mt-1 font-display text-3xl font-bold tracking-tight">{SITE_NAME}</h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted">{SITE_DESCRIPTION}</p>
-
-        <form onSubmit={handleSubmit} className="mt-5 flex flex-wrap items-end gap-3">
-          <TextField className="min-w-64 flex-1" value={searchQuery} onChange={setSearchQuery}>
-            <Label>Search climbs or crags</Label>
-            <Input placeholder="e.g. Highlands, Electric Fund" />
-          </TextField>
-          <Button type="submit" variant="primary" isDisabled={loading}>
-            {loading ? "Searching..." : "Search"}
-          </Button>
-        </form>
-      </section>
-
-      {error && (
-        <div
-          role="alert"
-          className="rounded-lg border border-border bg-surface-secondary px-4 py-3 text-sm text-danger"
-        >
-          {error}
-        </div>
-      )}
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <section className="rounded-xl border border-border bg-surface p-5">
-          <h2 className="font-display text-xl font-bold">Climbs</h2>
-          {climbs.length === 0 && !loading ? (
-            <p className="mt-3 text-sm text-muted">No matching climbs.</p>
-          ) : (
-            <ul role="list" className="mt-3 flex list-none flex-col gap-2">
-              {climbs.map((climb) => (
-                <li
-                  key={climb.id}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-separator bg-surface-secondary px-3 py-2"
-                >
-                  <div className="min-w-0">
-                    <Link
-                      href={climbHref(climb.id, climb.name)}
-                      className="link font-medium no-underline"
-                    >
-                      {climb.name}
-                    </Link>
-                    <p className="truncate text-xs text-muted">{climb.areaName}</p>
-                  </div>
-                  <span className="shrink-0 text-xs font-semibold text-muted">
-                    {formatGrade(climb.type, climb.grade)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section className="rounded-xl border border-border bg-surface p-5">
-          <h2 className="font-display text-xl font-bold">Areas</h2>
-          {areas.length === 0 && !loading ? (
-            <p className="mt-3 text-sm text-muted">No matching areas.</p>
-          ) : (
-            <ul role="list" className="mt-3 flex list-none flex-col gap-2">
-              {areas.map((area) => (
-                <li
-                  key={area.id}
-                  className="rounded-lg border border-separator bg-surface-secondary px-3 py-2"
-                >
-                  <Link
-                    href={areaHref(area.id, area.name)}
-                    className="link font-medium no-underline"
-                  >
-                    {area.name}
-                  </Link>
-                  {area.ancestorPath && (
-                    <p className="truncate text-xs text-muted">{area.ancestorPath}</p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
+    <div className={`flex flex-col gap-6 ${CARD_PADDING.fluid}`}>
+      <LandingHero
+        title="A free climbing logbook and crag database"
+        lead="Log bouldering, sport and trad sends and sessions, and search routes and problems below."
+        actions={
+          viewerId
+            ? [
+                { href: SEARCH_PATH, label: "Find climbs" },
+                { href: LOGBOOK_PAGE.path, label: "How Betabook works" },
+              ]
+            : [
+                { href: signUpUrl(), label: "Create a free account" },
+                { href: LOGBOOK_PAGE.path, label: "How Betabook works" },
+              ]
+        }
+      />
+      <SectionHeading className="mt-2">Search climbs and areas</SectionHeading>
+      <AppSearch
+        initialState={initialState}
+        initial={EMPTY_HOME_SNAPSHOT}
+        suggestions={null}
+        viewerId={viewerId}
+        defaultCategory="all"
+        showMemberNotice={false}
+      />
     </div>
   );
 }

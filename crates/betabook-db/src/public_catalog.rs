@@ -524,6 +524,12 @@ pub async fn search_public_climbs<D: DbExecutor>(
         params.push(DbParam::Int(options.min_ascents));
         conditions.push("climbs.send_count >= ?".to_string());
     }
+    if let Some(ref viewer_id) = options.exclude_sent_by {
+        params.push(DbParam::Text(viewer_id.clone()));
+        conditions.push(
+            "NOT EXISTS (SELECT 1 FROM sends excluded_send WHERE excluded_send.user_id = ? AND excluded_send.climb_id = climbs.id)".to_string(),
+        );
+    }
 
     let browse = options.name.is_empty()
         && options.area_name.as_deref().unwrap_or("").is_empty()

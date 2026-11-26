@@ -1,56 +1,45 @@
-import type { ClimbType } from "@/lib/grades";
+import type { AreaBreadcrumbs, ClimbSendStats, ClimbVideos, ClimbWithAreaName } from "@/db/queries";
+import type {
+  PublicArea,
+  PublicAreaDetails,
+  PublicClimb,
+  PublicClimbSend,
+  PublicClimbsPage,
+} from "@/lib/public-catalog";
 
-type PublicArea = {
-  id: number;
-  name: string;
-  parentId: number | null;
-};
-
-export type PublicAreaDetails = PublicArea & {
-  description: string | null;
-};
-
-export type PublicAreaResult = PublicAreaDetails & {
-  ancestorPath: string | null;
-};
-
-export type PublicClimb = {
-  id: number;
-  name: string;
+export type AreaPageData = {
   areaId: number;
-  areaName: string;
-  type: ClimbType;
-  grade: number | null;
-  description: string | null;
-  brokenOn: string | null;
-  avgRating: number | null;
-  sendCount: number;
+  query: string;
+  area: PublicAreaDetails;
+  ancestors: PublicAreaDetails[];
+  subareas: PublicArea[];
+  climbsPage: PublicClimbsPage;
+  memberClimbsPage?: {
+    climbs: ClimbWithAreaName[];
+    hasNextPage: boolean;
+    sendStats: Record<number, ClimbSendStats>;
+    areaBreadcrumbs: AreaBreadcrumbs;
+    sentClimbIds: number[];
+  };
 };
 
-export type PublicClimbSend = {
-  userName: string | null;
-  userImage: string | null;
-  dateSent: string | null;
-  ascentStyle: string;
-  rating: number | null;
-  suggestedGrade: number | null;
-  gradeFeel: string;
-  comment: string | null;
-  videos: string[] | null;
+export type ClimbPageData = {
+  climbId: number;
+  climb: PublicClimb;
+  area: PublicAreaDetails | null;
+  ancestors: PublicAreaDetails[];
+  publicSends: PublicClimbSend[];
+  videos: ClimbVideos;
 };
 
-export type AuthSession = {
-  session: {
-    id: string;
-    userId: string;
-  };
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    role: string | null;
-  };
-} | null;
+export type SearchBootstrapData = {
+  climbsPage: PublicClimbsPage;
+};
+
+export type AuthConfig = {
+  googleEnabled: boolean;
+  turnstileSiteKey: string | null;
+};
 
 export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {

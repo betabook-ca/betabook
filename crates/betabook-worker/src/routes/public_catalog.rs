@@ -8,6 +8,7 @@ use betabook_db::public_catalog::{
     get_public_area, get_public_area_trail, get_public_climb, get_public_sends_for_climb,
     get_public_subareas, resolve_public_subarea, search_public_areas, search_public_climbs,
 };
+use betabook_db::social::{CLIMB_VIDEO_LIMIT, get_climb_videos};
 use betabook_domain::public_catalog::{
     PublicArea, has_protected_catalog_params, parse_id, parse_public_catalog_options,
 };
@@ -121,9 +122,11 @@ pub async fn area_details(
             .into_response());
     };
     let trail = get_public_area_trail(state.db(), id).await?;
+    let ancestors = &trail[..trail.len().saturating_sub(1)];
     let subareas = get_public_subareas(state.db(), id).await?;
     Ok(Json(json!({
         "area": area,
+        "ancestors": ancestors,
         "trail": trail,
         "subareas": subareas,
     }))
@@ -150,11 +153,17 @@ pub async fn climb_details(
             .into_response());
     };
     let trail = get_public_area_trail(state.db(), climb.area_id).await?;
+    let area = trail.last().cloned();
+    let ancestors = &trail[..trail.len().saturating_sub(1)];
     let public_sends = get_public_sends_for_climb(state.db(), id).await?;
+    let videos = get_climb_videos(state.db(), id, None, CLIMB_VIDEO_LIMIT).await?;
     Ok(Json(json!({
         "climb": climb,
+        "area": area,
+        "ancestors": ancestors,
         "trail": trail,
         "publicSends": public_sends,
+        "videos": videos,
     }))
     .into_response())
 }
