@@ -23,7 +23,7 @@ assertion needs real rendering or native browser behavior. A click does not by
 itself require Playwright. Form submission and React keyboard
 handlers usually belong in jsdom. Use a browser when the assertion depends on
 native behavior or rendering: segmented date editing, pointer hit testing,
-scrolling, focus rings, portal clipping or actual Next.js navigation. DOM focus
+scrolling, focus rings, portal clipping or actual React Router navigation. DOM focus
 retention can be tested in jsdom; the painted ring and browser focus interactions
 still need Playwright.
 
@@ -70,7 +70,7 @@ files. These are Markdown instructions; runner configuration controls collection
   await them. Use `fireEvent` only when a specific event cannot be reached through
   `user-event`, and explain the reason. Assert values, identities, callback
   arguments, errors and state changes that matter to a caller or user.
-- Mock external boundaries such as transport, Next.js navigation, an invoked
+- Mock external boundaries such as transport, React Router navigation, an invoked
   server action or a browser API. `RouterLink` is already a plain anchor in
   both projects ([test/setup-router-link.ts](../test/setup-router-link.ts)); mock
   it again only to observe it, spreading `@/test/router-link`. A mocked save callback proves what the form
