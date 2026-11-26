@@ -6,8 +6,8 @@ import { LoadMoreButton } from "@/components/ui/load-more-button";
 import { SectionHeading } from "@/components/ui/typography";
 import type { FriendRow, FriendsPage } from "@/db/queries";
 import { usePagedList } from "@/hooks/use-paged-list";
-import { apiFetch } from "@/lib/api-client";
 import { FRIENDS_PAGE_SIZE } from "@/lib/page-sizes";
+import { fetchApi } from "@/spa/lib/api";
 
 export function FriendList({
   initialPage,
@@ -29,12 +29,12 @@ export function FriendList({
         const page = await fetchPage(offset, signal);
         return { items: page.friends, hasMore: page.hasMore, meta: null };
       }
-      const response = await apiFetch(
-        `/api/friends?offset=${offset}&view=${requestsOnly ? "requests" : "all"}`,
-        { cache: "no-store", signal },
-      );
-      if (!response.ok) throw new Error("Couldn't load friends");
-      const page = await response.json<FriendsPage>();
+      const page = await fetchApi("/api/friends", {
+        query: { offset, view: requestsOnly ? "requests" : "all" },
+        signal,
+        sessionEvents: true,
+      });
+      if (!("friends" in page)) throw new Error("Couldn’t load friends");
       return { items: page.friends, hasMore: page.hasMore, meta: null };
     },
   });

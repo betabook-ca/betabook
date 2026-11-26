@@ -1,6 +1,5 @@
-import { apiFetch } from "@/lib/api-client";
-import type { PublicAreaResult } from "@/lib/public-catalog";
 import { DEFAULT_SUGGESTION_LIMIT } from "@/lib/url-params";
+import { fetchApi } from "@/spa/lib/api";
 
 export type AreaSuggestion = {
   id: number;
@@ -25,10 +24,11 @@ export async function fetchAreaSuggestions(
 ): Promise<AreaSuggestion[]> {
   const params = new URLSearchParams({ name: query, limit: String(DEFAULT_SUGGESTION_LIMIT) });
 
-  const res = await apiFetch(`/api/public/search/areas?${params.toString()}`, { signal });
-  if (!res.ok) throw new Error(`Area suggestions failed: ${res.status}`);
-  const data: { areas: PublicAreaResult[] } = await res.json();
-
+  const data = await fetchApi("/api/public/search/areas", {
+    query: params,
+    signal,
+    sessionEvents: true,
+  });
   return data.areas.map((area) => ({
     id: area.id,
     name: area.name,

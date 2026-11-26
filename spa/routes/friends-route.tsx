@@ -5,17 +5,11 @@ import { AuthCallout } from "@/components/auth-callout";
 import { FriendsContent } from "@/components/friends-content";
 import { SkeletonListRows } from "@/components/ui/skeleton";
 import { WorkspaceShell } from "@/components/workspace-shell";
-import type { FriendsPage, SuggestedClimberRow } from "@/db/queries";
-import { parseFriendsView, type FriendsView } from "@/lib/friendships";
-import { fetchJson } from "@/spa/lib/fetch-json";
+import { parseFriendsView } from "@/lib/friendships";
+import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
 
-type FriendsPayload = {
-  viewerId: string;
-  view: FriendsView;
-  page: FriendsPage;
-  suggestions: SuggestedClimberRow[] | null;
-};
+type FriendsPayload = ApiResponse<"/api/pages/friends"> & { viewerId: string };
 
 export default function FriendsRoute({ viewerId }: { viewerId: string | null }) {
   const [searchParams] = useSearchParams();
@@ -36,11 +30,7 @@ export default function FriendsRoute({ viewerId }: { viewerId: string | null }) 
     let cancelled = false;
     async function load() {
       try {
-        const res = await fetchJson<{
-          view: FriendsView;
-          page: FriendsPage;
-          suggestions: SuggestedClimberRow[] | null;
-        }>(`/api/pages/friends?view=${encodeURIComponent(view)}`);
+        const res = await fetchApi("/api/pages/friends", { query: { view } });
         if (!cancelled) {
           setError(null);
           setData({ viewerId: targetViewer, ...res });

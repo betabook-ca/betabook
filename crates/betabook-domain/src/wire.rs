@@ -44,3 +44,10 @@ pub enum TourStatus {
     Completed,
     Dismissed,
 }
+
+#[derive(JsonSchema)]
+pub struct AscentStyleCounts {
+    pub flash: i64,
+    pub redpoint: i64,
+    pub onsight: i64,
+}

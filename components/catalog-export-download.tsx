@@ -5,6 +5,7 @@ import { SettingsRow } from "@/components/ui/settings";
 import type { CatalogExportInfo } from "@/lib/catalog-export";
 import { formatCount } from "@/lib/format";
 import { formatDate } from "@/lib/format-date";
+import { apiUrl } from "@/spa/lib/api";
 
 /** The /account row for the weekly catalog snapshot. A plain anchor with
  * `download` rather than AppLink: the target is a route handler that returns
@@ -21,7 +22,7 @@ export function CatalogExportDownload({ info }: { info: CatalogExportInfo | null
     >
       {info && (
         <a
-          href="/api/catalog/export"
+          href={apiUrl("/api/catalog/export", {})}
           download
           className={`${buttonVariants({ variant: "outline" })} gap-2 text-foreground`}
         >

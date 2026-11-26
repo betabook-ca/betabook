@@ -6,17 +6,11 @@ import { FeedActivityNav } from "@/components/feed-activity-nav";
 import { FeedList } from "@/components/feed-list";
 import { SkeletonListRows } from "@/components/ui/skeleton";
 import { WorkspaceShell } from "@/components/workspace-shell";
-import type { FeedPage } from "@/db/queries";
-import { parseFeedView, type FeedView } from "@/lib/feed";
-import { fetchJson } from "@/spa/lib/fetch-json";
+import { parseFeedView } from "@/lib/feed";
+import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
 
-type FeedPayload = {
-  viewerId: string;
-  view: FeedView;
-  page: FeedPage;
-  hasFriends: boolean;
-};
+type FeedPayload = ApiResponse<"/api/pages/feed"> & { viewerId: string };
 
 export default function FeedRoute({ viewerId }: { viewerId: string | null }) {
   const [searchParams] = useSearchParams();
@@ -37,9 +31,7 @@ export default function FeedRoute({ viewerId }: { viewerId: string | null }) {
     let cancelled = false;
     async function load() {
       try {
-        const res = await fetchJson<{ view: FeedView; page: FeedPage; hasFriends: boolean }>(
-          `/api/pages/feed?view=${encodeURIComponent(view)}`,
-        );
+        const res = await fetchApi("/api/pages/feed", { query: { view } });
         if (!cancelled) {
           setError(null);
           setData({ viewerId: targetViewer, ...res });

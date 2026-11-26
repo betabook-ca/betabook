@@ -21,43 +21,20 @@ import { RatingStars } from "@/components/ui/rating-stars";
 import { Skeleton, SkeletonListRows } from "@/components/ui/skeleton";
 import { StatStrip } from "@/components/ui/stat-strip";
 import { PageTitle, SectionHeading } from "@/components/ui/typography";
-import type {
-  Climb,
-  ClimbSendsPage,
-  ClimbSendSummary,
-  ClimbVideos,
-  EditableSend,
-  JournalEntry,
-} from "@/db/queries";
 import { missingDescriptionMessage } from "@/lib/descriptions";
 import { buildLoggedGradeRows } from "@/lib/grade-histogram";
 import { formatGrade } from "@/lib/grades";
-import type { PublicAreaDetails, PublicClimb, PublicClimbSend } from "@/lib/public-catalog";
 import { ASCENT_STYLE_LABELS, type AscentStyle } from "@/lib/sends";
 import { climbHref, withQuery } from "@/lib/slug";
 import { searchParamsToRecord } from "@/lib/url-params";
 import { peekBootstrapData } from "@/spa/bootstrap";
+import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
-import {
-  fetchJson,
-  isNotFoundError,
-  parsePositiveId,
-  type ClimbPageData,
-} from "@/spa/lib/fetch-json";
+import { isNotFoundError, parsePositiveId, type ClimbPageData } from "@/spa/lib/fetch-json";
 import { usePathname } from "@/spa/lib/navigation";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
 
-type MemberClimbPayload = {
-  climbId: number;
-  climb: Climb;
-  area: PublicAreaDetails | null;
-  ancestors: PublicAreaDetails[];
-  userSend: EditableSend | null;
-  summary: ClimbSendSummary;
-  journalEntries: JournalEntry[];
-  videos: ClimbVideos;
-  sendsPage: ClimbSendsPage;
-};
+type MemberClimbPayload = ApiResponse<"/api/pages/climbs/{id}"> & { climbId: number };
 
 function ClimbLoadingSkeleton() {
   return (
@@ -105,13 +82,7 @@ function PublicClimbView({ climbId }: { climbId: number }) {
     let cancelled = false;
     async function loadPublic() {
       try {
-        const res = await fetchJson<{
-          climb: PublicClimb;
-          area: PublicAreaDetails | null;
-          ancestors: PublicAreaDetails[];
-          publicSends: PublicClimbSend[];
-          videos?: ClimbVideos;
-        }>(`/api/public/climbs/${climbId}`);
+        const res = await fetchApi("/api/public/climbs/{id}", { path: { id: String(climbId) } });
         if (!cancelled) {
           setError(null);
           setNotFound(false);
@@ -211,9 +182,7 @@ function MemberClimbView({ climbId, viewerId }: { climbId: number; viewerId: str
     let cancelled = false;
     async function loadMember() {
       try {
-        const payload = await fetchJson<Omit<MemberClimbPayload, "climbId">>(
-          `/api/pages/climbs/${climbId}`,
-        );
+        const payload = await fetchApi("/api/pages/climbs/{id}", { path: { id: String(climbId) } });
         if (!cancelled) {
           setError(null);
           setNotFound(false);

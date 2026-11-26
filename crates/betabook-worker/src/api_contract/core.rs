@@ -11,7 +11,7 @@ use betabook_db::{
     auth::AuthSession,
     feed::FeedPage,
     journal::JournalEntry,
-    member_catalog::{AreaWithSubtreeSize, ClimbListChoice, ClimbRecord, GradeHistogramRow},
+    member_catalog::{AreaWithSubtreeSize, ClimbRecord, GradeHistogramRow},
     sends::{ClimbSendSummary, ClimbSendsPage, EditableSend},
     social::{
         ClimbSendStats, ClimbVideos, ClimbersPage, CompanionOption, FriendsPage, ProductTourState,
@@ -80,7 +80,6 @@ envelope!(AreaChoice {
     ancestor_path: String
 });
 envelope!(NewClimbPage {selected_area:Option<AreaChoice>});
-envelope!(ClimbLists { lists:Vec<ClimbListChoice> });
 envelope!(PendingFriendCount {
     user_id: String,
     count: i64
@@ -219,7 +218,13 @@ fn catalog_query(api: &mut ApiSpec, path: &str, member: bool, climbs: bool) {
     }
     api.query(path, "get", "areaName", string.clone(), false);
     if climbs {
-        for name in ["discipline", "boulderRange", "sportRange", "tradRange"] {
+        for name in [
+            "discipline",
+            "boulderRange",
+            "sportRange",
+            "tradRange",
+            "ratingRange",
+        ] {
             api.query(path, "get", name, array.clone(), false);
         }
         api.query(path, "get", "minAscents", integer, false);
@@ -339,7 +344,6 @@ pub(super) fn register(api: &mut ApiSpec) {
     let member_climbs = api.schema::<MemberClimbs>();
     api.get("/api/areas/{id}/climbs","memberAreaClimbs",json!({"allOf":[member_climbs,{"type":"object","properties":{"page":{"type":"integer"},"pageSize":{"type":"integer"}}}]}));
     get!("/api/climbs/{id}/sends", "climbSends", ClimbSendsPage);
-    get!("/api/climbs/{id}/lists", "climbListChoices", ClimbLists);
     get!("/api/pages/areas/{id}", "memberAreaPage", MemberAreaPage);
     get!("/api/pages/climbs/{id}", "memberClimbPage", MemberClimbPage);
     get!("/api/pages/climbs/new", "newClimbPage", NewClimbPage);
@@ -389,7 +393,7 @@ pub(super) fn register(api: &mut ApiSpec) {
         "/api/friends",
         "get",
         "view",
-        json!({"enum":["count","requests","friends"]}),
+        json!({"enum":["count","requests","friends","all"]}),
         false,
     );
     api.query(

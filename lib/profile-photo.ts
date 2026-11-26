@@ -1,3 +1,4 @@
+import type { paths } from "@/spa/generated/api";
 /** Everything about an uploaded profile photo that touches no binding: what
  * the app accepts, what it stores, and how a stored object travels in
  * `user.image`.
@@ -40,7 +41,8 @@ export const MAX_SOURCE_PHOTO_BYTES = 16 * 1024 * 1024;
 
 export const ACCEPTED_PROFILE_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
-const PROFILE_PHOTO_PATH_PREFIX = "/api/avatars/";
+const AVATAR_ROUTE = "/api/avatars/{key}" satisfies keyof paths;
+const PROFILE_PHOTO_PATH_PREFIX = AVATAR_ROUTE.slice(0, -"{key}".length);
 const MB = 1024 * 1024;
 export const PROFILE_PHOTO_TOO_LARGE_MESSAGE = `That photo is too large — pick one under ${MAX_PROFILE_PHOTO_BYTES / MB} MB.`;
 export const SOURCE_PHOTO_TOO_LARGE_MESSAGE = `That photo is too large — pick one under ${MAX_SOURCE_PHOTO_BYTES / MB} MB.`;

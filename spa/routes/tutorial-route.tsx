@@ -16,7 +16,7 @@ import {
   productTourContinuationPath,
   productTourPath,
 } from "@/lib/product-tour-navigation";
-import { fetchJson } from "@/spa/lib/fetch-json";
+import { fetchApi } from "@/spa/lib/api";
 
 import NotFoundPage from "./not-found-route";
 
@@ -28,7 +28,7 @@ function MemberTutorial({ tour, viewerId }: { tour: ProductTourDefinition; viewe
     const controller = new AbortController();
     async function load() {
       try {
-        const state = await fetchJson<ProductTourState>("/api/pages/tutorial", {
+        const state = await fetchApi("/api/pages/tutorial", {
           signal: controller.signal,
         });
         if (!controller.signal.aborted) setProgress(state.progress);

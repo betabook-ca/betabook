@@ -150,6 +150,10 @@ pub struct ClimbSendSummary {
     pub avg_rating: Option<f64>,
     pub send_count: i64,
     pub avg_suggested_grade: Option<f64>,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "betabook_domain::wire::AscentStyleCounts")
+    )]
     pub style_breakdown: BTreeMap<String, i64>,
     pub suggested_grade_counts: Vec<SuggestedGradeCount>,
 }

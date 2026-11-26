@@ -3,26 +3,10 @@ import { useEffect, useState } from "react";
 import { AccountSettings } from "@/components/account-settings";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { Skeleton, SkeletonListRows } from "@/components/ui/skeleton";
-import type { CatalogExportInfo } from "@/lib/catalog-export";
-import type { GradePreferences } from "@/lib/grades";
-import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
-import { fetchJson } from "@/spa/lib/fetch-json";
+import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
 
-type AccountPayload = {
-  viewerId: string;
-  user: { id: string; name: string; email: string; image?: string | null };
-  isPrivate: boolean;
-  journalVisibility: SharingAudience;
-  sendCommentVisibility: SendCommentAudience;
-  tripVisibility: SharingAudience;
-  climbListVisibility: SharingAudience;
-  gradePreferences: GradePreferences;
-  shareUrl: string | null;
-  turnstileSiteKey?: string | null;
-  catalogExport: CatalogExportInfo | null;
-  isAdmin: boolean;
-};
+type AccountPayload = ApiResponse<"/api/pages/account"> & { viewerId: string };
 
 export default function AccountRoute({ viewerId }: { viewerId: string | null }) {
   const refreshKey = useRouterRefreshKey();
@@ -39,7 +23,7 @@ export default function AccountRoute({ viewerId }: { viewerId: string | null }) 
     let cancelled = false;
     async function load() {
       try {
-        const res = await fetchJson<Omit<AccountPayload, "viewerId">>("/api/pages/account");
+        const res = await fetchApi("/api/pages/account", {});
         if (!cancelled) {
           setError(null);
           setData({ viewerId: targetViewer, ...res });

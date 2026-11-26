@@ -13,6 +13,7 @@ import {
   type ParsedCsv,
 } from "@/lib/sends-import";
 import { importTooLargeMessage, SUPPORT_EMAIL } from "@/lib/support";
+import { apiUrl } from "@/spa/lib/api";
 
 const FORMAT_ERROR = `Mountain Project returned an unfamiliar tick export. Download it as a CSV and upload that file instead, or email ${SUPPORT_EMAIL}.`;
 const SIZE_ERROR = importTooLargeMessage("Mountain Project tick list");
@@ -71,7 +72,7 @@ export async function fetchMountainProjectImport(
   signal.throwIfAborted();
   let response: Response;
   try {
-    response = await apiFetch(`/api/import/mountain-project?userId=${userId}`, {
+    response = await apiFetch(apiUrl("/api/import/mountain-project", { query: { userId } }), {
       signal,
       credentials: "same-origin",
       cache: "no-store",

@@ -15,14 +15,7 @@ import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { SidebarLayout } from "@/components/ui/page-shell";
 import { Skeleton, SkeletonListRows } from "@/components/ui/skeleton";
 import { PageTitle, SectionHeading } from "@/components/ui/typography";
-import type {
-  Area,
-  AreaBreadcrumbs as AreaBreadcrumbsMap,
-  ClimbSendStats,
-  ClimbWithAreaName,
-  GradeHistogramRow,
-  SubtreeClimbsSort,
-} from "@/db/queries";
+import type { SubtreeClimbsSort } from "@/db/queries";
 import { missingDescriptionMessage } from "@/lib/descriptions";
 import {
   type AreaClimbsFilter,
@@ -35,8 +28,9 @@ import type { PublicArea, PublicAreaDetails, PublicClimbsPage } from "@/lib/publ
 import { areaHref, withQuery } from "@/lib/slug";
 import { searchParamsToRecord, type UrlParamsRecord } from "@/lib/url-params";
 import { peekBootstrapData } from "@/spa/bootstrap";
+import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
-import { fetchJson, isNotFoundError, parsePositiveId } from "@/spa/lib/fetch-json";
+import { isNotFoundError, parsePositiveId } from "@/spa/lib/fetch-json";
 import { usePathname } from "@/spa/lib/navigation";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
 
@@ -48,21 +42,7 @@ type AreaBootstrap = {
   climbsPage: PublicClimbsPage;
 };
 
-type MemberAreaPayload = {
-  areaId: number;
-  query: string;
-  area: Area & { largeSubtree: boolean };
-  ancestors: PublicAreaDetails[];
-  subareas: PublicArea[];
-  gradeHistogramRows: GradeHistogramRow[];
-  climbsPage: {
-    climbs: ClimbWithAreaName[];
-    hasNextPage: boolean;
-    sendStats: Record<number, ClimbSendStats>;
-    areaBreadcrumbs: AreaBreadcrumbsMap;
-    sentClimbIds: number[];
-  };
-};
+type MemberAreaPayload = ApiResponse<"/api/pages/areas/{id}"> & { areaId: number; query: string };
 
 type PublicAreaPayload = {
   areaId: number;
@@ -136,12 +116,11 @@ function PublicAreaView({
     async function loadPublic() {
       try {
         const [details, climbsPage] = await Promise.all([
-          fetchJson<{
-            area: PublicAreaDetails;
-            ancestors: PublicAreaDetails[];
-            subareas: PublicArea[];
-          }>(`/api/public/areas/${areaId}`),
-          fetchJson<PublicClimbsPage>(`/api/public/areas/${areaId}/climbs?${canonicalQuery}`),
+          fetchApi("/api/public/areas/{id}", { path: { id: String(areaId) } }),
+          fetchApi("/api/public/areas/{id}/climbs", {
+            path: { id: String(areaId) },
+            query: new URLSearchParams(canonicalQuery + subareaSuffix),
+          }),
         ]);
         if (!cancelled) {
           setError(null);
@@ -250,9 +229,10 @@ function MemberAreaView({
 
     async function loadMember() {
       try {
-        const payload = await fetchJson<Omit<MemberAreaPayload, "areaId" | "query">>(
-          `/api/pages/areas/${areaId}${queryPart}`,
-        );
+        const payload = await fetchApi("/api/pages/areas/{id}", {
+          path: { id: String(areaId) },
+          query: new URLSearchParams(queryPart),
+        });
         if (!cancelled) {
           setError(null);
           setNotFound(false);

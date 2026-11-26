@@ -5,9 +5,9 @@ import type { ReactNode } from "react";
 import { ClimbSendListRow } from "@/components/climb-send-list-row";
 import { SendActionsMenu } from "@/components/send-actions-menu";
 import { SendListShell } from "@/components/send-list-shell";
-import type { Climb, ClimbSendRow, ClimbSendsPage } from "@/db/queries";
+import type { Climb, ClimbSendRow } from "@/db/queries";
 import { usePagedList } from "@/hooks/use-paged-list";
-import { apiFetch } from "@/lib/api-client";
+import { fetchApi } from "@/spa/lib/api";
 
 type ClimbSendListProps = {
   climb: Climb;
@@ -40,12 +40,12 @@ export function ClimbSendList({
     mergeMeta: () => null,
     fetchPage: async (offset, _page, _last, signal) => {
       const params = new URLSearchParams({ offset: String(offset) });
-      const res = await apiFetch(`/api/climbs/${climb.id}/sends?${params.toString()}`, {
-        cache: "no-store",
+      const data = await fetchApi("/api/climbs/{id}/sends", {
+        path: { id: String(climb.id) },
+        query: params,
         signal,
+        sessionEvents: true,
       });
-      if (!res.ok) throw new Error(`Loading sends failed: ${res.status}`);
-      const data: ClimbSendsPage = await res.json();
       return { items: data.sends, hasMore: data.hasMore, meta: null };
     },
   });
