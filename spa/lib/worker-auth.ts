@@ -116,7 +116,9 @@ export function createWorkerAuthClient(transport: typeof fetch = (...args) => fe
           body: JSON.stringify({ ...body, ...options.body }),
         });
         if (!response.ok) {
-          options.onError?.({ error: await response.json<AuthError>() });
+          const error = await response.json<AuthError>();
+          options.onError?.({ error: { code: error.code, message: error.message ?? error.error } });
+
           return;
         }
         const data = await response.json<AuthResult<P>>();
