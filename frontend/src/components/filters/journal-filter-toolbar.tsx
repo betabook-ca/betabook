@@ -41,6 +41,7 @@ function href(base: string, filter: JournalFilter): string {
 /** Year and climb filters have no control here; their active-filter chips are the only way to clear them. */
 export function JournalFilterToolbar({
   userId,
+  basePath,
   filter,
   climbName,
   tags,
@@ -48,13 +49,14 @@ export function JournalFilterToolbar({
   friends = NO_FRIENDS,
 }: {
   userId: string;
+  basePath?: string;
   filter: JournalFilter;
   climbName: string | null;
   tags: string[];
   isOwner?: boolean;
   friends?: CompanionOption[];
 }) {
-  const base = `/users/${userId}/journal`;
+  const base = basePath ?? `/users/${userId}/journal`;
   const {
     filter: localFilter,
     setFilter,

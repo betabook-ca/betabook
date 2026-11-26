@@ -20,6 +20,7 @@ type JournalTimelineProps = {
   initialAreaBreadcrumbs: AreaBreadcrumbs;
   isOwner: boolean;
   hasAnyEntries: boolean;
+  pending?: boolean;
 };
 
 const MONTH_FORMAT = new Intl.DateTimeFormat("en-US", {
@@ -40,6 +41,7 @@ export function JournalTimeline({
   initialAreaBreadcrumbs,
   isOwner,
   hasAnyEntries,
+  pending = false,
 }: JournalTimelineProps) {
   const { items, hasMore, meta, loadingMore, loadMoreFailed, loadMore } = usePagedList<
     JournalEntry,
@@ -58,25 +60,27 @@ export function JournalTimeline({
 
   if (items.length === 0) {
     return (
-      <EmptyState
-        message={hasAnyEntries ? "No entries match these filters." : "No entries yet."}
-        cta={
-          isOwner && !hasAnyEntries ? (
-            <div className="flex flex-col items-center gap-3">
-              <LogEntryButton />
-              <AppLink href="/account/import" className="text-sm">
-                Import your sends
-              </AppLink>
-            </div>
-          ) : undefined
-        }
-      />
+      <NavigationPendingRegion pending={pending}>
+        <EmptyState
+          message={hasAnyEntries ? "No entries match these filters." : "No entries yet."}
+          cta={
+            isOwner && !hasAnyEntries ? (
+              <div className="flex flex-col items-center gap-3">
+                <LogEntryButton />
+                <AppLink href="/account/import" className="text-sm">
+                  Import your sends
+                </AppLink>
+              </div>
+            ) : undefined
+          }
+        />
+      </NavigationPendingRegion>
     );
   }
 
   return (
-    <NavigationPendingRegion className="flex flex-col gap-4">
-      <ul role="list" className="flex flex-col">
+    <NavigationPendingRegion pending={pending} className="flex flex-col gap-4">
+      <ul inert={pending} role="list" className="flex flex-col">
         {items.map((entry, index) => {
           const month = monthLabel(entry.entryDate);
           const newMonth = index === 0 || month !== monthLabel(items[index - 1].entryDate);
@@ -102,7 +106,7 @@ export function JournalTimeline({
           );
         })}
       </ul>
-      {hasMore && (
+      {hasMore && !pending && (
         <LoadMoreButton onPress={loadMore} loading={loadingMore} failed={loadMoreFailed} />
       )}
     </NavigationPendingRegion>

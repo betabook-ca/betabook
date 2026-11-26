@@ -164,11 +164,19 @@ export function SpaJournalView({
   isOwner,
   filter,
   data,
+  resultsFilter = filter,
+  pending = false,
+  loadError,
+  basePath,
 }: {
   ownerId: string;
   isOwner: boolean;
   filter: JournalFilter;
   data: JournalViewPayload;
+  resultsFilter?: JournalFilter;
+  pending?: boolean;
+  loadError?: string | null;
+  basePath?: string;
 }) {
   return (
     <NavigationPendingProvider>
@@ -178,23 +186,29 @@ export function SpaJournalView({
         {data.hasEntries && (
           <JournalFilterToolbar
             userId={ownerId}
+            basePath={basePath}
             tags={data.tags}
             isOwner={isOwner}
             friends={data.friends}
             filter={filter}
-            climbName={data.filteredClimbName}
+            climbName={filter.climbId === resultsFilter.climbId ? data.filteredClimbName : null}
           />
         )}
-        <JournalTimeline
-          key={JSON.stringify(filter)}
-          userId={ownerId}
-          filter={filter}
-          initialEntries={data.firstPage.entries}
-          initialHasMore={data.firstPage.hasMore}
-          initialAreaBreadcrumbs={data.areaBreadcrumbs}
-          isOwner={isOwner}
-          hasAnyEntries={data.hasEntries}
-        />
+        {loadError ? (
+          <p role="alert">{loadError}</p>
+        ) : (
+          <JournalTimeline
+            key={JSON.stringify(resultsFilter)}
+            pending={pending}
+            userId={ownerId}
+            filter={resultsFilter}
+            initialEntries={data.firstPage.entries}
+            initialHasMore={data.firstPage.hasMore}
+            initialAreaBreadcrumbs={data.areaBreadcrumbs}
+            isOwner={isOwner}
+            hasAnyEntries={data.hasEntries}
+          />
+        )}
       </div>
     </NavigationPendingProvider>
   );
