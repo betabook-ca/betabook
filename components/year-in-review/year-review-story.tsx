@@ -37,7 +37,7 @@ const MONTH_LABELS = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"
 type YearReviewStoryMode =
   /** The owner's page: share images, logging links and the footnote. */
   | "owner"
-  /** A link: the same recap without the owner's actions or tagged partners. */
+  /** A link: the same recap without the owner's actions and logging nudges. */
   | "shared";
 
 type StoryProps = {
@@ -557,6 +557,91 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
     );
   }
 
+  sections.push(
+    chapter(
+      "pyramids",
+      "Grade pyramids",
+      c.pyramids.disciplines.length ? (
+        <div className="flex flex-col gap-6">
+          {c.pyramids.disciplines.map((entry) => {
+            const total = entry.rows.reduce((sum, row) => sum + row.count, 0);
+            return (
+              <div key={entry.type} className="flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-3">
+                  <DisciplineChip type={entry.type} />
+                  <span className="text-xs text-muted">{plural(total, "send")}</span>
+                </div>
+                <VerticalPyramid type={entry.type} rows={entry.rows} marked={entry.marked} />
+                {total < 5 && nudge("Log more sends to fill out your pyramid.")}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <>
+          <div
+            aria-hidden="true"
+            className="mx-auto flex w-48 flex-col items-center gap-1 opacity-40"
+          >
+            {[30, 55, 80, 100].map((width) => (
+              <div
+                key={width}
+                className="h-3 rounded-xs bg-surface-tertiary"
+                style={{ width: `${width}%` }}
+              />
+            ))}
+          </div>
+          {nudge("Log more sends to fill out your pyramid.")}
+        </>
+      ),
+    ),
+  );
+
+  if (c.styles) {
+    sections.push(
+      chapter(
+        "styles",
+        "Send breakdown",
+        <div className="flex flex-col gap-4">
+          {c.styles.disciplines.map((entry) => {
+            const segments = [
+              { label: "Onsight", value: entry.onsight, className: "bg-(--color-palette-support)" },
+              { label: "Flash", value: entry.flash, className: "bg-(--color-palette-primary)" },
+              {
+                label: "Redpoint",
+                value: entry.redpoint,
+                className: "bg-(--color-palette-accent)",
+              },
+              { label: "Repeat", value: entry.repeat, className: "bg-surface-tertiary" },
+            ].filter((segment) => segment.value > 0);
+            const total = segments.reduce((sum, segment) => sum + segment.value, 0);
+            return (
+              <div key={entry.type} className="flex flex-col gap-2">
+                <DisciplineChip type={entry.type} />
+                <div className="flex h-4 overflow-hidden rounded-full" aria-hidden="true">
+                  {segments.map((segment) => (
+                    <div
+                      key={segment.label}
+                      className={segment.className}
+                      style={{ width: `${(segment.value / total) * 100}%` }}
+                    />
+                  ))}
+                </div>
+                <p className="text-xs text-muted">
+                  {segments
+                    .map(
+                      (segment) => `${segment.label} ${Math.round((segment.value / total) * 100)}%`,
+                    )
+                    .join(" · ")}
+                </p>
+              </div>
+            );
+          })}
+        </div>,
+      ),
+    );
+  }
+
   if (c.newGrades) {
     sections.push(
       chapter(
@@ -638,92 +723,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
     );
   }
 
-  if (c.styles) {
-    sections.push(
-      chapter(
-        "styles",
-        "Send breakdown",
-        <div className="flex flex-col gap-4">
-          {c.styles.disciplines.map((entry) => {
-            const segments = [
-              { label: "Onsight", value: entry.onsight, className: "bg-(--color-palette-support)" },
-              { label: "Flash", value: entry.flash, className: "bg-(--color-palette-primary)" },
-              {
-                label: "Redpoint",
-                value: entry.redpoint,
-                className: "bg-(--color-palette-accent)",
-              },
-              { label: "Repeat", value: entry.repeat, className: "bg-surface-tertiary" },
-            ].filter((segment) => segment.value > 0);
-            const total = segments.reduce((sum, segment) => sum + segment.value, 0);
-            return (
-              <div key={entry.type} className="flex flex-col gap-2">
-                <DisciplineChip type={entry.type} />
-                <div className="flex h-4 overflow-hidden rounded-full" aria-hidden="true">
-                  {segments.map((segment) => (
-                    <div
-                      key={segment.label}
-                      className={segment.className}
-                      style={{ width: `${(segment.value / total) * 100}%` }}
-                    />
-                  ))}
-                </div>
-                <p className="text-xs text-muted">
-                  {segments
-                    .map(
-                      (segment) => `${segment.label} ${Math.round((segment.value / total) * 100)}%`,
-                    )
-                    .join(" · ")}
-                </p>
-              </div>
-            );
-          })}
-        </div>,
-      ),
-    );
-  }
-
-  sections.push(
-    chapter(
-      "pyramids",
-      "Grade pyramids",
-      c.pyramids.disciplines.length ? (
-        <div className="flex flex-col gap-6">
-          {c.pyramids.disciplines.map((entry) => {
-            const total = entry.rows.reduce((sum, row) => sum + row.count, 0);
-            return (
-              <div key={entry.type} className="flex flex-col gap-2">
-                <div className="flex items-center justify-between gap-3">
-                  <DisciplineChip type={entry.type} />
-                  <span className="text-xs text-muted">{plural(total, "send")}</span>
-                </div>
-                <VerticalPyramid type={entry.type} rows={entry.rows} marked={entry.marked} />
-                {total < 5 && nudge("Log more sends to fill out your pyramid.")}
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <>
-          <div
-            aria-hidden="true"
-            className="mx-auto flex w-48 flex-col items-center gap-1 opacity-40"
-          >
-            {[30, 55, 80, 100].map((width) => (
-              <div
-                key={width}
-                className="h-3 rounded-xs bg-surface-tertiary"
-                style={{ width: `${width}%` }}
-              />
-            ))}
-          </div>
-          {nudge("Log more sends to fill out your pyramid.")}
-        </>
-      ),
-    ),
-  );
-
-  if (c.partner && owner) {
+  if (c.partner) {
     sections.push(
       chapter(
         "partner",

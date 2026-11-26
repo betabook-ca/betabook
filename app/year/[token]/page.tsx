@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 /**
  * A year-in-review link: the recap as its owner sees it, without the owner's
- * actions and without tagged partners, who never saw the share dialog.
+ * actions. The Share dialog tells the owner it includes their top partners.
  * Holding the token is the permission; every read re-checks it in SQL.
  */
 export default async function SharedYearReviewPage({ params }: Props) {
