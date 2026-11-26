@@ -201,6 +201,7 @@ jobs:
           tools: node pnpm rust cargo:worker-build
       - uses: Swatinem/rust-cache@v2
       - run: mise run rust-check
+      - run: pnpm api:check
       - run: pnpm build
       # Wrangler inspects the built entrypoint to infer Worker exports.
       - name: Check Cloudflare env types

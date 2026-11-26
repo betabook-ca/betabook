@@ -29,269 +29,124 @@ async fn health(State(state): State<AppState>) -> Json<HealthResponse> {
     })
 }
 
+// Both the HTTP router and the OpenAPI coverage check expand this table.
+macro_rules! worker_routes {
+    ($consumer:ident) => {
+        $consumer! {
+            get "/api/health" => health;
+            get "/api/public/usage" => routes::usage::usage;
+            get "/api/auth/get-session" => auth::routes::get_session;
+            post "/api/auth/sign-up/email" => auth::routes::sign_up_email;
+            post "/api/auth/send-verification-email" => auth::routes::send_verification_email_route;
+            get "/api/auth/verify-email" => auth::routes::verify_email;
+            post "/api/auth/sign-in/email" => auth::routes::sign_in_email;
+            get "/api/auth/reset-password/{token}" => auth::routes::reset_link;
+            post "/api/auth/sign-out" => auth::routes::sign_out;
+            post "/api/auth/request-password-reset" => auth::routes::request_password_reset;
+            post "/api/auth/reset-password" => auth::routes::reset_password;
+            post "/api/auth/sign-in/social" => auth::routes::sign_in_social;
+            get "/api/auth/callback/google" => auth::routes::google_callback;
+            post "/api/auth/delete-user" => auth::routes::delete_user;
+            get "/api/terms/status" => auth::routes::terms_status;
+            post "/api/terms/accept" => auth::routes::accept_terms;
+            get "/api/avatars/{*key}" => routes::avatars::get_avatar;
+            get "/api/catalog/export" => routes::catalog_export::download_catalog_export;
+            get "/api/public/search/climbs" => routes::public_catalog::search_climbs;
+            get "/api/public/search/areas" => routes::public_catalog::search_areas;
+            get "/api/public/areas/{id}/climbs" => routes::public_catalog::area_climbs;
+            get "/api/public/areas/{id}" => routes::public_catalog::area_details;
+            get "/api/public/climbs/{id}" => routes::public_catalog::climb_details;
+            get "/robots.txt" => routes::seo::robots_txt;
+            get "/sitemap-index.xml" => routes::seo::sitemap_index;
+            get "/sitemap/{shard}" => routes::seo::sitemap_shard;
+            get "/about" => routes::static_pages::about_page;
+            get "/terms" => routes::static_pages::terms_page;
+            get "/terms/{version}" => routes::static_pages::terms_version_page;
+            get "/api/config/auth" => routes::member_search::auth_config;
+            get "/api/search/climbs" => routes::member_search::search_climbs;
+            get "/api/search/areas" => routes::member_search::search_areas;
+            get "/api/search/climbers" => routes::member_search::search_climbers;
+            get "/api/areas/{id}/climbs" => routes::member_search::area_climbs;
+            get "/api/friends" => routes::member_search::friends_list;
+            get "/api/friends/suggestions" => routes::member_search::friend_suggestions;
+            get "/api/friends/companions" => routes::member_pages::friend_companions;
+            get "/api/feed" => routes::member_pages::feed_api;
+            get "/api/climbs/{id}/sends" => routes::member_pages::climb_sends_api;
+            get "/api/climbs/{id}/lists" => routes::member_pages::climb_lists_api;
+            get "/api/users/{id}/sends" => routes::member_pages::user_sends_api;
+            get "/api/users/{id}/sends/export" => routes::member_pages::user_sends_export_api;
+            get "/api/users/{id}/journal" => routes::member_pages::user_journal_api;
+            get "/api/pages/users/{id}/projects" => routes::projects::board;
+            get "/api/pages/projects/{token}" => routes::projects::shared;
+            get "/projects/{token}" => routes::seo::shared_project_page;
+            get "/users/{id}/projects" => routes::seo::owner_progress_page;
+            get "/users/{id}/projects/sent" => routes::seo::owner_progress_page;
+            get "/api/pages/users/{id}/lists" => routes::climb_lists::index;
+            get "/api/pages/users/{id}/lists/{list_id}" => routes::climb_lists::detail;
+            get "/api/pages/lists/{token}" => routes::climb_lists::shared;
+            get "/users/{id}/lists" => routes::seo::member_list_html;
+            get "/users/{id}/lists/{list_id}" => routes::seo::member_list_html;
+            get "/lists/{token}" => routes::seo::shared_list_html;
+            get "/users/{id}/analytics" => routes::profile_analytics::html;
+            get "/api/pages/users/{id}/analytics" => routes::profile_analytics::page;
+            get "/users/{id}/trips" => routes::trips::member_html;
+            get "/users/{id}/trips/{trip}" => routes::trips::member_html;
+            get "/users/{id}/trips/{trip}/analytics" => routes::trips::member_html;
+            get "/trips/{token}" => routes::trips::shared_html;
+            get "/trips/{token}/analytics" => routes::trips::shared_html;
+            get "/api/pages/users/{id}/trips" => routes::trips::list;
+            get "/api/pages/users/{id}/trips/{trip}" => routes::trips::detail;
+            get "/api/pages/users/{id}/trips/{trip}/analytics" => routes::trips::detail;
+            get "/api/pages/users/{id}/trips/{trip}/photos" => routes::trips::photos;
+            get "/api/pages/trips/{token}/photos" => routes::trips::shared_photos;
+            get "/api/pages/trips/{token}" => routes::trips::shared;
+            get "/api/pages/trips/{token}/analytics" => routes::trips::shared;
+            get "/api/users/{id}/goals" => routes::goals::read;
+            get "/api/pages/users/{id}/goals" => routes::goals::overview;
+            get "/users/{id}/goals" => routes::seo::owner_progress_page;
+            get "/tutorial/{tour}" => routes::entry_pages::tutorial;
+            get "/tutorial/{tour}/{step}" => routes::entry_pages::tutorial;
+            get "/users/{id}" => routes::entry_pages::profile;
+            get "/users/{id}/journal" => routes::entry_pages::profile;
+            get "/users/{id}/sends" => routes::entry_pages::profile;
+            get "/admin/requests" => routes::moderation::html;
+            get "/api/pages/admin/requests" => routes::moderation::queue;
+            get "/api/pages/tutorial" => routes::member_pages::tutorial_state;
+            get "/api/pages/feed" => routes::member_pages::feed_page_loader;
+            get "/api/pages/friends" => routes::member_pages::friends_page_loader;
+            get "/api/pages/account" => routes::member_pages::account_page_loader;
+            get "/api/pages/users/{id}" => routes::member_pages::user_profile_page_loader;
+            get "/api/pages/users/{id}/sends" => routes::member_pages::user_sends_page_loader;
+            get "/api/pages/users/{id}/journal" => routes::member_pages::user_journal_page_loader;
+            get "/api/pages/areas/{id}" => routes::member_pages::area_page_loader;
+            get "/api/pages/climbs/new" => routes::member_pages::new_climb_page_loader;
+            get "/api/pages/climbs/{id}" => routes::member_pages::climb_page_loader;
+            get "/account/import" => routes::imports::html;
+            get "/api/import/kaya" => routes::import_sources::kaya;
+            get "/api/import/mountain-project" => routes::import_sources::mountain_project;
+            post "/api/client-errors" => routes::actions::client_errors;
+            post "/api/actions/{name}" => routes::actions::dispatch_action;
+            get "/areas/new" => routes::seo::spa_fallback;
+            get "/climbs/new" => routes::seo::spa_fallback;
+            get "/areas/{id}" => routes::seo::area_page;
+            get "/areas/{id}/{*slug}" => routes::seo::area_page_with_slug;
+            get "/climbs/{id}" => routes::seo::climb_page;
+            get "/climbs/{id}/{*slug}" => routes::seo::climb_page_with_slug;
+
+        }
+    };
+}
+macro_rules! build_router {
+    ($( $method:ident $path:literal => $handler:path; )*) => {
+        Router::new()$(.route($path, $method($handler)))*
+    };
+}
+
+#[cfg(feature = "api-spec")]
+pub mod api_contract;
+
 fn router(state: AppState) -> Router {
-    Router::new()
-        .route("/api/health", get(health))
-        .route("/api/public/usage", get(routes::usage::usage))
-        // Auth & Terms
-        .route("/api/auth/get-session", get(auth::routes::get_session))
-        .route("/api/auth/sign-up/email", post(auth::routes::sign_up_email))
-        .route(
-            "/api/auth/send-verification-email",
-            post(auth::routes::send_verification_email_route),
-        )
-        .route("/api/auth/verify-email", get(auth::routes::verify_email))
-        .route("/api/auth/sign-in/email", post(auth::routes::sign_in_email))
-        .route(
-            "/api/auth/reset-password/{token}",
-            get(auth::routes::reset_link),
-        )
-        .route("/api/auth/sign-out", post(auth::routes::sign_out))
-        .route(
-            "/api/auth/request-password-reset",
-            post(auth::routes::request_password_reset),
-        )
-        .route(
-            "/api/auth/reset-password",
-            post(auth::routes::reset_password),
-        )
-        .route(
-            "/api/auth/sign-in/social",
-            post(auth::routes::sign_in_social),
-        )
-        .route(
-            "/api/auth/callback/google",
-            get(auth::routes::google_callback),
-        )
-        .route("/api/auth/delete-user", post(auth::routes::delete_user))
-        .route("/api/terms/status", get(auth::routes::terms_status))
-        .route("/api/terms/accept", post(auth::routes::accept_terms))
-        // Avatars & Catalog Export
-        .route("/api/avatars/{*key}", get(routes::avatars::get_avatar))
-        .route(
-            "/api/catalog/export",
-            get(routes::catalog_export::download_catalog_export),
-        )
-        // Public catalog & search APIs
-        .route(
-            "/api/public/search/climbs",
-            get(routes::public_catalog::search_climbs),
-        )
-        .route(
-            "/api/public/search/areas",
-            get(routes::public_catalog::search_areas),
-        )
-        .route(
-            "/api/public/areas/{id}/climbs",
-            get(routes::public_catalog::area_climbs),
-        )
-        .route(
-            "/api/public/areas/{id}",
-            get(routes::public_catalog::area_details),
-        )
-        .route(
-            "/api/public/climbs/{id}",
-            get(routes::public_catalog::climb_details),
-        )
-        // SEO & Entity HTML entrypoints + Zero-JS Static Pages
-        .route("/robots.txt", get(routes::seo::robots_txt))
-        .route("/sitemap-index.xml", get(routes::seo::sitemap_index))
-        .route("/sitemap/{shard}", get(routes::seo::sitemap_shard))
-        .route("/about", get(routes::static_pages::about_page))
-        .route("/terms", get(routes::static_pages::terms_page))
-        .route(
-            "/terms/{version}",
-            get(routes::static_pages::terms_version_page),
-        )
-        // SPA config, member search, friends, and client action/error RPCs
-        .route("/api/config/auth", get(routes::member_search::auth_config))
-        .route(
-            "/api/search/climbs",
-            get(routes::member_search::search_climbs),
-        )
-        .route(
-            "/api/search/areas",
-            get(routes::member_search::search_areas),
-        )
-        .route(
-            "/api/search/climbers",
-            get(routes::member_search::search_climbers),
-        )
-        .route(
-            "/api/areas/{id}/climbs",
-            get(routes::member_search::area_climbs),
-        )
-        .route("/api/friends", get(routes::member_search::friends_list))
-        .route(
-            "/api/friends/suggestions",
-            get(routes::member_search::friend_suggestions),
-        )
-        .route(
-            "/api/friends/companions",
-            get(routes::member_pages::friend_companions),
-        )
-        .route("/api/feed", get(routes::member_pages::feed_api))
-        .route(
-            "/api/climbs/{id}/sends",
-            get(routes::member_pages::climb_sends_api),
-        )
-        .route(
-            "/api/climbs/{id}/lists",
-            get(routes::member_pages::climb_lists_api),
-        )
-        .route(
-            "/api/users/{id}/sends",
-            get(routes::member_pages::user_sends_api),
-        )
-        .route(
-            "/api/users/{id}/sends/export",
-            get(routes::member_pages::user_sends_export_api),
-        )
-        .route(
-            "/api/users/{id}/journal",
-            get(routes::member_pages::user_journal_api),
-        )
-        .route(
-            "/api/pages/users/{id}/projects",
-            get(routes::projects::board),
-        )
-        .route("/api/pages/projects/{token}", get(routes::projects::shared))
-        .route("/projects/{token}", get(routes::seo::shared_project_page))
-        .route(
-            "/users/{id}/projects",
-            get(routes::seo::owner_progress_page),
-        )
-        .route(
-            "/users/{id}/projects/sent",
-            get(routes::seo::owner_progress_page),
-        )
-        .route(
-            "/api/pages/users/{id}/lists",
-            get(routes::climb_lists::index),
-        )
-        .route(
-            "/api/pages/users/{id}/lists/{list_id}",
-            get(routes::climb_lists::detail),
-        )
-        .route("/api/pages/lists/{token}", get(routes::climb_lists::shared))
-        .route("/users/{id}/lists", get(routes::seo::member_list_html))
-        .route(
-            "/users/{id}/lists/{list_id}",
-            get(routes::seo::member_list_html),
-        )
-        .route("/lists/{token}", get(routes::seo::shared_list_html))
-        .route(
-            "/users/{id}/analytics",
-            get(routes::profile_analytics::html),
-        )
-        .route(
-            "/api/pages/users/{id}/analytics",
-            get(routes::profile_analytics::page),
-        )
-        .route("/users/{id}/trips", get(routes::trips::member_html))
-        .route("/users/{id}/trips/{trip}", get(routes::trips::member_html))
-        .route(
-            "/users/{id}/trips/{trip}/analytics",
-            get(routes::trips::member_html),
-        )
-        .route("/trips/{token}", get(routes::trips::shared_html))
-        .route("/trips/{token}/analytics", get(routes::trips::shared_html))
-        .route("/api/pages/users/{id}/trips", get(routes::trips::list))
-        .route(
-            "/api/pages/users/{id}/trips/{trip}",
-            get(routes::trips::detail),
-        )
-        .route(
-            "/api/pages/users/{id}/trips/{trip}/analytics",
-            get(routes::trips::detail),
-        )
-        .route(
-            "/api/pages/users/{id}/trips/{trip}/photos",
-            get(routes::trips::photos),
-        )
-        .route(
-            "/api/pages/trips/{token}/photos",
-            get(routes::trips::shared_photos),
-        )
-        .route("/api/pages/trips/{token}", get(routes::trips::shared))
-        .route(
-            "/api/pages/trips/{token}/analytics",
-            get(routes::trips::shared),
-        )
-        .route("/api/users/{id}/goals", get(routes::goals::read))
-        .route("/api/pages/users/{id}/goals", get(routes::goals::overview))
-        .route("/users/{id}/goals", get(routes::seo::owner_progress_page))
-        .route("/tutorial/{tour}", get(routes::entry_pages::tutorial))
-        .route(
-            "/tutorial/{tour}/{step}",
-            get(routes::entry_pages::tutorial),
-        )
-        .route("/users/{id}", get(routes::entry_pages::profile))
-        .route("/users/{id}/journal", get(routes::entry_pages::profile))
-        .route("/users/{id}/sends", get(routes::entry_pages::profile))
-        .route("/admin/requests", get(routes::moderation::html))
-        .route("/api/pages/admin/requests", get(routes::moderation::queue))
-        // Page loaders for member SPA views
-        .route(
-            "/api/pages/tutorial",
-            get(routes::member_pages::tutorial_state),
-        )
-        .route(
-            "/api/pages/feed",
-            get(routes::member_pages::feed_page_loader),
-        )
-        .route(
-            "/api/pages/friends",
-            get(routes::member_pages::friends_page_loader),
-        )
-        .route(
-            "/api/pages/account",
-            get(routes::member_pages::account_page_loader),
-        )
-        .route(
-            "/api/pages/users/{id}",
-            get(routes::member_pages::user_profile_page_loader),
-        )
-        .route(
-            "/api/pages/users/{id}/sends",
-            get(routes::member_pages::user_sends_page_loader),
-        )
-        .route(
-            "/api/pages/users/{id}/journal",
-            get(routes::member_pages::user_journal_page_loader),
-        )
-        .route(
-            "/api/pages/areas/{id}",
-            get(routes::member_pages::area_page_loader),
-        )
-        .route(
-            "/api/pages/climbs/new",
-            get(routes::member_pages::new_climb_page_loader),
-        )
-        .route(
-            "/api/pages/climbs/{id}",
-            get(routes::member_pages::climb_page_loader),
-        )
-        .route("/account/import", get(routes::imports::html))
-        .route("/api/import/kaya", get(routes::import_sources::kaya))
-        .route(
-            "/api/import/mountain-project",
-            get(routes::import_sources::mountain_project),
-        )
-        .route("/api/client-errors", post(routes::actions::client_errors))
-        .route(
-            "/api/actions/{name}",
-            post(routes::actions::dispatch_action),
-        )
-        .route("/areas/new", get(routes::seo::spa_fallback))
-        .route("/climbs/new", get(routes::seo::spa_fallback))
-        .route("/areas/{id}", get(routes::seo::area_page))
-        .route("/areas/{id}/{*slug}", get(routes::seo::area_page_with_slug))
-        .route("/climbs/{id}", get(routes::seo::climb_page))
-        .route(
-            "/climbs/{id}/{*slug}",
-            get(routes::seo::climb_page_with_slug),
-        )
+    worker_routes!(build_router)
         .fallback(routes::seo::spa_fallback)
         .with_state(state)
 }

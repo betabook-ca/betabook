@@ -36,7 +36,9 @@
     "storybook:build": "storybook build --disable-telemetry",
     "test:ui": "pnpm storybook:build && playwright test",
     "brand:generate": "node scripts/generate-brand-assets.ts",
-    "chromatic": "chromatic"
+    "chromatic": "chromatic",
+    "api:generate": "node scripts/generate-api.ts",
+    "api:check": "node scripts/generate-api.ts --check"
   },
   "dependencies": {
     "@heroui/react": "3.2.7",
@@ -84,6 +86,7 @@
     "jsqr": "1.4.0",
     "knip": "^6.46.1",
     "lint-staged": "^17.6.1",
+    "openapi-typescript": "7.13.0",
     "oxfmt": "^0.79.0",
     "oxlint": "^1.94.0",
     "oxlint-tailwindcss": "^1.17.2",
