@@ -485,6 +485,78 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
     );
   }
 
+  if (c.gotAway) {
+    const { climbs } = c.gotAway;
+    sections.push(
+      chapter(
+        "got-away",
+        climbs.length === 1 ? "Unfinished project" : "Unfinished projects",
+        <ol className="flex flex-col gap-3">
+          {climbs.map((climb) => (
+            <li
+              key={climb.climbId}
+              className={clsx("flex flex-col gap-1", cardClass("sm", "bordered"))}
+            >
+              <span className="flex flex-wrap items-baseline gap-x-2">
+                <AppLink
+                  href={climbHref(climb.climbId, climb.climbName)}
+                  className="font-display text-2xl font-semibold"
+                >
+                  {climb.climbName}
+                </AppLink>
+                <span className="font-display text-xl text-muted">{climb.label}</span>
+              </span>
+              <span className="text-sm text-muted">
+                {plural(climb.sessions, "session")} between {formatDate(climb.first)} and{" "}
+                {formatDate(climb.last)}, still unsent
+              </span>
+            </li>
+          ))}
+        </ol>,
+      ),
+    );
+  }
+
+  if (c.notWorthThePump) {
+    sections.push(
+      chapter(
+        "not-worth-the-pump",
+        "Not worth the pump",
+        <ul className="flex flex-col gap-3">
+          {c.notWorthThePump.climbs.map((climb) => (
+            <li
+              key={climb.climbId}
+              className={clsx("flex flex-col gap-1", cardClass("sm", "bordered"))}
+            >
+              <span className="flex flex-wrap items-baseline gap-x-2">
+                <AppLink href={climbHref(climb.climbId, climb.climbName)} className="font-semibold">
+                  {climb.climbName}
+                </AppLink>
+                <span className="text-sm text-muted">{climb.label}</span>
+                <span aria-label={`${climb.rating} of 5 stars`} className="text-accent">
+                  {"★".repeat(climb.rating)}
+                  <span className="text-muted">{"☆".repeat(5 - climb.rating)}</span>
+                </span>
+              </span>
+              <PlaceTrail place={climb.place} />
+              {climb.othersAverage != null && (
+                <span className="text-xs text-muted">
+                  {owner ? "You" : ownerName} gave it {climb.rating}★. Everyone else averages{" "}
+                  {climb.othersAverage.toFixed(1)}★.
+                </span>
+              )}
+              {climb.comment && (
+                <blockquote className="border-l-2 border-separator pl-3 text-sm italic">
+                  {climb.comment}
+                </blockquote>
+              )}
+            </li>
+          ))}
+        </ul>,
+      ),
+    );
+  }
+
   if (c.newGrades) {
     sections.push(
       chapter(
@@ -686,78 +758,6 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
             </ol>
           )}
         </div>,
-      ),
-    );
-  }
-
-  if (c.gotAway) {
-    const { climbs } = c.gotAway;
-    sections.push(
-      chapter(
-        "got-away",
-        climbs.length === 1 ? "Unfinished project" : "Unfinished projects",
-        <ol className="flex flex-col gap-3">
-          {climbs.map((climb) => (
-            <li
-              key={climb.climbId}
-              className={clsx("flex flex-col gap-1", cardClass("sm", "bordered"))}
-            >
-              <span className="flex flex-wrap items-baseline gap-x-2">
-                <AppLink
-                  href={climbHref(climb.climbId, climb.climbName)}
-                  className="font-display text-2xl font-semibold"
-                >
-                  {climb.climbName}
-                </AppLink>
-                <span className="font-display text-xl text-muted">{climb.label}</span>
-              </span>
-              <span className="text-sm text-muted">
-                {plural(climb.sessions, "session")} between {formatDate(climb.first)} and{" "}
-                {formatDate(climb.last)}, still unsent
-              </span>
-            </li>
-          ))}
-        </ol>,
-      ),
-    );
-  }
-
-  if (c.notWorthThePump) {
-    sections.push(
-      chapter(
-        "not-worth-the-pump",
-        "Not worth the pump",
-        <ul className="flex flex-col gap-3">
-          {c.notWorthThePump.climbs.map((climb) => (
-            <li
-              key={climb.climbId}
-              className={clsx("flex flex-col gap-1", cardClass("sm", "bordered"))}
-            >
-              <span className="flex flex-wrap items-baseline gap-x-2">
-                <AppLink href={climbHref(climb.climbId, climb.climbName)} className="font-semibold">
-                  {climb.climbName}
-                </AppLink>
-                <span className="text-sm text-muted">{climb.label}</span>
-                <span aria-label={`${climb.rating} of 5 stars`} className="text-accent">
-                  {"★".repeat(climb.rating)}
-                  <span className="text-muted">{"☆".repeat(5 - climb.rating)}</span>
-                </span>
-              </span>
-              <PlaceTrail place={climb.place} />
-              {climb.othersAverage != null && (
-                <span className="text-xs text-muted">
-                  {owner ? "You" : ownerName} gave it {climb.rating}★. Everyone else averages{" "}
-                  {climb.othersAverage.toFixed(1)}★.
-                </span>
-              )}
-              {climb.comment && (
-                <blockquote className="border-l-2 border-separator pl-3 text-sm italic">
-                  {climb.comment}
-                </blockquote>
-              )}
-            </li>
-          ))}
-        </ul>,
       ),
     );
   }
