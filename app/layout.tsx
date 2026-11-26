@@ -61,6 +61,11 @@ export const metadata: Metadata = {
   },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
+  // These files are shared with the Rust SPA in public/ during the transition.
+  icons: {
+    icon: [{ url: "/favicon.ico" }, { url: "/icon.svg", type: "image/svg+xml" }],
+    apple: "/apple-icon.png",
+  },
   openGraph: {
     type: "website",
     siteName: SITE_NAME,

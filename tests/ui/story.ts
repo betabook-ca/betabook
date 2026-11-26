@@ -9,7 +9,7 @@ import {
 // A visible story heading must not hide an unhandled error elsewhere in the tree.
 export const test = base.extend<{ runtimeErrors: undefined }>({
   runtimeErrors: [
-    async ({ page }, use) => {
+    async ({ page }, use, testInfo) => {
       const errors: string[] = [];
       const capture = (error: Error) => errors.push(error.message);
       const captureConsole = (message: ConsoleMessage) => {
@@ -20,12 +20,16 @@ export const test = base.extend<{ runtimeErrors: undefined }>({
       };
       page.on("pageerror", capture);
       page.on("console", captureConsole);
-      await page.route("**/api/**", async (route) => {
-        if (new URL(page.url()).pathname === "/iframe.html") {
-          errors.push(`Story called a live API: ${route.request().url()}`);
-          await route.abort();
-        } else await route.continue();
-      });
+      // Route interception is for the isolated gallery. Let the real app use
+      // the browser network stack, including its native favicon requests.
+      if (!testInfo.tags.includes("@app")) {
+        await page.route("**/api/**", async (route) => {
+          if (new URL(page.url()).pathname === "/iframe.html") {
+            errors.push(`Story called a live API: ${route.request().url()}`);
+            await route.abort();
+          } else await route.continue();
+        });
+      }
       // Playwright parks the initial pointer at (0, 0), over the fixed desktop
       // sidebar. A hydration/layout hit-test there can trigger `onMouseEnter`
       // and open the sidebar overlay before any interaction.
