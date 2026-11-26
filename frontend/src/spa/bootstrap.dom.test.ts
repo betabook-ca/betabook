@@ -38,6 +38,30 @@ describe("SPA inline bootstrap data", () => {
     expect(peekBootstrapData("climb", "/climbs/1/electric-fund")).toBeNull();
   });
 
+  it("matches equivalent search encoding without losing repeated keys or reusing a previous location", () => {
+    const data = { climbsPage: { climbs: [] } };
+    injectBootstrapScript({
+      route: "search",
+      path: "/search",
+      query: "mode=climb&name=Easy%20Forager&discipline=sport&discipline=trad",
+      data,
+    });
+    const same = "name=Easy+Forager&mode=climb&discipline=sport&discipline=trad";
+    expect(peekBootstrapData("search", "/search", same)).toEqual(data);
+    expect(peekBootstrapData("search", "/search", same.replace("Easy+", "Easy%2B"))).toBeNull();
+    expect(
+      peekBootstrapData(
+        "search",
+        "/search",
+        same.replace("sport&discipline=trad", "trad&discipline=sport"),
+      ),
+    ).toBeNull();
+    syncBootstrapPath("/search", same);
+    expect(peekBootstrapData("search", "/search", same)).toEqual(data);
+    syncBootstrapPath("/search", "name=Other");
+    expect(peekBootstrapData("search", "/search", same)).toBeNull();
+  });
+
   it("returns null on malformed JSON without throwing", () => {
     const script = document.createElement("script");
     script.id = "__BETABOOK_DATA__";

@@ -96,7 +96,10 @@ function restore(position: Position) {
 export function DocumentNavigation({ viewer }: { viewer?: { id: string; name: string } | null }) {
   const location = useLocation();
   const navigation = useNavigationType();
-  useEffect(() => syncBootstrapPath(location.pathname), [location.pathname]);
+  useEffect(
+    () => syncBootstrapPath(location.pathname, location.search),
+    [location.pathname, location.search],
+  );
   const previous = useRef(location);
   const positions = useRef(new Map<string, Position>());
   useLayoutEffect(() => {

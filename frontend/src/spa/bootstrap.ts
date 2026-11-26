@@ -8,6 +8,14 @@ type BootstrapEnvelope = {
 const SCRIPT_ELEMENT_ID = "__BETABOOK_DATA__";
 let activeEnvelope: BootstrapEnvelope | null = null;
 
+/** Normalize form-query encoding and unrelated key order, retaining repeated
+ * values in their original order (the first mode/name has meaning). */
+function queryKey(raw: string): string {
+  const params = new URLSearchParams(raw);
+  params.sort();
+  return params.toString();
+}
+
 function readScriptFromDocument(): void {
   if (typeof document === "undefined") {
     return;
@@ -28,7 +36,7 @@ function readScriptFromDocument(): void {
       activeEnvelope = {
         route: parsed.route,
         path: parsed.path,
-        query: typeof parsed.query === "string" ? parsed.query : undefined,
+        query: typeof parsed.query === "string" ? queryKey(parsed.query) : undefined,
         data: parsed.data,
       };
     } else {
@@ -54,7 +62,7 @@ export function peekBootstrapData(
   if (activeEnvelope.route !== route || activeEnvelope.path !== currentPath) {
     return null;
   }
-  if (currentQuery !== undefined && (activeEnvelope.query ?? "") !== currentQuery) {
+  if (currentQuery !== undefined && (activeEnvelope.query ?? "") !== queryKey(currentQuery)) {
     return null;
   }
   return activeEnvelope.data;
@@ -62,9 +70,15 @@ export function peekBootstrapData(
 
 /** Clears cached cold-load bootstrap data when client-side navigation leaves
  * the bootstrapped path so returning later fetches fresh data from `/api`. */
-export function syncBootstrapPath(currentPath: string): void {
+export function syncBootstrapPath(currentPath: string, currentQuery?: string): void {
   readScriptFromDocument();
-  if (activeEnvelope && activeEnvelope.path !== currentPath) {
+  if (
+    activeEnvelope &&
+    (activeEnvelope.path !== currentPath ||
+      (activeEnvelope.route === "search" &&
+        currentQuery !== undefined &&
+        (activeEnvelope.query ?? "") !== queryKey(currentQuery)))
+  ) {
     activeEnvelope = null;
   }
 }

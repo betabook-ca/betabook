@@ -36,9 +36,8 @@ function useSearchSection(
     status: initial?.status ?? ((enabled ? "loading" : "idle") as SearchStatus),
   });
   const [more, setMore] = useState({ key, loading: false, failed: false });
-  const first = useRef(true);
   const previousIdentity = useRef(identity);
-  const seed = useRef(initial);
+  const seed = useRef({ value: initial, key });
   const request = useRef<{
     controller: AbortController;
     key: string;
@@ -54,10 +53,11 @@ function useSearchSection(
     previousIdentity.current = identity;
     const controller = new AbortController();
     request.current = { controller, key };
-    const useInitial = initial !== undefined && (first.current || seed.current !== initial);
-    seed.current = initial;
+    if (seed.current.value !== initial) seed.current = { value: initial, key };
+    // StrictMode may replay setup for the same key. The snapshot still satisfies
+    // that request, but never a different query, category or explicit retry.
+    const useInitial = initial !== undefined && seed.current.key === key;
     if (useInitial) setSettled({ key, page: initial.page, status: initial.status });
-    first.current = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     if (enabled && !useInitial) {
       timer = setTimeout(
