@@ -220,7 +220,7 @@ function SearchQueryRow({
 }: Pick<SearchSurfaceProps, "query" | "onQueryChange" | "category"> & {
   quick: boolean;
   headerAction?: ReactNode;
-  onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
+  onKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
   listId: string;
   activeId: string | null;
   expanded: boolean;
@@ -236,6 +236,7 @@ function SearchQueryRow({
     <div className="flex shrink-0 items-center gap-2">
       {entryInput ? (
         <EntryQueryInput
+          onKeyDown={onKeyDown}
           value={query}
           placeholder={SEARCH_PLACEHOLDERS[category]}
           onChange={onQueryChange}
@@ -492,7 +493,7 @@ function useQuickSearchNavigation({
         ?.scrollIntoView({ block: "nearest" });
   }, [activeId]);
 
-  function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+  function onKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (event.nativeEvent.isComposing) return;
     if (event.key === "Escape" && onClose) {
       event.preventDefault();

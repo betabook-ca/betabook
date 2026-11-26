@@ -1,5 +1,5 @@
 import { SearchField } from "@heroui/react";
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, type KeyboardEvent } from "react";
 
 import { FIELD_HEIGHT_CLASS, FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { usePublicEntryReady } from "@/spa/lib/public-entry";
@@ -11,11 +11,13 @@ export function EntryQueryInput({
   onChange,
   placeholder,
   ready,
+  onKeyDown,
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
   ready: boolean;
+  onKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
 }) {
   const host = useRef<HTMLSpanElement>(null);
   const field = useRef<HTMLInputElement>(null);
@@ -39,7 +41,11 @@ export function EntryQueryInput({
     }
     if (edited && input.value !== value) {
       adoptedText.current = input.value;
-      onChange(input.value);
+      // The child layout effect precedes the Router's own mount effect.
+      // Adopt the DOM synchronously; submit its query after navigation is ready.
+      queueMicrotask(() => {
+        if (input.isConnected) onChange(input.value);
+      });
     } else if (input.value !== value) input.value = value;
   });
   useLayoutEffect(() => {
@@ -61,6 +67,7 @@ export function EntryQueryInput({
         <SearchField.SearchIcon />
         <span
           ref={host}
+          onKeyDownCapture={onKeyDown}
           className="contents"
           onInput={() => {
             if (field.current) onChange(field.current.value);
