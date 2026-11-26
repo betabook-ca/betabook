@@ -230,3 +230,71 @@ fn revalidates_payloads_and_keeps_failed_decision_pending() {
         );
     });
 }
+
+/// Simulate a competing Writer winning after validation, immediately before
+/// the D1 batch begins. Every moderation audit and catalog write must roll back.
+struct ConcurrentWrite<'a> {
+    db: &'a SqliteDb,
+    sql: &'a str,
+}
+
+#[async_trait::async_trait(?Send)]
+impl DbExecutor for ConcurrentWrite<'_> {
+    async fn query_all(
+        &self,
+        sql: &str,
+        params: &[betabook_db::DbParam],
+    ) -> Result<Vec<betabook_db::DbRow>, DbError> {
+        self.db.query_all(sql, params).await
+    }
+    async fn execute(&self, sql: &str, params: &[betabook_db::DbParam]) -> Result<u64, DbError> {
+        self.db.execute(sql, params).await
+    }
+    async fn batch_rows(
+        &self,
+        statements: Vec<(String, Vec<betabook_db::DbParam>)>,
+    ) -> Result<Vec<Vec<betabook_db::DbRow>>, DbError> {
+        self.db.execute(self.sql, &[]).await?;
+        self.db.batch_rows(statements).await
+    }
+}
+
+#[test]
+fn direct_merges_abort_when_either_climb_breaks_or_a_grant_disappears() {
+    run_async(async {
+        for change in [
+            "UPDATE climbs SET broken_on='2026-06-01' WHERE id=4",
+            "UPDATE climbs SET broken_on='2026-06-01' WHERE id=5",
+            "DELETE FROM admin_area_scopes WHERE user_id='a' AND area_id=2",
+        ] {
+            let db = migrated_db();
+            fixture(&db).await.expect("fixture");
+            db.execute(
+                "INSERT INTO admin_area_scopes(user_id,area_id) VALUES('a',2)",
+                &[],
+            )
+            .await
+            .expect("admin for both climbs");
+            let raced = ConcurrentWrite {
+                db: &db,
+                sql: change,
+            };
+            assert!(
+                submit(
+                    &raced,
+                    "a",
+                    "climb_merge",
+                    4,
+                    json!({"targetClimbId":5}),
+                    DAY
+                )
+                .await
+                .is_err()
+            );
+            let row=db.query_one("SELECT (SELECT count(*) FROM climbs) AS climbs, (SELECT count(*) FROM change_requests) AS requests, (SELECT count(*) FROM change_request_approvals) AS approvals", &[]).await.expect("query").expect("result");
+            assert_eq!(row.get_i64("climbs").expect("climbs"), 2);
+            assert_eq!(row.get_i64("requests").expect("audit"), 0);
+            assert_eq!(row.get_i64("approvals").expect("approvals"), 0);
+        }
+    });
+}
