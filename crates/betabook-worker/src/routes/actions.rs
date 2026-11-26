@@ -714,6 +714,7 @@ pub async fn dispatch_action(
         "acknowledgeGoalAchievements" => {
             super::goal_refresh::acknowledge(&state, &headers, call.args.first()).await
         }
+        "saveAnalyticsLayout" => super::profile_analytics::save(&state, &headers, &call.args).await,
         "pinProject" | "unpinProject" | "shareProject" | "unshareProject" => {
             use betabook_db::projects::{
                 pin_project, share_project, unpin_project, unshare_project,

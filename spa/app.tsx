@@ -31,6 +31,7 @@ const AreaRoute = lazy(() => import("@/spa/routes/area-route"));
 const ClimbRoute = lazy(() => import("@/spa/routes/climb-route"));
 const NewAreaRoute = lazy(() => import("@/spa/routes/new-area-route"));
 const NewClimbRoute = lazy(() => import("@/spa/routes/new-climb-route"));
+const ProfileAnalyticsRoute = lazy(() => import("@/spa/routes/profile-analytics-route"));
 const TripsRoute = lazy(() => import("@/spa/routes/trips-route"));
 const FeedRoute = lazy(() => import("@/spa/routes/feed-route"));
 const FriendsRoute = lazy(() => import("@/spa/routes/friends-route"));
@@ -201,6 +202,10 @@ export function App() {
                         <Routes>
                           <Route path="/" element={<HomeRoute viewerId={viewerId} />} />
                           <Route path="/search" element={<SearchRoute viewerId={viewerId} />} />
+                          <Route
+                            path="/users/:id/analytics"
+                            element={<ProfileAnalyticsRoute viewerId={viewerId} />}
+                          />
                           <Route path="/feed" element={<FeedRoute viewerId={viewerId} />} />
                           <Route path="/friends" element={<FriendsRoute viewerId={viewerId} />} />
                           <Route path="/account" element={<AccountRoute viewerId={viewerId} />} />

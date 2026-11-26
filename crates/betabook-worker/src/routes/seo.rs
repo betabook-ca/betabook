@@ -919,13 +919,14 @@ pub async fn spa_fallback(
     Ok(html_response(StatusCode::OK, html))
 }
 
-pub(super) async fn trip_shell(
+pub(super) async fn member_shell(
     state: &AppState,
     status: StatusCode,
     meta: &PageMetadata,
+    entry: &str,
 ) -> Result<Response, ApiError> {
     let manifest = load_spa_manifest(state).await?;
-    let preload = render_modulepreload_tags(&manifest, "routes/trips-route.tsx");
+    let preload = render_modulepreload_tags(&manifest, entry);
     let html = inject_seo_into_html(&load_index_html(state).await?, meta, &[], &preload, None);
     let mut response = html_response(status, html);
     response.headers_mut().insert(

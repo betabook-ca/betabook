@@ -443,15 +443,7 @@ pub async fn analytics<D: DbExecutor>(
     use serde_json::json;
     let mut p = Vec::new();
     let window = reader.window(owner, "s.user_id", "s.date_sent", false, &mut p);
-    let sql = format!(
-        "SELECT c.id,c.name,c.type,s.suggested_grade,c.area_id,a.name area_name,s.ascent_style,s.date_sent FROM sends s JOIN climbs c ON c.id=s.climb_id JOIN areas a ON a.id=c.area_id WHERE {window} ORDER BY s.date_sent,s.id"
-    );
-    let mut sends = Vec::new();
-    for r in db.query_all(&sql, &p).await? {
-        sends.push(json!({"climbId":r.get_i64("id")?,"climbName":r.get_string("name")?,"climbType":r.get_string("type")?,
-            "suggestedGrade":r.get_opt_i64("suggested_grade")?,"areaId":r.get_i64("area_id")?,"areaName":r.get_string("area_name")?,
-            "ascentStyle":r.get_string("ascent_style")?,"dateSent":r.get_string("date_sent")?}));
-    }
+    let sends = crate::analytics::send_rows(db, &window, &p).await?;
     let mut data = json!({"sends":sends});
     if journal_visible {
         p.clear();

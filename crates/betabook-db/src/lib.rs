@@ -1,6 +1,7 @@
 //! Database abstraction and SQL query modules backed by Cloudflare D1 in
 //! production and bundled SQLite in local tests.
 
+pub mod analytics;
 pub mod auth;
 pub mod catalog_export;
 pub mod climb_lists;

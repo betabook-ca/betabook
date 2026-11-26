@@ -174,6 +174,14 @@ fn router(state: AppState) -> Router {
             get(routes::seo::member_list_html),
         )
         .route("/lists/{token}", get(routes::seo::shared_list_html))
+        .route(
+            "/users/{id}/analytics",
+            get(routes::profile_analytics::html),
+        )
+        .route(
+            "/api/pages/users/{id}/analytics",
+            get(routes::profile_analytics::page),
+        )
         .route("/users/{id}/trips", get(routes::trips::member_html))
         .route("/users/{id}/trips/{trip}", get(routes::trips::member_html))
         .route(

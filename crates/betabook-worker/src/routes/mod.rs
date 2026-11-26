@@ -6,6 +6,7 @@ pub mod goal_refresh;
 pub mod goals;
 pub mod member_pages;
 pub mod member_search;
+pub mod profile_analytics;
 pub mod projects;
 pub mod public_catalog;
 pub mod seo;

@@ -403,13 +403,22 @@ pub fn send_hashtag_condition(
     viewer_id: Option<&str>,
     params: &mut Vec<DbParam>,
 ) -> Result<String, DbError> {
+    send_hashtag_condition_for(tags, viewer_id, "sends", params)
+}
+
+pub(crate) fn send_hashtag_condition_for(
+    tags: &[String],
+    viewer_id: Option<&str>,
+    sends: &str,
+    params: &mut Vec<DbParam>,
+) -> Result<String, DbError> {
     let tags_cond = journal_hashtags_condition(tags, "tagged_ascent.tags", params)?;
     let vis =
         crate::content_access::journal_visible_sql(viewer_id, "tagged_ascent.user_id", params);
     Ok(format!(
         "EXISTS (
       SELECT 1 FROM journal_entries tagged_ascent
-      WHERE tagged_ascent.user_id = sends.user_id AND tagged_ascent.climb_id = sends.climb_id
+      WHERE tagged_ascent.user_id = {sends}.user_id AND tagged_ascent.climb_id = {sends}.climb_id
         AND tagged_ascent.is_ascent = 1 AND {tags_cond} AND {vis}
     )"
     ))
