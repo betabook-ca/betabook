@@ -38,7 +38,7 @@ const PROFILE_TABS: Record<string, string> = {
 };
 
 function fullTitle(label: string) {
-  return label === SITE_NAME ? label : label + " | " + SITE_NAME;
+  return label === SITE_NAME ? label : label + " · " + SITE_NAME;
 }
 
 /** The destination label while a page's authorized entity data loads. */

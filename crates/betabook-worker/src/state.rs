@@ -165,7 +165,8 @@ struct ErrorBody<'a> {
     error: &'a str,
     #[serde(skip_serializing_if = "Option::is_none")]
     code: Option<&'a str>,
-    message: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    message: Option<&'a str>,
 }
 
 impl ApiError {
@@ -231,7 +232,7 @@ impl IntoResponse for ApiError {
             Json(ErrorBody {
                 error: &self.message,
                 code: self.code,
-                message: &self.message,
+                message: self.code.map(|_| self.message.as_str()),
             }),
         )
             .into_response();
