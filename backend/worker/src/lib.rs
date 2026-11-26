@@ -62,6 +62,7 @@ macro_rules! worker_routes {
             get "/sitemap-index.xml" => routes::seo::sitemap_index;
             get "/sitemap/{shard}" => routes::seo::sitemap_shard;
             get "/about" => routes::static_pages::about_page;
+            get "/climbing-logbook" => routes::static_pages::climbing_logbook;
             get "/terms" => routes::static_pages::terms_page;
             get "/terms/{version}" => routes::static_pages::terms_version_page;
             get "/api/config/auth" => routes::member_search::auth_config;
