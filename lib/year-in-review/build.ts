@@ -4,7 +4,7 @@ import { CLIMB_TYPES, gradeArray, type ClimbType, type GradePreferences } from "
 import { buildPyramid } from "@/lib/user-analytics";
 
 import { DISCIPLINE_NAMES, monthName } from "./labels";
-import { rankPersonas, type PersonaMetrics } from "./personas";
+import { bigDayScore, rankPersonas, type PersonaMetrics } from "./personas";
 import { homeArea, locate, placeOf, relatedPlaces } from "./places";
 import type {
   CalendarChapter,
@@ -674,6 +674,39 @@ function buildNotWorthThePump(
   return climbs.length ? { climbs } : null;
 }
 
+/** The year's biggest day across disciplines, counting new sends and repeats
+ * of earlier sends once per climb. Ties go to the earlier date. */
+function biggestDay(
+  yearSends: readonly Dated<YearSendRow>[],
+  yearSessions: readonly YearSessionRow[],
+): PersonaMetrics["biggestDay"] {
+  const days = new Map<string, Map<number, ClimbType>>();
+  const add = (date: string, climbId: number, type: ClimbType) => {
+    const climbs = days.get(date) ?? new Map<number, ClimbType>();
+    climbs.set(climbId, type);
+    days.set(date, climbs);
+  };
+  for (const send of yearSends) add(send.dateSent, send.climbId, send.climbType);
+  for (const session of yearSessions)
+    if (session.sent && !session.isAscent)
+      add(session.entryDate, session.climbId, session.climbType);
+  const best = [...days.entries()]
+    .map(([date, climbs]) => {
+      const boulders = [...climbs.values()].filter((type) => type === "boulder").length;
+      return { date, boulders, routes: climbs.size - boulders };
+    })
+    .toSorted(
+      (a, b) =>
+        bigDayScore(b.boulders, b.routes) - bigDayScore(a.boulders, a.routes) ||
+        byDate(a.date, b.date),
+    )[0];
+  if (!best) return null;
+  return {
+    ...best,
+    date: `${monthName(monthOf(best.date))} ${Number(best.date.slice(8))}`,
+  };
+}
+
 function bestSendWindow(yearSends: readonly Dated<YearSendRow>[]): PersonaMetrics["bestWindow"] {
   const dates = yearSends.map((send) => send.dateSent).toSorted(byDate);
   if (!dates.length) return null;
@@ -843,7 +876,7 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
       .map((row, index) => pyramidRows[index + 1].count >= row.count);
     const metrics: PersonaMetrics = {
       sends: yearSends.length,
-      daysOut,
+      biggestDay: biggestDay(yearSends, yearSessions),
       firstTryRate: yearSends.length
         ? yearSends.filter((send) => send.ascentStyle !== "redpoint").length / yearSends.length
         : 0,

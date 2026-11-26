@@ -4,7 +4,8 @@ import type { PersonaId, PersonaResult } from "./types";
 /** The year's facts the personas read. Every rate is 0–1. */
 export type PersonaMetrics = {
   sends: number;
-  daysOut: number;
+  /** The year's biggest day by `bigDayScore`, repeats included. */
+  biggestDay: { date: string; boulders: number; routes: number } | null;
   firstTryRate: number;
   /** Most sessions on one climb at the climber's limit or one that got away. */
   siege: { climbName: string; sessions: number } | null;
@@ -38,6 +39,16 @@ const cap = (value: number) => Math.max(0, Math.min(value, CAP));
  * arithmetic mean would let it. */
 const geometricMean = (values: number[]) =>
   values.reduce((total, value) => total * value, 1) ** (1 / values.length);
+
+/** How big a day was: a dozen problems, or half a dozen routes, scores 1. */
+export function bigDayScore(boulders: number, routes: number): number {
+  return boulders / 12 + routes / 6;
+}
+
+/** All-Rounder full marks at an even split, 1 at a 15-point gap between the
+ * biggest and smallest share, nothing from a 45-point gap. */
+const ALL_ROUNDER_ZERO_SPREAD = 0.45;
+const ALL_ROUNDER_SPREAD_STEP = 0.3;
 
 /** Population percentile breakpoints per persona (raw affinity at each 5th
  * percentile), generated from the weekly export before launch. Until a
@@ -80,13 +91,23 @@ const plural = (count: number, word: string) => `${count} ${word}${count === 1 ?
 
 type Candidate = { id: PersonaId; raw: number; why: string };
 
+function bigDayWhy(day: NonNullable<PersonaMetrics["biggestDay"]>): string {
+  const parts = [
+    day.boulders ? plural(day.boulders, "problem") : "",
+    day.routes ? plural(day.routes, "route") : "",
+  ].filter(Boolean);
+  return `${parts.join(" and ")} sent on ${day.date}`;
+}
+
 function candidates(m: PersonaMetrics): Candidate[] {
+  const day = m.biggestDay;
   const list: Candidate[] = [
     {
-      // Always eligible, so every climber who reaches the chapter has one.
+      // Always eligible, so every climber who reaches the chapter has one; a
+      // small biggest day scores low and loses to anything else that fits.
       id: "volume-fiend",
-      raw: Math.max(cap(m.sends / 100), cap(m.daysOut / 50)),
-      why: `${plural(m.sends, "send")} over ${plural(m.daysOut, "day")} out`,
+      raw: day ? cap(bigDayScore(day.boulders, day.routes)) : 0,
+      why: day ? bigDayWhy(day) : `${plural(m.sends, "send")} this year`,
     },
   ];
   if (m.sends >= 20) {
@@ -134,12 +155,14 @@ function candidates(m: PersonaMetrics): Candidate[] {
       why: `${percent(m.bestWindow.share)} of sends happened between ${m.bestWindow.from} and ${m.bestWindow.to}`,
     });
   }
-  const qualifying = m.disciplineShares.filter(({ share }) => share >= 0.15);
-  if (m.sends >= 30 && qualifying.length >= 2) {
-    const lowest = Math.min(...qualifying.map(({ share }) => share));
+  // All three disciplines, as close to a third each as possible.
+  const shares = m.disciplineShares.map(({ share }) => share);
+  const allThree = shares.length === Object.keys(DISCIPLINE_NAMES).length;
+  if (m.sends >= 30 && allThree && Math.min(...shares) >= 0.15) {
+    const spread = Math.max(...shares) - Math.min(...shares);
     list.push({
       id: "all-rounder",
-      raw: Math.sqrt(cap(qualifying.length / 2) * cap(lowest / 0.25)),
+      raw: cap((ALL_ROUNDER_ZERO_SPREAD - spread) / ALL_ROUNDER_SPREAD_STEP),
       why: `${m.disciplineShares
         .map(({ type, share }) => `${percent(share)} ${DISCIPLINE_NAMES[type]}`)
         .join(", ")} across ${plural(m.sends, "send")}`,

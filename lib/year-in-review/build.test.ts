@@ -398,7 +398,7 @@ describe("chapters that need data", () => {
 describe("personas", () => {
   const base: PersonaMetrics = {
     sends: 60,
-    daysOut: 30,
+    biggestDay: { date: "May 3", boulders: 5, routes: 0 },
     firstTryRate: 0.8,
     siege: null,
     locatedDays: 30,
@@ -421,12 +421,65 @@ describe("personas", () => {
 
   it("doesn't let volume win a persona about something else", () => {
     // Every eligible persona, so neither result can drop Flash Machine.
-    const heavy = rankPersonas({ ...base, sends: 400, daysOut: 120, firstTryRate: 0.5 }, 8);
+    const heavy = rankPersonas({ ...base, sends: 400, firstTryRate: 0.5 }, 8);
     const light = rankPersonas({ ...base, sends: 60, firstTryRate: 0.8 }, 8);
     const flash = (list: typeof heavy) => list.find((p) => p.id === "flash-machine");
     expect(flash(heavy)).toBeDefined();
     expect(flash(light)).toBeDefined();
     expect(flash(light)?.score).toBeGreaterThan(flash(heavy)?.score ?? Infinity);
+  });
+
+  it("finds the biggest day across disciplines, repeats included", () => {
+    // Six days out, so the chapter appears; five problems on May 1 lose to
+    // three routes plus a repeated route on May 2.
+    const sends = [
+      ...[1, 2, 3, 4, 5].map(() => send("2026-05-01", 3)),
+      ...[1, 2, 3].map(() => send("2026-05-02", 12, { climbType: "sport" })),
+      ...[3, 4, 5, 6].map((day) => send(`2026-05-0${day}`, 3)),
+    ];
+    const repeat = session("2026-05-02", {
+      climbId: 555,
+      climbType: "sport",
+      sent: true,
+      isAscent: false,
+    });
+    const personas = build({ sends, sessions: [repeat] }).chapters.personas?.personas ?? [];
+    expect(personas.find((p) => p.id === "volume-fiend")?.why).toBe("4 routes sent on May 2");
+  });
+
+  it("makes the Volume Fiend about one big day, not a big season", () => {
+    const fiend = (metrics: Partial<PersonaMetrics>) =>
+      rankPersonas({ ...base, firstTryRate: 0, ...metrics }, 8).find(
+        (p) => p.id === "volume-fiend",
+      );
+    const season = fiend({ sends: 900, biggestDay: { date: "May 3", boulders: 3, routes: 0 } });
+    const bigDay = fiend({ sends: 40, biggestDay: { date: "May 3", boulders: 8, routes: 3 } });
+    expect(bigDay?.score).toBeGreaterThan(season?.score ?? Infinity);
+    expect(bigDay?.why).toBe("8 problems and 3 routes sent on May 3");
+    // Six routes count as much as a dozen problems.
+    expect(fiend({ biggestDay: { date: "May 3", boulders: 0, routes: 6 } })?.score).toBe(
+      fiend({ biggestDay: { date: "May 3", boulders: 12, routes: 0 } })?.score,
+    );
+  });
+
+  it("gives the All-Rounder to a near-even split of all three disciplines", () => {
+    const rounder = (shares: [number, number, number]) =>
+      rankPersonas(
+        {
+          ...base,
+          disciplineShares: (["boulder", "sport", "trad"] as const).map((type, index) => ({
+            type,
+            share: shares[index],
+          })),
+        },
+        8,
+      ).find((p) => p.id === "all-rounder");
+    expect(rounder([0.5, 0.5, 0])).toBeUndefined();
+    expect(rounder([0.7, 0.15, 0.15])?.score ?? 0).toBe(0);
+    const even = rounder([0.34, 0.33, 0.33])?.score ?? 0;
+    const close = rounder([0.4, 0.3, 0.3])?.score ?? 0;
+    expect(even).toBeGreaterThan(close);
+    expect(close).toBeGreaterThan(rounder([0.5, 0.25, 0.25])?.score ?? Infinity);
   });
 });
 
