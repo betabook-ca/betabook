@@ -3,13 +3,14 @@ import path from "node:path";
 import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-plugin";
 import { defineProject } from "vitest/config";
 
-const migrationsPromise = readD1Migrations(path.join(import.meta.dirname, "drizzle/migrations"));
+const migrationsPromise = readD1Migrations(path.join(import.meta.dirname, "backend/migrations"));
 
+import { frontendAliases } from "./frontend/paths.ts";
 import { referenceAliases } from "./test/reference/aliases.ts";
 
 export default defineProject({
   resolve: {
-    alias: [...referenceAliases, { find: "@", replacement: import.meta.dirname }],
+    alias: [...referenceAliases, ...frontendAliases],
   },
   plugins: [
     cloudflareTest(async () => {
@@ -30,9 +31,9 @@ export default defineProject({
     include: [
       "test/reference/actions/**/*.test.{ts,tsx}",
       "test/reference/app/**/*.test.{ts,tsx}",
-      "components/**/*.test.{ts,tsx}",
+      "frontend/src/components/**/*.test.{ts,tsx}",
       "test/reference/db/**/*.test.{ts,tsx}",
-      "lib/**/*.test.{ts,tsx}",
+      "frontend/src/lib/**/*.test.{ts,tsx}",
       "test/reference/lib/**/*.test.{ts,tsx}",
     ],
     exclude: [".claude/**", "node_modules/**", "**/*.dom.test.{ts,tsx}"],

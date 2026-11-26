@@ -29,7 +29,7 @@ export default defineConfig({
   },
   settings: {
     tailwindcss: {
-      entryPoint: "spa/globals.css",
+      entryPoint: "frontend/src/spa/globals.css",
       callees: ["clsx"],
     },
   },
@@ -53,9 +53,9 @@ export default defineConfig({
     ".wrangler/**",
     "climbs_data/**",
     ".claude/**",
-    "drizzle/migrations/**",
+    "backend/migrations/**",
     "target/**",
-    "crates/**",
+    "backend/**",
     "dist-spa/**",
   ],
   rules: {
@@ -216,7 +216,7 @@ export default defineConfig({
       },
     },
     {
-      files: ["components/**"],
+      files: ["frontend/src/components/**"],
       rules: {
         "typescript/no-restricted-imports": [
           "error",
@@ -240,7 +240,7 @@ export default defineConfig({
       },
     },
     {
-      files: ["components/ui/**"],
+      files: ["frontend/src/components/ui/**"],
       rules: {
         "typescript/no-restricted-imports": [
           "error",
@@ -273,7 +273,7 @@ export default defineConfig({
       },
     },
     {
-      files: ["lib/**", "test/reference/lib/**"],
+      files: ["frontend/src/lib/**", "test/reference/lib/**"],
       rules: {
         "typescript/no-restricted-imports": [
           "error",

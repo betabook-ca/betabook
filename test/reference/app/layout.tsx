@@ -31,12 +31,12 @@ import "@/spa/globals.css";
 const barlowCondensed = localFont({
   src: [
     {
-      path: "../../../assets/fonts/barlow-condensed-600-latin.woff2",
+      path: "../../../frontend/src/assets/fonts/barlow-condensed-600-latin.woff2",
       weight: "600",
       style: "normal",
     },
     {
-      path: "../../../assets/fonts/barlow-condensed-700-latin.woff2",
+      path: "../../../frontend/src/assets/fonts/barlow-condensed-700-latin.woff2",
       weight: "700",
       style: "normal",
     },

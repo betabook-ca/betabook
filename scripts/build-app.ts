@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url";
 import { build } from "vite";
 
 async function buildSpa() {
-  const configFile = path.resolve("vite.spa.config.ts");
+  const configFile = path.resolve("frontend/vite.config.ts");
   await build({ configFile });
   await copyFile("api/openapi.json", "dist-spa/openapi.json");
   const outDir = path.resolve("node_modules/.cache/betabook/static-documents");
@@ -35,7 +35,7 @@ async function buildApp() {
   if (process.argv.includes("--wrangler") && process.env.BETABOOK_PREBUILT === "1") return;
   await buildSpa();
   if (!process.argv.includes("--spa-only")) {
-    execFileSync("worker-build", ["--release", "crates/betabook-worker", "--locked"], {
+    execFileSync("worker-build", ["--release", "backend/worker", "--locked"], {
       stdio: "inherit",
     });
   }

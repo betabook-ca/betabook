@@ -9,8 +9,8 @@ or the `betabook-storybook` MCP configured in [`.mcp.json`](../.mcp.json).
 - Use **Internal / Coverage / Inventory** to find a component, then inspect its
   **Components** stories and related **Patterns** before changing UI.
 - For unpublished changes or when MCP is unavailable, read the adjacent
-  `components/**/*.stories.tsx` and relevant `stories/foundations/` or
-  `stories/patterns/` examples. Run `pnpm storybook` to inspect the current branch
+  `frontend/src/components/**/*.stories.tsx` and relevant `frontend/stories/foundations/` or
+  `frontend/stories/patterns/` examples. Run `pnpm storybook` to inspect the current branch
   in both themes at mobile and desktop sizes.
 
 Reuse the production primitives and theme tokens demonstrated in the gallery.

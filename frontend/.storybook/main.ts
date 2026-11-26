@@ -6,7 +6,10 @@ import type { StorybookConfig } from "@storybook/react-vite";
 import { storyNameFromExport, toId } from "storybook/internal/csf";
 import { mergeConfig } from "vite";
 
-const componentsDir = fileURLToPath(new URL("../components", import.meta.url));
+// oxlint-disable-next-line import/no-relative-parent-imports -- Tool configuration loads before source aliases.
+import { frontendAliases } from "../paths.ts";
+
+const componentsDir = fileURLToPath(new URL("../src/components", import.meta.url));
 const componentPaths = readdirSync(componentsDir, { recursive: true }).filter(
   (path): path is string => typeof path === "string",
 );
@@ -39,18 +42,18 @@ function colocatedStories(): Record<string, string> {
 const config: StorybookConfig = {
   addons: ["@storybook/addon-mcp"],
   features: { componentsManifest: true },
-  stories: ["../stories/**/*.stories.tsx", "../components/**/*.stories.tsx"],
+  stories: ["../stories/**/*.stories.tsx", "../src/components/**/*.stories.tsx"],
   staticDirs: [
     "../public",
-    { from: "../assets/fonts", to: "/fonts/barlow" },
+    { from: "../src/assets/fonts", to: "/fonts/barlow" },
     // Stand-ins that stories must load over the network, not from data URLs.
     { from: "../stories/static", to: "/static" },
-    { from: "../node_modules/geist/dist/fonts/geist-sans", to: "/fonts/geist" },
+    { from: "../../node_modules/geist/dist/fonts/geist-sans", to: "/fonts/geist" },
   ],
   framework: {
     name: "@storybook/react-vite",
     options: {
-      builder: { viteConfigPath: ".storybook/vite.config.ts" },
+      builder: { viteConfigPath: "frontend/.storybook/vite.config.ts" },
     },
   },
   core: { disableTelemetry: true },
@@ -77,10 +80,13 @@ const config: StorybookConfig = {
           {
             find: "cloudflare:workers",
             replacement: fileURLToPath(
-              new URL("../test/cloudflare-workers-stub.ts", import.meta.url),
+              new URL("../../test/cloudflare-workers-stub.ts", import.meta.url),
             ),
           },
-          { find: "@", replacement: fileURLToPath(new URL("../", import.meta.url)) },
+          { find: "@/stories", replacement: fileURLToPath(new URL("../stories", import.meta.url)) },
+          { find: "@/.storybook", replacement: import.meta.dirname },
+          { find: "@/test", replacement: fileURLToPath(new URL("../../test", import.meta.url)) },
+          ...frontendAliases,
         ],
       },
     }),

@@ -24,7 +24,7 @@ import { faker } from "@faker-js/faker";
 
 // Bare Node.js does not resolve the app's @/ alias; share the current terms version directly.
 // oxlint-disable-next-line import/no-relative-parent-imports
-import { TERMS_VERSION } from "../lib/terms.ts";
+import { TERMS_VERSION } from "../frontend/src/lib/terms.ts";
 import { requireLocalDb } from "./d1-local.ts";
 import { hashSeedPassword } from "./seed-password.ts";
 import { seedSocialData } from "./seed-social.ts";

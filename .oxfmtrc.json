@@ -13,11 +13,11 @@
   "sortPackageJson": true,
   "sortTailwindcss": {
     "functions": ["clsx"],
-    "stylesheet": "spa/globals.css"
+    "stylesheet": "frontend/src/spa/globals.css"
   },
   "ignorePatterns": [
     "api/openapi.json",
-    "spa/generated/api.d.ts",
+    "frontend/src/spa/generated/api.d.ts",
     ".next/**",
     "out/**",
     "build/**",
@@ -27,7 +27,7 @@
     "climbs_data/**",
     ".claude/**",
     ".agents/skills/github-upload-image-to-pr/**",
-    "drizzle/migrations/**",
+    "backend/migrations/**",
     "worker-configuration.d.ts",
     "next-env.d.ts",
     "pnpm-lock.yaml",
@@ -35,7 +35,7 @@
     "playwright-report/**",
     "test-results/**",
     "target/**",
-    "crates/**",
+    "backend/**",
     "dist-spa/**",
     "Cargo.toml",
     "Cargo.lock",

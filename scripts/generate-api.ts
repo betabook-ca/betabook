@@ -24,7 +24,7 @@ async function generate() {
     astToString(await openapiTS(JSON.parse(document)));
   for (const [file, content] of [
     ["api/openapi.json", document],
-    ["spa/generated/api.d.ts", types],
+    ["frontend/src/spa/generated/api.d.ts", types],
   ]) {
     if (check) {
       if ((await readFile(file, "utf8")) !== content)

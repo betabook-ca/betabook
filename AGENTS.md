@@ -29,7 +29,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   - [Stories](docs/component-testing.md#story-rules)
 - [Design system and visual review](docs/design-system.md)
 - [Product tour implementation](docs/product-tours.md)
-- [Component test instructions](components/AGENTS.md)
+- [Component test instructions](frontend/src/components/AGENTS.md)
 - [Browser test instructions](tests/ui/AGENTS.md)
 
 - [Journal goal invariants](docs/goals.md)

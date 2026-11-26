@@ -22,7 +22,7 @@ node_modules/
 /dist
 /dist-spa
 /target/
-crates/*/build/
+backend/*/build/
 
 # misc
 .DS_Store

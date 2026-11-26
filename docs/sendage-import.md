@@ -42,7 +42,7 @@ credentials are used.
 
 The adapter creates in-memory source columns for the existing import wizard; it
 does not generate, download, or upload a CSV. Sendage's grade IDs use their own
-scale. `lib/sendage-import.ts` converts the North American ID ranges verified
+scale. `frontend/src/lib/sendage-import.ts` converts the North American ID ranges verified
 against [Sendage's public client](https://sendage.com/webapp-assets/index-D30Z5_34.js).
 The table contains contiguous IDs 1–140 with North American and French labels
 for each discipline; boulder labels exist only through ID 96. For example,

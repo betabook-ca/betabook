@@ -37,7 +37,7 @@ that climber's acceptance and history. Other accounts are left alone.
 ## Audiences
 
 New accounts default to **Members** send commentary and **Friends** journal entries. The Members
-label uses the stored `public` value. Send commentary covers original-send notes on climb pages,
+label uses the stored `frontend/public` value. Send commentary covers original-send notes on climb pages,
 Sends, the feed, and mirrored ascent notes in the journal. The journal audience is labeled **Journal
 and goals** and covers the journal, sessions, repeats, training, tags and finished goals in friends'
 feeds. A private profile overrides both and turns the climber's sends into anonymous rows on climb
