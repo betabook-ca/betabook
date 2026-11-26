@@ -467,7 +467,11 @@ pub async fn analytics<D: DbExecutor>(
         );
         let mut sessions = Vec::new();
         for r in db.query_all(&sql, &p).await? {
-            sessions.push(json!({"entryDate":r.get_string("entry_date")?,"climbType":r.get_string("type")?,"count":r.get_i64("total")?}));
+            sessions.push(crate::analytics::AnalyticsSession {
+                entry_date: r.get_string("entry_date")?,
+                climb_type: r.get_string("type")?,
+                count: r.get_i64("total")?,
+            });
         }
         data["sessions"] = json!(sessions);
     }

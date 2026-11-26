@@ -39,6 +39,8 @@ export async function testTrips({ server, db, signIn }) {
   const id = created.value;
   const member = "/api/pages/users/trip-owner/trips/" + id;
   assert.equal((await read(member, owner)).header.isOwner, true);
+  const memberAnalytics = await read(member + "/analytics", owner);
+  assert.deepEqual(memberAnalytics.view.analytics, { sends: [], sessions: [] });
   assert.equal((await read(member, friend)).trip.companions[0].id, "trip-friend");
   assert.equal((await server.fetch(member, { headers: { cookie: stranger } })).status, 404);
   assert.equal((await action(stranger, "saveTripNotes", id, "unauthorized")).ok, false);

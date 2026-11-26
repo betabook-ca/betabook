@@ -67,3 +67,6 @@ pub use writes::{archive, delete, save};
 
 mod reads;
 pub use reads::{contributions, history, next_grades, overview, page};
+
+mod record;
+pub use record::GoalRecord;

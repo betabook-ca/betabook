@@ -7,72 +7,17 @@
 
 use super::ApiSpec;
 use betabook_db::{
-    climb_lists, feed::JournalCompanion, member_catalog::ClimbListChoice, projects, trips,
+    analytics::{AnalyticsSend, AnalyticsSession, ClimberOverview, HighlightSession},
+    goals::GoalRecord,
 };
+use betabook_db::{climb_lists, member_catalog::ClimbListChoice, projects, trips};
 use betabook_domain::{
     analytics_layout::Layout, grades::ClimbType, public_catalog::AreaBreadcrumbItem,
-    trips::AlbumPhoto, wire::AscentStyle,
+    trips::AlbumPhoto,
 };
 use schemars::JsonSchema;
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
-
-#[derive(JsonSchema)]
-#[schemars(rename_all = "kebab-case")]
-enum GoalKind {
-    Volume,
-    Grade,
-    Training,
-    Days,
-    NewAreas,
-}
-#[derive(JsonSchema)]
-#[schemars(rename_all = "lowercase")]
-enum GoalCadence {
-    None,
-    Week,
-    Month,
-    Year,
-}
-#[derive(JsonSchema)]
-#[schemars(rename_all = "lowercase")]
-enum GoalTimeframe {
-    Week,
-    Month,
-    Year,
-    Custom,
-}
-#[derive(JsonSchema)]
-#[schemars(rename_all = "kebab-case")]
-enum GoalGradeMatch {
-    Exact,
-    AtLeast,
-}
-
-#[derive(JsonSchema)]
-#[schemars(rename_all = "camelCase")]
-struct GoalRecord {
-    id: i64,
-    user_id: String,
-    kind: GoalKind,
-    target: i64,
-    discipline: Option<ClimbType>,
-    grade: Option<i64>,
-    timeframe: GoalTimeframe,
-    repeat: GoalCadence,
-    start_date: String,
-    end_date: String,
-    timezone: String,
-    grade_match: GoalGradeMatch,
-    tags: Vec<String>,
-    archived: bool,
-    recurring_end_date: Option<String>,
-    today: String,
-    period_start: String,
-    period_end: String,
-    progress: i64,
-    completed_date: Option<String>,
-}
 
 #[derive(JsonSchema)]
 #[schemars(rename_all = "camelCase")]
@@ -147,49 +92,6 @@ struct GoalHistoryPage {
     #[schemars(skip_serializing_if = "Option::is_none", with = "String")]
     anchor_month: Option<String>,
 }
-#[derive(JsonSchema)]
-#[schemars(rename_all = "camelCase")]
-struct AnalyticsSend {
-    climb_id: i64,
-    climb_name: String,
-    climb_type: ClimbType,
-    suggested_grade: Option<i64>,
-    area_id: i64,
-    area_name: String,
-    ascent_style: AscentStyle,
-    date_sent: Option<String>,
-}
-#[derive(JsonSchema)]
-#[schemars(rename_all = "camelCase")]
-struct AnalyticsSession {
-    entry_date: String,
-    climb_type: ClimbType,
-    count: i64,
-}
-#[derive(JsonSchema)]
-#[schemars(rename_all = "camelCase")]
-struct HighlightSession {
-    id: i64,
-    entry_date: String,
-    climb_id: i64,
-    climb_name: String,
-    climb_type: ClimbType,
-    sent: bool,
-    is_ascent: bool,
-    companions: Vec<JournalCompanion>,
-}
-#[derive(JsonSchema)]
-#[schemars(rename_all = "camelCase")]
-struct ClimberOverview {
-    send_count: i64,
-    area_count: i64,
-    first_year: Option<i32>,
-    days_out: Option<i64>,
-    last_out: Option<String>,
-    days_this_month: i64,
-    month: String,
-}
-
 fn object(properties: Value) -> Value {
     let required: Vec<_> = properties
         .as_object()
