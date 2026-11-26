@@ -261,6 +261,12 @@ fn router(state: AppState) -> Router {
             "/api/pages/climbs/{id}",
             get(routes::member_pages::climb_page_loader),
         )
+        .route("/account/import", get(routes::imports::html))
+        .route("/api/import/kaya", get(routes::import_sources::kaya))
+        .route(
+            "/api/import/mountain-project",
+            get(routes::import_sources::mountain_project),
+        )
         .route("/api/client-errors", post(routes::actions::client_errors))
         .route(
             "/api/actions/{name}",

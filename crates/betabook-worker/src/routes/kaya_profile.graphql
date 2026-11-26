@@ -1,0 +1,3 @@
+query webUser($username: String!) {
+  webUser(username: $username) { id username is_private }
+}

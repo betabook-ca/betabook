@@ -14,6 +14,7 @@ pub mod fts;
 pub mod goal_achievements;
 pub mod goal_history;
 pub mod goals;
+pub mod imports;
 pub mod journal;
 pub mod member_catalog;
 pub mod projects;

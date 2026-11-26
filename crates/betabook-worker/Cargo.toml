@@ -18,6 +18,8 @@ betabook-db = { path = "../betabook-db", default-features = false, features = ["
 betabook-domain = { path = "../betabook-domain" }
 bytes.workspace = true
 futures-util.workspace = true
+futures-channel = "0.3"
+percent-encoding = "2"
 hex.workspace = true
 http.workspace = true
 serde.workspace = true

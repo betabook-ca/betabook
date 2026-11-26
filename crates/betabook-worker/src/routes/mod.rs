@@ -5,6 +5,8 @@ pub mod climb_lists;
 pub mod entry_pages;
 pub mod goal_refresh;
 pub mod goals;
+pub mod import_sources;
+pub mod imports;
 pub mod member_pages;
 pub mod member_search;
 pub mod profile_analytics;

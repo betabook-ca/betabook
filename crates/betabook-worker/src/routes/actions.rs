@@ -732,6 +732,9 @@ pub async fn dispatch_action(
     };
 
     match name.as_str() {
+        "resolveImportClimbs" | "resolveImportClimbsInAreas" | "importSends" => {
+            super::imports::action(&state, &headers, &name, &call.args, &bytes).await
+        }
         "saveGoal" | "deleteGoal" | "archiveGoal" => {
             super::goals::action(&state, &headers, &name, &call.args).await
         }
