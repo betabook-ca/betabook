@@ -485,6 +485,45 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
     );
   }
 
+  if (c.partner) {
+    sections.push(
+      chapter(
+        "partner",
+        "Favourite partner",
+        <div className="flex flex-col gap-4">
+          <p className="flex flex-col gap-1">
+            <AppLink
+              href={`/users/${c.partner.partner.id}`}
+              className="font-display text-5xl font-semibold"
+            >
+              {c.partner.partner.name}
+            </AppLink>
+            <span className="text-muted">{plural(c.partner.days, "day")} out together</span>
+          </p>
+          {c.partner.runnersUp.length > 0 && (
+            <ol className="grid gap-3 sm:grid-cols-2">
+              {c.partner.runnersUp.map((entry, index) => (
+                <li
+                  key={entry.partner.id}
+                  className={clsx("flex flex-col gap-0.5", cardClass("sm", "bordered"))}
+                >
+                  <span className={EYEBROW_CLASS}>#{index + 2}</span>
+                  <AppLink
+                    href={`/users/${entry.partner.id}`}
+                    className="font-display text-2xl font-semibold"
+                  >
+                    {entry.partner.name}
+                  </AppLink>
+                  <span className="text-sm text-muted">{plural(entry.days, "day")} together</span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>,
+      ),
+    );
+  }
+
   if (c.gotAway) {
     const { climbs } = c.gotAway;
     sections.push(
@@ -612,7 +651,6 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
                 value: entry.redpoint,
                 className: "bg-(--color-palette-accent)",
               },
-              { label: "Repeat", value: entry.repeat, className: "bg-surface-tertiary" },
             ].filter((segment) => segment.value > 0);
             const total = segments.reduce((sum, segment) => sum + segment.value, 0);
             return (
@@ -720,45 +758,6 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
   if (c.onsights) {
     sections.push(
       chapter("onsights", "Hardest onsights", <Rankings disciplines={c.onsights.disciplines} />),
-    );
-  }
-
-  if (c.partner) {
-    sections.push(
-      chapter(
-        "partner",
-        "Favourite partner",
-        <div className="flex flex-col gap-4">
-          <p className="flex flex-col gap-1">
-            <AppLink
-              href={`/users/${c.partner.partner.id}`}
-              className="font-display text-5xl font-semibold"
-            >
-              {c.partner.partner.name}
-            </AppLink>
-            <span className="text-muted">{plural(c.partner.days, "day")} out together</span>
-          </p>
-          {c.partner.runnersUp.length > 0 && (
-            <ol className="grid gap-3 sm:grid-cols-2">
-              {c.partner.runnersUp.map((entry, index) => (
-                <li
-                  key={entry.partner.id}
-                  className={clsx("flex flex-col gap-0.5", cardClass("sm", "bordered"))}
-                >
-                  <span className={EYEBROW_CLASS}>#{index + 2}</span>
-                  <AppLink
-                    href={`/users/${entry.partner.id}`}
-                    className="font-display text-2xl font-semibold"
-                  >
-                    {entry.partner.name}
-                  </AppLink>
-                  <span className="text-sm text-muted">{plural(entry.days, "day")} together</span>
-                </li>
-              ))}
-            </ol>
-          )}
-        </div>,
-      ),
     );
   }
 

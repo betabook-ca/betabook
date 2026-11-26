@@ -201,7 +201,6 @@ export type StylesChapter = {
     onsight: number;
     flash: number;
     redpoint: number;
-    repeat: number;
   }[];
 };
 

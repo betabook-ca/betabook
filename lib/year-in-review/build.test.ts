@@ -384,6 +384,20 @@ describe("chapters that need data", () => {
     expect(review.missed.map((item) => item.id)).toContain("sport-rampage");
   });
 
+  it("breaks sends down by style without counting repeats", () => {
+    const styles = ["onsight", "flash", "flash", "redpoint", "redpoint"] as const;
+    const sends = styles.map((ascentStyle, index) =>
+      send(`2026-07-0${index + 1}`, 3, { ascentStyle }),
+    );
+    const repeats = [1, 2, 3].map((day) =>
+      session(`2026-08-0${day}`, { climbId: 700 + day, sent: true, isAscent: false }),
+    );
+    const review = build({ sends, sessions: repeats });
+    expect(review.chapters.styles?.disciplines).toEqual([
+      { type: "boulder", onsight: 1, flash: 2, redpoint: 2 },
+    ]);
+  });
+
   it("puts at most three low-rated sends in not worth the pump, unrated excluded", () => {
     const sends = [1, 1, 2, 2, null, 3].map((rating, index) =>
       send(`2026-06-0${index + 1}`, 3, { rating }),

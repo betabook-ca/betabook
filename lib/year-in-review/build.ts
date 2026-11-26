@@ -556,9 +556,10 @@ function buildNewGround(
   return { areas: newAreas.length, firstVisits };
 }
 
+/** How each discipline's sends went: onsight, flash or redpoint. Repeats are
+ * left out; they aren't new sends. */
 function buildStyles(
   yearSends: readonly Dated<YearSendRow>[],
-  yearSessions: readonly YearSessionRow[],
   types: readonly ClimbType[],
 ): StylesChapter | null {
   const disciplines = types.flatMap((type) => {
@@ -567,17 +568,7 @@ function buildStyles(
     const count = (style: string) => group.filter((send) => send.ascentStyle === style).length;
     const onsight = count("onsight");
     const flash = count("flash");
-    return [
-      {
-        type,
-        onsight,
-        flash,
-        redpoint: count("redpoint"),
-        repeat: yearSessions.filter(
-          (session) => session.climbType === type && session.sent && !session.isAscent,
-        ).length,
-      },
-    ];
+    return [{ type, onsight, flash, redpoint: count("redpoint") }];
   });
   return disciplines.length ? { disciplines } : null;
 }
@@ -791,7 +782,7 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
     label,
     areas,
   );
-  const styles = buildStyles(yearSends, yearSessions, types);
+  const styles = buildStyles(yearSends, types);
   const partner = buildPartner(yearSessions);
   const gotAway = buildGotAway(year, sends, yearSessions, label);
   const notWorthThePump = buildNotWorthThePump(yearSends, label, areas);
