@@ -161,24 +161,6 @@ export async function getYearReviewData(
   };
 }
 
-/** Years with a session or a dated send, newest first, for the year picker
- * and the bare `/year` redirect. */
-export async function getYearReviewYears(db: Database, ownerId: string): Promise<number[]> {
-  const rows = await db.all<{ year: string }>(sql`
-    SELECT substr(entry_date, 1, 4) AS year FROM journal_entries
-    WHERE user_id = ${ownerId} AND kind = 'session'
-    UNION
-    SELECT substr(date_sent, 1, 4) FROM sends
-    WHERE user_id = ${ownerId} AND date_sent IS NOT NULL
-    ORDER BY year DESC
-  `);
-  // parseRecapYear refuses years before 1950, so a stray old date (an import
-  // typo) must not become a year pill or a redirect target that 404s.
-  return rows
-    .map((row) => Number(row.year))
-    .filter((year) => Number.isInteger(year) && year >= 1950);
-}
-
 /** The banner and journal card's cheap check: whether the year has any days
  * out or dated sends. Not the full builder. */
 export async function getYearReviewStatus(

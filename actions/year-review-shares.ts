@@ -17,6 +17,7 @@ import { allowJournalWrite } from "@/lib/rate-limit";
 import { getRequestTimezone } from "@/lib/request-timezone";
 import { requireSession } from "@/lib/session";
 import { parseShareExpiry, shareExpiryModifier } from "@/lib/share-expiry";
+import { recapYear } from "@/lib/year-in-review/window";
 
 import { afterCommit } from "./post-commit";
 
@@ -29,11 +30,12 @@ function requireYear(year: unknown, latest: number): number {
   return year;
 }
 
-/** A year the owner's page can show: 1950 to the current year in the
- * owner's timezone, so a new link never points at a recap the owner can't
- * open and revoke. */
+/** The one year the owner's page shows (`recapYear`), so a new link always
+ * points at the recap whose Share dialog can renew or revoke it. */
 async function requireShareableYear(year: unknown): Promise<number> {
-  return requireYear(year, Number(goalToday(await getRequestTimezone()).slice(0, 4)));
+  const shown = recapYear(goalToday(await getRequestTimezone()));
+  if (year !== shown) throw new ActionError(INVALID_YEAR_MESSAGE);
+  return shown;
 }
 
 /** Publishes one year's recap behind a link, or resets the clock on a link

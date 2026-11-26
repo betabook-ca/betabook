@@ -6,7 +6,7 @@ import { buildYearInReview } from "./build";
 import { rankPersonas, type PersonaMetrics } from "./personas";
 import { commonAncestor, homeArea } from "./places";
 import type { YearAreaMap, YearReviewInput, YearSendRow, YearSessionRow } from "./types";
-import { yearReviewWindow } from "./window";
+import { recapYear, yearReviewWindow } from "./window";
 
 /** Canada(1) › BC(2) › Squamish(3) › Grand Wall(4) / Chief(5); Ontario(6) › Lion's Head(7). */
 const AREAS: YearAreaMap = new Map([
@@ -424,5 +424,14 @@ describe("window", () => {
     expect(yearReviewWindow("2027-01-14")).toBe(2026);
     expect(yearReviewWindow("2027-01-15")).toBeNull();
     expect(yearReviewWindow("2026-06-01", true)).toBe(2026);
+    // Forced open, it points at the year the page shows.
+    expect(yearReviewWindow("2027-02-10", true)).toBe(2026);
+  });
+
+  it("shows last year until March, then this year", () => {
+    expect(recapYear("2027-01-01")).toBe(2026);
+    expect(recapYear("2027-02-28")).toBe(2026);
+    expect(recapYear("2027-03-01")).toBe(2027);
+    expect(recapYear("2026-11-26")).toBe(2026);
   });
 });
