@@ -8,6 +8,7 @@ pub const LIST_MISSING: &str = "List not found";
 pub const LIST_UNAVAILABLE: &str = "This list isn't available.";
 pub const INVALID_EDIT: &str = "These list changes aren't valid. Reload the list and try again.";
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 pub struct ListInput {
     pub title: String,
     pub description: Option<String>,

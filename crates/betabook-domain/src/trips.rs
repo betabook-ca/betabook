@@ -5,6 +5,7 @@ use url::Url;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 pub struct TripInput {
     pub name: String,
     pub description: Option<String>,

@@ -1,10 +1,15 @@
-export type { ImportResult } from "@/lib/sends";
-import type { ClientActions } from "./action-contracts";
-export type { SavedClimbList, ReviewDecision, ClimbListItemChange } from "./action-contracts";
-import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
+import type { ActionArgs, ActionName, ClientResult } from "./action-contracts";
+export type {
+  SavedClimbList,
+  ReviewDecision,
+  ClimbListItemChange,
+  ImportResult,
+} from "./action-contracts";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 
 const READ_ONLY_ACTIONS = new Set([
   "getSendEditorData",
+  "submitContactMessage",
   "resolveImportClimbs",
   "resolveImportClimbsInAreas",
 ]);
@@ -16,15 +21,6 @@ const SESSION_REFRESH_ACTIONS = new Set([
   "updateDisplayName",
   "uploadProfilePhoto",
 ]);
-
-function hasFileEntry(formData: FormData): boolean {
-  for (const value of formData.values()) {
-    if (typeof value !== "string") {
-      return true;
-    }
-  }
-  return false;
-}
 
 function serializeArg(arg: unknown): unknown {
   if (arg instanceof FormData) {
@@ -39,14 +35,17 @@ function serializeArg(arg: unknown): unknown {
   return arg;
 }
 
-async function callAction(name: string, ...args: unknown[]): Promise<ActionResult<never>> {
+async function callAction<N extends ActionName>(
+  name: N,
+  args: ActionArgs<N>,
+): Promise<ClientResult<N>> {
   try {
-    const isMultipart = args.length === 1 && args[0] instanceof FormData && hasFileEntry(args[0]);
+    const photo = name === "uploadProfilePhoto" && args[0] instanceof FormData ? args[0] : null;
     const response = await fetch(`/api/actions/${encodeURIComponent(name)}`, {
       method: "POST",
       credentials: "same-origin",
-      ...(isMultipart
-        ? { body: args[0] as FormData }
+      ...(photo
+        ? { body: photo }
         : {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ args: args.map(serializeArg) }),
@@ -55,11 +54,11 @@ async function callAction(name: string, ...args: unknown[]): Promise<ActionResul
     const text = await response.text();
     if (name === "importSends" && (!response.ok || !text))
       throw new Error("Unconfirmed import result");
-    const result = text
-      ? (JSON.parse(text) as ActionResult<never>)
+    const result: { ok: boolean; value?: unknown; error?: string } = text
+      ? JSON.parse(text)
       : response.ok
-        ? ({ ok: true, value: undefined } as ActionResult<never>)
-        : ({ ok: false, error: GENERIC_ERROR_MESSAGE } as ActionResult<never>);
+        ? { ok: true, value: undefined }
+        : { ok: false, error: GENERIC_ERROR_MESSAGE };
 
     if (!result || typeof result.ok !== "boolean") throw new Error("Invalid action result");
     if (result.ok && !READ_ONLY_ACTIONS.has(name)) {
@@ -68,18 +67,18 @@ async function callAction(name: string, ...args: unknown[]): Promise<ActionResul
         window.dispatchEvent(new CustomEvent("betabook:session-refresh"));
       }
     }
-    return result;
+    return (result.ok ? { ...result, value: result.value } : result) as ClientResult<N>;
   } catch {
     return {
       ok: false,
       error: GENERIC_ERROR_MESSAGE,
       ...(name === "importSends" && { outcome: "unknown" }),
-    };
+    } as ClientResult<N>;
   }
 }
 
-function actionProxy<K extends keyof ClientActions>(name: K): ClientActions[K] {
-  return (...args: unknown[]) => callAction(name, ...args);
+function actionProxy<K extends ActionName>(name: K) {
+  return (...args: ActionArgs<K>) => callAction(name, args);
 }
 
 export const acceptTerms = actionProxy("acceptTerms");
@@ -148,3 +147,5 @@ export const updateDisplayName = actionProxy("updateDisplayName");
 export const updateJournalEntry = actionProxy("updateJournalEntry");
 export const updateSend = actionProxy("updateSend");
 export const uploadProfilePhoto = actionProxy("uploadProfilePhoto");
+
+export const submitContact = actionProxy("submitContactMessage");

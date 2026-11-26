@@ -6,7 +6,6 @@ import { useState } from "react";
 import { SignOutButton } from "@/components/sign-out-button";
 import { AppLink } from "@/components/ui/app-link";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import type { ActionResult } from "@/lib/action-result";
 import { termsHref } from "@/lib/terms";
 import { termsNextPath } from "@/lib/terms-navigation";
 import { acceptTerms } from "@/spa/lib/actions-client";
@@ -25,7 +24,7 @@ export function TermsAcceptanceForm({
   versionLabel: string;
   previousVersion: string | null;
   next?: string;
-  onAccept?: (version: unknown, agreed: unknown) => Promise<ActionResult>;
+  onAccept?: typeof acceptTerms;
   onSignOut?: () => void;
   onAccepted?: () => void;
 }) {

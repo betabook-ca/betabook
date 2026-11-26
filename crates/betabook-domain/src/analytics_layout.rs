@@ -1,12 +1,51 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
+const CARDS: &[&str] = &[
+    "sends",
+    "hardest",
+    "days",
+    "flash",
+    "bestYear",
+    "streak",
+    "busiestMonth",
+    "areas",
+    "favoriteDay",
+    "layoff",
+    "partner",
+    "biggestProject",
+    "persistence",
+    "favoriteRepeat",
+    "onsight",
+];
+const CHARTS: &[&str] = &[
+    "progression",
+    "pyramid",
+    "breakthroughs",
+    "calendar",
+    "volume",
+    "flashRate",
+];
+
+#[cfg(feature = "api-spec")]
+fn card_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+    let ids: Vec<_> = CARDS.iter().copied().chain(["firstTry"]).collect();
+    schemars::json_schema!({"type":"array","uniqueItems":true,"items":{"type":"string","enum":ids}})
+}
+
+#[cfg(feature = "api-spec")]
+fn chart_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+    schemars::json_schema!({"type":"array","uniqueItems":true,"items":{"type":"string","enum":CHARTS}})
+}
+
 #[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "api-spec", schemars(rename = "StoredAnalyticsLayout"))]
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Layout {
+    #[cfg_attr(feature = "api-spec", schemars(schema_with = "card_schema"))]
     cards: Vec<String>,
+    #[cfg_attr(feature = "api-spec", schemars(schema_with = "chart_schema"))]
     charts: Vec<String>,
 }
 
@@ -24,18 +63,11 @@ impl Layout {
                         cards.push("onsight".to_owned());
                     }
                 }
-                "sends" | "hardest" | "days" | "flash" | "bestYear" | "streak" | "busiestMonth"
-                | "areas" | "favoriteDay" | "layoff" | "partner" | "biggestProject"
-                | "persistence" | "favoriteRepeat" | "onsight" => cards.push(id),
+                card if CARDS.contains(&card) => cards.push(id),
                 _ => return None,
             }
         }
-        if self.charts.iter().any(|s| {
-            !matches!(
-                s.as_str(),
-                "progression" | "pyramid" | "breakthroughs" | "calendar" | "volume" | "flashRate"
-            )
-        }) {
+        if self.charts.iter().any(|id| !CHARTS.contains(&id.as_str())) {
             return None;
         }
         if cards.iter().collect::<HashSet<_>>().len() != cards.len()

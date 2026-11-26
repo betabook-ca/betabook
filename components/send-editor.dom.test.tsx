@@ -31,6 +31,8 @@ const value = {
     body: "Original beta",
     tags: ["beta"],
     companions: [],
+    reportedGrade: null,
+    videos: null,
     climbName: "Cedar",
     climbType: "boulder" as const,
     climbGrade: 5,

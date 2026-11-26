@@ -302,7 +302,8 @@ pub struct ActionCallBody {
 }
 
 #[derive(Deserialize)]
-struct ContactPayload {
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
+pub(crate) struct ContactPayload {
     name: Option<String>,
     email: Option<String>,
     message: Option<String>,
@@ -699,7 +700,9 @@ pub async fn dispatch_action(
     body: Body,
 ) -> Result<Response, ApiError> {
     use crate::rpc::Action;
-    let Some(action) = Action::parse(&name) else { return Ok(action_err("Unknown action")); };
+    let Some(action) = Action::parse(&name) else {
+        return Ok(action_err("Unknown action"));
+    };
     let content_type = headers
         .get(header::CONTENT_TYPE)
         .and_then(|v| v.to_str().ok())
@@ -757,8 +760,13 @@ pub async fn dispatch_action(
         Action::AcknowledgeGoalAchievements => {
             super::goal_refresh::acknowledge(&state, &headers, call.args.first()).await
         }
-        Action::SaveAnalyticsLayout => super::profile_analytics::save(&state, &headers, &call.args).await,
-        Action::PinProject | Action::UnpinProject | Action::ShareProject | Action::UnshareProject => {
+        Action::SaveAnalyticsLayout => {
+            super::profile_analytics::save(&state, &headers, &call.args).await
+        }
+        Action::PinProject
+        | Action::UnpinProject
+        | Action::ShareProject
+        | Action::UnshareProject => {
             use betabook_db::projects::{
                 pin_project, share_project, unpin_project, unshare_project,
             };
@@ -804,11 +812,21 @@ pub async fn dispatch_action(
                 }
             }
         }
-        Action::CreateClimbList | Action::UpdateClimbList | Action::DeleteClimbList | Action::AddClimbToList
-        | Action::SaveClimbListEdits | Action::ShareClimbList | Action::UnshareClimbList | Action::CopyClimbList => {
+        Action::CreateClimbList
+        | Action::UpdateClimbList
+        | Action::DeleteClimbList
+        | Action::AddClimbToList
+        | Action::SaveClimbListEdits
+        | Action::ShareClimbList
+        | Action::UnshareClimbList
+        | Action::CopyClimbList => {
             super::climb_lists::action(&state, &headers, &name, &call.args).await
         }
-        Action::SaveTrip | Action::SaveTripNotes | Action::DeleteTrip | Action::RemoveMyTripTag | Action::ShareTrip
+        Action::SaveTrip
+        | Action::SaveTripNotes
+        | Action::DeleteTrip
+        | Action::RemoveMyTripTag
+        | Action::ShareTrip
         | Action::UnshareTrip => super::trips::action(&name, &call.args, &state, &headers).await,
         Action::AcceptTerms => {
             let Some(session) = resolve_optional_session(&state, &headers).await? else {
