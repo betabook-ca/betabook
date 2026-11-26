@@ -83,6 +83,9 @@ test(
     try {
       await page.goto(appBaseURL, { waitUntil: "commit" });
       const frame = page.locator("#public-entry");
+      const sidebar = frame.getByRole("complementary", { name: "Sidebar" });
+      await expect(sidebar.getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
+      await expect(sidebar.getByRole("button", { name: /sidebar/ })).toHaveCount(0);
       const link = frame.getByRole("link", { name: "How Betabook works" });
       const bounds = await link.boundingBox();
       if (!bounds) throw new Error("Missing native logbook link");

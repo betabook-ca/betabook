@@ -127,7 +127,7 @@ export function publicEntry(home: boolean) {
   return renderToStaticMarkup(
     <StaticRouter location={home ? "/" : "/search"}>
       <div id="public-entry" className="flex min-h-full flex-1 flex-col">
-        <SidebarLayout account={null} requestCount={0}>
+        <SidebarLayout account={null} showToggle={false}>
           <PublicFrame progressive>
             {home ? <HomeEntry /> : "BETABOOK_PUBLIC_BODY_SLOT"}
           </PublicFrame>
