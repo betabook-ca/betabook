@@ -698,6 +698,8 @@ pub async fn dispatch_action(
     Path(name): Path<String>,
     body: Body,
 ) -> Result<Response, ApiError> {
+    use crate::rpc::Action;
+    let Some(action) = Action::parse(&name) else { return Ok(action_err("Unknown action")); };
     let content_type = headers
         .get(header::CONTENT_TYPE)
         .and_then(|v| v.to_str().ok())
@@ -711,14 +713,14 @@ pub async fn dispatch_action(
         let Ok(bytes) = axum::body::to_bytes(body, MAX_MULTIPART_ACTION_BYTES).await else {
             return Ok(action_err("That photo is too large — pick one under 3 MB."));
         };
-        if name == "uploadProfilePhoto" {
+        if action == Action::UploadProfilePhoto {
             return handle_upload_profile_photo(&state, &headers, &content_type, &bytes).await;
         }
         return Ok(action_err("Invalid request"));
     }
 
     // A legal 50-row import can exceed 512 KiB when notes contain non-ASCII text.
-    let max_json_bytes = if name == "importSends" {
+    let max_json_bytes = if action == Action::ImportSends {
         1024 * 1024
     } else {
         MAX_JSON_ACTION_BYTES
@@ -730,33 +732,33 @@ pub async fn dispatch_action(
         return Ok(action_err("Invalid action payload"));
     };
 
-    match name.as_str() {
-        "resolveImportClimbs" | "resolveImportClimbsInAreas" | "importSends" => {
+    match action {
+        Action::ResolveImportClimbs | Action::ResolveImportClimbsInAreas | Action::ImportSends => {
             super::imports::action(&state, &headers, &name, &call.args, &bytes).await
         }
 
-        "requestAreaEdit"
-        | "requestAreaDelete"
-        | "requestAreaReparent"
-        | "requestClimbEdit"
-        | "requestClimbDelete"
-        | "requestClimbMove"
-        | "requestClimbMerge"
-        | "requestClimbBreak" => {
+        Action::RequestAreaEdit
+        | Action::RequestAreaDelete
+        | Action::RequestAreaReparent
+        | Action::RequestClimbEdit
+        | Action::RequestClimbDelete
+        | Action::RequestClimbMove
+        | Action::RequestClimbMerge
+        | Action::RequestClimbBreak => {
             super::moderation::request(&state, &headers, &name, &call.args).await
         }
-        "approveChangeRequest" | "rejectChangeRequest" => {
+        Action::ApproveChangeRequest | Action::RejectChangeRequest => {
             super::moderation::review(&state, &headers, &name, &call.args).await
         }
 
-        "saveGoal" | "deleteGoal" | "archiveGoal" => {
+        Action::SaveGoal | Action::DeleteGoal | Action::ArchiveGoal => {
             super::goals::action(&state, &headers, &name, &call.args).await
         }
-        "acknowledgeGoalAchievements" => {
+        Action::AcknowledgeGoalAchievements => {
             super::goal_refresh::acknowledge(&state, &headers, call.args.first()).await
         }
-        "saveAnalyticsLayout" => super::profile_analytics::save(&state, &headers, &call.args).await,
-        "pinProject" | "unpinProject" | "shareProject" | "unshareProject" => {
+        Action::SaveAnalyticsLayout => super::profile_analytics::save(&state, &headers, &call.args).await,
+        Action::PinProject | Action::UnpinProject | Action::ShareProject | Action::UnshareProject => {
             use betabook_db::projects::{
                 pin_project, share_project, unpin_project, unshare_project,
             };
@@ -802,13 +804,13 @@ pub async fn dispatch_action(
                 }
             }
         }
-        "createClimbList" | "updateClimbList" | "deleteClimbList" | "addClimbToList"
-        | "saveClimbListEdits" | "shareClimbList" | "unshareClimbList" | "copyClimbList" => {
+        Action::CreateClimbList | Action::UpdateClimbList | Action::DeleteClimbList | Action::AddClimbToList
+        | Action::SaveClimbListEdits | Action::ShareClimbList | Action::UnshareClimbList | Action::CopyClimbList => {
             super::climb_lists::action(&state, &headers, &name, &call.args).await
         }
-        "saveTrip" | "saveTripNotes" | "deleteTrip" | "removeMyTripTag" | "shareTrip"
-        | "unshareTrip" => super::trips::action(&name, &call.args, &state, &headers).await,
-        "acceptTerms" => {
+        Action::SaveTrip | Action::SaveTripNotes | Action::DeleteTrip | Action::RemoveMyTripTag | Action::ShareTrip
+        | Action::UnshareTrip => super::trips::action(&name, &call.args, &state, &headers).await,
+        Action::AcceptTerms => {
             let Some(session) = resolve_optional_session(&state, &headers).await? else {
                 return Ok(action_err("Not signed in"));
             };
@@ -825,11 +827,11 @@ pub async fn dispatch_action(
             record_terms_acceptance(state.db(), &session.user.id, state.now_ms()).await?;
             Ok(action_ok())
         }
-        "submitContactMessage" => {
+        Action::SubmitContactMessage => {
             let payload = call.args.into_iter().next().unwrap_or(Value::Null);
             handle_contact(&state, payload).await
         }
-        "dismissFeatureAnnouncement" => {
+        Action::DismissFeatureAnnouncement => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -843,7 +845,7 @@ pub async fn dispatch_action(
             dismiss_feature_announcement(state.db(), &session.user.id, feature_id).await?;
             Ok(action_ok())
         }
-        "saveProductTourStatus" => {
+        Action::SaveProductTourStatus => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -864,7 +866,7 @@ pub async fn dispatch_action(
         }
 
         // Friendships
-        "requestFriendship" => {
+        Action::RequestFriendship => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -903,7 +905,7 @@ pub async fn dispatch_action(
             };
             Ok(action_value(status))
         }
-        "acceptFriendRequest" => {
+        Action::AcceptFriendRequest => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -917,7 +919,7 @@ pub async fn dispatch_action(
             }
             Ok(action_value("friends"))
         }
-        "cancelFriendRequest" | "declineFriendRequest" | "removeFriendship" => {
+        Action::CancelFriendRequest | Action::DeclineFriendRequest | Action::RemoveFriendship => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -940,7 +942,7 @@ pub async fn dispatch_action(
         }
 
         // Account settings
-        "updateDisplayName" => {
+        Action::UpdateDisplayName => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -965,7 +967,7 @@ pub async fn dispatch_action(
                 .await?;
             Ok(action_ok())
         }
-        "setUserPrivate" => {
+        Action::SetUserPrivate => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -974,10 +976,10 @@ pub async fn dispatch_action(
             update_user_private(state.db(), &session.user.id, is_private, state.now_ms()).await?;
             Ok(action_ok())
         }
-        "setJournalVisibility"
-        | "setTripVisibility"
-        | "setClimbListVisibility"
-        | "setSendCommentVisibility" => {
+        Action::SetJournalVisibility
+        | Action::SetTripVisibility
+        | Action::SetClimbListVisibility
+        | Action::SetSendCommentVisibility => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -1002,7 +1004,7 @@ pub async fn dispatch_action(
                 .await?;
             Ok(action_ok())
         }
-        "setGradePreferences" => {
+        Action::SetGradePreferences => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -1034,7 +1036,7 @@ pub async fn dispatch_action(
             .await?;
             Ok(action_ok())
         }
-        "resetProfileShareLink" => {
+        Action::ResetProfileShareLink => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -1042,7 +1044,7 @@ pub async fn dispatch_action(
             reset_profile_share_link(state.db(), &session.user.id).await?;
             Ok(action_ok())
         }
-        "removeProfilePhoto" => {
+        Action::RemoveProfilePhoto => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -1060,7 +1062,7 @@ pub async fn dispatch_action(
         }
 
         // Sends
-        "getSendEditorData" => {
+        Action::GetSendEditorData => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -1136,7 +1138,7 @@ pub async fn dispatch_action(
                 },
             })))
         }
-        "createUndatedSend" => {
+        Action::CreateUndatedSend => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -1201,7 +1203,7 @@ pub async fn dispatch_action(
             .await;
             map_mutation_result(res, |()| action_ok())
         }
-        "updateSend" => {
+        Action::UpdateSend => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -1271,7 +1273,7 @@ pub async fn dispatch_action(
                 action_ok()
             })
         }
-        "deleteSend" => {
+        Action::DeleteSend => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -1288,7 +1290,7 @@ pub async fn dispatch_action(
         }
 
         // Journal
-        "createJournalEntry" => {
+        Action::CreateJournalEntry => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -1359,7 +1361,7 @@ pub async fn dispatch_action(
                 action_ok()
             })
         }
-        "updateJournalEntry" => {
+        Action::UpdateJournalEntry => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -1406,7 +1408,7 @@ pub async fn dispatch_action(
                 action_ok()
             })
         }
-        "deleteJournalEntry" => {
+        Action::DeleteJournalEntry => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -1424,7 +1426,7 @@ pub async fn dispatch_action(
                 action_ok()
             })
         }
-        "removeMyJournalTag" => {
+        Action::RemoveMyJournalTag => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -1441,7 +1443,7 @@ pub async fn dispatch_action(
         }
 
         // Areas & Climbs
-        "createArea" => {
+        Action::CreateArea => {
             let _session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -1465,7 +1467,7 @@ pub async fn dispatch_action(
             let id = create_area(state.db(), parent_id, &area_name, description.as_deref()).await?;
             Ok(action_value(id))
         }
-        "updateArea" => {
+        Action::UpdateArea => {
             let _session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -1485,7 +1487,7 @@ pub async fn dispatch_action(
             update_area_description(state.db(), area_id, description.as_deref()).await?;
             Ok(action_ok())
         }
-        "createClimb" => {
+        Action::CreateClimb => {
             let _session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -1535,7 +1537,7 @@ pub async fn dispatch_action(
             .await?;
             Ok(action_value(id))
         }
-        "updateClimb" => {
+        Action::UpdateClimb => {
             let _session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
@@ -1555,8 +1557,6 @@ pub async fn dispatch_action(
             update_climb_description(state.db(), climb_id, description.as_deref()).await?;
             Ok(action_ok())
         }
-        _ => Ok(action_err(
-            "This action is being migrated onto the Rust Worker in the next stack layer.",
-        )),
+        Action::UploadProfilePhoto => Ok(action_err("Choose a photo to upload.")),
     }
 }

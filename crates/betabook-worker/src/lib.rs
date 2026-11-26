@@ -2,6 +2,7 @@ mod auth;
 mod middleware;
 mod observability;
 mod routes;
+mod rpc;
 mod state;
 
 use axum::{
