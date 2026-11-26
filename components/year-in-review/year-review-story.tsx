@@ -564,53 +564,22 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
             const total = segments.reduce((sum, segment) => sum + segment.value, 0);
             return (
               <div key={entry.type} className="flex flex-col gap-2">
-                <div className="flex items-baseline justify-between gap-3">
-                  <DisciplineChip type={entry.type} />
-                  <span className="text-sm">
-                    {Math.round(entry.firstTryRate * 100)}% of your {DISCIPLINE_NAMES[entry.type]}{" "}
-                    went first try
-                  </span>
-                </div>
-                {/* The ends are rounded per segment rather than clipped by the
-                 * bar, so a hover label can sit above its segment. */}
-                <div className="flex h-4" aria-hidden="true">
-                  {segments.map((segment, index) => (
+                <DisciplineChip type={entry.type} />
+                <div className="flex h-4 overflow-hidden rounded-full" aria-hidden="true">
+                  {segments.map((segment) => (
                     <div
                       key={segment.label}
-                      className={clsx(
-                        "group relative first:rounded-l-full last:rounded-r-full",
-                        segment.className,
-                      )}
+                      className={segment.className}
                       style={{ width: `${(segment.value / total) * 100}%` }}
-                    >
-                      <span
-                        className={clsx(
-                          "pointer-events-none absolute bottom-full z-10 mb-1 rounded-md bg-overlay px-2 py-0.5 text-xs whitespace-nowrap text-foreground opacity-0 shadow-lg transition-opacity group-hover:opacity-100",
-                          index === 0
-                            ? "left-0"
-                            : index === segments.length - 1
-                              ? "right-0"
-                              : "left-1/2 -translate-x-1/2",
-                        )}
-                      >
-                        {segment.label} {Math.round((segment.value / total) * 100)}%
-                      </span>
-                    </div>
+                    />
                   ))}
                 </div>
                 <p className="text-xs text-muted">
-                  {segments.map((segment) => `${segment.label} ${segment.value}`).join(" · ")}
-                  <span className="sr-only">
-                    {" "}
-                    (
-                    {segments
-                      .map(
-                        (segment) =>
-                          `${segment.label} ${Math.round((segment.value / total) * 100)}%`,
-                      )
-                      .join(", ")}
+                  {segments
+                    .map(
+                      (segment) => `${segment.label} ${Math.round((segment.value / total) * 100)}%`,
                     )
-                  </span>
+                    .join(" · ")}
                 </p>
               </div>
             );

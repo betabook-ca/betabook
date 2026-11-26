@@ -205,7 +205,6 @@ export type StylesChapter = {
     flash: number;
     redpoint: number;
     repeat: number;
-    firstTryRate: number;
   }[];
 };
 

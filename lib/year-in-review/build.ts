@@ -561,7 +561,6 @@ function buildStyles(
         repeat: yearSessions.filter(
           (session) => session.climbType === type && session.sent && !session.isAscent,
         ).length,
-        firstTryRate: (onsight + flash) / group.length,
       },
     ];
   });
