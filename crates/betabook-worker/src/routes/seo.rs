@@ -510,6 +510,108 @@ async fn render_not_found(state: &AppState) -> Result<Response, ApiError> {
     Ok(html_response(StatusCode::NOT_FOUND, html))
 }
 
+#[worker::send]
+pub async fn shared_project_page(
+    State(state): State<AppState>,
+    Path(token): Path<String>,
+) -> Result<Response, ApiError> {
+    use betabook_db::projects::SharedAccess;
+    let access = super::projects::resolve_link(&state, &token).await?;
+    let (status, meta) = match &access {
+        SharedAccess::Visible { project, .. } => {
+            let name = &project.owner_name;
+            let climb = project.climb_name();
+            let (title, description) = if project.sent {
+                (
+                    format!("{name} sent {climb}"),
+                    format!(
+                        "See the sessions behind {name}'s ascent of {climb} on {SITE_NAME}, a climbing logbook and crag database."
+                    ),
+                )
+            } else {
+                (
+                    format!("{name} is projecting {climb}"),
+                    format!(
+                        "Follow {name}'s progress on {climb} on {SITE_NAME}, a climbing logbook and crag database."
+                    ),
+                )
+            };
+            let mut meta = PageMetadata::noindex(title, description);
+            meta.og_type = "article";
+            (StatusCode::OK, meta)
+        }
+        SharedAccess::Expired => (
+            StatusCode::OK,
+            PageMetadata::noindex("Shared project", SITE_DESCRIPTION),
+        ),
+        SharedAccess::Hidden => (
+            StatusCode::NOT_FOUND,
+            PageMetadata::noindex("Shared project", SITE_DESCRIPTION),
+        ),
+    };
+    let data =
+        json!({"route":"shared-project", "path":format!("/projects/{token}"), "data":access});
+    render_project_shell(&state, &meta, status, Some(&data)).await
+}
+
+#[worker::send]
+pub async fn owner_project_page(
+    State(state): State<AppState>,
+    headers: http::HeaderMap,
+    Path(owner): Path<String>,
+    OriginalUri(uri): OriginalUri,
+) -> Result<Response, ApiError> {
+    let session = crate::auth::session::resolve_optional_session(&state, &headers).await?;
+    let member = session.filter(|s| {
+        betabook_domain::terms::has_accepted_current_terms(
+            s.user.terms_version.as_deref(),
+            s.user.terms_accepted_at,
+        )
+    });
+    let (status, title) = match member {
+        None => (StatusCode::OK, "Member content".to_owned()),
+        Some(s) if s.user.id == owner => {
+            let label = if uri.path().ends_with("/sent") {
+                "Sent projects"
+            } else {
+                "Projects"
+            };
+            (StatusCode::OK, format!("{} · {label}", s.user.name))
+        }
+        Some(_) => (StatusCode::NOT_FOUND, "Not found".to_owned()),
+    };
+    render_project_shell(
+        &state,
+        &PageMetadata::noindex(title, SITE_DESCRIPTION),
+        status,
+        None,
+    )
+    .await
+}
+
+async fn render_project_shell(
+    state: &AppState,
+    meta: &PageMetadata,
+    status: StatusCode,
+    bootstrap: Option<&Value>,
+) -> Result<Response, ApiError> {
+    let manifest = load_spa_manifest(state).await?;
+    let preload = render_modulepreload_tags(&manifest, "routes/projects-route.tsx");
+    let html = inject_seo_into_html(
+        &load_index_html(state).await?,
+        meta,
+        &[],
+        &preload,
+        bootstrap,
+    );
+    let mut response = html_response(status, html);
+    response.headers_mut().insert(
+        header::CACHE_CONTROL,
+        http::HeaderValue::from_static("private, no-store"),
+    );
+    Ok(response)
+}
+
 fn route_metadata(path: &str, has_query: bool) -> (PageMetadata, Vec<Value>, &'static str) {
     match path {
         "/" => (

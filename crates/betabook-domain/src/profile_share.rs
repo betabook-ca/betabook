@@ -12,6 +12,16 @@ pub fn parse_share_token(value: &str) -> Option<&str> {
     }
 }
 
+pub fn share_expiry_modifier(raw: &str) -> Result<Option<&'static str>, &'static str> {
+    match raw {
+        "7d" => Ok(Some("+7 days")),
+        "30d" => Ok(Some("+30 days")),
+        "6mo" => Ok(Some("+6 months")),
+        "never" => Ok(None),
+        _ => Err("Invalid link expiry"),
+    }
+}
+
 pub fn profile_share_from_path(path: Option<&str>) -> Option<(String, String)> {
     let raw = path?;
     let without_hash = raw.split('#').next().unwrap_or("");

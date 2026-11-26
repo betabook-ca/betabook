@@ -39,6 +39,7 @@ const UserSendsRoute = lazy(() => import("@/spa/routes/user-sends-route"));
 const UserJournalRoute = lazy(() => import("@/spa/routes/user-journal-route"));
 const AuthRouteView = lazy(() => import("@/spa/routes/auth-routes"));
 const InfoRouteView = lazy(() => import("@/spa/routes/info-routes"));
+const ProjectsRoute = lazy(() => import("@/spa/routes/projects-route"));
 const PlaceholderRoute = lazy(() => import("@/spa/routes/placeholder-route"));
 
 type TermsCheckState = {
@@ -211,6 +212,18 @@ export function App() {
                           <Route
                             path="/users/:id/journal"
                             element={<UserJournalRoute viewerId={viewerId} />}
+                          />
+                          <Route
+                            path="/users/:id/projects"
+                            element={<ProjectsRoute viewerId={viewerId} />}
+                          />
+                          <Route
+                            path="/users/:id/projects/sent"
+                            element={<ProjectsRoute viewerId={viewerId} sent />}
+                          />
+                          <Route
+                            path="/projects/:token"
+                            element={<ProjectsRoute viewerId={viewerId} />}
                           />
                           <Route path="/areas/new" element={<NewAreaRoute viewerId={viewerId} />} />
                           <Route path="/areas/:id" element={<AreaRoute viewerId={viewerId} />} />

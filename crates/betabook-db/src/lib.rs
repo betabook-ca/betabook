@@ -11,6 +11,7 @@ pub mod feed;
 pub mod fts;
 pub mod journal;
 pub mod member_catalog;
+pub mod projects;
 pub mod public_catalog;
 pub mod sends;
 pub mod social;

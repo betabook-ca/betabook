@@ -145,6 +145,17 @@ fn router(state: AppState) -> Router {
             "/api/users/{id}/journal",
             get(routes::member_pages::user_journal_api),
         )
+        .route(
+            "/api/pages/users/{id}/projects",
+            get(routes::projects::board),
+        )
+        .route("/api/pages/projects/{token}", get(routes::projects::shared))
+        .route("/projects/{token}", get(routes::seo::shared_project_page))
+        .route("/users/{id}/projects", get(routes::seo::owner_project_page))
+        .route(
+            "/users/{id}/projects/sent",
+            get(routes::seo::owner_project_page),
+        )
         // Page loaders for member SPA views
         .route(
             "/api/pages/feed",

@@ -705,6 +705,52 @@ pub async fn dispatch_action(
     };
 
     match name.as_str() {
+        "pinProject" | "unpinProject" | "shareProject" | "unshareProject" => {
+            use betabook_db::projects::{
+                pin_project, share_project, unpin_project, unshare_project,
+            };
+            use betabook_domain::profile_share::share_expiry_modifier;
+            let session = match require_member_session(&state, &headers).await {
+                Ok(session) => session,
+                Err(err) => return Ok(action_err(err.message)),
+            };
+            let user = &session.user.id;
+            let climb = match parse_pos_i64_arg(call.args.first(), "Climb not found") {
+                Ok(climb) => climb,
+                Err(message) => return Ok(action_err(message)),
+            };
+            let expiry = if name == "shareProject" {
+                match share_expiry_modifier(call.args.get(1).and_then(Value::as_str).unwrap_or(""))
+                {
+                    Ok(expiry) => expiry,
+                    Err(message) => return Ok(action_err(message)),
+                }
+            } else {
+                None
+            };
+            if !allow_rate_limit(&state, "JOURNAL_RATE_LIMITER", user).await {
+                return Ok(action_err("Too many changes — try again in a minute"));
+            }
+            match name.as_str() {
+                "pinProject" => {
+                    map_mutation_result(pin_project(state.db(), user, climb).await, |()| {
+                        action_ok()
+                    })
+                }
+                "shareProject" => map_mutation_result(
+                    share_project(state.db(), user, climb, expiry).await,
+                    action_value,
+                ),
+                "unpinProject" => {
+                    unpin_project(state.db(), user, climb).await?;
+                    Ok(action_ok())
+                }
+                _ => {
+                    unshare_project(state.db(), user, climb).await?;
+                    Ok(action_ok())
+                }
+            }
+        }
         "acceptTerms" => {
             let Some(session) = resolve_optional_session(&state, &headers).await? else {
                 return Ok(action_err("Not signed in"));
