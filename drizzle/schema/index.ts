@@ -24,6 +24,7 @@ export * from "./pinned-projects";
 export * from "./trips";
 export * from "./trip-share-links";
 export * from "./trip-companions";
+export * from "./year-review-share-links";
 
 export * from "./climb-lists";
 export * from "./climb-list-share-links";

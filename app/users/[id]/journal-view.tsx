@@ -1,4 +1,5 @@
 import { JournalFilterToolbar, JournalTimeline } from "@/components/journal";
+import { YearReviewCard } from "@/components/journal/year-review-card";
 import { NavigationPendingProvider } from "@/components/navigation-pending";
 import { ProductTour } from "@/components/product-tour";
 import { SectionHeading } from "@/components/ui/typography";
@@ -13,6 +14,7 @@ import {
 import { getUserHashtags } from "@/db/queries/hashtag-filter";
 import { getJournalFilterFriends } from "@/db/queries/journal-companions";
 import type { JournalFilter } from "@/lib/filters/journal-filter";
+import { yearReviewAlwaysOpen } from "@/lib/year-review-env";
 
 export async function JournalView({
   ownerId,
@@ -26,14 +28,16 @@ export async function JournalView({
   const db = await getDb();
   const isOwner = viewerId === ownerId;
   const filter = isOwner ? requestedFilter : { ...requestedFilter, friendIds: [] };
-  const [hasEntries, firstPage, filteredClimb, tourState, tags, friends] = await Promise.all([
-    hasJournalEntries(db, ownerId, viewerId),
-    getJournalPage(db, ownerId, viewerId, filter),
-    filter.climbId === null ? Promise.resolve(null) : getClimb(db, filter.climbId),
-    isOwner ? getProductTourState(db, ownerId) : Promise.resolve(null),
-    getUserHashtags(db, ownerId, viewerId, { includeTraining: true }),
-    isOwner ? getJournalFilterFriends(db, ownerId) : Promise.resolve([]),
-  ]);
+  const [hasEntries, firstPage, filteredClimb, tourState, tags, friends, recapAlwaysOpen] =
+    await Promise.all([
+      hasJournalEntries(db, ownerId, viewerId),
+      getJournalPage(db, ownerId, viewerId, filter),
+      filter.climbId === null ? Promise.resolve(null) : getClimb(db, filter.climbId),
+      isOwner ? getProductTourState(db, ownerId) : Promise.resolve(null),
+      getUserHashtags(db, ownerId, viewerId, { includeTraining: true }),
+      isOwner ? getJournalFilterFriends(db, ownerId) : Promise.resolve([]),
+      isOwner ? yearReviewAlwaysOpen() : Promise.resolve(false),
+    ]);
   const areaBreadcrumbs = await getAreaBreadcrumbs(
     db,
     firstPage.entries.flatMap((entry) => (entry.areaId == null ? [] : [entry.areaId])),
@@ -44,6 +48,7 @@ export async function JournalView({
       <div className="flex min-w-0 flex-col gap-4">
         {tourState && <ProductTour initialState={tourState} />}
         <SectionHeading className="sr-only">Journal</SectionHeading>
+        {isOwner && <YearReviewCard alwaysOpen={recapAlwaysOpen} />}
         {hasEntries && (
           <JournalFilterToolbar
             userId={ownerId}

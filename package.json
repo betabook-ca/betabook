@@ -26,6 +26,7 @@
     "test:seed-social": "node --disable-warning=ExperimentalWarning scripts/check-social-seed.ts",
     "test:seed-trips": "node --disable-warning=ExperimentalWarning scripts/check-trip-seed.ts",
     "seed": "node --disable-warning=ExperimentalWarning scripts/seed.ts",
+    "seed:year-review": "node --disable-warning=ExperimentalWarning scripts/seed-year-review.ts",
     "setup": "node scripts/setup.ts",
     "promote-admin": "node --disable-warning=ExperimentalWarning scripts/promote-admin.ts",
     "prepare": "husky",

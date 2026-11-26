@@ -21,6 +21,8 @@ interface CloudflareEnv {
   TURNSTILE_SECRET_KEY?: string;
   CLOUDFLARE_USAGE_ACCOUNT_ID?: string;
   CLOUDFLARE_USAGE_API_TOKEN?: string;
+  /** "true" opens the year-in-review window every day, for local testing. */
+  YEAR_REVIEW_ALWAYS_OPEN?: string;
 }
 
 declare namespace Cloudflare {
@@ -44,5 +46,6 @@ declare namespace Cloudflare {
     TURNSTILE_SECRET_KEY?: CloudflareEnv["TURNSTILE_SECRET_KEY"];
     CLOUDFLARE_USAGE_ACCOUNT_ID?: CloudflareEnv["CLOUDFLARE_USAGE_ACCOUNT_ID"];
     CLOUDFLARE_USAGE_API_TOKEN?: CloudflareEnv["CLOUDFLARE_USAGE_API_TOKEN"];
+    YEAR_REVIEW_ALWAYS_OPEN?: CloudflareEnv["YEAR_REVIEW_ALWAYS_OPEN"];
   }
 }

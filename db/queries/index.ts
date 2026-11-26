@@ -16,5 +16,7 @@ export * from "./profile-share";
 export * from "./project-shares";
 export * from "./trips";
 export * from "./trip-shares";
+export * from "./year-review-shares";
+export * from "./year-in-review";
 export * from "./climb-lists";
 export * from "./climb-list-shares";
