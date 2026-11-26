@@ -55,7 +55,6 @@ pub async fn require_member_session(
     Ok(auth_session)
 }
 
-#[allow(dead_code)]
 pub async fn require_admin_session(
     state: &AppState,
     headers: &HeaderMap,

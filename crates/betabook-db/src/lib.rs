@@ -17,6 +17,7 @@ pub mod goals;
 pub mod imports;
 pub mod journal;
 pub mod member_catalog;
+pub mod moderation;
 pub mod projects;
 pub mod public_catalog;
 pub mod sends;

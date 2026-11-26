@@ -224,6 +224,8 @@ fn router(state: AppState) -> Router {
         .route("/users/{id}", get(routes::entry_pages::profile))
         .route("/users/{id}/journal", get(routes::entry_pages::profile))
         .route("/users/{id}/sends", get(routes::entry_pages::profile))
+        .route("/admin/requests", get(routes::moderation::html))
+        .route("/api/pages/admin/requests", get(routes::moderation::queue))
         // Page loaders for member SPA views
         .route(
             "/api/pages/feed",

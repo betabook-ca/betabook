@@ -925,3 +925,6 @@ mod goals;
 
 #[path = "features/imports.rs"]
 mod imports;
+
+#[path = "features/moderation.rs"]
+mod moderation;

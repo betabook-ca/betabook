@@ -118,17 +118,17 @@ pub(super) async fn allow_rate_limit(state: &AppState, binding: &str, key: &str)
     }
 }
 
-fn today_utc(state: &AppState) -> String {
+pub(super) fn today_utc(state: &AppState) -> String {
     let iso = now_iso_from_ms(state.now_ms());
     iso.get(..10).unwrap_or("2026-01-01").to_string()
 }
 
-struct FormFields {
+pub(super) struct FormFields {
     entries: Vec<(String, String)>,
 }
 
 impl FormFields {
-    fn from_arg(value: Option<&Value>) -> Result<Self, &'static str> {
+    pub(super) fn from_arg(value: Option<&Value>) -> Result<Self, &'static str> {
         let Some(obj) = value.and_then(Value::as_object) else {
             return Err("Invalid form data");
         };
@@ -150,7 +150,7 @@ impl FormFields {
         Ok(Self { entries })
     }
 
-    fn get(&self, key: &str) -> Option<&str> {
+    pub(super) fn get(&self, key: &str) -> Option<&str> {
         self.entries
             .iter()
             .find(|(k, _)| k == key)
@@ -735,6 +735,21 @@ pub async fn dispatch_action(
         "resolveImportClimbs" | "resolveImportClimbsInAreas" | "importSends" => {
             super::imports::action(&state, &headers, &name, &call.args, &bytes).await
         }
+
+        "requestAreaEdit"
+        | "requestAreaDelete"
+        | "requestAreaReparent"
+        | "requestClimbEdit"
+        | "requestClimbDelete"
+        | "requestClimbMove"
+        | "requestClimbMerge"
+        | "requestClimbBreak" => {
+            super::moderation::request(&state, &headers, &name, &call.args).await
+        }
+        "approveChangeRequest" | "rejectChangeRequest" => {
+            super::moderation::review(&state, &headers, &name, &call.args).await
+        }
+
         "saveGoal" | "deleteGoal" | "archiveGoal" => {
             super::goals::action(&state, &headers, &name, &call.args).await
         }

@@ -9,6 +9,7 @@ pub mod import_sources;
 pub mod imports;
 pub mod member_pages;
 pub mod member_search;
+pub mod moderation;
 pub mod profile_analytics;
 pub mod projects;
 pub mod public_catalog;
