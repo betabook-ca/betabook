@@ -55,6 +55,9 @@ export default defineConfig({
     "climbs_data/**",
     ".claude/**",
     "drizzle/migrations/**",
+    "target/**",
+    "crates/**",
+    "dist-spa/**",
   ],
   rules: {
     // Enforce strict equality (=== / !==) while permitting standard nullish (== null) comparisons.

@@ -20,6 +20,9 @@
 # production
 /build
 /dist
+/dist-spa
+/target/
+crates/*/build/
 
 # misc
 .DS_Store

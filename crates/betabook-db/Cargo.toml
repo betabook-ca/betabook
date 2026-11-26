@@ -1,0 +1,13 @@
+[package]
+name = "betabook-db"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+default = ["sqlite"]
+sqlite = []
+d1 = []
+
+[dependencies]

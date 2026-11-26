@@ -205,9 +205,41 @@ jobs:
           UI_RESULT: ${{ needs.ui-tests.result }}
         run: test "$APP_CHANGED" = false || test "$UI_RESULT" = success
 
+  rust:
+    name: Rust Test & Build
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.app != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Test
+        run: cargo test --workspace
+      - name: Cache worker-build
+        id: cache-worker-build
+        uses: actions/cache@v6
+        with:
+          path: ~/.cargo/bin/worker-build
+          key: worker-build-${{ runner.os }}-0.9.0
+      - name: Install worker-build
+        if: steps.cache-worker-build.outputs.cache-hit != 'true'
+        run: cargo install worker-build --version 0.9.0 --locked
+      - name: Build Rust Worker
+        working-directory: crates/betabook-worker
+        run: worker-build --release
+
   deploy:
     name: Deploy
-    needs: [test, ui]
+    needs: [test, ui, rust]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'betabook-ca/betabook'
     runs-on: ubuntu-latest
     timeout-minutes: 5
