@@ -120,6 +120,68 @@ fn router(state: AppState) -> Router {
             "/api/friends/suggestions",
             get(routes::member_search::friend_suggestions),
         )
+        .route(
+            "/api/friends/companions",
+            get(routes::member_pages::friend_companions),
+        )
+        .route("/api/feed", get(routes::member_pages::feed_api))
+        .route(
+            "/api/climbs/{id}/sends",
+            get(routes::member_pages::climb_sends_api),
+        )
+        .route(
+            "/api/climbs/{id}/lists",
+            get(routes::member_pages::climb_lists_api),
+        )
+        .route(
+            "/api/users/{id}/sends",
+            get(routes::member_pages::user_sends_api),
+        )
+        .route(
+            "/api/users/{id}/sends/export",
+            get(routes::member_pages::user_sends_export_api),
+        )
+        .route(
+            "/api/users/{id}/journal",
+            get(routes::member_pages::user_journal_api),
+        )
+        // Page loaders for member SPA views
+        .route(
+            "/api/pages/feed",
+            get(routes::member_pages::feed_page_loader),
+        )
+        .route(
+            "/api/pages/friends",
+            get(routes::member_pages::friends_page_loader),
+        )
+        .route(
+            "/api/pages/account",
+            get(routes::member_pages::account_page_loader),
+        )
+        .route(
+            "/api/pages/users/{id}",
+            get(routes::member_pages::user_profile_page_loader),
+        )
+        .route(
+            "/api/pages/users/{id}/sends",
+            get(routes::member_pages::user_sends_page_loader),
+        )
+        .route(
+            "/api/pages/users/{id}/journal",
+            get(routes::member_pages::user_journal_page_loader),
+        )
+        .route(
+            "/api/pages/areas/{id}",
+            get(routes::member_pages::area_page_loader),
+        )
+        .route(
+            "/api/pages/climbs/new",
+            get(routes::member_pages::new_climb_page_loader),
+        )
+        .route(
+            "/api/pages/climbs/{id}",
+            get(routes::member_pages::climb_page_loader),
+        )
         .route("/api/client-errors", post(routes::actions::client_errors))
         .route(
             "/api/actions/{name}",

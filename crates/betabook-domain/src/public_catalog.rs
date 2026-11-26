@@ -71,7 +71,7 @@ pub fn parse_id(raw: &str) -> Option<i64> {
     raw.parse::<i64>().ok().filter(|&id| id > 0)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct DisciplineGradeFilter {
     pub disciplines: Vec<ClimbType>,
     pub boulder_range: Option<[i64; 2]>,

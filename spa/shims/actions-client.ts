@@ -1,25 +1,68 @@
 import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
 
+const READ_ONLY_ACTIONS = new Set([
+  "getSendEditorData",
+  "resolveImportClimbs",
+  "resolveImportClimbsInAreas",
+]);
+
+const SESSION_REFRESH_ACTIONS = new Set([
+  "acceptTerms",
+  "removeProfilePhoto",
+  "setGradePreferences",
+  "updateDisplayName",
+  "uploadProfilePhoto",
+]);
+
+function hasFileEntry(formData: FormData): boolean {
+  for (const value of formData.values()) {
+    if (typeof value !== "string") {
+      return true;
+    }
+  }
+  return false;
+}
+
+function serializeArg(arg: unknown): unknown {
+  if (arg instanceof FormData) {
+    const entries: [string, string][] = [];
+    for (const [key, value] of arg.entries()) {
+      if (typeof value === "string") {
+        entries.push([key, value]);
+      }
+    }
+    return { __formData: entries };
+  }
+  return arg;
+}
+
 async function callAction(name: string, ...args: unknown[]): Promise<ActionResult<never>> {
   try {
-    const isFormData = args.length === 1 && args[0] instanceof FormData;
+    const isMultipart = args.length === 1 && args[0] instanceof FormData && hasFileEntry(args[0]);
     const response = await fetch(`/api/actions/${encodeURIComponent(name)}`, {
       method: "POST",
       credentials: "same-origin",
-      ...(isFormData
+      ...(isMultipart
         ? { body: args[0] as FormData }
         : {
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ args }),
+            body: JSON.stringify({ args: args.map(serializeArg) }),
           }),
     });
     const text = await response.text();
-    if (text) {
-      return JSON.parse(text) as ActionResult<never>;
+    const result = text
+      ? (JSON.parse(text) as ActionResult<never>)
+      : response.ok
+        ? ({ ok: true, value: undefined } as ActionResult<never>)
+        : ({ ok: false, error: GENERIC_ERROR_MESSAGE } as ActionResult<never>);
+
+    if (result.ok && !READ_ONLY_ACTIONS.has(name)) {
+      window.dispatchEvent(new CustomEvent("betabook:router-refresh"));
+      if (SESSION_REFRESH_ACTIONS.has(name)) {
+        window.dispatchEvent(new CustomEvent("betabook:session-refresh"));
+      }
     }
-    return response.ok
-      ? ({ ok: true, value: undefined } as ActionResult<never>)
-      : { ok: false, error: GENERIC_ERROR_MESSAGE };
+    return result;
   } catch {
     return { ok: false, error: GENERIC_ERROR_MESSAGE };
   }

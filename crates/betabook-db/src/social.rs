@@ -1,7 +1,11 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use betabook_domain::grades::{ClimbType, GradePreferences, format_grade};
+use betabook_domain::password::random_hex;
+use betabook_domain::profile_share::friendship_pair;
 use serde::Serialize;
 
+use crate::content_access::accepted_friend_ids_sql;
 use crate::executor::{DbError, DbExecutor, DbParam};
 use crate::fts::{clamp_offset, clamp_page_size, literal_prefix_condition};
 
@@ -493,4 +497,476 @@ pub async fn upsert_product_tour_status<D: DbExecutor>(
     )
     .await?;
     Ok(())
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct CompanionOption {
+    pub id: String,
+    pub name: String,
+    pub image: Option<String>,
+}
+
+pub async fn search_companion_friends<D: DbExecutor>(
+    db: &D,
+    owner_id: &str,
+    name: &str,
+) -> Result<Vec<CompanionOption>, DbError> {
+    let query: String = name.trim().chars().take(100).collect();
+    if query.is_empty() {
+        return Ok(Vec::new());
+    }
+    let mut params = Vec::new();
+    let friends_cte = accepted_friend_ids_sql(owner_id, &mut params);
+    params.push(DbParam::Text(query.clone()));
+    params.push(DbParam::Text(query));
+    let sql = format!(
+        "WITH friends AS ({friends_cte})
+         SELECT u.id, u.name, u.image FROM friends f CROSS JOIN user u ON u.id = f.id
+         WHERE substr(u.name, 1, length(?)) = ? COLLATE NOCASE
+         ORDER BY u.name COLLATE NOCASE, u.id LIMIT 20"
+    );
+    let rows = db.query_all(&sql, &params).await?;
+    rows.into_iter()
+        .map(|row| {
+            Ok(CompanionOption {
+                id: row.get_string("id")?,
+                name: row.get_string("name")?,
+                image: row.get_opt_string("image")?,
+            })
+        })
+        .collect()
+}
+
+pub async fn get_journal_filter_friends<D: DbExecutor>(
+    db: &D,
+    owner_id: &str,
+) -> Result<Vec<CompanionOption>, DbError> {
+    let mut params = Vec::new();
+    let friends_cte = accepted_friend_ids_sql(owner_id, &mut params);
+    let sql = format!(
+        "WITH friends AS ({friends_cte})
+         SELECT u.id, u.name, u.image FROM friends f CROSS JOIN user u ON u.id = f.id
+         ORDER BY u.name COLLATE NOCASE, u.id"
+    );
+    let rows = db.query_all(&sql, &params).await?;
+    rows.into_iter()
+        .map(|row| {
+            Ok(CompanionOption {
+                id: row.get_string("id")?,
+                name: row.get_string("name")?,
+                image: row.get_opt_string("image")?,
+            })
+        })
+        .collect()
+}
+
+pub async fn get_friendship_status<D: DbExecutor>(
+    db: &D,
+    viewer_id: &str,
+    target_id: &str,
+) -> Result<String, DbError> {
+    let (u1, u2) = friendship_pair(viewer_id, target_id);
+    let Some(row) = db
+        .query_one(
+            "SELECT status, requested_by AS requestedBy
+             FROM friendships WHERE user_id = ? AND friend_id = ? LIMIT 1",
+            &[DbParam::Text(u1.to_string()), DbParam::Text(u2.to_string())],
+        )
+        .await?
+    else {
+        return Ok("none".to_string());
+    };
+    let status = row.get_string("status")?;
+    if status == "accepted" {
+        return Ok("friends".to_string());
+    }
+    let requested_by = row.get_string("requestedBy")?;
+    Ok(if requested_by == viewer_id {
+        "outgoing".to_string()
+    } else {
+        "incoming".to_string()
+    })
+}
+
+pub async fn accept_friend_request<D: DbExecutor>(
+    db: &D,
+    viewer_id: &str,
+    target_id: &str,
+) -> Result<bool, DbError> {
+    let (u1, u2) = friendship_pair(viewer_id, target_id);
+    let row = db
+        .query_one(
+            "UPDATE friendships SET status = 'accepted'
+             WHERE user_id = ? AND friend_id = ? AND requested_by = ?
+             RETURNING user_id",
+            &[
+                DbParam::Text(u1.to_string()),
+                DbParam::Text(u2.to_string()),
+                DbParam::Text(target_id.to_string()),
+            ],
+        )
+        .await?;
+    Ok(row.is_some())
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FriendshipEndOp {
+    Cancel,
+    Decline,
+    Remove,
+}
+
+pub async fn end_friendship_relationship<D: DbExecutor>(
+    db: &D,
+    viewer_id: &str,
+    target_id: &str,
+    op: FriendshipEndOp,
+) -> Result<bool, DbError> {
+    let (u1, u2) = friendship_pair(viewer_id, target_id);
+    let row = match op {
+        FriendshipEndOp::Remove => {
+            db.query_one(
+                "DELETE FROM friendships WHERE user_id = ? AND friend_id = ? AND status = 'accepted' RETURNING user_id",
+                &[DbParam::Text(u1.to_string()), DbParam::Text(u2.to_string())],
+            )
+            .await?
+        }
+        FriendshipEndOp::Cancel => {
+            db.query_one(
+                "DELETE FROM friendships WHERE user_id = ? AND friend_id = ? AND status = 'pending' AND requested_by = ? RETURNING user_id",
+                &[
+                    DbParam::Text(u1.to_string()),
+                    DbParam::Text(u2.to_string()),
+                    DbParam::Text(viewer_id.to_string()),
+                ],
+            )
+            .await?
+        }
+        FriendshipEndOp::Decline => {
+            db.query_one(
+                "DELETE FROM friendships WHERE user_id = ? AND friend_id = ? AND status = 'pending' AND requested_by = ? RETURNING user_id",
+                &[
+                    DbParam::Text(u1.to_string()),
+                    DbParam::Text(u2.to_string()),
+                    DbParam::Text(target_id.to_string()),
+                ],
+            )
+            .await?
+        }
+    };
+    if row.is_some() {
+        return Ok(true);
+    }
+    Ok(get_friendship_status(db, viewer_id, target_id).await? == "none")
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct UserProfileRow {
+    pub id: String,
+    pub name: String,
+    pub image: Option<String>,
+    pub is_private: bool,
+}
+
+pub async fn get_user_profile<D: DbExecutor>(
+    db: &D,
+    user_id: &str,
+) -> Result<Option<UserProfileRow>, DbError> {
+    let Some(row) = db
+        .query_one(
+            "SELECT id, name, image, is_private AS isPrivate FROM user WHERE id = ? LIMIT 1",
+            &[DbParam::Text(user_id.to_string())],
+        )
+        .await?
+    else {
+        return Ok(None);
+    };
+    Ok(Some(UserProfileRow {
+        id: row.get_string("id")?,
+        name: row.get_string("name")?,
+        image: row.get_opt_string("image")?,
+        is_private: row.get_i64("isPrivate")? == 1,
+    }))
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountUserRow {
+    pub id: String,
+    pub name: String,
+    pub email: String,
+    pub image: Option<String>,
+    pub role: Option<String>,
+    pub is_private: bool,
+    pub journal_visibility: String,
+    pub send_comment_visibility: String,
+    pub trip_visibility: String,
+    pub climb_list_visibility: String,
+    pub boulder_grade_scale: String,
+    pub rope_grade_scale: String,
+}
+
+pub async fn get_account_user<D: DbExecutor>(
+    db: &D,
+    user_id: &str,
+) -> Result<Option<AccountUserRow>, DbError> {
+    let Some(row) = db
+        .query_one(
+            "SELECT id, name, email, image, role, is_private AS isPrivate,
+                    journal_visibility AS journalVisibility,
+                    send_comment_visibility AS sendCommentVisibility,
+                    trip_visibility AS tripVisibility,
+                    climb_list_visibility AS climbListVisibility,
+                    boulder_grade_scale AS boulderGradeScale,
+                    rope_grade_scale AS ropeGradeScale
+             FROM user WHERE id = ? LIMIT 1",
+            &[DbParam::Text(user_id.to_string())],
+        )
+        .await?
+    else {
+        return Ok(None);
+    };
+    Ok(Some(AccountUserRow {
+        id: row.get_string("id")?,
+        name: row.get_string("name")?,
+        email: row.get_string("email")?,
+        image: row.get_opt_string("image")?,
+        role: row.get_opt_string("role")?,
+        is_private: row.get_i64("isPrivate")? == 1,
+        journal_visibility: row.get_string("journalVisibility")?,
+        send_comment_visibility: row.get_string("sendCommentVisibility")?,
+        trip_visibility: row.get_string("tripVisibility")?,
+        climb_list_visibility: row.get_string("climbListVisibility")?,
+        boulder_grade_scale: row.get_string("boulderGradeScale")?,
+        rope_grade_scale: row.get_string("ropeGradeScale")?,
+    }))
+}
+
+pub async fn get_profile_share_token<D: DbExecutor>(
+    db: &D,
+    user_id: &str,
+) -> Result<Option<String>, DbError> {
+    let row = db
+        .query_one(
+            "SELECT token FROM profile_share_links WHERE user_id = ? LIMIT 1",
+            &[DbParam::Text(user_id.to_string())],
+        )
+        .await?;
+    Ok(row.and_then(|r| r.get_opt_string("token").ok().flatten()))
+}
+
+pub async fn reset_profile_share_link<D: DbExecutor>(db: &D, user_id: &str) -> Result<(), DbError> {
+    let token = random_hex(16).map_err(|e| DbError::Query(e.to_string()))?;
+    db.execute(
+        "INSERT INTO profile_share_links (user_id, token) VALUES (?, ?)
+         ON CONFLICT (user_id) DO UPDATE SET token = excluded.token",
+        &[DbParam::Text(user_id.to_string()), DbParam::Text(token)],
+    )
+    .await?;
+    Ok(())
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ProductTourProgressRow {
+    pub tour_id: String,
+    pub version: i64,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ProductTourState {
+    pub returning: bool,
+    pub progress: Vec<ProductTourProgressRow>,
+}
+
+pub async fn get_product_tour_state<D: DbExecutor>(
+    db: &D,
+    user_id: &str,
+) -> Result<Option<ProductTourState>, DbError> {
+    let Some(owner) = db
+        .query_one(
+            "SELECT product_tour_returning AS productTourReturning FROM user WHERE id = ? LIMIT 1",
+            &[DbParam::Text(user_id.to_string())],
+        )
+        .await?
+    else {
+        return Ok(None);
+    };
+    let returning = owner.get_i64("productTourReturning")? == 1;
+    let rows = db
+        .query_all(
+            "SELECT tour_id AS tourId, version, status FROM user_product_tours WHERE user_id = ?",
+            &[DbParam::Text(user_id.to_string())],
+        )
+        .await?;
+    let progress = rows
+        .into_iter()
+        .map(|row| {
+            Ok(ProductTourProgressRow {
+                tour_id: row.get_string("tourId")?,
+                version: row.get_i64("version")?,
+                status: row.get_string("status")?,
+            })
+        })
+        .collect::<Result<Vec<_>, DbError>>()?;
+    Ok(Some(ProductTourState {
+        returning,
+        progress,
+    }))
+}
+
+pub async fn update_user_display_name<D: DbExecutor>(
+    db: &D,
+    user_id: &str,
+    name: &str,
+    now_ms: i64,
+) -> Result<(), DbError> {
+    db.execute(
+        "UPDATE user SET name = ?, updated_at = ? WHERE id = ?",
+        &[
+            DbParam::Text(name.to_string()),
+            DbParam::Int(now_ms),
+            DbParam::Text(user_id.to_string()),
+        ],
+    )
+    .await?;
+    Ok(())
+}
+
+pub async fn update_user_image<D: DbExecutor>(
+    db: &D,
+    user_id: &str,
+    image: Option<&str>,
+    now_ms: i64,
+) -> Result<(), DbError> {
+    db.execute(
+        "UPDATE user SET image = ?, updated_at = ? WHERE id = ?",
+        &[
+            opt_text_param(image),
+            DbParam::Int(now_ms),
+            DbParam::Text(user_id.to_string()),
+        ],
+    )
+    .await?;
+    Ok(())
+}
+
+pub async fn update_user_private<D: DbExecutor>(
+    db: &D,
+    user_id: &str,
+    is_private: bool,
+    now_ms: i64,
+) -> Result<(), DbError> {
+    db.execute(
+        "UPDATE user SET is_private = ?, updated_at = ? WHERE id = ?",
+        &[
+            DbParam::Int(i64::from(is_private)),
+            DbParam::Int(now_ms),
+            DbParam::Text(user_id.to_string()),
+        ],
+    )
+    .await?;
+    Ok(())
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VisibilityColumn {
+    Journal,
+    SendComment,
+    Trip,
+    ClimbList,
+}
+
+impl VisibilityColumn {
+    fn sql_column(self) -> &'static str {
+        match self {
+            Self::Journal => "journal_visibility",
+            Self::SendComment => "send_comment_visibility",
+            Self::Trip => "trip_visibility",
+            Self::ClimbList => "climb_list_visibility",
+        }
+    }
+}
+
+pub async fn update_user_visibility<D: DbExecutor>(
+    db: &D,
+    user_id: &str,
+    col: VisibilityColumn,
+    value: &str,
+    now_ms: i64,
+) -> Result<(), DbError> {
+    let sql = format!(
+        "UPDATE user SET {} = ?, updated_at = ? WHERE id = ?",
+        col.sql_column()
+    );
+    db.execute(
+        &sql,
+        &[
+            DbParam::Text(value.to_string()),
+            DbParam::Int(now_ms),
+            DbParam::Text(user_id.to_string()),
+        ],
+    )
+    .await?;
+    Ok(())
+}
+
+pub async fn update_user_grade_preferences<D: DbExecutor>(
+    db: &D,
+    user_id: &str,
+    boulder_scale: &str,
+    rope_scale: &str,
+    now_ms: i64,
+) -> Result<(), DbError> {
+    db.execute(
+        "UPDATE user SET boulder_grade_scale = ?, rope_grade_scale = ?, updated_at = ? WHERE id = ?",
+        &[
+            DbParam::Text(boulder_scale.to_string()),
+            DbParam::Text(rope_scale.to_string()),
+            DbParam::Int(now_ms),
+            DbParam::Text(user_id.to_string()),
+        ],
+    )
+    .await?;
+    Ok(())
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct HardestSend {
+    #[serde(rename = "type")]
+    pub climb_type: ClimbType,
+    pub grade: String,
+}
+
+pub async fn get_climber_hardest<D: DbExecutor>(
+    db: &D,
+    user_id: &str,
+    prefs: GradePreferences,
+) -> Result<Vec<HardestSend>, DbError> {
+    let rows = db
+        .query_all(
+            "SELECT climbs.type AS type, MAX(climbs.grade) AS maxGrade
+             FROM sends JOIN climbs ON climbs.id = sends.climb_id
+             WHERE sends.user_id = ?
+             GROUP BY climbs.type
+             ORDER BY COUNT(*) DESC, climbs.type",
+            &[DbParam::Text(user_id.to_string())],
+        )
+        .await?;
+    let mut out = Vec::new();
+    for row in rows {
+        if let Some(max_grade) = row.get_opt_i64("maxGrade")? {
+            let ct = ClimbType::parse(&row.get_string("type")?).ok_or(DbError::Column("type"))?;
+            out.push(HardestSend {
+                climb_type: ct,
+                grade: format_grade(ct, Some(max_grade), prefs).to_string(),
+            });
+        }
+    }
+    Ok(out)
 }
