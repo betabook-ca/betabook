@@ -85,7 +85,9 @@ function PlaceTrail({ place }: { place: YearPlace | null }) {
   return <span className="text-sm text-muted">{place.trail.join(" › ")}</span>;
 }
 
-function DayCard({ day, lead = "climbs" }: { day: DayHighlight; lead?: "climbs" | "sends" }) {
+/** A rampage day: every climb sent, nothing left unsent. Boulder days add
+ * their vPoints. */
+function DayCard({ day }: { day: DayHighlight }) {
   const where = day.place ? day.place.name : day.roots.join(" + ");
   return (
     <div className={clsx("flex flex-col gap-3", cardClass("sm", "bordered"))}>
@@ -93,35 +95,26 @@ function DayCard({ day, lead = "climbs" }: { day: DayHighlight; lead?: "climbs" 
         {formatDate(day.date)}
         {where ? ` · ${day.roots.length ? `across ${where}` : where}` : ""}
       </p>
-      <p className="text-sm">
-        {lead === "sends"
-          ? `${plural(day.sends, "send")} · ${plural(day.climbs, "climb")} tried`
-          : `${plural(day.climbs, "climb")} tried · ${plural(day.sends, "send")}`}
-        {day.hardest ? ` · hardest ${day.hardest.label} (${day.hardest.climbName})` : ""}
-      </p>
-      {day.vPoints && (
-        <dl className="grid grid-cols-2 gap-3 sm:max-w-sm">
-          <div className="flex flex-col">
-            <dt className="text-xs font-medium tracking-wide text-muted">vPoints tried</dt>
-            <dd className="font-display text-4xl font-semibold tabular-nums">
-              {day.vPoints.attempted}
-            </dd>
-          </div>
-          <div className="flex flex-col">
-            <dt className="text-xs font-medium tracking-wide text-muted">vPoints sent</dt>
-            <dd className="font-display text-4xl font-semibold tabular-nums">{day.vPoints.sent}</dd>
-          </div>
-        </dl>
+      <div className="flex flex-wrap items-end gap-x-8 gap-y-2">
+        <p className="flex items-baseline gap-2">
+          <span className="font-display text-5xl font-semibold tabular-nums">{day.sends}</span>
+          <span className="text-muted">{day.sends === 1 ? "send" : "sends"}</span>
+        </p>
+        {day.vPoints != null && (
+          <p className="flex items-baseline gap-2">
+            <span className="font-display text-5xl font-semibold tabular-nums">{day.vPoints}</span>
+            <span className="text-muted">vPoints</span>
+          </p>
+        )}
+      </div>
+      {day.hardest && (
+        <p className="text-sm text-muted">
+          Hardest: {day.hardest.label}, {day.hardest.climbName}
+        </p>
       )}
       <ul className="flex flex-wrap gap-1.5 text-xs">
         {day.list.slice(0, 12).map((climb) => (
-          <li
-            key={climb.climbId}
-            className={clsx(
-              "rounded-full px-2 py-0.5",
-              climb.sent ? "bg-accent/20 font-medium" : "bg-surface-tertiary text-muted",
-            )}
-          >
+          <li key={climb.climbId} className="rounded-full bg-accent/20 px-2 py-0.5 font-medium">
             {climb.climbName} {climb.label}
           </li>
         ))}
@@ -350,20 +343,16 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
     );
   }
 
-  if (c.biggestBoulderDay) {
+  if (c.boulderRampage) {
     sections.push(
-      chapter("biggest-boulder-day", "Boulder rampage", <DayCard day={c.biggestBoulderDay} />),
+      chapter("boulder-rampage", "Boulder rampage", <DayCard day={c.boulderRampage} />),
     );
   }
   if (c.sportRampage) {
-    sections.push(
-      chapter("sport-rampage", "Sport rampage", <DayCard day={c.sportRampage} lead="sends" />),
-    );
+    sections.push(chapter("sport-rampage", "Sport rampage", <DayCard day={c.sportRampage} />));
   }
   if (c.tradRampage) {
-    sections.push(
-      chapter("trad-rampage", "Trad rampage", <DayCard day={c.tradRampage} lead="sends" />),
-    );
+    sections.push(chapter("trad-rampage", "Trad rampage", <DayCard day={c.tradRampage} />));
   }
 
   if (c.homeTurf) {

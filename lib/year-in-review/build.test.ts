@@ -124,7 +124,7 @@ describe("places", () => {
     const review = build({
       sends: [4, 5, 5, 5, 4].map((areaId, index) => send("2026-05-16", index + 1, { areaId })),
     });
-    expect(review.chapters.biggestBoulderDay?.place?.name).toBe("Squamish");
+    expect(review.chapters.boulderRampage?.place?.name).toBe("Squamish");
     // Grand Wall and Chief: each climb's own area counts once.
     expect(review.chapters.intro.areasVisited).toBe(2);
   });
@@ -179,49 +179,38 @@ describe("new ground", () => {
   });
 });
 
-describe("biggest days", () => {
-  it("splits boulder and route days and tallies vPoints tried and sent", () => {
-    // Ordinal 6 is V5 and 4 is V3: two sends (V5 + V3) and three tries.
-    const boulders = [
+describe("rampages", () => {
+  it("counts new sends and repeats of earlier sends, and tallies vPoints sent", () => {
+    // V5 and V3 first ascents, plus repeats of a V4 and a V2 sent in 2025.
+    const sends = [
+      send("2025-04-01", 5, { climbId: 700 }),
+      send("2025-04-01", 3, { climbId: 702 }),
       send("2026-05-16", 6),
       send("2026-05-16", 4),
-      ...[7, 8, 9].map((grade, index) =>
-        session("2026-05-16", { climbId: 500 + index, climbGrade: grade }),
-      ),
+      ...[12, 14, 16].map((grade) => send("2026-06-01", grade, { climbType: "sport", areaId: 7 })),
     ];
-    const routes = [12, 14].map((grade) =>
-      send("2026-06-01", grade, { climbType: "sport", areaId: 7 }),
-    );
-    // Two laps of an earlier sport send make four sends that day.
-    const laps = [0, 1].map(() =>
-      session("2026-06-01", { climbId: 600, climbType: "sport", sent: true }),
-    );
     const review = build({
-      sends: [boulders[0], boulders[1], ...routes] as YearSendRow[],
-      sessions: [...(boulders.slice(2) as YearSessionRow[]), ...laps],
+      sends,
+      sessions: [
+        session("2026-05-16", { climbId: 700, climbGrade: 5, sent: true }),
+        session("2026-05-16", { climbId: 702, climbGrade: 3, sent: true }),
+        session("2026-06-01", { climbId: 600, climbType: "sport", sent: true }),
+        // An unsent try never shows on a rampage.
+        session("2026-05-16", { climbId: 701, climbGrade: 9 }),
+      ],
     });
-    const boulder = review.chapters.biggestBoulderDay;
-    expect(boulder).toMatchObject({ date: "2026-05-16", climbs: 5, sends: 2 });
-    // Tried: V5 + V3 + V6 + V7 + V8 = 29. Sent: V5 + V3 = 8.
-    expect(boulder?.vPoints).toEqual({ attempted: 29, sent: 8 });
-    expect(review.chapters.sportRampage).toMatchObject({
-      date: "2026-06-01",
-      sends: 4,
-      climbs: 3,
-      vPoints: null,
-    });
+    const boulder = review.chapters.boulderRampage;
+    expect(boulder).toMatchObject({ date: "2026-05-16", sends: 4 });
+    // V5 + V3 + V4 + V2 = 14.
+    expect(boulder?.vPoints).toBe(14);
+    expect(boulder?.list.map((climb) => climb.label)).toEqual([V(6), V(5), V(4), V(3)]);
+    expect(review.chapters.sportRampage).toMatchObject({ sends: 4, vPoints: null });
     expect(review.chapters.tradRampage).toBeNull();
   });
 
-  it("needs five problems for a boulder day and four sends for a rampage", () => {
-    const review = build({
-      sends: [
-        ...[1, 2, 3, 4].map((grade) => send("2026-05-16", grade)),
-        ...[10, 11, 12].map((grade) => send("2026-06-01", grade, { climbType: "trad" })),
-      ],
-    });
-    expect(review.chapters.biggestBoulderDay).toBeNull();
-    expect(review.chapters.tradRampage).toBeNull();
+  it("needs four climbs sent in a day", () => {
+    const review = build({ sends: [1, 2, 3].map((grade) => send("2026-05-16", grade)) });
+    expect(review.chapters.boulderRampage).toBeNull();
   });
 });
 

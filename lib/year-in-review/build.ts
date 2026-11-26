@@ -38,7 +38,6 @@ const YEAR_THRESHOLDS = {
   calendarDays: 6,
   weekdaySendDays: 3,
   weekdayQualifying: 2,
-  biggestBoulderDayClimbs: 5,
   rampageSends: 4,
   homeTurfDays: 3,
   stylesSends: 5,
@@ -238,26 +237,20 @@ function vPoints(grade: number): number {
 }
 
 /**
- * One discipline group's standout day. `volume` ranks by distinct climbs
- * tried, sent or not, then sends; `sends` (a rampage) ranks by sends, then
- * climbs tried. Ties go to the earlier date, and the ranked measure must
- * reach `min`. Sends count every first ascent and every repeat logged that
- * day, so four laps of one route are four sends. Boulder days also tally
- * V-points: every problem tried, and every problem sent.
+ * A discipline's rampage: the day with the most climbs sent, counting both
+ * new sends and repeats of climbs first sent on an earlier day. Ties go to
+ * the earlier date. Boulder days also tally vPoints, the V-grades of every
+ * problem sent that day.
  */
-function biggestDayFor(
-  types: readonly ClimbType[],
-  rank: "volume" | "sends",
-  min: number,
+function rampageFor(
+  type: ClimbType,
   yearSessions: readonly YearSessionRow[],
   yearSends: readonly Dated<YearSendRow>[],
   label: (type: ClimbType, grade: number) => string,
   areas: YearAreaMap,
 ): DayHighlight | null {
-  type Climb = { climbName: string; type: ClimbType; grade: number; areaId: number; sent: boolean };
+  type Climb = { climbName: string; grade: number; areaId: number };
   const days = new Map<string, Map<number, Climb>>();
-  const sendEvents = new Map<string, number>();
-  const addSend = (date: string) => sendEvents.set(date, (sendEvents.get(date) ?? 0) + 1);
   const climbsOn = (date: string) => {
     const existing = days.get(date);
     if (existing) return existing;
@@ -265,73 +258,50 @@ function biggestDayFor(
     days.set(date, created);
     return created;
   };
-  for (const session of yearSessions) {
-    if (!types.includes(session.climbType)) continue;
-    // A first ascent is counted from its send below, not its mirror entry.
-    if (session.sent && !session.isAscent) addSend(session.entryDate);
-    const climbs = climbsOn(session.entryDate);
-    const current = climbs.get(session.climbId);
-    climbs.set(session.climbId, {
-      climbName: session.climbName,
-      type: session.climbType,
-      grade: current?.grade ?? session.climbGrade,
-      areaId: session.areaId,
-      sent: (current?.sent ?? false) || session.sent,
-    });
-  }
   for (const send of yearSends) {
-    if (!types.includes(send.climbType)) continue;
-    addSend(send.dateSent);
-    // The send's own grade wins over the climb's listed grade.
+    if (send.climbType !== type) continue;
     climbsOn(send.dateSent).set(send.climbId, {
       climbName: send.climbName,
-      type: send.climbType,
       grade: send.grade,
       areaId: send.areaId,
-      sent: true,
     });
   }
-  const sends = (date: string) => sendEvents.get(date) ?? 0;
-  const measure = ([date, climbs]: [string, Map<number, Climb>]) =>
-    rank === "volume" ? climbs.size : sends(date);
-  const tiebreak = ([date, climbs]: [string, Map<number, Climb>]) =>
-    rank === "volume" ? sends(date) : climbs.size;
+  // Repeats: a first ascent's own entry mirrors its send above.
+  for (const session of yearSessions) {
+    if (session.climbType !== type || !session.sent || session.isAscent) continue;
+    const climbs = climbsOn(session.entryDate);
+    if (climbs.has(session.climbId)) continue;
+    climbs.set(session.climbId, {
+      climbName: session.climbName,
+      grade: session.climbGrade,
+      areaId: session.areaId,
+    });
+  }
   const best = [...days.entries()]
-    .filter((day) => measure(day) >= min)
-    .toSorted(
-      (a, b) => measure(b) - measure(a) || tiebreak(b) - tiebreak(a) || byDate(a[0], b[0]),
-    )[0];
+    .filter(([, climbs]) => climbs.size >= YEAR_THRESHOLDS.rampageSends)
+    .toSorted(([dateA, a], [dateB, b]) => b.size - a.size || byDate(dateA, dateB))[0];
   if (!best) return null;
   const [date, climbs] = best;
   const list = [...climbs.entries()]
     .map(([climbId, climb]) => ({ climbId, ...climb }))
-    .toSorted((a, b) => Number(b.sent) - Number(a.sent) || b.grade - a.grade);
+    .toSorted((a, b) => b.grade - a.grade);
   const { place, roots } = locate(
     areas,
     list.map((climb) => climb.areaId),
   );
-  const top = list.filter((climb) => climb.sent).toSorted((a, b) => b.grade - a.grade)[0];
-  const boulders = list.filter((climb) => climb.type === "boulder");
+  const top = list[0];
   return {
     date,
-    climbs: list.length,
-    sends: sends(date),
+    sends: list.length,
     place,
     roots,
-    hardest: top ? { climbName: top.climbName, label: label(top.type, top.grade) } : null,
-    vPoints: types.includes("boulder")
-      ? {
-          attempted: boulders.reduce((total, climb) => total + vPoints(climb.grade), 0),
-          sent: boulders
-            .filter((climb) => climb.sent)
-            .reduce((total, climb) => total + vPoints(climb.grade), 0),
-        }
-      : null,
+    hardest: top ? { climbName: top.climbName, label: label(type, top.grade) } : null,
+    vPoints:
+      type === "boulder" ? list.reduce((total, climb) => total + vPoints(climb.grade), 0) : null,
     list: list.map((climb) => ({
       climbId: climb.climbId,
       climbName: climb.climbName,
-      label: label(climb.type, climb.grade),
-      sent: climb.sent,
+      label: label(type, climb.grade),
     })),
   };
 }
@@ -822,25 +792,8 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
   const gotAway = buildGotAway(year, sends, yearSessions, label);
   const notWorthThePump = buildNotWorthThePump(yearSends, label, areas);
   const calendar = buildCalendar(dayList, yearSends, types, label);
-  const biggestBoulderDay = biggestDayFor(
-    ["boulder"],
-    "volume",
-    YEAR_THRESHOLDS.biggestBoulderDayClimbs,
-    yearSessions,
-    yearSends,
-    label,
-    areas,
-  );
-  const rampage = (type: ClimbType) =>
-    biggestDayFor(
-      [type],
-      "sends",
-      YEAR_THRESHOLDS.rampageSends,
-      yearSessions,
-      yearSends,
-      label,
-      areas,
-    );
+  const rampage = (type: ClimbType) => rampageFor(type, yearSessions, yearSends, label, areas);
+  const boulderRampage = rampage("boulder");
   const sportRampage = rampage("sport");
   const tradRampage = rampage("trad");
 
@@ -922,7 +875,7 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
     hardest: { disciplines: hardest, undated },
     pyramids: { disciplines: pyramids, undated },
     calendar,
-    biggestBoulderDay,
+    boulderRampage,
     sportRampage,
     tradRampage,
     homeTurf,
@@ -985,8 +938,8 @@ function missedChapters(
 
   if (!chapters.calendar)
     add("calendar", "Log 6+ days to see your peak month and when you send hardest.");
-  if (!chapters.biggestBoulderDay && chapters.intro.disciplines.includes("boulder"))
-    add("biggest-boulder-day", "Log 5+ problems in one session to unlock your boulder rampage.");
+  if (!chapters.boulderRampage && chapters.intro.disciplines.includes("boulder"))
+    add("boulder-rampage", "Send 4+ problems (repeats count) in one day for a boulder rampage.");
   if (!chapters.sportRampage && chapters.intro.disciplines.includes("sport"))
     add("sport-rampage", "Send 4+ sport routes (repeats count) in one day for a sport rampage.");
   if (!chapters.tradRampage && chapters.intro.disciplines.includes("trad"))

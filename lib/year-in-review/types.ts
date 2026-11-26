@@ -73,7 +73,7 @@ export type YearChapterId =
   | "intro"
   | "days"
   | "calendar"
-  | "biggest-boulder-day"
+  | "boulder-rampage"
   | "sport-rampage"
   | "trad-rampage"
   | "home-turf"
@@ -128,15 +128,16 @@ export type CalendarChapter = {
 
 export type DayHighlight = {
   date: string;
-  climbs: number;
+  /** Climbs sent that day: new sends and repeats of earlier sends. */
   sends: number;
   place: YearPlace | null;
   /** Several roots: the day's climbs share no area. */
   roots: string[];
   hardest: { climbName: string; label: string } | null;
-  /** Boulder days only: summed V-grades of every problem tried, and sent. */
-  vPoints: { attempted: number; sent: number } | null;
-  list: { climbId: number; climbName: string; label: string; sent: boolean }[];
+  /** Boulder days only: summed V-grades of every problem sent that day. */
+  vPoints: number | null;
+  /** The climbs sent, hardest first. */
+  list: { climbId: number; climbName: string; label: string }[];
 };
 
 export type HomeTurfChapter = {
@@ -264,7 +265,7 @@ export type YearChapters = {
   hardest: { disciplines: DisciplineRanking[]; undated: number };
   pyramids: PyramidsChapter & { undated: number };
   calendar: CalendarChapter | null;
-  biggestBoulderDay: DayHighlight | null;
+  boulderRampage: DayHighlight | null;
   sportRampage: DayHighlight | null;
   tradRampage: DayHighlight | null;
   homeTurf: HomeTurfChapter | null;
