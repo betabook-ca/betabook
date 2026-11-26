@@ -421,7 +421,6 @@ describe("personas", () => {
     tripLocations: 0,
     newClimbs: 10,
     repeats: 0,
-    bestWindow: null,
     disciplineShares: [{ type: "boulder", share: 1 }],
   };
 

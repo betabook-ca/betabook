@@ -17,7 +17,6 @@ export type PersonaMetrics = {
   tripLocations: number;
   newClimbs: number;
   repeats: number;
-  bestWindow: { share: number; sends: number; from: string; to: string } | null;
   disciplineShares: { type: keyof typeof DISCIPLINE_NAMES; share: number }[];
 };
 
@@ -53,7 +52,6 @@ function percentile(id: PersonaId, raw: number): number {
 const PRIORITY: PersonaId[] = [
   "siege-mentality",
   "circuit-repeater",
-  "seasonal-sprinter",
   "all-rounder",
   "wanderer",
   "flash-machine",
@@ -66,7 +64,6 @@ const PERSONA_NAMES: Record<PersonaId, string> = {
   "siege-mentality": "The Siege Mentality",
   wanderer: "The Wanderer",
   "circuit-repeater": "The Circuit Repeater",
-  "seasonal-sprinter": "The Seasonal Sprinter",
   "all-rounder": "The All-Rounder",
 };
 
@@ -129,13 +126,6 @@ function candidates(m: PersonaMetrics): Candidate[] {
       id: "circuit-repeater",
       raw: cap(share / 0.3),
       why: `${plural(m.repeats, "repeat")} of climbs already sent`,
-    });
-  }
-  if (m.bestWindow && m.sends >= 25) {
-    list.push({
-      id: "seasonal-sprinter",
-      raw: cap(m.bestWindow.share / 0.65),
-      why: `${percent(m.bestWindow.share)} of the year's sends came between ${m.bestWindow.from} and ${m.bestWindow.to}`,
     });
   }
   // All three disciplines, as close to a third each as possible.

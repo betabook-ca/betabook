@@ -3,7 +3,7 @@ import { daysBetween } from "@/lib/format-date";
 import { CLIMB_TYPES, gradeArray, type ClimbType, type GradePreferences } from "@/lib/grades";
 import { buildPyramid } from "@/lib/user-analytics";
 
-import { DISCIPLINE_NAMES, monthName } from "./labels";
+import { DISCIPLINE_NAMES } from "./labels";
 import { dayScore, rankPersonas, type PersonaMetrics } from "./personas";
 import { commonAncestor, homeArea, locate, placeOf, relatedPlaces } from "./places";
 import type {
@@ -716,24 +716,6 @@ function typicalDay(
   return { ...ranked[Math.floor((ranked.length - 1) / 2)], days: ranked.length };
 }
 
-function bestSendWindow(yearSends: readonly Dated<YearSendRow>[]): PersonaMetrics["bestWindow"] {
-  const dates = yearSends.map((send) => send.dateSent).toSorted(byDate);
-  if (!dates.length) return null;
-  let best = { count: 0, start: 0, end: 0 };
-  let end = 0;
-  for (let start = 0; start < dates.length; start += 1) {
-    const limit = shiftDate(dates[start], 59);
-    while (end + 1 < dates.length && dates[end + 1] <= limit) end += 1;
-    if (end - start + 1 > best.count) best = { count: end - start + 1, start, end };
-  }
-  return {
-    share: best.count / dates.length,
-    sends: best.count,
-    from: monthName(monthOf(dates[best.start])),
-    to: monthName(monthOf(dates[best.end])),
-  };
-}
-
 /**
  * The climber's year, chapter by chapter, from their whole history. Pure: the
  * page, the shared link and the story images all render from this.
@@ -891,7 +873,6 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
       ).size,
       newClimbs: newGround.newClimbs,
       repeats: yearSessions.filter((session) => session.sent && !session.isAscent).length,
-      bestWindow: bestSendWindow(yearSends),
       disciplineShares: types.map((type) => ({
         type,
         share:

@@ -254,7 +254,6 @@ export type PersonaId =
   | "siege-mentality"
   | "wanderer"
   | "circuit-repeater"
-  | "seasonal-sprinter"
   | "all-rounder";
 
 export type PersonaResult = { id: PersonaId; name: string; why: string; score: number };
