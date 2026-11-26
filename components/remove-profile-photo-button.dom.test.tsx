@@ -2,12 +2,14 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { removeProfilePhoto } from "@/actions";
 import type { ActionResult } from "@/lib/action-result";
+import { removeProfilePhoto } from "@/spa/lib/actions-client";
 
 import { RemoveProfilePhotoButton } from "./remove-profile-photo-button";
 
-vi.mock("@/actions", () => ({ removeProfilePhoto: vi.fn<() => Promise<ActionResult>>() }));
+vi.mock("@/spa/lib/actions-client", () => ({
+  removeProfilePhoto: vi.fn<() => Promise<ActionResult>>(),
+}));
 
 const remove = vi.mocked(removeProfilePhoto);
 

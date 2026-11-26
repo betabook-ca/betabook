@@ -1,6 +1,5 @@
 "use client";
 
-import { useParams, usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { FeedActivityNav } from "@/components/feed-activity-nav";
@@ -13,6 +12,7 @@ import { useClientSession } from "@/hooks/use-client-session";
 import { primaryAreaForPath } from "@/lib/app-navigation";
 import { parseFeedView } from "@/lib/feed";
 import { parseFriendsView } from "@/lib/friendships";
+import { useParams, usePathname, useSearchParams } from "@/spa/lib/navigation";
 
 /** The member the page's loader will see: signed in, with the current terms
  * accepted. Anyone else gets a callout, so no member navigation. */
@@ -33,7 +33,7 @@ export function ProfileLoading() {
   const memberId = useLoaderMember();
   const area = memberId === id ? primaryAreaForPath(pathname, id) : undefined;
   const rows = <SkeletonListRows rows={8} />;
-  if (area === "logbook" || area === "progress") {
+  if (id && (area === "logbook" || area === "progress")) {
     return (
       <WorkspaceShell area={area} userId={id}>
         {rows}

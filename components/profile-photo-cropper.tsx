@@ -3,8 +3,7 @@
 import { Button, Label, Slider } from "@heroui/react";
 import type { UseOverlayStateReturn } from "@heroui/react";
 import { RotateCw } from "lucide-react";
-import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import type { Area, Point } from "react-easy-crop";
 
 import { InlineAlert } from "@/components/ui/inline-alert";
@@ -15,10 +14,7 @@ import { nextQuarterTurn, sameCropArea, type CropArea, type QuarterTurn } from "
 
 // Loaded when a photo is actually chosen: the cropper is the heaviest thing
 // on /account, and nobody reading their settings should pay for it.
-const Cropper = dynamic(() => import("react-easy-crop"), {
-  ssr: false,
-  loading: () => <Skeleton className="size-full" rounded="rounded-panel" />,
-});
+const Cropper = lazy(() => import("react-easy-crop"));
 
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
@@ -141,36 +137,38 @@ function CropFrame({
         {source === null ? (
           <Skeleton className="size-full" rounded="rounded-panel" />
         ) : (
-          <Cropper
-            image={source}
-            crop={crop}
-            zoom={zoom}
-            rotation={rotation}
-            aspect={1}
-            minZoom={MIN_ZOOM}
-            maxZoom={MAX_ZOOM}
-            zoomSpeed={1}
-            cropShape="round"
-            showGrid={false}
-            restrictPosition
-            keyboardStep={8}
-            onCropChange={setCrop}
-            onZoomChange={setZoom}
-            // Held by value, not by the object the cropper hands over: a
-            // report that changed nothing must not re-render the drawer.
-            onCropComplete={(_percent: Area, pixels: Area) =>
-              setArea((current) =>
-                current !== null && sameCropArea(current, pixels) ? current : pixels,
-              )
-            }
-            style={{}}
-            classes={{}}
-            mediaProps={{ alt: "" }}
-            // The crop window is a focusable div the cropper pans with the
-            // arrow keys; a role is what makes its label legal, and `group` is
-            // the honest one for a labelled region holding a custom gesture.
-            cropperProps={{ role: "group", "aria-label": "Photo crop area" }}
-          />
+          <Suspense fallback={<Skeleton className="size-full" rounded="rounded-panel" />}>
+            <Cropper
+              image={source}
+              crop={crop}
+              zoom={zoom}
+              rotation={rotation}
+              aspect={1}
+              minZoom={MIN_ZOOM}
+              maxZoom={MAX_ZOOM}
+              zoomSpeed={1}
+              cropShape="round"
+              showGrid={false}
+              restrictPosition
+              keyboardStep={8}
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              // Held by value, not by the object the cropper hands over: a
+              // report that changed nothing must not re-render the drawer.
+              onCropComplete={(_percent: Area, pixels: Area) =>
+                setArea((current) =>
+                  current !== null && sameCropArea(current, pixels) ? current : pixels,
+                )
+              }
+              style={{}}
+              classes={{}}
+              mediaProps={{ alt: "" }}
+              // The crop window is a focusable div the cropper pans with the
+              // arrow keys; a role is what makes its label legal, and `group` is
+              // the honest one for a labelled region holding a custom gesture.
+              cropperProps={{ role: "group", "aria-label": "Photo crop area" }}
+            />
+          </Suspense>
         )}
       </div>
 

@@ -2,12 +2,12 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
-import { createArea } from "@/actions";
 import type { ActionResult } from "@/lib/action-result";
+import { createArea } from "@/spa/lib/actions-client";
 
 import { AreaForm } from "./area-form";
 
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   createArea: vi.fn<(parentId: number, formData: FormData) => Promise<ActionResult<number>>>(),
   updateArea: vi.fn<(id: number, formData: FormData) => Promise<ActionResult>>(),
 }));

@@ -2,15 +2,15 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { uploadProfilePhoto } from "@/actions";
 import type { ActionResult } from "@/lib/action-result";
 import type { CropSquare } from "@/lib/photo-canvas";
 import type { CropArea } from "@/lib/photo-crop";
 import { MAX_SOURCE_PHOTO_BYTES, SOURCE_PHOTO_TOO_LARGE_MESSAGE } from "@/lib/profile-photo";
+import { uploadProfilePhoto } from "@/spa/lib/actions-client";
 
 import { ProfilePhotoSettings } from "./profile-photo-settings";
 
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   uploadProfilePhoto: vi.fn<(data: FormData) => Promise<ActionResult>>(),
   removeProfilePhoto: vi.fn<() => Promise<ActionResult>>(),
 }));

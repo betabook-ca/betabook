@@ -2,10 +2,8 @@
 
 import { Button, Label, TextArea, TextField } from "@heroui/react";
 import type { UseOverlayStateReturn } from "@heroui/react";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { requestClimbBreak } from "@/actions";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
@@ -13,6 +11,8 @@ import type { Climb } from "@/db/queries";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { composeClimbBreakTexts, MAX_BREAK_REASON_LENGTH } from "@/lib/broken-climbs";
 import { localToday } from "@/lib/format-date";
+import { requestClimbBreak } from "@/spa/lib/actions-client";
+import { useRouter } from "@/spa/lib/navigation";
 
 type ClimbBreakDrawerProps = {
   climb: Climb;

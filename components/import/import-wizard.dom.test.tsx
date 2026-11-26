@@ -2,12 +2,12 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 
-import { importSends, resolveImportClimbs } from "@/actions";
+import { importSends, resolveImportClimbs } from "@/spa/lib/actions-client";
 import { kayaStreamResponse } from "@/test/kaya";
 
 import { ImportWizard } from "./import-wizard";
 
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   resolveImportClimbs: vi.fn<typeof resolveImportClimbs>().mockResolvedValue({
     ok: true,
     value: [
@@ -28,7 +28,7 @@ vi.mock("@/actions", () => ({
   }),
   importSends: vi.fn<typeof importSends>(),
 }));
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => ({ push: vi.fn<() => void>() }),
   usePathname: () => "/account/import",
   useSearchParams: () => new URLSearchParams(),

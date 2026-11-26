@@ -12,18 +12,15 @@ const { refresh, transport, router } = vi.hoisted(() => {
   const refresh = vi.fn<() => void>();
   return { refresh, router: { refresh }, transport: vi.fn<typeof fetch>() };
 });
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => router,
   usePathname: () => "/users/alex",
   useSearchParams: () => new URLSearchParams("view=sends"),
 }));
 vi.mock("@/lib/auth-client", async () => {
-  const { createAuthClient } = await import("better-auth/react");
+  const { createWorkerAuthClient } = await import("@/spa/lib/worker-auth");
   return {
-    authClient: createAuthClient({
-      baseURL: "http://localhost:3000",
-      fetchOptions: { customFetchImpl: transport },
-    }),
+    authClient: createWorkerAuthClient(transport),
   };
 });
 function session(id: string) {
@@ -32,10 +29,10 @@ function session(id: string) {
     session: { id: `session-${id}`, userId: id, expiresAt: "2099-01-01T00:00:00.000Z" },
   });
 }
-vi.mock("@/actions/terms", () => ({ acceptTerms: vi.fn<() => Promise<ActionResult>>() }));
+vi.mock("@/spa/lib/actions-client", () => ({ acceptTerms: vi.fn<() => Promise<ActionResult>>() }));
 beforeEach(async () => {
   transport.mockImplementation(async () => session("alex"));
-  await act(() => authClient.$store.atoms.session.get().refetch());
+  await act(() => authClient.refetch());
   transport.mockClear();
 });
 afterEach(() => {
@@ -98,12 +95,16 @@ it("discards local state when the server viewer changes, and hides data on sign-
   // A refreshed server tree can arrive before the auth client's session check.
   transport.mockImplementation(async () => session("sam"));
   rerender(<ViewerBoundary viewerId="sam">{content}</ViewerBoundary>);
-  act(() => authClient.$store.notify("$sessionSignal"));
+  act(() => {
+    void authClient.refetch();
+  });
   const next = await screen.findByRole("textbox", { name: "Notes" });
   expect(next).not.toBe(input);
   expect(next).toHaveValue("");
   transport.mockImplementation(async () => Response.json(null));
-  act(() => authClient.$store.notify("$sessionSignal"));
+  act(() => {
+    void authClient.refetch();
+  });
   await screen.findByText("For Betabook members");
   expect(screen.queryByRole("textbox", { name: "Notes" })).not.toBeInTheDocument();
   let resolve!: (response: Response) => void;
@@ -113,15 +114,17 @@ it("discards local state when the server viewer changes, and hides data on sign-
         resolve = done;
       }),
   );
-  act(() => authClient.$store.notify("$sessionSignal"));
-  await waitFor(() => expect(authClient.$store.atoms.session.get().isPending).toBe(true));
+  act(() => {
+    void authClient.refetch();
+  });
+  await waitFor(() => expect(resolve).toBeTypeOf("function"));
   expect(screen.queryByRole("textbox", { name: "Notes" })).not.toBeInTheDocument();
   await act(async () => resolve(Response.json(null)));
 });
 
 it("resets drafts when the server account changes while the session check is pending", async () => {
   transport.mockImplementation(async () => Response.json(null));
-  await act(() => authClient.$store.atoms.session.get().refetch());
+  await act(() => authClient.refetch());
   let resolve!: (response: Response) => void;
   transport.mockImplementation(
     () =>
@@ -133,8 +136,10 @@ it("resets drafts when the server account changes while the session check is pen
   const content = <input aria-label="Notes" />;
   const { rerender } = render(<ViewerBoundary viewerId={null}>{content}</ViewerBoundary>);
   await user.type(screen.getByRole("textbox", { name: "Notes" }), "Previous draft");
-  act(() => authClient.$store.notify("$sessionSignal"));
-  await waitFor(() => expect(authClient.$store.atoms.session.get().isPending).toBe(true));
+  act(() => {
+    void authClient.refetch();
+  });
+  await waitFor(() => expect(resolve).toBeTypeOf("function"));
   rerender(<ViewerBoundary viewerId="sam">{content}</ViewerBoundary>);
   expect(screen.queryByRole("textbox", { name: "Notes" })).not.toBeInTheDocument();
   await act(async () => resolve(session("sam")));

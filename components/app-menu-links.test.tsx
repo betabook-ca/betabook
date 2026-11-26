@@ -4,11 +4,11 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { AppMenuLinks } from "@/components/app-menu-links";
 
 const state = vi.hoisted(() => ({ pathname: "/" }));
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/navigation", () => ({
   usePathname: () => state.pathname,
   useRouter: () => ({ push: () => {}, refresh: () => {} }),
 }));
-vi.mock("next/image", () => ({ default: () => null }));
+
 vi.mock("@/lib/auth-client", () => ({ authClient: { signOut: () => {} } }));
 
 const owner = { id: "owner", name: "Alex Morgan", image: null, isAdmin: false };

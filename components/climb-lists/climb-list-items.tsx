@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@heroui/react";
-import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
@@ -24,6 +23,7 @@ import {
 } from "@/lib/climb-lists";
 import { DEFAULT_CLIMB_FILTER } from "@/lib/filters/climb-filter";
 import { climbHref } from "@/lib/slug";
+import { usePathname, useRouter } from "@/spa/lib/navigation";
 
 /**
  * A list's climbs as one reader sees them.

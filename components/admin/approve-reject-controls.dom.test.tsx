@@ -2,12 +2,12 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
-import { rejectChangeRequest } from "@/actions";
+import { rejectChangeRequest } from "@/spa/lib/actions-client";
 
 import { ApproveRejectControls } from "./approve-reject-controls";
 
-vi.mock("@/actions", () => ({
-  approveChangeRequest: vi.fn<typeof import("@/actions").approveChangeRequest>(),
+vi.mock("@/spa/lib/actions-client", () => ({
+  approveChangeRequest: vi.fn<typeof import("@/spa/lib/actions-client").approveChangeRequest>(),
   rejectChangeRequest: vi.fn<typeof rejectChangeRequest>(),
 }));
 

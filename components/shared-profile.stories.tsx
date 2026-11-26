@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import type { UserSendRow } from "@/db/queries";
 import { SHARED_OWNER, SharedProfileFrame } from "@/stories/fixtures/shared-profile-frame";
@@ -95,7 +95,7 @@ const meta = {
   component: SharedProfile,
   parameters: {
     fullWidth: true,
-    nextjs: { navigation: { pathname: `/users/${SHARED_OWNER.id}` } },
+    router: { navigation: { pathname: `/users/${SHARED_OWNER.id}` } },
   },
   args: {
     owner: SHARED_OWNER,

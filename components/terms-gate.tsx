@@ -1,12 +1,12 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 import { TermsAcceptanceForm } from "@/components/terms-acceptance-form";
 import type { ActionResult } from "@/lib/action-result";
 import { TERMS_REQUIRED_EVENT, TERMS_UPDATED_LABEL, TERMS_VERSION } from "@/lib/terms";
 import { isTermsExemptPath } from "@/lib/terms-navigation";
+import { usePathname, useRouter } from "@/spa/lib/navigation";
 
 const TermsPendingContext = createContext(false);
 

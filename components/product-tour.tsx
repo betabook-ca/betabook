@@ -1,10 +1,8 @@
 "use client";
 
 import { Button } from "@heroui/react";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { saveProductTourStatus } from "@/actions";
 import { PRODUCT_TOUR_QUICK_ACTIONS } from "@/components/product-tours/quick-actions";
 import { cardClass } from "@/components/ui/card";
 import { Eyebrow } from "@/components/ui/eyebrow";
@@ -23,6 +21,8 @@ import {
   PRODUCT_TOUR_STEPS,
   productTourPath,
 } from "@/lib/product-tour-navigation";
+import { saveProductTourStatus } from "@/spa/lib/actions-client";
+import { useRouter } from "@/spa/lib/navigation";
 
 /** The owner invitation and Account replay catalog share the same registry. */
 export function ProductTour({ initialState }: { initialState?: ProductTourState }) {

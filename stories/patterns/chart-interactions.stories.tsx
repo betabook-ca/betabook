@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { AnalyticsCalendar } from "@/components/analytics-calendar";
 import { AnalyticsFlashChart } from "@/components/analytics-flash-chart";

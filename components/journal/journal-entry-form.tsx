@@ -1,7 +1,11 @@
 "use client";
 
-import { createJournalEntry, createUndatedSend, updateJournalEntry } from "@/actions";
 import { localToday } from "@/lib/format-date";
+import {
+  createJournalEntry,
+  createUndatedSend,
+  updateJournalEntry,
+} from "@/spa/lib/actions-client";
 
 import { JournalEntryFields, type JournalEntryFieldsProps } from "./journal-entry-fields";
 

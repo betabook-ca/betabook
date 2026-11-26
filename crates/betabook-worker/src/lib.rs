@@ -228,6 +228,10 @@ fn router(state: AppState) -> Router {
         .route("/api/pages/admin/requests", get(routes::moderation::queue))
         // Page loaders for member SPA views
         .route(
+            "/api/pages/tutorial",
+            get(routes::member_pages::tutorial_state),
+        )
+        .route(
             "/api/pages/feed",
             get(routes::member_pages::feed_page_loader),
         )

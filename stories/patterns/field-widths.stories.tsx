@@ -1,5 +1,5 @@
 import { TextField, TextArea, Label } from "@heroui/react";
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 
 import { FIELD_WIDTH_CLASS } from "@/components/ui/field";

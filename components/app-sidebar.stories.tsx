@@ -1,5 +1,5 @@
 import { Button } from "@heroui/react";
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Menu } from "lucide-react";
 
 import { BrandHomeLink } from "@/components/brand";
@@ -14,7 +14,7 @@ import { SidebarLayout } from "./app-sidebar";
 const meta = {
   title: "Components/Navigation/Sidebar",
   component: SidebarLayout,
-  parameters: { fullWidth: true, nextjs: { navigation: { pathname: "/feed" } } },
+  parameters: { fullWidth: true, router: { navigation: { pathname: "/feed" } } },
   decorators: [
     (Story) => (
       <div className="-m-4">

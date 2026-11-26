@@ -1,7 +1,7 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { mocked, userEvent, within } from "storybook/test";
 
-import { rejectChangeRequest } from "@/actions";
+import { rejectChangeRequest } from "@/spa/lib/actions-client";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { ApproveRejectControls } from "./approve-reject-controls";

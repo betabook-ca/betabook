@@ -36,8 +36,8 @@ import { areaHref, withQuery } from "@/lib/slug";
 import { searchParamsToRecord, type UrlParamsRecord } from "@/lib/url-params";
 import { peekBootstrapData } from "@/spa/bootstrap";
 import { fetchJson, isNotFoundError, parsePositiveId } from "@/spa/lib/fetch-json";
+import { usePathname } from "@/spa/lib/navigation";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
-import { usePathname } from "@/spa/shims/next-navigation";
 
 type AreaBootstrap = {
   areaId: number;

@@ -9,7 +9,6 @@ vi.mock("next/navigation", () => ({
   },
 }));
 vi.mock("@/lib/session", () => ({ getMemberSession: async () => null }));
-vi.mock("next/image", () => ({ default: () => null }));
 
 it.each([
   [{ view: "requests" }, "/sign-in?next=%2Ffriends%3Fview%3Drequests"],

@@ -2,10 +2,8 @@
 
 import { Button, Menu, useOverlayState } from "@heroui/react";
 import { CirclePlus, FolderPlus } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { requestAreaDelete } from "@/actions";
 import { AreaEditRequestDrawer } from "@/components/area-edit-request-drawer";
 import { AreaFormDrawer } from "@/components/area-form-drawer";
 import { AreaReparentDialog } from "@/components/area-reparent-dialog";
@@ -14,6 +12,8 @@ import { ActionsMenu } from "@/components/ui/actions-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import type { Area } from "@/db/queries";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
+import { requestAreaDelete } from "@/spa/lib/actions-client";
+import { useRouter } from "@/spa/lib/navigation";
 
 type AreaHeaderActionsProps = {
   area: Area;

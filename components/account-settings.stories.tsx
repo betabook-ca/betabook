@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { AccountSettings } from "./account-settings";
 
@@ -25,7 +25,7 @@ const meta = {
     },
     isAdmin: false,
   },
-  parameters: { nextjs: { navigation: { pathname: "/account" } } },
+  parameters: { router: { navigation: { pathname: "/account" } } },
 } satisfies Meta<typeof AccountSettings>;
 export default meta;
 type Story = StoryObj<typeof meta>;

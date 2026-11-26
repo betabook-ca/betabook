@@ -1,14 +1,15 @@
 "use client";
 
 import { clsx } from "clsx";
-import NextLink from "next/link";
 import type { ComponentProps } from "react";
+
+import RouterLink from "@/spa/lib/router-link";
 
 import { LinkPendingReporter, useLinkNavigation } from "./navigation-progress";
 
-type AppLinkProps = ComponentProps<typeof NextLink>;
+type AppLinkProps = ComponentProps<typeof RouterLink>;
 
-/** Internal Next.js navigation with HeroUI Link styling.
+/** Internal application navigation with HeroUI Link styling.
  *
  * Styling: HeroUI's `.link` class styles hover/press via native
  * pseudo-classes, so a plain anchor gets those for free; only the
@@ -29,7 +30,7 @@ export function AppLink({
 }: AppLinkProps) {
   const navigation = useLinkNavigation(typeof props.href === "string" ? props.href : null);
   return (
-    <NextLink
+    <RouterLink
       {...props}
       className={clsx("link focus-visible:status-focused", className)}
       prefetch={prefetch}
@@ -46,6 +47,6 @@ export function AppLink({
     >
       {children}
       <LinkPendingReporter settle={navigation.settle} release={navigation.release} />
-    </NextLink>
+    </RouterLink>
   );
 }

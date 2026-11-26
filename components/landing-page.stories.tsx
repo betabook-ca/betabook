@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { IMPORT_PAGES, LOGBOOK_PAGE } from "@/lib/landing-pages";
 import { StoryPage } from "@/stories/fixtures/story-layout";

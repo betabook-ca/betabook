@@ -2,7 +2,6 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { saveClimbListEdits } from "@/actions";
 import type { ClimbListItem } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
 import {
@@ -11,12 +10,13 @@ import {
   type ClimbListView,
 } from "@/lib/climb-lists";
 import { DEFAULT_CLIMB_FILTER } from "@/lib/filters/climb-filter";
+import { saveClimbListEdits } from "@/spa/lib/actions-client";
 import { climbListBreadcrumbs, climbListItemSamples } from "@/stories/fixtures/climb-lists";
 
 import { ClimbListEditButton, ClimbListEditingProvider } from "./climb-list-editing";
 import { ClimbListItems } from "./climb-list-items";
 
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   saveClimbListEdits: vi.fn<() => Promise<ActionResult>>(),
 }));
 // A full list here is six climbs, not 500: rendering 500 editor rows in
@@ -71,7 +71,7 @@ vi.mock("@/components/climb-sent-indicator", () => ({
 }));
 
 const replace = vi.fn<(href: string, options?: unknown) => void>();
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => ({ replace, push: vi.fn<(href: string) => void>() }),
   usePathname: () => "/users/alex/lists/1",
 }));

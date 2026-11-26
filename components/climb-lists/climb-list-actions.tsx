@@ -1,15 +1,15 @@
 "use client";
 
 import { Menu, useOverlayState } from "@heroui/react";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { deleteClimbList } from "@/actions";
 import { ClimbListDialog } from "@/components/climb-lists/climb-list-dialog";
 import { ActionsMenu } from "@/components/ui/actions-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import type { ClimbListSummary } from "@/db/queries";
 import { climbListsHref } from "@/lib/climb-lists";
+import { deleteClimbList } from "@/spa/lib/actions-client";
+import { useRouter } from "@/spa/lib/navigation";
 
 /** Owner actions for a list, on its card and on its page. */
 export function ClimbListActions({

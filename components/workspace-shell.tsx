@@ -1,12 +1,12 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { FriendRequestBadge } from "@/components/friend-request-badge";
 import { useFriendRequestCount } from "@/components/friend-requests-provider";
 import { SectionNavigation } from "@/components/ui/section-navigation";
 import { AREA_LABELS, workspaceTabs, type PrimaryArea } from "@/lib/app-navigation";
+import { usePathname } from "@/spa/lib/navigation";
 
 type SectionTab = { label: string; href: string; current: boolean; badge?: ReactNode };
 

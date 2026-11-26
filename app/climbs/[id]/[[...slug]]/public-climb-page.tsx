@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { getPublicAncestorsById, getPublicAreaById } from "@/app/public-catalog-reads";
 import { AreaBreadcrumbs } from "@/components/breadcrumbs";
+import { ClimbHeader } from "@/components/climb-header";
 import { ClimbVideoShelf } from "@/components/climb-video-shelf";
 import { PublicClimbSendList } from "@/components/public-climb-send-list";
 import { JsonLd } from "@/components/ui/json-ld";
@@ -16,8 +17,6 @@ import type { PublicClimb } from "@/lib/public-catalog";
 import { climbDescription, climbJsonLd, locationTrail } from "@/lib/seo";
 import { areaHref, climbHref, withQuery } from "@/lib/slug";
 import type { UrlParamsRecord } from "@/lib/url-params";
-
-import { ClimbHeader } from "./climb-header";
 
 export async function PublicClimbPage({
   climb,

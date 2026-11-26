@@ -1,3 +1,6 @@
+export type { ImportResult } from "@/lib/sends";
+import type { ClientActions } from "./action-contracts";
+export type { SavedClimbList, ReviewDecision, ClimbListItemChange } from "./action-contracts";
 import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
 
 const READ_ONLY_ACTIONS = new Set([
@@ -50,12 +53,15 @@ async function callAction(name: string, ...args: unknown[]): Promise<ActionResul
           }),
     });
     const text = await response.text();
+    if (name === "importSends" && (!response.ok || !text))
+      throw new Error("Unconfirmed import result");
     const result = text
       ? (JSON.parse(text) as ActionResult<never>)
       : response.ok
         ? ({ ok: true, value: undefined } as ActionResult<never>)
         : ({ ok: false, error: GENERIC_ERROR_MESSAGE } as ActionResult<never>);
 
+    if (!result || typeof result.ok !== "boolean") throw new Error("Invalid action result");
     if (result.ok && !READ_ONLY_ACTIONS.has(name)) {
       window.dispatchEvent(new CustomEvent("betabook:router-refresh"));
       if (SESSION_REFRESH_ACTIONS.has(name)) {
@@ -64,11 +70,15 @@ async function callAction(name: string, ...args: unknown[]): Promise<ActionResul
     }
     return result;
   } catch {
-    return { ok: false, error: GENERIC_ERROR_MESSAGE };
+    return {
+      ok: false,
+      error: GENERIC_ERROR_MESSAGE,
+      ...(name === "importSends" && { outcome: "unknown" }),
+    };
   }
 }
 
-function actionProxy(name: string) {
+function actionProxy<K extends keyof ClientActions>(name: K): ClientActions[K] {
   return (...args: unknown[]) => callAction(name, ...args);
 }
 
@@ -92,7 +102,6 @@ export const deleteJournalEntry = actionProxy("deleteJournalEntry");
 export const deleteSend = actionProxy("deleteSend");
 export const deleteTrip = actionProxy("deleteTrip");
 export const dismissFeatureAnnouncement = actionProxy("dismissFeatureAnnouncement");
-export const getSentJournalEntries = actionProxy("getSentJournalEntries");
 export const getSendEditorData = actionProxy("getSendEditorData");
 export const importSends = actionProxy("importSends");
 export const pinProject = actionProxy("pinProject");
@@ -116,10 +125,8 @@ export const resolveImportClimbsInAreas = actionProxy("resolveImportClimbsInArea
 export const saveAnalyticsLayout = actionProxy("saveAnalyticsLayout");
 export const saveClimbListEdits = actionProxy("saveClimbListEdits");
 export const saveGoal = actionProxy("saveGoal");
-export const saveJournalBatch = actionProxy("saveJournalBatch");
 export const saveProductTourStatus = actionProxy("saveProductTourStatus");
 export const saveTrip = actionProxy("saveTrip");
-export const saveTripBatch = actionProxy("saveTripBatch");
 export const saveTripNotes = actionProxy("saveTripNotes");
 export const setClimbListVisibility = actionProxy("setClimbListVisibility");
 export const setGradePreferences = actionProxy("setGradePreferences");

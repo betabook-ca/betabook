@@ -8,8 +8,8 @@ import { fetchJson } from "@/spa/lib/fetch-json";
 
 import ProfileAnalyticsRoute from "./profile-analytics-route";
 
-vi.mock("next/navigation", () => import("@/spa/shims/next-navigation"));
-vi.mock("@/actions", () => ({}));
+vi.mock("@/spa/lib/navigation", () => import("@/spa/lib/navigation"));
+vi.mock("@/spa/lib/actions-client", () => ({}));
 vi.mock("@/spa/lib/fetch-json", async (original) => ({
   ...(await original<typeof import("@/spa/lib/fetch-json")>()),
   fetchJson: vi.fn<typeof fetchJson>(),

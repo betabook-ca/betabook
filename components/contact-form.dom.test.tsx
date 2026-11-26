@@ -3,11 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
-import { submitContactMessage } from "@/lib/contact-action";
+import { submitContactMessage } from "@/spa/lib/contact-action-client";
 
 import { ContactForm } from "./contact-form";
 
-vi.mock("@/lib/contact-action", () => ({
+vi.mock("@/spa/lib/contact-action-client", () => ({
   submitContactMessage: vi.fn<() => Promise<ActionResult>>(),
 }));
 vi.mock("@/hooks/use-client-session", () => ({ useClientSession: () => null }));

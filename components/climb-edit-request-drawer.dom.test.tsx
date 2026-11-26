@@ -3,12 +3,12 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
-import { requestClimbEdit } from "@/actions";
 import type { Climb } from "@/db/queries";
+import { requestClimbEdit } from "@/spa/lib/actions-client";
 
 import { ClimbEditRequestDrawer } from "./climb-edit-request-drawer";
 
-vi.mock("@/actions", () => ({ requestClimbEdit: vi.fn<typeof requestClimbEdit>() }));
+vi.mock("@/spa/lib/actions-client", () => ({ requestClimbEdit: vi.fn<typeof requestClimbEdit>() }));
 const climb: Climb = {
   id: 1,
   areaId: 1,

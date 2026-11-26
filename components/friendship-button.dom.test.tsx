@@ -2,17 +2,17 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
+import type { FriendshipStatus } from "@/lib/friendships";
 import {
   acceptFriendRequest,
   cancelFriendRequest,
   removeFriendship,
   requestFriendship,
-} from "@/actions";
-import type { FriendshipStatus } from "@/lib/friendships";
+} from "@/spa/lib/actions-client";
 
 import { FriendshipButton } from "./friendship-button";
 
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   requestFriendship: vi.fn<() => Promise<unknown>>(),
   acceptFriendRequest: vi.fn<() => Promise<unknown>>(),
   cancelFriendRequest: vi.fn<() => Promise<unknown>>(),

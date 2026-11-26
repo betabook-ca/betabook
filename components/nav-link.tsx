@@ -1,10 +1,10 @@
 "use client";
 
 import { clsx } from "clsx";
-import { usePathname } from "next/navigation";
 import type { ComponentProps } from "react";
 
 import { AppLink } from "@/components/ui/app-link";
+import { usePathname } from "@/spa/lib/navigation";
 
 type NavMatch = {
   /** Keep a top-level destination active on its child pages. */

@@ -3,12 +3,17 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { copyClimbList, createClimbList, updateClimbList, type SavedClimbList } from "@/actions";
 import type { ActionResult } from "@/lib/action-result";
+import {
+  copyClimbList,
+  createClimbList,
+  updateClimbList,
+  type SavedClimbList,
+} from "@/spa/lib/actions-client";
 
 import { ClimbListDialog, type ClimbListDialogMode } from "./climb-list-dialog";
 
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   createClimbList: vi.fn<() => Promise<ActionResult<SavedClimbList>>>(),
   updateClimbList: vi.fn<() => Promise<ActionResult>>(),
   copyClimbList: vi.fn<() => Promise<ActionResult<SavedClimbList>>>(),
@@ -16,7 +21,7 @@ vi.mock("@/actions", () => ({
 
 const push = vi.fn<(href: string) => void>();
 const refresh = vi.fn<() => void>();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh }) }));
+vi.mock("@/spa/lib/navigation", () => ({ useRouter: () => ({ push, refresh }) }));
 
 const CLASSICS = {
   id: 4,

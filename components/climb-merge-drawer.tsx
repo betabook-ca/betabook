@@ -1,10 +1,8 @@
 "use client";
 
 import type { UseOverlayStateReturn } from "@heroui/react";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { requestClimbMerge } from "@/actions";
 import { ClimbPicker } from "@/components/climb-picker";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
@@ -12,6 +10,8 @@ import type { ClimbWithAreaName } from "@/db/queries";
 import { useCompactViewport } from "@/hooks/use-compact-viewport";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { climbHref } from "@/lib/slug";
+import { requestClimbMerge } from "@/spa/lib/actions-client";
+import { useRouter } from "@/spa/lib/navigation";
 
 type ClimbMergeDrawerProps = {
   climbId: number;

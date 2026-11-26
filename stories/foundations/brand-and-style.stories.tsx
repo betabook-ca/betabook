@@ -1,8 +1,7 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import Image from "next/image";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import darkLogo from "@/assets/branding/betabook-lockup-dark.png";
-import lightLogo from "@/assets/branding/betabook-lockup-light.png";
+import darkLogo from "@/assets/branding/betabook-lockup-dark.png?url";
+import lightLogo from "@/assets/branding/betabook-lockup-light.png?url";
 import { PageTitle, SectionHeading } from "@/components/ui/typography";
 
 import { BrandIconReference } from "./brand-icon-reference";
@@ -32,12 +31,11 @@ export const Foundations: Story = {
           ].map(({ label, theme, image }) => (
             <figure key={label} className="flex min-w-0 flex-col gap-2">
               <div data-theme={theme} data-testid={`logo-${theme}`} className="bg-background">
-                <Image
+                <img
                   src={image}
                   alt="Betabook — Climb · Log · Progress. A mountain turning into a checkmark, with a sun."
                   width={1000}
                   height={640}
-                  unoptimized
                   className="h-auto w-full"
                 />
               </div>

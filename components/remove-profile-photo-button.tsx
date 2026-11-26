@@ -3,8 +3,8 @@
 import { Button, useOverlayState } from "@heroui/react";
 import { useState, useTransition } from "react";
 
-import { removeProfilePhoto } from "@/actions";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
+import { removeProfilePhoto } from "@/spa/lib/actions-client";
 
 /** Removing the photo clears the stored pointer and deletes an uploaded
  * object, so it confirms through the app's one delete dialog like any other

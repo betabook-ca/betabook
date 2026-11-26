@@ -3,7 +3,6 @@
 import { Button, Input, Label, TextArea, TextField } from "@heroui/react";
 import { useState, useTransition } from "react";
 
-import { createClimb, updateClimb } from "@/actions";
 import { AreaPicker, type PickedArea } from "@/components/area-picker";
 import { SURFACE_CARD_CLASS } from "@/components/ui/card";
 import { choicePillClass } from "@/components/ui/choice-pill";
@@ -16,6 +15,7 @@ import { OptionSelect } from "@/components/ui/option-select";
 import type { Climb } from "@/db/queries";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { gradeOptionValue, gradeOptions, type ClimbType } from "@/lib/grades";
+import { createClimb, updateClimb } from "@/spa/lib/actions-client";
 
 type ClimbFormProps = {
   /** The climb's area, when already known (editing, or creating from a

@@ -1,11 +1,11 @@
 import { Button, useOverlayState } from "@heroui/react";
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { mocked } from "storybook/test";
 
-import { requestClimbBreak } from "@/actions";
 import { BrokenChip } from "@/components/ui/broken-chip";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { Grade } from "@/components/ui/grade";
+import { requestClimbBreak } from "@/spa/lib/actions-client";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { ClimbBreakDrawer } from "./climb-break-drawer";

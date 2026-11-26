@@ -3,11 +3,8 @@
 import { Button, Label, TextArea, TextField, useOverlayState } from "@heroui/react";
 import { clsx } from "clsx";
 import { Pencil } from "lucide-react";
-import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
-import { useState, useTransition, type ReactNode } from "react";
+import { lazy, Suspense, useState, useTransition, type ReactNode } from "react";
 
-import { saveTripNotes } from "@/actions";
 import { cardClass } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FieldFeedback, FieldHeader } from "@/components/ui/field-support";
@@ -16,12 +13,15 @@ import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SectionHeading } from "@/components/ui/typography";
 import { MAX_TRIP_NOTES } from "@/lib/trips";
+import { saveTripNotes } from "@/spa/lib/actions-client";
+import { useRouter } from "@/spa/lib/navigation";
 
 // Loaded on demand. Notes are rendered on the server, so the Markdown parser is
 // only downloaded when someone previews a draft.
-const MarkdownPreview = dynamic(
-  () => import("@/components/ui/markdown").then((module) => module.Markdown),
-  { ssr: false, loading: () => <Skeleton className="h-24 w-full" /> },
+const MarkdownPreview = lazy(() =>
+  import("@/components/ui/markdown").then(({ Markdown: defaultExport }) => ({
+    default: defaultExport,
+  })),
 );
 
 /** Same line length as the journal, at the notes' text size. */
@@ -173,7 +173,9 @@ export function TripNotes({
                 >
                   <div className={MEASURE_CLASS}>
                     {draft.trim() ? (
-                      <MarkdownPreview>{draft}</MarkdownPreview>
+                      <Suspense fallback={<Skeleton className="h-24 w-full" />}>
+                        <MarkdownPreview>{draft}</MarkdownPreview>
+                      </Suspense>
                     ) : (
                       <p className="text-muted">Nothing to preview yet.</p>
                     )}

@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { openProjects, sentProjects, sharedProjects } from "@/stories/fixtures/open-projects";
 import { StoryPage } from "@/stories/fixtures/story-layout";

@@ -1,10 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
 import { ClimbForm } from "@/components/climb-form";
 import type { ClimbType } from "@/lib/grades";
 import { climbHref } from "@/lib/slug";
+import { useRouter } from "@/spa/lib/navigation";
 
 export function NewClimbForm({
   initial,

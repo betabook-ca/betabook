@@ -16,24 +16,18 @@ export function getUserInitials(name: string): string {
   return initials.toUpperCase();
 }
 
-/** The photo to render for a stored `user.image`, or null for initials.
- *
- * Two kinds share that column (see lib/profile-photo.ts). An uploaded photo
- * is already exactly the size every avatar needs, so it is served as-is —
- * running 256 px of WebP through the image optimizer would spend Worker CPU
- * to produce the same bytes. A Google URL keeps going through next/image,
- * whose allowlist in next.config.ts is pinned to that one host. */
-export function getAvatarPhoto(image?: string | null): { url: string; optimize: boolean } | null {
+/** Resolve an uploaded avatar or an allowlisted Google profile photo. */
+export function getAvatarPhoto(
+  image?: string | null,
+): { url: string; kind: "uploaded" | "google" } | null {
   const key = profilePhotoKeyFromImage(image);
-  if (key) return { url: profilePhotoPath(key), optimize: false };
+  if (key) return { url: profilePhotoPath(key), kind: "uploaded" };
 
   const google = getGoogleProfileImageUrl(image);
-  return google === null ? null : { url: google, optimize: true };
+  return google === null ? null : { url: google, kind: "google" };
 }
 
-/** Only pass the Google profile-photo URLs the app is configured to optimize
- * to next/image. Better Auth's field is nullable but older/local rows may
- * contain placeholders or malformed values; those should use initials. */
+/** Invalid or unsupported external images fall back to initials. */
 export function getGoogleProfileImageUrl(image?: string | null): string | null {
   if (!image) return null;
 

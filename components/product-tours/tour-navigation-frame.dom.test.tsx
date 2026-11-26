@@ -7,7 +7,7 @@ import { PRODUCT_TOUR_STEPS, productTourPath } from "@/lib/product-tour-navigati
 import { JournalTourPage } from "./journal-tour";
 
 const router = vi.hoisted(() => ({ push: vi.fn<(href: string) => void>() }));
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => router,
   usePathname: () => "/tutorial/journal/journal",
 }));

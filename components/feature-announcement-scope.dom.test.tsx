@@ -7,7 +7,9 @@ import type { FeatureAnnouncementDefinition } from "@/lib/feature-announcements"
 
 import { FeatureAnnouncement, FeatureAnnouncementScope } from "./feature-announcement";
 
-vi.mock("@/actions", () => ({ dismissFeatureAnnouncement: vi.fn<() => Promise<ActionResult>>() }));
+vi.mock("@/spa/lib/actions-client", () => ({
+  dismissFeatureAnnouncement: vi.fn<() => Promise<ActionResult>>(),
+}));
 const features: FeatureAnnouncementDefinition[] = [4, 5].map((month) => ({
   featureId: `feature-${month}`,
   launchedAt: `2026-0${month}-01T00:00:00Z`,

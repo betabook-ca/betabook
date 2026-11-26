@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { userEvent, within } from "storybook/test";
 
@@ -16,7 +16,7 @@ const meta = {
   component: AnalyticsHashtagFilter,
   args: { selectedTags: [], tags: ["trip", "power", "outdoors"], controls: <DisciplineOptions /> },
   parameters: {
-    nextjs: {
+    router: {
       navigation: { pathname: "/users/sample/analytics", query: { discipline: "boulder" } },
     },
   },

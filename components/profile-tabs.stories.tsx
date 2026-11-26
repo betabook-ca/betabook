@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { STORY_HARDEST } from "@/stories/fixtures/climber-hardest";
 
@@ -21,13 +21,13 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Journal: Story = {
-  parameters: { nextjs: { navigation: { pathname: "/users/sample" } } },
+  parameters: { router: { navigation: { pathname: "/users/sample" } } },
 };
 export const OtherClimber: Story = {
   args: { showJournal: false },
-  parameters: { nextjs: { navigation: { pathname: "/users/sample/sends" } } },
+  parameters: { router: { navigation: { pathname: "/users/sample/sends" } } },
 };
 export const TripsHidden: Story = {
   args: { showJournal: false, showTrips: false },
-  parameters: { nextjs: { navigation: { pathname: "/users/sample/sends" } } },
+  parameters: { router: { navigation: { pathname: "/users/sample/sends" } } },
 };

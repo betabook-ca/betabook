@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
@@ -18,6 +17,7 @@ import {
   type SearchState,
 } from "@/lib/search";
 import { searchParamsToRecord } from "@/lib/url-params";
+import { useRouter, useSearchParams } from "@/spa/lib/navigation";
 
 import { SearchController } from "./search-controller";
 

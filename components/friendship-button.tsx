@@ -4,13 +4,6 @@ import { Button, Menu, Tooltip, useOverlayState } from "@heroui/react";
 import { Clock, UserCheck, UserPlus } from "lucide-react";
 import { useState, useTransition, type ReactNode } from "react";
 
-import {
-  requestFriendship,
-  acceptFriendRequest,
-  cancelFriendRequest,
-  declineFriendRequest,
-  removeFriendship,
-} from "@/actions";
 import { FriendRequestDot } from "@/components/friend-request-badge";
 import { useFriendRequests } from "@/components/friend-requests-provider";
 import {
@@ -24,6 +17,13 @@ import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import type { ActionResult } from "@/lib/action-result";
 import type { FriendshipStatus } from "@/lib/friendships";
+import {
+  requestFriendship,
+  acceptFriendRequest,
+  cancelFriendRequest,
+  declineFriendRequest,
+  removeFriendship,
+} from "@/spa/lib/actions-client";
 
 type FriendshipMutation = (userId: string) => Promise<ActionResult<FriendshipStatus>>;
 

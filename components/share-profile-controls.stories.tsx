@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { SETTINGS_ROW_CLASS, SettingsSection } from "@/components/ui/settings";
 import { StoryPage } from "@/stories/fixtures/story-layout";

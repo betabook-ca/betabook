@@ -9,7 +9,7 @@ import { JournalFilterToolbar } from "./journal-filter-toolbar";
 const router = vi.hoisted(() => ({
   replace: vi.fn<(href: string, options: { scroll: boolean }) => void>(),
 }));
-vi.mock("next/navigation", () => ({ useRouter: () => router }));
+vi.mock("@/spa/lib/navigation", () => ({ useRouter: () => router }));
 
 it("preserves hashtags across disclosure changes and clears them on reset", async () => {
   const user = userEvent.setup();

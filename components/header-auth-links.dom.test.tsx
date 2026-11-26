@@ -4,7 +4,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { HeaderAuthLinks } from "./header-auth-links";
 
 const state = vi.hoisted(() => ({ session: null as { user: { id: string } } | null }));
-vi.mock("next/navigation", () => ({ usePathname: () => "/about" }));
+vi.mock("@/spa/lib/navigation", () => ({ usePathname: () => "/about" }));
 vi.mock("@/lib/auth-client", () => ({
   authClient: { useSession: () => ({ data: state.session, isPending: false }) },
 }));

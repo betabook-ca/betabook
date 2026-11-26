@@ -13,11 +13,11 @@ const navigation = vi.hoisted(() => ({
   refresh: vi.fn<() => void>(),
   replace: vi.fn<(path: string) => void>(),
 }));
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/navigation", () => ({
   usePathname: () => navigation.path,
   useRouter: () => navigation,
 }));
-vi.mock("@/actions/terms", () => ({ acceptTerms: vi.fn<() => Promise<ActionResult>>() }));
+vi.mock("@/spa/lib/actions-client", () => ({ acceptTerms: vi.fn<() => Promise<ActionResult>>() }));
 beforeEach(() => {
   navigation.path = "/friends";
   navigation.refresh.mockReset();

@@ -16,7 +16,7 @@ function toHref(href: LinkProps["href"]) {
     : `${href.pathname ?? ""}${href.search ?? ""}${href.hash ?? ""}`;
 }
 
-/** Stands in for next/link in tests, which have no app router: a plain
+/** Stands in for RouterLink in tests, which have no app router: a plain
  * anchor without the router-only props that, like the real Link, keeps a
  * plain left-click for itself instead of letting jsdom navigate. */
 export default function Link({

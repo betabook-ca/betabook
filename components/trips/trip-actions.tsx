@@ -1,10 +1,8 @@
 "use client";
 
 import { Menu, useOverlayState } from "@heroui/react";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { deleteTrip } from "@/actions";
 import { TripDialog } from "@/components/trips/trip-dialog";
 import { ActionsMenu } from "@/components/ui/actions-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
@@ -12,6 +10,8 @@ import type { TripSummary } from "@/db/queries";
 import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import type { CompanionOption } from "@/lib/journal-companions";
 import { tripsHref } from "@/lib/trips";
+import { deleteTrip } from "@/spa/lib/actions-client";
+import { useRouter } from "@/spa/lib/navigation";
 
 /** Owner actions for a trip. Used on the trip card and the trip page. */
 export function TripActions({

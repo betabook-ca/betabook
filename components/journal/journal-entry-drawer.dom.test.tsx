@@ -7,7 +7,7 @@ import type { ActionResult } from "@/lib/action-result";
 
 import { JournalEntryDrawer } from "./journal-entry-drawer";
 
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   createJournalEntry: vi.fn<() => Promise<ActionResult>>(),
   createUndatedSend: vi.fn<() => Promise<ActionResult>>(),
   updateJournalEntry: vi.fn<() => Promise<ActionResult>>(),

@@ -103,6 +103,28 @@ void test("Rust Worker HTTP flows", async (t) => {
   await t.test("imports", () => testImports({ server, db: DB, signIn }));
 
   await t.test("moderation", () => testModeration({ server, db: DB, signIn }));
+  await t.test("tutorial progress belongs to the signed-in member", async () => {
+    assert.equal((await server.fetch("/api/pages/tutorial")).status, 401);
+    const cookie = await signIn("tutorial-owner");
+    const saved = await server.fetch("/api/actions/saveProductTourStatus", {
+      method: "POST",
+      headers: { "content-type": "application/json", cookie },
+      body: JSON.stringify({ args: ["journal", 7, "completed"] }),
+    });
+    assert.deepEqual(await saved.json(), { ok: true });
+    const result = await server.fetch("/api/pages/tutorial", { headers: { cookie } });
+    assert.equal(result.status, 200);
+    assert.match(result.headers.get("cache-control"), /private.*no-store/);
+    assert.deepEqual((await result.json()).progress, [
+      { tourId: "journal", version: 7, status: "completed" },
+    ]);
+    const other = await signIn("tutorial-other");
+    assert.deepEqual(
+      (await (await server.fetch("/api/pages/tutorial", { headers: { cookie: other } })).json())
+        .progress,
+      [],
+    );
+  });
   await t.test("climb lists", () => testLists({ server, db: DB, signIn }));
   await t.test("goal refresh", () => testGoalRefresh({ server, db: DB, signIn }));
   await t.test("projects", () => testProjects({ server, db: DB, signIn }));

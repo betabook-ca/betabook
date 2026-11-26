@@ -14,7 +14,7 @@ const router = vi.hoisted(() => ({
   settle: null as null | (() => void),
 }));
 
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/navigation", () => ({
   usePathname: () => router.pathname,
   useSearchParams: () => new URLSearchParams(router.search),
 }));
@@ -22,7 +22,7 @@ vi.mock("next/navigation", () => ({
 // The router boundary, in vinext's Link's order: the caller's onClick,
 // then onNavigate for a client navigation, then pending for descendants
 // reading useLinkStatus until the navigation settles.
-vi.mock("next/link", async () => {
+vi.mock("@/spa/lib/router-link", async () => {
   const { createContext, useContext, useMemo, useState } = await import("react");
   const LinkStatus = createContext({ pending: false });
   function Link({

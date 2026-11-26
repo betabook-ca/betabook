@@ -1,17 +1,9 @@
 import { render, screen, within } from "@testing-library/react";
-import type { ComponentProps } from "react";
-import { expect, it, vi } from "vitest";
+import { expect, it } from "vitest";
 
 import type { AlbumPhoto } from "@/lib/trip-album";
 
 import { TripAlbumPhotos } from "./trip-album";
-
-vi.mock("next/image", () => ({
-  default: ({ unoptimized, ...props }: ComponentProps<"img"> & { unoptimized?: boolean }) => (
-    // oxlint-disable-next-line nextjs/no-img-element, jsx-a11y/alt-text
-    <img {...props} data-unoptimized={String(Boolean(unoptimized))} />
-  ),
-}));
 
 const ALBUM = "https://photos.app.goo.gl/Example1Album2Link3";
 const WIDE: AlbumPhoto = {
@@ -53,7 +45,7 @@ it("skips image optimization and sends no referrer", () => {
   render(<TripAlbumPhotos link={ALBUM} photos={[WIDE, SMALL]} />);
 
   for (const photo of screen.getAllByRole("img")) {
-    expect(photo).toHaveAttribute("data-unoptimized", "true");
+    expect(photo.getAttribute("src")).toMatch(/^https:\/\/lh3\.googleusercontent\.com\//);
     expect(photo).toHaveAttribute("referrerpolicy", "no-referrer");
   }
   // The first photo loads eagerly. The rest load lazily.

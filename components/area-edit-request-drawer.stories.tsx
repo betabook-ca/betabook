@@ -1,8 +1,8 @@
 import { Button, useOverlayState } from "@heroui/react";
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { mocked } from "storybook/test";
 
-import { requestAreaEdit } from "@/actions";
+import { requestAreaEdit } from "@/spa/lib/actions-client";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { AreaEditRequestDrawer } from "./area-edit-request-drawer";

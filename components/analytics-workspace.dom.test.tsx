@@ -9,7 +9,7 @@ import { ANALYTICS_CUSTOMIZE_ANNOUNCEMENT } from "@/lib/feature-announcements";
 
 import { AnalyticsWorkspace } from "./analytics-workspace";
 
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   dismissFeatureAnnouncement: vi.fn<() => Promise<{ ok: true; value: undefined }>>(),
 }));
 

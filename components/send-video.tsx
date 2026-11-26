@@ -3,7 +3,6 @@
 import { Button, Modal, useOverlayState, type UseOverlayStateReturn } from "@heroui/react";
 import { clsx } from "clsx";
 import { ChevronLeft, ChevronRight, ExternalLink, Play } from "lucide-react";
-import Image from "next/image";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
@@ -109,13 +108,13 @@ export function SendVideoThumbnail({
   return (
     <span className="relative flex size-full items-center justify-center overflow-hidden bg-surface-tertiary">
       {thumbnail ? (
-        <Image
+        <img
           src={thumbnail}
           alt=""
           width={480}
           height={360}
           // Served by YouTube at this size; there is nothing to optimize.
-          unoptimized
+
           referrerPolicy="no-referrer"
           // Unreachable from here (offline, blocked): fall back to the label.
           onError={() => setFailed(true)}

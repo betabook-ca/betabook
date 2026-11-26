@@ -18,22 +18,7 @@ export default defineConfig({
     "process.env.NEXT_PUBLIC_BUILD_YEAR": JSON.stringify(String(new Date().getFullYear())),
   },
   resolve: {
-    alias: [
-      {
-        find: /^@\/actions(?:\/.*)?$/,
-        replacement: path.resolve(SPA_ROOT, "shims/actions-client.ts"),
-      },
-      {
-        find: /^@\/lib\/contact-action$/,
-        replacement: path.resolve(SPA_ROOT, "shims/contact-action-client.ts"),
-      },
-      { find: "@", replacement: WORKSPACE_ROOT },
-      { find: "next/navigation", replacement: path.resolve(SPA_ROOT, "shims/next-navigation.ts") },
-      { find: "next/link", replacement: path.resolve(SPA_ROOT, "shims/next-link.tsx") },
-      { find: "next/image", replacement: path.resolve(SPA_ROOT, "shims/next-image.tsx") },
-      { find: "next/dynamic", replacement: path.resolve(SPA_ROOT, "shims/next-dynamic.tsx") },
-      { find: "next/script", replacement: path.resolve(SPA_ROOT, "shims/next-script.tsx") },
-    ],
+    alias: { "@": WORKSPACE_ROOT },
   },
   server: {
     port: 3001,

@@ -1,9 +1,9 @@
 "use client";
 
-import { shareClimbList, unshareClimbList } from "@/actions";
 import { ShareLinkButton } from "@/components/share-link-button";
 import type { ShareLink } from "@/components/share-link-dialog";
 import { CLIMB_LIST_SHARE_SENTENCE, climbListSharePath } from "@/lib/climb-lists";
+import { shareClimbList, unshareClimbList } from "@/spa/lib/actions-client";
 
 /** Share button and dialog for one list. The link is the list's own, at
  * `/lists/{token}`, and opens it whatever the owner's lists setting says. */

@@ -3,13 +3,13 @@
 import type { UseOverlayStateReturn } from "@heroui/react";
 import { useMemo, useState, useTransition } from "react";
 
-import { pinProject } from "@/actions";
 import { ClimbPicker } from "@/components/climb-picker";
 import { ProjectSuggestionList } from "@/components/journal/project-suggestion-list";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { OpenProject } from "@/db/queries";
 import { useCompactViewport } from "@/hooks/use-compact-viewport";
+import { pinProject } from "@/spa/lib/actions-client";
 
 type PinProjectDialogProps = {
   state: UseOverlayStateReturn;

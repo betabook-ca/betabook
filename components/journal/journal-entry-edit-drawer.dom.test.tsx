@@ -3,11 +3,11 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
-import { updateJournalEntry } from "@/actions";
+import { updateJournalEntry } from "@/spa/lib/actions-client";
 import { moonSlab } from "@/stories/fixtures/open-projects";
 
 import { JournalEntryEditDrawer } from "./journal-entry-edit-drawer";
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   updateJournalEntry: vi.fn<() => Promise<unknown>>(),
   createJournalEntry: vi.fn<() => Promise<unknown>>(),
   createUndatedSend: vi.fn<() => Promise<unknown>>(),

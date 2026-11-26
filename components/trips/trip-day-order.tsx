@@ -1,10 +1,10 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 
 import { SortDirectionButton } from "@/components/ui/sort-select";
 import { TRIP_DAY_ORDER_PARAM, parseTripDayOrder, type TripDayOrder } from "@/lib/trip-days";
+import { useSearchParams } from "@/spa/lib/navigation";
 
 type TripDayOrderState = { order: TripDayOrder; toggle: () => void };
 

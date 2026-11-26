@@ -1,12 +1,12 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { useMounted } from "@/hooks/use-mounted";
 import { AUTH_REQUIRED_EVENT } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
+import { useRouter } from "@/spa/lib/navigation";
 
 /** Discard displayed data when accounts change and refresh current permissions
  * when returning to a profile or Friends list. No promise of live revocation. */

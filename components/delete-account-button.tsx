@@ -1,12 +1,12 @@
 "use client";
 
 import { Button, useOverlayState } from "@heroui/react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { authClient } from "@/lib/auth-client";
+import { useRouter } from "@/spa/lib/navigation";
 
 export function DeleteAccountButton() {
   const router = useRouter();

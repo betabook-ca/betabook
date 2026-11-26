@@ -2,8 +2,8 @@
 
 import type { UseOverlayStateReturn } from "@heroui/react";
 
-import { requestClimbMove } from "@/actions";
 import { AreaMoveDialog } from "@/components/area-move-dialog";
+import { requestClimbMove } from "@/spa/lib/actions-client";
 
 export function ClimbMoveDialog({
   climbId,

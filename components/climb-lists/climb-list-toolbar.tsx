@@ -1,7 +1,5 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
-
 import { textActiveFilters } from "@/components/filters/active-filter-values";
 import { ClimbFilterControls } from "@/components/filters/climb-filter-controls";
 import { QueryInput } from "@/components/ui/query-input";
@@ -20,6 +18,7 @@ import {
 } from "@/lib/climb-lists";
 import { DEFAULT_CLIMB_FILTER, type ClimbFilter } from "@/lib/filters/climb-filter";
 import type { ClimbFilterState } from "@/lib/filters/climb-filter-state";
+import { usePathname, useRouter } from "@/spa/lib/navigation";
 
 /**
  * A text box on the climb name, and the discipline chips and Filters panel

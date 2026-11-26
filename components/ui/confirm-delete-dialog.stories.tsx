@@ -1,5 +1,5 @@
 import { Button, useOverlayState } from "@heroui/react";
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState, type ComponentProps } from "react";
 
 import { ConfirmDeleteDialog } from "./confirm-delete-dialog";

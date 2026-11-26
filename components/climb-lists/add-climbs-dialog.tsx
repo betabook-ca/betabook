@@ -3,12 +3,12 @@
 import type { UseOverlayStateReturn } from "@heroui/react";
 import { useMemo, useState, useTransition } from "react";
 
-import { addClimbToList } from "@/actions";
 import { ClimbPicker } from "@/components/climb-picker";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { ClimbWithAreaName } from "@/db/queries";
 import { useCompactViewport } from "@/hooks/use-compact-viewport";
+import { addClimbToList } from "@/spa/lib/actions-client";
 
 /** Searches the catalog and appends each climb picked to the end of the list.
  * Stays open after each add, because a list is usually built several climbs

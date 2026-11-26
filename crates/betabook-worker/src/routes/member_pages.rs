@@ -1207,3 +1207,15 @@ pub async fn new_climb_page_loader(
         json!({ "selectedArea": selected_area }),
     ))
 }
+
+#[worker::send]
+pub async fn tutorial_state(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Response, ApiError> {
+    let session = require_member_session(&state, &headers).await?;
+    let progress = get_product_tour_state(state.db(), &session.user.id)
+        .await?
+        .ok_or_else(|| ApiError::unauthorized())?;
+    Ok(no_store_json(StatusCode::OK, json!(progress)))
+}

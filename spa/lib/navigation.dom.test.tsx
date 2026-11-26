@@ -3,8 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 
-import Link from "@/spa/shims/next-link";
-import { useParams, usePathname, useRouter, useSearchParams } from "@/spa/shims/next-navigation";
+import { useParams, usePathname, useRouter, useSearchParams } from "@/spa/lib/navigation";
+import Link from "@/spa/lib/router-link";
+
+vi.unmock("@/spa/lib/router-link");
 
 function Inspector({
   onPreventedNavigate,
@@ -44,7 +46,7 @@ function Inspector({
   );
 }
 
-describe("SPA next/* navigation shims", () => {
+describe("SPA navigation", () => {
   it("maps usePathname, useSearchParams, useParams, useRouter, and Link onto react-router", async () => {
     const user = userEvent.setup();
     const cancelledSpy = vi.fn<(cancelled: boolean) => void>();

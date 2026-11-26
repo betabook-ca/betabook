@@ -4,7 +4,7 @@ import { expect, it, vi } from "vitest";
 
 import { DemoClimbSearch } from "./climb-search-preview";
 
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => ({ push: vi.fn<(href: string) => void>() }),
   usePathname: () => "/tutorial/journal/find-projects",
 }));

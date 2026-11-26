@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import type { StyleRateGradeRow } from "@/lib/user-analytics";
 import { activitySends, activityAnalytics } from "@/stories/fixtures/chart-activity";

@@ -1,8 +1,7 @@
 "use client";
 
-import { usePathname, useSearchParams } from "next/navigation";
-
 import { AuthCallout } from "@/components/auth-callout";
+import { usePathname, useSearchParams } from "@/spa/lib/navigation";
 
 export function CurrentPageAuthCallout() {
   const pathname = usePathname();

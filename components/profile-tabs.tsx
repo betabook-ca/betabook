@@ -1,9 +1,8 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-
 import { SectionNavigation } from "@/components/ui/section-navigation";
 import { withProfileShare } from "@/lib/profile-share";
+import { usePathname } from "@/spa/lib/navigation";
 
 type ProfileTabsProps = {
   userId: string;

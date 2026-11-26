@@ -1,16 +1,16 @@
 "use client";
 
 import { Button, Checkbox, Modal } from "@heroui/react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { acceptTerms } from "@/actions/terms";
 import { SignOutButton } from "@/components/sign-out-button";
 import { AppLink } from "@/components/ui/app-link";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import type { ActionResult } from "@/lib/action-result";
 import { termsHref } from "@/lib/terms";
 import { termsNextPath } from "@/lib/terms-navigation";
+import { acceptTerms } from "@/spa/lib/actions-client";
+import { useRouter } from "@/spa/lib/navigation";
 
 export function TermsAcceptanceForm({
   version,

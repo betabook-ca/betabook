@@ -1,7 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+
+import { useRouter } from "@/spa/lib/navigation";
 
 const DELAY_MS = 400;
 

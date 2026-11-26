@@ -1,7 +1,8 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+
+import { usePathname } from "@/spa/lib/navigation";
 
 const INPUT_TYPES_WITHOUT_KEYBOARD = new Set([
   "button",

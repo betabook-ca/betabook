@@ -13,7 +13,6 @@ import {
   ShieldCheck,
   Smartphone,
 } from "lucide-react";
-import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import {
@@ -27,6 +26,7 @@ import { SignOutButton } from "@/components/sign-out-button";
 import { ACCOUNT_DESTINATION, primaryAreaForPath, primaryDestinations } from "@/lib/app-navigation";
 import { productTourPath } from "@/lib/product-tour-navigation";
 import { SEARCH_PATH } from "@/lib/search";
+import { usePathname } from "@/spa/lib/navigation";
 
 export type MenuAccount = { id: string; name: string; image?: string | null; isAdmin: boolean };
 

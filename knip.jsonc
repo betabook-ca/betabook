@@ -13,15 +13,8 @@
     // Miniflare `main`, set inside the Cloudflare pool's async options callback
     // in vitest.workers.config.mts — the Vitest plugin never evaluates that.
     "test/worker.ts",
-
-    // Built by the separate Vite SSR invocation for static public documents.
+    // Built separately to serve public documents without client JavaScript.
     "scripts/static-documents.tsx",
-
-    // Referenced by Storybook's framework options, not module imports.
-    ".storybook/next.config.ts",
-
-    // Thin next/* SPA shims whose exports match Next.js modules.
-    "spa/shims/*.{ts,tsx}!",
   ],
 
   // Overriding `project` drops the extensions knip adds per registered

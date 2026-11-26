@@ -10,7 +10,6 @@ vi.mock("@/lib/site", async (original) => ({
     return support.url;
   },
 }));
-vi.mock("next/image", () => ({ default: () => null }));
 
 beforeEach(() => {
   support.url = null;

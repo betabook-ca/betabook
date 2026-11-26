@@ -1,7 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
 import { ClimbListSortControl } from "@/components/climb-list-sort-control";
 import { statsActiveFilters, textActiveFilters } from "@/components/filters/active-filter-values";
 import { ClimbStatsFields } from "@/components/filters/climb-stats-filter-fields";
@@ -15,6 +13,7 @@ import {
   DEFAULT_AREA_CLIMBS_SORT,
   type AreaClimbsFilter,
 } from "@/lib/filters/area-climbs-filter";
+import { useRouter } from "@/spa/lib/navigation";
 
 function buildClimbsHref(
   areaPath: string,

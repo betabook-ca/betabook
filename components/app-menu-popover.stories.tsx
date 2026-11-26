@@ -1,5 +1,5 @@
 import { Button } from "@heroui/react";
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useRef, useState } from "react";
 
 import { StoryPage } from "@/stories/fixtures/story-layout";
@@ -18,7 +18,7 @@ const meta = {
     onClose: () => {},
     onOpenChange: () => {},
   },
-  parameters: { nextjs: { navigation: { pathname: "/account" } } },
+  parameters: { router: { navigation: { pathname: "/account" } } },
   render: function Render(args) {
     const [open, setOpen] = useState(false);
     const triggerRef = useRef<HTMLButtonElement>(null);
@@ -46,6 +46,6 @@ type Story = StoryObj<typeof meta>;
 export const SecondaryTools: Story = {};
 export const PrimaryFallback: Story = {
   args: { showPrimary: true },
-  parameters: { nextjs: { navigation: { pathname: "/tutorial/journal/journal" } } },
+  parameters: { router: { navigation: { pathname: "/tutorial/journal/journal" } } },
 };
 export const SignedOut: Story = { args: { account: null } };

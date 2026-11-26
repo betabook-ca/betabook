@@ -1,5 +1,5 @@
 import { Button, useOverlayState } from "@heroui/react";
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { climbListSamples } from "@/stories/fixtures/climb-lists";
 import { StoryPage } from "@/stories/fixtures/story-layout";

@@ -1,8 +1,8 @@
 "use client";
 
-import { removeMyJournalTag } from "@/actions";
 import { RemovableCompanions } from "@/components/journal/removable-companions";
 import type { JournalCompanion } from "@/lib/journal-companions";
+import { removeMyJournalTag } from "@/spa/lib/actions-client";
 
 export function JournalCompanions({
   entryId,

@@ -2,10 +2,10 @@
 
 import type { UseOverlayStateReturn } from "@heroui/react";
 
-import { shareProject, unshareProject } from "@/actions";
 import { ShareLinkDialog } from "@/components/share-link-dialog";
 import type { PinnedProject } from "@/db/queries";
 import { projectSharePath } from "@/lib/project-share";
+import { shareProject, unshareProject } from "@/spa/lib/actions-client";
 
 type ShareProjectDialogProps = {
   state: UseOverlayStateReturn;

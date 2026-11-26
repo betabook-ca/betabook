@@ -2,11 +2,11 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 
-import { setGradePreferences } from "@/actions";
+import { setGradePreferences } from "@/spa/lib/actions-client";
 
 import { GradeScaleControls } from "./grade-scale-controls";
 
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   setGradePreferences: vi.fn<(scales: { boulder: string; rope: string }) => Promise<unknown>>(),
 }));
 

@@ -7,7 +7,6 @@ export default defineConfig({
     "unicorn",
     "oxc",
     "react",
-    "nextjs",
     "jsx-a11y",
     "vitest",
     "import",

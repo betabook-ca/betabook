@@ -4,8 +4,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { AppTabs } from "@/components/app-tab-bar";
 
 const state = vi.hoisted(() => ({ pathname: "/" }));
-vi.mock("next/navigation", () => ({ usePathname: () => state.pathname }));
-vi.mock("next/image", () => ({ default: () => null }));
+vi.mock("@/spa/lib/navigation", () => ({ usePathname: () => state.pathname }));
 
 const account = { id: "owner", name: "Alex Morgan", image: null };
 const hrefs = (html: string) => [...html.matchAll(/href="([^"]+)"/g)].map((match) => match[1]);

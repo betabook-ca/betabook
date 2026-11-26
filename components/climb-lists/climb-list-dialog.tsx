@@ -1,14 +1,19 @@
 "use client";
 
 import { Button, type UseOverlayStateReturn } from "@heroui/react";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { copyClimbList, createClimbList, updateClimbList, type SavedClimbList } from "@/actions";
 import { ClimbListForm, type ClimbListDraft } from "@/components/climb-lists/climb-list-form";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { ActionResult } from "@/lib/action-result";
 import { climbCountLabel, climbListHref, copyClimbListTitle } from "@/lib/climb-lists";
+import {
+  copyClimbList,
+  createClimbList,
+  updateClimbList,
+  type SavedClimbList,
+} from "@/spa/lib/actions-client";
+import { useRouter } from "@/spa/lib/navigation";
 
 type ListFields = { id: number; title: string; description: string | null };
 

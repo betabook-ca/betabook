@@ -6,9 +6,9 @@ import { AppLink } from "./app-link";
 
 const nextLink = vi.hoisted(() => vi.fn<(props: ComponentProps<typeof AppLink>) => void>());
 
-// Observe the Next.js boundary while rendering the real AppLink with React.
-vi.mock("next/link", async () => ({
-  ...(await import("@/test/next-link")),
+// Observe the router boundary while rendering the real AppLink with React.
+vi.mock("@/spa/lib/router-link", async () => ({
+  ...(await import("@/test/router-link")),
   default: (props: ComponentProps<typeof AppLink>) => {
     nextLink(props);
     return <a href={typeof props.href === "string" ? props.href : undefined}>{props.children}</a>;
@@ -18,7 +18,7 @@ vi.mock("next/link", async () => ({
 describe("AppLink prefetching", () => {
   beforeEach(() => nextLink.mockClear());
 
-  it("does not ask Next.js to prefetch links just because they enter the viewport", () => {
+  it("does not ask the router to prefetch links just because they enter the viewport", () => {
     const html = renderToStaticMarkup(<AppLink href="/areas/1/north-woods">North Woods</AppLink>);
 
     expect(html).toContain('href="/areas/1/north-woods"');

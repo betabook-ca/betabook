@@ -1,6 +1,5 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import {
   createContext,
   useContext,
@@ -14,6 +13,7 @@ import {
 
 import { useClientSession } from "@/hooks/use-client-session";
 import { createFriendRequestCountStore } from "@/lib/friend-request-count";
+import { usePathname } from "@/spa/lib/navigation";
 
 const FriendRequestsContext = createContext({
   userId: null as string | null,

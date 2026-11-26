@@ -48,6 +48,11 @@ vi.mock("@/lib/session", () => ({
 vi.mock("@/lib/request-timezone", () => ({ getRequestTimezone: async () => "UTC" }));
 // Album pages come from Google; tests never fetch them.
 vi.mock("@/lib/trip-album-loader", () => ({ loadAlbumPhotos: async () => [] }));
+vi.mock("@/spa/lib/navigation", () => ({
+  useRouter: () => ({ push: () => {} }),
+  usePathname: () => "/users/hidden",
+  useSearchParams: () => new URLSearchParams(),
+}));
 vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NOT_FOUND");
@@ -59,7 +64,7 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/users/hidden",
   useSearchParams: () => new URLSearchParams(),
 }));
-vi.mock("next/image", () => ({ default: () => null }));
+
 vi.mock("@/db/client", async (original) => {
   const actual = await original<typeof import("@/db/client")>();
   const { env } = await import("cloudflare:test");

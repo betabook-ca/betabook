@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
 
-import { ClimbHeader } from "@/app/climbs/[id]/[[...slug]]/climb-header";
 import { AreaBreadcrumbs } from "@/components/breadcrumbs";
 import { ClimbActionsMenu } from "@/components/climb-actions-menu";
 import { ClimbDescription } from "@/components/climb-description";
+import { ClimbHeader } from "@/components/climb-header";
 import { AddToListButton } from "@/components/climb-lists/add-to-list-button";
 import { ClimbSendList } from "@/components/climb-send-list";
 import { ClimbVideoShelf } from "@/components/climb-video-shelf";
@@ -42,8 +42,8 @@ import {
   parsePositiveId,
   type ClimbPageData,
 } from "@/spa/lib/fetch-json";
+import { usePathname } from "@/spa/lib/navigation";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
-import { usePathname } from "@/spa/shims/next-navigation";
 
 type MemberClimbPayload = {
   climbId: number;

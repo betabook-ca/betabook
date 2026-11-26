@@ -1,8 +1,9 @@
 "use client";
 
-import { useLinkStatus } from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
+
+import { usePathname, useSearchParams } from "@/spa/lib/navigation";
+import { useLinkStatus } from "@/spa/lib/router-link";
 
 /** The one link navigation in flight. The router hands pending status to
  * the newest click, so there is never more than one. */

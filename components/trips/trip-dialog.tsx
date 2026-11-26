@@ -1,10 +1,8 @@
 "use client";
 
 import { Button, type UseOverlayStateReturn } from "@heroui/react";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { saveTrip } from "@/actions";
 import { EMPTY_TRIP_DRAFT, TripForm, type TripDraft } from "@/components/trips/trip-form";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { Trip, TripSummary } from "@/db/queries";
@@ -12,6 +10,8 @@ import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import { localToday } from "@/lib/format-date";
 import type { CompanionOption } from "@/lib/journal-companions";
 import { oneLine, tripHref } from "@/lib/trips";
+import { saveTrip } from "@/spa/lib/actions-client";
+import { useRouter } from "@/spa/lib/navigation";
 
 const DATE_ORDER_MESSAGE = "End date must be on or after start date.";
 

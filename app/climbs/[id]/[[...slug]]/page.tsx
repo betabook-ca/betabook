@@ -11,6 +11,7 @@ import {
 import { AreaBreadcrumbs } from "@/components/breadcrumbs";
 import { ClimbActionsMenu } from "@/components/climb-actions-menu";
 import { ClimbDescription } from "@/components/climb-description";
+import { ClimbHeader } from "@/components/climb-header";
 import { AddToListButton } from "@/components/climb-lists/add-to-list-button";
 import { ClimbActivityLoading, ClimbStatsLoading } from "@/components/climb-page-loading";
 import { ClimbSendList } from "@/components/climb-send-list";
@@ -43,7 +44,6 @@ import { getMemberSession, getViewerGradePreferences } from "@/lib/session";
 import { areaHref, climbHref } from "@/lib/slug";
 import type { UrlParamsRecord } from "@/lib/url-params";
 
-import { ClimbHeader } from "./climb-header";
 import { PublicClimbPage } from "./public-climb-page";
 
 type ClimbPageProps = {

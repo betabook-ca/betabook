@@ -1,11 +1,12 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import ClimbingLogbookPage from "@/app/climbing-logbook/page";
+import InfoRouteView from "@/spa/routes/info-routes";
 
 const meta = {
   title: "Patterns/Landing pages",
-  component: ClimbingLogbookPage,
-} satisfies Meta<typeof ClimbingLogbookPage>;
+  component: InfoRouteView,
+  args: { kind: "climbing-logbook" },
+} satisfies Meta<typeof InfoRouteView>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 

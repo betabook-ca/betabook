@@ -1,9 +1,9 @@
 "use client";
 
-import { shareTrip, unshareTrip } from "@/actions";
 import { ShareLinkButton } from "@/components/share-link-button";
 import type { ShareLink } from "@/components/share-link-dialog";
 import { TRIP_SHARE_SENTENCE, tripSharePath } from "@/lib/trip-share";
+import { shareTrip, unshareTrip } from "@/spa/lib/actions-client";
 
 /** Share button and dialog for one trip. The link is the trip's own, at
  * `/trips/{token}`; it opens nothing else on the profile. */

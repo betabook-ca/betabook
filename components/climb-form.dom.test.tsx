@@ -6,9 +6,9 @@ import { nativeGradeArray } from "@/lib/grades";
 
 import { ClimbForm } from "./climb-form";
 
-vi.mock("@/actions", () => ({
-  createClimb: vi.fn<typeof import("@/actions").createClimb>(),
-  updateClimb: vi.fn<typeof import("@/actions").updateClimb>(),
+vi.mock("@/spa/lib/actions-client", () => ({
+  createClimb: vi.fn<typeof import("@/spa/lib/actions-client").createClimb>(),
+  updateClimb: vi.fn<typeof import("@/spa/lib/actions-client").updateClimb>(),
 }));
 
 it("selects exactly one discipline and resets the grade when it changes", async () => {
@@ -29,7 +29,7 @@ it("selects exactly one discipline and resets the grade when it changes", async 
 });
 
 it("locks every field while the save is in flight", async () => {
-  const { createClimb } = await import("@/actions");
+  const { createClimb } = await import("@/spa/lib/actions-client");
   let finish: (result: Awaited<ReturnType<typeof createClimb>>) => void = () => {};
   vi.mocked(createClimb).mockReturnValue(
     new Promise((resolve) => {
@@ -51,7 +51,7 @@ it("locks every field while the save is in flight", async () => {
 });
 
 it("offers French route grades and submits the larger ordinal for a shared label", async () => {
-  const { createClimb } = await import("@/actions");
+  const { createClimb } = await import("@/spa/lib/actions-client");
   const { GradePreferencesProvider } = await import("@/components/ui/grade-preferences");
   vi.mocked(createClimb).mockResolvedValue({ ok: true, value: 9 });
   const user = userEvent.setup();
@@ -79,7 +79,7 @@ it("offers French route grades and submits the larger ordinal for a shared label
 });
 
 it("announces a failed save as an alert and preserves the form for retry", async () => {
-  const { createClimb } = await import("@/actions");
+  const { createClimb } = await import("@/spa/lib/actions-client");
   vi.mocked(createClimb).mockResolvedValue({ ok: false, error: "Could not save this climb" });
   const user = userEvent.setup();
   render(<ClimbForm areaId={1} />);

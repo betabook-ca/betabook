@@ -47,7 +47,7 @@ import { afterCommit } from "./post-commit";
 import { revalidateJournalSurfaces, revalidateSendSurfaces } from "./revalidation";
 import { buildMirroredSendUpdate, buildSendInsert } from "./send-statements";
 
-export type { ImportResult, ImportOptions } from "@/lib/sends";
+export type { ImportOptions } from "@/lib/sends";
 
 /** An overwrite leaves the send's suggested grade alone when the file has
  * none to give, so it has no `suggestedGrade` to write. */

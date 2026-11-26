@@ -16,7 +16,7 @@ export default defineProject({
       "hooks/**/*.dom.test.{ts,tsx}",
       "spa/**/*.dom.test.{ts,tsx}",
     ],
-    setupFiles: ["./test/setup-dom.ts", "./test/setup-next-link.ts"],
+    setupFiles: ["./test/setup-dom.ts", "./test/setup-router-link.ts"],
     clearMocks: true,
     restoreMocks: true,
   },

@@ -11,8 +11,8 @@ const navigation = vi.hoisted(() => ({
   replace: vi.fn<(path: string) => void>(),
   refresh: vi.fn<() => void>(),
 }));
-vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
-vi.mock("@/actions/terms", () => ({ acceptTerms: vi.fn<() => Promise<ActionResult>>() }));
+vi.mock("@/spa/lib/navigation", () => ({ useRouter: () => navigation }));
+vi.mock("@/spa/lib/actions-client", () => ({ acceptTerms: vi.fn<() => Promise<ActionResult>>() }));
 
 it("requires explicit consent, prevents duplicate saves, preserves errors and continues after retry", async () => {
   navigation.replace.mockReset();

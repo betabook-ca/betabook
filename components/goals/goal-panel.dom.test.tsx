@@ -6,7 +6,7 @@ import type { GoalPage, GoalProgress } from "@/lib/goals";
 
 import { GoalPanel } from "./goal-panel";
 
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   saveGoal: vi.fn<() => Promise<unknown>>(),
   deleteGoal: vi.fn<() => Promise<unknown>>(),
   archiveGoal: vi.fn<() => Promise<unknown>>().mockResolvedValue({ ok: true }),
@@ -285,7 +285,7 @@ it("shows the chosen year and marks the rows busy until that year loads", async 
 });
 
 it("restarts an expired goal as a new goal instead of rewriting its history", async () => {
-  const { saveGoal } = await import("@/actions");
+  const { saveGoal } = await import("@/spa/lib/actions-client");
   vi.mocked(saveGoal).mockResolvedValueOnce({ ok: true, value: 42 });
   const expired = {
     ...goal,
@@ -369,7 +369,7 @@ it("retries the failed year request without marking Load more as failed", async 
 });
 
 it("leaves a missed goal in Active when retry is cancelled and offers no retry actions in History", async () => {
-  const { archiveGoal, saveGoal } = await import("@/actions");
+  const { archiveGoal, saveGoal } = await import("@/spa/lib/actions-client");
   vi.mocked(saveGoal).mockClear();
   const missed = {
     ...goal,
@@ -538,7 +538,7 @@ it("keeps a scheduled routine's end date editable through Edit only", async () =
 });
 
 it("creates recurring training without an end date by default", async () => {
-  const { saveGoal } = await import("@/actions");
+  const { saveGoal } = await import("@/spa/lib/actions-client");
   vi.mocked(saveGoal).mockResolvedValue({ ok: true, value: 123 });
   const user = userEvent.setup();
   render(

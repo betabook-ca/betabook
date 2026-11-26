@@ -4,7 +4,6 @@ import { Button, Menu, useOverlayState } from "@heroui/react";
 import { CirclePlus } from "lucide-react";
 import { useState } from "react";
 
-import { saveGoal, deleteGoal, acknowledgeGoalAchievements, archiveGoal } from "@/actions";
 import { ActionsMenu } from "@/components/ui/actions-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
@@ -38,6 +37,12 @@ import {
   type GoalContribution,
   type GoalHistoryPage,
 } from "@/lib/goals";
+import {
+  saveGoal,
+  deleteGoal,
+  acknowledgeGoalAchievements,
+  archiveGoal,
+} from "@/spa/lib/actions-client";
 
 import {
   GoalCompletionNotice,

@@ -4,7 +4,6 @@ import { Button, useOverlayState } from "@heroui/react";
 import { CirclePlus, CircleX, Share2 } from "lucide-react";
 import { useState, useTransition } from "react";
 
-import { unpinProject } from "@/actions";
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
 import { ProjectCardLayout } from "@/components/journal/project-card-layout";
 import { ProjectSessionNotes } from "@/components/journal/project-session-notes";
@@ -14,6 +13,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { JournalEntry, PinnedProject } from "@/db/queries";
 import { describeShareExpiry, isShareExpired } from "@/lib/share-expiry";
 import { climbHref } from "@/lib/slug";
+import { unpinProject } from "@/spa/lib/actions-client";
 
 /** A tracked project with the sessions the server preloaded for it. */
 export type ProjectWithSessions = PinnedProject & { sessions: JournalEntry[] };

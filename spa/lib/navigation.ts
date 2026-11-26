@@ -12,26 +12,25 @@ type NavigateOptions = {
   scroll?: boolean;
 };
 
-export type AppRouterInstance = {
+type AppRouterInstance = {
   push: (href: string, options?: NavigateOptions) => void;
   replace: (href: string, options?: NavigateOptions) => void;
   back: () => void;
   forward: () => void;
   refresh: () => void;
-  prefetch: (href: string) => void;
 };
 
-/** React Router-backed compatibility shim for `next/navigation` `useRouter`. */
+/** App navigation and explicit revalidation of Rust page loaders. */
 export function useRouter(): AppRouterInstance {
   const navigate = useNavigate();
 
   return useMemo(
     () => ({
-      push: (href: string) => {
-        void navigate(href);
+      push: (href: string, options?: NavigateOptions) => {
+        void navigate(href, { preventScrollReset: options?.scroll === false });
       },
-      replace: (href: string) => {
-        void navigate(href, { replace: true });
+      replace: (href: string, options?: NavigateOptions) => {
+        void navigate(href, { replace: true, preventScrollReset: options?.scroll === false });
       },
       back: () => {
         void navigate(-1);
@@ -43,15 +42,11 @@ export function useRouter(): AppRouterInstance {
         clearBootstrapData();
         window.dispatchEvent(new CustomEvent("betabook:router-refresh"));
       },
-      prefetch: () => {
-        // Prefetch is a deliberate no-op to preserve Worker request budgets.
-      },
     }),
     [navigate],
   );
 }
 
-/** Returns the active location pathname (Next.js `usePathname` equivalent). */
 export function usePathname(): string {
   return useLocation().pathname;
 }
@@ -63,11 +58,4 @@ export function useSearchParams(): URLSearchParams {
   return useMemo(() => new URLSearchParams(serialized), [serialized]);
 }
 
-/** Returns matched route parameters from React Router. */
-/* oxlint-disable typescript/no-unnecessary-type-parameters -- matches Next.js useParams<T>() generic signature */
-export function useParams<
-  T extends Record<string, string | string[] | undefined> = Record<string, string | undefined>,
->(): T {
-  return useReactRouterParams() as T;
-}
-/* oxlint-enable typescript/no-unnecessary-type-parameters */
+export const useParams = useReactRouterParams;

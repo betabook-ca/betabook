@@ -3,10 +3,10 @@
 import { Button, Label, TextArea, TextField, useOverlayState } from "@heroui/react";
 import { useState, useTransition } from "react";
 
-import { approveChangeRequest, rejectChangeRequest } from "@/actions";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
+import { approveChangeRequest, rejectChangeRequest } from "@/spa/lib/actions-client";
 
 type ApproveRejectControlsProps = {
   requestId: number;

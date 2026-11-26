@@ -3,11 +3,11 @@
 import { Button, Input, Label, TextField } from "@heroui/react";
 import { useState, useTransition } from "react";
 
-import { updateDisplayName } from "@/actions";
 import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { MAX_DISPLAY_NAME_LENGTH } from "@/lib/display-name";
+import { updateDisplayName } from "@/spa/lib/actions-client";
 
 export function DisplayNameForm({ initialName }: { initialName: string }) {
   const [name, setName] = useState(initialName);
