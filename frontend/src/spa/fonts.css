@@ -22,6 +22,25 @@
   font-display: swap;
 }
 
+/* Metric-adjusted local faces keep text in place while the web fonts load. */
+@font-face {
+  font-family: "Geist Fallback";
+  src: local("Arial");
+  ascent-override: 94.56%;
+  descent-override: 27.76%;
+  line-gap-override: 0%;
+  size-adjust: 106.28%;
+}
+
+@font-face {
+  font-family: "Barlow Condensed Fallback";
+  src: local("Arial");
+  ascent-override: 123.84%;
+  descent-override: 24.77%;
+  line-gap-override: 0%;
+  size-adjust: 80.75%;
+}
+
 :root {
   --font-geist-sans: "Geist", "Geist Fallback", sans-serif;
   --font-barlow-condensed: "Barlow Condensed", "Barlow Condensed Fallback", sans-serif;

@@ -92,7 +92,7 @@ fn auth_link(path: &str, description: &str) -> String {
         .append_pair("next", path)
         .finish();
     format!(
-        r#"<aside class="rounded-xl border border-border bg-surface p-4"><p class="font-semibold">For Betabook members</p><p class="text-sm text-muted">{description}</p><a class="link underline" href="/sign-in?{query}">Sign in</a> · <a class="link underline" href="/sign-up?{query}">Sign up</a></aside>"#
+        r#"<section aria-label="Member content" class="rounded-panel bg-surface-secondary p-6"><div class="flex flex-col gap-3"><p class="font-semibold">For Betabook members</p><p class="text-sm text-muted">{description}</p><div class="flex flex-wrap gap-3"><a class="button" href="/sign-in?{query}">Sign in</a><a class="button button--outline" href="/sign-up?{query}">Sign up</a><a class="button button--ghost" href="/climbing-logbook">How Betabook works</a></div></div></section>"#
     )
 }
 
@@ -230,7 +230,10 @@ pub(super) fn climb(
         html.push_str("</ul>");
     }
     html.push_str("</section>");
-    html.push_str(&auth_link(path, "Sign in to log a session or send."));
+    html.push_str(&auth_link(
+        path,
+        "Sign in to see who climbed this line, read commentary shared with members, and log your own sends.",
+    ));
     html.push_str("</article>");
     html
 }
