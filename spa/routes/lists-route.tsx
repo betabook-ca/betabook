@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentProps } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useParams, useSearchParams } from "react-router";
 
 import { ClimbListActions } from "@/components/climb-lists/climb-list-actions";
@@ -18,7 +18,6 @@ import { AppLink } from "@/components/ui/app-link";
 import { SkeletonListRows } from "@/components/ui/skeleton";
 import { PageTitle } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import type { AreaBreadcrumbs, ClimbListItem, ClimbListSummary } from "@/db/queries";
 import {
   climbListViewSearch,
   climbListHref,
@@ -27,42 +26,19 @@ import {
   parseClimbListView,
   type ClimbListView,
 } from "@/lib/climb-lists";
-import { SHARING_AUDIENCES, type SharingAudience } from "@/lib/privacy";
+import { SHARING_AUDIENCES } from "@/lib/privacy";
 import { searchParamsToRecord } from "@/lib/url-params";
+import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
-import { fetchJson, isNotFoundError } from "@/spa/lib/fetch-json";
+import { isNotFoundError } from "@/spa/lib/fetch-json";
 import { SpaProfileHeader } from "@/spa/lib/profile-shell";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
 
-type Header = Omit<ComponentProps<typeof SpaProfileHeader>, "children" | "workspace">;
-type Items = { items: ClimbListItem[]; areaBreadcrumbs: AreaBreadcrumbs };
-type Index = {
-  mode: "index";
-  header: Header;
-  lists: ClimbListSummary[];
-  audience: SharingAudience | null;
-};
-type Detail = {
-  mode: "detail";
-  header: Header;
-  list: ClimbListSummary;
-  page: Items;
-  share: ComponentProps<typeof ClimbListShare>["share"];
-  shareOrigin: string;
-};
-type Shared = {
-  mode: "shared";
-  viewerId: string | null;
-  owner: { id: string; name: string; image: string | null };
-  list: Pick<ClimbListSummary, "title" | "description" | "climbCount">;
-  page: Items;
-};
-type Payload =
-  | Index
-  | Detail
-  | Shared
-  | { mode: "expired" }
-  | { mode: "owner"; ownerId: string; listId: number };
+type Index = ApiResponse<"/api/pages/users/{id}/lists">;
+type Detail = ApiResponse<"/api/pages/users/{id}/lists/{list_id}">;
+type LinkPage = ApiResponse<"/api/pages/lists/{token}">;
+type Shared = Extract<LinkPage, { mode: "shared" }>;
+type Payload = Index | Detail | LinkPage;
 
 function MemberList({
   data,
@@ -237,7 +213,18 @@ export default function ListsRoute({ viewerId }: { viewerId: string | null }) {
     const controller = new AbortController();
     async function load() {
       try {
-        const data = await fetchJson<Payload>(url, { signal: controller.signal });
+        const options = { query: new URLSearchParams(query), signal: controller.signal };
+        const data = token
+          ? await fetchApi("/api/pages/lists/{token}", { ...options, path: { token } })
+          : listId
+            ? await fetchApi("/api/pages/users/{id}/lists/{list_id}", {
+                ...options,
+                path: { id: id ?? "", list_id: listId },
+              })
+            : await fetchApi("/api/pages/users/{id}/lists", {
+                path: { id: id ?? "" },
+                signal: controller.signal,
+              });
         if (!controller.signal.aborted) setLoaded({ key, query, data });
       } catch (err) {
         if (!controller.signal.aborted)
@@ -252,7 +239,7 @@ export default function ListsRoute({ viewerId }: { viewerId: string | null }) {
     }
     void load();
     return () => controller.abort();
-  }, [key, query, url, refresh]);
+  }, [key, query, url, refresh, id, listId, token]);
   const current = key === loaded?.key ? loaded : undefined;
   // Keep this list mounted while refinements load. Its editor opens only when
   // the rows and the view from the same request both describe the whole list.

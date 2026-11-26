@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentProps } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
 
 import { AnalyticsLoading } from "@/components/analytics-loading";
@@ -8,8 +8,7 @@ import {
   ProfileAnalyticsDashboard,
 } from "@/components/profile-analytics-view";
 import { useGradePreferences } from "@/components/ui/grade-preferences";
-import type { AnalyticsSendRow, AnalyticsSessionRow } from "@/db/queries";
-import type { ClimberOverview } from "@/db/queries/climber-overview";
+import type { AnalyticsSessionRow } from "@/db/queries";
 import type { HighlightSession } from "@/lib/analytics-highlights";
 import { parseAnalyticsLayout } from "@/lib/analytics-layout";
 import {
@@ -18,22 +17,13 @@ import {
 } from "@/lib/feature-announcements";
 import { normalizeHashtagFilters } from "@/lib/filters/hashtag-filter";
 import { parseDisciplineScope, resolveDisciplineScope } from "@/lib/user-analytics";
+import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
-import { fetchJson, isNotFoundError } from "@/spa/lib/fetch-json";
+import { isNotFoundError } from "@/spa/lib/fetch-json";
 import { SpaProfileHeader } from "@/spa/lib/profile-shell";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
 
-type AnalyticsPayload = {
-  header: Omit<ComponentProps<typeof SpaProfileHeader>, "children" | "workspace">;
-  rows: AnalyticsSendRow[];
-  highlightSessions: HighlightSession[] | null;
-  tags: string[];
-  overview: ClimberOverview;
-  layout: unknown;
-  showAnnouncement: boolean;
-  viewerCreatedAt: number;
-  nowMs: number;
-};
+type AnalyticsPayload = ApiResponse<"/api/pages/users/{id}/analytics">;
 
 function sessionCounts(sessions: HighlightSession[] | null): AnalyticsSessionRow[] | undefined {
   if (!sessions) return undefined;
@@ -68,7 +58,11 @@ export default function ProfileAnalyticsRoute({ viewerId }: { viewerId: string |
     const controller = new AbortController();
     async function load() {
       try {
-        const data = await fetchJson<AnalyticsPayload>(url, { signal: controller.signal });
+        const data = await fetchApi("/api/pages/users/{id}/analytics", {
+          path: { id: id ?? "" },
+          query: new URLSearchParams(tagQuery),
+          signal: controller.signal,
+        });
         if (!controller.signal.aborted) setResult({ identity, url, data });
       } catch (cause) {
         if (!controller.signal.aborted)
@@ -81,7 +75,7 @@ export default function ProfileAnalyticsRoute({ viewerId }: { viewerId: string |
     }
     void load();
     return () => controller.abort();
-  }, [identity, url, viewerId]);
+  }, [identity, url, viewerId, id, tagQuery]);
   usePageTitle(
     result?.identity === identity && "data" in result
       ? result.data.header.user.name + " · Analytics"

@@ -5,11 +5,10 @@ use crate::sends::MutationError;
 use betabook_domain::trips::TripInput;
 use serde::Serialize;
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TripSummary {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<i64>,
     pub name: String,
     pub description: Option<String>,
     pub album_url: Option<String>,
@@ -22,13 +21,17 @@ pub struct TripSummary {
     pub companions: Vec<JournalCompanion>,
 }
 
-fn summary(row: &DbRow, shared: bool) -> Result<TripSummary, DbError> {
+/// Only member routes return a trip's internal database ID.
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
+#[derive(Serialize)]
+pub struct MemberTripSummary {
+    pub id: i64,
+    #[serde(flatten)]
+    pub summary: TripSummary,
+}
+
+fn summary(row: &DbRow) -> Result<TripSummary, DbError> {
     Ok(TripSummary {
-        id: if shared {
-            None
-        } else {
-            Some(row.get_i64("id")?)
-        },
         name: row.get_string("name")?,
         description: row.get_opt_string("description")?,
         album_url: row.get_opt_string("album_url")?,
@@ -70,7 +73,7 @@ pub async fn member_trips<D: DbExecutor>(
     owner: &str,
     viewer: &str,
     id: Option<i64>,
-) -> Result<Vec<TripSummary>, DbError> {
+) -> Result<Vec<MemberTripSummary>, DbError> {
     let mut p = Vec::new();
     let cols = member_columns(viewer, &mut p);
     p.push(owner.into());
@@ -87,7 +90,12 @@ pub async fn member_trips<D: DbExecutor>(
     db.query_all(&sql, &p)
         .await?
         .iter()
-        .map(|row| summary(row, false))
+        .map(|row| {
+            Ok(MemberTripSummary {
+                id: row.get_i64("id")?,
+                summary: summary(row)?,
+            })
+        })
         .collect()
 }
 
@@ -150,13 +158,15 @@ pub async fn shared_trip<D: DbExecutor>(db: &D, token: &str) -> Result<ShareAcce
         name: r.get_string("owner_name")?,
         image: r.get_opt_string("owner_image")?,
         id,
-        trip: Box::new(summary(&r, true)?),
+        trip: Box::new(summary(&r)?),
         notes: r.get_opt_string("notes")?,
     })
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(feature = "api-spec", schemars(rename = "TripShareLink"))]
 pub struct ShareLink {
     pub token: String,
     pub expires_at: Option<String>,
@@ -369,6 +379,7 @@ impl TripReader<'_> {
     }
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DayRows {

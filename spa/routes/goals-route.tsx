@@ -1,4 +1,4 @@
-import { type ComponentProps, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
@@ -6,13 +6,11 @@ import { GoalPanel } from "@/components/goals/goal-panel";
 import { SkeletonListRows } from "@/components/ui/skeleton";
 import { PageTitle } from "@/components/ui/typography";
 import { WorkspaceShell } from "@/components/workspace-shell";
-import { fetchJson, isNotFoundError } from "@/spa/lib/fetch-json";
+import { fetchApi, type ApiResponse } from "@/spa/lib/api";
+import { isNotFoundError } from "@/spa/lib/fetch-json";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
 
-type GoalOverview = Pick<
-  ComponentProps<typeof GoalPanel>,
-  "initialActive" | "initialCompleted" | "today" | "timezone" | "nextGrades" | "availableTags"
->;
+type GoalOverview = ApiResponse<"/api/pages/users/{id}/goals">;
 
 function OwnerGoals({ ownerId }: { ownerId: string }) {
   const [data, setData] = useState<GoalOverview | null>(null);
@@ -22,10 +20,10 @@ function OwnerGoals({ ownerId }: { ownerId: string }) {
     const controller = new AbortController();
     async function load() {
       try {
-        const next = await fetchJson<GoalOverview>(
-          `/api/pages/users/${encodeURIComponent(ownerId)}/goals`,
-          { signal: controller.signal },
-        );
+        const next = await fetchApi("/api/pages/users/{id}/goals", {
+          path: { id: ownerId },
+          signal: controller.signal,
+        });
         if (!controller.signal.aborted) {
           setError("");
           setData(next);

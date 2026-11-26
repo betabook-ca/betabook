@@ -140,7 +140,7 @@ pub async fn overview<D: DbExecutor>(
 pub async fn owner_preferences<D: DbExecutor>(
     db: &D,
     owner: &str,
-) -> Result<(Option<Value>, bool), DbError> {
+) -> Result<(Option<betabook_domain::analytics_layout::Layout>, bool), DbError> {
     let row = db.query_one("SELECT (SELECT layout FROM user_analytics_layouts WHERE user_id=?) layout,
         EXISTS(SELECT 1 FROM feature_announcement_dismissals WHERE user_id=? AND feature_id='analytics-customize') dismissed",
         &[owner.into(),owner.into()]).await?.ok_or(DbError::Column("layout"))?;

@@ -85,7 +85,7 @@ pub async fn detail(
         .pop()
         .ok_or_else(not_found)?;
     let analytics = uri.path().ends_with("/analytics");
-    let notes = if !analytics && trip.has_notes != 0 {
+    let notes = if !analytics && trip.summary.has_notes != 0 {
         trips::member_notes(state.db(), &owner, viewer, id).await?
     } else {
         None

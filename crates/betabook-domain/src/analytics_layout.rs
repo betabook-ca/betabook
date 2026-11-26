@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "api-spec", schemars(rename = "StoredAnalyticsLayout"))]
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Layout {

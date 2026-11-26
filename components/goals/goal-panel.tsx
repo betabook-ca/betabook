@@ -18,7 +18,6 @@ import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { SectionNavigation } from "@/components/ui/section-navigation";
 import { useGoalPages } from "@/hooks/use-goal-pages";
 import { useMounted } from "@/hooks/use-mounted";
-import { apiFetch } from "@/lib/api-client";
 import { daysBetween } from "@/lib/format-date";
 import {
   goalDateLabel,
@@ -43,6 +42,7 @@ import {
   acknowledgeGoalAchievements,
   archiveGoal,
 } from "@/spa/lib/actions-client";
+import { fetchApi } from "@/spa/lib/api";
 
 import {
   GoalCompletionNotice,
@@ -274,12 +274,14 @@ export function GoalPanel({
     retry,
   } = useGoalPages(initialCompleted, today, async (selectedYear, offset, signal) => {
     if (loadPage) return loadPage(offset, selectedYear);
-    const res = await apiFetch(
-      `/api/users/${ownerId}/goals?view=completed&offset=${offset}&year=${selectedYear}`,
-      { signal },
-    );
-    if (!res.ok) throw new Error("Couldn't load goals.");
-    return res.json();
+    const page = await fetchApi("/api/users/{id}/goals", {
+      path: { id: ownerId },
+      query: { view: "completed", offset, year: selectedYear },
+      signal,
+      sessionEvents: true,
+    });
+    if (!("goals" in page)) throw new Error("Couldn't load goals.");
+    return page;
   });
   async function save(draft: GoalDraft) {
     const climbing = draft.goal === "volume" || draft.goal === "grade";

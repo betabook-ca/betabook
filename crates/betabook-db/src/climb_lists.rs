@@ -18,6 +18,7 @@ const FROM_LINK: &str = "FROM climb_list_share_links link
     JOIN climb_lists l ON l.id = link.list_id AND l.user_id = link.user_id
     JOIN user u ON u.id = l.user_id";
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListSummary {
@@ -115,12 +116,17 @@ pub async fn list<D: DbExecutor>(
     .transpose()
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListItem {
     pub climb_id: i64,
     pub name: String,
     #[serde(rename = "type")]
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "betabook_domain::grades::ClimbType")
+    )]
     pub climb_type: String,
     pub grade: Option<i64>,
     pub area_id: i64,
@@ -207,8 +213,10 @@ pub async fn items<D: DbExecutor>(
     Ok(items)
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(feature = "api-spec", schemars(rename = "ListShareLink"))]
 pub struct ShareLink {
     pub token: String,
     pub expires_at: Option<String>,

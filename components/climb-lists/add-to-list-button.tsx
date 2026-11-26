@@ -10,18 +10,27 @@ import { AppLink } from "@/components/ui/app-link";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { SkeletonListRows } from "@/components/ui/skeleton";
-import type { ClimbListChoice } from "@/db/queries";
-import { apiFetch } from "@/lib/api-client";
 import { climbCountLabel, climbListHref } from "@/lib/climb-lists";
 import { addClimbToList } from "@/spa/lib/actions-client";
+import { fetchApi, type ApiResponse } from "@/spa/lib/api";
+
+type ClimbListChoice = ApiResponse<"/api/climbs/{id}/lists">["lists"][number];
 
 /** Reads the climber's lists for this climb. Swappable for stories and tests. */
 export type ClimbListChoicesFetcher = (climbId: number) => Promise<ClimbListChoice[]>;
 
 const fetchChoices: ClimbListChoicesFetcher = async (climbId) => {
-  const response = await apiFetch(`/api/climbs/${climbId}/lists`);
-  if (!response.ok) throw new Error("Couldn't load your lists.");
-  return (await response.json<{ lists: ClimbListChoice[] }>()).lists;
+  try {
+    const response = await fetchApi("/api/climbs/{id}/lists", {
+      path: { id: String(climbId) },
+      sessionEvents: true,
+    });
+    return response.lists;
+  } catch (error) {
+    if (error instanceof Error && "status" in error)
+      throw new Error("Couldn't load your lists.", { cause: error });
+    throw error;
+  }
 };
 
 /** Says where the climb went, with the list as a link to it. */

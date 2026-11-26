@@ -1,4 +1,4 @@
-import { lazy, useEffect, useState, type ComponentProps } from "react";
+import { lazy, useEffect, useState } from "react";
 import { Navigate, useLocation, useParams, useSearchParams } from "react-router";
 
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
@@ -14,21 +14,13 @@ import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { SkeletonListRows } from "@/components/ui/skeleton";
 import { PageTitle } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import type {
-  AnalyticsSendRow,
-  AnalyticsSessionRow,
-  AreaBreadcrumbs,
-  JournalEntry,
-  TripSummary,
-  UserSendRow,
-} from "@/db/queries";
 import { formatDate } from "@/lib/format-date";
 import { goalToday } from "@/lib/goals";
-import type { AlbumPhoto } from "@/lib/trip-album";
 import { groupTripDays } from "@/lib/trip-days";
 import { formatTripDates, tripLogbookHref, tripStatus, TRIP_STATUS_LABEL } from "@/lib/trips";
+import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
-import { fetchJson, isNotFoundError } from "@/spa/lib/fetch-json";
+import { isNotFoundError } from "@/spa/lib/fetch-json";
 import { SpaProfileHeader } from "@/spa/lib/profile-shell";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
 
@@ -37,39 +29,42 @@ const Analytics = lazy(() =>
     default: module.TripAnalyticsView,
   })),
 );
-type Header = Omit<ComponentProps<typeof SpaProfileHeader>, "children">;
-type Daily = {
-  rows: {
-    sends: UserSendRow[];
-    entries: JournalEntry[];
-    sendsCapped: boolean;
-    entriesCapped: boolean;
-  };
-  breadcrumbs: AreaBreadcrumbs;
-};
-type View = Daily | { analytics: { sends: AnalyticsSendRow[]; sessions?: AnalyticsSessionRow[] } };
-type Detail = {
-  trip: Omit<TripSummary, "id"> & { id?: number };
-  notes: string | null;
-  notesHtml: string | null;
-  share?: NonNullable<ComponentProps<typeof TripHeader>["ownerShare"]>["share"];
-  view: View;
-  timezone: string | null;
-};
-type Payload =
-  | { header: Header; trips: TripSummary[]; timezone: string | null }
-  | (Detail & { header: Header })
-  | (Detail & { owner: { id: string; name: string; image: string | null } })
-  | { expired: true }
-  | { redirectTo: string };
+type TripIndex = ApiResponse<"/api/pages/users/{id}/trips">;
+type TripSummary = TripIndex["trips"][number];
+type MemberDay = ApiResponse<"/api/pages/users/{id}/trips/{trip}">;
+type MemberAnalytics = ApiResponse<"/api/pages/users/{id}/trips/{trip}/analytics">;
+type SharedDay = ApiResponse<"/api/pages/trips/{token}">;
+type SharedAnalytics = ApiResponse<"/api/pages/trips/{token}/analytics">;
+type Detail = MemberDay | MemberAnalytics | Extract<SharedDay | SharedAnalytics, { trip: unknown }>;
+type Daily = MemberDay["view"];
+type Payload = TripIndex | MemberDay | MemberAnalytics | SharedDay | SharedAnalytics;
+type PhotosPage = ApiResponse<"/api/pages/trips/{token}/photos">;
 
-function Photos({ link, endpoint }: { link: string; endpoint: string }) {
-  const [photos, setPhotos] = useState<AlbumPhoto[]>([]);
+function Photos({
+  link,
+  token,
+  userId,
+  tripId,
+}: {
+  link: string;
+  token?: string;
+  userId: string;
+  tripId: number;
+}) {
+  const [photos, setPhotos] = useState<PhotosPage>([]);
   useEffect(() => {
     const controller = new AbortController();
     async function load() {
       try {
-        const items = await fetchJson<AlbumPhoto[]>(endpoint, { signal: controller.signal });
+        const items = token
+          ? await fetchApi("/api/pages/trips/{token}/photos", {
+              path: { token },
+              signal: controller.signal,
+            })
+          : await fetchApi("/api/pages/users/{id}/trips/{trip}/photos", {
+              path: { id: userId, trip: String(tripId) },
+              signal: controller.signal,
+            });
         if (!controller.signal.aborted) setPhotos(items);
       } catch {
         // An unreadable album still has its link to Google Photos.
@@ -77,7 +72,7 @@ function Photos({ link, endpoint }: { link: string; endpoint: string }) {
     }
     void load();
     return () => controller.abort();
-  }, [endpoint]);
+  }, [token, userId, tripId]);
   return <TripAlbumPhotos link={link} photos={photos} />;
 }
 
@@ -165,7 +160,7 @@ function TripBody({
   const gradePreferences = useGradePreferences();
   const today = goalToday(data.timezone ?? "UTC");
   // The shared header uses token routes and never needs the internal trip ID.
-  const trip = { ...data.trip, id: data.trip.id ?? 0 };
+  const trip = { ...data.trip, id: "id" in data.trip ? data.trip.id : 0 };
   const owner = !token && viewerId === userId;
   const status = tripStatus(trip, today);
   const badge = TRIP_STATUS_LABEL[status];
@@ -179,7 +174,7 @@ function TripBody({
       link={token}
       back={analytics ? "trip" : "trips"}
       ownerShare={
-        owner && !analytics
+        owner && !analytics && "share" in data
           ? { share: data.share ?? null, origin: window.location.origin, isPrivate }
           : undefined
       }
@@ -210,7 +205,9 @@ function TripBody({
             <Photos
               key={pathname + trip.albumUrl}
               link={trip.albumUrl}
-              endpoint={"/api/pages" + pathname + "/photos"}
+              token={token}
+              userId={userId}
+              tripId={trip.id}
             />
           )}
           {(owner || notes) && (
@@ -238,7 +235,7 @@ function TripBody({
 }
 
 export default function TripsRoute({ viewerId }: { viewerId: string | null }) {
-  const { token } = useParams<{ token: string }>();
+  const { token, id, tripId } = useParams();
   const { pathname } = useLocation();
   const refresh = useRouterRefreshKey();
   const key = JSON.stringify([pathname, viewerId, refresh]);
@@ -250,9 +247,23 @@ export default function TripsRoute({ viewerId }: { viewerId: string | null }) {
     const controller = new AbortController();
     async function load() {
       try {
-        const data = await fetchJson<Payload>("/api/pages" + pathname, {
-          signal: controller.signal,
-        });
+        const signal = controller.signal;
+        const analytics = pathname.endsWith("/analytics");
+        let data: Payload;
+        if (token) {
+          data = analytics
+            ? await fetchApi("/api/pages/trips/{token}/analytics", { path: { token }, signal })
+            : await fetchApi("/api/pages/trips/{token}", { path: { token }, signal });
+        } else if (id && tripId) {
+          const path = { id, trip: tripId };
+          data = analytics
+            ? await fetchApi("/api/pages/users/{id}/trips/{trip}/analytics", { path, signal })
+            : await fetchApi("/api/pages/users/{id}/trips/{trip}", { path, signal });
+        } else if (id) {
+          data = await fetchApi("/api/pages/users/{id}/trips", { path: { id }, signal });
+        } else {
+          return;
+        }
         if (!controller.signal.aborted) setResult({ key, data });
       } catch (error) {
         if (!controller.signal.aborted)
@@ -268,7 +279,7 @@ export default function TripsRoute({ viewerId }: { viewerId: string | null }) {
     }
     void load();
     return () => controller.abort();
-  }, [key, pathname, token, viewerId]);
+  }, [id, tripId, key, pathname, token, viewerId]);
   const resolved = result?.key === key && "data" in result ? result.data : null;
   usePageTitle(
     resolved && "header" in resolved

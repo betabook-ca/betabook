@@ -11,6 +11,7 @@ use std::collections::BTreeSet;
 mod actions;
 mod core;
 mod profiles;
+mod progress;
 
 macro_rules! inventory {
     ($( $method:ident $path:literal => $handler:path; )*) => { &[$((stringify!($method), $path)),*] };
@@ -140,6 +141,7 @@ pub fn document(require_complete: bool) -> Result<Value, String> {
     actions::register(&mut api);
     core::register(&mut api);
     profiles::register(&mut api);
+    progress::register(&mut api);
     let paths = api.paths.as_object().ok_or("missing paths")?;
     let mut expected = BTreeSet::new();
     for &(method, raw) in ROUTES
