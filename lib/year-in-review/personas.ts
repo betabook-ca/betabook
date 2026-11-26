@@ -16,16 +16,6 @@ export type PersonaMetrics = {
   homeName: string | null;
   tripLocations: number;
   newClimbs: number;
-  pyramid: {
-    tiers: number;
-    base: number;
-    top: number;
-    /** Fraction of adjacent tiers where the lower grade has at least as many sends. */
-    shape: number;
-    from: string;
-    to: string;
-    sends: number;
-  } | null;
   repeats: number;
   bestWindow: { share: number; sends: number; from: string; to: string } | null;
   disciplineShares: { type: keyof typeof DISCIPLINE_NAMES; share: number }[];
@@ -35,10 +25,6 @@ export type PersonaMetrics = {
  * win a persona that is about something else. */
 const CAP = 1.5;
 const cap = (value: number) => Math.max(0, Math.min(value, CAP));
-/** A geometric mean: one weak factor pulls the score down more than an
- * arithmetic mean would let it. */
-const geometricMean = (values: number[]) =>
-  values.reduce((total, value) => total * value, 1) ** (1 / values.length);
 
 /** How big a day was: eight problems, or six routes, scores 1. */
 export function dayScore(boulders: number, routes: number): number {
@@ -66,7 +52,6 @@ function percentile(id: PersonaId, raw: number): number {
 /** Ties go to the rarer persona first. */
 const PRIORITY: PersonaId[] = [
   "siege-mentality",
-  "pyramid-builder",
   "circuit-repeater",
   "seasonal-sprinter",
   "all-rounder",
@@ -80,7 +65,6 @@ const PERSONA_NAMES: Record<PersonaId, string> = {
   "flash-machine": "The Flash Machine",
   "siege-mentality": "The Siege Mentality",
   wanderer: "The Wanderer",
-  "pyramid-builder": "The Pyramid Builder",
   "circuit-repeater": "The Circuit Repeater",
   "seasonal-sprinter": "The Seasonal Sprinter",
   "all-rounder": "The All-Rounder",
@@ -137,14 +121,6 @@ function candidates(m: PersonaMetrics): Candidate[] {
       ]
         .filter(Boolean)
         .join(" and ")}, with no crag taking more than ${percent(m.homeShare)} of the days out`,
-    });
-  }
-  if (m.pyramid) {
-    const p = m.pyramid;
-    list.push({
-      id: "pyramid-builder",
-      raw: geometricMean([cap(p.tiers / 4), cap(p.base / Math.max(p.top, 1) / 3), p.shape]),
-      why: `Built from ${plural(p.base, "send")} at ${p.from} up to ${p.top} at ${p.to}`,
     });
   }
   if (m.repeats >= 10) {

@@ -253,7 +253,6 @@ export type PersonaId =
   | "flash-machine"
   | "siege-mentality"
   | "wanderer"
-  | "pyramid-builder"
   | "circuit-repeater"
   | "seasonal-sprinter"
   | "all-rounder";

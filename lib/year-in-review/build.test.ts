@@ -420,7 +420,6 @@ describe("personas", () => {
     homeName: "Squamish",
     tripLocations: 0,
     newClimbs: 10,
-    pyramid: null,
     repeats: 0,
     bestWindow: null,
     disciplineShares: [{ type: "boulder", share: 1 }],

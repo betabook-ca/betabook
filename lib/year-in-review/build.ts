@@ -872,17 +872,6 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
     for (const climb of gotAway?.climbs ?? [])
       sieges.push({ climbName: climb.climbName, sessions: climb.sessions });
     const siege = sieges.toSorted((a, b) => b.sessions - a.sessions)[0] ?? null;
-    const pyramidPick = pyramids
-      .map((entry) => ({
-        entry,
-        sends: entry.rows.reduce((total, row) => total + row.count, 0),
-      }))
-      .filter(({ sends: count }) => count >= 25)
-      .toSorted((a, b) => b.sends - a.sends)[0];
-    const pyramidRows = pyramidPick?.entry.rows ?? [];
-    const pairs = pyramidRows
-      .slice(0, -1)
-      .map((row, index) => pyramidRows[index + 1].count >= row.count);
     const metrics: PersonaMetrics = {
       sends: yearSends.length,
       typicalDay: typicalDay(
@@ -901,17 +890,6 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
         trips?.trips.flatMap((card) => (card.location ? [card.location.id] : [])) ?? [],
       ).size,
       newClimbs: newGround.newClimbs,
-      pyramid: pyramidPick
-        ? {
-            tiers: pyramidRows.length,
-            top: pyramidRows[0].count,
-            base: pyramidRows.at(-1)?.count ?? 0,
-            shape: pairs.length ? pairs.filter(Boolean).length / pairs.length : 0,
-            from: pyramidRows.at(-1)?.label ?? "",
-            to: pyramidRows[0].label,
-            sends: pyramidPick.sends,
-          }
-        : null,
       repeats: yearSessions.filter((session) => session.sent && !session.isAscent).length,
       bestWindow: bestSendWindow(yearSends),
       disciplineShares: types.map((type) => ({
