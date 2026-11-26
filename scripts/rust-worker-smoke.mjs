@@ -13,6 +13,7 @@ import { testLists } from "./rust-smoke/lists.mjs";
 import { testModeration } from "./rust-smoke/moderation.mjs";
 import { testPlatform } from "./rust-smoke/platform.mjs";
 import { testProjects } from "./rust-smoke/projects.mjs";
+import { testPublicSearch } from "./rust-smoke/public-search.mjs";
 import { testTrips } from "./rust-smoke/trips.mjs";
 import { checkedTransport } from "./rust-smoke/validate-api.mjs";
 import { hashSeedPassword } from "./seed-password.ts";
@@ -174,6 +175,9 @@ void test("Rust Worker HTTP flows", async (t) => {
   });
   await t.test("climb lists", () => testLists({ server, db: DB, signIn }));
   await t.test("goal refresh", () => testGoalRefresh({ server, db: DB, signIn }));
+  await t.test("public search HTML and bootstrap", () =>
+    testPublicSearch({ server, db: DB, signIn }),
+  );
   await t.test("projects", () => testProjects({ server, db: DB, signIn }));
   await t.test("trips", () => testTrips({ server, db: DB, signIn }));
 });

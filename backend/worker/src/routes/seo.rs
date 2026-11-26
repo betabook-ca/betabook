@@ -1022,45 +1022,29 @@ pub async fn spa_fallback(
     if chunk_key.is_empty() {
         return render_not_found(&state).await;
     }
-    let bootstrap_data = if path == "/search" && !has_protected_catalog_params(raw_query, true) {
-        let mode = form_urlencoded::parse(raw_query.as_bytes())
-            .find(|(k, _)| k == "mode")
-            .map(|(_, v)| v.into_owned());
-        if matches!(mode.as_deref(), None | Some("climb")) {
-            let options = parse_public_catalog_options(raw_query);
-            let climbs_page = search_public_climbs(state.db(), &options).await?;
-            Some(json!({
-                "route": "search",
-                "path": "/search",
-                "query": raw_query,
-                "data": {
-                    "climbsPage": climbs_page,
-                }
-            }))
-        } else {
-            None
-        }
-    } else {
-        None
-    };
-
-    let manifest = load_spa_manifest(&state).await?;
-    let preload_tags = render_modulepreload_tags(&manifest, chunk_key);
-    let template = if guest && path == "/" && !has_query {
-        load_asset_text(&state, "/public-home.txt")
+    if guest && path == "/search" {
+        let (body, seed) = super::public_search::render(state.db(), raw_query).await?;
+        return catalog_response(
+            &state,
+            &meta,
+            &json_ld,
+            chunk_key,
+            seed.as_ref(),
+            Some(body),
+        )
+        .await;
+    }
+    let (template, preloads) = if guest && path == "/" && !has_query {
+        let template = load_asset_text(&state, "/public-home.txt")
             .await?
-            .ok_or_else(|| ApiError::internal("Missing public home document"))?
+            .ok_or_else(|| ApiError::internal("Missing public home document"))?;
+        (template, String::new())
     } else {
-        load_index_html(&state).await?
+        page_template(&state, chunk_key).await?
     };
-    let html = inject_seo_into_html(
-        &template,
-        &meta,
-        &json_ld,
-        &preload_tags,
-        bootstrap_data.as_ref(),
-    );
-    Ok(html_response(StatusCode::OK, html))
+    Ok(entry_response(inject_seo_into_html(
+        &template, &meta, &json_ld, &preloads, None,
+    )))
 }
 
 pub(super) async fn member_shell(
