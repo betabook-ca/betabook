@@ -67,3 +67,37 @@ test(
     }
   },
 );
+
+test(
+  "a native navigation already pressed stays clickable while the application starts",
+  { tag: ["@behavior", "@app"] },
+  async ({ page }) => {
+    let resume!: () => void;
+    const held = new Promise<void>((done) => {
+      resume = done;
+    });
+    await page.route("**/assets/*.js", async (route) => {
+      await held;
+      await route.continue();
+    });
+    try {
+      await page.goto(appBaseURL, { waitUntil: "commit" });
+      const frame = page.locator("#public-entry");
+      const link = frame.getByRole("link", { name: "How Betabook works" });
+      const bounds = await link.boundingBox();
+      if (!bounds) throw new Error("Missing native logbook link");
+      await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+      await page.mouse.down();
+      resume();
+      await page.waitForFunction(() => Boolean(document.querySelector("#root main h1")));
+      await expect(frame).toBeVisible();
+      await page.mouse.up();
+      await expect(page).toHaveURL(/\/climbing-logbook$/);
+      await expect(
+        page.getByRole("heading", { name: "A free climbing logbook", exact: true }),
+      ).toBeVisible();
+    } finally {
+      resume();
+    }
+  },
+);
