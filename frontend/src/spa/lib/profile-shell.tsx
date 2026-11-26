@@ -20,6 +20,7 @@ import type { FriendshipStatus } from "@/lib/friendships";
 import type { CompanionOption } from "@/lib/journal-companions";
 import type { ProductTourState } from "@/lib/product-tour";
 import { profileSharePath } from "@/lib/profile-share";
+import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 
 export type MemberAccessInfo = {
   journal: boolean;
@@ -214,16 +215,37 @@ export function SpaJournalView({
   );
 }
 
+export async function refineSends(
+  previous: ApiResponse<"/api/pages/users/{id}/sends">["sends"],
+  userId: string,
+  query: string,
+  signal: AbortSignal,
+) {
+  const { areaBreadcrumbs, ...firstPage } = await fetchApi("/api/users/{id}/sends", {
+    path: { id: userId },
+    query: new URLSearchParams(query),
+    signal,
+    sessionEvents: true,
+  });
+  return { ...previous, areaBreadcrumbs, firstPage };
+}
+
 export function SpaSendsView({
   ownerId,
   viewerId,
   filter,
+  resultsFilter = filter,
+  pending = false,
+  loadError,
   basePath,
   data,
 }: {
   ownerId: string;
   viewerId: string;
   filter: UserSendsFilter;
+  resultsFilter?: UserSendsFilter;
+  pending?: boolean;
+  loadError?: string | null;
   basePath: string;
   data: SendsViewPayload;
 }) {
@@ -234,16 +256,23 @@ export function SpaSendsView({
         {data.hasSends && (
           <UserSendsFilterToolbar filter={filter} basePath={basePath} tags={data.tags} />
         )}
-        <UserSendList
-          key={JSON.stringify(filter)}
-          userId={ownerId}
-          filter={filter}
-          initialSends={data.firstPage.sends}
-          initialHasMore={data.firstPage.hasMore}
-          initialAreaBreadcrumbs={data.areaBreadcrumbs}
-          hasAnySends={data.hasSends}
-          currentUserId={viewerId}
-        />
+        {loadError ? (
+          <p role="alert" className="text-sm text-danger">
+            {loadError}
+          </p>
+        ) : (
+          <UserSendList
+            key={JSON.stringify(resultsFilter)}
+            userId={ownerId}
+            filter={resultsFilter}
+            pending={pending}
+            initialSends={data.firstPage.sends}
+            initialHasMore={data.firstPage.hasMore}
+            initialAreaBreadcrumbs={data.areaBreadcrumbs}
+            hasAnySends={data.hasSends}
+            currentUserId={viewerId}
+          />
+        )}
       </div>
     </NavigationPendingProvider>
   );

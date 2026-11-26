@@ -1,128 +1,78 @@
-import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
 
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { Skeleton, SkeletonListRows } from "@/components/ui/skeleton";
 import { PageTitle } from "@/components/ui/typography";
-import { parseUserSendsFilter } from "@/lib/filters/user-sends-filter";
+import {
+  parseUserSendsFilter,
+  userSendsFilterToSearchParams,
+} from "@/lib/filters/user-sends-filter";
 import { searchParamsToRecord } from "@/lib/url-params";
 import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
 import { isNotFoundError } from "@/spa/lib/fetch-json";
-import { SpaProfileHeader, SpaSendsView } from "@/spa/lib/profile-shell";
-import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
-
-type LoadedUserSends = ApiResponse<"/api/pages/users/{id}/sends"> & {
-  targetUserId: string;
-  viewerId: string;
-  query: string;
-};
+import { SpaProfileHeader, SpaSendsView, refineSends } from "@/spa/lib/profile-shell";
+import { useRetainedPage } from "@/spa/lib/use-retained-page";
 
 export default function UserSendsRoute({ viewerId }: { viewerId: string | null }) {
-  const params = useParams<{ id?: string }>();
+  const { id: userId = "" } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
-  const refreshKey = useRouterRefreshKey();
-  const userId = params.id ?? "";
-  const rawQuery = searchParams.toString();
-  const searchRecord = searchParamsToRecord(searchParams);
-
-  const [state, setState] = useState<LoadedUserSends | null>(null);
-  const [notFound, setNotFound] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const matches =
-    state !== null &&
-    viewerId !== null &&
-    userId.length > 0 &&
-    state.targetUserId === userId &&
-    state.viewerId === viewerId &&
-    state.query === rawQuery;
-
-  useEffect(() => {
-    if (!viewerId || !userId) {
-      return;
-    }
-    const targetUserId = userId;
-    const targetViewerId = viewerId;
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const res = await fetchApi("/api/pages/users/{id}/sends", {
-          path: { id: targetUserId },
-          query: new URLSearchParams(rawQuery),
-        });
-        if (!cancelled) {
-          setError(null);
-          setNotFound(false);
-          setState({
-            targetUserId,
-            viewerId: targetViewerId,
-            query: rawQuery,
-            ...res,
-          });
-        }
-      } catch (err) {
-        if (!cancelled) {
-          if (isNotFoundError(err)) {
-            setNotFound(true);
-            setError(null);
-          } else {
-            setError(err instanceof Error ? err.message : "Failed to load sends");
-          }
-        }
-      }
-    }
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [viewerId, userId, rawQuery, refreshKey]);
-
+  const filter = parseUserSendsFilter(searchParamsToRecord(searchParams));
+  const query = userSendsFilterToSearchParams(filter).toString();
+  const page = useRetainedPage<ApiResponse<"/api/pages/users/{id}/sends">>({
+    scope: viewerId && userId ? JSON.stringify([viewerId, userId]) : null,
+    query,
+    load: (signal) =>
+      fetchApi("/api/pages/users/{id}/sends", {
+        path: { id: userId },
+        query: new URLSearchParams(query),
+        signal,
+        sessionEvents: true,
+      }),
+    async refine(previous, _previousQuery, signal) {
+      return { ...previous, sends: await refineSends(previous.sends, userId, query, signal) };
+    },
+  });
+  const data = page.data;
+  const error =
+    page.error instanceof Error ? page.error.message : page.error ? "Failed to load sends" : null;
   usePageTitle(
-    notFound ? "Climber not found" : matches && state ? state.user.name + " · Sends" : null,
+    isNotFoundError(page.error) ? "Climber not found" : data ? data.user.name + " · Sends" : null,
   );
-  if (!viewerId) {
-    return <CurrentPageAuthCallout />;
-  }
-  if (!userId || notFound) {
+  if (!viewerId) return <CurrentPageAuthCallout />;
+  if (!userId || isNotFoundError(page.error))
     return (
       <div className="py-8 text-center">
         <PageTitle>Climber not found</PageTitle>
         <p className="mt-2 text-sm text-muted">No climber profile is available at this URL.</p>
       </div>
     );
-  }
-  if (error) {
-    return (
-      <div role="alert" className="rounded-lg border border-border bg-surface p-6 text-danger">
-        {error}
-      </div>
-    );
-  }
-  if (!matches || !state) {
+  if (!data && error) return <p role="alert">{error}</p>;
+  if (!data)
     return (
       <div className="flex flex-col gap-6">
         <Skeleton className="h-12 w-56" />
         <SkeletonListRows rows={8} />
       </div>
     );
-  }
-
+  const committed = parseUserSendsFilter(searchParamsToRecord(new URLSearchParams(page.query)));
   return (
     <SpaProfileHeader
-      user={state.user}
-      isOwner={state.isOwner}
-      relationship={state.relationship}
-      access={state.access}
-      hardest={state.hardest}
+      user={data.user}
+      isOwner={data.isOwner}
+      relationship={data.relationship}
+      access={data.access}
+      hardest={data.hardest}
     >
       <SpaSendsView
-        ownerId={state.user.id}
+        ownerId={userId}
         viewerId={viewerId}
-        filter={parseUserSendsFilter(searchRecord)}
-        basePath={`/users/${state.user.id}/sends`}
-        data={state.sends}
+        filter={filter}
+        resultsFilter={committed}
+        pending={page.pending}
+        loadError={error}
+        basePath={`/users/${userId}/sends`}
+        data={data.sends}
       />
     </SpaProfileHeader>
   );
