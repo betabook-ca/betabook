@@ -22,7 +22,9 @@ export default function SearchRoute({ viewerId }: { viewerId: string | null }) {
   const matchedArea =
     requestedAreaId !== undefined && resolvedArea?.areaId === requestedAreaId
       ? resolvedArea.selection
-      : null;
+      : requestedAreaId !== undefined
+        ? { id: String(requestedAreaId), name: "Unavailable area", path: "" }
+        : null;
 
   const initialState = parseSearchState(searchParamsToRecord(searchParams), matchedArea, "climb");
 
@@ -65,7 +67,7 @@ export default function SearchRoute({ viewerId }: { viewerId: string | null }) {
           });
         }
       } catch {
-        // Fallback name stays "Selected area" cleanly.
+        // Preserve the requested ID even when its display name is unavailable.
       }
     }
     void loadArea();
