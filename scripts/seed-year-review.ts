@@ -220,7 +220,7 @@ function main() {
     .prepare(
       `SELECT CASE WHEN f.user_id = ? THEN f.friend_id ELSE f.user_id END AS id, f.user_id AS a, f.friend_id AS b
      FROM friendships f WHERE (f.user_id = ? OR f.friend_id = ?) AND f.status = 'accepted'
-     ORDER BY f.created_at LIMIT 2`,
+     ORDER BY f.created_at LIMIT 3`,
     )
     .all(ownerId, ownerId, ownerId) as { id: string; a: string; b: string }[];
 
@@ -466,8 +466,8 @@ function main() {
       );
     }
 
-    // Partners: the first friend on many days, the second on a few.
-    const [first, second] = friends;
+    // Partners: the first friend on many days, the second and third on a few.
+    const [first, second, third] = friends;
     const byDay = new Map<string, number[]>();
     for (const { id, date } of entryIds) {
       if (!date.startsWith(`${YEAR}-`)) continue;
@@ -479,6 +479,7 @@ function main() {
       if (first && index % 3 === 0) for (const id of ids) tag.run(id, first.id, first.a, first.b);
       if (second && index % 7 === 1)
         for (const id of ids) tag.run(id, second.id, second.a, second.b);
+      if (third && index % 11 === 5) for (const id of ids) tag.run(id, third.id, third.a, third.b);
     }
 
     db.exec("commit");

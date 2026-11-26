@@ -303,6 +303,24 @@ describe("chapters that need data", () => {
     expect(review.missed.map((item) => item.id)).toContain("partner");
   });
 
+  it("names the favourite partner and the next two by shared days", () => {
+    const friend = (id: string) => ({ id, name: id, image: null });
+    const days = (who: string, count: number) =>
+      Array.from({ length: count }, (_, index) =>
+        session(`2026-02-${String(index + 1).padStart(2, "0")}`, { companions: [friend(who)] }),
+      );
+    const review = build({
+      sessions: [...days("Ana", 5), ...days("Ben", 3), ...days("Cam", 1), ...days("Dev", 2)],
+    });
+    expect(review.chapters.partner).toMatchObject({ partner: { id: "Ana" }, days: 5 });
+    expect(
+      review.chapters.partner?.runnersUp.map((entry) => [entry.partner.id, entry.days]),
+    ).toEqual([
+      ["Ben", 3],
+      ["Dev", 2],
+    ]);
+  });
+
   it("lists up to three unsent climbs, most sessions first, sent ones excluded", () => {
     const tries = (climbId: number, dates: string[]) =>
       dates.map((date) => session(date, { climbId, climbName: `Project ${climbId}` }));

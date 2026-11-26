@@ -215,7 +215,12 @@ type PyramidsChapter = {
   }[];
 };
 
-export type PartnerChapter = { partner: YearCompanion; days: number };
+export type PartnerChapter = {
+  partner: YearCompanion;
+  days: number;
+  /** Up to two next partners by shared days. */
+  runnersUp: { partner: YearCompanion; days: number }[];
+};
 
 type GotAwayClimb = {
   climbId: number;

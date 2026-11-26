@@ -577,11 +577,17 @@ function buildPartner(yearSessions: readonly YearSessionRow[]): PartnerChapter |
       partners.set(companion.id, entry);
     }
   }
-  const best = [...partners.values()].toSorted(
+  const [best, ...rest] = [...partners.values()].toSorted(
     (a, b) => b.days.size - a.days.size || a.partner.name.localeCompare(b.partner.name),
-  )[0];
+  );
   return best && best.days.size >= YEAR_THRESHOLDS.partnerDays
-    ? { partner: best.partner, days: best.days.size }
+    ? {
+        partner: best.partner,
+        days: best.days.size,
+        runnersUp: rest
+          .slice(0, 2)
+          .map((entry) => ({ partner: entry.partner, days: entry.days.size })),
+      }
     : null;
 }
 
