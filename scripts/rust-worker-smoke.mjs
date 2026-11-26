@@ -5,6 +5,7 @@ import { createTestHarness } from "wrangler";
 
 import { testProfileAnalytics } from "./rust-smoke/analytics.mjs";
 import { testAuthLifecycle, testCatalogCron } from "./rust-smoke/auth-lifecycle.mjs";
+import { testCatalogHtml } from "./rust-smoke/catalog-html.mjs";
 import { testGoalRefresh } from "./rust-smoke/goal-refresh.mjs";
 import { testGoals } from "./rust-smoke/goals.mjs";
 import { testImports } from "./rust-smoke/imports.mjs";
@@ -122,6 +123,7 @@ void test("Rust Worker HTTP flows", async (t) => {
     assert.equal(download.status, 200);
     assert.equal(await download.text(), catalog);
   });
+  await t.test("catalog HTML", () => testCatalogHtml({ server, db: DB, signIn }));
   await t.test("platform", () => testPlatform({ server, signIn }));
   await t.test("shared profile metadata and data require one current token", async () => {
     const id = "profile-preview";

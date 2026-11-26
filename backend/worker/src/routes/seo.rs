@@ -150,6 +150,53 @@ async fn load_index_html(state: &AppState) -> Result<String, ApiError> {
         .unwrap_or_else(|| fallback_shell_html().to_string()))
 }
 
+async fn load_public_index_html(state: &AppState) -> Result<String, ApiError> {
+    match load_asset_text(state, "/public-index.txt").await? {
+        Some(template) => Ok(template),
+        None => load_index_html(state).await,
+    }
+}
+
+pub(super) fn inject_public_content(html: String, body: &str) -> String {
+    html.replacen("<!--BETABOOK_PUBLIC_BODY-->", body, 1)
+}
+
+async fn page_template(state: &AppState, chunk: &str) -> Result<(String, String), ApiError> {
+    let (template, manifest) =
+        futures_util::try_join!(load_index_html(state), load_spa_manifest(state))?;
+    Ok((template, render_modulepreload_tags(&manifest, chunk)))
+}
+
+async fn catalog_response(
+    state: &AppState,
+    meta: &PageMetadata,
+    json_ld: &[Value],
+    chunk: &str,
+    data: Option<&Value>,
+    body: Option<String>,
+) -> Result<Response, ApiError> {
+    let (template, preloads) = if body.is_some() {
+        (load_public_index_html(state).await?, String::new())
+    } else {
+        page_template(state, chunk).await?
+    };
+    let html = inject_seo_into_html(&template, meta, json_ld, &preloads, data);
+    let html = if let Some(body) = body {
+        inject_public_content(html, &body)
+    } else {
+        html
+    };
+    Ok(entry_response(html))
+}
+
+fn entry_response(html: String) -> Response {
+    let mut response = html_response(StatusCode::OK, html);
+    response
+        .headers_mut()
+        .insert(header::VARY, http::HeaderValue::from_static("Cookie"));
+    response
+}
+
 fn render_bootstrap_script(data: Option<&Value>) -> String {
     let Some(payload) = data else {
         return String::new();
@@ -299,6 +346,7 @@ pub async fn sitemap_shard(
 
 async fn render_area_page(
     state: State<AppState>,
+    guest: bool,
     raw_id: String,
     provided_slug: Option<String>,
     uri: http::Uri,
@@ -322,8 +370,10 @@ async fn render_area_page(
         .find(|(k, _)| k == "subarea")
         .and_then(|(_, v)| parse_id(&v));
 
-    let trail = get_public_area_trail(state.db(), id).await?;
-    let subareas = get_public_subareas(state.db(), id).await?;
+    let (trail, subareas) = futures_util::try_join!(
+        get_public_area_trail(state.db(), id),
+        get_public_subareas(state.db(), id)
+    )?;
     let scope = resolve_public_subarea(
         state.db(),
         &PublicArea {
@@ -338,12 +388,23 @@ async fn render_area_page(
     let canonical = area_href(area.id, &area.name);
     let ancestors: Vec<_> = trail.iter().take(trail.len().saturating_sub(1)).collect();
 
+    let mut public_body = None;
     let bootstrap_data = if has_protected_catalog_params(raw_query, true) {
         None
     } else {
         let mut options = parse_public_catalog_options(raw_query);
         options.area_id = Some(scope.id);
         let climbs_page = search_public_climbs(state.db(), &options).await?;
+        if guest {
+            public_body = Some(super::public_catalog_html::area(
+                &area,
+                &trail[..trail.len().saturating_sub(1)],
+                &subareas,
+                &climbs_page,
+                uri.path_and_query()
+                    .map_or(canonical.as_str(), |p| p.as_str()),
+            ));
+        }
         Some(json!({
             "route": "area",
             "path": canonical,
@@ -380,38 +441,54 @@ async fn render_area_page(
     }));
     let json_ld = area_json_ld(&area.name, &canonical, &desc, &crumbs, &ancestor_names);
 
-    let manifest = load_spa_manifest(&state).await?;
-    let preload_tags = render_modulepreload_tags(&manifest, "routes/area-route.tsx");
-    let html = inject_seo_into_html(
-        &load_index_html(&state).await?,
+    catalog_response(
+        &state,
         &meta,
         &json_ld,
-        &preload_tags,
+        "routes/area-route.tsx",
         bootstrap_data.as_ref(),
-    );
-    Ok(html_response(StatusCode::OK, html))
+        public_body,
+    )
+    .await
 }
 
 #[worker::send]
 pub async fn area_page(
     state: State<AppState>,
+    headers: http::HeaderMap,
     Path(raw_id): Path<String>,
     OriginalUri(uri): OriginalUri,
 ) -> Result<Response, ApiError> {
-    render_area_page(state, raw_id, None, uri).await
+    render_area_page(
+        state,
+        !crate::auth::cookies::has_session_cookie(&headers),
+        raw_id,
+        None,
+        uri,
+    )
+    .await
 }
 
 #[worker::send]
 pub async fn area_page_with_slug(
     state: State<AppState>,
+    headers: http::HeaderMap,
     Path((raw_id, slug)): Path<(String, String)>,
     OriginalUri(uri): OriginalUri,
 ) -> Result<Response, ApiError> {
-    render_area_page(state, raw_id, Some(slug), uri).await
+    render_area_page(
+        state,
+        !crate::auth::cookies::has_session_cookie(&headers),
+        raw_id,
+        Some(slug),
+        uri,
+    )
+    .await
 }
 
 async fn render_climb_page(
     state: State<AppState>,
+    guest: bool,
     raw_id: String,
     provided_slug: Option<String>,
     uri: http::Uri,
@@ -430,9 +507,11 @@ async fn render_climb_page(
         ));
     }
 
-    let trail = get_public_area_trail(state.db(), climb.area_id).await?;
-    let public_sends = get_public_sends_for_climb(state.db(), id).await?;
-    let videos = get_climb_videos(state.db(), id, None, CLIMB_VIDEO_LIMIT).await?;
+    let (trail, public_sends, videos) = futures_util::try_join!(
+        get_public_area_trail(state.db(), climb.area_id),
+        get_public_sends_for_climb(state.db(), id),
+        get_climb_videos(state.db(), id, None, CLIMB_VIDEO_LIMIT),
+    )?;
 
     let area = trail.last().cloned();
     let ancestors = &trail[..trail.len().saturating_sub(1)];
@@ -464,6 +543,16 @@ async fn render_climb_page(
     });
     let json_ld = climb_json_ld(&climb.name, &canonical, &desc, &crumbs);
 
+    let public_body = guest.then(|| {
+        super::public_catalog_html::climb(
+            &climb,
+            &trail,
+            &public_sends,
+            &videos,
+            uri.path_and_query()
+                .map_or(canonical.as_str(), |p| p.as_str()),
+        )
+    });
     let bootstrap_data = json!({
         "route": "climb",
         "path": canonical,
@@ -477,34 +566,49 @@ async fn render_climb_page(
         }
     });
 
-    let manifest = load_spa_manifest(&state).await?;
-    let preload_tags = render_modulepreload_tags(&manifest, "routes/climb-route.tsx");
-    let html = inject_seo_into_html(
-        &load_index_html(&state).await?,
+    catalog_response(
+        &state,
         &meta,
         &json_ld,
-        &preload_tags,
+        "routes/climb-route.tsx",
         Some(&bootstrap_data),
-    );
-    Ok(html_response(StatusCode::OK, html))
+        public_body,
+    )
+    .await
 }
 
 #[worker::send]
 pub async fn climb_page(
     state: State<AppState>,
+    headers: http::HeaderMap,
     Path(raw_id): Path<String>,
     OriginalUri(uri): OriginalUri,
 ) -> Result<Response, ApiError> {
-    render_climb_page(state, raw_id, None, uri).await
+    render_climb_page(
+        state,
+        !crate::auth::cookies::has_session_cookie(&headers),
+        raw_id,
+        None,
+        uri,
+    )
+    .await
 }
 
 #[worker::send]
 pub async fn climb_page_with_slug(
     state: State<AppState>,
+    headers: http::HeaderMap,
     Path((raw_id, slug)): Path<(String, String)>,
     OriginalUri(uri): OriginalUri,
 ) -> Result<Response, ApiError> {
-    render_climb_page(state, raw_id, Some(slug), uri).await
+    render_climb_page(
+        state,
+        !crate::auth::cookies::has_session_cookie(&headers),
+        raw_id,
+        Some(slug),
+        uri,
+    )
+    .await
 }
 
 pub(super) async fn render_not_found(state: &AppState) -> Result<Response, ApiError> {
@@ -869,6 +973,7 @@ fn route_metadata(path: &str, has_query: bool) -> (PageMetadata, Vec<Value>, &'s
 #[worker::send]
 pub async fn spa_fallback(
     State(state): State<AppState>,
+    headers: http::HeaderMap,
     OriginalUri(uri): OriginalUri,
 ) -> Result<Response, ApiError> {
     let path = uri.path();
@@ -909,6 +1014,7 @@ pub async fn spa_fallback(
         }
     }
 
+    let guest = !crate::auth::cookies::has_session_cookie(&headers);
     let raw_query = uri.query().unwrap_or("");
     let has_query = !raw_query.is_empty();
     let (meta, json_ld, chunk_key) = route_metadata(path, has_query);
@@ -940,8 +1046,15 @@ pub async fn spa_fallback(
 
     let manifest = load_spa_manifest(&state).await?;
     let preload_tags = render_modulepreload_tags(&manifest, chunk_key);
+    let template = if guest && path == "/" && !has_query {
+        load_asset_text(&state, "/public-home.txt")
+            .await?
+            .ok_or_else(|| ApiError::internal("Missing public home document"))?
+    } else {
+        load_index_html(&state).await?
+    };
     let html = inject_seo_into_html(
-        &load_index_html(&state).await?,
+        &template,
         &meta,
         &json_ld,
         &preload_tags,
