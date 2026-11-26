@@ -10,6 +10,7 @@ pub const CATALOG_EXPORT_SCHEMA_VERSION: u32 = 1;
 pub const DEFAULT_CATALOG_PAGE_SIZE: usize = 1000;
 pub const CATALOG_EXPORT_PART_SIZE: usize = 5 * 1024 * 1024;
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct CatalogAreaRow {
@@ -19,6 +20,7 @@ pub struct CatalogAreaRow {
     pub description: Option<String>,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct CatalogClimbRow {
@@ -31,9 +33,10 @@ pub struct CatalogClimbRow {
     pub description: Option<String>,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
-struct ExportClimbItem<'a> {
+pub struct ExportClimbItem<'a> {
     id: i64,
     area_id: i64,
     name: &'a str,
