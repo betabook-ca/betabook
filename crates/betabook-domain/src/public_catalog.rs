@@ -302,6 +302,7 @@ pub fn public_has_next_page(fetched_len: usize, options: &PublicCatalogOptions) 
             .is_some_and(|offset| offset + options.page_size <= MAX_PAGINATION_OFFSET)
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicArea {
@@ -310,6 +311,7 @@ pub struct PublicArea {
     pub parent_id: Option<i64>,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicAreaDetails {
@@ -319,6 +321,7 @@ pub struct PublicAreaDetails {
     pub description: Option<String>,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicAreaResult {
@@ -329,6 +332,7 @@ pub struct PublicAreaResult {
     pub ancestor_path: Option<String>,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicClimb {
@@ -345,20 +349,24 @@ pub struct PublicClimb {
     pub send_count: i64,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicClimbSend {
     pub user_name: Option<String>,
     pub user_image: Option<String>,
     pub date_sent: Option<String>,
+    #[cfg_attr(feature = "api-spec", schemars(with = "crate::wire::AscentStyle"))]
     pub ascent_style: String,
     pub rating: Option<i64>,
     pub suggested_grade: Option<i64>,
+    #[cfg_attr(feature = "api-spec", schemars(with = "crate::wire::GradeFeel"))]
     pub grade_feel: String,
     pub comment: Option<String>,
     pub videos: Option<Vec<String>>,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct AreaBreadcrumbItem {
@@ -366,6 +374,7 @@ pub struct AreaBreadcrumbItem {
     pub name: String,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicClimbsPage {
@@ -374,6 +383,7 @@ pub struct PublicClimbsPage {
     pub has_next_page: bool,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicAreasPage {

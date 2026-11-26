@@ -186,6 +186,7 @@ pub async fn get_session(
     Ok(no_store_json(StatusCode::OK, body))
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SignUpEmailBody {
@@ -308,6 +309,7 @@ pub async fn sign_up_email(
     ))
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SendVerificationBody {
@@ -408,6 +410,7 @@ pub async fn verify_email(
     Ok(redirect_response(&fallback, &[]))
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SignInEmailBody {
@@ -562,6 +565,7 @@ pub async fn reset_link(
     Ok(redirect_response(target.as_str(), &[]))
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RequestPasswordResetBody {
@@ -614,6 +618,7 @@ pub async fn request_password_reset(
     Ok(no_store_json(StatusCode::OK, json!({ "status": true })))
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResetPasswordBody {
@@ -670,6 +675,7 @@ struct OAuthStatePayload {
     share_path: Option<String>,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SocialAdditionalData {
@@ -677,6 +683,7 @@ pub struct SocialAdditionalData {
     pub share_path: Option<String>,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SocialSignInBody {
@@ -1047,6 +1054,7 @@ pub async fn terms_status(
     ))
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Deserialize)]
 pub struct AcceptTermsBody {
     pub version: Option<String>,

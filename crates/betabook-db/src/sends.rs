@@ -46,15 +46,24 @@ pub fn map_companion_or_invariant_error(err: DbError, invariant_message: &str) -
     MutationError::Db(err)
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct EditableSend {
     pub id: i64,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "betabook_domain::wire::AscentStyle")
+    )]
     pub ascent_style: String,
     pub date_sent: Option<String>,
     pub comment: Option<String>,
     pub rating: Option<i64>,
     pub suggested_grade: Option<i64>,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "betabook_domain::wire::GradeFeel")
+    )]
     pub grade_feel: String,
     pub videos: Option<Vec<String>>,
 }
@@ -88,6 +97,7 @@ impl SendRecord {
     }
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ClimbSendRow {
@@ -95,15 +105,24 @@ pub struct ClimbSendRow {
     pub user_id: Option<String>,
     pub user_name: Option<String>,
     pub user_image: Option<String>,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "betabook_domain::wire::AscentStyle")
+    )]
     pub ascent_style: String,
     pub date_sent: Option<String>,
     pub comment: Option<String>,
     pub rating: Option<i64>,
     pub suggested_grade: Option<i64>,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "betabook_domain::wire::GradeFeel")
+    )]
     pub grade_feel: String,
     pub videos: Option<Vec<String>>,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ClimbSendsPage {
@@ -111,14 +130,20 @@ pub struct ClimbSendsPage {
     pub has_more: bool,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SuggestedGradeCount {
     pub grade: i64,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "betabook_domain::wire::GradeFeel")
+    )]
     pub feel: String,
     pub count: i64,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ClimbSendSummary {

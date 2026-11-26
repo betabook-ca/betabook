@@ -14,6 +14,7 @@ pub const CLIMBERS_PAGE_SIZE: usize = 20;
 pub const AREA_SEARCH_PAGE_SIZE: usize = 25;
 pub const CLIMB_VIDEO_LIMIT: i64 = 8;
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ClimbVideo {
@@ -21,10 +22,15 @@ pub struct ClimbVideo {
     pub user_id: Option<String>,
     pub user_name: String,
     pub user_image: Option<String>,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "betabook_domain::wire::AscentStyle")
+    )]
     pub ascent_style: String,
     pub date_sent: Option<String>,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ClimbVideos {
@@ -32,15 +38,21 @@ pub struct ClimbVideos {
     pub total: i64,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ClimberRow {
     pub id: String,
     pub name: String,
     pub image: Option<String>,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "betabook_domain::wire::FriendshipStatus")
+    )]
     pub friendship_status: String,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ClimbersPage {
@@ -48,6 +60,7 @@ pub struct ClimbersPage {
     pub has_more: bool,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct FriendRow {
@@ -55,9 +68,14 @@ pub struct FriendRow {
     pub name: String,
     pub image: Option<String>,
     pub is_private: bool,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "betabook_domain::wire::FriendshipStatus")
+    )]
     pub friendship_status: String,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct FriendsPage {
@@ -65,16 +83,22 @@ pub struct FriendsPage {
     pub has_more: bool,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SuggestedClimberRow {
     pub id: String,
     pub name: String,
     pub image: Option<String>,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "betabook_domain::wire::FriendshipStatus")
+    )]
     pub friendship_status: String,
     pub mutual_friend_count: i64,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ClimbSendStats {
@@ -499,6 +523,7 @@ pub async fn upsert_product_tour_status<D: DbExecutor>(
     Ok(())
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct CompanionOption {
@@ -768,14 +793,20 @@ pub async fn reset_profile_share_link<D: DbExecutor>(db: &D, user_id: &str) -> R
     Ok(())
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ProductTourProgressRow {
     pub tour_id: String,
     pub version: i64,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "betabook_domain::wire::TourStatus")
+    )]
     pub status: String,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ProductTourState {

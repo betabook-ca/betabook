@@ -16,6 +16,7 @@ use worker::{Context, Env, HttpRequest, Result, event, wasm_bindgen};
 use crate::middleware::apply_security_headers;
 use crate::state::AppState;
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Serialize)]
 struct HealthResponse {
     ok: bool,

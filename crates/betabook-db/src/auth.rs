@@ -9,6 +9,7 @@ use serde::Serialize;
 use crate::executor::{DbError, DbExecutor, DbParam};
 use crate::fts::literal_prefix_condition;
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionUser {
@@ -20,12 +21,21 @@ pub struct SessionUser {
     pub role: Option<String>,
     pub terms_version: Option<String>,
     pub terms_accepted_at: Option<i64>,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "betabook_domain::grades::BoulderScale")
+    )]
     pub boulder_grade_scale: String,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "betabook_domain::grades::RopeScale")
+    )]
     pub rope_grade_scale: String,
     pub created_at: i64,
     pub updated_at: i64,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionRecord {
@@ -39,6 +49,7 @@ pub struct SessionRecord {
     pub user_id: String,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct AuthSession {
     pub session: SessionRecord,
