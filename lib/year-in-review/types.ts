@@ -207,6 +207,7 @@ export type StylesChapter = {
 };
 
 type PyramidsChapter = {
+  /** Only disciplines whose pyramid has more than three bars. */
   disciplines: {
     type: ClimbType;
     rows: PyramidRow[];

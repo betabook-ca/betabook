@@ -50,6 +50,8 @@ const YEAR_THRESHOLDS = {
   personaDays: 6,
   firstYearBaselineDays: 30,
   rankedLimit: 3,
+  /** A discipline's pyramid needs more bars than this; fewer reads as a list. */
+  pyramidMaxListBars: 3,
 } as const;
 
 type Dated<T> = T & { dateSent: string };
@@ -739,13 +741,15 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
 
   const hardest = rankings(yearSends, types, label, areas);
   const undated = yearSends.length ? 0 : sends.filter((send) => send.dateSent == null).length;
-  const pyramids = types.map((type) => {
-    const ofType = yearSends.filter((send) => send.climbType === type);
-    const rows = buildPyramid(ofType.map(toAnalyticsRow), type, prefs);
-    const marked =
-      hardest.find((ranking) => ranking.type === type)?.rows.map((row) => row.label) ?? [];
-    return { type, rows, marked: [...new Set(marked)] };
-  });
+  const pyramids = types
+    .map((type) => {
+      const ofType = yearSends.filter((send) => send.climbType === type);
+      const rows = buildPyramid(ofType.map(toAnalyticsRow), type, prefs);
+      const marked =
+        hardest.find((ranking) => ranking.type === type)?.rows.map((row) => row.label) ?? [];
+      return { type, rows, marked: [...new Set(marked)] };
+    })
+    .filter((entry) => entry.rows.length > YEAR_THRESHOLDS.pyramidMaxListBars);
 
   const stepsByType = new Map(
     CLIMB_TYPES.map((type) => [type, gradeSteps(sends, type, year, label, areas)] as const),
@@ -827,7 +831,6 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
       sieges.push({ climbName: climb.climbName, sessions: climb.sessions });
     const siege = sieges.toSorted((a, b) => b.sessions - a.sessions)[0] ?? null;
     const pyramidPick = pyramids
-      .filter((entry) => entry.rows.length >= 4)
       .map((entry) => ({
         entry,
         sends: entry.rows.reduce((total, row) => total + row.count, 0),

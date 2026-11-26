@@ -93,6 +93,19 @@ describe("hardest sends", () => {
   });
 });
 
+describe("grade pyramids", () => {
+  it("shows only disciplines with more than three bars, gaps counted", () => {
+    const boulders = [3, 3, 6].map((grade, index) => send(`2026-05-0${index + 1}`, grade));
+    const sport = [10, 11, 12].map((grade, index) =>
+      send(`2026-06-0${index + 1}`, grade, { climbType: "sport" }),
+    );
+    const { disciplines } = build({ sends: [...boulders, ...sport] }).chapters.pyramids;
+    expect(disciplines.map((entry) => [entry.type, entry.rows.map((row) => row.count)])).toEqual([
+      ["boulder", [1, 0, 0, 2]],
+    ]);
+  });
+});
+
 describe("places", () => {
   it("finds the deepest shared area, or none across roots", () => {
     expect(

@@ -606,7 +606,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
     chapter(
       "pyramids",
       "Grade pyramids",
-      c.pyramids.disciplines.some((entry) => entry.rows.length) ? (
+      c.pyramids.disciplines.length ? (
         <div className="flex flex-col gap-6">
           {c.pyramids.disciplines.map((entry) => {
             const total = entry.rows.reduce((sum, row) => sum + row.count, 0);
@@ -617,8 +617,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
                   <span className="text-xs text-muted">{plural(total, "send")}</span>
                 </div>
                 <VerticalPyramid type={entry.type} rows={entry.rows} marked={entry.marked} />
-                {(total < 5 || entry.rows.length < 2) &&
-                  nudge("Log more sends to fill out your pyramid.")}
+                {total < 5 && nudge("Log more sends to fill out your pyramid.")}
               </div>
             );
           })}
