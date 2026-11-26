@@ -16,6 +16,9 @@
 
     // Referenced by Storybook's framework options, not module imports.
     ".storybook/next.config.ts",
+
+    // Thin next/* SPA shims whose exports match Next.js modules.
+    "spa/shims/*.{ts,tsx}!",
   ],
 
   // Overriding `project` drops the extensions knip adds per registered
@@ -32,6 +35,7 @@
     "!tests/**!",
     "!.storybook/**!",
     "!playwright.config.ts!",
+    "!spa/**/*.dom.test.*!",
   ],
 
   // Imported by no module: app/layout.tsx and Storybook's staticDirs read its

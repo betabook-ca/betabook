@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en" class="h-full antialiased">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, interactive-widget=resizes-content"
+    />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#eaf7ef" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
+    <!--BETABOOK_HEAD-->
+    <!--BETABOOK_JSONLD-->
+    <!--BETABOOK_PRELOAD-->
+  </head>
+  <body class="flex min-h-full flex-col bg-background text-foreground">
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem("heroui-theme") || "system";
+          var resolved =
+            theme === "system"
+              ? window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light"
+              : theme;
+          document.documentElement.classList.add(resolved);
+          document.documentElement.setAttribute("data-theme", resolved);
+          if (theme !== "system") {
+            var m = document.createElement("meta");
+            m.name = "theme-color";
+            m.content = resolved === "dark" ? "#000000" : "#eaf7ef";
+            m.setAttribute("data-explicit-theme", "");
+            document.head.insertBefore(m, document.head.firstChild);
+          }
+        } catch (_e) {}
+      })();
+    </script>
+    <div id="root" class="flex min-h-full flex-1 flex-col"></div>
+    <!--BETABOOK_DATA-->
+    <script type="module" src="/main.tsx"></script>
+  </body>
+</html>

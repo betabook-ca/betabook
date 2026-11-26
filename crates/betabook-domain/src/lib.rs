@@ -4,6 +4,7 @@
 pub mod display_name;
 pub mod email_template;
 pub mod grades;
+pub mod markdown;
 pub mod password;
 pub mod profile_photo;
 pub mod profile_share;

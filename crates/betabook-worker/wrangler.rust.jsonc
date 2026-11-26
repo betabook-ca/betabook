@@ -9,6 +9,12 @@
   "build": {
     "command": "if [ -d crates/betabook-worker ]; then cd crates/betabook-worker; fi && worker-build --release"
   },
+  "assets": {
+    "directory": "../../dist-spa",
+    "binding": "ASSETS",
+    "not_found_handling": "none",
+    "run_worker_first": true
+  },
   "routes": [
     {
       "pattern": "betabook.ca",

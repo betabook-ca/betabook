@@ -133,6 +133,9 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Build SPA
+        run: pnpm build:spa
+
   # Browser checks cover rendering and native interaction. Accessibility is a
   # bounded set of composed states; stories do not each create four more tests.
   ui-tests:

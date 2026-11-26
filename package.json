@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
+    "dev:spa": "vite --config vite.spa.config.ts",
     "build": "vite build",
+    "build:spa": "vite build --config vite.spa.config.ts",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "format": "oxfmt",
@@ -53,6 +55,7 @@
     "react-dom": "19.3.1",
     "react-easy-crop": "6.2.5",
     "react-markdown": "^10.1.0",
+    "react-router": "^8.5.2",
     "react-server-dom-webpack": "19.3.1",
     "recharts": "^3.11.0",
     "remark-breaks": "^4.0.0",
