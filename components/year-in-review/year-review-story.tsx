@@ -685,32 +685,29 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
     sections.push(
       chapter(
         "got-away",
-        climbs.length === 1 ? "The one that got away" : "The ones that got away",
-        <>
-          <ol className="flex flex-col gap-3">
-            {climbs.map((climb) => (
-              <li
-                key={climb.climbId}
-                className={clsx("flex flex-col gap-1", cardClass("sm", "bordered"))}
-              >
-                <span className="flex flex-wrap items-baseline gap-x-2">
-                  <AppLink
-                    href={climbHref(climb.climbId, climb.climbName)}
-                    className="font-display text-2xl font-semibold"
-                  >
-                    {climb.climbName}
-                  </AppLink>
-                  <span className="font-display text-xl text-muted">{climb.label}</span>
-                </span>
-                <span className="text-sm text-muted">
-                  {plural(climb.sessions, "session")}, from {formatDate(climb.first)} to{" "}
-                  {formatDate(climb.last)}
-                </span>
-              </li>
-            ))}
-          </ol>
-          <p className="text-muted">Next year.</p>
-        </>,
+        climbs.length === 1 ? "Unfinished project" : "Unfinished projects",
+        <ol className="flex flex-col gap-3">
+          {climbs.map((climb) => (
+            <li
+              key={climb.climbId}
+              className={clsx("flex flex-col gap-1", cardClass("sm", "bordered"))}
+            >
+              <span className="flex flex-wrap items-baseline gap-x-2">
+                <AppLink
+                  href={climbHref(climb.climbId, climb.climbName)}
+                  className="font-display text-2xl font-semibold"
+                >
+                  {climb.climbName}
+                </AppLink>
+                <span className="font-display text-xl text-muted">{climb.label}</span>
+              </span>
+              <span className="text-sm text-muted">
+                {plural(climb.sessions, "session")}, from {formatDate(climb.first)} to{" "}
+                {formatDate(climb.last)}
+              </span>
+            </li>
+          ))}
+        </ol>,
       ),
     );
   }

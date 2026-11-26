@@ -979,7 +979,7 @@ function missedChapters(
     add("styles", "Log 5+ sends with their style to unlock your send breakdown.");
   if (!chapters.partner) add("partner", "Tag friends on your journal sessions to find your crew.");
   if (!chapters.gotAway)
-    add("got-away", "Nothing got away. You sent everything you tried twice.", true);
+    add("got-away", "No unfinished projects. You sent everything you tried twice.", true);
   if (!chapters.notWorthThePump) {
     const rated = yearSends.filter((send) => send.rating != null).length;
     if (rated >= YEAR_THRESHOLDS.pumpRatedForPraise)
