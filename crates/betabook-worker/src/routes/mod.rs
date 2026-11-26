@@ -2,6 +2,7 @@ pub mod actions;
 pub mod avatars;
 pub mod catalog_export;
 pub mod climb_lists;
+pub mod goal_refresh;
 pub mod member_pages;
 pub mod member_search;
 pub mod projects;
