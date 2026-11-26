@@ -741,7 +741,7 @@ fn route_metadata(path: &str, has_query: bool) -> (PageMetadata, Vec<Value>, &'s
         "/" => (
             default_home_metadata(has_query),
             vec![website_json_ld()],
-            "routes/home-route.tsx",
+            "routes/search-route.tsx",
         ),
         "/search" => (
             PageMetadata::noindex("Find climbs", SITE_DESCRIPTION),

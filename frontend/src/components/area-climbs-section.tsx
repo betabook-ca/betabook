@@ -28,6 +28,7 @@ type AreaClimbsSectionProps = {
   initialAreaBreadcrumbs: AreaBreadcrumbs;
   sentClimbIds?: Set<number>;
   emptyMessage?: string;
+  pending?: boolean;
 };
 
 /** The caller keys this on `{ sort, filter }` so a change remounts it with
@@ -42,6 +43,7 @@ export function AreaClimbsSection({
   initialAreaBreadcrumbs,
   sentClimbIds,
   emptyMessage,
+  pending = false,
 }: AreaClimbsSectionProps) {
   // usePagedList reads this only on mount and reset; skip rebuilding the set.
   const initialMeta = useMemo(
@@ -67,12 +69,13 @@ export function AreaClimbsSection({
     initialMeta,
     itemKey: (climb) => climb.id,
     mergeMeta: mergeClimbListMeta,
-    fetchPage: async (offset) => {
+    fetchPage: async (offset, _page, _last, signal) => {
       const params = areaClimbsFilterToSearchParams(sort, filter);
       params.set("offset", String(offset));
       const data = await fetchApi("/api/areas/{id}/climbs", {
         path: { id: String(areaId) },
         query: params,
+        signal,
         sessionEvents: true,
       });
       return {
@@ -87,7 +90,7 @@ export function AreaClimbsSection({
     <section className="flex flex-col gap-2">
       {/* Dimmed while the toolbar's debounced navigation is re-fetching
        * these results (see NavigationPendingProvider in the page). */}
-      <NavigationPendingRegion>
+      <NavigationPendingRegion pending={pending}>
         <ClimbList
           climbs={climbs}
           emptyMessage={emptyMessage}
@@ -96,7 +99,7 @@ export function AreaClimbsSection({
           sentClimbIds={visibleSentClimbIds}
           pagination={{
             hasNextPage,
-            loadingMore,
+            loadingMore: pending || loadingMore,
             onLoadMore: loadMore,
             failed: loadMoreFailed,
           }}

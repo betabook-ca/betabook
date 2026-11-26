@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { FriendshipButton } from "@/components/friendship-button";
@@ -10,14 +10,12 @@ import { useMounted } from "@/hooks/use-mounted";
 import { authClient } from "@/lib/auth-client";
 import {
   climberSuggestionItems,
-  parseSearchState,
   searchHref,
   showsClimberSuggestions,
   type SearchSnapshot,
   type SearchState,
 } from "@/lib/search";
-import { searchParamsToRecord } from "@/lib/url-params";
-import { useRouter, useSearchParams } from "@/spa/lib/navigation";
+import { useRouter } from "@/spa/lib/navigation";
 
 import { SearchController } from "./search-controller";
 
@@ -26,7 +24,7 @@ export function AppSearch({
   initial,
   suggestions,
   viewerId,
-  defaultCategory = "all",
+  onAreaSelected,
   showMemberNotice = true,
   memberNoticePlacement,
 }: {
@@ -34,56 +32,26 @@ export function AppSearch({
   initial: SearchSnapshot;
   suggestions: SuggestedClimberRow[] | null;
   viewerId: string | null;
-  /** Must match the server's parse so back/forward to a bare URL agrees with first paint. */
   defaultCategory?: SearchState["category"];
+  onAreaSelected?: (area: NonNullable<SearchState["area"]>) => void;
   showMemberNotice?: boolean;
   memberNoticePlacement?: "results" | "top";
 }) {
   const router = useRouter();
-  const params = useSearchParams();
-  const [state, setState] = useState(initialState);
-  const [source, setSource] = useState(initialState);
-  const lastWritten = useRef(params.toString());
-  const areas = useRef(
-    new Map(initialState.area ? [[initialState.area.id, initialState.area]] : []),
-  );
+  // Keep the field synchronous while React Router commits the query string.
+  // A new URL (including Back/Forward) immediately takes over from this draft.
+  const [draft, setDraft] = useState<{ source: SearchState; value: SearchState } | null>(null);
+  const state = draft?.source === initialState ? draft.value : initialState;
   const mounted = useMounted();
   const { data: session, isPending } = authClient.useSession();
   const suggested = useClimberSuggestions(showsClimberSuggestions(state, viewerId), suggestions);
-  if (source !== initialState) {
-    setSource(initialState);
-    setState(initialState);
-  }
-  // History updates do not remount the field. Back/forward adopts the complete URL state.
-  useEffect(() => {
-    if (params.toString() === lastWritten.current) return;
-    const parsed = parseSearchState(
-      searchParamsToRecord(new URLSearchParams(params.toString())),
-      null,
-      defaultCategory,
-    );
-    const id = parsed.filter.areaId;
-    parsed.area =
-      id === undefined
-        ? null
-        : (areas.current.get(String(id)) ??
-          (initialState.area?.id === String(id) ? initialState.area : null) ?? {
-            id: String(id),
-            name: "Selected area",
-            path: "",
-          });
-    lastWritten.current = params.toString();
-    setState(parsed);
-  }, [params, initialState.area, defaultCategory]);
   function change(next: SearchState) {
-    setState(next);
-    if (next.area) areas.current.set(next.area.id, next.area);
+    setDraft({ source: initialState, value: next });
+    if (next.area) onAreaSelected?.(next.area);
     const href = searchHref(next);
-    lastWritten.current = href.slice(href.indexOf("?") + 1);
-    // Query edits replace a history entry; deliberate category/scope changes add one.
     if (next.category !== state.category || next.area?.id !== state.area?.id)
-      window.history.pushState(null, "", href);
-    else window.history.replaceState(null, "", href);
+      router.push(href, { scroll: false });
+    else router.replace(href, { scroll: false });
   }
   if (mounted && !isPending && (session?.user.id ?? null) !== viewerId)
     return <CurrentPageAuthCallout />;

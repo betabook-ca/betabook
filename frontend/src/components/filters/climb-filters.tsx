@@ -14,6 +14,7 @@ export function ClimbFilters<T extends ClimbRefinements>({
   areaControl,
   sortControl,
   textFilter,
+  searchOnly = false,
   ratingControl,
   onReset,
   activeFilters,
@@ -25,6 +26,7 @@ export function ClimbFilters<T extends ClimbRefinements>({
   sortControl?: ReactNode;
   /** A text box beside the discipline chips, for lists without a search box. */
   textFilter?: ReactNode;
+  searchOnly?: boolean;
   ratingControl: ReactNode;
   onReset: () => void;
   activeFilters: ActiveFilter[];
@@ -51,6 +53,7 @@ export function ClimbFilters<T extends ClimbRefinements>({
         </div>
       )}
       <FilterToolbar
+        searchOnly={searchOnly}
         value={value}
         onChange={onChange}
         activeFilters={[

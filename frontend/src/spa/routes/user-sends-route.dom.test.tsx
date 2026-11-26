@@ -42,7 +42,7 @@ it("keeps the sends workspace and filters mounted and accepts only the latest re
   vi.stubGlobal(
     "fetch",
     vi.fn<typeof fetch>(async (input, init) => {
-      const url = new URL(String(input), "http://localhost");
+      const url = new URL(input instanceof Request ? input.url : input, "http://localhost");
       if (url.pathname === "/api/pages/users/owner/sends") {
         pageRequests += 1;
         return Response.json({

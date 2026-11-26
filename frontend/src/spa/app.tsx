@@ -25,7 +25,6 @@ import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { DocumentNavigation } from "@/spa/lib/document-navigation";
 import { Providers } from "@/spa/providers";
 
-const HomeRoute = lazy(() => import("@/spa/routes/home-route"));
 const SearchRoute = lazy(() => import("@/spa/routes/search-route"));
 const AreaRoute = lazy(() => import("@/spa/routes/area-route"));
 const ClimbRoute = lazy(() => import("@/spa/routes/climb-route"));
@@ -152,7 +151,7 @@ export function App() {
                     <GradePreferencesProvider value={gradePreferences}>
                       <Suspense fallback={<RouteFallback />}>
                         <Routes>
-                          <Route path="/" element={<HomeRoute viewerId={viewerId} />} />
+                          <Route path="/" element={<SearchRoute viewerId={viewerId} home />} />
                           <Route path="/search" element={<SearchRoute viewerId={viewerId} />} />
                           <Route
                             path="/users/:id/analytics"
