@@ -21,7 +21,7 @@ import { OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL } from "@
 
 import { Providers } from "./providers";
 
-import "./globals.css";
+import "@/spa/globals.css";
 
 // The guidebook display voice — see --font-display in globals.css. Vendored
 // woff2 (latin subset, the two weights the display roles use) rather than
@@ -36,7 +36,7 @@ const barlowCondensed = localFont({
   variable: "--font-barlow-condensed",
   display: "swap",
   // Condensed faces shift layout hard on fallback; metric-adjusted Arial
-  // (app/globals.css) keeps the swap from reflowing the wordmark and titles.
+  // (spa/globals.css) keeps the swap from reflowing the wordmark and titles.
   fallback: ["Barlow Condensed Fallback", "sans-serif"],
 });
 
@@ -123,7 +123,7 @@ const SET_THEME_SCRIPT = `
 })();
 `;
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"

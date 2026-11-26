@@ -29,7 +29,7 @@ export default defineConfig({
   },
   settings: {
     tailwindcss: {
-      entryPoint: "app/globals.css",
+      entryPoint: "spa/globals.css",
       callees: ["clsx"],
     },
   },

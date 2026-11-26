@@ -2,7 +2,7 @@ import type { Preview } from "@storybook/react-vite";
 import { useLayoutEffect } from "react";
 import { MemoryRouter } from "react-router";
 
-import "@/app/globals.css";
+import "@/spa/globals.css";
 import "./fonts.css";
 
 const preview: Preview = {

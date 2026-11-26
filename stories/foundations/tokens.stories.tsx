@@ -11,7 +11,7 @@ import { Example, StoryPage } from "@/stories/fixtures/story-layout";
 
 import { ColorPage, ColorGrid, LiveSample } from "./token-reference";
 
-import themeSource from "@/app/globals.css?raw";
+import themeSource from "@/spa/globals.css?raw";
 
 const meta = { title: "Foundations/Tokens", component: ColorPage } satisfies Meta;
 export default meta;

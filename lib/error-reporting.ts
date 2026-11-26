@@ -1,5 +1,3 @@
-import type { Instrumentation } from "next";
-
 /** Structured error lines for Workers Observability.
  *
  * vinext logs no production render error: a page that fails in a server
@@ -195,7 +193,17 @@ function redactPathSegment(segment: string) {
   return segment;
 }
 
-type RequestErrorArgs = Parameters<Instrumentation.onRequestError>;
+type RequestErrorArgs = [
+  error: unknown,
+  request: { path: string; method: string; headers: Record<string, unknown> },
+  context: {
+    routePath: string;
+    routeType: string;
+    renderSource?: string;
+    routerKind?: string;
+    revalidateReason?: string;
+  },
+];
 
 function requestErrorLog(
   error: RequestErrorArgs[0],

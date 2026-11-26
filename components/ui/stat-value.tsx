@@ -8,7 +8,7 @@ const STAT_TONE = {
 
 /** The big number under an eyebrow — stat tiles, the costs total, import
  * counts. The one use of the display face beyond titles and names (see
- * --font-display in app/globals.css). */
+ * --font-display in spa/globals.css). */
 export function StatValue({
   children,
   tone,

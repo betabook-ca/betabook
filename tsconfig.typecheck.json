@@ -1,9 +1,13 @@
 {
-  // What `pnpm typecheck` compiles. Drops .next/dev/types, which only `next dev`
-  // writes: delete a route and its stale validator block lingers there and fails
-  // `tsc` long after `next typegen` has refreshed the real types in .next/types.
-  // Next's own build-time checker filters that directory out for the same reason.
-  // tsconfig.json still includes it, so the editor keeps dev route types.
   "extends": "./tsconfig.json",
-  "exclude": ["node_modules", ".claude", ".next/dev/types"]
+  "exclude": [
+    "**/node_modules",
+    ".claude",
+    ".next",
+    "dist",
+    "dist-spa",
+    "target",
+    "storybook-static",
+    "test-results"
+  ]
 }
