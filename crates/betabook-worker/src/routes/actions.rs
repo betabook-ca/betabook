@@ -711,6 +711,9 @@ pub async fn dispatch_action(
         "saveGoal" | "deleteGoal" | "archiveGoal" => {
             super::goals::action(&state, &headers, &name, &call.args).await
         }
+        "acknowledgeGoalAchievements" => {
+            super::goal_refresh::acknowledge(&state, &headers, call.args.first()).await
+        }
         "pinProject" | "unpinProject" | "shareProject" | "unshareProject" => {
             use betabook_db::projects::{
                 pin_project, share_project, unpin_project, unshare_project,
@@ -1219,7 +1222,12 @@ pub async fn dispatch_action(
                 state.now_ms(),
             )
             .await;
-            map_mutation_result(res, |()| action_ok())
+            map_mutation_result(res, |_| {
+                if input.date_sent.is_some() {
+                    super::goal_refresh::schedule(&state, &session.user.id);
+                }
+                action_ok()
+            })
         }
         "deleteSend" => {
             let session = match require_member_session(&state, &headers).await {
@@ -1231,7 +1239,10 @@ pub async fn dispatch_action(
                 Err(msg) => return Ok(action_err(msg)),
             };
             let res = delete_user_send(state.db(), &session.user.id, send_id).await;
-            map_mutation_result(res, |_| action_ok())
+            map_mutation_result(res, |_| {
+                super::goal_refresh::schedule(&state, &session.user.id);
+                action_ok()
+            })
         }
 
         // Journal
@@ -1301,7 +1312,10 @@ pub async fn dispatch_action(
                 state.now_ms(),
             )
             .await;
-            map_mutation_result(res, |()| action_ok())
+            map_mutation_result(res, |_| {
+                super::goal_refresh::schedule(&state, &session.user.id);
+                action_ok()
+            })
         }
         "updateJournalEntry" => {
             let session = match require_member_session(&state, &headers).await {
@@ -1345,7 +1359,10 @@ pub async fn dispatch_action(
                 state.now_ms(),
             )
             .await;
-            map_mutation_result(res, |()| action_ok())
+            map_mutation_result(res, |_| {
+                super::goal_refresh::schedule(&state, &session.user.id);
+                action_ok()
+            })
         }
         "deleteJournalEntry" => {
             let session = match require_member_session(&state, &headers).await {
@@ -1360,7 +1377,10 @@ pub async fn dispatch_action(
                 Err(msg) => return Ok(action_err(msg)),
             };
             let res = delete_journal_entry_with_sync(state.db(), &session.user.id, entry_id).await;
-            map_mutation_result(res, |()| action_ok())
+            map_mutation_result(res, |_| {
+                super::goal_refresh::schedule(&state, &session.user.id);
+                action_ok()
+            })
         }
         "removeMyJournalTag" => {
             let session = match require_member_session(&state, &headers).await {

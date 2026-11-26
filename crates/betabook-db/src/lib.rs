@@ -9,6 +9,7 @@ pub mod content_access;
 pub mod d1;
 pub mod executor;
 pub mod feed;
+pub mod goal_achievements;
 pub mod fts;
 pub mod goal_history;
 pub mod goals;
