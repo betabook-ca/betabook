@@ -154,6 +154,7 @@ pub struct ClimbSendSummary {
     pub suggested_grade_counts: Vec<SuggestedGradeCount>,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct UserSendRow {
@@ -173,6 +174,7 @@ pub struct UserSendRow {
     pub videos: Option<Vec<String>>,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct UserSendsPage {
@@ -180,6 +182,7 @@ pub struct UserSendsPage {
     pub has_more: bool,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct UserSendsExportCursor {
@@ -187,6 +190,7 @@ pub struct UserSendsExportCursor {
     pub id: i64,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct UserSendsExportPage {

@@ -1,3 +1,7 @@
+use super::profile_payloads::{
+    JournalResponse, JournalSlice, JournalView, JournalWorkspace, ProfilePage, ProfileTab,
+    SendsResponse, SendsView, SendsWorkspace, SharedOwner, SharedProfile,
+};
 use axum::{
     Json,
     extract::{OriginalUri, Path, State},
@@ -41,7 +45,7 @@ use betabook_domain::sends::{
 };
 use betabook_domain::terms::{TERMS_ACCESS_MESSAGE, has_accepted_current_terms};
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::json;
 use url::form_urlencoded;
 
 use crate::auth::session::{require_member_session, resolve_optional_session};
@@ -50,7 +54,7 @@ use crate::state::{ApiError, AppState};
 const SHARED_PROFILE_SENDS: usize = 5;
 const CATALOG_EXPORT_KEY: &str = "catalog/latest.json";
 
-pub(super) fn no_store_json(status: StatusCode, body: Value) -> Response {
+pub(super) fn no_store_json(status: StatusCode, body: impl Serialize) -> Response {
     let mut resp = (status, Json(body)).into_response();
     resp.headers_mut().insert(
         header::CACHE_CONTROL,
@@ -483,11 +487,13 @@ pub async fn user_sends_api(
 
     Ok(no_store_json(
         StatusCode::OK,
-        json!({
-            "sends": page.sends,
-            "hasMore": has_more,
-            "areaBreadcrumbs": area_breadcrumbs,
-        }),
+        SendsResponse {
+            page: betabook_db::sends::UserSendsPage {
+                sends: page.sends,
+                has_more,
+            },
+            area_breadcrumbs,
+        },
     ))
 }
 
@@ -607,11 +613,13 @@ pub async fn user_journal_api(
 
     Ok(no_store_json(
         StatusCode::OK,
-        json!({
-            "entries": page.entries,
-            "hasMore": page.has_more,
-            "areaBreadcrumbs": area_breadcrumbs,
-        }),
+        JournalResponse {
+            page: JournalSlice {
+                entries: page.entries,
+                has_more: page.has_more,
+            },
+            area_breadcrumbs,
+        },
     ))
 }
 
@@ -774,7 +782,7 @@ async fn load_journal_view_data(
     owner_id: &str,
     viewer_id: &str,
     raw_query: &str,
-) -> Result<Value, ApiError> {
+) -> Result<JournalView, ApiError> {
     let is_owner = viewer_id == owner_id;
     let filter = parse_journal_filter(raw_query, is_owner);
     let has_entries = has_journal_entries(state.db(), owner_id, Some(viewer_id)).await?;
@@ -809,18 +817,18 @@ async fn load_journal_view_data(
         .collect();
     let area_breadcrumbs = get_area_breadcrumbs(state.db(), &area_ids, 2).await?;
 
-    Ok(json!({
-        "hasEntries": has_entries,
-        "firstPage": {
-            "entries": first_page.entries,
-            "hasMore": first_page.has_more,
+    Ok(JournalView {
+        has_entries,
+        first_page: JournalSlice {
+            entries: first_page.entries,
+            has_more: first_page.has_more,
         },
-        "areaBreadcrumbs": area_breadcrumbs,
-        "tags": tags,
-        "friends": friends,
-        "filteredClimbName": filtered_climb_name,
-        "tourState": tour_state,
-    }))
+        area_breadcrumbs,
+        tags,
+        friends,
+        filtered_climb_name,
+        tour_state,
+    })
 }
 
 async fn load_sends_view_data(
@@ -828,7 +836,7 @@ async fn load_sends_view_data(
     owner_id: &str,
     viewer_id: &str,
     raw_query: &str,
-) -> Result<Value, ApiError> {
+) -> Result<SendsView, ApiError> {
     let filter = parse_user_sends_filter(raw_query);
     let has_sends = has_user_sends(state.db(), owner_id).await?;
     let first_page = get_sends_for_user_page(
@@ -844,12 +852,12 @@ async fn load_sends_view_data(
     let area_ids: Vec<i64> = first_page.sends.iter().map(|s| s.area_id).collect();
     let area_breadcrumbs = get_area_breadcrumbs(state.db(), &area_ids, 2).await?;
 
-    Ok(json!({
-        "hasSends": has_sends,
-        "firstPage": first_page,
-        "areaBreadcrumbs": area_breadcrumbs,
-        "tags": tags,
-    }))
+    Ok(SendsView {
+        has_sends,
+        first_page,
+        area_breadcrumbs,
+        tags,
+    })
 }
 
 #[worker::send]
@@ -888,18 +896,17 @@ pub async fn user_profile_page_loader(
         let area_breadcrumbs = get_area_breadcrumbs(state.db(), &area_ids, 2).await?;
         return Ok(no_store_json(
             StatusCode::OK,
-            json!({
-                "mode": "shared",
-                "owner": {
-                    "id": owner.id,
-                    "name": owner.name,
-                    "image": owner.image,
+            ProfilePage::Shared(SharedProfile {
+                owner: SharedOwner {
+                    id: owner.id,
+                    name: owner.name,
+                    image: owner.image,
                 },
-                "token": token,
-                "hardest": hardest,
-                "sendCount": summary.send_count,
-                "sends": recent.sends,
-                "areaBreadcrumbs": area_breadcrumbs,
+                token: token.to_owned(),
+                hardest,
+                send_count: summary.send_count,
+                sends: recent.sends,
+                area_breadcrumbs,
             }),
         ));
     };
@@ -935,31 +942,31 @@ pub async fn user_profile_page_loader(
         let journal = load_journal_view_data(&state, &profile.id, viewer_id, raw_query).await?;
         Ok(no_store_json(
             StatusCode::OK,
-            json!({
-                "mode": "member",
-                "user": profile,
-                "isOwner": is_owner,
-                "relationship": relationship,
-                "access": access,
-                "hardest": hardest,
-                "defaultTab": "journal",
-                "journal": journal,
-            }),
+            ProfilePage::Member(ProfileTab::Journal(JournalWorkspace {
+                header: ProfileHeaderData {
+                    user: profile,
+                    is_owner,
+                    relationship,
+                    access,
+                    hardest,
+                },
+                journal,
+            })),
         ))
     } else {
         let sends = load_sends_view_data(&state, &profile.id, viewer_id, raw_query).await?;
         Ok(no_store_json(
             StatusCode::OK,
-            json!({
-                "mode": "member",
-                "user": profile,
-                "isOwner": is_owner,
-                "relationship": relationship,
-                "access": access,
-                "hardest": hardest,
-                "defaultTab": "sends",
-                "sends": sends,
-            }),
+            ProfilePage::Member(ProfileTab::Sends(SendsWorkspace {
+                header: ProfileHeaderData {
+                    user: profile,
+                    is_owner,
+                    relationship,
+                    access,
+                    hardest,
+                },
+                sends,
+            })),
         ))
     }
 }
@@ -984,14 +991,7 @@ pub async fn user_sends_page_loader(
 
     Ok(no_store_json(
         StatusCode::OK,
-        json!({
-            "user": header.user,
-            "isOwner": header.is_owner,
-            "relationship": header.relationship,
-            "access": header.access,
-            "hardest": header.hardest,
-            "sends": sends,
-        }),
+        SendsWorkspace { header, sends },
     ))
 }
 
@@ -1034,14 +1034,16 @@ pub async fn user_journal_page_loader(
 
     Ok(no_store_json(
         StatusCode::OK,
-        json!({
-            "user": profile,
-            "isOwner": is_owner,
-            "relationship": relationship,
-            "access": access,
-            "hardest": hardest,
-            "journal": journal,
-        }),
+        JournalWorkspace {
+            header: ProfileHeaderData {
+                user: profile,
+                is_owner,
+                relationship,
+                access,
+                hardest,
+            },
+            journal,
+        },
     ))
 }
 

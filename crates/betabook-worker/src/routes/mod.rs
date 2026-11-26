@@ -11,6 +11,7 @@ pub mod member_pages;
 pub mod member_search;
 pub mod moderation;
 pub mod profile_analytics;
+pub(crate) mod profile_payloads;
 pub mod projects;
 pub mod public_catalog;
 pub mod seo;
