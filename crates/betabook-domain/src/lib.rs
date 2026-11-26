@@ -4,6 +4,7 @@
 pub mod climb_lists;
 pub mod display_name;
 pub mod email_template;
+pub mod goals;
 pub mod grades;
 pub mod markdown;
 pub mod password;

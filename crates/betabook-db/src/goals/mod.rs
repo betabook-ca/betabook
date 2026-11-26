@@ -10,12 +10,17 @@ fn visibility() -> String {
 }
 
 pub async fn civil_dates<D: DbExecutor>(
-    db: &D, owner: &str, viewer: &str, today: &impl Fn(&str) -> Result<String, DbError>,
+    db: &D,
+    owner: &str,
+    viewer: &str,
+    today: &impl Fn(&str) -> Result<String, DbError>,
 ) -> Result<String, DbError> {
     let visible = visibility();
-    let sql = format!("SELECT g.timezone FROM goals g WHERE g.user_id=?1 AND {visible}
+    let sql = format!(
+        "SELECT g.timezone FROM goals g WHERE g.user_id=?1 AND {visible}
         UNION SELECT h.timezone FROM goal_periods h JOIN goals g ON g.id=h.goal_id
-        WHERE g.user_id=?1 AND {visible}");
+        WHERE g.user_id=?1 AND {visible}"
+    );
     let mut dates = BTreeMap::new();
     for row in db.query_all(&sql, &[owner.into(), viewer.into()]).await? {
         let zone = row.get_string("timezone")?;
@@ -51,6 +56,8 @@ pub fn periods_sql() -> String {
 }
 
 fn count_sql() -> String {
-    format!("(SELECT count(DISTINCT {ITEM}) FROM journal_entries j LEFT JOIN climbs c ON c.id=j.climb_id WHERE {})",
-        matches("g.start_date","g.end_date"))
+    format!(
+        "(SELECT count(DISTINCT {ITEM}) FROM journal_entries j LEFT JOIN climbs c ON c.id=j.climb_id WHERE {})",
+        matches("g.start_date", "g.end_date")
+    )
 }
