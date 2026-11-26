@@ -38,7 +38,7 @@ pnpm check && pnpm build
 ## Migration Stacks
 
 1. **Foundation Stack** (`rust-migration/*`): Workspace + CI, domain & DB core, full Rust auth & core public/R2 APIs, and React Router SPA foundation.
-2. **Sends, Journal, Feed & Friends**: Port remaining read/write APIs and client views for logging ascents, journal entries, activity feed, and friendships.
-3. **Trips, Goals, Projects, Lists & Analytics**: Port share-link predicates, trip day grouping, Google Photos album caching, goal refresh, climb lists, and analytics.
-4. **Moderation, Imports & Admin**: Port area-scoped moderation queue/actions, KAYA / Sendage / Mountain Project / CSV importers, and profile photo upload/resizing.
+2. **Sends, journal, feed and friends** have Rust read/write APIs and member SPA views.
+3. **Projects, trips and climb lists** have member and public share pages, mutations, and workerd smoke tests. Trip detail includes day grouping, Google Photos albums, and trip analytics. User goals, goal refresh, and profile-wide analytics are still pending.
+4. **Moderation, imports and admin** are pending, including area-scoped moderation and KAYA / Sendage / Mountain Project / CSV imports. Profile photo upload and removal are already on the Rust Worker.
 5. **Cutover**: Point root `wrangler.jsonc` at the Rust Worker + SPA `dist-spa`, remove `next`, `vinext`, `drizzle-orm`, `better-auth`, and Next-specific shims.

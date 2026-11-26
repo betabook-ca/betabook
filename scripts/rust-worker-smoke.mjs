@@ -4,7 +4,11 @@ import { test } from "node:test";
 import { hashPassword } from "better-auth/crypto";
 import { createTestHarness } from "wrangler";
 
-void test("Rust Worker signs in members, persists private journals, and streams catalog exports", async (t) => {
+import { testLists } from "./rust-smoke/lists.mjs";
+import { testProjects } from "./rust-smoke/projects.mjs";
+import { testTrips } from "./rust-smoke/trips.mjs";
+
+void test("Rust Worker HTTP flows", async (t) => {
   const server = createTestHarness({
     workers: [
       {
@@ -49,40 +53,45 @@ void test("Rust Worker signs in members, persists private journals, and streams 
     assert.ok(cookie);
     return cookie.split(";")[0];
   }
-  const owner = await signIn("owner");
-  const stranger = await signIn("stranger");
-  const body = "Footwork drills";
-  const write = await server.fetch("/api/actions/createJournalEntry", {
-    method: "POST",
-    headers: { "content-type": "application/json", cookie: owner },
-    body: JSON.stringify({
-      args: [
-        {
-          __formData: [
-            ["kind", "training"],
-            ["entryDate", "2025-01-02"],
-            ["body", body],
-          ],
-        },
-      ],
-    }),
-  });
-  assert.equal(write.status, 200);
-  assert.deepEqual(await write.json(), { ok: true });
-  const journal = "/api/users/owner/journal";
-  const read = await server.fetch(journal, { headers: { cookie: owner } });
-  assert.equal(read.status, 200);
-  const { entries } = await read.json();
-  assert.deepEqual(
-    entries.map((entry) => entry.body),
-    [body],
-  );
-  assert.equal((await server.fetch(journal, { headers: { cookie: stranger } })).status, 404);
-  assert.equal((await server.fetch(journal)).status, 401);
+  await t.test("sign-in, private journal writes and R2 exports", async () => {
+    const owner = await signIn("owner");
+    const stranger = await signIn("stranger");
+    const body = "Footwork drills";
+    const write = await server.fetch("/api/actions/createJournalEntry", {
+      method: "POST",
+      headers: { "content-type": "application/json", cookie: owner },
+      body: JSON.stringify({
+        args: [
+          {
+            __formData: [
+              ["kind", "training"],
+              ["entryDate", "2025-01-02"],
+              ["body", body],
+            ],
+          },
+        ],
+      }),
+    });
+    assert.equal(write.status, 200);
+    assert.deepEqual(await write.json(), { ok: true });
+    const journal = "/api/users/owner/journal";
+    const read = await server.fetch(journal, { headers: { cookie: owner } });
+    assert.equal(read.status, 200);
+    const { entries } = await read.json();
+    assert.deepEqual(
+      entries.map((entry) => entry.body),
+      [body],
+    );
+    assert.equal((await server.fetch(journal, { headers: { cookie: stranger } })).status, 404);
+    assert.equal((await server.fetch(journal)).status, 401);
 
-  const catalog = '{"areas":[],"climbs":[]}';
-  await CATALOG_EXPORTS.put("catalog/latest.json", catalog);
-  const download = await server.fetch("/api/catalog/export", { headers: { cookie: owner } });
-  assert.equal(download.status, 200);
-  assert.equal(await download.text(), catalog);
+    const catalog = '{"areas":[],"climbs":[]}';
+    await CATALOG_EXPORTS.put("catalog/latest.json", catalog);
+    const download = await server.fetch("/api/catalog/export", { headers: { cookie: owner } });
+    assert.equal(download.status, 200);
+    assert.equal(await download.text(), catalog);
+  });
+  await t.test("climb lists", () => testLists({ server, db: DB, signIn }));
+  await t.test("projects", () => testProjects({ server, db: DB, signIn }));
+  await t.test("trips", () => testTrips({ server, db: DB, signIn }));
 });
