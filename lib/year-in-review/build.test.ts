@@ -144,10 +144,11 @@ describe("places", () => {
 });
 
 describe("new ground", () => {
-  it("lists first-visit areas by days there, collapsed, abroad included", () => {
+  it("lists first-visit areas by days there, collapsed and named where the climbing was", () => {
     const review = build({
       sends: [
-        // Ontario was climbed before, so Canada isn't new; BC is.
+        // Ontario was climbed before, so Canada isn't new; BC is, and every
+        // BC climb was in Squamish, so that is its name.
         send("2025-06-01", 3, { areaId: 7 }),
         send("2026-03-01", 3, { areaId: 4 }),
         send("2026-03-02", 3, { areaId: 4 }),
@@ -162,10 +163,23 @@ describe("new ground", () => {
     });
     const ground = review.chapters.newGround;
     expect(ground?.firstVisits.map(({ place, days }) => [place.name, days])).toEqual([
-      ["BC", 4],
+      ["Squamish", 4],
       ["Arco", 2],
     ]);
     expect(ground?.areas).toBe(2);
+    expect(ground?.firstVisits[0].place.trail).toEqual(["Canada", "BC", "Squamish"]);
+  });
+
+  it("stops naming at the split when a new area's climbs spread out", () => {
+    const utah: YearAreaMap = new Map([
+      [1, { name: "USA", path: [1] }],
+      [2, { name: "Utah", path: [1, 2] }],
+      [3, { name: "Joe's Valley", path: [1, 2, 3] }],
+      [4, { name: "Moab", path: [1, 2, 4] }],
+    ]);
+    const sends = [send("2026-03-01", 3, { areaId: 3 }), send("2026-03-02", 3, { areaId: 4 })];
+    const ground = build({ sends, areas: utah }).chapters.newGround;
+    expect(ground?.firstVisits.map(({ place, days }) => [place.name, days])).toEqual([["Utah", 2]]);
   });
 
   it("keeps the five areas with the most days", () => {

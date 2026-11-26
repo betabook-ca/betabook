@@ -5,7 +5,7 @@ import { buildPyramid } from "@/lib/user-analytics";
 
 import { DISCIPLINE_NAMES, monthName } from "./labels";
 import { dayScore, rankPersonas, type PersonaMetrics } from "./personas";
-import { homeArea, locate, placeOf, relatedPlaces } from "./places";
+import { commonAncestor, homeArea, locate, placeOf, relatedPlaces } from "./places";
 import type {
   CalendarChapter,
   DayHighlight,
@@ -533,18 +533,33 @@ function buildNewGround(
 
   // A day counts for a new area when any of its climbs sits inside it.
   const daysIn = new Map<number, number>();
+  const visitedIn = new Map<number, Set<number>>();
   for (const day of yearDays.values()) {
-    const inside = newAreas.filter(([id]) =>
-      [...day.areas].some((areaId) => areas.get(areaId)?.path.includes(id)),
-    );
-    for (const [id] of inside) daysIn.set(id, (daysIn.get(id) ?? 0) + 1);
+    for (const [id] of newAreas) {
+      const inside = [...day.areas].filter((areaId) => areas.get(areaId)?.path.includes(id));
+      if (!inside.length) continue;
+      daysIn.set(id, (daysIn.get(id) ?? 0) + 1);
+      const visited = visitedIn.get(id) ?? new Set<number>();
+      for (const areaId of inside) visited.add(areaId);
+      visitedIn.set(id, visited);
+    }
   }
+  // Named by the deepest area holding every climb visited inside it, as trips
+  // are: a first trip to Utah spent in Joe's Valley reads "Joe's Valley". Any
+  // area under a new one is new too, so the name is still a first visit.
+  const nameFor = (id: number) =>
+    commonAncestor(
+      [...(visitedIn.get(id) ?? [])].flatMap((areaId) => {
+        const path = areas.get(areaId)?.path;
+        return path ? [path] : [];
+      }),
+    ) ?? id;
   const firstVisits = newAreas
     .map(([id, date]) => ({ id, date, days: daysIn.get(id) ?? 0 }))
     .toSorted((a, b) => b.days - a.days || byDate(a.date, b.date))
     .slice(0, YEAR_THRESHOLDS.firstVisitsLimit)
     .flatMap(({ id, date, days: count }) => {
-      const place = placeOf(areas, id);
+      const place = placeOf(areas, nameFor(id));
       return place ? [{ place, date, days: count }] : [];
     });
   return { chapter: { areas: newAreas.length, firstVisits }, newClimbs };
