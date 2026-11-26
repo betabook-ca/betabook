@@ -19,7 +19,12 @@ async fn render_static_document(
 ) -> Result<Response, ApiError> {
     let manifest = load_spa_manifest(state).await?;
     let stylesheet_link = primary_stylesheet_href(&manifest)
-        .map(|href| format!("<link rel=\"stylesheet\" href=\"{}\">", escape_html(&href)))
+        .map(|href| {
+            format!(
+                "<link rel=\"stylesheet\" fetchpriority=\"high\" href=\"{}\">",
+                escape_html(&href)
+            )
+        })
         .unwrap_or_default();
     let head_tags = meta.render_head_tags();
 

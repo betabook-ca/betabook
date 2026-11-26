@@ -1,6 +1,18 @@
 import assert from "node:assert/strict";
 
 export async function testCatalogHtml({ server, db, signIn }) {
+  const home = await server.fetch("/");
+  assert.match(home.headers.get("vary") ?? "", /cookie/i);
+  const homeHtml = await home.text();
+  assert.match(homeHtml, /<form[^>]+action="\/search"/);
+  assert.match(homeHtml, /<input[^>]+name="name"/);
+
+  const landing = await server.fetch("/climbing-logbook");
+  assert.equal(landing.status, 200);
+  const landingHtml = await landing.text();
+  assert.match(landingHtml, /<h1\b[^>]*>A free climbing logbook/);
+  assert.doesNotMatch(landingHtml, /<script[^>]+type="module"/);
+
   const area = await db
     .prepare("INSERT INTO areas(name,description) VALUES (?,?) RETURNING id")
     .bind("North crag", "Follow the creek.")

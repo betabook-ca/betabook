@@ -887,16 +887,6 @@ fn route_metadata(path: &str, has_query: bool) -> (PageMetadata, Vec<Value>, &'s
             Vec::new(),
             "routes/info-routes.tsx",
         ),
-        "/climbing-logbook" => (
-            PageMetadata::indexable(
-                "Free climbing logbook",
-                "A free climbing logbook for bouldering, sport and trad. Log sends and sessions, see your progression, and import from KAYA, Sendage or Mountain Project.",
-                "/climbing-logbook",
-                "website",
-            ),
-            Vec::new(),
-            "routes/info-routes.tsx",
-        ),
         "/kaya-import" => (
             PageMetadata::indexable(
                 "Import your KAYA logbook",
