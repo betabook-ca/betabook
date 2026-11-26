@@ -5,7 +5,7 @@
   "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev --config wrangler.jsonc --local --port 3000 --ip 0.0.0.0 --infer-origin-from-routes=false --live-reload",
+    "dev": "wrangler dev --config wrangler.jsonc --local --ip 0.0.0.0 --infer-origin-from-routes=false --live-reload",
     "dev:spa": "vite --config vite.spa.config.ts",
     "build": "node scripts/build-app.ts",
     "build:spa": "node scripts/build-app.ts --spa-only",
@@ -17,7 +17,7 @@
     "deadcode:prod": "knip --production",
     "typecheck": "next typegen && tsrs --noEmit -p tsconfig.typecheck.json",
     "check": "pnpm lint && pnpm format:check && pnpm deadcode && pnpm typecheck && pnpm test",
-    "preview": "wrangler dev --config wrangler.jsonc --local --port 3000 --infer-origin-from-routes=false",
+    "preview": "wrangler dev --config wrangler.jsonc --local --infer-origin-from-routes=false",
     "deploy": "wrangler deploy --config wrangler.jsonc",
     "cf-typegen": "wrangler types -c wrangler.jsonc",
     "db:generate": "drizzle-kit generate",

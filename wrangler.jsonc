@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "betabook",
+  "dev": { "port": 3000 },
   "main": "crates/betabook-worker/build/index.js",
   "compatibility_date": "2026-08-17",
   "build": {
