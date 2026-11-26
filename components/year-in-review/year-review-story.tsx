@@ -205,6 +205,10 @@ function TripCards({
 export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps) {
   const { year, chapters: c } = review;
   const owner = mode === "owner";
+  // A shared link is someone else's recap: name the owner, and leave out
+  // nudges that tell the owner what to log.
+  const whose = owner ? "Your" : `${ownerName}'s`;
+  const nudge = (text: string) => (owner ? <Nudge>{text}</Nudge> : null);
   const chapter = (id: YearChapterId, title: string, body: ReactNode) => (
     <Chapter key={id} id={id} title={title}>
       {body}
@@ -256,7 +260,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
         />
         {c.days.daysOut < 3 && (
           <>
-            <Nudge>Log your sessions to see your year take shape.</Nudge>
+            {nudge("Log your sessions to see your year take shape.")}
             {logLink("Log a session")}
           </>
         )}
@@ -269,7 +273,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
     sections.push(
       chapter(
         "calendar",
-        "Your climbing calendar",
+        `${whose} climbing calendar`,
         <div className="grid gap-4 md:grid-cols-3">
           <div className={clsx("flex flex-col gap-2", cardClass("sm", "bordered"))}>
             <span className={EYEBROW_CLASS}>Busiest month</span>
@@ -305,8 +309,8 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
                   {weekday.best.map((day) => `${WEEKDAY_NAMES[day]}s`).join(" & ")}
                 </p>
                 <p className="text-sm">
-                  {weekday.best.map((day) => `${WEEKDAY_NAMES[day]}s`).join(" and ")} are when you
-                  climb your best.
+                  {weekday.best.map((day) => `${WEEKDAY_NAMES[day]}s`).join(" and ")} are when{" "}
+                  {owner ? "you climb your best" : `${ownerName} climbs best`}.
                 </p>
                 {weekday.ranked.filter((entry) => !weekday.best.includes(entry.weekday)).length >
                   0 && (
@@ -332,7 +336,9 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
                 )}
               </>
             ) : (
-              <Nudge>Log sends on more weekdays to see when you climb your best.</Nudge>
+              (nudge("Log sends on more weekdays to see when you climb your best.") ?? (
+                <p className="text-sm text-muted">Not enough send days yet.</p>
+              ))
             )}
           </div>
         </div>,
@@ -357,10 +363,10 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
     sections.push(
       chapter(
         "home-turf",
-        turf.spread ? "You got around" : "Your home crag",
+        turf.spread ? `${owner ? "You" : ownerName} got around` : `${whose} home crag`,
         <>
           {turf.spread ? (
-            <p className="text-lg">No single place held most of your days.</p>
+            <p className="text-lg">No single place held most of the year&apos;s days.</p>
           ) : (
             <p className="flex flex-col gap-1">
               <span className="font-display text-5xl font-semibold">{turf.place.name}</span>
@@ -370,7 +376,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
           <p className="text-sm">
             {turf.spread
               ? `${plural(turf.totalDays, "day")} across ${turf.place.name}.`
-              : `${turf.days} of your ${turf.totalDays} days · ${plural(turf.sends, "send")} there.`}
+              : `${turf.days} of ${turf.totalDays} days · ${plural(turf.sends, "send")} there.`}
           </p>
           {turf.breakdown.length > 0 && (
             <ul className="flex flex-col gap-1 text-sm">
@@ -473,7 +479,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
               <DisciplineChip type={type} />
               {firstYear && (
                 <p className="text-sm">
-                  Your first year of {DISCIPLINE_NAMES[type]}: from {firstYear.from} to{" "}
+                  {whose} first year of {DISCIPLINE_NAMES[type]}: from {firstYear.from} to{" "}
                   {firstYear.to}.
                 </p>
               )}
@@ -493,8 +499,8 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
                     {step.waitDays != null && (
                       <span className="text-xs text-muted">
                         {step.waitDays < 45
-                          ? `${plural(step.waitDays, "day")} after your last step up`
-                          : `${Math.round(step.waitDays / 30.4)} months after your last step up`}
+                          ? `${plural(step.waitDays, "day")} after the last step up`
+                          : `${Math.round(step.waitDays / 30.4)} months after the last step up`}
                       </span>
                     )}
                   </li>
@@ -516,7 +522,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
       ) : (
         <>
           <Nudge>No sends logged in {year}.</Nudge>
-          {c.hardest.undated > 0 && (
+          {owner && c.hardest.undated > 0 && (
             <Nudge>
               {plural(c.hardest.undated, "send")} {c.hardest.undated === 1 ? "has" : "have"} no date
               and aren&apos;t counted. Add dates to include them.
@@ -602,9 +608,8 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
                   <span className="text-xs text-muted">{plural(total, "send")}</span>
                 </div>
                 <VerticalPyramid type={entry.type} rows={entry.rows} marked={entry.marked} />
-                {(total < 5 || entry.rows.length < 2) && (
-                  <Nudge>Log more sends to fill out your pyramid.</Nudge>
-                )}
+                {(total < 5 || entry.rows.length < 2) &&
+                  nudge("Log more sends to fill out your pyramid.")}
               </div>
             );
           })}
@@ -623,7 +628,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
               />
             ))}
           </div>
-          <Nudge>Log more sends to fill out your pyramid.</Nudge>
+          {nudge("Log more sends to fill out your pyramid.")}
         </>
       ),
     ),
@@ -724,7 +729,8 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
               <PlaceTrail place={climb.place} />
               {climb.othersAverage != null && (
                 <span className="text-xs text-muted">
-                  You: {climb.rating}★ · Everyone else: {climb.othersAverage.toFixed(1)}★
+                  {owner ? "You" : ownerName}: {climb.rating}★ · Everyone else:{" "}
+                  {climb.othersAverage.toFixed(1)}★
                 </span>
               )}
               {climb.comment && (

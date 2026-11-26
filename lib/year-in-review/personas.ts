@@ -93,7 +93,7 @@ function candidates(m: PersonaMetrics): Candidate[] {
     list.push({
       id: "flash-machine",
       raw: cap(m.firstTryRate / 0.75),
-      why: `${percent(m.firstTryRate)} of your ${plural(m.sends, "send")} went first try`,
+      why: `${percent(m.firstTryRate)} of ${plural(m.sends, "send")} went first try`,
     });
   }
   if (m.siege && m.siege.sessions >= 2) {
@@ -108,7 +108,7 @@ function candidates(m: PersonaMetrics): Candidate[] {
     list.push({
       id: "wanderer",
       raw: Math.sqrt(cap((1 - m.homeShare) / 0.6) * reach),
-      why: `${plural(m.tripLocations, "trip")}, ${plural(m.newClimbs, "new climb")}, and no place had more than ${percent(m.homeShare)} of your days`,
+      why: `${plural(m.tripLocations, "trip")}, ${plural(m.newClimbs, "new climb")}, and no place had more than ${percent(m.homeShare)} of the days`,
     });
   }
   if (m.pyramid) {
@@ -124,14 +124,14 @@ function candidates(m: PersonaMetrics): Candidate[] {
     list.push({
       id: "circuit-repeater",
       raw: cap(share / 0.3),
-      why: `${plural(m.repeats, "repeat")}, dialling in your favourite circuit`,
+      why: `${plural(m.repeats, "repeat")}, dialling in a favourite circuit`,
     });
   }
   if (m.bestWindow && m.sends >= 25) {
     list.push({
       id: "seasonal-sprinter",
       raw: cap(m.bestWindow.share / 0.65),
-      why: `${percent(m.bestWindow.share)} of your sends happened between ${m.bestWindow.from} and ${m.bestWindow.to}`,
+      why: `${percent(m.bestWindow.share)} of sends happened between ${m.bestWindow.from} and ${m.bestWindow.to}`,
     });
   }
   const qualifying = m.disciplineShares.filter(({ share }) => share >= 0.15);
