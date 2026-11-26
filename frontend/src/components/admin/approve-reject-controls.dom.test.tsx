@@ -28,7 +28,7 @@ it.each(["rejected", "offline"])(
       failure === "offline" ? "Something went wrong" : "Review permission changed",
     );
     expect(within(dialog).getByRole("textbox")).toHaveValue("Keep the original name");
-    await user.click(within(dialog).getByRole("button", { name: "Reject" }));
+    await user.click(await within(dialog).findByRole("button", { name: "Reject" }));
     await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
     expect(rejectChangeRequest).toHaveBeenNthCalledWith(2, 1, "Keep the original name");
   },

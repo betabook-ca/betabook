@@ -10,6 +10,7 @@ import { usePageTitle } from "@/spa/lib/document-navigation";
 import { isNotFoundError, isUnauthorizedError } from "@/spa/lib/fetch-json";
 import { journalFilter, refreshJournalResults } from "@/spa/lib/journal-results";
 import {
+  refineSends,
   SpaJournalView,
   SpaProfileHeader,
   SpaSendsView,
@@ -54,14 +55,14 @@ export default function UserProfileRoute({ viewerId }: { viewerId: string | null
     query: rawQuery,
     load,
     async refine(previous, previousQuery, signal) {
-      // The profile root selects a visitor's tab using current journal visibility.
-      // Recheck that selection and public link access on each visitor navigation.
-      if (
-        previous.mode !== "member" ||
-        !previous.isOwner ||
-        previous.defaultTab !== "journal" ||
-        journalFilter(previousQuery).climbId !== filter.climbId
-      )
+      if (previous.mode === "shared") return load(signal);
+      if (previous.defaultTab === "sends") {
+        // This read checks current profile visibility on the server.
+        return { ...previous, sends: await refineSends(previous.sends, userId, rawQuery, signal) };
+      }
+      // A visitor who loses journal access may still be allowed the sends view.
+      // The profile loader resolves that fallback and the climb filter's display name.
+      if (!previous.isOwner || journalFilter(previousQuery).climbId !== filter.climbId)
         return load(signal);
       return {
         ...previous,
