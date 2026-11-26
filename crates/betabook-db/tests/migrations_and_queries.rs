@@ -920,3 +920,5 @@ mod climb_lists;
 
 #[path = "features/goal_achievements.rs"]
 mod goal_achievements;
+#[path = "features/goals.rs"]
+mod goals;

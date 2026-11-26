@@ -82,7 +82,7 @@ pub fn goal_window(
 pub struct GoalInput {
     pub kind: String,
     pub target: i64,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "tags_or_empty")]
     pub tags: Vec<String>,
     pub discipline: Option<ClimbType>,
     pub grade: Option<i64>,
@@ -96,6 +96,10 @@ pub struct GoalInput {
     pub timezone: String,
 }
 
+fn tags_or_empty<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Vec<String>, D::Error> {
+    Ok(Option::<Vec<String>>::deserialize(d)?.unwrap_or_default())
+}
+
 fn exact() -> String {
     "exact".into()
 }
@@ -103,7 +107,10 @@ fn exact() -> String {
 impl GoalInput {
     pub fn parse(raw: &Value) -> Result<Self, String> {
         let invalid = || "Check your goal fields.".to_string();
-        if raw.get("grade").is_none() || raw.get("discipline").is_none() {
+        if raw.get("grade").is_none()
+            || raw.get("discipline").is_none()
+            || raw.get("startDate").is_some_and(Value::is_null)
+        {
             return Err(invalid());
         }
         let mut input: Self = serde_json::from_value(raw.clone()).map_err(|_| invalid())?;
