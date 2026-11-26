@@ -22,6 +22,7 @@ import { COSTS_PAGE, LOGBOOK_PAGE } from "@/lib/landing-pages";
 import { SITE_NAME, SITE_TAGLINE } from "@/lib/site";
 import { TERMS_UPDATED_LABEL, TERMS_VERSION } from "@/lib/terms";
 import { syncBootstrapPath } from "@/spa/bootstrap";
+import { DocumentNavigation } from "@/spa/lib/document-navigation";
 import { usePathname } from "@/spa/lib/navigation";
 import { Providers } from "@/spa/providers";
 
@@ -159,6 +160,7 @@ export function App() {
 
   return (
     <>
+      <DocumentNavigation viewer={session?.user} />
       <a
         href="#main"
         // oxlint-disable-next-line tailwindcss/no-conflicting-classes

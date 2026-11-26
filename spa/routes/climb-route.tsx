@@ -31,11 +31,13 @@ import type {
 } from "@/db/queries";
 import { missingDescriptionMessage } from "@/lib/descriptions";
 import { buildLoggedGradeRows } from "@/lib/grade-histogram";
+import { formatGrade } from "@/lib/grades";
 import type { PublicAreaDetails, PublicClimb, PublicClimbSend } from "@/lib/public-catalog";
 import { ASCENT_STYLE_LABELS, type AscentStyle } from "@/lib/sends";
 import { climbHref, withQuery } from "@/lib/slug";
 import { searchParamsToRecord } from "@/lib/url-params";
 import { peekBootstrapData } from "@/spa/bootstrap";
+import { usePageTitle } from "@/spa/lib/document-navigation";
 import {
   fetchJson,
   isNotFoundError,
@@ -139,6 +141,17 @@ function PublicClimbView({ climbId }: { climbId: number }) {
     };
   }, [climbId, matches]);
 
+  const loaded = data?.climbId === climbId ? data : null;
+  const grade = loaded && formatGrade(loaded.climb.type, loaded.climb.grade);
+  usePageTitle(
+    notFound
+      ? "Climb not found"
+      : loaded
+        ? [loaded.climb.name, grade === "—" ? null : grade, loaded.area?.name]
+            .filter(Boolean)
+            .join(" · ")
+        : null,
+  );
   if (notFound) return <ClimbNotFoundView />;
   if (error) return <ClimbErrorBanner error={error} />;
   if (!matches || !data) return <ClimbLoadingSkeleton />;
@@ -223,6 +236,17 @@ function MemberClimbView({ climbId, viewerId }: { climbId: number; viewerId: str
     };
   }, [climbId, viewerId, refreshKey]);
 
+  const loaded = data?.climbId === climbId ? data : null;
+  const grade = loaded && formatGrade(loaded.climb.type, loaded.climb.grade);
+  usePageTitle(
+    notFound
+      ? "Climb not found"
+      : loaded
+        ? [loaded.climb.name, grade === "—" ? null : grade, loaded.area?.name]
+            .filter(Boolean)
+            .join(" · ")
+        : null,
+  );
   if (notFound) return <ClimbNotFoundView />;
   if (error) return <ClimbErrorBanner error={error} />;
   if (!matches || !data) return <ClimbLoadingSkeleton />;

@@ -17,6 +17,7 @@ import type {
 } from "@/db/queries";
 import { projectSharePath } from "@/lib/project-share";
 import { peekBootstrapData } from "@/spa/bootstrap";
+import { usePageTitle } from "@/spa/lib/document-navigation";
 import { fetchJson, isNotFoundError } from "@/spa/lib/fetch-json";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
 
@@ -88,6 +89,13 @@ function PublicProject({ token, signedIn }: { token: string; signedIn: boolean }
   const path = projectSharePath(encodeURIComponent(token));
   const [initial] = useState(() => peekBootstrapData("shared-project", path) as Shared | null);
   const { data, error } = useProjectData<Shared>(`/api/pages${path}`, initial);
+  usePageTitle(
+    data?.status === "visible"
+      ? data.project.ownerName +
+          (data.project.sent ? " sent " : " is projecting ") +
+          data.project.climbName
+      : "Shared project",
+  );
   if (error) return <p role="alert">{error}</p>;
   if (!data) return <SkeletonListRows rows={4} />;
   if (data.status === "expired") return expiredLinkCard("projects");

@@ -35,6 +35,7 @@ import type { PublicArea, PublicAreaDetails, PublicClimbsPage } from "@/lib/publ
 import { areaHref, withQuery } from "@/lib/slug";
 import { searchParamsToRecord, type UrlParamsRecord } from "@/lib/url-params";
 import { peekBootstrapData } from "@/spa/bootstrap";
+import { usePageTitle } from "@/spa/lib/document-navigation";
 import { fetchJson, isNotFoundError, parsePositiveId } from "@/spa/lib/fetch-json";
 import { usePathname } from "@/spa/lib/navigation";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
@@ -130,8 +131,6 @@ function PublicAreaView({
     if (matches) {
       return;
     }
-    const subareaSuffix =
-      filter.subareaId !== null ? `&subarea=${encodeURIComponent(filter.subareaId)}` : "";
     let cancelled = false;
 
     async function loadPublic() {
@@ -142,9 +141,7 @@ function PublicAreaView({
             ancestors: PublicAreaDetails[];
             subareas: PublicArea[];
           }>(`/api/public/areas/${areaId}`),
-          fetchJson<PublicClimbsPage>(
-            `/api/public/areas/${areaId}/climbs?${canonicalQuery}${subareaSuffix}`,
-          ),
+          fetchJson<PublicClimbsPage>(`/api/public/areas/${areaId}/climbs?${canonicalQuery}`),
         ]);
         if (!cancelled) {
           setError(null);
@@ -166,11 +163,20 @@ function PublicAreaView({
     return () => {
       cancelled = true;
     };
-  }, [areaId, canonicalQuery, filter.subareaId, matches]);
+  }, [areaId, canonicalQuery, matches]);
 
+  usePageTitle(
+    notFound
+      ? "Area not found"
+      : data?.areaId === areaId
+        ? data.ancestors.at(-1)
+          ? data.area.name + " climbing · " + data.ancestors.at(-1)?.name
+          : data.area.name + " climbing"
+        : null,
+  );
   if (notFound) return <AreaNotFoundView />;
   if (error) return <AreaErrorBanner error={error} />;
-  if (!matches || !data) return <AreaLoadingSkeleton />;
+  if (!data || data.areaId !== areaId) return <AreaLoadingSkeleton />;
 
   const path = areaHref(data.area.id, data.area.name);
   const climbsBlock = (
@@ -178,12 +184,16 @@ function PublicAreaView({
       <SectionHeading>Climbs</SectionHeading>
       <NavigationPendingProvider>
         <AreaClimbsToolbar areaPath={path} sort={sort} filter={filter} showExcludeSent={false} />
-        <PublicClimbList
-          key={`climbs:${canonicalQuery}`}
-          initial={data.climbsPage}
-          areaId={data.area.id}
-          query={canonicalQuery}
-        />
+        {matches ? (
+          <PublicClimbList
+            key={`climbs:${canonicalQuery}`}
+            initial={data.climbsPage}
+            areaId={data.area.id}
+            query={canonicalQuery}
+          />
+        ) : (
+          <SkeletonListRows rows={6} />
+        )}
       </NavigationPendingProvider>
     </div>
   );
@@ -235,13 +245,7 @@ function MemberAreaView({
   const matches = data !== null && data.areaId === areaId && data.query === canonicalQuery;
 
   useEffect(() => {
-    const subareaSuffix =
-      filter.subareaId !== null ? `&subarea=${encodeURIComponent(filter.subareaId)}` : "";
-    const queryPart = canonicalQuery
-      ? `?${canonicalQuery}${subareaSuffix}`
-      : subareaSuffix
-        ? `?${subareaSuffix.slice(1)}`
-        : "";
+    const queryPart = canonicalQuery ? `?${canonicalQuery}` : "";
     let cancelled = false;
 
     async function loadMember() {
@@ -269,33 +273,46 @@ function MemberAreaView({
     return () => {
       cancelled = true;
     };
-  }, [areaId, canonicalQuery, filter.subareaId, refreshKey]);
+  }, [areaId, canonicalQuery, refreshKey]);
 
+  usePageTitle(
+    notFound
+      ? "Area not found"
+      : data?.areaId === areaId
+        ? data.ancestors.at(-1)
+          ? data.area.name + " climbing · " + data.ancestors.at(-1)?.name
+          : data.area.name + " climbing"
+        : null,
+  );
   if (notFound) return <AreaNotFoundView />;
   if (error) return <AreaErrorBanner error={error} />;
-  if (!matches || !data) return <AreaLoadingSkeleton />;
+  if (!data || data.areaId !== areaId) return <AreaLoadingSkeleton />;
 
   const areaPath = areaHref(data.area.id, data.area.name);
   const climbsBlock = (
     <div className="flex flex-col gap-3">
       <SectionHeading>Climbs</SectionHeading>
       <AreaClimbsToolbar areaPath={areaPath} sort={sort} filter={filter} showExcludeSent />
-      <AreaClimbsSection
-        key={`member-climbs:${canonicalQuery}`}
-        areaId={data.area.id}
-        sort={sort}
-        filter={filter}
-        initialClimbs={data.climbsPage.climbs}
-        initialHasNextPage={data.climbsPage.hasNextPage}
-        initialSendStats={data.climbsPage.sendStats}
-        initialAreaBreadcrumbs={data.climbsPage.areaBreadcrumbs}
-        sentClimbIds={new Set(data.climbsPage.sentClimbIds)}
-        emptyMessage={
-          filter.subareaId != null
-            ? "No climbs match in this sub-area."
-            : "No climbs found in this area or its sub-areas."
-        }
-      />
+      {matches ? (
+        <AreaClimbsSection
+          key={`member-climbs:${canonicalQuery}`}
+          areaId={data.area.id}
+          sort={sort}
+          filter={filter}
+          initialClimbs={data.climbsPage.climbs}
+          initialHasNextPage={data.climbsPage.hasNextPage}
+          initialSendStats={data.climbsPage.sendStats}
+          initialAreaBreadcrumbs={data.climbsPage.areaBreadcrumbs}
+          sentClimbIds={new Set(data.climbsPage.sentClimbIds)}
+          emptyMessage={
+            filter.subareaId != null
+              ? "No climbs match in this sub-area."
+              : "No climbs found in this area or its sub-areas."
+          }
+        />
+      ) : (
+        <SkeletonListRows rows={6} />
+      )}
     </div>
   );
 

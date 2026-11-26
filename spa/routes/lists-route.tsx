@@ -29,6 +29,7 @@ import {
 } from "@/lib/climb-lists";
 import { SHARING_AUDIENCES, type SharingAudience } from "@/lib/privacy";
 import { searchParamsToRecord } from "@/lib/url-params";
+import { usePageTitle } from "@/spa/lib/document-navigation";
 import { fetchJson, isNotFoundError } from "@/spa/lib/fetch-json";
 import { SpaProfileHeader } from "@/spa/lib/profile-shell";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
@@ -201,6 +202,18 @@ function LoadedList({
   }
 }
 
+function useListTitle(data: Payload | undefined) {
+  usePageTitle(
+    data?.mode === "index"
+      ? data.header.user.name + " · Lists"
+      : data?.mode === "detail"
+        ? data.header.user.name + " · " + data.list.title
+        : data?.mode === "shared"
+          ? data.owner.name + " · " + data.list.title
+          : null,
+  );
+}
+
 export default function ListsRoute({ viewerId }: { viewerId: string | null }) {
   const { id, listId, token } = useParams();
   const [search] = useSearchParams();
@@ -240,12 +253,14 @@ export default function ListsRoute({ viewerId }: { viewerId: string | null }) {
     void load();
     return () => controller.abort();
   }, [key, query, url, refresh]);
-  if (!token && !viewerId) return <CurrentPageAuthCallout />;
   const current = key === loaded?.key ? loaded : undefined;
   // Keep this list mounted while refinements load. Its editor opens only when
   // the rows and the view from the same request both describe the whole list.
   const view = parseClimbListView(searchParamsToRecord(new URLSearchParams(current?.query)));
   const data = current?.data;
+  useListTitle(data);
+  if (!token && !viewerId) return <CurrentPageAuthCallout />;
+
   return (
     <ClimbListEditingProvider key={JSON.stringify([viewerId, path])}>
       {current?.error ? (

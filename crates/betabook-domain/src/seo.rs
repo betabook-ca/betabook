@@ -73,7 +73,10 @@ impl PageMetadata {
     }
 
     pub fn full_title(&self) -> String {
-        if self.title == SITE_NAME || self.title.ends_with(&format!(" | {SITE_NAME}")) {
+        if self.og_type == "profile"
+            || self.title == SITE_NAME
+            || self.title.ends_with(&format!(" | {SITE_NAME}"))
+        {
             self.title.clone()
         } else {
             format!("{} | {SITE_NAME}", self.title)

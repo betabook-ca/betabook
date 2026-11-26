@@ -9,6 +9,7 @@ import { parseJournalFilter } from "@/lib/filters/journal-filter";
 import { parseUserSendsFilter } from "@/lib/filters/user-sends-filter";
 import type { FriendshipStatus } from "@/lib/friendships";
 import { searchParamsToRecord } from "@/lib/url-params";
+import { usePageTitle } from "@/spa/lib/document-navigation";
 import { fetchJson, isNotFoundError, isUnauthorizedError } from "@/spa/lib/fetch-json";
 import {
   SpaJournalView,
@@ -41,6 +42,24 @@ type LoadedProfileState = {
   query: string;
   payload: SharedProfilePayload | MemberProfilePayload;
 };
+
+function useProfileTitle(
+  current: LoadedProfileState["payload"] | null | undefined,
+  notFound: boolean,
+  unauthorized: boolean,
+) {
+  const shared = current?.mode === "shared";
+  usePageTitle(
+    notFound
+      ? "Climber not found"
+      : unauthorized
+        ? "Member content"
+        : shared
+          ? current.owner.name + " on Betabook"
+          : current?.user.name,
+    shared && !notFound && !unauthorized,
+  );
+}
 
 export default function UserProfileRoute({ viewerId }: { viewerId: string | null }) {
   const params = useParams<{ id?: string }>();
@@ -109,6 +128,7 @@ export default function UserProfileRoute({ viewerId }: { viewerId: string | null
     };
   }, [userId, viewerId, rawQuery, refreshKey]);
 
+  useProfileTitle(matches ? state?.payload : null, notFound, unauthorized);
   if (!userId || notFound) {
     return (
       <div className="py-8 text-center">

@@ -8,6 +8,7 @@ import type { HardestSend } from "@/db/queries/climber-overview";
 import { parseUserSendsFilter } from "@/lib/filters/user-sends-filter";
 import type { FriendshipStatus } from "@/lib/friendships";
 import { searchParamsToRecord } from "@/lib/url-params";
+import { usePageTitle } from "@/spa/lib/document-navigation";
 import { fetchJson, isNotFoundError } from "@/spa/lib/fetch-json";
 import {
   SpaProfileHeader,
@@ -91,6 +92,9 @@ export default function UserSendsRoute({ viewerId }: { viewerId: string | null }
     };
   }, [viewerId, userId, rawQuery, refreshKey]);
 
+  usePageTitle(
+    notFound ? "Climber not found" : matches && state ? state.user.name + " · Sends" : null,
+  );
   if (!viewerId) {
     return <CurrentPageAuthCallout />;
   }

@@ -120,6 +120,26 @@ void test("Rust Worker HTTP flows", async (t) => {
     assert.equal(await download.text(), catalog);
   });
   await t.test("platform", () => testPlatform({ server, signIn }));
+  await t.test("shared profile metadata and data require one current token", async () => {
+    const id = "profile-preview";
+    await signIn(id);
+    await DB.prepare("UPDATE user SET is_private=0 WHERE id=?").bind(id).run();
+    const { token } = await DB.prepare("SELECT token FROM profile_share_links WHERE user_id=?")
+      .bind(id)
+      .first();
+    const url = "/users/" + id + "?share=" + token;
+    const meta = await (await server.fetch(url)).text();
+    assert.match(meta, /<title>profile-preview on Betabook<\/title>/);
+    assert.match(meta, /<meta property="og:type" content="profile">/);
+    assert.match(meta, /profile-preview invited you to Betabook/);
+    assert.equal((await (await server.fetch("/api/pages" + url)).json()).mode, "shared");
+    const ambiguous = url + "&share=" + token;
+    assert.equal((await server.fetch("/api/pages" + ambiguous)).status, 401);
+    assert.doesNotMatch(
+      await (await server.fetch(ambiguous)).text(),
+      /profile-preview invited you/,
+    );
+  });
   await t.test("goals", () => testGoals({ server, db: DB, signIn }));
   await t.test("profile analytics", () => testProfileAnalytics({ server, db: DB, signIn }));
   await t.test("imports", () => testImports({ server, db: DB, signIn }));

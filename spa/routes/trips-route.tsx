@@ -27,6 +27,7 @@ import { goalToday } from "@/lib/goals";
 import type { AlbumPhoto } from "@/lib/trip-album";
 import { groupTripDays } from "@/lib/trip-days";
 import { formatTripDates, tripLogbookHref, tripStatus, TRIP_STATUS_LABEL } from "@/lib/trips";
+import { usePageTitle } from "@/spa/lib/document-navigation";
 import { fetchJson, isNotFoundError } from "@/spa/lib/fetch-json";
 import { SpaProfileHeader } from "@/spa/lib/profile-shell";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
@@ -268,6 +269,14 @@ export default function TripsRoute({ viewerId }: { viewerId: string | null }) {
     void load();
     return () => controller.abort();
   }, [key, pathname, token, viewerId]);
+  const resolved = result?.key === key && "data" in result ? result.data : null;
+  usePageTitle(
+    resolved && "header" in resolved
+      ? resolved.header.user.name + " · " + ("trip" in resolved ? resolved.trip.name : "Trips")
+      : resolved && "owner" in resolved
+        ? resolved.owner.name + " · " + resolved.trip.name
+        : null,
+  );
   if (!token && !viewerId) return <CurrentPageAuthCallout />;
   if (result?.key !== key) return <SkeletonListRows rows={5} />;
   if ("message" in result) return <div role="alert">{result.message}</div>;
