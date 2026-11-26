@@ -548,7 +548,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
     sections.push(
       chapter(
         "styles",
-        "How you sent it",
+        "Send breakdown",
         <div className="flex flex-col gap-4">
           {c.styles.disciplines.map((entry) => {
             const segments = [

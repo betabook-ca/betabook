@@ -975,7 +975,8 @@ function missedChapters(
       "onsights",
       `No onsights in ${year}. Try a route you've never seen, and log it as an onsight.`,
     );
-  if (!chapters.styles) add("styles", "Log 5+ sends with their style to see how you sent them.");
+  if (!chapters.styles)
+    add("styles", "Log 5+ sends with their style to unlock your send breakdown.");
   if (!chapters.partner) add("partner", "Tag friends on your journal sessions to find your crew.");
   if (!chapters.gotAway)
     add("got-away", "Nothing got away. You sent everything you tried twice.", true);
