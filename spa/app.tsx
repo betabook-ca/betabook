@@ -41,6 +41,7 @@ const ListsRoute = lazy(() => import("@/spa/routes/lists-route"));
 const UserJournalRoute = lazy(() => import("@/spa/routes/user-journal-route"));
 const AuthRouteView = lazy(() => import("@/spa/routes/auth-routes"));
 const InfoRouteView = lazy(() => import("@/spa/routes/info-routes"));
+const GoalsRoute = lazy(() => import("@/spa/routes/goals-route"));
 const ProjectsRoute = lazy(() => import("@/spa/routes/projects-route"));
 const PlaceholderRoute = lazy(() => import("@/spa/routes/placeholder-route"));
 
@@ -214,6 +215,10 @@ export function App() {
                           <Route
                             path="/users/:id/journal"
                             element={<UserJournalRoute viewerId={viewerId} />}
+                          />
+                          <Route
+                            path="/users/:id/goals"
+                            element={<GoalsRoute viewerId={viewerId} />}
                           />
                           <Route
                             path="/users/:id/projects"

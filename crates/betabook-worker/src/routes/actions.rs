@@ -60,7 +60,7 @@ const MAX_MULTIPART_ACTION_BYTES: usize = 4 * 1024 * 1024;
 const CONTACT_TO_EMAIL: &str = "hello@betabook.ca";
 const CONTACT_FROM_EMAIL: &str = "Betabook <noreply@betabook.ca>";
 const MIN_CONTACT_FILL_MS: f64 = 2000.0;
-const JOURNAL_RATE_LIMIT_MESSAGE: &str =
+pub(super) const JOURNAL_RATE_LIMIT_MESSAGE: &str =
     "You're logging entries quickly — take a breather and try again in a minute.";
 
 pub(super) fn action_ok() -> Response {
@@ -708,6 +708,9 @@ pub async fn dispatch_action(
     };
 
     match name.as_str() {
+        "saveGoal" | "deleteGoal" | "archiveGoal" => {
+            super::goals::action(&state, &headers, &name, &call.args).await
+        }
         "pinProject" | "unpinProject" | "shareProject" | "unshareProject" => {
             use betabook_db::projects::{
                 pin_project, share_project, unpin_project, unshare_project,

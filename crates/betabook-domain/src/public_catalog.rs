@@ -197,7 +197,7 @@ fn parse_page(raw: Option<&str>, page_size: usize) -> Option<usize> {
     (page <= last_page).then_some(page)
 }
 
-fn parse_offset(raw: Option<&str>) -> Option<usize> {
+pub fn parse_offset(raw: Option<&str>) -> Option<usize> {
     let Some(raw) = raw else {
         return Some(0);
     };
