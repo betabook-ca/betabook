@@ -33,21 +33,22 @@ function OwnerBoard({ userId, sent }: { userId: string; sent: boolean }) {
           {sent ? "Sent projects" : "Open projects"}
         </SectionHeading>
         <ProjectTabs view={variant} userId={userId} />
-        {error ? (
-          <p role="alert">
-            {isNotFoundError(error) ? "Project not found" : "Could not load projects."}
-          </p>
-        ) : (
-          <ProjectBoard
-            userId={userId}
-            variant={variant}
-            shareOrigin={window.location.origin}
-            {...board}
-            projects={board?.projects ?? []}
-            hasMore={board?.hasMore ?? false}
-            loading={!board}
-          />
-        )}
+        <ProjectBoard
+          userId={userId}
+          variant={variant}
+          shareOrigin={window.location.origin}
+          {...board}
+          projects={board?.projects ?? []}
+          hasMore={board?.hasMore ?? false}
+          loading={!board}
+          error={
+            error
+              ? isNotFoundError(error)
+                ? "Project not found"
+                : "Could not load projects."
+              : undefined
+          }
+        />
       </div>
     </WorkspaceShell>
   );

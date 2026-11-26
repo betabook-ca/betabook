@@ -36,7 +36,7 @@ function analyticsHref(
 
 type FilterProps = { tags: string[]; selectedTags: string[]; isOwner: boolean; pending?: boolean };
 
-function AnalyticsEmptyState({
+function analyticsEmptyState({
   selectedTags,
   isOwner,
 }: Pick<FilterProps, "selectedTags" | "isOwner">) {
@@ -66,7 +66,7 @@ export function EmptyProfileAnalytics({ tags, selectedTags, isOwner, pending }: 
         <SectionHeading className="sr-only">Analytics</SectionHeading>
         <AnalyticsHashtagFilter selectedTags={selectedTags} tags={tags} />
         <NavigationPendingRegion pending={pending}>
-          <AnalyticsEmptyState selectedTags={selectedTags} isOwner={isOwner} />
+          {analyticsEmptyState({ selectedTags, isOwner })}
         </NavigationPendingRegion>
       </div>
     </NavigationPendingProvider>
@@ -134,9 +134,7 @@ export function ProfileAnalyticsDashboard({
         <NavigationPendingRegion pending={pending}>
           <AnalyticsDashboard
             emptyState={
-              selectedScope === null ? (
-                <AnalyticsEmptyState isOwner={isOwner} selectedTags={selectedTags} />
-              ) : undefined
+              selectedScope === null ? analyticsEmptyState({ selectedTags, isOwner }) : undefined
             }
             summary={summary}
             key={id}

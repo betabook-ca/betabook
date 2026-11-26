@@ -90,6 +90,7 @@ type ProjectBoardProps = {
   hasMore: boolean;
   variant?: ProjectBoardVariant;
   loading?: boolean;
+  error?: string;
   /** Unsent climbs offered in the pin modal; empty on the sent board. */
   suggestions?: readonly OpenProject[];
   /** Every climb the owner has pinned, both sides of the send split; this
@@ -107,6 +108,7 @@ export function ProjectBoard({
   hasMore,
   variant = "open",
   loading = false,
+  error,
   suggestions = NO_SUGGESTIONS,
   pinnedClimbIds,
   shareOrigin,
@@ -133,13 +135,13 @@ export function ProjectBoard({
     return [...matched].sort(COMPARATORS[sort]);
   }, [projects, query, sort]);
 
-  const pinButton =
-    sents || loading ? null : (
-      <PinProjectButton
-        suggestions={suggestions}
-        pinnedClimbIds={pinnedClimbIds ?? projects.map((project) => project.climbId)}
-      />
-    );
+  const pinButton = sents ? null : (
+    <PinProjectButton
+      isDisabled={loading || Boolean(error)}
+      suggestions={suggestions}
+      pinnedClimbIds={pinnedClimbIds ?? projects.map((project) => project.climbId)}
+    />
+  );
   const empty = projects.length === 0;
 
   return (
@@ -162,7 +164,9 @@ export function ProjectBoard({
         </div>
       </div>
 
-      {loading ? (
+      {error ? (
+        <p role="alert">{error}</p>
+      ) : loading ? (
         <div aria-busy="true" aria-label="Loading projects">
           <SkeletonListRows rows={4} />
         </div>
