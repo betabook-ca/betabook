@@ -9,14 +9,16 @@ export const referenceAliases = [
     replacement: path.join(import.meta.dirname, name),
   })),
   ...["lib", "test"].flatMap((dir) =>
-    readdirSync(path.join(import.meta.dirname, dir))
-      .filter((name) => name.endsWith(".ts") && !name.endsWith(".test.ts"))
-      .flatMap((name) => [
-        {
-          find: `@/${dir}/${name.slice(0, -3)}`,
-          replacement: path.join(import.meta.dirname, dir, name),
-        },
-        { find: `@/${dir}/${name}`, replacement: path.join(import.meta.dirname, dir, name) },
-      ]),
+    readdirSync(path.join(import.meta.dirname, dir)).flatMap((name) =>
+      name.endsWith(".ts") && !name.endsWith(".test.ts")
+        ? [
+            {
+              find: `@/${dir}/${name.slice(0, -3)}`,
+              replacement: path.join(import.meta.dirname, dir, name),
+            },
+            { find: `@/${dir}/${name}`, replacement: path.join(import.meta.dirname, dir, name) },
+          ]
+        : [],
+    ),
   ),
 ];

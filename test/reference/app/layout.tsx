@@ -30,8 +30,16 @@ import "@/spa/globals.css";
 // Geist to package assets.
 const barlowCondensed = localFont({
   src: [
-    { path: "../assets/fonts/barlow-condensed-600-latin.woff2", weight: "600", style: "normal" },
-    { path: "../assets/fonts/barlow-condensed-700-latin.woff2", weight: "700", style: "normal" },
+    {
+      path: "../../../assets/fonts/barlow-condensed-600-latin.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "../../../assets/fonts/barlow-condensed-700-latin.woff2",
+      weight: "700",
+      style: "normal",
+    },
   ],
   variable: "--font-barlow-condensed",
   display: "swap",
@@ -45,7 +53,7 @@ const barlowCondensed = localFont({
 // builds resolve it; .storybook/fonts.css works around the same gap). Pointing
 // at the package's file from here resolves in every build.
 const geistSans = localFont({
-  src: "../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2",
+  src: "../../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2",
   variable: "--font-geist-sans",
   weight: "100 900",
   fallback: ["Geist Fallback", "sans-serif"],
