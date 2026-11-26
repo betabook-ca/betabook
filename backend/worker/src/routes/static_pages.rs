@@ -26,6 +26,16 @@ async fn render_static_document(
             )
         })
         .unwrap_or_default();
+    let body_font = manifest
+        .iter()
+        .find(|(source, _)| source.ends_with("/Geist-Variable.woff2"))
+        .map(|(_, entry)| {
+            format!(
+                r#"<link rel="preload" as="font" type="font/woff2" crossorigin href="/{}">"#,
+                escape_html(&entry.file)
+            )
+        })
+        .unwrap_or_default();
     let head_tags = meta.render_head_tags();
 
     let html = format!(
@@ -38,6 +48,7 @@ async fn render_static_document(
     <meta name=\"theme-color\" media=\"(prefers-color-scheme: dark)\" content=\"{PALETTE_INK}\">
     {head_tags}
     {stylesheet_link}
+    {body_font}
   </head>
   <body class=\"flex min-h-full flex-col bg-background text-foreground\">
     <script>
