@@ -119,12 +119,10 @@ export type CalendarChapter = {
     /** Mean best-of-day relative grade, 0–100, or null where too few days. */
     scores: (number | null)[];
     sendDays: number[];
-    /** The best Tuesday send typically sits in the top N% of the year. */
-    topPercent: number;
     /** Average best-of-day grade per weekday, for a single-discipline year. */
     grades: (string | null)[] | null;
     /** Every qualifying weekday, best first (ties: more send days first). */
-    ranked: { weekday: number; topPercent: number; sendDays: number }[];
+    ranked: { weekday: number; sendDays: number }[];
   } | null;
 };
 

@@ -207,12 +207,10 @@ function buildCalendar(
       best: leaders.filter((day) => sendDays[day] === mostDays),
       scores,
       sendDays,
-      topPercent: Math.max(1, Math.round(100 - topScore)),
       ranked: qualifying
         .toSorted((a, b) => (scores[b] ?? 0) - (scores[a] ?? 0) || sendDays[b] - sendDays[a])
         .map((day) => ({
           weekday: day,
-          topPercent: Math.max(1, Math.round(100 - (scores[day] ?? 0))),
           sendDays: sendDays[day],
         })),
       grades: single
@@ -988,10 +986,7 @@ function missedChapters(
   if (!chapters.calendar)
     add("calendar", "Log 6+ days to see your peak month and when you send hardest.");
   if (!chapters.biggestBoulderDay && chapters.intro.disciplines.includes("boulder"))
-    add(
-      "biggest-boulder-day",
-      "Log 5+ problems in one session to unlock your biggest boulder day.",
-    );
+    add("biggest-boulder-day", "Log 5+ problems in one session to unlock your boulder rampage.");
   if (!chapters.sportRampage && chapters.intro.disciplines.includes("sport"))
     add("sport-rampage", "Send 4+ sport routes (repeats count) in one day for a sport rampage.");
   if (!chapters.tradRampage && chapters.intro.disciplines.includes("trad"))

@@ -237,7 +237,8 @@ describe("weekday peak", () => {
     const weekday = build({ sends }).chapters.calendar?.weekday;
     expect(weekday?.best).toEqual([2]);
     expect(weekday?.ranked.map((entry) => entry.weekday)).toEqual([2, 6, 0]);
-    expect(weekday?.ranked.map((entry) => entry.topPercent)).toEqual([17, 50, 83]);
+    // Each weekday's score is the mid-rank of its sends: V8 (top third) 83, V5 50, V2 17.
+    expect([2, 6, 0].map((day) => Math.round(weekday?.scores[day] ?? 0))).toEqual([83, 50, 17]);
   });
 });
 

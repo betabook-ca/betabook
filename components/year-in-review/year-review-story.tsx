@@ -315,14 +315,8 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
                   {weekday.best.map((day) => `${WEEKDAY_NAMES[day]}s`).join(" & ")}
                 </p>
                 <p className="text-sm">
-                  You send your hardest on{" "}
-                  {weekday.best.map((day) => `${WEEKDAY_NAMES[day]}s`).join(" and ")}. On a typical{" "}
-                  {WEEKDAY_NAMES[weekday.best[0]]}, your best send is in the top{" "}
-                  {weekday.topPercent}% of your year
-                  {weekday.grades?.[weekday.best[0]]
-                    ? `, around ${weekday.grades[weekday.best[0]]}`
-                    : ""}
-                  .
+                  {weekday.best.map((day) => `${WEEKDAY_NAMES[day]}s`).join(" and ")} are when you
+                  climb your best.
                 </p>
                 {weekday.ranked.filter((entry) => !weekday.best.includes(entry.weekday)).length >
                   0 && (
@@ -339,12 +333,9 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
                             <span className="text-muted">{index + 2}. </span>
                             {WEEKDAY_NAMES[entry.weekday]}s
                           </span>
-                          <span className="text-muted">
-                            top {entry.topPercent}%
-                            {weekday.grades?.[entry.weekday]
-                              ? ` · ${weekday.grades[entry.weekday]}`
-                              : ""}
-                          </span>
+                          {weekday.grades?.[entry.weekday] && (
+                            <span className="text-muted">{weekday.grades[entry.weekday]}</span>
+                          )}
                         </li>
                       ))}
                   </ol>
@@ -361,7 +352,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
 
   if (c.biggestBoulderDay) {
     sections.push(
-      chapter("biggest-boulder-day", "Biggest boulder day", <DayCard day={c.biggestBoulderDay} />),
+      chapter("biggest-boulder-day", "Boulder rampage", <DayCard day={c.biggestBoulderDay} />),
     );
   }
   if (c.sportRampage) {
