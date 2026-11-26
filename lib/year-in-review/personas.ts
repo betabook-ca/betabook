@@ -4,8 +4,9 @@ import type { PersonaId, PersonaResult } from "./types";
 /** The year's facts the personas read. Every rate is 0–1. */
 export type PersonaMetrics = {
   sends: number;
-  /** The year's biggest day by `bigDayScore`, repeats included. */
-  biggestDay: { date: string; boulders: number; routes: number } | null;
+  /** The median day out by `dayScore`, repeats included and days without a
+   * send counted as empty, so one huge day can't make a typical one big. */
+  typicalDay: { boulders: number; routes: number; days: number } | null;
   firstTryRate: number;
   /** Most sessions on one climb at the climber's limit or one that got away. */
   siege: { climbName: string; sessions: number } | null;
@@ -40,9 +41,9 @@ const cap = (value: number) => Math.max(0, Math.min(value, CAP));
 const geometricMean = (values: number[]) =>
   values.reduce((total, value) => total * value, 1) ** (1 / values.length);
 
-/** How big a day was: a dozen problems, or half a dozen routes, scores 1. */
-export function bigDayScore(boulders: number, routes: number): number {
-  return boulders / 12 + routes / 6;
+/** How big a day was: eight problems, or six routes, scores 1. */
+export function dayScore(boulders: number, routes: number): number {
+  return boulders / 8 + routes / 6;
 }
 
 /** All-Rounder full marks at an even split, 1 at a 15-point gap between the
@@ -91,23 +92,23 @@ const plural = (count: number, word: string) => `${count} ${word}${count === 1 ?
 
 type Candidate = { id: PersonaId; raw: number; why: string };
 
-function bigDayWhy(day: NonNullable<PersonaMetrics["biggestDay"]>): string {
+function typicalDayWhy(day: NonNullable<PersonaMetrics["typicalDay"]>): string {
   const parts = [
     day.boulders ? plural(day.boulders, "problem") : "",
     day.routes ? plural(day.routes, "route") : "",
   ].filter(Boolean);
-  return `${parts.join(" and ")} sent on ${day.date}`;
+  return `A typical day out: ${parts.join(" and ") || "no sends"}, across ${plural(day.days, "day")}`;
 }
 
 function candidates(m: PersonaMetrics): Candidate[] {
-  const day = m.biggestDay;
+  const day = m.typicalDay;
   const list: Candidate[] = [
     {
       // Always eligible, so every climber who reaches the chapter has one; a
-      // small biggest day scores low and loses to anything else that fits.
+      // small typical day scores low and loses to anything else that fits.
       id: "volume-fiend",
-      raw: day ? cap(bigDayScore(day.boulders, day.routes)) : 0,
-      why: day ? bigDayWhy(day) : `${plural(m.sends, "send")} this year`,
+      raw: day ? cap(dayScore(day.boulders, day.routes)) : 0,
+      why: day ? typicalDayWhy(day) : `${plural(m.sends, "send")} this year`,
     },
   ];
   if (m.sends >= 20) {

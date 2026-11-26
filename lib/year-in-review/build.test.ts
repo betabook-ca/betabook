@@ -398,7 +398,7 @@ describe("chapters that need data", () => {
 describe("personas", () => {
   const base: PersonaMetrics = {
     sends: 60,
-    biggestDay: { date: "May 3", boulders: 5, routes: 0 },
+    typicalDay: { boulders: 3, routes: 0, days: 30 },
     firstTryRate: 0.8,
     siege: null,
     locatedDays: 30,
@@ -429,13 +429,14 @@ describe("personas", () => {
     expect(flash(light)?.score).toBeGreaterThan(flash(heavy)?.score ?? Infinity);
   });
 
-  it("finds the biggest day across disciplines, repeats included", () => {
-    // Six days out, so the chapter appears; five problems on May 1 lose to
-    // three routes plus a repeated route on May 2.
+  it("takes the median day out, repeats included and sendless days empty", () => {
+    // Seven days out: one huge day, three busy route days (one with a repeat)
+    // and three days with no send at all.
     const sends = [
-      ...[1, 2, 3, 4, 5].map(() => send("2026-05-01", 3)),
-      ...[1, 2, 3].map(() => send("2026-05-02", 12, { climbType: "sport" })),
-      ...[3, 4, 5, 6].map((day) => send(`2026-05-0${day}`, 3)),
+      ...Array.from({ length: 20 }, () => send("2026-05-01", 3)),
+      ...[2, 3, 4].flatMap((day) =>
+        [1, 2, 3].map(() => send(`2026-05-0${day}`, 12, { climbType: "sport" })),
+      ),
     ];
     const repeat = session("2026-05-02", {
       climbId: 555,
@@ -443,22 +444,26 @@ describe("personas", () => {
       sent: true,
       isAscent: false,
     });
-    const personas = build({ sends, sessions: [repeat] }).chapters.personas?.personas ?? [];
-    expect(personas.find((p) => p.id === "volume-fiend")?.why).toBe("4 routes sent on May 2");
+    const rest = [5, 6, 7].map((day) => session(`2026-05-0${day}`));
+    const personas =
+      build({ sends, sessions: [repeat, ...rest] }).chapters.personas?.personas ?? [];
+    expect(personas.find((p) => p.id === "volume-fiend")?.why).toBe(
+      "A typical day out: 3 routes, across 7 days",
+    );
   });
 
-  it("makes the Volume Fiend about one big day, not a big season", () => {
+  it("makes the Volume Fiend about typical days, not one big day or a big season", () => {
     const fiend = (metrics: Partial<PersonaMetrics>) =>
       rankPersonas({ ...base, firstTryRate: 0, ...metrics }, 8).find(
         (p) => p.id === "volume-fiend",
       );
-    const season = fiend({ sends: 900, biggestDay: { date: "May 3", boulders: 3, routes: 0 } });
-    const bigDay = fiend({ sends: 40, biggestDay: { date: "May 3", boulders: 8, routes: 3 } });
-    expect(bigDay?.score).toBeGreaterThan(season?.score ?? Infinity);
-    expect(bigDay?.why).toBe("8 problems and 3 routes sent on May 3");
-    // Six routes count as much as a dozen problems.
-    expect(fiend({ biggestDay: { date: "May 3", boulders: 0, routes: 6 } })?.score).toBe(
-      fiend({ biggestDay: { date: "May 3", boulders: 12, routes: 0 } })?.score,
+    const season = fiend({ sends: 900, typicalDay: { boulders: 2, routes: 0, days: 120 } });
+    const steady = fiend({ sends: 40, typicalDay: { boulders: 6, routes: 1, days: 8 } });
+    expect(steady?.score).toBeGreaterThan(season?.score ?? Infinity);
+    expect(steady?.why).toBe("A typical day out: 6 problems and 1 route, across 8 days");
+    // Six routes count as much as eight problems.
+    expect(fiend({ typicalDay: { boulders: 0, routes: 6, days: 8 } })?.score).toBe(
+      fiend({ typicalDay: { boulders: 8, routes: 0, days: 8 } })?.score,
     );
   });
 

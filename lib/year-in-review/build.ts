@@ -4,7 +4,7 @@ import { CLIMB_TYPES, gradeArray, type ClimbType, type GradePreferences } from "
 import { buildPyramid } from "@/lib/user-analytics";
 
 import { DISCIPLINE_NAMES, monthName } from "./labels";
-import { bigDayScore, rankPersonas, type PersonaMetrics } from "./personas";
+import { dayScore, rankPersonas, type PersonaMetrics } from "./personas";
 import { homeArea, locate, placeOf, relatedPlaces } from "./places";
 import type {
   CalendarChapter,
@@ -674,37 +674,31 @@ function buildNotWorthThePump(
   return climbs.length ? { climbs } : null;
 }
 
-/** The year's biggest day across disciplines, counting new sends and repeats
- * of earlier sends once per climb. Ties go to the earlier date. */
-function biggestDay(
+/** The median day out, counting new sends and repeats of earlier sends once
+ * per climb; a day out with no send counts as empty. The lower of the two
+ * middle days when there is an even number. */
+function typicalDay(
+  daysOut: readonly string[],
   yearSends: readonly Dated<YearSendRow>[],
   yearSessions: readonly YearSessionRow[],
-): PersonaMetrics["biggestDay"] {
-  const days = new Map<string, Map<number, ClimbType>>();
-  const add = (date: string, climbId: number, type: ClimbType) => {
-    const climbs = days.get(date) ?? new Map<number, ClimbType>();
-    climbs.set(climbId, type);
-    days.set(date, climbs);
-  };
+): PersonaMetrics["typicalDay"] {
+  if (!daysOut.length) return null;
+  const days = new Map<string, Map<number, ClimbType>>(
+    daysOut.map((date) => [date, new Map<number, ClimbType>()]),
+  );
+  const add = (date: string, climbId: number, type: ClimbType) =>
+    days.get(date)?.set(climbId, type);
   for (const send of yearSends) add(send.dateSent, send.climbId, send.climbType);
   for (const session of yearSessions)
     if (session.sent && !session.isAscent)
       add(session.entryDate, session.climbId, session.climbType);
-  const best = [...days.entries()]
-    .map(([date, climbs]) => {
+  const ranked = [...days.values()]
+    .map((climbs) => {
       const boulders = [...climbs.values()].filter((type) => type === "boulder").length;
-      return { date, boulders, routes: climbs.size - boulders };
+      return { boulders, routes: climbs.size - boulders };
     })
-    .toSorted(
-      (a, b) =>
-        bigDayScore(b.boulders, b.routes) - bigDayScore(a.boulders, a.routes) ||
-        byDate(a.date, b.date),
-    )[0];
-  if (!best) return null;
-  return {
-    ...best,
-    date: `${monthName(monthOf(best.date))} ${Number(best.date.slice(8))}`,
-  };
+    .toSorted((a, b) => dayScore(a.boulders, a.routes) - dayScore(b.boulders, b.routes));
+  return { ...ranked[Math.floor((ranked.length - 1) / 2)], days: ranked.length };
 }
 
 function bestSendWindow(yearSends: readonly Dated<YearSendRow>[]): PersonaMetrics["bestWindow"] {
@@ -876,7 +870,11 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
       .map((row, index) => pyramidRows[index + 1].count >= row.count);
     const metrics: PersonaMetrics = {
       sends: yearSends.length,
-      biggestDay: biggestDay(yearSends, yearSessions),
+      typicalDay: typicalDay(
+        dayList.map((entry) => entry.date),
+        yearSends,
+        yearSessions,
+      ),
       firstTryRate: yearSends.length
         ? yearSends.filter((send) => send.ascentStyle !== "redpoint").length / yearSends.length
         : 0,
