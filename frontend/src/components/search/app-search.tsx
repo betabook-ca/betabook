@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { FriendshipButton } from "@/components/friendship-button";
 import type { SuggestedClimberRow } from "@/db/queries";
@@ -20,7 +18,7 @@ import { useRouter } from "@/spa/lib/navigation";
 import { SearchController } from "./search-controller";
 
 export function AppSearch({
-  initialState,
+  initialState: state,
   initial,
   suggestions,
   viewerId,
@@ -38,15 +36,10 @@ export function AppSearch({
   memberNoticePlacement?: "results" | "top";
 }) {
   const router = useRouter();
-  // Keep the field synchronous while React Router commits the query string.
-  // A new URL (including Back/Forward) immediately takes over from this draft.
-  const [draft, setDraft] = useState<{ source: SearchState; value: SearchState } | null>(null);
-  const state = draft?.source === initialState ? draft.value : initialState;
   const mounted = useMounted();
   const { data: session, isPending } = authClient.useSession();
   const suggested = useClimberSuggestions(showsClimberSuggestions(state, viewerId), suggestions);
   function change(next: SearchState) {
-    setDraft({ source: initialState, value: next });
     if (next.area) onAreaSelected?.(next.area);
     const href = searchHref(next);
     if (next.category !== state.category || next.area?.id !== state.area?.id)
