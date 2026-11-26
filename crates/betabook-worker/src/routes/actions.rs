@@ -982,17 +982,15 @@ pub async fn dispatch_action(
                 };
                 let entry =
                     get_journal_entry_for_edit(state.db(), entry_id, &session.user.id).await?;
-                let Some(ref e) = entry else {
+                let Some(climb_id) = entry
+                    .as_ref()
+                    .filter(|e| e.is_ascent)
+                    .and_then(|e| e.climb_id)
+                else {
                     return Ok(action_err(
                         "This entry is no longer linked to a send — refresh and try again",
                     ));
                 };
-                if !e.is_ascent || e.climb_id.is_none() {
-                    return Ok(action_err(
-                        "This entry is no longer linked to a send — refresh and try again",
-                    ));
-                }
-                let climb_id = e.climb_id.unwrap();
                 let s = get_user_send_for_climb(state.db(), &session.user.id, climb_id).await?;
                 (entry, s)
             };

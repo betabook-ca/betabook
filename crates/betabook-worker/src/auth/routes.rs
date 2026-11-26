@@ -61,12 +61,15 @@ fn no_store_json(status: StatusCode, body: Value) -> Response {
 }
 
 fn redirect_response(location: &str, cookies: &[String]) -> Response {
-    let mut resp = Response::builder()
-        .status(StatusCode::FOUND)
-        .header(header::LOCATION, location)
-        .header(header::CACHE_CONTROL, "private, no-store")
-        .body(axum::body::Body::empty())
-        .unwrap();
+    let mut resp = (
+        StatusCode::FOUND,
+        [
+            (header::LOCATION, location),
+            (header::CACHE_CONTROL, "private, no-store"),
+        ],
+        axum::body::Body::empty(),
+    )
+        .into_response();
     for cookie in cookies {
         if let Ok(val) = HeaderValue::from_str(cookie) {
             resp.headers_mut().append(header::SET_COOKIE, val);

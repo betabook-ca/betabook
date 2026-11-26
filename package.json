@@ -24,6 +24,7 @@
     "db:migrate:local": "wrangler d1 migrations apply DB --local -c wrangler.jsonc",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote -c wrangler.jsonc",
     "test": "vitest run",
+    "test:rust-worker": "node --test scripts/rust-worker-smoke.mjs",
     "test:components": "vitest run --project=components",
     "test:seed-social": "node --disable-warning=ExperimentalWarning scripts/check-social-seed.ts",
     "test:seed-trips": "node --disable-warning=ExperimentalWarning scripts/check-trip-seed.ts",

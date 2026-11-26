@@ -30,6 +30,10 @@ fn run_async<F: std::future::Future>(fut: F) -> F::Output {
     }
 }
 
+#[expect(
+    clippy::expect_used,
+    reason = "migration failures must fail the test fixture"
+)]
 fn migrated_db() -> SqliteDb {
     let db = SqliteDb::in_memory().expect("in-memory sqlite");
     let migrations = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../drizzle/migrations");

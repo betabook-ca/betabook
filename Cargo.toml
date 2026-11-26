@@ -36,6 +36,13 @@ unicode-normalization = "0.1.26"
 url = "2.5"
 worker = { version = "0.9.0", features = ["axum", "d1", "http"] }
 
+[workspace.lints.clippy]
+undocumented_unsafe_blocks = "deny"
+todo = "deny"
+unimplemented = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
+
 [profile.release]
 opt-level = "z"
 lto = true

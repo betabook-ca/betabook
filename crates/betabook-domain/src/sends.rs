@@ -539,7 +539,7 @@ pub fn validate_journal_input(
     today_iso: &str,
 ) -> Result<ValidatedJournalInput, String> {
     let parsed_kind = match kind {
-        Some("session" | "training") => kind.unwrap().to_string(),
+        Some(kind @ ("session" | "training")) => kind.to_string(),
         _ => return Err("Invalid entry kind".to_string()),
     };
 

@@ -453,7 +453,7 @@ pub async fn create_journal_entry_with_sync<D: DbExecutor>(
         && let Some(ref c) = climb
     {
         let existing_send = get_user_send_for_climb(db, user_id, c.id).await?;
-        if existing_send.is_none() {
+        let Some(existing) = existing_send else {
             let send_input = send_input_if_new_ascent.ok_or_else(|| {
                 MutationError::Validation("Suggested grade is required".to_string())
             })?;
@@ -485,7 +485,7 @@ pub async fn create_journal_entry_with_sync<D: DbExecutor>(
                 ));
             }
             return Ok(());
-        }
+        };
 
         if carries_send_fields {
             return Err(MutationError::Validation(
@@ -493,7 +493,6 @@ pub async fn create_journal_entry_with_sync<D: DbExecutor>(
             ));
         }
 
-        let existing = existing_send.unwrap();
         let sent_entries = get_sent_journal_entries(db, user_id, c.id).await?;
         if !sent_entries.iter().any(|e| e.is_ascent)
             && let Some(ref date_sent) = existing.date_sent

@@ -2,7 +2,7 @@ use axum::{
     body::Body,
     extract::{OriginalUri, Path, State},
     http::{HeaderMap, HeaderValue, StatusCode, header},
-    response::Response,
+    response::{IntoResponse, Response},
 };
 use betabook_domain::profile_photo::{
     PROFILE_PHOTO_CACHE_CONTROL, PROFILE_PHOTO_CACHE_NAME, PROFILE_PHOTO_CONTENT_TYPE,
@@ -13,20 +13,24 @@ use worker::{Cache, Headers as WorkerHeaders, Response as WorkerResponse};
 use crate::state::{ApiError, AppState};
 
 fn not_found() -> Response {
-    Response::builder()
-        .status(StatusCode::NOT_FOUND)
-        .header(header::CACHE_CONTROL, "private, no-store")
-        .body(Body::from("Not found"))
-        .unwrap()
+    (
+        StatusCode::NOT_FOUND,
+        [(header::CACHE_CONTROL, "private, no-store")],
+        Body::from("Not found"),
+    )
+        .into_response()
 }
 
 fn not_modified(etag: &str) -> Response {
-    Response::builder()
-        .status(StatusCode::NOT_MODIFIED)
-        .header(header::CACHE_CONTROL, PROFILE_PHOTO_CACHE_CONTROL)
-        .header(header::ETAG, etag)
-        .body(Body::empty())
-        .unwrap()
+    (
+        StatusCode::NOT_MODIFIED,
+        [
+            (header::CACHE_CONTROL, PROFILE_PHOTO_CACHE_CONTROL),
+            (header::ETAG, etag),
+        ],
+        Body::empty(),
+    )
+        .into_response()
 }
 
 #[worker::send]
@@ -58,14 +62,14 @@ pub async fn get_avatar(
             return Ok(not_modified(&etag));
         }
         let bytes = cached.bytes().await?;
-        return Ok(Response::builder()
+        return Response::builder()
             .status(StatusCode::OK)
             .header(header::CONTENT_TYPE, PROFILE_PHOTO_CONTENT_TYPE)
             .header(header::CACHE_CONTROL, PROFILE_PHOTO_CACHE_CONTROL)
             .header(header::CONTENT_LENGTH, bytes.len().to_string())
             .header(header::ETAG, etag)
             .body(Body::from(bytes))
-            .unwrap());
+            .map_err(ApiError::internal);
     }
 
     let Ok(bucket) = state.env().bucket("PROFILE_PHOTOS") else {
@@ -103,7 +107,7 @@ pub async fn get_avatar(
         .header(header::CACHE_CONTROL, PROFILE_PHOTO_CACHE_CONTROL)
         .header(header::CONTENT_LENGTH, len.to_string())
         .body(Body::from(bytes))
-        .unwrap();
+        .map_err(ApiError::internal)?;
     if let Ok(val) = HeaderValue::from_str(&etag) {
         resp.headers_mut().insert(header::ETAG, val);
     }
