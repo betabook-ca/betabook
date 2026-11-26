@@ -67,7 +67,12 @@ function Chapter({
 function Hero({ value, children }: { value: number; children: ReactNode }) {
   return (
     <p className="flex flex-wrap items-baseline gap-x-3">
-      <CountUp value={value} className="font-display text-7xl font-semibold tabular-nums" />
+      {/* Keyed by value: a new year's number remounts instead of keeping the old one. */}
+      <CountUp
+        key={value}
+        value={value}
+        className="font-display text-7xl font-semibold tabular-nums"
+      />
       <span className="text-lg text-muted">{children}</span>
     </p>
   );
@@ -167,8 +172,12 @@ function TripCards({
 }) {
   return (
     <ul className={clsx("grid gap-3", cards.length > 1 && "md:grid-cols-2")}>
-      {cards.map((trip) => (
-        <li key={trip.id} className={clsx("flex flex-col gap-1", cardClass("sm", "bordered"))}>
+      {cards.map((trip, index) => (
+        <li
+          // A share link carries no trip ids, so its cards are keyed by position.
+          key={owner ? trip.id : index}
+          className={clsx("flex flex-col gap-1", cardClass("sm", "bordered"))}
+        >
           {owner ? (
             <AppLink href={tripHref(ownerId, trip.id)} className="font-semibold">
               {trip.name}
@@ -324,7 +333,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
                           className="flex justify-between gap-3 border-t border-separator pt-1"
                         >
                           <span>
-                            <span className="text-muted">{index + 2}. </span>
+                            <span className="text-muted">{index + 1 + weekday.best.length}. </span>
                             {WEEKDAY_NAMES[entry.weekday]}s
                           </span>
                           {weekday.grades?.[entry.weekday] && (
@@ -500,7 +509,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
                       <span className="text-xs text-muted">
                         {step.waitDays < 45
                           ? `${plural(step.waitDays, "day")} after the last step up`
-                          : `${Math.round(step.waitDays / 30.4)} months after the last step up`}
+                          : `${plural(Math.round(step.waitDays / 30.4), "month")} after the last step up`}
                       </span>
                     )}
                   </li>

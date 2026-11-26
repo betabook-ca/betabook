@@ -12,7 +12,9 @@ import {
   toActionResult,
   type ActionResult,
 } from "@/lib/action-result";
+import { goalToday } from "@/lib/goals";
 import { allowJournalWrite } from "@/lib/rate-limit";
+import { getRequestTimezone } from "@/lib/request-timezone";
 import { requireSession } from "@/lib/session";
 import { parseShareExpiry, shareExpiryModifier } from "@/lib/share-expiry";
 
@@ -20,11 +22,18 @@ import { afterCommit } from "./post-commit";
 
 const INVALID_YEAR_MESSAGE = "Choose a year to share";
 
-function requireRecapYear(year: unknown): number {
-  if (typeof year !== "number" || !Number.isInteger(year) || year < 1950 || year > 9999) {
+function requireYear(year: unknown, latest: number): number {
+  if (typeof year !== "number" || !Number.isInteger(year) || year < 1950 || year > latest) {
     throw new ActionError(INVALID_YEAR_MESSAGE);
   }
   return year;
+}
+
+/** A year the owner's page can show: 1950 to the current year in the
+ * owner's timezone, so a new link never points at a recap the owner can't
+ * open and revoke. */
+async function requireShareableYear(year: unknown): Promise<number> {
+  return requireYear(year, Number(goalToday(await getRequestTimezone()).slice(0, 4)));
 }
 
 /** Publishes one year's recap behind a link, or resets the clock on a link
@@ -38,7 +47,7 @@ export async function shareYearReview(
 ): Promise<ActionResult<{ token: string; expiresAt: string | null }>> {
   return toActionResult(async () => {
     const { user } = await requireSession();
-    const recapYear = requireRecapYear(year);
+    const recapYear = await requireShareableYear(year);
     const modifier = shareExpiryModifier(parseShareExpiry(expiry));
     if (!(await allowJournalWrite(user.id))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
 
@@ -73,7 +82,9 @@ export async function shareYearReview(
 export async function unshareYearReview(year: number): Promise<ActionResult> {
   return toActionResult(async () => {
     const { user } = await requireSession();
-    const recapYear = requireRecapYear(year);
+    // Any stored year can be revoked, including one shared before the
+    // current-year cap existed.
+    const recapYear = requireYear(year, 9999);
     const db = await getDb();
     await db
       .delete(yearReviewShareLinks)

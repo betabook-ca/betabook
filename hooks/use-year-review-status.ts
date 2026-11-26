@@ -30,6 +30,26 @@ function readCache(key: string): YearReviewStatus | null {
   }
 }
 
+/** One request per user and year at a time: the banner and the journal card
+ * mount together on the owner's journal and would otherwise both fetch. */
+const inFlight = new Map<string, Promise<YearReviewStatus | null>>();
+
+function fetchStatus(key: string, year: number): Promise<YearReviewStatus | null> {
+  const pending = inFlight.get(key);
+  if (pending) return pending;
+  const request = fetch(`/api/year-review/status?year=${year}`)
+    .then(async (response) => {
+      if (!response.ok) return null;
+      const fetched: YearReviewStatus = await response.json();
+      writeCache(key, fetched);
+      return fetched;
+    })
+    .catch(() => null)
+    .finally(() => inFlight.delete(key));
+  inFlight.set(key, request);
+  return request;
+}
+
 function writeCache(key: string, status: YearReviewStatus) {
   try {
     localStorage.setItem(key, JSON.stringify({ at: Date.now(), status }));
@@ -54,25 +74,18 @@ export function useYearReviewStatus(alwaysOpen: boolean): YearReviewStatus | nul
     const year = yearReviewWindow(localToday(), alwaysOpen);
     if (year === null) return;
     const key = `${CACHE_PREFIX}:${userId}:${year}`;
-    const controller = new AbortController();
-    async function load(recapYear: number): Promise<YearReviewStatus | null> {
-      const cached = readCache(key);
-      if (cached) return cached;
-      const response = await fetch(`/api/year-review/status?year=${recapYear}`, {
-        signal: controller.signal,
-      });
-      if (!response.ok) return null;
-      const fetched: YearReviewStatus = await response.json();
-      writeCache(key, fetched);
-      return fetched;
-    }
+    // The request is shared, so an unmounting component stops listening
+    // rather than aborting it for the other.
+    let active = true;
     async function show(recapYear: number) {
-      const next = await load(recapYear);
-      if (next?.userId === userId && !controller.signal.aborted) setStatus(next);
+      const next = readCache(key) ?? (await fetchStatus(key, recapYear));
+      if (active && next?.userId === userId) setStatus(next);
     }
     // No banner is the safe failure.
     show(year).catch(() => null);
-    return () => controller.abort();
+    return () => {
+      active = false;
+    };
   }, [userId, alwaysOpen]);
 
   return status && status.userId === userId ? status : null;

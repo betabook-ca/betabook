@@ -108,7 +108,7 @@ function candidates(m: PersonaMetrics): Candidate[] {
     list.push({
       id: "wanderer",
       raw: Math.sqrt(cap((1 - m.homeShare) / 0.6) * reach),
-      why: `${plural(m.tripLocations, "trip")}, ${plural(m.newClimbs, "new climb")}, and no place had more than ${percent(m.homeShare)} of the days`,
+      why: `${plural(m.tripLocations, "trip destination")}, ${plural(m.newClimbs, "new climb")}, and no place had more than ${percent(m.homeShare)} of the days`,
     });
   }
   if (m.pyramid) {

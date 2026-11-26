@@ -7,7 +7,7 @@ import { user, yearReviewShareLinks } from "@/db/schema";
 import { seedFixtureSend, seedFixtureTree, seedFixtureUser } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
 
-import { getYearReviewData } from "./year-in-review";
+import { getYearReviewData, getYearReviewYears } from "./year-in-review";
 import { getSharedYearReview, getYearReviewShareForOwner } from "./year-review-shares";
 
 const db = createDb(env.DB);
@@ -67,4 +67,11 @@ it("revokes every link when the profile goes private", async () => {
 
 it("hides an unknown token", async () => {
   expect(await getSharedYearReview(db, "0".repeat(32))).toEqual({ status: "hidden" });
+});
+
+it("lists only years the recap page can open, newest first", async () => {
+  // A stray pre-1950 date (an import typo) must not become a year pill.
+  await seedFixtureSend(db, { userId: "owner", climbId: 2, dateSent: "1900-01-01" });
+  await seedFixtureSend(db, { userId: "owner", climbId: 3, dateSent: "2024-03-01" });
+  expect(await getYearReviewYears(db, "owner")).toEqual([2026, 2024]);
 });

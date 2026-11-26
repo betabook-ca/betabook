@@ -172,7 +172,11 @@ export async function getYearReviewYears(db: Database, ownerId: string): Promise
     WHERE user_id = ${ownerId} AND date_sent IS NOT NULL
     ORDER BY year DESC
   `);
-  return rows.map((row) => Number(row.year)).filter((year) => Number.isInteger(year) && year > 0);
+  // parseRecapYear refuses years before 1950, so a stray old date (an import
+  // typo) must not become a year pill or a redirect target that 404s.
+  return rows
+    .map((row) => Number(row.year))
+    .filter((year) => Number.isInteger(year) && year >= 1950);
 }
 
 /** The banner and journal card's cheap check: whether the year has any days
