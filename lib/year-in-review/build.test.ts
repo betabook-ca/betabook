@@ -152,7 +152,7 @@ describe("new ground", () => {
       ["BC", 4],
       ["Arco", 2],
     ]);
-    expect(ground).toMatchObject({ areas: 2, days: 6 });
+    expect(ground?.areas).toBe(2);
   });
 
   it("keeps the five areas with the most days", () => {

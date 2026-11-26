@@ -522,13 +522,11 @@ function buildNewGround(
 
   // A day counts for a new area when any of its climbs sits inside it.
   const daysIn = new Map<number, number>();
-  let days = 0;
   for (const day of yearDays.values()) {
     const inside = newAreas.filter(([id]) =>
       [...day.areas].some((areaId) => areas.get(areaId)?.path.includes(id)),
     );
     for (const [id] of inside) daysIn.set(id, (daysIn.get(id) ?? 0) + 1);
-    if (inside.length) days += 1;
   }
   const firstVisits = newAreas
     .map(([id, date]) => ({ id, date, days: daysIn.get(id) ?? 0 }))
@@ -538,7 +536,7 @@ function buildNewGround(
       const place = placeOf(areas, id);
       return place ? [{ place, date, days: count }] : [];
     });
-  return { chapter: { areas: newAreas.length, days, firstVisits }, newClimbs };
+  return { chapter: { areas: newAreas.length, firstVisits }, newClimbs };
 }
 
 function buildStyles(

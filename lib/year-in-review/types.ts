@@ -154,8 +154,6 @@ export type HomeTurfChapter = {
 export type NewGroundChapter = {
   /** How many first-visit areas there were, before the list was cut to 5. */
   areas: number;
-  /** Distinct days with a climb in any of them. */
-  days: number;
   firstVisits: { place: YearPlace; date: string; days: number }[];
 };
 
