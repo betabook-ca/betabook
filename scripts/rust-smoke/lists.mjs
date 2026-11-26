@@ -32,6 +32,22 @@ export async function testLists({ server, db, signIn }) {
   assert.equal(created.ok, true, JSON.stringify(created));
   const listId = created.value.id;
   const memberUrl = `/api/pages/users/list-owner/lists/${listId}`;
+  const listPath = `/users/list-owner/lists/${listId}`;
+  for (const [path, title] of [
+    ["/users/list-owner/lists", "list-owner · Lists"],
+    [listPath, "Bishop circuit · list-owner"],
+  ]) {
+    const permitted = await server.fetch(path, { headers: { cookie: friend } });
+    assert.equal(permitted.status, 200);
+    assert.ok((await permitted.text()).includes("<title>" + title));
+    const refused = await server.fetch(path, { headers: { cookie: stranger } });
+    assert.equal(refused.status, 404);
+    assert.ok(!(await refused.text()).includes(title));
+  }
+  assert.equal(
+    (await server.fetch("/users/list-owner/lists/999999", { headers: { cookie: owner } })).status,
+    404,
+  );
   const memberRead = await server.fetch(memberUrl, { headers: { cookie: friend } });
   assert.equal(memberRead.status, 200);
   const member = await memberRead.json();
@@ -65,6 +81,11 @@ export async function testLists({ server, db, signIn }) {
       .ok,
     true,
   );
+  await db.prepare("UPDATE user SET terms_accepted_at = NULL WHERE id='list-friend'").run();
+  const stale = await (await server.fetch(url, { headers: { cookie: friend } })).json();
+  assert.equal(stale.mode, "shared");
+  assert.equal(stale.viewerId, null);
+  assert.equal(stale.page.items[0].sent, null);
   assert.equal((await action("unshareClimbList", owner, listId)).ok, true);
   assert.equal((await server.fetch(url)).status, 404);
   assert.equal(

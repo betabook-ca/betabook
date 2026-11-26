@@ -157,7 +157,7 @@ pub async fn shared(
         .await?;
         // A link represents exactly one list. Its database id and private profile fields
         // never enter this payload, even for a member with permission to copy it.
-        json!({"mode":"shared","owner":{"id":shared.owner_id,"name":shared.owner_name,"image":shared.owner_image},
+        json!({"mode":"shared","viewerId":viewer,"owner":{"id":shared.owner_id,"name":shared.owner_name,"image":shared.owner_image},
             "list":{"title":shared.list.title,"description":shared.list.description,"climbCount":shared.list.climb_count},"page":page})
     };
     Ok(no_store_json(StatusCode::OK, data))

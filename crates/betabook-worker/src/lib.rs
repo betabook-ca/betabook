@@ -165,6 +165,11 @@ fn router(state: AppState) -> Router {
             get(routes::climb_lists::detail),
         )
         .route("/api/pages/lists/{token}", get(routes::climb_lists::shared))
+        .route("/users/{id}/lists", get(routes::seo::member_list_html))
+        .route(
+            "/users/{id}/lists/{list_id}",
+            get(routes::seo::member_list_html),
+        )
         .route("/lists/{token}", get(routes::seo::shared_list_html))
         // Page loaders for member SPA views
         .route(

@@ -654,10 +654,63 @@ pub async fn shared_list_html(
     } else {
         PageMetadata::noindex("Shared list", SITE_DESCRIPTION)
     };
-    let manifest = load_spa_manifest(&state).await?;
+    render_list_shell(&state, StatusCode::OK, &meta).await
+}
+
+#[worker::send]
+pub async fn member_list_html(
+    State(state): State<AppState>,
+    headers: http::HeaderMap,
+    Path(params): Path<BTreeMap<String, String>>,
+) -> Result<Response, ApiError> {
+    let viewer = super::climb_lists::shared_viewer(&state, &headers).await?;
+    let title = match viewer {
+        None => Some("Member content".to_owned()),
+        Some(viewer) => {
+            let owner = params
+                .get("id")
+                .ok_or_else(|| ApiError::internal("Missing route owner"))?;
+            match params.get("list_id") {
+                Some(raw) => match parse_id(raw) {
+                    Some(id) => {
+                        betabook_db::climb_lists::member_page_title(
+                            state.db(),
+                            owner,
+                            &viewer,
+                            Some(id),
+                        )
+                        .await?
+                    }
+                    None => None,
+                },
+                None => {
+                    betabook_db::climb_lists::member_page_title(state.db(), owner, &viewer, None)
+                        .await?
+                }
+            }
+        }
+    };
+    let (status, title) = match title {
+        Some(title) => (StatusCode::OK, title),
+        None => (StatusCode::NOT_FOUND, "Not found".to_owned()),
+    };
+    render_list_shell(
+        &state,
+        status,
+        &PageMetadata::noindex(title, SITE_DESCRIPTION),
+    )
+    .await
+}
+
+async fn render_list_shell(
+    state: &AppState,
+    status: StatusCode,
+    meta: &PageMetadata,
+) -> Result<Response, ApiError> {
+    let manifest = load_spa_manifest(state).await?;
     let preload = render_modulepreload_tags(&manifest, "routes/lists-route.tsx");
-    let html = inject_seo_into_html(&load_index_html(&state).await?, &meta, &[], &preload, None);
-    let mut response = html_response(StatusCode::OK, html);
+    let html = inject_seo_into_html(&load_index_html(state).await?, meta, &[], &preload, None);
+    let mut response = html_response(status, html);
     response.headers_mut().insert(
         header::CACHE_CONTROL,
         http::HeaderValue::from_static("private, no-store"),

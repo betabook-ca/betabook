@@ -63,6 +63,30 @@ impl ListAccess<'_> {
     }
 }
 
+/// Return the HTML title only when this viewer may read the requested list or index.
+pub async fn member_page_title<D: DbExecutor>(
+    db: &D,
+    owner: &str,
+    viewer: &str,
+    list_id: Option<i64>,
+) -> Result<Option<String>, DbError> {
+    let mut params = vec![owner.into()];
+    let visible = climb_lists_visible_sql(Some(viewer), "u.id", &mut params);
+    let sql = if let Some(id) = list_id {
+        params.push(id.into());
+        format!(
+            "SELECT l.title || ' · ' || u.name AS title FROM user u
+            JOIN climb_lists l ON l.user_id = u.id WHERE u.id = ? AND {visible} AND l.id = ?"
+        )
+    } else {
+        format!("SELECT u.name || ' · Lists' AS title FROM user u WHERE u.id = ? AND {visible}")
+    };
+    db.query_one(&sql, &params)
+        .await?
+        .map(|row| row.get_string("title"))
+        .transpose()
+}
+
 pub async fn lists<D: DbExecutor>(
     db: &D,
     owner: &str,

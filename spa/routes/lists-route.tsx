@@ -20,6 +20,7 @@ import { PageTitle } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import type { AreaBreadcrumbs, ClimbListItem, ClimbListSummary } from "@/db/queries";
 import {
+  climbListViewSearch,
   climbListHref,
   climbListsHref,
   climbListSharePath,
@@ -50,6 +51,7 @@ type Detail = {
 };
 type Shared = {
   mode: "shared";
+  viewerId: string | null;
   owner: { id: string; name: string; image: string | null };
   list: Pick<ClimbListSummary, "title" | "description" | "climbCount">;
   page: Items;
@@ -188,7 +190,7 @@ function LoadedList({
       return expiredLinkCard("lists");
     case "shared":
       return token ? (
-        <SharedList data={data} viewerId={viewerId} token={token} view={view} />
+        <SharedList data={data} viewerId={data.viewerId} token={token} view={view} />
       ) : null;
     default:
       return viewerId ? (
@@ -203,26 +205,32 @@ export default function ListsRoute({ viewerId }: { viewerId: string | null }) {
   const { id, listId, token } = useParams();
   const [search] = useSearchParams();
   const refresh = useRouterRefreshKey();
-  const view = parseClimbListView(searchParamsToRecord(search));
+  const query = climbListViewSearch(parseClimbListView(searchParamsToRecord(search)));
   const path = token
     ? `/api/pages/lists/${encodeURIComponent(token)}`
     : id && viewerId
       ? `/api/pages/users/${encodeURIComponent(id)}/lists${listId ? `/${encodeURIComponent(listId)}` : ""}`
       : "";
-  const url = path && `${path}?${search}`;
-  const key = JSON.stringify([viewerId, url]);
-  const [loaded, setLoaded] = useState<{ key: string; data?: Payload; error?: string }>();
+  const url = path && path + query;
+  const key = JSON.stringify([viewerId, path]);
+  const [loaded, setLoaded] = useState<{
+    key: string;
+    query: string;
+    data?: Payload;
+    error?: string;
+  }>();
   useEffect(() => {
     if (!url) return;
     const controller = new AbortController();
     async function load() {
       try {
         const data = await fetchJson<Payload>(url, { signal: controller.signal });
-        if (!controller.signal.aborted) setLoaded({ key, data });
+        if (!controller.signal.aborted) setLoaded({ key, query, data });
       } catch (err) {
         if (!controller.signal.aborted)
           setLoaded({
             key,
+            query,
             error: isNotFoundError(err)
               ? "List not found"
               : "Could not load the list. Please try again.",
@@ -231,9 +239,12 @@ export default function ListsRoute({ viewerId }: { viewerId: string | null }) {
     }
     void load();
     return () => controller.abort();
-  }, [key, url, refresh]);
+  }, [key, query, url, refresh]);
   if (!token && !viewerId) return <CurrentPageAuthCallout />;
   const current = key === loaded?.key ? loaded : undefined;
+  // Keep this list mounted while refinements load. Its editor opens only when
+  // the rows and the view from the same request both describe the whole list.
+  const view = parseClimbListView(searchParamsToRecord(new URLSearchParams(current?.query)));
   const data = current?.data;
   return (
     <ClimbListEditingProvider key={JSON.stringify([viewerId, path])}>
