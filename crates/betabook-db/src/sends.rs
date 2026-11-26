@@ -165,10 +165,18 @@ pub struct UserSendRow {
     pub climb_grade: Option<i64>,
     pub area_id: i64,
     pub area_name: String,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "betabook_domain::wire::AscentStyle")
+    )]
     pub ascent_style: String,
     pub date_sent: Option<String>,
     pub rating: Option<i64>,
     pub suggested_grade: Option<i64>,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "betabook_domain::wire::GradeFeel")
+    )]
     pub grade_feel: String,
     pub comment: Option<String>,
     pub videos: Option<Vec<String>>,

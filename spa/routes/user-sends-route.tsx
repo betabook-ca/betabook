@@ -4,31 +4,18 @@ import { useParams, useSearchParams } from "react-router";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { Skeleton, SkeletonListRows } from "@/components/ui/skeleton";
 import { PageTitle } from "@/components/ui/typography";
-import type { HardestSend } from "@/db/queries/climber-overview";
 import { parseUserSendsFilter } from "@/lib/filters/user-sends-filter";
-import type { FriendshipStatus } from "@/lib/friendships";
 import { searchParamsToRecord } from "@/lib/url-params";
+import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
-import { fetchJson, isNotFoundError } from "@/spa/lib/fetch-json";
-import {
-  SpaProfileHeader,
-  SpaSendsView,
-  type MemberAccessInfo,
-  type MemberProfileUser,
-  type SendsViewPayload,
-} from "@/spa/lib/profile-shell";
+import { isNotFoundError } from "@/spa/lib/fetch-json";
+import { SpaProfileHeader, SpaSendsView } from "@/spa/lib/profile-shell";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
 
-type LoadedUserSends = {
+type LoadedUserSends = ApiResponse<"/api/pages/users/{id}/sends"> & {
   targetUserId: string;
   viewerId: string;
   query: string;
-  user: MemberProfileUser;
-  isOwner: boolean;
-  relationship: FriendshipStatus;
-  access: MemberAccessInfo;
-  hardest: HardestSend[];
-  sends: SendsViewPayload;
 };
 
 export default function UserSendsRoute({ viewerId }: { viewerId: string | null }) {
@@ -57,14 +44,14 @@ export default function UserSendsRoute({ viewerId }: { viewerId: string | null }
     }
     const targetUserId = userId;
     const targetViewerId = viewerId;
-    const querySuffix = rawQuery ? `?${rawQuery}` : "";
     let cancelled = false;
 
     async function load() {
       try {
-        const res = await fetchJson<Omit<LoadedUserSends, "targetUserId" | "viewerId" | "query">>(
-          `/api/pages/users/${encodeURIComponent(targetUserId)}/sends${querySuffix}`,
-        );
+        const res = await fetchApi("/api/pages/users/{id}/sends", {
+          path: { id: targetUserId },
+          query: new URLSearchParams(rawQuery),
+        });
         if (!cancelled) {
           setError(null);
           setNotFound(false);

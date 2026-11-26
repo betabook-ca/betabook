@@ -6,15 +6,12 @@ import { useState } from "react";
 
 import { InlineAlert } from "@/components/ui/inline-alert";
 import type { UserSendRow } from "@/db/queries";
-import { apiFetch } from "@/lib/api-client";
 import { downloadCsv } from "@/lib/download";
 import { formatCount } from "@/lib/format";
 import { buildSendsExportCsv } from "@/lib/sends-export";
+import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 
-type UserSendsPageResponse = {
-  sends: UserSendRow[];
-  nextCursor: { dateSent: string | null; id: number } | null;
-};
+type UserSendsPageResponse = ApiResponse<"/api/users/{id}/sends/export">;
 
 /** Exports the signed-in user's full send history as a CSV, walked in keyset
  * pages from /api/users/[id]/sends/export rather than pulled into one
@@ -44,10 +41,11 @@ export function ExportSendsButton({ userId }: { userId: string }) {
           params.set("afterId", String(cursor.id));
           params.set("afterDate", cursor.dateSent ?? "null");
         }
-        const query = params.size > 0 ? `?${params.toString()}` : "";
-        const res = await apiFetch(`/api/users/${userId}/sends/export${query}`);
-        if (!res.ok) throw new Error(`Exporting sends failed: ${res.status}`);
-        const data: UserSendsPageResponse = await res.json();
+        const data: UserSendsPageResponse = await fetchApi("/api/users/{id}/sends/export", {
+          path: { id: userId },
+          query: params,
+          sessionEvents: true,
+        });
         if (data.sends.some((send) => seenIds.has(send.id))) {
           throw new Error("Export cursor did not advance");
         }

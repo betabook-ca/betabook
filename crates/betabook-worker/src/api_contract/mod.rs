@@ -101,6 +101,32 @@ fn input_refs(mut schema: Value) -> Value {
     schema
 }
 
+fn normalize_refs(value: &mut Value) {
+    match value {
+        Value::Object(object) => {
+            if object.len() > 1
+                && let Some(reference) = object.remove("$ref")
+            {
+                object
+                    .entry("allOf")
+                    .or_insert_with(|| json!([]))
+                    .as_array_mut()
+                    .expect("allOf array")
+                    .push(json!({"$ref":reference}));
+            }
+            for child in object.values_mut() {
+                normalize_refs(child);
+            }
+        }
+        Value::Array(values) => {
+            for child in values {
+                normalize_refs(child);
+            }
+        }
+        _ => {}
+    }
+}
+
 pub fn document(require_complete: bool) -> Result<Value, String> {
     let mut settings = SchemaSettings::draft2020_12();
     settings.definitions_path = "/components/schemas".into();
@@ -143,9 +169,9 @@ pub fn document(require_complete: bool) -> Result<Value, String> {
     for (name, schema) in api.inputs.take_definitions(false) {
         definitions.insert(format!("Input_{name}"), input_refs(schema));
     }
-    Ok(
-        json!({"openapi":"3.1.0","info":{"title":"Betabook HTTP API","version":env!("CARGO_PKG_VERSION")},"paths":api.paths,"components":{"schemas":definitions,
+    let mut doc = json!({"openapi":"3.1.0","info":{"title":"Betabook HTTP API","version":env!("CARGO_PKG_VERSION")},"paths":api.paths,"components":{"schemas":definitions,
         "responses":{"Error":{"description":"The request could not be completed","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"},"message":{"type":"string"},"code":{"type":"string"}}}}}}},
-        "securitySchemes":{"session":{"type":"apiKey","in":"cookie","name":"__Secure-better-auth.session_token"}}}}),
-    )
+        "securitySchemes":{"session":{"type":"apiKey","in":"cookie","name":"__Secure-better-auth.session_token"}}}});
+    normalize_refs(&mut doc);
+    Ok(doc)
 }
