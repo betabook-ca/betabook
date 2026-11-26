@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { useClientSession } from "@/hooks/use-client-session";
 import { localToday } from "@/lib/format-date";
@@ -58,6 +58,27 @@ function writeCache(key: string, status: YearReviewStatus) {
   }
 }
 
+/** Re-checks the date when the tab comes back and once a minute, so a page
+ * left open past Jan 14 (or past midnight into Dec 1) catches up. */
+function subscribeToClock(onChange: () => void) {
+  const interval = window.setInterval(onChange, 60_000);
+  document.addEventListener("visibilitychange", onChange);
+  return () => {
+    window.clearInterval(interval);
+    document.removeEventListener("visibilitychange", onChange);
+  };
+}
+
+/** The recap year whose window is open today, in the browser's timezone. */
+function useOpenRecapYear(alwaysOpen: boolean): number | null {
+  return useSyncExternalStore(
+    subscribeToClock,
+    () => yearReviewWindow(localToday(), alwaysOpen),
+    // The server can't know the reader's date, so nothing renders there.
+    () => null,
+  );
+}
+
 /**
  * The signed-in climber's recap status while the recap window is open, else
  * null. The date is checked in the browser first, in the climber's own
@@ -67,12 +88,11 @@ function writeCache(key: string, status: YearReviewStatus) {
 export function useYearReviewStatus(alwaysOpen: boolean): YearReviewStatus | null {
   const session = useClientSession();
   const userId = session?.user.id ?? null;
+  const year = useOpenRecapYear(alwaysOpen);
   const [status, setStatus] = useState<YearReviewStatus | null>(null);
 
   useEffect(() => {
-    if (!userId) return;
-    const year = yearReviewWindow(localToday(), alwaysOpen);
-    if (year === null) return;
+    if (!userId || year === null) return;
     const key = `${CACHE_PREFIX}:${userId}:${year}`;
     // The request is shared, so an unmounting component stops listening
     // rather than aborting it for the other.
@@ -86,7 +106,8 @@ export function useYearReviewStatus(alwaysOpen: boolean): YearReviewStatus | nul
     return () => {
       active = false;
     };
-  }, [userId, alwaysOpen]);
+  }, [userId, year]);
 
-  return status && status.userId === userId ? status : null;
+  // A status shows only for this user and while its year's window is open.
+  return status && status.userId === userId && status.year === year ? status : null;
 }

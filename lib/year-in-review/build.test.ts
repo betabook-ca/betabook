@@ -279,6 +279,13 @@ describe("new grades", () => {
     expect(steps.map((step) => step.label)).toEqual([V(7)]);
   });
 
+  it("ignores sends after the year when summing up its grades", () => {
+    const sends = [send("2026-01-05", 3), send("2026-05-01", 5), send("2027-01-10", 8)];
+    const [boulder] = build({ sends }).chapters.newGrades?.disciplines ?? [];
+    expect(boulder.steps.map((step) => step.label)).toEqual([V(5)]);
+    expect(boulder.firstYear).toEqual({ from: V(3), to: V(5) });
+  });
+
   it("starts a first year from the best of its first month", () => {
     const sends = [send("2026-01-05", 1), send("2026-01-20", 3), send("2026-05-01", 5)];
     const [boulder] = build({ sends }).chapters.newGrades?.disciplines ?? [];
@@ -339,6 +346,33 @@ describe("chapters that need data", () => {
     expect(review.chapters.gotAway?.climbs.map((climb) => climb.climbId)).toEqual([2, 3, 1]);
   });
 
+  it("gives the Wanderer the largest share of days at any one place", () => {
+    // Four days at Grand Wall, two at Lion's Head and one in Arco: Canada
+    // and Italy are roots, so the busiest place is BC with 4 of 7 days.
+    const sends = [
+      ...["2026-03-01", "2026-03-02", "2026-03-03", "2026-03-04"].map((date) =>
+        send(date, 3, { areaId: 4 }),
+      ),
+      ...["2026-04-01", "2026-04-02"].map((date) => send(date, 3, { areaId: 7 })),
+      send("2026-05-01", 3, { areaId: 9 }),
+    ];
+    const personas = build({ sends }).chapters.personas?.personas ?? [];
+    const wanderer = personas.find((persona) => persona.id === "wanderer");
+    expect(wanderer?.why).toContain("57% of the days");
+  });
+
+  it("offers a rampage quest for a discipline with only repeats", () => {
+    const review = build({
+      sends: [send("2025-03-01", 12, { climbId: 800, climbType: "sport" })],
+      sessions: [
+        session("2026-03-01", { climbId: 800, climbType: "sport", sent: true }),
+        session("2026-03-01", { climbId: 801, climbType: "sport", sent: true }),
+      ],
+    });
+    expect(review.chapters.sportRampage).toBeNull();
+    expect(review.missed.map((item) => item.id)).toContain("sport-rampage");
+  });
+
   it("puts at most three low-rated sends in not worth the pump, unrated excluded", () => {
     const sends = [1, 1, 2, 2, null, 3].map((rating, index) =>
       send(`2026-06-0${index + 1}`, 3, { rating }),
@@ -373,10 +407,13 @@ describe("personas", () => {
   });
 
   it("doesn't let volume win a persona about something else", () => {
-    const heavy = rankPersonas({ ...base, sends: 400, daysOut: 120, firstTryRate: 0.5 });
-    const light = rankPersonas({ ...base, sends: 60, firstTryRate: 0.8 });
-    const flash = (list: typeof heavy) => list.find((p) => p.id === "flash-machine")?.score ?? 0;
-    expect(flash(light)).toBeGreaterThan(flash(heavy));
+    // Every eligible persona, so neither result can drop Flash Machine.
+    const heavy = rankPersonas({ ...base, sends: 400, daysOut: 120, firstTryRate: 0.5 }, 8);
+    const light = rankPersonas({ ...base, sends: 60, firstTryRate: 0.8 }, 8);
+    const flash = (list: typeof heavy) => list.find((p) => p.id === "flash-machine");
+    expect(flash(heavy)).toBeDefined();
+    expect(flash(light)).toBeDefined();
+    expect(flash(light)?.score).toBeGreaterThan(flash(heavy)?.score ?? Infinity);
   });
 });
 

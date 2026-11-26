@@ -133,11 +133,16 @@ function relativeGrades(sends: readonly Dated<YearSendRow>[]): Map<Dated<YearSen
   const result = new Map<Dated<YearSendRow>, number>();
   for (const type of CLIMB_TYPES) {
     const group = sends.filter((send) => send.climbType === type);
-    for (const send of group) {
-      const below = group.filter((other) => other.grade < send.grade).length;
-      const equal = group.filter((other) => other.grade === send.grade).length;
-      result.set(send, ((below + equal / 2) / group.length) * 100);
+    const counts = new Map<number, number>();
+    for (const send of group) counts.set(send.grade, (counts.get(send.grade) ?? 0) + 1);
+    // Each grade's mid-rank: the sends below it plus half of its own.
+    const percentile = new Map<number, number>();
+    let below = 0;
+    for (const [grade, count] of [...counts.entries()].toSorted((a, b) => a[0] - b[0])) {
+      percentile.set(grade, ((below + count / 2) / group.length) * 100);
+      below += count;
     }
+    for (const send of group) result.set(send, percentile.get(send.grade) ?? 0);
   }
   return result;
 }
@@ -167,15 +172,16 @@ function buildCalendar(
     if (!group.length) return [];
     const top = Math.max(...group.map((send) => send.grade));
     const atTop = group.filter((send) => send.grade === top);
-    const counts = new Map<number, Dated<YearSendRow>[]>();
+    const counts = new Map<number, { count: number; first: Dated<YearSendRow> }>();
     for (const send of atTop) {
       const month = monthOf(send.dateSent);
-      counts.set(month, [...(counts.get(month) ?? []), send]);
+      const current = counts.get(month);
+      counts.set(month, { count: (current?.count ?? 0) + 1, first: current?.first ?? send });
     }
     const [month, inMonth] = [...counts.entries()].toSorted(
-      (a, b) => b[1].length - a[1].length || a[0] - b[0],
+      (a, b) => b[1].count - a[1].count || a[0] - b[0],
     )[0];
-    return [{ type, month, label: label(type, top), climbName: inMonth[0].climbName }];
+    return [{ type, month, label: label(type, top), climbName: inMonth.first.climbName }];
   });
 
   // Peak-performance weekday: each send day keeps its best relative grade,
@@ -319,8 +325,11 @@ function gradeSteps(
   ceiling: { label: string; date: string | null } | null;
 } {
   const ofType = sends.filter((send) => send.climbType === type);
+  // A later year's sends don't belong in this year's ceiling or summary.
+  const yearEnd = `${year}-12-31`;
   const dated = ofType
     .filter(isDated)
+    .filter((send) => send.dateSent <= yearEnd)
     .toSorted((a, b) => byDate(a.dateSent, b.dateSent) || a.grade - b.grade);
   const undated = ofType.filter((send) => send.dateSent == null);
   let ceiling = undated.length ? Math.max(...undated.map((send) => send.grade)) : -1;
@@ -837,7 +846,7 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
         : 0,
       siege,
       locatedDays: located.length,
-      homeShare: homeShareOf(homeTurf, located.length),
+      homeShare: busiestPlaceShare(areas, located),
       homeName: homePlace?.name ?? null,
       tripLocations: new Set(
         trips?.trips.flatMap((card) => (card.location ? [card.location.id] : [])) ?? [],
@@ -898,18 +907,30 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
     year,
     active: daysOut > 0 || yearSends.length > 0,
     chapters,
-    missed: missedChapters(chapters, { year, yearSends, stepsByType }),
+    missed: missedChapters(chapters, {
+      year,
+      yearSends,
+      stepsByType,
+      sentTypes: new Set([
+        ...yearSends.map((send) => send.climbType),
+        ...yearSessions.filter((session) => session.sent).map((session) => session.climbType),
+      ]),
+    }),
   };
 }
 
-/** The share of located days at the one busiest place. When the days are
- * spread across a root, that's its busiest child, not the root itself. */
-function homeShareOf(homeTurf: HomeTurfChapter | null, locatedDays: number): number {
-  if (!homeTurf || locatedDays === 0) return 1;
-  const days = homeTurf.spread
-    ? Math.max(0, ...homeTurf.breakdown.map((entry) => entry.days))
-    : homeTurf.days;
-  return days / locatedDays;
+/** The largest share of located days at any one place below a root (a root
+ * is a country or region, not a place). The Wanderer's "no place had more
+ * than N% of the days" reads this, so it must be the true maximum. */
+function busiestPlaceShare(areas: YearAreaMap, located: readonly number[]): number {
+  if (!located.length) return 1;
+  const days = new Map<number, number>();
+  for (const location of located) {
+    for (const id of (areas.get(location)?.path ?? []).slice(1)) {
+      days.set(id, (days.get(id) ?? 0) + 1);
+    }
+  }
+  return Math.max(0, ...days.values()) / located.length;
 }
 
 function toAnalyticsRow(send: Dated<YearSendRow>): AnalyticsSendRow {
@@ -932,20 +953,22 @@ function missedChapters(
     year: number;
     yearSends: readonly Dated<YearSendRow>[];
     stepsByType: ReadonlyMap<ClimbType, ReturnType<typeof gradeSteps>>;
+    /** Disciplines with a send or a repeat this year. */
+    sentTypes: ReadonlySet<ClimbType>;
   },
 ): MissedChapter[] {
-  const { year, yearSends } = context;
+  const { year, yearSends, sentTypes } = context;
   const missed: MissedChapter[] = [];
   const add = (id: MissedChapter["id"], hint: string, positive = false) =>
     missed.push({ id, hint, ...(positive ? { positive } : {}) });
 
   if (!chapters.calendar)
     add("calendar", "Log 6+ days to see your peak month and when you send hardest.");
-  if (!chapters.boulderRampage && chapters.intro.disciplines.includes("boulder"))
+  if (!chapters.boulderRampage && sentTypes.has("boulder"))
     add("boulder-rampage", "Send 4+ problems (repeats count) in one day for a boulder rampage.");
-  if (!chapters.sportRampage && chapters.intro.disciplines.includes("sport"))
+  if (!chapters.sportRampage && sentTypes.has("sport"))
     add("sport-rampage", "Send 4+ sport routes (repeats count) in one day for a sport rampage.");
-  if (!chapters.tradRampage && chapters.intro.disciplines.includes("trad"))
+  if (!chapters.tradRampage && sentTypes.has("trad"))
     add("trad-rampage", "Send 4+ trad routes (repeats count) in one day for a trad rampage.");
   if (!chapters.homeTurf) add("home-turf", "Log 3+ sessions to find your home crag.");
   if (!chapters.newGround)
@@ -956,7 +979,7 @@ function missedChapters(
   if (!chapters.trips)
     add(
       "trips",
-      "Add a trip in Betabook (just a name and dates) and next year's review will celebrate it.",
+      "Add a trip in Betabook (a name and dates) and log your climbing on it to see it here next year.",
     );
   if (!chapters.newGrades) {
     const main = chapters.intro.disciplines[0] ?? "boulder";

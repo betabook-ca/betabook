@@ -128,12 +128,16 @@ function main() {
   );
   const fresh = regions.filter((region) => !touched.has(region.id));
   const home = fresh[0];
-  const spring = fresh.find((region) => region.rootId !== home.rootId) ?? fresh[1];
-  const returning =
-    fresh.find(
-      (region) => region.id !== home.id && region.id !== spring.id && region.rootId !== home.rootId,
-    ) ?? fresh[2];
-  if (!home || !spring || !returning)
+  if (!home) throw new Error("Not enough untouched regions. Run `pnpm seed --force`.");
+  // Prefer other roots, but fall back to any region not already chosen, so
+  // the three places stay distinct.
+  const pickRegion = (taken: Region[]) => {
+    const open = fresh.filter((region) => !taken.some((chosen) => chosen.id === region.id));
+    return open.find((region) => region.rootId !== home.rootId) ?? open[0];
+  };
+  const spring = pickRegion([home]);
+  const returning = spring ? pickRegion([home, spring]) : undefined;
+  if (!spring || !returning)
     throw new Error("Not enough untouched regions. Run `pnpm seed --force`.");
 
   // The September seed trip at one crag gets a June visit too.
@@ -281,7 +285,7 @@ function main() {
       [boulderTop + 2, 1],
       [boulderTop + 1, 2],
       [boulderTop, 3],
-      [boulderTop - 1, 5],
+      [Math.max(0, boulderTop - 1), 5],
       [Math.max(0, boulderTop - 2), 7],
       [Math.max(0, boulderTop - 3), 9],
     ];
@@ -313,8 +317,8 @@ function main() {
     for (const [grade, count, style] of [
       [sportTop + 1, 1, "redpoint"],
       [sportTop, 2, "onsight"],
-      [sportTop - 1, 4, "flash"],
-      [sportTop - 2, 6, "redpoint"],
+      [Math.max(0, sportTop - 1), 4, "flash"],
+      [Math.max(0, sportTop - 2), 6, "redpoint"],
     ] as const) {
       for (let n = 0; n < count; n += 1) {
         const climb = take(homePool, "sport", grade);
