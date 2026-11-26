@@ -142,3 +142,28 @@ test(
     await other.close();
   },
 );
+
+test(
+  "typing from home retains the same search field across category navigation and Back",
+  { tag: ["@behavior", "@app"] },
+  async ({ page }) => {
+    await page.goto(appBaseURL);
+    const field = page.getByRole("searchbox", { name: "Search Betabook" });
+    await expect(field).toBeVisible();
+    const original = await field.elementHandle();
+    await field.pressSequentially("granite");
+    await expect(page).toHaveURL(/\/search\?.*name=granite/);
+    await expect(field).toHaveValue("granite");
+    await expect(field).toBeFocused();
+    await page.getByRole("button", { name: "Climbs", exact: true }).click();
+    await expect(page).toHaveURL(/mode=climb/);
+    await page.goBack();
+    await expect(page.getByRole("button", { name: "All", exact: true })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(field).toHaveValue("granite");
+    expect(await field.evaluate((input, previous) => input === previous, original)).toBe(true);
+    await original?.dispose();
+  },
+);

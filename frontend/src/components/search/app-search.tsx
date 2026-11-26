@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { FriendshipButton } from "@/components/friendship-button";
 import type { SuggestedClimberRow } from "@/db/queries";
@@ -18,7 +20,7 @@ import { useRouter } from "@/spa/lib/navigation";
 import { SearchController } from "./search-controller";
 
 export function AppSearch({
-  initialState: state,
+  initialState,
   initial,
   suggestions,
   viewerId,
@@ -36,10 +38,21 @@ export function AppSearch({
   memberNoticePlacement?: "results" | "top";
 }) {
   const router = useRouter();
+  // Controlled keystrokes need synchronous feedback while the router commits
+  // the URL. Category, scope and other filters always follow the location.
+  const [typing, setTyping] = useState<{ source: SearchState; query: string } | null>(null);
+  const state =
+    typing?.source === initialState ? { ...initialState, query: typing.query } : initialState;
+  useEffect(() => {
+    const restore = () => setTyping(null);
+    window.addEventListener("popstate", restore);
+    return () => window.removeEventListener("popstate", restore);
+  }, []);
   const mounted = useMounted();
   const { data: session, isPending } = authClient.useSession();
   const suggested = useClimberSuggestions(showsClimberSuggestions(state, viewerId), suggestions);
   function change(next: SearchState) {
+    setTyping(next.query !== state.query ? { source: initialState, query: next.query } : null);
     if (next.area) onAreaSelected?.(next.area);
     const href = searchHref(next);
     if (next.category !== state.category || next.area?.id !== state.area?.id)
