@@ -758,6 +758,8 @@ pub async fn dispatch_action(
         | "saveClimbListEdits" | "shareClimbList" | "unshareClimbList" | "copyClimbList" => {
             super::climb_lists::action(&state, &headers, &name, &call.args).await
         }
+        "saveTrip" | "saveTripNotes" | "deleteTrip" | "removeMyTripTag" | "shareTrip"
+        | "unshareTrip" => super::trips::action(&name, &call.args, &state, &headers).await,
         "acceptTerms" => {
             let Some(session) = resolve_optional_session(&state, &headers).await? else {
                 return Ok(action_err("Not signed in"));

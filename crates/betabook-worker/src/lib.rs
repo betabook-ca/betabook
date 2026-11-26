@@ -171,6 +171,36 @@ fn router(state: AppState) -> Router {
             get(routes::seo::member_list_html),
         )
         .route("/lists/{token}", get(routes::seo::shared_list_html))
+        .route("/users/{id}/trips", get(routes::trips::member_html))
+        .route("/users/{id}/trips/{trip}", get(routes::trips::member_html))
+        .route(
+            "/users/{id}/trips/{trip}/analytics",
+            get(routes::trips::member_html),
+        )
+        .route("/trips/{token}", get(routes::trips::shared_html))
+        .route("/trips/{token}/analytics", get(routes::trips::shared_html))
+        .route("/api/pages/users/{id}/trips", get(routes::trips::list))
+        .route(
+            "/api/pages/users/{id}/trips/{trip}",
+            get(routes::trips::detail),
+        )
+        .route(
+            "/api/pages/users/{id}/trips/{trip}/analytics",
+            get(routes::trips::detail),
+        )
+        .route(
+            "/api/pages/users/{id}/trips/{trip}/photos",
+            get(routes::trips::photos),
+        )
+        .route(
+            "/api/pages/trips/{token}/photos",
+            get(routes::trips::shared_photos),
+        )
+        .route("/api/pages/trips/{token}", get(routes::trips::shared))
+        .route(
+            "/api/pages/trips/{token}/analytics",
+            get(routes::trips::shared),
+        )
         // Page loaders for member SPA views
         .route(
             "/api/pages/feed",

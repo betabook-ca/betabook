@@ -16,3 +16,4 @@ pub mod seo;
 pub mod site;
 pub mod slug;
 pub mod terms;
+pub mod trips;

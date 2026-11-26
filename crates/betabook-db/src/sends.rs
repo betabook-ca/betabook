@@ -415,7 +415,7 @@ pub fn send_hashtag_condition(
     ))
 }
 
-fn user_send_columns(viewer_id: Option<&str>, params: &mut Vec<DbParam>) -> String {
+pub(crate) fn user_send_columns(viewer_id: Option<&str>, params: &mut Vec<DbParam>) -> String {
     let c_vis = send_comment_visible_sql(viewer_id, "sends.user_id", params);
     let v_vis = send_comment_visible_sql(viewer_id, "sends.user_id", params);
     format!(
@@ -436,7 +436,7 @@ fn user_send_columns(viewer_id: Option<&str>, params: &mut Vec<DbParam>) -> Stri
     )
 }
 
-fn row_to_user_send(row: &crate::executor::DbRow) -> Result<UserSendRow, DbError> {
+pub(crate) fn row_to_user_send(row: &crate::executor::DbRow) -> Result<UserSendRow, DbError> {
     let raw_type = row.get_string("climbType")?;
     let climb_type = ClimbType::parse(&raw_type).ok_or(DbError::Column("climbType"))?;
     let videos = parse_video_list_json(row.get_opt_string("videos")?.as_deref());

@@ -903,3 +903,19 @@ pub async fn spa_fallback(
     );
     Ok(html_response(StatusCode::OK, html))
 }
+
+pub(super) async fn trip_shell(
+    state: &AppState,
+    status: StatusCode,
+    meta: &PageMetadata,
+) -> Result<Response, ApiError> {
+    let manifest = load_spa_manifest(state).await?;
+    let preload = render_modulepreload_tags(&manifest, "routes/trips-route.tsx");
+    let html = inject_seo_into_html(&load_index_html(state).await?, meta, &[], &preload, None);
+    let mut response = html_response(status, html);
+    response.headers_mut().insert(
+        header::CACHE_CONTROL,
+        http::HeaderValue::from_static("private, no-store"),
+    );
+    Ok(response)
+}

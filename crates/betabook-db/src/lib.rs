@@ -20,3 +20,4 @@ pub mod social;
 pub mod sqlite;
 
 pub use executor::{DbError, DbExecutor, DbParam, DbRow, DbValue};
+pub mod trips;

@@ -8,3 +8,5 @@ pub mod projects;
 pub mod public_catalog;
 pub mod seo;
 pub mod static_pages;
+mod trip_album;
+pub mod trips;
