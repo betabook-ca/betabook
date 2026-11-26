@@ -4,6 +4,7 @@ import { test } from "node:test";
 import { hashPassword } from "better-auth/crypto";
 import { createTestHarness } from "wrangler";
 
+import { testGoals } from "./rust-smoke/goals.mjs";
 import { testLists } from "./rust-smoke/lists.mjs";
 import { testProjects } from "./rust-smoke/projects.mjs";
 import { testTrips } from "./rust-smoke/trips.mjs";
@@ -91,6 +92,7 @@ void test("Rust Worker HTTP flows", async (t) => {
     assert.equal(download.status, 200);
     assert.equal(await download.text(), catalog);
   });
+  await t.test("goals", () => testGoals({ server, db: DB, signIn }));
   await t.test("climb lists", () => testLists({ server, db: DB, signIn }));
   await t.test("projects", () => testProjects({ server, db: DB, signIn }));
   await t.test("trips", () => testTrips({ server, db: DB, signIn }));
