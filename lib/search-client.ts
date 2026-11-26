@@ -17,7 +17,12 @@ export const fetchSearchPage: SearchFetcher = async (state, kind, page, signal) 
   });
   params.set("page", String(page));
   if (kind === "climber") params.set("offset", String((page - 1) * 20));
-  const options = { query: params, signal, sessionEvents: true };
+  const options = {
+    query: params,
+    signal,
+    sessionEvents: true,
+    errorMessage: "Search unavailable",
+  };
   if (kind === "climb") {
     const data = await fetchApi("/api/search/climbs", options);
     return { items: climbSearchItems(data), hasMore: data.hasNextPage, nextPage: page + 1 };
@@ -34,7 +39,12 @@ export const fetchPublicSearchPage: SearchFetcher = async (state, kind, page, si
   if (kind === "climber") throw new AuthenticationRequiredError();
   const params = publicSearchParams(state, kind);
   params.set("page", String(page));
-  const options = { query: params, signal, sessionEvents: true };
+  const options = {
+    query: params,
+    signal,
+    sessionEvents: true,
+    errorMessage: "Search unavailable",
+  };
   if (kind === "climb") {
     const data = await fetchApi("/api/public/search/climbs", options);
     return { items: publicClimbSearchItems(data), hasMore: data.hasNextPage, nextPage: page + 1 };

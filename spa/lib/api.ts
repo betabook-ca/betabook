@@ -31,6 +31,7 @@ type GetOptions<P extends AnyGetPath> = (paths[P] extends {
   signal?: AbortSignal;
   cache?: RequestCache;
   sessionEvents?: boolean;
+  errorMessage?: string;
 };
 
 export function apiUrl<P extends AnyGetPath>(template: P, options: GetOptions<P>): string {
@@ -62,5 +63,6 @@ export function fetchApi<P extends GetPath>(
       cache: options.cache,
     },
     options.sessionEvents ? apiFetch : fetch,
+    options.errorMessage,
   );
 }

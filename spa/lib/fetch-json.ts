@@ -12,6 +12,7 @@ export async function fetchJson<T>(
   url: string,
   init?: RequestInit,
   transport: typeof fetch = fetch,
+  errorMessage?: string,
 ): Promise<T> {
   const response = await transport(url, {
     credentials: "same-origin",
@@ -22,7 +23,7 @@ export async function fetchJson<T>(
   }
   const payload = await response.json<{ error?: string; message?: string }>().catch(() => null);
   const err = new Error(
-    payload?.message ?? payload?.error ?? `Request failed (${response.status})`,
+    errorMessage ?? payload?.message ?? payload?.error ?? `Request failed (${response.status})`,
   );
   (err as Error & { status?: number }).status = response.status;
   throw err;

@@ -24,6 +24,7 @@ use serde_json::json;
 
 use super::ApiSpec;
 use crate::auth::routes::*;
+use crate::routes::import_sources::KayaAscent;
 
 macro_rules! envelope {
     ($name:ident { $($field:ident : $ty:ty),* $(,)? })=>{
@@ -171,33 +172,6 @@ enum KayaStreamEvent {
         error: String,
     },
 }
-envelope!(KayaLabel{name:Option<String>});
-envelope!(KayaDiscipline {
-    id: String,
-    name: String
-});
-#[derive(JsonSchema)]
-struct KayaClimb {
-    id: Option<String>,
-    name: Option<String>,
-    climb_type: Option<KayaDiscipline>,
-    grade: Option<KayaLabel>,
-    gym: Option<KayaLabel>,
-    board: Option<KayaLabel>,
-    destination: Option<KayaLabel>,
-    area: Option<KayaLabel>,
-}
-#[derive(JsonSchema)]
-struct KayaAscent {
-    id: Option<String>,
-    date: Option<String>,
-    comment: Option<String>,
-    rating: Option<f64>,
-    stiffness: Option<f64>,
-    grade: Option<KayaLabel>,
-    climb: Option<KayaClimb>,
-}
-
 fn redirect(api: &mut ApiSpec, path: &str, id: &str) {
     api.operation(path,"get",json!({"operationId":id,"responses":{
         "302":{"description":"Return the browser to the validated application callback",
@@ -488,4 +462,81 @@ pub(super) fn register(api: &mut ApiSpec) {
         json!({"type":"string"}),
         true,
     );
+    describe_auth_headers(api);
+}
+
+fn describe_auth_headers(api: &mut ApiSpec) {
+    const PATHS: &[(&str, &str)] = &[
+        ("/api/auth/get-session", "get"),
+        ("/api/auth/verify-email", "get"),
+        ("/api/auth/reset-password/{token}", "get"),
+        ("/api/auth/callback/google", "get"),
+        ("/api/auth/sign-up/email", "post"),
+        ("/api/auth/sign-in/email", "post"),
+        ("/api/auth/sign-in/social", "post"),
+        ("/api/auth/request-password-reset", "post"),
+        ("/api/auth/reset-password", "post"),
+        ("/api/auth/send-verification-email", "post"),
+        ("/api/auth/sign-out", "post"),
+        ("/api/auth/delete-user", "post"),
+    ];
+    for &(path, method) in PATHS {
+        let operation = &mut api.paths[path][method];
+        let parameters = operation["parameters"]
+            .as_array_mut()
+            .expect("registered auth operation");
+        if method == "post" {
+            parameters.push(json!({"in":"header","name":"Origin","required":false,"schema":{"type":"string"},
+                "description":"Browser writes with cookies or Fetch Metadata must supply a trusted Origin or Referer."}));
+            parameters.push(json!({"in":"header","name":"Referer","required":false,"schema":{"type":"string","format":"uri"},"description":"Used for the origin check when Origin is absent."}));
+        }
+        if matches!(
+            path,
+            "/api/auth/sign-up/email"
+                | "/api/auth/sign-in/email"
+                | "/api/auth/request-password-reset"
+        ) {
+            parameters.push(json!({"in":"header","name":"X-Captcha-Response","required":false,"schema":{"type":"string"},
+                "description":"Turnstile token when the deployment enables CAPTCHA; captchaToken in the JSON body is also supported."}));
+        }
+        operation["responses"]["429"] = json!({
+            "description":"Production authentication rate limit reached",
+            "headers":{"X-Retry-After":{"schema":{"type":"integer","minimum":1}},"Retry-After":{"schema":{"type":"integer","minimum":1}}},
+            "content":{"application/json":{"schema":{"type":"object","required":["message"],"properties":{"message":{"type":"string"}}}}}
+        });
+        if matches!(
+            path,
+            "/api/auth/get-session"
+                | "/api/auth/sign-in/email"
+                | "/api/auth/sign-in/social"
+                | "/api/auth/sign-out"
+                | "/api/auth/delete-user"
+        ) {
+            operation["responses"]["200"]["headers"]["Set-Cookie"] = json!({"schema":{"type":"string"},"description":"Creates, refreshes or clears an HTTP-only session or OAuth state cookie, as applicable."});
+        }
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::super::document;
+    #[test]
+    fn describes_conditionally_required_auth_headers_and_sparse_upstream_rows() {
+        let spec = document(false).expect("document");
+        let login = &spec["paths"]["/api/auth/sign-in/email"]["post"];
+        assert!(
+            login["parameters"]
+                .as_array()
+                .expect("headers")
+                .iter()
+                .any(|p| p["name"] == "X-Captcha-Response")
+        );
+        assert!(login["responses"]["429"]["headers"]["X-Retry-After"].is_object());
+        assert!(spec["paths"]["/api/auth/get-session"]["get"]["responses"]["200"]["headers"]["Set-Cookie"].is_object());
+        let row = &spec["components"]["schemas"]["KayaAscent"];
+        assert!(row["properties"]["id"].is_object());
+        assert!(
+            row.get("required")
+                .is_none_or(|v| v.as_array().is_some_and(Vec::is_empty))
+        );
+    }
 }
