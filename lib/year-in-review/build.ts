@@ -907,7 +907,6 @@ export function buildYearInReview(input: YearReviewInput, prefs: GradePreference
             top: pyramidRows[0].count,
             base: pyramidRows.at(-1)?.count ?? 0,
             shape: pairs.length ? pairs.filter(Boolean).length / pairs.length : 0,
-            counts: pyramidRows.map((row) => row.count),
             from: pyramidRows.at(-1)?.label ?? "",
             to: pyramidRows[0].label,
             sends: pyramidPick.sends,
@@ -1012,24 +1011,21 @@ function missedChapters(
     missed.push({ id, hint, ...(positive ? { positive } : {}) });
 
   if (!chapters.calendar)
-    add("calendar", "Log 6+ days to see your peak month and when you send hardest.");
+    add("calendar", "Log 6 days out to see your busiest month and your best day of the week.");
   if (!chapters.boulderRampage && sentTypes.has("boulder"))
-    add("boulder-rampage", "Send 4+ problems (repeats count) in one day for a boulder rampage.");
+    add("boulder-rampage", "Send 4 problems in one day, repeats included, for a boulder rampage.");
   if (!chapters.sportRampage && sentTypes.has("sport"))
-    add("sport-rampage", "Send 4+ sport routes (repeats count) in one day for a sport rampage.");
+    add("sport-rampage", "Send 4 sport routes in one day, repeats included, for a sport rampage.");
   if (!chapters.tradRampage && sentTypes.has("trad"))
-    add("trad-rampage", "Send 4+ trad routes (repeats count) in one day for a trad rampage.");
-  if (!chapters.homeTurf) add("home-turf", "Log 3+ sessions to find your home crag.");
+    add("trad-rampage", "Send 4 trad routes in one day, repeats included, for a trad rampage.");
+  if (!chapters.homeTurf) add("home-turf", "Log 3 days out to find your home crag.");
   if (!chapters.newGround)
     add(
       "new-ground",
-      `Every place you climbed in ${year} was one you'd been before. Try somewhere new next year.`,
+      `In ${year} you climbed only at places you already knew. Try somewhere new next year.`,
     );
   if (!chapters.trips)
-    add(
-      "trips",
-      "Add a trip in Betabook (a name and dates) and log your climbing on it to see it here next year.",
-    );
+    add("trips", "Add your next trip to Betabook and log your climbing on it to see it here.");
   if (!chapters.newGrades) {
     const main = chapters.intro.disciplines[0] ?? "boulder";
     const ceiling = context.stepsByType.get(main)?.ceiling;
@@ -1041,26 +1037,23 @@ function missedChapters(
     );
   }
   if (!chapters.flashes)
-    add(
-      "flashes",
-      `No flashes in ${year}. Log the style on your sends so first-try ascents count.`,
-    );
+    add("flashes", `No flashes in ${year}. Mark your first-try sends as flashes so they count.`);
   if (!chapters.onsights && chapters.intro.disciplines.some((type) => type !== "boulder"))
     add(
       "onsights",
       `No onsights in ${year}. Try a route you've never seen, and log it as an onsight.`,
     );
-  if (!chapters.styles)
-    add("styles", "Log 5+ sends with their style to unlock your send breakdown.");
-  if (!chapters.partner) add("partner", "Tag friends on your journal sessions to find your crew.");
+  if (!chapters.styles) add("styles", "Log the style on 5 sends to see how you sent them.");
+  if (!chapters.partner)
+    add("partner", "Tag friends on your sessions to find your favourite partner.");
   if (!chapters.gotAway)
-    add("got-away", "No unfinished projects. You sent everything you tried twice.", true);
+    add("got-away", "No unfinished projects. You sent everything you came back to.", true);
   if (!chapters.notWorthThePump) {
     const rated = yearSends.filter((send) => send.rating != null).length;
     if (rated >= YEAR_THRESHOLDS.pumpRatedForPraise)
       add("not-worth-the-pump", "Nothing rated below 3★. Every send was a keeper.", true);
-    else add("not-worth-the-pump", "Rate your sends (1–5★) to find the ones not worth the pump.");
+    else add("not-worth-the-pump", "Rate your sends to find the ones that weren't worth the pump.");
   }
-  if (!chapters.personas) add("personas", `Log 6+ days to earn your ${year} personas.`);
+  if (!chapters.personas) add("personas", `Log 6 days out to earn your ${year} personas.`);
   return missed;
 }

@@ -22,7 +22,6 @@ export type PersonaMetrics = {
     top: number;
     /** Fraction of adjacent tiers where the lower grade has at least as many sends. */
     shape: number;
-    counts: number[];
     from: string;
     to: string;
     sends: number;
@@ -97,7 +96,9 @@ function typicalDayWhy(day: NonNullable<PersonaMetrics["typicalDay"]>): string {
     day.boulders ? plural(day.boulders, "problem") : "",
     day.routes ? plural(day.routes, "route") : "",
   ].filter(Boolean);
-  return `A typical day out: ${parts.join(" and ") || "no sends"}, across ${plural(day.days, "day")}`;
+  return parts.length
+    ? `A typical day out meant ${parts.join(" and ")} sent, over ${plural(day.days, "day")} out`
+    : `A typical day out had no sends, over ${plural(day.days, "day")} out`;
 }
 
 function candidates(m: PersonaMetrics): Candidate[] {
@@ -115,14 +116,14 @@ function candidates(m: PersonaMetrics): Candidate[] {
     list.push({
       id: "flash-machine",
       raw: cap(m.firstTryRate / 0.75),
-      why: `${percent(m.firstTryRate)} of ${plural(m.sends, "send")} went first try`,
+      why: `${percent(m.firstTryRate)} of ${plural(m.sends, "send")} went on the first try`,
     });
   }
   if (m.siege && m.siege.sessions >= 2) {
     list.push({
       id: "siege-mentality",
       raw: Math.sqrt(cap(m.siege.sessions / 5) * cap(30 / Math.max(m.sends, 1))),
-      why: `${plural(m.siege.sessions, "session")} on ${m.siege.climbName}`,
+      why: `Kept coming back to ${m.siege.climbName}: ${plural(m.siege.sessions, "session")}`,
     });
   }
   if (m.locatedDays >= 6) {
@@ -130,7 +131,12 @@ function candidates(m: PersonaMetrics): Candidate[] {
     list.push({
       id: "wanderer",
       raw: Math.sqrt(cap((1 - m.homeShare) / 0.6) * reach),
-      why: `${plural(m.tripLocations, "trip destination")}, ${plural(m.newClimbs, "new climb")}, and no place had more than ${percent(m.homeShare)} of the days`,
+      why: `${[
+        m.tripLocations ? plural(m.tripLocations, "trip destination") : "",
+        plural(m.newClimbs, "new climb"),
+      ]
+        .filter(Boolean)
+        .join(" and ")}, with no crag taking more than ${percent(m.homeShare)} of the days out`,
     });
   }
   if (m.pyramid) {
@@ -138,7 +144,7 @@ function candidates(m: PersonaMetrics): Candidate[] {
     list.push({
       id: "pyramid-builder",
       raw: geometricMean([cap(p.tiers / 4), cap(p.base / Math.max(p.top, 1) / 3), p.shape]),
-      why: `Pyramid from ${p.from} to ${p.to}: ${p.counts.join(", ")}`,
+      why: `Built from ${plural(p.base, "send")} at ${p.from} up to ${p.top} at ${p.to}`,
     });
   }
   if (m.repeats >= 10) {
@@ -146,14 +152,14 @@ function candidates(m: PersonaMetrics): Candidate[] {
     list.push({
       id: "circuit-repeater",
       raw: cap(share / 0.3),
-      why: `${plural(m.repeats, "repeat")}, dialling in a favourite circuit`,
+      why: `${plural(m.repeats, "repeat")} of climbs already sent`,
     });
   }
   if (m.bestWindow && m.sends >= 25) {
     list.push({
       id: "seasonal-sprinter",
       raw: cap(m.bestWindow.share / 0.65),
-      why: `${percent(m.bestWindow.share)} of sends happened between ${m.bestWindow.from} and ${m.bestWindow.to}`,
+      why: `${percent(m.bestWindow.share)} of the year's sends came between ${m.bestWindow.from} and ${m.bestWindow.to}`,
     });
   }
   // All three disciplines, as close to a third each as possible.
@@ -164,9 +170,9 @@ function candidates(m: PersonaMetrics): Candidate[] {
     list.push({
       id: "all-rounder",
       raw: cap((ALL_ROUNDER_ZERO_SPREAD - spread) / ALL_ROUNDER_SPREAD_STEP),
-      why: `${m.disciplineShares
+      why: `${plural(m.sends, "send")}, split ${m.disciplineShares
         .map(({ type, share }) => `${percent(share)} ${DISCIPLINE_NAMES[type]}`)
-        .join(", ")} across ${plural(m.sends, "send")}`,
+        .join(", ")}`,
     });
   }
   return list;

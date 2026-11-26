@@ -26,6 +26,12 @@ import {
 } from "@/lib/year-in-review";
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
+/** 1st, 2nd, 3rd, 4th … 11th, 12th, 13th, 21st. */
+function ordinal(value: number): string {
+  const teen = value % 100 >= 11 && value % 100 <= 13;
+  const suffix = teen ? "th" : (["th", "st", "nd", "rd"][value % 10] ?? "th");
+  return `${value}${suffix}`;
+}
 const MONTH_LABELS = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
 
 type YearReviewStoryMode =
@@ -247,7 +253,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
         />
       ) : (
         <>
-          <Nudge>Nothing logged in {year} yet.</Nudge>
+          <Nudge>No climbing logged in {year} yet.</Nudge>
           {logLink("Log a session")}
         </>
       ),
@@ -298,7 +304,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
             />
           </div>
           <div className={clsx("flex flex-col gap-2", cardClass("sm", "bordered"))}>
-            <span className={EYEBROW_CLASS}>Highlight month</span>
+            <span className={EYEBROW_CLASS}>Hardest send</span>
             {hardestMonths.map((entry) => (
               <p key={entry.type}>
                 <span className="font-display text-2xl font-semibold">
@@ -311,15 +317,15 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
             ))}
           </div>
           <div className={clsx("flex flex-col gap-2", cardClass("sm", "bordered"))}>
-            <span className={EYEBROW_CLASS}>Weekday Peak</span>
+            <span className={EYEBROW_CLASS}>Best day of the week</span>
             {weekday ? (
               <>
                 <p className="font-display text-3xl font-semibold">
                   {weekday.best.map((day) => `${WEEKDAY_NAMES[day]}s`).join(" & ")}
                 </p>
                 <p className="text-sm">
-                  {weekday.best.map((day) => `${WEEKDAY_NAMES[day]}s`).join(" and ")} are when{" "}
-                  {owner ? "you climb your best" : `${ownerName} climbs best`}.
+                  {owner ? "You climb" : `${ownerName} climbs`} hardest on{" "}
+                  {weekday.best.map((day) => `${WEEKDAY_NAMES[day]}s`).join(" and ")}.
                 </p>
                 {weekday.ranked.filter((entry) => !weekday.best.includes(entry.weekday)).length >
                   0 && (
@@ -345,8 +351,8 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
                 )}
               </>
             ) : (
-              (nudge("Log sends on more weekdays to see when you climb your best.") ?? (
-                <p className="text-sm text-muted">Not enough send days yet.</p>
+              (nudge("Send on more days of the week to see when you climb hardest.") ?? (
+                <p className="text-sm text-muted">Not enough days with a send to tell yet.</p>
               ))
             )}
           </div>
@@ -375,7 +381,9 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
         turf.spread ? `${owner ? "You" : ownerName} got around` : `${whose} home crag`,
         <>
           {turf.spread ? (
-            <p className="text-lg">No single place held most of the year&apos;s days.</p>
+            <p className="text-lg">
+              {owner ? "You" : ownerName} spread the year around instead of settling on one crag.
+            </p>
           ) : (
             <p className="flex flex-col gap-1">
               <span className="font-display text-5xl font-semibold">{turf.place.name}</span>
@@ -384,8 +392,8 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
           )}
           <p className="text-sm">
             {turf.spread
-              ? `${plural(turf.totalDays, "day")} across ${turf.place.name}.`
-              : `${turf.days} of ${turf.totalDays} days · ${plural(turf.sends, "send")} there.`}
+              ? `${plural(turf.totalDays, "day")} out around ${turf.place.name}.`
+              : `${turf.days} of ${turf.totalDays} days out were here, with ${plural(turf.sends, "send")}.`}
           </p>
           {turf.breakdown.length > 0 && (
             <ul className="flex flex-col gap-1 text-sm">
@@ -425,7 +433,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
                     <span className="font-medium">{place.name}</span>
                     <span className="truncate text-xs text-muted">
                       {place.trail.slice(0, -1).join(" › ")}
-                      {place.trail.length > 1 ? " · " : ""}first visit {formatDate(date)}
+                      {place.trail.length > 1 ? " · " : ""}first day {formatDate(date)}
                     </span>
                   </span>
                   <span className="shrink-0 tabular-nums">{plural(days, "day")}</span>
@@ -456,7 +464,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
             },
             trips.returnTrip && {
               key: "return",
-              title: `Back to ${trips.returnTrip.trip.location?.name ?? "a favourite"} · trip #${trips.returnTrip.visit} there, first in ${trips.returnTrip.firstYear}`,
+              title: `Back to ${trips.returnTrip.trip.location?.name ?? "a favourite"} · ${ordinal(trips.returnTrip.visit)} trip there since ${trips.returnTrip.firstYear}`,
               cards: [trips.returnTrip.trip],
             },
             ...trips.repeatedPlaces.map((group) => ({
@@ -488,7 +496,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
               <DisciplineChip type={type} />
               {firstYear && (
                 <p className="text-sm">
-                  {whose} first year of {DISCIPLINE_NAMES[type]}: from {firstYear.from} to{" "}
+                  {whose} first year of {DISCIPLINE_NAMES[type]} went from {firstYear.from} to{" "}
                   {firstYear.to}.
                 </p>
               )}
@@ -508,8 +516,8 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
                     {step.waitDays != null && (
                       <span className="text-xs text-muted">
                         {step.waitDays < 45
-                          ? `${plural(step.waitDays, "day")} after the last step up`
-                          : `${plural(Math.round(step.waitDays / 30.4), "month")} after the last step up`}
+                          ? `${plural(step.waitDays, "day")} after the previous new grade`
+                          : `${plural(Math.round(step.waitDays / 30.4), "month")} after the previous new grade`}
                       </span>
                     )}
                   </li>
@@ -533,8 +541,9 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
           <Nudge>No sends logged in {year}.</Nudge>
           {owner && c.hardest.undated > 0 && (
             <Nudge>
-              {plural(c.hardest.undated, "send")} {c.hardest.undated === 1 ? "has" : "have"} no date
-              and aren&apos;t counted. Add dates to include them.
+              {plural(c.hardest.undated, "send")} {c.hardest.undated === 1 ? "has" : "have"} no
+              date, so {c.hardest.undated === 1 ? "it isn't" : "they aren't"} in this year. Add the
+              date to count {c.hardest.undated === 1 ? "it" : "them"}.
             </Nudge>
           )}
           {owner && (
@@ -703,8 +712,8 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
                 <span className="font-display text-xl text-muted">{climb.label}</span>
               </span>
               <span className="text-sm text-muted">
-                {plural(climb.sessions, "session")}, from {formatDate(climb.first)} to{" "}
-                {formatDate(climb.last)}
+                {plural(climb.sessions, "session")} between {formatDate(climb.first)} and{" "}
+                {formatDate(climb.last)}, still unsent
               </span>
             </li>
           ))}
@@ -737,8 +746,8 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
               <PlaceTrail place={climb.place} />
               {climb.othersAverage != null && (
                 <span className="text-xs text-muted">
-                  {owner ? "You" : ownerName}: {climb.rating}★ · Everyone else:{" "}
-                  {climb.othersAverage.toFixed(1)}★
+                  {owner ? "You" : ownerName} gave it {climb.rating}★. Everyone else averages{" "}
+                  {climb.othersAverage.toFixed(1)}★.
                 </span>
               )}
               {climb.comment && (
@@ -772,7 +781,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
                   key={persona.id}
                   className={clsx("flex flex-col gap-1", cardClass("sm", "bordered"))}
                 >
-                  <span className={EYEBROW_CLASS}>#{index + 2} · with a side of</span>
+                  <span className={EYEBROW_CLASS}>#{index + 2} · with a bit of</span>
                   <p className="font-display text-2xl font-semibold">{persona.name}</p>
                   <p className="text-sm text-muted">{persona.why}</p>
                 </div>

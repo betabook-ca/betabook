@@ -462,7 +462,7 @@ describe("personas", () => {
     const personas =
       build({ sends, sessions: [repeat, ...rest] }).chapters.personas?.personas ?? [];
     expect(personas.find((p) => p.id === "volume-fiend")?.why).toBe(
-      "A typical day out: 3 routes, across 7 days",
+      "A typical day out meant 3 routes sent, over 7 days out",
     );
   });
 
@@ -474,7 +474,9 @@ describe("personas", () => {
     const season = fiend({ sends: 900, typicalDay: { boulders: 2, routes: 0, days: 120 } });
     const steady = fiend({ sends: 40, typicalDay: { boulders: 6, routes: 1, days: 8 } });
     expect(steady?.score).toBeGreaterThan(season?.score ?? Infinity);
-    expect(steady?.why).toBe("A typical day out: 6 problems and 1 route, across 8 days");
+    expect(steady?.why).toBe(
+      "A typical day out meant 6 problems and 1 route sent, over 8 days out",
+    );
     // Six routes count as much as eight problems.
     expect(fiend({ typicalDay: { boulders: 0, routes: 6, days: 8 } })?.score).toBe(
       fiend({ typicalDay: { boulders: 8, routes: 0, days: 8 } })?.score,
