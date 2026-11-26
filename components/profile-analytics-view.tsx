@@ -34,15 +34,15 @@ function analyticsHref(
   return `/users/${userId}/analytics?${query}`;
 }
 
-type FilterProps = { tags: string[]; selectedTags: string[]; isOwner: boolean };
+type FilterProps = { tags: string[]; selectedTags: string[]; isOwner: boolean; pending?: boolean };
 
-export function EmptyProfileAnalytics({ tags, selectedTags, isOwner }: FilterProps) {
+export function EmptyProfileAnalytics({ tags, selectedTags, isOwner, pending }: FilterProps) {
   return (
     <NavigationPendingProvider>
       <div className="flex min-w-0 flex-col gap-6">
         <SectionHeading className="sr-only">Analytics</SectionHeading>
         <AnalyticsHashtagFilter selectedTags={selectedTags} tags={tags} />
-        <NavigationPendingRegion>
+        <NavigationPendingRegion pending={pending}>
           <EmptyState
             message={
               selectedTags.length > 0 ? "Nothing matches these tags." : "No sends or sessions yet."
@@ -65,6 +65,7 @@ export function EmptyProfileAnalytics({ tags, selectedTags, isOwner }: FilterPro
 }
 
 export function ProfileAnalyticsDashboard({
+  pending,
   userId: id,
   viewerId,
   scope,
@@ -116,7 +117,7 @@ export function ProfileAnalyticsDashboard({
       {/* The provider links the tag filter's in-flight navigation to the
        * dashboard it is about to replace, which dims while pending. */}
       <NavigationPendingProvider>
-        <NavigationPendingRegion>
+        <NavigationPendingRegion pending={pending}>
           <AnalyticsDashboard
             summary={summary}
             key={id}

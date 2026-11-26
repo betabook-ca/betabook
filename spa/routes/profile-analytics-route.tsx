@@ -56,9 +56,11 @@ export default function ProfileAnalyticsRoute({ viewerId }: { viewerId: string |
     tags.map((tag): [string, string] => ["tag", tag]),
   ).toString();
   const url = "/api/pages/users/" + encodeURIComponent(id ?? "") + "/analytics?" + tagQuery;
-  const key = JSON.stringify([url, viewerId, refresh]);
+  // Only a tag change may keep a previous result visible while the next one loads.
+  const identity = JSON.stringify([id, viewerId, refresh]);
   const [result, setResult] = useState<
-    { key: string; data: AnalyticsPayload } | { key: string; error: string }
+    | { identity: string; url: string; data: AnalyticsPayload }
+    | { identity: string; url: string; error: string }
   >();
   useEffect(() => {
     if (!viewerId) return;
@@ -66,20 +68,22 @@ export default function ProfileAnalyticsRoute({ viewerId }: { viewerId: string |
     async function load() {
       try {
         const data = await fetchJson<AnalyticsPayload>(url, { signal: controller.signal });
-        if (!controller.signal.aborted) setResult({ key, data });
+        if (!controller.signal.aborted) setResult({ identity, url, data });
       } catch (cause) {
         if (!controller.signal.aborted)
           setResult({
-            key,
+            identity,
+            url,
             error: isNotFoundError(cause) ? "Climber not found" : "Could not load analytics.",
           });
       }
     }
     void load();
     return () => controller.abort();
-  }, [key, url, viewerId]);
+  }, [identity, url, viewerId]);
   if (!viewerId) return <CurrentPageAuthCallout />;
-  if (result?.key !== key) return <AnalyticsLoading />;
+  if (result?.identity !== identity || ("error" in result && result.url !== url))
+    return <AnalyticsLoading />;
   if ("error" in result) return <p role="alert">{result.error}</p>;
   const { header, rows, highlightSessions, overview } = result.data;
   const journalSessions = sessionCounts(highlightSessions);
@@ -89,7 +93,12 @@ export default function ProfileAnalyticsRoute({ viewerId }: { viewerId: string |
     sessions: journalSessions,
     requested: parseDisciplineScope(disciplines.length === 1 ? disciplines[0] : undefined),
   });
-  const common = { tags: result.data.tags, selectedTags: tags, isOwner: header.isOwner };
+  const common = {
+    tags: result.data.tags,
+    selectedTags: tags,
+    isOwner: header.isOwner,
+    pending: result.url !== url,
+  };
   const announcements = result.data.showAnnouncement
     ? getAnnouncementCandidates([ANALYTICS_CUSTOMIZE_ANNOUNCEMENT], {
         userCreatedAt: new Date(result.data.viewerCreatedAt),
