@@ -5,8 +5,9 @@ import type { Database } from "@/db/client";
 import { shareLinkLiveSql, shareLinkReadableSql } from "./share-links";
 
 /** Why a year link did not resolve. `hidden` covers "no such token" and "the
- * owner went private" alike. An expired link names its owner and year so the
- * owner can be sent to their own recap to renew it. */
+ * owner went private" alike. An expired link (its deadline passed, or its
+ * year is no longer the recap year) names its owner and year so the owner
+ * can be sent to their own recap. */
 export type SharedYearReviewAccess =
   | { status: "hidden" }
   | { status: "expired"; ownerId: string; year: number }
@@ -16,6 +17,16 @@ export type SharedYearReviewAccess =
       year: number;
     };
 
+/** The recap year as of now, in UTC: last year until March 1, then this
+ * year. The same rollover as `recapYear` in lib/year-in-review/window.ts,
+ * read from the database clock so every viewer agrees on it. */
+const recapYearSql = sql`(CAST(strftime('%Y', 'now') AS INTEGER)
+  - (CASE WHEN CAST(strftime('%m', 'now') AS INTEGER) < 3 THEN 1 ELSE 0 END))`;
+
+/** A year link is readable like any share link, and only while its year is
+ * still the recap year: every link expires when the year changes over. */
+const yearLinkReadableSql = sql`${shareLinkReadableSql} AND link.year = ${recapYearSql}`;
+
 /** True when `token` is a live link of the climber in `ownerColumn`. Every
  * read of a shared recap's rows puts this in its WHERE. */
 export function yearLinkCoversSql(token: string, ownerColumn: SQL): SQL {
@@ -23,7 +34,7 @@ export function yearLinkCoversSql(token: string, ownerColumn: SQL): SQL {
     SELECT 1 FROM year_review_share_links link
     JOIN user share_owner ON share_owner.id = link.user_id
     WHERE link.token = ${token} AND link.user_id = ${ownerColumn}
-      AND ${shareLinkReadableSql}
+      AND ${yearLinkReadableSql}
   )`;
 }
 
@@ -40,7 +51,7 @@ export async function getSharedYearReview(
     ownerImage: string | null;
     year: number;
   }>(sql`
-    SELECT (${shareLinkReadableSql}) AS readable, share_owner.is_private AS ownerIsPrivate,
+    SELECT (${yearLinkReadableSql}) AS readable, share_owner.is_private AS ownerIsPrivate,
       share_owner.id AS ownerId, share_owner.name AS ownerName,
       share_owner.image AS ownerImage, link.year AS year
     FROM year_review_share_links link
@@ -69,8 +80,8 @@ export async function getYearReviewShareForOwner(
 ): Promise<{ token: string; expiresAt: string | null } | null> {
   const row = await db.get<{ token: string; expiresAt: string | null }>(sql`
     SELECT token, expires_at AS expiresAt
-    FROM year_review_share_links WHERE user_id = ${ownerId} AND year = ${year}
-      AND ${shareLinkLiveSql(sql`expires_at`)}
+    FROM year_review_share_links link WHERE user_id = ${ownerId} AND year = ${year}
+      AND ${shareLinkLiveSql(sql`expires_at`)} AND link.year = ${recapYearSql}
   `);
   return row ?? null;
 }

@@ -39,7 +39,8 @@ async function requireShareableYear(year: unknown): Promise<number> {
 }
 
 /** Publishes one year's recap behind a link, or resets the clock on a link
- * that already exists. Renewing a live link keeps the token; sharing again
+ * that already exists. Every link expires by March 1 of the next year, when
+ * the page moves on to that year. Renewing a live link keeps the token; sharing again
  * after it expired makes a new one, so a link the owner let lapse stays dead.
  * The private-profile check is a condition on the INSERT, as in `shareTrip`,
  * so a link can't be written in the moment the profile closes. */
@@ -53,11 +54,21 @@ export async function shareYearReview(
     const modifier = shareExpiryModifier(parseShareExpiry(expiry));
     if (!(await allowJournalWrite(user.id))) throw new ActionError(JOURNAL_RATE_LIMIT_MESSAGE);
 
+    // A string, not arithmetic in SQL: D1 can bind a number as a real, and
+    // "2027.0-03-01" is not a date.
+    const rollover = `${recapYear + 1}-03-01`;
     const db = await getDb();
     const [shared] = await db.all<{ token: string; expiresAt: string | null }>(sql`
       INSERT INTO year_review_share_links (user_id, year, expires_at)
       SELECT u.id, ${recapYear},
-             ${modifier === null ? sql`NULL` : sql`datetime('now', ${modifier})`}
+             -- Never later than the rollover (March 1 UTC of the next year),
+             -- when the page moves on and the link stops anyway; storing it
+             -- lets the dialog show the real deadline.
+             ${
+               modifier === null
+                 ? sql`datetime(${rollover})`
+                 : sql`min(datetime('now', ${modifier}), datetime(${rollover}))`
+             }
       FROM user u
       WHERE u.id = ${user.id} AND u.is_private = 0
       ON CONFLICT (user_id, year) DO UPDATE SET

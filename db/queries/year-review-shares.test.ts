@@ -4,6 +4,7 @@ import { beforeEach, expect, it } from "vitest";
 
 import { createDb } from "@/db/client";
 import { user, yearReviewShareLinks } from "@/db/schema";
+import { recapYear } from "@/lib/year-in-review";
 import { seedFixtureSend, seedFixtureTree, seedFixtureUser } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
 
@@ -11,18 +12,20 @@ import { getYearReviewData } from "./year-in-review";
 import { getSharedYearReview, getYearReviewShareForOwner } from "./year-review-shares";
 
 const db = createDb(env.DB);
+/** The recap year today (UTC), so the tests hold whenever they run. */
+const YEAR = recapYear(new Date().toISOString().slice(0, 10));
 
 beforeEach(async () => {
   await resetDb(db);
   await seedFixtureTree(db);
   await seedFixtureUser(db, { id: "owner", name: "Share Owner" });
-  await seedFixtureSend(db, { userId: "owner", climbId: 1, dateSent: "2026-05-01" });
+  await seedFixtureSend(db, { userId: "owner", climbId: 1, dateSent: `${YEAR}-05-01` });
 });
 
-async function share(expiresAt: string | null = null) {
+async function share(expiresAt: string | null = null, year = YEAR) {
   const [row] = await db
     .insert(yearReviewShareLinks)
-    .values({ userId: "owner", year: 2026, expiresAt })
+    .values({ userId: "owner", year, expiresAt })
     .returning({ token: yearReviewShareLinks.token });
   return row.token;
 }
@@ -32,15 +35,15 @@ it("resolves a live link to its owner and year, and the owner's dialog sees it",
   expect(await getSharedYearReview(db, token)).toEqual({
     status: "visible",
     owner: { id: "owner", name: "Share Owner", image: null },
-    year: 2026,
+    year: YEAR,
   });
-  expect(await getYearReviewShareForOwner(db, "owner", 2026)).toMatchObject({ token });
-  expect(await getYearReviewShareForOwner(db, "owner", 2025)).toBeNull();
+  expect(await getYearReviewShareForOwner(db, "owner", YEAR)).toMatchObject({ token });
+  expect(await getYearReviewShareForOwner(db, "owner", YEAR - 1)).toBeNull();
 });
 
 it("reads the recap's rows through the link only while it is live", async () => {
   const token = await share();
-  const live = await getYearReviewData(db, { ownerId: "owner", token }, 2026);
+  const live = await getYearReviewData(db, { ownerId: "owner", token }, YEAR);
   expect(live.sends.map((send) => send.climbId)).toEqual([1]);
   expect(live.areas.get(4)?.path).toEqual([1, 2, 4]);
 
@@ -51,9 +54,9 @@ it("reads the recap's rows through the link only while it is live", async () => 
   expect(await getSharedYearReview(db, token)).toEqual({
     status: "expired",
     ownerId: "owner",
-    year: 2026,
+    year: YEAR,
   });
-  const dead = await getYearReviewData(db, { ownerId: "owner", token }, 2026);
+  const dead = await getYearReviewData(db, { ownerId: "owner", token }, YEAR);
   expect(dead.sends).toEqual([]);
   expect(dead.areas.size).toBe(0);
 });
@@ -67,4 +70,16 @@ it("revokes every link when the profile goes private", async () => {
 
 it("hides an unknown token", async () => {
   expect(await getSharedYearReview(db, "0".repeat(32))).toEqual({ status: "hidden" });
+});
+
+it("expires a link once its year is no longer the recap year", async () => {
+  const token = await share(null, YEAR - 1);
+  expect(await getSharedYearReview(db, token)).toEqual({
+    status: "expired",
+    ownerId: "owner",
+    year: YEAR - 1,
+  });
+  const dead = await getYearReviewData(db, { ownerId: "owner", token }, YEAR - 1);
+  expect(dead.sends).toEqual([]);
+  expect(await getYearReviewShareForOwner(db, "owner", YEAR - 1)).toBeNull();
 });
