@@ -395,7 +395,7 @@ export function YearReviewStory({ review, ownerId, ownerName, mode }: StoryProps
     sections.push(
       chapter(
         "new-ground",
-        "New ground",
+        "Exploring new areas",
         <>
           <Hero value={fresh.areas}>new {fresh.areas === 1 ? "area" : "areas"}</Hero>
           <div className="flex flex-col gap-2">
