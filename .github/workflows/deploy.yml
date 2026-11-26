@@ -81,14 +81,8 @@ jobs:
 
       - uses: ./.github/actions/setup-app
 
-      # cloudflare-env.d.ts is the checked-in contract for wrangler.jsonc's
-      # bindings and .dev.vars.example's vars; regenerating it must not change
-      # it. The Workers tests below also read this .dev.vars.
-      - name: Check Cloudflare env types
-        run: |
-          cp .dev.vars.example .dev.vars
-          pnpm cf-typegen
-          git diff --exit-code cloudflare-env.d.ts
+      - name: Prepare local app environment
+        run: cp .dev.vars.example .dev.vars
 
       - name: Lint
         run: pnpm lint
@@ -208,6 +202,14 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: mise run rust-check
       - run: pnpm build
+      # Wrangler inspects the built entrypoint to infer Worker exports.
+      - name: Check Cloudflare env types
+        env:
+          BETABOOK_PREBUILT: "1"
+        run: |
+          cp .dev.vars.example .dev.vars
+          pnpm cf-typegen
+          git diff --exit-code cloudflare-env.d.ts
       - run: pnpm test:rust-worker
         env:
           BETABOOK_PREBUILT: "1"

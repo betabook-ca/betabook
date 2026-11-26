@@ -16,6 +16,8 @@
       ],
       // Served as a font asset by the SPA build and Storybook.
       "ignoreDependencies": ["geist"],
+      // Release bundler installed by mise from Cargo.
+      "ignoreBinaries": ["worker-build"],
       "paths": {
         "cloudflare": ["./node_modules/@cloudflare/vitest-plugin/types/cloudflare-test.d.ts"],
       },

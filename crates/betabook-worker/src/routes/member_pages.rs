@@ -1215,6 +1215,6 @@ pub async fn tutorial_state(
     let session = require_member_session(&state, &headers).await?;
     let progress = get_product_tour_state(state.db(), &session.user.id)
         .await?
-        .ok_or_else(|| ApiError::unauthorized())?;
+        .ok_or_else(ApiError::unauthorized)?;
     Ok(no_store_json(StatusCode::OK, json!(progress)))
 }
