@@ -86,14 +86,25 @@ pub async fn about_page(State(state): State<AppState>) -> Result<Response, ApiEr
 }
 
 #[worker::send]
-pub async fn climbing_logbook(State(state): State<AppState>) -> Result<Response, ApiError> {
+pub async fn climbing_logbook(
+    State(state): State<AppState>,
+    headers: axum::http::HeaderMap,
+) -> Result<Response, ApiError> {
     let meta = PageMetadata::indexable(
         "Free climbing logbook",
         "A free climbing logbook for bouldering, sport and trad. Log sends and sessions, see your progression, and import from KAYA, Sendage or Mountain Project.",
         "/climbing-logbook",
         "website",
     );
-    published_document(&state, &meta, "climbing-logbook").await
+    let mut response = if crate::auth::cookies::has_session_cookie(&headers) {
+        super::seo::member_shell(&state, StatusCode::OK, &meta, "routes/info-routes.tsx").await?
+    } else {
+        published_document(&state, &meta, "climbing-logbook").await?
+    };
+    response
+        .headers_mut()
+        .insert(header::VARY, header::HeaderValue::from_static("Cookie"));
+    Ok(response)
 }
 
 async fn published_document(

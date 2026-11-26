@@ -26,6 +26,9 @@ export async function testCatalogHtml({ server, db, signIn }) {
   const areaPath = `/areas/${area.id}/north-crag`;
   const climbPath = `/climbs/${climb.id}/granite-flake`;
   const cookie = await signIn("catalog-private-sender");
+  const memberLanding = await server.fetch("/climbing-logbook", { headers: { cookie } });
+  assert.match(memberLanding.headers.get("cache-control") ?? "", /private/);
+  assert.match(await memberLanding.text(), /<div id="root"/);
   await db
     .prepare(
       "INSERT INTO sends(user_id,climb_id,suggested_grade,ascent_style,comment,date_sent) VALUES(?,?,5,'redpoint',?,?)",
