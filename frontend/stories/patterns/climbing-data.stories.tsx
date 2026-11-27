@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { AscentStyle } from "@/components/ascent-style";
+import { JournalEntryStatus } from "@/components/journal/journal-entry-layout";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Grade, GradeArrow } from "@/components/ui/grade";
@@ -22,11 +22,16 @@ export const LabelsAndGrades: Story = {
           ))}
         </div>
       </Example>
-      <Example title="Ascent styles">
-        <div className="flex flex-wrap gap-2">
-          {(["onsight", "flash", "redpoint"] as const).map((type) => (
-            <AscentStyle key={type} type={type} />
+      <Example title="Outcomes">
+        {/* One wording and colour in every list of sends and journal entries:
+         * a send reads as its ascent style. */}
+        <div className="flex flex-wrap gap-4 text-sm">
+          {(["Onsight", "Flash", "Redpoint"] as const).map((label) => (
+            <JournalEntryStatus key={label} kind="send" label={label} />
           ))}
+          <JournalEntryStatus kind="repeat" />
+          <JournalEntryStatus kind="session" />
+          <JournalEntryStatus kind="training" />
         </div>
       </Example>
       <Example title="Grades and community direction">

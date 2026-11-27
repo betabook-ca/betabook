@@ -258,7 +258,10 @@ test("ongoing recurring goal shows no end date below the right-side date", async
   expect(label.y).toBeGreaterThanOrEqual(date.y + date.height);
   expect(Math.abs(label.x + label.width - date.x - date.width)).toBeLessThanOrEqual(1);
   await expect(page.getByRole("button", { name: "End routine" })).toHaveCount(0);
-  await page.getByRole("button", { name: /Actions for/ }).click();
+  // From the keyboard: touch screens keep the button only for assistive tech
+  // and open the menu with a long press (row-long-press.spec.ts).
+  await page.getByRole("button", { name: /Actions for/ }).focus();
+  await page.keyboard.press("Enter");
   await expect(page.getByRole("menuitem", { name: "Edit" })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "End routine" })).toHaveCount(0);
 });

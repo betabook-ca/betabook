@@ -41,7 +41,7 @@ test(
       "12px",
     );
     const author = page.getByRole("link", { name: "Jordan Lee", exact: true });
-    const status = page.getByText("Send · Redpoint", { exact: true });
+    const status = page.getByText("Redpoint", { exact: true });
     const statusBounds = await status.boundingBox();
     if (!statusBounds) throw new Error("Missing outcome geometry");
     expect(Math.abs(gradeBox.y - statusBounds.y)).toBeLessThanOrEqual(2);

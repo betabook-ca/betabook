@@ -31,7 +31,6 @@ export function EntryActionsMenu({ entry }: { entry: JournalEntry }) {
     <>
       <ActionsMenu
         ariaLabel="Entry actions"
-        triggerClassName="size-11"
         onAction={(key) => {
           if (key === "edit") editState.open();
           if (key === "delete") {

@@ -8,7 +8,7 @@ it("filters the real feed display locally without exposing sample destinations",
   const user = userEvent.setup();
   render(<DemoFeed />);
   expect(screen.getAllByRole("article")).toHaveLength(3);
-  expect(screen.getByText("Send · Flash")).toBeVisible();
+  expect(screen.getByText("Flash", { exact: true })).toBeVisible();
   expect(screen.getByText("Session", { exact: true })).toBeVisible();
   expect(screen.queryByRole("link")).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Sends" }));

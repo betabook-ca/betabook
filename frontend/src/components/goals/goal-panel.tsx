@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, Menu, useOverlayState } from "@heroui/react";
-import { CirclePlus } from "lucide-react";
+import { CirclePlus, MoreHorizontal } from "lucide-react";
 import { useState } from "react";
 
 import { ActionsMenu } from "@/components/ui/actions-menu";
@@ -354,6 +354,8 @@ export function GoalPanel({
     return (
       <ActionsMenu
         ariaLabel={`Actions for ${goalTitle(goal, prefs)}`}
+        // A pencil would promise an edit this goal doesn't offer.
+        icon={canEditGoal(goal) ? undefined : <MoreHorizontal className="size-4" />}
         onAction={(key) => {
           if (key === "edit") {
             const selected = initialActive.goals.find((item) => item.id === goal.id) ?? goal;

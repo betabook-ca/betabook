@@ -46,13 +46,13 @@ export function ClimbJournalCard({
           <ul className="flex flex-col gap-3">
             {recentEntries.map((entry) => (
               <li key={entry.id} className="flex flex-col gap-1">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="inline-flex items-center text-sm font-medium">
-                    <JournalEntryStatus
-                      kind={entry.isAscent ? "send" : entry.sent ? "repeat" : "session"}
-                    />
-                  </span>
-                  <span className="text-xs text-muted">{formatDate(entry.entryDate)}</span>
+                {/* The status line of every journal row: what happened, then when. */}
+                <div className="flex min-h-6 items-center gap-1.5 text-sm text-muted">
+                  <JournalEntryStatus
+                    kind={entry.isAscent ? "send" : entry.sent ? "repeat" : "session"}
+                  />
+                  <span aria-hidden>·</span>
+                  <time dateTime={entry.entryDate}>{formatDate(entry.entryDate)}</time>
                 </div>
                 <CompanionList companions={entry.companions} />
                 {entry.body && (

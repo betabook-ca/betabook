@@ -1,4 +1,4 @@
-import { AscentStyle } from "@/components/ascent-style";
+import { JournalEntryStatus } from "@/components/journal/journal-entry-layout";
 import { ProjectCardLayout } from "@/components/journal/project-card-layout";
 import { ProjectSessionList } from "@/components/journal/project-session-list";
 import { SendGradeCell } from "@/components/send-grade-cell";
@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageTitle, SectionHeading } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import type { SharedProject, SharedProjectSession } from "@/lib/logbook-types";
+import { ASCENT_STYLE_LABELS } from "@/lib/sends";
 import { climbHref } from "@/lib/slug";
 
 /** What a valid project link shows: one climber, one climb, and the work they
@@ -74,7 +75,14 @@ export function SharedProject({
                   gradeFeel={project.gradeFeel ?? "solid"}
                   rating={project.rating}
                 />
-                {project.ascentStyle && <AscentStyle type={project.ascentStyle} />}
+                {project.ascentStyle && (
+                  <span className="text-sm">
+                    <JournalEntryStatus
+                      kind="send"
+                      label={ASCENT_STYLE_LABELS[project.ascentStyle]}
+                    />
+                  </span>
+                )}
               </div>
               {project.sendComment && !commentInTimeline && (
                 <div className="text-sm leading-relaxed text-foreground">
