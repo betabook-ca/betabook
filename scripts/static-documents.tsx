@@ -27,13 +27,9 @@ function PublicFrame({
   return (
     <>
       <header className="sticky top-0 z-20 border-b border-border bg-background/95">
-        <div className="mx-auto grid h-14 w-full max-w-5xl grid-cols-[1fr_minmax(12rem,1fr)_1fr] items-center gap-2 px-4">
-          <div>
-            <a
-              href="/"
-              aria-label="Betabook home"
-              className="hidden h-10 items-center gap-2 md:inline-flex"
-            >
+        <div className="mx-auto grid h-14 w-full max-w-5xl grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 md:grid-cols-[1fr_minmax(12rem,1fr)_1fr]">
+          <div className="hidden md:block">
+            <a href="/" aria-label="Betabook home" className="inline-flex h-10 items-center gap-2">
               <Brand decorative className="size-6" />
               <Brand variant="wordmark" decorative className="w-24" />
             </a>
@@ -48,9 +44,17 @@ function PublicFrame({
             </span>
             Search
           </a>
-          <a href="/sign-in" className="justify-self-end">
-            Sign in
-          </a>
+          <span className="flex items-center gap-4 justify-self-end text-sm">
+            <a href="/sign-in" className={`${buttonVariants()} h-11 px-3 md:hidden`}>
+              Sign in
+            </a>
+            <a href="/sign-in" className="hidden min-h-10 items-center md:inline-flex">
+              Sign in
+            </a>
+            <a href="/sign-up" className={`${buttonVariants()} hidden h-10 px-4 md:inline-flex`}>
+              Sign up
+            </a>
+          </span>
         </div>
       </header>
       <main
