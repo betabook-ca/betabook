@@ -87,10 +87,16 @@ fn router(state: AppState) -> Router {
             "/api/public/climbs/{id}",
             get(routes::public_catalog::climb_details),
         )
-        // SEO & Entity HTML entrypoints
+        // SEO & Entity HTML entrypoints + Zero-JS Static Pages
         .route("/robots.txt", get(routes::seo::robots_txt))
         .route("/sitemap-index.xml", get(routes::seo::sitemap_index))
         .route("/sitemap/{shard}", get(routes::seo::sitemap_shard))
+        .route("/about", get(routes::static_pages::about_page))
+        .route("/terms", get(routes::static_pages::terms_page))
+        .route(
+            "/terms/{version}",
+            get(routes::static_pages::terms_version_page),
+        )
         .route("/areas/new", get(routes::seo::spa_fallback))
         .route("/climbs/new", get(routes::seo::spa_fallback))
         .route("/areas/{id}", get(routes::seo::area_page))

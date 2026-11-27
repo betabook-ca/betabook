@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use axum::{
     body::Body,
     extract::{OriginalUri, Path, State},
@@ -6,24 +8,40 @@ use axum::{
 };
 use betabook_db::public_catalog::{
     count_areas, count_climbs, get_area_sitemap_rows, get_climb_sitemap_rows, get_public_area,
-    get_public_area_trail, get_public_climb,
+    get_public_area_trail, get_public_climb, get_public_sends_for_climb, get_public_subareas,
+    resolve_public_subarea, search_public_areas, search_public_climbs,
 };
-use betabook_domain::public_catalog::parse_id;
+use betabook_domain::public_catalog::{
+    PublicArea, has_protected_catalog_params, parse_id, parse_public_catalog_options,
+};
 use betabook_domain::seo::{
     Crumb, PageMetadata, area_description, area_json_ld, area_title, climb_description,
-    climb_json_ld, climb_title, default_home_metadata, location_trail, render_sitemap_index,
+    climb_json_ld, climb_title, default_home_metadata, escape_html, escape_json_for_script,
+    location_trail, render_json_ld_scripts, render_robots_txt, render_sitemap_index,
     render_sitemap_urlset, sitemap_static_urls, website_json_ld,
 };
-use betabook_domain::seo::{render_json_ld_scripts, render_robots_txt};
 use betabook_domain::site::{SITE_DESCRIPTION, SITE_NAME, SITE_URL};
 use betabook_domain::slug::{area_href, climb_href, slugify};
-use serde_json::Value;
+use serde::Deserialize;
+use serde_json::{Value, json};
+use url::form_urlencoded;
 
 use crate::state::{ApiError, AppState};
 
 const SITEMAP_SHARD_SIZE: usize = 40_000;
 const HEAD_PLACEHOLDER: &str = "<!--BETABOOK_HEAD-->";
 const JSONLD_PLACEHOLDER: &str = "<!--BETABOOK_JSONLD-->";
+const PRELOAD_PLACEHOLDER: &str = "<!--BETABOOK_PRELOAD-->";
+const DATA_PLACEHOLDER: &str = "<!--BETABOOK_DATA-->";
+
+#[derive(Debug, Clone, Deserialize)]
+pub(crate) struct SpaManifestEntry {
+    pub file: String,
+    #[serde(default)]
+    pub css: Vec<String>,
+    #[serde(default)]
+    pub imports: Vec<String>,
+}
 
 fn fallback_shell_html() -> &'static str {
     "<!doctype html>
@@ -33,49 +51,142 @@ fn fallback_shell_html() -> &'static str {
     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
     <!--BETABOOK_HEAD-->
     <!--BETABOOK_JSONLD-->
+    <!--BETABOOK_PRELOAD-->
   </head>
   <body>
     <div id=\"root\"></div>
+    <!--BETABOOK_DATA-->
   </body>
 </html>
 "
 }
 
-async fn load_index_html(state: &AppState) -> Result<String, ApiError> {
-    if let Ok(assets) = state.env().assets("ASSETS") {
-        let req = HttpRequest::builder()
-            .method(Method::GET)
-            .uri(format!(
-                "{}/index.html",
-                state.request_origin.trim_end_matches('/')
-            ))
-            .body(worker::Body::empty())
-            .map_err(ApiError::internal)?;
-        if let Ok(resp) = assets.fetch_request(req).await
-            && resp.status().is_success()
-        {
-            let mut worker_resp = worker::Response::try_from(resp).map_err(ApiError::internal)?;
-            if let Ok(html) = worker_resp.text().await {
-                return Ok(html);
+async fn load_asset_text(state: &AppState, asset_path: &str) -> Result<Option<String>, ApiError> {
+    let Ok(assets) = state.env().assets("ASSETS") else {
+        return Ok(None);
+    };
+    let req = HttpRequest::builder()
+        .method(Method::GET)
+        .uri(format!(
+            "{}{}",
+            state.request_origin.trim_end_matches('/'),
+            asset_path
+        ))
+        .body(worker::Body::empty())
+        .map_err(ApiError::internal)?;
+    if let Ok(resp) = assets.fetch_request(req).await
+        && resp.status().is_success()
+    {
+        let mut worker_resp = worker::Response::try_from(resp).map_err(ApiError::internal)?;
+        if let Ok(text) = worker_resp.text().await {
+            return Ok(Some(text));
+        }
+    }
+    Ok(None)
+}
+
+pub(crate) async fn load_spa_manifest(
+    state: &AppState,
+) -> Result<BTreeMap<String, SpaManifestEntry>, ApiError> {
+    let Some(raw) = load_asset_text(state, "/spa-manifest.json").await? else {
+        return Ok(BTreeMap::new());
+    };
+    Ok(serde_json::from_str(&raw).unwrap_or_default())
+}
+
+pub(crate) fn primary_stylesheet_href(
+    manifest: &BTreeMap<String, SpaManifestEntry>,
+) -> Option<String> {
+    manifest
+        .get("index.html")
+        .and_then(|entry| entry.css.first())
+        .map(|file| format!("/{file}"))
+}
+
+fn render_modulepreload_tags(
+    manifest: &BTreeMap<String, SpaManifestEntry>,
+    entry_key: &str,
+) -> String {
+    let mut visited = std::collections::BTreeSet::new();
+    let mut stack = vec![entry_key.to_string()];
+    let mut files = std::collections::BTreeSet::new();
+
+    while let Some(key) = stack.pop() {
+        if !visited.insert(key.clone()) {
+            continue;
+        }
+        let Some(entry) = manifest.get(&key) else {
+            continue;
+        };
+        if key != "index.html" {
+            files.insert(format!("/{}", entry.file));
+        }
+        for dep in &entry.imports {
+            if !visited.contains(dep) {
+                stack.push(dep.clone());
             }
         }
     }
-    Ok(fallback_shell_html().to_string())
+
+    files
+        .into_iter()
+        .map(|href| {
+            format!(
+                "<link rel=\"modulepreload\" href=\"{}\">",
+                escape_html(&href)
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n    ")
 }
 
-fn inject_seo_into_html(template: &str, meta: &PageMetadata, json_ld: &[Value]) -> String {
+async fn load_index_html(state: &AppState) -> Result<String, ApiError> {
+    Ok(load_asset_text(state, "/index.html")
+        .await?
+        .unwrap_or_else(|| fallback_shell_html().to_string()))
+}
+
+fn render_bootstrap_script(data: Option<&Value>) -> String {
+    let Some(payload) = data else {
+        return String::new();
+    };
+    let json = serde_json::to_string(payload).unwrap_or_else(|_| "null".to_string());
+    format!(
+        "<script id=\"__BETABOOK_DATA__\" type=\"application/json\">{}</script>",
+        escape_json_for_script(&json)
+    )
+}
+
+fn replace_or_insert_before(
+    html: String,
+    placeholder: &str,
+    replacement: &str,
+    tag: &str,
+) -> String {
+    if html.contains(placeholder) {
+        html.replace(placeholder, replacement)
+    } else if replacement.is_empty() {
+        html
+    } else {
+        html.replace(tag, &format!("    {replacement}\n  {tag}"))
+    }
+}
+
+fn inject_seo_into_html(
+    template: &str,
+    meta: &PageMetadata,
+    json_ld: &[Value],
+    preload_tags: &str,
+    bootstrap_data: Option<&Value>,
+) -> String {
     let head = meta.render_head_tags();
     let scripts = render_json_ld_scripts(json_ld);
-    let with_head = if template.contains(HEAD_PLACEHOLDER) {
-        template.replace(HEAD_PLACEHOLDER, &head)
-    } else {
-        template.replace("</head>", &format!("    {head}\n  </head>"))
-    };
-    if with_head.contains(JSONLD_PLACEHOLDER) {
-        with_head.replace(JSONLD_PLACEHOLDER, &scripts)
-    } else {
-        with_head.replace("</head>", &format!("    {scripts}\n  </head>"))
-    }
+    let data_script = render_bootstrap_script(bootstrap_data);
+
+    let html = replace_or_insert_before(template.to_string(), HEAD_PLACEHOLDER, &head, "</head>");
+    let html = replace_or_insert_before(html, JSONLD_PLACEHOLDER, &scripts, "</head>");
+    let html = replace_or_insert_before(html, PRELOAD_PLACEHOLDER, preload_tags, "</head>");
+    replace_or_insert_before(html, DATA_PLACEHOLDER, &data_script, "</body>")
 }
 
 fn html_response(status: StatusCode, html: String) -> Response {
@@ -199,7 +310,44 @@ async fn render_area_page(
         ));
     }
 
+    let raw_query = uri.query().unwrap_or("");
+    let subarea_param = form_urlencoded::parse(raw_query.as_bytes())
+        .find(|(k, _)| k == "subarea")
+        .and_then(|(_, v)| parse_id(&v));
+
     let trail = get_public_area_trail(state.db(), id).await?;
+    let subareas = get_public_subareas(state.db(), id).await?;
+    let scope = resolve_public_subarea(
+        state.db(),
+        &PublicArea {
+            id: area.id,
+            name: area.name.clone(),
+            parent_id: area.parent_id,
+        },
+        subarea_param,
+    )
+    .await?;
+
+    let bootstrap_data = if has_protected_catalog_params(raw_query, true) {
+        None
+    } else {
+        let mut options = parse_public_catalog_options("limit=10");
+        options.area_id = Some(scope.id);
+        let climbs_page = search_public_climbs(state.db(), &options).await?;
+        Some(json!({
+            "route": "area",
+            "path": area_href(area.id, &area.name),
+            "data": {
+                "areaId": area.id,
+                "subareaId": subarea_param,
+                "area": area,
+                "trail": trail,
+                "subareas": subareas,
+                "climbs": climbs_page.climbs,
+            }
+        }))
+    };
+
     let ancestors: Vec<_> = trail.iter().take(trail.len().saturating_sub(1)).collect();
     let parent_name = ancestors.last().map(|a| a.name.as_str());
     let ancestor_names: Vec<String> = ancestors.iter().map(|a| a.name.clone()).collect();
@@ -208,7 +356,7 @@ async fn render_area_page(
     let desc = area_description(&area.name, &short_trail, area.description.as_deref());
     let canonical = area_href(area.id, &area.name);
 
-    let has_query = uri.query().is_some_and(|q| !q.is_empty());
+    let has_query = !raw_query.is_empty();
     let mut meta = PageMetadata::indexable(title, desc.clone(), canonical.clone(), "website");
     if has_query {
         meta.index = false;
@@ -224,7 +372,15 @@ async fn render_area_page(
     }));
     let json_ld = area_json_ld(&area.name, &canonical, &desc, &crumbs, &ancestor_names);
 
-    let html = inject_seo_into_html(&load_index_html(&state).await?, &meta, &json_ld);
+    let manifest = load_spa_manifest(&state).await?;
+    let preload_tags = render_modulepreload_tags(&manifest, "routes/area-route.tsx");
+    let html = inject_seo_into_html(
+        &load_index_html(&state).await?,
+        &meta,
+        &json_ld,
+        &preload_tags,
+        bootstrap_data.as_ref(),
+    );
     Ok(html_response(StatusCode::OK, html))
 }
 
@@ -267,6 +423,8 @@ async fn render_climb_page(
     }
 
     let trail = get_public_area_trail(state.db(), climb.area_id).await?;
+    let public_sends = get_public_sends_for_climb(state.db(), id).await?;
+
     let area_names: Vec<String> = trail.iter().map(|a| a.name.clone()).collect();
     let short_trail = location_trail(&area_names, 3);
     let title = climb_title(&climb.name, climb.climb_type, climb.grade, &climb.area_name);
@@ -294,7 +452,26 @@ async fn render_climb_page(
     });
     let json_ld = climb_json_ld(&climb.name, &canonical, &desc, &crumbs);
 
-    let html = inject_seo_into_html(&load_index_html(&state).await?, &meta, &json_ld);
+    let bootstrap_data = json!({
+        "route": "climb",
+        "path": canonical,
+        "data": {
+            "climbId": climb.id,
+            "climb": climb,
+            "trail": trail,
+            "publicSends": public_sends,
+        }
+    });
+
+    let manifest = load_spa_manifest(&state).await?;
+    let preload_tags = render_modulepreload_tags(&manifest, "routes/climb-route.tsx");
+    let html = inject_seo_into_html(
+        &load_index_html(&state).await?,
+        &meta,
+        &json_ld,
+        &preload_tags,
+        Some(&bootstrap_data),
+    );
     Ok(html_response(StatusCode::OK, html))
 }
 
@@ -318,21 +495,21 @@ pub async fn climb_page_with_slug(
 
 async fn render_not_found(state: &AppState) -> Result<Response, ApiError> {
     let meta = PageMetadata::noindex("Not found", SITE_DESCRIPTION);
-    let html = inject_seo_into_html(&load_index_html(state).await?, &meta, &[]);
+    let html = inject_seo_into_html(&load_index_html(state).await?, &meta, &[], "", None);
     Ok(html_response(StatusCode::NOT_FOUND, html))
 }
 
-fn route_metadata(path: &str, has_query: bool) -> (PageMetadata, Vec<Value>) {
+fn route_metadata(path: &str, has_query: bool) -> (PageMetadata, Vec<Value>, &'static str) {
     match path {
-        "/" => (default_home_metadata(has_query), vec![website_json_ld()]),
-        "/about" => (
-            PageMetadata::indexable(
-                "About Betabook",
-                "About Betabook, an open climbing logbook and crag database.",
-                "/about",
-                "website",
-            ),
+        "/" => (
+            default_home_metadata(has_query),
+            vec![website_json_ld()],
+            "routes/home-route.tsx",
+        ),
+        "/sign-in" => (
+            PageMetadata::noindex("Sign in", SITE_DESCRIPTION),
             Vec::new(),
+            "routes/sign-in-route.tsx",
         ),
         "/contact" => (
             PageMetadata::indexable(
@@ -342,15 +519,7 @@ fn route_metadata(path: &str, has_query: bool) -> (PageMetadata, Vec<Value>) {
                 "website",
             ),
             Vec::new(),
-        ),
-        "/terms" => (
-            PageMetadata::indexable(
-                "Terms of Service",
-                "Betabook Terms of Service.",
-                "/terms",
-                "website",
-            ),
-            Vec::new(),
+            "routes/placeholder-route.tsx",
         ),
         "/climbing-logbook" => (
             PageMetadata::indexable(
@@ -360,6 +529,7 @@ fn route_metadata(path: &str, has_query: bool) -> (PageMetadata, Vec<Value>) {
                 "website",
             ),
             Vec::new(),
+            "routes/placeholder-route.tsx",
         ),
         "/kaya-import" => (
             PageMetadata::indexable(
@@ -369,6 +539,7 @@ fn route_metadata(path: &str, has_query: bool) -> (PageMetadata, Vec<Value>) {
                 "website",
             ),
             Vec::new(),
+            "routes/placeholder-route.tsx",
         ),
         "/sendage-import" => (
             PageMetadata::indexable(
@@ -378,6 +549,7 @@ fn route_metadata(path: &str, has_query: bool) -> (PageMetadata, Vec<Value>) {
                 "website",
             ),
             Vec::new(),
+            "routes/placeholder-route.tsx",
         ),
         "/mountain-project-import" => (
             PageMetadata::indexable(
@@ -387,6 +559,7 @@ fn route_metadata(path: &str, has_query: bool) -> (PageMetadata, Vec<Value>) {
                 "website",
             ),
             Vec::new(),
+            "routes/placeholder-route.tsx",
         ),
         "/costs" => (
             PageMetadata::indexable(
@@ -396,10 +569,12 @@ fn route_metadata(path: &str, has_query: bool) -> (PageMetadata, Vec<Value>) {
                 "website",
             ),
             Vec::new(),
+            "routes/placeholder-route.tsx",
         ),
         _ => (
             PageMetadata::noindex(SITE_NAME, SITE_DESCRIPTION),
             Vec::new(),
+            "routes/placeholder-route.tsx",
         ),
     }
 }
@@ -447,8 +622,35 @@ pub async fn spa_fallback(
         }
     }
 
-    let has_query = uri.query().is_some_and(|q| !q.is_empty());
-    let (meta, json_ld) = route_metadata(path, has_query);
-    let html = inject_seo_into_html(&load_index_html(&state).await?, &meta, &json_ld);
+    let raw_query = uri.query().unwrap_or("");
+    let has_query = !raw_query.is_empty();
+    let (meta, json_ld, chunk_key) = route_metadata(path, has_query);
+
+    let bootstrap_data = if path == "/" && !has_protected_catalog_params(raw_query, true) {
+        let climbs_page =
+            search_public_climbs(state.db(), &parse_public_catalog_options("limit=10")).await?;
+        let areas_page =
+            search_public_areas(state.db(), &parse_public_catalog_options("limit=8")).await?;
+        Some(json!({
+            "route": "home",
+            "path": "/",
+            "data": {
+                "climbs": climbs_page.climbs,
+                "areas": areas_page.areas,
+            }
+        }))
+    } else {
+        None
+    };
+
+    let manifest = load_spa_manifest(&state).await?;
+    let preload_tags = render_modulepreload_tags(&manifest, chunk_key);
+    let html = inject_seo_into_html(
+        &load_index_html(&state).await?,
+        &meta,
+        &json_ld,
+        &preload_tags,
+        bootstrap_data.as_ref(),
+    );
     Ok(html_response(StatusCode::OK, html))
 }
