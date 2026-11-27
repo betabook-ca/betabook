@@ -20,10 +20,9 @@ export function useRowActions() {
   return use(RowActionsContext);
 }
 
-/** Lets a touch user long-press anywhere on a row to open its actions menu, so
- * the row needn't spend a column on a button. The menu registers itself
- * through the returned context; until one does, the row behaves as before.
- * Pointer users get the button, shown while the row is hovered or focused. */
+/** Lets a touch user long-press anywhere on a row to open its actions menu,
+ * as a shortcut beside the row's edit button. The menu registers itself
+ * through the returned context; until one does, the row behaves as before. */
 export function useLongPressRow() {
   const anchorRef = useRef<HTMLSpanElement>(null);
   const openRef = useRef<(() => void) | null>(null);

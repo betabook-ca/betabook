@@ -43,13 +43,13 @@ export function JournalEntryStatus({
 /** Every list of sends and journal entries prints a row the same way, reading
  * left to right, with the grade and stars at the far edge as a column:
  *
- *     [date or avatar]  Title                     grade · stars  [edit]
- *                       (icon) Status · where or when
+ *     [date or avatar]  Title                     grade · stars
+ *                       (icon) Status · where or when         [edit]
  *                       Note
  *
  * A narrow leading column — the date, or on a climb's page the climber —
- * anchors each row while its notes use the reading column. On touch screens
- * the actions menu opens on a long press instead of taking a column. */
+ * anchors each row while its notes use the reading column. The edit button
+ * ends the short status line, so it takes no column of its own. */
 export function JournalEntryLayout({
   leading,
   title,
@@ -83,7 +83,7 @@ export function JournalEntryLayout({
 
   const header = (
     <>
-      <div className="flex items-start gap-2">
+      <div className="flex items-start">
         <div className="flex min-w-0 flex-1 items-baseline gap-x-3">
           <div className="min-w-0 flex-1 text-base leading-6 font-bold [overflow-wrap:anywhere]">
             {href ? (
@@ -101,21 +101,18 @@ export function JournalEntryLayout({
             </div>
           )}
         </div>
-        {actions && (
-          <div
-            className={clsx(
-              "relative z-10 -my-1 shrink-0",
-              longPress.hasMenu && "pointer-coarse:contents",
-            )}
-          >
-            <RowActionsProvider value={longPress.context}>{actions}</RowActionsProvider>
-          </div>
-        )}
       </div>
       <div className="mt-1 flex min-h-6 items-center gap-1.5 text-sm text-muted">
         {status && <div className="flex shrink-0 items-center">{status}</div>}
         {status && location && <span aria-hidden>·</span>}
         {location && <div className="relative z-10 max-w-full min-w-0 truncate">{location}</div>}
+        {actions && (
+          // The negative margins keep the button's tap target from growing
+          // the line, and line its icon up with the grade's right edge.
+          <div className="relative z-10 -my-1 -mr-2 ml-auto shrink-0 pointer-coarse:-my-2.5 pointer-coarse:-mr-3.5">
+            <RowActionsProvider value={longPress.context}>{actions}</RowActionsProvider>
+          </div>
+        )}
       </div>
     </>
   );

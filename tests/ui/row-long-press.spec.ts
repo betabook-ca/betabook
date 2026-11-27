@@ -2,9 +2,10 @@ import type { Page } from "@playwright/test";
 
 import { expect, openStory, test } from "./story";
 
-/** Touch screens open a row's actions menu with a long press instead of a
- * "..." button that takes a column of every row; pointer screens keep the
- * button. Needs real touch input and the `pointer: coarse` media query. */
+/** A row's edit button ends its status line: always visible at tap size on
+ * touch screens, where a long press anywhere on the row is a shortcut to the
+ * same menu, and revealed on hover on pointer screens. Needs real touch input
+ * and the `pointer: coarse` media query. */
 
 const STORY = "components-journal-climb-log-row--with-actions";
 
@@ -21,14 +22,23 @@ test("a long press on a send row opens its actions where the finger is @layout",
   await openStory(page, info, STORY);
   const trigger = page.getByRole("button", { name: "Send actions" });
 
+  const status = page.getByText("Flash", { exact: true });
+  const [triggerBox, statusBox] = await Promise.all([trigger.boundingBox(), status.boundingBox()]);
+  if (!triggerBox || !statusBox) throw new Error("Missing send row bounds");
+  expect(
+    Math.abs(triggerBox.y + triggerBox.height / 2 - statusBox.y - statusBox.height / 2),
+  ).toBeLessThanOrEqual(2);
+
   if (!info.project.use.hasTouch) {
-    await expect(trigger).toBeVisible();
     await expect(trigger).toHaveCSS("width", "32px");
+    await expect(trigger).toHaveCSS("opacity", "0");
+    await page.locator("article").hover();
+    await expect(trigger).toHaveCSS("opacity", "1");
     return;
   }
 
-  // Kept for screen readers, but out of the layout.
-  await expect(trigger).toHaveCSS("width", "1px");
+  await expect(trigger).toBeVisible();
+  await expect(trigger).toHaveCSS("width", "44px");
   const title = page.getByRole("link", { name: "Cedar Arete", exact: true });
   const box = await title.boundingBox();
   if (!box) throw new Error("Missing send row bounds");

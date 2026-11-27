@@ -29,8 +29,8 @@ type ActionsMenuProps = {
  *
  * In a row's actions slot the button is a pencil that pointer screens show
  * only while the row is hovered or focused, so a list isn't a column of
- * dots. Touch screens have no hover: there the menu opens on a long press of
- * the row, at the finger, and the button is kept only for screen readers. */
+ * dots. Touch screens have no hover, so there it stays visible at a full tap
+ * size, and a long press anywhere on the row opens the menu at the finger. */
 export function ActionsMenu({
   ariaLabel,
   onAction,
@@ -61,7 +61,7 @@ export function ActionsMenu({
       className={clsx(
         triggerClassName,
         row && [
-          "pointer-coarse:not-focus-visible:sr-only",
+          "pointer-coarse:size-11",
           // Opacity, not display, so revealing it doesn't reflow the row.
           "pointer-fine:opacity-0 pointer-fine:transition-opacity",
           "pointer-fine:group-focus-within/row:opacity-100 pointer-fine:group-hover/row:opacity-100",

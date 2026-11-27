@@ -26,8 +26,9 @@ test("the journal date anchors the row and the note uses the reading column", as
   expect(dateBox.y).toBeCloseTo(titleBox.y, 0);
   const articleBox = await row.locator("article").boundingBox();
   if (!articleBox) throw new Error("Missing journal row bounds");
-  const gradeEnd = articleBox.x + articleBox.width - (info.project.use.hasTouch ? 0 : 40);
-  expect(Math.abs(gradeBox.x + gradeBox.width - gradeEnd)).toBeLessThanOrEqual(2);
+  expect(
+    Math.abs(gradeBox.x + gradeBox.width - articleBox.x - articleBox.width),
+  ).toBeLessThanOrEqual(2);
   expect(gradeBox.x).toBeGreaterThan(titleBox.x + titleBox.width);
   expect(statusBox.y).toBeGreaterThan(titleBox.y);
   expect(noteBox.y).toBeGreaterThanOrEqual(areaBox.y + areaBox.height);
@@ -36,9 +37,13 @@ test("the journal date anchors the row and the note uses the reading column", as
   await expect(note).toHaveCSS("font-size", "14px");
   await expect(note).toHaveCSS("line-height", "21px");
   expect(noteBox.width).toBeGreaterThan(titleBox.width);
-  // Touch screens open the menu with a long press (row-long-press.spec.ts),
-  // so the button leaves the layout there.
-  await expect(menu).toHaveCSS("width", info.project.use.hasTouch ? "1px" : "32px");
+  await expect(menu).toHaveCSS("width", info.project.use.hasTouch ? "44px" : "32px");
+  // On the status line, so the title line keeps its full width for the grade.
+  const menuBox = await menu.boundingBox();
+  if (!menuBox) throw new Error("Missing journal menu bounds");
+  expect(
+    Math.abs(menuBox.y + menuBox.height / 2 - statusBox.y - statusBox.height / 2),
+  ).toBeLessThanOrEqual(2);
   await row.getByRole("button", { name: "Show more" }).click();
   expect((await grade.boundingBox())?.y).toBe(gradeBox.y);
   await expect(row.getByRole("button", { name: "Show less" })).toBeVisible();

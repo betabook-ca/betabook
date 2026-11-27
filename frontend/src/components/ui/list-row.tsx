@@ -125,12 +125,7 @@ export function ListRow({
           {trailing && <div className="shrink-0 text-right tabular-nums">{trailing}</div>}
         </div>
         {actions && (
-          <div
-            className={clsx(
-              "relative z-10 shrink-0",
-              longPress.hasMenu && "pointer-coarse:contents",
-            )}
-          >
+          <div className="relative z-10 shrink-0">
             <RowActionsProvider value={longPress.context}>{actions}</RowActionsProvider>
           </div>
         )}
