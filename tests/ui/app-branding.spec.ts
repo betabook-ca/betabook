@@ -19,9 +19,18 @@ test(
       await expect(search).toHaveCSS("height", "44px");
       const searchBox = await search.boundingBox();
       if (!searchBox) throw new Error("Missing mobile search");
-      const viewportWidth = await page.evaluate(() => window.innerWidth);
       expect(searchBox.width).toBeGreaterThan(180);
-      expect(searchBox.x + searchBox.width / 2).toBeCloseTo(viewportWidth / 2, 0);
+      // Guests reach sign-up from the header, not only through the menu.
+      const signUp = page.getByRole("banner").getByRole("link", { name: "Sign up", exact: true });
+      await expect(signUp).toHaveCSS("height", "44px");
+      const signUpBox = await signUp.boundingBox();
+      const viewportWidth = await page.evaluate(() => window.innerWidth);
+      if (!signUpBox) throw new Error("Missing mobile sign-up");
+      expect(signUpBox.x).toBeGreaterThanOrEqual(searchBox.x + searchBox.width);
+      expect(signUpBox.x + signUpBox.width).toBeLessThanOrEqual(viewportWidth);
+      await expect(
+        page.getByRole("banner").getByRole("link", { name: "Sign in", exact: true }),
+      ).toBeHidden();
     } else {
       await expect(
         page.getByRole("banner").getByRole("link", { name: "Sign in", exact: true }),
@@ -73,6 +82,28 @@ test(
     // The brand goes home; the guest search control opens the Find climbs page.
     await (mobile ? search : home).click();
     await expect(page).toHaveURL(mobile ? "/search" : "/");
+  },
+);
+
+test(
+  "guests reach sign-up from the app header at every width",
+  { tag: ["@app", "@layout"] },
+  async ({ page }, testInfo) => {
+    await page.goto("/search");
+    await expect(page.locator("#public-entry")).toHaveCount(0);
+    const banner = page.locator("#root").getByRole("banner");
+    const signUp = banner.getByRole("link", { name: "Sign up", exact: true });
+    await expect(signUp).toBeVisible();
+    await expect(signUp).toHaveAttribute("href", "/sign-up");
+    const signIn = banner.getByRole("link", { name: "Sign in", exact: true });
+    // Narrow screens leave sign-in to the menu so Search keeps its width.
+    if (testInfo.project.name.startsWith("mobile")) await expect(signIn).toBeHidden();
+    else await expect(signIn).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      await page.evaluate(() => document.documentElement.clientWidth),
+    );
+    await signUp.click();
+    await expect(page.getByRole("heading", { name: "Sign up", exact: true })).toBeVisible();
   },
 );
 

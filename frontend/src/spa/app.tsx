@@ -128,9 +128,7 @@ export function App() {
                 </div>
                 <div className="flex min-w-11 items-center justify-end gap-3">
                   <HeaderLogButton />
-                  <div className="hidden md:flex">
-                    <HeaderAuthLinks />
-                  </div>
+                  <HeaderAuthLinks />
                 </div>
               </div>
             </header>

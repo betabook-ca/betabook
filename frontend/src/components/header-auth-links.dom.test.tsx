@@ -20,6 +20,14 @@ it("offers sign-in and sign-up in the header when signed out", () => {
   expect(screen.getByRole("link", { name: "Sign up" })).toHaveAttribute("href", "/sign-up");
 });
 
+it("keeps sign-up in the header on narrow screens, leaving sign-in to the menu", () => {
+  render(<HeaderAuthLinks />);
+
+  expect(screen.getByRole("link", { name: "Sign up" })).not.toHaveClass("hidden");
+  expect(screen.getByRole("link", { name: "Sign up" })).toHaveClass("button");
+  expect(screen.getByRole("link", { name: "Sign in" })).toHaveClass("hidden", "md:inline-flex");
+});
+
 it("leaves the header to Search once signed in", () => {
   state.session = { user: { id: "owner" } };
   render(<HeaderAuthLinks />);
