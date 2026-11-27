@@ -53,6 +53,17 @@ export async function testImports({ server, db, signIn }) {
     comment: "First visit",
   };
   const options = { gradeScale: "native", onConflict: "overwrite", batchId: "first-batch" };
+  const staleView = await action("importSends", [row], {
+    ...options,
+    expectedOwnerId: "previous-account",
+  });
+  assert.deepEqual(staleView, { ok: false, error: "Your account changed. Start a new import." });
+  const saved = await db
+    .prepare("SELECT COUNT(*) AS n FROM sends WHERE user_id=? AND climb_id=?")
+    .bind("import-smoke", climb.id)
+    .first("n");
+  assert.equal(saved, 0);
+
   const rows = [row, row, { ...row, climbId: 10000000 }];
   const result = await action("importSends", rows, options);
   assert.deepEqual(result, {

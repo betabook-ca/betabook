@@ -12,7 +12,8 @@ use betabook_db::catalog_export::{get_catalog_counts, stream_catalog_export_part
 use betabook_db::executor::{DbError, DbExecutor, DbParam};
 use betabook_db::public_catalog::{
     get_public_area, get_public_area_trail, get_public_climb, get_public_sends_for_climb,
-    get_public_subareas, resolve_public_subarea, search_public_areas, search_public_climbs,
+    get_public_subareas, resolve_public_subarea, search_member_areas, search_public_areas,
+    search_public_climbs,
 };
 use betabook_db::sqlite::SqliteDb;
 use betabook_domain::grades::ClimbType;
@@ -40,6 +41,40 @@ fn migrated_db() -> SqliteDb {
     let count = db.apply_migrations(&migrations).expect("apply migrations");
     assert!(count >= 57, "expected at least 57 migrations, got {count}");
     db
+}
+
+#[test]
+fn member_area_search_ranks_by_relevance_across_pages() {
+    let db = migrated_db();
+    run_async(async {
+        db.execute(
+            "INSERT INTO areas(id,name,parent_id) VALUES (1,'Parent',NULL),
+            (2,'Z Rock',1), (3,'Y Rock',1), (4,'A Very Long Rock Name',1),
+            (5,'Rock',NULL)",
+            &[],
+        )
+        .await
+        .expect("seed area search corpus");
+        let mut opts = parse_public_catalog_options("name=rock&areaId=1&limit=2");
+        let member = search_member_areas(&db, &opts).await.expect("ranked page");
+        assert_eq!(
+            member.areas.iter().map(|a| a.id).collect::<Vec<_>>(),
+            [2, 3]
+        );
+        assert!(member.has_next_page);
+        assert_eq!(member.areas[0].ancestor_path.as_deref(), Some("Parent"));
+        let public = search_public_areas(&db, &opts)
+            .await
+            .expect("alphabetical page");
+        assert_eq!(
+            public.areas.iter().map(|a| a.id).collect::<Vec<_>>(),
+            [4, 3]
+        );
+        opts.offset = Some(2);
+        let next = search_member_areas(&db, &opts).await.expect("next page");
+        assert_eq!(next.areas.iter().map(|a| a.id).collect::<Vec<_>>(), [4]);
+        assert!(!next.has_next_page);
+    });
 }
 
 #[test]

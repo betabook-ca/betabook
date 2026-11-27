@@ -248,6 +248,7 @@ fn input(api: &mut ApiSpec, action: Action) -> Value {
                 object(
                     [
                         ("batchId", string()),
+                        ("expectedOwnerId", string()),
                         ("gradeScale", enumeration(&["native", "converted"])),
                         ("onConflict", enumeration(&["skip", "overwrite"])),
                     ],

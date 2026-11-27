@@ -6,7 +6,7 @@ use axum::{
 };
 use betabook_db::fts::PAGE_SIZE;
 use betabook_db::public_catalog::{
-    get_area_breadcrumbs, get_public_area, resolve_public_subarea, search_public_areas,
+    get_area_breadcrumbs, get_public_area, resolve_public_subarea, search_member_areas,
     search_public_climbs,
 };
 use betabook_db::social::{
@@ -136,7 +136,7 @@ pub async fn search_areas(
         ));
     };
 
-    let page = search_public_areas(state.db(), &options).await?;
+    let page = search_member_areas(state.db(), &options).await?;
     let area_ids: Vec<i64> = page.areas.iter().map(|a| a.id).collect();
     let area_breadcrumbs = get_area_breadcrumbs(state.db(), &area_ids, 2).await?;
     let has_next_page = page.has_next_page && offset + options.page_size <= MAX_PAGINATION_OFFSET;

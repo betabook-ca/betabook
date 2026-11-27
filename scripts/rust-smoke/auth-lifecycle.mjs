@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
+import { fileURLToPath } from "node:url";
+
+import { createTestHarness, experimental_readRawConfig } from "wrangler";
 
 export async function testAuthLifecycle({ server, db, signIn, origin, secret }) {
   const owner = "auth-lifecycle";
@@ -18,6 +21,28 @@ export async function testAuthLifecycle({ server, db, signIn, origin, secret }) 
       headers: { "content-type": "application/json", origin, ...headers },
       body: JSON.stringify(body),
     });
+  const next = "/users/a/journal?view=training&tag=one";
+  const callback = "/sign-in?next=" + encodeURIComponent(next) + "&error=previous#form";
+  const started = await post("/api/auth/sign-in/social", {
+    provider: "google",
+    errorCallbackURL: callback,
+  });
+  assert.equal(started.status, 200);
+  const state = new URL((await started.json()).url).searchParams.get("state");
+  const [oauthCookie] = started.headers.getSetCookie();
+  const cancelled = await server.fetch(
+    "/api/auth/callback/google?error=access_denied&state=" + state,
+    {
+      headers: { cookie: oauthCookie.split(";")[0] },
+      redirect: "manual",
+    },
+  );
+  assert.equal(cancelled.status, 302);
+  const location = new URL(cancelled.headers.get("location"), origin);
+  assert.equal(location.pathname, "/sign-in");
+  assert.equal(location.searchParams.get("next"), next);
+  assert.deepEqual(location.searchParams.getAll("error"), ["access_denied"]);
+  assert.equal(location.hash, "#form");
   const stale = await post("/api/auth/delete-user", {}, { cookie });
   assert.equal((await stale.json()).code, "SESSION_EXPIRED");
   const duplicate = await post("/api/auth/sign-up/email", {
@@ -115,4 +140,32 @@ export async function testCatalogCron({ worker, bucket }) {
   const catalog = await object.json();
   assert.ok(Array.isArray(catalog.areas));
   assert.ok(Array.isArray(catalog.climbs));
+}
+
+export async function testFailedCatalogCompletion() {
+  const { rawConfig } = experimental_readRawConfig({ config: "./wrangler.jsonc" });
+  const main = fileURLToPath(new URL("./fixtures/fail-export-worker.mjs", import.meta.url));
+  const harness = createTestHarness({ workers: [{ config: { ...rawConfig, build: {}, main } }] });
+  try {
+    await harness.listen();
+    const worker = harness.getWorker();
+    await worker.applyD1Migrations("DB");
+    const { CATALOG_EXPORTS: bucket } = await worker.getEnv();
+    await bucket.put("catalog/latest.json", "previous snapshot");
+    const outcome = await worker.scheduled({ cron: "0 6 * * 1" }).then(
+      (r) => r.outcome,
+      () => "exception",
+    );
+    assert.notEqual(outcome, "ok");
+    const marker = await bucket.get("fixture-upload-id");
+    assert.ok(marker, "the finalization call was reached");
+    const pending = bucket.resumeMultipartUpload("catalog/latest.json", await marker.text());
+    await assert.rejects(
+      () => pending.uploadPart(1, "probe"),
+      /upload.*(not exist|not found)|NoSuchUpload/i,
+    );
+    assert.equal(await (await bucket.get("catalog/latest.json")).text(), "previous snapshot");
+  } finally {
+    await harness.close();
+  }
 }

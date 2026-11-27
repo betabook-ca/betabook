@@ -150,10 +150,15 @@ pub async fn run_scheduled_catalog_export(env: &Env) -> Result<CatalogExportSumm
 
     match result {
         Ok(summary) => {
-            upload
-                .complete(uploaded_parts.into_inner())
-                .await
-                .map_err(|e| e.to_string())?;
+            // complete consumes the handle even on failure. Resume the same upload
+            // by ID so finalization errors get the same cleanup as part-write errors.
+            let upload_id = upload.upload_id().await;
+            if let Err(err) = upload.complete(uploaded_parts.into_inner()).await {
+                if let Ok(pending) = bucket.resume_multipart_upload(CATALOG_EXPORT_KEY, upload_id) {
+                    let _ = pending.abort().await;
+                }
+                return Err(err.to_string());
+            }
             worker::console_warn!(
                 "Catalog export written: {} areas, {} climbs, {} bytes",
                 summary.area_count,

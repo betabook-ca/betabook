@@ -59,6 +59,22 @@ fn safe_relative_path(raw: Option<&str>, fallback: &str, auth_url: &str) -> Stri
     target[url::Position::BeforePath..].into()
 }
 
+/// Set the error on the validated, relative return URL without changing its fragment
+/// or dropping other parameters (in particular the SPA's nested `next` route).
+fn oauth_error_location(callback: &str, error: &str) -> String {
+    let (path_query, fragment) = callback.split_once('#').unwrap_or((callback, ""));
+    let (path, query) = path_query.split_once('?').unwrap_or((path_query, ""));
+    let mut params = form_urlencoded::Serializer::new(String::new());
+    params.extend_pairs(form_urlencoded::parse(query.as_bytes()).filter(|(key, _)| key != "error"));
+    params.append_pair("error", error);
+    let mut location = format!("{path}?{}", params.finish());
+    if callback.contains('#') {
+        location.push('#');
+        location.push_str(fragment);
+    }
+    location
+}
+
 fn no_store_json(status: StatusCode, body: Value) -> Response {
     let mut resp = (status, Json(body)).into_response();
     resp.headers_mut().insert(
@@ -800,17 +816,27 @@ pub async fn google_callback(
         ));
     };
     if oauth_data.expires_at <= state.now_ms()
-        || query.error.is_some()
         || query.state.as_deref() != Some(oauth_data.state.as_str())
     {
         return Ok(redirect_response(
-            &format!("{}?error=oauth_cancelled", oauth_data.error_callback_url),
+            &oauth_error_location(&oauth_data.error_callback_url, "oauth_cancelled"),
+            &[clear_state],
+        ));
+    }
+    if let Some(reason) = query.error.as_deref() {
+        let error = if reason == "access_denied" {
+            "access_denied"
+        } else {
+            "oauth_cancelled"
+        };
+        return Ok(redirect_response(
+            &oauth_error_location(&oauth_data.error_callback_url, error),
             &[clear_state],
         ));
     }
     let Some(code) = query.code.as_deref() else {
         return Ok(redirect_response(
-            &format!("{}?error=oauth_missing_code", oauth_data.error_callback_url),
+            &oauth_error_location(&oauth_data.error_callback_url, "oauth_missing_code"),
             &[clear_state],
         ));
     };
@@ -839,7 +865,7 @@ pub async fn google_callback(
     let Some(access_token) = token_json.get("access_token").and_then(Value::as_str) else {
         crate::observability::background_error("google_token_exchange", token_status);
         return Ok(redirect_response(
-            &format!("{}?error=oauth_token_failed", oauth_data.error_callback_url),
+            &oauth_error_location(&oauth_data.error_callback_url, "oauth_token_failed"),
             &[clear_state],
         ));
     };
@@ -852,17 +878,14 @@ pub async fn google_callback(
     .await?;
     if !(200..300).contains(&info_status) {
         return Ok(redirect_response(
-            &format!(
-                "{}?error=oauth_userinfo_failed",
-                oauth_data.error_callback_url
-            ),
+            &oauth_error_location(&oauth_data.error_callback_url, "oauth_userinfo_failed"),
             &[clear_state],
         ));
     }
 
     let Some(sub) = info_json.get("sub").and_then(Value::as_str) else {
         return Ok(redirect_response(
-            &format!("{}?error=oauth_missing_sub", oauth_data.error_callback_url),
+            &oauth_error_location(&oauth_data.error_callback_url, "oauth_missing_sub"),
             &[clear_state],
         ));
     };
@@ -878,10 +901,7 @@ pub async fn google_callback(
         .unwrap_or(false);
     if email.is_empty() || !email_verified {
         return Ok(redirect_response(
-            &format!(
-                "{}?error=oauth_email_unverified",
-                oauth_data.error_callback_url
-            ),
+            &oauth_error_location(&oauth_data.error_callback_url, "oauth_email_unverified"),
             &[clear_state],
         ));
     }
@@ -915,7 +935,7 @@ pub async fn google_callback(
     } else {
         if oauth_data.accepted_terms_version.as_deref() != Some(TERMS_VERSION) {
             return Ok(redirect_response(
-                &format!("{}?error=terms_required", oauth_data.error_callback_url),
+                &oauth_error_location(&oauth_data.error_callback_url, "terms_acceptance_required"),
                 &[clear_state],
             ));
         }
@@ -1089,4 +1109,24 @@ pub async fn accept_terms(
         return Err(ApiError::unauthorized());
     }
     Ok(no_store_json(StatusCode::OK, json!({ "ok": true })))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::oauth_error_location;
+
+    #[test]
+    fn oauth_error_preserves_the_return_route_and_fragment() {
+        assert_eq!(
+            oauth_error_location("/sign-in", "oauth_cancelled"),
+            "/sign-in?error=oauth_cancelled"
+        );
+        assert_eq!(
+            oauth_error_location(
+                "/sign-in?next=%2Fsearch%3Fname%3Done%2Btwo&error=old&tag=a&tag=b#form",
+                "oauth_cancelled"
+            ),
+            "/sign-in?next=%2Fsearch%3Fname%3Done%2Btwo&tag=a&tag=b&error=oauth_cancelled#form"
+        );
+    }
 }

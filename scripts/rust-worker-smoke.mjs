@@ -4,7 +4,12 @@ import { test } from "node:test";
 import { createTestHarness } from "wrangler";
 
 import { testProfileAnalytics } from "./rust-smoke/analytics.mjs";
-import { testAuthLifecycle, testCatalogCron } from "./rust-smoke/auth-lifecycle.mjs";
+import {
+  testAuthLifecycle,
+  testCatalogCron,
+  testFailedCatalogCompletion,
+} from "./rust-smoke/auth-lifecycle.mjs";
+import { testProfilePhotos } from "./rust-smoke/avatars.mjs";
 import { testCatalogHtml } from "./rust-smoke/catalog-html.mjs";
 import { testGoalRefresh } from "./rust-smoke/goal-refresh.mjs";
 import { testGoals } from "./rust-smoke/goals.mjs";
@@ -30,6 +35,8 @@ void test("Rust Worker HTTP flows", async (t) => {
           CLOUDFLARE_USAGE_ACCOUNT_ID: "",
           CLOUDFLARE_USAGE_API_TOKEN: "",
           RESEND_API_KEY: "",
+          GOOGLE_CLIENT_ID: "fixture-google-id",
+          GOOGLE_CLIENT_SECRET: "fixture-google-secret",
         },
       },
     ],
@@ -45,7 +52,7 @@ void test("Rust Worker HTTP flows", async (t) => {
   );
   assert.notEqual(failedCron, "ok");
   await worker.applyD1Migrations("DB");
-  const { DB, CATALOG_EXPORTS } = await worker.getEnv();
+  const { DB, CATALOG_EXPORTS, PROFILE_PHOTOS, IMAGES } = await worker.getEnv();
   const status = await server.fetch("/api/terms/status");
   assert.equal(status.status, 200);
   const { version } = await status.json();
@@ -73,6 +80,9 @@ void test("Rust Worker HTTP flows", async (t) => {
     assert.ok(cookie);
     return cookie.split(";")[0];
   }
+  await t.test("avatar uploads, reads and removal", () =>
+    testProfilePhotos({ server, db: DB, bucket: PROFILE_PHOTOS, images: IMAGES, signIn }),
+  );
   await t.test("auth lifecycle across cutover", () =>
     testAuthLifecycle({
       server,
@@ -81,6 +91,10 @@ void test("Rust Worker HTTP flows", async (t) => {
       origin: url.origin,
       secret: "isolated-rust-worker-smoke-test-secret",
     }),
+  );
+  await t.test(
+    "failed catalog completion aborts the pending R2 parts",
+    testFailedCatalogCompletion,
   );
   await t.test("successful catalog cron", () =>
     testCatalogCron({ worker, bucket: CATALOG_EXPORTS }),
