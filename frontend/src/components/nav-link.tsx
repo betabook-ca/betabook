@@ -3,6 +3,7 @@
 import { clsx } from "clsx";
 import type { ComponentProps } from "react";
 
+import { PrimaryNavigationIcon } from "@/components/primary-navigation-icon";
 import { AppLink } from "@/components/ui/app-link";
 import { usePathname } from "@/spa/lib/navigation";
 
@@ -18,6 +19,7 @@ type NavLinkProps = Omit<ComponentProps<typeof AppLink>, "href"> &
     href: string;
     appearance?: "link" | "menu" | "sidebar" | "tab";
     isCurrent?: boolean;
+    navigationIcon?: ComponentProps<typeof PrimaryNavigationIcon>["area"];
   };
 
 export const MENU_TRIGGER_CLASS =
@@ -51,6 +53,8 @@ export function NavLink({
   relatedPaths,
   isCurrent,
   className,
+  navigationIcon,
+  children,
   ...props
 }: NavLinkProps) {
   const pathname = usePathname();
@@ -85,6 +89,9 @@ export function NavLink({
         className,
       )}
       {...props}
-    />
+    >
+      {navigationIcon && <PrimaryNavigationIcon area={navigationIcon} active={Boolean(current)} />}
+      {children}
+    </AppLink>
   );
 }

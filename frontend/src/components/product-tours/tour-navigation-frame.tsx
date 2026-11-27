@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@heroui/react";
-import { Menu, Search } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Dialog, Popover } from "react-aria-components";
 
@@ -83,14 +83,12 @@ export function TourNavigationFrame({
         href={href("find-projects", "full")}
         appearance={appearance}
         isCurrent={findClimbsCurrent}
+        navigationIcon="search"
         onClick={() => setMenuOpen(false)}
         className={
           appearance === "sidebar" ? "justify-start overflow-hidden" : "min-h-12 justify-start"
         }
       >
-        <span className="flex size-6 shrink-0 items-center justify-center">
-          <Search aria-hidden className="size-5" />
-        </span>
         <span className={collapsed ? "min-w-0 truncate opacity-0" : "min-w-0 truncate"}>
           Find climbs
         </span>

@@ -112,3 +112,16 @@ it.each([
   expect(link(html, href)).toContain(`aria-current="${current}"`);
   expect(html.match(/aria-current=/g)).toHaveLength(1);
 });
+
+it.each([
+  ["/search", "/search"],
+  ["/search/climbs", "/search"],
+  ["/climbs/new", "/climbs/new"],
+  ["/areas/new", "/climbs/new"],
+  ["/tutorial/journal/journal", "/tutorial/journal/journal"],
+  ["/account", "/account"],
+])("uses the selected solid navigation icon at %s", (pathname, href) => {
+  state.pathname = pathname;
+  const html = renderToStaticMarkup(<AppMenuLinks account={owner} />);
+  expect(link(html, href)).toContain('fill="currentColor"');
+});

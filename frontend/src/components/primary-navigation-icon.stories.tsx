@@ -7,7 +7,7 @@ import { PrimaryNavigationIcon } from "./primary-navigation-icon";
 const meta = {
   title: "Components/Navigation/Primary icon",
   component: PrimaryNavigationIcon,
-  args: { area: "logbook", active: false, account: { name: "Alex Morgan", image: null } },
+  args: { area: "logbook", active: false },
   decorators: [
     (Story) => (
       <StoryPage title="Navigation icon">
@@ -22,3 +22,7 @@ export const Logbook: Story = {};
 export const Progress: Story = { args: { area: "progress" } };
 export const Community: Story = { args: { area: "community" } };
 export const You: Story = { name: "Account settings", args: { area: "account" } };
+
+export const FindClimbs: Story = { args: { area: "search" } };
+export const AddClimbOrArea: Story = { args: { area: "add" } };
+export const Tutorials: Story = { args: { area: "tutorials" } };

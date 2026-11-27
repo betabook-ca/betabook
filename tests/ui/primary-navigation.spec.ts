@@ -17,15 +17,13 @@ for (const [story, label] of [
     await expect(active).toHaveCSS("text-decoration-line", "none");
     await expect(active).toHaveCSS("font-weight", "600");
     const inactive = nav.locator("a:not([aria-current])").first();
-    expect(
-      await active
-        .locator("svg")
-        .evaluate((el) => Number.parseFloat(getComputedStyle(el).strokeWidth)),
-    ).toBeGreaterThan(
-      await inactive
-        .locator("svg")
-        .evaluate((el) => Number.parseFloat(getComputedStyle(el).strokeWidth)),
-    );
+    if (label.startsWith("Progress")) {
+      await expect(active.locator("svg")).toHaveAttribute("fill", "none");
+      await expect(active.locator("svg")).toHaveAttribute("stroke-width", "2.8");
+    } else {
+      await expect(active.locator("svg")).toHaveAttribute("fill", "currentColor");
+    }
+    await expect(inactive.locator("svg")).toHaveAttribute("fill", "none");
     const highlight = await nav.locator("ul").evaluate((element) => {
       const style = getComputedStyle(element, "::before");
       const box = element.getBoundingClientRect();
@@ -184,3 +182,20 @@ test(
     ).toHaveAttribute("aria-current", /page|location/);
   },
 );
+
+for (const [story, label] of [
+  ["find-climbs", "Find climbs"],
+  ["add-area", "Add climb or area"],
+  ["tutorials", "Tutorials"],
+  ["secondary-tools", "Account settings"],
+]) {
+  test(`menu uses the selected filled icon for ${label}`, async ({ page }, info) => {
+    await openStory(page, info, `components-navigation-app-menu--${story}`);
+    const link = page
+      .getByRole("navigation", { name: "Menu" })
+      .getByRole("link", { name: label, exact: true });
+    await expect(link).toHaveAttribute("aria-current", /page|location/);
+    await expect(link.locator("svg")).toHaveAttribute("fill", "currentColor");
+    await expect(link.locator("svg")).toHaveCSS("width", "20px");
+  });
+}

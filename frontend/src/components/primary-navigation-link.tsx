@@ -71,7 +71,7 @@ export function PrimaryNavigationLink({
             : "relative order-first shrink-0"
         }
       >
-        <PrimaryNavigationIcon area={item.id} account={account} active={tab && current} />
+        <PrimaryNavigationIcon area={item.id} active={current} />
         {tab && tabCount > 0 ? (
           <FriendRequestBadge
             compact
