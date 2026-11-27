@@ -58,7 +58,7 @@ export function ActionsMenu({
        * positioner moved the menu left, it widened, and the cycle repeated
        * (a ResizeObserver loop). Capped so a very long item still wraps. */}
       <Popover
-        className="popover w-max max-w-[calc(100vw-2rem)] dark:rounded-panel dark:border dark:border-border"
+        className="popover w-max max-w-[calc(100vw-2rem)] motion-reduce:animate-none dark:rounded-panel dark:border dark:border-border"
         placement="bottom end"
       >
         <Menu.Root onAction={onAction}>{children}</Menu.Root>
