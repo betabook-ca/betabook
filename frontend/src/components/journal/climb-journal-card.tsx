@@ -1,4 +1,5 @@
 import { CompanionList } from "@/components/journal/companion-list";
+import { EntryActionsMenu } from "@/components/journal/entry-actions-menu";
 import { JournalEntryStatus } from "@/components/journal/journal-entry-layout";
 import { AppLink } from "@/components/ui/app-link";
 import { ClampedComment } from "@/components/ui/clamped-comment";
@@ -52,6 +53,13 @@ export function ClimbJournalCard({
                   />
                   <span aria-hidden>·</span>
                   <time dateTime={entry.entryDate}>{formatDate(entry.entryDate)}</time>
+                  {/* Always visible: journal rows elsewhere open this menu
+                   * with a long press on touch screens, and a row's link
+                   * leads here. */}
+                  <EntryActionsMenu
+                    entry={entry}
+                    triggerClassName="ml-auto -my-1 pointer-coarse:-my-2.5 pointer-coarse:size-11"
+                  />
                 </div>
                 <CompanionList companions={entry.companions} />
                 {entry.body && (

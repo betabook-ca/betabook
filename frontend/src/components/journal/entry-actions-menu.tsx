@@ -1,6 +1,7 @@
 "use client";
 
 import { Menu, useOverlayState } from "@heroui/react";
+import { Pencil } from "lucide-react";
 import { useState, useTransition } from "react";
 
 import { JournalEntryEditDrawer } from "@/components/journal/journal-entry-edit-drawer";
@@ -9,7 +10,13 @@ import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import type { JournalEntry } from "@/lib/logbook-types";
 import { deleteJournalEntry } from "@/spa/lib/actions-client";
 
-export function EntryActionsMenu({ entry }: { entry: JournalEntry }) {
+export function EntryActionsMenu({
+  entry,
+  triggerClassName,
+}: {
+  entry: JournalEntry;
+  triggerClassName?: string;
+}) {
   const editState = useOverlayState();
   const deleteState = useOverlayState();
   const [pending, startTransition] = useTransition();
@@ -31,6 +38,8 @@ export function EntryActionsMenu({ entry }: { entry: JournalEntry }) {
     <>
       <ActionsMenu
         ariaLabel="Entry actions"
+        icon={<Pencil className="size-4" />}
+        triggerClassName={triggerClassName}
         onAction={(key) => {
           if (key === "edit") editState.open();
           if (key === "delete") {
