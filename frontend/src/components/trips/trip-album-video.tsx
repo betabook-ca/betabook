@@ -41,7 +41,7 @@ export function TripAlbumVideo({
       `video:focus:not(:focus-visible){outline:0}body:not(.on) video::-webkit-media-controls{display:none}` +
       `button{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border:0;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;cursor:pointer}` +
       `button svg{width:24px;height:24px;margin-left:3px}` +
-      `span{position:absolute;left:8px;bottom:8px;padding:2px 8px;border-radius:999px;background:rgba(0,0,0,.6);color:#fff;font:600 12px/18px system-ui,sans-serif}</style>`,
+      `span{position:absolute;left:8px;bottom:8px;padding:2px 8px;border-radius:999px;background:rgba(0,0,0,.6);color:#fff;font:600 12px/18px "Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif}</style>`,
     `<video src="${attr(albumVideoSrc(photo))}" poster="${poster}" preload="none" playsinline></video>`,
     `<button type="button" aria-label="Play, ${length}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>`,
     `<span aria-hidden="true">${clock(photo.video.duration)}</span>`,

@@ -3,7 +3,6 @@ import { useLayoutEffect } from "react";
 import { MemoryRouter } from "react-router";
 
 import "@/spa/globals.css";
-import "@/spa/fonts.css";
 
 const preview: Preview = {
   beforeEach: ({ canvasElement }) => {

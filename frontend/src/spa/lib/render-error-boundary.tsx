@@ -98,7 +98,7 @@ function FailureView({ scope, retry }: { scope: BoundaryProps["scope"]; retry: (
           alignItems: "center",
           justifyContent: "center",
           gap: "0.75rem",
-          fontFamily: "var(--font-body, system-ui), sans-serif",
+          fontFamily: "var(--font-body, Georgia), serif",
           background: "var(--background, #faf9f5)",
           color: "var(--foreground, #252423)",
         }}

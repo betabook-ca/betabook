@@ -1,7 +1,8 @@
 @import "@heroui/styles";
 
-/* Brand anchors shared with the first paint, install assets and email templates. */
+/* The interface family and brand anchors for both themes. */
 :root {
+  --font-body: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --palette-ink: #252423;
   --palette-night: #191e25;
   --palette-primary: #994b35;
@@ -186,7 +187,7 @@
 
 @theme inline {
   --font-sans: var(--font-body);
-  --font-display: var(--font-heading);
+  --font-display: var(--font-body);
   --color-date-ink: var(--date-ink);
 
   /* Raw palette as utilities (bg-palette-primary, text-palette-support, …)

@@ -7,7 +7,7 @@ import { PageTitle, SectionHeading } from "@/components/ui/typography";
 import { BrandIconReference } from "./brand-icon-reference";
 
 const designPrinciples =
-  "Betabook should feel like a calm, practical climbing logbook. Its identity comes from the warm paper, charcoal ink, clay accents, serif headings and bold DM Sans climb names, aligned dates and grades, and readable session notes. Reuse existing components and patterns before adding a new visual treatment. Explore Foundations / Tokens for live theme roles and measurements.";
+  "Betabook should feel like a calm, practical climbing logbook. Its identity comes from the warm paper, charcoal ink, clay accents, Iowan Old Style headings and bold climb names, aligned dates and grades, and readable session notes. Reuse existing components and patterns before adding a new visual treatment. Explore Foundations / Tokens for live theme roles and measurements.";
 
 const meta = {
   title: "Foundations/Brand and style",

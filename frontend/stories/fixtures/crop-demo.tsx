@@ -31,7 +31,7 @@ export async function drawDemoPhoto(width: number, height: number): Promise<File
   context.fill();
 
   context.fillStyle = "#0f172a";
-  context.font = `${Math.round(height / 10)}px sans-serif`;
+  context.font = `${Math.round(height / 10)}px ${getComputedStyle(document.documentElement).getPropertyValue("--font-body").trim() || "Georgia, serif"}`;
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.fillText("TOP", width / 2, height / 8);

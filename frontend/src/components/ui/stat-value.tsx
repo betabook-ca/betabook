@@ -7,8 +7,7 @@ const STAT_TONE = {
 } as const;
 
 /** The big number under an eyebrow — stat tiles, the costs total, import
- * counts. The one use of the display face beyond titles and names (see
- * --font-display in spa/globals.css). */
+ * counts. Tabular numerals keep adjacent values aligned. */
 export function StatValue({
   children,
   tone,
