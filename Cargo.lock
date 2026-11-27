@@ -101,6 +101,7 @@ dependencies = [
  "sha2",
  "subtle",
  "thiserror",
+ "time",
  "unicode-normalization",
  "url",
 ]

@@ -39,6 +39,6 @@ pnpm check && pnpm build
 
 1. **Foundation Stack** (`rust-migration/*`): Workspace + CI, domain & DB core, full Rust auth & core public/R2 APIs, and React Router SPA foundation.
 2. **Sends, journal, feed and friends** have Rust read/write APIs and member SPA views.
-3. **Projects, trips and climb lists** have member and public share pages, mutations, and workerd smoke tests. Trip detail includes day grouping, Google Photos albums, and trip analytics. User goals, goal refresh, and profile-wide analytics are still pending.
+3. **Projects, trips and climb lists** have member and public share pages, mutations, and workerd smoke tests. Trip detail includes day grouping, Google Photos albums, and trip analytics. The next layer, `rust-migration/goals-and-profile-analytics`, adds the owner Goals workspace, journal-visible progress and history, achievement reconciliation after owner activity, and profile analytics with saved dashboard layouts.
 4. **Moderation, imports and admin** are pending, including area-scoped moderation and KAYA / Sendage / Mountain Project / CSV imports. Profile photo upload and removal are already on the Rust Worker.
 5. **Cutover**: Point root `wrangler.jsonc` at the Rust Worker + SPA `dist-spa`, remove `next`, `vinext`, `drizzle-orm`, `better-auth`, and Next-specific shims.

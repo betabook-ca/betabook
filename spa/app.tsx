@@ -31,6 +31,7 @@ const AreaRoute = lazy(() => import("@/spa/routes/area-route"));
 const ClimbRoute = lazy(() => import("@/spa/routes/climb-route"));
 const NewAreaRoute = lazy(() => import("@/spa/routes/new-area-route"));
 const NewClimbRoute = lazy(() => import("@/spa/routes/new-climb-route"));
+const ProfileAnalyticsRoute = lazy(() => import("@/spa/routes/profile-analytics-route"));
 const TripsRoute = lazy(() => import("@/spa/routes/trips-route"));
 const FeedRoute = lazy(() => import("@/spa/routes/feed-route"));
 const FriendsRoute = lazy(() => import("@/spa/routes/friends-route"));
@@ -41,6 +42,7 @@ const ListsRoute = lazy(() => import("@/spa/routes/lists-route"));
 const UserJournalRoute = lazy(() => import("@/spa/routes/user-journal-route"));
 const AuthRouteView = lazy(() => import("@/spa/routes/auth-routes"));
 const InfoRouteView = lazy(() => import("@/spa/routes/info-routes"));
+const GoalsRoute = lazy(() => import("@/spa/routes/goals-route"));
 const ProjectsRoute = lazy(() => import("@/spa/routes/projects-route"));
 const PlaceholderRoute = lazy(() => import("@/spa/routes/placeholder-route"));
 
@@ -200,6 +202,10 @@ export function App() {
                         <Routes>
                           <Route path="/" element={<HomeRoute viewerId={viewerId} />} />
                           <Route path="/search" element={<SearchRoute viewerId={viewerId} />} />
+                          <Route
+                            path="/users/:id/analytics"
+                            element={<ProfileAnalyticsRoute viewerId={viewerId} />}
+                          />
                           <Route path="/feed" element={<FeedRoute viewerId={viewerId} />} />
                           <Route path="/friends" element={<FriendsRoute viewerId={viewerId} />} />
                           <Route path="/account" element={<AccountRoute viewerId={viewerId} />} />
@@ -214,6 +220,10 @@ export function App() {
                           <Route
                             path="/users/:id/journal"
                             element={<UserJournalRoute viewerId={viewerId} />}
+                          />
+                          <Route
+                            path="/users/:id/goals"
+                            element={<GoalsRoute viewerId={viewerId} />}
                           />
                           <Route
                             path="/users/:id/projects"

@@ -60,7 +60,7 @@ const MAX_MULTIPART_ACTION_BYTES: usize = 4 * 1024 * 1024;
 const CONTACT_TO_EMAIL: &str = "hello@betabook.ca";
 const CONTACT_FROM_EMAIL: &str = "Betabook <noreply@betabook.ca>";
 const MIN_CONTACT_FILL_MS: f64 = 2000.0;
-const JOURNAL_RATE_LIMIT_MESSAGE: &str =
+pub(super) const JOURNAL_RATE_LIMIT_MESSAGE: &str =
     "You're logging entries quickly — take a breather and try again in a minute.";
 
 pub(super) fn action_ok() -> Response {
@@ -708,6 +708,13 @@ pub async fn dispatch_action(
     };
 
     match name.as_str() {
+        "saveGoal" | "deleteGoal" | "archiveGoal" => {
+            super::goals::action(&state, &headers, &name, &call.args).await
+        }
+        "acknowledgeGoalAchievements" => {
+            super::goal_refresh::acknowledge(&state, &headers, call.args.first()).await
+        }
+        "saveAnalyticsLayout" => super::profile_analytics::save(&state, &headers, &call.args).await,
         "pinProject" | "unpinProject" | "shareProject" | "unshareProject" => {
             use betabook_db::projects::{
                 pin_project, share_project, unpin_project, unshare_project,
@@ -1216,7 +1223,12 @@ pub async fn dispatch_action(
                 state.now_ms(),
             )
             .await;
-            map_mutation_result(res, |()| action_ok())
+            map_mutation_result(res, |_| {
+                if input.date_sent.is_some() {
+                    super::goal_refresh::schedule(&state, &session.user.id);
+                }
+                action_ok()
+            })
         }
         "deleteSend" => {
             let session = match require_member_session(&state, &headers).await {
@@ -1228,7 +1240,10 @@ pub async fn dispatch_action(
                 Err(msg) => return Ok(action_err(msg)),
             };
             let res = delete_user_send(state.db(), &session.user.id, send_id).await;
-            map_mutation_result(res, |_| action_ok())
+            map_mutation_result(res, |_| {
+                super::goal_refresh::schedule(&state, &session.user.id);
+                action_ok()
+            })
         }
 
         // Journal
@@ -1298,7 +1313,10 @@ pub async fn dispatch_action(
                 state.now_ms(),
             )
             .await;
-            map_mutation_result(res, |()| action_ok())
+            map_mutation_result(res, |_| {
+                super::goal_refresh::schedule(&state, &session.user.id);
+                action_ok()
+            })
         }
         "updateJournalEntry" => {
             let session = match require_member_session(&state, &headers).await {
@@ -1342,7 +1360,10 @@ pub async fn dispatch_action(
                 state.now_ms(),
             )
             .await;
-            map_mutation_result(res, |()| action_ok())
+            map_mutation_result(res, |_| {
+                super::goal_refresh::schedule(&state, &session.user.id);
+                action_ok()
+            })
         }
         "deleteJournalEntry" => {
             let session = match require_member_session(&state, &headers).await {
@@ -1357,7 +1378,10 @@ pub async fn dispatch_action(
                 Err(msg) => return Ok(action_err(msg)),
             };
             let res = delete_journal_entry_with_sync(state.db(), &session.user.id, entry_id).await;
-            map_mutation_result(res, |()| action_ok())
+            map_mutation_result(res, |_| {
+                super::goal_refresh::schedule(&state, &session.user.id);
+                action_ok()
+            })
         }
         "removeMyJournalTag" => {
             let session = match require_member_session(&state, &headers).await {

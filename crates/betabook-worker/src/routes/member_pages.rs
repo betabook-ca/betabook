@@ -109,13 +109,13 @@ pub(super) async fn profile_header_data(
     }))
 }
 
-fn parse_query_map(raw_query: &str) -> Vec<(String, String)> {
+pub(super) fn parse_query_map(raw_query: &str) -> Vec<(String, String)> {
     form_urlencoded::parse(raw_query.as_bytes())
         .into_owned()
         .collect()
 }
 
-fn first_param<'a>(pairs: &'a [(String, String)], key: &str) -> Option<&'a str> {
+pub(super) fn first_param<'a>(pairs: &'a [(String, String)], key: &str) -> Option<&'a str> {
     pairs
         .iter()
         .find(|(k, _)| k == key)

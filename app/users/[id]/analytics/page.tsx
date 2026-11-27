@@ -1,28 +1,18 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { saveAnalyticsLayout } from "@/actions";
 import {
   ProfileHeader,
   canReadUserJournal,
   memberMetadata,
   resolveProfilePage,
 } from "@/app/users/[id]/profile-shell";
-import { AnalyticsDashboard } from "@/components/analytics-dashboard";
 import { AnalyticsLoading } from "@/components/analytics-loading";
-import { AnalyticsYearNavigation } from "@/components/analytics-year-filter";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
-import { DisciplineScopeNav } from "@/components/discipline-scope-nav";
-import { FeatureAnnouncementScope } from "@/components/feature-announcement";
-import { AnalyticsHashtagFilter } from "@/components/filters/analytics-hashtag-filter";
-import { LogEntryButton } from "@/components/journal";
 import {
-  NavigationPendingProvider,
-  NavigationPendingRegion,
-} from "@/components/navigation-pending";
-import { AppLink } from "@/components/ui/app-link";
-import { EmptyState } from "@/components/ui/empty-state";
-import { SectionHeading } from "@/components/ui/typography";
+  EmptyProfileAnalytics,
+  ProfileAnalyticsDashboard,
+} from "@/components/profile-analytics-view";
 import { getDb } from "@/db/client";
 import { getJournalSessionsForAnalytics, getUserSendsForAnalytics } from "@/db/queries";
 import { getAnalyticsHighlightSessions } from "@/db/queries/analytics-highlights";
@@ -30,25 +20,16 @@ import { getAnalyticsLayout } from "@/db/queries/analytics-layout";
 import { getClimberOverview } from "@/db/queries/climber-overview";
 import { getViewerFeatureAnnouncements } from "@/db/queries/feature-announcements";
 import { getUserHashtags } from "@/db/queries/hashtag-filter";
-import { buildAnalyticsHighlights } from "@/lib/analytics-highlights";
-import { parseAnalyticsYears } from "@/lib/analytics-years";
-import { describeClimber, describeRecency } from "@/lib/climber-summary";
 import {
   ANALYTICS_CUSTOMIZE_ANNOUNCEMENT,
   getAnnouncementCandidates,
 } from "@/lib/feature-announcements";
 import { normalizeHashtagFilters } from "@/lib/filters/hashtag-filter";
 import { goalToday } from "@/lib/goals";
-import type { ClimbType } from "@/lib/grades";
 import { getRequestTimezone } from "@/lib/request-timezone";
 import { getViewerGradePreferences } from "@/lib/session";
 import { toArray, type UrlParamsRecord } from "@/lib/url-params";
-import {
-  buildUserAnalytics,
-  getAnalyticsHistorySummary,
-  parseDisciplineScope,
-  resolveDisciplineScope,
-} from "@/lib/user-analytics";
+import { parseDisciplineScope, resolveDisciplineScope } from "@/lib/user-analytics";
 
 type UserAnalyticsPageProps = {
   params: Promise<{ id: string }>;
@@ -61,18 +42,6 @@ export async function generateMetadata({ params }: UserAnalyticsPageProps): Prom
     await resolveProfilePage(id, "viewer"),
     (user) => `${user.name} · Analytics`,
   );
-}
-
-function analyticsHref(
-  userId: string,
-  scope: ClimbType,
-  selectedYears: number[],
-  tags: string[],
-): string {
-  const query = new URLSearchParams({ discipline: scope });
-  if (selectedYears.length) query.set("years", selectedYears.join(","));
-  for (const tag of tags) query.append("tag", tag);
-  return `/users/${userId}/analytics?${query}`;
 }
 
 export default async function UserAnalyticsPage({ params, searchParams }: UserAnalyticsPageProps) {
@@ -137,33 +106,7 @@ async function AnalyticsView({
   });
 
   if (scope == null) {
-    return (
-      <NavigationPendingProvider>
-        <div className="flex min-w-0 flex-col gap-6">
-          <SectionHeading className="sr-only">Analytics</SectionHeading>
-          <AnalyticsHashtagFilter selectedTags={selectedTags} tags={tags} />
-          <NavigationPendingRegion>
-            <EmptyState
-              message={
-                selectedTags.length > 0
-                  ? "Nothing matches these tags."
-                  : "No sends or sessions yet."
-              }
-              cta={
-                isOwner && selectedTags.length === 0 ? (
-                  <div className="flex flex-col items-center gap-3">
-                    <LogEntryButton />
-                    <AppLink href="/account/import" className="text-sm">
-                      Import your sends
-                    </AppLink>
-                  </div>
-                ) : undefined
-              }
-            />
-          </NavigationPendingRegion>
-        </div>
-      </NavigationPendingProvider>
-    );
+    return <EmptyProfileAnalytics tags={tags} selectedTags={selectedTags} isOwner={isOwner} />;
   }
 
   const [initialLayout, highlightSessions, overview] = await Promise.all([
@@ -177,65 +120,24 @@ async function AnalyticsView({
     userCreatedAt: viewerCreatedAt,
     now: new Date(),
   });
-  const { years, undatedCount } = getAnalyticsHistorySummary(rows, scope, journalSessions);
-  const selectedYears = parseAnalyticsYears(search.years ?? search.period, years);
-  const analytics = buildUserAnalytics(
-    rows,
-    scope,
-    journalSessions,
-    selectedYears,
-    await getViewerGradePreferences(),
-  );
-  const summary = [describeClimber(overview), describeRecency(overview)].filter(Boolean).join(" ");
-
   return (
-    <FeatureAnnouncementScope
-      userId={viewerId}
-      page={`/users/${id}/analytics`}
+    <ProfileAnalyticsDashboard
+      userId={id}
+      viewerId={viewerId}
+      scope={scope}
+      present={present}
+      yearFilter={search.years ?? search.period}
+      rows={rows}
+      highlightSessions={highlightSessions}
+      journalSessions={journalSessions}
+      tags={tags}
+      selectedTags={selectedTags}
+      journalVisible={journalVisible}
+      isOwner={isOwner}
+      gradePreferences={await getViewerGradePreferences()}
+      initialLayout={initialLayout}
+      overview={overview}
       announcements={announcements}
-    >
-      {/* The provider links the tag filter's in-flight navigation to the
-       * dashboard it is about to replace, which dims while pending. */}
-      <NavigationPendingProvider>
-        <NavigationPendingRegion>
-          <AnalyticsDashboard
-            summary={summary}
-            key={id}
-            canCustomize={isOwner}
-            initialLayout={initialLayout}
-            onSave={isOwner ? saveAnalyticsLayout : undefined}
-            analytics={analytics}
-            sends={rows}
-            sessions={highlightSessions}
-            highlights={buildAnalyticsHighlights(highlightSessions, scope, selectedYears, rows)}
-            undatedCount={undatedCount}
-            scope={scope}
-            journalVisible={journalVisible}
-            selectedYears={selectedYears}
-            periodPicker={
-              <>
-                <DisciplineScopeNav
-                  present={present}
-                  scope={scope}
-                  href={(type) => analyticsHref(id, type, selectedYears, selectedTags)}
-                />
-                <AnalyticsHashtagFilter
-                  selectedTags={selectedTags}
-                  tags={tags}
-                  controls={
-                    <div className="min-w-0 flex-1">
-                      <AnalyticsYearNavigation
-                        years={years.toReversed()}
-                        selected={selectedYears}
-                      />
-                    </div>
-                  }
-                />
-              </>
-            }
-          />
-        </NavigationPendingRegion>
-      </NavigationPendingProvider>
-    </FeatureAnnouncementScope>
+    />
   );
 }

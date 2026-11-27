@@ -151,10 +151,13 @@ fn router(state: AppState) -> Router {
         )
         .route("/api/pages/projects/{token}", get(routes::projects::shared))
         .route("/projects/{token}", get(routes::seo::shared_project_page))
-        .route("/users/{id}/projects", get(routes::seo::owner_project_page))
+        .route(
+            "/users/{id}/projects",
+            get(routes::seo::owner_progress_page),
+        )
         .route(
             "/users/{id}/projects/sent",
-            get(routes::seo::owner_project_page),
+            get(routes::seo::owner_progress_page),
         )
         .route(
             "/api/pages/users/{id}/lists",
@@ -171,6 +174,14 @@ fn router(state: AppState) -> Router {
             get(routes::seo::member_list_html),
         )
         .route("/lists/{token}", get(routes::seo::shared_list_html))
+        .route(
+            "/users/{id}/analytics",
+            get(routes::profile_analytics::html),
+        )
+        .route(
+            "/api/pages/users/{id}/analytics",
+            get(routes::profile_analytics::page),
+        )
         .route("/users/{id}/trips", get(routes::trips::member_html))
         .route("/users/{id}/trips/{trip}", get(routes::trips::member_html))
         .route(
@@ -201,6 +212,9 @@ fn router(state: AppState) -> Router {
             "/api/pages/trips/{token}/analytics",
             get(routes::trips::shared),
         )
+        .route("/api/users/{id}/goals", get(routes::goals::read))
+        .route("/api/pages/users/{id}/goals", get(routes::goals::overview))
+        .route("/users/{id}/goals", get(routes::seo::owner_progress_page))
         // Page loaders for member SPA views
         .route(
             "/api/pages/feed",

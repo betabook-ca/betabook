@@ -13,6 +13,10 @@ import {
   NavigationPendingProvider,
   NavigationPendingRegion,
 } from "@/components/navigation-pending";
+import {
+  EmptyProfileAnalytics,
+  ProfileAnalyticsDashboard,
+} from "@/components/profile-analytics-view";
 import { EmptyState } from "@/components/ui/empty-state";
 import { createDb } from "@/db/client";
 import { user } from "@/db/schema";
@@ -20,7 +24,9 @@ import { seedFixtureSend, seedFixtureTree, seedFixtureUser } from "@/test/fixtur
 import { resetDb } from "@/test/reset-db";
 import { rendered } from "@/test/server-tree";
 
-const UserAnalyticsPage = rendered(UserAnalyticsPageImpl);
+const UserAnalyticsPage = rendered(UserAnalyticsPageImpl, {
+  expand: [EmptyProfileAnalytics, ProfileAnalyticsDashboard],
+});
 
 const session = vi.hoisted(() => ({ userId: "owner" as string | null }));
 vi.mock("@/lib/cloudflare-env", () => ({ getCloudflareEnv: async () => env }));

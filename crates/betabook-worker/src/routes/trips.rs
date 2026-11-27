@@ -279,7 +279,7 @@ pub async fn shared_html(
         );
         meta.og_type = "article";
     }
-    super::seo::trip_shell(&state, status, &meta).await
+    super::seo::member_shell(&state, status, &meta, "routes/trips-route.tsx").await
 }
 
 async fn optional_member(
@@ -318,10 +318,11 @@ pub async fn member_html(
     } else {
         (StatusCode::OK, "Member content".into())
     };
-    super::seo::trip_shell(
+    super::seo::member_shell(
         &state,
         status,
         &PageMetadata::noindex(title, SITE_DESCRIPTION),
+        "routes/trips-route.tsx",
     )
     .await
 }

@@ -551,11 +551,18 @@ pub async fn shared_project_page(
     };
     let data =
         json!({"route":"shared-project", "path":format!("/projects/{token}"), "data":access});
-    render_project_shell(&state, &meta, status, Some(&data)).await
+    render_progress_shell(
+        &state,
+        &meta,
+        status,
+        "routes/projects-route.tsx",
+        Some(&data),
+    )
+    .await
 }
 
 #[worker::send]
-pub async fn owner_project_page(
+pub async fn owner_progress_page(
     State(state): State<AppState>,
     headers: http::HeaderMap,
     Path(owner): Path<String>,
@@ -571,7 +578,9 @@ pub async fn owner_project_page(
     let (status, title) = match member {
         None => (StatusCode::OK, "Member content".to_owned()),
         Some(s) if s.user.id == owner => {
-            let label = if uri.path().ends_with("/sent") {
+            let label = if uri.path().ends_with("/goals") {
+                "Goals"
+            } else if uri.path().ends_with("/sent") {
                 "Sent projects"
             } else {
                 "Projects"
@@ -580,23 +589,29 @@ pub async fn owner_project_page(
         }
         Some(_) => (StatusCode::NOT_FOUND, "Not found".to_owned()),
     };
-    render_project_shell(
+    render_progress_shell(
         &state,
         &PageMetadata::noindex(title, SITE_DESCRIPTION),
         status,
+        if uri.path().ends_with("/goals") {
+            "routes/goals-route.tsx"
+        } else {
+            "routes/projects-route.tsx"
+        },
         None,
     )
     .await
 }
 
-async fn render_project_shell(
+async fn render_progress_shell(
     state: &AppState,
     meta: &PageMetadata,
     status: StatusCode,
+    chunk: &str,
     bootstrap: Option<&Value>,
 ) -> Result<Response, ApiError> {
     let manifest = load_spa_manifest(state).await?;
-    let preload = render_modulepreload_tags(&manifest, "routes/projects-route.tsx");
+    let preload = render_modulepreload_tags(&manifest, chunk);
     let html = inject_seo_into_html(
         &load_index_html(state).await?,
         meta,
@@ -904,13 +919,14 @@ pub async fn spa_fallback(
     Ok(html_response(StatusCode::OK, html))
 }
 
-pub(super) async fn trip_shell(
+pub(super) async fn member_shell(
     state: &AppState,
     status: StatusCode,
     meta: &PageMetadata,
+    entry: &str,
 ) -> Result<Response, ApiError> {
     let manifest = load_spa_manifest(state).await?;
-    let preload = render_modulepreload_tags(&manifest, "routes/trips-route.tsx");
+    let preload = render_modulepreload_tags(&manifest, entry);
     let html = inject_seo_into_html(&load_index_html(state).await?, meta, &[], &preload, None);
     let mut response = html_response(status, html);
     response.headers_mut().insert(

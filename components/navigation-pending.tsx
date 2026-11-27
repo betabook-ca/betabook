@@ -44,11 +44,14 @@ export function useReportNavigationPending(isPending: boolean): void {
 export function NavigationPendingRegion({
   children,
   className,
+  pending = false,
 }: {
   children: ReactNode;
   className?: string;
+  pending?: boolean;
 }) {
-  const isPending = useContext(NavigationPendingContext)?.isPending ?? false;
+  const navigation = useContext(NavigationPendingContext);
+  const isPending = pending || navigation?.isPending === true;
   return (
     <>
       {/* aria-busy alone is silent in screen readers, and a live region inside

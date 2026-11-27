@@ -917,3 +917,8 @@ mod projects;
 
 #[path = "features/climb_lists.rs"]
 mod climb_lists;
+
+#[path = "features/goal_achievements.rs"]
+mod goal_achievements;
+#[path = "features/goals.rs"]
+mod goals;
