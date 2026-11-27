@@ -128,3 +128,14 @@ with five videos. Videos follow the send commentary audience.
 
 Deleting a send retains its journal entry and keeps its commentary audience, including after
 further edits. Database triggers classify original-send notes for every write path.
+
+## Seed checks
+
+Against a disposable copy of a migrated, default-seeded SQLite database:
+
+```bash
+pnpm test:seed-social /path/to/copy.sqlite
+pnpm test:seed-trips /path/to/copy.sqlite
+```
+
+CI's **Test & Build** job runs both against a freshly migrated and seeded database.

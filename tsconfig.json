@@ -31,7 +31,6 @@
     "types": ["@cloudflare/workers-types"],
     "paths": {
       "@/spa/generated/api": ["./frontend/src/spa/generated/api.d.ts"],
-      "@/test/*": ["./test/*"],
       "@/tests/*": ["./tests/*"],
       "@/stories/*": ["./frontend/stories/*"],
       "@/.storybook/*": ["./frontend/.storybook/*"],

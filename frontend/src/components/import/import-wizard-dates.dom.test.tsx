@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { importSends, resolveImportClimbs } from "@/spa/lib/actions-client";
 import ImportRoute from "@/spa/routes/import-route";
-import { kayaStreamResponse } from "@/test/kaya";
+import { kayaStreamResponse } from "@/tests/vitest/kaya";
 
 import { ImportWizard } from "./import-wizard";
 

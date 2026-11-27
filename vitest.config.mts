@@ -5,7 +5,7 @@ import { defineConfig } from "vitest/config";
 import { frontendAliases, frontendDir } from "./frontend/paths.ts";
 
 const testAliases = [
-  { find: "@/test", replacement: path.join(import.meta.dirname, "test") },
+  { find: "@/tests", replacement: path.join(import.meta.dirname, "tests") },
   { find: "@/stories", replacement: path.join(frontendDir, "stories") },
   ...frontendAliases,
 ];
@@ -21,7 +21,7 @@ export default defineConfig({
           environment: "node",
           include: ["frontend/src/**/*.test.{ts,tsx}"],
           exclude: ["**/*.dom.test.{ts,tsx}"],
-          setupFiles: ["./test/setup-router-link.ts"],
+          setupFiles: ["./tests/vitest/setup-router-link.ts"],
         },
       },
       {
@@ -34,7 +34,7 @@ export default defineConfig({
             "frontend/src/hooks/**/*.dom.test.{ts,tsx}",
             "frontend/src/spa/**/*.dom.test.{ts,tsx}",
           ],
-          setupFiles: ["./test/setup-dom.ts", "./test/setup-router-link.ts"],
+          setupFiles: ["./tests/vitest/setup-dom.ts", "./tests/vitest/setup-router-link.ts"],
           clearMocks: true,
           restoreMocks: true,
         },

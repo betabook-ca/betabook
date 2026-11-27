@@ -123,10 +123,10 @@ account import wizard and does not change journal logging.
 
 ## Validation
 
-Run the focused client tests for API retries, stream parsing and repeated dates, then the mounted form and wizard tests for switching sources, cancellation and review:
+Run the focused client tests for KAYA imports and repeated dates, then the mounted form and wizard tests for switching sources, cancellation and review:
 
 ```bash
-pnpm test --project=unit frontend/src/lib/kaya-api.test.ts frontend/src/lib/import-date-review.test.ts
+pnpm test --project=unit frontend/src/lib/kaya-import.test.ts frontend/src/lib/import-date-review.test.ts
 pnpm test:components frontend/src/components/import/kaya-import-form.dom.test.tsx frontend/src/components/import/import-wizard.dom.test.tsx
 ```
 

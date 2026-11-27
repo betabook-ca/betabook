@@ -2,7 +2,7 @@ import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
-import { stubTurnstile } from "@/test/turnstile";
+import { stubTurnstile } from "@/tests/vitest/turnstile";
 
 import { ResetPasswordButton } from "./reset-password-button";
 
@@ -15,7 +15,7 @@ const { requestPasswordReset } = vi.hoisted(() => ({
   requestPasswordReset: vi.fn<(body: unknown, options: ResetOptions) => void>(),
 }));
 vi.mock("@/lib/auth-client", () => ({ authClient: { requestPasswordReset } }));
-vi.mock("@/spa/lib/external-script", () => import("@/test/turnstile"));
+vi.mock("@/spa/lib/external-script", () => import("@/tests/vitest/turnstile"));
 
 it("sends a Turnstile token with the reset request and waits for a fresh one to retry", async () => {
   const { turnstile, solve } = stubTurnstile();

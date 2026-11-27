@@ -33,7 +33,7 @@ export function useIsAtLeast(breakpoint: Breakpoint): boolean | undefined {
 
   useIsomorphicLayoutEffect(() => {
     // jsdom has no matchMedia at all, so tests opt in per case via
-    // test/viewport.ts. Without a stub every query reads as unmatched.
+    // tests/vitest/viewport.ts. Without a stub every query reads as unmatched.
     const query = window.matchMedia?.(BREAKPOINT_QUERY[breakpoint]);
     if (!query) return;
     const update = () => setMatches(query.matches);

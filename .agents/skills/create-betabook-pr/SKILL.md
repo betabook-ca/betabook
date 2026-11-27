@@ -16,8 +16,7 @@ changes out of the PR; merging, deploying, and assigning human reviewers require
 
 ## Establish the PR scope
 
-1. Read the repository `AGENTS.md` and its applicable guides, especially
-   `docs/repository-guide.md` for validation and the `betabook-dev` skill for local setup. Inspect the checkout:
+1. Read the [root verification rules](../../../AGENTS.md#verification) and the guidance for the changed paths. Use the development skill when local setup is needed. Inspect the checkout:
 
    ```bash
    git status --short --branch
@@ -91,8 +90,7 @@ changes out of the PR; merging, deploying, and assigning human reviewers require
 
 Start with the smallest tests that exercise the changed behavior. Add or update focused automated
 coverage when the behavior is testable at the domain, action, query, route, or component layer.
-Follow `docs/component-testing.md` for runner selection and the repository guide's red–green
-requirements; record the focused commands and observed outcomes.
+Use the [test selection guide](../../../docs/testing/selection.md) when choosing a runner. Follow the root red–green requirements and record the focused commands and observed outcomes.
 Do not substitute a screenshot for behavioral coverage. If useful coverage is impractical, explain
 the reason and the stronger manual check in the PR.
 

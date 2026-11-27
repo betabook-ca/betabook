@@ -4,7 +4,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 
 import type { ActionResult } from "@/lib/action-result";
 import { shareClimbList, unshareClimbList } from "@/spa/lib/actions-client";
-import { stubViewport } from "@/test/viewport";
+import { stubViewport } from "@/tests/vitest/viewport";
 
 import { ClimbListShare } from "./climb-list-share";
 

@@ -8,7 +8,7 @@ const nextLink = vi.hoisted(() => vi.fn<(props: ComponentProps<typeof AppLink>) 
 
 // Observe the router boundary while rendering the real AppLink with React.
 vi.mock("@/spa/lib/router-link", async () => ({
-  ...(await import("@/test/router-link")),
+  ...(await import("@/tests/vitest/router-link")),
   default: (props: ComponentProps<typeof AppLink>) => {
     nextLink(props);
     return <a href={typeof props.href === "string" ? props.href : undefined}>{props.children}</a>;

@@ -1,13 +1,7 @@
-# Browser test selection
+# Browser tests
 
-Before adding or changing `*.spec.ts`, read [Choosing and writing tests](../../docs/component-testing.md), especially the [browser rules](../../docs/component-testing.md#browser-rules).
+Use Playwright for actual layout, scrolling, native input, touch, accessibility and app navigation. Import `test`, `expect` and `openStory` from [story.ts](story.ts). Keep callback and state assertions in colocated Vitest tests.
 
-- Keep cases that need real rendering, computed styles, geometry, clipping, scrolling, native input, touch, accessibility audits or actual app routing/history.
-- Put component state, callback payloads, client validation, retries and hook lifecycle in colocated `*.dom.test.{ts,tsx}` under `frontend/src/components/` or in the corresponding hook or SPA directory. Exercise permissions and persistence in Rust database tests or release Worker smoke tests. Test pure frontend calculations in Vitest’s unit project. A user interaction alone is not a reason to add a browser test.
-- Import `test`, `expect` and `openStory` from `./story`. Use its theme/render readiness; do not add sleeps or weaken assertions to make a test pass.
-- Prefer unit/component tests. [accessibility.spec.ts](accessibility.spec.ts) audits a small fixed set of composed states; there is no exhaustive story sweep. Use jsx-a11y lint rules for static accessibility and component tests for accessible state and keyboard handlers. Add browser audits only for a distinct rendered risk.
-- Retain the full viewport/theme matrix for rendering, responsive and touch-sensitive assertions. A measurement no theme can change may use `@layout`, which runs the desktop-light/mobile-dark diagonal. Browser behavior independent of both viewport and theme may use `@behavior` to run once in desktop-light. Theme-dependent color assertions stay untagged.
-- Tag any test that loads `appBaseURL` with `@app`. It selects the run that builds and starts the app; gallery runs don't, so an untagged app test fails with a refused connection.
-- Delete obsolete cases after moving their coverage to jsdom. In mixed tests, remove duplicated behavior checks while retaining browser assertions and required setup.
+Tag cases loading `appBaseURL` with `@app`. Use `@behavior` for viewport- and theme-independent behavior and `@layout` for measurements independent of theme. Leave theme-sensitive rendering cases in the full matrix.
 
-Build the current gallery with `pnpm storybook:build`, then run only the affected spec files, e.g. `pnpm exec playwright test tests/ui/hashtag-filter.spec.ts`. Set `BETABOOK_UI_SUITE=gallery` when no `@app` test is involved so the app isn't built and started. Don't run the full suite (`pnpm test:ui`) locally; it is too slow, and CI's **UI reference** job runs it. Do not capture or attach passing screenshots. Keep failure screenshots for debugging; retain image capture only when the image itself is used by an assertion (for example, QR decoding). The app suite needs no gallery build.
+Run the affected spec files locally. Build the gallery first for gallery tests; the full browser suite runs in CI. Read the [Playwright reference](../../docs/testing/playwright.md) for suite selection, readiness, accessibility scans, and gallery or app setup.

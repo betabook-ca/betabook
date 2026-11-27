@@ -67,6 +67,8 @@ reviews:
         extraction only when the shared concept is stable and meaningful; do not
         create abstractions for incidental or one-off similarity.
 
+        For changed paths, consult the nearest AGENTS.md and the references relevant to the change.
+
         Make every finding actionable and grounded in the changed code. Avoid
         speculative suggestions, generic best-practice reminders, and praise-only
         comments.
@@ -90,13 +92,6 @@ knowledge_base:
     enabled: true
     filePatterns:
       - AGENTS.md
-      - frontend/src/components/AGENTS.md
-      - tests/ui/AGENTS.md
-      - docs/repository-guide.md
-      - docs/component-testing.md
-      - docs/design-system.md
-      - docs/product-tours.md
-      - docs/goals.md
 
 chat:
   auto_reply: true

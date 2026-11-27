@@ -144,7 +144,7 @@ export type GoalTitleInput = Pick<
 >;
 
 /** The goal as a sentence, with its grade in the reader's chosen scale. The
- * stored ordinal is what the goal counts against (docs/goals.md), so a
+ * stored ordinal is what the goal counts against (docs/features/goals.md), so a
  * French "3 or harder" goal saved from the picker holds 5.4 and reads "3". */
 export function goalTitle(
   goal: GoalTitleInput,

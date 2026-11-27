@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 
 import { importSends, resolveImportClimbs } from "@/spa/lib/actions-client";
-import { kayaStreamResponse } from "@/test/kaya";
+import { kayaStreamResponse } from "@/tests/vitest/kaya";
 
 import { ImportWizard } from "./import-wizard";
 

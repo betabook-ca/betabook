@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { TERMS_VERSION, termsHref } from "@/lib/terms";
-import { stubTurnstile } from "@/test/turnstile";
+import { stubTurnstile } from "@/tests/vitest/turnstile";
 
 import { SignUpForm } from "./sign-up-form";
 
@@ -18,7 +18,7 @@ const { signUp, social } = vi.hoisted(() => ({
 vi.mock("@/lib/auth-client", () => ({
   authClient: { signUp: { email: signUp }, signIn: { social } },
 }));
-vi.mock("@/spa/lib/external-script", () => import("@/test/turnstile"));
+vi.mock("@/spa/lib/external-script", () => import("@/tests/vitest/turnstile"));
 
 beforeEach(() => vi.clearAllMocks());
 

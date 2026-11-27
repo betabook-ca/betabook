@@ -6,7 +6,7 @@ import { useToastQueue } from "@/components/ui/viewer-toasts";
 import { useClientSession } from "@/hooks/use-client-session";
 import type { ActionResult } from "@/lib/action-result";
 import { authClient } from "@/lib/auth-client";
-import { stubViewport } from "@/test/viewport";
+import { stubViewport } from "@/tests/vitest/viewport";
 
 import { TermsGate } from "./terms-gate";
 import { ViewerBoundary } from "./viewer-boundary";

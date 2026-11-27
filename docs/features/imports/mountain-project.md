@@ -111,7 +111,7 @@ entry point to the separate account import wizard.
 ## Validation
 
 ```bash
-pnpm test --project=unit frontend/src/lib/mountain-project-import.test.ts frontend/src/lib/mountain-project-api.test.ts frontend/src/lib/import-matching.test.ts frontend/src/lib/sends-import.test.ts
+pnpm test --project=unit frontend/src/lib/mountain-project-import.test.ts frontend/src/lib/import-matching.test.ts frontend/src/lib/sends-import.test.ts
 pnpm test:components frontend/src/components/import/mountain-project-import-form.dom.test.tsx frontend/src/components/import/import-wizard.dom.test.tsx
 ```
 

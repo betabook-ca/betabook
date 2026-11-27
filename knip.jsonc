@@ -10,7 +10,6 @@
       "postcss": { "config": ["frontend/postcss.config.mjs"] },
       "project": [
         "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts,css}!",
-        "!test/**!",
         "!scripts/**!",
         "!frontend/stories/**!",
         "!**/*.stories.tsx!",
