@@ -37,9 +37,11 @@ export function AppTabBar() {
 export function AppTabs({
   account,
   requestCount = 0,
+  notificationCounts,
 }: {
   account: TabAccount;
   requestCount?: number;
+  notificationCounts?: Partial<Record<PrimaryArea, number>>;
 }) {
   const current = primaryAreaForPath(usePathname(), account.id);
   return (
@@ -48,6 +50,7 @@ export function AppTabs({
       current={current}
       destinations={primaryDestinations(account.id)}
       requestCount={requestCount}
+      notificationCounts={notificationCounts}
     />
   );
 }
@@ -57,11 +60,13 @@ export function AppTabLinks({
   current,
   destinations,
   requestCount = 0,
+  notificationCounts,
 }: {
   account: { name: string; image?: string | null };
   current?: PrimaryArea;
   destinations: readonly PrimaryDestination[];
   requestCount?: number;
+  notificationCounts?: Partial<Record<PrimaryArea, number>>;
 }) {
   return (
     <ul className="app-tab-links mx-auto grid h-14 max-w-md grid-cols-3">
@@ -73,6 +78,7 @@ export function AppTabLinks({
             current={current === item.id}
             appearance="tab"
             requestCount={requestCount}
+            notificationCount={notificationCounts?.[item.id]}
           />
         </li>
       ))}

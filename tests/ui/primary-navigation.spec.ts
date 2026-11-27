@@ -2,14 +2,18 @@ import { expect, openStory, test } from "./story";
 
 for (const [story, label] of [
   ["profile", "Logbook"],
-  ["feed", "Community"],
-  ["progress", "Progress"],
+  ["many-notifications", "Community, 120 pending friend requests"],
+  ["all-tabs-with-notifications", "Logbook, 2 notifications"],
+  ["all-tabs-with-notifications", "Progress, 5 notifications"],
+  ["all-tabs-with-notifications", "Community, 12 notifications"],
   ["friend-requests", "Community, 12 pending friend requests"],
 ]) {
-  test(`tab bar highlights its destination on ${story}`, async ({ page }, info) => {
+  test(`tab bar highlights ${label} on ${story}`, async ({ page }, info) => {
     await openStory(page, info, `components-navigation-tab-bar--${story}`);
     const nav = page.getByRole("navigation", { name: "Primary" });
     const active = nav.getByRole("link", { name: label, exact: true });
+    await active.click();
+    await expect(active).toHaveAttribute("aria-current", /page|location/);
     await expect(active).toHaveCSS("text-decoration-line", "none");
     await expect(active).toHaveCSS("font-weight", "600");
     const inactive = nav.locator("a:not([aria-current])").first();
@@ -63,6 +67,13 @@ test(
     if (!navBox || !community || !count) throw new Error("Expected the Community request count");
     expect(count.y).toBeGreaterThanOrEqual(community.y + 4);
     expect(count.height).toBeLessThanOrEqual(16);
+    const icon = await nav.locator("a[href='/feed'] svg").boundingBox();
+    if (!icon) throw new Error("Expected the Community icon");
+    expect(count.x - icon.x - icon.width).toBeGreaterThanOrEqual(4);
+    expect(
+      Math.abs(icon.x + icon.width / 2 - community.x - community.width / 2),
+    ).toBeLessThanOrEqual(1);
+    expect(count.y).toBeLessThan(icon.y);
     expect(count.x + count.width).toBeLessThanOrEqual(community.x + community.width);
   },
 );
