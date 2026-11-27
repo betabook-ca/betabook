@@ -4,10 +4,10 @@ import { expect, it, vi } from "vitest";
 
 import { FriendList } from "./friend-list";
 
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => ({ replace: vi.fn<(href: string) => void>() }),
 }));
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   requestFriendship: vi.fn<() => Promise<unknown>>(),
   acceptFriendRequest: vi.fn<() => Promise<unknown>>(),
   declineFriendRequest: vi.fn<() => Promise<unknown>>(),

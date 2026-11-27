@@ -2,7 +2,6 @@
 
 import { Kbd, useOverlayState } from "@heroui/react";
 import { Search } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, type ReactNode } from "react";
 
 import { Brand } from "@/components/brand";
@@ -12,6 +11,7 @@ import { useClientSession } from "@/hooks/use-client-session";
 import { useDeferredComponent } from "@/hooks/use-deferred-component";
 import { isApplePlatform, useModifierLabels } from "@/hooks/use-platform";
 import { SEARCH_PATH } from "@/lib/search";
+import { useRouter } from "@/spa/lib/navigation";
 
 /** Module-level so its identity is stable across renders — the preload hook
  * keys its effect on the loader. */

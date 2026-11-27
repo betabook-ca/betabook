@@ -3,18 +3,7 @@ import { expect, it, vi } from "vitest";
 
 import { AccountSettings } from "./account-settings";
 
-// The settings tree imports @/actions for its forms, which reaches next/cache
-// and drags Next's server tracer into this runner. Nothing here submits, so
-// stub the cache boundary instead.
-vi.mock("next/cache", () => ({ refresh: () => {}, revalidatePath: () => {} }));
-// next/image resolves to an object in this runner, so stand in for it and keep
-// the resolved src visible — which photo reaches the avatar is the assertion.
-vi.mock("next/image", () => ({
-  default: ({ src, unoptimized }: { src: string; unoptimized?: boolean }) => (
-    <span data-src={src} data-unoptimized={unoptimized ? "true" : "false"} />
-  ),
-}));
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
   usePathname: () => "/account",
   useSearchParams: () => new URLSearchParams(),
@@ -71,10 +60,8 @@ it("offers an upload to every account, photo or not", () => {
 it("serves an uploaded photo straight from its own URL", () => {
   const html = markup(UPLOADED);
 
-  // The stored object is already exactly the size the avatar needs, so it
-  // must not go through the image optimizer — unlike the Google URL below.
-  expect(html).toContain(`data-src="${UPLOADED}" data-unoptimized="true"`);
-  expect(markup(PHOTO)).toContain(`data-src="${PHOTO}" data-unoptimized="false"`);
+  expect(html).toContain(`src="${UPLOADED}"`);
+  expect(markup(PHOTO)).toContain(`src="${PHOTO}"`);
   expect(html).toContain("Change photo");
   expect(html).toContain("Remove photo");
 });

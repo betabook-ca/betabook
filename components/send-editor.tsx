@@ -3,10 +3,10 @@
 import { Button } from "@heroui/react";
 import { useEffect, useState } from "react";
 
-import { getSendEditorData } from "@/actions";
 import { SendForm } from "@/components/send-form";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
+import { getSendEditorData } from "@/spa/lib/actions-client";
 
 type EditorResult = Awaited<ReturnType<typeof getSendEditorData>>;
 

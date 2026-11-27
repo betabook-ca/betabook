@@ -2,12 +2,14 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
-import { resetProfileShareLink } from "@/actions";
 import type { ActionResult } from "@/lib/action-result";
+import { resetProfileShareLink } from "@/spa/lib/actions-client";
 
 import { ShareProfileControls } from "./share-profile-controls";
 
-vi.mock("@/actions", () => ({ resetProfileShareLink: vi.fn<() => Promise<ActionResult>>() }));
+vi.mock("@/spa/lib/actions-client", () => ({
+  resetProfileShareLink: vi.fn<() => Promise<ActionResult>>(),
+}));
 
 const FIRST = "https://betabook.ca/users/owner-1?share=0123456789abcdef0123456789abcdef";
 const SECOND = "https://betabook.ca/users/owner-1?share=fedcba9876543210fedcba9876543210";

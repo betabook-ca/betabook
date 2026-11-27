@@ -2,13 +2,13 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
-import { updateSend } from "@/actions";
 import type { EditableSend, SendableClimb } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
+import { updateSend } from "@/spa/lib/actions-client";
 
 import { SendForm } from "./send-form";
 
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   updateSend: vi.fn<(id: number, formData: FormData) => Promise<ActionResult>>(),
 }));
 

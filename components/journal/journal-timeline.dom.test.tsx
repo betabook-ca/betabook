@@ -6,7 +6,7 @@ import { DEFAULT_JOURNAL_FILTER } from "@/lib/filters/journal-filter";
 
 import { JournalTimeline } from "./journal-timeline";
 
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   deleteJournalEntry: vi.fn<() => Promise<unknown>>(),
   removeMyJournalTag: vi.fn<() => Promise<unknown>>(),
 }));

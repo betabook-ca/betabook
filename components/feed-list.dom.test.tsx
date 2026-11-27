@@ -15,7 +15,7 @@ const boundary = vi.hoisted(() => ({
   viewerId: "viewer",
 }));
 vi.mock("@/lib/api-client", () => ({ apiFetch: boundary.fetch }));
-vi.mock("next/navigation", () => ({ useRouter: () => boundary.router }));
+vi.mock("@/spa/lib/navigation", () => ({ useRouter: () => boundary.router }));
 vi.mock("@/lib/auth-client", () => ({
   authClient: {
     useSession: () => ({ data: { user: { id: boundary.viewerId } }, isPending: false }),

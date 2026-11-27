@@ -10,10 +10,10 @@ import {
   type ReactNode,
 } from "react";
 
-import { dismissFeatureAnnouncement } from "@/actions";
 import { FeatureCallout, type FeatureCalloutProps } from "@/components/ui/feature-callout";
 import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
 import type { FeatureAnnouncementDefinition } from "@/lib/feature-announcements";
+import { dismissFeatureAnnouncement } from "@/spa/lib/actions-client";
 
 type ScopeProps = {
   userId: string;

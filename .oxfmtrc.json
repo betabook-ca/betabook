@@ -13,7 +13,7 @@
   "sortPackageJson": true,
   "sortTailwindcss": {
     "functions": ["clsx"],
-    "stylesheet": "app/globals.css"
+    "stylesheet": "spa/globals.css"
   },
   "ignorePatterns": [
     ".next/**",

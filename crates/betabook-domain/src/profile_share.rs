@@ -12,6 +12,16 @@ pub fn parse_share_token(value: &str) -> Option<&str> {
     }
 }
 
+/// A profile preview is unlocked by exactly one well-formed share parameter.
+pub fn profile_token_from_query(query: &str) -> Option<String> {
+    let mut values = form_urlencoded::parse(query.as_bytes()).filter(|(k, _)| k == "share");
+    let (_, value) = values.next()?;
+    if values.next().is_some() {
+        return None;
+    }
+    parse_share_token(&value).map(str::to_owned)
+}
+
 pub fn share_expiry_modifier(raw: &str) -> Result<Option<&'static str>, &'static str> {
     match raw {
         "7d" => Ok(Some("+7 days")),

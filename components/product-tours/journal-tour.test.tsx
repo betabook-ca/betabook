@@ -10,13 +10,13 @@ import {
   resolveProductTour,
 } from "@/lib/product-tour-navigation";
 
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => ({ push: vi.fn<(href: string) => void>() }),
   usePathname: () => "/tutorial/journal/journal",
 }));
-vi.mock("next/image", () => ({ default: () => null }));
-vi.mock("@/actions", () => ({
-  saveProductTourStatus: vi.fn<typeof import("@/actions").saveProductTourStatus>(),
+
+vi.mock("@/spa/lib/actions-client", () => ({
+  saveProductTourStatus: vi.fn<typeof import("@/spa/lib/actions-client").saveProductTourStatus>(),
 }));
 vi.mock("@/components/journal/journal-entry-drawer", () => ({ JournalEntryDrawer: () => null }));
 

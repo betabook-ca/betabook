@@ -1,4 +1,3 @@
-import { saveAnalyticsLayout } from "@/actions";
 import { AnalyticsDashboard } from "@/components/analytics-dashboard";
 import { AnalyticsYearNavigation } from "@/components/analytics-year-filter";
 import { DisciplineScopeNav } from "@/components/discipline-scope-nav";
@@ -21,6 +20,7 @@ import { describeClimber, describeRecency } from "@/lib/climber-summary";
 import type { FeatureAnnouncementDefinition } from "@/lib/feature-announcements";
 import type { ClimbType, GradePreferences } from "@/lib/grades";
 import { buildUserAnalytics, getAnalyticsHistorySummary } from "@/lib/user-analytics";
+import { saveAnalyticsLayout } from "@/spa/lib/actions-client";
 
 function analyticsHref(
   userId: string,

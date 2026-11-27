@@ -2,13 +2,18 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
-import { createJournalEntry, createUndatedSend, unpinProject, updateJournalEntry } from "@/actions";
 import type { JournalEntry } from "@/db/queries";
+import {
+  createJournalEntry,
+  createUndatedSend,
+  unpinProject,
+  updateJournalEntry,
+} from "@/spa/lib/actions-client";
 
 import { ProjectBoard } from "./project-board";
 import type { ProjectWithSessions } from "./project-card";
 
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   createJournalEntry: vi.fn<typeof createJournalEntry>(),
   createUndatedSend: vi.fn<typeof createUndatedSend>(),
   updateJournalEntry: vi.fn<typeof updateJournalEntry>(),

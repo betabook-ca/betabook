@@ -1,3 +1,6 @@
+packages:
+  - test/reference
+
 allowBuilds:
   esbuild: true
   sharp: false

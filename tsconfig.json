@@ -28,22 +28,18 @@
     "jsx": "react-jsx",
     "incremental": true,
     "types": ["@cloudflare/workers-types"],
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
     "paths": {
+      "@/app/*": ["./test/reference/app/*"],
+      "@/actions": ["./test/reference/actions/index.ts"],
+      "@/actions/*": ["./test/reference/actions/*"],
+      "@/db/*": ["./test/reference/db/*"],
+      "@/drizzle/schema": ["./test/reference/drizzle/schema/index.ts"],
+      "@/drizzle/schema/*": ["./test/reference/drizzle/schema/*"],
+      "@/lib/*": ["./lib/*", "./test/reference/lib/*"],
+      "@/test/*": ["./test/*", "./test/reference/test/*"],
       "@/*": ["./*"]
     }
   },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
-    "**/*.mts"
-  ],
+  "include": ["**/*.ts", "**/*.tsx", "**/*.mts"],
   "exclude": ["node_modules", ".claude"]
 }

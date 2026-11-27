@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
 
-import { ClimbHeader } from "@/app/climbs/[id]/[[...slug]]/climb-header";
 import { AreaBreadcrumbs } from "@/components/breadcrumbs";
 import { ClimbActionsMenu } from "@/components/climb-actions-menu";
 import { ClimbDescription } from "@/components/climb-description";
+import { ClimbHeader } from "@/components/climb-header";
 import { AddToListButton } from "@/components/climb-lists/add-to-list-button";
 import { ClimbSendList } from "@/components/climb-send-list";
 import { ClimbVideoShelf } from "@/components/climb-video-shelf";
@@ -31,19 +31,21 @@ import type {
 } from "@/db/queries";
 import { missingDescriptionMessage } from "@/lib/descriptions";
 import { buildLoggedGradeRows } from "@/lib/grade-histogram";
+import { formatGrade } from "@/lib/grades";
 import type { PublicAreaDetails, PublicClimb, PublicClimbSend } from "@/lib/public-catalog";
 import { ASCENT_STYLE_LABELS, type AscentStyle } from "@/lib/sends";
 import { climbHref, withQuery } from "@/lib/slug";
 import { searchParamsToRecord } from "@/lib/url-params";
 import { peekBootstrapData } from "@/spa/bootstrap";
+import { usePageTitle } from "@/spa/lib/document-navigation";
 import {
   fetchJson,
   isNotFoundError,
   parsePositiveId,
   type ClimbPageData,
 } from "@/spa/lib/fetch-json";
+import { usePathname } from "@/spa/lib/navigation";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
-import { usePathname } from "@/spa/shims/next-navigation";
 
 type MemberClimbPayload = {
   climbId: number;
@@ -139,6 +141,17 @@ function PublicClimbView({ climbId }: { climbId: number }) {
     };
   }, [climbId, matches]);
 
+  const loaded = data?.climbId === climbId ? data : null;
+  const grade = loaded && formatGrade(loaded.climb.type, loaded.climb.grade);
+  usePageTitle(
+    notFound
+      ? "Climb not found"
+      : loaded
+        ? [loaded.climb.name, grade === "—" ? null : grade, loaded.area?.name]
+            .filter(Boolean)
+            .join(" · ")
+        : null,
+  );
   if (notFound) return <ClimbNotFoundView />;
   if (error) return <ClimbErrorBanner error={error} />;
   if (!matches || !data) return <ClimbLoadingSkeleton />;
@@ -223,6 +236,17 @@ function MemberClimbView({ climbId, viewerId }: { climbId: number; viewerId: str
     };
   }, [climbId, viewerId, refreshKey]);
 
+  const loaded = data?.climbId === climbId ? data : null;
+  const grade = loaded && formatGrade(loaded.climb.type, loaded.climb.grade);
+  usePageTitle(
+    notFound
+      ? "Climb not found"
+      : loaded
+        ? [loaded.climb.name, grade === "—" ? null : grade, loaded.area?.name]
+            .filter(Boolean)
+            .join(" · ")
+        : null,
+  );
   if (notFound) return <ClimbNotFoundView />;
   if (error) return <ClimbErrorBanner error={error} />;
   if (!matches || !data) return <ClimbLoadingSkeleton />;

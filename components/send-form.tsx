@@ -3,7 +3,6 @@
 import { Button, Label, TextArea, TextField } from "@heroui/react";
 import { useState, useTransition } from "react";
 
-import { updateSend } from "@/actions";
 import { CompanionPicker } from "@/components/journal/companion-picker";
 import { TagInput } from "@/components/journal/tag-input";
 import {
@@ -30,6 +29,7 @@ import type { CompanionOption } from "@/lib/journal-companions";
 import { MAX_LOG_NOTE_LENGTH } from "@/lib/log-note";
 import { sendVideoLinksError } from "@/lib/send-video";
 import type { AscentStyle, GradeFeel } from "@/lib/sends";
+import { updateSend } from "@/spa/lib/actions-client";
 
 type SendFormProps = {
   climb: SendableClimb;

@@ -1,12 +1,12 @@
 "use client";
 
 import type { UseOverlayStateReturn } from "@heroui/react";
-import { useRouter } from "next/navigation";
 
 import { ClimbForm } from "@/components/climb-form";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { Climb } from "@/db/queries";
 import { climbHref } from "@/lib/slug";
+import { useRouter } from "@/spa/lib/navigation";
 
 type ClimbFormDrawerProps = {
   areaId: number;

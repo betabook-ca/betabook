@@ -3,13 +3,15 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
-import { requestClimbBreak } from "@/actions";
 import type { Climb } from "@/db/queries";
+import { requestClimbBreak } from "@/spa/lib/actions-client";
 
 import { ClimbBreakDrawer } from "./climb-break-drawer";
 
-vi.mock("@/actions", () => ({ requestClimbBreak: vi.fn<typeof requestClimbBreak>() }));
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
+  requestClimbBreak: vi.fn<typeof requestClimbBreak>(),
+}));
+vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn<() => void>(), push: vi.fn<(href: string) => void>() }),
 }));
 

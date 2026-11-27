@@ -1,7 +1,6 @@
 "use client";
 
 import { Button, Input, Label, TextField } from "@heroui/react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { AuthDivider, ResendVerificationButton } from "@/components/auth-form-parts";
@@ -15,6 +14,7 @@ import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { authClient } from "@/lib/auth-client";
 import { DEFAULT_SIGNED_IN_PATH, safeNextPath, signUpUrl } from "@/lib/sign-in-redirect";
 import { termsHref } from "@/lib/terms";
+import { useRouter } from "@/spa/lib/navigation";
 
 export function SignInForm({
   next,

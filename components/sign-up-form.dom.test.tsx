@@ -18,7 +18,7 @@ const { signUp, social } = vi.hoisted(() => ({
 vi.mock("@/lib/auth-client", () => ({
   authClient: { signUp: { email: signUp }, signIn: { social } },
 }));
-vi.mock("next/script", () => import("@/test/turnstile"));
+vi.mock("@/spa/lib/external-script", () => import("@/test/turnstile"));
 
 beforeEach(() => vi.clearAllMocks());
 

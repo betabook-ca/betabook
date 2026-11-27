@@ -2,21 +2,21 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
-import { deleteTrip, saveTrip } from "@/actions";
 import type { TripSummary } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
+import { deleteTrip, saveTrip } from "@/spa/lib/actions-client";
 import { watchOverlayKinds } from "@/test/overlay-kinds";
 import { stubViewport } from "@/test/viewport";
 
 import { TripList } from "./trip-list";
 
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   deleteTrip: vi.fn<() => Promise<ActionResult>>(),
   saveTrip: vi.fn<() => Promise<ActionResult<number>>>(),
 }));
 
 const refresh = vi.fn<() => void>();
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => ({ push: vi.fn<(href: string) => void>(), refresh }),
 }));
 

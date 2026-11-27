@@ -4,7 +4,7 @@ import { expect, it, vi } from "vitest";
 import { NavLink } from "./nav-link";
 
 const state = vi.hoisted(() => ({ pathname: "/" }));
-vi.mock("next/navigation", () => ({ usePathname: () => state.pathname }));
+vi.mock("@/spa/lib/navigation", () => ({ usePathname: () => state.pathname }));
 
 it.each([
   ["/users/alice", "page"],

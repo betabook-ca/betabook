@@ -15,7 +15,7 @@ const { requestPasswordReset } = vi.hoisted(() => ({
   requestPasswordReset: vi.fn<(body: unknown, options: ResetOptions) => void>(),
 }));
 vi.mock("@/lib/auth-client", () => ({ authClient: { requestPasswordReset } }));
-vi.mock("next/script", () => import("@/test/turnstile"));
+vi.mock("@/spa/lib/external-script", () => import("@/test/turnstile"));
 
 it("sends a Turnstile token with the reset request and waits for a fresh one to retry", async () => {
   const { turnstile, solve } = stubTurnstile();

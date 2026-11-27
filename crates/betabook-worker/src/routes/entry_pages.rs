@@ -7,7 +7,9 @@ use betabook_db::{
     auth::get_share_link_owner, content_access::can_read_journal, social::get_user_profile,
 };
 use betabook_domain::{
-    profile_share::parse_share_token, seo::PageMetadata, site::SITE_DESCRIPTION,
+    profile_share::profile_token_from_query,
+    seo::PageMetadata,
+    site::{SITE_DESCRIPTION, SITE_NAME},
 };
 use serde::Deserialize;
 use std::collections::BTreeMap;
@@ -31,7 +33,7 @@ pub async fn profile(
         Some("sends") => (" · Sends", "routes/user-sends-route.tsx"),
         _ => ("", "routes/user-profile-route.tsx"),
     };
-    let mut title = "Member content".to_owned();
+    let mut meta = PageMetadata::noindex("Member content", SITE_DESCRIPTION);
     if let Some(viewer) = shared_viewer(&state, &headers).await? {
         let Some(user) = get_user_profile(state.db(), &owner)
             .await?
@@ -43,26 +45,19 @@ pub async fn profile(
         {
             return render_not_found(&state).await;
         }
-        title = format!("{}{label}", user.name);
-    } else if suffix.is_none() {
-        let mut shares = url::form_urlencoded::parse(uri.query().unwrap_or("").as_bytes())
-            .filter(|(k, _)| k == "share");
-        if let Some((_, raw)) = shares.next()
-            && shares.next().is_none()
-            && let Some(token) = parse_share_token(&raw)
-            && let Some(profile) = get_share_link_owner(state.db(), token).await?
-            && profile.id == owner
-        {
-            title = format!("{} · Climbing profile", profile.name);
-        }
+        meta.title = format!("{}{label}", user.name);
+    } else if suffix.is_none()
+        && let Some(token) = profile_token_from_query(uri.query().unwrap_or(""))
+        && let Some(profile) = get_share_link_owner(state.db(), &token).await?
+        && profile.id == owner
+    {
+        let name = profile.name;
+        meta.title = format!("{name} on {SITE_NAME}");
+        meta.description =
+            format!("{name} invited you to {SITE_NAME}, a climbing logbook and crag database.");
+        meta.og_type = "profile";
     }
-    member_shell(
-        &state,
-        StatusCode::OK,
-        &PageMetadata::noindex(title, SITE_DESCRIPTION),
-        chunk,
-    )
-    .await
+    member_shell(&state, StatusCode::OK, &meta, chunk).await
 }
 
 #[derive(Deserialize)]

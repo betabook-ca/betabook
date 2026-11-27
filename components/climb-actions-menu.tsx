@@ -1,10 +1,8 @@
 "use client";
 
 import { Menu, Tooltip, useOverlayState } from "@heroui/react";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { deleteSend, requestClimbDelete } from "@/actions";
 import { ClimbBreakDrawer } from "@/components/climb-break-drawer";
 import { ClimbEditRequestDrawer } from "@/components/climb-edit-request-drawer";
 import { ClimbMergeDrawer } from "@/components/climb-merge-drawer";
@@ -14,6 +12,8 @@ import { ActionsMenu } from "@/components/ui/actions-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import type { Climb, EditableSend } from "@/db/queries";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
+import { deleteSend, requestClimbDelete } from "@/spa/lib/actions-client";
+import { useRouter } from "@/spa/lib/navigation";
 
 type ClimbActionsMenuProps = {
   climb: Climb;

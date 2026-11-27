@@ -6,8 +6,8 @@ import { groupTripDays } from "@/lib/trip-days";
 
 import { TripDays } from "./trip-days";
 
-vi.mock("@/actions", () => ({}));
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({}));
+vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => ({ push: vi.fn<() => void>(), refresh: vi.fn<() => void>() }),
   usePathname: () => "/users/owner-1/trips/7",
   useSearchParams: () => new URLSearchParams(),

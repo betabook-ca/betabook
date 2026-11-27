@@ -1,8 +1,8 @@
 "use client";
 
-import { removeMyTripTag } from "@/actions";
 import { RemovableCompanions } from "@/components/journal/removable-companions";
 import type { JournalCompanion } from "@/lib/journal-companions";
+import { removeMyTripTag } from "@/spa/lib/actions-client";
 
 export function TripCompanions({
   tripId,

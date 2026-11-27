@@ -18,31 +18,16 @@ export default defineConfig({
     "process.env.NEXT_PUBLIC_BUILD_YEAR": JSON.stringify(String(new Date().getFullYear())),
   },
   resolve: {
-    alias: [
-      {
-        find: /^@\/actions(?:\/.*)?$/,
-        replacement: path.resolve(SPA_ROOT, "shims/actions-client.ts"),
-      },
-      {
-        find: /^@\/lib\/contact-action$/,
-        replacement: path.resolve(SPA_ROOT, "shims/contact-action-client.ts"),
-      },
-      { find: "@", replacement: WORKSPACE_ROOT },
-      { find: "next/navigation", replacement: path.resolve(SPA_ROOT, "shims/next-navigation.ts") },
-      { find: "next/link", replacement: path.resolve(SPA_ROOT, "shims/next-link.tsx") },
-      { find: "next/image", replacement: path.resolve(SPA_ROOT, "shims/next-image.tsx") },
-      { find: "next/dynamic", replacement: path.resolve(SPA_ROOT, "shims/next-dynamic.tsx") },
-      { find: "next/script", replacement: path.resolve(SPA_ROOT, "shims/next-script.tsx") },
-    ],
+    alias: { "@": WORKSPACE_ROOT },
   },
   server: {
     port: 3001,
     strictPort: true,
     proxy: {
-      "/api": "http://127.0.0.1:8787",
-      "/robots.txt": "http://127.0.0.1:8787",
-      "/sitemap-index.xml": "http://127.0.0.1:8787",
-      "/sitemap": "http://127.0.0.1:8787",
+      "/api": "http://127.0.0.1:3000",
+      "/robots.txt": "http://127.0.0.1:3000",
+      "/sitemap-index.xml": "http://127.0.0.1:3000",
+      "/sitemap": "http://127.0.0.1:3000",
     },
   },
   build: {

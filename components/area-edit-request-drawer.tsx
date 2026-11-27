@@ -4,11 +4,11 @@ import { Button, Input, Label, TextField } from "@heroui/react";
 import type { UseOverlayStateReturn } from "@heroui/react";
 import { useState, useTransition } from "react";
 
-import { requestAreaEdit } from "@/actions";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { Area } from "@/db/queries";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
+import { requestAreaEdit } from "@/spa/lib/actions-client";
 
 type AreaEditRequestDrawerProps = {
   area: Area;

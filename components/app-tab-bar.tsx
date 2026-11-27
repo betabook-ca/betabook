@@ -1,7 +1,5 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-
 import { useFriendRequestCount } from "@/components/friend-requests-provider";
 import { PrimaryNavigationLink } from "@/components/primary-navigation-link";
 import { useClientSession } from "@/hooks/use-client-session";
@@ -12,6 +10,7 @@ import {
   type PrimaryArea,
   type PrimaryDestination,
 } from "@/lib/app-navigation";
+import { usePathname } from "@/spa/lib/navigation";
 
 type TabAccount = { id: string; name: string; image?: string | null };
 

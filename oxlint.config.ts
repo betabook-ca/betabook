@@ -7,7 +7,6 @@ export default defineConfig({
     "unicorn",
     "oxc",
     "react",
-    "nextjs",
     "jsx-a11y",
     "vitest",
     "import",
@@ -30,7 +29,7 @@ export default defineConfig({
   },
   settings: {
     tailwindcss: {
-      entryPoint: "app/globals.css",
+      entryPoint: "spa/globals.css",
       callees: ["clsx"],
     },
   },
@@ -211,7 +210,7 @@ export default defineConfig({
     {
       // Dev fallback when no RESEND_API_KEY is bound: print the verification /
       // reset link to the console so local auth flows stay completable.
-      files: ["lib/email.ts"],
+      files: ["test/reference/lib/email.ts"],
       rules: {
         "no-console": "off",
       },
@@ -274,7 +273,7 @@ export default defineConfig({
       },
     },
     {
-      files: ["lib/**"],
+      files: ["lib/**", "test/reference/lib/**"],
       rules: {
         "typescript/no-restricted-imports": [
           "error",
@@ -291,7 +290,7 @@ export default defineConfig({
       },
     },
     {
-      files: ["actions/**"],
+      files: ["test/reference/actions/**"],
       rules: {
         "typescript/no-restricted-imports": [
           "error",
@@ -307,7 +306,7 @@ export default defineConfig({
       },
     },
     {
-      files: ["db/**"],
+      files: ["test/reference/db/**"],
       rules: {
         "typescript/no-restricted-imports": [
           "error",

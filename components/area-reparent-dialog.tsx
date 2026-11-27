@@ -2,8 +2,8 @@
 
 import type { UseOverlayStateReturn } from "@heroui/react";
 
-import { requestAreaReparent } from "@/actions";
 import { AreaMoveDialog } from "@/components/area-move-dialog";
+import { requestAreaReparent } from "@/spa/lib/actions-client";
 
 export function AreaReparentDialog({
   areaId,

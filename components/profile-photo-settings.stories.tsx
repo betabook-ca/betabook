@@ -1,9 +1,9 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, mocked, userEvent, waitFor, within } from "storybook/test";
 
-import { uploadProfilePhoto } from "@/actions";
 import { SettingsSection } from "@/components/ui/settings";
 import { PROFILE_PHOTO_TOO_LARGE_MESSAGE } from "@/lib/profile-photo";
+import { uploadProfilePhoto } from "@/spa/lib/actions-client";
 import { drawDemoPhoto } from "@/stories/fixtures/crop-demo";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 

@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { DEFAULT_CLIMB_FILTER } from "@/lib/filters/climb-filter";
 import {

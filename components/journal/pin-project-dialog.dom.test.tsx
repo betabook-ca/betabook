@@ -3,9 +3,9 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 
-import { pinProject } from "@/actions";
 import type { OpenProject } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
+import { pinProject } from "@/spa/lib/actions-client";
 import { stubViewport } from "@/test/viewport";
 
 import { PinProjectDialog } from "./pin-project-dialog";
@@ -43,12 +43,12 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   pinProject: vi.fn<() => Promise<ActionResult>>(),
 }));
 
 const refresh = vi.fn<() => void>();
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => ({ refresh }),
   usePathname: () => "/users/climber/projects",
   useSearchParams: () => new URLSearchParams(),

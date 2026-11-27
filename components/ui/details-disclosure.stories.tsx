@@ -1,5 +1,5 @@
 import { Input, Label, TextField } from "@heroui/react";
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 
 import { StoryPage } from "@/stories/fixtures/story-layout";

@@ -1,7 +1,8 @@
-import type { Preview } from "@storybook/nextjs-vite";
+import type { Preview } from "@storybook/react-vite";
 import { useLayoutEffect } from "react";
+import { MemoryRouter } from "react-router";
 
-import "@/app/globals.css";
+import "@/spa/globals.css";
 import "./fonts.css";
 
 const preview: Preview = {
@@ -34,7 +35,7 @@ const preview: Preview = {
       },
     },
     layout: "fullscreen",
-    nextjs: { appDirectory: true },
+
     // Hosting only: local Playwright owns UI checks; Chromatic must not
     // capture snapshots even if remote testing settings are re-enabled.
     chromatic: { disableSnapshot: true },
@@ -53,12 +54,17 @@ const preview: Preview = {
           delete html.dataset.theme;
         };
       }, [theme]);
+      const nav = context.parameters.router?.navigation;
+      const search = new URLSearchParams(nav?.query ?? {}).toString();
+      const href = (nav?.pathname ?? "/") + (search ? "?" + search : "");
       return (
-        <main className="min-h-screen bg-background p-4 font-sans text-foreground antialiased">
-          <div className={context.parameters.fullWidth ? "w-full" : "mx-auto max-w-3xl"}>
-            <Story />
-          </div>
-        </main>
+        <MemoryRouter key={context.id} initialEntries={[href]}>
+          <main className="min-h-screen bg-background p-4 font-sans text-foreground antialiased">
+            <div className={context.parameters.fullWidth ? "w-full" : "mx-auto max-w-3xl"}>
+              <Story />
+            </div>
+          </main>
+        </MemoryRouter>
       );
     },
   ],

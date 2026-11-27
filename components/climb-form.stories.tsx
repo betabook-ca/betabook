@@ -1,8 +1,8 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { mocked } from "storybook/test";
 
-import { createClimb } from "@/actions";
 import { fetchAreaSuggestions } from "@/lib/search-suggestions";
+import { createClimb } from "@/spa/lib/actions-client";
 import { searchAreaFetcher } from "@/stories/fixtures/app-search-demo";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 

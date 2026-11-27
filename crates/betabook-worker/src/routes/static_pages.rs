@@ -109,7 +109,7 @@ pub async fn terms_version_page(
 ) -> Result<Response, ApiError> {
     let Some(entry) = TERMS_VERSIONS.iter().find(|entry| entry.version == version) else {
         let meta = PageMetadata::noindex("Not found", SITE_DESCRIPTION);
-        let not_found_body = "<section class=\"rounded-xl border border-border bg-surface p-6\"><h1 class=\"font-display text-2xl font-bold\">Terms version not found</h1><p class=\"mt-2 text-sm text-muted\">Return to the <a href=\"/terms\" class=\"link underline\">current Terms of Service</a>.</p></section>";
+        let not_found_body = "<section class=\"rounded-xl border border-border bg-surface p-6\"><h1 class=\"font-display text-2xl font-bold\">Page not found</h1><p class=\"mt-2 text-sm text-muted\">Return to the <a href=\"/terms\" class=\"link underline\">current Terms of Service</a>.</p></section>";
         return render_static_document(&state, StatusCode::NOT_FOUND, &meta, not_found_body).await;
     };
 

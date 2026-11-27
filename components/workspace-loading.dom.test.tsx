@@ -13,13 +13,13 @@ const state = vi.hoisted(() => ({
   session: null as Session,
   sessionPending: false,
 }));
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => ({ refresh: () => {}, replace: () => {} }),
   usePathname: () => state.pathname,
   useSearchParams: () => new URLSearchParams(state.search),
   useParams: () => ({ id: state.pathname.split("/")[2] }),
 }));
-vi.mock("@/actions/terms", () => ({ acceptTerms: vi.fn<() => Promise<ActionResult>>() }));
+vi.mock("@/spa/lib/actions-client", () => ({ acceptTerms: vi.fn<() => Promise<ActionResult>>() }));
 vi.mock("@/lib/auth-client", () => ({
   authClient: {
     useSession: () => ({ data: state.session, isPending: state.sessionPending }),

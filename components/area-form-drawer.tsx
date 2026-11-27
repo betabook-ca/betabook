@@ -1,12 +1,12 @@
 "use client";
 
 import type { UseOverlayStateReturn } from "@heroui/react";
-import { useRouter } from "next/navigation";
 
 import { AreaForm } from "@/components/area-form";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { Area } from "@/db/queries";
 import { areaHref } from "@/lib/slug";
+import { useRouter } from "@/spa/lib/navigation";
 
 type AreaFormDrawerProps = {
   /** Fixed parent for creating a subarea (no area picker shown). Ignored

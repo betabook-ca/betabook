@@ -1,6 +1,6 @@
 use axum::{
     Json,
-    extract::{Query, State},
+    extract::{Path, Query, State},
     http::{HeaderMap, HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
 };
@@ -37,18 +37,26 @@ use crate::state::{ApiError, AppState, http_get_bearer_json, http_post_form};
 
 const MIN_PASSWORD_LEN: usize = 8;
 const MAX_PASSWORD_LEN: usize = 128;
-const VERIFICATION_TTL_MS: i64 = 1000 * 60 * 60 * 24;
+const VERIFICATION_TTL_MS: i64 = 1000 * 60 * 60;
 const PASSWORD_RESET_TTL_MS: i64 = 1000 * 60 * 60;
 
-fn safe_relative_path(raw: Option<&str>, fallback: &str) -> String {
-    let Some(path) = raw else {
-        return fallback.to_string();
+fn safe_relative_path(raw: Option<&str>, fallback: &str, auth_url: &str) -> String {
+    let Some(input) = raw.filter(|s| !s.contains('\\') && !s.chars().any(char::is_control)) else {
+        return fallback.into();
     };
-    if path.starts_with('/') && !path.starts_with("//") && !path.contains('\\') {
-        path.to_string()
-    } else {
-        fallback.to_string()
+    if input.starts_with('/') && !input.starts_with("//") {
+        return input.into();
     }
+    let (Ok(target), Ok(base)) = (url::Url::parse(input), url::Url::parse(auth_url)) else {
+        return fallback.into();
+    };
+    if target.origin() != base.origin()
+        || !target.username().is_empty()
+        || target.password().is_some()
+    {
+        return fallback.into();
+    }
+    target[url::Position::BeforePath..].into()
 }
 
 fn no_store_json(status: StatusCode, body: Value) -> Response {
@@ -148,14 +156,14 @@ async fn resolve_referred_by(
 }
 
 fn validate_password_len(password: &str) -> Result<(), ApiError> {
-    if password.len() < MIN_PASSWORD_LEN {
+    if password.encode_utf16().count() < MIN_PASSWORD_LEN {
         return Err(ApiError::with_code(
             StatusCode::BAD_REQUEST,
             "PASSWORD_TOO_SHORT",
             format!("Password must be at least {MIN_PASSWORD_LEN} characters."),
         ));
     }
-    if password.len() > MAX_PASSWORD_LEN {
+    if password.encode_utf16().count() > MAX_PASSWORD_LEN {
         return Err(ApiError::with_code(
             StatusCode::BAD_REQUEST,
             "PASSWORD_TOO_LONG",
@@ -220,11 +228,14 @@ pub async fn sign_up_email(
     }
     validate_password_len(&body.password)?;
 
+    // A verified-email signup returns the same shape for an already registered address.
+    let password_hash = hash_password(&body.password).map_err(ApiError::internal)?;
+    let user_id = random_hex(16).map_err(ApiError::internal)?;
     if find_user_by_email(state.db(), &email).await?.is_some() {
-        return Err(ApiError::with_code(
-            StatusCode::UNPROCESSABLE_ENTITY,
-            "USER_ALREADY_EXISTS",
-            "User already exists",
+        return Ok(no_store_json(
+            StatusCode::OK,
+            json!({"token":Value::Null,"user":{
+            "id":user_id,"name":name,"email":email,"emailVerified":false}}),
         ));
     }
     if get_user_id_by_name_nocase(state.db(), name)
@@ -238,8 +249,6 @@ pub async fn sign_up_email(
     }
 
     let referred_by = resolve_referred_by(&state, body.share_path.as_deref()).await?;
-    let password_hash = hash_password(&body.password).map_err(ApiError::internal)?;
-    let user_id = random_hex(16).map_err(ApiError::internal)?;
     let account_id = random_hex(16).map_err(ApiError::internal)?;
     let ver_id = random_hex(16).map_err(ApiError::internal)?;
     let ver_token = random_hex(24).map_err(ApiError::internal)?;
@@ -272,7 +281,7 @@ pub async fn sign_up_email(
     )
     .await?;
 
-    let callback = safe_relative_path(body.callback_url.as_deref(), "/sign-in");
+    let callback = safe_relative_path(body.callback_url.as_deref(), "/sign-in", &state.auth_url());
     let mut qs = form_urlencoded::Serializer::new(String::new());
     qs.append_pair("token", &ver_token);
     qs.append_pair("callbackURL", &callback);
@@ -282,7 +291,7 @@ pub async fn sign_up_email(
         qs.finish()
     );
     if let Err(err) = send_verification_email(&state, &email, &verify_url).await {
-        worker::console_error!("verification email failed: {err:?}");
+        crate::observability::background_error("verification_email", err);
     }
 
     Ok(no_store_json(
@@ -330,7 +339,8 @@ pub async fn send_verification_email_route(
             now,
         )
         .await?;
-        let callback = safe_relative_path(body.callback_url.as_deref(), "/sign-in");
+        let callback =
+            safe_relative_path(body.callback_url.as_deref(), "/sign-in", &state.auth_url());
         let mut qs = form_urlencoded::Serializer::new(String::new());
         qs.append_pair("token", &ver_token);
         qs.append_pair("callbackURL", &callback);
@@ -340,7 +350,7 @@ pub async fn send_verification_email_route(
             qs.finish()
         );
         if let Err(err) = send_verification_email(&state, &user.email, &verify_url).await {
-            worker::console_error!("resend verification failed: {err:?}");
+            crate::observability::background_error("verification_email", err);
         }
     }
     Ok(no_store_json(StatusCode::OK, json!({ "status": true })))
@@ -358,20 +368,41 @@ pub async fn verify_email(
     State(state): State<AppState>,
     Query(query): Query<VerifyEmailQuery>,
 ) -> Result<Response, ApiError> {
-    let fallback = safe_relative_path(query.callback_url.as_deref(), "/sign-in");
+    let fallback = safe_relative_path(query.callback_url.as_deref(), "/sign-in", &state.auth_url());
     let Some(token) = query.token.as_deref().filter(|s| !s.is_empty()) else {
         return Ok(redirect_response("/sign-in?error=invalid_token", &[]));
     };
     let identifier = format!("email-verification:{token}");
     let now = state.now_ms();
-    let Some(ver) = find_valid_verification(state.db(), &identifier, now).await? else {
-        return Ok(redirect_response("/sign-in?error=invalid_token", &[]));
-    };
-    delete_verification(state.db(), &ver.id).await?;
-    if let Some(user) = get_user_by_id(state.db(), &ver.value).await? {
-        if !user.email_verified {
+    let user = if let Some(ver) = find_valid_verification(state.db(), &identifier, now).await? {
+        let user = get_user_by_id(state.db(), &ver.value).await?;
+        // Keep the unexpired link usable if the verification write fails.
+        if let Some(user) = &user
+            && !user.email_verified
+        {
             mark_email_verified(state.db(), &user.id, now).await?;
         }
+        delete_verification(state.db(), &ver.id).await?;
+        user
+    } else if let Some((id, email)) =
+        betabook_domain::password::legacy_email_verification(token, &state.auth_secret()?, now)
+    {
+        let user = get_user_by_id(state.db(), &id)
+            .await?
+            .filter(|user| user.email == email);
+        if let Some(user) = &user
+            && !user.email_verified
+        {
+            mark_email_verified(state.db(), &user.id, now).await?;
+        }
+        user
+    } else {
+        None
+    };
+    let Some(user) = user else {
+        return Ok(redirect_response("/sign-in?error=invalid_token", &[]));
+    };
+    if !user.email_verified {
         welcome_new_account_once(&state, &user.id, &user.email, &user.name).await;
     }
     Ok(redirect_response(&fallback, &[]))
@@ -395,6 +426,7 @@ pub async fn sign_in_email(
 
     let email = body.email.trim().to_ascii_lowercase();
     let Some(user) = find_user_by_email(state.db(), &email).await? else {
+        hash_password(&body.password).map_err(ApiError::internal)?;
         return Err(ApiError::with_code(
             StatusCode::UNAUTHORIZED,
             "INVALID_EMAIL_OR_PASSWORD",
@@ -402,6 +434,7 @@ pub async fn sign_in_email(
         ));
     };
     let Some(stored_hash) = find_credential_password_by_user_id(state.db(), &user.id).await? else {
+        hash_password(&body.password).map_err(ApiError::internal)?;
         return Err(ApiError::with_code(
             StatusCode::UNAUTHORIZED,
             "INVALID_EMAIL_OR_PASSWORD",
@@ -491,6 +524,45 @@ pub async fn sign_out(
 }
 
 #[derive(Deserialize)]
+pub struct LegacyResetQuery {
+    #[serde(rename = "callbackURL")]
+    callback_url: Option<String>,
+}
+
+/// Honor previously delivered password-reset email links after switching workers.
+#[worker::send]
+pub async fn reset_link(
+    State(state): State<AppState>,
+    Path(token): Path<String>,
+    Query(query): Query<LegacyResetQuery>,
+) -> Result<Response, ApiError> {
+    let base = url::Url::parse(&state.auth_url()).map_err(ApiError::internal)?;
+    let mut target = query
+        .callback_url
+        .as_deref()
+        .and_then(|raw| base.join(raw).ok())
+        .filter(|url| {
+            url.origin() == base.origin() && url.username().is_empty() && url.password().is_none()
+        })
+        .unwrap_or(base.join("/reset-password").map_err(ApiError::internal)?);
+    if find_valid_verification(
+        state.db(),
+        &format!("reset-password:{token}"),
+        state.now_ms(),
+    )
+    .await?
+    .is_some()
+    {
+        target.query_pairs_mut().append_pair("token", &token);
+    } else {
+        target
+            .query_pairs_mut()
+            .append_pair("error", "INVALID_TOKEN");
+    }
+    Ok(redirect_response(target.as_str(), &[]))
+}
+
+#[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RequestPasswordResetBody {
     pub email: String,
@@ -521,7 +593,11 @@ pub async fn request_password_reset(
             now,
         )
         .await?;
-        let redirect_path = safe_relative_path(body.redirect_to.as_deref(), "/reset-password");
+        let redirect_path = safe_relative_path(
+            body.redirect_to.as_deref(),
+            "/reset-password",
+            &state.auth_url(),
+        );
         let sep = if redirect_path.contains('?') {
             '&'
         } else {
@@ -532,7 +608,7 @@ pub async fn request_password_reset(
             state.auth_url().trim_end_matches('/')
         );
         if let Err(err) = send_reset_password_email(&state, &user.email, &reset_url).await {
-            worker::console_error!("reset password email failed: {err:?}");
+            crate::observability::background_error("password_reset_email", err);
         }
     }
     Ok(no_store_json(StatusCode::OK, json!({ "status": true })))
@@ -562,7 +638,7 @@ pub async fn reset_password(
     };
     let hash = hash_password(&body.new_password).map_err(ApiError::internal)?;
     let new_account_id = random_hex(16).map_err(ApiError::internal)?;
-    reset_credential_password_and_revoke_sessions(
+    let consumed = reset_credential_password_and_revoke_sessions(
         state.db(),
         &ver.value,
         &new_account_id,
@@ -571,12 +647,21 @@ pub async fn reset_password(
         now,
     )
     .await?;
+    if !consumed {
+        return Err(ApiError::with_code(
+            StatusCode::BAD_REQUEST,
+            "INVALID_TOKEN",
+            "Invalid or expired token",
+        ));
+    }
+
     Ok(no_store_json(StatusCode::OK, json!({ "status": true })))
 }
 
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct OAuthStatePayload {
+    expires_at: i64,
     state: String,
     code_verifier: String,
     callback_url: String,
@@ -630,10 +715,15 @@ pub async fn sign_in_social(
     let code_challenge = URL_SAFE_NO_PAD.encode(challenge_digest);
 
     let payload = OAuthStatePayload {
+        expires_at: state.now_ms() + 600_000,
         state: oauth_state.clone(),
         code_verifier,
-        callback_url: safe_relative_path(body.callback_url.as_deref(), "/"),
-        error_callback_url: safe_relative_path(body.error_callback_url.as_deref(), "/sign-in"),
+        callback_url: safe_relative_path(body.callback_url.as_deref(), "/", &state.auth_url()),
+        error_callback_url: safe_relative_path(
+            body.error_callback_url.as_deref(),
+            "/sign-in",
+            &state.auth_url(),
+        ),
         accepted_terms_version: body
             .additional_data
             .as_ref()
@@ -702,7 +792,10 @@ pub async fn google_callback(
             &[clear_state],
         ));
     };
-    if query.error.is_some() || query.state.as_deref() != Some(oauth_data.state.as_str()) {
+    if oauth_data.expires_at <= state.now_ms()
+        || query.error.is_some()
+        || query.state.as_deref() != Some(oauth_data.state.as_str())
+    {
         return Ok(redirect_response(
             &format!("{}?error=oauth_cancelled", oauth_data.error_callback_url),
             &[clear_state],
@@ -737,7 +830,7 @@ pub async fn google_callback(
         http_post_form("https://oauth2.googleapis.com/token", &form.finish()).await?;
     let token_json: Value = serde_json::from_str(&token_text).unwrap_or(Value::Null);
     let Some(access_token) = token_json.get("access_token").and_then(Value::as_str) else {
-        worker::console_error!("Google token exchange failed ({token_status}): {token_text}");
+        crate::observability::background_error("google_token_exchange", token_status);
         return Ok(redirect_response(
             &format!("{}?error=oauth_token_failed", oauth_data.error_callback_url),
             &[clear_state],

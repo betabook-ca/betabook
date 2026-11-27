@@ -7,7 +7,7 @@ import type { ClimbType } from "@/lib/grades";
 // three disciplines that need to read as distinct from each other and from
 // gray. Each discipline instead has its own bg/fg custom properties with
 // per-theme (light + dark) values derived from the palette in
-// app/globals.css (trad = green, sport = support blue, boulder = rose) —
+// spa/globals.css (trad = green, sport = support blue, boulder = rose) —
 // plain utilities referencing them win over the chip's own colors by layer
 // order (utilities > components), no `!` needed.
 export const DISCIPLINE_CHIP_CLASSNAME: Record<ClimbType, string> = {

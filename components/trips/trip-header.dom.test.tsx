@@ -6,8 +6,8 @@ import type { TripSummary } from "@/db/queries";
 
 import { TripHeader } from "./trip-header";
 
-vi.mock("@/actions", () => ({}));
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({}));
+vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => ({ push: vi.fn<() => void>(), refresh: vi.fn<() => void>() }),
   usePathname: () => "/users/alex/trips/7",
 }));

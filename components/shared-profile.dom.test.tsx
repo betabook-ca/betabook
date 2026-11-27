@@ -1,13 +1,9 @@
 import { render, screen, within } from "@testing-library/react";
-import { expect, it, vi } from "vitest";
+import { expect, it } from "vitest";
 
 import type { UserSendRow } from "@/db/queries";
 
 import { SharedProfile } from "./shared-profile";
-
-vi.mock("next/image", () => ({
-  default: ({ src }: { src: string }) => <span data-image-src={src} />,
-}));
 
 const NEXT = "/users/owner-1?share=0123456789abcdef0123456789abcdef";
 const OWNER = { name: "Alex Rivera" };

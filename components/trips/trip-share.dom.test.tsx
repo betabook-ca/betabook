@@ -2,14 +2,14 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { shareTrip, unshareTrip } from "@/actions";
 import type { ActionResult } from "@/lib/action-result";
+import { shareTrip, unshareTrip } from "@/spa/lib/actions-client";
 import { watchOverlayKinds } from "@/test/overlay-kinds";
 import { stubViewport } from "@/test/viewport";
 
 import { TripShare } from "./trip-share";
 
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   shareTrip: vi.fn<() => Promise<ActionResult<{ token: string; expiresAt: string | null }>>>(),
   unshareTrip: vi.fn<() => Promise<ActionResult>>(),
 }));

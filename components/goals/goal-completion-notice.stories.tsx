@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { goalPanelStoryArgs } from "@/stories/fixtures/goal-samples";
 import { StoryPage } from "@/stories/fixtures/story-layout";

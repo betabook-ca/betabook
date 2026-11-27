@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { PRODUCT_TOUR_STEPS } from "@/lib/product-tour-navigation";
 

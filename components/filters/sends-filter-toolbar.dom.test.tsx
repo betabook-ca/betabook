@@ -7,7 +7,7 @@ import { DEFAULT_USER_SENDS_FILTER } from "@/lib/filters/user-sends-filter";
 import { UserSendsFilterToolbar } from "./sends-filter-toolbar";
 
 const { replace } = vi.hoisted(() => ({ replace: vi.fn<(href: string) => void>() }));
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => ({ replace, push: vi.fn<(href: string) => void>() }),
   usePathname: () => "/users/sample/sends",
   useSearchParams: () => new URLSearchParams("areaName=Cedar&sort=date_desc"),

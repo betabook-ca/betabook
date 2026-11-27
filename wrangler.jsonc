@@ -1,18 +1,45 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "betabook",
-  // Wraps vinext's App Router handler and adds the cron `scheduled()`
-  // handler. `vite build` bundles it with the app and writes the deployable
-  // config to dist/server/wrangler.json, which `wrangler deploy` picks up.
-  "main": "./worker.ts",
+  "dev": { "port": 3000 },
+  "main": "crates/betabook-worker/build/index.js",
   "compatibility_date": "2026-08-17",
-  "compatibility_flags": ["nodejs_compat"],
+  "build": {
+    "command": "node scripts/build-app.ts --wrangler",
+    "watch_dir": [
+      "crates/betabook-worker/src",
+      "crates/betabook-domain/src",
+      "crates/betabook-db/src",
+      "spa",
+      "components",
+      "hooks",
+      "lib",
+      "public",
+      "assets",
+      "scripts/static-documents.tsx",
+      "Cargo.toml",
+      "Cargo.lock",
+      "vite.spa.config.ts",
+    ],
+  },
   "placement": {
     "mode": "smart",
   },
-  // The Cloudflare Vite plugin points the built config at dist/client.
+  // Vite supplies the SPA shell, code-split chunks and published document bodies.
   "assets": {
     "binding": "ASSETS",
+    "directory": "./dist-spa",
+    "run_worker_first": [
+      "/*",
+      "!/assets/*",
+      "!/branding/*",
+      "!/favicon.ico",
+      "!/apple-icon.png",
+      "!/icon.svg",
+      "!/opengraph-image.png",
+      "!/manifest.webmanifest",
+      "!/license.txt",
+    ],
     "not_found_handling": "none",
   },
   "routes": [

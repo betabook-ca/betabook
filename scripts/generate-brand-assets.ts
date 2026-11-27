@@ -17,7 +17,7 @@ async function main() {
     new URL("node_modules/geist/dist/fonts/geist-sans/Geist-Medium.woff2", root),
     "base64",
   );
-  const theme = await readFile(new URL("app/globals.css", root), "utf8");
+  const theme = await readFile(new URL("spa/globals.css", root), "utf8");
   function palette(name: string) {
     const match = theme.match(new RegExp(`--palette-${name}:\\s*([^;]+);`));
     if (!match) throw new Error(`Missing palette color: ${name}`);

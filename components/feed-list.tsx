@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@heroui/react";
-import { useRouter } from "next/navigation";
 import { useTransition, type ReactNode } from "react";
 
 import { FeedTimeline } from "@/components/feed-timeline";
@@ -15,6 +14,7 @@ import { usePagedList } from "@/hooks/use-paged-list";
 import { apiFetch } from "@/lib/api-client";
 import type { FeedCursor, FeedView } from "@/lib/feed";
 import { signInUrl } from "@/lib/sign-in-redirect";
+import { useRouter } from "@/spa/lib/navigation";
 
 export function FeedList({
   initialPage,

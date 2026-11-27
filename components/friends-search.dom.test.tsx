@@ -2,15 +2,15 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
-import { requestFriendship } from "@/actions";
 import { climberSearchItems, type SearchFetcher } from "@/lib/search";
+import { requestFriendship } from "@/spa/lib/actions-client";
 
 import { FriendsSearch } from "./friends-search";
 
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => ({ push: vi.fn<(href: string) => void>() }),
 }));
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   requestFriendship: vi.fn<typeof requestFriendship>(),
   acceptFriendRequest: vi.fn<() => Promise<unknown>>(),
   declineFriendRequest: vi.fn<() => Promise<unknown>>(),

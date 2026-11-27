@@ -1,6 +1,5 @@
 "use client";
 
-import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { hashtagActiveFilters } from "@/components/filters/active-filter-values";
@@ -8,6 +7,7 @@ import { FilterToolbarLayout } from "@/components/filters/filter-toolbar";
 import { HashtagFilter } from "@/components/filters/hashtag-filter";
 import { useFilterFormNavigation } from "@/hooks/use-filter-form-navigation";
 import { normalizeHashtagFilters } from "@/lib/filters/hashtag-filter";
+import { usePathname, useSearchParams } from "@/spa/lib/navigation";
 
 export function AnalyticsHashtagFilter({
   selectedTags,

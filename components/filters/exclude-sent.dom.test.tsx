@@ -10,7 +10,7 @@ import { DEFAULT_CLIMB_FILTER } from "@/lib/filters/climb-filter";
 import type { ClimbFilterState } from "@/lib/filters/climb-filter-state";
 
 const replace = vi.fn<(href: string, options?: unknown) => void>();
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => ({ replace, push: vi.fn<(href: string) => void>() }),
   usePathname: () => "/areas/2/test-boulders",
 }));

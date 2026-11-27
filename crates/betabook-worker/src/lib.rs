@@ -1,5 +1,6 @@
 mod auth;
 mod middleware;
+mod observability;
 mod routes;
 mod state;
 
@@ -41,6 +42,10 @@ fn router(state: AppState) -> Router {
         )
         .route("/api/auth/verify-email", get(auth::routes::verify_email))
         .route("/api/auth/sign-in/email", post(auth::routes::sign_in_email))
+        .route(
+            "/api/auth/reset-password/{token}",
+            get(auth::routes::reset_link),
+        )
         .route("/api/auth/sign-out", post(auth::routes::sign_out))
         .route(
             "/api/auth/request-password-reset",
@@ -228,6 +233,10 @@ fn router(state: AppState) -> Router {
         .route("/api/pages/admin/requests", get(routes::moderation::queue))
         // Page loaders for member SPA views
         .route(
+            "/api/pages/tutorial",
+            get(routes::member_pages::tutorial_state),
+        )
+        .route(
             "/api/pages/feed",
             get(routes::member_pages::feed_page_loader),
         )
@@ -294,9 +303,29 @@ async fn fetch(
     ctx: Context,
 ) -> Result<http::Response<axum::body::Body>> {
     let path = req.uri().path().to_string();
-    let state = AppState::from_request(&req, env, ctx)?;
+    let state = match AppState::from_request(&req, env, ctx) {
+        Ok(state) => state,
+        Err(error) => {
+            use axum::response::IntoResponse;
+            let detail = observability::ErrorDetail::new(error);
+            observability::request_error(req.method().as_str(), &path, Some(&detail));
+            return Ok(apply_security_headers(
+                &path,
+                (
+                    http::StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({"error":"Internal server error"})),
+                )
+                    .into_response(),
+            ));
+        }
+    };
+    let auth_path = path.strip_prefix("/api/auth/");
     if req.method() == http::Method::POST
-        && !middleware::trusted_write(req.headers(), &state.request_origin)
+        && !(if auth_path.is_some() {
+            middleware::trusted_auth_write(req.headers(), &state.request_origin, &state.auth_url())
+        } else {
+            middleware::trusted_write(req.headers(), &state.request_origin)
+        })
     {
         use axum::response::IntoResponse;
         return Ok(apply_security_headers(
@@ -308,7 +337,23 @@ async fn fetch(
                 .into_response(),
         ));
     }
-    let response = router(state).call(req).await?;
+    if let Some(path_suffix) = auth_path
+        && !middleware::local_auth_base(&state.auth_url())
+        && let Some(response) =
+            auth::limits::check(req.headers(), &format!("/{path_suffix}"), state.now_ms())
+    {
+        return Ok(apply_security_headers(&path, response));
+    }
+    let method = req.method().to_string();
+    let mut response = router(state.clone()).call(req).await?;
+    state.apply_renewed_cookie(&mut response);
+    if response.status().is_server_error() {
+        observability::request_error(
+            &method,
+            &path,
+            response.extensions().get::<observability::ErrorDetail>(),
+        );
+    }
     Ok(apply_security_headers(&path, response))
 }
 
@@ -323,7 +368,10 @@ pub fn scheduled(
     worker::wasm_bindgen_futures::future_to_promise(async move {
         routes::catalog_export::run_scheduled_catalog_export(&env)
             .await
-            .map_err(|_| worker::js_sys::Error::new("Catalog export failed"))?;
+            .map_err(|error| {
+                observability::background_error("catalog_export", error);
+                worker::js_sys::Error::new("Catalog export failed")
+            })?;
         Ok(wasm_bindgen::JsValue::UNDEFINED)
     })
 }

@@ -1,5 +1,5 @@
 use std::fmt;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use axum::{
     Json,
@@ -20,6 +20,7 @@ pub struct AppState {
     env: Arc<SendWrapper<Env>>,
     ctx: Arc<SendWrapper<Context>>,
     db: Arc<D1Db>,
+    renewed_cookie: Arc<Mutex<Option<String>>>,
     pub request_origin: String,
     pub cf_timezone: Option<String>,
 }
@@ -57,6 +58,7 @@ impl AppState {
             env: Arc::new(SendWrapper::new(env)),
             ctx: Arc::new(SendWrapper::new(ctx)),
             db: Arc::new(D1Db::new(d1)),
+            renewed_cookie: Arc::default(),
             request_origin,
             cf_timezone,
         })
@@ -98,6 +100,44 @@ impl AppState {
         self.auth_url().starts_with("https://")
     }
 
+    pub fn renew_cookie(&self, cookie: String) {
+        if let Ok(mut slot) = self.renewed_cookie.lock() {
+            *slot = Some(cookie);
+        }
+    }
+
+    pub fn apply_renewed_cookie(&self, response: &mut Response) {
+        let Some(cookie) = self
+            .renewed_cookie
+            .lock()
+            .ok()
+            .and_then(|mut slot| slot.take())
+        else {
+            return;
+        };
+        // Sign-out, deletion, and sign-in manage the session cookie explicitly.
+        let name = crate::auth::cookies::session_cookie_name(self.is_secure_cookies());
+        if response
+            .headers()
+            .get_all(http::header::SET_COOKIE)
+            .iter()
+            .any(|value| {
+                value
+                    .to_str()
+                    .ok()
+                    .and_then(|s| s.split_once('='))
+                    .is_some_and(|(k, _)| k == name)
+            })
+        {
+            return;
+        }
+        if let Ok(value) = HeaderValue::from_str(&cookie) {
+            response
+                .headers_mut()
+                .append(http::header::SET_COOKIE, value);
+        }
+    }
+
     pub fn now_ms(&self) -> i64 {
         Date::now().as_millis() as i64
     }
@@ -117,6 +157,7 @@ pub struct ApiError {
     pub code: Option<&'static str>,
     pub message: String,
     pub no_store: bool,
+    detail: Option<crate::observability::ErrorDetail>,
 }
 
 #[derive(Serialize)]
@@ -124,7 +165,8 @@ struct ErrorBody<'a> {
     error: &'a str,
     #[serde(skip_serializing_if = "Option::is_none")]
     code: Option<&'a str>,
-    message: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    message: Option<&'a str>,
 }
 
 impl ApiError {
@@ -134,6 +176,7 @@ impl ApiError {
             code: None,
             message: message.into(),
             no_store: false,
+            detail: None,
         }
     }
 
@@ -143,6 +186,7 @@ impl ApiError {
             code: Some(code),
             message: message.into(),
             no_store: false,
+            detail: None,
         }
     }
 
@@ -156,8 +200,10 @@ impl ApiError {
     }
 
     pub fn internal(context: impl std::fmt::Display) -> Self {
-        worker::console_error!("Worker internal error: {context}");
-        Self::new(StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
+        let mut error =
+            Self::new(StatusCode::INTERNAL_SERVER_ERROR, "Internal server error").no_store();
+        error.detail = Some(crate::observability::ErrorDetail::new(context));
+        error
     }
 }
 
@@ -186,10 +232,13 @@ impl IntoResponse for ApiError {
             Json(ErrorBody {
                 error: &self.message,
                 code: self.code,
-                message: &self.message,
+                message: self.code.map(|_| self.message.as_str()),
             }),
         )
             .into_response();
+        if let Some(detail) = self.detail {
+            resp.extensions_mut().insert(detail);
+        }
         if self.no_store {
             resp.headers_mut().insert(
                 http::header::CACHE_CONTROL,

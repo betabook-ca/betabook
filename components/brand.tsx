@@ -1,5 +1,4 @@
 import { clsx } from "clsx";
-import Image from "next/image";
 
 import smallDarkIcon from "@/assets/branding/betabook-icon-small-dark.svg";
 import smallLightIcon from "@/assets/branding/betabook-icon-small-light.svg";
@@ -29,7 +28,7 @@ export function Brand({
       className={clsx("block shrink-0", className)}
     >
       {(["light", "dark"] as const).map((theme) => (
-        <Image
+        <img
           key={theme}
           src={
             variant === "icon" && compact
@@ -41,7 +40,7 @@ export function Brand({
           alt=""
           width={width}
           height={height}
-          unoptimized
+
           className={clsx(
             "h-auto w-full",
             theme === "light" ? "block dark:hidden" : "hidden dark:block",

@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { StorybookConfig } from "@storybook/nextjs-vite";
+import type { StorybookConfig } from "@storybook/react-vite";
 import { storyNameFromExport, toId } from "storybook/internal/csf";
 import { mergeConfig } from "vite";
 
@@ -48,12 +48,8 @@ const config: StorybookConfig = {
     { from: "../node_modules/geist/dist/fonts/geist-sans", to: "/fonts/geist" },
   ],
   framework: {
-    name: "@storybook/nextjs-vite",
-    // Isolated components don't need a Worker, database, environment file,
-    // or signed-in account, so the gallery keeps its own Next and Vite
-    // configs: the root vite.config.ts builds the app's Worker.
+    name: "@storybook/react-vite",
     options: {
-      nextConfigPath: ".storybook/next.config.ts",
       builder: { viteConfigPath: ".storybook/vite.config.ts" },
     },
   },
@@ -67,12 +63,7 @@ const config: StorybookConfig = {
       resolve: {
         alias: [
           {
-            find: /^@\/actions\/goal-refresh$/,
-            replacement: fileURLToPath(new URL("./mocks/goal-refresh.ts", import.meta.url)),
-          },
-          // Keep interactive form stories local; match the barrel without affecting submodules.
-          {
-            find: /^@\/actions$/,
+            find: /^@\/spa\/lib\/actions-client$/,
             replacement: fileURLToPath(new URL("./mocks/actions.ts", import.meta.url)),
           },
           {

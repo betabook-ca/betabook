@@ -3,22 +3,22 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
-import { addClimbToList, createClimbList, type SavedClimbList } from "@/actions";
 import type { ClimbListChoice } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
+import { addClimbToList, createClimbList, type SavedClimbList } from "@/spa/lib/actions-client";
 import { climbListChoiceSamples } from "@/stories/fixtures/climb-lists";
 import { stubViewport } from "@/test/viewport";
 
 import { AddToListButton, type ClimbListChoicesFetcher } from "./add-to-list-button";
 
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   addClimbToList: vi.fn<() => Promise<ActionResult>>(),
   createClimbList: vi.fn<() => Promise<ActionResult<SavedClimbList>>>(),
   updateClimbList: vi.fn<() => Promise<ActionResult>>(),
   copyClimbList: vi.fn<() => Promise<ActionResult<SavedClimbList>>>(),
 }));
 const push = vi.fn<(href: string) => void>();
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => ({ push, refresh: vi.fn<() => void>() }),
 }));
 

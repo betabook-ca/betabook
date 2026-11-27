@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { hashPassword } from "better-auth/crypto";
 import { createTestHarness } from "wrangler";
 
 import { testProfileAnalytics } from "./rust-smoke/analytics.mjs";
+import { testAuthLifecycle, testCatalogCron } from "./rust-smoke/auth-lifecycle.mjs";
 import { testGoalRefresh } from "./rust-smoke/goal-refresh.mjs";
 import { testGoals } from "./rust-smoke/goals.mjs";
 import { testImports } from "./rust-smoke/imports.mjs";
@@ -13,30 +13,40 @@ import { testModeration } from "./rust-smoke/moderation.mjs";
 import { testPlatform } from "./rust-smoke/platform.mjs";
 import { testProjects } from "./rust-smoke/projects.mjs";
 import { testTrips } from "./rust-smoke/trips.mjs";
+import { hashSeedPassword } from "./seed-password.ts";
 
 void test("Rust Worker HTTP flows", async (t) => {
   const server = createTestHarness({
     workers: [
       {
-        configPath: "./crates/betabook-worker/wrangler.rust.jsonc",
+        configPath: "./wrangler.jsonc",
         vars: { BETTER_AUTH_URL: "http://localhost" },
         secrets: {
           BETTER_AUTH_SECRET: "isolated-rust-worker-smoke-test-secret",
           TURNSTILE_SECRET_KEY: "",
+          CLOUDFLARE_USAGE_ACCOUNT_ID: "",
+          CLOUDFLARE_USAGE_API_TOKEN: "",
+          RESEND_API_KEY: "",
         },
       },
     ],
   });
   t.after(() => server.close());
-  await server.listen();
+  const { url } = await server.listen();
   const worker = server.getWorker();
+  // workerd must see a failed scheduled invocation when D1 is unavailable.
+  const failedCron = await worker.scheduled({ cron: "0 6 * * 1" }).then(
+    (r) => r.outcome,
+    () => "exception",
+  );
+  assert.notEqual(failedCron, "ok");
   await worker.applyD1Migrations("DB");
   const { DB, CATALOG_EXPORTS } = await worker.getEnv();
   const status = await server.fetch("/api/terms/status");
   assert.equal(status.status, 200);
   const { version } = await status.json();
   const password = "smoke-test-password";
-  const passwordHash = await hashPassword(password);
+  const passwordHash = await hashSeedPassword(password);
   async function signIn(id) {
     const email = id + "@example.test";
     await DB.prepare(
@@ -51,7 +61,7 @@ void test("Rust Worker HTTP flows", async (t) => {
       .run();
     const response = await server.fetch("/api/auth/sign-in/email", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", origin: url.origin },
       body: JSON.stringify({ email, password }),
     });
     assert.equal(response.status, 200, await response.text());
@@ -59,6 +69,18 @@ void test("Rust Worker HTTP flows", async (t) => {
     assert.ok(cookie);
     return cookie.split(";")[0];
   }
+  await t.test("auth lifecycle across cutover", () =>
+    testAuthLifecycle({
+      server,
+      db: DB,
+      signIn,
+      origin: url.origin,
+      secret: "isolated-rust-worker-smoke-test-secret",
+    }),
+  );
+  await t.test("successful catalog cron", () =>
+    testCatalogCron({ worker, bucket: CATALOG_EXPORTS }),
+  );
   await t.test("sign-in, private journal writes and R2 exports", async () => {
     const owner = await signIn("owner");
     const stranger = await signIn("stranger");
@@ -98,11 +120,53 @@ void test("Rust Worker HTTP flows", async (t) => {
     assert.equal(await download.text(), catalog);
   });
   await t.test("platform", () => testPlatform({ server, signIn }));
+  await t.test("shared profile metadata and data require one current token", async () => {
+    const id = "profile-preview";
+    await signIn(id);
+    await DB.prepare("UPDATE user SET is_private=0 WHERE id=?").bind(id).run();
+    const { token } = await DB.prepare("SELECT token FROM profile_share_links WHERE user_id=?")
+      .bind(id)
+      .first();
+    const url = "/users/" + id + "?share=" + token;
+    const meta = await (await server.fetch(url)).text();
+    assert.match(meta, /<title>profile-preview on Betabook<\/title>/);
+    assert.match(meta, /<meta property="og:type" content="profile">/);
+    assert.match(meta, /profile-preview invited you to Betabook/);
+    assert.equal((await (await server.fetch("/api/pages" + url)).json()).mode, "shared");
+    const ambiguous = url + "&share=" + token;
+    assert.equal((await server.fetch("/api/pages" + ambiguous)).status, 401);
+    assert.doesNotMatch(
+      await (await server.fetch(ambiguous)).text(),
+      /profile-preview invited you/,
+    );
+  });
   await t.test("goals", () => testGoals({ server, db: DB, signIn }));
   await t.test("profile analytics", () => testProfileAnalytics({ server, db: DB, signIn }));
   await t.test("imports", () => testImports({ server, db: DB, signIn }));
 
   await t.test("moderation", () => testModeration({ server, db: DB, signIn }));
+  await t.test("tutorial progress belongs to the signed-in member", async () => {
+    assert.equal((await server.fetch("/api/pages/tutorial")).status, 401);
+    const cookie = await signIn("tutorial-owner");
+    const saved = await server.fetch("/api/actions/saveProductTourStatus", {
+      method: "POST",
+      headers: { "content-type": "application/json", cookie },
+      body: JSON.stringify({ args: ["journal", 7, "completed"] }),
+    });
+    assert.deepEqual(await saved.json(), { ok: true });
+    const result = await server.fetch("/api/pages/tutorial", { headers: { cookie } });
+    assert.equal(result.status, 200);
+    assert.match(result.headers.get("cache-control"), /private.*no-store/);
+    assert.deepEqual((await result.json()).progress, [
+      { tourId: "journal", version: 7, status: "completed" },
+    ]);
+    const other = await signIn("tutorial-other");
+    assert.deepEqual(
+      (await (await server.fetch("/api/pages/tutorial", { headers: { cookie: other } })).json())
+        .progress,
+      [],
+    );
+  });
   await t.test("climb lists", () => testLists({ server, db: DB, signIn }));
   await t.test("goal refresh", () => testGoalRefresh({ server, db: DB, signIn }));
   await t.test("projects", () => testProjects({ server, db: DB, signIn }));

@@ -11,7 +11,7 @@ const router = vi.hoisted(() => ({
 }));
 // Next syncs useSearchParams with history.replaceState and with navigations;
 // here it reads the address bar on each render.
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => router,
   useSearchParams: () => new URLSearchParams(window.location.search),
 }));

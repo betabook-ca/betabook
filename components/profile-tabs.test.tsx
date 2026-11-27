@@ -4,7 +4,7 @@ import { expect, it, vi } from "vitest";
 import { ProfileTabs } from "@/components/profile-tabs";
 
 const state = vi.hoisted(() => ({ pathname: "/users/owner/journal" }));
-vi.mock("next/navigation", () => ({ usePathname: () => state.pathname }));
+vi.mock("@/spa/lib/navigation", () => ({ usePathname: () => state.pathname }));
 
 const TOKEN = "0123456789abcdef0123456789abcdef";
 

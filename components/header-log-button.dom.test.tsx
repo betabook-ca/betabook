@@ -10,7 +10,7 @@ const state = vi.hoisted(() => ({ session: null as { user: { id: string } } | nu
 vi.mock("@/lib/auth-client", () => ({
   authClient: { useSession: () => ({ data: state.session, isPending: false }) },
 }));
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   createJournalEntry: vi.fn<() => Promise<ActionResult>>(),
   createUndatedSend: vi.fn<() => Promise<ActionResult>>(),
   updateJournalEntry: vi.fn<() => Promise<ActionResult>>(),

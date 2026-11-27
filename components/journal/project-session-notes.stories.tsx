@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { ashCrack, moonSlab } from "@/stories/fixtures/open-projects";
 import { Example, StoryPage } from "@/stories/fixtures/story-layout";

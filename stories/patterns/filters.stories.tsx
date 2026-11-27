@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { FilterToolbarDemo } from "@/stories/fixtures/filter-toolbar-demo";
 const meta = { title: "Patterns/Filters", component: FilterToolbarDemo } satisfies Meta<

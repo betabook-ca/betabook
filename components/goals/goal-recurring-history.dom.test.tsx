@@ -9,11 +9,12 @@ import { goalPanelStoryArgs, goalHistorySample } from "@/stories/fixtures/goal-s
 import { GoalPanel } from "./goal-panel";
 import { GoalRecurringHistory } from "./goal-recurring-history";
 
-vi.mock("@/actions", () => ({
-  saveGoal: vi.fn<typeof import("@/actions").saveGoal>(),
-  deleteGoal: vi.fn<typeof import("@/actions").deleteGoal>(),
-  archiveGoal: vi.fn<typeof import("@/actions").archiveGoal>(),
-  acknowledgeGoalAchievements: vi.fn<typeof import("@/actions").acknowledgeGoalAchievements>(),
+vi.mock("@/spa/lib/actions-client", () => ({
+  saveGoal: vi.fn<typeof import("@/spa/lib/actions-client").saveGoal>(),
+  deleteGoal: vi.fn<typeof import("@/spa/lib/actions-client").deleteGoal>(),
+  archiveGoal: vi.fn<typeof import("@/spa/lib/actions-client").archiveGoal>(),
+  acknowledgeGoalAchievements:
+    vi.fn<typeof import("@/spa/lib/actions-client").acknowledgeGoalAchievements>(),
 }));
 
 it("keeps a separately supplied current year ahead of earlier annual history", async () => {

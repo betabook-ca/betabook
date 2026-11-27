@@ -4,7 +4,6 @@ import { Button, useOverlayState } from "@heroui/react";
 import { Download, QrCode as QrCodeIcon, RotateCcw } from "lucide-react";
 import { useId, useState, useTransition } from "react";
 
-import { resetProfileShareLink } from "@/actions";
 import { AppLink } from "@/components/ui/app-link";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { QrCode } from "@/components/ui/qr-code";
@@ -12,6 +11,7 @@ import { ShareLinkField } from "@/components/ui/share-link-field";
 import { downloadBlob, pngBlob } from "@/lib/download";
 import { qrMatrix, qrPixels } from "@/lib/qr-code";
 import { SITE_NAME } from "@/lib/site";
+import { resetProfileShareLink } from "@/spa/lib/actions-client";
 
 /** `url` is null while the profile is private. */
 export function ShareProfileControls({ name, url }: { name: string; url: string | null }) {

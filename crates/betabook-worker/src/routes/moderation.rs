@@ -134,7 +134,7 @@ pub(super) async fn request(
 ) -> Result<Response, ApiError> {
     let session = match require_member_session(state, headers).await {
         Ok(s) => s,
-        Err(e) => return Ok(action_err(e.message)),
+        Err(e) => return crate::routes::actions::session_error(e),
     };
     let (kind, id, input) = match submission(name, args) {
         Ok(v) => v,
@@ -160,7 +160,7 @@ pub(super) async fn review(
 ) -> Result<Response, ApiError> {
     let session = match require_admin_session(state, headers).await {
         Ok(s) => s,
-        Err(e) => return Ok(action_err(e.message)),
+        Err(e) => return crate::routes::actions::session_error(e),
     };
     let id = match positive(args.first(), "Request not found") {
         Ok(i) => i,

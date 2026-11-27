@@ -3,12 +3,6 @@
 import { Button } from "@heroui/react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
-import {
-  importSends,
-  resolveImportClimbs,
-  resolveImportClimbsInAreas,
-  type ImportResult,
-} from "@/actions";
 import { cardClass } from "@/components/ui/card";
 import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { InlineAlert } from "@/components/ui/inline-alert";
@@ -64,6 +58,12 @@ import {
   type ParsedCsv,
   preferredImportGradeScale,
 } from "@/lib/sends-import";
+import {
+  importSends,
+  resolveImportClimbs,
+  resolveImportClimbsInAreas,
+  type ImportResult,
+} from "@/spa/lib/actions-client";
 
 import { CsvWarnings } from "./csv-warnings";
 import { ImportColumnsStep, columnLabel } from "./import-columns-step";

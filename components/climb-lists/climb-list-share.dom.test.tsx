@@ -2,13 +2,13 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { shareClimbList, unshareClimbList } from "@/actions";
 import type { ActionResult } from "@/lib/action-result";
+import { shareClimbList, unshareClimbList } from "@/spa/lib/actions-client";
 import { stubViewport } from "@/test/viewport";
 
 import { ClimbListShare } from "./climb-list-share";
 
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   shareClimbList: vi.fn<() => Promise<ActionResult<{ token: string; expiresAt: string | null }>>>(),
   unshareClimbList: vi.fn<() => Promise<ActionResult>>(),
 }));

@@ -5,7 +5,11 @@ import { defineConfig } from "vitest/config";
 
 // Resolved through next itself: the helpers are its dependency, not ours, and
 // their exports map hides the cjs/ directory from a bare specifier.
-const nextRequire = createRequire(createRequire(import.meta.url).resolve("next/package.json"));
+const nextRequire = createRequire(
+  createRequire(new URL("./test/reference/package.json", import.meta.url)).resolve(
+    "next/package.json",
+  ),
+);
 const swcHelpersDir = path.dirname(nextRequire.resolve("@swc/helpers/package.json"));
 
 export default defineConfig({

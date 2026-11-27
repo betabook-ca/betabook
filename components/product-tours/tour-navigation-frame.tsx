@@ -2,7 +2,6 @@
 
 import { Button } from "@heroui/react";
 import { Menu, Search } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Dialog, Popover } from "react-aria-components";
 
@@ -16,6 +15,7 @@ import type { ProductTourPageProps } from "@/components/product-tours/types";
 import { AppLink } from "@/components/ui/app-link";
 import { useTyping } from "@/hooks/use-mobile-tabs-visible";
 import { AREA_LABELS, type PrimaryArea, type PrimaryDestination } from "@/lib/app-navigation";
+import { useRouter } from "@/spa/lib/navigation";
 
 const ACCOUNT = { name: "Alex Morgan", image: null };
 

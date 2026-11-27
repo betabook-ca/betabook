@@ -5,7 +5,6 @@ import { CirclePlus, ListPlus } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import type { Key } from "react-aria-components";
 
-import { addClimbToList } from "@/actions";
 import { ClimbListDialog } from "@/components/climb-lists/climb-list-dialog";
 import { AppLink } from "@/components/ui/app-link";
 import { InlineAlert } from "@/components/ui/inline-alert";
@@ -14,6 +13,7 @@ import { SkeletonListRows } from "@/components/ui/skeleton";
 import type { ClimbListChoice } from "@/db/queries";
 import { apiFetch } from "@/lib/api-client";
 import { climbCountLabel, climbListHref } from "@/lib/climb-lists";
+import { addClimbToList } from "@/spa/lib/actions-client";
 
 /** Reads the climber's lists for this climb. Swappable for stories and tests. */
 export type ClimbListChoicesFetcher = (climbId: number) => Promise<ClimbListChoice[]>;

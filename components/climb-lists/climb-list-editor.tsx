@@ -5,12 +5,12 @@ import { CirclePlus, GripVertical, X } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 import { DropIndicator, GridList, GridListItem, useDragAndDrop } from "react-aria-components";
 
-import { saveClimbListEdits } from "@/actions";
 import { AddClimbsDialog } from "@/components/climb-lists/add-climbs-dialog";
 import { cardClass } from "@/components/ui/card";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import type { ClimbListItem, ClimbWithAreaName } from "@/db/queries";
 import { CLIMB_LIST_FULL_MESSAGE, MAX_CLIMB_LIST_ITEMS, moveClimb } from "@/lib/climb-lists";
+import { saveClimbListEdits } from "@/spa/lib/actions-client";
 
 /** A climb picked in the editor, shaped like a list row until Save adds it. */
 function stagedItem(climb: ClimbWithAreaName): ClimbListItem {

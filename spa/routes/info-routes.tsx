@@ -55,7 +55,7 @@ function TermsRouteView({ versioned }: { versioned: boolean }) {
   if (!matched) {
     return (
       <div className={`mx-auto flex w-full ${READING_MAX_WIDTH_CLASS} flex-col gap-4`}>
-        <PageTitle>Terms version not found</PageTitle>
+        <PageTitle>Page not found</PageTitle>
         <p className="text-sm text-muted">
           Return to the <AppLink href="/terms">current Terms of Service</AppLink>.
         </p>

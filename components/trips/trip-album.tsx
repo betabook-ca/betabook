@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 import { TripAlbumVideo } from "@/components/trips/trip-album-video";
 import { SectionHeading } from "@/components/ui/typography";
 import { formatCount } from "@/lib/format";
@@ -67,12 +65,12 @@ export function TripAlbumPhotos({ link, photos }: { link: string; photos: AlbumP
                     {...OUTSIDE}
                     className="block rounded-panel focus-visible:status-focused"
                   >
-                    <Image
+                    <img
                       src={albumPhotoSrc(photo, SHOWN_WIDTH)}
                       alt={name}
                       width={photo.width}
                       height={photo.height}
-                      unoptimized
+
                       referrerPolicy="no-referrer"
                       loading={index === 0 ? "eager" : "lazy"}
                       className={TILE}

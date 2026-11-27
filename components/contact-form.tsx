@@ -13,7 +13,7 @@ import {
   MAX_MESSAGE_LENGTH,
   MAX_NAME_LENGTH,
 } from "@/lib/contact";
-import { submitContactMessage } from "@/lib/contact-action";
+import { submitContactMessage } from "@/spa/lib/contact-action-client";
 
 export function ContactForm() {
   // Mount time, not first keystroke — the server rejects anything submitted

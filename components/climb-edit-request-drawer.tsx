@@ -4,7 +4,6 @@ import { Button, Input, Label, TextField } from "@heroui/react";
 import type { UseOverlayStateReturn } from "@heroui/react";
 import { useId, useState, useTransition } from "react";
 
-import { requestClimbEdit } from "@/actions";
 import { DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
 import { FIELD_CLASS } from "@/components/ui/field";
 import { useGradePreferences } from "@/components/ui/grade-preferences";
@@ -14,6 +13,7 @@ import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { Climb } from "@/db/queries";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { gradeOptionValue, gradeOptions, type ClimbType } from "@/lib/grades";
+import { requestClimbEdit } from "@/spa/lib/actions-client";
 
 type ClimbEditRequestDrawerProps = {
   climb: Climb;

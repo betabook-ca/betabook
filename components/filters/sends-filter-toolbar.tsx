@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import type { ComponentProps } from "react";
 
 import { ASCENT_STYLE_CHIP_CLASSNAME } from "@/components/ascent-style";
@@ -36,6 +35,7 @@ import {
   ASCENT_STYLES,
   type AscentStyle as AscentStyleType,
 } from "@/lib/sends";
+import { useRouter } from "@/spa/lib/navigation";
 
 const EMPTY_TAGS: string[] = [];
 

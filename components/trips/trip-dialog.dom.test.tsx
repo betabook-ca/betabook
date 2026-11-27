@@ -3,19 +3,21 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { saveTrip } from "@/actions";
 import type { TripSummary } from "@/db/queries";
 import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import type { ActionResult } from "@/lib/action-result";
 import type { CompanionOption } from "@/lib/journal-companions";
+import { saveTrip } from "@/spa/lib/actions-client";
 
 import { TripDialog } from "./trip-dialog";
 
-vi.mock("@/actions", () => ({ saveTrip: vi.fn<() => Promise<ActionResult<number>>>() }));
+vi.mock("@/spa/lib/actions-client", () => ({
+  saveTrip: vi.fn<() => Promise<ActionResult<number>>>(),
+}));
 
 const push = vi.fn<(href: string) => void>();
 const refresh = vi.fn<() => void>();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh }) }));
+vi.mock("@/spa/lib/navigation", () => ({ useRouter: () => ({ push, refresh }) }));
 
 const SAM = { id: "sam", name: "Sam Okafor", image: null };
 const PRIYA = { id: "priya", name: "Priya Nair", image: null };

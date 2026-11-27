@@ -3,7 +3,7 @@
 import { Button, Tooltip } from "@heroui/react";
 import { clsx } from "clsx";
 import { Menu } from "lucide-react";
-import { useId, useState, type ReactNode } from "react";
+import { useId, useRef, useState, type ReactNode } from "react";
 
 import { AppMenuLinks, type MenuAccount } from "@/components/app-menu-links";
 import { useFriendRequestCount } from "@/components/friend-requests-provider";
@@ -76,6 +76,7 @@ export function SidebarFrame({
   const [preview, setPreview] = useState(false);
   const expanded = pinned || preview;
   const navId = useId();
+  const sidebar = useRef<HTMLElement>(null);
   const toggleLabel = pinned
     ? `Collapse ${label.toLowerCase()}`
     : preview
@@ -84,6 +85,10 @@ export function SidebarFrame({
 
   return (
     <div
+      onFocusCapture={(event) => {
+        // Keyboard/programmatic focus can enter the page without a mouseleave.
+        if (preview && !sidebar.current?.contains(event.target)) setPreview(false);
+      }}
       className={clsx(
         "flex min-w-0 flex-1 flex-col",
         contained
@@ -99,6 +104,7 @@ export function SidebarFrame({
       {/* Hover and bubbled focus reveal navigation; the aside itself is not a control. */}
       {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
       <aside
+        ref={sidebar}
         aria-label={label}
         className={clsx(
           "inset-y-0 left-0 z-40 hidden flex-col bg-background motion-safe:transition-[width] motion-safe:duration-150",
@@ -106,7 +112,11 @@ export function SidebarFrame({
           expanded ? "w-56" : "w-16",
           preview && !pinned && "shadow-lg",
         )}
-        onMouseEnter={() => setPreview(true)}
+        // Hydration can hit-test a stationary pointer over the new sidebar.
+        // Wait for movement inside it before covering adjacent page controls.
+        onMouseMove={() => {
+          if (!expanded) setPreview(true);
+        }}
         onMouseLeave={(event) => {
           if (!event.currentTarget.contains(document.activeElement)) setPreview(false);
         }}

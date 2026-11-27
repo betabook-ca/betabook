@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import { Button, Input, Label, TextField } from "@heroui/react";
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { cardClass } from "@/components/ui/card";
 import { Eyebrow } from "@/components/ui/eyebrow";
@@ -11,7 +11,7 @@ import { Example, StoryPage } from "@/stories/fixtures/story-layout";
 
 import { ColorPage, ColorGrid, LiveSample } from "./token-reference";
 
-import themeSource from "@/app/globals.css?raw";
+import themeSource from "@/spa/globals.css?raw";
 
 const meta = { title: "Foundations/Tokens", component: ColorPage } satisfies Meta;
 export default meta;

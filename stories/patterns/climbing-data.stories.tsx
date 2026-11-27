@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { AscentStyle } from "@/components/ascent-style";
 import { DisciplineChip } from "@/components/ui/discipline-chip";

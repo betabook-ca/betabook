@@ -9,7 +9,7 @@
 - Contribute areas, climbs, and descriptions; structural changes go through moderation by admins assigned to the affected areas.
 - Learn the logging workflow through an interactive Journal tutorial.
 
-Built with Next.js 16 App Router, React 19, TypeScript, HeroUI, and Tailwind CSS. [vinext](https://vinext.dev) builds it with Vite and runs it on Cloudflare Workers; Cloudflare D1 stores data through Drizzle ORM. Better Auth handles email/password and optional Google sign-in, and Resend delivers email.
+Betabook runs a Rust Cloudflare Worker backed by D1 and R2. A Vite-built React Router app provides the member workspace and public catalog. Rust verifies existing account credentials and signed session cookies.
 
 ## Local development
 

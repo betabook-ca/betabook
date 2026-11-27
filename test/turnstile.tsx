@@ -11,7 +11,7 @@ type RenderOptions = {
 /** Set `blocked` to make the script fail to load, as a content blocker would. */
 export const turnstileScript = { blocked: false };
 
-/** Replaces next/script, since jsdom never loads the external Turnstile script. */
+/** Replaces the external script loader, since jsdom never loads the external Turnstile script. */
 export default function ReadyScript({
   onReady,
   onError,

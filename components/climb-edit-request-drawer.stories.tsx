@@ -1,8 +1,8 @@
 import { Button, useOverlayState } from "@heroui/react";
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { mocked } from "storybook/test";
 
-import { requestClimbEdit } from "@/actions";
+import { requestClimbEdit } from "@/spa/lib/actions-client";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { ClimbEditRequestDrawer } from "./climb-edit-request-drawer";

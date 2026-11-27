@@ -32,7 +32,7 @@ use betabook_db::social::{
     get_user_sent_climb_ids, search_companion_friends,
 };
 use betabook_domain::grades::{BoulderScale, GradePreferences, RopeScale};
-use betabook_domain::profile_share::parse_share_token;
+use betabook_domain::profile_share::profile_token_from_query;
 use betabook_domain::public_catalog::{
     MAX_PAGINATION_OFFSET, MAX_RATING, PublicArea, parse_id, parse_member_catalog_options,
 };
@@ -857,11 +857,10 @@ pub async fn user_profile_page_loader(
     let raw_query = uri.query().unwrap_or("");
     let session_opt = resolve_optional_member_session(&state, &headers).await?;
     let Some(session) = session_opt else {
-        let pairs = parse_query_map(raw_query);
-        let Some(token) = first_param(&pairs, "share").and_then(parse_share_token) else {
+        let Some(token) = profile_token_from_query(raw_query) else {
             return Err(ApiError::unauthorized());
         };
-        let Some(owner) = get_share_link_owner(state.db(), token).await? else {
+        let Some(owner) = get_share_link_owner(state.db(), &token).await? else {
             return Err(ApiError::unauthorized());
         };
         if owner.id != user_id {
@@ -1206,4 +1205,16 @@ pub async fn new_climb_page_loader(
         StatusCode::OK,
         json!({ "selectedArea": selected_area }),
     ))
+}
+
+#[worker::send]
+pub async fn tutorial_state(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Response, ApiError> {
+    let session = require_member_session(&state, &headers).await?;
+    let progress = get_product_tour_state(state.db(), &session.user.id)
+        .await?
+        .ok_or_else(ApiError::unauthorized)?;
+    Ok(no_store_json(StatusCode::OK, json!(progress)))
 }

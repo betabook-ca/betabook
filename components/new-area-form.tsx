@@ -1,9 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
 import { AreaForm } from "@/components/area-form";
 import { areaHref } from "@/lib/slug";
+import { useRouter } from "@/spa/lib/navigation";
 
 export function NewAreaForm() {
   const router = useRouter();

@@ -1,5 +1,5 @@
 import { Button, Modal } from "@heroui/react";
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 
 import { GoalForm } from "./goal-form";

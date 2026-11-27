@@ -1,10 +1,8 @@
 "use client";
 
 import { Button } from "@heroui/react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 
-import { saveProductTourStatus } from "@/actions";
 import { PRODUCT_TOUR_LOADERS } from "@/components/product-tours/registry";
 import { TourOverlay } from "@/components/product-tours/tour-overlay";
 import type { ProductTourPage } from "@/components/product-tours/types";
@@ -22,6 +20,8 @@ import {
   productTourExitPath,
   productTourPath,
 } from "@/lib/product-tour-navigation";
+import { saveProductTourStatus } from "@/spa/lib/actions-client";
+import { usePathname, useRouter, useSearchParams } from "@/spa/lib/navigation";
 
 import styles from "@/components/product-tours/tour-layout.module.css";
 

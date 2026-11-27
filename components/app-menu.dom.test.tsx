@@ -17,7 +17,7 @@ beforeEach(() => {
   }));
 });
 
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/navigation", () => ({
   usePathname: () => navigation.pathname,
   useRouter: () => ({ push: () => {}, refresh: () => {} }),
 }));

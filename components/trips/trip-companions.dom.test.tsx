@@ -2,13 +2,15 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { removeMyTripTag } from "@/actions";
 import type { ActionResult } from "@/lib/action-result";
 import type { JournalCompanion } from "@/lib/journal-companions";
+import { removeMyTripTag } from "@/spa/lib/actions-client";
 
 import { TripCompanions } from "./trip-companions";
 
-vi.mock("@/actions", () => ({ removeMyTripTag: vi.fn<() => Promise<ActionResult>>() }));
+vi.mock("@/spa/lib/actions-client", () => ({
+  removeMyTripTag: vi.fn<() => Promise<ActionResult>>(),
+}));
 
 const TRIP = 7;
 const SAM: JournalCompanion = { id: "sam", name: "Sam Okafor", image: null, isSelf: false };

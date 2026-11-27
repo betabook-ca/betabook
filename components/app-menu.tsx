@@ -2,7 +2,6 @@
 
 import { Button, useOverlayState } from "@heroui/react";
 import { Menu } from "lucide-react";
-import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
 
 import { BrandHomeLink } from "@/components/brand";
@@ -12,6 +11,7 @@ import { BREAKPOINT_QUERY } from "@/hooks/use-breakpoint";
 import { useClientSession } from "@/hooks/use-client-session";
 import { useDeferredComponent } from "@/hooks/use-deferred-component";
 import { useMobileTabsVisible } from "@/hooks/use-mobile-tabs-visible";
+import { usePathname } from "@/spa/lib/navigation";
 
 /** Module-level so its identity is stable across renders — the preload hook
  * keys its effect on the loader. */

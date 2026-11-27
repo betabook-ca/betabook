@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
@@ -26,20 +26,20 @@ type Story = StoryObj<typeof meta>;
 
 export const Profile: Story = {
   name: "Logbook",
-  parameters: { nextjs: { navigation: { pathname: "/users/sample/sends" } } },
+  parameters: { router: { navigation: { pathname: "/users/sample/sends" } } },
 };
 export const Feed: Story = {
   name: "Community",
-  parameters: { nextjs: { navigation: { pathname: "/feed" } } },
+  parameters: { router: { navigation: { pathname: "/feed" } } },
 };
 export const FriendRequests: Story = {
   args: { requestCount: 12 },
-  parameters: { nextjs: { navigation: { pathname: "/friends" } } },
+  parameters: { router: { navigation: { pathname: "/friends" } } },
 };
 export const Progress: Story = {
-  parameters: { nextjs: { navigation: { pathname: "/users/sample/projects" } } },
+  parameters: { router: { navigation: { pathname: "/users/sample/projects" } } },
 };
 export const You: Story = {
   name: "Account settings (no active tab)",
-  parameters: { nextjs: { navigation: { pathname: "/account" } } },
+  parameters: { router: { navigation: { pathname: "/account" } } },
 };

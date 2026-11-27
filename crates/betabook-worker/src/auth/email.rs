@@ -26,11 +26,11 @@ async fn deliver_email(
             "text": rendered.text,
             "html": rendered.html,
         });
-        let (status, resp_text) =
+        let (status, _) =
             http_post_json("https://api.resend.com/emails", Some(&api_key), &payload).await?;
         if !(200..300).contains(&status) {
             return Err(ApiError::internal(format!(
-                "Resend rejected \"{subject}\": {status} {resp_text}"
+                "Resend rejected email: {status}"
             )));
         }
         return Ok(());
@@ -161,7 +161,7 @@ pub async fn welcome_new_account_once(state: &AppState, user_id: &str, email: &s
         Ok(true) => {}
         Ok(false) => return,
         Err(err) => {
-            worker::console_error!("welcome claim failed: {err}");
+            crate::observability::background_error("welcome_claim", err);
             return;
         }
     }
@@ -173,11 +173,11 @@ pub async fn welcome_new_account_once(state: &AppState, user_id: &str, email: &s
         )
         && let Err(err) = send_friend_request_email(state, &referrer.email, name).await
     {
-        worker::console_error!("referral friend email failed: {err}");
+        crate::observability::background_error("referral_email", err);
     }
 
     if let Err(err) = send_welcome_email(state, email, name).await {
-        worker::console_error!("welcome email failed: {err}");
+        crate::observability::background_error("welcome_email", err);
     }
 }
 

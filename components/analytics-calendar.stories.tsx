@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { DISCIPLINE_HUE } from "@/components/ui/discipline-chip";
 import { sessionChartRows } from "@/lib/chart-details";

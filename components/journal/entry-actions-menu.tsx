@@ -3,11 +3,11 @@
 import { Menu, useOverlayState } from "@heroui/react";
 import { useState, useTransition } from "react";
 
-import { deleteJournalEntry } from "@/actions";
 import { JournalEntryEditDrawer } from "@/components/journal/journal-entry-edit-drawer";
 import { ActionsMenu } from "@/components/ui/actions-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import type { JournalEntry } from "@/db/queries";
+import { deleteJournalEntry } from "@/spa/lib/actions-client";
 
 export function EntryActionsMenu({ entry }: { entry: JournalEntry }) {
   const editState = useOverlayState();

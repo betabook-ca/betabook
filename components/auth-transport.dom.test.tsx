@@ -14,14 +14,11 @@ const { transport, navigation } = vi.hoisted(() => ({
   transport: vi.fn<typeof fetch>(),
   navigation: { push: vi.fn<(href: string) => void>(), refresh: vi.fn<() => void>() },
 }));
-vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
+vi.mock("@/spa/lib/navigation", () => ({ useRouter: () => navigation }));
 vi.mock("@/lib/auth-client", async () => {
-  const { createAuthClient } = await import("better-auth/react");
+  const { createWorkerAuthClient } = await import("@/spa/lib/worker-auth");
   return {
-    authClient: createAuthClient({
-      baseURL: "http://localhost:3000",
-      fetchOptions: { customFetchImpl: transport },
-    }),
+    authClient: createWorkerAuthClient(transport),
   };
 });
 

@@ -2,15 +2,15 @@
 
 import { useState, useTransition } from "react";
 
+import { PrivacyFields } from "@/components/privacy-fields";
+import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
 import {
   setClimbListVisibility,
   setJournalVisibility,
   setSendCommentVisibility,
   setTripVisibility,
   setUserPrivate,
-} from "@/actions";
-import { PrivacyFields } from "@/components/privacy-fields";
-import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
+} from "@/spa/lib/actions-client";
 
 type Audiences = {
   journal: SharingAudience;

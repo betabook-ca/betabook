@@ -2,11 +2,11 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
-import { getSendEditorData, updateSend } from "@/actions";
+import { getSendEditorData, updateSend } from "@/spa/lib/actions-client";
 
 import { SendEditor } from "./send-editor";
 
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   getSendEditorData: vi.fn<typeof getSendEditorData>(),
   updateSend: vi.fn<typeof updateSend>(),
 }));

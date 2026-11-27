@@ -8,7 +8,7 @@ import { createSearchFixtureFetcher } from "@/stories/fixtures/app-search-demo";
 
 import { JournalEntryComposer } from "./journal-entry-composer";
 
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   createJournalEntry: vi.fn<() => Promise<ActionResult>>(),
   createUndatedSend: vi.fn<() => Promise<ActionResult>>(),
   updateJournalEntry: vi.fn<() => Promise<ActionResult>>(),

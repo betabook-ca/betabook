@@ -3,13 +3,13 @@
 import { Button, Input, Label, TextArea, TextField } from "@heroui/react";
 import { useState, useTransition } from "react";
 
-import { createArea, updateArea } from "@/actions";
 import { AreaPicker, type PickedArea } from "@/components/area-picker";
 import { SURFACE_CARD_CLASS } from "@/components/ui/card";
 import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import type { Area } from "@/db/queries";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
+import { createArea, updateArea } from "@/spa/lib/actions-client";
 
 type AreaFormProps = {
   /** The new area's parent, when already fixed (creating a subarea from an

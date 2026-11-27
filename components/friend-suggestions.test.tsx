@@ -5,7 +5,7 @@ import type { SuggestedClimberRow } from "@/db/queries";
 
 import { FriendSuggestions } from "./friend-suggestions";
 
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   requestFriendship: vi.fn<() => Promise<never>>(),
   acceptFriendRequest: vi.fn<() => Promise<never>>(),
   cancelFriendRequest: vi.fn<() => Promise<never>>(),

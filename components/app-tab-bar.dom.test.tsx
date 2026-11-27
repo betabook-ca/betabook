@@ -6,7 +6,7 @@ import { AppTabBar } from "./app-tab-bar";
 
 type Session = { user: { id: string; name: string; image: null } } | null;
 const state = vi.hoisted(() => ({ pathname: "/feed", session: null as Session }));
-vi.mock("next/navigation", () => ({ usePathname: () => state.pathname }));
+vi.mock("@/spa/lib/navigation", () => ({ usePathname: () => state.pathname }));
 vi.mock("@/lib/auth-client", () => ({
   authClient: { useSession: () => ({ data: state.session, isPending: false }) },
 }));

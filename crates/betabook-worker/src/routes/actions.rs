@@ -94,6 +94,16 @@ pub(super) fn action_err(message: impl Into<String>) -> Response {
     resp
 }
 
+/// Keep ordinary authentication denials in the action envelope, while internal
+/// failures reach the request logger with their method and redacted route.
+pub(super) fn session_error(error: ApiError) -> Result<Response, ApiError> {
+    if error.status.is_server_error() {
+        Err(error)
+    } else {
+        Ok(action_err(error.message))
+    }
+}
+
 pub(super) fn map_mutation_result<T, F>(
     res: Result<T, MutationError>,
     on_ok: F,
@@ -278,27 +288,10 @@ pub async fn client_errors(
     let Ok(report) = serde_json::from_slice::<Value>(&bytes) else {
         return StatusCode::BAD_REQUEST.into_response();
     };
-    let boundary = report["boundary"].as_str();
-    let path = report["path"].as_str().unwrap_or("");
-    if !matches!(boundary, Some("page" | "global"))
-        || !path.starts_with('/')
-        || path.len() > 512
-        || !report["message"].is_string()
-    {
+    let Some(event) = crate::observability::client_report(&report) else {
         return StatusCode::BAD_REQUEST.into_response();
-    }
-    // Browser-provided paths, messages and query strings can carry private
-    // notes or working share links. Record only the known route family.
-    let section = path.split(['/', '?', '#']).nth(1).unwrap_or("");
-    let section = match section {
-        "climbs" | "areas" | "users" | "trips" | "projects" | "lists" | "account" | "admin"
-        | "feed" | "search" | "friends" | "tutorial" => section,
-        _ => "other",
     };
-    worker::console_error!(
-        "{}",
-        json!({"event":"client_error","boundary":boundary,"section":section})
-    );
+    crate::observability::emit(event);
     StatusCode::NO_CONTENT.into_response()
 }
 
@@ -390,11 +383,11 @@ async fn handle_contact(state: &AppState, payload: Value) -> Result<Response, Ap
             "subject": subject,
             "text": text,
         });
-        let (status, resp_text) =
+        let (status, _) =
             http_post_json("https://api.resend.com/emails", Some(&api_key), &body).await?;
         if !(200..300).contains(&status) {
             return Err(ApiError::internal(format!(
-                "Resend rejected contact email: {status} {resp_text}"
+                "Resend rejected contact email: {status}"
             )));
         }
     } else {
@@ -614,7 +607,7 @@ async fn handle_upload_profile_photo(
 ) -> Result<Response, ApiError> {
     let session = match require_member_session(state, headers).await {
         Ok(s) => s,
-        Err(err) => return Ok(action_err(err.message)),
+        Err(err) => return crate::routes::actions::session_error(err),
     };
     let Some(part) = extract_multipart_field(raw_body, content_type, "photo") else {
         return Ok(action_err("Choose a photo to upload."));
@@ -770,7 +763,7 @@ pub async fn dispatch_action(
             use betabook_domain::profile_share::share_expiry_modifier;
             let session = match require_member_session(&state, &headers).await {
                 Ok(session) => session,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             let user = &session.user.id;
             let climb = match parse_pos_i64_arg(call.args.first(), "Climb not found") {
@@ -839,7 +832,7 @@ pub async fn dispatch_action(
         "dismissFeatureAnnouncement" => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             let Some(feature_id) = call.args.first().and_then(Value::as_str) else {
                 return Ok(action_err("Invalid feature announcement."));
@@ -853,7 +846,7 @@ pub async fn dispatch_action(
         "saveProductTourStatus" => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             let id = call.args.first().and_then(Value::as_str).unwrap_or("");
             let version = call.args.get(1).and_then(Value::as_i64).unwrap_or(0);
@@ -874,7 +867,7 @@ pub async fn dispatch_action(
         "requestFriendship" => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             let target_id = match parse_target_user_id(call.args.first(), &session.user.id) {
                 Ok(id) => id,
@@ -893,7 +886,7 @@ pub async fn dispatch_action(
                 ) && let Err(err) =
                     send_friend_request_email(&state, &rec_user.email, &req_user.name).await
                 {
-                    worker::console_error!("friend request email failed: {err}");
+                    crate::observability::background_error("friend_request_email", err);
                 }
                 "outgoing".to_string()
             } else {
@@ -913,7 +906,7 @@ pub async fn dispatch_action(
         "acceptFriendRequest" => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             let target_id = match parse_target_user_id(call.args.first(), &session.user.id) {
                 Ok(id) => id,
@@ -927,7 +920,7 @@ pub async fn dispatch_action(
         "cancelFriendRequest" | "declineFriendRequest" | "removeFriendship" => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             let target_id = match parse_target_user_id(call.args.first(), &session.user.id) {
                 Ok(id) => id,
@@ -950,7 +943,7 @@ pub async fn dispatch_action(
         "updateDisplayName" => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             let form = match FormFields::from_arg(call.args.first()) {
                 Ok(f) => f,
@@ -975,7 +968,7 @@ pub async fn dispatch_action(
         "setUserPrivate" => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             let is_private = call.args.first().and_then(Value::as_bool) == Some(true);
             update_user_private(state.db(), &session.user.id, is_private, state.now_ms()).await?;
@@ -987,7 +980,7 @@ pub async fn dispatch_action(
         | "setSendCommentVisibility" => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             let raw = call.args.first().and_then(Value::as_str).unwrap_or("");
             let parsed = if name == "setSendCommentVisibility" {
@@ -1012,7 +1005,7 @@ pub async fn dispatch_action(
         "setGradePreferences" => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             let obj = call.args.first().and_then(Value::as_object);
             let raw_b = obj
@@ -1044,7 +1037,7 @@ pub async fn dispatch_action(
         "resetProfileShareLink" => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             reset_profile_share_link(state.db(), &session.user.id).await?;
             Ok(action_ok())
@@ -1052,7 +1045,7 @@ pub async fn dispatch_action(
         "removeProfilePhoto" => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             let current = get_account_user(state.db(), &session.user.id).await?;
             update_user_image(state.db(), &session.user.id, None, state.now_ms()).await?;
@@ -1070,7 +1063,7 @@ pub async fn dispatch_action(
         "getSendEditorData" => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             let target = call.args.first().and_then(Value::as_object);
             let requested_send_id = target.and_then(|o| o.get("sendId"));
@@ -1146,7 +1139,7 @@ pub async fn dispatch_action(
         "createUndatedSend" => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             if !allow_rate_limit(&state, "JOURNAL_RATE_LIMITER", &session.user.id).await {
                 return Ok(action_err(JOURNAL_RATE_LIMIT_MESSAGE));
@@ -1211,7 +1204,7 @@ pub async fn dispatch_action(
         "updateSend" => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             let send_id = match parse_pos_i64_arg(call.args.first(), "Send not found") {
                 Ok(id) => id,
@@ -1281,7 +1274,7 @@ pub async fn dispatch_action(
         "deleteSend" => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             let send_id = match parse_pos_i64_arg(call.args.first(), "Send not found") {
                 Ok(id) => id,
@@ -1298,7 +1291,7 @@ pub async fn dispatch_action(
         "createJournalEntry" => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             if !allow_rate_limit(&state, "JOURNAL_RATE_LIMITER", &session.user.id).await {
                 return Ok(action_err(JOURNAL_RATE_LIMIT_MESSAGE));
@@ -1369,7 +1362,7 @@ pub async fn dispatch_action(
         "updateJournalEntry" => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             if !allow_rate_limit(&state, "JOURNAL_RATE_LIMITER", &session.user.id).await {
                 return Ok(action_err(JOURNAL_RATE_LIMIT_MESSAGE));
@@ -1416,7 +1409,7 @@ pub async fn dispatch_action(
         "deleteJournalEntry" => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             if !allow_rate_limit(&state, "JOURNAL_RATE_LIMITER", &session.user.id).await {
                 return Ok(action_err(JOURNAL_RATE_LIMIT_MESSAGE));
@@ -1434,7 +1427,7 @@ pub async fn dispatch_action(
         "removeMyJournalTag" => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             if !allow_rate_limit(&state, "JOURNAL_RATE_LIMITER", &session.user.id).await {
                 return Ok(action_err(JOURNAL_RATE_LIMIT_MESSAGE));
@@ -1451,7 +1444,7 @@ pub async fn dispatch_action(
         "createArea" => {
             let _session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             let parent_id = match parse_pos_i64_arg(call.args.first(), "Parent area not found") {
                 Ok(id) => id,
@@ -1475,7 +1468,7 @@ pub async fn dispatch_action(
         "updateArea" => {
             let _session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             let area_id = match parse_pos_i64_arg(call.args.first(), "Area not found") {
                 Ok(id) => id,
@@ -1495,7 +1488,7 @@ pub async fn dispatch_action(
         "createClimb" => {
             let _session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             let area_id = match parse_pos_i64_arg(call.args.first(), "Area not found") {
                 Ok(id) => id,
@@ -1545,7 +1538,7 @@ pub async fn dispatch_action(
         "updateClimb" => {
             let _session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
-                Err(err) => return Ok(action_err(err.message)),
+                Err(err) => return crate::routes::actions::session_error(err),
             };
             let climb_id = match parse_pos_i64_arg(call.args.first(), "Climb not found") {
                 Ok(id) => id,

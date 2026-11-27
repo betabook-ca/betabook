@@ -1,10 +1,10 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
 import { SidebarLayout } from "./app-sidebar";
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/feed", useRouter: () => ({}) }));
+vi.mock("@/spa/lib/navigation", () => ({ usePathname: () => "/feed", useRouter: () => ({}) }));
 
 it("reveals labels on hover, can pin the sidebar, and collapses explicitly", async () => {
   const user = userEvent.setup();
@@ -51,6 +51,32 @@ it("reveals keyboard navigation and closes the preview when focus leaves", async
   await user.tab();
   expect(screen.getByRole("link", { name: "Sign in" })).toHaveFocus();
   await user.click(screen.getByRole("button", { name: "Page content" }));
+  expect(screen.getByRole("button", { name: "Expand sidebar" })).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
+});
+
+it("opens a pointer preview on movement and dismisses it when page content takes focus", async () => {
+  const user = userEvent.setup();
+  render(
+    <SidebarLayout account={null}>
+      <input aria-label="Search the catalog" />
+    </SidebarLayout>,
+  );
+  const sidebar = screen.getByRole("complementary", { name: "Sidebar" });
+  // A layout hit-test can dispatch an enter while the pointer is stationary.
+  fireEvent.mouseEnter(sidebar);
+  expect(screen.getByRole("button", { name: "Expand sidebar" })).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
+  await user.hover(sidebar);
+  expect(screen.getByRole("button", { name: "Keep sidebar expanded" })).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+  act(() => screen.getByRole("textbox", { name: "Search the catalog" }).focus());
   expect(screen.getByRole("button", { name: "Expand sidebar" })).toHaveAttribute(
     "aria-expanded",
     "false",

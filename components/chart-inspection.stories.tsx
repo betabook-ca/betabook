@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { userEvent } from "storybook/test";
 
 import { sendChartRows } from "@/lib/chart-details";

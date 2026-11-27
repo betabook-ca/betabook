@@ -16,9 +16,8 @@ test(
     await expect(
       page.getByRole("heading", { name: "Terms of Service", exact: true }),
     ).toBeVisible();
-    // Next can stream a not-found response with HTTP 200. Verify the actual
-    // rejection and noindex contract rather than the streaming status code.
-    await page.goto("/terms/not-a-published-version");
+    const missing = await page.goto("/terms/not-a-published-version");
+    expect(missing?.status()).toBe(404);
     await expect(page.getByRole("heading", { name: "Page not found", exact: true })).toBeVisible();
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "noindex");
     await expect(page.getByRole("heading", { name: "Terms of Service", exact: true })).toHaveCount(

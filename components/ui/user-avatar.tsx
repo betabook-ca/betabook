@@ -2,7 +2,6 @@
 
 import { clsx } from "clsx";
 import { User } from "lucide-react";
-import Image from "next/image";
 import { useState } from "react";
 
 import { getAvatarPhoto, getUserInitials } from "@/lib/user-initials";
@@ -25,13 +24,11 @@ type UserAvatarProps = {
   className?: string;
 };
 
-/** The climber's photo — one they uploaded, or the OAuth photo stored by
- * Better Auth — with an inline initials treatment for accounts with neither
+/** The climber's photo — one they uploaded, or a Google profile photo — with an inline initials treatment for accounts with neither
  * and for an image that fails to load. Decorative: its surrounding account
  * UI already provides the label.
  *
- * Both go through next/image, but an uploaded photo is already served at the
- * size avatars need, so it is `unoptimized`; only the Google URL is resized. */
+ */
 export function UserAvatar({ name, image, size = "md", className }: UserAvatarProps) {
   const { pixels, className: sizeClassName } = AVATAR_SIZE[size];
   const [failedImage, setFailedImage] = useState<string | null>(null);
@@ -56,14 +53,12 @@ export function UserAvatar({ name, image, size = "md", className }: UserAvatarPr
       ) : photo === null || imageUrl === failedImage ? (
         getUserInitials(name)
       ) : (
-        <Image
+        <img
           src={photo.url}
           alt=""
           width={pixels}
           height={pixels}
-          // An uploaded photo is already 256 px of WebP, so optimizing it
-          // would spend Worker CPU to hand back the same bytes.
-          unoptimized={!photo.optimize}
+
           className="size-full object-cover"
           referrerPolicy="no-referrer"
           onError={() => setFailedImage(photo.url)}

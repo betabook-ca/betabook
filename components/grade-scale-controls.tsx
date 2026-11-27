@@ -2,12 +2,12 @@
 
 import { useState, useTransition } from "react";
 
-import { setGradePreferences } from "@/actions";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { SegmentedButtons } from "@/components/ui/segmented-buttons";
 import { SETTINGS_ROW_CLASS, SETTINGS_ROWS_CLASS, SettingsRow } from "@/components/ui/settings";
 import { BOULDER_GRADE_SCALES, ROPE_GRADE_SCALES } from "@/lib/grade-preferences";
 import { formatGrade, type GradePreferences } from "@/lib/grades";
+import { setGradePreferences } from "@/spa/lib/actions-client";
 
 const SAVE_FAILED_MESSAGE = "Couldn't save your grading systems. Try again.";
 

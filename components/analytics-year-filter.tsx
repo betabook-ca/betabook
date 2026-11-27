@@ -2,11 +2,11 @@
 
 import { Button, Menu } from "@heroui/react";
 import { CalendarDays, ChevronDown } from "lucide-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useOptimistic, useTransition } from "react";
 import { MenuTrigger, Popover, type Selection } from "react-aria-components";
 
 import { formatAnalyticsYears } from "@/lib/analytics-years";
+import { usePathname, useRouter, useSearchParams } from "@/spa/lib/navigation";
 
 const ALL = "all";
 

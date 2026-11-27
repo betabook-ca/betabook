@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { userEvent, within } from "storybook/test";
 
@@ -29,7 +29,7 @@ const meta = {
   title: "Components/Charts/Analytics dashboard",
   component: AnalyticsDashboard,
   parameters: {
-    nextjs: { navigation: { pathname: "/users/sample/analytics", query: {} } },
+    router: { navigation: { pathname: "/users/sample/analytics", query: {} } },
     docs: {
       description: {
         component:

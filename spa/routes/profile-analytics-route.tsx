@@ -18,6 +18,7 @@ import {
 } from "@/lib/feature-announcements";
 import { normalizeHashtagFilters } from "@/lib/filters/hashtag-filter";
 import { parseDisciplineScope, resolveDisciplineScope } from "@/lib/user-analytics";
+import { usePageTitle } from "@/spa/lib/document-navigation";
 import { fetchJson, isNotFoundError } from "@/spa/lib/fetch-json";
 import { SpaProfileHeader } from "@/spa/lib/profile-shell";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
@@ -81,6 +82,11 @@ export default function ProfileAnalyticsRoute({ viewerId }: { viewerId: string |
     void load();
     return () => controller.abort();
   }, [identity, url, viewerId]);
+  usePageTitle(
+    result?.identity === identity && "data" in result
+      ? result.data.header.user.name + " · Analytics"
+      : null,
+  );
   if (!viewerId) return <CurrentPageAuthCallout />;
   if (result?.identity !== identity || ("error" in result && result.url !== url))
     return <AnalyticsLoading />;

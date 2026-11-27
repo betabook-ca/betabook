@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { CropDemo } from "@/stories/fixtures/crop-demo";
 import { StoryPage } from "@/stories/fixtures/story-layout";

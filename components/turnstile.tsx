@@ -1,9 +1,9 @@
 "use client";
 
-import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 
 import { InlineAlert } from "@/components/ui/inline-alert";
+import Script from "@/spa/lib/external-script";
 
 type TurnstileApi = {
   render: (

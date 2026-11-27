@@ -1,10 +1,10 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useState } from "react";
 import { mocked } from "storybook/test";
 
-import { archiveGoal, saveGoal } from "@/actions";
 import { summarizeGoalPeriods } from "@/lib/goal-history";
 import { goalInputSchema, goalWindow, type GoalPage, type GoalProgress } from "@/lib/goals";
+import { archiveGoal, saveGoal } from "@/spa/lib/actions-client";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { GoalPanel } from "./goal-panel";

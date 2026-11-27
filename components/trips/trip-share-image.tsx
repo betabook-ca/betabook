@@ -313,8 +313,6 @@ export function TripShareImage({
             {selected.length === 0 ? (
               <p className="py-16 text-sm text-muted">Choose at least one stat.</p>
             ) : preview ? (
-              // An object URL, which next/image can't optimize.
-              // oxlint-disable-next-line nextjs/no-img-element
               <img
                 src={preview.url}
                 alt="Preview: trip header and selected stats"

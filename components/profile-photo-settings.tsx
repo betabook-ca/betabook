@@ -5,7 +5,6 @@ import { ImagePlus } from "lucide-react";
 import { useState, useTransition } from "react";
 import { FileTrigger } from "react-aria-components";
 
-import { uploadProfilePhoto } from "@/actions";
 import { ProfilePhotoCropper } from "@/components/profile-photo-cropper";
 import { RemoveProfilePhotoButton } from "@/components/remove-profile-photo-button";
 import { InlineAlert } from "@/components/ui/inline-alert";
@@ -13,6 +12,7 @@ import { SettingsRow } from "@/components/ui/settings";
 import type { CropSquare } from "@/lib/photo-canvas";
 import { ACCEPTED_PROFILE_PHOTO_TYPES, sourcePhotoProblem } from "@/lib/profile-photo";
 import { getAvatarPhoto } from "@/lib/user-initials";
+import { uploadProfilePhoto } from "@/spa/lib/actions-client";
 
 const PROFILE_PHOTO_UPLOAD_FAILED_MESSAGE =
   "Couldn't save your photo. Check your connection and try again.";
@@ -40,7 +40,7 @@ export function ProfilePhotoSettings({
   const [isPending, startTransition] = useTransition();
 
   const photo = getAvatarPhoto(image);
-  const kind = photo === null ? "none" : photo.optimize ? "google" : "uploaded";
+  const kind = photo?.kind ?? "none";
 
   function handleSelect(files: FileList | null) {
     const chosen = files?.item(0);

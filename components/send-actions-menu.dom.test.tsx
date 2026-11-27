@@ -2,13 +2,15 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { deleteSend } from "@/actions";
 import type { EditableSend } from "@/db/queries";
 import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
+import { deleteSend } from "@/spa/lib/actions-client";
 
 import { SendActionsMenu } from "./send-actions-menu";
 
-vi.mock("@/actions", () => ({ deleteSend: vi.fn<(id: number) => Promise<ActionResult>>() }));
+vi.mock("@/spa/lib/actions-client", () => ({
+  deleteSend: vi.fn<(id: number) => Promise<ActionResult>>(),
+}));
 
 const remove = vi.mocked(deleteSend);
 

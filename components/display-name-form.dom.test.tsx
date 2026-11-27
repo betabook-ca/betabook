@@ -2,12 +2,14 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { updateDisplayName } from "@/actions";
 import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
+import { updateDisplayName } from "@/spa/lib/actions-client";
 
 import { DisplayNameForm } from "./display-name-form";
 
-vi.mock("@/actions", () => ({ updateDisplayName: vi.fn<() => Promise<ActionResult>>() }));
+vi.mock("@/spa/lib/actions-client", () => ({
+  updateDisplayName: vi.fn<() => Promise<ActionResult>>(),
+}));
 
 const update = vi.mocked(updateDisplayName);
 

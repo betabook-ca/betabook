@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { cardClass } from "@/components/ui/card";
 import { StoryPage } from "@/stories/fixtures/story-layout";
@@ -26,21 +26,21 @@ type Story = StoryObj<typeof meta>;
 
 export const Profile: Story = {
   name: "Primary fallback",
-  parameters: { nextjs: { navigation: { pathname: "/users/sample/sends" } } },
+  parameters: { router: { navigation: { pathname: "/users/sample/sends" } } },
 };
 export const FriendRequests: Story = {
   args: { requestCount: 3 },
-  parameters: { nextjs: { navigation: { pathname: "/friends" } } },
+  parameters: { router: { navigation: { pathname: "/friends" } } },
 };
 export const Moderator: Story = {
   args: { account: { ...account, isAdmin: true }, canInstall: true },
-  parameters: { nextjs: { navigation: { pathname: "/admin/requests" } } },
+  parameters: { router: { navigation: { pathname: "/admin/requests" } } },
 };
 export const SignedOut: Story = {
   args: { account: null, canInstall: true },
-  parameters: { nextjs: { navigation: { pathname: "/about" } } },
+  parameters: { router: { navigation: { pathname: "/about" } } },
 };
 export const SecondaryTools: Story = {
   args: { showPrimary: false },
-  parameters: { nextjs: { navigation: { pathname: "/account" } } },
+  parameters: { router: { navigation: { pathname: "/account" } } },
 };

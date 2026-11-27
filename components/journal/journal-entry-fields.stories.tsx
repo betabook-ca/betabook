@@ -1,5 +1,5 @@
 import { Button } from "@heroui/react";
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { userEvent, within } from "storybook/test";

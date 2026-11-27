@@ -11,7 +11,7 @@ import { JournalFilterToolbar } from "./journal-filter-toolbar";
 import { UserSendsFilterToolbar } from "./sends-filter-toolbar";
 
 const { replace } = vi.hoisted(() => ({ replace: vi.fn<(href: string) => void>() }));
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => ({ replace, push: vi.fn<(href: string) => void>() }),
   usePathname: () => "/users/sample/analytics",
   useSearchParams: () => new URLSearchParams("discipline=boulder"),

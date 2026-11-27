@@ -5,21 +5,20 @@ import { defineProject } from "vitest/config";
 
 const migrationsPromise = readD1Migrations(path.join(import.meta.dirname, "drizzle/migrations"));
 
+import { referenceAliases } from "./test/reference/aliases.ts";
+
 export default defineProject({
   resolve: {
-    alias: {
-      "@": import.meta.dirname,
-    },
+    alias: [...referenceAliases, { find: "@", replacement: import.meta.dirname }],
   },
   plugins: [
     cloudflareTest(async () => {
       const migrations = await migrationsPromise;
 
       return {
-        // Tests import query/mutation modules directly; they do not need the
-        // deployed worker.ts, whose vinext handler exists only in a Vite build.
+        // The reference fixtures run independently of the production Worker’s build and assets.
         main: "./test/worker.ts",
-        wrangler: { configPath: "./wrangler.jsonc" },
+        wrangler: { configPath: "./test/reference/wrangler.jsonc" },
         miniflare: {
           bindings: { TEST_MIGRATIONS: migrations },
         },
@@ -29,13 +28,14 @@ export default defineProject({
   test: {
     name: "workers",
     include: [
-      "actions/**/*.test.{ts,tsx}",
-      "app/**/*.test.{ts,tsx}",
+      "test/reference/actions/**/*.test.{ts,tsx}",
+      "test/reference/app/**/*.test.{ts,tsx}",
       "components/**/*.test.{ts,tsx}",
-      "db/**/*.test.{ts,tsx}",
+      "test/reference/db/**/*.test.{ts,tsx}",
       "lib/**/*.test.{ts,tsx}",
+      "test/reference/lib/**/*.test.{ts,tsx}",
     ],
     exclude: [".claude/**", "node_modules/**", "**/*.dom.test.{ts,tsx}"],
-    setupFiles: ["./test/apply-migrations.ts", "./test/setup-next-link.ts"],
+    setupFiles: ["./test/apply-migrations.ts", "./test/setup-router-link.ts"],
   },
 });

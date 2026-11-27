@@ -84,6 +84,37 @@ pub fn make_signature(value: &str, secret: &str) -> String {
     STANDARD.encode(mac.finalize().into_bytes())
 }
 
+/// Better Auth verification emails issued before cutover carry expiring HS256
+/// tokens. Only accept the account-verification payload bound to its user/email.
+pub fn legacy_email_verification(
+    token: &str,
+    secret: &str,
+    now_ms: i64,
+) -> Option<(String, String)> {
+    use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+    let (signed, signature) = token.rsplit_once('.')?;
+    let (header, payload) = signed.split_once('.')?;
+    let mut mac = signature_mac(secret);
+    mac.update(signed.as_bytes());
+    mac.verify_slice(&URL_SAFE_NO_PAD.decode(signature).ok()?)
+        .ok()?;
+    let header: serde_json::Value =
+        serde_json::from_slice(&URL_SAFE_NO_PAD.decode(header).ok()?).ok()?;
+    let payload: serde_json::Value =
+        serde_json::from_slice(&URL_SAFE_NO_PAD.decode(payload).ok()?).ok()?;
+    if header["alg"] != "HS256"
+        || payload["exp"].as_i64()? <= now_ms / 1000
+        || !payload["updateTo"].is_null()
+        || !payload["requestType"].is_null()
+    {
+        return None;
+    }
+    Some((
+        payload["userId"].as_str()?.to_owned(),
+        payload["email"].as_str()?.to_owned(),
+    ))
+}
+
 pub fn sign_value(value: &str, secret: &str) -> String {
     format!("{value}.{}", make_signature(value, secret))
 }

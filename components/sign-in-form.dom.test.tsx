@@ -17,10 +17,10 @@ const { signInEmail } = vi.hoisted(() => ({
 vi.mock("@/lib/auth-client", () => ({
   authClient: { signIn: { email: signInEmail }, sendVerificationEmail: vi.fn<() => void>() },
 }));
-vi.mock("next/navigation", () => ({
+vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => ({ push: vi.fn<(path: string) => void>() }),
 }));
-vi.mock("next/script", () => import("@/test/turnstile"));
+vi.mock("@/spa/lib/external-script", () => import("@/test/turnstile"));
 
 async function fillCredentials(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByRole("textbox", { name: "Email" }), "climber@example.com");

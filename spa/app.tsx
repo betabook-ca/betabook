@@ -1,7 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Route, Routes } from "react-router";
 
-import { Providers } from "@/app/providers";
 import { HeaderNavigation } from "@/components/app-menu";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppTabBar } from "@/components/app-tab-bar";
@@ -23,7 +22,9 @@ import { COSTS_PAGE, LOGBOOK_PAGE } from "@/lib/landing-pages";
 import { SITE_NAME, SITE_TAGLINE } from "@/lib/site";
 import { TERMS_UPDATED_LABEL, TERMS_VERSION } from "@/lib/terms";
 import { syncBootstrapPath } from "@/spa/bootstrap";
-import { usePathname } from "@/spa/shims/next-navigation";
+import { DocumentNavigation } from "@/spa/lib/document-navigation";
+import { usePathname } from "@/spa/lib/navigation";
+import { Providers } from "@/spa/providers";
 
 const HomeRoute = lazy(() => import("@/spa/routes/home-route"));
 const SearchRoute = lazy(() => import("@/spa/routes/search-route"));
@@ -47,7 +48,8 @@ const AuthRouteView = lazy(() => import("@/spa/routes/auth-routes"));
 const InfoRouteView = lazy(() => import("@/spa/routes/info-routes"));
 const GoalsRoute = lazy(() => import("@/spa/routes/goals-route"));
 const ProjectsRoute = lazy(() => import("@/spa/routes/projects-route"));
-const PlaceholderRoute = lazy(() => import("@/spa/routes/placeholder-route"));
+const TutorialRoute = lazy(() => import("@/spa/routes/tutorial-route"));
+const NotFoundRoute = lazy(() => import("@/spa/routes/not-found-route"));
 
 type TermsCheckState = {
   viewerId: string | null;
@@ -90,7 +92,7 @@ export function App() {
 
   useEffect(() => {
     function handleSessionRefresh() {
-      void refetch({ query: { disableCookieCache: true } });
+      void refetch();
     }
     window.addEventListener("betabook:session-refresh", handleSessionRefresh);
     return () => {
@@ -158,6 +160,7 @@ export function App() {
 
   return (
     <>
+      <DocumentNavigation viewer={session?.user} />
       <a
         href="#main"
         // oxlint-disable-next-line tailwindcss/no-conflicting-classes
@@ -332,7 +335,11 @@ export function App() {
                             element={<InfoRouteView kind="mountain-project-import" />}
                           />
                           <Route path="/costs" element={<InfoRouteView kind="costs" />} />
-                          <Route path="*" element={<PlaceholderRoute />} />
+                          <Route
+                            path="/tutorial/:tourId/:stepId?"
+                            element={<TutorialRoute viewerId={viewerId} />}
+                          />
+                          <Route path="*" element={<NotFoundRoute />} />
                         </Routes>
                       </Suspense>
                     </GradePreferencesProvider>

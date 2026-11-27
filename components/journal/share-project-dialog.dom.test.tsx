@@ -3,13 +3,13 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { shareProject, unshareProject } from "@/actions";
 import type { PinnedProject } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
+import { shareProject, unshareProject } from "@/spa/lib/actions-client";
 
 import { ShareProjectDialog } from "./share-project-dialog";
 
-vi.mock("@/actions", () => ({
+vi.mock("@/spa/lib/actions-client", () => ({
   shareProject: vi.fn<() => Promise<ActionResult<{ token: string; expiresAt: string | null }>>>(),
   unshareProject: vi.fn<() => Promise<ActionResult>>(),
 }));

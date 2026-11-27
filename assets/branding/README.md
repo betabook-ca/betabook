@@ -34,7 +34,7 @@ pnpm brand:generate
 ```
 
 The [generator](../../scripts/generate-brand-assets.ts) reads the existing font
-files and ink/paper palette values from `app/globals.css`, then renders the PNGs
+files and ink/paper palette values from `spa/globals.css`, then renders the PNGs
 with Playwright Chromium. Run `pnpm exec playwright install chromium` once if
 needed. Edit the generator, rather than independently editing its outputs.
 
@@ -42,7 +42,7 @@ Artwork uses coral `#ef846c` for the sun, and the application's ink `#000000`
 and paper `#eaf7ef` for lettering. Keep the lettering aligned with the palette
 when regenerating these reference images. Do not bake a background into the
 artwork: the reference panels use `bg-background` under their explicit light
-or dark theme, so their backgrounds always come from `app/globals.css`.
+or dark theme, so their backgrounds always come from `spa/globals.css`.
 
 ## Production placements
 
