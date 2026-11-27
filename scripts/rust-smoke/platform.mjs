@@ -1,6 +1,39 @@
 import assert from "node:assert/strict";
+import { readdir } from "node:fs/promises";
+
+async function testAssetCaching(server) {
+  // Everything under /assets/ shares one immutable policy. Fixed URLs belong in public/.
+  const assets = await readdir(new URL("../../dist-spa/assets/", import.meta.url), {
+    recursive: true,
+    withFileTypes: true,
+  });
+  for (const asset of assets.filter((file) => file.isFile())) {
+    assert.match(asset.name, /-[\w-]{8,}\.[a-z\d]+$/i, asset.name);
+  }
+
+  const manifest = await server.fetch("/spa-manifest.json");
+  assert.equal(manifest.status, 200);
+  assert.doesNotMatch(manifest.headers.get("cache-control") ?? "", /immutable/i);
+  const entry = (await manifest.json())["index.html"];
+  assert.ok(entry.file && entry.css?.length);
+  for (const file of [entry.file, ...entry.css]) {
+    const response = await server.fetch(`/${file}`);
+    assert.equal(response.status, 200, file);
+    const policy = response.headers.get("cache-control") ?? "";
+    assert.match(policy, /\bmax-age=31536000\b/);
+    assert.match(policy, /\bimmutable\b/);
+    assert.doesNotMatch(policy, /\b(?:no-cache|no-store|max-age=0)\b/);
+  }
+
+  for (const url of ["/", "/manifest.webmanifest"]) {
+    const response = await server.fetch(url);
+    assert.equal(response.status, 200, url);
+    assert.doesNotMatch(response.headers.get("cache-control") ?? "", /immutable/i);
+  }
+}
 
 export async function testPlatform({ server, signIn }) {
+  await testAssetCaching(server);
   const specification = await server.fetch("/openapi.json");
   assert.equal(specification.status, 200);
   const api = await specification.json();
