@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { AppLink } from "@/components/ui/app-link";
 import { ClampedComment } from "@/components/ui/clamped-comment";
+import { rowActionsClass, RowActionsProvider, useLongPressRow } from "@/components/ui/row-actions";
 
 type ListRowProps = {
   leading?: ReactNode;
@@ -51,10 +52,13 @@ export function ListRow({
   density = "default",
   className,
 }: ListRowProps) {
+  const longPress = useLongPressRow();
   return (
     <Tag
+      {...longPress.rowProps}
       className={clsx(
         "relative flex flex-col gap-2",
+        rowActionsClass(density === "flush"),
         density === "flush" ? "px-0 py-2.5" : "px-4 py-3",
         href != null &&
           "transition-colors focus-within:bg-surface-secondary/60 hover:bg-surface-secondary/60",
@@ -120,7 +124,11 @@ export function ListRow({
           </div>
           {trailing && <div className="shrink-0 text-right tabular-nums">{trailing}</div>}
         </div>
-        {actions && <div className="relative z-10 shrink-0">{actions}</div>}
+        {actions && (
+          <div className="relative z-10 shrink-0">
+            <RowActionsProvider value={longPress.context}>{actions}</RowActionsProvider>
+          </div>
+        )}
       </div>
       {comment != null && (
         // Keep text selection above the row-link overlay.
@@ -129,6 +137,7 @@ export function ListRow({
         </div>
       )}
       {media && <div className="relative z-10 flex">{media}</div>}
+      {longPress.anchor}
     </Tag>
   );
 }

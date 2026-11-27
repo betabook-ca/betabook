@@ -24,7 +24,12 @@ test("the journal date anchors the row and the note uses the reading column", as
     throw new Error("Missing journal row bounds");
   expect(dateBox.x + dateBox.width).toBeLessThan(titleBox.x);
   expect(dateBox.y).toBeCloseTo(titleBox.y, 0);
-  expect(gradeBox.x - titleBox.x - titleBox.width).toBeCloseTo(8, 0);
+  const articleBox = await row.locator("article").boundingBox();
+  if (!articleBox) throw new Error("Missing journal row bounds");
+  expect(
+    Math.abs(gradeBox.x + gradeBox.width - articleBox.x - articleBox.width),
+  ).toBeLessThanOrEqual(2);
+  expect(gradeBox.x).toBeGreaterThan(titleBox.x + titleBox.width);
   expect(statusBox.y).toBeGreaterThan(titleBox.y);
   expect(noteBox.y).toBeGreaterThanOrEqual(areaBox.y + areaBox.height);
   expect(tagBox.y).toBeGreaterThanOrEqual(noteBox.y + noteBox.height);
@@ -32,8 +37,13 @@ test("the journal date anchors the row and the note uses the reading column", as
   await expect(note).toHaveCSS("font-size", "14px");
   await expect(note).toHaveCSS("line-height", "21px");
   expect(noteBox.width).toBeGreaterThan(titleBox.width);
-  await expect(menu).toHaveCSS("width", "44px");
-  await expect(menu).toHaveCSS("height", "44px");
+  await expect(menu).toHaveCSS("width", info.project.use.hasTouch ? "44px" : "32px");
+  // On the status line, so the title line keeps its full width for the grade.
+  const menuBox = await menu.boundingBox();
+  if (!menuBox) throw new Error("Missing journal menu bounds");
+  expect(
+    Math.abs(menuBox.y + menuBox.height / 2 - statusBox.y - statusBox.height / 2),
+  ).toBeLessThanOrEqual(2);
   await row.getByRole("button", { name: "Show more" }).click();
   expect((await grade.boundingBox())?.y).toBe(gradeBox.y);
   await expect(row.getByRole("button", { name: "Show less" })).toBeVisible();
@@ -75,7 +85,7 @@ test("journal icons line up across graded and ungraded entries @layout", async (
   expect(Math.abs(training - sent)).toBeLessThanOrEqual(2);
 });
 
-test("a send's grade and stars start beside the climb name, beside its date column @layout", async ({
+test("a send's grade and stars end the climb name's line, beside its date column @layout", async ({
   page,
 }, info) => {
   await openStory(page, info, "components-journal-climb-log-row--sent");
@@ -103,6 +113,9 @@ test("a send's grade and stars start beside the climb name, beside its date colu
 
   expect(Math.abs(gradeBox.y - titleBox.y)).toBeLessThanOrEqual(4);
   expect(Math.abs(starsBox.y - gradeBox.y)).toBeLessThanOrEqual(4);
+  const rowBox = await row.locator("article").boundingBox();
+  if (!rowBox) throw new Error("Missing send row bounds");
+  expect(Math.abs(starsBox.x + starsBox.width - rowBox.x - rowBox.width)).toBeLessThanOrEqual(24);
   expect(statusBox.y).toBeGreaterThan(gradeBox.y);
   expect(dateBox.x + dateBox.width).toBeLessThan(titleBox.x);
   expect(commentBox.y - areaBox.y - areaBox.height).toBeGreaterThanOrEqual(6);

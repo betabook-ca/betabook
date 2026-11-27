@@ -1,5 +1,3 @@
-import { Chip } from "@heroui/react/chip";
-
 import { formatDate } from "@/lib/format-date";
 import { ASCENT_STYLE_LABELS, type AscentStyle } from "@/lib/sends";
 
@@ -21,12 +19,4 @@ export const ASCENT_STYLE_CHIP_CLASSNAME: Record<AscentStyle, string> = {
 /** "Flash · Sep 6, 2026": a send in one line, as video captions give it. */
 export function ascentSummary(style: AscentStyle, dateSent: string | null): string {
   return `${ASCENT_STYLE_LABELS[style]} · ${dateSent ? formatDate(dateSent) : "Date unknown"}`;
-}
-
-export function AscentStyle({ type }: { type: AscentStyle }) {
-  return (
-    <Chip variant="soft" size="sm" className={ASCENT_STYLE_CHIP_CLASSNAME[type]}>
-      {ASCENT_STYLE_LABELS[type]}
-    </Chip>
-  );
 }

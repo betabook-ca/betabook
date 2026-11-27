@@ -65,7 +65,7 @@ it("uses a shared climb heading and one date, retaining statuses, notes and grad
     "href",
     "/climbs/12/quiet-arete",
   );
-  expect(within(card).getByText("Send · Redpoint")).toBeVisible();
+  expect(within(card).getByText("Redpoint", { exact: true })).toBeVisible();
   expect(within(card).getByText("Session", { exact: true })).toBeVisible();
   expect(within(card).getAllByLabelText("Felt high-end for the grade")).toHaveLength(1);
   expect(
@@ -198,7 +198,7 @@ it("renders training and companions without any real destinations in tutorial mo
     />,
   );
   expect(screen.getByText("Mobility work.")).toBeVisible();
-  expect(screen.getByText("Send · Redpoint")).toBeVisible();
+  expect(screen.getByText("Redpoint", { exact: true })).toBeVisible();
   expect(screen.getAllByText("Training")).toHaveLength(2);
   expect(screen.queryByRole("link")).not.toBeInTheDocument();
 });

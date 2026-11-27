@@ -4,7 +4,6 @@ import { Button } from "@heroui/react";
 import { useId, useState } from "react";
 
 import { StatTiles } from "@/components/analytics-stat-tiles";
-import { AscentStyle } from "@/components/ascent-style";
 import { JournalEntryLayout, JournalEntryStatus } from "@/components/journal/journal-entry-layout";
 import { ProjectCardLayout } from "@/components/journal/project-card-layout";
 import { ProjectSessionList } from "@/components/journal/project-session-list";
@@ -14,12 +13,10 @@ import { ProgressionChart } from "@/components/progression-chart";
 import { SendGradeCell } from "@/components/send-grade-cell";
 import { cardClass } from "@/components/ui/card";
 import { Grade } from "@/components/ui/grade";
-import { ListRow } from "@/components/ui/list-row";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
 import { QueryInput } from "@/components/ui/query-input";
 import { SettingsSection } from "@/components/ui/settings";
 import { SortSelect } from "@/components/ui/sort-select";
-import { formatDate } from "@/lib/format-date";
 import { formatActivityGrade, parseGrade } from "@/lib/grades";
 import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
 import {
@@ -30,6 +27,7 @@ import {
   TOUR_DEMO_SENDS,
   TOUR_DEMO_SEARCH_RESULTS,
 } from "@/lib/product-tour-demo";
+import { ASCENT_STYLE_LABELS } from "@/lib/sends";
 
 export function DemoJournal() {
   const [view, setView] = useState<"All" | "Sessions" | "Training">("All");
@@ -195,25 +193,23 @@ export function DemoSends() {
       </p>
       <div className="divide-y divide-separator">
         {sends.map((send) => (
-          <ListRow
+          <JournalEntryLayout
             key={send.climbId}
             title={send.climbName}
-            subtitle={send.areaName}
-            comment={send.note}
-            trailing={
-              <div className="flex flex-col items-end gap-1 text-sm">
-                <SendGradeCell
-                  type={send.climbType}
-                  grade={send.suggestedGrade}
-                  gradeFeel="solid"
-                  rating={send.rating}
-                />
-                <AscentStyle type={send.ascentStyle} />
-                <time dateTime={send.dateSent} className="text-xs text-muted">
-                  {formatDate(send.dateSent)}
-                </time>
-              </div>
+            grade={
+              <SendGradeCell
+                type={send.climbType}
+                grade={send.suggestedGrade}
+                gradeFeel="solid"
+                rating={send.rating}
+              />
             }
+            status={
+              <JournalEntryStatus kind="send" label={ASCENT_STYLE_LABELS[send.ascentStyle]} />
+            }
+            location={send.areaName}
+            date={send.dateSent}
+            comment={send.note}
           />
         ))}
       </div>

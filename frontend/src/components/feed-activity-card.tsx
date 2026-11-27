@@ -6,6 +6,7 @@ import { useId, useState } from "react";
 
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
 import { CompanionList } from "@/components/journal/companion-list";
+import { JournalEntryStatus } from "@/components/journal/journal-entry-layout";
 import { GradeFeelArrow } from "@/components/send-grade-cell";
 import { SendVideoPosters } from "@/components/send-video";
 import { ActivityIcon } from "@/components/ui/activity-icon";
@@ -25,15 +26,19 @@ import { climbHref } from "@/lib/slug";
 type Activity = FeedEntry["activity"];
 
 function outcome(activity: Activity) {
-  if (activity.kind === "goal") return { label: "Goal accomplished", sent: true };
-  if (activity.kind === "send")
-    return {
-      sent: true,
-      label: `Send${activity.ascentStyle ? ` · ${ASCENT_STYLE_LABELS[activity.ascentStyle]}` : ""}`,
-    };
-  if (activity.kind === "repeat") return { label: "Repeat", sent: false };
-  if (activity.kind === "training") return { label: "Training", sent: false };
-  return { label: "Session", sent: false };
+  if (activity.kind === "goal")
+    return <JournalEntryStatus kind="send" label="Goal accomplished" icon={false} />;
+  return (
+    <JournalEntryStatus
+      kind={activity.kind}
+      label={
+        activity.kind === "send" && activity.ascentStyle
+          ? ASCENT_STYLE_LABELS[activity.ascentStyle]
+          : undefined
+      }
+      icon={false}
+    />
+  );
 }
 
 /** One climb (or connected training group); source entries retain their own author and outcome. */
@@ -63,7 +68,6 @@ export function FeedActivityCard({
     .filter(Boolean)
     .join(" · ");
   const row = ({ day, activity: item }: FeedEntry) => {
-    const { label, sent } = outcome(item);
     const grade = activityGrade(
       item.climbType,
       item.climbGrade,
@@ -97,14 +101,7 @@ export function FeedActivityCard({
                   )}
                 </div>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                  <span
-                    className={clsx(
-                      "text-sm font-medium whitespace-nowrap",
-                      sent ? "text-accent-soft-foreground" : "text-muted",
-                    )}
-                  >
-                    {label}
-                  </span>
+                  <span className="text-sm whitespace-nowrap">{outcome(item)}</span>
                   {grade && (
                     <Grade className="whitespace-nowrap">
                       <span title={item.reportedGrade != null ? "Climber's grade" : "Posted grade"}>
