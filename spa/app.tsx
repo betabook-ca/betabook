@@ -35,6 +35,9 @@ const ProfileAnalyticsRoute = lazy(() => import("@/spa/routes/profile-analytics-
 const TripsRoute = lazy(() => import("@/spa/routes/trips-route"));
 const FeedRoute = lazy(() => import("@/spa/routes/feed-route"));
 const FriendsRoute = lazy(() => import("@/spa/routes/friends-route"));
+const ImportRoute = lazy(() => import("@/spa/routes/import-route"));
+
+const AdminRequestsRoute = lazy(() => import("@/spa/routes/admin-requests-route"));
 const AccountRoute = lazy(() => import("@/spa/routes/account-route"));
 const UserProfileRoute = lazy(() => import("@/spa/routes/user-profile-route"));
 const UserSendsRoute = lazy(() => import("@/spa/routes/user-sends-route"));
@@ -208,6 +211,14 @@ export function App() {
                           />
                           <Route path="/feed" element={<FeedRoute viewerId={viewerId} />} />
                           <Route path="/friends" element={<FriendsRoute viewerId={viewerId} />} />
+                          <Route
+                            path="/account/import"
+                            element={<ImportRoute viewerId={viewerId} />}
+                          />
+                          <Route
+                            path="/admin/requests"
+                            element={<AdminRequestsRoute viewerId={viewerId} />}
+                          />
                           <Route path="/account" element={<AccountRoute viewerId={viewerId} />} />
                           <Route
                             path="/users/:id"

@@ -62,7 +62,10 @@ fn fallback_shell_html() -> &'static str {
 "
 }
 
-async fn load_asset_text(state: &AppState, asset_path: &str) -> Result<Option<String>, ApiError> {
+pub(super) async fn load_asset_text(
+    state: &AppState,
+    asset_path: &str,
+) -> Result<Option<String>, ApiError> {
     let Ok(assets) = state.env().assets("ASSETS") else {
         return Ok(None);
     };
@@ -504,7 +507,7 @@ pub async fn climb_page_with_slug(
     render_climb_page(state, raw_id, Some(slug), uri).await
 }
 
-async fn render_not_found(state: &AppState) -> Result<Response, ApiError> {
+pub(super) async fn render_not_found(state: &AppState) -> Result<Response, ApiError> {
     let meta = PageMetadata::noindex("Not found", SITE_DESCRIPTION);
     let html = inject_seo_into_html(&load_index_html(state).await?, &meta, &[], "", None);
     Ok(html_response(StatusCode::NOT_FOUND, html))
@@ -830,10 +833,35 @@ fn route_metadata(path: &str, has_query: bool) -> (PageMetadata, Vec<Value>, &'s
             Vec::new(),
             "routes/info-routes.tsx",
         ),
-        _ => (
-            PageMetadata::noindex(SITE_NAME, SITE_DESCRIPTION),
+        "/account" => (
+            PageMetadata::noindex("Account", SITE_DESCRIPTION),
             Vec::new(),
-            "routes/placeholder-route.tsx",
+            "routes/account-route.tsx",
+        ),
+        "/feed" => (
+            PageMetadata::noindex("Feed", SITE_DESCRIPTION),
+            Vec::new(),
+            "routes/feed-route.tsx",
+        ),
+        "/friends" => (
+            PageMetadata::noindex("Friends", SITE_DESCRIPTION),
+            Vec::new(),
+            "routes/friends-route.tsx",
+        ),
+        "/areas/new" => (
+            PageMetadata::noindex("New area", SITE_DESCRIPTION),
+            Vec::new(),
+            "routes/new-area-route.tsx",
+        ),
+        "/climbs/new" => (
+            PageMetadata::noindex("New climb", SITE_DESCRIPTION),
+            Vec::new(),
+            "routes/new-climb-route.tsx",
+        ),
+        _ => (
+            PageMetadata::noindex("Not found", SITE_DESCRIPTION),
+            Vec::new(),
+            "",
         ),
     }
 }
@@ -885,6 +913,9 @@ pub async fn spa_fallback(
     let has_query = !raw_query.is_empty();
     let (meta, json_ld, chunk_key) = route_metadata(path, has_query);
 
+    if chunk_key.is_empty() {
+        return render_not_found(&state).await;
+    }
     let bootstrap_data = if path == "/search" && !has_protected_catalog_params(raw_query, true) {
         let mode = form_urlencoded::parse(raw_query.as_bytes())
             .find(|(k, _)| k == "mode")

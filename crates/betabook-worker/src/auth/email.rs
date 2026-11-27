@@ -180,3 +180,40 @@ pub async fn welcome_new_account_once(state: &AppState, user_id: &str, email: &s
         worker::console_error!("welcome email failed: {err}");
     }
 }
+
+pub async fn notify_moderation_decision(
+    state: &AppState,
+    message: &betabook_db::moderation::DecisionEmail,
+) -> Result<(), ApiError> {
+    let decision = if message.approved {
+        "approved"
+    } else {
+        "rejected"
+    };
+    let subject = format!("Your change request was {decision}");
+    let mut text = format!(
+        "Hi {},\n\nAn admin has {decision} your request: {}",
+        message.name, message.summary
+    );
+    for detail in &message.details {
+        text.push_str(&format!("\n- {detail}"));
+    }
+    if let Some(note) = &message.note {
+        text.push_str(&format!("\n\nNote from the admin: {note}"));
+    }
+    let href = format!("{}{}", state.auth_url().trim_end_matches('/'), message.href);
+    text.push_str(&format!("\n\n{href}"));
+    deliver_email(
+        state,
+        &message.email,
+        &subject,
+        &subject,
+        &text,
+        &[EmailLink {
+            href: &href,
+            label: "View in Betabook",
+        }],
+        false,
+    )
+    .await
+}

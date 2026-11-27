@@ -16,3 +16,17 @@ pub fn apply_security_headers(path: &str, mut response: Response<Body>) -> Respo
     }
     response
 }
+
+/// Browsers supply Origin on cross-origin writes and Fetch Metadata on modern clients.
+/// Same-origin clients and server-to-server calls can omit both headers.
+pub fn trusted_write(headers: &http::HeaderMap, origin: &str) -> bool {
+    if headers
+        .get("sec-fetch-site")
+        .is_some_and(|v| v == "cross-site")
+    {
+        return false;
+    }
+    headers
+        .get(http::header::ORIGIN)
+        .is_none_or(|value| value.to_str().is_ok_and(|v| v == origin))
+}

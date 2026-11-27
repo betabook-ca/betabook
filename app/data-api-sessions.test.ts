@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { beforeEach, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, expect, it, vi } from "vitest";
 
 import { GET as areaClimbs } from "@/app/api/areas/[id]/climbs/route";
 import { GET as climbSends } from "@/app/api/climbs/[id]/sends/route";
@@ -15,6 +15,7 @@ import { GET as exportSends } from "@/app/api/users/[id]/sends/export/route";
 import { GET as sends } from "@/app/api/users/[id]/sends/route";
 import { createDb } from "@/db/client";
 import { session } from "@/db/schema";
+import { initAuth } from "@/lib/auth";
 import { seedFixtureTree, seedFixtureUser } from "@/test/fixtures";
 import { resetDb } from "@/test/reset-db";
 
@@ -51,6 +52,13 @@ async function signedCookie(token: string) {
   const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(token));
   return `better-auth.session_token=${encodeURIComponent(`${token}.${btoa(String.fromCharCode(...new Uint8Array(signature)))}`)}`;
 }
+// All routes share the real auth instance. Prepare its lazy modules once
+// before timing requests so simultaneous first reads do not initialize it twelve times.
+beforeAll(async () => {
+  await (
+    await initAuth()
+  ).$context;
+});
 beforeEach(async () => {
   context.cookie = "";
   await resetDb(db);
@@ -83,7 +91,8 @@ it.each(["missing", "forged", "unknown", "expired"])(
         : state === "forged"
           ? "better-auth.session_token=active-token.invalid-signature"
           : await signedCookie(`${state}-token`);
-    for (const handler of Object.values({
+    // Each protected read sees the same immutable session and fixture.
+    const handlers = {
       areaClimbs,
       climbSends,
       feed,
@@ -96,15 +105,18 @@ it.each(["missing", "forged", "unknown", "expired"])(
       sends,
       exportSends,
       kayaImport,
-    })) {
-      const response = await handler(
-        new Request("http://localhost:3000/api/test?limit=5&offset=invalid&page=invalid"),
-        { params: Promise.resolve({ id: "missing" }) },
-      );
-      expect(response.status).toBe(401);
-      expect(await response.json()).toEqual({ error: "Not signed in" });
-      expect(response.headers.get("cache-control")).toBe("private, no-store");
-    }
+    };
+    await Promise.all(
+      Object.values(handlers).map(async (handler) => {
+        const response = await handler(
+          new Request("http://localhost:3000/api/test?limit=5&offset=invalid&page=invalid"),
+          { params: Promise.resolve({ id: "missing" }) },
+        );
+        expect(response.status).toBe(401);
+        expect(await response.json()).toEqual({ error: "Not signed in" });
+        expect(response.headers.get("cache-control")).toBe("private, no-store");
+      }),
+    );
   },
 );
 it("accepts the same signed-cookie format with a live session and returns member data", async () => {

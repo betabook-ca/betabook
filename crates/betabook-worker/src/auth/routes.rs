@@ -885,6 +885,20 @@ pub async fn delete_user(
     let Some(auth_session) = resolve_optional_session(&state, &headers).await? else {
         return Err(ApiError::unauthorized());
     };
+    // Match the existing account deletion policy: the confirmation requires
+    // a session created within the past day, independent of sliding expiry.
+    if state
+        .now_ms()
+        .saturating_sub(auth_session.session.created_at)
+        >= 86_400_000
+    {
+        return Err(ApiError::with_code(
+            StatusCode::BAD_REQUEST,
+            "SESSION_EXPIRED",
+            "Sign in again to delete your account.",
+        )
+        .no_store());
+    }
     let user_id = &auth_session.user.id;
     if let Ok(bucket) = state.env().bucket("PROFILE_PHOTOS") {
         let prefix = format!("{user_id}/");

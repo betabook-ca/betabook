@@ -7,7 +7,10 @@ import { createTestHarness } from "wrangler";
 import { testProfileAnalytics } from "./rust-smoke/analytics.mjs";
 import { testGoalRefresh } from "./rust-smoke/goal-refresh.mjs";
 import { testGoals } from "./rust-smoke/goals.mjs";
+import { testImports } from "./rust-smoke/imports.mjs";
 import { testLists } from "./rust-smoke/lists.mjs";
+import { testModeration } from "./rust-smoke/moderation.mjs";
+import { testPlatform } from "./rust-smoke/platform.mjs";
 import { testProjects } from "./rust-smoke/projects.mjs";
 import { testTrips } from "./rust-smoke/trips.mjs";
 
@@ -94,8 +97,12 @@ void test("Rust Worker HTTP flows", async (t) => {
     assert.equal(download.status, 200);
     assert.equal(await download.text(), catalog);
   });
+  await t.test("platform", () => testPlatform({ server, signIn }));
   await t.test("goals", () => testGoals({ server, db: DB, signIn }));
   await t.test("profile analytics", () => testProfileAnalytics({ server, db: DB, signIn }));
+  await t.test("imports", () => testImports({ server, db: DB, signIn }));
+
+  await t.test("moderation", () => testModeration({ server, db: DB, signIn }));
   await t.test("climb lists", () => testLists({ server, db: DB, signIn }));
   await t.test("goal refresh", () => testGoalRefresh({ server, db: DB, signIn }));
   await t.test("projects", () => testProjects({ server, db: DB, signIn }));

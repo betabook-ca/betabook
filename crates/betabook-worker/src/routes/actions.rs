@@ -118,17 +118,17 @@ pub(super) async fn allow_rate_limit(state: &AppState, binding: &str, key: &str)
     }
 }
 
-fn today_utc(state: &AppState) -> String {
+pub(super) fn today_utc(state: &AppState) -> String {
     let iso = now_iso_from_ms(state.now_ms());
     iso.get(..10).unwrap_or("2026-01-01").to_string()
 }
 
-struct FormFields {
+pub(super) struct FormFields {
     entries: Vec<(String, String)>,
 }
 
 impl FormFields {
-    fn from_arg(value: Option<&Value>) -> Result<Self, &'static str> {
+    pub(super) fn from_arg(value: Option<&Value>) -> Result<Self, &'static str> {
         let Some(obj) = value.and_then(Value::as_object) else {
             return Err("Invalid form data");
         };
@@ -150,7 +150,7 @@ impl FormFields {
         Ok(Self { entries })
     }
 
-    fn get(&self, key: &str) -> Option<&str> {
+    pub(super) fn get(&self, key: &str) -> Option<&str> {
         self.entries
             .iter()
             .find(|(k, _)| k == key)
@@ -265,16 +265,40 @@ pub async fn client_errors(
     if origin != Some(state.request_origin.as_str()) {
         return StatusCode::FORBIDDEN.into_response();
     }
+    let ip = headers
+        .get("cf-connecting-ip")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("unknown");
+    if !allow_rate_limit(&state, "CLIENT_ERROR_RATE_LIMITER", ip).await {
+        return StatusCode::TOO_MANY_REQUESTS.into_response();
+    }
     let Ok(bytes) = axum::body::to_bytes(body, MAX_ERROR_BODY_BYTES).await else {
         return StatusCode::PAYLOAD_TOO_LARGE.into_response();
     };
     let Ok(report) = serde_json::from_slice::<Value>(&bytes) else {
         return StatusCode::BAD_REQUEST.into_response();
     };
-    if !report.is_object() {
+    let boundary = report["boundary"].as_str();
+    let path = report["path"].as_str().unwrap_or("");
+    if !matches!(boundary, Some("page" | "global"))
+        || !path.starts_with('/')
+        || path.len() > 512
+        || !report["message"].is_string()
+    {
         return StatusCode::BAD_REQUEST.into_response();
     }
-    worker::console_error!("client-error: {report}");
+    // Browser-provided paths, messages and query strings can carry private
+    // notes or working share links. Record only the known route family.
+    let section = path.split(['/', '?', '#']).nth(1).unwrap_or("");
+    let section = match section {
+        "climbs" | "areas" | "users" | "trips" | "projects" | "lists" | "account" | "admin"
+        | "feed" | "search" | "friends" | "tutorial" => section,
+        _ => "other",
+    };
+    worker::console_error!(
+        "{}",
+        json!({"event":"client_error","boundary":boundary,"section":section})
+    );
     StatusCode::NO_CONTENT.into_response()
 }
 
@@ -700,7 +724,13 @@ pub async fn dispatch_action(
         return Ok(action_err("Invalid request"));
     }
 
-    let Ok(bytes) = axum::body::to_bytes(body, MAX_JSON_ACTION_BYTES).await else {
+    // A legal 50-row import can exceed 512 KiB when notes contain non-ASCII text.
+    let max_json_bytes = if name == "importSends" {
+        1024 * 1024
+    } else {
+        MAX_JSON_ACTION_BYTES
+    };
+    let Ok(bytes) = axum::body::to_bytes(body, max_json_bytes).await else {
         return Ok(action_err("Request payload too large"));
     };
     let Ok(call) = serde_json::from_slice::<ActionCallBody>(&bytes) else {
@@ -708,6 +738,24 @@ pub async fn dispatch_action(
     };
 
     match name.as_str() {
+        "resolveImportClimbs" | "resolveImportClimbsInAreas" | "importSends" => {
+            super::imports::action(&state, &headers, &name, &call.args, &bytes).await
+        }
+
+        "requestAreaEdit"
+        | "requestAreaDelete"
+        | "requestAreaReparent"
+        | "requestClimbEdit"
+        | "requestClimbDelete"
+        | "requestClimbMove"
+        | "requestClimbMerge"
+        | "requestClimbBreak" => {
+            super::moderation::request(&state, &headers, &name, &call.args).await
+        }
+        "approveChangeRequest" | "rejectChangeRequest" => {
+            super::moderation::review(&state, &headers, &name, &call.args).await
+        }
+
         "saveGoal" | "deleteGoal" | "archiveGoal" => {
             super::goals::action(&state, &headers, &name, &call.args).await
         }

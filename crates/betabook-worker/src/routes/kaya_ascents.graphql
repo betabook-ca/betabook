@@ -1,0 +1,12 @@
+query webAscentsForUser($userId: ID!, $climbTypeId: ID!, $offset: Int!, $includeTotal: Boolean!) {
+  webAscentsForUser(user_id: $userId, climb_type_id: $climbTypeId,
+    filter_by: OUTDOOR, sort_by: DATE, offset: $offset, count: 100) {
+    id date comment rating stiffness grade { name }
+    climb {
+      id name climb_type { id name } grade { name }
+      gym { name } board { name } destination { name } area { name }
+    }
+  }
+  webFilterDistributionForAscents(user_id: $userId, climb_type_id: $climbTypeId,
+    filter_by: OUTDOOR) @include(if: $includeTotal) { data { ascent_count } }
+}

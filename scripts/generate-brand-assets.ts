@@ -78,7 +78,7 @@ ${mark}
           `<style>html,body{margin:0;background:${palette("ink")}}body{height:630px;display:grid;place-items:center}svg{width:800px;height:512px}</style>${svg}`,
         );
         await page.evaluate(() => document.fonts.ready);
-        await page.screenshot({ path: fileURLToPath(new URL("app/opengraph-image.png", root)) });
+        await page.screenshot({ path: fileURLToPath(new URL("public/opengraph-image.png", root)) });
       }
 
       // Square canvas centers the original mark with breathing room at the edges.
@@ -106,7 +106,7 @@ ${mark}
           await page.screenshot({
             path: fileURLToPath(
               size === 180
-                ? new URL("app/apple-icon.png", root)
+                ? new URL("public/apple-icon.png", root)
                 : new URL(`app-icon-${size}.png`, publicBrand),
             ),
           });
@@ -138,7 +138,7 @@ ${mark}
             `<path fill="${color}"`,
             `<style>:root{color:${palette("ink")}}@media(prefers-color-scheme:dark){:root{color:${palette("paper")}}}</style><path fill="currentColor"`,
           );
-        await writeFile(new URL("app/icon.svg", root), adaptiveIcon);
+        await writeFile(new URL("public/icon.svg", root), adaptiveIcon);
         const frames: Buffer[] = [];
         for (const size of [16, 32]) {
           await page.setViewportSize({ width: size, height: size });
@@ -177,7 +177,7 @@ ${mark}
           directory.writeUInt32LE(offset, entry + 12);
           offset += frame.length;
         }
-        await writeFile(new URL("app/favicon.ico", root), Buffer.concat([directory, ...frames]));
+        await writeFile(new URL("public/favicon.ico", root), Buffer.concat([directory, ...frames]));
       }
     }
   } finally {

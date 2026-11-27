@@ -14,6 +14,9 @@
     // in vitest.workers.config.mts — the Vitest plugin never evaluates that.
     "test/worker.ts",
 
+    // Built by the separate Vite SSR invocation for static public documents.
+    "scripts/static-documents.tsx",
+
     // Referenced by Storybook's framework options, not module imports.
     ".storybook/next.config.ts",
 
