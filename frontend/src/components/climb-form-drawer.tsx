@@ -4,7 +4,7 @@ import type { UseOverlayStateReturn } from "@heroui/react";
 
 import { ClimbForm } from "@/components/climb-form";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
-import type { Climb } from "@/db/queries";
+import type { Climb } from "@/lib/catalog-types";
 import { climbHref } from "@/lib/slug";
 import { useRouter } from "@/spa/lib/navigation";
 

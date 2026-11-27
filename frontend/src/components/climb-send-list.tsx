@@ -5,8 +5,9 @@ import type { ReactNode } from "react";
 import { ClimbSendListRow } from "@/components/climb-send-list-row";
 import { SendActionsMenu } from "@/components/send-actions-menu";
 import { SendListShell } from "@/components/send-list-shell";
-import type { Climb, ClimbSendRow } from "@/db/queries";
 import { usePagedList } from "@/hooks/use-paged-list";
+import type { Climb } from "@/lib/catalog-types";
+import type { ClimbSendRow } from "@/lib/logbook-types";
 import { fetchApi } from "@/spa/lib/api";
 
 type ClimbSendListProps = {

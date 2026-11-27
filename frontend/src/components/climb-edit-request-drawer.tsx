@@ -10,8 +10,8 @@ import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { OptionSelect } from "@/components/ui/option-select";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
-import type { Climb } from "@/db/queries";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
+import type { Climb } from "@/lib/catalog-types";
 import { gradeOptionValue, gradeOptions, type ClimbType } from "@/lib/grades";
 import { requestClimbEdit } from "@/spa/lib/actions-client";
 
@@ -20,8 +20,7 @@ type ClimbEditRequestDrawerProps = {
   state: UseOverlayStateReturn;
 };
 
-/** A full edit (name/discipline/grade) — gated behind admin approval (see
- * actions/moderation.ts's requestClimbEdit). The description isn't here:
+/** A full edit (name/discipline/grade) — gated behind admin approval. The description isn't here:
  * updateClimb (the description pencil) already lets any signed-in user edit
  * it instantly. */
 export function ClimbEditRequestDrawer({ climb, state }: ClimbEditRequestDrawerProps) {

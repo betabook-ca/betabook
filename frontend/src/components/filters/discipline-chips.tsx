@@ -3,7 +3,7 @@
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { DISCIPLINE_CHIP_CLASSNAME, DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
 import { FILTER_PILL_CLASS } from "@/components/ui/field";
-import type { Discipline } from "@/db/queries";
+import type { Discipline } from "@/lib/grades";
 
 const DISCIPLINES: Discipline[] = ["boulder", "sport", "trad"];
 

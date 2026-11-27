@@ -2,14 +2,10 @@
 
 import { ClimbList } from "@/components/climb-list";
 import { NavigationPendingRegion } from "@/components/navigation-pending";
-import type {
-  AreaBreadcrumbs,
-  ClimbSendStats,
-  ClimbWithAreaName,
-  SubtreeClimbsSort,
-} from "@/db/queries";
 import { usePagedList } from "@/hooks/use-paged-list";
+import type { AreaBreadcrumbs, ClimbSendStats, ClimbWithAreaName } from "@/lib/catalog-types";
 import { createClimbListMeta, mergeClimbListMeta } from "@/lib/climb-list-pages";
+import type { SubtreeClimbsSort } from "@/lib/climb-list-sort";
 import {
   areaClimbsFilterToSearchParams,
   type AreaClimbsFilter,

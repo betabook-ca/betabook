@@ -148,10 +148,7 @@ pnpm check
 For changes affecting runtime code, dependencies, routes, or Cloudflare configuration, also run
 `pnpm build`. Documentation-only changes do not need a production build.
 
-`pnpm check` is the exact Husky pre-push check: lint, format check, dead-code analysis, Next route
-type generation plus TypeScript, and the Vitest suite. GitHub's PR job repeats those checks and adds
-the vinext Cloudflare build; its **UI reference** job runs the full Playwright suite, which is too
-slow to run locally. Fix in-scope failures and rerun the affected checks plus the failed gate.
+`pnpm check` runs the Husky pre-push gates for lint, formatting, dead code, TypeScript and Vitest. CI also runs Rust checks, verifies the generated API contract, builds the Rust Worker and SPA, and exercises them in workerd. The **UI reference** job runs the full Playwright suite. Fix in-scope failures and rerun the affected checks and failed gate.
 Never use `--no-verify`; the eventual push must run `pnpm check` again through the hook.
 
 Stage only explicit in-scope paths and commit them. The pre-commit hook runs `lint-staged`, which

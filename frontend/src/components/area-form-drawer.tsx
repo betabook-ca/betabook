@@ -4,7 +4,7 @@ import type { UseOverlayStateReturn } from "@heroui/react";
 
 import { AreaForm } from "@/components/area-form";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
-import type { Area } from "@/db/queries";
+import type { Area } from "@/lib/catalog-types";
 import { areaHref } from "@/lib/slug";
 import { useRouter } from "@/spa/lib/navigation";
 

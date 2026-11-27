@@ -9,7 +9,7 @@ import { TourChoices } from "@/components/product-tours/tour-choices";
 import { SectionNavigation } from "@/components/ui/section-navigation";
 import { SectionHeading } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import type { FeedDay } from "@/db/queries/feed";
+import type { FeedDay } from "@/lib/community-types";
 import { parseGrade } from "@/lib/grades";
 import { TOUR_DEMO_FRIEND_DAY, TOUR_DEMO_PEOPLE } from "@/lib/product-tour-demo";
 
@@ -121,6 +121,9 @@ export function DemoFeed() {
     repeats: 0,
     goals: 0,
     activities: entries.map((entry, index) => ({
+      goalTitle: null,
+      areaAncestors: [],
+      companions: [],
       id: -(index + 1),
       kind: entry.kind,
       ascentStyle: entry.ascentStyle,

@@ -96,9 +96,7 @@ jobs:
       - name: Type check
         run: pnpm typecheck
 
-      # The Vitest worker applies every D1 migration to a fresh database, so
-      # this catches migration and query regressions before production changes.
-      - name: Test
+      - name: Test frontend logic and components
         run: pnpm test
 
       # The seed checks run against a migrated, default-seeded database, built

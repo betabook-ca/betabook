@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it } from "vitest";
 
-import type { AnalyticsSendRow } from "@/db/queries";
+import type { AnalyticsSendRow } from "@/lib/analytics-types";
 import { buildUserAnalytics } from "@/lib/user-analytics";
 
 import { AnalyticsFlashChart } from "./analytics-flash-chart";

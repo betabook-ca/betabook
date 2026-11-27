@@ -12,8 +12,8 @@ import { FieldFeedback } from "@/components/ui/field-support";
 import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { OptionSelect } from "@/components/ui/option-select";
-import type { Climb } from "@/db/queries";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
+import type { Climb } from "@/lib/catalog-types";
 import { gradeOptionValue, gradeOptions, type ClimbType } from "@/lib/grades";
 import { createClimb, updateClimb } from "@/spa/lib/actions-client";
 

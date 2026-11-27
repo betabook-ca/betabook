@@ -3,9 +3,7 @@ import { describe, expect, it } from "vitest";
 import { toBreadcrumbPath } from "./search-suggestions";
 
 describe("toBreadcrumbPath", () => {
-  // searchAreas emits ancestorPath root-first (pinned by the ordered subquery
-  // its GROUP_CONCAT reads from — see db/queries/areas.ts), so this only
-  // restyles the separator to match every rendered breadcrumb.
+  // The API returns ancestors root-first. Only the displayed separator changes.
   it("keeps the root-first order and swaps the separator", () => {
     expect(toBreadcrumbPath("Canada > British Columbia > Squamish")).toBe(
       "Canada / British Columbia / Squamish",

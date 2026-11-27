@@ -16,7 +16,6 @@ import { Grade } from "@/components/ui/grade";
 import { GradeLabel } from "@/components/ui/grade-label";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ProgressBar } from "@/components/ui/progress-bar";
-import type { ClimbCandidate } from "@/db/queries";
 import { formatCount } from "@/lib/format";
 import {
   brokenClimbImportReason,
@@ -28,6 +27,7 @@ import {
   type ResolvedState,
   type ResolvedSummary,
 } from "@/lib/import-matching";
+import type { ClimbCandidate } from "@/spa/lib/action-contracts";
 
 import { ImportClimbSearchDrawer, type SearchTarget } from "./import-climb-search-drawer";
 import { TEXT_BUTTON_CLASS } from "./text-button";

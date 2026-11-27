@@ -2,7 +2,7 @@
 
 import { Chip } from "@heroui/react";
 
-import type { TripSummary } from "@/db/queries";
+import type { TripSummary } from "@/lib/logbook-types";
 import { TRIP_STATUS_LABEL, tripStatus } from "@/lib/trips";
 
 export function TripStatusChip({

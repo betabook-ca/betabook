@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import type { ActionResult } from "@/lib/action-result";
-import type { GatedActionResult } from "@/lib/moderation";
+import type { GatedActionResult } from "@/spa/lib/action-contracts";
 import { requestAreaReparent, requestClimbMove } from "@/spa/lib/actions-client";
 
 import { AreaReparentDialog } from "./area-reparent-dialog";

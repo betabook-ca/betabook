@@ -8,7 +8,7 @@ import { DropIndicator, GridList, GridListItem, useDragAndDrop } from "react-ari
 import { AddClimbsDialog } from "@/components/climb-lists/add-climbs-dialog";
 import { cardClass } from "@/components/ui/card";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import type { ClimbListItem, ClimbWithAreaName } from "@/db/queries";
+import type { ClimbListItem, ClimbWithAreaName } from "@/lib/catalog-types";
 import { CLIMB_LIST_FULL_MESSAGE, MAX_CLIMB_LIST_ITEMS, moveClimb } from "@/lib/climb-lists";
 import { saveClimbListEdits } from "@/spa/lib/actions-client";
 

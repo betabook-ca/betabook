@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 
-import type { FeedDay } from "@/db/queries/feed";
+import type { FeedDay } from "@/lib/community-types";
 
 import { buildFeedCards } from "./feed-groups";
 
@@ -9,6 +9,8 @@ function entry(
   extra: Partial<FeedDay["activities"][number]> = {},
 ): FeedDay["activities"][number] {
   return {
+    goalTitle: null,
+    areaAncestors: [],
     id,
     kind: "session",
     climbId: 10,

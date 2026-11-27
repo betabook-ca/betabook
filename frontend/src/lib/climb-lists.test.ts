@@ -3,8 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   MAX_CLIMB_LIST_NAME_FILTER,
   MAX_CLIMB_LIST_TITLE,
-  climbNameMatches,
-  climbListInputSchema,
   DEFAULT_CLIMB_LIST_VIEW,
   climbListViewSearch,
   copyClimbListTitle,
@@ -24,13 +22,6 @@ describe("copyClimbListTitle", () => {
     expect(copyClimbListTitle("Red River classics", { own: true })).toBe(
       "Red River classics (copy)",
     );
-  });
-
-  it("trims a long name so the copy still fits", () => {
-    const title = copyClimbListTitle("x".repeat(MAX_CLIMB_LIST_TITLE), { own: true });
-    expect(Array.from(title)).toHaveLength(MAX_CLIMB_LIST_TITLE);
-    expect(title.endsWith("x (copy)")).toBe(true);
-    expect(climbListInputSchema.safeParse({ title }).success).toBe(true);
   });
 
   it("counts an emoji as one character, as SQLite does", () => {
@@ -68,28 +59,6 @@ describe("parseClimbListView", () => {
   it("caps a hand-built name at the text box's limit", () => {
     const long = "x".repeat(MAX_CLIMB_LIST_NAME_FILTER + 50);
     expect(parseClimbListView({ name: long }).filter.name).toHaveLength(MAX_CLIMB_LIST_NAME_FILTER);
-  });
-});
-
-describe("climbNameMatches", () => {
-  it("matches a substring of the name, ignoring case and accents as search does", () => {
-    expect(climbNameMatches("Clémence", "clemence")).toBe(true);
-    expect(climbNameMatches("Clemence", "CLÉM")).toBe(true);
-    expect(climbNameMatches("ÉCHO BEACH", "écho")).toBe(true);
-    expect(climbNameMatches("Crimper", "imp")).toBe(true);
-    expect(climbNameMatches("Crimper", "slab")).toBe(false);
-  });
-
-  it("treats every character as itself", () => {
-    expect(climbNameMatches("Highball", "a_l")).toBe(false);
-    expect(climbNameMatches("Highball", "%")).toBe(false);
-    expect(climbNameMatches("100% Pure", "0% p")).toBe(true);
-  });
-
-  it("falls back to list order and no filters for anything else", () => {
-    expect(parseClimbListView({ sort: "rating_desc", sent: "unsent" })).toEqual(
-      DEFAULT_CLIMB_LIST_VIEW,
-    );
   });
 });
 

@@ -1,5 +1,5 @@
-import type { SubtreeClimbsSort } from "@/db/queries";
 import type { AreaSelection } from "@/lib/area-selection";
+import type { SubtreeClimbsSort } from "@/lib/climb-list-sort";
 
 import type { ClimbFilter } from "./climb-filter";
 

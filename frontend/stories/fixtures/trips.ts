@@ -1,5 +1,5 @@
-import type { TripSummary } from "@/db/queries";
 import type { CompanionOption } from "@/lib/journal-companions";
+import type { TripSummary } from "@/lib/logbook-types";
 
 /** A fixed "today" so the status chips are the same in every render of these
  * stories — `new Date()` here would make "Upcoming" flip to "On now" on the

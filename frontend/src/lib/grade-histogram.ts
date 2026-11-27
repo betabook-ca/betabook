@@ -1,4 +1,4 @@
-import type { GradeHistogramRow, SuggestedGradeCount } from "@/db/queries";
+import type { GradeHistogramRow, SuggestedGradeCount } from "@/lib/catalog-types";
 import {
   CLIMB_TYPES,
   DEFAULT_GRADE_PREFERENCES,

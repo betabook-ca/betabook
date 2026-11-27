@@ -6,8 +6,8 @@ import { useState, useTransition } from "react";
 import { SendFormDrawer } from "@/components/send-form-drawer";
 import { ActionsMenu } from "@/components/ui/actions-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
-import type { EditableSend } from "@/db/queries";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
+import type { EditableSend } from "@/lib/logbook-types";
 import { deleteSend } from "@/spa/lib/actions-client";
 
 type SendActionsMenuProps = {

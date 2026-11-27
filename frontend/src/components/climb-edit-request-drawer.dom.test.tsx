@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
-import type { Climb } from "@/db/queries";
+import type { Climb } from "@/lib/catalog-types";
 import { requestClimbEdit } from "@/spa/lib/actions-client";
 
 import { ClimbEditRequestDrawer } from "./climb-edit-request-drawer";

@@ -21,12 +21,12 @@ import { FieldHeader } from "@/components/ui/field-support";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { RatingField } from "@/components/ui/rating-field";
-import type { JournalEntry, SendableClimb } from "@/db/queries";
 import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
 import type { JournalKind } from "@/lib/journal";
 import type { CompanionOption } from "@/lib/journal-companions";
 import { MAX_LOG_NOTE_LENGTH } from "@/lib/log-note";
+import type { JournalEntry, SendableClimb } from "@/lib/logbook-types";
 import { sendVideoLinksError } from "@/lib/send-video";
 import type { AscentStyle, GradeFeel } from "@/lib/sends";
 

@@ -7,7 +7,7 @@ import { JournalEntryForm } from "@/components/journal/journal-entry-form";
 import { SendEditor } from "@/components/send-editor";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { PageTitle } from "@/components/ui/typography";
-import type { JournalEntry } from "@/db/queries";
+import type { JournalEntry } from "@/lib/logbook-types";
 
 function editTitle(entry: JournalEntry): string {
   if (entry.isAscent) return "Edit send";

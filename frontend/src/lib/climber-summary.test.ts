@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 
-import type { ClimberOverview } from "@/db/queries/climber-overview";
+import type { ClimberOverview } from "@/lib/analytics-types";
 import { describeClimber, describeRecency } from "@/lib/climber-summary";
 
 const OVERVIEW: ClimberOverview = {

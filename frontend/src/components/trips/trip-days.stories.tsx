@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import type { JournalEntry, UserSendRow } from "@/db/queries";
+import type { JournalEntry, UserSendRow } from "@/lib/logbook-types";
 import { groupTripDays } from "@/lib/trip-days";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
@@ -29,6 +29,9 @@ function send(id: number, climbId: number, climbName: string, dateSent: string):
 
 function entry(id: number, props: Partial<JournalEntry> & { entryDate: string }): JournalEntry {
   return {
+    reportedGrade: null,
+    videos: null,
+    companions: [],
     id,
     climbId: 101,
     kind: "session",

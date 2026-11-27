@@ -9,7 +9,7 @@ import { ClampedComment } from "@/components/ui/clamped-comment";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageTitle, SectionHeading } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import type { SharedProject, SharedProjectSession } from "@/db/queries";
+import type { SharedProject, SharedProjectSession } from "@/lib/logbook-types";
 import { climbHref } from "@/lib/slug";
 
 /** What a valid project link shows: one climber, one climb, and the work they

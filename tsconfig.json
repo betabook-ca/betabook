@@ -29,19 +29,12 @@
     "incremental": true,
     "types": ["@cloudflare/workers-types"],
     "paths": {
-      "@/app/*": ["./test/reference/app/*"],
-      "@/actions": ["./test/reference/actions/index.ts"],
-      "@/actions/*": ["./test/reference/actions/*"],
-      "@/db/*": ["./test/reference/db/*"],
-      "@/drizzle/schema": ["./test/reference/drizzle/schema/index.ts"],
-      "@/drizzle/schema/*": ["./test/reference/drizzle/schema/*"],
-      "@/lib/*": ["./frontend/src/lib/*", "./test/reference/lib/*"],
-      "@/test/*": ["./test/*", "./test/reference/test/*"],
+      "@/spa/generated/api": ["./frontend/src/spa/generated/api.d.ts"],
+      "@/test/*": ["./test/*"],
       "@/tests/*": ["./tests/*"],
       "@/stories/*": ["./frontend/stories/*"],
       "@/.storybook/*": ["./frontend/.storybook/*"],
       "@/shared/*": ["./shared/*"],
-      "@/drizzle/migrations/*": ["./backend/migrations/*"],
       "@/*": ["./frontend/src/*"]
     }
   },

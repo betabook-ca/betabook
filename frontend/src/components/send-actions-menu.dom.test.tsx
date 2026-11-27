@@ -2,8 +2,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import type { EditableSend } from "@/db/queries";
 import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
+import type { EditableSend } from "@/lib/logbook-types";
 import { deleteSend } from "@/spa/lib/actions-client";
 
 import { SendActionsMenu } from "./send-actions-menu";

@@ -16,7 +16,7 @@ type ApproveRejectControlsProps = {
 };
 
 /** Approve records this admin's approval and applies the change once every
- * involved area is covered (see actions/moderation.ts's approveChangeRequest);
+ * involved area is covered;
  * reject asks for a one-line reason first. Both re-check scope and pending
  * status server-side — this page already only lists reviewable requests, but
  * a second admin could decide the same one in the meantime. */

@@ -1,8 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 
-import type { JournalEntry } from "@/db/queries";
 import { DEFAULT_JOURNAL_FILTER } from "@/lib/filters/journal-filter";
+import type { JournalEntry } from "@/lib/logbook-types";
 
 import { JournalTimeline } from "./journal-timeline";
 
@@ -13,6 +13,9 @@ vi.mock("@/spa/lib/actions-client", () => ({
 
 function entry(id: number, entryDate: string): JournalEntry {
   return {
+    reportedGrade: null,
+    videos: null,
+    companions: [],
     id,
     climbId: null,
     kind: "training",

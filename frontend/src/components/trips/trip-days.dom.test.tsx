@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 
-import type { JournalEntry, UserSendRow } from "@/db/queries";
+import type { JournalEntry, UserSendRow } from "@/lib/logbook-types";
 import { groupTripDays } from "@/lib/trip-days";
 
 import { TripDays } from "./trip-days";
@@ -32,6 +32,9 @@ const SEND: UserSendRow = {
 
 function entry(id: number, props: Partial<JournalEntry> & { entryDate: string }): JournalEntry {
   return {
+    reportedGrade: null,
+    videos: null,
+    companions: [],
     id,
     climbId: 202,
     kind: "session",

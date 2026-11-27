@@ -1,8 +1,6 @@
-// Explicit sibling specifiers: scripts/ reach this through lib/product-tour.ts under plain node.
-import { logActionError } from "./error-reporting.ts";
 import { TERMS_ACCESS_MESSAGE } from "./terms.ts";
 
-/** Return intentional action failures as data because Next.js redacts uncaught server errors. */
+/** The API returns expected validation failures as data. */
 export type ActionResult<T = void> = { ok: true; value: T } | { ok: false; error: string };
 
 /** An error message safe to show to the user. Unexpected errors remain generic. */
@@ -22,62 +20,4 @@ export class TermsAcceptanceRequiredError extends ActionError {
 
 export const SESSION_EXPIRED_MESSAGE = "Your session has expired — sign in again to continue.";
 
-export const NOT_ADMIN_MESSAGE = "Admins only.";
-
-/** Shown when a write budget runs out, whichever limiter refused it. */
-export const WRITE_RATE_LIMIT_MESSAGE = "Too many changes — try again in a minute";
-
-export const JOURNAL_RATE_LIMIT_MESSAGE = "Too many changes — try again in a minute";
-
-export const PRIVATE_PROFILE_MESSAGE =
-  "Sharing is off while your profile is private — change it in Account settings.";
-
 export const GENERIC_ERROR_MESSAGE = "Something went wrong. Please try again.";
-
-/** Drizzle wraps SQLite errors, so the message that matters is often a cause. */
-export function errorChainIncludes(error: unknown, ...texts: string[]): boolean {
-  for (let current = error; current instanceof Error; current = current.cause) {
-    const { message } = current;
-    if (texts.some((text) => message.includes(text))) return true;
-  }
-  return false;
-}
-
-/** Keep session error types here so result handling does not import the auth stack. */
-export class NotSignedInError extends Error {
-  public constructor() {
-    super("Not signed in");
-    this.name = "NotSignedInError";
-  }
-}
-
-export class NotAdminError extends Error {
-  public constructor() {
-    super("Not an admin");
-    this.name = "NotAdminError";
-  }
-}
-
-/** Do not wrap redirect/notFound here: their control-flow exceptions would be
- * converted to generic failures. Navigation follows the action result. */
-export async function toActionResult<T>(fn: () => Promise<T>): Promise<ActionResult<T>> {
-  try {
-    return { ok: true, value: await fn() };
-  } catch (err) {
-    if (err instanceof NotSignedInError) {
-      return { ok: false, error: SESSION_EXPIRED_MESSAGE };
-    }
-    if (err instanceof NotAdminError) {
-      return { ok: false, error: NOT_ADMIN_MESSAGE };
-    }
-    if (err instanceof ActionError) {
-      return { ok: false, error: err.message };
-    }
-    try {
-      logActionError(err);
-    } catch {
-      // Logging must not turn a handled failure into a rejected action.
-    }
-    return { ok: false, error: GENERIC_ERROR_MESSAGE };
-  }
-}

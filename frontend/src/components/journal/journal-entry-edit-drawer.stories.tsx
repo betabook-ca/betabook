@@ -1,11 +1,13 @@
 import { Button, useOverlayState } from "@heroui/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import type { JournalEntry } from "@/db/queries";
+import type { JournalEntry } from "@/lib/logbook-types";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { JournalEntryEditDrawer } from "./journal-entry-edit-drawer";
 const entry: JournalEntry = {
+  reportedGrade: null,
+  videos: null,
   id: -1,
   kind: "session",
   climbId: -1,

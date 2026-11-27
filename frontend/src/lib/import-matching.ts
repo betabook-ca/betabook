@@ -1,4 +1,3 @@
-import type { ClimbCandidate } from "@/db/queries";
 import { isLoggableOnClimb } from "@/lib/broken-climbs";
 import {
   formatGrade,
@@ -8,6 +7,7 @@ import {
   type ImportGradePreference,
 } from "@/lib/grades";
 import type { NormalizedImportRow } from "@/lib/sends-import";
+import type { ClimbCandidate } from "@/spa/lib/action-contracts";
 
 /** Match SQLite LOWER(TRIM(name)): trim ASCII spaces and lowercase only ASCII
  * letters. JavaScript toLowerCase would also fold accented letters. */

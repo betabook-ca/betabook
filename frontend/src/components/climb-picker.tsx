@@ -6,8 +6,8 @@ import { ClimbFilterControls } from "@/components/filters/climb-filter-controls"
 import { DisciplineChips } from "@/components/filters/discipline-chips";
 import { SearchPicker } from "@/components/search/search-picker";
 import { AppLink } from "@/components/ui/app-link";
-import type { ClimbWithAreaName } from "@/db/queries";
 import { useSearch } from "@/hooks/use-search";
+import type { ClimbWithAreaName } from "@/lib/catalog-types";
 import {
   EMPTY_SEARCH,
   type ClimbSelectionContext,

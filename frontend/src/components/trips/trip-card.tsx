@@ -7,7 +7,7 @@ import { TripStats } from "@/components/trips/trip-stats";
 import { TripStatusChip } from "@/components/trips/trip-status-chip";
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
-import type { TripSummary } from "@/db/queries";
+import type { TripSummary } from "@/lib/logbook-types";
 import { formatTripDates, tripHref } from "@/lib/trips";
 
 /** One trip in the list. The whole card is not a link: the actions menu lives

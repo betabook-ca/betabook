@@ -5,11 +5,11 @@ import { useState, useTransition } from "react";
 
 import { EMPTY_TRIP_DRAFT, TripForm, type TripDraft } from "@/components/trips/trip-form";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
-import type { Trip, TripSummary } from "@/db/queries";
 import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import { useViewGuard } from "@/hooks/use-view-guard";
 import { localToday } from "@/lib/format-date";
 import type { CompanionOption } from "@/lib/journal-companions";
+import type { Trip, TripSummary } from "@/lib/logbook-types";
 import { oneLine, tripHref } from "@/lib/trips";
 import { saveTrip } from "@/spa/lib/actions-client";
 import { useRouter } from "@/spa/lib/navigation";

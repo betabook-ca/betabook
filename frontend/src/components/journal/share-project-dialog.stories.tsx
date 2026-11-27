@@ -1,7 +1,7 @@
 import { Button, useOverlayState } from "@heroui/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import type { PinnedProject } from "@/db/queries";
+import type { PinnedProject } from "@/lib/logbook-types";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { ShareProjectDialog } from "./share-project-dialog";

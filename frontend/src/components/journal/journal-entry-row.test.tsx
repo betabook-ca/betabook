@@ -4,16 +4,17 @@ import { describe, expect, it, vi } from "vitest";
 
 import { JournalEntryRow } from "@/components/journal/journal-entry-row";
 import { AppLink } from "@/components/ui/app-link";
-import type { JournalEntry } from "@/db/queries";
 import { DEFAULT_JOURNAL_FILTER } from "@/lib/filters/journal-filter";
-
-vi.mock("next/cache", () => ({ refresh: () => {}, revalidatePath: () => {} }));
+import type { JournalEntry } from "@/lib/logbook-types";
 
 vi.mock("@/components/ui/app-link", () => ({
   AppLink: vi.fn<(props: { children?: ReactNode }) => null>(() => null),
 }));
 
 const entry: JournalEntry = {
+  reportedGrade: null,
+  videos: null,
+  companions: [],
   id: 1,
   climbId: 2,
   kind: "session",

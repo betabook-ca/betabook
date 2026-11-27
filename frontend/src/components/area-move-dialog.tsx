@@ -7,7 +7,7 @@ import { AreaPicker, type PickedArea } from "@/components/area-picker";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
-import type { GatedActionResult } from "@/lib/moderation";
+import type { GatedActionResult } from "@/spa/lib/action-contracts";
 
 /** Picking where a climb or area moves to. A plain dialog, not an
  * alertdialog: this is a tree search, not an interruption. */

@@ -3,7 +3,7 @@ import type {
   ClimbListChoice,
   ClimbListItem,
   ClimbListSummary,
-} from "@/db/queries";
+} from "@/lib/catalog-types";
 
 const UPDATED = Date.parse("2026-10-30T18:00:00Z");
 

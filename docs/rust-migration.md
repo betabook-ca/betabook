@@ -33,6 +33,6 @@ pnpm preview
 pnpm exec wrangler deploy --dry-run --config wrangler.jsonc
 ```
 
-## Stack
+## Compatibility
 
-The migration layers preserve existing D1 migrations, R2 keys, public URLs, session cookies and credential hashes. The feature layers cover the public catalog, member pages, goals and analytics, moderation and imports. The cutover layer connects the root build, preview, deployment and browser CI to Rust. The former server and its dependencies are isolated in the private test reference workspace.
+The Worker uses the existing versioned D1 migrations, R2 object keys, public URLs, session cookies and credential hashes. Native Rust tests apply the SQL to SQLite. The workerd smoke suite runs the release Worker against local D1 and R2, and the browser suite exercises the same build.

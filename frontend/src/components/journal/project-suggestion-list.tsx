@@ -6,8 +6,8 @@ import { Target } from "lucide-react";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { Grade } from "@/components/ui/grade";
 import { GradeLabel } from "@/components/ui/grade-label";
-import type { OpenProject } from "@/db/queries";
 import { formatCount } from "@/lib/format";
+import type { OpenProject } from "@/lib/logbook-types";
 
 /** Climbs the climber has worked but never sent, offered before they type.
  * The session count is the whole reason a row is here — it is the evidence

@@ -1,21 +1,11 @@
 import { BOULDER_HUECO, ROPE_YDS, type Discipline } from "@/lib/grades";
 import { parseDisciplines, toRange, type UrlParamsRecord } from "@/lib/url-params";
 
-export type DisciplineGradeFilter = {
-  disciplines: Discipline[];
-  boulderRange?: [number, number];
-  sportRange?: [number, number];
-  tradRange?: [number, number];
-};
-
 export const DEFAULT_BOULDER_RANGE: [number, number] = [0, BOULDER_HUECO.length - 1];
 export const DEFAULT_SPORT_RANGE: [number, number] = [0, ROPE_YDS.length - 1];
 export const DEFAULT_TRAD_RANGE: [number, number] = [0, ROPE_YDS.length - 1];
 
-/** The discipline-checkbox + per-discipline grade-range slice shared by
- * every filter in the app (climb search, area climbs, user sends) — ranges
- * are always present (unlike DisciplineGradeFilter's optional ones) since a
- * range dropdown needs a default position even for an unchecked discipline. */
+/** Each discipline keeps a grade range so its selector has a default even when unchecked. */
 export type DisciplineFilter = {
   disciplines: Discipline[];
   boulderRange: [number, number];
@@ -58,16 +48,4 @@ export function appendDisciplineFilterParams(
     params.append("tradRange", String(filter.tradRange[0]));
     params.append("tradRange", String(filter.tradRange[1]));
   }
-}
-
-/** Drops a range when its discipline isn't checked, so a stale range (left
- * over from before the discipline was unchecked) can't smuggle in a
- * filter — the shape the query layer (DisciplineGradeFilter) expects. */
-export function toDisciplineGradeFilter(filter: DisciplineFilter): DisciplineGradeFilter {
-  return {
-    disciplines: filter.disciplines,
-    boulderRange: filter.disciplines.includes("boulder") ? filter.boulderRange : undefined,
-    sportRange: filter.disciplines.includes("sport") ? filter.sportRange : undefined,
-    tradRange: filter.disciplines.includes("trad") ? filter.tradRange : undefined,
-  };
 }

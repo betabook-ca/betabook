@@ -23,8 +23,8 @@ import {
 } from "@/components/ui/field";
 import { QueryInput } from "@/components/ui/query-input";
 import { SortSelect } from "@/components/ui/sort-select";
-import type { UserSendsFilter } from "@/db/queries";
 import { useFilterFormNavigation } from "@/hooks/use-filter-form-navigation";
+import type { UserSendsFilter } from "@/lib/filters/user-sends-filter";
 import {
   DEFAULT_USER_SENDS_FILTER,
   DEFAULT_USER_SENDS_SORT,

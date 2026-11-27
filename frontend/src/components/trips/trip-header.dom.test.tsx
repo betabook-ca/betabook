@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { expect, it, vi } from "vitest";
 
-import type { TripSummary } from "@/db/queries";
+import type { TripSummary } from "@/lib/logbook-types";
 
 import { TripHeader } from "./trip-header";
 

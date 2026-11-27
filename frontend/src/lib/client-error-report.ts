@@ -11,7 +11,7 @@ const MAX_MESSAGE_LENGTH = 500;
  * cut rather than losing the whole report. `pathname` is percent-encoded
  * ASCII, so characters are bytes. */
 const MAX_PATH_LENGTH = 512;
-/** The endpoint keeps only short, vinext-shaped digests. A longer one is left
+/** The endpoint keeps only short error digests. A longer one is left
  * out here, so it cannot push the body past the 4 KB cap and lose the report. */
 const MAX_DIGEST_LENGTH = 64;
 

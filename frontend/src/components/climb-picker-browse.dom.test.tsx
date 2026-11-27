@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
 import { ClimbPicker } from "@/components/climb-picker";
-import type { ClimbWithAreaName } from "@/db/queries";
+import type { ClimbWithAreaName } from "@/lib/catalog-types";
 import { createSearchFixtureFetcher, searchAreaFetcher } from "@/stories/fixtures/app-search-demo";
 
 function renderPicker(browseArea: boolean) {

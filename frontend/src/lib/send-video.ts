@@ -12,8 +12,6 @@
  * Pure, so the send form checks a pasted link as it is typed with exactly
  * the rules the server applies. */
 
-import { ActionError } from "@/lib/action-result";
-
 export type SendVideo =
   | {
       provider: "youtube";
@@ -173,11 +171,11 @@ export function sendVideoLabel(video: SendVideo): string {
 
 /** How many videos one send can link. */
 export const MAX_SEND_VIDEOS = 5;
-export const SEND_VIDEO_LIMIT_MESSAGE = `Link up to ${MAX_SEND_VIDEOS} videos per send.`;
+const SEND_VIDEO_LIMIT_MESSAGE = `Link up to ${MAX_SEND_VIDEOS} videos per send.`;
 
 /** Why a form's video links can't be saved, or null when they can — blanks
  * included, since blank fields are skipped. For the forms to check before
- * submitting, with the rules `validateSendVideosInput` applies. */
+ * submitting. */
 export function sendVideoLinksError(values: readonly string[]): string | null {
   const links = new Set<string>();
   for (const value of values) {
@@ -193,24 +191,4 @@ export function sendVideoLinksError(values: readonly string[]): string | null {
  * canonical link drops out rather than reaching a player. */
 export function readSendVideos(stored: readonly string[] | null | undefined): SendVideo[] {
   return (stored ?? []).flatMap((link) => readSendVideo(link) ?? []);
-}
-
-/** Server-side reading of the form's `video` fields: `undefined` when the
- * form carried no video list (the stored videos stay as they are), `null`
- * when every field was blank, otherwise the canonical links in the order
- * given. The same video linked twice keeps one slot. */
-export function validateSendVideosInput(
-  values: readonly FormDataEntryValue[] | undefined,
-): string[] | null | undefined {
-  if (values === undefined) return undefined;
-  const links = new Set<string>();
-  for (const value of values) {
-    if (typeof value !== "string") throw new ActionError(SEND_VIDEO_INVALID_MESSAGE);
-    if (!value.trim()) continue;
-    const parsed = parseSendVideoLink(value);
-    if (!parsed.ok) throw new ActionError(parsed.error);
-    links.add(sendVideoUrl(parsed.video));
-  }
-  if (links.size > MAX_SEND_VIDEOS) throw new ActionError(SEND_VIDEO_LIMIT_MESSAGE);
-  return links.size ? [...links] : null;
 }

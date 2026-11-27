@@ -17,7 +17,7 @@ import { submitContactMessage } from "@/spa/lib/contact-action-client";
 
 export function ContactForm() {
   // Mount time, not first keystroke — the server rejects anything submitted
-  // within MIN_FILL_MS of the page appearing. A ref, not state: nothing
+  // less than two seconds after the page appears. A ref, not state: nothing
   // renders from it, and it must survive re-renders without resetting.
   // Stamped in an effect because Date.now() is impure and can't be called
   // during render. The effect runs before the page is interactive, so by the

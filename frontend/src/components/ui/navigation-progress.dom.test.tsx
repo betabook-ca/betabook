@@ -19,7 +19,7 @@ vi.mock("@/spa/lib/navigation", () => ({
   useSearchParams: () => new URLSearchParams(router.search),
 }));
 
-// The router boundary, in vinext's Link's order: the caller's onClick,
+// The router link handles events in this order: the caller's onClick,
 // then onNavigate for a client navigation, then pending for descendants
 // reading useLinkStatus until the navigation settles.
 vi.mock("@/spa/lib/router-link", async () => {

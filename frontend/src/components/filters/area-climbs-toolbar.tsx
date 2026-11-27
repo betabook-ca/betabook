@@ -5,8 +5,8 @@ import { statsActiveFilters, textActiveFilters } from "@/components/filters/acti
 import { ClimbStatsFields } from "@/components/filters/climb-stats-filter-fields";
 import { FilterToolbar } from "@/components/filters/filter-toolbar";
 import { QueryInput } from "@/components/ui/query-input";
-import type { SubtreeClimbsSort } from "@/db/queries";
 import { useFilterFormNavigation } from "@/hooks/use-filter-form-navigation";
+import type { SubtreeClimbsSort } from "@/lib/climb-list-sort";
 import {
   areaClimbsFilterToSearchParams,
   DEFAULT_AREA_CLIMBS_FILTER,

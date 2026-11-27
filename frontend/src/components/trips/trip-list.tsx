@@ -8,7 +8,7 @@ import { TripCard } from "@/components/trips/trip-card";
 import { TripDialog } from "@/components/trips/trip-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeading } from "@/components/ui/typography";
-import type { TripSummary } from "@/db/queries";
+import type { TripSummary } from "@/lib/logbook-types";
 
 /** The climber's trips, newest first, with the one control that creates them.
  *

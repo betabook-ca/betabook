@@ -4,9 +4,9 @@ import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import { ClampedComment } from "@/components/ui/clamped-comment";
 import { Eyebrow } from "@/components/ui/eyebrow";
-import type { JournalEntry } from "@/db/queries";
 import { formatCount } from "@/lib/format";
 import { formatDate } from "@/lib/format-date";
+import type { JournalEntry } from "@/lib/logbook-types";
 import { CLIMB_JOURNAL_ENTRY_LIMIT } from "@/lib/page-sizes";
 
 export function ClimbJournalCard({

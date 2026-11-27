@@ -1,9 +1,8 @@
-import type { ClimbStatsFilter, DisciplineGradeFilter, SubtreeClimbsSort } from "@/db/queries";
+import type { SubtreeClimbsSort } from "@/lib/climb-list-sort";
 import { DEFAULT_CLIMB_LIST_SORT, parseClimbListSort } from "@/lib/climb-list-sort";
 import {
   DEFAULT_MIN_ASCENTS,
   DEFAULT_RATING_RANGE,
-  excludeSentBy,
   parseExcludeSent,
   parseRatingRange,
 } from "@/lib/filters/climb-stats-filter";
@@ -11,17 +10,13 @@ import {
   DEFAULT_DISCIPLINE_FILTER,
   appendDisciplineFilterParams,
   parseDisciplineFilter,
-  toDisciplineGradeFilter,
   type DisciplineFilter,
 } from "@/lib/filters/discipline-filter";
 import { toArray, type UrlParamsRecord } from "@/lib/url-params";
 
 export const DEFAULT_AREA_CLIMBS_SORT = DEFAULT_CLIMB_LIST_SORT;
 
-/** Ranges are always present (unlike DisciplineGradeFilter's, which are
- * optional) — a range slider needs a default position to render even for an
- * unchecked discipline. Only when this is handed to the query layer
- * (toSubtreeQueryFilter) does an unchecked discipline's range get dropped. */
+/** Range controls retain the selected bounds for each discipline. */
 export type AreaClimbsFilter = DisciplineFilter & {
   name?: string;
   ratingRange: [number, number];
@@ -55,24 +50,6 @@ export function parseAreaClimbsFilter(params: UrlParamsRecord): AreaClimbsFilter
     minAscents: Number.isFinite(minAscents) && minAscents >= 0 ? minAscents : DEFAULT_MIN_ASCENTS,
     subareaId: Number.isInteger(subarea) && subarea > 0 ? subarea : null,
     excludeSent: parseExcludeSent(params.excludeSent),
-  };
-}
-
-/** getSubtreeClimbs's filter param — same "only pass a range for a checked
- * discipline" convention as the climb search page, so an unchecked
- * discipline's (possibly stale, from before it was unchecked) range can't
- * smuggle in a filter. Rating range/min ascents are passed through as-is —
- * they're not discipline-scoped, so "no filter" is just their own default. */
-export function toSubtreeQueryFilter(
-  filter: AreaClimbsFilter,
-  viewerId?: string | null,
-): DisciplineGradeFilter & ClimbStatsFilter & { name?: string } {
-  return {
-    ...toDisciplineGradeFilter(filter),
-    name: filter.name || undefined,
-    ratingRange: filter.ratingRange,
-    minAscents: filter.minAscents,
-    excludeSentBy: excludeSentBy(filter.excludeSent, viewerId),
   };
 }
 

@@ -1,34 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  assertLoggableOnClimb,
   composeClimbBreakTexts,
   isLoggableOnClimb,
   latestLoggableDate,
   successorClimbName,
-  validateClimbBreakInput,
 } from "@/lib/broken-climbs";
 
 const TODAY = "2026-09-16";
-
-describe("validateClimbBreakInput", () => {
-  it("accepts a real past date and a trimmed reason", () => {
-    expect(
-      validateClimbBreakInput({ brokenOn: " 2026-03-05 ", reason: "  Key hold snapped  " }, TODAY),
-    ).toEqual({ brokenOn: "2026-03-05", reason: "Key hold snapped" });
-  });
-
-  it.each([
-    [{ brokenOn: null, reason: "x" }, "Date is required"],
-    [{ brokenOn: "2026-02-30", reason: "x" }, "Invalid date"],
-    [{ brokenOn: "05/03/2026", reason: "x" }, "Invalid date"],
-    [{ brokenOn: "2026-09-18", reason: "x" }, "The break date can't be in the future"],
-    [{ brokenOn: "2026-03-05", reason: "   " }, "Reason is required"],
-    [{ brokenOn: "2026-03-05", reason: "r".repeat(501) }, "Reason must be 500 characters or fewer"],
-  ])("rejects %j", (raw, message) => {
-    expect(() => validateClimbBreakInput(raw, TODAY)).toThrow(message);
-  });
-});
 
 describe("composeClimbBreakTexts", () => {
   const input = { brokenOn: "2026-03-05", reason: "The crux flake came off" };
@@ -89,13 +68,6 @@ describe("logging on a broken climb", () => {
     expect(isLoggableOnClimb(broken, "2026-03-05")).toBe(false);
     expect(isLoggableOnClimb(broken, "2026-03-06")).toBe(false);
     expect(isLoggableOnClimb(broken, null)).toBe(false);
-  });
-
-  it("throws the user-facing message", () => {
-    expect(() => assertLoggableOnClimb(broken, null)).toThrow(
-      "This climb broke on 2026-03-05. Only ascents dated before that can be logged.",
-    );
-    expect(() => assertLoggableOnClimb(broken, "2026-01-01")).not.toThrow();
   });
 
   it("caps the picker at the day before the break, crossing month boundaries", () => {

@@ -11,9 +11,9 @@ import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { OptionSelect } from "@/components/ui/option-select";
 import { QueryInput } from "@/components/ui/query-input";
 import { SkeletonListRows } from "@/components/ui/skeleton";
-import type { OpenProject } from "@/db/queries";
 import { useMounted } from "@/hooks/use-mounted";
 import { localToday } from "@/lib/format-date";
+import type { OpenProject } from "@/lib/logbook-types";
 
 type ProjectBoardVariant = "open" | "sent";
 

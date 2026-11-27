@@ -3,10 +3,10 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import type { TripSummary } from "@/db/queries";
 import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import type { ActionResult } from "@/lib/action-result";
 import type { CompanionOption } from "@/lib/journal-companions";
+import type { TripSummary } from "@/lib/logbook-types";
 import { saveTrip } from "@/spa/lib/actions-client";
 
 import { TripDialog } from "./trip-dialog";

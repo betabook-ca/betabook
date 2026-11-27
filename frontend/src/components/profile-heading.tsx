@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { DISCIPLINE_CHIP_CLASSNAME, DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
 import { PageTitle } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import type { HardestSend } from "@/db/queries/climber-overview";
+import type { HardestSend } from "@/lib/analytics-types";
 
 /** Sized by its own width (phone, 17rem side column or page-wide band), so no row ever wraps.
  * The badge padding is tight enough for 5.15d, 5.15d and V17 to share a row in the side column. */

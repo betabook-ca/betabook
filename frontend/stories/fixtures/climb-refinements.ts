@@ -1,4 +1,4 @@
-import type { SubtreeClimbsSort } from "@/db/queries";
+import type { SubtreeClimbsSort } from "@/lib/climb-list-sort";
 import type { ClimbRefinements } from "@/lib/filters/climb-refinements";
 import { DEFAULT_DISCIPLINE_FILTER } from "@/lib/filters/discipline-filter";
 

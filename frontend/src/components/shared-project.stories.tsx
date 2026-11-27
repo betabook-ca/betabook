@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import type { SharedProject as SharedProjectData, SharedProjectSession } from "@/db/queries";
+import type { SharedProject as SharedProjectData, SharedProjectSession } from "@/lib/logbook-types";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { SharedProject } from "./shared-project";

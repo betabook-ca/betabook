@@ -1,4 +1,4 @@
-import type { FeedDay } from "@/db/queries/feed";
+import type { FeedDay } from "@/lib/community-types";
 import type { FeedEntry } from "@/lib/feed-groups";
 import { feedStoryClimbs } from "@/stories/fixtures/feed-climbs";
 
@@ -16,6 +16,8 @@ const day: FeedDay = {
   activities: [],
 };
 const activity: FeedEntry["activity"] = {
+  goalTitle: null,
+  companions: [],
   ...feedStoryClimbs[0],
   id: 1,
   kind: "session",

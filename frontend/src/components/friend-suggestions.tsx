@@ -4,7 +4,7 @@ import { Button } from "@heroui/react";
 import { useState } from "react";
 
 import { ClimberListItem } from "@/components/climber-list-item";
-import type { SuggestedClimberRow } from "@/db/queries";
+import type { SuggestedClimberRow } from "@/lib/community-types";
 import { formatCount } from "@/lib/format";
 
 /** Friendship actions refresh the page without the climber just requested, so rows stay as first shown. */

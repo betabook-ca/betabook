@@ -2,7 +2,7 @@ import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
-import type { AnalyticsSendRow } from "@/db/queries";
+import type { AnalyticsSendRow } from "@/lib/analytics-types";
 
 import { AnalyticsGradePyramid } from "./analytics-grade-pyramid";
 import { ProgressionChart } from "./progression-chart";

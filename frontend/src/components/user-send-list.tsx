@@ -7,9 +7,11 @@ import { SendActionsMenu } from "@/components/send-actions-menu";
 import { SendListShell } from "@/components/send-list-shell";
 import { AppLink } from "@/components/ui/app-link";
 import { EmptyState } from "@/components/ui/empty-state";
-import type { AreaBreadcrumbs, UserSendRow, UserSendsFilter } from "@/db/queries";
 import { usePagedList } from "@/hooks/use-paged-list";
+import type { AreaBreadcrumbs } from "@/lib/catalog-types";
+import type { UserSendsFilter } from "@/lib/filters/user-sends-filter";
 import { userSendsFilterToSearchParams } from "@/lib/filters/user-sends-filter";
+import type { UserSendRow } from "@/lib/logbook-types";
 import { fetchApi } from "@/spa/lib/api";
 
 type UserSendListProps = {

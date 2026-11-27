@@ -7,8 +7,8 @@ import { AreaPicker, type PickedArea } from "@/components/area-picker";
 import { SURFACE_CARD_CLASS } from "@/components/ui/card";
 import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import type { Area } from "@/db/queries";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
+import type { Area } from "@/lib/catalog-types";
 import { createArea, updateArea } from "@/spa/lib/actions-client";
 
 type AreaFormProps = {

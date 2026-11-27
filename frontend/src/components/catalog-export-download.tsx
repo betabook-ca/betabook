@@ -2,7 +2,7 @@ import { buttonVariants } from "@heroui/styles";
 import { Download } from "lucide-react";
 
 import { SettingsRow } from "@/components/ui/settings";
-import type { CatalogExportInfo } from "@/lib/catalog-export";
+import type { CatalogExportInfo } from "@/lib/catalog-types";
 import { formatCount } from "@/lib/format";
 import { formatDate } from "@/lib/format-date";
 import { apiUrl } from "@/spa/lib/api";

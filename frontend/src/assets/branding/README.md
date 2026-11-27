@@ -54,12 +54,12 @@ The same generator writes the production assets; do not edit generated files ind
 | Compact header             | 48px icon-only home link, named “Betabook home”                                                                                   |
 | About page                 | Transparent full lockup and tagline, at most 360px wide                                                                           |
 | Home-screen helper         | 48px original mark on the current paper/ink canvas                                                                                |
-| Browser tab                | `app/icon.svg`: optical small cut following the browser/OS color scheme                                                           |
-| Legacy favicon             | `app/favicon.ico`: optical 16px and 32px PNG frames on paper                                                                      |
-| Apple touch icon           | `app/apple-icon.png`: opaque 180px paper tile                                                                                     |
+| Browser tab                | `frontend/public/icon.svg`: optical small cut following the browser/OS color scheme                                               |
+| Legacy favicon             | `frontend/public/favicon.ico`: optical 16px and 32px PNG frames on paper                                                          |
+| Apple touch icon           | `frontend/public/apple-icon.png`: opaque 180px paper tile                                                                         |
 | Install manifest           | `frontend/public/branding/app-icon-{192,512}.png`: opaque paper tiles, purpose `any`                                              |
 | Transactional emails       | `frontend/public/branding/betabook-lockup-email.png`: full About-page artwork on paper, 1000 × 640, displayed at up to 350px wide |
-| Social previews            | `app/opengraph-image.png`: full ink lockup and tagline, 1200 × 630                                                                |
+| Social previews            | `frontend/public/opengraph-image.png`: full ink lockup and tagline, 1200 × 630                                                    |
 
 `frontend/public/branding/` contains the transparent SVGs used by the application and Storybook.
 The cropped wordmark keeps the embedded Barlow font. The original reference artwork
@@ -68,8 +68,8 @@ opaque canvases because those external surfaces need a stable background.
 The SVG favicon follows the browser scheme; in-page art follows the resolved app
 choice, including an explicit choice that differs from the OS.
 
-Next.js file metadata conventions advertise the favicon, SVG, Apple icon, and
-social image. `app/manifest.ts` advertises the two ordinary PNG launcher icons;
+The SPA HTML and Worker metadata advertise the favicon, SVG, Apple icon and
+social image. `frontend/public/manifest.webmanifest` lists the two PNG launcher icons;
 they are not declared maskable. No installation workflow or tutorial steps change.
 `tests/ui/app-branding.spec.ts` covers real app placement, `tests/ui/artifacts.spec.ts`
 asset decoding and metadata, and `tests/ui/brand.spec.ts` the brand stories in both

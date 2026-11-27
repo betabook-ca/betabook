@@ -4,7 +4,7 @@ import { Button, useOverlayState } from "@heroui/react";
 import { CirclePlus } from "lucide-react";
 
 import { JournalEntryDrawer } from "@/components/journal/journal-entry-drawer";
-import type { SendableClimb } from "@/db/queries";
+import type { SendableClimb } from "@/lib/logbook-types";
 
 const INDICATOR_BOX_CLASS = "flex size-9 shrink-0 items-center justify-center md:size-8";
 

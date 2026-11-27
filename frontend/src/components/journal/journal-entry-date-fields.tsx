@@ -1,8 +1,8 @@
 "use client";
 
 import { DatePickerField } from "@/components/ui/date-picker-field";
-import type { JournalEntry } from "@/db/queries";
 import { latestLoggableDate } from "@/lib/broken-climbs";
+import type { JournalEntry } from "@/lib/logbook-types";
 
 type JournalEntryDateFieldsProps = {
   hasClimb: boolean;

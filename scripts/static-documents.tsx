@@ -1,4 +1,3 @@
-/* oxlint-disable nextjs/no-html-link-for-pages -- These documents support navigation without client JavaScript. */
 import { buttonVariants } from "@heroui/styles";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";

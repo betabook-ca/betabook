@@ -11,9 +11,10 @@ import {
 import { cardClass } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeading } from "@/components/ui/typography";
-import type { AreaBreadcrumbs, JournalEntry, UserSendRow } from "@/db/queries";
+import type { AreaBreadcrumbs } from "@/lib/catalog-types";
 import { DEFAULT_JOURNAL_FILTER } from "@/lib/filters/journal-filter";
 import { formatCount } from "@/lib/format";
+import type { JournalEntry, UserSendRow } from "@/lib/logbook-types";
 import type { TripDay } from "@/lib/trip-days";
 
 const DAY_FORMAT = new Intl.DateTimeFormat("en-US", {

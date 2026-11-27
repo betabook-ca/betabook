@@ -33,3 +33,6 @@ export type SavedClimbList = ValueOf<"createClimbList">;
 export type ReviewDecision = ValueOf<"approveChangeRequest">;
 export type ClimbListItemChange = ValueOf<"addClimbToList">;
 export type ImportResult = ValueOf<"importSends">;
+
+export type ClimbCandidate = ValueOf<"resolveImportClimbs">[number];
+export type GatedActionResult = ValueOf<"requestClimbEdit">;

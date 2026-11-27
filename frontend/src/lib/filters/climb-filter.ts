@@ -1,8 +1,7 @@
-import type { SearchClimbsParams, SubtreeClimbsSort } from "@/db/queries";
+import type { SubtreeClimbsSort } from "@/lib/climb-list-sort";
 import {
   DEFAULT_MIN_ASCENTS,
   DEFAULT_RATING_RANGE,
-  excludeSentBy,
   parseExcludeSent,
   parseRatingRange,
 } from "@/lib/filters/climb-stats-filter";
@@ -10,7 +9,6 @@ import {
   DEFAULT_DISCIPLINE_FILTER,
   appendDisciplineFilterParams,
   parseDisciplineFilter,
-  toDisciplineGradeFilter,
   type DisciplineFilter,
 } from "@/lib/filters/discipline-filter";
 import { parseAreaId, toArray, type UrlParamsRecord } from "@/lib/url-params";
@@ -68,24 +66,4 @@ export function climbFilterToSearchParams(
   params.set("sort", sort);
   appendClimbFilterParams(params, filter);
   return params;
-}
-
-/** searchClimbs's query param — same "drop a range for an unchecked
- * discipline" convention as toSubtreeQueryFilter. `viewerId` is whose sends
- * Exclude sent hides; without one the filter does nothing. */
-export function toClimbQueryParams(
-  filter: ClimbFilter,
-  sort: SubtreeClimbsSort | undefined,
-  viewerId?: string | null,
-): SearchClimbsParams {
-  return {
-    ...toDisciplineGradeFilter(filter),
-    name: filter.name || undefined,
-    areaName: filter.areaName || undefined,
-    areaId: filter.areaId,
-    ratingRange: filter.ratingRange,
-    minAscents: filter.minAscents,
-    excludeSentBy: excludeSentBy(filter.excludeSent, viewerId),
-    sort,
-  };
 }

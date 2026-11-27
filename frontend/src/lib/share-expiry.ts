@@ -1,24 +1,12 @@
-import { ActionError } from "@/lib/action-result";
 import { formatDate } from "@/lib/format-date";
 import { ISO_DATE_RE } from "@/lib/sends";
 
-/** How long a new project share link lives.
- *
- * The value carries the SQLite modifier rather than a day count so the
- * deadline is `datetime('now', …)` computed by the database: a client clock
- * that is wrong by a week would otherwise decide when someone else's link
- * dies. The modifiers are a closed set so nothing user-supplied ever reaches
- * the statement.
- *
- * This is the only control on a link besides deleting it. There is no
- * audience: a link is a link, and whoever holds it can open it. See the schema
- * comment in drizzle/schema/project-share-links.ts for why offering Friends or
- * Members here would be a trap rather than a feature. */
+/** Expiry options shown when creating a share link. */
 export const SHARE_EXPIRIES = [
-  { value: "7d", label: "7 days", modifier: "+7 days" },
-  { value: "30d", label: "30 days", modifier: "+30 days" },
-  { value: "6mo", label: "6 months", modifier: "+6 months" },
-  { value: "never", label: "Never", modifier: null },
+  { value: "7d", label: "7 days" },
+  { value: "30d", label: "30 days" },
+  { value: "6mo", label: "6 months" },
+  { value: "never", label: "Never" },
 ] as const;
 
 export type ShareExpiry = (typeof SHARE_EXPIRIES)[number]["value"];
@@ -27,19 +15,6 @@ export type ShareExpiry = (typeof SHARE_EXPIRIES)[number]["value"];
  * pasted somewhere forgotten does not outlive the thing it describes. Anyone
  * holding a link can read it, so the expiry is what limits one that got away. */
 export const DEFAULT_SHARE_EXPIRY: ShareExpiry = "30d";
-
-export function parseShareExpiry(value: unknown): ShareExpiry {
-  const expiry = SHARE_EXPIRIES.find((option) => option.value === value);
-  if (!expiry) throw new ActionError("Invalid link expiry");
-  return expiry.value;
-}
-
-/** The SQLite modifier for an expiry, or null for a link that never expires.
- * Callers pass this straight into `datetime('now', …)`; it is a constant from
- * the table above, never the caller's string. */
-export function shareExpiryModifier(expiry: ShareExpiry): string | null {
-  return SHARE_EXPIRIES.find((option) => option.value === expiry)?.modifier ?? null;
-}
 
 /** When a link runs out, for a card chip and the dialog. An absolute date
  * rather than a countdown: "in 30 days" reads the same whether the link dies

@@ -7,7 +7,6 @@ import { FeatureAnnouncementScope } from "@/components/feature-announcement";
 import { AnalyticsHashtagFilter } from "@/components/filters/analytics-hashtag-filter";
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { DISCIPLINE_CHIP_CLASSNAME, DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
-import type { AnalyticsSendRow } from "@/db/queries";
 import { buildAnalyticsHighlights, type HighlightSession } from "@/lib/analytics-highlights";
 import {
   ANALYTICS_CARD_IDS,
@@ -15,6 +14,7 @@ import {
   TRIP_ANALYTICS_LAYOUT,
   parseAnalyticsLayout,
 } from "@/lib/analytics-layout";
+import type { AnalyticsSendRow } from "@/lib/analytics-types";
 import {
   ANALYTICS_CUSTOMIZE_ANNOUNCEMENT,
   getAnnouncementCandidates,

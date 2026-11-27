@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import type { FeedDay, FeedPage } from "@/db/queries/feed";
+import type { FeedDay, FeedPage } from "@/lib/community-types";
 
 import { FeedList } from "./feed-list";
 
@@ -35,6 +35,8 @@ const day: FeedDay = {
   goals: 0,
   activities: [
     {
+      goalTitle: null,
+      areaAncestors: [],
       id: 1,
       kind: "session",
       climbId: 12,

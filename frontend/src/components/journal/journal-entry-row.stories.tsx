@@ -1,12 +1,15 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import type { JournalEntry } from "@/db/queries";
 import { DEFAULT_JOURNAL_FILTER } from "@/lib/filters/journal-filter";
+import type { JournalEntry } from "@/lib/logbook-types";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { JournalEntryRow } from "./journal-entry-row";
 
 const entry: JournalEntry = {
+  reportedGrade: null,
+  videos: null,
+  companions: [],
   id: 1,
   climbId: 2,
   kind: "session",

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import type { OpenProject } from "@/db/queries";
+import type { OpenProject } from "@/lib/logbook-types";
 import { Example, StoryPage } from "@/stories/fixtures/story-layout";
 
 import { ProjectSuggestionList } from "./project-suggestion-list";

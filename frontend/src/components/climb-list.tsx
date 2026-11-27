@@ -8,7 +8,7 @@ import { Grade } from "@/components/ui/grade";
 import { ListRow } from "@/components/ui/list-row";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
 import { RatingStars } from "@/components/ui/rating-stars";
-import type { ClimbWithAreaName } from "@/db/queries";
+import type { ClimbWithAreaName } from "@/lib/catalog-types";
 import { formatCount } from "@/lib/format";
 import { climbHref } from "@/lib/slug";
 

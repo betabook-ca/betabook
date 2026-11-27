@@ -10,7 +10,7 @@ import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeading } from "@/components/ui/typography";
-import type { ClimbListSummary } from "@/db/queries";
+import type { ClimbListSummary } from "@/lib/catalog-types";
 import { climbCountLabel, climbListHref } from "@/lib/climb-lists";
 
 /** A climber's lists, most recently changed first. Like trips there is no

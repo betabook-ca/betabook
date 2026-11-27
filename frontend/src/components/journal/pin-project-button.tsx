@@ -4,8 +4,8 @@ import { Button, useOverlayState } from "@heroui/react";
 import { Target } from "lucide-react";
 
 import { DeferredLoadError } from "@/components/ui/deferred-load-error";
-import type { OpenProject } from "@/db/queries";
 import { useDeferredComponent } from "@/hooks/use-deferred-component";
+import type { OpenProject } from "@/lib/logbook-types";
 
 /** Module-level so its identity is stable across renders — the preload hook
  * keys its effect on the loader. Keeps the climb search out of the page bundle. */

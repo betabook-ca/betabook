@@ -17,7 +17,7 @@ import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { SidebarLayout } from "@/components/ui/page-shell";
 import { Skeleton, SkeletonListRows } from "@/components/ui/skeleton";
 import { PageTitle, SectionHeading } from "@/components/ui/typography";
-import type { SubtreeClimbsSort } from "@/db/queries";
+import type { SubtreeClimbsSort } from "@/lib/climb-list-sort";
 import { missingDescriptionMessage } from "@/lib/descriptions";
 import {
   type AreaClimbsFilter,

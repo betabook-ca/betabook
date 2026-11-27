@@ -3,8 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import type { AnalyticsSendRow } from "@/db/queries";
 import type { AnalyticsLayout } from "@/lib/analytics-layout";
+import type { AnalyticsSendRow } from "@/lib/analytics-types";
 import { buildUserAnalytics } from "@/lib/user-analytics";
 
 import { AnalyticsDashboard } from "./analytics-dashboard";

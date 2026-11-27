@@ -1,30 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { ActionError } from "./action-result";
-import {
-  describeShareExpiry,
-  isShareExpired,
-  parseShareExpiry,
-  SHARE_EXPIRIES,
-  shareExpiryModifier,
-} from "./share-expiry";
+import { describeShareExpiry, isShareExpired, SHARE_EXPIRIES } from "./share-expiry";
 
 describe("expiry", () => {
-  it("maps each option to a SQLite modifier, and never expires to none", () => {
-    expect(shareExpiryModifier(parseShareExpiry("7d"))).toBe("+7 days");
-    expect(shareExpiryModifier(parseShareExpiry("30d"))).toBe("+30 days");
-    expect(shareExpiryModifier(parseShareExpiry("6mo"))).toBe("+6 months");
-    expect(shareExpiryModifier(parseShareExpiry("never"))).toBeNull();
-  });
-
   it("offers durations that span days, months and indefinite", () => {
     expect(SHARE_EXPIRIES.map((option) => option.value)).toEqual(["7d", "30d", "6mo", "never"]);
-  });
-
-  it("refuses anything outside the list, so nothing user-supplied reaches SQL", () => {
-    for (const value of ["1d", "+7 days", "', 'x'", "", null]) {
-      expect(() => parseShareExpiry(value)).toThrow(ActionError);
-    }
   });
 
   it("reads a passed deadline as expired and a future one as live", () => {

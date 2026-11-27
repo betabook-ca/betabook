@@ -5,9 +5,9 @@ import { Download } from "lucide-react";
 import { useState } from "react";
 
 import { InlineAlert } from "@/components/ui/inline-alert";
-import type { UserSendRow } from "@/db/queries";
 import { downloadCsv } from "@/lib/download";
 import { formatCount } from "@/lib/format";
+import type { UserSendRow } from "@/lib/logbook-types";
 import { buildSendsExportCsv } from "@/lib/sends-export";
 import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 

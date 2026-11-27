@@ -27,7 +27,7 @@ function newestAchievement(a: GoalProgress, b: GoalProgress) {
 }
 
 /** Completed goals per "load more" page. */
-export const GOAL_PAGE_SIZE = 5;
+const GOAL_PAGE_SIZE = 5;
 
 export function summarizeGoalPeriods(
   periods: GoalProgress[],
@@ -141,8 +141,8 @@ function monthIndex(date: string) {
 function monthStart(index: number) {
   return `${String(Math.floor(index / 12)).padStart(4, "0")}-${String((index % 12) + 1).padStart(2, "0")}-01`;
 }
-/** Stable whole-month bounds shared by the database query and local stories. */
-export function goalHistoryWindow(
+/** Whole-month bounds for the goal history view. */
+function goalHistoryWindow(
   periods: GoalProgress[],
   repeat: string,
   offset = 0,

@@ -5,7 +5,8 @@ import { AscentStyle, ascentSummary } from "@/components/ascent-style";
 import { JournalEntryLayout } from "@/components/journal/journal-entry-layout";
 import { SendGradeCell } from "@/components/send-grade-cell";
 import { sendVideoMedia } from "@/components/send-video-media";
-import type { AreaBreadcrumbs, UserSendRow } from "@/db/queries";
+import type { AreaBreadcrumbs } from "@/lib/catalog-types";
+import type { UserSendRow } from "@/lib/logbook-types";
 import { climbHref } from "@/lib/slug";
 
 export function ClimbLogRow({

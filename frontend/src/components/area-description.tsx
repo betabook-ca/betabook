@@ -4,7 +4,7 @@ import { Button, useOverlayState } from "@heroui/react";
 import { Pencil } from "lucide-react";
 
 import { AreaFormDrawer } from "@/components/area-form-drawer";
-import type { Area } from "@/db/queries";
+import type { Area } from "@/lib/catalog-types";
 
 /** An area's description with the pencil that edits it. */
 export function AreaDescription({ area }: { area: Area }) {

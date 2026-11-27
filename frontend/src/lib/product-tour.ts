@@ -1,6 +1,3 @@
-// Explicit sibling specifiers: scripts/ import this module under plain node.
-import { ActionError } from "./action-result.ts";
-
 /** Add a new feature here; UI step loaders live in components/product-tours/registry.ts. */
 export const PRODUCT_TOURS = [
   {
@@ -33,19 +30,4 @@ export function getAcknowledgedTourVersion(
   progress: readonly ProductTourProgress[] = [],
 ): number {
   return progress.find((entry) => entry.tourId === tourId)?.version ?? 0;
-}
-
-export function validateProductTourUpdate(
-  id: string,
-  version: number,
-  status: string,
-): ProductTourProgress {
-  const tour = PRODUCT_TOURS.find((entry) => entry.id === id);
-  if (!tour || version !== tour.version) {
-    throw new ActionError("This tour has changed. Reload the page and try again.");
-  }
-  if (status !== "dismissed" && status !== "completed") {
-    throw new ActionError("Invalid product tour status");
-  }
-  return { tourId: tour.id, version: tour.version, status };
 }
