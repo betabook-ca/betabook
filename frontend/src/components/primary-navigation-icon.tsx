@@ -1,3 +1,20 @@
+/**
+ * @license ISC
+ * Gear and graduation-cap geometry adapted from Lucide.
+ * Copyright (c) 2026 Lucide Icons and Contributors
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
 import { BookOpen, TrendingUp, Users, MapPin, GraduationCap, Settings } from "lucide-react";
 
 import type { PrimaryArea } from "@/lib/app-navigation";
@@ -60,7 +77,7 @@ function FilledIcon({ id }: { id: NavigationArea }) {
       {id === "community" && (
         <>
           <circle cx="9" cy="7" r="4" />
-          <path d="M2 21v-3a7 7 0 0 1 14 0v3H2Zm15-7.9a6 6 0 0 1 6 6V21h-5v-3a8.9 8.9 0 0 0-1-4.1Z" />
+          <path d="M6 15h6a4 4 0 0 1 4 4v1a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-1a4 4 0 0 1 4-4Zm12 .2a4 4 0 0 1 4 3.8v1a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-1c0-1.4-.4-2.6-1-3.8Z" />
           <path d="M15 4a3.5 3.5 0 1 1 0 6 6 6 0 0 0 0-6Z" />
         </>
       )}
@@ -78,14 +95,22 @@ function FilledIcon({ id }: { id: NavigationArea }) {
       )}
       {id === "tutorials" && (
         <>
-          <path d="m12 2 12 6-12 6L0 8l12-6Zm-7 11 7 3.5 7-3.5v5c-4.7 3-9.3 3-14 0v-5Z" />
-          <path d="M22 9h2v10h-2z" />
+          {/* Match Lucide's rounded cap outline and attach its tassel at the same point. */}
+          <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" />
+          <path d="M6 13.5l5.17 2.36a2 2 0 0 0 1.66 0L18 13.5V16a6 3 0 0 1-12 0z" />
+          <path
+            d="M22 10v6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
         </>
       )}
       {id === "account" && (
         <path
           fillRule="evenodd"
-          d="m9 2-.6 2.5-1.3.8-2.5-.7-3 5.2 1.9 1.8v1.5l-1.9 1.8 3 5.2 2.5-.7 1.3.8L9 23h6l.6-2.6 1.3-.8 2.5.7 3-5.2-1.9-1.8v-1.5l1.9-1.8-3-5.2-2.5.7-1.3-.8L15 2H9Zm3 6.5a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z"
+          d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
         />
       )}
     </svg>
