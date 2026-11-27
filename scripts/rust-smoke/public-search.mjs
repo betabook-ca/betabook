@@ -63,6 +63,29 @@ export async function testPublicSearch({ server, db, signIn }) {
   assert.doesNotMatch(privateQuery.body, new RegExp(`href="/climbs/${climb.id}/`));
   // Only a public projection can be reused when the client starts in public mode.
   const cookie = await signIn("search-ssr-member");
+  const areaClimbs = async (query) => {
+    const response = await server.fetch(`/api/areas/${area.id}/climbs?sort=name_asc&${query}`, {
+      headers: { cookie },
+    });
+    assert.equal(response.status, 200);
+    const { climbs, page, pageSize, hasNextPage } = await response.json();
+    return { ids: climbs.map((c) => c.id), page, pageSize, hasNextPage };
+  };
+  // These values exceed a wasm32 usize but are exactly representable in the query.
+  const aboveU32 = 2 ** 32 + 1;
+  assert.deepEqual(await areaClimbs("limit=1&page=2"), {
+    ids: [unexpected.id],
+    page: 2,
+    pageSize: 1,
+    hasNextPage: false,
+  });
+  assert.deepEqual(await areaClimbs(`limit=${aboveU32}`), {
+    ids: [climb.id, unexpected.id],
+    page: 1,
+    pageSize: 10,
+    hasNextPage: false,
+  });
+  assert.deepEqual((await areaClimbs(`page=${aboveU32}`)).ids, []);
   const member = await get("mode=climb&name=Easy+Forager", { cookie });
   assert.equal(member.seed, null);
   const rankedAreas = ["Z Foothold", "Y Foothold", "A Long Foothold Traverse"];

@@ -22,7 +22,6 @@ use betabook_db::member_catalog::{
 };
 use betabook_db::public_catalog::{
     get_area_breadcrumbs, get_public_area_trail, get_public_subareas, resolve_public_subarea,
-    search_public_climbs,
 };
 use betabook_db::sends::{
     CLIMB_SENDS_PAGE_SIZE, USER_SENDS_PAGE_SIZE, UserSendsExportCursor, UserSendsFilter,
@@ -30,10 +29,9 @@ use betabook_db::sends::{
     get_sends_for_user_page, get_user_send_for_climb, get_user_sends_summary, has_user_sends,
 };
 use betabook_db::social::{
-    CLIMB_VIDEO_LIMIT, get_account_user, get_climb_send_stats, get_climb_videos,
-    get_climber_hardest, get_climber_suggestions, get_friends_page, get_friendship_status,
-    get_journal_filter_friends, get_product_tour_state, get_profile_share_token, get_user_profile,
-    get_user_sent_climb_ids, search_companion_friends,
+    CLIMB_VIDEO_LIMIT, get_account_user, get_climb_videos, get_climber_hardest,
+    get_climber_suggestions, get_friends_page, get_friendship_status, get_journal_filter_friends,
+    get_product_tour_state, get_profile_share_token, get_user_profile, search_companion_friends,
 };
 use betabook_domain::grades::{BoulderScale, GradePreferences, RopeScale};
 use betabook_domain::profile_share::profile_token_from_query;
@@ -1079,14 +1077,7 @@ pub async fn area_page_loader(
 
     let mut options = parse_member_catalog_options(raw_query, &session.user.id, PAGE_SIZE);
     options.area_id = Some(scope.id);
-    let page = search_public_climbs(state.db(), &options).await?;
-    let climb_ids: Vec<i64> = page.climbs.iter().map(|c| c.id).collect();
-    let area_ids: Vec<i64> = page.climbs.iter().map(|c| c.area_id).collect();
-    let send_stats = get_climb_send_stats(state.db(), &climb_ids).await?;
-    let area_breadcrumbs = get_area_breadcrumbs(state.db(), &area_ids, 2).await?;
-    let sent_climb_ids = get_user_sent_climb_ids(state.db(), &session.user.id, &climb_ids).await?;
-    let offset = options.offset.unwrap_or(0);
-    let has_next_page = page.has_next_page && offset + PAGE_SIZE <= MAX_PAGINATION_OFFSET;
+    let page = super::member_search::member_climbs_page(&state, &session.user.id, &options).await?;
 
     Ok(no_store_json(
         StatusCode::OK,
@@ -1095,13 +1086,7 @@ pub async fn area_page_loader(
             "ancestors": ancestors,
             "subareas": subareas,
             "gradeHistogramRows": grade_histogram_rows,
-            "climbsPage": {
-                "climbs": page.climbs,
-                "hasNextPage": has_next_page,
-                "sendStats": send_stats,
-                "areaBreadcrumbs": area_breadcrumbs,
-                "sentClimbIds": sent_climb_ids,
-            },
+            "climbsPage": page,
         }),
     ))
 }
