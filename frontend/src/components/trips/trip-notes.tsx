@@ -14,7 +14,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SectionHeading } from "@/components/ui/typography";
 import { MAX_TRIP_NOTES } from "@/lib/trips";
 import { saveTripNotes } from "@/spa/lib/actions-client";
-import { useRouter } from "@/spa/lib/navigation";
 
 // Loaded on demand. Notes are rendered on the server, so the Markdown parser is
 // only downloaded when someone previews a draft.
@@ -43,7 +42,6 @@ export function TripNotes({
   /** The notes rendered on the server. */
   children: ReactNode;
 }) {
-  const router = useRouter();
   const editor = useOverlayState();
   const [draft, setDraft] = useState("");
   const [previewing, setPreviewing] = useState(false);
@@ -67,7 +65,6 @@ export function TripNotes({
         return;
       }
       editor.close();
-      router.refresh();
     });
   }
 

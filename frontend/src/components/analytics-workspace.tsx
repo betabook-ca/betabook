@@ -447,18 +447,20 @@ export function AnalyticsWorkspace({
   return (
     <div className={`flex flex-col gap-6 ${editing ? "pb-24" : ""}`}>
       <SectionHeading className="sr-only">Analytics</SectionHeading>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">{heading}</div>
-        {canCustomize && (
-          <FeatureAnnouncement
-            featureId={ANALYTICS_CUSTOMIZE_ANNOUNCEMENT.featureId}
-            placement="bottom end"
-            isEnabled={!editing}
-          >
-            {customizeButton}
-          </FeatureAnnouncement>
-        )}
-      </div>
+      {(heading || canCustomize) && (
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">{heading}</div>
+          {canCustomize && (
+            <FeatureAnnouncement
+              featureId={ANALYTICS_CUSTOMIZE_ANNOUNCEMENT.featureId}
+              placement="bottom end"
+              isEnabled={!editing}
+            >
+              {customizeButton}
+            </FeatureAnnouncement>
+          )}
+        </div>
+      )}
       {isEditing && (
         <section
           ref={editorRef}

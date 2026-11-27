@@ -20,6 +20,7 @@ import type { FriendshipStatus } from "@/lib/friendships";
 import type { CompanionOption } from "@/lib/journal-companions";
 import type { ProductTourState } from "@/lib/product-tour";
 import { profileSharePath } from "@/lib/profile-share";
+import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 
 export type MemberAccessInfo = {
   journal: boolean;
@@ -164,11 +165,19 @@ export function SpaJournalView({
   isOwner,
   filter,
   data,
+  resultsFilter = filter,
+  pending = false,
+  loadError,
+  basePath,
 }: {
   ownerId: string;
   isOwner: boolean;
   filter: JournalFilter;
   data: JournalViewPayload;
+  resultsFilter?: JournalFilter;
+  pending?: boolean;
+  loadError?: string | null;
+  basePath?: string;
 }) {
   return (
     <NavigationPendingProvider>
@@ -178,38 +187,65 @@ export function SpaJournalView({
         {data.hasEntries && (
           <JournalFilterToolbar
             userId={ownerId}
+            basePath={basePath}
             tags={data.tags}
             isOwner={isOwner}
             friends={data.friends}
             filter={filter}
-            climbName={data.filteredClimbName}
+            climbName={filter.climbId === resultsFilter.climbId ? data.filteredClimbName : null}
           />
         )}
-        <JournalTimeline
-          key={JSON.stringify(filter)}
-          userId={ownerId}
-          filter={filter}
-          initialEntries={data.firstPage.entries}
-          initialHasMore={data.firstPage.hasMore}
-          initialAreaBreadcrumbs={data.areaBreadcrumbs}
-          isOwner={isOwner}
-          hasAnyEntries={data.hasEntries}
-        />
+        {loadError ? (
+          <p role="alert">{loadError}</p>
+        ) : (
+          <JournalTimeline
+            key={JSON.stringify(resultsFilter)}
+            pending={pending}
+            userId={ownerId}
+            filter={resultsFilter}
+            initialEntries={data.firstPage.entries}
+            initialHasMore={data.firstPage.hasMore}
+            initialAreaBreadcrumbs={data.areaBreadcrumbs}
+            isOwner={isOwner}
+            hasAnyEntries={data.hasEntries}
+          />
+        )}
       </div>
     </NavigationPendingProvider>
   );
+}
+
+export async function refineSends(
+  previous: ApiResponse<"/api/pages/users/{id}/sends">["sends"],
+  userId: string,
+  query: string,
+  signal: AbortSignal,
+) {
+  const { areaBreadcrumbs, ...firstPage } = await fetchApi("/api/users/{id}/sends", {
+    path: { id: userId },
+    query: new URLSearchParams(query),
+    signal,
+    sessionEvents: true,
+  });
+  return { ...previous, areaBreadcrumbs, firstPage };
 }
 
 export function SpaSendsView({
   ownerId,
   viewerId,
   filter,
+  resultsFilter = filter,
+  pending = false,
+  loadError,
   basePath,
   data,
 }: {
   ownerId: string;
   viewerId: string;
   filter: UserSendsFilter;
+  resultsFilter?: UserSendsFilter;
+  pending?: boolean;
+  loadError?: string | null;
   basePath: string;
   data: SendsViewPayload;
 }) {
@@ -220,16 +256,23 @@ export function SpaSendsView({
         {data.hasSends && (
           <UserSendsFilterToolbar filter={filter} basePath={basePath} tags={data.tags} />
         )}
-        <UserSendList
-          key={JSON.stringify(filter)}
-          userId={ownerId}
-          filter={filter}
-          initialSends={data.firstPage.sends}
-          initialHasMore={data.firstPage.hasMore}
-          initialAreaBreadcrumbs={data.areaBreadcrumbs}
-          hasAnySends={data.hasSends}
-          currentUserId={viewerId}
-        />
+        {loadError ? (
+          <p role="alert" className="text-sm text-danger">
+            {loadError}
+          </p>
+        ) : (
+          <UserSendList
+            key={JSON.stringify(resultsFilter)}
+            userId={ownerId}
+            filter={resultsFilter}
+            pending={pending}
+            initialSends={data.firstPage.sends}
+            initialHasMore={data.firstPage.hasMore}
+            initialAreaBreadcrumbs={data.areaBreadcrumbs}
+            hasAnySends={data.hasSends}
+            currentUserId={viewerId}
+          />
+        )}
       </div>
     </NavigationPendingProvider>
   );

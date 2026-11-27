@@ -1,29 +1,13 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, expect, it, vi } from "vitest";
+import { MemoryRouter, Route, Routes, Link, useLocation, useNavigate } from "react-router";
+import { expect, it } from "vitest";
 
 import { TripDayOrderControl, TripDayOrderList, TripDayOrderProvider } from "./trip-day-order";
 
-const router = vi.hoisted(() => ({
-  replace: vi.fn<(href: string) => void>(),
-  push: vi.fn<(href: string) => void>(),
-  refresh: vi.fn<() => void>(),
-}));
-// Next syncs useSearchParams with history.replaceState and with navigations;
-// here it reads the address bar on each render.
-vi.mock("@/spa/lib/navigation", () => ({
-  useRouter: () => router,
-  useSearchParams: () => new URLSearchParams(window.location.search),
-}));
-
 const TRIP = "/users/owner-1/trips/7";
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  window.history.replaceState(null, "", `${TRIP}?share=abc`);
-});
-
-function days() {
+function Days() {
   return (
     <TripDayOrderProvider>
       <TripDayOrderControl />
@@ -36,48 +20,62 @@ function days() {
   );
 }
 
+function TripNavigation() {
+  const { pathname, search } = useLocation();
+  const navigate = useNavigate();
+  return (
+    <>
+      <output data-testid="address">{pathname + search}</output>
+      <Link to={TRIP + "/analytics"}>Analytics</Link>
+      <button
+        type="button"
+        onClick={() => {
+          void navigate(-1);
+        }}
+      >
+        Back
+      </button>
+      <Routes>
+        <Route path="/before" element={<p>Before</p>} />
+        <Route path={TRIP} element={<Days />} />
+        <Route path={TRIP + "/analytics"} element={<p>Charts</p>} />
+      </Routes>
+    </>
+  );
+}
+
 const order = () => screen.getAllByRole("region").map((day) => day.getAttribute("aria-label"));
 
-it("reverses the days in place and records the order in the URL without navigating", async () => {
+it("reverses the mounted days and replaces only their order parameter", async () => {
   const user = userEvent.setup();
-  render(days());
-  expect(order()).toEqual(["Day 1", "Day 2", "Day 3"]);
-
+  render(
+    <MemoryRouter initialEntries={["/before", TRIP + "?share=abc"]}>
+      <TripNavigation />
+    </MemoryRouter>,
+  );
+  const earliest = screen.getByRole("region", { name: "Day 1" });
   await user.click(screen.getByRole("button", { name: "Sort ascending" }));
   expect(order()).toEqual(["Day 3", "Day 2", "Day 1"]);
-  expect(screen.getByRole("button", { name: "Sort descending" })).toBeVisible();
-  // The share token stays; nothing is fetched or navigated.
-  expect(window.location.pathname + window.location.search).toBe(`${TRIP}?share=abc&order=newest`);
-  expect(router.replace).not.toHaveBeenCalled();
-  expect(router.push).not.toHaveBeenCalled();
-  expect(router.refresh).not.toHaveBeenCalled();
-
+  expect(screen.getByRole("region", { name: "Day 1" })).toBe(earliest);
+  expect(screen.getByTestId("address")).toHaveTextContent(TRIP + "?share=abc&order=newest");
   await user.click(screen.getByRole("button", { name: "Sort descending" }));
   expect(order()).toEqual(["Day 1", "Day 2", "Day 3"]);
-  // Oldest first is the default, so it leaves the URL.
-  expect(window.location.search).toBe("?share=abc");
+  expect(screen.getByTestId("address").textContent).toBe(TRIP + "?share=abc");
+  await user.click(screen.getByRole("button", { name: "Back" }));
+  expect(screen.getByTestId("address").textContent).toBe("/before");
 });
 
-it("starts in the order the URL asks for", () => {
-  window.history.replaceState(null, "", `${TRIP}?order=newest`);
-  render(days());
-  expect(order()).toEqual(["Day 3", "Day 2", "Day 1"]);
-  expect(screen.getByRole("button", { name: "Sort descending" })).toBeVisible();
-});
-
-it("follows the URL when a navigation changes the order while it stays mounted", async () => {
+it("honors a linked order and restores the locally chosen order on browser Back", async () => {
   const user = userEvent.setup();
-  const { rerender } = render(days());
-  await user.click(screen.getByRole("button", { name: "Sort ascending" }));
+  render(
+    <MemoryRouter initialEntries={[TRIP + "?order=newest"]}>
+      <TripNavigation />
+    </MemoryRouter>,
+  );
   expect(order()).toEqual(["Day 3", "Day 2", "Day 1"]);
-
-  // The trip header's link back to the trip has no ?order, so following it
-  // must show oldest first again, as the URL now says.
-  window.history.replaceState(null, "", TRIP);
-  rerender(days());
+  await user.click(screen.getByRole("button", { name: "Sort descending" }));
+  await user.click(screen.getByRole("link", { name: "Analytics" }));
+  await user.click(screen.getByRole("button", { name: "Back" }));
   expect(order()).toEqual(["Day 1", "Day 2", "Day 3"]);
-
-  window.history.replaceState(null, "", `${TRIP}?order=newest`);
-  rerender(days());
-  expect(order()).toEqual(["Day 3", "Day 2", "Day 1"]);
+  expect(screen.getByTestId("address").textContent).toBe(TRIP);
 });

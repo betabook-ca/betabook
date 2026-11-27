@@ -2,6 +2,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
+import { useClientSession } from "@/hooks/use-client-session";
 import type { ActionResult } from "@/lib/action-result";
 import { authClient } from "@/lib/auth-client";
 
@@ -163,4 +164,34 @@ it("removes member content immediately when a data request returns 401", async (
     "/sign-in?next=%2Fusers%2Falex%3Fview%3Dsends",
   );
   expect(screen.getByRole("link", { name: "Sign up" })).toBeVisible();
+});
+
+it("retains the confirmed viewer during a background check and clears it on cross-tab account changes", async () => {
+  function ViewerName() {
+    const session = useClientSession();
+    return <span>{session?.user.id ?? "No confirmed viewer"}</span>;
+  }
+  render(<ViewerName />);
+  await screen.findByText("alex");
+  let finish!: (r: Response) => void;
+  transport.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  act(() => {
+    void authClient.refetch();
+  });
+  await waitFor(() => expect(finish).toBeTypeOf("function"));
+  expect(screen.getByText("alex")).toBeVisible();
+  await act(async () => finish(session("alex")));
+  act(() => {
+    window.dispatchEvent(
+      new StorageEvent("storage", { key: "betabook:session-change", newValue: "changed" }),
+    );
+  });
+  expect(screen.queryByText("alex")).not.toBeInTheDocument();
+  await act(async () => finish(session("sam")));
+  expect(await screen.findByText("sam")).toBeVisible();
 });

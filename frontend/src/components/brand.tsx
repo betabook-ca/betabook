@@ -38,6 +38,7 @@ export function Brand({
               : `/branding/betabook-${variant}-${theme}.svg`
           }
           alt=""
+          loading="lazy"
           width={width}
           height={height}
 

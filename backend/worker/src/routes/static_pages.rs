@@ -19,7 +19,22 @@ async fn render_static_document(
 ) -> Result<Response, ApiError> {
     let manifest = load_spa_manifest(state).await?;
     let stylesheet_link = primary_stylesheet_href(&manifest)
-        .map(|href| format!("<link rel=\"stylesheet\" href=\"{}\">", escape_html(&href)))
+        .map(|href| {
+            format!(
+                "<link rel=\"stylesheet\" fetchpriority=\"high\" href=\"{}\">",
+                escape_html(&href)
+            )
+        })
+        .unwrap_or_default();
+    let body_font = manifest
+        .iter()
+        .find(|(source, _)| source.ends_with("/Geist-Variable.woff2"))
+        .map(|(_, entry)| {
+            format!(
+                r#"<link rel="preload" as="font" type="font/woff2" crossorigin href="/{}">"#,
+                escape_html(&entry.file)
+            )
+        })
         .unwrap_or_default();
     let head_tags = meta.render_head_tags();
 
@@ -33,6 +48,7 @@ async fn render_static_document(
     <meta name=\"theme-color\" media=\"(prefers-color-scheme: dark)\" content=\"{PALETTE_INK}\">
     {head_tags}
     {stylesheet_link}
+    {body_font}
   </head>
   <body class=\"flex min-h-full flex-col bg-background text-foreground\">
     <script>
@@ -78,6 +94,28 @@ pub async fn about_page(State(state): State<AppState>) -> Result<Response, ApiEr
     );
 
     published_document(&state, &meta, "about").await
+}
+
+#[worker::send]
+pub async fn climbing_logbook(
+    State(state): State<AppState>,
+    headers: axum::http::HeaderMap,
+) -> Result<Response, ApiError> {
+    let meta = PageMetadata::indexable(
+        "Free climbing logbook",
+        "A free climbing logbook for bouldering, sport and trad. Log sends and sessions, see your progression, and import from KAYA, Sendage or Mountain Project.",
+        "/climbing-logbook",
+        "website",
+    );
+    let mut response = if crate::auth::cookies::has_session_cookie(&headers) {
+        super::seo::member_shell(&state, StatusCode::OK, &meta, "routes/info-routes.tsx").await?
+    } else {
+        published_document(&state, &meta, "climbing-logbook").await?
+    };
+    response
+        .headers_mut()
+        .insert(header::VARY, header::HeaderValue::from_static("Cookie"));
+    Ok(response)
 }
 
 async fn published_document(

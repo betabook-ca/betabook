@@ -1,9 +1,11 @@
 import { execFileSync } from "node:child_process";
-import { copyFile, mkdir, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { build } from "vite";
+
+import { publicEntryTemplate } from "./public-entry-template.ts";
 
 async function buildSpa() {
   const configFile = path.resolve("frontend/vite.config.ts");
@@ -21,9 +23,15 @@ async function buildSpa() {
       rolldownOptions: { output: { entryFileNames: "documents.mjs" } },
     },
   });
-  const { staticDocuments } = await import(
+  const { staticDocuments, publicEntry } = await import(
     pathToFileURL(path.resolve(outDir, "documents.mjs")).href
   );
+  const index = await readFile("dist-spa/index.html", "utf8");
+  for (const [file, home] of [
+    ["public-index.txt", false],
+    ["public-home.txt", true],
+  ] as const)
+    await writeFile(path.join("dist-spa", file), publicEntryTemplate(index, publicEntry(home)));
   const directory = path.resolve("dist-spa/static-documents");
   await mkdir(directory, { recursive: true });
   for (const [name, html] of Object.entries(staticDocuments() as Record<string, string>))

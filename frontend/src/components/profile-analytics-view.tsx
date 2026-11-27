@@ -36,6 +36,29 @@ function analyticsHref(
 
 type FilterProps = { tags: string[]; selectedTags: string[]; isOwner: boolean; pending?: boolean };
 
+function analyticsEmptyState({
+  selectedTags,
+  isOwner,
+}: Pick<FilterProps, "selectedTags" | "isOwner">) {
+  return (
+    <EmptyState
+      message={
+        selectedTags.length > 0 ? "Nothing matches these tags." : "No sends or sessions yet."
+      }
+      cta={
+        isOwner && selectedTags.length === 0 ? (
+          <div className="flex flex-col items-center gap-3">
+            <LogEntryButton />
+            <AppLink href="/account/import" className="text-sm">
+              Import your sends
+            </AppLink>
+          </div>
+        ) : undefined
+      }
+    />
+  );
+}
+
 export function EmptyProfileAnalytics({ tags, selectedTags, isOwner, pending }: FilterProps) {
   return (
     <NavigationPendingProvider>
@@ -43,21 +66,7 @@ export function EmptyProfileAnalytics({ tags, selectedTags, isOwner, pending }: 
         <SectionHeading className="sr-only">Analytics</SectionHeading>
         <AnalyticsHashtagFilter selectedTags={selectedTags} tags={tags} />
         <NavigationPendingRegion pending={pending}>
-          <EmptyState
-            message={
-              selectedTags.length > 0 ? "Nothing matches these tags." : "No sends or sessions yet."
-            }
-            cta={
-              isOwner && selectedTags.length === 0 ? (
-                <div className="flex flex-col items-center gap-3">
-                  <LogEntryButton />
-                  <AppLink href="/account/import" className="text-sm">
-                    Import your sends
-                  </AppLink>
-                </div>
-              ) : undefined
-            }
-          />
+          {analyticsEmptyState({ selectedTags, isOwner })}
         </NavigationPendingRegion>
       </div>
     </NavigationPendingProvider>
@@ -68,7 +77,7 @@ export function ProfileAnalyticsDashboard({
   pending,
   userId: id,
   viewerId,
-  scope,
+  scope: selectedScope,
   present,
   yearFilter,
   rows,
@@ -85,7 +94,7 @@ export function ProfileAnalyticsDashboard({
 }: FilterProps & {
   userId: string;
   viewerId: string;
-  scope: ClimbType;
+  scope: ClimbType | null;
   present: ClimbType[];
   yearFilter: string | string[] | undefined;
   rows: AnalyticsSendRow[];
@@ -97,6 +106,9 @@ export function ProfileAnalyticsDashboard({
   overview: ClimberOverview;
   announcements: FeatureAnnouncementDefinition[];
 }) {
+  // No discipline has data when the selected tags match nothing. Keep the same
+  // toolbar and workspace mounted while their results switch to the empty message.
+  const scope = selectedScope ?? "boulder";
   const { years, undatedCount } = getAnalyticsHistorySummary(rows, scope, journalSessions);
   const selectedYears = parseAnalyticsYears(yearFilter, years);
   const analytics = buildUserAnalytics(
@@ -106,7 +118,9 @@ export function ProfileAnalyticsDashboard({
     selectedYears,
     gradePreferences,
   );
-  const summary = [describeClimber(overview), describeRecency(overview)].filter(Boolean).join(" ");
+  const summary = selectedScope
+    ? [describeClimber(overview), describeRecency(overview)].filter(Boolean).join(" ")
+    : undefined;
 
   return (
     <FeatureAnnouncementScope
@@ -119,6 +133,9 @@ export function ProfileAnalyticsDashboard({
       <NavigationPendingProvider>
         <NavigationPendingRegion pending={pending}>
           <AnalyticsDashboard
+            emptyState={
+              selectedScope === null ? analyticsEmptyState({ selectedTags, isOwner }) : undefined
+            }
             summary={summary}
             key={id}
             canCustomize={isOwner}
@@ -134,21 +151,25 @@ export function ProfileAnalyticsDashboard({
             selectedYears={selectedYears}
             periodPicker={
               <>
-                <DisciplineScopeNav
-                  present={present}
-                  scope={scope}
-                  href={(type) => analyticsHref(id, type, selectedYears, selectedTags)}
-                />
+                {selectedScope && (
+                  <DisciplineScopeNav
+                    present={present}
+                    scope={scope}
+                    href={(type) => analyticsHref(id, type, selectedYears, selectedTags)}
+                  />
+                )}
                 <AnalyticsHashtagFilter
                   selectedTags={selectedTags}
                   tags={tags}
                   controls={
-                    <div className="min-w-0 flex-1">
-                      <AnalyticsYearNavigation
-                        years={years.toReversed()}
-                        selected={selectedYears}
-                      />
-                    </div>
+                    selectedScope && (
+                      <div className="min-w-0 flex-1">
+                        <AnalyticsYearNavigation
+                          years={years.toReversed()}
+                          selected={selectedYears}
+                        />
+                      </div>
+                    )
                   }
                 />
               </>

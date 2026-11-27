@@ -47,7 +47,7 @@ export function TermsAcceptanceForm({
       if (onAccepted) onAccepted();
       else {
         router.replace(termsNextPath(next));
-        router.refresh();
+        if (onAccept !== acceptTerms) router.refresh();
       }
     } catch {
       setError("Couldn't save your agreement. Please try again.");

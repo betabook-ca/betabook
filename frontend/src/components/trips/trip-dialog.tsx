@@ -113,8 +113,7 @@ export function TripDialog({
         return;
       }
       state.close();
-      if (trip) router.refresh();
-      else router.push(tripHref(userId, result.value));
+      if (!trip) router.push(tripHref(userId, result.value));
     });
   }
 

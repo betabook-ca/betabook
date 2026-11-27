@@ -38,6 +38,7 @@ import { usePathname, useRouter } from "@/spa/lib/navigation";
 export function ClimbListItems({
   items,
   totalCount,
+  pending = false,
   areaBreadcrumbs,
   view,
   signedIn,
@@ -49,6 +50,7 @@ export function ClimbListItems({
   /** Climbs on the list before the filters, to tell an empty list from an
    * empty result. */
   totalCount: number;
+  pending?: boolean;
   areaBreadcrumbs: AreaBreadcrumbs;
   view: ClimbListView;
   signedIn: boolean;
@@ -122,60 +124,62 @@ export function ClimbListItems({
   return (
     <div className="flex min-w-0 flex-col gap-3">
       <ClimbListToolbar view={view} signedIn={signedIn} />
-      {items.length === 0 ? (
-        <EmptyState
-          message="No climbs on this list match these filters."
-          cta={
-            <Button
-              variant="outline"
-              onPress={() => navigate({ sort: view.sort, filter: DEFAULT_CLIMB_FILTER })}
-            >
-              Clear filters
-            </Button>
-          }
-        />
-      ) : (
-        <ol className="flex flex-col divide-y divide-separator">
-          {items.map((item) => (
-            <ListRow
-              key={item.climbId}
-              as="li"
-              leading={
-                item.sent !== null && (
-                  <ClimbSentIndicator
-                    climb={{
-                      id: item.climbId,
-                      name: item.name,
-                      areaId: item.areaId,
-                      type: item.type,
-                      grade: item.grade,
-                      brokenOn: item.brokenOn,
-                    }}
-                    sent={item.sent}
+      <div aria-busy={pending}>
+        {items.length === 0 ? (
+          <EmptyState
+            message="No climbs on this list match these filters."
+            cta={
+              <Button
+                variant="outline"
+                onPress={() => navigate({ sort: view.sort, filter: DEFAULT_CLIMB_FILTER })}
+              >
+                Clear filters
+              </Button>
+            }
+          />
+        ) : (
+          <ol className="flex flex-col divide-y divide-separator">
+            {items.map((item) => (
+              <ListRow
+                key={item.climbId}
+                as="li"
+                leading={
+                  item.sent !== null && (
+                    <ClimbSentIndicator
+                      climb={{
+                        id: item.climbId,
+                        name: item.name,
+                        areaId: item.areaId,
+                        type: item.type,
+                        grade: item.grade,
+                        brokenOn: item.brokenOn,
+                      }}
+                      sent={item.sent}
+                    />
+                  )
+                }
+                title={item.name}
+                href={climbHref(item.climbId, item.name)}
+                subtitle={
+                  <AreaBreadcrumb
+                    areaId={item.areaId}
+                    areaName={item.areaName}
+                    ancestors={areaBreadcrumbs[item.areaId] ?? []}
                   />
-                )
-              }
-              title={item.name}
-              href={climbHref(item.climbId, item.name)}
-              subtitle={
-                <AreaBreadcrumb
-                  areaId={item.areaId}
-                  areaName={item.areaName}
-                  ancestors={areaBreadcrumbs[item.areaId] ?? []}
-                />
-              }
-              trailing={
-                <div className="flex flex-col items-end gap-1.5">
-                  <Grade>
-                    <GradeLabel type={item.type} grade={item.grade} />
-                  </Grade>
-                  <DisciplineChip type={item.type} />
-                </div>
-              }
-            />
-          ))}
-        </ol>
-      )}
+                }
+                trailing={
+                  <div className="flex flex-col items-end gap-1.5">
+                    <Grade>
+                      <GradeLabel type={item.type} grade={item.grade} />
+                    </Grade>
+                    <DisciplineChip type={item.type} />
+                  </div>
+                }
+              />
+            ))}
+          </ol>
+        )}
+      </div>
     </div>
   );
 }

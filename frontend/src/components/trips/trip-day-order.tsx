@@ -1,10 +1,10 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, type ReactNode } from "react";
 
 import { SortDirectionButton } from "@/components/ui/sort-select";
 import { TRIP_DAY_ORDER_PARAM, parseTripDayOrder, type TripDayOrder } from "@/lib/trip-days";
-import { useSearchParams } from "@/spa/lib/navigation";
+import { usePathname, useRouter, useSearchParams } from "@/spa/lib/navigation";
 
 type TripDayOrderState = { order: TripDayOrder; toggle: () => void };
 
@@ -14,30 +14,22 @@ const TripDayOrderContext = createContext<TripDayOrderState>({
   toggle: () => {},
 });
 
-/** Holds the trip page's day order for the heading's arrow and the list below
- * it. Every day is already on the page, so switching order only reverses the
- * cards here: nothing is fetched and the page isn't re-rendered. The URL is
- * updated with `history.replaceState`, so a reload or a copied link keeps the
- * order, along with the rest of the query such as the share token. */
+/** Days are already loaded. Replacing this query parameter keeps the router,
+ * the day cards, and a copied or restored trip URL in sync. */
 export function TripDayOrderProvider({ children }: { children: ReactNode }) {
-  const urlOrder = parseTripDayOrder(useSearchParams().get(TRIP_DAY_ORDER_PARAM) ?? undefined);
-  const [order, setOrder] = useState(urlOrder);
-  // A navigation can change ?order while this stays mounted, such as the trip
-  // header's link back to the trip. Follow the URL when it does, so the two
-  // never disagree.
-  const [seenUrlOrder, setSeenUrlOrder] = useState(urlOrder);
-  if (urlOrder !== seenUrlOrder) {
-    setSeenUrlOrder(urlOrder);
-    setOrder(urlOrder);
-  }
+  const pathname = usePathname();
+  const search = useSearchParams();
+  const router = useRouter();
+  const order = parseTripDayOrder(search.get(TRIP_DAY_ORDER_PARAM) ?? undefined);
   const toggle = useCallback(() => {
-    const next = order === "oldest" ? "newest" : "oldest";
-    setOrder(next);
-    const url = new URL(window.location.href);
-    if (next === "newest") url.searchParams.set(TRIP_DAY_ORDER_PARAM, next);
-    else url.searchParams.delete(TRIP_DAY_ORDER_PARAM);
-    window.history.replaceState(window.history.state, "", url);
-  }, [order]);
+    const next = new URLSearchParams(search);
+    if (order === "oldest") next.set(TRIP_DAY_ORDER_PARAM, "newest");
+    else next.delete(TRIP_DAY_ORDER_PARAM);
+    const suffix = next.toString();
+    router.replace(pathname + (suffix ? "?" + suffix : "") + window.location.hash, {
+      scroll: false,
+    });
+  }, [pathname, search, router, order]);
   const value = useMemo(() => ({ order, toggle }), [order, toggle]);
   return <TripDayOrderContext value={value}>{children}</TripDayOrderContext>;
 }

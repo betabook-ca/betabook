@@ -19,10 +19,12 @@ export function PublicClimbList({
   initial,
   areaId,
   query,
+  pending = false,
 }: {
   initial: PublicClimbsPage;
   areaId: number;
   query: string;
+  pending?: boolean;
 }) {
   const list = usePagedList({
     initialItems: initial.climbs,
@@ -49,7 +51,7 @@ export function PublicClimbList({
       areaBreadcrumbs={list.meta}
       pagination={{
         hasNextPage: list.hasMore,
-        loadingMore: list.loadingMore,
+        loadingMore: pending || list.loadingMore,
         onLoadMore: list.loadMore,
         failed: list.loadMoreFailed,
       }}

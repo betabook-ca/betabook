@@ -21,6 +21,7 @@ type UserSendListProps = {
   /** Distinguishes an empty logbook from a filter with no matches. */
   hasAnySends: boolean;
   currentUserId: string;
+  pending?: boolean;
 };
 
 /** Key the list by filters. Same-key refreshes revalidate the loaded depth
@@ -33,6 +34,7 @@ export function UserSendList({
   initialAreaBreadcrumbs,
   hasAnySends,
   currentUserId,
+  pending = false,
 }: UserSendListProps) {
   const {
     items: sends,
@@ -83,13 +85,13 @@ export function UserSendList({
   }
 
   return (
-    <NavigationPendingRegion>
+    <NavigationPendingRegion pending={pending}>
       <SendListShell
         sends={sends}
         emptyState={<EmptyState message="No sends match these filters." />}
         hasMore={hasMore}
         onLoadMore={loadMore}
-        loadingMore={loadingMore}
+        loadingMore={pending || loadingMore}
         loadMoreFailed={loadMoreFailed}
         renderRow={(send) => (
           <UserSendLogRow

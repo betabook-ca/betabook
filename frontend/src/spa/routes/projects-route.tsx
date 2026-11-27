@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router";
 
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
@@ -14,45 +13,19 @@ import { peekBootstrapData } from "@/spa/bootstrap";
 import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
 import { isNotFoundError } from "@/spa/lib/fetch-json";
-import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
+import { useRetainedPage } from "@/spa/lib/use-retained-page";
 
 type Shared = ApiResponse<"/api/pages/projects/{token}">;
 
-function useProjectData<T>(read: (signal: AbortSignal) => Promise<T>, initial: T | null = null) {
-  const [data, setData] = useState(initial);
-  const [error, setError] = useState<string | null>(null);
-  const refresh = useRouterRefreshKey();
-  useEffect(() => {
-    if (initial && refresh === 0) return;
-    const controller = new AbortController();
-    async function load() {
-      try {
-        const value = await read(controller.signal);
-        if (controller.signal.aborted) return;
-        setError(null);
-        setData(value);
-      } catch (cause) {
-        if (controller.signal.aborted) return;
-        setData(null);
-        setError(isNotFoundError(cause) ? "Project not found" : "Could not load projects.");
-      }
-    }
-    void load();
-    return () => controller.abort();
-  }, [initial, refresh, read]);
-  return { data, error };
-}
-
 function OwnerBoard({ userId, sent }: { userId: string; sent: boolean }) {
-  const read = useCallback(
-    (signal: AbortSignal) =>
-      fetchApi("/api/pages/users/{id}/projects", { path: { id: userId }, query: { sent }, signal }),
-    [userId, sent],
-  );
-  const { data, error } = useProjectData(read);
-  if (error) return <p role="alert">{error}</p>;
-  if (!data) return <SkeletonListRows rows={4} />;
   const variant = sent ? "sent" : "open";
+  const { data, query, error } = useRetainedPage({
+    scope: userId,
+    query: variant,
+    load: (signal) =>
+      fetchApi("/api/pages/users/{id}/projects", { path: { id: userId }, query: { sent }, signal }),
+  });
+  const board = query === variant ? data : undefined;
   return (
     <WorkspaceShell area="progress" userId={userId}>
       <div className="flex min-w-0 flex-col gap-4">
@@ -64,7 +37,17 @@ function OwnerBoard({ userId, sent }: { userId: string; sent: boolean }) {
           userId={userId}
           variant={variant}
           shareOrigin={window.location.origin}
-          {...data}
+          {...board}
+          projects={board?.projects ?? []}
+          hasMore={board?.hasMore ?? false}
+          loading={!board}
+          error={
+            error
+              ? isNotFoundError(error)
+                ? "Project not found"
+                : "Could not load projects."
+              : undefined
+          }
         />
       </div>
     </WorkspaceShell>
@@ -73,12 +56,12 @@ function OwnerBoard({ userId, sent }: { userId: string; sent: boolean }) {
 
 function PublicProject({ token, signedIn }: { token: string; signedIn: boolean }) {
   const path = projectSharePath(encodeURIComponent(token));
-  const [initial] = useState(() => peekBootstrapData("shared-project", path) as Shared | null);
-  const read = useCallback(
-    (signal: AbortSignal) => fetchApi("/api/pages/projects/{token}", { path: { token }, signal }),
-    [token],
-  );
-  const { data, error } = useProjectData(read, initial);
+  const { data, error } = useRetainedPage({
+    scope: token,
+    query: "",
+    initial: () => peekBootstrapData("shared-project", path) as Shared | null,
+    load: (signal) => fetchApi("/api/pages/projects/{token}", { path: { token }, signal }),
+  });
   usePageTitle(
     data?.status === "visible"
       ? data.project.ownerName +
@@ -86,7 +69,12 @@ function PublicProject({ token, signedIn }: { token: string; signedIn: boolean }
           data.project.climbName
       : "Shared project",
   );
-  if (error) return <p role="alert">{error}</p>;
+  if (error)
+    return (
+      <p role="alert">
+        {isNotFoundError(error) ? "Project not found" : "Could not load projects."}
+      </p>
+    );
   if (!data) return <SkeletonListRows rows={4} />;
   if (data.status === "expired") return expiredLinkCard("projects");
   if (data.status !== "visible") return <PageTitle>Project not found</PageTitle>;
@@ -111,5 +99,5 @@ export default function ProjectsRoute({
   if (token) return <PublicProject key={token} token={token} signedIn={Boolean(viewerId)} />;
   if (!viewerId) return <CurrentPageAuthCallout />;
   if (id !== viewerId) return <PageTitle>Climber not found</PageTitle>;
-  return <OwnerBoard key={`${id}:${sent}`} userId={id} sent={sent} />;
+  return <OwnerBoard key={id} userId={id} sent={sent} />;
 }

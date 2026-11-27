@@ -48,8 +48,7 @@ export function createWorkerAuthClient(transport: typeof fetch = (...args) => fe
   function refetch(): Promise<void> {
     if (pending) return pending;
     const current = generation;
-    snapshot = { ...snapshot, isPending: true };
-    for (const listener of listeners) listener();
+    // Background checks retain the last confirmed identity until a response arrives.
     pending = (async () => {
       try {
         const response = await transport("/api/auth/get-session", {
@@ -73,6 +72,7 @@ export function createWorkerAuthClient(transport: typeof fetch = (...args) => fe
     if (event.key === SESSION_CHANGE_KEY) {
       generation += 1;
       pending = null;
+      publish(null);
       void refetch();
     }
   }

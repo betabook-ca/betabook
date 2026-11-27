@@ -1,96 +1,131 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router";
+import { useEffect, useMemo, useState } from "react";
+import { Navigate, useSearchParams } from "react-router";
 
+import { HomeIntroduction } from "@/components/home-introduction";
 import { AppSearch } from "@/components/search/app-search";
+import { CARD_PADDING } from "@/components/ui/card";
 import { PageTitle } from "@/components/ui/typography";
 import type { AreaSelection } from "@/lib/area-selection";
-import { parseSearchState, publicClimbSearchItems, type SearchSnapshot } from "@/lib/search";
+import {
+  areaSearchItems,
+  parseSearchState,
+  publicClimbSearchItems,
+  SEARCH_PATH,
+  type SearchSnapshot,
+} from "@/lib/search";
 import { searchParamsToRecord } from "@/lib/url-params";
 import { peekBootstrapData } from "@/spa/bootstrap";
 import { fetchApi } from "@/spa/lib/api";
 import type { SearchBootstrapData } from "@/spa/lib/fetch-json";
 
-export default function SearchRoute({ viewerId }: { viewerId: string | null }) {
-  const [searchParams] = useSearchParams();
-  const rawQuery = searchParams.toString();
-  const [resolvedArea, setResolvedArea] = useState<{
-    areaId: number;
-    selection: AreaSelection;
-  } | null>(null);
-
-  const parsedWithoutArea = parseSearchState(searchParamsToRecord(searchParams), null, "climb");
-  const requestedAreaId = parsedWithoutArea.filter.areaId;
-  const matchedArea =
-    requestedAreaId !== undefined && resolvedArea?.areaId === requestedAreaId
-      ? resolvedArea.selection
-      : requestedAreaId !== undefined
-        ? { id: String(requestedAreaId), name: "Unavailable area", path: "" }
-        : null;
-
-  const initialState = parseSearchState(searchParamsToRecord(searchParams), matchedArea, "climb");
-
-  const bootstrapped =
-    !viewerId && (peekBootstrapData("search", "/search", rawQuery) as SearchBootstrapData | null);
-
-  const initialSnapshot: SearchSnapshot = bootstrapped
-    ? [
-        {
-          kind: "climb",
-          page: {
-            items: publicClimbSearchItems(bootstrapped.climbsPage),
-            hasMore: bootstrapped.climbsPage.hasNextPage,
-            nextPage: 2,
-          },
-          status: "ready",
-        },
-      ]
-    : [];
-
+export default function SearchRoute({
+  viewerId,
+  home = false,
+}: {
+  viewerId: string | null;
+  home?: boolean;
+}) {
+  const [params] = useSearchParams();
+  const rawQuery = params.toString();
+  const seed = (
+    !home && !viewerId ? peekBootstrapData("search", "/search", rawQuery) : null
+  ) as SearchBootstrapData | null;
+  const [knownAreas, setKnownAreas] = useState<Record<string, AreaSelection>>({});
+  const defaultCategory = home ? "all" : "climb";
+  const parsed = useMemo(
+    () =>
+      parseSearchState(searchParamsToRecord(new URLSearchParams(rawQuery)), null, defaultCategory),
+    [rawQuery, defaultCategory],
+  );
+  const id = parsed.filter.areaId;
+  const seededArea = seed?.areaSelection;
+  const cached =
+    id !== undefined
+      ? (knownAreas[id] ?? (seededArea?.id === String(id) ? seededArea : undefined))
+      : undefined;
+  const initialState = useMemo(
+    () => ({
+      ...parsed,
+      area:
+        cached ??
+        (id !== undefined ? { id: String(id), name: "Unavailable area", path: "" } : null),
+    }),
+    [parsed, id, cached],
+  );
+  function remember(area: AreaSelection) {
+    setKnownAreas((previous) =>
+      previous[area.id]?.name === area.name && previous[area.id]?.path === area.path
+        ? previous
+        : { ...previous, [area.id]: area },
+    );
+  }
   useEffect(() => {
-    if (requestedAreaId === undefined) {
-      return;
-    }
-    let cancelled = false;
-    async function loadArea() {
+    if (id === undefined || cached || home) return;
+    const controller = new AbortController();
+    async function load() {
       try {
-        const res = await fetchApi("/api/public/areas/{id}", {
-          path: { id: String(requestedAreaId) },
+        const data = await fetchApi("/api/public/areas/{id}", {
+          path: { id: String(id) },
+          signal: controller.signal,
         });
-        if (!cancelled) {
-          setResolvedArea({
-            areaId: res.area.id,
-            selection: {
-              id: String(res.area.id),
-              name: res.area.name,
-              path: res.ancestors.map((a) => a.name).join(" / "),
-            },
+        if (!controller.signal.aborted)
+          remember({
+            id: String(data.area.id),
+            name: data.area.name,
+            path: data.ancestors.map((a) => a.name).join(" / "),
           });
-        }
       } catch {
-        // Keep the explicit ID when its catalog entry is unavailable.
+        // A deleted or inaccessible area still scopes the search to its explicit ID.
       }
     }
-    void loadArea();
-    return () => {
-      cancelled = true;
-    };
-  }, [requestedAreaId]);
-
+    void load();
+    return () => controller.abort();
+  }, [id, cached, home]);
+  const initial = useMemo<SearchSnapshot>(() => {
+    const sections: SearchSnapshot = [];
+    if (seed?.climbsPage)
+      sections.push({
+        kind: "climb",
+        status: "ready",
+        page: {
+          items: publicClimbSearchItems(seed.climbsPage),
+          hasMore: seed.climbsPage.hasNextPage,
+          nextPage: 2,
+        },
+      });
+    if (seed?.areasPage)
+      sections.push({
+        kind: "area",
+        status: "ready",
+        page: {
+          items: areaSearchItems(seed.areasPage.areas),
+          hasMore: seed.areasPage.hasNextPage,
+          nextPage: 2,
+        },
+      });
+    return sections;
+  }, [seed]);
+  if (home && rawQuery) return <Navigate replace to={SEARCH_PATH + "?" + rawQuery} />;
+  if (home && viewerId) return <Navigate replace to={"/users/" + viewerId} />;
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <PageTitle>Find climbs</PageTitle>
-        <p className="text-sm text-muted">
-          Browse an area by grade, rating and ascents, or search by name.
-        </p>
-      </div>
+    <div className={home ? `flex flex-col gap-6 ${CARD_PADDING.fluid}` : "flex flex-col gap-6"}>
+      {home ? (
+        <HomeIntroduction />
+      ) : (
+        <div className="flex flex-col gap-1">
+          <PageTitle>Find climbs</PageTitle>
+          <p className="text-sm text-muted">
+            Browse an area by grade, rating and ascents, or search by name.
+          </p>
+        </div>
+      )}
       <AppSearch
         initialState={initialState}
-        initial={initialSnapshot}
+        initial={initial}
         suggestions={null}
         viewerId={viewerId}
-        defaultCategory="climb"
-        showMemberNotice
+        onAreaSelected={remember}
+        showMemberNotice={!home}
         memberNoticePlacement="top"
       />
     </div>

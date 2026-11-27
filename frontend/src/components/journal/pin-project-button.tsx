@@ -13,9 +13,11 @@ const loadDialog = () =>
   import("@/components/journal/pin-project-dialog").then((m) => m.PinProjectDialog);
 
 export function PinProjectButton({
+  isDisabled = false,
   suggestions,
   pinnedClimbIds,
 }: {
+  isDisabled?: boolean;
   suggestions: readonly OpenProject[];
   pinnedClimbIds: readonly number[];
 }) {
@@ -25,6 +27,7 @@ export function PinProjectButton({
   return (
     <>
       <Button
+        isDisabled={isDisabled}
         size="sm"
         className="gap-1.5"
         onPress={() => {

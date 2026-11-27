@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
 
 import { AreaBreadcrumbs } from "@/components/breadcrumbs";
@@ -32,7 +31,8 @@ import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
 import { isNotFoundError, parsePositiveId, type ClimbPageData } from "@/spa/lib/fetch-json";
 import { usePathname } from "@/spa/lib/navigation";
-import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
+import { usePublicEntryReady } from "@/spa/lib/public-entry";
+import { useRetainedPage } from "@/spa/lib/use-retained-page";
 
 type MemberClimbPayload = ApiResponse<"/api/pages/climbs/{id}"> & { climbId: number };
 
@@ -66,54 +66,28 @@ function ClimbErrorBanner({ error }: { error: string }) {
 function PublicClimbView({ climbId }: { climbId: number }) {
   const pathname = usePathname();
   const [searchParams] = useSearchParams();
-  const [data, setData] = useState<ClimbPageData | null>(() => {
-    const bootstrapped = peekBootstrapData("climb", pathname) as ClimbPageData | null;
-    return bootstrapped && bootstrapped.climbId === climbId ? bootstrapped : null;
+  const page = useRetainedPage<ClimbPageData>({
+    scope: String(climbId),
+    query: "",
+    initial: () => {
+      const seed = peekBootstrapData("climb", pathname) as ClimbPageData | null;
+      return seed?.climbId === climbId ? seed : null;
+    },
+    async load(signal) {
+      const result = await fetchApi("/api/public/climbs/{id}", {
+        path: { id: String(climbId) },
+        signal,
+      });
+      return { ...result, climbId };
+    },
   });
-  const [notFound, setNotFound] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const matches = data !== null && data.climbId === climbId;
-
-  useEffect(() => {
-    if (matches) {
-      return;
-    }
-    let cancelled = false;
-    async function loadPublic() {
-      try {
-        const res = await fetchApi("/api/public/climbs/{id}", { path: { id: String(climbId) } });
-        if (!cancelled) {
-          setError(null);
-          setNotFound(false);
-          setData({
-            climbId,
-            climb: res.climb,
-            area: res.area,
-            ancestors: res.ancestors,
-            publicSends: res.publicSends,
-            videos: res.videos ?? { videos: [], total: 0 },
-          });
-        }
-      } catch (err) {
-        if (!cancelled) {
-          if (isNotFoundError(err)) {
-            setNotFound(true);
-            setError(null);
-          } else {
-            setError(err instanceof Error ? err.message : "Failed to load climb");
-          }
-        }
-      }
-    }
-    void loadPublic();
-    return () => {
-      cancelled = true;
-    };
-  }, [climbId, matches]);
-
+  const data = page.data;
+  const notFound = isNotFoundError(page.error);
+  const error =
+    page.error instanceof Error ? page.error.message : page.error ? "Failed to load climb" : null;
   const loaded = data?.climbId === climbId ? data : null;
   const grade = loaded && formatGrade(loaded.climb.type, loaded.climb.grade);
+  usePublicEntryReady(Boolean(data || error));
   usePageTitle(
     notFound
       ? "Climb not found"
@@ -125,7 +99,7 @@ function PublicClimbView({ climbId }: { climbId: number }) {
   );
   if (notFound) return <ClimbNotFoundView />;
   if (error) return <ClimbErrorBanner error={error} />;
-  if (!matches || !data) return <ClimbLoadingSkeleton />;
+  if (!data) return <ClimbLoadingSkeleton />;
 
   const path = climbHref(data.climb.id, data.climb.name);
   const breadcrumbAncestors = data.area ? [...data.ancestors, data.area] : data.ancestors;
@@ -170,43 +144,26 @@ function PublicClimbView({ climbId }: { climbId: number }) {
 }
 
 function MemberClimbView({ climbId, viewerId }: { climbId: number; viewerId: string }) {
-  const refreshKey = useRouterRefreshKey();
   const prefs = useGradePreferences();
-  const [data, setData] = useState<MemberClimbPayload | null>(null);
-  const [notFound, setNotFound] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const matches = data !== null && data.climbId === climbId;
-
-  useEffect(() => {
-    let cancelled = false;
-    async function loadMember() {
-      try {
-        const payload = await fetchApi("/api/pages/climbs/{id}", { path: { id: String(climbId) } });
-        if (!cancelled) {
-          setError(null);
-          setNotFound(false);
-          setData({ climbId, ...payload });
-        }
-      } catch (err) {
-        if (!cancelled) {
-          if (isNotFoundError(err)) {
-            setNotFound(true);
-            setError(null);
-          } else {
-            setError(err instanceof Error ? err.message : "Failed to load climb");
-          }
-        }
-      }
-    }
-    void loadMember();
-    return () => {
-      cancelled = true;
-    };
-  }, [climbId, viewerId, refreshKey]);
-
+  const page = useRetainedPage<MemberClimbPayload>({
+    scope: JSON.stringify([viewerId, climbId]),
+    query: "",
+    async load(signal) {
+      const result = await fetchApi("/api/pages/climbs/{id}", {
+        path: { id: String(climbId) },
+        signal,
+        sessionEvents: true,
+      });
+      return { ...result, climbId };
+    },
+  });
+  const data = page.data;
+  const notFound = isNotFoundError(page.error);
+  const error =
+    page.error instanceof Error ? page.error.message : page.error ? "Failed to load climb" : null;
   const loaded = data?.climbId === climbId ? data : null;
   const grade = loaded && formatGrade(loaded.climb.type, loaded.climb.grade);
+  usePublicEntryReady(Boolean(data || error));
   usePageTitle(
     notFound
       ? "Climb not found"
@@ -218,7 +175,7 @@ function MemberClimbView({ climbId, viewerId }: { climbId: number; viewerId: str
   );
   if (notFound) return <ClimbNotFoundView />;
   if (error) return <ClimbErrorBanner error={error} />;
-  if (!matches || !data) return <ClimbLoadingSkeleton />;
+  if (!data) return <ClimbLoadingSkeleton />;
 
   const breadcrumbAncestors = data.area ? [...data.ancestors, data.area] : data.ancestors;
   const loggedBreakdown = Object.entries(data.summary.styleBreakdown).filter(([, c]) => c > 0);

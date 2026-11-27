@@ -39,7 +39,6 @@ export function ClimbListActions({
       }
       deleteState.close();
       if (leaveOnDelete) router.push(climbListsHref(userId));
-      else router.refresh();
     });
   }
 

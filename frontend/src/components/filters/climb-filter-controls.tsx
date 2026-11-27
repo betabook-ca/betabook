@@ -28,6 +28,7 @@ export function ClimbFilterControls({
   showExcludeSent = false,
   sortControl,
   textFilter,
+  searchOnly = false,
   onReset,
   activeFilters = EMPTY_ACTIVE_FILTERS,
 }: {
@@ -36,6 +37,7 @@ export function ClimbFilterControls({
   /** Replaces the catalog sort, for a list with its own order. */
   sortControl?: ReactNode;
   textFilter?: ReactNode;
+  searchOnly?: boolean;
   onReset?: () => void;
   activeFilters?: ActiveFilter[];
   showAreaLookup?: boolean;
@@ -48,6 +50,7 @@ export function ClimbFilterControls({
 }) {
   return (
     <ClimbFilters
+      searchOnly={searchOnly}
       value={{ ...value.filter, area: value.area }}
       onChange={(refinements) => {
         const next = {

@@ -1,7 +1,11 @@
+import { Button } from "@heroui/react";
+
 import { FriendList } from "@/components/friend-list";
 import { FriendSuggestions } from "@/components/friend-suggestions";
 import { FriendTabs } from "@/components/friend-tabs";
 import { FriendsSearch } from "@/components/friends-search";
+import { NavigationPendingRegion } from "@/components/navigation-pending";
+import { SkeletonListRows } from "@/components/ui/skeleton";
 import type { FriendsPage, SuggestedClimberRow } from "@/db/queries";
 import type { FriendsView } from "@/lib/friendships";
 import type { SearchFetcher } from "@/lib/search";
@@ -13,14 +17,22 @@ export function FriendsContent({
   page,
   suggestions,
   fetcher,
+  resultsView = view,
+  pending = false,
+  error,
+  onRetry,
 }: {
   userId: string;
   view: FriendsView;
-  page: FriendsPage;
+  page?: FriendsPage;
+  resultsView?: FriendsView;
+  pending?: boolean;
+  error?: boolean;
+  onRetry?: () => void;
   suggestions: SuggestedClimberRow[] | null;
   fetcher?: SearchFetcher;
 }) {
-  const requestsOnly = view === "requests";
+  const requestsOnly = resultsView === "requests";
   return (
     <div className="flex flex-col gap-6">
       <section aria-label="Friends" className="flex w-full min-w-0 flex-col gap-5">
@@ -29,18 +41,32 @@ export function FriendsContent({
           Only you can see your friend list. Your friends may be suggested to one another. You can
           remove a friend at any time.
         </p>
-        {requestsOnly ? (
-          <FriendList key={`${userId}:requests`} initialPage={page} requestsOnly />
-        ) : (
-          <FriendsSearch fetcher={fetcher}>
-            <div className="flex flex-col gap-6">
-              <FriendList key={`${userId}:friends`} initialPage={page} requestsOnly={false} />
-              {suggestions && suggestions.length > 0 && (
-                <FriendSuggestions climbers={suggestions} />
-              )}
+        <NavigationPendingRegion pending={pending}>
+          {error && (
+            <div role="alert">
+              Couldn’t load friends.{" "}
+              <Button size="sm" onPress={onRetry}>
+                Retry
+              </Button>
             </div>
-          </FriendsSearch>
-        )}
+          )}
+          {!page ? (
+            error ? null : (
+              <SkeletonListRows rows={6} />
+            )
+          ) : requestsOnly ? (
+            <FriendList key={`${userId}:requests`} initialPage={page} requestsOnly />
+          ) : (
+            <FriendsSearch fetcher={fetcher}>
+              <div className="flex flex-col gap-6">
+                <FriendList key={`${userId}:friends`} initialPage={page} requestsOnly={false} />
+                {suggestions && suggestions.length > 0 && (
+                  <FriendSuggestions climbers={suggestions} />
+                )}
+              </div>
+            </FriendsSearch>
+          )}
+        </NavigationPendingRegion>
       </section>
     </div>
   );

@@ -15,7 +15,11 @@ import { useClientSession } from "@/hooks/use-client-session";
 import { createFriendRequestCountStore } from "@/lib/friend-request-count";
 import { usePathname } from "@/spa/lib/navigation";
 
-const FriendRequestsContext = createContext({
+const FriendRequestsContext = createContext<{
+  userId: string | null;
+  count: number | null;
+  refresh: ReturnType<typeof createFriendRequestCountStore>["refresh"];
+}>({
   userId: null as string | null,
   count: null as number | null,
   refresh: async () => {},

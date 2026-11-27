@@ -152,6 +152,6 @@ it("saves an edit in place", async () => {
       description: "Moderates worth the drive",
     }),
   );
-  expect(refresh).toHaveBeenCalled();
+  expect(refresh).not.toHaveBeenCalled();
   expect(push).not.toHaveBeenCalled();
 });

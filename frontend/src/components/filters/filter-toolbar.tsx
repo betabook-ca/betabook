@@ -23,6 +23,7 @@ export function FilterToolbar<T extends DisciplineFilter>({
   onChange,
   onReset,
   textFilter,
+  searchOnly = false,
   sortControl,
   extraFilters,
   activeFilters = EMPTY_ACTIVE_FILTERS,
@@ -31,6 +32,7 @@ export function FilterToolbar<T extends DisciplineFilter>({
   onChange: (value: T) => void;
   onReset: () => void;
   textFilter?: ReactNode;
+  searchOnly?: boolean;
   sortControl?: ReactNode;
   /** Rendered in the expanded panel above the grade sliders — the filters
    * that are specific to one list (rating range, ascent style, …). */
@@ -40,6 +42,7 @@ export function FilterToolbar<T extends DisciplineFilter>({
   const prefs = useGradePreferences();
   return (
     <FilterToolbarLayout
+      searchOnly={searchOnly}
       activeFilters={[...disciplineActiveFilters(value, onChange, prefs), ...activeFilters]}
       search={textFilter}
       controls={
@@ -67,6 +70,7 @@ export function FilterToolbar<T extends DisciplineFilter>({
  * when the panel opens. */
 export function FilterToolbarLayout({
   search,
+  searchOnly = false,
   controls,
   sortControl,
   filters,
@@ -75,6 +79,8 @@ export function FilterToolbarLayout({
   triggerClassName,
 }: {
   search?: ReactNode;
+  /** Keep the query field in the same DOM slot when the selected search category has no filters. */
+  searchOnly?: boolean;
   controls: ReactNode;
   triggerClassName?: string;
   sortControl?: ReactNode;
@@ -82,7 +88,7 @@ export function FilterToolbarLayout({
   activeFilters?: ActiveFilter[];
   onReset: () => void;
 }) {
-  const sort = sortControl && (
+  const sort = !searchOnly && sortControl && (
     <div
       role="group"
       aria-label="Result order"
@@ -100,62 +106,75 @@ export function FilterToolbarLayout({
         {({ isExpanded }) => (
           <>
             <div
-              role="group"
-              aria-label="Filter controls"
+              role={searchOnly ? undefined : "group"}
+              aria-label={searchOnly ? undefined : "Filter controls"}
               className={clsx(
                 "grid gap-2 @3xl/filters:flex @3xl/filters:items-center @3xl/filters:gap-3",
-                search && sortControl ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-1",
+                search && !searchOnly && sortControl
+                  ? "grid-cols-[minmax(0,1fr)_auto]"
+                  : "grid-cols-1",
               )}
             >
               {search && (
-                <div className="min-w-0 @3xl/filters:w-96 @3xl/filters:shrink">{search}</div>
+                <div
+                  className={clsx(
+                    "min-w-0",
+                    searchOnly ? "w-full" : "@3xl/filters:w-96 @3xl/filters:shrink",
+                  )}
+                >
+                  {search}
+                </div>
               )}
-              <div className="col-span-full flex min-w-0 flex-wrap items-center gap-2 @3xl/filters:contents">
-                {controls}
-                <Disclosure.Heading className="contents">
-                  <Disclosure.Trigger
-                    // The visible label stays short; the name says what pressing does next.
-                    aria-label={isExpanded ? "Hide filters" : "Expand filters"}
-                    className={buttonVariants({
-                      variant: "outline",
-                      size: "sm",
-                      className: clsx(
-                        FIELD_HEIGHT_CLASS,
-                        "ml-auto @3xl/filters:ml-0",
-                        triggerClassName,
-                      ),
-                    })}
-                  >
-                    {isExpanded ? (
-                      <ChevronUp className="size-4" aria-hidden />
-                    ) : (
-                      <ChevronDown className="size-4" aria-hidden />
-                    )}
-                    Filters
-                  </Disclosure.Trigger>
-                </Disclosure.Heading>
-              </div>
+              {!searchOnly && (
+                <div className="col-span-full flex min-w-0 flex-wrap items-center gap-2 @3xl/filters:contents">
+                  {controls}
+                  <Disclosure.Heading className="contents">
+                    <Disclosure.Trigger
+                      // The visible label stays short; the name says what pressing does next.
+                      aria-label={isExpanded ? "Hide filters" : "Expand filters"}
+                      className={buttonVariants({
+                        variant: "outline",
+                        size: "sm",
+                        className: clsx(
+                          FIELD_HEIGHT_CLASS,
+                          "ml-auto @3xl/filters:ml-0",
+                          triggerClassName,
+                        ),
+                      })}
+                    >
+                      {isExpanded ? (
+                        <ChevronUp className="size-4" aria-hidden />
+                      ) : (
+                        <ChevronDown className="size-4" aria-hidden />
+                      )}
+                      Filters
+                    </Disclosure.Trigger>
+                  </Disclosure.Heading>
+                </div>
+              )}
               {sort}
             </div>
 
-            <ActiveFilterSummary filters={activeFilters} onClear={onReset} />
+            {!searchOnly && <ActiveFilterSummary filters={activeFilters} onClear={onReset} />}
 
             {/* Disclosure.Body's own p-2 comes from an outer wrapper div this
              * component doesn't expose a className for — style is the only prop
              * that reaches it, so the padding is zeroed there and the panel
              * below owns its own spacing. */}
-            <Disclosure.Content className="min-w-0">
-              <Disclosure.Body style={{ padding: 0 }}>
-                {/* Its own surface, so the expanded filters read as one panel
-                 * belonging to the bar rather than loose page content. */}
-                <section
-                  aria-label="Filter options"
-                  className={`mt-3 flex flex-col gap-4 border border-border ${cardClass("sm")}`}
-                >
-                  {filters}
-                </section>
-              </Disclosure.Body>
-            </Disclosure.Content>
+            {!searchOnly && (
+              <Disclosure.Content className="min-w-0">
+                <Disclosure.Body style={{ padding: 0 }}>
+                  {/* Its own surface, so the expanded filters read as one panel
+                   * belonging to the bar rather than loose page content. */}
+                  <section
+                    aria-label="Filter options"
+                    className={`mt-3 flex flex-col gap-4 border border-border ${cardClass("sm")}`}
+                  >
+                    {filters}
+                  </section>
+                </Disclosure.Body>
+              </Disclosure.Content>
+            )}
           </>
         )}
       </Disclosure>

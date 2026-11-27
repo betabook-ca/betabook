@@ -10,33 +10,27 @@ import { AppLink } from "@/components/ui/app-link";
 import { FORM_CARD_CLASS } from "@/components/ui/card";
 import { PageTitle } from "@/components/ui/typography";
 import { formatAuthErrorMessage, safeNextPath, signInUrl } from "@/lib/sign-in-redirect";
-import { TERMS_UPDATED_LABEL, TERMS_VERSION } from "@/lib/terms";
+import { CURRENT_TERMS_PROMPT } from "@/lib/terms";
 import { acceptTermsUrl, termsNextPath } from "@/lib/terms-navigation";
-import { fetchApi } from "@/spa/lib/api";
+import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import type { AuthConfig } from "@/spa/lib/fetch-json";
 
 type AuthRouteKind = "sign-in" | "sign-up" | "forgot-password" | "reset-password" | "accept-terms";
 
-function AuthRouteView({ kind, viewerId }: { kind: AuthRouteKind; viewerId: string | null }) {
+function AuthRouteView({
+  kind,
+  viewerId,
+  termsStatus,
+}: {
+  kind: AuthRouteKind;
+  viewerId: string | null;
+  termsStatus?: ApiResponse<"/api/terms/status"> | null;
+}) {
   const [searchParams] = useSearchParams();
   const [config, setConfig] = useState<AuthConfig>({
     googleEnabled: false,
     turnstileSiteKey: null,
   });
-  const [termsStatus, setTermsStatus] = useState<{
-    checkedFor: string | null;
-    required: boolean;
-    version: string;
-    versionLabel: string;
-    previousVersion: string | null;
-  }>({
-    checkedFor: null,
-    required: false,
-    version: TERMS_VERSION,
-    versionLabel: TERMS_UPDATED_LABEL,
-    previousVersion: null,
-  });
-
   const needsAuthConfig = kind === "sign-in" || kind === "sign-up" || kind === "forgot-password";
 
   useEffect(() => {
@@ -59,36 +53,6 @@ function AuthRouteView({ kind, viewerId }: { kind: AuthRouteKind; viewerId: stri
       cancelled = true;
     };
   }, [needsAuthConfig]);
-
-  useEffect(() => {
-    if (kind !== "accept-terms" || !viewerId) {
-      return;
-    }
-    const targetViewer = viewerId;
-    let cancelled = false;
-    async function loadTerms() {
-      try {
-        const res = await fetchApi("/api/terms/status", {});
-        if (!cancelled) {
-          setTermsStatus({
-            checkedFor: targetViewer,
-            required: res.required,
-            version: res.version ?? TERMS_VERSION,
-            versionLabel: res.versionLabel ?? TERMS_UPDATED_LABEL,
-            previousVersion: res.previousVersion ?? null,
-          });
-        }
-      } catch {
-        if (!cancelled) {
-          setTermsStatus((current) => ({ ...current, checkedFor: targetViewer, required: true }));
-        }
-      }
-    }
-    void loadTerms();
-    return () => {
-      cancelled = true;
-    };
-  }, [kind, viewerId]);
 
   if (kind === "sign-in") {
     const nextPath = safeNextPath(searchParams.get("next") ?? undefined);
@@ -141,21 +105,39 @@ function AuthRouteView({ kind, viewerId }: { kind: AuthRouteKind; viewerId: stri
     return <ResetPasswordForm token={token} />;
   }
 
-  const next = termsNextPath(searchParams.get("next") ?? undefined);
+  return (
+    <AcceptTermsRoute
+      viewerId={viewerId}
+      termsStatus={termsStatus}
+      next={termsNextPath(searchParams.get("next") ?? undefined)}
+    />
+  );
+}
+
+function AcceptTermsRoute({
+  viewerId,
+  termsStatus,
+  next,
+}: {
+  viewerId: string | null;
+  termsStatus?: ApiResponse<"/api/terms/status"> | null;
+  next: string;
+}) {
   if (!viewerId) {
     return <Navigate to={signInUrl(acceptTermsUrl(next))} replace />;
   }
-  if (termsStatus.checkedFor !== viewerId) {
+  if (termsStatus === undefined) {
     return null;
   }
-  if (!termsStatus.required) {
+  if (termsStatus && !termsStatus.required) {
     return <Navigate to={next} replace />;
   }
+  const prompt = termsStatus ?? CURRENT_TERMS_PROMPT;
   return (
     <TermsAcceptanceForm
-      version={termsStatus.version}
-      versionLabel={termsStatus.versionLabel}
-      previousVersion={termsStatus.previousVersion}
+      version={prompt.version}
+      versionLabel={prompt.versionLabel}
+      previousVersion={prompt.previousVersion}
       next={next}
     />
   );

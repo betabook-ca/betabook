@@ -5,6 +5,7 @@ import { createTestHarness } from "wrangler";
 
 import { testProfileAnalytics } from "./rust-smoke/analytics.mjs";
 import { testAuthLifecycle, testCatalogCron } from "./rust-smoke/auth-lifecycle.mjs";
+import { testCatalogHtml } from "./rust-smoke/catalog-html.mjs";
 import { testGoalRefresh } from "./rust-smoke/goal-refresh.mjs";
 import { testGoals } from "./rust-smoke/goals.mjs";
 import { testImports } from "./rust-smoke/imports.mjs";
@@ -12,6 +13,7 @@ import { testLists } from "./rust-smoke/lists.mjs";
 import { testModeration } from "./rust-smoke/moderation.mjs";
 import { testPlatform } from "./rust-smoke/platform.mjs";
 import { testProjects } from "./rust-smoke/projects.mjs";
+import { testPublicSearch } from "./rust-smoke/public-search.mjs";
 import { testTrips } from "./rust-smoke/trips.mjs";
 import { checkedTransport } from "./rust-smoke/validate-api.mjs";
 import { hashSeedPassword } from "./seed-password.ts";
@@ -122,6 +124,7 @@ void test("Rust Worker HTTP flows", async (t) => {
     assert.equal(download.status, 200);
     assert.equal(await download.text(), catalog);
   });
+  await t.test("catalog HTML", () => testCatalogHtml({ server, db: DB, signIn }));
   await t.test("platform", () => testPlatform({ server, signIn }));
   await t.test("shared profile metadata and data require one current token", async () => {
     const id = "profile-preview";
@@ -172,6 +175,9 @@ void test("Rust Worker HTTP flows", async (t) => {
   });
   await t.test("climb lists", () => testLists({ server, db: DB, signIn }));
   await t.test("goal refresh", () => testGoalRefresh({ server, db: DB, signIn }));
+  await t.test("public search HTML and bootstrap", () =>
+    testPublicSearch({ server, db: DB, signIn }),
+  );
   await t.test("projects", () => testProjects({ server, db: DB, signIn }));
   await t.test("trips", () => testTrips({ server, db: DB, signIn }));
 });

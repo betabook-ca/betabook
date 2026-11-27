@@ -43,6 +43,19 @@ pub fn parse_cookies(headers: &HeaderMap) -> HashMap<String, String> {
     cookies
 }
 
+/// Presence only selects a non-personalized entry shell; never authorizes a read.
+pub fn has_session_cookie(headers: &HeaderMap) -> bool {
+    headers
+        .get_all(header::COOKIE)
+        .iter()
+        .filter_map(|v| v.to_str().ok())
+        .any(|line| {
+            line.split(';')
+                .filter_map(|p| p.trim().split_once('='))
+                .any(|(name, _)| matches!(name, BASE_SESSION_COOKIE | SECURE_SESSION_COOKIE))
+        })
+}
+
 pub fn read_session_token(headers: &HeaderMap, secret: &str, secure: bool) -> Option<String> {
     let cookies = parse_cookies(headers);
     let preferred = session_cookie_name(secure);

@@ -130,33 +130,33 @@ export function SearchController({
     // The climb name field moves into the toolbar's search slot, beside the
     // sort, so Find climbs stacks like every other climb list; the area
     // lookup stays above the toolbar.
-    renderFilters:
-      quick || state.category !== "climb"
-        ? undefined
-        : (queryField: ReactNode) => (
-            <div data-tour-target={filtersTourTarget}>
-              <ClimbFilterControls
-                textFilter={queryField}
-                value={state}
-                onChange={(next) => onChange({ ...state, ...next })}
-                showAreaLookup
-                showExcludeSent={!publicOnly}
-                areaFetcher={areaFetcher}
-                activeFilters={textActiveFilters(state.query, () =>
-                  onChange({ ...state, query: "" }),
-                )}
-                onReset={() =>
-                  onChange({
-                    ...state,
-                    query: "",
-                    filter: DEFAULT_CLIMB_FILTER,
-                    area: null,
-                    sort: DEFAULT_CLIMB_LIST_SORT,
-                  })
-                }
-              />
-            </div>
-          ),
+    renderFilters: quick
+      ? undefined
+      : (queryField: ReactNode) => (
+          <div data-tour-target={filtersTourTarget}>
+            <ClimbFilterControls
+              searchOnly={state.category !== "climb"}
+              textFilter={queryField}
+              value={state}
+              onChange={(next) => onChange({ ...state, ...next })}
+              showAreaLookup={state.category === "climb"}
+              showExcludeSent={!publicOnly}
+              areaFetcher={areaFetcher}
+              activeFilters={textActiveFilters(state.query, () =>
+                onChange({ ...state, query: "" }),
+              )}
+              onReset={() =>
+                onChange({
+                  ...state,
+                  query: "",
+                  filter: DEFAULT_CLIMB_FILTER,
+                  area: null,
+                  sort: DEFAULT_CLIMB_LIST_SORT,
+                })
+              }
+            />
+          </div>
+        ),
   };
   return quick ? (
     <QuickSearchDialog {...props} isOpen={isOpen} onOpenChange={onOpenChange} />

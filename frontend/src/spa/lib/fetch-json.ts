@@ -5,7 +5,11 @@ export type ClimbPageData = Pick<
   "climb" | "area" | "ancestors" | "publicSends" | "videos"
 > & { climbId: number };
 
-export type SearchBootstrapData = { climbsPage: ApiResponse<"/api/public/search/climbs"> };
+export type SearchBootstrapData = {
+  climbsPage?: ApiResponse<"/api/public/search/climbs">;
+  areasPage?: ApiResponse<"/api/public/search/areas">;
+  areaSelection?: { id: string; name: string; path: string };
+};
 export type AuthConfig = ApiResponse<"/api/config/auth">;
 
 export async function fetchJson<T>(

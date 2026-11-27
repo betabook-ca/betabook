@@ -49,7 +49,7 @@ async function choose(user: ReturnType<typeof userEvent.setup>, item: "Edit" | "
   await user.click(await screen.findByRole("menuitem", { name: item }));
 }
 
-it("opens the edit dialog for its trip and refreshes after saving", async () => {
+it("saves the edited trip without triggering a second page refresh", async () => {
   const user = userEvent.setup();
   render(<TripActions trip={BISHOP} userId="alex" />);
 
@@ -69,7 +69,7 @@ it("opens the edit dialog for its trip and refreshes after saving", async () => 
       expect.objectContaining({ name: "Bishop" }),
     ),
   );
-  await waitFor(() => expect(refresh).toHaveBeenCalled());
+  expect(refresh).not.toHaveBeenCalled();
   expect(push).not.toHaveBeenCalled();
 });
 
@@ -129,7 +129,7 @@ it("stays on the list after deleting from a card", async () => {
   await user.click(within(dialog).getByRole("button", { name: "Delete" }));
 
   await waitFor(() => expect(deleteTrip).toHaveBeenCalledExactlyOnceWith(7));
-  await waitFor(() => expect(refresh).toHaveBeenCalled());
+  expect(refresh).not.toHaveBeenCalled();
   expect(push).not.toHaveBeenCalled();
 });
 

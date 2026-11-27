@@ -27,14 +27,17 @@ export function AppSidebar({ children }: { children: ReactNode }) {
 export function SidebarLayout({
   account,
   requestCount = 0,
+  showToggle = true,
   children,
 }: {
   account: MenuAccount | null | undefined;
   requestCount?: number;
+  showToggle?: boolean;
   children: ReactNode;
 }) {
   return (
     <SidebarFrame
+      showToggle={showToggle}
       renderNavigation={(collapsed) =>
         account === undefined ? (
           <div role="status" aria-label="Loading navigation" className="flex flex-col gap-1">
@@ -62,12 +65,15 @@ export function SidebarFrame({
   children,
   renderNavigation,
   placement = "viewport",
+  showToggle = true,
   label = "Sidebar",
   navigationLabel = "Desktop",
 }: {
   children: ReactNode;
   renderNavigation: (collapsed: boolean) => ReactNode;
   placement?: "viewport" | "contained";
+  /** The static guest frame offers working links before React mounts its pin control. */
+  showToggle?: boolean;
   label?: string;
   navigationLabel?: string;
 }) {
@@ -130,23 +136,25 @@ export function SidebarFrame({
           className="pointer-events-none absolute inset-y-0 right-0 w-px bg-separator"
         />
         <div className="flex h-14 shrink-0 items-center px-3">
-          <Tooltip.Root delay={400}>
-            <Button
-              isIconOnly
-              variant="ghost"
-              className="size-10"
-              aria-label={toggleLabel}
-              aria-expanded={expanded}
-              aria-controls={navId}
-              onPress={() => {
-                setPinned(!pinned);
-                setPreview(false);
-              }}
-            >
-              <Menu aria-hidden className="size-5" />
-            </Button>
-            <Tooltip.Content placement="right">{toggleLabel}</Tooltip.Content>
-          </Tooltip.Root>
+          {showToggle && (
+            <Tooltip.Root delay={400}>
+              <Button
+                isIconOnly
+                variant="ghost"
+                className="size-10"
+                aria-label={toggleLabel}
+                aria-expanded={expanded}
+                aria-controls={navId}
+                onPress={() => {
+                  setPinned(!pinned);
+                  setPreview(false);
+                }}
+              >
+                <Menu aria-hidden className="size-5" />
+              </Button>
+              <Tooltip.Content placement="right">{toggleLabel}</Tooltip.Content>
+            </Tooltip.Root>
+          )}
         </div>
         <nav
           id={navId}

@@ -12,7 +12,6 @@ import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { composeClimbBreakTexts, MAX_BREAK_REASON_LENGTH } from "@/lib/broken-climbs";
 import { localToday } from "@/lib/format-date";
 import { requestClimbBreak } from "@/spa/lib/actions-client";
-import { useRouter } from "@/spa/lib/navigation";
 
 type ClimbBreakDrawerProps = {
   climb: Climb;
@@ -25,7 +24,6 @@ type ClimbBreakDrawerProps = {
  * name and both descriptions are composed from the climb as it is now and
  * shown here verbatim, since that exact text is what the request carries. */
 export function ClimbBreakDrawer({ climb, state }: ClimbBreakDrawerProps) {
-  const router = useRouter();
   const today = localToday();
 
   const [brokenOn, setBrokenOn] = useState(today);
@@ -64,7 +62,6 @@ export function ClimbBreakDrawer({ climb, state }: ClimbBreakDrawerProps) {
           return;
         }
         state.close();
-        router.refresh();
       } catch {
         setError(GENERIC_ERROR_MESSAGE);
       }

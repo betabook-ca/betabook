@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { OptionSelect } from "@/components/ui/option-select";
 import { QueryInput } from "@/components/ui/query-input";
+import { SkeletonListRows } from "@/components/ui/skeleton";
 import type { OpenProject } from "@/db/queries";
 import { useMounted } from "@/hooks/use-mounted";
 import { localToday } from "@/lib/format-date";
@@ -88,6 +89,8 @@ type ProjectBoardProps = {
   projects: ProjectWithSessions[];
   hasMore: boolean;
   variant?: ProjectBoardVariant;
+  loading?: boolean;
+  error?: string;
   /** Unsent climbs offered in the pin modal; empty on the sent board. */
   suggestions?: readonly OpenProject[];
   /** Every climb the owner has pinned, both sides of the send split; this
@@ -104,6 +107,8 @@ export function ProjectBoard({
   projects,
   hasMore,
   variant = "open",
+  loading = false,
+  error,
   suggestions = NO_SUGGESTIONS,
   pinnedClimbIds,
   shareOrigin,
@@ -111,7 +116,10 @@ export function ProjectBoard({
   const sents = variant === "sent";
   const sorts = sents ? SENT_SORTS : OPEN_SORTS;
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<ProjectSort>(sents ? "sent" : "recent");
+  const [preferredSort, setSort] = useState<ProjectSort>(sents ? "sent" : "recent");
+  const sort = sorts.some((option) => option.value === preferredSort)
+    ? preferredSort
+    : sorts[0].value;
   const [selected, setSelected] = useState<ProjectWithSessions | null>(null);
   const drawer = useOverlayState();
   const mounted = useMounted();
@@ -129,6 +137,7 @@ export function ProjectBoard({
 
   const pinButton = sents ? null : (
     <PinProjectButton
+      isDisabled={loading || Boolean(error)}
       suggestions={suggestions}
       pinnedClimbIds={pinnedClimbIds ?? projects.map((project) => project.climbId)}
     />
@@ -155,7 +164,13 @@ export function ProjectBoard({
         </div>
       </div>
 
-      {empty ? (
+      {error ? (
+        <p role="alert">{error}</p>
+      ) : loading ? (
+        <div aria-busy="true" aria-label="Loading projects">
+          <SkeletonListRows rows={4} />
+        </div>
+      ) : empty ? (
         <EmptyState
           message={
             sents
@@ -185,7 +200,7 @@ export function ProjectBoard({
       )}
 
       {hasMore && <p className="text-sm text-muted">Showing the most recently active projects.</p>}
-      {selected && (
+      {selected && projects.some((p) => p.climbId === selected.climbId) && (
         <JournalEntryDrawer
           climb={{
             id: selected.climbId,

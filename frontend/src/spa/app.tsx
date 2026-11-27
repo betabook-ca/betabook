@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Route, Routes } from "react-router";
 
 import { HeaderNavigation } from "@/components/app-menu";
@@ -20,14 +20,11 @@ import { authClient } from "@/lib/auth-client";
 import { gradePreferencesFor } from "@/lib/grade-preferences";
 import { COSTS_PAGE, LOGBOOK_PAGE } from "@/lib/landing-pages";
 import { SITE_NAME, SITE_TAGLINE } from "@/lib/site";
-import { TERMS_UPDATED_LABEL, TERMS_VERSION } from "@/lib/terms";
-import { syncBootstrapPath } from "@/spa/bootstrap";
-import { fetchApi } from "@/spa/lib/api";
+import { CURRENT_TERMS_PROMPT } from "@/lib/terms";
+import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { DocumentNavigation } from "@/spa/lib/document-navigation";
-import { usePathname } from "@/spa/lib/navigation";
 import { Providers } from "@/spa/providers";
 
-const HomeRoute = lazy(() => import("@/spa/routes/home-route"));
 const SearchRoute = lazy(() => import("@/spa/routes/search-route"));
 const AreaRoute = lazy(() => import("@/spa/routes/area-route"));
 const ClimbRoute = lazy(() => import("@/spa/routes/climb-route"));
@@ -52,13 +49,7 @@ const ProjectsRoute = lazy(() => import("@/spa/routes/projects-route"));
 const TutorialRoute = lazy(() => import("@/spa/routes/tutorial-route"));
 const NotFoundRoute = lazy(() => import("@/spa/routes/not-found-route"));
 
-type TermsCheckState = {
-  viewerId: string | null;
-  required: boolean;
-  version: string;
-  versionLabel: string;
-  previousVersion: string | null;
-};
+type TermsCheckState = { viewerId: string; status: ApiResponse<"/api/terms/status"> | null };
 
 function RouteFallback() {
   return (
@@ -71,26 +62,9 @@ function RouteFallback() {
 
 /** Root SPA application shell mirroring `app/layout.tsx` + `app/template.tsx`. */
 export function App() {
-  const pathname = usePathname();
-  const { data: session, isPending, refetch } = authClient.useSession();
-  const [stableViewerId, setStableViewerId] = useState<string | null>(null);
-  const viewerId = isPending ? stableViewerId : (session?.user.id ?? null);
-  if (!isPending && viewerId !== stableViewerId) {
-    setStableViewerId(viewerId);
-  }
-
-  const [termsState, setTermsState] = useState<TermsCheckState>({
-    viewerId: null,
-    required: false,
-    version: TERMS_VERSION,
-    versionLabel: TERMS_UPDATED_LABEL,
-    previousVersion: null,
-  });
-
-  useEffect(() => {
-    syncBootstrapPath(pathname);
-  }, [pathname]);
-
+  const { data: session, refetch } = authClient.useSession();
+  const viewerId = session?.user.id ?? null;
+  const [termsState, setTermsState] = useState<TermsCheckState>();
   useEffect(() => {
     function handleSessionRefresh() {
       void refetch();
@@ -106,45 +80,28 @@ export function App() {
       return;
     }
     const targetViewer = viewerId;
-    let cancelled = false;
+    const controller = new AbortController();
     async function checkTerms() {
       try {
-        const status = await fetchApi("/api/terms/status", {});
-        if (!cancelled && status.userId === targetViewer) {
-          setTermsState({
-            viewerId: targetViewer,
-            required: status.required,
-            version: typeof status.version === "string" ? status.version : TERMS_VERSION,
-            versionLabel:
-              typeof status.versionLabel === "string" ? status.versionLabel : TERMS_UPDATED_LABEL,
-            previousVersion:
-              typeof status.previousVersion === "string" ? status.previousVersion : null,
-          });
-        }
+        const status = await fetchApi("/api/terms/status", { signal: controller.signal });
+        if (!controller.signal.aborted && status.userId === targetViewer)
+          setTermsState({ viewerId: targetViewer, status });
       } catch {
-        // Protected routes still enforce terms status via 428 responses.
+        if (!controller.signal.aborted) setTermsState({ viewerId: targetViewer, status: null });
       }
     }
     void checkTerms();
-    return () => {
-      cancelled = true;
-    };
-  }, [viewerId]);
+    return () => controller.abort();
+  }, [viewerId, session?.user.termsAcceptedAt, session?.user.termsVersion]);
 
-  const activeTerms =
-    viewerId !== null && termsState.viewerId === viewerId
-      ? termsState
-      : {
-          viewerId: null,
-          required: false,
-          version: TERMS_VERSION,
-          versionLabel: TERMS_UPDATED_LABEL,
-          previousVersion: null,
-        };
-
-  const sessionUser = session?.user as
-    | { boulderGradeScale?: string | null; ropeGradeScale?: string | null }
-    | undefined;
+  const activeTerms = termsState?.viewerId === viewerId ? termsState?.status : undefined;
+  const termsPrompt = activeTerms ?? CURRENT_TERMS_PROMPT;
+  const boulderGradeScale = session?.user.boulderGradeScale;
+  const ropeGradeScale = session?.user.ropeGradeScale;
+  const gradePreferences = useMemo(
+    () => gradePreferencesFor({ boulderGradeScale, ropeGradeScale }),
+    [boulderGradeScale, ropeGradeScale],
+  );
 
   return (
     <>
@@ -186,15 +143,15 @@ export function App() {
                 <ViewerBoundary key={viewerId ?? "anonymous"} viewerId={viewerId}>
                   <TermsGate
                     viewerId={viewerId}
-                    initiallyRequired={activeTerms.required}
-                    version={activeTerms.version}
-                    versionLabel={activeTerms.versionLabel}
-                    previousVersion={activeTerms.previousVersion}
+                    initiallyRequired={activeTerms?.required ?? false}
+                    version={termsPrompt.version}
+                    versionLabel={termsPrompt.versionLabel}
+                    previousVersion={termsPrompt.previousVersion}
                   >
-                    <GradePreferencesProvider value={gradePreferencesFor(sessionUser)}>
+                    <GradePreferencesProvider value={gradePreferences}>
                       <Suspense fallback={<RouteFallback />}>
                         <Routes>
-                          <Route path="/" element={<HomeRoute viewerId={viewerId} />} />
+                          <Route path="/" element={<SearchRoute viewerId={viewerId} home />} />
                           <Route path="/search" element={<SearchRoute viewerId={viewerId} />} />
                           <Route
                             path="/users/:id/analytics"
@@ -297,7 +254,13 @@ export function App() {
                           />
                           <Route
                             path="/accept-terms"
-                            element={<AuthRouteView kind="accept-terms" viewerId={viewerId} />}
+                            element={
+                              <AuthRouteView
+                                kind="accept-terms"
+                                viewerId={viewerId}
+                                termsStatus={activeTerms}
+                              />
+                            }
                           />
                           <Route path="/about" element={<InfoRouteView kind="about" />} />
                           <Route path="/terms" element={<InfoRouteView kind="terms" />} />

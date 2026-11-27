@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
 
 import { AreaClimbsSection } from "@/components/area-climbs-section";
@@ -7,7 +6,10 @@ import { AreaHeaderActions } from "@/components/area-header-actions";
 import { AuthCallout } from "@/components/auth-callout";
 import { AreaBreadcrumbs } from "@/components/breadcrumbs";
 import { AreaClimbsToolbar } from "@/components/filters/area-climbs-toolbar";
-import { NavigationPendingProvider } from "@/components/navigation-pending";
+import {
+  NavigationPendingProvider,
+  NavigationPendingRegion,
+} from "@/components/navigation-pending";
 import { PublicClimbList } from "@/components/public-climb-list";
 import { SubareaRail } from "@/components/subarea-rail";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
@@ -32,7 +34,8 @@ import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
 import { isNotFoundError, parsePositiveId } from "@/spa/lib/fetch-json";
 import { usePathname } from "@/spa/lib/navigation";
-import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
+import { usePublicEntryReady } from "@/spa/lib/public-entry";
+import { useRetainedPage } from "@/spa/lib/use-retained-page";
 
 type AreaBootstrap = {
   areaId: number;
@@ -42,16 +45,9 @@ type AreaBootstrap = {
   climbsPage: PublicClimbsPage;
 };
 
-type MemberAreaPayload = ApiResponse<"/api/pages/areas/{id}"> & { areaId: number; query: string };
+type MemberAreaPayload = ApiResponse<"/api/pages/areas/{id}">;
 
-type PublicAreaPayload = {
-  areaId: number;
-  query: string;
-  area: PublicAreaDetails;
-  ancestors: PublicAreaDetails[];
-  subareas: PublicArea[];
-  climbsPage: PublicClimbsPage;
-};
+type PublicAreaPayload = Omit<AreaBootstrap, "areaId">;
 
 function AreaLoadingSkeleton() {
   return (
@@ -96,66 +92,48 @@ function PublicAreaView({
   searchRecord: UrlParamsRecord;
 }) {
   const pathname = usePathname();
-  const [data, setData] = useState<PublicAreaPayload | null>(() => {
-    const bootstrapped = peekBootstrapData("area", pathname, rawQuery) as AreaBootstrap | null;
-    return bootstrapped && bootstrapped.areaId === areaId
-      ? { ...bootstrapped, query: canonicalQuery }
-      : null;
+  const pathArgs = { id: String(areaId) };
+  const loadClimbs = (signal: AbortSignal) =>
+    fetchApi("/api/public/areas/{id}/climbs", {
+      path: pathArgs,
+      query: new URLSearchParams(canonicalQuery),
+      signal,
+    });
+  const page = useRetainedPage<PublicAreaPayload>({
+    scope: String(areaId),
+    query: canonicalQuery,
+    initial: () => {
+      const seed = peekBootstrapData("area", pathname, rawQuery) as AreaBootstrap | null;
+      return seed?.areaId === areaId ? seed : null;
+    },
+    async load(signal) {
+      const [details, climbsPage] = await Promise.all([
+        fetchApi("/api/public/areas/{id}", { path: pathArgs, signal }),
+        loadClimbs(signal),
+      ]);
+      return { ...details, climbsPage };
+    },
+    async refine(previous, _query, signal) {
+      return { ...previous, climbsPage: await loadClimbs(signal) };
+    },
   });
-  const [notFound, setNotFound] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const matches = data !== null && data.areaId === areaId && data.query === canonicalQuery;
-
-  useEffect(() => {
-    if (matches) {
-      return;
-    }
-    let cancelled = false;
-
-    async function loadPublic() {
-      try {
-        const [details, climbsPage] = await Promise.all([
-          fetchApi("/api/public/areas/{id}", { path: { id: String(areaId) } }),
-          fetchApi("/api/public/areas/{id}/climbs", {
-            path: { id: String(areaId) },
-            query: new URLSearchParams(canonicalQuery),
-          }),
-        ]);
-        if (!cancelled) {
-          setError(null);
-          setNotFound(false);
-          setData({ areaId, query: canonicalQuery, ...details, climbsPage });
-        }
-      } catch (err) {
-        if (!cancelled) {
-          if (isNotFoundError(err)) {
-            setNotFound(true);
-            setError(null);
-          } else {
-            setError(err instanceof Error ? err.message : "Failed to load area");
-          }
-        }
-      }
-    }
-    void loadPublic();
-    return () => {
-      cancelled = true;
-    };
-  }, [areaId, canonicalQuery, matches]);
-
+  const data = page.data;
+  const notFound = isNotFoundError(page.error);
+  const error =
+    page.error instanceof Error ? page.error.message : page.error ? "Failed to load area" : null;
+  usePublicEntryReady(Boolean(data || error));
   usePageTitle(
     notFound
       ? "Area not found"
-      : data?.areaId === areaId
+      : data
         ? data.ancestors.at(-1)
           ? data.area.name + " climbing · " + data.ancestors.at(-1)?.name
           : data.area.name + " climbing"
         : null,
   );
   if (notFound) return <AreaNotFoundView />;
-  if (error) return <AreaErrorBanner error={error} />;
-  if (!data || data.areaId !== areaId) return <AreaLoadingSkeleton />;
+  if (!data && error) return <AreaErrorBanner error={error} />;
+  if (!data) return <AreaLoadingSkeleton />;
 
   const path = areaHref(data.area.id, data.area.name);
   const climbsBlock = (
@@ -163,15 +141,18 @@ function PublicAreaView({
       <SectionHeading>Climbs</SectionHeading>
       <NavigationPendingProvider>
         <AreaClimbsToolbar areaPath={path} sort={sort} filter={filter} showExcludeSent={false} />
-        {matches ? (
-          <PublicClimbList
-            key={`climbs:${canonicalQuery}`}
-            initial={data.climbsPage}
-            areaId={data.area.id}
-            query={canonicalQuery}
-          />
+        {error ? (
+          <AreaErrorBanner error={error} />
         ) : (
-          <SkeletonListRows rows={6} />
+          <NavigationPendingRegion pending={page.pending}>
+            <PublicClimbList
+              key={page.query}
+              initial={data.climbsPage}
+              areaId={data.area.id}
+              query={page.query ?? ""}
+              pending={page.pending}
+            />
+          </NavigationPendingRegion>
         )}
       </NavigationPendingProvider>
     </div>
@@ -206,79 +187,65 @@ function PublicAreaView({
 
 function MemberAreaView({
   areaId,
+  viewerId,
   sort,
   filter,
   canonicalQuery,
 }: {
   areaId: number;
+  viewerId: string;
   sort: SubtreeClimbsSort;
   filter: AreaClimbsFilter;
   canonicalQuery: string;
 }) {
-  const refreshKey = useRouterRefreshKey();
   const prefs = useGradePreferences();
-  const [data, setData] = useState<MemberAreaPayload | null>(null);
-  const [notFound, setNotFound] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const matches = data !== null && data.areaId === areaId && data.query === canonicalQuery;
-
-  useEffect(() => {
-    const queryPart = canonicalQuery ? `?${canonicalQuery}` : "";
-    let cancelled = false;
-
-    async function loadMember() {
-      try {
-        const payload = await fetchApi("/api/pages/areas/{id}", {
-          path: { id: String(areaId) },
-          query: new URLSearchParams(queryPart),
-        });
-        if (!cancelled) {
-          setError(null);
-          setNotFound(false);
-          setData({ areaId, query: canonicalQuery, ...payload });
-        }
-      } catch (err) {
-        if (!cancelled) {
-          if (isNotFoundError(err)) {
-            setNotFound(true);
-            setError(null);
-          } else {
-            setError(err instanceof Error ? err.message : "Failed to load area");
-          }
-        }
-      }
-    }
-    void loadMember();
-    return () => {
-      cancelled = true;
-    };
-  }, [areaId, canonicalQuery, refreshKey]);
-
+  const options = (signal: AbortSignal) => ({
+    path: { id: String(areaId) },
+    query: new URLSearchParams(canonicalQuery),
+    signal,
+    sessionEvents: true,
+  });
+  const page = useRetainedPage<MemberAreaPayload>({
+    scope: JSON.stringify([viewerId, areaId]),
+    query: canonicalQuery,
+    load: (signal) => fetchApi("/api/pages/areas/{id}", options(signal)),
+    async refine(previous, _query, signal) {
+      return { ...previous, climbsPage: await fetchApi("/api/areas/{id}/climbs", options(signal)) };
+    },
+  });
+  const data = page.data;
+  const notFound = isNotFoundError(page.error);
+  const error =
+    page.error instanceof Error ? page.error.message : page.error ? "Failed to load area" : null;
+  usePublicEntryReady(Boolean(data || error));
   usePageTitle(
     notFound
       ? "Area not found"
-      : data?.areaId === areaId
+      : data
         ? data.ancestors.at(-1)
           ? data.area.name + " climbing · " + data.ancestors.at(-1)?.name
           : data.area.name + " climbing"
         : null,
   );
   if (notFound) return <AreaNotFoundView />;
-  if (error) return <AreaErrorBanner error={error} />;
-  if (!data || data.areaId !== areaId) return <AreaLoadingSkeleton />;
+  if (!data && error) return <AreaErrorBanner error={error} />;
+  if (!data) return <AreaLoadingSkeleton />;
 
+  const committed = searchParamsToRecord(new URLSearchParams(page.query));
   const areaPath = areaHref(data.area.id, data.area.name);
   const climbsBlock = (
     <div className="flex flex-col gap-3">
       <SectionHeading>Climbs</SectionHeading>
       <AreaClimbsToolbar areaPath={areaPath} sort={sort} filter={filter} showExcludeSent />
-      {matches ? (
+      {error ? (
+        <AreaErrorBanner error={error} />
+      ) : (
         <AreaClimbsSection
-          key={`member-climbs:${canonicalQuery}`}
+          key={page.query}
           areaId={data.area.id}
-          sort={sort}
-          filter={filter}
+          sort={parseAreaClimbsSort(committed)}
+          filter={parseAreaClimbsFilter(committed)}
+          pending={page.pending}
           initialClimbs={data.climbsPage.climbs}
           initialHasNextPage={data.climbsPage.hasNextPage}
           initialSendStats={data.climbsPage.sendStats}
@@ -290,8 +257,6 @@ function MemberAreaView({
               : "No climbs found in this area or its sub-areas."
           }
         />
-      ) : (
-        <SkeletonListRows rows={6} />
       )}
     </div>
   );
@@ -349,7 +314,13 @@ export default function AreaRoute({ viewerId }: { viewerId: string | null }) {
 
   if (viewerId !== null) {
     return (
-      <MemberAreaView areaId={areaId} sort={sort} filter={filter} canonicalQuery={canonicalQuery} />
+      <MemberAreaView
+        viewerId={viewerId}
+        areaId={areaId}
+        sort={sort}
+        filter={filter}
+        canonicalQuery={canonicalQuery}
+      />
     );
   }
 

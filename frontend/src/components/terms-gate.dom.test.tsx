@@ -54,6 +54,22 @@ it("opens an in-place dialog and makes the background inaccessible until accepta
   expect(navigation.refresh).toHaveBeenCalled();
 });
 
+it("leaves route revalidation to the production acceptance action", async () => {
+  const { acceptTerms } = await import("@/spa/lib/actions-client");
+  vi.mocked(acceptTerms).mockResolvedValueOnce({ ok: true, value: undefined });
+  const user = userEvent.setup();
+  render(
+    <TermsGate viewerId="u" initiallyRequired>
+      <p>Member page</p>
+    </TermsGate>,
+  );
+  const dialog = screen.getByRole("dialog", { name: "Terms of Service" });
+  await user.click(within(dialog).getByRole("checkbox", { name: /I agree/ }));
+  await user.click(within(dialog).getByRole("button", { name: "Accept and continue" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  expect(navigation.refresh).not.toHaveBeenCalled();
+});
+
 it("shows the server's new version when the reader returns, without losing a draft", async () => {
   const transport = vi.fn<typeof fetch>();
   vi.stubGlobal("fetch", transport);
