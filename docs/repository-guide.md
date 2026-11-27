@@ -19,6 +19,8 @@ Betabook is a Rust Cloudflare Worker serving a React Router SPA backed by D1 and
 
 The root Wrangler configuration serves the Rust release Worker and the assets from `dist-spa/`. Axum handles HTTP requests. The scheduled handler streams the public catalog to R2. `pnpm build` uses mise's pinned Rust toolchain and worker-build. Vite prerenders About and the published Terms using the same components as the SPA. CI packages the release once, tests it in workerd, and reuses those artifacts for browser tests and deployment.
 
+Vite compiles client components and hooks with the native React Compiler in `@vitejs/plugin-react` and `oxc-transform-react`. The SPA build checks that a shipped route imports React’s memoization runtime. Recoverable compiler diagnostics name functions left unoptimized, while fatal transform errors fail the build. `pnpm lint` enforces the recommended React Compiler rules available in Oxlint. The release browser tests exercise the compiled assets. [React lint rules](https://react.dev/reference/eslint-plugin-react-hooks)
+
 ## Boundaries and conventions
 
 - Keep business rules in the domain crate and parameterized queries in the database crate. Enforce ownership, privacy and scope predicates in the SQL that reads or writes the affected rows.

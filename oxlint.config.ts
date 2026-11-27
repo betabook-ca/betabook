@@ -87,6 +87,22 @@ export default defineConfig({
     // Tailwind CSS (oxlint-tailwindcss): allow design tokens defined in @heroui/styles.
     "tailwindcss/no-unknown-classes": ["error", { allowlist: ["link", "popover"] }],
 
+    // React Compiler's recommended checks available in this Oxlint release.
+    "react/error-boundaries": "error",
+    "react/exhaustive-deps": "error",
+    "react/globals": "error",
+    "react/immutability": "error",
+    "react/incompatible-library": "error",
+    "react/preserve-manual-memoization": "error",
+    "react/purity": "error",
+    "react/refs": "error",
+    "react/rules-of-hooks": "error",
+    "react/set-state-in-effect": "error",
+    "react/set-state-in-render": "error",
+    "react/static-components": "error",
+    "react/unsupported-syntax": "error",
+    "react/use-memo": "error",
+
     // --- Rules intentionally disabled globally ---
 
     // React 17+ / Next.js uses the automatic JSX runtime (jsx-runtime); requiring React import is obsolete.
