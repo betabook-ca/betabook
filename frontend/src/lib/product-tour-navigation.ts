@@ -1,5 +1,5 @@
 import { PRODUCT_TOURS, type ProductTourId } from "@/lib/product-tour";
-import steps from "@/lib/product-tour-steps.json";
+import steps from "@/shared/product-tour-steps.json";
 
 export type ProductTourStepDefinition = {
   id: string;

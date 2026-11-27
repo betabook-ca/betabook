@@ -1,9 +1,9 @@
 import { fn } from "storybook/test";
 
 // oxlint-disable-next-line import/no-relative-parent-imports -- Bypass the Storybook-only alias to type the real action boundary.
-import type * as Actions from "../../spa/lib/actions-client";
+import type * as Actions from "../../src/spa/lib/actions-client";
 // oxlint-disable-next-line import/no-relative-parent-imports -- Preserve unrelated actions; only these mutations are mocked.
-export * from "../../spa/lib/actions-client";
+export * from "../../src/spa/lib/actions-client";
 
 // Each default is the implementation given to fn(), not a mockResolvedValue:
 // Storybook restores every spy before each story, which drops the latter and

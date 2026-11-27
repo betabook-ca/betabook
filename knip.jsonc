@@ -2,17 +2,22 @@
   "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
   "workspaces": {
     ".": {
-      "entry": ["spa/main.tsx!", "scripts/static-documents.tsx!", "test/worker.ts"],
+      "entry": ["frontend/src/spa/main.tsx!", "scripts/static-documents.tsx!", "test/worker.ts"],
+      "storybook": {
+        "config": ["frontend/.storybook/main.ts"],
+        "entry": ["frontend/.storybook/preview.tsx", "frontend/.storybook/mocks/*.ts"],
+      },
+      "postcss": { "config": ["frontend/postcss.config.mjs"] },
       "project": [
         "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts,css}!",
         "!test/**!",
         "!scripts/**!",
-        "!stories/**!",
+        "!frontend/stories/**!",
         "!**/*.stories.tsx!",
         "!tests/**!",
-        "!.storybook/**!",
+        "!frontend/.storybook/**!",
         "!playwright.config.ts!",
-        "!spa/**/*.dom.test.*!",
+        "!frontend/src/spa/**/*.dom.test.*!",
       ],
       // Served as a font asset by the SPA build and Storybook.
       "ignoreDependencies": ["geist"],

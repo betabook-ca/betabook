@@ -1,8 +1,8 @@
 [workspace]
 members = [
-  "crates/betabook-domain",
-  "crates/betabook-db",
-  "crates/betabook-worker",
+  "backend/domain",
+  "backend/db",
+  "backend/worker",
 ]
 resolver = "2"
 

@@ -7,29 +7,29 @@ different responsibility in each suite.
 
 ## Choose the environment
 
-| What must fail if the implementation breaks?                                                                 | Test type                                                     | Example                                                                          |
-| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| A calculation, parser, validator or serializer returns the wrong value                                       | Workers unit test, `*.test.ts`                                | [Date filter calculations](../lib/filters/date-filter.test.ts)                   |
-| An action, query or route permits the wrong user, writes incorrect data or leaves partial state              | Workers integration test with migrated D1, `*.test.ts`        | [Journal companion mutations](../actions/journal-companions.test.ts)             |
-| Clicking, typing or changing props produces the wrong state, callback, identity, payload or error            | Mounted React test in jsdom, `*.dom.test.tsx`                 | [Journal form behavior](../components/journal/journal-entry-fields.dom.test.tsx) |
-| A hook mishandles debounce, cancellation, stale responses or cleanup                                         | Real hook in jsdom, `*.dom.test.ts` or `*.dom.test.tsx`       | [Search lookup lifecycle](../hooks/use-search-lookup.dom.test.tsx)               |
-| A server-rendered element has the wrong content or link before hydration                                     | Workers rendering test, `*.test.tsx`                          | [Server-rendered navigation links](../components/nav-link.test.tsx)              |
-| Layout, clipping, scrolling, painted focus, native editing, touch or accessibility depends on real rendering | Playwright, `tests/ui/*.spec.ts`                              | [Hashtag caret and layout](../tests/ui/hashtag-filter.spec.ts)                   |
-| The app's routing, history, hydration or opening a new tab breaks                                            | Playwright against the local app, `tests/ui/*.spec.ts`        | [Search navigation](../tests/ui/search-integration.spec.ts)                      |
-| A component needs a reproducible appearance or state for review                                              | Colocated `*.stories.tsx`, plus behavioral tests where needed | [Pagination states](../components/ui/load-more-button.stories.tsx)               |
+| What must fail if the implementation breaks?                                                                 | Test type                                                     | Example                                                                                       |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| A calculation, parser, validator or serializer returns the wrong value                                       | Workers unit test, `*.test.ts`                                | [Date filter calculations](../frontend/src/lib/filters/date-filter.test.ts)                   |
+| An action, query or route permits the wrong user, writes incorrect data or leaves partial state              | Workers integration test with migrated D1, `*.test.ts`        | [Journal companion mutations](../actions/journal-companions.test.ts)                          |
+| Clicking, typing or changing props produces the wrong state, callback, identity, payload or error            | Mounted React test in jsdom, `*.dom.test.tsx`                 | [Journal form behavior](../frontend/src/components/journal/journal-entry-fields.dom.test.tsx) |
+| A hook mishandles debounce, cancellation, stale responses or cleanup                                         | Real hook in jsdom, `*.dom.test.ts` or `*.dom.test.tsx`       | [Search lookup lifecycle](../frontend/src/hooks/use-search-lookup.dom.test.tsx)               |
+| A server-rendered element has the wrong content or link before hydration                                     | Workers rendering test, `*.test.tsx`                          | [Server-rendered navigation links](../frontend/src/components/nav-link.test.tsx)              |
+| Layout, clipping, scrolling, painted focus, native editing, touch or accessibility depends on real rendering | Playwright, `tests/ui/*.spec.ts`                              | [Hashtag caret and layout](../tests/ui/hashtag-filter.spec.ts)                                |
+| The app's routing, history, hydration or opening a new tab breaks                                            | Playwright against the local app, `tests/ui/*.spec.ts`        | [Search navigation](../tests/ui/search-integration.spec.ts)                                   |
+| A component needs a reproducible appearance or state for review                                              | Colocated `*.stories.tsx`, plus behavioral tests where needed | [Pagination states](../frontend/src/components/ui/load-more-button.stories.tsx)               |
 
 Prefer unit tests and mounted component tests. Add a browser test only when its
 assertion needs real rendering or native browser behavior. A click does not by
 itself require Playwright. Form submission and React keyboard
 handlers usually belong in jsdom. Use a browser when the assertion depends on
 native behavior or rendering: segmented date editing, pointer hit testing,
-scrolling, focus rings, portal clipping or actual Next.js navigation. DOM focus
+scrolling, focus rings, portal clipping or actual React Router navigation. DOM focus
 retention can be tested in jsdom; the painted ring and browser focus interactions
 still need Playwright.
 
 For example, a date filter can have three responsibilities: date arithmetic in
-`lib/filters/date-filter.test.ts`, preset selection and callbacks in
-`components/filters/date-filter.dom.test.tsx`, and calendar/segmented editing in
+`frontend/src/lib/filters/date-filter.test.ts`, preset selection and callbacks in
+`frontend/src/components/filters/date-filter.dom.test.tsx`, and calendar/segmented editing in
 `tests/ui/send-date-filter.spec.ts`. Each layer should establish something the
 others cannot.
 
@@ -42,21 +42,21 @@ These rules describe actual collection in
 `.dom.test` suffix before the general `.test` suffix. `.tsx` enables JSX; it does
 not select a runner.
 
-| Path and filename                                                                                                                                                           | Runner and rules                                                 |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `components/**/*.dom.test.{ts,tsx}` and `hooks/**/*.dom.test.{ts,tsx}`                                                                                                      | Vitest `components` project; follow [jsdom rules](#jsdom-rules)  |
-| `actions/**/*.test.{ts,tsx}`, `app/**/*.test.{ts,tsx}`, `components/**/*.test.{ts,tsx}`, `db/**/*.test.{ts,tsx}`, `lib/**/*.test.{ts,tsx}`, excluding `*.dom.test.{ts,tsx}` | Vitest `workers` project; follow [Workers rules](#workers-rules) |
-| `tests/ui/*.spec.ts`                                                                                                                                                        | Playwright; follow [browser rules](#browser-rules)               |
-| Colocated `*.stories.tsx`                                                                                                                                                   | Storybook examples; follow [story rules](#story-rules)           |
+| Path and filename                                                                                                                                                                                                                                  | Runner and rules                                                             |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `frontend/src/components/**/*.dom.test.{ts,tsx}` and `frontend/src/hooks/**/*.dom.test.{ts,tsx}`                                                                                                                                                   | Vitest `frontend/src/components` project; follow [jsdom rules](#jsdom-rules) |
+| `test/reference/actions/**/*.test.{ts,tsx}`, `test/reference/app/**/*.test.{ts,tsx}`, `frontend/src/components/**/*.test.{ts,tsx}`, `test/reference/db/**/*.test.{ts,tsx}`, `frontend/src/lib/**/*.test.{ts,tsx}`, excluding `*.dom.test.{ts,tsx}` | Vitest `workers` project; follow [Workers rules](#workers-rules)             |
+| `tests/ui/*.spec.ts`                                                                                                                                                                                                                               | Playwright; follow [browser rules](#browser-rules)                           |
+| Colocated `*.stories.tsx`                                                                                                                                                                                                                          | Storybook examples; follow [story rules](#story-rules)                       |
 
-A `.dom.test.tsx` file under `app/` or `lib/` is not collected by either Vitest
-project. An ordinary `.test.ts` under `hooks/` or `test/` is also not collected.
+A `.dom.test.tsx` file under `test/reference/app/` or `frontend/src/lib/` is not collected by either Vitest
+project. An ordinary `.test.ts` under `frontend/src/hooks/` or `test/` is also not collected.
 Keep tests beside production code in the configured directories; `test/` holds
 shared setup and fixtures. If a new location is necessary, update collection
 explicitly and confirm the focused command actually finds the test.
 
 The root [AGENTS.md](../AGENTS.md) indexes this guide. Additional instructions
-in [components](../components/AGENTS.md) and [tests/ui](../tests/ui/AGENTS.md)
+in [components](../frontend/src/components/AGENTS.md) and [tests/ui](../tests/ui/AGENTS.md)
 repeat the relevant path/suffix rules near the
 files. These are Markdown instructions; runner configuration controls collection.
 
@@ -70,7 +70,7 @@ files. These are Markdown instructions; runner configuration controls collection
   await them. Use `fireEvent` only when a specific event cannot be reached through
   `user-event`, and explain the reason. Assert values, identities, callback
   arguments, errors and state changes that matter to a caller or user.
-- Mock external boundaries such as transport, Next.js navigation, an invoked
+- Mock external boundaries such as transport, React Router navigation, an invoked
   server action or a browser API. `RouterLink` is already a plain anchor in
   both projects ([test/setup-router-link.ts](../test/setup-router-link.ts)); mock
   it again only to observe it, spreading `@/test/router-link`. A mocked save callback proves what the form
@@ -89,7 +89,7 @@ files. These are Markdown instructions; runner configuration controls collection
 
 Shared story adapters are usable only if they mount the real production
 component/controller and replace external boundaries. For example,
-[the app search adapter](../stories/fixtures/app-search-demo.tsx) does this.
+[the app search adapter](../frontend/stories/fixtures/app-search-demo.tsx) does this.
 A presentation demo that reimplements filtering or React state cannot establish
 production behavior.
 
@@ -224,9 +224,9 @@ for their production behavior, and reserve browser checks for rendered risks.
 Use one CSF file per production component module with its actual imported
 `meta.component`, so the Storybook MCP manifest stays usable; closely related
 exports can share that file. Put cross-component compositions in
-`stories/patterns/`, design principles and tokens in `stories/foundations/`,
-maintenance views in `stories/internal/`, and shared story-only fixtures in
-`stories/fixtures/`. Sidebar titles follow Foundations, Components, Patterns and
+`frontend/stories/patterns/`, design principles and tokens in `frontend/stories/foundations/`,
+maintenance views in `frontend/stories/internal/`, and shared story-only fixtures in
+`frontend/stories/fixtures/`. Sidebar titles follow Foundations, Components, Patterns and
 Internal. Gallery reference components are documentation tooling, not production
 primitives. Keep class/token helpers in foundation or pattern examples.
 
@@ -249,9 +249,9 @@ or PR, rather than adding run logs or migration history to this guide.
 
 | Scope                                               | Command                                                                                  |
 | --------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| One component file                                  | `pnpm test:components components/journal/tag-input.dom.test.tsx`                         |
+| One component file                                  | `pnpm test:components frontend/src/components/journal/tag-input.dom.test.tsx`            |
 | All jsdom tests                                     | `pnpm test:components`                                                                   |
-| One Workers file                                    | `pnpm test --project=workers db/queries/journal.privacy.test.ts`                         |
+| One Workers file                                    | `pnpm test --project=workers test/reference/db/queries/journal.privacy.test.ts`          |
 | Both Vitest projects                                | `pnpm test`                                                                              |
 | One browser file after building the current gallery | `pnpm storybook:build`, then `pnpm exec playwright test tests/ui/hashtag-filter.spec.ts` |
 | Representative accessibility checks after building  | `pnpm exec playwright test tests/ui/accessibility.spec.ts`                               |

@@ -137,7 +137,7 @@ The retry and streaming regression command was observed failing before the
 change, then passing after implementation:
 
 ```bash
-pnpm test --project=workers lib/kaya-api.test.ts app/api/import/kaya/route.test.ts -t 'honors Retry-After|returns a streaming response'
+pnpm test --project=workers frontend/src/lib/kaya-api.test.ts test/reference/app/api/import/kaya/route.test.ts -t 'honors Retry-After|returns a streaming response'
 ```
 
 Additional tests cover retry exhaustion, HTTP-date delays, retrying the same
@@ -145,6 +145,6 @@ page, cancellation during backoff, heartbeats beyond two minutes, Unicode
 across chunk boundaries, missing completion markers, and the countdown UI.
 
 Repeated-date detection was verified red–green with
-`pnpm test --project=workers lib/import-date-review.test.ts`. Mounted wizard
+`pnpm test --project=workers frontend/src/lib/import-date-review.test.ts`. Mounted wizard
 tests cover default date preservation, targeted undated imports, manual-skip
 retention, CSV timestamps sharing one calendar day, and reset on a new file.

@@ -36,7 +36,7 @@ fn run_async<F: std::future::Future>(fut: F) -> F::Output {
 )]
 fn migrated_db() -> SqliteDb {
     let db = SqliteDb::in_memory().expect("in-memory sqlite");
-    let migrations = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../drizzle/migrations");
+    let migrations = Path::new(env!("CARGO_MANIFEST_DIR")).join("../migrations");
     let count = db.apply_migrations(&migrations).expect("apply migrations");
     assert!(count >= 57, "expected at least 57 migrations, got {count}");
     db

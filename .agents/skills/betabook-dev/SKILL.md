@@ -89,7 +89,7 @@ pnpm promote-admin dev@example.com
 
 The role alone grants no area access. Admins also need rows in `admin_area_scopes`, each covering an
 area and its descendants. There is no assignment UI; insert grants directly into the local database.
-See `drizzle/schema/moderation.ts` and `lib/moderation.ts`. The review queue is at
+See `test/reference/drizzle/schema/moderation.ts` and `backend/db/src/moderation/mod.rs`. The review queue is at
 `/admin/requests`.
 
 ## Checks
@@ -100,7 +100,7 @@ Worker smoke test and dependency advisory commands.
 
 ```bash
 pnpm check                                # lint, formatting, dead code, types, tests
-pnpm test -- lib/journal.test.ts           # focused test run
+pnpm test -- frontend/src/lib/journal.test.ts           # focused test run
 pnpm build                                 # production Workers build used by CI
 ```
 
@@ -113,7 +113,7 @@ pnpm build                                 # production Workers build used by CI
 | `pnpm typecheck`                    | TypeScript checks for the SPA, tools and reference suite                      |
 | `pnpm test`                         | Full Vitest suite (components + workers projects)                             |
 | `pnpm test:components`              | React component and hook tests in jsdom                                       |
-| `pnpm db:generate`                  | Generate migrations from `drizzle/schema/`                                    |
+| `pnpm db:generate`                  | Generate migrations from `test/reference/drizzle/schema/`                     |
 | `pnpm db:migrate:local`             | Apply migrations to local D1                                                  |
 | `pnpm preview`                      | Build and preview the Cloudflare Workers bundle locally                       |
 
@@ -124,9 +124,9 @@ The pre-commit hook formats staged files; the pre-push hook runs `pnpm check`.
 Tests are colocated with the code. `pnpm test` runs both projects, so `pnpm check` and CI include
 both:
 
-- **components:** `components/**/*.dom.test.{ts,tsx}` and `hooks/**/*.dom.test.{ts,tsx}` in jsdom
+- **components:** `frontend/src/components/**/*.dom.test.{ts,tsx}` and `frontend/src/hooks/**/*.dom.test.{ts,tsx}` in jsdom
   with React Testing Library. No Storybook, Next.js, browser, or D1. Run one file with
-  `pnpm test:components components/journal/tag-input.dom.test.tsx`.
+  `pnpm test:components frontend/src/components/journal/tag-input.dom.test.tsx`.
 - **workers:** the remaining colocated tests, in the Cloudflare Workers pool with real D1 migrations
   through `test/apply-migrations.ts` and entrypoint `test/worker.ts`. No seeded data or production
   build needed. Run with `pnpm test --project=workers`.
@@ -205,7 +205,7 @@ pnpm db:migrate:remote
 pnpm exec wrangler deploy
 ```
 
-- The release consists of `dist-spa/`, `crates/betabook-worker/build/index.js`, and its WASM module. The root `wrangler.jsonc` configures the production Worker, assets and bindings.
+- The release consists of `dist-spa/`, `backend/worker/build/index.js`, and its WASM module. The root `wrangler.jsonc` configures the production Worker, assets and bindings.
 - CI downloads the release that passed workerd tests. `BETABOOK_PREBUILT=1` skips rebuilding when Wrangler consumes those artifacts. Local `pnpm deploy` builds from source. Apply remote migrations before a live deployment.
 - Use `pnpm exec wrangler deploy --dry-run --config wrangler.jsonc` for packaging verification.
 
@@ -234,5 +234,5 @@ request `/cdn-cgi/handler/scheduled?cron=0+6+*+*+1`.
 
 ## License file
 
-The app serves `/license.txt`. Keep `public/license.txt` synchronized with `LICENSE` when updating
+The app serves `/license.txt`. Keep `frontend/public/license.txt` synchronized with `LICENSE` when updating
 the license or required notices.

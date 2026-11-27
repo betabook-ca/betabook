@@ -111,9 +111,9 @@ entry point to the separate account import wizard.
 ## Validation
 
 ```bash
-pnpm test --project=workers lib/mountain-project-import.test.ts lib/mountain-project-api.test.ts app/api/import/mountain-project/route.test.ts
-pnpm test:components components/import/mountain-project-import-form.dom.test.tsx components/import/import-wizard.dom.test.tsx
-pnpm test --project=workers lib/import-matching.test.ts lib/sends-import.test.ts
+pnpm test --project=workers frontend/src/lib/mountain-project-import.test.ts frontend/src/lib/mountain-project-api.test.ts test/reference/app/api/import/mountain-project/route.test.ts
+pnpm test:components frontend/src/components/import/mountain-project-import-form.dom.test.tsx frontend/src/components/import/import-wizard.dom.test.tsx
+pnpm test --project=workers frontend/src/lib/import-matching.test.ts frontend/src/lib/sends-import.test.ts
 ```
 
 Workers coverage exercises the real route with only session acquisition and

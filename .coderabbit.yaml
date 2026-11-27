@@ -71,9 +71,9 @@ reviews:
         speculative suggestions, generic best-practice reminders, and praise-only
         comments.
 
-    - path: "components/**/*.tsx"
+    - path: "frontend/src/components/**/*.tsx"
       instructions: |
-        Check components/ui and nearby feature components before accepting new UI
+        Check frontend/src/components/ui and nearby feature components before accepting new UI
         primitives or repeated markup. Flag recreation of an existing component or
         interaction pattern and identify the component that should be reused.
 
@@ -90,7 +90,7 @@ knowledge_base:
     enabled: true
     filePatterns:
       - AGENTS.md
-      - components/AGENTS.md
+      - frontend/src/components/AGENTS.md
       - tests/ui/AGENTS.md
       - docs/repository-guide.md
       - docs/component-testing.md

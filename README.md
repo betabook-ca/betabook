@@ -11,7 +11,12 @@
 
 Betabook runs a Rust Cloudflare Worker backed by D1 and R2. A Vite-built React Router app provides the member workspace and public catalog. Rust verifies existing account credentials and signed session cookies.
 
-The [OpenAPI contract](api/README.md) describes Worker HTTP routes, action arguments, and the types consumed by the SPA.
+## Repository layout
+
+- [Frontend](frontend/) contains the SPA, React components, hooks, styles, assets, and Storybook.
+- [Backend](backend/) contains the Rust Worker, domain and database crates, and D1 migrations.
+- [Shared](shared/) contains the tutorial step registry consumed by the SPA and the Worker. The [OpenAPI contract](api/README.md) describes the HTTP routes and types consumed by the SPA.
+- [Reference tests](test/reference/) preserve the previous server for migration parity checks.
 
 ## Local development
 

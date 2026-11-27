@@ -33,8 +33,8 @@ Regenerate both SVG and transparent PNG treatments with:
 pnpm brand:generate
 ```
 
-The [generator](../../scripts/generate-brand-assets.ts) reads the existing font
-files and ink/paper palette values from `spa/globals.css`, then renders the PNGs
+The [generator](../../../../scripts/generate-brand-assets.ts) reads the existing font
+files and ink/paper palette values from `frontend/src/spa/globals.css`, then renders the PNGs
 with Playwright Chromium. Run `pnpm exec playwright install chromium` once if
 needed. Edit the generator, rather than independently editing its outputs.
 
@@ -42,26 +42,26 @@ Artwork uses coral `#ef846c` for the sun, and the application's ink `#000000`
 and paper `#eaf7ef` for lettering. Keep the lettering aligned with the palette
 when regenerating these reference images. Do not bake a background into the
 artwork: the reference panels use `bg-background` under their explicit light
-or dark theme, so their backgrounds always come from `spa/globals.css`.
+or dark theme, so their backgrounds always come from `frontend/src/spa/globals.css`.
 
 ## Production placements
 
 The same generator writes the production assets; do not edit generated files independently.
 
-| Placement                  | Treatment                                                                                                                |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Header, at 640px and wider | Original 48px mark plus approved lowercase wordmark, cropped from the lockup without changing lettering                  |
-| Compact header             | 48px icon-only home link, named “Betabook home”                                                                          |
-| About page                 | Transparent full lockup and tagline, at most 360px wide                                                                  |
-| Home-screen helper         | 48px original mark on the current paper/ink canvas                                                                       |
-| Browser tab                | `app/icon.svg`: optical small cut following the browser/OS color scheme                                                  |
-| Legacy favicon             | `app/favicon.ico`: optical 16px and 32px PNG frames on paper                                                             |
-| Apple touch icon           | `app/apple-icon.png`: opaque 180px paper tile                                                                            |
-| Install manifest           | `public/branding/app-icon-{192,512}.png`: opaque paper tiles, purpose `any`                                              |
-| Transactional emails       | `public/branding/betabook-lockup-email.png`: full About-page artwork on paper, 1000 × 640, displayed at up to 350px wide |
-| Social previews            | `app/opengraph-image.png`: full ink lockup and tagline, 1200 × 630                                                       |
+| Placement                  | Treatment                                                                                                                         |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Header, at 640px and wider | Original 48px mark plus approved lowercase wordmark, cropped from the lockup without changing lettering                           |
+| Compact header             | 48px icon-only home link, named “Betabook home”                                                                                   |
+| About page                 | Transparent full lockup and tagline, at most 360px wide                                                                           |
+| Home-screen helper         | 48px original mark on the current paper/ink canvas                                                                                |
+| Browser tab                | `app/icon.svg`: optical small cut following the browser/OS color scheme                                                           |
+| Legacy favicon             | `app/favicon.ico`: optical 16px and 32px PNG frames on paper                                                                      |
+| Apple touch icon           | `app/apple-icon.png`: opaque 180px paper tile                                                                                     |
+| Install manifest           | `frontend/public/branding/app-icon-{192,512}.png`: opaque paper tiles, purpose `any`                                              |
+| Transactional emails       | `frontend/public/branding/betabook-lockup-email.png`: full About-page artwork on paper, 1000 × 640, displayed at up to 350px wide |
+| Social previews            | `app/opengraph-image.png`: full ink lockup and tagline, 1200 × 630                                                                |
 
-`public/branding/` contains the transparent SVGs used by the application and Storybook.
+`frontend/public/branding/` contains the transparent SVGs used by the application and Storybook.
 The cropped wordmark keeps the embedded Barlow font. The original reference artwork
 remains unchanged. Only launcher tiles, the email logo, the ICO fallback, and the social card have
 opaque canvases because those external surfaces need a stable background.

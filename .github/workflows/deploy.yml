@@ -220,8 +220,8 @@ jobs:
           name: betabook-release
           path: |
             dist-spa/
-            crates/betabook-worker/build/index.js
-            crates/betabook-worker/build/index_bg.wasm
+            backend/worker/build/index.js
+            backend/worker/build/index_bg.wasm
           if-no-files-found: error
           retention-days: 7
 

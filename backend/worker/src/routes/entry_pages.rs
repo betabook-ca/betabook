@@ -75,7 +75,7 @@ pub async fn tutorial(
     let meta = PageMetadata::noindex("Tutorial", SITE_DESCRIPTION);
     if shared_viewer(&state, &headers).await?.is_some() {
         let catalog: BTreeMap<&str, Vec<Step<'_>>> =
-            serde_json::from_str(include_str!("../../../../lib/product-tour-steps.json"))
+            serde_json::from_str(include_str!("../../../../shared/product-tour-steps.json"))
                 .map_err(ApiError::internal)?;
         let tour = params.get("tour").map_or("", String::as_str);
         let Some(steps) = catalog.get(tour) else {

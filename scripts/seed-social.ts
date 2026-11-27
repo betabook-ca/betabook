@@ -2,7 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 
 // Bare Node.js does not resolve the app's @/ alias; read the current tour version directly.
 // oxlint-disable-next-line import/no-relative-parent-imports
-import { PRODUCT_TOURS } from "../lib/product-tour.ts";
+import { PRODUCT_TOURS } from "../frontend/src/lib/product-tour.ts";
 
 const journalTour = PRODUCT_TOURS.find((tour) => tour.id === "journal");
 if (!journalTour) throw new Error("The journal tour is not registered");

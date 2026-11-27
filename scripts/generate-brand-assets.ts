@@ -7,17 +7,17 @@ async function main() {
   // Embed the exact system fonts so standalone SVGs and their PNG previews
   // render identically, without relying on fonts installed on the viewer's OS.
   const root = new URL("../", import.meta.url);
-  const publicBrand = new URL("public/branding/", root);
+  const publicBrand = new URL("frontend/public/branding/", root);
   await mkdir(publicBrand, { recursive: true });
   const displayFont = await readFile(
-    new URL("assets/fonts/barlow-condensed-700-latin.woff2", root),
+    new URL("frontend/src/assets/fonts/barlow-condensed-700-latin.woff2", root),
     "base64",
   );
   const bodyFont = await readFile(
     new URL("node_modules/geist/dist/fonts/geist-sans/Geist-Medium.woff2", root),
     "base64",
   );
-  const theme = await readFile(new URL("spa/globals.css", root), "utf8");
+  const theme = await readFile(new URL("frontend/src/spa/globals.css", root), "utf8");
   function palette(name: string) {
     const match = theme.match(new RegExp(`--palette-${name}:\\s*([^;]+);`));
     if (!match) throw new Error(`Missing palette color: ${name}`);
@@ -49,7 +49,7 @@ ${mark}
 <text x="250" y="274" text-anchor="middle" font-family="Geist" font-size="11" font-weight="500" letter-spacing="4">CLIMB<tspan fill="#ef846c"> · </tspan>LOG<tspan fill="#ef846c"> · </tspan>PROGRESS</text>
 </g>
 </svg>\n`;
-      const base = new URL(`assets/branding/betabook-lockup-${treatment}`, root);
+      const base = new URL(`frontend/src/assets/branding/betabook-lockup-${treatment}`, root);
       await writeFile(`${fileURLToPath(base)}.svg`, svg);
       await writeFile(new URL(`betabook-lockup-${treatment}.svg`, publicBrand), svg);
       // Crop the approved wordmark without changing its font, spacing or geometry.
@@ -78,7 +78,9 @@ ${mark}
           `<style>html,body{margin:0;background:${palette("ink")}}body{height:630px;display:grid;place-items:center}svg{width:800px;height:512px}</style>${svg}`,
         );
         await page.evaluate(() => document.fonts.ready);
-        await page.screenshot({ path: fileURLToPath(new URL("public/opengraph-image.png", root)) });
+        await page.screenshot({
+          path: fileURLToPath(new URL("frontend/public/opengraph-image.png", root)),
+        });
       }
 
       // Square canvas centers the original mark with breathing room at the edges.
@@ -87,7 +89,9 @@ ${mark}
 <title id="title">Betabook: a mountain turning into a checkmark, with a sun.</title>
 ${mark}
 </svg>\n`;
-      const iconBase = fileURLToPath(new URL(`assets/branding/betabook-icon-${treatment}`, root));
+      const iconBase = fileURLToPath(
+        new URL(`frontend/src/assets/branding/betabook-icon-${treatment}`, root),
+      );
       await writeFile(`${iconBase}.svg`, icon);
       await writeFile(new URL(`betabook-icon-${treatment}.svg`, publicBrand), icon);
       await page.setViewportSize({ width: 512, height: 512 });
@@ -106,7 +110,7 @@ ${mark}
           await page.screenshot({
             path: fileURLToPath(
               size === 180
-                ? new URL("public/apple-icon.png", root)
+                ? new URL("frontend/public/apple-icon.png", root)
                 : new URL(`app-icon-${size}.png`, publicBrand),
             ),
           });
@@ -122,7 +126,7 @@ ${mark}
 <circle cx="24" cy="7" r="2.5" fill="#ef846c"/>
 </svg>\n`;
       const smallBase = fileURLToPath(
-        new URL(`assets/branding/betabook-icon-small-${treatment}`, root),
+        new URL(`frontend/src/assets/branding/betabook-icon-small-${treatment}`, root),
       );
       await writeFile(`${smallBase}.svg`, smallIcon);
       await page.setViewportSize({ width: 64, height: 64 });
@@ -138,7 +142,7 @@ ${mark}
             `<path fill="${color}"`,
             `<style>:root{color:${palette("ink")}}@media(prefers-color-scheme:dark){:root{color:${palette("paper")}}}</style><path fill="currentColor"`,
           );
-        await writeFile(new URL("public/icon.svg", root), adaptiveIcon);
+        await writeFile(new URL("frontend/public/icon.svg", root), adaptiveIcon);
         const frames: Buffer[] = [];
         for (const size of [16, 32]) {
           await page.setViewportSize({ width: size, height: size });
@@ -177,7 +181,10 @@ ${mark}
           directory.writeUInt32LE(offset, entry + 12);
           offset += frame.length;
         }
-        await writeFile(new URL("public/favicon.ico", root), Buffer.concat([directory, ...frames]));
+        await writeFile(
+          new URL("frontend/public/favicon.ico", root),
+          Buffer.concat([directory, ...frames]),
+        );
       }
     }
   } finally {
