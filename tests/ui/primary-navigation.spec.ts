@@ -61,7 +61,8 @@ test(
     const community = await nav.locator("a[href='/feed']").boundingBox();
     const count = await nav.locator("a[href='/feed'] [aria-hidden='true']").last().boundingBox();
     if (!navBox || !community || !count) throw new Error("Expected the Community request count");
-    expect(count.y).toBeGreaterThanOrEqual(navBox.y);
+    expect(count.y).toBeGreaterThanOrEqual(community.y + 4);
+    expect(count.height).toBeLessThanOrEqual(16);
     expect(count.x + count.width).toBeLessThanOrEqual(community.x + community.width);
   },
 );

@@ -11,7 +11,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "The selected destination fills the entire rounded tab, including its icon and label, in both themes. It glides between destinations and changes instantly with reduced motion.",
+          "The selected destination fills the entire rounded tab, including its icon and label, in both themes. Notification counts stay compact and inset from the selected pill. It glides between destinations and changes instantly with reduced motion.",
       },
     },
   },

@@ -17,10 +17,12 @@ export function FriendRequestDot({ className = "" }: { className?: string }) {
 export function FriendRequestBadge({
   count,
   decorative = false,
+  compact = false,
   className = "",
 }: {
   count: number | null;
   decorative?: boolean;
+  compact?: boolean;
   className?: string;
 }) {
   if (!count || count < 1) return null;
@@ -29,7 +31,7 @@ export function FriendRequestBadge({
       role={decorative ? undefined : "status"}
       aria-label={decorative ? undefined : formatCount(count, "pending friend request")}
       aria-hidden={decorative || undefined}
-      className={`inline-flex min-w-5 items-center justify-center rounded-full bg-accent px-1.5 py-0.5 text-xs font-semibold text-accent-foreground ${className}`}
+      className={`inline-flex items-center justify-center rounded-full bg-accent font-semibold text-accent-foreground ${compact ? "h-4 min-w-4 px-1 text-[10px] leading-none" : "min-w-5 px-1.5 py-0.5 text-xs"} ${className}`}
     >
       {count > 99 ? "99+" : count}
     </span>

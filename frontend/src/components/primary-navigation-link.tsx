@@ -57,9 +57,10 @@ export function PrimaryNavigationLink({
         {community &&
           (tab ? (
             <FriendRequestBadge
+              compact
               decorative
               count={requestCount}
-              className="absolute -top-1 right-0"
+              className="absolute top-0 right-0"
             />
           ) : collapsed && requestCount > 0 ? (
             <FriendRequestDot className="absolute -top-1 -right-1" />
