@@ -1,43 +1,14 @@
-import { Menu } from "@heroui/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactNode } from "react";
 
 import { JournalEntryStatus } from "@/components/journal/journal-entry-layout";
+import { SendActionsMenu } from "@/components/send-actions-menu";
 import { SendGradeCell } from "@/components/send-grade-cell";
-import { ActionsMenu } from "@/components/ui/actions-menu";
 import type { AreaBreadcrumbs } from "@/lib/catalog-types";
 import type { UserSendRow } from "@/lib/logbook-types";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { ClimbLogRow, UserSendLogRow } from "./climb-log-row";
-
-const meta = {
-  title: "Components/Journal/Climb log row",
-  component: ClimbLogRow,
-  args: {
-    climb: { id: 2, name: "Cedar Arete", areaId: 3, areaName: "Granite Canyon" },
-    areaBreadcrumbs: {},
-    grade: <SendGradeCell type="boulder" grade={5} gradeFeel="solid" rating={3} />,
-    status: <JournalEntryStatus kind="send" label="Flash" />,
-    date: "2026-09-04",
-    comment: "A calm finish after a few good attempts.",
-  },
-  decorators: [
-    (Story) => (
-      <StoryPage title="Sends">
-        <div data-climb-log-example>
-          <Story />
-        </div>
-      </StoryPage>
-    ),
-  ],
-} satisfies Meta<typeof ClimbLogRow>;
-
-export default meta;
-type Story = StoryObj<typeof meta>;
-
-/** The generic row with hand-built cells: the layout reference. */
-export const Sent: Story = {};
 
 /** One send as the sends query returns it; the logbook derives every cell from this. */
 const send: UserSendRow = {
@@ -63,8 +34,45 @@ const breadcrumbs: AreaBreadcrumbs = {
   ],
 };
 
+const meta = {
+  title: "Components/Journal/Climb log row",
+  component: ClimbLogRow,
+  args: {
+    climb: { id: 2, name: "Cedar Arete", areaId: 3, areaName: "Granite Canyon" },
+    areaBreadcrumbs: {},
+    grade: <SendGradeCell type="boulder" grade={5} gradeFeel="solid" rating={3} />,
+    status: <JournalEntryStatus kind="send" label="Flash" />,
+    date: "2026-09-04",
+    comment: "A calm finish after a few good attempts.",
+    // The owner's row, as in the logbook: a send is edited like any journal entry.
+    actions: <SendActionsMenu send={send} />,
+  },
+  decorators: [
+    (Story) => (
+      <StoryPage title="Sends">
+        <div data-climb-log-example>
+          <Story />
+        </div>
+      </StoryPage>
+    ),
+  ],
+} satisfies Meta<typeof ClimbLogRow>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+/** The generic row with hand-built cells: the layout reference. */
+export const Sent: Story = {};
+
+/** `actions={null}` shows a visitor's view. */
 function SendExample({ send: row = send, actions }: { send?: UserSendRow; actions?: ReactNode }) {
-  return <UserSendLogRow send={row} areaBreadcrumbs={breadcrumbs} actions={actions} />;
+  return (
+    <UserSendLogRow
+      send={row}
+      areaBreadcrumbs={breadcrumbs}
+      actions={actions === undefined ? <SendActionsMenu send={row} /> : actions}
+    />
+  );
 }
 
 /** As the logbook lists a send: grade cell, ascent style, date and comment
@@ -104,16 +112,8 @@ export const SuggestedHarder: Story = {
   render: () => <SendExample send={{ ...send, suggestedGrade: 6, gradeFeel: "high", rating: 4 }} />,
 };
 
-/** The owner's row carries the actions menu. The sample menu does nothing. */
-export const WithActions: Story = {
-  render: () => (
-    <SendExample
-      actions={
-        <ActionsMenu ariaLabel="Send actions" onAction={() => {}}>
-          <Menu.Item id="edit">Edit</Menu.Item>
-          <Menu.Item id="delete">Delete</Menu.Item>
-        </ActionsMenu>
-      }
-    />
-  ),
-};
+/** The owner's row: the pencil ends the status line and opens Edit / Delete. */
+export const WithActions: Story = { render: () => <SendExample /> };
+
+/** Someone else's logbook: no edit button. */
+export const Visitor: Story = { render: () => <SendExample actions={null} /> };
