@@ -63,18 +63,9 @@ function RouteFallback() {
 
 /** Root SPA application shell mirroring `app/layout.tsx` + `app/template.tsx`. */
 export function App() {
-  const { data: session, refetch } = authClient.useSession();
+  const { data: session } = authClient.useSession();
   const viewerId = session?.user.id ?? null;
   const [termsState, setTermsState] = useState<TermsCheckState>();
-  useEffect(() => {
-    function handleSessionRefresh() {
-      void refetch();
-    }
-    window.addEventListener("betabook:session-refresh", handleSessionRefresh);
-    return () => {
-      window.removeEventListener("betabook:session-refresh", handleSessionRefresh);
-    };
-  }, [refetch]);
 
   useEffect(() => {
     if (!viewerId) {
@@ -97,6 +88,11 @@ export function App() {
 
   const activeTerms = termsState?.viewerId === viewerId ? termsState?.status : undefined;
   const termsPrompt = activeTerms ?? CURRENT_TERMS_PROMPT;
+  const homeViewerId =
+    session?.user.termsVersion === CURRENT_TERMS_PROMPT.version &&
+    session.user.termsAcceptedAt != null
+      ? viewerId
+      : null;
   const boulderGradeScale = session?.user.boulderGradeScale;
   const ropeGradeScale = session?.user.ropeGradeScale;
   const gradePreferences = gradePreferencesFor({ boulderGradeScale, ropeGradeScale });
@@ -149,7 +145,7 @@ export function App() {
                     <GradePreferencesProvider value={gradePreferences}>
                       <PageErrorBoundary fallback={<RouteFallback />}>
                         <Routes>
-                          <Route path="/" element={<SearchRoute viewerId={viewerId} home />} />
+                          <Route path="/" element={<SearchRoute viewerId={homeViewerId} home />} />
                           <Route path="/search" element={<SearchRoute viewerId={viewerId} />} />
                           <Route
                             path="/users/:id/analytics"

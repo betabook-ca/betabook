@@ -17,7 +17,12 @@ export function profileSharePath(userId: string, token: string): string {
  * one page a share link can open, the profile. */
 export function profileShareFromPath(path: string | undefined) {
   const [pathname = "", query = ""] = path?.split("#")[0].split("?") ?? [];
+  return profileShareFromLocation(pathname, new URLSearchParams(query));
+}
+
+export function profileShareFromLocation(pathname: string, query: URLSearchParams) {
   const userId = /^\/users\/([^/]+)$/.exec(pathname)?.[1];
-  const token = parseShareToken(new URLSearchParams(query).get(PROFILE_SHARE_PARAM));
+  const values = query.getAll(PROFILE_SHARE_PARAM);
+  const token = values.length === 1 ? parseShareToken(values[0]) : null;
   return userId && token ? { userId, token } : null;
 }

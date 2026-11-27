@@ -10,12 +10,15 @@ use betabook_db::auth::{
     create_oauth_user_and_account, create_session, create_user_with_credential,
     create_verification, delete_account_and_cleanup, delete_session_by_token, delete_verification,
     find_credential_password_by_user_id, find_oauth_account_user_id, find_user_by_email,
-    find_valid_verification, get_share_link_owner, get_terms_acceptance, get_user_by_id,
-    get_user_id_by_name_nocase, link_oauth_account, mark_email_verified, record_terms_acceptance,
-    reset_credential_password_and_revoke_sessions, unique_display_name,
+    find_valid_verification, find_verification, get_share_link_owner, get_terms_acceptance,
+    get_user_by_id, get_user_id_by_name_nocase, link_oauth_account, mark_email_verified,
+    record_terms_acceptance, reset_credential_password_and_revoke_sessions, unique_display_name,
 };
 use betabook_domain::display_name::{DISPLAY_NAME_TAKEN_MESSAGE, display_name_problem};
-use betabook_domain::password::{hash_password, random_bytes, random_hex, verify_password};
+use betabook_domain::password::{
+    LegacyEmailVerification, hash_password, legacy_email_verification, random_bytes, random_hex,
+    verify_password,
+};
 use betabook_domain::profile_share::profile_share_from_path;
 use betabook_domain::terms::{
     TERMS_REQUIRED_MESSAGE, TERMS_UPDATED_LABEL, TERMS_VERSION, has_accepted_current_terms,
@@ -61,7 +64,7 @@ fn safe_relative_path(raw: Option<&str>, fallback: &str, auth_url: &str) -> Stri
 
 /// Set the error on the validated, relative return URL without changing its fragment
 /// or dropping other parameters (in particular the SPA's nested `next` route).
-fn oauth_error_location(callback: &str, error: &str) -> String {
+fn callback_error_location(callback: &str, error: &str) -> String {
     let (path_query, fragment) = callback.split_once('#').unwrap_or((callback, ""));
     let (path, query) = path_query.split_once('?').unwrap_or((path_query, ""));
     let mut params = form_urlencoded::Serializer::new(String::new());
@@ -387,39 +390,38 @@ pub async fn verify_email(
     Query(query): Query<VerifyEmailQuery>,
 ) -> Result<Response, ApiError> {
     let fallback = safe_relative_path(query.callback_url.as_deref(), "/sign-in", &state.auth_url());
+    let failure = |code| redirect_response(&callback_error_location(&fallback, code), &[]);
     let Some(token) = query.token.as_deref().filter(|s| !s.is_empty()) else {
-        return Ok(redirect_response("/sign-in?error=invalid_token", &[]));
+        return Ok(failure("INVALID_TOKEN"));
     };
     let identifier = format!("email-verification:{token}");
     let now = state.now_ms();
-    let user = if let Some(ver) = find_valid_verification(state.db(), &identifier, now).await? {
-        let user = get_user_by_id(state.db(), &ver.value).await?;
-        // Keep the unexpired link usable if the verification write fails.
-        if let Some(user) = &user
-            && !user.email_verified
-        {
-            mark_email_verified(state.db(), &user.id, now).await?;
+    let stored = find_verification(state.db(), &identifier, None).await?;
+    let user = if let Some(ver) = &stored {
+        if ver.expires_at <= now {
+            return Ok(failure("TOKEN_EXPIRED"));
         }
-        delete_verification(state.db(), &ver.id).await?;
-        user
-    } else if let Some((id, email)) =
-        betabook_domain::password::legacy_email_verification(token, &state.auth_secret()?, now)
-    {
-        let user = get_user_by_id(state.db(), &id)
-            .await?
-            .filter(|user| user.email == email);
-        if let Some(user) = &user
-            && !user.email_verified
-        {
-            mark_email_verified(state.db(), &user.id, now).await?;
-        }
-        user
+        get_user_by_id(state.db(), &ver.value).await?
     } else {
-        None
+        match legacy_email_verification(token, &state.auth_secret()?, now) {
+            Some(LegacyEmailVerification::Current { user_id, email }) => {
+                get_user_by_id(state.db(), &user_id)
+                    .await?
+                    .filter(|user| user.email == email)
+            }
+            Some(LegacyEmailVerification::Expired) => return Ok(failure("TOKEN_EXPIRED")),
+            None => None,
+        }
     };
     let Some(user) = user else {
-        return Ok(redirect_response("/sign-in?error=invalid_token", &[]));
+        return Ok(failure("INVALID_TOKEN"));
     };
+    if !user.email_verified {
+        mark_email_verified(state.db(), &user.id, now).await?;
+    }
+    if let Some(ver) = stored {
+        delete_verification(state.db(), &ver.id).await?;
+    }
     if !user.email_verified {
         welcome_new_account_once(&state, &user.id, &user.email, &user.name).await;
     }
@@ -819,7 +821,7 @@ pub async fn google_callback(
         || query.state.as_deref() != Some(oauth_data.state.as_str())
     {
         return Ok(redirect_response(
-            &oauth_error_location(&oauth_data.error_callback_url, "oauth_cancelled"),
+            &callback_error_location(&oauth_data.error_callback_url, "oauth_cancelled"),
             &[clear_state],
         ));
     }
@@ -830,13 +832,13 @@ pub async fn google_callback(
             "oauth_cancelled"
         };
         return Ok(redirect_response(
-            &oauth_error_location(&oauth_data.error_callback_url, error),
+            &callback_error_location(&oauth_data.error_callback_url, error),
             &[clear_state],
         ));
     }
     let Some(code) = query.code.as_deref() else {
         return Ok(redirect_response(
-            &oauth_error_location(&oauth_data.error_callback_url, "oauth_missing_code"),
+            &callback_error_location(&oauth_data.error_callback_url, "oauth_missing_code"),
             &[clear_state],
         ));
     };
@@ -865,7 +867,7 @@ pub async fn google_callback(
     let Some(access_token) = token_json.get("access_token").and_then(Value::as_str) else {
         crate::observability::background_error("google_token_exchange", token_status);
         return Ok(redirect_response(
-            &oauth_error_location(&oauth_data.error_callback_url, "oauth_token_failed"),
+            &callback_error_location(&oauth_data.error_callback_url, "oauth_token_failed"),
             &[clear_state],
         ));
     };
@@ -878,14 +880,14 @@ pub async fn google_callback(
     .await?;
     if !(200..300).contains(&info_status) {
         return Ok(redirect_response(
-            &oauth_error_location(&oauth_data.error_callback_url, "oauth_userinfo_failed"),
+            &callback_error_location(&oauth_data.error_callback_url, "oauth_userinfo_failed"),
             &[clear_state],
         ));
     }
 
     let Some(sub) = info_json.get("sub").and_then(Value::as_str) else {
         return Ok(redirect_response(
-            &oauth_error_location(&oauth_data.error_callback_url, "oauth_missing_sub"),
+            &callback_error_location(&oauth_data.error_callback_url, "oauth_missing_sub"),
             &[clear_state],
         ));
     };
@@ -901,7 +903,7 @@ pub async fn google_callback(
         .unwrap_or(false);
     if email.is_empty() || !email_verified {
         return Ok(redirect_response(
-            &oauth_error_location(&oauth_data.error_callback_url, "oauth_email_unverified"),
+            &callback_error_location(&oauth_data.error_callback_url, "oauth_email_unverified"),
             &[clear_state],
         ));
     }
@@ -918,24 +920,34 @@ pub async fn google_callback(
         existing_user_id
     } else if let Some(existing_user) = find_user_by_email(state.db(), &email).await? {
         let acct_id = random_hex(16).map_err(ApiError::internal)?;
-        link_oauth_account(
+        let linked = link_oauth_account(
             state.db(),
             &betabook_db::auth::LinkOAuthAccount {
                 oauth_record_id: &acct_id,
                 provider_id: "google",
                 provider_account_id: sub,
                 user_id: &existing_user.id,
+                verified_email: &email,
                 access_token: Some(access_token),
                 id_token,
                 now_ms: now,
             },
         )
         .await?;
+        if !linked {
+            return Ok(redirect_response(
+                &callback_error_location(&oauth_data.error_callback_url, "account_not_linked"),
+                &[clear_state],
+            ));
+        }
         existing_user.id
     } else {
         if oauth_data.accepted_terms_version.as_deref() != Some(TERMS_VERSION) {
             return Ok(redirect_response(
-                &oauth_error_location(&oauth_data.error_callback_url, "terms_acceptance_required"),
+                &callback_error_location(
+                    &oauth_data.error_callback_url,
+                    "terms_acceptance_required",
+                ),
                 &[clear_state],
             ));
         }
@@ -1113,16 +1125,16 @@ pub async fn accept_terms(
 
 #[cfg(test)]
 mod tests {
-    use super::oauth_error_location;
+    use super::callback_error_location;
 
     #[test]
     fn oauth_error_preserves_the_return_route_and_fragment() {
         assert_eq!(
-            oauth_error_location("/sign-in", "oauth_cancelled"),
+            callback_error_location("/sign-in", "oauth_cancelled"),
             "/sign-in?error=oauth_cancelled"
         );
         assert_eq!(
-            oauth_error_location(
+            callback_error_location(
                 "/sign-in?next=%2Fsearch%3Fname%3Done%2Btwo&error=old&tag=a&tag=b#form",
                 "oauth_cancelled"
             ),

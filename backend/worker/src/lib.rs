@@ -161,6 +161,9 @@ async fn fetch(
     ctx: Context,
 ) -> Result<http::Response<axum::body::Body>> {
     let path = req.uri().path().to_string();
+    if let Some(response) = middleware::trailing_slash_redirect(req.uri()) {
+        return Ok(apply_security_headers(&path, response));
+    }
     let state = match AppState::from_request(&req, env, ctx) {
         Ok(state) => state,
         Err(error) => {

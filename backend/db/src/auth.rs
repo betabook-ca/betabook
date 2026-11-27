@@ -494,6 +494,7 @@ pub struct LinkOAuthAccount<'a> {
     pub provider_id: &'a str,
     pub provider_account_id: &'a str,
     pub user_id: &'a str,
+    pub verified_email: &'a str,
     pub access_token: Option<&'a str>,
     pub id_token: Option<&'a str>,
     pub now_ms: i64,
@@ -502,23 +503,25 @@ pub struct LinkOAuthAccount<'a> {
 pub async fn link_oauth_account<D: DbExecutor>(
     db: &D,
     input: &LinkOAuthAccount<'_>,
-) -> Result<(), DbError> {
-    db.execute(
+) -> Result<bool, DbError> {
+    let changed = db.execute(
         "INSERT INTO account (id, account_id, provider_id, user_id, access_token, id_token, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+         SELECT ?, ?, ?, id, ?, ?, ?, ? FROM user
+         WHERE id = ? AND email_verified = 1 AND lower(email) = lower(?)",
         &[
             DbParam::Text(input.oauth_record_id.to_string()),
             DbParam::Text(input.provider_account_id.to_string()),
             DbParam::Text(input.provider_id.to_string()),
-            DbParam::Text(input.user_id.to_string()),
             DbParam::from(input.access_token),
             DbParam::from(input.id_token),
             DbParam::Int(input.now_ms),
             DbParam::Int(input.now_ms),
+            input.user_id.into(),
+            input.verified_email.into(),
         ],
     )
     .await?;
-    Ok(())
+    Ok(changed == 1)
 }
 
 pub async fn reset_credential_password_and_revoke_sessions<D: DbExecutor>(
@@ -574,12 +577,22 @@ pub async fn find_valid_verification<D: DbExecutor>(
     identifier: &str,
     now_ms: i64,
 ) -> Result<Option<VerificationRow>, DbError> {
+    find_verification(db, identifier, Some(now_ms)).await
+}
+
+/// Email verifications retain their expiration so a delivered link can explain how to recover.
+/// Password resets use `find_valid_verification` to return only current records.
+pub async fn find_verification<D: DbExecutor>(
+    db: &D,
+    identifier: &str,
+    valid_after: Option<i64>,
+) -> Result<Option<VerificationRow>, DbError> {
     let Some(row) = db
         .query_one(
             "SELECT id, identifier, value, expires_at FROM verification
-             WHERE identifier = ? AND expires_at > ?
+             WHERE identifier = ?1 AND (?2 IS NULL OR expires_at > ?2)
              ORDER BY created_at DESC LIMIT 1",
-            &[DbParam::Text(identifier.to_string()), DbParam::Int(now_ms)],
+            &[identifier.into(), valid_after.into()],
         )
         .await?
     else {

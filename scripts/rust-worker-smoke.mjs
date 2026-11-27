@@ -139,7 +139,7 @@ void test("Rust Worker HTTP flows", async (t) => {
     assert.equal(await download.text(), catalog);
   });
   await t.test("catalog HTML", () => testCatalogHtml({ server, db: DB, signIn }));
-  await t.test("platform", () => testPlatform({ server, signIn }));
+  await t.test("platform", () => testPlatform({ server, signIn, db: DB }));
   await t.test("shared profile metadata and data require one current token", async () => {
     const id = "profile-preview";
     await signIn(id);
@@ -167,6 +167,16 @@ void test("Rust Worker HTTP flows", async (t) => {
   await t.test("moderation", () => testModeration({ server, db: DB, signIn }));
   await t.test("tutorial progress belongs to the signed-in member", async () => {
     assert.equal((await server.fetch("/api/pages/tutorial")).status, 401);
+    const signedOut = await server.fetch("/api/actions/saveProductTourStatus", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ args: ["journal", 7, "completed"] }),
+    });
+    assert.equal(signedOut.status, 200);
+    assert.deepEqual(await signedOut.json(), {
+      ok: false,
+      error: "Your session has expired — sign in again to continue.",
+    });
     const cookie = await signIn("tutorial-owner");
     const saved = await server.fetch("/api/actions/saveProductTourStatus", {
       method: "POST",

@@ -1,3 +1,5 @@
+import { SESSION_REFRESH_EVENT } from "@/lib/api-client";
+
 import type { ActionArgs, ActionName, ClientResult } from "./action-contracts";
 export type {
   SavedClimbList,
@@ -64,7 +66,7 @@ async function callAction<N extends ActionName>(
     if (result.ok && !READ_ONLY_ACTIONS.has(name)) {
       window.dispatchEvent(new CustomEvent("betabook:router-refresh"));
       if (SESSION_REFRESH_ACTIONS.has(name)) {
-        window.dispatchEvent(new CustomEvent("betabook:session-refresh"));
+        window.dispatchEvent(new Event(SESSION_REFRESH_EVENT));
       }
     }
     return (result.ok ? { ...result, value: result.value } : result) as ClientResult<N>;

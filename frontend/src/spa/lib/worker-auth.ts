@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 
-import { AUTH_REQUIRED_EVENT } from "@/lib/api-client";
+import { AUTH_REQUIRED_EVENT, SESSION_REFRESH_EVENT } from "@/lib/api-client";
 import type { paths, components } from "@/spa/generated/api";
 import type { ApiResponse } from "@/spa/lib/api";
 
@@ -79,10 +79,28 @@ export function createWorkerAuthClient(transport: typeof fetch = (...args) => fe
     pending = null;
     publish(null);
   }
+  function invalidate() {
+    generation += 1;
+    pending = null;
+    void refetch();
+  }
+  function broadcast(key: string) {
+    try {
+      window.localStorage.setItem(key, crypto.randomUUID());
+    } catch {
+      // Focus and visibility checks also refresh tabs without shared storage.
+    }
+  }
+  function onMutation() {
+    invalidate();
+    broadcast(SESSION_REFRESH_EVENT);
+  }
   function onStorage(event: StorageEvent) {
     if (event.key === SESSION_CHANGE_KEY) {
       expire();
       void refetch();
+    } else if (event.key === SESSION_REFRESH_EVENT) {
+      invalidate();
     }
   }
   function subscribe(listener: () => void) {
@@ -92,6 +110,7 @@ export function createWorkerAuthClient(transport: typeof fetch = (...args) => fe
       window.addEventListener("focus", recheck);
       document.addEventListener("visibilitychange", recheck);
       window.addEventListener("storage", onStorage);
+      window.addEventListener(SESSION_REFRESH_EVENT, onMutation);
       window.addEventListener(AUTH_REQUIRED_EVENT, expire);
     }
     return () => {
@@ -100,6 +119,10 @@ export function createWorkerAuthClient(transport: typeof fetch = (...args) => fe
         window.removeEventListener("focus", recheck);
         document.removeEventListener("visibilitychange", recheck);
         window.removeEventListener("storage", onStorage);
+        window.removeEventListener(SESSION_REFRESH_EVENT, onMutation);
+        generation += 1;
+        pending = null;
+        snapshot = initial;
         window.removeEventListener(AUTH_REQUIRED_EVENT, expire);
       }
     };
@@ -109,11 +132,7 @@ export function createWorkerAuthClient(transport: typeof fetch = (...args) => fe
     pending = null;
     if (signedOut) publish(null);
     else if (listeners.size) void refetch();
-    try {
-      window.localStorage.setItem(SESSION_CHANGE_KEY, crypto.randomUUID());
-    } catch {
-      // The session cookie also gets rechecked when a tab regains focus.
-    }
+    broadcast(SESSION_CHANGE_KEY);
   }
   function endpoint<P extends AuthEndpoint>(path: P) {
     return async (body: AuthInput<P>, options: Callbacks<P> = {}) => {

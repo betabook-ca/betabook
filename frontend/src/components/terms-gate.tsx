@@ -7,7 +7,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { TERMS_REQUIRED_EVENT, TERMS_UPDATED_LABEL, TERMS_VERSION } from "@/lib/terms";
 import { isTermsExemptPath } from "@/lib/terms-navigation";
 import { fetchApi } from "@/spa/lib/api";
-import { usePathname, useRouter } from "@/spa/lib/navigation";
+import { usePathname, useRouter, useSearchParams } from "@/spa/lib/navigation";
 
 const TermsPendingContext = createContext(false);
 
@@ -42,7 +42,7 @@ export function TermsGate({
 }) {
   const pathname = usePathname() ?? "/";
   const router = useRouter();
-  const exempt = isTermsExemptPath(pathname);
+  const exempt = isTermsExemptPath(pathname, useSearchParams());
   const [prompt, setPrompt] = useState<TermsPrompt | null>(
     initiallyRequired ? { version, versionLabel, previousVersion } : null,
   );

@@ -1,6 +1,7 @@
 import { TermsAcceptanceRequiredError } from "@/lib/action-result";
 import { TERMS_REQUIRED_EVENT } from "@/lib/terms";
 
+export const SESSION_REFRESH_EVENT = "betabook:session-refresh";
 export const AUTH_REQUIRED_EVENT = "betabook:auth-required";
 
 export class AuthenticationRequiredError extends Error {

@@ -3,8 +3,8 @@ use serde_json::{Value, json};
 
 use crate::grades::{ClimbType, GradePreferences, format_grade};
 use crate::site::{
-    LANDING_PAGE_PATHS, OG_IMAGE_ALT, OG_IMAGE_HEIGHT, OG_IMAGE_URL, OG_IMAGE_WIDTH,
-    SITE_DESCRIPTION, SITE_NAME, SITE_URL,
+    LANDING_PAGE_PATHS, OG_IMAGE_ALT, OG_IMAGE_HEIGHT, OG_IMAGE_URL, OG_IMAGE_WIDTH, SITE_NAME,
+    SITE_URL,
 };
 use crate::terms::{TERMS_VERSIONS, terms_href};
 
@@ -73,7 +73,8 @@ impl PageMetadata {
     }
 
     pub fn full_title(&self) -> String {
-        if self.og_type == "profile"
+        if self.canonical_path.as_deref() == Some("/")
+            || self.og_type == "profile"
             || self.title == SITE_NAME
             || self.title.ends_with(&format!(" · {SITE_NAME}"))
         {
@@ -120,20 +121,13 @@ impl PageMetadata {
     }
 }
 
-pub fn default_home_metadata(has_query: bool) -> PageMetadata {
-    if has_query {
-        PageMetadata::noindex(
-            format!("{SITE_NAME} — Climbing Logbook & Crag Database"),
-            SITE_DESCRIPTION,
-        )
-    } else {
-        PageMetadata::indexable(
-            format!("{SITE_NAME} — Climbing Logbook & Crag Database"),
-            SITE_DESCRIPTION,
-            "/",
-            "website",
-        )
-    }
+pub fn default_home_metadata() -> PageMetadata {
+    PageMetadata::indexable(
+        "Betabook · Free climbing logbook and crag database",
+        "Search routes and boulder problems, and log your sends and sessions for bouldering, sport and trad.",
+        "/",
+        "website",
+    )
 }
 
 pub fn location_trail(names: &[String], max: usize) -> String {

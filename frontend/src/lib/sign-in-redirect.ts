@@ -41,6 +41,10 @@ export function signUpUrl(next?: string): string {
 export function formatAuthErrorMessage(error?: string | string[]): string | undefined {
   if (typeof error !== "string" || !error) return undefined;
   switch (error.toLowerCase()) {
+    case "token_expired":
+      return "Your verification link has expired. Sign in to request a new one.";
+    case "invalid_token":
+      return "This verification link is invalid. Sign in to request a new one.";
     case "access_denied":
       return "Google sign-in was cancelled.";
     // Better Auth redirects OAuth creation-hook failures with the APIError code.

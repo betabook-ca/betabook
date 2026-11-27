@@ -72,6 +72,11 @@ describe("formatAuthErrorMessage", () => {
     );
   });
 
+  it("explains an expired or invalid email verification and how to recover", () => {
+    expect(formatAuthErrorMessage("TOKEN_EXPIRED")).toMatch(/verification link has expired/i);
+    expect(formatAuthErrorMessage("INVALID_TOKEN")).toMatch(/verification link is invalid/i);
+  });
+
   it("falls back to generic message for unknown errors", () => {
     expect(formatAuthErrorMessage("unknown_error")).toBe(
       "Sign in with Google failed. Please try again or use your password.",

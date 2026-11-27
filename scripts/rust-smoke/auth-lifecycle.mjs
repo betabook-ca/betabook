@@ -65,15 +65,48 @@ export async function testAuthLifecycle({ server, db, signIn, origin, secret }) 
   // The outgoing runtime's verification emails bind their HS256 token to both account and email.
   await db.prepare("UPDATE user SET email_verified=0 WHERE id=?").bind(owner).run();
   const encode = (v) => Buffer.from(JSON.stringify(v)).toString("base64url");
-  const unsigned =
-    encode({ alg: "HS256" }) +
-    "." +
-    encode({
-      email: owner + "@example.test",
-      userId: owner,
-      exp: Math.floor(Date.now() / 1000) + 300,
-    });
-  const token = unsigned + "." + createHmac("sha256", secret).update(unsigned).digest("base64url");
+  const signedVerification = (exp) => {
+    const unsigned =
+      encode({ alg: "HS256" }) +
+      "." +
+      encode({ email: owner + "@example.test", userId: owner, exp });
+    return unsigned + "." + createHmac("sha256", secret).update(unsigned).digest("base64url");
+  };
+  const now = Date.now();
+  await db
+    .prepare(
+      "INSERT INTO verification(id,identifier,value,expires_at,created_at,updated_at) VALUES (?,?,?,?,?,?)",
+    )
+    .bind(
+      "expired-mail",
+      "email-verification:expired-mail-token",
+      owner,
+      now - 1,
+      now - 10000,
+      now - 10000,
+    )
+    .run();
+  for (const [token, error] of [
+    ["expired-mail-token", "TOKEN_EXPIRED"],
+    [signedVerification(Math.floor(now / 1000) - 1), "TOKEN_EXPIRED"],
+    ["unknown-token", "INVALID_TOKEN"],
+    ["", "INVALID_TOKEN"],
+  ]) {
+    const query = new URLSearchParams({ token, callbackURL: callback });
+    const response = await server.fetch("/api/auth/verify-email?" + query, { redirect: "manual" });
+    assert.equal(response.status, 302);
+    const returnUrl = new URL(response.headers.get("location"), origin);
+    assert.equal(returnUrl.pathname, "/sign-in");
+    assert.equal(returnUrl.searchParams.get("next"), next);
+    assert.deepEqual(returnUrl.searchParams.getAll("error"), [error]);
+    assert.equal(returnUrl.hash, "#form");
+  }
+  assert.equal(
+    (await db.prepare("SELECT email_verified FROM user WHERE id=?").bind(owner).first())
+      .email_verified,
+    0,
+  );
+  const token = signedVerification(Math.floor(now / 1000) + 300);
   const verify = await server.fetch(
     "/api/auth/verify-email?token=" + token + "&callbackURL=%2Fsign-in",
     { redirect: "manual" },
