@@ -15,8 +15,9 @@ for (const [story, label] of [
     await active.click();
     await expect(active).toHaveAttribute("aria-current", /page|location/);
     await expect(active).toHaveCSS("text-decoration-line", "none");
-    await expect(active).toHaveCSS("font-weight", "600");
+    await expect(active).toHaveCSS("font-weight", "400");
     const inactive = nav.locator("a:not([aria-current])").first();
+    await expect(inactive).toHaveCSS("font-weight", "400");
     if (label.startsWith("Progress")) {
       await expect(active.locator("svg")).toHaveAttribute("fill", "none");
       await expect(active.locator("svg")).toHaveAttribute("stroke-width", "2.8");
@@ -199,3 +200,70 @@ for (const [story, label] of [
     await expect(link.locator("svg")).toHaveCSS("width", "20px");
   });
 }
+
+test(
+  "filled icons preserve the painted outer size of their outlines",
+  { tag: "@layout" },
+  async ({ page }, info) => {
+    await openStory(page, info, "patterns-navigation-icon-options--comparison");
+    const pairs = page.locator('[data-theme="light"] [data-navigation-icon-pair]');
+    for (const pair of await pairs.all()) {
+      const area = await pair.getAttribute("data-navigation-icon-pair");
+      if (area === "progress") continue; // The approved exception intentionally increases stroke weight.
+      const bounds = await pair.locator("svg").evaluateAll(async (icons) =>
+        Promise.all(
+          icons.map(async (icon) => {
+            const copy = icon.cloneNode(true) as SVGSVGElement;
+            const originalNodes = [icon, ...icon.querySelectorAll("*")];
+            const copyNodes = [copy, ...copy.querySelectorAll("*")];
+            for (let i = 0; i < originalNodes.length; i += 1) {
+              const style = getComputedStyle(originalNodes[i]);
+              for (const property of [
+                "fill",
+                "stroke",
+                "stroke-width",
+                "stroke-linecap",
+                "stroke-linejoin",
+                "fill-rule",
+              ]) {
+                copyNodes[i].setAttribute(property, style.getPropertyValue(property));
+              }
+            }
+            copy.setAttribute("width", "192");
+            copy.setAttribute("height", "192");
+            const image = new Image();
+            image.src =
+              "data:image/svg+xml;charset=utf-8," +
+              encodeURIComponent(new XMLSerializer().serializeToString(copy));
+            await image.decode();
+            const canvas = document.createElement("canvas");
+            canvas.width = canvas.height = 192;
+            const context = canvas.getContext("2d");
+            if (!context) throw new Error("Expected canvas context");
+            context.drawImage(image, 0, 0);
+            const pixels = context.getImageData(0, 0, 192, 192).data;
+            let left = 192,
+              top = 192,
+              right = -1,
+              bottom = -1;
+            for (let y = 0; y < 192; y += 1)
+              for (let x = 0; x < 192; x += 1) {
+                if (pixels[(y * 192 + x) * 4 + 3] < 128) continue;
+                left = Math.min(left, x);
+                top = Math.min(top, y);
+                right = Math.max(right, x);
+                bottom = Math.max(bottom, y);
+              }
+            return { left, top, right, bottom };
+          }),
+        ),
+      );
+      expect(bounds).toHaveLength(2);
+      for (const edge of ["left", "top", "right", "bottom"] as const) {
+        expect
+          .soft(Math.abs(bounds[0][edge] - bounds[1][edge]), `${area} ${edge} painted edge`)
+          .toBeLessThanOrEqual(1);
+      }
+    }
+  },
+);

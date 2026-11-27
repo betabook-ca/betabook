@@ -18,7 +18,7 @@ function NavigationIconOptions() {
   return (
     <StoryPage
       title="Navigation icon states"
-      description="Production icons in both themes. Selected destinations use filled shapes; Progress keeps the same arrow with a heavier stroke. The live tab examples below are interactive."
+      description="Approved production icons in both themes. Filled selections retain their outlines and outer sizes; Progress keeps its heavier arrow. Mobile labels keep the same weight. The live tab examples below are interactive."
     >
       <div className="grid gap-6 xl:grid-cols-2">
         {(["light", "dark"] as const).map((theme) => (
@@ -35,7 +35,7 @@ function NavigationIconOptions() {
               <span className="text-center">Unselected</span>
               <span className="text-center">Selected</span>
               {destinations.map((item) => (
-                <div key={item.area} className="contents">
+                <div key={item.area} data-navigation-icon-pair={item.area} className="contents">
                   <span>{item.label}</span>
                   <span className="flex h-11 items-center justify-center text-muted">
                     <PrimaryNavigationIcon area={item.area} />
@@ -70,4 +70,4 @@ const meta = {
 } satisfies Meta<typeof NavigationIconOptions>;
 export default meta;
 type Story = StoryObj<typeof meta>;
-export const Comparison: Story = {};
+export const Comparison: Story = { name: "Approved icon states" };
