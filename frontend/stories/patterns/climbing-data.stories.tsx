@@ -23,8 +23,6 @@ export const LabelsAndGrades: Story = {
         </div>
       </Example>
       <Example title="Outcomes">
-        {/* One wording and colour in every list of sends and journal entries:
-         * a send reads as its ascent style. */}
         <div className="flex flex-wrap gap-4 text-sm">
           {(["Onsight", "Flash", "Redpoint"] as const).map((label) => (
             <JournalEntryStatus key={label} kind="send" label={label} />

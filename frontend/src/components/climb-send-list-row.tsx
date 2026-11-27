@@ -10,9 +10,7 @@ import type { ClimbType } from "@/lib/grades";
 import type { PublicClimbSend } from "@/lib/public-catalog";
 import { ASCENT_STYLE_LABELS } from "@/lib/sends";
 
-/** One climber's send on a climb's page, laid out like a logbook row with the
- * climber in place of the date column and the date in place of the area.
- * A null `userName` marks an anonymous send, whose date is only "YYYY-MM".
+/** A null `userName` marks an anonymous send, whose date is only "YYYY-MM".
  * Only member rows carry a `userId`, so only they link to a profile. */
 export function ClimbSendListRow({
   type,

@@ -25,7 +25,6 @@ import { climbHref } from "@/lib/slug";
 
 type Activity = FeedEntry["activity"];
 
-/** The same words a journal row uses: a send by its ascent style. */
 function outcome(activity: Activity) {
   if (activity.kind === "goal")
     return <JournalEntryStatus kind="send" label="Goal accomplished" icon={false} />;

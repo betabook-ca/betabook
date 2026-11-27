@@ -193,7 +193,6 @@ export function DemoSends() {
       </p>
       <div className="divide-y divide-separator">
         {sends.map((send) => (
-          // The logbook's own row shape, so the tour shows what the page will.
           <JournalEntryLayout
             key={send.climbId}
             title={send.climbName}

@@ -14,9 +14,6 @@ const STATUS_LABELS: Record<ActivityKind, string> = {
   training: "Training",
 };
 
-/** How an entry or send turned out — the one wording and colour for it in
- * every list: a send reads as its ascent style ("Flash") in the success
- * colour. `icon={false}` where the row already leads with the activity icon. */
 export function JournalEntryStatus({
   kind,
   label = STATUS_LABELS[kind],
@@ -99,7 +96,6 @@ export function JournalEntryLayout({
             )}
           </div>
           {grade && (
-            // Right-aligned so grades scan down the list as a column.
             <div className="inline-flex shrink-0 items-baseline text-sm leading-6 tabular-nums">
               {grade}
             </div>

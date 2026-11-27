@@ -46,7 +46,6 @@ export function ClimbJournalCard({
           <ul className="flex flex-col gap-3">
             {recentEntries.map((entry) => (
               <li key={entry.id} className="flex flex-col gap-1">
-                {/* The status line of every journal row: what happened, then when. */}
                 <div className="flex min-h-6 items-center gap-1.5 text-sm text-muted">
                   <JournalEntryStatus
                     kind={entry.isAscent ? "send" : entry.sent ? "repeat" : "session"}

@@ -24,8 +24,6 @@ test("the journal date anchors the row and the note uses the reading column", as
     throw new Error("Missing journal row bounds");
   expect(dateBox.x + dateBox.width).toBeLessThan(titleBox.x);
   expect(dateBox.y).toBeCloseTo(titleBox.y, 0);
-  // The grade ends the title line, just before the edit button's column on
-  // pointer screens and at the row's edge on touch screens.
   const articleBox = await row.locator("article").boundingBox();
   if (!articleBox) throw new Error("Missing journal row bounds");
   const gradeEnd = articleBox.x + articleBox.width - (info.project.use.hasTouch ? 0 : 40);
@@ -110,7 +108,6 @@ test("a send's grade and stars end the climb name's line, beside its date column
 
   expect(Math.abs(gradeBox.y - titleBox.y)).toBeLessThanOrEqual(4);
   expect(Math.abs(starsBox.y - gradeBox.y)).toBeLessThanOrEqual(4);
-  // Right-aligned: a list's grades read as one column, whatever the name's length.
   const rowBox = await row.locator("article").boundingBox();
   if (!rowBox) throw new Error("Missing send row bounds");
   expect(Math.abs(starsBox.x + starsBox.width - rowBox.x - rowBox.width)).toBeLessThanOrEqual(24);

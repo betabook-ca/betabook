@@ -7,7 +7,6 @@ const LONG_PRESS_MS = 500;
 const MOVE_TOLERANCE_PX = 10;
 
 type RowActions = {
-  /** Registers the row's actions menu and returns its unregister function. */
   register: (open: () => void) => () => void;
   /** A zero-size point inside the row, moved to the finger before opening. */
   anchorRef: RefObject<HTMLSpanElement | null>;
@@ -15,7 +14,6 @@ type RowActions = {
 
 const RowActionsContext = createContext<RowActions | null>(null);
 
-/** Set by a row's actions slot; read by `ActionsMenu`. */
 export const RowActionsProvider = RowActionsContext;
 
 export function useRowActions() {

@@ -35,14 +35,12 @@ test("a long press on a send row opens its actions where the finger is @layout",
   const point = { x: box.x + box.width + 40, y: box.y + 40 };
   const url = page.url();
 
-  // A tap is still a tap.
   await hold(page, point, 50);
   await expect(page.getByRole("menu")).toHaveCount(0);
 
   await hold(page, point, 700);
   const menu = page.getByRole("menu");
   await expect(menu.getByRole("menuitem", { name: "Edit" })).toBeVisible();
-  // The touch that opened the menu does not also follow the row's link.
   expect(page.url()).toBe(url);
   const menuBox = await menu.boundingBox();
   if (!menuBox) throw new Error("Missing menu bounds");
