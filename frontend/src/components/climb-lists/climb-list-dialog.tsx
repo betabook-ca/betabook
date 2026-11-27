@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 
 import { ClimbListForm, type ClimbListDraft } from "@/components/climb-lists/climb-list-form";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
+import { useViewGuard } from "@/hooks/use-view-guard";
 import type { ActionResult } from "@/lib/action-result";
 import { climbCountLabel, climbListHref, copyClimbListTitle } from "@/lib/climb-lists";
 import {
@@ -63,6 +64,7 @@ export function ClimbListDialog({
   onCreated?: (list: SavedClimbList) => void;
 }) {
   const router = useRouter();
+  const captureView = useViewGuard(userId);
   const [draft, setDraft] = useState<ClimbListDraft>(() => draftFor(mode));
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -94,8 +96,10 @@ export function ClimbListDialog({
   function handleSave() {
     if (pending || incomplete) return;
     setError(null);
+    const isCurrent = captureView();
     startTransition(async () => {
       const result = await save();
+      if (!isCurrent()) return;
       if (!result.ok) {
         setError(result.error);
         return;

@@ -1,5 +1,5 @@
 import { Toast, toast } from "@heroui/react";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
@@ -36,7 +36,7 @@ const MANY: ClimbListChoice[] = [
 ];
 
 function renderButton() {
-  render(
+  return render(
     <>
       <AddToListButton
         climb={{ id: 101, name: "Amarillo Sunset" }}
@@ -173,4 +173,32 @@ it("names the new list in the toast as the server saved it, not as typed", async
     "/users/alex/lists/78",
   );
   expect(screen.queryByRole("link", { name: "Typed name" })).not.toBeInTheDocument();
+});
+
+it("does not show the previous viewer's private list after a delayed add", async () => {
+  const user = userEvent.setup();
+  let finish!: (result: Awaited<ReturnType<typeof addClimbToList>>) => void;
+  vi.mocked(addClimbToList).mockReturnValueOnce(
+    new Promise((resolve) => {
+      finish = resolve;
+    }),
+  );
+  const { rerender } = renderButton();
+  const { dialog, input } = await openDialog(user);
+  await user.type(input, "Bishop");
+  await user.click(await screen.findByRole("option", { name: /Bishop wishlist/ }));
+  await user.click(within(dialog).getByRole("button", { name: "Add" }));
+  expect(addClimbToList).toHaveBeenCalledExactlyOnceWith(2, 101);
+  // The account-scoped content unmounts when the viewer changes, but the app
+  // shell's toast provider stays mounted.
+  rerender(
+    <>
+      <h1>Signed out</h1>
+      <Toast.Provider />
+    </>,
+  );
+  await act(async () => {
+    finish({ ok: true, value: { changed: true, climbCount: 4 } });
+  });
+  expect(screen.queryByRole("link", { name: "Bishop wishlist" })).not.toBeInTheDocument();
 });

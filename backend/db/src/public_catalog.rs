@@ -339,6 +339,32 @@ pub async fn search_public_areas<D: DbExecutor>(
     db: &D,
     options: &PublicCatalogOptions,
 ) -> Result<PublicAreasPage, DbError> {
+    let order = if options.sort == SubtreeClimbsSort::NameDesc {
+        AreaOrder::NameDescending
+    } else {
+        AreaOrder::NameAscending
+    };
+    search_areas(db, options, order).await
+}
+
+pub async fn search_member_areas<D: DbExecutor>(
+    db: &D,
+    options: &PublicCatalogOptions,
+) -> Result<PublicAreasPage, DbError> {
+    search_areas(db, options, AreaOrder::Relevance).await
+}
+
+enum AreaOrder {
+    Relevance,
+    NameAscending,
+    NameDescending,
+}
+
+async fn search_areas<D: DbExecutor>(
+    db: &D,
+    options: &PublicCatalogOptions,
+    order: AreaOrder,
+) -> Result<PublicAreasPage, DbError> {
     let query = to_fts_prefix_query(&options.name);
     let Some(offset) = options.offset else {
         return Ok(PublicAreasPage {
@@ -361,27 +387,26 @@ pub async fn search_public_areas<D: DbExecutor>(
         area_name_condition(options.area_name.as_deref(), &mut params)
     };
     let scope_sql = scope.map(|s| format!("AND {s}")).unwrap_or_default();
-    let dir = if options.sort == SubtreeClimbsSort::NameDesc {
-        "DESC"
-    } else {
-        "ASC"
+    let (sort_key, direction) = match order {
+        AreaOrder::Relevance => ("bm25(areas_fts)", "ASC"),
+        AreaOrder::NameAscending => ("areas.name", "ASC"),
+        AreaOrder::NameDescending => ("areas.name", "DESC"),
     };
-    let order_by = format!("areas.name {dir}, areas.id");
     params.push(DbParam::Int((options.page_size + 1) as i64));
     params.push(DbParam::Int(offset as i64));
 
     let sql = format!(
-        "WITH RECURSIVE page_areas(area_id) AS (
-      SELECT areas.id FROM areas
-      WHERE areas.id IN (SELECT rowid FROM areas_fts WHERE areas_fts MATCH ?)
+        "WITH RECURSIVE page_areas(area_id, sort_key) AS MATERIALIZED (
+      SELECT areas.id, {sort_key} FROM areas_fts JOIN areas ON areas.id = areas_fts.rowid
+      WHERE areas_fts MATCH ?
       {scope_sql}
-      ORDER BY {order_by}
+      ORDER BY {sort_key} {direction}, areas.id
       LIMIT ? OFFSET ?
     ), {}
     SELECT areas.id, areas.name, areas.parent_id AS parentId, areas.description,
       {} AS ancestorPath
     FROM page_areas JOIN areas ON areas.id = page_areas.area_id
-    ORDER BY {order_by}",
+    ORDER BY page_areas.sort_key {direction}, areas.id",
         ancestor_chain_cte("page_areas"),
         ancestor_path_sql("areas.id")
     );

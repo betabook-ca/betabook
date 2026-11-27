@@ -2,7 +2,7 @@
 
 import { Button, useOverlayState } from "@heroui/react";
 import { Menu } from "lucide-react";
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import { BrandHomeLink } from "@/components/brand";
 import { useFriendRequestCount } from "@/components/friend-requests-provider";
@@ -23,20 +23,24 @@ export function HeaderNavigation() {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const { close, open, setOpen } = state;
   const pathname = usePathname();
+  const openedAt = useRef<string | null>(null);
   const session = useClientSession();
   const requestCount = useFriendRequestCount();
   const tabsVisible = useMobileTabsVisible();
   const { Component: AppMenuPopover, load, failed } = useDeferredComponent(loadMenu);
 
-  const openMenu = useCallback(() => {
+  function openMenu() {
+    openedAt.current = window.location.pathname;
     load();
     open();
-  }, [load, open]);
+  }
 
   // Menu links close it on press, including a link to the current page. The
   // root layout persists, so navigations started elsewhere need this too.
   useEffect(() => {
-    close();
+    // The address changes before a lazy route commits. Keep a menu the user
+    // reopened on the new page while its code was loading.
+    if (openedAt.current !== window.location.pathname) close();
   }, [pathname, close]);
 
   useEffect(() => {

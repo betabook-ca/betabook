@@ -51,13 +51,14 @@ export function useImportProfile<Progress>({
           if (!controller.signal.aborted) setProgress(value);
         },
       });
-      if (controller.signal.aborted) return;
-      if (!result.parsed.rows.length) {
-        setError(emptyMessage);
-        return;
+      if (!controller.signal.aborted) {
+        if (result.parsed.rows.length) {
+          setInput(result.username);
+          onLoaded(result.parsed, result.displayName ?? `@${result.username}`);
+        } else {
+          setError(emptyMessage);
+        }
       }
-      setInput(result.username);
-      onLoaded(result.parsed, result.displayName ?? `@${result.username}`);
     } catch (cause) {
       if (!controller.signal.aborted)
         setError(
@@ -65,12 +66,11 @@ export function useImportProfile<Progress>({
             ? cause.message
             : `Couldn't load sends from ${service}. Please try again.`,
         );
-    } finally {
-      if (active.current === controller) {
-        active.current = null;
-        setBusy(false);
-        onBusyChange(false);
-      }
+    }
+    if (active.current === controller) {
+      active.current = null;
+      setBusy(false);
+      onBusyChange(false);
     }
   }
 

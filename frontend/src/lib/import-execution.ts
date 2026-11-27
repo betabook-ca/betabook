@@ -26,13 +26,22 @@ export type ImportRunResult = ImportResult & {
 const UNCONFIRMED_MESSAGE =
   "The connection failed before the result could be confirmed. These rows may have saved; check your sends before importing them again.";
 
+function unconfirmed(response: ImportBatchResponse): boolean {
+  return !response.ok && "outcome" in response;
+}
+
 export async function runImportBatches(
   rows: ImportSendRow[],
   sendBatch: (rows: ImportSendRow[], batchId: string) => Promise<ImportBatchResponse>,
   {
     onProgress,
     isCancelled,
-  }: { onProgress?: (progress: ImportProgress) => void; isCancelled?: () => boolean } = {},
+    isCurrent,
+  }: {
+    onProgress?: (progress: ImportProgress) => void;
+    isCancelled?: () => boolean;
+    isCurrent?: () => boolean;
+  } = {},
 ): Promise<ImportRunResult> {
   const result: ImportRunResult = {
     imported: 0,
@@ -57,6 +66,10 @@ export async function runImportBatches(
   let next = 0;
   let consecutiveFailures = 0;
   while (next < pending.length) {
+    if (isCurrent && !isCurrent()) {
+      result.stopped = { kind: "cancelled", message: "You left the import." };
+      break;
+    }
     const batch = pending.slice(next, next + IMPORT_BATCH_SIZE);
     const batchId = crypto.randomUUID();
     const submit = () =>
@@ -66,11 +79,11 @@ export async function runImportBatches(
       ).catch(() => ({ ok: false, error: UNCONFIRMED_MESSAGE, outcome: "unknown" }) as const);
     let response = await submit();
     // Reuse the receipt ID so a lost response cannot repeat an overwrite.
-    if (!response.ok && "outcome" in response) {
+    if (unconfirmed(response) && (!isCurrent || isCurrent())) {
       const retry = await submit();
       if (retry.ok) response = retry;
     }
-    const uncertain = !response.ok && "outcome" in response;
+    const uncertain = unconfirmed(response);
     if (response.ok) {
       result.imported += response.value.imported;
       result.overwritten += response.value.overwritten;

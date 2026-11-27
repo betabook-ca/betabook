@@ -4220,6 +4220,7 @@ export interface operations {
                         }[],
                         {
                             batchId?: string;
+                            expectedOwnerId?: string;
                             /** @enum {string} */
                             gradeScale: "native" | "converted";
                             /** @enum {string} */

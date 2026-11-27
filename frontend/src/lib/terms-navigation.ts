@@ -1,4 +1,5 @@
 import { LANDING_PAGE_PATHS } from "@/lib/landing-pages";
+import { profileShareFromLocation } from "@/lib/profile-share";
 import { DEFAULT_SIGNED_IN_PATH, safeNextPath } from "@/lib/sign-in-redirect";
 
 export function termsNextPath(next?: string | string[]) {
@@ -13,7 +14,7 @@ export function acceptTermsUrl(next?: string) {
 }
 
 /** These pages remain usable without an agreement, including without JavaScript. */
-export function isTermsExemptPath(path: string) {
+export function isTermsExemptPath(path: string, query?: URLSearchParams) {
   return (
     path === "/accept-terms" ||
     path === "/terms" ||
@@ -28,6 +29,8 @@ export function isTermsExemptPath(path: string) {
     path.startsWith("/trips/") ||
     // A shared list link, for the same reason.
     path.startsWith("/lists/") ||
+    // The profile endpoint permits only the live owner/token's public preview.
+    (query !== undefined && profileShareFromLocation(path, query) !== null) ||
     ["/contact", "/about", "/forgot-password", "/reset-password", ...LANDING_PAGE_PATHS].includes(
       path,
     )

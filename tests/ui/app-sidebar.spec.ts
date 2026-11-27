@@ -173,12 +173,29 @@ test(
       await expect(menu).toBeVisible();
       const headerBrand = page.locator('header a[aria-label="Search"]');
       await expect(headerBrand).toBeVisible();
-      await popover.getByRole("link", { name: "Sign in", exact: true }).click();
-      await expect(page).toHaveURL(/\/sign-in$/);
-      await expect(popover).toBeHidden();
-      await expect(headerBrand).toBeVisible();
-      await menu.click();
-      await expect(popover).toBeVisible();
+      // Route code can arrive after the user has already opened the menu
+      // again on the destination URL.
+      let release!: () => void;
+      const held = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      await page.route("**/assets/auth-routes-*.js", async (route) => {
+        await held;
+        await route.continue();
+      });
+      try {
+        await popover.getByRole("link", { name: "Sign in", exact: true }).click();
+        await expect(page).toHaveURL(/\/sign-in$/);
+        await expect(popover).toBeHidden();
+        await expect(headerBrand).toBeVisible();
+        await menu.click();
+        await expect(popover).toBeVisible();
+        release();
+        await expect(page.locator("main h1")).toHaveText("Sign in");
+        await expect(popover).toBeVisible();
+      } finally {
+        release();
+      }
       await page.setViewportSize({ width: 1024, height: 900 });
       await expect(popover).toBeHidden();
       await expect(sidebar).toBeVisible();

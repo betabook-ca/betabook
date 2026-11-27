@@ -61,3 +61,13 @@ it("keeps terms, public pages, recovery, and acceptance reachable but protects a
   ])
     expect(isTermsExemptPath(path)).toBe(false);
 });
+
+it("exempts only the exact public profile link with one valid share token", () => {
+  const token = "4f9c2a7e1b8d6035c9e4a1f7b2d80e36";
+  const query = new URLSearchParams({ share: token, utm_source: "invite" });
+  expect(isTermsExemptPath("/users/one", query)).toBe(true);
+  expect(isTermsExemptPath("/users/one/journal", query)).toBe(false);
+  expect(isTermsExemptPath("/users/one", new URLSearchParams("share=invalid"))).toBe(false);
+  query.append("share", token);
+  expect(isTermsExemptPath("/users/one", query)).toBe(false);
+});

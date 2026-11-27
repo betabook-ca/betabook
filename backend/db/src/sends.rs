@@ -942,10 +942,12 @@ pub fn build_journal_entry_guard_stmt(
     is_ascent: bool,
 ) -> (String, Vec<DbParam>) {
     (
-        "UPDATE journal_entries
-         SET user_id = NULL, updated_at = updated_at
-         WHERE id = ? AND NOT (
-           user_id = ? AND climb_id IS ? AND sent = ? AND is_ascent = ?
+        // Valid snapshots insert zero rows. A missing or changed entry trips
+        // the same owner constraint before any companion or mirrored send writes.
+        "INSERT INTO journal_entries (user_id)
+         SELECT NULL WHERE NOT EXISTS (
+           SELECT 1 FROM journal_entries
+           WHERE id = ? AND user_id = ? AND climb_id IS ? AND sent = ? AND is_ascent = ?
          )"
         .to_string(),
         vec![

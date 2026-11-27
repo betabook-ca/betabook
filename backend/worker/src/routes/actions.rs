@@ -24,9 +24,9 @@ use betabook_db::sends::{
 };
 use betabook_db::social::{
     FriendshipEndOp, VisibilityColumn, accept_friend_request, dismiss_feature_announcement,
-    end_friendship_relationship, get_account_user, get_friendship_status, get_user_profile,
+    end_friendship_relationship, get_friendship_status, get_user_profile, replace_user_image,
     reset_profile_share_link, update_user_display_name, update_user_grade_preferences,
-    update_user_image, update_user_private, update_user_visibility, upsert_product_tour_status,
+    update_user_private, update_user_visibility, upsert_product_tour_status,
 };
 use betabook_domain::display_name::{DISPLAY_NAME_TAKEN_MESSAGE, display_name_problem};
 use betabook_domain::grades::{ClimbType, native_grade_array};
@@ -99,6 +99,10 @@ pub(super) fn action_err(message: impl Into<String>) -> Response {
 pub(super) fn session_error(error: ApiError) -> Result<Response, ApiError> {
     if error.status.is_server_error() {
         Err(error)
+    } else if error.status == StatusCode::UNAUTHORIZED {
+        Ok(action_err(
+            "Your session has expired — sign in again to continue.",
+        ))
     } else {
         Ok(action_err(error.message))
     }
@@ -311,7 +315,11 @@ pub(crate) struct ContactPayload {
     elapsed: Option<f64>,
 }
 
-async fn handle_contact(state: &AppState, payload: Value) -> Result<Response, ApiError> {
+async fn handle_contact(
+    state: &AppState,
+    headers: &HeaderMap,
+    payload: Value,
+) -> Result<Response, ApiError> {
     let parsed: ContactPayload = serde_json::from_value(payload).unwrap_or(ContactPayload {
         name: None,
         email: None,
@@ -360,6 +368,17 @@ async fn handle_contact(state: &AppState, payload: Value) -> Result<Response, Ap
     }
     if message.chars().count() > 5000 {
         return Ok(action_err("Message must be 5000 characters or fewer"));
+    }
+
+    let ip = headers
+        .get("cf-connecting-ip")
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or("unknown");
+    let limiter = state.env().rate_limiter("CONTACT_RATE_LIMITER")?;
+    if !limiter.limit(ip.to_string()).await?.success {
+        return Ok(action_err(
+            "Too many messages from this network. Try again in a minute.",
+        ));
     }
 
     let from_label: String = name
@@ -621,8 +640,10 @@ async fn handle_upload_profile_photo(
     if part.data.len() > MAX_PROFILE_PHOTO_BYTES {
         return Ok(action_err("That photo is too large — pick one under 3 MB."));
     }
-    if let Some(ref ct) = part.content_type
-        && !ACCEPTED_PROFILE_PHOTO_TYPES.contains(&ct.as_str())
+    if !part
+        .content_type
+        .as_deref()
+        .is_some_and(|ct| ACCEPTED_PROFILE_PHOTO_TYPES.contains(&ct))
     {
         return Ok(action_err(
             "Profile photos must be a JPEG, PNG or WebP image.",
@@ -646,22 +667,32 @@ async fn handle_upload_profile_photo(
         ));
     }
 
-    let current = get_user_profile(state.db(), &session.user.id).await?;
-    let current_key = current
-        .as_ref()
-        .and_then(|u| profile_photo_key_owned_by(u.image.as_deref(), &session.user.id))
-        .map(ToString::to_string);
-
     let encoded = match transform_photo_with_images_binding(state, &part.data).await {
         Ok(bytes) => bytes,
         Err(msg) => return Ok(action_err(msg)),
     };
 
     let digest = Sha256::digest(&encoded);
-    let key = profile_photo_key(&session.user.id, &digest);
+    let owner = &session.user.id;
+    let content_key = profile_photo_key(owner, &digest);
+    if let Some(current_key) = profile_photo_key_owned_by(session.user.image.as_deref(), owner)
+        && let Some(stored) = bucket.head(current_key).await?
+        && (current_key == content_key
+            || stored.custom_metadata()?.get("contentKey") == Some(&content_key))
+    {
+        return Ok(action_ok());
+    }
 
+    // A retired key can have a delete in flight. Allocate a fresh immutable
+    // generation even when restoring the bytes of a previously removed image.
+    let generation = betabook_domain::password::random_bytes(16).map_err(ApiError::internal)?;
+    let key = profile_photo_key(owner, &generation);
     bucket
         .put(&key, encoded)
+        .custom_metadata(std::collections::HashMap::from([(
+            "contentKey".into(),
+            content_key,
+        )]))
         .http_metadata(HttpMetadata {
             content_type: Some(PROFILE_PHOTO_CONTENT_TYPE.to_string()),
             cache_control: Some(PROFILE_PHOTO_CACHE_CONTROL.to_string()),
@@ -674,19 +705,20 @@ async fn handle_upload_profile_photo(
         .await?;
 
     let path = profile_photo_path(&key);
-    if let Err(err) =
-        update_user_image(state.db(), &session.user.id, Some(&path), state.now_ms()).await
-    {
-        if current_key.as_deref() != Some(key.as_str()) {
-            let _ = bucket.delete(&key).await;
+    let previous = match replace_user_image(state.db(), owner, Some(&path), state.now_ms()).await {
+        Ok(previous) => previous,
+        Err(err) => {
+            // If the D1 response was lost, the new object may already be live.
+            if let Ok(current) = get_user_profile(state.db(), owner).await
+                && !current.is_some_and(|user| user.image.as_deref() == Some(&path))
+            {
+                let _ = bucket.delete(&key).await;
+            }
+            return Err(err.into());
         }
-        return Err(err.into());
-    }
-
-    if let Some(old_key) = current_key
-        && old_key != key
-    {
-        let _ = bucket.delete(&old_key).await;
+    };
+    if let Some(old_key) = profile_photo_key_owned_by(previous.as_deref(), owner) {
+        let _ = bucket.delete(old_key).await;
     }
 
     Ok(action_ok())
@@ -847,7 +879,7 @@ pub async fn dispatch_action(
         }
         Action::SubmitContactMessage => {
             let payload = call.args.into_iter().next().unwrap_or(Value::Null);
-            handle_contact(&state, payload).await
+            handle_contact(&state, &headers, payload).await
         }
         Action::DismissFeatureAnnouncement => {
             let session = match require_member_session(&state, &headers).await {
@@ -990,7 +1022,9 @@ pub async fn dispatch_action(
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
             };
-            let is_private = call.args.first().and_then(Value::as_bool) == Some(true);
+            let Some(is_private) = call.args.first().and_then(Value::as_bool) else {
+                return Ok(action_err("Choose a valid private profile setting."));
+            };
             update_user_private(state.db(), &session.user.id, is_private, state.now_ms()).await?;
             Ok(action_ok())
         }
@@ -1067,11 +1101,9 @@ pub async fn dispatch_action(
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
             };
-            let current = get_account_user(state.db(), &session.user.id).await?;
-            update_user_image(state.db(), &session.user.id, None, state.now_ms()).await?;
-            if let Some(key) = current
-                .as_ref()
-                .and_then(|u| profile_photo_key_owned_by(u.image.as_deref(), &session.user.id))
+            let previous =
+                replace_user_image(state.db(), &session.user.id, None, state.now_ms()).await?;
+            if let Some(key) = profile_photo_key_owned_by(previous.as_deref(), &session.user.id)
                 && let Ok(bucket) = state.env().bucket("PROFILE_PHOTOS")
             {
                 let _ = bucket.delete(key).await;

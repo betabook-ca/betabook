@@ -12,7 +12,8 @@ use betabook_db::catalog_export::{get_catalog_counts, stream_catalog_export_part
 use betabook_db::executor::{DbError, DbExecutor, DbParam};
 use betabook_db::public_catalog::{
     get_public_area, get_public_area_trail, get_public_climb, get_public_sends_for_climb,
-    get_public_subareas, resolve_public_subarea, search_public_areas, search_public_climbs,
+    get_public_subareas, resolve_public_subarea, search_member_areas, search_public_areas,
+    search_public_climbs,
 };
 use betabook_db::sqlite::SqliteDb;
 use betabook_domain::grades::ClimbType;
@@ -40,6 +41,117 @@ fn migrated_db() -> SqliteDb {
     let count = db.apply_migrations(&migrations).expect("apply migrations");
     assert!(count >= 57, "expected at least 57 migrations, got {count}");
     db
+}
+
+/// Run another writer after preflight reads and before the atomic write batch.
+struct ConcurrentWrite<'a> {
+    db: &'a SqliteDb,
+    sql: &'a str,
+}
+
+#[async_trait::async_trait(?Send)]
+impl DbExecutor for ConcurrentWrite<'_> {
+    async fn query_all(
+        &self,
+        sql: &str,
+        params: &[betabook_db::DbParam],
+    ) -> Result<Vec<betabook_db::DbRow>, DbError> {
+        self.db.query_all(sql, params).await
+    }
+    async fn execute(&self, sql: &str, params: &[betabook_db::DbParam]) -> Result<u64, DbError> {
+        self.db.execute(sql, params).await
+    }
+    async fn batch_rows(
+        &self,
+        statements: Vec<(String, Vec<betabook_db::DbParam>)>,
+    ) -> Result<Vec<Vec<betabook_db::DbRow>>, DbError> {
+        self.db.execute(self.sql, &[]).await?;
+        self.db.batch_rows(statements).await
+    }
+}
+
+#[test]
+fn google_account_link_requires_current_verified_local_email() {
+    use betabook_db::auth::{LinkOAuthAccount, find_oauth_account_user_id, link_oauth_account};
+
+    let db = migrated_db();
+    run_async(async {
+        db.execute("INSERT INTO user (id, name, email, email_verified) VALUES ('member','Member','member@example.test',0)", &[]).await.expect("fixture account");
+        let link = LinkOAuthAccount {
+            oauth_record_id: "fixture-google-account",
+            provider_id: "google",
+            provider_account_id: "fixture-google-id",
+            user_id: "member",
+            verified_email: "member@example.test",
+            access_token: None,
+            id_token: None,
+            now_ms: 1,
+        };
+        assert!(
+            !link_oauth_account(&db, &link)
+                .await
+                .expect("verification guard")
+        );
+        assert_eq!(
+            find_oauth_account_user_id(&db, "google", link.provider_account_id)
+                .await
+                .expect("query links"),
+            None
+        );
+        mark_email_verified(&db, "member", 2)
+            .await
+            .expect("verify local member");
+        assert!(
+            !link_oauth_account(
+                &db,
+                &LinkOAuthAccount {
+                    verified_email: "previous@example.test",
+                    ..link
+                }
+            )
+            .await
+            .expect("email guard")
+        );
+        assert!(
+            link_oauth_account(&db, &link)
+                .await
+                .expect("verified matching email")
+        );
+    });
+}
+
+#[test]
+fn member_area_search_ranks_by_relevance_across_pages() {
+    let db = migrated_db();
+    run_async(async {
+        db.execute(
+            "INSERT INTO areas(id,name,parent_id) VALUES (1,'Parent',NULL),
+            (2,'Z Rock',1), (3,'Y Rock',1), (4,'A Very Long Rock Name',1),
+            (5,'Rock',NULL)",
+            &[],
+        )
+        .await
+        .expect("seed area search corpus");
+        let mut opts = parse_public_catalog_options("name=rock&areaId=1&limit=2");
+        let member = search_member_areas(&db, &opts).await.expect("ranked page");
+        assert_eq!(
+            member.areas.iter().map(|a| a.id).collect::<Vec<_>>(),
+            [2, 3]
+        );
+        assert!(member.has_next_page);
+        assert_eq!(member.areas[0].ancestor_path.as_deref(), Some("Parent"));
+        let public = search_public_areas(&db, &opts)
+            .await
+            .expect("alphabetical page");
+        assert_eq!(
+            public.areas.iter().map(|a| a.id).collect::<Vec<_>>(),
+            [4, 3]
+        );
+        opts.offset = Some(2);
+        let next = search_member_areas(&db, &opts).await.expect("next page");
+        assert_eq!(next.areas.iter().map(|a| a.id).collect::<Vec<_>>(), [4]);
+        assert!(!next.has_next_page);
+    });
 }
 
 #[test]
@@ -947,3 +1059,6 @@ mod imports;
 
 #[path = "features/moderation.rs"]
 mod moderation;
+
+#[path = "features/journal_races.rs"]
+mod journal_races;

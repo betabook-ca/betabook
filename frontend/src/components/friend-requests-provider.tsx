@@ -4,7 +4,6 @@ import {
   createContext,
   useContext,
   useEffect,
-  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -55,14 +54,11 @@ export function FriendRequestsProvider({ children }: { children: ReactNode }) {
     }
   }, [pathname, store]);
 
-  const value = useMemo(
-    () => ({
-      userId,
-      count: snapshot.userId === userId ? snapshot.count : null,
-      refresh: store.refresh,
-    }),
-    [userId, snapshot, store],
-  );
+  const value = {
+    userId,
+    count: snapshot.userId === userId ? snapshot.count : null,
+    refresh: store.refresh,
+  };
   return <FriendRequestsContext value={value}>{children}</FriendRequestsContext>;
 }
 

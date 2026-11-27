@@ -28,10 +28,37 @@ function enforceFrontendBoundary(): Plugin {
   };
 }
 
+function requireCompiledRoutes(): Plugin {
+  const routesDir = normalizePath(path.join(sourceDir, "spa/routes")) + "/";
+  return {
+    name: "betabook:compiled-routes",
+    apply: "build",
+    applyToEnvironment: (environment) => environment.config.consumer === "client",
+    generateBundle(_options, bundle) {
+      for (const output of Object.values(bundle)) {
+        if (output.type !== "chunk") continue;
+        for (const [id, module] of Object.entries(output.modules)) {
+          if (module.renderedLength === 0 || !normalizePath(id).startsWith(routesDir)) continue;
+          const imports = this.getModuleInfo(id)?.importedIds ?? [];
+          if (
+            imports.some((source) => normalizePath(source).endsWith("/react/compiler-runtime.js"))
+          )
+            return;
+        }
+      }
+      this.error("No shipped SPA route uses React Compiler's memoization runtime.");
+    },
+  };
+}
+
 export default defineConfig({
   root: path.join(sourceDir, "spa"),
   publicDir: path.join(frontendDir, "public"),
-  plugins: [react(), enforceFrontendBoundary()],
+  plugins: [
+    react({ compiler: { logDiagnostics: true } }),
+    enforceFrontendBoundary(),
+    requireCompiledRoutes(),
+  ],
   css: {
     postcss: frontendDir,
   },

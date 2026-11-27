@@ -21,6 +21,7 @@ use crate::sends::{
 
 pub const JOURNAL_PAGE_SIZE: usize = 20;
 pub const CLIMB_JOURNAL_ENTRY_LIMIT: usize = 4;
+const SEND_CHANGED_MESSAGE: &str = "The send changed while this entry was being saved — try again";
 const REPEAT_BEFORE_ASCENT_MESSAGE: &str = "A repeat can't be earlier than the recorded ascent";
 
 #[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
@@ -471,9 +472,8 @@ pub async fn create_journal_entry_with_sync<D: DbExecutor>(
     {
         let existing_send = get_user_send_for_climb(db, user_id, c.id).await?;
         let Some(existing) = existing_send else {
-            let send_input = send_input_if_new_ascent.ok_or_else(|| {
-                MutationError::Validation("Suggested grade is required".to_string())
-            })?;
+            let send_input = send_input_if_new_ascent
+                .ok_or_else(|| MutationError::Validation(SEND_CHANGED_MESSAGE.to_string()))?;
             let mut stmts = vec![
                 build_send_insert_stmt(user_id, c.id, c.climb_type, send_input, now_ms)?,
                 build_sent_journal_insert_stmt(&SentJournalInsert {
@@ -496,14 +496,20 @@ pub async fn create_journal_entry_with_sync<D: DbExecutor>(
                 )?);
             }
             if let Err(err) = db.batch(stmts).await {
-                return Err(map_companion_or_invariant_error(
-                    err,
-                    "The send changed while this entry was being saved — try again",
-                ));
+                if err
+                    .to_string()
+                    .contains("UNIQUE constraint failed: sends.user_id, sends.climb_id")
+                {
+                    return Err(MutationError::Validation(SEND_CHANGED_MESSAGE.into()));
+                }
+                return Err(map_companion_or_invariant_error(err, SEND_CHANGED_MESSAGE));
             }
             return Ok(());
         };
 
+        if send_input_if_new_ascent.is_some() {
+            return Err(MutationError::Validation(SEND_CHANGED_MESSAGE.into()));
+        }
         if carries_send_fields {
             return Err(MutationError::Validation(
                 "A repeat doesn't carry a rating or a grade".to_string(),
@@ -560,10 +566,7 @@ pub async fn create_journal_entry_with_sync<D: DbExecutor>(
                 )?);
             }
             if let Err(err) = db.batch(stmts).await {
-                return Err(map_companion_or_invariant_error(
-                    err,
-                    "The send changed while this entry was being saved — try again",
-                ));
+                return Err(map_companion_or_invariant_error(err, SEND_CHANGED_MESSAGE));
             }
             return Ok(());
         }
@@ -595,10 +598,7 @@ pub async fn create_journal_entry_with_sync<D: DbExecutor>(
             )?);
         }
         if let Err(err) = db.batch(stmts).await {
-            return Err(map_companion_or_invariant_error(
-                err,
-                "The send changed while this entry was being saved — try again",
-            ));
+            return Err(map_companion_or_invariant_error(err, SEND_CHANGED_MESSAGE));
         }
         return Ok(());
     }
@@ -630,10 +630,7 @@ pub async fn create_journal_entry_with_sync<D: DbExecutor>(
         )?);
     }
     if let Err(err) = db.batch(stmts).await {
-        return Err(map_companion_or_invariant_error(
-            err,
-            "The send changed while this entry was being saved — try again",
-        ));
+        return Err(map_companion_or_invariant_error(err, SEND_CHANGED_MESSAGE));
     }
     Ok(())
 }

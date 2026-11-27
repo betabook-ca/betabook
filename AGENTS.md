@@ -33,3 +33,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - [Browser test instructions](tests/ui/AGENTS.md)
 
 - [Journal goal invariants](docs/goals.md)
+
+## React memoization
+
+Let the React Compiler optimize the SPA. Write plain components, calculations, and callbacks. Do not add `React.memo` (including the named `memo` import), `useMemo`, or `useCallback` for render performance.
+
+When changing existing manual memoization, verify any behavior that depends on reference identity, such as an effect subscription or a third-party integration. Use state or a ref when a value must persist across renders.

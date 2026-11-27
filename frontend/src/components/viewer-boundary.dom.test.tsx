@@ -2,9 +2,11 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
+import { useToastQueue } from "@/components/ui/viewer-toasts";
 import { useClientSession } from "@/hooks/use-client-session";
 import type { ActionResult } from "@/lib/action-result";
 import { authClient } from "@/lib/auth-client";
+import { stubViewport } from "@/test/viewport";
 
 import { TermsGate } from "./terms-gate";
 import { ViewerBoundary } from "./viewer-boundary";
@@ -32,6 +34,7 @@ function session(id: string) {
 }
 vi.mock("@/spa/lib/actions-client", () => ({ acceptTerms: vi.fn<() => Promise<ActionResult>>() }));
 beforeEach(async () => {
+  stubViewport("desktop");
   transport.mockImplementation(async () => session("alex"));
   await act(() => authClient.refetch());
   transport.mockClear();
@@ -194,4 +197,81 @@ it("retains the confirmed viewer during a background check and clears it on cros
   expect(screen.queryByText("alex")).not.toBeInTheDocument();
   await act(async () => finish(session("sam")));
   expect(await screen.findByText("sam")).toBeVisible();
+});
+
+it("keeps an unsaved draft through unavailable session checks and a subsequent recovery", async () => {
+  const user = userEvent.setup();
+  render(
+    <ViewerBoundary viewerId="alex">
+      <input aria-label="Draft" />
+    </ViewerBoundary>,
+  );
+  const input = screen.getByRole("textbox", { name: "Draft" });
+  await user.type(input, "In progress");
+  for (const result of [
+    async () => new Response(null, { status: 503 }),
+    async () => {
+      throw new TypeError("offline");
+    },
+    async () => session("alex"),
+  ]) {
+    transport.mockImplementation(result);
+    await act(() => authClient.refetch());
+    expect(screen.getByRole("textbox", { name: "Draft" })).toBe(input);
+    expect(input).toHaveValue("In progress");
+  }
+  transport.mockImplementation(async () => new Response(null, { status: 401 }));
+  await act(() => authClient.refetch());
+  expect(screen.queryByRole("textbox", { name: "Draft" })).not.toBeInTheDocument();
+});
+
+it("ignores an older session response that resolves after a protected request expired", async () => {
+  const { AUTH_REQUIRED_EVENT } = await import("@/lib/api-client");
+  let finish!: (res: Response) => void;
+  transport.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  render(
+    <ViewerBoundary viewerId="alex">
+      <p>Private activity</p>
+    </ViewerBoundary>,
+  );
+  await waitFor(() => expect(finish).toBeTypeOf("function"));
+  act(() => {
+    window.dispatchEvent(new Event(AUTH_REQUIRED_EVENT));
+  });
+  expect(screen.queryByText("Private activity")).not.toBeInTheDocument();
+  await act(async () => finish(session("alex")));
+  expect(screen.queryByText("Private activity")).not.toBeInTheDocument();
+});
+
+it("removes an existing member notification when the viewer changes", async () => {
+  function ListNotice() {
+    const queue = useToastQueue();
+    return (
+      <button type="button" onClick={() => queue.add({ title: "Alex's private list" })}>
+        Show notification
+      </button>
+    );
+  }
+  const user = userEvent.setup();
+  const { rerender } = render(
+    <ViewerBoundary viewerId="alex">
+      <ListNotice />
+    </ViewerBoundary>,
+  );
+  await user.click(screen.getByRole("button", { name: "Show notification" }));
+  expect(await screen.findByText("Alex's private list")).toBeVisible();
+  transport.mockImplementation(async () => session("sam"));
+  await act(() => authClient.refetch());
+  rerender(
+    <ViewerBoundary viewerId="sam">
+      <ListNotice />
+    </ViewerBoundary>,
+  );
+  expect(screen.getByRole("button", { name: "Show notification" })).toBeVisible();
+  expect(screen.queryByText("Alex's private list")).not.toBeInTheDocument();
 });

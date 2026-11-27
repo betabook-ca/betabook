@@ -51,6 +51,11 @@ pub(super) async fn action(
             return Ok(action_err("Invalid import rows"));
         };
         let options = args.get(1).unwrap_or(&Value::Null);
+        if let Some(expected) = options.get("expectedOwnerId")
+            && expected.as_str() != Some(owner.as_str())
+        {
+            return Ok(action_err("Your account changed. Start a new import."));
+        }
         let (Some(scale), Some(conflict)) = (
             options["gradeScale"].as_str(),
             options["onConflict"].as_str(),

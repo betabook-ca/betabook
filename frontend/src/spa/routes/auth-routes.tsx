@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { Button } from "@heroui/react";
+import { useState } from "react";
 import { Navigate, useSearchParams } from "react-router";
 
 import { ForgotPasswordForm } from "@/components/forgot-password-form";
@@ -13,7 +14,7 @@ import { formatAuthErrorMessage, safeNextPath, signInUrl } from "@/lib/sign-in-r
 import { CURRENT_TERMS_PROMPT } from "@/lib/terms";
 import { acceptTermsUrl, termsNextPath } from "@/lib/terms-navigation";
 import { fetchApi, type ApiResponse } from "@/spa/lib/api";
-import type { AuthConfig } from "@/spa/lib/fetch-json";
+import { useRetainedPage } from "@/spa/lib/use-retained-page";
 
 type AuthRouteKind = "sign-in" | "sign-up" | "forgot-password" | "reset-password" | "accept-terms";
 
@@ -27,65 +28,12 @@ function AuthRouteView({
   termsStatus?: ApiResponse<"/api/terms/status"> | null;
 }) {
   const [searchParams] = useSearchParams();
-  const [config, setConfig] = useState<AuthConfig>({
-    googleEnabled: false,
-    turnstileSiteKey: null,
-  });
-  const needsAuthConfig = kind === "sign-in" || kind === "sign-up" || kind === "forgot-password";
-
-  useEffect(() => {
-    if (!needsAuthConfig) {
-      return;
+  if (kind === "sign-in" || kind === "sign-up" || kind === "forgot-password") {
+    const next = safeNextPath(searchParams.get("next") ?? undefined);
+    if (viewerId && kind !== "forgot-password") {
+      return <Navigate to={next ?? `/users/${viewerId}`} replace />;
     }
-    let cancelled = false;
-    async function loadConfig() {
-      try {
-        const res = await fetchApi("/api/config/auth", {});
-        if (!cancelled) {
-          setConfig(res);
-        }
-      } catch {
-        // Leave Google OAuth / Turnstile disabled on config read failure.
-      }
-    }
-    void loadConfig();
-    return () => {
-      cancelled = true;
-    };
-  }, [needsAuthConfig]);
-
-  if (kind === "sign-in") {
-    const nextPath = safeNextPath(searchParams.get("next") ?? undefined);
-    if (viewerId) {
-      return <Navigate to={nextPath ?? `/users/${viewerId}`} replace />;
-    }
-    const initialError = formatAuthErrorMessage(searchParams.get("error") ?? undefined);
-    return (
-      <SignInForm
-        next={nextPath}
-        googleEnabled={config.googleEnabled}
-        initialError={initialError}
-        turnstileSiteKey={config.turnstileSiteKey}
-      />
-    );
-  }
-
-  if (kind === "sign-up") {
-    const nextPath = safeNextPath(searchParams.get("next") ?? undefined);
-    if (viewerId) {
-      return <Navigate to={nextPath ?? `/users/${viewerId}`} replace />;
-    }
-    return (
-      <SignUpForm
-        next={nextPath}
-        googleEnabled={config.googleEnabled}
-        turnstileSiteKey={config.turnstileSiteKey}
-      />
-    );
-  }
-
-  if (kind === "forgot-password") {
-    return <ForgotPasswordForm turnstileSiteKey={config.turnstileSiteKey} />;
+    return <CredentialForm kind={kind} next={next} errorParam={searchParams.get("error")} />;
   }
 
   if (kind === "reset-password") {
@@ -110,6 +58,49 @@ function AuthRouteView({
       viewerId={viewerId}
       termsStatus={termsStatus}
       next={termsNextPath(searchParams.get("next") ?? undefined)}
+    />
+  );
+}
+
+function CredentialForm({
+  kind,
+  next,
+  errorParam,
+}: {
+  kind: "sign-in" | "sign-up" | "forgot-password";
+  next?: string;
+  errorParam: string | null;
+}) {
+  const [attempt, setAttempt] = useState(0);
+  const { data: config, error } = useRetainedPage({
+    scope: "auth-config",
+    query: String(attempt),
+    load: (signal) => fetchApi("/api/config/auth", { signal }),
+  });
+  if (!config) {
+    return (
+      <div className={FORM_CARD_CLASS}>
+        {error ? (
+          <div role="alert">
+            Couldn’t load sign-in options.{" "}
+            <Button size="sm" onPress={() => setAttempt((n) => n + 1)}>
+              Retry
+            </Button>
+          </div>
+        ) : (
+          <p role="status">Loading sign-in options…</p>
+        )}
+      </div>
+    );
+  }
+  if (kind === "forgot-password")
+    return <ForgotPasswordForm turnstileSiteKey={config.turnstileSiteKey} />;
+  if (kind === "sign-up") return <SignUpForm next={next} {...config} />;
+  return (
+    <SignInForm
+      next={next}
+      initialError={formatAuthErrorMessage(errorParam ?? undefined)}
+      {...config}
     />
   );
 }

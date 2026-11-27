@@ -1,7 +1,7 @@
 "use client";
 
 import { useOverlayState } from "@heroui/react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { JournalEntryDrawer } from "@/components/journal/journal-entry-drawer";
 import { PinProjectButton } from "@/components/journal/pin-project-button";
@@ -84,6 +84,14 @@ function haystack(project: ProjectWithSessions): string {
     .toLowerCase();
 }
 
+function visibleProjects(projects: ProjectWithSessions[], query: string, sort: ProjectSort) {
+  const needle = query.trim().toLowerCase();
+  const matched = needle
+    ? projects.filter((project) => haystack(project).includes(needle))
+    : projects;
+  return matched.toSorted(COMPARATORS[sort]);
+}
+
 type ProjectBoardProps = {
   userId: string;
   projects: ProjectWithSessions[];
@@ -127,13 +135,7 @@ export function ProjectBoard({
   // date that disagreed across the hydration boundary would be a mismatch.
   const today = mounted ? localToday() : null;
 
-  const visible = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    const matched = needle
-      ? projects.filter((project) => haystack(project).includes(needle))
-      : projects;
-    return [...matched].sort(COMPARATORS[sort]);
-  }, [projects, query, sort]);
+  const visible = visibleProjects(projects, query, sort);
 
   const pinButton = sents ? null : (
     <PinProjectButton

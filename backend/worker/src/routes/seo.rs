@@ -262,6 +262,21 @@ fn permanent_redirect(path: &str, raw_query: Option<&str>) -> Response {
         .into_response()
 }
 
+fn member_redirect(state: &AppState, segments: &[&str]) -> Result<Response, ApiError> {
+    let mut url = url::Url::parse(&state.request_origin).map_err(ApiError::internal)?;
+    url.path_segments_mut()
+        .map_err(|_| ApiError::internal("Invalid origin"))?
+        .clear()
+        .extend(segments);
+    Response::builder()
+        .status(StatusCode::TEMPORARY_REDIRECT)
+        .header(header::LOCATION, url.path())
+        .header(header::CACHE_CONTROL, "private, no-store")
+        .header(header::VARY, "Cookie")
+        .body(Body::empty())
+        .map_err(ApiError::internal)
+}
+
 fn canonical_slug_matches(provided: Option<&str>, expected_slug: &str) -> bool {
     match provided {
         None => expected_slug.is_empty(),
@@ -459,14 +474,8 @@ pub async fn area_page(
     Path(raw_id): Path<String>,
     OriginalUri(uri): OriginalUri,
 ) -> Result<Response, ApiError> {
-    render_area_page(
-        state,
-        !crate::auth::cookies::has_session_cookie(&headers),
-        raw_id,
-        None,
-        uri,
-    )
-    .await
+    let guest = !crate::auth::cookies::has_session_cookie(&headers, state.is_secure_cookies());
+    render_area_page(state, guest, raw_id, None, uri).await
 }
 
 #[worker::send]
@@ -476,14 +485,8 @@ pub async fn area_page_with_slug(
     Path((raw_id, slug)): Path<(String, String)>,
     OriginalUri(uri): OriginalUri,
 ) -> Result<Response, ApiError> {
-    render_area_page(
-        state,
-        !crate::auth::cookies::has_session_cookie(&headers),
-        raw_id,
-        Some(slug),
-        uri,
-    )
-    .await
+    let guest = !crate::auth::cookies::has_session_cookie(&headers, state.is_secure_cookies());
+    render_area_page(state, guest, raw_id, Some(slug), uri).await
 }
 
 async fn render_climb_page(
@@ -584,14 +587,8 @@ pub async fn climb_page(
     Path(raw_id): Path<String>,
     OriginalUri(uri): OriginalUri,
 ) -> Result<Response, ApiError> {
-    render_climb_page(
-        state,
-        !crate::auth::cookies::has_session_cookie(&headers),
-        raw_id,
-        None,
-        uri,
-    )
-    .await
+    let guest = !crate::auth::cookies::has_session_cookie(&headers, state.is_secure_cookies());
+    render_climb_page(state, guest, raw_id, None, uri).await
 }
 
 #[worker::send]
@@ -601,14 +598,8 @@ pub async fn climb_page_with_slug(
     Path((raw_id, slug)): Path<(String, String)>,
     OriginalUri(uri): OriginalUri,
 ) -> Result<Response, ApiError> {
-    render_climb_page(
-        state,
-        !crate::auth::cookies::has_session_cookie(&headers),
-        raw_id,
-        Some(slug),
-        uri,
-    )
-    .await
+    let guest = !crate::auth::cookies::has_session_cookie(&headers, state.is_secure_cookies());
+    render_climb_page(state, guest, raw_id, Some(slug), uri).await
 }
 
 pub(super) async fn render_not_found(state: &AppState) -> Result<Response, ApiError> {
@@ -751,17 +742,10 @@ pub async fn shared_list_html(
         .as_deref()
         == Some(link.owner_id.as_str())
     {
-        let mut url = url::Url::parse(&state.request_origin).map_err(ApiError::internal)?;
-        url.path_segments_mut()
-            .map_err(|_| ApiError::internal("Invalid origin"))?
-            .clear()
-            .extend(["users", &link.owner_id, "lists", &link.list.id.to_string()]);
-        return Response::builder()
-            .status(StatusCode::TEMPORARY_REDIRECT)
-            .header(header::LOCATION, url.path())
-            .header(header::CACHE_CONTROL, "private, no-store")
-            .body(Body::empty())
-            .map_err(ApiError::internal);
+        return member_redirect(
+            &state,
+            &["users", &link.owner_id, "lists", &link.list.id.to_string()],
+        );
     }
     let meta = if link.live {
         let mut meta = PageMetadata::noindex(
@@ -840,10 +824,37 @@ async fn render_list_shell(
     Ok(response)
 }
 
-fn route_metadata(path: &str, has_query: bool) -> (PageMetadata, Vec<Value>, &'static str) {
+// Home searchParams were serialized from a record: array-index keys first,
+// then first-seen keys, with all values for a key retained in insertion order.
+fn home_search_query(raw: &str) -> Option<String> {
+    let mut fields = BTreeMap::new();
+    for (position, (key, value)) in form_urlencoded::parse(raw.as_bytes()).enumerate() {
+        let (_, values) = fields.entry(key).or_insert_with(|| (position, Vec::new()));
+        values.push(value);
+    }
+    if fields.is_empty() {
+        return None;
+    }
+    let mut fields: Vec<_> = fields.into_iter().collect();
+    fields.sort_by_key(|(key, (position, _))| {
+        key.parse::<u32>()
+            .ok()
+            .filter(|i| *i < u32::MAX && i.to_string() == *key)
+            .map_or((1, *position), |i| (0, i as usize))
+    });
+    let mut query = form_urlencoded::Serializer::new(String::new());
+    for (key, (_, values)) in fields {
+        for value in values {
+            query.append_pair(&key, &value);
+        }
+    }
+    Some(query.finish())
+}
+
+fn route_metadata(path: &str) -> (PageMetadata, Vec<Value>, &'static str) {
     match path {
         "/" => (
-            default_home_metadata(has_query),
+            default_home_metadata(),
             vec![website_json_ld()],
             "routes/search-route.tsx",
         ),
@@ -1004,10 +1015,17 @@ pub async fn spa_fallback(
         }
     }
 
-    let guest = !crate::auth::cookies::has_session_cookie(&headers);
+    let guest = !crate::auth::cookies::has_session_cookie(&headers, state.is_secure_cookies());
     let raw_query = uri.query().unwrap_or("");
-    let has_query = !raw_query.is_empty();
-    let (meta, json_ld, chunk_key) = route_metadata(path, has_query);
+    if path == "/" {
+        if let Some(query) = home_search_query(raw_query) {
+            return Ok(permanent_redirect("/search", Some(&query)));
+        }
+        if !guest && let Some(viewer) = super::climb_lists::shared_viewer(&state, &headers).await? {
+            return member_redirect(&state, &["users", &viewer]);
+        }
+    }
+    let (meta, json_ld, chunk_key) = route_metadata(path);
 
     if chunk_key.is_empty() {
         return render_not_found(&state).await;
@@ -1024,7 +1042,7 @@ pub async fn spa_fallback(
         )
         .await;
     }
-    let (template, preloads) = if guest && path == "/" && !has_query {
+    let (template, preloads) = if path == "/" {
         let template = load_asset_text(&state, "/public-home.txt")
             .await?
             .ok_or_else(|| ApiError::internal("Missing public home document"))?;

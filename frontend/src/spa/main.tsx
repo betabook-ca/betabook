@@ -7,14 +7,17 @@ import "@/spa/globals.css";
 // oxlint-disable-next-line import/no-unassigned-import -- load self-hosted Geist and Barlow Condensed faces
 import "@/spa/fonts.css";
 import { App } from "@/spa/app";
+import { RenderErrorBoundary } from "@/spa/lib/render-error-boundary";
 
 const rootElement = document.getElementById("root");
 if (rootElement) {
   createRoot(rootElement).render(
     <StrictMode>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <RenderErrorBoundary scope="global">
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </RenderErrorBoundary>
     </StrictMode>,
   );
 }

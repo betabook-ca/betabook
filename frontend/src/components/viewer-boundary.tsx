@@ -1,10 +1,10 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
+import { ViewerToasts } from "@/components/ui/viewer-toasts";
 import { useMounted } from "@/hooks/use-mounted";
-import { AUTH_REQUIRED_EVENT } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "@/spa/lib/navigation";
 
@@ -17,13 +17,12 @@ export function ViewerBoundary({
   viewerId: string | null;
   children: ReactNode;
 }) {
-  const [authRequired, setAuthRequired] = useState(false);
   const mounted = useMounted();
   const { data: session, isPending } = authClient.useSession();
   const [lastViewerId, setLastViewerId] = useState<string | null>();
   const currentViewerId = isPending ? lastViewerId : (session?.user.id ?? null);
   if (!isPending && currentViewerId !== lastViewerId) setLastViewerId(currentViewerId);
-  const router = useRouter();
+  const { refresh: refreshRoute } = useRouter();
   const [refreshing, startRefresh] = useTransition();
   const lastRefreshAt = useRef(-Infinity);
   useEffect(() => {
@@ -34,7 +33,7 @@ export function ViewerBoundary({
       const now = Date.now();
       if (now - lastRefreshAt.current < 1_000) return;
       lastRefreshAt.current = now;
-      startRefresh(() => router.refresh());
+      startRefresh(() => refreshRoute());
     };
     window.addEventListener("focus", refresh);
     document.addEventListener("visibilitychange", refresh);
@@ -42,21 +41,13 @@ export function ViewerBoundary({
       window.removeEventListener("focus", refresh);
       document.removeEventListener("visibilitychange", refresh);
     };
-  }, [router, refreshing, startRefresh]);
+  }, [refreshRoute, refreshing, startRefresh]);
   const changed = mounted && currentViewerId !== undefined && currentViewerId !== viewerId;
   useEffect(() => {
-    const expired = () => {
-      setAuthRequired(true);
-      router.refresh();
-    };
-    window.addEventListener(AUTH_REQUIRED_EVENT, expired);
-    return () => window.removeEventListener(AUTH_REQUIRED_EVENT, expired);
-  }, [router]);
-  useEffect(() => {
-    if (changed) router.refresh();
-  }, [changed, router]);
-  if (changed || authRequired) return <CurrentPageAuthCallout />;
+    if (changed) refreshRoute();
+  }, [changed, refreshRoute]);
+  if (changed) return <CurrentPageAuthCallout />;
   // The server can observe an account switch before useSession finishes.
   // Never carry a previous viewer's drafts or loaded pages into that tree.
-  return <Fragment key={viewerId}>{children}</Fragment>;
+  return <ViewerToasts key={viewerId}>{children}</ViewerToasts>;
 }

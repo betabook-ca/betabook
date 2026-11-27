@@ -159,3 +159,22 @@ it("stays open and shows the error when delete fails", async () => {
   expect(await within(dialog).findByText("Trip not found")).toBeInTheDocument();
   expect(push).not.toHaveBeenCalled();
 });
+
+it("does not leave a newer page when an earlier trip deletion finishes", async () => {
+  let finish!: (result: Awaited<ReturnType<typeof deleteTrip>>) => void;
+  const done = new Promise<Awaited<ReturnType<typeof deleteTrip>>>((resolve) => {
+    finish = resolve;
+  });
+  vi.mocked(deleteTrip).mockReturnValueOnce(done);
+  const user = userEvent.setup();
+  const { unmount } = render(<TripActions trip={BISHOP} userId="alex" leaveOnDelete />);
+  await choose(user, "Delete");
+  const dialog = await screen.findByRole("alertdialog");
+  await user.click(within(dialog).getByRole("button", { name: "Delete" }));
+  expect(deleteTrip).toHaveBeenCalledWith(BISHOP.id);
+  unmount();
+  await act(async () => {
+    finish({ ok: true, value: undefined });
+  });
+  expect(push).not.toHaveBeenCalled();
+});

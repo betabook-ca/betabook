@@ -1,4 +1,4 @@
-use super::{migrated_db, run_async};
+use super::{ConcurrentWrite, migrated_db, run_async};
 use betabook_db::{
     DbError, DbExecutor,
     moderation::{review, review_queue, submit},
@@ -229,34 +229,6 @@ fn revalidates_payloads_and_keeps_failed_decision_pending() {
             "applied"
         );
     });
-}
-
-/// Simulate a competing Writer winning after validation, immediately before
-/// the D1 batch begins. Every moderation audit and catalog write must roll back.
-struct ConcurrentWrite<'a> {
-    db: &'a SqliteDb,
-    sql: &'a str,
-}
-
-#[async_trait::async_trait(?Send)]
-impl DbExecutor for ConcurrentWrite<'_> {
-    async fn query_all(
-        &self,
-        sql: &str,
-        params: &[betabook_db::DbParam],
-    ) -> Result<Vec<betabook_db::DbRow>, DbError> {
-        self.db.query_all(sql, params).await
-    }
-    async fn execute(&self, sql: &str, params: &[betabook_db::DbParam]) -> Result<u64, DbError> {
-        self.db.execute(sql, params).await
-    }
-    async fn batch_rows(
-        &self,
-        statements: Vec<(String, Vec<betabook_db::DbParam>)>,
-    ) -> Result<Vec<Vec<betabook_db::DbRow>>, DbError> {
-        self.db.execute(self.sql, &[]).await?;
-        self.db.batch_rows(statements).await
-    }
 }
 
 #[test]

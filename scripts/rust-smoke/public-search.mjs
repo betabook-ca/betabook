@@ -65,4 +65,23 @@ export async function testPublicSearch({ server, db, signIn }) {
   const cookie = await signIn("search-ssr-member");
   const member = await get("mode=climb&name=Easy+Forager", { cookie });
   assert.equal(member.seed, null);
+  const rankedAreas = ["Z Foothold", "Y Foothold", "A Long Foothold Traverse"];
+  await db.batch(
+    rankedAreas.map((name) => db.prepare("INSERT INTO areas(name) VALUES (?)").bind(name)),
+  );
+  const ranked = async (path, page, headers = {}) => {
+    const response = await server.fetch(path + "?name=foothold&limit=2&page=" + page, { headers });
+    assert.equal(response.status, 200);
+    const result = await response.json();
+    return [result.areas.map((a) => a.name), result.hasNextPage];
+  };
+  assert.deepEqual(await ranked("/api/search/areas", 1, { cookie }), [
+    rankedAreas.slice(0, 2),
+    true,
+  ]);
+  assert.deepEqual(await ranked("/api/search/areas", 2, { cookie }), [rankedAreas.slice(2), false]);
+  assert.deepEqual(await ranked("/api/public/search/areas", 1), [
+    [rankedAreas[2], rankedAreas[1]],
+    true,
+  ]);
 }

@@ -8,7 +8,7 @@ use axum::{
     http::{HeaderMap, HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
 };
-use betabook_db::auth::{get_share_link_owner, get_terms_acceptance};
+use betabook_db::auth::get_share_link_owner;
 use betabook_db::content_access::{can_read_journal, get_profile_access};
 use betabook_db::feed::{FEED_PAGE_SIZE, FeedCursor, get_feed_page};
 use betabook_db::fts::PAGE_SIZE;
@@ -43,7 +43,7 @@ use betabook_domain::public_catalog::{
 use betabook_domain::sends::{
     ASCENT_STYLES, is_real_iso_date, is_valid_journal_tag, normalize_tag,
 };
-use betabook_domain::terms::{TERMS_ACCESS_MESSAGE, has_accepted_current_terms};
+use betabook_domain::terms::has_accepted_current_terms;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use url::form_urlencoded;
@@ -302,30 +302,6 @@ fn parse_feed_cursor(raw: Option<&str>, view: &str) -> Result<Option<FeedCursor>
         return Err(());
     }
     Ok(Some(FeedCursor { date, user_id }))
-}
-
-pub(super) async fn resolve_optional_member_session(
-    state: &AppState,
-    headers: &HeaderMap,
-) -> Result<Option<betabook_db::auth::AuthSession>, ApiError> {
-    let Some(session) = resolve_optional_session(state, headers).await? else {
-        return Ok(None);
-    };
-    let Some(acceptance) = get_terms_acceptance(state.db(), &session.user.id).await? else {
-        return Ok(None);
-    };
-    if !has_accepted_current_terms(
-        acceptance.terms_version.as_deref(),
-        acceptance.terms_accepted_at,
-    ) {
-        return Err(ApiError::with_code(
-            StatusCode::PRECONDITION_REQUIRED,
-            "TERMS_ACCEPTANCE_REQUIRED",
-            TERMS_ACCESS_MESSAGE,
-        )
-        .no_store());
-    }
-    Ok(Some(session))
 }
 
 #[worker::send]
@@ -868,11 +844,21 @@ pub async fn user_profile_page_loader(
     OriginalUri(uri): OriginalUri,
 ) -> Result<Response, ApiError> {
     let raw_query = uri.query().unwrap_or("");
-    let session_opt = resolve_optional_member_session(&state, &headers).await?;
-    let Some(session) = session_opt else {
-        let Some(token) = profile_token_from_query(raw_query) else {
-            return Err(ApiError::unauthorized());
-        };
+    let token = profile_token_from_query(raw_query);
+    let session = if token.is_some() {
+        resolve_optional_session(&state, &headers)
+            .await?
+            .filter(|s| {
+                has_accepted_current_terms(
+                    s.user.terms_version.as_deref(),
+                    s.user.terms_accepted_at,
+                )
+            })
+    } else {
+        Some(require_member_session(&state, &headers).await?)
+    };
+    let Some(session) = session else {
+        let token = token.ok_or_else(ApiError::unauthorized)?;
         let Some(owner) = get_share_link_owner(state.db(), &token).await? else {
             return Err(ApiError::unauthorized());
         };

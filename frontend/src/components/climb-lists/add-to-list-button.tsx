@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, ComboBox, Input, Label, ListBox, toast, useOverlayState } from "@heroui/react";
+import { Button, ComboBox, Input, Label, ListBox, useOverlayState } from "@heroui/react";
 import { CirclePlus, ListPlus } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import type { Key } from "react-aria-components";
@@ -10,6 +10,8 @@ import { AppLink } from "@/components/ui/app-link";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { SkeletonListRows } from "@/components/ui/skeleton";
+import { useToastQueue } from "@/components/ui/viewer-toasts";
+import { useViewGuard } from "@/hooks/use-view-guard";
 import { climbCountLabel, climbListHref } from "@/lib/climb-lists";
 import { addClimbToList } from "@/spa/lib/actions-client";
 import { fetchApi, type ApiResponse } from "@/spa/lib/api";
@@ -33,18 +35,6 @@ const fetchChoices: ClimbListChoicesFetcher = async (climbId) => {
   }
 };
 
-/** Says where the climb went, with the list as a link to it. */
-function announceAdded(climbName: string, userId: string, list: { id: number; title: string }) {
-  toast.success(
-    <span>
-      Added {climbName} to{" "}
-      <AppLink href={climbListHref(userId, list.id)} className="font-medium underline">
-        {list.title}
-      </AppLink>
-    </span>,
-  );
-}
-
 /**
  * The climb page's secondary action beside Log. It opens a dialog with a
  * searchable dropdown of the climber's lists, which scales to any number of
@@ -63,6 +53,8 @@ export function AddToListButton({
   /** For stories and tests. Production reads the climber's lists by API. */
   fetcher?: ClimbListChoicesFetcher;
 }) {
+  const queue = useToastQueue();
+  const captureView = useViewGuard(viewerId, climb.id);
   const state = useOverlayState();
   const createState = useOverlayState();
   const [choices, setChoices] = useState<ClimbListChoice[] | null>(null);
@@ -89,17 +81,36 @@ export function AddToListButton({
 
   const list = choices?.find((choice) => String(choice.id) === selected) ?? null;
 
+  function announceAdded(list: { id: number; title: string }) {
+    queue.add(
+      {
+        variant: "success",
+        title: (
+          <span>
+            Added {climb.name} to{" "}
+            <AppLink href={climbListHref(viewerId, list.id)} className="font-medium underline">
+              {list.title}
+            </AppLink>
+          </span>
+        ),
+      },
+      { timeout: 4000 },
+    );
+  }
+
   function add() {
     if (!list || pending) return;
     setError(null);
+    const isCurrent = captureView();
     startTransition(async () => {
       const result = await addClimbToList(list.id, climb.id);
+      if (!isCurrent()) return;
       if (!result.ok) {
         setError(result.error);
         return;
       }
       state.close();
-      announceAdded(climb.name, viewerId, list);
+      announceAdded(list);
     });
   }
 
@@ -200,7 +211,7 @@ export function AddToListButton({
         state={createState}
         userId={viewerId}
         mode={{ kind: "create", climbId: climb.id }}
-        onCreated={(list) => announceAdded(climb.name, viewerId, list)}
+        onCreated={announceAdded}
       />
     </>
   );

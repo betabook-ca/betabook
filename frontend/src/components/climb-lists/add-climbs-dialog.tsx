@@ -1,7 +1,7 @@
 "use client";
 
 import type { UseOverlayStateReturn } from "@heroui/react";
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 
 import { ClimbPicker } from "@/components/climb-picker";
 import { InlineAlert } from "@/components/ui/inline-alert";
@@ -37,12 +37,8 @@ export function AddClimbsDialog({
   const [pending, startTransition] = useTransition();
   const compact = useCompactViewport();
 
-  const onList = useMemo(
-    () =>
-      new Map(
-        [...climbIds, ...added.map((climb) => climb.id)].map((id) => [id, "On this list"] as const),
-      ),
-    [climbIds, added],
+  const onList = new Map(
+    [...climbIds, ...added.map((climb) => climb.id)].map((id) => [id, "On this list"] as const),
   );
 
   function handleAdd(climb: ClimbWithAreaName) {

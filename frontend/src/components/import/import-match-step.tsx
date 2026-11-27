@@ -3,7 +3,7 @@
 import { Button, useOverlayState } from "@heroui/react";
 import { clsx } from "clsx";
 import { X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { AreaLookup } from "@/components/search/area-lookup";
 import { BrokenChip } from "@/components/ui/broken-chip";
@@ -420,10 +420,7 @@ export function ImportMatchStep({
   /** Several choices in one state update, for "Skip all unresolved". */
   onChooseMany: (choices: { rowIndex: number; choice: ManualChoice | null }[]) => void;
 }) {
-  const duplicates = useMemo(
-    () => (resolved ? duplicateClimbRows(resolved) : new Map()),
-    [resolved],
-  );
+  const duplicates = duplicateClimbRows(resolved ?? []);
   const activeFilter: Filter = filter ?? "all";
 
   // How far the list is unrolled; switching filters resets it to one page.
@@ -433,15 +430,11 @@ export function ImportMatchStep({
   const searchState = useOverlayState();
   const [searchTarget, setSearchTarget] = useState<SearchTarget | null>(null);
 
-  const visible = useMemo(
-    () =>
-      resolved
-        ? activeFilter === "all"
-          ? resolved
-          : resolved.filter((r) => r.state === activeFilter)
-        : [],
-    [resolved, activeFilter],
-  );
+  const visible = resolved
+    ? activeFilter === "all"
+      ? resolved
+      : resolved.filter((r) => r.state === activeFilter)
+    : [];
 
   function openSearch(r: ResolvedRow) {
     setSearchTarget({

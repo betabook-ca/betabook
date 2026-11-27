@@ -10,12 +10,15 @@ use betabook_db::auth::{
     create_oauth_user_and_account, create_session, create_user_with_credential,
     create_verification, delete_account_and_cleanup, delete_session_by_token, delete_verification,
     find_credential_password_by_user_id, find_oauth_account_user_id, find_user_by_email,
-    find_valid_verification, get_share_link_owner, get_terms_acceptance, get_user_by_id,
-    get_user_id_by_name_nocase, link_oauth_account, mark_email_verified, record_terms_acceptance,
-    reset_credential_password_and_revoke_sessions, unique_display_name,
+    find_valid_verification, find_verification, get_share_link_owner, get_terms_acceptance,
+    get_user_by_id, get_user_id_by_name_nocase, link_oauth_account, mark_email_verified,
+    record_terms_acceptance, reset_credential_password_and_revoke_sessions, unique_display_name,
 };
 use betabook_domain::display_name::{DISPLAY_NAME_TAKEN_MESSAGE, display_name_problem};
-use betabook_domain::password::{hash_password, random_bytes, random_hex, verify_password};
+use betabook_domain::password::{
+    LegacyEmailVerification, hash_password, legacy_email_verification, random_bytes, random_hex,
+    verify_password,
+};
 use betabook_domain::profile_share::profile_share_from_path;
 use betabook_domain::terms::{
     TERMS_REQUIRED_MESSAGE, TERMS_UPDATED_LABEL, TERMS_VERSION, has_accepted_current_terms,
@@ -27,7 +30,7 @@ use url::form_urlencoded;
 
 use crate::auth::cookies::{
     OAUTH_STATE_COOKIE, SESSION_EXPIRES_MS, build_oauth_state_cookie, build_session_cookie_header,
-    clear_oauth_state_cookie, clear_session_cookie_header, read_session_token, read_signed_cookie,
+    clear_oauth_state_cookie, clear_session_cookies, read_session_token, read_signed_cookie,
 };
 use crate::auth::email::{
     send_reset_password_email, send_verification_email, welcome_new_account_once,
@@ -44,19 +47,46 @@ fn safe_relative_path(raw: Option<&str>, fallback: &str, auth_url: &str) -> Stri
     let Some(input) = raw.filter(|s| !s.contains('\\') && !s.chars().any(char::is_control)) else {
         return fallback.into();
     };
-    if input.starts_with('/') && !input.starts_with("//") {
-        return input.into();
-    }
-    let (Ok(target), Ok(base)) = (url::Url::parse(input), url::Url::parse(auth_url)) else {
+    let Ok(base) = url::Url::parse(auth_url) else {
         return fallback.into();
     };
+    let target = if input.starts_with('/') && !input.starts_with("//") {
+        base.join(input)
+    } else {
+        url::Url::parse(input)
+    };
+    let Ok(target) = target else {
+        return fallback.into();
+    };
+
+    // The Location header receives a path. A serialized path must remain local
+    // when the browser resolves it again, including after dot-segment normalization.
+    let location = &target[url::Position::BeforePath..];
     if target.origin() != base.origin()
         || !target.username().is_empty()
         || target.password().is_some()
+        || !location.starts_with('/')
+        || location.starts_with("//")
     {
         return fallback.into();
     }
-    target[url::Position::BeforePath..].into()
+    location.into()
+}
+
+/// Set the error on the validated, relative return URL without changing its fragment
+/// or dropping other parameters (in particular the SPA's nested `next` route).
+fn callback_error_location(callback: &str, error: &str) -> String {
+    let (path_query, fragment) = callback.split_once('#').unwrap_or((callback, ""));
+    let (path, query) = path_query.split_once('?').unwrap_or((path_query, ""));
+    let mut params = form_urlencoded::Serializer::new(String::new());
+    params.extend_pairs(form_urlencoded::parse(query.as_bytes()).filter(|(key, _)| key != "error"));
+    params.append_pair("error", error);
+    let mut location = format!("{path}?{}", params.finish());
+    if callback.contains('#') {
+        location.push('#');
+        location.push_str(fragment);
+    }
+    location
 }
 
 fn no_store_json(status: StatusCode, body: Value) -> Response {
@@ -155,15 +185,41 @@ async fn resolve_referred_by(
     }
 }
 
+/// Signup accepts practical mailbox addresses with DNS-style domains, as the
+/// previous email validator did. Existing account lookup stays compatible.
+fn valid_signup_email(address: &str) -> bool {
+    #[expect(clippy::expect_used, reason = "constant email pattern")]
+    static EMAIL: std::sync::LazyLock<regex_lite::Regex> = std::sync::LazyLock::new(|| {
+        regex_lite::Regex::new(r"^(?:[A-Za-z0-9_'+-]+\.)*[A-Za-z0-9_'+-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$")
+            .expect("valid signup email pattern")
+    });
+    address.len() <= 254 && address.find('@').is_some_and(|at| at <= 64) && EMAIL.is_match(address)
+}
+
+fn invalid_credentials() -> ApiError {
+    ApiError::with_code(
+        StatusCode::UNAUTHORIZED,
+        "INVALID_EMAIL_OR_PASSWORD",
+        "Invalid email or password",
+    )
+}
+
+/// Keep failed credential lookups on the password-work path using bounded input.
+fn reject_without_credential(error: ApiError) -> Result<Response, ApiError> {
+    hash_password("betabook-dummy-password").map_err(ApiError::internal)?;
+    Err(error)
+}
+
 fn validate_password_len(password: &str) -> Result<(), ApiError> {
-    if password.encode_utf16().count() < MIN_PASSWORD_LEN {
+    let len = password.encode_utf16().take(MAX_PASSWORD_LEN + 1).count();
+    if len < MIN_PASSWORD_LEN {
         return Err(ApiError::with_code(
             StatusCode::BAD_REQUEST,
             "PASSWORD_TOO_SHORT",
             format!("Password must be at least {MIN_PASSWORD_LEN} characters."),
         ));
     }
-    if password.encode_utf16().count() > MAX_PASSWORD_LEN {
+    if len > MAX_PASSWORD_LEN {
         return Err(ApiError::with_code(
             StatusCode::BAD_REQUEST,
             "PASSWORD_TOO_LONG",
@@ -221,7 +277,7 @@ pub async fn sign_up_email(
         return Err(ApiError::new(StatusCode::UNPROCESSABLE_ENTITY, problem));
     }
     let email = body.email.trim().to_ascii_lowercase();
-    if email.is_empty() || !email.contains('@') {
+    if !valid_signup_email(&email) {
         return Err(ApiError::new(
             StatusCode::BAD_REQUEST,
             "Enter a valid email address.",
@@ -371,39 +427,38 @@ pub async fn verify_email(
     Query(query): Query<VerifyEmailQuery>,
 ) -> Result<Response, ApiError> {
     let fallback = safe_relative_path(query.callback_url.as_deref(), "/sign-in", &state.auth_url());
+    let failure = |code| redirect_response(&callback_error_location(&fallback, code), &[]);
     let Some(token) = query.token.as_deref().filter(|s| !s.is_empty()) else {
-        return Ok(redirect_response("/sign-in?error=invalid_token", &[]));
+        return Ok(failure("INVALID_TOKEN"));
     };
     let identifier = format!("email-verification:{token}");
     let now = state.now_ms();
-    let user = if let Some(ver) = find_valid_verification(state.db(), &identifier, now).await? {
-        let user = get_user_by_id(state.db(), &ver.value).await?;
-        // Keep the unexpired link usable if the verification write fails.
-        if let Some(user) = &user
-            && !user.email_verified
-        {
-            mark_email_verified(state.db(), &user.id, now).await?;
+    let stored = find_verification(state.db(), &identifier, None).await?;
+    let user = if let Some(ver) = &stored {
+        if ver.expires_at <= now {
+            return Ok(failure("TOKEN_EXPIRED"));
         }
-        delete_verification(state.db(), &ver.id).await?;
-        user
-    } else if let Some((id, email)) =
-        betabook_domain::password::legacy_email_verification(token, &state.auth_secret()?, now)
-    {
-        let user = get_user_by_id(state.db(), &id)
-            .await?
-            .filter(|user| user.email == email);
-        if let Some(user) = &user
-            && !user.email_verified
-        {
-            mark_email_verified(state.db(), &user.id, now).await?;
-        }
-        user
+        get_user_by_id(state.db(), &ver.value).await?
     } else {
-        None
+        match legacy_email_verification(token, &state.auth_secret()?, now) {
+            Some(LegacyEmailVerification::Current { user_id, email }) => {
+                get_user_by_id(state.db(), &user_id)
+                    .await?
+                    .filter(|user| user.email == email)
+            }
+            Some(LegacyEmailVerification::Expired) => return Ok(failure("TOKEN_EXPIRED")),
+            None => None,
+        }
     };
     let Some(user) = user else {
-        return Ok(redirect_response("/sign-in?error=invalid_token", &[]));
+        return Ok(failure("INVALID_TOKEN"));
     };
+    if !user.email_verified {
+        mark_email_verified(state.db(), &user.id, now).await?;
+    }
+    if let Some(ver) = stored {
+        delete_verification(state.db(), &ver.id).await?;
+    }
     if !user.email_verified {
         welcome_new_account_once(&state, &user.id, &user.email, &user.name).await;
     }
@@ -427,29 +482,18 @@ pub async fn sign_in_email(
 ) -> Result<Response, ApiError> {
     verify_turnstile(&state, &headers, body.captcha_token.as_deref()).await?;
 
+    if let Err(error) = validate_password_len(&body.password) {
+        return reject_without_credential(error);
+    }
     let email = body.email.trim().to_ascii_lowercase();
     let Some(user) = find_user_by_email(state.db(), &email).await? else {
-        hash_password(&body.password).map_err(ApiError::internal)?;
-        return Err(ApiError::with_code(
-            StatusCode::UNAUTHORIZED,
-            "INVALID_EMAIL_OR_PASSWORD",
-            "Invalid email or password",
-        ));
+        return reject_without_credential(invalid_credentials());
     };
     let Some(stored_hash) = find_credential_password_by_user_id(state.db(), &user.id).await? else {
-        hash_password(&body.password).map_err(ApiError::internal)?;
-        return Err(ApiError::with_code(
-            StatusCode::UNAUTHORIZED,
-            "INVALID_EMAIL_OR_PASSWORD",
-            "Invalid email or password",
-        ));
+        return reject_without_credential(invalid_credentials());
     };
     if !verify_password(&stored_hash, &body.password) {
-        return Err(ApiError::with_code(
-            StatusCode::UNAUTHORIZED,
-            "INVALID_EMAIL_OR_PASSWORD",
-            "Invalid email or password",
-        ));
+        return Err(invalid_credentials());
     }
     if !user.email_verified {
         return Err(ApiError::with_code(
@@ -520,9 +564,7 @@ pub async fn sign_out(
         delete_session_by_token(state.db(), &token).await?;
     }
     let mut resp = no_store_json(StatusCode::OK, json!({ "success": true }));
-    if let Ok(val) = HeaderValue::from_str(&clear_session_cookie_header(secure)) {
-        resp.headers_mut().append(header::SET_COOKIE, val);
-    }
+    clear_session_cookies(resp.headers_mut());
     Ok(resp)
 }
 
@@ -793,24 +835,40 @@ pub async fn google_callback(
             &[clear_state],
         ));
     };
-    let Ok(oauth_data) = serde_json::from_str::<OAuthStatePayload>(&raw_payload) else {
+    let Ok(mut oauth_data) = serde_json::from_str::<OAuthStatePayload>(&raw_payload) else {
         return Ok(redirect_response(
             "/sign-in?error=oauth_state_invalid",
             &[clear_state],
         ));
     };
+    // State issued before a deployment may carry a previously accepted return URL.
+    let auth_url = state.auth_url();
+    oauth_data.callback_url = safe_relative_path(Some(&oauth_data.callback_url), "/", &auth_url);
+    oauth_data.error_callback_url =
+        safe_relative_path(Some(&oauth_data.error_callback_url), "/sign-in", &auth_url);
+
     if oauth_data.expires_at <= state.now_ms()
-        || query.error.is_some()
         || query.state.as_deref() != Some(oauth_data.state.as_str())
     {
         return Ok(redirect_response(
-            &format!("{}?error=oauth_cancelled", oauth_data.error_callback_url),
+            &callback_error_location(&oauth_data.error_callback_url, "oauth_cancelled"),
+            &[clear_state],
+        ));
+    }
+    if let Some(reason) = query.error.as_deref() {
+        let error = if reason == "access_denied" {
+            "access_denied"
+        } else {
+            "oauth_cancelled"
+        };
+        return Ok(redirect_response(
+            &callback_error_location(&oauth_data.error_callback_url, error),
             &[clear_state],
         ));
     }
     let Some(code) = query.code.as_deref() else {
         return Ok(redirect_response(
-            &format!("{}?error=oauth_missing_code", oauth_data.error_callback_url),
+            &callback_error_location(&oauth_data.error_callback_url, "oauth_missing_code"),
             &[clear_state],
         ));
     };
@@ -839,7 +897,7 @@ pub async fn google_callback(
     let Some(access_token) = token_json.get("access_token").and_then(Value::as_str) else {
         crate::observability::background_error("google_token_exchange", token_status);
         return Ok(redirect_response(
-            &format!("{}?error=oauth_token_failed", oauth_data.error_callback_url),
+            &callback_error_location(&oauth_data.error_callback_url, "oauth_token_failed"),
             &[clear_state],
         ));
     };
@@ -852,17 +910,14 @@ pub async fn google_callback(
     .await?;
     if !(200..300).contains(&info_status) {
         return Ok(redirect_response(
-            &format!(
-                "{}?error=oauth_userinfo_failed",
-                oauth_data.error_callback_url
-            ),
+            &callback_error_location(&oauth_data.error_callback_url, "oauth_userinfo_failed"),
             &[clear_state],
         ));
     }
 
     let Some(sub) = info_json.get("sub").and_then(Value::as_str) else {
         return Ok(redirect_response(
-            &format!("{}?error=oauth_missing_sub", oauth_data.error_callback_url),
+            &callback_error_location(&oauth_data.error_callback_url, "oauth_missing_sub"),
             &[clear_state],
         ));
     };
@@ -878,10 +933,7 @@ pub async fn google_callback(
         .unwrap_or(false);
     if email.is_empty() || !email_verified {
         return Ok(redirect_response(
-            &format!(
-                "{}?error=oauth_email_unverified",
-                oauth_data.error_callback_url
-            ),
+            &callback_error_location(&oauth_data.error_callback_url, "oauth_email_unverified"),
             &[clear_state],
         ));
     }
@@ -898,24 +950,34 @@ pub async fn google_callback(
         existing_user_id
     } else if let Some(existing_user) = find_user_by_email(state.db(), &email).await? {
         let acct_id = random_hex(16).map_err(ApiError::internal)?;
-        link_oauth_account(
+        let linked = link_oauth_account(
             state.db(),
             &betabook_db::auth::LinkOAuthAccount {
                 oauth_record_id: &acct_id,
                 provider_id: "google",
                 provider_account_id: sub,
                 user_id: &existing_user.id,
+                verified_email: &email,
                 access_token: Some(access_token),
                 id_token,
                 now_ms: now,
             },
         )
         .await?;
+        if !linked {
+            return Ok(redirect_response(
+                &callback_error_location(&oauth_data.error_callback_url, "account_not_linked"),
+                &[clear_state],
+            ));
+        }
         existing_user.id
     } else {
         if oauth_data.accepted_terms_version.as_deref() != Some(TERMS_VERSION) {
             return Ok(redirect_response(
-                &format!("{}?error=terms_required", oauth_data.error_callback_url),
+                &callback_error_location(
+                    &oauth_data.error_callback_url,
+                    "terms_acceptance_required",
+                ),
                 &[clear_state],
             ));
         }
@@ -1021,10 +1083,7 @@ pub async fn delete_user(
     }
     delete_account_and_cleanup(state.db(), user_id).await?;
     let mut resp = no_store_json(StatusCode::OK, json!({ "success": true }));
-    if let Ok(val) = HeaderValue::from_str(&clear_session_cookie_header(state.is_secure_cookies()))
-    {
-        resp.headers_mut().append(header::SET_COOKIE, val);
-    }
+    clear_session_cookies(resp.headers_mut());
     Ok(resp)
 }
 
@@ -1089,4 +1148,90 @@ pub async fn accept_terms(
         return Err(ApiError::unauthorized());
     }
     Ok(no_store_json(StatusCode::OK, json!({ "ok": true })))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::callback_error_location;
+
+    #[test]
+    fn callback_paths_resolve_to_stable_same_origin_locations() -> Result<(), url::ParseError> {
+        let base = "https://betabook.example";
+        let fallback = "/sign-in";
+        for (input, expected) in [
+            ("/", "/"),
+            (
+                "/journal?tag=one&tag=two#entry",
+                "/journal?tag=one&tag=two#entry",
+            ),
+            (
+                "https://betabook.example:443/account/../search?q=a%2Fb#results",
+                "/search?q=a%2Fb#results",
+            ),
+            ("/account/../journal", "/journal"),
+            ("/old/..//journal", fallback),
+            ("https://betabook.example//journal", fallback),
+            ("https://elsewhere.example/account", fallback),
+            ("//journal", fallback),
+            ("bare-path", fallback),
+        ] {
+            let location = super::safe_relative_path(Some(input), fallback, base);
+            assert_eq!(location, expected);
+            assert!(location.starts_with('/') && !location.starts_with("//"));
+            let origin = url::Url::parse(base)?;
+            assert_eq!(origin.join(&location)?.origin(), origin.origin());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn oauth_error_preserves_the_return_route_and_fragment() {
+        assert_eq!(
+            callback_error_location("/sign-in", "oauth_cancelled"),
+            "/sign-in?error=oauth_cancelled"
+        );
+        assert_eq!(
+            callback_error_location(
+                "/sign-in?next=%2Fsearch%3Fname%3Done%2Btwo&error=old&tag=a&tag=b#form",
+                "oauth_cancelled"
+            ),
+            "/sign-in?next=%2Fsearch%3Fname%3Done%2Btwo&tag=a&tag=b&error=oauth_cancelled#form"
+        );
+    }
+}
+
+#[cfg(test)]
+mod credential_input_tests {
+    use super::{valid_signup_email, validate_password_len};
+
+    #[test]
+    fn signup_checks_mailbox_and_domain_syntax() {
+        for email in ["ava+club@example.org", "o'brien.jr@team.example.co.uk"] {
+            assert!(valid_signup_email(email));
+        }
+        for email in [
+            "a@",
+            "@example.org",
+            "a@local",
+            "a@@example.org",
+            "a..b@example.org",
+            "a @example.org",
+            "a@-bad.example",
+            "a@bad-.example",
+        ] {
+            assert!(!valid_signup_email(email));
+        }
+        assert!(!valid_signup_email(&format!(
+            "{}@example.org",
+            "a".repeat(65)
+        )));
+    }
+
+    #[test]
+    fn sign_in_password_bounds_use_utf16_units() {
+        assert!(validate_password_len("1234567").is_err());
+        assert!(validate_password_len("12345678").is_ok());
+        assert!(validate_password_len(&"🙂".repeat(64)).is_ok());
+        assert!(validate_password_len(&format!("{}a", "🙂".repeat(64))).is_err());
+    }
 }

@@ -107,11 +107,13 @@ pub async fn climbing_logbook(
         "/climbing-logbook",
         "website",
     );
-    let mut response = if crate::auth::cookies::has_session_cookie(&headers) {
-        super::seo::member_shell(&state, StatusCode::OK, &meta, "routes/info-routes.tsx").await?
-    } else {
-        published_document(&state, &meta, "climbing-logbook").await?
-    };
+    let mut response =
+        if crate::auth::cookies::has_session_cookie(&headers, state.is_secure_cookies()) {
+            super::seo::member_shell(&state, StatusCode::OK, &meta, "routes/info-routes.tsx")
+                .await?
+        } else {
+            published_document(&state, &meta, "climbing-logbook").await?
+        };
     response
         .headers_mut()
         .insert(header::VARY, header::HeaderValue::from_static("Cookie"));

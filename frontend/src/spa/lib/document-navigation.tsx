@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import { NavigationType, useLocation, useNavigationType } from "react-router";
 
 import { SITE_NAME } from "@/lib/site";
@@ -73,24 +73,25 @@ export function usePageTitle(label: string | null | undefined, absolute = false)
 
 type Position = { x: number; y: number };
 
-/** A POP can land on a lazy route whose skeleton is shorter than the saved
- * scroll position. Retry when its content grows, until the user interacts. */
-function restore(position: Position) {
-  const move = () => window.scrollTo({ left: position.x, top: position.y, behavior: "instant" });
-  move();
-  if (window.scrollY === position.y && window.scrollX === position.x) return;
-  const observer = new ResizeObserver(() => {
-    move();
-    if (window.scrollY === position.y && window.scrollX === position.x) stop();
-  });
+/** Lazy routes can initially have neither the requested fragment nor enough
+ * height for a history position. Stop retrying when the user takes over. */
+function scrollWhenReady(move: () => boolean) {
+  if (move()) return;
+  const retry = () => {
+    if (move()) stop();
+  };
+  const resize = new ResizeObserver(retry);
+  const mutation = new MutationObserver(retry);
   const events = ["wheel", "touchstart", "pointerdown", "keydown"];
   const timer = window.setTimeout(stop, 10000);
   function stop() {
-    observer.disconnect();
+    resize.disconnect();
+    mutation.disconnect();
     window.clearTimeout(timer);
     for (const event of events) window.removeEventListener(event, stop);
   }
-  observer.observe(document.body);
+  resize.observe(document.body);
+  mutation.observe(document.body, { childList: true, subtree: true });
   for (const event of events) window.addEventListener(event, stop, { once: true, passive: true });
   return stop;
 }
@@ -106,6 +107,7 @@ export function DocumentNavigation({ viewer }: { viewer?: { id: string; name: st
   // the initial route finished. Its frame belongs only to the original path.
   const [entryPath] = useState(location.pathname);
   usePublicEntryReady(location.pathname !== entryPath);
+  const destinationTitle = useEffectEvent((path: string) => fullTitle(routeLabel(path, viewer)));
   const previous = useRef(location);
   const positions = useRef(new Map<string, Position>());
   useLayoutEffect(() => {
@@ -118,15 +120,17 @@ export function DocumentNavigation({ viewer }: { viewer?: { id: string; name: st
   useLayoutEffect(() => {
     const old = previous.current;
     previous.current = location;
-    if (old.key === location.key) return;
     const pathChanged = old.pathname !== location.pathname;
     const shareChanged =
       new URLSearchParams(old.search).get("share") !==
       new URLSearchParams(location.search).get("share");
-    if (pathChanged || shareChanged)
-      document.title = fullTitle(routeLabel(location.pathname, viewer));
+    if (pathChanged || shareChanged) document.title = destinationTitle(location.pathname);
     const position = positions.current.get(location.key);
-    if (navigation === NavigationType.Pop && position) return restore(position);
+    if (old.key !== location.key && navigation === NavigationType.Pop && position)
+      return scrollWhenReady(() => {
+        window.scrollTo({ left: position.x, top: position.y, behavior: "instant" });
+        return window.scrollY === position.y && window.scrollX === position.x;
+      });
     if (location.hash) {
       let id = location.hash.slice(1);
       try {
@@ -134,11 +138,16 @@ export function DocumentNavigation({ viewer }: { viewer?: { id: string; name: st
       } catch {
         /* Treat a malformed fragment literally. */
       }
-      document.getElementById(id)?.scrollIntoView();
+      return scrollWhenReady(() => {
+        const target = document.getElementById(id);
+        if (!target) return false;
+        target.scrollIntoView();
+        return true;
+      });
     } else if (pathChanged) {
       window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     }
-  }, [location, navigation, viewer]);
+  }, [location, navigation]);
   useLayoutEffect(() => {
     const key = location.key;
     const saved = positions.current;

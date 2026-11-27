@@ -2,6 +2,30 @@ use axum::body::Body;
 use betabook_domain::security_headers::SECURITY_HEADERS;
 use http::{HeaderName, HeaderValue, Response};
 
+/// Strip the trailing slash before matching routes. A relative Location must
+/// start with exactly one slash so even malformed paths stay on this origin.
+pub fn trailing_slash_redirect(uri: &http::Uri) -> Option<Response<Body>> {
+    use axum::response::IntoResponse;
+
+    let path = uri.path();
+    if path == "/" || !path.ends_with('/') {
+        return None;
+    }
+    let path = path.trim_end_matches('/').trim_start_matches(['/', '\\']);
+    let mut location = format!("/{path}");
+    if let Some(query) = uri.query() {
+        location.push('?');
+        location.push_str(query);
+    }
+    Some(
+        (
+            http::StatusCode::PERMANENT_REDIRECT,
+            [(http::header::LOCATION, location)],
+        )
+            .into_response(),
+    )
+}
+
 pub fn apply_security_headers(path: &str, mut response: Response<Body>) -> Response<Body> {
     let headers = response.headers_mut();
     for (key, value) in SECURITY_HEADERS {
@@ -84,4 +108,28 @@ pub fn trusted_auth_write(headers: &http::HeaderMap, request_origin: &str, base:
                         | "http://localhost:3002"
                         | "http://localhost:3003"
                 )))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn slash_redirects_remain_local_and_preserve_encoded_queries() {
+        for (path, expected) in [
+            (
+                "/search/?q=a%20b&tag=1&tag=2",
+                "/search?q=a%20b&tag=1&tag=2",
+            ),
+            ("//example.test/path/", "/example.test/path"),
+            ("////", "/"),
+        ] {
+            let uri: http::Uri = path.parse().unwrap();
+            let response = trailing_slash_redirect(&uri).unwrap();
+            assert_eq!(response.status(), http::StatusCode::PERMANENT_REDIRECT);
+            assert_eq!(response.headers()[http::header::LOCATION], expected);
+        }
+        assert!(trailing_slash_redirect(&http::Uri::from_static("/")).is_none());
+        assert!(trailing_slash_redirect(&http::Uri::from_static("/about")).is_none());
+    }
 }

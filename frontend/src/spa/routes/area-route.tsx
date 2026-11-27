@@ -324,12 +324,18 @@ export default function AreaRoute({ viewerId }: { viewerId: string | null }) {
     );
   }
 
+  // Native More climbs links can open a later window before the SPA starts.
+  // Keep its query for refetches, Back/Forward, and subsequent Load more calls.
+  for (const key of ["offset", "page", "limit"]) {
+    const value = searchParams.get(key);
+    if (value !== null) filterParams.set(key, value);
+  }
   return (
     <PublicAreaView
       areaId={areaId}
       sort={sort}
       filter={filter}
-      canonicalQuery={canonicalQuery}
+      canonicalQuery={filterParams.toString()}
       rawQuery={searchParams.toString()}
       searchRecord={searchRecord}
     />

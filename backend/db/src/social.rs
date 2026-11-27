@@ -869,22 +869,31 @@ pub async fn update_user_display_name<D: DbExecutor>(
     Ok(())
 }
 
-pub async fn update_user_image<D: DbExecutor>(
+/// Return the exact image displaced by this write. Reading it in the same
+/// transaction prevents overlapping requests from cleaning up a stale pointer.
+pub async fn replace_user_image<D: DbExecutor>(
     db: &D,
     user_id: &str,
     image: Option<&str>,
     now_ms: i64,
-) -> Result<(), DbError> {
-    db.execute(
-        "UPDATE user SET image = ?, updated_at = ? WHERE id = ?",
-        &[
-            opt_text_param(image),
-            DbParam::Int(now_ms),
-            DbParam::Text(user_id.to_string()),
-        ],
-    )
-    .await?;
-    Ok(())
+) -> Result<Option<String>, DbError> {
+    let results = db
+        .batch_rows(vec![
+            (
+                "SELECT image FROM user WHERE id = ?".into(),
+                vec![user_id.into()],
+            ),
+            (
+                "UPDATE user SET image = ?, updated_at = ? WHERE id = ?".into(),
+                vec![opt_text_param(image), now_ms.into(), user_id.into()],
+            ),
+        ])
+        .await?;
+    results
+        .first()
+        .and_then(|rows| rows.first())
+        .ok_or_else(|| DbError::Query("Profile no longer exists".into()))?
+        .get_opt_string("image")
 }
 
 pub async fn update_user_private<D: DbExecutor>(

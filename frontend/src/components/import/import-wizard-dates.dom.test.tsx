@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { importSends, resolveImportClimbs } from "@/spa/lib/actions-client";
+import ImportRoute from "@/spa/routes/import-route";
 import { kayaStreamResponse } from "@/test/kaya";
 
 import { ImportWizard } from "./import-wizard";
@@ -50,7 +51,7 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 async function loadKaya() {
-  render(<ImportWizard profileHref="/users/local" />);
+  render(<ImportRoute viewerId="local" />);
   await enterKaya();
 }
 
@@ -169,6 +170,10 @@ it("warns on an automatically mapped KAYA import and keeps all dates by default"
   expect(screen.getByRole("region", { name: "Review repeated dates" })).toBeVisible();
   await userEvent.click(screen.getByRole("button", { name: "Import 60 sends" }));
   await waitFor(() => expect(screen.getByText("Imported").parentElement).toHaveTextContent("60"));
+  expect(vi.mocked(importSends).mock.calls.map(([, options]) => options.expectedOwnerId)).toEqual([
+    "local",
+    "local",
+  ]);
   const submitted = vi.mocked(importSends).mock.calls.flatMap(([rows]) => rows);
   expect(submitted.filter((row) => row.dateSent === "2025-09-03")).toHaveLength(49);
   expect(submitted.filter((row) => row.dateSent === null)).toHaveLength(0);
@@ -190,6 +195,10 @@ it("clears only the flagged dates, preserves a manual skip, and avoids repeating
   await userEvent.click(screen.getByRole("button", { name: "Import 59 sends" }));
   await waitFor(() => expect(screen.getByText("Imported").parentElement).toHaveTextContent("59"));
   expect(resolveImportClimbs).toHaveBeenCalledTimes(lookups);
+  expect(vi.mocked(importSends).mock.calls.map(([, options]) => options.expectedOwnerId)).toEqual([
+    "local",
+    "local",
+  ]);
   const submitted = vi.mocked(importSends).mock.calls.flatMap(([rows]) => rows);
   expect(submitted.filter((row) => row.dateSent === null)).toHaveLength(49);
   expect(submitted.filter((row) => row.dateSent === "2026-03-18")).toHaveLength(9);
@@ -257,3 +266,29 @@ it("starts the next import from a clean wizard", async () => {
   expect(screen.getByRole("button", { name: "Skip" })).toHaveAttribute("aria-pressed", "true");
   expect(screen.queryByText(/replace your existing send data/)).not.toBeInTheDocument();
 });
+
+it.each(["saved", "unconfirmed"] as const)(
+  "starts no more writes after leaving a wizard with a %s batch response",
+  async (outcome) => {
+    let finish!: (result: Awaited<ReturnType<typeof importSends>>) => void;
+    const first = new Promise<Awaited<ReturnType<typeof importSends>>>((resolve) => {
+      finish = resolve;
+    });
+    vi.mocked(importSends).mockReturnValueOnce(first);
+    const { rerender } = render(<ImportRoute viewerId="local" />);
+    await enterKaya();
+    await userEvent.click(screen.getByRole("button", { name: "Next: Review" }));
+    await userEvent.click(screen.getByRole("button", { name: "Import 60 sends" }));
+    expect(importSends).toHaveBeenCalledTimes(1);
+    rerender(<ImportRoute viewerId="next-viewer" />);
+    expect(screen.getByText("1 Upload", { exact: true })).toHaveAttribute("aria-current", "step");
+    await act(async () => {
+      finish(
+        outcome === "saved"
+          ? { ok: true, value: { imported: 50, overwritten: 0, alreadyLogged: 0, missing: [] } }
+          : { ok: false, error: "Unconfirmed", outcome: "unknown" },
+      );
+    });
+    expect(importSends).toHaveBeenCalledTimes(1);
+  },
+);

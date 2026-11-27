@@ -1,6 +1,15 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router";
+import {
+  createPath,
+  MemoryRouter,
+  Route,
+  Router,
+  Routes,
+  useLocation,
+  type Navigator,
+  type To,
+} from "react-router";
 import { expect, it, vi } from "vitest";
 
 import { useRouter } from "@/spa/lib/navigation";
@@ -71,4 +80,26 @@ it("retains the query field from home through category and history navigation", 
     expect(screen.getByRole("button", { name: "Climbs" })).toHaveAttribute("aria-pressed", "true"),
   );
   expect(screen.getByRole("searchbox", { name: "Search Betabook" })).toBe(field);
+});
+
+it("keeps pending typing when the route renders again before navigation commits", async () => {
+  const user = userEvent.setup();
+  const navigator = {
+    createHref: (to: To) => (typeof to === "string" ? to : createPath(to)),
+    go: vi.fn<Navigator["go"]>(),
+    push: vi.fn<Navigator["push"]>(),
+    replace: vi.fn<Navigator["replace"]>(),
+  };
+  const route = () => (
+    <Router navigator={navigator} location="/search?mode=climb">
+      <SearchRoute viewerId={null} />
+    </Router>
+  );
+  const { rerender } = render(route());
+  const field = screen.getByRole("searchbox", { name: "Search Betabook" });
+  await user.type(field, "quartz");
+  expect(navigator.replace).toHaveBeenCalled();
+  rerender(route());
+  expect(screen.getByRole("searchbox", { name: "Search Betabook" })).toBe(field);
+  expect(field).toHaveValue("quartz");
 });

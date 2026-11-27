@@ -2,7 +2,7 @@
 
 import { Kbd, useOverlayState } from "@heroui/react";
 import { Search } from "lucide-react";
-import { createContext, useCallback, useContext, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useEffectEvent, type ReactNode } from "react";
 
 import { Brand } from "@/components/brand";
 import { AppLink } from "@/components/ui/app-link";
@@ -42,14 +42,15 @@ export function SearchPaletteProvider({ children }: { children: ReactNode }) {
   // Pulls the chunk in on the way to opening, for the case where a very
   // early ⌘K beats the idle preload. Ordinarily this is already resolved and
   // the call is a no-op.
-  const openPalette = useCallback(() => {
+  function openPalette() {
     if (!canSearchQuickly) {
       router.push(SEARCH_PATH);
       return;
     }
     load();
     open();
-  }, [canSearchQuickly, router, load, open]);
+  }
+  const openFromShortcut = useEffectEvent(openPalette);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -62,20 +63,17 @@ export function SearchPaletteProvider({ children }: { children: ReactNode }) {
         : event.ctrlKey && !event.metaKey;
       if (!chord || event.key.toLowerCase() !== "k") return;
       event.preventDefault();
-      openPalette();
+      openFromShortcut();
     }
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [openPalette]);
+  }, []);
 
-  const onNavigate = useCallback(
-    (href: string) => {
-      close();
-      router.push(href);
-    },
-    [close, router],
-  );
+  function onNavigate(href: string) {
+    close();
+    router.push(href);
+  }
 
   return (
     <OpenSearchContext.Provider value={openPalette}>

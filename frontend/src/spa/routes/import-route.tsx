@@ -3,7 +3,7 @@ import { ImportWizard } from "@/components/import";
 
 export default function ImportRoute({ viewerId }: { viewerId: string | null }) {
   return viewerId ? (
-    <ImportWizard profileHref={`/users/${viewerId}`} />
+    <ImportWizard viewerId={viewerId} profileHref={`/users/${viewerId}`} />
   ) : (
     <CurrentPageAuthCallout />
   );

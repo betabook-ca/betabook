@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, type ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 
 import { SortDirectionButton } from "@/components/ui/sort-select";
 import { TRIP_DAY_ORDER_PARAM, parseTripDayOrder, type TripDayOrder } from "@/lib/trip-days";
@@ -21,7 +21,7 @@ export function TripDayOrderProvider({ children }: { children: ReactNode }) {
   const search = useSearchParams();
   const router = useRouter();
   const order = parseTripDayOrder(search.get(TRIP_DAY_ORDER_PARAM) ?? undefined);
-  const toggle = useCallback(() => {
+  function toggle() {
     const next = new URLSearchParams(search);
     if (order === "oldest") next.set(TRIP_DAY_ORDER_PARAM, "newest");
     else next.delete(TRIP_DAY_ORDER_PARAM);
@@ -29,9 +29,8 @@ export function TripDayOrderProvider({ children }: { children: ReactNode }) {
     router.replace(pathname + (suffix ? "?" + suffix : "") + window.location.hash, {
       scroll: false,
     });
-  }, [pathname, search, router, order]);
-  const value = useMemo(() => ({ order, toggle }), [order, toggle]);
-  return <TripDayOrderContext value={value}>{children}</TripDayOrderContext>;
+  }
+  return <TripDayOrderContext value={{ order, toggle }}>{children}</TripDayOrderContext>;
 }
 
 /** The Sends tab's sort-direction arrow: ascending is oldest day first. */

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore, type RefObject } from "react";
 
 import { usePathname, useSearchParams } from "@/spa/lib/navigation";
 import { useLinkStatus } from "@/spa/lib/router-link";
@@ -81,39 +81,31 @@ function settleOrphan(url: string) {
 /** Tracks one AppLink's navigations. `start` goes in Link's onNavigate,
  * which runs in the click itself: a menu that closes in that same click can
  * unmount the link before its pending status ever renders, so waiting for
- * useLinkStatus to begin would miss it. The link's LinkPendingReporter calls
- * `settle` once the router is done, or `release` if the link unmounts
- * first, which hands the navigation to the bar. */
+ * useLinkStatus to begin would miss it. The reporter owns settlement and
+ * unmount cleanup for the token created by the latest click. */
 export function useLinkNavigation(href: string | null) {
-  const token = useRef<object | null>(null);
-  const start = useCallback(() => {
-    token.current = {};
-    begin(token.current, href);
-  }, [href]);
-  const settle = useCallback(() => {
-    if (token.current) end(token.current);
-    token.current = null;
-  }, []);
-  const release = useCallback(() => {
-    if (token.current) orphan(token.current);
-  }, []);
-  return { start, settle, release };
+  const tokenRef = useRef<object | null>(null);
+  function start() {
+    tokenRef.current = {};
+    begin(tokenRef.current, href);
+  }
+  return { start, tokenRef };
 }
 
-/** Rendered inside every AppLink, where useLinkStatus can see the link's
- * pending status. */
-export function LinkPendingReporter({
-  settle,
-  release,
-}: {
-  settle: () => void;
-  release: () => void;
-}) {
+/** Every AppLink renders its reporter inside the router's link-status scope. */
+export function LinkPendingReporter({ tokenRef }: { tokenRef: RefObject<object | null> }) {
   const { pending } = useLinkStatus();
   useEffect(() => {
-    if (!pending) settle();
-  }, [pending, settle]);
-  useEffect(() => release, [release]);
+    if (!pending && tokenRef.current) {
+      end(tokenRef.current);
+      tokenRef.current = null;
+    }
+  }, [pending, tokenRef]);
+  useEffect(() => {
+    return () => {
+      if (tokenRef.current) orphan(tokenRef.current);
+    };
+  }, [tokenRef]);
   return null;
 }
 

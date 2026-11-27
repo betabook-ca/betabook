@@ -66,8 +66,8 @@ pub fn profile_photo_key_owned_by<'a>(image: Option<&'a str>, owner_id: &str) ->
     key.starts_with(&prefix).then_some(key)
 }
 
-pub fn profile_photo_key(user_id: &str, digest_bytes: &[u8]) -> String {
-    let prefix = &digest_bytes[..digest_bytes.len().min(16)];
+pub fn profile_photo_key(user_id: &str, version_bytes: &[u8]) -> String {
+    let prefix = &version_bytes[..version_bytes.len().min(16)];
     let encoded = hex::encode(prefix);
     format!("{user_id}/{encoded}.webp")
 }

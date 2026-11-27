@@ -15,6 +15,7 @@ const navigation = vi.hoisted(() => ({
 }));
 vi.mock("@/spa/lib/navigation", () => ({
   usePathname: () => navigation.path,
+  useSearchParams: () => new URLSearchParams(window.location.search),
   useRouter: () => navigation,
 }));
 vi.mock("@/spa/lib/actions-client", () => ({ acceptTerms: vi.fn<() => Promise<ActionResult>>() }));

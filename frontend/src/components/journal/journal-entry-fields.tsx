@@ -105,11 +105,6 @@ export function JournalEntryFields({
   const isUndatedSend = isAscent && entryDate === "";
   const canAddAnother = onSaveAndAddAnother !== undefined && climb != null && !existingEntry;
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    save(false);
-  }
-
   /** Saves the entry; with `addAnother`, hands what the next climb starts
    * with to Save and add another instead of finishing. An undated send has no
    * date to pass on, so the next climb starts today. */
@@ -165,19 +160,21 @@ export function JournalEntryFields({
         const result = await onSave(formData, isUndatedSend);
         if (!result.ok) {
           setError(result.error);
-          return;
-        }
-        if (addAnother && onSaveAndAddAnother) {
+        } else if (addAnother && onSaveAndAddAnother) {
           onSaveAndAddAnother({ entryDate: entryDate || today, companions, tags });
-          return;
+        } else {
+          onDone?.();
         }
-        onDone?.();
       } catch {
         setError(GENERIC_ERROR_MESSAGE);
-      } finally {
-        onPendingChange?.(false);
       }
+      onPendingChange?.(false);
     });
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    save(false);
   }
 
   return (

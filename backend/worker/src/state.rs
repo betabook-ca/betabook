@@ -97,7 +97,11 @@ impl AppState {
     }
 
     pub fn is_secure_cookies(&self) -> bool {
-        self.auth_url().starts_with("https://")
+        // Only an explicitly configured HTTP origin uses the unprefixed name.
+        !self
+            .auth_url()
+            .split_once("://")
+            .is_some_and(|(scheme, _)| scheme.eq_ignore_ascii_case("http"))
     }
 
     pub fn renew_cookie(&self, cookie: String) {

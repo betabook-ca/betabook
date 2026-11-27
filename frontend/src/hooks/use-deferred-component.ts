@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type ComponentType } from "react";
 
 type Loader<P> = () => Promise<ComponentType<P>>;
 
@@ -23,7 +23,7 @@ export function useDeferredComponent<P>(loader: Loader<P>): {
     };
   }, []);
 
-  const load = useCallback(() => {
+  function load() {
     if (loading.current || loaded.current) return;
     loading.current = true;
     setFailed(false);
@@ -36,24 +36,24 @@ export function useDeferredComponent<P>(loader: Loader<P>): {
         }
       } catch {
         if (alive.current) setFailed(true);
-      } finally {
-        loading.current = false;
       }
+      loading.current = false;
     }
     void run();
-  }, [loader]);
+  }
+  const preload = useEffectEvent(load);
 
   useEffect(() => {
     // Safari only shipped requestIdleCallback in 17.4, so the timeout below
     // is a live path on real traffic, not just a defensive guard. The
     // `timeout` caps how long a busy main thread can starve the preload.
     if (typeof requestIdleCallback === "function") {
-      const id = requestIdleCallback(load, { timeout: 2000 });
+      const id = requestIdleCallback(preload, { timeout: 2000 });
       return () => cancelIdleCallback(id);
     }
-    const id = setTimeout(load, 300);
+    const id = setTimeout(preload, 300);
     return () => clearTimeout(id);
-  }, [load]);
+  }, []);
 
   return { Component, load, failed };
 }

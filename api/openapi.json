@@ -7488,6 +7488,9 @@
                           "batchId": {
                             "type": "string"
                           },
+                          "expectedOwnerId": {
+                            "type": "string"
+                          },
                           "gradeScale": {
                             "enum": [
                               "native",
