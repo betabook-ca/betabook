@@ -7,7 +7,7 @@ import { PrimaryNavigationIcon } from "./primary-navigation-icon";
 const meta = {
   title: "Components/Navigation/Primary icon",
   component: PrimaryNavigationIcon,
-  args: { area: "logbook", account: { name: "Alex Morgan", image: null } },
+  args: { area: "logbook", active: false, account: { name: "Alex Morgan", image: null } },
   decorators: [
     (Story) => (
       <StoryPage title="Navigation icon">

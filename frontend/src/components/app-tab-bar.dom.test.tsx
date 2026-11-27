@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
@@ -64,4 +64,31 @@ it("steps aside while typing and returns for other controls", async () => {
 
   await user.click(screen.getByRole("checkbox", { name: "Private profile" }));
   expect(tabBar()).toBeInTheDocument();
+});
+
+it("compacts after downward scrolling and expands on upward scrolling or route changes", () => {
+  // Supply scroll positions only; geometry and tap-target sizes are covered in Playwright.
+  let position = 0;
+  vi.spyOn(window, "scrollY", "get").mockImplementation(() => position);
+  const { rerender } = render(<AppTabBar />);
+  const scrollTo = (y: number) =>
+    act(() => {
+      position = y;
+      fireEvent.scroll(window);
+    });
+  scrollTo(160);
+  expect(tabBar()).toHaveAttribute("data-compact", "true");
+  scrollTo(158);
+  expect(tabBar()).toHaveAttribute("data-compact", "true");
+  scrollTo(140);
+  expect(tabBar()).toHaveAttribute("data-compact", "false");
+  scrollTo(220);
+  expect(tabBar()).toHaveAttribute("data-compact", "true");
+  state.pathname = "/users/owner/goals";
+  rerender(<AppTabBar />);
+  expect(tabBar()).toHaveAttribute("data-compact", "false");
+  scrollTo(300);
+  expect(tabBar()).toHaveAttribute("data-compact", "true");
+  scrollTo(-10);
+  expect(tabBar()).toHaveAttribute("data-compact", "false");
 });

@@ -17,6 +17,15 @@ for (const [story, label] of [
     await expect(active).toHaveCSS("text-decoration-line", "none");
     await expect(active).toHaveCSS("font-weight", "600");
     const inactive = nav.locator("a:not([aria-current])").first();
+    expect(
+      await active
+        .locator("svg")
+        .evaluate((el) => Number.parseFloat(getComputedStyle(el).strokeWidth)),
+    ).toBeGreaterThan(
+      await inactive
+        .locator("svg")
+        .evaluate((el) => Number.parseFloat(getComputedStyle(el).strokeWidth)),
+    );
     const highlight = await nav.locator("ul").evaluate((element) => {
       const style = getComputedStyle(element, "::before");
       const box = element.getBoundingClientRect();
@@ -132,5 +141,46 @@ test(
         }),
       )
       .toBeLessThan(1);
+  },
+);
+
+test(
+  "the fixed phone bar minimizes down and expands up without hiding destinations",
+  { tag: "@layout" },
+  async ({ page }, info) => {
+    await openStory(page, info, "components-navigation-tab-bar--scroll-behavior");
+    const nav = page.getByRole("navigation", { name: "Primary", exact: true });
+    const viewport = page.viewportSize();
+    if (!viewport) throw new Error("Expected viewport");
+    if (viewport.width >= 768) {
+      await expect(nav).toBeHidden();
+      return;
+    }
+    const expanded = await nav.boundingBox();
+    if (!expanded) throw new Error("Expected phone navigation");
+    expect(expanded.width).toBeLessThanOrEqual(viewport.width - 48);
+    await page.mouse.wheel(0, 500);
+    await expect(nav).toHaveAttribute("data-compact", "true");
+    const compact = await nav.boundingBox();
+    if (!compact) throw new Error("Expected compact navigation");
+    expect(compact.height).toBe(50);
+    expect(compact.width).toBeLessThan(expanded.width);
+    expect(compact.y + compact.height).toBe(expanded.y + expanded.height);
+    for (const link of await nav.getByRole("link").all()) {
+      await expect(link).toBeInViewport();
+      const box = await link.boundingBox();
+      if (!box) throw new Error("Expected tappable destination");
+      expect(box.height).toBeGreaterThanOrEqual(44);
+    }
+    await page.mouse.wheel(0, -100);
+    await expect(nav).toHaveAttribute("data-compact", "false");
+    expect(await nav.boundingBox()).toEqual(expanded);
+    await page.mouse.wheel(0, 200);
+    await expect(nav).toHaveAttribute("data-compact", "true");
+    await nav.getByRole("link", { name: "Progress, 5 notifications", exact: true }).click();
+    await expect(nav).toHaveAttribute("data-compact", "false");
+    await expect(
+      nav.getByRole("link", { name: "Progress, 5 notifications", exact: true }),
+    ).toHaveAttribute("aria-current", /page|location/);
   },
 );
