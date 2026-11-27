@@ -40,6 +40,8 @@ it("lists the latest sends and links the rest to sign-up", () => {
     />,
   );
 
+  expect(screen.getAllByRole("heading", { name: "September 2026" })).toHaveLength(1);
+  expect(screen.getByText("Tue", { selector: "span:not(.invisible)" })).toBeVisible();
   // The Sends tab already labels the section, so the heading is visually
   // hidden.
   expect(screen.getByRole("heading", { name: "Sends" })).toHaveClass("sr-only");

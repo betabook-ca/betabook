@@ -9,6 +9,7 @@ type ListRowProps = {
   title: ReactNode;
   /** The title link covers the row; interactive slots sit above its overlay. */
   href?: string;
+  linkLabel?: string;
   meta?: ReactNode;
   subtitle?: ReactNode;
   tags?: ReactNode;
@@ -36,6 +37,7 @@ export function ListRow({
   leading,
   title,
   href,
+  linkLabel,
   meta,
   subtitle,
   tags,
@@ -83,6 +85,7 @@ export function ListRow({
                 {href != null ? (
                   <AppLink
                     href={href}
+                    aria-label={linkLabel}
                     className={clsx(
                       "static block max-w-full",
                       wrapTitle ? "break-words" : "truncate",
@@ -121,7 +124,7 @@ export function ListRow({
       </div>
       {comment != null && (
         // Keep text selection above the row-link overlay.
-        <div className="relative z-10 text-sm leading-relaxed text-foreground">
+        <div className="relative z-10 max-w-prose text-base leading-relaxed text-foreground">
           <ClampedComment>{comment}</ClampedComment>
         </div>
       )}

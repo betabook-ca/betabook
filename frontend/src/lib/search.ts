@@ -25,12 +25,15 @@ export type SearchResult = {
   detail: string;
   disabledReason?: string;
   image?: string | null;
+  climb?: ClimbWithAreaName;
+  context?: ClimbSelectionContext;
+  ancestors?: { id: number; name: string }[];
 } & (
   | {
       kind: "climb";
       discipline: ClimbType;
       grade: number | null;
-      stats?: { avgRating: number | null; sendCount: number };
+      stats?: { avgRating: number | null; sendCount: number; avgSuggestedGrade?: number | null };
     }
   | { kind: "area" | "climber" }
 );
@@ -48,8 +51,6 @@ export type ClimbSelectionContext = {
 };
 export type AppSearchResult = SearchResult & {
   href: string;
-  climb?: ClimbWithAreaName;
-  context?: ClimbSelectionContext;
   climber?: ClimberRow;
 };
 export type SearchPage = { items: AppSearchResult[]; hasMore: boolean; nextPage: number };
@@ -134,15 +135,16 @@ export function searchesSection(state: SearchState, kind: SearchKind, browse = f
 /** The row every climb result shares. A signed-out page stops here; a member
  * page adds the record and the viewer's own send state on top. */
 function climbSearchItem(
-  climb: Pick<ClimbWithAreaName, "id" | "name" | "areaName" | "type" | "grade"> &
-    Partial<Pick<ClimbWithAreaName, "brokenOn">>,
+  climb: ClimbWithAreaName,
   ancestors: { id: number; name: string }[],
-  stats: { avgRating: number | null; sendCount: number },
+  stats: { avgRating: number | null; sendCount: number; avgSuggestedGrade?: number | null },
 ): AppSearchResult {
   const place = [...ancestors.map((area) => area.name), climb.areaName].join(" / ");
   return {
     id: `climb-${climb.id}`,
     kind: "climb",
+    climb,
+    ancestors,
     name: climb.name,
     // Result rows have no room for a chip, so a broken climb says so in its detail line.
     detail: climb.brokenOn ? `${place} · Broken since ${climb.brokenOn}` : place,
@@ -161,8 +163,8 @@ export function climbSearchItems(page: ClimbListPage): AppSearchResult[] {
       ...climbSearchItem(climb, ancestors, {
         avgRating: page.sendStats[climb.id]?.avgRating ?? null,
         sendCount,
+        avgSuggestedGrade: page.sendStats[climb.id]?.avgSuggestedGrade,
       }),
-      climb,
       context: { ancestors, sendCount, sent: page.sentClimbIds?.includes(climb.id) ?? false },
     };
   });

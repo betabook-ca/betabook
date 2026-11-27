@@ -103,7 +103,13 @@ export function TourOverlay({
             <X aria-hidden className="size-4" />
           </Button>
         </div>
-        <div className="min-h-0 overflow-y-auto">
+        <div
+          role="region"
+          aria-label="Step instructions"
+          // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- Allow keyboard scrolling when the lesson text exceeds its pane.
+          tabIndex={0}
+          className="min-h-0 overflow-y-auto focus-visible:status-focused"
+        >
           {!showSteps && <p className="text-sm leading-relaxed">{step.description}</p>}
           {showSteps && (
             <nav aria-label="Tutorial steps" className="mt-2 flex flex-col gap-1">
@@ -134,7 +140,7 @@ export function TourOverlay({
           {index > 0 ? (
             <AppLink
               href={href(steps[index - 1].id)}
-              aria-label={`Previous: ${steps[index - 1].title}`}
+              aria-label={`Back: ${steps[index - 1].title}`}
               className="flex items-center gap-1 text-sm text-foreground"
             >
               <ArrowLeft aria-hidden className="size-4" />

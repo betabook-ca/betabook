@@ -81,7 +81,7 @@ it.each([true, false])(
   "opens the appropriate day destination with journalVisible=%s",
   (journalVisible) => {
     const { rerender } = render(<FeedTimeline days={[{ ...day, journalVisible }]} view="all" />);
-    const label = "View activity for Alex Rivera on Sep 1, 2026";
+    const label = "View day for Alex Rivera on Sep 1, 2026";
     expect(screen.getByRole("link", { name: label })).toHaveAttribute(
       "href",
       `/users/alex/${journalVisible ? "journal" : "sends"}?date=2026-09-01`,
@@ -278,7 +278,7 @@ it("renders an accomplished goal with its author and date without a misleading j
     "href",
     "/users/alex",
   );
-  expect(within(card).queryByRole("link", { name: /View activity/ })).not.toBeInTheDocument();
+  expect(within(card).queryByRole("link", { name: /View day/ })).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: /See .* more/ })).not.toBeInTheDocument();
 });
 

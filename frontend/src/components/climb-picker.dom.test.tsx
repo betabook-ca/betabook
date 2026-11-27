@@ -73,14 +73,18 @@ it("import seeds text but only constrains the area after selecting an identity",
   expect(screen.getByRole("searchbox", { name: "Choose a climb" })).toHaveValue("Cedar Arete");
   const area = screen.getByRole("combobox", { name: "In area" });
   expect(area).toHaveValue("Cedar Grove");
-  expect(screen.queryByRole("button", { name: "Clear area Cedar Grove" })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "In area: Cedar Grove, clear filter" }),
+  ).not.toBeInTheDocument();
   expect(
     await screen.findByRole("button", { name: /Choose Cedar Arete, Coast Range/ }),
   ).toBeEnabled();
   await user.clear(area);
   await user.type(area, "cedar");
   await user.click(await screen.findByRole("option", { name: /California \/ North Woods/ }));
-  expect(screen.getByRole("button", { name: "Clear area Cedar Grove" })).toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "In area: Cedar Grove, clear filter" }),
+  ).toBeInTheDocument();
   await waitFor(() =>
     expect(screen.queryByRole("button", { name: /Choose.*Coast Range/ })).not.toBeInTheDocument(),
   );

@@ -2,7 +2,6 @@ import { useSearchParams } from "react-router";
 
 import { AuthCallout } from "@/components/auth-callout";
 import { FriendsContent } from "@/components/friends-content";
-import { WorkspaceShell } from "@/components/workspace-shell";
 import { parseFriendsView } from "@/lib/friendships";
 import { fetchApi } from "@/spa/lib/api";
 import { useRouter } from "@/spa/lib/navigation";
@@ -28,17 +27,15 @@ export default function FriendsRoute({ viewerId }: { viewerId: string | null }) 
   if (!viewerId)
     return <AuthCallout next={view === "friends" ? "/friends" : "/friends?view=requests"} />;
   return (
-    <WorkspaceShell area="community" userId={viewerId}>
-      <FriendsContent
-        userId={viewerId}
-        view={view}
-        resultsView={data?.view}
-        page={data?.page}
-        suggestions={data?.suggestions ?? null}
-        pending={pending || (!data && !error)}
-        error={Boolean(error)}
-        onRetry={router.refresh}
-      />
-    </WorkspaceShell>
+    <FriendsContent
+      userId={viewerId}
+      view={view}
+      resultsView={data?.view}
+      page={data?.page}
+      suggestions={data?.suggestions ?? null}
+      pending={pending || (!data && !error)}
+      error={Boolean(error)}
+      onRetry={router.refresh}
+    />
   );
 }

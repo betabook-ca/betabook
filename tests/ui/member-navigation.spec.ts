@@ -111,3 +111,107 @@ test(
     }
   },
 );
+
+for (const example of [
+  {
+    name: "Logbook",
+    start: "/users/member",
+    tabs: "Logbook sections",
+    sections: ["Sends", "Trips", "Journal"],
+  },
+  {
+    name: "Progress",
+    start: "/users/member/goals",
+    tabs: "Progress sections",
+    sections: ["Projects", "Lists", "Analytics", "Goals"],
+  },
+  { name: "Community", start: "/feed", tabs: "Community sections", sections: ["Friends", "Feed"] },
+  {
+    name: "Climber summary",
+    start: "/users/peer",
+    tabs: "Profile sections",
+    sections: ["Sends", "Analytics"],
+  },
+])
+  test(
+    `${example.name} keeps its heading and tabs while switching sections`,
+    { tag: ["@app", "@behavior"] },
+    async ({ page, workerApp }) => {
+      await signInMember(page.request, workerApp, "member");
+      if (example.name === "Climber summary")
+        await workerApp.db
+          .prepare(
+            "INSERT INTO user(id,name,email) VALUES ('peer','Peer Climber','peer@example.test')",
+          )
+          .run();
+      await page.goto(new URL(example.start, workerApp.url).href);
+      const heading = page.getByRole("main").getByRole("heading", { level: 1 }).first();
+      const tabs = page.getByRole("navigation", { name: example.tabs });
+      await expect(tabs).toBeVisible();
+      await expect(heading).toBeVisible();
+      const originalHeading = await heading.elementHandle();
+      const originalTabs = await tabs.elementHandle();
+      if (!originalHeading || !originalTabs) throw new Error(`Missing ${example.name} navigation`);
+      for (const section of example.sections) {
+        const path =
+          example.name === "Community"
+            ? `/api/pages/${section.toLowerCase()}`
+            : `/api/pages/users/${example.name === "Climber summary" ? "peer" : "member"}/${section.toLowerCase()}`;
+        let resume!: () => void;
+        const hold = new Promise<void>((resolve) => {
+          resume = resolve;
+        });
+        await page.route(
+          "**" + path + "*",
+          async (route) => {
+            await hold;
+            await route.continue();
+          },
+          { times: 1 },
+        );
+        const loading = page.waitForRequest((r) => new URL(r.url()).pathname === path);
+        const loaded = page.waitForResponse((r) => new URL(r.url()).pathname === path && r.ok());
+        await tabs.getByRole("link", { name: section, exact: true }).click();
+        await loading;
+        try {
+          expect(await originalHeading.evaluate((el) => el.isConnected)).toBe(true);
+          await expect(heading).toBeVisible();
+          await expect(tabs.getByRole("link", { name: section, exact: true })).toHaveAttribute(
+            "aria-current",
+            "page",
+          );
+        } finally {
+          resume();
+          await loaded;
+        }
+        expect(await tabs.evaluate((el, old) => el === old, originalTabs)).toBe(true);
+        expect(await heading.evaluate((el, old) => el === old, originalHeading)).toBe(true);
+      }
+    },
+  );
+
+test(
+  "a visitor's retained profile heading clears when the next tab loses access",
+  { tag: ["@app", "@behavior"] },
+  async ({ page, workerApp }) => {
+    await signInMember(page.request, workerApp, "member");
+    await workerApp.db
+      .prepare("INSERT INTO user(id,name,email) VALUES ('peer','Peer Climber','peer@example.test')")
+      .run();
+    await page.goto(new URL("/users/peer", workerApp.url).href);
+    const heading = page.getByRole("heading", { name: "Peer Climber", exact: true });
+    await expect(heading).toBeVisible();
+    await workerApp.db.prepare("UPDATE user SET is_private=1 WHERE id='peer'").run();
+    const denied = page.waitForResponse(
+      (r) => new URL(r.url()).pathname === "/api/pages/users/peer/sends" && r.status() === 404,
+    );
+    await page
+      .getByRole("navigation", { name: "Profile sections" })
+      .getByRole("link", { name: "Sends", exact: true })
+      .click();
+    await denied;
+    await expect(page.getByRole("heading", { name: "Climber not found" })).toBeVisible();
+    await expect(heading).toHaveCount(0);
+    await expect(page.getByRole("navigation", { name: "Profile sections" })).toHaveCount(0);
+  },
+);

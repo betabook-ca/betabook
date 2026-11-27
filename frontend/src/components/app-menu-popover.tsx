@@ -5,6 +5,7 @@ import { Dialog, Popover } from "react-aria-components";
 
 import { AppMenuLinks, type MenuAccount } from "@/components/app-menu-links";
 import { openMobileAppHelper } from "@/components/mobile-app-helper";
+import { MENU_PANEL_CLASS } from "@/components/nav-link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isMobileDevice, isStandaloneDisplay } from "@/lib/mobile-detection";
 
@@ -33,7 +34,7 @@ export function AppMenuPopover({
       triggerRef={triggerRef}
       placement="bottom start"
       offset={8}
-      className="popover max-h-[min(28rem,var(--available-height))] w-64 max-w-[calc(100vw-2rem)] overflow-y-auto p-2 motion-reduce:animate-none"
+      className={`${MENU_PANEL_CLASS} max-h-[min(28rem,var(--available-height))] overflow-y-auto motion-reduce:animate-none`}
     >
       <Dialog aria-label="Menu" className="outline-none">
         <nav aria-label="Menu">

@@ -8,7 +8,7 @@ test(
   { tag: ["@behavior", "@app"] },
   async ({ page }) => {
     await page.goto(`${appBaseURL}/search?mode=climb&areaName=Cedar`);
-    const scope = page.getByRole("button", { name: "Clear area name Cedar" });
+    const scope = page.getByRole("button", { name: "Area name: Cedar, clear filter" });
     await expect(scope).toBeVisible();
     await page.getByRole("button", { name: /Sort by/ }).click();
     await expect(page.getByRole("option")).toHaveText(["Name", "Grade", "Rating", "Ascents"]);
@@ -79,9 +79,9 @@ test(
     await expect(page).toHaveURL(/mode=climb/);
     await expect(page).toHaveURL(/areaId=3/);
     await expect(page.getByRole("searchbox", { name: "Search Betabook" })).toHaveValue("cedar");
-    await expect(page.getByRole("button", { name: /^Clear area / })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^In area: .*clear filter$/ })).toBeVisible();
     await expect(page.getByRole("link", { name: "Open Cedar Oregon, Cedar Grove" })).toBeEnabled();
-    await page.getByRole("button", { name: /^Clear area / }).click();
+    await page.getByRole("button", { name: /^In area: .*clear filter$/ }).click();
     await expect(page).not.toHaveURL(/areaId=/);
   },
 );
@@ -121,6 +121,15 @@ test(
     const result = page.getByLabel("Open Review climb, Review area", { exact: true });
     await expect(result).toBeVisible();
     await expect(result).toHaveAttribute("href", "/climbs/17/review-climb");
+    await result.hover();
+    const row = result.locator("xpath=ancestor::li[1]");
+    await expect(row.getByText("V4", { exact: true })).toBeVisible();
+    // The title owns the link. The grade and ascent count stay ordinary text on hover.
+    await expect(result.getByText("V4", { exact: true })).toHaveCount(0);
+    await expect(row.getByText("0 ascents", { exact: true })).toHaveCSS(
+      "text-decoration-line",
+      "none",
+    );
     const opened = context.waitForEvent("page");
     await result.click({ modifiers: ["ControlOrMeta"] });
     const other = await opened;

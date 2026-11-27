@@ -5,6 +5,7 @@ import { Menu } from "lucide-react";
 import { BrandHomeLink } from "@/components/brand";
 import { SearchTriggerControl } from "@/components/command-palette";
 import { LogEntryButton } from "@/components/journal/log-entry-button";
+import { MENU_TRIGGER_CLASS } from "@/components/nav-link";
 import { cardClass } from "@/components/ui/card";
 import { PAGE_MAX_WIDTH_CLASS } from "@/components/ui/layout";
 import { WorkspaceShell } from "@/components/workspace-shell";
@@ -27,7 +28,7 @@ const meta = {
     requestCount: 3,
     children: (
       <div className="flex min-h-dvh flex-col">
-        <header className="flex h-14 shrink-0 items-center px-4">
+        <header className="flex h-14 shrink-0 items-center border-b border-separator px-4">
           <div
             className={`mx-auto grid w-full ${PAGE_MAX_WIDTH_CLASS} grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-2 md:grid-cols-[minmax(8rem,1fr)_minmax(0,32rem)_minmax(8rem,1fr)] md:gap-4`}
           >
@@ -38,7 +39,7 @@ const meta = {
               <Button
                 isIconOnly
                 variant="ghost"
-                className="size-11 md:hidden"
+                className={`size-11 md:hidden ${MENU_TRIGGER_CLASS}`}
                 aria-label="Open menu"
               >
                 <Menu aria-hidden className="size-5" />
@@ -50,7 +51,7 @@ const meta = {
             </div>
           </div>
         </header>
-        <div className="flex flex-col gap-6 p-4 md:pt-2" data-sidebar-content>
+        <div className="flex flex-col gap-6 px-4 py-5 md:py-6" data-sidebar-content>
           <WorkspaceShell area="community" userId="sample">
             <div className={cardClass("fluid")}>
               <h2 className="text-lg font-semibold">A day at the crag</h2>

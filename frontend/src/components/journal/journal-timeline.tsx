@@ -1,12 +1,12 @@
 "use client";
 
+import { DatedLogbookRows } from "@/components/journal/dated-logbook-rows";
 import { fetchJournalPage } from "@/components/journal/fetch-journal-page";
 import { JournalEntryRow } from "@/components/journal/journal-entry-row";
 import { LogEntryButton } from "@/components/journal/log-entry-button";
 import { NavigationPendingRegion } from "@/components/navigation-pending";
 import { AppLink } from "@/components/ui/app-link";
 import { EmptyState } from "@/components/ui/empty-state";
-import { EYEBROW_CLASS } from "@/components/ui/eyebrow";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
 import { usePagedList } from "@/hooks/use-paged-list";
 import type { AreaBreadcrumbs } from "@/lib/catalog-types";
@@ -23,16 +23,6 @@ type JournalTimelineProps = {
   hasAnyEntries: boolean;
   pending?: boolean;
 };
-
-const MONTH_FORMAT = new Intl.DateTimeFormat("en-US", {
-  month: "long",
-  year: "numeric",
-  timeZone: "UTC",
-});
-
-function monthLabel(entryDate: string): string {
-  return MONTH_FORMAT.format(new Date(`${entryDate.slice(0, 7)}-01`));
-}
 
 export function JournalTimeline({
   userId,
@@ -81,32 +71,22 @@ export function JournalTimeline({
 
   return (
     <NavigationPendingRegion pending={pending} className="flex flex-col gap-4">
-      <ul inert={pending} role="list" className="flex flex-col">
-        {items.map((entry, index) => {
-          const month = monthLabel(entry.entryDate);
-          const newMonth = index === 0 || month !== monthLabel(items[index - 1].entryDate);
-          return (
-            <li key={entry.id}>
-              {newMonth && (
-                <h3
-                  className={`sticky top-0 z-10 border-b border-separator bg-background px-4 py-2 ${EYEBROW_CLASS}`}
-                >
-                  {month}
-                </h3>
-              )}
-              <div className="border-b border-separator">
-                <JournalEntryRow
-                  entry={entry}
-                  isOwner={isOwner}
-                  userId={userId}
-                  filter={filter}
-                  areaBreadcrumbs={meta}
-                />
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+      <DatedLogbookRows
+        items={items}
+        itemKey={(entry) => entry.id}
+        dateOf={(entry) => entry.entryDate}
+        pending={pending}
+        renderRow={(entry, dateDisplay) => (
+          <JournalEntryRow
+            entry={entry}
+            dateDisplay={dateDisplay}
+            isOwner={isOwner}
+            userId={userId}
+            filter={filter}
+            areaBreadcrumbs={meta}
+          />
+        )}
+      />
       {hasMore && !pending && (
         <LoadMoreButton onPress={loadMore} loading={loadingMore} failed={loadMoreFailed} />
       )}

@@ -23,7 +23,9 @@ const rows = () =>
 it("lists Pine Canyon by ascents and narrows it through discipline, filters and sort", async () => {
   const user = userEvent.setup();
   render(<DemoClimbSearch />);
-  expect(screen.getByRole("button", { name: "Clear area Pine Canyon" })).toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "In area: Pine Canyon, clear filter" }),
+  ).toBeInTheDocument();
   expect(rows()).toEqual([
     "First Light",
     "Quiet Arete",
@@ -63,11 +65,13 @@ it("lists Pine Canyon by ascents and narrows it through discipline, filters and 
 it("finds the sample area through the local lookup and clears it back to the catalog", async () => {
   const user = userEvent.setup();
   render(<DemoClimbSearch />);
-  await user.click(screen.getByRole("button", { name: "Clear area Pine Canyon" }));
+  await user.click(screen.getByRole("button", { name: "In area: Pine Canyon, clear filter" }));
   await waitFor(() => expect(rows()).toHaveLength(7));
   const lookup = screen.getByRole("combobox", { name: "In area" });
   await user.type(lookup, "pine");
   await user.click(await screen.findByRole("option", { name: /Pine Canyon/ }));
-  expect(screen.getByRole("button", { name: "Clear area Pine Canyon" })).toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "In area: Pine Canyon, clear filter" }),
+  ).toBeInTheDocument();
   await waitFor(() => expect(rows()).toHaveLength(7));
 });

@@ -4,12 +4,12 @@ import type { ReactNode } from "react";
 const PAGE_TITLE_SIZE = {
   /** A dialog's visible heading, behind ResponsiveDialog's hidden title. */
   sm: "text-2xl",
-  md: "text-3xl",
+  md: "text-3xl sm:text-4xl",
   /** The climber name, sized by ProfileHeading's container. */
-  lg: "text-4xl leading-none @2xl:text-5xl",
+  lg: "text-3xl leading-none @2xl:text-4xl",
 } as const;
 
-/** The guidebook display voice (Barlow Condensed) for page h1s. */
+/** The field-guide display face for page h1s. */
 export function PageTitle({
   children,
   className,
@@ -22,7 +22,7 @@ export function PageTitle({
   return (
     <h1
       className={clsx(
-        "font-display font-semibold tracking-tight",
+        "font-display leading-tight font-semibold tracking-tight [overflow-wrap:anywhere]",
         PAGE_TITLE_SIZE[size],
         className,
       )}
@@ -43,7 +43,10 @@ export function SectionHeading({
   id?: string;
 }) {
   return (
-    <h2 id={id} className={clsx("text-lg font-semibold", className)}>
+    <h2
+      id={id}
+      className={clsx("font-display text-xl leading-tight font-semibold tracking-tight", className)}
+    >
       {children}
     </h2>
   );

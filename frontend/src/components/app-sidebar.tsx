@@ -7,6 +7,7 @@ import { useId, useRef, useState, type ReactNode } from "react";
 
 import { AppMenuLinks, type MenuAccount } from "@/components/app-menu-links";
 import { useFriendRequestCount } from "@/components/friend-requests-provider";
+import { MENU_TRIGGER_CLASS } from "@/components/nav-link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClientSession } from "@/hooks/use-client-session";
 
@@ -113,7 +114,7 @@ export function SidebarFrame({
         ref={sidebar}
         aria-label={label}
         className={clsx(
-          "inset-y-0 left-0 z-40 hidden flex-col bg-background motion-safe:transition-[width] motion-safe:duration-150",
+          "inset-y-0 left-0 z-40 hidden flex-col bg-background motion-safe:transition-[width] motion-safe:duration-150 dark:bg-surface",
           contained ? "absolute @lg/navigation:flex" : "fixed md:flex",
           expanded ? "w-56" : "w-16",
           preview && !pinned && "shadow-lg",
@@ -141,7 +142,7 @@ export function SidebarFrame({
               <Button
                 isIconOnly
                 variant="ghost"
-                className="size-10"
+                className={`size-10 ${MENU_TRIGGER_CLASS}`}
                 aria-label={toggleLabel}
                 aria-expanded={expanded}
                 aria-controls={navId}

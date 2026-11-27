@@ -25,6 +25,8 @@ import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { DocumentNavigation } from "@/spa/lib/document-navigation";
 import { lazyRoute, PageErrorBoundary } from "@/spa/lib/render-error-boundary";
 import { Providers } from "@/spa/providers";
+import { MemberWorkspaceRoute } from "@/spa/routes/member-workspace-route";
+import { VisitorProfileRoute } from "@/spa/routes/visitor-profile-route";
 
 const SearchRoute = lazyRoute(() => import("@/spa/routes/search-route"));
 const AreaRoute = lazyRoute(() => import("@/spa/routes/area-route"));
@@ -88,7 +90,7 @@ export function App() {
 
   const activeTerms = termsState?.viewerId === viewerId ? termsState?.status : undefined;
   const termsPrompt = activeTerms ?? CURRENT_TERMS_PROMPT;
-  const homeViewerId =
+  const termsAcceptedViewerId =
     session?.user.termsVersion === CURRENT_TERMS_PROMPT.version &&
     session.user.termsAcceptedAt != null
       ? viewerId
@@ -114,7 +116,7 @@ export function App() {
       <Providers>
         <SearchPaletteProvider>
           <AppSidebar>
-            <header className="flex h-14 shrink-0 items-center px-4">
+            <header className="flex h-14 shrink-0 items-center border-b border-separator px-4">
               <div
                 className={`mx-auto grid w-full ${PAGE_MAX_WIDTH_CLASS} grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-2 md:grid-cols-[minmax(8rem,1fr)_minmax(0,32rem)_minmax(8rem,1fr)] md:gap-4`}
               >
@@ -132,7 +134,7 @@ export function App() {
                 </div>
               </div>
             </header>
-            <main id="main" tabIndex={-1} className="flex-1 p-4 outline-none md:pt-2">
+            <main id="main" tabIndex={-1} className="flex-1 px-4 py-5 outline-none md:py-6">
               <div className={`mx-auto w-full ${PAGE_MAX_WIDTH_CLASS}`}>
                 <ViewerBoundary key={viewerId ?? "anonymous"} viewerId={viewerId}>
                   <TermsGate
@@ -145,14 +147,19 @@ export function App() {
                     <GradePreferencesProvider value={gradePreferences}>
                       <PageErrorBoundary fallback={<RouteFallback />}>
                         <Routes>
-                          <Route path="/" element={<SearchRoute viewerId={homeViewerId} home />} />
+                          <Route
+                            path="/"
+                            element={<SearchRoute viewerId={termsAcceptedViewerId} home />}
+                          />
                           <Route path="/search" element={<SearchRoute viewerId={viewerId} />} />
                           <Route
-                            path="/users/:id/analytics"
-                            element={<ProfileAnalyticsRoute viewerId={viewerId} />}
-                          />
-                          <Route path="/feed" element={<FeedRoute viewerId={viewerId} />} />
-                          <Route path="/friends" element={<FriendsRoute viewerId={viewerId} />} />
+                            element={
+                              <MemberWorkspaceRoute viewerId={termsAcceptedViewerId} community />
+                            }
+                          >
+                            <Route path="/feed" element={<FeedRoute viewerId={viewerId} />} />
+                            <Route path="/friends" element={<FriendsRoute viewerId={viewerId} />} />
+                          </Route>
                           <Route
                             path="/account/import"
                             element={<ImportRoute viewerId={viewerId} />}
@@ -164,51 +171,55 @@ export function App() {
                           <Route path="/account" element={<AccountRoute viewerId={viewerId} />} />
                           <Route
                             path="/users/:id"
-                            element={<UserProfileRoute viewerId={viewerId} />}
-                          />
-                          <Route
-                            path="/users/:id/sends"
-                            element={<UserSendsRoute viewerId={viewerId} />}
-                          />
-                          <Route
-                            path="/users/:id/journal"
-                            element={<UserJournalRoute viewerId={viewerId} />}
-                          />
-                          <Route
-                            path="/users/:id/goals"
-                            element={<GoalsRoute viewerId={viewerId} />}
-                          />
-                          <Route
-                            path="/users/:id/projects"
-                            element={<ProjectsRoute viewerId={viewerId} />}
-                          />
-                          <Route
-                            path="/users/:id/projects/sent"
-                            element={<ProjectsRoute viewerId={viewerId} sent />}
-                          />
+                            element={<MemberWorkspaceRoute viewerId={termsAcceptedViewerId} />}
+                          >
+                            <Route
+                              element={<VisitorProfileRoute viewerId={termsAcceptedViewerId} />}
+                            >
+                              <Route index element={<UserProfileRoute viewerId={viewerId} />} />
+                              <Route
+                                path="journal"
+                                element={<UserJournalRoute viewerId={viewerId} />}
+                              />
+                              <Route
+                                path="sends"
+                                element={<UserSendsRoute viewerId={viewerId} />}
+                              />
+                              <Route path="trips" element={<TripsRoute viewerId={viewerId} />} />
+                              <Route
+                                path="trips/:tripId"
+                                element={<TripsRoute viewerId={viewerId} />}
+                              />
+                              <Route
+                                path="trips/:tripId/analytics"
+                                element={<TripsRoute viewerId={viewerId} />}
+                              />
+                              <Route
+                                path="lists/:listId?"
+                                element={<ListsRoute viewerId={viewerId} />}
+                              />
+                              <Route
+                                path="analytics"
+                                element={<ProfileAnalyticsRoute viewerId={viewerId} />}
+                              />
+                            </Route>
+                            <Route path="goals" element={<GoalsRoute viewerId={viewerId} />} />
+                            <Route
+                              path="projects"
+                              element={<ProjectsRoute viewerId={viewerId} />}
+                            />
+                            <Route
+                              path="projects/sent"
+                              element={<ProjectsRoute viewerId={viewerId} sent />}
+                            />
+                          </Route>
                           <Route
                             path="/projects/:token"
                             element={<ProjectsRoute viewerId={viewerId} />}
                           />
                           <Route
-                            path="/users/:id/lists/:listId?"
-                            element={<ListsRoute viewerId={viewerId} />}
-                          />
-                          <Route
                             path="/lists/:token"
                             element={<ListsRoute viewerId={viewerId} />}
-                          />
-                          <Route
-                            path="/users/:id/trips"
-                            element={<TripsRoute viewerId={viewerId} />}
-                          />
-                          <Route
-                            path="/users/:id/trips/:tripId"
-                            element={<TripsRoute viewerId={viewerId} />}
-                          />
-                          <Route
-                            path="/users/:id/trips/:tripId/analytics"
-                            element={<TripsRoute viewerId={viewerId} />}
                           />
                           <Route
                             path="/trips/:token"

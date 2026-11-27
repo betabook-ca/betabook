@@ -28,6 +28,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {};
 export const LongContent: Story = {
   args: {
+    wrapTitle: true,
     title: "A very long route name that wraps without hiding the trailing grade",
     subtitle: "A long area name at the far end of the valley",
     trailing: <Grade>5.11a</Grade>,

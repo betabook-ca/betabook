@@ -5,7 +5,7 @@ use axum::{
     response::Response,
 };
 use betabook_domain::seo::{PageMetadata, escape_html};
-use betabook_domain::site::{PALETTE_INK, PALETTE_PAPER, SITE_DESCRIPTION};
+use betabook_domain::site::{PALETTE_NIGHT, PALETTE_PAPER, SITE_DESCRIPTION};
 use betabook_domain::terms::{TERMS_VERSION, TERMS_VERSIONS, terms_href};
 
 use crate::routes::seo::{load_asset_text, load_spa_manifest, primary_stylesheet_href};
@@ -28,10 +28,10 @@ async fn render_static_document(
         .unwrap_or_default();
     let body_font = manifest
         .iter()
-        .find(|(source, _)| source.ends_with("/Geist-Variable.woff2"))
+        .find(|(source, _)| source.ends_with("/DM-Sans-Variable.ttf"))
         .map(|(_, entry)| {
             format!(
-                r#"<link rel="preload" as="font" type="font/woff2" crossorigin href="/{}">"#,
+                r#"<link rel="preload" as="font" type="font/ttf" crossorigin href="/{}">"#,
                 escape_html(&entry.file)
             )
         })
@@ -45,7 +45,7 @@ async fn render_static_document(
     <meta charset=\"utf-8\">
     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, interactive-widget=resizes-content\">
     <meta name=\"theme-color\" media=\"(prefers-color-scheme: light)\" content=\"{PALETTE_PAPER}\">
-    <meta name=\"theme-color\" media=\"(prefers-color-scheme: dark)\" content=\"{PALETTE_INK}\">
+    <meta name=\"theme-color\" media=\"(prefers-color-scheme: dark)\" content=\"{PALETTE_NIGHT}\">
     {head_tags}
     {stylesheet_link}
     {body_font}
@@ -64,7 +64,7 @@ async fn render_static_document(
           if (theme !== \"system\") {{
             var m = document.createElement(\"meta\");
             m.name = \"theme-color\";
-            m.content = resolved === \"dark\" ? \"{PALETTE_INK}\" : \"{PALETTE_PAPER}\";
+            m.content = resolved === \"dark\" ? \"{PALETTE_NIGHT}\" : \"{PALETTE_PAPER}\";
             m.setAttribute(\"data-explicit-theme\", \"\");
             document.head.insertBefore(m, document.head.firstChild);
           }}

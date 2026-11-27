@@ -1,14 +1,14 @@
 @import "@heroui/styles";
 
-/* Fixed palette tokens: these values do not change by theme. Every themed
-   color below is one of these five or a color-mix() of two of them, so the
-   whole UI re-themes from this block alone. */
+/* Brand anchors shared with the first paint, install assets and email templates. */
 :root {
-  --palette-ink: #000000;
-  --palette-primary: #83ba73;
+  --palette-ink: #252423;
+  --palette-night: #191e25;
+  --palette-primary: #994b35;
   --palette-support: #557bb5;
-  --palette-accent: #a4585a;
-  --palette-paper: #eaf7ef;
+  --palette-accent: #a7442d;
+  --palette-trad: #94713b;
+  --palette-paper: #faf9f5;
 }
 
 @layer theme {
@@ -23,6 +23,7 @@
   [data-theme="light"] {
     --background: var(--palette-paper);
     --foreground: var(--palette-ink);
+    --date-ink: var(--palette-accent);
 
     /* Cards float above the paper, so they mix toward white; recessed
        surfaces mix a few percent of ink into the paper instead. */
@@ -32,58 +33,47 @@
     --overlay: color-mix(in oklab, var(--palette-paper) 35%, var(--white));
     /* Opaque activity marks keep the same painted color on Feed cards and the
        journal page. Neutral marks lean chalk-grey; sent keeps a lighter green. */
-    --activity-send-bg: color-mix(in oklab, var(--palette-primary) 20%, var(--palette-paper));
+    --activity-send-bg: color-mix(in oklab, var(--success) 20%, var(--palette-paper));
     --activity-neutral-bg: color-mix(in oklab, var(--palette-paper) 90%, var(--palette-ink));
 
-    --muted: color-mix(in oklab, var(--palette-ink) 56%, var(--palette-paper));
+    --muted: #605e5b;
     --default: color-mix(in oklab, var(--palette-paper) 92%, var(--palette-ink));
     --default-foreground: var(--palette-ink);
-    --border: color-mix(in oklab, var(--palette-paper) 88%, var(--palette-ink));
-    --separator: color-mix(in oklab, var(--palette-paper) 91%, var(--palette-ink));
+    --border: #bebbb5;
+    --separator: #d7d3cb;
 
+    --field-shadow: 0 0 0 1px var(--border) inset;
     --field-background: color-mix(in oklab, var(--palette-paper) 35%, var(--white));
     --segment: color-mix(in oklab, var(--palette-paper) 35%, var(--white));
     --segment-foreground: var(--palette-ink);
 
-    /* Brand green is mid-lightness: ink text clears 9:1 on it where white
-       lands under 2.5:1, so accent flips HeroUI's usual light-on-color. */
     --accent: var(--palette-primary);
-    --accent-foreground: var(--palette-ink);
-    /* Secondary buttons use this text on a soft green fill. HeroUI's
-       default blend is too light against the paper theme's soft fill. */
-    --accent-soft-foreground: color-mix(in oklab, var(--palette-primary) 55%, var(--palette-ink));
-    --success: var(--palette-primary);
-    --success-foreground: var(--palette-ink);
-    /* Deepened toward ink: raw #A4585A is ~4.1:1 as text on paper and
-       lower on the secondary-surface cards where every error message
-       renders — the mix clears AA on both, and paper text on the fill
-       gets easier too. */
-    --danger: color-mix(in oklab, var(--palette-accent) 85%, var(--palette-ink));
+    --accent-foreground: var(--palette-paper);
+    --accent-soft-foreground: #743e2f;
+    --success: #67876a;
+    --success-foreground: var(--black);
+    --success-soft-foreground: #395a3d;
+    --danger: #982f42;
     --danger-foreground: var(--palette-paper);
     /* Warning stays HeroUI's amber: the palette has no yellow slot, and
        green/red already carry success/danger. */
 
-    /* Support blue at full strength is only ~3.9:1 on paper, so text uses
-       it darkened; the focus ring is thick enough to wear it straight. */
+    /* Use blue for keyboard focus and slate for navigation links. */
     --focus: var(--palette-support);
-    --link: color-mix(in oklab, var(--palette-support) 78%, var(--palette-ink));
-    --navigation-active-background: color-mix(
-      in oklab,
-      var(--palette-support) 18%,
-      var(--background)
-    );
+    --link: #3c4854;
+    --navigation-active-background: color-mix(in oklab, var(--link) 14%, var(--background));
 
     /* Discipline chip colors (boulder/sport/trad). HeroUI's built-in chip
        colors are spoken for — success/warning are reserved for ascent-style
        chips (AscentStyle), and accent/default are too few hues for three
        disciplines that need to read as distinct from each other and from
        gray — so each discipline gets its own themed bg/fg pair from the
-       palette (trad = green, sport = support blue, boulder = rose),
+       palette (trad = ochre, sport = support blue, boulder = rose),
        consumed by DISCIPLINE_CHIP_CLASSNAME in components/ui/discipline-chip.tsx. */
-    --discipline-trad-bg: color-mix(in oklab, var(--palette-primary) 22%, var(--white));
-    --discipline-trad-fg: color-mix(in oklab, var(--palette-primary) 60%, var(--palette-ink));
+    --discipline-trad-bg: color-mix(in oklab, var(--palette-trad) 22%, var(--white));
+    --discipline-trad-fg: color-mix(in oklab, var(--palette-trad) 40%, var(--palette-ink));
     --discipline-sport-bg: color-mix(in oklab, var(--palette-support) 22%, var(--white));
-    --discipline-sport-fg: color-mix(in oklab, var(--palette-support) 60%, var(--palette-ink));
+    --discipline-sport-fg: color-mix(in oklab, var(--palette-support) 48%, var(--palette-ink));
     --discipline-boulder-bg: color-mix(in oklab, var(--palette-accent) 22%, var(--white));
     --discipline-boulder-fg: color-mix(in oklab, var(--palette-accent) 60%, var(--palette-ink));
 
@@ -91,14 +81,14 @@
        chips). Flash used to wear HeroUI's amber `warning`, the one hue the
        rating stars also use — this frees the stars to own amber. */
     --ascent-flash-bg: color-mix(in oklab, var(--palette-support) 22%, var(--white));
-    --ascent-flash-fg: color-mix(in oklab, var(--palette-support) 60%, var(--palette-ink));
+    --ascent-flash-fg: color-mix(in oklab, var(--palette-support) 48%, var(--palette-ink));
 
     /* Flash and onsight rate lines on the same chart: the chip hues (flash
        blue, onsight green), darkened only as far as a 2.5px line needs to
        clear 3:1 on the card. The chip text tokens sit far closer to ink, where
        the two lines read as one dark color where they cross. */
     --chart-flash: color-mix(in oklab, var(--palette-support) 90%, var(--palette-ink));
-    --chart-onsight: color-mix(in oklab, var(--palette-primary) 62%, var(--palette-ink));
+    --chart-onsight: color-mix(in oklab, var(--success) 62%, var(--palette-ink));
 
     /* Redpoint ascent chip: the neutral baseline, so it stays gray rather
        than taking a palette hue. The fill is what HeroUI's soft `default`
@@ -112,99 +102,79 @@
        own fill, so the two read as one set. Still clears AA on the darkest
        surface the chip lands on (7.6:1). */
     --ascent-redpoint-bg: var(--default-soft);
-    --ascent-redpoint-fg: color-mix(in oklab, var(--palette-ink) 62%, var(--palette-paper));
+    --ascent-redpoint-fg: color-mix(in oklab, var(--palette-ink) 78%, var(--palette-paper));
 
     /* Magnifier for combobox inputs (see search-combo-input) — data URIs
        can't reference CSS vars, so each theme pins its own muted stroke. */
-    --search-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235f6c63' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+    --search-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23625f5b' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
   }
 
-  /* Semantic roles, dark ("ink") theme: the same palette with paper and ink
-     swapped. Surfaces lift off the pure-black background by mixing paper
-     back in — one knob (the paper %) sets the whole elevation ramp. */
+  /* The night palette uses cool slate surfaces and a restrained warm date marker. */
   .dark,
   [data-theme="dark"] {
-    --background: var(--palette-ink);
-    --foreground: var(--palette-paper);
+    --background: var(--palette-night);
+    --foreground: #e4e8ec;
+    --date-ink: #cf9082;
 
-    --surface: color-mix(in oklab, var(--palette-paper) 16%, var(--palette-ink));
-    --surface-secondary: color-mix(in oklab, var(--palette-paper) 20%, var(--palette-ink));
-    --surface-tertiary: color-mix(in oklab, var(--palette-paper) 24%, var(--palette-ink));
-    --overlay: color-mix(in oklab, var(--palette-paper) 20%, var(--palette-ink));
-    --activity-send-bg: color-mix(in oklab, var(--palette-primary) 44%, var(--palette-ink));
-    --activity-neutral-bg: color-mix(in oklab, var(--palette-paper) 46%, var(--palette-ink));
+    --surface: #212730;
+    --surface-secondary: #282f39;
+    --surface-tertiary: #303946;
+    --overlay: #2d3540;
+    --activity-send-bg: #384c47;
+    --activity-neutral-bg: #424d5a;
 
-    --muted: color-mix(in oklab, var(--palette-paper) 66%, var(--palette-ink));
-    --default: color-mix(in oklab, var(--palette-paper) 24%, var(--palette-ink));
-    --default-foreground: var(--palette-paper);
-    --border: color-mix(in oklab, var(--palette-paper) 26%, var(--palette-ink));
-    --separator: color-mix(in oklab, var(--palette-paper) 20%, var(--palette-ink));
+    --muted: #b4bfcb;
+    --default: var(--surface-tertiary);
+    --default-foreground: var(--foreground);
+    --border: #596473;
+    --separator: #3a444f;
 
-    --field-background: color-mix(in oklab, var(--palette-paper) 18%, var(--palette-ink));
-    /* HeroUI leaves this transparent and 0-width by default (--field-border-width
-       is hardcoded to 0px globally) and relies on --field-shadow for definition
-       instead, but a shadow reads as nothing against a dark background —
-       without a real border, unchecked checkboxes/selects disappear into the
-       surface behind them. */
+    --field-background: var(--surface);
     --field-border: var(--border);
     --field-border-width: 2px;
-    --segment: color-mix(in oklab, var(--palette-paper) 30%, var(--palette-ink));
-    --segment-foreground: var(--palette-paper);
+    --field-shadow: 0 0 0 0 transparent;
+    --segment: #414c59;
+    --segment-foreground: var(--foreground);
 
-    --accent: var(--palette-primary);
-    --accent-foreground: var(--palette-ink);
-    --accent-soft-foreground: color-mix(in oklab, var(--palette-primary) 70%, var(--palette-paper));
-    --success: var(--palette-primary);
-    --success-foreground: var(--palette-ink);
-    /* Lightened toward paper: raw #A4585A reads ~3.6:1 as error text on the
-       lifted dark surfaces — under AA. The lighter fill flips its own text
-       to ink (paper on the lightened red would fail instead). */
-    --danger: color-mix(in oklab, var(--palette-accent) 70%, var(--palette-paper));
-    --danger-foreground: var(--palette-ink);
+    --accent: #bdc8d2;
+    --accent-foreground: var(--palette-night);
+    --accent-soft-foreground: #d5dfe9;
+    --success: #92b2a2;
+    --success-foreground: var(--palette-night);
+    --success-soft-foreground: #c0d7c9;
+    --danger: #ed9daa;
+    --danger-foreground: var(--palette-night);
 
-    /* Support blue leans toward paper here for the same contrast reason the
-       light theme leans it toward ink. */
-    --focus: color-mix(in oklab, var(--palette-support) 75%, var(--palette-paper));
-    --link: color-mix(in oklab, var(--palette-support) 70%, var(--palette-paper));
-    --navigation-active-background: color-mix(
-      in oklab,
-      var(--palette-support) 30%,
-      var(--surface-secondary)
-    );
+    --focus: #a5c6ed;
+    --link: #c5d6e8;
+    --navigation-active-background: #344352;
 
     /* Discipline chips: translucent tint + a pastel of the same palette hue
        (same recipe as HeroUI's dark soft chip variants). */
-    --discipline-trad-bg: color-mix(in oklab, var(--palette-primary) 25%, transparent);
-    --discipline-trad-fg: color-mix(in oklab, var(--palette-primary) 60%, var(--palette-paper));
+    --discipline-trad-bg: color-mix(in oklab, var(--palette-trad) 25%, transparent);
+    --discipline-trad-fg: color-mix(in oklab, var(--palette-trad) 60%, var(--palette-paper));
     --discipline-sport-bg: color-mix(in oklab, var(--palette-support) 25%, transparent);
-    --discipline-sport-fg: color-mix(in oklab, var(--palette-support) 60%, var(--palette-paper));
+    --discipline-sport-fg: color-mix(in oklab, var(--palette-support) 40%, var(--palette-paper));
     --discipline-boulder-bg: color-mix(in oklab, var(--palette-accent) 25%, transparent);
-    --discipline-boulder-fg: color-mix(in oklab, var(--palette-accent) 60%, var(--palette-paper));
+    --discipline-boulder-fg: color-mix(in oklab, var(--palette-accent) 34%, var(--palette-paper));
 
     --ascent-flash-bg: color-mix(in oklab, var(--palette-support) 25%, transparent);
-    --ascent-flash-fg: color-mix(in oklab, var(--palette-support) 60%, var(--palette-paper));
+    --ascent-flash-fg: color-mix(in oklab, var(--palette-support) 40%, var(--palette-paper));
 
-    --chart-flash: color-mix(in oklab, var(--palette-support) 60%, var(--palette-paper));
-    --chart-onsight: color-mix(in oklab, var(--palette-primary) 70%, var(--palette-paper));
+    --chart-flash: color-mix(in oklab, var(--palette-support) 40%, var(--palette-paper));
+    --chart-onsight: color-mix(in oklab, var(--success) 70%, var(--palette-paper));
 
-    /* Redpoint has no hue to lean on, so in dark it can only separate from
-       its backdrop by lightness — and HeroUI's soft `default` (--default at
-       50% alpha, i.e. paper ~20-24% over surfaces that are themselves paper
-       16-24%) leaves none: on a tertiary surface the chip disappears. Opaque
-       rather than translucent so the step above the surface is the same
-       wherever the chip lands. 34% is calibrated against the flash chip it
-       sits beside in the picker — both clear ~1.36:1 on the lightest surface
-       they land on, so neutral reads as present without outshouting a hue. */
-    --ascent-redpoint-bg: color-mix(in oklab, var(--palette-paper) 34%, var(--palette-ink));
+    /* The neutral ascent treatment is quieter than the colored styles. */
+    --ascent-redpoint-bg: var(--segment);
     --ascent-redpoint-fg: var(--default-foreground);
 
-    --search-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a3b0a7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+    --search-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a4afb9' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
   }
 }
 
 /* Cards, bounded panels, and their loading placeholders share one geometry. */
 @theme {
-  --radius-panel: 0.75rem;
+  --radius-panel: 0.5rem;
 }
 
 /* One type step below text-xs: chart axis and legend labels, the xs
@@ -214,48 +184,38 @@
   --text-2xs--line-height: calc(0.875 / 0.625);
 }
 
-/* Arial resized to each web font's metrics, so the swap to the
-   web font preserves text layout. */
-@font-face {
-  font-family: "Geist Fallback";
-  src: local("Arial");
-  ascent-override: 94.56%;
-  descent-override: 27.76%;
-  line-gap-override: 0%;
-  size-adjust: 106.28%;
-}
-
-@font-face {
-  font-family: "Barlow Condensed Fallback";
-  src: local("Arial");
-  ascent-override: 123.84%;
-  descent-override: 24.77%;
-  line-gap-override: 0%;
-  size-adjust: 80.75%;
-}
-
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  /* The guidebook display voice — Barlow Condensed, reserved for the wordmark, page titles, entity
-     names and the large stat numerals under an eyebrow (StatValue).
-     Everything else, grades included, stays on Geist Sans — there is no
-     third face. */
-  --font-display: var(--font-barlow-condensed);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-heading);
+  --color-date-ink: var(--date-ink);
 
   /* Raw palette as utilities (bg-palette-primary, text-palette-support, …)
      for the rare spot that wants a fixed brand color regardless of theme. */
   --color-navigation-active: var(--navigation-active-background);
 
   --color-palette-ink: var(--palette-ink);
+  --color-palette-trad: var(--palette-trad);
   --color-palette-primary: var(--palette-primary);
   --color-palette-support: var(--palette-support);
   --color-palette-accent: var(--palette-accent);
   --color-palette-paper: var(--palette-paper);
 }
 
+/* Actions have a compact rectangular silhouette. Tag selectors keep their pill shape. */
+@layer components {
+  .button:not(.button--icon-only) {
+    border-radius: var(--radius-panel);
+  }
+}
+
 @layer base {
   html {
     @apply font-sans;
+  }
+
+  /* Match the field guide's line icons. Custom icon strokes and chart lines keep their own weights. */
+  :where(svg.lucide[stroke-width="2"]) {
+    stroke-width: 1.7;
   }
 }
 

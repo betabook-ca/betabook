@@ -1,5 +1,5 @@
 import { UserSendLogRow } from "@/components/climb-log-row";
-import { SendRows } from "@/components/send-rows";
+import { DatedLogbookRows } from "@/components/journal/dated-logbook-rows";
 import { signUpPrompt } from "@/components/sign-up-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeading } from "@/components/ui/typography";
@@ -27,15 +27,18 @@ export function SharedProfile({
       {sends.length === 0 ? (
         <EmptyState message={`${owner.name} hasn't logged a send yet.`} />
       ) : (
-        <SendRows>
-          {sends.map((send) => (
-            // Keyed by climb id. Keys end up in the RSC payload, and sequential
-            // send ids shouldn't.
-            <li key={send.climbId}>
-              <UserSendLogRow send={send} areaBreadcrumbs={areaBreadcrumbs} />
-            </li>
-          ))}
-        </SendRows>
+        <DatedLogbookRows
+          items={sends}
+          itemKey={(send) => send.climbId}
+          dateOf={(send) => send.dateSent}
+          renderRow={(send, dateDisplay) => (
+            <UserSendLogRow
+              send={send}
+              dateDisplay={dateDisplay}
+              areaBreadcrumbs={areaBreadcrumbs}
+            />
+          )}
+        />
       )}
       {signUpPrompt({ ownerName: owner.name, sendCount, shown: sends.length, next })}
     </div>

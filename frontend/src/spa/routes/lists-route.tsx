@@ -30,8 +30,8 @@ import { searchParamsToRecord } from "@/lib/url-params";
 import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
 import { isNotFoundError } from "@/spa/lib/fetch-json";
-import { SpaProfileHeader } from "@/spa/lib/profile-shell";
 import { useRetainedPage } from "@/spa/lib/use-retained-page";
+import { useVisitorHeader } from "@/spa/lib/visitor-header";
 
 type Index = ApiResponse<"/api/pages/users/{id}/lists">;
 type Detail = ApiResponse<"/api/pages/users/{id}/lists/{list_id}">;
@@ -54,63 +54,59 @@ function MemberList({
   if (data.mode === "index") {
     const label = SHARING_AUDIENCES.find((a) => a.value === data.audience)?.label;
     return (
-      <SpaProfileHeader {...data.header} workspace="progress">
-        <ClimbListIndex
-          lists={data.lists}
-          userId={user.id}
-          canEdit={isOwner}
-          note={
-            label && (
-              <>
-                Visible to {label} ·{" "}
-                <AppLink href="/account#privacy" className="inline underline">
-                  Change
-                </AppLink>
-              </>
-            )
-          }
-        />
-      </SpaProfileHeader>
+      <ClimbListIndex
+        lists={data.lists}
+        userId={user.id}
+        canEdit={isOwner}
+        note={
+          label && (
+            <>
+              Visible to {label} ·{" "}
+              <AppLink href="/account#privacy" className="inline underline">
+                Change
+              </AppLink>
+            </>
+          )
+        }
+      />
     );
   }
   const { list, page } = data;
   return (
-    <SpaProfileHeader {...data.header} workspace="progress">
-      <div className="flex min-w-0 flex-col gap-5">
-        <ClimbListHeader
-          list={list}
-          back={climbListsHref(user.id)}
-          byline={isOwner ? undefined : `By ${user.name}`}
-          actions={
-            isOwner ? (
-              <>
-                <ClimbListEditButton variant={list.climbCount > 0 ? "outline" : undefined} />
-                <ClimbListShare
-                  listId={list.id}
-                  listTitle={list.title}
-                  share={data.share}
-                  shareOrigin={data.shareOrigin}
-                  isPrivate={user.isPrivate}
-                />
-                <ClimbListActions list={list} userId={user.id} leaveOnDelete />
-              </>
-            ) : (
-              <CopyClimbListButton list={list} viewerId={viewerId} source={{ listId: list.id }} />
-            )
-          }
-        />
-        <ClimbListItems
-          {...page}
-          pending={pending}
-          totalCount={list.climbCount}
-          view={view}
-          signedIn
-          listId={list.id}
-          canEdit={isOwner}
-          listTitle={list.title}
-        />
-      </div>
-    </SpaProfileHeader>
+    <div className="flex min-w-0 flex-col gap-5">
+      <ClimbListHeader
+        list={list}
+        back={climbListsHref(user.id)}
+        byline={isOwner ? undefined : `By ${user.name}`}
+        actions={
+          isOwner ? (
+            <>
+              <ClimbListEditButton variant={list.climbCount > 0 ? "outline" : undefined} />
+              <ClimbListShare
+                listId={list.id}
+                listTitle={list.title}
+                share={data.share}
+                shareOrigin={data.shareOrigin}
+                isPrivate={user.isPrivate}
+              />
+              <ClimbListActions list={list} userId={user.id} leaveOnDelete />
+            </>
+          ) : (
+            <CopyClimbListButton list={list} viewerId={viewerId} source={{ listId: list.id }} />
+          )
+        }
+      />
+      <ClimbListItems
+        {...page}
+        pending={pending}
+        totalCount={list.climbCount}
+        view={view}
+        signedIn
+        listId={list.id}
+        canEdit={isOwner}
+        listTitle={list.title}
+      />
+    </div>
   );
 }
 
@@ -235,6 +231,7 @@ export default function ListsRoute({ viewerId }: { viewerId: string | null }) {
   });
   // Pair rows with the query that loaded them: editing always needs the complete circuit.
   const view = parseClimbListView(searchParamsToRecord(new URLSearchParams(loadedQuery)));
+  useVisitorHeader(data ? ("header" in data ? data.header : null) : undefined, error);
   useListTitle(data);
   if (!token && !viewerId) return <CurrentPageAuthCallout />;
 

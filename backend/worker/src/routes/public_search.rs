@@ -153,7 +153,7 @@ impl Search {
     }
     fn form(&self) -> String {
         let mut html = format!(
-            r#"<div class="flex flex-col gap-6"><header><h1 class="font-display text-3xl font-semibold tracking-tight">Find climbs</h1><p class="text-sm text-muted">Browse an area by grade, rating and ascents, or search by name.</p></header><form action="/search" method="get" role="search" class="flex gap-2"><input type="hidden" name="mode" value="{}">"#,
+            r#"<div class="flex flex-col gap-6"><header><h1 class="font-display text-3xl leading-tight font-semibold tracking-tight sm:text-4xl">Find climbs</h1><p class="text-sm text-muted">Browse an area by grade, rating and ascents, or search by name.</p></header><form action="/search" method="get" role="search" class="flex gap-2"><input type="hidden" name="mode" value="{}">"#,
             self.mode.key()
         );
         for (name, value) in &self.pairs {
@@ -227,7 +227,7 @@ struct SearchSeed {
 
 fn render_areas(html: &mut String, page: &PublicAreasPage, preview: bool) {
     html.push_str(
-        r#"<section aria-label="Areas results"><h2 class="text-xl font-semibold">Areas</h2>"#,
+        r#"<section aria-label="Areas results"><h2 class="font-display text-xl font-semibold">Areas</h2>"#,
     );
     if page.areas.is_empty() {
         html.push_str("<p>No matching areas. Try another name or clear a filter.</p>");
@@ -302,7 +302,7 @@ pub(super) async fn render(
     if search.mode == Mode::Climbs || (search.mode == Mode::All && named) {
         let page = search_public_climbs(db, &options).await?;
         html.push_str(
-            r#"<section aria-label="Climbs results"><h2 class="text-xl font-semibold">Climbs</h2>"#,
+            r#"<section aria-label="Climbs results"><h2 class="font-display text-xl font-semibold">Climbs</h2>"#,
         );
         let empty = "No matching climbs. Try another name or clear a filter.";
         if search.mode == Mode::All {

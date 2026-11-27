@@ -43,7 +43,7 @@ export function renderEmail({
         const link = links.find(({ href }) => href === line);
         if (!link) return escapeHtml(line);
         const href = escapeHtml(link.href);
-        const button = `<a href="${href}" style="display:inline-block;padding:12px 18px;background-color:${PALETTE_PRIMARY};color:${PALETTE_INK};font-weight:bold;text-decoration:underline;border-radius:12px;">${escapeHtml(link.label)}</a>`;
+        const button = `<a href="${href}" style="display:inline-block;padding:12px 18px;background-color:${PALETTE_PRIMARY};color:${PALETTE_PAPER};font-weight:bold;text-decoration:underline;border-radius:12px;">${escapeHtml(link.label)}</a>`;
         return showLinkUrls
           ? `${button}<br><a href="${href}" style="font-size:12px;color:${PALETTE_INK};text-decoration:underline;word-break:break-all;">${href}</a>`
           : button;
@@ -60,9 +60,9 @@ export function renderEmail({
 <body style="margin:0;padding:0;background-color:${PALETTE_PAPER};color:${PALETTE_INK};">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:${PALETTE_PAPER};"><tr><td align="center" style="padding:24px 16px;">
 <!--[if mso]><table role="presentation" width="560"><tr><td><![endif]-->
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;table-layout:fixed;"><tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:${PALETTE_INK};">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;table-layout:fixed;"><tr><td style="font-family:'DM Sans',Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:${PALETTE_INK};">
 <a href="${base}" style="display:block;max-width:350px;margin:0 auto;"><img src="${base}/branding/betabook-lockup-email.png" alt="${SITE_LOCKUP_ALT}" width="350" height="224" style="display:block;width:100%;max-width:350px;height:auto;border:0;"></a>
-<h1 style="margin:16px 0 24px;font-size:26px;line-height:1.25;overflow-wrap:anywhere;word-wrap:break-word;">${escapeHtml(title)}</h1>
+<h1 style="font-family:'Iowan Old Style',Palatino,Georgia,serif;margin:16px 0 24px;font-size:26px;line-height:1.25;overflow-wrap:anywhere;word-wrap:break-word;">${escapeHtml(title)}</h1>
 ${body}
 <p style="margin:32px 0 0;font-size:12px;"><a href="${base}" style="color:${PALETTE_INK};">${SITE_NAME}</a> — ${SITE_TAGLINE}</p>
 </td></tr></table>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { ClimbSentIndicator } from "@/components/climb-sent-indicator";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { FriendshipButton } from "@/components/friendship-button";
 import { useClimberSuggestions } from "@/hooks/use-climber-suggestions";
@@ -76,15 +77,17 @@ export function AppSearch({
       resultHref={(item) => item.href}
       suggestions={climberSuggestionItems(suggested)}
       onExpand={() => change(state)}
-      renderAction={(item) =>
-        item.climber ? (
+      renderAction={(item) => {
+        if (item.climb && item.context)
+          return <ClimbSentIndicator climb={item.climb} sent={item.context.sent} />;
+        return item.climber ? (
           <FriendshipButton
             userId={item.climber.id}
             name={item.name}
             initialStatus={item.climber.friendshipStatus}
           />
-        ) : null
-      }
+        ) : null;
+      }}
     />
   );
 }

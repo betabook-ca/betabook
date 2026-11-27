@@ -115,15 +115,15 @@ export const Typography: Story = {
   render: () => (
     <StoryPage
       title="Typography"
-      description="Barlow Condensed gives headings a guidebook voice; StatValue’s large numerals under an eyebrow are its one use beyond titles and names. Geist handles reading, controls, grades and the text-2xs chart labels. Shared primitives and text styles are measured in the browser. The page title above uses PageTitle."
+      description="Iowan Old Style sets headings and dates. DM Sans Bold identifies climbs and DM Sans Regular carries notes."
     >
-      <LiveSample name="Display family · Barlow Condensed" property="font-family">
+      <LiveSample name="Display family · Iowan Old Style" property="font-family">
         <p className="font-display text-3xl font-semibold">A day in the mountains</p>
       </LiveSample>
       <LiveSample name="SectionHeading" property="font-size">
         <SectionHeading>Recent sessions</SectionHeading>
       </LiveSample>
-      <LiveSample name="Body · Geist" property="font-family">
+      <LiveSample name="Body · DM Sans" property="font-family">
         <p>Find a climb, record the moves, and return with fresh beta.</p>
       </LiveSample>
       <LiveSample name="Supporting copy" property="font-size">

@@ -53,10 +53,14 @@ export function SendGradeCell({
           arrow
         )}
       </Grade>
-      <span aria-hidden className="text-sm text-muted">
-        ·
-      </span>
-      <RatingStars rating={rating} />
+      {rating != null && (
+        <>
+          <span aria-hidden className="text-sm text-muted">
+            ·
+          </span>
+          <RatingStars rating={rating} />
+        </>
+      )}
     </div>
   );
 }

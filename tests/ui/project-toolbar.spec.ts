@@ -1,7 +1,7 @@
 import { expect, openStory, test } from "./story";
 
 test(
-  "project search, standard-width sort and track control share one row",
+  "project filters wrap below the search field on phones",
   { tag: "@layout" },
   async ({ page }, testInfo) => {
     await openStory(page, testInfo, "components-journal-project-board--projects");
@@ -11,8 +11,10 @@ test(
     if (!search || !sort || !pin)
       throw new Error("Expected project search, sort and track controls");
     const centre = (box: { y: number; height: number }) => box.y + box.height / 2;
-    expect(Math.abs(centre(search) - centre(sort))).toBeLessThanOrEqual(1);
-    expect(Math.abs(centre(search) - centre(pin))).toBeLessThanOrEqual(1);
+    if (testInfo.project.use.hasTouch)
+      expect(sort.y).toBeGreaterThanOrEqual(search.y + search.height);
+    else expect(Math.abs(centre(search) - centre(sort))).toBeLessThanOrEqual(1);
+    expect(Math.abs(centre(sort) - centre(pin))).toBeLessThanOrEqual(1);
     expect(sort.width).toBe(176);
   },
 );
@@ -33,8 +35,10 @@ test(
       throw new Error("Expected the empty board's toolbar, message and a viewport");
     }
     const centre = (box: { y: number; height: number }) => box.y + box.height / 2;
-    expect(Math.abs(centre(search) - centre(sort))).toBeLessThanOrEqual(1);
-    expect(Math.abs(centre(search) - centre(pin))).toBeLessThanOrEqual(1);
+    if (testInfo.project.use.hasTouch)
+      expect(sort.y).toBeGreaterThanOrEqual(search.y + search.height);
+    else expect(Math.abs(centre(search) - centre(sort))).toBeLessThanOrEqual(1);
+    expect(Math.abs(centre(sort) - centre(pin))).toBeLessThanOrEqual(1);
     expect(sort.width).toBe(176);
     // Below the row, not beside it.
     expect(message.y).toBeGreaterThan(search.y + search.height);

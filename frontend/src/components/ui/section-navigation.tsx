@@ -24,7 +24,7 @@ export function SectionNavigation({
       className={clsx(
         "w-full max-w-full",
         appearance === "tabs" && "overflow-x-auto border-b border-separator",
-        appearance === "workspace" && "min-w-0 overflow-x-auto",
+        appearance === "workspace" && "min-w-0 overflow-x-auto border-b border-separator",
       )}
     >
       <div
@@ -45,7 +45,7 @@ export function SectionNavigation({
                 )
               : appearance === "workspace"
                 ? clsx(
-                    "relative inline-flex min-h-11 cursor-pointer items-center gap-1.5 py-2 text-xl font-semibold no-underline transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:content-[''] focus-visible:status-focused max-[360px]:text-lg",
+                    "relative inline-flex min-h-11 cursor-pointer items-center gap-1.5 py-2 text-base font-medium no-underline transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:content-[''] focus-visible:status-focused max-[360px]:text-sm",
                     current
                       ? "text-foreground after:bg-foreground"
                       : "text-muted after:bg-transparent hover:text-foreground",

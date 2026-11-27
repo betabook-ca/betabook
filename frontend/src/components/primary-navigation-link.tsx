@@ -45,14 +45,15 @@ export function PrimaryNavigationLink({
           : clsx("justify-start", appearance === "sidebar" ? "overflow-hidden" : "min-h-12")
       }
     >
+      <span className={clsx("min-w-0 truncate", collapsed && "opacity-0")}>{item.label}</span>{" "}
       <span
         className={
           tab
             ? clsx(
-                "relative flex h-7 w-10 items-center justify-center rounded-lg",
+                "relative order-first flex h-7 w-10 items-center justify-center rounded-lg",
                 current && "bg-navigation-active",
               )
-            : "relative shrink-0"
+            : "relative order-first shrink-0"
         }
       >
         <PrimaryNavigationIcon area={item.id} account={account} />
@@ -67,7 +68,6 @@ export function PrimaryNavigationLink({
             <FriendRequestDot className="absolute -top-1 -right-1" />
           ) : null)}
       </span>
-      <span className={clsx("min-w-0 truncate", collapsed && "opacity-0")}>{item.label}</span>
       {/* Flex layout drops this space visually, but it keeps the visible text
           reading "Community 3" rather than "Community3", so the aria-label's
           "Community, 3 pending friend requests" still contains it (WCAG 2.5.3). */}

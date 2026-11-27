@@ -2,6 +2,6 @@
  * spa/globals.css for the places that can't read CSS: the theme-color
  * metas, the PWA manifest and email HTML. app/global-error.tsx stays
  * literal on purpose. */
-export const PALETTE_INK = "#000000";
-export const PALETTE_PRIMARY = "#83ba73";
-export const PALETTE_PAPER = "#eaf7ef";
+export const PALETTE_INK = "#252423";
+export const PALETTE_PRIMARY = "#994b35";
+export const PALETTE_PAPER = "#faf9f5";

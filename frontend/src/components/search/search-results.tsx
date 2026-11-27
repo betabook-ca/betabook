@@ -5,10 +5,10 @@ import { clsx } from "clsx";
 import { ArrowUpRight, ChevronRight, MapPin } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { CatalogClimbRow } from "@/components/catalog-climb-row";
 import { AppLink } from "@/components/ui/app-link";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Grade } from "@/components/ui/grade";
 import { GradeLabel } from "@/components/ui/grade-label";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { RatingStars } from "@/components/ui/rating-stars";
@@ -27,54 +27,51 @@ import {
 export function SearchResultContent({
   item,
   selected = false,
+  title,
   picking = false,
 }: {
   item: SearchResult;
   selected?: boolean;
+  title?: ReactNode;
   picking?: boolean;
 }) {
+  const climb = item.kind === "climb" && item.discipline !== undefined;
   return (
     <>
+      {climb && (
+        <span className="flex w-14 shrink-0 items-center self-stretch border-r border-separator">
+          <span className="text-base font-medium tabular-nums">
+            <GradeLabel type={item.discipline} grade={item.grade} />
+          </span>
+        </span>
+      )}
       {item.kind === "climber" && <UserAvatar name={item.name} image={item.image} size="sm" />}
       {item.kind === "area" && <MapPin className="size-4 shrink-0 text-muted" aria-hidden />}
       <span className="min-w-0 flex-1 text-left">
-        <span className="block truncate font-medium text-foreground">{item.name}</span>
+        <span
+          className={clsx(
+            "block text-base leading-snug [overflow-wrap:anywhere] text-foreground",
+            climb ? "font-bold" : "font-medium",
+          )}
+        >
+          {title ?? item.name}
+        </span>
         <span className="block truncate text-xs text-muted">{item.detail}</span>
+        {climb && (
+          <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+            <DisciplineChip type={item.discipline} />
+            {!picking && item.stats && (
+              <>
+                <RatingStars rating={item.stats.avgRating} precision="decimal" />
+                <span>{formatCount(item.stats.sendCount, "ascent")}</span>
+              </>
+            )}
+          </span>
+        )}
         {(item.disabledReason || selected) && (
           <span className="block text-xs text-muted">{item.disabledReason ?? "Selected"}</span>
         )}
       </span>
-      {item.kind === "climb" && item.discipline !== undefined && !picking && item.stats ? (
-        <span className="flex shrink-0 flex-col items-end gap-1 text-sm">
-          <span className="flex items-center gap-2">
-            <Grade>
-              <GradeLabel type={item.discipline} grade={item.grade} />
-            </Grade>
-            <span aria-hidden className="text-sm text-muted">
-              ·
-            </span>
-            <RatingStars
-              rating={item.stats.avgRating}
-              precision="decimal"
-              className="text-foreground"
-            />
-          </span>
-          <DisciplineChip type={item.discipline} />
-          <span className="text-xs text-muted">{formatCount(item.stats.sendCount, "ascent")}</span>
-        </span>
-      ) : (
-        item.kind === "climb" &&
-        item.discipline !== undefined && (
-          <span className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2">
-            <Grade className="justify-end sm:w-14">
-              <GradeLabel type={item.discipline} grade={item.grade} />
-            </Grade>
-            <span className="flex justify-end sm:w-16">
-              <DisciplineChip type={item.discipline} />
-            </span>
-          </span>
-        )
-      )}
       {!picking && <ArrowUpRight className="size-4 shrink-0 text-muted" aria-hidden />}
     </>
   );
@@ -148,6 +145,19 @@ export function SearchResults({
                   const disabled = section.status !== "ready" || !!item.disabledReason;
                   const action = !disabled && renderAction?.(item);
                   const href = !picking && !disabled ? resultHref?.(item) : undefined;
+                  if (!listboxId && href && item.kind === "climb" && item.climb) {
+                    return (
+                      <CatalogClimbRow
+                        key={item.id}
+                        climb={item.climb}
+                        ancestors={item.ancestors ?? []}
+                        stats={item.stats}
+                        leadingAction={action}
+                        href={href}
+                        linkLabel={`Open ${item.name}, ${item.detail}`}
+                      />
+                    );
+                  }
                   const className = clsx(
                     "flex w-full min-w-0 items-center gap-3 px-3 py-3 text-sm transition-colors",
                     disabled ? "opacity-50" : "cursor-pointer hover:bg-surface-secondary",
@@ -171,32 +181,37 @@ export function SearchResults({
                     </div>
                   ) : (
                     <li key={item.id} className="flex min-w-0 flex-col sm:flex-row sm:items-center">
-                      {href ? (
-                        <AppLink
-                          href={href}
-                          aria-label={`Open ${item.name}, ${item.detail}`}
-                          className={`${className} focus-visible:status-focused`}
-                        >
-                          <SearchResultContent item={item} />
-                        </AppLink>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled={disabled}
-                          aria-label={`${picking ? "Choose" : "Open"} ${item.name}, ${item.detail}`}
-                          aria-pressed={
-                            selectedId === undefined ? undefined : selectedId === item.id
+                      <div className={`relative ${className}`}>
+                        <SearchResultContent
+                          item={item}
+                          selected={selectedId === item.id}
+                          picking={picking}
+                          title={
+                            href ? (
+                              <AppLink
+                                href={href}
+                                aria-label={`Open ${item.name}, ${item.detail}`}
+                                className="static after:absolute after:inset-0"
+                              >
+                                {item.name}
+                              </AppLink>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={disabled}
+                                aria-label={`${picking ? "Choose" : "Open"} ${item.name}, ${item.detail}`}
+                                aria-pressed={
+                                  selectedId === undefined ? undefined : selectedId === item.id
+                                }
+                                className="cursor-pointer text-left after:absolute after:inset-0 hover:underline focus-visible:status-focused"
+                                onClick={() => onSelect(item)}
+                              >
+                                {item.name}
+                              </button>
+                            )
                           }
-                          className={`${className} focus-visible:status-focused`}
-                          onClick={() => onSelect(item)}
-                        >
-                          <SearchResultContent
-                            item={item}
-                            selected={selectedId === item.id}
-                            picking={picking}
-                          />
-                        </button>
-                      )}
+                        />
+                      </div>
                       {action && <div className="shrink-0 px-3 pb-3 sm:pb-0">{action}</div>}
                     </li>
                   );

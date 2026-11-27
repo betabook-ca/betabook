@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 
 import { DEFAULT_JOURNAL_FILTER } from "@/lib/filters/journal-filter";
@@ -80,7 +80,7 @@ it("renders the entries as a list of items under level-3 month headings", () => 
       initialEntries: [entry(2, "2026-09-04"), entry(1, "2026-08-20")],
     }),
   );
-  const rows = within(screen.getByRole("list")).getAllByRole("listitem");
+  const rows = screen.getAllByRole("listitem");
   expect(rows).toHaveLength(2);
   expect(
     screen.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent),

@@ -1,7 +1,7 @@
 import { useParams, useSearchParams } from "react-router";
 
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
-import { Skeleton, SkeletonListRows } from "@/components/ui/skeleton";
+import { SkeletonListRows } from "@/components/ui/skeleton";
 import { PageTitle } from "@/components/ui/typography";
 import {
   parseUserSendsFilter,
@@ -11,8 +11,9 @@ import { searchParamsToRecord } from "@/lib/url-params";
 import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
 import { isNotFoundError } from "@/spa/lib/fetch-json";
-import { SpaProfileHeader, SpaSendsView, refineSends } from "@/spa/lib/profile-shell";
+import { SpaSendsView, refineSends } from "@/spa/lib/profile-shell";
 import { useRetainedPage } from "@/spa/lib/use-retained-page";
+import { useVisitorHeader } from "@/spa/lib/visitor-header";
 
 export default function UserSendsRoute({ viewerId }: { viewerId: string | null }) {
   const { id: userId = "" } = useParams<{ id: string }>();
@@ -33,6 +34,7 @@ export default function UserSendsRoute({ viewerId }: { viewerId: string | null }
       return { ...previous, sends: await refineSends(previous.sends, userId, query, signal) };
     },
   });
+  useVisitorHeader(page.data, page.error);
   const data = page.data;
   const error =
     page.error instanceof Error ? page.error.message : page.error ? "Failed to load sends" : null;
@@ -48,32 +50,18 @@ export default function UserSendsRoute({ viewerId }: { viewerId: string | null }
       </div>
     );
   if (!data && error) return <p role="alert">{error}</p>;
-  if (!data)
-    return (
-      <div className="flex flex-col gap-6">
-        <Skeleton className="h-12 w-56" />
-        <SkeletonListRows rows={8} />
-      </div>
-    );
+  if (!data) return <SkeletonListRows rows={8} />;
   const committed = parseUserSendsFilter(searchParamsToRecord(new URLSearchParams(page.query)));
   return (
-    <SpaProfileHeader
-      user={data.user}
-      isOwner={data.isOwner}
-      relationship={data.relationship}
-      access={data.access}
-      hardest={data.hardest}
-    >
-      <SpaSendsView
-        ownerId={userId}
-        viewerId={viewerId}
-        filter={filter}
-        resultsFilter={committed}
-        pending={page.pending}
-        loadError={error}
-        basePath={`/users/${userId}/sends`}
-        data={data.sends}
-      />
-    </SpaProfileHeader>
+    <SpaSendsView
+      ownerId={userId}
+      viewerId={viewerId}
+      filter={filter}
+      resultsFilter={committed}
+      pending={page.pending}
+      loadError={error}
+      basePath={`/users/${userId}/sends`}
+      data={data.sends}
+    />
   );
 }

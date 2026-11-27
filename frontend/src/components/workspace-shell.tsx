@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { FriendRequestBadge } from "@/components/friend-request-badge";
 import { useFriendRequestCount } from "@/components/friend-requests-provider";
 import { SectionNavigation } from "@/components/ui/section-navigation";
+import { PageTitle } from "@/components/ui/typography";
 import { AREA_LABELS, workspaceTabs, type PrimaryArea } from "@/lib/app-navigation";
 import { usePathname } from "@/spa/lib/navigation";
 
@@ -48,10 +49,14 @@ export function WorkspaceSection({
   children: ReactNode;
 }) {
   return (
-    <section aria-label={`${title} workspace`} className="flex min-w-0 flex-col gap-4">
-      <h1 className="sr-only">
-        {tabs.find((tab) => tab.current)?.label ?? title} · {title}
-      </h1>
+    <section
+      aria-label={`${title} workspace`}
+      className={`flex min-w-0 flex-col gap-4 ${title === AREA_LABELS.logbook ? "max-w-5xl" : ""}`}
+    >
+      <PageTitle className="max-md:sr-only">
+        <span className="sr-only">{tabs.find((tab) => tab.current)?.label ?? title} · </span>
+        {title}
+      </PageTitle>
       <SectionNavigation label={`${title} sections`} tabs={tabs} appearance="workspace" />
       {children}
     </section>

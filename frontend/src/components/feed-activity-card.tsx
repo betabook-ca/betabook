@@ -121,7 +121,7 @@ export function FeedActivityCard({
                 <AppLink
                   href={feedDayHref(day, view)}
                   prefetch={false}
-                  aria-label={`View activity for ${day.name} on ${formatDate(day.date)}`}
+                  aria-label={`View day for ${day.name} on ${formatDate(day.date)}`}
                   className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1 text-xs text-muted sm:pointer-fine:min-h-8"
                 >
                   <span className="hidden sm:inline">View day</span>
@@ -155,9 +155,12 @@ export function FeedActivityCard({
   return (
     <article aria-label={title} className={cardClass("none", "bordered")}>
       <header className="px-4 pt-3 pb-2">
-        <h3 className="text-base font-medium break-words">
+        <h3 className="text-base font-bold break-words">
           {links && activity.climbId != null && activity.climbName ? (
-            <AppLink className="inline" href={climbHref(activity.climbId, activity.climbName)}>
+            <AppLink
+              className="inline font-bold"
+              href={climbHref(activity.climbId, activity.climbName)}
+            >
               {title}
             </AppLink>
           ) : (

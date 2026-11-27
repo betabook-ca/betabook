@@ -21,8 +21,8 @@ import { formatTripDates, tripLogbookHref, tripStatus, TRIP_STATUS_LABEL } from 
 import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
 import { isNotFoundError } from "@/spa/lib/fetch-json";
-import { SpaProfileHeader } from "@/spa/lib/profile-shell";
 import { useRetainedPage } from "@/spa/lib/use-retained-page";
+import { useVisitorHeader } from "@/spa/lib/visitor-header";
 
 const Analytics = lazy(() =>
   import("@/components/trips/trip-analytics-view").then((module) => ({
@@ -300,6 +300,7 @@ export default function TripsRoute({ viewerId }: { viewerId: string | null }) {
     query: analytics ? "analytics" : "detail",
     load: (signal) => loadTrip(id, tripId, token, analytics, signal),
   });
+  useVisitorHeader(data ? ("header" in data ? data.header : null) : undefined, error);
   usePageTitle(tripTitle(data));
   if (!token && !viewerId) return <CurrentPageAuthCallout />;
   const message = tripError(error);
@@ -309,7 +310,7 @@ export default function TripsRoute({ viewerId }: { viewerId: string | null }) {
   if ("redirectTo" in data) return <Navigate to={data.redirectTo} replace />;
   if ("header" in data)
     return (
-      <SpaProfileHeader {...data.header}>
+      <>
         {"trips" in data && message && <p role="alert">{message}</p>}
         {"trips" in data ? (
           <TripList
@@ -330,7 +331,7 @@ export default function TripsRoute({ viewerId }: { viewerId: string | null }) {
             isPrivate={data.header.user.isPrivate}
           />
         )}
-      </SpaProfileHeader>
+      </>
     );
   return (
     <div className="flex min-w-0 flex-col gap-6">

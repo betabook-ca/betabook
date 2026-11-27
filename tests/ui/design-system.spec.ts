@@ -33,7 +33,7 @@ test("complete brand lockups load in both color treatments", async ({ page }, te
   }
   for (const [theme, token] of [
     ["light", "--palette-paper"],
-    ["dark", "--palette-ink"],
+    ["dark", "--palette-night"],
   ]) {
     const panel = page.getByTestId(`logo-${theme}`);
     const expectedColor = await panel.evaluate((element, paletteToken) => {
@@ -62,12 +62,15 @@ test(
         .locator(`[data-token="cardClass(${size}) · padding"]`)
         .getByText("Panel content");
       await expect(panel).toHaveCSS("padding", padding);
-      await expect(panel).toHaveCSS("border-radius", "12px");
+      await expect(panel).toHaveCSS("border-radius", "8px");
       await expect(panel).toHaveCSS("box-shadow", "none");
     }
     const heading = page.getByRole("heading", { level: 1 });
-    await expect(heading).toHaveCSS("font-family", /barlow/i);
-    await expect(heading).toHaveCSS("font-size", "30px");
+    await expect(heading).toHaveCSS("font-family", /Iowan Old Style/i);
+    await expect(heading).toHaveCSS(
+      "font-size",
+      testInfo.project.name.startsWith("mobile") ? "30px" : "36px",
+    );
     await expect(heading).toHaveCSS("font-weight", "600");
   },
 );
@@ -101,7 +104,7 @@ for (const panel of [
       await openStory(page, testInfo, panel.story);
       const surface = page.locator(panel.selector);
       await expect(surface).toHaveCount(1);
-      await expect(surface).toHaveCSS("border-radius", "12px");
+      await expect(surface).toHaveCSS("border-radius", "8px");
       // A theme-token change must reach real feature surfaces, not just the
       // card helper example. This catches a local hard-coded radius override.
       await page.evaluate(() =>
@@ -183,6 +186,8 @@ test(
 );
 
 test("actions menu keeps actions local and returns focus", async ({ page }, testInfo) => {
+  // Measure the painted menu, including when axe replays styles in a touch viewport.
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await openStory(page, testInfo, "components-navigation-actions-menu--actions");
   const trigger = page.getByRole("button", { name: "Sample climb actions" });
   await trigger.click();
@@ -195,4 +200,27 @@ test("actions menu keeps actions local and returns focus", async ({ page }, test
   await page.getByRole("menuitem", { name: "Edit climb" }).click();
   await expect(page.getByRole("status")).toHaveText("Action: edit");
   await expect(trigger).toBeFocused();
+});
+
+test("normal text on the solid success surface meets AA contrast", async ({ page }, info) => {
+  await openStory(page, info, "foundations-tokens--actions-and-status");
+  const contrast = await page.evaluate(() => {
+    const style = getComputedStyle(document.documentElement);
+    const pixel = document.createElement("canvas").getContext("2d");
+    if (!pixel) throw new Error("Canvas unavailable");
+    const luminance = (role: string) => {
+      pixel.fillStyle = style.getPropertyValue(role).trim();
+      pixel.fillRect(0, 0, 1, 1);
+      const [r, g, b] = pixel.getImageData(0, 0, 1, 1).data;
+      const linear = (byte: number) => {
+        const x = byte / 255;
+        return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+      };
+      return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+    };
+    const bg = luminance("--success");
+    const fg = luminance("--success-foreground");
+    return (Math.max(bg, fg) + 0.05) / (Math.min(bg, fg) + 0.05);
+  });
+  expect(contrast).toBeGreaterThanOrEqual(4.5);
 });

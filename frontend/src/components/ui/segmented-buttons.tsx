@@ -43,7 +43,7 @@ export function SegmentedButtons<V extends string>({
           >
             {option.label}
             {option.hint && (
-              <span className={clsx("font-normal", selected ? "opacity-80" : "text-muted")}>
+              <span className={clsx("font-normal", !selected && "text-muted")}>
                 ({option.hint})
               </span>
             )}

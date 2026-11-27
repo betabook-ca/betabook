@@ -13,7 +13,7 @@ for (const [story, title, labels] of [
   ["community", "Community", ["Feed", "Friends"]],
   ["friends", "Community", ["Feed", "Friends"]],
 ] as const) {
-  test(`workspace ${story} leads with prominent subpages and compact spacing`, async ({
+  test(`workspace ${story} leads with tabs on mobile and the workspace title on desktop`, async ({
     page,
   }, info) => {
     await openStory(page, info, `components-navigation-workspace--${story}`);
@@ -24,9 +24,18 @@ for (const [story, title, labels] of [
     const navBox = await nav.boundingBox();
     const content = await workspace.locator(":scope > :last-child").boundingBox();
     if (!heading || !frame || !navBox || !content) throw new Error("Missing workspace frame");
-    expect(heading.width).toBeLessThanOrEqual(1);
-    expect(heading.height).toBeLessThanOrEqual(1);
-    expect(navBox.y).toBe(frame.y);
+    const current = nav.locator('[aria-current="page"]');
+    await expect(workspace.getByRole("heading", { level: 1 })).toHaveAccessibleName(
+      `${(await current.innerText()).trim()} · ${title}`,
+    );
+    if (await page.evaluate(() => window.innerWidth < 768)) {
+      expect(heading.height).toBeLessThanOrEqual(1);
+      expect(navBox.y).toBe(frame.y);
+    } else {
+      expect(heading.height).toBeGreaterThan(32);
+      expect(heading.y).toBe(frame.y);
+      expect(navBox.y).toBeGreaterThan(heading.y + heading.height);
+    }
     expect(content.y - navBox.y - navBox.height).toBe(16);
     expect(navBox.x).toBe(frame.x);
     expect(content.x).toBe(frame.x);
@@ -35,9 +44,8 @@ for (const [story, title, labels] of [
       const box = await link.boundingBox();
       if (!box) throw new Error("Missing workspace tab");
       expect(box.height).toBeGreaterThanOrEqual(44);
-      await expect(link).toHaveCSS("font-size", "20px");
+      await expect(link).toHaveCSS("font-size", "16px");
     }
-    const current = nav.locator('[aria-current="page"]');
     await expect(current).toHaveCount(1);
     await expect(current).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
     expect(await current.evaluate((node) => getComputedStyle(node, "::after").height)).toBe("2px");

@@ -20,10 +20,16 @@ type NavLinkProps = Omit<ComponentProps<typeof AppLink>, "href"> &
     isCurrent?: boolean;
   };
 
+export const MENU_TRIGGER_CLASS =
+  "dark:rounded-panel dark:border dark:border-border dark:bg-surface dark:text-foreground dark:aria-expanded:bg-navigation-active";
+export const MENU_PANEL_CLASS =
+  "popover w-64 max-w-[calc(100vw-2rem)] p-2 dark:rounded-panel dark:border dark:border-border dark:bg-overlay dark:shadow-lg";
+
 /** Shared by menu links and the menu's own buttons. */
-export const MENU_ROW_CLASS = "w-full gap-3 rounded-lg px-3 py-2 text-sm";
+export const MENU_ROW_CLASS = "w-full gap-3 rounded-lg px-3 py-2 text-sm dark:text-base";
 export const SIDEBAR_ROW_CLASS = "h-10 w-full gap-3 rounded-lg px-2 py-0 text-sm";
-export const MENU_ROW_IDLE_CLASS = "text-muted hover:bg-default hover:text-foreground";
+export const MENU_ROW_IDLE_CLASS =
+  "text-muted hover:bg-default hover:text-foreground dark:text-foreground";
 
 function navCurrent(
   pathname: string,
@@ -64,7 +70,9 @@ export function NavLink({
         (appearance === "menu" || appearance === "sidebar") && [
           "inline-flex items-center no-underline transition-colors hover:no-underline",
           appearance === "sidebar" ? SIDEBAR_ROW_CLASS : MENU_ROW_CLASS,
-          current ? "bg-navigation-active font-semibold text-link" : MENU_ROW_IDLE_CLASS,
+          current
+            ? "bg-navigation-active font-semibold text-link dark:before:absolute dark:before:inset-y-2.5 dark:before:start-0 dark:before:w-0.5 dark:before:rounded-full dark:before:bg-link"
+            : MENU_ROW_IDLE_CLASS,
         ],
         appearance === "tab" && [
           "flex size-full flex-col items-center justify-center gap-1 text-xs no-underline transition-colors hover:no-underline",

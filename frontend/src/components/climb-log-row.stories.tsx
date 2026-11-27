@@ -2,7 +2,7 @@ import { Menu } from "@heroui/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactNode } from "react";
 
-import { AscentStyle } from "@/components/ascent-style";
+import { JournalEntryStatus } from "@/components/journal/journal-entry-layout";
 import { SendGradeCell } from "@/components/send-grade-cell";
 import { ActionsMenu } from "@/components/ui/actions-menu";
 import type { AreaBreadcrumbs } from "@/lib/catalog-types";
@@ -18,7 +18,7 @@ const meta = {
     climb: { id: 2, name: "Cedar Arete", areaId: 3, areaName: "Granite Canyon" },
     areaBreadcrumbs: {},
     grade: <SendGradeCell type="boulder" grade={5} gradeFeel="solid" rating={3} />,
-    status: <AscentStyle type="flash" />,
+    status: <JournalEntryStatus kind="send" label="Flash" />,
     date: "2026-09-04",
     comment: "A calm finish after a few good attempts.",
   },

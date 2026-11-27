@@ -12,10 +12,12 @@ export function GradeWithTrend({
   type,
   grade,
   avgSuggestedGrade,
+  stackSuggestion = false,
 }: {
   type: ClimbType;
   grade: number | null;
   avgSuggestedGrade: number | null;
+  stackSuggestion?: boolean;
 }) {
   const prefs = useGradePreferences();
   const { postedLabel, suggestedLabel, arrow } = describeGradeTrend(
@@ -33,10 +35,15 @@ export function GradeWithTrend({
       <GradeArrow direction="down" label="Community grades it softer" />
     ) : null;
 
-  // One inline-flex line whoever prints it: a stat card's plain span would
-  // otherwise let the block-level icon fall below the grade.
+  // In the catalog, a suggested grade takes a second line in the fixed grade column.
   return (
-    <span className="inline-flex items-center gap-0.5">
+    <span
+      className={
+        stackSuggestion && suggestedLabel != null
+          ? "inline-flex flex-col items-start leading-tight"
+          : "inline-flex items-center gap-0.5"
+      }
+    >
       {postedLabel}
       {suggestedLabel == null ? (
         arrowIcon

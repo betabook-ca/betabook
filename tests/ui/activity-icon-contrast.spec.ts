@@ -41,6 +41,7 @@ test("activity circles match Community avatar size and share visible colors acro
 }, info) => {
   await openStory(page, info, "components-journal-feed-activity-card--session");
   const feed = await iconAndBackdrop(page, "circle-dashed");
+  await expect(page.locator("svg.lucide-circle-dashed").first()).toHaveCSS("stroke-width", "1.7px");
   const iconBox = await page
     .locator("svg.lucide-circle-dashed")
     .first()

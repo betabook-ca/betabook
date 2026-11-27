@@ -1,7 +1,7 @@
 import { useParams, useSearchParams } from "react-router";
 
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
-import { Skeleton, SkeletonListRows } from "@/components/ui/skeleton";
+import { SkeletonListRows } from "@/components/ui/skeleton";
 import { PageTitle } from "@/components/ui/typography";
 import { parseUserSendsFilter } from "@/lib/filters/user-sends-filter";
 import { searchParamsToRecord } from "@/lib/url-params";
@@ -12,11 +12,11 @@ import { journalFilter, refreshJournalResults } from "@/spa/lib/journal-results"
 import {
   refineSends,
   SpaJournalView,
-  SpaProfileHeader,
   SpaSendsView,
   SpaSharedProfileView,
 } from "@/spa/lib/profile-shell";
 import { useRetainedPage } from "@/spa/lib/use-retained-page";
+import { useVisitorHeader } from "@/spa/lib/visitor-header";
 
 function useProfileTitle(
   current: ApiResponse<"/api/pages/users/{id}"> | null | undefined,
@@ -72,6 +72,7 @@ export default function UserProfileRoute({ viewerId }: { viewerId: string | null
   });
   const notFound = isNotFoundError(error);
   const unauthorized = isUnauthorizedError(error);
+  useVisitorHeader(data ? (data.mode === "member" ? data : null) : undefined, error);
   useProfileTitle(data, notFound, unauthorized);
   if (!userId || notFound) {
     return (
@@ -97,12 +98,7 @@ export default function UserProfileRoute({ viewerId }: { viewerId: string | null
     );
   }
   if (!data) {
-    return (
-      <div className="flex flex-col gap-6">
-        <Skeleton className="h-12 w-56" />
-        <SkeletonListRows rows={8} />
-      </div>
-    );
+    return <SkeletonListRows rows={8} />;
   }
 
   if (data.mode === "shared") {
@@ -112,39 +108,29 @@ export default function UserProfileRoute({ viewerId }: { viewerId: string | null
   const member = data;
   const activeViewerId = viewerId ?? member.user.id;
 
-  return (
-    <SpaProfileHeader
-      user={member.user}
+  return member.defaultTab === "journal" ? (
+    <SpaJournalView
+      ownerId={member.user.id}
       isOwner={member.isOwner}
-      relationship={member.relationship}
-      access={member.access}
-      hardest={member.hardest}
-    >
-      {member.defaultTab === "journal" ? (
-        <SpaJournalView
-          ownerId={member.user.id}
-          isOwner={member.isOwner}
-          basePath={`/users/${member.user.id}`}
-          filter={filter}
-          resultsFilter={journalFilter(committed ?? rawQuery)}
-          pending={pending}
-          loadError={message}
-          data={member.journal}
-        />
-      ) : (
-        <SpaSendsView
-          ownerId={member.user.id}
-          viewerId={activeViewerId}
-          filter={parseUserSendsFilter(searchParamsToRecord(searchParams))}
-          resultsFilter={parseUserSendsFilter(
-            searchParamsToRecord(new URLSearchParams(committed ?? rawQuery)),
-          )}
-          pending={pending}
-          loadError={message}
-          basePath={`/users/${member.user.id}`}
-          data={member.sends}
-        />
+      basePath={`/users/${member.user.id}`}
+      filter={filter}
+      resultsFilter={journalFilter(committed ?? rawQuery)}
+      pending={pending}
+      loadError={message}
+      data={member.journal}
+    />
+  ) : (
+    <SpaSendsView
+      ownerId={member.user.id}
+      viewerId={activeViewerId}
+      filter={parseUserSendsFilter(searchParamsToRecord(searchParams))}
+      resultsFilter={parseUserSendsFilter(
+        searchParamsToRecord(new URLSearchParams(committed ?? rawQuery)),
       )}
-    </SpaProfileHeader>
+      pending={pending}
+      loadError={message}
+      basePath={`/users/${member.user.id}`}
+      data={member.sends}
+    />
   );
 }

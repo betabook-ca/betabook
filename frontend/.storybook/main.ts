@@ -45,10 +45,8 @@ const config: StorybookConfig = {
   stories: ["../stories/**/*.stories.tsx", "../src/components/**/*.stories.tsx"],
   staticDirs: [
     "../public",
-    { from: "../src/assets/fonts", to: "/fonts/barlow" },
     // Stand-ins that stories must load over the network, not from data URLs.
     { from: "../stories/static", to: "/static" },
-    { from: "../src/assets/fonts/geist", to: "/fonts/geist" },
   ],
   framework: {
     name: "@storybook/react-vite",

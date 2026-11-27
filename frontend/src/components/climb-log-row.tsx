@@ -1,12 +1,14 @@
 import type { ReactNode } from "react";
 
 import { AreaBreadcrumb } from "@/components/area-breadcrumb";
-import { AscentStyle, ascentSummary } from "@/components/ascent-style";
-import { JournalEntryLayout } from "@/components/journal/journal-entry-layout";
+import { ascentSummary } from "@/components/ascent-style";
+import type { GroupedDateDisplay } from "@/components/journal/dated-logbook-rows";
+import { JournalEntryLayout, JournalEntryStatus } from "@/components/journal/journal-entry-layout";
 import { SendGradeCell } from "@/components/send-grade-cell";
 import { sendVideoMedia } from "@/components/send-video-media";
 import type { AreaBreadcrumbs } from "@/lib/catalog-types";
 import type { UserSendRow } from "@/lib/logbook-types";
+import { ASCENT_STYLE_LABELS } from "@/lib/sends";
 import { climbHref } from "@/lib/slug";
 
 export function ClimbLogRow({
@@ -19,6 +21,7 @@ export function ClimbLogRow({
   comment,
   media,
   actions,
+  dateDisplay,
 }: {
   climb: {
     id: number;
@@ -34,6 +37,7 @@ export function ClimbLogRow({
   comment?: string | null;
   media?: ReactNode;
   actions?: ReactNode;
+  dateDisplay?: GroupedDateDisplay;
 }) {
   return (
     <JournalEntryLayout
@@ -49,6 +53,7 @@ export function ClimbLogRow({
       tags={tags}
       grade={grade}
       status={status}
+      dateDisplay={dateDisplay}
       date={date}
       actions={actions}
       comment={comment}
@@ -62,10 +67,12 @@ export function UserSendLogRow({
   send,
   areaBreadcrumbs,
   actions,
+  dateDisplay,
 }: {
   send: UserSendRow;
   areaBreadcrumbs: AreaBreadcrumbs;
   actions?: ReactNode;
+  dateDisplay?: GroupedDateDisplay;
 }) {
   return (
     <ClimbLogRow
@@ -85,7 +92,8 @@ export function UserSendLogRow({
           rating={send.rating}
         />
       }
-      status={<AscentStyle type={send.ascentStyle} />}
+      status={<JournalEntryStatus kind="send" label={ASCENT_STYLE_LABELS[send.ascentStyle]} />}
+      dateDisplay={dateDisplay}
       date={send.dateSent}
       actions={actions}
       comment={send.comment}

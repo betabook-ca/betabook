@@ -6,7 +6,6 @@ import { Pencil } from "lucide-react";
 import { lazy, Suspense, useState, useTransition, type ReactNode } from "react";
 
 import { cardClass } from "@/components/ui/card";
-import { EmptyState } from "@/components/ui/empty-state";
 import { FieldFeedback, FieldHeader } from "@/components/ui/field-support";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
@@ -90,17 +89,15 @@ export function TripNotes({
           <div className={MEASURE_CLASS}>{children}</div>
         </div>
       ) : (
-        <EmptyState
-          message="No trip notes yet."
-          cta={
-            canEdit ? (
-              <Button onPress={startEditing}>
-                <Pencil className="size-4" />
-                Write trip notes
-              </Button>
-            ) : undefined
-          }
-        />
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-y border-separator py-2">
+          <p className="text-sm text-muted">No trip notes yet.</p>
+          {canEdit && (
+            <Button variant="outline" size="sm" onPress={startEditing}>
+              <Pencil className="size-4" />
+              Write trip notes
+            </Button>
+          )}
+        </div>
       )}
 
       {canEdit && (

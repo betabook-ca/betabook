@@ -92,6 +92,7 @@ it("puts each day's sends and entries under a heading for that day", () => {
   ).toBeVisible();
   const rows = within(day3).getAllByRole("listitem");
   expect(rows).toHaveLength(2);
+  expect(day3.querySelectorAll("time")).toHaveLength(1);
   expect(within(rows[0]).getByRole("link", { name: "Moon Slab" })).toBeVisible();
   expect(within(rows[1]).getByText("Second lap.")).toBeVisible();
 });

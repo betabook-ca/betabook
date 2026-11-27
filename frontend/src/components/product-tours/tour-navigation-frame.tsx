@@ -9,7 +9,7 @@ import { SidebarFrame } from "@/components/app-sidebar";
 import { AppTabLinks } from "@/components/app-tab-bar";
 import { Brand } from "@/components/brand";
 import { SearchTriggerControl } from "@/components/command-palette";
-import { NavLink } from "@/components/nav-link";
+import { NavLink, MENU_PANEL_CLASS, MENU_TRIGGER_CLASS } from "@/components/nav-link";
 import { PrimaryNavigationLink } from "@/components/primary-navigation-link";
 import type { ProductTourPageProps } from "@/components/product-tours/types";
 import { AppLink } from "@/components/ui/app-link";
@@ -120,7 +120,7 @@ export function TourNavigationFrame({
           <Button
             isIconOnly
             variant="ghost"
-            className="size-11 @lg/navigation:hidden"
+            className={`size-11 @lg/navigation:hidden ${MENU_TRIGGER_CLASS}`}
             aria-label="Open example menu"
             aria-expanded={menuOpen}
             aria-haspopup="dialog"
@@ -170,7 +170,7 @@ export function TourNavigationFrame({
         onOpenChange={setMenuOpen}
         placement="bottom start"
         offset={8}
-        className="popover w-64 max-w-[calc(100vw-2rem)] p-2"
+        className={MENU_PANEL_CLASS}
       >
         <Dialog aria-label="Example menu" className="outline-none">
           <nav aria-label="Tour destinations" className="flex flex-col gap-1">

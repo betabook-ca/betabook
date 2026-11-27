@@ -7,7 +7,6 @@ import { ProjectTabs } from "@/components/journal/project-tabs";
 import { SharedProject } from "@/components/shared-project";
 import { SkeletonListRows } from "@/components/ui/skeleton";
 import { PageTitle, SectionHeading } from "@/components/ui/typography";
-import { WorkspaceShell } from "@/components/workspace-shell";
 import { projectSharePath } from "@/lib/project-share";
 import { peekBootstrapData } from "@/spa/bootstrap";
 import { fetchApi, type ApiResponse } from "@/spa/lib/api";
@@ -27,30 +26,28 @@ function OwnerBoard({ userId, sent }: { userId: string; sent: boolean }) {
   });
   const board = query === variant ? data : undefined;
   return (
-    <WorkspaceShell area="progress" userId={userId}>
-      <div className="flex min-w-0 flex-col gap-4">
-        <SectionHeading className="sr-only">
-          {sent ? "Sent projects" : "Open projects"}
-        </SectionHeading>
-        <ProjectTabs view={variant} userId={userId} />
-        <ProjectBoard
-          userId={userId}
-          variant={variant}
-          shareOrigin={window.location.origin}
-          {...board}
-          projects={board?.projects ?? []}
-          hasMore={board?.hasMore ?? false}
-          loading={!board}
-          error={
-            error
-              ? isNotFoundError(error)
-                ? "Project not found"
-                : "Could not load projects."
-              : undefined
-          }
-        />
-      </div>
-    </WorkspaceShell>
+    <div className="flex min-w-0 flex-col gap-4">
+      <SectionHeading className="sr-only">
+        {sent ? "Sent projects" : "Open projects"}
+      </SectionHeading>
+      <ProjectTabs view={variant} userId={userId} />
+      <ProjectBoard
+        userId={userId}
+        variant={variant}
+        shareOrigin={window.location.origin}
+        {...board}
+        projects={board?.projects ?? []}
+        hasMore={board?.hasMore ?? false}
+        loading={!board}
+        error={
+          error
+            ? isNotFoundError(error)
+              ? "Project not found"
+              : "Could not load projects."
+            : undefined
+        }
+      />
+    </div>
   );
 }
 

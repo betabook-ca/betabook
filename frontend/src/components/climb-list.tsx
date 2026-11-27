@@ -1,16 +1,8 @@
-import { AreaBreadcrumb } from "@/components/area-breadcrumb";
+import { CatalogClimbRow } from "@/components/catalog-climb-row";
 import { ClimbSentIndicator } from "@/components/climb-sent-indicator";
-import { GradeWithTrend } from "@/components/grade-with-trend";
-import { BrokenChip } from "@/components/ui/broken-chip";
-import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Grade } from "@/components/ui/grade";
-import { ListRow } from "@/components/ui/list-row";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
-import { RatingStars } from "@/components/ui/rating-stars";
 import type { ClimbWithAreaName } from "@/lib/catalog-types";
-import { formatCount } from "@/lib/format";
-import { climbHref } from "@/lib/slug";
 
 type ClimbListProps = {
   climbs: ClimbWithAreaName[];
@@ -62,50 +54,13 @@ export function ClimbList({
     <div className="flex flex-col gap-4">
       <ul role="list" className="flex flex-col divide-y divide-separator">
         {climbs.map((climb) => (
-          <ListRow
+          <CatalogClimbRow
             key={climb.id}
-            as="li"
-            leading={
+            climb={climb}
+            ancestors={areaBreadcrumbs?.[climb.areaId] ?? []}
+            stats={sendStats?.[climb.id]}
+            leadingAction={
               sentClimbIds && <ClimbSentIndicator climb={climb} sent={sentClimbIds.has(climb.id)} />
-            }
-            title={climb.name}
-            href={climbHref(climb.id, climb.name)}
-            subtitle={
-              <AreaBreadcrumb
-                areaId={climb.areaId}
-                areaName={climb.areaName}
-                ancestors={areaBreadcrumbs?.[climb.areaId] ?? []}
-              />
-            }
-            trailing={
-              <div className="flex flex-col items-end gap-1.5">
-                <div className="flex items-center gap-2">
-                  <Grade>
-                    <GradeWithTrend
-                      type={climb.type}
-                      grade={climb.grade}
-                      avgSuggestedGrade={sendStats?.[climb.id]?.avgSuggestedGrade ?? null}
-                    />
-                  </Grade>
-                  <span aria-hidden className="text-sm text-muted">
-                    ·
-                  </span>
-                  <RatingStars
-                    rating={sendStats?.[climb.id]?.avgRating ?? null}
-                    precision="decimal"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <DisciplineChip type={climb.type} />
-                  {climb.brokenOn && <BrokenChip brokenOn={climb.brokenOn} />}
-                  {/* Fixed width so the singular/plural swap ("1 ascent" vs
-                   * "0 ascents") can't change the column's width and shift
-                   * every neighbouring row's chip sideways. */}
-                  <span className="w-16 text-right text-xs text-muted">
-                    {formatCount(sendStats?.[climb.id]?.sendCount ?? 0, "ascent")}
-                  </span>
-                </div>
-              </div>
             }
           />
         ))}

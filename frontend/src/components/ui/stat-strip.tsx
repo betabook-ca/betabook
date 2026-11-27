@@ -23,11 +23,13 @@ export function StatStrip({ cards, className }: StatStripProps) {
       {cards.map((card) => (
         <div key={card.key} className={clsx("min-w-56 flex-1 lg:min-w-0", cardClass("sm"))}>
           {card.heading && <div className="mb-3">{card.heading}</div>}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap gap-x-8 gap-y-3">
             {card.stats.map((stat) => (
-              <div key={stat.label} className="flex items-center justify-between gap-2">
+              <div key={stat.label} className="flex flex-col items-start gap-1">
                 <span className={EYEBROW_CLASS}>{stat.label}</span>
-                <span className="font-semibold text-foreground tabular-nums">{stat.value}</span>
+                <span className="text-lg leading-tight font-semibold text-foreground tabular-nums">
+                  {stat.value}
+                </span>
               </div>
             ))}
           </div>

@@ -11,8 +11,8 @@ use betabook_domain::sends::parse_send_video_link;
 use betabook_domain::seo::escape_html;
 use betabook_domain::slug::{area_href, climb_href};
 
-const TITLE: &str = "font-display text-3xl font-semibold tracking-tight";
-const SECTION: &str = "text-lg font-semibold";
+const TITLE: &str = "font-display text-3xl leading-tight font-semibold tracking-tight sm:text-4xl";
+const SECTION: &str = "font-display text-xl leading-tight font-semibold tracking-tight";
 
 fn area_link(id: i64, name: &str) -> String {
     format!(
@@ -52,7 +52,8 @@ pub(super) fn climb_list(page: &PublicClimbsPage, empty_message: &str) -> String
     for c in &page.climbs {
         let _ = write!(
             html,
-            r#"<li class="flex items-center justify-between gap-4 py-3"><div><a class="link font-semibold" href="{}">{}</a><div class="text-sm text-muted">"#,
+            r#"<li class="flex items-center justify-between gap-4 py-3"><span class="w-20 shrink-0 border-r border-separator pr-2 text-base font-medium">{}</span><div class="min-w-0 flex-1"><a class="link font-bold" href="{}">{}</a><div class="text-sm text-muted">"#,
+            format_grade(c.climb_type, c.grade, GradePreferences::default()),
             climb_href(c.id, &c.name),
             escape_html(&c.name)
         );
@@ -71,9 +72,8 @@ pub(super) fn climb_list(page: &PublicClimbsPage, empty_message: &str) -> String
         };
         let _ = write!(
             html,
-            r#"{}</div></div><div class="text-right text-sm">{} · <span class="capitalize">{}</span>{}<div class="text-xs text-muted">{} {ascents}{rating}</div></div></li>"#,
+            r#"{}</div></div><div class="text-right text-sm"><span class="capitalize">{}</span>{}<div class="text-xs text-muted">{} {ascents}{rating}</div></div></li>"#,
             area_link(c.area_id, &c.area_name),
-            format_grade(c.climb_type, c.grade, GradePreferences::default()),
             c.climb_type.as_str(),
             if c.broken_on.is_some() {
                 " · Broken"

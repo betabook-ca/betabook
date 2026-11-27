@@ -38,7 +38,7 @@ export function ProfileHeading({
           )}
         />
         <div className="flex min-w-0 items-center gap-1">
-          <PageTitle size="lg" className="min-w-0 break-words">
+          <PageTitle size="sm" className="min-w-0 break-words @2xl:text-3xl">
             {name}
           </PageTitle>
           {nameAction}
@@ -69,7 +69,7 @@ export function ProfileHeading({
         {/* A note can be a paragraph and buttons, so on a phone it takes the
             full width below the avatar. */}
         {note && (
-          <div className="col-span-2 mt-1.5 text-sm @xs:mt-3 @2xl:col-span-1 @2xl:col-start-2 @2xl:mt-1.5">
+          <div className="col-span-2 mt-1.5 text-sm @xs:mt-2 @2xl:col-span-1 @2xl:col-start-2 @2xl:mt-1.5">
             {note}
           </div>
         )}

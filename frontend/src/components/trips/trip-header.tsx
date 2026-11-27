@@ -7,7 +7,6 @@ import { TripShare } from "@/components/trips/trip-share";
 import { TripStats } from "@/components/trips/trip-stats";
 import { TripStatusChip } from "@/components/trips/trip-status-chip";
 import { BackLink } from "@/components/ui/back-link";
-import { SectionHeading } from "@/components/ui/typography";
 import type { TripSummary } from "@/lib/logbook-types";
 import { tripShareAnalyticsPath, tripSharePath } from "@/lib/trip-share";
 import {
@@ -74,7 +73,9 @@ export function TripHeader({
               {/* An h2: the page around this header supplies the h1. Keep it
                * that way by hand, since axe's default rules don't flag a
                * second h1. */}
-              <SectionHeading className="min-w-0 break-words">{trip.name}</SectionHeading>
+              <h2 className="min-w-0 font-display text-2xl leading-tight font-semibold tracking-tight break-words">
+                {trip.name}
+              </h2>
               {/* Only the dates: a client component's props reach the page,
                * and a trip link's readers aren't given the trip id. */}
               <TripStatusChip
