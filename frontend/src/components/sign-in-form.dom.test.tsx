@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
@@ -78,4 +78,29 @@ it("offers to resend verification for an unverified email", async () => {
   });
   expect(screen.getByText("Please verify your email address before signing in.")).toBeVisible();
   expect(screen.getByRole("button", { name: "Resend verification email" })).toBeEnabled();
+});
+
+it("points a rejected email sign-in to account creation without naming the wrong field", async () => {
+  stubTurnstile();
+  const user = userEvent.setup();
+  render(<SignInForm next="/areas/1" />);
+  await fillCredentials(user);
+  await user.click(screen.getByRole("button", { name: "Sign in" }));
+  const options = signInEmail.mock.calls.at(-1)![1];
+  await act(async () => {
+    options.onError({
+      error: {
+        status: 401,
+        code: "INVALID_EMAIL_OR_PASSWORD",
+        message: "Invalid email or password",
+      },
+    });
+    options.onResponse();
+  });
+  const alert = screen.getByRole("alert");
+  expect(alert).toHaveTextContent("Invalid email or password. New to Betabook? Create an account");
+  expect(within(alert).getByRole("link", { name: "Create an account" })).toHaveAttribute(
+    "href",
+    "/sign-up?next=%2Fareas%2F1",
+  );
 });

@@ -40,12 +40,16 @@ export function SignInForm({
   // affordance is bound to this, not to whatever is currently typed in the
   // email field.
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+  // The server's generic credential error covers unknown emails too, so it also
+  // offers account creation without revealing which field was wrong.
+  const [invalidCredentials, setInvalidCredentials] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const attemptedEmail = email;
     setError(null);
     setUnverifiedEmail(null);
+    setInvalidCredentials(false);
     setPending(true);
     try {
       await authClient.signIn.email(
@@ -64,6 +68,7 @@ export function SignInForm({
             if (ctx.error.code === "EMAIL_NOT_VERIFIED") {
               setUnverifiedEmail(attemptedEmail);
             } else {
+              setInvalidCredentials(ctx.error.code === "INVALID_EMAIL_OR_PASSWORD");
               setError(ctx.error.message ?? "Sign in failed");
             }
           },
@@ -104,7 +109,14 @@ export function SignInForm({
             </AppLink>
             .
           </p>
-          <GoogleSignInButton nextPath={nextPath} onError={setError} disabled={pending} />
+          <GoogleSignInButton
+            nextPath={nextPath}
+            onError={(message) => {
+              setInvalidCredentials(false);
+              setError(message);
+            }}
+            disabled={pending}
+          />
           <AuthDivider />
         </>
       )}
@@ -119,7 +131,20 @@ export function SignInForm({
       <AppLink href="/forgot-password" className="text-sm text-muted">
         Forgot password?
       </AppLink>
-      {error && <InlineAlert>{error}</InlineAlert>}
+      {error && (
+        <InlineAlert>
+          {invalidCredentials ? (
+            <>
+              Invalid email or password. New to Betabook?{" "}
+              <AppLink href={signUpUrl(nextPath)} className="inline underline">
+                Create an account
+              </AppLink>
+            </>
+          ) : (
+            error
+          )}
+        </InlineAlert>
+      )}
       {unverifiedEmail !== null && (
         <div className="flex flex-col gap-2">
           <InlineAlert status="warning">

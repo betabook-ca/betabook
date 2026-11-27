@@ -45,10 +45,13 @@ function PublicFrame({
             Search
           </a>
           <span className="flex items-center gap-4 justify-self-end text-sm">
+            <a href="/sign-in" className={`${buttonVariants()} h-11 px-3 md:hidden`}>
+              Sign in
+            </a>
             <a href="/sign-in" className="hidden min-h-10 items-center md:inline-flex">
               Sign in
             </a>
-            <a href="/sign-up" className={`${buttonVariants()} h-11 px-3 md:h-10 md:px-4`}>
+            <a href="/sign-up" className={`${buttonVariants()} hidden h-10 px-4 md:inline-flex`}>
               Sign up
             </a>
           </span>

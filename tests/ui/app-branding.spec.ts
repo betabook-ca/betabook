@@ -20,16 +20,16 @@ test(
       const searchBox = await search.boundingBox();
       if (!searchBox) throw new Error("Missing mobile search");
       expect(searchBox.width).toBeGreaterThan(180);
-      // Guests reach sign-up from the header, not only through the menu.
-      const signUp = page.getByRole("banner").getByRole("link", { name: "Sign up", exact: true });
-      await expect(signUp).toHaveCSS("height", "44px");
-      const signUpBox = await signUp.boundingBox();
+      // Guests reach sign-in from the header, not only through the menu.
+      const signIn = page.getByRole("banner").getByRole("link", { name: "Sign in", exact: true });
+      await expect(signIn).toHaveCSS("height", "44px");
+      const signInBox = await signIn.boundingBox();
       const viewportWidth = await page.evaluate(() => window.innerWidth);
-      if (!signUpBox) throw new Error("Missing mobile sign-up");
-      expect(signUpBox.x).toBeGreaterThanOrEqual(searchBox.x + searchBox.width);
-      expect(signUpBox.x + signUpBox.width).toBeLessThanOrEqual(viewportWidth);
+      if (!signInBox) throw new Error("Missing mobile sign-in");
+      expect(signInBox.x).toBeGreaterThanOrEqual(searchBox.x + searchBox.width);
+      expect(signInBox.x + signInBox.width).toBeLessThanOrEqual(viewportWidth);
       await expect(
-        page.getByRole("banner").getByRole("link", { name: "Sign in", exact: true }),
+        page.getByRole("banner").getByRole("link", { name: "Sign up", exact: true }),
       ).toBeHidden();
     } else {
       await expect(
@@ -86,24 +86,31 @@ test(
 );
 
 test(
-  "guests reach sign-up from the app header at every width",
+  "guests reach sign-in from the app header at every width",
   { tag: ["@app", "@layout"] },
   async ({ page }, testInfo) => {
     await page.goto("/search");
     await expect(page.locator("#public-entry")).toHaveCount(0);
     const banner = page.locator("#root").getByRole("banner");
-    const signUp = banner.getByRole("link", { name: "Sign up", exact: true });
-    await expect(signUp).toBeVisible();
-    await expect(signUp).toHaveAttribute("href", "/sign-up");
     const signIn = banner.getByRole("link", { name: "Sign in", exact: true });
-    // Narrow screens leave sign-in to the menu so Search keeps its width.
-    if (testInfo.project.name.startsWith("mobile")) await expect(signIn).toBeHidden();
-    else await expect(signIn).toBeVisible();
+    await expect(signIn).toBeVisible();
+    await expect(signIn).toHaveAttribute("href", "/sign-in");
+    const signUp = banner.getByRole("link", { name: "Sign up", exact: true });
+    // Narrow screens keep one auth button so Search keeps its width; the
+    // sign-in page offers account creation.
+    if (testInfo.project.name.startsWith("mobile")) await expect(signUp).toBeHidden();
+    else {
+      await expect(signUp).toBeVisible();
+      await expect(signUp).toHaveAttribute("href", "/sign-up");
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       await page.evaluate(() => document.documentElement.clientWidth),
     );
-    await signUp.click();
-    await expect(page.getByRole("heading", { name: "Sign up", exact: true })).toBeVisible();
+    await signIn.click();
+    await expect(page.getByRole("heading", { name: "Sign in", exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("main").getByRole("link", { name: "Sign up", exact: true }),
+    ).toHaveAttribute("href", "/sign-up");
   },
 );
 
