@@ -71,7 +71,7 @@ jobs:
           tofu -chdir=infra/cloudflare validate
 
   test:
-    name: Test & Build
+    name: App Test & Build
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.app != 'false' }}
     runs-on: ubuntu-latest
@@ -79,15 +79,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Installs pnpm, Node, and the dependencies, so there is no separate
-      # install step. Caches the store and pnpm's minimumReleaseAge verdict.
-      # Not @v2 -- that tag still resolves to v2.0.2, which has neither the
-      # verdict cache nor require-lockfile, and only warns on the latter.
-      - uses: pnpm/setup@v3.2.0
-        with:
-          runtime: node@26
-          cache: true
-          require-lockfile: true
+      - uses: ./.github/actions/setup-app
 
       # cloudflare-env.d.ts is the checked-in contract for wrangler.jsonc's
       # bindings and .dev.vars.example's vars; regenerating it must not change
@@ -133,9 +125,6 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Build SPA
-        run: pnpm build:spa
-
   # Browser checks cover rendering and native interaction. Accessibility is a
   # bounded set of composed states; stories do not each create four more tests.
   ui-tests:
@@ -156,11 +145,7 @@ jobs:
       BETABOOK_UI_SUITE: ${{ matrix.suite }}
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/setup@v3.2.0
-        with:
-          runtime: node@26
-          cache: true
-          require-lockfile: true
+      - uses: ./.github/actions/setup-app
       # Playwright pins the browser build to its own version, so the lockfile is
       # the cache key. Without this every job re-downloads Chromium.
       - name: Cache Playwright browser
@@ -216,34 +201,46 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: ./.github/actions/setup-app
         with:
-          targets: wasm32-unknown-unknown
-          components: rustfmt, clippy
+          tools: node pnpm rust cargo:worker-build
       - uses: Swatinem/rust-cache@v2
-      - name: Check formatting
-        run: cargo fmt --all -- --check
-      - name: Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
-      - name: Test
-        run: cargo test --workspace
-      - name: Cache worker-build
-        id: cache-worker-build
-        uses: actions/cache@v6
-        with:
-          path: ~/.cargo/bin/worker-build
-          key: worker-build-${{ runner.os }}-0.9.0
-      - name: Install worker-build
-        if: steps.cache-worker-build.outputs.cache-hit != 'true'
-        run: cargo install worker-build --version 0.9.0 --locked
-      - name: Build Rust Worker
+      - run: mise run rust-check
+      - run: pnpm build:spa
+      - name: Build release Worker
         working-directory: crates/betabook-worker
-        run: worker-build --release
+        run: worker-build --release --locked
+      - run: pnpm test:rust-worker
+
+  advisories:
+    uses: ./.github/workflows/rust-advisories.yml
+
+  # This is the existing required check on main. A failed or cancelled
+  # dependency must explicitly fail it, including when a build was skipped.
+  quality:
+    name: Test & Build
+    needs: [changes, test, rust, advisories]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          DETECTION: ${{ needs.changes.result }}
+          APP: ${{ needs.changes.outputs.app }}
+          APP_RESULT: ${{ needs.test.result }}
+          RUST_RESULT: ${{ needs.rust.result }}
+          ADVISORIES: ${{ needs.advisories.result }}
+        run: |
+          test "$DETECTION" = success
+          test "$ADVISORIES" = success
+          if [ "$APP" != false ]; then
+            test "$APP_RESULT" = success
+            test "$RUST_RESULT" = success
+          fi
 
   deploy:
     name: Deploy
-    needs: [test, ui, rust]
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'betabook-ca/betabook'
+    needs: [changes, quality, ui]
+    if: needs.changes.outputs.app != 'false' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'betabook-ca/betabook'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -252,15 +249,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Installs pnpm, Node, and the dependencies, so there is no separate
-      # install step. Caches the store and pnpm's minimumReleaseAge verdict.
-      # Not @v2 -- that tag still resolves to v2.0.2, which has neither the
-      # verdict cache nor require-lockfile, and only warns on the latter.
-      - uses: pnpm/setup@v3.2.0
-        with:
-          runtime: node@26
-          cache: true
-          require-lockfile: true
+      - uses: ./.github/actions/setup-app
 
       # No .dev.vars here: the build only copies it into dist/server for
       # `pnpm preview`, and wrangler deploy never uploads it.

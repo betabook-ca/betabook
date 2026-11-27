@@ -8,6 +8,9 @@ publish.workspace = true
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[lints]
+workspace = true
+
 [dependencies]
 axum.workspace = true
 base64.workspace = true

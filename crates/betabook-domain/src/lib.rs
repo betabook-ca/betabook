@@ -10,6 +10,7 @@ pub mod profile_photo;
 pub mod profile_share;
 pub mod public_catalog;
 pub mod security_headers;
+pub mod sends;
 pub mod seo;
 pub mod site;
 pub mod slug;

@@ -13,9 +13,10 @@ Built with Next.js 16 App Router, React 19, TypeScript, HeroUI, and Tailwind CSS
 
 ## Local development
 
-Use Node.js 26 and the pnpm version pinned in [`package.json`](package.json).
+Activate mise in your shell to use the project’s pinned Node.js, pnpm, and Rust tools.
 
 ```bash
+mise install
 pnpm install --frozen-lockfile
 pnpm setup
 pnpm dev

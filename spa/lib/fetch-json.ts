@@ -1,27 +1,10 @@
-import type { AreaBreadcrumbs, ClimbSendStats, ClimbVideos, ClimbWithAreaName } from "@/db/queries";
+import type { ClimbVideos } from "@/db/queries";
 import type {
-  PublicArea,
   PublicAreaDetails,
   PublicClimb,
   PublicClimbSend,
   PublicClimbsPage,
 } from "@/lib/public-catalog";
-
-export type AreaPageData = {
-  areaId: number;
-  query: string;
-  area: PublicAreaDetails;
-  ancestors: PublicAreaDetails[];
-  subareas: PublicArea[];
-  climbsPage: PublicClimbsPage;
-  memberClimbsPage?: {
-    climbs: ClimbWithAreaName[];
-    hasNextPage: boolean;
-    sendStats: Record<number, ClimbSendStats>;
-    areaBreadcrumbs: AreaBreadcrumbs;
-    sentClimbIds: number[];
-  };
-};
 
 export type ClimbPageData = {
   climbId: number;
@@ -49,9 +32,21 @@ export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> 
   const text = await response.text();
   const payload = text ? (JSON.parse(text) as T & { error?: string; message?: string }) : null;
   if (!response.ok) {
-    throw new Error(payload?.message ?? payload?.error ?? `Request failed (${response.status})`);
+    const err = new Error(
+      payload?.message ?? payload?.error ?? `Request failed (${response.status})`,
+    );
+    (err as Error & { status?: number }).status = response.status;
+    throw err;
   }
   return payload as T;
+}
+
+export function isNotFoundError(err: unknown): boolean {
+  return err instanceof Error && (err as Error & { status?: number }).status === 404;
+}
+
+export function isUnauthorizedError(err: unknown): boolean {
+  return err instanceof Error && (err as Error & { status?: number }).status === 401;
 }
 
 export function parsePositiveId(raw: string | string[] | undefined): number | null {

@@ -27,7 +27,7 @@ export default function HomeRoute({ viewerId }: { viewerId: string | null }) {
   const areaId = initialState.filter.areaId;
 
   useEffect(() => {
-    if (areaId === undefined) {
+    if (areaId === undefined || viewerId !== null || rawQuery.length > 0) {
       return;
     }
     let cancelled = false;
@@ -52,10 +52,14 @@ export default function HomeRoute({ viewerId }: { viewerId: string | null }) {
     return () => {
       cancelled = true;
     };
-  }, [areaId]);
+  }, [areaId, viewerId, rawQuery.length]);
 
   if (rawQuery) {
     return <Navigate to={`${SEARCH_PATH}?${rawQuery}`} replace />;
+  }
+
+  if (viewerId) {
+    return <Navigate to={`/users/${viewerId}`} replace />;
   }
 
   return (
@@ -63,24 +67,17 @@ export default function HomeRoute({ viewerId }: { viewerId: string | null }) {
       <LandingHero
         title="A free climbing logbook and crag database"
         lead="Log bouldering, sport and trad sends and sessions, and search routes and problems below."
-        actions={
-          viewerId
-            ? [
-                { href: SEARCH_PATH, label: "Find climbs" },
-                { href: LOGBOOK_PAGE.path, label: "How Betabook works" },
-              ]
-            : [
-                { href: signUpUrl(), label: "Create a free account" },
-                { href: LOGBOOK_PAGE.path, label: "How Betabook works" },
-              ]
-        }
+        actions={[
+          { href: signUpUrl(), label: "Create a free account" },
+          { href: LOGBOOK_PAGE.path, label: "How Betabook works" },
+        ]}
       />
       <SectionHeading className="mt-2">Search climbs and areas</SectionHeading>
       <AppSearch
         initialState={initialState}
         initial={EMPTY_HOME_SNAPSHOT}
         suggestions={null}
-        viewerId={viewerId}
+        viewerId={null}
         defaultCategory="all"
         showMemberNotice={false}
       />

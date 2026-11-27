@@ -74,11 +74,11 @@ async fn render_static_document(
 "
     );
 
-    Ok(Response::builder()
+    Response::builder()
         .status(status)
         .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
         .body(Body::from(html))
-        .unwrap())
+        .map_err(ApiError::internal)
 }
 
 #[worker::send]

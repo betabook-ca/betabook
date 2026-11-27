@@ -71,7 +71,7 @@ pub fn parse_id(raw: &str) -> Option<i64> {
     raw.parse::<i64>().ok().filter(|&id| id > 0)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct DisciplineGradeFilter {
     pub disciplines: Vec<ClimbType>,
     pub boulder_range: Option<[i64; 2]>,
@@ -155,12 +155,14 @@ fn parse_range(values: &[String], fallback: [i64; 2]) -> [i64; 2] {
             parsed.is_finite().then_some(parsed as i64)
         })
         .collect();
-    if nums.len() < 2 {
+    let [first, second, rest @ ..] = nums.as_slice() else {
         return fallback;
-    }
-    let min = *nums.iter().min().unwrap();
-    let max = *nums.iter().max().unwrap();
-    [min, max]
+    };
+    rest.iter()
+        .copied()
+        .fold([*first.min(second), *first.max(second)], |[min, max], n| {
+            [min.min(n), max.max(n)]
+        })
 }
 
 fn parse_rating_range(values: &[String]) -> [i64; 2] {

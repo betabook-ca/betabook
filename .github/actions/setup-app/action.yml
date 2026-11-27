@@ -1,0 +1,21 @@
+name: Set up Betabook
+description: Install project tools and locked JavaScript dependencies
+inputs:
+  tools:
+    description: Project tools to install with mise
+    default: node pnpm
+runs:
+  using: composite
+  steps:
+    - uses: jdx/mise-action@v4
+      with:
+        install_args: ${{ inputs.tools }}
+    - id: store
+      shell: bash
+      run: echo "path=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+    - uses: actions/cache@v6
+      with:
+        path: ${{ steps.store.outputs.path }}
+        key: pnpm-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'mise.toml', 'pnpm-workspace.yaml') }}
+    - shell: bash
+      run: pnpm install --frozen-lockfile

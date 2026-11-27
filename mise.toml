@@ -1,0 +1,17 @@
+[settings]
+idiomatic_version_file_enable_tools = ["rust"]
+
+[tools]
+node = "26.13.1"
+pnpm = "12.21.0"
+"cargo:worker-build" = "0.9.0"
+cargo-deny = "0.22.1"
+
+[tasks.rust-check]
+description = "Check formatting, native and Worker lints, and native tests"
+run = [
+  "cargo fmt --all -- --check",
+  "cargo clippy --locked --workspace --all-targets -- -D warnings",
+  "cargo clippy --locked -p betabook-worker --target wasm32-unknown-unknown -- -D warnings",
+  "cargo test --locked --workspace",
+]

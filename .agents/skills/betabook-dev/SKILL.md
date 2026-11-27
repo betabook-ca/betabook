@@ -17,8 +17,9 @@ explains how they fit together.
 
 ## Local setup
 
-Use **Node.js 26** (also used in CI) and the pnpm version pinned in `package.json`. The local
-scripts use Node's TypeScript support and `node:sqlite`.
+Activate mise in your shell and run `mise install` from the checkout. The app and CI share
+the versions in `mise.toml`; mise reads Rust’s pin, targets, and components from
+`rust-toolchain.toml`. The local scripts use Node’s TypeScript support and `node:sqlite`.
 
 ```bash
 pnpm install --frozen-lockfile
@@ -93,6 +94,10 @@ See `drizzle/schema/moderation.ts` and `lib/moderation.ts`. The review queue is 
 `/admin/requests`.
 
 ## Checks
+
+Run `mise run rust-check` for native and WASM linting, formatting, and native tests. The
+[Rust migration guide](../../../docs/rust-migration.md#local-verification-commands) lists the release
+Worker smoke test and dependency advisory commands.
 
 ```bash
 pnpm check                                # lint, formatting, dead code, types, tests

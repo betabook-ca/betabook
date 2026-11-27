@@ -30,6 +30,10 @@ fn run_async<F: std::future::Future>(fut: F) -> F::Output {
     }
 }
 
+#[expect(
+    clippy::expect_used,
+    reason = "migration failures must fail the test fixture"
+)]
 fn migrated_db() -> SqliteDb {
     let db = SqliteDb::in_memory().expect("in-memory sqlite");
     let migrations = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../drizzle/migrations");
@@ -506,5 +510,404 @@ fn exercises_social_videos_and_send_stats_queries() {
         upsert_product_tour_status(&db, "u1", "journal", 7, "completed")
             .await
             .expect("upsert tour");
+    });
+}
+
+#[test]
+fn exercises_layer6_feed_journal_sends_friendships_and_catalog() {
+    let db = migrated_db();
+    run_async(async {
+        use betabook_db::auth::{insert_friend_request, unique_display_name};
+        use betabook_db::feed::{FEED_PAGE_SIZE, get_feed_page};
+        use betabook_db::journal::{
+            JOURNAL_PAGE_SIZE, JournalFilter, create_journal_entry_with_sync,
+            delete_journal_entry_with_sync, get_ascent_entry_id, get_journal_entry_for_edit,
+            get_journal_page, get_user_hashtags, remove_my_journal_tag,
+            update_journal_entry_with_sync,
+        };
+        use betabook_db::member_catalog::{
+            create_area, create_climb, get_area_with_subtree_size, get_climb_by_id,
+            get_subtree_grade_histogram, update_area_description, update_climb_description,
+        };
+        use betabook_db::sends::{
+            UserSendsFilter, create_undated_send, delete_user_send, get_climb_send_summary,
+            get_sends_for_climb, get_sends_for_user_export_page, get_sends_for_user_page,
+            get_user_sends_summary, update_send_with_journal,
+        };
+        use betabook_db::social::{
+            FriendshipEndOp, VisibilityColumn, accept_friend_request, end_friendship_relationship,
+            get_climber_hardest, get_friendship_status, get_journal_filter_friends,
+            get_product_tour_state, reset_profile_share_link, search_companion_friends,
+            update_user_display_name, update_user_grade_preferences, update_user_private,
+            update_user_visibility,
+        };
+        use betabook_domain::grades::GradePreferences;
+        use betabook_domain::sends::{validate_journal_input, validate_send_input};
+
+        let now = 1_787_000_000_000_i64;
+        db.execute(
+            "INSERT INTO areas (id, parent_id, name) VALUES (1, NULL, 'Squamish')",
+            &[],
+        )
+        .await
+        .expect("root area");
+        let sub_area = create_area(&db, 1, "Grand Wall", Some("Granite wall"))
+            .await
+            .expect("create subarea");
+        update_area_description(&db, sub_area, Some("Updated granite wall"))
+            .await
+            .expect("update area");
+        let area_info = get_area_with_subtree_size(&db, 1)
+            .await
+            .expect("area info")
+            .expect("exists");
+        assert!(!area_info.large_subtree);
+
+        let c1 = create_climb(
+            &db,
+            sub_area,
+            "Split Pillar",
+            ClimbType::Trad,
+            15,
+            Some("Classic"),
+        )
+        .await
+        .expect("create climb 1");
+        let c2 = create_climb(&db, sub_area, "Superfly", ClimbType::Boulder, 10, None)
+            .await
+            .expect("create climb 2");
+        update_climb_description(&db, c2, Some("Crimpy traverse"))
+            .await
+            .expect("update climb");
+        assert_eq!(
+            get_climb_by_id(&db, c2)
+                .await
+                .expect("get climb")
+                .expect("exists")
+                .description
+                .as_deref(),
+            Some("Crimpy traverse")
+        );
+        let hist = get_subtree_grade_histogram(&db, 1)
+            .await
+            .expect("histogram");
+        assert_eq!(hist.len(), 2);
+
+        // Create two users and exercise friendship lifecycle.
+        db.execute(
+            "INSERT INTO user (id, name, email, is_private, journal_visibility, send_comment_visibility)
+             VALUES ('u1', 'Alex', 'alex@example.com', 0, 'friends', 'public'),
+                    ('u2', 'Sam', 'sam@example.com', 0, 'friends', 'public'),
+                    ('u3', 'Pat', 'pat@example.com', 0, 'private', 'private')",
+            &[],
+        )
+        .await
+        .expect("users");
+
+        assert!(
+            insert_friend_request(&db, "u1", "u2")
+                .await
+                .expect("req u2")
+        );
+        assert_eq!(
+            get_friendship_status(&db, "u2", "u1")
+                .await
+                .expect("status"),
+            "incoming"
+        );
+        assert!(
+            accept_friend_request(&db, "u2", "u1")
+                .await
+                .expect("accept")
+        );
+        assert_eq!(
+            get_friendship_status(&db, "u1", "u2")
+                .await
+                .expect("friends"),
+            "friends"
+        );
+        assert_eq!(
+            search_companion_friends(&db, "u1", "sa")
+                .await
+                .expect("companion search")
+                .len(),
+            1
+        );
+        assert_eq!(
+            get_journal_filter_friends(&db, "u1")
+                .await
+                .expect("filter friends")
+                .len(),
+            1
+        );
+
+        // Request & decline / cancel check
+        assert!(
+            insert_friend_request(&db, "u1", "u3")
+                .await
+                .expect("req u3")
+        );
+        assert!(
+            end_friendship_relationship(&db, "u3", "u1", FriendshipEndOp::Decline)
+                .await
+                .expect("decline")
+        );
+        assert_eq!(
+            get_friendship_status(&db, "u1", "u3")
+                .await
+                .expect("declined"),
+            "none"
+        );
+
+        // Account updates
+        assert_eq!(
+            unique_display_name(&db, "Alex").await.expect("dup"),
+            "Alex 2"
+        );
+        update_user_display_name(&db, "u1", "Alex Climbs", now)
+            .await
+            .expect("rename");
+        update_user_visibility(&db, "u1", VisibilityColumn::Journal, "public", now)
+            .await
+            .expect("vis");
+        update_user_grade_preferences(&db, "u1", "font", "french", now)
+            .await
+            .expect("grade prefs");
+        reset_profile_share_link(&db, "u1")
+            .await
+            .expect("reset share link");
+        assert!(
+            get_product_tour_state(&db, "u1")
+                .await
+                .expect("tour")
+                .is_some()
+        );
+
+        // Create ascent via journal entry + companion tag
+        let j_in = validate_journal_input(
+            Some("session"),
+            Some(&c2.to_string()),
+            Some("true"),
+            Some("2026-11-20"),
+            Some("Sent on go 3 #granite"),
+            &["granite".to_string()],
+            "2026-11-26",
+        )
+        .expect("valid journal ascent");
+        let s_in = validate_send_input(
+            ClimbType::Boulder,
+            Some("redpoint"),
+            Some("2026-11-20"),
+            Some("Sent on go 3 #granite"),
+            Some("5"),
+            Some("10"),
+            Some("solid"),
+            Some(&["https://youtu.be/dQw4w9WgXcQ".to_string()]),
+            "2026-11-26",
+        )
+        .expect("valid send");
+        create_journal_entry_with_sync(
+            &db,
+            "u1",
+            &j_in,
+            Some(&s_in),
+            true,
+            Some(&["u2".to_string()]),
+            now,
+        )
+        .await
+        .expect("create ascent journal entry");
+
+        // Verify feed for u2 includes u1's send + companion tag
+        let feed = get_feed_page(
+            &db,
+            "u2",
+            "all",
+            None,
+            FEED_PAGE_SIZE,
+            GradePreferences::default(),
+        )
+        .await
+        .expect("feed");
+        assert_eq!(feed.days.len(), 1);
+        assert_eq!(feed.days[0].sends, 1);
+        assert_eq!(feed.days[0].activities[0].companions.len(), 1);
+        assert!(feed.days[0].activities[0].companions[0].is_self);
+
+        // u2 removes their companion tag
+        let asc_id = get_ascent_entry_id(&db, "u1", c2)
+            .await
+            .expect("asc id")
+            .expect("exists");
+        remove_my_journal_tag(&db, "u2", asc_id)
+            .await
+            .expect("remove tag");
+        let edited_entry = get_journal_entry_for_edit(&db, asc_id, "u1")
+            .await
+            .expect("edit proj")
+            .expect("exists");
+        assert!(edited_entry.companions.is_empty());
+
+        // u1 logs a repeat on the same climb + training entry
+        let repeat_in = validate_journal_input(
+            Some("session"),
+            Some(&c2.to_string()),
+            Some("true"),
+            Some("2026-11-22"),
+            Some("Felt casual on repeat"),
+            &[],
+            "2026-11-26",
+        )
+        .expect("valid repeat");
+        create_journal_entry_with_sync(&db, "u1", &repeat_in, None, false, None, now + 100)
+            .await
+            .expect("create repeat");
+
+        let train_in = validate_journal_input(
+            Some("training"),
+            None,
+            Some("false"),
+            Some("2026-11-23"),
+            Some("Max hangs"),
+            &["hangboard".to_string()],
+            "2026-11-26",
+        )
+        .expect("valid training");
+        create_journal_entry_with_sync(&db, "u1", &train_in, None, false, None, now + 200)
+            .await
+            .expect("create training");
+
+        let j_page = get_journal_page(
+            &db,
+            "u1",
+            Some("u1"),
+            &JournalFilter::default(),
+            None,
+            JOURNAL_PAGE_SIZE,
+        )
+        .await
+        .expect("journal page");
+        assert_eq!(j_page.entries.len(), 3);
+
+        let tags = get_user_hashtags(&db, "u1", Some("u1"), false, true)
+            .await
+            .expect("hashtags");
+        assert_eq!(tags, vec!["granite".to_string(), "hangboard".to_string()]);
+
+        // Update training entry
+        let train_id = j_page.entries[0].id;
+        let train_upd = validate_journal_input(
+            Some("training"),
+            None,
+            Some("false"),
+            Some("2026-11-23"),
+            Some("Updated max hangs"),
+            &["hangboard".to_string()],
+            "2026-11-26",
+        )
+        .expect("upd");
+        update_journal_entry_with_sync(&db, "u1", train_id, &train_upd, false, None, now + 300)
+            .await
+            .expect("update journal");
+
+        // Create undated send on c1, then update to dated send creating ascent entry
+        let undated_in = validate_send_input(
+            ClimbType::Trad,
+            Some("onsight"),
+            None,
+            Some("Great crack"),
+            Some("5"),
+            Some("15"),
+            Some("solid"),
+            None,
+            "2026-11-26",
+        )
+        .expect("undated trad");
+        create_undated_send(&db, "u1", c1, ClimbType::Trad, &undated_in, now)
+            .await
+            .expect("create undated");
+        let send_c1 = betabook_db::sends::get_user_send_for_climb(&db, "u1", c1)
+            .await
+            .expect("lookup")
+            .expect("exists");
+        let dated_in = validate_send_input(
+            ClimbType::Trad,
+            Some("onsight"),
+            Some("2026-11-19"),
+            Some("Awesome gear"),
+            Some("5"),
+            Some("15"),
+            Some("high"),
+            None,
+            "2026-11-26",
+        )
+        .expect("dated trad");
+        update_send_with_journal(
+            &db,
+            "u1",
+            send_c1.id,
+            &dated_in,
+            None,
+            Some(""),
+            false,
+            None,
+            now + 400,
+        )
+        .await
+        .expect("convert undated to dated");
+        assert!(
+            get_ascent_entry_id(&db, "u1", c1)
+                .await
+                .expect("ascent")
+                .is_some()
+        );
+
+        // User sends query, export, summary, climb sends & summary
+        let sends_page =
+            get_sends_for_user_page(&db, "u1", &UserSendsFilter::default(), 0, 10, Some("u1"))
+                .await
+                .expect("user sends");
+        assert_eq!(sends_page.sends.len(), 2);
+
+        let export_page = get_sends_for_user_export_page(&db, "u1", None)
+            .await
+            .expect("export sends");
+        assert_eq!(export_page.sends.len(), 2);
+
+        let summary = get_user_sends_summary(&db, "u1", GradePreferences::default())
+            .await
+            .expect("user summary");
+        assert_eq!(summary.send_count, 2);
+
+        let hardest = get_climber_hardest(&db, "u1", GradePreferences::default())
+            .await
+            .expect("hardest");
+        assert_eq!(hardest.len(), 2);
+
+        let c_sends = get_sends_for_climb(&db, c2, 0, 10, Some("u1"))
+            .await
+            .expect("climb sends");
+        assert_eq!(c_sends.sends.len(), 1);
+        let c_summary = get_climb_send_summary(&db, c2)
+            .await
+            .expect("climb summary");
+        assert_eq!(c_summary.send_count, 1);
+
+        // Delete ascent entry cascades to send delete, and delete_user_send removes c1
+        delete_journal_entry_with_sync(&db, "u1", asc_id)
+            .await
+            .expect("delete ascent");
+        assert!(
+            betabook_db::sends::get_user_send_for_climb(&db, "u1", c2)
+                .await
+                .expect("check deleted send")
+                .is_none()
+        );
+        delete_user_send(&db, "u1", send_c1.id)
+            .await
+            .expect("delete send");
+        update_user_private(&db, "u1", true, now + 500)
+            .await
+            .expect("private");
     });
 }

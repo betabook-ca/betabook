@@ -17,13 +17,16 @@ Betabook is migrating incrementally from Next.js / `vinext` to a unified Rust Cl
 ## Local Verification Commands
 
 ```bash
-# Rust formatting, lints, and native SQLite tests
-cargo fmt --all -- --check
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
+# In a mise-activated shell, install the repository toolchain
+mise install
+pnpm install --frozen-lockfile
+mise run rust-check
+cargo deny --locked check advisories
 
-# Compile the Cloudflare Worker WASM bundle
-(cd crates/betabook-worker && worker-build --release)
+# Build and exercise the Rust Worker with disposable local D1 and R2
+pnpm build:spa
+(cd crates/betabook-worker && worker-build --release --locked)
+pnpm test:rust-worker
 
 # Run locally against Wrangler + local D1/R2 state
 pnpm exec wrangler dev -c crates/betabook-worker/wrangler.rust.jsonc --port 8787 --persist-to .wrangler/state --test-scheduled

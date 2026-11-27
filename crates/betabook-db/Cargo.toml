@@ -10,6 +10,9 @@ default = ["sqlite"]
 sqlite = ["dep:rusqlite"]
 d1 = ["dep:worker"]
 
+[lints]
+workspace = true
+
 [dependencies]
 async-trait.workspace = true
 betabook-domain = { path = "../betabook-domain" }

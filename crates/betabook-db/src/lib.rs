@@ -3,11 +3,16 @@
 
 pub mod auth;
 pub mod catalog_export;
+pub mod content_access;
 #[cfg(feature = "d1")]
 pub mod d1;
 pub mod executor;
+pub mod feed;
 pub mod fts;
+pub mod journal;
+pub mod member_catalog;
 pub mod public_catalog;
+pub mod sends;
 pub mod social;
 #[cfg(feature = "sqlite")]
 pub mod sqlite;

@@ -73,13 +73,12 @@ pub fn render_safe_markdown(input: &str, top_level: HeadingTopLevel) -> String {
                     continue;
                 }
                 Event::End(TagEnd::Image) => {
-                    let completed = pending_image.take().unwrap();
-                    let label = if completed.alt.trim().is_empty() {
-                        completed.safe_url.as_deref().unwrap_or("")
+                    let label = if image.alt.trim().is_empty() {
+                        image.safe_url.as_deref().unwrap_or("")
                     } else {
-                        completed.alt.trim()
+                        image.alt.trim()
                     };
-                    if let Some(ref safe) = completed.safe_url {
+                    if let Some(ref safe) = image.safe_url {
                         out.push_str("<a href=\"");
                         out.push_str(&escape_html(safe));
                         out.push_str("\" ");
@@ -90,6 +89,7 @@ pub fn render_safe_markdown(input: &str, top_level: HeadingTopLevel) -> String {
                     } else {
                         out.push_str(&escape_html(label));
                     }
+                    pending_image = None;
                     continue;
                 }
                 Event::Start(_) | Event::End(_) | Event::Html(_) | Event::InlineHtml(_) => {

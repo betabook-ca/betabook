@@ -4,7 +4,7 @@ use axum::{
     body::Body,
     extract::{OriginalUri, Path, State},
     http::{Method, Request as HttpRequest, StatusCode, header},
-    response::Response,
+    response::{IntoResponse, Response},
 };
 use betabook_db::public_catalog::{
     count_areas, count_climbs, get_area_sitemap_rows, get_climb_sitemap_rows, get_public_area,
@@ -191,11 +191,12 @@ fn inject_seo_into_html(
 }
 
 fn html_response(status: StatusCode, html: String) -> Response {
-    Response::builder()
-        .status(status)
-        .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
-        .body(Body::from(html))
-        .unwrap()
+    (
+        status,
+        [(header::CONTENT_TYPE, "text/html; charset=utf-8")],
+        Body::from(html),
+    )
+        .into_response()
 }
 
 fn permanent_redirect(path: &str, raw_query: Option<&str>) -> Response {
@@ -203,11 +204,12 @@ fn permanent_redirect(path: &str, raw_query: Option<&str>) -> Response {
         Some(q) if !q.is_empty() => format!("{path}?{q}"),
         _ => path.to_string(),
     };
-    Response::builder()
-        .status(StatusCode::PERMANENT_REDIRECT)
-        .header(header::LOCATION, location)
-        .body(Body::empty())
-        .unwrap()
+    (
+        StatusCode::PERMANENT_REDIRECT,
+        [(header::LOCATION, location)],
+        Body::empty(),
+    )
+        .into_response()
 }
 
 fn canonical_slug_matches(provided: Option<&str>, expected_slug: &str) -> bool {
@@ -219,11 +221,12 @@ fn canonical_slug_matches(provided: Option<&str>, expected_slug: &str) -> bool {
 
 #[worker::send]
 pub async fn robots_txt() -> Response {
-    Response::builder()
-        .status(StatusCode::OK)
-        .header(header::CONTENT_TYPE, "text/plain; charset=utf-8")
-        .body(Body::from(render_robots_txt()))
-        .unwrap()
+    (
+        StatusCode::OK,
+        [(header::CONTENT_TYPE, "text/plain; charset=utf-8")],
+        Body::from(render_robots_txt()),
+    )
+        .into_response()
 }
 
 #[worker::send]
@@ -233,11 +236,11 @@ pub async fn sitemap_index(State(state): State<AppState>) -> Result<Response, Ap
     let area_shards = areas.div_ceil(SITEMAP_SHARD_SIZE).max(1);
     let climb_shards = climbs.div_ceil(SITEMAP_SHARD_SIZE);
     let xml = render_sitemap_index(area_shards + climb_shards);
-    Ok(Response::builder()
+    Response::builder()
         .status(StatusCode::OK)
         .header(header::CONTENT_TYPE, "application/xml; charset=utf-8")
         .body(Body::from(xml))
-        .unwrap())
+        .map_err(ApiError::internal)
 }
 
 #[worker::send]
@@ -249,10 +252,10 @@ pub async fn sitemap_shard(
         .strip_suffix(".xml")
         .and_then(|s| s.parse::<usize>().ok());
     let Some(shard) = shard_num else {
-        return Ok(Response::builder()
+        return Response::builder()
             .status(StatusCode::NOT_FOUND)
             .body(Body::from("Not found"))
-            .unwrap());
+            .map_err(ApiError::internal);
     };
 
     let areas = count_areas(state.db()).await?;
@@ -284,11 +287,11 @@ pub async fn sitemap_shard(
             .collect()
     };
 
-    Ok(Response::builder()
+    Response::builder()
         .status(StatusCode::OK)
         .header(header::CONTENT_TYPE, "application/xml; charset=utf-8")
         .body(Body::from(render_sitemap_urlset(&urls)))
-        .unwrap())
+        .map_err(ApiError::internal)
 }
 
 async fn render_area_page(
@@ -619,12 +622,12 @@ pub async fn spa_fallback(
 ) -> Result<Response, ApiError> {
     let path = uri.path();
     if path.starts_with("/api/") {
-        return Ok(Response::builder()
+        return Response::builder()
             .status(StatusCode::NOT_FOUND)
             .header(header::CONTENT_TYPE, "application/json")
             .header(header::CACHE_CONTROL, "private, no-store")
             .body(Body::from("{\"error\":\"Not found\"}"))
-            .unwrap());
+            .map_err(ApiError::internal);
     }
 
     if let Ok(assets) = state.env().assets("ASSETS") {
@@ -650,7 +653,7 @@ pub async fn spa_fallback(
                     builder = builder.header(name, val);
                 }
                 let bytes = worker_resp.bytes().await?;
-                return Ok(builder.body(Body::from(bytes)).unwrap());
+                return builder.body(Body::from(bytes)).map_err(ApiError::internal);
             }
         }
     }

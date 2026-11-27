@@ -129,7 +129,7 @@ async fn send_welcome_email(state: &AppState, to: &str, name: &str) -> Result<()
     .await
 }
 
-async fn send_friend_request_email(
+pub async fn send_friend_request_email(
     state: &AppState,
     to: &str,
     requester_name: &str,

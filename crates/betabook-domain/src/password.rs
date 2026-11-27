@@ -73,9 +73,13 @@ pub fn verify_password(stored_hash: &str, password: &str) -> bool {
     actual.ct_eq(expected_bytes.as_slice()).into()
 }
 
+#[expect(clippy::expect_used, reason = "HMAC-SHA256 accepts any key length")]
+fn signature_mac(secret: &str) -> HmacSha256 {
+    HmacSha256::new_from_slice(secret.as_bytes()).expect("HMAC accepts keys of any length")
+}
+
 pub fn make_signature(value: &str, secret: &str) -> String {
-    let mut mac =
-        HmacSha256::new_from_slice(secret.as_bytes()).expect("HMAC accepts keys of any length");
+    let mut mac = signature_mac(secret);
     mac.update(value.as_bytes());
     STANDARD.encode(mac.finalize().into_bytes())
 }
@@ -150,8 +154,7 @@ pub fn verify_signed_cookie_value(raw_cookie_value: &str, secret: &str) -> Optio
         return None;
     }
     let provided = STANDARD.decode(signature_b64).ok()?;
-    let mut mac =
-        HmacSha256::new_from_slice(secret.as_bytes()).expect("HMAC accepts keys of any length");
+    let mut mac = signature_mac(secret);
     mac.update(value.as_bytes());
     let expected = mac.finalize().into_bytes();
     if bool::from(expected.as_slice().ct_eq(provided.as_slice())) {

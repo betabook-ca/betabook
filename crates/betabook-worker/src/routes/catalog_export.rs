@@ -26,7 +26,7 @@ use crate::state::{ApiError, AppState, now_iso_from_ms};
 
 struct SendByteStream(Pin<Box<ByteStream>>);
 
-// Workers execute in a single-threaded V8 isolate, so moving ByteStream within
+// SAFETY: Workers execute in a single-threaded V8 isolate, so moving ByteStream within
 // the isolate's Axum body trait bounds is sound.
 unsafe impl Send for SendByteStream {}
 
@@ -45,7 +45,12 @@ impl Stream for SendByteStream {
 
 fn catalog_export_filename(generated_at: Option<&str>) -> String {
     match generated_at {
-        Some(ts) if ts.len() >= 10 && ts.as_bytes()[4] == b'-' && ts.as_bytes()[7] == b'-' => {
+        Some(ts)
+            if ts.is_char_boundary(10)
+                && ts.len() >= 10
+                && ts.as_bytes()[4] == b'-'
+                && ts.as_bytes()[7] == b'-' =>
+        {
             format!("betabook-catalog-{}.json", &ts[..10])
         }
         _ => "betabook-catalog.json".to_string(),
@@ -76,7 +81,7 @@ pub async fn download_catalog_export(
     };
     let stream = SendByteStream(Box::pin(body.stream()?));
 
-    Ok(Response::builder()
+    Response::builder()
         .status(StatusCode::OK)
         .header(header::CONTENT_TYPE, "application/json; charset=utf-8")
         .header(
@@ -87,7 +92,7 @@ pub async fn download_catalog_export(
         .header(header::ETAG, etag)
         .header(header::CACHE_CONTROL, "private, no-store")
         .body(Body::from_stream(stream))
-        .unwrap())
+        .map_err(ApiError::internal)
 }
 
 pub async fn run_scheduled_catalog_export(env: &Env) -> Result<CatalogExportSummary, String> {

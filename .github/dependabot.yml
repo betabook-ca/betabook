@@ -39,3 +39,12 @@ updates:
           - "minor"
           - "patch"
     open-pull-requests-limit: 5
+
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      crates:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]

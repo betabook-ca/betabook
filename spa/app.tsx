@@ -29,6 +29,14 @@ const HomeRoute = lazy(() => import("@/spa/routes/home-route"));
 const SearchRoute = lazy(() => import("@/spa/routes/search-route"));
 const AreaRoute = lazy(() => import("@/spa/routes/area-route"));
 const ClimbRoute = lazy(() => import("@/spa/routes/climb-route"));
+const NewAreaRoute = lazy(() => import("@/spa/routes/new-area-route"));
+const NewClimbRoute = lazy(() => import("@/spa/routes/new-climb-route"));
+const FeedRoute = lazy(() => import("@/spa/routes/feed-route"));
+const FriendsRoute = lazy(() => import("@/spa/routes/friends-route"));
+const AccountRoute = lazy(() => import("@/spa/routes/account-route"));
+const UserProfileRoute = lazy(() => import("@/spa/routes/user-profile-route"));
+const UserSendsRoute = lazy(() => import("@/spa/routes/user-sends-route"));
+const UserJournalRoute = lazy(() => import("@/spa/routes/user-journal-route"));
 const AuthRouteView = lazy(() => import("@/spa/routes/auth-routes"));
 const InfoRouteView = lazy(() => import("@/spa/routes/info-routes"));
 const PlaceholderRoute = lazy(() => import("@/spa/routes/placeholder-route"));
@@ -53,7 +61,7 @@ function RouteFallback() {
 /** Root SPA application shell mirroring `app/layout.tsx` + `app/template.tsx`. */
 export function App() {
   const pathname = usePathname();
-  const { data: session, isPending } = authClient.useSession();
+  const { data: session, isPending, refetch } = authClient.useSession();
   const [stableViewerId, setStableViewerId] = useState<string | null>(null);
   const viewerId = isPending ? stableViewerId : (session?.user.id ?? null);
   if (!isPending && viewerId !== stableViewerId) {
@@ -71,6 +79,16 @@ export function App() {
   useEffect(() => {
     syncBootstrapPath(pathname);
   }, [pathname]);
+
+  useEffect(() => {
+    function handleSessionRefresh() {
+      void refetch({ query: { disableCookieCache: true } });
+    }
+    window.addEventListener("betabook:session-refresh", handleSessionRefresh);
+    return () => {
+      window.removeEventListener("betabook:session-refresh", handleSessionRefresh);
+    };
+  }, [refetch]);
 
   useEffect(() => {
     if (!viewerId) {
@@ -179,10 +197,33 @@ export function App() {
                         <Routes>
                           <Route path="/" element={<HomeRoute viewerId={viewerId} />} />
                           <Route path="/search" element={<SearchRoute viewerId={viewerId} />} />
+                          <Route path="/feed" element={<FeedRoute viewerId={viewerId} />} />
+                          <Route path="/friends" element={<FriendsRoute viewerId={viewerId} />} />
+                          <Route path="/account" element={<AccountRoute viewerId={viewerId} />} />
+                          <Route
+                            path="/users/:id"
+                            element={<UserProfileRoute viewerId={viewerId} />}
+                          />
+                          <Route
+                            path="/users/:id/sends"
+                            element={<UserSendsRoute viewerId={viewerId} />}
+                          />
+                          <Route
+                            path="/users/:id/journal"
+                            element={<UserJournalRoute viewerId={viewerId} />}
+                          />
+                          <Route path="/areas/new" element={<NewAreaRoute viewerId={viewerId} />} />
                           <Route path="/areas/:id" element={<AreaRoute viewerId={viewerId} />} />
                           <Route path="/areas/:id/*" element={<AreaRoute viewerId={viewerId} />} />
-                          <Route path="/climbs/:id" element={<ClimbRoute />} />
-                          <Route path="/climbs/:id/*" element={<ClimbRoute />} />
+                          <Route
+                            path="/climbs/new"
+                            element={<NewClimbRoute viewerId={viewerId} />}
+                          />
+                          <Route path="/climbs/:id" element={<ClimbRoute viewerId={viewerId} />} />
+                          <Route
+                            path="/climbs/:id/*"
+                            element={<ClimbRoute viewerId={viewerId} />}
+                          />
                           <Route
                             path="/sign-in"
                             element={<AuthRouteView kind="sign-in" viewerId={viewerId} />}
