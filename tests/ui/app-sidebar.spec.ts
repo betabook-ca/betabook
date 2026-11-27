@@ -214,7 +214,11 @@ test(
   async ({ page }) => {
     await page.setViewportSize({ width: 844, height: 390 });
     await page.goto(appBaseURL);
-    const sidebar = page.getByRole("complementary", { name: "Sidebar" });
+    // The native public header and app header coexist during startup.
+    // Measure the enhanced app only after its public-entry handoff completes.
+    await expect(page.locator("#public-entry")).toHaveCount(0);
+    const app = page.locator("#root");
+    const sidebar = app.getByRole("complementary", { name: "Sidebar" });
     await expect(sidebar).toBeVisible();
     const device = await page.context().newCDPSession(page);
     for (const [left, right] of [
@@ -227,7 +231,7 @@ test(
       if (!panel) throw new Error("Expected the landscape sidebar");
       expect(panel.x).toBe(left);
       expect(panel.width).toBe(64);
-      for (const control of await page
+      for (const control of await app
         .locator("header a, header button, aside a, aside button")
         .all()) {
         if (!(await control.isVisible())) continue;
@@ -236,14 +240,14 @@ test(
         expect(box.x).toBeGreaterThanOrEqual(left);
         expect(box.x + box.width).toBeLessThanOrEqual(844 - right);
       }
-      const header = await page.locator("header").boundingBox();
+      const header = await app.locator("header").boundingBox();
       if (!header) throw new Error("Expected app header");
       expect(header.x).toBe(64 + left);
       expect(header.x + header.width).toBe(844 - right);
       await sidebar.getByRole("button", { name: /sidebar/ }).click();
       await page.mouse.move(843, 200);
       await expect(sidebar).toHaveCSS("width", "224px");
-      const pinnedHeader = await page.locator("header").boundingBox();
+      const pinnedHeader = await app.locator("header").boundingBox();
       if (!pinnedHeader) throw new Error("Expected pinned app header");
       expect(pinnedHeader.x).toBe(224 + left);
       expect(pinnedHeader.x + pinnedHeader.width).toBe(844 - right);
