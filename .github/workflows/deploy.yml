@@ -135,7 +135,7 @@ jobs:
       - uses: ./.github/actions/setup-app
       - name: Restore tested application
         if: matrix.suite == 'app'
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: betabook-release
           path: .
@@ -263,7 +263,7 @@ jobs:
       - uses: ./.github/actions/setup-app
 
       - name: Restore tested application
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: betabook-release
           path: .
