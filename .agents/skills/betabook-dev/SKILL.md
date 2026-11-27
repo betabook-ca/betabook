@@ -1,13 +1,10 @@
 ---
 name: betabook-dev
 description: >-
-  Set up, run, seed, test, and deploy Betabook locally: Node/pnpm setup, .dev.vars and auth
-  configuration, local D1 migrations, seeded test accounts and social/trip/video fixtures, admin
-  moderation access, worktree bootstrap, the pnpm check/test/UI-test commands and how CI runs them,
-  Chromatic, manual deployment, the weekly R2 export cron, and secrets. Use when starting the dev
-  server, preparing local data, choosing a seeded account to reproduce something, running or
-  debugging checks, or deploying. Not for writing tests (docs/component-testing.md) or architecture
-  rules (docs/repository-guide.md).
+  Run and troubleshoot the local Betabook Rust Worker and Vite SPA with mise,
+  automatic rebuilds, React Fast Refresh, local D1/R2, seeded accounts, and auth.
+  Use for development setup, runtime checks, and deployment. Test authoring and
+  architecture conventions are documented in docs/.
 ---
 
 # Betabook development
@@ -24,7 +21,7 @@ the versions in `mise.toml`; mise reads Rust’s pin, targets, and components fr
 ```bash
 pnpm install --frozen-lockfile
 pnpm setup
-pnpm dev
+mise run dev
 ```
 
 Open http://localhost:3000 and sign in with **`dev@example.com` / `password`**.
@@ -42,6 +39,21 @@ pnpm db:migrate:local
 
 Stop the dev server before running local database scripts and restart it afterwards so it sees the
 updated data. Local D1 state lives under `.wrangler/state/` and is separate from production.
+
+### Edit and reload
+
+Run `mise run dev` (or `pnpm dev`) from the repository root. Open the Wrangler URL, normally `http://localhost:3000`. This one command serves the Rust API, the SPA and the Worker-rendered public pages. For port 3001, use `mise run dev --port 3001` and set the local `BETTER_AUTH_URL` to `http://localhost:3001` for auth callbacks.
+
+| When editing                              | Local workflow                                                                                                                                                                                        |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rust handlers, DB queries or domain logic | Save the source file. Wrangler watches all three crates, including embedded SQL and GraphQL, rebuilds the development WASM, and reloads the open page. A backend-only change skips Vite.              |
+| React, CSS or public assets               | The same server rebuilds the SPA and reloads the page. For React Fast Refresh, keep Wrangler on 3000 and run `pnpm dev:spa` in a second terminal. Open Vite on 3001. Its API requests go to Wrangler. |
+| A Rust API request or response shape      | Run `pnpm api:generate` and commit the updated OpenAPI document and SPA declarations. Verify with `pnpm api:check`.                                                                                   |
+| A D1 migration                            | Apply it with `pnpm db:migrate:local` before exercising the new schema.                                                                                                                               |
+
+For a custom backend port in Fast Refresh mode, point the proxy at that Worker, for example `BETABOOK_DEV_WORKER_ORIGIN=http://127.0.0.1:3001 pnpm dev:spa --port 3002`. Use the Wrangler URL when checking the initial HTML, redirects, asset headers or browser reload on a Rust edit.
+
+Wrangler logs the changed path and mise reports which build ran. Dev outputs live in `target/betabook-dev/`. To verify the optimized artifacts used in CI, run `pnpm build` followed by `BETABOOK_PREBUILT=1 pnpm test:rust-worker`. Use `pnpm preview` for a release preview.
 
 ### Worktrees
 

@@ -156,7 +156,7 @@ async function main() {
     db.exec("commit");
     open = false;
 
-    console.log(`Sign in as ${email} with \`${password}\` at http://localhost:3000/sign-in`);
+    console.log(`Sign in as ${email} with \`${password}\` at /sign-in on your local dev server`);
     console.log("Restart `pnpm dev`: it holds its D1 handle open.");
   } catch (error) {
     // Rolling back when nothing began throws over the error worth reading.

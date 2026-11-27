@@ -51,6 +51,9 @@ function requireCompiledRoutes(): Plugin {
   };
 }
 
+// oxlint-disable-next-line node/no-process-env -- read only by the local Vite proxy.
+const workerOrigin = process.env.BETABOOK_DEV_WORKER_ORIGIN ?? "http://127.0.0.1:3000";
+
 export default defineConfig({
   root: path.join(sourceDir, "spa"),
   publicDir: path.join(frontendDir, "public"),
@@ -73,10 +76,11 @@ export default defineConfig({
     port: 3001,
     strictPort: true,
     proxy: {
-      "/api": "http://127.0.0.1:3000",
-      "/robots.txt": "http://127.0.0.1:3000",
-      "/sitemap-index.xml": "http://127.0.0.1:3000",
-      "/sitemap": "http://127.0.0.1:3000",
+      "/api": workerOrigin,
+      "/robots.txt": workerOrigin,
+      "/sitemap-index.xml": workerOrigin,
+      "/sitemap": workerOrigin,
+      "/openapi.json": workerOrigin,
     },
   },
   build: {
