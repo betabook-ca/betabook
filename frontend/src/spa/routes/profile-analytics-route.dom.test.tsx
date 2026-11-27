@@ -1,6 +1,5 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ReactNode } from "react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, expect, it, vi } from "vitest";
 
@@ -20,9 +19,6 @@ vi.mock("@/spa/lib/actions-client", () => ({
 vi.mock("@/spa/lib/fetch-json", async (original) => ({
   ...(await original<typeof import("@/spa/lib/fetch-json")>()),
   fetchJson: vi.fn<typeof fetchJson>(),
-}));
-vi.mock("@/spa/lib/profile-shell", () => ({
-  SpaProfileHeader: ({ children }: { children: ReactNode }) => children,
 }));
 
 it("keeps the tag input mounted during filtering and clears previous results for a different viewer", async () => {

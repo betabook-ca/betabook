@@ -1,14 +1,15 @@
 import { useParams, useSearchParams } from "react-router";
 
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
-import { Skeleton, SkeletonListRows } from "@/components/ui/skeleton";
+import { SkeletonListRows } from "@/components/ui/skeleton";
 import { PageTitle } from "@/components/ui/typography";
 import { fetchApi } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
 import { isNotFoundError } from "@/spa/lib/fetch-json";
 import { journalFilter, refreshJournalResults } from "@/spa/lib/journal-results";
-import { SpaJournalView, SpaProfileHeader } from "@/spa/lib/profile-shell";
+import { SpaJournalView } from "@/spa/lib/profile-shell";
 import { useRetainedPage } from "@/spa/lib/use-retained-page";
+import { useVisitorHeader } from "@/spa/lib/visitor-header";
 
 export default function UserJournalRoute({ viewerId }: { viewerId: string | null }) {
   const { id = "" } = useParams();
@@ -35,6 +36,7 @@ export default function UserJournalRoute({ viewerId }: { viewerId: string | null
       };
     },
   });
+  useVisitorHeader(data, error);
   usePageTitle(
     isNotFoundError(error) ? "Climber not found" : data ? data.user.name + " · Journal" : null,
   );
@@ -53,32 +55,16 @@ export default function UserJournalRoute({ viewerId }: { viewerId: string | null
       ? error.message
       : "Failed to load journal"
     : null;
-  if (!data)
-    return message ? (
-      <p role="alert">{message}</p>
-    ) : (
-      <div className="flex flex-col gap-6">
-        <Skeleton className="h-12 w-56" />
-        <SkeletonListRows rows={4} />
-      </div>
-    );
+  if (!data) return message ? <p role="alert">{message}</p> : <SkeletonListRows rows={4} />;
   return (
-    <SpaProfileHeader
-      user={data.user}
+    <SpaJournalView
+      ownerId={id}
       isOwner={data.isOwner}
-      relationship={data.relationship}
-      access={data.access}
-      hardest={data.hardest}
-    >
-      <SpaJournalView
-        ownerId={id}
-        isOwner={data.isOwner}
-        filter={filter}
-        data={data.journal}
-        resultsFilter={journalFilter(committed ?? query)}
-        pending={pending}
-        loadError={message}
-      />
-    </SpaProfileHeader>
+      filter={filter}
+      data={data.journal}
+      resultsFilter={journalFilter(committed ?? query)}
+      pending={pending}
+      loadError={message}
+    />
   );
 }

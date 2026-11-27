@@ -201,3 +201,26 @@ test("actions menu keeps actions local and returns focus", async ({ page }, test
   await expect(page.getByRole("status")).toHaveText("Action: edit");
   await expect(trigger).toBeFocused();
 });
+
+test("normal text on the solid success surface meets AA contrast", async ({ page }, info) => {
+  await openStory(page, info, "foundations-tokens--actions-and-status");
+  const contrast = await page.evaluate(() => {
+    const style = getComputedStyle(document.documentElement);
+    const pixel = document.createElement("canvas").getContext("2d");
+    if (!pixel) throw new Error("Canvas unavailable");
+    const luminance = (role: string) => {
+      pixel.fillStyle = style.getPropertyValue(role).trim();
+      pixel.fillRect(0, 0, 1, 1);
+      const [r, g, b] = pixel.getImageData(0, 0, 1, 1).data;
+      const linear = (byte: number) => {
+        const x = byte / 255;
+        return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+      };
+      return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+    };
+    const bg = luminance("--success");
+    const fg = luminance("--success-foreground");
+    return (Math.max(bg, fg) + 0.05) / (Math.min(bg, fg) + 0.05);
+  });
+  expect(contrast).toBeGreaterThanOrEqual(4.5);
+});

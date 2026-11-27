@@ -16,8 +16,8 @@ import { parseDisciplineScope, resolveDisciplineScope } from "@/lib/user-analyti
 import { fetchApi } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
 import { isNotFoundError } from "@/spa/lib/fetch-json";
-import { SpaProfileHeader } from "@/spa/lib/profile-shell";
 import { useRetainedPage } from "@/spa/lib/use-retained-page";
+import { useVisitorHeader } from "@/spa/lib/visitor-header";
 
 function sessionCounts(sessions: HighlightSession[] | null): AnalyticsSessionRow[] | undefined {
   if (!sessions) return undefined;
@@ -49,6 +49,7 @@ export default function ProfileAnalyticsRoute({ viewerId }: { viewerId: string |
         signal,
       }),
   });
+  useVisitorHeader(data?.header, error);
   usePageTitle(data ? data.header.user.name + " · Analytics" : null);
   if (!viewerId) return <CurrentPageAuthCallout />;
   const message = error
@@ -78,7 +79,7 @@ export default function ProfileAnalyticsRoute({ viewerId }: { viewerId: string |
       })
     : [];
   return (
-    <SpaProfileHeader {...header} workspace="progress">
+    <>
       {message && <p role="alert">{message}</p>}
       <ProfileAnalyticsDashboard
         {...common}
@@ -96,6 +97,6 @@ export default function ProfileAnalyticsRoute({ viewerId }: { viewerId: string |
         overview={overview}
         announcements={announcements}
       />
-    </SpaProfileHeader>
+    </>
   );
 }

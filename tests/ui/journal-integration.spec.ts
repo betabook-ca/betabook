@@ -68,3 +68,23 @@ test(
     await initialTrainingLink?.dispose();
   },
 );
+
+test(
+  "the month header stays pinned through the following journal rows",
+  { tag: ["@layout", "@app"] },
+  async ({ page, workerApp }) => {
+    await signInWithJournal(page.request, workerApp);
+    await workerApp.db
+      .prepare(
+        "WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM n WHERE i<15) INSERT INTO journal_entries(user_id,kind,entry_date,body) SELECT 'journal-owner','training',printf('2026-02-%02d',i),'February training '||i FROM n",
+      )
+      .run();
+    await page.goto(new URL("/users/journal-owner/journal", workerApp.url).href);
+    const heading = page.getByRole("heading", { name: "February 2026" });
+    await expect(heading).toBeVisible();
+    await page
+      .getByText("February training 10", { exact: true })
+      .evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await expect.poll(async () => Math.round((await heading.boundingBox())?.y ?? -100)).toBe(0);
+  },
+);

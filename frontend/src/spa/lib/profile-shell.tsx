@@ -1,7 +1,4 @@
-import type { ReactNode } from "react";
-
 import { UserSendsFilterToolbar } from "@/components/filters/sends-filter-toolbar";
-import { FriendshipButton } from "@/components/friendship-button";
 import { JournalFilterToolbar, JournalTimeline } from "@/components/journal";
 import { NavigationPendingProvider } from "@/components/navigation-pending";
 import { ProductTour } from "@/components/product-tour";
@@ -12,30 +9,15 @@ import { ProfileTabs } from "@/components/profile-tabs";
 import { SharedProfile } from "@/components/shared-profile";
 import { SectionHeading } from "@/components/ui/typography";
 import { UserSendList } from "@/components/user-send-list";
-import { WorkspaceShell } from "@/components/workspace-shell";
 import type { HardestSend } from "@/lib/analytics-types";
 import type { AreaBreadcrumbs } from "@/lib/catalog-types";
 import type { JournalFilter } from "@/lib/filters/journal-filter";
 import type { UserSendsFilter } from "@/lib/filters/user-sends-filter";
-import type { FriendshipStatus } from "@/lib/friendships";
 import type { CompanionOption } from "@/lib/journal-companions";
 import type { JournalEntry, UserSendRow } from "@/lib/logbook-types";
 import type { ProductTourState } from "@/lib/product-tour";
 import { profileSharePath } from "@/lib/profile-share";
 import { fetchApi, type ApiResponse } from "@/spa/lib/api";
-
-export type MemberAccessInfo = {
-  journal: boolean;
-  trips: boolean;
-  lists: boolean;
-};
-
-export type MemberProfileUser = {
-  id: string;
-  name: string;
-  image: string | null;
-  isPrivate: boolean;
-};
 
 export type JournalViewPayload = {
   hasEntries: boolean;
@@ -98,66 +80,6 @@ export function SpaSharedProfileView({ payload }: { payload: SharedProfilePayloa
         areaBreadcrumbs={payload.areaBreadcrumbs}
         next={next}
       />
-    </ProfileLayout>
-  );
-}
-
-export function SpaProfileHeader({
-  user,
-  isOwner,
-  relationship,
-  access,
-  hardest,
-  workspace = "logbook",
-  children,
-}: {
-  user: MemberProfileUser;
-  isOwner: boolean;
-  relationship: FriendshipStatus;
-  access: MemberAccessInfo;
-  hardest: HardestSend[];
-  workspace?: "logbook" | "progress";
-  children: ReactNode;
-}) {
-  if (isOwner) {
-    return (
-      <WorkspaceShell area={workspace} userId={user.id}>
-        {children}
-      </WorkspaceShell>
-    );
-  }
-  return (
-    <ProfileLayout
-      heading={
-        <ProfileHeading
-          name={user.name}
-          image={user.image}
-          hardest={hardest}
-          nameAction={
-            <FriendshipButton
-              userId={user.id}
-              name={user.name}
-              initialStatus={relationship}
-              appearance="profile"
-            />
-          }
-          note={
-            !access.journal && (
-              <p className="text-muted">Their journal isn&apos;t shared with you.</p>
-            )
-          }
-        />
-      }
-      tabs={
-        <ProfileTabs
-          userId={user.id}
-          showJournal={access.journal}
-          showTrips={access.trips}
-          showLists={access.lists}
-        />
-      }
-    >
-      {children}
     </ProfileLayout>
   );
 }

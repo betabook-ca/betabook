@@ -51,7 +51,7 @@
     --accent-foreground: var(--palette-paper);
     --accent-soft-foreground: #743e2f;
     --success: #67876a;
-    --success-foreground: var(--white);
+    --success-foreground: var(--black);
     --success-soft-foreground: #395a3d;
     --danger: #982f42;
     --danger-foreground: var(--palette-paper);

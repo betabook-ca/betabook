@@ -12,10 +12,18 @@ export function ProfileLayout({
   children: ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[17rem_minmax(0,1fr)] xl:grid-rows-[auto_1fr] xl:gap-x-12">
-      <aside aria-label="Climber summary" className="xl:sticky xl:top-6 xl:row-span-2">
-        {heading}
-      </aside>
+    <div
+      className={
+        heading
+          ? "grid grid-cols-1 items-start gap-4 xl:grid-cols-[17rem_minmax(0,1fr)] xl:grid-rows-[auto_1fr] xl:gap-x-12"
+          : undefined
+      }
+    >
+      {heading && (
+        <aside aria-label="Climber summary" className="xl:sticky xl:top-6 xl:row-span-2">
+          {heading}
+        </aside>
+      )}
       {tabs}
       {children}
     </div>

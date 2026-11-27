@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { expect, it, vi } from "vitest";
 
+import { MemberWorkspaceRoute } from "./member-workspace-route";
 import UserSendsRoute from "./user-sends-route";
 
 function send(name: string, id: number) {
@@ -65,7 +66,9 @@ it("keeps the sends workspace and filters mounted and accepts only the latest re
   render(
     <MemoryRouter initialEntries={["/users/owner/sends"]}>
       <Routes>
-        <Route path="/users/:id/sends" element={<UserSendsRoute viewerId="owner" />} />
+        <Route path="/users/:id" element={<MemberWorkspaceRoute viewerId="owner" />}>
+          <Route path="sends" element={<UserSendsRoute viewerId="owner" />} />
+        </Route>
       </Routes>
     </MemoryRouter>,
   );

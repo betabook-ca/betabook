@@ -3,8 +3,9 @@ import { expect, test, openStory } from "./story";
 
 test(
   "auth and recovery pages use the canonical page title",
-  { tag: ["@behavior", "@app"] },
+  { tag: ["@layout", "@app"] },
   async ({ page }) => {
+    const width = await page.evaluate(() => window.innerWidth);
     for (const [path, title] of [
       ["/sign-in", "Sign in"],
       ["/sign-up", "Sign up"],
@@ -13,7 +14,7 @@ test(
     ]) {
       await page.goto(`${appBaseURL}${path}`);
       const heading = page.getByRole("heading", { level: 1, name: title, exact: true });
-      await expect(heading).toHaveCSS("font-size", "36px");
+      await expect(heading).toHaveCSS("font-size", width < 640 ? "30px" : "36px");
       await expect(heading).toHaveCSS("font-family", /Iowan Old Style/i);
       await expect(heading).toHaveCSS("font-weight", "600");
     }

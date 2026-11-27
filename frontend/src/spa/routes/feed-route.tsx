@@ -3,7 +3,6 @@ import { useSearchParams } from "react-router";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { FeedActivityNav } from "@/components/feed-activity-nav";
 import { FeedList } from "@/components/feed-list";
-import { WorkspaceShell } from "@/components/workspace-shell";
 import { parseFeedView } from "@/lib/feed";
 import { fetchApi } from "@/spa/lib/api";
 import { useRouter } from "@/spa/lib/navigation";
@@ -25,17 +24,15 @@ export default function FeedRoute({ viewerId }: { viewerId: string | null }) {
   });
   if (!viewerId) return <CurrentPageAuthCallout />;
   return (
-    <WorkspaceShell area="community" userId={viewerId}>
-      <FeedList
-        viewerId={viewerId}
-        initialPage={data?.page}
-        view={data?.view ?? view}
-        pending={pending || (!data && !error)}
-        error={Boolean(error)}
-        onRetry={router.refresh}
-        hasFriends={data?.hasFriends ?? false}
-        toolbar={<FeedActivityNav view={view} />}
-      />
-    </WorkspaceShell>
+    <FeedList
+      viewerId={viewerId}
+      initialPage={data?.page}
+      view={data?.view ?? view}
+      pending={pending || (!data && !error)}
+      error={Boolean(error)}
+      onRetry={router.refresh}
+      hasFriends={data?.hasFriends ?? false}
+      toolbar={<FeedActivityNav view={view} />}
+    />
   );
 }

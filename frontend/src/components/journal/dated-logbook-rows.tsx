@@ -22,31 +22,45 @@ export function DatedLogbookRows<T>({
   renderRow: (item: T, dateDisplay: GroupedDateDisplay) => ReactNode;
   pending?: boolean;
 }) {
-  const dates = items.map(dateOf);
+  const groups: { month: string | null; rows: { item: T; date: string | null }[] }[] = [];
+  for (const item of items) {
+    const date = dateOf(item);
+    const month = date?.slice(0, 7) ?? null;
+    let group = groups.at(-1);
+    if (!group || group.month !== month) {
+      group = { month, rows: [] };
+      groups.push(group);
+    }
+    group.rows.push({ item, date });
+  }
+
   return (
-    <ul role="list" inert={pending} className="flex flex-col">
-      {items.map((item, index) => {
-        const date = dates[index],
-          month = date?.slice(0, 7);
-        const startsMonth = index === 0 || month !== dates[index - 1]?.slice(0, 7);
-        const continued = index > 0 && date === dates[index - 1];
+    <div inert={pending}>
+      {groups.map(({ month, rows }) => {
+        const label = month ? MONTH_FORMAT.format(new Date(month + "-01")) : "Undated";
         return (
-          <li key={itemKey(item)}>
-            {startsMonth && (
-              <h3 className="sticky top-0 z-10 border-b border-foreground/50 bg-background py-2 font-display text-xl font-semibold tracking-tight">
-                {month ? MONTH_FORMAT.format(new Date(month + "-01")) : "Undated"}
-              </h3>
-            )}
-            <div
-              className={
-                date && dates[index + 1] === date ? undefined : "border-b border-separator"
-              }
-            >
-              {renderRow(item, !date ? "grouped" : continued ? "continued" : "day")}
-            </div>
-          </li>
+          <div key={month ?? "undated"}>
+            <h3 className="sticky top-0 z-10 border-b border-foreground/50 bg-background py-2 font-display text-xl font-semibold tracking-tight">
+              {label}
+            </h3>
+            <ul role="list" aria-label={label} className="flex flex-col">
+              {rows.map(({ item, date }, index) => (
+                <li
+                  key={itemKey(item)}
+                  className={
+                    date && rows[index + 1]?.date === date ? undefined : "border-b border-separator"
+                  }
+                >
+                  {renderRow(
+                    item,
+                    !date ? "grouped" : rows[index - 1]?.date === date ? "continued" : "day",
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
         );
       })}
-    </ul>
+    </div>
   );
 }

@@ -5,7 +5,6 @@ import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { GoalPanel } from "@/components/goals/goal-panel";
 import { SkeletonListRows } from "@/components/ui/skeleton";
 import { PageTitle } from "@/components/ui/typography";
-import { WorkspaceShell } from "@/components/workspace-shell";
 import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { isNotFoundError } from "@/spa/lib/fetch-json";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
@@ -40,16 +39,12 @@ function OwnerGoals({ ownerId }: { ownerId: string }) {
     void load();
     return () => controller.abort();
   }, [ownerId, revision]);
-  return (
-    <WorkspaceShell area="progress" userId={ownerId}>
-      {error ? (
-        <p role="alert">{error}</p>
-      ) : data ? (
-        <GoalPanel ownerId={ownerId} {...data} />
-      ) : (
-        <SkeletonListRows rows={4} />
-      )}
-    </WorkspaceShell>
+  return error ? (
+    <p role="alert">{error}</p>
+  ) : data ? (
+    <GoalPanel ownerId={ownerId} {...data} />
+  ) : (
+    <SkeletonListRows rows={4} />
   );
 }
 
