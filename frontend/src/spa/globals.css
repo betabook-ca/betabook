@@ -62,6 +62,9 @@
     --focus: var(--palette-support);
     --link: #3c4854;
     --navigation-active-background: color-mix(in oklab, var(--link) 14%, var(--background));
+    --tab-glass-tint: color-mix(in oklab, var(--surface) 70%, transparent);
+    --tab-glass-edge: rgb(255 255 255 / 60%);
+    --tab-glass-highlight: rgb(255 255 255 / 45%);
 
     /* Discipline chip colors (boulder/sport/trad). HeroUI's built-in chip
        colors are spoken for — success/warning are reserved for ascent-style
@@ -148,6 +151,9 @@
     --focus: #a5c6ed;
     --link: #c5d6e8;
     --navigation-active-background: #344352;
+    --tab-glass-tint: color-mix(in oklab, var(--background) 76%, transparent);
+    --tab-glass-edge: rgb(255 255 255 / 16%);
+    --tab-glass-highlight: rgb(255 255 255 / 12%);
 
     /* Discipline chips: translucent tint + a pastel of the same palette hue
        (same recipe as HeroUI's dark soft chip variants). */
@@ -219,10 +225,126 @@
   }
 }
 
+/* A floating glass surface, with an opaque fallback for reduced transparency. */
+.app-tab-bar-surface {
+  border: 1px solid var(--tab-glass-edge);
+  border-radius: 2rem;
+  max-width: 22.5rem;
+  padding: 0.125rem;
+  background: var(--background);
+  box-shadow:
+    0 4px 20px rgb(0 0 0 / 12%),
+    inset 0 1px 0 var(--tab-glass-highlight);
+}
+
+@supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
+  .app-tab-bar-surface {
+    background: var(--tab-glass-tint);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .app-tab-bar-surface {
+    background: var(--background);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Keep the spacer at full height so minimizing never moves the page. */
+.app-tab-bar-floating {
+  width: min(22.5rem, calc(100% - 3rem));
+}
+
+.app-tab-bar-floating[data-compact="true"] {
+  width: min(18rem, calc(100% - 4rem));
+}
+
+.app-tab-links a > span:first-child {
+  max-height: 1rem;
+  opacity: 1;
+}
+
+.app-tab-bar-floating[data-compact="true"] .app-tab-links {
+  height: 2.75rem;
+}
+
+.app-tab-bar-floating[data-compact="true"] .app-tab-links a {
+  gap: 0;
+}
+
+.app-tab-bar-floating[data-compact="true"] .app-tab-links a > span:first-child {
+  max-height: 0;
+  opacity: 0;
+}
+
+/* One selection surface moves beneath both the icon and label. */
+.app-tab-links {
+  position: relative;
+  isolation: isolate;
+}
+
+.app-tab-links::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: -1;
+  width: calc(100% / 3);
+  border-radius: 9999px;
+  background: var(--navigation-active-background);
+  opacity: 0;
+  transform: translateX(0);
+  pointer-events: none;
+}
+
+.app-tab-links:has(a[aria-current])::before {
+  opacity: 1;
+}
+
+.app-tab-links:has(> li:nth-child(2) a[aria-current])::before {
+  transform: translateX(100%);
+}
+
+.app-tab-links:has(> li:nth-child(3) a[aria-current])::before {
+  transform: translateX(200%);
+}
+
+.app-tab-links a[aria-current] {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .app-tab-bar-floating {
+    transition: width 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .app-tab-links {
+    transition: height 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .app-tab-links a > span:first-child {
+    transition:
+      max-height 220ms ease-out,
+      opacity 160ms ease-out;
+  }
+
+  .app-tab-links svg {
+    transition: stroke-width 160ms ease-out;
+  }
+
+  .app-tab-links::before {
+    transition:
+      transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 180ms ease-out;
+  }
+}
+
 /* Floating panels clear the phone tab bar (app-tab-bar.tsx) while it shows. */
 @media (width < 48rem) {
   :root:has([data-app-tab-bar]) {
-    --app-tab-bar-height: calc(3.5rem + env(safe-area-inset-bottom));
+    --app-tab-bar-height: calc(4rem + max(0.5rem, env(safe-area-inset-bottom)));
   }
 }
 

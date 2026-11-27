@@ -103,9 +103,12 @@ export function SidebarFrame({
               "relative isolate h-full min-h-0 overflow-hidden",
               pinned ? "@lg/navigation:pl-56" : "@lg/navigation:pl-16",
             ]
-          : pinned
-            ? "md:pl-56"
-            : "md:pl-16",
+          : [
+              "pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]",
+              pinned
+                ? "md:pl-[calc(14rem+env(safe-area-inset-left))]"
+                : "md:pl-[calc(4rem+env(safe-area-inset-left))]",
+            ],
       )}
     >
       {/* Hover and bubbled focus reveal navigation; the aside itself is not a control. */}
@@ -114,8 +117,10 @@ export function SidebarFrame({
         ref={sidebar}
         aria-label={label}
         className={clsx(
-          "inset-y-0 left-0 z-40 hidden flex-col bg-background motion-safe:transition-[width] motion-safe:duration-150 dark:bg-surface",
-          contained ? "absolute @lg/navigation:flex" : "fixed md:flex",
+          "inset-y-0 z-40 hidden flex-col bg-background motion-safe:transition-[width] motion-safe:duration-150 dark:bg-surface",
+          contained
+            ? "absolute left-0 @lg/navigation:flex"
+            : "fixed left-[env(safe-area-inset-left)] md:flex",
           expanded ? "w-56" : "w-16",
           preview && !pinned && "shadow-lg",
         )}

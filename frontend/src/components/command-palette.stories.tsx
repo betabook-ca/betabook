@@ -18,7 +18,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Mobile gives search a wide surface with the compact Betabook mark and a search icon. Desktop keeps the keyboard shortcut alongside separate Home branding.",
+          "The magnifier matches the shared search fields and Find climbs navigation. Mobile gives search a wide surface with the compact Betabook mark and a search icon. Desktop keeps the keyboard shortcut alongside separate Home branding.",
       },
     },
   },

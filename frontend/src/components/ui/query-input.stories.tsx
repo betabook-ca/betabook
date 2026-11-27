@@ -13,7 +13,7 @@ function Example() {
   return (
     <StoryPage
       title="Shared query field"
-      description="Search, filter, and sort boxes share responsive heights, including theme borders. Each consumer owns query or filter behavior."
+      description="Search, filter, and sort boxes share responsive heights, including theme borders. The magnifier matches header and navigation search icons. Each consumer owns query or filter behavior."
     >
       <QueryInput
         label="Limited query"

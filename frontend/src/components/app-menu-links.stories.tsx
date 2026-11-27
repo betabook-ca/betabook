@@ -44,3 +44,13 @@ export const SecondaryTools: Story = {
   args: { showPrimary: false },
   parameters: { router: { navigation: { pathname: "/account" } } },
 };
+
+export const FindClimbs: Story = {
+  parameters: { router: { navigation: { pathname: "/search" } } },
+};
+export const AddArea: Story = {
+  parameters: { router: { navigation: { pathname: "/areas/new" } } },
+};
+export const Tutorials: Story = {
+  parameters: { router: { navigation: { pathname: "/tutorial/journal/projects" } } },
+};

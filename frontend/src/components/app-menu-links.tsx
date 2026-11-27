@@ -2,17 +2,7 @@
 
 import { Button } from "@heroui/react";
 import { clsx } from "clsx";
-import {
-  type LucideIcon,
-  GraduationCap,
-  LogIn,
-  MapPinPlus,
-  UserPlus,
-  Plus,
-  Search,
-  ShieldCheck,
-  Smartphone,
-} from "lucide-react";
+import { type LucideIcon, LogIn, UserPlus, ShieldCheck, Smartphone } from "lucide-react";
 import type { ReactNode } from "react";
 
 import {
@@ -90,12 +80,10 @@ export function AppMenuLinks({
                 onNavigate={onNavigate}
               />
             ))}
-          <NavLink {...row} href={SEARCH_PATH} matchWithin>
-            <MenuIcon icon={Search} />
+          <NavLink {...row} href={SEARCH_PATH} matchWithin navigationIcon="search">
             <span className={labelClass}>Find climbs</span>
           </NavLink>
-          <NavLink {...row} href="/climbs/new" relatedPaths={["/areas/new"]}>
-            <MenuIcon icon={sidebar ? MapPinPlus : Plus} />
+          <NavLink {...row} href="/climbs/new" relatedPaths={["/areas/new"]} navigationIcon="add">
             <span className={labelClass}>Add climb or area</span>
           </NavLink>
         </MenuGroup>
@@ -115,8 +103,12 @@ export function AppMenuLinks({
         <MenuGroup bottom={sidebar} divided={Boolean(account)}>
           {account && (
             <>
-              <NavLink {...row} href={productTourPath("journal")}>
-                <MenuIcon icon={GraduationCap} />
+              <NavLink
+                {...row}
+                href={productTourPath("journal")}
+                isCurrent={pathname.startsWith("/tutorial/")}
+                navigationIcon="tutorials"
+              >
                 <span className={labelClass}>Tutorials</span>
               </NavLink>
               {account.isAdmin && (

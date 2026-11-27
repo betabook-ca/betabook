@@ -3,6 +3,7 @@
 import { clsx } from "clsx";
 import type { ComponentProps } from "react";
 
+import { PrimaryNavigationIcon } from "@/components/primary-navigation-icon";
 import { AppLink } from "@/components/ui/app-link";
 import { usePathname } from "@/spa/lib/navigation";
 
@@ -18,6 +19,7 @@ type NavLinkProps = Omit<ComponentProps<typeof AppLink>, "href"> &
     href: string;
     appearance?: "link" | "menu" | "sidebar" | "tab";
     isCurrent?: boolean;
+    navigationIcon?: ComponentProps<typeof PrimaryNavigationIcon>["area"];
   };
 
 export const MENU_TRIGGER_CLASS =
@@ -51,6 +53,8 @@ export function NavLink({
   relatedPaths,
   isCurrent,
   className,
+  navigationIcon,
+  children,
   ...props
 }: NavLinkProps) {
   const pathname = usePathname();
@@ -75,14 +79,17 @@ export function NavLink({
             : MENU_ROW_IDLE_CLASS,
         ],
         appearance === "tab" && [
-          "flex size-full flex-col items-center justify-center gap-1 text-xs no-underline transition-colors hover:no-underline",
-          current ? "font-semibold text-link" : "text-muted hover:text-foreground",
+          "flex size-full flex-col items-center justify-center gap-1 rounded-full text-xs font-normal no-underline transition-colors duration-200 ease-out hover:no-underline motion-reduce:transition-none",
+          current ? "bg-navigation-active text-link" : "text-muted hover:text-foreground",
         ],
         appearance === "link" &&
           "aria-[current=location]:underline aria-[current=location]:underline-offset-4 aria-[current=page]:underline aria-[current=page]:underline-offset-4",
         className,
       )}
       {...props}
-    />
+    >
+      {navigationIcon && <PrimaryNavigationIcon area={navigationIcon} active={Boolean(current)} />}
+      {children}
+    </AppLink>
   );
 }

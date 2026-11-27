@@ -2,6 +2,51 @@ import { expect } from "./story";
 import { signInMember, test } from "./worker-app";
 
 test(
+  "phone navigation clears the home indicator and reserves space below the footer",
+  { tag: ["@app", "@layout"] },
+  async ({ page, workerApp }) => {
+    await signInMember(page.request, workerApp, "member");
+    await page.goto(new URL("/users/member/goals", workerApp.url).href);
+    const nav = page.getByRole("navigation", { name: "Primary", exact: true });
+    const viewport = page.viewportSize();
+    if (!viewport) throw new Error("Expected a configured viewport");
+    if (viewport.width >= 768) {
+      await expect(nav).toBeHidden();
+      return;
+    }
+    const device = await page.context().newCDPSession(page);
+    for (const bottom of [0, 34]) {
+      await device.send("Emulation.setSafeAreaInsetsOverride", { insets: { bottom } });
+      await expect(nav).toHaveCSS("bottom", `${Math.max(bottom, 8)}px`);
+      const bar = await nav.boundingBox();
+      if (!bar) throw new Error("Expected the phone navigation");
+      expect(bar.height).toBeLessThanOrEqual(62);
+      expect(bar.x).toBeGreaterThanOrEqual(16);
+      expect(viewport.width - bar.x - bar.width).toBeGreaterThanOrEqual(16);
+      for (const link of await nav.getByRole("link").all()) {
+        const box = await link.boundingBox();
+        if (!box) throw new Error("Expected a navigation target");
+        expect(box.height).toBeGreaterThanOrEqual(44);
+        expect(box.y + box.height).toBeLessThanOrEqual(viewport.height - bottom);
+      }
+      const spacer = page.locator("[data-app-tab-bar]").locator("xpath=preceding-sibling::*[1]");
+      const space = await spacer.boundingBox();
+      if (!space) throw new Error("Expected the navigation spacer");
+      expect(space.height).toBeGreaterThanOrEqual(viewport.height - bar.y);
+      await page
+        .getByRole("link", { name: "Terms of Service", exact: true })
+        .scrollIntoViewIfNeeded();
+      const terms = await page
+        .getByRole("link", { name: "Terms of Service", exact: true })
+        .boundingBox();
+      if (!terms) throw new Error("Expected the footer link");
+      expect(terms.y + terms.height).toBeLessThanOrEqual(bar.y);
+    }
+    await device.detach();
+  },
+);
+
+test(
   "an unavailable session check on tab return preserves the unsaved account draft",
   { tag: ["@app", "@behavior"] },
   async ({ page, workerApp }) => {

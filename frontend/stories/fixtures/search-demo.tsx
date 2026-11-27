@@ -1,5 +1,4 @@
 import { Button, useOverlayState } from "@heroui/react";
-import { Search } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import { ratingActiveFilters } from "@/components/filters/active-filter-values";
@@ -12,6 +11,7 @@ import type { SearchResult, SearchStatus } from "@/components/search/search-type
 import { cardClass } from "@/components/ui/card";
 import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { OptionSelect } from "@/components/ui/option-select";
+import { SearchIcon } from "@/components/ui/search-icon";
 import { SectionHeading } from "@/components/ui/typography";
 import type { AreaSelection } from "@/lib/area-selection";
 
@@ -180,7 +180,7 @@ export function SearchDemo({
             North Woods · Search globally or choose this area explicitly.
           </p>
           <Button variant="secondary" onPress={overlay.open} className="self-start">
-            <Search className="size-4" aria-hidden />
+            <SearchIcon className="size-4" aria-hidden />
             Search Betabook
           </Button>
         </div>

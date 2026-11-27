@@ -15,7 +15,16 @@ import { SidebarLayout } from "./app-sidebar";
 const meta = {
   title: "Components/Navigation/Sidebar",
   component: SidebarLayout,
-  parameters: { fullWidth: true, router: { navigation: { pathname: "/feed" } } },
+  parameters: {
+    fullWidth: true,
+    router: { navigation: { pathname: "/feed" } },
+    docs: {
+      description: {
+        component:
+          "The viewport sidebar and its page frame respect lateral device safe areas, including notched phones using the desktop layout in landscape. Contained tutorial sidebars retain their local spacing.",
+      },
+    },
+  },
   decorators: [
     (Story) => (
       <div className="-m-4">

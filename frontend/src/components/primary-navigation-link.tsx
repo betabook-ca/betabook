@@ -8,6 +8,23 @@ import {
 import { NavLink } from "@/components/nav-link";
 import { PrimaryNavigationIcon } from "@/components/primary-navigation-icon";
 import type { PrimaryDestination } from "@/lib/app-navigation";
+import { formatCount } from "@/lib/format";
+
+function notificationLabel(
+  item: PrimaryDestination,
+  requestCount: number,
+  notificationCount: number | undefined,
+  tab: boolean,
+) {
+  if (tab && notificationCount !== undefined) {
+    return notificationCount > 0
+      ? `${item.label}, ${formatCount(notificationCount, "notification")}`
+      : undefined;
+  }
+  return item.id === "community" && requestCount > 0
+    ? withRequestCount(item.label, requestCount)
+    : undefined;
+}
 
 /** Shared rendering for real navigation and lesson-local navigation previews. */
 export function PrimaryNavigationLink({
@@ -17,6 +34,7 @@ export function PrimaryNavigationLink({
   appearance,
   collapsed = false,
   requestCount = 0,
+  notificationCount,
   onNavigate,
 }: {
   item: PrimaryDestination;
@@ -25,10 +43,12 @@ export function PrimaryNavigationLink({
   appearance: "sidebar" | "menu" | "tab";
   collapsed?: boolean;
   requestCount?: number;
+  notificationCount?: number;
   onNavigate?: () => void;
 }) {
   const community = item.id === "community";
   const tab = appearance === "tab";
+  const tabCount = notificationCount ?? (community ? requestCount : 0);
   return (
     <NavLink
       href={item.href}
@@ -36,9 +56,7 @@ export function PrimaryNavigationLink({
       isCurrent={current}
       onClick={onNavigate}
       aria-description={item.id === "account" ? account.name : undefined}
-      aria-label={
-        community && requestCount > 0 ? withRequestCount(item.label, requestCount) : undefined
-      }
+      aria-label={notificationLabel(item, requestCount, notificationCount, tab)}
       className={
         tab
           ? undefined
@@ -49,24 +67,21 @@ export function PrimaryNavigationLink({
       <span
         className={
           tab
-            ? clsx(
-                "relative order-first flex h-7 w-10 items-center justify-center rounded-lg",
-                current && "bg-navigation-active",
-              )
+            ? "relative order-first flex h-7 w-10 items-center justify-center"
             : "relative order-first shrink-0"
         }
       >
-        <PrimaryNavigationIcon area={item.id} account={account} />
-        {community &&
-          (tab ? (
-            <FriendRequestBadge
-              decorative
-              count={requestCount}
-              className="absolute -top-1 right-0"
-            />
-          ) : collapsed && requestCount > 0 ? (
-            <FriendRequestDot className="absolute -top-1 -right-1" />
-          ) : null)}
+        <PrimaryNavigationIcon area={item.id} active={current} />
+        {tab && tabCount > 0 ? (
+          <FriendRequestBadge
+            compact
+            decorative
+            count={tabCount}
+            className="absolute top-0 left-[calc(50%+0.875rem)]"
+          />
+        ) : community && collapsed && requestCount > 0 ? (
+          <FriendRequestDot className="absolute -top-1 -right-1" />
+        ) : null}
       </span>
       {/* Flex layout drops this space visually, but it keeps the visible text
           reading "Community 3" rather than "Community3", so the aria-label's
