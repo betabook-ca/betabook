@@ -1,44 +1,32 @@
-import type { ClimbVideos } from "@/db/queries";
-import type {
-  PublicAreaDetails,
-  PublicClimb,
-  PublicClimbSend,
-  PublicClimbsPage,
-} from "@/lib/public-catalog";
+import type { ApiResponse } from "@/spa/lib/api";
 
-export type ClimbPageData = {
-  climbId: number;
-  climb: PublicClimb;
-  area: PublicAreaDetails | null;
-  ancestors: PublicAreaDetails[];
-  publicSends: PublicClimbSend[];
-  videos: ClimbVideos;
-};
+export type ClimbPageData = Pick<
+  ApiResponse<"/api/public/climbs/{id}">,
+  "climb" | "area" | "ancestors" | "publicSends" | "videos"
+> & { climbId: number };
 
-export type SearchBootstrapData = {
-  climbsPage: PublicClimbsPage;
-};
+export type SearchBootstrapData = { climbsPage: ApiResponse<"/api/public/search/climbs"> };
+export type AuthConfig = ApiResponse<"/api/config/auth">;
 
-export type AuthConfig = {
-  googleEnabled: boolean;
-  turnstileSiteKey: string | null;
-};
-
-export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
+export async function fetchJson<T>(
+  url: string,
+  init?: RequestInit,
+  transport: typeof fetch = fetch,
+  errorMessage?: string,
+): Promise<T> {
+  const response = await transport(url, {
     credentials: "same-origin",
     ...init,
   });
-  const text = await response.text();
-  const payload = text ? (JSON.parse(text) as T & { error?: string; message?: string }) : null;
-  if (!response.ok) {
-    const err = new Error(
-      payload?.message ?? payload?.error ?? `Request failed (${response.status})`,
-    );
-    (err as Error & { status?: number }).status = response.status;
-    throw err;
+  if (response.ok) {
+    return response.status === 204 ? (null as T) : response.json<T>();
   }
-  return payload as T;
+  const payload = await response.json<{ error?: string; message?: string }>().catch(() => null);
+  const err = new Error(
+    errorMessage ?? payload?.message ?? payload?.error ?? `Request failed (${response.status})`,
+  );
+  (err as Error & { status?: number }).status = response.status;
+  throw err;
 }
 
 export function isNotFoundError(err: unknown): boolean {

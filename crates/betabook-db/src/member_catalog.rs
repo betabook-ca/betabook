@@ -6,6 +6,7 @@ use crate::executor::{DbError, DbExecutor, DbParam};
 use crate::fts::to_fts_prefix_query;
 use crate::public_catalog::LARGE_AREA_SUBTREE_AREAS;
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct AreaWithSubtreeSize {
@@ -16,6 +17,7 @@ pub struct AreaWithSubtreeSize {
     pub large_subtree: bool,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ClimbRecord {
@@ -33,6 +35,7 @@ pub struct ClimbRecord {
     pub avg_rating: Option<f64>,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct GradeHistogramRow {
@@ -42,6 +45,7 @@ pub struct GradeHistogramRow {
     pub count: i64,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ClimbListChoice {

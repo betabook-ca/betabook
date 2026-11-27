@@ -19,3 +19,6 @@ pub mod site;
 pub mod slug;
 pub mod terms;
 pub mod trips;
+
+#[cfg(feature = "api-spec")]
+pub mod wire;

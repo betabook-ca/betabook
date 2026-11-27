@@ -7,10 +7,10 @@ import { useState, type ReactNode } from "react";
 import { DetailsDisclosure } from "@/components/ui/details-disclosure";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
 import { usePagedList } from "@/hooks/use-paged-list";
-import { apiFetch } from "@/lib/api-client";
 import { goalDateLabel } from "@/lib/goal-date-label";
 import { goalWeekSlots } from "@/lib/goal-week-slots";
 import type { GoalPeriod, GoalProgress, GoalHistoryPage } from "@/lib/goals";
+import { fetchApi } from "@/spa/lib/api";
 
 function periodStatus(period: GoalPeriod, today: string) {
   if (period.progress >= period.target) return "Met";
@@ -375,11 +375,18 @@ function RecurringHistoryPages({
   ): Promise<GoalHistoryPage> {
     const offset = offsets[page];
     if (loadHistory) return loadHistory(offset, anchorMonth);
-    const params = new URLSearchParams({ historyId: String(goal.id), offset: String(offset) });
-    if (anchorMonth) params.set("anchor", anchorMonth);
-    const res = await apiFetch(`/api/users/${ownerId}/goals?${params}`, { signal });
-    if (!res.ok) throw new Error(res.statusText);
-    return res.json<GoalHistoryPage>();
+    const data = await fetchApi("/api/users/{id}/goals", {
+      path: { id: ownerId },
+      query: { historyId: goal.id, offset, anchor: anchorMonth },
+      signal,
+      sessionEvents: true,
+    });
+    if (!("periods" in data)) throw new Error("Couldn't load goal history.");
+    return {
+      ...data,
+      nextOffset: data.nextOffset ?? offset,
+      anchorMonth: data.anchorMonth ?? anchorMonth ?? today.slice(0, 7),
+    };
   }
   return (
     <HistoryDisclosure expanded={expanded} onExpandedChange={setExpanded}>

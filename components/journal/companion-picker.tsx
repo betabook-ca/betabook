@@ -9,16 +9,15 @@ import { FIELD_WIDTH_CLASS, type FieldWidth } from "@/components/ui/field";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useSearchLookup, type LookupFetcher } from "@/hooks/use-search-lookup";
-import { apiFetch } from "@/lib/api-client";
 import { MAX_JOURNAL_COMPANIONS, type CompanionOption } from "@/lib/journal-companions";
+import { fetchApi } from "@/spa/lib/api";
 
 async function fetchFriends(query: string, signal: AbortSignal): Promise<CompanionOption[]> {
-  const response = await apiFetch(`/api/friends/companions?q=${encodeURIComponent(query)}`, {
+  const data = await fetchApi("/api/friends/companions", {
+    query: { q: query },
     signal,
-    cache: "no-store",
+    sessionEvents: true,
   });
-  if (!response.ok) throw new Error("Friend lookup failed");
-  const data = await response.json<{ friends: CompanionOption[] }>();
   return data.friends;
 }
 

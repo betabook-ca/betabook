@@ -4,31 +4,18 @@ import { useParams, useSearchParams } from "react-router";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { Skeleton, SkeletonListRows } from "@/components/ui/skeleton";
 import { PageTitle } from "@/components/ui/typography";
-import type { HardestSend } from "@/db/queries/climber-overview";
 import { parseJournalFilter } from "@/lib/filters/journal-filter";
-import type { FriendshipStatus } from "@/lib/friendships";
 import { searchParamsToRecord } from "@/lib/url-params";
+import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
-import { fetchJson, isNotFoundError } from "@/spa/lib/fetch-json";
-import {
-  SpaJournalView,
-  SpaProfileHeader,
-  type JournalViewPayload,
-  type MemberAccessInfo,
-  type MemberProfileUser,
-} from "@/spa/lib/profile-shell";
+import { isNotFoundError } from "@/spa/lib/fetch-json";
+import { SpaJournalView, SpaProfileHeader } from "@/spa/lib/profile-shell";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
 
-type LoadedUserJournal = {
+type LoadedUserJournal = ApiResponse<"/api/pages/users/{id}/journal"> & {
   targetUserId: string;
   viewerId: string;
   query: string;
-  user: MemberProfileUser;
-  isOwner: boolean;
-  relationship: FriendshipStatus;
-  access: MemberAccessInfo;
-  hardest: HardestSend[];
-  journal: JournalViewPayload;
 };
 
 export default function UserJournalRoute({ viewerId }: { viewerId: string | null }) {
@@ -57,14 +44,14 @@ export default function UserJournalRoute({ viewerId }: { viewerId: string | null
     }
     const targetUserId = userId;
     const targetViewerId = viewerId;
-    const querySuffix = rawQuery ? `?${rawQuery}` : "";
     let cancelled = false;
 
     async function load() {
       try {
-        const res = await fetchJson<Omit<LoadedUserJournal, "targetUserId" | "viewerId" | "query">>(
-          `/api/pages/users/${encodeURIComponent(targetUserId)}/journal${querySuffix}`,
-        );
+        const res = await fetchApi("/api/pages/users/{id}/journal", {
+          path: { id: targetUserId },
+          query: new URLSearchParams(rawQuery),
+        });
         if (!cancelled) {
           setError(null);
           setNotFound(false);

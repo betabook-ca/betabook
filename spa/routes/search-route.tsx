@@ -7,7 +7,8 @@ import type { AreaSelection } from "@/lib/area-selection";
 import { parseSearchState, publicClimbSearchItems, type SearchSnapshot } from "@/lib/search";
 import { searchParamsToRecord } from "@/lib/url-params";
 import { peekBootstrapData } from "@/spa/bootstrap";
-import { fetchJson, type SearchBootstrapData } from "@/spa/lib/fetch-json";
+import { fetchApi } from "@/spa/lib/api";
+import type { SearchBootstrapData } from "@/spa/lib/fetch-json";
 
 export default function SearchRoute({ viewerId }: { viewerId: string | null }) {
   const [searchParams] = useSearchParams();
@@ -52,10 +53,9 @@ export default function SearchRoute({ viewerId }: { viewerId: string | null }) {
     let cancelled = false;
     async function loadArea() {
       try {
-        const res = await fetchJson<{
-          area: { id: number; name: string };
-          ancestors: { id: number; name: string }[];
-        }>(`/api/public/areas/${requestedAreaId}`);
+        const res = await fetchApi("/api/public/areas/{id}", {
+          path: { id: String(requestedAreaId) },
+        });
         if (!cancelled) {
           setResolvedArea({
             areaId: res.area.id,
@@ -67,7 +67,7 @@ export default function SearchRoute({ viewerId }: { viewerId: string | null }) {
           });
         }
       } catch {
-        // Preserve the requested ID even when its display name is unavailable.
+        // Keep the explicit ID when its catalog entry is unavailable.
       }
     }
     void loadArea();

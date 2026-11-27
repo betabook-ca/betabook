@@ -5,6 +5,7 @@ use url::Url;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 pub struct TripInput {
     pub name: String,
     pub description: Option<String>,
@@ -102,15 +103,18 @@ pub fn album_link(raw: &str) -> Option<String> {
         .then(|| format!("https://photos.google.com{path}?key={key}"))
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, serde::Serialize, Deserialize)]
 pub struct AlbumPhoto {
     pub url: String,
     pub width: u32,
     pub height: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "api-spec", schemars(with = "Video"))]
     pub video: Option<Video>,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, serde::Serialize, Deserialize)]
 pub struct Video {
     pub duration: u32,

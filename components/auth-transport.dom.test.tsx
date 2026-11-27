@@ -119,3 +119,14 @@ it.each(["sign in", "sign up"])("retries an offline verification resend from %s"
   expect(transport.mock.calls[2][1]?.body).toBe(transport.mock.calls[1][1]?.body);
   expect(requestUrl(transport.mock.calls[2][0])).toContain("/send-verification-email");
 });
+
+it("shows the Worker’s error field when the response has no auth-specific message", async () => {
+  transport.mockResolvedValueOnce(
+    Response.json({ error: "Use a different display name." }, { status: 422 }),
+  );
+  const user = userEvent.setup();
+  render(<SignUpForm />);
+  await fillForm(user);
+  await user.click(screen.getByRole("button", { name: "Sign up" }));
+  expect(await screen.findByText("Use a different display name.")).toBeVisible();
+});

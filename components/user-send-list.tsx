@@ -9,8 +9,8 @@ import { AppLink } from "@/components/ui/app-link";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { AreaBreadcrumbs, UserSendRow, UserSendsFilter } from "@/db/queries";
 import { usePagedList } from "@/hooks/use-paged-list";
-import { apiFetch } from "@/lib/api-client";
 import { userSendsFilterToSearchParams } from "@/lib/filters/user-sends-filter";
+import { fetchApi } from "@/spa/lib/api";
 
 type UserSendListProps = {
   userId: string;
@@ -21,12 +21,6 @@ type UserSendListProps = {
   /** Distinguishes an empty logbook from a filter with no matches. */
   hasAnySends: boolean;
   currentUserId: string;
-};
-
-type UserSendsPageResponse = {
-  sends: UserSendRow[];
-  hasMore: boolean;
-  areaBreadcrumbs: AreaBreadcrumbs;
 };
 
 /** Key the list by filters. Same-key refreshes revalidate the loaded depth
@@ -56,12 +50,12 @@ export function UserSendList({
     fetchPage: async (offset, _page, _last, signal) => {
       const params = userSendsFilterToSearchParams(filter);
       params.set("offset", String(offset));
-      const res = await apiFetch(`/api/users/${userId}/sends?${params.toString()}`, {
-        cache: "no-store",
+      const data = await fetchApi("/api/users/{id}/sends", {
+        path: { id: userId },
+        query: params,
         signal,
+        sessionEvents: true,
       });
-      if (!res.ok) throw new Error(`Loading sends failed: ${res.status}`);
-      const data: UserSendsPageResponse = await res.json();
       return {
         items: data.sends,
         hasMore: data.hasMore,

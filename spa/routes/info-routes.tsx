@@ -11,7 +11,7 @@ import { PageTitle } from "@/components/ui/typography";
 import type { CloudflareUsage } from "@/lib/running-costs";
 import { SUPPORT_URL } from "@/lib/site";
 import { TERMS_VERSIONS, termsHref } from "@/lib/terms";
-import { fetchJson } from "@/spa/lib/fetch-json";
+import { fetchApi } from "@/spa/lib/api";
 import AboutContent from "@/spa/routes/about-content";
 import ClimbingLogbookContent from "@/spa/routes/logbook-content";
 
@@ -21,7 +21,7 @@ function Costs() {
     const controller = new AbortController();
     async function load() {
       try {
-        const data = await fetchJson<CloudflareUsage | null>("/api/public/usage", {
+        const data = await fetchApi("/api/public/usage", {
           signal: controller.signal,
         });
         if (!controller.signal.aborted) setUsage(data);

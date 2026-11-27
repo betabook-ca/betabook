@@ -20,7 +20,7 @@ type Audiences = {
 };
 type ContentKind = keyof Audiences;
 
-const SAVE_AUDIENCE: Record<ContentKind, typeof setJournalVisibility> = {
+const SAVE_AUDIENCE = {
   journal: setJournalVisibility,
   sendComment: setSendCommentVisibility,
   trips: setTripVisibility,
@@ -69,12 +69,15 @@ export function PrivacyControls({
   }
 
   function handleAudienceChange<K extends ContentKind>(kind: K, next: Audiences[K]) {
+    if (next === "everyone" && kind !== "sendComment") return;
     const previous = audiences[kind];
     setAudiences((current) => ({ ...current, [kind]: next }));
     setErrors((current) => ({ ...current, [kind]: undefined }));
     startTransition(async () => {
       try {
-        const result = await SAVE_AUDIENCE[kind](next);
+        const result = await (next === "everyone"
+          ? setSendCommentVisibility(next)
+          : SAVE_AUDIENCE[kind](next));
         if (!result.ok) {
           setAudiences((current) => ({ ...current, [kind]: previous }));
           setErrors((current) => ({ ...current, [kind]: result.error }));

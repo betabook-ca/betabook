@@ -6,6 +6,7 @@ import { TermsAcceptanceForm } from "@/components/terms-acceptance-form";
 import type { ActionResult } from "@/lib/action-result";
 import { TERMS_REQUIRED_EVENT, TERMS_UPDATED_LABEL, TERMS_VERSION } from "@/lib/terms";
 import { isTermsExemptPath } from "@/lib/terms-navigation";
+import { fetchApi } from "@/spa/lib/api";
 import { usePathname, useRouter } from "@/spa/lib/navigation";
 
 const TermsPendingContext = createContext(false);
@@ -77,19 +78,11 @@ export function TermsGate({
       if (pending || document.visibilityState !== "visible") return;
       pending = true;
       try {
-        const response = await fetch("/api/terms/status", {
-          cache: "no-store",
+        const status = await fetchApi("/api/terms/status", {
           signal: controller.signal,
+          cache: "no-store",
         });
-        if (!response.ok) return;
-        const status: {
-          userId?: unknown;
-          required?: unknown;
-          version?: unknown;
-          versionLabel?: unknown;
-          previousVersion?: unknown;
-        } = await response.json();
-        if (!disposed && status.userId === viewerId && status.required === true) {
+        if (!disposed && status.userId === viewerId && status.required) {
           setPrompt({
             version: typeof status.version === "string" ? status.version : version,
             versionLabel:

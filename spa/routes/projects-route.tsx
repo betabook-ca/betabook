@@ -1,41 +1,24 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router";
 
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { expiredLinkCard } from "@/components/expired-link-card";
 import { ProjectBoard } from "@/components/journal/project-board";
-import type { ProjectWithSessions } from "@/components/journal/project-card";
 import { ProjectTabs } from "@/components/journal/project-tabs";
 import { SharedProject } from "@/components/shared-project";
 import { SkeletonListRows } from "@/components/ui/skeleton";
 import { PageTitle, SectionHeading } from "@/components/ui/typography";
 import { WorkspaceShell } from "@/components/workspace-shell";
-import type {
-  OpenProject,
-  SharedProject as ProjectDetails,
-  SharedProjectSession,
-} from "@/db/queries";
 import { projectSharePath } from "@/lib/project-share";
 import { peekBootstrapData } from "@/spa/bootstrap";
+import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
-import { fetchJson, isNotFoundError } from "@/spa/lib/fetch-json";
+import { isNotFoundError } from "@/spa/lib/fetch-json";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
 
-type Board = {
-  projects: ProjectWithSessions[];
-  hasMore: boolean;
-  pinnedClimbIds: number[];
-  suggestions: OpenProject[];
-};
-type Shared =
-  | { status: "hidden" | "expired" }
-  | {
-      status: "visible";
-      project: ProjectDetails;
-      sessions: SharedProjectSession[];
-    };
+type Shared = ApiResponse<"/api/pages/projects/{token}">;
 
-function useProjectData<T>(url: string, initial: T | null = null) {
+function useProjectData<T>(read: (signal: AbortSignal) => Promise<T>, initial: T | null = null) {
   const [data, setData] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const refresh = useRouterRefreshKey();
@@ -44,7 +27,7 @@ function useProjectData<T>(url: string, initial: T | null = null) {
     const controller = new AbortController();
     async function load() {
       try {
-        const value = await fetchJson<T>(url, { signal: controller.signal });
+        const value = await read(controller.signal);
         if (controller.signal.aborted) return;
         setError(null);
         setData(value);
@@ -56,14 +39,17 @@ function useProjectData<T>(url: string, initial: T | null = null) {
     }
     void load();
     return () => controller.abort();
-  }, [initial, refresh, url]);
+  }, [initial, refresh, read]);
   return { data, error };
 }
 
 function OwnerBoard({ userId, sent }: { userId: string; sent: boolean }) {
-  const { data, error } = useProjectData<Board>(
-    `/api/pages/users/${encodeURIComponent(userId)}/projects?sent=${sent}`,
+  const read = useCallback(
+    (signal: AbortSignal) =>
+      fetchApi("/api/pages/users/{id}/projects", { path: { id: userId }, query: { sent }, signal }),
+    [userId, sent],
   );
+  const { data, error } = useProjectData(read);
   if (error) return <p role="alert">{error}</p>;
   if (!data) return <SkeletonListRows rows={4} />;
   const variant = sent ? "sent" : "open";
@@ -88,7 +74,11 @@ function OwnerBoard({ userId, sent }: { userId: string; sent: boolean }) {
 function PublicProject({ token, signedIn }: { token: string; signedIn: boolean }) {
   const path = projectSharePath(encodeURIComponent(token));
   const [initial] = useState(() => peekBootstrapData("shared-project", path) as Shared | null);
-  const { data, error } = useProjectData<Shared>(`/api/pages${path}`, initial);
+  const read = useCallback(
+    (signal: AbortSignal) => fetchApi("/api/pages/projects/{token}", { path: { token }, signal }),
+    [token],
+  );
+  const { data, error } = useProjectData(read, initial);
   usePageTitle(
     data?.status === "visible"
       ? data.project.ownerName +

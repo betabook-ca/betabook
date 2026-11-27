@@ -13,5 +13,7 @@ run = [
   "cargo fmt --all -- --check",
   "cargo clippy --locked --workspace --all-targets -- -D warnings",
   "cargo clippy --locked -p betabook-worker --target wasm32-unknown-unknown -- -D warnings",
+  "cargo clippy --locked -p betabook-worker --all-targets --features api-spec -- -D warnings",
   "cargo test --locked --workspace",
+  "cargo test --locked -p betabook-worker --features api-spec --lib",
 ]

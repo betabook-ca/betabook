@@ -10,19 +10,22 @@ const PIN_LIMIT: i64 = 100;
 const CLIMB_COLUMNS: &str = "c.id AS climbId, c.name AS climbName, c.type AS climbType,
     c.grade AS climbGrade, c.broken_on AS climbBrokenOn, c.area_id AS areaId, a.name AS areaName";
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectSummary {
     climb_id: i64,
     climb_name: String,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "betabook_domain::grades::ClimbType")
+    )]
     climb_type: String,
     climb_grade: Option<i64>,
     climb_broken_on: Option<String>,
     area_id: i64,
     area_name: String,
     session_count: i64,
-    first_session: Option<String>,
-    last_session: Option<String>,
 }
 
 impl ProjectSummary {
@@ -36,12 +39,11 @@ impl ProjectSummary {
             area_id: row.get_i64("areaId")?,
             area_name: row.get_string("areaName")?,
             session_count: row.get_i64("sessionCount")?,
-            first_session: row.get_opt_string("firstSession")?,
-            last_session: row.get_opt_string("lastSession")?,
         })
     }
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectLink {
@@ -49,11 +51,14 @@ pub struct ProjectLink {
     expires_at: Option<String>,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PinnedProject {
     #[serde(flatten)]
     summary: ProjectSummary,
+    first_session: Option<String>,
+    last_session: Option<String>,
     note_count: i64,
     pinned_at: String,
     sent: bool,
@@ -62,14 +67,18 @@ pub struct PinnedProject {
     sessions: Vec<JournalEntry>,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Suggestion {
     #[serde(flatten)]
     summary: ProjectSummary,
+    first_session: String,
+    last_session: String,
     note_count: i64,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectBoard {
@@ -127,6 +136,8 @@ pub async fn project_board<D: DbExecutor>(
             let summary = ProjectSummary::from_row(row)?;
             let expires_at = row.get_opt_string("expires_at")?;
             Ok(PinnedProject {
+                first_session: row.get_opt_string("firstSession")?,
+                last_session: row.get_opt_string("lastSession")?,
                 sessions: sessions.remove(&summary.climb_id).unwrap_or_default(),
                 summary,
                 sent,
@@ -153,6 +164,8 @@ pub async fn project_board<D: DbExecutor>(
           GROUP BY j.climb_id ORDER BY sessionCount DESC,lastSession DESC,j.climb_id LIMIT 8");
         for row in db.query_all(&sql, &[owner.into()]).await? {
             suggestions.push(Suggestion {
+                first_session: row.get_string("firstSession")?,
+                last_session: row.get_string("lastSession")?,
                 summary: ProjectSummary::from_row(&row)?,
                 note_count: row.get_i64("noteCount")?,
             });
@@ -270,20 +283,31 @@ pub async fn unshare_project<D: DbExecutor>(
 const SHARE_FROM: &str = "FROM project_share_links l JOIN pinned_projects p ON p.user_id=l.user_id AND p.climb_id=l.climb_id JOIN user u ON u.id=l.user_id";
 const READABLE: &str = "u.is_private=0 AND (l.expires_at IS NULL OR l.expires_at>datetime('now'))";
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SharedProject {
     #[serde(flatten)]
     summary: ProjectSummary,
+    first_session: Option<String>,
+    last_session: Option<String>,
     owner_id: String,
     pub owner_name: String,
     owner_image: Option<String>,
     pinned_at: String,
     pub sent: bool,
     sent_on: Option<String>,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "Option<betabook_domain::wire::AscentStyle>")
+    )]
     ascent_style: Option<String>,
     rating: Option<i64>,
     suggested_grade: Option<i64>,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "Option<betabook_domain::wire::GradeFeel>")
+    )]
     grade_feel: Option<String>,
     send_comment: Option<String>,
 }
@@ -294,6 +318,7 @@ impl SharedProject {
     }
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SharedSession {
@@ -303,6 +328,7 @@ pub struct SharedSession {
     tags: Vec<String>,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Serialize)]
 #[serde(tag = "status", rename_all = "lowercase")]
 pub enum SharedAccess {
@@ -332,6 +358,8 @@ pub async fn shared_project<D: DbExecutor>(db: &D, token: &str) -> Result<Shared
         return Ok(SharedAccess::Expired);
     }
     let project = SharedProject {
+        first_session: row.get_opt_string("firstSession")?,
+        last_session: row.get_opt_string("lastSession")?,
         summary: ProjectSummary::from_row(&row)?,
         owner_id: row.get_string("ownerId")?,
         owner_name: row.get_string("ownerName")?,

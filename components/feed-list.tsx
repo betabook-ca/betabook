@@ -11,9 +11,9 @@ import { LoadMoreButton } from "@/components/ui/load-more-button";
 import type { FeedDay, FeedPage } from "@/db/queries";
 import { useClientSession } from "@/hooks/use-client-session";
 import { usePagedList } from "@/hooks/use-paged-list";
-import { apiFetch } from "@/lib/api-client";
 import type { FeedCursor, FeedView } from "@/lib/feed";
 import { signInUrl } from "@/lib/sign-in-redirect";
+import { fetchApi } from "@/spa/lib/api";
 import { useRouter } from "@/spa/lib/navigation";
 
 export function FeedList({
@@ -51,9 +51,7 @@ export function FeedList({
             view,
           } satisfies FeedCursor),
         );
-      const response = await apiFetch(`/api/feed?${params}`, { cache: "no-store", signal });
-      if (!response.ok) throw new Error("Couldn't load feed");
-      const page = await response.json<FeedPage>();
+      const page = await fetchApi("/api/feed", { query: params, signal, sessionEvents: true });
       return { items: page.days, hasMore: page.hasMore, meta: null };
     },
   });

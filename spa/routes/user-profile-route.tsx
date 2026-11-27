@@ -4,43 +4,25 @@ import { useParams, useSearchParams } from "react-router";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { Skeleton, SkeletonListRows } from "@/components/ui/skeleton";
 import { PageTitle } from "@/components/ui/typography";
-import type { HardestSend } from "@/db/queries/climber-overview";
 import { parseJournalFilter } from "@/lib/filters/journal-filter";
 import { parseUserSendsFilter } from "@/lib/filters/user-sends-filter";
-import type { FriendshipStatus } from "@/lib/friendships";
 import { searchParamsToRecord } from "@/lib/url-params";
+import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
-import { fetchJson, isNotFoundError, isUnauthorizedError } from "@/spa/lib/fetch-json";
+import { isNotFoundError, isUnauthorizedError } from "@/spa/lib/fetch-json";
 import {
   SpaJournalView,
   SpaProfileHeader,
   SpaSendsView,
   SpaSharedProfileView,
-  type JournalViewPayload,
-  type MemberAccessInfo,
-  type MemberProfileUser,
-  type SendsViewPayload,
-  type SharedProfilePayload,
 } from "@/spa/lib/profile-shell";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
-
-type MemberProfilePayload = {
-  mode: "member";
-  user: MemberProfileUser;
-  isOwner: boolean;
-  relationship: FriendshipStatus;
-  access: MemberAccessInfo;
-  hardest: HardestSend[];
-  defaultTab: "journal" | "sends";
-  journal?: JournalViewPayload;
-  sends?: SendsViewPayload;
-};
 
 type LoadedProfileState = {
   targetUserId: string;
   viewerId: string | null;
   query: string;
-  payload: SharedProfilePayload | MemberProfilePayload;
+  payload: ApiResponse<"/api/pages/users/{id}">;
 };
 
 function useProfileTitle(
@@ -87,14 +69,14 @@ export default function UserProfileRoute({ viewerId }: { viewerId: string | null
     }
     const targetUserId = userId;
     const targetViewerId = viewerId;
-    const querySuffix = rawQuery ? `?${rawQuery}` : "";
     let cancelled = false;
 
     async function loadProfile() {
       try {
-        const payload = await fetchJson<SharedProfilePayload | MemberProfilePayload>(
-          `/api/pages/users/${encodeURIComponent(targetUserId)}${querySuffix}`,
-        );
+        const payload = await fetchApi("/api/pages/users/{id}", {
+          path: { id: targetUserId },
+          query: new URLSearchParams(rawQuery),
+        });
         if (!cancelled) {
           setError(null);
           setNotFound(false);
@@ -171,14 +153,14 @@ export default function UserProfileRoute({ viewerId }: { viewerId: string | null
       access={member.access}
       hardest={member.hardest}
     >
-      {member.defaultTab === "journal" && member.journal ? (
+      {member.defaultTab === "journal" ? (
         <SpaJournalView
           ownerId={member.user.id}
           isOwner={member.isOwner}
           filter={parseJournalFilter(searchRecord)}
           data={member.journal}
         />
-      ) : member.sends ? (
+      ) : (
         <SpaSendsView
           ownerId={member.user.id}
           viewerId={activeViewerId}
@@ -186,7 +168,7 @@ export default function UserProfileRoute({ viewerId }: { viewerId: string | null
           basePath={`/users/${member.user.id}`}
           data={member.sends}
         />
-      ) : null}
+      )}
     </SpaProfileHeader>
   );
 }

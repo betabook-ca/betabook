@@ -13,6 +13,7 @@ license = "PolyForm-Noncommercial-1.0.0"
 publish = false
 
 [workspace.dependencies]
+schemars = "1.2.3"
 async-trait = "0.1.92"
 axum = { version = "0.8.9", default-features = false, features = ["form", "json", "matched-path", "original-uri", "query"] }
 base64 = "0.23.1"

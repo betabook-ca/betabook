@@ -1,3 +1,4 @@
+import { apiUrl } from "@/spa/lib/api";
 type Snapshot = { userId: string | null; count: number | null };
 
 /** Shared by the header and profile tabs. Counts never survive an account change. */
@@ -39,7 +40,7 @@ export function createFriendRequestCountStore(fetcher: typeof fetch = fetch) {
       controller?.abort();
       controller = new AbortController();
       try {
-        const response = await fetcher("/api/friends?view=count", {
+        const response = await fetcher(apiUrl("/api/friends", { query: { view: "count" } }), {
           cache: "no-store",
           signal: controller.signal,
         });

@@ -31,6 +31,22 @@ export async function testLists({ server, db, signIn }) {
   const created = await action("createClimbList", owner, { title: "Bishop circuit" }, { climbId });
   assert.equal(created.ok, true, JSON.stringify(created));
   const listId = created.value.id;
+  const indexReply = await server.fetch("/api/pages/users/list-owner/lists", {
+    headers: { cookie: owner },
+  });
+  assert.equal(indexReply.status, 200);
+  assert.equal(
+    (await indexReply.json()).lists.some((list) => list.id === listId),
+    true,
+  );
+  const choicesReply = await server.fetch(`/api/climbs/${climbId}/lists`, {
+    headers: { cookie: owner },
+  });
+  assert.equal(choicesReply.status, 200);
+  assert.equal(
+    (await choicesReply.json()).lists.find((list) => list.id === listId)?.hasClimb,
+    true,
+  );
   const memberUrl = `/api/pages/users/list-owner/lists/${listId}`;
   const listPath = `/users/list-owner/lists/${listId}`;
   for (const [path, title] of [

@@ -8,7 +8,7 @@ import { Skeleton, SkeletonListRows } from "@/components/ui/skeleton";
 import { PageTitle } from "@/components/ui/typography";
 import { isClimbType } from "@/lib/grades";
 import { parseAreaId, searchParamsToRecord, toArray } from "@/lib/url-params";
-import { fetchJson } from "@/spa/lib/fetch-json";
+import { fetchApi } from "@/spa/lib/api";
 
 type SelectedAreaInfo = {
   id: number;
@@ -37,9 +37,7 @@ export default function NewClimbRoute({ viewerId }: { viewerId: string | null })
     let cancelled = false;
     async function loadSelected() {
       try {
-        const res = await fetchJson<{ selectedArea: SelectedAreaInfo | null }>(
-          `/api/pages/climbs/new?areaId=${targetAreaId}`,
-        );
+        const res = await fetchApi("/api/pages/climbs/new", { query: { areaId: targetAreaId } });
         if (!cancelled) {
           setSelectedArea(res.selectedArea ?? undefined);
           setLoadedForAreaId(targetAreaId);

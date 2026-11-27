@@ -11,12 +11,12 @@ import type {
   SubtreeClimbsSort,
 } from "@/db/queries";
 import { usePagedList } from "@/hooks/use-paged-list";
-import { apiFetch } from "@/lib/api-client";
 import { createClimbListMeta, mergeClimbListMeta } from "@/lib/climb-list-pages";
 import {
   areaClimbsFilterToSearchParams,
   type AreaClimbsFilter,
 } from "@/lib/filters/area-climbs-filter";
+import { fetchApi } from "@/spa/lib/api";
 
 type AreaClimbsSectionProps = {
   areaId: number;
@@ -70,15 +70,11 @@ export function AreaClimbsSection({
     fetchPage: async (offset) => {
       const params = areaClimbsFilterToSearchParams(sort, filter);
       params.set("offset", String(offset));
-      const res = await apiFetch(`/api/areas/${areaId}/climbs?${params.toString()}`);
-      if (!res.ok) throw new Error(`Loading more climbs failed: ${res.status}`);
-      const data: {
-        climbs: ClimbWithAreaName[];
-        hasNextPage: boolean;
-        sendStats: Record<number, ClimbSendStats>;
-        areaBreadcrumbs: AreaBreadcrumbs;
-        sentClimbIds?: number[];
-      } = await res.json();
+      const data = await fetchApi("/api/areas/{id}/climbs", {
+        path: { id: String(areaId) },
+        query: params,
+        sessionEvents: true,
+      });
       return {
         items: data.climbs,
         hasMore: data.hasNextPage,

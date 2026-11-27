@@ -13,10 +13,11 @@ import { testModeration } from "./rust-smoke/moderation.mjs";
 import { testPlatform } from "./rust-smoke/platform.mjs";
 import { testProjects } from "./rust-smoke/projects.mjs";
 import { testTrips } from "./rust-smoke/trips.mjs";
+import { checkedTransport } from "./rust-smoke/validate-api.mjs";
 import { hashSeedPassword } from "./seed-password.ts";
 
 void test("Rust Worker HTTP flows", async (t) => {
-  const server = createTestHarness({
+  const harness = createTestHarness({
     workers: [
       {
         configPath: "./wrangler.jsonc",
@@ -31,9 +32,10 @@ void test("Rust Worker HTTP flows", async (t) => {
       },
     ],
   });
-  t.after(() => server.close());
-  const { url } = await server.listen();
-  const worker = server.getWorker();
+  t.after(() => harness.close());
+  const server = { fetch: await checkedTransport(harness.fetch.bind(harness)) };
+  const { url } = await harness.listen();
+  const worker = harness.getWorker();
   // workerd must see a failed scheduled invocation when D1 is unavailable.
   const failedCron = await worker.scheduled({ cron: "0 6 * * 1" }).then(
     (r) => r.outcome,
@@ -113,8 +115,9 @@ void test("Rust Worker HTTP flows", async (t) => {
     assert.equal((await server.fetch(journal, { headers: { cookie: stranger } })).status, 404);
     assert.equal((await server.fetch(journal)).status, 401);
 
-    const catalog = '{"areas":[],"climbs":[]}';
-    await CATALOG_EXPORTS.put("catalog/latest.json", catalog);
+    const object = await CATALOG_EXPORTS.get("catalog/latest.json");
+    assert.ok(object);
+    const catalog = await object.text();
     const download = await server.fetch("/api/catalog/export", { headers: { cookie: owner } });
     assert.equal(download.status, 200);
     assert.equal(await download.text(), catalog);

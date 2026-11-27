@@ -22,6 +22,7 @@ import { COSTS_PAGE, LOGBOOK_PAGE } from "@/lib/landing-pages";
 import { SITE_NAME, SITE_TAGLINE } from "@/lib/site";
 import { TERMS_UPDATED_LABEL, TERMS_VERSION } from "@/lib/terms";
 import { syncBootstrapPath } from "@/spa/bootstrap";
+import { fetchApi } from "@/spa/lib/api";
 import { DocumentNavigation } from "@/spa/lib/document-navigation";
 import { usePathname } from "@/spa/lib/navigation";
 import { Providers } from "@/spa/providers";
@@ -108,24 +109,11 @@ export function App() {
     let cancelled = false;
     async function checkTerms() {
       try {
-        const response = await fetch("/api/terms/status", {
-          cache: "no-store",
-          credentials: "same-origin",
-        });
-        if (!response.ok || cancelled) {
-          return;
-        }
-        const status = await response.json<{
-          userId?: unknown;
-          required?: unknown;
-          version?: unknown;
-          versionLabel?: unknown;
-          previousVersion?: unknown;
-        }>();
+        const status = await fetchApi("/api/terms/status", {});
         if (!cancelled && status.userId === targetViewer) {
           setTermsState({
             viewerId: targetViewer,
-            required: status.required === true,
+            required: status.required,
             version: typeof status.version === "string" ? status.version : TERMS_VERSION,
             versionLabel:
               typeof status.versionLabel === "string" ? status.versionLabel : TERMS_UPDATED_LABEL,

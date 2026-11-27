@@ -1,12 +1,8 @@
-import type { AreaBreadcrumbs, JournalEntry } from "@/db/queries";
-import { apiFetch } from "@/lib/api-client";
+import type { JournalEntry } from "@/db/queries";
 import { journalFilterToSearchParams, type JournalFilter } from "@/lib/filters/journal-filter";
+import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 
-export type JournalPage = {
-  entries: JournalEntry[];
-  hasMore: boolean;
-  areaBreadcrumbs: AreaBreadcrumbs;
-};
+export type JournalPage = ApiResponse<"/api/users/{id}/journal">;
 
 /** The page after `lastItem` in the owner's journal, keyed by the (date, id) cursor. */
 export async function fetchJournalPage(
@@ -20,10 +16,10 @@ export async function fetchJournalPage(
     params.set("cursorDate", lastItem.entryDate);
     params.set("cursorId", String(lastItem.id));
   }
-  const res = await apiFetch(`/api/users/${userId}/journal?${params}`, {
-    cache: "no-store",
+  return fetchApi("/api/users/{id}/journal", {
+    path: { id: userId },
+    query: params,
     signal,
+    sessionEvents: true,
   });
-  if (!res.ok) throw new Error("Failed to load more entries");
-  return res.json<JournalPage>();
 }

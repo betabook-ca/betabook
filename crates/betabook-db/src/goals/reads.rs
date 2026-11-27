@@ -13,19 +13,7 @@ struct Scope<'a> {
 }
 
 fn progress(row: &DbRow) -> Result<Value, DbError> {
-    let tags: Vec<String> = serde_json::from_str(&row.get_string("tags")?)?;
-    Ok(json!({
-        "id":row.get_i64("id")?, "userId":row.get_string("userId")?,
-        "kind":row.get_string("kind")?, "target":row.get_i64("target")?,
-        "discipline":row.get_opt_string("discipline")?, "grade":row.get_opt_i64("grade")?,
-        "timeframe":row.get_string("timeframe")?, "repeat":row.get_string("repeat")?,
-        "startDate":row.get_string("startDate")?, "endDate":row.get_string("endDate")?,
-        "timezone":row.get_string("timezone")?, "gradeMatch":row.get_string("gradeMatch")?,
-        "tags":tags,"archived":row.get_bool("archived")?, "recurringEndDate":row.get_opt_string("recurringEndDate")?,
-        "today":row.get_string("today")?, "periodStart":row.get_string("periodStart")?,
-        "periodEnd":row.get_string("periodEnd")?, "progress":row.get_i64("progress")?,
-        "completedDate":row.get_opt_string("completedDate")?
-    }))
+    Ok(json!(super::GoalRecord::from_row(row)?))
 }
 
 async fn periods(

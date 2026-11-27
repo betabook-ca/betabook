@@ -1,4 +1,6 @@
-import type { ClientErrorReport } from "@/lib/error-reporting";
+import type { operations } from "@/spa/generated/api";
+type ClientErrorReport =
+  operations["reportClientError"]["requestBody"]["content"]["application/json"];
 
 const CLIENT_ERROR_ENDPOINT = "/api/client-errors";
 /** Keeps a report under the endpoint's 4,096-byte cap whatever the message

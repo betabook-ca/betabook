@@ -122,6 +122,7 @@ pub fn companions_json_sql(
     )
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileAccess {

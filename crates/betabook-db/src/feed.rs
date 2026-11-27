@@ -11,6 +11,7 @@ use crate::fts::clamp_page_size;
 
 pub const FEED_PAGE_SIZE: usize = 20;
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct JournalCompanion {
@@ -20,10 +21,15 @@ pub struct JournalCompanion {
     pub is_self: bool,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedActivity {
     pub id: i64,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "betabook_domain::wire::FeedKind")
+    )]
     pub kind: String,
     pub goal_title: Option<String>,
     pub climb_id: Option<i64>,
@@ -31,16 +37,25 @@ pub struct FeedActivity {
     pub climb_type: Option<ClimbType>,
     pub climb_grade: Option<i64>,
     pub reported_grade: Option<i64>,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "Option<betabook_domain::wire::GradeFeel>")
+    )]
     pub grade_feel: Option<String>,
     pub area_id: Option<i64>,
     pub area_name: Option<String>,
     pub area_ancestors: Vec<AreaBreadcrumbItem>,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "Option<betabook_domain::wire::AscentStyle>")
+    )]
     pub ascent_style: Option<String>,
     pub body: Option<String>,
     pub videos: Option<Vec<String>>,
     pub companions: Vec<JournalCompanion>,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedDay {
@@ -57,6 +72,7 @@ pub struct FeedDay {
     pub activities: Vec<FeedActivity>,
 }
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedPage {

@@ -3,6 +3,7 @@
 import { ClimbList } from "@/components/climb-list";
 import { usePagedList } from "@/hooks/use-paged-list";
 import type { PublicClimb, PublicClimbsPage } from "@/lib/public-catalog";
+import { fetchApi } from "@/spa/lib/api";
 
 /** Suggested grade stays behind a session; the other two aggregates do not. */
 function publicSendStats(climbs: PublicClimb[]) {
@@ -32,9 +33,11 @@ export function PublicClimbList({
     fetchPage: async (offset, _page, _last, signal) => {
       const params = new URLSearchParams(query);
       params.set("offset", String(offset));
-      const response = await fetch(`/api/public/areas/${areaId}/climbs?${params}`, { signal });
-      if (!response.ok) throw new Error("Couldn't load climbs.");
-      const page: PublicClimbsPage = await response.json();
+      const page = await fetchApi("/api/public/areas/{id}/climbs", {
+        path: { id: String(areaId) },
+        query: params,
+        signal,
+      });
       return { items: page.climbs, hasMore: page.hasNextPage, meta: page.areaBreadcrumbs };
     },
   });

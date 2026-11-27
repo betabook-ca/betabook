@@ -35,6 +35,81 @@ const MP_SIZE: &str = "This Mountain Project tick list is too large for a direct
 const MP_ORIGIN: &str = "https://www.mountainproject.com";
 const PAGE_SIZE: usize = 100;
 
+// GraphQL can return nullable or omitted selected fields. Validate object/field
+// types before forwarding a page; the wizard separately checks whether a row
+// has enough information for a CSV import.
+#[derive(serde::Deserialize)]
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
+#[allow(
+    dead_code,
+    reason = "Validate selected upstream fields before forwarding the original JSON"
+)]
+struct KayaLabel {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
+}
+
+#[derive(serde::Deserialize)]
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
+#[allow(
+    dead_code,
+    reason = "Validate selected upstream fields before forwarding the original JSON"
+)]
+struct KayaDiscipline {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
+}
+
+#[derive(serde::Deserialize)]
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
+#[allow(
+    dead_code,
+    reason = "Validate selected upstream fields before forwarding the original JSON"
+)]
+struct KayaClimb {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    climb_type: Option<KayaDiscipline>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    grade: Option<KayaLabel>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    gym: Option<KayaLabel>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    board: Option<KayaLabel>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    destination: Option<KayaLabel>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    area: Option<KayaLabel>,
+}
+
+#[derive(serde::Deserialize)]
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
+#[allow(
+    dead_code,
+    reason = "Validate selected upstream fields before forwarding the original JSON"
+)]
+pub(crate) struct KayaAscent {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    date: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    comment: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    rating: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    stiffness: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    grade: Option<KayaLabel>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    climb: Option<KayaClimb>,
+}
+
 fn profile_url(raw: &str, host: &str) -> Result<Option<Url>, ()> {
     let lower = raw.to_ascii_lowercase();
     let url = if lower.starts_with("https://") || lower.starts_with("http://") {
@@ -479,11 +554,15 @@ async fn download(
             }
         }
         let batch = page["webAscentsForUser"].take();
-        let len = batch
+        let page_items = batch
             .as_array()
             .filter(|a| a.len() <= PAGE_SIZE)
-            .ok_or_else(KayaError::format)?
-            .len();
+            .ok_or_else(KayaError::format)?;
+        for item in page_items {
+            <KayaAscent as serde::Deserialize>::deserialize(item)
+                .map_err(|_| KayaError::format())?;
+        }
+        let len = page_items.len();
         size += batch.to_string().len();
         if size > MAX_FILE {
             return Err(kaya_size());

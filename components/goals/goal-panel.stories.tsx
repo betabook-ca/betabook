@@ -199,7 +199,7 @@ export const MissedGoal: Story = {
         setPages({ active: { goals: [], hasMore: false }, history });
         return { ok: true, value: undefined };
       });
-      mocked(saveGoal).mockImplementation(async (_id, raw, retryOf) => {
+      mocked(saveGoal).mockImplementation(async (...[_id, raw, retryOf]) => {
         if (retryOf === missedGoal.id) {
           const input = goalInputSchema.parse(raw);
           const window = goalWindow(
@@ -306,7 +306,7 @@ export const EndingRoutine: Story = {
   render: function EndingRoutineExample(args) {
     const [routine, setRoutine] = useState(args.initialActive.goals[0]);
     useEffect(() => {
-      mocked(saveGoal).mockImplementation(async (_id, raw) => {
+      mocked(saveGoal).mockImplementation(async (...[_id, raw]) => {
         const input = goalInputSchema.parse(raw);
         const endDate = input.recurringEndDate ?? null;
         setRoutine((goal) => ({

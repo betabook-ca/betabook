@@ -4,6 +4,7 @@ import { Navigate, useSearchParams } from "react-router";
 import { ReviewQueue, type ReviewQueueData } from "@/components/admin/review-queue";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { SkeletonListRows } from "@/components/ui/skeleton";
+import { fetchApi } from "@/spa/lib/api";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
 
 type QueueState =
@@ -22,18 +23,17 @@ export default function AdminRequestsRoute({ viewerId }: { viewerId: string | nu
     const controller = new AbortController();
     async function load() {
       try {
-        const response = await fetch(`/api/pages/admin/requests?${query}`, {
+        const data = await fetchApi("/api/pages/admin/requests", {
+          query: new URLSearchParams(query),
           signal: controller.signal,
         });
-        if (response.status === 403) {
-          if (!controller.signal.aborted) setState({ key, forbidden: true });
-          return;
-        }
-        if (!response.ok) throw new Error("Could not load requests");
-        const data = await response.json<ReviewQueueData>();
         if (!controller.signal.aborted) setState({ key, data });
-      } catch {
-        if (!controller.signal.aborted) setState({ key, error: true });
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          if (error instanceof Error && "status" in error && error.status === 403)
+            setState({ key, forbidden: true });
+          else setState({ key, error: true });
+        }
       }
     }
     void load();

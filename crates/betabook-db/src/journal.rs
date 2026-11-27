@@ -23,11 +23,16 @@ pub const JOURNAL_PAGE_SIZE: usize = 20;
 pub const CLIMB_JOURNAL_ENTRY_LIMIT: usize = 4;
 const REPEAT_BEFORE_ASCENT_MESSAGE: &str = "A repeat can't be earlier than the recorded ascent";
 
+#[cfg_attr(feature = "api-spec", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct JournalEntry {
     pub id: i64,
     pub climb_id: Option<i64>,
+    #[cfg_attr(
+        feature = "api-spec",
+        schemars(with = "betabook_domain::wire::JournalKind")
+    )]
     pub kind: String,
     pub sent: bool,
     pub entry_date: String,

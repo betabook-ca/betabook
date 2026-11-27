@@ -12,7 +12,8 @@ import { PageTitle } from "@/components/ui/typography";
 import { formatAuthErrorMessage, safeNextPath, signInUrl } from "@/lib/sign-in-redirect";
 import { TERMS_UPDATED_LABEL, TERMS_VERSION } from "@/lib/terms";
 import { acceptTermsUrl, termsNextPath } from "@/lib/terms-navigation";
-import { fetchJson, type AuthConfig } from "@/spa/lib/fetch-json";
+import { fetchApi } from "@/spa/lib/api";
+import type { AuthConfig } from "@/spa/lib/fetch-json";
 
 type AuthRouteKind = "sign-in" | "sign-up" | "forgot-password" | "reset-password" | "accept-terms";
 
@@ -45,7 +46,7 @@ function AuthRouteView({ kind, viewerId }: { kind: AuthRouteKind; viewerId: stri
     let cancelled = false;
     async function loadConfig() {
       try {
-        const res = await fetchJson<AuthConfig>("/api/config/auth");
+        const res = await fetchApi("/api/config/auth", {});
         if (!cancelled) {
           setConfig(res);
         }
@@ -67,16 +68,11 @@ function AuthRouteView({ kind, viewerId }: { kind: AuthRouteKind; viewerId: stri
     let cancelled = false;
     async function loadTerms() {
       try {
-        const res = await fetchJson<{
-          required?: boolean;
-          version?: string;
-          versionLabel?: string;
-          previousVersion?: string | null;
-        }>("/api/terms/status");
+        const res = await fetchApi("/api/terms/status", {});
         if (!cancelled) {
           setTermsStatus({
             checkedFor: targetViewer,
-            required: res.required === true,
+            required: res.required,
             version: res.version ?? TERMS_VERSION,
             versionLabel: res.versionLabel ?? TERMS_UPDATED_LABEL,
             previousVersion: res.previousVersion ?? null,

@@ -1,6 +1,7 @@
 import { apiFetch } from "@/lib/api-client";
 import { MAX_IMPORT_FILE_BYTES } from "@/lib/sends-import";
 import { importCsvFallback, importTooLargeMessage } from "@/lib/support";
+import { apiUrl } from "@/spa/lib/api";
 
 async function responseError(response: Response) {
   const result: unknown = await response.json();
@@ -29,12 +30,15 @@ export async function readKayaStream(
   };
   controller.signal.addEventListener("abort", cancelReader, { once: true });
   try {
-    const params = new URLSearchParams({ username, climbTypeId });
-    const response = await apiFetch(`/api/import/kaya?${params}`, {
-      signal: controller.signal,
-      credentials: "same-origin",
-      cache: "no-store",
-    });
+    if (climbTypeId !== "1" && climbTypeId !== "2") throw new Error("Invalid KAYA discipline.");
+    const response = await apiFetch(
+      apiUrl("/api/import/kaya", { query: { username, climbTypeId } }),
+      {
+        signal: controller.signal,
+        credentials: "same-origin",
+        cache: "no-store",
+      },
+    );
     if (!response.ok) throw await responseError(response);
     if (!response.body || !response.headers.get("Content-Type")?.includes("application/x-ndjson"))
       throw new Error("KAYA returned an unexpected response. Please try again.");

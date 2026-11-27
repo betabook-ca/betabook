@@ -12,6 +12,7 @@ crate-type = ["cdylib", "rlib"]
 workspace = true
 
 [dependencies]
+schemars = { workspace = true, optional = true }
 axum.workspace = true
 base64.workspace = true
 betabook-db = { path = "../betabook-db", default-features = false, features = ["d1"] }
@@ -30,3 +31,11 @@ time.workspace = true
 tower-service.workspace = true
 url.workspace = true
 worker.workspace = true
+
+[features]
+api-spec = ["dep:schemars", "betabook-domain/api-spec", "betabook-db/api-spec"]
+
+[[bin]]
+name = "export-openapi"
+path = "src/bin/export_openapi.rs"
+required-features = ["api-spec"]

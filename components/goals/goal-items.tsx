@@ -6,9 +6,9 @@ import { useEffect, useRef, useState } from "react";
 import { AppLink } from "@/components/ui/app-link";
 import { DetailsDisclosure } from "@/components/ui/details-disclosure";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { apiFetch } from "@/lib/api-client";
 import type { GoalContribution, GoalProgress } from "@/lib/goals";
 import { areaHref } from "@/lib/slug";
+import { fetchApi } from "@/spa/lib/api";
 
 export function GoalItems({
   ownerId,
@@ -50,18 +50,22 @@ export function GoalItems({
         if (request === requestId.current) setItems(loaded);
         return;
       }
-      const params = new URLSearchParams({
-        goalId: String(goal.id),
-        periodStart: goal.periodStart,
-        periodEnd: goal.periodEnd,
+      const data = await fetchApi("/api/users/{id}/goals", {
+        path: { id: ownerId },
+        query: { goalId: goal.id, periodStart: goal.periodStart, periodEnd: goal.periodEnd },
+        sessionEvents: true,
       });
-      const res = await apiFetch(`/api/users/${ownerId}/goals?${params}`);
-      if (!res.ok) throw new Error("Couldn't load this goal's items.");
-      const data = await res.json<{ items: GoalContribution[] }>();
+      if (!("items" in data)) throw new Error("Couldn't load this goal's items.");
       if (request === requestId.current) setItems(data.items);
     } catch (cause) {
       if (request === requestId.current)
-        setError(cause instanceof Error ? cause.message : "Couldn't load items.");
+        setError(
+          cause instanceof Error && "status" in cause
+            ? "Couldn't load this goal's items."
+            : cause instanceof Error
+              ? cause.message
+              : "Couldn't load items.",
+        );
     }
   }
   return (

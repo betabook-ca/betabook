@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdir, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -8,6 +8,7 @@ import { build } from "vite";
 async function buildSpa() {
   const configFile = path.resolve("vite.spa.config.ts");
   await build({ configFile });
+  await copyFile("api/openapi.json", "dist-spa/openapi.json");
   const outDir = path.resolve("node_modules/.cache/betabook/static-documents");
   await build({
     configFile,

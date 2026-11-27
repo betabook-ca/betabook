@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import type { SuggestedClimberRow } from "@/db/queries";
-import { apiFetch } from "@/lib/api-client";
+import { fetchApi } from "@/spa/lib/api";
 
 /** Leaving the empty climber search drops loaded suggestions, so returning never offers
  * Add friend for someone the viewer has requested since. */
@@ -21,9 +21,10 @@ export function useClimberSuggestions(
     if (!enabled || climbers) return;
     const controller = new AbortController();
     async function load() {
-      const response = await apiFetch("/api/friends/suggestions", { signal: controller.signal });
-      if (!response.ok) return;
-      const page = await response.json<{ climbers: SuggestedClimberRow[] }>();
+      const page = await fetchApi("/api/friends/suggestions", {
+        signal: controller.signal,
+        sessionEvents: true,
+      });
       if (!controller.signal.aborted) setClimbers(page.climbers);
     }
     load().catch(() => {});
