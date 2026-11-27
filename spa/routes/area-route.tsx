@@ -1,81 +1,141 @@
 import { useEffect, useState } from "react";
+import { useParams, useSearchParams } from "react-router";
 
-import { formatGrade } from "@/lib/grades";
-import { areaHref, climbHref } from "@/lib/slug";
-import { peekBootstrapData } from "@/spa/bootstrap";
+import { AreaClimbsSection } from "@/components/area-climbs-section";
+import { AuthCallout } from "@/components/auth-callout";
+import { AreaBreadcrumbs } from "@/components/breadcrumbs";
+import { AreaClimbsToolbar } from "@/components/filters/area-climbs-toolbar";
+import { NavigationPendingProvider } from "@/components/navigation-pending";
+import { PublicClimbList } from "@/components/public-climb-list";
+import { SubareaRail } from "@/components/subarea-rail";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { SidebarLayout } from "@/components/ui/page-shell";
+import { Skeleton, SkeletonListRows } from "@/components/ui/skeleton";
+import { PageTitle, SectionHeading } from "@/components/ui/typography";
+import type {
+  AreaBreadcrumbs as AreaBreadcrumbsMap,
+  ClimbSendStats,
+  ClimbWithAreaName,
+} from "@/db/queries";
+import { missingDescriptionMessage } from "@/lib/descriptions";
 import {
-  fetchJson,
-  parsePositiveId,
-  type PublicAreaDetails,
-  type PublicClimb,
-} from "@/spa/lib/fetch-json";
-import Link from "@/spa/shims/next-link";
-import { useParams, usePathname, useSearchParams } from "@/spa/shims/next-navigation";
+  areaClimbsFilterToSearchParams,
+  parseAreaClimbsFilter,
+  parseAreaClimbsSort,
+} from "@/lib/filters/area-climbs-filter";
+import type { PublicArea, PublicAreaDetails, PublicClimbsPage } from "@/lib/public-catalog";
+import { areaHref, withQuery } from "@/lib/slug";
+import { searchParamsToRecord } from "@/lib/url-params";
+import { peekBootstrapData } from "@/spa/bootstrap";
+import { fetchJson, parsePositiveId, type AreaPageData } from "@/spa/lib/fetch-json";
+import { usePathname } from "@/spa/shims/next-navigation";
 
-type AreaViewData = {
+type AreaBootstrap = {
   areaId: number;
-  subareaId: number | null;
   area: PublicAreaDetails;
-  trail: PublicAreaDetails[];
-  subareas: PublicAreaDetails[];
-  climbs: PublicClimb[];
+  ancestors: PublicAreaDetails[];
+  subareas: PublicArea[];
+  climbsPage: PublicClimbsPage;
 };
 
-export default function AreaRoute() {
+export default function AreaRoute({ viewerId }: { viewerId: string | null }) {
   const params = useParams<{ id?: string }>();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const [searchParams] = useSearchParams();
   const areaId = parsePositiveId(params.id);
-  const subareaId = parsePositiveId(searchParams.get("subarea") ?? undefined);
 
-  const [data, setData] = useState<AreaViewData | null>(() => {
-    const bootstrapped = peekBootstrapData("area", pathname) as AreaViewData | null;
-    if (
-      bootstrapped &&
-      areaId !== null &&
-      bootstrapped.areaId === areaId &&
-      bootstrapped.subareaId === subareaId
-    ) {
-      return bootstrapped;
+  const searchRecord = searchParamsToRecord(searchParams);
+  const sort = parseAreaClimbsSort(searchRecord);
+  const filter = parseAreaClimbsFilter(searchRecord);
+  const filterParams = areaClimbsFilterToSearchParams(sort, filter);
+  if (filter.excludeSent && !viewerId) {
+    filterParams.delete("excludeSent");
+  }
+  const canonicalQuery = filterParams.toString();
+  const rawQuery = searchParams.toString();
+
+  const [data, setData] = useState<AreaPageData | null>(() => {
+    if (areaId === null || viewerId !== null) {
+      return null;
+    }
+    const bootstrapped = peekBootstrapData("area", pathname, rawQuery) as AreaBootstrap | null;
+    if (bootstrapped && bootstrapped.areaId === areaId) {
+      return {
+        ...bootstrapped,
+        query: canonicalQuery,
+      };
     }
     return null;
   });
   const [error, setError] = useState<string | null>(null);
 
-  const hasCurrentData =
-    data !== null && areaId !== null && data.areaId === areaId && data.subareaId === subareaId;
+  const matchesActive =
+    data !== null &&
+    areaId !== null &&
+    data.areaId === areaId &&
+    data.query === canonicalQuery &&
+    (viewerId === null ? data.memberClimbsPage === undefined : data.memberClimbsPage !== undefined);
 
   useEffect(() => {
-    if (areaId === null || hasCurrentData) {
+    if (areaId === null || matchesActive) {
       return;
     }
     const targetId = areaId;
-    const targetSubarea = subareaId;
+    const isMember = viewerId !== null;
     let cancelled = false;
     async function loadArea() {
-      const climbsQuery =
-        targetSubarea !== null
-          ? `?subarea=${encodeURIComponent(targetSubarea)}&limit=10`
-          : "?limit=10";
       try {
-        const [details, climbsPage] = await Promise.all([
-          fetchJson<{
-            area: PublicAreaDetails;
-            trail: PublicAreaDetails[];
-            subareas: PublicAreaDetails[];
-          }>(`/api/public/areas/${targetId}`),
-          fetchJson<{ climbs: PublicClimb[] }>(
-            `/api/public/areas/${targetId}/climbs${climbsQuery}`,
-          ),
-        ]);
-        if (!cancelled) {
-          setError(null);
-          setData({
-            areaId: targetId,
-            subareaId: targetSubarea,
-            ...details,
-            climbs: climbsPage.climbs,
-          });
+        const subareaSuffix =
+          filter.subareaId !== null ? `&subarea=${encodeURIComponent(filter.subareaId)}` : "";
+        const climbsUrl = isMember
+          ? `/api/areas/${targetId}/climbs?${canonicalQuery}${subareaSuffix}`
+          : `/api/public/areas/${targetId}/climbs?${canonicalQuery}${subareaSuffix}`;
+
+        const detailsPromise = fetchJson<{
+          area: PublicAreaDetails;
+          ancestors: PublicAreaDetails[];
+          subareas: PublicArea[];
+        }>(`/api/public/areas/${targetId}`);
+
+        if (isMember) {
+          const [details, memberPage] = await Promise.all([
+            detailsPromise,
+            fetchJson<{
+              climbs: ClimbWithAreaName[];
+              hasNextPage: boolean;
+              sendStats: Record<number, ClimbSendStats>;
+              areaBreadcrumbs: AreaBreadcrumbsMap;
+              sentClimbIds: number[];
+            }>(climbsUrl),
+          ]);
+          if (!cancelled) {
+            setError(null);
+            setData({
+              areaId: targetId,
+              query: canonicalQuery,
+              area: details.area,
+              ancestors: details.ancestors,
+              subareas: details.subareas,
+              climbsPage: { climbs: [], areaBreadcrumbs: {}, hasNextPage: false },
+              memberClimbsPage: memberPage,
+            });
+          }
+        } else {
+          const [details, climbsPage] = await Promise.all([
+            detailsPromise,
+            fetchJson<PublicClimbsPage>(climbsUrl),
+          ]);
+          if (!cancelled) {
+            setError(null);
+            setData({
+              areaId: targetId,
+              query: canonicalQuery,
+              area: details.area,
+              ancestors: details.ancestors,
+              subareas: details.subareas,
+              climbsPage,
+            });
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -87,93 +147,94 @@ export default function AreaRoute() {
     return () => {
       cancelled = true;
     };
-  }, [areaId, subareaId, hasCurrentData]);
+  }, [areaId, viewerId, canonicalQuery, filter.subareaId, matchesActive]);
 
   if (areaId === null) {
     return (
-      <div role="alert" className="rounded-xl border border-border bg-surface p-6 text-danger">
-        Area not found
+      <div className="py-8 text-center">
+        <PageTitle>Area not found</PageTitle>
+        <p className="mt-2 text-sm text-muted">No climbing area exists at this URL.</p>
       </div>
     );
   }
   if (error) {
     return (
-      <div role="alert" className="rounded-xl border border-border bg-surface p-6 text-danger">
+      <div role="alert" className="rounded-lg border border-border bg-surface p-6 text-danger">
         {error}
       </div>
     );
   }
-  if (!hasCurrentData) {
+  if (!matchesActive) {
     return (
-      <div className="rounded-xl border border-border bg-surface p-6 text-sm text-muted">
-        Loading area...
+      <div className="flex flex-col gap-6">
+        <Skeleton className="h-5 w-48" />
+        <Skeleton className="h-9 w-72" />
+        <SkeletonListRows rows={8} />
       </div>
     );
   }
 
+  const path = areaHref(data.area.id, data.area.name);
+  const climbsBlock = (
+    <div className="flex flex-col gap-3">
+      <SectionHeading>Climbs</SectionHeading>
+      <NavigationPendingProvider>
+        <AreaClimbsToolbar
+          areaPath={path}
+          sort={sort}
+          filter={filter}
+          showExcludeSent={Boolean(viewerId)}
+        />
+        {data.memberClimbsPage ? (
+          <AreaClimbsSection
+            key={`member-climbs:${canonicalQuery}`}
+            areaId={data.area.id}
+            sort={sort}
+            filter={filter}
+            initialClimbs={data.memberClimbsPage.climbs}
+            initialHasNextPage={data.memberClimbsPage.hasNextPage}
+            initialSendStats={data.memberClimbsPage.sendStats}
+            initialAreaBreadcrumbs={data.memberClimbsPage.areaBreadcrumbs}
+            sentClimbIds={new Set(data.memberClimbsPage.sentClimbIds)}
+            emptyMessage="No climbs match in this area."
+          />
+        ) : (
+          <PublicClimbList
+            key={`climbs:${canonicalQuery}`}
+            initial={data.climbsPage}
+            areaId={data.area.id}
+            query={canonicalQuery}
+          />
+        )}
+      </NavigationPendingProvider>
+    </div>
+  );
+
   return (
     <div className="flex flex-col gap-6">
-      <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-xs text-muted">
-        <Link href="/" className="link">
-          Home
-        </Link>
-        {data.trail.map((item) => (
-          <span key={item.id} className="flex items-center gap-2">
-            <span>/</span>
-            <Link href={areaHref(item.id, item.name)} className="link">
-              {item.name}
-            </Link>
-          </span>
-        ))}
-      </nav>
-
-      <section className="rounded-xl border border-border bg-surface p-6">
-        <h1 className="font-display text-3xl font-bold">{data.area.name}</h1>
-        {data.area.description && (
-          <p className="mt-2 max-w-3xl text-sm text-muted">{data.area.description}</p>
-        )}
-      </section>
-
-      {data.subareas.length > 0 && (
-        <section className="rounded-xl border border-border bg-surface p-5">
-          <h2 className="font-display text-xl font-bold">Subareas</h2>
-          <ul role="list" className="mt-3 grid list-none gap-2 sm:grid-cols-2">
-            {data.subareas.map((child) => (
-              <li
-                key={child.id}
-                className="rounded-lg border border-separator bg-surface-secondary px-3 py-2"
-              >
-                <Link href={areaHref(child.id, child.name)} className="link font-medium">
-                  {child.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
+      <AreaBreadcrumbs ancestors={data.ancestors} current={data.area} />
+      <PageTitle>{data.area.name}</PageTitle>
+      <p className="text-muted">{data.area.description || missingDescriptionMessage()}</p>
+      {!viewerId && (
+        <AuthCallout
+          next={withQuery(path, searchRecord)}
+          description="Sign in to see who has climbed these lines and to log your own sessions."
+        />
       )}
-
-      <section className="rounded-xl border border-border bg-surface p-5">
-        <h2 className="font-display text-xl font-bold">Climbs</h2>
-        {data.climbs.length === 0 ? (
-          <p className="mt-3 text-sm text-muted">No climbs in this area.</p>
-        ) : (
-          <ul role="list" className="mt-3 flex list-none flex-col gap-2">
-            {data.climbs.map((climb) => (
-              <li
-                key={climb.id}
-                className="flex items-center justify-between gap-3 rounded-lg border border-separator bg-surface-secondary px-3 py-2"
-              >
-                <Link href={climbHref(climb.id, climb.name)} className="link font-medium">
-                  {climb.name}
-                </Link>
-                <span className="text-xs font-semibold text-muted">
-                  {formatGrade(climb.type, climb.grade)} · {climb.sendCount} sends
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {data.subareas.length > 0 ? (
+        <SidebarLayout
+          sidebarWidthClass="lg:w-64"
+          sidebar={
+            <CollapsibleSection title="Sub-areas" breakpoint="lg">
+              <SubareaRail subareas={data.subareas} />
+            </CollapsibleSection>
+          }
+        >
+          {climbsBlock}
+        </SidebarLayout>
+      ) : (
+        climbsBlock
+      )}
     </div>
   );
 }

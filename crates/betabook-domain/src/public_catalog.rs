@@ -88,6 +88,7 @@ pub struct PublicCatalogOptions {
     pub sort: SubtreeClimbsSort,
     pub rating_range: [i64; 2],
     pub min_ascents: i64,
+    pub exclude_sent_by: Option<String>,
     pub offset: Option<usize>,
     pub page_size: usize,
 }
@@ -209,13 +210,29 @@ fn parse_offset(raw: Option<&str>) -> Option<usize> {
 }
 
 pub fn parse_public_catalog_options(raw_query: &str) -> PublicCatalogOptions {
+    parse_catalog_options_inner(raw_query, None, DEFAULT_PUBLIC_PAGE_SIZE)
+}
+
+pub fn parse_member_catalog_options(
+    raw_query: &str,
+    viewer_id: &str,
+    default_page_size: usize,
+) -> PublicCatalogOptions {
+    parse_catalog_options_inner(raw_query, Some(viewer_id), default_page_size)
+}
+
+fn parse_catalog_options_inner(
+    raw_query: &str,
+    viewer_id: Option<&str>,
+    default_page_size: usize,
+) -> PublicCatalogOptions {
     let mut map: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for (k, v) in form_urlencoded::parse(raw_query.as_bytes()) {
         map.entry(k.into_owned()).or_default().push(v.into_owned());
     }
     let first = |key: &str| map.get(key).and_then(|v| v.first()).map(String::as_str);
 
-    let page_size = parse_suggestion_limit(first("limit")).unwrap_or(DEFAULT_PUBLIC_PAGE_SIZE);
+    let page_size = parse_suggestion_limit(first("limit")).unwrap_or(default_page_size);
     let offset = if map.contains_key("offset") {
         parse_offset(first("offset"))
     } else {
@@ -252,6 +269,10 @@ pub fn parse_public_catalog_options(raw_query: &str) -> PublicCatalogOptions {
         .and_then(parse_js_int)
         .map(|v| v.max(0))
         .unwrap_or(0);
+    let exclude_sent = matches!(first("excludeSent"), Some("1" | "true"));
+    let exclude_sent_by = exclude_sent
+        .then(|| viewer_id.map(ToString::to_string))
+        .flatten();
 
     PublicCatalogOptions {
         filter: DisciplineGradeFilter {
@@ -266,6 +287,7 @@ pub fn parse_public_catalog_options(raw_query: &str) -> PublicCatalogOptions {
         sort,
         rating_range: parse_rating_range(map.get("ratingRange").unwrap_or(&empty)),
         min_ascents,
+        exclude_sent_by,
         offset,
         page_size,
     }

@@ -9,8 +9,9 @@ use axum::{
 use betabook_db::public_catalog::{
     count_areas, count_climbs, get_area_sitemap_rows, get_climb_sitemap_rows, get_public_area,
     get_public_area_trail, get_public_climb, get_public_sends_for_climb, get_public_subareas,
-    resolve_public_subarea, search_public_areas, search_public_climbs,
+    resolve_public_subarea, search_public_climbs,
 };
+use betabook_db::social::{CLIMB_VIDEO_LIMIT, get_climb_videos};
 use betabook_domain::public_catalog::{
     PublicArea, has_protected_catalog_params, parse_id, parse_public_catalog_options,
 };
@@ -328,33 +329,34 @@ async fn render_area_page(
     )
     .await?;
 
+    let canonical = area_href(area.id, &area.name);
+    let ancestors: Vec<_> = trail.iter().take(trail.len().saturating_sub(1)).collect();
+
     let bootstrap_data = if has_protected_catalog_params(raw_query, true) {
         None
     } else {
-        let mut options = parse_public_catalog_options("limit=10");
+        let mut options = parse_public_catalog_options(raw_query);
         options.area_id = Some(scope.id);
         let climbs_page = search_public_climbs(state.db(), &options).await?;
         Some(json!({
             "route": "area",
-            "path": area_href(area.id, &area.name),
+            "path": canonical,
+            "query": raw_query,
             "data": {
                 "areaId": area.id,
-                "subareaId": subarea_param,
                 "area": area,
-                "trail": trail,
+                "ancestors": ancestors,
                 "subareas": subareas,
-                "climbs": climbs_page.climbs,
+                "climbsPage": climbs_page,
             }
         }))
     };
 
-    let ancestors: Vec<_> = trail.iter().take(trail.len().saturating_sub(1)).collect();
     let parent_name = ancestors.last().map(|a| a.name.as_str());
     let ancestor_names: Vec<String> = ancestors.iter().map(|a| a.name.clone()).collect();
     let short_trail = location_trail(&ancestor_names, 3);
     let title = area_title(&area.name, parent_name);
     let desc = area_description(&area.name, &short_trail, area.description.as_deref());
-    let canonical = area_href(area.id, &area.name);
 
     let has_query = !raw_query.is_empty();
     let mut meta = PageMetadata::indexable(title, desc.clone(), canonical.clone(), "website");
@@ -424,6 +426,10 @@ async fn render_climb_page(
 
     let trail = get_public_area_trail(state.db(), climb.area_id).await?;
     let public_sends = get_public_sends_for_climb(state.db(), id).await?;
+    let videos = get_climb_videos(state.db(), id, None, CLIMB_VIDEO_LIMIT).await?;
+
+    let area = trail.last().cloned();
+    let ancestors = &trail[..trail.len().saturating_sub(1)];
 
     let area_names: Vec<String> = trail.iter().map(|a| a.name.clone()).collect();
     let short_trail = location_trail(&area_names, 3);
@@ -458,8 +464,10 @@ async fn render_climb_page(
         "data": {
             "climbId": climb.id,
             "climb": climb,
-            "trail": trail,
+            "area": area,
+            "ancestors": ancestors,
             "publicSends": public_sends,
+            "videos": videos,
         }
     });
 
@@ -506,40 +514,65 @@ fn route_metadata(path: &str, has_query: bool) -> (PageMetadata, Vec<Value>, &'s
             vec![website_json_ld()],
             "routes/home-route.tsx",
         ),
+        "/search" => (
+            PageMetadata::noindex("Find climbs", SITE_DESCRIPTION),
+            Vec::new(),
+            "routes/search-route.tsx",
+        ),
         "/sign-in" => (
             PageMetadata::noindex("Sign in", SITE_DESCRIPTION),
             Vec::new(),
-            "routes/sign-in-route.tsx",
+            "routes/auth-routes.tsx",
+        ),
+        "/sign-up" => (
+            PageMetadata::noindex("Sign up", SITE_DESCRIPTION),
+            Vec::new(),
+            "routes/auth-routes.tsx",
+        ),
+        "/forgot-password" => (
+            PageMetadata::noindex("Forgot password", SITE_DESCRIPTION),
+            Vec::new(),
+            "routes/auth-routes.tsx",
+        ),
+        "/reset-password" => (
+            PageMetadata::noindex("Reset password", SITE_DESCRIPTION),
+            Vec::new(),
+            "routes/auth-routes.tsx",
+        ),
+        "/accept-terms" => (
+            PageMetadata::noindex("Review the Terms of Service", SITE_DESCRIPTION),
+            Vec::new(),
+            "routes/auth-routes.tsx",
         ),
         "/contact" => (
             PageMetadata::indexable(
-                "Contact",
-                "Contact the Betabook maintainers.",
+                "Contact us",
+                "Report a wrong grade, a misplaced area or a bug, or send feedback about Betabook. No account needed.",
                 "/contact",
                 "website",
             ),
             Vec::new(),
-            "routes/placeholder-route.tsx",
+            "routes/info-routes.tsx",
         ),
         "/climbing-logbook" => (
             PageMetadata::indexable(
-                "Climbing Logbook Features",
-                "Sends, journal, projects, analytics and friends on Betabook.",
+                "Free climbing logbook",
+                "A free climbing logbook for bouldering, sport and trad. Log sends and sessions, see your progression, and import from KAYA, Sendage or Mountain Project.",
                 "/climbing-logbook",
                 "website",
             ),
             Vec::new(),
-            "routes/placeholder-route.tsx",
+            "routes/info-routes.tsx",
         ),
         "/kaya-import" => (
             PageMetadata::indexable(
-                "Import from KAYA",
-                "Import your KAYA climbing profile or CSV export into Betabook.",
+                "Import your KAYA logbook",
+                "Import outdoor boulders and routes into Betabook from a public KAYA profile or KAYA's CSV export.",
                 "/kaya-import",
                 "website",
             ),
             Vec::new(),
-            "routes/placeholder-route.tsx",
+            "routes/info-routes.tsx",
         ),
         "/sendage-import" => (
             PageMetadata::indexable(
@@ -549,7 +582,7 @@ fn route_metadata(path: &str, has_query: bool) -> (PageMetadata, Vec<Value>, &'s
                 "website",
             ),
             Vec::new(),
-            "routes/placeholder-route.tsx",
+            "routes/info-routes.tsx",
         ),
         "/mountain-project-import" => (
             PageMetadata::indexable(
@@ -559,7 +592,7 @@ fn route_metadata(path: &str, has_query: bool) -> (PageMetadata, Vec<Value>, &'s
                 "website",
             ),
             Vec::new(),
-            "routes/placeholder-route.tsx",
+            "routes/info-routes.tsx",
         ),
         "/costs" => (
             PageMetadata::indexable(
@@ -569,7 +602,7 @@ fn route_metadata(path: &str, has_query: bool) -> (PageMetadata, Vec<Value>, &'s
                 "website",
             ),
             Vec::new(),
-            "routes/placeholder-route.tsx",
+            "routes/info-routes.tsx",
         ),
         _ => (
             PageMetadata::noindex(SITE_NAME, SITE_DESCRIPTION),
@@ -626,19 +659,24 @@ pub async fn spa_fallback(
     let has_query = !raw_query.is_empty();
     let (meta, json_ld, chunk_key) = route_metadata(path, has_query);
 
-    let bootstrap_data = if path == "/" && !has_protected_catalog_params(raw_query, true) {
-        let climbs_page =
-            search_public_climbs(state.db(), &parse_public_catalog_options("limit=10")).await?;
-        let areas_page =
-            search_public_areas(state.db(), &parse_public_catalog_options("limit=8")).await?;
-        Some(json!({
-            "route": "home",
-            "path": "/",
-            "data": {
-                "climbs": climbs_page.climbs,
-                "areas": areas_page.areas,
-            }
-        }))
+    let bootstrap_data = if path == "/search" && !has_protected_catalog_params(raw_query, true) {
+        let mode = form_urlencoded::parse(raw_query.as_bytes())
+            .find(|(k, _)| k == "mode")
+            .map(|(_, v)| v.into_owned());
+        if matches!(mode.as_deref(), None | Some("climb")) {
+            let options = parse_public_catalog_options(raw_query);
+            let climbs_page = search_public_climbs(state.db(), &options).await?;
+            Some(json!({
+                "route": "search",
+                "path": "/search",
+                "query": raw_query,
+                "data": {
+                    "climbsPage": climbs_page,
+                }
+            }))
+        } else {
+            None
+        }
     } else {
         None
     };

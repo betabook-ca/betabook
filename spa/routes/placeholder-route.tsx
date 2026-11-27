@@ -1,20 +1,30 @@
-import Link from "@/spa/shims/next-link";
+import { AppLink } from "@/components/ui/app-link";
+import { cardClass } from "@/components/ui/card";
+import { PageTitle } from "@/components/ui/typography";
+import { SEARCH_PATH } from "@/lib/search";
 import { usePathname } from "@/spa/shims/next-navigation";
 
 export default function PlaceholderRoute() {
   const pathname = usePathname();
   return (
-    <section className="rounded-xl border border-border bg-surface p-6">
-      <h1 className="font-display text-2xl font-bold">Route pending migration</h1>
+    <section className={`mx-auto max-w-xl ${cardClass("md", "bordered")}`}>
+      <PageTitle>Route migrating in next layer</PageTitle>
       <p className="mt-2 text-sm text-muted">
         <code className="rounded bg-surface-secondary px-1.5 py-0.5">{pathname}</code> is scheduled
-        to move onto the Vite + React Router SPA in Stacks 2–5.
+        to migrate from Next.js onto the Rust Worker + React Router SPA in Stack Layers 6–8
+        (Profile, Journal, Sends, Feed, Friends, Trips, Goals, Lists, Account, and Admin).
       </p>
-      <p className="mt-4">
-        <Link href="/" className="link text-sm font-medium">
-          Return to catalog search
-        </Link>
-      </p>
+      <div className="mt-4 flex flex-wrap gap-4 text-sm">
+        <AppLink href="/" className="font-medium">
+          Home
+        </AppLink>
+        <AppLink href={SEARCH_PATH} className="font-medium">
+          Find climbs
+        </AppLink>
+        <AppLink href="/areas/1" className="font-medium">
+          Explore catalog
+        </AppLink>
+      </div>
     </section>
   );
 }

@@ -8,6 +8,7 @@ pub mod d1;
 pub mod executor;
 pub mod fts;
 pub mod public_catalog;
+pub mod social;
 #[cfg(feature = "sqlite")]
 pub mod sqlite;
 

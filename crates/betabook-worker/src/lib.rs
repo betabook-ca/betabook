@@ -97,6 +97,34 @@ fn router(state: AppState) -> Router {
             "/terms/{version}",
             get(routes::static_pages::terms_version_page),
         )
+        // SPA config, member search, friends, and client action/error RPCs
+        .route("/api/config/auth", get(routes::member_search::auth_config))
+        .route(
+            "/api/search/climbs",
+            get(routes::member_search::search_climbs),
+        )
+        .route(
+            "/api/search/areas",
+            get(routes::member_search::search_areas),
+        )
+        .route(
+            "/api/search/climbers",
+            get(routes::member_search::search_climbers),
+        )
+        .route(
+            "/api/areas/{id}/climbs",
+            get(routes::member_search::area_climbs),
+        )
+        .route("/api/friends", get(routes::member_search::friends_list))
+        .route(
+            "/api/friends/suggestions",
+            get(routes::member_search::friend_suggestions),
+        )
+        .route("/api/client-errors", post(routes::actions::client_errors))
+        .route(
+            "/api/actions/{name}",
+            post(routes::actions::dispatch_action),
+        )
         .route("/areas/new", get(routes::seo::spa_fallback))
         .route("/climbs/new", get(routes::seo::spa_fallback))
         .route("/areas/{id}", get(routes::seo::area_page))

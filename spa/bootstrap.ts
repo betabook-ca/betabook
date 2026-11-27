@@ -1,6 +1,7 @@
 type BootstrapEnvelope = {
   route: string;
   path: string;
+  query?: string;
   data: unknown;
 };
 
@@ -27,6 +28,7 @@ function readScriptFromDocument(): void {
       activeEnvelope = {
         route: parsed.route,
         path: parsed.path,
+        query: typeof parsed.query === "string" ? parsed.query : undefined,
         data: parsed.data,
       };
     } else {
@@ -38,14 +40,21 @@ function readScriptFromDocument(): void {
 }
 
 /** Reads inline Worker-injected `__BETABOOK_DATA__` for the matching route and
- * path. Stays idempotent across React StrictMode double-renders on initial
- * load, and automatically clears when client navigation leaves that path. */
-export function peekBootstrapData(route: string, currentPath: string): unknown {
+ * path (and optional query string). Stays idempotent across React StrictMode
+ * double-renders on initial load, and automatically clears on navigation. */
+export function peekBootstrapData(
+  route: string,
+  currentPath: string,
+  currentQuery?: string,
+): unknown {
   readScriptFromDocument();
   if (!activeEnvelope) {
     return null;
   }
   if (activeEnvelope.route !== route || activeEnvelope.path !== currentPath) {
+    return null;
+  }
+  if (currentQuery !== undefined && (activeEnvelope.query ?? "") !== currentQuery) {
     return null;
   }
   return activeEnvelope.data;

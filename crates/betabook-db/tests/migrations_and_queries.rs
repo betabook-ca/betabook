@@ -401,3 +401,110 @@ fn exercises_auth_queries_and_account_cleanup() {
         let _ = DbParam::Null;
     });
 }
+
+#[test]
+fn exercises_social_videos_and_send_stats_queries() {
+    let db = migrated_db();
+    run_async(async {
+        use betabook_db::social::{
+            CLIMBERS_PAGE_SIZE, dismiss_feature_announcement, get_climb_send_stats,
+            get_climb_videos, get_climber_suggestions, get_climbers_page, get_friends_page,
+            get_pending_friend_request_count, get_user_sent_climb_ids, upsert_product_tour_status,
+        };
+
+        db.execute(
+            "INSERT INTO areas (id, parent_id, name) VALUES (1, NULL, 'Squamish')",
+            &[],
+        )
+        .await
+        .expect("area");
+        db.execute(
+            "INSERT INTO climbs (id, area_id, name, type, grade)
+             VALUES (1, 1, 'Dreamcatcher', 'sport', 18), (2, 1, 'Cobra Crack', 'trad', 15)",
+            &[],
+        )
+        .await
+        .expect("climbs");
+        db.execute(
+            "INSERT INTO user (id, name, email, is_private, send_comment_visibility)
+             VALUES ('u1', 'Alex', 'alex@example.com', 0, 'everyone'),
+                    ('u2', 'Blake', 'blake@example.com', 0, 'public'),
+                    ('u3', 'Casey', 'casey@example.com', 1, 'everyone')",
+            &[],
+        )
+        .await
+        .expect("users");
+        db.execute(
+            "INSERT INTO sends (user_id, climb_id, ascent_style, date_sent, rating, suggested_grade, grade_feel, videos)
+             VALUES ('u1', 1, 'redpoint', '2026-09-01', 5, 18, 'high', '[\"https://www.youtube.com/watch?v=dQw4w9WgXcQ\"]'),
+                    ('u2', 1, 'flash', '2026-09-02', 4, 17, 'solid', '[\"https://www.youtube.com/watch?v=abc123def45\"]'),
+                    ('u3', 1, 'redpoint', '2026-09-03', NULL, 18, 'solid', '[\"https://www.youtube.com/watch?v=privatevid1\"]')",
+            &[],
+        )
+        .await
+        .expect("sends");
+
+        // Signed-out viewer sees only 'everyone' video from public user.
+        let anon_videos = get_climb_videos(&db, 1, None, 8)
+            .await
+            .expect("anon videos");
+        assert_eq!(anon_videos.total, 1);
+        assert_eq!(anon_videos.videos[0].user_id, None);
+        assert_eq!(anon_videos.videos[0].user_name, "Alex");
+
+        // Signed-in viewer u2 sees 'everyone' and 'public', still not private u3.
+        let member_videos = get_climb_videos(&db, 1, Some("u2"), 8)
+            .await
+            .expect("member videos");
+        assert_eq!(member_videos.total, 2);
+        assert_eq!(member_videos.videos[0].user_id.as_deref(), Some("u2"));
+
+        // Stats and sent IDs.
+        let stats = get_climb_send_stats(&db, &[1, 2]).await.expect("stats");
+        assert_eq!(stats[&1].send_count, 3);
+        assert_eq!(stats[&2].send_count, 0);
+        let sent_ids = get_user_sent_climb_ids(&db, "u1", &[1, 2])
+            .await
+            .expect("sent ids");
+        assert_eq!(sent_ids, vec![1]);
+
+        // Friendships & suggestions.
+        db.execute(
+            "INSERT INTO friendships (user_id, friend_id, status, requested_by)
+             VALUES ('u1', 'u2', 'accepted', 'u1'),
+                    ('u1', 'u3', 'pending', 'u3')",
+            &[],
+        )
+        .await
+        .expect("friendships");
+        assert_eq!(
+            get_pending_friend_request_count(&db, "u1")
+                .await
+                .expect("pending count"),
+            1
+        );
+        let accepted = get_friends_page(&db, "u1", false, 0)
+            .await
+            .expect("accepted friends");
+        assert_eq!(accepted.friends.len(), 1);
+        assert_eq!(accepted.friends[0].name, "Blake");
+
+        let climbers = get_climbers_page(&db, Some("u1"), "bl", 0, CLIMBERS_PAGE_SIZE)
+            .await
+            .expect("climbers search");
+        assert_eq!(climbers.climbers.len(), 1);
+        assert_eq!(climbers.climbers[0].friendship_status, "friends");
+
+        let suggestions = get_climber_suggestions(&db, "u1", 6)
+            .await
+            .expect("suggestions");
+        assert!(suggestions.is_empty());
+
+        dismiss_feature_announcement(&db, "u1", "analytics-customize")
+            .await
+            .expect("dismiss announcement");
+        upsert_product_tour_status(&db, "u1", "journal", 7, "completed")
+            .await
+            .expect("upsert tour");
+    });
+}
