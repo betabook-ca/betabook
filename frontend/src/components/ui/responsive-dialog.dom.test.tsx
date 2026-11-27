@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 
-import { stubViewport } from "@/test/viewport";
+import { stubViewport } from "@/tests/vitest/viewport";
 
 import { ResponsiveDialog } from "./responsive-dialog";
 

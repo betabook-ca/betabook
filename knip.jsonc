@@ -2,10 +2,7 @@
   "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
   "workspaces": {
     ".": {
-      "entry": [
-        "scripts/static-documents.tsx!",
-        "scripts/rust-smoke/fixtures/upstreams-worker.mjs",
-      ],
+      "entry": ["scripts/static-documents.tsx!", "tests/worker/fixtures/upstreams-worker.ts"],
       "storybook": {
         "config": ["frontend/.storybook/main.ts"],
         "entry": ["frontend/.storybook/preview.tsx", "frontend/.storybook/mocks/*.ts"],
@@ -13,7 +10,6 @@
       "postcss": { "config": ["frontend/postcss.config.mjs"] },
       "project": [
         "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts,css}!",
-        "!test/**!",
         "!scripts/**!",
         "!frontend/stories/**!",
         "!**/*.stories.tsx!",

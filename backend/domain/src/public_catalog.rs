@@ -185,14 +185,14 @@ fn parse_rating_range(values: &[String]) -> [i64; 2] {
 fn parse_suggestion_limit(raw: Option<&str>) -> Option<usize> {
     let raw = raw?;
     match parse_js_int(raw) {
-        Some(n) if n >= 1 => Some((n as usize).min(MAX_SUGGESTION_LIMIT)),
+        Some(n) if n >= 1 => usize::try_from(n.min(MAX_SUGGESTION_LIMIT as i64)).ok(),
         _ => Some(DEFAULT_SUGGESTION_LIMIT),
     }
 }
 
 fn parse_page(raw: Option<&str>, page_size: usize) -> Option<usize> {
     let n = raw.and_then(parse_js_int).unwrap_or(1);
-    let page = if n <= 0 { 1 } else { n as usize };
+    let page = usize::try_from(n.max(1)).ok()?;
     let last_page = (MAX_PAGINATION_OFFSET / page_size) + 1;
     (page <= last_page).then_some(page)
 }

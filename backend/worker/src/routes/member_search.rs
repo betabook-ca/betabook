@@ -15,7 +15,7 @@ use betabook_db::social::{
     get_user_sent_climb_ids,
 };
 use betabook_domain::public_catalog::{
-    DEFAULT_PUBLIC_PAGE_SIZE, MAX_PAGINATION_OFFSET, PublicArea, parse_id,
+    DEFAULT_PUBLIC_PAGE_SIZE, MAX_PAGINATION_OFFSET, PublicArea, PublicCatalogOptions, parse_id,
     parse_member_catalog_options,
 };
 use serde_json::{Value, json};
@@ -81,39 +81,26 @@ pub async fn search_climbs(
     let raw_query = uri.query().unwrap_or("");
     let options =
         parse_member_catalog_options(raw_query, &session.user.id, DEFAULT_PUBLIC_PAGE_SIZE);
-    let Some(offset) = options.offset else {
-        return Ok(no_store_json(
-            StatusCode::OK,
-            json!({
-                "climbs": [],
-                "hasNextPage": false,
-                "sendStats": {},
-                "areaBreadcrumbs": {},
-                "sentClimbIds": [],
-            }),
-        ));
-    };
+    let page = member_climbs_page(&state, &session.user.id, &options).await?;
+    Ok(no_store_json(StatusCode::OK, page))
+}
 
-    let page = search_public_climbs(state.db(), &options).await?;
+pub(super) async fn member_climbs_page(
+    state: &AppState,
+    viewer_id: &str,
+    options: &PublicCatalogOptions,
+) -> Result<Value, ApiError> {
+    let page = search_public_climbs(state.db(), options).await?;
     let climb_ids: Vec<i64> = page.climbs.iter().map(|c| c.id).collect();
-    let area_ids: Vec<i64> = page.climbs.iter().map(|c| c.area_id).collect();
-
     let send_stats = get_climb_send_stats(state.db(), &climb_ids).await?;
-    let area_breadcrumbs = get_area_breadcrumbs(state.db(), &area_ids, 2).await?;
-    let sent_climb_ids = get_user_sent_climb_ids(state.db(), &session.user.id, &climb_ids).await?;
-
-    let has_next_page = page.has_next_page && offset + options.page_size <= MAX_PAGINATION_OFFSET;
-
-    Ok(no_store_json(
-        StatusCode::OK,
-        json!({
-            "climbs": page.climbs,
-            "hasNextPage": has_next_page,
-            "sendStats": send_stats,
-            "areaBreadcrumbs": area_breadcrumbs,
-            "sentClimbIds": sent_climb_ids,
-        }),
-    ))
+    let sent_climb_ids = get_user_sent_climb_ids(state.db(), viewer_id, &climb_ids).await?;
+    Ok(json!({
+        "climbs": page.climbs,
+        "hasNextPage": page.has_next_page,
+        "sendStats": send_stats,
+        "areaBreadcrumbs": page.area_breadcrumbs,
+        "sentClimbIds": sent_climb_ids,
+    }))
 }
 
 #[worker::send]
@@ -225,41 +212,13 @@ pub async fn area_climbs(
     .await?;
 
     let mut options = parse_member_catalog_options(raw_query, &session.user.id, PAGE_SIZE);
-    let Some(offset) = options.offset else {
-        return Ok(no_store_json(
-            StatusCode::OK,
-            json!({
-                "climbs": [],
-                "hasNextPage": false,
-                "sendStats": {},
-                "areaBreadcrumbs": {},
-                "sentClimbIds": [],
-            }),
-        ));
-    };
     options.area_id = Some(scope.id);
-
-    let page = search_public_climbs(state.db(), &options).await?;
-    let climb_ids: Vec<i64> = page.climbs.iter().map(|c| c.id).collect();
-    let area_ids: Vec<i64> = page.climbs.iter().map(|c| c.area_id).collect();
-
-    let send_stats = get_climb_send_stats(state.db(), &climb_ids).await?;
-    let area_breadcrumbs = get_area_breadcrumbs(state.db(), &area_ids, 2).await?;
-    let sent_climb_ids = get_user_sent_climb_ids(state.db(), &session.user.id, &climb_ids).await?;
-    let has_next_page = page.has_next_page && offset + PAGE_SIZE <= MAX_PAGINATION_OFFSET;
-
-    Ok(no_store_json(
-        StatusCode::OK,
-        json!({
-            "climbs": page.climbs,
-            "page": (offset / PAGE_SIZE) + 1,
-            "pageSize": PAGE_SIZE,
-            "hasNextPage": has_next_page,
-            "sendStats": send_stats,
-            "areaBreadcrumbs": area_breadcrumbs,
-            "sentClimbIds": sent_climb_ids,
-        }),
-    ))
+    let mut page = member_climbs_page(&state, &session.user.id, &options).await?;
+    if let Some(offset) = options.offset {
+        page["page"] = json!(offset / options.page_size + 1);
+        page["pageSize"] = json!(options.page_size);
+    }
+    Ok(no_store_json(StatusCode::OK, page))
 }
 
 #[worker::send]

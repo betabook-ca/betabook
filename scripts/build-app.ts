@@ -10,7 +10,7 @@ import { publicEntryTemplate } from "./public-entry-template.ts";
 async function buildSpa(assetsDir: string, outDir: string) {
   const configFile = path.resolve("frontend/vite.config.ts");
   await build({ configFile, build: { outDir: assetsDir } });
-  await copyFile("api/openapi.json", path.join(assetsDir, "openapi.json"));
+  await copyFile("openapi.json", path.join(assetsDir, "openapi.json"));
   await build({
     configFile,
     build: {

@@ -7,7 +7,7 @@ import type { ActionResult } from "@/lib/action-result";
 import type { ClimbListChoice } from "@/lib/catalog-types";
 import { addClimbToList, createClimbList, type SavedClimbList } from "@/spa/lib/actions-client";
 import { climbListChoiceSamples } from "@/stories/fixtures/climb-lists";
-import { stubViewport } from "@/test/viewport";
+import { stubViewport } from "@/tests/vitest/viewport";
 
 import { AddToListButton, type ClimbListChoicesFetcher } from "./add-to-list-button";
 

@@ -1,31 +1,15 @@
-# Agent guide contents
+# Betabook
 
-- [Setup, local accounts, scripts and deployment](.agents/skills/betabook-dev/SKILL.md)
-- [Cloudflare infrastructure (OpenTofu and Spacelift)](infra/cloudflare/README.md)
-- [Working on Betabook](docs/repository-guide.md)
-  - [Code map](docs/repository-guide.md#code-map)
-  - [Rust Worker and Vite runtime](docs/repository-guide.md#runtime)
-  - [Boundaries and conventions](docs/repository-guide.md#boundaries-and-conventions)
-  - [Data invariants, migrations and bindings](docs/repository-guide.md#data-rules-to-preserve)
-  - [Routes and metadata](docs/repository-guide.md#routes-and-metadata)
-  - [UI and story requirements](docs/repository-guide.md#design-system-and-ui-regressions)
-  - [Tutorial requirements](docs/repository-guide.md#product-tutorials)
-  - [Testing workflow and required checks](docs/repository-guide.md#testing-and-validation)
-- [Choosing and writing tests](docs/component-testing.md)
-  - [Path and filename rules](docs/component-testing.md#match-the-path-and-suffix)
-  - [jsdom tests](docs/component-testing.md#jsdom-rules)
-  - [Workers and D1 tests](docs/component-testing.md#workers-rules)
-  - [Browser tests](docs/component-testing.md#browser-rules)
-  - [Stories](docs/component-testing.md#story-rules)
-- [Design system and visual review](docs/design-system.md)
-- [Product tour implementation](docs/product-tours.md)
-- [Component test instructions](frontend/src/components/AGENTS.md)
-- [Browser test instructions](tests/ui/AGENTS.md)
+Betabook is a climbing logbook and community crag database. The [Rust backend](backend/AGENTS.md) serves a [React SPA](frontend/AGENTS.md) on Cloudflare. See the [license](LICENSE) for terms of use.
 
-- [Journal goal invariants](docs/goals.md)
+## Find the relevant guidance
 
-## React memoization
+- For setup, seeded accounts or deployment, use the [development skill](.agents/skills/betabook-dev/SKILL.md). Infrastructure changes have a [Cloudflare guide](infra/cloudflare/AGENTS.md).
+- For changes to product behavior, read the matching [feature reference](docs/features/). For tests, use the [runner selection guide](docs/testing/selection.md).
+- Keep instructions that apply to a directory in its nearest `AGENTS.md`. Put detailed feature rules and procedures in ordinary reference files and link them where the task begins.
 
-Let the React Compiler optimize the SPA. Write plain components, calculations, and callbacks. Do not add `React.memo` (including the named `memo` import), `useMemo`, or `useCallback` for render performance.
+## Verification
 
-When changing existing manual memoization, verify any behavior that depends on reference identity, such as an effect subscription or a third-party integration. Use state or a ref when a value must persist across renders.
+For behavior changes, run a focused test red and then green. When adding coverage for existing behavior, demonstrate the failure with a temporary regression, restore the implementation and confirm green. Record the focused commands and outcomes in the PR.
+
+Run `pnpm check` before committing. Run `pnpm build` for runtime, dependency, route or Cloudflare configuration changes. For documentation edits, check formatting and references.

@@ -2,7 +2,7 @@ import { afterEach, expect, it, vi } from "vitest";
 
 import { AuthenticationRequiredError } from "@/lib/api-client";
 import type { KayaImportProgress } from "@/lib/kaya-import-stream";
-import { kayaStreamResponse as page } from "@/test/kaya";
+import { kayaStreamResponse as page } from "@/tests/vitest/kaya";
 
 import { fetchKayaImport } from "./kaya-import";
 import { guessColumnMapping, guessClimbTypeMapping } from "./sends-import";

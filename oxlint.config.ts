@@ -215,7 +215,7 @@ export default defineConfig({
       },
     },
     {
-      files: ["**/*.test.ts", "**/*.test.tsx", "test/**"],
+      files: ["**/*.test.ts", "**/*.test.tsx", "tests/vitest/**"],
       rules: {
         "typescript/no-non-null-assertion": "off",
       },

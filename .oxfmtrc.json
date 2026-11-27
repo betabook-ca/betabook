@@ -16,7 +16,7 @@
     "stylesheet": "frontend/src/spa/globals.css"
   },
   "ignorePatterns": [
-    "api/openapi.json",
+    "openapi.json",
     "frontend/src/spa/generated/api.d.ts",
     ".next/**",
     "out/**",

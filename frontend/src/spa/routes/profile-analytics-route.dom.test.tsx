@@ -5,7 +5,7 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, expect, it, vi } from "vitest";
 
 import { fetchJson } from "@/spa/lib/fetch-json";
-import { stubViewport } from "@/test/viewport";
+import { stubViewport } from "@/tests/vitest/viewport";
 
 import ProfileAnalyticsRoute from "./profile-analytics-route";
 

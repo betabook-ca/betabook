@@ -1,0 +1,14 @@
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "provider-fixture",
+  "main": "./upstreams-worker.ts",
+  "compatibility_date": "2026-08-17",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "provider-fixture",
+      "database_id": "00000000-0000-4000-8000-000000000001",
+      "migrations_dir": "../../../backend/migrations",
+    },
+  ],
+}

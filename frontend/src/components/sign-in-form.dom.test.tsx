@@ -2,7 +2,7 @@ import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
-import { stubTurnstile } from "@/test/turnstile";
+import { stubTurnstile } from "@/tests/vitest/turnstile";
 
 import { SignInForm } from "./sign-in-form";
 
@@ -20,7 +20,7 @@ vi.mock("@/lib/auth-client", () => ({
 vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => ({ push: vi.fn<(path: string) => void>() }),
 }));
-vi.mock("@/spa/lib/external-script", () => import("@/test/turnstile"));
+vi.mock("@/spa/lib/external-script", () => import("@/tests/vitest/turnstile"));
 
 async function fillCredentials(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByRole("textbox", { name: "Email" }), "climber@example.com");

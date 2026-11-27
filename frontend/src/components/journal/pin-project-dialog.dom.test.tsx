@@ -6,7 +6,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import type { ActionResult } from "@/lib/action-result";
 import type { OpenProject } from "@/lib/logbook-types";
 import { pinProject } from "@/spa/lib/actions-client";
-import { stubViewport } from "@/test/viewport";
+import { stubViewport } from "@/tests/vitest/viewport";
 
 import { PinProjectDialog } from "./pin-project-dialog";
 

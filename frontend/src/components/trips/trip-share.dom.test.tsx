@@ -4,8 +4,8 @@ import { beforeEach, expect, it, vi } from "vitest";
 
 import type { ActionResult } from "@/lib/action-result";
 import { shareTrip, unshareTrip } from "@/spa/lib/actions-client";
-import { watchOverlayKinds } from "@/test/overlay-kinds";
-import { stubViewport } from "@/test/viewport";
+import { watchOverlayKinds } from "@/tests/vitest/overlay-kinds";
+import { stubViewport } from "@/tests/vitest/viewport";
 
 import { TripShare } from "./trip-share";
 
