@@ -172,16 +172,14 @@ function failedRowsForResult(
   ].sort((a, b) => a.rowIndex - b.rowIndex);
 }
 
-/** Derive the review from the file and the climber's choices independently of
- * the wizard's upload, lookup and batch progress. */
-function useImportReview(
+/** Date corrections affect automatic matching. Keep this calculation independent
+ * of manual picks and the running import's batch progress. */
+function useImportMatching(
   baseNormalized: ReturnType<typeof normalizeImportRows> | null,
-  undatedDates: ReadonlySet<string>,
   candidateIndex: CandidateIndex | null,
   options: MatchOptions,
-  manual: ReadonlyMap<number, ManualChoice>,
-  importResult: WizardResult | null,
 ) {
+  const [undatedDates, setUndatedDates] = useState<ReadonlySet<string>>(new Set());
   const dateClusters = findImportDateClusters(baseNormalized?.valid ?? []);
   // Date review changes only dates. Preserve row identities and manual climb
   // choices, and avoid repeating the name/area lookup when a checkbox changes.
@@ -194,10 +192,7 @@ function useImportReview(
 
   const matches =
     normalized && candidateIndex ? matchRows(normalized.valid, candidateIndex, options) : null;
-  const resolved = normalized && matches ? resolveRows(normalized.valid, matches, manual) : null;
-  const summary = resolved ? summarizeResolved(resolved) : null;
-  const failures = failedRowsForResult(importResult, baseNormalized?.invalid ?? [], resolved);
-  return { dateClusters, normalized, resolved, summary, failures };
+  return { dateClusters, normalized, matches, undatedDates, setUndatedDates };
 }
 
 /** The sends import. "Import another file" starts a fresh run, so every step's
@@ -244,7 +239,7 @@ function ImportWizardRun({
   const [baseNormalized, setNormalized] = useState<ReturnType<typeof normalizeImportRows> | null>(
     null,
   );
-  const [undatedDates, setUndatedDates] = useState<ReadonlySet<string>>(new Set());
+
   const [candidateIndex, setCandidateIndex] = useState<CandidateIndex | null>(null);
   const [looseIndex, setLooseIndex] = useState<CandidateIndex>(new Map());
   const [lookup, setLookup] = useState<LookupStatus>({ phase: "done" });
@@ -272,14 +267,14 @@ function ImportWizardRun({
     return () => window.removeEventListener("beforeunload", warn);
   }, [pending]);
 
-  const { dateClusters, normalized, resolved, summary, failures } = useImportReview(
+  const { dateClusters, normalized, matches, undatedDates, setUndatedDates } = useImportMatching(
     baseNormalized,
-    undatedDates,
     candidateIndex,
     { gradeScale, preferredAreas, looseIndex, prefs },
-    manual,
-    importResult,
   );
+  const resolved = normalized && matches ? resolveRows(normalized.valid, matches, manual) : null;
+  const summary = resolved ? summarizeResolved(resolved) : null;
+  const failures = failedRowsForResult(importResult, baseNormalized?.invalid ?? [], resolved);
 
   function guessValueSettings(parsed: ParsedCsv, mapping: ColumnMapping): ValueSettings {
     const dateSample = distinctValues(parsed.rows, mapping.date).slice(0, DATE_SAMPLE_SIZE);
