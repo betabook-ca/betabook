@@ -5,9 +5,10 @@ pub const SITE_DESCRIPTION: &str =
 pub const SITE_TAGLINE: &str = "Climb · Log · Progress";
 pub const SITE_LOCKUP_ALT: &str = "Betabook — Climb · Log · Progress";
 
-pub const PALETTE_INK: &str = "#000000";
-pub const PALETTE_PRIMARY: &str = "#83ba73";
-pub const PALETTE_PAPER: &str = "#eaf7ef";
+pub const PALETTE_NIGHT: &str = "#191e25";
+pub const PALETTE_INK: &str = "#252423";
+pub const PALETTE_PRIMARY: &str = "#994b35";
+pub const PALETTE_PAPER: &str = "#faf9f5";
 
 pub const OG_IMAGE_URL: &str = "/opengraph-image.png";
 pub const OG_IMAGE_WIDTH: u32 = 1200;

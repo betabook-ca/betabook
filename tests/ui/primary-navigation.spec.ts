@@ -14,13 +14,11 @@ for (const [story, label] of [
     const inactive = nav.locator("a:not([aria-current])").first();
     expect(
       await active
-        .locator(":scope > span")
-        .first()
+        .locator(":scope > span:has(svg)")
         .evaluate((element) => getComputedStyle(element).backgroundColor),
     ).not.toBe(
       await inactive
-        .locator(":scope > span")
-        .first()
+        .locator(":scope > span:has(svg)")
         .evaluate((element) => getComputedStyle(element).backgroundColor),
     );
     expect(await active.evaluate((element) => getComputedStyle(element).color)).not.toBe(

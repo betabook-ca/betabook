@@ -141,7 +141,6 @@ export function SearchTriggerControl({
     <button
       type="button"
       onClick={onOpenSearch}
-      aria-label="Search"
       aria-keyshortcuts={showShortcut ? keys?.ariaPalette : undefined}
       className={className}
     >

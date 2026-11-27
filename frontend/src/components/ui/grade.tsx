@@ -15,7 +15,7 @@ export function Grade({ children, size = "sm", className }: GradeProps) {
   return (
     <span
       className={clsx(
-        "inline-flex items-center gap-0.5 font-medium text-foreground",
+        "inline-flex items-center gap-0.5 font-medium text-foreground tabular-nums",
         size === "sm" ? "text-sm" : "text-base",
         className,
       )}

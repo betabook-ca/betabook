@@ -83,6 +83,7 @@ export function JournalEntryRow({
   filter,
   areaBreadcrumbs,
   linkTags = true,
+  dateDisplay,
 }: {
   entry: JournalEntry;
   isOwner: boolean;
@@ -92,6 +93,7 @@ export function JournalEntryRow({
   /** Hashtags link to the Journal filtered by them. Off for a trip link's
    * readers, who can't open the Journal. */
   linkTags?: boolean;
+  dateDisplay?: "day" | "continued" | "grouped";
 }) {
   const grade = activityGrade(entry.climbType, entry.climbGrade, entry.sent, entry.reportedGrade);
   const status = (
@@ -139,6 +141,7 @@ export function JournalEntryRow({
         }
         status={status}
         date={entry.entryDate}
+        dateDisplay={dateDisplay}
         tags={tags}
         comment={entry.body}
         media={sendVideoMedia(entry.videos, entry.climbName)}
@@ -153,6 +156,7 @@ export function JournalEntryRow({
       tags={tags}
       status={status}
       date={entry.entryDate}
+      dateDisplay={dateDisplay}
       comment={entry.body}
       actions={actions}
     />

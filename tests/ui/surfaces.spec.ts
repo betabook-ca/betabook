@@ -134,6 +134,6 @@ for (const panel of [
     }
     await expect.soft(surface).toHaveCSS("padding", panel.padding);
     await expect(surface).toHaveCSS("box-shadow", "none");
-    await expect(surface).toHaveCSS("border-radius", "12px");
+    await expect(surface).toHaveCSS("border-radius", "8px");
   });
 }

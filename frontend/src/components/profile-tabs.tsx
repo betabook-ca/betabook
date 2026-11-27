@@ -55,6 +55,7 @@ export function ProfileTabs({
   return (
     <SectionNavigation
       label="Profile sections"
+      appearance="workspace"
       tabs={tabs.map(({ path, label, roots = [], nested = false }) => ({
         href: share ? withProfileShare(path, share) : path,
         label,

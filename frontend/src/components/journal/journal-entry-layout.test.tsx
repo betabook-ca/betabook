@@ -3,13 +3,7 @@ import { expect, it } from "vitest";
 
 import { JournalEntryLayout, JournalEntryStatus } from "./journal-entry-layout";
 
-const PLACEHOLDER = '<span class="text-muted">—</span>';
-
-function placeholders(html: string) {
-  return html.split(PLACEHOLDER).length - 1;
-}
-
-it("marks an ungraded session's empty grade slot with a muted dash above its status", () => {
+it("keeps a dated session readable without reserving space for an absent grade", () => {
   const html = renderToStaticMarkup(
     <JournalEntryLayout
       title="Cedar Arete"
@@ -17,15 +11,15 @@ it("marks an ungraded session's empty grade slot with a muted dash above its sta
       status={<JournalEntryStatus kind="session" />}
     />,
   );
-
-  expect(placeholders(html)).toBe(1);
-  expect(html.indexOf(PLACEHOLDER)).toBeLessThan(html.indexOf("Session"));
+  expect(html).toContain('dateTime="2026-09-04"');
+  expect(html).toContain("Session");
+  expect(html).not.toContain("—");
 });
 
-it("marks both empty slots of a training entry", () => {
-  const html = renderToStaticMarkup(<JournalEntryLayout title="Training" date="2026-09-04" />);
-
-  expect(placeholders(html)).toBe(2);
+it("identifies an undated entry", () => {
+  const html = renderToStaticMarkup(<JournalEntryLayout title="Cedar Arete" date={null} />);
+  expect(html).toContain("Date unknown");
+  expect(html).not.toContain("<time");
 });
 
 it("shows the grade and status instead of the dash when the entry has them", () => {
@@ -38,7 +32,7 @@ it("shows the grade and status instead of the dash when the entry has them", () 
     />,
   );
 
-  expect(placeholders(html)).toBe(0);
+  expect(html).not.toContain("—");
   expect(html).toContain("V4");
   expect(html).toContain("Sent");
 });

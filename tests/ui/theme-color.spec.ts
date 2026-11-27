@@ -16,7 +16,7 @@ test(
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
     await expect(page.locator('meta[name="theme-color"]').first()).toHaveAttribute(
       "content",
-      theme === "dark" ? "#000000" : "#eaf7ef",
+      theme === "dark" ? "#191e25" : "#faf9f5",
     );
     await expect(page.locator('meta[name="theme-color"]').first()).toHaveAttribute(
       "data-explicit-theme",
@@ -49,7 +49,7 @@ test(
       );
       await expect(page.locator('meta[name="theme-color"]').first()).toHaveAttribute(
         "content",
-        theme === "dark" ? "#000000" : "#eaf7ef",
+        theme === "dark" ? "#191e25" : "#faf9f5",
       );
       await expect(page.locator('meta[name="theme-color"][data-explicit-theme]')).toHaveCount(1);
     }

@@ -42,7 +42,7 @@ export function UserAvatar({ name, image, size = "md", className }: UserAvatarPr
     <span
       aria-hidden="true"
       className={clsx(
-        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-separator font-display font-semibold tracking-wide",
+        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-separator font-sans font-semibold tracking-wide",
         anonymous ? "bg-surface-secondary text-muted" : "bg-accent text-accent-foreground",
         sizeClassName,
         className,

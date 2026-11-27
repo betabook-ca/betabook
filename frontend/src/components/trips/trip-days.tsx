@@ -177,7 +177,7 @@ function TripDayCards({
             <TripDayHeader day={day} />
             {/* Rows raise their grade column to z-10; keeping them in their own
               stacking context lets the sticky header cover them. */}
-            <ul role="list" className="relative z-0 flex flex-col divide-y divide-separator">
+            <ul role="list" className="relative z-0 flex flex-col divide-y divide-separator px-4">
               {day.items.map((item) =>
                 item.kind === "send" ? (
                   // Keyed by climb id. Keys end up in the RSC payload, which a
@@ -185,6 +185,7 @@ function TripDayCards({
                   // shouldn't.
                   <li key={`send-${item.send.climbId}`}>
                     <UserSendLogRow
+                      dateDisplay="grouped"
                       send={item.send}
                       areaBreadcrumbs={areaBreadcrumbs}
                       actions={isOwner && <SendActionsMenu send={item.send} />}
@@ -196,6 +197,7 @@ function TripDayCards({
                   // is added or removed.
                   <li key={forLink ? `entry-${item.position}` : `entry-${item.entry.id}`}>
                     <JournalEntryRow
+                      dateDisplay="grouped"
                       entry={item.entry}
                       isOwner={isOwner}
                       userId={userId}

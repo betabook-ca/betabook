@@ -162,7 +162,7 @@ export function FilterToolbarLayout({
              * that reaches it, so the padding is zeroed there and the panel
              * below owns its own spacing. */}
             {!searchOnly && (
-              <Disclosure.Content className="min-w-0">
+              <Disclosure.Content className={clsx("min-w-0", !isExpanded && "hidden")}>
                 <Disclosure.Body style={{ padding: 0 }}>
                   {/* Its own surface, so the expanded filters read as one panel
                    * belonging to the bar rather than loose page content. */}

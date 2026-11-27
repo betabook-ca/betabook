@@ -95,7 +95,9 @@ export function QuestionList({ questions }: { questions: LandingQuestion[] }) {
       {questions.map((item) => (
         <div key={item.question} className="flex flex-col gap-1">
           <h3 className="font-semibold">{item.question}</h3>
-          <p className="leading-relaxed text-pretty text-muted">{item.answer}</p>
+          <p className="leading-relaxed text-pretty [overflow-wrap:anywhere] text-muted">
+            {item.answer}
+          </p>
         </div>
       ))}
     </div>

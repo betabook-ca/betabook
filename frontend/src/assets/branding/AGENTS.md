@@ -18,9 +18,7 @@ The full lockup includes the lowercase **betabook** wordmark and the tagline
   scale their heavier strokes up for the full logo. Storybook shows actual-size
   browser tabs, compact headers, and an app tile on paper/ink surfaces.
 
-The wordmark uses **Barlow Condensed Bold (700)**, matching the application's
-wordmark/display family. The tagline uses **Geist Medium (500)**, matching the
-system's supporting text family. Both lockup SVGs embed the bundled WOFF2 font files,
+The wordmark uses **Barlow Condensed Bold (700)**, embedded in the brand artwork. The tagline uses **Geist Medium (500)** in the artwork. Both lockup SVGs embed the bundled WOFF2 font files,
 so their editable text renders without depending on installed system fonts.
 The checkmark's rising stroke tapers from the mountain's substantial join to a
 fine tip in the standard mark. The optical small-size cut retains a taper but
@@ -38,8 +36,8 @@ files and ink/paper palette values from `frontend/src/spa/globals.css`, then ren
 with Playwright Chromium. Run `pnpm exec playwright install chromium` once if
 needed. Edit the generator, rather than independently editing its outputs.
 
-Artwork uses coral `#ef846c` for the sun, and the application's ink `#000000`
-and paper `#eaf7ef` for lettering. Keep the lettering aligned with the palette
+Artwork uses coral `#ef846c` for the sun, and the application's ink `#252423`
+and paper `#faf9f5` for lettering. Keep the lettering aligned with the palette
 when regenerating these reference images. Do not bake a background into the
 artwork: the reference panels use `bg-background` under their explicit light
 or dark theme, so their backgrounds always come from `frontend/src/spa/globals.css`.

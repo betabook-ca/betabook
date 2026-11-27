@@ -91,15 +91,20 @@ test("sidebar preview overlays content and pinning reserves space", async ({ pag
     const box = await control.boundingBox();
     if (!box) throw new Error("Missing header control");
     expect(box.height).toBe(40);
-    expect(box.y).toBe(8);
+    expect(Math.abs(box.y - 8)).toBeLessThanOrEqual(0.5);
   }
   const firstRow = await sidebar.getByRole("link", { name: "Logbook", exact: true }).boundingBox();
   const workspaceTabs = await page
     .getByRole("navigation", { name: "Community sections" })
     .boundingBox();
-  if (!firstRow || !workspaceTabs) throw new Error("Missing navigation rows");
+  const title = await page
+    .getByRole("region", { name: "Community workspace" })
+    .getByRole("heading", { level: 1 })
+    .boundingBox();
+  if (!firstRow || !workspaceTabs || !title) throw new Error("Missing navigation rows");
   expect(firstRow.y).toBe(64);
-  expect(workspaceTabs.y).toBe(firstRow.y);
+  expect(title.y).toBe(80);
+  expect(workspaceTabs.y - title.y - title.height).toBe(16);
   const utilities = [
     sidebar.getByRole("link", { name: "Tutorials" }),
     sidebar.getByRole("link", { name: "Moderation" }),

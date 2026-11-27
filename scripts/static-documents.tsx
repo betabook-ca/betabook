@@ -55,7 +55,9 @@ function PublicFrame({
       </header>
       <main
         id="main"
-        className={progressive ? "flex-1 p-4 md:pt-2" : "mx-auto w-full max-w-5xl flex-1 px-4 py-6"}
+        className={
+          progressive ? "flex-1 px-4 py-5 md:py-6" : "mx-auto w-full max-w-5xl flex-1 px-4 py-6"
+        }
       >
         {progressive ? (
           <div className={`mx-auto w-full ${PAGE_MAX_WIDTH_CLASS}`}>{children}</div>

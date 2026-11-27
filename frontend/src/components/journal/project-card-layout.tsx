@@ -45,7 +45,7 @@ export function ProjectCardLayout({
     <article className={clsx(cardClass("sm", "bordered"), "flex flex-col gap-3")}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
-          <h3 className="min-w-0 truncate font-display text-xl font-semibold tracking-tight">
+          <h3 className="min-w-0 truncate text-xl font-bold tracking-tight [&_a]:font-bold">
             {title ?? project.climbName}
           </h3>
           {area ?? <span className="text-sm text-muted">{project.areaName}</span>}

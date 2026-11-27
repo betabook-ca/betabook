@@ -13,7 +13,7 @@ test("production brand stories load the correct treatment and responsive home li
       const src = await image.getAttribute("src");
       if (src?.startsWith("data:image/svg+xml,")) {
         const artwork = decodeURIComponent(src.slice(src.indexOf(",") + 1));
-        expect(artwork).toContain(theme === "light" ? "#000000" : "#eaf7ef");
+        expect(artwork).toContain(theme === "light" ? "#252423" : "#faf9f5");
       } else {
         await expect(image).toHaveAttribute("src", new RegExp(`-${theme}(?:[.-][^/]*)?\\.svg$`));
       }

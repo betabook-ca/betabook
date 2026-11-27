@@ -41,8 +41,10 @@ it("clearing area scope restores global results without changing the query", asy
     expect(screen.queryByRole("button", { name: `Open ${other}` })).not.toBeInTheDocument(),
   );
   await waitFor(async () => expect(await result(local)).toBeEnabled());
-  await user.click(button("Clear area Cedar Grove"));
-  expect(screen.queryByRole("button", { name: "Clear area Cedar Grove" })).not.toBeInTheDocument();
+  await user.click(button("In area: Cedar Grove, clear filter"));
+  expect(
+    screen.queryByRole("button", { name: "In area: Cedar Grove, clear filter" }),
+  ).not.toBeInTheDocument();
   expect(screen.getByRole("searchbox", { name: "Search Betabook" })).toHaveValue("cedar");
   await waitFor(async () => expect(await result(other)).toBeEnabled());
 });
@@ -92,7 +94,7 @@ it("full climb search filters by a looked-up area and the quick palette never br
   expect(await result(other)).toBeEnabled();
   await user.type(screen.getByRole("combobox", { name: "In area" }), "cedar");
   await user.click(await screen.findByRole("option", { name: /California \/ North Woods/ }));
-  expect(button("Clear area Cedar Grove")).toBeInTheDocument();
+  expect(button("In area: Cedar Grove, clear filter")).toBeInTheDocument();
   expect(screen.getByLabelText("Search URL")).toHaveTextContent("areaId=1");
   await waitFor(() =>
     expect(screen.queryByRole("button", { name: `Open ${other}` })).not.toBeInTheDocument(),

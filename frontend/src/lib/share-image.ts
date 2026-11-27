@@ -343,13 +343,11 @@ function loadShareFonts(): Promise<ShareImageFonts> {
   return fontsReady;
 }
 
-/** Next/font gives each family a hashed name, so read the real names from
- * the variables it sets on `<html>`. A font that fails to load falls back to
- * the next family in the stack rather than failing the draw. */
+/** Canvas text uses the same body and display stacks as the live app. */
 async function resolveShareFonts(): Promise<ShareImageFonts> {
   const style = getComputedStyle(document.documentElement);
-  const sans = style.getPropertyValue("--font-geist-sans").trim() || "system-ui, sans-serif";
-  const display = style.getPropertyValue("--font-barlow-condensed").trim() || sans;
+  const sans = style.getPropertyValue("--font-body").trim() || "system-ui, sans-serif";
+  const display = style.getPropertyValue("--font-heading").trim() || "Georgia, serif";
   await Promise.all(
     [font(400, 38, sans), font(700, 64, sans), font(600, 88, display)].map((spec) =>
       document.fonts.load(spec).catch(() => []),

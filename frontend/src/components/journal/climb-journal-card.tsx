@@ -1,7 +1,6 @@
 import { CompanionList } from "@/components/journal/companion-list";
 import { JournalEntryStatus } from "@/components/journal/journal-entry-layout";
 import { AppLink } from "@/components/ui/app-link";
-import { cardClass } from "@/components/ui/card";
 import { ClampedComment } from "@/components/ui/clamped-comment";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { formatCount } from "@/lib/format";
@@ -28,7 +27,7 @@ export function ClimbJournalCard({
       : formatCount(entries.length, "session");
 
   return (
-    <div className={cardClass("sm")}>
+    <div className="border-l-2 border-date-ink bg-surface-secondary px-4 py-4 sm:px-5">
       <div className="mb-3 flex items-baseline justify-between gap-2">
         <Eyebrow>Your journal</Eyebrow>
         {entries.length > 0 && (
@@ -57,7 +56,7 @@ export function ClimbJournalCard({
                 </div>
                 <CompanionList companions={entry.companions} />
                 {entry.body && (
-                  <div className="text-sm text-muted">
+                  <div className="max-w-prose text-base leading-relaxed text-foreground">
                     <ClampedComment>{entry.body}</ClampedComment>
                   </div>
                 )}

@@ -15,11 +15,19 @@ test("filter toggle describes its next action and keeps its outline when open", 
     return { background: style.backgroundColor, border: style.borderTopColor };
   });
   expect(colors.border).not.toBe(colors.background);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await close.click();
   await expect(page.getByRole("button", { name: "Expand filters", exact: true })).toHaveAttribute(
     "aria-expanded",
     "false",
   );
+  // Closing releases the panel's space as soon as the toggle reports collapsed.
+  expect(
+    await page
+      .locator('[data-slot="disclosure-content"]')
+      .first()
+      .evaluate((el) => el.getBoundingClientRect().height),
+  ).toBe(0);
 });
 
 test("analytics filter and customize actions share default and hover styling", async ({

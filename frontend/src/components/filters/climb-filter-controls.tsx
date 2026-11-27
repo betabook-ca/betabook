@@ -100,7 +100,7 @@ export function ClimbFilterControls({
                 variant="secondary"
                 size="sm"
                 className="max-w-full self-start"
-                aria-label={`Clear area name ${value.filter.areaName}`}
+                aria-label={`Area name: ${value.filter.areaName}, clear filter`}
                 onPress={() => onChange(withClimbFilterArea(value, null))}
               >
                 <span className="truncate">Area name: {value.filter.areaName}</span>

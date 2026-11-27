@@ -114,7 +114,7 @@ export function App() {
       <Providers>
         <SearchPaletteProvider>
           <AppSidebar>
-            <header className="flex h-14 shrink-0 items-center px-4">
+            <header className="flex h-14 shrink-0 items-center border-b border-separator px-4">
               <div
                 className={`mx-auto grid w-full ${PAGE_MAX_WIDTH_CLASS} grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-2 md:grid-cols-[minmax(8rem,1fr)_minmax(0,32rem)_minmax(8rem,1fr)] md:gap-4`}
               >
@@ -132,7 +132,7 @@ export function App() {
                 </div>
               </div>
             </header>
-            <main id="main" tabIndex={-1} className="flex-1 p-4 outline-none md:pt-2">
+            <main id="main" tabIndex={-1} className="flex-1 px-4 py-5 outline-none md:py-6">
               <div className={`mx-auto w-full ${PAGE_MAX_WIDTH_CLASS}`}>
                 <ViewerBoundary key={viewerId ?? "anonymous"} viewerId={viewerId}>
                   <TermsGate

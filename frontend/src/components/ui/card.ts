@@ -5,7 +5,7 @@ const CARD_SURFACE = {
   bordered: "border border-border bg-surface",
   inset: "bg-surface-tertiary",
   floating: "border border-border bg-overlay shadow-lg",
-  /** Brand-green fill for a celebration banner; text flips to ink. */
+  /** Accent fill and its paired text color for a celebration banner. */
   accent: "bg-accent text-accent-foreground",
 } as const;
 

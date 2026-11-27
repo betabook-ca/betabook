@@ -43,7 +43,7 @@ export function ClimbFilters<T extends ClimbRefinements>({
               variant="secondary"
               size="sm"
               className="max-w-full self-start"
-              aria-label={`Clear area ${value.area.name}`}
+              aria-label={`In area: ${value.area.name}, clear filter`}
               onPress={() => onChange({ ...value, area: null })}
             >
               <span className="truncate">In area: {value.area.name}</span>

@@ -46,7 +46,9 @@ it("keeps other pickers a lookup by name: an area alone lists nothing", async ()
   renderPicker(false);
   await chooseArea(user);
   await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Clear area Cedar Grove" })).toBeInTheDocument(),
+    expect(
+      screen.getByRole("button", { name: "In area: Cedar Grove, clear filter" }),
+    ).toBeInTheDocument(),
   );
   expect(screen.queryByRole("region", { name: "Climbs results" })).not.toBeInTheDocument();
 });

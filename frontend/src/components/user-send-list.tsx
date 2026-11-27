@@ -10,7 +10,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { usePagedList } from "@/hooks/use-paged-list";
 import type { AreaBreadcrumbs } from "@/lib/catalog-types";
 import type { UserSendsFilter } from "@/lib/filters/user-sends-filter";
-import { userSendsFilterToSearchParams } from "@/lib/filters/user-sends-filter";
+import {
+  DEFAULT_USER_SENDS_SORT,
+  userSendsFilterToSearchParams,
+} from "@/lib/filters/user-sends-filter";
 import type { UserSendRow } from "@/lib/logbook-types";
 import { fetchApi } from "@/spa/lib/api";
 
@@ -95,9 +98,15 @@ export function UserSendList({
         onLoadMore={loadMore}
         loadingMore={pending || loadingMore}
         loadMoreFailed={loadMoreFailed}
-        renderRow={(send) => (
+        dateOf={
+          (filter.sort ?? DEFAULT_USER_SENDS_SORT).startsWith("date_")
+            ? (send) => send.dateSent
+            : undefined
+        }
+        renderRow={(send, dateDisplay) => (
           <UserSendLogRow
             send={send}
+            dateDisplay={dateDisplay}
             areaBreadcrumbs={areaBreadcrumbs}
             actions={currentUserId === userId && <SendActionsMenu send={send} />}
           />

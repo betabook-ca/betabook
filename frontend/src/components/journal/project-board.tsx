@@ -147,20 +147,20 @@ export function ProjectBoard({
   const empty = projects.length === 0;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="@container/projects flex flex-col gap-4">
       {/* The toolbar renders in every state, including the empty one. It is
        * where the track control lives, and an empty board that dropped the
        * row would move the button on the climber's first one. Filtering
        * nothing is harmless; losing the action is not. */}
-      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+      <div className="grid min-w-0 grid-cols-1 items-center gap-2 @lg/projects:grid-cols-[minmax(0,1fr)_auto]">
         <QueryInput value={query} onChange={setQuery} label="Filter projects" />
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <OptionSelect
             ariaLabel="Sort projects"
             value={sort}
             onChange={setSort}
             options={sorts}
-            className={FIELD_WIDTH_CLASS.medium}
+            className={`${FIELD_WIDTH_CLASS.medium} min-w-0 shrink`}
           />
           {pinButton}
         </div>

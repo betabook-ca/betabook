@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 
 import { BrandHomeLink } from "@/components/brand";
 import { useFriendRequestCount } from "@/components/friend-requests-provider";
+import { MENU_TRIGGER_CLASS } from "@/components/nav-link";
 import { DeferredLoadError } from "@/components/ui/deferred-load-error";
 import { BREAKPOINT_QUERY } from "@/hooks/use-breakpoint";
 import { useClientSession } from "@/hooks/use-client-session";
@@ -57,7 +58,7 @@ export function HeaderNavigation() {
       <Button
         isIconOnly
         variant="ghost"
-        className="size-11 md:hidden"
+        className={`size-11 md:hidden ${MENU_TRIGGER_CLASS}`}
         ref={triggerRef}
         aria-label="Open menu"
         aria-expanded={state.isOpen}

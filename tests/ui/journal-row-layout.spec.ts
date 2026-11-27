@@ -1,6 +1,6 @@
 import { expect, openStory, test } from "./story";
 
-test("journal details stay together beside the right-aligned grade, status, and date", async ({
+test("the journal date anchors the row and the note uses the reading column", async ({
   page,
 }, info) => {
   await openStory(page, info, "components-journal-entry-row--sent-long-note");
@@ -22,20 +22,16 @@ test("journal details stay together beside the right-aligned grade, status, and 
   const noteBox = await note.boundingBox();
   if (!titleBox || !gradeBox || !statusBox || !dateBox || !areaBox || !tagBox || !noteBox)
     throw new Error("Missing journal row bounds");
-  expect(gradeBox.x).toBeGreaterThan(titleBox.x + titleBox.width);
-  expect(statusBox.y).toBeGreaterThan(gradeBox.y);
-  expect(dateBox.y).toBeGreaterThan(statusBox.y);
-  const centreY = (box: { y: number; height: number }) => box.y + box.height / 2;
-  expect(
-    Math.abs(centreY(statusBox) - centreY(gradeBox) - (centreY(dateBox) - centreY(statusBox))),
-  ).toBeLessThanOrEqual(2);
-  expect(centreY(dateBox) - centreY(gradeBox)).toBeLessThanOrEqual(53);
-  expect(Math.abs(gradeBox.x + gradeBox.width - dateBox.x - dateBox.width)).toBeLessThanOrEqual(2);
-  expect(tagBox.y - (areaBox.y + areaBox.height)).toBeLessThanOrEqual(11);
-  expect(areaBox.y - (titleBox.y + titleBox.height)).toBeLessThanOrEqual(3);
-  expect(tagBox.y - (areaBox.y + areaBox.height)).toBeGreaterThanOrEqual(6);
-  expect(noteBox.y - (tagBox.y + tagBox.height)).toBeLessThanOrEqual(6);
+  expect(dateBox.x + dateBox.width).toBeLessThan(titleBox.x);
+  expect(dateBox.y).toBeCloseTo(titleBox.y, 0);
+  expect(gradeBox.x - titleBox.x - titleBox.width).toBeCloseTo(8, 0);
+  expect(statusBox.y).toBeGreaterThan(titleBox.y);
+  expect(noteBox.y).toBeGreaterThanOrEqual(areaBox.y + areaBox.height);
+  expect(tagBox.y).toBeGreaterThanOrEqual(noteBox.y + noteBox.height);
   expect(noteBox.x).toBe(titleBox.x);
+  await expect(note).toHaveCSS("font-size", "14px");
+  await expect(note).toHaveCSS("line-height", "21px");
+  expect(noteBox.width).toBeGreaterThan(titleBox.width);
   await expect(menu).toHaveCSS("width", "44px");
   await expect(menu).toHaveCSS("height", "44px");
   await row.getByRole("button", { name: "Show more" }).click();
@@ -79,7 +75,7 @@ test("journal icons line up across graded and ungraded entries @layout", async (
   expect(Math.abs(training - sent)).toBeLessThanOrEqual(2);
 });
 
-test("a send's grade and stars start beside the climb name, with status and date below @layout", async ({
+test("a send's grade and stars start beside the climb name, beside its date column @layout", async ({
   page,
 }, info) => {
   await openStory(page, info, "components-journal-climb-log-row--sent");
@@ -88,7 +84,7 @@ test("a send's grade and stars start beside the climb name, with status and date
   const grade = row.getByText("V4", { exact: true });
   const stars = row.getByText("3", { exact: true });
   const status = row.getByText("Flash", { exact: true });
-  const date = row.getByText("Sep 4, 2026", { exact: true });
+  const date = row.locator('time[datetime="2026-09-04"]');
   const area = row.getByRole("link", { name: "Granite Canyon" });
   const comment = row.getByText("A calm finish after a few good attempts.");
   const [titleBox, gradeBox, starsBox, statusBox, dateBox, areaBox, commentBox] = await Promise.all(
@@ -108,7 +104,7 @@ test("a send's grade and stars start beside the climb name, with status and date
   expect(Math.abs(gradeBox.y - titleBox.y)).toBeLessThanOrEqual(4);
   expect(Math.abs(starsBox.y - gradeBox.y)).toBeLessThanOrEqual(4);
   expect(statusBox.y).toBeGreaterThan(gradeBox.y);
-  expect(dateBox.y).toBeGreaterThan(statusBox.y);
-  expect(commentBox.y - areaBox.y - areaBox.height).toBeGreaterThanOrEqual(10);
+  expect(dateBox.x + dateBox.width).toBeLessThan(titleBox.x);
+  expect(commentBox.y - areaBox.y - areaBox.height).toBeGreaterThanOrEqual(6);
   expect(commentBox.y - areaBox.y - areaBox.height).toBeLessThanOrEqual(16);
 });

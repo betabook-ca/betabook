@@ -98,9 +98,9 @@ function FailureView({ scope, retry }: { scope: BoundaryProps["scope"]; retry: (
           alignItems: "center",
           justifyContent: "center",
           gap: "0.75rem",
-          fontFamily: "system-ui, sans-serif",
-          background: "#eaf7ef",
-          color: "#000",
+          fontFamily: "var(--font-body, system-ui), sans-serif",
+          background: "var(--background, #faf9f5)",
+          color: "var(--foreground, #252423)",
         }}
       >
         <h1 style={{ margin: 0, fontSize: "1.5rem" }}>Something went wrong</h1>
@@ -110,7 +110,8 @@ function FailureView({ scope, retry }: { scope: BoundaryProps["scope"]; retry: (
           onClick={retry}
           style={{
             padding: "0.5rem 1rem",
-            border: "1px solid #000",
+            border: "1px solid currentColor",
+            color: "inherit",
             borderRadius: "0.5rem",
             background: "transparent",
             cursor: "pointer",

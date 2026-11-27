@@ -19,7 +19,7 @@ export function ActivityIcon({ kind, className }: { kind: ActivityKind; classNam
       className={clsx(
         "inline-flex size-6 shrink-0 items-center justify-center rounded-full",
         kind === "send"
-          ? "bg-(--activity-send-bg) text-accent-soft-foreground"
+          ? "bg-(--activity-send-bg) text-success-soft-foreground"
           : "bg-(--activity-neutral-bg) text-muted dark:text-foreground",
         className,
       )}

@@ -204,6 +204,8 @@ function MemberClimbView({ climbId, viewerId }: { climbId: number; viewerId: str
         </div>
       </div>
 
+      <ClimbJournalCard userId={viewerId} climbId={data.climb.id} entries={data.journalEntries} />
+
       <SidebarLayout
         side="left"
         sidebarWidthClass="lg:w-80"
@@ -261,11 +263,6 @@ function MemberClimbView({ climbId, viewerId }: { climbId: number; viewerId: str
         }
       >
         <div className="flex flex-col gap-6">
-          <ClimbJournalCard
-            userId={viewerId}
-            climbId={data.climb.id}
-            entries={data.journalEntries}
-          />
           <ClimbVideoShelf
             videos={data.videos.videos}
             total={data.videos.total}

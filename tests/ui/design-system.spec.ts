@@ -33,7 +33,7 @@ test("complete brand lockups load in both color treatments", async ({ page }, te
   }
   for (const [theme, token] of [
     ["light", "--palette-paper"],
-    ["dark", "--palette-ink"],
+    ["dark", "--palette-night"],
   ]) {
     const panel = page.getByTestId(`logo-${theme}`);
     const expectedColor = await panel.evaluate((element, paletteToken) => {
@@ -62,12 +62,15 @@ test(
         .locator(`[data-token="cardClass(${size}) · padding"]`)
         .getByText("Panel content");
       await expect(panel).toHaveCSS("padding", padding);
-      await expect(panel).toHaveCSS("border-radius", "12px");
+      await expect(panel).toHaveCSS("border-radius", "8px");
       await expect(panel).toHaveCSS("box-shadow", "none");
     }
     const heading = page.getByRole("heading", { level: 1 });
-    await expect(heading).toHaveCSS("font-family", /barlow/i);
-    await expect(heading).toHaveCSS("font-size", "30px");
+    await expect(heading).toHaveCSS("font-family", /Iowan Old Style/i);
+    await expect(heading).toHaveCSS(
+      "font-size",
+      testInfo.project.name.startsWith("mobile") ? "30px" : "36px",
+    );
     await expect(heading).toHaveCSS("font-weight", "600");
   },
 );
@@ -101,7 +104,7 @@ for (const panel of [
       await openStory(page, testInfo, panel.story);
       const surface = page.locator(panel.selector);
       await expect(surface).toHaveCount(1);
-      await expect(surface).toHaveCSS("border-radius", "12px");
+      await expect(surface).toHaveCSS("border-radius", "8px");
       // A theme-token change must reach real feature surfaces, not just the
       // card helper example. This catches a local hard-coded radius override.
       await page.evaluate(() =>
@@ -183,6 +186,8 @@ test(
 );
 
 test("actions menu keeps actions local and returns focus", async ({ page }, testInfo) => {
+  // Measure the painted menu, including when axe replays styles in a touch viewport.
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await openStory(page, testInfo, "components-navigation-actions-menu--actions");
   const trigger = page.getByRole("button", { name: "Sample climb actions" });
   await trigger.click();
