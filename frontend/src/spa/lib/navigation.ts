@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import {
   useLocation,
   useNavigate,
@@ -20,31 +19,30 @@ type AppRouterInstance = {
   refresh: () => void;
 };
 
+function refresh() {
+  clearBootstrapData();
+  window.dispatchEvent(new CustomEvent("betabook:router-refresh"));
+}
+
 /** App navigation and explicit revalidation of Rust page loaders. */
 export function useRouter(): AppRouterInstance {
   const navigate = useNavigate();
 
-  return useMemo(
-    () => ({
-      push: (href: string, options?: NavigateOptions) => {
-        void navigate(href, { preventScrollReset: options?.scroll === false });
-      },
-      replace: (href: string, options?: NavigateOptions) => {
-        void navigate(href, { replace: true, preventScrollReset: options?.scroll === false });
-      },
-      back: () => {
-        void navigate(-1);
-      },
-      forward: () => {
-        void navigate(1);
-      },
-      refresh: () => {
-        clearBootstrapData();
-        window.dispatchEvent(new CustomEvent("betabook:router-refresh"));
-      },
-    }),
-    [navigate],
-  );
+  return {
+    push(href, options) {
+      void navigate(href, { preventScrollReset: options?.scroll === false });
+    },
+    replace(href, options) {
+      void navigate(href, { replace: true, preventScrollReset: options?.scroll === false });
+    },
+    back() {
+      void navigate(-1);
+    },
+    forward() {
+      void navigate(1);
+    },
+    refresh,
+  };
 }
 
 export function usePathname(): string {
@@ -54,8 +52,7 @@ export function usePathname(): string {
 /** Returns a read-only `URLSearchParams` view mirroring the active query string. */
 export function useSearchParams(): URLSearchParams {
   const [searchParams] = useReactRouterSearchParams();
-  const serialized = searchParams.toString();
-  return useMemo(() => new URLSearchParams(serialized), [serialized]);
+  return searchParams;
 }
 
 export const useParams = useReactRouterParams;

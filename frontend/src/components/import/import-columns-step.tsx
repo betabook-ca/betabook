@@ -1,7 +1,6 @@
 "use client";
 
 import { Button, Label } from "@heroui/react";
-import { useMemo } from "react";
 
 import { cardClass } from "@/components/ui/card";
 import { choicePillClass } from "@/components/ui/choice-pill";
@@ -100,13 +99,9 @@ export function ImportColumnsStep({
 }) {
   const { headers, derived, rows } = parsedCsv;
   const columns = [...headers, ...derived];
-  const columnPreviews = useMemo(() => {
-    const previews = new Map<string, string>();
-    for (const column of [...headers, ...derived]) {
-      previews.set(column, previewText(distinctValues(rows, column)));
-    }
-    return previews;
-  }, [headers, derived, rows]);
+  const columnPreviews = new Map(
+    columns.map((column) => [column, previewText(distinctValues(rows, column))]),
+  );
   const mappedHeaders = new Set(
     COLUMN_FIELDS.map(({ key }) => columnMapping[key]).filter((h): h is string => h !== null),
   );

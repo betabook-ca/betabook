@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@heroui/react";
-import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useEffectEvent, useRef, useState, useTransition, type ReactNode } from "react";
 
 import { PRODUCT_TOUR_LOADERS } from "@/components/product-tours/registry";
 import { TourOverlay } from "@/components/product-tours/tour-overlay";
@@ -68,12 +68,13 @@ export function TourExperience({
     return productTourPath(tour.id, { ...navigation, mode, stepId: id });
   }
   const firstPath = href(steps[0].id);
+  const redirect = useEffectEvent((path: string) => router.replace(path));
 
   useEffect(() => {
     if (index < 0 && PRODUCT_TOUR_STEPS[tour.id].some((step) => pathname.endsWith(`/${step.id}`))) {
-      router.replace(firstPath);
+      redirect(firstPath);
     }
-  }, [index, pathname, tour.id, router, firstPath]);
+  }, [index, pathname, tour.id, firstPath]);
 
   useEffect(() => suspendMobileHelper(), []);
   useEffect(

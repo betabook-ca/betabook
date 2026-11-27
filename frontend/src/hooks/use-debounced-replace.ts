@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useEffectEvent, useState, useTransition } from "react";
 
 import { useRouter } from "@/spa/lib/navigation";
 
@@ -29,16 +29,18 @@ export function useDebouncedReplace(
   }
   const urlChangedExternally = currentHrefChanged && navigatedIndex === -1;
 
+  const replace = useEffectEvent((nextHref: string) => {
+    setNavigatedHrefs((pending) => [...pending, nextHref]);
+    startTransition(() => {
+      router.replace(nextHref, { scroll: false });
+    });
+  });
+
   useEffect(() => {
     if (href === currentHref) return;
-    const timeout = setTimeout(() => {
-      setNavigatedHrefs((pending) => [...pending, href]);
-      startTransition(() => {
-        router.replace(href, { scroll: false });
-      });
-    }, DELAY_MS);
+    const timeout = setTimeout(() => replace(href), DELAY_MS);
     return () => clearTimeout(timeout);
-  }, [href, currentHref, router, startTransition]);
+  }, [href, currentHref]);
 
   return { isPending, urlChangedExternally };
 }

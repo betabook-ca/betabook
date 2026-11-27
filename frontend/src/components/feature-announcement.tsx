@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useRef,
-  useState,
-  useCallback,
-  useMemo,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useRef, useState, type ReactNode } from "react";
 
 import { FeatureCallout, type FeatureCalloutProps } from "@/components/ui/feature-callout";
 import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
@@ -52,7 +44,7 @@ function VisitState({
     !dismissed &&
     feature !== undefined &&
     announcements.some((candidate) => candidate.featureId === feature.featureId);
-  const dismiss = useCallback(async () => {
+  async function dismiss() {
     if (!feature || !visible || saving.current) return;
     saving.current = true;
     setPending(true);
@@ -63,23 +55,11 @@ function VisitState({
       else setError(result.error);
     } catch {
       setError(GENERIC_ERROR_MESSAGE);
-    } finally {
-      saving.current = false;
-      setPending(false);
     }
-  }, [feature, visible, dismissAction]);
-  const value = useMemo(
-    () => ({
-      feature,
-      visible,
-      pending,
-      error,
-      dismiss: () => {
-        void dismiss();
-      },
-    }),
-    [feature, visible, pending, error, dismiss],
-  );
+    saving.current = false;
+    setPending(false);
+  }
+  const value = { feature, visible, pending, error, dismiss };
   return <AnnouncementVisit.Provider value={value}>{children}</AnnouncementVisit.Provider>;
 }
 

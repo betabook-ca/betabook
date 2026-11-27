@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useEffectEvent, useState, useSyncExternalStore } from "react";
 
 import type { BeforeInstallPromptEvent } from "@/components/mobile-app-helper-panel";
 import { DeferredLoadError } from "@/components/ui/deferred-load-error";
@@ -55,6 +55,11 @@ export function MobileAppHelper() {
     return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
   }, []);
 
+  const openFromMenu = useEffectEvent(() => {
+    load();
+    setIsOpen(true);
+  });
+
   useEffect(() => {
     if (!mounted || paused) return;
 
@@ -71,18 +76,13 @@ export function MobileAppHelper() {
 
     // Allow opening via custom event (e.g. from the app menu). Pulls the
     // panel in on the way, for a tap that beats the idle preload.
-    function handleOpenEvent() {
-      load();
-      setIsOpen(true);
-    }
-
-    window.addEventListener(OPEN_MOBILE_HELPER_EVENT, handleOpenEvent);
+    window.addEventListener(OPEN_MOBILE_HELPER_EVENT, openFromMenu);
 
     return () => {
       if (timer) clearTimeout(timer);
-      window.removeEventListener(OPEN_MOBILE_HELPER_EVENT, handleOpenEvent);
+      window.removeEventListener(OPEN_MOBILE_HELPER_EVENT, openFromMenu);
     };
-  }, [mounted, load, paused]);
+  }, [mounted, paused]);
 
   function handleDismiss() {
     setMobileHelperDismissed();

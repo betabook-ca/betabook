@@ -23,7 +23,7 @@ export function ViewerBoundary({
   const [lastViewerId, setLastViewerId] = useState<string | null>();
   const currentViewerId = isPending ? lastViewerId : (session?.user.id ?? null);
   if (!isPending && currentViewerId !== lastViewerId) setLastViewerId(currentViewerId);
-  const router = useRouter();
+  const { refresh: refreshRoute } = useRouter();
   const [refreshing, startRefresh] = useTransition();
   const lastRefreshAt = useRef(-Infinity);
   useEffect(() => {
@@ -34,7 +34,7 @@ export function ViewerBoundary({
       const now = Date.now();
       if (now - lastRefreshAt.current < 1_000) return;
       lastRefreshAt.current = now;
-      startRefresh(() => router.refresh());
+      startRefresh(() => refreshRoute());
     };
     window.addEventListener("focus", refresh);
     document.addEventListener("visibilitychange", refresh);
@@ -42,19 +42,19 @@ export function ViewerBoundary({
       window.removeEventListener("focus", refresh);
       document.removeEventListener("visibilitychange", refresh);
     };
-  }, [router, refreshing, startRefresh]);
+  }, [refreshRoute, refreshing, startRefresh]);
   const changed = mounted && currentViewerId !== undefined && currentViewerId !== viewerId;
   useEffect(() => {
     const expired = () => {
       setAuthRequired(true);
-      router.refresh();
+      refreshRoute();
     };
     window.addEventListener(AUTH_REQUIRED_EVENT, expired);
     return () => window.removeEventListener(AUTH_REQUIRED_EVENT, expired);
-  }, [router]);
+  }, [refreshRoute]);
   useEffect(() => {
-    if (changed) router.refresh();
-  }, [changed, router]);
+    if (changed) refreshRoute();
+  }, [changed, refreshRoute]);
   if (changed || authRequired) return <CurrentPageAuthCallout />;
   // The server can observe an account switch before useSession finishes.
   // Never carry a previous viewer's drafts or loaded pages into that tree.

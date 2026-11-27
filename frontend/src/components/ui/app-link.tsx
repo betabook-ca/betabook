@@ -46,7 +46,7 @@ export function AppLink({
       }}
     >
       {children}
-      <LinkPendingReporter settle={navigation.settle} release={navigation.release} />
+      <LinkPendingReporter tokenRef={navigation.tokenRef} />
     </RouterLink>
   );
 }

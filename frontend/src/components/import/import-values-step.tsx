@@ -1,7 +1,6 @@
 "use client";
 
 import { Button, Checkbox, Label } from "@heroui/react";
-import { useMemo } from "react";
 
 import { GRADE_FEEL_OPTIONS } from "@/components/send-fields";
 import { Eyebrow } from "@/components/ui/eyebrow";
@@ -72,22 +71,10 @@ export function ImportValuesStep({
     return (value: ValueSettings[K]) => onChange({ ...values, [key]: value });
   };
 
-  const ascentStyleValues = useMemo(
-    () => valueCounts(rows, columnMapping?.ascentStyle ?? null),
-    [rows, columnMapping?.ascentStyle],
-  );
-  const climbTypeValues = useMemo(
-    () => valueCounts(rows, columnMapping?.climbType ?? null),
-    [rows, columnMapping?.climbType],
-  );
-  const gradeFeelValues = useMemo(
-    () => valueCounts(rows, columnMapping?.gradeFeel ?? null),
-    [rows, columnMapping?.gradeFeel],
-  );
-  const ratingValues = useMemo(
-    () => valueCounts(rows, columnMapping?.rating ?? null),
-    [rows, columnMapping?.rating],
-  );
+  const ascentStyleValues = valueCounts(rows, columnMapping?.ascentStyle ?? null);
+  const climbTypeValues = valueCounts(rows, columnMapping?.climbType ?? null);
+  const gradeFeelValues = valueCounts(rows, columnMapping?.gradeFeel ?? null);
+  const ratingValues = valueCounts(rows, columnMapping?.rating ?? null);
 
   return (
     <div className="flex flex-col gap-6">
@@ -189,23 +176,14 @@ function DateSettings({
   dropPlaceholderDates: boolean;
   onDropPlaceholderDatesChange: (drop: boolean) => void;
 }) {
-  const dateValues = useMemo(
-    () => distinctValues(rows, dateColumn).slice(0, DATE_SAMPLE_SIZE),
-    [rows, dateColumn],
-  );
-  const placeholderDates = useMemo(
-    () => findPlaceholderTimestamps(rows, dateColumn),
-    [rows, dateColumn],
-  );
+  const dateValues = distinctValues(rows, dateColumn).slice(0, DATE_SAMPLE_SIZE);
+  const placeholderDates = findPlaceholderTimestamps(rows, dateColumn);
   const placeholderRowCount = placeholderDates.reduce((sum, p) => sum + p.count, 0);
 
-  const needsDateFormat = useMemo(() => needsDateFormatChoice(dateValues), [dateValues]);
+  const needsDateFormat = needsDateFormatChoice(dateValues);
   // Prefer an unparseable date sample so the preview exposes a problem with the chosen format.
-  const dateSample = useMemo(
-    () =>
-      dateValues.find((v) => parseDateWithFormat(v, dateFormat) === null) ?? dateValues[0] ?? null,
-    [dateValues, dateFormat],
-  );
+  const dateSample =
+    dateValues.find((v) => parseDateWithFormat(v, dateFormat) === null) ?? dateValues[0] ?? null;
   const dateSamplePreview = dateSample ? parseDateWithFormat(dateSample, dateFormat) : null;
 
   return (

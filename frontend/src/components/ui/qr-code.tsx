@@ -1,7 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
-
 import { qrMatrix, qrPath } from "@/lib/qr-code";
 
 /** Always black on white, including the dark theme: scanners need the
@@ -15,7 +13,7 @@ export function QrCode({
   label: string;
   className?: string;
 }) {
-  const matrix = useMemo(() => qrMatrix(value), [value]);
+  const matrix = qrMatrix(value);
   return (
     <svg
       role="img"

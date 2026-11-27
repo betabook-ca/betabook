@@ -23,7 +23,7 @@ vi.mock("@/spa/lib/navigation", () => ({
 // then onNavigate for a client navigation, then pending for descendants
 // reading useLinkStatus until the navigation settles.
 vi.mock("@/spa/lib/router-link", async () => {
-  const { createContext, useContext, useMemo, useState } = await import("react");
+  const { createContext, useContext, useState } = await import("react");
   const LinkStatus = createContext({ pending: false });
   function Link({
     href,
@@ -39,7 +39,7 @@ vi.mock("@/spa/lib/router-link", async () => {
     children: ReactNode;
   }) {
     const [pending, setPending] = useState(false);
-    const status = useMemo(() => ({ pending }), [pending]);
+    const status = { pending };
     return (
       <LinkStatus.Provider value={status}>
         <a

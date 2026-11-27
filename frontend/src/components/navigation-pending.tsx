@@ -1,7 +1,7 @@
 "use client";
 
 import { clsx } from "clsx";
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 type NavigationPending = {
   isPending: boolean;
@@ -20,7 +20,7 @@ const NavigationPendingContext = createContext<NavigationPending | null>(null);
  * is in flight. */
 export function NavigationPendingProvider({ children }: { children: ReactNode }) {
   const [isPending, setPending] = useState(false);
-  const value = useMemo(() => ({ isPending, setPending }), [isPending]);
+  const value = { isPending, setPending };
   return (
     <NavigationPendingContext.Provider value={value}>{children}</NavigationPendingContext.Provider>
   );

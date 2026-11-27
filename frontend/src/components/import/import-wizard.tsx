@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@heroui/react";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import { cardClass } from "@/components/ui/card";
 import { useGradePreferences } from "@/components/ui/grade-preferences";
@@ -25,6 +25,7 @@ import {
   summarizeResolved,
   type CandidateIndex,
   type ManualChoice,
+  type MatchOptions,
   type PreferredArea,
   type ResolvedRow,
 } from "@/lib/import-matching";
@@ -49,7 +50,6 @@ import {
   IMPORT_SOURCE_LABELS,
   MAX_IMPORT_FILE_BYTES,
   MAX_IMPORT_ROWS,
-  type CoercionWarning,
   type ColumnMapping,
   type FailedImportRow,
   type ImportSource,
@@ -115,6 +115,91 @@ function toImportSendRow(resolved: ResolvedRow, climb: ClimbCandidate): ImportSe
   };
 }
 
+function failedRowsForResult(
+  importResult: WizardResult | null,
+  invalid: InvalidImportRow[],
+  resolved: ResolvedRow[] | null,
+): (FailedImportRow & { rowIndex: number; label: string | null })[] {
+  if (!importResult || !resolved) return [];
+  const fromResolved = (r: ResolvedRow, reason: string) => ({
+    rowIndex: r.row.rowIndex,
+    raw: r.row.raw,
+    label: r.row.climbName,
+    reason,
+  });
+  return [
+    ...invalid.map((row) => ({
+      rowIndex: row.rowIndex,
+      raw: row.raw,
+      label: null,
+      reason: row.reason,
+    })),
+    ...resolved.flatMap((r) => {
+      if (r.state === "skipped") return [fromResolved(r, "Skipped")];
+      if (r.state === "broken" && r.brokenBy) {
+        return [fromResolved(r, brokenClimbImportReason(r.brokenBy.brokenOn, r.row.dateSent))];
+      }
+      if (r.state !== "attention") return [];
+      return [
+        fromResolved(
+          r,
+          r.match.kind === "none"
+            ? "No climb with this name"
+            : (r.match.kind === "ambiguous" && r.match.conflict) ||
+                "Several climbs share this name and none was picked",
+        ),
+      ];
+    }),
+    ...importResult.missing.map((r) => fromResolved(r, "Climb no longer exists")),
+    // The server refused these; normally the climb broke between the
+    // lookup and the commit, so the client copy of it may not carry a date.
+    ...importResult.broken.map((r) =>
+      fromResolved(
+        r,
+        r.climb?.brokenOn
+          ? brokenClimbImportReason(r.climb.brokenOn, r.row.dateSent)
+          : "Climb has since been marked as broken; only ascents dated before the break can be logged",
+      ),
+    ),
+    ...importResult.batchErrors.flatMap((batch) =>
+      batch.rows.map((r) =>
+        fromResolved(r, `${batch.uncertain ? "Unconfirmed" : "Not imported"}: ${batch.message}`),
+      ),
+    ),
+    ...importResult.notAttempted.map((r) =>
+      fromResolved(r, `Not imported: ${NOT_ATTEMPTED_MESSAGE}`),
+    ),
+  ].sort((a, b) => a.rowIndex - b.rowIndex);
+}
+
+/** Derive the review from the file and the climber's choices independently of
+ * the wizard's upload, lookup and batch progress. */
+function useImportReview(
+  baseNormalized: ReturnType<typeof normalizeImportRows> | null,
+  undatedDates: ReadonlySet<string>,
+  candidateIndex: CandidateIndex | null,
+  options: MatchOptions,
+  manual: ReadonlyMap<number, ManualChoice>,
+  importResult: WizardResult | null,
+) {
+  const dateClusters = findImportDateClusters(baseNormalized?.valid ?? []);
+  // Date review changes only dates. Preserve row identities and manual climb
+  // choices, and avoid repeating the name/area lookup when a checkbox changes.
+  const normalized = baseNormalized && {
+    ...baseNormalized,
+    valid: baseNormalized.valid.map((row) =>
+      row.dateSent && undatedDates.has(row.dateSent) ? { ...row, dateSent: null } : row,
+    ),
+  };
+
+  const matches =
+    normalized && candidateIndex ? matchRows(normalized.valid, candidateIndex, options) : null;
+  const resolved = normalized && matches ? resolveRows(normalized.valid, matches, manual) : null;
+  const summary = resolved ? summarizeResolved(resolved) : null;
+  const failures = failedRowsForResult(importResult, baseNormalized?.invalid ?? [], resolved);
+  return { dateClusters, normalized, resolved, summary, failures };
+}
+
 /** The sends import. "Import another file" starts a fresh run, so every step's
  * state begins from its defaults again. */
 export function ImportWizard({ profileHref }: { profileHref: string }) {
@@ -156,30 +241,10 @@ function ImportWizardRun({
   const [dropPlaceholderDates, setDropPlaceholderDates] = useState(false);
   const [onConflict, setOnConflict] = useState<ConflictMode>("skip");
 
-  const [baseNormalized, setNormalized] = useState<{
-    valid: NormalizedImportRow[];
-    invalid: InvalidImportRow[];
-    warnings: CoercionWarning[];
-  } | null>(null);
-
+  const [baseNormalized, setNormalized] = useState<ReturnType<typeof normalizeImportRows> | null>(
+    null,
+  );
   const [undatedDates, setUndatedDates] = useState<ReadonlySet<string>>(new Set());
-  const dateClusters = useMemo(
-    () => findImportDateClusters(baseNormalized?.valid ?? []),
-    [baseNormalized],
-  );
-  // Date review changes only dates. Preserve row identities and manual climb
-  // choices, and avoid repeating the name/area lookup when a checkbox changes.
-  const normalized = useMemo(
-    () =>
-      baseNormalized && {
-        ...baseNormalized,
-        valid: baseNormalized.valid.map((row) =>
-          row.dateSent && undatedDates.has(row.dateSent) ? { ...row, dateSent: null } : row,
-        ),
-      },
-    [baseNormalized, undatedDates],
-  );
-
   const [candidateIndex, setCandidateIndex] = useState<CandidateIndex | null>(null);
   const [looseIndex, setLooseIndex] = useState<CandidateIndex>(new Map());
   const [lookup, setLookup] = useState<LookupStatus>({ phase: "done" });
@@ -207,135 +272,14 @@ function ImportWizardRun({
     return () => window.removeEventListener("beforeunload", warn);
   }, [pending]);
 
-  // Manual choices do not affect automatic matching, so cache these separately.
-  const matches = useMemo(
-    () =>
-      normalized && candidateIndex
-        ? matchRows(normalized.valid, candidateIndex, {
-            gradeScale,
-            preferredAreas,
-            looseIndex,
-            prefs,
-          })
-        : null,
-    [normalized, candidateIndex, gradeScale, preferredAreas, looseIndex, prefs],
+  const { dateClusters, normalized, resolved, summary, failures } = useImportReview(
+    baseNormalized,
+    undatedDates,
+    candidateIndex,
+    { gradeScale, preferredAreas, looseIndex, prefs },
+    manual,
+    importResult,
   );
-  const resolved = useMemo(
-    () => (normalized && matches ? resolveRows(normalized.valid, matches, manual) : null),
-    [normalized, matches, manual],
-  );
-  const summary = useMemo(() => (resolved ? summarizeResolved(resolved) : null), [resolved]);
-
-  const failures = useMemo((): (FailedImportRow & { rowIndex: number; label: string | null })[] => {
-    if (!importResult || !normalized || !resolved) return [];
-    const fromResolved = (r: ResolvedRow, reason: string) => ({
-      rowIndex: r.row.rowIndex,
-      raw: r.row.raw,
-      label: r.row.climbName,
-      reason,
-    });
-    return [
-      ...normalized.invalid.map((row) => ({
-        rowIndex: row.rowIndex,
-        raw: row.raw,
-        label: null,
-        reason: row.reason,
-      })),
-      ...resolved.flatMap((r) => {
-        if (r.state === "skipped") return [fromResolved(r, "Skipped")];
-        if (r.state === "broken" && r.brokenBy) {
-          return [fromResolved(r, brokenClimbImportReason(r.brokenBy.brokenOn, r.row.dateSent))];
-        }
-        if (r.state !== "attention") return [];
-        return [
-          fromResolved(
-            r,
-            r.match.kind === "none"
-              ? "No climb with this name"
-              : (r.match.kind === "ambiguous" && r.match.conflict) ||
-                  "Several climbs share this name and none was picked",
-          ),
-        ];
-      }),
-      ...importResult.missing.map((r) => fromResolved(r, "Climb no longer exists")),
-      // The server refused these; normally the climb broke between the
-      // lookup and the commit, so the client copy of it may not carry a date.
-      ...importResult.broken.map((r) =>
-        fromResolved(
-          r,
-          r.climb?.brokenOn
-            ? brokenClimbImportReason(r.climb.brokenOn, r.row.dateSent)
-            : "Climb has since been marked as broken; only ascents dated before the break can be logged",
-        ),
-      ),
-      ...importResult.batchErrors.flatMap((batch) =>
-        batch.rows.map((r) =>
-          fromResolved(r, `${batch.uncertain ? "Unconfirmed" : "Not imported"}: ${batch.message}`),
-        ),
-      ),
-      ...importResult.notAttempted.map((r) =>
-        fromResolved(r, `Not imported: ${NOT_ATTEMPTED_MESSAGE}`),
-      ),
-    ].sort((a, b) => a.rowIndex - b.rowIndex);
-  }, [importResult, normalized, resolved]);
-
-  async function handleFile(file: File) {
-    if (reading) return;
-    setError(null);
-    if (file.size > MAX_IMPORT_FILE_BYTES) {
-      setError(
-        `That CSV is larger than ${MAX_IMPORT_FILE_BYTES / 1024 / 1024} MB. Split it into smaller files and try again.`,
-      );
-      return;
-    }
-
-    setReading(true);
-    try {
-      const text = await file.text();
-      const parsed = parseCsvText(text);
-      if (parsed.rows.length > MAX_IMPORT_ROWS) {
-        setError(
-          `That CSV has more than ${MAX_IMPORT_ROWS.toLocaleString("en-US")} rows. Split it into smaller files and try again.`,
-        );
-        return;
-      }
-      if (parsed.headers.length === 0 || parsed.rows.length === 0) {
-        setError("Couldn't find any data rows in that file.");
-        return;
-      }
-
-      setDirectSource(null);
-      acceptParsedRows(parsed);
-    } catch {
-      setError("Couldn't read that file. Re-save it as a plain CSV and try again.");
-    } finally {
-      setReading(false);
-    }
-  }
-
-  function acceptParsedRows(parsed: ParsedCsv) {
-    const detected = detectImportSource(parsed.headers);
-    const withDerived = deriveSourceColumns(parsed, detected);
-    const mapping = guessColumnMapping([...withDerived.headers, ...withDerived.derived]);
-    // KAYA placeholder cleanup defaults on; other sources require the user to choose it.
-    const dropPlaceholders = detected === "kaya";
-    setParsedCsv(withDerived);
-    setSource(detected);
-    setColumnMapping(mapping);
-    setDropPlaceholderDates(dropPlaceholders);
-
-    // Known formats with required columns mapped can skip ahead.
-    // Column and value mappings remain editable from the step list.
-    const skipAhead = detected !== "unknown" && missingRequiredColumns(mapping).length === 0;
-    setAutoMapped(skipAhead);
-    if (skipAhead) {
-      const values = guessValueSettings(withDerived, mapping);
-      setValueSettings(values);
-      beginMatching(withDerived, mapping, values, dropPlaceholders);
-    } else {
-      setStep("columns");
-    }
-  }
 
   function guessValueSettings(parsed: ParsedCsv, mapping: ColumnMapping): ValueSettings {
     const dateSample = distinctValues(parsed.rows, mapping.date).slice(0, DATE_SAMPLE_SIZE);
@@ -369,33 +313,6 @@ function ImportWizardRun({
     setError(null);
     setValueSettings(guessValueSettings(parsedCsv, columnMapping));
     setStep("values");
-  }
-
-  /** Accept explicit inputs because upload can start matching before state updates render. */
-  function beginMatching(
-    parsed: ParsedCsv,
-    mapping: ColumnMapping,
-    values: ValueSettings,
-    dropPlaceholders: boolean,
-  ) {
-    const result = normalizeImportRows(parsed, mapping, values, values.dateFormat, {
-      gradeScalePreference: values.gradeScale,
-      undatedValues: dropPlaceholders
-        ? findPlaceholderTimestamps(parsed.rows, mapping.date).map((p) => p.value)
-        : [],
-    });
-    setUndatedDates(new Set());
-    setNormalized(result);
-    // A remapped file invalidates choices tied to the old normalized rows.
-    setManual(new Map());
-    setStep("match");
-    void runLookup(result.valid, values.gradeScale);
-  }
-
-  function handleValuesNext() {
-    if (!parsedCsv || !columnMapping) return;
-    setError(null);
-    beginMatching(parsedCsv, columnMapping, valueSettings, dropPlaceholderDates);
   }
 
   /** Batch name lookups, then recover capped matches through name-and-area lookups.
@@ -475,6 +392,87 @@ function ImportWizardRun({
     );
     setMatchFilter(defaultFilter(summary));
     setLookup({ phase: "done" });
+  }
+
+  /** Accept explicit inputs because upload can start matching before state updates render. */
+  function beginMatching(
+    parsed: ParsedCsv,
+    mapping: ColumnMapping,
+    values: ValueSettings,
+    dropPlaceholders: boolean,
+  ) {
+    const result = normalizeImportRows(parsed, mapping, values, values.dateFormat, {
+      gradeScalePreference: values.gradeScale,
+      undatedValues: dropPlaceholders
+        ? findPlaceholderTimestamps(parsed.rows, mapping.date).map((p) => p.value)
+        : [],
+    });
+    setUndatedDates(new Set());
+    setNormalized(result);
+    // A remapped file invalidates choices tied to the old normalized rows.
+    setManual(new Map());
+    setStep("match");
+    void runLookup(result.valid, values.gradeScale);
+  }
+
+  function handleValuesNext() {
+    if (!parsedCsv || !columnMapping) return;
+    setError(null);
+    beginMatching(parsedCsv, columnMapping, valueSettings, dropPlaceholderDates);
+  }
+
+  function acceptParsedRows(parsed: ParsedCsv) {
+    const detected = detectImportSource(parsed.headers);
+    const withDerived = deriveSourceColumns(parsed, detected);
+    const mapping = guessColumnMapping([...withDerived.headers, ...withDerived.derived]);
+    // KAYA placeholder cleanup defaults on; other sources require the user to choose it.
+    const dropPlaceholders = detected === "kaya";
+    setParsedCsv(withDerived);
+    setSource(detected);
+    setColumnMapping(mapping);
+    setDropPlaceholderDates(dropPlaceholders);
+
+    // Known formats with required columns mapped can skip ahead.
+    // Column and value mappings remain editable from the step list.
+    const skipAhead = detected !== "unknown" && missingRequiredColumns(mapping).length === 0;
+    setAutoMapped(skipAhead);
+    if (skipAhead) {
+      const values = guessValueSettings(withDerived, mapping);
+      setValueSettings(values);
+      beginMatching(withDerived, mapping, values, dropPlaceholders);
+    } else {
+      setStep("columns");
+    }
+  }
+
+  async function handleFile(file: File) {
+    if (reading) return;
+    setError(null);
+    if (file.size > MAX_IMPORT_FILE_BYTES) {
+      setError(
+        `That CSV is larger than ${MAX_IMPORT_FILE_BYTES / 1024 / 1024} MB. Split it into smaller files and try again.`,
+      );
+      return;
+    }
+
+    setReading(true);
+    try {
+      const text = await file.text();
+      const parsed = parseCsvText(text);
+      if (parsed.rows.length > MAX_IMPORT_ROWS) {
+        setError(
+          `That CSV has more than ${MAX_IMPORT_ROWS.toLocaleString("en-US")} rows. Split it into smaller files and try again.`,
+        );
+      } else if (parsed.headers.length === 0 || parsed.rows.length === 0) {
+        setError("Couldn't find any data rows in that file.");
+      } else {
+        setDirectSource(null);
+        acceptParsedRows(parsed);
+      }
+    } catch {
+      setError("Couldn't read that file. Re-save it as a plain CSV and try again.");
+    }
+    setReading(false);
   }
 
   function handleMatchNext() {

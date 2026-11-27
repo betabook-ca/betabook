@@ -2,19 +2,13 @@
 
 import { Button } from "@heroui/react";
 import { Pencil } from "lucide-react";
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+
+type ListEditor = { start: () => void };
 
 type EditingActions = {
   /** The list registers how to open its editor, or null once it unmounts. */
-  register: (startEdit: (() => void) | null) => void;
+  setEditor: (editor: ListEditor | null) => void;
   setEditing: (editing: boolean) => void;
 };
 type EditingState = { editing: boolean; startEdit: (() => void) | null };
@@ -27,16 +21,12 @@ const StateContext = createContext<EditingState>({ editing: false, startEdit: nu
  * header only asks it to open, and greys out while it is open. */
 export function ClimbListEditingProvider({ children }: { children: ReactNode }) {
   const [editing, setEditing] = useState(false);
-  const [startEdit, setStartEdit] = useState<(() => void) | null>(null);
-  // Stable, so the list's effects run once rather than on every header render.
-  const actions = useMemo<EditingActions>(
-    () => ({ register: (next) => setStartEdit(() => next), setEditing }),
-    [],
-  );
-  const state = useMemo(() => ({ editing, startEdit }), [editing, startEdit]);
+  const [editor, setEditor] = useState<ListEditor | null>(null);
   return (
-    <ActionsContext.Provider value={actions}>
-      <StateContext.Provider value={state}>{children}</StateContext.Provider>
+    <ActionsContext.Provider value={{ setEditor, setEditing }}>
+      <StateContext.Provider value={{ editing, startEdit: editor?.start ?? null }}>
+        {children}
+      </StateContext.Provider>
     </ActionsContext.Provider>
   );
 }
@@ -46,22 +36,24 @@ export function ClimbListEditingProvider({ children }: { children: ReactNode }) 
  * editor is open. Without a provider (a shared-link page) it does nothing. */
 export function useClimbListEditControl(editing: boolean, startEdit: (() => void) | null) {
   const actions = useContext(ActionsContext);
+  const setEditor = actions?.setEditor;
+  const setEditing = actions?.setEditing;
   const latest = useRef(startEdit);
   useEffect(() => {
     latest.current = startEdit;
   });
   const canStart = startEdit !== null;
   useEffect(() => {
-    if (!actions || !canStart) return;
-    actions.register(() => latest.current?.());
+    if (!setEditor || !canStart) return;
+    setEditor({ start: () => latest.current?.() });
     return () => {
-      actions.register(null);
-      actions.setEditing(false);
+      setEditor(null);
+      setEditing?.(false);
     };
-  }, [actions, canStart]);
+  }, [setEditor, setEditing, canStart]);
   useEffect(() => {
-    actions?.setEditing(editing);
-  }, [actions, editing]);
+    setEditing?.(editing);
+  }, [setEditing, editing]);
 }
 
 /** The owner's Edit climbs, in the list header. Adding, removing and reordering

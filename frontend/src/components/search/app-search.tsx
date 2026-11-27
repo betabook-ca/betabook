@@ -29,7 +29,7 @@ export function AppSearch({
   memberNoticePlacement,
 }: {
   initialState: SearchState;
-  initial: SearchSnapshot;
+  initial?: SearchSnapshot;
   suggestions: SuggestedClimberRow[] | null;
   viewerId: string | null;
   defaultCategory?: SearchState["category"];
@@ -40,9 +40,11 @@ export function AppSearch({
   const router = useRouter();
   // Controlled keystrokes need synchronous feedback while the router commits
   // the URL. Category, scope and other filters always follow the location.
-  const [typing, setTyping] = useState<{ source: SearchState; query: string } | null>(null);
+  const sourceHref = searchHref(initialState);
+  const [typing, setTyping] = useState<{ sourceHref: string; query: string } | null>(null);
+  const pendingQuery = typing?.sourceHref === sourceHref ? typing.query : undefined;
   const state =
-    typing?.source === initialState ? { ...initialState, query: typing.query } : initialState;
+    pendingQuery === undefined ? initialState : { ...initialState, query: pendingQuery };
   useEffect(() => {
     const restore = () => setTyping(null);
     window.addEventListener("popstate", restore);
@@ -52,7 +54,7 @@ export function AppSearch({
   const { data: session, isPending } = authClient.useSession();
   const suggested = useClimberSuggestions(showsClimberSuggestions(state, viewerId), suggestions);
   function change(next: SearchState) {
-    setTyping(next.query !== state.query ? { source: initialState, query: next.query } : null);
+    setTyping(next.query !== state.query ? { sourceHref, query: next.query } : null);
     if (next.area) onAreaSelected?.(next.area);
     const href = searchHref(next);
     if (next.category !== state.category || next.area?.id !== state.area?.id)
@@ -69,7 +71,7 @@ export function AppSearch({
       memberNoticePlacement={memberNoticePlacement}
       state={state}
       onChange={change}
-      initial={state === initialState ? initial : undefined}
+      initial={pendingQuery === undefined ? initial : undefined}
       onNavigate={(item) => router.push(item.href)}
       resultHref={(item) => item.href}
       suggestions={climberSuggestionItems(suggested)}

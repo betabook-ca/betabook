@@ -2,7 +2,7 @@
 
 import { Button, useOverlayState } from "@heroui/react";
 import { Menu } from "lucide-react";
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import { BrandHomeLink } from "@/components/brand";
 import { useFriendRequestCount } from "@/components/friend-requests-provider";
@@ -28,10 +28,10 @@ export function HeaderNavigation() {
   const tabsVisible = useMobileTabsVisible();
   const { Component: AppMenuPopover, load, failed } = useDeferredComponent(loadMenu);
 
-  const openMenu = useCallback(() => {
+  function openMenu() {
     load();
     open();
-  }, [load, open]);
+  }
 
   // Menu links close it on press, including a link to the current page. The
   // root layout persists, so navigations started elsewhere need this too.

@@ -211,6 +211,13 @@ export default defineConfig({
   },
   overrides: [
     {
+      files: ["frontend/src/**"],
+      rules: {
+        // The native compiler handles provider values as well as other render expressions.
+        "react/jsx-no-constructed-context-values": "off",
+      },
+    },
+    {
       files: ["**/*.test.ts", "**/*.test.tsx", "test/**"],
       rules: {
         "typescript/no-non-null-assertion": "off",

@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Route, Routes } from "react-router";
 
 import { HeaderNavigation } from "@/components/app-menu";
@@ -99,10 +99,7 @@ export function App() {
   const termsPrompt = activeTerms ?? CURRENT_TERMS_PROMPT;
   const boulderGradeScale = session?.user.boulderGradeScale;
   const ropeGradeScale = session?.user.ropeGradeScale;
-  const gradePreferences = useMemo(
-    () => gradePreferencesFor({ boulderGradeScale, ropeGradeScale }),
-    [boulderGradeScale, ropeGradeScale],
-  );
+  const gradePreferences = gradePreferencesFor({ boulderGradeScale, ropeGradeScale });
 
   return (
     <>

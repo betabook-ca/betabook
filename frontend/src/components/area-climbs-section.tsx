@@ -1,7 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
-
 import { ClimbList } from "@/components/climb-list";
 import { NavigationPendingRegion } from "@/components/navigation-pending";
 import type {
@@ -45,16 +43,11 @@ export function AreaClimbsSection({
   emptyMessage,
   pending = false,
 }: AreaClimbsSectionProps) {
-  // usePagedList reads this only on mount and reset; skip rebuilding the set.
-  const initialMeta = useMemo(
-    () =>
-      createClimbListMeta({
-        sendStats: initialSendStats,
-        areaBreadcrumbs: initialAreaBreadcrumbs,
-        sentClimbIds,
-      }),
-    [initialSendStats, initialAreaBreadcrumbs, sentClimbIds],
-  );
+  const initialMeta = createClimbListMeta({
+    sendStats: initialSendStats,
+    areaBreadcrumbs: initialAreaBreadcrumbs,
+    sentClimbIds,
+  });
 
   const {
     items: climbs,

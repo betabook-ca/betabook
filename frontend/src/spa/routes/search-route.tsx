@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useSearchParams } from "react-router";
 
 import { HomeIntroduction } from "@/components/home-introduction";
@@ -18,6 +18,31 @@ import { peekBootstrapData } from "@/spa/bootstrap";
 import { fetchApi } from "@/spa/lib/api";
 import type { SearchBootstrapData } from "@/spa/lib/fetch-json";
 
+function searchSnapshot(seed: SearchBootstrapData | null): SearchSnapshot {
+  const sections: SearchSnapshot = [];
+  if (seed?.climbsPage)
+    sections.push({
+      kind: "climb",
+      status: "ready",
+      page: {
+        items: publicClimbSearchItems(seed.climbsPage),
+        hasMore: seed.climbsPage.hasNextPage,
+        nextPage: 2,
+      },
+    });
+  if (seed?.areasPage)
+    sections.push({
+      kind: "area",
+      status: "ready",
+      page: {
+        items: areaSearchItems(seed.areasPage.areas),
+        hasMore: seed.areasPage.hasNextPage,
+        nextPage: 2,
+      },
+    });
+  return sections;
+}
+
 export default function SearchRoute({
   viewerId,
   home = false,
@@ -32,26 +57,21 @@ export default function SearchRoute({
   ) as SearchBootstrapData | null;
   const [knownAreas, setKnownAreas] = useState<Record<string, AreaSelection>>({});
   const defaultCategory = home ? "all" : "climb";
-  const parsed = useMemo(
-    () =>
-      parseSearchState(searchParamsToRecord(new URLSearchParams(rawQuery)), null, defaultCategory),
-    [rawQuery, defaultCategory],
-  );
+  const parsed = parseSearchState(searchParamsToRecord(params), null, defaultCategory);
   const id = parsed.filter.areaId;
   const seededArea = seed?.areaSelection;
   const cached =
     id !== undefined
       ? (knownAreas[id] ?? (seededArea?.id === String(id) ? seededArea : undefined))
       : undefined;
-  const initialState = useMemo(
-    () => ({
-      ...parsed,
-      area:
-        cached ??
-        (id !== undefined ? { id: String(id), name: "Unavailable area", path: "" } : null),
-    }),
-    [parsed, id, cached],
-  );
+  const initialState = {
+    ...parsed,
+    area:
+      cached ?? (id === undefined ? null : { id: String(id), name: "Unavailable area", path: "" }),
+  };
+  // The Worker sends one snapshot per document. Once navigation invalidates its
+  // envelope, the search controller fetches subsequent pages from the API.
+  const [initial] = useState(() => searchSnapshot(seed));
   function remember(area: AreaSelection) {
     setKnownAreas((previous) =>
       previous[area.id]?.name === area.name && previous[area.id]?.path === area.path
@@ -81,30 +101,6 @@ export default function SearchRoute({
     void load();
     return () => controller.abort();
   }, [id, cached, home]);
-  const initial = useMemo<SearchSnapshot>(() => {
-    const sections: SearchSnapshot = [];
-    if (seed?.climbsPage)
-      sections.push({
-        kind: "climb",
-        status: "ready",
-        page: {
-          items: publicClimbSearchItems(seed.climbsPage),
-          hasMore: seed.climbsPage.hasNextPage,
-          nextPage: 2,
-        },
-      });
-    if (seed?.areasPage)
-      sections.push({
-        kind: "area",
-        status: "ready",
-        page: {
-          items: areaSearchItems(seed.areasPage.areas),
-          hasMore: seed.areasPage.hasNextPage,
-          nextPage: 2,
-        },
-      });
-    return sections;
-  }, [seed]);
   if (home && rawQuery) return <Navigate replace to={SEARCH_PATH + "?" + rawQuery} />;
   if (home && viewerId) return <Navigate replace to={"/users/" + viewerId} />;
   return (
@@ -121,7 +117,7 @@ export default function SearchRoute({
       )}
       <AppSearch
         initialState={initialState}
-        initial={initial}
+        initial={seed ? initial : undefined}
         suggestions={null}
         viewerId={viewerId}
         onAreaSelected={remember}

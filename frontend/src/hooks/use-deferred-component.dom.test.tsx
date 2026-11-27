@@ -47,3 +47,15 @@ it("shares an in-flight preload with repeated opens and reuses the loaded compon
   expect(result.current.Component).toBe(Loaded);
   expect(loader).toHaveBeenCalledOnce();
 });
+
+it("keeps the original idle deadline across renders and waits for interaction to retry", async () => {
+  const loader = vi.fn<() => Promise<typeof Loaded>>().mockRejectedValue(new Error("Unavailable"));
+  const { result, rerender } = renderHook(() => useDeferredComponent(loader));
+  await act(() => vi.advanceTimersByTimeAsync(250));
+  rerender();
+  await act(() => vi.advanceTimersByTimeAsync(50));
+  expect(result.current.failed).toBe(true);
+  rerender();
+  await act(() => vi.advanceTimersByTimeAsync(600));
+  expect(loader).toHaveBeenCalledOnce();
+});

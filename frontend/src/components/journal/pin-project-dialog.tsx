@@ -1,7 +1,7 @@
 "use client";
 
 import type { UseOverlayStateReturn } from "@heroui/react";
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 
 import { ClimbPicker } from "@/components/climb-picker";
 import { ProjectSuggestionList } from "@/components/journal/project-suggestion-list";
@@ -26,10 +26,7 @@ export function PinProjectDialog({ state, suggestions, pinnedClimbIds }: PinProj
   const [pending, startTransition] = useTransition();
   const compact = useCompactViewport();
 
-  const disabledClimbIds = useMemo(
-    () => new Map(pinnedClimbIds.map((id) => [id, "Already tracked"] as const)),
-    [pinnedClimbIds],
-  );
+  const disabledClimbIds = new Map(pinnedClimbIds.map((id) => [id, "Already tracked"] as const));
 
   function handlePin(climbId: number) {
     if (pending) return;
