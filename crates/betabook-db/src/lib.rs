@@ -3,6 +3,7 @@
 
 pub mod auth;
 pub mod catalog_export;
+pub mod climb_lists;
 pub mod content_access;
 #[cfg(feature = "d1")]
 pub mod d1;
@@ -11,6 +12,7 @@ pub mod feed;
 pub mod fts;
 pub mod journal;
 pub mod member_catalog;
+pub mod projects;
 pub mod public_catalog;
 pub mod sends;
 pub mod social;
@@ -18,3 +20,4 @@ pub mod social;
 pub mod sqlite;
 
 pub use executor::{DbError, DbExecutor, DbParam, DbRow, DbValue};
+pub mod trips;

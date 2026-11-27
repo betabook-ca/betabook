@@ -8,6 +8,7 @@ import SharedTripAnalyticsPageImpl, {
 import SharedTripPageImpl, { generateMetadata } from "@/app/trips/[token]/page";
 import { SharedTripLayout } from "@/app/trips/[token]/shared-trip-shell";
 import { JournalCompanions } from "@/components/journal/journal-companions";
+import { TripAnalyticsView } from "@/components/trips/trip-analytics-view";
 import { TripCompanions } from "@/components/trips/trip-companions";
 import { TripNotes } from "@/components/trips/trip-notes";
 import { TripStatusChip } from "@/components/trips/trip-status-chip";
@@ -27,7 +28,7 @@ import { expandTripLayers, rendered, treeElements } from "@/test/server-tree";
 
 const SharedTripPage = rendered(SharedTripPageImpl, { expand: [SharedTripLayout] });
 const SharedTripAnalyticsPage = rendered(SharedTripAnalyticsPageImpl, {
-  expand: [SharedTripLayout],
+  expand: [SharedTripLayout, TripAnalyticsView],
 });
 
 const session = vi.hoisted(() => ({ userId: null as string | null }));

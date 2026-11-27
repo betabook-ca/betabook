@@ -472,6 +472,37 @@ fn sort_tie_break(sort: SubtreeClimbsSort) -> &'static str {
     }
 }
 
+pub(crate) fn add_catalog_filters(
+    options: &PublicCatalogOptions,
+    params: &mut Vec<DbParam>,
+    conditions: &mut Vec<String>,
+) {
+    let discipline_clauses = discipline_grade_conditions(&options.filter, params);
+    if !discipline_clauses.is_empty() {
+        conditions.push(format!("({})", discipline_clauses.join(" OR ")));
+    }
+
+    let [rating_min, rating_max] = options.rating_range;
+    if rating_min > 1 {
+        params.push(DbParam::Int(rating_min));
+        conditions.push("climbs.avg_rating >= ?".to_string());
+    }
+    if rating_max > 0 && rating_max < MAX_RATING {
+        params.push(DbParam::Int(rating_max));
+        conditions.push("climbs.avg_rating <= ?".to_string());
+    }
+    if options.min_ascents > 0 {
+        params.push(DbParam::Int(options.min_ascents));
+        conditions.push("climbs.send_count >= ?".to_string());
+    }
+    if let Some(ref viewer_id) = options.exclude_sent_by {
+        params.push(DbParam::Text(viewer_id.clone()));
+        conditions.push(
+            "NOT EXISTS (SELECT 1 FROM sends excluded_send WHERE excluded_send.user_id = ? AND excluded_send.climb_id = climbs.id)".to_string(),
+        );
+    }
+}
+
 pub async fn search_public_climbs<D: DbExecutor>(
     db: &D,
     options: &PublicCatalogOptions,
@@ -506,30 +537,7 @@ pub async fn search_public_climbs<D: DbExecutor>(
         conditions.push(area_cond);
     }
 
-    let discipline_clauses = discipline_grade_conditions(&options.filter, &mut params);
-    if !discipline_clauses.is_empty() {
-        conditions.push(format!("({})", discipline_clauses.join(" OR ")));
-    }
-
-    let [rating_min, rating_max] = options.rating_range;
-    if rating_min > 1 {
-        params.push(DbParam::Int(rating_min));
-        conditions.push("climbs.avg_rating >= ?".to_string());
-    }
-    if rating_max > 0 && rating_max < MAX_RATING {
-        params.push(DbParam::Int(rating_max));
-        conditions.push("climbs.avg_rating <= ?".to_string());
-    }
-    if options.min_ascents > 0 {
-        params.push(DbParam::Int(options.min_ascents));
-        conditions.push("climbs.send_count >= ?".to_string());
-    }
-    if let Some(ref viewer_id) = options.exclude_sent_by {
-        params.push(DbParam::Text(viewer_id.clone()));
-        conditions.push(
-            "NOT EXISTS (SELECT 1 FROM sends excluded_send WHERE excluded_send.user_id = ? AND excluded_send.climb_id = climbs.id)".to_string(),
-        );
-    }
+    add_catalog_filters(options, &mut params, &mut conditions);
 
     let browse = options.name.is_empty()
         && options.area_name.as_deref().unwrap_or("").is_empty()

@@ -1,8 +1,12 @@
 pub mod actions;
 pub mod avatars;
 pub mod catalog_export;
+pub mod climb_lists;
 pub mod member_pages;
 pub mod member_search;
+pub mod projects;
 pub mod public_catalog;
 pub mod seo;
 pub mod static_pages;
+mod trip_album;
+pub mod trips;

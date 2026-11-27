@@ -145,6 +145,62 @@ fn router(state: AppState) -> Router {
             "/api/users/{id}/journal",
             get(routes::member_pages::user_journal_api),
         )
+        .route(
+            "/api/pages/users/{id}/projects",
+            get(routes::projects::board),
+        )
+        .route("/api/pages/projects/{token}", get(routes::projects::shared))
+        .route("/projects/{token}", get(routes::seo::shared_project_page))
+        .route("/users/{id}/projects", get(routes::seo::owner_project_page))
+        .route(
+            "/users/{id}/projects/sent",
+            get(routes::seo::owner_project_page),
+        )
+        .route(
+            "/api/pages/users/{id}/lists",
+            get(routes::climb_lists::index),
+        )
+        .route(
+            "/api/pages/users/{id}/lists/{list_id}",
+            get(routes::climb_lists::detail),
+        )
+        .route("/api/pages/lists/{token}", get(routes::climb_lists::shared))
+        .route("/users/{id}/lists", get(routes::seo::member_list_html))
+        .route(
+            "/users/{id}/lists/{list_id}",
+            get(routes::seo::member_list_html),
+        )
+        .route("/lists/{token}", get(routes::seo::shared_list_html))
+        .route("/users/{id}/trips", get(routes::trips::member_html))
+        .route("/users/{id}/trips/{trip}", get(routes::trips::member_html))
+        .route(
+            "/users/{id}/trips/{trip}/analytics",
+            get(routes::trips::member_html),
+        )
+        .route("/trips/{token}", get(routes::trips::shared_html))
+        .route("/trips/{token}/analytics", get(routes::trips::shared_html))
+        .route("/api/pages/users/{id}/trips", get(routes::trips::list))
+        .route(
+            "/api/pages/users/{id}/trips/{trip}",
+            get(routes::trips::detail),
+        )
+        .route(
+            "/api/pages/users/{id}/trips/{trip}/analytics",
+            get(routes::trips::detail),
+        )
+        .route(
+            "/api/pages/users/{id}/trips/{trip}/photos",
+            get(routes::trips::photos),
+        )
+        .route(
+            "/api/pages/trips/{token}/photos",
+            get(routes::trips::shared_photos),
+        )
+        .route("/api/pages/trips/{token}", get(routes::trips::shared))
+        .route(
+            "/api/pages/trips/{token}/analytics",
+            get(routes::trips::shared),
+        )
         // Page loaders for member SPA views
         .route(
             "/api/pages/feed",

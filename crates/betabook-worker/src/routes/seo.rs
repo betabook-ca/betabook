@@ -510,6 +510,214 @@ async fn render_not_found(state: &AppState) -> Result<Response, ApiError> {
     Ok(html_response(StatusCode::NOT_FOUND, html))
 }
 
+#[worker::send]
+pub async fn shared_project_page(
+    State(state): State<AppState>,
+    Path(token): Path<String>,
+) -> Result<Response, ApiError> {
+    use betabook_db::projects::SharedAccess;
+    let access = super::projects::resolve_link(&state, &token).await?;
+    let (status, meta) = match &access {
+        SharedAccess::Visible { project, .. } => {
+            let name = &project.owner_name;
+            let climb = project.climb_name();
+            let (title, description) = if project.sent {
+                (
+                    format!("{name} sent {climb}"),
+                    format!(
+                        "See the sessions behind {name}'s ascent of {climb} on {SITE_NAME}, a climbing logbook and crag database."
+                    ),
+                )
+            } else {
+                (
+                    format!("{name} is projecting {climb}"),
+                    format!(
+                        "Follow {name}'s progress on {climb} on {SITE_NAME}, a climbing logbook and crag database."
+                    ),
+                )
+            };
+            let mut meta = PageMetadata::noindex(title, description);
+            meta.og_type = "article";
+            (StatusCode::OK, meta)
+        }
+        SharedAccess::Expired => (
+            StatusCode::OK,
+            PageMetadata::noindex("Shared project", SITE_DESCRIPTION),
+        ),
+        SharedAccess::Hidden => (
+            StatusCode::NOT_FOUND,
+            PageMetadata::noindex("Shared project", SITE_DESCRIPTION),
+        ),
+    };
+    let data =
+        json!({"route":"shared-project", "path":format!("/projects/{token}"), "data":access});
+    render_project_shell(&state, &meta, status, Some(&data)).await
+}
+
+#[worker::send]
+pub async fn owner_project_page(
+    State(state): State<AppState>,
+    headers: http::HeaderMap,
+    Path(owner): Path<String>,
+    OriginalUri(uri): OriginalUri,
+) -> Result<Response, ApiError> {
+    let session = crate::auth::session::resolve_optional_session(&state, &headers).await?;
+    let member = session.filter(|s| {
+        betabook_domain::terms::has_accepted_current_terms(
+            s.user.terms_version.as_deref(),
+            s.user.terms_accepted_at,
+        )
+    });
+    let (status, title) = match member {
+        None => (StatusCode::OK, "Member content".to_owned()),
+        Some(s) if s.user.id == owner => {
+            let label = if uri.path().ends_with("/sent") {
+                "Sent projects"
+            } else {
+                "Projects"
+            };
+            (StatusCode::OK, format!("{} · {label}", s.user.name))
+        }
+        Some(_) => (StatusCode::NOT_FOUND, "Not found".to_owned()),
+    };
+    render_project_shell(
+        &state,
+        &PageMetadata::noindex(title, SITE_DESCRIPTION),
+        status,
+        None,
+    )
+    .await
+}
+
+async fn render_project_shell(
+    state: &AppState,
+    meta: &PageMetadata,
+    status: StatusCode,
+    bootstrap: Option<&Value>,
+) -> Result<Response, ApiError> {
+    let manifest = load_spa_manifest(state).await?;
+    let preload = render_modulepreload_tags(&manifest, "routes/projects-route.tsx");
+    let html = inject_seo_into_html(
+        &load_index_html(state).await?,
+        meta,
+        &[],
+        &preload,
+        bootstrap,
+    );
+    let mut response = html_response(status, html);
+    response.headers_mut().insert(
+        header::CACHE_CONTROL,
+        http::HeaderValue::from_static("private, no-store"),
+    );
+    Ok(response)
+}
+
+#[worker::send]
+pub async fn shared_list_html(
+    State(state): State<AppState>,
+    headers: http::HeaderMap,
+    Path(raw): Path<String>,
+) -> Result<Response, ApiError> {
+    let Some(token) = betabook_domain::profile_share::parse_share_token(&raw) else {
+        return render_not_found(&state).await;
+    };
+    let Some(link) = betabook_db::climb_lists::shared_list(state.db(), token).await? else {
+        return render_not_found(&state).await;
+    };
+    if super::climb_lists::shared_viewer(&state, &headers)
+        .await?
+        .as_deref()
+        == Some(link.owner_id.as_str())
+    {
+        let mut url = url::Url::parse(&state.request_origin).map_err(ApiError::internal)?;
+        url.path_segments_mut()
+            .map_err(|_| ApiError::internal("Invalid origin"))?
+            .clear()
+            .extend(["users", &link.owner_id, "lists", &link.list.id.to_string()]);
+        return Response::builder()
+            .status(StatusCode::TEMPORARY_REDIRECT)
+            .header(header::LOCATION, url.path())
+            .header(header::CACHE_CONTROL, "private, no-store")
+            .body(Body::empty())
+            .map_err(ApiError::internal);
+    }
+    let meta = if link.live {
+        let mut meta = PageMetadata::noindex(
+            format!("{} · {}", link.owner_name, link.list.title),
+            format!(
+                "See {}'s list of climbs on {SITE_NAME}, a climbing logbook and crag database.",
+                link.owner_name
+            ),
+        );
+        meta.og_type = "article";
+        meta
+    } else {
+        PageMetadata::noindex("Shared list", SITE_DESCRIPTION)
+    };
+    render_list_shell(&state, StatusCode::OK, &meta).await
+}
+
+#[worker::send]
+pub async fn member_list_html(
+    State(state): State<AppState>,
+    headers: http::HeaderMap,
+    Path(params): Path<BTreeMap<String, String>>,
+) -> Result<Response, ApiError> {
+    let viewer = super::climb_lists::shared_viewer(&state, &headers).await?;
+    let title = match viewer {
+        None => Some("Member content".to_owned()),
+        Some(viewer) => {
+            let owner = params
+                .get("id")
+                .ok_or_else(|| ApiError::internal("Missing route owner"))?;
+            match params.get("list_id") {
+                Some(raw) => match parse_id(raw) {
+                    Some(id) => {
+                        betabook_db::climb_lists::member_page_title(
+                            state.db(),
+                            owner,
+                            &viewer,
+                            Some(id),
+                        )
+                        .await?
+                    }
+                    None => None,
+                },
+                None => {
+                    betabook_db::climb_lists::member_page_title(state.db(), owner, &viewer, None)
+                        .await?
+                }
+            }
+        }
+    };
+    let (status, title) = match title {
+        Some(title) => (StatusCode::OK, title),
+        None => (StatusCode::NOT_FOUND, "Not found".to_owned()),
+    };
+    render_list_shell(
+        &state,
+        status,
+        &PageMetadata::noindex(title, SITE_DESCRIPTION),
+    )
+    .await
+}
+
+async fn render_list_shell(
+    state: &AppState,
+    status: StatusCode,
+    meta: &PageMetadata,
+) -> Result<Response, ApiError> {
+    let manifest = load_spa_manifest(state).await?;
+    let preload = render_modulepreload_tags(&manifest, "routes/lists-route.tsx");
+    let html = inject_seo_into_html(&load_index_html(state).await?, meta, &[], &preload, None);
+    let mut response = html_response(status, html);
+    response.headers_mut().insert(
+        header::CACHE_CONTROL,
+        http::HeaderValue::from_static("private, no-store"),
+    );
+    Ok(response)
+}
+
 fn route_metadata(path: &str, has_query: bool) -> (PageMetadata, Vec<Value>, &'static str) {
     match path {
         "/" => (
@@ -694,4 +902,20 @@ pub async fn spa_fallback(
         bootstrap_data.as_ref(),
     );
     Ok(html_response(StatusCode::OK, html))
+}
+
+pub(super) async fn trip_shell(
+    state: &AppState,
+    status: StatusCode,
+    meta: &PageMetadata,
+) -> Result<Response, ApiError> {
+    let manifest = load_spa_manifest(state).await?;
+    let preload = render_modulepreload_tags(&manifest, "routes/trips-route.tsx");
+    let html = inject_seo_into_html(&load_index_html(state).await?, meta, &[], &preload, None);
+    let mut response = html_response(status, html);
+    response.headers_mut().insert(
+        header::CACHE_CONTROL,
+        http::HeaderValue::from_static("private, no-store"),
+    );
+    Ok(response)
 }

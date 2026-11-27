@@ -8,6 +8,7 @@ import TripAnalyticsPageImpl from "@/app/users/[id]/trips/[tripId]/analytics/pag
 import TripPageImpl, {
   generateMetadata as tripPageMetadata,
 } from "@/app/users/[id]/trips/[tripId]/page";
+import { TripAnalyticsView } from "@/components/trips/trip-analytics-view";
 import { createDb } from "@/db/client";
 import { getProfileShareToken } from "@/db/queries";
 import { userAnalyticsLayouts } from "@/db/schema";
@@ -22,7 +23,7 @@ import {
 import { resetDb } from "@/test/reset-db";
 import { expandTripLayers, rendered, treeElements } from "@/test/server-tree";
 
-const TripAnalyticsPage = rendered(TripAnalyticsPageImpl);
+const TripAnalyticsPage = rendered(TripAnalyticsPageImpl, { expand: [TripAnalyticsView] });
 const TripPage = rendered(TripPageImpl);
 // ProfileHeader is synchronous, so it has to be expanded for its tabs to render.
 const UserSendsPage = rendered(UserSendsPageImpl, { expand: [ProfileHeader] });

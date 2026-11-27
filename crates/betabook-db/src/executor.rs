@@ -151,5 +151,12 @@ pub trait DbExecutor {
 
     async fn execute(&self, sql: &str, params: &[DbParam]) -> Result<u64, DbError>;
 
-    async fn batch(&self, statements: Vec<(String, Vec<DbParam>)>) -> Result<(), DbError>;
+    async fn batch_rows(
+        &self,
+        statements: Vec<(String, Vec<DbParam>)>,
+    ) -> Result<Vec<Vec<DbRow>>, DbError>;
+
+    async fn batch(&self, statements: Vec<(String, Vec<DbParam>)>) -> Result<(), DbError> {
+        self.batch_rows(statements).await.map(|_| ())
+    }
 }

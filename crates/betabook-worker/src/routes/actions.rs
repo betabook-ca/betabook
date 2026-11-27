@@ -63,7 +63,7 @@ const MIN_CONTACT_FILL_MS: f64 = 2000.0;
 const JOURNAL_RATE_LIMIT_MESSAGE: &str =
     "You're logging entries quickly — take a breather and try again in a minute.";
 
-fn action_ok() -> Response {
+pub(super) fn action_ok() -> Response {
     let mut resp = (StatusCode::OK, Json(json!({ "ok": true }))).into_response();
     resp.headers_mut().insert(
         header::CACHE_CONTROL,
@@ -72,7 +72,7 @@ fn action_ok() -> Response {
     resp
 }
 
-fn action_value<T: Serialize>(value: T) -> Response {
+pub(super) fn action_value<T: Serialize>(value: T) -> Response {
     let mut resp = (StatusCode::OK, Json(json!({ "ok": true, "value": value }))).into_response();
     resp.headers_mut().insert(
         header::CACHE_CONTROL,
@@ -81,7 +81,7 @@ fn action_value<T: Serialize>(value: T) -> Response {
     resp
 }
 
-fn action_err(message: impl Into<String>) -> Response {
+pub(super) fn action_err(message: impl Into<String>) -> Response {
     let mut resp = (
         StatusCode::OK,
         Json(json!({ "ok": false, "error": message.into() })),
@@ -94,7 +94,10 @@ fn action_err(message: impl Into<String>) -> Response {
     resp
 }
 
-fn map_mutation_result<T, F>(res: Result<T, MutationError>, on_ok: F) -> Result<Response, ApiError>
+pub(super) fn map_mutation_result<T, F>(
+    res: Result<T, MutationError>,
+    on_ok: F,
+) -> Result<Response, ApiError>
 where
     F: FnOnce(T) -> Response,
 {
@@ -105,7 +108,7 @@ where
     }
 }
 
-async fn allow_rate_limit(state: &AppState, binding: &str, key: &str) -> bool {
+pub(super) async fn allow_rate_limit(state: &AppState, binding: &str, key: &str) -> bool {
     let Ok(limiter) = state.env().rate_limiter(binding) else {
         return true;
     };
@@ -705,6 +708,58 @@ pub async fn dispatch_action(
     };
 
     match name.as_str() {
+        "pinProject" | "unpinProject" | "shareProject" | "unshareProject" => {
+            use betabook_db::projects::{
+                pin_project, share_project, unpin_project, unshare_project,
+            };
+            use betabook_domain::profile_share::share_expiry_modifier;
+            let session = match require_member_session(&state, &headers).await {
+                Ok(session) => session,
+                Err(err) => return Ok(action_err(err.message)),
+            };
+            let user = &session.user.id;
+            let climb = match parse_pos_i64_arg(call.args.first(), "Climb not found") {
+                Ok(climb) => climb,
+                Err(message) => return Ok(action_err(message)),
+            };
+            let expiry = if name == "shareProject" {
+                match share_expiry_modifier(call.args.get(1).and_then(Value::as_str).unwrap_or(""))
+                {
+                    Ok(expiry) => expiry,
+                    Err(message) => return Ok(action_err(message)),
+                }
+            } else {
+                None
+            };
+            if !allow_rate_limit(&state, "JOURNAL_RATE_LIMITER", user).await {
+                return Ok(action_err("Too many changes — try again in a minute"));
+            }
+            match name.as_str() {
+                "pinProject" => {
+                    map_mutation_result(pin_project(state.db(), user, climb).await, |()| {
+                        action_ok()
+                    })
+                }
+                "shareProject" => map_mutation_result(
+                    share_project(state.db(), user, climb, expiry).await,
+                    action_value,
+                ),
+                "unpinProject" => {
+                    unpin_project(state.db(), user, climb).await?;
+                    Ok(action_ok())
+                }
+                _ => {
+                    unshare_project(state.db(), user, climb).await?;
+                    Ok(action_ok())
+                }
+            }
+        }
+        "createClimbList" | "updateClimbList" | "deleteClimbList" | "addClimbToList"
+        | "saveClimbListEdits" | "shareClimbList" | "unshareClimbList" | "copyClimbList" => {
+            super::climb_lists::action(&state, &headers, &name, &call.args).await
+        }
+        "saveTrip" | "saveTripNotes" | "deleteTrip" | "removeMyTripTag" | "shareTrip"
+        | "unshareTrip" => super::trips::action(&name, &call.args, &state, &headers).await,
         "acceptTerms" => {
             let Some(session) = resolve_optional_session(&state, &headers).await? else {
                 return Ok(action_err("Not signed in"));

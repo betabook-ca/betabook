@@ -85,7 +85,7 @@ pub struct StoredJournalEntry {
     pub entry_date: String,
 }
 
-fn row_to_journal_entry(row: &crate::executor::DbRow) -> Result<JournalEntry, DbError> {
+pub(crate) fn row_to_journal_entry(row: &crate::executor::DbRow) -> Result<JournalEntry, DbError> {
     let companions_raw = row.get_string("companions")?;
     let companions: Vec<JournalCompanion> =
         serde_json::from_str(&companions_raw).unwrap_or_default();
@@ -127,9 +127,21 @@ fn visible_body_sql(viewer_id: Option<&str>, params: &mut Vec<DbParam>) -> Strin
     format!("CASE WHEN j.is_send_comment = 0 OR {vis} THEN j.body ELSE NULL END")
 }
 
-fn journal_entry_select(viewer_id: Option<&str>, params: &mut Vec<DbParam>) -> String {
+pub(crate) fn journal_entry_select(viewer_id: Option<&str>, params: &mut Vec<DbParam>) -> String {
+    journal_entry_columns(viewer_id, params, true)
+}
+
+pub(crate) fn journal_entry_columns(
+    viewer_id: Option<&str>,
+    params: &mut Vec<DbParam>,
+    include_companions: bool,
+) -> String {
     let body_sql = visible_body_sql(viewer_id, params);
-    let companions_sql = companions_json_sql(viewer_id, "j.id", params);
+    let companions_sql = if include_companions {
+        companions_json_sql(viewer_id, "j.id", params)
+    } else {
+        "'[]'".to_string()
+    };
     let videos_vis = send_comment_visible_sql(viewer_id, "j.user_id", params);
 
     format!(
