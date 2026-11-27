@@ -22,6 +22,8 @@ export type ShareImageContent = {
   stats: ShareStat[];
 };
 
+export type ShareImageFonts = { sans: string; display: string };
+
 /** Width of the text in pixels for a canvas `font` string. */
 export type MeasureText = (text: string, font: string) => number;
 
@@ -159,13 +161,13 @@ export function statCardRects(count: number, x: number, y: number, width: number
 function headerOps(
   content: ShareImageContent,
   top: number,
-  family: string,
+  fonts: ShareImageFonts,
   measure: MeasureText,
 ): { ops: ShareImageOp[]; bottom: number } {
   const ops: ShareImageOp[] = [];
   const width = SHARE_IMAGE_WIDTH - PAD * 2;
-  const titleFont = font(700, 64, family);
-  const chipFont = font(500, 30, family);
+  const titleFont = font(700, 64, fonts.sans);
+  const chipFont = font(500, 30, fonts.sans);
   let y = top;
 
   const chipWidth = content.status ? measure(content.status.label, chipFont) + 44 : 0;
@@ -201,7 +203,7 @@ function headerOps(
   }
   y += 80;
 
-  const bodyFont = font(400, 38, family);
+  const bodyFont = font(400, 38, fonts.sans);
   ops.push({ kind: "text", text: content.dates, x: PAD, y, font: bodyFont, color: MUTED });
   y += 54;
 
@@ -224,7 +226,7 @@ function statsHeight(count: number) {
 function statOps(
   stats: ShareStat[],
   top: number,
-  family: string,
+  fonts: ShareImageFonts,
   measure: MeasureText,
 ): ShareImageOp[] {
   const width = SHARE_IMAGE_WIDTH - PAD * 2;
@@ -234,13 +236,13 @@ function statOps(
       text: "At a glance",
       x: PAD,
       y: top,
-      font: font(600, 44, family),
+      font: font(600, 44, fonts.sans),
       color: WHITE,
     },
   ];
-  const labelFont = font(500, 30, family);
-  const valueFont = font(600, 88, family);
-  const subFont = font(400, 30, family);
+  const labelFont = font(500, 30, fonts.sans);
+  const valueFont = font(600, 88, fonts.display);
+  const subFont = font(400, 30, fonts.sans);
   const rects = statCardRects(stats.length, PAD, top + 64, width);
 
   for (const [index, stat] of stats.entries()) {
@@ -289,7 +291,7 @@ function statOps(
     text: WATERMARK,
     x: SHARE_IMAGE_WIDTH / 2,
     y: gridBottom + 32,
-    font: font(600, 28, family),
+    font: font(600, 28, fonts.sans),
     color: MUTED,
     align: "center",
   });
@@ -300,10 +302,10 @@ function statOps(
 export function layoutShareImage(
   content: ShareImageContent,
   format: ShareImageFormat,
-  family: string,
+  fonts: ShareImageFonts,
   measure: MeasureText,
 ): ShareImageLayout {
-  const header = headerOps(content, format === "story" ? STORY_TOP : PAD, family, measure);
+  const header = headerOps(content, format === "story" ? STORY_TOP : PAD, fonts, measure);
   const stats = content.stats.slice(0, MAX_SHARE_STATS);
   const blockHeight = statsHeight(stats.length);
   const height =
@@ -317,7 +319,7 @@ export function layoutShareImage(
   return {
     width: SHARE_IMAGE_WIDTH,
     height,
-    ops: [...header.ops, ...statOps(stats, statsTop, family, measure)],
+    ops: [...header.ops, ...statOps(stats, statsTop, fonts, measure)],
   };
 }
 
@@ -329,31 +331,29 @@ export function shareImageFileName(title: string, format: ShareImageFormat) {
 /** The image's size without measuring any text, for a placeholder of the
  * right shape. A description counts as one line. */
 export function estimateShareImageSize(content: ShareImageContent, format: ShareImageFormat) {
-  const { width, height } = layoutShareImage(content, format, "", () => 0);
+  const { width, height } = layoutShareImage(content, format, { sans: "", display: "" }, () => 0);
   return { width, height };
 }
 
-let fontsReady: Promise<string> | undefined;
+let fontsReady: Promise<ShareImageFonts> | undefined;
 
 /** Loaded once per page; every redraw after the first reuses the result. */
-function loadShareFonts(): Promise<string> {
+function loadShareFonts(): Promise<ShareImageFonts> {
   fontsReady ??= resolveShareFonts();
   return fontsReady;
 }
 
-/** All canvas text uses the app family, including the large stat values. */
-async function resolveShareFonts(): Promise<string> {
+/** Canvas text uses the same body and display stacks as the live app. */
+async function resolveShareFonts(): Promise<ShareImageFonts> {
   const style = getComputedStyle(document.documentElement);
-  const family = style.getPropertyValue("--font-body").trim() || "Georgia, serif";
+  const sans = style.getPropertyValue("--font-body").trim() || "system-ui, sans-serif";
+  const display = style.getPropertyValue("--font-heading").trim() || "Georgia, serif";
   await Promise.all(
-    [
-      font(400, 38, family),
-      font(500, 30, family),
-      font(600, 88, family),
-      font(700, 64, family),
-    ].map((spec) => document.fonts.load(spec).catch(() => [])),
+    [font(400, 38, sans), font(700, 64, sans), font(600, 88, display)].map((spec) =>
+      document.fonts.load(spec).catch(() => []),
+    ),
   );
-  return family;
+  return { sans, display };
 }
 
 function drawShareImage(context: CanvasRenderingContext2D, layout: ShareImageLayout) {
@@ -392,7 +392,7 @@ export async function renderShareImage(
   content: ShareImageContent,
   format: ShareImageFormat,
 ): Promise<Blob> {
-  const family = await loadShareFonts();
+  const fonts = await loadShareFonts();
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Canvas is unavailable");
@@ -400,7 +400,7 @@ export async function renderShareImage(
     context.font = spec;
     return context.measureText(text).width;
   };
-  const layout = layoutShareImage(content, format, family, measure);
+  const layout = layoutShareImage(content, format, fonts, measure);
   canvas.width = layout.width;
   canvas.height = layout.height;
   drawShareImage(context, layout);

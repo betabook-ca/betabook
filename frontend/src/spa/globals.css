@@ -1,8 +1,7 @@
 @import "@heroui/styles";
 
-/* The interface family and brand anchors for both themes. */
+/* Brand anchors shared with the first paint, install assets and email templates. */
 :root {
-  --font-body: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --palette-ink: #252423;
   --palette-night: #191e25;
   --palette-primary: #994b35;
@@ -107,7 +106,7 @@
 
     /* Magnifier for combobox inputs (see search-combo-input) — data URIs
        can't reference CSS vars, so each theme pins its own muted stroke. */
-    --search-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23625f5b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+    --search-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23625f5b' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
   }
 
   /* The night palette uses cool slate surfaces and a restrained warm date marker. */
@@ -169,7 +168,7 @@
     --ascent-redpoint-bg: var(--segment);
     --ascent-redpoint-fg: var(--default-foreground);
 
-    --search-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a4afb9' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+    --search-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a4afb9' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
   }
 }
 
@@ -187,7 +186,7 @@
 
 @theme inline {
   --font-sans: var(--font-body);
-  --font-display: var(--font-body);
+  --font-display: var(--font-heading);
   --color-date-ink: var(--date-ink);
 
   /* Raw palette as utilities (bg-palette-primary, text-palette-support, …)
@@ -212,6 +211,11 @@
 @layer base {
   html {
     @apply font-sans;
+  }
+
+  /* Match the field guide's line icons. Custom icon strokes and chart lines keep their own weights. */
+  :where(svg.lucide[stroke-width="2"]) {
+    stroke-width: 1.7;
   }
 }
 

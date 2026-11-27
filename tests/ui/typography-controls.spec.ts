@@ -34,7 +34,7 @@ test("tag feedback is associated, readable and uses the invalid field treatment"
   const error = page.getByRole("alert");
   await expect(error).toHaveText("Tags can only contain letters, numbers and hyphens.");
   await expect(error).toHaveCSS("font-size", "14px");
-  await expect(error).toHaveCSS("font-family", /Iowan Old Style/i);
+  await expect(error).toHaveCSS("font-family", /DM Sans/i);
   await expect(input).toHaveAttribute("data-invalid", "true");
   await expect(input).toHaveCSS("box-shadow", /0px 0px 0px 2px/);
   await expect(input).toBeFocused();

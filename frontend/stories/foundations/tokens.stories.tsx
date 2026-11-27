@@ -115,15 +115,15 @@ export const Typography: Story = {
   render: () => (
     <StoryPage
       title="Typography"
-      description="Iowan Old Style sets headings, dates, controls and notes. Use semibold headings, bold climb names and regular notes."
+      description="Iowan Old Style sets headings and dates. DM Sans Bold identifies climbs and DM Sans Regular carries notes."
     >
-      <LiveSample name="Heading · Iowan Old Style" property="font-family">
+      <LiveSample name="Display family · Iowan Old Style" property="font-family">
         <p className="font-display text-3xl font-semibold">A day in the mountains</p>
       </LiveSample>
       <LiveSample name="SectionHeading" property="font-size">
         <SectionHeading>Recent sessions</SectionHeading>
       </LiveSample>
-      <LiveSample name="Body · Iowan Old Style" property="font-family">
+      <LiveSample name="Body · DM Sans" property="font-family">
         <p>Find a climb, record the moves, and return with fresh beta.</p>
       </LiveSample>
       <LiveSample name="Supporting copy" property="font-size">

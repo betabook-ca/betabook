@@ -1,0 +1,12 @@
+@font-face {
+  font-family: "DM Sans";
+  src: url("@/assets/fonts/dm-sans/DM-Sans-Variable.ttf") format("truetype");
+  font-weight: 100 1000;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-body: "DM Sans", Arial, sans-serif;
+  --font-heading: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+}

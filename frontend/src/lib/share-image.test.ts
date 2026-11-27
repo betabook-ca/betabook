@@ -24,7 +24,7 @@ const measure = (text: string, font: string) => {
   const size = Number(/(\d+)px/.exec(font)?.[1] ?? 10);
   return text.length * size * 0.5;
 };
-const FONT = "Iowan Old Style";
+const FONTS = { sans: "Sans", display: "Display" };
 
 const STATS: ShareStat[] = [
   { id: "sends", label: "Sends", value: "19", sub: "Sep 2026 – Oct 2026" },
@@ -47,7 +47,7 @@ const cards = (ops: ShareImageOp[]) => ops.filter((op) => op.kind === "rect" && 
 
 describe("layoutShareImage", () => {
   it("fills a 9:16 story and pins the stats to the bottom band", () => {
-    const layout = layoutShareImage(CONTENT, "story", FONT, measure);
+    const layout = layoutShareImage(CONTENT, "story", FONTS, measure);
     expect(layout).toMatchObject({ width: SHARE_IMAGE_WIDTH, height: STORY_HEIGHT });
     const lastCard = cards(layout.ops).at(-1);
     // Below the middle of the frame; the watermark ends 200px above the bottom, clear of a story reply bar.
@@ -56,7 +56,7 @@ describe("layoutShareImage", () => {
   });
 
   it("makes a sticker only as tall as its content", () => {
-    const layout = layoutShareImage(CONTENT, "sticker", FONT, measure);
+    const layout = layoutShareImage(CONTENT, "sticker", FONTS, measure);
     expect(layout.width).toBe(SHARE_IMAGE_WIDTH);
     expect(layout.height).toBeLessThan(STORY_HEIGHT);
     const watermark = layout.ops.at(-1);
@@ -65,7 +65,7 @@ describe("layoutShareImage", () => {
   });
 
   it("draws the header, upper-cased labels and every chosen stat", () => {
-    const { ops } = layoutShareImage(CONTENT, "sticker", FONT, measure);
+    const { ops } = layoutShareImage(CONTENT, "sticker", FONTS, measure);
     expect(texts(ops)).toEqual([
       "Arco 2026",
       "On now",
@@ -88,7 +88,7 @@ describe("layoutShareImage", () => {
   });
 
   it("never draws more than four stats", () => {
-    const { ops } = layoutShareImage({ ...CONTENT, stats: STATS }, "story", FONT, measure);
+    const { ops } = layoutShareImage({ ...CONTENT, stats: STATS }, "story", FONTS, measure);
     expect(cards(ops)).toHaveLength(MAX_SHARE_STATS);
     expect(texts(ops)).not.toContain("LONGEST STREAK");
   });
@@ -97,7 +97,7 @@ describe("layoutShareImage", () => {
     const { ops } = layoutShareImage(
       { ...CONTENT, status: null, description: null, stats: STATS.slice(0, 1) },
       "sticker",
-      FONT,
+      FONTS,
       measure,
     );
     expect(texts(ops).slice(0, 3)).toEqual([
@@ -110,7 +110,7 @@ describe("layoutShareImage", () => {
 
   it("shortens a long title to leave room for the chip", () => {
     const title = "A very long trip name that would run off the edge of the image";
-    const { ops } = layoutShareImage({ ...CONTENT, title }, "story", FONT, measure);
+    const { ops } = layoutShareImage({ ...CONTENT, title }, "story", FONTS, measure);
     const drawn = texts(ops)[0];
     expect(drawn.endsWith("…")).toBe(true);
     const chip = ops.find((op) => op.kind === "rect");
@@ -204,7 +204,7 @@ describe("text fitting", () => {
         ],
       },
       "sticker",
-      FONT,
+      FONTS,
       measure,
     );
     const label = ops.find((op) => op.kind === "text" && op.tracking);
@@ -247,7 +247,7 @@ describe("estimateShareImageSize", () => {
     const four = estimateShareImageSize(CONTENT, "sticker");
     expect(four).toEqual({
       width: 1080,
-      height: layoutShareImage(CONTENT, "sticker", FONT, measure).height,
+      height: layoutShareImage(CONTENT, "sticker", FONTS, measure).height,
     });
     // A sticker is close to square, not 4:3, and shorter with fewer stats.
     expect(four.height / four.width).toBeGreaterThan(0.9);
