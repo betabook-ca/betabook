@@ -7,6 +7,46 @@ pnpm = "12.21.0"
 "cargo:worker-build" = "0.9.0"
 cargo-deny = "0.22.1"
 
+[tasks.dev]
+description = "Serve the SPA and Rust Worker locally, rebuilding the side you edit"
+env.BETABOOK_DEV_BUILD = "1"
+run = "pnpm exec wrangler dev target/betabook-dev/worker/index.js --assets target/betabook-dev/assets --config wrangler.jsonc --local --ip 0.0.0.0 --infer-origin-from-routes=false --live-reload"
+
+[tasks."dev:build-worker"]
+hide = true
+sources = [
+  "backend/*/src/**/*",
+  "backend/*/Cargo.toml",
+  "Cargo.toml",
+  "Cargo.lock",
+  "rust-toolchain.toml",
+  "shared/**/*",
+]
+outputs = ["target/betabook-dev/worker/index.js", "target/betabook-dev/worker/index_bg.wasm"]
+run = "worker-build --dev --no-opt --out-dir ../../target/betabook-dev/worker backend/worker --locked"
+
+[tasks."dev:build-spa"]
+hide = true
+sources = [
+  "frontend/src/**/*",
+  "frontend/public/**/*",
+  "frontend/*.ts",
+  "frontend/postcss.config.mjs",
+  "shared/**/*",
+  "api/openapi.json",
+  "scripts/build-app.ts",
+  "scripts/static-documents.tsx",
+  "scripts/public-entry-template.ts",
+  "package.json",
+  "pnpm-lock.yaml",
+]
+outputs = [
+  "target/betabook-dev/assets/index.html",
+  "target/betabook-dev/assets/public-home.txt",
+  "target/betabook-dev/assets/spa-manifest.json",
+]
+run = "node scripts/build-app.ts --dev-spa"
+
 [tasks.rust-check]
 description = "Check formatting, native and Worker lints, and native tests"
 run = [

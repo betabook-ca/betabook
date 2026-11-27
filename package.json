@@ -5,7 +5,7 @@
   "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev --config wrangler.jsonc --local --ip 0.0.0.0 --infer-origin-from-routes=false --live-reload",
+    "dev": "mise run dev",
     "dev:spa": "vite --config frontend/vite.config.ts",
     "build": "node scripts/build-app.ts",
     "build:spa": "node scripts/build-app.ts --spa-only",

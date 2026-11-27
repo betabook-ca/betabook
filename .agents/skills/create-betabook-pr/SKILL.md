@@ -104,13 +104,8 @@ real development app:
    `.dev.vars` or the local D1 database is missing. `pnpm setup` is idempotent but reruns the seed.
 2. Apply new local migrations and any needed seed changes **before** starting the server. The dev
    process holds its D1 handle open; after seeding from another process, restart the server.
-3. Run `pnpm dev` in a persistent terminal and read the URL from its output. A running server
-   records its PID and URL in `.vinext/dev/lock.json`, and a second `pnpm dev` in the same checkout
-   exits with that URL; connect to the running server rather than stopping it. Vite serves modules
-   unbundled, so let the tested page hydrate before interacting with it.
-4. For signed-in flows, use the seeded account `dev@example.com` / `password`. Authentication
-   trusts local ports 3000 through 3003. If Vite selects a higher port, restart it on a free trusted
-   port with `pnpm dev -- --port <port>` before testing auth.
+3. Run `mise run dev` in a persistent terminal and read the Wrangler URL from its output. It serves the SPA and development WASM with local bindings and reloads after source edits. Let the page hydrate before interacting with it.
+4. For signed-in flows, use the seeded account `dev@example.com` / `password`. Authentication trusts local ports 3000 through 3003. To use a different trusted port, set `BETTER_AUTH_URL` in the local `.dev.vars` to match and start `mise run dev --port <port>`.
 5. Use the runtime's built-in browser connector to exercise the complete changed flow, including
    the meaningful success and failure or empty state. For writes, confirm persistence after reload.
    Watch the dev-server output plus browser console and network failures; a page that merely renders

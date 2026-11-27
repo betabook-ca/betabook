@@ -26,10 +26,10 @@ Activate mise in your shell to use the project’s pinned Node.js, pnpm, and Rus
 mise install
 pnpm install --frozen-lockfile
 pnpm setup
-pnpm dev
+mise run dev
 ```
 
-Open [localhost:3000](http://localhost:3000) and sign in with **`dev@example.com` / `password`**.
+Open [localhost:3000](http://localhost:3000) and sign in with **`dev@example.com` / `password`**. On subsequent runs, `mise run dev` (or `pnpm dev`) is enough. Saving Rust or frontend code rebuilds the affected side and reloads the browser. For React Fast Refresh, leave Wrangler running on 3000 and run `pnpm dev:spa` in another terminal, then open port 3001.
 
 Environment, seeded test accounts, checks, UI tests and deployment are documented in the
 [`betabook-dev` skill](.agents/skills/betabook-dev/SKILL.md). Architecture and conventions are in
