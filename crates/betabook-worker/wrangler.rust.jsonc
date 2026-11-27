@@ -7,7 +7,7 @@
     "mode": "smart"
   },
   "build": {
-    "command": "worker-build --release"
+    "command": "if [ -d crates/betabook-worker ]; then cd crates/betabook-worker; fi && worker-build --release"
   },
   "routes": [
     {

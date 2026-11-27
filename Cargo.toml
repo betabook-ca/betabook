@@ -16,6 +16,8 @@ publish = false
 async-trait = "0.1.92"
 axum = { version = "0.8.9", default-features = false, features = ["form", "json", "matched-path", "original-uri", "query"] }
 base64 = "0.23.1"
+bytes = "1.5"
+futures-util = { version = "0.3", default-features = false }
 getrandom = { version = "0.4.3", features = ["wasm_js"] }
 hex = "0.4.3"
 hmac = "0.13.0"
@@ -27,6 +29,7 @@ serde_json = "1.0"
 sha2 = { version = "0.11.2", default-features = false }
 subtle = "2.6.1"
 thiserror = "2.0"
+time = { version = "0.3.55", features = ["formatting", "parsing"] }
 tower-service = "0.3.3"
 unicode-normalization = "0.1.26"
 url = "2.5"
