@@ -4,7 +4,11 @@ import { fileURLToPath } from "node:url";
 
 import { createTestHarness, experimental_readRawConfig } from "wrangler";
 
-function assertClearedSessionCookies(response) {
+import { required } from "./harness.ts";
+import type { SmokeContext, SmokeResponse } from "./harness.ts";
+import { apiJson } from "./validate-api.ts";
+
+function assertClearedSessionCookies(response: SmokeResponse) {
   const cleared = response.headers
     .getSetCookie()
     .filter((line) => /^(?:__Secure-)?better-auth\.session_token=/.test(line));
@@ -21,7 +25,13 @@ function assertClearedSessionCookies(response) {
   }
 }
 
-export async function testAuthLifecycle({ server, db, signIn, origin, secret }) {
+export async function testAuthLifecycle({
+  server,
+  db,
+  signIn,
+  origin,
+  secret,
+}: SmokeContext & { origin: string; secret: string }) {
   const owner = "auth-lifecycle";
   const cookie = await signIn(owner);
   await db
@@ -30,9 +40,9 @@ export async function testAuthLifecycle({ server, db, signIn, origin, secret }) 
     .run();
   const session = await server.fetch("/api/auth/get-session", { headers: { cookie } });
   assert.equal(session.status, 200);
-  assert.match(session.headers.get("set-cookie"), /Max-Age=2592000/);
-  assert.equal((await session.json()).user.id, owner);
-  const post = (path, body, headers = {}) =>
+  assert.match(session.headers.get("set-cookie") ?? "", /Max-Age=2592000/);
+  assert.equal(required(await apiJson(session, "/api/auth/get-session")).user.id, owner);
+  const post = (path: string, body: unknown, headers: Record<string, string> = {}) =>
     server.fetch(path, {
       method: "POST",
       headers: { "content-type": "application/json", origin, ...headers },
@@ -45,7 +55,9 @@ export async function testAuthLifecycle({ server, db, signIn, origin, secret }) 
     errorCallbackURL: callback,
   });
   assert.equal(started.status, 200);
-  const state = new URL((await started.json()).url).searchParams.get("state");
+  const state = new URL((await apiJson(started, "/api/auth/sign-in/social")).url).searchParams.get(
+    "state",
+  );
   const [oauthCookie] = started.headers.getSetCookie();
   const cancelled = await server.fetch(
     "/api/auth/callback/google?error=access_denied&state=" + state,
@@ -55,14 +67,14 @@ export async function testAuthLifecycle({ server, db, signIn, origin, secret }) 
     },
   );
   assert.equal(cancelled.status, 302);
-  const location = new URL(cancelled.headers.get("location"), origin);
+  const location = new URL(required(cancelled.headers.get("location")), origin);
   assert.equal(location.pathname, "/sign-in");
   assert.equal(location.searchParams.get("next"), next);
   assert.deepEqual(location.searchParams.getAll("error"), ["access_denied"]);
   assert.equal(location.hash, "#form");
   const stale = await post("/api/auth/delete-user", {}, { cookie });
-  assert.equal((await stale.json()).code, "SESSION_EXPIRED");
-  const { version } = await (await server.fetch("/api/terms/status")).json();
+  assert.equal((await apiJson(stale, "/api/auth/delete-user", 400)).code, "SESSION_EXPIRED");
+  const { version } = await apiJson(server.fetch("/api/terms/status"), "/api/terms/status");
   const invalidEmail = await post("/api/auth/sign-up/email", {
     name: "Invalid address fixture",
     email: "missing-domain@",
@@ -75,7 +87,10 @@ export async function testAuthLifecycle({ server, db, signIn, origin, secret }) 
     password: "x".repeat(129),
   });
   assert.equal(invalidPassword.status, 400);
-  assert.equal((await invalidPassword.json()).code, "PASSWORD_TOO_LONG");
+  assert.equal(
+    (await apiJson(invalidPassword, "/api/auth/sign-in/email", 400)).code,
+    "PASSWORD_TOO_LONG",
+  );
   const duplicate = await post("/api/auth/sign-up/email", {
     email: owner + "@example.test",
     name: "Second name",
@@ -83,20 +98,18 @@ export async function testAuthLifecycle({ server, db, signIn, origin, secret }) 
     acceptedTermsVersion: version,
   });
   assert.equal(duplicate.status, 200);
-  assert.notEqual((await duplicate.json()).user.id, owner);
+  assert.notEqual((await apiJson(duplicate, "/api/auth/sign-up/email")).user.id, owner);
   assert.equal(
-    (
-      await db
-        .prepare("SELECT count(*) AS n FROM user WHERE email=?")
-        .bind(owner + "@example.test")
-        .first()
-    ).n,
+    await db
+      .prepare("SELECT count(*) AS n FROM user WHERE email=?")
+      .bind(owner + "@example.test")
+      .first<number>("n"),
     1,
   );
   // The outgoing runtime's verification emails bind their HS256 token to both account and email.
   await db.prepare("UPDATE user SET email_verified=0 WHERE id=?").bind(owner).run();
-  const encode = (v) => Buffer.from(JSON.stringify(v)).toString("base64url");
-  const signedVerification = (exp) => {
+  const encode = (v: unknown) => Buffer.from(JSON.stringify(v)).toString("base64url");
+  const signedVerification = (exp: number) => {
     const unsigned =
       encode({ alg: "HS256" }) +
       "." +
@@ -126,15 +139,17 @@ export async function testAuthLifecycle({ server, db, signIn, origin, secret }) 
     const query = new URLSearchParams({ token, callbackURL: callback });
     const response = await server.fetch("/api/auth/verify-email?" + query, { redirect: "manual" });
     assert.equal(response.status, 302);
-    const returnUrl = new URL(response.headers.get("location"), origin);
+    const returnUrl = new URL(required(response.headers.get("location")), origin);
     assert.equal(returnUrl.pathname, "/sign-in");
     assert.equal(returnUrl.searchParams.get("next"), next);
     assert.deepEqual(returnUrl.searchParams.getAll("error"), [error]);
     assert.equal(returnUrl.hash, "#form");
   }
   assert.equal(
-    (await db.prepare("SELECT email_verified FROM user WHERE id=?").bind(owner).first())
-      .email_verified,
+    await db
+      .prepare("SELECT email_verified FROM user WHERE id=?")
+      .bind(owner)
+      .first<number>("email_verified"),
     0,
   );
   const token = signedVerification(Math.floor(now / 1000) + 300);
@@ -144,7 +159,10 @@ export async function testAuthLifecycle({ server, db, signIn, origin, secret }) 
   );
   assert.equal(verify.status, 302);
   assert.equal(
-    (await db.prepare("SELECT email_verified AS ok FROM user WHERE id=?").bind(owner).first()).ok,
+    await db
+      .prepare("SELECT email_verified AS ok FROM user WHERE id=?")
+      .bind(owner)
+      .first<number>("ok"),
     1,
   );
   await db
@@ -166,7 +184,7 @@ export async function testAuthLifecycle({ server, db, signIn, origin, secret }) 
   );
   assert.equal(oldLink.status, 302);
   assert.equal(
-    new URL(oldLink.headers.get("location"), origin).searchParams.get("token"),
+    new URL(required(oldLink.headers.get("location")), origin).searchParams.get("token"),
     "single-use-reset",
   );
   const reset = await post("/api/auth/reset-password", {
@@ -208,7 +226,7 @@ export async function testAuthLifecycle({ server, db, signIn, origin, secret }) 
     for (const headers of [{}, { cookie: newCookie }]) {
       const read = await server.fetch(path, { headers });
       assert.equal(read.status, 401, path);
-      assert.match(read.headers.get("cache-control"), /private.*no-store/, path);
+      assert.match(read.headers.get("cache-control") ?? "", /private.*no-store/, path);
     }
   }
   assert.equal(
@@ -235,22 +253,28 @@ export async function testAuthLifecycle({ server, db, signIn, origin, secret }) 
   );
 }
 
-export async function testCatalogCron({ worker, bucket }) {
+export async function testCatalogCron({
+  worker,
+  bucket,
+}: {
+  worker: Pick<import("wrangler").WorkerHandle, "scheduled">;
+  bucket: R2Bucket;
+}) {
   const result = await worker.scheduled({ cron: "0 6 * * 1" });
   assert.equal(result.outcome, "ok");
   const object = await bucket.get("catalog/latest.json");
-  const catalog = await object.json();
+  const catalog = await required(object).json<{ areas: unknown[]; climbs: unknown[] }>();
   assert.ok(Array.isArray(catalog.areas));
   assert.ok(Array.isArray(catalog.climbs));
 }
 
 export async function testFailedCatalogCompletion() {
   const { rawConfig } = experimental_readRawConfig({ config: "./wrangler.jsonc" });
-  const main = fileURLToPath(new URL("./fixtures/fail-export-worker.mjs", import.meta.url));
+  const main = fileURLToPath(new URL("./fixtures/fail-export-worker.ts", import.meta.url));
   const harness = createTestHarness({ workers: [{ config: { ...rawConfig, build: {}, main } }] });
   try {
     await harness.listen();
-    const worker = harness.getWorker();
+    const worker = harness.getWorker<CloudflareEnv>();
     await worker.applyD1Migrations("DB");
     const { CATALOG_EXPORTS: bucket } = await worker.getEnv();
     await bucket.put("catalog/latest.json", "previous snapshot");
@@ -266,7 +290,10 @@ export async function testFailedCatalogCompletion() {
       () => pending.uploadPart(1, "probe"),
       /upload.*(not exist|not found)|NoSuchUpload/i,
     );
-    assert.equal(await (await bucket.get("catalog/latest.json")).text(), "previous snapshot");
+    assert.equal(
+      await required(await bucket.get("catalog/latest.json")).text(),
+      "previous snapshot",
+    );
   } finally {
     await harness.close();
   }

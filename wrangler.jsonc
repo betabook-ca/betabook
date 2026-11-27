@@ -20,7 +20,7 @@
       "frontend/postcss.config.mjs",
       "frontend/paths.ts",
       "shared",
-      "api/openapi.json",
+      "openapi.json",
       "scripts/static-documents.tsx",
       "scripts/public-entry-template.ts",
       "scripts/build-app.ts",

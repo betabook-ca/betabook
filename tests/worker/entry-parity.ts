@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 
-export async function testEntryParity({ server, db, signIn }) {
-  const fetch = (path, cookie) =>
+import type { SmokeContext } from "./harness.ts";
+
+export async function testEntryParity({ server, db, signIn }: SmokeContext) {
+  const fetch = (path: string, cookie?: string) =>
     server.fetch(path, { redirect: "manual", headers: cookie ? { cookie } : {} });
   for (const path of ["/about", "/account", "/search", "/api/health", "/does-not-exist"]) {
     const res = await fetch(path + "/?x=two%20words&x=again");
@@ -21,7 +23,7 @@ export async function testEntryParity({ server, db, signIn }) {
   const memberHome = await fetch("/", cookie);
   assert.equal(memberHome.status, 307);
   assert.equal(memberHome.headers.get("location"), "/users/" + pendingId);
-  assert.match(memberHome.headers.get("cache-control"), /private.*no-store/);
+  assert.match(memberHome.headers.get("cache-control") ?? "", /private.*no-store/);
   for (const viewer of [undefined, cookie]) {
     const res = await fetch(
       "/?mode=climb&name=One%20Two&discipline=sport&utm_source=link&discipline=trad",
@@ -51,7 +53,7 @@ export async function testEntryParity({ server, db, signIn }) {
   const api = "/api/pages/users/" + owner;
   const preview = await fetch(api + "?share=" + token, cookie);
   assert.equal(preview.status, 200);
-  assert.match(preview.headers.get("cache-control"), /private.*no-store/);
+  assert.match(preview.headers.get("cache-control") ?? "", /private.*no-store/);
   assert.deepEqual(await preview.json(), await (await fetch(api + "?share=" + token)).json());
   assert.equal((await fetch(api, cookie)).status, 428);
   assert.equal((await fetch(api + "?share=" + token + "&share=" + token, cookie)).status, 428);

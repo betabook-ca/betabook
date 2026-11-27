@@ -3,27 +3,28 @@ import { test } from "node:test";
 
 import { createTestHarness } from "wrangler";
 
-import { testProfileAnalytics } from "./rust-smoke/analytics.mjs";
+// oxlint-disable-next-line import/no-relative-parent-imports -- Node runs the same seed password helper used by local setup.
+import { hashSeedPassword } from "../../scripts/seed-password.ts";
+import { testProfileAnalytics } from "./analytics.ts";
 import {
   testAuthLifecycle,
   testCatalogCron,
   testFailedCatalogCompletion,
-} from "./rust-smoke/auth-lifecycle.mjs";
-import { testProfilePhotos } from "./rust-smoke/avatars.mjs";
-import { testCatalogHtml } from "./rust-smoke/catalog-html.mjs";
-import { testGoalRefresh } from "./rust-smoke/goal-refresh.mjs";
-import { testGoals } from "./rust-smoke/goals.mjs";
-import { testImports } from "./rust-smoke/imports.mjs";
-import { testLists } from "./rust-smoke/lists.mjs";
-import { testModeration } from "./rust-smoke/moderation.mjs";
-import { testPlatform } from "./rust-smoke/platform.mjs";
-import { testProjects } from "./rust-smoke/projects.mjs";
-import { testPublicSearch } from "./rust-smoke/public-search.mjs";
-import { testCatalogEdits, testMigrationObjects } from "./rust-smoke/storage-invariants.mjs";
-import { testTrips } from "./rust-smoke/trips.mjs";
-import { testUpstreamImports } from "./rust-smoke/upstreams.mjs";
-import { checkedTransport } from "./rust-smoke/validate-api.mjs";
-import { hashSeedPassword } from "./seed-password.ts";
+} from "./auth-lifecycle.ts";
+import { testProfilePhotos } from "./avatars.ts";
+import { testCatalogHtml } from "./catalog-html.ts";
+import { testGoalRefresh } from "./goal-refresh.ts";
+import { testGoals } from "./goals.ts";
+import { testImports } from "./imports.ts";
+import { testLists } from "./lists.ts";
+import { testModeration } from "./moderation.ts";
+import { testPlatform } from "./platform.ts";
+import { testProjects } from "./projects.ts";
+import { testPublicSearch } from "./public-search.ts";
+import { testCatalogEdits, testMigrationObjects } from "./storage-invariants.ts";
+import { testTrips } from "./trips.ts";
+import { testUpstreamImports } from "./upstreams.ts";
+import { apiJson, checkedTransport } from "./validate-api.ts";
 
 void test("Rust Worker HTTP flows", async (t) => {
   const authSecret = "isolated-rust-worker-smoke-test-secret";
@@ -43,7 +44,7 @@ void test("Rust Worker HTTP flows", async (t) => {
         },
       },
       {
-        configPath: "./scripts/rust-smoke/fixtures/wrangler.jsonc",
+        configPath: "./tests/worker/fixtures/wrangler.jsonc",
         vars: { BETTER_AUTH_URL: "http://localhost" },
         secrets: { BETTER_AUTH_SECRET: authSecret },
       },
@@ -52,7 +53,7 @@ void test("Rust Worker HTTP flows", async (t) => {
   t.after(() => harness.close());
   const server = { fetch: await checkedTransport(harness.fetch.bind(harness)) };
   const { url } = await harness.listen();
-  const worker = harness.getWorker();
+  const worker = harness.getWorker<CloudflareEnv>();
   // workerd must see a failed scheduled invocation when D1 is unavailable.
   const failedCron = await worker.scheduled({ cron: "0 6 * * 1" }).then(
     (r) => r.outcome,
@@ -63,10 +64,10 @@ void test("Rust Worker HTTP flows", async (t) => {
   const { DB, CATALOG_EXPORTS, PROFILE_PHOTOS, IMAGES } = await worker.getEnv();
   const status = await server.fetch("/api/terms/status");
   assert.equal(status.status, 200);
-  const { version } = await status.json();
+  const { version } = await apiJson(status, "/api/terms/status");
   const password = "smoke-test-password";
   const passwordHash = await hashSeedPassword(password);
-  async function signIn(id, db = DB, transport = server, origin = url.origin) {
+  async function signIn(id: string, db = DB, transport = server, origin = url.origin) {
     const email = id + "@example.test";
     await db
       .prepare(
@@ -139,7 +140,7 @@ void test("Rust Worker HTTP flows", async (t) => {
     const journal = "/api/users/owner/journal";
     const read = await server.fetch(journal, { headers: { cookie: owner } });
     assert.equal(read.status, 200);
-    const { entries } = await read.json();
+    const { entries } = await apiJson(read, "/api/users/{id}/journal");
     assert.deepEqual(
       entries.map((entry) => entry.body),
       [body],
@@ -160,15 +161,19 @@ void test("Rust Worker HTTP flows", async (t) => {
     const id = "profile-preview";
     await signIn(id);
     await DB.prepare("UPDATE user SET is_private=0 WHERE id=?").bind(id).run();
-    const { token } = await DB.prepare("SELECT token FROM profile_share_links WHERE user_id=?")
+    const token = await DB.prepare("SELECT token FROM profile_share_links WHERE user_id=?")
       .bind(id)
-      .first();
+      .first<string>("token");
+    assert.ok(token);
     const url = "/users/" + id + "?share=" + token;
     const meta = await (await server.fetch(url)).text();
     assert.match(meta, /<title>profile-preview on Betabook<\/title>/);
     assert.match(meta, /<meta property="og:type" content="profile">/);
     assert.match(meta, /profile-preview invited you to Betabook/);
-    assert.equal((await (await server.fetch("/api/pages" + url)).json()).mode, "shared");
+    assert.equal(
+      (await apiJson(server.fetch("/api/pages" + url), "/api/pages/users/{id}")).mode,
+      "shared",
+    );
     const ambiguous = url + "&share=" + token;
     assert.equal((await server.fetch("/api/pages" + ambiguous)).status, 401);
     assert.doesNotMatch(
@@ -180,7 +185,7 @@ void test("Rust Worker HTTP flows", async (t) => {
   await t.test("profile analytics", () => testProfileAnalytics({ server, db: DB, signIn }));
   await t.test("imports", () => testImports({ server, db: DB, signIn }));
   await t.test("upstream imports and album previews", async () => {
-    const fixture = harness.getWorker("provider-fixture");
+    const fixture = harness.getWorker<Pick<CloudflareEnv, "DB">>("provider-fixture");
     const fetch = await checkedTransport(fixture.fetch.bind(fixture));
     await fixture.applyD1Migrations("DB");
     const { DB: db } = await fixture.getEnv();
@@ -214,14 +219,18 @@ void test("Rust Worker HTTP flows", async (t) => {
     assert.deepEqual(await saved.json(), { ok: true });
     const result = await server.fetch("/api/pages/tutorial", { headers: { cookie } });
     assert.equal(result.status, 200);
-    assert.match(result.headers.get("cache-control"), /private.*no-store/);
-    assert.deepEqual((await result.json()).progress, [
+    assert.match(result.headers.get("cache-control") ?? "", /private.*no-store/);
+    assert.deepEqual((await apiJson(result, "/api/pages/tutorial")).progress, [
       { tourId: "journal", version: 7, status: "completed" },
     ]);
     const other = await signIn("tutorial-other");
     assert.deepEqual(
-      (await (await server.fetch("/api/pages/tutorial", { headers: { cookie: other } })).json())
-        .progress,
+      (
+        await apiJson(
+          server.fetch("/api/pages/tutorial", { headers: { cookie: other } }),
+          "/api/pages/tutorial",
+        )
+      ).progress,
       [],
     );
   });

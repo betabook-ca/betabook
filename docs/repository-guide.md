@@ -4,15 +4,15 @@ Betabook is a Rust Cloudflare Worker serving a React Router SPA backed by D1 and
 
 ## Code map
 
-| Location                           | Responsibility                                                                     |
-| ---------------------------------- | ---------------------------------------------------------------------------------- |
-| `backend/domain/src/`              | Domain rules, grades, validation, credential handling and SEO                      |
-| `backend/db/src/`                  | D1 and native SQLite queries, authorization predicates and transactional mutations |
-| `backend/worker/src/`              | HTTP routes, sessions, request state, scheduled exports and binding adapters       |
-| `frontend/src/`                    | React Router routes, shared UI, navigation and domain presentation                 |
-| `backend/migrations/`              | Canonical SQL migrations used by Wrangler and native tests                         |
-| `scripts/rust-smoke/`, `tests/ui/` | Workerd HTTP behavior and browser tests                                            |
-| `infra/cloudflare/`                | Cloudflare infrastructure managed through OpenTofu and Spacelift                   |
+| Location                     | Responsibility                                                                     |
+| ---------------------------- | ---------------------------------------------------------------------------------- |
+| `backend/domain/src/`        | Domain rules, grades, validation, credential handling and SEO                      |
+| `backend/db/src/`            | D1 and native SQLite queries, authorization predicates and transactional mutations |
+| `backend/worker/src/`        | HTTP routes, sessions, request state, scheduled exports and binding adapters       |
+| `frontend/src/`              | React Router routes, shared UI, navigation and domain presentation                 |
+| `backend/migrations/`        | Canonical SQL migrations used by Wrangler and native tests                         |
+| `tests/worker/`, `tests/ui/` | Workerd HTTP behavior and browser tests                                            |
+| `infra/cloudflare/`          | Cloudflare infrastructure managed through OpenTofu and Spacelift                   |
 
 ## Runtime
 
@@ -45,7 +45,7 @@ Vite compiles client components and hooks with the native React Compiler in `@vi
 
 Versioned SQL in `backend/migrations/` defines the schema, including indexes and triggers. Run `pnpm db:generate add_feature` to create the next numbered SQL file, then write and review the migration. Keep existing migration names and contents intact. CI applies migrations before deployment, so the running Worker must remain compatible. Run `pnpm db:migrate:local` after pulling or adding migrations. `pnpm setup` skips migration for an existing database.
 
-Keep `wrangler.jsonc`, `.dev.vars.example`, and the checked-in `cloudflare-env.d.ts` aligned when changing bindings or environment variables. Generated `worker-configuration.d.ts` is optional for local validation and must not become a build prerequisite. Zone, DNS, and D1 database resources belong in [`infra/cloudflare`](../infra/cloudflare/README.md); Worker settings, bindings, and custom domains stay in `wrangler.jsonc` because every deploy overwrites them.
+Keep `wrangler.jsonc`, `.dev.vars.example`, and the checked-in `cloudflare-env.d.ts` aligned when changing bindings or environment variables. Generated `worker-configuration.d.ts` is optional for local validation and must not become a build prerequisite. Zone, DNS, and D1 database resources belong in [`infra/cloudflare`](../infra/cloudflare/AGENTS.md); Worker settings, bindings, and custom domains stay in `wrangler.jsonc` because every deploy overwrites them.
 
 ## Routes and metadata
 
@@ -84,7 +84,7 @@ Before adding or changing tests, read [Choosing and writing tests](component-tes
 | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | `*.dom.test.{ts,tsx}` in `frontend/src/components/`, `frontend/src/hooks/` and `frontend/src/spa/` | [jsdom rules](component-testing.md#jsdom-rules) for mounted behavior.                            |
 | Other `frontend/src/**/*.test.{ts,tsx}`                                                            | [Unit test rules](component-testing.md#unit-test-rules) for frontend logic and static markup.    |
-| Rust crate tests and `scripts/rust-smoke/*.mjs`                                                    | [Workers rules](component-testing.md#workers-rules) for domain, database and HTTP behavior.      |
+| Rust crate tests and `tests/worker/*.ts`                                                           | [Workers rules](component-testing.md#workers-rules) for domain, database and HTTP behavior.      |
 | `tests/ui/*.spec.ts`                                                                               | [Browser rules](component-testing.md#browser-rules) for native interactions and app integration. |
 | `*.stories.tsx`                                                                                    | [Story rules](component-testing.md#story-rules) for reproducible examples.                       |
 

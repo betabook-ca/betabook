@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 
+import { required } from "./harness.ts";
+import type { SmokeContext } from "./harness.ts";
+import { apiJson } from "./validate-api.ts";
+
 // 8 × 8 RGB PNG. The production Images binding decodes and resizes it to WebP.
 const png = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAaUlEQVR42gXBgQAAAAgDwcEkE0wOzzCYZAZTd5Io0WKE" +
@@ -9,13 +13,19 @@ const png = Buffer.from(
   "base64",
 );
 
-export async function testProfilePhotos({ server, db, bucket, images, signIn }) {
+export async function testProfilePhotos({
+  server,
+  db,
+  bucket,
+  images,
+  signIn,
+}: SmokeContext & { bucket: R2Bucket; images: ImagesBinding }) {
   const ids = ["avatar-owner", "another-avatar-owner"];
   const cookies = [];
   const keys = [];
-  const storedPath = (id) =>
-    db.prepare("SELECT image FROM user WHERE id=?").bind(id).first("image");
-  async function upload(cookie, bytes) {
+  const storedPath = (id: string) =>
+    db.prepare("SELECT image FROM user WHERE id=?").bind(id).first<string>("image");
+  async function upload(cookie: string, bytes: Uint8Array<ArrayBuffer>) {
     const form = new FormData();
     form.append("photo", new Blob([bytes], { type: "image/png" }), "avatar.png");
     // Serialize with the same boundary in the header and body when crossing
@@ -23,25 +33,27 @@ export async function testProfilePhotos({ server, db, bucket, images, signIn }) 
     const multipart = new Response(form);
     const response = await server.fetch("/api/actions/uploadProfilePhoto", {
       method: "POST",
-      headers: { cookie, "content-type": multipart.headers.get("content-type") },
+      headers: { cookie, "content-type": required(multipart.headers.get("content-type")) },
       body: await multipart.arrayBuffer(),
     });
     assert.equal(response.status, 200);
-    return response.json();
+    return apiJson(response, "/api/actions/uploadProfilePhoto");
   }
 
   for (const id of ids) {
     const cookie = await signIn(id);
     cookies.push(cookie);
     assert.deepEqual(await upload(cookie, png), { ok: true });
-    const path = await storedPath(id);
+    const path = required(await storedPath(id));
     const response = await server.fetch(path);
     assert.equal(response.status, 200);
     assert.equal(response.headers.get("content-type"), "image/webp");
-    assert.match(response.headers.get("cache-control"), /public.*immutable/);
+    assert.match(response.headers.get("cache-control") ?? "", /public.*immutable/);
     const bytes = Buffer.from(await response.arrayBuffer());
     assert.equal(bytes.toString("ascii", 8, 12), "WEBP");
-    const { width, height } = await images.info(new Response(bytes).body);
+    const info = await images.info(required(new Response(bytes).body));
+    assert.ok("width" in info);
+    const { width, height } = info;
     assert.deepEqual([width, height], [256, 256]);
     const key = path.slice("/api/avatars/".length);
     assert.ok(key.startsWith(id + "/"));
@@ -52,11 +64,11 @@ export async function testProfilePhotos({ server, db, bucket, images, signIn }) 
     const unchanged = await server.fetch(path, { headers: { "if-none-match": etag } });
     assert.equal(unchanged.status, 304);
     assert.equal(await unchanged.text(), "");
-    assert.deepEqual(Buffer.from(await (await bucket.get(key)).arrayBuffer()), bytes);
+    assert.deepEqual(Buffer.from(await required(await bucket.get(key)).arrayBuffer()), bytes);
   }
   // A current legacy content-addressed photo remains readable and reusable.
   const previous = await bucket.get(keys[1]);
-  const legacyBody = Buffer.from(await previous.arrayBuffer());
+  const legacyBody = Buffer.from(await required(previous).arrayBuffer());
   const legacyKey =
     ids[1] + "/" + createHash("sha256").update(legacyBody).digest("hex").slice(0, 32) + ".webp";
   await bucket.put(legacyKey, legacyBody);
@@ -85,7 +97,7 @@ export async function testProfilePhotos({ server, db, bucket, images, signIn }) 
   // generation must never delete the winner, even though all bytes match.
   const results = await Promise.all([upload(cookies[0], png), upload(cookies[0], png)]);
   assert.deepEqual(results, [{ ok: true }, { ok: true }]);
-  const restored = (await storedPath(ids[0])).slice("/api/avatars/".length);
+  const restored = required(await storedPath(ids[0])).slice("/api/avatars/".length);
   assert.notEqual(restored, keys[0]);
   const listed = await bucket.list({ prefix: ids[0] + "/" });
   assert.deepEqual(

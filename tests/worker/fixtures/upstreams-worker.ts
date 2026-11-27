@@ -1,7 +1,7 @@
 // Only this secondary workerd isolate has fixture HTTP responses. The primary
 // smoke Worker still loads its release entry point and its original fetch.
 // oxlint-disable-next-line import/no-relative-parent-imports -- bundle the actual release artifact.
-export { default } from "../../../backend/worker/build/index.js";
+export { default } from "../../../backend/worker/build";
 
 const photo = "https://lh3.googleusercontent.com/pw/abcdefghijklmnopqrst";
 let albumReads = 0;
@@ -13,7 +13,15 @@ globalThis.fetch = async function fixtureFetch(input) {
     url.pathname === "/graphql" &&
     request.method === "POST"
   ) {
-    const { variables } = await request.json();
+    const { variables } = await request.json<{
+      variables: {
+        username?: string;
+        offset?: number;
+        climbTypeId?: string;
+        includeTotal?: boolean;
+        userId?: string;
+      };
+    }>();
     if ("username" in variables) {
       const { username } = variables;
       const id = username === "mismatched" ? "8" : "7";

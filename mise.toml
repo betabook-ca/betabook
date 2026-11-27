@@ -33,7 +33,7 @@ sources = [
   "frontend/*.ts",
   "frontend/postcss.config.mjs",
   "shared/**/*",
-  "api/openapi.json",
+  "openapi.json",
   "scripts/build-app.ts",
   "scripts/static-documents.tsx",
   "scripts/public-entry-template.ts",

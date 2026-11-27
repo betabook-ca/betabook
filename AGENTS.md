@@ -1,7 +1,13 @@
-# Agent guide contents
+# Betabook
+
+Betabook is a climbing logbook and community crag database. A Rust Cloudflare Worker serves the Vite-built React Router app using D1 and R2. See the [license](LICENSE) for terms of use.
+
+## Development guides
 
 - [Setup, local accounts, scripts and deployment](.agents/skills/betabook-dev/SKILL.md)
-- [Cloudflare infrastructure (OpenTofu and Spacelift)](infra/cloudflare/README.md)
+- [Cloudflare infrastructure (OpenTofu and Spacelift)](infra/cloudflare/AGENTS.md)
+- [HTTP API contract and code generation](backend/worker/src/api_contract/AGENTS.md)
+- [Brand artwork and asset generation](frontend/src/assets/branding/AGENTS.md)
 - [Working on Betabook](docs/repository-guide.md)
   - [Code map](docs/repository-guide.md#code-map)
   - [Rust Worker and Vite runtime](docs/repository-guide.md#runtime)
@@ -20,6 +26,7 @@
 - [Design system and visual review](docs/design-system.md)
 - [Product tour implementation](docs/product-tours.md)
 - [Component test instructions](frontend/src/components/AGENTS.md)
+- [Worker HTTP test instructions](tests/worker/AGENTS.md)
 - [Browser test instructions](tests/ui/AGENTS.md)
 
 - [Journal goal invariants](docs/goals.md)

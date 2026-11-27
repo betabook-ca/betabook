@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 
-export async function testCatalogHtml({ server, db, signIn }) {
+import type { SmokeContext } from "./harness.ts";
+
+export async function testCatalogHtml({ server, db, signIn }: SmokeContext) {
   const home = await server.fetch("/");
   assert.match(home.headers.get("vary") ?? "", /cookie/i);
   const homeHtml = await home.text();
@@ -16,13 +18,15 @@ export async function testCatalogHtml({ server, db, signIn }) {
   const area = await db
     .prepare("INSERT INTO areas(name,description) VALUES (?,?) RETURNING id")
     .bind("North crag", "Follow the creek.")
-    .first();
+    .first<{ id: number }>();
+  assert.ok(area);
   const climb = await db
     .prepare(
       "INSERT INTO climbs(name,area_id,type,grade,description) VALUES (?,?,?,?,?) RETURNING id",
     )
     .bind("Granite <Flake>", area.id, "boulder", 5, "A thin flake & a mantle.")
-    .first();
+    .first<{ id: number }>();
+  assert.ok(climb);
   const areaPath = `/areas/${area.id}/north-crag`;
   const climbPath = `/climbs/${climb.id}/granite-flake`;
   const cookie = await signIn("catalog-private-sender");

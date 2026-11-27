@@ -35,13 +35,13 @@ others cannot.
 
 ## Match the path and suffix
 
-The [unit config](../vitest.unit.config.mts), [component config](../vitest.components.config.mts) and [Playwright config](../playwright.config.ts) define collection.
+The [Vitest projects](../vitest.config.mts) and [Playwright config](../playwright.config.ts) define collection.
 
 | Path and filename                                                                                    | Runner and rules                                                                      |
 | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | `frontend/src/**/*.test.{ts,tsx}`, excluding DOM tests                                               | Vitest `unit` in Node. Follow the [unit test rules](#unit-test-rules).                |
 | `*.dom.test.{ts,tsx}` under `frontend/src/components/`, `frontend/src/hooks/` or `frontend/src/spa/` | Vitest `components` in jsdom. Follow the [jsdom rules](#jsdom-rules).                 |
-| `backend/` crate tests and `scripts/rust-smoke/*.mjs`                                                | Native Rust or release Worker in workerd. Follow the [Workers rules](#workers-rules). |
+| `backend/` crate tests and `tests/worker/*.ts`                                                       | Native Rust or release Worker in workerd. Follow the [Workers rules](#workers-rules). |
 | `tests/ui/*.spec.ts`                                                                                 | Playwright. Follow the [browser rules](#browser-rules).                               |
 | Colocated `*.stories.tsx`                                                                            | Storybook examples. Follow the [story rules](#story-rules).                           |
 
@@ -92,7 +92,7 @@ production behavior.
 ## Workers rules
 
 - Put domain behavior in the corresponding Rust crate. Exercise database authorization, mutations, constraints and triggers through the native SQLite executor with the checked-in migrations. [Database integration tests](../backend/db/tests/migrations_and_queries.rs) show the fixture setup.
-- Test Worker HTTP behavior against the release build and actual local Cloudflare bindings. The [smoke harness](../scripts/rust-worker-smoke.mjs) applies D1 migrations and supplies an isolated database and R2 bucket. Add route scenarios under [scripts/rust-smoke](../scripts/rust-smoke/).
+- Test Worker HTTP behavior against the release build and actual local Cloudflare bindings. The [smoke harness](../tests/worker/worker.test.ts) applies D1 migrations and supplies an isolated database and R2 bucket. Follow the [Worker test instructions](../tests/worker/AGENTS.md) when adding route scenarios.
 - Establish the records, users and permissions each test needs. For denied writes, verify that stored data is unchanged. For privacy reads, prove that an authorized viewer can see the row as well as checking that the unauthorized viewer cannot.
 - Preserve the real query, session handling or mutation that the assertion exercises. Stub external services such as email or upstream import providers where needed.
 

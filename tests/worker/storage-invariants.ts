@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 
+import type { SmokeContext } from "./harness.ts";
+import { apiJson } from "./validate-api.ts";
+
 // A table rebuild drops its indexes and triggers unless the migration restores them.
 const expected = {
   areas: {
@@ -54,7 +57,7 @@ const expected = {
   },
 };
 
-export async function testMigrationObjects(db) {
+export async function testMigrationObjects(db: D1Database) {
   const { results } = await db
     .prepare("SELECT tbl_name, type, name FROM sqlite_master WHERE type IN ('index','trigger')")
     .all();
@@ -84,29 +87,32 @@ export async function testMigrationObjects(db) {
   }
 }
 
-export async function testCatalogEdits({ db, server, signIn }) {
+export async function testCatalogEdits({ db, server, signIn }: SmokeContext) {
   const owner = "catalog-edits-user";
   await signIn(owner);
   const area = await db
     .prepare("INSERT INTO areas(name) VALUES ('FlintyArea') RETURNING id")
-    .first();
-  const createClimb = (name) =>
+    .first<{ id: number }>();
+  assert.ok(area);
+  const createClimb = (name: string) =>
     db
       .prepare("INSERT INTO climbs(area_id,name,type,grade) VALUES (?,?,'boulder',5) RETURNING id")
       .bind(area.id, name)
-      .first();
+      .first<{ id: number }>();
   const old = await createClimb("FlintyStart");
   const next = await createClimb("FlintyDestination");
+  assert.ok(old && next);
   const sent = await db
     .prepare(
       "INSERT INTO sends(user_id,climb_id,ascent_style,date_sent,comment,rating) VALUES (?,?,'flash','2026-03-18','Hidden until shared',3) RETURNING id",
     )
     .bind(owner, old.id)
-    .first();
-  const detail = async (id) => {
+    .first<{ id: number }>();
+  assert.ok(sent);
+  const detail = async (id: number) => {
     const response = await server.fetch("/api/public/climbs/" + id);
     assert.equal(response.status, 200);
-    return response.json();
+    return apiJson(response, "/api/public/climbs/{id}");
   };
   const review = async () => (await detail(old.id)).publicSends[0];
   await db
@@ -136,7 +142,7 @@ export async function testCatalogEdits({ db, server, signIn }) {
     assert.equal(hidden.rating, 3);
   }
   await db.prepare("UPDATE sends SET climb_id=?,rating=5 WHERE id=?").bind(next.id, sent.id).run();
-  const aggregates = async (id) => {
+  const aggregates = async (id: number) => {
     const { climb } = await detail(id);
     return [climb.sendCount, climb.avgRating];
   };
@@ -150,8 +156,8 @@ export async function testCatalogEdits({ db, server, signIn }) {
   for (const [table, id, before, after] of [
     ["climbs", old.id, "FlintyStart", "QuartzStart"],
     ["areas", area.id, "FlintyArea", "QuartzArea"],
-  ]) {
-    const matches = (name) =>
+  ] as const) {
+    const matches = (name: string) =>
       db
         .prepare(`SELECT rowid FROM ${table}_fts WHERE ${table}_fts MATCH ? AND rowid=?`)
         .bind(name, id)

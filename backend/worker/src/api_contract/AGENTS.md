@@ -1,6 +1,6 @@
 # Betabook HTTP API
 
-The Rust Worker generates [the OpenAPI 3.1 document](openapi.json) from its route registry, response models and action descriptors. The release build also serves the document at `/openapi.json`. The browser uses generated TypeScript declarations at compile time.
+The Rust Worker generates [the OpenAPI 3.1 document](../../../../openapi.json) from its route registry, response models and action descriptors. The release build also serves the document at `/openapi.json`. The browser uses generated TypeScript declarations at compile time.
 
 Run `pnpm api:generate` after changing an API. Commit both the JSON document and the generated declarations. `pnpm api:check` regenerates them in memory and fails on differences or missing route coverage. Workerd smoke tests validate JSON responses against the same schemas, including responses from the deployed action dispatch code.
 

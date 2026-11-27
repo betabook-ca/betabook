@@ -27,6 +27,7 @@
     "noFallthroughCasesInSwitch": true,
     "jsx": "react-jsx",
     "incremental": true,
+    "tsBuildInfoFile": "./node_modules/.cache/betabook/typecheck.tsbuildinfo",
     "types": ["@cloudflare/workers-types"],
     "paths": {
       "@/spa/generated/api": ["./frontend/src/spa/generated/api.d.ts"],
@@ -39,5 +40,14 @@
     }
   },
   "include": ["**/*.ts", "**/*.tsx", "**/*.mts"],
-  "exclude": ["node_modules", ".claude"]
+  "exclude": [
+    "**/node_modules",
+    ".claude",
+    ".next",
+    "dist",
+    "dist-spa",
+    "target",
+    "storybook-static",
+    "test-results"
+  ]
 }

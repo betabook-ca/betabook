@@ -238,8 +238,7 @@ request `/cdn-cgi/handler/scheduled?cron=0+6+*+*+1`.
 - `wrangler.jsonc` configures hosting, D1, R2, rate-limit bindings, the cron schedule and the public
   auth URL. Forks should use their own Cloudflare resources.
 - The zone, DNS, managed robots.txt, the `hello@betabook.ca` routing rule, the D1 database itself
-  and the `betabook-exports` bucket are managed with OpenTofu in `infra/cloudflare` (see its
-  README) and applied by Spacelift. The Worker, its bindings and secrets, and D1 migrations stay
+  and the `betabook-exports` bucket are managed with OpenTofu in [the Cloudflare stack](../../../infra/cloudflare/AGENTS.md) and applied by Spacelift. The Worker, its bindings and secrets, and D1 migrations stay
   with wrangler.
 
 ## License file

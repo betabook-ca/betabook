@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { readdir } from "node:fs/promises";
 
-import { testEntryParity } from "./entry-parity.mjs";
+import { testEntryParity } from "./entry-parity.ts";
+import type { SmokeContext } from "./harness.ts";
+import { type WireArgs, apiJson, postAction, postRawAction } from "./validate-api.ts";
 
-async function testAssetCaching(server) {
+async function testAssetCaching(server: SmokeContext["server"]) {
   // Everything under /assets/ shares one immutable policy. Fixed URLs belong in public/.
   const assets = await readdir(new URL("../../dist-spa/assets/", import.meta.url), {
     recursive: true,
@@ -16,7 +18,8 @@ async function testAssetCaching(server) {
   const manifest = await server.fetch("/spa-manifest.json");
   assert.equal(manifest.status, 200);
   assert.doesNotMatch(manifest.headers.get("cache-control") ?? "", /immutable/i);
-  const entry = (await manifest.json())["index.html"];
+  const assetsManifest = (await manifest.json()) as import("vite").Manifest;
+  const entry = assetsManifest["index.html"];
   assert.ok(entry.file && entry.css?.length);
   for (const file of [entry.file, ...entry.css]) {
     const response = await server.fetch(`/${file}`);
@@ -34,12 +37,12 @@ async function testAssetCaching(server) {
   }
 }
 
-export async function testPlatform({ server, signIn, db }) {
+export async function testPlatform({ server, signIn, db }: SmokeContext) {
   await testEntryParity({ server, signIn, db });
   await testAssetCaching(server);
   const specification = await server.fetch("/openapi.json");
   assert.equal(specification.status, 200);
-  const api = await specification.json();
+  const api = (await specification.json()) as typeof import("../../openapi.json");
   assert.equal(api.openapi, "3.1.0");
   assert.ok(api.paths["/api/actions/saveGoal"].post.requestBody);
   // Unknown URLs must produce an actual HTTP 404 for crawlers and shared links.
@@ -48,29 +51,24 @@ export async function testPlatform({ server, signIn, db }) {
   for (const asset of ["/opengraph-image.png", "/favicon.ico", "/apple-icon.png", "/icon.svg"]) {
     const response = await server.fetch(asset);
     assert.equal(response.status, 200, asset);
-    assert.match(response.headers.get("content-type"), /image/);
+    assert.match(response.headers.get("content-type") ?? "", /image/);
   }
   const costs = await server.fetch("/api/public/usage");
   assert.equal(costs.status, 200);
   assert.equal(await costs.json(), null);
 
   const cookie = await signIn("tutorial-member");
-  const action = async (name, args) => {
-    const response = await server.fetch("/api/actions/" + name, {
-      method: "POST",
-      headers: { cookie, "content-type": "application/json" },
-      body: JSON.stringify({ args }),
-    });
-    assert.equal(response.status, 200);
-    return response.json();
-  };
+
   for (const args of [[], [null], ["false"]]) {
-    assert.equal((await action("setUserPrivate", args)).ok, false);
+    assert.equal((await postRawAction(server, cookie, "setUserPrivate", ...args)).ok, false);
   }
-  const account = await (await server.fetch("/api/pages/account", { headers: { cookie } })).json();
+  const account = await apiJson(
+    server.fetch("/api/pages/account", { headers: { cookie } }),
+    "/api/pages/account",
+  );
   assert.equal(account.isPrivate, true);
   for (const setting of [false, true])
-    assert.equal((await action("setUserPrivate", [setting])).ok, true);
+    assert.equal((await postAction(server, cookie, "setUserPrivate", setting)).ok, true);
 
   // A file part must declare a supported image type before it reaches Images or R2.
   const upload = await server.fetch("/api/actions/uploadProfilePhoto", {
@@ -88,7 +86,8 @@ export async function testPlatform({ server, signIn, db }) {
     message: "Local fixture message",
     elapsed: 3000,
   };
-  const contactAction = (payload) => action("submitContactMessage", [payload]);
+  const contactAction = (payload: WireArgs<"submitContactMessage">[0]) =>
+    postAction(server, cookie, "submitContactMessage", payload);
   assert.equal((await contactAction({ ...contact, website: "honeypot" })).ok, true);
   assert.equal((await contactAction({ ...contact, message: "" })).ok, false);
   for (let index = 0; index < 3; index += 1) assert.equal((await contactAction(contact)).ok, true);
