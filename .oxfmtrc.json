@@ -31,6 +31,12 @@
     "pnpm-lock.yaml",
     "storybook-static/**",
     "playwright-report/**",
-    "test-results/**"
+    "test-results/**",
+    "target/**",
+    "crates/**",
+    "dist-spa/**",
+    "Cargo.toml",
+    "Cargo.lock",
+    "rust-toolchain.toml"
   ]
 }
