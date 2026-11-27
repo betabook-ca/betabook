@@ -1,10 +1,15 @@
 //! Pure domain logic, validation, grade tables, password hashing, and SEO
 //! helpers shared across native tests and the Cloudflare Worker.
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn domain_crate_compiles() {
-        assert_eq!(2 + 2, 4);
-    }
-}
+pub mod display_name;
+pub mod email_template;
+pub mod grades;
+pub mod password;
+pub mod profile_photo;
+pub mod profile_share;
+pub mod public_catalog;
+pub mod security_headers;
+pub mod seo;
+pub mod site;
+pub mod slug;
+pub mod terms;
