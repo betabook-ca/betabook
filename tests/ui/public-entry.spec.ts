@@ -3,6 +3,18 @@ import { appBaseURL } from "@/tests/ui/app-server";
 import { expect, test } from "./story";
 
 test(
+  "the app enables device safe-area insets",
+  { tag: ["@app", "@behavior"] },
+  async ({ page }) => {
+    await page.goto(appBaseURL);
+    await expect(page.locator('meta[name="viewport"]')).toHaveAttribute(
+      "content",
+      /viewport-fit=cover/,
+    );
+  },
+);
+
+test(
   "a search started before JavaScript keeps the same input, caret and text through enhancement",
   { tag: ["@behavior", "@app"] },
   async ({ page }) => {

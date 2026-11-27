@@ -7,14 +7,19 @@ import { AppTabs } from "./app-tab-bar";
 const meta = {
   title: "Components/Navigation/Tab bar",
   component: AppTabs,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "The selected destination fills the entire rounded tab, including its icon and label, in both themes. It glides between destinations and changes instantly with reduced motion.",
+      },
+    },
+  },
   args: { account: { id: "sample", name: "Alex Morgan", image: null } },
   decorators: [
     (Story) => (
       <StoryPage title="Phone tab bar">
-        <nav
-          aria-label="Primary"
-          className="w-full max-w-md border-y border-separator bg-background"
-        >
+        <nav aria-label="Primary" className="app-tab-bar-surface w-full max-w-md">
           <Story />
         </nav>
       </StoryPage>

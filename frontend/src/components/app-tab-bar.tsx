@@ -22,11 +22,11 @@ export function AppTabBar() {
 
   return (
     <>
-      <div aria-hidden className="h-[calc(3.5rem+env(safe-area-inset-bottom))] md:hidden" />
+      <div aria-hidden className="h-[var(--app-tab-bar-height)] md:hidden" />
       <nav
         aria-label="Primary"
         data-app-tab-bar
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-separator bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="app-tab-bar-surface fixed inset-x-4 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-40 mx-auto max-w-md md:hidden"
       >
         <AppTabs account={session.user} requestCount={requestCount} />
       </nav>
@@ -64,7 +64,7 @@ export function AppTabLinks({
   requestCount?: number;
 }) {
   return (
-    <ul className="mx-auto grid h-14 max-w-md grid-cols-3">
+    <ul className="app-tab-links mx-auto grid h-14 max-w-md grid-cols-3">
       {destinations.map((item) => (
         <li key={item.id}>
           <PrimaryNavigationLink

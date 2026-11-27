@@ -49,10 +49,7 @@ export function PrimaryNavigationLink({
       <span
         className={
           tab
-            ? clsx(
-                "relative order-first flex h-7 w-10 items-center justify-center rounded-lg",
-                current && "bg-navigation-active",
-              )
+            ? "relative order-first flex h-7 w-10 items-center justify-center"
             : "relative order-first shrink-0"
         }
       >
