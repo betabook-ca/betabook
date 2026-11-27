@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { Route, Routes } from "react-router";
 
 import { HeaderNavigation } from "@/components/app-menu";
@@ -23,31 +23,32 @@ import { SITE_NAME, SITE_TAGLINE } from "@/lib/site";
 import { CURRENT_TERMS_PROMPT } from "@/lib/terms";
 import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 import { DocumentNavigation } from "@/spa/lib/document-navigation";
+import { lazyRoute, PageErrorBoundary } from "@/spa/lib/render-error-boundary";
 import { Providers } from "@/spa/providers";
 
-const SearchRoute = lazy(() => import("@/spa/routes/search-route"));
-const AreaRoute = lazy(() => import("@/spa/routes/area-route"));
-const ClimbRoute = lazy(() => import("@/spa/routes/climb-route"));
-const NewAreaRoute = lazy(() => import("@/spa/routes/new-area-route"));
-const NewClimbRoute = lazy(() => import("@/spa/routes/new-climb-route"));
-const ProfileAnalyticsRoute = lazy(() => import("@/spa/routes/profile-analytics-route"));
-const TripsRoute = lazy(() => import("@/spa/routes/trips-route"));
-const FeedRoute = lazy(() => import("@/spa/routes/feed-route"));
-const FriendsRoute = lazy(() => import("@/spa/routes/friends-route"));
-const ImportRoute = lazy(() => import("@/spa/routes/import-route"));
+const SearchRoute = lazyRoute(() => import("@/spa/routes/search-route"));
+const AreaRoute = lazyRoute(() => import("@/spa/routes/area-route"));
+const ClimbRoute = lazyRoute(() => import("@/spa/routes/climb-route"));
+const NewAreaRoute = lazyRoute(() => import("@/spa/routes/new-area-route"));
+const NewClimbRoute = lazyRoute(() => import("@/spa/routes/new-climb-route"));
+const ProfileAnalyticsRoute = lazyRoute(() => import("@/spa/routes/profile-analytics-route"));
+const TripsRoute = lazyRoute(() => import("@/spa/routes/trips-route"));
+const FeedRoute = lazyRoute(() => import("@/spa/routes/feed-route"));
+const FriendsRoute = lazyRoute(() => import("@/spa/routes/friends-route"));
+const ImportRoute = lazyRoute(() => import("@/spa/routes/import-route"));
 
-const AdminRequestsRoute = lazy(() => import("@/spa/routes/admin-requests-route"));
-const AccountRoute = lazy(() => import("@/spa/routes/account-route"));
-const UserProfileRoute = lazy(() => import("@/spa/routes/user-profile-route"));
-const UserSendsRoute = lazy(() => import("@/spa/routes/user-sends-route"));
-const ListsRoute = lazy(() => import("@/spa/routes/lists-route"));
-const UserJournalRoute = lazy(() => import("@/spa/routes/user-journal-route"));
-const AuthRouteView = lazy(() => import("@/spa/routes/auth-routes"));
-const InfoRouteView = lazy(() => import("@/spa/routes/info-routes"));
-const GoalsRoute = lazy(() => import("@/spa/routes/goals-route"));
-const ProjectsRoute = lazy(() => import("@/spa/routes/projects-route"));
-const TutorialRoute = lazy(() => import("@/spa/routes/tutorial-route"));
-const NotFoundRoute = lazy(() => import("@/spa/routes/not-found-route"));
+const AdminRequestsRoute = lazyRoute(() => import("@/spa/routes/admin-requests-route"));
+const AccountRoute = lazyRoute(() => import("@/spa/routes/account-route"));
+const UserProfileRoute = lazyRoute(() => import("@/spa/routes/user-profile-route"));
+const UserSendsRoute = lazyRoute(() => import("@/spa/routes/user-sends-route"));
+const ListsRoute = lazyRoute(() => import("@/spa/routes/lists-route"));
+const UserJournalRoute = lazyRoute(() => import("@/spa/routes/user-journal-route"));
+const AuthRouteView = lazyRoute(() => import("@/spa/routes/auth-routes"));
+const InfoRouteView = lazyRoute(() => import("@/spa/routes/info-routes"));
+const GoalsRoute = lazyRoute(() => import("@/spa/routes/goals-route"));
+const ProjectsRoute = lazyRoute(() => import("@/spa/routes/projects-route"));
+const TutorialRoute = lazyRoute(() => import("@/spa/routes/tutorial-route"));
+const NotFoundRoute = lazyRoute(() => import("@/spa/routes/not-found-route"));
 
 type TermsCheckState = { viewerId: string; status: ApiResponse<"/api/terms/status"> | null };
 
@@ -149,7 +150,7 @@ export function App() {
                     previousVersion={termsPrompt.previousVersion}
                   >
                     <GradePreferencesProvider value={gradePreferences}>
-                      <Suspense fallback={<RouteFallback />}>
+                      <PageErrorBoundary fallback={<RouteFallback />}>
                         <Routes>
                           <Route path="/" element={<SearchRoute viewerId={viewerId} home />} />
                           <Route path="/search" element={<SearchRoute viewerId={viewerId} />} />
@@ -292,7 +293,7 @@ export function App() {
                           />
                           <Route path="*" element={<NotFoundRoute />} />
                         </Routes>
-                      </Suspense>
+                      </PageErrorBoundary>
                     </GradePreferencesProvider>
                   </TermsGate>
                 </ViewerBoundary>
