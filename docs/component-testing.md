@@ -9,11 +9,11 @@ different responsibility in each suite.
 
 | What must fail if the implementation breaks?                                                                 | Test type                                                     | Example                                                                                       |
 | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| A calculation, parser, validator or serializer returns the wrong value                                       | Workers unit test, `*.test.ts`                                | [Date filter calculations](../frontend/src/lib/filters/date-filter.test.ts)                   |
-| An action, query or route permits the wrong user, writes incorrect data or leaves partial state              | Workers integration test with migrated D1, `*.test.ts`        | [Journal companion mutations](../actions/journal-companions.test.ts)                          |
+| A calculation, parser, validator or serializer returns the wrong value                                       | Node unit test, `*.test.ts`                                   | [Date filter calculations](../frontend/src/lib/filters/date-filter.test.ts)                   |
+| An action, query or route permits the wrong user, writes incorrect data or leaves partial state              | Native Rust DB test or release Worker HTTP test               | [SQL mutation tests](../backend/db/tests/migrations_and_queries.rs)                           |
 | Clicking, typing or changing props produces the wrong state, callback, identity, payload or error            | Mounted React test in jsdom, `*.dom.test.tsx`                 | [Journal form behavior](../frontend/src/components/journal/journal-entry-fields.dom.test.tsx) |
 | A hook mishandles debounce, cancellation, stale responses or cleanup                                         | Real hook in jsdom, `*.dom.test.ts` or `*.dom.test.tsx`       | [Search lookup lifecycle](../frontend/src/hooks/use-search-lookup.dom.test.tsx)               |
-| A server-rendered element has the wrong content or link before hydration                                     | Workers rendering test, `*.test.tsx`                          | [Server-rendered navigation links](../frontend/src/components/nav-link.test.tsx)              |
+| A React component produces the wrong static markup                                                           | Node rendering test, `*.test.tsx`                             | [Server-rendered navigation links](../frontend/src/components/nav-link.test.tsx)              |
 | Layout, clipping, scrolling, painted focus, native editing, touch or accessibility depends on real rendering | Playwright, `tests/ui/*.spec.ts`                              | [Hashtag caret and layout](../tests/ui/hashtag-filter.spec.ts)                                |
 | The app's routing, history, hydration or opening a new tab breaks                                            | Playwright against the local app, `tests/ui/*.spec.ts`        | [Search navigation](../tests/ui/search-integration.spec.ts)                                   |
 | A component needs a reproducible appearance or state for review                                              | Colocated `*.stories.tsx`, plus behavioral tests where needed | [Pagination states](../frontend/src/components/ui/load-more-button.stories.tsx)               |
@@ -35,25 +35,17 @@ others cannot.
 
 ## Match the path and suffix
 
-These rules describe actual collection in
-[the component config](../vitest.components.config.mts),
-[the Workers config](../vitest.workers.config.mts), and
-[the Playwright config](../playwright.config.ts). Match the more specific
-`.dom.test` suffix before the general `.test` suffix. `.tsx` enables JSX; it does
-not select a runner.
+The [unit config](../vitest.unit.config.mts), [component config](../vitest.components.config.mts) and [Playwright config](../playwright.config.ts) define collection.
 
-| Path and filename                                                                                                                                                                                                                                  | Runner and rules                                                             |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `frontend/src/components/**/*.dom.test.{ts,tsx}` and `frontend/src/hooks/**/*.dom.test.{ts,tsx}`                                                                                                                                                   | Vitest `frontend/src/components` project; follow [jsdom rules](#jsdom-rules) |
-| `test/reference/actions/**/*.test.{ts,tsx}`, `test/reference/app/**/*.test.{ts,tsx}`, `frontend/src/components/**/*.test.{ts,tsx}`, `test/reference/db/**/*.test.{ts,tsx}`, `frontend/src/lib/**/*.test.{ts,tsx}`, excluding `*.dom.test.{ts,tsx}` | Vitest `workers` project; follow [Workers rules](#workers-rules)             |
-| `tests/ui/*.spec.ts`                                                                                                                                                                                                                               | Playwright; follow [browser rules](#browser-rules)                           |
-| Colocated `*.stories.tsx`                                                                                                                                                                                                                          | Storybook examples; follow [story rules](#story-rules)                       |
+| Path and filename                                                                                    | Runner and rules                                                                      |
+| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `frontend/src/**/*.test.{ts,tsx}`, excluding DOM tests                                               | Vitest `unit` in Node. Follow the [unit test rules](#unit-test-rules).                |
+| `*.dom.test.{ts,tsx}` under `frontend/src/components/`, `frontend/src/hooks/` or `frontend/src/spa/` | Vitest `components` in jsdom. Follow the [jsdom rules](#jsdom-rules).                 |
+| `backend/` crate tests and `scripts/rust-smoke/*.mjs`                                                | Native Rust or release Worker in workerd. Follow the [Workers rules](#workers-rules). |
+| `tests/ui/*.spec.ts`                                                                                 | Playwright. Follow the [browser rules](#browser-rules).                               |
+| Colocated `*.stories.tsx`                                                                            | Storybook examples. Follow the [story rules](#story-rules).                           |
 
-A `.dom.test.tsx` file under `test/reference/app/` or `frontend/src/lib/` is not collected by either Vitest
-project. An ordinary `.test.ts` under `frontend/src/hooks/` or `test/` is also not collected.
-Keep tests beside production code in the configured directories; `test/` holds
-shared setup and fixtures. If a new location is necessary, update collection
-explicitly and confirm the focused command actually finds the test.
+Keep frontend tests beside production code in the configured directories. For a new location, confirm the focused command collects the test.
 
 The root [AGENTS.md](../AGENTS.md) indexes this guide. Additional instructions
 in [components](../frontend/src/components/AGENTS.md) and [tests/ui](../tests/ui/AGENTS.md)
@@ -71,11 +63,10 @@ files. These are Markdown instructions; runner configuration controls collection
   `user-event`, and explain the reason. Assert values, identities, callback
   arguments, errors and state changes that matter to a caller or user.
 - Mock external boundaries such as transport, React Router navigation, an invoked
-  server action or a browser API. `RouterLink` is already a plain anchor in
+  HTTP action or a browser API. `RouterLink` is already a plain anchor in
   both projects ([test/setup-router-link.ts](../test/setup-router-link.ts)); mock
-  it again only to observe it, spreading `@/test/router-link`. A mocked save callback proves what the form
-  submits; test authorization and persistence by calling the real action in the
-  Workers suite.
+  it again only to observe it, spreading `@/test/router-link`. A mocked save callback proves what the form submits. Exercise authorization
+  and persistence through the real Worker and database.
 - Exercise pending, rejection, retry, reset and stale-response cases when relevant.
   Check that a rejected save preserves entered data and that repeated interaction
   while pending does not invoke the callback again. For async results, wait for
@@ -93,44 +84,23 @@ component/controller and replace external boundaries. For example,
 A presentation demo that reimplements filtering or React state cannot establish
 production behavior.
 
+## Unit test rules
+
+- Call the production parser, calculation, validator or renderer in the Node `unit` project. Use `.test.tsx` for JSX or static React markup. Mount the component in jsdom when an assertion depends on state or effects.
+- Replace external transport in adapter tests when you need to control an upstream response, failure or retry.
+
 ## Workers rules
 
-- Call the real function, action, query or route whose contract is being tested.
-  Pure functions use this runner too; they do not need database fixtures.
-- For persistence, permissions and SQL behavior, use `createDb(env.DB)` with the
-  real migrated D1 supplied by [the test worker](../test/worker.ts) and
-  [migration setup](../test/apply-migrations.ts). Keep queries, transactions,
-  constraints, triggers and ownership/privacy predicates real.
-- Establish each test's preconditions with [fixtures](../test/fixtures.ts) and
-  [reset helpers](../test/reset-db.ts) as appropriate. Do not depend on a previous
-  test's writes, a developer's seed database or a production bundle.
-- Assert the expected record identities and values. For rejected writes, verify
-  stored state is unchanged. For privacy, establish that the expected records
-  exist and test both permitted and denied viewers, including relevant changes
-  to current permissions.
-- Replace only external services or request context outside the subject, such as
-  email delivery or session acquisition. Do not mock away the authorization,
-  query or mutation that the assertion is intended to prove.
-- Use `.test.tsx` for a server-rendered output contract that does not need mounted
-  client behavior. Rendering HTML alone cannot prove hydration, effects or user
-  interaction. Exercise server page loaders directly where practical; jsdom is
-  not an environment for mounting an async Next.js Server Component tree.
-- A page that streams sections returns them as unrendered async components, so
-  its JSON holds none of their data. Wrap the page with `rendered` from
-  [`test/server-tree.ts`](../test/server-tree.ts), or pass a tree to
-  `resolveServerTree`, before asserting on it. This matters most for privacy
-  assertions: `not.toContain` on an unresolved tree passes without checking
-  anything. Client components are plain functions in these tests, so the
-  helper calls only async components and the synchronous server components
-  listed in `expand` (for example `ProfileHeader`, whose heading and tabs load
-  their own data). Mock anything that reaches the network, such as
-  `loadAlbumPhotos`.
+- Put domain behavior in the corresponding Rust crate. Exercise database authorization, mutations, constraints and triggers through the native SQLite executor with the checked-in migrations. [Database integration tests](../backend/db/tests/migrations_and_queries.rs) show the fixture setup.
+- Test Worker HTTP behavior against the release build and actual local Cloudflare bindings. The [smoke harness](../scripts/rust-worker-smoke.mjs) applies D1 migrations and supplies an isolated database and R2 bucket. Add route scenarios under [scripts/rust-smoke](../scripts/rust-smoke/).
+- Establish the records, users and permissions each test needs. For denied writes, verify that stored data is unchanged. For privacy reads, prove that an authorized viewer can see the row as well as checking that the unauthorized viewer cannot.
+- Preserve the real query, session handling or mutation that the assertion exercises. Stub external services such as email or upstream import providers where needed.
 
 ## Browser rules
 
 - Identify the behavior that requires a browser before adding a case. Keep
   payload variations, client validation, retry logic and hook lifecycle in jsdom;
-  keep database correctness in Workers. Cover actual route/history integration
+  keep database correctness in Rust integration tests. Cover actual route/history integration
   in the browser only where the integration itself is the subject.
 - Import `test`, `expect` and `openStory` from [story.ts](../tests/ui/story.ts).
   This preserves runtime-error and live-story-API checks. Use `openStory` to get
@@ -251,7 +221,9 @@ or PR, rather than adding run logs or migration history to this guide.
 | --------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | One component file                                  | `pnpm test:components frontend/src/components/journal/tag-input.dom.test.tsx`            |
 | All jsdom tests                                     | `pnpm test:components`                                                                   |
-| One Workers file                                    | `pnpm test --project=workers test/reference/db/queries/journal.privacy.test.ts`          |
+| One frontend unit file                              | `pnpm test --project=unit frontend/src/lib/filters/date-filter.test.ts`                  |
+| Rust crate checks                                   | `mise run rust-check`                                                                    |
+| Release Worker HTTP suite                           | `pnpm build`, then `pnpm test:rust-worker`                                               |
 | Both Vitest projects                                | `pnpm test`                                                                              |
 | One browser file after building the current gallery | `pnpm storybook:build`, then `pnpm exec playwright test tests/ui/hashtag-filter.spec.ts` |
 | Representative accessibility checks after building  | `pnpm exec playwright test tests/ui/accessibility.spec.ts`                               |

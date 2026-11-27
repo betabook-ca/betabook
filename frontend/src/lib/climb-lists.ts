@@ -1,5 +1,3 @@
-import { z } from "zod";
-
 import {
   DEFAULT_CLIMB_FILTER,
   appendClimbFilterParams,
@@ -15,21 +13,8 @@ import { toArray, type UrlParamsRecord } from "@/lib/url-params";
 export const MAX_CLIMB_LIST_TITLE = 80;
 /** The column's CHECK allows 5,000, so this can rise without a migration. */
 export const MAX_CLIMB_LIST_DESCRIPTION = 2000;
-/** Ceilings that stop a scripted client filling the tables. Both are
- * conditions on the INSERT, so concurrent requests cannot race past them. */
-export const MAX_CLIMB_LISTS = 100;
 export const MAX_CLIMB_LIST_ITEMS = 500;
-
-export const CLIMB_LIST_NOT_FOUND_MESSAGE = "List not found";
-/** Shown for a copy the reader may no longer make, whatever the reason: the
- * list was deleted, its owner hid their lists or went private, or the link
- * expired. Saying which would report on the owner. */
-export const CLIMB_LIST_UNAVAILABLE_MESSAGE = "This list isn't available.";
-export const CLIMB_LIST_LIMIT_MESSAGE = `You can keep ${MAX_CLIMB_LISTS} lists. Delete one to add another.`;
 export const CLIMB_LIST_FULL_MESSAGE = `A list can hold ${MAX_CLIMB_LIST_ITEMS} climbs.`;
-export const CLIMB_LIST_EDIT_INVALID_MESSAGE =
-  "These list changes aren't valid. Reload the list and try again.";
-export const CLIMB_NOT_FOUND_MESSAGE = "Climb not found";
 
 /** Counts code points, to match SQLite's length(). */
 function characters(value: string): number {
@@ -37,28 +22,6 @@ function characters(value: string): number {
   for (const _ of value) count += 1;
   return count;
 }
-
-export const climbListInputSchema = z.object({
-  title: z
-    .string()
-    .transform((value) => value.replace(/\s+/g, " ").trim())
-    .pipe(
-      z
-        .string()
-        .min(1, "Name your list.")
-        .refine((value) => characters(value) <= MAX_CLIMB_LIST_TITLE, "That name is too long."),
-    ),
-  description: z
-    .string()
-    .transform((value) => value.trim())
-    .refine(
-      (value) => characters(value) <= MAX_CLIMB_LIST_DESCRIPTION,
-      "That description is too long.",
-    )
-    .transform((value) => value || null)
-    .nullable()
-    .optional(),
-});
 
 const COPY_SUFFIX = " (copy)";
 
@@ -132,19 +95,6 @@ export const MAX_CLIMB_LIST_NAME_FILTER = 100;
  * URL the text box writes is the one the page reads back. */
 export function climbListNameFilter(raw: string): string {
   return raw.trim().slice(0, MAX_CLIMB_LIST_NAME_FILTER).trim();
-}
-
-/** Lowercase, with accents dropped: "Clémence" and "CLEMENCE" both fold to
- * "clemence", as the Area page's search treats them. */
-function foldForMatch(text: string): string {
-  return text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
-}
-
-/** Whether a climb name contains the list's name filter, ignoring case and
- * accents. A list holds at most MAX_CLIMB_LIST_ITEMS climbs, so this runs
- * over the list's own rows rather than as a catalog search. */
-export function climbNameMatches(name: string, filterName: string): boolean {
-  return foldForMatch(name).includes(foldForMatch(filterName));
 }
 
 /** The filter part of a view's query string. Defaults are left out, so an

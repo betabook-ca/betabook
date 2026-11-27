@@ -17,7 +17,7 @@ import { ThemeSelect } from "@/components/theme-select";
 import { AppLink } from "@/components/ui/app-link";
 import { SETTINGS_ROW_CLASS, SettingsRow, SettingsSection } from "@/components/ui/settings";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import type { CatalogExportInfo } from "@/lib/catalog-export";
+import type { CatalogExportInfo } from "@/lib/catalog-types";
 import type { GradePreferences } from "@/lib/grades";
 import type { SendCommentAudience, SharingAudience } from "@/lib/privacy";
 

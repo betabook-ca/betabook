@@ -6,7 +6,7 @@ import { FriendTabs } from "@/components/friend-tabs";
 import { FriendsSearch } from "@/components/friends-search";
 import { NavigationPendingRegion } from "@/components/navigation-pending";
 import { SkeletonListRows } from "@/components/ui/skeleton";
-import type { FriendsPage, SuggestedClimberRow } from "@/db/queries";
+import type { FriendsPage, SuggestedClimberRow } from "@/lib/community-types";
 import type { FriendsView } from "@/lib/friendships";
 import type { SearchFetcher } from "@/lib/search";
 

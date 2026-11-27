@@ -4,8 +4,8 @@ import { ClimberListItem } from "@/components/climber-list-item";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
 import { SectionHeading } from "@/components/ui/typography";
-import type { FriendRow, FriendsPage } from "@/db/queries";
 import { usePagedList } from "@/hooks/use-paged-list";
+import type { FriendRow, FriendsPage } from "@/lib/community-types";
 import { FRIENDS_PAGE_SIZE } from "@/lib/page-sizes";
 import { fetchApi } from "@/spa/lib/api";
 

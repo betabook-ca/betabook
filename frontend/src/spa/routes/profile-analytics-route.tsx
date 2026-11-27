@@ -4,9 +4,9 @@ import { AnalyticsLoading } from "@/components/analytics-loading";
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { ProfileAnalyticsDashboard } from "@/components/profile-analytics-view";
 import { useGradePreferences } from "@/components/ui/grade-preferences";
-import type { AnalyticsSessionRow } from "@/db/queries";
 import type { HighlightSession } from "@/lib/analytics-highlights";
 import { parseAnalyticsLayout } from "@/lib/analytics-layout";
+import type { AnalyticsSessionRow } from "@/lib/analytics-types";
 import {
   ANALYTICS_CUSTOMIZE_ANNOUNCEMENT,
   getAnnouncementCandidates,

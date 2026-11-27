@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { AnalyticsSendRow } from "@/db/queries";
+import type { AnalyticsSendRow } from "@/lib/analytics-types";
 
 import {
   buildPyramid,

@@ -1,4 +1,4 @@
-import type { ClimberOverview } from "@/db/queries/climber-overview";
+import type { ClimberOverview } from "@/lib/analytics-types";
 import { formatCount } from "@/lib/format";
 import { formatDate } from "@/lib/format-date";
 

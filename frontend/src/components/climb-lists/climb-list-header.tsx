@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { BackLink } from "@/components/ui/back-link";
 import { SectionHeading } from "@/components/ui/typography";
-import type { ClimbListSummary } from "@/db/queries";
+import type { ClimbListSummary } from "@/lib/catalog-types";
 import { climbCountLabel } from "@/lib/climb-lists";
 
 /** A list's name, description and climb count, above its climbs. Uses

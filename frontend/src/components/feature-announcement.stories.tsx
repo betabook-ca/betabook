@@ -54,7 +54,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Load getViewerFeatureAnnouncements(session.user.id, session.user.createdAt.getTime()) in the signed-in page loader: it filters the central registry against the viewer’s signup date and current UTC time, then reads dismissal IDs in one query. Narrow that list for the page with getAnnouncementCandidates(list, { page, availableFeatureIds, userCreatedAt, now }), as app/users/[id]/analytics/page.tsx does. Wrap the page in FeatureAnnouncementScope with that ordered result and the viewer ID/page; wrap each available target in FeatureAnnouncement using its featureId. The scope shows the oldest eligible release and never advances within a visit, including after server refreshes. X permanently dismisses it; opening its workflow only temporarily hides it. Register immutable launchedAt timestamps and stable IDs; editing copy never resets eligibility or dismissal. Stories replace only the save transport. See Patterns / Feature announcements for five releases across signup dates. Existing tutorials stay unchanged because the underlying workflows are unchanged.",
+          "The analytics route selects announcements using the viewer’s signup date, current time and saved dismissals. Wrap eligible announcements in FeatureAnnouncementScope with the viewer ID and page, then mark each available target with its featureId. The oldest eligible release appears first. Closing an announcement permanently dismisses it. Opening its workflow hides it for this visit. Keep IDs and launch timestamps stable across copy edits. See Patterns / Feature announcements for examples across signup dates.",
       },
     },
   },

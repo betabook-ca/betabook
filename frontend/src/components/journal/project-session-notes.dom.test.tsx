@@ -2,12 +2,14 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import type { JournalEntry } from "@/db/queries";
+import type { JournalEntry } from "@/lib/logbook-types";
 
 import { ProjectSessionNotes } from "./project-session-notes";
 
 function session(overrides: Partial<JournalEntry> & { id: number }): JournalEntry {
   return {
+    reportedGrade: null,
+    videos: null,
     climbId: 3,
     kind: "session",
     sent: false,

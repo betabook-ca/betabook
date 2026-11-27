@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { UserSendRow } from "@/db/queries";
+import type { UserSendRow } from "@/lib/logbook-types";
 
 import { parseGrade } from "./grades";
 import { buildSendsExportCsv } from "./sends-export";

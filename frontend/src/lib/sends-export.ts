@@ -1,7 +1,7 @@
 import Papa from "papaparse";
 
-import type { UserSendRow } from "@/db/queries";
 import { formatGrade } from "@/lib/grades";
+import type { UserSendRow } from "@/lib/logbook-types";
 
 const EXPORT_FIELDS = [
   "Date Sent",
@@ -24,7 +24,7 @@ const EXPORT_FIELDS = [
  * `/^[=+\-@\t\r].*$/` — and `.` does not match a newline, so a single LF
  * anywhere in the cell makes the whole pattern fail and the payload ships
  * unescaped. `=HYPERLINK(...)\n` is enough, and climb and area names keep
- * interior newlines (requireTrimmed only trims the ends). Anchoring on the
+ * interior newlines. Anchoring on the
  * first character alone has no such hole. */
 const CSV_FORMULA_START = /^[=+\-@\t\r\n]/;
 

@@ -2,7 +2,6 @@ import { TripAlbumVideo } from "@/components/trips/trip-album-video";
 import { SectionHeading } from "@/components/ui/typography";
 import { formatCount } from "@/lib/format";
 import { albumPhotoSrc, type AlbumPhoto } from "@/lib/trip-album";
-import { loadAlbumPhotos } from "@/lib/trip-album-loader";
 
 /** Twice the strip's maximum height, for high-density screens. */
 const SHOWN_WIDTH = 960;
@@ -85,10 +84,4 @@ export function TripAlbumPhotos({ link, photos }: { link: string; photos: AlbumP
       {/* oxlint-enable jsx-a11y/no-noninteractive-tabindex */}
     </section>
   );
-}
-
-/** Loads photos during render. Callers wrap this in Suspense so Google can't
- * block the page. */
-export async function TripAlbum({ link }: { link: string }) {
-  return <TripAlbumPhotos link={link} photos={await loadAlbumPhotos(link)} />;
 }

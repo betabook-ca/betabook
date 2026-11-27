@@ -1,8 +1,6 @@
-import type { SubtreeClimbsSort } from "@/db/queries";
 import { toArray, type UrlParamsRecord } from "@/lib/url-params";
 
-// Must match SUBTREE_CLIMBS_ORDER_BY in db/queries/climbs.ts.
-const CLIMB_LIST_SORTS = new Set<SubtreeClimbsSort>([
+const CLIMB_LIST_SORTS = [
   "name_asc",
   "name_desc",
   "grade_asc",
@@ -11,13 +9,13 @@ const CLIMB_LIST_SORTS = new Set<SubtreeClimbsSort>([
   "rating_desc",
   "ascents_asc",
   "ascents_desc",
-]);
+] as const;
+
+export type SubtreeClimbsSort = (typeof CLIMB_LIST_SORTS)[number];
 
 export const DEFAULT_CLIMB_LIST_SORT: SubtreeClimbsSort = "ascents_desc";
 
 export function parseClimbListSort(params: UrlParamsRecord): SubtreeClimbsSort {
   const rawSort = toArray(params.sort)[0];
-  return CLIMB_LIST_SORTS.has(rawSort as SubtreeClimbsSort)
-    ? (rawSort as SubtreeClimbsSort)
-    : DEFAULT_CLIMB_LIST_SORT;
+  return CLIMB_LIST_SORTS.find((sort) => sort === rawSort) ?? DEFAULT_CLIMB_LIST_SORT;
 }

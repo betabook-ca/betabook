@@ -1,22 +1,39 @@
-import type { UserSendsFilter, UserSendsSort } from "@/db/queries";
 import { MAX_RATING } from "@/lib/filters/climb-stats-filter";
-import { appendDateFilterParams, parseDateFilter } from "@/lib/filters/date-filter";
+import {
+  appendDateFilterParams,
+  parseDateFilter,
+  type DateFilterValue,
+} from "@/lib/filters/date-filter";
 import {
   DEFAULT_DISCIPLINE_FILTER,
   appendDisciplineFilterParams,
   parseDisciplineFilter,
+  type DisciplineFilter,
 } from "@/lib/filters/discipline-filter";
 import { normalizeHashtagFilters } from "@/lib/filters/hashtag-filter";
+import type { AscentStyle } from "@/lib/sends";
 import { parseAreaId, parseAscentStyles, toArray, type UrlParamsRecord } from "@/lib/url-params";
 
-const USER_SENDS_SORTS = new Set<UserSendsSort>([
+const USER_SENDS_SORTS = [
   "date_desc",
   "date_asc",
   "grade_desc",
   "grade_asc",
   "rating_desc",
   "rating_asc",
-]);
+] as const;
+export type UserSendsSort = (typeof USER_SENDS_SORTS)[number];
+export type UserSendsFilter = DisciplineFilter &
+  DateFilterValue & {
+    tags?: string[];
+    name?: string;
+    areaName?: string;
+    areaId?: number;
+    sort?: UserSendsSort;
+    ascentStyles: AscentStyle[];
+    minRating: number;
+    maxRating: number;
+  };
 
 export const DEFAULT_USER_SENDS_SORT: UserSendsSort = "date_desc";
 
@@ -32,9 +49,7 @@ export const DEFAULT_USER_SENDS_FILTER: UserSendsFilter = {
 
 export function parseUserSendsFilter(params: UrlParamsRecord): UserSendsFilter {
   const rawSort = toArray(params.sort)[0];
-  const sort = USER_SENDS_SORTS.has(rawSort as UserSendsSort)
-    ? (rawSort as UserSendsSort)
-    : DEFAULT_USER_SENDS_SORT;
+  const sort = USER_SENDS_SORTS.find((sort) => sort === rawSort) ?? DEFAULT_USER_SENDS_SORT;
 
   const maxRating = Number(toArray(params.maxRating)[0]);
   const minRating = Number(toArray(params.minRating)[0]);

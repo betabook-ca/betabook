@@ -1,4 +1,4 @@
-import type { AnalyticsSendRow } from "@/db/queries";
+import type { AnalyticsSendRow } from "@/lib/analytics-types";
 import { nativeGradeArray } from "@/lib/grades";
 import { buildUserAnalytics } from "@/lib/user-analytics";
 

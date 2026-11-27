@@ -10,8 +10,9 @@ import { ClimbMoveDialog } from "@/components/climb-move-dialog";
 import { SendFormDrawer } from "@/components/send-form-drawer";
 import { ActionsMenu } from "@/components/ui/actions-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
-import type { Climb, EditableSend } from "@/db/queries";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
+import type { Climb } from "@/lib/catalog-types";
+import type { EditableSend } from "@/lib/logbook-types";
 import { deleteSend, requestClimbDelete } from "@/spa/lib/actions-client";
 import { useRouter } from "@/spa/lib/navigation";
 

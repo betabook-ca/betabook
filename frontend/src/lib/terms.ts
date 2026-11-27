@@ -8,23 +8,10 @@ export const CURRENT_TERMS_PROMPT = {
   versionLabel: TERMS_UPDATED_LABEL,
   previousVersion: null,
 };
-
-export const TERMS_REQUIRED_MESSAGE =
-  "Please agree to the current Terms of Service to create an account.";
 export const TERMS_ACCESS_MESSAGE =
   "Please review and accept the current Terms of Service to continue.";
 export const TERMS_REQUIRED_EVENT = "betabook:terms-required";
 
-export function hasAcceptedCurrentTerms(
-  acceptance: { termsVersion?: string | null; termsAcceptedAt?: Date | null } | null | undefined,
-) {
-  return acceptance?.termsVersion === TERMS_VERSION && acceptance.termsAcceptedAt != null;
-}
-
 export function termsHref(version: string = TERMS_VERSION) {
   return `/terms/${encodeURIComponent(version)}`;
-}
-
-export function getTermsVersion(version: string) {
-  return TERMS_VERSIONS.find((entry) => entry.version === version);
 }

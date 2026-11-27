@@ -5,7 +5,8 @@ import type { ReactNode } from "react";
 import { AscentStyle } from "@/components/ascent-style";
 import { SendGradeCell } from "@/components/send-grade-cell";
 import { ActionsMenu } from "@/components/ui/actions-menu";
-import type { AreaBreadcrumbs, UserSendRow } from "@/db/queries";
+import type { AreaBreadcrumbs } from "@/lib/catalog-types";
+import type { UserSendRow } from "@/lib/logbook-types";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { ClimbLogRow, UserSendLogRow } from "./climb-log-row";

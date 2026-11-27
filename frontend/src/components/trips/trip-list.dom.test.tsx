@@ -2,8 +2,8 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
-import type { TripSummary } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
+import type { TripSummary } from "@/lib/logbook-types";
 import { deleteTrip, saveTrip } from "@/spa/lib/actions-client";
 import { watchOverlayKinds } from "@/test/overlay-kinds";
 import { stubViewport } from "@/test/viewport";

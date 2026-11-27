@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { expect, it, vi } from "vitest";
 
-import type { ClimbCandidate } from "@/db/queries";
 import {
   matchRows,
   mergeCandidates,
@@ -12,6 +11,7 @@ import {
   type ManualChoice,
 } from "@/lib/import-matching";
 import type { NormalizedImportRow } from "@/lib/sends-import";
+import type { ClimbCandidate } from "@/spa/lib/action-contracts";
 
 import { ImportMatchStep } from "./import-match-step";
 

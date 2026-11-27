@@ -18,10 +18,6 @@ export const ANALYTICS_CUSTOMIZE_ANNOUNCEMENT = {
     "Add new cards and charts, choose what to show, and arrange your dashboard with Customize. Changes only affect your own view.",
 } as const satisfies FeatureAnnouncementDefinition;
 
-export const FEATURE_ANNOUNCEMENTS: readonly FeatureAnnouncementDefinition[] = [
-  ANALYTICS_CUSTOMIZE_ANNOUNCEMENT,
-];
-
 export function getAnnouncementCandidates(
   definitions: readonly FeatureAnnouncementDefinition[],
   {

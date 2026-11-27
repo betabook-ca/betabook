@@ -101,7 +101,7 @@ pnpm promote-admin dev@example.com
 
 The role alone grants no area access. Admins also need rows in `admin_area_scopes`, each covering an
 area and its descendants. There is no assignment UI; insert grants directly into the local database.
-See `test/reference/drizzle/schema/moderation.ts` and `backend/db/src/moderation/mod.rs`. The review queue is at
+See the scope predicates in `backend/db/src/moderation/coverage.sql`. The review queue is at
 `/admin/requests`.
 
 ## Checks
@@ -112,7 +112,7 @@ Worker smoke test and dependency advisory commands.
 
 ```bash
 pnpm check                                # lint, formatting, dead code, types, tests
-pnpm test -- frontend/src/lib/journal.test.ts           # focused test run
+pnpm test --project=unit frontend/src/lib/journal.test.ts           # focused test run
 pnpm build                                 # production Workers build used by CI
 ```
 
@@ -122,10 +122,10 @@ pnpm build                                 # production Workers build used by CI
 | `pnpm format` / `pnpm format:check` | Oxfmt formatting / verification                                               |
 | `pnpm deadcode`                     | Knip unused code and dependency checks                                        |
 | `pnpm deadcode:prod`                | Extra audit excluding test and development entrypoints; separate from `check` |
-| `pnpm typecheck`                    | TypeScript checks for the SPA, tools and reference suite                      |
-| `pnpm test`                         | Full Vitest suite (components + workers projects)                             |
+| `pnpm typecheck`                    | TypeScript checks for the SPA and development tools                           |
+| `pnpm test`                         | Full Vitest suite (components and unit projects)                              |
 | `pnpm test:components`              | React component and hook tests in jsdom                                       |
-| `pnpm db:generate`                  | Generate migrations from `test/reference/drizzle/schema/`                     |
+| `pnpm db:generate <name>`           | Create the next numbered SQL file in `backend/migrations/`                    |
 | `pnpm db:migrate:local`             | Apply migrations to local D1                                                  |
 | `pnpm preview`                      | Build and preview the Cloudflare Workers bundle locally                       |
 
@@ -136,12 +136,10 @@ The pre-commit hook formats staged files; the pre-push hook runs `pnpm check`.
 Tests are colocated with the code. `pnpm test` runs both projects, so `pnpm check` and CI include
 both:
 
-- **components:** `frontend/src/components/**/*.dom.test.{ts,tsx}` and `frontend/src/hooks/**/*.dom.test.{ts,tsx}` in jsdom
-  with React Testing Library. No Storybook, Next.js, browser, or D1. Run one file with
-  `pnpm test:components frontend/src/components/journal/tag-input.dom.test.tsx`.
-- **workers:** the remaining colocated tests, in the Cloudflare Workers pool with real D1 migrations
-  through `test/apply-migrations.ts` and entrypoint `test/worker.ts`. No seeded data or production
-  build needed. Run with `pnpm test --project=workers`.
+- **components** runs `*.dom.test.{ts,tsx}` under `frontend/src/components/`, `frontend/src/hooks/` and `frontend/src/spa/` in jsdom with React Testing Library. Run one file with `pnpm test:components frontend/src/components/journal/tag-input.dom.test.tsx`.
+- **unit** runs the other `*.test.{ts,tsx}` files under `frontend/src/` in Node. Use `pnpm test --project=unit`.
+
+Exercise database invariants with native Rust tests. For release Worker HTTP behavior and Cloudflare bindings, run `pnpm build` followed by `pnpm test:rust-worker`. Both run against disposable databases.
 
 See `docs/component-testing.md` for choosing and writing tests.
 

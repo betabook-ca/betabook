@@ -8,9 +8,10 @@ import { AppLink } from "@/components/ui/app-link";
 import { EmptyState } from "@/components/ui/empty-state";
 import { EYEBROW_CLASS } from "@/components/ui/eyebrow";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
-import type { AreaBreadcrumbs, JournalEntry } from "@/db/queries";
 import { usePagedList } from "@/hooks/use-paged-list";
+import type { AreaBreadcrumbs } from "@/lib/catalog-types";
 import type { JournalFilter } from "@/lib/filters/journal-filter";
+import type { JournalEntry } from "@/lib/logbook-types";
 
 type JournalTimelineProps = {
   userId: string;

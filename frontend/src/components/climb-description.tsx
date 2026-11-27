@@ -4,7 +4,7 @@ import { Button, useOverlayState } from "@heroui/react";
 import { Pencil } from "lucide-react";
 
 import { ClimbFormDrawer } from "@/components/climb-form-drawer";
-import type { Climb } from "@/db/queries";
+import type { Climb } from "@/lib/catalog-types";
 import { missingDescriptionMessage } from "@/lib/descriptions";
 
 /** A climb's description, with the pencil that edits it sitting right next to

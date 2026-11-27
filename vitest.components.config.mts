@@ -1,20 +1,9 @@
 import { defineProject } from "vitest/config";
 
-import { frontendAliases } from "./frontend/paths.ts";
-import { referenceAliases } from "./test/reference/aliases.ts";
+import { testAliases } from "./vitest.aliases.mts";
 
 export default defineProject({
-  resolve: {
-    alias: [
-      ...referenceAliases,
-      ...frontendAliases,
-      // A workerd builtin; see test/cloudflare-workers-stub.ts.
-      {
-        find: "cloudflare:workers",
-        replacement: `${import.meta.dirname}/test/cloudflare-workers-stub.ts`,
-      },
-    ],
-  },
+  resolve: { alias: testAliases },
   test: {
     name: "components",
     environment: "jsdom",

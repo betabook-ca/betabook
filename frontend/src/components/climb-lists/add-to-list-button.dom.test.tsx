@@ -3,8 +3,8 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
-import type { ClimbListChoice } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
+import type { ClimbListChoice } from "@/lib/catalog-types";
 import { addClimbToList, createClimbList, type SavedClimbList } from "@/spa/lib/actions-client";
 import { climbListChoiceSamples } from "@/stories/fixtures/climb-lists";
 import { stubViewport } from "@/test/viewport";

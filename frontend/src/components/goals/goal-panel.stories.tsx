@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { mocked } from "storybook/test";
 
 import { summarizeGoalPeriods } from "@/lib/goal-history";
-import { goalInputSchema, goalWindow, type GoalPage, type GoalProgress } from "@/lib/goals";
+import { goalWindow, type GoalPage, type GoalProgress } from "@/lib/goals";
 import { archiveGoal, saveGoal } from "@/spa/lib/actions-client";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
@@ -199,9 +199,8 @@ export const MissedGoal: Story = {
         setPages({ active: { goals: [], hasMore: false }, history });
         return { ok: true, value: undefined };
       });
-      mocked(saveGoal).mockImplementation(async (...[_id, raw, retryOf]) => {
+      mocked(saveGoal).mockImplementation(async (...[_id, input, retryOf]) => {
         if (retryOf === missedGoal.id) {
-          const input = goalInputSchema.parse(raw);
           const window = goalWindow(
             input.repeat === "none" ? input.timeframe : input.repeat,
             args.today,
@@ -210,6 +209,8 @@ export const MissedGoal: Story = {
           );
           const next: GoalProgress = {
             ...input,
+            gradeMatch: input.gradeMatch ?? "exact",
+            tags: input.tags ?? [],
             ...window,
             id: -51,
             userId: args.ownerId,
@@ -306,8 +307,7 @@ export const EndingRoutine: Story = {
   render: function EndingRoutineExample(args) {
     const [routine, setRoutine] = useState(args.initialActive.goals[0]);
     useEffect(() => {
-      mocked(saveGoal).mockImplementation(async (...[_id, raw]) => {
-        const input = goalInputSchema.parse(raw);
+      mocked(saveGoal).mockImplementation(async (...[_id, input]) => {
         const endDate = input.recurringEndDate ?? null;
         setRoutine((goal) => ({
           ...goal,

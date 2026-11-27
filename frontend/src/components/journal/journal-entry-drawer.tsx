@@ -11,7 +11,7 @@ import type {
 import { JournalEntryForm } from "@/components/journal/journal-entry-form";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { PageTitle } from "@/components/ui/typography";
-import type { SendableClimb } from "@/db/queries";
+import type { SendableClimb } from "@/lib/logbook-types";
 
 type JournalEntryDrawerProps = {
   climb?: SendableClimb & { name: string };

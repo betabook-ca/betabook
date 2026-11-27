@@ -6,9 +6,7 @@ import { defineConfig, normalizePath, type Plugin } from "vite";
 import { frontendAliases, frontendDir, sourceDir, workspaceDir } from "./paths.ts";
 
 function enforceFrontendBoundary(): Plugin {
-  const excluded = ["backend", "test/reference"].map(
-    (dir) => normalizePath(path.join(workspaceDir, dir)) + "/",
-  );
+  const backendDir = normalizePath(path.join(workspaceDir, "backend")) + "/";
   return {
     name: "betabook:frontend-boundary",
     apply: "build",
@@ -17,7 +15,7 @@ function enforceFrontendBoundary(): Plugin {
         if (output.type !== "chunk") continue;
         for (const [id, module] of Object.entries(output.modules)) {
           const source = normalizePath(id);
-          if (module.renderedLength > 0 && excluded.some((root) => source.startsWith(root))) {
+          if (module.renderedLength > 0 && source.startsWith(backendDir)) {
             this.error(
               `Frontend chunk ${output.fileName} includes a server-only module: ${path.relative(workspaceDir, id)}`,
             );
@@ -66,8 +64,7 @@ export default defineConfig({
     postcss: frontendDir,
   },
   define: {
-    // oxlint-disable-next-line node/no-process-env -- build-time footer year matching Next.js layout
-    "process.env.NEXT_PUBLIC_BUILD_YEAR": JSON.stringify(String(new Date().getFullYear())),
+    "import.meta.env.VITE_BUILD_YEAR": JSON.stringify(String(new Date().getFullYear())),
   },
   resolve: {
     alias: frontendAliases,

@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { expect, it } from "vitest";
 
-import type { ClimbWithAreaName } from "@/db/queries";
+import type { ClimbWithAreaName } from "@/lib/catalog-types";
 
 import { ClimbList } from "./climb-list";
 

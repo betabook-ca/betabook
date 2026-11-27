@@ -10,8 +10,8 @@ import { AreaReparentDialog } from "@/components/area-reparent-dialog";
 import { ClimbFormDrawer } from "@/components/climb-form-drawer";
 import { ActionsMenu } from "@/components/ui/actions-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
-import type { Area } from "@/db/queries";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
+import type { Area } from "@/lib/catalog-types";
 import { requestAreaDelete } from "@/spa/lib/actions-client";
 import { useRouter } from "@/spa/lib/navigation";
 

@@ -1,4 +1,4 @@
-import type { AnalyticsSendRow } from "@/db/queries";
+import type { AnalyticsSendRow } from "@/lib/analytics-types";
 import type { ClimbType } from "@/lib/grades";
 
 export function chartSends(

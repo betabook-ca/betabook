@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
-import type { JournalEntry } from "@/db/queries";
+import type { JournalEntry } from "@/lib/logbook-types";
 import {
   createJournalEntry,
   createUndatedSend,
@@ -25,6 +25,8 @@ vi.mock("@/spa/lib/actions-client", () => ({
 
 function session(overrides: Partial<JournalEntry> & { id: number }): JournalEntry {
   return {
+    reportedGrade: null,
+    videos: null,
     climbId: 1,
     kind: "session",
     sent: false,

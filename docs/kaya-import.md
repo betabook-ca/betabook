@@ -123,28 +123,11 @@ account import wizard and does not change journal logging.
 
 ## Validation
 
-The focused adapter tests were observed failing before implementation, then
-passing. Workers coverage exercises the real API route with only session
-acquisition and upstream transport replaced. It checks sign-in, public-profile
-restrictions, fixed queries, pagination, totals and failures. Mounted component
-tests cover cancellation, retry, empty/reset state, competing source controls,
-and direct navigation through matching to review without writing sends. The
-source picker shows one form at a time, disables switching during a download,
-and provides a direct CSV shortcut from KAYA's style notice. Its interaction
-test was verified against a deliberate broken shortcut before restoring green.
-
-The retry and streaming regression command was observed failing before the
-change, then passing after implementation:
+Run the focused client tests for API retries, stream parsing and repeated dates, then the mounted form and wizard tests for switching sources, cancellation and review:
 
 ```bash
-pnpm test --project=workers frontend/src/lib/kaya-api.test.ts test/reference/app/api/import/kaya/route.test.ts -t 'honors Retry-After|returns a streaming response'
+pnpm test --project=unit frontend/src/lib/kaya-api.test.ts frontend/src/lib/import-date-review.test.ts
+pnpm test:components frontend/src/components/import/kaya-import-form.dom.test.tsx frontend/src/components/import/import-wizard.dom.test.tsx
 ```
 
-Additional tests cover retry exhaustion, HTTP-date delays, retrying the same
-page, cancellation during backoff, heartbeats beyond two minutes, Unicode
-across chunk boundaries, missing completion markers, and the countdown UI.
-
-Repeated-date detection was verified red–green with
-`pnpm test --project=workers frontend/src/lib/import-date-review.test.ts`. Mounted wizard
-tests cover default date preservation, targeted undated imports, manual-skip
-retention, CSV timestamps sharing one calendar day, and reset on a new file.
+The release Worker smoke suite exercises the HTTP boundary, matching and database writes against migrated D1. Run `pnpm build` followed by `pnpm test:rust-worker`.

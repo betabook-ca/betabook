@@ -5,9 +5,8 @@ import { GradeHistogramChart } from "@/components/grade-histogram";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { Eyebrow } from "@/components/ui/eyebrow";
-import { Skeleton } from "@/components/ui/skeleton";
 import { PageTitle } from "@/components/ui/typography";
-import type { Area } from "@/db/queries";
+import type { Area } from "@/lib/catalog-types";
 import type { AreaClimbsFilter } from "@/lib/filters/area-climbs-filter";
 import { formatCount } from "@/lib/format";
 import type { GradeHistogram } from "@/lib/grade-histogram";
@@ -39,25 +38,6 @@ export function AreaCragHeader({
       </div>
       {children}
     </div>
-  );
-}
-
-/** Mirrors AreaGradeSpread: the info strip, then the histogram, which
- * collapses to a trigger row below md. */
-export function AreaGradeSpreadLoading() {
-  return (
-    <>
-      <div className="flex flex-wrap items-center gap-4">
-        <Skeleton className="h-4 w-20" />
-        <Skeleton className="h-4 w-16" />
-        <Skeleton className="h-5 w-16" rounded="rounded-full" />
-      </div>
-      <Skeleton className="h-6 w-28 md:hidden" />
-      <div className="hidden items-end gap-6 md:flex">
-        <Skeleton className="h-20 w-64 max-w-[45%]" />
-        <Skeleton className="h-20 w-64 max-w-[45%]" />
-      </div>
-    </>
   );
 }
 

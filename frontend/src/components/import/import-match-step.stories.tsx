@@ -3,7 +3,6 @@ import { useState } from "react";
 import { mocked } from "storybook/test";
 
 import { cardClass } from "@/components/ui/card";
-import type { ClimbCandidate } from "@/db/queries";
 import {
   foldClimbName,
   matchRows,
@@ -15,6 +14,7 @@ import {
 } from "@/lib/import-matching";
 import { fetchAreaSuggestions } from "@/lib/search-suggestions";
 import type { NormalizedImportRow } from "@/lib/sends-import";
+import type { ClimbCandidate } from "@/spa/lib/action-contracts";
 import { searchAreaFetcher } from "@/stories/fixtures/app-search-demo";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 

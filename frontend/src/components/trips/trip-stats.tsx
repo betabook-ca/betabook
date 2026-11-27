@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { AppLink } from "@/components/ui/app-link";
-import type { TripSummary } from "@/db/queries";
+import type { TripSummary } from "@/lib/logbook-types";
 
 /** A trip link's readers get the analytics link alone. */
 type Links = { entries?: string; sends?: string; analytics?: string };

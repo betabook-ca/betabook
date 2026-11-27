@@ -297,8 +297,7 @@ export function App() {
                 className={`mx-auto flex w-full ${PAGE_MAX_WIDTH_CLASS} flex-wrap items-center justify-between gap-2`}
               >
                 <span>
-                  {/* oxlint-disable-next-line node/no-process-env -- build-time year injected by Vite define */}
-                  &copy; {process.env.NEXT_PUBLIC_BUILD_YEAR} {SITE_NAME} —{" "}
+                  &copy; {import.meta.env.VITE_BUILD_YEAR} {SITE_NAME} —{" "}
                   <span className="whitespace-nowrap">{SITE_TAGLINE}</span>
                 </span>
                 <div className="flex flex-wrap items-center gap-4">

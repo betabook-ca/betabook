@@ -2,12 +2,14 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it } from "vitest";
 
-import type { FeedDay } from "@/db/queries/feed";
+import type { FeedDay } from "@/lib/community-types";
 
 import { FeedActivityCard } from "./feed-activity-card";
 import { FeedTimeline } from "./feed-timeline";
 
 const activity: FeedDay["activities"][number] = {
+  goalTitle: null,
+  areaAncestors: [],
   id: 1,
   kind: "send",
   climbId: 12,

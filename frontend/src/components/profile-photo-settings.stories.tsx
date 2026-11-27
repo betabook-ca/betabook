@@ -41,7 +41,7 @@ export const Uploaded: Story = {
   render: (args) => <Example {...args} />,
 };
 
-/** A photo Better Auth stored from Google, which an upload replaces. */
+/** An uploaded photo replaces the avatar from Google sign-in. */
 export const FromGoogle: Story = {
   args: { image: "https://lh3.googleusercontent.com/a/story-example=s96-c" },
   render: (args) => <Example {...args} />,

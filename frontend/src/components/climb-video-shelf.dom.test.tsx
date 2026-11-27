@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it } from "vitest";
 
-import type { ClimbVideo } from "@/db/queries";
+import type { ClimbVideo } from "@/lib/catalog-types";
 
 import { ClimbVideoShelf } from "./climb-video-shelf";
 

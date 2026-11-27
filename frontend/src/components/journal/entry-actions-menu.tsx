@@ -6,7 +6,7 @@ import { useState, useTransition } from "react";
 import { JournalEntryEditDrawer } from "@/components/journal/journal-entry-edit-drawer";
 import { ActionsMenu } from "@/components/ui/actions-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
-import type { JournalEntry } from "@/db/queries";
+import type { JournalEntry } from "@/lib/logbook-types";
 import { deleteJournalEntry } from "@/spa/lib/actions-client";
 
 export function EntryActionsMenu({ entry }: { entry: JournalEntry }) {

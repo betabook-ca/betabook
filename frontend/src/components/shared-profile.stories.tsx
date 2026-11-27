@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import type { UserSendRow } from "@/db/queries";
+import type { UserSendRow } from "@/lib/logbook-types";
 import { SHARED_OWNER, SharedProfileFrame } from "@/stories/fixtures/shared-profile-frame";
 
 import { SharedProfile } from "./shared-profile";

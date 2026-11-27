@@ -8,7 +8,7 @@ import { TripStats } from "@/components/trips/trip-stats";
 import { TripStatusChip } from "@/components/trips/trip-status-chip";
 import { BackLink } from "@/components/ui/back-link";
 import { SectionHeading } from "@/components/ui/typography";
-import type { TripSummary } from "@/db/queries";
+import type { TripSummary } from "@/lib/logbook-types";
 import { tripShareAnalyticsPath, tripSharePath } from "@/lib/trip-share";
 import {
   formatTripDates,

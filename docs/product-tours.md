@@ -4,10 +4,10 @@ Tours run at `/tutorial/[tourId]/[stepId]` inside the app shell. The page uses A
 
 ## Add a step or feature
 
-1. Add a step to `PRODUCT_TOUR_STEPS` in `frontend/src/lib/product-tour-navigation.ts`: a stable `id`, `section`, `title`, short `description`, `target`, and `introducedInVersion`. Keep each callout to one explanation. Do not repeat its text inside the demo.
+1. Add a step to `shared/product-tour-steps.json` with a stable `id`, `section`, `title`, short `description`, `target`, and `introducedInVersion`. Keep each callout to one explanation. Do not repeat its text inside the demo.
 2. Add `data-tour-target="your-target"` to the relevant control or small group in the feature view. Avoid targeting a whole page or a long list. Targets must be visible and unique within the view; do not select them by CSS classes or translated text.
 3. Render the section in the feature's page component. `ProductTourPageProps` supplies its section, the active `steps`, and `href(stepId)` for links that preserve the replay destination. Reuse the app's layouts and display components. Keep demo controls local and never pass sample IDs to real links or mutation components.
-4. For a separate tour, register its metadata in `frontend/src/lib/product-tour.ts`, steps in `PRODUCT_TOUR_STEPS`, and a lazy page loader in `frontend/src/components/product-tours/registry.ts`. The existing route layout handles the rest. An optional quick action beside the invitation belongs in `quick-actions.tsx`.
+4. For a separate tour, register its metadata in `frontend/src/lib/product-tour.ts`, steps in `shared/product-tour-steps.json`, and a lazy page loader in `frontend/src/components/product-tours/registry.ts`. The existing route layout handles the rest. An optional quick action beside the invitation belongs in `quick-actions.tsx`.
 
 The Journal tour covers Log, journal filters, Sends sorting, project history, Analytics, climber discovery, friend requests, Feed, and privacy. The sample Log control is a visual reference in the full tour, in a header row above the sample workspace as Log sits beside Search in the app, with no click action or popover. First-time invitations include an ordinary Log button. Update invitations and update demos omit both Log controls.
 

@@ -105,7 +105,7 @@ export default defineConfig({
 
     // --- Rules intentionally disabled globally ---
 
-    // React 17+ / Next.js uses the automatic JSX runtime (jsx-runtime); requiring React import is obsolete.
+    // React uses the automatic JSX runtime.
     "react/react-in-jsx-scope": "off",
 
     // Oxlint's experimental effect-deps variant; standard react/exhaustive-deps is active and enforced.
@@ -151,7 +151,7 @@ export default defineConfig({
 
     // --- Framework compatibility & syntax allowances ---
 
-    // Next.js App Router requires default exports for pages, layouts, templates, and error boundaries.
+    // Lazy route modules and tool configurations use default exports.
     "import/no-default-export": "off",
 
     // Permitted by project eqeqeq configuration ({ null: "ignore" }) for standard nullish comparisons.
@@ -179,13 +179,13 @@ export default defineConfig({
     // Allow literal text inside JSX without forced i18n translation wrapping.
     "react/jsx-no-literals": "off",
 
-    // Modern async/await is fundamental to React Server Components, Server Actions, and D1 database calls.
+    // API calls and asynchronous component interactions use async/await.
     "oxc/no-async-await": "off",
 
     // Test timeout is managed globally via Vitest config rather than requiring explicit timeouts on all tests.
     "vitest/require-test-timeout": "off",
 
-    // Architectural barrel re-exports (actions/index.ts, db/queries/index.ts, db/schema.ts).
+    // Keep feature entry points available to frontend consumers.
     "oxc/no-barrel-file": "off",
 
     // Experimental React Compiler diagnostics.
@@ -198,10 +198,7 @@ export default defineConfig({
     // remaining hits are one-line callbacks that forward a promise.
     "typescript/promise-function-async": "off",
 
-    // Next.js pages/layouts export `metadata` / `generateMetadata` / route
-    // config next to the default component, and context modules co-locate
-    // their provider with the hook — both are load-bearing, not fast-refresh
-    // slips.
+    // Context modules export their provider and its hook together.
     "react/only-export-components": "off",
 
     // Small presentational subcomponents and toolbars are deliberately
@@ -231,56 +228,12 @@ export default defineConfig({
       },
     },
     {
-      // Dev fallback when no RESEND_API_KEY is bound: print the verification /
-      // reset link to the console so local auth flows stay completable.
-      files: ["test/reference/lib/email.ts"],
-      rules: {
-        "no-console": "off",
-      },
-    },
-    {
-      files: ["frontend/src/components/**"],
-      rules: {
-        "typescript/no-restricted-imports": [
-          "error",
-          {
-            patterns: [
-              {
-                group: [
-                  "@/db/client",
-                  "@/db/queries",
-                  "@/db/queries/**",
-                  "@/db/schema",
-                  "@/db/schema/**",
-                ],
-                allowTypeImports: true,
-                message:
-                  "Components must not access database clients, queries, or schemas directly at runtime. Use Server Actions (@/actions) or page loaders.",
-              },
-            ],
-          },
-        ],
-      },
-    },
-    {
       files: ["frontend/src/components/ui/**"],
       rules: {
         "typescript/no-restricted-imports": [
           "error",
           {
             patterns: [
-              {
-                group: [
-                  "@/db/client",
-                  "@/db/queries",
-                  "@/db/queries/**",
-                  "@/db/schema",
-                  "@/db/schema/**",
-                ],
-                allowTypeImports: true,
-                message:
-                  "Components must not access database clients, queries, or schemas directly at runtime. Use Server Actions (@/actions) or page loaders.",
-              },
               {
                 group: [
                   "@/components",
@@ -296,49 +249,16 @@ export default defineConfig({
       },
     },
     {
-      files: ["frontend/src/lib/**", "test/reference/lib/**"],
+      files: ["frontend/src/lib/**"],
       rules: {
         "typescript/no-restricted-imports": [
           "error",
           {
             patterns: [
               {
-                group: ["@/components/**", "@/app/**", "@/actions/**"],
+                group: ["@/components/**", "@/spa/routes/**"],
                 message:
-                  "Pure domain logic and utilities in lib/ must not depend on UI components, routes, or Server Actions.",
-              },
-            ],
-          },
-        ],
-      },
-    },
-    {
-      files: ["test/reference/actions/**"],
-      rules: {
-        "typescript/no-restricted-imports": [
-          "error",
-          {
-            patterns: [
-              {
-                group: ["@/components/**", "@/app/**"],
-                message: "Server Actions must not depend on UI components or application routes.",
-              },
-            ],
-          },
-        ],
-      },
-    },
-    {
-      files: ["test/reference/db/**"],
-      rules: {
-        "typescript/no-restricted-imports": [
-          "error",
-          {
-            patterns: [
-              {
-                group: ["@/components/**", "@/app/**", "@/actions/**"],
-                message:
-                  "Database queries and schemas must not depend on UI components, routes, or Server Actions.",
+                  "Shared frontend logic must not depend on UI components or route implementations.",
               },
             ],
           },

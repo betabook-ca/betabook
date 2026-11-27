@@ -11,11 +11,11 @@ import { ProgressionChart } from "@/components/progression-chart";
 import { DISCIPLINE_HUE } from "@/components/ui/discipline-chip";
 import { EYEBROW_CLASS } from "@/components/ui/eyebrow";
 import { SectionHeading } from "@/components/ui/typography";
-import type { AnalyticsSendRow } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
 import { buildAnalyticsHighlights } from "@/lib/analytics-highlights";
 import type { AnalyticsLayout } from "@/lib/analytics-layout";
 import { ANALYTICS_CARD_IDS, cardAppliesTo, type AnalyticsCardId } from "@/lib/analytics-layout";
+import type { AnalyticsSendRow } from "@/lib/analytics-types";
 import { formatAnalyticsYears } from "@/lib/analytics-years";
 import {
   selectChartSends,

@@ -1,14 +1,11 @@
 import { CompanionList } from "@/components/journal/companion-list";
 import { ClampedComment } from "@/components/ui/clamped-comment";
-import type { JournalEntry } from "@/db/queries";
 import { formatDate } from "@/lib/format-date";
+import type { JournalEntry } from "@/lib/logbook-types";
 
-/** `companions` stays optional — it already is on `JournalEntry` — because the
- * shared project page renders this same timeline without it: a companion tag
- * names a third party who never agreed to the link. Entry ids do travel; they
- * are not a capability anywhere (every consumer is an owner-scoped action),
- * and keying on one beats keying on a date that repeats. */
-type SessionNote = Pick<JournalEntry, "id" | "entryDate" | "tags" | "companions" | "body">;
+/** Shared project links omit companions so they do not reveal a third party's name. */
+type SessionNote = Pick<JournalEntry, "id" | "entryDate" | "tags" | "body"> &
+  Partial<Pick<JournalEntry, "companions">>;
 
 export function ProjectSessionList({ sessions }: { sessions: readonly SessionNote[] }) {
   return (

@@ -47,7 +47,6 @@ export function formatAuthErrorMessage(error?: string | string[]): string | unde
       return "This verification link is invalid. Sign in to request a new one.";
     case "access_denied":
       return "Google sign-in was cancelled.";
-    // Better Auth redirects OAuth creation-hook failures with the APIError code.
     case "terms_acceptance_required":
       return "Please review the Terms of Service and try again to create your account.";
     case "unable_to_link_account":

@@ -1,4 +1,4 @@
-import type { AreaBreadcrumbs, ClimbSendStats, ClimbWithAreaName } from "@/db/queries";
+import type { AreaBreadcrumbs, ClimbSendStats, ClimbWithAreaName } from "@/lib/catalog-types";
 
 /** One page of /api/search/climbs. */
 export type ClimbListPage = {

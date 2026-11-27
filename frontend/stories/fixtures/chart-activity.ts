@@ -1,4 +1,4 @@
-import type { AnalyticsSendRow } from "@/db/queries";
+import type { AnalyticsSendRow } from "@/lib/analytics-types";
 import type { ChartSession } from "@/lib/chart-details";
 import { buildUserAnalytics } from "@/lib/user-analytics";
 

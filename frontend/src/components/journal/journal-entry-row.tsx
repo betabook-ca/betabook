@@ -8,9 +8,10 @@ import { sendVideoMedia } from "@/components/send-video-media";
 import { AppLink } from "@/components/ui/app-link";
 import { Grade } from "@/components/ui/grade";
 import { GradeLabel } from "@/components/ui/grade-label";
-import type { AreaBreadcrumbs, JournalEntry } from "@/db/queries";
+import type { AreaBreadcrumbs } from "@/lib/catalog-types";
 import { journalFilterToSearchParams, type JournalFilter } from "@/lib/filters/journal-filter";
 import { activityGrade } from "@/lib/grades";
+import type { JournalEntry } from "@/lib/logbook-types";
 import { climbHref } from "@/lib/slug";
 
 function tagHref(userId: string, filter: JournalFilter, tag: string): string {

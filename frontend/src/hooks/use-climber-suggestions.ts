@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import type { SuggestedClimberRow } from "@/db/queries";
+import type { SuggestedClimberRow } from "@/lib/community-types";
 import { fetchApi } from "@/spa/lib/api";
 
 /** Leaving the empty climber search drops loaded suggestions, so returning never offers

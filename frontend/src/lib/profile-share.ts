@@ -1,9 +1,6 @@
 import { parseShareToken } from "@/lib/share-token";
 
-export const PROFILE_SHARE_PARAM = "share";
-
-/** Sends a signed-out share link previews; the rest stays behind sign-up. */
-export const SHARED_PROFILE_SENDS = 5;
+const PROFILE_SHARE_PARAM = "share";
 
 export function withProfileShare(path: string, token: string): string {
   return `${path}?${PROFILE_SHARE_PARAM}=${token}`;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { GradeHistogramRow } from "@/db/queries";
+import type { GradeHistogramRow } from "@/lib/catalog-types";
 
 import { buildGradeHistogram, buildLoggedGradeRows } from "./grade-histogram";
 

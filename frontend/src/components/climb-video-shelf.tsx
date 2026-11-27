@@ -8,7 +8,7 @@ import { SendVideoDialog, SendVideoThumbnail, type SendVideoItem } from "@/compo
 import { AppLink } from "@/components/ui/app-link";
 import { SectionHeading } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import type { ClimbVideo } from "@/db/queries";
+import type { ClimbVideo } from "@/lib/catalog-types";
 import { readSendVideo, sendVideoLabel } from "@/lib/send-video";
 
 /** A shelf entry with its video read, or null when the link can't be. */

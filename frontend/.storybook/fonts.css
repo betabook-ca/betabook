@@ -1,6 +1,4 @@
-/* Next's font compiler doesn't run on geist's package loader in Vite.
-   Serve the exact application font files locally, including for portals.
-   Keep these family/weight mappings aligned with app/layout.tsx. */
+/* Use the same self-hosted font files as the SPA, including inside portals. */
 @font-face {
   font-family: "Geist";
   src: url("/fonts/geist/Geist-Variable.woff2") format("woff2");

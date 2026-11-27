@@ -2,8 +2,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
-import type { JournalEntry } from "@/db/queries";
 import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
+import type { JournalEntry } from "@/lib/logbook-types";
 
 import { JournalEntryFields, type JournalEntryFieldsProps } from "./journal-entry-fields";
 
@@ -16,6 +16,8 @@ const climb = {
   brokenOn: null,
 };
 const savedEntry: JournalEntry = {
+  reportedGrade: null,
+  videos: null,
   id: 41,
   climbId: climb.id,
   kind: "session",
@@ -352,15 +354,11 @@ it("attaches videos to a new ascent, not to a session", async () => {
   expect(screen.queryByRole("group", { name: "Videos" })).not.toBeInTheDocument();
 
   await user.click(screen.getByRole("radio", { name: "Flash" }));
-  await user.type(
-    screen.getByRole("textbox", { name: "Video link 1" }),
-    "https://youtu.be/dQw4w9WgXcQ",
-  );
+  await user.click(screen.getByRole("textbox", { name: "Video link 1" }));
+  await user.paste("https://youtu.be/dQw4w9WgXcQ");
   await user.click(screen.getByRole("button", { name: "Add another video" }));
-  await user.type(
-    screen.getByRole("textbox", { name: "Video link 2" }),
-    "https://www.instagram.com/reel/C9Xq3uGxJ5R/",
-  );
+  await user.click(screen.getByRole("textbox", { name: "Video link 2" }));
+  await user.paste("https://www.instagram.com/reel/C9Xq3uGxJ5R/");
   await user.click(screen.getByRole("button", { name: "Save entry" }));
 
   await waitFor(() => expect(onSave).toHaveBeenCalledOnce());

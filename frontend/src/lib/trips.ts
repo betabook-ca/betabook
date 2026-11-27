@@ -1,10 +1,4 @@
-import { z } from "zod";
-
 import { formatDate } from "@/lib/format-date";
-import { MAX_JOURNAL_COMPANIONS } from "@/lib/journal-companions";
-import { isoDateSchema } from "@/lib/sends";
-import { albumLink } from "@/lib/trip-album";
-
 /** Enough for "Bishop, March 2026" or "Spring road trip — Utah and Nevada"
  * without letting a name push the trip card's heading onto four lines. */
 export const MAX_TRIP_NAME = 80;
@@ -15,79 +9,11 @@ export const MAX_TRIP_DESCRIPTION = 160;
  * can be raised without a migration. */
 export const MAX_TRIP_NOTES = 20_000;
 
-/** A ceiling rather than a product limit: trips are cheap rows and a climber
- * with twenty years of history may reasonably keep dozens. It exists so a
- * scripted client cannot fill the table, and it is enforced inside the INSERT
- * so concurrent requests cannot race past it. */
-export const MAX_TRIPS = 200;
-
 /** Collapses line breaks and extra whitespace into single spaces, so a pasted
  * paragraph is accepted as one line instead of being rejected. */
 export function oneLine(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
-
-/** Counts code points, to match SQLite's length() in migration 0051.
- * `String.length` counts an emoji as two and would reject descriptions the
- * migration left in place. */
-function characters(value: string): number {
-  let count = 0;
-  for (const _ of value) count += 1;
-  return count;
-}
-
-const INVALID_ALBUM = "Paste the link Google Photos gives you when you share an album.";
-const INVALID_FRIENDS = "Invalid friend selection";
-const TOO_MANY_FRIENDS = `Choose at most ${MAX_JOURNAL_COMPANIONS} friends`;
-
-export const tripInputSchema = z
-  .object({
-    name: z
-      .string()
-      .transform((value) => value.trim())
-      .pipe(z.string().min(1, "Name your trip.").max(MAX_TRIP_NAME, "That name is too long.")),
-    description: z
-      .string()
-      .transform(oneLine)
-      .refine((value) => characters(value) <= MAX_TRIP_DESCRIPTION, "That description is too long.")
-      .transform((value) => value || null)
-      .nullable()
-      .optional(),
-    /** Shared Google Photos album URL. Empty removes it. */
-    albumUrl: z
-      .string()
-      .transform((value, ctx) => {
-        if (!value.trim()) return null;
-        const link = albumLink(value);
-        if (link) return link;
-        ctx.addIssue({ code: "custom", message: INVALID_ALBUM });
-        return z.NEVER;
-      })
-      .nullable()
-      .optional(),
-    startDate: isoDateSchema,
-    endDate: isoDateSchema,
-    /** Friend ids to tag. Omit to keep the existing tags. */
-    companions: z
-      .array(z.string().min(1, INVALID_FRIENDS).max(128, INVALID_FRIENDS), INVALID_FRIENDS)
-      .max(100, TOO_MANY_FRIENDS)
-      .transform((ids) => [...new Set(ids)])
-      .refine((ids) => ids.length <= MAX_JOURNAL_COMPANIONS, TOO_MANY_FRIENDS)
-      .optional(),
-  })
-  .superRefine((value, ctx) => {
-    if (value.endDate < value.startDate)
-      ctx.addIssue({
-        code: "custom",
-        message: "End date must be on or after start date.",
-        path: ["endDate"],
-      });
-  });
-
-export const tripNotesSchema = z
-  .string()
-  .max(MAX_TRIP_NOTES, "Those notes are too long.")
-  .transform((value) => value.trim() || null);
 
 export function tripsHref(userId: string): string {
   return `/users/${userId}/trips`;

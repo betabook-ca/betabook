@@ -2,7 +2,10 @@
   "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
   "workspaces": {
     ".": {
-      "entry": ["frontend/src/spa/main.tsx!", "scripts/static-documents.tsx!", "test/worker.ts"],
+      "entry": [
+        "scripts/static-documents.tsx!",
+        "scripts/rust-smoke/fixtures/upstreams-worker.mjs",
+      ],
       "storybook": {
         "config": ["frontend/.storybook/main.ts"],
         "entry": ["frontend/.storybook/preview.tsx", "frontend/.storybook/mocks/*.ts"],
@@ -19,17 +22,8 @@
         "!playwright.config.ts!",
         "!frontend/src/spa/**/*.dom.test.*!",
       ],
-      // Served as a font asset by the SPA build and Storybook.
-      "ignoreDependencies": ["geist"],
       // The dev task runner and the release bundler it installs.
       "ignoreBinaries": ["mise", "worker-build"],
-      "paths": {
-        "cloudflare": ["./node_modules/@cloudflare/vitest-plugin/types/cloudflare-test.d.ts"],
-      },
-    },
-    "test/reference": {
-      "entry": ["**/*.test.{ts,tsx}", "drizzle/schema/index.ts"],
-      "project": ["**/*.{ts,tsx}"],
     },
   },
 }

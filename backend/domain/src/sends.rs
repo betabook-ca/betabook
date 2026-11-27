@@ -813,4 +813,68 @@ mod tests {
             Some("Send 5 climbs at V4 or harder every month · #power")
         );
     }
+
+    #[test]
+    fn omitted_cleared_and_replaced_videos_remain_distinct() {
+        assert_eq!(validate_send_videos_input(None), Ok(None));
+        assert_eq!(
+            validate_send_videos_input(Some(&[" ".into()])),
+            Ok(Some(None))
+        );
+        let mut inputs: Vec<_> = (1..=5)
+            .map(|n| format!("https://youtu.be/{n:011}"))
+            .collect();
+        let canonical: Vec<_> = (1..=5)
+            .map(|n| format!("https://www.youtube.com/watch?v={n:011}"))
+            .collect();
+        inputs.push(canonical[0].clone());
+        assert_eq!(
+            validate_send_videos_input(Some(&inputs)),
+            Ok(Some(Some(canonical)))
+        );
+        inputs.push("https://youtu.be/00000000006".into());
+        assert_eq!(
+            validate_send_videos_input(Some(&inputs)),
+            Err(SEND_VIDEO_LIMIT_MESSAGE.into())
+        );
+    }
+
+    #[test]
+    fn journal_tags_and_training_notes_are_checked_after_normalization() {
+        let mut tags: Vec<_> = (1..=8).map(|n| format!("tag-{n}")).collect();
+        let expected = tags.clone();
+        tags.extend([" ##TAG-1 ".into(), "  ".into()]);
+        assert_eq!(normalize_tags(&tags), Ok(expected));
+        tags.push("tag-9".into());
+        assert!(normalize_tags(&tags).is_err());
+        assert!(normalize_tags(&["indoor training".into()]).is_err());
+        assert!(normalize_tags(&["x".repeat(25)]).is_err());
+
+        let entry = |kind, climb, sent, date, body| {
+            validate_journal_input(
+                Some(kind),
+                climb,
+                Some(sent),
+                Some(date),
+                body,
+                &[],
+                "2026-04-30",
+            )
+        };
+        for (kind, climb, sent, date, body) in [
+            ("training", None, "false", "2026-04-30", Some(" ")),
+            ("training", Some("42"), "false", "2026-04-30", Some("note")),
+            ("training", None, "true", "2026-04-30", Some("note")),
+            ("session", None, "false", "2026-04-30", Some("note")),
+            ("session", Some("42"), "false", "2026-04-31", None),
+            ("session", Some("42"), "false", "2026-05-02", None),
+        ] {
+            assert!(entry(kind, climb, sent, date, body).is_err());
+        }
+        // The UI counts UTF-16 code units and permits one calendar day of time zone difference.
+        let max_body = "🧗".repeat(2500);
+        let too_long = format!("{max_body}x");
+        assert!(entry("training", None, "false", "2026-05-01", Some(&max_body)).is_ok());
+        assert!(entry("training", None, "false", "2026-05-01", Some(&too_long)).is_err());
+    }
 }

@@ -4,7 +4,7 @@ import type { UseOverlayStateReturn } from "@heroui/react";
 
 import { SendEditor } from "@/components/send-editor";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
-import type { EditableSend } from "@/db/queries";
+import type { EditableSend } from "@/lib/logbook-types";
 
 type SendFormDrawerProps = {
   existingSend: EditableSend;

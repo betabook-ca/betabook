@@ -7,7 +7,7 @@ import { ClimbPicker } from "@/components/climb-picker";
 import { ActivityIcon } from "@/components/ui/activity-icon";
 import { ChoiceCard } from "@/components/ui/choice-card";
 import { PageTitle } from "@/components/ui/typography";
-import type { ClimbWithAreaName } from "@/db/queries";
+import type { ClimbWithAreaName } from "@/lib/catalog-types";
 import type { SearchFetcher } from "@/lib/search";
 
 export type EntryKindChoice =

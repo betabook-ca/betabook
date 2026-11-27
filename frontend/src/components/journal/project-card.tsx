@@ -10,7 +10,7 @@ import { ProjectSessionNotes } from "@/components/journal/project-session-notes"
 import { ShareProjectDialog } from "@/components/journal/share-project-dialog";
 import { AppLink } from "@/components/ui/app-link";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import type { JournalEntry, PinnedProject } from "@/db/queries";
+import type { JournalEntry, PinnedProject } from "@/lib/logbook-types";
 import { describeShareExpiry, isShareExpired } from "@/lib/share-expiry";
 import { climbHref } from "@/lib/slug";
 import { unpinProject } from "@/spa/lib/actions-client";

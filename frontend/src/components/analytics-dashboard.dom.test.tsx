@@ -2,8 +2,8 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { AnalyticsSendRow } from "@/db/queries";
 import { DEFAULT_ANALYTICS_LAYOUT, TRIP_ANALYTICS_LAYOUT } from "@/lib/analytics-layout";
+import type { AnalyticsSendRow } from "@/lib/analytics-types";
 import { buildUserAnalytics } from "@/lib/user-analytics";
 
 import { AnalyticsDashboard } from "./analytics-dashboard";

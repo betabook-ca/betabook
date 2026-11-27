@@ -10,11 +10,9 @@ import {
 } from "@/components/navigation-pending";
 import { AppLink } from "@/components/ui/app-link";
 import { EmptyState } from "@/components/ui/empty-state";
-import { SectionHeading } from "@/components/ui/typography";
-import type { AnalyticsSendRow, AnalyticsSessionRow } from "@/db/queries";
-import type { ClimberOverview } from "@/db/queries/climber-overview";
 import { buildAnalyticsHighlights, type HighlightSession } from "@/lib/analytics-highlights";
 import type { AnalyticsLayout } from "@/lib/analytics-layout";
+import type { AnalyticsSendRow, AnalyticsSessionRow, ClimberOverview } from "@/lib/analytics-types";
 import { parseAnalyticsYears } from "@/lib/analytics-years";
 import { describeClimber, describeRecency } from "@/lib/climber-summary";
 import type { FeatureAnnouncementDefinition } from "@/lib/feature-announcements";
@@ -56,20 +54,6 @@ function analyticsEmptyState({
         ) : undefined
       }
     />
-  );
-}
-
-export function EmptyProfileAnalytics({ tags, selectedTags, isOwner, pending }: FilterProps) {
-  return (
-    <NavigationPendingProvider>
-      <div className="flex min-w-0 flex-col gap-6">
-        <SectionHeading className="sr-only">Analytics</SectionHeading>
-        <AnalyticsHashtagFilter selectedTags={selectedTags} tags={tags} />
-        <NavigationPendingRegion pending={pending}>
-          {analyticsEmptyState({ selectedTags, isOwner })}
-        </NavigationPendingRegion>
-      </div>
-    </NavigationPendingProvider>
   );
 }
 

@@ -1,7 +1,6 @@
 import { formatCount } from "@/lib/format";
 
-/** Sends store civil dates as plain "YYYY-MM-DD" strings (see
- * drizzle/schema/sends.ts) — no time, no zone. Formatting goes through UTC
+/** Sends store civil dates as plain "YYYY-MM-DD" strings. Formatting goes through UTC
  * on both ends (ISO date-only strings parse as UTC midnight) so the
  * displayed date never shifts a day with the viewer's timezone. */
 const DATE_FORMAT = new Intl.DateTimeFormat("en-US", {

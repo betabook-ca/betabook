@@ -6,8 +6,8 @@ import { useState, useTransition } from "react";
 
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
-import type { Area } from "@/db/queries";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
+import type { Area } from "@/lib/catalog-types";
 import { requestAreaEdit } from "@/spa/lib/actions-client";
 
 type AreaEditRequestDrawerProps = {
@@ -15,8 +15,7 @@ type AreaEditRequestDrawerProps = {
   state: UseOverlayStateReturn;
 };
 
-/** A rename — the one gated area edit, behind admin approval (see
- * actions/moderation.ts's requestAreaEdit). The description isn't here:
+/** A rename — the one gated area edit, behind admin approval. The description isn't here:
  * updateArea (the description pencil) already lets any signed-in user edit
  * it instantly. */
 export function AreaEditRequestDrawer({ area, state }: AreaEditRequestDrawerProps) {

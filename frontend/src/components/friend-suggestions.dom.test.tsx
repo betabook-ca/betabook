@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
-import type { SuggestedClimberRow } from "@/db/queries";
+import type { SuggestedClimberRow } from "@/lib/community-types";
 
 import { FriendSuggestions } from "./friend-suggestions";
 

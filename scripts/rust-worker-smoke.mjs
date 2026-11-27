@@ -19,18 +19,21 @@ import { testModeration } from "./rust-smoke/moderation.mjs";
 import { testPlatform } from "./rust-smoke/platform.mjs";
 import { testProjects } from "./rust-smoke/projects.mjs";
 import { testPublicSearch } from "./rust-smoke/public-search.mjs";
+import { testCatalogEdits, testMigrationObjects } from "./rust-smoke/storage-invariants.mjs";
 import { testTrips } from "./rust-smoke/trips.mjs";
+import { testUpstreamImports } from "./rust-smoke/upstreams.mjs";
 import { checkedTransport } from "./rust-smoke/validate-api.mjs";
 import { hashSeedPassword } from "./seed-password.ts";
 
 void test("Rust Worker HTTP flows", async (t) => {
+  const authSecret = "isolated-rust-worker-smoke-test-secret";
   const harness = createTestHarness({
     workers: [
       {
         configPath: "./wrangler.jsonc",
         vars: { BETTER_AUTH_URL: "http://localhost" },
         secrets: {
-          BETTER_AUTH_SECRET: "isolated-rust-worker-smoke-test-secret",
+          BETTER_AUTH_SECRET: authSecret,
           TURNSTILE_SECRET_KEY: "",
           CLOUDFLARE_USAGE_ACCOUNT_ID: "",
           CLOUDFLARE_USAGE_API_TOKEN: "",
@@ -38,6 +41,11 @@ void test("Rust Worker HTTP flows", async (t) => {
           GOOGLE_CLIENT_ID: "fixture-google-id",
           GOOGLE_CLIENT_SECRET: "fixture-google-secret",
         },
+      },
+      {
+        configPath: "./scripts/rust-smoke/fixtures/wrangler.jsonc",
+        vars: { BETTER_AUTH_URL: "http://localhost" },
+        secrets: { BETTER_AUTH_SECRET: authSecret },
       },
     ],
   });
@@ -58,21 +66,23 @@ void test("Rust Worker HTTP flows", async (t) => {
   const { version } = await status.json();
   const password = "smoke-test-password";
   const passwordHash = await hashSeedPassword(password);
-  async function signIn(id) {
+  async function signIn(id, db = DB, transport = server, origin = url.origin) {
     const email = id + "@example.test";
-    await DB.prepare(
-      "INSERT INTO user (id, name, email, email_verified, terms_version, terms_accepted_at, is_private) VALUES (?, ?, ?, 1, ?, 1, 1)",
-    )
+    await db
+      .prepare(
+        "INSERT INTO user (id, name, email, email_verified, terms_version, terms_accepted_at, is_private) VALUES (?, ?, ?, 1, ?, 1, 1)",
+      )
       .bind(id, id, email, version)
       .run();
-    await DB.prepare(
-      "INSERT INTO account (id, account_id, provider_id, user_id, password, updated_at) VALUES (?, ?, 'credential', ?, ?, 1)",
-    )
+    await db
+      .prepare(
+        "INSERT INTO account (id, account_id, provider_id, user_id, password, updated_at) VALUES (?, ?, 'credential', ?, ?, 1)",
+      )
       .bind(id, id, id, passwordHash)
       .run();
-    const response = await server.fetch("/api/auth/sign-in/email", {
+    const response = await transport.fetch("/api/auth/sign-in/email", {
       method: "POST",
-      headers: { "content-type": "application/json", origin: url.origin },
+      headers: { "content-type": "application/json", origin },
       body: JSON.stringify({ email, password }),
     });
     assert.equal(response.status, 200, await response.text());
@@ -80,8 +90,14 @@ void test("Rust Worker HTTP flows", async (t) => {
     assert.ok(cookie);
     return cookie.split(";")[0];
   }
+  await t.test("indexes and triggers survive the complete D1 migration chain", () =>
+    testMigrationObjects(DB),
+  );
   await t.test("avatar uploads, reads and removal", () =>
     testProfilePhotos({ server, db: DB, bucket: PROFILE_PHOTOS, images: IMAGES, signIn }),
+  );
+  await t.test("catalog edits preserve search, ratings and public send privacy", () =>
+    testCatalogEdits({ server, db: DB, signIn }),
   );
   await t.test("auth lifecycle across cutover", () =>
     testAuthLifecycle({
@@ -89,7 +105,7 @@ void test("Rust Worker HTTP flows", async (t) => {
       db: DB,
       signIn,
       origin: url.origin,
-      secret: "isolated-rust-worker-smoke-test-secret",
+      secret: authSecret,
     }),
   );
   await t.test(
@@ -163,6 +179,18 @@ void test("Rust Worker HTTP flows", async (t) => {
   await t.test("goals", () => testGoals({ server, db: DB, signIn }));
   await t.test("profile analytics", () => testProfileAnalytics({ server, db: DB, signIn }));
   await t.test("imports", () => testImports({ server, db: DB, signIn }));
+  await t.test("upstream imports and album previews", async () => {
+    const fixture = harness.getWorker("provider-fixture");
+    const fetch = await checkedTransport(fixture.fetch.bind(fixture));
+    await fixture.applyD1Migrations("DB");
+    const { DB: db } = await fixture.getEnv();
+    const provider = { fetch };
+    await testUpstreamImports({
+      server: provider,
+      db,
+      signIn: (id) => signIn(id, db, provider, "http://localhost"),
+    });
+  });
 
   await t.test("moderation", () => testModeration({ server, db: DB, signIn }));
   await t.test("tutorial progress belongs to the signed-in member", async () => {

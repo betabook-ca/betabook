@@ -5,9 +5,9 @@ import { cardClass } from "@/components/ui/card";
 import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { Grade } from "@/components/ui/grade";
 import { GradeLabel } from "@/components/ui/grade-label";
-import type { PinnedProject } from "@/db/queries";
 import { formatCount } from "@/lib/format";
 import { daysBetween, describeDaysAgo, formatDate } from "@/lib/format-date";
+import type { PinnedProject } from "@/lib/logbook-types";
 
 type ProjectSummary = Pick<
   PinnedProject,

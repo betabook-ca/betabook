@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
-import type { SuggestedClimberRow } from "@/db/queries";
+import type { SuggestedClimberRow } from "@/lib/community-types";
 
 import { useClimberSuggestions } from "./use-climber-suggestions";
 

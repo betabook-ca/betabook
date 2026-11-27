@@ -1,5 +1,5 @@
-import type { JournalEntry } from "@/db/queries";
 import { journalFilterToSearchParams, type JournalFilter } from "@/lib/filters/journal-filter";
+import type { JournalEntry } from "@/lib/logbook-types";
 import { fetchApi, type ApiResponse } from "@/spa/lib/api";
 
 export type JournalPage = ApiResponse<"/api/users/{id}/journal">;

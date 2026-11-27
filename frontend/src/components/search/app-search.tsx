@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
 import { FriendshipButton } from "@/components/friendship-button";
-import type { SuggestedClimberRow } from "@/db/queries";
 import { useClimberSuggestions } from "@/hooks/use-climber-suggestions";
 import { useMounted } from "@/hooks/use-mounted";
 import { authClient } from "@/lib/auth-client";
+import type { SuggestedClimberRow } from "@/lib/community-types";
 import {
   climberSuggestionItems,
   searchHref,

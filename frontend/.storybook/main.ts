@@ -48,7 +48,7 @@ const config: StorybookConfig = {
     { from: "../src/assets/fonts", to: "/fonts/barlow" },
     // Stand-ins that stories must load over the network, not from data URLs.
     { from: "../stories/static", to: "/static" },
-    { from: "../../node_modules/geist/dist/fonts/geist-sans", to: "/fonts/geist" },
+    { from: "../src/assets/fonts/geist", to: "/fonts/geist" },
   ],
   framework: {
     name: "@storybook/react-vite",
@@ -76,12 +76,6 @@ const config: StorybookConfig = {
           {
             find: /^@\/lib\/auth-client$/,
             replacement: fileURLToPath(new URL("./mocks/auth-client.ts", import.meta.url)),
-          },
-          {
-            find: "cloudflare:workers",
-            replacement: fileURLToPath(
-              new URL("../../test/cloudflare-workers-stub.ts", import.meta.url),
-            ),
           },
           { find: "@/stories", replacement: fileURLToPath(new URL("../stories", import.meta.url)) },
           { find: "@/.storybook", replacement: import.meta.dirname },

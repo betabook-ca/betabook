@@ -2,11 +2,10 @@ import { AnalyticsDashboard, buildStatTiles } from "@/components/analytics-dashb
 import { DisciplineScopeNav } from "@/components/discipline-scope-nav";
 import { TripShareImage } from "@/components/trips/trip-share-image";
 import { EmptyState } from "@/components/ui/empty-state";
-import type { AnalyticsSendRow, AnalyticsSessionRow } from "@/db/queries";
 import { buildAnalyticsHighlights } from "@/lib/analytics-highlights";
 import { TRIP_ANALYTICS_LAYOUT } from "@/lib/analytics-layout";
-import type { ClimbType } from "@/lib/grades";
-import type { GradePreferences } from "@/lib/grades";
+import type { AnalyticsSendRow, AnalyticsSessionRow } from "@/lib/analytics-types";
+import type { ClimbType, GradePreferences } from "@/lib/grades";
 import type { ShareImageContent, ShareStat } from "@/lib/share-image";
 import {
   buildUserAnalytics,

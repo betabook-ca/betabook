@@ -1,4 +1,4 @@
-import type { FeedDay } from "@/db/queries/feed";
+import type { FeedDay } from "@/lib/community-types";
 
 const northWoodsAncestors = [
   { id: 10, name: "Cascadia" },

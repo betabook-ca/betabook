@@ -3,7 +3,8 @@ import { SendRows } from "@/components/send-rows";
 import { signUpPrompt } from "@/components/sign-up-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeading } from "@/components/ui/typography";
-import type { AreaBreadcrumbs, UserSendRow } from "@/db/queries";
+import type { AreaBreadcrumbs } from "@/lib/catalog-types";
+import type { UserSendRow } from "@/lib/logbook-types";
 
 /** Sends tab for a signed-out visitor with a share link: the latest sends, then
  * a sign-up prompt. */

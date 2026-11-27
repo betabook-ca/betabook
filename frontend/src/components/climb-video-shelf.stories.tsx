@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import type { ClimbVideo } from "@/db/queries";
+import type { ClimbVideo } from "@/lib/catalog-types";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { ClimbVideoShelf } from "./climb-video-shelf";

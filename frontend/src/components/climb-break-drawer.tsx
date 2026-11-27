@@ -7,9 +7,9 @@ import { useState, useTransition } from "react";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
-import type { Climb } from "@/db/queries";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { composeClimbBreakTexts, MAX_BREAK_REASON_LENGTH } from "@/lib/broken-climbs";
+import type { Climb } from "@/lib/catalog-types";
 import { localToday } from "@/lib/format-date";
 import { requestClimbBreak } from "@/spa/lib/actions-client";
 
@@ -19,7 +19,7 @@ type ClimbBreakDrawerProps = {
 };
 
 /** Reports that a climb broke on a date — gated like every other structural
- * change (see actions/moderation.ts's requestClimbBreak): applied at once for
+ * change: applied at once for
  * an admin covering the area, otherwise queued for review. The successor's
  * name and both descriptions are composed from the climb as it is now and
  * shown here verbatim, since that exact text is what the request carries. */

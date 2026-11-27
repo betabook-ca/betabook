@@ -14,7 +14,7 @@ async function main() {
     "base64",
   );
   const bodyFont = await readFile(
-    new URL("node_modules/geist/dist/fonts/geist-sans/Geist-Medium.woff2", root),
+    new URL("frontend/src/assets/fonts/geist/Geist-Medium.woff2", root),
     "base64",
   );
   const theme = await readFile(new URL("frontend/src/spa/globals.css", root), "utf8");

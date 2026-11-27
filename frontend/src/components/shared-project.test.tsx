@@ -1,8 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
 
-import type { SharedProject as SharedProjectData, SharedProjectSession } from "@/db/queries";
 import { formatDate } from "@/lib/format-date";
+import type { SharedProject as SharedProjectData, SharedProjectSession } from "@/lib/logbook-types";
 
 import { SharedProject } from "./shared-project";
 

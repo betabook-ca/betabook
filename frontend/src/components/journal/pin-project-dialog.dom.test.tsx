@@ -3,8 +3,8 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 
-import type { OpenProject } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
+import type { OpenProject } from "@/lib/logbook-types";
 import { pinProject } from "@/spa/lib/actions-client";
 import { stubViewport } from "@/test/viewport";
 

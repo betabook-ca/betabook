@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
 
-import type { HardestSend } from "@/db/queries/climber-overview";
+import type { HardestSend } from "@/lib/analytics-types";
 
 import { ProfileHeading } from "./profile-heading";
 

@@ -214,10 +214,8 @@
   --text-2xs--line-height: calc(0.875 / 0.625);
 }
 
-/* Arial resized to each web font's metrics, so the swap once it loads
-   doesn't reflow text — the condensed display face most of all. These are the
-   values Next's `adjustFontFallback` computed; vinext's font loader doesn't
-   generate them, so app/layout.tsx names these faces as each font's fallback. */
+/* Arial resized to each web font's metrics, so the swap to the
+   web font preserves text layout. */
 @font-face {
   font-family: "Geist Fallback";
   src: local("Arial");
@@ -238,8 +236,7 @@
 
 @theme inline {
   --font-sans: var(--font-geist-sans);
-  /* The guidebook display voice — Barlow Condensed (loaded in
-     app/layout.tsx), reserved for the wordmark, page titles, entity
+  /* The guidebook display voice — Barlow Condensed, reserved for the wordmark, page titles, entity
      names and the large stat numerals under an eyebrow (StatValue).
      Everything else, grades included, stays on Geist Sans — there is no
      third face. */

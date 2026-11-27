@@ -2,7 +2,7 @@ import { Fragment } from "react";
 
 import { FeedActivityCard } from "@/components/feed-activity-card";
 import { AppLink } from "@/components/ui/app-link";
-import type { FeedDay } from "@/db/queries/feed";
+import type { FeedDay } from "@/lib/community-types";
 import { feedDayHref, type FeedView } from "@/lib/feed";
 import { buildFeedCards, type FeedCard } from "@/lib/feed-groups";
 import { formatDate } from "@/lib/format-date";

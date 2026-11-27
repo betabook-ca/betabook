@@ -2,8 +2,8 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
-import type { EditableSend, SendableClimb } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
+import type { EditableSend, SendableClimb } from "@/lib/logbook-types";
 import { updateSend } from "@/spa/lib/actions-client";
 
 import { SendForm } from "./send-form";

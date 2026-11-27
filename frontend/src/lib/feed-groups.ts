@@ -1,4 +1,4 @@
-import type { FeedDay } from "@/db/queries/feed";
+import type { FeedDay } from "@/lib/community-types";
 import type { FeedView } from "@/lib/feed";
 
 export type FeedEntry = { day: FeedDay; activity: FeedDay["activities"][number] };

@@ -1,7 +1,7 @@
 "use client";
 
 import { SortSelect } from "@/components/ui/sort-select";
-import type { SubtreeClimbsSort } from "@/db/queries";
+import type { SubtreeClimbsSort } from "@/lib/climb-list-sort";
 
 type SortField = "name" | "grade" | "rating" | "ascents";
 

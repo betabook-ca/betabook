@@ -13,7 +13,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Grade } from "@/components/ui/grade";
 import { GradeLabel } from "@/components/ui/grade-label";
 import { ListRow } from "@/components/ui/list-row";
-import type { AreaBreadcrumbs, ClimbListItem } from "@/db/queries";
+import type { AreaBreadcrumbs, ClimbListItem } from "@/lib/catalog-types";
 import {
   DEFAULT_CLIMB_LIST_VIEW,
   climbListViewSearch,

@@ -1,5 +1,5 @@
 import type { ProjectWithSessions } from "@/components/journal";
-import type { JournalEntry } from "@/db/queries";
+import type { JournalEntry } from "@/lib/logbook-types";
 
 /** Sample open projects for the projects tab: one long-running boulder with
  * a note on every session, a sport route gone cold, and a trad line the
@@ -8,6 +8,8 @@ import type { JournalEntry } from "@/db/queries";
 
 function entry(overrides: Partial<JournalEntry> & { id: number; climbId: number }): JournalEntry {
   return {
+    reportedGrade: null,
+    videos: null,
     kind: "session",
     sent: false,
     entryDate: "2026-09-01",

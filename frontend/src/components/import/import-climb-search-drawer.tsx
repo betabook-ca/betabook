@@ -4,9 +4,10 @@ import type { UseOverlayStateReturn } from "@heroui/react";
 
 import { ClimbPicker } from "@/components/climb-picker";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
-import type { ClimbCandidate, ClimbWithAreaName } from "@/db/queries";
 import { useCompactViewport } from "@/hooks/use-compact-viewport";
+import type { ClimbWithAreaName } from "@/lib/catalog-types";
 import { foldClimbName } from "@/lib/import-matching";
+import type { ClimbCandidate } from "@/spa/lib/action-contracts";
 
 export type SearchTarget = {
   rowIndex: number;

@@ -1,12 +1,8 @@
-import type {
-  AreaWithAncestorPath,
-  ClimberRow,
-  ClimbWithAreaName,
-  SuggestedClimberRow,
-} from "@/db/queries";
 import type { AreaSelection } from "@/lib/area-selection";
+import type { AreaWithAncestorPath, ClimbWithAreaName } from "@/lib/catalog-types";
 import type { ClimbListPage } from "@/lib/climb-list-pages";
 import { DEFAULT_CLIMB_LIST_SORT, parseClimbListSort } from "@/lib/climb-list-sort";
+import type { ClimberRow, SuggestedClimberRow } from "@/lib/community-types";
 import {
   climbFilterToSearchParams,
   DEFAULT_CLIMB_FILTER,

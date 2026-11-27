@@ -7,7 +7,6 @@ import {
   climbFilterToSearchParams,
   DEFAULT_CLIMB_FILTER,
   parseClimbFilter,
-  toClimbQueryParams,
   type ClimbFilter,
 } from "./climb-filter";
 
@@ -81,14 +80,5 @@ describe("Exclude sent", () => {
     expect(
       climbFilterToSearchParams(DEFAULT_CLIMB_LIST_SORT, DEFAULT_CLIMB_FILTER).has("excludeSent"),
     ).toBe(false);
-  });
-
-  it("names the viewer's sends only when someone is signed in", () => {
-    const on: ClimbFilter = { ...DEFAULT_CLIMB_FILTER, excludeSent: true };
-    expect(toClimbQueryParams(on, DEFAULT_CLIMB_LIST_SORT, "alex").excludeSentBy).toBe("alex");
-    expect(toClimbQueryParams(on, DEFAULT_CLIMB_LIST_SORT, null).excludeSentBy).toBeUndefined();
-    expect(
-      toClimbQueryParams(DEFAULT_CLIMB_FILTER, DEFAULT_CLIMB_LIST_SORT, "alex").excludeSentBy,
-    ).toBeUndefined();
   });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { UserSendsFilter } from "@/db/queries";
 import { parseJournalFilter } from "@/lib/filters/journal-filter";
+import type { UserSendsFilter } from "@/lib/filters/user-sends-filter";
 import { searchParamsToRecord } from "@/lib/url-params";
 
 import {

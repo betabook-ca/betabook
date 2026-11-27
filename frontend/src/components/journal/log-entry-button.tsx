@@ -4,8 +4,8 @@ import { Button, useOverlayState } from "@heroui/react";
 import { CirclePlus } from "lucide-react";
 
 import { DeferredLoadError } from "@/components/ui/deferred-load-error";
-import type { SendableClimb } from "@/db/queries";
 import { useDeferredComponent } from "@/hooks/use-deferred-component";
+import type { SendableClimb } from "@/lib/logbook-types";
 
 /** Module-level so its identity is stable across renders — the preload hook
  * keys its effect on the loader. The composer stays out of the app header's bundle. */

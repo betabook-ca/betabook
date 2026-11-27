@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { expect, it } from "vitest";
 
-import type { UserSendRow } from "@/db/queries";
+import type { UserSendRow } from "@/lib/logbook-types";
 
 import { SharedProfile } from "./shared-profile";
 

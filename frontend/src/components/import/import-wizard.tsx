@@ -7,7 +7,6 @@ import { cardClass } from "@/components/ui/card";
 import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { PageTitle } from "@/components/ui/typography";
-import type { ClimbCandidate } from "@/db/queries";
 import { useViewGuard } from "@/hooks/use-view-guard";
 import { downloadCsv } from "@/lib/download";
 import type { ImportGradePreference } from "@/lib/grades";
@@ -59,6 +58,7 @@ import {
   type ParsedCsv,
   preferredImportGradeScale,
 } from "@/lib/sends-import";
+import type { ClimbCandidate } from "@/spa/lib/action-contracts";
 import {
   importSends,
   resolveImportClimbs,

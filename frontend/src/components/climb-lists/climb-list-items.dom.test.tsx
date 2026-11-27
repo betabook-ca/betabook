@@ -2,8 +2,8 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import type { ClimbListItem } from "@/db/queries";
 import type { ActionResult } from "@/lib/action-result";
+import type { ClimbListItem } from "@/lib/catalog-types";
 import {
   CLIMB_LIST_FULL_MESSAGE,
   MAX_CLIMB_LIST_ITEMS,

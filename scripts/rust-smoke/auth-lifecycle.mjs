@@ -189,9 +189,28 @@ export async function testAuthLifecycle({ server, db, signIn, origin, secret }) 
   });
   assert.equal(updated.status, 200);
   const newCookie = updated.headers.getSetCookie()[0].split(";")[0];
+  const memberRoutes = [
+    "/api/pages/account",
+    "/api/friends",
+    "/api/feed",
+    "/api/users/" + owner + "/journal",
+    "/api/users/" + owner + "/sends/export",
+  ];
+  for (const path of memberRoutes) {
+    const read = await server.fetch(path, { headers: { cookie: newCookie } });
+    assert.equal(read.status, 200, path);
+    await read.arrayBuffer();
+  }
   const signOut = await post("/api/auth/sign-out", {}, { cookie: newCookie });
   assert.equal(signOut.status, 200);
   assertClearedSessionCookies(signOut);
+  for (const path of memberRoutes) {
+    for (const headers of [{}, { cookie: newCookie }]) {
+      const read = await server.fetch(path, { headers });
+      assert.equal(read.status, 401, path);
+      assert.match(read.headers.get("cache-control"), /private.*no-store/, path);
+    }
+  }
   assert.equal(
     await (await server.fetch("/api/auth/get-session", { headers: { cookie: newCookie } })).json(),
     null,

@@ -14,7 +14,7 @@ import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { Grade } from "@/components/ui/grade";
 import { GradeLabel } from "@/components/ui/grade-label";
 import { PageTitle } from "@/components/ui/typography";
-import type { ClimbWithAreaName } from "@/db/queries";
+import type { ClimbWithAreaName } from "@/lib/catalog-types";
 import type { SearchFetcher } from "@/lib/search";
 
 function ChosenStrip({

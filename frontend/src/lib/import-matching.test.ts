@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { ClimbCandidate } from "@/db/queries";
 import type { NormalizedImportRow } from "@/lib/sends-import";
+import type { ClimbCandidate } from "@/spa/lib/action-contracts";
 
 import {
   areaLookupsNeeded,

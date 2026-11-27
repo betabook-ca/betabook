@@ -3,9 +3,9 @@
 import { fetchJournalPage } from "@/components/journal/fetch-journal-page";
 import { ProjectSessionList } from "@/components/journal/project-session-list";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
-import type { JournalEntry } from "@/db/queries";
 import { usePagedList } from "@/hooks/use-paged-list";
 import { DEFAULT_JOURNAL_FILTER } from "@/lib/filters/journal-filter";
+import type { JournalEntry } from "@/lib/logbook-types";
 
 type ProjectSessionNotesProps = {
   userId: string;

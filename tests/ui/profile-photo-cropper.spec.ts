@@ -33,7 +33,7 @@ test("uploads well under the action's size cap @behavior", async ({ page }, info
   const bytes = Number(/\((\d+) bytes\)/.exec(text ?? "")?.[1]);
   expect(bytes).toBeGreaterThan(0);
   // The picker's whole reason for cropping client-side: a phone photo
-  // becomes a payload a server action accepts without raising its limit.
+  // fits the profile-photo upload limit.
   expect(bytes).toBeLessThan(300_000);
 });
 
