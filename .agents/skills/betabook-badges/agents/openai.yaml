@@ -1,0 +1,4 @@
+interface:
+  display_name: "Betabook Badges"
+  short_description: "Playful climbing badges in Betabook's ink-and-paper style"
+  default_prompt: "Use $betabook-badges to generate a fun, on-brand climbing achievement badge for my Betabook profile."
