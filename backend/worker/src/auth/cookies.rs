@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use betabook_domain::password::{sign_cookie_value, verify_signed_cookie_value};
-use http::{HeaderMap, header};
+use http::{HeaderMap, HeaderValue, header};
 
 pub const SESSION_EXPIRES_SECS: i64 = 60 * 60 * 24 * 30;
 pub const SESSION_EXPIRES_MS: i64 = SESSION_EXPIRES_SECS * 1000;
@@ -44,7 +44,8 @@ pub fn parse_cookies(headers: &HeaderMap) -> HashMap<String, String> {
 }
 
 /// Presence only selects a non-personalized entry shell; never authorizes a read.
-pub fn has_session_cookie(headers: &HeaderMap) -> bool {
+pub fn has_session_cookie(headers: &HeaderMap, secure: bool) -> bool {
+    let expected = session_cookie_name(secure);
     headers
         .get_all(header::COOKIE)
         .iter()
@@ -52,18 +53,12 @@ pub fn has_session_cookie(headers: &HeaderMap) -> bool {
         .any(|line| {
             line.split(';')
                 .filter_map(|p| p.trim().split_once('='))
-                .any(|(name, _)| matches!(name, BASE_SESSION_COOKIE | SECURE_SESSION_COOKIE))
+                .any(|(name, _)| name == expected)
         })
 }
 
 pub fn read_session_token(headers: &HeaderMap, secret: &str, secure: bool) -> Option<String> {
-    let cookies = parse_cookies(headers);
-    let preferred = session_cookie_name(secure);
-    let raw = cookies
-        .get(preferred)
-        .or_else(|| cookies.get(BASE_SESSION_COOKIE))
-        .or_else(|| cookies.get(SECURE_SESSION_COOKIE))?;
-    verify_signed_cookie_value(raw, secret)
+    read_signed_cookie(headers, session_cookie_name(secure), secret)
 }
 
 pub fn build_session_cookie_header(token: &str, secret: &str, secure: bool) -> String {
@@ -75,10 +70,18 @@ pub fn build_session_cookie_header(token: &str, secret: &str, secure: bool) -> S
     )
 }
 
-pub fn clear_session_cookie_header(secure: bool) -> String {
-    let name = session_cookie_name(secure);
-    let secure_attr = if secure { "; Secure" } else { "" };
-    format!("{name}=; Max-Age=0; Path=/; HttpOnly{secure_attr}; SameSite=Lax")
+/// Expire both historical names at the path used for issuance. Browsers only
+/// accept changes to a __Secure- cookie if its Set-Cookie also says Secure.
+pub fn clear_session_cookies(headers: &mut HeaderMap) {
+    headers.append(
+        header::SET_COOKIE,
+        HeaderValue::from_static(
+            "better-auth.session_token=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax",
+        ),
+    );
+    headers.append(header::SET_COOKIE, HeaderValue::from_static(
+        "__Secure-better-auth.session_token=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax",
+    ));
 }
 
 pub fn build_oauth_state_cookie(payload: &str, secret: &str, secure: bool) -> String {
@@ -98,4 +101,44 @@ pub fn read_signed_cookie(headers: &HeaderMap, name: &str, secret: &str) -> Opti
     let cookies = parse_cookies(headers);
     let raw = cookies.get(name)?;
     verify_signed_cookie_value(raw, secret)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn session_cookie_uses_only_its_configured_name() -> Result<(), http::header::InvalidHeaderValue>
+    {
+        let secret = "local test secret";
+        for secure in [false, true] {
+            let mut headers = HeaderMap::new();
+            let other = format!(
+                "{}={}",
+                session_cookie_name(!secure),
+                sign_cookie_value("old", secret)
+            );
+            headers.append(header::COOKIE, HeaderValue::from_str(&other)?);
+            assert!(!has_session_cookie(&headers, secure));
+            assert_eq!(read_session_token(&headers, secret, secure), None);
+
+            let issued = build_session_cookie_header("current", secret, secure);
+            assert_eq!(
+                issued
+                    .split(';')
+                    .any(|attribute| attribute.trim() == "Secure"),
+                secure
+            );
+            headers.append(
+                header::COOKIE,
+                HeaderValue::from_str(issued.split(';').next().unwrap_or(""))?,
+            );
+            assert!(has_session_cookie(&headers, secure));
+            assert_eq!(
+                read_session_token(&headers, secret, secure).as_deref(),
+                Some("current")
+            );
+        }
+        Ok(())
+    }
 }

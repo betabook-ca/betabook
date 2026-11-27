@@ -30,7 +30,7 @@ use url::form_urlencoded;
 
 use crate::auth::cookies::{
     OAUTH_STATE_COOKIE, SESSION_EXPIRES_MS, build_oauth_state_cookie, build_session_cookie_header,
-    clear_oauth_state_cookie, clear_session_cookie_header, read_session_token, read_signed_cookie,
+    clear_oauth_state_cookie, clear_session_cookies, read_session_token, read_signed_cookie,
 };
 use crate::auth::email::{
     send_reset_password_email, send_verification_email, welcome_new_account_once,
@@ -47,19 +47,30 @@ fn safe_relative_path(raw: Option<&str>, fallback: &str, auth_url: &str) -> Stri
     let Some(input) = raw.filter(|s| !s.contains('\\') && !s.chars().any(char::is_control)) else {
         return fallback.into();
     };
-    if input.starts_with('/') && !input.starts_with("//") {
-        return input.into();
-    }
-    let (Ok(target), Ok(base)) = (url::Url::parse(input), url::Url::parse(auth_url)) else {
+    let Ok(base) = url::Url::parse(auth_url) else {
         return fallback.into();
     };
+    let target = if input.starts_with('/') && !input.starts_with("//") {
+        base.join(input)
+    } else {
+        url::Url::parse(input)
+    };
+    let Ok(target) = target else {
+        return fallback.into();
+    };
+
+    // The Location header receives a path. A serialized path must remain local
+    // when the browser resolves it again, including after dot-segment normalization.
+    let location = &target[url::Position::BeforePath..];
     if target.origin() != base.origin()
         || !target.username().is_empty()
         || target.password().is_some()
+        || !location.starts_with('/')
+        || location.starts_with("//")
     {
         return fallback.into();
     }
-    target[url::Position::BeforePath..].into()
+    location.into()
 }
 
 /// Set the error on the validated, relative return URL without changing its fragment
@@ -174,15 +185,41 @@ async fn resolve_referred_by(
     }
 }
 
+/// Signup accepts practical mailbox addresses with DNS-style domains, as the
+/// previous email validator did. Existing account lookup stays compatible.
+fn valid_signup_email(address: &str) -> bool {
+    #[expect(clippy::expect_used, reason = "constant email pattern")]
+    static EMAIL: std::sync::LazyLock<regex_lite::Regex> = std::sync::LazyLock::new(|| {
+        regex_lite::Regex::new(r"^(?:[A-Za-z0-9_'+-]+\.)*[A-Za-z0-9_'+-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$")
+            .expect("valid signup email pattern")
+    });
+    address.len() <= 254 && address.find('@').is_some_and(|at| at <= 64) && EMAIL.is_match(address)
+}
+
+fn invalid_credentials() -> ApiError {
+    ApiError::with_code(
+        StatusCode::UNAUTHORIZED,
+        "INVALID_EMAIL_OR_PASSWORD",
+        "Invalid email or password",
+    )
+}
+
+/// Keep failed credential lookups on the password-work path using bounded input.
+fn reject_without_credential(error: ApiError) -> Result<Response, ApiError> {
+    hash_password("betabook-dummy-password").map_err(ApiError::internal)?;
+    Err(error)
+}
+
 fn validate_password_len(password: &str) -> Result<(), ApiError> {
-    if password.encode_utf16().count() < MIN_PASSWORD_LEN {
+    let len = password.encode_utf16().take(MAX_PASSWORD_LEN + 1).count();
+    if len < MIN_PASSWORD_LEN {
         return Err(ApiError::with_code(
             StatusCode::BAD_REQUEST,
             "PASSWORD_TOO_SHORT",
             format!("Password must be at least {MIN_PASSWORD_LEN} characters."),
         ));
     }
-    if password.encode_utf16().count() > MAX_PASSWORD_LEN {
+    if len > MAX_PASSWORD_LEN {
         return Err(ApiError::with_code(
             StatusCode::BAD_REQUEST,
             "PASSWORD_TOO_LONG",
@@ -240,7 +277,7 @@ pub async fn sign_up_email(
         return Err(ApiError::new(StatusCode::UNPROCESSABLE_ENTITY, problem));
     }
     let email = body.email.trim().to_ascii_lowercase();
-    if email.is_empty() || !email.contains('@') {
+    if !valid_signup_email(&email) {
         return Err(ApiError::new(
             StatusCode::BAD_REQUEST,
             "Enter a valid email address.",
@@ -445,29 +482,18 @@ pub async fn sign_in_email(
 ) -> Result<Response, ApiError> {
     verify_turnstile(&state, &headers, body.captcha_token.as_deref()).await?;
 
+    if let Err(error) = validate_password_len(&body.password) {
+        return reject_without_credential(error);
+    }
     let email = body.email.trim().to_ascii_lowercase();
     let Some(user) = find_user_by_email(state.db(), &email).await? else {
-        hash_password(&body.password).map_err(ApiError::internal)?;
-        return Err(ApiError::with_code(
-            StatusCode::UNAUTHORIZED,
-            "INVALID_EMAIL_OR_PASSWORD",
-            "Invalid email or password",
-        ));
+        return reject_without_credential(invalid_credentials());
     };
     let Some(stored_hash) = find_credential_password_by_user_id(state.db(), &user.id).await? else {
-        hash_password(&body.password).map_err(ApiError::internal)?;
-        return Err(ApiError::with_code(
-            StatusCode::UNAUTHORIZED,
-            "INVALID_EMAIL_OR_PASSWORD",
-            "Invalid email or password",
-        ));
+        return reject_without_credential(invalid_credentials());
     };
     if !verify_password(&stored_hash, &body.password) {
-        return Err(ApiError::with_code(
-            StatusCode::UNAUTHORIZED,
-            "INVALID_EMAIL_OR_PASSWORD",
-            "Invalid email or password",
-        ));
+        return Err(invalid_credentials());
     }
     if !user.email_verified {
         return Err(ApiError::with_code(
@@ -538,9 +564,7 @@ pub async fn sign_out(
         delete_session_by_token(state.db(), &token).await?;
     }
     let mut resp = no_store_json(StatusCode::OK, json!({ "success": true }));
-    if let Ok(val) = HeaderValue::from_str(&clear_session_cookie_header(secure)) {
-        resp.headers_mut().append(header::SET_COOKIE, val);
-    }
+    clear_session_cookies(resp.headers_mut());
     Ok(resp)
 }
 
@@ -811,12 +835,18 @@ pub async fn google_callback(
             &[clear_state],
         ));
     };
-    let Ok(oauth_data) = serde_json::from_str::<OAuthStatePayload>(&raw_payload) else {
+    let Ok(mut oauth_data) = serde_json::from_str::<OAuthStatePayload>(&raw_payload) else {
         return Ok(redirect_response(
             "/sign-in?error=oauth_state_invalid",
             &[clear_state],
         ));
     };
+    // State issued before a deployment may carry a previously accepted return URL.
+    let auth_url = state.auth_url();
+    oauth_data.callback_url = safe_relative_path(Some(&oauth_data.callback_url), "/", &auth_url);
+    oauth_data.error_callback_url =
+        safe_relative_path(Some(&oauth_data.error_callback_url), "/sign-in", &auth_url);
+
     if oauth_data.expires_at <= state.now_ms()
         || query.state.as_deref() != Some(oauth_data.state.as_str())
     {
@@ -1053,10 +1083,7 @@ pub async fn delete_user(
     }
     delete_account_and_cleanup(state.db(), user_id).await?;
     let mut resp = no_store_json(StatusCode::OK, json!({ "success": true }));
-    if let Ok(val) = HeaderValue::from_str(&clear_session_cookie_header(state.is_secure_cookies()))
-    {
-        resp.headers_mut().append(header::SET_COOKIE, val);
-    }
+    clear_session_cookies(resp.headers_mut());
     Ok(resp)
 }
 
@@ -1128,6 +1155,36 @@ mod tests {
     use super::callback_error_location;
 
     #[test]
+    fn callback_paths_resolve_to_stable_same_origin_locations() -> Result<(), url::ParseError> {
+        let base = "https://betabook.example";
+        let fallback = "/sign-in";
+        for (input, expected) in [
+            ("/", "/"),
+            (
+                "/journal?tag=one&tag=two#entry",
+                "/journal?tag=one&tag=two#entry",
+            ),
+            (
+                "https://betabook.example:443/account/../search?q=a%2Fb#results",
+                "/search?q=a%2Fb#results",
+            ),
+            ("/account/../journal", "/journal"),
+            ("/old/..//journal", fallback),
+            ("https://betabook.example//journal", fallback),
+            ("https://elsewhere.example/account", fallback),
+            ("//journal", fallback),
+            ("bare-path", fallback),
+        ] {
+            let location = super::safe_relative_path(Some(input), fallback, base);
+            assert_eq!(location, expected);
+            assert!(location.starts_with('/') && !location.starts_with("//"));
+            let origin = url::Url::parse(base)?;
+            assert_eq!(origin.join(&location)?.origin(), origin.origin());
+        }
+        Ok(())
+    }
+
+    #[test]
     fn oauth_error_preserves_the_return_route_and_fragment() {
         assert_eq!(
             callback_error_location("/sign-in", "oauth_cancelled"),
@@ -1140,5 +1197,41 @@ mod tests {
             ),
             "/sign-in?next=%2Fsearch%3Fname%3Done%2Btwo&tag=a&tag=b&error=oauth_cancelled#form"
         );
+    }
+}
+
+#[cfg(test)]
+mod credential_input_tests {
+    use super::{valid_signup_email, validate_password_len};
+
+    #[test]
+    fn signup_checks_mailbox_and_domain_syntax() {
+        for email in ["ava+club@example.org", "o'brien.jr@team.example.co.uk"] {
+            assert!(valid_signup_email(email));
+        }
+        for email in [
+            "a@",
+            "@example.org",
+            "a@local",
+            "a@@example.org",
+            "a..b@example.org",
+            "a @example.org",
+            "a@-bad.example",
+            "a@bad-.example",
+        ] {
+            assert!(!valid_signup_email(email));
+        }
+        assert!(!valid_signup_email(&format!(
+            "{}@example.org",
+            "a".repeat(65)
+        )));
+    }
+
+    #[test]
+    fn sign_in_password_bounds_use_utf16_units() {
+        assert!(validate_password_len("1234567").is_err());
+        assert!(validate_password_len("12345678").is_ok());
+        assert!(validate_password_len(&"🙂".repeat(64)).is_ok());
+        assert!(validate_password_len(&format!("{}a", "🙂".repeat(64))).is_err());
     }
 }

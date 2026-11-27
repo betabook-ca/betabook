@@ -4,6 +4,23 @@ import { fileURLToPath } from "node:url";
 
 import { createTestHarness, experimental_readRawConfig } from "wrangler";
 
+function assertClearedSessionCookies(response) {
+  const cleared = response.headers
+    .getSetCookie()
+    .filter((line) => /^(?:__Secure-)?better-auth\.session_token=/.test(line));
+  assert.equal(cleared.length, 2);
+  assert.deepEqual(cleared.map((line) => line.split("=")[0]).sort(), [
+    "__Secure-better-auth.session_token",
+    "better-auth.session_token",
+  ]);
+  for (const line of cleared) {
+    assert.match(line, /^[^=]+=;/);
+    assert.match(line, /; Max-Age=0(?:;|$)/);
+    assert.match(line, /; Path=\/(?:;|$)/);
+    if (line.startsWith("__Secure-")) assert.match(line, /; Secure(?:;|$)/);
+  }
+}
+
 export async function testAuthLifecycle({ server, db, signIn, origin, secret }) {
   const owner = "auth-lifecycle";
   const cookie = await signIn(owner);
@@ -45,11 +62,25 @@ export async function testAuthLifecycle({ server, db, signIn, origin, secret }) 
   assert.equal(location.hash, "#form");
   const stale = await post("/api/auth/delete-user", {}, { cookie });
   assert.equal((await stale.json()).code, "SESSION_EXPIRED");
+  const { version } = await (await server.fetch("/api/terms/status")).json();
+  const invalidEmail = await post("/api/auth/sign-up/email", {
+    name: "Invalid address fixture",
+    email: "missing-domain@",
+    password: "fixture-password",
+    acceptedTermsVersion: version,
+  });
+  assert.equal(invalidEmail.status, 400);
+  const invalidPassword = await post("/api/auth/sign-in/email", {
+    email: owner + "@example.test",
+    password: "x".repeat(129),
+  });
+  assert.equal(invalidPassword.status, 400);
+  assert.equal((await invalidPassword.json()).code, "PASSWORD_TOO_LONG");
   const duplicate = await post("/api/auth/sign-up/email", {
     email: owner + "@example.test",
     name: "Second name",
     password: "other-password",
-    acceptedTermsVersion: (await (await server.fetch("/api/terms/status")).json()).version,
+    acceptedTermsVersion: version,
   });
   assert.equal(duplicate.status, 200);
   assert.notEqual((await duplicate.json()).user.id, owner);
@@ -160,8 +191,27 @@ export async function testAuthLifecycle({ server, db, signIn, origin, secret }) 
   const newCookie = updated.headers.getSetCookie()[0].split(";")[0];
   const signOut = await post("/api/auth/sign-out", {}, { cookie: newCookie });
   assert.equal(signOut.status, 200);
+  assertClearedSessionCookies(signOut);
   assert.equal(
     await (await server.fetch("/api/auth/get-session", { headers: { cookie: newCookie } })).json(),
+    null,
+  );
+
+  const deletionOwner = "session-clear-fixture";
+  const deletionCookie = await signIn(deletionOwner);
+  // A live session near expiry requests renewal during authentication. Deletion
+  // must clear it even in that case.
+  await db
+    .prepare("UPDATE session SET expires_at=? WHERE user_id=?")
+    .bind(Date.now() + 3_600_000, deletionOwner)
+    .run();
+  const deleted = await post("/api/auth/delete-user", {}, { cookie: deletionCookie });
+  assert.equal(deleted.status, 200);
+  assertClearedSessionCookies(deleted);
+  assert.equal(
+    await (
+      await server.fetch("/api/auth/get-session", { headers: { cookie: deletionCookie } })
+    ).json(),
     null,
   );
 }

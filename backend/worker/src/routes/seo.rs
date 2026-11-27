@@ -474,14 +474,8 @@ pub async fn area_page(
     Path(raw_id): Path<String>,
     OriginalUri(uri): OriginalUri,
 ) -> Result<Response, ApiError> {
-    render_area_page(
-        state,
-        !crate::auth::cookies::has_session_cookie(&headers),
-        raw_id,
-        None,
-        uri,
-    )
-    .await
+    let guest = !crate::auth::cookies::has_session_cookie(&headers, state.is_secure_cookies());
+    render_area_page(state, guest, raw_id, None, uri).await
 }
 
 #[worker::send]
@@ -491,14 +485,8 @@ pub async fn area_page_with_slug(
     Path((raw_id, slug)): Path<(String, String)>,
     OriginalUri(uri): OriginalUri,
 ) -> Result<Response, ApiError> {
-    render_area_page(
-        state,
-        !crate::auth::cookies::has_session_cookie(&headers),
-        raw_id,
-        Some(slug),
-        uri,
-    )
-    .await
+    let guest = !crate::auth::cookies::has_session_cookie(&headers, state.is_secure_cookies());
+    render_area_page(state, guest, raw_id, Some(slug), uri).await
 }
 
 async fn render_climb_page(
@@ -599,14 +587,8 @@ pub async fn climb_page(
     Path(raw_id): Path<String>,
     OriginalUri(uri): OriginalUri,
 ) -> Result<Response, ApiError> {
-    render_climb_page(
-        state,
-        !crate::auth::cookies::has_session_cookie(&headers),
-        raw_id,
-        None,
-        uri,
-    )
-    .await
+    let guest = !crate::auth::cookies::has_session_cookie(&headers, state.is_secure_cookies());
+    render_climb_page(state, guest, raw_id, None, uri).await
 }
 
 #[worker::send]
@@ -616,14 +598,8 @@ pub async fn climb_page_with_slug(
     Path((raw_id, slug)): Path<(String, String)>,
     OriginalUri(uri): OriginalUri,
 ) -> Result<Response, ApiError> {
-    render_climb_page(
-        state,
-        !crate::auth::cookies::has_session_cookie(&headers),
-        raw_id,
-        Some(slug),
-        uri,
-    )
-    .await
+    let guest = !crate::auth::cookies::has_session_cookie(&headers, state.is_secure_cookies());
+    render_climb_page(state, guest, raw_id, Some(slug), uri).await
 }
 
 pub(super) async fn render_not_found(state: &AppState) -> Result<Response, ApiError> {
@@ -1039,7 +1015,7 @@ pub async fn spa_fallback(
         }
     }
 
-    let guest = !crate::auth::cookies::has_session_cookie(&headers);
+    let guest = !crate::auth::cookies::has_session_cookie(&headers, state.is_secure_cookies());
     let raw_query = uri.query().unwrap_or("");
     if path == "/" {
         if let Some(query) = home_search_query(raw_query) {
