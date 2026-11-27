@@ -116,3 +116,34 @@ test(
     }
   },
 );
+
+test(
+  "the public header clears landscape safe areas before JavaScript loads",
+  { tag: ["@app", "@behavior"] },
+  async ({ browser }) => {
+    const context = await browser.newContext({
+      javaScriptEnabled: false,
+      viewport: { width: 844, height: 390 },
+    });
+    try {
+      const page = await context.newPage();
+      await page.goto(appBaseURL);
+      const device = await context.newCDPSession(page);
+      for (const [left, right] of [
+        [59, 0],
+        [0, 59],
+      ]) {
+        await device.send("Emulation.setSafeAreaInsetsOverride", { insets: { left, right } });
+        for (const link of await page.locator("header a").all()) {
+          if (!(await link.isVisible())) continue;
+          const box = await link.boundingBox();
+          if (!box) throw new Error("Expected public header link");
+          expect(box.x).toBeGreaterThanOrEqual(left);
+          expect(box.x + box.width).toBeLessThanOrEqual(844 - right);
+        }
+      }
+    } finally {
+      await context.close();
+    }
+  },
+);
