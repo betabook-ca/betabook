@@ -53,7 +53,7 @@ export function WorkspaceSection({
       aria-label={`${title} workspace`}
       className={`flex min-w-0 flex-col gap-4 ${title === AREA_LABELS.logbook ? "max-w-5xl" : ""}`}
     >
-      <PageTitle>
+      <PageTitle className="max-md:sr-only">
         <span className="sr-only">{tabs.find((tab) => tab.current)?.label ?? title} · </span>
         {title}
       </PageTitle>

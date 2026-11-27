@@ -11,7 +11,7 @@ Tours run at `/tutorial/[tourId]/[stepId]` inside the app shell. The page uses A
 
 The Journal tour covers Log, journal filters, Sends sorting, project history, Analytics, climber discovery, friend requests, Feed, and privacy. The sample Log control is a visual reference in the full tour, in a header row above the sample workspace as Log sits beside Search in the app, with no click action or popover. First-time invitations include an ordinary Log button. Update invitations and update demos omit both Log controls.
 
-Owner lessons use the app's workspace frame, with a visible workspace title and a ruled row of subpage tabs. The accessible heading names the selected subpage and workspace. The journal demo shares the entry layout with the app and retains the established entry-type filter pills. Notes run below the entry header; journal text search remains directly visible. Logbook groups Journal
+Owner lessons use the app's workspace frame, with a ruled row of subpage tabs. On phones the tabs lead the workspace. From the desktop breakpoint up, the workspace title appears above them. The accessible heading names the selected subpage and workspace. The journal demo shares the entry layout with the app and retains the established entry-type filter pills. Notes run below the entry header; journal text search remains directly visible. Logbook groups Journal
 and Sends; Progress groups Goals, Projects, and Analytics; the existing project and analytics lessons retain their step IDs. The large climber
 profile header is reserved for viewing another climber. Community groups Feed
 and Friends. Account settings contains identity, sharing, and account controls. Demo links
