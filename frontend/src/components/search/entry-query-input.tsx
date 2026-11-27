@@ -2,6 +2,7 @@ import { SearchField } from "@heroui/react";
 import { useLayoutEffect, useRef, type KeyboardEvent } from "react";
 
 import { FIELD_HEIGHT_CLASS, FIELD_WIDTH_CLASS } from "@/components/ui/field";
+import { SearchIcon } from "@/components/ui/search-icon";
 import { usePublicEntryReady } from "@/spa/lib/public-entry";
 
 /** Reuse the document's native input through the first route transition.
@@ -64,7 +65,9 @@ export function EntryQueryInput({
       className={FIELD_WIDTH_CLASS.long}
     >
       <SearchField.Group className={`${FIELD_HEIGHT_CLASS} min-w-0 focus-within:ring-2`}>
-        <SearchField.SearchIcon />
+        <SearchField.SearchIcon>
+          <SearchIcon />
+        </SearchField.SearchIcon>
         <span
           ref={host}
           onKeyDownCapture={onKeyDown}

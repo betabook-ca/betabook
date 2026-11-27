@@ -114,8 +114,6 @@ it.each([
 });
 
 it.each([
-  ["/search", "/search"],
-  ["/search/climbs", "/search"],
   ["/climbs/new", "/climbs/new"],
   ["/areas/new", "/climbs/new"],
   ["/tutorial/journal/journal", "/tutorial/journal/journal"],
@@ -124,4 +122,16 @@ it.each([
   state.pathname = pathname;
   const html = renderToStaticMarkup(<AppMenuLinks account={owner} />);
   expect(link(html, href)).toContain('fill="currentColor"');
+});
+
+it.each([
+  ["/", "1.7"],
+  ["/search", "2.8"],
+  ["/search/climbs", "2.8"],
+])("uses a single-ring Search icon at %s", (pathname, stroke) => {
+  state.pathname = pathname;
+  const search = link(renderToStaticMarkup(<AppMenuLinks account={owner} />), "/search");
+  expect(search).toContain('fill="none"');
+  expect(search).toContain(`stroke-width="${stroke}"`);
+  expect(search.match(/<circle/g)).toHaveLength(1);
 });

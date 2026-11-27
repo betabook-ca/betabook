@@ -190,13 +190,18 @@ for (const [story, label] of [
   ["tutorials", "Tutorials"],
   ["secondary-tools", "Account settings"],
 ]) {
-  test(`menu uses the selected filled icon for ${label}`, async ({ page }, info) => {
+  test(`menu uses the selected icon treatment for ${label}`, async ({ page }, info) => {
     await openStory(page, info, `components-navigation-app-menu--${story}`);
     const link = page
       .getByRole("navigation", { name: "Menu" })
       .getByRole("link", { name: label, exact: true });
     await expect(link).toHaveAttribute("aria-current", /page|location/);
-    await expect(link.locator("svg")).toHaveAttribute("fill", "currentColor");
+    await expect(link.locator("svg")).toHaveAttribute(
+      "fill",
+      label === "Find climbs" ? "none" : "currentColor",
+    );
+    if (label === "Find climbs")
+      await expect(link.locator("svg")).toHaveAttribute("stroke-width", "2.8");
     await expect(link.locator("svg")).toHaveCSS("width", "20px");
   });
 }
@@ -209,7 +214,7 @@ test(
     const pairs = page.locator('[data-theme="light"] [data-navigation-icon-pair]');
     for (const pair of await pairs.all()) {
       const area = await pair.getAttribute("data-navigation-icon-pair");
-      if (area === "progress") continue; // The approved exception intentionally increases stroke weight.
+      if (area === "progress" || area === "search") continue; // These approved exceptions intentionally increase stroke weight.
       const bounds = await pair.locator("svg").evaluateAll(async (icons) =>
         Promise.all(
           icons.map(async (icon) => {
@@ -265,5 +270,53 @@ test(
           .toBeLessThanOrEqual(1);
       }
     }
+  },
+);
+
+test(
+  "Search navigation, header, query fields and lookups share one outline",
+  { tag: "@layout" },
+  async ({ page }, info) => {
+    let reference: unknown;
+    for (const story of [
+      "components-navigation-primary-icon--find-climbs",
+      "components-navigation-search-trigger--default",
+      "components-inputs-query-field--character-limit",
+    ]) {
+      await openStory(page, info, story);
+      const icon = page.locator("svg[data-search-icon]");
+      await expect(icon).toHaveCount(1);
+      await expect(icon.locator("circle")).toHaveCount(1);
+      const shape = await icon.evaluate((el) => ({
+        viewBox: el.getAttribute("viewBox"),
+        fill: el.getAttribute("fill"),
+        strokeWidth: getComputedStyle(el).strokeWidth,
+        circle: ["cx", "cy", "r"].map((key) => el.querySelector("circle")?.getAttribute(key)),
+        handle: ["x1", "y1", "x2", "y2"].map((key) => el.querySelector("line")?.getAttribute(key)),
+      }));
+      expect(shape.strokeWidth).toBe("1.7px");
+      if (reference === undefined) reference = shape;
+      else expect(shape).toEqual(reference);
+    }
+    await openStory(page, info, "components-search-selection-field--area");
+    const lookup = page.locator(".search-combo-input");
+    const backgroundShape = await lookup.evaluate((el) => {
+      const image = getComputedStyle(el).backgroundImage;
+      const url = image.match(/^url\(["']?(.*?)["']?\)$/)?.[1];
+      if (!url) throw new Error("Expected the lookup magnifier");
+      const document = new DOMParser().parseFromString(
+        decodeURIComponent(url.slice(url.indexOf(",") + 1)),
+        "image/svg+xml",
+      );
+      const svg = document.documentElement;
+      return {
+        viewBox: svg.getAttribute("viewBox"),
+        fill: svg.getAttribute("fill"),
+        strokeWidth: `${svg.getAttribute("stroke-width")}px`,
+        circle: ["cx", "cy", "r"].map((key) => svg.querySelector("circle")?.getAttribute(key)),
+        handle: ["x1", "y1", "x2", "y2"].map((key) => svg.querySelector("line")?.getAttribute(key)),
+      };
+    });
+    expect(backgroundShape).toEqual(reference);
   },
 );

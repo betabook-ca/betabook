@@ -16,7 +16,7 @@ export function NavigationIconOptions() {
   return (
     <StoryPage
       title="Navigation icon states"
-      description="Approved production icons in both themes. Filled selections retain their outlines and outer sizes; Progress keeps its heavier arrow. Mobile labels keep the same weight. The live tab examples below are interactive."
+      description="Approved production icons in both themes. Filled selections retain their outlines and outer sizes; Progress and Search use the same outline with a heavier selected stroke. Mobile labels keep the same weight. The live tab examples below are interactive."
     >
       <div className="grid gap-6 xl:grid-cols-2">
         {(["light", "dark"] as const).map((theme) => (

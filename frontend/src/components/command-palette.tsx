@@ -1,12 +1,12 @@
 "use client";
 
 import { Kbd, useOverlayState } from "@heroui/react";
-import { Search } from "lucide-react";
 import { createContext, useContext, useEffect, useEffectEvent, type ReactNode } from "react";
 
 import { Brand } from "@/components/brand";
 import { AppLink } from "@/components/ui/app-link";
 import { DeferredLoadError } from "@/components/ui/deferred-load-error";
+import { SearchIcon } from "@/components/ui/search-icon";
 import { useClientSession } from "@/hooks/use-client-session";
 import { useDeferredComponent } from "@/hooks/use-deferred-component";
 import { isApplePlatform, useModifierLabels } from "@/hooks/use-platform";
@@ -117,7 +117,7 @@ export function SearchTriggerControl({
         className={`size-6 ${contained ? "@lg/navigation:hidden" : "md:hidden"}`}
       />
       <span className="truncate text-sm">Search</span>
-      <Search
+      <SearchIcon
         aria-hidden
         className={`ms-auto size-5 shrink-0 ${contained ? "@lg/navigation:-order-1 @lg/navigation:ms-0" : "md:-order-1 md:ms-0"}`}
       />

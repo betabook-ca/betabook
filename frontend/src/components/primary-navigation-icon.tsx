@@ -17,6 +17,7 @@
  */
 import { TrendingUp } from "lucide-react";
 
+import { SearchIcon } from "@/components/ui/search-icon";
 import type { PrimaryArea } from "@/lib/app-navigation";
 
 type NavigationArea = PrimaryArea | "search" | "add" | "tutorials";
@@ -34,7 +35,6 @@ const COMMUNITY_HEAD_INNER_X = 9 + Math.sqrt(COMMUNITY_INNER_RADIUS ** 2 - 3.872
 const COMMUNITY_BODY_INNER_X = 12 + Math.sqrt(COMMUNITY_INNER_RADIUS ** 2 - 3.87 ** 2);
 const COMMUNITY_FILLED_REAR_HEAD = `M16 3.128a4 4 0 0 1 0 7.744L${COMMUNITY_HEAD_INNER_X} 10.872A${COMMUNITY_INNER_RADIUS} ${COMMUNITY_INNER_RADIUS} 0 0 0 ${COMMUNITY_HEAD_INNER_X} 3.128Z`;
 const COMMUNITY_FILLED_REAR_BODY = `M22 21v-2a4 4 0 0 0-3-3.87L${COMMUNITY_BODY_INNER_X} 15.13A${COMMUNITY_INNER_RADIUS} ${COMMUNITY_INNER_RADIUS} 0 0 1 ${12 + COMMUNITY_INNER_RADIUS} 19V21Z`;
-const SEARCH_HANDLE = "m16.2 14.8 5.4 5.4a1 1 0 0 1-1.4 1.4l-5.4-5.4";
 
 /** Selected fills retain the same painted outline, including its outer stroke. */
 export function PrimaryNavigationIcon({
@@ -52,6 +52,7 @@ export function PrimaryNavigationIcon({
 }
 
 function NavigationGlyph({ area, active }: { area: NavigationArea; active: boolean }) {
+  if (area === "search") return <SearchIcon active={active} />;
   if (area === "progress")
     return <TrendingUp aria-hidden className="size-5 shrink-0" strokeWidth={active ? 2.8 : 2} />;
   return (
@@ -61,7 +62,7 @@ function NavigationGlyph({ area, active }: { area: NavigationArea; active: boole
       className="size-5 shrink-0"
       fill={active ? "currentColor" : "none"}
       stroke="currentColor"
-      strokeWidth={area === "search" ? 1.25 : 1.7}
+      strokeWidth="1.7"
       strokeLinecap="round"
       strokeLinejoin="round"
     >
@@ -87,13 +88,6 @@ function NavigationGlyph({ area, active }: { area: NavigationArea; active: boole
             <path d={active ? COMMUNITY_FILLED_REAR_BODY : "M22 21v-2a4 4 0 0 0-3-3.87"} />
             <circle cx="9" cy="7" r="4" />
           </g>
-        )}
-        {area === "search" && (
-          <>
-            <circle cx="10" cy="10" r="7.5" />
-            <circle cx="10" cy="10" r="5" />
-            <path d={SEARCH_HANDLE} />
-          </>
         )}
         {area === "add" && (
           <>
@@ -126,15 +120,6 @@ function FilledShapes({ area }: { area: NavigationArea }) {
     <g stroke="none">
       {area === "logbook" && (
         <path d="M4 3h4c1.2 0 2.35.4 3.25 1.2v16c-.9-.8-2.05-1.2-3.25-1.2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm16 0h-4c-1.2 0-2.35.4-3.25 1.2v16c.9-.8 2.05-1.2 3.25-1.2h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z" />
-      )}
-      {area === "search" && (
-        <>
-          <path
-            fillRule="evenodd"
-            d="M17.5 10a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0ZM15 10a5 5 0 1 1-10 0 5 5 0 0 1 10 0Z"
-          />
-          <path d={`${SEARCH_HANDLE}Z`} />
-        </>
       )}
       {area === "add" && (
         <path fillRule="evenodd" d={`${PIN}Z M15.5 10a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z`} />

@@ -4,6 +4,7 @@ import { SearchField } from "@heroui/react";
 import type { ComponentProps } from "react";
 
 import { FIELD_HEIGHT_CLASS, FIELD_WIDTH_CLASS } from "@/components/ui/field";
+import { SearchIcon } from "@/components/ui/search-icon";
 
 export type QueryInputProps = {
   value: string;
@@ -49,7 +50,9 @@ export function QueryInput({
           `${FIELD_HEIGHT_CLASS} min-w-0 ${isFocusVisible ? "ring-2" : "ring-0"}`
         }
       >
-        <SearchField.SearchIcon />
+        <SearchField.SearchIcon>
+          <SearchIcon />
+        </SearchField.SearchIcon>
         {/* A flex item's default min-width is its content width, so without
          * this the text pushes the clear button outside the field's rounded
          * edge whenever the field has to share a row. */}
