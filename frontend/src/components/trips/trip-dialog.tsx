@@ -7,6 +7,7 @@ import { EMPTY_TRIP_DRAFT, TripForm, type TripDraft } from "@/components/trips/t
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { Trip, TripSummary } from "@/db/queries";
 import type { LookupFetcher } from "@/hooks/use-search-lookup";
+import { useViewGuard } from "@/hooks/use-view-guard";
 import { localToday } from "@/lib/format-date";
 import type { CompanionOption } from "@/lib/journal-companions";
 import { oneLine, tripHref } from "@/lib/trips";
@@ -59,6 +60,7 @@ export function TripDialog({
   companionFetcher?: LookupFetcher<CompanionOption>;
 }) {
   const router = useRouter();
+  const captureView = useViewGuard(userId, trip?.id);
   const [draft, setDraft] = useState<TripDraft>(() => draftFor(trip));
   const [companionsChanged, setCompanionsChanged] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +94,7 @@ export function TripDialog({
   function handleSave() {
     if (pending || incomplete || datesBackwards) return;
     setError(null);
+    const isCurrent = captureView();
     startTransition(async () => {
       const result = await saveTrip(trip?.id ?? null, {
         name: draft.name,
@@ -106,6 +109,7 @@ export function TripDialog({
           companions: draft.companions.map((friend) => friend.id),
         }),
       });
+      if (!isCurrent()) return;
       if (!result.ok) {
         // Stay open so the climber can correct the field rather than retype
         // the whole trip.

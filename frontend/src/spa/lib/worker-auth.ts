@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 
+import { AUTH_REQUIRED_EVENT } from "@/lib/api-client";
 import type { paths, components } from "@/spa/generated/api";
 import type { ApiResponse } from "@/spa/lib/api";
 
@@ -55,12 +56,17 @@ export function createWorkerAuthClient(transport: typeof fetch = (...args) => fe
           credentials: "same-origin",
           cache: "no-store",
         });
-        const session = response.ok ? await response.json<Session | null>() : null;
-        if (current === generation) publish(session);
+        if (response.ok || response.status === 401) {
+          const session = response.ok ? await response.json<Session | null>() : null;
+          if (current === generation) publish(session);
+        }
       } catch {
-        if (current === generation) publish(null);
+        // An unavailable session service cannot confirm a change of viewer.
       } finally {
-        if (current === generation) pending = null;
+        if (current === generation) {
+          pending = null;
+          if (snapshot.isPending) publish(null);
+        }
       }
     })();
     return pending;
@@ -68,11 +74,14 @@ export function createWorkerAuthClient(transport: typeof fetch = (...args) => fe
   function recheck() {
     if (document.visibilityState !== "hidden") void refetch();
   }
+  function expire() {
+    generation += 1;
+    pending = null;
+    publish(null);
+  }
   function onStorage(event: StorageEvent) {
     if (event.key === SESSION_CHANGE_KEY) {
-      generation += 1;
-      pending = null;
-      publish(null);
+      expire();
       void refetch();
     }
   }
@@ -83,6 +92,7 @@ export function createWorkerAuthClient(transport: typeof fetch = (...args) => fe
       window.addEventListener("focus", recheck);
       document.addEventListener("visibilitychange", recheck);
       window.addEventListener("storage", onStorage);
+      window.addEventListener(AUTH_REQUIRED_EVENT, expire);
     }
     return () => {
       listeners.delete(listener);
@@ -90,6 +100,7 @@ export function createWorkerAuthClient(transport: typeof fetch = (...args) => fe
         window.removeEventListener("focus", recheck);
         document.removeEventListener("visibilitychange", recheck);
         window.removeEventListener("storage", onStorage);
+        window.removeEventListener(AUTH_REQUIRED_EVENT, expire);
       }
     };
   }

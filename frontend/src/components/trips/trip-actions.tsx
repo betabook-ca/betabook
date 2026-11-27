@@ -8,6 +8,7 @@ import { ActionsMenu } from "@/components/ui/actions-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import type { TripSummary } from "@/db/queries";
 import type { LookupFetcher } from "@/hooks/use-search-lookup";
+import { useViewGuard } from "@/hooks/use-view-guard";
 import type { CompanionOption } from "@/lib/journal-companions";
 import { tripsHref } from "@/lib/trips";
 import { deleteTrip } from "@/spa/lib/actions-client";
@@ -28,6 +29,7 @@ export function TripActions({
   companionFetcher?: LookupFetcher<CompanionOption>;
 }) {
   const router = useRouter();
+  const captureView = useViewGuard(userId, trip.id);
   const editState = useOverlayState();
   const deleteState = useOverlayState();
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -35,8 +37,10 @@ export function TripActions({
 
   function handleDelete() {
     setDeleteError(null);
+    const isCurrent = captureView();
     startTransition(async () => {
       const result = await deleteTrip(trip.id);
+      if (!isCurrent()) return;
       if (!result.ok) {
         setDeleteError(result.error);
         return;

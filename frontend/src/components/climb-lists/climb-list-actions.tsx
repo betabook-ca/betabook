@@ -7,6 +7,7 @@ import { ClimbListDialog } from "@/components/climb-lists/climb-list-dialog";
 import { ActionsMenu } from "@/components/ui/actions-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import type { ClimbListSummary } from "@/db/queries";
+import { useViewGuard } from "@/hooks/use-view-guard";
 import { climbListsHref } from "@/lib/climb-lists";
 import { deleteClimbList } from "@/spa/lib/actions-client";
 import { useRouter } from "@/spa/lib/navigation";
@@ -23,6 +24,7 @@ export function ClimbListActions({
   leaveOnDelete?: boolean;
 }) {
   const router = useRouter();
+  const captureView = useViewGuard(userId, list.id);
   const editState = useOverlayState();
   const copyState = useOverlayState();
   const deleteState = useOverlayState();
@@ -31,8 +33,10 @@ export function ClimbListActions({
 
   function handleDelete() {
     setDeleteError(null);
+    const isCurrent = captureView();
     startTransition(async () => {
       const result = await deleteClimbList(list.id);
+      if (!isCurrent()) return;
       if (!result.ok) {
         setDeleteError(result.error);
         return;

@@ -10,7 +10,6 @@ export type SearchBootstrapData = {
   areasPage?: ApiResponse<"/api/public/search/areas">;
   areaSelection?: { id: string; name: string; path: string };
 };
-export type AuthConfig = ApiResponse<"/api/config/auth">;
 
 export async function fetchJson<T>(
   url: string,

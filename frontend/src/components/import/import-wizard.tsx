@@ -8,6 +8,7 @@ import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { PageTitle } from "@/components/ui/typography";
 import type { ClimbCandidate } from "@/db/queries";
+import { useViewGuard } from "@/hooks/use-view-guard";
 import { downloadCsv } from "@/lib/download";
 import type { ImportGradePreference } from "@/lib/grades";
 import { findImportDateClusters } from "@/lib/import-date-review";
@@ -195,23 +196,31 @@ function useImportMatching(
   return { dateClusters, normalized, matches, undatedDates, setUndatedDates };
 }
 
-/** The sends import. "Import another file" starts a fresh run, so every step's
- * state begins from its defaults again. */
-export function ImportWizard({ profileHref }: { profileHref: string }) {
+type ImportWizardProps = { profileHref: string; viewerId?: string };
+
+/** Start with a fresh draft when the account changes or a new import begins. */
+
+export function ImportWizard({ profileHref, viewerId }: ImportWizardProps) {
   const [run, setRun] = useState(0);
   return (
-    <ImportWizardRun key={run} profileHref={profileHref} onRestart={() => setRun((n) => n + 1)} />
+    <ImportWizardRun
+      key={`${viewerId ?? profileHref}:${run}`}
+      profileHref={profileHref}
+      viewerId={viewerId}
+      onRestart={() => setRun((n) => n + 1)}
+    />
   );
 }
 
 // oxlint-disable-next-line complexity -- multi-step wizard state machine; each step adds a branch
 function ImportWizardRun({
   profileHref,
+  viewerId,
   onRestart,
-}: {
-  profileHref: string;
+}: ImportWizardProps & {
   onRestart: () => void;
 }) {
+  const captureView = useViewGuard(viewerId ?? profileHref);
   const prefs = useGradePreferences();
   // A climber who reads Font or French most likely exported grades that way.
   const defaultGradeScale = preferredImportGradeScale(prefs);
@@ -315,6 +324,7 @@ function ImportWizardRun({
   async function runLookup(valid: NormalizedImportRow[], scale: ImportGradePreference) {
     lookupRunRef.current += 1;
     const run = lookupRunRef.current;
+    const isCurrent = captureView();
     const chunk = <T,>(items: T[]): T[][] =>
       Array.from({ length: Math.ceil(items.length / RESOLVE_BATCH_SIZE) }, (_, i) =>
         items.slice(i * RESOLVE_BATCH_SIZE, (i + 1) * RESOLVE_BATCH_SIZE),
@@ -336,7 +346,7 @@ function ImportWizardRun({
       const result = await call().catch(
         () => ({ ok: false, error: "The lookup request failed" }) as const,
       );
-      if (lookupRunRef.current !== run) return false;
+      if (!isCurrent() || lookupRunRef.current !== run) return false;
       if (!result.ok) {
         setLookup({ phase: "failed", error: result.error });
         return false;
@@ -450,9 +460,11 @@ function ImportWizardRun({
       return;
     }
 
+    const isCurrent = captureView();
     setReading(true);
     try {
       const text = await file.text();
+      if (!isCurrent()) return;
       const parsed = parseCsvText(text);
       if (parsed.rows.length > MAX_IMPORT_ROWS) {
         setError(
@@ -501,12 +513,20 @@ function ImportWizardRun({
       lastError: null,
     });
 
+    const isCurrent = captureView();
     startTransition(async () => {
       const result = await runImportBatches(
         toImport.map((r) => toImportSendRow(r, r.climb)),
-        (batch, batchId) => importSends(batch, { gradeScale, onConflict, batchId }),
-        { onProgress: setProgress, isCancelled: () => cancelRequestedRef.current },
+        (batch, batchId) =>
+          importSends(batch, {
+            gradeScale,
+            onConflict,
+            batchId,
+            ...(viewerId !== undefined && { expectedOwnerId: viewerId }),
+          }),
+        { onProgress: setProgress, isCancelled: () => cancelRequestedRef.current, isCurrent },
       );
+      if (!isCurrent()) return;
       setImportResult({
         ...result,
         duplicates: result.duplicates.length,
