@@ -119,4 +119,46 @@ export async function testSendAlerts({ server, db, signIn }: SmokeContext) {
     ).ok,
     false,
   );
+
+  // The public key is derived from the configured private key (RFC 8291 A).
+  assert.equal(
+    account.pushPublicKey,
+    "BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8",
+  );
+  // Registered last, after every send above, so no test posts to a real push service.
+  const keys = {
+    p256dh:
+      "BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6-AYWXvTBHm4bjyPjs7Vd8pZGH6SRpkNtoIAiw4",
+    auth: "BTBZMqHH6r4Tts7J_aSIgg",
+  };
+  const endpoint = "https://fcm.googleapis.com/fcm/send/alerts-friend-device";
+  const devices = () =>
+    db
+      .prepare("SELECT user_id FROM push_subscriptions WHERE endpoint=?")
+      .bind(endpoint)
+      .all<{ user_id: string }>()
+      .then((r) => r.results.map((row) => row.user_id));
+  for (const bad of [
+    { endpoint: "https://169.254.169.254/latest", ...keys },
+    { endpoint, p256dh: keys.auth, auth: keys.auth },
+  ]) {
+    assert.deepEqual(await postAction(server, friend, "savePushSubscription", bad), {
+      ok: false,
+      error: "This browser's notifications aren't supported.",
+    });
+  }
+  assert.deepEqual(await devices(), []);
+  assert.deepEqual(
+    await postAction(server, friend, "savePushSubscription", { endpoint, ...keys }),
+    { ok: true },
+  );
+  assert.deepEqual(await devices(), ["alerts-friend"]);
+  assert.deepEqual(await postAction(server, climber, "deletePushSubscription", endpoint), {
+    ok: true,
+  });
+  assert.deepEqual(await devices(), ["alerts-friend"], "only the owner can unsubscribe");
+  assert.deepEqual(await postAction(server, friend, "deletePushSubscription", endpoint), {
+    ok: true,
+  });
+  assert.deepEqual(await devices(), []);
 }

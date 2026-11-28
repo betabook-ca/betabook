@@ -42,6 +42,8 @@ void test("Rust Worker HTTP flows", async (t) => {
           RESEND_API_KEY: "",
           GOOGLE_CLIENT_ID: "fixture-google-id",
           GOOGLE_CLIENT_SECRET: "fixture-google-secret",
+          // RFC 8291 Appendix A sender key; never a deployed key.
+          VAPID_PRIVATE_KEY: "yfWPiYE-n46HLnH0KqZOF1fJJU3MYrct3AELtAQ-oRw",
         },
       },
       {

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 
+import { PushDeviceControl } from "@/components/push-device-control";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { SETTINGS_ROW_CLASS, SettingsSwitch } from "@/components/ui/settings";
 import type { components } from "@/spa/generated/api";
@@ -11,7 +12,14 @@ export type SendAlertPreferences = components["schemas"]["SendAlertPreferences"]
 
 const SAVE_ERROR = "Couldn't save send alerts. Try again.";
 
-export function SendAlertControls({ initial }: { initial: SendAlertPreferences }) {
+export function SendAlertControls({
+  initial,
+  pushPublicKey = null,
+}: {
+  initial: SendAlertPreferences;
+  /** Null where web push isn't configured. */
+  pushPublicKey?: string | null;
+}) {
   const [preferences, setPreferences] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -51,6 +59,7 @@ export function SendAlertControls({ initial }: { initial: SendAlertPreferences }
         isDisabled={isPending}
         onChange={(value) => change("receive", value)}
       />
+      {preferences.receive && pushPublicKey && <PushDeviceControl publicKey={pushPublicKey} />}
       {error && <InlineAlert>{error}</InlineAlert>}
     </div>
   );

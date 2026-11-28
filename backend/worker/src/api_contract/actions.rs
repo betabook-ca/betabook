@@ -325,6 +325,15 @@ fn input(api: &mut ApiSpec, action: Action) -> Value {
             ),
         ]),
         SaveTripNotes => args([("tripId", id()), ("notes", string())]),
+        SavePushSubscription => args([(
+            "subscription",
+            record([
+                ("endpoint", string()),
+                ("p256dh", string()),
+                ("auth", string()),
+            ]),
+        )]),
+        DeletePushSubscription => args([("endpoint", string())]),
         SetClimbListVisibility | SetJournalVisibility | SetTripVisibility => {
             args([("visibility", enumeration(&["public", "friends", "private"]))])
         }
@@ -438,6 +447,7 @@ fn result(api: &mut ApiSpec, action: Action) -> Value {
         | DeleteClimbList
         | DeleteGoal
         | DeleteJournalEntry
+        | DeletePushSubscription
         | DeleteSend
         | DeleteTrip
         | DismissFeatureAnnouncement
@@ -451,6 +461,7 @@ fn result(api: &mut ApiSpec, action: Action) -> Value {
         | SaveAnalyticsLayout
         | SaveClimbListEdits
         | SaveProductTourStatus
+        | SavePushSubscription
         | SaveTripNotes
         | SetClimbListVisibility
         | SetGradePreferences

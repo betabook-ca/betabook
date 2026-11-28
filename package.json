@@ -38,7 +38,8 @@
     "brand:generate": "node scripts/generate-brand-assets.ts",
     "chromatic": "chromatic",
     "api:generate": "node scripts/generate-api.ts",
-    "api:check": "node scripts/generate-api.ts --check"
+    "api:check": "node scripts/generate-api.ts --check",
+    "vapid:generate": "node scripts/generate-vapid-key.ts"
   },
   "dependencies": {
     "@heroui/react": "3.2.8",

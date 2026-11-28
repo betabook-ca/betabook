@@ -21,6 +21,8 @@ interface CloudflareEnv {
   TURNSTILE_SECRET_KEY?: string;
   CLOUDFLARE_USAGE_ACCOUNT_ID?: string;
   CLOUDFLARE_USAGE_API_TOKEN?: string;
+  VAPID_PRIVATE_KEY?: string;
+  VAPID_SUBJECT?: string;
 }
 
 declare namespace Cloudflare {
@@ -44,5 +46,7 @@ declare namespace Cloudflare {
     TURNSTILE_SECRET_KEY?: CloudflareEnv["TURNSTILE_SECRET_KEY"];
     CLOUDFLARE_USAGE_ACCOUNT_ID?: CloudflareEnv["CLOUDFLARE_USAGE_ACCOUNT_ID"];
     CLOUDFLARE_USAGE_API_TOKEN?: CloudflareEnv["CLOUDFLARE_USAGE_API_TOKEN"];
+    VAPID_PRIVATE_KEY?: CloudflareEnv["VAPID_PRIVATE_KEY"];
+    VAPID_SUBJECT?: CloudflareEnv["VAPID_SUBJECT"];
   }
 }

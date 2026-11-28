@@ -33,6 +33,7 @@ export function AccountSettings({
   climbListVisibility,
   gradePreferences,
   sendAlerts,
+  pushPublicKey,
   shareUrl,
   turnstileSiteKey,
   catalogExport,
@@ -46,6 +47,8 @@ export function AccountSettings({
   climbListVisibility: SharingAudience;
   gradePreferences: GradePreferences;
   sendAlerts: SendAlertPreferences;
+  /** Null where web push isn't configured. */
+  pushPublicKey: string | null;
   /** Null while the profile is private. */
   shareUrl: string | null;
   turnstileSiteKey?: string | null;
@@ -79,7 +82,7 @@ export function AccountSettings({
           initialTripVisibility={tripVisibility}
           initialClimbListVisibility={climbListVisibility}
         />
-        <SendAlertControls initial={sendAlerts} />
+        <SendAlertControls initial={sendAlerts} pushPublicKey={pushPublicKey} />
         <PrivacyDetails />
       </SettingsSection>
 

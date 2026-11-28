@@ -272,6 +272,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/actions/deletePushSubscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["deletePushSubscription"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/actions/deleteSend": {
         parameters: {
             query?: never;
@@ -714,6 +730,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["saveProductTourStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/actions/savePushSubscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["savePushSubscription"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2193,6 +2225,7 @@ export interface components {
             isAdmin: boolean;
             isPrivate: boolean;
             journalVisibility: components["schemas"]["SharingAudience"];
+            pushPublicKey: string | null;
             sendAlerts: components["schemas"]["SendAlertPreferences"];
             sendCommentVisibility: components["schemas"]["CommentAudience"];
             shareUrl: string | null;
@@ -4115,6 +4148,42 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    deletePushSubscription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    args: [
+                        string
+                    ];
+                };
+            };
+        };
+        responses: {
+            /** @description Action success or a handled validation or permission error */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        ok: true;
+                    } | {
+                        error: string;
+                        /** @constant */
+                        ok: false;
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
     deleteSend: {
         parameters: {
             query?: never;
@@ -5275,6 +5344,46 @@ export interface operations {
                         string,
                         number,
                         components["schemas"]["Input_TourStatus"]
+                    ];
+                };
+            };
+        };
+        responses: {
+            /** @description Action success or a handled validation or permission error */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        ok: true;
+                    } | {
+                        error: string;
+                        /** @constant */
+                        ok: false;
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    savePushSubscription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    args: [
+                        {
+                            auth: string;
+                            endpoint: string;
+                            p256dh: string;
+                        }
                     ];
                 };
             };

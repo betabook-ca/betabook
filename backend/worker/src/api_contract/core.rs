@@ -133,7 +133,7 @@ envelope!(CatalogExportInfo {
     climb_count: u64,
     size: u64
 });
-envelope!(AccountPage {user:AccountIdentity,is_private:bool,journal_visibility:SharingAudience,send_comment_visibility:CommentAudience,trip_visibility:SharingAudience,climb_list_visibility:SharingAudience,grade_preferences:GradePreferences,send_alerts:SendAlertPreferences,share_url:Option<String>,turnstile_site_key:Option<String>,catalog_export:Option<CatalogExportInfo>,is_admin:bool});
+envelope!(AccountPage {user:AccountIdentity,is_private:bool,journal_visibility:SharingAudience,send_comment_visibility:CommentAudience,trip_visibility:SharingAudience,climb_list_visibility:SharingAudience,grade_preferences:GradePreferences,send_alerts:SendAlertPreferences,push_public_key:Option<String>,share_url:Option<String>,turnstile_site_key:Option<String>,catalog_export:Option<CatalogExportInfo>,is_admin:bool});
 envelope!(ReviewPerson {name:String,image:Option<String>});
 envelope!(ReviewApprover {id:String,name:String,image:Option<String>});
 envelope!(ReviewDescription {href:String,summary:String,requester_summary:String,details:Vec<String>});

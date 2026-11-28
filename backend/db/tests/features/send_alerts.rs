@@ -1,9 +1,68 @@
 use super::{migrated_db, run_async};
 use betabook_db::{
     DbError, DbExecutor,
-    send_alerts::{alerts_for_day, fan_out, list, mark_read, unread_count, update_preferences},
+    send_alerts::{
+        PushSummary, PushTarget, alerts_for_day, delete_push_subscription, fan_out,
+        forget_push_endpoint, list, mark_read, push_summary, push_targets,
+        save_push_subscription, unread_count, update_preferences,
+    },
     sqlite::SqliteDb,
 };
+
+fn device(endpoint: &str) -> PushTarget {
+    PushTarget {
+        endpoint: endpoint.to_owned(),
+        p256dh: "B".repeat(87),
+        auth: "a".repeat(22),
+    }
+}
+
+#[test]
+fn devices_follow_their_latest_account_and_only_owners_unsubscribe() -> Result<(), DbError> {
+    let db = migrated_db();
+    run_async(async {
+        fixture(&db).await?;
+        let phone = device("https://push.example/phone");
+        save_push_subscription(&db, "friend", &phone).await?;
+        save_push_subscription(&db, "quiet", &device("https://push.example/laptop")).await?;
+        assert_eq!(
+            push_targets(&db, &["friend".to_owned()]).await?,
+            std::slice::from_ref(&phone)
+        );
+
+        save_push_subscription(&db, "quiet", &phone).await?;
+        assert!(push_targets(&db, &["friend".to_owned()]).await?.is_empty());
+        delete_push_subscription(&db, "friend", &phone.endpoint).await?;
+        assert_eq!(push_targets(&db, &["quiet".to_owned()]).await?.len(), 2);
+        delete_push_subscription(&db, "quiet", &phone.endpoint).await?;
+        forget_push_endpoint(&db, "https://push.example/laptop").await?;
+        assert!(push_targets(&db, &["quiet".to_owned()]).await?.is_empty());
+
+        assert!(
+            save_push_subscription(&db, "friend", &device("http://push.example/plain"))
+                .await
+                .is_err()
+        );
+        Ok(())
+    })
+}
+
+#[test]
+fn summarizes_the_day_by_its_hardest_climb() -> Result<(), DbError> {
+    let db = migrated_db();
+    run_async(async {
+        fixture(&db).await?;
+        send(&db, 2, DAY).await?;
+        let summary = PushSummary {
+            name: "Climber".to_owned(),
+            sends: 2,
+            first_climb: "Hard".to_owned(),
+        };
+        assert_eq!(push_summary(&db, "climber", DAY).await?, Some(summary));
+        assert_eq!(push_summary(&db, "climber", TODAY).await?, None);
+        Ok(())
+    })
+}
 
 const DAY: &str = "2026-03-01";
 const TODAY: &str = "2026-03-02";

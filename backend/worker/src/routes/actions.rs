@@ -133,6 +133,8 @@ pub(super) async fn allow_rate_limit(state: &AppState, binding: &str, key: &str)
     }
 }
 
+const PUSH_UNSUPPORTED_MESSAGE: &str = "This browser's notifications aren't supported.";
+
 pub(super) fn today_utc(state: &AppState) -> String {
     let iso = now_iso_from_ms(state.now_ms());
     iso.get(..10).unwrap_or("2026-01-01").to_string()
@@ -1109,6 +1111,46 @@ pub async fn dispatch_action(
                 state.now_ms(),
             )
             .await?;
+            Ok(action_ok())
+        }
+        Action::SavePushSubscription => {
+            let session = match require_member_session(&state, &headers).await {
+                Ok(s) => s,
+                Err(err) => return crate::routes::actions::session_error(err),
+            };
+            let obj = call.args.first().and_then(Value::as_object);
+            let field = |name: &str| {
+                obj.and_then(|o| o.get(name))
+                    .and_then(Value::as_str)
+                    .map(str::to_owned)
+            };
+            let (Some(endpoint), Some(p256dh), Some(auth)) =
+                (field("endpoint"), field("p256dh"), field("auth"))
+            else {
+                return Ok(action_err(PUSH_UNSUPPORTED_MESSAGE));
+            };
+            if betabook_domain::web_push::push_service_audience(&endpoint).is_none()
+                || betabook_domain::web_push::Subscription::parse(&p256dh, &auth).is_err()
+            {
+                return Ok(action_err(PUSH_UNSUPPORTED_MESSAGE));
+            }
+            let target = send_alerts::PushTarget {
+                endpoint,
+                p256dh,
+                auth,
+            };
+            send_alerts::save_push_subscription(state.db(), &session.user.id, &target).await?;
+            Ok(action_ok())
+        }
+        Action::DeletePushSubscription => {
+            let session = match require_member_session(&state, &headers).await {
+                Ok(s) => s,
+                Err(err) => return crate::routes::actions::session_error(err),
+            };
+            let Some(endpoint) = call.args.first().and_then(Value::as_str) else {
+                return Ok(action_err(PUSH_UNSUPPORTED_MESSAGE));
+            };
+            send_alerts::delete_push_subscription(state.db(), &session.user.id, endpoint).await?;
             Ok(action_ok())
         }
         Action::MarkNotificationsRead => {

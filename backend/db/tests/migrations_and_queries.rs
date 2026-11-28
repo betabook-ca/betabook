@@ -39,7 +39,7 @@ fn migrated_db() -> SqliteDb {
     let db = SqliteDb::in_memory().expect("in-memory sqlite");
     let migrations = Path::new(env!("CARGO_MANIFEST_DIR")).join("../migrations");
     let count = db.apply_migrations(&migrations).expect("apply migrations");
-    assert!(count >= 58, "expected at least 58 migrations, got {count}");
+    assert!(count >= 59, "expected at least 59 migrations, got {count}");
     db
 }
 

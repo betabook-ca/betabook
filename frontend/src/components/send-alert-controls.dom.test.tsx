@@ -11,7 +11,26 @@ vi.mock("@/spa/lib/actions-client", () => ({
     vi.fn<(preferences: { shareWithFriends: boolean; receive: boolean }) => Promise<unknown>>(),
 }));
 
+vi.mock("@/components/push-device-control", () => ({
+  PushDeviceControl: ({ publicKey }: { publicKey: string }) => <p>Device push with {publicKey}</p>,
+}));
+
 const save = vi.mocked(setSendAlertPreferences);
+
+it("offers device push only while alerts are on and push is configured", async () => {
+  const user = userEvent.setup();
+  save.mockResolvedValue({ ok: true, value: undefined });
+  const { rerender } = render(
+    <SendAlertControls initial={{ shareWithFriends: true, receive: true }} pushPublicKey="key" />,
+  );
+  expect(screen.getByText("Device push with key")).toBeInTheDocument();
+
+  await user.click(screen.getByRole("switch", { name: "Get alerts when friends log sends" }));
+  expect(screen.queryByText(/Device push/)).not.toBeInTheDocument();
+
+  rerender(<SendAlertControls initial={{ shareWithFriends: true, receive: true }} />);
+  expect(screen.queryByText(/Device push/)).not.toBeInTheDocument();
+});
 
 afterEach(() => {
   save.mockReset();
