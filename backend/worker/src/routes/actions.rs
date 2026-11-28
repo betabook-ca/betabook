@@ -1148,7 +1148,7 @@ pub async fn dispatch_action(
                 Err(err) => return crate::routes::actions::session_error(err),
             };
             let Some(endpoint) = call.args.first().and_then(Value::as_str) else {
-                return Ok(action_err(PUSH_UNSUPPORTED_MESSAGE));
+                return Ok(action_err("Reload the page and try again."));
             };
             send_alerts::delete_push_subscription(state.db(), &session.user.id, endpoint).await?;
             Ok(action_ok())

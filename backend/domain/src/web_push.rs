@@ -17,8 +17,6 @@ use sha2::Sha256;
 const RECORD_SIZE: u32 = 4096;
 /// RFC 8188 padding delimiter that ends the final record.
 const LAST_RECORD_DELIMITER: u8 = 0x02;
-/// Plaintext room left in one record after the header and AEAD tag.
-pub const MAX_PAYLOAD: usize = 3_000;
 /// VAPID tokens may live at most a day; twelve hours leaves room for clock skew.
 const VAPID_LIFETIME_SECS: i64 = 12 * 60 * 60;
 
@@ -28,8 +26,6 @@ pub enum WebPushError {
     InvalidSubscription,
     #[error("invalid VAPID key")]
     InvalidVapidKey,
-    #[error("payload too large")]
-    PayloadTooLarge,
     #[error("random generation failed")]
     Random,
     #[error("encryption failed")]
@@ -147,9 +143,6 @@ fn encrypt_with(
     sender: &SecretKey,
     salt: [u8; 16],
 ) -> Result<Vec<u8>, WebPushError> {
-    if plaintext.len() > MAX_PAYLOAD {
-        return Err(WebPushError::PayloadTooLarge);
-    }
     let sender_public = sender.public_key().to_sec1_bytes();
     let shared = sender.diffie_hellman(&subscription.public_key);
 
@@ -191,17 +184,11 @@ pub struct Vapid {
 }
 
 impl Vapid {
-    /// `private_key` is a PKCS#8 PEM (the OpenTofu `vapid_private_key`
-    /// output) or a raw 32-byte P-256 scalar, base64url (`pnpm vapid:generate`).
-    /// `subject` is a `mailto:` or `https:` contact for push services.
+    /// `private_key` is a PKCS#8 PEM P-256 key; `subject` is a `mailto:` or
+    /// `https:` contact for push services.
     pub fn new(private_key: &str, subject: &str) -> Result<Self, WebPushError> {
-        let private_key = private_key.trim();
-        let signing_key = if private_key.starts_with("-----BEGIN PRIVATE KEY-----") {
-            SigningKey::from_pkcs8_pem(private_key).map_err(|_| WebPushError::InvalidVapidKey)?
-        } else {
-            let bytes = decode(private_key).ok_or(WebPushError::InvalidVapidKey)?;
-            SigningKey::from_slice(&bytes).map_err(|_| WebPushError::InvalidVapidKey)?
-        };
+        let signing_key = SigningKey::from_pkcs8_pem(private_key.trim())
+            .map_err(|_| WebPushError::InvalidVapidKey)?;
         if !(subject.starts_with("mailto:") || subject.starts_with("https://")) {
             return Err(WebPushError::InvalidVapidKey);
         }
@@ -267,10 +254,6 @@ mod tests {
         let second = encrypt(&subscription, PLAINTEXT).unwrap();
         assert_ne!(first, second);
         assert_eq!(first.len(), 16 + 4 + 1 + 65 + PLAINTEXT.len() + 1 + 16);
-        assert_eq!(
-            encrypt(&subscription, &[0; MAX_PAYLOAD + 1]).err(),
-            Some(WebPushError::PayloadTooLarge)
-        );
         assert!(Subscription::parse(UA_PRIVATE, AUTH).is_err());
         assert!(Subscription::parse(UA_PUBLIC, SALT.get(..10).unwrap()).is_err());
     }
@@ -329,31 +312,33 @@ mod tests {
         }
     }
 
-    #[test]
-    fn reads_the_pkcs8_pem_that_opentofu_outputs() {
-        // A throwaway key from `openssl genpkey`, the format of tls_private_key's
-        // private_key_pem_pkcs8; its public key from `openssl pkey -pubout`.
-        let pem = "-----BEGIN PRIVATE KEY-----
+    // A throwaway key from `openssl genpkey`, the format of tls_private_key's
+    // private_key_pem_pkcs8; its public key from `openssl pkey -pubout`.
+    const VAPID_PEM: &str = "-----BEGIN PRIVATE KEY-----
 MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg9pUSEtGgoLvFI5vH
 U4yS/31yeMqqh6QgTuoedNVBLXWhRANCAAR/TJA9QTjf58kXAc3PE05PX/r6SXTF
 X7D7eP5iht6Lflk61zsmGrJjCHuUt4CZQaadMV3yQCevri++YNTrh8Xy
 -----END PRIVATE KEY-----
 ";
-        let vapid = Vapid::new(pem, "https://betabook.ca").unwrap();
+
+    #[test]
+    fn reads_the_pkcs8_pem_that_opentofu_outputs() {
+        let vapid = Vapid::new(VAPID_PEM, "https://betabook.ca").unwrap();
         assert_eq!(
             vapid.public_key(),
             "BH9MkD1BON_nyRcBzc8TTk9f-vpJdMVfsPt4_mKG3ot-WTrXOyYasmMIe5S3gJlBpp0xXfJAJ6-uL75g1OuHxfI"
         );
-        let truncated = pem.replace(
+        let truncated = VAPID_PEM.replace(
             "X7D7eP5iht6Lflk61zsmGrJjCHuUt4CZQaadMV3yQCevri++YNTrh8Xy\n",
             "",
         );
         assert!(Vapid::new(&truncated, "https://betabook.ca").is_err());
+        assert!(Vapid::new(AS_PRIVATE, "https://betabook.ca").is_err());
     }
 
     #[test]
     fn signs_a_verifiable_vapid_token() {
-        let vapid = Vapid::new(AS_PRIVATE, "mailto:push@example.test").unwrap();
+        let vapid = Vapid::new(VAPID_PEM, "mailto:push@example.test").unwrap();
         let header = vapid.authorization("https://fcm.googleapis.com", 1_000);
         let (token, key) = header
             .strip_prefix("vapid t=")
@@ -375,7 +360,6 @@ X7D7eP5iht6Lflk61zsmGrJjCHuUt4CZQaadMV3yQCevri++YNTrh8Xy
                 .verify(signing_input.as_bytes(), &signature)
                 .is_ok()
         );
-        assert!(Vapid::new(AS_PRIVATE, "push@example.test").is_err());
-        assert!(Vapid::new("short", "mailto:push@example.test").is_err());
+        assert!(Vapid::new(VAPID_PEM, "push@example.test").is_err());
     }
 }

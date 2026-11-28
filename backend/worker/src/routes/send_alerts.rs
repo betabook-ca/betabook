@@ -9,6 +9,7 @@ use betabook_db::send_alerts::{self, PushTarget};
 use betabook_domain::web_push::{self, PushFailure, PushOutcome, Subscription, Vapid};
 use futures_util::{StreamExt, stream};
 use serde_json::json;
+use std::collections::HashMap;
 use url::form_urlencoded;
 use worker::{Fetch, Headers, Method, Request, RequestInit};
 
@@ -95,8 +96,22 @@ async fn push(
     .to_string();
     let now_secs = state.now_ms() / 1000;
     let skipped = targets.len().saturating_sub(MAX_PUSH_DELIVERIES);
-    let failures: Vec<PushFailure> = stream::iter(targets.iter().take(MAX_PUSH_DELIVERIES))
-        .map(|target| deliver(state, &vapid, target, payload.as_bytes(), now_secs))
+    let mut tokens: HashMap<String, String> = HashMap::new();
+    let deliveries: Vec<_> = targets
+        .iter()
+        .take(MAX_PUSH_DELIVERIES)
+        .map(|target| {
+            let authorization = web_push::push_service_audience(&target.endpoint).map(|audience| {
+                tokens
+                    .entry(audience)
+                    .or_insert_with_key(|audience| vapid.authorization(audience, now_secs))
+                    .clone()
+            });
+            (target, authorization)
+        })
+        .collect();
+    let failures: Vec<PushFailure> = stream::iter(deliveries)
+        .map(|(target, authorization)| deliver(state, target, authorization, payload.as_bytes()))
         .buffer_unordered(PUSH_CONCURRENCY)
         .filter_map(|result| async move { result.err() })
         .collect()
@@ -115,25 +130,20 @@ async fn push(
 
 async fn deliver(
     state: &AppState,
-    vapid: &Vapid,
     target: &PushTarget,
+    authorization: Option<String>,
     payload: &[u8],
-    now_secs: i64,
 ) -> Result<(), PushFailure> {
-    let (Some(audience), Ok(subscription)) = (
-        web_push::push_service_audience(&target.endpoint),
+    let (Some(authorization), Ok(subscription)) = (
+        authorization,
         Subscription::parse(&target.p256dh, &target.auth),
     ) else {
         return forget(state, target).await;
     };
     let body = web_push::encrypt(&subscription, payload).map_err(|_| PushFailure::Encrypt)?;
-    let status = post(
-        &target.endpoint,
-        &vapid.authorization(&audience, now_secs),
-        &body,
-    )
-    .await
-    .map_err(|_| PushFailure::Request)?;
+    let status = post(&target.endpoint, &authorization, &body)
+        .await
+        .map_err(|_| PushFailure::Request)?;
     match PushOutcome::from_status(status) {
         PushOutcome::Delivered => Ok(()),
         PushOutcome::Gone => forget(state, target).await,

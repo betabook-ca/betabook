@@ -3,8 +3,8 @@ use betabook_db::{
     DbError, DbExecutor,
     send_alerts::{
         PushSummary, PushTarget, alerts_for_day, delete_push_subscription, fan_out,
-        forget_push_endpoint, list, mark_read, push_summary, push_targets,
-        save_push_subscription, unread_count, update_preferences,
+        forget_push_endpoint, list, mark_read, push_summary, push_targets, save_push_subscription,
+        unread_count, update_preferences,
     },
     sqlite::SqliteDb,
 };

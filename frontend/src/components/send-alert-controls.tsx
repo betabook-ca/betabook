@@ -14,11 +14,10 @@ const SAVE_ERROR = "Couldn't save send alerts. Try again.";
 
 export function SendAlertControls({
   initial,
-  pushPublicKey = null,
+  pushPublicKey,
 }: {
   initial: SendAlertPreferences;
-  /** Null where web push isn't configured. */
-  pushPublicKey?: string | null;
+  pushPublicKey: string | null;
 }) {
   const [preferences, setPreferences] = useState(initial);
   const [error, setError] = useState<string | null>(null);

@@ -1,13 +1,16 @@
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
-self.addEventListener("push", (event) => {
-  let message = {};
+const readMessage = (data) => {
   try {
-    message = event.data ? event.data.json() : {};
+    return data?.json() ?? {};
   } catch {
-    message = {};
+    return {};
   }
+};
+
+self.addEventListener("push", (event) => {
+  const message = readMessage(event.data);
   // Only same-site paths: "//host" would resolve to another origin.
   const url =
     typeof message.url === "string" && /^\/(?![/\\])/.test(message.url)
@@ -40,6 +43,5 @@ const openAlert = async (href) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const target = new URL(event.notification.data?.url || "/notifications", self.location.origin);
-  event.waitUntil(openAlert(target.href));
+  event.waitUntil(openAlert(new URL(event.notification.data.url, self.location.origin).href));
 });

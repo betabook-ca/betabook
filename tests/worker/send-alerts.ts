@@ -122,7 +122,7 @@ export async function testSendAlerts({ server, db, signIn }: SmokeContext) {
 
   assert.equal(
     account.pushPublicKey,
-    "BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8",
+    "BH9MkD1BON_nyRcBzc8TTk9f-vpJdMVfsPt4_mKG3ot-WTrXOyYasmMIe5S3gJlBpp0xXfJAJ6-uL75g1OuHxfI",
   );
   // Registered last, after every send above, so no test posts to a real push service.
   const keys = {

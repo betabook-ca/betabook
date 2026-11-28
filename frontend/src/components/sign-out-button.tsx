@@ -7,7 +7,7 @@ import { useState } from "react";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { authClient } from "@/lib/auth-client";
-import { disablePush, pushSupport } from "@/lib/push";
+import { disablePush } from "@/lib/push";
 import { useRouter } from "@/spa/lib/navigation";
 
 export function SignOutButton({
@@ -28,7 +28,7 @@ export function SignOutButton({
     setError(null);
     setPending(true);
     try {
-      if (pushSupport({ window, navigator }) === "supported") await disablePush().catch(() => {});
+      await disablePush().catch(() => {});
       await authClient.signOut({
         fetchOptions: {
           onSuccess: () => {

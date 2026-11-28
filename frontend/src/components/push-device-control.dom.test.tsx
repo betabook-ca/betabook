@@ -65,20 +65,15 @@ it("turns push off when this device is already subscribed", async () => {
   expect(await screen.findByRole("button", { name: "Turn on for this device" })).toBeEnabled();
 });
 
-it("explains a refused permission without offering the button again", async () => {
+it("explains a refused permission once, without offering the button again", async () => {
   const user = userEvent.setup();
-  enable.mockImplementation(async () => {
-    vi.stubGlobal("Notification", { permission: "denied" });
-    return {
-      ok: false,
-      error: "Notifications are blocked for Betabook in this browser's settings.",
-    };
-  });
+  enable.mockResolvedValue({ ok: false, error: null });
   render(<PushDeviceControl publicKey="server-key" />);
 
   await user.click(await screen.findByRole("button", { name: "Turn on for this device" }));
 
-  expect(await screen.findByRole("alert")).toHaveTextContent("blocked");
+  expect(await screen.findByText(/blocked for Betabook/)).toBeInTheDocument();
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
 });
 

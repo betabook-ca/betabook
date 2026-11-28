@@ -10,8 +10,10 @@ export type {
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 
 const NO_REFRESH_ACTIONS = new Set([
+  "deletePushSubscription",
   "getSendEditorData",
   "markNotificationsRead",
+  "savePushSubscription",
   "submitContactMessage",
   "resolveImportClimbs",
   "resolveImportClimbsInAreas",
