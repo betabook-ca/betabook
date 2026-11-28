@@ -74,6 +74,7 @@ macro_rules! worker_routes {
             get "/api/friends/suggestions" => routes::member_search::friend_suggestions;
             get "/api/friends/companions" => routes::member_pages::friend_companions;
             get "/api/feed" => routes::member_pages::feed_api;
+            get "/api/notifications" => routes::send_alerts::notifications;
             get "/api/climbs/{id}/sends" => routes::member_pages::climb_sends_api;
             get "/api/climbs/{id}/lists" => routes::member_pages::climb_lists_api;
             get "/api/users/{id}/sends" => routes::member_pages::user_sends_api;

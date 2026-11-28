@@ -18,6 +18,7 @@ use betabook_db::member_catalog::{
     create_area, create_climb, get_climb_by_id, update_area_description, update_climb_description,
 };
 use betabook_db::public_catalog::get_public_area;
+use betabook_db::send_alerts;
 use betabook_db::sends::{
     MutationError, create_undated_send, delete_user_send, get_send_by_id, get_user_send_for_climb,
     update_send_with_journal,
@@ -1088,6 +1089,40 @@ pub async fn dispatch_action(
             .await?;
             Ok(action_ok())
         }
+        Action::SetSendAlertPreferences => {
+            let session = match require_member_session(&state, &headers).await {
+                Ok(s) => s,
+                Err(err) => return crate::routes::actions::session_error(err),
+            };
+            let obj = call.args.first().and_then(Value::as_object);
+            let flag = |name: &str| obj.and_then(|o| o.get(name)).and_then(Value::as_bool);
+            let (Some(share), Some(receive)) = (flag("shareWithFriends"), flag("receive")) else {
+                return Ok(action_err(
+                    "Choose whether to send and receive send alerts.",
+                ));
+            };
+            send_alerts::update_preferences(
+                state.db(),
+                &session.user.id,
+                share,
+                receive,
+                state.now_ms(),
+            )
+            .await?;
+            Ok(action_ok())
+        }
+        Action::MarkNotificationsRead => {
+            let session = match require_member_session(&state, &headers).await {
+                Ok(s) => s,
+                Err(err) => return crate::routes::actions::session_error(err),
+            };
+            let Some(seen_through) = call.args.first().and_then(Value::as_i64) else {
+                return Ok(action_err("Reload notifications and try again."));
+            };
+            send_alerts::mark_read(state.db(), &session.user.id, seen_through, state.now_ms())
+                .await?;
+            Ok(action_ok())
+        }
         Action::ResetProfileShareLink => {
             let session = match require_member_session(&state, &headers).await {
                 Ok(s) => s,
@@ -1408,6 +1443,9 @@ pub async fn dispatch_action(
             .await;
             map_mutation_result(res, |_| {
                 super::goal_refresh::schedule(&state, &session.user.id);
+                if send_input_if_new.is_some() {
+                    super::send_alerts::schedule(&state, &session.user.id, &input.entry_date);
+                }
                 action_ok()
             })
         }

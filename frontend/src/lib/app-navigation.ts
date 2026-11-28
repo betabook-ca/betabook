@@ -38,7 +38,12 @@ export function primaryAreaForPath(pathname: string, userId: string): PrimaryAre
   )
     return "progress";
   if (within(pathname, owner)) return "logbook";
-  if (within(pathname, "/feed") || within(pathname, "/friends") || pathname.startsWith("/users/"))
+  if (
+    within(pathname, "/feed") ||
+    within(pathname, "/friends") ||
+    within(pathname, "/notifications") ||
+    pathname.startsWith("/users/")
+  )
     return "community";
   return undefined;
 }

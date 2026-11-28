@@ -17,6 +17,7 @@ const PAGE_LABELS: Record<string, string> = {
   "/account/import": "Import sends",
   "/feed": "Feed",
   "/friends": "Friends",
+  "/notifications": "Notifications",
   "/sign-in": "Sign in",
   "/sign-up": "Sign up",
   "/forgot-password": "Forgot password",

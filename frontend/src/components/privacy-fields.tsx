@@ -1,11 +1,11 @@
 "use client";
 
-import { Disclosure, Label, ListBox, Select, Switch } from "@heroui/react";
-import { Fragment, useId } from "react";
+import { Disclosure, Label, ListBox, Select } from "@heroui/react";
+import { Fragment } from "react";
 
 import { FieldFeedback } from "@/components/ui/field-support";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { SETTINGS_ROW_CLASS, SETTINGS_ROWS_CLASS } from "@/components/ui/settings";
+import { SETTINGS_ROW_CLASS, SETTINGS_ROWS_CLASS, SettingsSwitch } from "@/components/ui/settings";
 import {
   SEND_COMMENT_AUDIENCES,
   SHARING_AUDIENCES,
@@ -50,31 +50,20 @@ export function PrivacyFields({
   tripsError?: string | null;
   listsError?: string | null;
 }) {
-  const profileDescriptionId = useId();
   return (
     <div className={SETTINGS_ROWS_CLASS}>
       <div className={`flex flex-col gap-3 ${SETTINGS_ROW_CLASS}`}>
-        <div className="flex flex-col gap-1">
-          <Switch
-            isDisabled={isPending}
-            isSelected={isPrivate}
-            onChange={onProfileChange}
-            aria-describedby={profileDescriptionId}
-          >
-            <Switch.Content className="w-full justify-between gap-6">
-              <span className="text-sm font-medium">Private profile</span>
-              <Switch.Control>
-                <Switch.Thumb />
-              </Switch.Control>
-            </Switch.Content>
-          </Switch>
-          {/* Outside Switch: a saving switch fades its own description below AA contrast. */}
-          <p id={profileDescriptionId} className="text-sm text-pretty text-muted">
-            {isPrivate
+        <SettingsSwitch
+          label="Private profile"
+          description={
+            isPrivate
               ? "Only you can see your profile and climbing history. Your audience choices are kept for when you turn this off."
-              : "Signed-in members can see your profile and sends."}
-          </p>
-        </div>
+              : "Signed-in members can see your profile and sends."
+          }
+          isSelected={isPrivate}
+          isDisabled={isPending}
+          onChange={onProfileChange}
+        />
         {profileError && <InlineAlert>{profileError}</InlineAlert>}
       </div>
       <AudienceField

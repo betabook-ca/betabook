@@ -1,23 +1,14 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, type ReactNode } from "react";
 
-import { useClientSession } from "@/hooks/use-client-session";
-import { createFriendRequestCountStore } from "@/lib/friend-request-count";
-import { usePathname } from "@/spa/lib/navigation";
+import { useLiveCount } from "@/hooks/use-live-count";
+import { createCountStore, type CountStore } from "@/lib/count-store";
 
 const FriendRequestsContext = createContext<{
   userId: string | null;
   count: number | null;
-  refresh: ReturnType<typeof createFriendRequestCountStore>["refresh"];
+  refresh: CountStore["refresh"];
 }>({
   userId: null as string | null,
   count: null as number | null,
@@ -25,40 +16,7 @@ const FriendRequestsContext = createContext<{
 });
 
 export function FriendRequestsProvider({ children }: { children: ReactNode }) {
-  const userId = useClientSession()?.user.id ?? null;
-  const pathname = usePathname();
-  const previousPath = useRef(pathname);
-  const [store] = useState(() => createFriendRequestCountStore());
-  const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
-
-  useEffect(() => {
-    store.setUser(userId);
-    if (!userId) return;
-    function refreshVisible() {
-      if (document.visibilityState === "visible") void store.refresh({ ifStale: true });
-    }
-    refreshVisible();
-    window.addEventListener("focus", refreshVisible);
-    document.addEventListener("visibilitychange", refreshVisible);
-    return () => {
-      window.removeEventListener("focus", refreshVisible);
-      document.removeEventListener("visibilitychange", refreshVisible);
-      store.setUser(null);
-    };
-  }, [store, userId]);
-
-  useEffect(() => {
-    if (previousPath.current !== pathname) {
-      previousPath.current = pathname;
-      if (document.visibilityState === "visible") void store.refresh({ ifStale: true });
-    }
-  }, [pathname, store]);
-
-  const value = {
-    userId,
-    count: snapshot.userId === userId ? snapshot.count : null,
-    refresh: store.refresh,
-  };
+  const value = useLiveCount(() => createCountStore("/api/friends"));
   return <FriendRequestsContext value={value}>{children}</FriendRequestsContext>;
 }
 

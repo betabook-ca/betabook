@@ -11,6 +11,7 @@ import { PrivacyDetails } from "@/components/privacy-fields";
 import { ProductTour } from "@/components/product-tour";
 import { ProfilePhotoSettings } from "@/components/profile-photo-settings";
 import { ResetPasswordButton } from "@/components/reset-password-button";
+import { SendAlertControls, type SendAlertPreferences } from "@/components/send-alert-controls";
 import { ShareProfileControls } from "@/components/share-profile-controls";
 import { SignOutButton } from "@/components/sign-out-button";
 import { ThemeSelect } from "@/components/theme-select";
@@ -31,6 +32,7 @@ export function AccountSettings({
   tripVisibility,
   climbListVisibility,
   gradePreferences,
+  sendAlerts,
   shareUrl,
   turnstileSiteKey,
   catalogExport,
@@ -43,6 +45,7 @@ export function AccountSettings({
   tripVisibility: SharingAudience;
   climbListVisibility: SharingAudience;
   gradePreferences: GradePreferences;
+  sendAlerts: SendAlertPreferences;
   /** Null while the profile is private. */
   shareUrl: string | null;
   turnstileSiteKey?: string | null;
@@ -76,6 +79,7 @@ export function AccountSettings({
           initialTripVisibility={tripVisibility}
           initialClimbListVisibility={climbListVisibility}
         />
+        <SendAlertControls initial={sendAlerts} />
         <PrivacyDetails />
       </SettingsSection>
 

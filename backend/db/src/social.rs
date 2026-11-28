@@ -732,6 +732,8 @@ pub struct AccountUserRow {
     pub climb_list_visibility: String,
     pub boulder_grade_scale: String,
     pub rope_grade_scale: String,
+    pub send_alerts_to_friends: bool,
+    pub receive_friend_send_alerts: bool,
 }
 
 pub async fn get_account_user<D: DbExecutor>(
@@ -746,7 +748,9 @@ pub async fn get_account_user<D: DbExecutor>(
                     trip_visibility AS tripVisibility,
                     climb_list_visibility AS climbListVisibility,
                     boulder_grade_scale AS boulderGradeScale,
-                    rope_grade_scale AS ropeGradeScale
+                    rope_grade_scale AS ropeGradeScale,
+                    send_alerts_to_friends AS sendAlertsToFriends,
+                    receive_friend_send_alerts AS receiveFriendSendAlerts
              FROM user WHERE id = ? LIMIT 1",
             &[DbParam::Text(user_id.to_string())],
         )
@@ -767,6 +771,8 @@ pub async fn get_account_user<D: DbExecutor>(
         climb_list_visibility: row.get_string("climbListVisibility")?,
         boulder_grade_scale: row.get_string("boulderGradeScale")?,
         rope_grade_scale: row.get_string("ropeGradeScale")?,
+        send_alerts_to_friends: row.get_bool("sendAlertsToFriends")?,
+        receive_friend_send_alerts: row.get_bool("receiveFriendSendAlerts")?,
     }))
 }
 

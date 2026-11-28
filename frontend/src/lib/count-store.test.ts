@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
 
-import { createFriendRequestCountStore } from "@/lib/friend-request-count";
+import { createCountStore } from "@/lib/count-store";
 
 afterEach(() => vi.useRealTimers());
 
@@ -10,7 +10,7 @@ it("shares passive count checks across navigation and focus for one minute", asy
     .fn<typeof fetch>()
     .mockResolvedValueOnce(Response.json({ userId: "owner", count: 2 }))
     .mockResolvedValueOnce(Response.json({ userId: "owner", count: 3 }));
-  const store = createFriendRequestCountStore(fetcher);
+  const store = createCountStore("/api/friends", fetcher);
   store.setUser("owner");
   await store.refresh({ ifStale: true });
   await store.refresh({ ifStale: true });
@@ -28,7 +28,7 @@ it("shares passive count checks across navigation and focus for one minute", asy
 it("does not cancel and restart an in-flight count for passive checks", async () => {
   const pending = deferred();
   const fetcher = vi.fn<typeof fetch>().mockReturnValue(pending.promise);
-  const store = createFriendRequestCountStore(fetcher);
+  const store = createCountStore("/api/friends", fetcher);
   store.setUser("owner");
   const first = store.refresh({ ifStale: true });
   const second = store.refresh({ ifStale: true });
@@ -45,7 +45,7 @@ it("bypasses the passive cooldown after a mutation or account change", async () 
     .mockResolvedValueOnce(Response.json({ userId: "owner", count: 2 }))
     .mockResolvedValueOnce(Response.json({ userId: "owner", count: 1 }))
     .mockResolvedValueOnce(Response.json({ userId: "second", count: 4 }));
-  const store = createFriendRequestCountStore(fetcher);
+  const store = createCountStore("/api/friends", fetcher);
   store.setUser("owner");
   await store.refresh({ ifStale: true });
   await store.refresh();
@@ -69,7 +69,7 @@ it("does no work until signed in and refreshed, then replaces the count after a 
     .fn<typeof fetch>()
     .mockResolvedValueOnce(Response.json({ userId: "owner", count: 2 }))
     .mockResolvedValueOnce(Response.json({ userId: "owner", count: 1 }));
-  const store = createFriendRequestCountStore(fetcher);
+  const store = createCountStore("/api/friends", fetcher);
   await store.refresh();
   expect(fetcher).not.toHaveBeenCalled();
   store.setUser("owner");
@@ -97,7 +97,7 @@ it("clears account data immediately and ignores a previous account's late respon
     .fn<typeof fetch>()
     .mockReturnValueOnce(pending.promise)
     .mockResolvedValueOnce(Response.json({ userId: "second", count: 1 }));
-  const store = createFriendRequestCountStore(fetcher);
+  const store = createCountStore("/api/friends", fetcher);
   store.setUser("first");
   const first = store.refresh();
   store.setUser("second");
@@ -115,7 +115,7 @@ it("keeps the refreshed count when an older response arrives after accepting a r
     .fn<typeof fetch>()
     .mockReturnValueOnce(pending.promise)
     .mockResolvedValueOnce(Response.json({ userId: "owner", count: 0 }));
-  const store = createFriendRequestCountStore(fetcher);
+  const store = createCountStore("/api/friends", fetcher);
   store.setUser("owner");
   const old = store.refresh();
   await store.refresh();
@@ -126,7 +126,8 @@ it("keeps the refreshed count when an older response arrives after accepting a r
 
 it("ignores a response after signing out", async () => {
   const pending = deferred();
-  const store = createFriendRequestCountStore(
+  const store = createCountStore(
+    "/api/friends",
     vi.fn<typeof fetch>().mockReturnValue(pending.promise),
   );
   store.setUser("owner");
@@ -150,7 +151,7 @@ it.each([
     .mockResolvedValueOnce(Response.json({ userId: "owner", count: 1 }))
     .mockResolvedValueOnce(response)
     .mockResolvedValueOnce(Response.json({ userId: "owner", count: 2 }));
-  const store = createFriendRequestCountStore(fetcher);
+  const store = createCountStore("/api/friends", fetcher);
   store.setUser("owner");
   await store.refresh();
   expect(store.getSnapshot().count).toBe(1);
@@ -158,4 +159,15 @@ it.each([
   expect(store.getSnapshot().count).toBeNull();
   await store.refresh();
   expect(store.getSnapshot().count).toBe(2);
+});
+
+it("reads unread send alerts from the notifications count", async () => {
+  const fetcher = vi
+    .fn<typeof fetch>()
+    .mockResolvedValue(Response.json({ userId: "owner", count: 4 }));
+  const store = createCountStore("/api/notifications", fetcher);
+  store.setUser("owner");
+  await store.refresh();
+  expect(fetcher).toHaveBeenCalledWith("/api/notifications?view=count", expect.anything());
+  expect(store.getSnapshot()).toEqual({ userId: "owner", count: 4 });
 });

@@ -743,6 +743,10 @@ pub async fn account_page_loader(
                 "boulder": user.as_ref().map(|u| u.boulder_grade_scale.as_str()).unwrap_or("hueco"),
                 "rope": user.as_ref().map(|u| u.rope_grade_scale.as_str()).unwrap_or("yds"),
             },
+            "sendAlerts": {
+                "shareWithFriends": user.as_ref().is_none_or(|u| u.send_alerts_to_friends),
+                "receive": user.as_ref().is_none_or(|u| u.receive_friend_send_alerts),
+            },
             "shareUrl": share_url,
             "turnstileSiteKey": turnstile_site_key,
             "catalogExport": catalog_export,

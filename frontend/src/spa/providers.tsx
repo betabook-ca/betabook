@@ -4,6 +4,7 @@ import { useTheme } from "@heroui/react";
 import { RouterProvider } from "react-aria-components";
 
 import { FriendRequestsProvider } from "@/components/friend-requests-provider";
+import { NotificationsProvider } from "@/components/notifications-provider";
 import { useRouter } from "@/spa/lib/navigation";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -15,7 +16,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   useTheme("system");
   return (
     <RouterProvider navigate={router.push}>
-      <FriendRequestsProvider>{children}</FriendRequestsProvider>
+      <FriendRequestsProvider>
+        <NotificationsProvider>{children}</NotificationsProvider>
+      </FriendRequestsProvider>
     </RouterProvider>
   );
 }

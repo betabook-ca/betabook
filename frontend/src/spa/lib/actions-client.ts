@@ -9,8 +9,9 @@ export type {
 } from "./action-contracts";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 
-const READ_ONLY_ACTIONS = new Set([
+const NO_REFRESH_ACTIONS = new Set([
   "getSendEditorData",
+  "markNotificationsRead",
   "submitContactMessage",
   "resolveImportClimbs",
   "resolveImportClimbsInAreas",
@@ -63,7 +64,7 @@ async function callAction<N extends ActionName>(
         : { ok: false, error: GENERIC_ERROR_MESSAGE };
 
     if (!result || typeof result.ok !== "boolean") throw new Error("Invalid action result");
-    if (result.ok && !READ_ONLY_ACTIONS.has(name)) {
+    if (result.ok && !NO_REFRESH_ACTIONS.has(name)) {
       window.dispatchEvent(new CustomEvent("betabook:router-refresh"));
       if (SESSION_REFRESH_ACTIONS.has(name)) {
         window.dispatchEvent(new Event(SESSION_REFRESH_EVENT));
@@ -105,6 +106,7 @@ export const deleteTrip = actionProxy("deleteTrip");
 export const dismissFeatureAnnouncement = actionProxy("dismissFeatureAnnouncement");
 export const getSendEditorData = actionProxy("getSendEditorData");
 export const importSends = actionProxy("importSends");
+export const markNotificationsRead = actionProxy("markNotificationsRead");
 export const pinProject = actionProxy("pinProject");
 export const rejectChangeRequest = actionProxy("rejectChangeRequest");
 export const removeFriendship = actionProxy("removeFriendship");
@@ -132,6 +134,7 @@ export const saveTripNotes = actionProxy("saveTripNotes");
 export const setClimbListVisibility = actionProxy("setClimbListVisibility");
 export const setGradePreferences = actionProxy("setGradePreferences");
 export const setJournalVisibility = actionProxy("setJournalVisibility");
+export const setSendAlertPreferences = actionProxy("setSendAlertPreferences");
 export const setSendCommentVisibility = actionProxy("setSendCommentVisibility");
 export const setTripVisibility = actionProxy("setTripVisibility");
 export const setUserPrivate = actionProxy("setUserPrivate");

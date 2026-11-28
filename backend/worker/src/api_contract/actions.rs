@@ -259,6 +259,7 @@ fn input(api: &mut ApiSpec, action: Action) -> Value {
         PinProject | UnpinProject | UnshareProject | RequestClimbDelete => {
             args([("climbId", id())])
         }
+        MarkNotificationsRead => args([("seenThrough", number())]),
         RemoveProfilePhoto | ResetProfileShareLink => args([]),
         RequestAreaEdit | UpdateArea => args([
             ("areaId", id()),
@@ -332,6 +333,10 @@ fn input(api: &mut ApiSpec, action: Action) -> Value {
             enumeration(&["everyone", "public", "friends", "private"]),
         )]),
         SetGradePreferences => args([("scales", grade_preferences())]),
+        SetSendAlertPreferences => args([(
+            "preferences",
+            record([("shareWithFriends", boolean()), ("receive", boolean())]),
+        )]),
         SetUserPrivate => args([("isPrivate", boolean())]),
         ShareClimbList | ShareProject | ShareTrip => args([
             ("id", id()),
@@ -436,6 +441,7 @@ fn result(api: &mut ApiSpec, action: Action) -> Value {
         | DeleteSend
         | DeleteTrip
         | DismissFeatureAnnouncement
+        | MarkNotificationsRead
         | PinProject
         | RejectChangeRequest
         | RemoveMyJournalTag
@@ -449,6 +455,7 @@ fn result(api: &mut ApiSpec, action: Action) -> Value {
         | SetClimbListVisibility
         | SetGradePreferences
         | SetJournalVisibility
+        | SetSendAlertPreferences
         | SetSendCommentVisibility
         | SetTripVisibility
         | SetUserPrivate

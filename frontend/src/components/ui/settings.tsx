@@ -1,5 +1,6 @@
+import { Switch } from "@heroui/react";
 import { clsx } from "clsx";
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 
 import { cardClass } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/typography";
@@ -81,6 +82,43 @@ export function SettingsRow({
       <div className="flex shrink-0 flex-wrap items-center gap-2 sm:max-w-xs sm:justify-end">
         {children}
       </div>
+    </div>
+  );
+}
+
+export function SettingsSwitch({
+  label,
+  description,
+  isSelected,
+  isDisabled,
+  onChange,
+}: {
+  label: string;
+  description: ReactNode;
+  isSelected: boolean;
+  isDisabled: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  const descriptionId = useId();
+  return (
+    <div className="flex flex-col gap-1">
+      <Switch
+        isDisabled={isDisabled}
+        isSelected={isSelected}
+        onChange={onChange}
+        aria-describedby={descriptionId}
+      >
+        <Switch.Content className="w-full justify-between gap-6">
+          <span className="text-sm font-medium">{label}</span>
+          <Switch.Control>
+            <Switch.Thumb />
+          </Switch.Control>
+        </Switch.Content>
+      </Switch>
+      {/* Outside Switch: a saving switch fades its own description below AA contrast. */}
+      <p id={descriptionId} className="text-sm text-pretty text-muted">
+        {description}
+      </p>
     </div>
   );
 }

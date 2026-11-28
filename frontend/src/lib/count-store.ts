@@ -1,8 +1,13 @@
 import { apiUrl } from "@/spa/lib/api";
 type Snapshot = { userId: string | null; count: number | null };
 
-/** Shared by the header and profile tabs. Counts never survive an account change. */
-export function createFriendRequestCountStore(fetcher: typeof fetch = fetch) {
+export type CountStore = ReturnType<typeof createCountStore>;
+
+/** Counts never survive an account change. */
+export function createCountStore(
+  path: "/api/friends" | "/api/notifications",
+  fetcher: typeof fetch = fetch,
+) {
   let snapshot: Snapshot = { userId: null, count: null };
   let sequence = 0;
   let controller: AbortController | null = null;
@@ -40,11 +45,11 @@ export function createFriendRequestCountStore(fetcher: typeof fetch = fetch) {
       controller?.abort();
       controller = new AbortController();
       try {
-        const response = await fetcher(apiUrl("/api/friends", { query: { view: "count" } }), {
+        const response = await fetcher(apiUrl(path, { query: { view: "count" } }), {
           cache: "no-store",
           signal: controller.signal,
         });
-        if (!response.ok) throw new Error("Couldn't load friend requests");
+        if (!response.ok) throw new Error("Couldn't load the count");
         const data: unknown = await response.json();
         if (request !== sequence) return;
         const result = data as Partial<Snapshot> | null;
@@ -55,7 +60,7 @@ export function createFriendRequestCountStore(fetcher: typeof fetch = fetch) {
           !Number.isSafeInteger(result.count) ||
           result.count < 0
         ) {
-          throw new Error("Invalid request count");
+          throw new Error("Invalid count");
         }
         publish({ userId, count: result.count });
       } catch {
