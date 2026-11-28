@@ -9,6 +9,7 @@ use hkdf::Hkdf;
 use p256::{
     PublicKey, SecretKey,
     ecdsa::{Signature, SigningKey, signature::Signer},
+    pkcs8::DecodePrivateKey,
 };
 use sha2::Sha256;
 
@@ -157,12 +158,17 @@ pub struct Vapid {
 }
 
 impl Vapid {
-    /// `private_key` is the raw 32-byte P-256 scalar, base64url.
+    /// `private_key` is a PKCS#8 PEM (the OpenTofu `vapid_private_key`
+    /// output) or a raw 32-byte P-256 scalar, base64url (`pnpm vapid:generate`).
     /// `subject` is a `mailto:` or `https:` contact for push services.
     pub fn new(private_key: &str, subject: &str) -> Result<Self, WebPushError> {
-        let bytes = decode(private_key).ok_or(WebPushError::InvalidVapidKey)?;
-        let signing_key =
-            SigningKey::from_slice(&bytes).map_err(|_| WebPushError::InvalidVapidKey)?;
+        let private_key = private_key.trim();
+        let signing_key = if private_key.starts_with("-----BEGIN PRIVATE KEY-----") {
+            SigningKey::from_pkcs8_pem(private_key).map_err(|_| WebPushError::InvalidVapidKey)?
+        } else {
+            let bytes = decode(private_key).ok_or(WebPushError::InvalidVapidKey)?;
+            SigningKey::from_slice(&bytes).map_err(|_| WebPushError::InvalidVapidKey)?
+        };
         if !(subject.starts_with("mailto:") || subject.starts_with("https://")) {
             return Err(WebPushError::InvalidVapidKey);
         }
@@ -268,6 +274,28 @@ mod tests {
         ] {
             assert_eq!(push_service_audience(endpoint), None, "{endpoint}");
         }
+    }
+
+    #[test]
+    fn reads_the_pkcs8_pem_that_opentofu_outputs() {
+        // A throwaway key from `openssl genpkey`, the format of tls_private_key's
+        // private_key_pem_pkcs8; its public key from `openssl pkey -pubout`.
+        let pem = "-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg9pUSEtGgoLvFI5vH
+U4yS/31yeMqqh6QgTuoedNVBLXWhRANCAAR/TJA9QTjf58kXAc3PE05PX/r6SXTF
+X7D7eP5iht6Lflk61zsmGrJjCHuUt4CZQaadMV3yQCevri++YNTrh8Xy
+-----END PRIVATE KEY-----
+";
+        let vapid = Vapid::new(pem, "https://betabook.ca").unwrap();
+        assert_eq!(
+            vapid.public_key(),
+            "BH9MkD1BON_nyRcBzc8TTk9f-vpJdMVfsPt4_mKG3ot-WTrXOyYasmMIe5S3gJlBpp0xXfJAJ6-uL75g1OuHxfI"
+        );
+        let truncated = pem.replace(
+            "X7D7eP5iht6Lflk61zsmGrJjCHuUt4CZQaadMV3yQCevri++YNTrh8Xy\n",
+            "",
+        );
+        assert!(Vapid::new(&truncated, "https://betabook.ca").is_err());
     }
 
     #[test]

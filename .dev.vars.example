@@ -34,6 +34,7 @@ CLOUDFLARE_USAGE_ACCOUNT_ID=
 CLOUDFLARE_USAGE_API_TOKEN=
 
 # Web push for friend send alerts is off unless VAPID_PRIVATE_KEY is set
-# (VAPID_SUBJECT comes from wrangler.jsonc). The key is a raw P-256 private
-# scalar, base64url. Generate one with `pnpm vapid:generate`.
+# (VAPID_SUBJECT comes from wrangler.jsonc). Locally, generate a raw P-256 key
+# with `pnpm vapid:generate`. Production uses the OpenTofu `vapid_private_key`
+# output (see infra/cloudflare/AGENTS.md).
 VAPID_PRIVATE_KEY=

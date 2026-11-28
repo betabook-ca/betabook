@@ -4,7 +4,7 @@ OpenTofu stack for the `betabook.ca` zone, DNS records, managed robots.txt, the 
 
 Wrangler owns the Worker: code, bindings, observability, the custom domain and its apex records, secrets, and D1 migrations. `wrangler deploy` overwrites Worker settings, routes, and custom domains, so do not manage them here. Email Routing and its DNS records are configured in the dashboard.
 
-The Worker's `TURNSTILE_SITE_KEY` var is the `turnstile_sitekey` output, and its `TURNSTILE_SECRET_KEY` secret is the sensitive `turnstile_secret` output.
+The Worker's `TURNSTILE_SITE_KEY` var is the `turnstile_sitekey` output, and its `TURNSTILE_SECRET_KEY` secret is the sensitive `turnstile_secret` output. Its `VAPID_PRIVATE_KEY` secret is the sensitive `vapid_private_key` output (a PKCS#8 PEM), set once with `tofu output -raw vapid_private_key | pnpm exec wrangler secret put VAPID_PRIVATE_KEY`. Every push subscription is bound to that key, so replacing it ends push on every subscribed device. The provider has no standalone Worker secret resource: secrets are bindings of `cloudflare_workers_script`, which would take the Worker away from Wrangler, so outputs are copied rather than applied.
 
 ## Spacelift
 

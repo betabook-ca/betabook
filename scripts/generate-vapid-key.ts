@@ -1,6 +1,6 @@
-// Prints a new VAPID private key for web push: the raw P-256 scalar, base64url.
-// Store it with `wrangler secret put VAPID_PRIVATE_KEY`, or in `.dev.vars`
-// locally. The Worker derives the public key browsers subscribe with.
+// Prints a new VAPID private key for local web push: the raw P-256 scalar,
+// base64url, for `.dev.vars`. Production uses the OpenTofu `vapid_private_key`
+// output instead. The Worker derives the public key browsers subscribe with.
 import process from "node:process";
 
 async function main() {
