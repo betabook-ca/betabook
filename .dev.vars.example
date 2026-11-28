@@ -32,3 +32,9 @@ TURNSTILE_SECRET_KEY=
 # fixed bills. The token needs Account Analytics Read on this account.
 CLOUDFLARE_USAGE_ACCOUNT_ID=
 CLOUDFLARE_USAGE_API_TOKEN=
+
+# Web push for friend send alerts is off unless VAPID_PRIVATE_KEY is set
+# (VAPID_SUBJECT comes from wrangler.jsonc). Locally, quote the PEM that
+# `pnpm vapid:generate` prints. Production uses the OpenTofu `vapid_private_key`
+# output (see infra/cloudflare/AGENTS.md).
+VAPID_PRIVATE_KEY=

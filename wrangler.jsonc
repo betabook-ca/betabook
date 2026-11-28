@@ -49,6 +49,7 @@
       "!/manifest.webmanifest",
       "!/openapi.json",
       "!/license.txt",
+      "!/sw.js",
     ],
     "not_found_handling": "none",
   },
@@ -60,6 +61,8 @@
   ],
   "vars": {
     "BETTER_AUTH_URL": "https://betabook.ca",
+    // Contact push services see on VAPID tokens. VAPID_PRIVATE_KEY is a secret.
+    "VAPID_SUBJECT": "https://betabook.ca",
   },
   // Weekly public catalog snapshot (areas + climbs) → R2, served from
   // /account. Mondays 06:00 UTC; see lib/catalog-export.ts.

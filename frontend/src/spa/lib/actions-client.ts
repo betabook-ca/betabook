@@ -10,8 +10,10 @@ export type {
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 
 const NO_REFRESH_ACTIONS = new Set([
+  "deletePushSubscription",
   "getSendEditorData",
   "markNotificationsRead",
+  "savePushSubscription",
   "submitContactMessage",
   "resolveImportClimbs",
   "resolveImportClimbsInAreas",
@@ -101,6 +103,7 @@ export const declineFriendRequest = actionProxy("declineFriendRequest");
 export const deleteClimbList = actionProxy("deleteClimbList");
 export const deleteGoal = actionProxy("deleteGoal");
 export const deleteJournalEntry = actionProxy("deleteJournalEntry");
+export const deletePushSubscription = actionProxy("deletePushSubscription");
 export const deleteSend = actionProxy("deleteSend");
 export const deleteTrip = actionProxy("deleteTrip");
 export const dismissFeatureAnnouncement = actionProxy("dismissFeatureAnnouncement");
@@ -129,6 +132,7 @@ export const saveAnalyticsLayout = actionProxy("saveAnalyticsLayout");
 export const saveClimbListEdits = actionProxy("saveClimbListEdits");
 export const saveGoal = actionProxy("saveGoal");
 export const saveProductTourStatus = actionProxy("saveProductTourStatus");
+export const savePushSubscription = actionProxy("savePushSubscription");
 export const saveTrip = actionProxy("saveTrip");
 export const saveTripNotes = actionProxy("saveTripNotes");
 export const setClimbListVisibility = actionProxy("setClimbListVisibility");

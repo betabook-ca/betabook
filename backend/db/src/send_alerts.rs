@@ -210,3 +210,119 @@ pub async fn update_preferences<D: DbExecutor>(
     .await?;
     Ok(())
 }
+
+/// A device subscribed to push alerts. The endpoint is a capability URL:
+/// never log it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PushTarget {
+    pub endpoint: String,
+    pub p256dh: String,
+    pub auth: String,
+}
+
+/// What one push says about a climber's send date.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PushSummary {
+    pub name: String,
+    pub sends: i64,
+    pub latest_climb: String,
+}
+
+/// Registers this device for the user, taking it over from any earlier account.
+pub async fn save_push_subscription<D: DbExecutor>(
+    db: &D,
+    user_id: &str,
+    target: &PushTarget,
+) -> Result<(), DbError> {
+    db.execute(
+        "INSERT INTO push_subscriptions (endpoint, user_id, p256dh, auth) VALUES (?, ?, ?, ?)
+         ON CONFLICT (endpoint) DO UPDATE SET user_id = excluded.user_id,
+           p256dh = excluded.p256dh, auth = excluded.auth, created_at = excluded.created_at",
+        &[
+            DbParam::Text(target.endpoint.clone()),
+            DbParam::Text(user_id.to_owned()),
+            DbParam::Text(target.p256dh.clone()),
+            DbParam::Text(target.auth.clone()),
+        ],
+    )
+    .await?;
+    Ok(())
+}
+
+pub async fn delete_push_subscription<D: DbExecutor>(
+    db: &D,
+    user_id: &str,
+    endpoint: &str,
+) -> Result<(), DbError> {
+    db.execute(
+        "DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id = ?",
+        &[
+            DbParam::Text(endpoint.to_owned()),
+            DbParam::Text(user_id.to_owned()),
+        ],
+    )
+    .await?;
+    Ok(())
+}
+
+/// Drops an endpoint the push service reported gone (404 or 410).
+pub async fn forget_push_endpoint<D: DbExecutor>(db: &D, endpoint: &str) -> Result<(), DbError> {
+    db.execute(
+        "DELETE FROM push_subscriptions WHERE endpoint = ?",
+        &[DbParam::Text(endpoint.to_owned())],
+    )
+    .await?;
+    Ok(())
+}
+
+pub async fn push_targets<D: DbExecutor>(
+    db: &D,
+    recipient_ids: &[String],
+) -> Result<Vec<PushTarget>, DbError> {
+    if recipient_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+    db.query_all(
+        "SELECT endpoint, p256dh, auth FROM push_subscriptions
+         WHERE user_id IN (SELECT value FROM json_each(?)) ORDER BY endpoint",
+        &[DbParam::Text(serde_json::to_string(recipient_ids)?)],
+    )
+    .await?
+    .iter()
+    .map(|row| {
+        Ok(PushTarget {
+            endpoint: row.get_string("endpoint")?,
+            p256dh: row.get_string("p256dh")?,
+            auth: row.get_string("auth")?,
+        })
+    })
+    .collect()
+}
+
+/// The climber's name, their send count that day and the latest climb sent.
+pub async fn push_summary<D: DbExecutor>(
+    db: &D,
+    actor_id: &str,
+    day: &str,
+) -> Result<Option<PushSummary>, DbError> {
+    let Some(row) = db
+        .query_one(
+            "SELECT u.name, count(*) OVER () AS sends, c.name AS climbName
+             FROM sends s JOIN user u ON u.id = s.user_id JOIN climbs c ON c.id = s.climb_id
+             WHERE s.user_id = ? AND s.date_sent = ?
+             ORDER BY s.id DESC LIMIT 1",
+            &[
+                DbParam::Text(actor_id.to_owned()),
+                DbParam::Text(day.to_owned()),
+            ],
+        )
+        .await?
+    else {
+        return Ok(None);
+    };
+    Ok(Some(PushSummary {
+        name: row.get_string("name")?,
+        sends: row.get_i64("sends")?,
+        latest_climb: row.get_string("climbName")?,
+    }))
+}

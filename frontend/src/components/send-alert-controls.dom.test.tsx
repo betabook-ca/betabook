@@ -11,7 +11,28 @@ vi.mock("@/spa/lib/actions-client", () => ({
     vi.fn<(preferences: { shareWithFriends: boolean; receive: boolean }) => Promise<unknown>>(),
 }));
 
+vi.mock("@/components/push-device-control", () => ({
+  PushDeviceControl: ({ publicKey }: { publicKey: string }) => <p>Device push with {publicKey}</p>,
+}));
+
 const save = vi.mocked(setSendAlertPreferences);
+
+it("offers device push only while alerts are on and push is configured", async () => {
+  const user = userEvent.setup();
+  save.mockResolvedValue({ ok: true, value: undefined });
+  const { rerender } = render(
+    <SendAlertControls initial={{ shareWithFriends: true, receive: true }} pushPublicKey="key" />,
+  );
+  expect(screen.getByText("Device push with key")).toBeInTheDocument();
+
+  await user.click(screen.getByRole("switch", { name: "Get alerts when friends log sends" }));
+  expect(screen.queryByText(/Device push/)).not.toBeInTheDocument();
+
+  rerender(
+    <SendAlertControls initial={{ shareWithFriends: true, receive: true }} pushPublicKey={null} />,
+  );
+  expect(screen.queryByText(/Device push/)).not.toBeInTheDocument();
+});
 
 afterEach(() => {
   save.mockReset();
@@ -23,7 +44,9 @@ const receive = () => screen.getByRole("switch", { name: "Get alerts when friend
 it("saves both settings together when one switch changes", async () => {
   const user = userEvent.setup();
   save.mockResolvedValue({ ok: true, value: undefined });
-  render(<SendAlertControls initial={{ shareWithFriends: true, receive: true }} />);
+  render(
+    <SendAlertControls initial={{ shareWithFriends: true, receive: true }} pushPublicKey={null} />,
+  );
   expect(share()).toBeChecked();
   expect(receive()).toBeChecked();
 
@@ -40,7 +63,9 @@ it("saves both settings together when one switch changes", async () => {
 it("reverts and shows the action's message when the save is refused", async () => {
   const user = userEvent.setup();
   save.mockResolvedValue({ ok: false, error: "Sign in to change alerts" });
-  render(<SendAlertControls initial={{ shareWithFriends: true, receive: true }} />);
+  render(
+    <SendAlertControls initial={{ shareWithFriends: true, receive: true }} pushPublicKey={null} />,
+  );
 
   await user.click(share());
 
@@ -51,7 +76,9 @@ it("reverts and shows the action's message when the save is refused", async () =
 it("reverts with a generic message when the request fails", async () => {
   const user = userEvent.setup();
   save.mockRejectedValue(new Error("offline"));
-  render(<SendAlertControls initial={{ shareWithFriends: false, receive: true }} />);
+  render(
+    <SendAlertControls initial={{ shareWithFriends: false, receive: true }} pushPublicKey={null} />,
+  );
 
   await user.click(share());
 

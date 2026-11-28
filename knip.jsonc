@@ -2,7 +2,12 @@
   "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
   "workspaces": {
     ".": {
-      "entry": ["scripts/static-documents.tsx!", "tests/worker/fixtures/upstreams-worker.ts"],
+      // The service worker is registered by URL (navigator.serviceWorker.register).
+      "entry": [
+        "scripts/static-documents.tsx!",
+        "tests/worker/fixtures/upstreams-worker.ts",
+        "frontend/public/sw.js!",
+      ],
       "storybook": {
         "config": ["frontend/.storybook/main.ts"],
         "entry": ["frontend/.storybook/preview.tsx", "frontend/.storybook/mocks/*.ts"],

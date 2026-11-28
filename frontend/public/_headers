@@ -1,3 +1,7 @@
 # Vite includes a content hash in every filename under /assets/.
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+
+# Browsers check for a new service worker on navigation; never serve a stale one.
+/sw.js
+  Cache-Control: no-cache

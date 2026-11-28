@@ -7,6 +7,7 @@ import { useState } from "react";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 import { authClient } from "@/lib/auth-client";
+import { disablePush } from "@/lib/push";
 import { useRouter } from "@/spa/lib/navigation";
 
 export function SignOutButton({
@@ -27,6 +28,7 @@ export function SignOutButton({
     setError(null);
     setPending(true);
     try {
+      await disablePush().catch(() => {});
       await authClient.signOut({
         fetchOptions: {
           onSuccess: () => {

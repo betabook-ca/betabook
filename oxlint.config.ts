@@ -228,6 +228,13 @@ export default defineConfig({
       },
     },
     {
+      // Browsers register it as a classic service worker script, not a module.
+      files: ["frontend/public/sw.js"],
+      rules: {
+        "import/unambiguous": "off",
+      },
+    },
+    {
       files: ["frontend/src/components/ui/**"],
       rules: {
         "typescript/no-restricted-imports": [

@@ -80,6 +80,12 @@
           "journalVisibility": {
             "$ref": "#/components/schemas/SharingAudience"
           },
+          "pushPublicKey": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "sendAlerts": {
             "$ref": "#/components/schemas/SendAlertPreferences"
           },
@@ -114,6 +120,7 @@
           "climbListVisibility",
           "gradePreferences",
           "sendAlerts",
+          "pushPublicKey",
           "shareUrl",
           "turnstileSiteKey",
           "catalogExport",
@@ -7084,6 +7091,88 @@
         ]
       }
     },
+    "/api/actions/deletePushSubscription": {
+      "post": {
+        "operationId": "deletePushSubscription",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "args": {
+                    "items": false,
+                    "maxItems": 1,
+                    "minItems": 1,
+                    "prefixItems": [
+                      {
+                        "title": "endpoint",
+                        "type": "string"
+                      }
+                    ],
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "args"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "properties": {
+                        "ok": {
+                          "const": true,
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "ok"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "string"
+                        },
+                        "ok": {
+                          "const": false,
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "ok",
+                        "error"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Action success or a handled validation or permission error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
     "/api/actions/deleteSend": {
       "post": {
         "operationId": "deleteSend",
@@ -10313,6 +10402,104 @@
                           }
                         ],
                         "title": "status"
+                      }
+                    ],
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "args"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "properties": {
+                        "ok": {
+                          "const": true,
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "ok"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "string"
+                        },
+                        "ok": {
+                          "const": false,
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "ok",
+                        "error"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Action success or a handled validation or permission error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/actions/savePushSubscription": {
+      "post": {
+        "operationId": "savePushSubscription",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "args": {
+                    "items": false,
+                    "maxItems": 1,
+                    "minItems": 1,
+                    "prefixItems": [
+                      {
+                        "properties": {
+                          "auth": {
+                            "type": "string"
+                          },
+                          "endpoint": {
+                            "type": "string"
+                          },
+                          "p256dh": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "endpoint",
+                          "p256dh",
+                          "auth"
+                        ],
+                        "title": "subscription",
+                        "type": "object"
                       }
                     ],
                     "type": "array"

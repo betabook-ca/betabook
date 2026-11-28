@@ -747,6 +747,7 @@ pub async fn account_page_loader(
                 "shareWithFriends": user.as_ref().is_none_or(|u| u.send_alerts_to_friends),
                 "receive": user.as_ref().is_none_or(|u| u.receive_friend_send_alerts),
             },
+            "pushPublicKey": super::send_alerts::vapid(&state).map(|v| v.public_key()),
             "shareUrl": share_url,
             "turnstileSiteKey": turnstile_site_key,
             "catalogExport": catalog_export,

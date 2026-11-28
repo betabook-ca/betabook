@@ -42,6 +42,14 @@ void test("Rust Worker HTTP flows", async (t) => {
           RESEND_API_KEY: "",
           GOOGLE_CLIENT_ID: "fixture-google-id",
           GOOGLE_CLIENT_SECRET: "fixture-google-secret",
+          // A throwaway test key; never a deployed one.
+          VAPID_PRIVATE_KEY: [
+            "-----BEGIN PRIVATE KEY-----",
+            "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg9pUSEtGgoLvFI5vH",
+            "U4yS/31yeMqqh6QgTuoedNVBLXWhRANCAAR/TJA9QTjf58kXAc3PE05PX/r6SXTF",
+            "X7D7eP5iht6Lflk61zsmGrJjCHuUt4CZQaadMV3yQCevri++YNTrh8Xy",
+            "-----END PRIVATE KEY-----",
+          ].join("\n"),
         },
       },
       {
