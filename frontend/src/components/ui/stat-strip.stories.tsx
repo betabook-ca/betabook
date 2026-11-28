@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
+import { DisciplineChip } from "@/components/climbing/discipline-chip";
+import { Grade } from "@/components/climbing/grade";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
-import { DisciplineChip } from "./discipline-chip";
-import { Grade } from "./grade";
 import { StatStrip } from "./stat-strip";
 
 const meta = { title: "Components/Data display/Stat strip", component: StatStrip } satisfies Meta<

@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { Example, StoryPage } from "@/stories/fixtures/story-layout";
 
-import { ProgressBar } from "./progress-bar";
+import { AmountMeter, ProgressBar } from "./progress-bar";
 
 const meta = { title: "Components/Feedback/Progress bar", component: ProgressBar } satisfies Meta<
   typeof ProgressBar
@@ -18,6 +18,20 @@ export const Progress: Story = {
           <ProgressBar value={value} max={100} label="Importing sample sends" />
         </Example>
       ))}
+    </StoryPage>
+  ),
+};
+export const Amount: Story = {
+  render: () => (
+    <StoryPage title="Goal progress and plan usage">
+      <Example title="2 of 3 sessions (small)">
+        <div className="w-24">
+          <AmountMeter size="sm" value={2} max={3} label="Train 3 times every week" />
+        </div>
+      </Example>
+      <Example title="40% of the included requests">
+        <AmountMeter value={40} max={100} label="Worker requests used" />
+      </Example>
     </StoryPage>
   ),
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, ButtonGroup } from "@heroui/react";
+import { ToggleButton, ToggleButtonGroup } from "@heroui/react";
 import { clsx } from "clsx";
 
 type SegmentedButtonsProps<V extends string> = {
@@ -15,10 +15,12 @@ type SegmentedButtonsProps<V extends string> = {
   ariaLabel?: string;
 };
 
-/** Exactly-one-of-a-few as a button group: the chosen segment is solid, the
- * rest outlined. The app's one segmented control for exclusive choices in
- * forms (grade feel, import conflict mode) and binary preferences (grading
- * systems); tag-shaped choices use `choicePillClass` instead. */
+/** Exactly-one-of-a-few as HeroUI's ToggleButtonGroup: a radio group the
+ * arrow keys move through, the chosen segment solid and the rest outlined
+ * (`.toggle-button--segment` in globals.css). The app's one segmented control
+ * for exclusive choices in forms (grade feel, import conflict mode) and binary
+ * preferences (grading systems); tag-shaped choices use `choicePillClass`
+ * instead. */
 export function SegmentedButtons<V extends string>({
   value,
   onChange,
@@ -28,28 +30,37 @@ export function SegmentedButtons<V extends string>({
   ariaLabel,
 }: SegmentedButtonsProps<V>) {
   return (
-    <ButtonGroup className={clsx("w-full", className)} aria-label={ariaLabel}>
-      {options.map((option) => {
-        const selected = option.value === value;
-        return (
-          <Button
-            key={option.value}
-            type="button"
-            isDisabled={isDisabled}
-            aria-pressed={selected}
-            variant={selected ? undefined : "outline"}
-            onPress={() => onChange(option.value)}
-            className="flex-1 gap-1.5"
-          >
-            {option.label}
-            {option.hint && (
-              <span className={clsx("font-normal", !selected && "text-muted")}>
-                ({option.hint})
-              </span>
-            )}
-          </Button>
-        );
-      })}
-    </ButtonGroup>
+    <ToggleButtonGroup
+      fullWidth
+      selectionMode="single"
+      disallowEmptySelection
+      selectedKeys={[value]}
+      onSelectionChange={(keys) => {
+        const [next] = keys;
+        if (next !== undefined) onChange(String(next) as V);
+      }}
+      isDisabled={isDisabled}
+      aria-label={ariaLabel}
+      className={className}
+    >
+      {options.map((option) => (
+        <ToggleButton
+          key={option.value}
+          id={option.value}
+          className="toggle-button--segment flex-1 gap-1.5"
+        >
+          {({ isSelected }) => (
+            <>
+              {option.label}
+              {option.hint && (
+                <span className={clsx("font-normal", !isSelected && "text-muted")}>
+                  ({option.hint})
+                </span>
+              )}
+            </>
+          )}
+        </ToggleButton>
+      ))}
+    </ToggleButtonGroup>
   );
 }

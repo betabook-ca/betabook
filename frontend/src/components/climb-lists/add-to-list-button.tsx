@@ -8,7 +8,7 @@ import type { Key } from "react-aria-components";
 import { ClimbListDialog } from "@/components/climb-lists/climb-list-dialog";
 import { AppLink } from "@/components/ui/app-link";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
+import { DialogActions, ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { SkeletonListRows } from "@/components/ui/skeleton";
 import { useToastQueue } from "@/components/ui/viewer-toasts";
 import { useViewGuard } from "@/hooks/use-view-guard";
@@ -134,27 +134,28 @@ export function AddToListButton({
         isPending={pending}
         onClose={reset}
         footer={
-          <div className="flex w-full flex-wrap justify-between gap-2">
-            <Button
-              variant="ghost"
-              isDisabled={pending}
-              onPress={() => {
-                state.close();
-                createState.open();
-              }}
-            >
-              <CirclePlus className="size-4" />
-              New list…
+          <DialogActions
+            leading={
+              <Button
+                variant="ghost"
+                isDisabled={pending}
+                onPress={() => {
+                  state.close();
+                  createState.open();
+                }}
+              >
+                <CirclePlus className="size-4" />
+                New list…
+              </Button>
+            }
+          >
+            <Button variant="ghost" isDisabled={pending} onPress={state.close}>
+              Cancel
             </Button>
-            <div className="flex gap-2">
-              <Button variant="ghost" isDisabled={pending} onPress={state.close}>
-                Cancel
-              </Button>
-              <Button isDisabled={!list || pending} onPress={add}>
-                Add
-              </Button>
-            </div>
-          </div>
+            <Button isDisabled={!list || pending} onPress={add}>
+              Add
+            </Button>
+          </DialogActions>
         }
       >
         <div className="flex flex-col gap-3">

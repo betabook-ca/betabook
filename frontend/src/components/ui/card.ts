@@ -27,6 +27,10 @@ export function cardClass(
   return `rounded-panel ${CARD_SURFACE[surface]} ${CARD_PADDING[padding]}`;
 }
 
+/** The floating surface on its own, for a tooltip or readout that sets its
+ * own padding. */
+export const FLOATING_SURFACE_CLASS = `rounded-panel ${CARD_SURFACE.floating}`;
+
 /** Narrow centered card for auth/account-style single-purpose pages. */
 export const FORM_CARD_CLASS = `mx-auto flex max-w-sm flex-col gap-4 ${cardClass("md")}`;
 

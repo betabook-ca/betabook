@@ -1,0 +1,53 @@
+"use client";
+
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
+
+import { CurrentPageAuthCallout } from "@/components/auth/current-page-auth-callout";
+import { ViewerToasts } from "@/components/ui/viewer-toasts";
+import { useMounted } from "@/hooks/use-mounted";
+import { authClient } from "@/lib/auth-client";
+import { useRouter } from "@/spa/lib/navigation";
+
+/** Discard displayed data when accounts change and refresh current permissions
+ * when returning to a profile or Friends list. No promise of live revocation. */
+export function ViewerBoundary({
+  viewerId,
+  children,
+}: {
+  viewerId: string | null;
+  children: ReactNode;
+}) {
+  const mounted = useMounted();
+  const { data: session, isPending } = authClient.useSession();
+  const [lastViewerId, setLastViewerId] = useState<string | null>();
+  const currentViewerId = isPending ? lastViewerId : (session?.user.id ?? null);
+  if (!isPending && currentViewerId !== lastViewerId) setLastViewerId(currentViewerId);
+  const { refresh: refreshRoute } = useRouter();
+  const [refreshing, startRefresh] = useTransition();
+  const lastRefreshAt = useRef(-Infinity);
+  useEffect(() => {
+    const refresh = () => {
+      // Browsers can emit both events for a single tab return. Also avoid
+      // starting a second route refresh while the first one is in flight.
+      if (document.visibilityState !== "visible" || refreshing) return;
+      const now = Date.now();
+      if (now - lastRefreshAt.current < 1_000) return;
+      lastRefreshAt.current = now;
+      startRefresh(() => refreshRoute());
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [refreshRoute, refreshing, startRefresh]);
+  const changed = mounted && currentViewerId !== undefined && currentViewerId !== viewerId;
+  useEffect(() => {
+    if (changed) refreshRoute();
+  }, [changed, refreshRoute]);
+  if (changed) return <CurrentPageAuthCallout />;
+  // The server can observe an account switch before useSession finishes.
+  // Never carry a previous viewer's drafts or loaded pages into that tree.
+  return <ViewerToasts key={viewerId}>{children}</ViewerToasts>;
+}

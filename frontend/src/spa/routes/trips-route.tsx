@@ -1,16 +1,17 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Navigate, useLocation, useParams, useSearchParams } from "react-router";
 
-import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
-import { expiredLinkCard } from "@/components/expired-link-card";
-import { signUpCard } from "@/components/sign-up-card";
+import { CurrentPageAuthCallout } from "@/components/auth/current-page-auth-callout";
+import { signUpCard } from "@/components/auth/sign-up-card";
+import { useGradePreferences } from "@/components/climbing/grade-preferences";
+import { expiredLinkCard } from "@/components/sharing/expired-link-card";
 import { TripAlbumPhotos } from "@/components/trips/trip-album";
 import { TripDays } from "@/components/trips/trip-days";
 import { TripHeader } from "@/components/trips/trip-header";
 import { TripList } from "@/components/trips/trip-list";
 import { TripNotes } from "@/components/trips/trip-notes";
 import { AppLink } from "@/components/ui/app-link";
-import { useGradePreferences } from "@/components/ui/grade-preferences";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { SkeletonListRows } from "@/components/ui/skeleton";
 import { PageTitle } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -186,7 +187,7 @@ function TripBody({
       back={analytics ? "trip" : "trips"}
       ownerShare={ownerTripShare(data, owner && !analytics, isPrivate)}
     >
-      {errorMessage && <p role="alert">{errorMessage}</p>}
+      {errorMessage && <InlineAlert>{errorMessage}</InlineAlert>}
       {loading ? (
         !errorMessage && (
           <div aria-busy="true" aria-label="Loading trip view">
@@ -296,6 +297,7 @@ export default function TripsRoute({ viewerId }: { viewerId: string | null }) {
     error,
     query: loadedView,
   } = useRetainedPage<Payload>({
+    resource: "trips:TripsRoute",
     scope,
     query: analytics ? "analytics" : "detail",
     load: (signal) => loadTrip(id, tripId, token, analytics, signal),
@@ -304,14 +306,14 @@ export default function TripsRoute({ viewerId }: { viewerId: string | null }) {
   usePageTitle(tripTitle(data));
   if (!token && !viewerId) return <CurrentPageAuthCallout />;
   const message = tripError(error);
-  if (!data) return message ? <p role="alert">{message}</p> : <SkeletonListRows rows={5} />;
+  if (!data) return message ? <InlineAlert>{message}</InlineAlert> : <SkeletonListRows rows={5} />;
   const loading = loadedView !== (analytics ? "analytics" : "detail");
   if ("expired" in data) return expiredLinkCard("trips");
   if ("redirectTo" in data) return <Navigate to={data.redirectTo} replace />;
   if ("header" in data)
     return (
       <>
-        {"trips" in data && message && <p role="alert">{message}</p>}
+        {"trips" in data && message && <InlineAlert>{message}</InlineAlert>}
         {"trips" in data ? (
           <TripList
             trips={data.trips}

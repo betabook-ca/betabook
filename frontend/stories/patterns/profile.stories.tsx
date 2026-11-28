@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 
-import { ProfileHeading } from "@/components/profile-heading";
-import { ProfileLayout } from "@/components/profile-layout";
-import { Grade } from "@/components/ui/grade";
+import { Grade } from "@/components/climbing/grade";
+import { ProfileHeading } from "@/components/profile/profile-heading";
+import { ProfileLayout } from "@/components/profile/profile-layout";
 import { ListRow } from "@/components/ui/list-row";
 import { SectionNavigation } from "@/components/ui/section-navigation";
 import { STORY_HARDEST } from "@/stories/fixtures/climber-hardest";

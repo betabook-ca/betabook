@@ -242,7 +242,7 @@ it("keeps optional fields behind a collapsed Add details section", async () => {
   // The ascent opinion is part of the visible send record, not Add details.
   expect(screen.getByRole("button", { name: /Suggested grade/ })).toBeVisible();
   expect(screen.getByRole("radiogroup", { name: "Rating" })).toBeVisible();
-  expect(screen.getByRole("button", { name: "Solid" })).toBeVisible();
+  expect(screen.getByRole("radio", { name: "Solid" })).toBeVisible();
   expect(detailsTrigger()).toHaveAttribute("aria-expanded", "false");
   await openDetails(user);
   expect(screen.getByRole("combobox", { name: "Find a friend to tag" })).toBeVisible();

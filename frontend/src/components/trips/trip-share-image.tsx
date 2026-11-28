@@ -7,7 +7,7 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { EYEBROW_CLASS } from "@/components/ui/eyebrow";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
+import { DialogActions, ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { SegmentedButtons } from "@/components/ui/segmented-buttons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { openShareSheet, useNativeShare } from "@/hooks/use-native-share";
@@ -268,7 +268,7 @@ export function TripShareImage({
         size="md"
         onClose={release}
         footer={
-          <div className="flex w-full flex-wrap justify-end gap-2">
+          <DialogActions>
             {abilities.share && (
               <Button variant="primary" isDisabled={!blob} onPress={() => blob && share(blob)}>
                 <Share2 aria-hidden="true" className="size-4" />
@@ -293,7 +293,7 @@ export function TripShareImage({
               <Download aria-hidden="true" className="size-4" />
               Download
             </Button>
-          </div>
+          </DialogActions>
         }
       >
         <div className="flex flex-col gap-4">

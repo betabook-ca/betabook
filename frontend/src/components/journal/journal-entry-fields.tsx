@@ -3,6 +3,7 @@
 import { Button, Label, TextArea, TextField } from "@heroui/react";
 import { useState, useTransition } from "react";
 
+import { RatingField } from "@/components/climbing/rating-field";
 import { CompanionPicker } from "@/components/journal/companion-picker";
 import { JournalEntryDateFields } from "@/components/journal/journal-entry-date-fields";
 import { TagInput } from "@/components/journal/tag-input";
@@ -13,14 +14,13 @@ import {
   SendVideosField,
   SuggestedGradeField,
   type SendStyleChoice,
-} from "@/components/send-fields";
+} from "@/components/sends/send-fields";
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
 import { DetailsDisclosure } from "@/components/ui/details-disclosure";
 import { FieldHeader } from "@/components/ui/field-support";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { RatingField } from "@/components/ui/rating-field";
 import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
 import type { JournalKind } from "@/lib/journal";

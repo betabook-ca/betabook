@@ -1,7 +1,7 @@
 "use client";
 
-import { ShareLinkButton } from "@/components/share-link-button";
-import type { ShareLink } from "@/components/share-link-dialog";
+import { ShareLinkButton } from "@/components/sharing/share-link-button";
+import type { ShareLink } from "@/components/sharing/share-link-dialog";
 import { CLIMB_LIST_SHARE_SENTENCE, climbListSharePath } from "@/lib/climb-lists";
 import { shareClimbList, unshareClimbList } from "@/spa/lib/actions-client";
 

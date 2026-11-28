@@ -1,25 +1,27 @@
 import { useParams, useSearchParams } from "react-router";
 
-import { AreaBreadcrumbs } from "@/components/breadcrumbs";
-import { ClimbActionsMenu } from "@/components/climb-actions-menu";
-import { ClimbDescription } from "@/components/climb-description";
-import { ClimbHeader } from "@/components/climb-header";
+import { LoggedGradeHistogram } from "@/components/analytics/logged-grade-histogram";
+import { AreaBreadcrumbs } from "@/components/areas/breadcrumbs";
 import { AddToListButton } from "@/components/climb-lists/add-to-list-button";
-import { ClimbSendList } from "@/components/climb-send-list";
-import { ClimbVideoShelf } from "@/components/climb-video-shelf";
-import { GradeWithTrend } from "@/components/grade-with-trend";
+import { useGradePreferences } from "@/components/climbing/grade-preferences";
+import { GradeWithTrend } from "@/components/climbing/grade-with-trend";
+import { RatingStars } from "@/components/climbing/rating-stars";
+import { ClimbActionsMenu } from "@/components/climbs/climb-actions-menu";
+import { ClimbDescription } from "@/components/climbs/climb-description";
+import { ClimbHeader } from "@/components/climbs/climb-header";
+import { ClimbVideoShelf } from "@/components/climbs/climb-video-shelf";
 import { ClimbJournalCard, LogEntryButton } from "@/components/journal";
-import { LoggedGradeHistogram } from "@/components/logged-grade-histogram";
-import { PublicClimbSendList } from "@/components/public-climb-send-list";
+import { ClimbSendList } from "@/components/sends/climb-send-list";
+import { PublicClimbSendList } from "@/components/sends/public-climb-send-list";
 import { cardClass } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Eyebrow } from "@/components/ui/eyebrow";
-import { useGradePreferences } from "@/components/ui/grade-preferences";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { NotFoundMessage } from "@/components/ui/not-found-message";
 import { SidebarLayout } from "@/components/ui/page-shell";
-import { RatingStars } from "@/components/ui/rating-stars";
-import { Skeleton, SkeletonListRows } from "@/components/ui/skeleton";
+import { SkeletonEntityPage } from "@/components/ui/skeleton";
 import { StatStrip } from "@/components/ui/stat-strip";
-import { PageTitle, SectionHeading } from "@/components/ui/typography";
+import { SectionHeading } from "@/components/ui/typography";
 import { missingDescriptionMessage } from "@/lib/descriptions";
 import { buildLoggedGradeRows } from "@/lib/grade-histogram";
 import { formatGrade } from "@/lib/grades";
@@ -36,37 +38,24 @@ import { useRetainedPage } from "@/spa/lib/use-retained-page";
 
 type MemberClimbPayload = ApiResponse<"/api/pages/climbs/{id}"> & { climbId: number };
 
-function ClimbLoadingSkeleton() {
-  return (
-    <div className="flex flex-col gap-6">
-      <Skeleton className="h-5 w-48" />
-      <Skeleton className="h-9 w-72" />
-      <SkeletonListRows rows={6} />
-    </div>
-  );
-}
-
 function ClimbNotFoundView() {
   return (
-    <div className="py-8 text-center">
-      <PageTitle>Climb not found</PageTitle>
-      <p className="mt-2 text-sm text-muted">No route or boulder problem exists at this URL.</p>
-    </div>
+    <NotFoundMessage
+      heading="Climb not found"
+      message="No route or boulder problem exists at this URL."
+    />
   );
 }
 
 function ClimbErrorBanner({ error }: { error: string }) {
-  return (
-    <div role="alert" className="rounded-lg border border-border bg-surface p-6 text-danger">
-      {error}
-    </div>
-  );
+  return <InlineAlert>{error}</InlineAlert>;
 }
 
 function PublicClimbView({ climbId }: { climbId: number }) {
   const pathname = usePathname();
   const [searchParams] = useSearchParams();
   const page = useRetainedPage<ClimbPageData>({
+    resource: "climb:PublicClimbView",
     scope: String(climbId),
     query: "",
     initial: () => {
@@ -99,7 +88,7 @@ function PublicClimbView({ climbId }: { climbId: number }) {
   );
   if (notFound) return <ClimbNotFoundView />;
   if (error) return <ClimbErrorBanner error={error} />;
-  if (!data) return <ClimbLoadingSkeleton />;
+  if (!data) return <SkeletonEntityPage rows={6} />;
 
   const path = climbHref(data.climb.id, data.climb.name);
   const breadcrumbAncestors = data.area ? [...data.ancestors, data.area] : data.ancestors;
@@ -146,6 +135,7 @@ function PublicClimbView({ climbId }: { climbId: number }) {
 function MemberClimbView({ climbId, viewerId }: { climbId: number; viewerId: string }) {
   const prefs = useGradePreferences();
   const page = useRetainedPage<MemberClimbPayload>({
+    resource: "climb:MemberClimbView",
     scope: JSON.stringify([viewerId, climbId]),
     query: "",
     async load(signal) {
@@ -175,7 +165,7 @@ function MemberClimbView({ climbId, viewerId }: { climbId: number; viewerId: str
   );
   if (notFound) return <ClimbNotFoundView />;
   if (error) return <ClimbErrorBanner error={error} />;
-  if (!data) return <ClimbLoadingSkeleton />;
+  if (!data) return <SkeletonEntityPage rows={6} />;
 
   const breadcrumbAncestors = data.area ? [...data.ancestors, data.area] : data.ancestors;
   const loggedBreakdown = Object.entries(data.summary.styleBreakdown).filter(([, c]) => c > 0);
@@ -254,7 +244,7 @@ function MemberClimbView({ climbId, viewerId }: { climbId: number; viewerId: str
             {loggedGradeRows.length > 0 && (
               <div className={cardClass("sm")}>
                 <div className="mb-3">
-                  <Eyebrow>Logged grades</Eyebrow>
+                  <Eyebrow as="h2">Logged grades</Eyebrow>
                 </div>
                 <LoggedGradeHistogram type={data.climb.type} rows={loggedGradeRows} />
               </div>

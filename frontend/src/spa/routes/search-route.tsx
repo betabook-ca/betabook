@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, useSearchParams } from "react-router";
 
-import { HomeIntroduction } from "@/components/home-introduction";
+import { HomeIntroduction } from "@/components/landing/home-introduction";
 import { AppSearch } from "@/components/search/app-search";
 import { CARD_PADDING } from "@/components/ui/card";
 import { PageTitle } from "@/components/ui/typography";

@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-import { ClimbSentIndicator } from "@/components/climb-sent-indicator";
-import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
-import { FriendshipButton } from "@/components/friendship-button";
+import { CurrentPageAuthCallout } from "@/components/auth/current-page-auth-callout";
+import { FriendshipButton } from "@/components/friends/friendship-button";
+import { ClimbSentIndicator } from "@/components/sends/climb-sent-indicator";
 import { useClimberSuggestions } from "@/hooks/use-climber-suggestions";
 import { useMounted } from "@/hooks/use-mounted";
 import { authClient } from "@/lib/auth-client";

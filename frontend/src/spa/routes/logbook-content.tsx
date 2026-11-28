@@ -5,9 +5,10 @@ import {
   LandingPage,
   LandingSection,
   QuestionList,
-} from "@/components/landing-page";
-import { LogbookPreview } from "@/components/logbook-preview";
+} from "@/components/landing/landing-page";
+import { LogbookPreview } from "@/components/landing/logbook-preview";
 import { AppLink } from "@/components/ui/app-link";
+import { ExternalLink } from "@/components/ui/external-link";
 import { IMPORT_PAGES } from "@/lib/landing-pages";
 import { signUpUrl } from "@/lib/sign-in-redirect";
 
@@ -92,14 +93,9 @@ export default function ClimbingLogbookContent() {
                     Contact us
                   </AppLink>{" "}
                   form, or open an issue on{" "}
-                  <a
-                    href="https://github.com/betabook-ca/betabook/issues"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="link inline underline focus-visible:status-focused"
-                  >
+                  <ExternalLink href="https://github.com/betabook-ca/betabook/issues">
                     GitHub
-                  </a>
+                  </ExternalLink>
                   .
                 </>
               ),

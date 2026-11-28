@@ -5,6 +5,60 @@ import { AppLink } from "@/components/ui/app-link";
 import { ClampedComment } from "@/components/ui/clamped-comment";
 import { rowActionsClass, RowActionsProvider, useLongPressRow } from "@/components/ui/row-actions";
 
+/** A row's title link. Its overlay covers the row, so the whole row is one
+ * target; the row's other interactive slots sit above it at z-10. The row
+ * itself must be positioned and the link left `static`. */
+export function RowTitleLink({
+  href,
+  className,
+  "aria-label": ariaLabel,
+  children,
+}: {
+  href: string;
+  className?: string;
+  "aria-label"?: string;
+  children: ReactNode;
+}) {
+  return (
+    <AppLink href={href} aria-label={ariaLabel} className={clsx("static block", className)}>
+      <span aria-hidden className="absolute inset-0" />
+      {children}
+    </AppLink>
+  );
+}
+
+/** A row's note, in the reading column, clamped with a "more" toggle. Raised
+ * above the title link's overlay so its text stays selectable. */
+export function RowComment({
+  children,
+  className,
+  expandLabel,
+  collapseLabel,
+  fullWidth = false,
+}: {
+  children: string;
+  className?: string;
+  expandLabel?: string;
+  collapseLabel?: string;
+  /** Spans its container instead of the reading measure, for a note inside a
+   * card that already sets its width (a feed card). */
+  fullWidth?: boolean;
+}) {
+  return (
+    <div
+      className={clsx(
+        "relative z-10 text-sm leading-[1.5] [overflow-wrap:anywhere] text-foreground",
+        !fullWidth && "max-w-prose",
+        className,
+      )}
+    >
+      <ClampedComment expandLabel={expandLabel} collapseLabel={collapseLabel}>
+        {children}
+      </ClampedComment>
+    </div>
+  );
+}
+
 type ListRowProps = {
   leading?: ReactNode;
   title: ReactNode;
@@ -87,18 +141,13 @@ export function ListRow({
                 )}
               >
                 {href != null ? (
-                  <AppLink
+                  <RowTitleLink
                     href={href}
                     aria-label={linkLabel}
-                    className={clsx(
-                      "static block max-w-full",
-                      wrapTitle ? "break-words" : "truncate",
-                    )}
+                    className={clsx("max-w-full", wrapTitle ? "break-words" : "truncate")}
                   >
-                    {/* `static` makes the overlay position against the row. */}
-                    <span aria-hidden className="absolute inset-0" />
                     {title}
-                  </AppLink>
+                  </RowTitleLink>
                 ) : (
                   title
                 )}
@@ -130,12 +179,7 @@ export function ListRow({
           </div>
         )}
       </div>
-      {comment != null && (
-        // Keep text selection above the row-link overlay.
-        <div className="relative z-10 max-w-prose text-base leading-relaxed text-foreground">
-          <ClampedComment>{comment}</ClampedComment>
-        </div>
-      )}
+      {comment != null && <RowComment>{comment}</RowComment>}
       {media && <div className="relative z-10 flex">{media}</div>}
       {longPress.anchor}
     </Tag>

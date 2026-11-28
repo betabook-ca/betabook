@@ -1,7 +1,7 @@
 "use client";
 
-import { ShareLinkButton } from "@/components/share-link-button";
-import type { ShareLink } from "@/components/share-link-dialog";
+import { ShareLinkButton } from "@/components/sharing/share-link-button";
+import type { ShareLink } from "@/components/sharing/share-link-dialog";
 import { TRIP_SHARE_SENTENCE, tripSharePath } from "@/lib/trip-share";
 import { shareTrip, unshareTrip } from "@/spa/lib/actions-client";
 

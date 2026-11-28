@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { PageTitle } from "./typography";
-import { SectionHeading } from "./typography";
+import { SectionHeading, SubsectionHeading } from "./typography";
 const meta = {
   title: "Components/Data display/Typography",
   component: PageTitle,
@@ -22,6 +22,8 @@ export const WithSection: Story = {
       <PageTitle {...args} />
       <SectionHeading>Climbs</SectionHeading>
       <p>Supporting text uses the body font.</p>
+      <SubsectionHeading>Day 1</SubsectionHeading>
+      <SubsectionHeading size="sm">Add to Home Screen</SubsectionHeading>
     </div>
   ),
 };

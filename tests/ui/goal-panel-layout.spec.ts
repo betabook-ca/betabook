@@ -29,9 +29,10 @@ test("@layout goal category chooser uses a mobile sheet before the full form", a
 test("goal progress track remains visible in dark mode", async ({ page }, info) => {
   await openStory(page, info, "components-goals-goal-panel--active");
   if (info.project.name.endsWith("dark")) {
-    await expect(page.getByRole("progressbar")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    const track = page.getByRole("meter").locator(".meter__track");
+    await expect(track).toHaveCSS("background-color", "rgb(255, 255, 255)");
   } else {
-    await expect(page.getByRole("progressbar")).toBeVisible();
+    await expect(page.getByRole("meter")).toBeVisible();
   }
 });
 
@@ -131,7 +132,7 @@ test("a cross-year goal range splits into right-aligned dates beside the title",
   const first = await page.getByText("Dec 1, 2026 –", { exact: true }).boundingBox();
   const second = await page.getByText("Feb 28, 2027", { exact: true }).boundingBox();
   const chip = await page.getByText("Boulder", { exact: true }).boundingBox();
-  const bar = await page.getByRole("progressbar").boundingBox();
+  const bar = await page.getByRole("meter").boundingBox();
   if (!title || !first || !second || !chip || !bar)
     throw new Error("Expected goal range and progress");
   expect(second.y).toBeGreaterThanOrEqual(first.y + first.height);
@@ -142,7 +143,7 @@ test("a cross-year goal range splits into right-aligned dates beside the title",
   if (info.project.name.startsWith("mobile")) {
     await page.setViewportSize({ width: 320, height: 812 });
     const narrowTitle = await page.locator("[data-goal-title]").boundingBox();
-    const narrowBar = await page.getByRole("progressbar").boundingBox();
+    const narrowBar = await page.getByRole("meter").boundingBox();
     if (!narrowTitle || !narrowBar) throw new Error("Expected narrow climb title and progress");
     expect(narrowBar.y).toBeGreaterThanOrEqual(narrowTitle.y + narrowTitle.height);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
@@ -155,12 +156,12 @@ test("met recurring goals stack period, reset, and end date on the right", async
   page,
 }, info) => {
   await openStory(page, info, "components-goals-goal-panel--monthly-target-met");
-  await expect(page.getByRole("progressbar")).toBeVisible();
+  await expect(page.getByRole("meter")).toBeVisible();
   const period = await page.locator("[data-goal-date]").boundingBox();
   const reset = await page.getByText("Resets Oct 1", { exact: true }).boundingBox();
   const end = await page.getByText("No end date", { exact: true }).boundingBox();
   const title = await page.getByText("Train 1 time every month", { exact: true }).boundingBox();
-  const bar = await page.getByRole("progressbar").boundingBox();
+  const bar = await page.getByRole("meter").boundingBox();
   if (!period || !reset || !end || !title || !bar)
     throw new Error("Expected recurring goal date labels and progress");
   expect(reset.y).toBeGreaterThanOrEqual(period.y + period.height);
@@ -214,7 +215,7 @@ for (const story of ["missed-goal", "missed-goal-in-history"]) {
           return range.getBoundingClientRect().right;
         });
         expect(Math.abs(archiveTextRight - status.x - status.width)).toBeLessThanOrEqual(1);
-        const bar = await page.getByRole("progressbar").boundingBox();
+        const bar = await page.getByRole("meter").boundingBox();
         const action = await retry.boundingBox();
         const title = await page.getByText("Train 8 times", { exact: true }).boundingBox();
         if (!bar || !action || !title) throw new Error("Expected missed goal controls");

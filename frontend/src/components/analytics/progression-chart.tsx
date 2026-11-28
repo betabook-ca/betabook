@@ -1,0 +1,231 @@
+"use client";
+import { CHART_TICK_FONT_SIZE } from "@/components/analytics/chart-axis";
+/* oxlint-disable jsx-a11y/no-noninteractive-tabindex, jsx-a11y/no-noninteractive-element-interactions -- Arrow keys move focus between the named chart's month points. */
+import { ChartClimbDetails } from "@/components/analytics/chart-climb-details";
+import { DISCIPLINE_HUE } from "@/components/climbing/discipline-chip";
+import { useGradePreferences } from "@/components/climbing/grade-preferences";
+import { useChartWidth } from "@/hooks/use-chart-width";
+import { groupDatedRows, type ChartSend } from "@/lib/chart-details";
+import { formatMonth } from "@/lib/format-date";
+import { gradeArray, type ClimbType } from "@/lib/grades";
+import type { ProgressionPoint } from "@/lib/user-analytics";
+
+const H = 200;
+const MARGIN = { top: 10, right: 12, bottom: 24, left: 40 };
+const PLOT_H = H - MARGIN.top - MARGIN.bottom;
+const TARGET = 24;
+
+function monthIndex(month: string): number {
+  const [year, m] = month.split("-").map(Number);
+  return year * 12 + (m - 1);
+}
+
+export function ProgressionChart({
+  type,
+  points,
+  sends,
+}: {
+  type: ClimbType;
+  points: ProgressionPoint[];
+  sends: ChartSend[];
+}) {
+  const { ref, width: W } = useChartWidth();
+  const prefs = useGradePreferences();
+  if (points.length === 0) return null;
+
+  const sendsByMonth = groupDatedRows(sends, (send) => send.dateSent, "month");
+
+  const scale = gradeArray(type, prefs);
+  const hue = DISCIPLINE_HUE[type];
+
+  const m0 = monthIndex(points[0].month);
+  const m1 = monthIndex(points[points.length - 1].month);
+  const singleMonth = m1 === m0;
+  const PLOT_W = W - MARGIN.left - MARGIN.right;
+  const x = (month: string) =>
+    singleMonth
+      ? MARGIN.left + PLOT_W / 2
+      : MARGIN.left + ((monthIndex(month) - m0) / (m1 - m0)) * PLOT_W;
+
+  const gradeMin = Math.max(Math.min(...points.map((p) => p.hardest)) - 1, 0);
+  const gradeMax = Math.min(Math.max(...points.map((p) => p.best)) + 1, scale.length - 1);
+  const y = (grade: number) =>
+    MARGIN.top + (1 - (grade - gradeMin) / Math.max(gradeMax - gradeMin, 1)) * PLOT_H;
+
+  // A target wider than the gap to a dot within its height would swallow that
+  // month's taps, so dense logs narrow their targets instead of scrolling.
+  const xs = points.map((point) => x(point.month));
+  const ys = points.map((point) => y(point.hardest));
+  const targetWidth = (i: number) => {
+    let width = TARGET;
+    for (let j = 0; j < points.length; j += 1) {
+      if (j !== i && Math.abs(ys[j] - ys[i]) < TARGET) {
+        width = Math.min(width, Math.abs(xs[j] - xs[i]));
+      }
+    }
+    return width;
+  };
+
+  // Grade rules: one hairline per grade in the visible span, a label on
+  // every `labelStep`-th so wide spans don't collide. A scale that prints
+  // two ordinals alike (French 2 for 5.1 and 5.2) labels only the first.
+  const gradeCount = gradeMax - gradeMin + 1;
+  const labelStep = Math.ceil(gradeCount / 7);
+  const grades = Array.from({ length: gradeCount }, (_, i) => gradeMin + i);
+  const showLabel = (grade: number) =>
+    (gradeCount - 1 - (grade - gradeMin)) % labelStep === 0 &&
+    (grade === gradeMin || scale[grade] !== scale[grade - 1]);
+
+  // Year ticks: every January inside the span; a span within one calendar
+  // year gets its single year under the middle instead.
+  const yearTicks: { x: number; label: string }[] = [];
+  for (let m = m0; m <= m1; m += 1) {
+    if (m % 12 === 0) {
+      yearTicks.push({
+        x: singleMonth ? MARGIN.left + PLOT_W / 2 : MARGIN.left + ((m - m0) / (m1 - m0)) * PLOT_W,
+        label: String(Math.floor(m / 12)),
+      });
+    }
+  }
+  const yearStep = Math.max(1, Math.ceil(yearTicks.length / Math.max(2, Math.floor(W / 75))));
+  const shownYears =
+    yearTicks.length > 0
+      ? yearTicks.filter((_, i) => i % yearStep === 0)
+      : [{ x: MARGIN.left + PLOT_W / 2, label: points[0].month.slice(0, 4) }];
+
+  // Personal-best step path: horizontal to each active month, vertical when
+  // the ceiling rises there, then a run-out to the right edge.
+  const pathParts = [`M ${x(points[0].month)} ${y(points[0].best)}`];
+  for (let i = 1; i < points.length; i += 1) {
+    pathParts.push(`H ${x(points[i].month)}`);
+    if (points[i].best !== points[i - 1].best) pathParts.push(`V ${y(points[i].best)}`);
+  }
+  pathParts.push(`H ${MARGIN.left + PLOT_W}`);
+
+  const latest = points[points.length - 1];
+
+  return (
+    <div ref={ref}>
+      <p className="sr-only">
+        Personal best {scale[latest.best]}, from {formatMonth(points[0].month)} (
+        {scale[points[0].hardest]}) to {formatMonth(latest.month)}.
+      </p>
+      <div
+        role="region"
+        aria-label={`${type} grade progression`}
+        tabIndex={0}
+        onKeyDown={(event) => {
+          if (
+            !event.currentTarget.contains(event.target as Node) ||
+            !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
+          )
+            return;
+          const buttons = Array.from(
+            event.currentTarget.querySelectorAll<HTMLButtonElement>("button"),
+          );
+          if (!buttons.length) return;
+          event.preventDefault();
+          const active = buttons.indexOf(event.target as HTMLButtonElement);
+          const next =
+            event.key === "Home"
+              ? 0
+              : event.key === "End"
+                ? buttons.length - 1
+                : Math.max(
+                    0,
+                    Math.min(buttons.length - 1, active + (event.key === "ArrowLeft" ? -1 : 1)),
+                  );
+          buttons[next].focus();
+        }}
+        className="focus-visible:status-focused"
+      >
+        <div className="relative">
+          <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full text-muted" aria-hidden>
+            {grades.map((grade) => (
+              <g key={grade}>
+                <line
+                  x1={MARGIN.left}
+                  x2={MARGIN.left + PLOT_W}
+                  y1={y(grade)}
+                  y2={y(grade)}
+                  stroke="currentColor"
+                  strokeOpacity={0.15}
+                  strokeWidth={0.5}
+                />
+                {showLabel(grade) && (
+                  <text
+                    x={MARGIN.left - 6}
+                    y={y(grade)}
+                    textAnchor="end"
+                    dominantBaseline="middle"
+                    fontSize={CHART_TICK_FONT_SIZE}
+                    fill="currentColor"
+                  >
+                    {scale[grade]}
+                  </text>
+                )}
+              </g>
+            ))}
+            {shownYears.map((tick) => (
+              <text
+                key={tick.label + tick.x}
+                x={tick.x}
+                y={H - 8}
+                textAnchor="middle"
+                fontSize={CHART_TICK_FONT_SIZE}
+                fill="currentColor"
+              >
+                {tick.label}
+              </text>
+            ))}
+            <path
+              d={pathParts.join(" ")}
+              fill="none"
+              stroke={hue}
+              strokeWidth={2.5}
+              strokeLinejoin="round"
+              pathLength={1}
+              className="motion-safe:animate-line-draw"
+            />
+            {points.map((point) => (
+              <circle
+                key={point.month}
+                cx={x(point.month)}
+                cy={y(point.hardest)}
+                r={3}
+                fill={hue}
+                fillOpacity={0.55}
+              >
+                <title>{`${formatMonth(point.month)} · ${scale[point.hardest]}`}</title>
+              </circle>
+            ))}
+          </svg>
+          {points.map((point, i) => (
+            <ChartClimbDetails
+              key={point.month}
+              hideSingleCount
+              label={`${formatMonth(point.month)} · ${scale[point.hardest]}`}
+              sends={(sendsByMonth.get(point.month) ?? []).filter(
+                (send) => send.climbType === type && send.suggestedGrade === point.hardest,
+              )}
+              className="absolute min-w-0 -translate-x-1/2 -translate-y-1/2 rounded-full p-0 hover:bg-default"
+              style={{
+                // Shares of the chart, not px: a card narrower than useChartWidth's
+                // 240px floor scales the SVG down, and the targets must scale with it.
+                width: `${(targetWidth(i) / W) * 100}%`,
+                height: `${(TARGET / H) * 100}%`,
+                left: `${(xs[i] / W) * 100}%`,
+                top: `${(ys[i] / H) * 100}%`,
+              }}
+            >
+              <span
+                className="pointer-events-none size-2 shrink-0 rounded-full"
+                style={{ backgroundColor: hue }}
+              />
+            </ChartClimbDetails>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

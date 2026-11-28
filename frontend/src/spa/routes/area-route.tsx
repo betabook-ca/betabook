@@ -1,21 +1,23 @@
 import { useParams, useSearchParams } from "react-router";
 
-import { AreaClimbsSection } from "@/components/area-climbs-section";
-import { AreaCragHeader, AreaGradeSpread } from "@/components/area-crag-header";
-import { AreaHeaderActions } from "@/components/area-header-actions";
-import { AuthCallout } from "@/components/auth-callout";
-import { AreaBreadcrumbs } from "@/components/breadcrumbs";
-import { AreaClimbsToolbar } from "@/components/filters/area-climbs-toolbar";
 import {
   NavigationPendingProvider,
   NavigationPendingRegion,
-} from "@/components/navigation-pending";
-import { PublicClimbList } from "@/components/public-climb-list";
-import { SubareaRail } from "@/components/subarea-rail";
+} from "@/components/app-shell/navigation-pending";
+import { AreaClimbsSection } from "@/components/areas/area-climbs-section";
+import { AreaCragHeader, AreaGradeSpread } from "@/components/areas/area-crag-header";
+import { AreaHeaderActions } from "@/components/areas/area-header-actions";
+import { AreaBreadcrumbs } from "@/components/areas/breadcrumbs";
+import { SubareaRail } from "@/components/areas/subarea-rail";
+import { AuthCallout } from "@/components/auth/auth-callout";
+import { useGradePreferences } from "@/components/climbing/grade-preferences";
+import { PublicClimbList } from "@/components/climbs/public-climb-list";
+import { AreaClimbsToolbar } from "@/components/filters/area-climbs-toolbar";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { useGradePreferences } from "@/components/ui/grade-preferences";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { NotFoundMessage } from "@/components/ui/not-found-message";
 import { SidebarLayout } from "@/components/ui/page-shell";
-import { Skeleton, SkeletonListRows } from "@/components/ui/skeleton";
+import { SkeletonEntityPage } from "@/components/ui/skeleton";
 import { PageTitle, SectionHeading } from "@/components/ui/typography";
 import type { SubtreeClimbsSort } from "@/lib/climb-list-sort";
 import { missingDescriptionMessage } from "@/lib/descriptions";
@@ -49,31 +51,14 @@ type MemberAreaPayload = ApiResponse<"/api/pages/areas/{id}">;
 
 type PublicAreaPayload = Omit<AreaBootstrap, "areaId">;
 
-function AreaLoadingSkeleton() {
-  return (
-    <div className="flex flex-col gap-6">
-      <Skeleton className="h-5 w-48" />
-      <Skeleton className="h-9 w-72" />
-      <SkeletonListRows rows={8} />
-    </div>
-  );
-}
-
 function AreaNotFoundView() {
   return (
-    <div className="py-8 text-center">
-      <PageTitle>Area not found</PageTitle>
-      <p className="mt-2 text-sm text-muted">No climbing area exists at this URL.</p>
-    </div>
+    <NotFoundMessage heading="Area not found" message="No climbing area exists at this URL." />
   );
 }
 
 function AreaErrorBanner({ error }: { error: string }) {
-  return (
-    <div role="alert" className="rounded-lg border border-border bg-surface p-6 text-danger">
-      {error}
-    </div>
-  );
+  return <InlineAlert>{error}</InlineAlert>;
 }
 
 function PublicAreaView({
@@ -100,6 +85,7 @@ function PublicAreaView({
       signal,
     });
   const page = useRetainedPage<PublicAreaPayload>({
+    resource: "area:PublicAreaView",
     scope: String(areaId),
     query: canonicalQuery,
     initial: () => {
@@ -133,7 +119,7 @@ function PublicAreaView({
   );
   if (notFound) return <AreaNotFoundView />;
   if (!data && error) return <AreaErrorBanner error={error} />;
-  if (!data) return <AreaLoadingSkeleton />;
+  if (!data) return <SkeletonEntityPage rows={8} />;
 
   const path = areaHref(data.area.id, data.area.name);
   const climbsBlock = (
@@ -206,6 +192,7 @@ function MemberAreaView({
     sessionEvents: true,
   });
   const page = useRetainedPage<MemberAreaPayload>({
+    resource: "area:MemberAreaView",
     scope: JSON.stringify([viewerId, areaId]),
     query: canonicalQuery,
     load: (signal) => fetchApi("/api/pages/areas/{id}", options(signal)),
@@ -229,7 +216,7 @@ function MemberAreaView({
   );
   if (notFound) return <AreaNotFoundView />;
   if (!data && error) return <AreaErrorBanner error={error} />;
-  if (!data) return <AreaLoadingSkeleton />;
+  if (!data) return <SkeletonEntityPage rows={8} />;
 
   const committed = searchParamsToRecord(new URLSearchParams(page.query));
   const areaPath = areaHref(data.area.id, data.area.name);

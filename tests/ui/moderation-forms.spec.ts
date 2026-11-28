@@ -28,7 +28,7 @@ test(
     const name = page.getByRole("textbox", { name: /^Name\*?$/ });
     await page.getByRole("dialog").getByText("Name", { exact: true }).click();
     await expect(name).toBeFocused();
-    await expect(page.getByRole("combobox", { name: "Discipline" })).toHaveValue("boulder");
+    await expect(page.getByRole("radio", { name: "Boulder" })).toBeChecked();
     const grade = page.getByRole("button", { name: /Grade$/ });
     await expect(grade).toContainText("V4");
     await grade.click();

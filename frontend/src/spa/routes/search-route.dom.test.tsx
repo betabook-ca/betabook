@@ -68,16 +68,16 @@ it("retains the query field from home through category and history navigation", 
   );
   expect(screen.getByRole("searchbox", { name: "Search Betabook" })).toBe(field);
   expect(field).toHaveFocus();
-  await user.click(screen.getByRole("button", { name: "Climbs" }));
+  await user.click(screen.getByRole("radio", { name: "Climbs" }));
   expect(screen.getByRole("searchbox", { name: "Search Betabook" })).toBe(field);
   expect(field).toHaveValue("granite");
   await user.click(screen.getByRole("button", { name: "Back" }));
   await waitFor(() =>
-    expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true"),
+    expect(screen.getByRole("radio", { name: "All" })).toHaveAttribute("aria-checked", "true"),
   );
   await user.click(screen.getByRole("button", { name: "Forward" }));
   await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Climbs" })).toHaveAttribute("aria-pressed", "true"),
+    expect(screen.getByRole("radio", { name: "Climbs" })).toHaveAttribute("aria-checked", "true"),
   );
   expect(screen.getByRole("searchbox", { name: "Search Betabook" })).toBe(field);
 });

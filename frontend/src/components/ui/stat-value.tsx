@@ -6,20 +6,30 @@ const STAT_TONE = {
   warning: "text-warning",
 } as const;
 
-/** The big number under an eyebrow — stat tiles, the costs total, import
- * counts. Tabular numerals keep adjacent values aligned. */
+const STAT_SIZE = {
+  /** Stat tiles, the costs total, import counts. */
+  md: "font-display text-2xl",
+  /** Several values packed into one sidebar card (StatStrip). */
+  sm: "text-lg leading-tight",
+} as const;
+
+/** The number under an eyebrow. Tabular numerals keep adjacent values
+ * aligned. */
 export function StatValue({
   children,
   tone,
+  size = "md",
 }: {
   children: ReactNode;
   /** Flags a count that needs attention. */
   tone?: keyof typeof STAT_TONE;
+  size?: keyof typeof STAT_SIZE;
 }) {
   return (
     <span
       className={clsx(
-        "font-display text-2xl font-semibold tabular-nums",
+        "font-semibold tabular-nums",
+        STAT_SIZE[size],
         tone ? STAT_TONE[tone] : "text-foreground",
       )}
     >

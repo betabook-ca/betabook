@@ -31,7 +31,7 @@ test("monthly sends and days out show their metrics and unique climb names", asy
   await selectMark(plot, february, Boolean(info.project.use.hasTouch));
   await expect(page.getByRole("dialog")).toContainText("River Stone");
   await page.getByRole("button", { name: "Close", exact: true }).click();
-  await page.getByRole("button", { name: "Days out", exact: true }).click();
+  await page.getByRole("radio", { name: "Days out", exact: true }).click();
   const days = page.getByRole("group", { name: "Monthly days out", exact: true });
   await selectMark(
     days,

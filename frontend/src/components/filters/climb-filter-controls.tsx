@@ -3,7 +3,7 @@ import { Button } from "@heroui/react";
 import { X } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 
-import { ClimbListSortControl } from "@/components/climb-list-sort-control";
+import { ClimbListSortControl } from "@/components/climbs/climb-list-sort-control";
 import type { ActiveFilter } from "@/components/filters/active-filter-summary";
 import { statsActiveFilters } from "@/components/filters/active-filter-values";
 import { ClimbFilters } from "@/components/filters/climb-filters";

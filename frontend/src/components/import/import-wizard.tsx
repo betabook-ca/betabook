@@ -3,8 +3,8 @@
 import { Button } from "@heroui/react";
 import { useEffect, useRef, useState, useTransition } from "react";
 
+import { useGradePreferences } from "@/components/climbing/grade-preferences";
 import { cardClass } from "@/components/ui/card";
-import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { PageTitle } from "@/components/ui/typography";
 import { useViewGuard } from "@/hooks/use-view-guard";

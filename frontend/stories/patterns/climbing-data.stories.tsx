@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
+import { DisciplineChip } from "@/components/climbing/discipline-chip";
+import { Grade, GradeArrow } from "@/components/climbing/grade";
 import { JournalEntryStatus } from "@/components/journal/journal-entry-layout";
-import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { Eyebrow } from "@/components/ui/eyebrow";
-import { Grade, GradeArrow } from "@/components/ui/grade";
 import { Example, StoryPage } from "@/stories/fixtures/story-layout";
 
 const meta = { title: "Patterns/Climbing data", component: StoryPage } satisfies Meta<

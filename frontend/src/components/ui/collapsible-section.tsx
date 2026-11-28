@@ -4,6 +4,7 @@ import { Disclosure } from "@heroui/react";
 import { clsx } from "clsx";
 import { useState, type ReactNode } from "react";
 
+import { SECTION_HEADING_CLASS } from "@/components/ui/typography";
 import { useIsAtLeast } from "@/hooks/use-breakpoint";
 
 type Breakpoint = "md" | "lg";
@@ -90,7 +91,7 @@ export function CollapsibleSection({
     >
       <h2
         className={clsx(
-          "text-lg font-semibold",
+          SECTION_HEADING_CLASS,
           showTitleOnDesktop
             ? DESKTOP_TITLE_CLASSNAME[breakpoint]
             : DESKTOP_SR_TITLE_CLASSNAME[breakpoint],
@@ -99,7 +100,9 @@ export function CollapsibleSection({
         {title}
       </h2>
       <Disclosure.Heading level={2} className={TRIGGER_HEADING_CLASSNAME[breakpoint]}>
-        <Disclosure.Trigger className="flex min-h-11 w-full items-center gap-1 text-lg font-semibold">
+        <Disclosure.Trigger
+          className={`flex min-h-11 w-full items-center gap-1 ${SECTION_HEADING_CLASS}`}
+        >
           {title}
           <Disclosure.Indicator className="size-4" />
         </Disclosure.Trigger>

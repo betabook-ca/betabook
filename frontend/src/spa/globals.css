@@ -72,7 +72,7 @@
        disciplines that need to read as distinct from each other and from
        gray — so each discipline gets its own themed bg/fg pair from the
        palette (trad = ochre, sport = support blue, boulder = rose),
-       consumed by DISCIPLINE_CHIP_CLASSNAME in components/ui/discipline-chip.tsx. */
+       consumed by DISCIPLINE_CHIP_CLASSNAME in components/climbing/discipline-chip.tsx. */
     --discipline-trad-bg: color-mix(in oklab, var(--palette-trad) 22%, var(--white));
     --discipline-trad-fg: color-mix(in oklab, var(--palette-trad) 40%, var(--palette-ink));
     --discipline-sport-bg: color-mix(in oklab, var(--palette-support) 22%, var(--white));
@@ -211,6 +211,66 @@
 @layer components {
   .button:not(.button--icon-only) {
     border-radius: var(--radius-panel);
+  }
+
+  /* On the night palette the overlay sits close to the page, so menus and
+     popovers take the panel border the light theme's shadow does without. */
+  :is(.dark, [data-theme="dark"]) :is(.popover, .dropdown__popover) {
+    @apply rounded-panel border border-border;
+  }
+
+  /* ChoicePills: a ToggleButtonGroup whose pills keep the app's tag look.
+     HeroUI's fills and fixed height give way so the pill's own utilities
+     (choicePillClass, segmentPillClass) paint every state. */
+  .toggle-button--pill {
+    --toggle-button-bg: transparent;
+    --toggle-button-bg-hover: transparent;
+    --toggle-button-bg-pressed: transparent;
+    --toggle-button-fg: currentColor;
+    --toggle-button-bg-selected: transparent;
+    --toggle-button-bg-selected-hover: transparent;
+    --toggle-button-bg-selected-pressed: transparent;
+    --toggle-button-fg-selected: currentColor;
+
+    height: auto;
+    /* The pill's own classes set any weight it wears. */
+    font-weight: inherit;
+  }
+
+  /* SegmentedButtons: a ToggleButtonGroup whose chosen segment is solid and
+     the rest outlined, the same pair as a primary and an outline Button. */
+  .toggle-button--segment {
+    --toggle-button-bg: transparent;
+    --toggle-button-bg-hover: color-mix(in srgb, var(--default) 60%, transparent);
+    --toggle-button-bg-pressed: var(--default);
+    --toggle-button-fg: var(--default-foreground);
+    --toggle-button-bg-selected: var(--accent);
+    --toggle-button-bg-selected-hover: var(--accent-hover);
+    --toggle-button-bg-selected-pressed: var(--accent-hover);
+    --toggle-button-fg-selected: var(--accent-foreground);
+
+    &:not([data-selected="true"]) {
+      @apply border border-border;
+    }
+  }
+
+  /* Inner edges keep the action radius and the outer ends stay round, as the
+     button radius above does inside a ButtonGroup. */
+  .toggle-button-group .toggle-button--segment {
+    border-radius: var(--radius-panel);
+  }
+
+  /* Adjacent outlines share one edge, as in an outline ButtonGroup. */
+  .toggle-button-group--horizontal .toggle-button--segment:not([data-selected="true"]) {
+    &:first-child {
+      @apply border-e-0;
+    }
+    &:last-child {
+      @apply border-s-0;
+    }
+    &:not(:first-child):not(:last-child) {
+      @apply border-x-0;
+    }
   }
 }
 

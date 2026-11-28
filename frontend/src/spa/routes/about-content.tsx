@@ -1,6 +1,7 @@
-import { Brand } from "@/components/brand";
+import { Brand } from "@/components/app-shell/brand";
 import { AppLink } from "@/components/ui/app-link";
 import { cardClass } from "@/components/ui/card";
+import { ExternalLink } from "@/components/ui/external-link";
 import { READING_MAX_WIDTH_CLASS } from "@/components/ui/layout";
 import { SectionHeading } from "@/components/ui/typography";
 import { COSTS_PAGE, IMPORT_PAGES, LOGBOOK_PAGE } from "@/lib/landing-pages";
@@ -123,17 +124,9 @@ export default function AboutContent() {
          * lines mid-sentence. `underline` because a link inside a sentence has
          * only its colour to identify it, and colour alone isn't a
          * distinguishing cue (WCAG 1.4.1). */}
-        <a
-          href="https://github.com/betabook-ca/betabook"
-          target="_blank"
-          rel="noreferrer"
-          className="link inline underline focus-visible:status-focused"
-        >
-          GitHub
-        </a>
-        . Not only can anyone use this to create their own Betabook, they can also contribute to the
-        growth of this site, building features that they want to see and fixing issues they
-        encounter.
+        <ExternalLink href="https://github.com/betabook-ca/betabook">GitHub</ExternalLink>. Not only
+        can anyone use this to create their own Betabook, they can also contribute to the growth of
+        this site, building features that they want to see and fixing issues they encounter.
       </p>
 
       <SectionHeading className="mt-4">Keeping this site free</SectionHeading>
@@ -145,26 +138,14 @@ export default function AboutContent() {
           cost transparency page
         </AppLink>{" "}
         shows this month’s Cloudflare usage against what the plan includes, and the{" "}
-        <a
-          href="https://gist.github.com/smwoo/23844c3ae239e6f22ddb96a3c660afe5#5-current-monthly-bill"
-          target="_blank"
-          rel="noreferrer"
-          className="link inline underline focus-visible:status-focused"
-        >
+        <ExternalLink href="https://gist.github.com/smwoo/23844c3ae239e6f22ddb96a3c660afe5#5-current-monthly-bill">
           pricing projection
-        </a>{" "}
+        </ExternalLink>{" "}
         estimates how that grows with traffic. The goal is to keep costs under $10/month
         {SUPPORT_URL && (
           <>
             , and if Betabook is useful to you, you can{" "}
-            <a
-              href={SUPPORT_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="link inline underline focus-visible:status-focused"
-            >
-              help cover them
-            </a>
+            <ExternalLink href={SUPPORT_URL}>help cover them</ExternalLink>
           </>
         )}
         .

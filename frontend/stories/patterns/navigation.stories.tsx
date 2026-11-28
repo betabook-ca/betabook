@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 
-import { AreaBreadcrumb } from "@/components/area-breadcrumb";
-import { AreaBreadcrumbs } from "@/components/breadcrumbs";
-import { FriendRequestBadge, FriendRequestDot } from "@/components/friend-request-badge";
+import { AreaBreadcrumb } from "@/components/areas/area-breadcrumb";
+import { AreaBreadcrumbs } from "@/components/areas/breadcrumbs";
+import { SubareaRail } from "@/components/areas/subarea-rail";
+import { FriendRequestBadge, FriendRequestDot } from "@/components/friends/friend-request-badge";
 import { SearchCategories } from "@/components/search/search-categories";
-import { SubareaRail } from "@/components/subarea-rail";
 import { SectionNavigation } from "@/components/ui/section-navigation";
 import type { SearchCategory } from "@/lib/search";
 import { Example, StoryPage } from "@/stories/fixtures/story-layout";

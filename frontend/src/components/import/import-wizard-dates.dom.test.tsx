@@ -81,7 +81,7 @@ async function enterKaya() {
       .mockResolvedValueOnce(kayaStreamResponse(items, 60, "Chichiaventurero"))
       .mockResolvedValueOnce(kayaStreamResponse([], 0, "Chichiaventurero")),
   );
-  await userEvent.click(screen.getByRole("button", { name: "KAYA" }));
+  await userEvent.click(screen.getByRole("radio", { name: "KAYA" }));
   await userEvent.type(
     screen.getByRole("textbox", { name: "KAYA username or profile link" }),
     "Chichiaventurero",
@@ -214,7 +214,7 @@ it("clears only the flagged dates, preserves a manual skip, and avoids repeating
 
 it("groups CSV timestamps by the imported calendar date and resets choices for a new file", async () => {
   const { container } = render(<ImportWizard profileHref="/users/local" />);
-  await userEvent.click(screen.getByRole("button", { name: "CSV file" }));
+  await userEvent.click(screen.getByRole("radio", { name: "CSV file" }));
   const lines = Array.from(
     { length: 30 },
     (_, i) =>
@@ -235,7 +235,7 @@ it("groups CSV timestamps by the imported calendar date and resets choices for a
     screen.getByRole("checkbox", { name: /Import sends dated Sep 3, 2025 without dates/ }),
   );
   await userEvent.click(screen.getByRole("button", { name: "1 Upload" }));
-  await userEvent.click(screen.getByRole("button", { name: "CSV file" }));
+  await userEvent.click(screen.getByRole("radio", { name: "CSV file" }));
   await userEvent.upload(container.querySelector<HTMLInputElement>('input[type="file"]')!, file);
   expect(
     await screen.findByRole("checkbox", { name: /Import sends dated Sep 3, 2025 without dates/ }),
@@ -248,7 +248,7 @@ it("starts the next import from a clean wizard", async () => {
     screen.getByRole("checkbox", { name: /Import sends dated Sep 3, 2025 without dates/ }),
   );
   await userEvent.click(screen.getByRole("button", { name: "Next: Review" }));
-  await userEvent.click(screen.getByRole("button", { name: "Overwrite" }));
+  await userEvent.click(screen.getByRole("radio", { name: "Overwrite" }));
   await userEvent.click(screen.getByRole("button", { name: "Import 60 sends" }));
   await userEvent.click(await screen.findByRole("button", { name: "Import another file" }));
   expect(importSends).toHaveBeenLastCalledWith(
@@ -257,13 +257,13 @@ it("starts the next import from a clean wizard", async () => {
   );
 
   expect(screen.getByText("1 Upload", { exact: true })).toHaveAttribute("aria-current", "step");
-  expect(screen.getByRole("button", { name: "Sendage" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("radio", { name: "Sendage" })).toHaveAttribute("aria-checked", "true");
   await enterKaya();
   expect(
     screen.getByRole("checkbox", { name: /Import sends dated Sep 3, 2025 without dates/ }),
   ).not.toBeChecked();
   await userEvent.click(screen.getByRole("button", { name: "Next: Review" }));
-  expect(screen.getByRole("button", { name: "Skip" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("radio", { name: "Skip" })).toHaveAttribute("aria-checked", "true");
   expect(screen.queryByText(/replace your existing send data/)).not.toBeInTheDocument();
 });
 

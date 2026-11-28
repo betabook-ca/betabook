@@ -1,5 +1,5 @@
-import { AppTabs } from "@/components/app-tab-bar";
-import { PrimaryNavigationIcon } from "@/components/primary-navigation-icon";
+import { AppTabs } from "@/components/app-shell/app-tab-bar";
+import { PrimaryNavigationIcon } from "@/components/app-shell/primary-navigation-icon";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 const destinations = [

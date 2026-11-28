@@ -1,8 +1,8 @@
 import { useSearchParams } from "react-router";
 
-import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
-import { FeedActivityNav } from "@/components/feed-activity-nav";
-import { FeedList } from "@/components/feed-list";
+import { CurrentPageAuthCallout } from "@/components/auth/current-page-auth-callout";
+import { FeedActivityNav } from "@/components/feed/feed-activity-nav";
+import { FeedList } from "@/components/feed/feed-list";
 import { parseFeedView } from "@/lib/feed";
 import { fetchApi } from "@/spa/lib/api";
 import { useRouter } from "@/spa/lib/navigation";
@@ -13,6 +13,7 @@ export default function FeedRoute({ viewerId }: { viewerId: string | null }) {
   const router = useRouter();
   const view = parseFeedView(searchParams.get("view") ?? undefined);
   const { data, error, pending } = useRetainedPage({
+    resource: "feed:FeedRoute",
     scope: viewerId,
     query: view,
     load: (signal) => fetchApi("/api/pages/feed", { query: { view }, signal, sessionEvents: true }),

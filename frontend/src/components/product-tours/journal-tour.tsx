@@ -4,7 +4,8 @@ import { buttonVariants } from "@heroui/react";
 import { CirclePlus } from "lucide-react";
 import { useState } from "react";
 
-import { FriendRequestBadge } from "@/components/friend-request-badge";
+import { WorkspaceSection } from "@/components/app-shell/workspace-shell";
+import { FriendRequestBadge } from "@/components/friends/friend-request-badge";
 import { DemoClimbSearch } from "@/components/product-tours/climb-search-preview";
 import { DemoClimberSearch } from "@/components/product-tours/climber-search-preview";
 import {
@@ -18,7 +19,6 @@ import { DemoFeed, DemoFriends } from "@/components/product-tours/social-tour-pr
 import { TourNavigationFrame } from "@/components/product-tours/tour-navigation-frame";
 import type { ProductTourPageProps } from "@/components/product-tours/types";
 import { SectionHeading } from "@/components/ui/typography";
-import { WorkspaceSection } from "@/components/workspace-shell";
 import type { PrimaryArea } from "@/lib/app-navigation";
 
 /** A visual reference to the app header's entry point, without a demo action. */

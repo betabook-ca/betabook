@@ -2,7 +2,10 @@ import { Button } from "@heroui/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 
-import { FeatureAnnouncement, FeatureAnnouncementScope } from "@/components/feature-announcement";
+import {
+  FeatureAnnouncement,
+  FeatureAnnouncementScope,
+} from "@/components/app-shell/feature-announcement";
 import {
   getAnnouncementCandidates,
   type FeatureAnnouncementDefinition,

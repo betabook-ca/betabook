@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
+import { Grade } from "@/components/climbing/grade";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
-import { Grade } from "./grade";
 import { ListRow } from "./list-row";
 const meta = {
   title: "Components/Data display/List row",

@@ -97,10 +97,10 @@ it("keeps recurring history exclusively in Completed", async () => {
     />,
   );
   const user = userEvent.setup();
-  expect(screen.getByRole("progressbar")).toBeVisible();
+  expect(screen.getByRole("meter")).toBeVisible();
   expect(screen.queryByRole("button", { name: "See history" })).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "History (1)" }));
-  expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+  expect(screen.queryByRole("meter")).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "See history" }));
   expect(screen.getByRole("button", { name: /Week of Aug 24/ })).toBeVisible();
 });

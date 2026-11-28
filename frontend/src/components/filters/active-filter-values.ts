@@ -1,5 +1,5 @@
+import { DISCIPLINE_LABELS } from "@/components/climbing/discipline-chip";
 import type { ActiveFilter } from "@/components/filters/active-filter-summary";
-import { DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
 import { DEFAULT_RATING_RANGE, MAX_RATING } from "@/lib/filters/climb-stats-filter";
 import type { DateFilterValue, RelativeDatePreset } from "@/lib/filters/date-filter";
 import { DEFAULT_DISCIPLINE_FILTER, type DisciplineFilter } from "@/lib/filters/discipline-filter";

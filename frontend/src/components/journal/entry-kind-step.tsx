@@ -3,8 +3,8 @@
 import { Button } from "@heroui/react";
 import { ArrowLeft } from "lucide-react";
 
-import { ClimbPicker } from "@/components/climb-picker";
-import { ActivityIcon } from "@/components/ui/activity-icon";
+import { ActivityIcon } from "@/components/climbing/activity-icon";
+import { ClimbPicker } from "@/components/climbs/climb-picker";
 import { ChoiceCard } from "@/components/ui/choice-card";
 import { PageTitle } from "@/components/ui/typography";
 import type { ClimbWithAreaName } from "@/lib/catalog-types";

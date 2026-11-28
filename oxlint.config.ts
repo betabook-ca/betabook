@@ -53,6 +53,8 @@ export default defineConfig({
     ".wrangler/**",
     "climbs_data/**",
     ".claude/**",
+    // Vendored from HeroUI (heroui.com/install); kept byte-for-byte.
+    ".agents/skills/heroui-*/**",
     "backend/migrations/**",
     "target/**",
     "backend/**",
@@ -246,6 +248,14 @@ export default defineConfig({
             ],
           },
         ],
+      },
+    },
+    {
+      // Gallery examples show a primitive with the app's real content, such as
+      // a list row carrying a grade; the production module stays feature-free.
+      files: ["frontend/src/components/ui/**/*.stories.tsx"],
+      rules: {
+        "typescript/no-restricted-imports": "off",
       },
     },
     {

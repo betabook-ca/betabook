@@ -1,0 +1,98 @@
+"use client";
+
+import { Button, type UseOverlayStateReturn } from "@heroui/react";
+import { useState, useTransition } from "react";
+
+import { AreaPicker, type PickedArea } from "@/components/areas/area-picker";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { DialogActions, ResponsiveDialog } from "@/components/ui/responsive-dialog";
+import { GENERIC_ERROR_MESSAGE, type ActionResult } from "@/lib/action-result";
+import type { GatedActionResult } from "@/spa/lib/action-contracts";
+
+/** Picking where a climb or area moves to. A plain dialog, not an
+ * alertdialog: this is a tree search, not an interruption. */
+export function AreaMoveDialog({
+  state,
+  title,
+  pendingMessage,
+  onMove,
+}: {
+  state: UseOverlayStateReturn;
+  title: string;
+  pendingMessage: string;
+  onMove: (areaId: number) => Promise<ActionResult<GatedActionResult>>;
+}) {
+  const [picked, setPicked] = useState<PickedArea | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [queued, setQueued] = useState(false);
+  const [pending, startTransition] = useTransition();
+
+  function reset() {
+    setPicked(null);
+    setError(null);
+    setQueued(false);
+  }
+
+  // The dialog runs `reset` once its exit has finished, so closing from the
+  // body only has to close.
+  const close = state.close;
+
+  function move() {
+    if (!picked || pending) return;
+    setError(null);
+    startTransition(async () => {
+      try {
+        const result = await onMove(picked.id);
+        if (!result.ok) setError(result.error);
+        else if (result.value.status === "pending") setQueued(true);
+        else close();
+      } catch {
+        setError(GENERIC_ERROR_MESSAGE);
+      }
+    });
+  }
+
+  return (
+    <ResponsiveDialog
+      state={state}
+      title={queued ? "Submitted for review" : title}
+      size="lg"
+      isPending={pending}
+      onClose={reset}
+      footer={
+        <DialogActions>
+          {queued ? (
+            // "Done" rather than "Close", because the dialog's own close
+            // button already uses that label.
+            <Button variant="ghost" onPress={close}>
+              Done
+            </Button>
+          ) : (
+            <>
+              <Button variant="ghost" onPress={close} isDisabled={pending}>
+                Cancel
+              </Button>
+              <Button onPress={move} isDisabled={pending || !picked}>
+                Move
+              </Button>
+            </>
+          )}
+        </DialogActions>
+      }
+    >
+      {queued ? (
+        <InlineAlert status="success">{pendingMessage}</InlineAlert>
+      ) : (
+        <fieldset disabled={pending} className="flex min-w-0 flex-col gap-3">
+          <AreaPicker
+            selected={picked}
+            onSelectedChange={(area) => {
+              if (!pending) setPicked(area);
+            }}
+          />
+          {error && <InlineAlert>{error}</InlineAlert>}
+        </fieldset>
+      )}
+    </ResponsiveDialog>
+  );
+}

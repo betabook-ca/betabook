@@ -4,9 +4,10 @@ import { Button } from "@heroui/react";
 import { CircleCheckBig, Sparkles, X } from "lucide-react";
 import { useState } from "react";
 
+import { useGradePreferences } from "@/components/climbing/grade-preferences";
 import { cardClass } from "@/components/ui/card";
-import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import { SectionHeading } from "@/components/ui/typography";
 import { useMounted } from "@/hooks/use-mounted";
 import { goalTitle, type GoalProgress } from "@/lib/goals";
 
@@ -101,7 +102,7 @@ export function GoalCompletionNotice({
           <Sparkles aria-hidden className="absolute -top-1 -right-2 size-4" />
         </span>
         <div className="min-w-0">
-          <h2 className="font-display text-xl font-semibold">{headline}</h2>
+          <SectionHeading>{headline}</SectionHeading>
           <p className="mt-1 text-sm font-medium">
             {goalCount > 1 ? `${goalCount} goals achieved` : goalTitle(goal, prefs)}
           </p>

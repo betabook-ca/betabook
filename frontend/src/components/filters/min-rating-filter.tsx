@@ -2,9 +2,9 @@
 
 import { useId } from "react";
 
+import { RatingField } from "@/components/climbing/rating-field";
 import { ratingBounds } from "@/components/filters/active-filter-values";
 import { FILTER_ROW_CLASS, FILTER_LABEL_CLASS, FILTER_CONTROL_CLASS } from "@/components/ui/field";
-import { RatingField } from "@/components/ui/rating-field";
 import { MAX_RATING, ratingRangeValue } from "@/lib/filters/climb-stats-filter";
 
 /** A full 1–5 range is unfiltered and is written as the default range;

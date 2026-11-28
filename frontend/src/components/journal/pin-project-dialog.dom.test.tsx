@@ -217,7 +217,7 @@ it("drops the full filters for plain chips when a keyboard takes the viewport", 
   // Whichever row is showing, neither offers an order control.
   expect(screen.queryByRole("group", { name: "Result order" })).not.toBeInTheDocument();
   // The lighter discipline chips remain, and so does what the space is for.
-  expect(screen.getByRole("button", { name: "Boulder" })).toBeInTheDocument();
+  expect(screen.getByRole("radio", { name: "Boulder" })).toBeInTheDocument();
   expect(screen.getByRole("searchbox")).toBeVisible();
   expect(screen.getByRole("list", { name: "Suggested projects" })).toBeInTheDocument();
 });

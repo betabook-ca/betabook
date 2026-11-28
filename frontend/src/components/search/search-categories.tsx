@@ -2,6 +2,7 @@
 
 import { clsx } from "clsx";
 
+import { ChoicePills } from "@/components/ui/choice-pills";
 import { SEGMENT_TRACK_CLASS, segmentPillClass } from "@/components/ui/segment-pills";
 
 import { SEARCH_LABELS, type SearchCategory } from "./search-types";
@@ -19,22 +20,19 @@ export function SearchCategories({
   compact?: boolean;
 }) {
   return (
-    <div
-      role="group"
-      aria-label="Search category"
+    <ChoicePills
+      label="Search category"
+      selectionMode="single"
+      value={[value]}
+      onChange={([next]) => {
+        if (next !== undefined) onChange(next);
+      }}
+      options={(["all", "climb", "area", "climber"] as const).map((category) => ({
+        value: category,
+        label: SEARCH_LABELS[category],
+      }))}
+      pillClass={(selected) => segmentPillClass(selected, compact)}
       className={clsx(SEGMENT_TRACK_CLASS, compact ? "flex-nowrap" : "flex-wrap")}
-    >
-      {(["all", "climb", "area", "climber"] as const).map((category) => (
-        <button
-          key={category}
-          type="button"
-          aria-pressed={value === category}
-          onClick={() => onChange(category)}
-          className={segmentPillClass(value === category, compact)}
-        >
-          {SEARCH_LABELS[category]}
-        </button>
-      ))}
-    </div>
+    />
   );
 }

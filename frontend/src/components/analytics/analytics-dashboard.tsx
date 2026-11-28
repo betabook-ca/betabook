@@ -1,0 +1,400 @@
+import type { ReactNode } from "react";
+
+import { AnalyticsCalendar } from "@/components/analytics/analytics-calendar";
+import { AnalyticsFlashChart } from "@/components/analytics/analytics-flash-chart";
+import { AnalyticsGradePyramid } from "@/components/analytics/analytics-grade-pyramid";
+import { StatTileContent, type StatTile } from "@/components/analytics/analytics-stat-tiles";
+import { AnalyticsVolumeChart } from "@/components/analytics/analytics-volume-chart";
+import {
+  AnalyticsWorkspace,
+  type AnalyticsPanel,
+} from "@/components/analytics/analytics-workspace";
+import { BreakthroughList } from "@/components/analytics/breakthrough-list";
+import { ProgressionChart } from "@/components/analytics/progression-chart";
+import { DISCIPLINE_HUE } from "@/components/climbing/discipline-chip";
+import { PanelHeader } from "@/components/ui/eyebrow";
+import { SectionHeading } from "@/components/ui/typography";
+import type { ActionResult } from "@/lib/action-result";
+import { buildAnalyticsHighlights } from "@/lib/analytics-highlights";
+import type { AnalyticsLayout } from "@/lib/analytics-layout";
+import { ANALYTICS_CARD_IDS, cardAppliesTo, type AnalyticsCardId } from "@/lib/analytics-layout";
+import type { AnalyticsSendRow } from "@/lib/analytics-types";
+import { formatAnalyticsYears } from "@/lib/analytics-years";
+import {
+  selectChartSends,
+  sendChartRows,
+  sessionChartRows,
+  type ChartSession,
+} from "@/lib/chart-details";
+import { formatCount } from "@/lib/format";
+import { formatMonth } from "@/lib/format-date";
+import type { ClimbType } from "@/lib/grades";
+import { firstTryStyles, styleRateTitle } from "@/lib/style-rates";
+import { formatDaySpan, inSelectedYears, type UserAnalytics } from "@/lib/user-analytics";
+
+const EMPTY_SESSIONS: ChartSession[] = [];
+const NO_PANELS: AnalyticsPanel[] = [];
+
+/** Every summary and chart reads the same filtered analytics; customization changes presentation only. */
+// oxlint-disable-next-line complexity -- independent summary and empty-chart states
+export function AnalyticsDashboard({
+  analytics,
+  sends,
+  sessions = EMPTY_SESSIONS,
+  undatedCount,
+  scope,
+  journalVisible,
+  selectedYears,
+  periodPicker,
+  summary,
+  activityHeading,
+  emptyState,
+  canCustomize = false,
+  initialLayout,
+  onSave,
+  highlights = buildAnalyticsHighlights([], scope, selectedYears, []),
+}: {
+  analytics: UserAnalytics;
+  sends: AnalyticsSendRow[];
+  sessions?: ChartSession[];
+  highlights?: ReturnType<typeof buildAnalyticsHighlights>;
+  undatedCount: number;
+  scope: ClimbType;
+  journalVisible: boolean;
+  selectedYears: number[];
+  periodPicker: ReactNode;
+  /** The climber's all-time record, under the activity heading. */
+  summary?: ReactNode;
+  /** Replaces the default "All-time activity" or "Activity in <year>" heading.
+   * Trip analytics select no years, so the default would say "All-time". */
+  activityHeading?: string;
+  emptyState?: ReactNode;
+  canCustomize?: boolean;
+  initialLayout?: AnalyticsLayout;
+  onSave?: (layout: AnalyticsLayout) => Promise<ActionResult>;
+}) {
+  const chartSends = selectChartSends(sends, scope, selectedYears);
+  const activities = journalVisible
+    ? sessionChartRows(
+        sessions.filter(
+          (entry) => entry.climbType === scope && inSelectedYears(entry.entryDate, selectedYears),
+        ),
+        sends,
+      )
+    : sendChartRows(chartSends);
+  const period = selectedYears.length ? formatAnalyticsYears(selectedYears) : null;
+  const noActivity =
+    Boolean(emptyState) || (period != null && analytics.sendCount === 0 && analytics.daysOut === 0);
+  const calendarYears = (selectedYears.length ? selectedYears : analytics.calendarYears).toSorted(
+    (a, b) => a - b,
+  );
+  const calendarTitle = journalVisible ? "Outdoor calendar" : "Sending calendar";
+  const tiles = buildStatTiles({ analytics, highlights, scope, journalVisible });
+  const descriptions: Record<AnalyticsCardId, string> = {
+    partner: "The friend you tagged on the most days.",
+    biggestProject:
+      "The climb with the most sessions that was still unsent at the end of this period.",
+    persistence: "The most sessions leading up to a first send in this period.",
+    favoriteRepeat: "The climb you repeated most after its original ascent.",
+    sends: "How many climbs you’ve sent.",
+    hardest: "Your highest graded send.",
+    days: "Days with climbing activity.",
+    flash: "The share of sends you flashed.",
+    onsight: "The share of sends you onsighted.",
+    bestYear: "The year with the most sends.",
+    streak: "Your longest run of consecutive climbing days.",
+    busiestMonth: "The month with the most sends.",
+    areas: "How many areas you’ve sent climbs in.",
+    favoriteDay: "The day of the week you send most often.",
+    layoff: "The longest gap between climbing days.",
+  };
+  const cards: AnalyticsPanel[] = [...tiles].map(([id, tile]) => ({
+    id,
+    title: tile.label,
+    description: descriptions[id],
+    content: <StatTileContent tile={tile} />,
+  }));
+  const pyramidRows = analytics.pyramid[0]?.rows ?? [];
+  const styleRateRows =
+    analytics.styleRatesByGrade.find((group) => group.type === scope)?.rows ?? [];
+  const charts: AnalyticsPanel[] = [
+    {
+      id: "volume",
+      title: "Volume over time",
+      description: "Monthly sends or climbing days.",
+      content: (
+        <AnalyticsVolumeChart
+          rows={analytics.volume}
+          sends={chartSends}
+          activities={activities}
+          type={scope}
+          journalVisible={journalVisible}
+        />
+      ),
+    },
+    {
+      id: "flashRate",
+      title: styleRateTitle(scope),
+      description: `Total sends and the ${firstTryStyles(scope).join(" and ")} rate at each grade.`,
+      content: <AnalyticsFlashChart sends={chartSends} rows={styleRateRows} type={scope} />,
+    },
+    {
+      id: "progression",
+      title: "Progression",
+      content: (
+        <section aria-label="Progression" className="min-w-0">
+          <PanelHeader
+            title="Progression"
+            description="Each dot is a month’s hardest send; the line is your best so far."
+          />
+          {analytics.progression.length ? (
+            <ProgressionChart
+              type={scope}
+              points={analytics.progression[0].points}
+              sends={chartSends}
+            />
+          ) : (
+            <p className="text-sm text-muted">No dated sends with grades.</p>
+          )}
+        </section>
+      ),
+    },
+    {
+      id: "pyramid",
+      title: "Grade pyramid",
+      content: (
+        <section aria-label="Grade pyramid" className="min-w-0">
+          <PanelHeader title="Grade pyramid" description="Sends per grade, hardest on top." />
+          {pyramidRows.length ? (
+            <AnalyticsGradePyramid type={scope} rows={pyramidRows} sends={chartSends} />
+          ) : (
+            <p className="text-sm text-muted">No graded sends.</p>
+          )}
+        </section>
+      ),
+    },
+    {
+      id: "breakthroughs",
+      title: "Breakthroughs",
+      content: (
+        <section aria-label="Breakthroughs" className="min-w-0">
+          <PanelHeader
+            title="Breakthroughs"
+            description="Sends that set a new highest grade, newest first."
+          />
+          {analytics.breakthroughs.length ? (
+            <BreakthroughList breakthroughs={analytics.breakthroughs} />
+          ) : (
+            <p className="text-sm text-muted">No dated sends with grades.</p>
+          )}
+        </section>
+      ),
+    },
+    {
+      id: "calendar",
+      title: calendarTitle,
+      content: (
+        <section aria-label={calendarTitle} className="min-w-0">
+          <PanelHeader
+            title={calendarTitle}
+            description={journalVisible ? "Sessions per day." : "Sends per day."}
+          />
+          {calendarYears.length ? (
+            <AnalyticsCalendar
+              key={calendarYears.join(",")}
+              years={calendarYears}
+              countsByDay={analytics.calendarCounts}
+              activities={activities}
+              hue={DISCIPLINE_HUE[scope]}
+              unit={journalVisible ? "session" : "send"}
+            />
+          ) : (
+            <p className="text-sm text-muted">
+              {journalVisible ? "No logged sessions." : "No dated sends."}
+            </p>
+          )}
+        </section>
+      ),
+    },
+  ];
+  return (
+    <AnalyticsWorkspace
+      cards={noActivity ? NO_PANELS : cards}
+      charts={noActivity ? NO_PANELS : charts}
+      canCustomize={canCustomize && !noActivity}
+      initialLayout={initialLayout}
+      onSave={onSave}
+      heading={
+        !emptyState && (
+          <div className="flex flex-col gap-1">
+            <SectionHeading>
+              {activityHeading ?? (period == null ? "All-time activity" : `Activity in ${period}`)}
+            </SectionHeading>
+            {summary && <p className="text-sm text-muted">{summary}</p>}
+          </div>
+        )
+      }
+    >
+      <div className="flex flex-col gap-4">
+        {periodPicker}
+        {undatedCount > 0 && (
+          <p className="text-xs text-muted">
+            {period == null
+              ? "Sends without dates count toward your totals and grade pyramid, but won’t appear in charts that track activity over time."
+              : "Sends without dates aren’t included in the selected years. Choose All years to include them in your totals and grade pyramid."}
+          </p>
+        )}
+        {emptyState ??
+          (noActivity && (
+            <p role="status" className="text-sm text-muted">
+              No activity in {period} for this discipline. Try another year or All years.
+            </p>
+          ))}
+      </div>
+    </AnalyticsWorkspace>
+  );
+}
+
+/** The label, value and note of every stat card that applies to `scope`, in
+ * catalog order. The share image reads these too, so it matches the page. */
+export function buildStatTiles({
+  scope,
+  ...input
+}: {
+  analytics: UserAnalytics;
+  highlights: ReturnType<typeof buildAnalyticsHighlights>;
+  scope: ClimbType;
+  journalVisible: boolean;
+}): Map<AnalyticsCardId, StatTile> {
+  const tiles = allStatTiles(input);
+  return new Map(
+    ANALYTICS_CARD_IDS.filter((id) => cardAppliesTo(id, scope)).map((id) => [id, tiles[id]]),
+  );
+}
+
+// oxlint-disable-next-line complexity -- one branch per card's empty state
+function allStatTiles({
+  analytics,
+  highlights,
+  journalVisible,
+}: {
+  analytics: UserAnalytics;
+  highlights: ReturnType<typeof buildAnalyticsHighlights>;
+  journalVisible: boolean;
+}): Record<AnalyticsCardId, StatTile> {
+  const hardest = analytics.hardest[0] ?? null;
+  const [firstMonth, lastMonth] = (analytics.dateSpan ?? []).map((date) => date.slice(0, 7));
+  return {
+    partner: {
+      label: "Most tagged friend",
+      value: highlights.partner?.name ?? "—",
+      sub: highlights.partner
+        ? formatCount(highlights.partner.days, "shared day")
+        : "no tagged friends",
+    },
+    biggestProject: {
+      label: "Work in progress",
+      value: highlights.biggestProject
+        ? formatCount(highlights.biggestProject.sessions, "session")
+        : "—",
+      sub: highlights.biggestProject?.name ?? "no projects in progress",
+    },
+    persistence: {
+      label: "Persistence paid off",
+      value: highlights.persistence ? formatCount(highlights.persistence.sessions, "session") : "—",
+      sub: highlights.persistence
+        ? `${highlights.persistence.name} · sessions through the send`
+        : "no sends after multiple logged sessions",
+    },
+    favoriteRepeat: {
+      label: "Favorite repeat",
+      value: highlights.favoriteRepeat
+        ? formatCount(highlights.favoriteRepeat.repeats, "repeat")
+        : "—",
+      sub: highlights.favoriteRepeat?.name ?? "no repeat ascents logged",
+    },
+    sends: {
+      label: "Sends",
+      value: analytics.sendCount,
+      sub: !firstMonth
+        ? "no dated sends"
+        : firstMonth === lastMonth
+          ? formatMonth(firstMonth)
+          : `${formatMonth(firstMonth)} – ${formatMonth(lastMonth)}`,
+    },
+    hardest: {
+      label: "Hardest",
+      value: hardest?.label ?? "—",
+      sub: hardest ? hardest.climbName : "no graded sends",
+    },
+    days: {
+      label: journalVisible ? "Days out" : "Sending days",
+      value: analytics.daysOut,
+      sub: analytics.daysPerMonth != null ? `${analytics.daysPerMonth.toFixed(1)} per month` : null,
+    },
+    flash: styleTile("Flash", analytics.flashCount, analytics.hardestFlash, analytics.sendCount),
+    onsight: styleTile(
+      "Onsight",
+      analytics.onsightCount,
+      analytics.hardestOnsight,
+      analytics.sendCount,
+    ),
+    streak: {
+      label: journalVisible ? "Longest streak" : "Longest send streak",
+      value: analytics.longestStreak ? formatCount(analytics.longestStreak.days, "day") : "—",
+      sub: analytics.longestStreak
+        ? formatMonth(analytics.longestStreak.end.slice(0, 7))
+        : "no dated activity",
+    },
+    bestYear: {
+      label: "Best year",
+      value: analytics.bestYear?.year ?? "—",
+      sub: analytics.bestYear ? formatCount(analytics.bestYear.count, "send") : "no dated sends",
+    },
+    busiestMonth: {
+      label: "Busiest month",
+      value: analytics.busiestMonth ? formatMonth(analytics.busiestMonth.month) : "—",
+      sub: analytics.busiestMonth
+        ? formatCount(analytics.busiestMonth.count, "send")
+        : "no dated sends",
+    },
+    areas: {
+      label: "Areas",
+      value: analytics.areaCount,
+      sub: analytics.topArea ? `Most sends: ${analytics.topArea.name}` : null,
+    },
+    favoriteDay: {
+      label: "Favorite day",
+      value: analytics.favoriteWeekday?.weekday ?? "—",
+      sub: analytics.favoriteWeekday
+        ? formatCount(analytics.favoriteWeekday.count, "send")
+        : "no dated sends",
+    },
+    layoff: {
+      label: journalVisible ? "Longest layoff" : "Longest send gap",
+      value: analytics.longestLayoff ? formatDaySpan(analytics.longestLayoff.days) : "—",
+      sub: analytics.longestLayoff
+        ? `${formatMonth(analytics.longestLayoff.from.slice(0, 7))} – ${formatMonth(analytics.longestLayoff.to.slice(0, 7))}`
+        : "no gaps between dated activity",
+    },
+  };
+}
+
+/** A flash or onsight card: the share of sends in that style, and the hardest one. */
+function styleTile(
+  label: string,
+  count: number,
+  hardest: UserAnalytics["hardestFlash"],
+  sendCount: number,
+): StatTile {
+  return {
+    label,
+    value: sendCount ? `${Math.round((count / sendCount) * 100)}%` : "—",
+    sub:
+      sendCount === 0
+        ? "no sends"
+        : hardest
+          ? `Hardest: ${hardest.label}`
+          : `0 ${label.toLowerCase()}`,
+  };
+}

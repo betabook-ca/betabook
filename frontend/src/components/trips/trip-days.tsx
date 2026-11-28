@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
-import { UserSendLogRow } from "@/components/climb-log-row";
 import { JournalEntryRow } from "@/components/journal/journal-entry-row";
-import { SendActionsMenu } from "@/components/send-actions-menu";
+import { UserSendLogRow } from "@/components/sends/climb-log-row";
+import { SendActionsMenu } from "@/components/sends/send-actions-menu";
 import {
   TripDayOrderControl,
   TripDayOrderList,
@@ -10,7 +10,8 @@ import {
 } from "@/components/trips/trip-day-order";
 import { cardClass } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { SectionHeading } from "@/components/ui/typography";
+import { RowList } from "@/components/ui/row-list";
+import { SectionHeading, SubsectionHeading } from "@/components/ui/typography";
 import type { AreaBreadcrumbs } from "@/lib/catalog-types";
 import { DEFAULT_JOURNAL_FILTER } from "@/lib/filters/journal-filter";
 import { formatCount } from "@/lib/format";
@@ -80,12 +81,12 @@ function TripDayHeader({ day }: { day: TripDay<UserSendRow, JournalEntry> }) {
   return (
     <header className="sticky top-0 z-10 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-separator bg-surface-secondary px-4 py-2.5">
       <div className="flex min-w-0 flex-col gap-0.5">
-        <h3 className="text-sm font-semibold text-foreground">
+        <SubsectionHeading size="sm">
           {number}{" "}
           <time dateTime={day.date} className="font-normal text-muted">
             · {date}
           </time>
-        </h3>
+        </SubsectionHeading>
         {crags && <p className="text-xs text-muted">{crags}</p>}
       </div>
       <p className="text-xs text-muted">{daySummary(day)}</p>
@@ -177,7 +178,7 @@ function TripDayCards({
             <TripDayHeader day={day} />
             {/* Rows raise their grade column to z-10; keeping them in their own
               stacking context lets the sticky header cover them. */}
-            <ul role="list" className="relative z-0 flex flex-col divide-y divide-separator px-4">
+            <RowList className="relative z-0 px-4">
               {day.items.map((item) =>
                 item.kind === "send" ? (
                   // Keyed by climb id. Keys end up in the RSC payload, which a
@@ -208,7 +209,7 @@ function TripDayCards({
                   </li>
                 ),
               )}
-            </ul>
+            </RowList>
           </section>
         ))}
       />

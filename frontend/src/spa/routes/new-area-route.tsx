@@ -1,6 +1,6 @@
-import { AddKindNav } from "@/components/add-kind-nav";
-import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
-import { NewAreaForm } from "@/components/new-area-form";
+import { AddKindNav } from "@/components/app-shell/add-kind-nav";
+import { NewAreaForm } from "@/components/areas/new-area-form";
+import { CurrentPageAuthCallout } from "@/components/auth/current-page-auth-callout";
 import { PageTitle } from "@/components/ui/typography";
 
 export default function NewAreaRoute({ viewerId }: { viewerId: string | null }) {

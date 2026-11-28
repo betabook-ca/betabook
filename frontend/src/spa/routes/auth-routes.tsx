@@ -2,13 +2,14 @@ import { Button } from "@heroui/react";
 import { useState } from "react";
 import { Navigate, useSearchParams } from "react-router";
 
-import { ForgotPasswordForm } from "@/components/forgot-password-form";
-import { ResetPasswordForm } from "@/components/reset-password-form";
-import { SignInForm } from "@/components/sign-in-form";
-import { SignUpForm } from "@/components/sign-up-form";
-import { TermsAcceptanceForm } from "@/components/terms-acceptance-form";
+import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
+import { ResetPasswordForm } from "@/components/auth/reset-password-form";
+import { SignInForm } from "@/components/auth/sign-in-form";
+import { SignUpForm } from "@/components/auth/sign-up-form";
+import { TermsAcceptanceForm } from "@/components/terms/terms-acceptance-form";
 import { AppLink } from "@/components/ui/app-link";
 import { FORM_CARD_CLASS } from "@/components/ui/card";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { PageTitle } from "@/components/ui/typography";
 import { formatAuthErrorMessage, safeNextPath, signInUrl } from "@/lib/sign-in-redirect";
 import { CURRENT_TERMS_PROMPT } from "@/lib/terms";
@@ -73,6 +74,7 @@ function CredentialForm({
 }) {
   const [attempt, setAttempt] = useState(0);
   const { data: config, error } = useRetainedPage({
+    resource: "auth-routes:CredentialForm",
     scope: "auth-config",
     query: String(attempt),
     load: (signal) => fetchApi("/api/config/auth", { signal }),
@@ -81,12 +83,15 @@ function CredentialForm({
     return (
       <div className={FORM_CARD_CLASS}>
         {error ? (
-          <div role="alert">
-            Couldn’t load sign-in options.{" "}
-            <Button size="sm" onPress={() => setAttempt((n) => n + 1)}>
-              Retry
-            </Button>
-          </div>
+          <InlineAlert
+            action={
+              <Button size="sm" onPress={() => setAttempt((n) => n + 1)}>
+                Retry
+              </Button>
+            }
+          >
+            Couldn’t load sign-in options.
+          </InlineAlert>
         ) : (
           <p role="status">Loading sign-in options…</p>
         )}

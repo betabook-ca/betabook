@@ -2,8 +2,8 @@ import { CompanionList } from "@/components/journal/companion-list";
 import { EntryActionsMenu } from "@/components/journal/entry-actions-menu";
 import { JournalEntryStatus } from "@/components/journal/journal-entry-layout";
 import { AppLink } from "@/components/ui/app-link";
-import { ClampedComment } from "@/components/ui/clamped-comment";
 import { Eyebrow } from "@/components/ui/eyebrow";
+import { RowComment } from "@/components/ui/list-row";
 import { formatCount } from "@/lib/format";
 import { formatDate } from "@/lib/format-date";
 import type { JournalEntry } from "@/lib/logbook-types";
@@ -62,11 +62,7 @@ export function ClimbJournalCard({
                   />
                 </div>
                 <CompanionList companions={entry.companions} />
-                {entry.body && (
-                  <div className="max-w-prose text-base leading-relaxed text-foreground">
-                    <ClampedComment>{entry.body}</ClampedComment>
-                  </div>
-                )}
+                {entry.body && <RowComment>{entry.body}</RowComment>}
               </li>
             ))}
           </ul>

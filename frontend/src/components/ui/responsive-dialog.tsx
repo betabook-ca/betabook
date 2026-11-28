@@ -183,3 +183,16 @@ export function ResponsiveDialog({
     </Drawer.Backdrop>
   );
 }
+
+/** A task dialog's action row, for its `footer`: Cancel, then the primary
+ * action, at the end. `leading` holds an alternate path that belongs at the
+ * start, such as "New list…" or a preview toggle. */
+export function DialogActions({ children, leading }: { children: ReactNode; leading?: ReactNode }) {
+  if (!leading) return <div className="flex w-full flex-wrap justify-end gap-2">{children}</div>;
+  return (
+    <div className="flex w-full flex-wrap items-center justify-between gap-2">
+      {leading}
+      <div className="flex flex-wrap gap-2">{children}</div>
+    </div>
+  );
+}

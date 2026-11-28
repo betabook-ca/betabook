@@ -1,6 +1,6 @@
 "use client";
 
-import { useGradePreferences } from "@/components/ui/grade-preferences";
+import { useGradePreferences } from "@/components/climbing/grade-preferences";
 import { IndexRangeSelect } from "@/components/ui/index-select";
 import type { DisciplineFilter } from "@/lib/filters/discipline-filter";
 import { gradeLabelGroups, type ClimbType, type GradePreferences } from "@/lib/grades";

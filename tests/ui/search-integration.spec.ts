@@ -27,15 +27,15 @@ test(
   { tag: ["@behavior", "@app"] },
   async ({ page }) => {
     await page.goto(`${appBaseURL}/search?mode=all`);
-    await expect(page.getByRole("button", { name: "All", exact: true })).toBeVisible();
+    await expect(page.getByRole("radio", { name: "All", exact: true })).toBeVisible();
     await page.getByRole("searchbox", { name: "Search Betabook" }).fill("cedar");
     await expect(page).toHaveURL(/name=cedar/);
-    await page.getByRole("button", { name: "Climbs", exact: true }).click();
+    await page.getByRole("radio", { name: "Climbs", exact: true }).click();
     await expect(page).toHaveURL(/mode=climb/);
     await expect(page).toHaveURL(/name=cedar/);
     await expect(page.getByRole("searchbox", { name: "Search Betabook" })).toHaveValue("cedar");
-    await expect(page.getByRole("button", { name: "Climbs", exact: true })).toHaveAttribute(
-      "aria-pressed",
+    await expect(page.getByRole("radio", { name: "Climbs", exact: true })).toHaveAttribute(
+      "aria-checked",
       "true",
     );
   },
@@ -73,7 +73,7 @@ test(
     await expect(page).toHaveURL(/areaId=3/);
     await expect(page.getByRole("link", { name: "Open Cedar Oregon, Cedar Grove" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Open Cedar California/ })).toHaveCount(0);
-    await page.getByRole("button", { name: "Areas", exact: true }).click();
+    await page.getByRole("radio", { name: "Areas", exact: true }).click();
     await expect(page).toHaveURL(/mode=area/);
     await page.goBack();
     await expect(page).toHaveURL(/mode=climb/);
@@ -152,11 +152,11 @@ test(
     await expect(page).toHaveURL(/\/search\?.*name=granite/);
     await expect(field).toHaveValue("granite");
     await expect(field).toBeFocused();
-    await page.getByRole("button", { name: "Climbs", exact: true }).click();
+    await page.getByRole("radio", { name: "Climbs", exact: true }).click();
     await expect(page).toHaveURL(/mode=climb/);
     await page.goBack();
-    await expect(page.getByRole("button", { name: "All", exact: true })).toHaveAttribute(
-      "aria-pressed",
+    await expect(page.getByRole("radio", { name: "All", exact: true })).toHaveAttribute(
+      "aria-checked",
       "true",
     );
     await expect(field).toHaveValue("granite");

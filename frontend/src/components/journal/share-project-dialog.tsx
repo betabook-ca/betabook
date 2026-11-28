@@ -2,7 +2,7 @@
 
 import type { UseOverlayStateReturn } from "@heroui/react";
 
-import { ShareLinkDialog } from "@/components/share-link-dialog";
+import { ShareLinkDialog } from "@/components/sharing/share-link-dialog";
 import type { PinnedProject } from "@/lib/logbook-types";
 import { projectSharePath } from "@/lib/project-share";
 import { shareProject, unshareProject } from "@/spa/lib/actions-client";

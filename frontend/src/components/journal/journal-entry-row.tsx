@@ -1,13 +1,13 @@
 import { clsx } from "clsx";
 
-import { AreaBreadcrumb } from "@/components/area-breadcrumb";
+import { AreaBreadcrumb } from "@/components/areas/area-breadcrumb";
+import { Grade } from "@/components/climbing/grade";
+import { GradeLabel } from "@/components/climbing/grade-label";
 import { EntryActionsMenu } from "@/components/journal/entry-actions-menu";
 import { JournalCompanions } from "@/components/journal/journal-companions";
 import { JournalEntryLayout, JournalEntryStatus } from "@/components/journal/journal-entry-layout";
-import { sendVideoMedia } from "@/components/send-video-media";
+import { sendVideoMedia } from "@/components/sends/send-video-media";
 import { AppLink } from "@/components/ui/app-link";
-import { Grade } from "@/components/ui/grade";
-import { GradeLabel } from "@/components/ui/grade-label";
 import type { AreaBreadcrumbs } from "@/lib/catalog-types";
 import { journalFilterToSearchParams, type JournalFilter } from "@/lib/filters/journal-filter";
 import { activityGrade } from "@/lib/grades";

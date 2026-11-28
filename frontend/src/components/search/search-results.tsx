@@ -5,13 +5,13 @@ import { clsx } from "clsx";
 import { ArrowUpRight, ChevronRight, MapPin } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { CatalogClimbRow } from "@/components/catalog-climb-row";
+import { DisciplineChip } from "@/components/climbing/discipline-chip";
+import { GradeLabel } from "@/components/climbing/grade-label";
+import { RatingStars } from "@/components/climbing/rating-stars";
+import { CatalogClimbRow } from "@/components/climbs/catalog-climb-row";
 import { AppLink } from "@/components/ui/app-link";
-import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { EmptyState } from "@/components/ui/empty-state";
-import { GradeLabel } from "@/components/ui/grade-label";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { RatingStars } from "@/components/ui/rating-stars";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SectionHeading } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -152,7 +152,7 @@ export function SearchResults({
                         climb={item.climb}
                         ancestors={item.ancestors ?? []}
                         stats={item.stats}
-                        leadingAction={action}
+                        leading={action}
                         href={href}
                         linkLabel={`Open ${item.name}, ${item.detail}`}
                       />

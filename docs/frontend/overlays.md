@@ -1,6 +1,6 @@
 # Overlays
 
-Use the three wrappers below rather than HeroUI's `Drawer`, `Modal` or
+Use the wrappers below rather than HeroUI's `Drawer`, `Modal` or
 `AlertDialog` directly. Which one you want depends on what the overlay
 contains, not on the screen size.
 
@@ -11,10 +11,15 @@ contains, not on the screen size.
   or more), add `presentation="fullscreen"`. Put the primary action in
   `footer` when the dialog owns it, so it stays pinned above the keyboard —
   the climb form and the goal form still render their own submit inside the
-  form element and scroll with it, and are the remaining conversions.
+  form element and scroll with it, and are the remaining conversions. Lay the
+  footer out with `DialogActions`: Cancel, then the primary action, at the end.
+- A change that waits for admin review uses `useReviewRequest` and swaps the
+  form for `ReviewQueuedNotice` once it's queued.
 - A confirmation — delete, reject, a gate — is a `ConfirmDialog`, centered at
   every width. At most one field in `children`; more than that and it's a
   form.
+- A readout with no task in it — a playing video, the climbs behind a chart
+  mark — may use HeroUI's `Modal` directly, centered at every width.
 - If an overlay has a fixed height and stacks filters above a scrolling
   list, read `useCompactViewport()` and collapse the filters when it's set.
   The keyboard takes about 340px and only `visualViewport` sees it — Safari

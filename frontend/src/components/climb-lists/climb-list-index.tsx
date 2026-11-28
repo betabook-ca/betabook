@@ -6,9 +6,8 @@ import type { ReactNode } from "react";
 
 import { ClimbListActions } from "@/components/climb-lists/climb-list-actions";
 import { ClimbListDialog } from "@/components/climb-lists/climb-list-dialog";
-import { AppLink } from "@/components/ui/app-link";
-import { cardClass } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { IndexCard } from "@/components/ui/index-card";
 import { SectionHeading } from "@/components/ui/typography";
 import type { ClimbListSummary } from "@/lib/catalog-types";
 import { climbCountLabel, climbListHref } from "@/lib/climb-lists";
@@ -54,20 +53,14 @@ export function ClimbListIndex({
       {lists.length > 0 && (
         <ul className="flex flex-col gap-3">
           {lists.map((list) => (
-            <li key={list.id} className={`flex flex-col gap-2 ${cardClass("sm", "bordered")}`}>
-              <div className="flex min-w-0 items-start justify-between gap-3">
-                <div className="flex min-w-0 flex-col gap-1">
-                  <AppLink href={climbListHref(userId, list.id)} className="font-medium">
-                    {list.title}
-                  </AppLink>
-                  <p className="text-sm text-muted">{climbCountLabel(list.climbCount)}</p>
-                </div>
-                {canEdit && <ClimbListActions list={list} userId={userId} />}
-              </div>
-              {list.description && (
-                <p className="line-clamp-2 text-sm leading-relaxed">{list.description}</p>
-              )}
-            </li>
+            <IndexCard
+              key={list.id}
+              title={list.title}
+              href={climbListHref(userId, list.id)}
+              summary={climbCountLabel(list.climbCount)}
+              actions={canEdit && <ClimbListActions list={list} userId={userId} />}
+              description={list.description}
+            />
           ))}
         </ul>
       )}

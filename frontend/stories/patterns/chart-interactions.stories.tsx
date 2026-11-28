@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { AnalyticsCalendar } from "@/components/analytics-calendar";
-import { AnalyticsFlashChart } from "@/components/analytics-flash-chart";
-import { AnalyticsVolumeChart } from "@/components/analytics-volume-chart";
-import { DISCIPLINE_HUE } from "@/components/ui/discipline-chip";
+import { AnalyticsCalendar } from "@/components/analytics/analytics-calendar";
+import { AnalyticsFlashChart } from "@/components/analytics/analytics-flash-chart";
+import { AnalyticsVolumeChart } from "@/components/analytics/analytics-volume-chart";
+import { DISCIPLINE_HUE } from "@/components/climbing/discipline-chip";
 import { sessionChartRows } from "@/lib/chart-details";
 import {
   activityAnalytics,

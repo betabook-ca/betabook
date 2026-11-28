@@ -2,7 +2,7 @@ import { Button, useOverlayState } from "@heroui/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { userEvent, within } from "storybook/test";
 
-import { GradePreferencesProvider } from "@/components/ui/grade-preferences";
+import { GradePreferencesProvider } from "@/components/climbing/grade-preferences";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 import { JournalEntryDrawer } from "./journal-entry-drawer";

@@ -55,7 +55,7 @@ test("quick search fits a short narrow viewport and passes accessibility", async
 test("full filters and climb picker fit 320 pixels", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 320, height: 812 });
   await openSearchStory(page, testInfo, "full-results");
-  await page.getByRole("button", { name: "Climbs", exact: true }).click();
+  await page.getByRole("radio", { name: "Climbs", exact: true }).click();
   await page.getByRole("button", { name: "Boulder", exact: true }).click();
   await page.getByRole("button", { name: "Expand filters", exact: true }).click();
   await expect(page.getByRole("button", { name: /Min grade/ })).toBeVisible();

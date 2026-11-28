@@ -1,0 +1,97 @@
+"use client";
+
+import { Button, useOverlayState } from "@heroui/react";
+import { Menu } from "lucide-react";
+import { useEffect, useRef } from "react";
+
+import { BrandHomeLink } from "@/components/app-shell/brand";
+import { MENU_TRIGGER_CLASS } from "@/components/app-shell/nav-link";
+import { useFriendRequestCount } from "@/components/friends/friend-requests-provider";
+import { DeferredLoadError } from "@/components/ui/deferred-load-error";
+import { BREAKPOINT_QUERY } from "@/hooks/use-breakpoint";
+import { useClientSession } from "@/hooks/use-client-session";
+import { useDeferredComponent } from "@/hooks/use-deferred-component";
+import { useMobileTabsVisible } from "@/hooks/use-mobile-tabs-visible";
+import { usePathname } from "@/spa/lib/navigation";
+
+/** Module-level so its identity is stable across renders — the preload hook
+ * keys its effect on the loader. */
+const loadMenu = () =>
+  import("@/components/app-shell/app-menu-popover").then((m) => m.AppMenuPopover);
+
+/** The mobile menu opens under its trigger; desktop branding links Home. */
+export function HeaderNavigation() {
+  const state = useOverlayState();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const { close, open, setOpen } = state;
+  const pathname = usePathname();
+  const openedAt = useRef<string | null>(null);
+  const session = useClientSession();
+  const requestCount = useFriendRequestCount();
+  const tabsVisible = useMobileTabsVisible();
+  const { Component: AppMenuPopover, load, failed } = useDeferredComponent(loadMenu);
+
+  function openMenu() {
+    openedAt.current = window.location.pathname;
+    load();
+    open();
+  }
+
+  // Menu links close it on press, including a link to the current page. The
+  // root layout persists, so navigations started elsewhere need this too.
+  useEffect(() => {
+    // The address changes before a lazy route commits. Keep a menu the user
+    // reopened on the new page while its code was loading.
+    if (openedAt.current !== window.location.pathname) close();
+  }, [pathname, close]);
+
+  useEffect(() => {
+    const desktop = window.matchMedia(BREAKPOINT_QUERY.md);
+    const closeOnDesktop = () => {
+      if (desktop.matches) close();
+    };
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, [close]);
+
+  return (
+    <>
+      <Button
+        isIconOnly
+        variant="ghost"
+        className={`size-11 md:hidden ${MENU_TRIGGER_CLASS}`}
+        ref={triggerRef}
+        aria-label="Open menu"
+        aria-expanded={state.isOpen}
+        aria-haspopup="dialog"
+        onPress={openMenu}
+      >
+        <Menu aria-hidden className="size-5" />
+      </Button>
+      <div className="hidden md:block">
+        <BrandHomeLink />
+      </div>
+      {state.isOpen && failed && (
+        <DeferredLoadError feature="the menu" onRetry={load} onDismiss={close} />
+      )}
+      {AppMenuPopover && (
+        <AppMenuPopover
+          triggerRef={triggerRef}
+          isOpen={state.isOpen}
+          onOpenChange={setOpen}
+          onClose={close}
+          account={
+            session && {
+              id: session.user.id,
+              name: session.user.name,
+              image: session.user.image,
+              isAdmin: session.user.role === "admin",
+            }
+          }
+          requestCount={requestCount}
+          showPrimary={!tabsVisible}
+        />
+      )}
+    </>
+  );
+}

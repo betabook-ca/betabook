@@ -2,7 +2,7 @@
 
 import type { ComponentProps } from "react";
 
-import { ASCENT_STYLE_CHIP_CLASSNAME } from "@/components/ascent-style";
+import { ASCENT_STYLE_CHIP_CLASSNAME } from "@/components/climbing/ascent-style";
 import {
   dateActiveFilters,
   hashtagActiveFilters,
@@ -15,6 +15,7 @@ import { HashtagFilter } from "@/components/filters/hashtag-filter";
 import { RatingRangeFilter } from "@/components/filters/min-rating-filter";
 import { AreaLookup } from "@/components/search/area-lookup";
 import { choicePillClass } from "@/components/ui/choice-pill";
+import { ChoicePills } from "@/components/ui/choice-pills";
 import {
   FIELD_WIDTH_CLASS,
   FILTER_ROW_CLASS,
@@ -49,25 +50,20 @@ function AscentStyleFields({
   return (
     <div className={FILTER_ROW_CLASS}>
       <span className={FILTER_LABEL_CLASS}>Ascent style</span>
-      <div
+      <ChoicePills
+        label="Ascent style"
+        selectionMode="multiple"
+        value={value}
+        onChange={onChange}
+        options={ASCENT_STYLES.map((style) => ({
+          value: style,
+          label: ASCENT_STYLE_LABELS[style],
+        }))}
+        pillClass={(selected, style) =>
+          choicePillClass(selected, ASCENT_STYLE_CHIP_CLASSNAME[style])
+        }
         className={`${FILTER_CONTROL_CLASS} flex flex-wrap items-center gap-1.5`}
-        role="group"
-        aria-label="Ascent style"
-      >
-        {ASCENT_STYLES.map((style) => (
-          <button
-            key={style}
-            type="button"
-            aria-pressed={value.includes(style)}
-            className={choicePillClass(value.includes(style), ASCENT_STYLE_CHIP_CLASSNAME[style])}
-            onClick={() =>
-              onChange(value.includes(style) ? value.filter((s) => s !== style) : [...value, style])
-            }
-          >
-            {ASCENT_STYLE_LABELS[style]}
-          </button>
-        ))}
-      </div>
+      />
     </div>
   );
 }

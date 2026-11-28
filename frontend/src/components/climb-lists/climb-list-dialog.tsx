@@ -4,7 +4,7 @@ import { Button, type UseOverlayStateReturn } from "@heroui/react";
 import { useState, useTransition } from "react";
 
 import { ClimbListForm, type ClimbListDraft } from "@/components/climb-lists/climb-list-form";
-import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
+import { DialogActions, ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { useViewGuard } from "@/hooks/use-view-guard";
 import type { ActionResult } from "@/lib/action-result";
 import { climbCountLabel, climbListHref, copyClimbListTitle } from "@/lib/climb-lists";
@@ -119,14 +119,14 @@ export function ClimbListDialog({
       size="md"
       isPending={pending}
       footer={
-        <div className="flex w-full flex-wrap justify-end gap-2">
+        <DialogActions>
           <Button variant="ghost" isDisabled={pending} onPress={state.close}>
             Cancel
           </Button>
           <Button isDisabled={pending || incomplete} onPress={handleSave}>
             {ACTIONS[mode.kind]}
           </Button>
-        </div>
+        </DialogActions>
       }
     >
       <div className="flex flex-col gap-4">

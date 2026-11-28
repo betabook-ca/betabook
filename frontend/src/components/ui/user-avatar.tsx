@@ -28,7 +28,10 @@ type UserAvatarProps = {
  * and for an image that fails to load. Decorative: its surrounding account
  * UI already provides the label.
  *
- */
+ * Not HeroUI's Avatar: its Radix image renders only after the photo has
+ * loaded, so every photo would open on the initials and the server markup
+ * would carry no photo at all. Here the image renders at once and the
+ * initials appear only on error. */
 export function UserAvatar({ name, image, size = "md", className }: UserAvatarProps) {
   const { pixels, className: sizeClassName } = AVATAR_SIZE[size];
   const [failedImage, setFailedImage] = useState<string | null>(null);

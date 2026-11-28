@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 
-import { ContactForm } from "@/components/contact-form";
-import { ImportLandingPage } from "@/components/import-landing-page";
-import { RunningCosts } from "@/components/running-costs";
-import { TermsContent } from "@/components/terms-content";
+import { ContactForm } from "@/components/landing/contact-form";
+import { ImportLandingPage } from "@/components/landing/import-landing-page";
+import { RunningCosts } from "@/components/landing/running-costs";
+import { TermsContent } from "@/components/terms/terms-content";
 import { AppLink } from "@/components/ui/app-link";
+import { ExternalLink } from "@/components/ui/external-link";
 import { READING_MAX_WIDTH_CLASS } from "@/components/ui/layout";
 import { PageTitle } from "@/components/ui/typography";
 import type { CloudflareUsage } from "@/lib/running-costs";
@@ -98,14 +99,9 @@ function InfoRouteView({ kind }: { kind: InfoRouteKind }) {
         </p>
         <p className="leading-relaxed text-pretty">
           You don’t need an account. Leave an email to get a reply, or file it on the{" "}
-          <a
-            href="https://github.com/betabook-ca/betabook/issues"
-            target="_blank"
-            rel="noreferrer"
-            className="link inline underline focus-visible:status-focused"
-          >
+          <ExternalLink href="https://github.com/betabook-ca/betabook/issues">
             issue tracker
-          </a>
+          </ExternalLink>
           .
         </p>
         <ContactForm />

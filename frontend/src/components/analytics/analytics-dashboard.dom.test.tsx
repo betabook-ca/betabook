@@ -1,0 +1,266 @@
+import { cleanup, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { DEFAULT_ANALYTICS_LAYOUT, TRIP_ANALYTICS_LAYOUT } from "@/lib/analytics-layout";
+import type { AnalyticsSendRow } from "@/lib/analytics-types";
+import { buildUserAnalytics } from "@/lib/user-analytics";
+
+import { AnalyticsDashboard } from "./analytics-dashboard";
+
+beforeEach(() => {
+  vi.stubGlobal(
+    "IntersectionObserver",
+    class {
+      public observe = vi.fn<IntersectionObserver["observe"]>();
+      public disconnect = vi.fn<IntersectionObserver["disconnect"]>();
+    },
+  );
+  vi.stubGlobal("matchMedia", (media: string) => ({
+    matches: true,
+    media,
+    addEventListener: vi.fn<() => void>(),
+    removeEventListener: vi.fn<() => void>(),
+    addListener: vi.fn<() => void>(),
+    removeListener: vi.fn<() => void>(),
+  }));
+});
+
+const sends: AnalyticsSendRow[] = ["2024-01-01", "2025-02-02", "2026-03-03", null].map(
+  (dateSent, i) => ({
+    climbId: i + 1,
+    climbName: `Climb ${i + 1}`,
+    climbType: "boulder",
+    suggestedGrade: 3,
+    areaId: 1,
+    areaName: "Forestland",
+    ascentStyle: "redpoint",
+    dateSent,
+  }),
+);
+
+describe("flash and onsight cards", () => {
+  const ropeSends: AnalyticsSendRow[] = [
+    { ...sends[0], climbType: "sport", suggestedGrade: 10, ascentStyle: "redpoint" },
+    { ...sends[1], climbType: "sport", suggestedGrade: 11, ascentStyle: "flash" },
+    { ...sends[2], climbType: "sport", suggestedGrade: 12, ascentStyle: "onsight" },
+    { ...sends[3], climbType: "sport", suggestedGrade: 9, ascentStyle: "onsight" },
+  ];
+
+  function renderScope(scope: "boulder" | "sport", rows: AnalyticsSendRow[]) {
+    render(
+      <AnalyticsDashboard
+        analytics={buildUserAnalytics(rows, scope)}
+        sends={rows}
+        selectedYears={[]}
+        undatedCount={0}
+        scope={scope}
+        journalVisible={false}
+        periodPicker={null}
+        initialLayout={{
+          cards: DEFAULT_ANALYTICS_LAYOUT.cards,
+          charts: ["flashRate"],
+        }}
+      />,
+    );
+  }
+
+  it("overlays flash and onsight rates on ropes, and shows only flash on boulders", () => {
+    renderScope("sport", ropeSends);
+    expect(screen.getByRole("article", { name: "Flash and onsight rate by grade" })).toBeVisible();
+    expect(screen.getByText("Onsight rate")).toBeVisible();
+    cleanup();
+
+    renderScope("boulder", sends);
+    expect(screen.getByRole("article", { name: "Flash rate by grade" })).toBeVisible();
+    expect(screen.queryByText("Onsight rate")).not.toBeInTheDocument();
+  });
+
+  it("shows flash and onsight as separate cards on ropes", () => {
+    renderScope("sport", ropeSends);
+
+    const flash = screen.getByRole("article", { name: "Flash" });
+    expect(flash).toHaveTextContent("25%");
+    expect(flash).toHaveTextContent("Hardest: 5.10b");
+    const onsight = screen.getByRole("article", { name: "Onsight" });
+    expect(onsight).toHaveTextContent("50%");
+    expect(onsight).toHaveTextContent("Hardest: 5.10c");
+  });
+
+  it("has no onsight card for bouldering", () => {
+    renderScope("boulder", sends);
+
+    expect(screen.getByRole("article", { name: "Flash" })).toBeVisible();
+    expect(screen.queryByRole("article", { name: "Onsight" })).not.toBeInTheDocument();
+  });
+});
+
+describe("analytics dashboard with the trip layout", () => {
+  const tripSends = sends.map((send, index) => ({
+    ...send,
+    dateSent: `2026-03-1${index}`,
+    ascentStyle: index === 0 ? ("flash" as const) : send.ascentStyle,
+  }));
+
+  function renderTrip() {
+    render(
+      <AnalyticsDashboard
+        activityHeading="Activity on this trip"
+        analytics={{
+          ...buildUserAnalytics(tripSends, "boulder", undefined, []),
+          daysPerMonth: null,
+        }}
+        sends={tripSends}
+        selectedYears={[]}
+        undatedCount={0}
+        scope="boulder"
+        journalVisible={false}
+        periodPicker={null}
+        initialLayout={TRIP_ANALYTICS_LAYOUT}
+      />,
+    );
+  }
+
+  it("shows only the tiles and charts that describe a trip", () => {
+    renderTrip();
+
+    const titles = screen.getAllByRole("article").map((panel) => panel.getAttribute("aria-label"));
+    expect(titles).toEqual(["Sends", "Hardest", "Flash", "Sending days", "Grade pyramid"]);
+    expect(screen.queryByRole("button", { name: /Customize/ })).not.toBeInTheDocument();
+  });
+
+  it("shows one month and no monthly average", () => {
+    renderTrip();
+
+    expect(screen.getByRole("article", { name: "Sends" })).toHaveTextContent("Mar 2026");
+    expect(screen.getByRole("article", { name: "Sends" })).not.toHaveTextContent("–");
+    expect(screen.getByRole("article", { name: "Sending days" })).not.toHaveTextContent(
+      "per month",
+    );
+  });
+});
+
+describe("analytics dashboard climb previews", () => {
+  it("uses only the selected years and excludes undated sends from that period", async () => {
+    const user = userEvent.setup();
+    render(
+      <AnalyticsDashboard
+        analytics={buildUserAnalytics(sends, "boulder", undefined, [2025])}
+        sends={sends}
+        selectedYears={[2025]}
+        undatedCount={1}
+        scope="boulder"
+        journalVisible={false}
+        periodPicker={null}
+      />,
+    );
+    const pyramid = within(screen.getByRole("article", { name: /^Grade pyramid$/ }));
+    await user.click(pyramid.getByRole("button", { name: /V2: 1 send/ }));
+    const tooltip = await screen.findByRole("tooltip");
+    expect(within(tooltip).getByText("Climb 2", { exact: true })).toBeInTheDocument();
+    expect(within(tooltip).queryByText(/Climb [134]/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+  it("uses sends for Days out when journal access is unavailable", async () => {
+    const user = userEvent.setup();
+    render(
+      <AnalyticsDashboard
+        analytics={buildUserAnalytics(sends, "boulder", undefined, [2025])}
+        sends={sends}
+        selectedYears={[2025]}
+        undatedCount={1}
+        scope="boulder"
+        journalVisible={false}
+        sessions={[
+          {
+            id: 99,
+            climbId: 99,
+            climbName: "Journal-only climb",
+            climbType: "boulder",
+            entryDate: "2025-02-02",
+            sent: false,
+            isAscent: false,
+          },
+        ]}
+        initialLayout={{ ...DEFAULT_ANALYTICS_LAYOUT, charts: ["volume"] }}
+        periodPicker={null}
+      />,
+    );
+    await user.click(screen.getByRole("radio", { name: "Days out" }));
+    screen.getByRole("group", { name: "Monthly days out" }).focus();
+    await user.keyboard("{Home}");
+    const tooltip = screen.getByRole("tooltip");
+    expect(tooltip).toHaveTextContent("1 day");
+    expect(tooltip).toHaveTextContent("Climb 2");
+    expect(tooltip).not.toHaveTextContent("Journal-only climb");
+  });
+});
+
+it("shows only the status for a selected period with no activity", () => {
+  render(
+    <AnalyticsDashboard
+      analytics={buildUserAnalytics(sends, "boulder", undefined, [2023])}
+      sends={sends}
+      selectedYears={[2023]}
+      undatedCount={1}
+      scope="boulder"
+      journalVisible={false}
+      canCustomize
+      periodPicker={null}
+    />,
+  );
+
+  expect(screen.getByText(/^No activity in 2023/)).toHaveAttribute("role", "status");
+  expect(screen.queryAllByRole("article")).toEqual([]);
+  expect(screen.queryByRole("region", { name: "At a glance" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Customize dashboard" })).not.toBeInTheDocument();
+});
+
+it("heads every chart panel with a level-3 heading under the activity heading", () => {
+  render(
+    <AnalyticsDashboard
+      analytics={buildUserAnalytics(sends, "boulder")}
+      sends={sends}
+      selectedYears={[]}
+      undatedCount={1}
+      scope="boulder"
+      journalVisible={false}
+      initialLayout={{
+        ...DEFAULT_ANALYTICS_LAYOUT,
+        charts: ["volume", "flashRate", "progression", "pyramid", "breakthroughs", "calendar"],
+      }}
+      periodPicker={null}
+    />,
+  );
+
+  expect(screen.getByRole("heading", { level: 2, name: "All-time activity" })).toBeInTheDocument();
+  expect(
+    screen.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent),
+  ).toEqual([
+    "Volume over time",
+    "Flash rate by grade",
+    "Progression",
+    "Grade pyramid",
+    "Breakthroughs",
+    "Sending calendar",
+  ]);
+});
+
+it("summarizes the climber under the activity heading", () => {
+  const summary = "Climbing since 2024. 4 sends across 1 area. Last sent Mar 3, 2026.";
+  render(
+    <AnalyticsDashboard
+      analytics={buildUserAnalytics(sends, "boulder")}
+      sends={sends}
+      selectedYears={[]}
+      undatedCount={1}
+      scope="boulder"
+      journalVisible={false}
+      summary={summary}
+      periodPicker={null}
+    />,
+  );
+
+  const heading = screen.getByRole("heading", { name: "All-time activity" });
+  expect(heading.nextElementSibling).toBe(screen.getByText(summary));
+});

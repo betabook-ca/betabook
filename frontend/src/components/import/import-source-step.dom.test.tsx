@@ -8,25 +8,25 @@ it("shows one source at a time and links the KAYA style note directly to CSV", a
   const onLoaded = vi.fn<() => void>();
   const onFile = vi.fn<(file: File) => void>();
   const { container } = render(<ImportSourceStep onLoaded={onLoaded} onFile={onFile} />);
-  expect(screen.getByRole("button", { name: "Sendage" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("radio", { name: "Sendage" })).toHaveAttribute("aria-checked", "true");
   expect(screen.getAllByRole("textbox")).toHaveLength(1);
-  await userEvent.click(screen.getByRole("button", { name: "KAYA" }));
-  expect(screen.getByRole("button", { name: "KAYA" })).toHaveAttribute("aria-pressed", "true");
+  await userEvent.click(screen.getByRole("radio", { name: "KAYA" }));
+  expect(screen.getByRole("radio", { name: "KAYA" })).toHaveAttribute("aria-checked", "true");
   expect(screen.getByRole("textbox", { name: "KAYA username or profile link" })).toBeVisible();
   expect(
     screen.queryByRole("textbox", { name: "Sendage username or profile link" }),
   ).not.toBeInTheDocument();
-  await userEvent.click(screen.getByRole("button", { name: "Mountain Project" }));
+  await userEvent.click(screen.getByRole("radio", { name: "Mountain Project" }));
   expect(
     screen.getByRole("textbox", { name: "Mountain Project user ID or profile link" }),
   ).toBeVisible();
   expect(
     screen.queryByRole("textbox", { name: "KAYA username or profile link" }),
   ).not.toBeInTheDocument();
-  await userEvent.click(screen.getByRole("button", { name: "KAYA" }));
+  await userEvent.click(screen.getByRole("radio", { name: "KAYA" }));
   await userEvent.click(screen.getByRole("button", { name: "Use CSV" }));
   expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "CSV file" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("radio", { name: "CSV file" })).toHaveAttribute("aria-checked", "true");
   expect(screen.getByRole("button", { name: "Choose a CSV file" })).toBeVisible();
   // The hidden native input is driven by the visible drop zone; user-event's
   // upload models the file chooser, which cannot be opened inside jsdom.
@@ -40,7 +40,7 @@ it("shows one source at a time and links the KAYA style note directly to CSV", a
 it("locks source selection and CSV interaction while a file is being read", () => {
   render(<ImportSourceStep initialSource="csv" reading onLoaded={() => {}} onFile={() => {}} />);
   for (const source of ["Sendage", "KAYA", "Mountain Project", "CSV file"])
-    expect(screen.getByRole("button", { name: source })).toBeDisabled();
+    expect(screen.getByRole("radio", { name: source })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Choose a CSV file" })).toBeDisabled();
   expect(screen.getByText("Reading file…")).toBeVisible();
 });
