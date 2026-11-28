@@ -948,6 +948,11 @@ fn route_metadata(path: &str) -> (PageMetadata, Vec<Value>, &'static str) {
             Vec::new(),
             "routes/feed-route.tsx",
         ),
+        "/notifications" => (
+            PageMetadata::noindex("Notifications", SITE_DESCRIPTION),
+            Vec::new(),
+            "routes/notifications-route.tsx",
+        ),
         "/friends" => (
             PageMetadata::noindex("Friends", SITE_DESCRIPTION),
             Vec::new(),

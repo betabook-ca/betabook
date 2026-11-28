@@ -1,0 +1,43 @@
+import { useEffect } from "react";
+
+import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
+import { NotificationList } from "@/components/notification-list";
+import { useNotifications } from "@/components/notifications-provider";
+import { markNotificationsRead } from "@/spa/lib/actions-client";
+import { fetchApi } from "@/spa/lib/api";
+import { useRetainedPage } from "@/spa/lib/use-retained-page";
+
+export default function NotificationsRoute({ viewerId }: { viewerId: string | null }) {
+  const { refresh } = useNotifications();
+  const { data, error, pending } = useRetainedPage({
+    scope: viewerId,
+    query: "",
+    load: async (signal) => {
+      const page = await fetchApi("/api/notifications", { signal, sessionEvents: true });
+      if (!("alerts" in page)) throw new Error("Unexpected notifications response");
+      return page;
+    },
+  });
+  const loaded = Boolean(data);
+
+  // Opening the page reads every alert. The list keeps this visit's unread dots.
+  useEffect(() => {
+    if (!viewerId || !loaded) return;
+    void markNotificationsRead().then(
+      () => refresh(),
+      () => {},
+    );
+  }, [viewerId, loaded, refresh]);
+
+  if (!viewerId) return <CurrentPageAuthCallout />;
+  return (
+    <div className="flex w-full max-w-2xl flex-col gap-4">
+      <h1 className="text-xl font-semibold">Notifications</h1>
+      <NotificationList
+        alerts={data?.alerts}
+        pending={pending || (!data && !error)}
+        error={Boolean(error)}
+      />
+    </div>
+  );
+}

@@ -11,6 +11,8 @@ import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 
 const READ_ONLY_ACTIONS = new Set([
   "getSendEditorData",
+  // Keeps this visit's unread highlights; the bell refreshes its own count.
+  "markNotificationsRead",
   "submitContactMessage",
   "resolveImportClimbs",
   "resolveImportClimbsInAreas",
@@ -105,6 +107,7 @@ export const deleteTrip = actionProxy("deleteTrip");
 export const dismissFeatureAnnouncement = actionProxy("dismissFeatureAnnouncement");
 export const getSendEditorData = actionProxy("getSendEditorData");
 export const importSends = actionProxy("importSends");
+export const markNotificationsRead = actionProxy("markNotificationsRead");
 export const pinProject = actionProxy("pinProject");
 export const rejectChangeRequest = actionProxy("rejectChangeRequest");
 export const removeFriendship = actionProxy("removeFriendship");
@@ -132,6 +135,7 @@ export const saveTripNotes = actionProxy("saveTripNotes");
 export const setClimbListVisibility = actionProxy("setClimbListVisibility");
 export const setGradePreferences = actionProxy("setGradePreferences");
 export const setJournalVisibility = actionProxy("setJournalVisibility");
+export const setSendAlertPreferences = actionProxy("setSendAlertPreferences");
 export const setSendCommentVisibility = actionProxy("setSendCommentVisibility");
 export const setTripVisibility = actionProxy("setTripVisibility");
 export const setUserPrivate = actionProxy("setUserPrivate");

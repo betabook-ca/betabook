@@ -21,6 +21,7 @@ import { testModeration } from "./moderation.ts";
 import { testPlatform } from "./platform.ts";
 import { testProjects } from "./projects.ts";
 import { testPublicSearch } from "./public-search.ts";
+import { testSendAlerts } from "./send-alerts.ts";
 import { testCatalogEdits, testMigrationObjects } from "./storage-invariants.ts";
 import { testTrips } from "./trips.ts";
 import { testUpstreamImports } from "./upstreams.ts";
@@ -236,6 +237,7 @@ void test("Rust Worker HTTP flows", async (t) => {
   });
   await t.test("climb lists", () => testLists({ server, db: DB, signIn }));
   await t.test("goal refresh", () => testGoalRefresh({ server, db: DB, signIn }));
+  await t.test("send alerts", () => testSendAlerts({ server, db: DB, signIn }));
   await t.test("public search HTML and bootstrap", () =>
     testPublicSearch({ server, db: DB, signIn }),
   );

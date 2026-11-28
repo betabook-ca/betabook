@@ -12,6 +12,7 @@ use betabook_db::{
     feed::FeedPage,
     journal::JournalEntry,
     member_catalog::{AreaWithSubtreeSize, ClimbRecord, GradeHistogramRow},
+    send_alerts::SendAlert,
     sends::{ClimbSendSummary, ClimbSendsPage, EditableSend},
     social::{
         ClimbSendStats, ClimbVideos, ClimbersPage, CompanionOption, FriendsPage, ProductTourState,
@@ -120,6 +121,11 @@ enum CommentAudience {
     Public,
     Everyone,
 }
+envelope!(SendAlertPreferences {
+    share_with_friends: bool,
+    receive: bool
+});
+envelope!(SendAlertsPage {alerts:Vec<SendAlert>});
 envelope!(AccountIdentity {id:String,name:String,email:String,image:Option<String>});
 envelope!(CatalogExportInfo {
     generated_at: String,
@@ -127,7 +133,7 @@ envelope!(CatalogExportInfo {
     climb_count: u64,
     size: u64
 });
-envelope!(AccountPage {user:AccountIdentity,is_private:bool,journal_visibility:SharingAudience,send_comment_visibility:CommentAudience,trip_visibility:SharingAudience,climb_list_visibility:SharingAudience,grade_preferences:GradePreferences,share_url:Option<String>,turnstile_site_key:Option<String>,catalog_export:Option<CatalogExportInfo>,is_admin:bool});
+envelope!(AccountPage {user:AccountIdentity,is_private:bool,journal_visibility:SharingAudience,send_comment_visibility:CommentAudience,trip_visibility:SharingAudience,climb_list_visibility:SharingAudience,grade_preferences:GradePreferences,send_alerts:SendAlertPreferences,share_url:Option<String>,turnstile_site_key:Option<String>,catalog_export:Option<CatalogExportInfo>,is_admin:bool});
 envelope!(ReviewPerson {name:String,image:Option<String>});
 envelope!(ReviewApprover {id:String,name:String,image:Option<String>});
 envelope!(ReviewDescription {href:String,summary:String,requester_summary:String,details:Vec<String>});
@@ -392,6 +398,20 @@ pub(super) fn register(api: &mut ApiSpec) {
         "get",
         "q",
         json!({"type":"string"}),
+        false,
+    );
+    let alerts = api.schema::<SendAlertsPage>();
+    let unread = api.schema::<PendingFriendCount>();
+    api.get(
+        "/api/notifications",
+        "notifications",
+        json!({"oneOf":[alerts,unread]}),
+    );
+    api.query(
+        "/api/notifications",
+        "get",
+        "view",
+        json!({"enum":["count"]}),
         false,
     );
     get!("/api/feed", "feed", FeedPage);

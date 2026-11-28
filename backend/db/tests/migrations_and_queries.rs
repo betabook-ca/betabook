@@ -39,7 +39,7 @@ fn migrated_db() -> SqliteDb {
     let db = SqliteDb::in_memory().expect("in-memory sqlite");
     let migrations = Path::new(env!("CARGO_MANIFEST_DIR")).join("../migrations");
     let count = db.apply_migrations(&migrations).expect("apply migrations");
-    assert!(count >= 57, "expected at least 57 migrations, got {count}");
+    assert!(count >= 58, "expected at least 58 migrations, got {count}");
     db
 }
 
@@ -1053,6 +1053,9 @@ mod climb_lists;
 mod goal_achievements;
 #[path = "features/goals.rs"]
 mod goals;
+
+#[path = "features/send_alerts.rs"]
+mod send_alerts;
 
 #[path = "features/imports.rs"]
 mod imports;

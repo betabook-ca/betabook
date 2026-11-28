@@ -1,6 +1,9 @@
 import { afterEach, expect, it, vi } from "vitest";
 
-import { createFriendRequestCountStore } from "@/lib/friend-request-count";
+import {
+  createFriendRequestCountStore,
+  createNotificationCountStore,
+} from "@/lib/friend-request-count";
 
 afterEach(() => vi.useRealTimers());
 
@@ -158,4 +161,15 @@ it.each([
   expect(store.getSnapshot().count).toBeNull();
   await store.refresh();
   expect(store.getSnapshot().count).toBe(2);
+});
+
+it("reads unread send alerts from the notifications count", async () => {
+  const fetcher = vi
+    .fn<typeof fetch>()
+    .mockResolvedValue(Response.json({ userId: "owner", count: 4 }));
+  const store = createNotificationCountStore(fetcher);
+  store.setUser("owner");
+  await store.refresh();
+  expect(fetcher).toHaveBeenCalledWith("/api/notifications?view=count", expect.anything());
+  expect(store.getSnapshot()).toEqual({ userId: "owner", count: 4 });
 });

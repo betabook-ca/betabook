@@ -16,6 +16,7 @@ pub mod projects;
 pub mod public_catalog;
 mod public_catalog_html;
 mod public_search;
+pub mod send_alerts;
 pub mod seo;
 pub mod static_pages;
 mod trip_album;

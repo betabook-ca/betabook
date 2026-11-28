@@ -352,6 +352,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/actions/markNotificationsRead": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["markNotificationsRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/actions/pinProject": {
         parameters: {
             query?: never;
@@ -778,6 +794,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["setJournalVisibility"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/actions/setSendAlertPreferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["setSendAlertPreferences"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1488,6 +1520,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["notifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pages/account": {
         parameters: {
             query?: never;
@@ -2145,6 +2193,7 @@ export interface components {
             isAdmin: boolean;
             isPrivate: boolean;
             journalVisibility: components["schemas"]["SharingAudience"];
+            sendAlerts: components["schemas"]["SendAlertPreferences"];
             sendCommentVisibility: components["schemas"]["CommentAudience"];
             shareUrl: string | null;
             tripVisibility: components["schemas"]["SharingAudience"];
@@ -3090,6 +3139,33 @@ export interface components {
         };
         /** @enum {string} */
         RopeScale: "yds" | "french";
+        SendAlert: {
+            climbs: components["schemas"]["SendAlertClimb"][];
+            date: string;
+            image: string | null;
+            name: string;
+            /** Format: int64 */
+            sends: number;
+            unread: boolean;
+            /** Format: int64 */
+            updatedAt: number;
+            userId: string;
+        };
+        SendAlertClimb: {
+            /** Format: int64 */
+            grade: number | null;
+            /** Format: int64 */
+            id: number;
+            name: string;
+            type: components["schemas"]["ClimbType"] | null;
+        };
+        SendAlertPreferences: {
+            receive: boolean;
+            shareWithFriends: boolean;
+        };
+        SendAlertsPage: {
+            alerts: components["schemas"]["SendAlert"][];
+        };
         SendsResponse: {
             areaBreadcrumbs: {
                 [key: string]: components["schemas"]["AreaBreadcrumbItem"][];
@@ -4262,6 +4338,41 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    markNotificationsRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @constant */
+                    args: never[];
+                };
+            };
+        };
+        responses: {
+            /** @description Action success or a handled validation or permission error */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        ok: true;
+                    } | {
+                        error: string;
+                        /** @constant */
+                        ok: false;
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
     pinProject: {
         parameters: {
             query?: never;
@@ -5351,6 +5462,45 @@ export interface operations {
                 "application/json": {
                     args: [
                         "public" | "friends" | "private"
+                    ];
+                };
+            };
+        };
+        responses: {
+            /** @description Action success or a handled validation or permission error */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        ok: true;
+                    } | {
+                        error: string;
+                        /** @constant */
+                        ok: false;
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    setSendAlertPreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    args: [
+                        {
+                            receive: boolean;
+                            shareWithFriends: boolean;
+                        }
                     ];
                 };
             };
@@ -6924,6 +7074,29 @@ export interface operations {
                 };
                 content: {
                     "text/csv": string;
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    notifications: {
+        parameters: {
+            query?: {
+                view?: "count";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendAlertsPage"] | components["schemas"]["PendingFriendCount"];
                 };
             };
             default: components["responses"]["Error"];

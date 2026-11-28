@@ -20,6 +20,7 @@ pub mod member_catalog;
 pub mod moderation;
 pub mod projects;
 pub mod public_catalog;
+pub mod send_alerts;
 pub mod sends;
 pub mod social;
 #[cfg(feature = "sqlite")]

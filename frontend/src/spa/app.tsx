@@ -7,6 +7,7 @@ import { AppTabBar } from "@/components/app-tab-bar";
 import { SearchPaletteProvider, SearchTrigger } from "@/components/command-palette";
 import { HeaderAuthLinks } from "@/components/header-auth-links";
 import { HeaderLogButton } from "@/components/header-log-button";
+import { HeaderNotificationsButton } from "@/components/header-notifications-button";
 import { MobileAppHelper } from "@/components/mobile-app-helper";
 import { TermsGate } from "@/components/terms-gate";
 import { AppLink } from "@/components/ui/app-link";
@@ -37,6 +38,7 @@ const ProfileAnalyticsRoute = lazyRoute(() => import("@/spa/routes/profile-analy
 const TripsRoute = lazyRoute(() => import("@/spa/routes/trips-route"));
 const FeedRoute = lazyRoute(() => import("@/spa/routes/feed-route"));
 const FriendsRoute = lazyRoute(() => import("@/spa/routes/friends-route"));
+const NotificationsRoute = lazyRoute(() => import("@/spa/routes/notifications-route"));
 const ImportRoute = lazyRoute(() => import("@/spa/routes/import-route"));
 
 const AdminRequestsRoute = lazyRoute(() => import("@/spa/routes/admin-requests-route"));
@@ -127,6 +129,7 @@ export function App() {
                   <SearchTrigger />
                 </div>
                 <div className="flex min-w-11 items-center justify-end gap-3">
+                  <HeaderNotificationsButton />
                   <HeaderLogButton />
                   <HeaderAuthLinks />
                 </div>
@@ -150,6 +153,10 @@ export function App() {
                             element={<SearchRoute viewerId={termsAcceptedViewerId} home />}
                           />
                           <Route path="/search" element={<SearchRoute viewerId={viewerId} />} />
+                          <Route
+                            path="/notifications"
+                            element={<NotificationsRoute viewerId={termsAcceptedViewerId} />}
+                          />
                           <Route
                             element={
                               <MemberWorkspaceRoute viewerId={termsAcceptedViewerId} community />

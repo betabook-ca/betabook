@@ -80,6 +80,9 @@
           "journalVisibility": {
             "$ref": "#/components/schemas/SharingAudience"
           },
+          "sendAlerts": {
+            "$ref": "#/components/schemas/SendAlertPreferences"
+          },
           "sendCommentVisibility": {
             "$ref": "#/components/schemas/CommentAudience"
           },
@@ -110,6 +113,7 @@
           "tripVisibility",
           "climbListVisibility",
           "gradePreferences",
+          "sendAlerts",
           "shareUrl",
           "turnstileSiteKey",
           "catalogExport",
@@ -4162,6 +4166,117 @@
         ],
         "type": "string"
       },
+      "SendAlert": {
+        "properties": {
+          "climbs": {
+            "items": {
+              "$ref": "#/components/schemas/SendAlertClimb"
+            },
+            "type": "array"
+          },
+          "date": {
+            "type": "string"
+          },
+          "image": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "sends": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unread": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "userId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId",
+          "name",
+          "image",
+          "date",
+          "sends",
+          "climbs",
+          "updatedAt",
+          "unread"
+        ],
+        "type": "object"
+      },
+      "SendAlertClimb": {
+        "properties": {
+          "grade": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ClimbType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type",
+          "grade"
+        ],
+        "type": "object"
+      },
+      "SendAlertPreferences": {
+        "properties": {
+          "receive": {
+            "type": "boolean"
+          },
+          "shareWithFriends": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "shareWithFriends",
+          "receive"
+        ],
+        "type": "object"
+      },
+      "SendAlertsPage": {
+        "properties": {
+          "alerts": {
+            "items": {
+              "$ref": "#/components/schemas/SendAlert"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "alerts"
+        ],
+        "type": "object"
+      },
       "SendsResponse": {
         "properties": {
           "areaBreadcrumbs": {
@@ -7615,6 +7730,81 @@
         ]
       }
     },
+    "/api/actions/markNotificationsRead": {
+      "post": {
+        "operationId": "markNotificationsRead",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "args": {
+                    "const": [],
+                    "maxItems": 0,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "args"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "properties": {
+                        "ok": {
+                          "const": true,
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "ok"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "string"
+                        },
+                        "ok": {
+                          "const": false,
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "ok",
+                        "error"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Action success or a handled validation or permission error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
     "/api/actions/pinProject": {
       "post": {
         "operationId": "pinProject",
@@ -10585,6 +10775,100 @@
                         ],
                         "title": "visibility",
                         "type": "string"
+                      }
+                    ],
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "args"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "properties": {
+                        "ok": {
+                          "const": true,
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "ok"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "type": "string"
+                        },
+                        "ok": {
+                          "const": false,
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "ok",
+                        "error"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Action success or a handled validation or permission error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/actions/setSendAlertPreferences": {
+      "post": {
+        "operationId": "setSendAlertPreferences",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "args": {
+                    "items": false,
+                    "maxItems": 1,
+                    "minItems": 1,
+                    "prefixItems": [
+                      {
+                        "properties": {
+                          "receive": {
+                            "type": "boolean"
+                          },
+                          "shareWithFriends": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "shareWithFriends",
+                          "receive"
+                        ],
+                        "title": "preferences",
+                        "type": "object"
                       }
                     ],
                     "type": "array"
@@ -14012,6 +14296,50 @@
                 }
               }
             }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/notifications": {
+      "get": {
+        "operationId": "notifications",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "view",
+            "required": false,
+            "schema": {
+              "enum": [
+                "count"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/SendAlertsPage"
+                    },
+                    {
+                      "$ref": "#/components/schemas/PendingFriendCount"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Success"
           },
           "default": {
             "$ref": "#/components/responses/Error"
