@@ -9,7 +9,7 @@ export type {
 } from "./action-contracts";
 import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 
-const READ_ONLY_ACTIONS = new Set([
+const NO_REFRESH_ACTIONS = new Set([
   "getSendEditorData",
   "markNotificationsRead",
   "submitContactMessage",
@@ -64,7 +64,7 @@ async function callAction<N extends ActionName>(
         : { ok: false, error: GENERIC_ERROR_MESSAGE };
 
     if (!result || typeof result.ok !== "boolean") throw new Error("Invalid action result");
-    if (result.ok && !READ_ONLY_ACTIONS.has(name)) {
+    if (result.ok && !NO_REFRESH_ACTIONS.has(name)) {
       window.dispatchEvent(new CustomEvent("betabook:router-refresh"));
       if (SESSION_REFRESH_ACTIONS.has(name)) {
         window.dispatchEvent(new Event(SESSION_REFRESH_EVENT));

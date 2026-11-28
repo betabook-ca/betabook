@@ -771,8 +771,8 @@ pub async fn get_account_user<D: DbExecutor>(
         climb_list_visibility: row.get_string("climbListVisibility")?,
         boulder_grade_scale: row.get_string("boulderGradeScale")?,
         rope_grade_scale: row.get_string("ropeGradeScale")?,
-        send_alerts_to_friends: row.get_i64("sendAlertsToFriends")? == 1,
-        receive_friend_send_alerts: row.get_i64("receiveFriendSendAlerts")? == 1,
+        send_alerts_to_friends: row.get_bool("sendAlertsToFriends")?,
+        receive_friend_send_alerts: row.get_bool("receiveFriendSendAlerts")?,
     }))
 }
 

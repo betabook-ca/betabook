@@ -5,7 +5,7 @@ use axum::{
     http::{HeaderMap, StatusCode},
     response::Response,
 };
-use betabook_db::send_alerts::{self, SEND_ALERT_LIMIT};
+use betabook_db::send_alerts;
 use serde_json::json;
 use url::form_urlencoded;
 
@@ -16,13 +16,14 @@ use crate::state::{ApiError, AppState};
 /// Alert the climber's friends after the response. A failure leaves the send
 /// committed; the next same-day send retries the fan-out.
 pub(super) fn schedule(state: &AppState, actor: &str, day: &str) {
+    if !send_alerts::alerts_for_day(day, &super::actions::today_utc(state)) {
+        return;
+    }
     let background = state.clone();
     let actor = actor.to_owned();
     let day = day.to_owned();
-    let today = super::actions::today_utc(state);
     state.ctx().wait_until(async move {
-        let result =
-            send_alerts::fan_out(background.db(), &actor, &day, &today, background.now_ms()).await;
+        let result = send_alerts::fan_out(background.db(), &actor, &day, background.now_ms()).await;
         if let Err(error) = result {
             crate::observability::background_error("send_alerts", error);
         }
@@ -45,6 +46,6 @@ pub async fn notifications(
             json!({ "userId": session.user.id, "count": count }),
         ));
     }
-    let alerts = send_alerts::list(state.db(), &session.user.id, SEND_ALERT_LIMIT).await?;
+    let alerts = send_alerts::list(state.db(), &session.user.id).await?;
     Ok(no_store_json(StatusCode::OK, json!({ "alerts": alerts })))
 }

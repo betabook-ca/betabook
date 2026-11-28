@@ -1,13 +1,13 @@
 "use client";
 
-import { Switch } from "@heroui/react";
-import { useId, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { SETTINGS_ROW_CLASS } from "@/components/ui/settings";
+import { SETTINGS_ROW_CLASS, SettingsSwitch } from "@/components/ui/settings";
+import type { components } from "@/spa/generated/api";
 import { setSendAlertPreferences } from "@/spa/lib/actions-client";
 
-export type SendAlertPreferences = { shareWithFriends: boolean; receive: boolean };
+export type SendAlertPreferences = components["schemas"]["SendAlertPreferences"];
 
 const SAVE_ERROR = "Couldn't save send alerts. Try again.";
 
@@ -37,14 +37,14 @@ export function SendAlertControls({ initial }: { initial: SendAlertPreferences }
 
   return (
     <div className={`flex flex-col gap-3 ${SETTINGS_ROW_CLASS}`}>
-      <AlertSwitch
+      <SettingsSwitch
         label="Alert friends when I log a send"
         description="Friends see your new sends under Notifications."
         isSelected={preferences.shareWithFriends}
         isDisabled={isPending}
         onChange={(value) => change("shareWithFriends", value)}
       />
-      <AlertSwitch
+      <SettingsSwitch
         label="Get alerts when friends log sends"
         description="Turn off to stop every send alert."
         isSelected={preferences.receive}
@@ -52,43 +52,6 @@ export function SendAlertControls({ initial }: { initial: SendAlertPreferences }
         onChange={(value) => change("receive", value)}
       />
       {error && <InlineAlert>{error}</InlineAlert>}
-    </div>
-  );
-}
-
-function AlertSwitch({
-  label,
-  description,
-  isSelected,
-  isDisabled,
-  onChange,
-}: {
-  label: string;
-  description: string;
-  isSelected: boolean;
-  isDisabled: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  const descriptionId = useId();
-  return (
-    <div className="flex flex-col gap-1">
-      <Switch
-        isDisabled={isDisabled}
-        isSelected={isSelected}
-        onChange={onChange}
-        aria-describedby={descriptionId}
-      >
-        <Switch.Content className="w-full justify-between gap-6">
-          <span className="text-sm font-medium">{label}</span>
-          <Switch.Control>
-            <Switch.Thumb />
-          </Switch.Control>
-        </Switch.Content>
-      </Switch>
-      {/* Outside Switch: a saving switch fades its own description below AA contrast. */}
-      <p id={descriptionId} className="text-sm text-pretty text-muted">
-        {description}
-      </p>
     </div>
   );
 }

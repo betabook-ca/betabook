@@ -4,17 +4,9 @@ import { GradeLabel } from "@/components/ui/grade-label";
 import { SkeletonListRows } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import type { SendAlert } from "@/lib/community-types";
+import { feedDayHref } from "@/lib/feed";
 import { formatCount } from "@/lib/format";
 import { formatDate } from "@/lib/format-date";
-
-export function sendAlertHref(alert: Pick<SendAlert, "userId" | "date">) {
-  return `/users/${alert.userId}/sends?date=${alert.date}`;
-}
-
-/** The newest `updatedAt` on screen, or null when there is nothing to read. */
-export function seenThrough(alerts: Pick<SendAlert, "updatedAt">[]): number | null {
-  return alerts.length ? Math.max(...alerts.map((alert) => alert.updatedAt)) : null;
-}
 
 export function sendAlertSummary(alert: SendAlert) {
   const [first] = alert.climbs;
@@ -24,15 +16,13 @@ export function sendAlertSummary(alert: SendAlert) {
 
 export function NotificationList({
   alerts,
-  pending = false,
   error = false,
 }: {
   alerts: SendAlert[] | undefined;
-  pending?: boolean;
   error?: boolean;
 }) {
   if (error) return <EmptyState message="Couldn't load notifications. Try again." />;
-  if (pending || !alerts) return <SkeletonListRows rows={4} />;
+  if (!alerts) return <SkeletonListRows rows={4} />;
   if (alerts.length === 0)
     return (
       <EmptyState message="When friends log sends, they show up here. You can turn alerts off under Account › Privacy." />
@@ -42,7 +32,7 @@ export function NotificationList({
       {alerts.map((alert) => (
         <li key={`${alert.userId}:${alert.date}`}>
           <AppLink
-            href={sendAlertHref(alert)}
+            href={feedDayHref({ ...alert, journalVisible: false }, "sends")}
             className="flex items-start gap-3 py-3 text-foreground no-underline"
           >
             <UserAvatar name={alert.name} image={alert.image} size="sm" />

@@ -1,7 +1,7 @@
 use super::{migrated_db, run_async};
 use betabook_db::{
     DbError, DbExecutor,
-    send_alerts::{fan_out, list, mark_read, unread_count, update_preferences},
+    send_alerts::{alerts_for_day, fan_out, list, mark_read, unread_count, update_preferences},
     sqlite::SqliteDb,
 };
 
@@ -56,17 +56,17 @@ fn alerts_accepted_friends_who_opted_in_and_batches_one_day() -> Result<(), DbEr
     let db = migrated_db();
     run_async(async {
         fixture(&db).await?;
-        assert_eq!(fan_out(&db, "climber", DAY, TODAY, 10).await?, ["friend"]);
+        assert_eq!(fan_out(&db, "climber", DAY, 10).await?, ["friend"]);
         assert_eq!(unread_count(&db, "friend").await?, 1);
         for other in ["quiet", "pending", "stranger", "climber"] {
-            assert!(list(&db, other, 50).await?.is_empty(), "{other}");
+            assert!(list(&db, other).await?.is_empty(), "{other}");
         }
 
         mark_read(&db, "friend", 10, 20).await?;
         assert_eq!(unread_count(&db, "friend").await?, 0);
         send(&db, 2, DAY).await?;
         send(&db, 3, DAY).await?;
-        assert_eq!(fan_out(&db, "climber", DAY, TODAY, 30).await?, ["friend"]);
+        assert_eq!(fan_out(&db, "climber", DAY, 30).await?, ["friend"]);
         mark_read(&db, "friend", 25, 40).await?;
         assert_eq!(
             unread_count(&db, "friend").await?,
@@ -74,7 +74,7 @@ fn alerts_accepted_friends_who_opted_in_and_batches_one_day() -> Result<(), DbEr
             "unseen refresh stays unread"
         );
 
-        let alerts = list(&db, "friend", 50).await?;
+        let alerts = list(&db, "friend").await?;
         assert_eq!(alerts.len(), 1);
         let alert = &alerts[0];
         assert_eq!((alert.sends, alert.updated_at, alert.unread), (3, 30, true));
@@ -86,27 +86,26 @@ fn alerts_accepted_friends_who_opted_in_and_batches_one_day() -> Result<(), DbEr
 
 #[test]
 fn skips_old_sends_private_climbers_and_opted_out_climbers() -> Result<(), DbError> {
+    for (day, alerts) in [
+        ("2026-02-23", true),
+        ("2026-02-22", false),
+        ("2026-03-03", true),
+        ("2026-03-04", false),
+        ("not-a-date", false),
+    ] {
+        assert_eq!(alerts_for_day(day, TODAY), alerts, "{day}");
+    }
     let db = migrated_db();
     run_async(async {
         fixture(&db).await?;
-        send(&db, 4, "2026-02-20").await?;
-        assert!(
-            fan_out(&db, "climber", "2026-02-20", TODAY, 1)
-                .await?
-                .is_empty()
-        );
-        assert!(
-            fan_out(&db, "climber", "2026-03-05", TODAY, 1)
-                .await?
-                .is_empty()
-        );
+        assert!(fan_out(&db, "climber", "2026-02-20", 1).await?.is_empty());
 
         update_preferences(&db, "climber", false, true, 1).await?;
-        assert!(fan_out(&db, "climber", DAY, TODAY, 1).await?.is_empty());
+        assert!(fan_out(&db, "climber", DAY, 1).await?.is_empty());
         update_preferences(&db, "climber", true, true, 1).await?;
         db.execute("UPDATE user SET is_private=1 WHERE id='climber'", &[])
             .await?;
-        assert!(fan_out(&db, "climber", DAY, TODAY, 1).await?.is_empty());
+        assert!(fan_out(&db, "climber", DAY, 1).await?.is_empty());
         Ok(())
     })
 }
@@ -116,8 +115,8 @@ fn reads_hide_alerts_once_permissions_or_sends_change() -> Result<(), DbError> {
     let db = migrated_db();
     run_async(async {
         fixture(&db).await?;
-        fan_out(&db, "climber", DAY, TODAY, 10).await?;
-        let visible = async || Ok::<_, DbError>(list(&db, "friend", 50).await?.len());
+        fan_out(&db, "climber", DAY, 10).await?;
+        let visible = async || Ok::<_, DbError>(list(&db, "friend").await?.len());
         assert_eq!(visible().await?, 1);
 
         db.execute("UPDATE user SET is_private=1 WHERE id='climber'", &[])

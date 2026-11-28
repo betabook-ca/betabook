@@ -1,22 +1,13 @@
 import { apiUrl } from "@/spa/lib/api";
 type Snapshot = { userId: string | null; count: number | null };
 
-/** Endpoints answering `?view=count` with `{ userId, count }`. */
-export type CountPath = "/api/friends" | "/api/notifications";
 export type CountStore = ReturnType<typeof createCountStore>;
 
-/** Pending friend requests, shared by the header and profile tabs. */
-export function createFriendRequestCountStore(fetcher: typeof fetch = fetch) {
-  return createCountStore("/api/friends", fetcher);
-}
-
-/** Unread friend send alerts for the header bell. */
-export function createNotificationCountStore(fetcher: typeof fetch = fetch) {
-  return createCountStore("/api/notifications", fetcher);
-}
-
-/** A signed-in count badge. Counts never survive an account change. */
-function createCountStore(path: CountPath, fetcher: typeof fetch) {
+/** Counts never survive an account change. */
+export function createCountStore(
+  path: "/api/friends" | "/api/notifications",
+  fetcher: typeof fetch = fetch,
+) {
   let snapshot: Snapshot = { userId: null, count: null };
   let sequence = 0;
   let controller: AbortController | null = null;

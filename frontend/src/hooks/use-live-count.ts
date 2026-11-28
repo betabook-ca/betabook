@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { useClientSession } from "@/hooks/use-client-session";
-import type { CountStore } from "@/lib/friend-request-count";
+import type { CountStore } from "@/lib/count-store";
 import { usePathname } from "@/spa/lib/navigation";
 
 /** Keeps a signed-in count fresh on focus, visibility and navigation. */

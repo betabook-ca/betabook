@@ -3,16 +3,17 @@
 import { createContext, useContext, type ReactNode } from "react";
 
 import { useLiveCount } from "@/hooks/use-live-count";
-import { createNotificationCountStore, type CountStore } from "@/lib/friend-request-count";
+import { createCountStore, type CountStore } from "@/lib/count-store";
 
 const NotificationsContext = createContext<{
+  userId: string | null;
   count: number | null;
   refresh: CountStore["refresh"];
-}>({ count: null, refresh: async () => {} });
+}>({ userId: null, count: null, refresh: async () => {} });
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
-  const { count, refresh } = useLiveCount(createNotificationCountStore);
-  return <NotificationsContext value={{ count, refresh }}>{children}</NotificationsContext>;
+  const value = useLiveCount(() => createCountStore("/api/notifications"));
+  return <NotificationsContext value={value}>{children}</NotificationsContext>;
 }
 
 export function useNotifications() {

@@ -64,4 +64,4 @@ type Story = StoryObj<typeof meta>;
 
 export const Alerts: Story = {};
 export const Empty: Story = { args: { alerts: [] } };
-export const Loading: Story = { args: { alerts: undefined, pending: true } };
+export const Loading: Story = { args: { alerts: undefined } };

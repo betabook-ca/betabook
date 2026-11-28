@@ -3,12 +3,7 @@ import { expect, it, vi } from "vitest";
 
 import type { SendAlert } from "@/lib/community-types";
 
-import {
-  NotificationList,
-  seenThrough,
-  sendAlertHref,
-  sendAlertSummary,
-} from "./notification-list";
+import { NotificationList, sendAlertSummary } from "./notification-list";
 
 vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
@@ -40,10 +35,6 @@ it("names a single send's climb and counts a session's sends", () => {
   expect(sendAlertSummary(alert({ sends: 4 }))).toBe("Sam sent 4 climbs");
 });
 
-it("links each alert to the climber's sends on that day", () => {
-  expect(sendAlertHref(alert())).toBe("/users/sam/sends?date=2026-11-21");
-});
-
 it("lists named climbs, the remainder and an unread marker", () => {
   const html = renderToStaticMarkup(
     <NotificationList
@@ -64,11 +55,4 @@ it("lists named climbs, the remainder and an unread marker", () => {
 
 it("points an empty list at the privacy setting", () => {
   expect(renderToStaticMarkup(<NotificationList alerts={[]} />)).toContain("Account › Privacy");
-});
-
-it("marks read only through the newest alert the page showed", () => {
-  expect(
-    seenThrough([alert({ updatedAt: 5 }), alert({ updatedAt: 9 }), alert({ updatedAt: 7 })]),
-  ).toBe(9);
-  expect(seenThrough([])).toBeNull();
 });

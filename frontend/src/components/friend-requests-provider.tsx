@@ -3,7 +3,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 
 import { useLiveCount } from "@/hooks/use-live-count";
-import { createFriendRequestCountStore, type CountStore } from "@/lib/friend-request-count";
+import { createCountStore, type CountStore } from "@/lib/count-store";
 
 const FriendRequestsContext = createContext<{
   userId: string | null;
@@ -16,7 +16,7 @@ const FriendRequestsContext = createContext<{
 });
 
 export function FriendRequestsProvider({ children }: { children: ReactNode }) {
-  const value = useLiveCount(createFriendRequestCountStore);
+  const value = useLiveCount(() => createCountStore("/api/friends"));
   return <FriendRequestsContext value={value}>{children}</FriendRequestsContext>;
 }
 

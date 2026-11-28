@@ -21,4 +21,5 @@ CREATE TABLE `send_alerts` (
 );
 --> statement-breakpoint
 CREATE INDEX `send_alerts_recipient_updated_idx` ON `send_alerts` (`recipient_id`,`updated_at`);--> statement-breakpoint
-CREATE INDEX `send_alerts_actor_idx` ON `send_alerts` (`actor_id`);
+CREATE INDEX `send_alerts_actor_idx` ON `send_alerts` (`actor_id`);--> statement-breakpoint
+CREATE INDEX `send_alerts_unread_idx` ON `send_alerts` (`recipient_id`) WHERE `read_at` IS NULL;

@@ -65,6 +65,14 @@ fn days_in_month(year: i32, month: u32) -> u32 {
     }
 }
 
+pub fn days_between(from: &str, to: &str) -> Option<i64> {
+    let days = |value| {
+        parse_iso_date_parts(value)
+            .map(|(y, m, d)| days_from_civil(i64::from(y), i64::from(m), i64::from(d)))
+    };
+    Some(days(to)? - days(from)?)
+}
+
 /// Howard Hinnant's civil-to-days conversion (days since 1970-01-01).
 fn days_from_civil(year: i64, month: i64, day: i64) -> i64 {
     let y = year - if month <= 2 { 1 } else { 0 };
