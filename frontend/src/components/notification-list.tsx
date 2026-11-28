@@ -11,6 +11,11 @@ export function sendAlertHref(alert: Pick<SendAlert, "userId" | "date">) {
   return `/users/${alert.userId}/sends?date=${alert.date}`;
 }
 
+/** The newest `updatedAt` on screen, or null when there is nothing to read. */
+export function seenThrough(alerts: Pick<SendAlert, "updatedAt">[]): number | null {
+  return alerts.length ? Math.max(...alerts.map((alert) => alert.updatedAt)) : null;
+}
+
 export function sendAlertSummary(alert: SendAlert) {
   const [first] = alert.climbs;
   if (alert.sends === 1 && first) return `${alert.name} sent ${first.name}`;

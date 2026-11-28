@@ -89,7 +89,13 @@ export async function testSendAlerts({ server, db, signIn }: SmokeContext) {
   assert.deepEqual(await notifications(climber), []);
   assert.equal(await unreadCount(), 1);
 
-  assert.deepEqual(await postAction(server, friend, "markNotificationsRead"), { ok: true });
+  assert.deepEqual(await postAction(server, friend, "markNotificationsRead", alert.updatedAt - 1), {
+    ok: true,
+  });
+  assert.equal(await unreadCount(), 1, "an alert newer than the page stays unread");
+  assert.deepEqual(await postAction(server, friend, "markNotificationsRead", alert.updatedAt), {
+    ok: true,
+  });
   assert.equal(await unreadCount(), 0);
 
   assert.deepEqual(

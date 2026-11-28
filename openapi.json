@@ -7740,8 +7740,15 @@
               "schema": {
                 "properties": {
                   "args": {
-                    "const": [],
-                    "maxItems": 0,
+                    "items": false,
+                    "maxItems": 1,
+                    "minItems": 1,
+                    "prefixItems": [
+                      {
+                        "title": "seenThrough",
+                        "type": "integer"
+                      }
+                    ],
                     "type": "array"
                   }
                 },

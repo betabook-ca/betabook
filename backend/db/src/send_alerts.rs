@@ -11,7 +11,7 @@ use crate::{DbError, DbExecutor, DbParam};
 
 /// Alerts listed on the notifications page.
 pub const SEND_ALERT_LIMIT: usize = 50;
-/// Climbs named on one alert; the count covers the rest.
+/// Climbs named on one alert, newest send first; the count covers the rest.
 pub const SEND_ALERT_CLIMBS: usize = 3;
 /// Sends dated further back than this many days alert no one.
 pub const SEND_ALERT_WINDOW_DAYS: i64 = 7;
@@ -115,7 +115,7 @@ pub async fn list<D: DbExecutor>(
          FROM alerts a
          JOIN sends s ON s.user_id = a.actor_id AND s.date_sent = a.day
          JOIN climbs c ON c.id = s.climb_id
-         ORDER BY a.updated_at DESC, a.actor_id, a.day, c.grade DESC, s.id"
+         ORDER BY a.updated_at DESC, a.actor_id, a.day, s.id DESC"
     );
     let mut alerts: Vec<SendAlert> = Vec::new();
     for row in db.query_all(&sql, &params).await? {
@@ -169,14 +169,22 @@ pub async fn unread_count<D: DbExecutor>(db: &D, recipient_id: &str) -> Result<i
         .unwrap_or(0))
 }
 
+/// Reads the alerts the recipient was shown: those last updated at or before
+/// `seen_through`, the newest `updated_at` on the page they loaded.
 pub async fn mark_read<D: DbExecutor>(
     db: &D,
     recipient_id: &str,
+    seen_through: i64,
     now_ms: i64,
 ) -> Result<(), DbError> {
     db.execute(
-        "UPDATE send_alerts SET read_at = ? WHERE recipient_id = ? AND read_at IS NULL",
-        &[DbParam::Int(now_ms), DbParam::Text(recipient_id.to_owned())],
+        "UPDATE send_alerts SET read_at = ?
+         WHERE recipient_id = ? AND read_at IS NULL AND updated_at <= ?",
+        &[
+            DbParam::Int(now_ms),
+            DbParam::Text(recipient_id.to_owned()),
+            DbParam::Int(seen_through),
+        ],
     )
     .await?;
     Ok(())

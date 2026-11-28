@@ -259,7 +259,8 @@ fn input(api: &mut ApiSpec, action: Action) -> Value {
         PinProject | UnpinProject | UnshareProject | RequestClimbDelete => {
             args([("climbId", id())])
         }
-        MarkNotificationsRead | RemoveProfilePhoto | ResetProfileShareLink => args([]),
+        MarkNotificationsRead => args([("seenThrough", number())]),
+        RemoveProfilePhoto | ResetProfileShareLink => args([]),
         RequestAreaEdit | UpdateArea => args([
             ("areaId", id()),
             ("area", form(api, "Area name and/or description")),

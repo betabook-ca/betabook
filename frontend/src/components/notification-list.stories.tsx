@@ -46,7 +46,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "One row per friend per send date. A single send names its climb; a session names the first three climbs by grade and counts the rest. The dot marks alerts that arrived since the last visit.",
+          "One row per friend per send date. A single send names its climb; a session names its three newest sends and counts the rest. The dot marks alerts that arrived since the last visit.",
       },
     },
   },

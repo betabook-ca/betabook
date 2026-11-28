@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 
 import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
-import { NotificationList } from "@/components/notification-list";
+import { NotificationList, seenThrough } from "@/components/notification-list";
 import { useNotifications } from "@/components/notifications-provider";
 import { markNotificationsRead } from "@/spa/lib/actions-client";
 import { fetchApi } from "@/spa/lib/api";
@@ -18,15 +18,15 @@ export default function NotificationsRoute({ viewerId }: { viewerId: string | nu
       return page;
     },
   });
-  const loaded = Boolean(data);
+  const newest = data ? seenThrough(data.alerts) : null;
 
   useEffect(() => {
-    if (!viewerId || !loaded) return;
-    void markNotificationsRead().then(
+    if (!viewerId || newest === null) return;
+    void markNotificationsRead(newest).then(
       () => refresh(),
       () => {},
     );
-  }, [viewerId, loaded, refresh]);
+  }, [viewerId, newest, refresh]);
 
   if (!viewerId) return <CurrentPageAuthCallout />;
   return (

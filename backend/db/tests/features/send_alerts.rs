@@ -62,18 +62,24 @@ fn alerts_accepted_friends_who_opted_in_and_batches_one_day() -> Result<(), DbEr
             assert!(list(&db, other, 50).await?.is_empty(), "{other}");
         }
 
-        mark_read(&db, "friend", 20).await?;
+        mark_read(&db, "friend", 10, 20).await?;
         assert_eq!(unread_count(&db, "friend").await?, 0);
         send(&db, 2, DAY).await?;
         send(&db, 3, DAY).await?;
         assert_eq!(fan_out(&db, "climber", DAY, TODAY, 30).await?, ["friend"]);
+        mark_read(&db, "friend", 25, 40).await?;
+        assert_eq!(
+            unread_count(&db, "friend").await?,
+            1,
+            "unseen refresh stays unread"
+        );
 
         let alerts = list(&db, "friend", 50).await?;
         assert_eq!(alerts.len(), 1);
         let alert = &alerts[0];
         assert_eq!((alert.sends, alert.updated_at, alert.unread), (3, 30, true));
         let names: Vec<_> = alert.climbs.iter().map(|c| c.name.as_str()).collect();
-        assert_eq!(names, ["Hard", "Mid", "Easy"]);
+        assert_eq!(names, ["Mid", "Hard", "Easy"], "newest send first");
         Ok(())
     })
 }
@@ -130,7 +136,7 @@ fn reads_hide_alerts_once_permissions_or_sends_change() -> Result<(), DbError> {
         update_preferences(&db, "friend", true, true, 5).await?;
         assert_eq!(visible().await?, 1);
 
-        mark_read(&db, "climber", 6).await?;
+        mark_read(&db, "climber", 100, 6).await?;
         assert_eq!(unread_count(&db, "friend").await?, 1);
 
         db.execute("DELETE FROM sends WHERE user_id='climber'", &[])

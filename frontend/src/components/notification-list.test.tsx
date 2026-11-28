@@ -3,7 +3,12 @@ import { expect, it, vi } from "vitest";
 
 import type { SendAlert } from "@/lib/community-types";
 
-import { NotificationList, sendAlertHref, sendAlertSummary } from "./notification-list";
+import {
+  NotificationList,
+  seenThrough,
+  sendAlertHref,
+  sendAlertSummary,
+} from "./notification-list";
 
 vi.mock("@/spa/lib/navigation", () => ({
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
@@ -59,4 +64,11 @@ it("lists named climbs, the remainder and an unread marker", () => {
 
 it("points an empty list at the privacy setting", () => {
   expect(renderToStaticMarkup(<NotificationList alerts={[]} />)).toContain("Account › Privacy");
+});
+
+it("marks read only through the newest alert the page showed", () => {
+  expect(
+    seenThrough([alert({ updatedAt: 5 }), alert({ updatedAt: 9 }), alert({ updatedAt: 7 })]),
+  ).toBe(9);
+  expect(seenThrough([])).toBeNull();
 });

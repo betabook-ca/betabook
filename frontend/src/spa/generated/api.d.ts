@@ -4348,8 +4348,9 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @constant */
-                    args: never[];
+                    args: [
+                        number
+                    ];
                 };
             };
         };

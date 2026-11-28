@@ -1116,7 +1116,11 @@ pub async fn dispatch_action(
                 Ok(s) => s,
                 Err(err) => return crate::routes::actions::session_error(err),
             };
-            send_alerts::mark_read(state.db(), &session.user.id, state.now_ms()).await?;
+            let Some(seen_through) = call.args.first().and_then(Value::as_i64) else {
+                return Ok(action_err("Reload notifications and try again."));
+            };
+            send_alerts::mark_read(state.db(), &session.user.id, seen_through, state.now_ms())
+                .await?;
             Ok(action_ok())
         }
         Action::ResetProfileShareLink => {
